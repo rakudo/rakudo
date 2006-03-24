@@ -1,0 +1,78 @@
+=head1 Perl 6 parser
+
+This is a Perl 6 parser, an early version (no version numbers yet).
+
+I know you're probably looking for the Perl 6 compiler, but this
+isn't it, at least not yet.  Eventually it probably will be, but
+for the moment it's just the parser.  As we finish up TGE
+(compilers/tge) and code generation, then this will probably
+be the Perl 6 compiler.
+
+(If you're in a hurry to write Perl 6 programs,  you might try 
+looking at PUGS -- http://www.pugscode.org.  Or, help us build
+the compiler here -- read on!)
+
+However, even though this is not a complete compiler yet, you can
+still see how Perl 6 programs are parsed, help us create test
+cases, and extend/improve the grammar to cover more of Perl 6.
+Here's how to do it:
+
+=head2 Compiling
+
+The Perl 6 parser lives in the perl6.pbc file.  To create this
+file, simply issue the command
+
+  $ make
+
+This directory comes with F<p6shell.pir>, which is a simple parrot
+script designed to exercise the parser, both on static input files
+and interactively via command line input.  To run the parser
+on a perl 6 input file named "foo.p6" and display the resulting
+parse tree:
+
+  $ parrot p6shell.pir foo.p6
+
+To run the parser interactively, entering single-line statements
+and displaying the parse tree for each:
+
+  $ parrot p6shell.pir
+
+=head2 Files
+
+The "top" file for the parser is F<perl6.pir> which is used to
+create the F<perl6.pbc> file.  It initializes the overall
+parsing system and registers the parser as a Parrot "Perl6" compiler.
+
+The other files needed for parsing are in the F<lib/> subdirectory.
+
+The F<lib/grammar.g> file defines the "top-down" grammar used for
+large Perl 6 program structures.  It consists of rule statements
+defined in Perl 6 rules syntax and is compiled using the
+C<rulec.pir> "rules compiler" from PGE to produce a lib/grammar.pir
+file with the PIR version of the rules.  (For more information on 
+Perl 6 rules, see Synopsis 5 and the Parrot Grammar Engine in the 
+F<compilers/pge> directory.)
+
+The F<lib/parse.pir> file defines the "bottom-up" parser 
+operators, as well as any special-purpose rules needed for
+parsing Perl 6 that are better written directly in PIR instead
+of using the top-down rules syntax or bottom-up operator
+precedence parser.  
+
+The PIR files in F<lib/> are then included as part of compiling
+F<perl6.pir> to produce F<perl6.pbc>.  One can then parse Perl 6
+source by doing:
+
+    $P0 = compreg "Perl6"
+    $S0 = "...perl 6 source code..."
+    $P1 = $P0($S0)
+    # $P1 holds the parse tree of the Perl 6 source code
+
+
+=head1 AUTHOR
+
+Patrick Michaud (pmichaud@pobox.com) is the author and maintainer.
+Patches and suggestions should be sent to the Perl 6 compiler list
+(perl6-compiler@perl.org).
+
+=cut

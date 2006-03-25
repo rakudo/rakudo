@@ -28,13 +28,28 @@ dumping the resulting parse trees to the standard output.
     load_bytecode "perl6.pbc"
     load_bytecode "dumper.pir"
     load_bytecode "PGE/Dumper.pir"
+    load_bytecode "Getopt/Obj.pir"
 
     p6compile = compreg "Perl6"
-   
+
+    .local pmc getopts, opts
+    .local string arg0
+    arg0 = shift args
+    getopts = new "Getopt::Obj"
+    getopts."notOptStop"(1)
+    push getopts, "dump-optable"
+    push getopts, "help|h"
+    opts = getopts."get_options"(args)
+
+    $S0 = opts["dump-optable"]
+    if $S0 goto dump_optable
+    $S0 = opts["help"]
+    if $S0 goto usage
+
     $I0 = elements args
-    if $I0 < 2 goto read_stdin
-    if $I0 > 2 goto usage
-  
+    if $I0 > 1 goto usage
+    if $I0 < 1 goto read_stdin
+
     .local string filename
     .local pmc filehandle
     filename = args[1]
@@ -46,7 +61,6 @@ dumping the resulting parse trees to the standard output.
     unless $P0 goto end
     "_dumper"($P0)
     goto end
-   
 
   read_stdin:
     .local pmc stdin
@@ -60,8 +74,14 @@ dumping the resulting parse trees to the standard output.
     "_dumper"($P0)
     goto stdin_loop
 
+  dump_optable:
+    print "$Perl6::Grammar::optable :\n"
+    $P0 = find_global "Perl6::Grammar", "$optable"
+    "_dumper"($P0)
+    goto end
+
   usage:
-    print "usage: p6shell.pir [file]\n"
+    print "usage: p6shell.pir [--dump-optable] [file]\n"
 
   end:
 .end

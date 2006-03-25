@@ -32,37 +32,13 @@ and initializes it with the operators defined by Perl 6.
     $P0 = find_global "Perl6::Grammar", "ws"
     setattribute optable, "PGE::OPTable\x0&!ws", $P0
 
-    # additive
-    optable.addtok("infix:+")
-    optable.addtok("infix:-", "infix:+")
-
-    # multiplicative
-    optable.addtok("infix:*", ">infix:+")
-    optable.addtok("infix:/", "infix:*")
-    optable.addtok("infix:%", "infix:*")
-    optable.addtok("infix:x", "infix:*")
-    optable.addtok("infix:xx", "infix:*")
-    optable.addtok("infix:+&", "infix:*")
-    optable.addtok("infix:+<", "infix:*")
-
-    # symbolic unary
-    optable.addtok("prefix:!", ">infix:*")
-    optable.addtok("prefix:+", "prefix:!")
-    optable.addtok("prefix:-", "prefix:!")
-    optable.addtok("prefix:~", "prefix:!")
-    optable.addtok("prefix:?", "prefix:!")
-    optable.addtok("prefix:*", "prefix:!")
-    optable.addtok("prefix:**", "prefix:!")
-
-    # exponentiation
-    optable.addtok("infix:**", ">prefix:!")
-
-    # autoincrement
-    optable.addtok("postfix:++", ">infix:**")
-    optable.addtok("postfix:--", "postfix:++")
+    # terms
+    $P0 = find_global "Perl6::Grammar", "term"
+    optable.addtok("term:", "22=", "left", $P0)
+    optable.addtok("circumfix:( )", "term:")
 
     # method postfix
-    optable.addtok("postfix:.", ">postfix:++")
+    optable.addtok("postfix:.", "21=")
     optable.addtok("postcircumfix:.( )", "postfix:.")
     optable.addtok("postcircumfix:.[ ]", "postfix:.")
     optable.addtok("postcircumfix:.{ }", "postfix:.")
@@ -70,17 +46,41 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("postcircumfix:[ ]", "postfix:.", "nows")
     optable.addtok("postcircumfix:{ }", "postfix:.", "nows")
 
-    # terms
-    $P0 = find_global "Perl6::Grammar", "term"
-    optable.addtok("term:", ">postfix:.", "left", $P0)
-    optable.addtok("circumfix:( )", "term:")
+    # autoincrement
+    optable.addtok("postfix:++", "20=")
+    optable.addtok("postfix:--", "postfix:++")
+
+    # exponentiation
+    optable.addtok("infix:**", "19=")
+
+    # symbolic unary
+    optable.addtok("prefix:!", "18=")
+    optable.addtok("prefix:+", "prefix:!")
+    optable.addtok("prefix:-", "prefix:!")
+    optable.addtok("prefix:~", "prefix:!")
+    optable.addtok("prefix:?", "prefix:!")
+    optable.addtok("prefix:*", "prefix:!")
+    optable.addtok("prefix:**", "prefix:!")
+
+    # multiplicative
+    optable.addtok("infix:*", "17=")
+    optable.addtok("infix:/", "infix:*")
+    optable.addtok("infix:%", "infix:*")
+    optable.addtok("infix:x", "infix:*")
+    optable.addtok("infix:xx", "infix:*")
+    optable.addtok("infix:+&", "infix:*")
+    optable.addtok("infix:+<", "infix:*")
+
+    # additive
+    optable.addtok("infix:+", "16=")
+    optable.addtok("infix:-", "infix:+")
 
     # named unary
-    optable.addtok("prefix:rand", "<infix:+", "nullterm")
+    optable.addtok("prefix:rand", "13=", "nullterm")
     optable.addtok("prefix:sleep", "prefix:rand", "nullterm")
 
     # nonchaining binary
-    optable.addtok("infix:<=>", "<prefix:rand")
+    optable.addtok("infix:<=>", "12=")
     optable.addtok("infix:cmp", "infix:<=>")
     optable.addtok("infix:..", "infix:<=>")
     optable.addtok("infix:^..", "infix:<=>")
@@ -88,7 +88,7 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("infix:^..^", "infix:<=>")
 
     # chaining binary
-    optable.addtok("infix:==", "<infix:<=>")
+    optable.addtok("infix:==", "11=")
     optable.addtok("infix:!=", "infix:==")
     optable.addtok("infix:<=", "infix:==")
     optable.addtok("infix:>=", "infix:==")
@@ -96,42 +96,42 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("infix:>", "infix:==")
 
     # tight and
-    optable.addtok("infix:&&", "<infix:==")
+    optable.addtok("infix:&&", "10=")
 
     # tight or
-    optable.addtok("infix:||", "<infix:&&")
+    optable.addtok("infix:||", "09=")
     optable.addtok("infix:^^", "infix:||")
     optable.addtok("infix://", "infix:||")
 
     # ternary
-    optable.addtok("ternary:?? !!", "<infix:||", "right")
+    optable.addtok("ternary:?? !!", "08=", "right")
 
     # assignment
-    optable.addtok("infix:=", "<ternary:?? !!", "right")
+    optable.addtok("infix:=", "07=", "right")
     optable.addtok("infix::=", "infix:=", "right")
     optable.addtok("infix:::=", "infix:=", "right")
    
     # list item separator
-    optable.addtok("infix:,", "<infix:=")
+    optable.addtok("infix:,", "06=")
 
     # list op
-    optable.addtok("infix:<==", "<infix:,", "right")
+    optable.addtok("infix:<==", "05=", "right")
     $P0 = find_global "Perl6::Grammar", "listop"
     optable.addtok("prelist:", "infix:<==", "right,nullterm", $P0)
 
     # pipe forward
-    optable.addtok("infix:==>", "<infix:<==")
+    optable.addtok("infix:==>", "04=")
 
     # loose and
-    optable.addtok("infix:and", "<infix:==>")
+    optable.addtok("infix:and", "03=")
 
     # loose or
-    optable.addtok("infix:or", "<infix:and")
+    optable.addtok("infix:or", "02=")
     optable.addtok("infix:xor", "infix:or")
     optable.addtok("infix:err", "infix:or")
 
     # expr terminator
-    optable.addtok("infix:;", "<infix:or", "nullterm")
+    optable.addtok("infix:;", "01=", "nullterm")
 
 .end
 

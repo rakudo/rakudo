@@ -1,0 +1,35 @@
+This is a laundry list of things completed
+and items on the "to do" list for the Perl 6
+parser (and eventually the compiler).
+
+>> The MOST IMPORTANT to-do item at the moment is <<
+>> we need a testing framework of some sort for   <<
+>> the parser, so that we know when things break. <<
+
+
+Parser implemented
+------------------
+* Basic expressions and operators
+* Common if, while statements
+* Basic blocks
+* Perl 6 comments (excluding POD)
+* Listop parsing
+
+
+Parser to-do
+------------
+* POD comments
+* statement modifier operators
+* real pointy subs
+* subroutine definitions
+* subroutine calling syntax
+* variables
+* real quoted-string terms
+* "use" statement
+* statement labels
+
+
+Small patches are preferred over large ones.  Send
+patches to the <perl6-compiler@perl.org> mailing list.
+
+

@@ -10,6 +10,8 @@ sub, which creates an operator precedence parser for Perl 6
 expressions.  Other specialized parsing subroutines will
 appear here as the parser grows.
 
+=over 4
+
 =cut
 
 .namespace [ "Perl6::Grammar" ]
@@ -201,3 +203,8 @@ PGE_CUT_MATCH result to abandon the parse altogether.
     .return (mob)
 .end
    
+=pod
+
+=back
+
+=cut

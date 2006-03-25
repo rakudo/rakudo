@@ -16,6 +16,8 @@ Just to make sure we aren't fooling anyone -- at the
 moment the "Perl6" compiler here only parses Perl 6 code.
 But that should change soon.
 
+=over 4
+
 =cut
 
 .include "lib/parse.pir"
@@ -40,4 +42,8 @@ compiler.
     compreg "Perl6", $P1
 .end
 
+=pod
 
+=back
+
+=cut

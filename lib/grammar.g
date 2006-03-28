@@ -88,8 +88,8 @@ rule expression { <opparse> }
 rule term {
     <sigil> <name>
     | <block>
-    | <integer>
     | <number>
+    | <integer>
     | <PGE::Text::bracketed: '">
 }
 

@@ -114,7 +114,7 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("infix:::=", "infix:=", "right")
    
     # list item separator
-    optable.addtok("infix:,", "06=")
+    optable.addtok("infix:,", "06=", "list,nullterm")
 
     # list op
     optable.addtok("infix:<==", "05=", "right")

@@ -24,18 +24,22 @@ file, simply issue the command
 
   $ make
 
-This directory comes with F<p6shell.pir>, which is a simple parrot
-script designed to exercise the parser, both on static input files
-and interactively via command line input.  To run the parser
-on a perl 6 input file named "foo.p6" and display the resulting
-parse tree:
+To invoke the parser from a shell prompt on a (Perl 6)
+input file named "foo.p6", use:
 
-  $ parrot p6shell.pir foo.p6
+  $ parrot perl6.pbc foo.p6
 
-To run the parser interactively, entering single-line statements
+To run interactively, entering single-line statements
 and displaying the parse tree for each:
 
-  $ parrot p6shell.pir
+  $ parrot perl6.pbc
+
+At the moment perl6.pbc only displays the parse tree.  
+
+To get a dump of the parser's operator precedence table,
+use --dump-optable:
+
+  $ parrot perl6.pbc --dump-optable
 
 =head2 Files
 
@@ -59,13 +63,17 @@ parsing Perl 6 that are better written directly in PIR instead
 of using the top-down rules syntax or bottom-up operator
 precedence parser.  
 
-The PIR files in F<lib/> are then included as part of compiling
+The F<lib/main.pir> file controls what happens when the perl6.pbc
+file is invoked directly from parrot (as opposed to being
+loaded via the load_bytecode op).
+
+The PIR files in F<lib/> are included as part of compiling
 F<perl6.pir> to produce F<perl6.pbc>.  One can then parse Perl 6
 source by doing:
 
     $P0 = compreg "Perl6"
     $S0 = "...perl 6 source code..."
-    $P1 = $P0($S0)
+    $P1 = $P0($S0, target=>'parse')
     # $P1 holds the parse tree of the Perl 6 source code
 
 

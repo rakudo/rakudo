@@ -18,14 +18,14 @@ appear here as the parser grows.
 
 .include "cclass.pasm"
 
-=item C<__onload()>
+=item C<__onload_parse()>
 
 This subroutine creates an operator precedence parser
 and initializes it with the operators defined by Perl 6.
 
 =cut
 
-.sub "__onload" :load
+.sub "__onload_parse" :load
     .local pmc optable
     $I0 = find_type "PGE::OPTable"
     optable = new $I0

@@ -8,6 +8,8 @@ See Perl6.pir for a synopsis.
 
 =head1 Functions
 
+=over 4
+
 =item C<main(PMC args)>
 
 Handles program control when the Perl6.pbc file is executed

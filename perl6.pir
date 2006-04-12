@@ -25,9 +25,10 @@ But that should change soon.
 
 .namespace [ "Perl6" ]
 
-=over 4
 
 =head2 Functions
+
+=over 4
 
 =item C<__onload()>
 
@@ -116,8 +117,6 @@ compiled code as a PMC.
 .end
 
 .include "lib/main.pir"
-
-=pod
 
 =back
 

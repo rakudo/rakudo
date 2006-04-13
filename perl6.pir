@@ -18,12 +18,14 @@ But that should change soon.
 
 =cut
 
-.include "lib/parse.pir"
+.include 'lib/parse.pir'
 
-.namespace [ "Perl6::Grammar" ]
-.include "lib/grammar.pir"
+.namespace [ 'Perl6::Grammar' ]
+.include 'lib/grammar.pir'
 
-.namespace [ "Perl6" ]
+.include 'lib/PAST.pir'
+
+.namespace [ 'Perl6' ]
 
 
 =head2 Functions
@@ -38,23 +40,24 @@ compiler.
 
 =cut
 
-.sub "__onload" :load
-    load_bytecode "PGE.pbc"
-    load_bytecode "PGE/Text.pir"
+.sub '__onload' :load
+    load_bytecode 'PGE.pbc'
+    load_bytecode 'PGE/Text.pir'
+    load_bytecode 'TGE.pbc'
 
-    $I0 = find_type "Perl6::Grammar"
+    $I0 = find_type 'Perl6::Grammar'
     if $I0 != 0 goto onload_1
-    load_bytecode "PGE.pbc"
-    $P0 = getclass "PGE::Rule"
-    $P0 = subclass $P0, "Perl6::Grammar"
+    load_bytecode 'PGE.pbc'
+    $P0 = getclass 'PGE::Rule'
+    $P0 = subclass $P0, 'Perl6::Grammar'
   onload_1:
 
-    $P0 = compreg "PGE::P6Rule"
-    $P1 = $P0("^<Perl6::Grammar::program>")
-    store_global "Perl6", "&parse", $P1
+    $P0 = compreg 'PGE::P6Rule'
+    $P1 = $P0('^<Perl6::Grammar::program>')
+    store_global 'Perl6', '&parse', $P1
    
-    $P0 = find_global "Perl6", "compile" 
-    compreg "Perl6", $P0
+    $P0 = find_global 'Perl6', 'compile' 
+    compreg 'Perl6', $P0
 .end
 
 
@@ -85,26 +88,25 @@ compiled code as a PMC.
 
     unless match goto return_match
     if target == 'parse' goto return_match
-    goto return_match
 
   build_ast:
-    match = match['Perl::Grammar::statement_list']
+    match = match['Perl6::Grammar::program']
     .local pmc astgrammar, astbuilder, ast
-    astgrammar = new 'ASTGrammar'
+    astgrammar = new 'Perl6::PAST::Grammar'
     astbuilder = astgrammar.apply(match)
-    ast = astbuilder.get('result')
+    ast = astbuilder.get('past')
     if target == 'PAST' goto return_ast
 
   build_pir:
     .local pmc pirgrammar, pirbuilder
     .local string pir
-    pirgrammar = new 'PIRGrammar'
+    pirgrammar = new 'Perl6::PIR::Grammar'
     pirbuilder = pirgrammar.'apply'(ast)
     pir = pirbuilder.get('pir')
     if target == 'PIR' goto return_pir
 
  compile_pir:
-    $P0 = compreg "PIR"
+    $P0 = compreg 'PIR'
     $P1 = $P0(pir)
     .return ($P1)
 
@@ -116,7 +118,9 @@ compiled code as a PMC.
     .return (pir)
 .end
 
-.include "lib/main.pir"
+.include 'lib/main.pir'
+
+.include 'lib/builtins.pir'
 
 =back
 

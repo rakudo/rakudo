@@ -1,0 +1,166 @@
+ROOT: past(.) = {
+    $P0 = node['statement_list']
+    .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
+}
+
+
+Perl6::Grammar::statement_list:  past(.) = {
+    .local pmc past
+    .local pmc children
+    .local pmc iter
+
+    past = new 'Perl6::PAST::Stmts'
+    past.'set_node'(node)
+
+    children = new .ResizablePMCArray
+    $P0 = node['statement']
+    iter = new .Iterator, $P0
+    iter = 0
+  iter_loop:
+    unless iter goto iter_end
+    $P1 = shift iter
+    $P2 = tree.'get'('past', $P1, 'Perl6::Grammar::statement')
+    if null $P2 goto iter_loop
+    push children, $P2
+    goto iter_loop
+  iter_end:
+    past['children'] = children
+    .return (past)
+}
+
+
+Perl6::Grammar::statement: past(.) = {
+    .local pmc past
+    past = new 'Perl6::PAST::Stmt'
+    past.'set_node'(node)
+
+    $P0 = node['expression']
+    if $P0 goto expression
+    goto end
+
+  expression:
+    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::expression')
+    past['statement'] = $P1
+
+  end:
+    .return (past)
+}
+
+
+Perl6::Grammar::expression: past(.) = {
+    .local pmc past
+
+    past = new 'Perl6::PAST::Exp'
+    past.set_node(node)
+
+    $P0 = node['opparse']
+    $P0 = $P0['expr']
+    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::expr')
+    past['expression'] = $P1
+    .return (past)
+}
+
+
+Perl6::Grammar::expr: past(.) = {
+    .local string type
+    .local pmc optable
+    .local pmc op
+    type = node['type']
+    if type != "" goto pastrule
+    null $P0
+    .return ($P0)
+
+  pastrule:
+    optable = find_global "Perl6::Grammar", "$optable"
+    op = optable[type] 
+    $S0 = op['pastrule']
+    unless $S0 goto op_standard
+    .return tree.'get'($S0, node, 'Perl6::Grammar::expr')
+
+  op_standard:
+    .local pmc past, children, iter
+    past = new 'Perl6::PAST::Op'
+    past.set_node(node)
+    children = new .ResizablePMCArray
+    $P0 = node.'get_array'()
+    if null $P0 goto iter_end
+    iter = new .Iterator, $P0
+    iter = 0
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $S0 = $P0
+    if $S0 == "" goto iter_loop
+    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::expr')
+    if null $P1 goto iter_loop
+    push children, $P1
+    goto iter_loop
+  iter_end:
+    past['children'] = children
+    past['op'] = type
+  subname:
+    $I0 = exists op['subname']
+    if $I0 goto subname_op
+    $I0 = exists node['ident']
+    if $I0 goto subname_ident
+    past['subname'] = type
+    goto end
+  subname_op:
+    $S0 = op['subname']
+    past['subname'] = $S0
+    goto end
+  subname_ident:
+    $S0 = node['ident']
+    past['subname'] = $S0
+  end:    
+    .return (past)
+}
+
+
+Perl6::Grammar::expr: past_term(.) = {
+    .local pmc iter
+    $P0 = node.'get_hash'()
+    iter = new .Iterator, $P0
+    iter = 0
+  iter_loop:
+    unless iter goto term_error
+    $S0 = shift iter
+    $P0 = iter[$S0]
+    $S1 = concat 'Perl6::Grammar::', $S0
+    $P1 = tree.'get'('past', $P0, $S1)
+    if null $P1 goto iter_loop
+    .return ($P1)
+
+  term_error:
+    print "error: 'term' node has incorrect structure.\n"
+    end
+}
+
+
+Perl6::Grammar::type: past(.) = {
+    null $P0
+    .return ($P0)
+}   
+
+
+Perl6::Grammar::integer: past(.) = {
+    .local pmc past
+    past = new 'Perl6::PAST::Val'
+    past.set_node(node)
+    past['returns'] = 'int'
+    $I0 = node
+    past['value'] = $I0
+    .return (past)
+}
+
+
+Perl6::Grammar::string_literal: past(.) = {
+    .local pmc past
+    past = new 'Perl6::PAST::Val'
+    past.set_node(node)
+    past['returns'] = 'str'
+    $S0 = node
+    past['value'] = $S0
+    .return (past)
+}
+

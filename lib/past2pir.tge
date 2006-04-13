@@ -1,0 +1,132 @@
+Perl6::PAST::Stmts: pir(.) = {
+    .local pmc pir
+    pir = new 'PGE::CodeString'
+    pir.emit(".sub 'anon' :anon")
+    $P0 = node['children']
+    unless $P0 goto end
+
+    .local pmc iter
+    iter = new .Iterator, $P0
+    iter = 0
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $P1 = tree.'get'('pir', $P0)
+    pir .= $P1
+    goto iter_loop
+  iter_end:
+    $P2 = $P0['ret']
+    node['ret'] = $P2
+  end:
+    pir.emit(".end")
+    .return (pir)
+}
+
+
+Perl6::PAST::Stmt: pir(.) = {
+    $P0 = node['statement']
+    $P1 = tree.'get'('pir', $P0)
+    $P2 = $P0['ret']
+    node['ret'] = $P2
+    .return ($P1)
+}
+
+
+Perl6::PAST::Exp: pir(.) = {
+    $P0 = node['expression']
+    $P1 = tree.'get'('pir', $P0)
+    $P2 = $P0['ret']
+    node['ret'] = $P2
+    .return ($P1)
+}
+
+
+Perl6::PAST::Op: pir(.) = {
+    .local pmc pir
+    pir = new 'PGE::CodeString'
+
+    .local pmc op, optable
+    optable = find_global "Perl6::Grammar", "$optable"
+    $S0 = node['op']
+    op = optable[$S0]
+
+    .local pmc childret
+    childret = new .ResizablePMCArray
+    $P0 = node['children']
+    unless $P0 goto end
+    if $S0 != 'prelist:' goto childops
+    $P1 = $P0[0]
+    $S0 = $P1['op']
+    if $S0 != 'infix:,' goto childops
+    $P0 = $P1['children']
+    unless $P0 goto end
+
+  childops:
+    .local pmc iter
+    iter = new .Iterator, $P0
+    iter = 0
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $P1 = tree.'get'('pir', $P0)
+    pir .= $P1
+    $P2 = $P0['ret']
+    push childret, $P2
+    goto iter_loop
+  iter_end:
+  end:
+    .local string ret, fmt
+    ret = childret[0]
+    $S0 = node['subname']
+    fmt = op['pircode']
+    if fmt goto emit_pir
+    ret = pir.unique('$P')
+    fmt = "    %r = '%f'(%,)"
+  emit_pir:
+    node['ret'] = ret
+    pir.emit(fmt, childret :flat, 'r'=>ret, 'f'=>$S0)
+    .return (pir)
+}
+
+
+Perl6::PAST::Val: pir(.) = {
+    .local pmc pir
+    .local string ret
+    .local string value
+    pir = new "PGE::CodeString"
+    ret = pir.unique('$P')
+    pir.emit('    %r = new .Undef', 0, 'r' => ret)
+    value = node['value']
+    $S0 = node['returns']
+    if $S0 == 'int' goto emit_pir
+  
+  string:
+    $S1 = substr value, 0, 1
+    value = substr value, 1
+    chopn value, 1
+    value = escape value
+    if $S1 != '"' goto slash_end
+    # remove any '\\' sequences for double-quoted strings
+    $I0 = 0
+  slash_loop:
+    $I0 = index value, "\\\\", $I0
+    if $I0 < 0 goto slash_end
+    substr value, $I0, 2, "\\"
+    goto slash_loop
+  slash_end:
+    # add quotes for pir
+    value = concat '"', value
+    value = concat value, '"'
+    $I0 = index value, "\\x"
+    if $I0 >= 0 goto unicode
+    $I0 = index value, "\\u"
+    if $I0 >= 0 goto unicode
+    goto emit_pir
+  unicode:
+    value = concat 'unicode:', value
+
+  emit_pir:
+    pir.emit('    assign %r, %0', value, 'r' => ret)
+    node['ret'] = ret
+    .return (pir)
+}

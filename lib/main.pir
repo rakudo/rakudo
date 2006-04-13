@@ -31,6 +31,8 @@ executing program statements.
     $P0()
     $P0 = find_global 'Perl6::Grammar', '__onload_parse'
     $P0()
+    $P0 = find_global 'Perl6::PAST', '__onload'
+    $P0()
 
     load_bytecode 'dumper.pbc'
     load_bytecode 'PGE/Dumper.pbc'
@@ -86,7 +88,6 @@ executing program statements.
     $P0 = perl6(stmt, 'target' => target)
     if target == 'PIR' goto dump_pir
     if target goto dump_object
-    goto dump_object
     $P0()
     ret
   dump_pir:

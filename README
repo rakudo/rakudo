@@ -1,21 +1,15 @@
 =head1 Perl 6 parser
 
-This is a Perl 6 parser, an early version (no version numbers yet).
-
-I know you're probably looking for the Perl 6 compiler, but this
-isn't it, at least not yet.  Eventually it probably will be, but
-for the moment it's just the parser.  As we finish up TGE
-(compilers/tge) and code generation, then this will probably
-be the Perl 6 compiler.
-
-(If you're in a hurry to write Perl 6 programs,  you might try 
-looking at PUGS -- http://www.pugscode.org.  Or, help us build
-the compiler here -- read on!)
+This is a Perl 6 parser/compiler, an early version (no version numbers 
+yet).  It's still very early, only simple expressions and functions are
+available.  If you're in a hurry to write "real Perl 6" programs,  
+you might try looking at PUGS -- http://www.pugscode.org.  Or, you
+can send patches and contributions to the one being built here!
 
 However, even though this is not a complete compiler yet, you can
 still see how Perl 6 programs are parsed, help us create test
-cases, and extend/improve the grammar to cover more of Perl 6.
-Here's how to do it:
+cases, and extend/improve the grammar and runtime to cover more 
+of Perl 6.  Here's how the system currently works:
 
 =head2 Compiling
 
@@ -29,12 +23,16 @@ input file named "foo.p6", use:
 
   $ parrot perl6.pbc foo.p6
 
-To run interactively, entering single-line statements
-and displaying the parse tree for each:
+To run interactively, entering single-line statements:
 
   $ parrot perl6.pbc
 
-At the moment perl6.pbc only displays the parse tree.  
+To display the parse tree, add the "--target=parse" option:
+
+  $ parrot perl6.pbc --target=parse foo.p6
+
+Or, to display the abstract syntax tree or the generated PIR
+code, use "--target=PAST" or "--target=PIR".
 
 To get a dump of the parser's operator precedence table,
 use --dump-optable:
@@ -63,19 +61,44 @@ parsing Perl 6 that are better written directly in PIR instead
 of using the top-down rules syntax or bottom-up operator
 precedence parser.  
 
+The F<lib/pge2past.tge> is a tree grammar that specifies how to
+convert the parse tree into the abstract syntax tree (PAST), and
+F<lib/past2pir.tge> generates PIR from PAST.  These are both
+held together by the F<lib/PAST.pir> file which defines the
+Perl6::PAST node structures and other support features.
+(See also "What about POST?" below.)
+
 The F<lib/main.pir> file controls what happens when the perl6.pbc
 file is invoked directly from parrot (as opposed to being
 loaded via the load_bytecode op).
 
 The PIR files in F<lib/> are included as part of compiling
-F<perl6.pir> to produce F<perl6.pbc>.  One can then parse Perl 6
-source by doing:
+F<perl6.pir> to produce F<perl6.pbc>.  
 
-    $P0 = compreg "Perl6"
-    $S0 = "...perl 6 source code..."
-    $P1 = $P0($S0, target=>'parse')
-    # $P1 holds the parse tree of the Perl 6 source code
+The F<perl6.pbc> file can also be used to compile Perl 6 code
+from PIR:
 
+    load_bytecode "perl6.pbc"
+    $S0 = 'say "hello world"'            # source code to compile
+    $P0 = compreg("Perl6")               # obtain the compiler
+    $P1 = $P0($S0)                       # compile source code
+    $P1()                                # execute
+
+One can also provide the "target" option to the compiler:
+
+    $P1 = $P0($S0, 'target'=>'parse')    # obtain parse tree
+    $P1 = $P0($S0, 'target'=>'PAST')     # get AST
+    $P1 = $P0($S0, 'target'=>'PIR')      # get PIR
+
+"What about POST?"
+
+The Perl 6 "Milestones" document says that translation will actually
+go from a parse tree to an abstract syntax tree (PAST), then from
+PAST to an opcode syntax tree (POST), and then to executable code.
+This is still the ultimate plan.  However, to keep things slightly
+simpler initially, this version of the compiler simply goes straight
+from PAST to PIR until the division of labor between the two
+systems is a bit more well-defined and understood.
 
 =head1 AUTHOR
 

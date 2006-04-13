@@ -26,7 +26,7 @@ and initializes it with the operators defined by Perl 6.
 =cut
 
 .sub "__onload_parse" :load
-    .local pmc optable
+    .local pmc optable, op
     $I0 = find_type "PGE::OPTable"
     optable = new $I0
     store_global "Perl6::Grammar", "$optable", optable
@@ -36,8 +36,10 @@ and initializes it with the operators defined by Perl 6.
 
     # terms
     $P0 = find_global "Perl6::Grammar", "term"
-    optable.addtok("term:", "22=", "left", $P0)
-    optable.addtok("circumfix:( )", "term:")
+    op = optable.addtok("term:", "22=", "left", $P0)
+    op['pastrule'] = 'past_term'
+    op = optable.addtok("circumfix:( )", "term:")
+    op['pircode'] = '    # circumfix:( )'
 
     # method postfix
     optable.addtok("postfix:.", "21=")
@@ -65,8 +67,10 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("prefix:**", "prefix:!")
 
     # multiplicative
-    optable.addtok("infix:*", "17=")
-    optable.addtok("infix:/", "infix:*")
+    op = optable.addtok("infix:*", "17=")
+    op['pircode'] = '    %r = %0 * %1'
+    op = optable.addtok("infix:/", "infix:*")
+    op['pircode'] = '    %r = %0 / %1'
     optable.addtok("infix:%", "infix:*")
     optable.addtok("infix:x", "infix:*")
     optable.addtok("infix:xx", "infix:*")
@@ -74,7 +78,8 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("infix:+<", "infix:*")
 
     # additive
-    optable.addtok("infix:+", "16=")
+    op = optable.addtok("infix:+", "16=")
+    op['pircode'] = '    %r = %0 + %1'
     optable.addtok("infix:-", "infix:+")
 
     # named unary
@@ -98,7 +103,7 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("infix:>", "infix:==")
 
     # tight and
-    optable.addtok("infix:&&", "10=")
+    op = optable.addtok("infix:&&", "10=")
 
     # tight or
     optable.addtok("infix:||", "09=")
@@ -114,18 +119,19 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("infix:::=", "infix:=", "right")
    
     # list item separator
-    optable.addtok("infix:,", "06=", "list,nullterm")
+    op = optable.addtok("infix:,", "06=", "list,nullterm")
+    op['subname'] = 'list'
 
     # list op
     optable.addtok("infix:<==", "05=", "right")
     $P0 = find_global "Perl6::Grammar", "listop"
-    optable.addtok("prelist:", "infix:<==", "right,nullterm", $P0)
+    op = optable.addtok("prelist:", "infix:<==", "right,nullterm", $P0)
 
     # pipe forward
     optable.addtok("infix:==>", "04=")
 
     # loose and
-    optable.addtok("infix:and", "03=")
+    op = optable.addtok("infix:and", "03=")
 
     # loose or
     optable.addtok("infix:or", "02=")
@@ -133,7 +139,8 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("infix:err", "infix:or")
 
     # expr terminator
-    optable.addtok("infix:;", "01=", "nullterm")
+    op = optable.addtok("infix:;", "01=", "nullterm")
+    op['pircode'] = "    #"
 
 .end
 

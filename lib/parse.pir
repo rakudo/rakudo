@@ -80,7 +80,8 @@ and initializes it with the operators defined by Perl 6.
     # additive
     op = optable.addtok("infix:+", "16=")
     op['pircode'] = '    %r = %0 + %1'
-    optable.addtok("infix:-", "infix:+")
+    op = optable.addtok("infix:-", "infix:+")
+    op['pircode'] = '    %r = %0 - %1'
 
     # named unary
     optable.addtok("prefix:rand", "13=", "nullterm")

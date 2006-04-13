@@ -38,20 +38,13 @@ rule statement_end {
 ## an alternation for now.
 
 rule statement { 
-    <if_statement>
-    | <while_statement>
+    <statement_control>
     | <expression> 
 }
 
 
-## XXX: TODO:  Add "elsif" and "else"
-rule if_statement {:w
-    if <expression> <block>
-}
-
-
-rule while_statement {:w
-    while <expression> <block>
+rule statement_control {
+    [if|unless] <expression> <block>
 }
 
 

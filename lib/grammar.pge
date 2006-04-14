@@ -44,7 +44,9 @@ rule statement {
 
 
 rule statement_control {
-    [if|unless] <expression> <block>
+    ([if|unless]) <expression> <block> 
+        [ <?ws>: elsif <expression> <block> ]*
+        [ <?ws>: else <block> ]?
 }
 
 

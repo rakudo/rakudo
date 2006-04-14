@@ -1,7 +1,20 @@
-Perl6::PAST::Stmts: pir(.) = {
+Perl6::PAST::Sub: pir(.) = {
     .local pmc pir
     pir = new 'PGE::CodeString'
     pir.emit(".sub 'anon' :anon")
+    $P0 = node['statement_list']
+    $P1 = tree.'get'('pir', $P0)
+    pir .= $P1
+    $P2 = $P0['ret']
+    node['ret'] = $P2
+    pir.emit(".end")
+    .return (pir)
+}
+
+
+Perl6::PAST::Stmts: pir(.) = {
+    .local pmc pir
+    pir = new 'PGE::CodeString'
     $P0 = node['children']
     unless $P0 goto end
 
@@ -18,7 +31,6 @@ Perl6::PAST::Stmts: pir(.) = {
     $P2 = $P0['ret']
     node['ret'] = $P2
   end:
-    pir.emit(".end")
     .return (pir)
 }
 
@@ -42,12 +54,14 @@ Perl6::PAST::Exp: pir(.) = {
 
 
 Perl6::PAST::Op: pir(.) = {
+    $S0 = node['op']
+    if $S0 == 'statement_control:if' goto cond_op
+
     .local pmc pir
     pir = new 'PGE::CodeString'
 
     .local pmc op, optable
     optable = find_global "Perl6::Grammar", "$optable"
-    $S0 = node['op']
     op = optable[$S0]
 
     .local pmc childret
@@ -85,6 +99,48 @@ Perl6::PAST::Op: pir(.) = {
   emit_pir:
     node['ret'] = ret
     pir.emit(fmt, childret :flat, 'r'=>ret, 'f'=>$S0)
+    .return (pir)
+
+  cond_op:
+    .return tree.'get'('pir_cond', node)
+}
+
+
+Perl6::PAST::Op: pir_cond(.) = {
+    .local pmc pir
+    .local string id, ret
+    .local string ret, childret
+
+    .local pmc expr
+    expr = node['expr']
+    pir = tree.'get'('pir', expr)
+    id = pir.unique()
+    ret = concat '$P', id
+    childret = expr['ret']
+    pir.emit('    if %0 goto cond_%1_true', childret, id)
+
+    .local pmc else
+    else = node['else']
+    if null else goto no_else
+    $P0 = tree.'get'('pir', else)
+    pir .= $P0
+    childret = else['ret']
+  no_else:
+    pir.emit('    %0 = %1', ret, childret)
+    pir.emit('    goto cond_%0_end', id)
+
+    .local pmc then
+    pir.emit('  cond_%0_true:', id)
+    childret = expr['ret']
+    then = node['then']
+    if null then goto no_then
+    $P0 = tree.'get'('pir', then)
+    pir .= $P0
+    childret = then['ret']
+  no_then:
+    pir.emit('    %0 = %1', ret, childret)
+    pir.emit('  cond_%0_end:', id)
+    node['ret'] = ret
     .return (pir)
 }
 

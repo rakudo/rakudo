@@ -8,6 +8,7 @@ This file implements the various abstract syntax tree nodes
 needed for Perl 6.  The currently defined ast nodes:
 
     Perl6::PAST::Node       - base class for all ast nodes
+    Perl6::PAST::Sub        - a subroutine or executable block
     Perl6::PAST::Stmts      - a block of statements
     Perl6::PAST::Stmt       - a single statement
     Perl6::PAST::Op         - an operation
@@ -42,6 +43,7 @@ Creates the C<Perl6::PAST::*> classes.
     addattribute base, '$.source'                  # original source
     addattribute base, '$.pos'                     # offset position
 
+    $P0 = subclass base, 'Perl6::PAST::Sub'
     $P0 = subclass base, 'Perl6::PAST::Stmts'
     $P0 = subclass base, 'Perl6::PAST::Stmt'
     $P0 = subclass base, 'Perl6::PAST::Exp'

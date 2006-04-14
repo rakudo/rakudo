@@ -1,6 +1,11 @@
 ROOT: past(.) = {
+    .local pmc past
+    past = new 'Perl6::PAST::Sub'
+    past.set_node(node)
     $P0 = node['statement_list']
-    .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
+    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
+    past['statement_list'] = $P1
+    .return (past)
 }
 
 
@@ -36,13 +41,18 @@ Perl6::Grammar::statement: past(.) = {
 
     $P0 = node['expression']
     if $P0 goto expression
-    goto end
+    $P0 = node['statement_control']
+    if $P0 goto statement_control
+    .return (past)
 
   expression:
     $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::expression')
     past['statement'] = $P1
+    .return (past)
 
-  end:
+  statement_control:
+    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::statement_control')
+    past['statement'] = $P1
     .return (past)
 }
 
@@ -164,3 +174,58 @@ Perl6::Grammar::string_literal: past(.) = {
     .return (past)
 }
 
+
+Perl6::Grammar::statement_control: past(.) = {
+    .local pmc key, exprlist, blocklist
+    .local int exprc, blockc
+    .local pmc exprpast, thenpast, elsepast
+    key = node[0]
+    exprlist = node['expression']
+    blocklist = node['block']
+
+  # do we have an else clause?
+    null elsepast
+  else_block:
+    exprc = elements exprlist
+    blockc = elements blocklist
+    if blockc <= exprc goto expr_block_pair
+    dec blockc
+    $P0 = blocklist[blockc]
+    elsepast = tree.'get'('past', $P0, 'Perl6::Grammar::block')
+
+  # each remaining block is paired with an "if" expression,
+  # except the first which could be "unless".
+  expr_block_pair:
+    dec exprc
+    dec blockc
+    $P0 = exprlist[exprc]
+    exprpast = tree.'get'('past', $P0, 'Perl6::Grammar::expression')
+    $P0 = blocklist[blockc]
+    thenpast = tree.'get'('past', $P0, 'Perl6::Grammar::block')
+    if exprc > 0 goto if_op
+    if key != 'unless' goto if_op
+    exchange thenpast, elsepast
+  if_op:
+    .local pmc past
+    past = new "Perl6::PAST::Op"
+    past['op'] = 'statement_control:if'
+    past['expr'] = exprpast
+    past['then'] = thenpast
+    past['else'] = elsepast
+    elsepast = past
+    if exprc > 0 goto expr_block_pair
+
+    .return (past)
+}
+ 
+
+Perl6::Grammar::block: past(.) = {
+    $P0 = node['simple_block']
+    .return tree.'get'('past', $P0, 'Perl6::Grammar::simple_block')
+}
+
+
+Perl6::Grammar::simple_block: past(.) = {
+    $P0 = node['statement_list']
+    .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
+} 

@@ -106,15 +106,20 @@ Perl6::Grammar::expr: past(.) = {
     push children, $P1
     goto iter_loop
   iter_end:
-    if type == 'infix:and' goto op_and
-    if type == 'infix:&&' goto op_and
-    if type == 'infix:or' goto op_or
-    if type == 'infix:||' goto op_or
-    if type == 'ternary:?? !!' goto op_ternary
-
-  op_type:
-    past['op'] = type
+    past['opname'] = type
     past['children'] = children
+    $S0 = op['optype']
+    past['optype'] = $S0
+    if type == 'infix:or' goto op_or
+    if type != 'infix:||' goto subname
+  op_or:
+    children = 3
+    $P0 = children[1]
+    children[2] = $P0
+    null $P0
+    children[1] = $P0
+
+  subname:
     $I0 = exists op['subname']
     if $I0 goto op_subname
     $I0 = exists node['ident']
@@ -130,31 +135,8 @@ Perl6::Grammar::expr: past(.) = {
   node_ident:
     $S0 = node['ident']
     past['subname'] = $S0
-    goto end
 
-  op_or:
-    .local pmc thenpast, elsepast
-    null thenpast
-    elsepast = children[1]
-    goto op_cond
-
-  op_and:
-    thenpast = children[1]
-    null elsepast
-    goto op_cond
-
-  op_ternary:
-    thenpast = children[1]
-    elsepast = children[2]
-
-  op_cond:
-    $P0 = children[0]
-    past['op'] = 'statement_control:if'
-    past['expr'] = $P0
-    past['then'] = thenpast
-    past['else'] = elsepast
-
-  end:    
+  end:
     .return (past)
 }
 
@@ -236,8 +218,8 @@ Perl6::Grammar::statement_control: past(.) = {
     $P0 = blocklist[blockc]
     elsepast = tree.'get'('past', $P0, 'Perl6::Grammar::block')
 
-  ## each remaining block is paired with an "if" expression,
-  ## except the first which could be an "unless".
+  ## each remaining block is paired with an "if" (or "elsif")
+  ## expression, except the first which could be an "unless".
   expr_block_pair:
     dec exprc
     dec blockc
@@ -248,13 +230,17 @@ Perl6::Grammar::statement_control: past(.) = {
     if exprc > 0 goto if_op
     if key != 'unless' goto if_op
     exchange thenpast, elsepast
+
   if_op:
     .local pmc past
     past = new "Perl6::PAST::Op"
-    past['op'] = 'statement_control:if'
-    past['expr'] = exprpast
-    past['then'] = thenpast
-    past['else'] = elsepast
+    past['opname'] = 'statement_control:if'
+    past['optype'] = 'cond'
+    $P0 = new .ResizablePMCArray
+    $P0[0] = exprpast
+    $P0[1] = thenpast
+    $P0[2] = elsepast
+    past['children'] = $P0
     elsepast = past
     if exprc > 0 goto expr_block_pair
 

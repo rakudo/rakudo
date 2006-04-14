@@ -54,30 +54,41 @@ Perl6::PAST::Exp: pir(.) = {
 
 
 Perl6::PAST::Op: pir(.) = {
-    $S0 = node['op']
-    if $S0 == 'statement_control:if' goto cond_op
+    .local pmc pir, op, optable
+    .local string opname, subname, fmt, ret, id
+    .local pmc children
+    children = node['children']
+    opname = node['opname']
+    $S0 = node['optype']
+    if $S0 == 'cond' goto op_cond
 
-    .local pmc pir
-    pir = new 'PGE::CodeString'
-
-    .local pmc op, optable
+    subname = node['subname']
     optable = find_global "Perl6::Grammar", "$optable"
-    op = optable[$S0]
+    op = optable[opname]
+    fmt = op['pircode']
+    if fmt goto op_dispatch
+    fmt = "    %r = '%f'(%,)"
 
-    .local pmc childret
-    childret = new .ResizablePMCArray
-    $P0 = node['children']
-    unless $P0 goto end
-    if $S0 != 'prelist:' goto childops
-    $P1 = $P0[0]
-    $S0 = $P1['op']
-    if $S0 != 'infix:,' goto childops
-    $P0 = $P1['children']
-    unless $P0 goto end
+  op_dispatch:
+    if $S0 != 'chain' goto op_normal
+    $P0 = children[0]
+    $S0 = $P0['optype']
+    if $S0 == 'chain' goto op_chain
 
-  childops:
+  op_normal:
+    .local pmc arglist
+    arglist = new .ResizablePMCArray
+    pir = new 'PGE::CodeString'
+    unless children goto op_no_args
+    if opname != 'prelist:' goto op_children
+    $P0 = children[0]
+    $S0 = $P0['opname']
+    if $S0 != 'infix:,' goto op_children
+    children = $P0['children']
+  op_children:
+    unless children goto op_no_args
     .local pmc iter
-    iter = new .Iterator, $P0
+    iter = new .Iterator, children
     iter = 0
   iter_loop:
     unless iter goto iter_end
@@ -85,61 +96,66 @@ Perl6::PAST::Op: pir(.) = {
     $P1 = tree.'get'('pir', $P0)
     pir .= $P1
     $P2 = $P0['ret']
-    push childret, $P2
+    push arglist, $P2
     goto iter_loop
   iter_end:
-  end:
-    .local string ret, fmt
-    ret = childret[0]
-    $S0 = node['subname']
-    fmt = op['pircode']
-    if fmt goto emit_pir
+    unless arglist goto op_no_args
+    ret = arglist[0]
+    goto op_emit
+  op_no_args:
     ret = pir.unique('$P')
-    fmt = "    %r = '%f'(%,)"
-  emit_pir:
-    node['ret'] = ret
-    pir.emit(fmt, childret :flat, 'r'=>ret, 'f'=>$S0)
-    .return (pir)
-
-  cond_op:
-    .return tree.'get'('pir_cond', node)
-}
+    push arglist, ''
+  op_emit:
+    pir.emit(fmt, arglist :flat, 'r'=>ret, 'f'=>subname)
+    goto end
 
 
-Perl6::PAST::Op: pir_cond(.) = {
-    .local pmc pir
-    .local string id, ret
-    .local string ret, childret
+  op_chain:
+    $P0 = children[0]
+    pir = tree.'get'('pir', $P0)
+    id = pir.unique()
+    ret = $P0['ret']
+    pir.'emit'("    unless %0 goto chain_%1_end", ret, id)
+    $P2 = $P0['children';1;'ret']
+    $P0 = children[1]
+    $P1 = tree.'get'('pir', $P0)
+    pir .= $P1
+    $P3 = $P0['ret']
+    pir.'emit'(fmt, $P2, $P3, 'r'=>ret, 'f'=>subname)
+    pir.'emit'("  chain_%0_end:", id)
+    goto end
 
-    .local pmc expr
-    expr = node['expr']
+  op_cond:
+    .local pmc expr, then, else
+    .local string childret
+    expr = children[0]
+    then = children[1]
+    else = children[2]
     pir = tree.'get'('pir', expr)
     id = pir.unique()
     ret = concat '$P', id
     childret = expr['ret']
-    pir.emit('    if %0 goto cond_%1_true', childret, id)
-
-    .local pmc else
-    else = node['else']
-    if null else goto no_else
-    $P0 = tree.'get'('pir', else)
-    pir .= $P0
+    pir.'emit'("    if %0 goto cond_%1_true", childret, id)
+    $I0 = defined else
+    unless $I0 goto op_cond_1
+    $P1 = tree.'get'('pir', else)
+    pir .= $P1
     childret = else['ret']
-  no_else:
-    pir.emit('    %0 = %1', ret, childret)
-    pir.emit('    goto cond_%0_end', id)
-
-    .local pmc then
-    pir.emit('  cond_%0_true:', id)
+  op_cond_1:
+    pir.'emit'("    %0 = %1", ret, childret)
+    pir.'emit'("    goto cond_%0_end\n  cond_%0_true:", id)
     childret = expr['ret']
-    then = node['then']
-    if null then goto no_then
-    $P0 = tree.'get'('pir', then)
-    pir .= $P0
+    $I0 = defined then
+    unless $I0 goto op_cond_2
+    $P1 = tree.'get'('pir', then)
+    pir .= $P1
     childret = then['ret']
-  no_then:
-    pir.emit('    %0 = %1', ret, childret)
-    pir.emit('  cond_%0_end:', id)
+  op_cond_2:
+    pir.'emit'("    %0 = %1", ret, childret)
+    pir.'emit'("  cond_%0_end:", id)
+    goto end
+
+  end:
     node['ret'] = ret
     .return (pir)
 }

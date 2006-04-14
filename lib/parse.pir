@@ -104,48 +104,114 @@ and initializes it with the operators defined by Perl 6.
 
     # chaining binary
     op = optable.addtok("infix:==", "11=")
+    op['optype'] = 'chain'
     op['pircode'] = <<"END_PIRCODE"
         $I0 = cmp_num %0, %1
-        $I0 = iseq $I0, 0
-        %r = $I0
-END_PIRCODE
-
-    op = optable.addtok("infix:eq", "infix:==")
-    op['pircode'] = <<"END_PIRCODE"
-        $I0 = cmp_str %0, %1
         $I0 = iseq $I0, 0
         %r = $I0
 END_PIRCODE
 
     op = optable.addtok("infix:!=", "infix:==")
+    op['optype'] = 'chain'
     op['pircode'] = <<"END_PIRCODE"
         $I0 = cmp_num %0, %1
         $I0 = isne $I0, 0
         %r = $I0
 END_PIRCODE
 
-    op = optable.addtok("infix:ne", "infix:==")
+    op = optable.addtok("infix:<=", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_num %0, %1
+        $I0 = isle $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:>=", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_num %0, %1
+        $I0 = isge $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:<", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_num %0, %1
+        $I0 = islt $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:>", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_num %0, %1
+        $I0 = isgt $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:eq", "infix:==")
+    op['optype'] = 'chain'
     op['pircode'] = <<"END_PIRCODE"
         $I0 = cmp_str %0, %1
         $I0 = isne $I0, 0
         %r = $I0
 END_PIRCODE
 
-    optable.addtok("infix:<=", "infix:==")
-    optable.addtok("infix:>=", "infix:==")
-    optable.addtok("infix:<", "infix:==")
-    optable.addtok("infix:>", "infix:==")
+    op = optable.addtok("infix:ne", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_str %0, %1
+        $I0 = isne $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:le", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_str %0, %1
+        $I0 = isle $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:ge", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_str %0, %1
+        $I0 = isge $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:lt", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_str %0, %1
+        $I0 = islt $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:gt", "infix:==")
+    op['optype'] = 'chain'
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_str %0, %1
+        $I0 = isgt $I0, 0
+        %r = $I0
+END_PIRCODE
 
     # tight and
     op = optable.addtok("infix:&&", "10=")
+    op['optype'] = 'cond'
 
     # tight or
-    optable.addtok("infix:||", "09=")
+    op = optable.addtok("infix:||", "09=")
+    op['optype'] = 'cond'
     optable.addtok("infix:^^", "infix:||")
     optable.addtok("infix://", "infix:||")
 
     # ternary
-    optable.addtok("ternary:?? !!", "08=", "right")
+    op = optable.addtok("ternary:?? !!", "08=", "right")
+    op['optype'] = 'cond'
 
     # assignment
     optable.addtok("infix:=", "07=", "right")
@@ -171,9 +237,11 @@ END_PIRCODE
 
     # loose and
     op = optable.addtok("infix:and", "03=")
+    op['optype'] = 'cond'
 
     # loose or
-    optable.addtok("infix:or", "02=")
+    op = optable.addtok("infix:or", "02=")
+    op['optype'] = 'cond'
     optable.addtok("infix:xor", "infix:or")
     optable.addtok("infix:err", "infix:or")
 

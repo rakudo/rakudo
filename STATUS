@@ -19,6 +19,7 @@ Compiler to-do
 * blocks
 * subs
 * variables
+* resolve handling of unicode-encoded source on systems w/o ICU
 
 Parser implemented
 ------------------

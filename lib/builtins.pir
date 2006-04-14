@@ -30,6 +30,12 @@
 .end
 
 
+.sub 'use'
+    .param pmc list            :slurpy
+    .return ()
+.end
+
+
 .sub 'infix:**'
     .param num base
     .param num exp

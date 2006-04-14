@@ -200,6 +200,19 @@ Perl6::Grammar::string_literal: past(.) = {
 }
 
 
+Perl6::Grammar::version: past(.) = {
+    .local pmc past
+    past = new 'Perl6::PAST::Val'
+    past.set_node(node)
+    past['returns'] = 'str'
+    $S0 = node
+    $S0 = concat "'", $S0
+    concat $S0, "'"
+    past['value'] = $S0
+    .return (past)
+}
+
+
 Perl6::Grammar::statement_control: past(.) = {
     .local pmc key, exprlist, blocklist
     .local int exprc, blockc

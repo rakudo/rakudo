@@ -87,6 +87,7 @@ rule term {
     | <number>
     | <integer>
     | <string_literal>
+    | <version>
 }
 
 
@@ -106,6 +107,7 @@ rule sigil { <[$@%^]> }
 rule integer { \d+ }
 rule number {:i \d+ \. \d+ [ e <[+\-]>? \d+ ]? }
 rule string_literal { <PGE::Text::bracketed: '"> }
+rule version { v\d+ }
 
 
 ## The <syntax_error> rule generates a simple syntax

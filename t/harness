@@ -2,4 +2,6 @@
 
 # $Id$
 
+use lib qw( . lib ../lib ../../lib ../../lib );
 use Parrot::Test::Harness language => 'perl6', compiler => 'perl6.pbc';
+

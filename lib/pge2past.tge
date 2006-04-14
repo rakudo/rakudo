@@ -106,22 +106,54 @@ Perl6::Grammar::expr: past(.) = {
     push children, $P1
     goto iter_loop
   iter_end:
-    past['children'] = children
+    if type == 'infix:and' goto op_and
+    if type == 'infix:&&' goto op_and
+    if type == 'infix:or' goto op_or
+    if type == 'infix:||' goto op_or
+    if type == 'ternary:?? !!' goto op_ternary
+
+  op_type:
     past['op'] = type
-  subname:
+    past['children'] = children
     $I0 = exists op['subname']
-    if $I0 goto subname_op
+    if $I0 goto op_subname
     $I0 = exists node['ident']
-    if $I0 goto subname_ident
+    if $I0 goto node_ident
     past['subname'] = type
     goto end
-  subname_op:
+
+  op_subname:
     $S0 = op['subname']
     past['subname'] = $S0
     goto end
-  subname_ident:
+
+  node_ident:
     $S0 = node['ident']
     past['subname'] = $S0
+    goto end
+
+  op_or:
+    .local pmc thenpast, elsepast
+    null thenpast
+    elsepast = children[1]
+    goto op_cond
+
+  op_and:
+    thenpast = children[1]
+    null elsepast
+    goto op_cond
+
+  op_ternary:
+    thenpast = children[1]
+    elsepast = children[2]
+
+  op_cond:
+    $P0 = children[0]
+    past['op'] = 'statement_control:if'
+    past['expr'] = $P0
+    past['then'] = thenpast
+    past['else'] = elsepast
+
   end:    
     .return (past)
 }
@@ -193,8 +225,8 @@ Perl6::Grammar::statement_control: past(.) = {
     $P0 = blocklist[blockc]
     elsepast = tree.'get'('past', $P0, 'Perl6::Grammar::block')
 
-  # each remaining block is paired with an "if" expression,
-  # except the first which could be "unless".
+  ## each remaining block is paired with an "if" expression,
+  ## except the first which could be an "unless".
   expr_block_pair:
     dec exprc
     dec blockc

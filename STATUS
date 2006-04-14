@@ -11,11 +11,11 @@ Compiler implemented
 * Very basic expressions and operators
 * Listop parsing and execution
 * Simplified quoted strings
+* if, unless
+* infix:and, infix:or, infix:&&, infix:||, ternary:?? !!
 
 Compiler to-do
 --------------
-* if, unless
-* infix:and, infix:or, infix:&&, infix:||, ternary:?? !!
 * blocks
 * subs
 * variables

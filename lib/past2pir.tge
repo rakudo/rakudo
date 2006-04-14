@@ -155,6 +155,7 @@ Perl6::PAST::Val: pir(.) = {
     value = node['value']
     $S0 = node['returns']
     if $S0 == 'int' goto emit_pir
+    if $S0 == 'num' goto emit_pir
   
   string:
     $S1 = substr value, 0, 1

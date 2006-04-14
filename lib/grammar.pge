@@ -104,7 +104,7 @@ rule reserved_word { [ if | unless | while | until | for | loop ] \b }
 
 rule sigil { <[$@%^]> }
 rule integer { \d+ }
-rule number { \d+ \. \d+ }
+rule number {:i \d+ \. \d+ [ e <[+\-]>? \d+ ]? }
 rule string_literal { <PGE::Text::bracketed: '"> }
 
 

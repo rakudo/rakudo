@@ -196,6 +196,17 @@ Perl6::Grammar::integer: past(.) = {
 }
 
 
+Perl6::Grammar::number: past(.) = {
+    .local pmc past
+    past = new 'Perl6::PAST::Val'
+    past.set_node(node)
+    past['returns'] = 'num'
+    $N0 = node.value()
+    past['value'] = $N0
+    .return (past)
+}
+ 
+
 Perl6::Grammar::string_literal: past(.) = {
     .local pmc past
     past = new 'Perl6::PAST::Val'

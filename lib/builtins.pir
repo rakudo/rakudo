@@ -28,3 +28,11 @@
     .param pmc list            :slurpy
     .return (list)
 .end
+
+
+.sub 'infix:**'
+    .param num base
+    .param num exp
+    $N0 = pow base, exp
+    .return ($N0)
+.end

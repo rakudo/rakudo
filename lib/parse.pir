@@ -55,14 +55,19 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("postfix:--", "postfix:++")
 
     # exponentiation
-    optable.addtok("infix:**", "19=")
+    op = optable.addtok("infix:**", "19=")
 
     # symbolic unary
-    optable.addtok("prefix:!", "18=")
-    optable.addtok("prefix:+", "prefix:!")
-    optable.addtok("prefix:-", "prefix:!")
-    optable.addtok("prefix:~", "prefix:!")
-    optable.addtok("prefix:?", "prefix:!")
+    op = optable.addtok("prefix:!", "18=")
+    op['pircode'] = "    $I0 = isfalse %0\n    %r = $I0"
+    op = optable.addtok("prefix:?", "18=")
+    op['pircode'] = "    $I0 = istrue %0\n    %r = $I0"
+    op = optable.addtok("prefix:+", "prefix:!")
+    op['pircode'] = "    %r = %0 + 0"
+    op = optable.addtok("prefix:-", "prefix:!")
+    op['pircode'] = "    %r = neg %r"
+    op = optable.addtok("prefix:~", "prefix:!")
+    op['pircode'] = "    %r = concat %0, ''"
     optable.addtok("prefix:*", "prefix:!")
     optable.addtok("prefix:**", "prefix:!")
 
@@ -155,6 +160,11 @@ END_PIRCODE
     optable.addtok("infix:<==", "05=", "right")
     $P0 = find_global "Perl6::Grammar", "listop"
     op = optable.addtok("prelist:", "infix:<==", "right,nullterm", $P0)
+
+    op = optable.addtok("prefix:true", "infix:<==")
+    op['pircode'] = "    $I0 = istrue %0\n    %r = $I0"
+    op = optable.addtok("prefix:not", "infix:<==")
+    op['pircode'] = "    $I0 = isfalse %0\n    %r = $I0"
 
     # pipe forward
     optable.addtok("infix:==>", "04=")

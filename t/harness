@@ -1,0 +1,3 @@
+#! perl
+
+use Parrot::Test::Harness language => 'perl6', compiler => 'perl6.pbc';

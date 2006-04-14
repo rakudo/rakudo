@@ -82,6 +82,8 @@ and initializes it with the operators defined by Perl 6.
     op['pircode'] = '    %r = %0 + %1'
     op = optable.addtok("infix:-", "infix:+")
     op['pircode'] = '    %r = %0 - %1'
+    op = optable.addtok("infix:~", "infix:+")
+    op['pircode'] = '    %r = concat %0, %1'
 
     # named unary
     optable.addtok("prefix:rand", "13=", "nullterm")
@@ -96,8 +98,34 @@ and initializes it with the operators defined by Perl 6.
     optable.addtok("infix:^..^", "infix:<=>")
 
     # chaining binary
-    optable.addtok("infix:==", "11=")
-    optable.addtok("infix:!=", "infix:==")
+    op = optable.addtok("infix:==", "11=")
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_num %0, %1
+        $I0 = iseq $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:eq", "infix:==")
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_str %0, %1
+        $I0 = iseq $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:!=", "infix:==")
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_num %0, %1
+        $I0 = isne $I0, 0
+        %r = $I0
+END_PIRCODE
+
+    op = optable.addtok("infix:ne", "infix:==")
+    op['pircode'] = <<"END_PIRCODE"
+        $I0 = cmp_str %0, %1
+        $I0 = isne $I0, 0
+        %r = $I0
+END_PIRCODE
+
     optable.addtok("infix:<=", "infix:==")
     optable.addtok("infix:>=", "infix:==")
     optable.addtok("infix:<", "infix:==")

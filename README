@@ -47,7 +47,7 @@ parsing system and registers the parser as a Parrot "Perl6" compiler.
 
 The other files needed for parsing are in the F<lib/> subdirectory.
 
-The F<lib/grammar.g> file defines the "top-down" grammar used for
+The F<lib/grammar.pge> file defines the "top-down" grammar used for
 large Perl 6 program structures.  It consists of rule statements
 defined in Perl 6 rules syntax and is compiled using the
 C<rulec.pir> "rules compiler" from PGE to produce a lib/grammar.pir

@@ -33,12 +33,18 @@ sub "postcircumfix:{ }" is equiv('postfix:.')
 
 
 ## autoincrement
-sub postfix:++ is precedence('20=') { ... }
+sub postfix:++ is precedence('20=') 
+    is pir("    %r = clone %0\n    inc %0") { ... }
 
-sub postfix:-- is equiv('postfix:++') { ... }
+sub postfix:-- is equiv('postfix:++') 
+    is pir("    %r = clone %0\n    dec %0") { ... }
 
 sub prefix:++ is equiv('postfix:++') 
     is pir("    inc %0")
+    { ... }
+
+sub prefix:-- is equiv('postfix:++') 
+    is pir("    dec %0")
     { ... }
 
 ## exponentiation

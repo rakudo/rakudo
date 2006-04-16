@@ -16,18 +16,6 @@ Just to make sure we aren't fooling anyone -- at the
 moment the "Perl6" compiler here only parses Perl 6 code.
 But that should change soon.
 
-=cut
-
-.include 'lib/parse.pir'
-
-.namespace [ 'Perl6::Grammar' ]
-.include 'lib/grammar.pir'
-
-.include 'lib/PAST.pir'
-
-.namespace [ 'Perl6' ]
-
-
 =head2 Functions
 
 =over 4
@@ -40,17 +28,12 @@ compiler.
 
 =cut
 
+.namespace [ 'Perl6' ]
+
 .sub '__onload' :load
     load_bytecode 'PGE.pbc'
-    load_bytecode 'PGE/Text.pir'
+    load_bytecode 'PGE/Text.pbc'
     load_bytecode 'TGE.pbc'
-
-    $I0 = find_type 'Perl6::Grammar'
-    if $I0 != 0 goto onload_1
-    load_bytecode 'PGE.pbc'
-    $P0 = getclass 'PGE::Rule'
-    $P0 = subclass $P0, 'Perl6::Grammar'
-  onload_1:
 
     $P0 = compreg 'PGE::P6Rule'
     $P1 = $P0('^<Perl6::Grammar::program>')
@@ -117,6 +100,14 @@ compiled code as a PMC.
   return_pir:
     .return (pir)
 .end
+
+
+.namespace [ 'Perl6::Grammar' ]
+.include 'lib/grammar_gen.pir'
+
+.include 'lib/parse.pir'
+
+.include 'lib/PAST.pir'
 
 .include 'lib/main.pir'
 

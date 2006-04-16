@@ -29,7 +29,7 @@ executing program statements.
     .param pmc args
     $P0 = find_global 'Perl6', '__onload'
     $P0()
-    $P0 = find_global 'Perl6::Grammar', '__onload_parse'
+    $P0 = find_global 'Perl6::Grammar', '__onload'
     $P0()
     $P0 = find_global 'Perl6::PAST', '__onload'
     $P0()

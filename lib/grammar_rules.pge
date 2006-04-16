@@ -32,9 +32,8 @@ rule statement_end {
 }
 
 
-## XXX: Eventually this rule will probably be done
-## using a %statement_control hash.  Since PGE doesn't
-## support hashes in rules yet, we're just using
+## XXX: <statement_control> will likely become <%statement_control>.
+## Since PGE doesn't support hashes in rules yet, we're just using
 ## an alternation for now.
 
 rule statement { 
@@ -82,7 +81,8 @@ rule expression { <opparse> }
 ## parser whenever it needs a term.
 
 rule term {
-    <sigil> <name>
+    <scoped_variables>
+    | <variable>
     | <block>
     | <number>
     | <integer>
@@ -91,9 +91,18 @@ rule term {
 }
 
 
+## XXX: The <scope_declarator> rule will likely become <%scope_declarator>.
+
+rule scoped_variables {
+    <scope_declarator> <?ws> <variable>
+}
+rule scope_declarator { [ my | our ] \b }
+
+
 ## The <listop> rule gets called from the operator precedence
 ## parser whenever it's looking for a term.  At the moment
 ## it primarily grabs bareword terms.
+## XXX: <reserved_word> may become @reserved_word.
 
 rule listop { <reserved_word> ::: <fail> | <ident> }
 
@@ -103,6 +112,7 @@ rule reserved_word { [ if | unless | while | until | for | loop ] \b }
 ## XXX: These are just placeholder rules for demonstration,
 ## they certainly need to be expanded to be more complete.
 
+rule variable { <sigil> <name> }
 rule sigil { <[$@%^]> }
 rule integer { \d+ }
 rule number {:i \d+ \. \d+ [ e <[+\-]>? \d+ ]? }

@@ -59,20 +59,20 @@ Perl6::PAST::Op: pir(.) = {
     .local pmc children
     children = node['children']
     opname = node['opname']
-    $S0 = node['optype']
+    $S0 = node['pasttype']
     if $S0 == 'cond' goto op_cond
 
     subname = node['subname']
     optable = find_global "Perl6::Grammar", "$optable"
     op = optable[opname]
-    fmt = op['pircode']
+    fmt = op['pir']
     if fmt goto op_dispatch
     fmt = "    %r = '%f'(%,)"
 
   op_dispatch:
     if $S0 != 'chain' goto op_normal
     $P0 = children[0]
-    $S0 = $P0['optype']
+    $S0 = op['assoc']
     if $S0 == 'chain' goto op_chain
 
   op_normal:
@@ -200,6 +200,31 @@ Perl6::PAST::Val: pir(.) = {
 
   emit_pir:
     pir.emit('    assign %r, %0', value, 'r' => ret)
+    node['ret'] = ret
+    .return (pir)
+}
+
+
+Perl6::PAST::Var: pir(.) = {
+    .local pmc pir
+    .local string ret
+    pir = new 'PGE::CodeString'
+    ret = pir.unique('$P')
+    $S0 = node['variable']
+    pir.emit('    %0 = find_name "%1"', ret, $S0)
+    node['ret'] = ret
+    .return (pir)
+}
+       
+
+Perl6::PAST::Lex: pir(.) = {
+    .local pmc pir
+    .local string ret
+    pir = new 'PGE::CodeString'
+    ret = pir.unique('$P')
+    $S0 = node['variable']
+    pir.emit('    .lex "%0", %1', $S0, ret)
+    pir.emit('    %0 = new .Undef', ret)
     node['ret'] = ret
     .return (pir)
 }

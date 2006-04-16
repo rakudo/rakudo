@@ -14,6 +14,7 @@ needed for Perl 6.  The currently defined ast nodes:
     Perl6::PAST::Op         - an operation
     Perl6::PAST::Val        - a constant value
     Perl6::PAST::Var        - a variable
+    Perl6::PAST::Lex        - a lexical declaration ("my")
     Perl6::PAST::Vector     - a vector of values
     Perl6::PAST::Assign     - an assignment operation
 
@@ -50,6 +51,7 @@ Creates the C<Perl6::PAST::*> classes.
     $P0 = subclass base, 'Perl6::PAST::Op'
     $P0 = subclass base, 'Perl6::PAST::Val'
     $P0 = subclass base, 'Perl6::PAST::Var'
+    $P0 = subclass base, 'Perl6::PAST::Lex'
 
     base = getclass 'TGE'
     $P0 = subclass base, 'Perl6::PAST::Grammar'

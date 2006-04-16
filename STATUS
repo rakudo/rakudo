@@ -1,10 +1,4 @@
-This is a laundry list of things completed and items on 
-the "to do" list:
-
->> The MOST IMPORTANT to-do item at the moment is <<
->> we need a testing framework.  Setting up test  <<
->> frameworks isn't Patrick's forte, so hopefully <<
->> someone else can start setting one up.         <<
+This is a laundry list of things completed and items on the "to do" list:
 
 Compiler implemented
 --------------------
@@ -43,5 +37,17 @@ Parser to-do
 
 Small patches are preferred over large ones.  Send
 patches to the <perl6-compiler@perl.org> mailing list.
+
+
+PIR notes:
+
+* The PIR code generated for chained operators isn't all that
+  efficient -- the execution path goes through a number of
+  unnecessary "unless $Pxx goto label" steps.
+
+* Currently basic blocks are being inlined into code,
+  in order to properly support lexicals each block will need
+  to become its own .sub (or at least have the capability to
+  do so).
 
 

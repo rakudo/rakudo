@@ -1,0 +1,247 @@
+grammar Perl6::Grammar;
+
+## terms
+sub term: is precedence('22=') 
+    is parsed(&term) 
+    is pastrule('past_term') { ... }
+
+sub 'circumfix:( )' is equiv('term:') 
+    is pir("        # circumfix op") { ... }
+
+## method postfix
+sub postfix:. is precedence('21=') 
+    # is parsed(&postfix_dot)
+    is nows { ... }
+
+sub "postcircumfix:.( )" is equiv('postfix:.') 
+    is nows { ... }
+
+sub "postcircumfix:.[ ]" is equiv('postfix:.')
+    is nows { ... }
+
+sub "postcircumfix:.{ }" is equiv('postfix:.')
+    is nows { ... }
+
+sub "postcircumfix:( )" is equiv('postfix:.')
+    is nows { ... }
+
+sub "postcircumfix:[ ]" is equiv('postfix:.')
+    is nows { ... }
+
+sub "postcircumfix:{ }" is equiv('postfix:.')
+    is nows { ... }
+
+
+## autoincrement
+sub postfix:++ is precedence('20=') is rw { ... }
+
+sub postfix:-- is equiv('postfix:++') is rw { ... }
+
+## exponentiation
+sub infix:** is precedence('19=') { ... }
+
+## symbolic unary
+sub prefix:! is precedence('18=')
+    is pir("    $I0 = isfalse %0\n    %r = $I0")
+    { ... }
+
+sub prefix:? is equiv('prefix:!')
+    is pir("    $I0 = istrue %0\n    %r = $I0")
+    { ... }
+
+sub prefix:+ is equiv('prefix:!')
+    is pir("    %r = %0 + 0")
+    { ... }
+
+sub prefix:- is equiv('prefix:!')
+    is pir("    %r = neg %0")
+    { ... }
+
+sub prefix:~ is equiv('prefix:!')
+    is pir("    %r = concat %0, ''")
+    { ... }
+
+## multiplicative
+sub infix:* is precedence('17=')
+    is pir("    %r = %0 * %1")
+    { ... }
+
+sub infix:/ is equiv('infix:*')
+    is pir("    %r = %0 / %1")
+    { ... }
+
+sub infix:% is equiv('infix:*') { ... }
+sub infix:x is equiv('infix:*') { ... }
+sub infix:xx is equiv('infix:*') { ... }
+sub infix:+& is equiv('infix:*') { ... }
+sub infix:+< is equiv('infix:*') { ... }
+
+## additive
+sub infix:+ is precedence('16=')
+    is pir("    %r = %0 + %1")
+    { ... }
+
+sub infix:- is equiv('infix:+')
+    is pir("    %r = %0 - %1")
+    { ... }
+
+sub infix:~ is equiv('infix:+')
+    is pir("    %r = concat %0, %1")
+    { ... }
+
+## named unary
+
+sub prefix:rand is precedence('13=')
+    is nullterm
+    { ... }
+
+sub prefix:sleep is equiv('rand')
+    is nullterm
+    { ... }
+
+## nonchaining binary
+sub 'infix:<=>' is precedence('12=') is assoc('non')
+    { ... }
+
+sub infix:cmp is equiv('infix:<=>')
+    { ... }
+
+sub infix:.. is equiv('infix:<=>')
+    { ... }
+
+sub infix:^.. is equiv('infix:<=>')
+    { ... }
+
+sub infix:..^ is equiv('infix:<=>')
+    { ... }
+
+sub infix:^..^ is equiv('infix:<=>')
+    { ... }
+
+## chaining binary
+sub infix:== is precedence('11=') is assoc('chain')
+    is pir("    $I0 = cmp_num %0, %1\n    $I0 = iseq $I0, 0\n    %r = $I0")
+    { ... }
+
+sub infix:!= is equiv('infix:==')
+    is pir("    $I0 = cmp_num %0, %1\n    $I0 = isne $I0, 0\n    %r = $I0")
+    { ... }
+
+sub "infix:<" is equiv('infix:==')
+    is pir("    $I0 = cmp_num %0, %1\n    $I0 = islt $I0, 0\n    %r = $I0")
+    { ... }
+
+sub "infix:<=" is equiv('infix:==')
+    is pir("    $I0 = cmp_num %0, %1\n    $I0 = isle $I0, 0\n    %r = $I0")
+    { ... }
+
+sub "infix:>" is equiv('infix:==')
+    is pir("    $I0 = cmp_num %0, %1\n    $I0 = isgt $I0, 0\n    %r = $I0")
+    { ... }
+
+sub "infix:>=" is equiv('infix:==')
+    is pir("    $I0 = cmp_num %0, %1\n    $I0 = isge $I0, 0\n    %r = $I0")
+    { ... }
+
+sub infix:eq is equiv('infix:==')
+    is pir("    $I0 = cmp_str %0, %1\n    $I0 = iseq $I0, 0\n    %r = $I0")
+    { ... }
+
+sub infix:ne is equiv('infix:==')
+    is pir("    $I0 = cmp_str %0, %1\n    $I0 = isne $I0, 0\n    %r = $I0")
+    { ... }
+
+sub "infix:lt" is equiv('infix:==')
+    is pir("    $I0 = cmp_str %0, %1\n    $I0 = islt $I0, 0\n    %r = $I0")
+    { ... }
+
+sub "infix:le" is equiv('infix:==')
+    is pir("    $I0 = cmp_str %0, %1\n    $I0 = isle $I0, 0\n    %r = $I0")
+    { ... }
+
+sub "infix:gt" is equiv('infix:==')
+    is pir("    $I0 = cmp_str %0, %1\n    $I0 = isgt $I0, 0\n    %r = $I0")
+    { ... }
+
+sub "infix:ge" is equiv('infix:==')
+    is pir("    $I0 = cmp_str %0, %1\n    $I0 = isge $I0, 0\n    %r = $I0")
+    { ... }
+
+
+## tight and
+sub infix:&& is precedence('10=')
+    is pasttype('cond') { ... }
+
+
+## tight or
+sub infix:|| is precedence('09=')
+    is pasttype('cond') { ... }
+
+sub infix:^^ is equiv('infix:||')
+    is pasttype('cond') { ... }
+
+sub infix:// is equiv('infix:||')
+    is pasttype('cond') { ... }
+
+
+## ternary
+sub 'ternary:?? !!' is precedence('08=') is assoc('right')
+    is pasttype('cond') { ... }
+
+
+## assignment
+sub infix:= is precedence('07=') is assoc('right') is rw
+    is pir("    assign %r, %1") { ... }
+
+sub infix::= is equiv('infix:=') is rw { ... }
+
+sub infix:::= is equiv('infix:=') is rw { ... }
+
+
+## list item separator
+sub 'infix:,' is precedence('06=') is assoc('list') 
+   is nullterm
+   is pir<"    %r = list()"> 
+   { ... }
+
+
+## listop
+sub 'infix:<==' is precedence('05=') is assoc('right') { ... }
+    
+sub 'prelist:' is equiv('infix:<==')
+    is nullterm
+    is parsed(&listop) { ... }
+
+sub 'prefix:true' is equiv('infix:<==')
+    is pir("    $I0 = istrue %0\n    %r = $I0") { ... }
+
+sub 'prefix:not' is equiv('infix:<==')
+    is pir("    $I0 = isfalse %0\n    %r = $I0") { ... }
+
+
+## pipe forward
+sub 'infix:==>' is precedence('04=') { ... }
+
+
+## loose and
+sub 'infix:and' is precedence('03=')
+    is pasttype('cond') { ... }
+
+
+## loose or
+sub 'infix:or' is precedence('02=')
+    is pasttype('cond') { ... }
+
+sub 'infix:xor' is equiv('infix:or')
+    is pasttype('cond') { ... }
+
+sub 'infix:err' is equiv('infix:or')
+    is pasttype('cond') { ... }
+
+
+## expression terminator
+sub 'infix:;' is precedence('01=')
+    is nullterm
+    is pir("    #") 
+    { ... }
+

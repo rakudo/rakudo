@@ -108,8 +108,8 @@ Perl6::Grammar::expr: past(.) = {
   iter_end:
     past['opname'] = type
     past['children'] = children
-    $S0 = op['optype']
-    past['optype'] = $S0
+    $S0 = op['pasttype']
+    past['pasttype'] = $S0
     if type == 'infix:or' goto op_or
     if type != 'infix:||' goto subname
   op_or:
@@ -120,16 +120,9 @@ Perl6::Grammar::expr: past(.) = {
     children[1] = $P0
 
   subname:
-    $I0 = exists op['subname']
-    if $I0 goto op_subname
     $I0 = exists node['ident']
     if $I0 goto node_ident
     past['subname'] = type
-    goto end
-
-  op_subname:
-    $S0 = op['subname']
-    past['subname'] = $S0
     goto end
 
   node_ident:
@@ -165,6 +158,19 @@ Perl6::Grammar::type: past(.) = {
     null $P0
     .return ($P0)
 }   
+
+
+Perl6::Grammar::variable: past(.) = {
+    .local pmc past
+    .local string scope
+
+    past = new 'Perl6::PAST::Var'
+    past.set_node(node)
+    past['returns'] = 'var'
+    $S0 = node
+    past['variable'] = $S0
+    .return (past)
+}
 
 
 Perl6::Grammar::integer: past(.) = {
@@ -271,3 +277,15 @@ Perl6::Grammar::simple_block: past(.) = {
     $P0 = node['statement_list']
     .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
 } 
+
+
+Perl6::Grammar::scoped_variables: past(.) = {
+    .local pmc past
+    past = new "Perl6::PAST::Lex"
+    past.set_node(node)
+    $P0 = node['variable']
+    $S0 = $P0
+    past['variable'] = $S0
+    .return (past)
+}
+

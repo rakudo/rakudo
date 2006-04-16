@@ -33,9 +33,9 @@ sub "postcircumfix:{ }" is equiv('postfix:.')
 
 
 ## autoincrement
-sub postfix:++ is precedence('20=') is rw { ... }
+sub postfix:++ is precedence('20=') { ... }
 
-sub postfix:-- is equiv('postfix:++') is rw { ... }
+sub postfix:-- is equiv('postfix:++') { ... }
 
 ## exponentiation
 sub infix:** is precedence('19=') { ... }
@@ -190,12 +190,12 @@ sub 'ternary:?? !!' is precedence('08=') is assoc('right')
 
 
 ## assignment
-sub infix:= is precedence('07=') is assoc('right') is rw
+sub infix:= is precedence('07=') is assoc('right') 
     is pir("    assign %r, %1") { ... }
 
-sub infix::= is equiv('infix:=') is rw { ... }
+sub infix::= is equiv('infix:=') { ... }
 
-sub infix:::= is equiv('infix:=') is rw { ... }
+sub infix:::= is equiv('infix:=') { ... }
 
 
 ## list item separator

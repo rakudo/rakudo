@@ -55,7 +55,7 @@ Perl6::PAST::Exp: pir(.) = {
 
 Perl6::PAST::Op: pir(.) = {
     .local pmc pir, op, optable
-    .local string opname, subname, fmt, ret, id
+    .local string opname, subname, ret, fmt, id
     .local pmc children
     children = node['children']
     opname = node['opname']
@@ -79,14 +79,14 @@ Perl6::PAST::Op: pir(.) = {
     .local pmc arglist
     arglist = new .ResizablePMCArray
     pir = new 'PGE::CodeString'
-    unless children goto op_no_args
+    unless children goto iter_end
     if opname != 'prelist:' goto op_children
     $P0 = children[0]
     $S0 = $P0['opname']
     if $S0 != 'infix:,' goto op_children
     children = $P0['children']
   op_children:
-    unless children goto op_no_args
+    unless children goto op_fmt_t
     .local pmc iter
     iter = new .Iterator, children
     iter = 0
@@ -99,16 +99,37 @@ Perl6::PAST::Op: pir(.) = {
     push arglist, $P2
     goto iter_loop
   iter_end:
-    unless arglist goto op_no_args
     ret = arglist[0]
-    goto op_emit
-  op_no_args:
+  op_fmt_t:
+    .local string treg
+    treg = ''
+    $I0 = index fmt, '%t'
+    if $I0 < 0 goto op_fmt_r
+    node['temp'] = 1
+    $P0 = children[0]
+    unless $P0 goto op_fmt_t1
+    $I0 = $P0['temp']
+    unless $I0 goto op_fmt_t1
+    treg = $P0['ret']
+    ret = treg
+    goto op_fmt_r
+  op_fmt_t1:
+    treg = pir.unique('$P')
+    pir.emit('    %0 = new .Undef', treg)
+    ret = treg
+  op_fmt_r:
+    .local string rreg
+    rreg = ''
+    $I0 = index fmt, '%r'
+    if $I0 < 0 goto op_fmt_ret
+    rreg = pir.unique('$P')
+    ret = rreg
+  op_fmt_ret:
+    if ret > '' goto op_emit
     ret = pir.unique('$P')
-    push arglist, ''
   op_emit:
-    pir.emit(fmt, arglist :flat, 'r'=>ret, 'f'=>subname)
+    pir.emit(fmt, arglist :flat, 'r'=>rreg, 't'=>treg, 'f'=>subname)
     goto end
-
 
   op_chain:
     $P0 = children[0]
@@ -201,6 +222,7 @@ Perl6::PAST::Val: pir(.) = {
   emit_pir:
     pir.emit('    assign %r, %0', value, 'r' => ret)
     node['ret'] = ret
+    node['temp'] = 1
     .return (pir)
 }
 

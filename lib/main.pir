@@ -65,10 +65,12 @@ executing program statements.
     .local pmc stdin
     stdin = getstdin
     push stdin, 'utf8'
+    # enable interactive readline if possible
+    $I0 = stdin.'set_readline_interactive'(1)
 
   stmt_loop:
     .local string stmt
-    stmt = readline stdin
+    stmt = stdin.'readline'('p6> ')
     unless stmt goto end
     bsr perl6_eval
     goto stmt_loop

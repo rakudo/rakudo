@@ -37,6 +37,10 @@ sub postfix:++ is precedence('20=') { ... }
 
 sub postfix:-- is equiv('postfix:++') { ... }
 
+sub prefix:++ is equiv('postfix:++') 
+    is pir("    inc %0")
+    { ... }
+
 ## exponentiation
 sub infix:** is precedence('19=') { ... }
 

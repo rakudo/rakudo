@@ -19,18 +19,15 @@ grammar Perl6::Grammar ;
 rule ws {
     [ \# \N+
     | \s+
-    | <?pod_end>
-    | ^^ =for \h* \N+ \n
-      [ \N+\n ]*
-      ^^$$
-    | ^^ =\w\N* \n
-      .*?
-      <?pod_end>
+    | \. \# <PGE::Text::bracketed: <({[>
+    | ^^ =
+        [ [ cut \h* | end [\h\N*]? ]
+        | for \h* \N+ \n : [ \N+\n ]* ^^$$
+        | \w\N* \n .*?
+            ^^ = [ cut \h* | end [\h\N*]? ]
+        ]
+        [\n|$]
     ]* :::
-}
-
-rule pod_end {
-    ^^ = [ cut \h* | end [\h\N*]? ] \n
 }
 
 rule program { ^ <statement_list> <?ws> [ $ | <?syntax_error> ] }

@@ -339,7 +339,7 @@ proto 'infix:err' is equiv('infix:or')
 
 
 ## expression terminator
-proto 'infix:;' is precedence('01=')
+proto 'infix:;' is precedence('01=') is assoc('list')
     is nullterm
     is pir("    #")
     { ... }

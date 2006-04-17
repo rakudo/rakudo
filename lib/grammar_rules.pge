@@ -15,9 +15,15 @@ grammar Perl6::Grammar ;
 
 
 ## This rule handles whitespace and comments between tokens.
-## XXX:  Add pod directive handling
 
-rule ws { [ \# \N+ | \s+ ]* ::: }
+rule ws {
+    [ \# \N+
+    | \s+
+    | ^^ =cut \s* $$
+    | ^^ =for \s* \N+ .*? ^^$$
+    | ^^ =\w\N* .*? ^^ =cut $$
+    ]* :::
+}
 
 
 rule program { ^ <statement_list> <?ws> [ $ | <?syntax_error> ] }

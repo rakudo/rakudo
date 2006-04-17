@@ -171,9 +171,11 @@ proto 'prefix:abs' is equiv('rand')
 
 ## nonchaining binary
 proto 'infix:<=>' is precedence('12=') is assoc('non')
+    is pir("    %r = cmp_num %0, %1")
     { ... }
 
 proto 'infix:cmp' is equiv('infix:<=>')
+    is pir("    %r = cmp_str %0, %1")
     { ... }
 
 proto 'infix:but' is equiv('infix:<=>')
@@ -259,6 +261,7 @@ proto 'infix:=:=' is equiv('infix:==')
     { ... }
 
 proto 'infix:===' is equiv('infix:==')
+    is pir("    $I0 = issame %0, %1")
     { ... }
 
 

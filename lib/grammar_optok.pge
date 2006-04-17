@@ -209,7 +209,7 @@ sub 'infix:!~' is equiv('infix:==')
     { ... }
 
 sub 'infix:=~' is equiv('infix:==')
-    is pir("    'die'('brain-o. use ~~ or ~= instead.')")
+    is pir<"    'die'('brain-o. use ~~ or ~= instead.')">
     { ... }
 
 sub 'infix:eq' is equiv('infix:==')

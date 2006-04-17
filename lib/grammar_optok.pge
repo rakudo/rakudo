@@ -100,10 +100,21 @@ proto 'infix:%' is equiv('infix:*')
 
 proto 'infix:x' is equiv('infix:*') { ... }
 proto 'infix:xx' is equiv('infix:*') { ... }
-proto 'infix:+&' is equiv('infix:*') { ... }
-proto 'infix:+<' is equiv('infix:*') { ... }
-proto 'infix:+>' is equiv('infix:*') { ... }
+
+proto 'infix:+&' is equiv('infix:*')
+    is pir("    $I0 = %0\n    $I1 = %1\n    %r = $I0 & $I1")
+    { ... }
+
+proto 'infix:+<' is equiv('infix:*')
+    is pir("    %r = shl %0, %1")
+    { ... }
+
+proto 'infix:+>' is equiv('infix:*')
+    is pir("    %r = shr %0, %1")
+    { ... }
+
 proto 'infix:~&' is equiv('infix:*') { ... }
+
 proto 'infix:~<' is equiv('infix:*') { ... }
 proto 'infix:~>' is equiv('infix:*') { ... }
 
@@ -121,8 +132,14 @@ proto 'infix:~' is equiv('infix:+')
     is pir("    %t = concat %0, %1")
     { ... }
 
-proto 'infix:+|' is equiv('infix:+') { ... }
-proto 'infix:+^' is equiv('infix:+') { ... }
+proto 'infix:+|' is equiv('infix:+')
+    is pir("    $I0 = %0\n    $I1 = %1\n    %r = $I0 | $I1")
+    { ... }
+
+proto 'infix:+^' is equiv('infix:+')
+    is pir("    $I0 = %0\n    $I1 = %1\n    %r = $I0 ^ $I1")
+    { ... }
+
 proto 'infix:~|' is equiv('infix:+') { ... }
 proto 'infix:~^' is equiv('infix:+') { ... }
 
@@ -143,10 +160,12 @@ proto 'prefix:rand' is precedence('13=')
 
 proto 'prefix:sleep' is equiv('rand')
     is nullterm
+    is pir("    sleep %0")
     { ... }
 
 proto 'prefix:abs' is equiv('rand')
     is nullterm
+    is pir("    %r = abs %0")
     { ... }
 
 

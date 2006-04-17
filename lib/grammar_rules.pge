@@ -19,12 +19,19 @@ grammar Perl6::Grammar ;
 rule ws {
     [ \# \N+
     | \s+
-    | ^^ =cut \s* $$
-    | ^^ =for \s* \N+ .*? ^^$$
-    | ^^ =\w\N* .*? ^^ =cut $$
+    | <?pod_end>
+    | ^^ =for \h* \N+ \n
+      [ \N+\n ]*
+      ^^$$
+    | ^^ =\w\N* \n
+      .*?
+      <?pod_end>
     ]* :::
 }
 
+rule pod_end {
+    ^^ = [ cut \h* | end [\h\N*]? ] \n
+}
 
 rule program { ^ <statement_list> <?ws> [ $ | <?syntax_error> ] }
 

@@ -253,7 +253,7 @@ Perl6::Grammar::statement_control: past(.) = {
     .local pmc past
     past = new "Perl6::PAST::Op"
     past['opname'] = 'statement_control:if'
-    past['optype'] = 'cond'
+    past['pasttype'] = 'cond'
     $P0 = new .ResizablePMCArray
     $P0[0] = exprpast
     $P0[1] = thenpast

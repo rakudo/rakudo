@@ -349,3 +349,6 @@ proto 'infix:;' is precedence('01=') is assoc('list')
     is pir("    #")
     { ... }
 
+
+## statement control
+proto 'statement_control:if' is pasttype('cond') { ... }

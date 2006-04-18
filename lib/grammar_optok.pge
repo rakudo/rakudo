@@ -171,7 +171,7 @@ proto 'infix:?|' is equiv('infix:+')
     { ... }
 
 proto 'infix:?^' is equiv('infix:+')
-    is pir("    %r = bxors %0, %1")
+    is pir("    %r = bxor %0, %1\n    %r = istrue %r")
     { ... }
 
 

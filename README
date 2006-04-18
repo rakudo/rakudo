@@ -1,19 +1,21 @@
+## $Id$
+
 =head1 Perl 6 parser/compiler
 
-This is a Perl 6 parser/compiler, an early version (no version numbers 
+This is a Perl 6 parser/compiler, an early version (no version numbers
 yet).  It's still very early, only simple expressions and functions are
-available.  If you're in a hurry to write "real Perl 6" programs,  
+available.  If you're in a hurry to write "real Perl 6" programs,
 you might try looking at Pugs -- http://www.pugscode.org.  Or, you
 can send patches and contributions to the one being built here!
 
 However, even though this is not a complete compiler yet, you can
 still see how Perl 6 programs are parsed, help us create test
-cases, and extend/improve the grammar and runtime to cover more 
+cases, and extend/improve the grammar and runtime to cover more
 of Perl 6.  Here's how the system currently works:
 
 =head2 Compiling
 
-The perl6 parser/compiler lives in the perl6.pbc file.  
+The perl6 parser/compiler lives in the perl6.pbc file.
 To create this file, simply issue the command
 
   $ make
@@ -47,10 +49,10 @@ parsing system and registers the parser as a Parrot "Perl6" compiler.
 
 The other files needed for parsing are in the F<lib/> subdirectory.
 
-The F<lib/grammar_rules.pge> file defines the "top-down" grammar used 
+The F<lib/grammar_rules.pge> file defines the "top-down" grammar used
 for large Perl 6 program structures, defined using rules in
-Perl 6 rules syntax.  The F<lib/grammar_optok.pge> file defines 
-the operator tokens used for expression parsing with PGE's 
+Perl 6 rules syntax.  The F<lib/grammar_optok.pge> file defines
+the operator tokens used for expression parsing with PGE's
 operator-precedence parser.   The tokens in lib/grammar_optok.pge
 are defined using a pseudo-Perl6 syntax.  PGE's "pgc.pir"
 compiler is then used to compile the two grammar files into
@@ -64,8 +66,8 @@ directly in PIR instead of using the rules or token syntax.
 Currently this file defines the C<< <expression> >> rule,
 which just calls into the operator precedence parser.
 
-The file F<lib/pge2past.tge> is a tree grammar that specifies 
-how to convert the parse tree into the abstract syntax tree (PAST), 
+The file F<lib/pge2past.tge> is a tree grammar that specifies
+how to convert the parse tree into the abstract syntax tree (PAST),
 and F<lib/past2pir.tge> generates PIR from PAST.  These are both
 held together by the F<lib/PAST.pir> file which defines the
 Perl6::PAST node structures and other support features.
@@ -76,7 +78,7 @@ file is invoked directly from parrot (as opposed to being
 loaded via the load_bytecode op).
 
 The PIR files in F<lib/> are included as part of compiling
-F<perl6.pir> to produce F<perl6.pbc>.  
+F<perl6.pir> to produce F<perl6.pbc>.
 
 The F<perl6.pbc> file can also be used to compile Perl 6 code
 from PIR:
@@ -110,3 +112,5 @@ Patches and suggestions should be sent to the Perl 6 compiler list
 (perl6-compiler@perl.org).
 
 =cut
+
+## vim: expandtab sw=4

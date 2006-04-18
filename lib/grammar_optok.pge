@@ -6,6 +6,11 @@ proto 'term:' is precedence('22=')
     is parsed(&term)
     is pastrule('past_term') { ... }
 
+proto 'prelist:' is equiv('term:')
+    is prec_close('05=')
+    is nullterm
+    is parsed(&listop) { ... }
+
 proto 'circumfix:( )' is equiv('term:')
     is pir("        # circumfix op") { ... }
 
@@ -309,10 +314,6 @@ proto 'infix:,' is precedence('06=') is assoc('list')
 
 ## listop
 proto 'infix:<==' is precedence('05=') is assoc('right') { ... }
-
-proto 'prelist:' is equiv('infix:<==')
-    is nullterm
-    is parsed(&listop) { ... }
 
 proto 'prefix:true' is equiv('infix:<==')
     is pir("    $I0 = istrue %0\n    %t = $I0") { ... }

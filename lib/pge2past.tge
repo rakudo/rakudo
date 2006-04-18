@@ -63,8 +63,7 @@ Perl6::Grammar::expression: past(.) = {
     past = new 'Perl6::PAST::Exp'
     past.set_node(node)
 
-    $P0 = node['opparse']
-    $P0 = $P0['expr']
+    $P0 = node['expr']
     $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::expr')
     past['expression'] = $P1
     .return (past)

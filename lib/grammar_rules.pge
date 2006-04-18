@@ -14,21 +14,27 @@
 grammar Perl6::Grammar ;
 
 
-## This rule handles whitespace and comments between tokens.
+## These rules handle whitespace between comments and tokens
 
+## 
 rule ws {
     [ \# \N+
     | \s+
-    | \. \# <PGE::Text::bracketed: <({[>
-    | ^^ =
-        [ [ cut \h* | end [\h\N*]? ]
-        | for \h* \N+ \n : [ \N+\n ]* ^^$$
-        | \w\N* \n .*?
-            ^^ = [ cut \h* | end [\h\N*]? ]
-        ]
-        [\n|$]
+    | <?dot_comment> 
+    | ^^ <?pod_comment> 
     ]* :::
 }
+
+rule dot_comment { \. [ \s <-[.]>*: | \# <?PGE::Text::bracketed: <({[> }
+
+rule pod_comment {
+    ^^ = [ [ cut \h*: | end [\h\N*]? ]
+         | for [ \h\N+: ] \n [ \N+\n ]*: 
+         | \w\N*: \n .*? \n = [ cut \h*: | end [\h\N*:]? ]
+         ] 
+         [\n|$]
+}
+
 
 rule program { ^ <statement_list> <?ws> [ $ | <?syntax_error> ] }
 
@@ -81,10 +87,15 @@ rule pointy_sub { --\> <simple_block> }
 
 
 ## We handle Perl 6 expressions using PGE's operator 
-## precedence parser.  The tokens and for this are 
-## defined in L<Perl6/parser.pir>.
+## precedence parser.  The tokens and sub for this are 
+## defined in L<Perl6/parser.pir>.  If written as a p6rule,
+## it would look something like:
+##     rule expression($stop) { { $opparse.parse($/, $stop) } }
 
-rule expression { <opparse> }
+## However, we do need a special "whitespace" rule for capturing
+## whitespace in expressions, because dot_comments are special.
+
+rule expression_ws { [ \s | \# \N*:\n ] <?ws> }
 
 
 ## The <term> rule gets called from the operator precedence

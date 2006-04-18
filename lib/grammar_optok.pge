@@ -9,12 +9,14 @@ proto 'term:' is precedence('22=')
 proto 'circumfix:( )' is equiv('term:')
     is pir("        # circumfix op") { ... }
 
+## dot comment in postfix position
+proto 'postfix:.' is precedence('21=')
+    is parsed(&dot_comment)
+    is nows 
+    is pir("        # dot comment") { ... }
 
 ## method postfix
-proto 'postfix:.' is precedence('21=')
-    # is parsed(&postfix_dot)
-    is nows { ... }
-
+proto 'infix:.' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.+' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.?' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.*' is equiv('postfix:.') is nows { ... }
@@ -28,7 +30,6 @@ proto 'postcircumfix:<< >>' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:( )' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:[ ]' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:{ }' is equiv('postfix:.') is nows { ... }
-
 
 ## autoincrement
 proto 'postfix:++' is precedence('20=')

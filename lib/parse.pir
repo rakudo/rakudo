@@ -26,16 +26,15 @@ and returns the result to the caller.
 
 .include "cclass.pasm"
 
-.sub "opparse" 
+.sub "expression" 
     .param pmc mob
     .local pmc optable
     .local pmc ws
 
     optable = find_global 'Perl6::Grammar', "$optable"
-    ws = find_global 'Perl6::Grammar', 'ws'
+    ws = find_global 'Perl6::Grammar', 'expression_ws'
     setattribute optable, "PGE::OPTable\x0&!ws", ws
-    $P0 = optable."parse"(mob)
-    .return ($P0)
+    .return optable."parse"(mob)
 .end
 
 =item C<die(PMC mob, string message)>

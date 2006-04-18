@@ -2,31 +2,33 @@ This is a laundry list of things completed and items on the "to do" list:
 
 Compiler implemented
 --------------------
-* Very basic expressions and operators
-* Listop parsing and execution
-* Simplified quoted strings
-* if, unless
-* infix:and, infix:or, infix:&&, infix:||, ternary:?? !!
+* basic expressions and operators
+* listop parsing and execution
+* simplified quoted strings
+* if, unless statements
+* if, unless statement modifiers
+* chained operators: infix:and, infix:or, infix:&&, infix:||, ternary:?? !!
+* simple scalar variables (but not lexically scoped yet)
 
 Compiler to-do
 --------------
 * blocks
 * subs
-* variables
+* true lexicals
+* arrays, hashes
 * resolve handling of unicode-encoded source on systems w/o ICU
 
 Parser implemented
 ------------------
-* Common if, while statements
+* Common while, unless statements
 * Basic blocks
-* Perl 6 comments (excluding POD)
+* Perl 6 comments (including POD, long dot)
 * List associative operators
+* statement modifier operators
 
 Parser to-do
 ------------
 * POD comments
-* Long dot comments
-* statement modifier operators
 * real pointy subs
 * subroutine definitions
 * subroutine calling syntax

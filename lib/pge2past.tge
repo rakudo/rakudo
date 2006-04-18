@@ -48,8 +48,32 @@ Perl6::Grammar::statement: past(.) = {
     .return (past)
 
   expression:
-    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::expression')
-    past['statement'] = $P1
+    .local pmc stmt
+    stmt = tree.'get'('past', $P0, 'Perl6::Grammar::expression')
+    $P0 = node['statement_modifier']
+    unless $P0 goto expression_1
+  stmt_modifier:
+    # handle if/unless modifier
+    .local pmc modifier, exprpast, thenpast, elsepast
+    modifier = $P0[0]
+    thenpast = stmt
+    null elsepast
+    $S0 = modifier[0]
+    if $S0 != 'unless' goto stmt_modifier_1
+    exchange thenpast, elsepast
+  stmt_modifier_1:
+    stmt = new "Perl6::PAST::Op"
+    $P0 = modifier['expression']
+    exprpast = tree.'get'('past', $P0, 'Perl6::Grammar::expression')
+    stmt['opname'] = 'statement_control:if'
+    stmt['pasttype'] = 'cond'
+    $P0 = new .ResizablePMCArray
+    $P0[0] = exprpast
+    $P0[1] = thenpast
+    $P0[2] = elsepast
+    stmt['children'] = $P0
+  expression_1:
+    past['statement'] = stmt
     .return (past)
 
   statement_control:

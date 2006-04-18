@@ -38,15 +38,19 @@ rule pod_comment {
 }
 
 
-rule program { ^ <statement_list> <?ws> [ $ | <?syntax_error> ] }
+rule program { 
+    ^ <statement_list> <?ws> [ $ | <?syntax_error> ] 
+}
 
 
-rule statement_list { <statement> [ <?statement_end> <statement> ]* }
+rule statement_list { 
+    <statement> [ <?statement_end> <statement> ]* <?statement_end>? 
+}
 
 
 rule statement_end {
-    <after ;> ::
-    | <after \}> :: <before \s*? [ \n | \# ]>
+      [ <?ws> ; ]+ 
+    | <after \}> :: \h* [ \#\N* ]? \n 
 }
 
 
@@ -56,15 +60,20 @@ rule statement_end {
 
 rule statement {
     <statement_control>
-    | <expression>
+    | <expression: infix:;> <statement_modifier>?  
 }
 
 
 rule statement_control {
     <?ws>:
-    ([if|unless]) <expression> <block>
-        [ <?ws>: elsif <expression> <block> ]*
+    ([if|unless]) <expression: circumfix:{ }> <block>
+        [ <?ws>: elsif <expression: circumfix{ }> <block> ]*
         [ <?ws>: else <block> ]?
+}
+
+
+rule statement_modifier {
+    <?ws> ([if|unless]) <expression: infix:;>
 }
 
 

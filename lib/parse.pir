@@ -30,13 +30,18 @@ and returns the result to the caller.
 
 .sub "expression"
     .param pmc mob
+    .param string stoptoken       :optional
+    .param int has_stoptoken   :opt_flag
     .local pmc optable
     .local pmc ws
 
     optable = find_global 'Perl6::Grammar', "$optable"
     ws = find_global 'Perl6::Grammar', 'expression_ws'
     setattribute optable, "PGE::OPTable\x0&!ws", ws
-    .return optable."parse"(mob)
+    if has_stoptoken > 0 goto expression_1
+    stoptoken = ''
+  expression_1:
+    .return optable."parse"(mob, stoptoken)
 .end
 
 ## vim: expandtab sw=4

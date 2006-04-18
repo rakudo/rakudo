@@ -145,5 +145,5 @@ rule version { v\d+ }
 ## error message, and displays the line number and context
 ## of the error.
 
-rule syntax_error { <?die: Syntax error> }
+rule syntax_error { <?PGE::Util::die: Syntax error> }
 

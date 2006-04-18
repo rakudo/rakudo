@@ -33,6 +33,7 @@ compiler.
 .sub '__onload' :load
     load_bytecode 'PGE.pbc'
     load_bytecode 'PGE/Text.pbc'
+    load_bytecode 'PGE/Util.pbc'
     load_bytecode 'TGE.pbc'
 
     $P0 = compreg 'PGE::P6Rule'

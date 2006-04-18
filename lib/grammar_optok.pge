@@ -53,7 +53,7 @@ proto 'prefix:--' is equiv('postfix:++')
 
 
 ## exponentiation
-proto 'infix:**' is precedence('19=') 
+proto 'infix:**' is precedence('19=')
     is pir("    %t = %0 ** %1")
     { ... }
 
@@ -105,7 +105,7 @@ proto 'infix:%' is equiv('infix:*')
     is pir("    %t = mod %0, %1")
     { ... }
 
-proto 'infix:x' is equiv('infix:*') 
+proto 'infix:x' is equiv('infix:*')
     is pir("    %t = repeat %0, %1")
     { ... }
 
@@ -307,51 +307,52 @@ proto 'infix:=' is precedence('07=') is assoc('right')
     is pir("    assign %0, %1") { ... }
 
 proto 'infix::=' is equiv('infix:=') { ... }
+
 proto 'infix:::=' is equiv('infix:=') { ... }
-    
-proto 'infix:+=' is equiv('infix:=') 
+
+proto 'infix:+=' is equiv('infix:=')
     is pir("    %0 += %1") { ... }
 
-proto 'infix:-=' is equiv('infix:=') 
+proto 'infix:-=' is equiv('infix:=')
     is pir("    %0 -= %1") { ... }
 
-proto 'infix:*=' is equiv('infix:=') 
+proto 'infix:*=' is equiv('infix:=')
     is pir("    %0 *= %1") { ... }
 
-proto 'infix:/=' is equiv('infix:=') 
+proto 'infix:/=' is equiv('infix:=')
     is pir("    %0 /= %1") { ... }
 
-proto 'infix:%=' is equiv('infix:=') 
+proto 'infix:%=' is equiv('infix:=')
     is pir("    %0 %= %1") { ... }
 
-proto 'infix:x=' is equiv('infix:=') 
+proto 'infix:x=' is equiv('infix:=')
     is pir("    repeat %0,  %1") { ... }
 
-proto 'infix:**=' is equiv('infix:=') 
+proto 'infix:**=' is equiv('infix:=')
     is pir("    pow %0, %1") { ... }
 
-proto 'infix:+<=' is equiv('infix:=') 
+proto 'infix:+<=' is equiv('infix:=')
     is pir("    %0 <<= %1") { ... }
 
-proto 'infix:+>=' is equiv('infix:=') 
+proto 'infix:+>=' is equiv('infix:=')
     is pir("    %0 >>= %1") { ... }
 
-proto 'infix:+|=' is equiv('infix:=') 
+proto 'infix:+|=' is equiv('infix:=')
     is pir("    %0 |= %1") { ... }
 
-proto 'infix:+&=' is equiv('infix:=') 
+proto 'infix:+&=' is equiv('infix:=')
     is pir("    %0 &= %1") { ... }
 
-proto 'infix:+^=' is equiv('infix:=') 
+proto 'infix:+^=' is equiv('infix:=')
     is pir("    %0 = bxor %1") { ... }
 
-proto 'infix:~|=' is equiv('infix:=') 
+proto 'infix:~|=' is equiv('infix:=')
     is pir("    %0 = bors %1") { ... }
 
-proto 'infix:~&=' is equiv('infix:=') 
+proto 'infix:~&=' is equiv('infix:=')
     is pir("    %0 = bands %1") { ... }
 
-proto 'infix:~^=' is equiv('infix:=') 
+proto 'infix:~^=' is equiv('infix:=')
     is pir("    %0 = bxors %1") { ... }
 
 ## TODO: xx= => etc.
@@ -360,7 +361,7 @@ proto 'infix:~^=' is equiv('infix:=')
 ## list item separator
 proto 'infix:,' is precedence('06=') is assoc('list')
    is nullterm
-   is pir<"    %r = list()"> 
+   is pir<"    %r = list()">
    { ... }
 ## TODO zip
 

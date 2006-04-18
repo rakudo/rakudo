@@ -1,3 +1,5 @@
+## $Id$
+
 =head1 TITLE
 
 parse.pir - Parsing support subroutines
@@ -26,7 +28,7 @@ and returns the result to the caller.
 
 .include "cclass.pasm"
 
-.sub "expression" 
+.sub "expression"
     .param pmc mob
     .local pmc optable
     .local pmc ws
@@ -37,3 +39,4 @@ and returns the result to the caller.
     .return optable."parse"(mob)
 .end
 
+## vim: expandtab sw=4

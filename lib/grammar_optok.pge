@@ -1,3 +1,5 @@
+# $Id$
+
 grammar Perl6::Grammar;
 
 
@@ -406,3 +408,6 @@ proto 'infix:;' is precedence('01=') is assoc('list')
 
 ## statement control
 proto 'statement_control:if' is pasttype('cond') { ... }
+
+
+## vim: expandtab sw=4

@@ -1,3 +1,5 @@
+## $Id$
+
 Perl6::PAST::Sub: pir(.) = {
    .local pmc pir, lex_hash
    lex_hash = new .Hash
@@ -199,7 +201,7 @@ Perl6::PAST::Val: pir(.) = {
     $S0 = node['returns']
     if $S0 == 'int' goto emit_pir
     if $S0 == 'num' goto emit_pir
-  
+
   string:
     $S1 = substr value, 0, 1
     value = substr value, 1
@@ -240,7 +242,7 @@ Perl6::PAST::Var: pir(.) = {
     .local string ret
     pir = new 'PGE::CodeString'
     $S0 = node['variable']
-    lex_hash = find_global "_Perl6_LexHash" 
+    lex_hash = find_global "_Perl6_LexHash"
     $I0 = exists lex_hash[$S0]
     if $I0 goto lex
     ret = pir.unique('$P')
@@ -253,7 +255,7 @@ lex:
 ex:
     .return (pir)
 }
-       
+
 
 Perl6::PAST::Lex: pir(.) = {
     .local pmc pir, lex_hash
@@ -264,7 +266,9 @@ Perl6::PAST::Lex: pir(.) = {
     pir.emit('    .lex "%0", %1', $S0, ret)
     pir.emit('    %0 = new .Undef', ret)
     node['ret'] = ret
-    lex_hash = find_global "_Perl6_LexHash" 
+    lex_hash = find_global "_Perl6_LexHash"
     lex_hash[$S0] = ret
     .return (pir)
 }
+
+## vim: expandtab sw=4

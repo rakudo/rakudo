@@ -1,3 +1,5 @@
+## $Id$
+
 ## TITLE
 ##     The Perl 6 grammar
 ##
@@ -9,19 +11,19 @@
 ## soon.  Much of the work is hidden in the <opparse>
 ## rule, which is defined in L<Perl6/parse.pir>
 ## and handles most expressions using a bottom-up
-## parsing algorithm.  
+## parsing algorithm.
 
 grammar Perl6::Grammar ;
 
 
 ## These rules handle whitespace between comments and tokens
 
-## 
+##
 rule ws {
     [ \# \N+
     | \s+
-    | <?dot_comment> 
-    | ^^ <?pod_comment> 
+    | <?dot_comment>
+    | ^^ <?pod_comment>
     ]* :::
 }
 
@@ -29,9 +31,9 @@ rule dot_comment { \. [ \s <-[.]>*: | \# <?PGE::Text::bracketed: <({[> }
 
 rule pod_comment {
     ^^ = [ [ cut \h*: | end [\h\N*]? ]
-         | for [ \h\N+: ] \n [ \N+\n ]*: 
+         | for [ \h\N+: ] \n [ \N+\n ]*:
          | \w\N*: \n .*? \n = [ cut \h*: | end [\h\N*:]? ]
-         ] 
+         ]
          [\n|$]
 }
 
@@ -52,15 +54,15 @@ rule statement_end {
 ## Since PGE doesn't support hashes in rules yet, we're just using
 ## an alternation for now.
 
-rule statement { 
+rule statement {
     <statement_control>
-    | <expression> 
+    | <expression>
 }
 
 
 rule statement_control {
-    <?ws>: 
-    ([if|unless]) <expression> <block> 
+    <?ws>:
+    ([if|unless]) <expression> <block>
         [ <?ws>: elsif <expression> <block> ]*
         [ <?ws>: else <block> ]?
 }
@@ -71,11 +73,11 @@ rule block { <simple_block> | <pointy_sub> }
 
 ## A <simple_block> is just a statement_list inside of a pair of braces.
 
-rule simple_block { 
+rule simple_block {
     <?ws>:
-    \{ 
-        <?ws>: <statement_list> <?ws>: 
-    [ \} | <?syntax_error> ] 
+    \{
+        <?ws>: <statement_list> <?ws>:
+    [ \} | <?syntax_error> ]
 }
 
 
@@ -86,8 +88,8 @@ rule simple_block {
 rule pointy_sub { --\> <simple_block> }
 
 
-## We handle Perl 6 expressions using PGE's operator 
-## precedence parser.  The tokens and sub for this are 
+## We handle Perl 6 expressions using PGE's operator
+## precedence parser.  The tokens and sub for this are
 ## defined in L<Perl6/parser.pir>.  If written as a p6rule,
 ## it would look something like:
 ##     rule expression($stop) { { $opparse.parse($/, $stop) } }
@@ -147,3 +149,4 @@ rule version { v\d+ }
 
 rule syntax_error { <?PGE::Util::die: Syntax error> }
 
+## vim: expandtab sw=4

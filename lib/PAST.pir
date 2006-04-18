@@ -1,3 +1,5 @@
+## $Id$
+
 =head1 NAME
 
 Perl6::PAST - Abstract syntax tree nodes for Perl6
@@ -63,7 +65,7 @@ Creates the C<Perl6::PAST::*> classes.
 
 .namespace [ 'Perl6::PAST::Node' ]
 
-=back 
+=back
 
 =head2  Perl6::PAST::Node methods
 
@@ -212,3 +214,5 @@ This is free software; you may redistribute it and/or modify
 it under the same terms as Parrot.
 
 =cut
+
+## vim: expandtab sw=4

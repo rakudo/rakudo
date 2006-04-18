@@ -1,3 +1,5 @@
+## $Id$
+
 .namespace [ "" ]
 
 .sub 'print'
@@ -47,9 +49,9 @@
 .sub 'die'
     .param pmc list            :slurpy
     .local pmc iter
-    .local string message 
+    .local string message
 
-    message = ''     
+    message = ''
     iter = new .Iterator, list
     iter = 0
   iter_loop:
@@ -64,3 +66,5 @@
     throw $P0
     .return ()
 .end
+
+## vim: expandtab sw=4

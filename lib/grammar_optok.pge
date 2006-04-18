@@ -321,6 +321,9 @@ proto 'infix:*=' is equiv('infix:=')
 proto 'infix:/=' is equiv('infix:=') 
     is pir("    %0 /= %1") { ... }
 
+proto 'infix:%=' is equiv('infix:=') 
+    is pir("    %0 %= %1") { ... }
+
 proto 'infix:x=' is equiv('infix:=') 
     is pir("    repeat %0,  %1") { ... }
 
@@ -332,6 +335,24 @@ proto 'infix:+<=' is equiv('infix:=')
 
 proto 'infix:+>=' is equiv('infix:=') 
     is pir("    %0 >>= %1") { ... }
+
+proto 'infix:+|=' is equiv('infix:=') 
+    is pir("    %0 |= %1") { ... }
+
+proto 'infix:+&=' is equiv('infix:=') 
+    is pir("    %0 &= %1") { ... }
+
+proto 'infix:+^=' is equiv('infix:=') 
+    is pir("    %0 = bxor %1") { ... }
+
+proto 'infix:~|=' is equiv('infix:=') 
+    is pir("    %0 = bors %1") { ... }
+
+proto 'infix:~&=' is equiv('infix:=') 
+    is pir("    %0 = bands %1") { ... }
+
+proto 'infix:~^=' is equiv('infix:=') 
+    is pir("    %0 = bxors %1") { ... }
 
 ## TODO: xx= => etc.
 

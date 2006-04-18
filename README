@@ -3,7 +3,7 @@
 This is a Perl 6 parser/compiler, an early version (no version numbers 
 yet).  It's still very early, only simple expressions and functions are
 available.  If you're in a hurry to write "real Perl 6" programs,  
-you might try looking at PUGS -- http://www.pugscode.org.  Or, you
+you might try looking at Pugs -- http://www.pugscode.org.  Or, you
 can send patches and contributions to the one being built here!
 
 However, even though this is not a complete compiler yet, you can

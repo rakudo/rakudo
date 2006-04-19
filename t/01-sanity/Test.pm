@@ -30,7 +30,7 @@ sub plan (Int $number_of_tests) returns Void is export {
 }
 
 sub force_todo (*@todo_tests) returns Void is export {
-     $Test::force_todo_test_junction = any(@todo_tests);
+     $Test::force_todo_test_junction = join ' ', '', @todo_tests, '';
 }
 
 ## ok
@@ -220,7 +220,7 @@ sub proclaim (Bool $cond, Str $desc? is copy, $todo?, Str $got?, Str $expected?,
     # Check if we have to forcetodo this test
     # because we're preparing for a release.
     $context = "TODO for release"
-        if $Test::num_of_tests_run == $Test::force_todo_test_junction;
+        if index($Test::force_todo_test_junction, ' '~$Test::num_of_tests_run~' ') >= 0;
 
     if $todo {
         if (substr($todo, 0, 4) eq 'skip') {
@@ -265,7 +265,7 @@ sub report_failure (Str $todo?, Str $got?, Str $expected?, Bool $negate?) return
 
     # As PIL2JS doesn't support junctions yet, skip the junction part when
     # running under PIL2JS.
-    if ($*OS eq "browser" or $?CALLER::CALLER::SUBNAME eq ('&Test::is' | '&Test::isnt' | '&Test::cmp_ok' | '&Test::eval_is' | '&Test::isa_ok' | '&Test::is_deeply' | '&Test::todo_is' | '&Test::todo_isnt' | '&Test::todo_cmp_ok' | '&Test::todo_eval_is' | '&Test::todo_isa_ok')) {
+    if (index('&Test::is &Test::isnt &Test::cmp_ok &Test::eval_is &Test::isa_ok &Test::is_deeply &Test::todo_is &Test::todo_isnt &Test::todo_cmp_ok &Test::todo_eval_is &Test::todo_isa_ok ', $?CALLER::CALLER::SUBNAME ~ ' ') >= 0) {
         Test::diag("  $wanted: '" ~ ($expected.defined ?? $expected !! "undef") ~ "'");
         Test::diag("    Actual: '" ~ ($got.defined ?? $got !! "undef") ~ "'");
     }

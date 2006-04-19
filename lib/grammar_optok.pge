@@ -73,7 +73,7 @@ proto 'prefix:-' is equiv('prefix:!')
     { ... }
 
 proto 'prefix:~' is equiv('prefix:!')
-    is pir("    %t = concat %0, ''")
+    is pir("    $S0 = %0\n    %t = $S0")
     { ... }
 
 proto 'prefix:?' is equiv('prefix:!')
@@ -356,7 +356,8 @@ proto 'infix:::=' is equiv('infix:=') { ... }
 
 proto 'infix:.=' is equiv('infix:=') { ... }
 
-proto 'infix:~=' is equiv('infix:=') { ... }
+proto 'infix:~=' is equiv('infix:=') 
+    is pir("    %0 = concat %1") { ... }
 
 proto 'infix:+=' is equiv('infix:=')
     is pir("    %0 += %1") { ... }

@@ -27,13 +27,13 @@ proto 'infix:.' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.+' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.?' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.*' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:.< >' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:.<< >>' is equiv('postfix:.') is nows { ... }
+#proto 'postcircumfix:.< >' is equiv('postfix:.') is nows { ... }
+#proto 'postcircumfix:.<< >>' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.( )' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.[ ]' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.{ }' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:< >' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:<< >>' is equiv('postfix:.') is nows { ... }
+#proto 'postcircumfix:< >' is equiv('postfix:.') is nows { ... }
+#proto 'postcircumfix:<< >>' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:( )' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:[ ]' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:{ }' is equiv('postfix:.') is nows { ... }

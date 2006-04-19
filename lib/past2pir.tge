@@ -80,7 +80,7 @@ Perl6::PAST::Op: pir(.) = {
   op_dispatch:
     if $S0 != 'chain' goto op_normal
     $P0 = children[0]
-    $S0 = op['assoc']
+    $S0 = $P0['pasttype']
     if $S0 == 'chain' goto op_chain
 
   op_normal:
@@ -150,7 +150,7 @@ Perl6::PAST::Op: pir(.) = {
     $P1 = tree.'get'('pir', $P0)
     pir .= $P1
     $P3 = $P0['ret']
-    pir.'emit'(fmt, $P2, $P3, 'r'=>ret, 'f'=>subname)
+    pir.'emit'(fmt, $P2, $P3, 'r'=>ret, 'f'=>subname, 't'=>ret)
     pir.'emit'("  chain_%0_end:", id)
     goto end
 

@@ -209,6 +209,9 @@ proto 'infix:cmp' is equiv('infix:<=>')
     is pir("    %r = cmp_str %0, %1")
     { ... }
 
+proto 'infix:is' is equiv('infix:<=>')
+    { ... }
+
 proto 'infix:but' is equiv('infix:<=>')
     { ... }
 
@@ -226,7 +229,33 @@ proto 'infix:..^' is equiv('infix:<=>')
 
 proto 'infix:^..^' is equiv('infix:<=>')
     { ... }
-## TODO: ff ^ff etc.
+
+proto 'infix:ff' is equiv('infix:<=>')
+    { ... }
+
+proto 'infix:^ff' is equiv('infix:<=>')
+    { ... }
+
+proto 'infix:ff^' is equiv('infix:<=>')
+    { ... }
+
+proto 'infix:^ff^' is equiv('infix:<=>')
+    { ... }
+
+proto 'infix:fff' is equiv('infix:<=>')
+    { ... }
+
+proto 'infix:^fff' is equiv('infix:<=>')
+    { ... }
+
+proto 'infix:fff^' is equiv('infix:<=>')
+    { ... }
+
+proto 'infix:^fff^' is equiv('infix:<=>')
+    { ... }
+
+proto 'prefix:...' is equiv('infix:<=>')
+    { ... }
 
 
 ## chaining binary
@@ -325,6 +354,10 @@ proto 'infix::=' is equiv('infix:=') { ... }
 
 proto 'infix:::=' is equiv('infix:=') { ... }
 
+proto 'infix:.=' is equiv('infix:=') { ... }
+
+proto 'infix:~=' is equiv('infix:=') { ... }
+
 proto 'infix:+=' is equiv('infix:=')
     is pir("    %0 += %1") { ... }
 
@@ -343,8 +376,16 @@ proto 'infix:%=' is equiv('infix:=')
 proto 'infix:x=' is equiv('infix:=')
     is pir("    repeat %0,  %1") { ... }
 
+proto 'infix:Y=' is equiv('infix:=') { ... }
+
 proto 'infix:**=' is equiv('infix:=')
     is pir("    pow %0, %1") { ... }
+
+proto 'infix:xx=' is equiv('infix:=') { ... }
+proto 'infix:||=' is equiv('infix:=') { ... }
+proto 'infix:&&=' is equiv('infix:=') { ... }
+proto 'infix://=' is equiv('infix:=') { ... }
+proto 'infix:^^=' is equiv('infix:=') { ... }
 
 proto 'infix:+<=' is equiv('infix:=')
     is pir("    %0 <<= %1") { ... }
@@ -370,7 +411,18 @@ proto 'infix:~&=' is equiv('infix:=')
 proto 'infix:~^=' is equiv('infix:=')
     is pir("    %0 = bxors %1") { ... }
 
-## TODO: xx= => etc.
+proto 'infix:?|=' is equiv('infix:=')
+    is pir("    %0 = bor %1\n    %0 = istrue %0") { ... }
+
+proto 'infix:?&=' is equiv('infix:=')
+    is pir("    %0 = band %1\n    %0 = istrue %0") { ... }
+
+proto 'infix:?^=' is equiv('infix:=')
+    is pir("    %0 = bxor %1\n    %0 = istrue %0") { ... }
+
+proto 'infix:|=' is equiv('infix:=') { ... }
+proto 'infix:&=' is equiv('infix:=') { ... }
+proto 'infix:^=' is equiv('infix:=') { ... }
 
 
 ## list item separator

@@ -87,8 +87,11 @@ proto 'prefix:?' is equiv('prefix:!')
 # sub 'prefix:&' is equiv('prefix:!') { ... }
 proto 'prefix:*' is equiv('prefix:!') { ... }
 proto 'prefix:**' is equiv('prefix:!') { ... }
-proto 'prefix:+^' is equiv('prefix:!') { ... }
 proto 'prefix:~^' is equiv('prefix:!') { ... }
+
+proto 'prefix:+^' is equiv('prefix:!') 
+    is pir("    %t = bnot %0")
+    { ... }
 
 proto 'prefix:?^' is equiv('prefix:!')
     is pir("    $I0 = isfalse %0\n    %t = $I0")

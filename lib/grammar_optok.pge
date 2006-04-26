@@ -201,6 +201,15 @@ proto 'prefix:rand' is precedence('13=')
     is nullterm
     { ... }
 
+proto 'prefix:sleep' is equiv('rand')
+    is nullterm
+    is pir("    $N0 = %0\n    sleep $N0")
+    { ... }
+
+proto 'prefix:abs' is equiv('rand')
+    is nullterm
+    is pir("    %r = abs %0")
+    { ... }
 
 
 ## nonchaining binary

@@ -77,7 +77,6 @@ proto try($) { ... }
 proto lazy($) { ... }
 proto eval($) { ... }
 proto evalfile($) { ... }
-proto yaml($) { ... }
 proto require($?) { ... }
 proto use($?) { ... }
 proto last($?) { ... }
@@ -129,7 +128,6 @@ proto rmdir($?) { ... }
 proto mkdir($) { ... }
 proto chdir($) { ... }
 proto elems($) { ... }
-proto List::end($) { ... }
 proto graphs($?) { ... }
 proto codes($?) { ... }
 proto chars($?) { ... }
@@ -163,15 +161,12 @@ proto sign($) { ... }
 proto kill($) { ... }
 proto kill($$) { ... }
 proto new($) { ... }
-proto BUILDALL($) { ... }
-proto DESTROYALL($) { ... }
-proto TEMP($) { ... }
 proto clone($) { ... }
 proto id($) { ... }
 proto seek($$$) { ... }
 proto tell($) { ... }
-proto bool::true() { ... }
-proto bool::false() { ... }
+proto Bool::True() { ... }
+proto Bool::False() { ... }
 proto opendir($) { ... }
 proto readdir($) { ... }
 proto closedir($) { ... }

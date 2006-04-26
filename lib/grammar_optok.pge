@@ -85,14 +85,6 @@ proto 'prefix:?' is equiv('prefix:!')
     is pir("    $I0 = istrue %0\n    %t = $I0")
     { ... }
 
-proto 'prefix:-w' is equiv('prefix:!') is nows { ... }
-proto 'prefix:-r' is equiv('prefix:!') is nows { ... }
-proto 'prefix:-x' is equiv('prefix:!') is nows { ... }
-proto 'prefix:-e' is equiv('prefix:!') is nows { ... }
-proto 'prefix:-z' is equiv('prefix:!') is nows { ... }
-proto 'prefix:-s' is equiv('prefix:!') is nows { ... }
-proto 'prefix:-f' is equiv('prefix:!') is nows { ... }
-proto 'prefix:-d' is equiv('prefix:!') is nows { ... }
 proto 'prefix:=' is equiv('prefix:!') { ... }
 proto 'prefix:*' is equiv('prefix:!') { ... }
 proto 'prefix:**' is equiv('prefix:!') { ... }
@@ -210,6 +202,15 @@ proto 'prefix:abs' is equiv('rand')
     is nullterm
     is pir("    %r = abs %0")
     { ... }
+
+proto 'prefix:-w' is equiv('prefix:rand') is nows { ... }
+proto 'prefix:-r' is equiv('prefix:rand') is nows { ... }
+proto 'prefix:-x' is equiv('prefix:rand') is nows { ... }
+proto 'prefix:-e' is equiv('prefix:rand') is nows { ... }
+proto 'prefix:-z' is equiv('prefix:rand') is nows { ... }
+proto 'prefix:-s' is equiv('prefix:rand') is nows { ... }
+proto 'prefix:-f' is equiv('prefix:rand') is nows { ... }
+proto 'prefix:-d' is equiv('prefix:rand') is nows { ... }
 
 
 ## nonchaining binary

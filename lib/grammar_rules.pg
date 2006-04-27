@@ -27,7 +27,7 @@ rule ws {
     ]* :::
 }
 
-rule dot_comment { \. [ \s <-[.]>*: | \# <?PGE::Text::bracketed: <({[> }
+rule dot_comment { \. [ \s <-[.]>*: | \# <?PGE::Text::bracketed: <({[> ] }
 
 rule pod_comment {
     ^^ = [ [ cut \h*: | end [\h\N*]? ]

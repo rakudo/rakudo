@@ -41,7 +41,7 @@ and returns the result to the caller.
     if has_stoptoken > 0 goto expression_1
     stoptoken = ''
   expression_1:
-    .return optable."parse"(mob, stoptoken)
+    .return optable."parse"(mob, 'stop'=> ';')
 .end
 
 ## vim: expandtab sw=4

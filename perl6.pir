@@ -36,7 +36,7 @@ compiler.
     load_bytecode 'PGE/Util.pbc'
     load_bytecode 'TGE.pbc'
 
-    $P0 = compreg 'PGE::P6Rule'
+    $P0 = compreg 'PGE::P6Regex'
     $P1 = $P0('^<Perl6::Grammar::program>')
     store_global 'Perl6', '&parse', $P1
    

@@ -8,10 +8,10 @@ Compiler implemented
 * if, unless statements
 * if, unless statement modifiers
 * chained operators: infix:and, infix:or, infix:&&, infix:||, ternary:?? !!
-* simple scalar variables (but not lexically scoped yet)
 
 Compiler to-do
 --------------
+* simple scalar variables (but not lexically scoped yet)
 * blocks
 * subs
 * true lexicals
@@ -25,10 +25,10 @@ Parser implemented
 * Perl 6 comments (including POD, long dot)
 * List associative operators
 * statement modifier operators
+* POD comments
 
 Parser to-do
 ------------
-* POD comments
 * real pointy subs
 * subroutine definitions
 * subroutine calling syntax
@@ -43,13 +43,8 @@ patches to the <perl6-compiler@perl.org> mailing list.
 
 PIR notes:
 
-* The PIR code generated for chained operators isn't all that
-  efficient -- the execution path goes through a number of
-  unnecessary "unless $Pxx goto label" steps.
-
 * Currently basic blocks are being inlined into code,
   in order to properly support lexicals each block will need
   to become its own .sub (or at least have the capability to
   do so).
-
 

@@ -1,3 +1,5 @@
+# $Id$
+
 =head1 NAME
 
 POST - A(nother) low-level opcode syntax tree.
@@ -11,6 +13,10 @@ a low-level tree which closely corresponds to the
 semantics of PIR/PASM.
 
 The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
+
+=head1 METHODS
+
+=over 4
 
 =cut
 
@@ -49,7 +55,7 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
     .return self.'attr'('$.name', name, has_name)
 .end
   
-=item C<value()>
+=item C<Perl6::POST::Node::value()>
 
 Set or return the invocant's value.  If no value has been
 previously set for this node, then the default for POST::Node
@@ -131,7 +137,7 @@ use that.
 
 .namespace [ 'Perl6::POST::Label' ]
 
-=item C<value()>
+=item C<Perl6::POST::Label::value()>
 
 Returns the value for this label.  If one hasn't already been
 set, a new unique label is generated from the invocant's name

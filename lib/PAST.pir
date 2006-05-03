@@ -11,6 +11,10 @@ needed for Perl 6.  The currently defined ast nodes:
 
     Perl6::PAST::Node       - base class for all ast nodes
 
+=head1 METHODS
+
+=over 4
+
 =cut
 
 .namespace [ 'Perl6::PAST' ]
@@ -159,7 +163,7 @@ needed for Perl 6.  The currently defined ast nodes:
 .end
 
 
-=item C<unique([string fmt])>
+=item C<Perl6::PAST::Node::unique([string fmt])>
 
 Each call to C<unique> returns a unique number, or if a C<fmt>
 parameter is given it returns a unique string beginning with

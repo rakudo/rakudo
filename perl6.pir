@@ -36,6 +36,11 @@ compiler.
     load_bytecode 'PGE/Util.pbc'
     load_bytecode 'TGE.pbc'
 
+    
+    $P0 = getclass 'TGE'
+    $P1 = subclass $P0, 'Perl6::PAST::Grammar'
+    $P1 = subclass $P0, 'Perl6::POST::Grammar'
+
     $P0 = compreg 'PGE::P6Regex'
     $P1 = $P0('^<Perl6::Grammar::program>')
     store_global 'Perl6', '&parse', $P1
@@ -81,12 +86,16 @@ compiled code as a PMC.
     ast = astbuilder.get('past')
     if target == 'PAST' goto return_ast
 
+  build_post:
+    .local pmc postgrammar, postbuilder, post
+    postgrammar = new 'Perl6::POST::Grammar'
+    postbuilder = postgrammar.'apply'(ast)
+    post = postbuilder.get('post')
+    if target == 'POST' goto return_post
+
   build_pir:
-    .local pmc pirgrammar, pirbuilder
     .local string pir
-    pirgrammar = new 'Perl6::PIR::Grammar'
-    pirbuilder = pirgrammar.'apply'(ast)
-    pir = pirbuilder.get('pir')
+    pir = post.'pir'()
     if target == 'PIR' goto return_pir
 
  compile_pir:
@@ -98,21 +107,32 @@ compiled code as a PMC.
     .return (match)
   return_ast:
     .return (ast)
+  return_post:
+    .return (post)
   return_pir:
     .return (pir)
 .end
 
 
-.namespace [ 'Perl6::Grammar' ]
-.include 'lib/grammar_gen.pir'
-
 .include 'lib/parse.pir'
 
 .include 'lib/PAST.pir'
 
+.include 'lib/POST.pir'
+
 .include 'lib/main.pir'
 
 .include 'lib/builtins.pir'
+
+.namespace [ 'Perl6::Grammar' ]
+.include 'lib/grammar_gen.pir'
+
+.namespace [ 'Perl6::PAST::Grammar' ]
+.include 'lib/pge2past_gen.pir'
+
+.namespace [ 'Perl6::POST::Grammar' ]
+.include 'lib/past2post_gen.pir'
+
 
 =back
 

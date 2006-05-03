@@ -35,6 +35,8 @@ executing program statements.
     $P0()
     $P0 = find_global 'Perl6::PAST', '__onload'
     $P0()
+    $P0 = find_global 'Perl6::POST', '__onload'
+    $P0()
 
     load_bytecode 'dumper.pbc'
     load_bytecode 'PGE/Dumper.pbc'

@@ -1,0 +1,246 @@
+Perl6::PAST::Sub: post(.) = {
+    $P0 = node[0]
+    $P0 = tree.'get'('post', $P0)
+    .local pmc post
+    post = new 'Perl6::POST::Sub'
+    post.'init'($P0, 'name'=>'anon')
+    .return (post)
+}
+
+
+Perl6::PAST::Stmts: post(.) = {
+    .local pmc iter, ops
+    ops = new 'Perl6::POST::Ops'
+    ops.'init'('node'=>node)
+    iter = node.'child_iter'()
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $P1 = tree.'get'('post', $P0)
+    ops.'add_child'($P1)
+    goto iter_loop
+  iter_end:
+    .local string value
+    value = $P1.'value'()
+    ops.'value'(value)
+    .return (ops)
+}
+
+
+Perl6::PAST::Stmt: post(.) = {
+    $P0 = node[0]
+    $P1 = tree.'get'('post', $P0)
+    .return ($P1)
+}
+
+
+Perl6::PAST::Exp: post(.) = {
+    $P0 = node[0]
+    $P1 = tree.'get'('post', $P0)
+    .return ($P1)
+}
+
+
+Perl6::PAST::Op: post(.) = {
+    .local string opname, pasttype
+    .local pmc optable, optok
+    opname = node.'op'()
+    optable = find_global 'Perl6::Grammar', '$optable'
+    optok = optable[opname]
+    pasttype = optok['pasttype']
+    if pasttype > '' goto dispatch_post
+    pasttype = 'simple'
+  dispatch_post:
+    .return tree.'get'(pasttype, node)
+}
+    
+
+Perl6::PAST::Op: simple(.) = {
+    .local pmc ops
+    ops = new 'Perl6::POST::Ops'
+    ops.'init'('node'=>node)
+
+    .local string opname, postop
+
+    opname = node.'op'()
+    postop = node.'name'()
+
+    .local pmc iter, arglist
+    $P0 = node
+    if opname != 'prelist:' goto op_children
+    $P1 = node[0]
+    $I0 = isa $P1, 'Perl6::PAST::Op'
+    if $I0 == 0 goto op_children
+    $S0 = $P1.'op'()
+    if $S0 != 'infix:,' goto op_children
+    $P0 = $P1
+  op_children:
+    iter = $P0.'child_iter'()
+    arglist = new .ResizablePMCArray
+  iter_loop:
+    unless iter goto iter_end
+    .local pmc cpast, cpost
+    cpast = shift iter
+    cpost = tree.'get'('post', cpast)
+    ops.'add_child'(cpost)
+    push arglist, cpost
+    goto iter_loop
+  iter_end:
+    $S0 = substr postop, 0, 1
+    if $S0 == "'" goto postop_end
+    ##   direct POST op, create a temporary to store the result
+    ops.'add_child_new'('Perl6::POST::Op', ops, '.Undef', 'name'=>'new')
+  postop_end:
+    ops.'add_child_new'('Perl6::POST::Op', ops, arglist :flat, 'name'=>postop)
+    .return (ops)
+}
+
+
+Perl6::PAST::Op: cond(.) = {
+    .local pmc ops
+    ops = new 'Perl6::POST::Ops'
+    ops.'init'('node'=>node)
+
+    .local pmc exprpast, thenpast, elsepast
+    .local pmc exprpost, thenpost, elsepost
+    exprpast = node[0]
+    thenpast = node[1]
+    elsepast = node[2]
+
+    .local pmc thenlabel, endlabel
+    thenlabel = ops.'new'('Perl6::POST::Label', 'name'=>'if_then')
+    endlabel = ops.'new'('Perl6::POST::Label', 'name'=>'if_end')
+
+    exprpost = tree.'get'('post', exprpast)
+    ops.'add_child'(exprpost)
+    ops.'add_child_new'('Perl6::POST::Op', exprpost, thenlabel, 'name'=>'if')
+    elsepost = exprpost
+    $I0 = defined elsepast
+    if $I0 == 0 goto cond_no_else
+    elsepost = tree.'get'('post', elsepast)
+    ops.'add_child'(elsepost)
+  cond_no_else:
+    ops.'add_child_new'('Perl6::POST::Op', ops, elsepost, 'name'=>'set')
+    ops.'add_child_new'('Perl6::POST::Op', endlabel, 'name'=>'goto')
+    ops.'add_child'(thenlabel)
+    thenpost = exprpost
+    $I0 = defined thenpast
+    if $I0 == 0 goto cond_no_then
+    thenpost = tree.'get'('post', thenpast)
+    ops.'add_child'(thenpost)
+  cond_no_then:
+    ops.'add_child_new'('Perl6::POST::Op', ops, thenpost, 'name'=>'set')
+    ops.'add_child'(endlabel)
+    .return (ops)
+}
+
+
+Perl6::PAST::Op: xor(.) = {
+    .local pmc ops
+    ops = new 'Perl6::POST::Ops'
+    ops.'init'('node'=>node)
+
+    .local pmc endlabel, falselabel
+    falselabel = ops.'new'('Perl6::POST::Label', 'name'=>'xor_false')
+    endlabel = ops.'new'('Perl6::POST::Label', 'name'=>'xor_end')
+
+    .local pmc iter, apast, apost, i, t, u
+    i = ops.unique('$I')
+    t = ops.unique('$I')
+    u = ops.unique('$I')
+    iter = node.'child_iter'()
+    apast = shift iter
+    apost = tree.'get'('post', apast)
+    ops.'add_child'(apost)
+    ops.'add_child_new'('Perl6::POST::Op', ops, apost, 'name'=>'set')
+    ops.'add_child_new'('Perl6::POST::Op', t, apost, 'name'=>'istrue')
+  inner_child:
+    .local pmc bpast, bpost
+    bpast = shift iter
+    bpost = tree.'get'('post', bpast)
+    ops.'add_child'(bpost)
+    ops.'add_child_new'('Perl6::POST::Op', u, bpost, 'name'=>'istrue')
+    ops.'add_child_new'('Perl6::POST::Op', i, t, u, 'name'=>'and')
+    ops.'add_child_new'('Perl6::POST::Op', i, falselabel, 'name'=>'if')
+    unless iter goto last_child
+    .local pmc s
+    s = ops.'new'('Perl6::POST::Label', 'name'=>'xor_skip')
+    ops.'add_child_new'('Perl6::POST::Op', t, s, 'name'=>'if')
+    ops.'add_child_new'('Perl6::POST::Op', ops, bpost, 'name'=>'set')
+    ops.'add_child_new'('Perl6::POST::Op', t, u, 'name'=>'set')
+    ops.'add_child'(s)
+    goto inner_child
+  last_child:
+    ops.'add_child_new'('Perl6::POST::Op', t, endlabel, 'name'=>'if')
+    ops.'add_child_new'('Perl6::POST::Op', ops, bpost, 'name'=>'set')
+    ops.'add_child_new'('Perl6::POST::Op', endlabel, 'name'=>'goto')
+    ops.'add_child'(falselabel)
+    ops.'add_child_new'('Perl6::POST::Op', ops, '.Undef', 'name'=>'new')
+    ops.'add_child'(endlabel)
+    .return (ops)
+}
+
+
+Perl6::PAST::Op: chain(.) = {
+    .local pmc ops
+    ops = new 'Perl6::POST::Ops'
+    ops.'init'('node'=>node)
+
+    .local string opname, pasttype
+    .local pmc optable, optok
+    optable = find_global 'Perl6::Grammar', '$optable'
+
+    .local pmc clist
+    clist = new .ResizablePMCArray
+  chain_loop:
+    $I0 = isa node, 'Perl6::PAST::Op'
+    if $I0 == 0 goto chain_end
+    opname = node.'op'()
+    optok = optable[opname]
+    pasttype = optok['pasttype']
+    if pasttype != 'chain' goto chain_end
+    push clist, node
+    node = node[0]
+    goto chain_loop
+  chain_end:
+
+    .local pmc endlabel, apast, apost
+    node = pop clist
+    endlabel = ops.'new'('Perl6::POST::Label', 'name'=>'chain_end')
+    apast = node[0]
+    apost = tree.'get'('post', apast)
+    ops.'add_child'(apost)
+
+  clist_loop:
+    .local pmc bpast, bpost
+    .local string postop
+    bpast = node[1]
+    bpost = tree.'get'('post', bpast)
+    postop = node.'name'()
+    ops.'add_child'(bpost)
+    ops.'add_child_new'('Perl6::POST::Op', ops, apost, bpost, 'name'=>postop)
+    unless clist goto clist_end
+    ops.'add_child_new'('Perl6::POST::Op', ops, endlabel, 'name'=>'unless')
+    apost = bpost
+    node = pop clist
+    goto clist_loop
+  clist_end:
+    ops.'add_child'(endlabel)
+    .return (ops)
+}
+
+
+
+Perl6::PAST::Val: post(.) = {
+    .local string val, valtype
+    val = node.'val'()
+    valtype = node.'valtype'()
+    .local pmc ops
+    ops = new 'Perl6::POST::Ops'
+    ops.'init'('node'=>node)
+    ops.'add_child_new'('Perl6::POST::Op', ops, '.Undef', 'name'=>'new')
+    $P0 = ops.'new'('Perl6::POST::Val', 'valtype'=>valtype, 'value'=>val)
+    ops.'add_child_new'('Perl6::POST::Op', ops, $P0, 'name'=>'assign')
+    .return (ops)
+}
+    

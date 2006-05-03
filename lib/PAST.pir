@@ -10,30 +10,6 @@ This file implements the various abstract syntax tree nodes
 needed for Perl 6.  The currently defined ast nodes:
 
     Perl6::PAST::Node       - base class for all ast nodes
-    Perl6::PAST::Sub        - a subroutine or executable block
-    Perl6::PAST::Stmts      - a block of statements
-    Perl6::PAST::Stmt       - a single statement
-    Perl6::PAST::Op         - an operation
-    Perl6::PAST::Val        - a constant value
-    Perl6::PAST::Var        - a variable
-    Perl6::PAST::Lex        - a lexical declaration ("my")
-    Perl6::PAST::Vector     - a vector of values
-    Perl6::PAST::Assign     - an assignment operation
-
-The C<Perl6::PAST::Node> class itself is derived from C<Hash>, so
-that it's easy to store and retrieve attributes from each
-node object.
-
-This file also defines (by inclusion) C<Perl6::PAST::Grammar>,
-which converts a Match object into an abstract syntax tree.
-
-=head1 PAST functions
-
-=over 4
-
-=item C<__onload()>
-
-Creates the C<Perl6::PAST::*> classes.
 
 =cut
 
@@ -41,178 +17,270 @@ Creates the C<Perl6::PAST::*> classes.
 
 .sub '__onload' :load
     .local pmc base
-    $P0 = getclass 'Hash'
-    base = subclass $P0, 'Perl6::PAST::Node'
-    addattribute base, '$.source'                  # original source
-    addattribute base, '$.pos'                     # offset position
+    base = newclass 'Perl6::PAST::Node'
+    addattribute base, '@.children'
+    addattribute base, '$.source'
+    addattribute base, '$.pos'
 
-    $P0 = subclass base, 'Perl6::PAST::Sub'
-    $P0 = subclass base, 'Perl6::PAST::Stmts'
-    $P0 = subclass base, 'Perl6::PAST::Stmt'
-    $P0 = subclass base, 'Perl6::PAST::Exp'
     $P0 = subclass base, 'Perl6::PAST::Op'
-    $P0 = subclass base, 'Perl6::PAST::Val'
-    $P0 = subclass base, 'Perl6::PAST::Var'
-    $P0 = subclass base, 'Perl6::PAST::Lex'
+    addattribute $P0, '$.op'
+    addattribute $P0, '$.name'
 
-    base = getclass 'TGE'
-    $P0 = subclass base, 'Perl6::PAST::Grammar'
-    $P0 = subclass base, 'Perl6::PIR::Grammar'
+    $P0 = subclass base, 'Perl6::PAST::Val'
+    addattribute $P0, '$.valtype'
+    addattribute $P0, '$.val'
+
+    $P0 = subclass base, 'Perl6::PAST::Exp'
+    $P0 = subclass base, 'Perl6::PAST::Stmt'
+    $P0 = subclass base, 'Perl6::PAST::Stmts'
+    $P0 = subclass base, 'Perl6::PAST::Sub'
+    $P0 = subclass base, 'Perl6::PAST::Var'
 
     $P0 = new .Integer
-    store_global "Perl6::PAST", "$!serno", $P0
+    $P0 = 10
+    store_global '$!serno', $P0
+    .return ()
 .end
+
 
 .namespace [ 'Perl6::PAST::Node' ]
 
-=back
+.sub 'attr' :method
+    .param string attrname
+    .param pmc value
+    .param int setvalue
+    if setvalue goto set
+    value = getattribute self, attrname
+    unless null value goto end
+    value = new .Undef
+  set:
+    setattribute self, attrname, value
+  end:
+    .return (value)
+.end
 
-=head2  Perl6::PAST::Node methods
 
-=over 4
+.sub 'init' :method
+    .param pmc children        :slurpy
+    .param pmc adverbs         :slurpy :named
 
-=item C<__init()>
+    unless null children goto set_children
+    children = new .ResizablePMCArray
+  set_children:
+    setattribute self, '@.children', children
 
-Initializes a new C<Perl6::PAST::Node> object.
-
-=cut
-
-.sub __init :method
-    $P0 = new .String
-    $P1 = new .Integer
-
-    setattribute self, "Perl6::PAST::Node\x0$.source", $P0
-    setattribute self, "Perl6::PAST::Node\x0$.pos", $P1
+    if null adverbs goto end
+    .local pmc iter
+    iter = new .Iterator, adverbs
+    iter = 0
+  iter_loop:
+    unless iter goto iter_end
+    $S0 = shift iter
+    if $S0 == 'XXX' goto iter_loop
+    $P0 = iter[$S0]
+    $P1 = find_method self, $S0
+    self.$P1($P0)
+    goto iter_loop
+  iter_end:
+  end:
     .return ()
 .end
 
 
-=item C<set_node(PMC match)>
+.sub 'new' :method
+    .param string class
+    .param pmc children        :slurpy
+    .param pmc adverbs         :slurpy :named
 
-Initializes the current ast node with the source code
-information from a match object (presumably a component
-of the parse tree).
+    $I0 = find_type class
+    $P0 = new $I0
+    $P0.'init'(children :flat, 'node'=>self, 'XXX'=>1, adverbs :flat :named)
+    .return ($P0)
+.end
 
-=cut
 
-.sub 'set_node' :method
-    .param pmc match                               # match object of source
-    $P0 = getattribute self, "Perl6::PAST::Node\x0$.source"
-    $S0 = match
-    $P0 = $S0
-    $P1 = getattribute self, "Perl6::PAST::Node\x0$.pos"
-    $I1 = match.from()
-    $P1 = $I1
+.sub 'add_child' :method
+    .param pmc child
+    .local pmc array
+    array = getattribute self, '@.children'
+    push array, child
     .return ()
 .end
 
 
-=item C<source()>
+.sub 'add_child_new' :method
+    .param string class
+    .param pmc children        :slurpy
+    .param pmc adverbs         :slurpy :named
+    $P0 = self.'new'(class, children :flat, 'XXX'=>0, adverbs :flat :named)
+    self.'add_child'($P0)
+    .return ($P0)
+.end
 
-Return the source code associated with the current node.
-
-=cut
 
 .sub 'source' :method
-    $P0 = getattribute self, "Perl6::PAST::Node\x0$.source"
-    .return ($P0)
+    .param string source       :optional
+    .param int has_source      :opt_flag
+    .return self.'attr'('$.source', source, has_source)
 .end
 
-
-=item C<pos()>
-
-Return the source code offset associated with this
-node.
-
-=cut
 
 .sub 'pos' :method
-    $P0 = getattribute self, "Perl6::PAST::Node\x0$.pos"
-    .return ($P0)
+    .param int pos             :optional
+    .param int has_pos         :opt_flag
+    .return self.'attr'('$.pos', pos, has_pos)
 .end
 
 
-=item C<generate_unique(STR prefix)>
+.sub 'node' :method
+    .param pmc node
+    $I0 = isa node, 'Perl6::PAST::Node'
+    if $I0 goto clone_past
+  clone_pge:
+    $S0 = node
+    self.'source'($S0)
+    $I0 = node.'from'()
+    self.'pos'($I0)
+    .return ()
+  clone_past:
+    $S0 = node.'source'()
+    self.'source'($S0)
+    $I0 = node.'pos'()
+    self.'pos'($I0)
+    .return ()
+.end
 
-Generate a unique string that begins with C<prefix>.
+
+.sub 'child_iter' :method
+    $P0 = getattribute self, '@.children'
+    $P1 = new .Iterator, $P0
+    $P1 = 0
+    .return ($P1)
+.end
+
+
+=item C<unique([string fmt])>
+
+Each call to C<unique> returns a unique number, or if a C<fmt>
+parameter is given it returns a unique string beginning with
+C<fmt>.  (This may eventually be generalized to allow
+uniqueness anywhere in the string.)  The function starts
+counting at 10 (so that the values 0..9 can be considered "safe").
 
 =cut
 
-.sub "generate_unique" :method
-    .param string prefix
-    $P0 = find_global "Perl6::PAST", "$!serno"
+.sub 'unique' :method
+    .param string fmt          :optional
+    .param int has_fmt         :opt_flag
+
+    if has_fmt goto unique_1
+    fmt = ''
+  unique_1:
+    $P0 = find_global 'Perl6::PAST', '$!serno'
     $S0 = $P0
-    $S0 = concat prefix, $S0
+    $S0 = concat fmt, $S0
     inc $P0
     .return ($S0)
 .end
 
 
-=item C<__dump(PMC dumper, STR label)>
+.sub '__elements' :method
+    $P0 = getattribute self, '@.children'
+    $I0 = elements $P0
+    .return ($I0)
+.end
 
-Display the contents of the current node in a form compatible
-with C<Data::Dumper>.
 
-=cut
+.sub '__get_pmc_keyed_int' :method
+    .param int key
+    $P0 = getattribute self, '@.children'
+    $P0 = $P0[key]
+    .return ($P0)
+.end
+
+
+.sub '__set_pmc_keyed_int' :method
+    .param int key
+    .param pmc val
+    $P0 = getattribute self, '@.children'
+    $P0[key] = val
+    .return ()
+.end
+
+
+.sub '__dumplist' :method
+    .return ('$.pos @.children')
+.end
+
 
 .sub '__dump' :method
     .param pmc dumper
     .param string label
     .local string indent, subindent
-    .local pmc iter, val
-    .local string key
-    .local pmc hash
-    .local int hascapts
 
     (subindent, indent) = dumper.'newIndent'()
-    print '=> '
-    $S0 = self.source()
-    dumper.'genericString'('', $S0)
-    $I0 = self.pos()
-    print ' @ '
-    print $I0
-    hascapts = 0
-    iter = new .Iterator, self
+    print '=> { '
+    .local pmc attrlist, iter
+    $S0 = self.'__dumplist'()
+    attrlist = split ' ', $S0
+    iter = new .Iterator, attrlist
     iter = 0
-  dump_hash_1:
-    unless iter goto dump_end
-    if hascapts goto dump_hash_2
-    print ' {'
-    hascapts = 1
-  dump_hash_2:
+  iter_loop:
+    unless iter goto iter_end
+    .local string attrname
+    .local pmc val
+    attrname = shift iter
+    val = getattribute self, attrname
     print "\n"
     print subindent
-    key = shift iter
-    val = iter[key]
-    print '<'
-    print key
-    print '> => '
+    print attrname
+    print ' => '
     dumper.'dump'(label, val)
-    goto dump_hash_1
-  dump_end:
-    unless hascapts goto end
+    goto iter_loop
+  iter_end:
     print "\n"
     print indent
     print '}'
-  end:
     dumper.'deleteIndent'()
+    .return ()
 .end
 
-.namespace [ 'Perl6::PAST::Grammar' ]
-.include 'lib/pge2past.pir'
 
-.namespace [ 'Perl6::PIR::Grammar' ]
-.include 'lib/past2pir.pir'
+.namespace [ 'Perl6::PAST::Op' ]
 
-=back
+.sub 'op' :method
+    .param string op           :optional
+    .param int has_op          :opt_flag
+    .return self.'attr'('$.op', op, has_op)
+.end
 
-=head1 LICENSE
 
-Copyright (c) 2005-2006 The Perl Foundation
+.sub 'name' :method
+    .param string name         :optional
+    .param int has_name        :opt_flag
+    .return self.'attr'('$.name', name, has_name)
+.end
 
-This is free software; you may redistribute it and/or modify
-it under the same terms as Parrot.
 
-=cut
+.sub '__dumplist' :method
+    .return ('$.op $.name @.children')
+.end
 
-## vim: expandtab sw=4
+
+.namespace [ 'Perl6::PAST::Val' ]
+
+.sub 'valtype' :method
+    .param string valtype      :optional
+    .param int has_valtype     :opt_flag
+    .return self.'attr'('$.valtype', valtype, has_valtype)
+.end
+
+.sub 'val' :method
+    .param string val          :optional
+    .param int has_val         :opt_flag
+    .return self.'attr'('$.val', val, has_val)
+.end
+
+.sub '__dumplist' :method
+    .return ('$.valtype $.val')
+.end

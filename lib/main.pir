@@ -49,6 +49,7 @@ executing program statements.
     getopts.'notOptStop'(1)
     push getopts, 'target=s'
     push getopts, 'dump-optable'
+    push getopts, 'dump|d'
     push getopts, 'help|h'
     opts = getopts.'get_options'(args)
 
@@ -56,6 +57,9 @@ executing program statements.
     if $S0 goto dump_optable
     $S0 = opts['help']
     if $S0 goto usage
+
+    .local string dump
+    dump = opts['dump']
 
     .local string target
     target = opts['target']
@@ -93,7 +97,7 @@ executing program statements.
   perl6_eval:
     $I0 = find_charset 'iso-8859-1'                # XXX: Note 2006-04-14
     trans_charset stmt, $I0
-    $P0 = perl6(stmt, 'target' => target)
+    $P0 = perl6(stmt, 'target' => target, 'dump' => dump)
     if target == 'PIR' goto dump_pir
     if target goto dump_object
     $P0()

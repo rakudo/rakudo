@@ -48,7 +48,7 @@ Perl6::Grammar::statement: past(.) = {
     modifier = $P0[0]
     thenpast = stmt
     null elsepast
-    $S0 = modifier[0]
+    $S0 = modifier['KEY']
     if $S0 != 'unless' goto stmt_modifier_1
     exchange thenpast, elsepast
   stmt_modifier_1:

@@ -65,9 +65,14 @@ compiled code as a PMC.
     .param pmc code
     .param string target       :named('target') :optional
     .param int has_target      :opt_flag
+    .param int dump            :named('dump') :optional
+    .param int has_dump        :opt_flag
 
-    if has_target goto parse
+    if has_target goto set_dump
     target = 'pbc'
+  set_dump:
+    if has_dump goto parse
+    dump = 0
 
   parse:
     .local pmc parse
@@ -76,6 +81,9 @@ compiled code as a PMC.
     match = parse(code)
 
     unless match goto return_match
+    unless dump goto parse_1
+    '_dumper'(match, 'parse')
+  parse_1:
     if target == 'parse' goto return_match
 
   build_ast:
@@ -84,6 +92,9 @@ compiled code as a PMC.
     astgrammar = new 'Perl6::PAST::Grammar'
     astbuilder = astgrammar.apply(match)
     ast = astbuilder.get('past')
+    unless dump goto build_ast_1
+    '_dumper'(match, 'PAST')
+  build_ast_1:
     if target == 'PAST' goto return_ast
 
   build_post:
@@ -91,11 +102,17 @@ compiled code as a PMC.
     postgrammar = new 'Perl6::POST::Grammar'
     postbuilder = postgrammar.'apply'(ast)
     post = postbuilder.get('post')
+    unless dump goto build_post_1
+    '_dumper'(match, 'POST')
+  build_post_1:
     if target == 'POST' goto return_post
 
   build_pir:
     .local string pir
     pir = post.'pir'()
+    unless dump goto build_pir_1
+    print pir
+  build_pir_1:
     if target == 'PIR' goto return_pir
 
  compile_pir:

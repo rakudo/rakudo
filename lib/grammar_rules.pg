@@ -66,14 +66,14 @@ rule statement {
 
 rule statement_control {
     <?ws>:
-    ([if|unless]) <expression: circumfix:{ }> <block>
+    $<KEY>:=[if|unless] <expression: circumfix:{ }> <block>
         [ <?ws>: elsif <expression: circumfix{ }> <block> ]*
         [ <?ws>: else <block> ]?
 }
 
 
 rule statement_modifier {
-    <?ws> ([if|unless]) <expression: infix:;>
+    <?ws> $<KEY>:=[if|unless] <expression: infix:;>
 }
 
 

@@ -380,7 +380,7 @@ proto 'ternary:?? !!' is precedence('08=') is assoc('right')
 
 ## assignment
 proto 'infix:=' is precedence('07=') is assoc('right')
-    is pir("    assign %0, %1") { ... }
+    is pasttype('assign') { ... }
 
 proto 'infix::=' is equiv('infix:=') { ... }
 

@@ -1,4 +1,7 @@
 Perl6::PAST::Sub: post(.) = {
+    .local pmc varhash
+    varhash = new .Hash
+    store_global 'Perl6::PAST', '%varhash', varhash
     $P0 = node[0]
     $P0 = tree.'get'('post', $P0)
     .local pmc post
@@ -92,6 +95,24 @@ Perl6::PAST::Op: simple(.) = {
     ops.'add_child_new'('Perl6::POST::Op', ops, '.Undef', 'name'=>'new')
   postop_end:
     ops.'add_child_new'('Perl6::POST::Op', ops, arglist :flat, 'name'=>postop)
+    .return (ops)
+}
+
+
+Perl6::PAST::Op: assign(.) = {
+    .local pmc ops
+    ops = new 'Perl6::POST::Ops'
+    ops.'init'('node'=>node)
+
+    .local pmc iter, lpast, rpast
+    iter = node.'child_iter'()
+    lpast = shift iter
+    rpast = shift iter
+    .local pmc lpost, rpost
+    lpost = tree.'get'('post', lpast)
+    rpost = tree.'get'('post', rpast)
+    ops.'add_child'(rpost)
+    ops.'add_child_new'('Perl6::POST::Assign', lpost, rpost, 'name'=>'assign')
     .return (ops)
 }
 
@@ -244,3 +265,23 @@ Perl6::PAST::Val: post(.) = {
     .return (ops)
 }
     
+
+Perl6::PAST::Var: post(.) = {
+    .local string name, vartype
+    .local pmc post
+    name = node.'name'()
+    vartype = node.'vartype'()
+
+    .local pmc varhash
+    varhash = find_global 'Perl6::PAST', '%varhash'
+    $I0 = exists varhash[name]
+    if $I0 == 0 goto new_post
+    post = varhash[name]
+    .return (post)
+
+  new_post:
+    post = new 'Perl6::POST::Var'
+    post.'init'('node'=>node, 'vartype'=>vartype, 'name'=>name, 'isgen'=>0)
+    varhash[name] = post
+    .return (post)
+}

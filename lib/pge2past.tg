@@ -209,13 +209,10 @@ Perl6::Grammar::type: past(.) = {
 
 Perl6::Grammar::variable: past(.) = {
     .local pmc past
-    .local string scope
 
-    past = new 'Perl6::PAST::Var'
-    past.set_node(node)
-    past['returns'] = 'var'
     $S0 = node
-    past['variable'] = $S0
+    past = new 'Perl6::PAST::Var'
+    past.'init'('node'=>node, 'name'=>$S0, 'vartype'=>'')
     .return (past)
 }
 

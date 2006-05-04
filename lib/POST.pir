@@ -32,10 +32,15 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
     $P0 = subclass base, 'Perl6::POST::Val'
     addattribute $P0, '$.valtype'
 
+    $P0 = subclass base, 'Perl6::POST::Var'
+    addattribute $P0, '$.vartype'
+    addattribute $P0, '$.isgen'
+
     $P0 = subclass base, 'Perl6::POST::Op'
     $P0 = subclass base, 'Perl6::POST::Ops'
     $P0 = subclass base, 'Perl6::POST::Label'
     $P0 = subclass base, 'Perl6::POST::Sub'
+    $P0 = subclass base, 'Perl6::POST::Assign'
 
 .end
 
@@ -173,6 +178,9 @@ and that is returned.
 .namespace [ 'Perl6::POST::Sub' ]
 
 .sub 'pir' :method
+    .local pmc varhash
+    varhash = new .Hash
+    store_global 'Perl6::POST', '%!varhash', varhash
     .local pmc code, iter
     code = new 'PGE::CodeString'
     code.'emit'(".sub 'anon' :anon")
@@ -194,7 +202,6 @@ and that is returned.
 .sub 'value' :method
     .param string value        :optional
     .param int has_value       :opt_flag
-    .local pmc v, valtype
     .return self.'attr'('$.value', value, has_value)
 .end
 
@@ -207,3 +214,71 @@ and that is returned.
 .sub '__dumplist' :method
     .return ('$.name $.value $.valtype')
 .end
+
+
+.namespace [ 'Perl6::POST::Var' ]
+
+.sub 'vartype' :method
+    .param string vartype      :optional
+    .param int has_vartype     :opt_flag
+    .return self.'attr'('$.vartype', vartype, has_vartype)
+.end
+
+.sub 'isgen' :method
+    .param string isgen        :optional
+    .param int has_isgen       :opt_flag
+    .return self.'attr'('$.isgen', isgen, has_isgen)
+.end
+
+.sub 'pir' :method
+    ##   If we've already generated the pir for this variable, don't
+    ##   do it a second time.
+    $I0 = self.'isgen'()
+    if $I0 == 0 goto gen_pir
+    .return ('')
+
+  gen_pir:
+    .local pmc name, value, code
+    name = self.'name'()
+    value = self.'value'()
+    code = new 'PGE::CodeString'
+    code.'emit'("    %0 = find_global '%1'", value, name)
+    self.'isgen'(1)
+    .return (code)
+.end
+
+
+.sub 'assignpir' :method
+    .param pmc x
+    .local pmc name, value, xvalue, code
+    name = self.'name'()
+    value = self.'value'()
+    xvalue = x.'value'()
+    code = new 'PGE::CodeString'
+    code.'emit'("    store_global '%0', %1", name, xvalue)
+    code.'emit'("    %0 = %1", value, xvalue)
+    self.'isgen'(1)
+    .return (code)
+.end
+
+
+.namespace [ 'Perl6::POST::Assign' ]
+
+.sub 'value' :method
+    ##   return the value of our left hand side as our value
+    $P0 = self[0]
+    $P0 = $P0.'value'()
+    .return ($P0)
+.end
+
+
+.sub 'pir' :method
+    .local pmc rnode, rvalue
+    rnode = self[1]
+    rvalue = rnode.'value'()
+    .local pmc lnode
+    lnode = self[0]
+    $P0 = lnode.'assignpir'(rnode)
+    .return ($P0)
+.end
+

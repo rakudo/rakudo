@@ -34,11 +34,14 @@ needed for Perl 6.  The currently defined ast nodes:
     addattribute $P0, '$.valtype'
     addattribute $P0, '$.val'
 
+    $P0 = subclass base, 'Perl6::PAST::Var'
+    addattribute $P0, '$.name'
+    addattribute $P0, '$.vartype'
+
     $P0 = subclass base, 'Perl6::PAST::Exp'
     $P0 = subclass base, 'Perl6::PAST::Stmt'
     $P0 = subclass base, 'Perl6::PAST::Stmts'
     $P0 = subclass base, 'Perl6::PAST::Sub'
-    $P0 = subclass base, 'Perl6::PAST::Var'
 
     $P0 = new .Integer
     $P0 = 10
@@ -287,4 +290,19 @@ counting at 10 (so that the values 0..9 can be considered "safe").
 
 .sub '__dumplist' :method
     .return ('$.valtype $.val')
+.end
+
+
+.namespace [ 'Perl6::PAST::Var' ]
+
+.sub 'name' :method
+    .param string name         :optional
+    .param int has_name        :opt_flag
+    .return self.'attr'('$.name', name, has_name)
+.end
+
+.sub 'vartype' :method
+    .param string vartype      :optional
+    .param int has_vartype     :opt_flag
+    .return self.'attr'('$.vartype', vartype, has_vartype)
 .end

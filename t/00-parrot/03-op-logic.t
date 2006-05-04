@@ -22,8 +22,8 @@ say '1..16';
 (1 ^^ 1)  or say 'ok 12';
 
 ## interesting
-1 and 0 xor 1 or 0 and say 'ok 13';
-1 and 0 xor 0 || 1 and say 'ok 14';
+(1 and 0 xor 1 or 0) and say 'ok 13';
+(1 and 0 xor 0 || 1) and say 'ok 14';
 
 ## more interesting
 (5 and 0 xor 0 || 3) eq 3 and say 'ok 15';

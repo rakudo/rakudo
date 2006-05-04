@@ -14,7 +14,7 @@
     print $P0
     goto iter_loop
   iter_end:
-    .return ()
+    .return (1)
 .end
 
 
@@ -22,7 +22,7 @@
     .param pmc list            :slurpy
     'print'(list :flat)
     print "\n"
-    .return ()
+    .return (1)
 .end
 
 
@@ -35,6 +35,13 @@
 .sub 'use'
     .param pmc list            :slurpy
     .return ()
+.end
+
+
+.sub 'prefix:?^'
+    .param pmc a
+    $I0 = isfalse a
+    .return ($I0)
 .end
 
 
@@ -87,6 +94,60 @@
     .param pmc a
     .param pmc b
     $I0 = cmp_num a, b
+    $I0 = isne $I0, 0
+    .return ($I0)
+.end
+
+
+.sub 'infix:lt'
+    .param pmc a
+    .param pmc b
+    $I0 = cmp_str a, b
+    $I0 = islt $I0, 0
+    .return ($I0)
+.end
+
+
+.sub 'infix:gt'
+    .param pmc a
+    .param pmc b
+    $I0 = cmp_str a, b
+    $I0 = isgt $I0, 0
+    .return ($I0)
+.end
+
+
+.sub 'infix:le'
+    .param pmc a
+    .param pmc b
+    $I0 = cmp_str a, b
+    $I0 = isle $I0, 0
+    .return ($I0)
+.end
+
+
+.sub 'infix:ge'
+    .param pmc a
+    .param pmc b
+    $I0 = cmp_str a, b
+    $I0 = isge $I0, 0
+    .return ($I0)
+.end
+
+
+.sub 'infix:eq'
+    .param pmc a
+    .param pmc b
+    $I0 = cmp_str a, b
+    $I0 = iseq $I0, 0
+    .return ($I0)
+.end
+
+
+.sub 'infix:ne'
+    .param pmc a
+    .param pmc b
+    $I0 = cmp_str a, b
     $I0 = isne $I0, 0
     .return ($I0)
 .end

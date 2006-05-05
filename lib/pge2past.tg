@@ -2,10 +2,13 @@
 
 ROOT: past(.) = {
     .local pmc past
-    $P0 = node['statement_list']
-    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
     past = new 'Perl6::PAST::Sub'
-    past.'init'($P1, 'node'=>node)
+    past.'init'('node'=>node, 'name'=>'anon')
+    store_global 'Perl6::PAST', '$?SUB', past
+    .local pmc cpast, cpost
+    cpast = node['statement_list']
+    cpost = tree.'get'('past', cpast, 'Perl6::Grammar::statement_list')
+    past.'add_child'(cpost)
     .return (past)
 }
 
@@ -221,7 +224,7 @@ Perl6::Grammar::integer: past(.) = {
     .local pmc past
     $I0 = node
     past = new 'Perl6::PAST::Val'
-    past.'init'('node'=>node, 'valtype'=>'int', 'val'=>$I0)
+    past.'init'('node'=>node, 'valtype'=>'int', 'name'=>$I0)
     .return (past)
 }
 
@@ -230,7 +233,7 @@ Perl6::Grammar::number: past(.) = {
     .local pmc past
     $N0 = node
     past = new 'Perl6::PAST::Val'
-    past.'init'('node'=>node, 'valtype'=>'num', 'val'=>$N0)
+    past.'init'('node'=>node, 'valtype'=>'num', 'name'=>$N0)
     .return (past)
 }
 
@@ -239,7 +242,7 @@ Perl6::Grammar::string_literal: past(.) = {
     .local pmc past
     $S0 = node
     past = new 'Perl6::PAST::Val'
-    past.'init'('node'=>node, 'valtype'=>'str', 'val'=>$S0)
+    past.'init'('node'=>node, 'valtype'=>'str', 'name'=>$S0)
     .return (past)
 }
 
@@ -250,14 +253,32 @@ Perl6::Grammar::version: past(.) = {
     $S0 = concat $S0, "'"
     .local pmc past
     past = new 'Perl6::PAST::Val'
-    past.'init'('node'=>node, 'valtype'=>'str', 'val'=>$S0)
+    past.'init'('node'=>node, 'valtype'=>'str', 'name'=>$S0)
     .return (past)
 }
 
 
 Perl6::Grammar::block: past(.) = {
+    .local pmc outer
+    outer = find_global 'Perl6::PAST', '$?SUB'
+    .local string bname
+    bname = outer.'unique'('_block')
+    .local pmc bpast
+    bpast = new 'Perl6::PAST::Sub'
+    bpast.'init'('node'=>node, 'outer'=>outer, 'name'=>bname)
+    store_global 'Perl6::PAST', '$?SUB', bpast
+    .local pmc cpast
     $P0 = node['simple_block']
-    .return tree.'get'('past', $P0, 'Perl6::Grammar::simple_block')
+    cpast = tree.'get'('past', $P0, 'Perl6::Grammar::simple_block')
+    bpast.'add_child'(cpast)
+    outer.'add_child'(bpast)
+    store_global 'Perl6::PAST', '$?SUB', outer
+
+    bname = concat "'", bname
+    bname = concat bname, "'"
+    .local pmc past
+    past = outer.'new'('Perl6::PAST::Op', 'op'=>'prelist:', 'name'=>bname)
+    .return (past)
 }
 
 

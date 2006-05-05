@@ -1,12 +1,32 @@
 Perl6::PAST::Sub: post(.) = {
+    .local string name, outername
+    .local pmc outer
+    name = node.'name'()
+    outername = ''
+    outer = node.'outer'()
+    $I0 = defined outer
+    if $I0 == 0 goto outer_end
+    outername = outer.'name'()
+  outer_end:
     .local pmc varhash
     varhash = new .Hash
     store_global 'Perl6::PAST', '%varhash', varhash
-    $P0 = node[0]
-    $P0 = tree.'get'('post', $P0)
     .local pmc post
     post = new 'Perl6::POST::Sub'
-    post.'init'($P0, 'name'=>'anon')
+    post.'init'('node'=>node, 'name'=>name, 'outer'=>outername)
+    .local pmc iter
+    iter = node.'child_iter'()
+  iter_loop:
+    unless iter goto iter_end
+    .local pmc cpast, cpost
+    cpast = shift iter
+    cpost = tree.'get'('post', cpast)
+    post.'add_child'(cpost)
+    goto iter_loop
+  iter_end:
+    .local pmc value
+    value = cpost.'value'()
+    post.'value'(value)
     .return (post)
 }
 
@@ -84,6 +104,8 @@ Perl6::PAST::Op: simple(.) = {
     unless iter goto iter_end
     .local pmc cpast, cpost
     cpast = shift iter
+    $I0 = defined cpast
+    if $I0 == 0 goto iter_loop
     cpost = tree.'get'('post', cpast)
     ops.'add_child'(cpost)
     push arglist, cpost
@@ -254,7 +276,7 @@ Perl6::PAST::Op: chain(.) = {
 
 Perl6::PAST::Val: post(.) = {
     .local string val, valtype
-    val = node.'val'()
+    val = node.'name'()
     valtype = node.'valtype'()
     .local pmc ops
     ops = new 'Perl6::POST::Ops'

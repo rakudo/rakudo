@@ -25,23 +25,23 @@ needed for Perl 6.  The currently defined ast nodes:
     addattribute base, '@.children'
     addattribute base, '$.source'
     addattribute base, '$.pos'
+    addattribute base, '$.name'
 
     $P0 = subclass base, 'Perl6::PAST::Op'
     addattribute $P0, '$.op'
-    addattribute $P0, '$.name'
 
     $P0 = subclass base, 'Perl6::PAST::Val'
     addattribute $P0, '$.valtype'
-    addattribute $P0, '$.val'
 
     $P0 = subclass base, 'Perl6::PAST::Var'
-    addattribute $P0, '$.name'
     addattribute $P0, '$.vartype'
+
+    $P0 = subclass base, 'Perl6::PAST::Sub'
+    addattribute $P0, '$.outer'
 
     $P0 = subclass base, 'Perl6::PAST::Exp'
     $P0 = subclass base, 'Perl6::PAST::Stmt'
     $P0 = subclass base, 'Perl6::PAST::Stmts'
-    $P0 = subclass base, 'Perl6::PAST::Sub'
 
     $P0 = new .Integer
     $P0 = 10
@@ -139,6 +139,13 @@ needed for Perl 6.  The currently defined ast nodes:
 .end
 
 
+.sub 'name' :method
+    .param string name         :optional
+    .param int has_name        :opt_flag
+    .return self.'attr'('$.name', name, has_name)
+.end
+
+
 .sub 'node' :method
     .param pmc node
     $I0 = isa node, 'Perl6::PAST::Node'
@@ -216,7 +223,7 @@ counting at 10 (so that the values 0..9 can be considered "safe").
 
 
 .sub '__dumplist' :method
-    .return ('$.pos @.children')
+    .return ('$.pos $.name @.children')
 .end
 
 
@@ -262,13 +269,6 @@ counting at 10 (so that the values 0..9 can be considered "safe").
 .end
 
 
-.sub 'name' :method
-    .param string name         :optional
-    .param int has_name        :opt_flag
-    .return self.'attr'('$.name', name, has_name)
-.end
-
-
 .sub '__dumplist' :method
     .return ('$.op $.name @.children')
 .end
@@ -282,27 +282,33 @@ counting at 10 (so that the values 0..9 can be considered "safe").
     .return self.'attr'('$.valtype', valtype, has_valtype)
 .end
 
-.sub 'val' :method
-    .param string val          :optional
-    .param int has_val         :opt_flag
-    .return self.'attr'('$.val', val, has_val)
-.end
-
 .sub '__dumplist' :method
-    .return ('$.valtype $.val')
+    .return ('$.name $.valtype')
 .end
 
 
 .namespace [ 'Perl6::PAST::Var' ]
 
-.sub 'name' :method
-    .param string name         :optional
-    .param int has_name        :opt_flag
-    .return self.'attr'('$.name', name, has_name)
-.end
-
 .sub 'vartype' :method
     .param string vartype      :optional
     .param int has_vartype     :opt_flag
     .return self.'attr'('$.vartype', vartype, has_vartype)
+.end
+
+
+.sub '__dumplist' :method
+    .return ('$.name $.vartype')
+.end
+
+
+.namespace [ 'Perl6::PAST::Sub' ]
+
+.sub 'outer' :method
+    .param pmc outer           :optional
+    .param int has_outer       :opt_flag
+    .return self.'attr'('$.outer', outer, has_outer)
+.end
+
+.sub '__dumplist' :method
+    .return ('$.name $.outer @.children')
 .end

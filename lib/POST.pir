@@ -26,7 +26,6 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
     .local pmc base
     $P0 = getclass 'Perl6::PAST::Node'
     base = subclass $P0, 'Perl6::POST::Node'
-    addattribute base, '$.name'
     addattribute base, '$.value'
 
     $P0 = subclass base, 'Perl6::POST::Val'
@@ -36,10 +35,12 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
     addattribute $P0, '$.vartype'
     addattribute $P0, '$.isgen'
 
+    $P0 = subclass base, 'Perl6::POST::Sub'
+    addattribute $P0, '$.outer'
+
     $P0 = subclass base, 'Perl6::POST::Op'
     $P0 = subclass base, 'Perl6::POST::Ops'
     $P0 = subclass base, 'Perl6::POST::Label'
-    $P0 = subclass base, 'Perl6::POST::Sub'
     $P0 = subclass base, 'Perl6::POST::Assign'
 
 .end
@@ -49,7 +50,7 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
 .sub '__init' :method
     $P0 = new .String
     setattribute self, '$.name', $P0
-    $P0 = new String
+    $P0 = new .String
     setattribute self, '$.value', $P0
     .return ()
 .end
@@ -63,10 +64,8 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
 =item C<Perl6::POST::Node::value()>
 
 Set or return the invocant's value.  If no value has been
-previously set for this node, then the default for POST::Node
-is to use the value of its last child.  If it has no children,
-then we generate a unique PMC register (uninitialized) and
-use that.
+previously set for this node, then we generate a unique 
+PMC register (uninitialized) and use that.
 
 =cut
 
@@ -177,25 +176,47 @@ and that is returned.
 
 .namespace [ 'Perl6::POST::Sub' ]
 
+.sub 'outer' :method
+    .param pmc outer           :optional
+    .param int has_outer       :opt_flag
+    .return self.'attr'('$.outer', outer, has_outer)
+.end
+
 .sub 'pir' :method
-    .local pmc varhash
-    varhash = new .Hash
-    store_global 'Perl6::POST', '%!varhash', varhash
-    .local pmc code, iter
+    .local string name, outer
+    name = self.'name'()
+    outer = self.'outer'()
+    if outer == '' goto outer_end
+    outer = concat ":outer('", outer
+    outer = concat outer, "')"
+  outer_end:
+    .local pmc code, iter, subcode
     code = new 'PGE::CodeString'
-    code.'emit'(".sub 'anon' :anon")
+    code.'emit'("\n.sub '%0' %1", name, outer)
+    subcode = new 'PGE::CodeString'
     iter = self.'child_iter'()
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
     $P1 = $P0.'pir'()
+    $I0 = isa $P0, 'Perl6::POST::Sub'
+    if $I0 goto concat_sub
     code .= $P1
     goto iter_loop
+  concat_sub:
+    subcode .= $P1
+    goto iter_loop
   iter_end:
-    code.'emit'('.end')
+    .local string value
+    value = self.'value'()
+    code.'emit'("    .return (%0)\n.end\n", value)
+    code = concat code, subcode
     .return (code)
 .end
 
+.sub '__dumplist' :method
+    .return ('$.name $.outer $.value @.children')
+.end
 
 .namespace [ 'Perl6::POST::Val' ]
 
@@ -281,4 +302,5 @@ and that is returned.
     $P0 = lnode.'assignpir'(rnode)
     .return ($P0)
 .end
+
 

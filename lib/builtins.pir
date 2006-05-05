@@ -153,13 +153,42 @@
 .end
 
 
-
-
 .sub 'infix:**'
     .param num base
     .param num exp
     $N0 = pow base, exp
     .return ($N0)
+.end
+
+
+.sub 'prefix:++'
+    .param pmc x
+    inc x
+    .return (x)
+.end
+
+
+.sub 'postfix:++'
+    .param pmc x
+    $I0 = x
+    inc x
+    .return ($I0)
+.end
+
+
+.sub 'infix:+='
+    .param pmc a
+    .param pmc b
+    a += b
+    .return (a)
+.end
+
+
+.sub 'infix:-='
+    .param pmc a
+    .param pmc b
+    a -= b
+    .return (a)
 .end
 
 

@@ -150,6 +150,7 @@ Perl6::PAST::Op: assign(.) = {
     rpast = shift iter
     .local pmc lpost, rpost
     lpost = tree.'get'('post', lpast)
+    lpost.'islvalue'(1)
     rpost = tree.'get'('post', rpast)
     ops.'add_child'(lpost)
     ops.'add_child'(rpost)

@@ -33,6 +33,7 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
 
     $P0 = subclass base, 'Perl6::POST::Var'
     addattribute $P0, '$.scope'
+    addattribute $P0, '$.islvalue'
 
     $P0 = subclass base, 'Perl6::POST::Sub'
     addattribute $P0, '$.outer'
@@ -254,9 +255,15 @@ and that is returned.
 .namespace [ 'Perl6::POST::Var' ]
 
 .sub 'scope' :method
-    .param string scope      :optional
-    .param int has_scope     :opt_flag
+    .param string scope        :optional
+    .param int has_scope       :opt_flag
     .return self.'attr'('$.scope', scope, has_scope)
+.end
+
+.sub 'islvalue' :method
+    .param int islvalue        :optional
+    .param int has_islvalue    :opt_flag
+    .return self.'attr'('$.islvalue', islvalue, has_islvalue)
 .end
 
 
@@ -296,14 +303,18 @@ and that is returned.
     scope = self.'scope'()
     value = self.'value'()
     varhash[name] = self
+    if scope == 'package' goto scope_package
+    if scope == 'outerpackage' goto scope_outerpackage
     if scope == 'lexical' goto scope_lexical
     if scope == 'outerlexical' goto scope_outerlexical
-    if scope == 'package' goto scope_package
-    if scope == 'outerpackage' goto scope_package
     ##    XXX: we really should toss an exception if we get here
     code.'emit'("    %0 = find_name '%1'", value, name)
     .return (code)
   scope_package:
+    $I0 = self.'islvalue'()
+    if $I0 == 0 goto scope_outerpackage
+    .return ('')
+  scope_outerpackage:
     code.'emit'("    %0 = find_global '%1'", value, name)
     .return (code)
   scope_lexical:

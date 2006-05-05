@@ -32,8 +32,7 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
     addattribute $P0, '$.valtype'
 
     $P0 = subclass base, 'Perl6::POST::Var'
-    addattribute $P0, '$.vartype'
-    addattribute $P0, '$.isgen'
+    addattribute $P0, '$.scope'
 
     $P0 = subclass base, 'Perl6::POST::Sub'
     addattribute $P0, '$.outer'
@@ -42,6 +41,9 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
     $P0 = subclass base, 'Perl6::POST::Ops'
     $P0 = subclass base, 'Perl6::POST::Label'
     $P0 = subclass base, 'Perl6::POST::Assign'
+
+    $P0 = new .Hash
+    store_global 'Perl6::POST', '%!varhash', $P0
 
 .end
 
@@ -183,16 +185,26 @@ and that is returned.
 .end
 
 .sub 'pir' :method
-    .local string name, outer
+    ##   create a new (empty) variable hash for this sub
+    .local pmc varhash
+    varhash = find_global 'Perl6::POST', '%!varhash'
+    $P0 = new .Hash
+    store_global 'Perl6::POST', '%!varhash', $P0
+
+    .local string name, outerattr
+    .local pmc outer
     name = self.'name'()
     outer = self.'outer'()
-    if outer == '' goto outer_end
-    outer = concat ":outer('", outer
-    outer = concat outer, "')"
-  outer_end:
+    outerattr = ''
+    $I0 = defined outer
+    if $I0 == 0 goto with_outerattr
+    outerattr = outer.'name'()
+    outerattr = concat ":outer('", outerattr
+    outerattr = concat outerattr, "')"
+  with_outerattr:
     .local pmc code, iter, subcode
     code = new 'PGE::CodeString'
-    code.'emit'("\n.sub '%0' %1", name, outer)
+    code.'emit'("\n.sub '%0' %1", name, outerattr)
     subcode = new 'PGE::CodeString'
     iter = self.'child_iter'()
   iter_loop:
@@ -211,6 +223,8 @@ and that is returned.
     value = self.'value'()
     code.'emit'("    .return (%0)\n.end\n", value)
     code = concat code, subcode
+    ##   restore the previous variable hash
+    store_global 'Perl6::POST', '%!varhash', varhash
     .return (code)
 .end
 
@@ -239,49 +253,96 @@ and that is returned.
 
 .namespace [ 'Perl6::POST::Var' ]
 
-.sub 'vartype' :method
-    .param string vartype      :optional
-    .param int has_vartype     :opt_flag
-    .return self.'attr'('$.vartype', vartype, has_vartype)
+.sub 'scope' :method
+    .param string scope      :optional
+    .param int has_scope     :opt_flag
+    .return self.'attr'('$.scope', scope, has_scope)
 .end
 
-.sub 'isgen' :method
-    .param string isgen        :optional
-    .param int has_isgen       :opt_flag
-    .return self.'attr'('$.isgen', isgen, has_isgen)
+
+.sub 'value' :method
+    ##   use any previously-generated value for this
+    ##   variable from the varhash.  If there isn't
+    ##   one, generate a unique value.
+    .local pmc name
+    name = self.'name'()
+    .local pmc varhash, value
+    varhash = find_global 'Perl6::POST', '%!varhash'
+    $I0 = exists varhash[name]
+    if $I0 goto varhash_exists
+    $S0 = self.'unique'('$P')
+    .return self.'attr'('$.value', $S0, 1)
+  varhash_exists:
+    $P0 = varhash[name]
+    value = getattribute $P0, '$.value'
+    .return (value)
 .end
+
 
 .sub 'pir' :method
-    ##   If we've already generated the pir for this variable, don't
-    ##   do it a second time.
-    $I0 = self.'isgen'()
-    if $I0 == 0 goto gen_pir
-    .return ('')
-
-  gen_pir:
-    .local pmc name, value, code
+    ##   if we already generated the code for this
+    ##   variable, we generate nothing here.
+    .local pmc name, varhash
     name = self.'name'()
-    value = self.'value'()
+    varhash = find_global 'Perl6::POST', '%!varhash'
+    $I0 = exists varhash[name]
+    if $I0 == 0 goto generate_pir
+    .return ('')
+  generate_pir:
+    ##   what we generate now depends on the variable's scope
+    .local pmc code
+    .local string scope, value
     code = new 'PGE::CodeString'
+    scope = self.'scope'()
+    value = self.'value'()
+    varhash[name] = self
+    if scope == 'lexical' goto scope_lexical
+    if scope == 'outerlexical' goto scope_outerlexical
+    if scope == 'package' goto scope_package
+    if scope == 'outerpackage' goto scope_package
+    ##    XXX: we really should toss an exception if we get here
+    code.'emit'("    %0 = find_name '%1'", value, name)
+    .return (code)
+  scope_package:
     code.'emit'("    %0 = find_global '%1'", value, name)
-    self.'isgen'(1)
+    .return (code)
+  scope_lexical:
+    code.'emit'("    .lex '%0', %1", name, value)
+    .return (code)
+  scope_outerlexical:
+    code.'emit'("    %0 = find_lex '%1'", value, name)
     .return (code)
 .end
 
 
 .sub 'assignpir' :method
     .param pmc x
-    .local pmc name, value, xvalue, code
+    .local pmc name, value, scope, xvalue, code, varhash
     name = self.'name'()
     value = self.'value'()
+    scope = self.'scope'()
     xvalue = x.'value'()
     code = new 'PGE::CodeString'
+    varhash = find_global 'Perl6::POST', '%!varhash'
+    $I0 = exists varhash[name]
+    if $I0 goto with_varhash_name
+    varhash[name] = self
+  with_varhash_name:
+    if scope == 'outerlexical' goto store_lexical
+    if scope == 'lexical' goto store_lexical
     code.'emit'("    store_global '%0', %1", name, xvalue)
     code.'emit'("    %0 = %1", value, xvalue)
-    self.'isgen'(1)
+    .return (code)
+  store_lexical:
+    code.'emit'("    store_lex '%0', %1", name, xvalue)
+    code.'emit'("    %0 = %1", value, xvalue)
     .return (code)
 .end
+    
 
+.sub '__dumplist' :method
+    .return ('$.name $.scope $.value')
+.end
 
 .namespace [ 'Perl6::POST::Assign' ]
 

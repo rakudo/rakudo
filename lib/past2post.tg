@@ -1,19 +1,25 @@
-Perl6::PAST::Sub: post(.) = {
-    .local string name, outername
-    .local pmc outer
+Perl6::PAST::Block: root(.) = {
+    $P0 = new .Undef
+    store_global 'Perl6::POST', '$?BLOCK', $P0
+    store_global 'Perl6::PAST', '$?BLOCK', $P0
+    .return tree.'get'('post', node)
+}
+
+
+Perl6::PAST::Block: post(.) = {
+    .local string name
     name = node.'name'()
-    outername = ''
-    outer = node.'outer'()
-    $I0 = defined outer
-    if $I0 == 0 goto outer_end
-    outername = outer.'name'()
-  outer_end:
-    .local pmc varhash
-    varhash = new .Hash
-    store_global 'Perl6::PAST', '%varhash', varhash
+    if name > '' goto with_name
+    name = node.'unique'('_block')
+  with_name:
+    .local pmc outerpost, outerpast
+    outerpost = find_global 'Perl6::POST', '$?BLOCK'
+    outerpast = find_global 'Perl6::PAST', '$?BLOCK'
     .local pmc post
     post = new 'Perl6::POST::Sub'
-    post.'init'('node'=>node, 'name'=>name, 'outer'=>outername)
+    post.'init'('node'=>node, 'name'=>name, 'outer'=>outerpost)
+    store_global 'Perl6::POST', '$?BLOCK', post
+    store_global 'Perl6::PAST', '$?BLOCK', node
     .local pmc iter
     iter = node.'child_iter'()
   iter_loop:
@@ -27,6 +33,18 @@ Perl6::PAST::Sub: post(.) = {
     .local pmc value
     value = cpost.'value'()
     post.'value'(value)
+    store_global 'Perl6::POST', '$?BLOCK', outerpost
+    store_global 'Perl6::PAST', '$?BLOCK', outerpast
+    $I0 = defined outerpost
+    if $I0 goto inner_block
+    .return (post)
+
+  inner_block:
+    outerpost.'add_child'(post)
+    name = concat "'", name
+    name = concat name, "'"
+    post = outerpost.'new'('Perl6::POST::Ops', 'node'=>node)
+    post.'add_child_new'('Perl6::POST::Op', post, 'name'=>name)
     .return (post)
 }
 
@@ -133,6 +151,7 @@ Perl6::PAST::Op: assign(.) = {
     .local pmc lpost, rpost
     lpost = tree.'get'('post', lpast)
     rpost = tree.'get'('post', rpast)
+    ops.'add_child'(lpost)
     ops.'add_child'(rpost)
     ops.'add_child_new'('Perl6::POST::Assign', lpost, rpost, 'name'=>'assign')
     .return (ops)
@@ -289,21 +308,29 @@ Perl6::PAST::Val: post(.) = {
     
 
 Perl6::PAST::Var: post(.) = {
-    .local string name, vartype
+    .local string name, scope
     .local pmc post
     name = node.'name'()
-    vartype = node.'vartype'()
+    scope = node.'scope'()
 
-    .local pmc varhash
-    varhash = find_global 'Perl6::PAST', '%varhash'
-    $I0 = exists varhash[name]
-    if $I0 == 0 goto new_post
-    post = varhash[name]
-    .return (post)
-
-  new_post:
+    if scope != 'outer' goto with_scope
+    .local pmc outer
+    outer = find_global 'Perl6::PAST', '$?BLOCK'
+  outer_loop:
+    $I0 = isa outer, 'Perl6::PAST::Block'
+    if $I0 == 0 goto with_scope
+    $P0 = outer.'vardecl'(name)
+    $I0 = isa $P0, 'Perl6::PAST::Var'
+    if $I0 == 0 goto outer_next
+    $S0 = $P0.'scope'()
+    if $S0 != 'outer' goto outer_end
+  outer_next:
+    outer = outer.'outer'()
+    goto outer_loop
+  outer_end:
+    scope .= $S0
+  with_scope:
     post = new 'Perl6::POST::Var'
-    post.'init'('node'=>node, 'vartype'=>vartype, 'name'=>name, 'isgen'=>0)
-    varhash[name] = post
+    post.'init'('node'=>node, 'name'=>name, 'scope'=>scope)
     .return (post)
 }

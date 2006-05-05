@@ -34,10 +34,11 @@ needed for Perl 6.  The currently defined ast nodes:
     addattribute $P0, '$.valtype'
 
     $P0 = subclass base, 'Perl6::PAST::Var'
-    addattribute $P0, '$.vartype'
+    addattribute $P0, '$.scope'
 
-    $P0 = subclass base, 'Perl6::PAST::Sub'
+    $P0 = subclass base, 'Perl6::PAST::Block'
     addattribute $P0, '$.outer'
+    addattribute $P0, '%.vardecl'
 
     $P0 = subclass base, 'Perl6::PAST::Exp'
     $P0 = subclass base, 'Perl6::PAST::Stmt'
@@ -289,19 +290,26 @@ counting at 10 (so that the values 0..9 can be considered "safe").
 
 .namespace [ 'Perl6::PAST::Var' ]
 
-.sub 'vartype' :method
-    .param string vartype      :optional
-    .param int has_vartype     :opt_flag
-    .return self.'attr'('$.vartype', vartype, has_vartype)
+.sub 'scope' :method
+    .param string scope      :optional
+    .param int has_scope     :opt_flag
+    .return self.'attr'('$.scope', scope, has_scope)
 .end
-
 
 .sub '__dumplist' :method
-    .return ('$.name $.vartype')
+    .return ('$.name $.scope')
 .end
 
 
-.namespace [ 'Perl6::PAST::Sub' ]
+.namespace [ 'Perl6::PAST::Block' ]
+
+.sub '__init' :method
+    null $P0
+    setattribute self, '$.outer', $P0
+    $P0 = new .Hash
+    setattribute self, '%.vardecl', $P0
+    .return ()
+.end
 
 .sub 'outer' :method
     .param pmc outer           :optional
@@ -309,6 +317,24 @@ counting at 10 (so that the values 0..9 can be considered "safe").
     .return self.'attr'('$.outer', outer, has_outer)
 .end
 
+.sub 'vardecl' :method
+    .param pmc name            :optional
+    .param int has_name        :opt_flag
+    .param pmc value           :optional
+    .param int has_value       :opt_flag
+    .local pmc vardecl
+    vardecl = getattribute self, '%.vardecl'
+    if has_value goto with_value
+    if has_name goto with_name
+    .return (vardecl)
+  with_name:
+    value = vardecl[name]
+    .return (value)
+  with_value:
+    vardecl[name] = value
+    .return (value)
+.end
+
 .sub '__dumplist' :method
-    .return ('$.name $.outer @.children')
+    .return ('$.name $.outer @.children %.vardecl')
 .end

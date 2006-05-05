@@ -2,9 +2,9 @@
 
 ROOT: past(.) = {
     .local pmc past
-    past = new 'Perl6::PAST::Sub'
+    past = new 'Perl6::PAST::Block'
     past.'init'('node'=>node, 'name'=>'anon')
-    store_global 'Perl6::PAST', '$?SUB', past
+    store_global 'Perl6::PAST', '$?BLOCK', past
     .local pmc cpast, cpost
     cpast = node['statement_list']
     cpost = tree.'get'('past', cpast, 'Perl6::Grammar::statement_list')
@@ -210,12 +210,45 @@ Perl6::Grammar::type: past(.) = {
 }
 
 
-Perl6::Grammar::variable: past(.) = {
-    .local pmc past
+Perl6::Grammar::scoped_variables: past(.) = {
+    .local string scope, name
+    scope = node['scope_declarator']
+    name = node['variable']
 
-    $S0 = node
+    if scope == 'my' goto scope_my
+    scope = 'package'
+    goto make_past
+  scope_my:
+    scope = 'lexical'
+
+  make_past:
+    .local pmc past
     past = new 'Perl6::PAST::Var'
-    past.'init'('node'=>node, 'name'=>$S0, 'vartype'=>'')
+    past.'init'('node'=>node, 'name'=>name, 'scope'=>scope)
+
+    .local pmc block
+    block = find_global 'Perl6::PAST', '$?BLOCK'
+    block.'vardecl'(name, past)
+    .return (past)
+}
+    
+
+Perl6::Grammar::variable: past(.) = {
+    .local string name
+    name = node
+    .local pmc past
+    past = new 'Perl6::PAST::Var'
+    past.'init'('node'=>node, 'name'=>name)
+
+    .local pmc block, vdecl
+    block = find_global 'Perl6::PAST', '$?BLOCK'
+    vdecl = block.'vardecl'(name)
+    $I0 = isa vdecl, 'Perl6::PAST::Var'
+    if $I0 == 0 goto declare_var
+    .return (past)
+  declare_var:
+    past.'scope'('outer')
+    block.'vardecl'(name, past)
     .return (past)
 }
 
@@ -259,25 +292,16 @@ Perl6::Grammar::version: past(.) = {
 
 
 Perl6::Grammar::block: past(.) = {
-    .local pmc outer
-    outer = find_global 'Perl6::PAST', '$?SUB'
-    .local string bname
-    bname = outer.'unique'('_block')
-    .local pmc bpast
-    bpast = new 'Perl6::PAST::Sub'
-    bpast.'init'('node'=>node, 'outer'=>outer, 'name'=>bname)
-    store_global 'Perl6::PAST', '$?SUB', bpast
+    .local pmc outer, past
+    outer = find_global 'Perl6::PAST', '$?BLOCK'
+    past = new 'Perl6::PAST::Block'
+    past.'init'('node'=>node, 'outer'=>outer)
+    store_global 'Perl6::PAST', '$?BLOCK', past
     .local pmc cpast
     $P0 = node['simple_block']
     cpast = tree.'get'('past', $P0, 'Perl6::Grammar::simple_block')
-    bpast.'add_child'(cpast)
-    outer.'add_child'(bpast)
-    store_global 'Perl6::PAST', '$?SUB', outer
-
-    bname = concat "'", bname
-    bname = concat bname, "'"
-    .local pmc past
-    past = outer.'new'('Perl6::PAST::Op', 'op'=>'prelist:', 'name'=>bname)
+    past.'add_child'(cpast)
+    store_global 'Perl6::PAST', '$?BLOCK', outer
     .return (past)
 }
 

@@ -101,7 +101,7 @@ compiled code as a PMC.
     .local pmc postgrammar, postbuilder, post
     postgrammar = new 'Perl6::POST::Grammar'
     postbuilder = postgrammar.'apply'(ast)
-    post = postbuilder.get('post')
+    post = postbuilder.get('root')
     unless dump goto build_post_1
     '_dumper'(match, 'POST')
   build_post_1:

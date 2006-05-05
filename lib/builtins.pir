@@ -192,6 +192,126 @@
 .end
 
 
+.sub 'infix:~='
+    .param pmc a
+    .param pmc b
+    concat a, b
+    .return (a)
+.end
+
+
+.sub 'infix:+&='
+    .param pmc a
+    .param pmc b
+    .local int i_a, i_b
+    i_a = a
+    i_b = b
+    band i_a, i_b
+    a = i_a
+    .return (a)
+.end
+
+
+.sub 'infix:+|='
+    .param pmc a
+    .param pmc b
+    .local int i_a, i_b
+    i_a = a
+    i_b = b
+    bor i_a, i_b
+    a = i_a
+    .return (a)
+.end
+
+
+.sub 'infix:+^='
+    .param pmc a
+    .param pmc b
+    .local int i_a, i_b
+    i_a = a
+    i_b = b
+    bxor i_a, i_b
+    a = i_a
+    .return (a)
+.end
+
+
+.sub 'infix:+<='
+    .param pmc a
+    .param pmc b
+    le_num a, b, T
+    .return (0)
+  T:
+    .return (a)
+.end
+
+
+.sub 'infix:+>='
+    .param pmc a
+    .param pmc b
+    ge_num a, b, T
+    .return (0)
+  T:
+    .return (a)
+.end
+
+
+.sub 'infix:**='
+    .param pmc a
+    .param pmc b
+    a = a ** b
+    .return (a)
+.end
+
+
+.sub 'infix:/='
+    .param pmc a
+    .param pmc b
+    a /= b
+    .return (a)
+.end
+
+
+.sub 'infix:%='
+    .param pmc a
+    .param pmc b
+    a %= b
+    .return (a)
+.end
+
+
+.sub 'infix:x='
+    .param pmc a
+    .param pmc b
+    repeat a, a, b
+    .return (a)
+.end
+
+
+.sub 'infix:~&='
+    .param pmc a
+    .param pmc b
+    bands a, b
+    .return (a)
+.end
+
+
+.sub 'infix:~|='
+    .param pmc a
+    .param pmc b
+    bors a, b
+    .return (a)
+.end
+
+
+.sub 'infix:~^='
+    .param pmc a
+    .param pmc b
+    bxors a, b
+    .return (a)
+.end
+
+
 .sub 'die'
     .param pmc list            :slurpy
     .local pmc iter

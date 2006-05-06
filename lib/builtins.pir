@@ -38,6 +38,85 @@
 .end
 
 
+## autoincrement
+.sub 'postfix:++'
+    .param pmc a
+    $P0 = clone a
+    inc a
+    .return ($P0)
+.end
+
+.sub 'postfix:--'
+    .param pmc a
+    $P0 = clone a
+    dec a
+    .return ($P0)
+.end
+
+
+.sub 'prefix:++'
+    .param pmc a
+    inc a
+    .return (a)
+.end
+
+
+.sub 'prefix:--'
+    .param pmc a
+    dec a
+    .return (a)
+.end
+
+
+## exponentiation
+.sub 'infix:**'
+    .param num base
+    .param num exp
+    $N0 = pow base, exp
+    .return ($N0)
+.end
+
+
+## symbolic unary
+.sub 'prefix:!'
+    .param pmc a
+    $I0 = isfalse a
+    .return ($I0)
+.end
+
+
+.sub 'prefix:+'
+    .param pmc a
+    $N0 = a
+    .return ($N0)
+.end
+
+
+.sub 'prefix:-'
+    .param pmc a
+    $P0 = n_sub 0, $P0
+    .return ($P0)
+.end
+
+
+.sub 'prefix:~'
+    .param pmc a
+    $S0 = a
+    .return ($S0)
+.end
+
+
+.sub 'prefix:?'
+    .param pmc a
+    $I0 = istrue a
+    .return ($I0)
+.end
+
+
+## TODO: prefix:= prefix:* prefix:** prefix:~^
+
+
+## TODO: unfiled
 .sub 'prefix:?^'
     .param pmc a
     $I0 = isfalse a
@@ -149,29 +228,6 @@
     .param pmc b
     $I0 = cmp_str a, b
     $I0 = isne $I0, 0
-    .return ($I0)
-.end
-
-
-.sub 'infix:**'
-    .param num base
-    .param num exp
-    $N0 = pow base, exp
-    .return ($N0)
-.end
-
-
-.sub 'prefix:++'
-    .param pmc x
-    inc x
-    .return (x)
-.end
-
-
-.sub 'postfix:++'
-    .param pmc x
-    $I0 = x
-    inc x
     .return ($I0)
 .end
 

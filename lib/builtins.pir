@@ -94,8 +94,9 @@
 
 .sub 'prefix:-'
     .param pmc a
-    $P0 = n_sub 0, $P0
-    .return ($P0)
+    $N0 = a
+    $N0 = neg $N0
+    .return ($N0)
 .end
 
 

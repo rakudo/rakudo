@@ -33,8 +33,9 @@ To display the parse tree, add the "--target=parse" option:
 
   $ parrot perl6.pbc --target=parse foo.p6
 
-Or, to display the abstract syntax tree or the generated PIR
-code, use "--target=PAST" or "--target=PIR".
+Or, to display the abstract syntax tree, the opcode syntax tree,
+or the generated PIR code, use "--target=PAST", "--target=POST",
+or "--target=PIR".
 
 To get a dump of the parser's operator precedence table,
 use --dump-optable:
@@ -68,10 +69,7 @@ which just calls into the operator precedence parser.
 
 The file F<lib/pge2past.tge> is a tree grammar that specifies
 how to convert the parse tree into the abstract syntax tree (PAST),
-and F<lib/past2pir.tge> generates PIR from PAST.  These are both
-held together by the F<lib/PAST.pir> file which defines the
-Perl6::PAST node structures and other support features.
-(See also "What about POST?" below.)
+and F<lib/past2post.tge> generates POST from PAST.  
 
 The F<lib/main.pir> file controls what happens when the perl6.pbc
 file is invoked directly from parrot (as opposed to being
@@ -93,17 +91,8 @@ One can also provide the "target" option to the compiler:
 
     $P1 = $P0($S0, 'target'=>'parse')    # obtain parse tree
     $P1 = $P0($S0, 'target'=>'PAST')     # get AST
+    $P1 = $P0($S0, 'target'=>'POST')     # get OST
     $P1 = $P0($S0, 'target'=>'PIR')      # get PIR
-
-"What about POST?"
-
-The Perl 6 "Milestones" document says that translation will actually
-go from a parse tree to an abstract syntax tree (PAST), then from
-PAST to an opcode syntax tree (POST), and then to executable code.
-This is still the ultimate plan.  However, to keep things slightly
-simpler initially, this version of the compiler simply goes straight
-from PAST to PIR until the division of labor between the two
-systems is a bit more well-defined and understood.
 
 =head1 AUTHOR
 

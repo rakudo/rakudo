@@ -8,13 +8,14 @@ Compiler implemented
 * if, unless statements
 * if, unless statement modifiers
 * chained operators: infix:and, infix:or, infix:&&, infix:||, ternary:?? !!
+* lexical and package-scoped scalars
+* simple blocks
 
 Compiler to-do
 --------------
-* simple scalar variables (but not lexically scoped yet)
-* blocks
+* interpolated quotes
+* generalized quotes
 * subs
-* true lexicals
 * arrays, hashes
 * resolve handling of unicode-encoded source on systems w/o ICU
 
@@ -29,6 +30,8 @@ Parser implemented
 
 Parser to-do
 ------------
+* interpolated quotes
+* generalized quotes
 * real pointy subs
 * subroutine definitions
 * subroutine calling syntax

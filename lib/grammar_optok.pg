@@ -8,10 +8,10 @@ proto 'term:' is precedence('22=')
     is parsed(&term)
     is pastrule('past_term') { ... }
 
-proto 'term:$()' is equiv('term:.') is nowz { ... }
-proto 'term:@()' is equiv('term:.') is nowz { ... }
-proto 'term:*()' is equiv('term:.') is nowz { ... }
-proto 'term:%()' is equiv('term:.') is nowz { ... }
+proto 'term:$()' is equiv('term:.') is nows { ... }
+proto 'term:@()' is equiv('term:.') is nows { ... }
+proto 'term:*()' is equiv('term:.') is nows { ... }
+proto 'term:%()' is equiv('term:.') is nows { ... }
 
 proto 'prelist:' is equiv('term:')
     is prec_close('05=')
@@ -20,13 +20,15 @@ proto 'prelist:' is equiv('term:')
 
 proto 'circumfix:( )' is equiv('term:')
     is post('set')
-    is pir("        # circumfix op") { ... }
+    { ... }
 
-## dot comment in postfix position
-proto 'postfix:.' is precedence('21=')
+
+## backslash comment in postfix position
+proto 'postfix:\' is precedence('21=')
     is parsed(&dot_comment)
     is nows 
-    is pir("        # dot comment") { ... }
+    { ... }
+
 
 ## method postfix
 proto 'infix:.' is equiv('postfix:.') is nows { ... }
@@ -44,47 +46,27 @@ proto 'postcircumfix:( )' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:[ ]' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:{ }' is equiv('postfix:.') is nows { ... }
 
+
 ## autoincrement
-proto 'postfix:++' is precedence('20=')
-    is pir("    %r = clone %0\n    inc %0") { ... }
-
-proto 'postfix:--' is equiv('postfix:++')
-    is pir("    %r = clone %0\n    dec %0") { ... }
-
-proto 'prefix:++' is equiv('postfix:++')
-    is pir("    inc %0")
-    { ... }
-
-proto 'prefix:--' is equiv('postfix:++')
-    is pir("    dec %0")
-    { ... }
+proto 'postfix:++' is precedence('20=') { ... }
+proto 'postfix:--' is equiv('postfix:++') { ... }
+proto 'prefix:++' is equiv('postfix:++') { ... }
+proto 'prefix:--' is equiv('postfix:++') { ... }
 
 
 ## exponentiation
-proto 'infix:**' is precedence('19=')
-    is pir("    %t = %0 ** %1")
-    { ... }
+proto 'infix:**' is precedence('19=') { ... }
 
 ## symbolic unary
-proto 'prefix:!' is precedence('18=')
-    is pir("    $I0 = isfalse %0\n    %t = $I0")
-    { ... }
-
-proto 'prefix:+' is equiv('prefix:!')
-    { ... }
+proto 'prefix:!' is precedence('18=') { ... }
+proto 'prefix:+' is equiv('prefix:!') { ... }
 
 proto 'prefix:-' is equiv('prefix:!')
     is post('neg')
     { ... }
 
-proto 'prefix:~' is equiv('prefix:!')
-    is pir("    $S0 = %0\n    %t = $S0")
-    { ... }
-
-proto 'prefix:?' is equiv('prefix:!')
-    is pir("    $I0 = istrue %0\n    %t = $I0")
-    { ... }
-
+proto 'prefix:~' is equiv('prefix:!') { ... }
+proto 'prefix:?' is equiv('prefix:!') { ... }
 proto 'prefix:=' is equiv('prefix:!') { ... }
 proto 'prefix:*' is equiv('prefix:!') { ... }
 proto 'prefix:**' is equiv('prefix:!') { ... }
@@ -94,11 +76,7 @@ proto 'prefix:+^' is equiv('prefix:!')
     is post('bnot')
     { ... }
 
-proto 'prefix:?^' is equiv('prefix:!')
-    is pir("    $I0 = isfalse %0\n    %t = $I0")
-    { ... }
-
-proto 'prefix:\' is equiv('prefix:!') { ... } #'
+proto 'prefix:?^' is equiv('prefix:!') { ... }
 proto 'prefix:^' is equiv('prefix:!') { ... }
 
 
@@ -144,12 +122,10 @@ proto 'infix:~>' is equiv('infix:*') { ... }
 ## additive
 proto 'infix:+' is precedence('16=')
     is post('add')
-    is pir("    %r = %0 + %1")
     { ... }
 
 proto 'infix:-' is equiv('infix:+')
     is post('sub')
-    is pir("    %r = %0 - %1")
     { ... }
 
 proto 'infix:~' is equiv('infix:+')
@@ -172,13 +148,8 @@ proto 'infix:~^' is equiv('infix:+')
     is post('bxors')
     { ... }
 
-proto 'infix:?|' is equiv('infix:+')
-    is pir("    %r = %0 | %1\n    %r = istrue %r")
-    { ... }
-
-proto 'infix:?^' is equiv('infix:+')
-    is pir("    %r = bxor %0, %1\n    %r = istrue %r")
-    { ... }
+proto 'infix:?|' is equiv('infix:+') { ... }
+proto 'infix:?^' is equiv('infix:+') { ... }
 
 
 ## junctive and (all)
@@ -197,7 +168,6 @@ proto 'prefix:rand' is precedence('13=')
 
 proto 'prefix:sleep' is equiv('rand')
     is nullterm
-    is pir("    $N0 = %0\n    sleep $N0")
     { ... }
 
 proto 'prefix:abs' is equiv('rand')
@@ -205,103 +175,59 @@ proto 'prefix:abs' is equiv('rand')
     is post('abs')
     { ... }
 
-proto 'prefix:-w' is equiv('prefix:rand') is nows { ... }
-proto 'prefix:-r' is equiv('prefix:rand') is nows { ... }
-proto 'prefix:-x' is equiv('prefix:rand') is nows { ... }
-proto 'prefix:-e' is equiv('prefix:rand') is nows { ... }
-proto 'prefix:-z' is equiv('prefix:rand') is nows { ... }
-proto 'prefix:-s' is equiv('prefix:rand') is nows { ... }
-proto 'prefix:-f' is equiv('prefix:rand') is nows { ... }
-proto 'prefix:-d' is equiv('prefix:rand') is nows { ... }
+proto 'prefix:-w' is equiv('prefix:rand') is nullterm { ... }
+proto 'prefix:-r' is equiv('prefix:rand') is nullterm { ... }
+proto 'prefix:-x' is equiv('prefix:rand') is nullterm { ... }
+proto 'prefix:-e' is equiv('prefix:rand') is nullterm { ... }
+proto 'prefix:-z' is equiv('prefix:rand') is nullterm { ... }
+proto 'prefix:-s' is equiv('prefix:rand') is nullterm { ... }
+proto 'prefix:-f' is equiv('prefix:rand') is nullterm { ... }
+proto 'prefix:-d' is equiv('prefix:rand') is nullterm { ... }
 
 
 ## nonchaining binary
-proto 'infix:<=>' is precedence('12=') is assoc('non')
-    is pir("    %r = cmp_num %0, %1")
-    { ... }
-
-proto 'infix:cmp' is equiv('infix:<=>')
-    is pir("    %r = cmp_str %0, %1")
-    { ... }
-
-proto 'infix:is' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:but' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:does' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:..' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:^..' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:..^' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:^..^' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:ff' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:^ff' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:ff^' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:^ff^' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:fff' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:^fff' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:fff^' is equiv('infix:<=>')
-    { ... }
-
-proto 'infix:^fff^' is equiv('infix:<=>')
-    { ... }
-
-proto 'prefix:...' is equiv('infix:<=>')
-    { ... }
+proto 'infix:<=>' is precedence('12=') is assoc('non') { ... }
+proto 'infix:cmp' is equiv('infix:<=>') { ... }
+proto 'infix:is' is equiv('infix:<=>') { ... }
+proto 'infix:but' is equiv('infix:<=>') { ... }
+proto 'infix:does' is equiv('infix:<=>') { ... }
+proto 'infix:..' is equiv('infix:<=>') { ... }
+proto 'infix:^..' is equiv('infix:<=>') { ... }
+proto 'infix:..^' is equiv('infix:<=>') { ... }
+proto 'infix:^..^' is equiv('infix:<=>') { ... }
+proto 'infix:ff' is equiv('infix:<=>') { ... }
+proto 'infix:^ff' is equiv('infix:<=>') { ... }
+proto 'infix:ff^' is equiv('infix:<=>') { ... }
+proto 'infix:^ff^' is equiv('infix:<=>') { ... }
+proto 'infix:fff' is equiv('infix:<=>') { ... }
+proto 'infix:^fff' is equiv('infix:<=>') { ... }
+proto 'infix:fff^' is equiv('infix:<=>') { ... }
+proto 'infix:^fff^' is equiv('infix:<=>') { ... }
 
 
 ## chaining binary
 proto 'infix:==' is precedence('11=') is assoc('chain')
     is pasttype('chain')
-    is pir("    $I0 = cmp_num %0, %1\n    $I0 = iseq $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:!=' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_num %0, %1\n    $I0 = isne $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:<' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_num %0, %1\n    $I0 = islt $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:<=' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_num %0, %1\n    $I0 = isle $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:>' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_num %0, %1\n    $I0 = isgt $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:>=' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_num %0, %1\n    $I0 = isge $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:~~' is equiv('infix:==')
@@ -314,37 +240,30 @@ proto 'infix:!~' is equiv('infix:==')
 
 proto 'infix:=~' is equiv('infix:==')
     is pasttype('chain')
-    is pir<"    'die'('brain-o. use ~~ or ~= instead.')">
     { ... }
 
 proto 'infix:eq' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_str %0, %1\n    $I0 = iseq $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:ne' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_str %0, %1\n    $I0 = isne $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:lt' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_str %0, %1\n    $I0 = islt $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:le' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_str %0, %1\n    $I0 = isle $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:gt' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_str %0, %1\n    $I0 = isgt $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:ge' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = cmp_str %0, %1\n    $I0 = isge $I0, 0\n    %t = $I0")
     { ... }
 
 proto 'infix:=:=' is equiv('infix:==')
@@ -353,106 +272,68 @@ proto 'infix:=:=' is equiv('infix:==')
 
 proto 'infix:===' is equiv('infix:==')
     is pasttype('chain')
-    is pir("    $I0 = issame %0, %1")
     { ... }
 
 
 ## tight and
 proto 'infix:&&' is precedence('10=')
-    is pasttype('cond') { ... }
+    is pasttype('cond') 
+    { ... }
 
 
 ## tight or
 proto 'infix:||' is precedence('09=')
-    is pasttype('cond') { ... }
+    is pasttype('cond') 
+    { ... }
 
 proto 'infix:^^' is precedence('09=') is assoc('list')
-    is pasttype('xor') { ... }
+    is pasttype('xor') 
+    { ... }
 
-proto 'infix://' is equiv('infix:||')
-    is pasttype('cond') { ... }
+proto 'infix://' is equiv('infix:||') 
+    is pasttype('cond') 
+    { ... }
 
 
 ## ternary
 proto 'ternary:?? !!' is precedence('08=') is assoc('right')
-    is pasttype('cond') { ... }
+    is pasttype('cond') 
+    { ... }
 
 
 ## assignment
 proto 'infix:=' is precedence('07=') is assoc('right')
-    is pasttype('assign') { ... }
+    is pasttype('assign') 
+    { ... }
 
 proto 'infix::=' is equiv('infix:=') { ... }
-
 proto 'infix:::=' is equiv('infix:=') { ... }
-
 proto 'infix:.=' is equiv('infix:=') { ... }
-
-proto 'infix:~=' is equiv('infix:=') 
-    is pir("    %0 = concat %1") { ... }
-
-proto 'infix:+=' is equiv('infix:=')
-    is pir("    %0 += %1") { ... }
-
-proto 'infix:-=' is equiv('infix:=')
-    is pir("    %0 -= %1") { ... }
-
-proto 'infix:*=' is equiv('infix:=')
-    is pir("    %0 *= %1") { ... }
-
-proto 'infix:/=' is equiv('infix:=')
-    is pir("    %0 /= %1") { ... }
-
-proto 'infix:%=' is equiv('infix:=')
-    is pir("    %0 %= %1") { ... }
-
-proto 'infix:x=' is equiv('infix:=')
-    is pir("    repeat %0,  %1") { ... }
-
+proto 'infix:~=' is equiv('infix:=') { ... }
+proto 'infix:+=' is equiv('infix:=') { ... }
+proto 'infix:-=' is equiv('infix:=') { ... }
+proto 'infix:*=' is equiv('infix:=') { ... }
+proto 'infix:/=' is equiv('infix:=') { ... }
+proto 'infix:%=' is equiv('infix:=') { ... }
+proto 'infix:x=' is equiv('infix:=') { ... }
 proto 'infix:Y=' is equiv('infix:=') { ... }
-
-proto 'infix:**=' is equiv('infix:=')
-    is pir("    pow %0, %1") { ... }
-
+proto 'infix:**=' is equiv('infix:=') { ... }
 proto 'infix:xx=' is equiv('infix:=') { ... }
 proto 'infix:||=' is equiv('infix:=') { ... }
 proto 'infix:&&=' is equiv('infix:=') { ... }
 proto 'infix://=' is equiv('infix:=') { ... }
 proto 'infix:^^=' is equiv('infix:=') { ... }
-
-proto 'infix:+<=' is equiv('infix:=')
-    is pir("    %0 <<= %1") { ... }
-
-proto 'infix:+>=' is equiv('infix:=')
-    is pir("    %0 >>= %1") { ... }
-
-proto 'infix:+|=' is equiv('infix:=')
-    is pir("    %0 |= %1") { ... }
-
-proto 'infix:+&=' is equiv('infix:=')
-    is pir("    %0 &= %1") { ... }
-
-proto 'infix:+^=' is equiv('infix:=')
-    is pir("    %0 = bxor %1") { ... }
-
-proto 'infix:~|=' is equiv('infix:=')
-    is pir("    %0 = bors %1") { ... }
-
-proto 'infix:~&=' is equiv('infix:=')
-    is pir("    %0 = bands %1") { ... }
-
-proto 'infix:~^=' is equiv('infix:=')
-    is pir("    %0 = bxors %1") { ... }
-
-proto 'infix:?|=' is equiv('infix:=')
-    is pir("    %0 = bor %1\n    %0 = istrue %0") { ... }
-
-proto 'infix:?&=' is equiv('infix:=')
-    is pir("    %0 = band %1\n    %0 = istrue %0") { ... }
-
-proto 'infix:?^=' is equiv('infix:=')
-    is pir("    %0 = bxor %1\n    %0 = istrue %0") { ... }
-
+proto 'infix:+<=' is equiv('infix:=') { ... }
+proto 'infix:+>=' is equiv('infix:=') { ... }
+proto 'infix:+|=' is equiv('infix:=') { ... }
+proto 'infix:+&=' is equiv('infix:=') { ... }
+proto 'infix:+^=' is equiv('infix:=') { ... }
+proto 'infix:~|=' is equiv('infix:=') { ... }
+proto 'infix:~&=' is equiv('infix:=') { ... }
+proto 'infix:~^=' is equiv('infix:=') { ... }
+proto 'infix:?|=' is equiv('infix:=') { ... }
+proto 'infix:?&=' is equiv('infix:=') { ... }
+proto 'infix:?^=' is equiv('infix:=') { ... }
 proto 'infix:|=' is equiv('infix:=') { ... }
 proto 'infix:&=' is equiv('infix:=') { ... }
 proto 'infix:^=' is equiv('infix:=') { ... }
@@ -460,21 +341,18 @@ proto 'infix:^=' is equiv('infix:=') { ... }
 
 ## list item separator
 proto 'infix:,' is precedence('06=') is assoc('list')
-   is nullterm
-   is pir<"    %r = list()">
-   { ... }
+   is nullterm { ... }
 ## TODO zip
 
 
 ## listop
 proto 'infix:<==' is precedence('05=') is assoc('right') { ... }
+proto 'prefix:true' is equiv('infix:<==') { ... }
+proto 'prefix:not' is equiv('infix:<==') { ... }
 
-proto 'prefix:true' is equiv('infix:<==')
-    is pir("    $I0 = istrue %0\n    %t = $I0") { ... }
-
-proto 'prefix:not' is equiv('infix:<==')
-    is pir("    $I0 = isfalse %0\n    %t = $I0") { ... }
-## TODO print push any all XXX: do these really belong here? ~particle
+## TODO print push any all 
+##    XXX: do these really belong here? ~particle
+##    XXX: I think they're really sub calls, so no.  ~pmichaud
 
 
 ## pipe forward
@@ -483,28 +361,36 @@ proto 'infix:==>' is precedence('04=') { ... }
 
 ## loose and
 proto 'infix:and' is precedence('03=')
-    is pasttype('cond') { ... }
+    is pasttype('cond') 
+    { ... }
 
 
 ## loose or
 proto 'infix:or' is precedence('02=')
-    is pasttype('cond') { ... }
+    is pasttype('cond') 
+    { ... }
 
 proto 'infix:xor' is equiv('infix:or')
-    is pasttype('xor') { ... }
+    is pasttype('xor') 
+    { ... }
 
-proto 'infix:err' is equiv('infix:or')
-    is pasttype('cond') { ... }
+proto 'infix:err' is equiv('infix:or') 
+    is pasttype('cond')
+    { ... }
 
 
 ## expression terminator
 proto 'infix:;' is precedence('01=') is assoc('list')
     is nullterm
-    is pir("    #")
+    is post('set')
     { ... }
 
 
 ## statement control
+##    XXX: This isn't really being used for parsing in the 
+##    expression parser, but is here as a convenient means
+##    of setting the pasttype trait for if/unless statements
+##    and modifiers.
 proto 'statement_control:if' is pasttype('cond') { ... }
 
 

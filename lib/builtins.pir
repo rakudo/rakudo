@@ -296,9 +296,7 @@
 .sub 'infix:+<='
     .param pmc a
     .param pmc b
-    le_num a, b, T
-    .return (0)
-  T:
+    a <<= b
     .return (a)
 .end
 
@@ -306,9 +304,7 @@
 .sub 'infix:+>='
     .param pmc a
     .param pmc b
-    ge_num a, b, T
-    .return (0)
-  T:
+    a >>= b
     .return (a)
 .end
 

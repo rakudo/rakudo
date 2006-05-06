@@ -33,14 +33,14 @@ say $a;
 $a++;
 print 'ok ';
 say $a;
-$a = 8;
-$a +<= $b;
+$a = 1;
+$a +<= 3;
 print 'ok ';
 say $a;
 
 #9
 $a +>= 1;
-$a -= 5;
+$a -= 1;
 $a **= 2;
 print 'ok ';
 say $a;

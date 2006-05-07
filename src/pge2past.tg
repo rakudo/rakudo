@@ -255,7 +255,10 @@ Perl6::Grammar::variable: past(.) = {
 
 Perl6::Grammar::integer: past(.) = {
     .local pmc past
-    $I0 = node
+    $P0 = new .Perl6Str
+    $S0 = node
+    $P0 = $S0
+    $I0 = $P0
     past = new 'Perl6::PAST::Val'
     past.'init'('node'=>node, 'valtype'=>'int', 'name'=>$I0)
     .return (past)

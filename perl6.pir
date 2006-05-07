@@ -30,6 +30,10 @@ compiler.
 
 .namespace [ 'Perl6' ]
 
+.sub '__loadlib' :immediate
+    $P1 = loadlib 'perl6_group'
+.end
+
 .sub '__onload' :load
     $P1 = loadlib 'perl6_group'
     load_bytecode 'PGE.pbc'

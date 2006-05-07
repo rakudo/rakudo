@@ -160,7 +160,12 @@ rule number {
     \d+[_\d+]* [ \. \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
 }
 
-rule string_literal { <PGE::Text::bracketed: '"> }
+##  XXX: arguments to quoted_literal are a cheat for the time being.
+rule string_literal {
+      " <quoted_literal: "> "
+    | ' <quoted_literal: '> '
+}
+
 rule version { v\d+ }
 
 

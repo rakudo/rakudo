@@ -312,9 +312,18 @@ Perl6::PAST::Val: post(.) = {
     val = node.'name'()
     valtype = node.'valtype'()
     objtype = '.Undef'
-    if valtype != 'str' goto with_objtype
+    if valtype != 'str' goto with_val
     objtype = '.Perl6Str'
-  with_objtype:
+    val = escape val
+    val = concat '"', val
+    val = concat val, '"'
+    $I0 = index val, '\x'
+    if $I0 >= 0 goto val_unicode
+    $I0 = index val, '\u'
+    if $I0 < 0 goto with_val
+  val_unicode:
+    val = concat 'unicode:', val
+  with_val:
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)

@@ -276,7 +276,9 @@ Perl6::Grammar::number: past(.) = {
 
 Perl6::Grammar::string_literal: past(.) = {
     .local pmc past
-    $S0 = node
+    $P0 = node['quoted_literal']
+    $P0 = $P0[0]
+    $S0 = $P0
     past = new 'Perl6::PAST::Val'
     past.'init'('node'=>node, 'valtype'=>'str', 'name'=>$S0)
     .return (past)

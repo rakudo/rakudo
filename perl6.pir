@@ -31,6 +31,7 @@ compiler.
 .namespace [ 'Perl6' ]
 
 .sub '__onload' :load
+    $P1 = loadlib 'perl6_group'
     load_bytecode 'PGE.pbc'
     load_bytecode 'PGE/Text.pbc'
     load_bytecode 'PGE/Util.pbc'
@@ -131,24 +132,24 @@ compiled code as a PMC.
 .end
 
 
-.include 'lib/parse.pir'
+.include 'src/parse.pir'
 
-.include 'lib/PAST.pir'
+.include 'src/PAST.pir'
 
-.include 'lib/POST.pir'
+.include 'src/POST.pir'
 
-.include 'lib/main.pir'
+.include 'src/main.pir'
 
-.include 'lib/builtins.pir'
+.include 'src/builtins.pir'
 
 .namespace [ 'Perl6::Grammar' ]
-.include 'lib/grammar_gen.pir'
+.include 'src/grammar_gen.pir'
 
 .namespace [ 'Perl6::PAST::Grammar' ]
-.include 'lib/pge2past_gen.pir'
+.include 'src/pge2past_gen.pir'
 
 .namespace [ 'Perl6::POST::Grammar' ]
-.include 'lib/past2post_gen.pir'
+.include 'src/past2post_gen.pir'
 
 
 =back

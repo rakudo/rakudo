@@ -295,13 +295,17 @@ Perl6::PAST::Op: chain(.) = {
 
 
 Perl6::PAST::Val: post(.) = {
-    .local string val, valtype
+    .local string val, valtype, objtype
     val = node.'name'()
     valtype = node.'valtype'()
+    objtype = '.Undef'
+    if valtype != 'str' goto with_objtype
+    objtype = '.Perl6Str'
+  with_objtype:
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)
-    ops.'add_child_new'('Perl6::POST::Op', ops, '.Undef', 'name'=>'new')
+    ops.'add_child_new'('Perl6::POST::Op', ops, objtype, 'name'=>'new')
     $P0 = ops.'new'('Perl6::POST::Val', 'valtype'=>valtype, 'value'=>val)
     ops.'add_child_new'('Perl6::POST::Op', ops, $P0, 'name'=>'assign')
     .return (ops)

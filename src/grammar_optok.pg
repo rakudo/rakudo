@@ -130,6 +130,7 @@ proto 'infix:-' is equiv('infix:+')
 
 proto 'infix:~' is equiv('infix:+')
     is post('concat')
+    is returns('Str')
     { ... }
 
 proto 'infix:+|' is equiv('infix:+')

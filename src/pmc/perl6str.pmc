@@ -1,0 +1,178 @@
+/*
+Copyright: 2001-2006 The Perl Foundation.  All Rights Reserved.
+
+=head1 NAME
+
+src/pmc/perl6string.pmc - Perl 6 Strings
+
+=head1 DESCRIPTION
+
+C<Perl6Str> extends C<String> to provide Perl6-specific
+string behavior.
+
+=head2 Methods
+
+=over 4
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+#include <ctype.h>
+#include <math.h>
+
+pmclass Perl6Str
+    extends String
+    does string
+    dynpmc
+    group perl6_group
+    hll Perl6
+    maps String {
+
+/*
+
+=item C<INTVAL get_integer()>
+
+Returns the value of a Perl 6 string as an integer.  For now
+we just call C<get_number()> and return that as an integer.
+
+=cut
+
+*/
+
+    INTVAL get_integer () {
+        FLOATVAL f = DYNSELF.get_number();
+        return (INTVAL)f;
+    }
+         
+
+/*
+
+=item C<FLOATVAL get_number()>
+
+Returns the value of a Perl 6 string as a number.  Currently
+this routine understands the "0x", "0d", "0o", and "0b" radix
+forms, as well as exponents and underscores between pairs of
+digits.
+
+=cut
+
+*/
+
+    FLOATVAL get_number () {
+        STRING *s = (STRING*) PMC_str_val(SELF);
+        FLOATVAL sign = 1.0;
+        FLOATVAL f = 0.0;
+
+        if (s) {
+            const char *s1 = s->strstart;
+            const char * const end = s1 + s->bufused;
+
+            /* skip leading whitespace */
+            while (s1 < end && isspace(*s1)) s1++;
+
+            /* handle leading +,- */
+            if (s1 < end && *s1 == '+') s1++;
+            else if (s1 < end && *s1 == '-') { sign = -1.0; s1++; }
+
+            /* handle 0x, 0o, 0d, 0b radix */
+            if (s1 < end && *s1 == '0') {
+                s1++;
+                if (s1 >= end) return f;
+                switch (*s1) {
+                    case 'x': case 'X':
+                        s1++;
+                        while (s1 < end && isxdigit(*s1)) {
+                            f *= 16;
+                            if (isdigit(*s1)) f += (*s1) - '0';
+                            else f += tolower(*s1) - 'a' + 10;
+                            s1++;
+                            if (s1 < end && *s1 == '_') s1++;
+                        }
+                        return sign * f;
+                    case 'd': case 'D':
+                        s1++;
+                        while (s1 < end && isdigit(*s1)) {
+                            f = f * 10 + (*s1) - '0';
+                            s1++;
+                            if (s1 < end && *s1 == '_') s1++;
+                        }
+                        return sign * f;
+                    case 'o': case 'O':
+                        s1++;
+                        while (s1 < end && isdigit(*s1) && *s1 <= '7') {
+                            f = f * 8 + (*s1) - '0';
+                            s1++;
+                            if (s1 < end && *s1 == '_') s1++;
+                        }
+                        return sign * f;
+                    case 'b': case 'B':
+                        s1++;
+                        while (s1 < end && (*s1 == '0' || *s1 == '1')) {
+                            f = f * 2 + (*s1) - '0';
+                            s1++;
+                            if (s1 < end && *s1 == '_') s1++;
+                        }
+                        return sign * f;
+                }
+            }
+           
+            /* handle integer part */
+            while (s1 < end && isdigit(*s1)) {
+                f = f * 10 + (*s1) - '0';
+                s1++;
+                if (s1 < end && *s1 == '_' && isdigit(*(s1+1))) s1++;
+            }
+
+            /* handle floating point part */
+            if (s1 < end && *s1 == '.') {
+                FLOATVAL frac = 1.0;
+                s1++;
+                while (s1 < end && isdigit(*s1)) {
+                    frac /= 10;
+                    f = f + ((*s1) - '0') * frac;
+                    s1++;
+                    if (s1 < end && *s1 == '_' && isdigit(*(s1+1))) s1++;
+                }
+            }
+
+            /* handle exponential part */
+            if (s1 < end && (*s1 == 'e' || *s1 == 'E')) {
+                INTVAL exp_val = 0;
+                INTVAL exp_sign = 1;
+                s1++;
+                if (s1 < end && *s1 == '+') s1++;
+                else if (s1 < end && *s1 == '-') { exp_sign = -1; s1++; }
+                while (s1 < end && isdigit(*s1)) {
+                    exp_val = exp_val * 10 + *s1 - '0';
+                    s1++;
+                    if (s1 < end && *s1 == '_' && isdigit(*(s1+1))) s1++;
+                }
+                return sign * f * pow(10.0, exp_val * exp_sign);
+            }
+        }
+
+        return sign * f;
+    }
+
+}
+
+/*
+
+=back
+
+=cut
+
+*/
+
+/*
+ * Local variables:
+ * c-indentation-style: bsd
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * End:
+ *
+ * vim: expandtab shiftwidth=4:
+*/
+

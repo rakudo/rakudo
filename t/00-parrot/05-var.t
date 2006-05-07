@@ -4,7 +4,7 @@
 
 use v6;
 
-say '1..8';
+say '1..11';
 
 my $o1 = 'ok 1'; say $o1;
 
@@ -22,4 +22,12 @@ if ($x + 2 == 7)  { say 'ok ', $x + 2; }
 
 { my $x = 999; { our $x; say 'ok ', $x + 3; } }
 
+
+##   variable interpolation in strings
+
+$b = 9;  "ok $b" eq 'ok 9' and say 'ok 9';
+
+'ok $b' ne 'ok 9' and say 'ok 10';
+
+$b = "0x0b";  "ok $b" eq 'ok 0x0b' and say 'ok 11';
 

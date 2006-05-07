@@ -12,10 +12,11 @@ Compiler implemented
 * simple blocks
 * numeric literals 0x, 0b, 0d, 0o, numbers w/underscores
 * string to numeric conversion
+* scalar interpolation in strings
 
 Compiler to-do
 --------------
-* interpolated quotes
+* interpolate closures
 * generalized quotes
 * subs
 * arrays, hashes
@@ -30,13 +31,14 @@ Parser implemented
 * List associative operators
 * statement modifier operators
 * POD comments
+* interpolation of scalar variables
 
 Parser to-do
 ------------
 * fix long-dot comments to new S02 syntax
 * fix parsing of if-block
-* interpolated quotes
-* generalized quotes
+* interpolate closures
+* generalized quote interpolation
 * real pointy subs
 * subroutine definitions
 * subroutine calling syntax

@@ -91,21 +91,45 @@ Handles parsing of the various types of quoted literals.
     lastpos = length target
     delimlen = length delim
 
-  outer_loop:
-    if pos >= lastpos goto fail
-    $S0 = substr target, pos, delimlen
-    if $S0 == delim goto outer_end
+    .local string lstop
+    lstop = ''
+    if adv_scalar == 0 goto lstop_1
+    lstop .= '$'
+  lstop_1:
 
-  scan_literal:
+  outer_loop:
     .local string literal
     .local int litfrom
     literal = ''
     litfrom = pos
+    if pos >= lastpos goto fail
+    $S0 = substr target, pos, delimlen
+    if $S0 == delim goto outer_end
+    if $S0 == '$' goto scan_scalar
+    goto scan_literal
+
+  scan_scalar:
+    literal = $S0
+    mpos = pos
+    inc pos
+    if adv_scalar == 0 goto scan_literal
+    $P0 = find_global 'Perl6::Grammar', 'variable'
+    $P1 = $P0(mob)
+    unless $P1 goto scan_literal
+    $P1['type'] = 'Perl6::Grammar::variable'
+    mob[capt] = $P1
+    inc capt
+    pos = $P1.to()
+    goto outer_loop
+
+  scan_literal:
   scan_literal_loop:
     if pos >= lastpos goto fail
     $S0 = substr target, pos, delimlen
     if $S0 == delim goto scan_literal_end
     $S0 = substr target, pos, 1
+    $I0 = index lstop, $S0
+    if $I0 >= 0 goto scan_literal_end
     if adv_single == 0 goto scan_literal_1
     if $S0 != "\\" goto scan_literal_1
     if adv_backslash goto scan_literal_backslash

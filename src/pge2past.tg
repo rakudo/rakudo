@@ -277,10 +277,31 @@ Perl6::Grammar::number: past(.) = {
 Perl6::Grammar::string_literal: past(.) = {
     .local pmc past
     $P0 = node['quoted_literal']
-    $P0 = $P0[0]
-    $S0 = $P0
-    past = new 'Perl6::PAST::Val'
-    past.'init'('node'=>node, 'valtype'=>'str', 'name'=>$S0)
+    $P0 = $P0.'get_array'()
+    .local pmc iter
+    iter = new .Iterator, $P0
+    iter = 0
+    null past
+  iter_loop:
+    unless iter goto iter_end
+    .local pmc cnode, cpast
+    cnode = shift iter
+    $S0 = cnode['type']
+    if $S0 == 'str' goto cpast_str
+    cpast = tree.'get'('past', cnode, $S0)
+    goto cpast_add
+  cpast_str:
+    $S0 = cnode
+    cpast = new 'Perl6::PAST::Val'
+    cpast.'init'('node'=>node, 'valtype'=>'str', 'name'=>$S0)
+  cpast_add:
+    unless null past goto cpast_concat
+    past = cpast
+    goto iter_loop
+  cpast_concat:
+    past = past.'new'('Perl6::PAST::Op', past, cpast, 'node'=>node, 'op'=>'infix:~', 'name'=>'concat')
+    goto iter_loop
+  iter_end:
     .return (past)
 }
 

@@ -132,7 +132,20 @@ Perl6::PAST::Op: simple(.) = {
     $S0 = substr postop, 0, 1
     if $S0 == "'" goto postop_end
     ##   direct POST op, create a temporary to store the result
-    ops.'add_child_new'('Perl6::POST::Op', ops, '.Undef', 'name'=>'new')
+    ##   see if the optoken declared a return type (and use it)
+    ##   XXX: For now, we're using the %!parrotclass hash
+    ##   workaround to map Perl6 class names to parrot classes.
+    .local pmc optable, optok
+    .local string opreturn
+    optable = find_global 'Perl6::Grammar', '$optable'
+    optok = optable[opname]
+    opreturn = optok['returns']
+    $P0 = find_global 'Perl6', '%!parrotclass'
+    opreturn = $P0[opreturn]
+    if opreturn > '' goto with_opreturn
+    opreturn = '.Undef'
+  with_opreturn:
+    ops.'add_child_new'('Perl6::POST::Op', ops, opreturn, 'name'=>'new')
   postop_end:
     ops.'add_child_new'('Perl6::POST::Op', ops, arglist :flat, 'name'=>postop)
     .return (ops)

@@ -6,11 +6,8 @@ parse.pir - Parsing support subroutines
 
 =head2 DESCRIPTION
 
-This file contains support subroutines for parsing
-Perl 6 programs.  The most important is actually the "__onload"
-sub, which creates an operator precedence parser for Perl 6
-expressions.  Other specialized parsing subroutines will
-appear here as the parser grows.
+This file contains support subroutines for parsing Perl 6 programs.  
+Specialized parsing subroutines will appear here as the parser grows.
 
 =over 4
 

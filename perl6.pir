@@ -1,20 +1,14 @@
 =head1 TITLE
 
-perl6.pir - A Perl 6 parser (someday a Perl 6 compiler?)
+perl6.pir - A Perl 6 compiler.
 
 =head2 Description
 
-This is the base file for the Perl 6 parser; eventually
-it will likely become the base file for the Perl 6 compiler.
+This is the base file for the Perl 6 compiler.
 
-This file simply includes the parsing and grammar rules
-from the Perl6/ directory, provides a ":load" routine
-to make sure the relevant PGE libraries are loaded,
-and then registers a compiler under the name "Perl6".
-
-Just to make sure we aren't fooling anyone -- at the
-moment the "Perl6" compiler here only parses Perl 6 code.
-But that should change soon.
+This file includes the parsing and grammar rules from
+the src/ directory, loads the relevant PGE libraries,
+and registers the compiler under the name 'Perl6'.
 
 =head2 Functions
 
@@ -40,7 +34,6 @@ compiler.
     load_bytecode 'PGE/Text.pbc'
     load_bytecode 'PGE/Util.pbc'
     load_bytecode 'TGE.pbc'
-
     
     $P0 = getclass 'TGE'
     $P1 = subclass $P0, 'Perl6::PAST::Grammar'
@@ -52,6 +45,13 @@ compiler.
    
     $P0 = find_global 'Perl6', 'compile' 
     compreg 'Perl6', $P0
+
+    ##   XXX: this is a scaffold to map Perl 6 types into
+    ##   the appropriate Parrot class.  We'll likely
+    ##   eliminate this when we can map classnames more easily.
+    $P0 = new .Hash
+    $P0['Str'] = '.Perl6Str'
+    store_global 'Perl6', '%!parrotclass', $P0
 .end
 
 

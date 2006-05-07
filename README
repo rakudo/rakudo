@@ -48,34 +48,34 @@ The "top" file for the parser is F<perl6.pir> which is used to
 create the F<perl6.pbc> file.  It initializes the overall
 parsing system and registers the parser as a Parrot "Perl6" compiler.
 
-The other files needed for parsing are in the F<lib/> subdirectory.
+The other files needed for the compiler are in the F<src/> subdirectory.
 
-The F<lib/grammar_rules.pge> file defines the "top-down" grammar used
+The F<src/grammar_rules.pg> file defines the "top-down" grammar used
 for large Perl 6 program structures, defined using rules in
-Perl 6 rules syntax.  The F<lib/grammar_optok.pge> file defines
+Perl 6 rules syntax.  The F<src/grammar_optok.pg> file defines
 the operator tokens used for expression parsing with PGE's
-operator-precedence parser.   The tokens in lib/grammar_optok.pge
+operator-precedence parser.   The tokens in src/grammar_optok.pge
 are defined using a pseudo-Perl6 syntax.  PGE's "pgc.pir"
 compiler is then used to compile the two grammar files into
-F<lib/grammar_gen.pir>, which is included by F<perl6.pir>.
+F<src/grammar_gen.pir>, which is included by F<perl6.pir>.
 (See Synopsis 5 for more details on Perl 6 rules syntax,
 and F<compilers/pge/> for more details about PGE.)
 
-The F<lib/parse.pir> file defines a few special-purpose
+The F<src/parse.pir> file defines a few special-purpose
 rules needed to support parsing that are better written
 directly in PIR instead of using the rules or token syntax.
 Currently this file defines the C<< <expression> >> rule,
 which just calls into the operator precedence parser.
 
-The file F<lib/pge2past.tge> is a tree grammar that specifies
+The file F<src/pge2past.tg> is a tree grammar that specifies
 how to convert the parse tree into the abstract syntax tree (PAST),
-and F<lib/past2post.tge> generates POST from PAST.  
+and F<src/past2post.tg> generates POST from PAST.  
 
-The F<lib/main.pir> file controls what happens when the perl6.pbc
+The F<src/main.pir> file controls what happens when the perl6.pbc
 file is invoked directly from parrot (as opposed to being
 loaded via the load_bytecode op).
 
-The PIR files in F<lib/> are included as part of compiling
+The PIR files in F<src/> are included as part of compiling
 F<perl6.pir> to produce F<perl6.pbc>.
 
 The F<perl6.pbc> file can also be used to compile Perl 6 code

@@ -146,8 +146,20 @@ rule reserved_word { [ if | unless | while | until | for | loop ] \b }
 
 rule variable { <sigil> <name> }
 rule sigil { <[$@%^]> }
-rule integer { \d+ }
-rule number {:i \d+ \. \d+ [ e <[+\-]>? \d+ ]? }
+
+rule integer {
+      0 [ b <[01]>+           [ _ <[01]>+ ]*
+        | o <[0..7]>+         [ _ <[0..7]>+ ]*
+        | x <[0..9a..fA..F]>+ [ _ <[0..9a..fA..F]>+ ]*
+        | d \d+               [ _ \d+]* 
+        ]
+    | \d+[_\d+]*
+}
+
+rule number {
+    \d+[_\d+]* [ \. \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
+}
+
 rule string_literal { <PGE::Text::bracketed: '"> }
 rule version { v\d+ }
 

@@ -151,7 +151,7 @@ Handles parsing of the various types of quoted literals.
     ($P0, $P1, $P2, $P3) = newfrom(mob)
     $P2 = litfrom
     $P3 = pos
-    $P0.'set_value'(literal)
+    $P0.'value'(literal)
     $P0['type'] = 'str'
     mob[capt] = $P0
     inc capt

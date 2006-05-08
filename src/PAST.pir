@@ -80,7 +80,6 @@ needed for Perl 6.  The currently defined ast nodes:
     if null adverbs goto end
     .local pmc iter
     iter = new .Iterator, adverbs
-    iter = 0
   iter_loop:
     unless iter goto iter_end
     $S0 = shift iter
@@ -239,7 +238,6 @@ counting at 10 (so that the values 0..9 can be considered "safe").
     $S0 = self.'__dumplist'()
     attrlist = split ' ', $S0
     iter = new .Iterator, attrlist
-    iter = 0
   iter_loop:
     unless iter goto iter_end
     .local string attrname

@@ -22,7 +22,6 @@ Perl6::Grammar::statement_list:  past(.) = {
 
     $P0 = node['statement']
     iter = new .Iterator, $P0
-    iter = 0
   iter_loop:
     unless iter goto iter_end
     $P1 = shift iter
@@ -113,7 +112,7 @@ Perl6::Grammar::statement_control: past(.) = {
     if exprc > 0 goto expr_block_pair
     .return (past)
 }
-    
+
 
 Perl6::Grammar::expression: past(.) = {
     .local pmc past
@@ -152,14 +151,13 @@ Perl6::Grammar::expr: past(.) = {
     subname = concat "'", subname
     subname = concat subname, "'"
   set_subname_end:
-    
+
     .local pmc past, children, iter
     past = new 'Perl6::PAST::Op'
     past.'init'('node'=>node, 'op'=>type, 'name'=>subname)
     $P0 = node.'get_array'()
     if null $P0 goto iter_end
     iter = new .Iterator, $P0
-    iter = 0
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
@@ -188,7 +186,6 @@ Perl6::Grammar::expr: past_term(.) = {
     .local pmc iter
     $P0 = node.'get_hash'()
     iter = new .Iterator, $P0
-    iter = 0
   iter_loop:
     unless iter goto term_error
     $S0 = shift iter
@@ -231,7 +228,7 @@ Perl6::Grammar::scoped_variables: past(.) = {
     block.'vardecl'(name, past)
     .return (past)
 }
-    
+
 
 Perl6::Grammar::variable: past(.) = {
     .local string name
@@ -280,7 +277,6 @@ Perl6::Grammar::string_literal: past(.) = {
     $P0 = $P0.'get_array'()
     .local pmc iter
     iter = new .Iterator, $P0
-    iter = 0
     null past
   iter_loop:
     unless iter goto iter_end

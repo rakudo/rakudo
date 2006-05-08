@@ -7,7 +7,6 @@
     .local pmc iter
 
     iter = new .Iterator, list
-    iter = 0
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
@@ -372,7 +371,6 @@
 
     message = ''
     iter = new .Iterator, list
-    iter = 0
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter

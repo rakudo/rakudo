@@ -5,21 +5,21 @@
 ##
 ## DESCRIPTION
 ##
-## These are the rules used to compile Perl 6 programs.
+## These are the regexes used to compile Perl 6 programs.
 ## This is just a first draft of a grammar for parsing
-## Perl 6 programs, undoubtedly more rules will be added
+## Perl 6 programs, undoubtedly more regexes will be added
 ## soon.  Much of the work is hidden in the <opparse>
-## rule, which is defined in L<Perl6/parse.pir>
+## regex, which is defined in L<Perl6/parse.pir>
 ## and handles most expressions using a bottom-up
 ## parsing algorithm.
 
 grammar Perl6::Grammar ;
 
 
-## These rules handle whitespace between comments and tokens
+## These regexes handle whitespace between comments and tokens
 
 ##
-rule ws {
+regex ws {
     [ \# \N+
     | \s+
     | <?dot_comment>
@@ -27,9 +27,9 @@ rule ws {
     ]* :::
 }
 
-rule dot_comment { \. [ \s <-[.]>*: | \# <?PGE::Text::bracketed: <({[> ] }
+regex dot_comment { \. [ \s <-[.]>*: | \# <?PGE::Text::bracketed: <({[> ] }
 
-rule pod_comment {
+regex pod_comment {
     ^^ = [ [ cut \h*: | end [\h\N*]? ]
          | for [ \h\N+: ] \n [ \N+\n ]*:
          | \w\N*: \n .*? \n = [ cut \h*: | end [\h\N*:]? ]
@@ -38,33 +38,33 @@ rule pod_comment {
 }
 
 
-rule program { 
+regex program { 
     ^ <statement_list> <?ws> [ $ | <?syntax_error> ] 
 }
 
 
-rule statement_list { 
+regex statement_list { 
     <statement> [ <?statement_end> <statement> ]* <?statement_end>? 
 }
 
 
-rule statement_end {
+regex statement_end {
       [ <?ws> ; ]+ 
     | <after \}> :: \h* [ \#\N* ]? \n 
 }
 
 
 ## XXX: <statement_control> will likely become <%statement_control>.
-## Since PGE doesn't support hashes in rules yet, we're just using
+## Since PGE doesn't support hashes in regexes yet, we're just using
 ## an alternation for now.
 
-rule statement {
+regex statement {
     <statement_control>
     | <expression: infix:;> <statement_modifier>?  
 }
 
 
-rule statement_control {
+regex statement_control {
     <?ws>:
     $<KEY>:=[if|unless] <expression: circumfix:{ }> <block>
         [ <?ws>: elsif <expression: circumfix{ }> <block> ]*
@@ -72,17 +72,17 @@ rule statement_control {
 }
 
 
-rule statement_modifier {
+regex statement_modifier {
     <?ws> $<KEY>:=[if|unless] <expression: infix:;>
 }
 
 
-rule block { <simple_block> | <pointy_sub> }
+regex block { <simple_block> | <pointy_sub> }
 
 
 ## A <simple_block> is just a statement_list inside of a pair of braces.
 
-rule simple_block {
+regex simple_block {
     <?ws>:
     \{
         <?ws>: <statement_list> <?ws>:
@@ -90,29 +90,29 @@ rule simple_block {
 }
 
 
-## XXX: This isn't the real <pointy_sub> rule -- it doesn't know
+## XXX: This isn't the real <pointy_sub> regex -- it doesn't know
 ## how to parse arguments yet.  It's just here as a placeholder
 ## for now.
 
-rule pointy_sub { --\> <simple_block> }
+regex pointy_sub { --\> <simple_block> }
 
 
 ## We handle Perl 6 expressions using PGE's operator
 ## precedence parser.  The tokens and sub for this are
-## defined in L<Perl6/parser.pir>.  If written as a p6rule,
+## defined in L<Perl6/parser.pir>.  If written as a p6regex,
 ## it would look something like:
-##     rule expression($stop) { { $opparse.parse($/, $stop) } }
+##     regex expression($stop) { { $opparse.parse($/, $stop) } }
 
-## However, we do need a special "whitespace" rule for capturing
+## However, we do need a special "whitespace" regex for capturing
 ## whitespace in expressions, because dot_comments are special.
 
-rule expression_ws { [ \s | \# \N*:\n ] <?ws> }
+regex expression_ws { [ \s | \# \N*:\n ] <?ws> }
 
 
-## The <term> rule gets called from the operator precedence
+## The <term> regex gets called from the operator precedence
 ## parser whenever it needs a term.
 
-rule term {
+regex term {
     <scoped_variables>
     | <variable>
     | <block>
@@ -123,31 +123,31 @@ rule term {
 }
 
 
-## XXX: The <scope_declarator> rule will likely become <%scope_declarator>.
+## XXX: The <scope_declarator> regex will likely become <%scope_declarator>.
 
-rule scoped_variables {
+regex scoped_variables {
     <scope_declarator> <?ws> <variable>
 }
-rule scope_declarator { [ my | our ] \b }
+regex scope_declarator { [ my | our ] \b }
 
 
-## The <listop> rule gets called from the operator precedence
+## The <listop> regex gets called from the operator precedence
 ## parser whenever it's looking for a term.  At the moment
 ## it primarily grabs bareword terms.
 ## XXX: <reserved_word> may become @reserved_word.
 
-rule listop { <reserved_word> ::: <fail> | <ident> }
+regex listop { <reserved_word> ::: <fail> | <ident> }
 
-rule reserved_word { [ if | unless | while | until | for | loop ] \b }
+regex reserved_word { [ if | unless | while | until | for | loop ] \b }
 
 
-## XXX: These are just placeholder rules for demonstration,
+## XXX: These are just placeholder regexes for demonstration,
 ## they certainly need to be expanded to be more complete.
 
-rule variable { <sigil> <name> }
-rule sigil { <[$@%^]> }
+regex variable { <sigil> <name> }
+regex sigil { <[$@%^]> }
 
-rule integer {
+regex integer {
       0 [ b <[01]>+           [ _ <[01]>+ ]*
         | o <[0..7]>+         [ _ <[0..7]>+ ]*
         | x <[0..9a..fA..F]>+ [ _ <[0..9a..fA..F]>+ ]*
@@ -156,23 +156,23 @@ rule integer {
     | \d+[_\d+]*
 }
 
-rule number {
+regex number {
     \d+[_\d+]* [ \. \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
 }
 
 ##  XXX: arguments to quoted_literal are a cheat for the time being.
-rule string_literal {
+regex string_literal {
       " <quoted_literal: "> "
     | ' <quoted_literal: '> '
 }
 
-rule version { v\d+ }
+regex version { v\d+ }
 
 
-## The <syntax_error> rule generates a simple syntax
+## The <syntax_error> regex generates a simple syntax
 ## error message, and displays the line number and context
 ## of the error.
 
-rule syntax_error { <?PGE::Util::die: Syntax error> }
+regex syntax_error { <?PGE::Util::die: Syntax error> }
 
 ## vim: expandtab sw=4

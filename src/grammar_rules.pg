@@ -38,17 +38,17 @@ regex pod_comment {
 }
 
 
-regex program { 
+token program { 
     ^ <statement_list> <?ws> [ $ | <?syntax_error> ] 
 }
 
 
-regex statement_list { 
+token statement_list { 
     <statement> [ <?statement_end> <statement> ]* <?statement_end>? 
 }
 
 
-regex statement_end {
+token statement_end {
       [ <?ws> ; ]+ 
     | <after \}> :: \h* [ \#\N* ]? \n 
 }
@@ -58,13 +58,13 @@ regex statement_end {
 ## Since PGE doesn't support hashes in regexes yet, we're just using
 ## an alternation for now.
 
-regex statement {
+token statement {
     <statement_control>
     | <expression: infix:;> <statement_modifier>?  
 }
 
 
-regex statement_control {
+token statement_control {
     <?ws>:
     $<KEY>:=[if|unless] <expression: circumfix:{ }> <block>
         [ <?ws>: elsif <expression: circumfix{ }> <block> ]*
@@ -72,17 +72,17 @@ regex statement_control {
 }
 
 
-regex statement_modifier {
+token statement_modifier {
     <?ws> $<KEY>:=[if|unless] <expression: infix:;>
 }
 
 
-regex block { <simple_block> | <pointy_sub> }
+token block { <simple_block> | <pointy_sub> }
 
 
 ## A <simple_block> is just a statement_list inside of a pair of braces.
 
-regex simple_block {
+token simple_block {
     <?ws>:
     \{
         <?ws>: <statement_list> <?ws>:
@@ -94,7 +94,7 @@ regex simple_block {
 ## how to parse arguments yet.  It's just here as a placeholder
 ## for now.
 
-regex pointy_sub { --\> <simple_block> }
+token pointy_sub { --\> <simple_block> }
 
 
 ## We handle Perl 6 expressions using PGE's operator
@@ -106,13 +106,13 @@ regex pointy_sub { --\> <simple_block> }
 ## However, we do need a special "whitespace" regex for capturing
 ## whitespace in expressions, because dot_comments are special.
 
-regex expression_ws { [ \s | \# \N*:\n ] <?ws> }
+token expression_ws { [ \s | \# \N*:\n ] <?ws> }
 
 
 ## The <term> regex gets called from the operator precedence
 ## parser whenever it needs a term.
 
-regex term {
+token term {
     <scoped_variables>
     | <variable>
     | <block>
@@ -125,10 +125,10 @@ regex term {
 
 ## XXX: The <scope_declarator> regex will likely become <%scope_declarator>.
 
-regex scoped_variables {
+token scoped_variables {
     <scope_declarator> <?ws> <variable>
 }
-regex scope_declarator { [ my | our ] \b }
+token scope_declarator { [ my | our ] \b }
 
 
 ## The <listop> regex gets called from the operator precedence
@@ -136,18 +136,18 @@ regex scope_declarator { [ my | our ] \b }
 ## it primarily grabs bareword terms.
 ## XXX: <reserved_word> may become @reserved_word.
 
-regex listop { <reserved_word> ::: <fail> | <ident> }
+token listop { <reserved_word> ::: <fail> | <ident> }
 
-regex reserved_word { [ if | unless | while | until | for | loop ] \b }
+token reserved_word { [ if | unless | while | until | for | loop ] \b }
 
 
 ## XXX: These are just placeholder regexes for demonstration,
 ## they certainly need to be expanded to be more complete.
 
-regex variable { <sigil> <name> }
-regex sigil { <[$@%^]> }
+token variable { <sigil> <name> }
+token sigil { <[$@%^]> }
 
-regex integer {
+token integer {
       0 [ b <[01]>+           [ _ <[01]>+ ]*
         | o <[0..7]>+         [ _ <[0..7]>+ ]*
         | x <[0..9a..fA..F]>+ [ _ <[0..9a..fA..F]>+ ]*
@@ -156,23 +156,23 @@ regex integer {
     | \d+[_\d+]*
 }
 
-regex number {
+token number {
     \d+[_\d+]* [ \. \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
 }
 
 ##  XXX: arguments to quoted_literal are a cheat for the time being.
-regex string_literal {
+token string_literal {
       " <quoted_literal: "> "
     | ' <quoted_literal: '> '
 }
 
-regex version { v\d+ }
+token version { v\d+ }
 
 
 ## The <syntax_error> regex generates a simple syntax
 ## error message, and displays the line number and context
 ## of the error.
 
-regex syntax_error { <?PGE::Util::die: Syntax error> }
+token syntax_error { <?PGE::Util::die: Syntax error> }
 
 ## vim: expandtab sw=4

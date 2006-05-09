@@ -25,7 +25,7 @@ say 'ok ', 0d9;
 say 'ok ', +"0x0a";
 say 'ok ', '0b1010' + 1;
 say 'ok ', '0o6' * '0b10';
-say 'ok ', '0d13';
+say 'ok ', +'0d13';
 
 say 'ok ', 0_0_1_4;
 say 'ok ', 0x0000_000f;

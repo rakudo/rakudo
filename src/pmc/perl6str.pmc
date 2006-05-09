@@ -116,6 +116,7 @@ digits.
                         }
                         return sign * f;
                 }
+                if (s1 < end && *s1 == '_' && isdigit(*(s1+1))) s1++;
             }
            
             /* handle integer part */

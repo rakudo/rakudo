@@ -452,40 +452,40 @@
 
 
 .sub 'infix:+='
-    .param num a
-    .param num b
+    .param pmc a
+    .param pmc b
     a += b
     .return (a)
 .end
 
 
 .sub 'infix:-='
-    .param num a
-    .param num b
+    .param pmc a
+    .param pmc b
     a -= b
     .return (a)
 .end
 
 
 .sub 'infix:*='
-    .param num a
-    .param num b
+    .param pmc a
+    .param pmc b
     a *= b
     .return (a)
 .end
 
 
 .sub 'infix:/='
-    .param num a
-    .param num b
+    .param pmc a
+    .param pmc b
     a /= b
     .return (a)
 .end
 
 
 .sub 'infix:%='
-    .param num a
-    .param num b
+    .param pmc a
+    .param pmc b
     a %= b
     .return (a)
 .end
@@ -528,24 +528,24 @@
 
 
 .sub 'infix:+&='
-    .param int a
-    .param int b
+    .param pmc a
+    .param pmc b
     band a, b
     .return (a)
 .end
 
 
 .sub 'infix:+|='
-    .param int a
-    .param int b
+    .param pmc a
+    .param pmc b
     bor a, b
     .return (a)
 .end
 
 
 .sub 'infix:+^='
-    .param int a
-    .param int b
+    .param pmc a
+    .param pmc b
     bxor a, b
     .return (a)
 .end
@@ -576,31 +576,31 @@
 
 
 .sub 'infix:?&='
-    .param int a
-    .param int b
+    .param pmc a
+    .param pmc b
     band a, b
-    $P0 = a
-    a = istrue $P0
+    $I0 = istrue a
+    a = $I0
     .return (a)
 .end
 
 
 .sub 'infix:?|='
-    .param int a
-    .param int b
+    .param pmc a
+    .param pmc b
     bor a, b
-    $P0 = a
-    a = istrue $P0
+    $I0 = istrue a
+    a = $I0
     .return (a)
 .end
 
 
 .sub 'infix:?^='
-    .param int a
-    .param int b
+    .param pmc a
+    .param pmc b
     bxor a, b
-    $P0 = a
-    a = istrue $P0
+    $I0 = istrue a
+    a = $I0
     .return (a)
 .end
 

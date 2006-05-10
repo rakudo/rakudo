@@ -265,13 +265,20 @@
 .end
 
 
+.sub 'infix:?&'
+    .param int a
+    .param int b
+    $I0 = band a, b
+    $I0 = isne $I0, 0
+    .return ($I0)
+.end
+
+
 .sub 'infix:?|'
     .param int a
     .param int b
     $I0 = bor a, b
-    ## istrue_i_i doesn't exist
-    $P0 = $I0
-    $I0 = istrue $P0
+    $I0 = isne $I0, 0
     .return ($I0)
 .end
 
@@ -280,9 +287,7 @@
     .param int a
     .param int b
     $I0 = bxor a, b
-    ## istrue_i_i doesn't exist
-    $P0 = $I0
-    $I0 = istrue $P0
+    $I0 = isne $I0, 0
     .return ($I0)
 .end
 
@@ -418,28 +423,7 @@
 ## TODO: infix:=:= infix:===
 
 
-## tight and
-## TODO: infix:&&
-
-
-## tight or
-## TODO: infix:|| infix:^^ infix://
-
-
-
-## ternary
-## TODO: ternary:?? !!
-
-
 ## assignment
-.sub 'infix:='
-    .param pmc a
-    .param pmc b
-    a = b
-    .return (a)
-.end
-
-
 ## TODO: infix::= infix:::= infix:.=
 
 

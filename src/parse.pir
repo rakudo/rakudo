@@ -38,7 +38,7 @@ and returns the result to the caller.
     if has_stoptoken > 0 goto expression_1
     stoptoken = ''
   expression_1:
-    .return optable."parse"(mob, 'stop'=> ';')
+    .return optable."parse"(mob, 'stop'=> stoptoken)
 .end
 
 
@@ -165,3 +165,37 @@ Handles parsing of the various types of quoted literals.
     .return (mob)
 .end
 
+
+=item C<slash_regex(PMC mob)>
+
+Handles parsing of "slash regexes" -- i.e., regexes that are 
+terminated by a slash.  For this, we just call PGE's p6 regex 
+parser, telling it to stop parsing on the closing slash.  
+
+XXX: This is just a temporary sub to get things
+working -- it will likely change.
+
+=cut
+
+.sub 'regex'
+    .param pmc mob
+    .param pmc args            :slurpy
+    .param pmc adverbs         :slurpy :named
+    .local string stop
+
+    stop = ''
+    if null adverbs goto with_stop_adverb
+    stop = adverbs['stop']
+    if stop > '' goto with_stop
+  with_stop_adverb:
+    unless args goto with_stop
+    stop = shift args
+  with_stop: 
+    $P0 = find_global 'PGE::Grammar', 'regex'
+    $P1 = $P0(mob, 'stop'=>stop)
+    '_dumper'($P1)
+    $I0 = $P1.to()
+    print $I0
+    print "\n"
+    .return ($P1)
+.end

@@ -56,24 +56,33 @@ token statement_end {
 
 ## XXX: <statement_control> will likely become <%statement_control>.
 ## Since PGE doesn't support hashes in regexes yet, we're just using
-## an alternation for now.
+## an alternation for now.  
+##
+## The subrule C<< <expression:  ;> >> calls the C<expression> sub 
+## in L<src/parse.pir>, which passes control to the operator
+## precedence parser.  The space+semicolon parameter tells
+## the operator precedence parser to stop parsing the expression
+## at any top-level semicolon (with optional leading <?ws>).
+## (This may yet change as we refine things further.)
 
 token statement {
     <statement_control>
-    | <expression: infix:;> <statement_modifier>?  
+    | <expression:  ;> <statement_modifier>?  
 }
 
 
+## Here, the <expression> subrule doesn't parse any top-level
+## bare closures (controlled by the space+brace argument).
 token statement_control {
     <?ws>:
-    $<KEY>:=[if|unless] <expression: circumfix:{ }> <block>
-        [ <?ws>: elsif <expression: circumfix{ }> <block> ]*
+    $<KEY>:=[if|unless] <expression:  {> <block>
+        [ <?ws>: elsif <expression:  {> <block> ]*
         [ <?ws>: else <block> ]?
 }
 
 
 token statement_modifier {
-    <?ws> $<KEY>:=[if|unless] <expression: infix:;>
+    <?ws> $<KEY>:=[if|unless] <expression:  ;>
 }
 
 
@@ -116,11 +125,18 @@ token term {
     <scoped_variables>
     | <variable>
     | <block>
+    | <regex_term>
     | <number>
     | <integer>
     | <string_literal>
     | <version>
 }
+
+
+## XXX: This is a temporary rule that allows parsing of /regex/
+## in term position.  It is likely to change.
+
+token regex_term { / <regex: /> / }
 
 
 ## XXX: The <scope_declarator> regex will likely become <%scope_declarator>.

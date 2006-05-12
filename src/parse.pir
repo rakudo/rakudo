@@ -140,6 +140,9 @@ Handles parsing of the various types of quoted literals.
   scan_literal_backslash:
     inc pos
     $S0 = substr target, pos, 1
+    # if $S0 == 'x' goto scan_backslash_x          # XXX: to-do
+    # if $S0 == 'd' goto scan_backslash_d          # XXX: to-do
+    # if $S0 == 'o' goto scan_backslash_o          # XXX: to-do
     $I0 = index "abefnrt", $S0
     if $I0 < 0 goto scan_literal_1
     $S0 = substr "\x07\x08\e\f\n\r\t", $I0, 1

@@ -406,6 +406,10 @@ Perl6::PAST::Var: post(.) = {
   outer_end:
     scope .= $S0
   with_scope:
+    $S0 = substr name, 0, 1
+    if $S0 != '&' goto with_name
+    name = substr name, 1
+  with_name:
     post = new 'Perl6::POST::Var'
     post.'init'('node'=>node, 'name'=>name, 'scope'=>scope)
     .return (post)

@@ -4,7 +4,7 @@
 
 use v6;
 
-say '1..11';
+say '1..12';
 
 my $o1 = 'ok 1'; say $o1;
 
@@ -30,4 +30,9 @@ $b = 9;  "ok $b" eq 'ok 9' and say 'ok 9';
 'ok $b' ne 'ok 9' and say 'ok 10';
 
 $b = "0x0b";  "ok $b" eq 'ok 0x0b' and say 'ok 11';
+
+
+##   nested 'our' declarations
+
+our $x = 'not ok 12';  { our $x = 'ok 12'; };  say $x;
 

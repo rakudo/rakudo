@@ -331,66 +331,37 @@ and that is returned.
     .return self.'attr'('$.islvalue', islvalue, has_islvalue)
 .end
 
-
-.sub 'value' :method
-    ##   use any previously-generated value for this
-    ##   variable from the varhash.  If there isn't
-    ##   one, generate a unique value.
-    .local pmc name
-    name = self.'name'()
-    .local pmc varhash, value
-    varhash = find_global 'Perl6::POST', '%!varhash'
-    $I0 = exists varhash[name]
-    if $I0 goto varhash_exists
-    $S0 = self.'unique'('$P')
-    .return self.'attr'('$.value', $S0, 1)
-  varhash_exists:
-    $P0 = varhash[name]
-    value = getattribute $P0, '$.value'
-    .return (value)
-.end
-
-
 .sub 'pir' :method
     ##   if we already generated the code for this
     ##   variable, we generate nothing here.
-    .local string name
-    .local pmc varhash
-    name = self.'name'()
-    varhash = find_global 'Perl6::POST', '%!varhash'
-    $I0 = exists varhash[name]
-    if $I0 == 0 goto generate_pir
-    .return ('')
-  generate_pir:
-    ##   what we generate now depends on the variable's scope
+    .local string name, scope, value
     .local pmc code
-    .local string scope, value
-    code = new 'PGE::CodeString'
+    .local int islvalue
+    name = self.'name'()
     scope = self.'scope'()
     value = self.'value'()
-    varhash[name] = self
-    $S0 = substr name, 0, 1
-    if $S0 != '&' goto with_name
-    name = substr name, 1
-  with_name:
-    if scope == 'package' goto scope_package
-    if scope == 'outerpackage' goto scope_outerpackage
-    if scope == 'lexical' goto scope_lexical
-    if scope == 'outerlexical' goto scope_outerlexical
-    code.'emit'("    %0 = find_name '%1'", value, name)
-    .return (code)
-  scope_package:
-    $I0 = self.'islvalue'()
-    if $I0 == 0 goto scope_outerpackage
-    .return ('')
-  scope_outerpackage:
-    code.'emit'("    %0 = find_global '%1'", value, name)
-    .return (code)
-  scope_lexical:
+    islvalue = self.'islvalue'()
+    code = new 'PGE::CodeString'
+    if scope == 'lexical' goto generate_lexical
+    if scope == 'package' goto generate_package
+    goto generate_find
+  generate_lexical:
+    .local pmc varhash
+    varhash = find_global 'Perl6::POST', '%!varhash'
+    $I0 = exists varhash[name]
+    if $I0 goto generate_find
+    ##    This is the first time to see a lexical, generate its .lex
     code.'emit'("    .lex '%0', %1", name, value)
-    .return (code)
-  scope_outerlexical:
-    code.'emit'("    %0 = find_lex '%1'", value, name)
+    varhash[name] = self
+    goto end
+  generate_package:
+    if islvalue goto end
+    code.'emit'("    %0 = find_global '%1'", value, name)
+    goto end
+  generate_find:
+    if islvalue goto end
+    code.'emit'("    %0 = find_name '%1'", value, name)
+  end:
     .return (code)
 .end
 
@@ -411,11 +382,9 @@ and that is returned.
     if scope == 'outerlexical' goto store_lexical
     if scope == 'lexical' goto store_lexical
     code.'emit'("    store_global '%0', %1", name, xvalue)
-    code.'emit'("    %0 = %1", value, xvalue)
     .return (code)
   store_lexical:
     code.'emit'("    store_lex '%0', %1", name, xvalue)
-    code.'emit'("    %0 = %1", value, xvalue)
     .return (code)
 .end
     

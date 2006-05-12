@@ -193,9 +193,5 @@ working -- it will likely change.
   with_stop: 
     $P0 = find_global 'PGE::Grammar', 'regex'
     $P1 = $P0(mob, 'stop'=>stop)
-    '_dumper'($P1)
-    $I0 = $P1.to()
-    print $I0
-    print "\n"
     .return ($P1)
 .end

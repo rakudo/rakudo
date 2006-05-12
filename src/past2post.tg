@@ -7,17 +7,19 @@ Perl6::PAST::Block: root(.) = {
 
 
 Perl6::PAST::Block: post(.) = {
-    .local string name
+    .local string name, blocktype
     name = node.'name'()
+    blocktype = node.'blocktype'()
     if name > '' goto with_name
-    name = node.'unique'('_block')
+    name = concat '_', blocktype
+    name = node.'unique'(name)
   with_name:
     .local pmc outerpost, outerpast
     outerpost = find_global 'Perl6::POST', '$?BLOCK'
     outerpast = find_global 'Perl6::PAST', '$?BLOCK'
     .local pmc post
     post = new 'Perl6::POST::Sub'
-    post.'init'('node'=>node, 'name'=>name, 'outer'=>outerpost)
+    post.'init'('node'=>node, 'name'=>name, 'outer'=>outerpost, 'subtype'=>blocktype)
     store_global 'Perl6::POST', '$?BLOCK', post
     store_global 'Perl6::PAST', '$?BLOCK', node
     .local pmc iter
@@ -32,6 +34,7 @@ Perl6::PAST::Block: post(.) = {
   iter_end:
     .local pmc value
     value = cpost.'value'()
+    value = clone value
     post.'value'(value)
     store_global 'Perl6::POST', '$?BLOCK', outerpost
     store_global 'Perl6::PAST', '$?BLOCK', outerpast
@@ -52,6 +55,8 @@ Perl6::Grammar: post(.) = {
     ##   code that is stored as a child of a Block.  The regex
     ##   AST is already reduced to what we want to pass to
     ##   the PGE compiler, so we just return it directly.
+    ##   But clear any 'value' of the Match object, first.
+    node.'value'('')
     .return (node)
 }
 

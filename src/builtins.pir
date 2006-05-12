@@ -592,6 +592,18 @@
 ## TODO: infix:|= infix:&= infix:^=
 
 
+.sub 'infix:~~'
+    .param pmc topic
+    .param pmc regex
+    .local pmc match
+    match = regex(topic)
+    $P0 = getinterp
+    $P1 = $P0['lexpad';1]
+    $P1['$/'] = match
+    .return (match)
+.end
+
+
 .sub 'die'
     .param pmc list            :slurpy
     .local pmc iter

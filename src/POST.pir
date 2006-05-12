@@ -37,6 +37,7 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
 
     $P0 = subclass base, 'Perl6::POST::Sub'
     addattribute $P0, '$.outer'
+    addattribute $P0, '$.subtype'
 
     $P0 = subclass base, 'Perl6::POST::Op'
     $P0 = subclass base, 'Perl6::POST::Ops'
@@ -192,6 +193,12 @@ and that is returned.
     .return self.'attr'('$.outer', outer, has_outer)
 .end
 
+.sub 'subtype' :method
+    .param pmc subtype         :optional
+    .param int has_subtype     :opt_flag
+    .return self.'attr'('$.subtype', subtype, has_subtype)
+.end
+
 .sub 'root_pir' :method
     ##   create a new (empty) variable hash for the outer sub
     $P0 = new .Hash
@@ -211,6 +218,12 @@ and that is returned.
 
 
 .sub 'pir' :method
+    .local string subtype
+    subtype = self.'subtype'()
+    if subtype != 'regex' goto standard_sub
+    .return self.'pir_regex'()
+
+  standard_sub:
     ##   create a new (empty) variable hash for this sub
     .local pmc varhash
     varhash = find_global 'Perl6::POST', '%!varhash'
@@ -232,6 +245,11 @@ and that is returned.
     ## build the code for this sub
     subcode = new 'PGE::CodeString'
     subcode.'emit'("\n.sub '%0' %1", name, outerattr)
+    ## add the $/ lexical
+    $P0 = new 'Perl6::POST::Var'
+    $P0.'init'('name'=>'$/', 'scope'=>'lexical')
+    $P1 = $P0.'pir'()
+    subcode .= $P1
     iter = self.'child_iter'()
   iter_loop:
     unless iter goto iter_end
@@ -257,8 +275,27 @@ and that is returned.
     .return (code)
 .end
 
+.sub 'pir_regex' :method
+    .local pmc p6regex, regexast, regexpir
+    .local string name, value
+    name = self.'name'()
+    value = self.'value'()
+    p6regex = compreg 'PGE::P6Regex'
+    regexast = self[0]
+    regexpir = p6regex(regexast, 'name'=>name, 'grammar'=>'', 'target'=>'PIR')
+
+    $P0 = find_global 'Perl6::POST', '$!subpir'
+    regexpir .= $P0
+    store_global 'Perl6::POST', '$!subpir', regexpir
+
+    .local pmc code
+    code = new 'PGE::CodeString'
+    code.'emit'("    %0 = find_name '%1'", value, name)
+    .return (code)
+.end
+
 .sub '__dumplist' :method
-    .return ('$.name $.outer $.value @.children')
+    .return ('$.name $.subtype $.outer $.value @.children')
 .end
 
 .namespace [ 'Perl6::POST::Val' ]

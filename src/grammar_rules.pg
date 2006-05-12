@@ -161,7 +161,7 @@ token reserved_word { [ if | unless | while | until | for | loop ] \b }
 ## XXX: These are just placeholder regexes for demonstration,
 ## they certainly need to be expanded to be more complete.
 
-token variable { <sigil> <name> }
+token variable { \$/ | \$_ | <sigil> <name> }
 token sigil { <[$@%^&]> }
 
 token integer {

@@ -25,12 +25,6 @@
 .end
 
 
-.sub 'list'
-    .param pmc list            :slurpy
-    .return (list)
-.end
-
-
 .sub 'use'
     .param pmc list            :slurpy
     .return ()
@@ -589,6 +583,18 @@
 .end
 
 
+=item C<infix:,(...)>
+
+Builds an array from its arguments.  Trivial, really.
+
+=cut
+
+.sub 'infix:,'
+    .param pmc list            :slurpy
+    .return (list)
+.end
+
+
 ## TODO: infix:|= infix:&= infix:^=
 
 
@@ -597,6 +603,12 @@
     .param pmc x
     $I0 = does topic, 'array'
     if $I0 == 0 goto topic_any
+    $I0 = isa x, 'Integer'                         # XXX: should be 'Num'
+    if $I0 goto array_contains_number
+    $I0 = isa x, 'Float'
+    if $I0 goto array_contains_number
+    $I0 = isa x, 'String'
+    if $I0 goto array_contains_string
   topic_any:
     $I0 = isa x, 'Sub'                             # XXX: should be 'Regex'
     if $I0 goto pattern_match
@@ -606,9 +618,27 @@
     if $I0 goto numeric_equality
     $I0 = isa x, 'String'
     if $I0 goto string_equality
-    
-    ##   return false
+   
+  fail: ##   return false
     .return (0)
+
+  array_contains_number:
+    $P0 = new .Iterator, topic
+  acn_1:
+    unless $P0 goto fail
+    $P1 = shift $P0
+    $P2 = 'infix:=='($P1, x)
+    unless $P2 goto acn_1
+    .return ($P2)
+
+  array_contains_string:
+    $P0 = new .Iterator, topic
+  acs_1:
+    unless $P0 goto fail
+    $P1 = shift $P0
+    $P2 = 'infix:eq'($P1, x)
+    unless $P2 goto acs_1
+    .return ($P2)
 
   pattern_match:
     ##   Any ~~ Regex

@@ -67,6 +67,7 @@ token statement_end {
 
 token statement {
     <statement_control>
+    | <block>
     | <expression:  ;> <statement_modifier>?  
 }
 
@@ -161,7 +162,7 @@ token reserved_word { [ if | unless | while | until | for | loop ] \b }
 ## they certainly need to be expanded to be more complete.
 
 token variable { <sigil> <name> }
-token sigil { <[$@%^]> }
+token sigil { <[$@%^&]> }
 
 token integer {
       0 [ b <[01]>+           [ _ <[01]>+ ]*

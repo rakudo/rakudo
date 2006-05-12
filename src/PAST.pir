@@ -38,6 +38,7 @@ needed for Perl 6.  The currently defined ast nodes:
 
     $P0 = subclass base, 'Perl6::PAST::Block'
     addattribute $P0, '$.outer'
+    addattribute $P0, '$.blocktype'
     addattribute $P0, '%.vardecl'
 
     $P0 = subclass base, 'Perl6::PAST::Exp'
@@ -315,6 +316,12 @@ counting at 10 (so that the values 0..9 can be considered "safe").
     .return self.'attr'('$.outer', outer, has_outer)
 .end
 
+.sub 'blocktype' :method
+    .param pmc blocktype       :optional
+    .param int has_blocktype   :opt_flag
+    .return self.'attr'('$.blocktype', blocktype, has_blocktype)
+.end
+
 .sub 'vardecl' :method
     .param pmc name            :optional
     .param int has_name        :opt_flag
@@ -334,5 +341,5 @@ counting at 10 (so that the values 0..9 can be considered "safe").
 .end
 
 .sub '__dumplist' :method
-    .return ('$.name $.outer @.children %.vardecl')
+    .return ('$.name $.outer $.blocktype @.children %.vardecl')
 .end

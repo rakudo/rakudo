@@ -43,9 +43,6 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
     $P0 = subclass base, 'Perl6::POST::Label'
     $P0 = subclass base, 'Perl6::POST::Assign'
 
-    $P0 = new .Hash
-    store_global 'Perl6::POST', '%!varhash', $P0
-
 .end
 
 .namespace [ 'Perl6::POST::Node' ]
@@ -111,8 +108,6 @@ PMC register (uninitialized) and use that.
 .namespace [ 'Perl6::POST::Op' ]
 
 .sub 'pir' :method
-    .local pmc code
-
     .local pmc childvalues, iter
     childvalues = new .ResizablePMCArray
     iter = self.'child_iter'()
@@ -127,14 +122,26 @@ PMC register (uninitialized) and use that.
     goto iter_loop
   iter_end:
 
+    .local pmc code
     code = new 'PGE::CodeString'
+    $P0 = self.'name'()
+    # $I0 = isa $P0, 'Perl6::POST::Sub'
+    # if $I0 goto get_sub_name
+    $I0 = isa $P0, 'Perl6::POST::Node'
+    if $I0 goto get_sub_value
     .local string name
-    name = self.'name'()
+    name = $P0
     $S0 = substr name, 0, 1
     if $S0 == "'" goto sub_call
     code.'emit'('    %n %,', childvalues :flat, 'n'=>name)
     .return (code)
-
+  get_sub_name:
+    name = $P0.'name'()
+    name = concat "'", name
+    name = concat name, "'"
+    goto sub_call
+  get_sub_value:
+    name = $P0.'value'()
   sub_call:
     $P0 = shift childvalues
     code.emit('    %r = %n(%,)', childvalues :flat, 'r'=>$P0, 'n'=>name)
@@ -185,6 +192,24 @@ and that is returned.
     .return self.'attr'('$.outer', outer, has_outer)
 .end
 
+.sub 'root_pir' :method
+    ##   create a new (empty) variable hash for the outer sub
+    $P0 = new .Hash
+    store_global 'Perl6::POST', '%!varhash', $P0
+
+    ##   create a new CodeString for the subs
+    $P0 = new 'PGE::CodeString'
+    store_global 'Perl6::POST', '$!subpir', $P0
+
+    ##   build the pir for this node and its children
+    self.'pir'()
+
+    ##   get the generated code and return it
+    $P0 = find_global 'Perl6::POST', '$!subpir'
+    .return ($P0)
+.end
+
+
 .sub 'pir' :method
     ##   create a new (empty) variable hash for this sub
     .local pmc varhash
@@ -204,28 +229,31 @@ and that is returned.
     outerattr = concat outerattr, "')"
   with_outerattr:
     .local pmc code, iter, subcode
-    code = new 'PGE::CodeString'
-    code.'emit'("\n.sub '%0' %1", name, outerattr)
+    ## build the code for this sub
     subcode = new 'PGE::CodeString'
+    subcode.'emit'("\n.sub '%0' %1", name, outerattr)
     iter = self.'child_iter'()
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
     $P1 = $P0.'pir'()
-    $I0 = isa $P0, 'Perl6::POST::Sub'
-    if $I0 goto concat_sub
-    code .= $P1
-    goto iter_loop
-  concat_sub:
     subcode .= $P1
     goto iter_loop
   iter_end:
     .local string value
     value = self.'value'()
-    code.'emit'("    .return (%0)\n.end\n", value)
-    code = concat code, subcode
+    subcode.'emit'("    .return (%0)\n.end\n", value)
+    ##   add the code to the current set of subs
+    $P0 = find_global 'Perl6::POST', '$!subpir'
+    subcode .= $P0
+    store_global 'Perl6::POST', '$!subpir', subcode
+
     ##   restore the previous variable hash
     store_global 'Perl6::POST', '%!varhash', varhash
+
+    ##  generate the pir to locate this sub and return it
+    code = new 'PGE::CodeString'
+    code.'emit'("    %0 = find_name '%1'", value, name)
     .return (code)
 .end
 
@@ -289,7 +317,8 @@ and that is returned.
 .sub 'pir' :method
     ##   if we already generated the code for this
     ##   variable, we generate nothing here.
-    .local pmc name, varhash
+    .local string name
+    .local pmc varhash
     name = self.'name'()
     varhash = find_global 'Perl6::POST', '%!varhash'
     $I0 = exists varhash[name]
@@ -303,11 +332,14 @@ and that is returned.
     scope = self.'scope'()
     value = self.'value'()
     varhash[name] = self
+    $S0 = substr name, 0, 1
+    if $S0 != '&' goto with_name
+    name = substr name, 1
+  with_name:
     if scope == 'package' goto scope_package
     if scope == 'outerpackage' goto scope_outerpackage
     if scope == 'lexical' goto scope_lexical
     if scope == 'outerlexical' goto scope_outerlexical
-    ##    XXX: we really should toss an exception if we get here
     code.'emit'("    %0 = find_name '%1'", value, name)
     .return (code)
   scope_package:

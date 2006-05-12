@@ -114,7 +114,7 @@ compiled code as a PMC.
 
   build_pir:
     .local string pir
-    pir = post.'pir'()
+    pir = post.'root_pir'()
     unless dump goto build_pir_1
     print pir
   build_pir_1:

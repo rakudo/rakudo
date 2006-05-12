@@ -35,17 +35,24 @@ Perl6::PAST::Block: post(.) = {
     post.'value'(value)
     store_global 'Perl6::POST', '$?BLOCK', outerpost
     store_global 'Perl6::PAST', '$?BLOCK', outerpast
-    $I0 = defined outerpost
-    if $I0 goto inner_block
+    
+    ##   For immediate blocks, generate code to execute the block.
+    $S0 = node.'blocktype'()
+    if $S0 != 'immediate' goto end
+    $P0 = post
+    post = post.'new'('Perl6::POST::Ops', $P0, 'node'=>node)
+    post.'add_child_new'('Perl6::POST::Op', post, 'name'=>$P0, 'node'=>node)
+  end:
     .return (post)
+}
 
-  inner_block:
-    outerpost.'add_child'(post)
-    name = concat "'", name
-    name = concat name, "'"
-    post = outerpost.'new'('Perl6::POST::Ops', 'node'=>node)
-    post.'add_child_new'('Perl6::POST::Op', post, 'name'=>name)
-    .return (post)
+
+Perl6::Grammar: post(.) = {
+    ##   We generally get here because of a PGE regex in the 
+    ##   code that is stored as a child of a Block.  The regex
+    ##   AST is already reduced to what we want to pass to
+    ##   the PGE compiler, so we just return it directly.
+    .return (node)
 }
 
 
@@ -69,9 +76,10 @@ Perl6::PAST::Stmts: post(.) = {
 
 
 Perl6::PAST::Stmt: post(.) = {
-    $P0 = node[0]
-    $P1 = tree.'get'('post', $P0)
-    .return ($P1)
+    .local pmc past, post
+    past = node[0]
+    post = tree.'get'('post', past)
+    .return (post)
 }
 
 
@@ -97,26 +105,18 @@ Perl6::PAST::Op: post(.) = {
     
 
 Perl6::PAST::Op: simple(.) = {
+    ##   create our return past node
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)
 
     .local string opname, postop
-
     opname = node.'op'()
     postop = node.'name'()
 
-    .local pmc iter, arglist
-    $P0 = node
-    if opname != 'prelist:' goto op_children
-    $P1 = node[0]
-    $I0 = isa $P1, 'Perl6::PAST::Op'
-    if $I0 == 0 goto op_children
-    $S0 = $P1.'op'()
-    if $S0 != 'infix:,' goto op_children
-    $P0 = $P1
   op_children:
-    iter = $P0.'child_iter'()
+    .local pmc iter, arglist
+    iter = node.'child_iter'()
     arglist = new .ResizablePMCArray
   iter_loop:
     unless iter goto iter_end
@@ -129,12 +129,11 @@ Perl6::PAST::Op: simple(.) = {
     push arglist, cpost
     goto iter_loop
   iter_end:
-    $S0 = substr postop, 0, 1
-    if $S0 == "'" goto postop_end
-    ##   direct POST op, create a temporary to store the result
-    ##   see if the optoken declared a return type (and use it)
-    ##   XXX: For now, we're using the %!parrotclass hash
-    ##   workaround to map Perl6 class names to parrot classes.
+    ##   Add the post node(s) for this operation.  If we have
+    ##   a direct post op, we need a temporary for the result.
+    ##   Use the type given by the 'returns' trait, otherwise
+    ##   use .Undef .  XXX: For now, we're using the %!parrotclass
+    ##   hash workaround to map Perl6 class names to parrot classes.
     .local pmc optable, optok
     .local string opreturn
     optable = find_global 'Perl6::Grammar', '$optable'
@@ -146,8 +145,49 @@ Perl6::PAST::Op: simple(.) = {
     opreturn = '.Undef'
   with_opreturn:
     ops.'add_child_new'('Perl6::POST::Op', ops, opreturn, 'name'=>'new')
-  postop_end:
+  end:
     ops.'add_child_new'('Perl6::POST::Op', ops, arglist :flat, 'name'=>postop)
+    .return (ops)
+}
+
+
+Perl6::PAST::Op: call(.) = {
+    ##   This rule handles sub calls (e.g., postcircumfix:( ))
+    .local pmc ops
+    ops = new 'Perl6::POST::Ops'
+    ops.'init'('node'=>node)
+
+    ##   get the post for the subroutine itself
+    .local pmc iter, arglist, spast, spost
+    arglist = new .ResizablePMCArray
+    iter = node.'child_iter'()
+    spast = shift iter
+    spost = tree.'get'('post', spast)
+    ops.'add_child'(spost)
+
+    ##   See if the argument is an infix:, list.  If so, elevate
+    ##   its children to be the children (arguments) to the call
+    ##   by iterating over its children.
+    $P0 = node[1]
+    $I0 = isa $P0, 'Perl6::PAST::Op'
+    if $I0 == 0 goto iter_loop
+    $S0 = $P0.'op'()
+    if $S0 != 'infix:,' goto iter_loop
+    iter = $P0.'child_iter'()
+
+  iter_loop:
+    unless iter goto iter_end
+    .local pmc cpast, cpost
+    cpast = shift iter
+    $I0 = defined cpast
+    if $I0 == 0 goto iter_loop
+    cpost = tree.'get'('post', cpast)
+    ops.'add_child'(cpost)
+    push arglist, cpost
+    goto iter_loop
+  iter_end:
+    ##   Now add the sub call itself.
+    ops.'add_child_new'('Perl6::POST::Op', ops, arglist :flat, 'name'=>spost)
     .return (ops)
 }
 
@@ -168,6 +208,9 @@ Perl6::PAST::Op: assign(.) = {
     ops.'add_child'(lpost)
     ops.'add_child'(rpost)
     ops.'add_child_new'('Perl6::POST::Assign', lpost, rpost, 'name'=>'assign')
+    .local string value
+    value = rpost.'value'()
+    ops.'value'(value)
     .return (ops)
 }
 
@@ -340,7 +383,8 @@ Perl6::PAST::Var: post(.) = {
     name = node.'name'()
     scope = node.'scope'()
 
-    if scope != 'outer' goto with_scope
+    if scope == 'package' goto with_scope
+    if scope == 'lexical' goto with_scope
     .local pmc outer
     outer = find_global 'Perl6::PAST', '$?BLOCK'
   outer_loop:

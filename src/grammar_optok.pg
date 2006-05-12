@@ -16,33 +16,41 @@ proto 'term:%()' is equiv('term:.') is nows { ... }
 proto 'prelist:' is equiv('term:')
     is prec_close('05=')
     is nullterm
-    is parsed(&listop) { ... }
+    is parsed(&listop) 
+    is pastrule('past_listop')
+    { ... }
+
+## backslash comment in postfix position
+proto 'postfix:\' is precedence('21=')
+    is nows 
+    is parsed(&dot_comment)
+    { ... }
+
+proto 'postcircumfix:( )' is equiv('postfix:\') 
+    is nows is nullterm 
+    is pasttype('call')
+    { ... }
+proto 'postcircumfix:.( )' is equiv('postfix:\') 
+    is nows is nullterm 
+    is pasttype('call')
+    { ... }
 
 proto 'circumfix:( )' is equiv('term:')
     is post('set')
     { ... }
 
 
-## backslash comment in postfix position
-proto 'postfix:\' is precedence('21=')
-    is parsed(&dot_comment)
-    is nows 
-    { ... }
-
-
 ## method postfix
-proto 'infix:.' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:.+' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:.?' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:.*' is equiv('postfix:.') is nows { ... }
+proto 'infix:.' is equiv('postfix:\') is nows { ... }
+#proto 'postcircumfix:.+' is equiv('postfix:.') is nows { ... }
+#proto 'postcircumfix:.?' is equiv('postfix:.') is nows { ... }
+#proto 'postcircumfix:.*' is equiv('postfix:.') is nows { ... }
 #proto 'postcircumfix:.< >' is equiv('postfix:.') is nows { ... }
 #proto 'postcircumfix:.<< >>' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:.( )' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.[ ]' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:.{ }' is equiv('postfix:.') is nows { ... }
 #proto 'postcircumfix:< >' is equiv('postfix:.') is nows { ... }
 #proto 'postcircumfix:<< >>' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:( )' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:[ ]' is equiv('postfix:.') is nows { ... }
 proto 'postcircumfix:{ }' is equiv('postfix:.') is nows { ... }
 

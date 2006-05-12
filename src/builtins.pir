@@ -594,13 +594,36 @@
 
 .sub 'infix:~~'
     .param pmc topic
-    .param pmc regex
+    .param pmc x
+    $I0 = does topic, 'array'
+    if $I0 == 0 goto topic_any
+  topic_any:
+    $I0 = isa x, 'Sub'                             # XXX: should be 'Regex'
+    if $I0 goto pattern_match
+    $I0 = isa x, 'Integer'                         # XXX: should be 'Num'
+    if $I0 goto numeric_equality
+    $I0 = isa x, 'Float'
+    if $I0 goto numeric_equality
+    $I0 = isa x, 'String'
+    if $I0 goto string_equality
+    
+    ##   return false
+    .return (0)
+
+  pattern_match:
+    ##   Any ~~ Regex
     .local pmc match
-    match = regex(topic)
+    match = x(topic)
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match
     .return (match)
+
+  numeric_equality:
+    .return 'infix:=='(topic, x)
+
+  string_equality:
+    .return 'infix:eq'(topic, x)
 .end
 
 

@@ -1,5 +1,15 @@
 ## $Id$
 
+=head1 NAME
+
+languages/perl6/src/builtins.pir - Perl6 builtins
+
+=head1 Functions
+
+=over 4
+
+=cut
+
 .namespace [ "" ]
 
 .sub 'print'
@@ -675,6 +685,10 @@ Builds an array from its arguments.  Trivial, really.
     throw $P0
     .return ()
 .end
+
+=back
+
+=cut
 
 
 ## vim: expandtab sw=4

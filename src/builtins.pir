@@ -657,15 +657,6 @@ Builds an array from its arguments.  Trivial, really.
 .end
 
 
-.sub 'infix:!~'
-    .param pmc topic
-    .param pmc x
-    .local pmc a
-    a = 'infix'(topic, x)
-    .return 'prefix:!(a)'
-.end
-
-
 .sub 'die'
     .param pmc list            :slurpy
     .local pmc iter
@@ -685,5 +676,6 @@ Builds an array from its arguments.  Trivial, really.
     throw $P0
     .return ()
 .end
+
 
 ## vim: expandtab sw=4

@@ -598,64 +598,63 @@ Builds an array from its arguments.  Trivial, really.
 ## TODO: infix:|= infix:&= infix:^=
 
 
-.sub 'infix:~~'
+.sub 'infix:~~' :multi(_, Sub)
     .param pmc topic
-    .param pmc x
-    $I0 = does topic, 'array'
-    if $I0 == 0 goto topic_any
-    $I0 = isa x, 'Integer'                         # XXX: should be 'Num'
-    if $I0 goto array_contains_number
-    $I0 = isa x, 'Float'
-    if $I0 goto array_contains_number
-    $I0 = isa x, 'String'
-    if $I0 goto array_contains_string
-  topic_any:
-    $I0 = isa x, 'Sub'                             # XXX: should be 'Regex'
-    if $I0 goto pattern_match
-    $I0 = isa x, 'Integer'                         # XXX: should be 'Num'
-    if $I0 goto numeric_equality
-    $I0 = isa x, 'Float'
-    if $I0 goto numeric_equality
-    $I0 = isa x, 'String'
-    if $I0 goto string_equality
-   
-  fail: ##   return false
-    .return (0)
-
-  array_contains_number:
-    $P0 = new .Iterator, topic
-  acn_1:
-    unless $P0 goto fail
-    $P1 = shift $P0
-    $P2 = 'infix:=='($P1, x)
-    unless $P2 goto acn_1
-    .return ($P2)
-
-  array_contains_string:
-    $P0 = new .Iterator, topic
-  acs_1:
-    unless $P0 goto fail
-    $P1 = shift $P0
-    $P2 = 'infix:eq'($P1, x)
-    unless $P2 goto acs_1
-    .return ($P2)
-
-  pattern_match:
-    ##   Any ~~ Regex
+    .param pmc regex
     .local pmc match
-    match = x(topic)
+    match = regex(topic)
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match
     .return (match)
+.end
 
-  numeric_equality:
+
+.sub 'infix:~~' :multi(_, Integer)
+    .param pmc topic
+    .param pmc x
     .return 'infix:=='(topic, x)
+.end
 
-  string_equality:
+
+.sub 'infix:~~' :multi(_, Float)
+    .param pmc topic
+    .param pmc x
+    .return 'infix:=='(topic, x)
+.end
+
+
+.sub 'infix:~~' :multi(_, String)
+    .param pmc topic
+    .param pmc x
     .return 'infix:eq'(topic, x)
 .end
 
+
+.sub 'infix:~~' :multi(ResizablePMCArray, _)
+    .param pmc array
+    .param pmc x
+    .local pmc iter
+    iter = new .Iterator, array
+    $P1 = new .Integer
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $P1 = 'infix:~~'($P0, x)
+    unless $P1 goto iter_loop
+  iter_end:
+    .return ($P1)
+.end
+
+
+.sub 'infix:!~'
+    .param pmc topic
+    .param pmc x
+    $P0 = 'infix:~~'(topic, x)
+    $I0 = isfalse $P0
+    .return ($I0)
+.end
+    
 
 .sub 'die'
     .param pmc list            :slurpy

@@ -87,12 +87,7 @@ token statement_modifier {
 }
 
 
-token block { <simple_block> | <pointy_sub> }
-
-
-## A <simple_block> is just a statement_list inside of a pair of braces.
-
-token simple_block {
+token block {
     <?ws>:
     \{
         <?ws>: <statement_list> <?ws>:
@@ -125,6 +120,7 @@ token expression_ws { [ \s | \# \N*:\n ] <?ws> }
 token term {
     <scoped_variables>
     | <variable>
+    | <subroutine>
     | <block>
     | <regex_term>
     | <number>
@@ -139,13 +135,10 @@ token term {
 
 token regex_term { / <regex: /> / }
 
-
-## XXX: The <scope_declarator> regex will likely become <%scope_declarator>.
-
-token scoped_variables {
-    <scope_declarator> <?ws> <variable>
+rule scoped_variables {
+    <scope_declarator> <variable>
 }
-token scope_declarator { [ my | our ] \b }
+token scope_declarator { [ my | our ] }
 
 
 ## The <listop> regex gets called from the operator precedence
@@ -186,7 +179,43 @@ token string_literal {
 token version { v\d+ }
 
 
-## The <syntax_error> regex generates a simple syntax
+## Subroutine parsing.  This is still under development.
+
+rule subroutine {
+    [<scope_declarator> <type>?]?
+        <subintro>
+        <ident>?
+        <trait>*
+        [\( <signature> \)]?
+        <block>}
+
+rule subintro { <routine_modifier> <routine_type>? | <routine_type> }
+
+token routine_modifier { multi | proto }
+
+token routine_type { sub | method | submethod | macro }
+
+token type { <routine_type> ::: <fail> | <ident> }
+
+rule trait {
+      $<KEY>:=[is] <ident>[\( <expression> \)]?
+    | $<KEY>:=[will] <ident> <block>
+    | $<KEY>:=[of] <type>
+    | $<KEY>:=[returns] <type>
+}
+
+rule signature { 
+    $<invocants>:=(<parameter> [, <parameter>]*)
+    $<paramlist>:=(\: <parameter>? [, <parameter>]*)?
+}
+
+##  XXX: <parameter> needs expansion for the various
+##  parameter options available.
+
+token parameter { <sigil> <ident> }
+
+
+## The <syntax_error> token generates a simple syntax
 ## error message, and displays the line number and context
 ## of the error.
 

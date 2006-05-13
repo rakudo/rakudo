@@ -353,17 +353,11 @@ Perl6::Grammar::block: past(.) = {
     past.'init'('node'=>node, 'outer'=>outer, 'blocktype'=>'block')
     store_global 'Perl6::PAST', '$?BLOCK', past
     .local pmc cpast
-    $P0 = node['simple_block']
-    cpast = tree.'get'('past', $P0, 'Perl6::Grammar::simple_block')
+    $P0 = node['statement_list']
+    cpast = tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
     past.'add_child'(cpast)
     store_global 'Perl6::PAST', '$?BLOCK', outer
     .return (past)
-}
-
-
-Perl6::Grammar::simple_block: past(.) = {
-    $P0 = node['statement_list']
-    .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
 }
 
 

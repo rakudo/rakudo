@@ -49,7 +49,7 @@ token statement_list {
 
 
 token statement_end {
-      [ <?ws> ; ]+ 
+    | [ <?ws> ; ]+ 
     | <after \}> :: \h* [ \#\N* ]? \n 
 }
 
@@ -66,7 +66,7 @@ token statement_end {
 ## (This may yet change as we refine things further.)
 
 token statement {
-      <statement_control>
+    | <statement_control>
     | <block>
     | <use_statement>
     | <expression:  ;> <statement_modifier>?  
@@ -136,15 +136,13 @@ token dot { \. | [ \\ <?ws> ]? \. }
 token postfix { $<KEY>:=[\+\+|--] }
 
 token postcircumfix {
-    [ $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
+    | $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
     | $<KEY>:=[\[] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\]]
-    ]
 }
 
 token circumfix {
-    [ $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
+    | $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
     | $<KEY>:=[\[] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\]]
-    ]
 }
 
 ## The <listop> rule matches a list operator and its list arguments,
@@ -172,7 +170,7 @@ token variable { \$/ | \$_ | <sigil> <name> }
 token sigil { <[$@%^&]> }
 
 token integer {
-      0 [ b <[01]>+           [ _ <[01]>+ ]*
+    | 0 [ b <[01]>+           [ _ <[01]>+ ]*
         | o <[0..7]>+         [ _ <[0..7]>+ ]*
         | x <[0..9a..fA..F]>+ [ _ <[0..9a..fA..F]>+ ]*
         | d \d+               [ _ \d+]* 
@@ -186,7 +184,7 @@ token number {
 
 ##  XXX: arguments to quoted_literal are a cheat for the time being.
 token string_literal {
-      " <quoted_literal: "> "
+    | " <quoted_literal: "> "
     | ' <quoted_literal: '> '
 }
 
@@ -210,7 +208,7 @@ token routine_type { sub | method | submethod | macro }
 token type { <routine_type> ::: <fail> | <ident> }
 
 rule trait {
-      $<KEY>:=[is] <ident>[\( <expression> \)]?
+    | $<KEY>:=[is] <ident>[\( <expression> \)]?
     | $<KEY>:=[will] <ident> <block>
     | $<KEY>:=[of] <type>
     | $<KEY>:=[returns] <type>

@@ -66,8 +66,9 @@ token statement_end {
 ## (This may yet change as we refine things further.)
 
 token statement {
-    <statement_control>
+      <statement_control>
     | <block>
+    | <use_statement>
     | <expression:  ;> <statement_modifier>?  
 }
 
@@ -95,6 +96,13 @@ token block {
 }
 
 
+token use_statement {
+    <?ws> use <?ws> <version> <?ws> <expression>?
+}
+
+token version { <ident> }
+
+
 ## We handle Perl 6 expressions using PGE's operator
 ## precedence parser.  The tokens and sub for this are
 ## defined in L<Perl6/parser.pir>.  If written as a p6regex,
@@ -113,7 +121,6 @@ token term {
     | <number>
     | <integer>
     | <string_literal>
-    | <version>
     | <listop> [ <postop> | <listop_expression> ]? 
     | <circumfix>
     ] <postop>*
@@ -182,8 +189,6 @@ token string_literal {
       " <quoted_literal: "> "
     | ' <quoted_literal: '> '
 }
-
-token version { v\d+ }
 
 
 ## Subroutine parsing.  This is still under development.

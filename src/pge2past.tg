@@ -38,7 +38,9 @@ Perl6::Grammar::statement: past(.) = {
     $P0 = node['statement_control']
     if $P0 goto statement_control
     $P0 = node['block']
-    if $P0 goto block
+    if $P0 goto statement_block
+    $P0 = node['use_statement']
+    if $P0 goto statement_use
 
   expression:
     .local pmc stmt
@@ -73,12 +75,16 @@ Perl6::Grammar::statement: past(.) = {
     past.'init'($P1, 'node'=>node)
     .return (past)
 
-  block:
+  statement_block:
     $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::block')
     $P1.'blocktype'('immediate')
     past = new 'Perl6::PAST::Stmt'
     past.'init'($P1, 'node'=>node)
     .return (past)
+
+  statement_use:
+    null $P0
+    .return ($P0)
 }
 
 

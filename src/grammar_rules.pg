@@ -97,7 +97,7 @@ token block {
 
 
 token use_statement {
-    <?ws> use <?ws> <version> <?ws> <expression>?
+    <?ws> use <?ws> <version> <?ws> <expression:  ;>?
 }
 
 token version { <ident> }

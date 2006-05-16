@@ -8,52 +8,14 @@ proto 'term:' is precedence('22=')
     is parsed(&term)
     is pastrule('past_term') { ... }
 
-proto 'term:$()' is equiv('term:.') is nows { ... }
-proto 'term:@()' is equiv('term:.') is nows { ... }
-proto 'term:*()' is equiv('term:.') is nows { ... }
-proto 'term:%()' is equiv('term:.') is nows { ... }
-
-proto 'prelist:' is equiv('term:')
-    is prec_close('05=')
-    is nullterm
-    is parsed(&listop) 
-    is pastrule('past_listop')
-    { ... }
-
-## backslash comment in postfix position
-proto 'postfix:\' is precedence('21=')
-    is nows 
-    is parsed(&dot_comment)
-    { ... }
-
-proto 'postcircumfix:( )' is equiv('postfix:\') 
-    is nows is nullterm 
-    is pasttype('call')
-    { ... }
-proto 'postcircumfix:.( )' is equiv('postfix:\') 
-    is nows is nullterm 
-    is pasttype('call')
-    { ... }
-
+proto 'circumfix:{ }' is equiv('term:') { ... }
 proto 'circumfix:( )' is equiv('term:')
     is post('set')
     { ... }
 
-
-## method postfix
-proto 'infix:.' is equiv('postfix:\') is nows { ... }
-#proto 'postcircumfix:.+' is equiv('postfix:.') is nows { ... }
-#proto 'postcircumfix:.?' is equiv('postfix:.') is nows { ... }
-#proto 'postcircumfix:.*' is equiv('postfix:.') is nows { ... }
-#proto 'postcircumfix:.< >' is equiv('postfix:.') is nows { ... }
-#proto 'postcircumfix:.<< >>' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:.[ ]' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:.{ }' is equiv('postfix:.') is nows { ... }
-#proto 'postcircumfix:< >' is equiv('postfix:.') is nows { ... }
-#proto 'postcircumfix:<< >>' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:[ ]' is equiv('postfix:.') is nows { ... }
-proto 'postcircumfix:{ }' is equiv('postfix:.') is nows { ... }
-
+proto 'postcircumfix:( )' is equiv('term:') 
+    is pasttype('call')
+    { ... }
 
 ## autoincrement
 proto 'postfix:++' is precedence('20=') { ... }
@@ -175,11 +137,11 @@ proto 'prefix:rand' is precedence('13=')
     is nullterm
     { ... }
 
-proto 'prefix:sleep' is equiv('rand')
+proto 'prefix:sleep' is equiv('prefix:rand')
     is nullterm
     { ... }
 
-proto 'prefix:abs' is equiv('rand')
+proto 'prefix:abs' is equiv('prefix:rand')
     is nullterm
     is post('abs')
     { ... }

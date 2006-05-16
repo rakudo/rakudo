@@ -98,7 +98,7 @@ Perl6::PAST::Exp: post(.) = {
 Perl6::PAST::Op: post(.) = {
     .local string opname, pasttype
     .local pmc optable, optok
-    opname = node.'op'()
+    opname = node.'name'()
     optable = find_global 'Perl6::Grammar', '$optable'
     optok = optable[opname]
     pasttype = optok['pasttype']
@@ -106,6 +106,24 @@ Perl6::PAST::Op: post(.) = {
     pasttype = 'simple'
   dispatch_post:
     .return tree.'get'(pasttype, node)
+}
+
+
+Perl6::PAST::Op: postname(.) = {
+    ##   return the name to be used for this op in POST
+    ##   as given by the "post" trait or the operator
+    ##   name.
+    .local pmc optable, optok
+    .local string opname, postname
+    optable = find_global 'Perl6::Grammar', '$optable'
+    opname = node.'name'()
+    optok = optable[opname]
+    postname = optok['post']
+    if postname > '' goto end
+    postname = concat "'", opname
+    postname = concat postname, "'"
+  end:
+    .return (postname)
 }
     
 
@@ -115,9 +133,9 @@ Perl6::PAST::Op: simple(.) = {
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)
 
-    .local string opname, postop
-    opname = node.'op'()
-    postop = node.'name'()
+    .local string opname, postname
+    opname = node.'name'()
+    postname = tree.'get'('postname', node)
 
   op_children:
     .local pmc iter, arglist
@@ -151,7 +169,7 @@ Perl6::PAST::Op: simple(.) = {
   with_opreturn:
     ops.'add_child_new'('Perl6::POST::Op', ops, opreturn, 'name'=>'new')
   end:
-    ops.'add_child_new'('Perl6::POST::Op', ops, arglist :flat, 'name'=>postop)
+    ops.'add_child_new'('Perl6::POST::Op', ops, arglist :flat, 'name'=>postname)
     .return (ops)
 }
 
@@ -176,7 +194,7 @@ Perl6::PAST::Op: call(.) = {
     $P0 = node[1]
     $I0 = isa $P0, 'Perl6::PAST::Op'
     if $I0 == 0 goto iter_loop
-    $S0 = $P0.'op'()
+    $S0 = $P0.'name'()
     if $S0 != 'infix:,' goto iter_loop
     iter = $P0.'child_iter'()
 
@@ -319,7 +337,7 @@ Perl6::PAST::Op: chain(.) = {
   chain_loop:
     $I0 = isa node, 'Perl6::PAST::Op'
     if $I0 == 0 goto chain_end
-    opname = node.'op'()
+    opname = node.'name'()
     optok = optable[opname]
     pasttype = optok['pasttype']
     if pasttype != 'chain' goto chain_end
@@ -337,12 +355,12 @@ Perl6::PAST::Op: chain(.) = {
 
   clist_loop:
     .local pmc bpast, bpost
-    .local string postop
+    .local string postname
     bpast = node[1]
     bpost = tree.'get'('post', bpast)
-    postop = node.'name'()
+    postname = tree.'get'('postname', node)
     ops.'add_child'(bpost)
-    ops.'add_child_new'('Perl6::POST::Op', ops, apost, bpost, 'name'=>postop)
+    ops.'add_child_new'('Perl6::POST::Op', ops, apost, bpost, 'name'=>postname)
     unless clist goto clist_end
     ops.'add_child_new'('Perl6::POST::Op', ops, endlabel, 'name'=>'unless')
     apost = bpost

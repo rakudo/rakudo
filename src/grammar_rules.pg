@@ -18,16 +18,16 @@ grammar Perl6::Grammar ;
 
 ## These regexes handle whitespace between comments and tokens
 
-##
-regex ws {
-    [ \# \N+
-    | \s+
-    | <?dot_comment>
-    | ^^ <?pod_comment>
-    ]* :::
+token ws {
+    [ \s+
+    | ^^ [ \# \N*
+         | <?pod_comment>
+         ]
+    | \# [ <?PGE::Text::bracketed: <({[>
+         | \N*
+         ]
+    ]*
 }
-
-regex dot_comment { \. [ \s <-[.]>*: | \# <?PGE::Text::bracketed: <({[> ] }
 
 regex pod_comment {
     ^^ = [ [ cut \h*: | end [\h\N*]? ]
@@ -95,30 +95,17 @@ token block {
 }
 
 
-## XXX: This isn't the real <pointy_sub> regex -- it doesn't know
-## how to parse arguments yet.  It's just here as a placeholder
-## for now.
-
-token pointy_sub { --\> <simple_block> }
-
-
 ## We handle Perl 6 expressions using PGE's operator
 ## precedence parser.  The tokens and sub for this are
 ## defined in L<Perl6/parser.pir>.  If written as a p6regex,
 ## it would look something like:
 ##     regex expression($stop) { { $opparse.parse($/, $stop) } }
 
-## However, we do need a special "whitespace" regex for capturing
-## whitespace in expressions, because dot_comments are special.
-
-token expression_ws { [ \s | \# \N*:\n ] <?ws> }
-
-
 ## The <term> regex gets called from the operator precedence
 ## parser whenever it needs a term.
 
 token term {
-    <scoped_variables>
+    [ <scoped_variables>
     | <variable>
     | <subroutine>
     | <block>
@@ -127,11 +114,41 @@ token term {
     | <integer>
     | <string_literal>
     | <version>
+    | <listop> [ <postop> | <listop_expression> ]? 
+    | <circumfix>
+    ] <postop>*
 }
 
 
-## XXX: This is a temporary rule that allows parsing of /regex/
-## in term position.  It is likely to change.
+token postop { <?dot>? [ <postfix> | <postcircumfix> ] }
+## XXX: Eventually this will likely read <%postfix | %postcircumfix>.
+## And we may have to deal with precedence issues somewhere.
+
+token dot { \. | [ \\ <?ws> ]? \. }
+
+token postfix { $<KEY>:=[\+\+|--] }
+
+token postcircumfix {
+    [ $<KEY>:=[\(] <?ws> <expression> <?ws> $<KEY_CLOSE>:=[\)]
+    | $<KEY>:=[\[] <?ws> <expression> <?ws> $<KEY_CLOSE>:=[\]]
+    ]
+}
+
+token circumfix {
+    [ $<KEY>:=[\(] <?ws> <expression> <?ws> $<KEY_CLOSE>:=[\)]
+    | $<KEY>:=[\[] <?ws> <expression> <?ws> $<KEY_CLOSE>:=[\]]
+    ]
+}
+
+## The <listop> rule matches a list operator and its list arguments,
+## if any.  Currently <reserved_word> is here as a protective measure, 
+## eventually it should be taken out.
+
+token listop { <reserved_word> ::: <fail> | <ident> }
+token reserved_word { [ if | unless | while | until | for | loop ] \b }
+
+## This is a temporary rule that allows parsing of /regex/
+## in term position.  XXX: It is likely to change.
 
 token regex_term { / <regex: /> / }
 
@@ -139,16 +156,6 @@ rule scoped_variables {
     <scope_declarator> <variable>
 }
 token scope_declarator { [ my | our ] }
-
-
-## The <listop> regex gets called from the operator precedence
-## parser whenever it's looking for a term.  At the moment
-## it primarily grabs bareword terms.
-## XXX: <reserved_word> may become @reserved_word.
-
-token listop { <reserved_word> ::: <fail> | <ident> }
-
-token reserved_word { [ if | unless | while | until | for | loop ] \b }
 
 
 ## XXX: These are just placeholder regexes for demonstration,

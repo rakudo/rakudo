@@ -33,12 +33,31 @@ and returns the result to the caller.
     .local pmc ws
 
     optable = find_global 'Perl6::Grammar', "$optable"
-    ws = find_global 'Perl6::Grammar', 'expression_ws'
+    ws = find_global 'Perl6::Grammar', 'ws'
     setattribute optable, "PGE::OPTable\x0&!ws", ws
     if has_stoptoken > 0 goto expression_1
     stoptoken = ''
   expression_1:
     .return optable."parse"(mob, 'stop'=> stoptoken)
+.end
+
+
+=item C<listop_expression>
+
+Parse a listop expression -- i.e., the tokens that follow
+a listop.  This limits the parse to tokens that are tighter
+than the listop precedence level, nominally indicated by C<< infix:<== >>.
+
+=cut
+
+.sub 'listop_expression'
+    .param pmc mob
+    .param pmc adverbs         :slurpy :named
+    .local pmc optable, ws
+    optable = find_global 'Perl6::Grammar', "$optable"
+    ws = find_global 'Perl6::Grammar', 'ws'
+    setattribute optable, "PGE::OPTable\x0&!ws", ws
+    .return optable.'parse'(mob, 'tighter'=>'infix:<==')
 .end
 
 

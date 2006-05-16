@@ -28,7 +28,6 @@ needed for Perl 6.  The currently defined ast nodes:
     addattribute base, '$.name'
 
     $P0 = subclass base, 'Perl6::PAST::Op'
-    addattribute $P0, '$.op'
 
     $P0 = subclass base, 'Perl6::PAST::Val'
     addattribute $P0, '$.valtype'
@@ -262,15 +261,9 @@ counting at 10 (so that the values 0..9 can be considered "safe").
 
 .namespace [ 'Perl6::PAST::Op' ]
 
-.sub 'op' :method
-    .param string op           :optional
-    .param int has_op          :opt_flag
-    .return self.'attr'('$.op', op, has_op)
-.end
-
 
 .sub '__dumplist' :method
-    .return ('$.op $.name @.children')
+    .return ('$.name @.children')
 .end
 
 

@@ -280,7 +280,7 @@ Perl6::Grammar::circumfix: past(.) = {
     past.'init'('node'=>node, 'name'=>name)
     $I0 = exists node['expression';0]
     if $I0 == 0 goto end
-    $P0 = node['expression';'expr']
+    $P0 = node['expression';0;'expr']
     $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::expr')
     past.'add_child'($P1)
   end:

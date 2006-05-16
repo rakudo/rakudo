@@ -8,13 +8,19 @@ proto 'term:' is precedence('22=')
     is parsed(&term)
     is pastrule('past_term') { ... }
 
-proto 'circumfix:{ }' is equiv('term:') { ... }
+## the circumfix: and postcircumfix: entries here aren't
+## actually used for parsing ("expect(0)") -- we're just
+## setting traits needed for other stages in the
+## translation.  (The parsing actually takes place in
+## the <term> subrule.)
 proto 'circumfix:( )' is equiv('term:')
     is post('set')
+    is expect(0)
     { ... }
 
 proto 'postcircumfix:( )' is equiv('term:') 
     is pasttype('call')
+    is expect(0)
     { ... }
 
 ## autoincrement

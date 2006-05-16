@@ -233,24 +233,25 @@ Perl6::Grammar::expr: past_term(.) = {
     ##   process a single postop
     .local pmc postop
     postop = shift iter
-    $I0 = exists postop['postcircumfix']
-    if $I0 goto postcircumfix
-    postop = postop['postfix']
+    $P0 = postop.'get_hash'()
+    $P0 = new .Iterator, $P0
     .local string opname
+    opname = shift $P0
+    postop = $P0[opname]
+    opname = concat opname, ':'
     $S0 = postop['KEY']
-    opname = concat 'postfix:', $S0
+    opname = concat opname, $S0
+    $S0 = postop['KEY_CLOSE']
+    if $S0 == '' goto with_opname
+    opname = concat opname, ' '
+    opname = concat opname, $S0
+  with_opname:
     past = past.'new'('Perl6::PAST::Op', past, 'name'=>opname)
-    goto postop_loop
-  postcircumfix:
-    postop = postop['postcircumfix']
-    $P1 = postop['expression';'expr']
+    $I0 = exists postop['expression';0;'expr']
+    if $I0 == 0 goto postop_loop
+    $P1 = postop['expression';0;'expr']
     $P1 = tree.'get'('past', $P1, 'Perl6::Grammar::expr')
-    $S0 = postop['KEY']
-    $S1 = postop['KEY_CLOSE']
-    opname = concat 'postcircumfix:', $S0
-    opname .= ' '
-    opname .= $S1
-    past = past.'new'('Perl6::PAST::Op', past, $P1, 'name'=>opname)
+    past.'add_child'($P1)
     goto postop_loop
   postop_end:
     .return (past)
@@ -269,9 +270,15 @@ Perl6::Grammar::circumfix: past(.) = {
     name = concat name, ' '
     name = concat name, $S1
     .local pmc past
+    past = new 'Perl6::PAST::Op'
+    past.'init'('node'=>node, 'name'=>name)
+    $I0 = exists node['expression';0]
+    if $I0 == 0 goto end
     $P0 = node['expression';'expr']
-    past = tree.'get'('past', $P0, 'Perl6::Grammar::expr')
-    .return past.'new'('Perl6::PAST::Op', past, 'name'=>name)
+    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::expr')
+    past.'add_child'($P1)
+  end:
+    .return (past)
 }
 
 

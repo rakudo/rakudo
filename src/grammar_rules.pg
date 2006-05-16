@@ -129,14 +129,14 @@ token dot { \. | [ \\ <?ws> ]? \. }
 token postfix { $<KEY>:=[\+\+|--] }
 
 token postcircumfix {
-    [ $<KEY>:=[\(] <?ws> <expression> <?ws> $<KEY_CLOSE>:=[\)]
-    | $<KEY>:=[\[] <?ws> <expression> <?ws> $<KEY_CLOSE>:=[\]]
+    [ $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
+    | $<KEY>:=[\[] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\]]
     ]
 }
 
 token circumfix {
-    [ $<KEY>:=[\(] <?ws> <expression> <?ws> $<KEY_CLOSE>:=[\)]
-    | $<KEY>:=[\[] <?ws> <expression> <?ws> $<KEY_CLOSE>:=[\]]
+    [ $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
+    | $<KEY>:=[\[] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\]]
     ]
 }
 
@@ -212,7 +212,7 @@ rule trait {
 }
 
 rule signature { 
-    $<invocants>:=(<parameter> [, <parameter>]*)
+    $<invocants>:=(<parameter>? [, <parameter>]*)
     $<paramlist>:=(\: <parameter>? [, <parameter>]*)?
 }
 

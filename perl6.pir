@@ -51,6 +51,7 @@ compiler.
     ##   eliminate this when we can map classnames more easily.
     $P0 = new .Hash
     $P0['Str'] = '.Perl6Str'
+    $P0['Any'] = '_'
     store_global 'Perl6', '%!parrotclass', $P0
 .end
 
@@ -144,7 +145,7 @@ compiled code as a PMC.
 
 .include 'src/main.pir'
 
-.include 'src/builtins.pir'
+.include 'src/builtins_gen.pir'
 
 .namespace [ 'Perl6::Grammar' ]
 .include 'src/grammar_gen.pir'

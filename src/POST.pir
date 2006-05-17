@@ -351,7 +351,7 @@ and that is returned.
   scalar_loop:
     $I0 = index name, '$', $I0
     if $I0 < 0 goto scalar_end
-    substr name, $I0, 1, 's_'
+    substr name, $I0, 1, 'dollar_'
     goto scalar_loop
   scalar_end:
     .return (name)

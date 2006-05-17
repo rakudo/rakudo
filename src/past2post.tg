@@ -408,6 +408,7 @@ Perl6::PAST::Var: post(.) = {
 
     if scope == 'package' goto with_scope
     if scope == 'lexical' goto with_scope
+    if scope == 'parameter' goto with_scope
     .local pmc outer
     outer = find_global 'Perl6::PAST', '$?BLOCK'
   outer_loop:

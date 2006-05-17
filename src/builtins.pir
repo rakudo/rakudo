@@ -41,6 +41,22 @@ languages/perl6/src/builtins.pir - Perl6 builtins
 .end
 
 
+.sub 'defined'
+    .param pmc x
+    $I0 = defined x
+    .return ($I0)
+.end
+
+
+.sub 'substr'
+    .param string x
+    .param int start
+    .param int len
+    $S0 = substr x, start, len
+    .return ($S0)
+.end
+
+
 ## autoincrement
 .sub 'postfix:++'
     .param pmc a

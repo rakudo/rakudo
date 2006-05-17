@@ -222,7 +222,7 @@ rule signature {
 ##  XXX: <parameter> needs expansion for the various
 ##  parameter options available.
 
-token parameter { <sigil> <ident> }
+token parameter { $<variable>:=[<sigil> <ident>] }
 
 
 ## The <syntax_error> token generates a simple syntax

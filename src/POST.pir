@@ -38,6 +38,8 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
     $P0 = subclass base, 'Perl6::POST::Sub'
     addattribute $P0, '$.outer'
     addattribute $P0, '$.subtype'
+    addattribute $P0, '%!varhash'
+    addattribute $P0, '$!prologue'
 
     $P0 = subclass base, 'Perl6::POST::Op'
     $P0 = subclass base, 'Perl6::POST::Ops'
@@ -91,6 +93,7 @@ PMC register (uninitialized) and use that.
 .namespace [ 'Perl6::POST::Ops' ]
 
 .sub 'pir' :method
+    .param pmc block
     .local pmc code, iter
 
     code = new 'PGE::CodeString'
@@ -98,7 +101,7 @@ PMC register (uninitialized) and use that.
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
-    $P1 = $P0.'pir'()
+    $P1 = $P0.'pir'(block)
     code .= $P1
     goto iter_loop
   iter_end:
@@ -109,6 +112,7 @@ PMC register (uninitialized) and use that.
 .namespace [ 'Perl6::POST::Op' ]
 
 .sub 'pir' :method
+    .param pmc block
     .local pmc childvalues, iter
     childvalues = new .ResizablePMCArray
     iter = self.'child_iter'()
@@ -175,6 +179,7 @@ and that is returned.
 
 
 .sub 'pir' :method
+    .param pmc block
     .local string code
     .local string value
     value = self.'value'()
@@ -199,17 +204,25 @@ and that is returned.
     .return self.'attr'('$.subtype', subtype, has_subtype)
 .end
 
-.sub 'root_pir' :method
-    ##   create a new (empty) variable hash for the outer sub
-    $P0 = new .Hash
-    store_global 'Perl6::POST', '%!varhash', $P0
+.sub 'varhash' :method
+    .param pmc varhash         :optional
+    .param int has_varhash     :opt_flag
+    .return self.'attr'('%!varhash', varhash, has_varhash)
+.end
 
+.sub 'prologue' :method
+    .param pmc prologue         :optional
+    .param int has_prologue     :opt_flag
+    .return self.'attr'('$!prologue', prologue, has_prologue)
+.end
+
+.sub 'root_pir' :method
     ##   create a new CodeString for the subs
     $P0 = new 'PGE::CodeString'
     store_global 'Perl6::POST', '$!subpir', $P0
 
     ##   build the pir for this node and its children
-    self.'pir'()
+    self.'pir'(self)
 
     ##   get the generated code and return it
     $P0 = find_global 'Perl6::POST', '$!subpir'
@@ -218,17 +231,19 @@ and that is returned.
 
 
 .sub 'pir' :method
+    .param pmc block
     .local string subtype
     subtype = self.'subtype'()
     if subtype != 'regex' goto standard_sub
     .return self.'pir_regex'()
 
   standard_sub:
-    ##   create a new (empty) variable hash for this sub
-    .local pmc varhash
-    varhash = find_global 'Perl6::POST', '%!varhash'
-    $P0 = new .Hash
-    store_global 'Perl6::POST', '%!varhash', $P0
+    ##   create a new (empty) variable hash and prologue for this sub
+    .local pmc varhash, prologue
+    varhash = new .Hash
+    self.'varhash'(varhash)
+    prologue = new 'PGE::CodeString'
+    self.'prologue'(prologue)
 
     .local string name, outerattr
     .local pmc outer
@@ -243,31 +258,28 @@ and that is returned.
   with_outerattr:
     .local pmc code, iter, subcode
     ## build the code for this sub
-    subcode = new 'PGE::CodeString'
-    subcode.'emit'("\n.sub '%0' %1", name, outerattr)
+    prologue.'emit'("\n.sub '%0' %1", name, outerattr)
     ## add the $/ lexical
     $P0 = new 'Perl6::POST::Var'
     $P0.'init'('name'=>'$/', 'scope'=>'lexical')
-    $P1 = $P0.'pir'()
-    subcode .= $P1
+    subcode = $P0.'pir'(self)
     iter = self.'child_iter'()
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
-    $P1 = $P0.'pir'()
+    $P1 = $P0.'pir'(self)
     subcode .= $P1
     goto iter_loop
   iter_end:
     .local string value
+    prologue = self.'prologue'()
+    subcode = concat prologue, subcode
     value = self.'value'()
     subcode.'emit'("    .return (%0)\n.end\n", value)
     ##   add the code to the current set of subs
     $P0 = find_global 'Perl6::POST', '$!subpir'
     subcode .= $P0
     store_global 'Perl6::POST', '$!subpir', subcode
-
-    ##   restore the previous variable hash
-    store_global 'Perl6::POST', '%!varhash', varhash
 
     ##  generate the pir to locate this sub and return it
     code = new 'PGE::CodeString'
@@ -331,7 +343,22 @@ and that is returned.
     .return self.'attr'('$.islvalue', islvalue, has_islvalue)
 .end
 
+.sub 'paramname' :method
+    .local string name
+    name = self.'name'()
+    name = clone name
+    $I0 = 0
+  scalar_loop:
+    $I0 = index name, '$', $I0
+    if $I0 < 0 goto scalar_end
+    substr name, $I0, 1, 's_'
+    goto scalar_loop
+  scalar_end:
+    .return (name)
+.end
+
 .sub 'pir' :method
+    .param pmc block
     ##   if we already generated the code for this
     ##   variable, we generate nothing here.
     .local string name, scope, value
@@ -344,10 +371,25 @@ and that is returned.
     code = new 'PGE::CodeString'
     if scope == 'lexical' goto generate_lexical
     if scope == 'package' goto generate_package
+    if scope == 'parameter' goto generate_parameter
     goto generate_find
+  generate_parameter:
+    .local pmc varhash
+    varhash = block.'varhash'()
+    $I0 = exists varhash[name]
+    if $I0 goto generate_find
+    .local pmc prologue
+    .local string pname
+    pname = self.'paramname'()
+    prologue = block.'prologue'()
+    prologue.'emit'("    .param pmc %0", pname)
+    code.'emit'("    .lex '%0', %1", name, value)
+    code.'emit'("    %0 = %1", value, pname)
+    varhash[name] = self
+    goto end
   generate_lexical:
     .local pmc varhash
-    varhash = find_global 'Perl6::POST', '%!varhash'
+    varhash = block.'varhash'()
     $I0 = exists varhash[name]
     if $I0 goto generate_find
     ##    This is the first time to see a lexical, generate its .lex
@@ -367,6 +409,7 @@ and that is returned.
 
 
 .sub 'assignpir' :method
+    .param pmc block
     .param pmc x
     .local pmc name, value, scope, xvalue, code, varhash
     name = self.'name'()
@@ -374,17 +417,18 @@ and that is returned.
     scope = self.'scope'()
     xvalue = x.'value'()
     code = new 'PGE::CodeString'
-    varhash = find_global 'Perl6::POST', '%!varhash'
+    varhash = block.'varhash'()
     $I0 = exists varhash[name]
     if $I0 goto with_varhash_name
     varhash[name] = self
   with_varhash_name:
-    if scope == 'outerlexical' goto store_lexical
-    if scope == 'lexical' goto store_lexical
-    code.'emit'("    store_global '%0', %1", name, xvalue)
-    .return (code)
+    if scope == 'outerpackage' goto store_package
+    if scope == 'package' goto store_package
   store_lexical:
     code.'emit'("    store_lex '%0', %1", name, xvalue)
+    .return (code)
+  store_package:
+    code.'emit'("    store_global '%0', %1", name, xvalue)
     .return (code)
 .end
     
@@ -404,12 +448,13 @@ and that is returned.
 
 
 .sub 'pir' :method
+    .param pmc block
     .local pmc rnode, rvalue
     rnode = self[1]
     rvalue = rnode.'value'()
     .local pmc lnode
     lnode = self[0]
-    $P0 = lnode.'assignpir'(rnode)
+    $P0 = lnode.'assignpir'(block, rnode)
     .return ($P0)
 .end
 

@@ -324,6 +324,8 @@ Perl6::Grammar::variable: past(.) = {
     vdecl = block.'vardecl'(name)
     $I0 = isa vdecl, 'Perl6::PAST::Var'
     if $I0 == 0 goto declare_var
+    $S0 = vdecl.'scope'()
+    past.'scope'($S0)
     .return (past)
   declare_var:
     past.'scope'('outer')
@@ -420,5 +422,43 @@ Perl6::Grammar::regex_term: past(.) = {
     .return (past)
 }
 
+
+Perl6::Grammar::subroutine: past(.) = {
+    .local pmc outer, past
+    outer = find_global 'Perl6::PAST', '$?BLOCK'
+    past = new 'Perl6::PAST::Block'
+    past.'init'('node'=>node, 'outer'=>outer, 'blocktype'=>'sub')
+    store_global 'Perl6::PAST', '$?BLOCK', past
+
+    $P0 = node['ident']
+    unless $P0 goto with_ident
+    $S0 = $P0[0]
+    past.'name'($S0)
+  with_ident:
+
+    $I0 = exists node['signature']
+    if $I0 == 0 goto with_signature
+    $P0 = node['signature';0;'invocants';'parameter']
+    .local pmc iter
+    iter = new .Iterator, $P0
+  invocant_loop:
+    unless iter goto invocant_end
+    .local pmc pnode
+    .local string pname
+    pnode = shift iter
+    pname = pnode['variable']
+    $P0 = past.'add_child_new'('Perl6::PAST::Var', 'node'=>pnode, 'name'=>pname, 'scope'=>'parameter')
+    past.'vardecl'(pname, $P0)
+    goto invocant_loop
+  invocant_end:
+  with_signature:
+
+    .local pmc cpast
+    $P0 = node['block';'statement_list']
+    cpast = tree.'get'('past', $P0, 'Perl6::Grammar::statement_list')
+    past.'add_child'(cpast)
+    store_global 'Perl6::PAST', '$?BLOCK', outer
+    .return (past)
+}
 
 ## vim: expandtab sw=4

@@ -99,14 +99,9 @@ Handles parsing of the various types of quoted literals.
   with_scalar:
 
     .local string target
-    .local pmc newfrom, mfrom, mpos
-    .local int capt
-    newfrom = find_global 'PGE::Match', 'newfrom'
-    (mob, target, mfrom, mpos) = newfrom(mob)
-    capt = 0
-
-    .local int pos, lastpos, delimlen
-    pos = mfrom
+    .local pmc mfrom, mpos
+    .local int capt, pos, lastpos, delimlen
+    (mob, pos, target, mfrom, mpos) = mob.'new'(mob)
     lastpos = length target
     delimlen = length delim
 
@@ -170,9 +165,9 @@ Handles parsing of the various types of quoted literals.
     inc pos
     goto scan_literal_loop
   scan_literal_end:
-    ($P0, $P1, $P2, $P3) = newfrom(mob)
-    $P2 = litfrom
-    $P3 = pos
+    ($P0, $P1, $P2, $P3, $P4) = mob.'new'(mob)
+    $P3 = litfrom
+    $P4 = pos
     $P0.'value'(literal)
     $P0['type'] = 'str'
     mob[capt] = $P0
@@ -213,7 +208,9 @@ working -- it will likely change.
     unless args goto with_stop
     stop = shift args
   with_stop: 
-    $P0 = find_global 'PGE::Grammar', 'regex'
+    .include 'interpinfo.pasm'
+    $P0 = interpinfo .INTERPINFO_NAMESPACE_ROOT
+    $P0 = $P0['parrot';'PGE::Grammar';'regex']
     $P1 = $P0(mob, 'stop'=>stop)
     .return ($P1)
 .end

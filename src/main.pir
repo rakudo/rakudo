@@ -51,6 +51,7 @@ executing program statements.
     push getopts, 'dump-optable'
     push getopts, 'dump|d'
     push getopts, 'help|h'
+    push getopts, 'trace|t'
     opts = getopts.'get_options'(args)
 
     $S0 = opts['dump-optable']
@@ -63,6 +64,10 @@ executing program statements.
 
     .local string target
     target = opts['target']
+
+    .local int istrace
+    $S0 = opts['trace']
+    istrace = isne $S0, ''
 
     .local pmc perl6
     perl6 = compreg 'Perl6'
@@ -100,7 +105,9 @@ executing program statements.
     $P0 = perl6(stmt, 'target' => target, 'dump' => dump)
     if target == 'PIR' goto dump_pir
     if target goto dump_object
+    trace istrace
     $P0()
+    trace 0
     ret
   dump_pir:
     print $P0

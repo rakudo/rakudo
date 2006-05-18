@@ -185,8 +185,24 @@ Perl6::PAST::Op: call(.) = {
     arglist = new .ResizablePMCArray
     iter = node.'child_iter'()
     spast = shift iter
+
+    ##   if the spost is a &var, then use it directly
+    ##   as the name of the sub to be called.
+    $I0 = isa spast, 'Perl6::PAST::Var'
+    if $I0 == 0 goto spast_expr
+    $S0 = spast.'name'()
+    $S1 = substr $S0, 0, 1
+    if $S1 != '&' goto spast_expr
+    substr $S0, 0, 1, "'"
+    $S0 = concat $S0, "'"
+    spost = new .String
+    spost = $S0
+    goto with_spost
+  spast_expr:
     spost = tree.'get'('post', spast)
     ops.'add_child'(spost)
+  with_spost:
+    say spost
 
     ##   See if the argument is an infix:, list.  If so, elevate
     ##   its children to be the children (arguments) to the call

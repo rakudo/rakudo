@@ -39,10 +39,6 @@ compiler.
     $P1 = subclass $P0, 'Perl6::PAST::Grammar'
     $P1 = subclass $P0, 'Perl6::POST::Grammar'
 
-    $P0 = compreg 'PGE::P6Regex'
-    $P1 = $P0('^<Perl6::Grammar::program>')
-    store_global 'Perl6', '&parse', $P1
-   
     $P0 = find_global 'Perl6', 'compile' 
     compreg 'Perl6', $P0
 
@@ -83,8 +79,8 @@ compiled code as a PMC.
   parse:
     .local pmc parse
     .local pmc match
-    parse = find_global 'Perl6', '&parse'
-    match = parse(code)
+    parse = find_global 'Perl6::Grammar', 'program'
+    match = parse(code, 'grammar'=>'Perl6::Grammar', 'pos'=>0)
 
     unless match goto return_match
     unless dump goto parse_1
@@ -93,7 +89,6 @@ compiled code as a PMC.
     if target == 'parse' goto return_match
 
   build_ast:
-    match = match['Perl6::Grammar::program']
     .local pmc astgrammar, astbuilder, ast
     astgrammar = new 'Perl6::PAST::Grammar'
     astbuilder = astgrammar.apply(match)

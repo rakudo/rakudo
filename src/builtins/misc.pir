@@ -12,18 +12,6 @@ src/builtins/misc.pir - Perl 6 miscellaneous builtins
 
 .namespace [ "" ]
 
-=item C<infix:,(...)>
-
-Builds an array from its arguments.  Trivial, really.
-
-=cut
-
-.sub 'infix:,'
-    .param pmc list            :slurpy
-    .return (list)
-.end
-
-
 .sub 'die'
     .param pmc list            :slurpy
     .local pmc iter

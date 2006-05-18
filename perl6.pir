@@ -39,6 +39,10 @@ compiler.
     $P1 = subclass $P0, 'Perl6::PAST::Grammar'
     $P1 = subclass $P0, 'Perl6::POST::Grammar'
 
+    $P0 = subclass 'PGE::Match', 'Match'
+    $P0 = subclass 'Match', 'Grammar'
+    $P0 = subclass 'Grammar', 'Perl6::Grammar'
+
     $P0 = find_global 'Perl6', 'compile' 
     compreg 'Perl6', $P0
 

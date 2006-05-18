@@ -16,7 +16,7 @@ src/builtins/match.pir - Perl6 builtins for smart matching
     .param pmc topic
     .param pmc regex
     .local pmc match
-    match = regex(topic)
+    match = regex(topic, 'grammar'=>'Match')
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match

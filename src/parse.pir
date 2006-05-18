@@ -100,8 +100,11 @@ Handles parsing of the various types of quoted literals.
 
     .local string target
     .local pmc mfrom, mpos
-    .local int capt, pos, lastpos, delimlen
+    .local int pos
     (mob, pos, target, mfrom, mpos) = mob.'new'(mob)
+
+    .local int capt, lastpos, delimlen
+    capt = 0
     lastpos = length target
     delimlen = length delim
 

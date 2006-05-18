@@ -202,7 +202,6 @@ Perl6::PAST::Op: call(.) = {
     spost = tree.'get'('post', spast)
     ops.'add_child'(spost)
   with_spost:
-    say spost
 
     ##   See if the argument is an infix:, list.  If so, elevate
     ##   its children to be the children (arguments) to the call

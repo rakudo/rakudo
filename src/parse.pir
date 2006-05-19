@@ -108,6 +108,9 @@ Handles parsing of the various types of quoted literals.
     lastpos = length target
     delimlen = length delim
 
+    .local string in_backslash_num
+    in_backslash_num = ''
+
     .local string lstop
     lstop = ''
     if adv_scalar == 0 goto lstop_1
@@ -140,6 +143,8 @@ Handles parsing of the various types of quoted literals.
     goto outer_loop
 
   scan_literal:
+    .local int is_bracketed
+    is_bracketed = 0
   scan_literal_loop:
     if pos >= lastpos goto fail
     $S0 = substr target, pos, delimlen
@@ -157,15 +162,54 @@ Handles parsing of the various types of quoted literals.
   scan_literal_backslash:
     inc pos
     $S0 = substr target, pos, 1
-    # if $S0 == 'x' goto scan_backslash_x          # XXX: to-do
-    # if $S0 == 'd' goto scan_backslash_d          # XXX: to-do
-    # if $S0 == 'o' goto scan_backslash_o          # XXX: to-do
+    if $S0 == 'x' goto scan_backslash_x
+    if $S0 == 'd' goto scan_backslash_d
+    if $S0 == 'o' goto scan_backslash_o
     $I0 = index "abefnrt", $S0
     if $I0 < 0 goto scan_literal_1
     $S0 = substr "\x07\x08\e\f\n\r\t", $I0, 1
   scan_literal_1:
     concat literal, $S0
     inc pos
+    goto scan_literal_loop
+  scan_backslash_x:
+    .local int base
+    base = 16
+    goto scan_bxdo_chars
+  scan_backslash_d:
+    base = 10
+    goto scan_bxdo_chars
+  scan_backslash_o:
+    base = 8
+    goto scan_bxdo_chars
+  scan_bxdo_chars:
+    inc pos
+    .local int decnum
+    decnum = 0
+  scan_bxdo_lbracket:
+    $S0 = substr target, pos, 1
+    if $S0 != '[' goto scan_bxdo_chars_loop
+    is_bracketed = 1
+    inc pos
+  scan_bxdo_chars_loop:
+    $S0 = substr target, pos, 1
+    $I0 = index '0123456789abcdef', $S0
+    if $I0 < 0 goto scan_bxdo_chars_end
+    if $I0 >= base goto scan_bxdo_chars_end
+    decnum *= base
+    decnum += $I0
+    inc pos
+    goto scan_bxdo_chars_loop
+  scan_bxdo_chars_end:
+  scan_bxdo_rbracket:
+    unless is_bracketed goto scan_bxdo_end
+    $S0 = substr target, pos, 1
+    if $S0 != ']' goto fail
+    is_bracketed = 0
+    inc pos
+  scan_bxdo_end:
+    $S1 = chr decnum
+    concat literal, $S1
     goto scan_literal_loop
   scan_literal_end:
     ($P0, $P1, $P2, $P3, $P4) = mob.'new'(mob)

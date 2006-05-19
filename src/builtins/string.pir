@@ -25,7 +25,7 @@ src/builtins/string.pir - Perl6 builtin string functions
     .param string sep
     .param string target
     $P0 = split sep, target
-    $P0 = list($P0 :flat)
+    $P0 = 'list'($P0 :flat)
     .return ($P0)
 .end
 

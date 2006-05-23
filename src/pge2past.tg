@@ -1,6 +1,6 @@
 ## $Id$
 
-ROOT: past(.) = {
+transform past (ROOT) :language('PIR') {
     .local pmc past
     past = new 'Perl6::PAST::Block'
     past.'init'('node'=>node, 'name'=>'anon', 'blocktype'=>'block')
@@ -13,7 +13,7 @@ ROOT: past(.) = {
 }
 
 
-Perl6::Grammar::statement_list:  past(.) = {
+transform past (Perl6::Grammar::statement_list) :language('PIR') {
     .local pmc past
     .local pmc iter
 
@@ -34,7 +34,7 @@ Perl6::Grammar::statement_list:  past(.) = {
 }
 
 
-Perl6::Grammar::statement: past(.) = {
+transform past (Perl6::Grammar::statement) :language('PIR') {
     $P0 = node['statement_control']
     if $P0 goto statement_control
     $P0 = node['block']
@@ -88,7 +88,7 @@ Perl6::Grammar::statement: past(.) = {
 }
 
 
-Perl6::Grammar::statement_control: past(.) = {
+transform past (Perl6::Grammar::statement_control) :language('PIR') {
     .local pmc key, exprlist, blocklist
     key = node['KEY']
     exprlist = node['expression']
@@ -131,7 +131,7 @@ Perl6::Grammar::statement_control: past(.) = {
 }
 
 
-Perl6::Grammar::expression: past(.) = {
+transform past (Perl6::Grammar::expression) :language('PIR') {
     .local pmc past
 
     $P0 = node['expr']
@@ -142,7 +142,7 @@ Perl6::Grammar::expression: past(.) = {
 }
 
 
-Perl6::Grammar::expr: past(.) = {
+transform past (Perl6::Grammar::expr) :language('PIR') {
     .local string type
     type = node['type']
     if type != "" goto pastrule
@@ -188,7 +188,7 @@ Perl6::Grammar::expr: past(.) = {
 }
 
 
-Perl6::Grammar::expr: past_term(.) = {
+transform past_term (Perl6::Grammar::expr) :language('PIR') {
     .local pmc iter, past
     ##   listop requires special handling
     $I0 = defined node['listop']
@@ -268,7 +268,7 @@ Perl6::Grammar::expr: past_term(.) = {
 }
 
 
-Perl6::Grammar::circumfix: past(.) = {
+transform past (Perl6::Grammar::circumfix) :language('PIR') {
     .local string name
     $S0 = node['KEY']
     $S1 = node['KEY_CLOSE']
@@ -289,7 +289,7 @@ Perl6::Grammar::circumfix: past(.) = {
 
 
 
-Perl6::Grammar::scoped_variables: past(.) = {
+transform past (Perl6::Grammar::scoped_variables) :language('PIR') {
     .local string scope, name
     scope = node['scope_declarator']
     name = node['variable']
@@ -312,7 +312,7 @@ Perl6::Grammar::scoped_variables: past(.) = {
 }
 
 
-Perl6::Grammar::variable: past(.) = {
+transform past (Perl6::Grammar::variable) :language('PIR') {
     .local string name
     name = node
     .local pmc past
@@ -334,7 +334,7 @@ Perl6::Grammar::variable: past(.) = {
 }
 
 
-Perl6::Grammar::integer: past(.) = {
+transform past (Perl6::Grammar::integer) :language('PIR') {
     .local pmc past
     $P0 = new .Perl6Str
     $S0 = node
@@ -346,7 +346,7 @@ Perl6::Grammar::integer: past(.) = {
 }
 
 
-Perl6::Grammar::number: past(.) = {
+transform past (Perl6::Grammar::number) :language('PIR') {
     .local pmc past
     $N0 = node
     past = new 'Perl6::PAST::Val'
@@ -355,7 +355,7 @@ Perl6::Grammar::number: past(.) = {
 }
 
 
-Perl6::Grammar::string_literal: past(.) = {
+transform past (Perl6::Grammar::string_literal) :language('PIR') {
     .local pmc past
     $P0 = node['quoted_literal']
     $P0 = $P0.'get_array'()
@@ -386,7 +386,7 @@ Perl6::Grammar::string_literal: past(.) = {
 }
 
 
-Perl6::Grammar::version: past(.) = {
+transform past (Perl6::Grammar::version) :language('PIR') {
     $S0 = node
     $S0 = concat "'", $S0
     $S0 = concat $S0, "'"
@@ -397,7 +397,7 @@ Perl6::Grammar::version: past(.) = {
 }
 
 
-Perl6::Grammar::block: past(.) = {
+transform past (Perl6::Grammar::block) :language('PIR') {
     .local pmc outer, past
     outer = find_global 'Perl6::PAST', '$?BLOCK'
     past = new 'Perl6::PAST::Block'
@@ -412,7 +412,7 @@ Perl6::Grammar::block: past(.) = {
 }
 
 
-Perl6::Grammar::regex_term: past(.) = {
+transform past (Perl6::Grammar::regex_term) :language('PIR') {
     .local pmc outer, past
     outer = find_global 'Perl6::PAST', '$?BLOCK'
     past = new 'Perl6::PAST::Block'
@@ -423,7 +423,7 @@ Perl6::Grammar::regex_term: past(.) = {
 }
 
 
-Perl6::Grammar::subroutine: past(.) = {
+transform past (Perl6::Grammar::subroutine) :language('PIR') {
     .local pmc outer, past
     outer = find_global 'Perl6::PAST', '$?BLOCK'
     past = new 'Perl6::PAST::Block'

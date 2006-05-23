@@ -1,4 +1,4 @@
-Perl6::PAST::Block: root(.) = {
+transform root (Perl6::PAST::Block) :language('PIR') {
     $P0 = new .Undef
     store_global 'Perl6::POST', '$?BLOCK', $P0
     store_global 'Perl6::PAST', '$?BLOCK', $P0
@@ -6,7 +6,7 @@ Perl6::PAST::Block: root(.) = {
 }
 
 
-Perl6::PAST::Block: post(.) = {
+transform post (Perl6::PAST::Block) :language('PIR') {
     .local string name, blocktype
     name = node.'name'()
     blocktype = node.'blocktype'()
@@ -50,7 +50,7 @@ Perl6::PAST::Block: post(.) = {
 }
 
 
-Perl6::Grammar: post(.) = {
+transform post (Perl6::Grammar) :language('PIR') {
     ##   We generally get here because of a PGE regex in the 
     ##   code that is stored as a child of a Block.  The regex
     ##   AST is already reduced to what we want to pass to
@@ -61,7 +61,7 @@ Perl6::Grammar: post(.) = {
 }
 
 
-Perl6::PAST::Stmts: post(.) = {
+transform post (Perl6::PAST::Stmts) :language('PIR') {
     .local pmc iter, ops
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)
@@ -80,7 +80,7 @@ Perl6::PAST::Stmts: post(.) = {
 }
 
 
-Perl6::PAST::Stmt: post(.) = {
+transform post (Perl6::PAST::Stmt) :language('PIR') {
     .local pmc past, post
     past = node[0]
     post = tree.'get'('post', past)
@@ -88,14 +88,14 @@ Perl6::PAST::Stmt: post(.) = {
 }
 
 
-Perl6::PAST::Exp: post(.) = {
+transform post (Perl6::PAST::Exp) :language('PIR') {
     $P0 = node[0]
     $P1 = tree.'get'('post', $P0)
     .return ($P1)
 }
 
 
-Perl6::PAST::Op: post(.) = {
+transform post (Perl6::PAST::Op) :language('PIR') {
     .local string opname, pasttype
     .local pmc optable, optok
     opname = node.'name'()
@@ -109,7 +109,7 @@ Perl6::PAST::Op: post(.) = {
 }
 
 
-Perl6::PAST::Op: postname(.) = {
+transform postname (Perl6::PAST::Op) :language('PIR') {
     ##   return the name to be used for this op in POST
     ##   as given by the "post" trait or the operator
     ##   name.
@@ -127,7 +127,7 @@ Perl6::PAST::Op: postname(.) = {
 }
     
 
-Perl6::PAST::Op: simple(.) = {
+transform simple (Perl6::PAST::Op) :language('PIR') {
     ##   create our return past node
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
@@ -174,7 +174,7 @@ Perl6::PAST::Op: simple(.) = {
 }
 
 
-Perl6::PAST::Op: call(.) = {
+transform call (Perl6::PAST::Op) :language('PIR') {
     ##   This rule handles sub calls (e.g., postcircumfix:( ))
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
@@ -230,7 +230,7 @@ Perl6::PAST::Op: call(.) = {
 }
 
 
-Perl6::PAST::Op: assign(.) = {
+transform assign (Perl6::PAST::Op) :language('PIR') {
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)
@@ -253,7 +253,7 @@ Perl6::PAST::Op: assign(.) = {
 }
 
 
-Perl6::PAST::Op: cond(.) = {
+transform cond (Perl6::PAST::Op) :language('PIR') {
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)
@@ -292,7 +292,7 @@ Perl6::PAST::Op: cond(.) = {
 }
 
 
-Perl6::PAST::Op: xor(.) = {
+transform xor (Perl6::PAST::Op) :language('PIR') {
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)
@@ -338,7 +338,7 @@ Perl6::PAST::Op: xor(.) = {
 }
 
 
-Perl6::PAST::Op: chain(.) = {
+transform chain (Perl6::PAST::Op) :language('PIR') {
     .local pmc ops
     ops = new 'Perl6::POST::Ops'
     ops.'init'('node'=>node)
@@ -388,7 +388,7 @@ Perl6::PAST::Op: chain(.) = {
 
 
 
-Perl6::PAST::Val: post(.) = {
+transform post (Perl6::PAST::Val) :language('PIR') {
     .local string val, valtype, objtype
     val = node.'name'()
     valtype = node.'valtype'()
@@ -415,7 +415,7 @@ Perl6::PAST::Val: post(.) = {
 }
     
 
-Perl6::PAST::Var: post(.) = {
+transform post (Perl6::PAST::Var) :language('PIR') {
     .local string name, scope
     .local pmc post
     name = node.'name'()

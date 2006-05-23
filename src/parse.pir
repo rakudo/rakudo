@@ -172,6 +172,8 @@ Handles parsing of the various types of quoted literals.
     concat literal, $S0
     inc pos
     goto scan_literal_loop
+
+  ## parse \x, \x[NN], \x[NN,NN]; same for \d and \o
   scan_backslash_x:
     .local int base
     base = 16
@@ -193,11 +195,18 @@ Handles parsing of the various types of quoted literals.
     inc pos
   scan_bxdo_chars_loop:
     $S0 = substr target, pos, 1
+    if $S0 == ',' goto scan_bxdo_comma
     $I0 = index '0123456789abcdef', $S0
     if $I0 < 0 goto scan_bxdo_chars_end
     if $I0 >= base goto scan_bxdo_chars_end
     decnum *= base
     decnum += $I0
+    inc pos
+    goto scan_bxdo_chars_loop
+  scan_bxdo_comma:
+    $S1 = chr decnum
+    concat literal, $S1
+    decnum = 0
     inc pos
     goto scan_bxdo_chars_loop
   scan_bxdo_chars_end:

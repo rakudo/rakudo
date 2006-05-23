@@ -4,7 +4,7 @@
 
 use v6;
 
-say '1..23';
+say '1..24';
 
 
 print "ok ";
@@ -39,7 +39,7 @@ say "ok 21 \x023 \o163k\d105\x70";
 
 say 'ok ', +"\x[32]2";
 say 'ok ', +"2\d[51]";
-#say 'ok ', +"\o[62,065]";
+say 'ok ', +"\o[62,064]";
 
 
 # TODO a lot more

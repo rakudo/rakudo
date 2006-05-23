@@ -143,8 +143,6 @@ Handles parsing of the various types of quoted literals.
     goto outer_loop
 
   scan_literal:
-    .local int is_bracketed
-    is_bracketed = 0
   scan_literal_loop:
     if pos >= lastpos goto fail
     $S0 = substr target, pos, delimlen
@@ -185,17 +183,16 @@ Handles parsing of the various types of quoted literals.
     base = 8
     goto scan_bxdo_chars
   scan_bxdo_chars:
+    ##   increment past the x, d, or o
     inc pos
-    .local int decnum
+    .local int decnum, isbracketed
     decnum = 0
-  scan_bxdo_lbracket:
     $S0 = substr target, pos, 1
-    if $S0 != '[' goto scan_bxdo_chars_loop
-    is_bracketed = 1
-    inc pos
+    isbracketed = iseq $S0, '['
+    ##   increment past any open bracket
+    pos += isbracketed
   scan_bxdo_chars_loop:
     $S0 = substr target, pos, 1
-    if $S0 == ',' goto scan_bxdo_comma
     $I0 = index '0123456789abcdef', $S0
     if $I0 < 0 goto scan_bxdo_chars_end
     if $I0 >= base goto scan_bxdo_chars_end
@@ -203,23 +200,20 @@ Handles parsing of the various types of quoted literals.
     decnum += $I0
     inc pos
     goto scan_bxdo_chars_loop
-  scan_bxdo_comma:
-    $S1 = chr decnum
-    concat literal, $S1
-    decnum = 0
-    inc pos
-    goto scan_bxdo_chars_loop
   scan_bxdo_chars_end:
-  scan_bxdo_rbracket:
-    unless is_bracketed goto scan_bxdo_end
-    $S0 = substr target, pos, 1
-    if $S0 != ']' goto fail
-    is_bracketed = 0
-    inc pos
-  scan_bxdo_end:
+    ##   add the character to the literal
     $S1 = chr decnum
     concat literal, $S1
+    unless isbracketed goto scan_bxdo_end
+    if $S0 == ']' goto scan_bxdo_end
+    if $S0 != ',' goto fail
+    inc pos
+    decnum = 0
+    goto scan_bxdo_chars_loop
+  scan_bxdo_end:
+    pos += isbracketed
     goto scan_literal_loop
+    
   scan_literal_end:
     ($P0, $P1, $P2, $P3, $P4) = mob.'new'(mob)
     $P3 = litfrom

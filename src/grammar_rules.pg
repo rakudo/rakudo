@@ -38,27 +38,27 @@ regex pod_comment {
 }
 
 
-token program { 
-    ^ <statement_list> <?ws> [ $ | <?syntax_error> ] 
+token program {
+    ^ <statement_list> <?ws> [ $ | <?syntax_error> ]
 }
 
 
-token statement_list { 
-    <statement> [ <?statement_end> <statement> ]* <?statement_end>? 
+token statement_list {
+    <statement> [ <?statement_end> <statement> ]* <?statement_end>?
 }
 
 
 token statement_end {
-    | [ <?ws> ; ]+ 
+    | [ <?ws> ; ]+
     | <after \}> :: \h* [ \#\N* ]? \n 
 }
 
 
 ## XXX: <statement_control> will likely become <%statement_control>.
 ## Since PGE doesn't support hashes in regexes yet, we're just using
-## an alternation for now.  
+## an alternation for now.
 ##
-## The subrule C<< <expression:  ;> >> calls the C<expression> sub 
+## The subrule C<< <expression:  ;> >> calls the C<expression> sub
 ## in L<src/parse.pir>, which passes control to the operator
 ## precedence parser.  The space+semicolon parameter tells
 ## the operator precedence parser to stop parsing the expression
@@ -69,7 +69,7 @@ token statement {
     | <statement_control>
     | <block>
     | <use_statement>
-    | <expression:  ;> <statement_modifier>?  
+    | <expression:  ;> <statement_modifier>?
 }
 
 
@@ -138,6 +138,7 @@ token postfix { $<KEY>:=[\+\+|--] }
 token postcircumfix {
     | $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
     | $<KEY>:=[\[] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\]]
+    | $<KEY>:=[\{] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\}]
 }
 
 token circumfix {
@@ -146,7 +147,7 @@ token circumfix {
 }
 
 ## The <listop> rule matches a list operator and its list arguments,
-## if any.  Currently <reserved_word> is here as a protective measure, 
+## if any.  Currently <reserved_word> is here as a protective measure,
 ## eventually it should be taken out.
 
 token listop { <reserved_word> ::: <fail> | <ident> }
@@ -174,7 +175,7 @@ token integer {
     | 0 [ b <[01]>+           [ _ <[01]>+ ]*
         | o <[0..7]>+         [ _ <[0..7]>+ ]*
         | x <[0..9a..fA..F]>+ [ _ <[0..9a..fA..F]>+ ]*
-        | d \d+               [ _ \d+]* 
+        | d \d+               [ _ \d+]*
         ]
     | \d+[_\d+]*
 }
@@ -185,8 +186,8 @@ token number {
 
 ##  XXX: arguments to quoted_literal are a cheat for the time being.
 token string_literal {
-    | " <quoted_literal: "> "
-    | ' <quoted_literal: '> '
+    |    " <quoted_literal: "> "
+    |    ' <quoted_literal: '> '
 }
 
 
@@ -215,7 +216,7 @@ rule trait {
     | $<KEY>:=[returns] <type>
 }
 
-rule signature { 
+rule signature {
     $<invocants>:=(<parameter>? [, <parameter>]*)
     $<paramlist>:=(\: <parameter>? [, <parameter>]*)?
 }

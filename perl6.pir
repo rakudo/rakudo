@@ -34,7 +34,7 @@ compiler.
     load_bytecode 'PGE/Text.pbc'
     load_bytecode 'PGE/Util.pbc'
     load_bytecode 'TGE.pbc'
-    
+
     $P0 = getclass 'TGE'
     $P1 = subclass $P0, 'Perl6::PAST::Grammar'
     $P1 = subclass $P0, 'Perl6::POST::Grammar'

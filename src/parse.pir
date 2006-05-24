@@ -213,7 +213,7 @@ Handles parsing of the various types of quoted literals.
   scan_bxdo_end:
     pos += isbracketed
     goto scan_literal_loop
-    
+
   scan_literal_end:
     ($P0, $P1, $P2, $P3, $P4) = mob.'new'(mob)
     $P3 = litfrom

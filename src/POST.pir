@@ -164,7 +164,7 @@ and that is returned.
 
 =cut
 
-.sub 'value' :method    
+.sub 'value' :method
     .param pmc value           :optional
     .param int has_value       :opt_flag
     value = self.'attr'('$.value', value, has_value)

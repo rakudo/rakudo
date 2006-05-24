@@ -182,9 +182,9 @@ src/builtins/named-unary.pir - Perl6 named unary builtins
     $I0 = index 'rdg123456789', $S1
     if $I0 == -1 goto err_unrecognized_base
     unless $I0 goto doit
+    converter = atan 1
     if $I0 == 1 goto deg
     if $I0 == 2 goto grad
-    converter = atan 1
   user_defined:
     $N0 = $S0
     $N0 /= 8

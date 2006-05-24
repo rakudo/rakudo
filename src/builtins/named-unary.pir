@@ -46,6 +46,8 @@ src/builtins/named-unary.pir - Perl6 named unary builtins
 .end
 
 
+## TODO: rand srand
+
 
 .sub 'round'
     .param num a
@@ -121,6 +123,12 @@ src/builtins/named-unary.pir - Perl6 named unary builtins
 .end
 
 
+## TODO: e and pi should be constants, not subs
+.sub 'e'
+    $N0 = exp 1
+.end
+
+
 .sub 'pi'
     $N0 = atan 1
     $N0 *= 4
@@ -146,6 +154,56 @@ src/builtins/named-unary.pir - Perl6 named unary builtins
     .param num a
     $N0 = log10 a
     .return ($N0)
+.end
+
+
+
+.namespace [ 'Math'; 'Trig' ]
+
+
+
+## XXX: conjectural as perl6 subs do not support adverbs yet
+## once this is correct, it will likely become a generated function, as will:
+## sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
+## acotan, sinh, cosh, tanh, asinh, acosh, atanh, sech, cosech, cotanh,
+## asech, acosech, acotanh
+.sub 'sin'
+    .param num a
+    .param pmc adverbs :slurpy :named
+    .local num converter
+    converter = 1
+    $I0 = exists adverbs['$base']
+    unless $I0 goto doit
+    $P0 = adverbs['base']
+    unless $P0 goto doit
+    $S0 = $P0
+    downcase $S0
+    $S1 = substr $S0, 0, 1
+    $I0 = index 'rdg123456789', $S1
+    if $I0 == -1 goto err_unrecognized_base
+    unless $I0 goto doit
+    if $I0 == 1 goto deg
+    if $I0 == 2 goto grad
+    converter = atan 1
+  user_defined:
+    $N0 = $S0
+    $N0 /= 8
+    converter /= $N0
+    goto doit
+  deg:
+    converter /= 45
+    goto doit
+  grad:
+    converter /= 50
+  doit:
+    a *= converter
+    $N0 = sin a
+    .return ($N0)
+  err_unrecognized_base:
+    $S1 = "sin: unrecognized base '"
+    $S1 .= $S0
+    $S1 .= "'"
+    .return 'die'($S1)
 .end
 
 

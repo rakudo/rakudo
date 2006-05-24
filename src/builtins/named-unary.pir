@@ -20,6 +20,34 @@ src/builtins/named-unary.pir - Perl6 named unary builtins
 .end
 
 
+## string operators
+
+
+.sub 'lc'
+    .param string a
+    downcase a
+    .return (a)
+.end
+
+
+.sub 'uc'
+    .param string a
+    upcase a
+    .return (a)
+.end
+
+
+.sub 'ucfirst'
+    .param string a
+    titlecase a
+    .return (a)
+.end
+
+
+## TODO: lcfirst, capitalize, index, pack, pos, quotemeta, rindex, split
+## sprintf, substr, unpack, vec, words
+
+
 ## math operators
 ## TODO: someday, these may exist in Math::Basic and / or Num namespaces
 ## until this is clarified, they exist in the root namespace
@@ -87,14 +115,14 @@ src/builtins/named-unary.pir - Perl6 named unary builtins
 ## trancendental math ops
 ## TODO: these only work with radians atm
 
-.sub 'atan' :multi(PMC)
+.sub 'atan' :multi(_)
     .param num a
     $N0 = atan a
     .return ($N0)
 .end
 
 
-.sub 'atan' :multi(PMC, PMC)
+.sub 'atan' :multi(_, _)
     .param num a
     .param num b
     $N0 = atan a, b

@@ -44,6 +44,9 @@ Operator form for building a list from its arguments.
 .end
 
 
+## TODO: grep join map reduce reverse sort zip
+
+
 .namespace [ 'Perl6List' ]
 
 .sub '__get_string' :method

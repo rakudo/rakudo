@@ -167,7 +167,8 @@ token scope_declarator { [ my | our ] }
 ## XXX: These are just placeholder regexes for demonstration,
 ## they certainly need to be expanded to be more complete.
 
-token variable { \$/ | \$_ | <sigil> <name> }
+token twigil { <[.^*+?=!]> }
+token variable { \$/ | \$_ | <sigil> <twigil>? <name> }
 token sigil { <[$@%^&]> }
 token name { <ident> [ \:\: <ident> ]* }
 
@@ -224,7 +225,7 @@ rule signature {
 ##  XXX: <parameter> needs expansion for the various
 ##  parameter options available.
 
-token parameter { $<variable>:=[<sigil> <ident>] }
+token parameter { $<variable>:=[<sigil> <twigil>? <ident>] }
 
 
 ## The <syntax_error> token generates a simple syntax

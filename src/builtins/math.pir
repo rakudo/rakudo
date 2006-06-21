@@ -311,10 +311,47 @@ The other alternative would be to remove the default. --law]
 
 =cut
 
+
+## XXX: conjectural as perl6 subs do not support adverbs yet
 .sub 'sin'
     .param num a
+    .param string base  :optional :named('base')
+    .param int has_base :opt_flag
+    .local num converter
+    converter = 1
+    unless has_base goto doit
+    unless base goto doit
+    $S0 = base
+    downcase $S0
+    $S1 = substr $S0, 0, 1
+    $I0 = index 'rdg123456789', $S1
+    if $I0 == -1 goto err_unrecognized_base
+    if $I0 == 0 goto doit
+    converter = atan 1
+    if $I0 == 1 goto deg
+    if $I0 == 2 goto grad
+  user_defined:
+    $N0 = $S0
+    $N0 /= 8
+    converter /= $N0
+    goto doit
+  deg:
+    converter /= 45
+    goto doit
+  grad:
+    converter /= 50
+  doit:
+    a *= converter
+
+  body:
     $N0 = sin a
     .return ($N0)
+
+  err_unrecognized_base:
+    $S1 = "sin: unrecognized base '"
+    $S1 .= $S0
+    $S1 .= "'"
+    .return 'die'($S1)
 .end
 
 
@@ -346,14 +383,14 @@ The other alternative would be to remove the default. --law]
 .end
 
 
-.sub 'atan' :multi(_)
+.sub 'atan'
     .param num a
     $N0 = atan a
     .return ($N0)
 .end
 
 
-.sub 'atan' :multi(_, _)
+.sub 'atan2'
     .param num a
     .param num b
     $N0 = atan a, b
@@ -555,56 +592,6 @@ The other alternative would be to remove the default. --law]
 =back
 
 =cut
-
-
-=for comment
-
-## XXX: conjectural as perl6 subs do not support adverbs yet
-## once this is correct, it will likely become a generated function, as will:
-## sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
-## acotan, sinh, cosh, tanh, asinh, acosh, atanh, sech, cosech, cotanh,
-## asech, acosech, acotanh
-.sub 'sin'
-    .param num a
-    .param pmc adverbs :slurpy :named
-    .local num converter
-    converter = 1
-    $I0 = exists adverbs['$base']
-    unless $I0 goto doit
-    $P0 = adverbs['base']
-    unless $P0 goto doit
-    $S0 = $P0
-    downcase $S0
-    $S1 = substr $S0, 0, 1
-    $I0 = index 'rdg123456789', $S1
-    if $I0 == -1 goto err_unrecognized_base
-    unless $I0 goto doit
-    converter = atan 1
-    if $I0 == 1 goto deg
-    if $I0 == 2 goto grad
-  user_defined:
-    $N0 = $S0
-    $N0 /= 8
-    converter /= $N0
-    goto doit
-  deg:
-    converter /= 45
-    goto doit
-  grad:
-    converter /= 50
-  doit:
-    a *= converter
-    $N0 = sin a
-    .return ($N0)
-  err_unrecognized_base:
-    $S1 = "sin: unrecognized base '"
-    $S1 .= $S0
-    $S1 .= "'"
-    .return 'die'($S1)
-.end
-
-=end
-
 
 
 ## vim: expandtab sw=4

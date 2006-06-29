@@ -35,7 +35,8 @@ say 'ok ', 0b0001_0001;
 say 'ok ', "\x31\x38";
 say 'ok ', "1\x39";
 say 'ok ', "\d50\o60";
-say "ok 21 \x023 \o163k\d105\x70";
+say "\x023 test multiple escapes in string using diag output: \x31\d50\o63";
+say "ok 21";
 
 say 'ok ', +"\x[32]2";
 say 'ok ', +"2\d[51]";

@@ -10,7 +10,7 @@ src/builtins/op.pir - Perl6 builtin operators
 
 =cut
 
-.namespace [ "" ]
+.namespace
 
 ## autoincrement
 .sub 'postfix:++'

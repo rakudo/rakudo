@@ -11,7 +11,7 @@ src/builtins/control.pir - Perl 6 Control functions
 =cut
 
 
-.namespace [ "" ]
+.namespace
 ## TODO: get the next line to work
 ## .namespace [ 'Control::Basic' ]
 

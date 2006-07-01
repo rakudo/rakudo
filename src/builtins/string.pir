@@ -10,7 +10,7 @@ src/builtins/string.pir - Perl6 builtin string functions
 
 =cut
 
-.namespace [ "" ]
+.namespace
 
 .include 'cclass.pasm'
 

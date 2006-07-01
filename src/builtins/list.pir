@@ -10,7 +10,7 @@ src/builtins/list.pir - Perl 6 List class
 
 =cut
 
-.namespace [ "" ]
+.namespace
 
 =item C<list(...)>
 

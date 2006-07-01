@@ -10,7 +10,7 @@ src/builtins/match.pir - Perl6 builtins for smart matching
 
 =cut
 
-.namespace [ "" ]
+.namespace
 
 .sub 'infix:~~' :multi(_, Sub)
     .param pmc topic

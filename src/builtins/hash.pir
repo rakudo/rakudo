@@ -17,7 +17,7 @@ src/builtins/hash.pir - Perl 6 Hash class
 =cut
 
 
-.namespace [ "" ]
+.namespace
 
 
 =item delete

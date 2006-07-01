@@ -10,7 +10,7 @@ src/builtins/inplace.pir - Inplace assignments
 
 =cut
 
-.namespace [ "" ]
+.namespace
 
 ## assignment
 ## TODO: infix::= infix:::= infix:.=

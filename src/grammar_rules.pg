@@ -13,6 +13,9 @@
 ## and handles most expressions using a bottom-up
 ## parsing algorithm.
 
+## This grammar is derived from "Synopsis 6: Subroutines"
+## http://dev.perl.org/perl6/doc/design/syn/S06.html
+
 grammar Perl6::Grammar ;
 
 
@@ -170,7 +173,7 @@ token scope_declarator { [ my | our ] }
 token twigil { <[.^*+?=!]> }
 token variable { \$/ | \$_ | <sigil> <twigil>? <name> }
 token sigil { <[$@%^&]> }
-token name { <ident> [ \:\: <ident> ]* }
+token name { <ident> [ <'::'> <ident> ]* }
 
 token integer {
     | 0 [ b <[01]>+           [ _ <[01]>+ ]*
@@ -195,7 +198,7 @@ token string_literal {
 ## Subroutine parsing.  This is still under development.
 
 rule subroutine {
-    [<scope_declarator> <type>?]?
+    [<scope_declarator> $<rettype>:=<type>?]?
         <subintro>
         <ident>?
         <trait>*
@@ -206,7 +209,7 @@ rule subintro { <routine_modifier> <routine_type>? | <routine_type> }
 
 token routine_modifier { multi | proto }
 
-token routine_type { sub | method | submethod | macro }
+token routine_type { sub | method | submethod | macro | regex | token | rule }
 
 token type { <routine_type> ::: <fail> | <ident> }
 
@@ -218,8 +221,9 @@ rule trait {
 }
 
 rule signature {
-    $<invocants>:=(<parameter>? [, <parameter>]*)
-    $<paramlist>:=(\: <parameter>? [, <parameter>]*)?
+    $<invocant>:=(<parameter> <':'>)?
+    $<paramlist>:=(<parameter>? [, <parameter>]*)
+    [ <'-->'> $<rettype>:=<type> ]?
 }
 
 ##  XXX: <parameter> needs expansion for the various

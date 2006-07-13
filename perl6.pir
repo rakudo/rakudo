@@ -24,9 +24,7 @@ compiler.
 
 .namespace [ 'Perl6' ]
 
-.sub '__loadlib' :immediate
-    $P1 = loadlib 'perl6_group'
-.end
+.loadlib 'perl6_group'
 
 .sub '__onload' :load
     $P1 = loadlib 'perl6_group'

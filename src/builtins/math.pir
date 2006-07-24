@@ -1,4 +1,4 @@
-## $Id: builtins.pir 12709 2006-05-17 01:42:08Z pmichaud $
+## $Id$
 
 =head1 NAME
 

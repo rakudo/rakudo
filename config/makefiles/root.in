@@ -1,4 +1,4 @@
-# $Id: pge.in 11999 2006-03-23 22:04:50Z pmichaud $
+# $Id$
 
 # Setup some commands
 LN_S     = @lns@

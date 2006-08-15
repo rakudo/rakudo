@@ -71,6 +71,8 @@ token statement_end {
 token statement {
     | <statement_control>
     | <block>
+    | <control_block>
+    | <class_block>
     | <use_statement>
     | <expression:  ;> <statement_modifier>?
 }
@@ -79,25 +81,42 @@ token statement {
 ## Here, the <expression> subrule doesn't parse any top-level
 ## bare closures (controlled by the space+brace argument).
 token statement_control {
-    <?ws>:
-    $<KEY>:=[if|unless] <expression:  {> <block>
+    <?ws>
+    [ $<KEY>:=[if|unless] <expression:  {> <block>
         [ <?ws>: elsif <expression:  {> <block> ]*
         [ <?ws>: else <block> ]?
+    | $<KEY>:=[while|until] <expression:  {> <block>
+    | $<KEY>:=[repeat] <block>
+        [ <?ws>: [while|until] <expression:  ;> ]
+    | $<KEY>:=loop [ \( <expression> ; <expression> ; <expression> \) ]?
+        <block>
+    | $<KEY>:=for <expression:  {> <block>
+    | $<KEY>:=try <expression:  {> <block>
+    ]
 }
 
 
 token statement_modifier {
-    <?ws> $<KEY>:=[if|unless] <expression:  ;>
+    <?ws> $<KEY>:=[if|unless|for|while|until] <expression:  ;>
 }
 
 
 token block {
-    <?ws>:
+    <?ws>
     \{
-        <?ws>: <statement_list> <?ws>:
+    <?ws> [ <statement_list> | <?null> ] <?ws>
     [ \} | <?syntax_error> ]
 }
 
+
+token control_block {
+    [ BEGIN | CHECK | INIT | END
+    | FIRST | ENTER | LEAVE | KEEP
+    | UNDO | NEXT | LAST
+    | PRE | POST | CATCH | CONTROL
+    ]
+    <?ws>? <block>
+}
 
 token use_statement {
     <?ws> use <?ws> <version> <?ws> <expression:  ;>?
@@ -124,7 +143,7 @@ token term {
     | <number>
     | <integer>
     | <string_literal>
-    | <listop> [ <postop> | <listop_expression> ]? 
+    | <listop> [ <postop> | <listop_expression> ]?
     | <circumfix>
     ] <postop>*
 }
@@ -154,7 +173,7 @@ token circumfix {
 ## eventually it should be taken out.
 
 token listop { <reserved_word> ::: <fail> | <ident> }
-token reserved_word { [ if | unless | while | until | for | loop ] \b }
+token reserved_word { [ if | unless | while | until | for | loop | do ] \b }
 
 ## This is a temporary rule that allows parsing of /regex/
 ## in term position.  XXX: It is likely to change.
@@ -164,15 +183,24 @@ token regex_term { / <regex: /> / }
 rule scoped_variables {
     <scope_declarator> <variable>
 }
+
 token scope_declarator { [ my | our ] }
+token class_declarator { [ class | grammar | module | role | package ] }
+
+token class_block {
+    <scope_declarator>?
+    <class_declarator>
+    $<name>:=[ <'::'>? <name> | <?null> ] ;
+    <block>
+}
 
 
 ## XXX: These are just placeholder regexes for demonstration,
 ## they certainly need to be expanded to be more complete.
 
 token twigil { <[.^*+?=!]> }
-token variable { \$/ | \$_ | <sigil> <twigil>? <name> }
-token sigil { <[$@%^&]> }
+token variable {  \$! | \$/ | \$_ | <sigil> <twigil>? <name> }
+token sigil { <[$@%^&]> | <'::'> }
 token name { <ident> [ <'::'> <ident> ]* }
 
 token integer {

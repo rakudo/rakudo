@@ -88,10 +88,10 @@ token statement_control {
     | $<KEY>:=[while|until] <expression:  {> <block>
     | $<KEY>:=[repeat] <block>
         [ <?ws>: [while|until] <expression:  ;> ]
-    | $<KEY>:=loop [ \( <expression> ; <expression> ; <expression> \) ]?
+    | $<KEY>:=[loop] [ \( <expression> ; <expression> ; <expression> \) ]?
         <block>
-    | $<KEY>:=for <expression:  {> <block>
-    | $<KEY>:=try <expression:  {> <block>
+    | $<KEY>:=[for] <expression:  {> <block>
+    | $<KEY>:=[try] <expression:  {> <block>
     ]
 }
 

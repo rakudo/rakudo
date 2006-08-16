@@ -32,6 +32,19 @@ SOURCES = perl6.pir \
   src/builtins_gen.pir \
   $(PMCDIR)/perl6_group$(LOAD_EXT)
 
+BUILTINS_PIR = \
+  src/builtins/assign.pir \
+  src/builtins/cmp.pir \
+  src/builtins/control.pir \
+  src/builtins/hash.pir \
+  src/builtins/io.pir \
+  src/builtins/list.pir \
+  src/builtins/match.pir \
+  src/builtins/math.pir \
+  src/builtins/named-unary.pir \
+  src/builtins/op.pir \
+  src/builtins/string.pir
+
 PMCS = perl6str
 PMC_SOURCES = $(PMCDIR)/perl6str.pmc
 
@@ -49,8 +62,8 @@ $(PMCDIR)/perl6_group$(LOAD_EXT): $(PARROT) $(PMC_SOURCES)
 	cd $(PMCDIR) && $(BUILD) linklibs $(PMCS)
 	cd $(PMCDIR) && $(BUILD) copy --destination=$(PARROT_DYNEXT) $(PMCS)
 
-src/builtins_gen.pir: src/builtins/*.pir
-	$(CAT) src/builtins/*.pir >src/builtins_gen.pir
+src/builtins_gen.pir: $(BUILTINS_PIR)
+	$(CAT) $(BUILTINS_PIR) >src/builtins_gen.pir
 
 
 # This is a listing of all targets, that are meant to be called by users

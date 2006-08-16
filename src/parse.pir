@@ -108,9 +108,6 @@ Handles parsing of the various types of quoted literals.
     lastpos = length target
     delimlen = length delim
 
-    .local string in_backslash_num
-    in_backslash_num = ''
-
     .local string lstop
     lstop = ''
     if adv_scalar == 0 goto lstop_1
@@ -163,9 +160,16 @@ Handles parsing of the various types of quoted literals.
     if $S0 == 'x' goto scan_backslash_x
     if $S0 == 'd' goto scan_backslash_d
     if $S0 == 'o' goto scan_backslash_o
-    $I0 = index "abefnrt", $S0
-    if $I0 < 0 goto scan_literal_1
-    $S0 = substr "\x07\x08\e\f\n\r\t", $I0, 1
+    $I0 = index "abefnrt0123456789", $S0
+    if $I0 > 7 goto fail_backslash_num
+    $S0 = substr "\x07\x08\e\f\n\r\t\0", $I0, 1
+    if $I0 != 7 goto scan_literal_1
+    ## lookahead for [0..7], fail if found
+    $I0 = pos + 1
+    $S0 = substr target, $I0, 1
+    $I0 = index "01234567", $S0
+    if $I0 > -1 goto fail_backslash_num
+
   scan_literal_1:
     concat literal, $S0
     inc pos
@@ -230,6 +234,14 @@ Handles parsing of the various types of quoted literals.
   fail:
     mpos = -1
     .return (mob)
+  fail_backslash_num:
+    dec pos
+    mpos = pos
+    ## XXX: use 'syntax_error' as soon is it accepts arguments
+    .local pmc die
+    die = get_hll_global ['PGE::Util'], 'die'
+    die(mob, '\123 form deprecated, use \o123 instead')
+    goto fail
 .end
 
 

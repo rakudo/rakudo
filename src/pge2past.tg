@@ -1,17 +1,36 @@
 ## $Id$
 
+###  perl6: 
+###  transform past (Perl6::Grammar) {
+###      my $past = new PAST::Block(node=>$_, name=>'anon',
+###                                 blocktype=>'block');
+###      $?BLOCK := $past;
+###      my $cpast = self.past_statement_list($_<statement_list>);
+###      $past.add_child($cpast);
+###      return $past;
+###  }
+
 transform past (ROOT) :language('PIR') {
     .local pmc past
     past = new 'Perl6::PAST::Block'
     past.'init'('node'=>node, 'name'=>'anon', 'blocktype'=>'block')
     store_global 'Perl6::PAST', '$?BLOCK', past
-    .local pmc cpast, cpost
-    cpast = node['statement_list']
-    cpost = tree.'get'('past', cpast, 'Perl6::Grammar::statement_list')
-    past.'add_child'(cpost)
+    .local pmc cnode, cpast
+    cnode = node['statement_list']
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::statement_list')
+    past.'add_child'(cpast)
     .return (past)
 }
 
+
+###  perl6:
+###  transform past_statement_list (Perl6::Grammar) {
+###      $past = new PAST::Stmts(node=>$_);
+###      for $_<statement> -> $cnode {
+###          $past.add_child(self.past($cnode, 'statement'));
+###      }
+###      return $past;
+###  }
 
 transform past (Perl6::Grammar::statement_list) :language('PIR') {
     .local pmc past
@@ -32,6 +51,32 @@ transform past (Perl6::Grammar::statement_list) :language('PIR') {
   iter_end:
     .return (past)
 }
+
+
+###  perl6:
+###  transform past_statement (Perl6::Grammar) {
+###      if $_<statement_control> {
+###          return self.past_statement_control($_<statement_control>);
+###      }
+###      if $_<block> {
+###          my $bpast = self.past_block($_<block>);
+###          return new PAST::Stmt($bpast, node=>$_);
+###      }
+###      if $_<expression> {
+###          my $epast = self.past_expression($_<expression>);
+###          my $mparse = $_<statement_modifier>;
+###          unless ($mparse)
+###              { return new PAST::Stmt($epast, node=>$_); }
+###          my $mpast = self.past_expression($mparse<expression>)
+###          $cpast = new PAST::Op($mpast, node=>$_,
+###                                name=>'statement_modifier:if');
+###          if ($mparse<KEY> == 'unless')
+###              { $cpast.add_child(undef); }
+###          $cpast.add_child($epast);
+###          return new PAST::Stmt($cpast, node=>$_);
+###      }
+###      error("unknown statement type");
+###  }
 
 
 transform past (Perl6::Grammar::statement) :language('PIR') {
@@ -131,6 +176,13 @@ transform past (Perl6::Grammar::statement_control) :language('PIR') {
 }
 
 
+
+###  perl6:
+###  transform past_expression (Perl6::Grammar) {
+###      my $cpast = self.past_expr($_<expr>);
+###      return new Past::Exp($cpast, 'node'=>$_);
+###  }
+
 transform past (Perl6::Grammar::expression) :language('PIR') {
     .local pmc past
 
@@ -140,6 +192,8 @@ transform past (Perl6::Grammar::expression) :language('PIR') {
     past.'init'($P1, 'node'=>node)
     .return (past)
 }
+
+
 
 
 transform past (Perl6::Grammar::expr) :language('PIR') {

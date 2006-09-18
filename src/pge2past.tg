@@ -2,7 +2,7 @@
 
 ###  perl6: 
 ###  transform past (Perl6::Grammar) {
-###      my $past = new PAST::Block(node=>$_, name=>'anon',
+###      my $past = PAST::Block.new(node=>$_, name=>'anon',
 ###                                 blocktype=>'block');
 ###      $?BLOCK := $past;
 ###      my $cpast = self.past_statement_list($_<statement_list>);
@@ -25,9 +25,9 @@ transform past (ROOT) :language('PIR') {
 
 ###  perl6:
 ###  transform past_statement_list (Perl6::Grammar) {
-###      $past = new PAST::Stmts(node=>$_);
+###      $past = PAST::Stmts.new(node=>$_);
 ###      for $_<statement> -> $cnode {
-###          $past.add_child(self.past($cnode, 'statement'));
+###          $past.add_child(self.past_statement($cnode));
 ###      }
 ###      return $past;
 ###  }

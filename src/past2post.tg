@@ -55,8 +55,8 @@ transform post (Perl6::Grammar) :language('PIR') {
     ##   code that is stored as a child of a Block.  The regex
     ##   AST is already reduced to what we want to pass to
     ##   the PGE compiler, so we just return it directly.
-    ##   But clear any 'value' of the Match object, first.
-    node.'value'('')
+    ##   But clear any result_object of the Match object, first.
+    node.'return_object'('')
     .return (node)
 }
 

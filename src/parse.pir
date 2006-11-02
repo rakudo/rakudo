@@ -222,7 +222,7 @@ Handles parsing of the various types of quoted literals.
     ($P0, $P1, $P2, $P3, $P4) = mob.'new'(mob)
     $P3 = litfrom
     $P4 = pos
-    $P0.'value'(literal)
+    $P0.'result_object'(literal)
     $P0['type'] = 'str'
     mob[capt] = $P0
     inc capt

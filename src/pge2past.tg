@@ -81,18 +81,18 @@ transform past (Perl6::Grammar::statement_list) :language('PIR') {
 
 transform past (Perl6::Grammar::statement) :language('PIR') {
     $P0 = node['statement_control']
-    if $P0 goto statement_control
+    unless null $P0 goto statement_control
     $P0 = node['block']
-    if $P0 goto statement_block
+    unless null $P0 goto statement_block
     $P0 = node['use_statement']
-    if $P0 goto statement_use
+    unless null $P0 goto statement_use
 
   expression:
     .local pmc stmt
     $P0 = node['expression']
     stmt = tree.'get'('past', $P0, 'Perl6::Grammar::expression')
     $P0 = node['statement_modifier']
-    unless $P0 goto expression_1
+    if null $P0 goto expression_1
   stmt_modifier:
     # handle if/unless modifier
     .local pmc modifier, exprpast, thenpast, elsepast

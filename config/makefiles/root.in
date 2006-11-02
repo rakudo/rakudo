@@ -22,7 +22,6 @@ all: perl6.pbc
 SOURCES = perl6.pir \
   src/grammar_rules.pg \
   src/grammar_optok.pg \
-  src/grammar_sub.pg \
   src/parse.pir \
   src/PAST.pir \
   src/POST.pir \
@@ -51,7 +50,7 @@ PMC_SOURCES = $(PMCDIR)/perl6str.pmc
 # the default target
 perl6.pbc: $(PARROT) $(PGE_DIR)/pgc.pir $(SOURCES)
 	$(PARROT) $(PGE_DIR)/pgc.pir --output=src/grammar_gen.pir \
-	    src/grammar_rules.pg src/grammar_optok.pg src/grammar_sub.pg
+	    src/grammar_rules.pg src/grammar_optok.pg
 	$(PARROT) $(TGE_DIR)/tgc.pir --output=src/pge2past_gen.pir src/pge2past.tg
 	$(PARROT) $(TGE_DIR)/tgc.pir --output=src/past2post_gen.pir src/past2post.tg
 	$(PARROT) -o perl6.pbc perl6.pir

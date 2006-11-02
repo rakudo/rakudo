@@ -376,6 +376,7 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
     .local pmc block, vdecl
     block = find_global 'Perl6::PAST', '$?BLOCK'
     vdecl = block.'vardecl'(name)
+    if null vdecl goto declare_var
     $I0 = isa vdecl, 'Perl6::PAST::Var'
     if $I0 == 0 goto declare_var
     $S0 = vdecl.'scope'()

@@ -19,7 +19,7 @@ needed for Perl 6.  The currently defined ast nodes:
 
 .namespace [ 'Perl6::PAST' ]
 
-.sub '__onload' :load
+.sub '__onload' :load :init
     .local pmc base
     base = newclass 'Perl6::PAST::Node'
     addattribute base, '@.children'

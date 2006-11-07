@@ -22,7 +22,7 @@ The base class of POST is Perl6::PAST::Node -- see C<lib/PAST.pir>
 
 .namespace [ 'Perl6::POST' ]
 
-.sub '__onload' :load
+.sub '__onload' :load :init
     .local pmc base
     $P0 = getclass 'Perl6::PAST::Node'
     base = subclass $P0, 'Perl6::POST::Node'

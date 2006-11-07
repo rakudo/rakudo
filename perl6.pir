@@ -26,7 +26,7 @@ compiler.
 
 .loadlib 'perl6_group'
 
-.sub '__onload' :load
+.sub '__onload' :load :init
     load_bytecode 'PGE.pbc'
     load_bytecode 'PGE/Text.pbc'
     load_bytecode 'PGE/Util.pbc'

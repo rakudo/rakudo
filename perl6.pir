@@ -31,6 +31,7 @@ compiler.
     load_bytecode 'PGE/Text.pbc'
     load_bytecode 'PGE/Util.pbc'
     load_bytecode 'TGE.pbc'
+    load_bytecode 'Parrot/HLLCompiler.pbc'
 
     $P0 = getclass 'TGE::Grammar'
     $P1 = subclass $P0, 'Perl6::PAST::Grammar'
@@ -42,7 +43,8 @@ compiler.
     $P0 = subclass 'ResizablePMCArray', 'Perl6List'
 
     $P0 = find_global 'Perl6', 'compile'
-    compreg 'Perl6', $P0
+    $P1 = new [ 'HLLCompiler' ]
+    $P1.'register'('Perl6', $P0)
 
     ##   XXX: this is a scaffold to map Perl 6 types into
     ##   the appropriate Parrot class.  We'll likely
@@ -134,13 +136,19 @@ compiled code as a PMC.
 .end
 
 
+.sub 'main' :main
+    .param pmc args
+
+    $P0 = compreg 'Perl6'
+    .return $P0.'command_line'(args)
+.end
+
+
 .include 'src/parse.pir'
 
 .include 'src/PAST.pir'
 
 .include 'src/POST.pir'
-
-.include 'src/main.pir'
 
 .include 'src/builtins_gen.pir'
 

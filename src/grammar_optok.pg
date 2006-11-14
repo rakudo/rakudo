@@ -258,12 +258,14 @@ proto 'infix:===' is equiv('infix:==')
 ## tight and
 proto 'infix:&&' is precedence('10=')
     is pasttype('cond') 
+    is past('if')
     { ... }
 
 
 ## tight or
 proto 'infix:||' is precedence('09=')
     is pasttype('cond') 
+    is past('unless')
     { ... }
 
 proto 'infix:^^' is precedence('09=') is assoc('list')
@@ -278,6 +280,7 @@ proto 'infix://' is equiv('infix:||')
 ## ternary
 proto 'ternary:?? !!' is precedence('08=') is assoc('right')
     is pasttype('cond') 
+    is past('if')
     { ... }
 
 

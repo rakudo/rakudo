@@ -20,6 +20,7 @@ proto 'circumfix:( )' is equiv('term:')
 
 proto 'postcircumfix:( )' is equiv('term:') 
     is pasttype('call')
+    is past('call')
     is expect(0)
     { ... }
 
@@ -59,6 +60,7 @@ proto 'prefix:^' is equiv('prefix:!') { ... }
 ## multiplicative
 proto 'infix:*' is precedence('17=')
     is post('mul')
+    is pirop('n_mul')
     { ... }
 
 proto 'infix:/' is equiv('infix:*')
@@ -98,6 +100,7 @@ proto 'infix:~>' is equiv('infix:*') { ... }
 ## additive
 proto 'infix:+' is precedence('16=')
     is post('add')
+    is pirop('n_add')
     { ... }
 
 proto 'infix:-' is equiv('infix:+')
@@ -269,14 +272,6 @@ proto 'infix:^^' is precedence('09=') is assoc('list')
 
 proto 'infix://' is equiv('infix:||') 
     is pasttype('cond') 
-    { ... }
-
-proto 'infix:min' is equiv('infix:||')
-    is pasttype('cond')
-    { ... }
-
-proto 'infix:max' is equiv('infix:||')
-    is pasttype('cond')
     { ... }
 
 

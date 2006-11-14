@@ -1,0 +1,176 @@
+transform past (ROOT) :language('PIR') {
+    .local pmc past
+    past = new 'PAST::Block'
+    past.'init'('node'=>node, 'name'=>'anon')
+    .local pmc cnode, cpast
+    cnode = node['statement_list']
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::statement_list')
+    past.'push'(cpast)
+    .return (past)
+}
+
+
+transform past (Perl6::Grammar::statement_list) :language('PIR') {
+    .local pmc past
+    past = new 'PAST::Stmts'
+    past.'init'('node'=>node)
+
+    $P0 = node['statement']
+    .local pmc iter
+    iter = new .Iterator, $P0
+  iter_loop:
+    unless iter goto iter_end
+    .local pmc cnode, cpast
+    cnode = shift iter
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::statement')
+    if null cpast goto iter_loop
+    past.'push'(cpast)
+    goto iter_loop
+  iter_end:
+    .return (past)
+}
+
+
+transform past (Perl6::Grammar::statement) :language('PIR') {
+    $P0 = node['expression']
+    .return tree.'get'('past', $P0, 'Perl6::Grammar::expression')
+}
+
+
+transform past (Perl6::Grammar::expression) :language('PIR') {
+    $P0 = node['expr']
+    .return tree.'get'('past', $P0, 'Perl6::Grammar::expr')
+}
+
+
+transform past (Perl6::Grammar::expr) :language('PIR') {
+    .local string type
+    type = node['type']
+    if type == 'term:' goto past_term
+
+    ##   figure out the pasttype/pirop values for the node
+    .local pmc optable, optok
+    .local string pasttype, pirop
+    optable = get_hll_global [ 'Perl6::Grammar' ], '$optable'
+    optok = optable[type]
+    pasttype = optok['past']
+    pirop = optok['pirop']
+
+    .local pmc past, iter
+    past = new 'PAST::Op'
+    past.'init'('node'=>node, 'name'=>type, 'pasttype'=>pasttype, 'pirop'=>pirop)
+
+    $P0 = node.'get_array'()
+    if null $P0 goto iter_end
+    iter = new .Iterator, $P0
+  iter_loop:
+    unless iter goto iter_end
+    .local pmc cnode, cpast
+    cnode = shift iter
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::expr')
+    if null cpast goto iter_loop
+    past.'push'(cpast)
+    goto iter_loop
+  iter_end:
+    .return (past)
+
+  past_term:
+    .return tree.'get'('past_term', node, 'Perl6::Grammar::expr')
+}
+
+
+transform past_term (Perl6::Grammar::expr) :language('PIR') {
+    .local pmc past
+    $I0 = defined node['listop']
+    if $I0 goto term_listop
+    past = tree.'get'('past_term_simple', node)
+    goto term_postop
+  term_listop:
+    past = tree.'get'('past_term_listop', node)
+
+  term_postop:
+    .return (past)
+}
+
+
+transform past_term_simple (Perl6::Grammar::expr) :language('PIR') {
+    .local pmc iter
+    $P0 = node.'get_hash'()
+    iter = new .Iterator, $P0
+  iter_loop:
+    unless iter goto term_error
+    $S0 = shift iter
+    $P0 = iter[$S0]
+    $S1 = concat 'Perl6::Grammar::', $S0
+    .local pmc past
+    past = tree.'get'('past', $P0, $S1)
+    if null past goto iter_loop
+    .return (past)
+
+  term_error:
+    print "error: 'term' node has incorrect structure.\n"
+    end
+}
+
+
+transform past_term_listop (Perl6::Grammar::expr) :language('PIR') {
+    .local pmc past
+    .local string name
+    past = new 'PAST::Val'
+    name = node['listop';'ident']
+    past.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'name'=>name, 'ctype'=>'s')
+    $I0 = defined node['listop_expression']
+    if $I0 == 0 goto no_args
+    .local pmc cnode, cpast
+    cnode = node['listop_expression';0;'expr']
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::expr')
+    $P0 = cpast.'name'()
+    if $P0 == 'infix:,' goto comma_args
+    .return past.'new'('PAST::Op', cpast, 'name'=>name)
+  comma_args:
+    $P0 = cpast.'get_array'()
+    .return past.'new'('PAST::Op', $P0 :flat, 'name'=>name)
+  no_args:
+    .return past.'new'('PAST::Op', 'name'=>name)
+}
+ 
+
+transform past (Perl6::Grammar::integer) :language('PIR') {
+    $S0 = node
+    $I0 = $S0
+    .local pmc past
+    past = new 'PAST::Val'
+    past.'init'('node'=>node, 'vtype'=>'.Integer', 'name'=>$I0, 'ctype'=>'n')
+    .return (past)
+}
+
+
+transform past (Perl6::Grammar::string_literal) :language('PIR') {
+    .local pmc past
+    $P0 = node['quoted_literal']
+    $P0 = $P0.'get_array'()
+    .local pmc iter
+    iter = new .Iterator, $P0
+    null past
+  iter_loop:
+    unless iter goto iter_end
+    .local pmc cnode, cpast
+    cnode = shift iter
+    $S0 = cnode['type']
+    if $S0 == 'str' goto cpast_str
+    cpast = tree.'get'('past', cnode, $S0)
+    goto cpast_add
+  cpast_str:
+    $S0 = cnode
+    cpast = new 'PAST::Val'
+    cpast.'init'('node'=>node, 'vtype'=>"['Perl6Str']", 'ctype'=>'s', 'name'=>$S0)
+  cpast_add:
+    unless null past goto cpast_concat
+    past = cpast
+    goto iter_loop
+  cpast_concat:
+    past = past.'new'('PAST::Op', past, cpast, 'node'=>node, 'name'=>'infix:~')
+    goto iter_loop
+  iter_end:
+    .return (past)
+}

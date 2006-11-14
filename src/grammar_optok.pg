@@ -271,6 +271,14 @@ proto 'infix://' is equiv('infix:||')
     is pasttype('cond') 
     { ... }
 
+proto 'infix:min' is equiv('infix:||')
+    is pasttype('cond')
+    { ... }
+
+proto 'infix:max' is equiv('infix:||')
+    is pasttype('cond')
+    { ... }
+
 
 ## ternary
 proto 'ternary:?? !!' is precedence('08=') is assoc('right')

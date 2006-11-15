@@ -32,8 +32,16 @@ transform past (Perl6::Grammar::statement_list) :language('PIR') {
 
 
 transform past (Perl6::Grammar::statement) :language('PIR') {
+    $P0 = node['use_statement']
+    unless null $P0 goto use_statement
+
+  expression:
     $P0 = node['expression']
     .return tree.'get'('past', $P0, 'Perl6::Grammar::expression')
+
+  use_statement:
+    null $P0
+    .return ($P0)
 }
 
 
@@ -137,7 +145,9 @@ transform past_term_listop (Perl6::Grammar::expr) :language('PIR') {
 
 transform past (Perl6::Grammar::integer) :language('PIR') {
     $S0 = node
-    $I0 = $S0
+    $P0 = new .Perl6Str
+    $P0 = $S0
+    $I0 = $P0
     .local pmc past
     past = new 'PAST::Val'
     past.'init'('node'=>node, 'vtype'=>'.Integer', 'name'=>$I0, 'ctype'=>'n')
@@ -163,7 +173,7 @@ transform past (Perl6::Grammar::string_literal) :language('PIR') {
   cpast_str:
     $S0 = cnode
     cpast = new 'PAST::Val'
-    cpast.'init'('node'=>node, 'vtype'=>"['Perl6Str']", 'ctype'=>'s', 'name'=>$S0)
+    cpast.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'ctype'=>'s', 'name'=>$S0)
   cpast_add:
     unless null past goto cpast_concat
     past = cpast

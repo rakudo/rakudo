@@ -51,6 +51,7 @@ proto 'prefix:~^' is equiv('prefix:!') { ... }
 
 proto 'prefix:+^' is equiv('prefix:!') 
     is post('bnot')                    # perl6-orig
+    is pirop('bnot')
     { ... }
 
 proto 'prefix:?^' is equiv('prefix:!') { ... }
@@ -120,14 +121,17 @@ proto 'infix:+|' is equiv('infix:+')
 
 proto 'infix:+^' is equiv('infix:+')
     is post('bxor')                     # perl6-orig
+    is pirop('bxor')
     { ... }
 
 proto 'infix:~|' is equiv('infix:+')
     is post('bors')                     # perl6-orig
+    is pirop('bors')
     { ... }
 
 proto 'infix:~^' is equiv('infix:+')
     is post('bxors')                    # perl6-orig
+    is pirop('bxors')
     { ... }
 
 proto 'infix:?|' is equiv('infix:+') { ... }
@@ -155,6 +159,7 @@ proto 'prefix:sleep' is equiv('prefix:rand')
 proto 'prefix:abs' is equiv('prefix:rand')
     is nullterm
     is post('abs')                     # perl6-orig
+    is pirop('abs')
     { ... }
 
 proto 'prefix:-w' is equiv('prefix:rand') is nullterm { ... }

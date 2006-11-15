@@ -141,6 +141,18 @@ transform past_term_listop (Perl6::Grammar::expr) :language('PIR') {
   no_args:
     .return past.'new'('PAST::Op', 'name'=>name)
 }
+
+
+transform past (Perl6::Grammar::circumfix) :language('PIR') {
+    $I0 = exists node['expression'; 0]
+    if $I0 == 0 goto return_empty
+    .local pmc cnode
+    cnode = node['expression';0;'expr']
+    .return tree.'get'('past', cnode, 'Perl6::Grammar::expr')
+  return_empty:
+    null $P0
+    .return ($P0)
+}
  
 
 transform past (Perl6::Grammar::integer) :language('PIR') {

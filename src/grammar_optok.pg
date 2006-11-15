@@ -14,12 +14,12 @@ proto 'term:' is precedence('22=')
 ## translation.  (The parsing actually takes place in
 ## the <term> subrule.)
 proto 'circumfix:( )' is equiv('term:')
-    is post('set')
+    is post('set')                     # perl6-orig
     is expect(0)
     { ... }
 
 proto 'postcircumfix:( )' is equiv('term:') 
-    is pasttype('call')
+    is pasttype('call')                # perl6-orig
     is past('call')
     is expect(0)
     { ... }
@@ -39,7 +39,7 @@ proto 'prefix:!' is precedence('18=') { ... }
 proto 'prefix:+' is equiv('prefix:!') { ... }
 
 proto 'prefix:-' is equiv('prefix:!')
-    is post('neg')
+    is post('neg')                     # perl6-orig
     { ... }
 
 proto 'prefix:~' is equiv('prefix:!') { ... }
@@ -50,7 +50,7 @@ proto 'prefix:**' is equiv('prefix:!') { ... }
 proto 'prefix:~^' is equiv('prefix:!') { ... }
 
 proto 'prefix:+^' is equiv('prefix:!') 
-    is post('bnot')
+    is post('bnot')                    # perl6-orig
     { ... }
 
 proto 'prefix:?^' is equiv('prefix:!') { ... }
@@ -59,38 +59,39 @@ proto 'prefix:^' is equiv('prefix:!') { ... }
 
 ## multiplicative
 proto 'infix:*' is precedence('17=')
-    is post('mul')
+    is post('mul')                     # perl6-orig
     is pirop('n_mul')
     { ... }
 
 proto 'infix:/' is equiv('infix:*')
-    is post('div')
+    is post('div')                     # perl6-orig
+    is pirop('n_div')
     { ... }
 
 proto 'infix:%' is equiv('infix:*')
-    is post('mod')
+    is post('mod')                     # perl6-orig
     { ... }
 
 proto 'infix:x' is equiv('infix:*')
-    is post('repeat')
+    is post('repeat')                  # perl6-orig
     { ... }
 
 proto 'infix:xx' is equiv('infix:*') { ... }
 
 proto 'infix:+&' is equiv('infix:*')
-    is post('band')
+    is post('band')                    # perl6-orig
     { ... }
 
 proto 'infix:+<' is equiv('infix:*')
-    is post('shl')
+    is post('shl')                     # perl6-orig
     { ... }
 
 proto 'infix:+>' is equiv('infix:*')
-    is post('shr')
+    is post('shr')                     # perl6-orig
     { ... }
 
 proto 'infix:~&' is equiv('infix:*')
-    is pir("    %r = bands %0, %1")
+    is pir("    %r = bands %0, %1")    # perl6-orig
     { ... }
 
 proto 'infix:~<' is equiv('infix:*') { ... }
@@ -99,33 +100,34 @@ proto 'infix:~>' is equiv('infix:*') { ... }
 
 ## additive
 proto 'infix:+' is precedence('16=')
-    is post('add')
+    is post('add')                      # perl6-orig
     is pirop('n_add')
     { ... }
 
 proto 'infix:-' is equiv('infix:+')
-    is post('sub')
+    is post('sub')                      # perl6-orig
+    is pirop('n_sub')
     { ... }
 
 proto 'infix:~' is equiv('infix:+')
-    is post('concat')
+    is post('concat')                   # perl6-orig
     is returns('Str')
     { ... }
 
 proto 'infix:+|' is equiv('infix:+')
-    is post('bor')
+    is post('bor')                      # perl6-orig
     { ... }
 
 proto 'infix:+^' is equiv('infix:+')
-    is post('bxor')
+    is post('bxor')                     # perl6-orig
     { ... }
 
 proto 'infix:~|' is equiv('infix:+')
-    is post('bors')
+    is post('bors')                     # perl6-orig
     { ... }
 
 proto 'infix:~^' is equiv('infix:+')
-    is post('bxors')
+    is post('bxors')                    # perl6-orig
     { ... }
 
 proto 'infix:?|' is equiv('infix:+') { ... }
@@ -152,7 +154,7 @@ proto 'prefix:sleep' is equiv('prefix:rand')
 
 proto 'prefix:abs' is equiv('prefix:rand')
     is nullterm
-    is post('abs')
+    is post('abs')                     # perl6-orig
     { ... }
 
 proto 'prefix:-w' is equiv('prefix:rand') is nullterm { ... }
@@ -365,7 +367,7 @@ proto 'infix:err' is equiv('infix:or')
 ## expression terminator
 proto 'infix:;' is precedence('01=') is assoc('list')
     is nullterm
-    is post('set')
+    is post('set')                     # perl6-orig
     { ... }
 
 

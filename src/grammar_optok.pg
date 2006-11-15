@@ -276,7 +276,8 @@ proto 'infix:||' is precedence('09=')
     { ... }
 
 proto 'infix:^^' is precedence('09=') is assoc('list')
-    is pasttype('xor') 
+    is pasttype('xor')                 # perl6-orig
+    is past('xor')
     { ... }
 
 proto 'infix://' is equiv('infix:||') 
@@ -286,14 +287,15 @@ proto 'infix://' is equiv('infix:||')
 
 ## ternary
 proto 'ternary:?? !!' is precedence('08=') is assoc('right')
-    is pasttype('cond') 
+    is pasttype('cond')                # perl6-orig
     is past('if')
     { ... }
 
 
 ## assignment
 proto 'infix:=' is precedence('07=') is assoc('right')
-    is pasttype('assign') 
+    is pasttype('assign')              # perl6-orig
+    is past('assign')
     { ... }
 
 proto 'infix::=' is equiv('infix:=') { ... }
@@ -351,21 +353,24 @@ proto 'infix:==>' is precedence('04=') { ... }
 
 ## loose and
 proto 'infix:and' is precedence('03=')
-    is pasttype('cond') 
+    is pasttype('cond')                # perl6-orig
+    is past('if')
     { ... }
 
 
 ## loose or
 proto 'infix:or' is precedence('02=')
-    is pasttype('cond') 
+    is pasttype('cond')                # perl6-orig
+    is past('unless')
     { ... }
 
 proto 'infix:xor' is equiv('infix:or')
-    is pasttype('xor') 
+    is pasttype('xor')                 # perl6-orig
+    is past('xor')
     { ... }
 
 proto 'infix:err' is equiv('infix:or') 
-    is pasttype('cond')
+    is pasttype('cond')                # perl6-orig
     { ... }
 
 
@@ -373,15 +378,16 @@ proto 'infix:err' is equiv('infix:or')
 proto 'infix:;' is precedence('01=') is assoc('list')
     is nullterm
     is post('set')                     # perl6-orig
+    is pirop('set')
     { ... }
 
 
 ## statement control
-##    XXX: This isn't really being used for parsing in the 
-##    expression parser, but is here as a convenient means
-##    of setting the pasttype trait for if/unless statements
-##    and modifiers.
-proto 'statement_control:if' is pasttype('cond') { ... }
+##    XXX: This isn't really being used for parsing in the     # perl6-orig
+##    expression parser, but is here as a convenient means     # perl6-orig
+##    of setting the pasttype trait for if/unless statements   # perl6-orig
+##    and modifiers.                                           # perl6-orig
+proto 'statement_control:if' is pasttype('cond') { ... }       # perl6-orig
 
 
 ## vim: expandtab sw=4

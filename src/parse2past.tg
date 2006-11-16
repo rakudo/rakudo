@@ -10,6 +10,17 @@ transform past (ROOT) :language('PIR') {
 }
 
 
+transform past (Perl6::Grammar::block) :language('PIR') {
+    .local pmc past, cnode, cpast
+    past = new 'PAST::Block'
+    past.'init'('node'=>node, 'blocktype'=>'immediate')
+    cnode = node['statement_list']
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::statement_list')
+    past.'push'(cpast)
+    .return (past)
+}
+
+
 transform past (Perl6::Grammar::statement_list) :language('PIR') {
     .local pmc past
     past = new 'PAST::Stmts'
@@ -34,6 +45,10 @@ transform past (Perl6::Grammar::statement_list) :language('PIR') {
 transform past (Perl6::Grammar::statement) :language('PIR') {
     $P0 = node['use_statement']
     unless null $P0 goto use_statement
+    $P0 = node['block']
+    unless null $P0 goto block
+    $P0 = node['statement_control']
+    unless null $P0 goto statement_control
 
   expression:
     $P0 = node['expression']
@@ -42,6 +57,50 @@ transform past (Perl6::Grammar::statement) :language('PIR') {
   use_statement:
     null $P0
     .return ($P0)
+  block:
+    .return tree.'get'('past', $P0, 'Perl6::Grammar::block')
+  statement_control:
+    .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_control')
+}
+
+
+transform past (Perl6::Grammar::statement_control) :language('PIR') {
+    .local pmc exprlist, blocklist
+    exprlist = node['expression']
+    blocklist = node['block']
+
+    ##   do we have an else clause?
+    .local pmc elsenode, elsepast
+    .local int exprc, blockc
+    null elsepast
+  else_block:
+    exprc = elements exprlist
+    blockc = elements blocklist
+    if blockc <= exprc goto expr_block_pair
+    dec blockc
+    elsenode = blocklist[blockc]
+    elsepast = tree.'get'('past', elsenode, 'Perl6::Grammar::block')
+    elsepast.'blocktype'('immediate')
+  
+  expr_block_pair:
+    ##   each remaining block is paired with an "if" (or "elsif")
+    ##   expression, except the first which could be "unless".
+    .local pmc exprnode, exprpast, thennode, thenpast
+    dec exprc
+    exprnode = exprlist[exprc]
+    exprpast = tree.'get'('past', exprnode, 'Perl6::Grammar::expression')
+    thennode = blocklist[exprc]
+    thenpast = tree.'get'('past', thennode, 'Perl6::Grammar::block')
+    thenpast.'blocktype'('immediate')
+    .local pmc past
+    past = new 'PAST::Op'
+    past.'init'(exprpast, thenpast, elsepast, 'node'=>node, 'pasttype'=>'if')
+    elsepast = past
+    if exprc > 0 goto expr_block_pair
+    .local string key
+    key = node['KEY']
+    past.'pasttype'(key)
+    .return (past)
 }
 
 
@@ -196,3 +255,26 @@ transform past (Perl6::Grammar::string_literal) :language('PIR') {
   iter_end:
     .return (past)
 }
+
+
+transform past (Perl6::Grammar::scoped_variables) :language('PIR') {
+    .local string name
+    name = node['variable']
+    .local pmc past
+    past = new 'PAST::Var'
+    past.'init'('node'=>node, 'name'=>name)
+    .return (past)
+}
+
+
+transform past (Perl6::Grammar::variable) :language('PIR') {
+    .local string name
+    name = node
+    .local pmc past
+    past = new 'PAST::Var'
+    past.'init'('node'=>node, 'name'=>name)
+
+    .return (past)
+}
+
+

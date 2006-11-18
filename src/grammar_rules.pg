@@ -143,14 +143,17 @@ token term {
     | <number>
     | <integer>
     | <string_literal>
-    | <listop> [ <postop> | <listop_expression> ]?
+    | <listop> 
     | <circumfix>
     ] <postop>*
 }
 
 
-token postop { <?dot>? [ <postfix> | <postcircumfix> ] }
-## XXX: Eventually this will likely read <%postfix | %postcircumfix>.
+token postop { 
+    | <?dot> [ <postfix> | <postcircumfix> | <methodop> ] 
+    |        [ <postfix> | <postcircumfix> ]
+}
+## FIXME: Eventually this will likely read <%postfix | %postcircumfix>.
 ## And we may have to deal with precedence issues somewhere.
 
 token dot { \. | [ \\ <?ws> ]? \. }
@@ -163,16 +166,14 @@ token postcircumfix {
     | $<KEY>:=[\{] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\}]
 }
 
+token methodop { <ident> [ <!postop> <listop_expression> ]? }
+token listop { <ident> [ <!postop> <listop_expression> ]? }
+
 token circumfix {
     | $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
     | $<KEY>:=[\[] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\]]
 }
 
-## The <listop> rule matches a list operator and its list arguments,
-## if any.  Currently <reserved_word> is here as a protective measure,
-## eventually it should be taken out.
-
-token listop { <reserved_word> ::: <fail> | <ident> }
 token reserved_word { [ if | unless | while | until | for | loop | do ] \b }
 
 ## This is a temporary rule that allows parsing of /regex/

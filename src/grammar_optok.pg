@@ -25,10 +25,10 @@ proto 'postcircumfix:( )' is equiv('term:')
     { ... }
 
 ## autoincrement
-proto 'postfix:++' is precedence('20=') { ... }
-proto 'postfix:--' is equiv('postfix:++') { ... }
-proto 'prefix:++' is equiv('postfix:++') { ... }
-proto 'prefix:--' is equiv('postfix:++') { ... }
+proto 'postfix:++' is precedence('20=') is lvalue(1) { ... }
+proto 'postfix:--' is equiv('postfix:++') is lvalue(1) { ... }
+proto 'prefix:++' is equiv('postfix:++') is lvalue(1) { ... }
+proto 'prefix:--' is equiv('postfix:++') is lvalue(1) { ... }
 
 
 ## exponentiation
@@ -296,6 +296,7 @@ proto 'ternary:?? !!' is precedence('08=') is assoc('right')
 proto 'infix:=' is precedence('07=') is assoc('right')
     is pasttype('assign')              # perl6-orig
     is past('assign')
+    is lvalue(1)
     { ... }
 
 proto 'infix::=' is equiv('infix:=') { ... }

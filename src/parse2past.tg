@@ -118,26 +118,29 @@ transform past (Perl6::Grammar::expr) :language('PIR') {
     ##   figure out the pasttype/pirop values for the node
     .local pmc optable, optok
     .local string pasttype, pirop
+    .local int islvalue
     optable = get_hll_global [ 'Perl6::Grammar' ], '$optable'
     optok = optable[type]
     pasttype = optok['past']
     pirop = optok['pirop']
+    islvalue = optok['lvalue']
 
     .local pmc past, iter
     past = new 'PAST::Op'
-    past.'init'('node'=>node, 'name'=>type, 'pasttype'=>pasttype, 'pirop'=>pirop)
+    past.'init'('node'=>node, 'name'=>type, 'pasttype'=>pasttype, 'pirop'=>pirop, 'islvalue'=>islvalue)
 
     $P0 = node.'get_array'()
     if null $P0 goto iter_end
     iter = new .Iterator, $P0
-  iter_loop:
     unless iter goto iter_end
+    $P0[0;'islvalue'] = islvalue
+  iter_loop:
     .local pmc cnode, cpast
     cnode = shift iter
     cpast = tree.'get'('past', cnode, 'Perl6::Grammar::expr')
     if null cpast goto iter_loop
     past.'push'(cpast)
-    goto iter_loop
+    if iter goto iter_loop
   iter_end:
     .return (past)
 
@@ -147,72 +150,154 @@ transform past (Perl6::Grammar::expr) :language('PIR') {
 
 
 transform past_term (Perl6::Grammar::expr) :language('PIR') {
-    .local pmc past
-    $I0 = defined node['listop']
-    if $I0 goto term_listop
-    past = tree.'get'('past_term_simple', node)
-    goto term_postop
-  term_listop:
-    past = tree.'get'('past_term_listop', node)
-
-  term_postop:
-    .return (past)
-}
-
-
-transform past_term_simple (Perl6::Grammar::expr) :language('PIR') {
-    .local pmc iter
+    .local int islvalue
+    islvalue = node['islvalue']
+    
+    .local pmc kv, cnode
+    .local string cname
     $P0 = node.'get_hash'()
-    iter = new .Iterator, $P0
-  iter_loop:
-    unless iter goto term_error
-    $S0 = shift iter
-    $P0 = iter[$S0]
-    $S1 = concat 'Perl6::Grammar::', $S0
-    .local pmc past
-    past = tree.'get'('past', $P0, $S1)
-    if null past goto iter_loop
-    .return (past)
+    kv = new .Iterator, $P0
+  cname_loop:
+    cname = shift kv
+    if cname == 'postop' goto cname_loop
+    cnode = kv[cname]
 
-  term_error:
-    print "error: 'term' node has incorrect structure.\n"
-    end
+    .local pmc iter, pnode
+    .local string pname
+    $P0 = node['postop']
+    if null $P0 goto postop_end
+    iter = new .Iterator, $P0
+  postop_loop:
+    unless iter goto postop_end
+    pnode = shift iter
+    $P0 = pnode.'get_hash'()
+    kv = new .Iterator, $P0
+    pname = shift kv
+    pnode = pnode[pname]
+    pnode['cname'] = cname
+    pnode['cnode'] = cnode
+    cname = pname
+    cnode = pnode
+    goto postop_loop
+
+  postop_end:
+    cnode['islvalue'] = islvalue
+    $S0 = concat 'Perl6::Grammar::', cname
+    .return tree.'get'('past', cnode, $S0)
 }
 
 
-transform past_term_listop (Perl6::Grammar::expr) :language('PIR') {
+transform past (Perl6::Grammar::postfix) :language('PIR') {
+    .local string cname
+    .local pmc cnode, cpast
+    cname = node['cname']
+    cnode = node['cnode']
+    $S0 = concat 'Perl6::Grammar::', cname
+    cpast = tree.'get'('past', cnode, $S0)
+
+    .local string key, type
+    .local pmc past
+    key = node['KEY']
+    type = concat 'postfix:', key
+    .return cpast.'new'('PAST::Op', cpast, 'node'=>node, 'name'=>type)
+}
+
+
+transform past (Perl6::Grammar::postcircumfix) :language('PIR') {
+    ##   Handle islvalue [always zero for postcircumfix:( ) ]
+    .local string key
+    key = node['KEY']
+
+    .local int islvalue
+    islvalue = node['islvalue']
+
+    ##   process the node we're circumfixing
+    .local string cname, type
+    .local pmc cnode, cpast, past
+    cname = node['cname']
+    cnode = node['cnode']
+    cnode['islvalue'] = islvalue
+    $S0 = concat 'Perl6::Grammar::', cname
+    cpast = tree.'get'('past', cnode, $S0)
+
+    ##   if we have an expression, let's get that
+    .local pmc xnode, xpast, xargs
+    null xpast
+    xargs = new .Undef
+    $P0 = node['expression']
+    if null $P0 goto have_xargs
+    xnode = $P0[0]
+    xpast = tree.'get'('past', xnode, 'Perl6::Grammar::expression')
+    $S0 = xpast.'name'()
+    if $S0 == 'infix:,' goto comma_args
+    xargs = new .ResizablePMCArray
+    push xargs, xpast
+    goto have_xargs
+  comma_args:
+    xargs = xpast.'get_array'()
+  have_xargs:
+
+    $S0 = node['KEY']
+    if $S0 == '(' goto postcfix_paren
+    if $S0 == '[' goto postcfix_bracket
+
+  postcfix_brace:
+    cpast.'viviself'('.Hash')
+    .return cpast.'new'('PAST::Var', cpast, xpast, 'node'=>node, 'scope'=>'keyed', 'viviself'=>'.Undef', 'islvalue'=>islvalue)
+
+  postcfix_bracket:
+    cpast.'viviself'('.ResizablePMCArray')
+    .return cpast.'new'('PAST::Var', cpast, xpast, 'node'=>node, 'scope'=>'keyed', 'viviself'=>'.Undef', 'islvalue'=>islvalue)
+
+  postcfix_paren:
+    if cname == 'listop' goto add_xargs
+    if cname == 'methodop' goto add_xargs
+    .return cpast.'new'('PAST::Op', cpast, xargs :flat, 'node'=>node, 'pasttype'=>'call')
+
+    ##  add our expression to the listop
+  add_xargs:
+    unless xargs goto iter_end
+    .local pmc iter
+    iter = new .Iterator, xargs
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    cpast.'push'($P0)
+    goto iter_loop
+  iter_end:
+    .return (cpast)
+}
+
+
+transform past (Perl6::Grammar::listop) :language('PIR') {
     .local pmc past
     .local string name
-    past = new 'PAST::Val'
-    name = node['listop';'ident']
-    past.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'name'=>name, 'ctype'=>'s')
-    $I0 = defined node['listop_expression']
-    if $I0 == 0 goto no_args
+    name = node['ident']
+    past = new 'PAST::Op'
+    $P0 = node['listop_expression']
+    if null $P0 goto no_args
     .local pmc cnode, cpast
-    cnode = node['listop_expression';0;'expr']
-    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::expr')
+    cnode = $P0[0]
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::expression')
     $P0 = cpast.'name'()
     if $P0 == 'infix:,' goto comma_args
-    .return past.'new'('PAST::Op', cpast, 'name'=>name)
+    past.'init'(cpast, 'node'=>node, 'name'=>name)
+    .return (past)
   comma_args:
     $P0 = cpast.'get_array'()
-    .return past.'new'('PAST::Op', $P0 :flat, 'name'=>name)
+    past.'init'($P0 :flat, 'node'=>node, 'name'=>name)
   no_args:
-    .return past.'new'('PAST::Op', 'name'=>name)
+    past.'init'('node'=>node, 'name'=>name)
+    .return (past)
 }
 
 
 transform past (Perl6::Grammar::circumfix) :language('PIR') {
-    $I0 = exists node['expression'; 0]
-    if $I0 == 0 goto return_empty
     .local pmc cnode
-    cnode = node['expression';0;'expr']
-    .return tree.'get'('past', cnode, 'Perl6::Grammar::expr')
-  return_empty:
-    null $P0
-    .return ($P0)
+    cnode = node['expression';0]
+    .return tree.'get'('past', cnode, 'Perl6::Grammar::expression')
 }
- 
+    
 
 transform past (Perl6::Grammar::integer) :language('PIR') {
     $S0 = node
@@ -258,22 +343,37 @@ transform past (Perl6::Grammar::string_literal) :language('PIR') {
 
 
 transform past (Perl6::Grammar::scoped_variables) :language('PIR') {
-    .local string name
-    name = node['variable']
-    .local pmc past
-    past = new 'PAST::Var'
-    past.'init'('node'=>node, 'name'=>name)
-    .return (past)
+    .local pmc cnode
+    cnode = node['variable']
+    .local int islvalue
+    islvalue = node['islvalue']
+    cnode['islvalue'] = islvalue
+    .return tree.'get'('past', cnode, 'Perl6::Grammar::variable')
 }
 
 
 transform past (Perl6::Grammar::variable) :language('PIR') {
-    .local string name
+    .local string name, sigil
+    .local int islvalue
     name = node
+    sigil = node['sigil']
+    islvalue = node['islvalue']
+
+    .local string viviself
+    if sigil == '@' goto sigil_array
+    if sigil == '%' goto sigil_hash
+    viviself = '.Undef'
+    goto have_viviself
+  sigil_array:
+    viviself = '.ResizablePMCArray'
+    goto have_viviself
+  sigil_hash:
+    viviself = '.Hash'
+  have_viviself:
+    
     .local pmc past
     past = new 'PAST::Var'
-    past.'init'('node'=>node, 'name'=>name)
-
+    past.'init'('node'=>node, 'name'=>name, 'viviself' => viviself, 'islvalue'=>islvalue)
     .return (past)
 }
 

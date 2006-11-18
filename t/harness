@@ -4,7 +4,7 @@
 
 use FindBin;
 use lib qw( . lib ../lib ../../lib ../../lib );
-use Parrot::Test::Harness language => 'perl6', compiler => 'perl6-orig.pbc';
+use Parrot::Test::Harness language => 'perl6', compiler => 'perl6.pbc';
 
 # Set up PERL6LIB environment path so the "use" tests can find libraries
 $ENV{PERL6LIB} = "$Bin/01-sanity";

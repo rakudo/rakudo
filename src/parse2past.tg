@@ -306,7 +306,7 @@ transform past (Perl6::Grammar::integer) :language('PIR') {
     $I0 = $P0
     .local pmc past
     past = new 'PAST::Val'
-    past.'init'('node'=>node, 'vtype'=>'.Integer', 'name'=>$I0, 'ctype'=>'n')
+    past.'init'('node'=>node, 'vtype'=>'.Integer', 'name'=>$I0, 'ctype'=>'i+')
     .return (past)
 }
 
@@ -329,7 +329,7 @@ transform past (Perl6::Grammar::string_literal) :language('PIR') {
   cpast_str:
     $S0 = cnode
     cpast = new 'PAST::Val'
-    cpast.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'ctype'=>'s', 'name'=>$S0)
+    cpast.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'ctype'=>'s~', 'name'=>$S0)
   cpast_add:
     unless null past goto cpast_concat
     past = cpast

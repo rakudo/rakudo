@@ -1,22 +1,33 @@
 transform past (ROOT) :language('PIR') {
-    .local pmc past
+    .local pmc symtable, past, outerblock
+    outerblock = get_global '$?BLOCK'
+    symtable = new .Hash
     past = new 'PAST::Block'
-    past.'init'('node'=>node, 'name'=>'anon')
+    past.'init'('node'=>node, 'name'=>'anon', 'symtable'=>symtable)
+    set_global '$?BLOCK', past
     .local pmc cnode, cpast
     cnode = node['statement_list']
     cpast = tree.'get'('past', cnode, 'Perl6::Grammar::statement_list')
     past.'push'(cpast)
+    set_global '$?BLOCK', outerblock
     .return (past)
 }
 
 
 transform past (Perl6::Grammar::block) :language('PIR') {
+    .local pmc outerblock, symtable
+    outerblock = get_global '$?BLOCK'
+    symtable = outerblock.'symtable'()
+    symtable = clone symtable
+
     .local pmc past, cnode, cpast
     past = new 'PAST::Block'
-    past.'init'('node'=>node, 'blocktype'=>'immediate')
+    past.'init'('node'=>node, 'blocktype'=>'immediate', 'symtable'=>symtable)
+    set_global '$?BLOCK', past
     cnode = node['statement_list']
     cpast = tree.'get'('past', cnode, 'Perl6::Grammar::statement_list')
     past.'push'(cpast)
+    set_global '$?BLOCK', outerblock
     .return (past)
 }
 
@@ -343,12 +354,29 @@ transform past (Perl6::Grammar::string_literal) :language('PIR') {
 
 
 transform past (Perl6::Grammar::scoped_variables) :language('PIR') {
-    .local pmc cnode
+    .local pmc cnode, cpast
     cnode = node['variable']
+    .local string name
+    name = cnode
+
+    .local string scopedecl, scope
+    scope = 'package'
+    scopedecl = node['scope_declarator']
+    if scopedecl == 'our' goto have_scope
+    scope = 'lexical'
+  have_scope:
+
+    .local pmc block, symtable
+    block = get_global '$?BLOCK'
+    symtable = block.'symtable'()
+    symtable[name] = scope
+
     .local int islvalue
     islvalue = node['islvalue']
     cnode['islvalue'] = islvalue
-    .return tree.'get'('past', cnode, 'Perl6::Grammar::variable')
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::variable')
+    cpast.'ismy'(1)
+    .return (cpast)
 }
 
 
@@ -370,10 +398,16 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
   sigil_hash:
     viviself = '.Hash'
   have_viviself:
-    
+
+    .local pmc block, symtable
+    block = get_global '$?BLOCK'
+    symtable = block.'symtable'()
+    .local string scope
+    scope = symtable[name]
+
     .local pmc past
     past = new 'PAST::Var'
-    past.'init'('node'=>node, 'name'=>name, 'viviself' => viviself, 'islvalue'=>islvalue)
+    past.'init'('node'=>node, 'name'=>name, 'viviself' => viviself, 'islvalue'=>islvalue, 'scope'=>scope)
     .return (past)
 }
 

@@ -253,7 +253,7 @@ transform past (Perl6::Grammar::postcircumfix) :language('PIR') {
     if $S0 == '[' goto postcfix_bracket
 
   postcfix_brace:
-    cpast.'viviself'('.Hash')
+    cpast.'viviself'("'Perl6Hash'")
     .return cpast.'new'('PAST::Var', cpast, xpast, 'node'=>node, 'scope'=>'keyed', 'viviself'=>'.Undef', 'islvalue'=>islvalue)
 
   postcfix_bracket:
@@ -396,7 +396,7 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
     viviself = "'Perl6List'"
     goto have_viviself
   sigil_hash:
-    viviself = '.Hash'
+    viviself = "'Perl6Hash'"
   have_viviself:
 
     .local pmc block, symtable

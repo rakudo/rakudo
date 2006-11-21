@@ -280,6 +280,37 @@ transform past (Perl6::Grammar::postcircumfix) :language('PIR') {
 }
 
 
+transform past (Perl6::Grammar::methodop) :language('PIR') {
+    .local string cname
+    .local pmc cnode, cpast
+    cname = node['cname']
+    cnode = node['cnode']
+    $S0 = concat 'Perl6::Grammar::', cname
+    cpast = tree.'get'('past', cnode, $S0)
+
+    .local pmc past
+    .local string name
+    name = node['ident']
+    past = new 'PAST::Op'
+    $P0 = node['listop_expression']
+    if null $P0 goto no_args
+    .local pmc anode, apast
+    anode = $P0[0]
+    apast = tree.'get'('past', anode, 'Perl6::Grammar::expression')
+    $S0 = apast.'name'()
+    if $S0 == 'infix:,' goto comma_args
+    past.'init'(cpast, apast, 'node'=>node, 'name'=>name, 'pirop'=>'callmethod')
+    .return (past)
+  comma_args:
+    $P0 = apast.'get_array'()
+    past.'init'(cpast, $P0 :flat, 'node'=>node, 'name'=>name, 'pirop'=>'callmethod')
+    .return (past)
+  no_args:
+    past.'init'(cpast, 'node'=>node, 'name'=>name, 'pirop'=>'callmethod')
+    .return (past)
+}
+
+
 transform past (Perl6::Grammar::listop) :language('PIR') {
     .local pmc past
     .local string name
@@ -290,8 +321,8 @@ transform past (Perl6::Grammar::listop) :language('PIR') {
     .local pmc cnode, cpast
     cnode = $P0[0]
     cpast = tree.'get'('past', cnode, 'Perl6::Grammar::expression')
-    $P0 = cpast.'name'()
-    if $P0 == 'infix:,' goto comma_args
+    $S0 = cpast.'name'()
+    if $S0 == 'infix:,' goto comma_args
     past.'init'(cpast, 'node'=>node, 'name'=>name)
     .return (past)
   comma_args:

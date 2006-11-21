@@ -227,9 +227,8 @@ token string_literal {
 ## Subroutine parsing.  This is still under development.
 
 rule subroutine {
-    [<scope_declarator> $<rettype>:=<type>?]?
-        <subintro>
-        <ident>?
+    <scope_declarator>? <routine_modifier>?
+        <routine_type> <ident>?
         <trait>*
         [\( <signature> \)]?
         <block>}

@@ -163,7 +163,7 @@ transform past (Perl6::Grammar::expr) :language('PIR') {
 transform past_term (Perl6::Grammar::expr) :language('PIR') {
     .local int islvalue
     islvalue = node['islvalue']
-    
+
     .local pmc kv, cnode
     .local string cname
     $P0 = node.'get_hash'()
@@ -443,3 +443,58 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
 }
 
 
+transform past (Perl6::Grammar::subroutine) :language('PIR') {
+    .local pmc outerblock, symtable
+    outerblock = get_global '$?BLOCK'
+    symtable = outerblock.'symtable'()
+    symtable = clone symtable
+
+    .local pmc past
+    past = new 'PAST::Block'
+    past.'init'('node'=>node, 'blocktype'=>'sub', 'symtable'=>symtable)
+    set_global '$?BLOCK', past
+
+    $P0 = node['ident']
+    if null $P0 goto have_name
+    .local string name
+    name = node['ident';0]
+    past.'name'(name)
+  have_name:
+
+    $P0 = node['signature']
+    if null $P0 goto done_signature
+    unless $P0 goto done_signature
+    $P0 = node['signature';0;'paramlist';'parameter']
+    .local pmc iter, pnode, ppast
+    iter = new .Iterator, $P0
+  param_loop:
+    unless iter goto done_signature
+    pnode = shift iter
+    ppast = tree.'get'('past', pnode, 'Perl6::Grammar::parameter')
+    past.'push'(ppast)
+    goto param_loop
+  done_signature:
+
+    .local pmc cnode, cpast
+    cnode = node['block'; 'statement_list']
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::statement_list')
+    past.'push'(cpast)
+    set_global '$?BLOCK', outerblock
+    .return (past)
+}
+
+
+transform past (Perl6::Grammar::parameter) :language('PIR') {
+    .local string name
+    name = node['variable']
+
+    .local pmc block, symtable
+    block = get_global '$?BLOCK'
+    symtable = block.'symtable'()
+    symtable[name] = 'lexical'
+
+    .local pmc past
+    past = new 'PAST::Var'
+    past.'init'('node'=>node, 'name'=>name, 'scope'=>'parameter')
+    .return (past)
+}

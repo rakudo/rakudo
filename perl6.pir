@@ -40,7 +40,6 @@ compiler.
     $P0 = subclass 'PGE::Match', 'Match'
     $P0 = subclass 'Match', 'Grammar'
     $P0 = subclass 'Grammar', 'Perl6::Grammar'
-    $P0 = subclass 'ResizablePMCArray', 'Perl6List'
 
     $P0 = find_global 'Perl6', 'compile'
     $P1 = new [ 'HLLCompiler' ]

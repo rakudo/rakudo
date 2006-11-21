@@ -257,7 +257,7 @@ transform past (Perl6::Grammar::postcircumfix) :language('PIR') {
     .return cpast.'new'('PAST::Var', cpast, xpast, 'node'=>node, 'scope'=>'keyed', 'viviself'=>'.Undef', 'islvalue'=>islvalue)
 
   postcfix_bracket:
-    cpast.'viviself'('.ResizablePMCArray')
+    cpast.'viviself'("'Perl6List'")
     .return cpast.'new'('PAST::Var', cpast, xpast, 'node'=>node, 'scope'=>'keyed', 'viviself'=>'.Undef', 'islvalue'=>islvalue)
 
   postcfix_paren:
@@ -393,7 +393,7 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
     viviself = '.Undef'
     goto have_viviself
   sigil_array:
-    viviself = '.ResizablePMCArray'
+    viviself = "'Perl6List'"
     goto have_viviself
   sigil_hash:
     viviself = '.Hash'

@@ -58,6 +58,12 @@ src/builtins/list.pir - Perl 6 List class
 .end
 
 
+.sub 'elems' :method
+    $I0 = elements self
+    .return ($I0)
+.end
+
+
 =item C<list(...)>
 
 Build a Perl6List from its arguments.

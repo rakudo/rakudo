@@ -2,10 +2,14 @@
 
 past_perl6.pir - PAST support routines for perl6
 
-=head2 DESCRIPTION
+=head1 DESCRIPTION
 
 This file contains support routines for PAST nodes in the perl6
 compiler.
+
+=head1 METHODS
+
+=over 4
 
 =item init_perl6([ child1, child2, ... , ] [ 'attr1' => value1, ... ])
 
@@ -102,3 +106,8 @@ C<name>.
     mydecl[name] = value
     .return (value)
 .end
+
+
+=back
+
+=cut

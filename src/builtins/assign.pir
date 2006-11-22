@@ -18,8 +18,8 @@ src/builtins/inplace.pir - Inplace assignments
 
 
 .sub 'infix:~='
-    .param string a
-    .param string b
+    .param pmc a
+    .param pmc b
     concat a, b
     .return (a)
 .end

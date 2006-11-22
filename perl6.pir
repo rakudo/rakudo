@@ -109,6 +109,8 @@ compiled code as a PMC.
 
 .include 'src/builtins_gen.pir'
 
+.include 'src/past_perl6.pir'
+
 .namespace [ 'Perl6::Grammar' ]
 .include 'src/grammar_gen.pir'
 

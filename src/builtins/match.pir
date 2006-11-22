@@ -23,7 +23,6 @@ src/builtins/match.pir - Perl6 builtins for smart matching
     .return (match)
 .end
 
-
 .sub 'infix:~~' :multi(_, Integer)
     .param pmc topic
     .param pmc x

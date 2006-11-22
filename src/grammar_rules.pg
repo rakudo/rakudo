@@ -177,7 +177,7 @@ token circumfix {
 token reserved_word { [ if | unless | while | until | for | loop | do ] \b }
 
 ## This is a temporary rule that allows parsing of /regex/
-## in term position.  XXX: It is likely to change.
+## in term position.  It is likely to change.
 
 token regex_term { / <regex: /> / }
 

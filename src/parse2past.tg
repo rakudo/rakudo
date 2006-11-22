@@ -1,9 +1,9 @@
 transform past (ROOT) :language('PIR') {
-    .local pmc symtable, past, outerblock
+    .local pmc outerblock, past
     outerblock = get_global '$?BLOCK'
-    symtable = new .Hash
     past = new 'PAST::Block'
-    past.'init'('node'=>node, 'name'=>'anon', 'symtable'=>symtable)
+    past.'init_perl6'('node'=>node, 'name'=>'anon')
+    past.'init_lexicals'()
     set_global '$?BLOCK', past
     .local pmc cnode, cpast
     cnode = node['statement_list']
@@ -15,15 +15,13 @@ transform past (ROOT) :language('PIR') {
 
 
 transform past (Perl6::Grammar::block) :language('PIR') {
-    .local pmc outerblock, symtable
+    .local pmc outerblock, past
     outerblock = get_global '$?BLOCK'
-    symtable = outerblock.'symtable'()
-    symtable = clone symtable
-
-    .local pmc past, cnode, cpast
     past = new 'PAST::Block'
-    past.'init'('node'=>node, 'blocktype'=>'immediate', 'symtable'=>symtable)
+    past.'init_perl6'('node'=>node, 'blocktype'=>'immediate')
+    past.'init_lexicals'()
     set_global '$?BLOCK', past
+    .local pmc past, cnode, cpast
     cnode = node['statement_list']
     cpast = tree.'get'('past', cnode, 'Perl6::Grammar::statement_list')
     past.'push'(cpast)
@@ -339,7 +337,7 @@ transform past (Perl6::Grammar::circumfix) :language('PIR') {
     cnode = node['expression';0]
     .return tree.'get'('past', cnode, 'Perl6::Grammar::expression')
 }
-    
+
 
 transform past (Perl6::Grammar::integer) :language('PIR') {
     $S0 = node
@@ -371,7 +369,7 @@ transform past (Perl6::Grammar::string_literal) :language('PIR') {
   cpast_str:
     $S0 = cnode
     cpast = new 'PAST::Val'
-    cpast.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'ctype'=>'s~', 'name'=>$S0)
+    cpast.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'name'=>$S0, 'ctype'=>'s~')
   cpast_add:
     unless null past goto cpast_concat
     past = cpast
@@ -397,16 +395,21 @@ transform past (Perl6::Grammar::scoped_variables) :language('PIR') {
     scope = 'lexical'
   have_scope:
 
-    .local pmc block, symtable
+    .local pmc block, symtable, symbol
     block = get_global '$?BLOCK'
     symtable = block.'symtable'()
-    symtable[name] = scope
+    symbol = new .Hash
+    symbol['scope'] = scope
+    symtable[name] = symbol
 
-    .local int islvalue
+    .local int islvalue, ismy
     islvalue = node['islvalue']
+    ismy = block.'mydecl'(name)
+    ismy = not ismy
     cnode['islvalue'] = islvalue
     cpast = tree.'get'('past', cnode, 'Perl6::Grammar::variable')
-    cpast.'ismy'(1)
+    cpast.'ismy'(ismy)
+    block.'mydecl'(name, 1)
     .return (cpast)
 }
 
@@ -434,7 +437,7 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
     block = get_global '$?BLOCK'
     symtable = block.'symtable'()
     .local string scope
-    scope = symtable[name]
+    scope = symtable[name;'scope']
 
     .local pmc past
     past = new 'PAST::Var'
@@ -446,18 +449,16 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
 transform past (Perl6::Grammar::subroutine) :language('PIR') {
     .local pmc outerblock, symtable
     outerblock = get_global '$?BLOCK'
-    symtable = outerblock.'symtable'()
-    symtable = clone symtable
 
     .local pmc past
     past = new 'PAST::Block'
-    past.'init'('node'=>node, 'blocktype'=>'sub', 'symtable'=>symtable)
+    past.'init_perl6'('node'=>node, 'blocktype'=>'sub')
     set_global '$?BLOCK', past
 
     $P0 = node['ident']
     if null $P0 goto have_name
     .local string name
-    name = node['ident';0]
+    name = $P0[0]
     past.'name'(name)
   have_name:
 
@@ -474,6 +475,7 @@ transform past (Perl6::Grammar::subroutine) :language('PIR') {
     past.'push'(ppast)
     goto param_loop
   done_signature:
+    past.'init_lexicals'()
 
     .local pmc cnode, cpast
     cnode = node['block'; 'statement_list']
@@ -488,13 +490,25 @@ transform past (Perl6::Grammar::parameter) :language('PIR') {
     .local string name
     name = node['variable']
 
-    .local pmc block, symtable
+    .local pmc block, symtable, symbol
     block = get_global '$?BLOCK'
     symtable = block.'symtable'()
-    symtable[name] = 'lexical'
+    symbol = new .Hash
+    symbol['scope'] = 'lexical'
+    symtable[name] = symbol
+    block.'mydecl'(name, 1)
 
     .local pmc past
     past = new 'PAST::Var'
     past.'init'('node'=>node, 'name'=>name, 'scope'=>'parameter')
+    .return (past)
+}
+
+
+transform past (Perl6::Grammar::regex_term) :language('PIR') {
+    .local pmc regex, past
+    regex = node['regex']
+    past = new 'PAST::Block'
+    past.'init'(regex, 'node'=>node, 'compiler'=>'PGE::P6Regex')
     .return (past)
 }

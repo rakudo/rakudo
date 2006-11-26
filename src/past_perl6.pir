@@ -65,19 +65,28 @@ block, including C<$_>, C<$/>, and C<$!>.
 =cut
 
 .sub 'init_lexicals' :method
-    #    Create a new topic lexical (C<$_>) if it doesn't exist.
+    #   Get the current symtable
+    .local pmc symtable, symbol
+    symtable = self.'symtable'()
+
+    #   Create a new topic lexical (C<$_>) if it doesn't exist.
     $I0 = self.'mydecl'('$_')
     if $I0 goto have_topic
-    .local pmc topicpast
     self.'push_new'('PAST::Var', 'name'=>'$_', 'scope'=>'lexical', 'ismy'=>1)
     self.'mydecl'('$_', 1)
+    symbol = new .Hash
+    symbol['scope'] = 'lexical'
+    symtable['$_'] = symbol
   have_topic:
 
-    #    Create a new match variable (C<$/>) if it doesn't exist.
+    #   Create a new match variable (C<$/>) if it doesn't exist.
     $I0 = self.'mydecl'('$/')
     if $I0 goto have_match
     self.'push_new'('PAST::Var', 'name'=>'$/', 'scope'=>'lexical', 'ismy'=>1)
     self.'mydecl'('$_', 1)
+    symbol = new .Hash
+    symbol['scope'] = 'lexical'
+    symtable['$/'] = symbol
   have_match:
 
     .return (self)

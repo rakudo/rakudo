@@ -71,7 +71,7 @@ token statement_end {
 token statement {
     | <statement_control>
     | <block>
-    | <control_block>
+    | <closure_trait>
     | <class_block>
     | <use_statement>
     | <expression:  ;> <statement_modifier>?
@@ -109,12 +109,13 @@ token block {
 }
 
 
-token control_block {
-    [ BEGIN | CHECK | INIT | END
-    | FIRST | ENTER | LEAVE | KEEP
-    | UNDO | NEXT | LAST
-    | PRE | POST | CATCH | CONTROL
-    ]
+token closure_trait {
+    $<trait>:=[ BEGIN | CHECK | INIT | END | START
+              | ENTER | LEAVE | KEEP | UNDO
+              | FIRST | NEXT  | LAST
+              | PRE   | POST
+              | CATCH | CONTROL
+              ]
     <?ws>? <block>
 }
 

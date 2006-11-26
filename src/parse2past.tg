@@ -18,7 +18,7 @@ transform past (Perl6::Grammar::block) :language('PIR') {
     .local pmc outerblock, past
     outerblock = get_global '$?BLOCK'
     past = new 'PAST::Block'
-    past.'init_perl6'('node'=>node, 'blocktype'=>'immediate')
+    past.'init_perl6'('node'=>node)
     past.'init_lexicals'()
     set_global '$?BLOCK', past
     .local pmc past, cnode, cpast
@@ -67,7 +67,9 @@ transform past (Perl6::Grammar::statement) :language('PIR') {
     null $P0
     .return ($P0)
   block:
-    .return tree.'get'('past', $P0, 'Perl6::Grammar::block')
+    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::block')
+    $P1.'blocktype'('immediate')
+    .return ($P1)
   statement_control:
     .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_control')
 }
@@ -347,6 +349,15 @@ transform past (Perl6::Grammar::integer) :language('PIR') {
     .local pmc past
     past = new 'PAST::Val'
     past.'init'('node'=>node, 'vtype'=>'.Integer', 'name'=>$I0, 'ctype'=>'i+')
+    .return (past)
+}
+
+
+transform past (Perl6::Grammar::number) :language('PIR') {
+    .local pmc past
+    $S0 = node
+    past = new 'PAST::Val'
+    past.'init'('node'=>node, 'vtype'=>'.Float', 'name'=>$S0, 'ctype'=>'n+')
     .return (past)
 }
 

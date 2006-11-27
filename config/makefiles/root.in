@@ -23,8 +23,8 @@ SOURCES = perl6.pir \
   src/grammar_rules.pg \
   src/grammar_optok.pg \
   src/parse.pir \
-  src/parse2past.tg \
-  src/past_perl6.pir \
+  src/PAST/Grammar.tg \
+  src/PAST/Perl6.pir \
   src/builtins_gen.pir \
   $(PMCDIR)/perl6_group$(LOAD_EXT)
 
@@ -51,7 +51,7 @@ PMC_SOURCES = $(PMCDIR)/perl6str.pmc
 perl6.pbc: $(PARROT) $(PGE_DIR)/pgc.pir $(SOURCES)
 	$(PARROT) $(PGE_DIR)/pgc.pir --output=src/grammar_gen.pir \
 	    src/grammar_rules.pg src/grammar_optok.pg
-	$(PARROT) $(TGE_DIR)/tgc.pir --output=src/parse2past_gen.pir src/parse2past.tg
+	$(PARROT) $(TGE_DIR)/tgc.pir --output=src/PAST/Grammar_gen.pir src/PAST/Grammar.tg
 	$(PARROT) -o perl6.pbc perl6.pir
 
 $(PMCDIR)/perl6_group$(LOAD_EXT): $(PARROT) $(PMC_SOURCES)

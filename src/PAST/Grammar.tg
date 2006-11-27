@@ -1,4 +1,7 @@
+grammar Perl6::PAST::Grammar is TGE::Grammar;
+
 transform past (ROOT) :language('PIR') {
+    node = node['program']
     .local pmc outerblock, past
     outerblock = get_global '$?BLOCK'
     past = new 'PAST::Block'

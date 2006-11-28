@@ -61,8 +61,13 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .sub 'prefix:+'
     .param pmc a
+    $I0 = does a, 'float'
+    if $I0 == 0 goto return_int
     $N0 = a
     .return ($N0)
+  return_int:
+    $I0 = a
+    .return ($I0)
 .end
 
 

@@ -365,34 +365,67 @@ transform past (Perl6::Grammar::number) :language('PIR') {
 }
 
 
-transform past (Perl6::Grammar::string_literal) :language('PIR') {
-    .local pmc past
-    $P0 = node['quoted_literal']
-    $P0 = $P0.'get_array'()
-    .local pmc iter
-    iter = new .Iterator, $P0
-    null past
-  iter_loop:
-    unless iter goto iter_end
-    .local pmc cnode, cpast
-    cnode = shift iter
-    $S0 = cnode['type']
-    if $S0 == 'str' goto cpast_str
-    cpast = tree.'get'('past', cnode, $S0)
-    goto cpast_add
-  cpast_str:
-    $S0 = cnode
+transform past (Perl6::Grammar::quote_term) :language('PIR') {
+    .local pmc past, cnode
+    .local string ctype
+    cnode = node['quote_expression']
+    ctype = cnode['type']
+    .return tree.'get'(ctype, cnode, 'Perl6::Grammar::quote_expression')
+}
+
+
+transform quote_literal (Perl6::Grammar::quote_expression) :language('PIR') {
+    .local pmc cpast
+    $S0 = node
     cpast = new 'PAST::Val'
     cpast.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'name'=>$S0, 'ctype'=>'s~')
-  cpast_add:
-    unless null past goto cpast_concat
-    past = cpast
-    goto iter_loop
-  cpast_concat:
+    .return (cpast)
+}
+
+
+transform quote_concat (Perl6::Grammar::quote_expression) :language('PIR') {
+    .local pmc iter
+    $P0 = node.'get_array'()
+    iter = new .Iterator, $P0
+    .local pmc past, cnode, cpast
+    .local string ctype
+    cnode = shift iter
+    ctype = cnode['type']
+    past = tree.'get'(ctype, cnode, 'Perl6::Grammar::quote_expression')
+  concat_loop:
+    unless iter goto concat_end
+    cnode = shift iter
+    ctype = cnode['type']
+    cpast = tree.'get'(ctype, cnode, 'Perl6::Grammar::quote_expression')
     past = past.'new'('PAST::Op', past, cpast, 'node'=>node, 'name'=>'infix:~')
+    goto concat_loop
+  concat_end:
+    .return (past)
+}
+
+
+transform quote_list (Perl6::Grammar::quote_expression) :language('PIR') {
+    .local pmc past, iter
+    past = new 'PAST::Op'
+    past.'init'('node'=>node, 'name'=>'list')
+    $P0 = node.'get_array'()
+    iter = new .Iterator, $P0
+  iter_loop:
+    unless iter goto iter_end
+    .local pmc cpast, cnode
+    .local string ctype
+    cnode = shift iter
+    ctype = cnode['type']
+    cpast = tree.'get'(ctype, cnode, 'Perl6::Grammar::quote_expression')
+    past.'push'(cpast)
     goto iter_loop
   iter_end:
     .return (past)
+}
+
+
+transform quote_interpolation (Perl6::Grammar::quote_expression) :language('PIR') {
+    .return tree.'get'('past_term', node, 'Perl6::Grammar::expr')
 }
 
 

@@ -23,6 +23,7 @@ SOURCES = perl6.pir \
   src/grammar_rules.pg \
   src/grammar_optok.pg \
   src/parse.pir \
+  src/quote.pir \
   src/PAST/Grammar.tg \
   src/PAST/Perl6.pir \
   src/builtins_gen.pir \

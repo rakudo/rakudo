@@ -61,6 +61,8 @@ to the Perl6 compiler.
 
 .include 'src/parse.pir'
 
+.include 'src/quote.pir'
+
 .include 'src/builtins_gen.pir'
 
 .include 'src/PAST/Perl6.pir'

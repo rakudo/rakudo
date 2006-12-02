@@ -55,7 +55,7 @@ token statement_list {
 
 token statement_end {
     | [ <?ws> ; ]+
-    | <after \}> :: \h* [ \#\N* ]? \n 
+    | <after \}> :: \h* [ \#\N* ]? \n
 }
 
 
@@ -143,17 +143,17 @@ token term {
     | <subroutine>
     | <block>
     | <regex_term>
+    | <quote_term>
     | <number>
     | <integer>
-    | <string_literal>
     | <listop>
     | <circumfix>
     ] <postop>*
 }
 
 
-token postop { 
-    | <?dot> [ <postfix> | <postcircumfix> | <methodop> ] 
+token postop {
+    | <?dot> [ <postfix> | <postcircumfix> | <methodop> ]
     |        [ <postfix> | <postcircumfix> ]
 }
 ## FIXME: Eventually this will likely read <%postfix | %postcircumfix>.
@@ -220,10 +220,26 @@ token number {
     \d+[_\d+]* [ \. \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
 }
 
-##  XXX: arguments to quoted_literal are a cheat for the time being.
-token string_literal {
-    |    " <quoted_literal: "> "
-    |    ' <quoted_literal: '> '
+token quote_term {
+    |    $<KEY>:=[']    <quote_expression> '
+    |    $<KEY>:=["]    <quote_expression> "
+    |    $<KEY>:=[\<\<] <quote_expression> \>\>
+    |    $<KEY>:=[\<]   <quote_expression> \>
+}
+
+##  rules for parsing interpolated values in quotes.
+##  FIXME: We're repeating the $<postop> portion here
+##  because there's apparently an aliasing bug in PGE.
+##  The first part of the rule handles non-scalar
+##  interpolation (which must end with a postcircumfix operator);
+##  the second part handles scalar interpolation.
+token quote_interpolation {
+    | <![$]> ::: <variable>
+          $<postop>:=( <?dot> [ <postcircumfix> | $<method>:=<ident> ]
+                     | <postcircumfix> )+
+    | <variable>
+          $<postop>:=( <?dot> [ <postcircumfix> | $<method>:=<ident> ]
+                     | <postcircumfix> )*
 }
 
 

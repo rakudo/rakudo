@@ -56,8 +56,8 @@
     closedelim = keyadverbs['closedelim']
 
     .local int advw, advww
-    advw = keyadverbs['ww']
-    advww = keyadverbs['w']
+    advw = keyadverbs['w']
+    advww = keyadverbs['ww']
     $I0 = or advw, advww
     if $I0 goto quote_words
     .return mob.'quote_string'(closedelim, keyadverbs :flat :named)
@@ -74,13 +74,32 @@
     pos = find_not_cclass .CCLASS_WHITESPACE, target, pos, lastpos
     if pos > lastpos goto fail
   quote_words_loop:
-    .local pmc cnode
+    if advww == 0 goto quote_words_unprotected
+    .local string protectquote
+    protectquote = substr target, pos, 1
+    if protectquote == '"' goto quote_words_protected
+    if protectquote != "'" goto quote_words_unprotected
+  quote_words_protected:
+    inc pos
     mob.'to'(pos)
+    .local pmc cnode
+    $P0 = quotetable[protectquote]
+    cnode = mob.'quote_string'(protectquote, $P0 :flat :named)
+    unless cnode goto fail
+    pos = cnode.'to'()
+    $S1 = substr target, pos, 1
+    if $S1 != protectquote goto fail
+    inc pos
+    goto have_cnode
+  quote_words_unprotected:
+    mob.'to'(pos)
+    .local pmc cnode
     cnode = mob.'quote_string'(closedelim, keyadverbs :flat :named)
     unless cnode goto fail
+    pos = cnode.'to'()
+  have_cnode:
     mob[ccount] = cnode
     inc ccount
-    pos = cnode.'to'()
     if pos > lastpos goto fail
     pos = find_not_cclass .CCLASS_WHITESPACE, target, pos, lastpos
     $S0 = substr target, pos, delimlen

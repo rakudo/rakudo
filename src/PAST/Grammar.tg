@@ -513,16 +513,26 @@ transform past (Perl6::Grammar::subroutine) :language('PIR') {
     if null $P0 goto done_signature
     unless $P0 goto done_signature
     $P0 = node['signature';0;'paramlist';'parameter']
-    .local pmc iter, pnode, ppast
+    .local pmc iter, pnode, ppast, multi
+    multi = new .ResizablePMCArray
     iter = new .Iterator, $P0
   param_loop:
     unless iter goto done_signature
     pnode = shift iter
     ppast = tree.'get'('past', pnode, 'Perl6::Grammar::parameter')
     past.'push'(ppast)
+    push multi, '_'
     goto param_loop
   done_signature:
     past.'init_lexicals'()
+
+    $P0 = node['routine_modifier']
+    if null $P0 goto have_multi
+    $S1 = join ',', multi
+    $S0 = concat ':multi(', $S1
+    concat $S0, ')'
+    past.'pragma'($S0)
+  have_multi:
 
     .local pmc cnode, cpast
     cnode = node['block'; 'statement_list']

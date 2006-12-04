@@ -246,8 +246,9 @@ token quote_interpolation {
 ## Subroutine parsing.  This is still under development.
 
 rule subroutine {
-    <scope_declarator>? <routine_modifier>?
-        <routine_type> <ident>?
+    <scope_declarator>?
+        [ <routine_modifier> <routine_type>? | <routine_type> ]
+        <ident>?
         <trait>*
         [\( <signature> \)]?
         <block>}

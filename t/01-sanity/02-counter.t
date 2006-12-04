@@ -1,8 +1,7 @@
-#!/usr/bin/pugs
+use v6-alpha;
 
 # Checking that testing is sane: counted tests
 
-use v6;
 
 say '1..4';
 

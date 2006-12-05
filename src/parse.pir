@@ -271,7 +271,7 @@ working -- it will likely change.
     stop = shift args
   with_stop: 
     .include 'interpinfo.pasm'
-    $P0 = interpinfo .INTERPINFO_NAMESPACE_ROOT
+    $P0 = get_root_namespace
     $P0 = $P0['parrot';'PGE::Grammar';'regex']
     $P1 = $P0(mob, 'stop'=>stop)
     .return ($P1)

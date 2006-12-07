@@ -34,8 +34,12 @@ src/builtins/control.pir - Perl 6 Control functions
     message .= $S0
     goto iter_loop
   iter_end:
+    if message > '' goto have_message
+    message = "Died\n"
+  have_message:
     $P0 = new .Exception
     $P0['_message'] = message
+    set_global '$!', $P0
     throw $P0
     .return ()
 .end

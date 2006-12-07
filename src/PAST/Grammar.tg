@@ -78,7 +78,37 @@ transform past (Perl6::Grammar::statement) :language('PIR') {
 }
 
 
+=item Perl6::Grammar::statement_control
+
+Generate the PAST representation of a control statement.
+This rule simple redispatches to another rule based on the
+control statement type (held in the C<KEY> attribute of the
+parse tree node).
+
+=cut
+
 transform past (Perl6::Grammar::statement_control) :language('PIR') {
+    .local string key
+    key = node['KEY']
+    .return tree.'get'(key, node, 'Perl6::Grammar::statement_control')
+}
+
+
+=item if (Perl6::Grammar::statement_control)
+
+=item unless (Perl6::Grammar::statement_control)
+
+Generate the PAST representation of an C<if> or C<unless>
+statement, including any C<else> and C<elsif> blocks.
+From the grammar we know that there must be an equal
+number of expressions and blocks, except if there's an C<else>
+clause then there will be an extra block.  So, we just
+unwrap the expression+block pairs into conditional PAST::Op
+nodes.
+
+=cut
+
+transform if (Perl6::Grammar::statement_control) :language('PIR') {
     .local pmc exprlist, blocklist
     exprlist = node['expression']
     blocklist = node['block']
@@ -115,6 +145,10 @@ transform past (Perl6::Grammar::statement_control) :language('PIR') {
     key = node['KEY']
     past.'pasttype'(key)
     .return (past)
+}
+
+transform unless (Perl6::Grammar::statement_control) :language('PIR') {
+    .return tree.'get'('if', node, 'Perl6::Grammar::statement_control')
 }
 
 
@@ -569,3 +603,18 @@ transform past (Perl6::Grammar::regex_term) :language('PIR') {
     past.'init'(regex, 'node'=>node, 'compiler'=>'PGE::P6Regex')
     .return (past)
 }
+
+
+transform past (Perl6::Grammar::try_block) :language('PIR') {
+    .local pmc cnode, cpast, past
+    cnode = node['block']
+    cpast = tree.'get'('past', cnode, 'Perl6::Grammar::block')
+    cpast.'blocktype'('immediate')
+    $P0 = cpast.'new'('PAST::Var', 'name'=>'$!', 'scope'=>'package')
+    $P1 = cpast.'new'('PAST::Val', 'vtype'=>'.String', 'name'=>'', 'ctype'=>'s~')
+    $P2 = cpast.'new'('PAST::Op', $P0, $P1, 'pasttype'=>'bind')
+    past = cpast.'new'('PAST::Stmts', $P2, 'node'=>node)
+    past.'push_new'('PAST::Op', cpast, 'node'=>node, 'pasttype'=>'try')
+    .return (past)
+}
+

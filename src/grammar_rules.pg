@@ -93,7 +93,6 @@ token statement_control {
     | $<KEY>:=[loop] [ \( <expression> ; <expression> ; <expression> \) ]?
         <block>
     | $<KEY>:=[for] <expression:  {> <block>
-    | $<KEY>:=[try] <expression:  {> <block>
     ]
 }
 
@@ -142,6 +141,7 @@ token term {
     | <variable>
     | <subroutine>
     | <block>
+    | <try_block>
     | <regex_term>
     | <quote_term>
     | <number>
@@ -278,6 +278,8 @@ rule signature {
 ##  parameter options available.
 
 token parameter { $<variable>:=[<sigil> <twigil>? <ident>] }
+
+rule try_block { try <block>}
 
 
 ## The <syntax_error> token generates a simple syntax

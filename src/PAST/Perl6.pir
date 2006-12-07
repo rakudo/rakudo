@@ -89,6 +89,11 @@ block, including C<$_>, C<$/>, and C<$!>.
     symtable['$/'] = symbol
   have_match:
 
+    #   Create a new error variable (C<$!>).
+    symbol = new .Hash
+    symbol['scope'] = 'package'
+    symtable['$!'] = symbol
+
     .return (self)
 .end
 

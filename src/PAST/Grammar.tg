@@ -1,5 +1,9 @@
 grammar Perl6::PAST::Grammar is TGE::Grammar;
 
+=over
+
+=cut
+
 transform past (ROOT) :language('PIR') {
     node = node['program']
     .local pmc outerblock, past
@@ -618,3 +622,4 @@ transform past (Perl6::Grammar::try_block) :language('PIR') {
     .return (past)
 }
 
+=back

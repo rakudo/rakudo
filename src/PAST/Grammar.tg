@@ -623,3 +623,5 @@ transform past (Perl6::Grammar::try_block) :language('PIR') {
 }
 
 =back
+
+=cut

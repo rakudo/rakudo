@@ -18,8 +18,8 @@
 
 grammar Perl6::Grammar ;
 
-## C<apply> defines the top level rule to the HLLCompiler.
-token apply { <program> }
+## C<TOP> defines the top level rule to the HLLCompiler.
+token TOP { <program> }
 
 ## These regexes handle whitespace between comments and tokens
 

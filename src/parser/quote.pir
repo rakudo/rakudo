@@ -1,3 +1,25 @@
+## $Id$
+
+=head1 TITLE
+
+quote.pir - <quote_expression> subrule
+
+=head2 DESCRIPTION
+
+This file contains the grammar subrules for <quote_expression>,
+which handles Perl 6's various quoting constructs.  Trying to
+use a regular expression for parsing the various quote styles
+and interpolations is a bit of a pain, so we write a
+special-purpose parsing subroutine here.
+
+=over 4
+
+=item __onload()
+
+Initialize the tables needed for quote parsing.
+
+=cut
+
 .namespace [ 'Perl6::Grammar' ]
 
 .include "cclass.pasm"
@@ -42,6 +64,17 @@
     quotetable['<'] = keyadv
 .end
 
+
+=item quote_expression(match [, adverbs :slurpy :named])
+
+Parse a quoted expression of some sort.  The $<KEY>
+attribute of the incoming C<match> object identifies
+the type of quoting to parse.  This is simply a lookup
+into C<%!quotetable>, which contains the default adverb
+settings for the type of quote.  Other adverbs are then
+merged into the default, and quote parsing begins.
+
+=cut
 
 .sub 'quote_expression'
     .param pmc mob
@@ -331,3 +364,7 @@
     die(mob, '\123 form deprecated, use \o123 instead')
     goto fail
 .end
+
+=back
+
+=cut

@@ -58,17 +58,16 @@ to the Perl6 compiler.
     .return $P0.'command_line'(args)
 .end
 
-
-.include 'src/parse.pir'
-
-.include 'src/quote.pir'
+.include 'src/parser/expression.pir'
+.include 'src/parser/quote.pir'
+.include 'src/parser/regex.pir'
 
 .include 'src/builtins_gen.pir'
 
 .include 'src/PAST/Perl6.pir'
 
 .namespace [ 'Perl6::Grammar' ]
-.include 'src/grammar_gen.pir'
+.include 'src/parser/grammar_gen.pir'
 
 .include 'src/PAST/Grammar_gen.pir'
 

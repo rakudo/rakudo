@@ -6,7 +6,7 @@
     .param num a
     .param num b
     .local pmc range
-    range = new 'Perl6List'
+    range = new 'List'
   loop:
     if a > b goto end
     push range, a

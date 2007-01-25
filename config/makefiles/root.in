@@ -44,6 +44,7 @@ BUILTINS_PIR = \
   src/builtins/range.pir \
   src/builtins/string.pir \
   src/classes/Code.pir \
+  src/classes/List.pir \
   src/classes/Num.pir \
   src/classes/Str.pir
 

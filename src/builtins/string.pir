@@ -142,6 +142,43 @@ B<Note:> partial implementation only
 .end
 
 
+=item join
+
+B<Note:> partial implementation only
+
+=cut
+
+.sub 'join'
+    .param pmc args            :slurpy
+    .local pmc flatargs
+    .local string sep
+
+    flatargs = new 'List'
+    sep = ''
+    unless args goto have_flatargs
+    $P0 = args[0]
+    $I0 = isa $P0, 'List'
+    if $I0 goto have_sep
+    $P0 = shift args
+    sep = $P0
+  have_sep:
+  arg_loop:
+    unless args goto have_flatargs
+    $P0 = shift args
+    $I0 = isa $P0, 'List'
+    if $I0 goto arg_array
+    push flatargs, $P0
+    goto arg_loop
+  arg_array:
+    $I0 = elements flatargs
+    splice flatargs, $P0, $I0, 0
+    goto arg_loop
+  have_flatargs:
+    $S0 = join sep, flatargs
+    .return ($S0)
+.end
+
+
 =item substr
 
  multi substr (Str $s, StrPos $start  : StrPos $end,      $replace)

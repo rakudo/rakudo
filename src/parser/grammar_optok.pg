@@ -283,7 +283,7 @@ proto 'infix:=' is precedence('07=') is assoc('right')
     is lvalue(1)
     { ... }
 
-proto 'infix::=' is equiv('infix:=') { ... }
+proto 'infix::=' is equiv('infix:=') is past('bind') { ... }
 proto 'infix:::=' is equiv('infix:=') { ... }
 proto 'infix:.=' is equiv('infix:=') { ... }
 proto 'infix:~=' is equiv('infix:=') { ... }

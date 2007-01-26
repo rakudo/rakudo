@@ -39,6 +39,20 @@ src/classes/List.pir - Perl 6 List class
 .end
 
 
+.sub '__set_pmc' :method
+    .param pmc value
+    self = 0
+    $P0 = new .Iterator, value
+  iter_loop:
+    unless $P0 goto iter_end
+    $P1 = shift $P0
+    push self, $P1
+    goto iter_loop
+  iter_end:
+    .return ()
+.end
+
+
 .sub '__get_string' :method
     $S0 = ''
     $I1 = elements self

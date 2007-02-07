@@ -102,6 +102,7 @@ CLEANUPS = \
   src/pge2past_gen.pir \
   src/past2post_gen.pir \
   src/builtins_gen.pir \
+  src/PAST/Grammar_gen.pir \
   $(PMCDIR)/*.h \
   $(PMCDIR)/*.c \
   $(PMCDIR)/*.dump \

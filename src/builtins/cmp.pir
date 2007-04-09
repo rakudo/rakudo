@@ -121,9 +121,6 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 
 =cut
 
-
-## vim: expandtab sw=4
-
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

@@ -39,9 +39,6 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 =cut
 
-
-## vim: expandtab sw=4
-
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

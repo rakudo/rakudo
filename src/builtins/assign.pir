@@ -183,9 +183,6 @@ src/builtins/inplace.pir - Inplace assignments
 
 =cut
 
-
-## vim: expandtab sw=4
-
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

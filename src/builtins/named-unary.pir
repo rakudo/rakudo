@@ -23,9 +23,6 @@ src/builtins/named-unary.pir - Perl6 named unary builtins
 
 =cut
 
-
-## vim: expandtab sw=4
-
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

@@ -595,3 +595,9 @@ The other alternative would be to remove the default. --law]
 
 
 ## vim: expandtab sw=4
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

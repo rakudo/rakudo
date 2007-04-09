@@ -41,3 +41,9 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 
 ## vim: expandtab sw=4
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

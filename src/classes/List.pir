@@ -82,3 +82,9 @@ src/classes/List.pir - Perl 6 List class
 =cut
 
 ## vim: expandtab sw=4
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

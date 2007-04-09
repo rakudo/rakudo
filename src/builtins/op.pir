@@ -278,3 +278,9 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 ## vim: expandtab sw=4
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

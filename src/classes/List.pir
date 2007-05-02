@@ -24,7 +24,7 @@ src/classes/List.pir - Perl 6 List class
 
 .namespace [ 'List' ]
 
-.sub '__clone' :method
+.sub 'clone' :vtable :method
     $P0 = new 'List'
     $I1 = elements self
     $I0 = 0
@@ -39,7 +39,7 @@ src/classes/List.pir - Perl 6 List class
 .end
 
 
-.sub '__set_pmc' :method
+.sub 'set_pmc' :vtable :method
     .param pmc value
     self = 0
     $P0 = new .Iterator, value
@@ -53,7 +53,7 @@ src/classes/List.pir - Perl 6 List class
 .end
 
 
-.sub '__get_string' :method
+.sub 'get_string' :vtable :method
     $S0 = ''
     $I1 = elements self
     if $I1 < 1 goto end

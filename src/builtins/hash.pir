@@ -25,7 +25,7 @@ src/builtins/hash.pir - Perl 6 Hash class
 
 .namespace [ 'Perl6Hash' ]
 
-.sub '__get_string' :method
+.sub 'get_string' :vtable :method
     $S0 = ''
     .local pmc iter
     iter = new .Iterator, self
@@ -44,7 +44,7 @@ src/builtins/hash.pir - Perl 6 Hash class
 
 ## FIXME:  Parrot currently requires us to write our own "clone" method.
 
-.sub '__clone' :method
+.sub 'clone' :vtable :method
     $P0 = new 'Perl6Hash'
     .local pmc iter
     iter = new .Iterator, self

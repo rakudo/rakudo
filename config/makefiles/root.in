@@ -78,6 +78,7 @@ help:
 	@echo "Testing:"
 	@echo "  test:              Run the test suite."
 	@echo "  testclean:         Clean up test results."
+	@echo "  spectest:          Run the official Perl 6 tests"
 	@echo ""
 	@echo "Cleaning:"
 	@echo "  clean:             Basic cleaning up."
@@ -93,6 +94,19 @@ test: all
 
 # this target has nothing to do
 testclean:
+
+spectest: all t/spec
+# XXX when tests pass, run more here.
+	@echo "only running sanity tests..."
+	$(PERL) t/harness t/spec/01-sanity/*.t
+
+t/spec:
+	@echo "This step needs svn"
+# XXX not needed when we get all the tests.
+	$(PERL) -MFile::Path -e"mkpath q{t/spec}"
+# XXX when tests pass, import more here.
+# // -> / for some reason... (this comment only makes sense in .in)
+	svn export http:////svn.pugscode.org/pugs/t/01-sanity t/spec/01-sanity
 
 CLEANUPS = \
   perl6.pbc \

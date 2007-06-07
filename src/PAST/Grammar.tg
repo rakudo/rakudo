@@ -65,6 +65,8 @@ transform past (Perl6::Grammar::statement) :language('PIR') {
     unless null $P0 goto block
     $P0 = node['statement_control']
     unless null $P0 goto statement_control
+    $P0 = node['closure_trait']
+    unless null $P0 goto closure_trait
 
   expression:
     $P0 = node['expression']
@@ -79,6 +81,8 @@ transform past (Perl6::Grammar::statement) :language('PIR') {
     .return ($P1)
   statement_control:
     .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_control')
+  closure_trait:
+    .return tree.'get'('past', $P0, 'Perl6::Grammar::closure_trait')
 }
 
 
@@ -648,6 +652,14 @@ transform past (Perl6::Grammar::try_block) :language('PIR') {
     past = cpast.'new'('PAST::Stmts', $P2, 'node'=>node)
     past.'push_new'('PAST::Op', cpast, 'node'=>node, 'pasttype'=>'try')
     .return (past)
+}
+
+transform past (Perl6::Grammar::closure_trait) :language('PIR') {
+    $P0 = node['block']
+    $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::block')
+    # obviously, this needs to be expanded to deal with other types.
+    $P1.'blocktype'('END')
+    .return ($P1) 
 }
 
 =back

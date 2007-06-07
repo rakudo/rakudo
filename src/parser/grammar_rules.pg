@@ -113,6 +113,7 @@ token block {
 
 
 token closure_trait {
+    <?ws>?
     $<trait>:=[ BEGIN | CHECK | INIT | END | START
               | ENTER | LEAVE | KEEP | UNDO
               | FIRST | NEXT  | LAST

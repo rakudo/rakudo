@@ -51,11 +51,51 @@ to the Perl6 compiler.
 
 =cut
 
+.const int SEVERITY_SLOT = 2 # _severity
+
 .sub 'main' :main
     .param pmc args
-    load_bytecode 'PGE/Dumper.pbc'
+ 
+    $P0 = new .ResizablePMCArray
+    $P1 = new .Hash
+    $P1['END'] = $P0
+    store_global '_perl6', '%BLOCKS', $P1
+
     $P0 = compreg 'Perl6'
-    .return $P0.'command_line'(args)
+
+    push_eh exit_handler
+      $P1 = $P0.'command_line'(args)
+    clear_eh
+
+    goto do_END_blocks
+
+# Run all the END blocks that have been registered.
+
+exit_handler:
+    .get_results($P0,$S0)     
+    .include 'except_severity.pasm'
+    $I0 = $P0[SEVERITY_SLOT]
+    if $I0 != .EXCEPT_EXIT goto rethrow_error
+
+do_END_blocks:
+    .include 'iterator.pasm'
+
+    $P0 = find_global '_perl6', '%BLOCKS'
+    if null $P0 goto done
+    $P0 = $P0['END']
+    if null $P0 goto done
+    $P1 = new .Iterator, $P0
+    $P1 = .ITERATE_FROM_END
+loop_blocks:
+    unless $P1 goto done
+    $P2 = pop $P1
+    $P2() 
+    goto loop_blocks
+done:
+    end
+
+rethrow_error:
+    rethrow $P0
 .end
 
 .include 'src/parser/expression.pir'

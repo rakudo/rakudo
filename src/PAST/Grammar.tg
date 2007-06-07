@@ -155,6 +155,34 @@ transform unless (Perl6::Grammar::statement_control) :language('PIR') {
     .return tree.'get'('if', node, 'Perl6::Grammar::statement_control')
 }
 
+transform for (Perl6::Grammar::statement_control) :language('PIR') {
+    .local pmc collection, pointy_sub, signature
+    collection   = node['expression']
+    pointy_sub = node['pblock']
+    signature = pointy_sub['signature']
+     
+    unless null signature goto ok_variable
+
+    # Fake up a new signature to replace our missing one...
+    $P1 = find_global 'Perl6::Grammar', 'signature'
+    signature = new .ResizablePMCArray
+    $P2 = $P1('$_','grammar' => 'Perl6::Grammar')
+    push signature, $P2
+ 
+    pointy_sub['signature'] = signature
+ok_variable:
+
+    .local pmc collpast, subpast
+    collpast = tree.'get'('past', collection, 'Perl6::Grammar::expression')
+    subpast  = tree.'get'('past', pointy_sub, 'Perl6::Grammar::subroutine')
+
+    .local pmc past
+    past = new 'PAST::Op'
+    past.'init'(collpast, subpast, 'node'=>node, 'pasttype'=>'for')
+
+    .return (past)
+}
+
 
 transform past (Perl6::Grammar::expression) :language('PIR') {
     $P0 = node['expr']

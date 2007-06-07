@@ -92,15 +92,17 @@ token statement_control {
         [ <?ws>: [while|until] <expression:  ;> ]
     | $<KEY>:=[loop] [ \( <expression> ; <expression> ; <expression> \) ]?
         <block>
-    | $<KEY>:=[for] <expression:  {> <block>
+    | $<KEY>:=[for] <expression> <pblock>
     ]
 }
-
 
 token statement_modifier {
     <?ws> $<KEY>:=[if|unless|for|while|until] <expression:  ;>
 }
 
+token pblock { 
+  <?ws> [<'->'> <?ws> <signature> <?ws>]? <block>
+}
 
 token block {
     <?ws>

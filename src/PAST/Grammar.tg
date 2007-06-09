@@ -73,8 +73,19 @@ transform past (Perl6::Grammar::statement) :language('PIR') {
     .return tree.'get'('past', $P0, 'Perl6::Grammar::expression')
 
   use_statement:
-    null $P0
-    .return ($P0)
+    .local pmc name
+    name = $P0['version';'ident']
+
+    .local pmc require
+    require = new 'PAST::Op'
+    require.'init'('node' => $P0, 'name' => 'use')
+
+    .local pmc module_name
+    module_name = new 'PAST::Val'
+    module_name.'init'('node' => $P0, 'vtype' => '.Perl6Str', 'name' => name, 'ctype' => 's~')
+    require.'push'(module_name)
+
+    .return (require)
   block:
     $P1 = tree.'get'('past', $P0, 'Perl6::Grammar::block')
     $P1.'blocktype'('immediate')

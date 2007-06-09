@@ -34,6 +34,45 @@ src/builtins/io.pir - Perl6 builtins for I/O
     .return (1)
 .end
 
+.sub 'use'
+    .param pmc module
+    .param pmc args :slurpy
+
+    .local string module_string
+    module_string = module
+
+    .local pmc path
+    path     = split '::', module_string
+
+    .local string file_string
+    file_string = join '/', path
+
+    .local pmc filename
+    filename  = new .Perl6Str
+    filename  = file_string
+    filename .= '.pm'
+
+    require(filename)
+
+    .local pmc import
+    import = find_global module_string, 'import'
+
+    .local int have_import
+    have_import = defined import
+    unless have_import goto import_finished
+    import(args :flat)
+
+  import_finished:
+
+.end
+
+.sub 'require'
+    .param pmc filename
+
+    .local pmc p6compiler
+    p6compiler = compreg 'Perl6'
+    p6compiler.'evalfiles'(filename)
+.end
 
 =back
 

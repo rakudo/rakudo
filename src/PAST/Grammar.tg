@@ -79,12 +79,9 @@ transform past (Perl6::Grammar::statement) :language('PIR') {
     .local string name_string
     name_string = name
 
-    .local int is_v6
-    is_v6 = iseq name_string, 'v6'
-    unless is_v6 goto make_use_op
-    .return ()
+    if name_string == 'v6' goto  use_pragma
+    if name_string == 'lib' goto use_pragma
 
-  make_use_op:
     .local pmc use_op
     use_op = new 'PAST::Op'
     use_op.'init'('node' => $P0, 'name' => 'use')
@@ -103,6 +100,10 @@ transform past (Perl6::Grammar::statement) :language('PIR') {
     .return tree.'get'('past', $P0, 'Perl6::Grammar::statement_control')
   closure_trait:
     .return tree.'get'('past', $P0, 'Perl6::Grammar::closure_trait')
+
+  use_pragma:
+    # For now, ignore all pragmas
+    .return ()
 }
 
 

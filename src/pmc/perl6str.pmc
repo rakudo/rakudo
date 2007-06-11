@@ -157,6 +157,10 @@ digits.
         return sign * f;
     }
 
+    METHOD STRING* WHAT() {
+        return string_from_const_cstring(INTERP, "Str", 3);
+    }
+
 }
 
 /*

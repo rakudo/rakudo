@@ -149,6 +149,7 @@ token term {
     | <quote_term>
     | <number>
     | <integer>
+    | <type_name>
     | <listop>
     | <circumfix>
     ] <postop>*
@@ -172,7 +173,7 @@ token postcircumfix {
     | $<KEY>:=[\{] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\}]
 }
 
-token methodop { <ident> [ <!postop> <listop_expression> ]? }
+token methodop { <ident> }
 token listop { <ident> [ <!postop> <listop_expression> ]? }
 
 token circumfix {
@@ -222,6 +223,8 @@ token integer {
 token number {
     \d+[_\d+]* [ \. \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
 }
+
+token type_name { [ <'::'> ? <[A..Z]> <[0..9a..z_]>* ]+ }
 
 token quote_term {
     |    $<KEY>:=[']    <quote_expression> '

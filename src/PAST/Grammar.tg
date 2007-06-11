@@ -583,6 +583,14 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
     .return (past)
 }
 
+transform past (Perl6::Grammar::type_name) :language('PIR') {
+    .local pmc cpast
+    $S0 = node
+    cpast = new 'PAST::Val'
+    cpast.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'name'=>$S0, 'ctype'=>'s~')
+    .return (cpast)
+}
+
 
 transform past (Perl6::Grammar::subroutine) :language('PIR') {
     .local pmc outerblock, symtable

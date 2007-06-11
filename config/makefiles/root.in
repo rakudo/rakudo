@@ -48,7 +48,7 @@ BUILTINS_PIR = \
   src/classes/Num.pir \
   src/classes/Str.pir
 
-PMCS = perl6str
+PMCS = perl6str perl6bool
 PMC_SOURCES = $(PMCDIR)/perl6str.pmc
 
 # the default target

@@ -1,0 +1,49 @@
+/*
+Copyright (C) 2007, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/perl6bool.pmc - Perl 6 Booleans
+
+=head1 DESCRIPTION
+
+C<Perl6Bool> extends C<Boolean> to provide Perl6-specific
+boolean behavior.
+
+=head2 Methods
+
+=over 4
+
+=cut
+
+*/
+
+pmclass Perl6Bool
+    extends Boolean
+    does boolean
+    dynpmc
+    group perl6_group
+    hll Perl6
+    maps Boolean {
+
+    METHOD STRING* WHAT() {
+        return string_from_const_cstring(INTERP, "Bool", 4);
+    }
+
+}
+
+/*
+
+=back
+
+=cut
+
+*/
+
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */

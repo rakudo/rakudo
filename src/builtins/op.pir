@@ -88,8 +88,12 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .sub 'prefix:?'
     .param pmc a
+
+    .local pmc bool
+    bool = new .Perl6Bool
     $I0 = istrue a
-    .return ($I0)
+    assign bool, $I0
+    .return (bool)
 .end
 
 

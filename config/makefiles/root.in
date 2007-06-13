@@ -7,13 +7,13 @@ RM_RF    = @rm_rf@
 PARROT   = ../../parrot@exe@
 BUILD    = $(PERL) @build_dir@/tools/build/dynpmc.pl
 TOOL_DIR = ../..
-PGE_DIR  = ../../compilers/pge
 TGE_DIR  = ../../compilers/tge
 CAT      = $(PERL) -MExtUtils::Command -e cat
 CP       = @cp@
 O        = @o@
 LOAD_EXT = @load_ext@
 PARROT_DYNEXT = @build_dir@/runtime/parrot/dynext
+PGE_LIBRARY  = @build_dir@/runtime/parrot/library/PGE
 
 PMCDIR   = src/pmc
 
@@ -52,8 +52,9 @@ PMCS = perl6str perl6bool
 PMC_SOURCES = $(PMCDIR)/perl6str.pmc
 
 # the default target
-perl6.pbc: $(PARROT) $(PGE_DIR)/pgc.pir $(SOURCES)
-	$(PARROT) $(PGE_DIR)/pgc.pir --output=src/parser/grammar_gen.pir \
+perl6.pbc: $(PARROT) $(PGE_LIBRARY)/Perl6Grammar.pir $(SOURCES)
+	$(PARROT) $(PGE_LIBRARY)/Perl6Grammar.pir \
+	    --output=src/parser/grammar_gen.pir \
 	    src/parser/grammar_rules.pg src/parser/grammar_optok.pg
 	$(PARROT) $(TGE_DIR)/tgc.pir --output=src/PAST/Grammar_gen.pir src/PAST/Grammar.tg
 	$(PARROT) -o perl6.pbc perl6.pir

@@ -35,9 +35,9 @@ token ws {
 }
 
 regex pod_comment {
-    ^^ = [ [ cut \h*: | end [\h\N*]? ]
+    ^^ '=' [ [ cut \h*: | end [\h\N*]? ]
          | for [ \h\N+: ] \n [ \N+\n ]*:
-         | \w\N*: \n .*? \n = [ cut \h*: | end [\h\N*:]? ]
+         | \w\N*: \n .*? \n '=' [ cut \h*: | end [\h\N*:]? ]
          ]
          [\n|$]
 }
@@ -54,7 +54,7 @@ token statement_list {
 
 
 token statement_end {
-    | [ <?ws> ; ]+
+    | [ <?ws> ';' ]+
     | <after \}> :: \h* [ \#\N* ]? \n
 }
 
@@ -90,7 +90,7 @@ token statement_control {
     | $<KEY>:=[while|until] <expression:  {> <block>
     | $<KEY>:=[repeat] <block>
         [ <?ws>: [while|until] <expression:  ;> ]
-    | $<KEY>:=[loop] [ \( <expression> ; <expression> ; <expression> \) ]?
+    | $<KEY>:=[loop] [ \( <expression> ';' <expression> ';' <expression> \) ]?
         <block>
     | $<KEY>:=[for] <expression> <pblock>
     ]
@@ -101,7 +101,7 @@ token statement_modifier {
 }
 
 token pblock { 
-  <?ws> [<'->'> <?ws> <signature> <?ws>]? <block>
+  <?ws> [ '->' <?ws> <signature> <?ws>]? <block>
 }
 
 token block {
@@ -165,7 +165,7 @@ token postop {
 
 token dot { \. | [ \\ <?ws> ]? \. }
 
-token postfix { $<KEY>:=[\+\+|--] }
+token postfix { $<KEY>:=[\+\+|\-\-] }
 
 token postcircumfix {
     | $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
@@ -186,7 +186,7 @@ token reserved_word { [ if | unless | while | until | for | loop | do ] \b }
 ## This is a temporary rule that allows parsing of /regex/
 ## in term position.  It is likely to change.
 
-token regex_term { / <regex: /> / }
+token regex_term { '/' <regex: /> '/' }
 
 rule scoped_variables {
     <scope_declarator> <variable>
@@ -198,17 +198,17 @@ token class_declarator { [ class | grammar | module | role | package ] }
 rule class_block {
     <scope_declarator>?
     <class_declarator>
-    $<name>:=[ <'::'>? <name> [ - <version_number> ]? | <?null> ]
-    [ ; | <block> ]
+    $<name>:=[ '::'? <name> [ '-' <version_number> ]? | <?null> ]
+    [ ';' | <block> ]
 }
 
 ## XXX: These are just placeholder regexes for demonstration,
 ## they certainly need to be expanded to be more complete.
 
 token twigil { <[.^*+?=!]> }
-token variable {  \$! | \$/ | \$_ | <sigil> <twigil>? <name> }
-token sigil { <[$@%^&]> | <'::'> }
-token name { <ident> [ <'::'> <ident> ]* }
+token variable {  '$!' | '$/' | '$_' | <sigil> <twigil>? <name> }
+token sigil { <[$@%^&]> | '::' }
+token name { <ident> [ '::' <ident> ]* }
 token version_number { \d+ \. \d+ \. \d+ }
 
 token integer {
@@ -224,11 +224,11 @@ token number {
     \d+[_\d+]* [ \. \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
 }
 
-token type_name { [ <'::'> ? <[A..Z]> <[0..9a..z_]>* ]+ }
+token type_name { [ '::' ? <[A..Z]> <[0..9a..z_]>* ]+ }
 
 token quote_term {
-    |    $<KEY>:=[']    <quote_expression> '
-    |    $<KEY>:=["]    <quote_expression> "
+    |    $<KEY>:=[\']    <quote_expression> \'
+    |    $<KEY>:=[\"]    <quote_expression> \"
     |    $<KEY>:=[\<\<] <quote_expression> \>\>
     |    $<KEY>:=[\<]   <quote_expression> \>
 }
@@ -275,9 +275,9 @@ rule trait {
 }
 
 rule signature {
-    $<invocant>:=(<parameter> <':'>)?
-    $<paramlist>:=(<parameter>? [, <parameter>]*)
-    [ <'-->'> $<rettype>:=<type> ]?
+    $<invocant>:=(<parameter> ':')?
+    $<paramlist>:=(<parameter>? [',' <parameter>]*)
+    [ '-->' $<rettype>:=<type> ]?
 }
 
 ##  XXX: <parameter> needs expansion for the various

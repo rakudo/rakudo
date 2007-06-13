@@ -77,11 +77,11 @@ proto infix:<+&> is equiv(infix:<*>)
     is post('band')                    # perl6-orig
     { ... }
 
-proto 'infix:+<' is equiv(infix:<*>)
+proto infix:«+<» is equiv(infix:<*>)
     is post('shl')                     # perl6-orig
     { ... }
 
-proto 'infix:+>' is equiv(infix:<*>)
+proto infix:«+>» is equiv(infix:<*>)
     is post('shr')                     # perl6-orig
     { ... }
 
@@ -89,8 +89,8 @@ proto infix:<~&> is equiv(infix:<*>)
     is pir("    %r = bands %0, %1")    # perl6-orig
     { ... }
 
-proto 'infix:~<' is equiv(infix:<*>) { ... }
-proto 'infix:~>' is equiv(infix:<*>) { ... }
+proto infix:«~<» is equiv(infix:<*>) { ... }
+proto infix:«~>» is equiv(infix:<*>) { ... }
 
 
 ## additive
@@ -164,23 +164,23 @@ proto prefix:<-d> is equiv(prefix:<rand>) is nullterm { ... }
 
 
 ## nonchaining binary
-proto 'infix:<=>' is precedence('12=') is assoc('non') { ... }
-proto infix:<cmp> is equiv('infix:<=>') { ... }
-proto infix:<is> is equiv('infix:<=>') { ... }
-proto infix:<but> is equiv('infix:<=>') { ... }
-proto infix:<does> is equiv('infix:<=>') { ... }
-proto infix:<..> is equiv('infix:<=>') { ... }
-proto infix:<^..> is equiv('infix:<=>') { ... }
-proto infix:<..^> is equiv('infix:<=>') { ... }
-proto infix:<^..^> is equiv('infix:<=>') { ... }
-proto infix:<ff> is equiv('infix:<=>') { ... }
-proto infix:<^ff> is equiv('infix:<=>') { ... }
-proto infix:<ff^> is equiv('infix:<=>') { ... }
-proto infix:<^ff^> is equiv('infix:<=>') { ... }
-proto infix:<fff> is equiv('infix:<=>') { ... }
-proto infix:<^fff> is equiv('infix:<=>') { ... }
-proto infix:<fff^> is equiv('infix:<=>') { ... }
-proto infix:<^fff^> is equiv('infix:<=>') { ... }
+proto infix:«<=>» is precedence('12=') is assoc('non') { ... }
+proto infix:<cmp> is equiv(infix:«<=>») { ... }
+proto infix:<is> is equiv(infix:«<=>») { ... }
+proto infix:<but> is equiv(infix:«<=>») { ... }
+proto infix:<does> is equiv(infix:«<=>») { ... }
+proto infix:<..> is equiv(infix:«<=>») { ... }
+proto infix:<^..> is equiv(infix:«<=>») { ... }
+proto infix:<..^> is equiv(infix:«<=>») { ... }
+proto infix:<^..^> is equiv(infix:«<=>») { ... }
+proto infix:<ff> is equiv(infix:«<=>») { ... }
+proto infix:<^ff> is equiv(infix:«<=>») { ... }
+proto infix:<ff^> is equiv(infix:«<=>») { ... }
+proto infix:<^ff^> is equiv(infix:«<=>») { ... }
+proto infix:<fff> is equiv(infix:«<=>») { ... }
+proto infix:<^fff> is equiv(infix:«<=>») { ... }
+proto infix:<fff^> is equiv(infix:«<=>») { ... }
+proto infix:<^fff^> is equiv(infix:«<=>») { ... }
 
 
 ## chaining binary
@@ -192,19 +192,19 @@ proto infix:<!=> is equiv(infix:<==>)
     is past('chain')
     { ... }
 
-proto 'infix:<' is equiv(infix:<==>)
+proto infix:«<» is equiv(infix:<==>)
     is past('chain')
     { ... }
 
-proto 'infix:<=' is equiv(infix:<==>)
+proto infix:«<=» is equiv(infix:<==>)
     is past('chain')
     { ... }
 
-proto 'infix:>' is equiv(infix:<==>)
+proto infix:«>» is equiv(infix:<==>)
     is past('chain')
     { ... }
 
-proto 'infix:>=' is equiv(infix:<==>)
+proto infix:«>=» is equiv(infix:<==>)
     is past('chain')
     { ... }
 
@@ -300,8 +300,8 @@ proto infix:<||=> is equiv(infix:<=>) { ... }
 proto infix:<&&=> is equiv(infix:<=>) { ... }
 proto infix:<//=> is equiv(infix:<=>) { ... }
 proto infix:<^^=> is equiv(infix:<=>) { ... }
-proto 'infix:+<=' is equiv(infix:<=>) { ... }
-proto 'infix:+>=' is equiv(infix:<=>) { ... }
+proto infix:«+<=» is equiv(infix:<=>) { ... }
+proto infix:«+>=» is equiv(infix:<=>) { ... }
 proto infix:<+|=> is equiv(infix:<=>) { ... }
 proto infix:<+&=> is equiv(infix:<=>) { ... }
 proto infix:<+^=> is equiv(infix:<=>) { ... }
@@ -323,9 +323,9 @@ proto infix:<,> is precedence('06=') is assoc('list')
 
 
 ## listop
-proto 'infix:<==' is precedence('05=') is assoc('right') { ... }
-proto prefix:<true> is equiv('infix:<==') { ... }
-proto prefix:<not> is equiv('infix:<==') { ... }
+proto infix:«<==» is precedence('05=') is assoc('right') { ... }
+proto prefix:<true> is equiv(infix:«<==») { ... }
+proto prefix:<not> is equiv(infix:«<==») { ... }
 
 ## TODO print push any all 
 ##    XXX: do these really belong here? ~particle
@@ -333,7 +333,7 @@ proto prefix:<not> is equiv('infix:<==') { ... }
 
 
 ## pipe forward
-proto 'infix:==>' is precedence('04=') { ... }
+proto infix:«==>» is precedence('04=') { ... }
 
 
 ## loose and

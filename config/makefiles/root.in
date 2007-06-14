@@ -17,7 +17,7 @@ PGE_LIBRARY  = @build_dir@/runtime/parrot/library/PGE
 
 PMCDIR   = src/pmc
 
-all: perl6.pbc 
+all: perl6.pbc
 
 SOURCES = perl6.pir \
   src/parser/grammar_rules.pg \

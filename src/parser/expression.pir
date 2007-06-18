@@ -29,8 +29,9 @@ and returns the result to the caller.
 
 .sub "expression"
     .param pmc mob
-    .param string stoptoken       :optional
+    .param string stoptoken    :optional
     .param int has_stoptoken   :opt_flag
+    .param pmc adverbs         :slurpy :named
     .local pmc optable
     .local pmc ws
 

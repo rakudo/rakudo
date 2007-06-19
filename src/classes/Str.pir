@@ -1,3 +1,9 @@
+.namespace
+
+.sub __onload :init :load
+    $P0 = getclass 'Perl6Str'
+    set_global 'Str', $P0
+.end
 
 .namespace [ 'Perl6Str' ]
 
@@ -5,6 +11,11 @@
     .param string x
     $I0 = iseq x, 'Str'
     .return ($I0)
+.end
+
+.sub 'WHAT' :method
+    $P0 = getclass 'Perl6Str'
+    .return ($P0)
 .end
 
 # Local Variables:

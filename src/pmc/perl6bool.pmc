@@ -26,8 +26,11 @@ pmclass Perl6Bool
     hll Perl6
     maps Boolean {
 
-    METHOD STRING* WHAT() {
-        return string_from_const_cstring(INTERP, "Bool", 4);
+    STRING* get_string() {
+        PMC *class = GET_CLASS(PMC_data(SELF), SELF);
+        if (class == SELF)
+            return string_from_const_cstring(INTERP, "Str", 3);
+        return SUPER();
     }
 
 }

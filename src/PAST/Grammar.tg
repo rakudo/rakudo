@@ -584,11 +584,11 @@ transform past (Perl6::Grammar::variable) :language('PIR') {
 }
 
 transform past (Perl6::Grammar::type_name) :language('PIR') {
-    .local pmc cpast
+    .local pmc past
     $S0 = node
-    cpast = new 'PAST::Val'
-    cpast.'init'('node'=>node, 'vtype'=>'.Perl6Str', 'name'=>$S0, 'ctype'=>'s~')
-    .return (cpast)
+    past = new 'PAST::Var'
+    past.'init'('node'=>node, 'name'=>$S0, 'scope'=>'package')
+    .return (past)
 }
 
 

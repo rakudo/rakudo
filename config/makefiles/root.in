@@ -52,9 +52,13 @@ BUILTINS_PIR = \
 PMCS = perl6str perl6bool
 PMC_SOURCES = $(PMCDIR)/perl6str.pmc
 
+# [rt43253]: [BUG] parrot segfaults when building perl6 on windows with msvc
+# added -G flag in order to work around segfault
+PARROT_ARGS = -G
+
 # the default target
 perl6.pbc: $(PARROT) $(PGE_LIBRARY)/Perl6Grammar.pir $(SOURCES)
-	$(PARROT) $(PGE_LIBRARY)/Perl6Grammar.pir \
+	$(PARROT) $(PARROT_ARGS) $(PGE_LIBRARY)/Perl6Grammar.pir \
 	    --output=src/parser/grammar_gen.pir \
 	    src/parser/grammar_rules.pg src/parser/grammar_optok.pg
 	$(PARROT) $(TGE_DIR)/tgc.pir --output=src/PAST/Grammar_gen.pir src/PAST/Grammar.tg

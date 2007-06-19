@@ -1,8 +1,7 @@
-#!/usr/bin/pugs
+use v6-alpha;
 
 # Checking that testing is sane: Test.pm
 
-use v6;
 use Test;
 
 plan 1;

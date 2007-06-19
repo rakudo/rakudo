@@ -104,7 +104,7 @@ testclean:
 spectest: all t/spec
 # XXX when tests pass, run more here.
 	@echo "only running sanity tests..."
-	$(PERL) t/harness
+	$(PERL) t/harness t/spec/01-sanity/*.t t/spec/02-test-pm/*.t
 
 t/spec:
 	@echo "This step needs svn"

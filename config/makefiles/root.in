@@ -110,16 +110,10 @@ testclean:
 spectest: all t/spec
 # XXX when tests pass, run more here.
 	@echo "only running sanity tests..."
-	$(PERL) t/harness t/spec/01-sanity/*.t t/spec/02-test-pm/*.t
+	$(PERL) t/harness t/spec/*
 
 t/spec:
-	@echo "This step needs svn"
-# XXX not needed when we get all the tests.
-	$(PERL) -MFile::Path -e"mkpath q{t/spec}"
-# XXX when tests pass, import more here.
-# // -> / for some reason... (this comment only makes sense in .in)
-	svn export http:////svn.pugscode.org/pugs/t/01-sanity  t/spec/01-sanity
-	svn export http:////svn.pugscode.org/pugs/t/02-test-pm t/spec/02-test-pm
+	$(PERL) t/fetchspec
 
 CLEANUPS = \
   perl6.pbc \
@@ -134,7 +128,8 @@ CLEANUPS = \
   $(PMCDIR)/*.c \
   $(PMCDIR)/*.dump \
   $(PMCDIR)/*$(O) \
-  $(PMCDIR)/*$(LOAD_EXT)
+  $(PMCDIR)/*$(LOAD_EXT) \
+  t/spec
 
 clean: 
 	$(RM_RF) $(CLEANUPS)

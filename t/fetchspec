@@ -1,0 +1,44 @@
+# Copyright (C) 2006-2007, The Perl Foundation.
+# $Id$
+
+=head1 NAME
+
+fetchspec - retrieve selected tests from Pugs test repo
+
+=head1 SYNOPSIS
+
+This script uses svn to retrieve selected tests from the
+Perl 6 test repository (currently at http://svn.pugscode.org/t).
+
+This script expects to be called from the languages/perl6/
+directory.
+
+=cut
+
+use strict;
+use File::Path;
+use File::Basename qw(dirname);
+
+my @spectests = qw(
+    t/01-sanity
+);
+
+foreach my $tfile (@spectests) {
+    $tfile =~ s!^t/!!;
+    my $dirname = dirname($tfile);
+    mkpath "t/spec/$dirname";
+    my $svncmd = 
+      "svn export --force http://svn.pugscode.org/pugs/t/$tfile t/spec/$tfile";
+    print "$svncmd\n";
+    system($svncmd);
+}
+
+exit(0);
+
+# Local Variables:
+#   mode: cperl
+#   cperl-indent-level: 4
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:
+

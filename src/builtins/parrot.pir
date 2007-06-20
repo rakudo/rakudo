@@ -1,4 +1,4 @@
-## $Id: parrot.pir 18087 2007-04-09 22:02:45Z paultcochrane $
+## $Id$
 
 =head1 NAME
 

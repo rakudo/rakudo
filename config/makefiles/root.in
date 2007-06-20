@@ -41,6 +41,7 @@ BUILTINS_PIR = \
   src/builtins/math.pir \
   src/builtins/named-unary.pir \
   src/builtins/op.pir \
+  src/builtins/parrot.pir \
   src/builtins/range.pir \
   src/builtins/string.pir \
   src/classes/Bool.pir \

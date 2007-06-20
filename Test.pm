@@ -34,6 +34,12 @@ sub is($got, $expected, $desc) {
 }
 
 
+sub isnt($got, $expected, $desc) {
+    my $test = !($got eq $expected);
+    proclaim($test, 'isnt! ' ~ $desc);
+}
+
+
 ## 'private' subs
 
 sub proclaim($cond, $desc) {

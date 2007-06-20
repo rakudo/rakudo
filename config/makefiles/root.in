@@ -74,6 +74,9 @@ $(PMCDIR)/perl6_group$(LOAD_EXT): $(PARROT) $(PMC_SOURCES)
 src/builtins_gen.pir: $(BUILTINS_PIR)
 	$(CAT) $(BUILTINS_PIR) >src/builtins_gen.pir
 
+# regenerate the Makefile
+Makefile: config/makefiles/root.in
+	cd @build_dir@ && $(PERL) @build_dir@/Configure.pl --step=gen::languages --languages=perl6
 
 # This is a listing of all targets, that are meant to be called by users
 help:

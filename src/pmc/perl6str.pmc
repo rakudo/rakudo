@@ -160,7 +160,7 @@ digits.
     STRING* get_string() {
         PMC *class = GET_CLASS(PMC_data(SELF), SELF);
         if (class == SELF)
-            return string_from_const_cstring(INTERP, "Str", 3);
+            return string_from_cstring(INTERP, "Str", 3);
         return SUPER();
     }
 

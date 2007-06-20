@@ -1,3 +1,4 @@
+# L<S02/"Whitespace and Comments"/space before it, but may be written in any>
 use v6-alpha;
 
 # Checking that testing is sane: counted tests

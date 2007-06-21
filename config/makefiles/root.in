@@ -103,7 +103,7 @@ help:
 	@echo ""
 
 test: all
-	$(PERL) t/harness t/00-parrot/*.t t/01-sanity/*.t
+	$(PERL) t/harness t/00-parrot t/01-sanity
 
 # this target has nothing to do
 testclean:

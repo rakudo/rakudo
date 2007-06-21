@@ -50,9 +50,10 @@ BUILTINS_PIR = \
   src/classes/Code.pir \
   src/classes/List.pir \
   src/classes/Num.pir \
-  src/classes/Str.pir
+  src/classes/Str.pir \
+  src/classes/Undef.pir
 
-PMCS = perl6str perl6bool
+PMCS = perl6str perl6bool perl6undef
 PMC_SOURCES = $(PMCDIR)/perl6str.pmc
 
 # [rt43253]: [BUG] parrot segfaults when building perl6 on windows with msvc

@@ -1,0 +1,56 @@
+/*
+Copyright (C) 2001-2006, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/perl6undef.pmc - Perl 6 Undef
+
+=head1 DESCRIPTION
+
+C<Perl6Undef> extends C<Undef> to provide Perl6-specific
+undef behavior.
+
+=head2 Methods
+
+=over 4
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+#include <ctype.h>
+#include <math.h>
+
+pmclass Perl6Undef
+    extends Undef
+    dynpmc
+    group perl6_group
+    hll Perl6
+    maps Undef {
+
+    STRING* get_string() {
+        PMC *class = GET_CLASS(PMC_data(SELF), SELF);
+        if (class == SELF)
+            return string_from_cstring(INTERP, "Undef", 5);
+        return SUPER();
+    }
+
+}
+
+
+/*
+
+=back
+
+=cut
+
+*/
+
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */

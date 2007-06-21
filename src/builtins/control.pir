@@ -88,13 +88,6 @@ to coordinate with entire async model.  -law]
     sleep a
 .end
 
-
-=back
-
-=head1 TODO: Functions
-
-=over 4
-
 =item eval
 
  multi Control::Basic::eval ( Str $code, Grammar :$lang = CALLER::<$?PARSER>)
@@ -104,6 +97,21 @@ is the language in effect at the exact location of the eval call.
 
 Returns whatever C<$code> returns, or undef on error.
 
+=cut
+
+.sub 'eval'
+    .param pmc code
+    .param pmc lang            :named('lang') :optional
+    'die'("eval unimplemented")
+    .return ()
+.end
+
+
+=back
+
+=head1 TODO: Functions
+
+=over 4
 
 =item evalfile
 

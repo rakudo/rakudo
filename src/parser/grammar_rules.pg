@@ -189,7 +189,7 @@ token reserved_word { [ if | unless | while | until | for | loop | do ] \b }
 token regex_term { '/' <regex: /> '/' }
 
 rule scoped_variables {
-    <scope_declarator> <variable>
+    <scope_declarator> <type_name>? <variable>
 }
 
 token scope_declarator { [ my | our ] }
@@ -283,7 +283,7 @@ rule signature {
 ##  XXX: <parameter> needs expansion for the various
 ##  parameter options available.
 
-token parameter { $<variable>:=[<sigil> <twigil>? <ident>] }
+token parameter { <type_name>? <?ws>? $<variable>:=[<sigil> <twigil>? <ident>] }
 
 rule try_block { try <block>}
 

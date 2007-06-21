@@ -43,7 +43,7 @@ multi sub isnt($got, $expected, $desc) {
     proclaim($test, 'isnt! ' ~ $desc);
 }
 
-multi sub isnt($got, $expected) { isn't($got, $expected, ''); }
+multi sub isnt($got, $expected) { isnt($got, $expected, ''); }
 
 
 ## 'private' subs

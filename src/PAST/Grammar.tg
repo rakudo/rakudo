@@ -243,8 +243,9 @@ transform past (Perl6::Grammar::expr) :language('PIR') {
     .local pmc cnode, cpast
     cnode = shift iter
     cpast = tree.'get'('past', cnode, 'Perl6::Grammar::expr')
-    if null cpast goto iter_loop
+    if null cpast goto iter_loop_1
     past.'push'(cpast)
+  iter_loop_1:
     if iter goto iter_loop
   iter_end:
     .return (past)
@@ -689,6 +690,11 @@ transform past (Perl6::Grammar::closure_trait) :language('PIR') {
     # obviously, this needs to be expanded to deal with other types.
     $P1.'blocktype'('END')
     .return ($P1) 
+}
+
+transform past (Perl6::Grammar::colonpair) :language('PIR') {
+    null $P0
+    .return ($P0)
 }
 
 =back

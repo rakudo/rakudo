@@ -141,6 +141,7 @@ token version { <ident> }
 
 token term {
     [ <scoped_variables>
+    | <colonpair>
     | <variable>
     | <subroutine>
     | <block>
@@ -171,6 +172,7 @@ token postcircumfix {
     | $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
     | $<KEY>:=[\[] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\]]
     | $<KEY>:=[\{] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\}]
+    | $<KEY>:=[\<] <?ws> <quote_expression>? <?ws> $<KEY_CLOSE>:=[\>]
 }
 
 token methodop { <ident> }
@@ -179,6 +181,13 @@ token listop { <ident> [ <!postop> <listop_expression> ]? }
 token circumfix {
     | $<KEY>:=[\(] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\)]
     | $<KEY>:=[\[] <?ws> <expression>? <?ws> $<KEY_CLOSE>:=[\]]
+}
+
+token colonpair {
+    [
+    | ':' <ident>? <postcircumfix>
+    | ':' '!'? <ident>
+    ]
 }
 
 token reserved_word { [ if | unless | while | until | for | loop | do ] \b }
@@ -283,7 +292,7 @@ rule signature {
 ##  XXX: <parameter> needs expansion for the various
 ##  parameter options available.
 
-token parameter { <type_name>? <?ws>? $<variable>:=[<sigil> <twigil>? <ident>] }
+token parameter { <type_name>? <?ws>? $<variable>:=[<sigil> <twigil>? <ident>] | <?PGE::Util::die: Syntax error> }
 
 rule try_block { try <block>}
 

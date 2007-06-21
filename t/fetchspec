@@ -27,6 +27,7 @@ my @spectests = qw(
     t/operators/context_forcers.t
     t/operators/eq.t
     t/operators/relational.t
+    t/builtins/math/trig.t
 );
 
 foreach my $tfile (@spectests) {

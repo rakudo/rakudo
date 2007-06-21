@@ -21,6 +21,7 @@ use File::Basename qw(dirname);
 
 my @spectests = qw(
     t/01-sanity
+    t/operators/auto.t
 );
 
 foreach my $tfile (@spectests) {

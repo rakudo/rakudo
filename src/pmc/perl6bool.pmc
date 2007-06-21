@@ -29,7 +29,7 @@ pmclass Perl6Bool
     STRING* get_string() {
         PMC *class = GET_CLASS(PMC_data(SELF), SELF);
         if (class == SELF)
-            return string_from_cstring(INTERP, "Bool", 3);
+            return string_from_cstring(INTERP, "Bool", 4);
         return SUPER();
     }
 

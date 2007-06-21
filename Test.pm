@@ -23,21 +23,27 @@ sub plan($number_of_tests) {
 }
 
 
-sub ok($cond, $desc) {
+multi sub ok($cond, $desc) {
     proclaim($cond, 'ok! ' ~ $desc);
 }
 
+multi sub ok($cond) { ok($cond, ''); }
 
-sub is($got, $expected, $desc) {
+
+multi sub is($got, $expected, $desc) {
     my $test = $got eq $expected;
     proclaim($test, 'is! ' ~ $desc);
 }
 
+multi sub is($got, $expected) { is($got, $expected, ''); }
 
-sub isnt($got, $expected, $desc) {
+
+multi sub isnt($got, $expected, $desc) {
     my $test = !($got eq $expected);
     proclaim($test, 'isnt! ' ~ $desc);
 }
+
+multi sub isnt($got, $expected) { isn't($got, $expected, ''); }
 
 
 ## 'private' subs

@@ -66,6 +66,14 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
+.sub 'infix:<=>'
+    .param pmc a
+    .param pmc b
+    $I0 = cmp_num a, b
+    .return ($I0)
+.end
+
+
 .sub 'infix:eq'
     .param string a
     .param string b
@@ -110,6 +118,14 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = isge a, b
+    .return ($I0)
+.end
+
+
+.sub 'infix:cmp'
+    .param pmc a
+    .param pmc b
+    $I0 = cmp_str a, b
     .return ($I0)
 .end
 

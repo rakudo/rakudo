@@ -70,7 +70,7 @@ digits.
             const char * const end = s1 + s->bufused;
 
             /* skip leading whitespace */
-            while (s1 < end && isspace(*s1)) s1++;
+            while (s1 < end && isspace((unsigned char)*s1)) s1++;
 
             /* handle leading +,- */
             if (s1 < end && *s1 == '+') s1++;
@@ -85,7 +85,7 @@ digits.
                         s1++;
                         while (s1 < end && isxdigit(*s1)) {
                             f *= 16;
-                            if (isdigit(*s1)) f += (*s1) - '0';
+                            if (isdigit((unsigned char)*s1)) f += (*s1) - '0';
                             else f += tolower(*s1) - 'a' + 10;
                             s1++;
                             if (s1 < end && *s1 == '_') s1++;
@@ -93,7 +93,7 @@ digits.
                         return sign * f;
                     case 'd': case 'D':
                         s1++;
-                        while (s1 < end && isdigit(*s1)) {
+                        while (s1 < end && isdigit((unsigned char)*s1)) {
                             f = f * 10 + (*s1) - '0';
                             s1++;
                             if (s1 < end && *s1 == '_') s1++;
@@ -101,7 +101,7 @@ digits.
                         return sign * f;
                     case 'o': case 'O':
                         s1++;
-                        while (s1 < end && isdigit(*s1) && *s1 <= '7') {
+                        while (s1 < end && isdigit((unsigned char)*s1) && *s1 <= '7') {
                             f = f * 8 + (*s1) - '0';
                             s1++;
                             if (s1 < end && *s1 == '_') s1++;
@@ -116,25 +116,25 @@ digits.
                         }
                         return sign * f;
                 }
-                if (s1 < end && *s1 == '_' && isdigit(*(s1+1))) s1++;
+                if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1))) s1++;
             }
 
             /* handle integer part */
-            while (s1 < end && isdigit(*s1)) {
+            while (s1 < end && isdigit((unsigned char)*s1)) {
                 f = f * 10 + (*s1) - '0';
                 s1++;
-                if (s1 < end && *s1 == '_' && isdigit(*(s1+1))) s1++;
+                if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1))) s1++;
             }
 
             /* handle floating point part */
             if (s1 < end && *s1 == '.') {
                 FLOATVAL frac = 1.0;
                 s1++;
-                while (s1 < end && isdigit(*s1)) {
+                while (s1 < end && isdigit((unsigned char)*s1)) {
                     frac /= 10;
                     f = f + ((*s1) - '0') * frac;
                     s1++;
-                    if (s1 < end && *s1 == '_' && isdigit(*(s1+1))) s1++;
+                    if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1))) s1++;
                 }
             }
 
@@ -145,10 +145,10 @@ digits.
                 s1++;
                 if (s1 < end && *s1 == '+') s1++;
                 else if (s1 < end && *s1 == '-') { exp_sign = -1; s1++; }
-                while (s1 < end && isdigit(*s1)) {
+                while (s1 < end && isdigit((unsigned char)*s1)) {
                     exp_val = exp_val * 10 + *s1 - '0';
                     s1++;
-                    if (s1 < end && *s1 == '_' && isdigit(*(s1+1))) s1++;
+                    if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1))) s1++;
                 }
                 return sign * f * pow(10.0, exp_val * exp_sign);
             }

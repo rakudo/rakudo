@@ -1,7 +1,7 @@
 use v6-alpha;
 
 
-say "1..6";
+say "1..9";
 
 my @array = <a b c>;
 
@@ -14,5 +14,11 @@ for @array -> $item {
 $i = 0;
 for @array {
     if @array[$i] eq $_ { say "ok ", $i + 4 } else { say "not ok ", $i + 4 }
+    $i++;
+}
+
+$i = 0;
+for (0,1,2) {
+    if $i eq $_ { say "ok ", $i + 7 } else { say "not ok ", $i + 7 }
     $i++;
 }

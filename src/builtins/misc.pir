@@ -11,3 +11,9 @@ src/builtins/misc.pir - miscellaneous builtins that need reclassification
     .return x.'WHAT'()
 .end
 
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

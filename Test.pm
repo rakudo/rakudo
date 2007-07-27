@@ -53,8 +53,8 @@ sub proclaim($cond, $desc) {
     $num_of_tests_run = $num_of_tests_run + 1;
 
     if ( $cond ) {
-        say "ok ", $num_of_tests_run;
+        say "ok ", $num_of_tests_run, " - ", $desc;
     } else {
-        say "not ok ", $num_of_tests_run;
+        say "not ok ", $num_of_tests_run, " - ", $desc;
     }
 }

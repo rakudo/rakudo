@@ -26,6 +26,7 @@ my @spectests = qw(
     t/operators/cond.t
     t/operators/context_forcers.t
     t/operators/eq.t
+    t/operators/inc.t
     t/operators/relational.t
     t/builtins/math/trig.t
 );

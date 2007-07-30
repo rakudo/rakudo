@@ -164,40 +164,6 @@ digits.
         return SUPER();
     }
 
-/*
-
-=item C<void increment()>
-
-Increments the string.
-
-=cut
-
-*/
-    void increment() {
-    }
-
-/*
-
-=item C<void decrement()>
-
-Decrements the string.
-
-=cut
-
-*/
-    void decrement() {
-        STRING *       str   = DYNSELF.get_string();
-
-        STRING * const empty = string_from_literal(INTERP, "");
-        STRING * const a     = string_from_literal(INTERP, "a");
-        STRING * const zero  = string_from_literal(INTERP, "0");
-
-        if ((string_compare(interp, str, empty)       == 0)
-                || (string_compare(interp, str, a)    == 0)
-                || (string_compare(interp, str, zero) == 0))
-            str = empty;
-    }
-
 }
 
 /*

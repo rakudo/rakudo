@@ -26,7 +26,6 @@ my @spectests = qw(
     t/operators/cond.t
     t/operators/context_forcers.t
     t/operators/eq.t
-    t/operators/inc.t
     t/operators/relational.t
     t/builtins/math/trig.t
 );
@@ -49,4 +48,5 @@ exit(0);
 #   fill-column: 100
 # End:
 # vim: expandtab shiftwidth=4:
+
 

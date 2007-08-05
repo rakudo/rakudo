@@ -86,7 +86,7 @@ digits.
                         while (s1 < end && isxdigit(*s1)) {
                             f *= 16;
                             if (isdigit((unsigned char)*s1)) f += (*s1) - '0';
-                            else f += tolower(*s1) - 'a' + 10;
+                            else f += tolower((unsigned char)*s1) - 'a' + 10;
                             s1++;
                             if (s1 < end && *s1 == '_') s1++;
                         }

@@ -7,7 +7,8 @@ RM_RF    = @rm_rf@
 PARROT   = ../../parrot@exe@
 BUILD_DIR= @build_dir@
 BUILD    = $(PERL) @build_dir@/tools/build/dynpmc.pl
-CONFIGURE= $(PERL) @build_dir@/Configure.pl
+# CONFIGURE= $(PERL) @build_dir@/Configure.pl
+RECONFIGURE= $(PERL) @build_dir@/tools/dev/reconfigure.pl
 TOOL_DIR = ../..
 TGE_DIR  = ../../compilers/tge
 CAT      = $(PERL) -MExtUtils::Command -e cat
@@ -76,9 +77,11 @@ $(PMCDIR)/perl6_group$(LOAD_EXT): $(PARROT) $(PMC_SOURCES)
 src/builtins_gen.pir: $(BUILTINS_PIR)
 	$(CAT) $(BUILTINS_PIR) >src/builtins_gen.pir
 
+#	cd $(BUILD_DIR) && $(CONFIGURE) --step=gen::languages --languages=perl6
+
 # regenerate the Makefile
 Makefile: config/makefiles/root.in
-	cd $(BUILD_DIR) && $(CONFIGURE) --step=gen::languages --languages=perl6
+	cd $(BUILD_DIR) && $(RECONFIGURE) --step=gen::languages --languages=perl6
 
 # This is a listing of all targets, that are meant to be called by users
 help:

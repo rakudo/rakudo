@@ -7,7 +7,6 @@ RM_RF    = @rm_rf@
 PARROT   = ../../parrot@exe@
 BUILD_DIR= @build_dir@
 BUILD    = $(PERL) @build_dir@/tools/build/dynpmc.pl
-# CONFIGURE= $(PERL) @build_dir@/Configure.pl
 RECONFIGURE= $(PERL) @build_dir@/tools/dev/reconfigure.pl
 TOOL_DIR = ../..
 TGE_DIR  = ../../compilers/tge

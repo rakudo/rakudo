@@ -206,6 +206,7 @@ error.
 
 .sub 'e'
     $N0 = exp 1
+    .return ($N0)
 .end
 
 

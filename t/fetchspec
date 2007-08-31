@@ -28,6 +28,8 @@ my @spectests = qw(
     t/operators/eq.t
     t/operators/relational.t
     t/builtins/math/trig.t
+    t/builtins/math/e.t
+    t/builtins/math/pi.t
 );
 
 foreach my $tfile (@spectests) {

@@ -1,3 +1,4 @@
+# Copyright (C) 2007, The Perl Foundation.
 
 module use_ok_test-0.0.1;
 

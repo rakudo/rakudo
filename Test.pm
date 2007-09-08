@@ -45,6 +45,7 @@ multi sub isnt($got, $expected, $desc) {
 
 multi sub isnt($got, $expected) { isnt($got, $expected, ''); }
 
+sub diag($message) { say '# '~$message; }
 
 ## 'private' subs
 
@@ -53,8 +54,20 @@ sub proclaim($cond, $desc) {
     $num_of_tests_run = $num_of_tests_run + 1;
 
     if ( $cond ) {
-        say "ok ", $num_of_tests_run, " - ", $desc;
+        print "ok " ~ $num_of_tests_run ~ " - ";
     } else {
-        say "not ok ", $num_of_tests_run, " - ", $desc;
+        print "not ok " ~ $num_of_tests_run ~ " - ";
+        ++$num_of_tests_failed;
+    }
+    say $desc;
+
+}
+
+END {
+    if ($testing_started and $num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
+        diag("Looks like you planned $num_of_tests_planned tests, but ran $num_of_tests_run");
+    }
+    if ($testing_started and $num_of_tests_failed) {
+        diag("Looks like you failed $num_of_tests_failed tests of $num_of_tests_run");
     }
 }

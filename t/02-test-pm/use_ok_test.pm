@@ -1,4 +1,5 @@
 # Copyright (C) 2007, The Perl Foundation.
+# $Id$
 
 module use_ok_test-0.0.1;
 

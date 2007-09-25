@@ -42,7 +42,7 @@ we just call C<get_number()> and return that as an integer.
 
 */
 
-    INTVAL get_integer () {
+    INTVAL get_integer() {
         FLOATVAL f = DYNSELF.get_number();
         return (INTVAL)f;
     }
@@ -61,7 +61,7 @@ digits.
 
 */
 
-    FLOATVAL get_number () {
+    FLOATVAL get_number() {
         STRING *s = (STRING*) PMC_str_val(SELF);
         FLOATVAL sign = 1.0;
         FLOATVAL f = 0.0;

@@ -666,7 +666,7 @@ transform past (Perl6::Grammar::regex_term) :language('PIR') {
     .local pmc regex, past
     regex = node['regex']
     past = new 'PAST::Block'
-    past.'init'(regex, 'node'=>node, 'compiler'=>'PGE::P6Regex')
+    past.'init'(regex, 'node'=>node, 'compiler'=>'PGE::Perl6Regex')
     .return (past)
 }
 

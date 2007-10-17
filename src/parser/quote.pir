@@ -76,12 +76,11 @@ merged into the default, and quote parsing begins.
 
 =cut
 
-.sub 'quote_expression'
-    .param pmc mob
+.sub 'quote_expression' :method
     .param pmc adverbs         :slurpy :named
 
     .local string key
-    key = mob['KEY']
+    key = self['KEY']
     .local pmc quotetable, keyadverbs
     quotetable = get_global '%!quotetable'
     keyadverbs = quotetable[key]
@@ -93,12 +92,13 @@ merged into the default, and quote parsing begins.
     advww = keyadverbs['ww']
     $I0 = or advw, advww
     if $I0 goto quote_words
-    .return mob.'quote_string'(closedelim, keyadverbs :flat :named)
+    .return self.'quote_string'(closedelim, keyadverbs :flat :named)
 
   quote_words:
+    .local pmc mob
     .local string target
     .local int pos, delimlen, lastpos, ccount
-    (mob, pos, target) = mob.'new'(mob)
+    (mob, pos, target) = self.'new'(self)
     delimlen = length closedelim
     lastpos = length target
     lastpos -= delimlen
@@ -155,8 +155,7 @@ merged into the default, and quote parsing begins.
 .end
 
 
-.sub 'quote_string'
-    .param pmc mob
+.sub 'quote_string' :method
     .param string closedelim
     .param pmc adverbs         :slurpy :named
 
@@ -190,9 +189,10 @@ merged into the default, and quote parsing begins.
     interpolatechars .= '{'
   have_interpolatechars:
 
+    .local pmc mob
     .local string target
     .local int pos, delimlen, lastpos, ccount
-    (mob, pos, target) = mob.'new'(mob)
+    (mob, pos, target) = self.'new'(self)
     delimlen = length closedelim
     lastpos = length target
     lastpos -= delimlen

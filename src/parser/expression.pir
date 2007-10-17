@@ -37,7 +37,7 @@ and returns the result to the caller.
 
     optable = find_global 'Perl6::Grammar', "$optable"
     ws = find_global 'Perl6::Grammar', 'ws'
-    setattribute optable, "PGE::OPTable\x0&!ws", ws
+    setattribute optable, "&!ws", ws
     if has_stoptoken > 0 goto expression_1
     stoptoken = ''
   expression_1:
@@ -59,7 +59,7 @@ than the listop precedence level, nominally indicated by C<< infix:<== >>.
     .local pmc optable, ws
     optable = find_global 'Perl6::Grammar', "$optable"
     ws = find_global 'Perl6::Grammar', 'ws'
-    setattribute optable, "PGE::OPTable\x0&!ws", ws
+    setattribute optable, "&!ws", ws
     .return optable.'parse'(mob, 'tighter'=>'infix:<==')
 .end
 

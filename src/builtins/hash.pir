@@ -28,7 +28,7 @@ src/builtins/hash.pir - Perl 6 Hash class
 .sub 'get_string' :vtable :method
     $S0 = ''
     .local pmc iter
-    iter = new .Iterator, self
+    iter = new 'Iterator', self
   loop:
     unless iter goto end
     $S1 = shift iter
@@ -47,7 +47,7 @@ src/builtins/hash.pir - Perl 6 Hash class
 .sub 'clone' :vtable :method
     $P0 = new 'Perl6Hash'
     .local pmc iter
-    iter = new .Iterator, self
+    iter = new 'Iterator', self
   loop:
     unless iter goto end
     $P1 = shift iter

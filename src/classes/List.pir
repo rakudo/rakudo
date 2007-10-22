@@ -42,7 +42,7 @@ src/classes/List.pir - Perl 6 List class
 .sub 'set_pmc' :vtable :method
     .param pmc value
     self = 0
-    $P0 = new .Iterator, value
+    $P0 = new 'Iterator', value
   iter_loop:
     unless $P0 goto iter_end
     $P1 = shift $P0

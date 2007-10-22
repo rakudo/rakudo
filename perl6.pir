@@ -55,9 +55,9 @@ to the Perl6 compiler.
 
 .sub 'main' :main
     .param pmc args
- 
-    $P0 = new .ResizablePMCArray
-    $P1 = new .Hash
+
+    $P0 = new 'ResizablePMCArray'
+    $P1 = new 'Hash'
     $P1['END'] = $P0
     store_global '_perl6', '%BLOCKS', $P1
 
@@ -72,7 +72,7 @@ to the Perl6 compiler.
 # Run all the END blocks that have been registered.
 
 exit_handler:
-    .get_results($P0,$S0)     
+    .get_results($P0,$S0)
     .include 'except_severity.pasm'
     $I0 = $P0[SEVERITY_SLOT]
     if $I0 != .EXCEPT_EXIT goto rethrow_error
@@ -84,12 +84,12 @@ do_END_blocks:
     if null $P0 goto done
     $P0 = $P0['END']
     if null $P0 goto done
-    $P1 = new .Iterator, $P0
+    $P1 = new 'Iterator', $P0
     $P1 = .ITERATE_FROM_END
 loop_blocks:
     unless $P1 goto done
     $P2 = pop $P1
-    $P2() 
+    $P2()
     goto loop_blocks
 done:
     end

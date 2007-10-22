@@ -1,7 +1,7 @@
 .namespace
 
 .sub __onload :init :load
-    $P0 = getclass 'Perl6Bool'
+    $P0 = get_class 'Perl6Bool'
     set_global 'Bool', $P0
     $P0 = new 'Perl6Bool'
     $P0 = 0
@@ -20,7 +20,7 @@
 .end
 
 .sub 'WHAT' :method
-    $P0 = getclass 'Perl6Bool'
+    $P0 = get_class 'Perl6Bool'
     .return ($P0)
 .end
 

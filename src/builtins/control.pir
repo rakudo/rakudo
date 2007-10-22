@@ -26,7 +26,7 @@ src/builtins/control.pir - Perl 6 Control functions
     .local string message
 
     message = ''
-    iter = new .Iterator, list
+    iter = new 'Iterator', list
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
@@ -37,7 +37,7 @@ src/builtins/control.pir - Perl 6 Control functions
     if message > '' goto have_message
     message = "Died\n"
   have_message:
-    $P0 = new .Exception
+    $P0 = new 'Exception'
     $P0['_message'] = message
     set_global '$!', $P0
     throw $P0

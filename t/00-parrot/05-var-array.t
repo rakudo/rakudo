@@ -6,7 +6,6 @@ use v6;
 
 say '1..11';
 
-parrot_trace 7;
 my @a = (1, 2, 3);
 
 say 'ok ' ~ @a[0];

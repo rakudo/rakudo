@@ -65,7 +65,7 @@ to the Perl6 compiler.
 
     push_eh exit_handler
       $P1 = $P0.'command_line'(args)
-    clear_eh
+    pop_eh
 
     goto do_END_blocks
 

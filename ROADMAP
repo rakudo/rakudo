@@ -2,17 +2,17 @@ Updated: 2007-11-23
 
 This message is a brief description of the current state of
 the Perl 6 on Parrot compiler, and what's on tap for the next
-couple of weeks of development.  I'll start with a brief 
-overview of what we have now, and then I'll describe where 
+couple of weeks of development.  I'll start with a brief
+overview of what we have now, and then I'll describe where
 things are headed from here.
 
 Before going too far, I should point out that there are several
-Perl 6 language translators in progress -- at least two of these 
-include Pugs and KindaPerl6.  These are available from 
+Perl 6 language translators in progress -- at least two of these
+include Pugs and KindaPerl6.  These are available from
 http://www.pugscode.org/ , and I highly recommend looking at
 the work they are doing.  In particular, if writing Perl 6
-programs is your interest (as opposed to developing a compiler), 
-then Pugs currently supports the widest set of Perl 6 language 
+programs is your interest (as opposed to developing a compiler),
+then Pugs currently supports the widest set of Perl 6 language
 features.
 
 
@@ -39,8 +39,8 @@ Perl 6 scripts directly from the command line, but that will
 undoubtedly be coming soon.
 
 If the perl6 compiler is invoked without a script argument
-(i.e., "parrot perl6.pbc"), it enters a small interactive 
-mode that allows Perl 6 statements to be executed from the 
+(i.e., "parrot perl6.pbc"), it enters a small interactive
+mode that allows Perl 6 statements to be executed from the
 command line.
 
 After the compiler is built, one can run "make test" to run
@@ -53,7 +53,7 @@ suite" for the forseeable future.  Thus, it's the source of
 tests that all of the development efforts should target.
 A lot of effort over the next few months will be spent
 in re-organizing the test suite and ensuring that it accurately
-reflects the current Perl 6 specification as given by the 
+reflects the current Perl 6 specification as given by the
 synopses documents ( http://dev.perl.org/perl6/doc/synopsis.html ).
 
 
@@ -61,20 +61,20 @@ Structure of the compiler as of 2007-11-01
 ------------------------------------------
 
 Before describing where we're going, it may be useful to briefly
-outline where we've been.  As of early November 2007, the 
+outline where we've been.  As of early November 2007, the
 perl6 compiler is divided up into four major components:
 
 1.  the parsing grammar (src/parser/Grammar.pg)
 2.  some parsing support subroutines (src/parser/*.pir)
 3.  the AST transformation (src/PAST/Grammar.tg)
-4.  runtime support (src/builtins/, src/classes/, src/pmc/)   
+4.  runtime support (src/builtins/, src/classes/, src/pmc/)
 
 The parsing grammar is written using Perl 6 regular expressions
-(Synopsis 5) -- the version of regular expressions that were in 
-effect at the beginning of the year.  More on this in a bit.  
-The Parser Grammar Engine (PGE) is used to compile the grammar 
-into a working parser.  The parsing support routines are used 
-to parse constructs (e.g., quoted literals) that are more easily 
+(Synopsis 5) -- the version of regular expressions that were in
+effect at the beginning of the year.  More on this in a bit.
+The Parser Grammar Engine (PGE) is used to compile the grammar
+into a working parser.  The parsing support routines are used
+to parse constructs (e.g., quoted literals) that are more easily
 parsed procedurally than with regular expressions.
 
 The AST transformation uses another tool called the Tree
@@ -95,16 +95,16 @@ While the design and implementation of the perl6 compiler has
 remained fairly static throughout 2007, a number of other things
 have been occurring that will spark a substantial redesign.
 
-First, as of Parrot 0.5.0 we now have a shiny new object model 
-that eliminates many of the obstacles that had been impeding 
-work on the compiler.  
+First, as of Parrot 0.5.0 we now have a shiny new object model
+that eliminates many of the obstacles that had been impeding
+work on the compiler.
 
 Another significant change has been the development of a
 standard grammar for Perl 6, known as STD.pm [1].  Larry started
-the STD.pm grammar earlier this year based on the grammars written 
-for Pugs and perl6, and partially as a result of this grammar 
-there's been some substantial redesign and improvement to 
-Synopsis 5 (Regexes).  
+the STD.pm grammar earlier this year based on the grammars written
+for Pugs and perl6, and partially as a result of this grammar
+there's been some substantial redesign and improvement to
+Synopsis 5 (Regexes).
 
 So, one of the things we will be doing soon is to redesign the
 perl6 compiler using a grammar that is much closer to STD.pm .
@@ -117,16 +117,16 @@ and work towards convergence with STD.pm .
 
 A big improvement in the regex syntax and STD.pm grammar
 is that they provide a useful syntax for embedding actions
-directly into the grammar (using the sequence {*} ).  
+directly into the grammar (using the sequence {*} ).
 As a result, the AST can be generated as part of the parsing
 phase, instead of requiring a separate phase.
 
-Furthermore, the methods for generating the AST can initially be 
+Furthermore, the methods for generating the AST can initially be
 in "NQP" instead of Parrot assembly.  NQP is a lightweight form
 of Perl 6 designed especially for compiling simple programs in
-Parrot [2].  As a result, most of the source code for the perl6 
+Parrot [2].  As a result, most of the source code for the perl6
 compiler will end up looking a lot like Perl 6, which may make
-it easier for others to hack on.  
+it easier for others to hack on.
 
 So, here's the current plan for the next couple of weeks:
 
@@ -160,19 +160,19 @@ so this is a good chance to make sure they're correct.
 How others can start hacking and contributing
 ---------------------------------------------
 
-If you're interested in hacking on the compiler, my suggestion 
-is to become somewhat familiar with the compiler tools already 
+If you're interested in hacking on the compiler, my suggestion
+is to become somewhat familiar with the compiler tools already
 available in Parrot.  The mostly likely place to start is to look
 at the implementation of NQP and see how it has been
 put together.  The grammar for NQP is written in Perl 6,
 and although the AST transformations are currently written
 in PIR, the source code for the transformations also provides
-the Perl 6 equivalent.  (Eventually NQP may be used to 
+the Perl 6 equivalent.  (Eventually NQP may be used to
 bootstrap itself... but we're not there yet, and I'm more
 focused on getting perl6 running.)
 
-Patches and bug reports can be submitted to perl6-bug@perl.org.  
-Please use the moniker [PATCH], [BUG], or [TODO] (including the 
+Patches and bug reports can be submitted to perl6-bug@perl.org.
+Please use the moniker [PATCH], [BUG], or [TODO] (including the
 brackets) at the start of the subject so that RT can appropriately
 tag the item.
 
@@ -190,4 +190,4 @@ Pm
 References:
 
 1.  STD.pm:  http://svn.pugscode.org/pugs/src/perl6/STD.pm
-2.  NQP:     http://svn.perl.org/parrot/trunk/languages/nqp/
+2.  NQP:     http://svn.perl.org/parrot/trunk/compilers/nqp/

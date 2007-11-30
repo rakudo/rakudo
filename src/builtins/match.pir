@@ -48,8 +48,8 @@ src/builtins/match.pir - Perl6 builtins for smart matching
     .param pmc array
     .param pmc x
     .local pmc iter
-    iter = new .Iterator, array
-    $P1 = new .Integer
+    iter = new 'Iterator', array
+    $P1 = new 'Integer'
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter

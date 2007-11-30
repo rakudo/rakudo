@@ -28,7 +28,7 @@ symbols defined locally in the block.
 
     #   Create an empty children array if we didn't get one
     unless null children goto have_children
-    children = new .ResizablePMCArray
+    children = new 'ResizablePMCArray'
   have_children:
 
     #   If we're not given an existing symbol table, then
@@ -43,13 +43,13 @@ symbols defined locally in the block.
     adverbs['symtable'] = symtable
     goto have_symtable
   new_symtable:
-    symtable = new .Hash
+    symtable = new 'Hash'
     adverbs['symtable'] = symtable
   have_symtable:
 
     #   Initialize a new mydecl hash
     .local pmc mydecl
-    mydecl = new .Hash
+    mydecl = new 'Hash'
     self['mydecl'] = mydecl
 
     #   Call self.'init'(...) to perform normal PAST::Block initializations.
@@ -74,7 +74,7 @@ block, including C<$_>, C<$/>, and C<$!>.
     if $I0 goto have_topic
     self.'push_new'('PAST::Var', 'name'=>'$_', 'scope'=>'lexical', 'ismy'=>1)
     self.'mydecl'('$_', 1)
-    symbol = new .Hash
+    symbol = new 'Hash'
     symbol['scope'] = 'lexical'
     symtable['$_'] = symbol
   have_topic:
@@ -84,13 +84,13 @@ block, including C<$_>, C<$/>, and C<$!>.
     if $I0 goto have_match
     self.'push_new'('PAST::Var', 'name'=>'$/', 'scope'=>'lexical', 'ismy'=>1)
     self.'mydecl'('$_', 1)
-    symbol = new .Hash
+    symbol = new 'Hash'
     symbol['scope'] = 'lexical'
     symtable['$/'] = symbol
   have_match:
 
     #   Create a new error variable (C<$!>).
-    symbol = new .Hash
+    symbol = new 'Hash'
     symbol['scope'] = 'package'
     symtable['$!'] = symbol
 

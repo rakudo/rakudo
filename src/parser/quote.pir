@@ -28,11 +28,11 @@ Initialize the tables needed for quote parsing.
     .local pmc quotetable, keyadv
 
     ##  create the quotetable
-    quotetable = new .Hash
+    quotetable = new 'Hash'
     set_global '%!quotetable', quotetable
 
     ##  adverbs for single quotes
-    keyadv = new .Hash
+    keyadv = new 'Hash'
     keyadv['q'] = 1
     keyadv['closedelim'] = "'"
     quotetable["'"] = keyadv
@@ -57,7 +57,7 @@ Initialize the tables needed for quote parsing.
     quotetable['<<'] = keyadv
 
     ## adverbs for qw
-    keyadv = new .Hash
+    keyadv = new 'Hash'
     keyadv['q'] = 1
     keyadv['w'] = 1
     keyadv['closedelim'] = '>'

@@ -44,7 +44,7 @@ transform past (Perl6::Grammar::statement_list) :language('PIR') {
 
     $P0 = node['statement']
     .local pmc iter
-    iter = new .Iterator, $P0
+    iter = new 'Iterator', $P0
   iter_loop:
     unless iter goto iter_end
     .local pmc cnode, cpast
@@ -190,7 +190,7 @@ transform for (Perl6::Grammar::statement_control) :language('PIR') {
 
     # Fake up a new signature to replace our missing one...
     $P1 = find_global 'Perl6::Grammar', 'signature'
-    signature = new .ResizablePMCArray
+    signature = new 'ResizablePMCArray'
     $P2 = $P1('$_','grammar' => 'Perl6::Grammar')
     push signature, $P2
  
@@ -236,7 +236,7 @@ transform past (Perl6::Grammar::expr) :language('PIR') {
 
     $P0 = node.'get_array'()
     if null $P0 goto iter_end
-    iter = new .Iterator, $P0
+    iter = new 'Iterator', $P0
     unless iter goto iter_end
     $P0[0;'islvalue'] = islvalue
   iter_loop:
@@ -262,7 +262,7 @@ transform past_term (Perl6::Grammar::expr) :language('PIR') {
     .local pmc kv, cnode
     .local string cname
     $P0 = node.'get_hash'()
-    kv = new .Iterator, $P0
+    kv = new 'Iterator', $P0
   cname_loop:
     cname = shift kv
     if cname == 'postop' goto cname_loop
@@ -272,12 +272,12 @@ transform past_term (Perl6::Grammar::expr) :language('PIR') {
     .local string pname
     $P0 = node['postop']
     if null $P0 goto postop_end
-    iter = new .Iterator, $P0
+    iter = new 'Iterator', $P0
   postop_loop:
     unless iter goto postop_end
     pnode = shift iter
     $P0 = pnode.'get_hash'()
-    kv = new .Iterator, $P0
+    kv = new 'Iterator', $P0
     pname = shift kv
     pnode = pnode[pname]
     pnode['cname'] = cname
@@ -329,14 +329,14 @@ transform past (Perl6::Grammar::postcircumfix) :language('PIR') {
     ##   if we have an expression, let's get that
     .local pmc xnode, xpast, xargs
     null xpast
-    xargs = new .Undef
+    xargs = new 'Undef'
     $P0 = node['expression']
     if null $P0 goto have_xargs
     xnode = $P0[0]
     xpast = tree.'get'('past', xnode, 'Perl6::Grammar::expression')
     $S0 = xpast.'name'()
     if $S0 == 'infix:,' goto comma_args
-    xargs = new .ResizablePMCArray
+    xargs = new 'ResizablePMCArray'
     push xargs, xpast
     goto have_xargs
   comma_args:
@@ -364,7 +364,7 @@ transform past (Perl6::Grammar::postcircumfix) :language('PIR') {
   add_xargs:
     unless xargs goto iter_end
     .local pmc iter
-    iter = new .Iterator, xargs
+    iter = new 'Iterator', xargs
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
@@ -478,7 +478,7 @@ transform quote_literal (Perl6::Grammar::quote_expression) :language('PIR') {
 transform quote_concat (Perl6::Grammar::quote_expression) :language('PIR') {
     .local pmc iter
     $P0 = node.'get_array'()
-    iter = new .Iterator, $P0
+    iter = new 'Iterator', $P0
     .local pmc past, cnode, cpast
     .local string ctype
     cnode = shift iter
@@ -501,7 +501,7 @@ transform quote_list (Perl6::Grammar::quote_expression) :language('PIR') {
     past = new 'PAST::Op'
     past.'init'('node'=>node, 'name'=>'list')
     $P0 = node.'get_array'()
-    iter = new .Iterator, $P0
+    iter = new 'Iterator', $P0
   iter_loop:
     unless iter goto iter_end
     .local pmc cpast, cnode
@@ -537,7 +537,7 @@ transform past (Perl6::Grammar::scoped_variables) :language('PIR') {
     .local pmc block, symtable, symbol
     block = get_global '$?BLOCK'
     symtable = block.'symtable'()
-    symbol = new .Hash
+    symbol = new 'Hash'
     symbol['scope'] = scope
     symtable[name] = symbol
 
@@ -614,8 +614,8 @@ transform past (Perl6::Grammar::subroutine) :language('PIR') {
     unless $P0 goto done_signature
     $P0 = node['signature';0;'paramlist';'parameter']
     .local pmc iter, pnode, ppast, multi
-    multi = new .ResizablePMCArray
-    iter = new .Iterator, $P0
+    multi = new 'ResizablePMCArray'
+    iter = new 'Iterator', $P0
   param_loop:
     unless iter goto done_signature
     pnode = shift iter
@@ -650,7 +650,7 @@ transform past (Perl6::Grammar::parameter) :language('PIR') {
     .local pmc block, symtable, symbol
     block = get_global '$?BLOCK'
     symtable = block.'symtable'()
-    symbol = new .Hash
+    symbol = new 'Hash'
     symbol['scope'] = 'lexical'
     symtable[name] = symbol
     block.'mydecl'(name, 1)

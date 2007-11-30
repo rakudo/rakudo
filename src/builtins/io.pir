@@ -16,7 +16,7 @@ src/builtins/io.pir - Perl6 builtins for I/O
     .param pmc list            :slurpy
     .local pmc iter
 
-    iter = new .Iterator, list
+    iter = new 'Iterator', list
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
@@ -48,7 +48,7 @@ src/builtins/io.pir - Perl6 builtins for I/O
     file_string = join '/', path
 
     .local pmc filename
-    filename  = new .Perl6Str
+    filename  = new 'Perl6Str'
     filename  = file_string
     filename .= '.pm'
 

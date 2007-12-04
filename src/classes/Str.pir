@@ -1,25 +1,10 @@
 .namespace
 
 .sub __onload :init :load
-    $P0 = get_class 'Perl6Str'
-    set_global 'Str', $P0
+    $P0 = subclass 'Perl6Str', 'Str'
+    $P1 = get_class ['Perl6Object']
+    $P0.'add_parent'($P1)
+
+    $P1 = new $P0
+    set_hll_global 'Str', $P1
 .end
-
-.namespace [ 'Perl6Str' ]
-
-.sub 'isa' :method
-    .param string x
-    $I0 = iseq x, 'Str'
-    .return ($I0)
-.end
-
-.sub 'WHAT' :method
-    $P0 = get_class 'Perl6Str'
-    .return ($P0)
-.end
-
-# Local Variables:
-#   mode: pir
-#   fill-column: 100
-# End:
-# vim: expandtab shiftwidth=4:

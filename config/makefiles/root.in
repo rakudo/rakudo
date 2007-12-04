@@ -1,81 +1,74 @@
 # $Id$
 
-# Setup some commands
+## arguments we want to run parrot with
+PARROT_ARGS =
+
+## configuration settings
+BUILD_DIR     = @build_dir@
+LOAD_EXT      = @load_ext@
+O             = @o@
+
+## Setup some commands
 LN_S          = @lns@
 PERL          = @perl@
 RM_RF         = @rm_rf@
+CP            = @cp@
 PARROT        = ../../parrot@exe@
-BUILD_DIR     = @build_dir@
+CAT           = $(PERL) -MExtUtils::Command -e cat
 BUILD_DYNPMC  = $(PERL) $(BUILD_DIR)/tools/build/dynpmc.pl
 RECONFIGURE   = $(PERL) $(BUILD_DIR)/tools/dev/reconfigure.pl
-TOOL_DIR      = ../..
-TGE_DIR       = ../../compilers/tge
-CAT           = $(PERL) -MExtUtils::Command -e cat
-CP            = @cp@
-O             = @o@
-LOAD_EXT      = @load_ext@
+
+## places to look for things
 PARROT_DYNEXT = $(BUILD_DIR)/runtime/parrot/dynext
 PGE_LIBRARY   = $(BUILD_DIR)/runtime/parrot/library/PGE
+PERL6GRAMMAR  = $(PGE_LIBRARY)/Perl6Grammar.pbc
+NQP           = $(BUILD_DIR)/compilers/nqp/nqp.pbc
+PCT           = $(BUILD_DIR)/runtime/parrot/library/PCT.pbc
+
 PMC_DIR       = src/pmc
 
 all: perl6.pbc
 
+PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)
+
 SOURCES = perl6.pir \
-  src/parser/grammar_rules.pg \
-  src/parser/grammar_optok.pg \
-  src/parser/expression.pir \
-  src/parser/quote.pir \
-  src/parser/regex.pir \
-  src/PAST/Grammar.tg \
-  src/PAST/Perl6.pir \
-  src/builtins_gen.pir \
-  $(PMC_DIR)/perl6_group$(LOAD_EXT)
+  src/parser/grammar.pg \
+  src/parser/grammar-oper.pg \
+  src/parser/actions.pl \
+  src/parser/quote_expression.pir \
+  src/gen_builtins.pir \
+  $(PERL6_GROUP)
 
 BUILTINS_PIR = \
+  src/classes/Object.pir \
+  src/classes/Str.pir \
+  src/classes/List.pir \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
-  src/builtins/control.pir \
-  src/builtins/hash.pir \
   src/builtins/io.pir \
   src/builtins/list.pir \
-  src/builtins/match.pir \
-  src/builtins/math.pir \
-  src/builtins/misc.pir \
-  src/builtins/named-unary.pir \
   src/builtins/op.pir \
-  src/builtins/parrot.pir \
-  src/builtins/range.pir \
-  src/builtins/string.pir \
-  src/classes/Bool.pir \
-  src/classes/Code.pir \
-  src/classes/List.pir \
-  src/classes/Num.pir \
-  src/classes/Str.pir \
-  src/classes/Undef.pir
 
-PMCS = perl6str perl6bool perl6undef
+PMCS = perl6str
 PMC_SOURCES = $(PMC_DIR)/perl6str.pmc
 
-PARROT_ARGS =
-
 # the default target
-perl6.pbc: $(PARROT) $(PGE_LIBRARY)/Perl6Grammar.pir $(SOURCES)
-	$(PARROT) $(PARROT_ARGS) $(PGE_LIBRARY)/Perl6Grammar.pir \
-	    --output=src/parser/grammar_gen.pir \
-	    src/parser/grammar_rules.pg src/parser/grammar_optok.pg
-	$(PARROT) $(TGE_DIR)/tgc.pir --output=src/PAST/Grammar_gen.pir src/PAST/Grammar.tg
-	$(PARROT) -o perl6.pbc perl6.pir
+perl6.pbc: $(PARROT) $(PERL6GRAMMAR) $(NQP) $(PCT) $(SOURCES)
+	$(PARROT) $(PARROT_ARGS) $(PERL6GRAMMAR) \
+	    --output=src/gen_grammar.pir \
+	    src/parser/grammar.pg src/parser/grammar-oper.pg
+	$(PARROT) $(PARROT_ARGS) $(NQP) --output=src/gen_actions.pir \
+	    --target=pir src/parser/actions.pl
+	$(PARROT) $(PARROT_ARGS) -o perl6.pbc perl6.pir
 
-$(PMC_DIR)/perl6_group$(LOAD_EXT): $(PARROT) $(PMC_SOURCES)
+src/gen_builtins.pir: $(BUILTINS_PIR)
+	$(CAT) $(BUILTINS_PIR) >src/gen_builtins.pir
+
+$(PERL6_GROUP): $(PARROT) $(PMC_SOURCES)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) generate $(PMCS)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) compile $(PMCS)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) linklibs $(PMCS)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) copy --destination=$(PARROT_DYNEXT) $(PMCS)
-
-src/builtins_gen.pir: $(BUILTINS_PIR)
-	$(CAT) $(BUILTINS_PIR) >src/builtins_gen.pir
-
-#	cd $(BUILD_DIR) && $(CONFIGURE) --step=gen::languages --languages=perl6
 
 # regenerate the Makefile
 Makefile: config/makefiles/root.in
@@ -119,13 +112,9 @@ t/spec:
 
 CLEANUPS = \
   perl6.pbc \
-  perl6-orig.pbc \
-  src/parser/grammar_gen.pir \
-  src/parse2past_gen.pir \
-  src/pge2past_gen.pir \
-  src/past2post_gen.pir \
-  src/builtins_gen.pir \
-  src/PAST/Grammar_gen.pir \
+  src/gen_grammar.pir \
+  src/gen_actions.pir \
+  src/gen_builtins.pir \
   $(PMC_DIR)/*.h \
   $(PMC_DIR)/*.c \
   $(PMC_DIR)/*.dump \
@@ -136,9 +125,9 @@ CLEANUPS = \
   $(PMC_DIR)/*.manifest \
   $(PMC_DIR)/*.pdb \
   $(PMC_DIR)/*.lib \
-  t/spec
 
-clean: 
+
+clean:
 	$(RM_RF) $(CLEANUPS)
 
 realclean: clean

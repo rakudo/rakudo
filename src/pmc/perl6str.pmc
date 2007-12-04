@@ -4,12 +4,12 @@ Copyright (C) 2001-2006, The Perl Foundation.
 
 =head1 NAME
 
-src/pmc/perl6string.pmc - Perl 6 Strings
+src/pmc/perl6str.pmc - Perl 6 Strings
 
 =head1 DESCRIPTION
 
 C<Perl6Str> extends C<String> to provide Perl6-specific
-string behavior.
+string numifying behavior.
 
 =head2 Methods
 
@@ -156,13 +156,6 @@ digits.
         }
 
         return sign * f;
-    }
-
-    STRING* get_string() {
-        PMC *class = GET_CLASS(PMC_data(SELF), SELF);
-        if (class == SELF)
-            return string_from_cstring(INTERP, "Str", 3);
-        return SUPER();
     }
 
 }

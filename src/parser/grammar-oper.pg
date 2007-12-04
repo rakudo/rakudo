@@ -1,0 +1,158 @@
+# Copyright (C) 2007, The Perl Foundation.
+# $Id$
+
+## autoincrement
+proto postfix:<++> is precedence('20=') is lvalue(1) { ... }
+proto postfix:<--> is equiv(postfix:<++>) is lvalue(1) { ... }
+proto prefix:<++> is equiv(postfix:<++>) is lvalue(1) { ... }
+proto prefix:<--> is equiv(postfix:<++>) is lvalue(1) { ... }
+
+## exponentiation
+proto infix:<**> is precedence('w=') { ... }
+
+## symbolic unary
+proto prefix:<+> is precedence('v=') { ... }
+proto prefix:<-> is equiv(prefix:<+>) { ... }
+proto prefix:<+^> is equiv(prefix:<+>)
+    is pirop('n_bnot')
+    { ... }
+
+## multiplicative operators
+proto infix:<*> is precedence('u=')
+    is pirop('n_mul')
+    { ... }
+proto infix:</> is equiv(infix:<*>)
+    is pirop('n_div')
+    { ... }
+proto infix:<%> is equiv(infix:<*>)
+    is pirop('n_mod')
+    { ... }
+proto infix:<+&> is equiv(infix:<*>) { ... }
+proto infix:<+^> is equiv(infix:<*>) { ... }
+proto infix:«+<» is equiv(infix:<*>) { ... }
+proto infix:«+>» is equiv(infix:<*>) { ... }
+proto infix:<~&> is equiv(infix:<*>) { ... }
+proto infix:«~<» is equiv(infix:<*>) { ... }
+proto infix:«~>» is equiv(infix:<*>) { ... }
+proto infix:<?&> is equiv(infix:<*>) { ... }
+proto infix:<div> is equiv(infix:<*>) { ... }
+proto infix:<mod> is equiv(infix:<*>) { ... }
+
+## additive operators
+proto infix:<+> is precedence('t=')
+    is pirop('n_add')
+    { ... }
+proto infix:<-> is equiv(infix:<+>)
+    is pirop('n_sub')
+    { ... }
+proto infix:<+|> is equiv(infix:<+>) { ... }
+proto infix:<+^> is equiv(infix:<+>) { ... }
+proto infix:<~|> is equiv(infix:<+>) { ... }
+proto infix:<~^> is equiv(infix:<+>) { ... }
+proto infix:<?|> is equiv(infix:<+>) { ... }
+proto infix:<?^> is equiv(infix:<+>) { ... }
+
+## replication
+proto infix:<x> is precedence('s=') { ... }
+
+## concatenation
+proto infix:<~> is precedence('r=') { ... }
+
+## named unary
+proto prefix:<rand> is precedence('o=') { ... }
+proto prefix:<sleep> is equiv(prefix:<rand>) { ... }
+proto prefix:<abs> is equiv(prefix:<rand>)
+    is pirop('n_abs')
+    { ... }
+
+## chaining
+proto infix:<==>  is precedence('m=') is pasttype('chain') { ... }
+proto infix:<!=>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:«<»   is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:«<=»  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:«>»   is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:«>=»  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<eq>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<ne>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<lt>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<le>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<gt>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<ge>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<~~>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<===> is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<eqv> is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<!eqv> is equiv(infix:<==>) is pasttype('chain') { ... }
+
+## tight and
+proto infix:<&&> is precedence('l=')
+    is pasttype('if')
+    { ... }
+
+## tight or
+proto infix:<||> is precedence('k=')
+    is pasttype('unless')
+    { ... }
+proto infix:<^^> is equiv(infix:<||>)
+    is pasttype('xor')
+    { ... }
+proto infix:<//> is equiv(infix:<||>) { ... }
+proto infix:<min> is equiv(infix:<||>) { ... }
+proto infix:<max> is equiv(infix:<||>) { ... }
+
+## item assignment
+proto infix:<=> is precedence('j=')
+    is pasttype('copy')
+    is assoc('right')
+    is lvalue(1)
+    { ... }
+proto infix:<:=> is equiv(infix:<=>) is pasttype('bind') { ... }
+proto infix:<::=> is equiv(infix:<=>) { ... }
+proto infix:<.=> is equiv(infix:<=>) { ... }
+proto infix:<~=> is equiv(infix:<=>) { ... }
+proto infix:<+=> is equiv(infix:<=>) { ... }
+proto infix:<-=> is equiv(infix:<=>) { ... }
+proto infix:<*=> is equiv(infix:<=>) { ... }
+proto infix:</=> is equiv(infix:<=>) { ... }
+proto infix:<%=> is equiv(infix:<=>) { ... }
+proto infix:<x=> is equiv(infix:<=>) { ... }
+proto infix:<Y=> is equiv(infix:<=>) { ... }
+proto infix:<**=> is equiv(infix:<=>) { ... }
+proto infix:<xx=> is equiv(infix:<=>) { ... }
+proto infix:<||=> is equiv(infix:<=>) { ... }
+proto infix:<&&=> is equiv(infix:<=>) { ... }
+proto infix:<//=> is equiv(infix:<=>) { ... }
+proto infix:<^^=> is equiv(infix:<=>) { ... }
+proto infix:«+<=» is equiv(infix:<=>) { ... }
+proto infix:«+>=» is equiv(infix:<=>) { ... }
+proto infix:<+|=> is equiv(infix:<=>) { ... }
+proto infix:<+&=> is equiv(infix:<=>) { ... }
+proto infix:<+^=> is equiv(infix:<=>) { ... }
+proto infix:<~|=> is equiv(infix:<=>) { ... }
+proto infix:<~&=> is equiv(infix:<=>) { ... }
+proto infix:<~^=> is equiv(infix:<=>) { ... }
+proto infix:<?|=> is equiv(infix:<=>) { ... }
+proto infix:<?&=> is equiv(infix:<=>) { ... }
+proto infix:<?^=> is equiv(infix:<=>) { ... }
+proto infix:<|=> is equiv(infix:<=>) { ... }
+proto infix:<&=> is equiv(infix:<=>) { ... }
+proto infix:<^=> is equiv(infix:<=>) { ... }
+
+## comma
+proto infix:<,> is precedence('g=')
+    is assoc('list')
+    { ... }
+
+## loose and
+proto infix:<and> is precedence('d=')
+    is pasttype('if')
+    { ... }
+proto infix:<andthen> is equiv(infix:<and>) { ... }
+
+## loose or
+proto infix:<or> is precedence('c=')
+    is pasttype('unless')
+    { ... }
+proto infix:<xor> is equiv(infix:<or>)
+    is pasttype('xor')
+    { ... }
+proto infix:<orelse> is equiv(infix:<or>) { ... }

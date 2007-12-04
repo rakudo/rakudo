@@ -1,0 +1,335 @@
+# Copyright (C) 2007, The Perl Foundation.
+# $Id$
+
+=begin Introduction
+
+This is the rules portion of the grammar for the perl6 compiler,
+an implementation of Perl 6 on Parrot.  This grammar is modeled
+after the STD.pm grammar that Larry Wall and others are developing,
+available from L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>.
+
+Our ultimate goal is to have this grammar and STD.pm converge
+with each other, to form an "official" Perl 6 grammar.  But
+there's a lot to do between here and that goal.  For one, Parrot
+doesn't yet have a rules engine that understands all of the
+constructs that appear in STD.pm, such as protoregexes .
+Another challenge is that the language specification itself
+changes from time to time as the various implementations progress.
+So, we can't just blindly copy STD.pm .
+
+When adding a new construct or feature to this grammar,
+be sure to look at STD.pm first to see how it achieves the
+result.  If STD.pm's approach can be copied directly, do that.
+If not, then try to get a close as possible (e.g., by using
+STD.pm's names).  And yes, there are times when STD.pm may
+adopt things done here.  But we want to keep them as close
+as we can.
+
+In each of the rules below, the special notation C<{*}>
+marks a point in the rule where a corresponding method
+from Perl6::Grammar::Actions (F<src/parser/actions.pl>)
+is invoked.  These actions will then construct the abstract
+syntax tree nodes as the source program is being parsed.
+
+The C<#=> markers at the ends of lines look like comments,
+but they're used to distinguish multiple C<{*}> actions
+within a rule.  (This is how STD.pm is organized, also.)
+The value following any C<#=> marker is passed as a
+'key' argument to the action method invoked by C<{*}>
+earlier in the line.
+
+Rules with only one action need no #= comment.
+
+=end overview
+
+grammar Perl6::Grammar is PCT::Grammar;
+
+token TOP {
+    <.MARK_STATEMENT_END>
+    <statement_block>
+    [ $ | <panic: Syntax error> ]
+    {*}
+}
+
+
+####  whitespace, comments, pod ####
+
+##  The <ws> token is used to match "whitespace", which includes
+##  things like spaces, comments, and pod comments.  It also
+##  memoizes the last whitespace token matched into C<$!ws>,
+##  and short circuits if we are at the same position as the 
+##  last ws token matched.
+
+token ws {
+    ##  STD.pm: <?{ $¢.pos === $!ws_to }>
+    {{  $P0 = get_global '$!ws'
+        if null $P0 goto end
+        $P1 = $P0.'to'()
+        $P2 = match.'to'()
+        if $P1 != $P2 goto end
+        .return (1)
+      end:
+        set_global '$!ws', match
+    }}
+    [
+    # | <unsp>
+    | \v+
+    | <unv>
+    ]*
+}
+
+token unv {
+    || \h+
+    # || ^^ <.pod_comment>
+    || '#' \N*
+}
+
+##  STD.pm doesn't have a statement_block rule -- we have one
+##  to distinguish lists of statements that produce blocks
+##  from those that don't.
+
+rule statement_block {
+    {*}                                          #= open
+    <statementlist>
+    {*}                                          #= close
+}
+
+
+##  Blocks can also have an implied statement end if the
+##  closing brace is the last non-ws thing on the line.
+
+token block {
+    '{'
+    <statement_block>
+    [ '}' | <panic: Missing '}'> ]
+    [ \h* <.unv>? \n <.MARK_STATEMENT_END> ]?
+    {*}
+}
+
+
+##  Here we deviate from STD.pm a fair bit on the handling of
+##  statementlist and statement_end, if only because this
+##  version (first prototyped in NQP) seems a bit more
+##  straightforward.  We may discover that it won't work.
+
+rule statementlist {
+    [ <statement>
+        [  <.statement_end> || <panic: Statement not terminated properly> ]
+    ]*
+    {*}
+}
+
+
+##  The statement_end rule detects when we're at a valid
+##  statement termination point.  A semicolon always acts as
+##  a valid statement end, as does the presence of any expression
+##  terminator.  The MARK_STATEMENT_END subrule is used by other
+##  rules to indicate a valid statement end when a terminator
+##  isn't present -- e.g., a closing '}' at the end of a line
+##  for a <block>.
+
+token terminator { <[ } \] ) ]> | $ }
+
+token statement_end {
+    || ';'
+    || <?before <terminator>>                    # FIXME: <?terminator>
+    || {{ $P0 = get_global '$!endstmt'
+          $P1 = get_global '$!ws'
+          $P2 = $P1.'from'()
+          if $P0 != $P2 goto end
+          .return (1)
+          end:
+       }} <fail>                                 # FIXME: <!>
+}
+
+token MARK_STATEMENT_END {
+    {{  $P0 = match.'to'()
+        $P0 = clone $P0
+        set_global '$!endstmt', $P0
+    }}
+    <.ws>
+}
+
+
+##  Parse a single statement, which may be either a bare block
+##  or an expression.  Any statement termination is handled by
+##  the calling rule.
+rule statement {
+    | <statement_control> {*}                    #= statement_control
+    | $<expr>=<EXPR> {*}                         #= expr
+}
+
+rule statement_control {
+    | <if_statement> {*}                         #= if_statement
+    | <unless_statement> {*}                     #= unless_statement
+    | <use_statement> {*}                        #= use_statement
+}
+
+rule if_statement {
+    $<sym>=[if]
+    <EXPR> <block>
+    [ 'elsif' <EXPR> <block> ]*
+    [ 'else' $<else>=<block> ]?
+    {*}
+}
+
+rule unless_statement {
+    $<sym>=[unless]
+    <EXPR> <block>
+    {*}
+}
+
+rule use_statement {
+    $<sym>=[use] <name>
+    [ '-' <ident> ]?     # e.g. 'v6-alpha'
+    {*}
+}
+
+
+#### Subroutine and method definitions ####
+
+rule routine_declarator {
+    | $<sym>='sub' <routine_def> {*}             #= sub
+    # | $<sym>='method' <method_def> {*}           #= method
+}
+
+rule routine_def {
+    <ident>?
+    '(' <signature> ')'
+    <block>
+    {*}
+}
+
+rule signature {
+    ( <param_var> ( ',' | <?before ')'> ) )*
+    {*}
+}
+
+token param_var {
+    <sigil> <ident>
+    {*}
+}
+
+
+#### Terms ####
+
+token term {
+    | <noun> {*}                                 #= noun
+    | <listop> {*}                               #= listop
+}
+
+
+token noun {
+    | <scope_declarator> {*}                     #= scope_declarator
+    | <routine_def> {*}                          #= routine_def
+    | <circumfix> {*}                            #= circumfix
+    | <variable> {*}                             #= variable
+    | <subcall> {*}                              #= subcall
+    | <value> {*}                                #= value
+}
+
+rule scope_declarator {
+    $<declarator>:=[my|our]
+    <variable>
+    {*}
+}
+
+token circumfix {
+    | '(' <statementlist> ')' {*}                #= ( )
+    | <block> {*}                                #= { }
+}
+
+token variable {
+    | <sigil> <ident> {*}                        #= $var
+}
+
+token sigil { '$' }
+
+token value {
+    | <quote> {*}                                #= quote
+    | <number> {*}                               #= number
+    # | <typename> {*}                                       #= typename
+}
+
+##  Quoting is tricky -- the <quote_concat> subrule is in
+##  F<src/parser/quote_expression.pir> .
+token quote {
+    [
+    | <.before \'>   <quote_expression: :q>
+    | <.before '"' > <quote_expression: :qq>
+    | <.before '<' > <quote_expression: :w :q>
+    # | <.before '«' > <quote_expression: :ww :qq>  FIXME: unicode
+    ]
+    {*}
+}
+
+
+token number {
+    [ <integer> {*}                              #= integer
+    | <dec_number> {*}                           #= dec_number
+    ]
+}
+
+token integer {
+    [
+    | 0 [ b <[01]>+           [ _ <[01]>+ ]*
+        | o <[0..7]>+         [ _ <[0..7]>+ ]*
+        | x <[0..9a..fA..F]>+ [ _ <[0..9a..fA..F]>+ ]*
+        | d \d+               [ _ \d+]*
+        | \d+[_\d+]*
+            {{ say "Leading 0 does not indicate octal in Perl 6" }}  # FIXME
+        ]
+    | \d+[_\d+]*
+    ]
+    {*}
+}
+
+token dec_number {
+    \d+[_\d+]* [ '.' \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
+    {*}
+}
+
+token name {
+    <ident> [ '::' <ident> ]*
+    {*}
+}
+
+token subcall {
+    <ident> '(' <semilist> ')'
+    {*}
+}
+
+##  S05 has this as prefix:listop... but since the operand (arglist)
+##  is part of the prefix token, PGE's operator precedence parser
+##  is left without an argument to parse.  So, for now we treat
+##  listop as the last (lowest priority) of the terms to be parsed.
+token listop {
+    $<sym>=<ident>
+    \s <arglist>
+    {*}
+}
+
+token arglist {
+    <EXPR>   # FIXME: need to parse only to list prefix priority
+    {*}
+}
+
+#### expressions and operators ####
+
+##  The EXPR rule is our entry point into the operator
+##  precedence parser.  At the moment the operator
+##  tokens are defined in F<src/parser/grammar-oper.pg>,
+##  using a prototype function syntax (because PGE doesn't
+##  yet support protoregexes).  When the operator precedence
+##  parser needs a term, it gets it by calling the 'term'
+##  token above.
+
+rule EXPR is optable { ... }
+
+proto 'term:' is precedence('z=')
+    is parsed(&term)
+    { ... }
+
+proto 'prefix:' is precedence('e=')
+    is parsed(&listop)
+    { ... }

@@ -189,8 +189,8 @@ rule use_statement {
 #### Subroutine and method definitions ####
 
 rule routine_declarator {
-    | $<sym>='sub' <routine_def> {*}             #= sub
-    # | $<sym>='method' <method_def> {*}           #= method
+    | $<sym>=[sub] <routine_def> {*}             #= sub
+    # | $<sym>=[method] <method_def> {*}           #= method
 }
 
 rule routine_def {
@@ -221,7 +221,7 @@ token term {
 
 token noun {
     | <scope_declarator> {*}                     #= scope_declarator
-    | <routine_def> {*}                          #= routine_def
+    | <routine_declarator> {*}                   #= routine_declarator
     | <circumfix> {*}                            #= circumfix
     | <variable> {*}                             #= variable
     | <subcall> {*}                              #= subcall

@@ -107,8 +107,16 @@ method statement_prefix($/) {
         # fall through, just use the statement itself
     }
     elsif ($sym eq 'try') {
-        $past := PAST::Op.new( $past, :pasttype('try') );
-        # TODO: set result to $!
+        my $try := PAST::Stmts.new( $past );
+        $try.push( PAST::Op.new( :inline( "new %r, 'Undef'\nstore_lex '$!', %r" ),
+                                 :pasttype('inline')
+                               )
+                 );
+        $past := PAST::Op.new( $try, :pasttype('try') );
+        $past.push( PAST::Op.new( :inline( ".get_results (%r)\nstore_lex '$!', %r"),
+                                  :pasttype('inline')
+                                )
+                  );
     }
     elsif ($sym eq 'gather') {
         $/.panic($sym ~ ' not implemented');

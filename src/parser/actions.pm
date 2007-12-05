@@ -11,15 +11,21 @@ method statement_block($/, $key) {
     ##  FIXME: $?BLOCK, @?BLOCK
     our $?BLOCK;
     our @?BLOCK;
+    ## when creating a block, create an empty first child node (PAST::Stmts)
+    ## for special varible initialization and parameter handling. also,
+    ## register the special variables in the block's symbol table
     if ($key eq 'open') {
         my $init := PAST::Stmts.new();
-        $init.push( PAST::Var.new(:name('$!'), :scope('lexical'), :isdecl(1)));
-        $init.push( PAST::Var.new(:name('$/'), :scope('lexical'), :isdecl(1)));
-        $init.push( PAST::Var.new(:name('$_'), :scope('lexical'), :isdecl(1)));
+        $init.push( PAST::Var.new(:name('$!'), :isdecl(1)));
+        $init.push( PAST::Var.new(:name('$/'), :isdecl(1)));
+        $init.push( PAST::Var.new(:name('$_'), :isdecl(1)));
         $?BLOCK := PAST::Block.new( PAST::Stmts.new( $init ),
                                     :blocktype('immediate'),
                                     :node($/)
                                   );
+        $?BLOCK.symbol( '$!', :scope('lexical') );
+        $?BLOCK.symbol( '$/', :scope('lexical') );
+        $?BLOCK.symbol( '$_', :scope('lexical') );
         @?BLOCK.unshift($?BLOCK);
     }
     if ($key eq 'close') {

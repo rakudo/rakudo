@@ -34,7 +34,7 @@ PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)
 SOURCES = perl6.pir \
   src/parser/grammar.pg \
   src/parser/grammar-oper.pg \
-  src/parser/actions.pl \
+  src/parser/actions.pm \
   src/parser/quote_expression.pir \
   src/gen_builtins.pir \
   $(PERL6_GROUP)
@@ -67,7 +67,7 @@ perl6.pbc: $(PARROT) $(PERL6GRAMMAR) $(NQP) $(PCT) $(SOURCES)
 	    --output=src/gen_grammar.pir \
 	    src/parser/grammar.pg src/parser/grammar-oper.pg
 	$(PARROT) $(PARROT_ARGS) $(NQP) --output=src/gen_actions.pir \
-	    --target=pir src/parser/actions.pl
+	    --target=pir src/parser/actions.pm
 	$(PARROT) $(PARROT_ARGS) -o perl6.pbc perl6.pir
 
 src/gen_builtins.pir: $(BUILTINS_PIR)

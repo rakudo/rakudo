@@ -109,24 +109,17 @@ method statement_prefix($/) {
     ## after the code in the try block is executed, bind $! to Undef,
     ## and set up the code to catch an exception, in case one is thrown
     elsif ($sym eq 'try') {
-        my $try := PAST::Stmts.new( $past );
-        $try.push( PAST::Op.new( :inline( q<    new %r, 'Undef'> ),
-                                 :pasttype('inline')
-                               )
-                 );
-        $try.push( PAST::Op.new( :inline( q<    store_lex '$!', %r> ),
-                                 :pasttype('inline')
-                               )
-                 );
+        ##  Set up code to execute <statement> as a try node, and
+        ##  set $! to Undef if successful.
+        my $exitpir  := "    new %r, 'Undef'\n    store_lex '$!', %r";
+        my $try := PAST::Stmts.new( $past ,
+                                    PAST::Op.new( :inline( $exitpir ) ) );
         $past := PAST::Op.new( $try, :pasttype('try') );
-        $past.push( PAST::Op.new( :inline( q<    .get_results (%r, $S0)> ),
-                                  :pasttype('inline')
-                                )
-                  );
-        $past.push( PAST::Op.new( :inline( q<    .<store_lex '$!', %r> ),
-                                  :pasttype('inline')
-                                )
-                  );
+
+        ##  Add a catch node to the try op that captures the
+        ##  exception object into $!.
+        my $catchpir := "    .get_results (%r, $S0)\n    store_lex '$!', %r";
+        $past.push( PAST::Op.new( :inline( $catchpir ) ) );
     }
     elsif ($sym eq 'gather') {
         $/.panic($sym ~ ' not implemented');

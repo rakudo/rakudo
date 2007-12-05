@@ -220,6 +220,12 @@ token param_var {
 }
 
 
+#### Special variables ####
+
+token special_variable {
+    $<sym>=['$!'|'$¢'] <!before \w> {*}
+}
+
 #### Terms ####
 
 token term {
@@ -250,6 +256,7 @@ token circumfix {
 }
 
 token variable {
+    | <special_variable> {*}                     #= special_variable
     | <sigil> <ident> {*}                        #= $var
 }
 

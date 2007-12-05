@@ -119,7 +119,6 @@ rule statementlist {
     {*}
 }
 
-
 ##  The statement_end rule detects when we're at a valid
 ##  statement termination point.  A semicolon always acts as
 ##  a valid statement end, as does the presence of any expression
@@ -189,15 +188,18 @@ rule use_statement {
 #### Subroutine and method definitions ####
 
 rule routine_declarator {
-    | $<sym>=[sub] <routine_def> {*}             #= sub
-    # | $<sym>=[method] <method_def> {*}           #= method
+    | $<sym>='sub' <routine_def> {*}             #= sub
+    # | $<sym>='method' <method_def> {*}           #= method
 }
 
 rule routine_def {
-    <ident>?
-    '(' <signature> ')'
+    <ident>? <multisig>?
     <block>
     {*}
+}
+
+rule multisig {
+    '(' <signature> ')'
 }
 
 rule signature {
@@ -299,14 +301,24 @@ token subcall {
     {*}
 }
 
+##  S05 shows semilist as being a list of statements, in order
+##  to support multidimensional argument lists.  For now we
+##  just handle a single-dimensional argument list.
+rule semilist {
+    <EXPR>?
+    {*}
+}
+
 ##  S05 has this as prefix:listop... but since the operand (arglist)
 ##  is part of the prefix token, PGE's operator precedence parser
 ##  is left without an argument to parse.  So, for now we treat
 ##  listop as the last (lowest priority) of the terms to be parsed.
 token listop {
     $<sym>=<ident>
-    \s <arglist>
-    {*}
+    [
+    || \s <arglist> {*}                          #= arglist
+    || {*}                                       #= noarg
+    ]
 }
 
 token arglist {

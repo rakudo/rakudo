@@ -90,6 +90,41 @@ method use_statement($/) {
 }
 
 
+method routine_declarator($/, $key) {
+    if ($key eq 'sub') {
+        my $past := $($<routine_def>);
+        $past.blocktype('declaration');
+        $past.node($/);
+        make $past;
+    }
+}
+
+
+method routine_def($/) {
+    my $past := $($<block>);
+    my $params := $past[0];
+    if $<ident> {
+        $past.name( ~$<ident>[0] );
+    }
+    if ($<multisig>) {
+        for $<multisig>[0]<signature>[0] {
+            my $param_var := $($_<param_var>);
+            $past.symbol($param_var.name(), :scope('lexical'));
+            $params.push($param_var);
+        }
+    }
+    make $past;
+}
+
+
+method param_var($/) {
+    make PAST::Var.new( :name(~$/),
+                        :scope('parameter'),
+                        :node($/) 
+                      );
+}
+
+
 method term($/, $key) {
     make $( $/{$key} );
 }
@@ -206,10 +241,39 @@ method quote_term($/, $key) {
 }
 
 
-method listop($/) {
-    my $past := $( $<arglist> );
-    if (~$past.name() ne 'infix:,') {
-        $past := PAST::Op.new($past);
+method subcall($/) {
+    my $past := $($<semilist>);
+    $past.name( ~$<ident> );
+    $past.pasttype('call');
+    $past.node($/);
+    make $past;
+}
+
+
+method semilist($/) {
+    my $past := PAST::Op.new( :node($/) );
+    if ($<EXPR>) {
+        my $expr := $($<EXPR>[0]);
+        if (~$expr.name() eq 'infix:,') {
+            for @($expr) {
+                $past.push( $_ );
+            }
+        }
+        else {
+            $past.push( $expr );
+        }
+    }
+    make $past;
+}
+
+
+method listop($/, $key) {
+    my $past;
+    if ($key eq 'arglist') {
+        $past := $( $<arglist> );
+    }
+    if ($key eq 'noarg') {
+        $past := PAST::Op.new( );
     }
     $past.name( ~$<sym> );
     $past.pasttype('call');
@@ -219,7 +283,17 @@ method listop($/) {
 
 
 method arglist($/) {
-    make $( $<EXPR> );
+    my $past := PAST::Op.new( :node($/) );
+    my $expr := $($<EXPR>);
+    if (~$expr.name() eq 'infix:,') {
+        for @($expr) {
+            $past.push( $_ );
+        }
+    }
+    else {
+        $past.push( $expr );
+    }
+    make $past;
 }
 
 

@@ -252,6 +252,7 @@ rule scope_declarator {
 
 token circumfix {
     | '(' <statementlist> ')' {*}                #= ( )
+    | '[' <statementlist> ']' {*}                #= [ ]
     | <block> {*}                                #= { }
 }
 
@@ -260,7 +261,7 @@ token variable {
     | <sigil> <ident> {*}                        #= $var
 }
 
-token sigil { '$' }
+token sigil { '$' | '@' }
 
 token value {
     | <quote> {*}                                #= quote

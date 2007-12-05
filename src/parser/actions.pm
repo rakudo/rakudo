@@ -217,7 +217,10 @@ method circumfix($/, $key) {
     if ($key eq '( )') {
         $past := $( $<statementlist> );
     }
-    if ($key eq '{ }') {
+    if ($key eq '[ ]') {
+        $past := $( $<statementlist> );
+    }
+    elsif ($key eq '{ }') {
         $past := $( $<block> );
     }
     make $past;

@@ -106,14 +106,24 @@ method statement_prefix($/) {
     if ($sym eq 'do') {
         # fall through, just use the statement itself
     }
+    ## after the code in the try block is executed, bind $! to Undef,
+    ## and set up the code to catch an exception, in case one is thrown
     elsif ($sym eq 'try') {
         my $try := PAST::Stmts.new( $past );
-        $try.push( PAST::Op.new( :inline( "new %r, 'Undef'\nstore_lex '$!', %r" ),
+        $try.push( PAST::Op.new( :inline( q<    new %r, 'Undef'> ),
+                                 :pasttype('inline')
+                               )
+                 );
+        $try.push( PAST::Op.new( :inline( q<    store_lex '$!', %r> ),
                                  :pasttype('inline')
                                )
                  );
         $past := PAST::Op.new( $try, :pasttype('try') );
-        $past.push( PAST::Op.new( :inline( ".get_results (%r)\nstore_lex '$!', %r"),
+        $past.push( PAST::Op.new( :inline( q<    .get_results (%r, $S0)> ),
+                                  :pasttype('inline')
+                                )
+                  );
+        $past.push( PAST::Op.new( :inline( q<    .<store_lex '$!', %r> ),
                                   :pasttype('inline')
                                 )
                   );

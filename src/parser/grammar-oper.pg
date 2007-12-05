@@ -11,9 +11,10 @@ proto prefix:<--> is equiv(postfix:<++>) is lvalue(1) { ... }
 proto infix:<**> is precedence('w=') { ... }
 
 ## symbolic unary
-proto prefix:<+> is precedence('v=') { ... }
-proto prefix:<-> is equiv(prefix:<+>) { ... }
-proto prefix:<+^> is equiv(prefix:<+>)
+proto prefix:<!> is precedence('v=') { ... }
+proto prefix:<+> is equiv(prefix:<!>) { ... }
+proto prefix:<-> is equiv(prefix:<!>) { ... }
+proto prefix:<+^> is equiv(prefix:<!>)
     is pirop('n_bnot')
     { ... }
 

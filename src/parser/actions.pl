@@ -12,17 +12,17 @@ method statement_block($/, $key) {
     our $?BLOCK;
     our @?BLOCK;
     if ($key eq 'open') {
-       $?BLOCK := PAST::Block.new( PAST::Stmts.new(),
-                                  :blocktype('immediate'),
-                                  :node($/)
+        $?BLOCK := PAST::Block.new( PAST::Stmts.new(),
+                                    :blocktype('immediate'),
+                                    :node($/)
                                   );
-       @?BLOCK.unshift($?BLOCK);
+        @?BLOCK.unshift($?BLOCK);
     }
     if ($key eq 'close') {
-       my $past := @?BLOCK.shift();
-       $?BLOCK := @?BLOCK[0];
-       $past.push($($<statementlist>));
-       make $past;
+        my $past := @?BLOCK.shift();
+        $?BLOCK := @?BLOCK[0];
+        $past.push($($<statementlist>));
+        make $past;
     }
     PIR q<  .return () >;  # FIXME:  ought to eliminate this somehow
 }

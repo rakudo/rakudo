@@ -12,7 +12,11 @@ method statement_block($/, $key) {
     our $?BLOCK;
     our @?BLOCK;
     if ($key eq 'open') {
-        $?BLOCK := PAST::Block.new( PAST::Stmts.new(),
+        my $init := PAST::Stmts.new();
+        $init.push( PAST::Var.new(:name('$!'), :scope('lexical'), :isdecl(1)));
+        $init.push( PAST::Var.new(:name('$/'), :scope('lexical'), :isdecl(1)));
+        $init.push( PAST::Var.new(:name('$_'), :scope('lexical'), :isdecl(1)));
+        $?BLOCK := PAST::Block.new( PAST::Stmts.new( $init ),
                                     :blocktype('immediate'),
                                     :node($/)
                                   );
@@ -148,6 +152,11 @@ method param_var($/) {
                         :scope('parameter'),
                         :node($/) 
                       );
+}
+
+
+method special_variable($/) {
+    make PAST::Var.new( :node($/), :name(~$/), :scope('lexical') );
 }
 
 

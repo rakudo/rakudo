@@ -185,6 +185,13 @@ rule use_statement {
 }
 
 
+rule statement_prefix {
+    $<sym>=[do|try|gather|contend|async|lazy]
+    <statement>
+    {*}
+}
+
+
 #### Subroutine and method definitions ####
 
 rule routine_declarator {
@@ -228,6 +235,7 @@ token noun {
     | <variable> {*}                             #= variable
     | <subcall> {*}                              #= subcall
     | <value> {*}                                #= value
+    | <statement_prefix> {*}                     #= statement_prefix
 }
 
 rule scope_declarator {

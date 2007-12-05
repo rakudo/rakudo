@@ -90,6 +90,32 @@ method use_statement($/) {
 }
 
 
+method statement_prefix($/) {
+    my $past := $($<statement>);
+    my $sym := ~$<sym>;
+    if ($sym eq 'do') {
+        # fall through, just use the statement itself
+    }
+    elsif ($sym eq 'try') {
+        $past := PAST::Op.new( $past, :pasttype('try') );
+        # TODO: set result to $!
+    }
+    elsif ($sym eq 'gather') {
+        $/.panic($sym ~ ' not implemented');
+    }
+    elsif ($sym eq  'contend') {
+        $/.panic($sym ~ ' not implemented');
+    }
+    elsif ($sym eq 'async') {
+        $/.panic($sym ~ ' not implemented');
+    }
+    elsif ($sym eq 'lazy') {
+        $/.panic($sym ~ ' not implemented');
+    }
+    make $past;
+}
+
+
 method routine_declarator($/, $key) {
     if ($key eq 'sub') {
         my $past := $($<routine_def>);

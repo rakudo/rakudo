@@ -400,3 +400,10 @@
     mob.'to'(-1)
     .return (mob)
 .end
+
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

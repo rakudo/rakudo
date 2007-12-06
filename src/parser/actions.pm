@@ -1,3 +1,7 @@
+# $Id$
+#
+# Copyright (C) 2007, The Perl Foundation.
+
 class Perl6::Grammar::Actions ;
 
 method TOP($/) {
@@ -371,4 +375,9 @@ method EXPR($/, $key) {
 }
 
 
-
+# Local Variables:
+#   mode: cperl
+#   cperl-indent-level: 4
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

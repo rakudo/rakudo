@@ -57,7 +57,18 @@ method statementlist($/) {
 
 
 method statement($/, $key) {
-    make $( $/{$key} );
+    my $past;
+    if $key eq 'statement_control' {
+        $past := $( $<statement_control> );
+    }
+    elsif $key eq 'statement_mod_cond' {
+        $past := $( $<statement_mod_cond> );
+        $past.push( $( $<expr> ) );
+    }
+    else {
+        $past := $( $<expr> );
+    }
+    make $past;
 }
 
 
@@ -101,6 +112,14 @@ method unless_statement($/) {
 
 method use_statement($/) {
     make PAST::Stmts.new( :node($/) );
+}
+
+
+method statement_mod_cond($/) {
+    make PAST::Op.new( $( $<EXPR> ),
+                       :pasttype( ~$<sym> ),
+                       :node( $/ )
+                     );
 }
 
 

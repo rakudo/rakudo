@@ -178,7 +178,11 @@ token MARK_STATEMENT_END {
 ##  the calling rule.
 rule statement {
     | <statement_control> {*}                    #= statement_control
-    | $<expr>=<EXPR> {*}                         #= expr
+    | $<expr>=<EXPR>
+        [
+        || <statement_mod_cond> {*}              #= statement_mod_cond
+        || {*}                                   #= expr
+        ]
 }
 
 rule statement_control {
@@ -207,12 +211,16 @@ rule use_statement {
     {*}
 }
 
+rule statement_mod_cond {
+    $<sym>=[if|unless] <EXPR> {*}
+}
 
 rule statement_prefix {
     $<sym>=[do|try|gather|contend|async|lazy]
     <statement>
     {*}
 }
+
 
 
 #### Subroutine and method definitions ####

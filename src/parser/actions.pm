@@ -182,7 +182,30 @@ method special_variable($/) {
 
 
 method term($/, $key) {
+    my $past := $( $/{$key} );
+    if $<postfix> {
+        for $<postfix> {
+            my $term := $past;
+            $past := $($_);
+            $past.unshift($term);
+        }
+    }
+    make $past;
+}
+
+method postfix($/, $key) {
     make $( $/{$key} );
+}
+
+method postcircumfix($/, $key) {
+    my $semilist := $( $<semilist> );
+    my $past := PAST::Var.new( $semilist[0],
+                               :scope('keyed'),
+                               :vivibase('List'),
+                               :viviself('Undef'),
+                               :node( $/ )
+                             );
+    make $past;
 }
 
 

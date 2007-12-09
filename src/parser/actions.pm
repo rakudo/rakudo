@@ -197,6 +197,20 @@ method postfix($/, $key) {
     make $( $/{$key} );
 }
 
+method methodop($/, $key) {
+    my $past;
+    if ($key eq 'null') {
+        $past := PAST::Op.new();
+    }
+    else {
+        $past := $( $/{$key} );
+    }
+    $past.name(~$<ident>);
+    $past.pasttype('callmethod');
+    $past.node($/);
+    make $past;
+}
+
 method postcircumfix($/, $key) {
     my $semilist := $( $<semilist> );
     my $past := PAST::Var.new( $semilist[0],
@@ -228,7 +242,9 @@ method scope_declarator($/) {
 
 
 method variable($/, $key) {
-    make PAST::Var.new( :node($/), :name( ~$/ ), :viviself('Undef') );
+    my $viviself := 'Undef';
+    if (~$<sigil> eq '@') { $viviself := 'List'; }
+    make PAST::Var.new( :node($/), :name( ~$/ ), :viviself($viviself) );
 }
 
 

@@ -72,10 +72,15 @@ token ws {
         set_global '$!ws', match
     }}
     [
-    # | <unsp>
+    | <.unsp>
     | \v+
-    | <unv>
+    | <.unv>
     ]*
+}
+
+token unsp {
+    \\ <.before [\s|'#']>
+    [ \v | <.unv> ]*
 }
 
 token unv {
@@ -255,8 +260,18 @@ token term {
 token postfix {
     <!afterws>
     [
-    # | <methodop> {*}                             #= methodop
+    | <methodop> {*}                             #= methodop
     | <postcircumfix> {*}                        #= postcircumfix
+    ]
+}
+
+
+token methodop {
+    '.' <ident>
+    [
+    | <.unsp>? '(' <semilist> ')' {*}       #= semilist
+    | ':' <?before \s> <arglist> {*}             #= arglist
+    | {*}                                        #= null
     ]
 }
 

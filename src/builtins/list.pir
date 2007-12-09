@@ -19,7 +19,14 @@ Build a List from its arguments.
 .sub 'list'
     .param pmc args            :slurpy
     .local pmc list
-    .return (args)
+    list = new 'List'
+  loop:
+    unless args goto end
+    $P0 = shift args
+    push list, $P0
+    goto loop
+  end:
+    .return (list)
 .end
 
 

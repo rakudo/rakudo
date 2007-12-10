@@ -38,7 +38,6 @@ method statement_block($/, $key) {
         $past.push($($<statementlist>));
         make $past;
     }
-    PIR q<  .return () >;  # FIXME:  ought to eliminate this somehow
 }
 
 

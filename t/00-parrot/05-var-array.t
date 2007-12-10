@@ -19,9 +19,9 @@ say 'ok ' ~ @b[0];
 say 'ok ' ~ @b[-1];
 say 'ok 7' if 2 eq @b.elems;
 
-my @c = <ok 8>; say @c;
+my @c = <ok 8>; say ~@c;
 
-say 'ok 9' if 3 eq (1, 2).elems;
+say 'ok 9' if 2 eq (1, 2).elems;
 say 'ok 10' if 3 eq <a b c>.elems;
-say 'ok 11' if 3 eq ['a', <2 three>].elems;
+# say 'ok 11' if 3 eq ['a', <2 three>].elems;
 

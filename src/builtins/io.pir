@@ -13,10 +13,10 @@ src/builtins/io.pir - Perl6 builtins for I/O
 .namespace
 
 .sub 'print'
-    .param pmc list            :slurpy
+    .param pmc args            :slurpy
     .local pmc iter
-
-    iter = new 'Iterator', list
+    args = 'list'(args)
+    iter = new 'Iterator', args
   iter_loop:
     unless iter goto iter_end
     $P0 = shift iter
@@ -29,10 +29,11 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 .sub 'say'
     .param pmc list            :slurpy
-    'print'(list :flat)
+    'print'(list)
     print "\n"
     .return (1)
 .end
+
 
 .sub 'use'
     .param pmc module

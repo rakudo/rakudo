@@ -18,14 +18,21 @@ Build a List from its arguments.
 
 .sub 'list'
     .param pmc args            :slurpy
-    .local pmc list
+    .local pmc list, item
     list = new 'List'
-  loop:
-    unless args goto end
-    $P0 = shift args
-    push list, $P0
-    goto loop
-  end:
+  args_loop:
+    unless args goto args_end
+    item = shift args
+    # $I0 = isa item, 'Array'
+    # if $I0 goto add_item
+    $I0 = does item, 'array'
+    unless $I0 goto add_item
+    splice args, item, 0, 0
+    goto args_loop
+  add_item:
+    push list, item
+    goto args_loop
+  args_end:
     .return (list)
 .end
 

@@ -34,8 +34,7 @@ object.
     $P1 = $P0.'new'()
     $P1.'language'('Perl6')
     $P1.'parsegrammar'('Perl6::Grammar')
-    $P2 = split '::', 'Perl6::Grammar::Actions'
-    $P1.'parseactions'($P2)
+    $P1.'parseactions'('Perl6::Grammar::Actions')
 
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0

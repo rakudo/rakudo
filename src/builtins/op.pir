@@ -89,11 +89,13 @@ src/builtins/op.pir - Perl6 builtin operators
 .sub 'prefix:?'
     .param pmc a
 
-    .local pmc bool
-    bool = new 'Perl6Bool'
+    $S0 = 'False'
     $I0 = istrue a
-    assign bool, $I0
-    .return (bool)
+    unless $I0 goto bool_set
+    $S0 = 'True'
+  bool_set:
+    $P0 = get_hll_global ['Bool'], $S0
+    .return ($P0)
 .end
 
 

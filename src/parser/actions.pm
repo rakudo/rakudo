@@ -357,6 +357,22 @@ method quote_term($/, $key) {
 }
 
 
+method typename($/) {
+    my $ns := $<name><ident>;
+    my $shortname;
+    PIR q<    $P0 = find_lex '$ns'         >;
+    PIR q<    $P0 = clone $P0              >;
+    PIR q<    $P1 = pop $P0                >;
+    PIR q<    store_lex '$ns', $P0         >;
+    PIR q<    store_lex '$shortname', $P1  >;
+    make PAST::Var.new( :name($shortname),
+                        :namespace($ns),
+                        :scope('package'),
+                        :node($/)
+                      );
+}
+
+
 method subcall($/) {
     my $past := $($<semilist>);
     $past.name( ~$<ident> );

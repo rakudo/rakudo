@@ -41,6 +41,7 @@ SOURCES = perl6.pir \
 
 BUILTINS_PIR = \
   src/classes/Object.pir \
+  src/classes/Bool.pir \
   src/classes/Str.pir \
   src/classes/List.pir \
   src/builtins/assign.pir \

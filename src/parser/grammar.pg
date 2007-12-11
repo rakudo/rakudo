@@ -323,7 +323,7 @@ token sigil { '$' | '@' }
 token value {
     | <quote> {*}                                #= quote
     | <number> {*}                               #= number
-    # | <typename> {*}                                       #= typename
+    | <typename> {*}                                       #= typename
 }
 
 ##  Quoting is tricky -- the <quote_concat> subrule is in
@@ -361,6 +361,11 @@ token integer {
 
 token dec_number {
     \d+[_\d+]* [ '.' \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
+    {*}
+}
+
+token typename {
+    <?before <.upper> > <name>
     {*}
 }
 

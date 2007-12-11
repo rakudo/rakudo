@@ -1,10 +1,8 @@
-
 .namespace [ 'Float' ]
 
-.sub 'isa' :method
-    .param string x
-    $I0 = iseq x, 'Num'
-    .return ($I0)
+.sub 'onload' :anon :init :load
+    $P0 = get_hll_global ['Perl6Object'], 'make_class'
+    $P0('Num', 'super'=>'Float')
 .end
 
 # Local Variables:

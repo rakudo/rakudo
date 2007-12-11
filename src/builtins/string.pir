@@ -133,7 +133,7 @@ B<Note:> partial implementation only
 
 =cut
 
-.sub 'split' :multi(String, String)
+.sub 'split'
     .param string sep
     .param string target
     $P0 = split sep, target

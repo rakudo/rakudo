@@ -23,5 +23,5 @@ my @c = <ok 8>; say ~@c;
 
 say 'ok 9' if 2 eq (1, 2).elems;
 say 'ok 10' if 3 eq <a b c>.elems;
-# say 'ok 11' if 3 eq ['a', <2 three>].elems;
+say 'ok 11' if 3 eq ['a', <2 three>].elems;
 

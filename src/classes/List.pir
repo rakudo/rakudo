@@ -23,6 +23,11 @@ src/classes/List.pir - Perl 6 List class
 
 .namespace ['List']
 
+.sub 'get_string' :vtable :method
+    $S0 = join ' ', self
+    .return ($S0)
+.end
+
 .sub 'elems' :method
     $I0 = elements self
     .return ($I0)

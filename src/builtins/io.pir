@@ -49,7 +49,7 @@ src/builtins/io.pir - Perl6 builtins for I/O
     file_string = join '/', path
 
     .local pmc filename
-    filename  = new 'Perl6Str'
+    filename  = new 'Str'
     filename  = file_string
     filename .= '.pm'
 

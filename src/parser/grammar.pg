@@ -208,6 +208,7 @@ rule unless_statement {
 rule use_statement {
     $<sym>=[use] <name>
     [ '-' <ident> ]?     # e.g. 'v6-alpha'
+    <EXPR>?
     {*}
 }
 

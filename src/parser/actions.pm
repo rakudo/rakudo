@@ -110,7 +110,19 @@ method unless_statement($/) {
 
 
 method use_statement($/) {
-    make PAST::Stmts.new( :node($/) );
+    my $name := ~$<name>;
+    my $past;
+    if $name eq 'v6' || $name eq 'lib' {
+        $past := PAST::Stmts.new( :node($/) );
+    }
+    else {
+        $past := PAST::Op.new( PAST::Val.new( :value( $name ) ),
+                               :name('use'),
+                               :pasttype('call'),
+                               :node( $/ )
+                             );
+    }
+    make $past;
 }
 
 

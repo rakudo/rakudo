@@ -71,6 +71,7 @@ token ws {
       end:
         set_global '$!ws', match
     }}
+    <!ww>
     [
     | <.unsp>
     | \v+

@@ -194,8 +194,11 @@ method routine_declarator($/, $key) {
 
 
 method routine_def($/) {
-    my $past := $($<block>);
-    my $params := $past[0];
+    our $?BLOCK_PROLOGUE;
+    my $params := PAST::Stmts.new();
+    my $past := PAST::Block.new( $params,
+                                 :blocktype('declaration')
+                               );
     if $<ident> {
         $past.name( ~$<ident>[0] );
     }
@@ -206,6 +209,7 @@ method routine_def($/) {
             $params.push($param_var);
         }
     }
+    $?BLOCK_PROLOGUE := $past;
     make $past;
 }
 

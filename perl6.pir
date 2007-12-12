@@ -38,6 +38,10 @@ object.
 
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0
+
+    $P0 = get_hll_global ['PAST::Compiler'], '%valflags'
+    $P0['Perl6Str'] = 'e'
+    $P0['Str'] = 'e'
 .end
 
 .namespace ['Perl6::Compiler']

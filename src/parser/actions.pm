@@ -376,7 +376,7 @@ method quote_concat($/) {
 method quote_term($/, $key) {
     my $past;
     if ($key eq 'literal') {
-        $past := PAST::Val.new( :value( ~$<quote_literal> ), :node($/) );
+        $past := PAST::Val.new( :value( ~$<quote_literal> ), :returns('Perl6Str'), :node($/) );
     }
     if ($key eq 'variable') {
         $past := $( $<variable> );

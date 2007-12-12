@@ -62,15 +62,15 @@ PMCS = perl6str
 PMC_SOURCES = $(PMC_DIR)/perl6str.pmc
 
 # the default target
-perl6.pbc: $(PARROT) $(PERL6GRAMMAR) $(NQP) $(PCT) $(SOURCES)
+perl6.pbc: $(PARROT) $(SOURCES)
 	$(PARROT) $(PARROT_ARGS) -o perl6.pbc perl6.pir
 
-src/gen_grammar.pir: src/parser/grammar.pg src/parser/grammar-oper.pg
+src/gen_grammar.pir: $(PERL6GRAMMAR) src/parser/grammar.pg src/parser/grammar-oper.pg
 	$(PARROT) $(PARROT_ARGS) $(PERL6GRAMMAR) \
 	    --output=src/gen_grammar.pir \
 	    src/parser/grammar.pg src/parser/grammar-oper.pg
 
-src/gen_actions.pir: src/parser/actions.pm
+src/gen_actions.pir: $(NQP) $(PCT) src/parser/actions.pm
 	$(PARROT) $(PARROT_ARGS) $(NQP) --output=src/gen_actions.pir \
 	    --target=pir src/parser/actions.pm
 

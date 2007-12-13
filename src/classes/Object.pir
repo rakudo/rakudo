@@ -12,6 +12,8 @@ care of much of that.
 
 =head2 Functions
 
+=over
+
 =item onload()
 
 Perform initializations and create the base classes.
@@ -178,4 +180,5 @@ Parrot class via the C<get_class> opcode.
     .return (self)
 .end
 
+=back
 

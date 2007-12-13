@@ -217,7 +217,7 @@ method routine_def($/) {
 method param_var($/) {
     make PAST::Var.new( :name(~$/),
                         :scope('parameter'),
-                        :node($/) 
+                        :node($/)
                       );
 }
 
@@ -332,6 +332,11 @@ method integer($/) {
                         :returns('Integer'),
                         :node( $/ )
                       );
+}
+
+
+method dec_number($/) {
+    make PAST::Val.new( :value( +$/ ), :returns('Float'), :node( $/ ) );
 }
 
 

@@ -342,8 +342,8 @@ token quote {
 
 
 token number {
-    [ <integer> {*}                              #= integer
-    | <dec_number> {*}                           #= dec_number
+    [ <dec_number> {*}                           #= dec_number
+    | <integer> {*}                              #= integer
     ]
 }
 

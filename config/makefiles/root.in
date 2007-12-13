@@ -42,7 +42,9 @@ BUILTINS_PIR = \
   src/classes/Object.pir \
   src/classes/Bool.pir \
   src/classes/Str.pir \
+  src/classes/Num.pir \
   src/classes/List.pir \
+  src/classes/Code.pir \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
   src/builtins/control.pir \

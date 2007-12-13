@@ -135,6 +135,15 @@ Parrot class via the C<get_class> opcode.
     .return ($P1)
 .end
 
+
+.sub 'isa' :method
+    .param string x
+    $S0 = self.'WHAT'()
+    $I0 = iseq $S0, x
+    .return ($I0)
+.end
+
+
 .sub 'WHAT' :method
     $S0 = typeof self
     $P0 = get_hll_global $S0

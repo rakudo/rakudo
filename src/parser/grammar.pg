@@ -119,6 +119,11 @@ rule statement_block {
 }
 
 
+token lambda { '->' | '<->' }
+
+token pblock { [ <lambda> <signature> ]? <block> }
+
+
 ##  Blocks can also have an implied statement end if the
 ##  closing brace is the last non-ws thing on the line.
 
@@ -189,6 +194,7 @@ rule statement {
 rule statement_control {
     | <if_statement> {*}                         #= if_statement
     | <unless_statement> {*}                     #= unless_statement
+    | <for_statement> {*}                        #= for_statement
     | <use_statement> {*}                        #= use_statement
 }
 
@@ -203,6 +209,12 @@ rule if_statement {
 rule unless_statement {
     $<sym>=[unless]
     <EXPR> <block>
+    {*}
+}
+
+rule for_statement {
+    $<sym>=[for]
+    <EXPR> <pblock>
     {*}
 }
 
@@ -243,7 +255,7 @@ rule multisig {
 }
 
 rule signature {
-    ( <param_var> ( ',' | <?before ')'> ) )*
+    ( <param_var> ( ',' | <?before ')' | '{'> ) )*
     {*}
 }
 

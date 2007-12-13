@@ -130,7 +130,7 @@ method unless_statement($/) {
 
 method for_statement($/) {
     my $block := $( $<pblock> );
-    $block.blocktype('immediate');
+    $block.blocktype('declaration');
     my $past := PAST::Op.new( $( $<EXPR> ), $block,
                             :pasttype($<sym>),
                             :node( $/ )
@@ -139,25 +139,19 @@ method for_statement($/) {
 }
 
 method pblock($/) {
-#    our $?BLOCK_PROLOGUE;
-#    my $params := PAST::Stmts.new();
-#    my $past := PAST::Block.new( $params, :blocktype('declaration') );
-#    if $<signature> {
-#        for $<signature>[0] {
-#            my $param_var := $($_<param_var>);
-#            $past.symbol($param_var.name(), :scope('lexical'));
-#            $params.push($param_var);
-#        }
-#    }
-#    else {
-#        my $topic_var := PAST::Var.new(:name('$_'), :scope('lexical'));
-#        $past.symbol('$_', :scope('lexical'));
-#        $params.push($topic_var);
-#    }
-#    $past.push($<block>);
-#    $?BLOCK_PROLOGUE := $past;
-    my $past := PAST::Block.new();
-    make $past;
+    our $?BLOCK_SIGNATURED;
+    unless $<signature> {
+        $?BLOCK_SIGNATURED :=
+            PAST::Block.new(
+                PAST::Stmts.new(
+                    PAST::Var.new( :name('$_'), :scope('parameter') )
+                ),
+                :blocktype('declaration'),
+                :node( $/ )
+            );
+        $?BLOCK_SIGNATURED.symbol( '$_', :scope('lexical') );
+    }
+    make $?BLOCK_SIGNATURED;
 }
 
 method use_statement($/) {

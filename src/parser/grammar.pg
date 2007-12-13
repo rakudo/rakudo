@@ -121,7 +121,7 @@ rule statement_block {
 
 token lambda { '->' | '<->' }
 
-token pblock { [ <lambda> <signature> ]? <block> }
+token pblock { [ <lambda> <signature> ]? {*} <block> }
 
 
 ##  Blocks can also have an implied statement end if the

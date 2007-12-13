@@ -1,8 +1,8 @@
 .namespace
 
 .sub __onload :init :load
-    $P0 = get_hll_global ['Perl6Object'], 'make_class'
-    $P0('Str', 'super'=>'Perl6Str')
+    $P0 = get_hll_global ['Perl6Object'], 'make_proto'
+    $P0('Perl6Str', 'Str')
 .end
 
 

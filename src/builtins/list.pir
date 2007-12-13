@@ -23,6 +23,8 @@ Build a List from its arguments.
   args_loop:
     unless args goto args_end
     item = shift args
+    $I0 = defined item
+    unless $I0 goto add_item
     # $I0 = isa item, 'Array'
     # if $I0 goto add_item
     $I0 = does item, 'array'

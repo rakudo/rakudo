@@ -2,94 +2,151 @@
 
 Object - Perl 6 Object class
 
+=head1 DESCRIPTION
+
+This file sets up the base classes and methods for Perl 6's
+object system.  Differences (and conflicts) between Parrot's
+object model and the Perl 6 model means we have to do a little
+name and method trickery here and there, and this file takes
+care of much of that.
+
+=head2 Functions
+
+=item onload()
+
+Perform initializations and create the base classes.
+
 =cut
 
 .namespace ['Perl6Object']
 
 .sub 'onload' :anon :init :load
-    $P0 = newclass 'Perl6Protoobject'
-    addattribute $P0, 'shortname'
+    ##  create a new 'Object' base class.  We can't call it 'Object'
+    ##  because Parrot has already taken that classname (RT#43419).
+    .local pmc objectclass
+    objectclass = newclass 'Perl6Object'
 
-    $P0 = newclass 'Perl6Object'
-    $P1 = new $P0
-    set_hll_global 'Object', $P1
+    ##  create a Perl6Protoobject class.  We don't call it 'Protoobject'
+    ##  to avoid conflicts with the Protoobject class used by PCT and PGE.
+    .local pmc protoclass
+    protoclass = subclass objectclass, 'Perl6Protoobject'
+    addattribute protoclass, 'shortname'
+    addattribute protoclass, 'HOW'
 
-    .local pmc protohash
-    protohash = new 'Hash'
-    set_global '%!proto', protohash
+    ##  create the protoobject for the new class, initialize its
+    ##  shortname, and set up the symbol/type mappings.
+    .local pmc protoobject
+    protoobject = new protoclass
+    $P1 = new 'String'
+    $P1 = 'Object'
+    setattribute protoobject, 'shortname', $P1
+    setattribute protoobject, 'HOW', objectclass
+    set_hll_global 'Object', protoobject
+    set_hll_global 'Perl6Object', protoobject
 .end
 
 
-.sub 'new' :method
-    $P0 = typeof self
-    $P1 = new $P0
-    .return ($P1)
-.end
+=item make_proto(class [, 'name'=>name] )
 
+Create protoobjects and mappings for C<class>, using C<name>
+as the Perl 6 name for the class.  The C<class> argument can
+be a Parrot Class object, or anything that will obtain a
+Parrot class via the C<get_class> opcode.
 
-.sub 'WHAT' :method
-    $S0 = typeof self
-    $P0 = get_global '%!proto'
-    $P0 = $P0[$S0]
-    .return ($P0)
-.end
+=cut
 
+.sub 'make_proto'
+    .param pmc class
+    .param string name         :optional :named('name')
+    .param int has_name        :opt_flag
 
-.sub 'make_class'
-    .param pmc subc
-    .param pmc superc          :optional :named('super')
-    .param int has_super       :opt_flag
-    .param pmc parrotc         :optional :named('parrot')
-    .param int has_parrot      :opt_flag
+    ##  get the Parrot class object if we don't already have it
+    $I0 = isa class, 'Class'
+    if $I0 goto have_class
+    class = get_class class
+  have_class:
 
-    ##  if new class is given as a string, split it on '::'
-    $I0 = isa subc, 'String'
-    unless $I0 goto have_subc
-    $S0 = subc
-    subc = split '::', $S0
-  have_subc:
-
-    ##  if no superclass provided, use Perl6Object as the superclass
-    if has_super goto have_superc
-    superc = get_class 'Perl6Object'
-  have_superc:
-
-    ##  if no parrot classname provided, use the perl6 name for parrot
-    if has_parrot goto have_parrotc
-    parrotc = subc
-  have_parrotc:
-
-    ##  create the new class
-    .local pmc class
-    class = subclass superc, parrotc
+    ##  if the class is already a Perl6Object, we have methods already.
+    ##  if it's a PMCProxy, we have to add methods to the namespace.
+    ##  otherwise, we just add Perl6Object as a parent class
     $I0 = isa class, 'Perl6Object'
-    if $I0 goto object_done
+    if $I0 goto object_methods_done
+    $I0 = isa class, 'PMCProxy'
+    if $I0 goto object_methods_proxy
     $P0 = get_class 'Perl6Object'
     class.'add_parent'($P0)
-  object_done:
+    goto object_methods_done
+  object_methods_proxy:
+    ##  for PMCProxy classes, we have to add Perl6Object's methods
+    ##  directly as subs into the class' namespace.
+    ##  get the class' namespace object
+    .local pmc ns
+    ns = class.'pmc_namespace'()
+    ##  iterate over Perl6Object's methods, adding them to the namespace
+    .local pmc methods, iter
+    $P0 = get_class 'Perl6Object'
+    methods = $P0.'methods'()
+    iter = new 'Iterator', methods
+  iter_loop:
+    unless iter goto iter_end
+    $S0 = shift iter
+    ##  if the class/namespace already has the named sub, skip it
+    $P0 = ns.find_sub($S0)
+    unless null $P0 goto iter_loop
+    $P0 = methods[$S0]
+    ns.add_sub($S0, $P0)
+    goto iter_loop
+  iter_end:
+  object_methods_done:
 
-    ##  create the protoobject's class
-    .local pmc protoclass
+    ##  get the associated namespace and shortname
+    .local pmc shortname
+    ns = split '::', name
+    shortname = pop ns
+
+    ##  create a new class for the protoobject
+    .local pmc protoclass, protoobject
     protoclass = new 'Class'
     $P0 = get_class 'Perl6Protoobject'
     protoclass.'add_parent'($P0)
     protoclass.'add_parent'(class)
 
-    ##  create the protoobject, set up its attributes
-    .local pmc protoobject
+    ##  set up the protoobject and its attributes
     protoobject = new protoclass
-    $P0 = subc[-1]
-    setattribute protoobject, 'shortname', $P0
-    ##  store the protoobject
-    $S0 = pop subc
-    set_hll_global subc, $S0, protoobject
-    ##  store in the protohash
-    .local pmc protohash
-    protohash = get_global '%!proto'
-    $S0 = class.'name'()
-    protohash[$S0] = protoobject
+    setattribute protoobject, 'shortname', shortname
+    setattribute protoobject, 'HOW', class
+
+    ##  register the protoobject under its Parrot name and
+    ##  its Perl 6 name.
+    .local pmc sample
+    sample = new class
+    $S0 = typeof sample
+    set_hll_global $S0, protoobject
+    $S0 = shortname
+    set_hll_global ns, $S0, protoobject
+
     .return (protoobject)
 .end
+
+
+.sub 'new' :method
+    $P0 = self.'HOW'()
+    $P1 = new $P0
+    .return ($P1)
+.end
+
+.sub 'WHAT' :method
+    $S0 = typeof self
+    $P0 = get_hll_global $S0
+    .return ($P0)
+.end
+
+.sub 'HOW' :method
+    $P0 = self.'WHAT'()
+    $P1 = $P0.'HOW'()
+    .return ($P1)
+.end
+
 
 .namespace ['Perl6Protoobject']
 
@@ -99,14 +156,17 @@ Object - Perl 6 Object class
     .return ($S0)
 .end
 
+.sub 'defined' :vtable :method
+    .return (0)
+.end
+
+.sub 'HOW' :method
+    $P0 = getattribute self, 'HOW'
+    .return ($P0)
+.end
 
 .sub 'WHAT' :method
     .return (self)
 .end
 
-# Local Variables:
-#   mode: pir
-#   fill-column: 100
-# End:
-# vim: expandtab shiftwidth=4:
 

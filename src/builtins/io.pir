@@ -19,8 +19,8 @@ src/builtins/io.pir - Perl6 builtins for I/O
     iter = new 'Iterator', args
   iter_loop:
     unless iter goto iter_end
-    $P0 = shift iter
-    print $P0
+    $S0 = shift iter
+    print $S0
     goto iter_loop
   iter_end:
     .return (1)

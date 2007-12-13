@@ -1,14 +1,15 @@
 .namespace ['Bool']
 
 .sub 'onload' :anon :init :load
-    $P0 = get_hll_global ['Perl6Object'], 'make_class'
-    $P0('Bool', 'super'=>'Boolean')
+    .local pmc protoobject
+    $P0 = get_hll_global ['Perl6Object'], 'make_proto'
+    protoobject = $P0('Boolean', 'Bool')
 
-    $P0 = new 'Bool'
+    $P0 = protoobject.'new'()
     $P0 = 0
     set_global 'False', $P0
 
-    $P0 = new 'Bool'
+    $P0 = protoobject.'new'()
     $P0 = 1
     set_global 'True', $P0
 .end

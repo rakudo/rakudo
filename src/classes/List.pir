@@ -13,8 +13,9 @@ src/classes/List.pir - Perl 6 List class
 .namespace
 
 .sub '__onload' :load :init
-    $P0 = get_hll_global ['Perl6Object'], 'make_class'
-    $P0('List', 'super'=>'ResizablePMCArray')
+    $P0 = subclass 'ResizablePMCArray', 'List'
+    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
+    $P1($P0, 'List')
 .end
 
 .namespace ['List']

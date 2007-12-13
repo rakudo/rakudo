@@ -1,8 +1,8 @@
 .namespace [ 'Float' ]
 
 .sub 'onload' :anon :init :load
-    $P0 = get_hll_global ['Perl6Object'], 'make_class'
-    $P0('Num', 'super'=>'Float')
+    $P0 = get_hll_global ['Perl6Object'], 'make_proto'
+    $P0('Float', 'Num')
 .end
 
 # Local Variables:

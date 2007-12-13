@@ -196,6 +196,7 @@ rule statement_control {
     | <unless_statement> {*}                     #= unless_statement
     | <for_statement> {*}                        #= for_statement
     | <use_statement> {*}                        #= use_statement
+    | <end_statement> {*}                        #= end_statement
 }
 
 rule if_statement {
@@ -222,6 +223,12 @@ rule use_statement {
     $<sym>=[use] <name>
     [ '-' <ident> ]?     # e.g. 'v6-alpha'
     <EXPR>?
+    {*}
+}
+
+rule end_statement {
+    $<sym>=[END]
+    <block>
     {*}
 }
 
@@ -329,10 +336,14 @@ token circumfix {
 
 token variable {
     | <special_variable> {*}                     #= special_variable
-    | <sigil> <ident> {*}                        #= $var
+    | <sigil> <name> {*}                         #= $var
 }
 
 token sigil { '$' | '@' }
+
+token name {
+    | <ident> [ '::' <ident> ]*
+}
 
 token value {
     | <quote> {*}                                #= quote

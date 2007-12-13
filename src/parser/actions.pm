@@ -25,10 +25,7 @@ method statement_block($/, $key) {
             $?BLOCK_PROLOGUE := 0;
         }
         else {
-            $?BLOCK := PAST::Block.new( PAST::Stmts.new(),
-                                        :blocktype('immediate'),
-                                        :node($/)
-                                      );
+            $?BLOCK := PAST::Block.new( PAST::Stmts.new(), :node($/));
         }
         @?BLOCK.unshift($?BLOCK);
         my $init := $?BLOCK[0];
@@ -72,12 +69,18 @@ method statement($/, $key) {
     if $key eq 'statement_control' {
         $past := $( $<statement_control> );
     }
-    elsif $key eq 'statement_mod_cond' {
-        $past := $( $<statement_mod_cond> );
-        $past.push( $( $<expr> ) );
-    }
     else {
-        $past := $( $<expr> );
+        my $expr := $( $<expr> );
+        if $expr.WHAT() eq 'Block' && !$expr.blocktype() {
+            $expr.blocktype('immediate');
+        }
+        if $key eq 'statement_mod_cond' {
+            $past := $( $<statement_mod_cond> );
+            $past.push( $expr );
+        }
+        else {
+            $past := $expr;
+        }
     }
     make $past;
 }
@@ -89,20 +92,25 @@ method statement_control($/, $key) {
 
 
 method if_statement($/) {
-    my $cond := +$<EXPR> - 1;
-    my $past := PAST::Op.new( $( $<EXPR>[$cond] ),
-                              $( $<block>[$cond] ),
+    my $count := +$<EXPR> - 1;
+    my $expr  := $( $<EXPR>[$count] );
+    my $then  := $( $<block>[$count] );
+    $then.blocktype('immediate');
+    my $past := PAST::Op.new( $expr, $then,
                               :pasttype('if'),
                               :node( $/ )
                             );
     if ( $<else> ) {
-        $past.push( $( $<else>[0] ) );
+        my $else := $( $<else>[0] );
+        $else.blocktype('immediate');
+        $past.push( $else );
     }
-    while ($cond != 0) {
-        $cond := $cond - 1;
-        $past := PAST::Op.new( $( $<EXPR>[$cond] ),
-                               $( $<block>[$cond] ),
-                               $past,
+    while ($count != 0) {
+        $count := $count - 1;
+        $expr  := $( $<EXPR>[$count] );
+        $then  := $( $<block>[$count] );
+        $then.blocktype('immediate');
+        $past  := PAST::Op.new( $expr, $then, $past,
                                :pasttype('if'),
                                :node( $/ )
                              );
@@ -112,8 +120,9 @@ method if_statement($/) {
 
 
 method unless_statement($/) {
-    my $past := PAST::Op.new( $( $<EXPR> ),
-                              $( $<block> ),
+    my $then := $( $<block> );
+    $then.blocktype('immediate');
+    my $past := PAST::Op.new( $( $<EXPR> ), $then,
                               :pasttype('unless'),
                               :node( $/ )
                             );
@@ -167,17 +176,8 @@ method statement_prefix($/) {
         my $catchpir := "    .get_results (%r, $S0)\n    store_lex '$!', %r";
         $past.push( PAST::Op.new( :inline( $catchpir ) ) );
     }
-    elsif ($sym eq 'gather') {
-        $/.panic($sym ~ ' not implemented');
-    }
-    elsif ($sym eq  'contend') {
-        $/.panic($sym ~ ' not implemented');
-    }
-    elsif ($sym eq 'async') {
-        $/.panic($sym ~ ' not implemented');
-    }
-    elsif ($sym eq 'lazy') {
-        $/.panic($sym ~ ' not implemented');
+    else {
+        $/.panic( $sym ~ ' not implemented');
     }
     make $past;
 }

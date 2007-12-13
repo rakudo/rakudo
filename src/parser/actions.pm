@@ -129,6 +129,37 @@ method unless_statement($/) {
     make $past;
 }
 
+method for_statement($/) {
+    my $block := $( $<pblock> );
+    $block.blocktype('immediate');
+    my $past := PAST::Op.new( $( $<EXPR> ), $block,
+                            :pasttype($<sym>),
+                            :node( $/ )
+                            );
+    make $past;
+}
+
+method pblock($/) {
+#    our $?BLOCK_PROLOGUE;
+#    my $params := PAST::Stmts.new();
+#    my $past := PAST::Block.new( $params, :blocktype('declaration') );
+#    if $<signature> {
+#        for $<signature>[0] {
+#            my $param_var := $($_<param_var>);
+#            $past.symbol($param_var.name(), :scope('lexical'));
+#            $params.push($param_var);
+#        }
+#    }
+#    else {
+#        my $topic_var := PAST::Var.new(:name('$_'), :scope('lexical'));
+#        $past.symbol('$_', :scope('lexical'));
+#        $params.push($topic_var);
+#    }
+#    $past.push($<block>);
+#    $?BLOCK_PROLOGUE := $past;
+    my $past := PAST::Block.new();
+    make $past;
+}
 
 method use_statement($/) {
     my $name := ~$<name>;
@@ -146,6 +177,9 @@ method use_statement($/) {
     make $past;
 }
 
+method end_statement($/) {
+    $/.panic( ~$<sym> ~ ' not implemented');
+}
 
 method statement_mod_cond($/) {
     make PAST::Op.new( $( $<EXPR> ),

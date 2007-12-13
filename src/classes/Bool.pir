@@ -1,3 +1,16 @@
+## $Id$
+
+=head1 TITLE
+
+Bool - Perl 6 boolean class
+
+=head1 DESCRIPTION
+
+This file sets up the Perl 6 C<Bool> class, and initializes
+symbols for C<Bool::True> and C<Bool::False>.
+
+=cut
+
 .namespace ['Bool']
 
 .sub 'onload' :anon :init :load

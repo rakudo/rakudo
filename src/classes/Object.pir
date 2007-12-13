@@ -1,3 +1,5 @@
+## $Id$
+
 =head1 TITLE
 
 Object - Perl 6 Object class
@@ -130,6 +132,17 @@ Parrot class via the C<get_class> opcode.
     .return (protoobject)
 .end
 
+=back
+
+=head2 Object methods
+
+=over
+
+=item new()
+
+Create a new object having the same class as the invocant.
+
+=cut
 
 .sub 'new' :method
     $P0 = self.'HOW'()
@@ -137,6 +150,12 @@ Parrot class via the C<get_class> opcode.
     .return ($P1)
 .end
 
+
+=item isa($class)
+
+Returns true if the invocant is of type $class.
+
+=cut
 
 .sub 'isa' :method
     .param string x
@@ -146,11 +165,24 @@ Parrot class via the C<get_class> opcode.
 .end
 
 
+=item WHAT()
+
+Return the invocant's protoobject.
+
+=cut
+
 .sub 'WHAT' :method
     $S0 = typeof self
     $P0 = get_hll_global $S0
     .return ($P0)
 .end
+
+=item HOW()
+
+Return the invocant's metaclass object (in Parrot, this is the
+class object for the invocant).
+
+=cut
 
 .sub 'HOW' :method
     $P0 = self.'WHAT'()
@@ -158,6 +190,22 @@ Parrot class via the C<get_class> opcode.
     .return ($P1)
 .end
 
+=back
+
+=head2 Protoobject methods
+
+Protoobjects are described in Synopsis 12, these are objects
+that are "empty" instances that differ in definedness and how
+they respond to certain methods.
+
+=over
+
+=item get_string()   (vtable method)
+
+Returns the short name of the class (prototype objects stringify
+to the short name).
+
+=cut
 
 .namespace ['Perl6Protoobject']
 
@@ -167,14 +215,33 @@ Parrot class via the C<get_class> opcode.
     .return ($S0)
 .end
 
+=item defined()   (vtable method)
+
+Returns false (prototype objects evaluate as undef).
+
+=cut
+
 .sub 'defined' :vtable :method
     .return (0)
 .end
+
+=item HOW()
+
+Returns the metaclass (Parrot class) of the protoobject.
+
+=cut
 
 .sub 'HOW' :method
     $P0 = getattribute self, 'HOW'
     .return ($P0)
 .end
+
+=item WHAT()
+
+Returns the invocant's protoobject, which in the case of a protoobject
+is just itself.
+
+=cut
 
 .sub 'WHAT' :method
     .return (self)
@@ -182,3 +249,10 @@ Parrot class via the C<get_class> opcode.
 
 =back
 
+=cut
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

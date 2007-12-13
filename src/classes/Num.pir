@@ -1,3 +1,11 @@
+## $Id$
+
+=head1 TITLE
+
+Num - Perl 6 numbers
+
+=cut
+
 .namespace [ 'Float' ]
 
 .sub 'onload' :anon :init :load

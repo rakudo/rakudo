@@ -280,7 +280,7 @@ method scope_declarator($/) {
     unless $?BLOCK.symbol($name) {
         $past.isdecl(1);
         my $scope := 'lexical';
-        if (~$<declarator> eq 'our') { $scope := 'package'; }
+        if ($<declarator> eq 'our') { $scope := 'package'; }
         $?BLOCK.symbol($name, :scope($scope));
     }
     make $past;
@@ -289,7 +289,7 @@ method scope_declarator($/) {
 
 method variable($/, $key) {
     my $viviself := 'Undef';
-    if (~$<sigil> eq '@') { $viviself := 'List'; }
+    if ($<sigil> eq '@') { $viviself := 'List'; }
     make PAST::Var.new( :node($/), :name( ~$/ ), :viviself($viviself) );
 }
 
@@ -419,7 +419,7 @@ method semilist($/) {
     my $past := PAST::Op.new( :node($/) );
     if ($<EXPR>) {
         my $expr := $($<EXPR>[0]);
-        if (~$expr.name() eq 'infix:,') {
+        if ($expr.name() eq 'infix:,') {
             for @($expr) {
                 $past.push( $_ );
             }
@@ -450,7 +450,7 @@ method listop($/, $key) {
 method arglist($/) {
     my $past := PAST::Op.new( :node($/) );
     my $expr := $($<EXPR>);
-    if (~$expr.name() eq 'infix:,') {
+    if ($expr.name() eq 'infix:,') {
         for @($expr) {
             $past.push( $_ );
         }

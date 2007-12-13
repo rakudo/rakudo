@@ -210,6 +210,28 @@ method statement_prefix($/) {
 }
 
 
+method plurality_declarator($/) {
+    my $past := $( $<routine_declarator> );
+    if $<sym> eq 'multi' {
+        my $pirflags := ~ $past.pirflags();
+        my $arity := $past.arity();
+        if    $arity == 0 { $pirflags := $pirflags ~ ' :multi()'; }
+        elsif $arity == 1 { $pirflags := $pirflags ~ ' :multi(_)'; }
+        else {
+            $pirflags := $pirflags ~ ' :multi(_';
+            my $count := 1;
+            while $count != $arity {
+                $pirflags := $pirflags ~ ',_';
+                $count := $count + 1;
+            }
+            $pirflags := $pirflags ~ ')';
+        }
+        $past.pirflags($pirflags);
+    }
+    make $past;
+}
+
+
 method routine_declarator($/, $key) {
     if ($key eq 'sub') {
         my $past := $($<routine_def>);
@@ -237,6 +259,7 @@ method signature($/) {
         $past.symbol($param_var.name(), :scope('lexical'));
         $params.push($param_var);
     }
+    $past.arity( +$/[0] );
     our $?BLOCK_SIGNATURED := $past;
     make $past;
 }

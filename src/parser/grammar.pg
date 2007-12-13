@@ -246,7 +246,11 @@ rule statement_prefix {
 
 #### Subroutine and method definitions ####
 
-rule routine_declarator {
+rule plurality_declarator {
+    $<sym>=[multi|proto|only] <routine_declarator> {*}
+}
+
+token routine_declarator {
     | $<sym>='sub' <routine_def> {*}             #= sub
     # | $<sym>='method' <method_def> {*}           #= method
 }
@@ -314,6 +318,7 @@ token postcircumfix {
 
 token noun {
     | <scope_declarator> {*}                     #= scope_declarator
+    | <plurality_declarator> {*}                 #= plurality_declarator
     | <routine_declarator> {*}                   #= routine_declarator
     | <circumfix> {*}                            #= circumfix
     | <variable> {*}                             #= variable

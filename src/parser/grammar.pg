@@ -253,8 +253,8 @@ rule routine_declarator {
 
 rule routine_def {
     <ident>? <multisig>?
-    {*}
     <block>
+    {*}
 }
 
 rule multisig {

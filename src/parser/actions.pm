@@ -14,15 +14,14 @@ method TOP($/) {
 method statement_block($/, $key) {
     our $?BLOCK;
     our @?BLOCK;
-    our $?BLOCK_PROLOGUE;
-    ## when entering a block, pop the existing $?BLOCK_PROLOGUE from
-    ## any previous <block> or <pblock> rule if it exists, otherwise
-    ## create a new one.  The first child of the block is where we
-    ## store parameter and other block-entry tasks.
+    our $?BLOCK_SIGNATURED;
+    ##  when entering a block, use any $?BLOCK_SIGNATURED if it exists,
+    ##  otherwise create an empty block with an empty first child to
+    ##  hold any parameters we might encounter inside the block.
     if ($key eq 'open') {
-        if $?BLOCK_PROLOGUE {
-            $?BLOCK := $?BLOCK_PROLOGUE;
-            $?BLOCK_PROLOGUE := 0;
+        if $?BLOCK_SIGNATURED {
+            $?BLOCK := $?BLOCK_SIGNATURED;
+            $?BLOCK_SIGNATURED := 0;
         }
         else {
             $?BLOCK := PAST::Block.new( PAST::Stmts.new(), :node($/));
@@ -228,22 +227,23 @@ method routine_declarator($/, $key) {
 
 
 method routine_def($/) {
-    our $?BLOCK_PROLOGUE;
-    my $params := PAST::Stmts.new();
-    my $past := PAST::Block.new( $params,
-                                 :blocktype('declaration')
-                               );
+    my $past := $( $<block> );
     if $<ident> {
         $past.name( ~$<ident>[0] );
     }
-    if ($<multisig>) {
-        for $<multisig>[0]<signature>[0] {
-            my $param_var := $($_<param_var>);
-            $past.symbol($param_var.name(), :scope('lexical'));
-            $params.push($param_var);
-        }
+    make $past;
+}
+
+
+method signature($/) {
+    my $params := PAST::Stmts.new( :node($/) );
+    my $past := PAST::Block.new( $params, :blocktype('declaration') );
+    for $/[0] {
+        my $param_var := $($_<param_var>);
+        $past.symbol($param_var.name(), :scope('lexical'));
+        $params.push($param_var);
     }
-    $?BLOCK_PROLOGUE := $past;
+    our $?BLOCK_SIGNATURED := $past;
     make $past;
 }
 

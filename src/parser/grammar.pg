@@ -86,7 +86,7 @@ token unsp {
 
 token unv {
     || \h+
-    # || ^^ <.pod_comment>
+    || ^^ <.pod_comment>
     || '#' \N*
 }
 
@@ -105,6 +105,16 @@ token afterws {
       end:
     }}
     <fail>
+}
+
+token pod_comment {
+    ^^ '=' <.unsp>?
+    [
+    | begin <.ws> <ident> .*? \n
+      '=' <.unsp>? 'end' <.ws> $<ident> \N*         {*}         #= block
+    | \N*                                           {*}         #= misc
+    ]
+    {*}
 }
 
 

@@ -49,7 +49,8 @@ src/builtins/io.pir - Perl6 builtins for I/O
     file_string = join '/', path
 
     .local pmc filename
-    filename  = new 'Str'
+    $P0 = get_hll_global 'Str'
+    filename  = $P0.'new'()
     filename  = file_string
     filename .= '.pm'
 

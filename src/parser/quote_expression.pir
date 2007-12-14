@@ -51,6 +51,7 @@
     if oname == 'w' goto opt_w
     if oname == 'qq' goto opt_qq
     if oname == 'b' goto opt_b
+    if oname == 'regex' goto opt_regex
     goto iter_loop
   opt_ww:
   opt_w:
@@ -66,6 +67,8 @@
   opt_b:
     options['q'] = 1
     goto iter_loop
+  opt_regex:
+    self.panic(':regex not yet implemented')
   iter_end:
 
     .local string start, stop

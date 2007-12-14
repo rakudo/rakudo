@@ -328,7 +328,7 @@ token noun {
 }
 
 rule scope_declarator {
-    $<declarator>:=[my|our]
+    $<declarator>=[my|our]
     <variable>
     {*}
 }

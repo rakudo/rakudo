@@ -279,7 +279,7 @@ token param_var {
 #### Special variables ####
 
 token special_variable {
-    $<sym>=['$!'|'$¢'] <!before \w> {*}
+    $<sym>=[ '$/' | '$!' | '$¢' ] <!before \w> {*}
 }
 
 #### Terms ####

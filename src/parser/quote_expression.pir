@@ -51,7 +51,6 @@
     if oname == 'w' goto opt_w
     if oname == 'qq' goto opt_qq
     if oname == 'b' goto opt_b
-    if oname == 'regex' goto opt_regex
     goto iter_loop
   opt_ww:
   opt_w:
@@ -67,21 +66,38 @@
   opt_b:
     options['q'] = 1
     goto iter_loop
-  opt_regex:
-    self.panic(':regex not yet implemented')
   iter_end:
 
     .local string start, stop
     (start, stop) = self.'peek_brackets'(target, pos)
 
     ##  determine pos, lastpos
+    $I0 = length start
+    pos += $I0
     .local int stoplen, lastpos, wsstop
     stoplen = length stop
     wsstop = options['wsstop']
-    pos += stoplen
     lastpos = length target
     lastpos -= stoplen
+    options['stop'] = stop
 
+    ##  handle :regex parsing
+    $I0 = options['regex']
+    unless $I0 goto word_start
+  regex_start:
+    .local pmc p6regex, quote_regex
+    mob.'to'(pos)
+    p6regex = get_root_global ['parrot';'PGE::Perl6Regex'], 'regex'
+    quote_regex = p6regex(mob, options :flat :named)
+    unless quote_regex goto fail
+    pos = quote_regex.'to'()
+    .local string key
+    key = 'quote_regex'
+    mob[key] = quote_regex
+    goto succeed
+
+    ##  handle word parsing
+  word_start:
     ##  set up escapes based on flags
     .local string escapes
     escapes = ''
@@ -90,7 +106,6 @@
     escapes = '$'
   have_escapes:
     options['escapes'] = escapes
-    options['stop'] = stop
 
     .local int optww
     optww = options['ww']
@@ -126,7 +141,7 @@
     pos = find_not_cclass .CCLASS_WHITESPACE, target, pos, lastpos
     if pos > lastpos goto fail
     $S0 = substr target, pos, stoplen
-    if $S0 == stop goto succeed
+    if $S0 == stop goto word_succeed
     if pos >= lastpos goto fail
     unless optww goto word_plain
   word_shell:
@@ -158,15 +173,17 @@
     push quote_concat, $P0
     pos = $P0.'to'()
     goto word_loop
+  word_succeed:
+    key = 'quote_concat'
+    mob[key] = quote_concat
 
   succeed:
-    mob['quote_concat'] = quote_concat
     pos += stoplen
     mob.'to'(pos)
     if null action goto succeed_done
     $I0 = can action, 'quote_expression'
     unless $I0 goto succeed_done
-    action.'quote_expression'(mob)
+    action.'quote_expression'(mob, key)
   succeed_done:
     .return (mob)
   fail:

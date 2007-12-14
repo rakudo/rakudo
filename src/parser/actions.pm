@@ -396,21 +396,30 @@ method quote($/) {
 }
 
 
-method quote_expression($/) {
+method quote_expression($/, $key) {
     my $past;
-    if ( +$<quote_concat> == 1 ) {
-        $past := $( $<quote_concat>[0] );
+    if ($key eq 'quote_regex') {
+        $past := PAST::Block.new( $<quote_regex>,
+                                  :compiler('PGE::Perl6Regex'),
+                                  :blocktype('declaration'),
+                                  :node( $/ )
+                                )
     }
-    else {
-        $past := PAST::Op.new( :name('list'),
-                               :pasttype('call'),
-                               :node( $/ ) );
-        for $<quote_concat> {
-            $past.push( $($_) );
+    elsif ($key eq 'quote_concat') {
+        if ( +$<quote_concat> == 1 ) {
+            $past := $( $<quote_concat>[0] );
+        }
+        else {
+            $past := PAST::Op.new( :name('list'),
+                                   :pasttype('call'),
+                                   :node( $/ ) );
+            for $<quote_concat> {
+                $past.push( $($_) );
+            }
         }
     }
     make $past;
-}
+    }
 
 
 method quote_concat($/) {

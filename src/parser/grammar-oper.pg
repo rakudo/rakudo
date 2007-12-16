@@ -61,6 +61,19 @@ proto infix:<x> is precedence('s=') { ... }
 ## concatenation
 proto infix:<~> is precedence('r=') { ... }
 
+## junctive and
+proto infix:<&> is precedence('q=')
+    is assoc('list')
+    { ... }
+
+## junctive or
+proto infix:<|> is precedence('p=')
+    is assoc('list')
+    { ... }
+proto infix:<^> is precedence('p=')
+    is assoc('list')
+    { ... }
+
 ## named unary
 proto prefix:<rand> is precedence('o=') { ... }
 proto prefix:<sleep> is equiv(prefix:<rand>) { ... }

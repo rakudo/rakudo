@@ -12,9 +12,6 @@ src/builtins/junction.pir - Perl 6 junction operators
 
 .namespace
 
-.include "src/builtins/junctiontypes.pir"
-
-
 =item C<all(...)>
 
 Builds an 'all' junction from its arguments.
@@ -26,11 +23,11 @@ Builds an 'all' junction from its arguments.
     .local pmc junc
     junc = new 'Junction'
 
-    setattribute junc, "values", args
+    junc."!values"(args)
 
     $P0 = new 'Integer'
     $P0 = JUNCTION_TYPE_ALL
-    setattribute junc, "type", $P0
+    junc."!type"($P0)
     
     .return (junc)
 .end
@@ -59,11 +56,11 @@ Builds an 'any' junction from its arguments.
     .local pmc junc
     junc = new 'Junction'
 
-    setattribute junc, "values", args
+    junc."!values"(args)
 
     $P0 = new 'Integer'
     $P0 = JUNCTION_TYPE_ANY
-    setattribute junc, "type", $P0
+    junc."!type"($P0)
     
     .return (junc)
 .end
@@ -92,11 +89,11 @@ Builds a 'one' junction from its arguments.
     .local pmc junc
     junc = new 'Junction'
 
-    setattribute junc, "values", args
+    junc."!values"(args)
 
     $P0 = new 'Integer'
     $P0 = JUNCTION_TYPE_ONE
-    setattribute junc, "type", $P0
+    junc."!type"($P0)
     
     .return (junc)
 .end
@@ -125,14 +122,15 @@ Builds a 'none' junction from its arguments.
     .local pmc junc
     junc = new 'Junction'
 
-    setattribute junc, "values", args
+    junc."!values"(args)
 
     $P0 = new 'Integer'
     $P0 = JUNCTION_TYPE_NONE
-    setattribute junc, "type", $P0
+    junc."!type"($P0)
     
     .return (junc)
 .end
+
 
 =back
 

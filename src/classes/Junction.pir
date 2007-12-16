@@ -63,6 +63,30 @@ Private method to set the type of the junction.
     setattribute self, "$type", type
 .end
 
+
+=item pick()
+
+Gets a random value from the junction.
+
+=cut
+
+.sub 'pick' :method
+    # Need to know the number of elements.
+    .local pmc values
+    values = getattribute self, "@values"
+    .local int elems
+    elems = elements values
+
+    # Get random index.
+    .local int idx
+    idx = 'prefix:rand'(elems)
+
+    # Return that value.
+    $P0 = values[idx]
+    .return($P0)
+.end
+
+
 =back
 
 =cut

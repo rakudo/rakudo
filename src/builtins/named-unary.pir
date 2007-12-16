@@ -39,10 +39,7 @@ than $x.
     $N0 = $P0
     $N0 *= limit
     
-    .local pmc result
-    result = new 'Float'
-    result = $N0
-    .return (result)
+    .return ($N0)
 .end
 
 =back

@@ -24,10 +24,7 @@ Builds an 'all' junction from its arguments.
     junc = new 'Junction'
 
     junc."!values"(args)
-
-    $P0 = new 'Integer'
-    $P0 = JUNCTION_TYPE_ALL
-    junc."!type"($P0)
+    junc."!type"(JUNCTION_TYPE_ALL)
     
     .return (junc)
 .end
@@ -57,10 +54,7 @@ Builds an 'any' junction from its arguments.
     junc = new 'Junction'
 
     junc."!values"(args)
-
-    $P0 = new 'Integer'
-    $P0 = JUNCTION_TYPE_ANY
-    junc."!type"($P0)
+    junc."!type"(JUNCTION_TYPE_ANY)
     
     .return (junc)
 .end
@@ -90,10 +84,7 @@ Builds a 'one' junction from its arguments.
     junc = new 'Junction'
 
     junc."!values"(args)
-
-    $P0 = new 'Integer'
-    $P0 = JUNCTION_TYPE_ONE
-    junc."!type"($P0)
+    junc."!type"(JUNCTION_TYPE_ONE)
     
     .return (junc)
 .end
@@ -123,10 +114,7 @@ Builds a 'none' junction from its arguments.
     junc = new 'Junction'
 
     junc."!values"(args)
-
-    $P0 = new 'Integer'
-    $P0 = JUNCTION_TYPE_NONE
-    junc."!type"($P0)
+    junc."!type"(JUNCTION_TYPE_NONE)
     
     .return (junc)
 .end

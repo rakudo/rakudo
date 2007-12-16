@@ -1,4 +1,4 @@
-## $Id: List.pir 23848 2007-12-13 14:26:02Z pmichaud $
+## $Id$
 
 =head1 NAME
 

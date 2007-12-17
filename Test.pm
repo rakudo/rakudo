@@ -63,11 +63,11 @@ sub proclaim($cond, $desc) {
 
 }
 
-END {
-    if ($testing_started and $num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
-        diag("Looks like you planned $num_of_tests_planned tests, but ran $num_of_tests_run");
-    }
-    if ($testing_started and $num_of_tests_failed) {
-        diag("Looks like you failed $num_of_tests_failed tests of $num_of_tests_run");
-    }
-}
+#END {
+#    if ($testing_started and $num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
+#        diag("Looks like you planned $num_of_tests_planned tests, but ran $num_of_tests_run");
+#    }
+#    if ($testing_started and $num_of_tests_failed) {
+#        diag("Looks like you failed $num_of_tests_failed tests of $num_of_tests_run");
+#    }
+#}

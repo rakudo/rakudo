@@ -324,7 +324,12 @@ method postcircumfix($/, $key) {
             $past.push( $_ );
         }
     } else {
-        $/.panic( 'postcircumfix ' ~ $key ~ ' not implemented');
+        $past := PAST::Var.new( $semilist[0],
+                                :scope('keyed'),
+                                :vivibase('Hash'),
+                                :viviself('Undef'),
+                                :node( $/ )
+                              );
     }
     make $past;
 }
@@ -351,6 +356,7 @@ method scope_declarator($/) {
 method variable($/, $key) {
     my $viviself := 'Undef';
     if ($<sigil> eq '@') { $viviself := 'List'; }
+    if ($<sigil> eq '%') { $viviself := 'Hash'; }
     make PAST::Var.new( :node($/), :name( ~$/ ), :viviself($viviself) );
 }
 

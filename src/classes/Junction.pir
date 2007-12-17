@@ -59,8 +59,14 @@ Private method to set the type of the junction.
 =cut
 
 .sub '!type' :method
-    .param pmc type
+    .param pmc type     :optional
+    .param int got_type :optional
+    if got_type goto ret_type
     setattribute self, "$type", type
+    .return()
+ret_type:
+    type = getattribute self, "$type"
+    .return(type)
 .end
 
 
@@ -84,6 +90,85 @@ Gets a random value from the junction.
     # Return that value.
     $P0 = values[idx]
     .return($P0)
+.end
+
+
+=item clone
+
+Clone v-table method.
+
+=cut
+
+.sub 'clone' :method :vtable
+    .local pmc junc
+    junc = new 'Junction'
+
+    # Copy values and set type.
+    $P0 = self.'values'()
+    $P0 = clone $P0
+    junc.'!values'($P0)
+    $P0 = self.'!type'()
+    junc.'!type'($P0)
+
+    .return(junc)
+.end
+
+
+=item inc
+
+Increment v-table method.
+
+=cut
+
+.sub 'increment' :method :vtable
+    .local pmc values
+    .local pmc elem
+    .local int count
+    .local int i
+
+    # Get values array.
+    values = getattribute self, "@values"
+
+    # Loop over it and call inc on each element.
+    count = elements values
+    i = 0
+loop:
+    if i >= count goto loop_end
+    elem = values[i]
+    inc elem
+    values[i] = elem
+    inc i
+    goto loop
+loop_end:
+.end
+
+
+=item dec
+
+Decrement v-table method.
+
+=cut
+
+.sub 'decrement' :method :vtable
+    .local pmc values
+    .local pmc elem
+    .local int count
+    .local int i
+
+    # Get values array.
+    values = getattribute self, "@values"
+
+    # Loop over it and call dec on each element.
+    count = elements values
+    i = 0
+loop:
+    if i >= count goto loop_end
+    elem = values[i]
+    dec elem
+    values[i] = elem
+    inc i
+    goto loop
+loop_end:
 .end
 
 

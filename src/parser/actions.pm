@@ -310,12 +310,22 @@ method methodop($/, $key) {
 
 method postcircumfix($/, $key) {
     my $semilist := $( $<semilist> );
-    my $past := PAST::Var.new( $semilist[0],
-                               :scope('keyed'),
-                               :vivibase('List'),
-                               :viviself('Undef'),
-                               :node( $/ )
-                             );
+    my $past;
+    if ($key eq '[ ]') {
+        $past := PAST::Var.new( $semilist[0],
+                                :scope('keyed'),
+                                :vivibase('List'),
+                                :viviself('Undef'),
+                                :node( $/ )
+                              );
+    } elsif ($key eq '( )') {
+        $past := PAST::Op.new( :node($/), :pasttype('call') );
+        for @($semilist) {
+            $past.push( $_ );
+        }
+    } else {
+        $/.panic( 'postcircumfix ' ~ $key ~ ' not implemented');
+    }
     make $past;
 }
 

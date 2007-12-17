@@ -246,6 +246,8 @@ method routine_def($/) {
     my $past := $( $<block> );
     if $<ident> {
         $past.name( ~$<ident>[0] );
+        our $?BLOCK;
+        $?BLOCK.symbol(~$<ident>[0], :scope('package'));
     }
     make $past;
 }
@@ -355,9 +357,11 @@ method scope_declarator($/) {
 
 method variable($/, $key) {
     my $viviself := 'Undef';
+    my $name := ~$/;
     if ($<sigil> eq '@') { $viviself := 'List'; }
     if ($<sigil> eq '%') { $viviself := 'Hash'; }
-    make PAST::Var.new( :node($/), :name( ~$/ ), :viviself($viviself) );
+    if ($<sigil> eq '&') { $name := ~$<name>; }
+    make PAST::Var.new( :node($/), :name( $name ), :viviself($viviself) );
 }
 
 

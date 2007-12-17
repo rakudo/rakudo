@@ -354,7 +354,7 @@ token variable {
     | <sigil> <name> {*}                         #= $var
 }
 
-token sigil { '$' | '@' | '%' }
+token sigil { '$' | '@' | '%' | '&' }
 
 token name {
     | <ident> [ '::' <ident> ]*

@@ -362,12 +362,32 @@ method scope_declarator($/) {
 
 
 method variable($/, $key) {
-    my $viviself := 'Undef';
-    my $name := ~$/;
-    if ($<sigil> eq '@') { $viviself := 'List'; }
-    if ($<sigil> eq '%') { $viviself := 'Hash'; }
-    if ($<sigil> eq '&') { $name := ~$<name>; }
-    make PAST::Var.new( :node($/), :name( $name ), :viviself($viviself) );
+    my $past;
+    if $key eq 'special_variable' {
+        $past := $( $<special_variable> );
+    }
+    else {
+        my $viviself := 'Undef';
+        if $<sigil> eq '@' { $viviself := 'List'; }
+        if $<sigil> eq '%' { $viviself := 'Hash'; }
+        my @ident := $<name><ident>;
+        my $name;
+        PIR q<  $P0 = find_lex '@ident'  >;
+        PIR q<  $P0 = clone $P0          >;
+        PIR q<  store_lex '@ident', $P0  >;
+        PIR q<  $P1 = pop $P0            >;
+        PIR q<  store_lex '$name', $P1   >;
+        if $<sigil> ne '&' { $name := ~$<sigil> ~ ~$name; }
+        $past := PAST::Var.new( :name( $name ),
+                                :viviself($viviself),
+                                :node($/)
+                              );
+        if @ident {
+            $past.namespace(@ident);
+            $past.scope('package');
+        }
+    }
+    make $past;
 }
 
 

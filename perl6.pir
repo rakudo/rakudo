@@ -65,12 +65,14 @@ to the Perl6 compiler.
     $P0 = compreg 'Perl6'
     $P1 = $P0.'command_line'(args)
 
+    .include 'iterator.pasm'
     .local pmc iter
     $P0 = get_hll_global ['Perl6'], '@?END_BLOCKS'
     iter = new 'Iterator', $P0
+    iter = .ITERATE_FROM_END
   iter_loop:
     unless iter goto iter_end
-    $P0 = shift iter
+    $P0 = pop iter
     $P0()
     goto iter_loop
   iter_end:

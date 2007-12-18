@@ -36,9 +36,15 @@ object.
     $P1.'parsegrammar'('Perl6::Grammar')
     $P1.'parseactions'('Perl6::Grammar::Actions')
 
+    ##  create a list for holding the stack of nested blocks
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0
 
+    ##  create a list of END blocks to be run
+    $P0 = new 'List'
+    set_hll_global ['Perl6'], '@?END_BLOCKS', $P0
+
+    ##  tell PAST::Var how to encode Perl6Str and Str values
     $P0 = get_hll_global ['PAST::Compiler'], '%valflags'
     $P0['Perl6Str'] = 'e'
     $P0['Str'] = 'e'
@@ -58,6 +64,16 @@ to the Perl6 compiler.
 
     $P0 = compreg 'Perl6'
     $P1 = $P0.'command_line'(args)
+
+    .local pmc iter
+    $P0 = get_hll_global ['Perl6'], '@?END_BLOCKS'
+    iter = new 'Iterator', $P0
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $P0()
+    goto iter_loop
+  iter_end:
 .end
 
 

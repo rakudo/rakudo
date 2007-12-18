@@ -171,7 +171,13 @@ method use_statement($/) {
 }
 
 method end_statement($/) {
-    $/.panic( ~$<sym> ~ ' not implemented');
+    my $past := $( $<block> );
+    $past.blocktype('declaration');
+    my $sub := PAST::Compiler.compile( $past );
+    PIR q<  $P0 = get_hll_global ['Perl6'], '@?END_BLOCKS' >;
+    PIR q<  $P1 = find_lex '$sub' >;
+    PIR q<  push $P0, $P1 >;
+    make $past;
 }
 
 method statement_mod_cond($/) {

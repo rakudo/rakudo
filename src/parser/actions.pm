@@ -170,6 +170,15 @@ method use_statement($/) {
     make $past;
 }
 
+method begin_statement($/) {
+    my $past := $( $<block> );
+    $past.blocktype('declaration');
+    my $sub := PAST::Compiler.compile( $past );
+    $sub();
+    # XXX - should emit BEGIN side-effects, and do a proper return()
+    make PAST::Block.new();
+}
+
 method end_statement($/) {
     my $past := $( $<block> );
     $past.blocktype('declaration');

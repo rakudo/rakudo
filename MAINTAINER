@@ -1,8 +1,9 @@
 # $Id$
 
-N: Patrick Michaud 
+N: Patrick Michaud
 E: pmichaud@pobox.com
 
-Patches and suggestions should be sent to the Perl 6 compiler list
-(perl6-compiler@perl.org).  Small patches are preferred over large
-ones.
+Discussion generally takes place on irc.perl.org/#parrot and the
+perl6-compiler@perl.org mailing list.  Patches and bug reports
+can be sent to perl6-bug@perl.org .
+

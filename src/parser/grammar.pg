@@ -334,6 +334,7 @@ token postcircumfix {
 
 
 token noun {
+    | <package_declarator> {*}                   #= package_declarator
     | <scope_declarator> {*}                     #= scope_declarator
     | <plurality_declarator> {*}                 #= plurality_declarator
     | <routine_declarator> {*}                   #= routine_declarator
@@ -343,6 +344,17 @@ token noun {
     | <value> {*}                                #= value
     | <statement_prefix> {*}                     #= statement_prefix
 }
+
+
+rule package_declarator {
+    $<sym>=[module]
+    <name>
+    [
+    || ';' <statement_block> {*}                 #= statement_block
+    || <block> {*}                               #= block
+    ]
+}
+
 
 rule scope_declarator {
     $<declarator>=[my|our]

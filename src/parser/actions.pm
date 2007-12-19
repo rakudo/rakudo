@@ -356,6 +356,14 @@ method noun($/, $key) {
     make $( $/{$key} );
 }
 
+method package_declarator($/, $key) {
+    my $past := $( $/{$key} );
+    $past.namespace($<name><ident>);
+    $past.blocktype('declaration');
+    $past.pirflags(':init :load');
+    make $past;
+}
+
 method scope_declarator($/) {
     my $past := $( $<variable> );
     my $name := $past.name();

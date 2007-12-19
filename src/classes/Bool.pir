@@ -27,6 +27,12 @@ symbols for C<Bool::True> and C<Bool::False>.
     set_global 'True', $P0
 .end
 
+
+.sub 'ACCEPTS' :method
+    .param pmc topic
+    .return (self)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

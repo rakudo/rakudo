@@ -5,12 +5,12 @@
 ## working. It's shamelessly stolen & adapted from MiniPerl6 in the pugs repo.
 
 # globals to keep track of our tests
-my $num_of_tests_run = 0;
-my $num_of_tests_failed = 0;
-my $num_of_tests_planned;
+our $num_of_tests_run = 0;
+our $num_of_tests_failed = 0;
+our $num_of_tests_planned;
 
 # for running the test suite multiple times in the same process
-my $testing_started;
+our $testing_started;
 
 
 ## test functions
@@ -64,6 +64,12 @@ sub proclaim($cond, $desc) {
 }
 
 END {
+    # until 
+    our $testing_started;
+    our $num_of_tests_planned;
+    our $num_of_tests_run;
+    our $num_of_tests_failed;
+
     if ($testing_started and $num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
         diag("Looks like you planned $num_of_tests_planned tests, but ran $num_of_tests_run");
     }

@@ -3,13 +3,13 @@ use Test;
 
 plan 60;
 
-=kwid
+=begin kwid
 
-This file /exhaustivily/ tests the Test module. 
+This file /exhaustivily/ tests the Test module.
 
 I try every variant of each Test function here
-because we are using this module to test Pugs itself, 
-so I want to be sure that the error is not coming from 
+because we are using this module to test Pugs itself,
+so I want to be sure that the error is not coming from
 within this module.
 
 We need to test that these functions produce 'not ok' at the
@@ -20,7 +20,7 @@ a missing feature.
 If there is a bug in the implementation, you will see
 a (non-TODO) failure or an unexpected success.
 
-=cut
+=end kwid
 
 ## ok
 

@@ -54,8 +54,13 @@ Stops all program execution, and returns C<$status> to the calling environment.
 =cut
 
 .sub 'exit'
-    .param int a
-    exit a
+    .param int status     :optional
+    .param int has_status :opt_flag
+
+    if has_status goto x
+    status = 0
+  x:
+    exit status
 .end
 
 

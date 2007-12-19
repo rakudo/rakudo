@@ -45,6 +45,18 @@ multi sub isnt($got, $expected, $desc) {
 
 multi sub isnt($got, $expected) { isnt($got, $expected, ''); }
 
+multi sub skip()                { proclaim(1, "skip "); }
+multi sub skip($reason)         { proclaim(1, "skip $reason"); }
+multi sub skip($count, $reason) { skip($reason); }
+
+multi sub skip_rest() {
+    skip($num_of_tests_planned - $num_of_tests_run, "");
+}
+
+multi sub skip_rest($reason) {
+    skip($num_of_tests_planned - $num_of_tests_run, $reason);
+}
+
 sub diag($message) { say '# '~$message; }
 
 ## 'private' subs

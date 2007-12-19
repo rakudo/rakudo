@@ -2,27 +2,22 @@
 
 =head1 TITLE
 
-Str - Perl 6 strings
-
-=head1 DESCRIPTION
-
-This file sets up the C<Perl6Str> PMC type (from F<src/pmc/perl6str.pmc>)
-as the Perl 6 C<Str> class.
+Int - Perl 6 integers
 
 =cut
 
-.namespace ['Perl6Str']
+.namespace [ 'Integer' ]
 
 .sub 'onload' :anon :init :load
     $P0 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P0('Perl6Str', 'Str')
+    $P0('Integer', 'Int')
 .end
 
 
 .sub 'ACCEPTS' :method
-    .param string topic
-    $S0 = self
-    $I0 = iseq $S0, topic
+    .param int topic
+    $I0 = self
+    $I0 = iseq $I0, topic
     .return ($I0)
 .end
 

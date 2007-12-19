@@ -54,8 +54,12 @@ src/builtins/op.pir - Perl6 builtin operators
 ## symbolic unary
 .sub 'prefix:!'
     .param pmc a
-    $I0 = isfalse a
-    .return ($I0)
+    if a goto a_true
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return ($P0)
+  a_true:
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
 .end
 
 
@@ -88,13 +92,11 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .sub 'prefix:?'
     .param pmc a
-
-    $S0 = 'False'
-    $I0 = istrue a
-    unless $I0 goto bool_set
-    $S0 = 'True'
-  bool_set:
-    $P0 = get_hll_global ['Bool'], $S0
+    if a goto a_true
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
+  a_true:
+    $P0 = get_hll_global ['Bool'], 'True'
     .return ($P0)
 .end
 

@@ -370,10 +370,12 @@ token circumfix {
 
 token variable {
     | <special_variable> {*}                     #= special_variable
-    | <sigil> <name> {*}                         #= $var
+    | <sigil> <twigil>? <name> {*}               #= $var
 }
 
 token sigil { '$' | '@' | '%' | '&' }
+
+token twigil { <[.!^*+?=]> }
 
 token name {
     | <ident> [ '::' <ident> ]*

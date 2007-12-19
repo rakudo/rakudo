@@ -64,7 +64,8 @@ sub proclaim($cond, $desc) {
 }
 
 END {
-    # until 
+    # until END blocks can access compile-time symbol tables of outer scopes,
+    #  we need these declarations
     our $testing_started;
     our $num_of_tests_planned;
     our $num_of_tests_run;

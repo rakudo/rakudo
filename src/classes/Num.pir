@@ -13,6 +13,13 @@ Num - Perl 6 numbers
     $P0('Float', 'Num')
 .end
 
+
+.sub 'ACCEPTS' :method
+    .param num topic
+    .return 'infix:=='(topic, self)
+.end
+
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

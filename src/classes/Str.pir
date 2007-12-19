@@ -21,9 +21,7 @@ as the Perl 6 C<Str> class.
 
 .sub 'ACCEPTS' :method
     .param string topic
-    $S0 = self
-    $I0 = iseq $S0, topic
-    .return ($I0)
+    .return 'infix:eq'(topic, self)
 .end
 
 # Local Variables:

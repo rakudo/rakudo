@@ -15,11 +15,10 @@ Int - Perl 6 integers
 
 
 .sub 'ACCEPTS' :method
-    .param int topic
-    $I0 = self
-    $I0 = iseq $I0, topic
-    .return ($I0)
+    .param num topic
+    .return 'infix:=='(topic, self)
 .end
+
 
 # Local Variables:
 #   mode: pir

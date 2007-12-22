@@ -204,6 +204,7 @@ rule statement {
 rule statement_control {
     | <if_statement> {*}                         #= if_statement
     | <unless_statement> {*}                     #= unless_statement
+    | <when_statement> {*}                       #= when_statement
     | <for_statement> {*}                        #= for_statement
     | <use_statement> {*}                        #= use_statement
     | <begin_statement> {*}                      #= begin_statement
@@ -220,6 +221,12 @@ rule if_statement {
 
 rule unless_statement {
     $<sym>=[unless]
+    <EXPR> <block>
+    {*}
+}
+
+rule when_statement {
+    $<sym>=[when]
     <EXPR> <block>
     {*}
 }

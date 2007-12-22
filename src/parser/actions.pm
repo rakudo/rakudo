@@ -128,6 +128,27 @@ method unless_statement($/) {
     make $past;
 }
 
+method when_statement($/) {
+    my $block := $( $<block> );
+    $block.blocktype('immediate');
+
+    # Invoke smartmatch of the expression.
+    my $expr := $( $<EXPR> );
+    my $match_past := PAST::Op.new( :name('infix:~~'),
+                                    :pasttype('call'),
+                                    :node($/)
+                                  );
+    $match_past.push( PAST::Var.new( :node($/), :name('$_'), :scope('lexical') ) );
+    $match_past.push( $expr );
+
+    # Use the smartmatch result as the condition.
+    my $past := PAST::Op.new( $match_past, $block,
+                              :pasttype('if'),
+                              :node( $/ )
+                            );
+    make $past;
+}
+
 method for_statement($/) {
     my $block := $( $<pblock> );
     $block.blocktype('declaration');

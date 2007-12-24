@@ -25,23 +25,22 @@ Compiler to-do
 
 Parser implemented
 ------------------
-* Common while, unless statements
+* Common if, while, unless statements
 * Basic blocks
 * Perl 6 comments (including POD, long dot)
 * List associative operators
 * statement modifier operators
 * POD comments
 * interpolation of scalar variables
+* real pointy subs
+* subroutine definitions
+* subroutine calling syntax
 
 Parser to-do
 ------------
 * fix long-dot comments to new S02 syntax
-* fix parsing of if-block
 * interpolate closures
 * generalized quote interpolation
-* real pointy subs
-* subroutine definitions
-* subroutine calling syntax
 * variables
 * "use" statement
 * statement labels

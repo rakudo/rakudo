@@ -411,6 +411,7 @@ token quote {
 token number {
     [ <dec_number> {*}                           #= dec_number
     | <integer> {*}                              #= integer
+    | <rad_number> {*}                           #= rad_number
     ]
 }
 
@@ -430,6 +431,19 @@ token integer {
 
 token dec_number {
     \d+[_\d+]* [ '.' \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? ]
+    {*}
+}
+
+token rad_number {
+    ':' $<radix>=[\d+] <.unsp>?
+    ::
+    [
+    || '<'
+        $<radint>=[<[0..9 a..z A..Z]>]+ # FIXME: fraction, base, exponent
+        '>'
+    || <?before '['> <postcircumfix>
+    || <?before '('> <postcircumfix>
+    ]
     {*}
 }
 

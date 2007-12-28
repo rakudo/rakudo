@@ -474,6 +474,19 @@ method dec_number($/) {
     make PAST::Val.new( :value( +$/ ), :returns('Float'), :node( $/ ) );
 }
 
+method rad_number($/) {
+    my $past  := PAST::Val.new( :returns('Integer'), :node( $/ ) );
+    my $radix := $<radix>;
+    my $base;
+    if $<radint> {
+        $base := $<radint>;
+    }
+    else {
+        $base := $( $<postcircumfix> );
+    }
+    $past.value( $base );
+    make $past;
+}
 
 method quote($/) {
     make $( $<quote_expression> );

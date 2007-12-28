@@ -224,6 +224,31 @@ error.
 .end
 
 
+=item radcalc
+
+=cut
+
+.sub 'radcalc'
+    .param int radix
+    .param int radint
+    .local string result
+    result = '0'
+  test:
+    unless radint < radix goto gt
+    result = radint
+    goto end
+  gt:
+    $I0 = radint % radix
+    $S0 = $I0
+    result .= $S0
+    radint /= radix
+    goto test
+  end:
+    $I0 = result
+    .return ($I0)
+.end
+
+
 =back
 
 =head2 TODO: Functions

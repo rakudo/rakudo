@@ -1,0 +1,34 @@
+This is a laundry list of things completed and items on the 
+"to do soon" list:
+
+Compiler implemented
+--------------------
+* basic expressions and operators
+* listop parsing and execution
+* if, unless statements
+* if, unless statement modifiers
+* chained operators
+* infix:and, infix:or, infix:&&, infix:||
+* lexical and package-scoped scalars
+* simple blocks
+* numeric literals 0x, 0b, 0d, 0o, numbers w/underscores
+* string to numeric conversion
+* scalar interpolation in strings
+* simple subroutines
+* arity-based multi subs
+* simple for loops and iterators
+* arrays and hashes
+* Perl 6 comments
+* unspace
+* list quoting (<a b c>)
+* try blocks w/o CATCH
+* BEGIN, END blocks
+
+To do
+-----
+* pointy subs
+* named arguments
+* named parameters
+* optional parameters
+* slurpy parameters
+

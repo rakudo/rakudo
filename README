@@ -1,118 +1,79 @@
 ## $Id$
 
-=head1 Perl 6 parser/compiler
+=head1 Perl 6 on Parrot
 
-This is a Perl 6 parser/compiler, an early version (no version numbers
-yet).  It's still very early, only simple expressions and functions are
-available.  If you're in a hurry to write "real Perl 6" programs,
-you might try looking at Pugs -- http://www.pugscode.org.  Or, you
-can send patches and contributions to the one being built here!
+This is the Perl 6 compiler for Parrot, called "perl6".  It's still
+fairly primitive -- only simple expressions and functions are
+available, but it's rapidly expanding.  See L<docs/STATUS> for a
+list of what has been implemented thus far.
 
-However, even though this is not a complete compiler yet, you can
-still see how Perl 6 programs are parsed, help us create test
-cases, and extend/improve the grammar and runtime to cover more
-of Perl 6.  Here's how the system currently works:
+=head2 Building and invoking perl6
 
-=head2 Compiling
+To build the compiler, start by building Parrot, then change
+to the languages/perl6/ subdirectory and type "make".  This
+will create the compiler as a file called "perl6.pbc".  The ".pbc"
+stands for "Parrot bytecode", and represents an executable Parrot
+module.
 
-The perl6 parser/compiler lives in the perl6.pbc file.
-To create this file, simply issue the command
+To run a Perl 6 program with perl6, issue a command like
 
-  $ make
+    $ parrot perl6.pbc hello.pl
 
-To invoke perl6 from a shell prompt on a (Perl 6)
-input file named "foo.p6", use:
+As of this writing, we don't yet have a way to simply execute
+Perl 6 programs with a command like "perl6 hello.pl", nor to
+automatically invoke perl6 on scripts that start with a "#!" line.
+However, this is an high priority -- see RT#49168.
 
-  $ parrot perl6.pbc foo.p6
+If the perl6 compiler is invoked without an explicit script to
+run -- i.e., as "parrot perl6.pbc", it enters a small interactive
+mode that allows Perl 6 statements to be executed from the
+command line.
 
-To run interactively, entering single-line statements:
+=head2 Running the test suite
 
-  $ parrot perl6.pbc
+Entering "make test" will run the test suite that comes bundled
+with perl6 on Parrot.  This is a simple suite of tests, designed
+to make sure that the perl6 compiler is basically working and that
+it's capable of running a simple test harness.
 
-To display the parse tree, add the "--target=parse" option:
+Running "make spectest" will import relevant portions of the
+"official Perl 6 test suite" from the Pugs repository
+(http://svn.pugscode.org/tests/spec/) and run selected tests from
+there.  At present we do not have any plans to directly store the
+official test suite as part of the Parrot repository.
 
-  $ parrot perl6.pbc --target=parse foo.p6
+=head2 Reporting bugs
 
-Or, to display the abstract syntax tree, the opcode syntax tree,
-or the generated PIR code, use "--target=PAST", "--target=POST",
-or "--target=PIR".
+Bug reports should be sent to C<perl6-bugs@perl.org> with the
+moniker [BUG] (including the brackets) at the start of the subject
+so that it gets appropriately tagged in the RT system.  Please include
+or attach any sample source code that exhibits the bug, and if appropriate
+identify the svn revision number of the code that you're working
+from.  There's no need to cc: the perl6-compiler mailing list, as
+the RT system will handle this on its own.
 
-To get a dump of the parser's operator precedence table,
-use --dump-optable:
+=head2 Submitting patches
 
-  $ parrot perl6.pbc --dump-optable
+If you have a patch that fixes a bug or adds a new feature, please
+submit it to C<perl6-bugs@perl.org> with the moniker [PATCH]
+(including the brackets) at the start of the subject line.  We'll
+generally accept patches in any form if we can get them to work,
+but unified diff from the svn command is greatly preferred.  In
+general this means you can execute "svn diff >foo.patch" from
+the languages/perl6/ directory and just attach the foo.patch file.
 
-=head2 Files
+=head2 How the compiler works
 
-The "top" file for the parser is F<perl6.pir> which is used to
-create the F<perl6.pbc> file.  It initializes the overall
-parsing system and registers the parser as a Parrot "Perl6" compiler.
-
-The other files needed for the compiler are in the F<src/> subdirectory.
-
-The F<src/grammar_rules.pg> file defines the "top-down" grammar used
-for large Perl 6 program structures, defined using rules in
-Perl 6 rules syntax.  The F<src/grammar_optok.pg> file defines
-the operator tokens used for expression parsing with PGE's
-operator-precedence parser.   The tokens in src/grammar_optok.pge
-are defined using a pseudo-Perl6 syntax.  PGE's "pgc.pir"
-compiler is then used to compile the two grammar files into
-F<src/grammar_gen.pir>, which is included by F<perl6.pir>.
-(See Synopsis 5 for more details on Perl 6 rules syntax,
-and F<compilers/pge/> for more details about PGE.)
-
-The F<src/parse.pir> file defines a few special-purpose
-rules needed to support parsing that are better written
-directly in PIR instead of using the rules or token syntax.
-Currently this file defines the C<< <expression> >> rule,
-which just calls into the operator precedence parser.
-
-The file F<src/pge2past.tg> is a tree grammar that specifies
-how to convert the parse tree into the abstract syntax tree (PAST),
-and F<src/past2post.tg> generates POST from PAST.  
-
-The F<src/main.pir> file controls what happens when the perl6.pbc
-file is invoked directly from parrot (as opposed to being
-loaded via the load_bytecode op).
-
-The PIR files in F<src/> are included as part of compiling
-F<perl6.pir> to produce F<perl6.pbc>.
-
-The F<perl6.pbc> file can also be used to compile Perl 6 code
-from PIR:
-
-    load_bytecode "perl6.pbc"
-    $S0 = 'say "hello world"'            # source code to compile
-    $P0 = compreg("Perl6")               # obtain the compiler
-    $P1 = $P0($S0)                       # compile source code
-    $P1()                                # execute
-
-One can also provide the "target" option to the compiler:
-
-    $P1 = $P0($S0, 'target'=>'parse')    # obtain parse tree
-    $P1 = $P0($S0, 'target'=>'PAST')     # get AST
-    $P1 = $P0($S0, 'target'=>'POST')     # get OST
-    $P1 = $P0($S0, 'target'=>'PIR')      # get PIR
-
-=head2 Testing
-
-To run the parrot-specific tests:
-
- make test
-
-To run the official test suite:
-
- make spectest
-
-Note that this requires svn: it exports a copy of the official tests to a
-a local directory (once) and runs those tests. Right now we only run tests
-we're sure we might pass.
+Information about how the compiler works (and how one can learn
+to hack on it) will be coming in a separate documentation file.
+For the most part we expect people to be able to write compiler
+code in Perl 6, with only minimal knowledge of PIR or other
+portions of the Parrot compiler tool suite.
 
 =head1 AUTHOR
 
-Patrick Michaud (pmichaud@pobox.com) is the author and maintainer.
-Patches and suggestions should be sent to the Perl 6 compiler list
-(perl6-compiler@perl.org).
+Patrick Michaud (pmichaud@pobox.com) is the author and maintainer
+for perl6 on Parrot .
 
 =cut
 

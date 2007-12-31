@@ -230,22 +230,34 @@ error.
 
 .sub 'radcalc'
     .param int radix
-    .param int radint
-    .local string result
-    result = '0'
-  test:
-    unless radint < radix goto gt
-    result = radint
-    goto end
-  gt:
-    $I0 = radint % radix
+    .param string radint
+    .local int    n, result
+    .local pmc    radint_array
+    radint_array = new 'ResizableIntegerArray'
+    result = 0
+
+    # convert string to number, and store digits in array
+    $I0 = radint
     $S0 = $I0
-    result .= $S0
-    radint /= radix
-    goto test
-  end:
-    $I0 = result
-    .return ($I0)
+    radint_array = split '', $S0
+
+    # count number of digits in radint
+    n = elements radint_array
+
+    # sum from index equals 0 to number of digits minus one  of digit * radix ** index
+  lp:
+    dec n
+    if n < 0 goto ex
+
+    $N0 = shift radint_array
+    $N1 = radix ** n
+    $N0 *= $N1
+    $I0 = $N0
+    result += $I0
+    goto lp
+
+  ex:
+    .return (result)
 .end
 
 

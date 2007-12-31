@@ -505,17 +505,20 @@ method dec_number($/) {
 }
 
 method rad_number($/) {
-    my $past  := PAST::Val.new( :returns('Integer'), :node( $/ ) );
-    my $radix := $<radix>;
-    my $base;
-    if $<radint> {
-        $base := $<radint>;
+    my $radix := ~$<radix>;
+    my $base  := ~$<radint>;
+    if $base {
+        make PAST::Val.new(
+            :value( radcalc( $radix, $base ) ), :returns('Integer'), :node( $/ )
+        );
     }
     else {
-        $base := $( $<postcircumfix> );
+        my $radcalc := $( $<postcircumfix> );
+        $radcalc.name('radcalc');
+        $radcalc.pasttype('call');
+        $radcalc.unshift( PAST::Val.new( :value( $radix ), :node( $/ ) ) );
+        make $radcalc;
     }
-    $past.value( $base );
-    make $past;
 }
 
 method quote($/) {

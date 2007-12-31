@@ -128,6 +128,26 @@ method unless_statement($/) {
     make $past;
 }
 
+method given_statement($/) {
+    my $past := $( $<block> );
+    $past.blocktype('immediate');
+    
+    # Node to assign expression to $_.
+    my $expr := $( $<EXPR> );
+    my $assign := PAST::Op.new( :name('infix::='),
+                                :pasttype('bind'),
+                                :node($/)
+                              );
+    $assign.push( PAST::Var.new( :node($/), :name('$_'), :scope('lexical') ) );
+    $assign.push( $expr );
+
+    # Put as first instruction in block (but after .lex $_).
+    my $statements := $past[1];
+    $statements.unshift( $assign );
+    
+    make $past;
+}
+
 method when_statement($/) {
     my $block := $( $<block> );
     $block.blocktype('immediate');

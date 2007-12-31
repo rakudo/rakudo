@@ -12,7 +12,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 
 .namespace
 
-.sub 'infix:=='
+.sub 'infix:==' :multi(_,_)
     .param num a
     .param num b
     $I0 = iseq a, b
@@ -20,7 +20,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:!='
+.sub 'infix:!=' :multi(_,_)
     .param num a
     .param num b
     $I0 = isne a, b
@@ -28,7 +28,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:<'
+.sub 'infix:<' :multi(_,_)
     .param num a
     .param num b
     $I0 = islt a, b
@@ -36,7 +36,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:<='
+.sub 'infix:<=' :multi(_,_)
     .param num a
     .param num b
     $I0 = isle a, b
@@ -44,7 +44,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:>'
+.sub 'infix:>' :multi(_,_)
     .param num a
     .param num b
     $I0 = isgt a, b
@@ -52,7 +52,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:>='
+.sub 'infix:>=' :multi(_,_)
     .param num a
     .param num b
     $I0 = isge a, b
@@ -68,7 +68,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:eq'
+.sub 'infix:eq' :multi(_,_)
     .param string a
     .param string b
     $I0 = iseq a, b
@@ -76,7 +76,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:ne'
+.sub 'infix:ne' :multi(_,_)
     .param string a
     .param string b
     $I0 = isne a, b
@@ -84,7 +84,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:lt'
+.sub 'infix:lt' :multi(_,_)
     .param string a
     .param string b
     $I0 = islt a, b
@@ -92,7 +92,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:le'
+.sub 'infix:le' :multi(_,_)
     .param string a
     .param string b
     $I0 = isle a, b
@@ -100,7 +100,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:gt'
+.sub 'infix:gt' :multi(_,_)
     .param string a
     .param string b
     $I0 = isgt a, b
@@ -108,7 +108,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:ge'
+.sub 'infix:ge' :multi(_,_)
     .param string a
     .param string b
     $I0 = isge a, b

@@ -43,7 +43,7 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 ## exponentiation
-.sub 'infix:**'
+.sub 'infix:**' :multi(_,_)
     .param num base
     .param num exp
     $N0 = pow base, exp
@@ -115,23 +115,23 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 ## multiplicative
-.sub 'infix:*'
+.sub 'infix:*' :multi(_,_)
     .param pmc a
     .param pmc b
-    $P0 = mul a, b
+    $P0 = n_mul a, b
     .return ($P0)
 .end
 
 
-.sub 'infix:/'
+.sub 'infix:/' :multi(_,_)
     .param pmc a
     .param pmc b
-    $P0 = div a, b
+    $P0 = n_div a, b
     .return ($P0)
 .end
 
 
-.sub 'infix:%'
+.sub 'infix:%' :multi(_,_)
     .param num a
     .param num b
     $N0 = mod a, b
@@ -139,7 +139,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'infix:x'
+.sub 'infix:x' :multi(_,_)
     .param string a
     .param int b
     $S0 = repeat a, b
@@ -147,7 +147,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'infix:xx'
+.sub 'infix:xx' :multi(_,_)
     .param string a
     .param int b
     $P0 = new 'ResizablePMCArray'
@@ -197,18 +197,18 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 ## additive
-.sub 'infix:+'
+.sub 'infix:+' :multi(_,_)
     .param pmc a
     .param pmc b
-    $P0 = add a, b
+    $P0 = n_add a, b
     .return ($P0)
 .end
 
 
-.sub 'infix:-'
+.sub 'infix:-' :multi(_,_)
     .param pmc a
     .param pmc b
-    $P0 = sub a, b
+    $P0 = n_sub a, b
     .return ($P0)
 .end
 

@@ -60,8 +60,8 @@ Private method to set the type of the junction.
 
 .sub '!type' :method
     .param pmc type     :optional
-    .param int got_type :optional
-    if got_type goto ret_type
+    .param int got_type :opt_flag
+    unless got_type goto ret_type
     setattribute self, "$type", type
     .return()
 ret_type:
@@ -111,64 +111,6 @@ Clone v-table method.
     junc.'!type'($P0)
 
     .return(junc)
-.end
-
-
-=item inc
-
-Increment v-table method.
-
-=cut
-
-.sub 'increment' :method :vtable
-    .local pmc values
-    .local pmc elem
-    .local int count
-    .local int i
-
-    # Get values array.
-    values = getattribute self, "@values"
-
-    # Loop over it and call inc on each element.
-    count = elements values
-    i = 0
-loop:
-    if i >= count goto loop_end
-    elem = values[i]
-    inc elem
-    values[i] = elem
-    inc i
-    goto loop
-loop_end:
-.end
-
-
-=item dec
-
-Decrement v-table method.
-
-=cut
-
-.sub 'decrement' :method :vtable
-    .local pmc values
-    .local pmc elem
-    .local int count
-    .local int i
-
-    # Get values array.
-    values = getattribute self, "@values"
-
-    # Loop over it and call dec on each element.
-    count = elements values
-    i = 0
-loop:
-    if i >= count goto loop_end
-    elem = values[i]
-    dec elem
-    values[i] = elem
-    inc i
-    goto loop
-loop_end:
 .end
 
 

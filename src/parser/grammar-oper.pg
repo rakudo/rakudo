@@ -114,7 +114,9 @@ proto infix:<||> is precedence('k=')
 proto infix:<^^> is equiv(infix:<||>)
     is pasttype('xor')
     { ... }
-proto infix:<//> is equiv(infix:<||>) { ... }
+proto infix:<//> is equiv(infix:<||>)
+    is pasttype('def_or')
+    { ... }
 proto infix:<min> is equiv(infix:<||>) { ... }
 proto infix:<max> is equiv(infix:<||>) { ... }
 

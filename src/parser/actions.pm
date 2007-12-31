@@ -152,6 +152,9 @@ method when_statement($/) {
     my $block := $( $<block> );
     $block.blocktype('immediate');
 
+    # XXX TODO: push a control exception throw onto the end of the block so we
+    # exit the innermost block in which $_ was set.
+
     # Invoke smartmatch of the expression.
     my $expr := $( $<EXPR> );
     my $match_past := PAST::Op.new( :name('infix:~~'),
@@ -166,6 +169,13 @@ method when_statement($/) {
                               :pasttype('if'),
                               :node( $/ )
                             );
+    make $past;
+}
+
+method default_statement($/) {
+    # Always executed if reached, so just produce the block.
+    my $past := $( $<block> );
+    $past.blocktype('immediate');
     make $past;
 }
 

@@ -206,6 +206,7 @@ rule statement_control {
     | <unless_statement> {*}                     #= unless_statement
     | <given_statement> {*}                      #= given_statement
     | <when_statement> {*}                       #= when_statement
+    | <default_statement> {*}                    #= default_statement
     | <for_statement> {*}                        #= for_statement
     | <use_statement> {*}                        #= use_statement
     | <begin_statement> {*}                      #= begin_statement
@@ -235,6 +236,12 @@ rule given_statement {
 rule when_statement {
     $<sym>=[when]
     <EXPR> <block>
+    {*}
+}
+
+rule default_statement {
+    $<sym>=[default]
+    <block>
     {*}
 }
 

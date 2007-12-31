@@ -1,0 +1,216 @@
+## $Id$
+
+=head1 Overview of the perl6 compiler
+
+This document describes the architecture and layout of the
+perl6 compiler itself.  See the F<README> or F<STATUS>
+files for information about how to use the compiler or
+what features have been implemented.
+
+The perl6 compiler is constructed from four major components:
+
+1.  the parse grammar (src/parser/grammar.pg, src/parser/*.pir)
+2.  a set of action methods to transform the parse tree into
+    an abstract syntax tree (src/parser/actions.pm)
+3.  the main compiler object (perl6.pir)
+4.  builtin functions and runtime support (src/builtins/,
+    src/classes/, src/pmc/)
+
+The F<Makefile> takes care of compiling all of the individual
+components into compiled form and linking them together to
+form the F<perl6.pbc> executable.
+
+=head2 Parse grammar
+
+The parse grammar is written using a mix of Perl 6 regular
+expressions, operator tokens, and special-purpose PIR
+subroutines.  The primary purpose of the parse grammar is
+to parse Perl 6 source code into a parse tree.
+
+Currently the parse grammar is spread across three files:
+
+    src/parser/grammar.pg           - the top-level grammar
+    src/parser/grammer-oper.pg      - operator tokens
+    src/parser/quote_expression.pir - quote rule
+
+The top-level portion of the grammar is written using Perl 6
+rules (Synopsis 5) and is based on the STD.pm grammar in the
+Pugs repository (L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>).
+There are a few places where this grammar deviates from STD.pm,
+but the ultimate goal is for the two to converge.  The grammar
+inherits from C<PCT::Grammar>, which provides the C<< <.panic> >>
+rule to throw exceptions for syntax errors.
+
+The parse grammar is compiled into PIR (F<src/gen_grammar.pir>)
+using the Perl6Grammar compiler that is part of PGE and the Parrot
+Compiler Toolkit.  Because PGE doesn't yet implement the
+proto-regex or longest token matching semantics of S05, we
+make use PGE's built-in operator precedence parser and define
+operator tokens in grammar-oper.pg .
+
+Lastly, the F<src/parser/quote_expression.pir> file implements
+code to parse the various forms of Perl 6 quoting rules.  It's
+far easier to write this component using PIR instead of a
+regular expression, but otherwise it acts just like any other
+rule in the grammar.
+
+
+=head2 Action methods
+
+The action methods (in F<src/parser/actions.pm>) are used to
+convert the nodes of the parse tree (produced by the parse grammar)
+into an equivalent abstract syntax tree (PAST) representation.  The
+action methods are where the perl6 compiler does the bulk of the work
+of creating an executable program.  Action methods are written in
+Perl 6, but we use NQP to compile them into PIR as F<src/gen_actions.pir>.
+
+When perl6 is compiling a Perl 6 program, action methods are invoked
+by the C< {*} > symbols in the parse grammar.  Each C< {*} > in a rule
+causes the action method corresponding to the rule's name to be
+invoked, passing the current match object as an argument.  If the
+rule source line containing C< {*} > also contains a comment
+starting with C< #= >, any text after the comment is passed as a
+separate key argument to the action method.  (This is similar to
+the approach that STD.pm uses to mark and distinguish actions.)
+
+For example, here's the parse rule for perl6's C<unless> statement
+(in src/parser/grammar.pg):
+
+    rule unless_statement {
+        $<sym>=[unless] <EXPR> <block>
+        {*}
+    }
+
+This rule says that an unless statement consists of the word "unless"
+(captured into $<sym>), followed by an expression and then a block.
+If all of those match successfully, then the C< {*} > invokes the
+corresponding action method for unless_statement.  Here's the action
+method for the unless statement (from src/parser/actions.pm):
+
+    method unless_statement($/) {
+        my $then := $( $<block> );
+        $then.blocktype('immediate');
+        my $past := PAST::Op.new( $( $<EXPR> ), $then,
+                                  :pasttype('unless'),
+                                  :node( $/ )
+                                );
+        make $past;
+    }
+
+When this action method is invoked from the unless_statement rule,
+the current match object containing the parsed statement is passed
+into the method as C< $/ >.  In Perl 6, this means that the
+expressions C<< $<EXPR> >> and C<< $<block> >> will refer to
+whatever was matched by the C<< <EXPR> >> and C<< <block> >>
+subrules of the C<unless_statement> rule.  ( C<< $<block> >>
+is Perl 6 syntactic sugar for C< $/{'block'} >.)
+
+Now then, the purpose of the action methods in our compiler is
+to convert the parsed elements of the source program into their
+abstract syntax tree (PAST) equivalents.  The magic for this
+occurs in the C< $(...) > and C<make> expressions in the method
+body.  The C< $(...) > operator is used to retrieve the PAST
+representation of a parsed subtree.  Thus, the first two statements
+of C<unless_statement> retrieve the PAST representation of the
+C<< <block> >> subtree into C<$then>, and sets that block to
+be an immediately executed block.
+
+The third statement creates a new C<PAST::Op> node for the
+unless statement, using the PAST representation of C<< <EXPR> >>
+as the condition to be tested, the C<$then> block as the body,
+and C<:pasttype('unless')> as the type of operation to be
+performed.  The C<:node($/)> argument is used to link this
+PAST node back to the source code that generated it (e.g., for
+error reporting).
+
+Finally, the C<make> statement at the end of the method sets
+the newly created PAST::Op node as the PAST representation of
+the unless statement that was just parsed.
+
+The Parrot Compiler Toolkit provides a wide variety of PAST
+node types for representing the various components of a HLL
+program -- for more details about the available node types,
+see PDD 26 (L<http://svn.perl.org/parrot/trunk/docs/pdds/pdd26_ast.pod>).
+
+One important observation to make here is that NQP is used only for
+I<building> the perl6 compiler, and then only to convert the action methods
+in F<src/parser/actions.pm> into equivalent PIR (F<src/gen_actions.pir>).
+The F<src/gen_actions.pir> file is then used to build F<perl6.pbc>.
+In particular, NQP is I<not> part of the perl6 runtime -- i.e., when
+perl6 is running, NQP is not loaded or used.  Yes, this does mean that
+we can conceivably use the perl6 compiler to compile F<actions.pm> to
+PIR and eliminate the need for NQP entirely.  At some point as perl6
+matures we will probably do this.  However, for the time being it's
+slightly easier to manage the process if we keep a distinction between
+the two tools, and using NQP for this stage also helps us to limit
+ourselves to using a regular, well-defined, and relatively
+easy-to-implement subset of Perl 6 for the core compiler.
+So, while it's possible for us to eliminate NQP from the process,
+there are some good reasons not to do so just yet.  (If at some
+point we discover that we need something for the compiler that
+NQP can't or won't support, then that will probably be a good
+point to switch.)
+
+
+=head2 Main compiler
+
+Driving the parser and action methods is the Perl 6 compiler
+object itself, in F<perl6.pir>.  The compiler is an instance of
+C<PCT::HLLCompiler>, which provides a standard framework for
+parsing, optimization, and command line argument handling for
+Parrot compilers.  The C<onload> subroutine in F<perl6.pir>
+simply creates a new C<PCT::HLLCompiler> object, registers it
+as the C<Perl6> compiler, and sets it to use the C<Perl6::Grammar>
+and C<Perl6::Grammar::Actions> classes defined above.
+
+The C<main> subroutine in perl6.pir is used when perl6 is invoked
+from the command line -- it simply passes control to the C<Perl6>
+compiler object registered by the C<onload> subroutine.
+
+Lastly, the C<perl6.pir> source uses PIR C<.include> directives
+to pull in the PIR sources for the parse grammar, action methods,
+and runtime builtin functions.
+
+
+=head2 Builtin functions and runtime support
+
+The last component of the compiler are the various builtin
+functions and libraries that a Perl 6 program expects to
+have available when it is running.  These include functions
+for the basic operations (C<< infix:<+> >>, C<< prefix:<abs> >>)
+as well as common global functions such as C<say> and C<print>.
+
+Currently, most of the builtins are written in PIR, either because
+it's simpler to write them that way or because they represent
+very primitive operations (e.g., math primitives) or they're
+easier to write in PIR than in Perl 6 or some other language.
+
+In the very near future we expect to be writing much of the
+additional runtime as Perl 6 code instead of PIR.  In other
+words, we'll build just enough runtime to get a basic perl6
+compiler running, and then use that to compile the remainder
+of the runtime libraries (written in Perl 6) that a standard
+Perl 6 program would expect to have available when it is run.
+
+
+=head2 Still to be documented
+
+* perl6 PMCs
+* The relationship between Parrot classes and perl6 classes
+* Protoobject implementation and basic class hierarchy
+
+=head1 AUTHORS
+
+Patrick Michaud <pmichaud@pobox.com> is the primary author
+and maintainer.
+
+=head1 COPYRIGHT
+
+Copyright (C) 2007, The Perl Foundation.
+
+=cut
+
+# Local Variables:
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

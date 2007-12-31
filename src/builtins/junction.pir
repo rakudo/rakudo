@@ -129,24 +129,21 @@ Override exponentiation for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global 'infix:**'
-    $P1 = infix_junction_helper($P0, j1, j2)
-    .return ($P1)
+    .return infix_junction_helper($P0, j1, j2)
 .end
 
 .sub 'infix:**' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global 'infix:**'
-    $P1 = infix_junction_helper($P0, j, x)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x)
 .end
 
 .sub 'infix:**' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:**'
-    $P1 = infix_junction_helper($P0, j, x, 1)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x, 1)
 .end
 
 
@@ -160,24 +157,21 @@ Override modulo for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global 'infix:%'
-    $P1 = infix_junction_helper($P0, j1, j2)
-    .return ($P1)
+    .return infix_junction_helper($P0, j1, j2)
 .end
 
 .sub 'infix:%' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global 'infix:%'
-    $P1 = infix_junction_helper($P0, j, x)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x)
 .end
 
 .sub 'infix:%' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:%'
-    $P1 = infix_junction_helper($P0, j, x, 1)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x, 1)
 .end
 
 
@@ -191,24 +185,21 @@ Override division for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global 'infix:/'
-    $P1 = infix_junction_helper($P0, j1, j2)
-    .return ($P1)
+    .return infix_junction_helper($P0, j1, j2)
 .end
 
 .sub 'infix:/' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global 'infix:/'
-    $P1 = infix_junction_helper($P0, j, x)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x)
 .end
 
 .sub 'infix:/' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:/'
-    $P1 = infix_junction_helper($P0, j, x, 1)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x, 1)
 .end
 
 
@@ -222,24 +213,21 @@ Override multiply for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global 'infix:*'
-    $P1 = infix_junction_helper($P0, j1, j2)
-    .return ($P1)
+    .return infix_junction_helper($P0, j1, j2)
 .end
 
 .sub 'infix:*' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global 'infix:*'
-    $P1 = infix_junction_helper($P0, j, x)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x)
 .end
 
 .sub 'infix:*' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:*'
-    $P1 = infix_junction_helper($P0, j, x, 1)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x, 1)
 .end
 
 
@@ -253,24 +241,21 @@ Override repeat for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global 'infix:x'
-    $P1 = infix_junction_helper($P0, j1, j2)
-    .return ($P1)
+    .return infix_junction_helper($P0, j1, j2)
 .end
 
 .sub 'infix:x' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global 'infix:x'
-    $P1 = infix_junction_helper($P0, j, x)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x)
 .end
 
 .sub 'infix:x' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:x'
-    $P1 = infix_junction_helper($P0, j, x, 1)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x, 1)
 .end
 
 
@@ -284,24 +269,21 @@ Override array repeat for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global 'infix:xx'
-    $P1 = infix_junction_helper($P0, j1, j2)
-    .return ($P1)
+    .return infix_junction_helper($P0, j1, j2)
 .end
 
 .sub 'infix:xx' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global 'infix:xx'
-    $P1 = infix_junction_helper($P0, j, x)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x)
 .end
 
 .sub 'infix:xx' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:xx'
-    $P1 = infix_junction_helper($P0, j, x, 1)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x, 1)
 .end
 
 
@@ -315,24 +297,21 @@ Override addition for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global 'infix:+'
-    $P1 = infix_junction_helper($P0, j1, j2)
-    .return ($P1)
+    .return infix_junction_helper($P0, j1, j2)
 .end
 
 .sub 'infix:+' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global 'infix:+'
-    $P1 = infix_junction_helper($P0, j, x)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x)
 .end
 
 .sub 'infix:+' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:+'
-    $P1 = infix_junction_helper($P0, j, x, 1)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x, 1)
 .end
 
 
@@ -346,24 +325,21 @@ Override subtraction for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global 'infix:-'
-    $P1 = infix_junction_helper($P0, j1, j2)
-    .return ($P1)
+    .return infix_junction_helper($P0, j1, j2)
 .end
 
 .sub 'infix:-' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global 'infix:-'
-    $P1 = infix_junction_helper($P0, j, x)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x)
 .end
 
 .sub 'infix:-' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:-'
-    $P1 = infix_junction_helper($P0, j, x, 1)
-    .return ($P1)
+    .return infix_junction_helper($P0, j, x, 1)
 .end
 
 

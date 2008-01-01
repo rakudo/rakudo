@@ -13,6 +13,7 @@ LN_S          = @lns@
 PERL          = @perl@
 RM_RF         = @rm_rf@
 CP            = @cp@
+MAKE          = @make_c@
 PARROT        = ../../parrot@exe@
 CAT           = $(PERL) -MExtUtils::Command -e cat
 BUILD_DYNPMC  = $(PERL) $(BUILD_DIR)/tools/build/dynpmc.pl
@@ -24,12 +25,13 @@ PGE_LIBRARY   = $(BUILD_DIR)/runtime/parrot/library/PGE
 PERL6GRAMMAR  = $(PGE_LIBRARY)/Perl6Grammar.pbc
 NQP           = $(BUILD_DIR)/compilers/nqp/nqp.pbc
 PCT           = $(BUILD_DIR)/runtime/parrot/library/PCT.pbc
+PBC_TO_EXE    = $(BUILD_DIR)/pbc_to_exe@exe@
 
 PMC_DIR       = src/pmc
 
 all: perl6.pbc
 
-PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)
+PERL6_GROUP   = $(PMC_DIR)/perl6_group$(LOAD_EXT)
 
 SOURCES = perl6.pir \
   src/gen_grammar.pir \
@@ -66,6 +68,13 @@ BUILTINS_PIR = \
 
 PMCS = perl6str
 PMC_SOURCES = $(PMC_DIR)/perl6str.pmc
+
+# targets for building a standalone perl6.
+# (We're not quite ready to make this a default target.)
+perl6: perl6.pbc $(PBC_TO_EXE)
+	$(PBC_TO_EXE) perl6.pbc
+$(PBC_TO_EXE):
+	$(MAKE) $(BUILD_DIR) pbc_to_exe
 
 # the default target
 perl6.pbc: $(PARROT) $(SOURCES)

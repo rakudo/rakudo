@@ -233,23 +233,28 @@ error.
     .param string radint
     .local int    n, result
     .local pmc    radint_array
-    radint_array = new 'ResizableIntegerArray'
+
+    if radix <= 1 goto err_range
+    if radix > 36 goto err_range
+
     result = 0
 
-    # convert string to number, and store digits in array
-    $I0 = radint
-    $S0 = $I0
-    radint_array = split '', $S0
+    radint_array = new 'ResizableStringArray'
+    radint_array = split '', radint
 
     # count number of digits in radint
     n = elements radint_array
 
-    # sum from index equals 0 to number of digits minus one  of digit * radix ** index
   lp:
     dec n
     if n < 0 goto ex
 
-    $N0 = shift radint_array
+    $S0 = shift radint_array
+    $S0 = downcase $S0
+    $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
+    $N0 = $I0
+
+    # sum from index equals 0 to number of digits minus one  of digit * radix ** index
     $N1 = radix ** n
     $N0 *= $N1
     $I0 = $N0
@@ -258,6 +263,9 @@ error.
 
   ex:
     .return (result)
+
+  err_range:
+    die "radix out of range (2-36)"
 .end
 
 

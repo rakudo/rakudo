@@ -13,14 +13,14 @@ src/builtins/op.pir - Perl6 builtin operators
 .namespace
 
 ## autoincrement
-.sub 'postfix:++'
+.sub 'postfix:++' :multi(_)
     .param pmc a
     $P0 = clone a
     inc a
     .return ($P0)
 .end
 
-.sub 'postfix:--'
+.sub 'postfix:--' :multi(_)
     .param pmc a
     $P0 = clone a
     dec a
@@ -28,14 +28,14 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:++'
+.sub 'prefix:++' :multi(_)
     .param pmc a
     inc a
     .return (a)
 .end
 
 
-.sub 'prefix:--'
+.sub 'prefix:--' :multi(_)
     .param pmc a
     dec a
     .return (a)
@@ -52,7 +52,7 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 ## symbolic unary
-.sub 'prefix:!'
+.sub 'prefix:!' :multi(_)
     .param pmc a
     if a goto a_true
     $P0 = get_hll_global ['Bool'], 'True'
@@ -63,7 +63,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:+'
+.sub 'prefix:+' :multi(_)
     .param pmc a
     $I0 = does a, 'float'
     if $I0 == 0 goto return_int
@@ -75,7 +75,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:-'
+.sub 'prefix:-' :multi(_)
     .param pmc a
     $N0 = a
     $N0 = neg $N0
@@ -83,14 +83,14 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:~'
+.sub 'prefix:~' :multi(_)
     .param pmc a
     $S0 = a
     .return ($S0)
 .end
 
 
-.sub 'prefix:?'
+.sub 'prefix:?' :multi(_)
     .param pmc a
     if a goto a_true
     $P0 = get_hll_global ['Bool'], 'False'
@@ -104,7 +104,7 @@ src/builtins/op.pir - Perl6 builtin operators
 ## TODO: prefix:= prefix:* prefix:** prefix:~^ prefix:+^
 
 
-.sub 'prefix:?^'
+.sub 'prefix:?^' :multi(_)
     .param pmc a
     $I0 = isfalse a
     .return ($I0)
@@ -161,7 +161,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'infix:+&'
+.sub 'infix:+&' :multi(_,_)
     .param int a
     .param int b
     $I0 = band a, b
@@ -169,7 +169,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'infix:+<'
+.sub 'infix:+<' :multi(_,_)
     .param int a
     .param int b
     $I0 = shl a, b
@@ -177,7 +177,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'infix:+>'
+.sub 'infix:+>' :multi(_,_)
     .param int a
     .param int b
     $I0 = shr a, b
@@ -185,7 +185,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'infix:~&'
+.sub 'infix:~&' :multi(_,_)
     .param string a
     .param string b
     $S0 = bands a, b
@@ -213,7 +213,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'infix:~'
+.sub 'infix:~' :multi(_,_)
     .param string a
     .param string b
     $S0 = concat a, b

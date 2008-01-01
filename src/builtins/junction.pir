@@ -119,6 +119,175 @@ Builds a 'none' junction from its arguments.
 .end
 
 
+=item C<postfix:++(...)>
+
+Override postfix increment for junctions.
+
+=cut
+
+.sub 'postfix:++' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'postfix:++'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<postfix:--(...)>
+
+Override postfix decrement for junctions.
+
+=cut
+
+.sub 'postfix:--' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'postfix:--'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:++(...)>
+
+Override prefix increment for junctions.
+
+=cut
+
+.sub 'prefix:++' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:++'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:--(...)>
+
+Override prefix decrement for junctions.
+
+=cut
+
+.sub 'prefix:--' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:--'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:!(...)>
+
+Override not for junctions.
+
+=cut
+
+.sub 'prefix:!' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:!'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:+(...)>
+
+Override numification for junctions.
+
+=cut
+
+.sub 'prefix:+' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:+'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:-(...)>
+
+Override negation for junctions.
+
+=cut
+
+.sub 'prefix:-' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:-'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:~(...)>
+
+Override stringification for junctions.
+
+=cut
+
+.sub 'prefix:~' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:~'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:?(...)>
+
+Override boolification for junctions.
+
+=cut
+
+.sub 'prefix:?' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:?'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:=(...)>
+
+Override iteration for junctions.
+
+=cut
+
+.sub 'prefix:=' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:='
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:~^(...)>
+
+Override string bitwise negation for junctions.
+
+=cut
+
+.sub 'prefix:~^' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:~^'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:+^(...)>
+
+Override numeric bitwise negation for junctions.
+
+=cut
+
+.sub 'prefix:+^' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:+^'
+    .return unary_junction_helper($P0, j)
+.end
+
+
+=item C<prefix:?^(...)>
+
+Override boolean bitwise negation for junctions.
+
+=cut
+
+.sub 'prefix:?^' :multi('Junction')
+    .param pmc j
+    $P0 = find_global 'prefix:?^'
+    .return unary_junction_helper($P0, j)
+.end
+
+
 =item C<infix:**(...)>
 
 Override exponentiation for junctions.
@@ -231,58 +400,254 @@ Override multiply for junctions.
 .end
 
 
-=item C<infix:x(...)>
+=item C<infix:+&(...)>
 
-Override repeat for junctions.
+Override numeric bitwise and for junctions.
 
 =cut
 
-.sub 'infix:x' :multi('Junction','Junction')
+.sub 'infix:+&' :multi('Junction','Junction')
     .param pmc j1
     .param pmc j2
-    $P0 = find_global 'infix:x'
+    $P0 = find_global 'infix:+&'
     .return infix_junction_helper($P0, j1, j2)
 .end
 
-.sub 'infix:x' :multi('Junction',_)
+.sub 'infix:+&' :multi('Junction',_)
     .param pmc j
     .param pmc x
-    $P0 = find_global 'infix:x'
+    $P0 = find_global 'infix:+&'
     .return infix_junction_helper($P0, j, x)
 .end
 
-.sub 'infix:x' :multi(_,'Junction')
+.sub 'infix:+&' :multi(_,'Junction')
     .param pmc x
     .param pmc j
-    $P0 = find_global 'infix:x'
+    $P0 = find_global 'infix:+&'
     .return infix_junction_helper($P0, j, x, 1)
 .end
 
 
-=item C<infix:xx(...)>
+=item C<infix:+<(...)>
 
-Override array repeat for junctions.
+Override numeric left shift for junctions.
 
 =cut
 
-.sub 'infix:xx' :multi('Junction','Junction')
+.sub 'infix:+<' :multi('Junction','Junction')
     .param pmc j1
     .param pmc j2
-    $P0 = find_global 'infix:xx'
+    $P0 = find_global 'infix:+<'
     .return infix_junction_helper($P0, j1, j2)
 .end
 
-.sub 'infix:xx' :multi('Junction',_)
+.sub 'infix:+<' :multi('Junction',_)
     .param pmc j
     .param pmc x
-    $P0 = find_global 'infix:xx'
+    $P0 = find_global 'infix:+<'
     .return infix_junction_helper($P0, j, x)
 .end
 
-.sub 'infix:xx' :multi(_,'Junction')
+.sub 'infix:+<' :multi(_,'Junction')
     .param pmc x
     .param pmc j
-    $P0 = find_global 'infix:xx'
+    $P0 = find_global 'infix:+<'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:+>(...)>
+
+Override numeric right shift for junctions.
+
+=cut
+
+.sub 'infix:+>' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:+>'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:+>' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:+>'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:+>' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:+>'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:div(...)>
+
+Override div for junctions.
+
+=cut
+
+.sub 'infix:div' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:div'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:div' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:div'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:div' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:div'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:mod(...)>
+
+Override mod for junctions.
+
+=cut
+
+.sub 'infix:mod' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:mod'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:mod' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:mod'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:mod' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:mod'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:~&(...)>
+
+Override buffer bitwise and for junctions.
+
+=cut
+
+.sub 'infix:~&' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:~&'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:~&' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:~&'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:~&' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:~&'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:~<(...)>
+
+Override buffer bitwise left shift for junctions.
+
+=cut
+
+.sub 'infix:~<' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:~<'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:~<' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:~<'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:~<' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:~<'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:~>(...)>
+
+Override buffer bitwise right shift for junctions.
+
+=cut
+
+.sub 'infix:~>' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:~>'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:~>' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:~>'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:~>' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:~>'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:?&(...)>
+
+Override boolean bitwise and for junctions.
+
+=cut
+
+.sub 'infix:?&' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:?&'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:?&' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:?&'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:?&' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:?&'
     .return infix_junction_helper($P0, j, x, 1)
 .end
 
@@ -339,6 +704,90 @@ Override subtraction for junctions.
     .param pmc x
     .param pmc j
     $P0 = find_global 'infix:-'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:x(...)>
+
+Override repeat for junctions.
+
+=cut
+
+.sub 'infix:x' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:x'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:x' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:x'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:x' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:x'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:xx(...)>
+
+Override array repeat for junctions.
+
+=cut
+
+.sub 'infix:xx' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:xx'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:xx' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:xx'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:xx' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:xx'
+    .return infix_junction_helper($P0, j, x, 1)
+.end
+
+
+=item C<infix:~(...)>
+
+Override concatenation for junctions.
+
+=cut
+
+.sub 'infix:~' :multi('Junction','Junction')
+    .param pmc j1
+    .param pmc j2
+    $P0 = find_global 'infix:~'
+    .return infix_junction_helper($P0, j1, j2)
+.end
+
+.sub 'infix:~' :multi('Junction',_)
+    .param pmc j
+    .param pmc x
+    $P0 = find_global 'infix:~'
+    .return infix_junction_helper($P0, j, x)
+.end
+
+.sub 'infix:~' :multi(_,'Junction')
+    .param pmc x
+    .param pmc j
+    $P0 = find_global 'infix:~'
     .return infix_junction_helper($P0, j, x, 1)
 .end
 
@@ -690,7 +1139,6 @@ Override string greater than or equal for junctions.
     .local pmc ResultHash
     ResultHash = new 'Hash'
 
-    # Loop over and call multiply on each value.
     # Get values array.
     .local pmc values
     values = j.'values'()
@@ -790,9 +1238,64 @@ none:
     goto ret_false
 
 ret_true:
-    .return(1)
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return($P0)
 ret_false:
-    .return(0)
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return($P0)
+.end
+
+
+# Helper sub for implementing unary operators.
+.sub unary_junction_helper :anon
+    .param pmc op_sub
+    .param pmc j
+
+    # Build hash of results, to ensure we are unique.
+    .local pmc ResultHash
+    ResultHash = new 'Hash'
+
+    # Loop over and call multiply on each value.
+    # Get values array.
+    .local pmc values
+    values = j.'values'()
+
+    # Loop over it and call inc on each element.
+    .local int count
+    .local int i
+    .local pmc cur_elem
+    count = elements values
+    i = 0
+loop:
+    if i >= count goto loop_end
+    cur_elem = values[i]
+    $P0 = op_sub(cur_elem)
+    ResultHash[$P0] = 1
+    inc i
+    goto loop
+loop_end:
+    
+    # Build junction of results.
+    .local pmc new_junc
+    .local pmc new_values
+    .local pmc iterator
+    .local pmc type
+    
+    new_junc = new 'Junction'
+    type = j.'!type'()
+    new_junc.'!type'(type)
+    
+    new_values = new 'List'
+    iterator = iter ResultHash
+nv_loop:
+    unless iterator goto nv_loop_end
+    $P0 = shift iterator
+    push new_values, $P0
+    goto nv_loop
+nv_loop_end:
+    new_junc.'!values'(new_values)
+    
+    .return(new_junc)
 .end
 
 

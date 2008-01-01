@@ -450,7 +450,7 @@ method variable($/, $key) {
                                 :viviself($viviself),
                                 :node($/)
                               );
-        if @ident {
+        if @ident || $<twigil>[0] eq '*' {
             $past.namespace(@ident);
             $past.scope('package');
         }

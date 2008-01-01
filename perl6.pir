@@ -60,7 +60,22 @@ to the Perl6 compiler.
 =cut
 
 .sub 'main' :main
-    .param pmc args
+    .param pmc args_str
+
+    ##  create @ARGS global.  We could possibly use the args pmc
+    ##  coming directly from Parrot, but currently Parrot provides
+    ##  it as a ResizableStringArray and we need Undefs for
+    ##  non-existent elements (RSA gives empty strings).
+    .local pmc args, iter
+    args = new 'List'
+    iter = new 'Iterator', args_str
+  args_loop:
+    unless iter goto args_end
+    $P0 = shift iter
+    push args, $P0
+    goto args_loop
+  args_end:
+    set_hll_global '@ARGS', args
 
     $P0 = compreg 'Perl6'
     $P1 = $P0.'command_line'(args)

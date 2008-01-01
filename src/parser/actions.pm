@@ -394,7 +394,7 @@ method postcircumfix($/, $key) {
     } else {
         $past := PAST::Var.new( $semilist[0],
                                 :scope('keyed'),
-                                :vivibase('Hash'),
+                                :vivibase('Perl6Hash'),
                                 :viviself('Undef'),
                                 :node( $/ )
                               );
@@ -437,7 +437,7 @@ method variable($/, $key) {
     else {
         my $viviself := 'Undef';
         if $<sigil> eq '@' { $viviself := 'List'; }
-        if $<sigil> eq '%' { $viviself := 'Hash'; }
+        if $<sigil> eq '%' { $viviself := 'Perl6Hash'; }
         my @ident := $<name><ident>;
         my $name;
         PIR q<  $P0 = find_lex '@ident'  >;

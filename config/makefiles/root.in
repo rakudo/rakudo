@@ -143,6 +143,8 @@ t/spec:
 
 CLEANUPS = \
   perl6.pbc \
+  perl6 \
+  perl6.c \
   src/gen_grammar.pir \
   src/gen_actions.pir \
   src/gen_builtins.pir \

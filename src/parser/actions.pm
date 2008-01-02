@@ -131,7 +131,7 @@ method unless_statement($/) {
 method given_statement($/) {
     my $past := $( $<block> );
     $past.blocktype('immediate');
-    
+
     # Node to assign expression to $_.
     my $expr := $( $<EXPR> );
     my $assign := PAST::Op.new( :name('infix::='),
@@ -144,7 +144,7 @@ method given_statement($/) {
     # Put as first instruction in block (but after .lex $_).
     my $statements := $past[1];
     $statements.unshift( $assign );
-    
+
     make $past;
 }
 
@@ -504,27 +504,42 @@ method dec_number($/) {
     make PAST::Val.new( :value( +$/ ), :returns('Float'), :node( $/ ) );
 }
 
+method radint($/, $key) {
+    make $( $/{$key} );
+}
+
 method rad_number($/) {
-    my $radix := ~$<radix>;
-    my $base  := ~$<radint>;
-    if $base {
-        make PAST::Val.new(
-            :value( radcalc( $radix, $base ) ), :returns('Integer'), :node( $/ )
-        );
-    }
-    else {
+    my $radix    := ~$<radix>;
+    my $intpart  := ~$<intpart>;
+    my $fracpart := ~$<fracpart>;
+    my $base     := $<base>;
+    my $exp      := ~( $<exp>[0] );
+    if ~$<postcircumfix> {
         my $radcalc := $( $<postcircumfix> );
         $radcalc.name('radcalc');
         $radcalc.pasttype('call');
         $radcalc.unshift( PAST::Val.new( :value( $radix ), :node( $/ ) ) );
         make $radcalc;
     }
+    else{
+        my $return_type := 'Integer';
+        if $fracpart { $return_type := 'Float'; }
+say("<<" ~ $base ~ ' ' ~ $exp ~ ">>");
+$/.dump();
+        make PAST::Val.new(
+            :value(
+                radcalc( $radix, $intpart, $fracpart, $base, $exp )
+            ),
+            :returns($return_type),
+            :node( $/ )
+        );
+    }
 }
+
 
 method quote($/) {
     make $( $<quote_expression> );
 }
-
 
 method quote_expression($/, $key) {
     my $past;

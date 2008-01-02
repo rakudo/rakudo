@@ -230,26 +230,33 @@ error.
 
 .sub 'radcalc'
     .param int radix
-    .param string radint
-    .local int    n, result
-    .local pmc    radint_array
+    .param string intpart
+    .param string fracpart     :optional
+    .param int    has_fracpart :opt_flag
+    .param num    base         :optional
+    .param int    has_base     :opt_flag
+    .param num    exp          :optional
+    .param int    has_exp      :opt_flag
+    .local int    n
+    .local num    result, magnitude
+    .local pmc    intpart_array, fracpart_array
 
     if radix <= 1 goto err_range
     if radix > 36 goto err_range
 
-    result = 0
+    result = 0.0
 
-    radint_array = new 'ResizableStringArray'
-    radint_array = split '', radint
+    intpart_array = new 'ResizableStringArray'
+    intpart_array = split '', intpart
 
-    # count number of digits in radint
-    n = elements radint_array
+    # count number of digits in intpart
+    n = elements intpart_array
 
   lp:
     dec n
     if n < 0 goto ex
 
-    $S0 = shift radint_array
+    $S0 = shift intpart_array
     $S0 = downcase $S0
     $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
     $N0 = $I0
@@ -257,11 +264,21 @@ error.
     # sum from index equals 0 to number of digits minus one  of digit * radix ** index
     $N1 = radix ** n
     $N0 *= $N1
-    $I0 = $N0
-    result += $I0
+    result += $N0
     goto lp
 
   ex:
+    unless has_base goto ret
+    magnitude = base ** exp
+print '<'
+print magnitude
+print ' '
+print base
+print ' '
+print exp
+say '>'
+    result *= magnitude
+  ret:
     .return (result)
 
   err_range:

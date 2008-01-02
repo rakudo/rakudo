@@ -2,7 +2,7 @@
 # $Id$
 
 ## autoincrement
-proto postfix:<++> is precedence('20=') is lvalue(1) { ... }
+proto postfix:<++> is precedence('x=') is lvalue(1) { ... }
 proto postfix:<--> is equiv(postfix:<++>) is lvalue(1) { ... }
 proto prefix:<++> is equiv(postfix:<++>) is lvalue(1) { ... }
 proto prefix:<--> is equiv(postfix:<++>) is lvalue(1) { ... }

@@ -448,12 +448,27 @@ token dec_number {
     {*}
 }
 
+token radint {
+    [
+    | <integer> {*}                              #= integer
+    | # this alternation is a subset of rad_number
+      ':' $<radix>=[\d+] <.unsp>+
+      ::  '<'
+          $<intpart>=[<[0..9 a..z A..Z]>]+
+          [ '*' $<base>=<radint> '**' $<exp>=<radint> ]?
+          '>'
+      {*}                                        #= rad_number
+    ]
+}
+
 token rad_number {
     ':' $<radix>=[\d+] <.unsp>?
     ::
     [
-    || '<'
-        $<radint>=[<[0..9 a..z A..Z]>]+ # FIXME: fraction, base, exponent
+    ||  '<'
+        $<intpart>=[<[0..9 a..z A..Z]>]+
+        $<fracpart>=[ '.' <[0..9 a..z A..Z ]>+ ]?
+        [ '*' $<base>=<radint> '**' $<exp>=<radint> ]?
         '>'
     || <?before '['> <postcircumfix>
     || <?before '('> <postcircumfix>

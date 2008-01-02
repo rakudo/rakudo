@@ -119,7 +119,15 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .sub 'infix:cmp'
     .param pmc a
     .param pmc b
-    $I0 = cmp_str a, b
+    $I0 = cmp a, b
+    .return ($I0)
+.end
+
+
+.sub 'infix:leg'
+    .param string a
+    .param string b
+    $I0 = cmp a, b
     .return ($I0)
 .end
 

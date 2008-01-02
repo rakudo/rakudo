@@ -158,6 +158,27 @@ digits.
         return sign * f;
     }
 
+/*
+
+=item C<void increment()>
+
+=item C<void decrement()>
+
+Increment/decrement the string magically according to S03 rules.
+For the moment these are stub implementations to avoid throwing
+exceptions when we attempt to increment/decrement a string.
+
+*/
+
+    void increment() {
+        /* do nothing */
+    }
+
+
+    void decrement() {
+        /* do nothing */
+    }
+
 }
 
 /*

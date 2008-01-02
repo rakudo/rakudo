@@ -361,7 +361,7 @@
     $I0 = pos + 2
     $S0 = substr target, $I0, 1
     $I0 = index "01234567", $S0
-    if $I0 goto fail_backchar_digit
+    if $I0 >= 0 goto fail_backchar_digit
   add_litchar2:
     pos += 2
     literal .= litchar

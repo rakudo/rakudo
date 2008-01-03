@@ -290,7 +290,7 @@ rule plurality_declarator {
 
 token routine_declarator {
     | $<sym>='sub' <routine_def> {*}             #= sub
-    # | $<sym>='method' <method_def> {*}           #= method
+    # | $<sym>='method' <method_def> {*}         #= method
 }
 
 rule routine_def {
@@ -313,8 +313,8 @@ token parameter {
         $<named>=[':'?]
         <param_var>
         $<quant>=[ <[ ? ! ]>? ]
-      ] {*}                                                #= non-slurp
-    | $<quant>=['*'?] <param_var> {*}                      #= slurp
+      ] {*}                                      #= non-slurp
+    | $<quant>=['*'?] <param_var> {*}            #= slurp
 }
 
 token param_var {
@@ -349,7 +349,7 @@ token postfix {
 token methodop {
     '.' <ident>
     [
-    | <.unsp>? '(' <semilist> ')' {*}       #= semilist
+    | <.unsp>? '(' <semilist> ')' {*}            #= semilist
     | ':' <?before \s> <arglist> {*}             #= arglist
     | {*}                                        #= null
     ]
@@ -414,7 +414,7 @@ token name {
 token value {
     | <quote> {*}                                #= quote
     | <number> {*}                               #= number
-    | <typename> {*}                                       #= typename
+    | <typename> {*}                             #= typename
 }
 
 ##  Quoting is tricky -- the <quote_concat> subrule is in

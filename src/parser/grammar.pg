@@ -304,8 +304,17 @@ rule multisig {
 }
 
 rule signature {
-    ( <param_var> ( ',' | <?before ')' | '{'> ) )*
+    ( <parameter> ( ',' | <?before ')' | '{'> ) )*
     {*}
+}
+
+token parameter {
+    | [
+        $<named>=[':'?]
+        <param_var>
+        $<quant>=[ <[ ? ! ]>? ]
+      ] {*}                                                #= non-slurp
+    | $<quant>=['*'?] <param_var> {*}                      #= slurp
 }
 
 token param_var {

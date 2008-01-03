@@ -323,12 +323,36 @@ method signature($/) {
     my $params := PAST::Stmts.new( :node($/) );
     my $past := PAST::Block.new( $params, :blocktype('declaration') );
     for $/[0] {
-        my $param_var := $($_<param_var>);
-        $past.symbol($param_var.name(), :scope('lexical'));
-        $params.push($param_var);
+        my $parameter := $($_<parameter>);
+        $past.symbol($parameter.name(), :scope('lexical'));
+        $params.push($parameter);
     }
     $past.arity( +$/[0] );
     our $?BLOCK_SIGNATURED := $past;
+    make $past;
+}
+
+
+method parameter($/, $key) {
+    my $past := $( $<param_var> );
+    my $sigil := $<param_var><sigil>;
+    if $key eq 'slurp' {              # slurpy
+        $past.slurpy( $sigil eq '@' || $sigil eq '%' );
+        $past.named( $sigil eq '%' );
+    }
+    else {
+        if $<named> eq ':' {          # named
+            $past.named(~$<param_var><ident>);
+            if $<quant> ne '!' {      #  required (optional is default)
+                $past.viviself('Undef');
+            }
+        }
+        else {                        # positional
+            if $<quant> eq '?' {      #  optional (required is default)
+                $past.viviself('Undef');
+            }
+        }
+    }
     make $past;
 }
 

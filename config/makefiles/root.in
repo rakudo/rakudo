@@ -134,15 +134,13 @@ testtest: all test
 	$(PERL) t/harness t/02-test-pm
 
 spectest: all t/spec
-# XXX when tests pass, run more here.
-	@echo "only running sanity tests..."
+	cd t/spec && svn up
 	$(PERL) t/harness \
-  t/spec/01-sanity \
-  t/spec/S02-literals \
-  t/spec/S03-operators \
+            t/spec/S02-literals \
+            t/spec/S03-operators\
 
 t/spec:
-	$(PERL) t/fetchspec
+	svn co http:////svn.pugscode.org/pugs/t/spec t/spec
 
 CLEANUPS = \
   perl6.pbc \

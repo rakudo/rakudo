@@ -42,15 +42,42 @@ Running "make spectest" will import relevant portions of the
 there.  At present we do not have any plans to directly store the
 official test suite as part of the Parrot repository.
 
+=head2 Where to get help or answers to questions
+
+There are several mailing lists, IRC channels, and wikis available
+with help for Perl 6 and perl6 on Parrot.  Figuring out the right
+one to use is often the biggest battle.  Here are some rough
+guidelines:
+
+If you have a question about Perl 6 syntax or the right way to
+approach a problem using Perl 6, you probably want the
+C<perl6-users@perl.org> mailing list.  This list is primarily
+for the people who want to I<use> Perl 6 to write programs, as
+opposed to those who are implementing or developing the Perl 6
+language itself.
+
+Questions about the perl6 compiler for Parrot and the Parrot
+compiler tools can go to C<perl6-compiler@perl.org>.  Discussion
+about Parrot itself generally takes place on C<parrot-porters@perl.org>.
+
+The Parrot and perl6 development team tend to hang out on IRC
+a fair bit, either on C<irc.perl.org/#parrot> or (to a somewhat
+lesser extent) C<freenode/#perl6>.
+
+There are also the Perl 6 and Parrot wikis, at
+    L<http://www.perlfoundation.org/perl6/index.cgi>
+    L<http://www.perlfoundation.org/parrot/index.cgi>
+
+
 =head2 Reporting bugs
 
-Bug reports should be sent to C<perl6-bugs@perl.org> with the
-moniker [BUG] (including the brackets) at the start of the subject
-so that it gets appropriately tagged in the RT system.  Please include
-or attach any sample source code that exhibits the bug, and if appropriate
-identify the svn revision number of the code that you're working
-from.  There's no need to cc: the perl6-compiler mailing list, as
-the RT system will handle this on its own.
+Bug reports should be sent to C<perl6-bugs@perl.org> with the moniker
+[BUG] (including the brackets) at the start of the subject so that
+it gets appropriately tagged in the RT system (https://rt.perl.org/).
+Please include or attach any sample source code that exhibits the
+bug, and if appropriate identify the svn revision number of the code
+that you're working from.  There's no need to cc: the perl6-compiler
+mailing list, as the RT system will handle this on its own.
 
 =head2 Submitting patches
 
@@ -64,11 +91,7 @@ the languages/perl6/ directory and just attach the foo.patch file.
 
 =head2 How the compiler works
 
-Information about how the compiler works (and how one can learn
-to hack on it) will be coming in a separate documentation file.
-For the most part we expect people to be able to write compiler
-code in Perl 6, with only minimal knowledge of PIR or other
-portions of the Parrot compiler tool suite.
+See F<docs/compiler_overview.pod>.
 
 =head1 AUTHOR
 

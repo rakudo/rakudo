@@ -19,15 +19,24 @@ To run a Perl 6 program with perl6, issue a command like
 
     $ parrot perl6.pbc hello.pl
 
-As of this writing, we don't yet have a way to simply execute
-Perl 6 programs with a command like "perl6 hello.pl", nor to
-automatically invoke perl6 on scripts that start with a "#!" line.
-However, this is an high priority -- see RT#49168.
+If you want to create a binary executable of the compiler
+that can be invoked as "perl6" from the command line, then
+try "make perl6".  This will create a "perl6" (or "perl6.exe")
+binary that can be directly used from the command line:
+
+    $ ./perl6 hello.pl
+
+This binary executable feature is still somewhat experimental,
+and may not work on all platforms.  Also, the binary has hardcoded
+paths to the Parrot build tree (especially the dynamic libraries
+and modules), so removing the build tree will cause the binary
+to stop working.
 
 If the perl6 compiler is invoked without an explicit script to
-run -- i.e., as "parrot perl6.pbc", it enters a small interactive
-mode that allows Perl 6 statements to be executed from the
-command line.
+run -- i.e., as "parrot perl6.pbc" or just "perl6" -- it enters a
+small interactive mode that allows Perl 6 statements to be
+executed from the command line.  Each line entered is treated
+as a separate compilation unit, however.
 
 =head2 Running the test suite
 
@@ -40,7 +49,8 @@ Running "make spectest" will import relevant portions of the
 "official Perl 6 test suite" from the Pugs repository
 (http://svn.pugscode.org/tests/spec/) and run selected tests from
 there.  At present we do not have any plans to directly store the
-official test suite as part of the Parrot repository.
+official test suite as part of the perl6/Parrot repository,
+but will continue to fetch it from Pugs.
 
 =head2 Where to get help or answers to questions
 

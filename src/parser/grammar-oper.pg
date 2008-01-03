@@ -156,6 +156,11 @@ proto infix:<,> is precedence('g=')
     is assoc('list')
     { ... }
 
+## list infix
+proto infix:<X> is precedence('f=')
+    is assoc('list')
+    { ... }
+
 ## loose and
 proto infix:<and> is precedence('d=')
     is pasttype('if')

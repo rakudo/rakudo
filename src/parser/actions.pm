@@ -350,9 +350,15 @@ method term($/, $key) {
     my $past := $( $/{$key} );
     if $<postfix> {
         for $<postfix> {
+            # Check if it's a call; if so, need special handling.
             my $term := $past;
             $past := $($_);
-            $past.unshift($term);
+            if $past.WHAT() eq 'Op' && $past.pasttype() eq 'call' {
+                $past := make_call_past($/, $term, $past);
+            }
+            else {
+                $past.unshift($term);
+            }
         }
     }
     make $past;
@@ -612,10 +618,7 @@ method typename($/) {
 
 
 method subcall($/) {
-    my $past := $($<semilist>);
-    $past.name( ~$<ident> );
-    $past.pasttype('call');
-    $past.node($/);
+    my $past := make_call_past($/, PAST::Val.new(:value(~$<ident>)), $($<semilist>));
     make $past;
 }
 
@@ -645,9 +648,7 @@ method listop($/, $key) {
     if ($key eq 'noarg') {
         $past := PAST::Op.new( );
     }
-    $past.name( ~$<sym> );
-    $past.pasttype('call');
-    $past.node($/);
+    $past := make_call_past($/, PAST::Val.new(:value(~$<sym>)), $past);
     make $past;
 }
 
@@ -683,6 +684,86 @@ method EXPR($/, $key) {
         }
         make $past;
     }
+}
+
+
+# Builds the PAST for a sub or method call, including auto-threading of
+# junctions.
+sub make_call_past($/, $callee_past, $args_past) {
+    my $past;
+
+    # Build non-junctional call.
+    my $call := PAST::Op.new( :node($/),
+                              :pasttype('call')
+                            );
+    if $callee_past.WHAT() eq 'Val' {
+        $call.name( $callee_past.value() );
+    }
+    else {
+        $call.push( $callee_past );
+    }
+    for @($args_past) {
+        $call.push( $_ );
+    }
+
+    # Build short-circuiting OR to look for junctional parameters.
+    my $unless_list;
+    my $num_args := 0;
+    for @($args_past) {
+        # If it's a value, we need not check it.
+        unless $_.WHAT() eq 'Val' {
+            # Build "is it a junction" check code.
+            my $check := PAST::Op.new( :name('infix:eq'),
+                                       :pasttype('call'),
+                                       :node($/)
+                                     );
+            my $what := PAST::Op.new( :name('WHAT'),
+                                      :pasttype('callmethod'),
+                                      :node($/),
+                                      $_
+                                    );
+            $check.push( $what );
+            $check.push( PAST::Val.new( :value( "Junction" ) ) );
+
+            if $num_args == 0 {
+                $unless_list := $check
+            }
+            else {
+                # Need to upgrade to an unless statement.
+                $unless_list := PAST::Op.new( :pasttype('unless'),
+                                              :node($/),
+                                              $check,
+                                              $unless_list
+                                            );
+            }
+
+            $num_args := $num_args + 1;
+        }
+    }
+
+    # If we had no args we need to check, it's easy.
+    if $num_args == 0 {
+        $past := $call;
+    }
+    else {
+        # Need to build if statement to do the check.
+        $past := PAST::Op.new( :pasttype('if'),
+                               :node( $/ ),
+                               $unless_list
+                             );
+        my $junc_disp := PAST::Op.new( :pasttype('call'),
+                                       :node( $/ ),
+                                       :name( '!junction_dispatcher' )
+                                     );
+        $junc_disp.push( $callee_past );
+        for @($args_past) {
+            $junc_disp.push( $_ );
+        }
+        $past.push( $junc_disp );   # then - when we have junctions
+        $past.push( $call );        # else - when we don't.
+    }
+
+    $past
 }
 
 

@@ -7,6 +7,11 @@
 
 .namespace [ 'Perl6Undef' ]
 
+.sub 'onload' :anon :init :load
+    $P0 = get_hll_global ['Perl6Object'], 'make_proto'
+    $P0('Undef', 'Undef')
+.end
+
 .sub 'WHAT' :method
     $P0 = get_class 'Perl6Undef'
     .return ($P0)

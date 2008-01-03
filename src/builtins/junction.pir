@@ -119,6 +119,73 @@ Builds a 'none' junction from its arguments.
 .end
 
 
+=item C<!junction_dispatcher(...)>
+
+Takes a name or Sub PMC along with a set of arguments, and auto-threads the
+call.
+
+TODO: Collect return values.
+
+TODO: Handle the case where junctions contain other junctions.
+
+TODO: When we get the type system in place, check for Junction in signature of
+callee; in these cases, we needn't auto-thread, but instead should pass the
+junction.
+
+=cut
+
+.sub '!junction_dispatcher'
+    .param pmc the_sub
+    .param pmc args :slurpy
+
+    # Build list of lists of possible arguments.
+    .local int num_args
+    .local int i
+    .local pmc possibles
+    possibles = new 'List'
+    num_args = elements args
+    i = 0
+get_possibles_loop:
+    if i >= num_args goto get_possibles_loop_end
+    $P0 = args[i]
+    $I0 = isa $P0, 'Junction'
+    if $I0 goto is_junction
+    $P1 = new 'List'
+    push $P1, $P0
+    goto done_possible
+is_junction:
+    $P1 = $P0.values()
+done_possible:
+    possibles[i] = $P1
+    inc i
+    goto get_possibles_loop
+get_possibles_loop_end:
+
+    # Get all permutations.
+    .local pmc perms
+    perms = 'infix:X'(possibles :flat)
+    $I0 = elements perms
+
+    # If we have a sub name, we need to look it up.
+    $I0 = isa the_sub, 'Code'
+    if $I0 goto have_code
+    $S0 = the_sub
+    the_sub = find_global $S0
+have_code:
+
+    # Now call it for each permutation.
+    num_args = elements perms
+    i = 0
+call_loop:
+    if i >= num_args goto call_loop_end
+    $P0 = perms[i]
+    the_sub($P0 :flat)
+    inc i
+    goto call_loop
+call_loop_end:
+.end
+
+
 =item C<postfix:++(...)>
 
 Override postfix increment for junctions.

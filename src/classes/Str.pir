@@ -15,6 +15,7 @@ as the Perl 6 C<Str> class.
 
 .sub 'onload' :anon :init :load
     $P0 = get_hll_global ['Perl6Object'], 'make_proto'
+    $P0('String', 'Str')
     $P0('Perl6Str', 'Str')
 .end
 

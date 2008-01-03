@@ -24,7 +24,7 @@ sub plan($number_of_tests) {
 
 
 multi sub ok($cond, $desc) {
-    proclaim($cond, 'ok! ' ~ $desc);
+    proclaim($cond, $desc);
 }
 
 multi sub ok($cond) { ok($cond, ''); }
@@ -32,7 +32,7 @@ multi sub ok($cond) { ok($cond, ''); }
 
 multi sub is($got, $expected, $desc) {
     my $test = $got eq $expected;
-    proclaim($test, 'is! ' ~ $desc);
+    proclaim($test, $desc);
 }
 
 multi sub is($got, $expected) { is($got, $expected, ''); }
@@ -40,7 +40,7 @@ multi sub is($got, $expected) { is($got, $expected, ''); }
 
 multi sub isnt($got, $expected, $desc) {
     my $test = !($got eq $expected);
-    proclaim($test, 'isnt! ' ~ $desc);
+    proclaim($test, $desc);
 }
 
 multi sub isnt($got, $expected) { isnt($got, $expected, ''); }

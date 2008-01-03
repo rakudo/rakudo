@@ -140,6 +140,8 @@ spectest: all t/spec
             t/spec/S02-literals \
             t/spec/S03-operators\
 
+fulltest: all testtest spectest
+
 t/spec:
 	svn co http:////svn.pugscode.org/pugs/t/spec t/spec
 

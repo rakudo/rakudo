@@ -228,6 +228,8 @@ error.
 
 =cut
 
+.include 'library/dumper.pir' # XXX
+
 .sub 'radcalc'
     .param int radix
     .param string intpart
@@ -239,29 +241,38 @@ error.
     .param int    has_exp      :opt_flag
     .local int    n
     .local num    result, magnitude
-    .local pmc    intpart_array, fracpart_array
+    .local pmc    digits, iter
 
     if radix <= 1 goto err_range
     if radix > 36 goto err_range
 
-    result = 0.0
+    result       = 0.0
+    n            = 0
+    digits = new 'ResizablePMCArray'
 
-    intpart_array = new 'ResizableStringArray'
-    intpart_array = split '', intpart
+    $P0 = split '', intpart
+    n   = elements $P0
+    digits.'append'( $P0 )
 
-    # count number of digits in intpart
-    n = elements intpart_array
+    unless has_fracpart goto no_fracpart
+    $I0 = length fracpart
+    unless $I0 goto no_fracpart
+    $P0 = split '', fracpart
+    $P99 = shift $P0                             # remove the radix point
+    digits.'append'( $P0 )
+  no_fracpart:
 
+    iter = new 'Iterator', digits
   lp:
     dec n
-    if n < 0 goto ex
+    unless iter goto ex
 
-    $S0 = shift intpart_array
+    $S0 = shift iter
     $S0 = downcase $S0
     $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
+    if $I0 == -1 goto err_char
     $N0 = $I0
 
-    # sum from index equals 0 to number of digits minus one  of digit * radix ** index
     $N1 = radix ** n
     $N0 *= $N1
     result += $N0
@@ -270,19 +281,15 @@ error.
   ex:
     unless has_base goto ret
     magnitude = base ** exp
-print '<'
-print magnitude
-print ' '
-print base
-print ' '
-print exp
-say '>'
     result *= magnitude
   ret:
     .return (result)
 
   err_range:
     die "radix out of range (2-36)"
+  err_char:
+    $S0 = concat "unrecognized character: ", $S0
+    die $S0
 .end
 
 

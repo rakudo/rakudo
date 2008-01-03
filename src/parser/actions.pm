@@ -512,8 +512,10 @@ method rad_number($/) {
     my $radix    := ~$<radix>;
     my $intpart  := ~$<intpart>;
     my $fracpart := ~$<fracpart>;
-    my $base     := $<base>;
-    my $exp      := ~( $<exp>[0] );
+    my $base;
+    my $exp;
+    if defined( $<base>[0] ) { $base := $<base>[0].text(); }
+    if defined( $<exp>[0] ) { $exp := $<exp>[0].text(); }
     if ~$<postcircumfix> {
         my $radcalc := $( $<postcircumfix> );
         $radcalc.name('radcalc');
@@ -524,11 +526,9 @@ method rad_number($/) {
     else{
         my $return_type := 'Integer';
         if $fracpart { $return_type := 'Float'; }
-say("<<" ~ $base ~ ' ' ~ $exp ~ ">>");
-$/.dump();
         make PAST::Val.new(
             :value(
-                radcalc( $radix, $intpart, $fracpart, $base, $exp )
+                radcalc( $radix, $intpart, $fracpart, ~$base, ~$exp )
             ),
             :returns($return_type),
             :node( $/ )

@@ -143,7 +143,7 @@ spectest: all t/spec
 fulltest: all testtest spectest
 
 t/spec:
-	svn co http:////svn.pugscode.org/pugs/t/spec t/spec
+	svn co http:////svn.pugscode.org//pugs//t//spec t/spec
 
 CLEANUPS = \
   perl6.pbc \

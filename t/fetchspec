@@ -22,6 +22,7 @@ use File::Basename qw(dirname);
 my @spectests = qw(
     t/01-sanity
     t/spec/S03-operators
+    t/spec/S02-literals
 );
 
 foreach my $srcfile (@spectests) {

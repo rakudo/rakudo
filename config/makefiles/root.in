@@ -136,7 +136,10 @@ testtest: all test
 spectest: all t/spec
 # XXX when tests pass, run more here.
 	@echo "only running sanity tests..."
-	$(PERL) t/harness t/spec/01-sanity t/spec/S03-operators
+	$(PERL) t/harness \
+  t/spec/01-sanity \
+  t/spec/S02-literals \
+  t/spec/S03-operators \
 
 t/spec:
 	$(PERL) t/fetchspec

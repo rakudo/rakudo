@@ -437,6 +437,20 @@ method noun($/, $key) {
     make $( $/{$key} );
 }
 
+method colonpair($/) {
+    make PAST::Op.new(
+        PAST::Val.new(
+            :value(~$<ident>),
+            :node($<ident>)
+        ),    
+        $($<EXPR>),
+        :name('infix:=>'),               
+        :returns('Pair'),                   
+        :node($/)                 
+    );
+}
+
+
 method package_declarator($/, $key) {
     my $past := $( $/{$key} );
     $past.namespace($<name><ident>);

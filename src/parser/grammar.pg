@@ -364,6 +364,7 @@ token postcircumfix {
 
 
 token noun {
+    | <colonpair> {*}                            #= colonpair
     | <package_declarator> {*}                   #= package_declarator
     | <scope_declarator> {*}                     #= scope_declarator
     | <plurality_declarator> {*}                 #= plurality_declarator
@@ -373,6 +374,11 @@ token noun {
     | <subcall> {*}                              #= subcall
     | <value> {*}                                #= value
     | <statement_prefix> {*}                     #= statement_prefix
+}
+
+
+token colonpair {
+    | ':' <ident> [ '(' <EXPR> <.ws> ')' ] {*}
 }
 
 

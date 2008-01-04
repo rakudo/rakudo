@@ -31,6 +31,8 @@ PMC_DIR       = src/pmc
 
 all: perl6.pbc
 
+xmas: all
+
 PERL6_GROUP   = $(PMC_DIR)/perl6_group$(LOAD_EXT)
 
 SOURCES = perl6.pir \

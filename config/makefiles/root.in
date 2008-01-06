@@ -78,7 +78,7 @@ PMC_SOURCES = $(PMC_DIR)/perl6str.pmc
 perl6@exe@: perl6.pbc $(PBC_TO_EXE)
 	$(PBC_TO_EXE) perl6.pbc
 $(PBC_TO_EXE):
-	$(MAKE) $(BUILD_DIR) pbc_to_exe@exe@
+	$(MAKE) $(BUILD_DIR) ./pbc_to_exe@exe@
 
 # the default target
 perl6.pbc: $(PARROT) $(SOURCES)

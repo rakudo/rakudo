@@ -377,12 +377,7 @@ method term($/, $key) {
             # Check if it's a call; if so, need special handling.
             my $term := $past;
             $past := $($_);
-            if $past.WHAT() eq 'Op' && $past.pasttype() eq 'call' {
-                $past := make_call_past($/, $term, $past);
-            }
-            else {
-                $past.unshift($term);
-            }
+            $past.unshift($term);
         }
     }
     make $past;
@@ -642,7 +637,10 @@ method typename($/) {
 
 
 method subcall($/) {
-    my $past := make_call_past($/, PAST::Val.new(:value(~$<ident>)), $($<semilist>));
+    my $past := $($<semilist>);
+    $past.name( ~$<ident> );
+    $past.pasttype('call');
+    $past.node($/);
     make $past;
 }
 
@@ -672,7 +670,9 @@ method listop($/, $key) {
     if ($key eq 'noarg') {
         $past := PAST::Op.new( );
     }
-    $past := make_call_past($/, PAST::Val.new(:value(~$<sym>)), $past);
+    $past.name( ~$<sym> );
+    $past.pasttype('call');
+    $past.node($/);
     make $past;
 }
 

@@ -110,8 +110,12 @@ proto infix:<^^> is equiv(infix:<||>)
 proto infix:<//> is equiv(infix:<||>)
     is pasttype('def_or')
     { ... }
-proto infix:<min> is equiv(infix:<||>) { ... }
-proto infix:<max> is equiv(infix:<||>) { ... }
+proto infix:<min> is equiv(infix:<||>) 
+    is assoc('list')
+    { ... }
+proto infix:<max> is equiv(infix:<||>)
+    is assoc('list')
+    { ... }
 
 ## item assignment
 proto infix:<=> is precedence('j=')
@@ -158,6 +162,9 @@ proto infix:<,> is precedence('g=')
 
 ## list infix
 proto infix:<X> is precedence('f=')
+    is assoc('list')
+    { ... }
+proto infix:<Z> is precedence('f=')
     is assoc('list')
     { ... }
 

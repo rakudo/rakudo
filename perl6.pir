@@ -46,6 +46,7 @@ Usage: perl6 [switches] [--] [programfile] [arguments]
   -t, --trace=[flags]  enable trace flags
   --encoding=[mode]    specify string encoding mode
   -o, --output=[name]  specify name of output file
+  -v, --version        display version information
 USAGE
     setattribute $P1, '$usage', $P0
 

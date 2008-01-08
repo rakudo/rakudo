@@ -27,7 +27,7 @@ object.
 
 .loadlib 'perl6_group'
 
-.sub '__onload' :load :init
+.sub 'onload' :load :init :anon
     load_bytecode 'PCT.pbc'
     load_bytecode 'config.pbc'
 

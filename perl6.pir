@@ -37,13 +37,14 @@ object.
     $P1.'parseactions'('Perl6::Grammar::Actions')
 
     $P0 = new 'String'
-    $P0 = <<'    USAGE'
-    -h                   display help text
-    --target=[stage]     specify compilation stage to emit
-    -t, --trace=[flags]  enable trace flags
-    --encoding=[mode]    specify string encoding mode
-    -o, --output=[name]  specify name of output file
-    USAGE
+    $P0 = <<'USAGE'
+Usage: perl6 [switches] [--] [programfile] [arguments]
+  -h                   display help text
+  --target=[stage]     specify compilation stage to emit
+  -t, --trace=[flags]  enable trace flags
+  --encoding=[mode]    specify string encoding mode
+  -o, --output=[name]  specify name of output file
+USAGE
     setattribute $P1, '$usage', $P0
 
     ##  create a list for holding the stack of nested blocks
@@ -104,23 +105,10 @@ to the Perl6 compiler.
 .end
 
 
-.sub 'usage' :method
-    .param string name     :optional
-    .param int    has_name :opt_flag
-
-    unless has_name goto got_name
-    name = 'perl6'
-  got_name:
-    print 'Usage: '
-    print name
-    $P0 = getattribute self, '$usage'
-    say $P0
-    exit 0
-.end
-
 .include 'src/gen_grammar.pir'
 .include 'src/parser/quote_expression.pir'
 .include 'src/gen_actions.pir'
+
 
 =back
 

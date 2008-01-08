@@ -29,6 +29,7 @@ object.
 
 .sub '__onload' :load :init
     load_bytecode 'PCT.pbc'
+    load_bytecode 'config.pbc'
 
     $P0 = get_hll_global ['PCT'], 'HLLCompiler'
     $P1 = $P0.'new'()
@@ -36,6 +37,7 @@ object.
     $P1.'parsegrammar'('Perl6::Grammar')
     $P1.'parseactions'('Perl6::Grammar::Actions')
 
+    ##  set the $usage attribute
     $P0 = new 'String'
     $P0 = <<'USAGE'
 Usage: perl6 [switches] [--] [programfile] [arguments]
@@ -46,6 +48,25 @@ Usage: perl6 [switches] [--] [programfile] [arguments]
   -o, --output=[name]  specify name of output file
 USAGE
     setattribute $P1, '$usage', $P0
+
+    ##  set the $version attribute
+    .local pmc cfg
+    cfg  = _config()
+    $P0  = new 'String'
+    $P0  = 'This is perl6, revision '
+    $S0  = cfg['revision']
+    $P0 .= $S0
+    $P0 .= ' built on parrot '
+    $S0  = cfg['VERSION']
+    $P0 .= $S0
+    $S0  = cfg['DEVEL']
+    $P0 .= $S0
+    $P0 .= "\n"
+    $P0 .= 'for '
+    $S0  = cfg['archname']
+    $P0 .= $S0
+    $P0 .= ".\n\nCopyright 2006-2008, The Perl Foundation.\n"
+    setattribute $P1, '$version', $P0
 
     ##  create a list for holding the stack of nested blocks
     $P0 = new 'List'
@@ -60,6 +81,7 @@ USAGE
     $P0['Perl6Str'] = 'e'
     $P0['Str'] = 'e'
 .end
+
 
 .namespace ['Perl6::Compiler']
 

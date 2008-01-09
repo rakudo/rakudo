@@ -91,6 +91,110 @@ USAGE
 
 .namespace ['Perl6::Compiler']
 
+=item command_line(PMC args)
+
+Method for compiler invoked from a shell command line.
+
+=cut
+
+.sub 'command_line' :method
+    .param pmc args
+    .param pmc adverbs         :slurpy :named
+
+    load_bytecode 'Getopt/Obj.pbc'
+    load_bytecode 'dumper.pbc'
+    load_bytecode 'PGE/Dumper.pbc'
+
+    ##   perform option processing of command-line args
+    .local string arg0
+    arg0 = shift args
+    .local pmc getopts, opts
+    getopts = new 'Getopt::Obj'
+    getopts.'notOptStop'(1)
+    $P0 = getattribute self, '@cmdoptions'
+    .local pmc iter
+    iter = new 'Iterator', $P0
+  getopts_loop:
+    unless iter goto getopts_end
+    $S0 = shift iter
+    push getopts, $S0
+    goto getopts_loop
+  getopts_end:
+    opts = getopts.'get_options'(args)
+
+    ##   merge command-line args with defaults passed in from caller
+    .local pmc iter
+    iter = new 'Iterator', opts
+  mergeopts_loop:
+    unless iter goto mergeopts_end
+    $S0 = shift iter
+    $P0 = opts[$S0]
+    adverbs[$S0] = $P0
+    goto mergeopts_loop
+  mergeopts_end:
+
+    $I0 = adverbs['help']
+    if $I0 goto usage
+
+    $I0 = adverbs['version']
+    if $I0 goto version
+
+    .local pmc result
+    result = new 'String'
+    result = ''
+
+  no_check_syntax:
+
+    push_eh eh_err
+    unless args goto interactive
+    $I0 = adverbs['combine']
+    if $I0 goto combine
+    $S0 = shift args
+    result = self.'evalfiles'($S0, args :flat, adverbs :flat :named)
+    pop_eh
+    goto save_output
+  combine:
+    result = self.'evalfiles'(args, adverbs :flat :named)
+    pop_eh
+    goto save_output
+  interactive:
+    self.'interactive'(args :flat, adverbs :flat :named)
+    pop_eh
+
+  save_output:
+    if null result goto end
+    unless result goto end
+    .local string target
+    target = adverbs['target']
+    target = downcase target
+    if target != 'pir' goto end
+    .local string output
+    .local pmc ofh
+    ofh = getstdout
+    output = adverbs['output']
+    if output == '' goto save_output_1
+    if output == '-' goto save_output_1
+    ofh = open output, '>'
+    unless ofh goto err_output
+  save_output_1:
+    print ofh, result
+    close ofh
+  end:
+    .return ()
+
+  err_output:
+    .return self.'panic'('Error: file cannot be written: ', output)
+  usage:
+    self.'usage'(arg0)
+    goto end
+  version:
+    self.'version'()
+    goto end
+  eh_err:
+    .get_results($P0, $S0)
+.end
+
+
 =item main(args :slurpy)  :main
 
 Start compilation by passing any command line C<args>

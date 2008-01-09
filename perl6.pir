@@ -14,10 +14,9 @@ and registers the compiler under the name 'Perl6'.
 
 =over 4
 
-=item __onload()
+=item onload()
 
-Creates the Perl6 compiler using a C<PCT::HLLCompiler>
-object.
+Creates the Perl6 compiler by subclassing a C<PCT::HLLCompiler> object.
 
 =cut
 
@@ -29,13 +28,19 @@ object.
 
 .sub 'onload' :load :init :anon
     load_bytecode 'PCT.pbc'
+    load_bytecode 'Protoobject.pbc'
+
+    $P0 = get_hll_global 'Protomaker'
+    $P1 = get_class ['PCT::HLLCompiler']
+    $P0.'new_subclass'($P1, 'Perl6::Compiler')
+.end
+
+.sub 'init' :vtable :method
     load_bytecode 'config.pbc'
 
-    $P0 = get_hll_global ['PCT'], 'HLLCompiler'
-    $P1 = $P0.'new'()
-    $P1.'language'('Perl6')
-    $P1.'parsegrammar'('Perl6::Grammar')
-    $P1.'parseactions'('Perl6::Grammar::Actions')
+    self.'language'('Perl6')
+    self.'parsegrammar'('Perl6::Grammar')
+    self.'parseactions'('Perl6::Grammar::Actions')
 
     ##  set the $usage attribute
     $P0 = new 'String'
@@ -48,7 +53,7 @@ Usage: perl6 [switches] [--] [programfile] [arguments]
   -o, --output=[name]  specify name of output file
   -v, --version        display version information
 USAGE
-    setattribute $P1, '$usage', $P0
+    setattribute self, '$usage', $P0
 
     ##  set the $version attribute
     .local pmc cfg
@@ -67,7 +72,7 @@ USAGE
     $S0  = cfg['archname']
     $P0 .= $S0
     $P0 .= ".\n\nCopyright 2006-2008, The Perl Foundation.\n"
-    setattribute $P1, '$version', $P0
+    setattribute self, '$version', $P0
 
     ##  create a list for holding the stack of nested blocks
     $P0 = new 'List'

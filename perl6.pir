@@ -35,6 +35,7 @@ Creates the Perl6 compiler by subclassing a C<PCT::HLLCompiler> object.
     $P0.'new_subclass'($P1, 'Perl6::Compiler')
 .end
 
+
 .sub 'init' :vtable :method
     load_bytecode 'config.pbc'
 
@@ -42,10 +43,19 @@ Creates the Perl6 compiler by subclassing a C<PCT::HLLCompiler> object.
     self.'parsegrammar'('Perl6::Grammar')
     self.'parseactions'('Perl6::Grammar::Actions')
 
+    ##  set the compilation stages in the @stages attribute
+    $P0 = split ' ', 'parse past check_syntax post pir evalpmc'
+    setattribute self, '@stages', $P0
+
+    ##  set the command line options
+    $P0 = split ' ', 'c help|h target=s trace|t=s encoding|e=s output|o=s combine each version|v'
+    setattribute self, '@cmdoptions', $P0
+
     ##  set the $usage attribute
     $P0 = new 'String'
     $P0 = <<'USAGE'
 Usage: perl6 [switches] [--] [programfile] [arguments]
+  -c                   check syntax only (runs BEGIN and CHECK blocks)
   -h                   display help text
   --target=[stage]     specify compilation stage to emit
   -t, --trace=[flags]  enable trace flags
@@ -90,6 +100,27 @@ USAGE
 
 
 .namespace ['Perl6::Compiler']
+
+=item check_syntax(source [, "option" => value, ...])
+
+Check the syntax of C<source> after PAST tree has been built,
+to ensure C<BEGIN> and C<CHECK> blocks have been executed.
+
+=cut
+
+.sub 'check_syntax' :method
+    .param pmc source
+    .param pmc adverbs      :slurpy :named
+
+    $I0 = adverbs['c']
+    if $I0 goto check_syntax
+    .return ()
+  check_syntax:
+    ## if we're here, then syntax is OK
+    say 'syntax OK'
+    exit 0
+.end
+
 
 =item main(args :slurpy)  :main
 

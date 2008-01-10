@@ -104,26 +104,28 @@ Treats the list as a stack, popping the last item off the list and returning it.
 
 =item push(ELEMENTS)
 
-Treats the list as a stack, pushing ELEMENTS onto the end of the list.
+Treats the list as a stack, pushing ELEMENTS onto the end of the list.  Returns the new length of the list.
 
 =cut
 
 .sub 'push' :method
     .param pmc args :slurpy
-    .local int narg
+    .local int len
     .local pmc tmp
     .local int i
 
-    narg = args
+    len = args
     i = 0
 
   loop:
-    if i == narg goto done
+    if i == len goto done
     shift tmp, args
     push self, tmp
     inc i
     goto loop
   done:
+    len = elements self
+    .return (len)
 .end
 
 =back

@@ -269,6 +269,7 @@ error.
 
     $S0 = shift iter
     $S0 = downcase $S0
+    if $S0 == "_" goto lp
     $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
     if $I0 == -1 goto err_char
     $N0 = $I0

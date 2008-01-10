@@ -463,7 +463,7 @@ token radint {
     | # this alternation is a subset of rad_number
       ':' $<radix>=[\d+] <.unsp>+
       ::  '<'
-          $<intpart>=[<[0..9 a..z A..Z]>]+
+          $<intpart>=[<[0..9 a..z A..Z _]>]+
           [ '*' $<base>=<radint> '**' $<exp>=<radint> ]?
           '>'
       {*}                                        #= rad_number
@@ -475,8 +475,8 @@ token rad_number {
     ::
     [
     ||  '<'
-        $<intpart>=[<[0..9 a..z A..Z]>]+
-        $<fracpart>=[ '.' <[0..9 a..z A..Z ]>+ ]?
+        $<intpart>=[<[0..9 a..z A..Z _]>]+
+        $<fracpart>=[ '.' <[0..9 a..z A..Z _]>+ ]?
         [ '*' $<base>=<radint> '**' $<exp>=<radint> ]?
         '>'
     || <?before '['> <postcircumfix>

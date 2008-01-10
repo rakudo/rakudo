@@ -239,47 +239,55 @@ error.
     .param int    has_base     :opt_flag
     .param num    exp          :optional
     .param int    has_exp      :opt_flag
-    .local int    n
-    .local num    result, magnitude
-    .local pmc    digits, iter
+    .local num    result, fracdivisor, magnitude
+    .local pmc     iter
 
     if radix <= 1 goto err_range
     if radix > 36 goto err_range
 
     result       = 0.0
-    n            = 0
-    digits = new 'ResizablePMCArray'
+    fracdivisor = 1.0
 
     $P0 = split '', intpart
-    n   = elements $P0
-    digits.'append'( $P0 )
+    iter = new 'Iterator', $P0
 
-    unless has_fracpart goto no_fracpart
-    $I0 = length fracpart
-    unless $I0 goto no_fracpart
-    $P0 = split '', fracpart
-    $P99 = shift $P0                             # remove the radix point
-    digits.'append'( $P0 )
-  no_fracpart:
-
-    iter = new 'Iterator', digits
-  lp:
-    dec n
-    unless iter goto ex
-
+  lp1: # Accumulate over decimal part
+    unless iter goto ex1
     $S0 = shift iter
     $S0 = downcase $S0
-    if $S0 == "_" goto lp
+    if $S0 == "_" goto lp1
+    $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
+    if $I0 == -1 goto err_char
+    $N0 = $I0
+    result *= radix
+    result += $N0
+    goto lp1
+
+  ex1:
+    unless has_fracpart goto nofracpart
+    $I0 = length fracpart
+    unless $I0 goto nofracpart
+    $P0 = split '', fracpart
+    $P99 = shift $P0                             # remove the radix point
+
+  lp2: # Accumulate over fractional part, keep length
+    unless iter goto ex2
+    $S0 = shift iter
+    $S0 = downcase $S0
+    if $S0 == "_" goto lp2
     $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
     if $I0 == -1 goto err_char
     $N0 = $I0
 
-    $N1 = radix ** n
-    $N0 *= $N1
+    result *= radix
     result += $N0
-    goto lp
+    fracdivisor *= radix
+    goto lp2
 
-  ex:
+  ex2:
+    result /= fracdivisor
+
+  nofracpart:
     unless has_base goto ret
     magnitude = base ** exp
     result *= magnitude

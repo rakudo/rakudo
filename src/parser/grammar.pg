@@ -87,7 +87,8 @@ token unsp {
 token unv {
     || \h+
     || ^^ <.pod_comment>
-    || '#' \N*
+    ##  if '#' is followed by '?perl6:', then it's a compiler_directive
+    || '#' <!before '?perl6:'> \N*
 }
 
 ##  The <afterws> rule returns true if we're immediate after
@@ -281,7 +282,6 @@ rule statement_prefix {
 }
 
 
-
 #### Subroutine and method definitions ####
 
 rule plurality_declarator {
@@ -334,6 +334,12 @@ token special_variable {
 token term {
     | <noun> <postfix>* {*}                      #= noun
     | <listop> {*}                               #= listop
+    | <compiler_directive> {*}                   #= compiler_directive
+}
+
+
+rule compiler_directive {
+    $<sym>='#?perl6:' <term> {*}
 }
 
 

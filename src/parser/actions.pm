@@ -383,6 +383,11 @@ method term($/, $key) {
     make $past;
 }
 
+method compiler_directive($/) {
+    make $( $<term> );
+}
+
+
 method postfix($/, $key) {
     make $( $/{$key} );
 }
@@ -432,6 +437,7 @@ method noun($/, $key) {
     make $( $/{$key} );
 }
 
+
 method package_declarator($/, $key) {
     my $past := $( $/{$key} );
     $past.namespace($<name><ident>);
@@ -439,6 +445,7 @@ method package_declarator($/, $key) {
     $past.pirflags(':init :load');
     make $past;
 }
+
 
 method scope_declarator($/) {
     my $past := $( $<variable> );

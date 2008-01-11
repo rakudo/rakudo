@@ -270,9 +270,47 @@ find_max_loop_end:
     .return(cur_max)
 .end
 
+=item C<reverse(LIST)>
 
-## TODO: grep join map reduce reverse sort zip
+Returns the elements of LIST in the opposite order.
 
+=cut
+
+.sub 'reverse' :multi('List')
+	.param pmc list
+	.local pmc retv
+
+	retv = list.'reverse'()
+
+	.return(retv)	
+.end
+
+.sub 'reverse' :multi(_)
+    .param string list
+    .local string retv
+    .local string ch
+    .local int len
+
+    retv = ""
+
+    len = length list
+    if len == 0 goto done
+    len = len - 1
+
+  loop:
+    if len < 0 goto done
+
+    substr ch, list, len, 1
+    concat retv, ch
+	
+    dec len
+    goto loop
+
+  done:	
+    .return(retv)
+.end
+	
+## TODO: grep join map reduce sort zip
 
 =back
 

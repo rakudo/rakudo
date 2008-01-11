@@ -8,6 +8,8 @@
 our $num_of_tests_run = 0;
 our $num_of_tests_failed = 0;
 our $num_of_tests_planned;
+our $todo_upto_test_num = 0;
+our $todo_reason = '';
 
 # for running the test suite multiple times in the same process
 our $testing_started;
@@ -45,6 +47,11 @@ multi sub isnt($got, $expected, $desc) {
 
 multi sub isnt($got, $expected) { isnt($got, $expected, ''); }
 
+multi sub todo($reason, $count) {
+    $todo_upto_test_num = $num_of_tests_run + $count;
+    $todo_reason = 'TODO ' ~ $reason;
+}
+
 multi sub skip()                { proclaim(1, "skip "); }
 multi sub skip($reason)         { proclaim(1, "skip $reason"); }
 multi sub skip($count, $reason) { skip($reason); }
@@ -63,13 +70,16 @@ sub diag($message) { say '# '~$message; }
 
 sub proclaim($cond, $desc) {
     $testing_started  = 1;
+    $desc = $todo_reason
+        if $todo_reason and $num_of_tests_run < $todo_upto_test_num;
     $num_of_tests_run = $num_of_tests_run + 1;
 
     if ( $cond ) {
         print "ok " ~ $num_of_tests_run ~ " - ";
     } else {
         print "not ok " ~ $num_of_tests_run ~ " - ";
-        ++$num_of_tests_failed;
+        ++$num_of_tests_failed
+            unless  $num_of_tests_run <= $todo_upto_test_num;
     }
     say $desc;
 

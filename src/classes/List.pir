@@ -167,6 +167,38 @@ Returns a string comprised of all of the list, separated by the string SEPARATOR
     .return(res)	
 .end
 
+=item reverse()
+
+Returns a list of the elements in revese order.
+
+=cut
+
+.sub 'reverse' :method
+    .local pmc res
+    .local int len
+    .local int i
+    
+    res = new 'List'
+
+    len = elements self
+    if len == 0 goto done
+    i = 0
+
+    .local pmc elem
+loop:
+    if len == 0 goto done
+
+    dec len
+     elem = self[len]
+    res[i] = elem
+    inc i
+    
+    goto loop
+
+done:	
+    .return(res)
+.end
+
 =back
 
 =cut

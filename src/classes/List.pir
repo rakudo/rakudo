@@ -128,6 +128,45 @@ Treats the list as a stack, pushing ELEMENTS onto the end of the list.  Returns 
     .return (len)
 .end
 
+=item join(SEPARATOR)
+
+Returns a string comprised of all of the list, separated by the string SEPARATOR.  Given an empty list, join returns the empty string.
+
+=cut
+
+.sub 'join' :method
+    .param string sep
+    .local string res
+    .local string tmp
+    .local int len
+    .local int i
+	
+    res = ""
+
+    len = elements self
+    if len == 0 goto done
+
+    len = len - 1
+    i = 0
+
+  loop:
+    if i == len goto last
+
+    tmp = self[i]
+    concat res, tmp
+    concat res, sep
+    
+    inc i
+    goto loop
+
+  last:
+    tmp = self[i]
+    concat res, tmp
+  
+  done:
+    .return(res)	
+.end
+
 =back
 
 =cut

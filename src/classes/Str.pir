@@ -26,27 +26,41 @@ as the Perl 6 C<Str> class.
 .end
 
 .sub 'reverse' :method
-    .local string retv
-    .local string tmps
-    .local string ch
+    .local pmc retv
+
+    retv = self.'split'('')
+    retv = retv.'reverse'()
+    retv = retv.join('')
+    
+    .return(retv)
+.end
+
+.sub split :method :multi('Perl6Str')
+    .param string delim
+    .local string objst
+    .local pmc pieces
+    .local pmc tmps
+    .local pmc retv
     .local int len
+    .local int i
 
-    retv = ""
+    retv = new 'List'
 
-    tmps = self
-    len = length tmps
-    if len == 0 goto done
-    len = len - 1
+    objst = self
+    split pieces, delim, objst
 
+    len = pieces
+    i = 0
   loop:
-    if len < 0 goto done
+    if i == len goto done
 
-    substr ch, tmps, len, 1
-    concat retv, ch
+    tmps = new 'Perl6Str'
+    tmps = pieces[i]
+
+    retv.'push'(tmps)
 	
-    dec len
+    inc i
     goto loop
-
   done:	
     .return(retv)
 .end

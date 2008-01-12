@@ -276,40 +276,53 @@ Returns the elements of LIST in the opposite order.
 
 =cut
 
-.sub 'reverse' :multi('List')
-	.param pmc list
-	.local pmc retv
-
-	retv = list.'reverse'()
-
-	.return(retv)	
-.end
-
-.sub 'reverse' :multi(_)
-    .param string list
-    .local string retv
-    .local string ch
+.sub 'reverse'
+    .param pmc list :slurpy
+    .local string type
+    .local pmc retv
+    .local pmc elem
     .local int len
+    .local int i
 
-    retv = ""
+    len = elements list
+  
+    if len > 1 goto islist
 
-    len = length list
-    if len == 0 goto done
-    len = len - 1
+    # If we're not a list, check if we're a string.
+    elem = list[0]
+    typeof type, elem
 
+    # This is a bit of a work around - some operators (ie. ~) return
+    # a String object instead of a Perl6String.
+    eq type, 'String', parrotstring
+    eq type, 'Perl6Str', perl6string
+    goto islist
+    
+  parrotstring:	
+    .local string tmps
+    tmps = elem
+    elem = new 'Perl6Str'
+    elem = tmps
+
+  perl6string:	
+    retv = elem.'reverse'()
+    goto done
+
+  islist:	
+    retv = new 'List'
+    i = 0
+    
   loop:
-    if len < 0 goto done
-
-    substr ch, list, len, 1
-    concat retv, ch
-	
-    dec len
+    if i == len goto done
+    elem = list[i]
+    retv.'unshift'(elem)
+    inc i
     goto loop
-
-  done:	
-    .return(retv)
+    
+  done:
+    .return(retv)	
 .end
-	
+
 ## TODO: grep join map reduce sort zip
 
 =back

@@ -25,6 +25,32 @@ as the Perl 6 C<Str> class.
     .return 'infix:eq'(topic, self)
 .end
 
+.sub 'reverse' :method
+    .local string retv
+    .local string tmps
+    .local string ch
+    .local int len
+
+    retv = ""
+
+    tmps = self
+    len = length tmps
+    if len == 0 goto done
+    len = len - 1
+
+  loop:
+    if len < 0 goto done
+
+    substr ch, tmps, len, 1
+    concat retv, ch
+	
+    dec len
+    goto loop
+
+  done:	
+    .return(retv)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

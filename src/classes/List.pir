@@ -189,7 +189,7 @@ loop:
     if len == 0 goto done
 
     dec len
-     elem = self[len]
+    elem = self[len]
     res[i] = elem
     inc i
     

@@ -65,6 +65,32 @@ as the Perl 6 C<Str> class.
     .return(retv)
 .end
 
+.sub lc :method
+    .local string tmps
+    .local pmc retv
+
+    tmps = self
+    downcase tmps
+
+    retv = new 'Perl6Str'
+    retv = tmps
+
+    .return(retv)
+.end
+
+.sub uc :method
+    .local string tmps
+    .local pmc retv
+
+    tmps = self
+    upcase tmps
+
+    retv = new 'Perl6Str'
+    retv = tmps
+
+    .return(retv)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

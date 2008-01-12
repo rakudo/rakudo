@@ -91,6 +91,52 @@ as the Perl 6 C<Str> class.
     .return(retv)
 .end
 
+.sub lcfirst :method
+    .local string tmps
+    .local string fchr
+    .local pmc retv
+    .local int len
+
+    retv = new 'Perl6Str'
+    tmps = self
+
+    len = length tmps
+    if len == 0 goto done
+
+    substr fchr, tmps, 0, 1
+    downcase fchr
+
+    concat retv, fchr
+    substr tmps, tmps, 1
+    concat retv, tmps
+    
+  done:	
+    .return(retv)
+.end
+
+.sub ucfirst :method
+    .local string tmps
+    .local string fchr
+    .local pmc retv
+    .local int len
+
+    retv = new 'Perl6Str'
+    tmps = self
+
+    len = length tmps
+    if len == 0 goto done
+
+    substr fchr, tmps, 0, 1
+    upcase fchr
+
+    concat retv, fchr
+    substr tmps, tmps, 1
+    concat retv, tmps
+    
+  done:	
+    .return(retv)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

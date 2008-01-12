@@ -48,7 +48,7 @@ Creates the Perl6 compiler by subclassing a C<PCT::HLLCompiler> object.
     setattribute self, '@stages', $P0
 
     ##  set the command line options
-    $P0 = split ' ', 'c help|h target=s trace|t=s encoding|e=s output|o=s combine each version|v'
+    $P0 = split ' ', 'c e=s help|h target=s trace|t=s encoding=s output|o=s combine each version|v'
     setattribute self, '@cmdoptions', $P0
 
     ##  set the $usage attribute
@@ -56,6 +56,7 @@ Creates the Perl6 compiler by subclassing a C<PCT::HLLCompiler> object.
     $P0 = <<'USAGE'
 Usage: perl6 [switches] [--] [programfile] [arguments]
   -c                   check syntax only (runs BEGIN and CHECK blocks)
+  -e program           one line of program
   -h                   display help text
   --target=[stage]     specify compilation stage to emit
   -t, --trace=[flags]  enable trace flags

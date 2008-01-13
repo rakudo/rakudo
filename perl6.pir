@@ -57,7 +57,7 @@ Creates the Perl6 compiler by subclassing a C<PCT::HLLCompiler> object.
 Usage: perl6 [switches] [--] [programfile] [arguments]
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   -e program           one line of program
-  -h                   display help text
+  -h, --help           display this help text
   --target=[stage]     specify compilation stage to emit
   -t, --trace=[flags]  enable trace flags
   --encoding=[mode]    specify string encoding mode

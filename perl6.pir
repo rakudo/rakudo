@@ -68,9 +68,11 @@ USAGE
 
     ##  set the $version attribute
     .local pmc cfg
-    cfg  = _config()
     $P0  = new 'String'
-    $P0  = 'This is perl6, revision '
+    $P0  = 'This is perl6'
+    push_eh _handler
+    cfg  = _config()    # currently works in the build tree, but not in the install tree
+    $P0 .= ', revision '
     $S0  = cfg['revision']
     $P0 .= $S0
     $P0 .= ' built on parrot '
@@ -82,6 +84,7 @@ USAGE
     $P0 .= 'for '
     $S0  = cfg['archname']
     $P0 .= $S0
+  _handler:
     $P0 .= ".\n\nCopyright 2006-2008, The Perl Foundation.\n"
     setattribute self, '$version', $P0
 

@@ -31,7 +31,7 @@ as the Perl 6 C<Str> class.
     retv = self.'split'('')
     retv = retv.'reverse'()
     retv = retv.join('')
-    
+
     .return(retv)
 .end
 
@@ -58,10 +58,10 @@ as the Perl 6 C<Str> class.
     tmps = pieces[i]
 
     retv.'push'(tmps)
-	
+
     inc i
     goto loop
-  done:	
+  done:
     .return(retv)
 .end
 
@@ -109,8 +109,8 @@ as the Perl 6 C<Str> class.
     concat retv, fchr
     substr tmps, tmps, 1
     concat retv, tmps
-    
-  done:	
+
+  done:
     .return(retv)
 .end
 
@@ -132,8 +132,27 @@ as the Perl 6 C<Str> class.
     concat retv, fchr
     substr tmps, tmps, 1
     concat retv, tmps
-    
-  done:	
+
+  done:
+    .return(retv)
+.end
+
+.sub capitalize :method
+    .local string tmps
+    .local pmc retv
+    .local int len
+
+    retv = new 'Perl6Str'
+    tmps = self
+
+    len = length tmps
+    if len == 0 goto done
+
+    downcase tmps
+    titlecase tmps
+    retv = tmps
+
+  done:
     .return(retv)
 .end
 

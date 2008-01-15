@@ -110,9 +110,10 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
 
 .sub 'capitalize'
     .param string a
-    downcase a
-    titlecase a
-    .return (a)
+    .local pmc s
+    s = new 'Perl6Str'
+    s = a
+    .return s.'capitalize'()
 .end
 
 

@@ -26,8 +26,10 @@ form, if uppercase.
 
 .sub 'lc'
     .param string a
-    downcase a
-    .return (a)
+    .local pmc s
+    s = new 'Perl6Str'
+    s = a
+    .return s.'lc'()
 .end
 
 
@@ -79,8 +81,10 @@ full "uppercase".
 
 .sub 'uc'
     .param string a
-    upcase a
-    .return (a)
+    .local pmc s
+    s = new 'Perl6Str'
+    s = a
+    .return s.'uc'()
 .end
 
 
@@ -94,8 +98,10 @@ Performs a Unicode "titlecase" operation on the first character of the string.
 
 .sub 'ucfirst'
     .param string a
-    titlecase a
-    .return (a)
+    .local pmc s
+    s = new 'Perl6Str'
+    s = a
+    .return s.'ucfirst'()
 .end
 
 
@@ -137,9 +143,15 @@ B<Note:> partial implementation only
 .sub 'split'
     .param string sep
     .param string target
-    $P0 = split sep, target
-    $P0 = 'list'($P0 :flat)
-    .return ($P0)
+    .local pmc a, b
+
+    a = new 'Perl6Str'
+    b = new 'Perl6Str'
+
+    a = target
+    b = sep
+
+    .return a.'split'(b)
 .end
 
 

@@ -43,29 +43,10 @@ Like C<lc>, but only affects the first character.
 
 .sub 'lcfirst'
     .param string a
-    .local int pos, is_ws, is_uc
-    pos = 0
-    $S0 = a
-    $I0 = length $S0
-  next_grapheme:
-    if pos == $I0 goto end
-    is_ws = is_cclass .CCLASS_WHITESPACE, $S0, pos
-    if is_ws goto ws
-  advance:
-    pos += 1
-    goto next_grapheme
-  ws:
-    pos += 1
-    is_uc = is_cclass .CCLASS_UPPERCASE, $S0, pos
-    unless is_uc goto advance
-    $S1 = substr $S0, pos, 1
-    downcase $S1
-    substr $S0, pos, 1, $S1
-    ## the length may have changed after replacement, so measure it again
-    $I0 = length $S0
-    goto advance
-  end:
-    .return ($S0)
+    .local pmc s
+    s = new 'Perl6Str'
+    s = a
+    .return s.'lcfirst'()
 .end
 
 

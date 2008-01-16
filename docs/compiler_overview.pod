@@ -1,13 +1,13 @@
 ## $Id$
 
-=head1 Overview of the perl6 compiler
+=head1 Overview of the Rakudo Perl 6 compiler
 
 This document describes the architecture and layout of the
-perl6 compiler itself.  See the F<README> or F<STATUS>
-files for information about how to use the compiler or
-what features have been implemented.
+Rakudo Perl 6 (a.k.a. Rakudo) compiler.  See the F<README>
+or F<STATUS> files for information about how to use the compiler
+or what features have been implemented.
 
-The perl6 compiler is constructed from four major components:
+The Rakudo compiler is constructed from four major components:
 
 1.  the parse grammar (src/parser/grammar.pg, src/parser/*.pir)
 2.  a set of action methods to transform the parse tree into
@@ -60,11 +60,11 @@ rule in the grammar.
 The action methods (in F<src/parser/actions.pm>) are used to
 convert the nodes of the parse tree (produced by the parse grammar)
 into an equivalent abstract syntax tree (PAST) representation.  The
-action methods are where the perl6 compiler does the bulk of the work
+action methods are where the Rakudo compiler does the bulk of the work
 of creating an executable program.  Action methods are written in
 Perl 6, but we use NQP to compile them into PIR as F<src/gen_actions.pir>.
 
-When perl6 is compiling a Perl 6 program, action methods are invoked
+When Rakudo is compiling a Perl 6 program, action methods are invoked
 by the C< {*} > symbols in the parse grammar.  Each C< {*} > in a rule
 causes the action method corresponding to the rule's name to be
 invoked, passing the current match object as an argument.  If the
@@ -73,7 +73,7 @@ starting with C< #= >, any text after the comment is passed as a
 separate key argument to the action method.  (This is similar to
 the approach that STD.pm uses to mark and distinguish actions.)
 
-For example, here's the parse rule for perl6's C<unless> statement
+For example, here's the parse rule for Rakudo's C<unless> statement
 (in src/parser/grammar.pg):
 
     rule unless_statement {
@@ -133,13 +133,13 @@ program -- for more details about the available node types,
 see PDD 26 (L<http://svn.perl.org/parrot/trunk/docs/pdds/pdd26_ast.pod>).
 
 One important observation to make here is that NQP is used only for
-I<building> the perl6 compiler, and then only to convert the action methods
+I<building> the Rakudo compiler, and then only to convert the action methods
 in F<src/parser/actions.pm> into equivalent PIR (F<src/gen_actions.pir>).
 The F<src/gen_actions.pir> file is then used to build F<perl6.pbc>.
-In particular, NQP is I<not> part of the perl6 runtime -- i.e., when
-perl6 is running, NQP is not loaded or used.  Yes, this does mean that
-we can conceivably use the perl6 compiler to compile F<actions.pm> to
-PIR and eliminate the need for NQP entirely.  At some point as perl6
+In particular, NQP is I<not> part of the Rakudo runtime -- i.e., when
+Rakudo is running, NQP is not loaded or used.  Yes, this does mean that
+we can conceivably use the Rakudo compiler to compile F<actions.pm> to
+PIR and eliminate the need for NQP entirely.  At some point as Rakudo
 matures we will probably do this.  However, for the time being it's
 slightly easier to manage the process if we keep a distinction between
 the two tools, and using NQP for this stage also helps us to limit
@@ -163,7 +163,7 @@ simply creates a new C<PCT::HLLCompiler> object, registers it
 as the C<Perl6> compiler, and sets it to use the C<Perl6::Grammar>
 and C<Perl6::Grammar::Actions> classes defined above.
 
-The C<main> subroutine in perl6.pir is used when perl6 is invoked
+The C<main> subroutine in perl6.pir is used when Rakudo is invoked
 from the command line -- it simply passes control to the C<Perl6>
 compiler object registered by the C<onload> subroutine.
 
@@ -187,7 +187,7 @@ easier to write in PIR than in Perl 6 or some other language.
 
 In the very near future we expect to be writing much of the
 additional runtime as Perl 6 code instead of PIR.  In other
-words, we'll build just enough runtime to get a basic perl6
+words, we'll build just enough runtime to get a basic Rakudo
 compiler running, and then use that to compile the remainder
 of the runtime libraries (written in Perl 6) that a standard
 Perl 6 program would expect to have available when it is run.
@@ -195,8 +195,8 @@ Perl 6 program would expect to have available when it is run.
 
 =head2 Still to be documented
 
-* perl6 PMCs
-* The relationship between Parrot classes and perl6 classes
+* Rakudo PMCs
+* The relationship between Parrot classes and Rakudo classes
 * Protoobject implementation and basic class hierarchy
 
 =head1 AUTHORS

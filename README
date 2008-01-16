@@ -1,13 +1,13 @@
 ## $Id$
 
-=head1 Perl 6 on Parrot
+=head1 Rakudo Perl 6
 
-This is the Perl 6 compiler for Parrot, called "perl6".  It's still
-fairly primitive -- only simple expressions and functions are
-available, but it's rapidly expanding.  See L<docs/STATUS> for a
-list of what has been implemented thus far.
+This is the Perl 6 compiler for Parrot, called "Rakudo Perl 6,"
+or "Rakudo" for short.  It's still fairly primitive -- only simple
+expressions and functions are available, but it's rapidly expanding.
+See L<docs/STATUS> for a list of what has been implemented thus far.
 
-=head2 Building and invoking perl6
+=head2 Building and invoking Rakudo
 
 To build the compiler, start by building Parrot, then change
 to the languages/perl6/ subdirectory and type "make".  This
@@ -15,7 +15,7 @@ will create the compiler as a file called "perl6.pbc".  The ".pbc"
 stands for "Parrot bytecode", and represents an executable Parrot
 module.
 
-To run a Perl 6 program with perl6, issue a command like
+To run a Perl 6 program with Rakudo, issue a command like
 
     $ parrot perl6.pbc hello.pl
 
@@ -32,7 +32,7 @@ paths to the Parrot build tree (especially the dynamic libraries
 and modules), so removing the build tree will cause the binary
 to stop working.
 
-If the perl6 compiler is invoked without an explicit script to
+If the Rakudo compiler is invoked without an explicit script to
 run -- i.e., as "parrot perl6.pbc" or just "perl6" -- it enters a
 small interactive mode that allows Perl 6 statements to be
 executed from the command line.  Each line entered is treated
@@ -41,21 +41,21 @@ as a separate compilation unit, however.
 =head2 Running the test suite
 
 Entering "make test" will run the test suite that comes bundled
-with perl6 on Parrot.  This is a simple suite of tests, designed
-to make sure that the perl6 compiler is basically working and that
+with Rakudo on Parrot.  This is a simple suite of tests, designed
+to make sure that the Rakudo compiler is basically working and that
 it's capable of running a simple test harness.
 
 Running "make spectest" will import relevant portions of the
 "official Perl 6 test suite" from the Pugs repository
 (http://svn.pugscode.org/tests/spec/) and run selected tests from
 there.  At present we do not have any plans to directly store the
-official test suite as part of the perl6/Parrot repository,
-but will continue to fetch it from Pugs.
+official test suite as part of the Rakudo/Parrot repository,
+but will continue to fetch it from the Pugs repository.
 
 =head2 Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available
-with help for Perl 6 and perl6 on Parrot.  Figuring out the right
+with help for Perl 6 and Rakudo on Parrot.  Figuring out the right
 one to use is often the biggest battle.  Here are some rough
 guidelines:
 
@@ -66,15 +66,15 @@ for the people who want to I<use> Perl 6 to write programs, as
 opposed to those who are implementing or developing the Perl 6
 language itself.
 
-Questions about the perl6 compiler for Parrot and the Parrot
+Questions about the Rakudo compiler for Parrot and the Parrot
 compiler tools can go to C<perl6-compiler@perl.org>.  Discussion
 about Parrot itself generally takes place on C<parrot-porters@perl.org>.
 
-The Parrot and perl6 development team tend to hang out on IRC
+The Parrot and Rakudo development team tend to hang out on IRC
 a fair bit, either on C<irc.perl.org/#parrot> or (to a somewhat
-lesser extent) C<freenode/#perl6>.
+lesser extent) C<irc.freenode.net/#perl6>.
 
-There are also the Perl 6 and Parrot wikis, at
+There are also Perl 6 and Parrot wikis, found at
     L<http://www.perlfoundation.org/perl6/index.cgi>
     L<http://www.perlfoundation.org/parrot/index.cgi>
 
@@ -106,7 +106,7 @@ See F<docs/compiler_overview.pod>.
 =head1 AUTHOR
 
 Patrick Michaud (pmichaud@pobox.com) is the author and maintainer
-for perl6 on Parrot .
+for Rakudo Perl 6 on Parrot.
 
 =cut
 

@@ -1,10 +1,10 @@
 =head1 TITLE
 
-perl6.pir - A Perl 6 compiler.
+perl6.pir - The Rakudo Perl 6 compiler.
 
 =head2 Description
 
-This is the base file for the Perl 6 compiler.
+This is the base file for the Rakudo Perl 6 compiler.
 
 This file includes the parsing and grammar rules from
 the src/ directory, loads the relevant PGE libraries,
@@ -69,7 +69,7 @@ USAGE
     ##  set the $version attribute
     .local pmc cfg
     $P0  = new 'String'
-    $P0  = 'This is perl6'
+    $P0  = 'This is Rakudo Perl 6'
     push_eh _handler
     cfg  = _config()    # currently works in the build tree, but not in the install tree
     $P0 .= ', revision '

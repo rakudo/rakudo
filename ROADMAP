@@ -21,16 +21,16 @@ Building the Perl 6 on Parrot compiler
 
 The compiler and toolchain that I've been focusing on is being
 developed for the Parrot virtual machine ( http://www.parrotcode.org/ ).
-The Perl 6 Compiler for Parrot is called "perl6", and it currently
+The Perl 6 Compiler for Parrot is called "Rakudo", and it currently
 lives in the languages/perl6/ directory of the Parrot repository.
 
-To build the perl6 compiler, first get a working copy of Parrot,
+To build the Rakudo compiler, first get a working copy of Parrot,
 then change to the languages/perl6/ subdirectory and type "make".
 This will build the compiler into a file called "perl6.pbc".
 The ".pbc" stands for "Parrot bytecode", and represents an
 an executable Parrot module.
 
-To run a program with perl6, one then issues a command like
+To run a program with Rakudo, one then issues a command like
 
     $ parrot perl6.pbc hello.pl
 
@@ -38,7 +38,7 @@ Parrot does not yet support a #! syntax that allows us to run
 Perl 6 scripts directly from the command line, but that will
 undoubtedly be coming soon.
 
-If the perl6 compiler is invoked without a script argument
+If the Rakudo compiler is invoked without a script argument
 (i.e., "parrot perl6.pbc"), it enters a small interactive
 mode that allows Perl 6 statements to be executed from the
 command line.
@@ -62,7 +62,7 @@ Structure of the compiler as of 2007-11-01
 
 Before describing where we're going, it may be useful to briefly
 outline where we've been.  As of early November 2007, the
-perl6 compiler is divided up into four major components:
+Rakudo compiler is divided up into four major components:
 
 1.  the parsing grammar (src/parser/Grammar.pg)
 2.  some parsing support subroutines (src/parser/*.pir)
@@ -91,7 +91,7 @@ are expected to be bootstrapped using Perl 6.
 Where things are headed next
 ----------------------------
 
-While the design and implementation of the perl6 compiler has
+While the design and implementation of the Rakudo compiler has
 remained fairly static throughout 2007, a number of other things
 have been occurring that will spark a substantial redesign.
 
@@ -102,12 +102,12 @@ work on the compiler.
 Another significant change has been the development of a
 standard grammar for Perl 6, known as STD.pm [1].  Larry started
 the STD.pm grammar earlier this year based on the grammars written
-for Pugs and perl6, and partially as a result of this grammar
+for Pugs and Rakudo, and partially as a result of this grammar
 there's been some substantial redesign and improvement to
 Synopsis 5 (Regexes).
 
 So, one of the things we will be doing soon is to redesign the
-perl6 compiler using a grammar that is much closer to STD.pm .
+Rakudo compiler using a grammar that is much closer to STD.pm.
 We aren't quite ready to use STD.pm directly, because it relies
 somewhat on having a working Perl 6 implementation, as well
 as some new constructs that aren't implemented by Parrot's
@@ -124,7 +124,7 @@ phase, instead of requiring a separate phase.
 Furthermore, the methods for generating the AST can initially be
 in "NQP" instead of Parrot assembly.  NQP is a lightweight form
 of Perl 6 designed especially for compiling simple programs in
-Parrot [2].  As a result, most of the source code for the perl6
+Parrot [2].  As a result, most of the source code for the Rakudo
 compiler will end up looking a lot like Perl 6, which may make
 it easier for others to hack on.
 
@@ -133,17 +133,17 @@ So, here's the current plan for the next couple of weeks:
 * NQP will get one or two more language constructs added to it,
   to support generating simple class and method definitions.
 
-* The perl6 grammar will then be redesigned to more closely
+* The Rakudo grammar will then be redesigned to more closely
   mimick STD.pm .  Actually, we'll use NQP's current grammar
   as a starting point, since it's been designed based on STD.pm .
-  We'll want to work on this to get perl6 at least back to the
+  We'll want to work on this to get Rakudo at least back to the
   level of passing tests that it has now.
 
 * In the process we'll also be doing some redesign of the runtime
   environment and built-in classes, to take advantage of Parrot's
   new object model.
 
-As we get perl6 re-oriented in the new constellation of tools,
+As we get Rakudo re-oriented in the new constellation of tools,
 we can then continue to address language features, builtin classes
 and methods, and otherwise add features to flesh out the
 compiler implementation.  Much of this will be driven by
@@ -169,7 +169,7 @@ and although the AST transformations are currently written
 in PIR, the source code for the transformations also provides
 the Perl 6 equivalent.  (Eventually NQP may be used to
 bootstrap itself... but we're not there yet, and I'm more
-focused on getting perl6 running.)
+focused on getting Rakudo running.)
 
 Patches and bug reports can be submitted to perl6-bug@perl.org.
 Please use the moniker [PATCH], [BUG], or [TODO] (including the

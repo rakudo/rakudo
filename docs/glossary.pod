@@ -1,6 +1,6 @@
 ## $Id$
 
-=head1 glossary.pod - glossary of terms used in the perl6 compiler
+=head1 glossary.pod - glossary of terms used in the Rakudo compiler
 
 =over
 
@@ -37,7 +37,7 @@ representation.  In most computer science circles we would
 simply call this a "grammar", but in Parrot the term "grammar"
 is also used occasionally to specify other sets of transformation
 rules (that aren't necessarily performing parsing).  Within
-the perl6 compiler the terms "parse grammar" and "grammar"
+the Rakudo compiler the terms "parse grammar" and "grammar"
 are pretty much interchangeable.
 
 =item PAST - Parrot Abstract Syntax Tree
@@ -57,6 +57,12 @@ for parsers ( C<PCT::Grammar> ), a base class for compilers
 ( C<PCT::HLLCompiler> ), an abstract syntax tree representation
 (PAST), and a PAST compiler.
 
+=item Rakudo
+
+An abbreviation of "Rakuda-do," which, when translated from Japanese,
+means "The Way of the Camel". In Japanese, "Rakudo" means "Paradise."
+For more info, see L<http://use.perl.org/~pmichaud/journal/35400>.
+
 =item STD.pm
 
 STD.pm is the "standard" Perl 6 grammar definition,
@@ -70,10 +76,10 @@ the various implementations will converge on a common grammar
 
 =item Tree Grammar Engine (TGE)
 
-Early versions of compilers for Parrot, including perl6, made
+Early versions of compilers for Parrot, including Rakudo, made
 use of the "Tree Grammar Engine" (F<compilers/tge>) to transform
 parse trees into an abstract syntax tree and then into executable
-code.  For perl6, this has been obsoleted in favor of using
+code.  For Rakudo, this has been obsoleted in favor of using
 action methods and NQP for transformation into PAST.
 
 =back

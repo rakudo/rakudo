@@ -391,7 +391,7 @@ The other alternative would be to remove the default. --law]
 =cut
 
 
-## XXX: conjectural as perl6 subs do not support adverbs yet
+## XXX: conjectural as Rakudo subs do not support adverbs yet
 .sub 'sin'
     .param num a
     .param string base  :optional :named('base')

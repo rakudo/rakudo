@@ -13,6 +13,8 @@ as the Perl 6 C<Str> class.
 
 .namespace ['Perl6Str']
 
+.include 'cclass.pasm'
+
 .sub 'onload' :anon :init :load
     $P0 = get_hll_global ['Perl6Object'], 'make_proto'
     $P0('String', 'Str')
@@ -139,6 +141,7 @@ as the Perl 6 C<Str> class.
 
 .sub capitalize :method
     .local string tmps
+    .local string fchr
     .local pmc retv
     .local int len
 
@@ -149,12 +152,33 @@ as the Perl 6 C<Str> class.
     if len == 0 goto done
 
     downcase tmps
-    titlecase tmps
-    retv = tmps
 
+    .local int pos, is_ws, is_lc
+    pos = 0
+    goto first_char
+  next_grapheme:
+    if pos == len goto done
+    is_ws = is_cclass .CCLASS_WHITESPACE, tmps, pos
+    if is_ws goto ws
+  advance:
+    pos += 1
+    goto next_grapheme
+  ws:
+    pos += 1
+  first_char:
+    is_lc = is_cclass .CCLASS_LOWERCASE, tmps, pos
+    unless is_lc goto advance
+    $S1 = substr tmps, pos, 1
+    upcase $S1
+    substr tmps, pos, 1, $S1
+    ## the length may have changed after replacement, so measure it again
+    len = length tmps
+    goto advance
   done:
-    .return(retv)
+    retv = tmps
+    .return (retv)
 .end
+
 
 # Local Variables:
 #   mode: pir

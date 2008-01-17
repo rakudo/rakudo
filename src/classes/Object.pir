@@ -205,6 +205,16 @@ until we get roles).
     .return ($P0)
 .end
 
+=item true()
+
+Defines the .true method on all objects via C<prefix:?>.
+
+=cut
+
+.sub 'true' :method
+ .return 'prefix:?'(self)
+.end
+
 =back
 
 =head2 Protoobject methods

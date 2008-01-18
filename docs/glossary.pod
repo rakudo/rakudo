@@ -59,6 +59,7 @@ for parsers ( C<PCT::Grammar> ), a base class for compilers
 
 =item Rakudo
 
+Rakudo is the name of a Perl 6 implementation that runs on Parrot.
 An abbreviation of "Rakuda-do," which, when translated from Japanese,
 means "The Way of the Camel". In Japanese, "Rakudo" means "Paradise."
 For more info, see L<http://use.perl.org/~pmichaud/journal/35400>.

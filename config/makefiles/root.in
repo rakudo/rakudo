@@ -138,7 +138,9 @@ spectest: all t/spec
 	cd t/spec && svn up
 	$(PERL) t/harness \
             t/spec/S02-literals \
-            t/spec/S03-operators\
+            t/spec/S03-operators \
+            t/spec/S04-statements \
+            t/spec/S29-str \
 
 fulltest: all testtest spectest
 

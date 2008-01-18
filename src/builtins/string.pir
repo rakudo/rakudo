@@ -186,7 +186,16 @@ B<Note:> partial implementation only
 .sub 'substr'
     .param string x
     .param int start
-    .param int len
+    .param int len     :optional
+    .param int has_len :opt_flag
+    .local pmc s
+
+    if has_len goto end
+    s = new 'Perl6Str'
+    s = x
+    len = s.'chars'()
+
+  end:
     $S0 = substr x, start, len
     .return ($S0)
 .end

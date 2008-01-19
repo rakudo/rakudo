@@ -135,6 +135,7 @@ testtest: all test
 	$(PERL) t/harness t/02-test-pm
 
 spectest: all t/spec
+    cd t/spec && svn up
 	$(PERL) t/harness \
             t/spec/S02-literals \
             t/spec/S03-operators \

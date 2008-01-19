@@ -21,6 +21,7 @@ use File::Basename qw(dirname);
 
 my @specutils = qw(
     util/fudge
+    util/fudgeall
 );
 my @spectests = qw(
     t/01-sanity
@@ -30,21 +31,28 @@ my @spectests = qw(
     t/spec/S29-str
 );
 
-my $spec_repo = 'http://svn.pugscode.org/pugs';
-my $test_dir = 't/spec';
-
-foreach my $srcfile (@specutils, @spectests) {
-    my $tgtfile = $srcfile;
-    $tgtfile =~ s!^t/(spec/)?!!;
-
-    my $dirname = dirname($tgtfile);
-    mkpath "t/spec/$dirname";
-    my $svncmd = "svn export --force $spec_repo/$srcfile $test_dir/$tgtfile";
-    print "$svncmd\n";
-    system($svncmd);
-}
+svn_export('.', @specutils);
+svn_export('t/spec', @spectests);
 
 exit(0);
+
+
+sub svn_export {
+    my $tgtdir = shift;
+    my $spec_repo = 'http://svn.pugscode.org/pugs';
+
+    foreach my $srcfile (@_) {
+        my $tgtfile = $srcfile;
+        $tgtfile =~ s!^t/(spec/)?!!;
+
+        my $dirname = dirname($tgtfile);
+        mkpath "$tgtdir/$dirname";
+        my $cmd = "svn export --force $spec_repo/$srcfile $tgtdir/$tgtfile";
+        print "$cmd\n";
+        system($cmd);
+    }
+}
+
 
 # Local Variables:
 #   mode: cperl

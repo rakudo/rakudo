@@ -200,6 +200,21 @@ B<Note:> partial implementation only
     .return ($S0)
 .end
 
+=item chop
+
+ our Str method Str::chop ( Str  $string: )
+
+Returns string with one Char removed from the end.
+
+=cut
+
+.sub 'chop'
+    .param string a
+    .local pmc s
+    s = new 'Perl6Str'
+    s = a
+    .return s.'chop'()
+.end
 
 =back
 
@@ -215,12 +230,6 @@ B<Note:> partial implementation only
 Trims the last character from C<$string>, and returns it. Called with a
 list, it chops each item in turn, and returns the last character
 chopped.
-
-=item chop
-
- our Str method Str::chop ( Str  $string: )
-
-Returns string with one Char removed from the end.
 
 =item p5chomp
 

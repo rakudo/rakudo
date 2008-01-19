@@ -190,6 +190,22 @@ as the Perl 6 C<Str> class.
     .return (retv)
 .end
 
+.sub 'chop' :method
+    .local string tmps
+    .local pmc retv
+    .local int len
+
+    retv = new 'Perl6Str'
+    tmps = self
+
+    len = length tmps
+    if len == 0 goto done
+    dec len
+    substr tmps,tmps, 0, len
+  done:
+    retv = tmps
+    .return(retv)
+.end
 
 # Local Variables:
 #   mode: pir

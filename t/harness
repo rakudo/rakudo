@@ -3,8 +3,50 @@
 # $Id$
 
 use FindBin;
+use File::Spec;
 use lib qw( . lib ../lib ../../lib ../../lib );
+
+BEGIN {
+    my $impl   = 'rakudo';
+    my @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
+    print "$^X util/fudgeall $impl @tfiles";
+    @tfiles    = split ' ', `$^X util/fudgeall $impl @tfiles`;
+
+    # Stolen directly from 'prove'
+    sub all_in {
+        my $start = shift;
+
+        my @hits = ();
+
+        local *DH;
+        if ( opendir( DH, $start ) ) {
+            my @files = sort readdir DH;
+            closedir DH;
+            for my $file ( @files ) {
+                next if $file eq File::Spec->updir || $file eq File::Spec->curdir;
+                next if $file eq ".svn";
+                next if $file eq "CVS";
+
+                my $currfile = File::Spec->catfile( $start, $file );
+                if ( -d $currfile ) {
+                    push( @hits, all_in( $currfile ) ) if $recurse;
+                } else {
+                    push( @hits, $currfile ) if $currfile =~ $ext_regex;
+                }
+            }
+        } else {
+            warn "$start: $!\n";
+        }
+
+        return @hits;
+    }
+
+}
+
 use Parrot::Test::Harness language => 'perl6', compiler => 'perl6.pbc';
 
 # Set up PERL6LIB environment path so the "use" tests can find libraries
 $ENV{PERL6LIB} = "$Bin/01-sanity";
+
+
+

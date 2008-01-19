@@ -299,9 +299,16 @@ method plurality_declarator($/) {
 
 
 method routine_declarator($/, $key) {
-    if ($key eq 'sub') {
+    if $key eq 'sub' {
         my $past := $($<routine_def>);
         $past.blocktype('declaration');
+        $past.node($/);
+        make $past;
+    }
+    elsif $key eq 'method' {
+        my $past := $($<method_def>);
+        $past.blocktype('declaration');
+        $past.pirflags(':method');
         $past.node($/);
         make $past;
     }
@@ -318,6 +325,13 @@ method routine_def($/) {
     make $past;
 }
 
+method method_def($/) {
+    my $past := $( $<block> );
+    if $<ident> {
+        $past.name( ~$<ident>[0] );
+    }
+    make $past;
+}
 
 method signature($/) {
     my $params := PAST::Stmts.new( :node($/) );
@@ -440,9 +454,33 @@ method noun($/, $key) {
 
 method package_declarator($/, $key) {
     my $past := $( $/{$key} );
-    $past.namespace($<name><ident>);
-    $past.blocktype('declaration');
-    $past.pirflags(':init :load');
+    if $<sym> eq 'class' {
+        # Declare the namespace and that this is something we do
+        # "on load".
+        $past.namespace($<name><ident>);
+        $past.blocktype('declaration');
+        $past.pirflags(':init :load');
+
+        # Set it as the current class. XXX need array to support nested classes
+        our $?CLASS;
+        $?CLASS := $past;
+
+        # We'll create a new statement list where we'll store the class
+        # declaration code.
+        my $decl_past := PAST::Stmts.new();
+        $past.unshift($decl_past);
+        
+        # Code to create the class.
+        my $pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n" ~
+                   "    $P1 = get_hll_global ['Perl6Object'], 'make_proto'\n" ~
+                   "    $P1($P0, '" ~ $<name> ~ "')\n";
+        $decl_past.push(PAST::Op.new( :inline($pir) ));
+    }
+    else {
+        $past.namespace($<name><ident>);
+        $past.blocktype('declaration');
+        $past.pirflags(':init :load');
+    }
     make $past;
 }
 

@@ -290,10 +290,16 @@ rule plurality_declarator {
 
 token routine_declarator {
     | $<sym>='sub' <routine_def> {*}             #= sub
-    # | $<sym>='method' <method_def> {*}         #= method
+    | $<sym>='method' <method_def> {*}           #= method
 }
 
 rule routine_def {
+    <ident>? <multisig>?
+    <block>
+    {*}
+}
+
+rule method_def {
     <ident>? <multisig>?
     <block>
     {*}
@@ -383,7 +389,7 @@ token noun {
 
 
 rule package_declarator {
-    $<sym>=[module]
+    $<sym>=[module|class]
     <name>
     [
     || ';' <statement_block> {*}                 #= statement_block

@@ -259,6 +259,61 @@ done:
     .return(res)
 .end
 
+=item delete()
+
+Deletes the given elements from the List, replacing them with Undef.  Returns a List of removed elements.
+
+=cut
+
+.sub delete :method
+    .param pmc indices :slurpy
+    .local pmc newelem
+    .local pmc elem
+    .local int last
+    .local pmc res
+    .local int ind
+    .local int len
+    .local int i
+
+    newelem = undef()
+    res = new 'List'
+
+    # Index of the last element in the array
+    last = elements self
+    dec last
+
+    len = elements indices
+    i = 0
+
+  loop:
+    if i == len goto done
+
+    ind = indices[i]
+
+    if ind == -1 goto endofarray
+    if ind == last goto endofarray
+    goto restofarray
+    
+  endofarray:
+    # If we're at the end of the array, remove the element entirely
+    elem = pop self
+    res.push(elem)
+    goto next
+    
+  restofarray:	
+    # Replace the element with undef.
+    elem = self[ind]
+    res.push(elem)
+
+    self[ind] = newelem
+    
+  next:	
+    inc i
+    goto loop
+  done:	
+    .return(res)
+.end
+
 =back
 
 =cut

@@ -314,6 +314,46 @@ Deletes the given elements from the List, replacing them with Undef.  Returns a 
     .return(res)
 .end
 
+=item exists(INDEX)
+
+Checks to see if the specified index or indices have been assigned to.  Returns a Bool value.
+
+=cut
+
+.sub exists :method
+    .param pmc indices :slurpy
+    .local int test
+    .local int len
+    .local pmc res
+    .local int ind
+    .local int i
+
+    len = elements indices
+    i = 0
+      
+  loop:
+    if i == len goto true
+
+    ind = indices[i]   
+
+    test = exists self[ind]
+    if test == 0 goto false
+    
+    inc i
+    goto loop
+    
+  true:
+    res = get_hll_global ['Bool'], 'True'
+    goto done
+    
+  false:
+    res = get_hll_global ['Bool'], 'False'
+    goto done
+    
+  done:	
+    .return(res)
+.end
+	
 =back
 
 =cut

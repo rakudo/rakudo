@@ -323,6 +323,24 @@ Returns the elements of LIST in the opposite order.
     .return(retv)	
 .end
 
+.sub keys :multi('List')
+  .param pmc list
+  .local pmc res
+
+  res = list.'keys'()
+
+  .return(res)
+.end
+
+.sub values :multi('List')
+  .param pmc list
+  .local pmc res
+
+  res = list.'values'()
+
+  .return(res)
+.end
+
 ## TODO: grep join map reduce sort zip
 
 =back

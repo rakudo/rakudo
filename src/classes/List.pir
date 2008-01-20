@@ -66,6 +66,66 @@ Prepends ELEMENTS to the front of the list.
   done:	
 .end
 
+=item keys()
+
+Returns a List containing the keys of the List.
+
+=cut
+
+.sub 'keys' :method
+    .local pmc elem
+    .local pmc res
+    .local int len
+    .local int i
+	
+    res = new 'List'
+    len = elements self
+    i = 0
+	
+  loop:
+    if i == len goto done
+
+    elem = new Integer
+    elem = i
+    res.'push'(elem)
+
+    inc i
+    goto loop
+	
+  done:	
+    .return(res)
+.end
+
+=item values()
+
+Returns a List containing the values of the List.
+
+=cut
+
+.sub 'values' :method
+    .local pmc elem
+    .local pmc res
+    .local int len
+    .local int i
+	
+    res = new 'List'
+    len = elements self
+    i = 0
+	
+  loop:
+    if i == len goto done
+
+    elem = new Integer
+    elem = self[i]
+    res.'push'(elem)
+
+    inc i
+    goto loop
+	
+  done:	
+    .return(res)
+.end
+
 =item shift()
 
 Shifts the first item off the list and returns it.

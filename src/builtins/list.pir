@@ -361,6 +361,15 @@ Returns the elements of LIST in the opposite order.
   .return(res)
 .end
 
+.sub kv :multi('List')
+    .param pmc list
+    .local pmc res
+
+    res = list.'kv'()
+
+    .return(res)
+.end
+	
 ## TODO: grep join map reduce sort zip
 
 =back

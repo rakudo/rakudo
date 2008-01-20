@@ -353,7 +353,38 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
   done:	
     .return(res)
 .end
-	
+
+=item kv()
+
+=cut
+
+.sub kv :method
+    .local pmc elem
+    .local pmc res
+    .local int len
+    .local int i
+    
+    res = new 'List'
+    len = elements self
+    i = 0
+    
+  loop:
+    if i == len goto done
+
+    elem = new Integer
+    elem = i
+    res.'push'(elem)
+
+    elem = self[i]
+    res.'push'(elem)
+    
+    inc i
+    goto loop
+    
+  done:	
+    .return(res)
+.end
+
 =back
 
 =cut

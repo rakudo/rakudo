@@ -341,6 +341,26 @@ Returns the elements of LIST in the opposite order.
   .return(res)
 .end
 
+.sub delete :multi('List')
+  .param pmc list
+  .param pmc indices :slurpy
+  .local pmc res
+
+  res = list.'delete'(indices :flat)
+
+  .return(res)
+.end
+
+.sub exists :multi('List')
+  .param pmc list
+  .param pmc indices :slurpy
+  .local pmc res
+
+  res = list.'exists'(indices :flat)
+
+  .return(res)
+.end
+
 ## TODO: grep join map reduce sort zip
 
 =back

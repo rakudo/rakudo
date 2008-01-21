@@ -744,58 +744,40 @@ Returns the elements of LIST in the opposite order.
 
 .sub keys :multi('List')
   .param pmc list
-  .local pmc res
 
-  res = list.'keys'()
-
-  .return(res)
+  .return list.'keys'()
 .end
 
 .sub values :multi('List')
   .param pmc list
-  .local pmc res
 
-  res = list.'values'()
-
-  .return(res)
+  .return list.'values'()
 .end
 
 .sub delete :multi('List')
   .param pmc list
   .param pmc indices :slurpy
-  .local pmc res
 
-  res = list.'delete'(indices :flat)
-
-  .return(res)
+  .return list.'delete'(indices :flat)
 .end
 
 .sub exists :multi('List')
   .param pmc list
   .param pmc indices :slurpy
-  .local pmc res
 
-  res = list.'exists'(indices :flat)
-
-  .return(res)
+  .return list.'exists'(indices :flat)
 .end
 
 .sub kv :multi('List')
     .param pmc list
-    .local pmc res
 
-    res = list.'kv'()
-
-    .return(res)
+    .return list.'kv'()
 .end
 
 .sub pairs :multi('List')
     .param pmc list
-    .local pmc res
 
-    res = list.'pairs'()
-
-    .return(res)
+    .return list.'pairs'()
 .end
 
 ## TODO: grep join map reduce sort zip

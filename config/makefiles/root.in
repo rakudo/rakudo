@@ -57,7 +57,6 @@ BUILTINS_PIR = \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
   src/builtins/control.pir \
-  src/builtins/hash.pir \
   src/builtins/io.pir \
   src/builtins/junction.pir \
   src/builtins/list.pir \

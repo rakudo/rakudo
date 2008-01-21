@@ -15,6 +15,7 @@ BEGIN {
     @tfiles     = split ' ', `$^X util/fudgeall $impl @tfiles`;
 
     # Stolen directly from 'prove'
+    # adapted to return only files ending in '.t'
     sub all_in {
         my $start = shift;
 
@@ -33,7 +34,7 @@ BEGIN {
                 if ( -d $currfile ) {
                     push( @hits, all_in( $currfile ) ) if $recurse;
                 } else {
-                    push( @hits, $currfile ) if $currfile =~ $ext_regex;
+                    push( @hits, $currfile ) if $currfile =~ /\.t$/;
                 }
             }
         } else {

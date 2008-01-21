@@ -385,6 +385,42 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .return(res)
 .end
 
+=item pairs()
+
+=cut
+
+.sub pairs :method
+    .local pmc pair
+    .local pmc key
+    .local pmc val
+    .local pmc res
+    .local int len
+    .local int i
+    
+    res = new 'List'
+    len = elements self
+    i = 0
+    
+  loop:
+    if i == len goto done
+
+    key = new 'Integer'
+    key = i
+
+    val = self[i]
+
+    pair = new 'Pair'
+    pair[key] = val
+
+    res.'push'(pair)
+    
+    inc i
+    goto loop
+    
+  done:	
+    .return(res)
+.end
+
 =back
 
 =cut

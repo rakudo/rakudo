@@ -328,30 +328,23 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .local int ind
     .local int i
 
+    test = 1
     len = elements indices
     i = 0
       
   loop:
-    if i == len goto true
+    if i == len goto done
 
     ind = indices[i]   
 
     test = exists self[ind]
-    if test == 0 goto false
+    if test == 0 goto done
     
     inc i
     goto loop
-    
-  true:
-    res = get_hll_global ['Bool'], 'True'
-    goto done
-    
-  false:
-    res = get_hll_global ['Bool'], 'False'
-    goto done
-    
+        
   done:	
-    .return(res)
+    .return 'prefix:?'(test)
 .end
 
 =item kv()

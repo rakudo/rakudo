@@ -11,8 +11,8 @@ our @tfiles;
 BEGIN {
     my $impl    = 'rakudo';
     our @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
-    print "$^X util/fudgeall $impl @tfiles";
-    @tfiles     = split ' ', `$^X util/fudgeall $impl @tfiles`;
+    print "$^X t/spec/fudgeall $impl @tfiles";
+    @tfiles     = split ' ', `$^X t/spec/fudgeall $impl @tfiles`;
 
     # Stolen directly from 'prove'
     # adapted to return only files ending in '.t'

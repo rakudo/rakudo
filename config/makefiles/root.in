@@ -58,7 +58,6 @@ BUILTINS_PIR = \
   src/builtins/cmp.pir \
   src/builtins/control.pir \
   src/builtins/io.pir \
-  src/builtins/junction.pir \
   src/builtins/match.pir \
   src/builtins/math.pir \
   src/builtins/misc.pir \

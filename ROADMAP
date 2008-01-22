@@ -171,7 +171,7 @@ the Perl 6 equivalent.  (Eventually NQP may be used to
 bootstrap itself... but we're not there yet, and I'm more
 focused on getting Rakudo running.)
 
-Patches and bug reports can be submitted to perl6-bug@perl.org.
+Patches and bug reports can be submitted to rakudobug@perl.org.
 Please use the moniker [PATCH], [BUG], or [TODO] (including the
 brackets) at the start of the subject so that RT can appropriately
 tag the item.

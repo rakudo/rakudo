@@ -81,7 +81,7 @@ There are also Perl 6 and Parrot wikis, found at
 
 =head2 Reporting bugs
 
-Bug reports should be sent to C<perl6-bugs@perl.org> with the moniker
+Bug reports should be sent to C<rakudobug@perl.org> with the moniker
 [BUG] (including the brackets) at the start of the subject so that
 it gets appropriately tagged in the RT system (https://rt.perl.org/).
 Please include or attach any sample source code that exhibits the
@@ -92,7 +92,7 @@ mailing list, as the RT system will handle this on its own.
 =head2 Submitting patches
 
 If you have a patch that fixes a bug or adds a new feature, please
-submit it to C<perl6-bugs@perl.org> with the moniker [PATCH]
+submit it to C<rakudobug@perl.org> with the moniker [PATCH]
 (including the brackets) at the start of the subject line.  We'll
 generally accept patches in any form if we can get them to work,
 but unified diff from the svn command is greatly preferred.  In

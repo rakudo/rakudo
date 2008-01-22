@@ -390,7 +390,7 @@ token noun {
 
 rule package_declarator {
     $<sym>=[module|class]
-    <name>
+    <name> {*}                                   #= open
     [
     || ';' <statement_block> {*}                 #= statement_block
     || <block> {*}                               #= block
@@ -399,7 +399,7 @@ rule package_declarator {
 
 
 rule scope_declarator {
-    $<declarator>=[my|our]
+    $<declarator>=[my|our|has]
     <variable>
     {*}
 }

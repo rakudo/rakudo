@@ -6,13 +6,26 @@ use FindBin;
 use File::Spec;
 use lib qw( . lib ../lib ../../lib ../../lib );
 
-our @tfiles;
+our %harness_args;
 
 BEGIN {
+    our %harness_args = (
+        language  => 'perl6',
+        compiler  => 'perl6.pbc',
+    );
+    
+    ##  if we aren't fudging tests, we're done here
+    return if $ARGV[0] ne '--fudge';
+
+    my $fudge = shift @ARGV;
+
     my $impl    = 'rakudo';
-    our @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
-    print "$^X t/spec/fudgeall $impl @tfiles";
-    @tfiles     = split ' ', `$^X t/spec/fudgeall $impl @tfiles`;
+    my @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
+    print "$^X t/spec/fudgeall $impl @tfiles\n";
+
+    $harness_args{arguments} =
+        [ split ' ', `$^X t/spec/fudgeall $impl @tfiles` ];
+
 
     # Stolen directly from 'prove'
     # adapted to return only files ending in '.t'
@@ -46,10 +59,7 @@ BEGIN {
 
 }
 
-use Parrot::Test::Harness
-    language  => 'perl6',
-    compiler  => 'perl6.pbc',
-    arguments => [ @tfiles ];
+use Parrot::Test::Harness %harness_args;
 
 # Set up PERL6LIB environment path so the "use" tests can find libraries
 $ENV{PERL6LIB} = "$Bin/01-sanity";

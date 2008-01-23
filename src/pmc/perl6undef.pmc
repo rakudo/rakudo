@@ -31,7 +31,7 @@ pmclass Perl6Undef
     maps Undef {
 
     STRING* get_string() {
-        PMC *class = GET_CLASS(PMC_data(SELF), SELF);
+        PMC * const class = GET_CLASS(SELF);
         if (class == SELF)
             return string_from_cstring(INTERP, "Undef", 5);
         return SUPER();

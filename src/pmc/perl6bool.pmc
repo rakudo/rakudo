@@ -28,7 +28,7 @@ pmclass Perl6Bool
     maps Boolean {
 
     STRING* get_string() {
-        PMC *class = GET_CLASS(PMC_data(SELF), SELF);
+        PMC * const class = GET_CLASS(SELF);
         if (class == SELF)
             return string_from_cstring(INTERP, "Bool", 4);
         return SUPER();

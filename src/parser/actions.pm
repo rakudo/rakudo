@@ -511,6 +511,20 @@ method scope_declarator($/) {
             my $class_def := $?CLASS;
             my $pir := "    addattribute $P0, '" ~ $name ~ "'\n";
             $class_def.push( PAST::Op.new( :inline($pir) ) );
+
+            # If we have a . twigil, we need to generate an accessor.
+            if $<variable><twigil>[0] eq '.' {
+                my $accessor := PAST::Block.new(
+                    PAST::Stmts.new(
+                        PAST::Var.new( :name($name), :scope('attribute') )
+                    ),
+                    :name($<variable><name>),
+                    :blocktype('declaration'),
+                    :pirflags(':method'),
+                    :node( $/ )
+                );
+                $?CLASS.unshift($accessor);
+            }
         }
         $?BLOCK.symbol($name, :scope($scope));
     }

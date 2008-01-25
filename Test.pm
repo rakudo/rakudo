@@ -66,6 +66,11 @@ multi sub todo($reason, $count) {
     $todo_reason = 'TODO ' ~ $reason;
 }
 
+multi sub todo($reason) {
+    $todo_upto_test_num = $num_of_tests_run + 1;
+    $todo_reason = 'TODO ' ~ $reason;
+}
+
 multi sub skip()                { proclaim(1, "skip "); }
 multi sub skip($reason)         { proclaim(1, "skip $reason"); }
 multi sub skip($count, $reason) { skip($reason); }

@@ -57,7 +57,7 @@ token TOP {
 ##  The <ws> token is used to match "whitespace", which includes
 ##  things like spaces, comments, and pod comments.  It also
 ##  memoizes the last whitespace token matched into C<$!ws>,
-##  and short circuits if we are at the same position as the 
+##  and short circuits if we are at the same position as the
 ##  last ws token matched.
 
 token ws {
@@ -205,6 +205,8 @@ rule statement {
 rule statement_control {
     | <if_statement> {*}                         #= if_statement
     | <unless_statement> {*}                     #= unless_statement
+    | <repeat_statement> {*}                     #= repeat_statement
+    | <while_statement> {*}                      #= while_statement
     | <given_statement> {*}                      #= given_statement
     | <when_statement> {*}                       #= when_statement
     | <default_statement> {*}                    #= default_statement
@@ -224,6 +226,20 @@ rule if_statement {
 
 rule unless_statement {
     $<sym>=[unless]
+    <EXPR> <block>
+    {*}
+}
+
+rule repeat_statement {
+    $<sym>=[repeat]
+    [ $<loop>=[while|until] <EXPR> <block>
+    | <block> $<loop>=[while|until] <EXPR>
+    ]
+    {*}
+}
+
+rule while_statement {
+    $<sym>=[while|until]
     <EXPR> <block>
     {*}
 }

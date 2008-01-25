@@ -128,6 +128,23 @@ method unless_statement($/) {
     make $past;
 }
 
+
+method while_statement($/) {
+    my $cond  := $( $<EXPR> );
+    my $block := $( $<block> );
+    $block.blocktype('immediate');
+    make PAST::Op.new( $cond, $block, :pasttype(~$<sym>), :node($/) );
+}
+
+method repeat_statement($/) {
+    my $cond  := $( $<EXPR> );
+    my $block := $( $<block> );
+    $block.blocktype('immediate');
+    # pasttype is 'repeat_while' or 'repeat_until'
+    my $pasttype := 'repeat_' ~ ~$<loop>;
+    make PAST::Op.new( $cond, $block, :pasttype($pasttype), :node($/) );
+}
+
 method given_statement($/) {
     my $past := $( $<block> );
     $past.blocktype('immediate');
@@ -460,11 +477,11 @@ method package_declarator($/, $key) {
         # for storing current class definition in.
         # XXX need array to support nested classes
         my $decl_past := PAST::Stmts.new();
-        
+
         # Code to create the class.
         my $pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
         $decl_past.push(PAST::Op.new( :inline($pir) ));
-        
+
         $?CLASS := $decl_past;
     }
     else {

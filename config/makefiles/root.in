@@ -136,6 +136,10 @@ spectest: all t/spec
             t/spec/S02-literals \
             t/spec/S03-operators \
             t/spec/S04-statements \
+            t/spec/S29-array \
+            t/spec/S29-hash \
+            t/spec/S29-list \
+            t/spec/S29-num \
             t/spec/S29-str \
 
 fulltest: all testtest spectest

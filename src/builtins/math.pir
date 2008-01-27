@@ -150,6 +150,11 @@ for a rounded version.
     .return (a)
 .end
 
+.sub 'int'
+    .param num a
+    .return 'truncate'(a)
+.end
+
 
 =item exp
 

@@ -73,7 +73,11 @@ multi sub todo($reason) {
 
 multi sub skip()                { proclaim(1, "skip "); }
 multi sub skip($reason)         { proclaim(1, "skip $reason"); }
-multi sub skip($count, $reason) { skip($reason); }
+multi sub skip($count, $reason) {
+    for 1..$count {
+        proclaim(1, "skip $reason");
+    }
+}
 
 multi sub skip_rest() {
     skip($num_of_tests_planned - $num_of_tests_run, "");

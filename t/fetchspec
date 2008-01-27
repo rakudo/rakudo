@@ -19,10 +19,6 @@ use strict;
 use File::Path;
 use File::Basename qw(dirname);
 
-my @specutils = qw(
-    util/fudge
-    util/fudgeall
-);
 my @spectests = qw(
     t/01-sanity
     t/spec/S02-literals
@@ -31,7 +27,6 @@ my @spectests = qw(
     t/spec/S29-str
 );
 
-svn_export('.', @specutils);
 svn_export('t/spec', @spectests);
 
 exit(0);

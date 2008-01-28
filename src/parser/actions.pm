@@ -509,8 +509,45 @@ method package_declarator($/, $key) {
 }
 
 
-method scope_declarator($/) {
+method variable_decl($/) {
     my $past := $( $<variable> );
+    if $<trait> {
+        for $<trait> {
+            my $trait := $_;
+            if $trait<trait_auxiliary> {
+                my $aux := $trait<trait_auxiliary>;
+                my $sym := $aux<sym>;
+                if $sym eq 'is' {
+                    if $aux<postcircumfix> {
+                        $/.panic("'" ~ ~$trait ~ "' not implemented");
+                    }
+                    else {
+                        $past.viviself($aux<ident>);
+                    }
+                }
+                else {
+                    $/.panic("'" ~ $sym ~ "' not implemented");
+                }
+            }
+            elsif $trait<trait_verb> {
+                my $verb := $trait<trait_verb>;
+                my $sym := $verb<sym>;
+                $/.panic("'" ~ $sym ~ "' not implemented");
+            }
+        }
+    }
+    make $past;
+}
+
+
+method scoped($/) {
+    my $past := $( $<variable_decl> );
+    make $past;
+}
+
+
+method scope_declarator($/) {
+    my $past := $( $<scoped> );
     my $name := $past.name();
     our $?BLOCK;
     unless $?BLOCK.symbol($name) {
@@ -535,13 +572,15 @@ method scope_declarator($/) {
             my $pir := "    addattribute $P0, '" ~ $name ~ "'\n";
             $class_def.push( PAST::Op.new( :inline($pir) ) );
 
+            my $variable := $<variable_decl><variable>;
+
             # If we have a . twigil, we need to generate an accessor.
-            if $<variable><twigil>[0] eq '.' {
+            if $variable<twigil>[0] eq '.' {
                 my $accessor := PAST::Block.new(
                     PAST::Stmts.new(
                         PAST::Var.new( :name($name), :scope('attribute') )
                     ),
-                    :name($<variable><name>),
+                    :name($variable<name>),
                     :blocktype('declaration'),
                     :pirflags(':method'),
                     :node( $/ )

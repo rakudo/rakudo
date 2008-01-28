@@ -415,7 +415,7 @@ rule package_declarator {
 
 
 rule scope_declarator {
-    $<declarator>=[my|our|has]
+    $<declarator>=[my|our|state|constant|has]
     <variable>
     {*}
 }

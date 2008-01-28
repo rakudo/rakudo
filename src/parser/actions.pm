@@ -516,16 +516,22 @@ method scope_declarator($/) {
     unless $?BLOCK.symbol($name) {
         $past.isdecl(1);
         my $scope := 'lexical';
-        if ($<declarator> eq 'our') {
+        my $declarator := $<declarator>;
+        if $declarator eq 'my' {
+        }
+        elsif $declarator eq 'our' {
             $scope := 'package';
         }
-        elsif ($<declarator> eq 'has') {
+        elsif $declarator eq 'has' {
             # Set that it's attribute scope.
             $scope := 'attribute';
 
             # The class needs to declare it.
             our $?CLASS;
             my $class_def := $?CLASS;
+            unless ?$class_def {
+                $/.panic("attempt to define attribute '" ~ $name ~ "' outside of class");
+            }
             my $pir := "    addattribute $P0, '" ~ $name ~ "'\n";
             $class_def.push( PAST::Op.new( :inline($pir) ) );
 
@@ -542,6 +548,9 @@ method scope_declarator($/) {
                 );
                 $?CLASS.unshift($accessor);
             }
+        }
+        else {
+            $/.panic("scope declarator '" ~ $declarator ~ "' not implemented");
         }
         $?BLOCK.symbol($name, :scope($scope));
     }

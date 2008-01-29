@@ -311,12 +311,14 @@ token routine_declarator {
 
 rule routine_def {
     <ident>? <multisig>?
+    <trait>*
     <block>
     {*}
 }
 
 rule method_def {
     <ident>? <multisig>?
+    <trait>*
     <block>
     {*}
 }
@@ -346,12 +348,15 @@ rule signature {
 }
 
 token parameter {
+    [
     | [
         $<named>=[':'?]
         <param_var>
         $<quant>=[ <[ ? ! ]>? ]
       ] {*}                                      #= non-slurp
     | $<quant>=['*'?] <param_var> {*}            #= slurp
+    ]
+    <trait>*
 }
 
 token param_var {

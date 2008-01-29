@@ -347,7 +347,15 @@ rule signature {
     {*}
 }
 
+rule type_constraint {
+    [
+    | <value>
+    | where <EXPR> # XXX <EXPR(%chaining)>
+    ]
+}
+
 token parameter {
+    <type_constraint>*
     [
     | [
         $<named>=[':'?]

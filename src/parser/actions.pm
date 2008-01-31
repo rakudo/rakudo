@@ -565,18 +565,26 @@ method scope_declarator($/) {
             # Set that it's attribute scope.
             $scope := 'attribute';
 
-            # The class needs to declare it.
+            # Check we're in a class.
             our $?CLASS;
             my $class_def := $?CLASS;
             unless defined( $class_def ) {
                 $/.panic("attempt to define attribute '" ~ $name ~ "' outside of class");
             }
+
+            # Generate PIR for attribute (always name it with ! twigil).
+            my $variable := $<scoped><variable_decl><variable>;
+            $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
             my $pir := "    addattribute $P0, '" ~ $name ~ "'\n";
             $class_def.push( PAST::Op.new( :inline($pir) ) );
 
+            # If we have no twigil, make $name as an alias to $!name.
+            if $variable<twigil>[0] eq '' {
+                $?BLOCK.symbol(~$variable<sigil> ~ ~$variable<name>, :scope($scope));
+            }
+
             # If we have a . twigil, we need to generate an accessor.
-            my $variable := $<scoped><variable_decl><variable>;
-            if $variable<twigil>[0] eq '.' {
+            elsif $variable<twigil>[0] eq '.' {
                 my $accessor := PAST::Block.new(
                     PAST::Stmts.new(
                         PAST::Var.new( :name($name), :scope('attribute') )
@@ -587,6 +595,11 @@ method scope_declarator($/) {
                     :node( $/ )
                 );
                 $?CLASS.unshift($accessor);
+            }
+
+            # If it's a ! twigil, we're done; otherwise, error.
+            elsif $variable<twigil>[0] ne '!' {
+                $/.panic("invalid twigil " ~ $variable<twigil>[0] ~ " in attribute declaration");
             }
         }
         else {
@@ -604,9 +617,12 @@ method variable($/, $key) {
         $past := $( $<special_variable> );
     }
     else {
+        # Set how it vivifies.
         my $viviself := 'Undef';
         if $<sigil> eq '@' { $viviself := 'List'; }
         if $<sigil> eq '%' { $viviself := 'Hash'; }
+        
+        # Handle naming.
         my @ident := $<name><ident>;
         my $name;
         PIR q<  $P0 = find_lex '@ident'  >;
@@ -614,8 +630,31 @@ method variable($/, $key) {
         PIR q<  store_lex '@ident', $P0  >;
         PIR q<  $P1 = pop $P0            >;
         PIR q<  store_lex '$name', $P1   >;
-        if $<sigil> ne '&' { $name := ~$<sigil> ~ ~$name; }
-        $past := PAST::Var.new( :name( $name ),
+
+        # ! twigil should be kept in the name.
+        if $<twigil>[0] eq '!' { $name := '!' ~ ~$name; }
+
+        # All but subs should keep their sigils.
+        my $sigil := '';
+        if $<sigil> ne '&' {
+            $sigil := ~$<sigil>;
+        }
+
+        # If we have no twigil, but we see the name noted as an attribute in
+        # an enclosing scope, add the ! twigil anyway; it's an alias.
+        if $<twigil>[0] eq '' {
+            our @?BLOCK;
+            for @?BLOCK {
+                if defined( $_ ) {
+                    my $sym_table := $_.symbol($sigil ~ $name);
+                    if defined( $sym_table ) && $sym_table<scope> eq 'attribute' {
+                        $name := '!' ~ $name;
+                    }
+                }
+            }
+        }
+        
+        $past := PAST::Var.new( :name( $sigil ~ $name ),
                                 :viviself($viviself),
                                 :node($/)
                               );

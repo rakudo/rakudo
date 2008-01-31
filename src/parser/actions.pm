@@ -471,18 +471,22 @@ method noun($/, $key) {
 
 method package_declarator($/, $key) {
     our $?CLASS;
+    our @?CLASS;
 
     if $key eq 'open' {
         # Start of the block; if it's a class, need to make $?CLASS available
         # for storing current class definition in.
-        # XXX need array to support nested classes
-        my $decl_past := PAST::Stmts.new();
-
-        # Code to create the class.
-        my $pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
-        $decl_past.push(PAST::Op.new( :inline($pir) ));
-
-        $?CLASS := $decl_past;
+        if $<sym> eq 'class' {
+            # Code to create the class.
+            my $decl_past := PAST::Stmts.new();
+            my $pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
+            $decl_past.push(PAST::Op.new( :inline($pir) ));
+            
+            # Put current class, if any, on @?CLASS list so we can handle
+            # nested classes.
+            @?CLASS.unshift( $?CLASS );
+            $?CLASS := $decl_past;
+        }
     }
     else {
         my $past := $( $/{$key} );
@@ -500,6 +504,9 @@ method package_declarator($/, $key) {
             
             # Attatch class declaration to this block.
             $past.unshift( $?CLASS );
+
+            # Restore outer class.
+            $?CLASS := @?CLASS.shift();
         }
         else {
             $past.namespace($<name><ident>);

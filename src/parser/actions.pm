@@ -492,11 +492,13 @@ method package_declarator($/, $key) {
             $past.namespace($<name><ident>);
             $past.blocktype('declaration');
             $past.pirflags(':init :load');
-
+            
+            # Generate PIR to make proto-object.
             my $pir := "    $P1 = get_hll_global ['Perl6Object'], 'make_proto'\n" ~
                        "    $P1($P0, '" ~ $<name> ~ "')\n";
             $?CLASS.push(PAST::Op.new( :inline($pir) ));
-
+            
+            # Attatch class declaration to this block.
             $past.unshift( $?CLASS );
         }
         else {
@@ -566,15 +568,14 @@ method scope_declarator($/) {
             # The class needs to declare it.
             our $?CLASS;
             my $class_def := $?CLASS;
-            unless ?$class_def {
+            unless defined( $class_def ) {
                 $/.panic("attempt to define attribute '" ~ $name ~ "' outside of class");
             }
             my $pir := "    addattribute $P0, '" ~ $name ~ "'\n";
             $class_def.push( PAST::Op.new( :inline($pir) ) );
 
-            my $variable := $<variable_decl><variable>;
-
             # If we have a . twigil, we need to generate an accessor.
+            my $variable := $<scoped><variable_decl><variable>;
             if $variable<twigil>[0] eq '.' {
                 my $accessor := PAST::Block.new(
                     PAST::Stmts.new(

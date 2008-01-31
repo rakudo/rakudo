@@ -97,7 +97,7 @@ $(PERL6_GROUP): $(PARROT) $(PMC_SOURCES)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) copy --destination=$(PARROT_DYNEXT) $(PMCS)
 
 # regenerate the Makefile
-Makefile: config/makefiles/root.in
+Makefile: config/makefiles/root.in config/makefiles/utils.in
 	cd $(BUILD_DIR) && $(RECONFIGURE) --step=gen::languages --languages=perl6
 
 # This is a listing of all targets, that are meant to be called by users

@@ -1,0 +1,40 @@
+# Copyright (C) 2008, The Perl Foundation.
+# $Id$
+
+=begin Introduction
+
+This is the rules portion of the grammar for the perl6 document reader.
+This grammar is based on the STD.pm grammar available from
+L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>.
+
+=end   Introduction
+
+grammar Perl6doc::Grammar is PCT::Grammar;
+
+token TOP { [ .*? <pod_comment> ]* {*} }
+
+
+token unsp {
+    \\ <.before [\s|'#']>
+    [ \v | \h+ ]*
+}
+
+####  pod  ####
+
+## The <pod_comment> token is used to match perl 6 pod comments.
+## It's currently incomplete, but so is the spec.
+
+token pod_comment {
+    $<pod>=[
+        ^^ '=' <.unsp>?
+        [
+        | begin <.ws> <ident> .*? \n
+          '=' <.unsp>? 'end' <.ws> $<ident> \N*
+          {*}                                        #= block
+        | \N* {*}                                    #= misc
+        ]
+    ]
+    {*}
+}
+
+

@@ -170,6 +170,6 @@ clean:
 	$(RM_RF) $(CLEANUPS)
 
 realclean: clean
-	$(RM_RF) Makefile
+	$(RM_RF) src/utils/Makefile Makefile
 
 distclean: realclean

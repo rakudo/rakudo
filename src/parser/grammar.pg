@@ -434,7 +434,8 @@ token noun {
 
 rule package_declarator {
     $<sym>=[module|class]
-    <name> {*}                                   #= open
+    <name>
+    <trait>* {*}                                 #= open
     [
     || ';' <statement_block> {*}                 #= statement_block
     || <block> {*}                               #= block

@@ -477,10 +477,29 @@ method package_declarator($/, $key) {
         # Start of the block; if it's a class, need to make $?CLASS available
         # for storing current class definition in.
         if $<sym> eq 'class' {
-            # Code to create the class.
             my $decl_past := PAST::Stmts.new();
-            my $pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
-            $decl_past.push(PAST::Op.new( :inline($pir) ));
+
+            # See if we are inheriting from anything.
+            # XXX TODO: emit test to check if what we got is a class, and if not
+            # dispatch it to trait_auxiliary by MMD.
+            my $inheritance_pir := '';
+            for $<trait> {
+                if $_<trait_auxiliary><sym> eq 'is' {
+                    $inheritance_pir := $inheritance_pir ~
+                        "    $P1 = getclass '" ~ $_<trait_auxiliary><ident> ~ "'\n" ~
+                        "    addparent $P0, $P1\n";
+                }
+            }
+
+            # Build class PIR.
+            my $class_pir;
+            if $inheritance_pir eq '' {
+                $class_pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
+            }
+            else {
+                $class_pir := "    $P0 = newclass '" ~ $<name> ~ "'\n" ~ $inheritance_pir;
+            }
+            $decl_past.push(PAST::Op.new( :inline($class_pir) ));
             
             # Put current class, if any, on @?CLASS list so we can handle
             # nested classes.

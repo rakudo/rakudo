@@ -433,13 +433,21 @@ token noun {
 
 
 rule package_declarator {
-    $<sym>=[module|class]
+    $<sym>=[module|class|role]
     <name>
-    <trait>* {*}                                 #= open
+    <trait_or_does>* {*}                         #= open
     [
     || ';' <statement_block> {*}                 #= statement_block
     || <block> {*}                               #= block
     ]
+}
+
+
+# This rule does not appear in STD.pm, but I can't work out how 'does' on a
+# class would be parsed by STD.pm, thus this rule for now.
+rule trait_or_does {
+    | <trait>
+    | $<sym>=[does] <name>
 }
 
 

@@ -472,66 +472,126 @@ method noun($/, $key) {
 method package_declarator($/, $key) {
     our $?CLASS;
     our @?CLASS;
+    our $?ROLE;
+    our @?ROLE;
+    our $?PACKAGE;
+    our @?PACKAGE;
 
     if $key eq 'open' {
-        # Start of the block; if it's a class, need to make $?CLASS available
-        # for storing current class definition in.
-        if $<sym> eq 'class' {
+        # Start of the block; if it's a class or role, need to make $?CLASS or
+        # $?ROLE available for storing current definition in.
+        if $<sym> eq 'class' || $<sym> eq 'role' {
             my $decl_past := PAST::Stmts.new();
 
-            # See if we are inheriting from anything.
-            # XXX TODO: emit test to check if what we got is a class, and if not
-            # dispatch it to trait_auxiliary by MMD.
+            # See if we are inheriting from anything or doing any roles.
             my $inheritance_pir := '';
-            for $<trait> {
-                if $_<trait_auxiliary><sym> eq 'is' {
-                    $inheritance_pir := $inheritance_pir ~
-                        "    $P1 = getclass '" ~ $_<trait_auxiliary><ident> ~ "'\n" ~
-                        "    addparent $P0, $P1\n";
+            my $does_pir := '';
+            for $<trait_or_does> {
+                if $_<trait> {
+                    # Inheritnace.
+                    # XXX TODO: emit test to check if what we got is a class,
+                    # and if not dispatch it to trait_auxiliary by MMD.
+                    if $_<trait><trait_auxiliary><sym> eq 'is' {
+                        $inheritance_pir := $inheritance_pir ~
+                            "    $P1 = getclass '" ~ $_<trait><trait_auxiliary><ident> ~ "'\n" ~
+                            "    addparent $P0, $P1\n";
+                    }
+                }
+                elsif $_<sym> eq 'does' {
+                    # Role.
+                    $does_pir := $does_pir ~
+                        "    $P1 = get_class '" ~ ~$_<name> ~ "'\n" ~
+                        "    addrole $P0, $P1\n";
                 }
             }
-
-            # Build class PIR.
-            my $class_pir;
-            if $inheritance_pir eq '' {
-                $class_pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
-            }
-            else {
-                $class_pir := "    $P0 = newclass '" ~ $<name> ~ "'\n" ~ $inheritance_pir;
-            }
-            $decl_past.push(PAST::Op.new( :inline($class_pir) ));
             
-            # Put current class, if any, on @?CLASS list so we can handle
-            # nested classes.
-            @?CLASS.unshift( $?CLASS );
-            $?CLASS := $decl_past;
+            # If it's a class...
+            if $<sym> eq 'class' {
+                # Build class PIR.
+                my $class_pir;
+                if $inheritance_pir eq '' {
+                    $class_pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
+                }
+                else {
+                    $class_pir := "    $P0 = newclass '" ~ $<name> ~ "'\n" ~ $inheritance_pir;
+                }
+                $decl_past.push(PAST::Op.new( :inline($class_pir ~ $does_pir) ));
+                
+                # Put current class, if any, on @?CLASS list so we can handle
+                # nested classes.
+                @?CLASS.unshift( $?CLASS );
+                $?CLASS := $decl_past;
+
+                # Set it as the current package.
+                @?PACKAGE.unshift( $?PACKAGE );
+                $?PACKAGE := $?CLASS;
+            }
+
+            # If it's a role...
+            elsif $<sym> eq 'role' {
+                # XXX Haven't implemented roles passing along inheritance as
+                # an implementation detail yet.
+                if $inheritance_pir ne '' {
+                    $/.panic("Cannot apply traits to roles yet.");
+                }
+
+                # Build role PIR.
+                my $role_pir := "    $P1 = new 'Hash'\n" ~
+                                "    $P2 = get_namespace\n" ~
+                                "    $P1['namespace'] = $P2\n" ~
+                                "    $P0 = new 'Role', $P1\n";
+                $decl_past.push(PAST::Op.new( :inline($role_pir ~ $does_pir) ));
+                
+                # Put current role, if any, on @?ROLE list so we can handle
+                # nested roles.
+                @?ROLE.unshift( $?ROLE );
+                $?ROLE := $decl_past;
+
+                # Set it as the current package.
+                @?PACKAGE.unshift( $?PACKAGE );
+                $?PACKAGE := $?ROLE;
+            }
+        }
+        else {
+            # It's a module. We need a way to mark that the current package is
+            # not a role or a class, so we put the current one on the array and
+            # set $?PACKAGE to undef.
+            @?PACKAGE.unshift( $?PACKAGE );
+            $?PACKAGE := undef;
         }
     }
     else {
         my $past := $( $/{$key} );
+
+        # Declare the namespace and that this is something we do
+        # "on load".
+        $past.namespace($<name><ident>);
+        $past.blocktype('declaration');
+        $past.pirflags(':init :load');    
+
         if $<sym> eq 'class' {
-            # Declare the namespace and that this is something we do
-            # "on load".
-            $past.namespace($<name><ident>);
-            $past.blocktype('declaration');
-            $past.pirflags(':init :load');
-            
             # Generate PIR to make proto-object.
             my $pir := "    $P1 = get_hll_global ['Perl6Object'], 'make_proto'\n" ~
                        "    $P1($P0, '" ~ $<name> ~ "')\n";
             $?CLASS.push(PAST::Op.new( :inline($pir) ));
-            
+
             # Attatch class declaration to this block.
             $past.unshift( $?CLASS );
 
             # Restore outer class.
             $?CLASS := @?CLASS.shift();
         }
-        else {
-            $past.namespace($<name><ident>);
-            $past.blocktype('declaration');
-            $past.pirflags(':init :load');
+        elsif $<sym> eq 'role' {
+            # Attatch role declaration to this block.
+            $past.unshift( $?ROLE );
+
+            # Restore outer role.
+            $?ROLE := @?ROLE.shift();
         }
+
+        # Restore outer package.
+        $?PACKAGE := @?PACKAGE.shift();
+        
         make $past;
     }
 }
@@ -591,9 +651,17 @@ method scope_declarator($/) {
             # Set that it's attribute scope.
             $scope := 'attribute';
 
-            # Check we're in a class.
+            # Get the class or role we're in.
             our $?CLASS;
-            my $class_def := $?CLASS;
+            our $?ROLE;
+            our $?PACKAGE;
+            my $class_def;
+            if $?ROLE =:= $?PACKAGE {
+                $class_def := $?ROLE;
+            }
+            else {
+                $class_def := $?CLASS;
+            }
             unless defined( $class_def ) {
                 $/.panic("attempt to define attribute '" ~ $name ~ "' outside of class");
             }

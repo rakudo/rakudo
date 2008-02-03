@@ -695,6 +695,9 @@ method scope_declarator($/) {
             elsif $variable<twigil>[0] ne '!' {
                 $/.panic("invalid twigil " ~ $variable<twigil>[0] ~ " in attribute declaration");
             }
+
+            # We don't want to generate any PAST at the point of the declaration.
+            $past := PAST::Stmts.new();
         }
         else {
             $/.panic("scope declarator '" ~ $declarator ~ "' not implemented");

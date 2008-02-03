@@ -1,39 +1,34 @@
 # $Id$
 
-## arguments we want to run parrot with
+# arguments we want to run parrot with
 PARROT_ARGS =
 
-## configuration settings
+# places to look for things
 BUILD_DIR     = @build_dir@
-LOAD_EXT      = @load_ext@
-O             = @o@
-
-## Setup some commands
-LN_S          = @lns@
-PERL          = @perl@
-RM_RF         = @rm_rf@
-CP            = @cp@
-MAKE          = @make_c@
-PARROT        = ../../parrot@exe@
-CAT           = $(PERL) -MExtUtils::Command -e cat
-BUILD_DYNPMC  = $(PERL) $(BUILD_DIR)/tools/build/dynpmc.pl
-RECONFIGURE   = $(PERL) $(BUILD_DIR)/tools/dev/reconfigure.pl
-
-## places to look for things
 PARROT_DYNEXT = $(BUILD_DIR)/runtime/parrot/dynext
 PGE_LIBRARY   = $(BUILD_DIR)/runtime/parrot/library/PGE
 PERL6GRAMMAR  = $(PGE_LIBRARY)/Perl6Grammar.pbc
 NQP           = $(BUILD_DIR)/compilers/nqp/nqp.pbc
 PCT           = $(BUILD_DIR)/runtime/parrot/library/PCT.pbc
-PBC_TO_EXE    = $(BUILD_DIR)/pbc_to_exe@exe@
-
 PMC_DIR       = src/pmc
+
+# Set up extensions
+LOAD_EXT      = @load_ext@
+O             = @o@
+EXE           = @exe@
+
+# Setup some commands
+PERL          = @perl@
+RM_F          = @rm_f@
+PARROT        = ../../parrot$(EXE)
+CAT           = $(PERL) -MExtUtils::Command -e cat
+BUILD_DYNPMC  = $(PERL) $(BUILD_DIR)/tools/build/dynpmc.pl
+RECONFIGURE   = $(PERL) $(BUILD_DIR)/tools/dev/reconfigure.pl
+PBC_TO_EXE    = $(BUILD_DIR)/pbc_to_exe$(EXE)
 
 all: perl6.pbc
 
-xmas: perl6@exe@
-
-PERL6_GROUP   = $(PMC_DIR)/perl6_group$(LOAD_EXT)
+xmas: perl6$(EXE)
 
 SOURCES = perl6.pir \
   src/gen_grammar.pir \
@@ -66,12 +61,13 @@ BUILTINS_PIR = \
   src/builtins/parrot.pir \
   src/builtins/range.pir \
 
-PMCS = perl6str
+PMCS        = perl6str
 PMC_SOURCES = $(PMC_DIR)/perl6str.pmc
+PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)
 
 # targets for building a standalone perl6.
 # (We're not quite ready to make this a default target.)
-perl6@exe@: perl6.pbc
+perl6$(EXE): perl6.pbc
 	$(PBC_TO_EXE) perl6.pbc
 
 # the default target
@@ -107,6 +103,9 @@ help:
 	@echo ""
 	@echo "  all:               perl6.pbc"
 	@echo "                     This is the default."
+	@echo "  perl6$(EXE):       Some want a pony, others are satisfied with an executable."
+	@echo "  xmas:              Chrismas is when Perl 6 is released. Alias of perl6$(EXE)."
+	@echo ""
 	@echo "Testing:"
 	@echo "  test:              Run the test suite."
 	@echo "  testclean:         Clean up test results."
@@ -151,7 +150,7 @@ CLEANUPS = \
   perl6.pbc \
   perl6.c \
   perl6$(O) \
-  perl6@exe@ \
+  perl6$(EXE) \
   src/gen_grammar.pir \
   src/gen_actions.pir \
   src/gen_builtins.pir \
@@ -168,9 +167,9 @@ CLEANUPS = \
 
 
 clean:
-	$(RM_RF) $(CLEANUPS)
+	$(RM_F) $(CLEANUPS)
 
 realclean: clean
-	$(RM_RF) src/utils/Makefile Makefile
+	$(RM_F) src/utils/Makefile Makefile
 
 distclean: realclean

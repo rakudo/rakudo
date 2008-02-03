@@ -465,7 +465,14 @@ method postcircumfix($/, $key) {
 
 
 method noun($/, $key) {
-    make $( $/{$key} );
+    my $past;
+    if $key eq 'self' {
+        $past := PAST::Stmts.new( PAST::Op.new( :inline('%r = self'), :node( $/ ) ) );
+    }
+    else {
+        $past := $( $/{$key} );
+    }
+    make $past;
 }
 
 

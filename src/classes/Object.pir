@@ -145,8 +145,32 @@ Create a new object having the same class as the invocant.
 =cut
 
 .sub 'new' :method
+    .param pmc init_attribs :named :slurpy
+
+    # Instantiate.
     $P0 = self.'HOW'()
     $P1 = new $P0
+
+    # Initialize each attribute with an Undef or the supplied value.
+    .local pmc attribs, iter
+    attribs = inspect $P0, "attributes"
+    iter = new 'Iterator', attribs
+  iter_loop:
+    unless iter goto iter_end
+    $S0 = shift iter
+    $I0 = exists init_attribs[$S0]
+    if $I0 goto have_init_value
+    $P2 = new 'Undef'
+    goto init_done
+  have_init_value:
+    $P2 = init_attribs[$S0]
+  init_done:
+    push_eh set_attrib_eh
+    setattribute $P1, $S0, $P2
+set_attrib_eh:
+    goto iter_loop
+  iter_end:
+
     .return ($P1)
 .end
 

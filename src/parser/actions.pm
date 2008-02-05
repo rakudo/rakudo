@@ -500,7 +500,8 @@ method package_declarator($/, $key) {
                     # and if not dispatch it to trait_auxiliary by MMD.
                     if $_<trait><trait_auxiliary><sym> eq 'is' {
                         $inheritance_pir := $inheritance_pir ~
-                            "    $P1 = getclass '" ~ $_<trait><trait_auxiliary><ident> ~ "'\n" ~
+                            "    $P1 = get_hll_global '" ~ $_<trait><trait_auxiliary><ident> ~ "'\n" ~
+                            "    $P1 = $P1.HOW()\n" ~
                             "    addparent $P0, $P1\n";
                     }
                 }

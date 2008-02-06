@@ -60,6 +60,7 @@ BUILTINS_PIR = \
   src/builtins/op.pir \
   src/builtins/parrot.pir \
   src/builtins/range.pir \
+  src/builtins/traits.pir \
 
 PMCS        = perl6str
 PMC_SOURCES = $(PMC_DIR)/perl6str.pmc

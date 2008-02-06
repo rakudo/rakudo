@@ -490,19 +490,17 @@ method package_declarator($/, $key) {
         if $<sym> eq 'class' || $<sym> eq 'role' {
             my $decl_past := PAST::Stmts.new();
 
-            # See if we are inheriting from anything or doing any roles.
-            my $inheritance_pir := '';
+            # Apply any traits and do any roles.
+            my $traits_pir := '';
             my $does_pir := '';
             for $<trait_or_does> {
                 if $_<trait> {
-                    # Inheritnace.
-                    # XXX TODO: emit test to check if what we got is a class,
-                    # and if not dispatch it to trait_auxiliary by MMD.
+                    # Apply the trait.
                     if $_<trait><trait_auxiliary><sym> eq 'is' {
-                        $inheritance_pir := $inheritance_pir ~
+                        $traits_pir := $traits_pir ~
                             "    $P1 = get_hll_global '" ~ $_<trait><trait_auxiliary><ident> ~ "'\n" ~
                             "    $P1 = $P1.HOW()\n" ~
-                            "    addparent $P0, $P1\n";
+                            "    'trait_auxiliary:is'($P1, $P0)\n";
                     }
                 }
                 elsif $_<sym> eq 'does' {
@@ -517,11 +515,11 @@ method package_declarator($/, $key) {
             if $<sym> eq 'class' {
                 # Build class PIR.
                 my $class_pir;
-                if $inheritance_pir eq '' {
+                if $traits_pir eq '' {
                     $class_pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
                 }
                 else {
-                    $class_pir := "    $P0 = newclass '" ~ $<name> ~ "'\n" ~ $inheritance_pir;
+                    $class_pir := "    $P0 = newclass '" ~ $<name> ~ "'\n" ~ $traits_pir;
                 }
                 $decl_past.push(PAST::Op.new( :inline($class_pir ~ $does_pir) ));
                 
@@ -539,7 +537,7 @@ method package_declarator($/, $key) {
             elsif $<sym> eq 'role' {
                 # XXX Haven't implemented roles passing along inheritance as
                 # an implementation detail yet.
-                if $inheritance_pir ne '' {
+                if $traits_pir ne '' {
                     $/.panic("Cannot apply traits to roles yet.");
                 }
 

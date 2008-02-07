@@ -7,6 +7,16 @@ class Perl6::Grammar::Actions ;
 method TOP($/) {
     my $past := $( $<statement_block> );
     $past.blocktype('declaration');
+
+    # Attatch any initialization code.
+    our $?INIT;
+    if defined( $?INIT ) {
+        $?INIT.blocktype('declaration');
+        $?INIT.pirflags(':init :load');
+        $past.unshift( $?INIT );
+        $?INIT := PAST::Block.new(); # For the next eval.
+    }
+
     make $past;
 }
 
@@ -477,6 +487,7 @@ method noun($/, $key) {
 
 
 method package_declarator($/, $key) {
+    our $?INIT;
     our $?CLASS;
     our @?CLASS;
     our $?ROLE;
@@ -506,7 +517,7 @@ method package_declarator($/, $key) {
                 elsif $_<sym> eq 'does' {
                     # Role.
                     $does_pir := $does_pir ~
-                        "    $P1 = get_class '" ~ ~$_<name> ~ "'\n" ~
+                        "    $P1 = get_hll_global '" ~ ~$_<name> ~ "'\n" ~
                         "    addrole $P0, $P1\n";
                 }
             }
@@ -543,9 +554,9 @@ method package_declarator($/, $key) {
 
                 # Build role PIR.
                 my $role_pir := "    $P1 = new 'Hash'\n" ~
-                                "    $P2 = get_namespace\n" ~
-                                "    $P1['namespace'] = $P2\n" ~
-                                "    $P0 = new 'Role', $P1\n";
+                                "    $P1['name'] = '" ~ $<name> ~ "'\n" ~
+                                "    $P0 = new 'Role', $P1\n" ~
+                                "    set_hll_global '" ~ $<name> ~ "', $P0\n";
                 $decl_past.push(PAST::Op.new( :inline($role_pir ~ $does_pir) ));
                 
                 # Put current role, if any, on @?ROLE list so we can handle
@@ -581,15 +592,21 @@ method package_declarator($/, $key) {
                        "    $P1($P0, '" ~ $<name> ~ "')\n";
             $?CLASS.push(PAST::Op.new( :inline($pir) ));
 
-            # Attatch class declaration to this block.
-            $past.unshift( $?CLASS );
+            # Attatch class declaration to the init code.
+            unless defined( $?INIT ) {
+                $?INIT := PAST::Block.new();
+            }
+            $?INIT.push( $?CLASS );
 
             # Restore outer class.
             $?CLASS := @?CLASS.shift();
         }
         elsif $<sym> eq 'role' {
-            # Attatch role declaration to this block.
-            $past.unshift( $?ROLE );
+            # Attatch role declaration to the init code.
+            unless defined( $?INIT ) {
+                $?INIT := PAST::Block.new();
+            }
+            $?INIT.push( $?ROLE );
 
             # Restore outer role.
             $?ROLE := @?ROLE.shift();

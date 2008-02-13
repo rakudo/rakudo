@@ -140,8 +140,24 @@ Internal helper method to create a class.
 
 .sub '!keyword_class' :method
     .param string name
-    $P0 = newclass name
-    .return($P0)
+    .local pmc class, resolve_list, methods, iter
+    
+    # Create class.
+    class = newclass name
+
+    # Set resolve list to include all methods of the class.
+    methods = inspect class, 'methods'
+    iter = new 'Iterator', methods
+    resolve_list = new 'ResizableStringArray'
+resolve_loop:
+    unless iter goto resolve_loop_end
+    $P0 = shift iter
+    push resolve_list, $P0
+    goto resolve_loop
+resolve_loop_end:
+    class.resolve_method(resolve_list)
+
+    .return(class)
 .end
 
 =item !keyword_role(name)

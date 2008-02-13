@@ -622,11 +622,20 @@ method package_declarator($/, $key) {
         $past.pirflags(':init :load');    
 
         if $<sym> eq 'class' {
-            # Generate PIR to make proto-object. XXX do call in PAST
-            my $pir := "    $P1000 = get_hll_global ['Perl6Object'], 'make_proto'\n" ~
-                       "    $P1001 = find_lex '$def'\n" ~
-                       "    $P1000($P1001, '" ~ $<name> ~ "')\n";
-            $?CLASS.push(PAST::Op.new( :inline($pir) ));
+            # Make proto-object.
+            $?CLASS.push(PAST::Op.new(
+                :pasttype('call'),
+                PAST::Var.new(
+                    :scope('package'),
+                    :namespace('Perl6Object'),
+                    :name('make_proto')
+                ),
+                PAST::Var.new(
+                    :scope('lexical'),
+                    :name('$def')
+                ),
+                PAST::Val.new( :value(~$<name>) )
+            ));
 
             # Attatch class declaration to the init code.
             unless defined( $?INIT ) {

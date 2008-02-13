@@ -637,11 +637,21 @@ method package_declarator($/, $key) {
                 PAST::Val.new( :value(~$<name>) )
             ));
 
-            # Attatch class declaration to the init code.
+            # Attatch any class initialization code to the init code;
+            # note that we skip blocks, which are method accessors that
+            # we want to put under this block so they get the correct
+            # namespace.
             unless defined( $?INIT ) {
                 $?INIT := PAST::Block.new();
             }
-            $?INIT.push( $?CLASS );
+            for @( $?CLASS ) {
+                if $_.WHAT() eq 'Block' {
+                    $past.push( $_ );
+                }
+                else {
+                    $?INIT.push( $_ );
+                }
+            }
 
             # Restore outer class.
             $?CLASS := @?CLASS.shift();

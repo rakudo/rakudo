@@ -19,6 +19,13 @@ src/builtins/traits.pir - Perl 6 built-in traits
     .param pmc child
     addparent child, parent
 .end
+.sub 'trait_auxiliary:is' :multi('Perl6ProtoObject', 'Class')
+    .param pmc parent
+    .param pmc child
+    parent = parent.HOW()
+    'trait_auxiliary:is'(parent, child)
+.end
+
 
 
 =back

@@ -11,6 +11,11 @@ method TOP($/) {
     # Attatch any initialization code.
     our $?INIT;
     if defined( $?INIT ) {
+        $?INIT.unshift(PAST::Var.new(
+            :name('$def'),
+            :scope('lexical'),
+            :isdecl(1)
+        ));
         $?INIT.blocktype('declaration');
         $?INIT.pirflags(':init :load');
         $past.unshift( $?INIT );
@@ -501,39 +506,26 @@ method package_declarator($/, $key) {
         if $<sym> eq 'class' || $<sym> eq 'role' {
             my $decl_past := PAST::Stmts.new();
 
-            # Apply any traits and do any roles.
-            my $traits_pir := '';
-            my $does_pir := '';
-            for $<trait_or_does> {
-                if $_<trait> {
-                    # Apply the trait.
-                    if $_<trait><trait_auxiliary><sym> eq 'is' {
-                        $traits_pir := $traits_pir ~
-                            "    $P1 = get_hll_global '" ~ $_<trait><trait_auxiliary><ident> ~ "'\n" ~
-                            "    $P1 = $P1.HOW()\n" ~
-                            "    'trait_auxiliary:is'($P1, $P0)\n";
-                    }
-                }
-                elsif $_<sym> eq 'does' {
-                    # Role.
-                    $does_pir := $does_pir ~
-                        "    $P1 = get_hll_global '" ~ ~$_<name> ~ "'\n" ~
-                        "    addrole $P0, $P1\n";
-                }
-            }
-            
             # If it's a class...
             if $<sym> eq 'class' {
-                # Build class PIR.
-                my $class_pir;
-                if $traits_pir eq '' {
-                    $class_pir := "    $P0 = subclass 'Perl6Object', '" ~ $<name> ~ "'\n";
-                }
-                else {
-                    $class_pir := "    $P0 = newclass '" ~ $<name> ~ "'\n" ~ $traits_pir;
-                }
-                $decl_past.push(PAST::Op.new( :inline($class_pir ~ $does_pir) ));
-                
+                # Call method to create the class.
+                $decl_past.push(PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('!keyword_class'),
+                        PAST::Var.new(
+                            :name('Perl6Object'),
+                            :scope('package')
+                        ),
+                        PAST::Val.new( :value(~$<name>) )
+                    )
+                ));
+
                 # Put current class, if any, on @?CLASS list so we can handle
                 # nested classes.
                 @?CLASS.unshift( $?CLASS );
@@ -546,18 +538,23 @@ method package_declarator($/, $key) {
 
             # If it's a role...
             elsif $<sym> eq 'role' {
-                # XXX Haven't implemented roles passing along inheritance as
-                # an implementation detail yet.
-                if $traits_pir ne '' {
-                    $/.panic("Cannot apply traits to roles yet.");
-                }
-
-                # Build role PIR.
-                my $role_pir := "    $P1 = new 'Hash'\n" ~
-                                "    $P1['name'] = '" ~ $<name> ~ "'\n" ~
-                                "    $P0 = new 'Role', $P1\n" ~
-                                "    set_hll_global '" ~ $<name> ~ "', $P0\n";
-                $decl_past.push(PAST::Op.new( :inline($role_pir ~ $does_pir) ));
+                # Call method to create the role.
+                $decl_past.push(PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('!keyword_role'),
+                        PAST::Var.new(
+                            :name('Perl6Object'),
+                            :scope('package')
+                        ),
+                        PAST::Val.new( :value(~$<name>) )
+                    )
+                ));
                 
                 # Put current role, if any, on @?ROLE list so we can handle
                 # nested roles.
@@ -567,6 +564,44 @@ method package_declarator($/, $key) {
                 # Set it as the current package.
                 @?PACKAGE.unshift( $?PACKAGE );
                 $?PACKAGE := $?ROLE;
+            }
+
+            # Apply any traits and do any roles.
+            my $does_pir;
+            for $<trait_or_does> {
+                if $_<trait> {
+                    # Apply the trait.
+                    if $_<trait><trait_auxiliary><sym> eq 'is' {
+                        $?PACKAGE.push(PAST::Op.new(
+                            :pasttype('call'),
+                            :name('trait_auxiliary:is'),
+                            PAST::Var.new(
+                                :name(~$_<trait><trait_auxiliary><ident>),
+                                :scope('package')
+                            ),
+                            PAST::Var.new(
+                                :name('$def'),
+                                :scope('lexical')
+                            )
+                        ));
+                    }
+                }
+                elsif $_<sym> eq 'does' {
+                    # Role.
+                    $?PACKAGE.push(PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('!keyword_does'),
+                        PAST::Var.new(
+                            :name('Perl6Object'),
+                            :scope('package')
+                        ),
+                        PAST::Var.new(
+                            :name('$def'),
+                            :scope('lexical')
+                        ),
+                        PAST::Val.new( :value(~$_<name>) )
+                    ));
+                }
             }
         }
         else {
@@ -587,9 +622,10 @@ method package_declarator($/, $key) {
         $past.pirflags(':init :load');    
 
         if $<sym> eq 'class' {
-            # Generate PIR to make proto-object.
-            my $pir := "    $P1 = get_hll_global ['Perl6Object'], 'make_proto'\n" ~
-                       "    $P1($P0, '" ~ $<name> ~ "')\n";
+            # Generate PIR to make proto-object. XXX do call in PAST
+            my $pir := "    $P1000 = get_hll_global ['Perl6Object'], 'make_proto'\n" ~
+                       "    $P1001 = find_lex '$def'\n" ~
+                       "    $P1000($P1001, '" ~ $<name> ~ "')\n";
             $?CLASS.push(PAST::Op.new( :inline($pir) ));
 
             # Attatch class declaration to the init code.
@@ -692,8 +728,19 @@ method scope_declarator($/) {
             # Generate PIR for attribute (always name it with ! twigil).
             my $variable := $<scoped><variable_decl><variable>;
             $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
-            my $pir := "    addattribute $P0, '" ~ $name ~ "'\n";
-            $class_def.push( PAST::Op.new( :inline($pir) ) );
+            $class_def.push(PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('!keyword_has'),
+                PAST::Var.new(
+                    :name('Perl6Object'),
+                    :scope('package')
+                ),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Val.new( :value($name) )
+            ));
 
             # If we have no twigil, make $name as an alias to $!name.
             if $variable<twigil>[0] eq '' {

@@ -47,8 +47,9 @@ Private method to sets the values in the junction.
 =cut
 
 .sub '!values' :method
-    .param pmc list
-    setattribute self, "@values", list
+    .param pmc l
+    l = 'list'(l :flat)
+    setattribute self, "@values", l
 .end
 
 

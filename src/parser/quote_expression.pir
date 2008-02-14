@@ -82,12 +82,17 @@
     options['stop'] = stop
 
     ##  handle :regex parsing
-    $I0 = options['regex']
-    unless $I0 goto word_start
-  regex_start:
     .local pmc p6regex, quote_regex
-    mob.'to'(pos)
+    $I0 = options['regex']
+    if $I0 goto regex_start
+    $I0 = options['token']
+    if $I0 goto regex_start
+    $I0 = options['rule']
+    if $I0 goto regex_start
+    goto word_start
+  regex_start:
     p6regex = get_root_global ['parrot';'PGE::Perl6Regex'], 'regex'
+    mob.'to'(pos)
     quote_regex = p6regex(mob, options :flat :named)
     unless quote_regex goto fail
     pos = quote_regex.'to'()

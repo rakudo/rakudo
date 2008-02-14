@@ -1080,6 +1080,32 @@ method EXPR($/, $key) {
 }
 
 
+method regex_declarator($/, $key) {
+    make $( $/{$key} );
+}
+
+
+method regex_declarator_regex($/) {
+    my $past := $( $<quote_expression> );
+    $past.name( ~$<ident>[0] );
+    make $past;
+}
+
+
+method regex_declarator_token($/) {
+    my $past := $( $<quote_expression> );
+    $past.name( ~$<ident>[0] );
+    make $past;
+}
+
+
+method regex_declarator_rule($/) {
+    my $past := $( $<quote_expression> );
+    $past.name( ~$<ident>[0] );
+    make $past;
+}
+
+
 # Builds the PAST for a sub or method call, including auto-threading of
 # junctions.
 sub make_call_past($/, $callee_past, $args_past) {

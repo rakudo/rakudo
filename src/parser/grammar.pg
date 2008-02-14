@@ -432,12 +432,13 @@ token noun {
     | <subcall> {*}                              #= subcall
     | <value> {*}                                #= value
     | <statement_prefix> {*}                     #= statement_prefix
+    | <regex_declarator> {*}                     #= regex_declarator
     | 'self' {*}                                 #= self
 }
 
 
 rule package_declarator {
-    $<sym>=[module|class|role]
+    $<sym>=[module|class|role|grammar]
     <name>
     <trait_or_does>* {*}                         #= open
     [
@@ -583,6 +584,32 @@ token name {
 token subcall {
     <ident> '(' <semilist> ')'
     {*}
+}
+
+# These regex rules are some way off STD.pm at the moment, but we'll work them
+# closer to it over time.
+rule regex_declarator {
+    | <regex_declarator_regex> {*}          #= regex_declarator_regex
+    | <regex_declarator_token> {*}          #= regex_declarator_token
+    | <regex_declarator_rule> {*}           #= regex_declarator_rule
+}
+
+rule regex_declarator_regex {
+    $<sym>='regex'
+    <ident>?
+    <before '{'> <quote_expression: :regex> {*}
+}
+
+rule regex_declarator_token {
+    $<sym>='token'
+    <ident>?
+    <before '{'> <quote_expression: :token> {*}
+}
+
+rule regex_declarator_rule {
+    $<sym>='rule'
+    <ident>?
+    <before '{'> <quote_expression: :rule> {*}
 }
 
 ##  S05 shows semilist as being a list of statements, in order

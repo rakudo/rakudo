@@ -416,6 +416,13 @@ token postcircumfix {
     | '(' <semilist> ')' {*}                     #= ( )
     | '[' <semilist> ']' {*}                     #= [ ]
     | '{' <semilist> '}' {*}                     #= { }
+    | '<' <anglewords> '>' {*}                   #= < >
+}
+
+
+# This needs to take a parameter eventually, but we can't do that yet.
+token anglewords {
+    <.ws> [ <!before '>'> .]*
 }
 
 

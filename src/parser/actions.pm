@@ -461,27 +461,46 @@ method methodop($/, $key) {
 }
 
 method postcircumfix($/, $key) {
-    my $semilist := $( $<semilist> );
     my $past;
-    if ($key eq '[ ]') {
+    if $key eq '[ ]' {
+        my $semilist := $( $<semilist> );
         $past := PAST::Var.new( $semilist[0],
                                 :scope('keyed'),
                                 :vivibase('List'),
                                 :viviself('Undef'),
                                 :node( $/ )
                               );
-    } elsif ($key eq '( )') {
+    }
+    elsif $key eq '( )' {
+        my $semilist := $( $<semilist> );
         $past := PAST::Op.new( :node($/), :pasttype('call') );
         for @($semilist) {
             $past.push( $_ );
         }
-    } else {
+    }
+    elsif $key eq '{ }' {
+        my $semilist := $( $<semilist> );
         $past := PAST::Var.new( $semilist[0],
                                 :scope('keyed'),
                                 :vivibase('Hash'),
                                 :viviself('Undef'),
                                 :node( $/ )
                               );
+    }
+    elsif $key eq '< >' {
+        # XXX Need to split this for the list case rather than the
+        # key case.
+        $past := PAST::Var.new(
+            PAST::Val.new( :value(~$<anglewords>) ),
+            :scope('keyed'),
+            :vivibase('Hash'),
+            :viviself('Undef'),
+            :node( $/ )
+        );
+    }
+    else
+    {
+        $/.panic("postcircumfix " ~ $key ~ " not yet implemented");
     }
     make $past;
 }

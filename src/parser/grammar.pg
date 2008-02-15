@@ -419,9 +419,9 @@ token postcircumfix {
 }
 
 
-# XXX Note that 'self' in here should be a term, and that a term can be a noun
-# too in STD.pm. However, at the moment that seems to lead us to infinite
-# recursion.
+# XXX Note that 'self' and 'undef' in here should be a term, and that a term
+# can be a noun too in STD.pm. However, at the moment that seems to lead us
+# to infinite recursion.
 token noun {
     | <package_declarator> {*}                   #= package_declarator
     | <scope_declarator> {*}                     #= scope_declarator
@@ -434,6 +434,7 @@ token noun {
     | <statement_prefix> {*}                     #= statement_prefix
     | <regex_declarator> {*}                     #= regex_declarator
     | 'self' {*}                                 #= self
+    | 'undef' {*}                                #= undef
 }
 
 

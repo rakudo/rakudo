@@ -484,6 +484,17 @@ method noun($/, $key) {
     if $key eq 'self' {
         $past := PAST::Stmts.new( PAST::Op.new( :inline('%r = self'), :node( $/ ) ) );
     }
+    elsif $key eq 'undef' {
+        $past := PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('new'),
+            :node($/),
+            PAST::Var.new(
+                :name('Failure'),
+                :scope('package')
+            )
+        );
+    }
     else {
         $past := $( $/{$key} );
     }

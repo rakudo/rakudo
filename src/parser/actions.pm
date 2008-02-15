@@ -50,6 +50,14 @@ method statement_block($/, $key) {
         unless $?BLOCK.symbol('$/') {
             $init.push( PAST::Var.new( :name('$/'), :isdecl(1) ) );
             $?BLOCK.symbol( '$/', :scope('lexical') );
+            $init.push( PAST::Op.new(
+                :inline("    %r = getinterp\n" ~
+                        "    %r = %r['lexpad';1]\n" ~
+                        "    if null %r goto no_match_to_copy\n" ~
+                        "    %r = %r['$/']\n" ~
+                        "    store_lex '$/', %r\n" ~
+                        "  no_match_to_copy:\n")
+            ));
         }
         unless $?BLOCK.symbol('$!') {
             $init.push( PAST::Var.new( :name('$!'), :isdecl(1) ) );

@@ -821,6 +821,21 @@ method variable($/, $key) {
     if $key eq 'special_variable' {
         $past := $( $<special_variable> );
     }
+    elsif $key eq '$0' {
+        $past := PAST::Var.new(
+            :scope('keyed'),
+            :node($/),
+            :viviself('Undef'),
+            PAST::Var.new(
+                :scope('lexical'),
+                :name('$/')
+            ),
+            PAST::Val.new(
+                :value(~$<matchidx>),
+                :returns('Integer')
+            )
+        );
+    }
     else {
         # Set how it vivifies.
         my $viviself := 'Undef';

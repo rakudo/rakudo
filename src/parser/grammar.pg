@@ -488,6 +488,7 @@ token circumfix {
 token variable {
     | <special_variable> {*}                     #= special_variable
     | <sigil> <twigil>? <name> {*}               #= $var
+    | <sigil> $<matchidx>=[\d+] {*}              #= $0
 }
 
 token sigil { '$' | '@' | '%' | '&' }

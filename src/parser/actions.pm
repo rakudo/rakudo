@@ -855,6 +855,14 @@ method variable($/, $key) {
             )
         );
     }
+    elsif $key eq '$<>' {
+        $past := $( $<postcircumfix> );
+        $past.unshift(PAST::Var.new(
+            :scope('lexical'),
+            :name('$/'),
+            :viviself('Undef')
+        ));
+    }
     else {
         # Set how it vivifies.
         my $viviself := 'Undef';

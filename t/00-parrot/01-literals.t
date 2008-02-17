@@ -1,4 +1,4 @@
-#!./parrot
+#!./parrot perl6.pbc
 
 # check literals
 

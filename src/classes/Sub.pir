@@ -39,4 +39,4 @@ src/classes/Sub.pir - methods for the Sub class
 #   mode: pir
 #   fill-column: 100
 # End:
-# vim: expandtab shiftwidth=4:
+# vim: expandtab shiftwidth=4 ft=pir:

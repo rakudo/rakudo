@@ -33,4 +33,4 @@ src/builtins/match.pir - Perl6 builtins for smart matching
 #   mode: pir
 #   fill-column: 100
 # End:
-# vim: expandtab shiftwidth=4:
+# vim: expandtab shiftwidth=4 ft=pir:

@@ -681,4 +681,4 @@ The other alternative would be to remove the default. --law]
 #   mode: pir
 #   fill-column: 100
 # End:
-# vim: expandtab shiftwidth=4:
+# vim: expandtab shiftwidth=4 ft=pir:

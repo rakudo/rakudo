@@ -31,10 +31,12 @@ method TOP($/) {
 
 
 method pod_comment($/, $key?) {
-    make PAST::Val.new(
-        :value( ~$<pod> ),
+    my $past := PAST::Val.new(
+        :value( ~$<block> ),
         :node( $/ )
     );
+
+    make $past;
 }
 
 

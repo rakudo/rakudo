@@ -25,16 +25,36 @@ token unsp {
 ## It's currently incomplete, but so is the spec.
 
 token pod_comment {
-    $<pod>=[
-        ^^ '=' <.unsp>?
-        [
-        | begin <.ws> <ident> .*? \n
-          '=' <.unsp>? 'end' <.ws> $<ident> \N*
-          {*}                                        #= block
-        | \N* {*}                                    #= misc
-        ]
-    ]
+    $<block>=[
+    | <pod_delimited_block>
+    | <pod_paragraph_block>
+    | <pod_abbreviated_block>
+    ] \n {*}
+}
+
+token pod_delimited_block {
+    ^^ '=' <.unsp>? 'begin' <.ws> <block_type> <pod_option>* \n
+    .*?
+    ^^ '=' <.unsp>? 'end'   <.ws> $<block_type> \N*
     {*}
 }
 
+token pod_option {
+    [ \n '=' ]? <.ws> $<option>=[ ':' <ident> ]
+}
+
+token pod_paragraph_block {
+    ^^ '=for' <.ws> <block_type> <pod_option>* \n
+    .*?
+    <.before \n ^^ [ '=' | \h* $$ ]>
+    {*}
+}
+
+token pod_abbreviated_block {
+    ^^ '=' <block_type> <.ws>
+    .*?
+    <.before \n ^^ [ '=' | \h* $$ ]>
+}
+
+token block_type { <ident> }
 

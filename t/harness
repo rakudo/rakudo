@@ -4,7 +4,7 @@
 
 use FindBin;
 use File::Spec;
-use lib qw( . lib ../lib ../../lib ../../lib );
+use lib qw( ../../lib );
 
 our %harness_args;
 
@@ -13,7 +13,7 @@ BEGIN {
         language  => 'perl6',
         compiler  => 'perl6.pbc',
     );
-    
+
     ##  if we aren't fudging tests, we're done here
     return if $ARGV[0] ne '--fudge';
 

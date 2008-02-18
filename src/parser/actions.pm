@@ -593,7 +593,7 @@ method package_declarator($/, $key) {
                         PAST::Val.new( :value(~$<name>) )
                     )
                 ));
-                
+
                 # Put current role, if any, on @?ROLE list so we can handle
                 # nested roles.
                 @?ROLE.unshift( $?ROLE );
@@ -657,7 +657,7 @@ method package_declarator($/, $key) {
         # "on load".
         $past.namespace($<name><ident>);
         $past.blocktype('declaration');
-        $past.pirflags(':init :load');    
+        $past.pirflags(':init :load');
 
         if $<sym> eq 'class' {
             # Make proto-object.
@@ -707,7 +707,7 @@ method package_declarator($/, $key) {
 
         # Restore outer package.
         $?PACKAGE := @?PACKAGE.shift();
-        
+
         make $past;
     }
 }
@@ -868,7 +868,7 @@ method variable($/, $key) {
         my $viviself := 'Undef';
         if $<sigil> eq '@' { $viviself := 'List'; }
         if $<sigil> eq '%' { $viviself := 'Hash'; }
-        
+
         # Handle naming.
         my @ident := $<name><ident>;
         my $name;
@@ -900,7 +900,7 @@ method variable($/, $key) {
                 }
             }
         }
-        
+
         $past := PAST::Var.new( :name( $sigil ~ $name ),
                                 :viviself($viviself),
                                 :node($/)

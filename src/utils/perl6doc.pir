@@ -121,6 +121,11 @@ to the Perl 6 compiler.
 
 =back
 
+=head2 See Also
+
+L<http://perlcabal.org/syn/S26.html>,
+L<http://search.cpan.org/~dconway/Perl6-Perldoc-v0.0.5/>
+
 =cut
 
 # Local Variables:

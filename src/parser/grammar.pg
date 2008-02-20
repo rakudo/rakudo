@@ -613,13 +613,13 @@ rule regex_declarator_regex {
 rule regex_declarator_token {
     $<sym>='token'
     <ident>?
-    <before '{'> <quote_expression: :token> {*}
+    <before '{'> <quote_expression: :regex :ratchet> {*}
 }
 
 rule regex_declarator_rule {
     $<sym>='rule'
     <ident>?
-    <before '{'> <quote_expression: :rule> {*}
+    <before '{'> <quote_expression: :regex :ratchet :sigspace> {*}
 }
 
 ##  S05 shows semilist as being a list of statements, in order

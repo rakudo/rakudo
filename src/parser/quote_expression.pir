@@ -84,12 +84,7 @@
     ##  handle :regex parsing
     .local pmc p6regex, quote_regex
     $I0 = options['regex']
-    if $I0 goto regex_start
-    $I0 = options['token']
-    if $I0 goto regex_start
-    $I0 = options['rule']
-    if $I0 goto regex_start
-    goto word_start
+    unless $I0 goto word_start
   regex_start:
     p6regex = get_root_global ['parrot';'PGE::Perl6Regex'], 'regex'
     mob.'to'(pos)

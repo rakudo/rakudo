@@ -321,6 +321,19 @@ Defines the .true method on all objects via C<prefix:?>.
  .return 'prefix:?'(self)
 .end
 
+=item say()
+
+Print the object
+
+=cut
+
+.sub 'say' :method
+    .local pmc item
+    item = self
+    print item
+    print "\n"
+.end
+
 =back
 
 =head2 Protoobject methods

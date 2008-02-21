@@ -17,8 +17,7 @@ say 'ok', ' ', 5;
 
 # Invoke method on number
 print 'ok ';
-#6.say;
-say 6; # XXX should be "6.say";
+6.say;
 
 print 'ok ';
 say 7;

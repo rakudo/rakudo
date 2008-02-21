@@ -1,6 +1,6 @@
 use v6-alpha;
 
-say '1..12';
+say '1..13';
 
 # Double-quoted string
 say "ok 1";
@@ -12,15 +12,12 @@ say 'ok 2';
 'ok 3'.say;
 
 # Invoke method on list
-#<ok 4>.say; # XXX This used to pass
-say 'ok 4';
-
-# But we have to force the list to a string
-say ~<ok 5>;
+('ok', ' ', 4).say;
+say 'ok', ' ', 5;
 
 # Invoke method on number
 print 'ok ';
-# 6.say;
+#6.say;
 say 6; # XXX should be "6.say";
 
 print 'ok ';
@@ -36,9 +33,10 @@ say $test9;
 # Verify return code of say
 say 'ok ', 11*say 'ok 10';
 
-# Call on result of expression
+# Direct call on result of expression
 print 'ok ';
 (2**4-4).say;
 
-# More ideas:
-# * sort based on the keys of a hash
+# Indirect call on result of expression
+print 'ok ';
+say 2**4-3;

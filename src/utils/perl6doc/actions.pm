@@ -30,9 +30,9 @@ method TOP($/) {
 }
 
 
-method pod_comment($/, $key?) {
+method pod_comment($/) {
     my $past := PAST::Val.new(
-        :value( ~$<block> ),
+        :value( ~$<block> ~ "\n" ),
         :node( $/ )
     );
 

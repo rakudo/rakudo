@@ -33,26 +33,33 @@ token pod_comment {
 }
 
 token pod_delimited_block {
-    ^^ '=' <.unsp>? 'begin' <.ws> <block_type> <pod_option>* \n
-    .*?
+    ^^ '=' <.unsp>? 'begin' <.ws> <block_type> <pod_numbered>? <pod_option>* \n
+    $<body>=(.*?):!
     ^^ '=' <.unsp>? 'end'   <.ws> $<block_type> \N*
     {*}
 }
 
+token pod_numbered { <.ws> '#' <.ws> }
+
 token pod_option {
-    [ \n '=' ]? <.ws> $<option>=[ ':' <ident> ]
+    [ \n '=' ]? <.ws>
+    $<option>=[ ':' [
+      | [ nested | numbered | term | formatted | like | allow ] >>
+      | <ident>
+      ]
+    ]
 }
 
 token pod_paragraph_block {
     ^^ '=for' <.ws> <block_type> <pod_option>* \n
-    .*?
+    $<body>=(.*?):!
     <.before \n ^^ [ '=' | \h* $$ ]>
     {*}
 }
 
 token pod_abbreviated_block {
     ^^ '=' <block_type> <.ws>
-    .*?
+    $<body>=(.*?):!
     <.before \n ^^ [ '=' | \h* $$ ]>
 }
 

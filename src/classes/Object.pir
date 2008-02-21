@@ -328,10 +328,8 @@ Print the object
 =cut
 
 .sub 'say' :method
-    .local pmc item
-    item = self
-    print item
-    print "\n"
+    $P0 = get_hll_global 'say'
+    .return $P0(self)
 .end
 
 =back

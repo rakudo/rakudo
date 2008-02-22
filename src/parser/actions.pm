@@ -488,15 +488,12 @@ method postcircumfix($/, $key) {
                               );
     }
     elsif $key eq '< >' {
-        # XXX Need to split this for the list case rather than the
-        # key case.
-        $past := PAST::Var.new(
-            PAST::Val.new( :value(~$<anglewords>) ),
-            :scope('keyed'),
-            :vivibase('Hash'),
-            :viviself('Undef'),
-            :node( $/ )
-        );
+        $past := PAST::Var.new( $( $<quote_expression> ),
+                                :scope('keyed'),
+                                :vivibase('Hash'),
+                                :viviself('Undef'),
+                                :node( $/ )
+                              );
     }
     else
     {

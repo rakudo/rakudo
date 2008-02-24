@@ -30,6 +30,47 @@ Return the elements of the list joined by spaces.
     .return ($S0)
 .end
 
+=item ACCEPTS(topic)
+
+=cut
+
+.sub 'ACCEPTS' :method
+    .param pmc topic
+    .local int i
+
+    .local string what
+    what = topic.'WHAT'()
+    if what == "List" goto acc_list
+    goto no_match
+
+acc_list:
+    # Smartmatch against another list. Smartmatch each
+    # element.
+    .local int count_1, count_2
+    count_1 = elements self
+    count_2 = elements topic
+    if count_1 != count_2 goto no_match
+    i = 0
+list_cmp_loop:
+    if i >= count_1 goto list_cmp_loop_end
+    .local pmc elem_1, elem_2
+    elem_1 = self[i]
+    elem_2 = topic[i]
+    ($I0) = elem_1.ACCEPTS(elem_2)
+    unless $I0 goto no_match
+    inc i
+    goto list_cmp_loop
+list_cmp_loop_end:
+    goto match
+
+no_match:
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return($P0)
+match:
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return($P0)
+.end
+
 
 =item elems()
 

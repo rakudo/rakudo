@@ -779,13 +779,14 @@ method scope_declarator($/) {
     my $name := $past.name();
     our $?BLOCK;
     unless $?BLOCK.symbol($name) {
-        $past.isdecl(1);
         my $scope := 'lexical';
         my $declarator := $<declarator>;
         if $declarator eq 'my' {
+            $past.isdecl(1);
         }
         elsif $declarator eq 'our' {
             $scope := 'package';
+            $past.isdecl(1);
         }
         elsif $declarator eq 'has' {
             # Set that it's attribute scope.
@@ -888,11 +889,6 @@ method variable($/, $key) {
         ));
     }
     else {
-        # Set how it vivifies.
-        my $viviself := 'Undef';
-        if $<sigil> eq '@' { $viviself := 'List'; }
-        if $<sigil> eq '%' { $viviself := 'Hash'; }
-
         # Handle naming.
         my @ident := $<name><ident>;
         my $name;
@@ -902,36 +898,54 @@ method variable($/, $key) {
         PIR q<  $P1 = pop $P0            >;
         PIR q<  store_lex '$name', $P1   >;
 
-        # ! twigil should be kept in the name.
-        if $<twigil>[0] eq '!' { $name := '!' ~ ~$name; }
-
-        # All but subs should keep their sigils.
-        my $sigil := '';
-        if $<sigil> ne '&' {
-            $sigil := ~$<sigil>;
+        # If it's $.x, it's a method call, not a variable.
+        if $<twigil>[0] eq '.' {
+            $past := PAST::Op.new(
+                :node($/),
+                :pasttype('callmethod'),
+                :name($name),
+                PAST::Op.new(
+                    :inline('%r = self')
+                )
+            );
         }
+        else {
+            # Variable. Set how it vivifies.
+            my $viviself := 'Undef';
+            if $<sigil> eq '@' { $viviself := 'List'; }
+            if $<sigil> eq '%' { $viviself := 'Hash'; }
 
-        # If we have no twigil, but we see the name noted as an attribute in
-        # an enclosing scope, add the ! twigil anyway; it's an alias.
-        if $<twigil>[0] eq '' {
-            our @?BLOCK;
-            for @?BLOCK {
-                if defined( $_ ) {
-                    my $sym_table := $_.symbol($sigil ~ $name);
-                    if defined( $sym_table ) && $sym_table<scope> eq 'attribute' {
-                        $name := '!' ~ $name;
+            # ! twigil should be kept in the name.
+            if $<twigil>[0] eq '!' { $name := '!' ~ ~$name; }
+
+            # All but subs should keep their sigils.
+            my $sigil := '';
+            if $<sigil> ne '&' {
+                $sigil := ~$<sigil>;
+            }
+
+            # If we have no twigil, but we see the name noted as an attribute in
+            # an enclosing scope, add the ! twigil anyway; it's an alias.
+            if $<twigil>[0] eq '' {
+                our @?BLOCK;
+                for @?BLOCK {
+                    if defined( $_ ) {
+                        my $sym_table := $_.symbol($sigil ~ $name);
+                        if defined( $sym_table ) && $sym_table<scope> eq 'attribute' {
+                            $name := '!' ~ $name;
+                        }
                     }
                 }
             }
-        }
-
-        $past := PAST::Var.new( :name( $sigil ~ $name ),
-                                :viviself($viviself),
-                                :node($/)
-                              );
-        if @ident || $<twigil>[0] eq '*' {
-            $past.namespace(@ident);
-            $past.scope('package');
+        
+            $past := PAST::Var.new( :name( $sigil ~ $name ),
+                                    :viviself($viviself),
+                                    :node($/)
+                                  );
+            if @ident || $<twigil>[0] eq '*' {
+                $past.namespace(@ident);
+                $past.scope('package');
+            }
         }
     }
     make $past;

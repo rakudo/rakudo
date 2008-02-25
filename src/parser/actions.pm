@@ -428,10 +428,30 @@ method term($/, $key) {
     my $past := $( $/{$key} );
     if $<postfix> {
         for $<postfix> {
-            # Check if it's a call; if so, need special handling.
             my $term := $past;
             $past := $($_);
-            $past.unshift($term);
+
+            # Check if it's an indirect call.
+            if $_<methodop><variable> {
+                # What to call supplied; need to put the invocant second.
+                my $meth := $past[0];
+                $past[0] := $term;
+                $past.unshift($meth);
+            }
+            elsif $_<methodop><quote> {
+                # First child is something that we evaluate to get the
+                # name. Replace it with PIR to call find_method on it.
+                my $meth_name := $past[0];
+                $past[0] := $term;
+                $past.unshift( PAST::Op.new(
+                    :inline("$S1000 = %1\n%r = find_method %0, $S1000\n"),
+                    $term,
+                    $meth_name
+                ));
+            }
+            else {
+                $past.unshift($term);
+            }
         }
     }
     make $past;
@@ -448,15 +468,26 @@ method postfix($/, $key) {
 
 method methodop($/, $key) {
     my $past;
+    
     if ($key eq 'null') {
         $past := PAST::Op.new();
     }
     else {
         $past := $( $/{$key} );
     }
-    $past.name(~$<ident>);
     $past.pasttype('callmethod');
     $past.node($/);
+
+    if $<ident> {
+        $past.name(~$<ident>);
+    }
+    elsif $<variable> {
+        $past.unshift( $( $<variable> ) );
+    }
+    else {
+        $past.unshift( $( $<quote> ) );
+    }
+    
     make $past;
 }
 

@@ -403,7 +403,13 @@ token postfix {
 
 
 token methodop {
-    '.' <ident>
+    '.'
+    [
+    | <ident>
+    | <?before '$' | '@' > <variable>
+    | <?before <[ ' " ]>> <quote>
+#        { $<quote> ~~ /\W/ or .panic("Useless use of quotes") }
+    ]
     [
     | <.unsp>? '(' <semilist> ')' {*}            #= semilist
     | ':' <?before \s> <arglist> {*}             #= arglist

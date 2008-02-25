@@ -87,8 +87,7 @@ token unsp {
 token unv {
     || \h+
     || ^^ <.pod_comment>
-    ##  if '#' is followed by '?perl6:', then it's a compiler_directive
-    || '#' <!before '?perl6:'> \N*
+    || '#' \N*
 }
 
 ##  The <afterws> rule returns true if we're immediate after

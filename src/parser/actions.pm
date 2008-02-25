@@ -457,10 +457,6 @@ method term($/, $key) {
     make $past;
 }
 
-method compiler_directive($/) {
-    make $( $<term> );
-}
-
 
 method postfix($/, $key) {
     make $( $/{$key} );

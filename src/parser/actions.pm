@@ -549,6 +549,15 @@ method noun($/, $key) {
             )
         );
     }
+    elsif $key eq 'methodop' {
+        # Call on $_.
+        $past := $( $/{$key} );
+        $past.unshift(PAST::Var.new(
+            :name('$_'),
+            :scope('lexical'),
+            :node($/)
+        ));
+    }
     else {
         $past := $( $/{$key} );
     }

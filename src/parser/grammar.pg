@@ -436,6 +436,7 @@ token noun {
     | <circumfix> {*}                            #= circumfix
     | <variable> {*}                             #= variable
     | <subcall> {*}                              #= subcall
+    | <methodop> {*}                             #= methodop
     | <value> {*}                                #= value
     | <statement_prefix> {*}                     #= statement_prefix
     | <regex_declarator> {*}                     #= regex_declarator

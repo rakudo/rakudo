@@ -235,9 +235,12 @@ method pblock($/) {
         $?BLOCK_SIGNATURED :=
             PAST::Block.new(
                 PAST::Stmts.new(
-                    PAST::Var.new( :name('$_'), :scope('parameter') )
+                    PAST::Var.new(
+                        :name('$_'),
+                        :scope('parameter'),
+                        :viviself('Undef')
+                    )
                 ),
-                :blocktype('declaration'),
                 :node( $/ )
             );
         $?BLOCK_SIGNATURED.symbol( '$_', :scope('lexical') );
@@ -961,7 +964,7 @@ method circumfix($/, $key) {
         $past := $( $<statementlist> );
     }
     elsif ($key eq '{ }') {
-        $past := $( $<block> );
+        $past := $( $<pblock> );
     }
     make $past;
 }

@@ -488,7 +488,7 @@ rule scope_declarator {
 token circumfix {
     | '(' <statementlist> ')' {*}                #= ( )
     | '[' <statementlist> ']' {*}                #= [ ]
-    | <block> {*}                                #= { }
+    | <?before '{' | <lambda> > <pblock> {*}     #= { }
 }
 
 token variable {

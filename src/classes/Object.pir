@@ -389,6 +389,17 @@ is just itself.
     .return (self)
 .end
 
+=item ACCEPTS(topic)
+
+=cut
+
+.sub 'ACCEPTS' :method
+    .param pmc topic
+    $P0 = self.'HOW'()
+    $I0 = isa topic, $P0
+    .return 'prefix:?'($I0)
+.end
+
 =back
 
 =cut

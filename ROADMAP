@@ -79,8 +79,8 @@ parsed procedurally than with regular expressions.
 
 The AST transformation uses another tool called the Tree
 Grammar Engine (TGE) to convert a parse tree into an
-abstract syntax tree representation known as PAST-pm.  The
-PAST-pm toolchain is then able to perform the remainder of
+abstract syntax tree representation known as PAST.  The
+PCT toolchain is then able to perform the remainder of
 the code generation and execute the program.
 
 The runtime support consists of some basic types and operators,

@@ -181,8 +181,9 @@ Internal helper method to create a role.
     # Create role.
     role = new 'Role', info
 
-    # XXX s/root/hll/ when we start using .HLL
-    set_root_global name, role
+    # Stash in namespace.
+    $P0 = new 'ResizableStringArray'
+    set_hll_global $P0, name, role
 
     .return(role)
 .end
@@ -197,8 +198,7 @@ Internal helper method to implement the functionality of the does keyword.
     .param pmc class
     .param string role_name
     .local pmc role
-    # XXX s/root/hll/ when we start using .HLL
-    role = get_root_global role_name
+    role = get_hll_global role_name
     addrole class, role
 .end
 
@@ -396,7 +396,7 @@ is just itself.
 .sub 'ACCEPTS' :method
     .param pmc topic
     $P0 = self.'HOW'()
-    $I0 = isa topic, $P0
+    $I0 = does topic, $P0
     .return 'prefix:?'($I0)
 .end
 

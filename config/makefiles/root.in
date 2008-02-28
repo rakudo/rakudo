@@ -50,6 +50,7 @@ BUILTINS_PIR = \
   src/classes/Junction.pir \
   src/classes/Undef.pir \
   src/classes/Role.pir \
+  src/classes/Pair.pir \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
   src/builtins/control.pir \

@@ -1217,6 +1217,79 @@ method regex_declarator_rule($/) {
 }
 
 
+method fatarrow($/) {
+    my $key := PAST::Val.new( :value(~$<key>) );
+    my $val := $( $<val> );
+    my $past := PAST::Op.new(
+        :node($/),
+        :inline("   %0[%1] = %2\n" ~
+                "   %r = %0\n"),
+        :returns('Pair'),
+        PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('new'),
+            PAST::Var.new(
+                :name('Pair'),
+                :scope('package')
+            )
+        ),
+        $key,
+        $val
+    );
+    make $past;
+}
+
+
+method colonpair($/, $key) {
+    my $pair_key;
+    my $pair_val;
+
+    if $key eq 'false' {
+        my $pair_key := PAST::Val.new( :value(~$<key>) );
+        $pair_val := PAST::Var.new(
+            :name('False'),
+            :namespace('Bool'),
+            :scope('package')
+        );
+    }
+    elsif $key eq 'value' {
+        my $pair_key := PAST::Val.new( :value(~$<key>) );
+        if $<postcircumfix> {
+            # XXX TODO
+            $/.panic('postcircumfix on colonpair not yet implemented');
+        }
+        else {
+            $pair_val := PAST::Var.new(
+                :name('True'),
+                :namespace('Bool'),
+                :scope('package')
+            );
+        }
+    }
+    else {
+        $/.panic($key ~ " pairs not yet implemented.");
+    }
+
+    my $past := PAST::Op.new(
+        :node($/),
+        :inline("   %0[%1] = %2\n" ~
+                "   %r = %0\n"),
+        :returns('Pair'),
+        PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('new'),
+            PAST::Var.new(
+                :name('Pair'),
+                :scope('package')
+            )
+        ),
+        $pair_key,
+        $pair_val
+    );
+    make $past;
+}
+
+
 # Local Variables:
 #   mode: cperl
 #   cperl-indent-level: 4

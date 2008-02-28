@@ -440,6 +440,8 @@ token noun {
     | <value> {*}                                #= value
     | <statement_prefix> {*}                     #= statement_prefix
     | <regex_declarator> {*}                     #= regex_declarator
+    | <colonpair> {*}                            #= colonpair
+    | <fatarrow> {*}                             #= fatarrow
     | 'self' {*}                                 #= self
     | 'undef' {*}                                #= undef
 }
@@ -645,6 +647,21 @@ token listop {
 token arglist {
     <EXPR>   # FIXME: need to parse only to list prefix priority
     {*}
+}
+
+token fatarrow {
+    $<key>=<ident> \h* '=>' $<val>=<EXPR> # XXX should be EXPR(%item_assignment)
+    {*}
+}
+
+token colonpair {
+    ':'
+    [
+    | '!' <ident>                                        {*}    #= false
+    | <ident> [ <.unsp>? <postcircumfix> ]?              {*}    #= value
+    | <postcircumfix>                                    {*}    #= structural
+    | <sigil> <twigil>? <desigilname>                    {*}    #= varname
+    ]
 }
 
 #### expressions and operators ####

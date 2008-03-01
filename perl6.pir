@@ -16,7 +16,7 @@ and registers the compiler under the name 'Perl6'.
 
 =item onload()
 
-Creates the Perl6 compiler by subclassing a C<PCT::HLLCompiler> object.
+Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
 
 =cut
 
@@ -71,7 +71,9 @@ USAGE
     $P0  = new 'String'
     $P0  = 'This is Rakudo Perl 6'
     push_eh _handler
-    cfg  = _config()    # currently works in the build tree, but not in the install tree
+
+    # currently works in the build tree, but not in the install tree
+    cfg  = _config()
     $P0 .= ', revision '
     $S0  = cfg['revision']
     $P0 .= $S0
@@ -142,7 +144,7 @@ to ensure C<BEGIN> and C<CHECK> blocks have been executed.
 =item main(args :slurpy)  :main
 
 Start compilation by passing any command line C<args>
-to the Perl6 compiler.
+to the Perl 6 compiler.
 
 =cut
 

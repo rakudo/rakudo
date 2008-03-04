@@ -455,6 +455,10 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .return(res)
 .end
 
+=item grep(...)
+
+=cut
+
 .sub grep :method
     .param pmc test
     .local pmc retv
@@ -485,6 +489,46 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
   next:	
     inc i
     goto loop
+    
+  done:	
+    .return(retv)
+.end
+
+=item first(...)
+
+=cut
+
+.sub first :method
+    .param pmc test
+    .local pmc retv
+    .local pmc block
+    .local pmc block_res
+    .local pmc block_arg
+    .local int narg
+    .local int i
+
+    narg = elements self
+    i = 0
+       
+  loop:
+    if i == narg goto nomatch
+    block_arg = self[i]
+
+    newclosure block, test
+    block_res = block(block_arg)
+
+    if block_res goto matched
+
+    inc i
+    goto loop
+
+  matched:
+    retv = block_arg
+    goto done
+
+  nomatch:
+    retv = new 'Undef'
+    goto done
     
   done:	
     .return(retv)
@@ -856,7 +900,14 @@ Returns the elements of LIST in the opposite order.
     .return list.'grep'(test)
 .end
 
-## TODO: grep join map reduce sort zip
+.sub first :multi(_,'List')
+    .param pmc test
+    .param pmc list :slurpy
+
+    .return list.'first'(test)
+.end
+
+## TODO: join map reduce sort zip
 
 =back
 

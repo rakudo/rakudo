@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2007, The Perl Foundation.
+Copyright (C) 2007-2008, The Perl Foundation.
 
 =head1 NAME
 
@@ -8,8 +8,7 @@ src/pmc/perl6bool.pmc - Perl 6 Booleans
 
 =head1 DESCRIPTION
 
-C<Perl6Bool> extends C<Boolean> to provide Perl6-specific
-boolean behavior.
+C<Perl6Bool> extends C<Boolean> to provide Perl 6-specific boolean behavior.
 
 =head2 Methods
 
@@ -20,12 +19,12 @@ boolean behavior.
 */
 
 pmclass Perl6Bool
-    extends Boolean
-    does boolean
+    extends  Boolean
+    provides boolean
     dynpmc
-    group perl6_group
-    hll Perl6
-    maps Boolean {
+    group    perl6_group
+    hll      Perl6
+    maps     Boolean {
 
     STRING* get_string() {
         PMC * const class = GET_CLASS(SELF);
@@ -33,7 +32,6 @@ pmclass Perl6Bool
             return string_from_cstring(INTERP, "Bool", 4);
         return SUPER();
     }
-
 }
 
 /*

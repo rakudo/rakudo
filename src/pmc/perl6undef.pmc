@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2001-2006, The Perl Foundation.
+Copyright (C) 2001-2008, The Perl Foundation.
 
 =head1 NAME
 
@@ -8,8 +8,7 @@ src/pmc/perl6undef.pmc - Perl 6 Undef
 
 =head1 DESCRIPTION
 
-C<Perl6Undef> extends C<Undef> to provide Perl6-specific
-undef behavior.
+C<Perl6Undef> extends C<Undef> to provide Perl 6-specific undef behavior.
 
 =head2 Methods
 
@@ -26,9 +25,9 @@ undef behavior.
 pmclass Perl6Undef
     extends Undef
     dynpmc
-    group perl6_group
-    hll Perl6
-    maps Undef {
+    group   perl6_group
+    hll     Perl6
+    maps    Undef {
 
     STRING* get_string() {
         PMC * const class = GET_CLASS(SELF);

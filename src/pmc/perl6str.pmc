@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2001-2006, The Perl Foundation.
+Copyright (C) 2001-2008, The Perl Foundation.
 
 =head1 NAME
 
@@ -8,8 +8,8 @@ src/pmc/perl6str.pmc - Perl 6 Strings
 
 =head1 DESCRIPTION
 
-C<Perl6Str> extends C<String> to provide Perl6-specific
-string numifying behavior.
+C<Perl6Str> extends C<String> to provide Perl 6-specific string numifying
+behavior.
 
 =head2 Methods
 
@@ -24,12 +24,12 @@ string numifying behavior.
 #include <math.h>
 
 pmclass Perl6Str
-    extends String
-    does string
+    extends  String
+    provides string
     dynpmc
-    group perl6_group
-    hll Perl6
-    maps String {
+    group    perl6_group
+    hll      Perl6
+    maps     String {
 
 /*
 
@@ -43,7 +43,7 @@ we just call C<get_number()> and return that as an integer.
 */
 
     INTVAL get_integer() {
-        FLOATVAL f = DYNSELF.get_number();
+        FLOATVAL f = SELF.get_number();
         return (INTVAL)f;
     }
 

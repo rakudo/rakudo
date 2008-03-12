@@ -31,7 +31,6 @@ symbols for C<Bool::True> and C<Bool::False>.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
-    say "foo"
     .return (self)
 .end
 

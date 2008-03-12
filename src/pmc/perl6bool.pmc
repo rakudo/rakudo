@@ -32,7 +32,16 @@ pmclass Perl6Bool
             return string_from_cstring(INTERP, "Bool", 4);
         return SUPER();
     }
+
+    VTABLE void increment() {
+        SELF.set_bool(1);
+    }
+
+    VTABLE void decrement() {
+        SELF.set_bool(0);
+    }
 }
+
 
 /*
 

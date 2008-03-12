@@ -16,7 +16,8 @@ symbols for C<Bool::True> and C<Bool::False>.
 .sub 'onload' :anon :init :load
     .local pmc protoobject
     $P0 = get_hll_global ['Perl6Object'], 'make_proto'
-    protoobject = $P0('Boolean', 'Bool')
+#    protoobject = $P0('Boolean', 'Bool')
+    protoobject = $P0('Perl6Bool', 'Bool')
 
     $P0 = protoobject.'new'()
     $P0 = 0
@@ -30,6 +31,7 @@ symbols for C<Bool::True> and C<Bool::False>.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
+    say "foo"
     .return (self)
 .end
 

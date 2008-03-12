@@ -64,8 +64,8 @@ BUILTINS_PIR = \
   src/builtins/range.pir \
   src/builtins/traits.pir \
 
-PMCS        = perl6str
-PMC_SOURCES = $(PMC_DIR)/perl6str.pmc
+PMCS        = perl6str perl6bool
+PMC_SOURCES = $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/perl6bool.pmc
 PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)
 
 # targets for building a standalone perl6.

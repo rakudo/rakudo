@@ -126,7 +126,7 @@ Returns a List containing the keys of the List.
   loop:
     if i == len goto done
 
-    elem = new Integer
+    elem = new 'Integer'
     elem = i
     res.'push'(elem)
 
@@ -156,7 +156,7 @@ Returns a List containing the values of the List.
   loop:
     if i == len goto done
 
-    elem = new Integer
+    elem = new 'Integer'
     elem = self[i]
     res.'push'(elem)
 
@@ -405,7 +405,7 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
   loop:
     if i == len goto done
 
-    elem = new Integer
+    elem = new 'Integer'
     elem = i
     res.'push'(elem)
 

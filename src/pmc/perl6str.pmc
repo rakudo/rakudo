@@ -214,7 +214,8 @@ C<isdigit()> respectively.
                     substr[i] = '0';
                     carry = 1;
                 }
-            } else {
+            }
+            else {
                 if (isalpha(++substr[i])) {
                     carry = 0;
                 }
@@ -285,7 +286,8 @@ C<isdigit()> respectively.
                     substr[i] = '9';
                     steal = 1;
                 }
-            } else {
+            }
+            else {
                 if (isalpha(--substr[i])) {
                     steal = 0;
                 }

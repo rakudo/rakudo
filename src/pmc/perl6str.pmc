@@ -225,7 +225,7 @@ C<isdigit()> respectively.
             }
         }
         /* If there's a carry, extend the string */
-        if (carry) {
+        if (carry && len > 0) {
             INTVAL a = substr - start;    /* start index of incrementable portion */
             INTVAL b = str->strlen - a;   /* length to end of string */
             STRING* rep = string_substr(INTERP, str, a, b, NULL, 0);

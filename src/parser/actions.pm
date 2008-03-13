@@ -467,7 +467,7 @@ method postfix($/, $key) {
 
 method methodop($/, $key) {
     my $past;
-    
+
     if ($key eq 'null') {
         $past := PAST::Op.new();
     }
@@ -486,7 +486,7 @@ method methodop($/, $key) {
     else {
         $past.unshift( $( $<quote> ) );
     }
-    
+
     make $past;
 }
 
@@ -949,7 +949,7 @@ method variable($/, $key) {
                     }
                 }
             }
-        
+
             $past := PAST::Var.new( :name( $sigil ~ $name ),
                                     :viviself($viviself),
                                     :node($/)

@@ -62,69 +62,100 @@ digits.
 */
 
     FLOATVAL get_number() {
-        STRING *s = (STRING*) PMC_str_val(SELF);
-        FLOATVAL sign = 1.0;
-        FLOATVAL f = 0.0;
+        STRING   *s    = (STRING *)PMC_str_val(SELF);
+        FLOATVAL  sign = 1.0;
+        FLOATVAL  f    = 0.0;
 
         if (s) {
-            const char *s1 = s->strstart;
+            const char *s1         = s->strstart;
             const char * const end = s1 + s->bufused;
 
             /* skip leading whitespace */
-            while (s1 < end && isspace((unsigned char)*s1)) s1++;
+            while (s1 < end && isspace((unsigned char)*s1))
+                s1++;
 
             /* handle leading +,- */
-            if (s1 < end && *s1 == '+') s1++;
-            else if (s1 < end && *s1 == '-') { sign = -1.0; s1++; }
+            if (s1 < end && *s1 == '+')
+                s1++;
+            else if (s1 < end && *s1 == '-') {
+                sign = -1.0; s1++;
+            }
 
             /* handle 0x, 0o, 0d, 0b radix */
             if (s1 < end && *s1 == '0') {
                 s1++;
-                if (s1 >= end) return f;
+
+                if (s1 >= end)
+                    return f;
+
                 switch (*s1) {
-                    case 'x': case 'X':
+                    case 'x':
+                    case 'X':
                         s1++;
                         while (s1 < end && isxdigit((unsigned char)*s1)) {
                             f *= 16;
-                            if (isdigit((unsigned char)*s1)) f += (*s1) - '0';
-                            else f += tolower((unsigned char)*s1) - 'a' + 10;
+                            if (isdigit((unsigned char)*s1))
+                                f += (*s1) - '0';
+                            else
+                                f += tolower((unsigned char)*s1) - 'a' + 10;
+
                             s1++;
-                            if (s1 < end && *s1 == '_') s1++;
+
+                            if (s1 < end && *s1 == '_')
+                                s1++;
                         }
                         return sign * f;
-                    case 'd': case 'D':
+                    case 'd':
+                    case 'D':
                         s1++;
                         while (s1 < end && isdigit((unsigned char)*s1)) {
                             f = f * 10 + (*s1) - '0';
                             s1++;
-                            if (s1 < end && *s1 == '_') s1++;
+
+                            if (s1 < end && *s1 == '_')
+                                s1++;
                         }
+
                         return sign * f;
-                    case 'o': case 'O':
+                    case 'o':
+                    case 'O':
                         s1++;
-                        while (s1 < end && isdigit((unsigned char)*s1) && *s1 <= '7') {
+                        while (s1 < end && isdigit((unsigned char)*s1)
+                                        && *s1 <= '7') {
                             f = f * 8 + (*s1) - '0';
+
                             s1++;
-                            if (s1 < end && *s1 == '_') s1++;
+
+                            if (s1 < end && *s1 == '_')
+                                s1++;
                         }
+
                         return sign * f;
-                    case 'b': case 'B':
+                    case 'b':
+                    case 'B':
                         s1++;
                         while (s1 < end && (*s1 == '0' || *s1 == '1')) {
                             f = f * 2 + (*s1) - '0';
                             s1++;
-                            if (s1 < end && *s1 == '_') s1++;
+
+                            if (s1 < end && *s1 == '_')
+                                s1++;
                         }
+
                         return sign * f;
                 }
-                if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1))) s1++;
+                if (s1 < end && *s1 == '_'
+                && isdigit((unsigned char)*(s1+1)))
+                    s1++;
             }
 
             /* handle integer part */
             while (s1 < end && isdigit((unsigned char)*s1)) {
                 f = f * 10 + (*s1) - '0';
                 s1++;
-                if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1))) s1++;
+
+                if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1)))
+                    s1++;
             }
 
             /* handle floating point part */
@@ -133,24 +164,35 @@ digits.
                 s1++;
                 while (s1 < end && isdigit((unsigned char)*s1)) {
                     frac /= 10;
-                    f = f + ((*s1) - '0') * frac;
+                    f    += ((*s1) - '0') * frac;
                     s1++;
-                    if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1))) s1++;
+                    if (s1 < end && *s1 == '_'
+                    && isdigit((unsigned char)*(s1+1)))
+                        s1++;
                 }
             }
 
             /* handle exponential part */
             if (s1 < end && (*s1 == 'e' || *s1 == 'E')) {
-                INTVAL exp_val = 0;
+                INTVAL exp_val  = 0;
                 INTVAL exp_sign = 1;
                 s1++;
-                if (s1 < end && *s1 == '+') s1++;
-                else if (s1 < end && *s1 == '-') { exp_sign = -1; s1++; }
+
+                if (s1 < end && *s1 == '+')
+                    s1++;
+                else if (s1 < end && *s1 == '-') {
+                    exp_sign = -1; s1++;
+                }
+
                 while (s1 < end && isdigit((unsigned char)*s1)) {
                     exp_val = exp_val * 10 + *s1 - '0';
                     s1++;
-                    if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1))) s1++;
+
+                    if (s1 < end && *s1 == '_'
+                    &&  isdigit((unsigned char)*(s1+1)))
+                        s1++;
                 }
+
                 return sign * f * pow(10.0, exp_val * exp_sign);
             }
         }
@@ -174,45 +216,67 @@ C<isdigit()> respectively.
 */
 
     VTABLE void increment() {
-        STRING* str = PMC_str_val(SELF);
-        const char *start = str->strstart;
-        const char* const end = start + string_length(INTERP, str);
+        STRING     *str        = PMC_str_val(SELF);
+        const char *start      = str->strstart;
+        const char * const end = start + string_length(INTERP, str);
 
-        char* substr;   /* pointer to the substring we're going to increment */
-        INTVAL len;     /* length of the substring */
+        /* pointer to the substring we're going to increment */
+        char       *substr;
+
+        /* length of the substring */
+        INTVAL      len;
+
         INTVAL i, carry;
 
-        const char* s = start;      /* start of the current incrementable substring */
-        const char* e = start;      /* end of the current incrementable substring */
-        const char* ps = 0;         /* start of the previous incrementable substring */
-        const char* pe = 0;         /* end of the previous incrementable substring */
+        /* start of the current incrementable substring */
+        const char *s = start;
+
+        /* end of the current incrementable substring */
+        const char *e = start;
+
+        /* start of the previous incrementable substring */
+        const char *ps = 0;
+
+        /* end of the previous incrementable substring */
+        const char *pe = 0;
 
         /* find the portion of the string to increment */
         while (s < end) {
-            while (!isalnum((unsigned char)*s) && s < end) s++;
+            while (!isalnum((unsigned char)*s) && s < end)
+                s++;
+
             e = s;
-            while (isalnum((unsigned char)*e) && e < end) e++;
-            if (!(e < end))  break;
-            ps = s; pe = e; s = e;
+
+            while (isalnum((unsigned char)*e) && e < end)
+                e++;
+
+            if (!(e < end))
+                break;
+
+            ps = s;
+            pe = e;
+            s = e;
         }
+
         if (ps == 0 || *pe != '.') {
-            len = e - s;
+            len    = e - s;
             substr = (char *)s;
         }
         else {
-            len = pe - ps;
+            len    = pe - ps;
             substr = (char*)ps;
         }
 
         /* Actual increment */
-        for (i = len-1, carry = 1; i >= 0 && carry; i--) {
+        for (i = len - 1, carry = 1; i >= 0 && carry; i--) {
             if (isdigit((unsigned char)substr[i])) {
+
                 if (++substr[i] <= '9') {
                     carry = 0;
                 }
                 else {
                     substr[i] = '0';
-                    carry = 1;
+                    carry     = 1;
                 }
             }
             else {
@@ -221,70 +285,101 @@ C<isdigit()> respectively.
                 }
                 else {
                     substr[i] -= 'z' - 'a' + 1;
-                    carry = 1;
+                    carry      = 1;
                 }
             }
         }
+
         /* If there's a carry, extend the string */
         if (carry && len > 0) {
-            INTVAL a = substr - start;    /* start index of incrementable portion */
-            INTVAL b = str->strlen - a;   /* length to end of string */
-            STRING* rep = string_substr(INTERP, str, a, b, NULL, 0);
-            INTVAL c = '1';
-            if (isalpha((unsigned char)start[a])) c = start[a];
-            string_replace(INTERP, str, a+1, b, rep, 0);
+            /* start index of incrementable portion */
+            INTVAL a = substr - start;
+
+            /* length to end of string */
+            INTVAL b = str->strlen - a;
+
+            STRING *rep = string_substr(INTERP, str, a, b, NULL, 0);
+            INTVAL  c   = '1';
+
+            if (isalpha((unsigned char)start[a]))
+                c = start[a];
+
+            string_replace(INTERP, str, a + 1, b, rep, 0);
             string_replace(INTERP, str, a, 1, string_chr(INTERP, c), 0);
         }
-
     }
 
 
     VTABLE void decrement() {
-        STRING* str = PMC_str_val(SELF);
-        const char *start = str->strstart;
-        const char* const end = start + string_length(INTERP, str);
+        STRING     *str        = PMC_str_val(SELF);
+        const char *start      = str->strstart;
+        const char * const end = start + string_length(INTERP, str);
 
-        char* substr;    /* pointer to the substring we're going to decrement */
-        INTVAL len;      /* length of the substring */
+        /* pointer to the substring we're going to decrement */
+        char *substr;
+
+        /* length of the substring */
+        INTVAL len;
+
         INTVAL i, steal;
 
-        const char* s = start;      /* start of the current decrementable substring */
-        const char* e = start;      /* end of the current decrementable substring */
-        const char* ps = 0;         /* start of the previous decrementable substring */
-        const char* pe = 0;         /* end of the previous decrementable substring */
+        /* start of the current decrementable substring */
+        const char *s = start;
+
+        /* end of the current decrementable substring */
+        const char *e = start;
+
+        /* start of the previous decrementable substring */
+        const char *ps = 0;
+
+        /* end of the previous decrementable substring */
+        const char *pe = 0;
 
         /* Find the portion of the string to decrement */
         while (s < end) {
-            while (!isalnum((unsigned char)*s) && s < end) s++;
+            while (!isalnum((unsigned char)*s) && s < end)
+                s++;
+
             e = s;
-            while (isalnum((unsigned char)*e) && e < end) e++;
-            if (!(e < end))  break;
-            ps = s; pe = e; s = e;
+
+            while (isalnum((unsigned char)*e) && e < end)
+                e++;
+
+            if (!(e < end))
+                break;
+
+            ps = s;
+            pe = e;
+            s = e;
         }
+
         if (ps == 0 || *pe != '.') {
-            len = e - s;
+            len    = e - s;
             substr = (char *)s;
         }
         else {
-            len = pe - ps;
-            substr = (char*)ps;
+            len    = pe - ps;
+            substr = (char *)ps;
         }
 
         /* Check if we've bottomed out on decrementing */
         for (i = 0; i < len; i++) {
-            if (substr[i] != 'a' && substr[i] != 'A' && substr[i] != '0') break;
+            if (substr[i] != 'a' && substr[i] != 'A' && substr[i] != '0')
+                break;
         }
-        if (i == len) return;
+
+        if (i == len)
+            return;
 
         /* Actual decrement */
-        for (i = len-1, steal = 1; i >= 0 && steal; i--) {
+        for (i = len - 1, steal = 1; i >= 0 && steal; i--) {
             if (isdigit((unsigned char)substr[i])) {
                 if (--substr[i] >= '0') {
                     steal = 0;
                 }
                 else {
                     substr[i] = '9';
-                    steal = 1;
+                    steal     = 1;
                 }
             }
             else {
@@ -293,7 +388,7 @@ C<isdigit()> respectively.
                 }
                 else {
                     substr[i] += 'z' - 'a' + 1;
-                    steal = 1;
+                    steal      = 1;
                 }
             }
         }

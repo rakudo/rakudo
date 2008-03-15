@@ -84,7 +84,7 @@ digits.
                 switch (*s1) {
                     case 'x': case 'X':
                         s1++;
-                        while (s1 < end && isxdigit(*s1)) {
+                        while (s1 < end && isxdigit((unsigned char)*s1)) {
                             f *= 16;
                             if (isdigit((unsigned char)*s1)) f += (*s1) - '0';
                             else f += tolower((unsigned char)*s1) - 'a' + 10;
@@ -189,9 +189,9 @@ C<isdigit()> respectively.
 
         /* find the portion of the string to increment */
         while (s < end) {
-            while (!isalnum(*s) && s < end) s++;
+            while (!isalnum((unsigned char)*s) && s < end) s++;
             e = s;
-            while (isalnum(*e) && e < end) e++;
+            while (isalnum((unsigned char)*e) && e < end) e++;
             if (!(e < end))  break;
             ps = s; pe = e; s = e;
         }
@@ -206,7 +206,7 @@ C<isdigit()> respectively.
 
         /* Actual increment */
         for (i = len-1, carry = 1; i >= 0 && carry; i--) {
-            if (isdigit(substr[i])) {
+            if (isdigit((unsigned char)substr[i])) {
                 if (++substr[i] <= '9') {
                     carry = 0;
                 }
@@ -216,7 +216,7 @@ C<isdigit()> respectively.
                 }
             }
             else {
-                if (isalpha(++substr[i])) {
+                if (isalpha((unsigned char)++substr[i])) {
                     carry = 0;
                 }
                 else {
@@ -231,7 +231,7 @@ C<isdigit()> respectively.
             INTVAL b = str->strlen - a;   /* length to end of string */
             STRING* rep = string_substr(INTERP, str, a, b, NULL, 0);
             INTVAL c = '1';
-            if (isalpha(start[a])) c = start[a];
+            if (isalpha((unsigned char)start[a])) c = start[a];
             string_replace(INTERP, str, a+1, b, rep, 0);
             string_replace(INTERP, str, a, 1, string_chr(INTERP, c), 0);
         }
@@ -255,9 +255,9 @@ C<isdigit()> respectively.
 
         /* Find the portion of the string to decrement */
         while (s < end) {
-            while (!isalnum(*s) && s < end) s++;
+            while (!isalnum((unsigned char)*s) && s < end) s++;
             e = s;
-            while (isalnum(*e) && e < end) e++;
+            while (isalnum((unsigned char)*e) && e < end) e++;
             if (!(e < end))  break;
             ps = s; pe = e; s = e;
         }
@@ -278,7 +278,7 @@ C<isdigit()> respectively.
 
         /* Actual decrement */
         for (i = len-1, steal = 1; i >= 0 && steal; i--) {
-            if (isdigit(substr[i])) {
+            if (isdigit((unsigned char)substr[i])) {
                 if (--substr[i] >= '0') {
                     steal = 0;
                 }
@@ -288,7 +288,7 @@ C<isdigit()> respectively.
                 }
             }
             else {
-                if (isalpha(--substr[i])) {
+                if (isalpha((unsigned char)--substr[i])) {
                     steal = 0;
                 }
                 else {

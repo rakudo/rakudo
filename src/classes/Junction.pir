@@ -115,7 +115,7 @@ Builds an 'all' junction from its arguments.
 
     junc."!values"(args)
     junc."!type"(JUNCTION_TYPE_ALL)
-    
+
     .return (junc)
 .end
 
@@ -175,7 +175,7 @@ Builds a 'one' junction from its arguments.
 
     junc."!values"(args)
     junc."!type"(JUNCTION_TYPE_ONE)
-    
+
     .return (junc)
 .end
 
@@ -1319,17 +1319,17 @@ nsa:
     inc i
     goto loop
 loop_end:
-    
+
     # Build junction of results.
     .local pmc new_junc
     .local pmc new_values
     .local pmc iterator
     .local pmc type
-    
+
     new_junc = new 'Junction'
     type = j.'!type'()
     new_junc.'!type'(type)
-    
+
     new_values = new 'List'
     iterator = iter ResultHash
 nv_loop:
@@ -1339,7 +1339,7 @@ nv_loop:
     goto nv_loop
 nv_loop_end:
     new_junc.'!values'(new_values)
-    
+
     .return(new_junc)
 .end
 
@@ -1349,7 +1349,7 @@ nv_loop_end:
     .param pmc j
     .param pmc x
     .param int second_arg
-    
+
     # We need to find how many values are equal.
     .local pmc values
     .local int num_equal
@@ -1372,7 +1372,7 @@ not_sa:
     inc i
     goto loop
 end_loop:
-    
+
     # Now go by juction type.
     .local int type
     type = j.'!type'()
@@ -1431,17 +1431,17 @@ loop:
     inc i
     goto loop
 loop_end:
-    
+
     # Build junction of results.
     .local pmc new_junc
     .local pmc new_values
     .local pmc iterator
     .local pmc type
-    
+
     new_junc = new 'Junction'
     type = j.'!type'()
     new_junc.'!type'(type)
-    
+
     new_values = new 'List'
     iterator = iter ResultHash
 nv_loop:
@@ -1451,7 +1451,7 @@ nv_loop:
     goto nv_loop
 nv_loop_end:
     new_junc.'!values'(new_values)
-    
+
     .return(new_junc)
 .end
 

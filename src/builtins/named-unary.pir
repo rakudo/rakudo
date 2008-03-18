@@ -34,11 +34,11 @@ than $x.
 
 .sub 'prefix:rand'
     .param num limit
-    
+
     $P0 = new 'Random'
     $N0 = $P0
     $N0 *= limit
-    
+
     .return ($N0)
 .end
 

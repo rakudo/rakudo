@@ -362,7 +362,7 @@ sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
 acotan, sinh, cosh, tanh, asinh, acosh, atanh, sech, cosech, cotanh,
 asech, acosech, acotanh.
 
-Performs the various trigonmetric functions. 
+Performs the various trigonmetric functions.
 
 Option C<:$base> is used to declare how you measure your angles.
 Given the value of an arc representing a single full revolution.
@@ -372,7 +372,7 @@ Given the value of an arc representing a single full revolution.
  /:i ^r/	Radians  (2*pi)
  /:i ^d/	Degrees  (360)
  /:i ^g/	Gradians (400)
- Num    	Units of 1 revolution. 
+ Num    	Units of 1 revolution.
 
 Note that module currying can be used within a lexical scope to specify
 a consistent base so you don't have to supply it with every call:

@@ -141,7 +141,7 @@ Internal helper method to create a class.
 .sub '!keyword_class' :method
     .param string name
     .local pmc class, resolve_list, methods, iter
-    
+
     # Create class.
     class = newclass name
 

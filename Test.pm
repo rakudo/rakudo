@@ -99,7 +99,8 @@ sub proclaim($cond, $desc) {
 
     if ( $cond ) {
         print "ok " ~ $num_of_tests_run ~ " - ";
-    } else {
+    }
+    else {
         print "not ok " ~ $num_of_tests_run ~ " - ";
         ++$num_of_tests_failed
             unless  $num_of_tests_run <= $todo_upto_test_num;

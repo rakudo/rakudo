@@ -33,7 +33,7 @@ method statement_block($/, $key) {
     ##  when entering a block, use any $?BLOCK_SIGNATURED if it exists,
     ##  otherwise create an empty block with an empty first child to
     ##  hold any parameters we might encounter inside the block.
-    if ($key eq 'open') {
+    if $key eq 'open' {
         if $?BLOCK_SIGNATURED {
             $?BLOCK := $?BLOCK_SIGNATURED;
             $?BLOCK_SIGNATURED := 0;
@@ -63,7 +63,7 @@ method statement_block($/, $key) {
             $init.push( PAST::Var.new( :name('$!'), :isdecl(1) ) );
             $?BLOCK.symbol( '$!', :scope('lexical') ); }
     }
-    if ($key eq 'close') {
+    if $key eq 'close' {
         my $past := @?BLOCK.shift();
         $?BLOCK := @?BLOCK[0];
         $past.push($($<statementlist>));
@@ -122,12 +122,12 @@ method if_statement($/) {
                               :pasttype('if'),
                               :node( $/ )
                             );
-    if ( $<else> ) {
+    if $<else> {
         my $else := $( $<else>[0] );
         $else.blocktype('immediate');
         $past.push( $else );
     }
-    while ($count != 0) {
+    while $count != 0 {
         $count := $count - 1;
         $expr  := $( $<EXPR>[$count] );
         $then  := $( $<block>[$count] );
@@ -294,12 +294,12 @@ method statement_mod_cond($/) {
 method statement_prefix($/) {
     my $past := $($<statement>);
     my $sym := ~$<sym>;
-    if ($sym eq 'do') {
+    if $sym eq 'do' {
         # fall through, just use the statement itself
     }
     ## after the code in the try block is executed, bind $! to Undef,
     ## and set up the code to catch an exception, in case one is thrown
-    elsif ($sym eq 'try') {
+    elsif $sym eq 'try' {
         ##  Set up code to execute <statement> as a try node, and
         ##  set $! to Undef if successful.
         my $exitpir  := "    new %r, 'Undef'\n    store_lex '$!', %r";
@@ -468,7 +468,7 @@ method postfix($/, $key) {
 method methodop($/, $key) {
     my $past;
 
-    if ($key eq 'null') {
+    if $key eq 'null' {
         $past := PAST::Op.new();
     }
     else {
@@ -966,13 +966,13 @@ method variable($/, $key) {
 
 method circumfix($/, $key) {
     my $past;
-    if ($key eq '( )') {
+    if $key eq '( )' {
         $past := $( $<statementlist> );
     }
-    if ($key eq '[ ]') {
+    if $key eq '[ ]' {
         $past := $( $<statementlist> );
     }
-    elsif ($key eq '{ }') {
+    elsif $key eq '{ }' {
         $past := $( $<pblock> );
     }
     make $past;
@@ -1048,15 +1048,15 @@ method quote($/) {
 
 method quote_expression($/, $key) {
     my $past;
-    if ($key eq 'quote_regex') {
+    if $key eq 'quote_regex' {
         $past := PAST::Block.new( $<quote_regex>,
                                   :compiler('PGE::Perl6Regex'),
                                   :blocktype('declaration'),
                                   :node( $/ )
                                 )
     }
-    elsif ($key eq 'quote_concat') {
-        if ( +$<quote_concat> == 1 ) {
+    elsif $key eq 'quote_concat' {
+        if +$<quote_concat> == 1 {
             $past := $( $<quote_concat>[0] );
         }
         else {
@@ -1127,9 +1127,9 @@ method subcall($/) {
 
 method semilist($/) {
     my $past := PAST::Op.new( :node($/) );
-    if ($<EXPR>) {
+    if $<EXPR> {
         my $expr := $($<EXPR>[0]);
-        if ($expr.name() eq 'infix:,') {
+        if $expr.name() eq 'infix:,' {
             for @($expr) {
                 $past.push( $_ );
             }
@@ -1144,10 +1144,10 @@ method semilist($/) {
 
 method listop($/, $key) {
     my $past;
-    if ($key eq 'arglist') {
+    if $key eq 'arglist' {
         $past := $( $<arglist> );
     }
-    if ($key eq 'noarg') {
+    if $key eq 'noarg' {
         $past := PAST::Op.new( );
     }
     $past.name( ~$<sym> );
@@ -1160,7 +1160,7 @@ method listop($/, $key) {
 method arglist($/) {
     my $past := PAST::Op.new( :node($/) );
     my $expr := $($<EXPR>);
-    if ($expr.name() eq 'infix:,') {
+    if $expr.name() eq 'infix:,' {
         for @($expr) {
             $past.push( $_ );
         }
@@ -1173,7 +1173,7 @@ method arglist($/) {
 
 
 method EXPR($/, $key) {
-    if ($key eq 'end') {
+    if $key eq 'end' {
         make $($<expr>);
     }
     else {

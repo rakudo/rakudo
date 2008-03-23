@@ -1245,7 +1245,7 @@ method colonpair($/, $key) {
     my $pair_val;
 
     if $key eq 'false' {
-        my $pair_key := PAST::Val.new( :value(~$<key>) );
+        $pair_key := PAST::Val.new( :value(~$<ident>) );
         $pair_val := PAST::Var.new(
             :name('False'),
             :namespace('Bool'),
@@ -1253,7 +1253,7 @@ method colonpair($/, $key) {
         );
     }
     elsif $key eq 'value' {
-        my $pair_key := PAST::Val.new( :value(~$<key>) );
+        $pair_key := PAST::Val.new( :value(~$<ident>) );
         if $<postcircumfix> {
             # XXX TODO
             $/.panic('postcircumfix on colonpair not yet implemented');

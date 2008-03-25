@@ -1246,11 +1246,7 @@ method colonpair($/, $key) {
 
     if $key eq 'false' {
         $pair_key := PAST::Val.new( :value(~$<ident>) );
-        $pair_val := PAST::Var.new(
-            :name('False'),
-            :namespace('Bool'),
-            :scope('package')
-        );
+        $pair_val := PAST::Val.new( :value(0), :returns('Integer') );
     }
     elsif $key eq 'value' {
         $pair_key := PAST::Val.new( :value(~$<ident>) );
@@ -1259,11 +1255,7 @@ method colonpair($/, $key) {
             $/.panic('postcircumfix on colonpair not yet implemented');
         }
         else {
-            $pair_val := PAST::Var.new(
-                :name('True'),
-                :namespace('Bool'),
-                :scope('package')
-            );
+            $pair_val := PAST::Val.new( :value(1), :returns('Integer') );
         }
     }
     else {

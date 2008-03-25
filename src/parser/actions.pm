@@ -472,7 +472,9 @@ method methodop($/, $key) {
         $past := PAST::Op.new();
     }
     else {
-        $past := $( $/{$key} );
+        $past := PAST::Op.new();
+        my $args := $( $/{$key} );
+        process_arguments($past, $args);
     }
     $past.pasttype('callmethod');
     $past.node($/);
@@ -504,9 +506,7 @@ method postcircumfix($/, $key) {
     elsif $key eq '( )' {
         my $semilist := $( $<semilist> );
         $past := PAST::Op.new( :node($/), :pasttype('call') );
-        for @($semilist) {
-            $past.push( $_ );
-        }
+        process_arguments($past, $semilist);
     }
     elsif $key eq '{ }' {
         my $semilist := $( $<semilist> );
@@ -1117,10 +1117,17 @@ method typename($/) {
 
 
 method subcall($/) {
-    my $past := $($<semilist>);
-    $past.name( ~$<ident> );
-    $past.pasttype('call');
-    $past.node($/);
+    # Build call node.
+    my $past := PAST::Op.new(
+        :name( ~$<ident> ),
+        :pasttype('call'),
+        :node($/)
+    );
+
+    # Process arguments.
+    my $args := $( $<semilist> );
+    process_arguments($past, $args);
+
     make $past;
 }
 
@@ -1297,6 +1304,19 @@ method colonpair($/, $key) {
         $pair_val
     );
     make $past;
+}
+
+
+# Used by all calling code to process arguments into the correct form.
+sub process_arguments($call_past, $args) {
+    for @($args) {
+        if $_.returns() eq 'Pair' {
+            $_[2].named($_[1]);
+            $call_past.push($_[2]);
+        } else {
+            $call_past.push($_);
+        }
+    }
 }
 
 

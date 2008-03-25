@@ -51,6 +51,7 @@ BUILTINS_PIR = \
   src/classes/Undef.pir \
   src/classes/Role.pir \
   src/classes/Pair.pir \
+  src/classes/Whatever.pir \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
   src/builtins/control.pir \

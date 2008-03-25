@@ -1307,6 +1307,21 @@ method colonpair($/, $key) {
 }
 
 
+method whatever($/) {
+    my $past := PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('new'),
+        :node($/),
+        PAST::Var.new(
+            :name('Whatever'),
+            :scope('package'),
+            :node($/)
+        )
+    );
+    make $past;
+}
+
+
 # Used by all calling code to process arguments into the correct form.
 sub process_arguments($call_past, $args) {
     for @($args) {

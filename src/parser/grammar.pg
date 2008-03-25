@@ -442,6 +442,7 @@ token noun {
     | <regex_declarator> {*}                     #= regex_declarator
     | <colonpair> {*}                            #= colonpair
     | <fatarrow> {*}                             #= fatarrow
+    | <whatever> {*}                             #= whatever
     | 'self' {*}                                 #= self
     | 'undef' {*}                                #= undef
 }
@@ -671,6 +672,8 @@ token desigilname {
     ]
     {*}
 }
+
+token whatever { '*' {*} }
 
 #### expressions and operators ####
 

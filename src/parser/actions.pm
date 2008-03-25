@@ -1258,6 +1258,17 @@ method colonpair($/, $key) {
             $pair_val := PAST::Val.new( :value(1), :returns('Integer') );
         }
     }
+    elsif $key eq 'varname' {
+        if $<desigilname><name> {
+            $pair_key := PAST::Val.new( :value( ~$<desigilname> ) );
+            $pair_val := PAST::Var.new(
+                :name( ~$<sigil> ~ ~$<twigil> ~ ~$<desigilname> )
+            );
+        }
+        else {
+            $/.panic('complex varname colonpair case not yet implemented');
+        }
+    }
     else {
         $/.panic($key ~ " pairs not yet implemented.");
     }

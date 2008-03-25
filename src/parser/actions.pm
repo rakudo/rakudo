@@ -1251,8 +1251,15 @@ method colonpair($/, $key) {
     elsif $key eq 'value' {
         $pair_key := PAST::Val.new( :value(~$<ident>) );
         if $<postcircumfix> {
-            # XXX TODO
-            $/.panic('postcircumfix on colonpair not yet implemented');
+            # What type of postcircumfix?
+            my $type := substr($<val>, 0, 1);
+            if $type eq '(' {
+                my $val := $( $<postcircumfix><semilist> );
+                $pair_val := $val[0];
+            }
+            else {
+                $/.panic($type ~ ' postcircumfix colonpairs not yet implemented');
+            }
         }
         else {
             $pair_val := PAST::Val.new( :value(1), :returns('Integer') );

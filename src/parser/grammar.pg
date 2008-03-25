@@ -658,7 +658,7 @@ token colonpair {
     ':'
     [
     | '!' <ident>                                        {*}    #= false
-    | <ident> [ <.unsp>? <postcircumfix> ]?              {*}    #= value
+    | <ident> $<val>=[ <.unsp>? <postcircumfix> ]?       {*}    #= value
     | <postcircumfix>                                    {*}    #= structural
     | <sigil> <twigil>? <desigilname>                    {*}    #= varname
     ]

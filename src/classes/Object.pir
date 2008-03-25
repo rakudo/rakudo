@@ -240,12 +240,13 @@ Create a new object having the same class as the invocant.
   iter_loop:
     unless iter goto iter_end
     $S0 = shift iter
-    $I0 = exists init_attribs[$S0]
+    $S1 = substr $S0, 2
+    $I0 = exists init_attribs[$S1]
     if $I0 goto have_init_value
     $P2 = new 'Undef'
     goto init_done
   have_init_value:
-    $P2 = init_attribs[$S0]
+    $P2 = init_attribs[$S1]
   init_done:
     push_eh set_attrib_eh
     setattribute $P1, $S0, $P2

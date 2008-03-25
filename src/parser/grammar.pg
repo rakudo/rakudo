@@ -664,6 +664,14 @@ token colonpair {
     ]
 }
 
+token desigilname {
+    [
+    | <?before '$' > <variable>
+    | <name>
+    ]
+    {*}
+}
+
 #### expressions and operators ####
 
 ##  The EXPR rule is our entry point into the operator

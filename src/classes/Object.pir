@@ -85,7 +85,7 @@ Parrot class via the C<get_class> opcode.
     ##  directly as subs into the class' namespace.
     ##  get the class' namespace object
     .local pmc ns
-    ns = class.'pmc_namespace'()
+    ns = class.'get_namespace'()
     ##  iterate over Perl6Object's methods, adding them to the namespace
     .local pmc methods, iter
     $P0 = get_class 'Perl6Object'

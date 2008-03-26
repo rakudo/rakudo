@@ -1328,7 +1328,8 @@ sub process_arguments($call_past, $args) {
         if $_.returns() eq 'Pair' {
             $_[2].named($_[1]);
             $call_past.push($_[2]);
-        } else {
+        }
+        else {
             $call_past.push($_);
         }
     }

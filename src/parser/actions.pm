@@ -1224,6 +1224,72 @@ method regex_declarator_rule($/) {
 }
 
 
+method type_declarator($/) {
+    # Constraint is just going to be a sub. Maybe we have one already.
+    my $past := $( $<EXPR> );
+    if $past.WHAT() ne 'Block' {
+        # Make block with the expression as its contents.
+        $past := PAST::Block.new(
+            PAST::Stmts.new(),
+            PAST::Stmts.new( $past )
+        );
+    }
+
+    # Make sure it has a parameter and keep hold of it if found.
+    my $param;
+    my $dollar_underscore;
+    for @($past[0]) {
+        if $_.WHAT() eq 'Var' {
+            if $_.scope() eq 'parameter' {
+                $param := $_;
+            }
+            elsif $_.name() eq '$_' {
+                $dollar_underscore := $_;
+            }
+        }
+    }
+    unless $param {
+        say("found no param");
+        if $dollar_underscore {
+            $dollar_underscore.scope('parameter');
+            $param := $dollar_underscore;
+        }
+        else {
+            $param := PAST::Var.new(
+                :name('$_'),
+                :scope('parameter')
+            );
+            $past[0].push($param);
+        }
+    }
+
+    # Do we have an existing constraint to check?
+    if $<typename> {
+        my $new_cond := $past[1];
+        my $prev_cond := $( $<typename>[0] );
+        $past[1] := PAST::Op.new(
+            :pasttype('if'),
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('ACCEPTS'),
+                $prev_cond,
+                PAST::Var.new(
+                    :name($param.name())
+                )
+            ),
+            $new_cond
+        )
+    }
+
+    # Set block details.
+    $past.name(~$<name>);
+    $past.blocktype('declaration');
+    $past.node($/);
+
+    make $past;
+}
+
+
 method fatarrow($/) {
     my $key := PAST::Val.new( :value(~$<key>) );
     my $val := $( $<val> );

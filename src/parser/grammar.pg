@@ -346,6 +346,14 @@ rule signature {
     {*}
 }
 
+rule type_declarator {
+    'subset'
+    <name>
+    [ of <typename> ]? # XXX should be <fulltypename>
+    where <EXPR>
+    {*}
+}
+
 rule type_constraint {
     [
     | <value>
@@ -440,6 +448,7 @@ token noun {
     | <value> {*}                                #= value
     | <statement_prefix> {*}                     #= statement_prefix
     | <regex_declarator> {*}                     #= regex_declarator
+    | <type_declarator> {*}                      #= type_declarator
     | <colonpair> {*}                            #= colonpair
     | <fatarrow> {*}                             #= fatarrow
     | <whatever> {*}                             #= whatever

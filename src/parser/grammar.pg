@@ -392,6 +392,7 @@ token term {
     | <noun> <postfix>* {*}                      #= noun
     | <listop> {*}                               #= listop
     | <compiler_directive> {*}                   #= compiler_directive
+    | '*' {*}                                    #= *
 }
 
 
@@ -451,7 +452,6 @@ token noun {
     | <type_declarator> {*}                      #= type_declarator
     | <colonpair> {*}                            #= colonpair
     | <fatarrow> {*}                             #= fatarrow
-    | <whatever> {*}                             #= whatever
     | 'self' {*}                                 #= self
     | 'undef' {*}                                #= undef
 }
@@ -681,8 +681,6 @@ token desigilname {
     ]
     {*}
 }
-
-token whatever { '*' {*} }
 
 #### expressions and operators ####
 

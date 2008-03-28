@@ -428,7 +428,25 @@ method special_variable($/) {
 
 
 method term($/, $key) {
-    my $past := $( $/{$key} );
+    my $past;
+    if $key eq '*' {
+        # Whatever.
+        $past := PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('new'),
+            :node($/),
+            :lvalue(1),
+            PAST::Var.new(
+                :name('Whatever'),
+                :scope('package'),
+                :node($/)
+            )
+        );
+    }
+    else {
+        $past := $( $/{$key} );
+    }
+
     if $<postfix> {
         for $<postfix> {
             my $term := $past;
@@ -1368,21 +1386,6 @@ method colonpair($/, $key) {
         ),
         $pair_key,
         $pair_val
-    );
-    make $past;
-}
-
-
-method whatever($/) {
-    my $past := PAST::Op.new(
-        :pasttype('callmethod'),
-        :name('new'),
-        :node($/),
-        PAST::Var.new(
-            :name('Whatever'),
-            :scope('package'),
-            :node($/)
-        )
     );
     make $past;
 }

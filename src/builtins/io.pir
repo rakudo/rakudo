@@ -107,7 +107,7 @@ opened_ok:
     # Create IO object and set handle.
     .local pmc obj
     obj = get_hll_global 'IO'
-    obj = obj.'new'()    
+    obj = obj.'new'()
     setattribute obj, "$!PIO", $P0
     .return(obj)
 .end

@@ -76,6 +76,42 @@ src/builtins/io.pir - Perl6 builtins for I/O
     p6compiler.'evalfiles'(filename)
 .end
 
+.sub 'open'
+    .param string filename
+    .param int r :named('r') :optional
+    .param int w :named('w') :optional
+    .param int a :named('a') :optional
+
+    # Work out a mode string. XXX Default to r?
+    .local string mode
+    if r goto is_read
+    if w goto is_write
+    if a goto is_append
+is_read:
+    mode = "<"
+    goto done_mode
+is_write:
+    mode = ">"
+    goto done_mode
+is_append:
+    mode = ">>"
+    goto done_mode
+done_mode:
+
+    # Open file to get PIO file handle.
+    $P0 = open filename, mode
+    if $P0 goto opened_ok
+    'die'("Unable to open file") # XXX better message
+opened_ok:
+
+    # Create IO object and set handle.
+    .local pmc obj
+    obj = get_hll_global 'IO'
+    obj = obj.'new'()    
+    setattribute obj, "$!PIO", $P0
+    .return(obj)
+.end
+
 =back
 
 =cut

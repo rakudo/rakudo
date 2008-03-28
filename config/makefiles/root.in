@@ -43,6 +43,7 @@ BUILTINS_PIR = \
   src/classes/Str.pir \
   src/classes/Num.pir \
   src/classes/Int.pir \
+  src/classes/IO.pir \
   src/classes/List.pir \
   src/classes/Hash.pir \
   src/classes/Code.pir \

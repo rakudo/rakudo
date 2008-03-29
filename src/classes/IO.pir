@@ -1,4 +1,4 @@
-## $Id: $
+## $Id$
 
 =head1 TITLE
 

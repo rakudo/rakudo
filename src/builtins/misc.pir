@@ -6,7 +6,7 @@ src/builtins/misc.pir - miscellaneous builtins that need reclassification
 
 =cut
 
-.sub 'prefix:='
+.sub 'prefix:=' :multi(_)
     .param pmc what
     $P0 = iter what
     .return($P0)

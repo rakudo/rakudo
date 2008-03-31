@@ -151,6 +151,19 @@ to the Perl 6 compiler.
 .sub 'main' :main
     .param pmc args_str
 
+    ##  create $*IN, $*OUT and $*ERR handles
+    .local pmc pio, perl6io, perl6ioclass
+    perl6ioclass = get_hll_global "IO"
+    pio = getstdin
+    perl6io = perl6ioclass.'new'("PIO" => pio)
+    set_hll_global "$IN", perl6io
+    pio = getstdout
+    perl6io = perl6ioclass.'new'("PIO" => pio)
+    set_hll_global "$OUT", perl6io
+    pio = getstderr
+    perl6io = perl6ioclass.'new'("PIO" => pio)
+    set_hll_global "$ERR", perl6io
+
     ##  create @ARGS global.  We could possibly use the args pmc
     ##  coming directly from Parrot, but currently Parrot provides
     ##  it as a ResizableStringArray and we need Undefs for

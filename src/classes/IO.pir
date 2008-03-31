@@ -17,7 +17,7 @@ This file implements the IO file handle class.
 .namespace ['IO']
 
 .sub 'onload' :anon :init :load
-    $P0 = subclass 'Perl6Object', 'IO'
+    $P0 = newclass 'IO'
     addattribute $P0, "$!PIO" # for Parrot IO object
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
     $P1($P0, 'IO')
@@ -77,28 +77,66 @@ Closes the file.
 .end
 
 
-=item get_iter (vtable)
+.namespace
 
-Gets an iterator for this IO handle.
+=back
+
+=head1 EXPORTED MULTI SUBS
+
+=over
+
+=item prefix:=(IO $io)
+
+Gets the iterator for the IO object.
 
 =cut
 
-.sub 'get_iter' :method :vtable
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
-    $P0 = iter PIO
+.sub 'prefix:=' :multi('IO')
+    .param pmc io
+    $P0 = get_hll_global 'IOIterator'
+    $P0 = $P0.'new'('IO' => io)
     .return($P0)
 .end
 
 
-=item say
-
-
-
+.namespace [ 'IOIterator' ]
 
 =back
 
+=head1 IOIterator
+
+The IOIterator class implements the I/O iterator.
+
 =cut
+
+.sub 'onload' :anon :init :load
+    $P0 = subclass 'Perl6Object', 'IOIterator'
+    addattribute $P0, "$!IO" # for IO object we iterate over
+    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
+    $P1($P0, 'IOIterator')
+.end
+
+.sub get_bool :method :vtable
+    .local pmc PIO
+    $P0 = getattribute self, "$!IO"
+    PIO = getattribute $P0, "$!PIO"
+    if PIO goto more
+    .return(0)
+more:
+    .return(1)
+.end
+
+.sub shift_pmc :method :vtable
+    .local pmc pio
+    $P0 = getattribute self, "$!IO"
+    pio = getattribute $P0, "$!PIO"
+    $P0 = pio.readline("")
+    .return($P0)
+.end
+
+.sub get_iter :method :vtable
+    .return(self)
+.end
 
 # Local Variables:
 #   mode: pir

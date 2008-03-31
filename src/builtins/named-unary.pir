@@ -34,8 +34,12 @@ than $x.
 
 .sub 'prefix:rand'
     .param num limit
-
+    
+    # For now, we'll seed it with the time. Likely sucks.
     $P0 = new 'Random'
+    $I0 = time
+    $P0 = $I0
+
     $N0 = $P0
     $N0 *= limit
 

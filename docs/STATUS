@@ -24,12 +24,39 @@ Compiler implemented
 * list quoting (<a b c>)
 * try blocks w/o CATCH
 * BEGIN, END blocks
-
-To do
------
 * pointy subs
-* named arguments
 * named parameters
 * optional parameters
 * slurpy parameters
+* named arguments
+* fat arrow syntax to make a pair
+* some colonpair syntaxes to make pairs (:a, :!a, :$a, :a(...))
+* smart match syntax, and some classes provide match functionality
+* given statement
+* creation of junctions (operator and functional versions)
+* auto-threading of some operations on junctions
+* classes
+* attributes with accessor generation
+* methods
+* inheritance
+* roles
+* role composition
+* named regexes
+* defining refinement types using the subset keyword
+* @*ARGS
+* $*IN, $*OUT, $*ERR
+* open function for getting a file handle; supports some open modes
+* .say, .print and .close methods on file handles
+* iterating over file handles
 
+To do
+-----
+* Start using .HLL, including mapping of types
+* give named rules and tokens the correct semantics
+* type-based multi-subs and multi-methods
+* explicit specification of invocant in methods
+* $?LINE and $?FILE
+* self!method() and $x!method() and private methods generally
+* is rw trait on attributes
+* anonymous classes
+* junction auto-threading

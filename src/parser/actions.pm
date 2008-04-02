@@ -233,7 +233,8 @@ method loop_statement($/) {
             :node($/)
         );
         make $loop;
-    } else {
+    }
+    else {
         my $cond  := PAST::Val.new( :value( 1 ) );
         my $block := $( $<block> );
         $block.blocktype('immediate');

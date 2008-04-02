@@ -209,6 +209,7 @@ rule statement_control {
     | <given_statement> {*}                      #= given_statement
     | <when_statement> {*}                       #= when_statement
     | <default_statement> {*}                    #= default_statement
+    | <loop_statement> {*}                       #= loop_statement
     | <for_statement> {*}                        #= for_statement
     | <use_statement> {*}                        #= use_statement
     | <begin_statement> {*}                      #= begin_statement
@@ -257,6 +258,19 @@ rule when_statement {
 
 rule default_statement {
     $<sym>=[default]
+    <block>
+    {*}
+}
+
+rule loop_statement {
+    $<sym>=[loop]
+    $<eee>=[
+        '('
+            $<e1>=<EXPR> ';'
+            $<e2>=<EXPR> ';'
+            $<e3>=<EXPR>
+        ')'
+    ]?
     <block>
     {*}
 }

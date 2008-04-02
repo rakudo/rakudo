@@ -219,6 +219,28 @@ method default_statement($/) {
     make $past;
 }
 
+method loop_statement($/) {
+    if $<eee> {
+        my $init := $( $<e1>[0] );
+        my $cond := $( $<e2>[0] );
+        my $tail := $( $<e3>[0] );
+        my $block := $( $<block> );
+        $block.blocktype('immediate');
+
+        my $loop := PAST::Stmts.new(
+            $init,
+            PAST::Op.new( $cond , PAST::Stmts.new($block, $tail), :pasttype('while'), :node($/) ),
+            :node($/)
+        );
+        make $loop;
+    } else {
+        my $cond  := PAST::Val.new( :value( 1 ) );
+        my $block := $( $<block> );
+        $block.blocktype('immediate');
+        make PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
+    }
+}
+
 method for_statement($/) {
     my $block := $( $<pblock> );
     $block.blocktype('declaration');

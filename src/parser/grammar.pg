@@ -301,7 +301,7 @@ rule end_statement {
 }
 
 rule statement_mod_cond {
-    $<sym>=[if|unless] <EXPR> {*}
+    $<sym>=[if|unless|when] <EXPR> {*}
 }
 
 rule statement_prefix {

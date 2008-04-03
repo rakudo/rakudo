@@ -307,10 +307,27 @@ method end_statement($/) {
 }
 
 method statement_mod_cond($/) {
-    make PAST::Op.new( $( $<EXPR> ),
-                       :pasttype( ~$<sym> ),
-                       :node( $/ )
-                     );
+    if ~$<sym> eq 'when' {
+        my $expr := $( $<EXPR> );
+        my $match_past := PAST::Op.new( :name('infix:~~'),
+                                    :pasttype('call'),
+                                    :node($/)
+                                  );
+        $match_past.push( PAST::Var.new( :node($/), :name('$_'), :scope('lexical') ) );
+        $match_past.push( $expr );
+
+        my $past := PAST::Op.new( $match_past,
+                              :pasttype('if'),
+                              :node( $/ )
+                            );
+        make $past;
+    }
+    else {
+        make PAST::Op.new( $( $<EXPR> ),
+                           :pasttype( ~$<sym> ),
+                           :node( $/ )
+                         );
+    }
 }
 
 

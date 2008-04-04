@@ -100,6 +100,10 @@ method statement($/, $key) {
             $past := $( $<statement_mod_cond> );
             $past.push( $expr );
         }
+        elsif $key eq 'statement_mod_loop' {
+            $past := $( $<statement_mod_loop> );
+            $past.push( $expr );
+        }
         else {
             $past := $expr;
         }
@@ -304,6 +308,12 @@ method end_statement($/) {
     PIR q<  $P1 = find_lex '$sub' >;
     PIR q<  push $P0, $P1 >;
     make $past;
+}
+
+method statement_mod_loop($/) {
+    make PAST::Op.new( $( $<EXPR> ),
+                       :pasttype( ~$<sym> ),
+                       :node( $/ ) );
 }
 
 method statement_mod_cond($/) {

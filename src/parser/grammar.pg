@@ -196,6 +196,7 @@ rule statement {
     | <statement_control> {*}                    #= statement_control
     | $<expr>=<EXPR>
         [
+        || <statement_mod_loop> {*}              #= statement_mod_loop
         || <statement_mod_cond> {*}              #= statement_mod_cond
         || {*}                                   #= expr
         ]
@@ -298,6 +299,10 @@ rule end_statement {
     $<sym>=[END]
     <block>
     {*}
+}
+
+rule statement_mod_loop {
+    $<sym>=[while|until] <EXPR> {*}
 }
 
 rule statement_mod_cond {

@@ -51,6 +51,22 @@ src/classes/Hash.pir - Perl 6 Hash class, and related functions
 .end
 
 
+.sub 'values' :method
+    .local pmc iter
+    .local pmc rv
+    iter = new 'Iterator', self
+    rv   = new 'List'
+  loop:
+    unless iter goto end
+    $S1 = shift iter
+    $S1 = iter[$S1]
+    push rv, $S1
+    goto loop
+  end:
+    .return (rv)
+.end
+
+
 ## FIXME:  Parrot currently requires us to write our own "clone" method.
 .sub 'clone' :vtable :method
     $P0 = new 'Perl6Hash'

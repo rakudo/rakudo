@@ -850,23 +850,54 @@ method variable_decl($/) {
 
 method scoped($/) {
     my $past := $( $<variable_decl> );
+    
+    # Do we have any type names?
+    if $<typename> {
+        # Build the type constraints list for the variable.
+        my $num_types := 0;
+        for $<typename> {
+            # XXX Todo.
+            $num_types := $num_types + 1;
+        }
+        
+        # If just the one, we try to look it up and assign it.
+        if $num_types == 1 {
+            $past := PAST::Op.new(
+                :pasttype('copy'),
+                :lvalue(1),
+                $past,
+                $( $<typename>[0] )
+            );
+        }
+    }
+
     make $past;
 }
 
 
 method scope_declarator($/) {
+    # Get the actual variable.
     my $past := $( $<scoped> );
-    my $name := $past.name();
+    my $var;
+    if $past.WHAT() eq 'Var' {
+        $var := $past;
+    }
+    else {
+        # It had an initial type assignment.
+        $var := $past[0];
+    }
+
+    my $name := $var.name();
     our $?BLOCK;
     unless $?BLOCK.symbol($name) {
         my $scope := 'lexical';
         my $declarator := $<declarator>;
         if $declarator eq 'my' {
-            $past.isdecl(1);
+            $var.isdecl(1);
         }
         elsif $declarator eq 'our' {
             $scope := 'package';
-            $past.isdecl(1);
+            $var.isdecl(1);
         }
         elsif $declarator eq 'has' {
             # Set that it's attribute scope.

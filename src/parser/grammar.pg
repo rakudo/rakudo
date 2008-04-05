@@ -519,7 +519,7 @@ token variable_decl {
 
 
 rule scoped {
-    <variable_decl> {*}
+    <typename>* <variable_decl> {*}
 }
 
 rule scope_declarator {

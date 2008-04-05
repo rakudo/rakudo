@@ -1441,6 +1441,41 @@ method colonpair($/, $key) {
 }
 
 
+method capterm($/) {
+    # We will create the capture object, passing the things supplied.
+    my $past := PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('!create'),
+        PAST::Var.new(
+            :name('Capture'),
+            :scope('package')
+        )
+    );
+
+    # First parameter is invocant. XXX null for now, we're not parsing it.
+    $past.push( PAST::Op.new( :inline('%r = null') ) );
+
+    # Process arguments.
+    process_arguments($past, $( $<capture> ));
+
+    make $past;
+}
+
+
+method capture($/) {
+    my $expr := $( $<EXPR> );
+    my $past := PAST::Op.new();
+    if $expr.name() eq 'infix:,' {
+        for @($expr) {
+            $past.push( $_ );
+        }
+    }
+    else {
+        $past.push( $expr );
+    }
+    make $past;
+}
+
 # Used by all calling code to process arguments into the correct form.
 sub process_arguments($call_past, $args) {
     for @($args) {

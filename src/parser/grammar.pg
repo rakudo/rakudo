@@ -356,6 +356,16 @@ rule trait_verb {
     | $<sym>=[handles] <EXPR>
 }
 
+token capterm {
+    '\\(' <capture> ')'
+    {*}
+}
+
+rule capture {
+    <EXPR>
+    {*}
+}
+
 rule multisig {
     '(' <signature> ')'
 }
@@ -466,6 +476,7 @@ token noun {
     | <subcall> {*}                              #= subcall
     | <methodop> {*}                             #= methodop
     | <value> {*}                                #= value
+    | <capterm> {*}                              #= capterm
     | <statement_prefix> {*}                     #= statement_prefix
     | <regex_declarator> {*}                     #= regex_declarator
     | <type_declarator> {*}                      #= type_declarator

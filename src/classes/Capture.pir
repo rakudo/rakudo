@@ -1,4 +1,4 @@
-## $Id:$
+## $Id$
 
 =head1 TITLE
 
@@ -21,7 +21,7 @@ This file sets up the Perl 6 C<Capture> class.
     .param pmc invocant
     .param pmc array :slurpy
     .param pmc hash :named :slurpy
-    
+ 
     # Create capture.
     .local pmc capt
     capt = self.'new'()

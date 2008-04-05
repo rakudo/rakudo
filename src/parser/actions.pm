@@ -850,7 +850,7 @@ method variable_decl($/) {
 
 method scoped($/) {
     my $past := $( $<variable_decl> );
-    
+
     # Do we have any type names?
     if $<typename> {
         # Build the type constraints list for the variable.

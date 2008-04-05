@@ -855,8 +855,9 @@ method scoped($/) {
     if $<typename> {
         # Build the type constraints list for the variable.
         my $num_types := 0;
+        my $type_cons := PAST::Op.new();
         for $<typename> {
-            # XXX Todo.
+            $type_cons.push( $( $_ ) );
             $num_types := $num_types + 1;
         }
 
@@ -869,6 +870,27 @@ method scoped($/) {
                 $( $<typename>[0] )
             );
         }
+
+        # Now need to apply the type constraints. How many are there?
+        if $num_types == 1 {
+            # Just the first one.
+            $type_cons := $type_cons[0];
+        }
+        else {
+            # Many; make an and junction of types.
+            $type_cons.pasttype('call');
+            $type_cons.name('all');
+        }
+
+        # Now store these type constraints.
+        $past := PAST::Op.new(
+            :inline(
+                "    setattribute %0, 'vartype', %1\n" ~
+                "    %r = %0\n"
+            ),
+            $past,
+            $type_cons
+        );
     }
 
     make $past;
@@ -884,7 +906,7 @@ method scope_declarator($/) {
     }
     else {
         # It had an initial type assignment.
-        $var := $past[0];
+        $var := $past[0][0];
     }
 
     my $name := $var.name();
@@ -1316,6 +1338,18 @@ method EXPR($/, $key) {
         for @($/) {
             $past.push( $($_) );
         }
+
+        # If it's an assignment or binding, we need to emit a type-check too.
+        if $past.name() eq 'infix:=' {
+            $past := PAST::Op.new(
+                :lvalue(1),
+                :node($/),
+                :inline("    %r = '!TYPECHECKEDASSIGN'(%0, %1)\n"),
+                $past[0],
+                $past[1]
+            );
+        }
+
         make $past;
     }
 }

@@ -859,7 +859,7 @@ method scoped($/) {
             # XXX Todo.
             $num_types := $num_types + 1;
         }
-        
+
         # If just the one, we try to look it up and assign it.
         if $num_types == 1 {
             $past := PAST::Op.new(
@@ -1305,7 +1305,8 @@ method EXPR($/, $key) {
         }
 
         make $past;
-    } else {
+    }
+    else {
         my $past := PAST::Op.new( :name($<type>),
                                   :pasttype($<top><pasttype>),
                                   :pirop($<top><pirop>),

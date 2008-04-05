@@ -1282,7 +1282,30 @@ method EXPR($/, $key) {
     if $key eq 'end' {
         make $($<expr>);
     }
-    else {
+    elsif ~$<type> eq 'infix:.=' {
+        my $var := $( $/[0] );
+        my $call := $( $/[1] );
+
+        # Create call and assign result nodes.
+        my $meth_call := PAST::Op.new(
+            :pasttype('callmethod'),
+            :name($call.name()),
+            :node($/),
+            $var
+        );
+        my $past := PAST::Op.new(
+            :pasttype('copy'),
+            $var,
+            $meth_call
+        );
+
+        # Copy arguments.
+        for @($call) {
+            $meth_call.push($_);
+        }
+
+        make $past;
+    } else {
         my $past := PAST::Op.new( :name($<type>),
                                   :pasttype($<top><pasttype>),
                                   :pirop($<top><pirop>),
@@ -1506,6 +1529,7 @@ method capture($/) {
     }
     make $past;
 }
+
 
 # Used by all calling code to process arguments into the correct form.
 sub process_arguments($call_past, $args) {

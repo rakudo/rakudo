@@ -428,14 +428,91 @@ method method_def($/) {
 
 method signature($/) {
     my $params := PAST::Stmts.new( :node($/) );
+    my $type_check := PAST::Stmts.new( :node($/) );
     my $past := PAST::Block.new( $params, :blocktype('declaration') );
     for $/[0] {
+        # Add parameter declaration.
         my $parameter := $($_<parameter>);
         $past.symbol($parameter.name(), :scope('lexical'));
         $params.push($parameter);
+
+        # Add any type check that is needed.
+        if $_<parameter><type_constraint> {
+            for $_<parameter><type_constraint> {
+                # Just a type name?
+                if $_<typename> {
+                    $type_check.push(
+                        PAST::Op.new(
+                            :pasttype('call'),
+                            :name('!TYPECHECKPARAM'),
+                            $( $_<typename> ),
+                            PAST::Var.new(
+                                :name($parameter.name()),
+                                :scope('lexical')
+                            )
+                        )
+                    );
+                }
+                else {
+                    # We need a block containing the constraint condition.
+                    my $past := $( $_<EXPR> );
+                    if $past.WHAT() ne 'Block' {
+                        # Make block with the expression as its contents.
+                        $past := PAST::Block.new(
+                            PAST::Stmts.new(),
+                            PAST::Stmts.new( $past )
+                        );
+                    }
+
+                    # Make sure it has a parameter.
+                    my $param;
+                    my $dollar_underscore;
+                    for @($past[0]) {
+                        if $_.WHAT() eq 'Var' {
+                            if $_.scope() eq 'parameter' {
+                                $param := $_;
+                            }
+                            elsif $_.name() eq '$_' {
+                                $dollar_underscore := $_;
+                            }
+                        }
+                    }
+                    unless $param {
+                        if $dollar_underscore {
+                            $dollar_underscore.scope('parameter');
+                            $param := $dollar_underscore;
+                        }
+                        else {
+                            $param := PAST::Var.new(
+                                :name('$_'),
+                                :scope('parameter')
+                            );
+                            $past[0].push($param);
+                        }
+                    }
+
+                    # Now we'll just pass this block to the type checker,
+                    # since smart-matching a block invokes it.
+                    $type_check.push(
+                        PAST::Op.new(
+                            :pasttype('call'),
+                            :name('!TYPECHECKPARAM'),
+                            $past,
+                            PAST::Var.new(
+                                :name($parameter.name()),
+                                :scope('lexical')
+                            )
+                        )
+                    );
+                }
+            }
+        }
     }
     $past.arity( +$/[0] );
     our $?BLOCK_SIGNATURED := $past;
+    if +@($type_check) {
+        $past.push($type_check);
+    }
     make $past;
 }
 
@@ -1406,7 +1483,6 @@ method type_declarator($/) {
         }
     }
     unless $param {
-        say("found no param");
         if $dollar_underscore {
             $dollar_underscore.scope('parameter');
             $param := $dollar_underscore;

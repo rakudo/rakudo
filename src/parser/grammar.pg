@@ -383,9 +383,12 @@ rule type_declarator {
     {*}
 }
 
+# XXX STD.pm uses <value> instead of <typename>, which seems odd, especially
+# as at the time of implementing parameter types <value>'s type parts were
+# commented out.
 rule type_constraint {
     [
-    | <value>
+    | <typename>
     | where <EXPR> # XXX <EXPR(%chaining)>
     ]
 }

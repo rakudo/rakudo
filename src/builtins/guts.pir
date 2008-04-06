@@ -40,6 +40,29 @@ no_copy:
     .return(assignee)
 .end
 
+
+=item !TYPECHECKPARAM
+
+Checks the type of a parameter.
+
+=cut
+
+.sub '!TYPECHECKPARAM'
+    .param pmc type
+    .param pmc value
+    $P0 = getinterp
+    $P0 = $P0['lexpad';1]
+    if null $P0 goto no_match_to_copy
+    $P0 = $P0['$/']
+    .lex "$/", $P0
+  no_match_to_copy:
+
+    $I0 = type.ACCEPTS(value)
+    if $I0 goto ok
+    'die'('Parameter type check failed')
+ok:
+.end
+
 =back
 
 =cut

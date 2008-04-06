@@ -55,6 +55,7 @@ BUILTINS_PIR = \
   src/classes/Pair.pir \
   src/classes/Whatever.pir \
   src/classes/Capture.pir \
+  src/classes/Subset.pir \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
   src/builtins/control.pir \

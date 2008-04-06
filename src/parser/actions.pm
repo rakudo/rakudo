@@ -1382,7 +1382,7 @@ method regex_declarator_rule($/) {
 
 
 method type_declarator($/) {
-    # Constraint is just going to be a sub. Maybe we have one already.
+    # We need a block containing the constraint condition.
     my $past := $( $<EXPR> );
     if $past.WHAT() ne 'Block' {
         # Make block with the expression as its contents.
@@ -1439,9 +1439,19 @@ method type_declarator($/) {
     }
 
     # Set block details.
-    $past.name(~$<name>);
-    $past.blocktype('declaration');
     $past.node($/);
+
+    # Now we need to create the block wrapper class.
+    $past := PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('!create'),
+        PAST::Var.new(
+            :name('Subset'),
+            :scope('package')
+        ),
+        PAST::Val.new( :value(~$<name>) ),
+        $past
+    );
 
     make $past;
 }

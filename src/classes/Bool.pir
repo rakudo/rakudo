@@ -15,23 +15,34 @@ symbols for C<Bool::True> and C<Bool::False>.
 
 .sub 'onload' :anon :init :load
     .local pmc protoobject
-    $P0 = get_hll_global ['Perl6Object'], 'make_proto'
-#    protoobject = $P0('Boolean', 'Bool')
-    protoobject = $P0('Perl6Bool', 'Bool')
+    $P0 = subclass 'Boolean', 'Bool'
+    $P1 = get_class 'Any'
+    addparent $P0, $P1
+    addattribute $P0, "vartype" # XXX should get Object's one
+    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
+    protoobject = $P1($P0, 'Bool')
 
     $P0 = protoobject.'new'()
     $P0 = 0
-    set_global 'False', $P0
+    set_hll_global [ 'Bool' ], 'False', $P0
 
     $P0 = protoobject.'new'()
     $P0 = 1
-    set_global 'True', $P0
+    set_hll_global [ 'Bool' ], 'True', $P0
 .end
 
 
 .sub 'ACCEPTS' :method
     .param pmc topic
     .return (self)
+.end
+
+.sub 'increment' :method :vtable
+    self = 1
+.end
+
+.sub 'decrement' :method :vtable
+    self = 0
 .end
 
 # Local Variables:

@@ -20,9 +20,9 @@ as the Perl 6 C<Str> class.
 .include 'cclass.pasm'
 
 .sub 'onload' :anon :init :load
-    $P0 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P0('String', 'Str')
-    $P0('Perl6Str', 'Str')
+    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
+    $P1('String', 'Str')
+    $P1('Perl6Str', 'Str')
 .end
 
 

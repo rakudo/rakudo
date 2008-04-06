@@ -6,11 +6,16 @@ Int - Perl 6 integers
 
 =cut
 
-.namespace [ 'Integer' ]
+.namespace [ 'Int' ]
 
 .sub 'onload' :anon :init :load
-    $P0 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P0('Integer', 'Int')
+    $P0 = subclass 'Integer', 'Int'
+    $P1 = get_class 'Any'
+    addparent $P0, $P1
+    addattribute $P0, "vartype" # XXX should get Object's one
+    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
+    $P1($P0, 'Int')
+    $P1('Integer', 'Int')
 .end
 
 

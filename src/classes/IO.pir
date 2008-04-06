@@ -17,7 +17,7 @@ This file implements the IO file handle class.
 .namespace ['IO']
 
 .sub 'onload' :anon :init :load
-    $P0 = newclass 'IO'
+    $P0 = subclass 'Any', 'IO'
     addattribute $P0, "$!PIO" # for Parrot IO object
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
     $P1($P0, 'IO')

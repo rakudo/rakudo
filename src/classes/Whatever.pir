@@ -13,7 +13,7 @@ This file implements the Whatever class.
 .namespace ['Whatever']
 
 .sub 'onload' :anon :init :load
-    $P0 = subclass 'Perl6Object', 'Whatever'
+    $P0 = subclass 'Any', 'Whatever'
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
     $P1($P0, 'Whatever')
 .end

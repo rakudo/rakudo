@@ -137,6 +137,7 @@ Parrot class via the C<get_class> opcode.
     .return (protoobject)
 .end
 
+
 =item !keyword_class(name)
 
 Internal helper method to create a class.

@@ -10,11 +10,15 @@ src/classes/Hash.pir - Perl 6 Hash class, and related functions
 
 =cut
 
-.namespace ['Hash']
+.namespace ['Perl6Hash']
 
 .sub 'onload' :anon :load :init
+    $P0 = subclass 'Hash', 'Perl6Hash'
+    $P1 = get_class 'Any'
+    addparent $P0, $P1
+    addattribute $P0, "vartype" # XXX should get Object's one
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1('Hash', 'Hash')
+    $P1($P0, 'Hash')
 .end
 
 

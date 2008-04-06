@@ -13,8 +13,12 @@ This file sets up the Perl 6 C<Capture> class.
 .namespace ['Capture']
 
 .sub 'onload' :anon :init :load
+    $P0 = subclass 'Capture', 'Perl6Capture'
+    $P1 = get_class 'Any'
+    addparent $P0, $P1
+    addattribute $P0, "vartype" # XXX should get Object's one
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1('Capture', 'Capture')
+    $P1($P0, 'Capture')
 .end
 
 .sub '!create' :method

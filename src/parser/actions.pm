@@ -580,7 +580,7 @@ method postcircumfix($/, $key) {
         my $semilist := $( $<semilist> );
         $past := PAST::Var.new( $semilist[0],
                                 :scope('keyed'),
-                                :vivibase('Hash'),
+                                :vivibase('Perl6Hash'),
                                 :viviself('Undef'),
                                 :node( $/ )
                               );
@@ -588,7 +588,7 @@ method postcircumfix($/, $key) {
     elsif $key eq '< >' {
         $past := PAST::Var.new( $( $<quote_expression> ),
                                 :scope('keyed'),
-                                :vivibase('Hash'),
+                                :vivibase('Perl6Hash'),
                                 :viviself('Undef'),
                                 :node( $/ )
                               );
@@ -1009,7 +1009,7 @@ method variable($/, $key) {
             ),
             PAST::Val.new(
                 :value(~$<matchidx>),
-                :returns('Integer')
+                :returns('Int')
             )
         );
     }
@@ -1046,7 +1046,7 @@ method variable($/, $key) {
             # Variable. Set how it vivifies.
             my $viviself := 'Undef';
             if $<sigil> eq '@' { $viviself := 'List'; }
-            if $<sigil> eq '%' { $viviself := 'Hash'; }
+            if $<sigil> eq '%' { $viviself := 'Perl6Hash'; }
 
             # ! twigil should be kept in the name.
             if $<twigil>[0] eq '!' { $name := '!' ~ ~$name; }
@@ -1120,14 +1120,14 @@ method integer($/) {
     PIR q<  assign $P1, $S0       >;
     PIR q<  store_lex '$str', $P1 >;
     make PAST::Val.new( :value( +$str ),
-                        :returns('Integer'),
+                        :returns('Int'),
                         :node( $/ )
                       );
 }
 
 
 method dec_number($/) {
-    make PAST::Val.new( :value( +$/ ), :returns('Float'), :node( $/ ) );
+    make PAST::Val.new( :value( +$/ ), :returns('Num'), :node( $/ ) );
 }
 
 method radint($/, $key) {
@@ -1150,8 +1150,8 @@ method rad_number($/) {
         make $radcalc;
     }
     else{
-        my $return_type := 'Integer';
-        if $fracpart { $return_type := 'Float'; }
+        my $return_type := 'Int';
+        if $fracpart { $return_type := 'Num'; }
         make PAST::Val.new(
             :value(
                 radcalc( $radix, $intpart, $fracpart, ~$base, ~$exp )
@@ -1476,7 +1476,7 @@ method colonpair($/, $key) {
 
     if $key eq 'false' {
         $pair_key := PAST::Val.new( :value(~$<ident>) );
-        $pair_val := PAST::Val.new( :value(0), :returns('Integer') );
+        $pair_val := PAST::Val.new( :value(0), :returns('Int') );
     }
     elsif $key eq 'value' {
         $pair_key := PAST::Val.new( :value(~$<ident>) );
@@ -1492,7 +1492,7 @@ method colonpair($/, $key) {
             }
         }
         else {
-            $pair_val := PAST::Val.new( :value(1), :returns('Integer') );
+            $pair_val := PAST::Val.new( :value(1), :returns('Int') );
         }
     }
     elsif $key eq 'varname' {

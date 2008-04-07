@@ -10,9 +10,9 @@ Int - Perl 6 integers
 
 .sub 'onload' :anon :init :load
     $P0 = subclass 'Integer', 'Int'
-    $P1 = get_class 'Any'
+    $P1 = get_hll_global 'Any'
+    $P1 = $P1.HOW()
     addparent $P0, $P1
-    addattribute $P0, "vartype" # XXX should get Object's one
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
     $P1($P0, 'Int')
     $P1('Integer', 'Int')

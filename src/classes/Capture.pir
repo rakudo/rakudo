@@ -14,9 +14,9 @@ This file sets up the Perl 6 C<Capture> class.
 
 .sub 'onload' :anon :init :load
     $P0 = subclass 'Capture', 'Perl6Capture'
-    $P1 = get_class 'Any'
+    $P1 = get_hll_global 'Any'
+    $P1 = $P1.HOW()
     addparent $P0, $P1
-    addattribute $P0, "vartype" # XXX should get Object's one
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
     $P1($P0, 'Capture')
 .end

@@ -16,9 +16,9 @@ symbols for C<Bool::True> and C<Bool::False>.
 .sub 'onload' :anon :init :load
     .local pmc protoobject
     $P0 = subclass 'Boolean', 'Bool'
-    $P1 = get_class 'Any'
+    $P1 = get_hll_global 'Any'
+    $P1 = $P1.HOW()
     addparent $P0, $P1
-    addattribute $P0, "vartype" # XXX should get Object's one
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
     protoobject = $P1($P0, 'Bool')
 

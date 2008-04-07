@@ -14,9 +14,9 @@ src/classes/Hash.pir - Perl 6 Hash class, and related functions
 
 .sub 'onload' :anon :load :init
     $P0 = subclass 'Hash', 'Perl6Hash'
-    $P1 = get_class 'Any'
+    $P1 = get_hll_global 'Any'
+    $P1 = $P1.HOW()
     addparent $P0, $P1
-    addattribute $P0, "vartype" # XXX should get Object's one
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
     $P1($P0, 'Hash')
 .end

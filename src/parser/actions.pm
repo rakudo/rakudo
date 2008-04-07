@@ -917,7 +917,9 @@ method variable_decl($/) {
             elsif $trait<trait_verb> {
                 my $verb := $trait<trait_verb>;
                 my $sym := $verb<sym>;
-                $/.panic("'" ~ $sym ~ "' not implemented");
+                if $sym ne 'handles' {
+                    $/.panic("'" ~ $sym ~ "' not implemented");
+                }
             }
         }
     }
@@ -1017,7 +1019,7 @@ method scope_declarator($/) {
                 $/.panic("attempt to define attribute '" ~ $name ~ "' outside of class");
             }
 
-            # Generate PIR for attribute (always name it with ! twigil).
+            # Add attribute to class (always name it with ! twigil).
             my $variable := $<scoped><variable_decl><variable>;
             $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
             $class_def.push(PAST::Op.new(
@@ -1056,6 +1058,26 @@ method scope_declarator($/) {
             # If it's a ! twigil, we're done; otherwise, error.
             elsif $variable<twigil>[0] ne '!' {
                 $/.panic("invalid twigil " ~ $variable<twigil>[0] ~ " in attribute declaration");
+            }
+
+            # Is there any "handles" trait verb?
+            if $<scoped><variable_decl><trait> {
+                for $<scoped><variable_decl><trait> {
+                    if $_<trait_verb><sym> eq 'handles' {
+                        # Get the methods for the handles and add them to
+                        # the class
+                        say("has handles");
+                        my $meths := process_handles(
+                            $/,
+                            $( $_<trait_verb><EXPR> ),
+                            $name
+                        );
+                        for @($meths) {
+                            say("has method");
+                            $class_def.push($_);
+                        }
+                    }
+                }
             }
 
             # We don't want to generate any PAST at the point of the declaration.
@@ -1385,6 +1407,11 @@ method EXPR($/, $key) {
         my $var := $( $/[0] );
         my $call := $( $/[1] );
 
+        # Check that we have a sub call.
+        if $call.WHAT() ne 'Op' || $call.pasttype() ne 'call' {
+            $/.panic('.= must have a call on the right hand side');
+        }
+
         # Create call and assign result nodes.
         my $meth_call := PAST::Op.new(
             :pasttype('callmethod'),
@@ -1663,6 +1690,76 @@ sub process_arguments($call_past, $args) {
             $call_past.push($_);
         }
     }
+}
+
+
+# Processes a handles expression to produce the appropriate method(s).
+sub process_handles($/, $expr, $attr_name) {
+    my $past := PAST::Stmts.new();
+
+    # What type of expression do we have?
+    if $expr.WHAT() eq 'Val' && $expr.returns() eq 'Perl6Str' {
+        $past.push(make_handles_method($/, ~$expr.value(), $attr_name));
+    }
+    elsif $expr.WHAT() eq 'Op' && $expr.pasttype() eq 'call' &&
+          $expr.name() eq 'list' {
+        # List of names. We only handle this being constant at the
+        # moment.
+        for @($expr) {
+            if $_.WHAT() eq 'Val' && $_.returns() eq 'Perl6Str' {
+                $past.push(make_handles_method($/, ~$_.value(), $attr_name));
+            }
+            else {
+                $/.panic('Only a list of constants can be used in handles');
+            }
+        }
+    }
+    else {
+        $/.panic('Illegal or unimplemented use of handles');
+    }
+
+    $past
+}
+
+
+# Produces a handles method.
+sub make_handles_method($/, $name, $attr_name) {
+    PAST::Block.new(
+        :name($name),
+        :pirflags(':method'),
+        :blocktype('declaration'),
+        :node($/),
+        PAST::Var.new(
+            :name('@a'),
+            :scope('parameter'),
+            :slurpy(1)
+        ),
+        PAST::Var.new(
+            :name('%h'),
+            :scope('parameter'),
+            :named(1),
+            :slurpy(1)
+        ),
+        PAST::Op.new(
+            :name($name),
+            :pasttype('callmethod'),
+            PAST::Var.new(
+                :name($attr_name),
+                :scope('attribute')
+            ),
+            PAST::Var.new(
+                :name('@a'),
+                :scope('lexical'),
+                :flat(1)
+            ),
+            PAST::Var.new(
+                :name('%h'),
+                :scope('lexical'),
+                :flat(1),
+                :named(1)
+            )
+        )
+    )
 }
 
 

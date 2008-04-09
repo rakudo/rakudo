@@ -10,7 +10,7 @@ say "1..3";
 
 {
     my $num = 3.141;
-    if $num.isa("Num")    { say "ok 2" } else { say "not ok 2 # skip" }
+    if $num.isa("Num")    { say "ok 2" } else { say "not ok 2 # TODO" }
 }
 
 {

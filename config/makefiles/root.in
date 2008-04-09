@@ -90,7 +90,7 @@ src/gen_grammar.pir: $(PERL6GRAMMAR) src/parser/grammar.pg src/parser/grammar-op
 
 src/gen_actions.pir: $(NQP) $(PCT) src/parser/actions.pm
 	$(PARROT) $(PARROT_ARGS) $(NQP) --output=src/gen_actions.pir \
-	    --target=pir src/parser/actions.pm
+	    --encoding=fixed_8 --target=pir src/parser/actions.pm
 
 src/gen_builtins.pir: $(BUILTINS_PIR)
 	$(CAT) $(BUILTINS_PIR) >src/gen_builtins.pir

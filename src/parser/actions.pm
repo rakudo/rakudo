@@ -1066,14 +1066,12 @@ method scope_declarator($/) {
                     if $_<trait_verb><sym> eq 'handles' {
                         # Get the methods for the handles and add them to
                         # the class
-                        say("has handles");
                         my $meths := process_handles(
                             $/,
                             $( $_<trait_verb><EXPR> ),
                             $name
                         );
                         for @($meths) {
-                            say("has method");
                             $class_def.push($_);
                         }
                     }
@@ -1699,18 +1697,46 @@ sub process_handles($/, $expr, $attr_name) {
 
     # What type of expression do we have?
     if $expr.WHAT() eq 'Val' && $expr.returns() eq 'Perl6Str' {
-        $past.push(make_handles_method($/, ~$expr.value(), $attr_name));
+        # Just a single string mapping.
+        my $name := ~$expr.value();
+        $past.push(make_handles_method($/, $name, $name, $attr_name));
+    }
+    elsif $expr.WHAT() eq 'Op' && $expr.returns() eq 'Pair' {
+        # Single pair.
+        $past.push(make_handles_method_from_pair($/, $expr, $attr_name));
     }
     elsif $expr.WHAT() eq 'Op' && $expr.pasttype() eq 'call' &&
           $expr.name() eq 'list' {
-        # List of names. We only handle this being constant at the
-        # moment.
+        # List of something, but what is it?
         for @($expr) {
             if $_.WHAT() eq 'Val' && $_.returns() eq 'Perl6Str' {
-                $past.push(make_handles_method($/, ~$_.value(), $attr_name));
+                # String value.
+                my $name := ~$_.value();
+                $past.push(make_handles_method($/, $name, $name, $attr_name));
+            }
+            elsif $_.WHAT() eq 'Op' && $_.returns() eq 'Pair' {
+                # Pair.
+                $past.push(make_handles_method_from_pair($/, $_, $attr_name));
             }
             else {
-                $/.panic('Only a list of constants can be used in handles');
+                $/.panic('Only a list of constants or pairs can be used in handles');
+            }
+        }
+    }
+    elsif $expr.WHAT() eq 'Stmts' && $expr[0].name() eq 'infix:,' {
+        # Also a list, but constructed differently.
+        for @($expr[0]) {
+            if $_.WHAT() eq 'Val' && $_.returns() eq 'Perl6Str' {
+                # String value.
+                my $name := ~$_.value();
+                $past.push(make_handles_method($/, $name, $name, $attr_name));
+            }
+            elsif $_.WHAT() eq 'Op' && $_.returns() eq 'Pair' {
+                # Pair.
+                $past.push(make_handles_method_from_pair($/, $_, $attr_name));
+            }
+            else {
+                $/.panic('Only a list of constants or pairs can be used in handles');
             }
         }
     }
@@ -1723,9 +1749,9 @@ sub process_handles($/, $expr, $attr_name) {
 
 
 # Produces a handles method.
-sub make_handles_method($/, $name, $attr_name) {
+sub make_handles_method($/, $from_name, $to_name, $attr_name) {
     PAST::Block.new(
-        :name($name),
+        :name($from_name),
         :pirflags(':method'),
         :blocktype('declaration'),
         :node($/),
@@ -1741,7 +1767,7 @@ sub make_handles_method($/, $name, $attr_name) {
             :slurpy(1)
         ),
         PAST::Op.new(
-            :name($name),
+            :name($to_name),
             :pasttype('callmethod'),
             PAST::Var.new(
                 :name($attr_name),
@@ -1760,6 +1786,26 @@ sub make_handles_method($/, $name, $attr_name) {
             )
         )
     )
+}
+
+
+# Makes a handles method from a pair.
+sub make_handles_method_from_pair($/, $pair, $attr_name) {
+    my $meth;
+
+    # Single pair mapping. Check we have string name and value.
+    my $key := $pair[1];
+    my $value := $pair[2];
+    if $key.WHAT() eq 'Val' && $value.WHAT() eq 'Val' {
+        my $from_name := ~$key.value();
+        my $to_name := ~$value.value();
+        $meth := make_handles_method($/, $from_name, $to_name, $attr_name);
+    }
+    else {
+        $/.panic('Only constants may be used in a handles pair argument.');
+    }
+
+    $meth
 }
 
 

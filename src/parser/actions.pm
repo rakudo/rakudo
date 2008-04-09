@@ -436,12 +436,16 @@ method signature($/) {
         $past.symbol($parameter.name(), :scope('lexical'));
         $params.push($parameter);
 
-        # Add any type check that is needed.
+        # Add any type check that is needed. The scheme for this: $type_check
+        # is a statement block. We create a block for each parameter, which
+        # will be empty if there are no constraints for that parameter. This
+        # is so we can later generate a multi-sig from it.
+        my $cur_param_types := PAST::Stmts.new();
         if $_<parameter><type_constraint> {
             for $_<parameter><type_constraint> {
                 # Just a type name?
                 if $_<typename> {
-                    $type_check.push(
+                    $cur_param_types.push(
                         PAST::Op.new(
                             :pasttype('call'),
                             :name('!TYPECHECKPARAM'),
@@ -493,7 +497,7 @@ method signature($/) {
 
                     # Now we'll just pass this block to the type checker,
                     # since smart-matching a block invokes it.
-                    $type_check.push(
+                    $cur_param_types.push(
                         PAST::Op.new(
                             :pasttype('call'),
                             :name('!TYPECHECKPARAM'),
@@ -507,12 +511,15 @@ method signature($/) {
                 }
             }
         }
+
+        $type_check.push($cur_param_types);
     }
     $past.arity( +$/[0] );
     our $?BLOCK_SIGNATURED := $past;
     if +@($type_check) {
         $past.push($type_check);
     }
+    our $?PARAM_TYPE_CHECK := $type_check;
     make $past;
 }
 

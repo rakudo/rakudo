@@ -372,19 +372,43 @@ method statement_prefix($/) {
 method plurality_declarator($/) {
     my $past := $( $<routine_declarator> );
     if $<sym> eq 'multi' {
+        our $?PARAM_TYPE_CHECK;
+        my @check_list := @($?PARAM_TYPE_CHECK);
+        
+        # Go over the parameters and build multi-sig.
         my $pirflags := ~ $past.pirflags();
-        my $arity := $past.arity();
-        if    $arity == 0 { $pirflags := $pirflags ~ ' :multi()'; }
-        elsif $arity == 1 { $pirflags := $pirflags ~ ' :multi(_)'; }
-        else {
-            $pirflags := $pirflags ~ ' :multi(_';
-            my $count := 1;
-            while $count != $arity {
-                $pirflags := $pirflags ~ ',_';
-                $count := $count + 1;
+        $pirflags := $pirflags ~ ' :multi(';
+        my $arity := +@check_list;
+        my $count := 0;
+        while $count != $arity {
+            # How many types do we have?
+            my $checks := @check_list[$count];
+            my $num_checks := +@($checks);
+            if $num_checks == 0 {
+                # XXX Should be Any, once type hierarchy is fixed up.
+                $pirflags := $pirflags ~ '_';
             }
-            $pirflags := $pirflags ~ ')';
+            elsif $num_checks == 1 {
+                # At the moment, can only handle a named check.
+                my $check_code := $checks[0];
+                if $check_code.WHAT() eq 'Op' && $check_code[0].WHAT() eq 'Var' {
+                    $pirflags := $pirflags ~ '\'' ~ $check_code[0].name() ~ '\'';
+                }
+                else {
+                    $/.panic('Can only use type names in a multi, not anonymous constraints.');
+                }
+            }
+            else {
+                $/.panic('Cannot have more than one type constraint on a parameter in a multi yet.');
+            }
+
+            # Comma spearator if needed.
+            $count := $count + 1;
+            if $count != $arity {
+                $pirflags := $pirflags ~ ', ';
+            }
         }
+        $pirflags := $pirflags ~ ')';
         $past.pirflags($pirflags);
     }
     make $past;
@@ -516,10 +540,8 @@ method signature($/) {
     }
     $past.arity( +$/[0] );
     our $?BLOCK_SIGNATURED := $past;
-    if +@($type_check) {
-        $past.push($type_check);
-    }
     our $?PARAM_TYPE_CHECK := $type_check;
+    $past.push($type_check);
     make $past;
 }
 

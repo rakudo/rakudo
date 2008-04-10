@@ -374,7 +374,7 @@ method plurality_declarator($/) {
     if $<sym> eq 'multi' {
         our $?PARAM_TYPE_CHECK;
         my @check_list := @($?PARAM_TYPE_CHECK);
-        
+
         # Go over the parameters and build multi-sig.
         my $pirflags := ~ $past.pirflags();
         $pirflags := $pirflags ~ ' :multi(';

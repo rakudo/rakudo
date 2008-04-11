@@ -31,8 +31,7 @@ assignment.
 
 do_assign:
     eq_addr assignee, value, no_copy
-    morph assignee, "Undef"
-    assign assignee, value
+    copy assignee, value
     push_eh no_copy
     setattribute assignee, 'vartype', type_info
     pop_eh

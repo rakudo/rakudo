@@ -339,6 +339,19 @@ Print the object
     .return $P0(self)
 .end
 
+=item clone (vtable method)
+
+Actually just returns the object itself. This is used to get us working with
+the copy opcode, which clones things on assignment. However, objects by
+default have reference semantics, not value semantics. Those with value
+semantics override this.
+
+=cut
+
+.sub 'clone' :method :vtable
+    .return(self)
+.end
+
 =back
 
 =head2 Protoobject methods

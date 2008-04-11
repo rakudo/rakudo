@@ -21,6 +21,13 @@ This file sets up the Perl 6 C<Capture> class.
     $P1($P0, 'Capture')
 .end
 
+
+=item !create
+
+Creates a capture.
+
+=cut
+
 .sub '!create' :method
     .param pmc invocant
     .param pmc array :slurpy
@@ -53,6 +60,18 @@ This file sets up the Perl 6 C<Capture> class.
     # Done.
     .return(capt)
 .end
+
+
+=item clone (vtable method)
+
+Captures are immutable, so just return ourself.
+
+=cut
+
+.sub 'clone' :method :vtable
+    .return (self)
+.end
+
 
 # Local Variables:
 #   mode: pir

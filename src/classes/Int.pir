@@ -25,6 +25,15 @@ Int - Perl 6 integers
 .end
 
 
+.sub 'clone' :method :vtable
+    .local pmc clone_type
+    clone_type = self.HOW()
+    $P0 = clone_type.'new'()
+    $P0 = self
+    .return($P0)
+.end
+
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

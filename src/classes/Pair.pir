@@ -22,6 +22,17 @@ src/classes/Pair.pir - methods for the Pair class
 .end
 
 
+=item clone (vtable method)
+
+Pairs are immutable, so just return ourself.
+
+=cut
+
+.sub 'clone' :method :vtable
+    .return (self)
+.end
+
+
 =item perl
 
 Returns a Perl code representation of the pair.

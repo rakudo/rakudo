@@ -33,6 +33,19 @@ Return the elements of the list joined by spaces.
     .return ($S0)
 .end
 
+
+=item clone()    (vtable method)
+
+Clones the list.
+
+=cut
+
+.sub 'clone' :vtable :method
+    $P0 = 'list'(self)
+    .return ($P0)
+.end
+
+
 =item ACCEPTS(topic)
 
 =cut

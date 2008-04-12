@@ -952,6 +952,7 @@ method variable_decl($/) {
             }
         }
     }
+
     make $past;
 }
 
@@ -1006,115 +1007,125 @@ method scoped($/) {
 
 
 method scope_declarator($/) {
-    # Get the actual variable.
-    my $past := $( $<scoped> );
-    my $var;
-    if $past.WHAT() eq 'Var' {
-        $var := $past;
-    }
-    else {
-        # It had an initial type assignment.
-        $var := $past[0][0];
-    }
-
-    my $name := $var.name();
+    my $past;
     our $?BLOCK;
-    unless $?BLOCK.symbol($name) {
-        my $scope := 'lexical';
-        my $declarator := $<declarator>;
-        if $declarator eq 'my' {
-            $var.isdecl(1);
+    my $declarator := $<declarator>;
+
+    # Has declarations are attributes and need special handling.
+    if $declarator eq 'has' {
+        # Get the class or role we're in.
+        our $?CLASS;
+        our $?ROLE;
+        our $?PACKAGE;
+        my $class_def;
+        if $?ROLE =:= $?PACKAGE {
+            $class_def := $?ROLE;
         }
-        elsif $declarator eq 'our' {
-            $scope := 'package';
-            $var.isdecl(1);
+        else {
+            $class_def := $?CLASS;
         }
-        elsif $declarator eq 'has' {
-            # Set that it's attribute scope.
-            $scope := 'attribute';
+        unless defined( $class_def ) {
+            $/.panic("attempt to define attribute '" ~ $name ~ "' outside of class");
+        }
 
-            # Get the class or role we're in.
-            our $?CLASS;
-            our $?ROLE;
-            our $?PACKAGE;
-            my $class_def;
-            if $?ROLE =:= $?PACKAGE {
-                $class_def := $?ROLE;
-            }
-            else {
-                $class_def := $?CLASS;
-            }
-            unless defined( $class_def ) {
-                $/.panic("attempt to define attribute '" ~ $name ~ "' outside of class");
-            }
+        # Add attribute to class (always name it with ! twigil).
+        my $variable := $<scoped><variable_decl><variable>;
+        my $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
+        $class_def.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('!keyword_has'),
+            PAST::Var.new(
+                :name('Perl6Object'),
+                :scope('package')
+            ),
+            PAST::Var.new(
+                :name('$def'),
+                :scope('lexical')
+            ),
+            PAST::Val.new( :value($name) )
+        ));
 
-            # Add attribute to class (always name it with ! twigil).
-            my $variable := $<scoped><variable_decl><variable>;
-            $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
-            $class_def.push(PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('!keyword_has'),
-                PAST::Var.new(
-                    :name('Perl6Object'),
-                    :scope('package')
+        # If we have no twigil, make $name as an alias to $!name.
+        if $variable<twigil>[0] eq '' {
+            $?BLOCK.symbol(~$variable<sigil> ~ ~$variable<name>, :scope('attribute'));
+        }
+
+        # If we have a . twigil, we need to generate an accessor.
+        elsif $variable<twigil>[0] eq '.' {
+            my $accessor := PAST::Block.new(
+                PAST::Stmts.new(
+                    PAST::Var.new( :name($name), :scope('attribute') )
                 ),
-                PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
-                ),
-                PAST::Val.new( :value($name) )
-            ));
+                :name(~$variable<name>),
+                :blocktype('declaration'),
+                :pirflags(':method'),
+                :node( $/ )
+            );
+            $?CLASS.unshift($accessor);
+        }
 
-            # If we have no twigil, make $name as an alias to $!name.
-            if $variable<twigil>[0] eq '' {
-                $?BLOCK.symbol(~$variable<sigil> ~ ~$variable<name>, :scope($scope));
-            }
+        # If it's a ! twigil, we're done; otherwise, error.
+        elsif $variable<twigil>[0] ne '!' {
+            $/.panic("invalid twigil " ~ $variable<twigil>[0] ~ " in attribute declaration");
+        }
 
-            # If we have a . twigil, we need to generate an accessor.
-            elsif $variable<twigil>[0] eq '.' {
-                my $accessor := PAST::Block.new(
-                    PAST::Stmts.new(
-                        PAST::Var.new( :name($name), :scope('attribute') )
-                    ),
-                    :name($variable<name>),
-                    :blocktype('declaration'),
-                    :pirflags(':method'),
-                    :node( $/ )
-                );
-                $?CLASS.unshift($accessor);
-            }
-
-            # If it's a ! twigil, we're done; otherwise, error.
-            elsif $variable<twigil>[0] ne '!' {
-                $/.panic("invalid twigil " ~ $variable<twigil>[0] ~ " in attribute declaration");
-            }
-
-            # Is there any "handles" trait verb?
-            if $<scoped><variable_decl><trait> {
-                for $<scoped><variable_decl><trait> {
-                    if $_<trait_verb><sym> eq 'handles' {
-                        # Get the methods for the handles and add them to
-                        # the class
-                        my $meths := process_handles(
-                            $/,
-                            $( $_<trait_verb><EXPR> ),
-                            $name
-                        );
-                        for @($meths) {
-                            $class_def.push($_);
-                        }
+        # Is there any "handles" trait verb?
+        if $<scoped><variable_decl><trait> {
+            for $<scoped><variable_decl><trait> {
+                if $_<trait_verb><sym> eq 'handles' {
+                    # Get the methods for the handles and add them to
+                    # the class
+                    my $meths := process_handles(
+                        $/,
+                        $( $_<trait_verb><EXPR> ),
+                        $name
+                    );
+                    for @($meths) {
+                        $class_def.push($_);
                     }
                 }
             }
+        }
 
-            # We don't want to generate any PAST at the point of the declaration.
-            $past := PAST::Stmts.new();
+        # Register the attribute in the scope.
+        $?BLOCK.symbol($name, :scope('attribute'));
+
+        # We don't want to generate any PAST at the point of the declaration.
+        $past := PAST::Stmts.new();
+    }
+    else {
+        # We need to find the actual variable PAST node; we may have something
+        # more complex at this stage that applies types.
+        $past := $( $<scoped> );
+        my $var;
+        if $past.WHAT() eq 'Var' {
+            $var := $past;
         }
         else {
-            $/.panic("scope declarator '" ~ $declarator ~ "' not implemented");
+            # It had an initial type assignment.
+            $var := $past[0][0];
         }
-        $?BLOCK.symbol($name, :scope($scope));
+
+        # Has this already been declared?
+        my $name := $var.name();
+        unless $?BLOCK.symbol($name) {
+            my $scope := 'lexical';
+            if $declarator eq 'my' {
+                $var.isdecl(1);
+            }
+            elsif $declarator eq 'our' {
+                $name := $var.name();
+                $scope := 'package';
+                $var.isdecl(1);
+            }
+            else {
+                $/.panic("scope declarator '" ~ $declarator ~ "' not implemented");
+            }
+
+            $?BLOCK.symbol($name, :scope($scope));
+        }
     }
+
     make $past;
 }
 

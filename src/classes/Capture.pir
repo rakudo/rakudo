@@ -22,6 +22,10 @@ This file sets up the Perl 6 C<Capture> class.
 .end
 
 
+=head1 METHODS
+
+=over
+
 =item !create
 
 Creates a capture.
@@ -71,6 +75,11 @@ Captures are immutable, so just return ourself.
 .sub 'clone' :method :vtable
     .return (self)
 .end
+
+
+=back
+
+=cut
 
 
 # Local Variables:

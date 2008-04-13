@@ -101,8 +101,27 @@ method statement($/, $key) {
             $past.push( $expr );
         }
         elsif $key eq 'statement_mod_loop' {
-            $past := $( $<statement_mod_loop> );
-            $past.push( $expr );
+            my $mod := $( $<statement_mod_loop> );
+            if $<statement_mod_loop><sym> eq 'for' {
+                my $loop :=  PAST::Block.new(
+                            PAST::Stmts.new(
+                                PAST::Var.new(
+                                    :name('$_'),
+                                    :scope('parameter'),
+                                    :viviself('Undef')
+                                ),
+                                $expr
+                            ),
+                            :node( $/ )
+                        );
+                $loop.symbol( '$_', :scope('lexical') );
+                $mod.push($loop);
+                $past := PAST::Stmts.new( $mod, :node($/) );
+            }
+            else {
+                $mod.push( $expr );
+                $past := PAST::Block.new( $mod, :blocktype('immediate'), :node($/) );
+            }
         }
         else {
             $past := $expr;
@@ -311,9 +330,30 @@ method end_statement($/) {
 }
 
 method statement_mod_loop($/) {
-    make PAST::Op.new( $( $<EXPR> ),
-                       :pasttype( ~$<sym> ),
-                       :node( $/ ) );
+    my $expr := $( $<EXPR> );
+    if ~$<sym> eq 'given' {
+        my $assign := PAST::Op.new( :name('infix::='),
+                                    :pasttype('bind'),
+                                    :node($/)
+                                  );
+        $assign.push( PAST::Var.new( :node($/), :name('$_'), :scope('lexical') ) );
+        $assign.push( $expr );
+
+        my $past := PAST::Stmts.new( $assign, :node($/) );
+        make $past;
+    }
+    elsif ~$<sym> eq 'for' {
+        my $past := PAST::Op.new( $expr,
+                        :pasttype($<sym>),
+                        :node( $/ )
+                        );
+        make $past;
+    }
+    else {
+        make PAST::Op.new( $expr,
+                           :pasttype( ~$<sym> ),
+                           :node( $/ ) );
+    }
 }
 
 method statement_mod_cond($/) {

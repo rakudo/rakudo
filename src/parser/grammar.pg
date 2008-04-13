@@ -302,7 +302,7 @@ rule end_statement {
 }
 
 rule statement_mod_loop {
-    $<sym>=[while|until] <EXPR> {*}
+    $<sym>=[while|until|for|given] <EXPR> {*}
 }
 
 rule statement_mod_cond {

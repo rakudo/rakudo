@@ -63,6 +63,20 @@ Writes the given list of items to the file, then a newline character.
 .end
 
 
+=item readline
+
+Reads a line from the file handle.
+
+=cut
+
+.sub 'readline' :method
+    .local pmc PIO
+    PIO = getattribute self, "$!PIO"
+    $P0 = PIO.readline('')
+    .return ($P0)
+.end
+
+
 =item close
 
 Closes the file.

@@ -107,8 +107,16 @@ Returns whatever C<$code> returns, or undef on error.
 .sub 'eval'
     .param pmc code
     .param pmc lang            :named('lang') :optional
-    'die'("eval unimplemented")
-    .return ()
+    .param int have_lang       :opt_flag
+
+    unless have_lang goto no_lang
+    'die'('Lanuage parameter to eval unimplemented.')
+  no_lang:
+
+    .local pmc compiler, invokable
+    compiler = compreg 'Perl6'
+    invokable = compiler.'compile'(code)
+    .return invokable()
 .end
 
 

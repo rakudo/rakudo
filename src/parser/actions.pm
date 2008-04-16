@@ -99,8 +99,13 @@ method statement($/, $key) {
         if $key eq 'statement_mod_cond' {
             $past := $( $<statement_mod_cond> );
             $past.push( $expr );
+            if $<sml> {
+                $expr := $past;
+                $key := 'statement_mod_loop';
+                $<statement_mod_loop> := $<sml>[0];
+            }
         }
-        elsif $key eq 'statement_mod_loop' {
+        if $key eq 'statement_mod_loop' {
             my $mod := $( $<statement_mod_loop> );
             if $<statement_mod_loop><sym> eq 'for' {
                 my $loop :=  PAST::Block.new(

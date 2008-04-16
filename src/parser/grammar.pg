@@ -197,7 +197,11 @@ rule statement {
     | $<expr>=<EXPR>
         [
         || <statement_mod_loop> {*}              #= statement_mod_loop
-        || <statement_mod_cond> {*}              #= statement_mod_cond
+        || <statement_mod_cond>
+            [
+                $<sml>=<statement_mod_loop>
+            ]?
+            {*}                                  #= statement_mod_cond
         || {*}                                   #= expr
         ]
 }

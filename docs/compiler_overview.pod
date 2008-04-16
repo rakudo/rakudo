@@ -9,12 +9,26 @@ or what features have been implemented.
 
 The Rakudo compiler is constructed from four major components:
 
-1.  the parse grammar (src/parser/grammar.pg, src/parser/*.pir)
-2.  a set of action methods to transform the parse tree into
-    an abstract syntax tree (src/parser/actions.pm)
-3.  the main compiler object (perl6.pir)
-4.  builtin functions and runtime support (src/builtins/,
-    src/classes/, src/pmc/)
+=over 4
+
+=item 1.
+
+the parse grammar (src/parser/grammar.pg, src/parser/*.pir)
+
+=item 2.
+
+a set of action methods to transform the parse tree into an abstract syntax
+tree (src/parser/actions.pm)
+
+=item 3.
+
+the main compiler object (perl6.pir)
+
+=item 4.
+
+builtin functions and runtime support (src/builtins/, src/classes/, src/pmc/)
+
+=back
 
 The F<Makefile> takes care of compiling all of the individual
 components into compiled form and linking them together to

@@ -1,4 +1,4 @@
-use v6-alpha;
+use v6;
 
 # Checking that testing is sane: Test.pm
 

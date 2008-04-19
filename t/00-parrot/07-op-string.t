@@ -4,7 +4,7 @@
 
 use v6;
 
-say '1..16';
+say '1..18';
 say 'ok ' ~ '1';
 say 'ok' ~ ' ' ~ '2';
 my $s = 'ok ';
@@ -37,3 +37,11 @@ $s eq 'ABC' and say 'ok 15';
 
 $s = 'ABC' ~| '   ';
 $s eq 'abc' and say 'ok 16';
+
+# check COW of Parrot strings (r27046, r27048)
+my $foo = 'fred';
+my $bar = 'fred';
+$foo++;
+$bar--;
+$foo eq 'free' and say 'ok 17';
+$bar eq 'frec' and say 'ok 18';

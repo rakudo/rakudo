@@ -1166,8 +1166,8 @@ method scope_declarator($/) {
             else {
                 $/.panic("scope declarator '" ~ $declarator ~ "' not implemented");
             }
-
-            $?BLOCK.symbol($name, :scope($scope));
+            my $untyped := $var =:= $past;
+            $?BLOCK.symbol($name, :scope($scope), :untyped($untyped));
         }
     }
 
@@ -1488,11 +1488,24 @@ method EXPR($/, $key) {
     }
     elsif ~$<type> eq 'infix:.=' {
         my $var := $( $/[0] );
+        my $res := $var;
         my $call := $( $/[1] );
 
         # Check that we have a sub call.
         if $call.WHAT() ne 'Op' || $call.pasttype() ne 'call' {
             $/.panic('.= must have a call on the right hand side');
+        }
+
+        # If it was a scoped declarator with types, need to just get the
+        # PAST::Var node for the result.
+        if $/[0]<noun><scope_declarator><scoped><variable_decl> {
+            # Note we create a new Var node, since we don't want both of them
+            # to be declarations.
+            my $info := $( $/[0]<noun><scope_declarator><scoped><variable_decl><variable> );
+            $res := PAST::Var.new(
+                :name($info.name()),
+                :scope($info.scope())
+            );
         }
 
         # Create call and assign result nodes.
@@ -1503,9 +1516,10 @@ method EXPR($/, $key) {
             $var
         );
         my $past := PAST::Op.new(
-            :pasttype('copy'),
-            $var,
-            $meth_call
+            :inline("    %r = '!TYPECHECKEDASSIGN'(%1, %0)\n"),
+            :node($/),
+            $meth_call,
+            $res
         );
 
         # Copy arguments.
@@ -1526,15 +1540,21 @@ method EXPR($/, $key) {
             $past.push( $($_) );
         }
 
-        # If it's an assignment or binding, we need to emit a type-check too.
+        # If it's an assignment or binding, we may need to emit a type-check.
         if $past.name() eq 'infix:=' {
-            $past := PAST::Op.new(
-                :lvalue(1),
-                :node($/),
-                :inline("    %r = '!TYPECHECKEDASSIGN'(%0, %1)\n"),
-                $past[0],
-                $past[1]
-            );
+            # We can skip it if we statically know the variable had no type
+            # associated with it, though.
+            our $?BLOCK;
+            my $sym_info := $?BLOCK.symbol($past[0].name());
+            unless $sym_info<untyped> {
+                $past := PAST::Op.new(
+                    :lvalue(1),
+                    :node($/),
+                    :inline("    %r = '!TYPECHECKEDASSIGN'(%0, %1)\n"),
+                    $past[0],
+                    $past[1]
+                );
+            }
         }
 
         make $past;

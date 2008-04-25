@@ -14,18 +14,24 @@ BEGIN {
         compiler  => 'perl6.pbc',
     );
 
-    ##  if we aren't fudging tests, we're done here
-    return if $ARGV[0] ne '--fudge';
+    my %opts;
+    while( $_ = $ARGV[0] ) {
+        last unless defined && /^-/;
+        shift;
+        last if /^--$/;
+        $opts{$_} = $_;
+    }
 
-    my $fudge = shift @ARGV;
+    ##  if we aren't fudging tests, we're done here
+    return unless defined delete $opts{'--fudge'};
+
 
     my $impl    = 'rakudo';
     my @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
-    print "$^X t/spec/fudgeall $impl @tfiles\n";
+    my $cmd = join ' ', $^X, 't/spec/fudgeall', keys(%opts), $impl, @tfiles;
+    print "$cmd\n";
 
-    $harness_args{arguments} =
-        [ split ' ', `$^X t/spec/fudgeall $impl @tfiles` ];
-
+    $harness_args{arguments} = [ split ' ', `$cmd` ];
 
     # Stolen directly from 'prove'
     # adapted to return only files ending in '.t'

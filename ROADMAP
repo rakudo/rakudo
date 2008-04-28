@@ -11,6 +11,7 @@ over the next few months:
 * class, role, objects
 * regex, token, rule, grammar
 * selected libraries written in Perl 6
+* modules
 * junctions
 * lazy lists
 * slices
@@ -20,6 +21,7 @@ over the next few months:
 * other S09 features (typed arrays, sized types)
 * heredocs
 * macros
+* module versioning
 
 The list above also gives a sense of the rough prioritization
 of things -- i.e., getting return and control exceptions to work

@@ -1785,6 +1785,9 @@ method colonpair($/, $key) {
                 my $val := $( $<postcircumfix><semilist> );
                 $pair_val := $val[0];
             }
+            elsif $type eq '<' {
+                $pair_val := $( $<postcircumfix><quote_expression> );
+            }
             else {
                 $/.panic($type ~ ' postcircumfix colonpairs not yet implemented');
             }

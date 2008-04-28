@@ -15,6 +15,7 @@ over the next few months:
 * lazy lists
 * slices
 * multi sub & multi-method dispatch
+* captures and signature handling
 * operator overloading
 * other S09 features (typed arrays, sized types)
 * heredocs

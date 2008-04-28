@@ -1,193 +1,30 @@
-Updated: 2007-11-23
+Updated: 2008-04-28
 
-This message is a brief description of the current state of
-the Perl 6 on Parrot compiler, and what's on tap for the next
-couple of weeks of development.  I'll start with a brief
-overview of what we have now, and then I'll describe where
-things are headed from here.
+Milestones
+----------
 
-Before going too far, I should point out that there are several
-Perl 6 language translators in progress -- at least two of these
-include Pugs and KindaPerl6.  These are available from
-http://www.pugscode.org/ , and I highly recommend looking at
-the work they are doing.  In particular, if writing Perl 6
-programs is your interest (as opposed to developing a compiler),
-then Pugs currently supports the widest set of Perl 6 language
-features.
+This is a rough list of the major components to be added to Rakudo
+over the next few months:
 
+* list context, list assignment
+* return and control exceptions
+* class, role, objects
+* regex, token, rule, grammar
+* selected libraries written in Perl 6
+* junctions
+* lazy lists
+* slices
+* multi sub & multi-method dispatch
+* operator overloading
+* other S09 features (typed arrays, sized types)
+* heredocs
+* macros
 
-Building the Perl 6 on Parrot compiler
---------------------------------------
-
-The compiler and toolchain that I've been focusing on is being
-developed for the Parrot virtual machine ( http://www.parrotcode.org/ ).
-The Perl 6 Compiler for Parrot is called "Rakudo", and it currently
-lives in the languages/perl6/ directory of the Parrot repository.
-
-To build the Rakudo compiler, first get a working copy of Parrot,
-then change to the languages/perl6/ subdirectory and type "make".
-This will build the compiler into a file called "perl6.pbc".
-The ".pbc" stands for "Parrot bytecode", and represents an
-an executable Parrot module.
-
-To run a program with Rakudo, one then issues a command like
-
-    $ parrot perl6.pbc hello.pl
-
-Parrot does not yet support a #! syntax that allows us to run
-Perl 6 scripts directly from the command line, but that will
-undoubtedly be coming soon.
-
-If the Rakudo compiler is invoked without a script argument
-(i.e., "parrot perl6.pbc"), it enters a small interactive
-mode that allows Perl 6 statements to be executed from the
-command line.
-
-After the compiler is built, one can run "make test" to run
-the local test suite, or "make spectest" to download and run
-selected tests from the Pugs repository.
-
-I will note here that we've all collectively decided that the
-Pugs repository will be the home of the "official Perl 6 test
-suite" for the forseeable future.  Thus, it's the source of
-tests that all of the development efforts should target.
-A lot of effort over the next few months will be spent
-in re-organizing the test suite and ensuring that it accurately
-reflects the current Perl 6 specification as given by the
-synopses documents ( http://dev.perl.org/perl6/doc/synopsis.html ).
+The list above also gives a sense of the rough prioritization
+of things -- i.e., getting return and control exceptions to work
+is a higher priority than heredocs or macros.  But it's also
+not intended to be rigid nor strictly sequential -- it's okay
+for people to work on some of the later milestones even if the
+earlier ones aren't complete.
 
 
-Structure of the compiler as of 2007-11-01
-------------------------------------------
-
-Before describing where we're going, it may be useful to briefly
-outline where we've been.  As of early November 2007, the
-Rakudo compiler is divided up into four major components:
-
-1.  the parsing grammar (src/parser/Grammar.pg)
-2.  some parsing support subroutines (src/parser/*.pir)
-3.  the AST transformation (src/PAST/Grammar.tg)
-4.  runtime support (src/builtins/, src/classes/, src/pmc/)
-
-The parsing grammar is written using Perl 6 regular expressions
-(Synopsis 5) -- the version of regular expressions that were in
-effect at the beginning of the year.  More on this in a bit.
-The Parser Grammar Engine (PGE) is used to compile the grammar
-into a working parser.  The parsing support routines are used
-to parse constructs (e.g., quoted literals) that are more easily
-parsed procedurally than with regular expressions.
-
-The AST transformation uses another tool called the Tree
-Grammar Engine (TGE) to convert a parse tree into an
-abstract syntax tree representation known as PAST.  The
-PCT toolchain is then able to perform the remainder of
-the code generation and execute the program.
-
-The runtime support consists of some basic types and operators,
-which are currently written in a mix of PIR and C.  Extensions
-are expected to be bootstrapped using Perl 6.
-
-
-Where things are headed next
-----------------------------
-
-While the design and implementation of the Rakudo compiler has
-remained fairly static throughout 2007, a number of other things
-have been occurring that will spark a substantial redesign.
-
-First, as of Parrot 0.5.0 we now have a shiny new object model
-that eliminates many of the obstacles that had been impeding
-work on the compiler.
-
-Another significant change has been the development of a
-standard grammar for Perl 6, known as STD.pm [1].  Larry started
-the STD.pm grammar earlier this year based on the grammars written
-for Pugs and Rakudo, and partially as a result of this grammar
-there's been some substantial redesign and improvement to
-Synopsis 5 (Regexes).
-
-So, one of the things we will be doing soon is to redesign the
-Rakudo compiler using a grammar that is much closer to STD.pm.
-We aren't quite ready to use STD.pm directly, because it relies
-somewhat on having a working Perl 6 implementation, as well
-as some new constructs that aren't implemented by Parrot's
-regex engine.  It may be a while before all of this is ready,
-so we'll use a modified-but-similar-structure grammar for now,
-and work towards convergence with STD.pm .
-
-A big improvement in the regex syntax and STD.pm grammar
-is that they provide a useful syntax for embedding actions
-directly into the grammar (using the sequence {*} ).
-As a result, the AST can be generated as part of the parsing
-phase, instead of requiring a separate phase.
-
-Furthermore, the methods for generating the AST can initially be
-in "NQP" instead of Parrot assembly.  NQP is a lightweight form
-of Perl 6 designed especially for compiling simple programs in
-Parrot [2].  As a result, most of the source code for the Rakudo
-compiler will end up looking a lot like Perl 6, which may make
-it easier for others to hack on.
-
-So, here's the current plan for the next couple of weeks:
-
-* NQP will get one or two more language constructs added to it,
-  to support generating simple class and method definitions.
-
-* The Rakudo grammar will then be redesigned to more closely
-  mimick STD.pm .  Actually, we'll use NQP's current grammar
-  as a starting point, since it's been designed based on STD.pm .
-  We'll want to work on this to get Rakudo at least back to the
-  level of passing tests that it has now.
-
-* In the process we'll also be doing some redesign of the runtime
-  environment and built-in classes, to take advantage of Parrot's
-  new object model.
-
-As we get Rakudo re-oriented in the new constellation of tools,
-we can then continue to address language features, builtin classes
-and methods, and otherwise add features to flesh out the
-compiler implementation.  Much of this will be driven by
-the test suite -- i.e., we'll identify tests that we want to
-have passing, and add the code to make that happen.
-
-At the same time, we'll also be conducting reviews of what's
-currently in the test suite to make sure it continues to honor
-the specs in the Synopses.  Some of the tests have never been
-fully reviewed, and the Synopses have subtly changed over time,
-so this is a good chance to make sure they're correct.
-
-
-How others can start hacking and contributing
----------------------------------------------
-
-If you're interested in hacking on the compiler, my suggestion
-is to become somewhat familiar with the compiler tools already
-available in Parrot.  The mostly likely place to start is to look
-at the implementation of NQP and see how it has been
-put together.  The grammar for NQP is written in Perl 6,
-and although the AST transformations are currently written
-in PIR, the source code for the transformations also provides
-the Perl 6 equivalent.  (Eventually NQP may be used to
-bootstrap itself... but we're not there yet, and I'm more
-focused on getting Rakudo running.)
-
-Patches and bug reports can be submitted to rakudobug@perl.org.
-Please use the moniker [PATCH], [BUG], or [TODO] (including the
-brackets) at the start of the subject so that RT can appropriately
-tag the item.
-
-Lastly, feel free to ask questions on the mailing lists and
-on IRC.  Most of the people working on Parrot tend to hang
-out on #parrot on irc.perl.org, and all are welcome to
-ask questions there.  As questions arise we should also
-make a record of them so that others will be able to more
-easily follow.
-
-Thanks for reading!
-
-Pm
-
-References:
-
-1.  STD.pm:  http://svn.pugscode.org/pugs/src/perl6/STD.pm
-2.  NQP:     http://svn.perl.org/parrot/trunk/compilers/nqp/

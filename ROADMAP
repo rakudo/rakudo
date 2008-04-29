@@ -13,6 +13,7 @@ over the next few months:
 * selected libraries written in Perl 6
 * modules
 * junctions
+* hyper, reduction operators
 * lazy lists
 * slices
 * multi sub & multi-method dispatch

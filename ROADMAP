@@ -18,6 +18,7 @@ over the next few months:
 * slices
 * multi sub & multi-method dispatch
 * captures and signature handling
+* currying
 * operator overloading
 * other S09 features (typed arrays, sized types)
 * heredocs

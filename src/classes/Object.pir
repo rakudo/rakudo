@@ -303,6 +303,18 @@ class object for the invocant).
     .return ($P1)
 .end
 
+=item WHENCE()
+
+Return the invocant's auto-vivification closure.
+
+=cut
+
+.sub 'WHENCE' :method
+    $P0 = self.'WHAT'()
+    $P1 = $P0.'WHENCE'()
+    .return ($P1)
+.end
+
 =item REJECTS(topic)
 
 Define REJECTS methods for objects (this would normally
@@ -409,6 +421,24 @@ is just itself.
     .return (self)
 .end
 
+=item WHENCE()
+
+Returns the invocant's autovivification closure.
+
+=cut
+
+.sub 'WHENCE' :method
+    .local pmc props, whence
+    props = getattribute self, '%!properties'
+    if null props goto ret_undef
+    whence = props['WHENCE']
+    if null whence goto ret_undef
+    .return (whence)
+  ret_undef:
+    whence = new 'Undef'
+    .return (whence)
+.end
+
 =item ACCEPTS(topic)
 
 =cut
@@ -418,6 +448,54 @@ is just itself.
     $P0 = self.'HOW'()
     $I0 = does topic, $P0
     .return 'prefix:?'($I0)
+.end
+
+=item get_pmc_keyed(key)    (vtable method)
+
+Returns a proto-object with an autovivification closure attached to it.
+
+=cut
+
+.sub get_pmc_keyed :vtable :method
+    .param pmc what
+
+    # We'll build auto-vivification hash of values.
+    .local pmc WHENCE, key, val
+    WHENCE = new 'Hash'
+
+    # What is it? XXX Since multi-dimensional keys don't parse yet, we can't
+    # handle auto-vivifying many things. But we'll have to revisit this code
+    # when we can.
+    $S0 = what.'WHAT'()
+    if $S0 == 'Pair' goto from_pair
+    'die'("Auto-vivification closure did not contain a Pair")
+  
+  from_pair:
+    # Just a pair.
+    key = what.'key'()
+    val = what.'value'()
+    WHENCE[key] = val
+    goto done_whence
+  done_whence:
+
+    # Now create a clone of the protoobject.
+    .local pmc protoclass, res, props, tmp
+    protoclass = class self
+    res = new protoclass
+    tmp = getattribute self, 'HOW'
+    setattribute res, 'HOW', tmp
+    tmp = getattribute self, 'shortname'
+    setattribute res, 'shortname', tmp
+
+    # Attach the WHENCE property.
+    props = getattribute self, '%!properties'
+    unless null props goto have_props
+    props = new 'Hash'
+  have_props:
+    props['WHENCE'] = WHENCE
+    setattribute res, '%!properties', props
+
+    .return (res)
 .end
 
 =back

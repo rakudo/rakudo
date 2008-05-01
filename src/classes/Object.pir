@@ -33,7 +33,7 @@ Perform initializations and create the base classes.
     ##  need a place to store variable type, if we have one; this is
     ##  needed per value because we have no container that exists
     ##  between assignments
-    addattribute objectclass, 'vartype'
+    addattribute objectclass, '%!properties'
 
     ##  create a Perl6Protoobject class.  We don't call it 'Protoobject'
     ##  to avoid conflicts with the Protoobject class used by PCT and PGE.

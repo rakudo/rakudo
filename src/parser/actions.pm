@@ -1097,7 +1097,9 @@ method scoped($/) {
         # Now store these type constraints.
         $past := PAST::Op.new(
             :inline(
-                  "    setattribute %0, 'vartype', %1\n"
+                  "    $P0 = new 'Hash'\n"
+                ~ "    $P0['vartype'] = %1\n"
+                ~ "    setattribute %0, '%!properties', $P0\n"
                 ~ "    %r = %0\n"
             ),
             $past,

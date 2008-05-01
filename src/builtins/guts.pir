@@ -20,9 +20,10 @@ assignment.
     .param pmc value
 
     # Any type information?
-    .local pmc type_info
+    .local pmc props, type_info
     push_eh do_assign
-    type_info = getattribute assignee, 'vartype'
+    props = getattribute assignee, '%!properties'
+    type_info = props['vartype']
     pop_eh
     if null type_info goto do_assign
     $I0 = type_info.ACCEPTS(value)
@@ -33,7 +34,7 @@ do_assign:
     eq_addr assignee, value, no_copy
     copy assignee, value
     push_eh no_copy
-    setattribute assignee, 'vartype', type_info
+    setattribute assignee, '%!properties', props
     pop_eh
 no_copy:
     .return(assignee)

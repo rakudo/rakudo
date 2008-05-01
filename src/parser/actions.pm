@@ -1518,7 +1518,7 @@ method quote_expression($/, $key) {
         }
     }
     make $past;
-    }
+}
 
 
 method quote_concat($/) {
@@ -1728,6 +1728,7 @@ method regex_declarator_regex($/) {
 
 method regex_declarator_token($/) {
     my $past := $( $<quote_expression> );
+    $past.compiler_args( :ratchet(1) );
     $past.name( ~$<ident>[0] );
     make $past;
 }
@@ -1735,6 +1736,7 @@ method regex_declarator_token($/) {
 
 method regex_declarator_rule($/) {
     my $past := $( $<quote_expression> );
+    $past.compiler_args( :s(1), :ratchet(1) );
     $past.name( ~$<ident>[0] );
     make $past;
 }

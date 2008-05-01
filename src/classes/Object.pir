@@ -312,10 +312,10 @@ Create a new object having the same class as the invocant.
     # We will check if their HOW matches.
     $P2 = cur_ip.'HOW'()
     eq_addr cur_class, $P2, found_parent_init
-    
+
     goto found_init_attribs
   ip_iter_loop_end:
-    
+
     # If we get here, found nothing.
     init_attribs = new 'Hash'
     goto parent_init_search_done
@@ -574,7 +574,7 @@ Returns a proto-object with an autovivification closure attached to it.
     if $S0 == 'Pair' goto from_pair
     if $S0 == 'List' goto from_list
     'die'("Auto-vivification closure did not contain a Pair")
-  
+
   from_pair:
     # Just a pair.
     key = what.'key'()

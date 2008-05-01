@@ -1878,7 +1878,7 @@ method colonpair($/, $key) {
     else {
         $/.panic($key ~ " pairs not yet implemented.");
     }
-    
+
     $pair_key.named( PAST::Val.new( :value('key') ) );
     $pair_val.named( PAST::Val.new( :value('value') ) );
     my $past := PAST::Op.new(

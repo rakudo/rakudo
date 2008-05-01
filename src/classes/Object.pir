@@ -233,15 +233,65 @@ Create a new object having the same class as the invocant.
 =cut
 
 .sub 'new' :method
-    .param pmc init_attribs :named :slurpy
+    .param pmc init_parents :slurpy
+    .param pmc init_this    :named :slurpy
 
     # Instantiate.
     $P0 = self.'HOW'()
     $P1 = new $P0
 
-    # Initialize each attribute with an Undef or the supplied value.
+    # Now we will initialize each attribute in the class itself and it's
+    # parents with an Undef or the specified initialization value. Note that
+    # the all_parents list includes ourself.
+    .local pmc all_parents, class_iter
+    all_parents = inspect $P0, "all_parents"
+    class_iter = new 'Iterator', all_parents
+  class_iter_loop:
+    unless class_iter goto class_iter_loop_end
+    .local pmc cur_class
+    cur_class = shift class_iter
+
+    # If this the current class?
+    .local pmc init_attribs
+    eq_addr cur_class, $P0, current_class
+
+    # If it's not the current class, need to see if we have any attributes.
+    # Go through the provided init_parents to see if we have anything that
+    # matches.
+    .local pmc ip_iter, cur_ip
+    ip_iter = new 'Iterator', init_parents
+  ip_iter_loop:
+    unless ip_iter goto ip_iter_loop_end
+    cur_ip = shift ip_iter
+
+    # We will check if their HOW matches.
+    $P2 = cur_ip.'HOW'()
+    eq_addr cur_class, $P2, found_parent_init
+    
+    goto found_init_attribs
+  ip_iter_loop_end:
+    
+    # If we get here, found nothing.
+    init_attribs = new 'Hash'
+    goto parent_init_search_done
+
+    # We found some parent init data, potentially.
+  found_parent_init:
+    init_attribs = cur_ip.WHENCE()
+    $I0 = 'defined'(init_attribs)
+    if $I0 goto parent_init_search_done
+    init_attribs = new 'Hash'
+  parent_init_search_done:
+    goto found_init_attribs
+
+    # If it's the current class, we will take the init_this hash.
+  current_class:
+    init_attribs = init_this
+  found_init_attribs:
+
+    # Now go through attributes of the current class and iternate over them.
     .local pmc attribs, iter
-    attribs = inspect $P0, "attributes"
+    attribs = inspect cur_class, "attributes"
     iter = new 'Iterator', attribs
   iter_loop:
     unless iter goto iter_end
@@ -253,12 +303,23 @@ Create a new object having the same class as the invocant.
     goto init_done
   have_init_value:
     $P2 = init_attribs[$S1]
+    delete init_attribs[$S1]
   init_done:
     push_eh set_attrib_eh
-    setattribute $P1, $S0, $P2
+    setattribute $P1, cur_class, $S0, $P2
 set_attrib_eh:
     goto iter_loop
   iter_end:
+
+    # Do we have anything left in the hash? If so, unknown.
+    $I0 = elements init_attribs
+    if $I0 == 0 goto init_attribs_ok
+    'die'("You passed an initialization parameter that does not have a matching attribute.")
+  init_attribs_ok:
+
+    # Next class.
+    goto class_iter_loop
+  class_iter_loop_end:
 
     .return ($P1)
 .end

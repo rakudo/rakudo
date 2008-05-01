@@ -240,6 +240,23 @@ Create a new object having the same class as the invocant.
     $P0 = self.'HOW'()
     $P1 = new $P0
 
+    # If this proto object has a WHENCE auto-vivification, we should use
+    # put any values it contains but that init_this does not into init_this.
+    .local pmc whence
+    whence = self.'WHENCE'()
+    unless whence goto no_whence
+    .local pmc this_whence_iter
+    this_whence_iter = new 'Iterator', whence
+  this_whence_iter_loop:
+    unless this_whence_iter goto no_whence
+    $S0 = shift this_whence_iter
+    $I0 = exists init_this[$S0]
+    if $I0 goto this_whence_iter_loop
+    $P2 = whence[$S0]
+    init_this[$S0] = $P2
+    goto this_whence_iter_loop
+  no_whence:
+
     # Now we will initialize each attribute in the class itself and it's
     # parents with an Undef or the specified initialization value. Note that
     # the all_parents list includes ourself.

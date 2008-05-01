@@ -194,6 +194,34 @@ Internal helper method to create a role.
     .return(role)
 .end
 
+=item !keyword_grammar(name)
+
+Internal helper method to create a grammar.
+
+=cut
+
+.sub '!keyword_grammar' :method
+    .param string name
+    .local pmc info, grammar
+
+    # Need to make sure it ends up attached to the right
+    # namespace.
+    info = new 'Hash'
+    info['name'] = name
+    $P0 = new 'ResizablePMCArray'
+    $P0[0] = name
+    info['namespace'] = $P0
+
+    # Create grammar.
+    grammar = new 'Class', info
+
+    # Stash in namespace.
+    $P0 = new 'ResizableStringArray'
+    set_hll_global $P0, name, grammar
+
+    .return(grammar)
+.end
+
 =item !keyword_does(class, role_name)
 
 Internal helper method to implement the functionality of the does keyword.

@@ -858,11 +858,17 @@ method package_declarator($/, $key) {
     our @?ROLE;
     our $?PACKAGE;
     our @?PACKAGE;
+    our $?GRAMMAR;
+    our @?GRAMMAR;
+    our $?NS;
 
     if $key eq 'open' {
+        # Store the current namespace.
+        $?NS := $<name><ident>;
+
         # Start of the block; if it's a class or role, need to make $?CLASS or
         # $?ROLE available for storing current definition in.
-        if $<sym> eq 'class' || $<sym> eq 'role' {
+        if $<sym> eq 'class' || $<sym> eq 'role' || $<sym> eq 'grammar' {
             my $decl_past := PAST::Stmts.new();
 
             # If it's a class...
@@ -927,6 +933,39 @@ method package_declarator($/, $key) {
                 # Set it as the current package.
                 @?PACKAGE.unshift( $?PACKAGE );
                 $?PACKAGE := $?ROLE;
+            }
+
+            # If it's a grammar...
+            elsif $<sym> eq 'grammar' {
+                # Create class for the grammar - a subclass of PGE::Grammar by
+                # default.
+                $decl_past.push(
+                    PAST::Op.new(
+                        :pasttype('bind'),
+                        PAST::Var.new(
+                            :name('$def'),
+                            :scope('lexical')
+                        ),
+                        PAST::Op.new(
+                            :pasttype('callmethod'),
+                            :name('!keyword_grammar'),
+                            PAST::Var.new(
+                                :name('Perl6Object'),
+                                :scope('package')
+                            ),
+                            PAST::Val.new( :value(~$<name>) )
+                        )
+                    )
+                );
+
+                # Put current grammar, if any, on @?GRAMMAR list so we can
+                # handle nested grammars.
+                @?GRAMMAR.unshift( $?GRAMMAR );
+                $?GRAMMAR := $decl_past;
+
+                # Set it as the current package.
+                @?PACKAGE.unshift( $?PACKAGE );
+                $?PACKAGE := $?GRAMMAR;
             }
 
             # Apply any traits and do any roles.
@@ -1034,6 +1073,16 @@ method package_declarator($/, $key) {
 
             # Restore outer role.
             $?ROLE := @?ROLE.shift();
+        }
+        elsif $<sym> eq 'grammar' {
+            # Attatch grammar declaration to the init code.
+            unless defined( $?INIT ) {
+                $?INIT := PAST::Block.new();
+            }
+            $?INIT.push( $?GRAMMAR );
+
+            # Restore outer grammar.
+            $?GRAMMAR := @?GRAMMAR.shift();
         }
 
         # Restore outer package.
@@ -1444,10 +1493,12 @@ method quote($/) {
 method quote_expression($/, $key) {
     my $past;
     if $key eq 'quote_regex' {
+        our $?NS;
         $past := PAST::Block.new(
             $<quote_regex>,
             :compiler('PGE::Perl6Regex'),
             :blocktype('declaration'),
+            :namespace($?NS),
             :node( $/ )
         )
     }

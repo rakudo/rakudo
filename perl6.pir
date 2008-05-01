@@ -107,6 +107,10 @@ USAGE
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?ROLE', $P0
 
+    ## create a list for holding the stack of nested grammars
+    $P0 = new 'List'
+    set_hll_global ['Perl6';'Grammar';'Actions'], '@?GRAMMAR', $P0
+
     ##  create a list of END blocks to be run
     $P0 = new 'List'
     set_hll_global ['Perl6'], '@?END_BLOCKS', $P0

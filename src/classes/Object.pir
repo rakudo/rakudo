@@ -541,11 +541,10 @@ Returns a proto-object with an autovivification closure attached to it.
     .local pmc WHENCE, key, val
     WHENCE = new 'Hash'
 
-    # What is it? XXX Since multi-dimensional keys don't parse yet, we can't
-    # handle auto-vivifying many things. But we'll have to revisit this code
-    # when we can.
+    # What is it?
     $S0 = what.'WHAT'()
     if $S0 == 'Pair' goto from_pair
+    if $S0 == 'List' goto from_list
     'die'("Auto-vivification closure did not contain a Pair")
   
   from_pair:
@@ -554,6 +553,18 @@ Returns a proto-object with an autovivification closure attached to it.
     val = what.'value'()
     WHENCE[key] = val
     goto done_whence
+
+  from_list:
+    # List.
+    .local pmc list_iter, cur_pair
+    list_iter = new 'Iterator', what
+  list_iter_loop:
+    unless list_iter goto done_whence
+    cur_pair = shift list_iter
+    key = cur_pair.'key'()
+    val = cur_pair.'value'()
+    WHENCE[key] = val
+    goto list_iter_loop
   done_whence:
 
     # Now create a clone of the protoobject.

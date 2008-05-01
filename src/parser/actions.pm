@@ -760,9 +760,18 @@ method methodop($/, $key) {
 method postcircumfix($/, $key) {
     my $past;
     if $key eq '[ ]' {
+        # If we got a comma separated list, we'll pass that along as a List,
+        # so we can do slices.
         my $semilist := $( $<semilist> );
+        if $( $<semilist><EXPR>[0] ).name() eq 'infix:,' {
+            $semilist.pasttype('call');
+            $semilist.name('list');
+        }
+        else {
+            $semilist := $semilist[0];
+        }
         $past := PAST::Var.new(
-            $semilist[0],
+            $semilist,
             :scope('keyed'),
             :vivibase('List'),
             :viviself('Undef'),
@@ -775,9 +784,18 @@ method postcircumfix($/, $key) {
         process_arguments($past, $semilist);
     }
     elsif $key eq '{ }' {
+        # If we got a comma separated list, we'll pass that along as a List,
+        # so we can do slices.
         my $semilist := $( $<semilist> );
+        if $( $<semilist><EXPR>[0] ).name() eq 'infix:,' {
+            $semilist.pasttype('call');
+            $semilist.name('list');
+        }
+        else {
+            $semilist := $semilist[0];
+        }
         $past := PAST::Var.new(
-            $semilist[0],
+            $semilist,
             :scope('keyed'),
             :vivibase('Perl6Hash'),
             :viviself('Undef'),

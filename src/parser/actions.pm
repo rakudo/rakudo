@@ -1747,21 +1747,18 @@ method type_declarator($/) {
 
 
 method fatarrow($/) {
-    my $key := PAST::Val.new( :value(~$<key>) );
+    my $key := PAST::Val.new( :value(~$<key>),
+                               :named( PAST::Val.new( :value('key') ) ) );
     my $val := $( $<val> );
+    $val.named( PAST::Val.new( :value('value') ) );
     my $past := PAST::Op.new(
         :node($/),
-        :inline(
-              "   %0[%1] = %2\n"
-            ~ "   %r = %0\n"),
+        :pasttype('callmethod'),
+        :name('new'),
         :returns('Pair'),
-        PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('new'),
-            PAST::Var.new(
-                :name('Pair'),
-                :scope('package')
-            )
+        PAST::Var.new(
+            :name('Pair'),
+            :scope('package')
         ),
         $key,
         $val
@@ -1812,20 +1809,17 @@ method colonpair($/, $key) {
     else {
         $/.panic($key ~ " pairs not yet implemented.");
     }
-
+    
+    $pair_key.named( PAST::Val.new( :value('key') ) );
+    $pair_val.named( PAST::Val.new( :value('value') ) );
     my $past := PAST::Op.new(
         :node($/),
-        :inline(
-              "   %0[%1] = %2\n"
-            ~ "   %r = %0\n"),
+        :pasttype('callmethod'),
+        :name('new'),
         :returns('Pair'),
-        PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('new'),
-            PAST::Var.new(
-                :name('Pair'),
-                :scope('package')
-            )
+        PAST::Var.new(
+            :name('Pair'),
+            :scope('package')
         ),
         $pair_key,
         $pair_val

@@ -25,6 +25,21 @@ Returns a true value if $x is defined, and a false value otherwise.
 .end
 
 
+=item undefine $x
+
+Sets $x to an undefined value
+
+=cut
+
+.sub 'undefine' 
+    .param pmc x
+    $P0 = new 'Undef'
+    copy x, $P0
+.end
+
+
+
+
 =item rand($x)
 
 Returns a random floating point number greater than or equal to zero and less

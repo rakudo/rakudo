@@ -31,7 +31,7 @@ Sets $x to an undefined value
 
 =cut
 
-.sub 'undefine' 
+.sub 'undefine'
     .param pmc x
     $P0 = new 'Undef'
     copy x, $P0

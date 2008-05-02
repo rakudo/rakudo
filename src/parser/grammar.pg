@@ -489,8 +489,8 @@ token noun {
     | <type_declarator> {*}                      #= type_declarator
     | <colonpair> {*}                            #= colonpair
     | <fatarrow> {*}                             #= fatarrow
-    | 'self' {*}                                 #= self
-    | 'undef' {*}                                #= undef
+    | 'self' >> {*}                              #= self
+    | 'undef' >> {*}                             #= undef
 }
 
 

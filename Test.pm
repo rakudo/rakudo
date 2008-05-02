@@ -89,11 +89,15 @@ multi sub skip_rest($reason) {
 
 sub diag($message) { say '# '~$message; }
 
+
+multi sub flunk($reason) { proclaim(0, "flunk $reason")}
+
+
 ## 'private' subs
 
 sub proclaim($cond, $desc) {
     $testing_started  = 1;
-    $desc = $todo_reason
+    $desc = $desc ~ $todo_reason
         if $todo_reason and $num_of_tests_run < $todo_upto_test_num;
     $num_of_tests_run = $num_of_tests_run + 1;
 

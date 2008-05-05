@@ -1689,7 +1689,7 @@ method EXPR($/, $key) {
             :node($/)
         );
         for @($/) {
-            $past.push( $($_) );
+            unless +$_.from() == +$_.to() { $past.push( $($_) ) };
         }
 
         # If it's an assignment or binding, we may need to emit a type-check.

@@ -159,6 +159,7 @@ proto infix:<^=> is equiv(infix:<=>) { ... }
 ## comma
 proto infix:<,> is precedence('g=')
     is assoc('list')
+    is nullterm
     { ... }
 
 ## list infix

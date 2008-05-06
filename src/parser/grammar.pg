@@ -84,6 +84,8 @@ token unsp {
     [ \v | <.unv> ]*
 }
 
+token unspacey { <.unsp>? }
+
 token unv {
     || \h+
     || ^^ <.pod_comment>
@@ -440,24 +442,33 @@ rule compiler_directive {
 token postfix {
     <!afterws>
     [
-    | <methodop> {*}                             #= methodop
+    | <dotty> {*}                                #= dotty
     | <postcircumfix> {*}                        #= postcircumfix
     ]
 }
 
 
-token methodop {
-    '.'
+token dotty {
     [
-    | <ident>
-    | <?before '$' | '@' > <variable>
-    | <?before <[ ' " ]>> <quote>
-#        { $<quote> ~~ /\W/ or .panic("Useless use of quotes") }
+    | '.' <methodop> {*}                              #= .
+    | ('.' <[+*?=^:]>) <?unspacey> <methodop> {*}     #= .*
+    | '!' <methodop> {*}                              #= !
     ]
+}
+
+
+token methodop {
     [
-    | <.unsp>? '(' <semilist> ')' {*}            #= semilist
-    | ':' <?before \s> <arglist> {*}             #= arglist
-    | {*}                                        #= null
+    | <name>
+    | <?before '$' | '@' > <variable>
+    | <?before <[ ' " ]> > <quote>
+#       { $<quote> ~~ /\W/ or .panic("Useless use of quotes") }
+    ] <.unsp>? 
+
+    [
+    | '.'? <.unsp>? '(' <semilist> ')' {*}            #= semilist
+    | ':' <?before \s> <arglist> {*}                  #= arglist
+    | {*}                                             #= null
     ]
 }
 
@@ -481,7 +492,7 @@ token noun {
     | <circumfix> {*}                            #= circumfix
     | <variable> {*}                             #= variable
     | <subcall> {*}                              #= subcall
-    | <methodop> {*}                             #= methodop
+    | <dotty>                                    #= dotty
     | <value> {*}                                #= value
     | <capterm> {*}                              #= capterm
     | <statement_prefix> {*}                     #= statement_prefix

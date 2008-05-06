@@ -698,13 +698,13 @@ method term($/, $key) {
             $past := $($_);
 
             # Check if it's an indirect call.
-            if $_<methodop><variable> {
+            if $_<dotty><methodop><variable> {
                 # What to call supplied; need to put the invocant second.
                 my $meth := $past[0];
                 $past[0] := $term;
                 $past.unshift($meth);
             }
-            elsif $_<methodop><quote> {
+            elsif $_<dotty><methodop><quote> {
                 # First child is something that we evaluate to get the
                 # name. Replace it with PIR to call find_method on it.
                 my $meth_name := $past[0];
@@ -730,6 +730,13 @@ method postfix($/, $key) {
     make $( $/{$key} );
 }
 
+
+method dotty($/, $key) {
+    my $past := $( $<methodop> );
+    make $past;
+}
+
+
 method methodop($/, $key) {
     my $past;
 
@@ -744,8 +751,8 @@ method methodop($/, $key) {
     $past.pasttype('callmethod');
     $past.node($/);
 
-    if $<ident> {
-        $past.name(~$<ident>);
+    if $<name> {
+        $past.name(~$<name><ident>[0]);
     }
     elsif $<variable> {
         $past.unshift( $( $<variable> ) );
@@ -834,7 +841,7 @@ method noun($/, $key) {
             )
         );
     }
-    elsif $key eq 'methodop' {
+    elsif $key eq 'dotty' {
         # Call on $_.
         $past := $( $/{$key} );
         $past.unshift(PAST::Var.new(

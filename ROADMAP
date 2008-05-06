@@ -12,6 +12,7 @@ over the next few months:
 * regex, token, rule, grammar
 * selected libraries written in Perl 6
 * modules
+* I/O
 * junctions
 * hyper, reduction operators
 * lazy lists

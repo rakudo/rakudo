@@ -8,6 +8,15 @@ Num - Perl 6 numbers
 
 .namespace [ 'Num' ]
 
+
+=head1 SUBROUTINES
+
+=over 4
+
+=item onload()
+
+=cut
+
 .sub 'onload' :anon :init :load
     $P0 = subclass 'Float', 'Num'
     $P1 = get_hll_global 'Any'
@@ -18,6 +27,10 @@ Num - Perl 6 numbers
     $P1('Float', 'Num')
 .end
 
+
+=item ACCEPTS()
+
+=cut
 
 .sub 'ACCEPTS' :method
     .param num topic
@@ -36,6 +49,10 @@ Returns a Perl representation of the Num.
     .return($S0)
 .end
 
+
+=back
+
+=cut
 
 # Local Variables:
 #   mode: pir

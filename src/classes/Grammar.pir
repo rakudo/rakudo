@@ -12,6 +12,15 @@ This file implements the Grammar class.
 
 .namespace [ 'Grammar' ]
 
+
+=head1 SUBROUTINES
+
+=over 4
+
+=item onload()
+
+=cut
+
 .sub 'onload' :anon :init :load
     load_bytecode "PGE.pbc"
     $P0 = subclass 'PGE::Grammar', 'Grammar'
@@ -51,6 +60,10 @@ found_pad:
     'die'("The grammar has no TOP rule to invoke.")
 .end
 
+
+=back
+
+=cut
 
 # Local Variables:
 #   mode: pir

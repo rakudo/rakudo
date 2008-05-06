@@ -40,7 +40,10 @@ Invokes the TOP rule in the grammar on the given topic.
     $S0 = self.'WHAT'()
     match = TOP(topic, 'grammar' => $S0)
     $P0 = getinterp
+    $P1 = $P0['lexpad';1]
+    unless null $P1 goto found_pad
     $P1 = $P0['lexpad';2]
+found_pad:
     $P1['$/'] = match
     .return(match)
 

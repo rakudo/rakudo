@@ -1369,7 +1369,7 @@ method scope_declarator($/) {
     # Routine?
     elsif $<scoped><routine_declarator> {
         $past := $( $<scoped> );
-        
+
         # What declarator?
         if $declarator eq 'our' {
             # Default, nothing to do.

@@ -8,6 +8,15 @@ Int - Perl 6 integers
 
 .namespace [ 'Int' ]
 
+
+=head1 SUBROUTINES
+
+=over 4
+
+=item onload
+
+=cut
+
 .sub 'onload' :anon :init :load
     $P0 = subclass 'Integer', 'Int'
     $P1 = get_hll_global 'Any'
@@ -19,11 +28,19 @@ Int - Perl 6 integers
 .end
 
 
+=item ACCEPTS()
+
+=cut
+
 .sub 'ACCEPTS' :method
     .param num topic
     .return 'infix:=='(topic, self)
 .end
 
+
+=item clone()
+
+=cut
 
 .sub 'clone' :method :vtable
     .local pmc clone_type
@@ -45,6 +62,10 @@ Returns a Perl representation of the Int.
     .return($S0)
 .end
 
+
+=back
+
+=cut
 
 # Local Variables:
 #   mode: pir

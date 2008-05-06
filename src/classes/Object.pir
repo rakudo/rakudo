@@ -607,7 +607,7 @@ Returns the invocant's autovivification closure.
   find_next_loop_end:
 
     $I0 = 0
-    unless found goto do_return
+    if null found goto do_return
     $I0 = found(self, topic)
   do_return:
     .return 'prefix:?'($I0)

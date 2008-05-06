@@ -1075,6 +1075,23 @@ method package_declarator($/, $key) {
             $?ROLE := @?ROLE.shift();
         }
         elsif $<sym> eq 'grammar' {
+            # Make proto-object.
+            $?GRAMMAR.push(
+                PAST::Op.new(
+                    :pasttype('call'),
+                    PAST::Var.new(
+                        :scope('package'),
+                        :namespace('Perl6Object'),
+                        :name('make_proto')
+                    ),
+                    PAST::Var.new(
+                        :scope('lexical'),
+                        :name('$def')
+                    ),
+                    PAST::Val.new( :value(~$<name>) )
+                )
+            );
+
             # Attatch grammar declaration to the init code.
             unless defined( $?INIT ) {
                 $?INIT := PAST::Block.new();

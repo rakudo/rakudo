@@ -212,12 +212,12 @@ Internal helper method to create a grammar.
     $P0[0] = name
     info['namespace'] = $P0
 
-    # Create grammar.
+    # Create grammar and make a subclass of Grammar.
     grammar = new 'Class', info
-
-    # Stash in namespace.
-    $P0 = new 'ResizableStringArray'
-    set_hll_global $P0, name, grammar
+    $P0 = new 'ResizablePMCArray'
+    $P0 = get_hll_global $P0, 'Grammar'
+    $P0 = $P0.HOW()
+    addparent grammar, $P0
 
     .return(grammar)
 .end
@@ -551,8 +551,35 @@ Returns the invocant's autovivification closure.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
-    $P0 = self.'HOW'()
-    $I0 = does topic, $P0
+    .local pmc HOW
+    
+    # Do a does check against the topic.
+    HOW = self.'HOW'()
+    $I0 = does topic, HOW
+    if $I0 goto do_return
+
+    # If that didn't work, try invoking the ACCEPTS of the class itself.
+    # XXX Once we get callsame-like stuff implemented, this logic should go away.
+  try_class_accepts:
+    .local pmc parents, found
+    .local int i, count
+    parents = inspect HOW, 'all_parents'
+    count = elements parents
+    i = 1 # skip protoclass
+  find_next_loop:
+    if i >= count goto find_next_loop_end
+    $P0 = parents[i]
+    $P0 = inspect $P0, 'methods'
+    found = $P0['ACCEPTS']
+    if found goto find_next_loop_end
+    inc i
+    goto find_next_loop
+  find_next_loop_end:
+
+    $I0 = 0
+    unless found goto do_return
+    $I0 = found(self, topic)
+  do_return:
     .return 'prefix:?'($I0)
 .end
 

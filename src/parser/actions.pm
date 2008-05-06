@@ -733,6 +733,18 @@ method postfix($/, $key) {
 
 method dotty($/, $key) {
     my $past := $( $<methodop> );
+
+    if $key eq '.' {
+        # Just a normal method call; nothing to do.
+    }
+    elsif $key eq '!' {
+        # Private method call. Need to put ! on the start of the name.
+        $/.panic('Private method calls not yet implemented.')
+    }
+    elsif $key eq '.*' {
+        $/.panic($key ~ ' method calls not yet implemented.');
+    }
+
     make $past;
 }
 

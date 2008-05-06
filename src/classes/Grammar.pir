@@ -36,7 +36,12 @@ Invokes the TOP rule in the grammar on the given topic.
     push_eh no_TOP
     TOP = find_method self, "TOP"
     pop_eh
-    .return TOP(topic)
+    .local pmc match
+    match = TOP(topic)
+    $P0 = getinterp
+    $P1 = $P0['lexpad';2]
+    $P1['$/'] = match
+    .return(match)
 
   no_TOP:
     'die'("The grammar has no TOP rule to invoke.")

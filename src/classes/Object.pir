@@ -469,11 +469,18 @@ Defines the .true method on all objects via C<prefix:?>.
  .return 'prefix:?'(self)
 .end
 
+=item print()
+
 =item say()
 
 Print the object
 
 =cut
+
+.sub 'print' :method
+    $P0 = get_hll_global 'print'
+    .return $P0(self)
+.end
 
 .sub 'say' :method
     $P0 = get_hll_global 'say'

@@ -582,7 +582,7 @@ Returns the invocant's autovivification closure.
 .sub 'ACCEPTS' :method
     .param pmc topic
     .local pmc HOW
-    
+
     # Do a does check against the topic.
     HOW = self.'HOW'()
     $I0 = does topic, HOW

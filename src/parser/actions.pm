@@ -1164,50 +1164,65 @@ method variable_decl($/) {
 
 
 method scoped($/) {
-    my $past := $( $<variable_decl> );
+    my $past;
 
-    # Do we have any type names?
-    if $<typename> {
-        # Build the type constraints list for the variable.
-        my $num_types := 0;
-        my $type_cons := PAST::Op.new();
-        for $<typename> {
-            $type_cons.push( $( $_ ) );
-            $num_types := $num_types + 1;
-        }
+    # Variable declaration?
+    if $<variable_decl> {
+        $past := $( $<variable_decl> );
 
-        # If just the one, we try to look it up and assign it.
-        if $num_types == 1 {
+        # Do we have any type names?
+        if $<typename> {
+            # Build the type constraints list for the variable.
+            my $num_types := 0;
+            my $type_cons := PAST::Op.new();
+            for $<typename> {
+                $type_cons.push( $( $_ ) );
+                $num_types := $num_types + 1;
+            }
+
+            # If just the one, we try to look it up and assign it.
+            if $num_types == 1 {
+                $past := PAST::Op.new(
+                    :pasttype('copy'),
+                    :lvalue(1),
+                    $past,
+                    $( $<typename>[0] )
+                );
+            }
+
+            # Now need to apply the type constraints. How many are there?
+            if $num_types == 1 {
+                # Just the first one.
+                $type_cons := $type_cons[0];
+            }
+            else {
+                # Many; make an and junction of types.
+                $type_cons.pasttype('call');
+                $type_cons.name('all');
+            }
+
+            # Now store these type constraints.
             $past := PAST::Op.new(
-                :pasttype('copy'),
-                :lvalue(1),
+                :inline(
+                      "    $P0 = new 'Hash'\n"
+                    ~ "    $P0['vartype'] = %1\n"
+                    ~ "    setattribute %0, '%!properties', $P0\n"
+                    ~ "    %r = %0\n"
+                ),
                 $past,
-                $( $<typename>[0] )
+                $type_cons
             );
         }
+    }
 
-        # Now need to apply the type constraints. How many are there?
-        if $num_types == 1 {
-            # Just the first one.
-            $type_cons := $type_cons[0];
-        }
-        else {
-            # Many; make an and junction of types.
-            $type_cons.pasttype('call');
-            $type_cons.name('all');
-        }
+    # Routine declaration?
+    else {
+        $past := $( $<routine_declarator> );
 
-        # Now store these type constraints.
-        $past := PAST::Op.new(
-            :inline(
-                  "    $P0 = new 'Hash'\n"
-                ~ "    $P0['vartype'] = %1\n"
-                ~ "    setattribute %0, '%!properties', $P0\n"
-                ~ "    %r = %0\n"
-            ),
-            $past,
-            $type_cons
-        );
+        # Don't support setting return type yet.
+        if $<typename> {
+            $/.panic("Setting return type of a routine not yet implemented.");
+        }
     }
 
     make $past;
@@ -1219,132 +1234,162 @@ method scope_declarator($/) {
     our $?BLOCK;
     my $declarator := $<declarator>;
 
-    # Has declarations are attributes and need special handling.
-    if $declarator eq 'has' {
-        # Get the class or role we're in.
-        our $?CLASS;
-        our $?ROLE;
-        our $?PACKAGE;
-        my $class_def;
-        if $?ROLE =:= $?PACKAGE {
-            $class_def := $?ROLE;
-        }
-        else {
-            $class_def := $?CLASS;
-        }
-        unless defined( $class_def ) {
-            $/.panic(
-                  "attempt to define attribute '"
-                ~ $name ~ "' outside of class"
+    # What sort of thing are we scoping?
+    if $<scoped><variable_decl> {
+        # Variable. Now go by declarator.
+        if $declarator eq 'has' {
+            # Has declarations are attributes and need special handling. Get the
+            # class or role we're in.
+            our $?CLASS;
+            our $?ROLE;
+            our $?PACKAGE;
+            my $class_def;
+            if $?ROLE =:= $?PACKAGE {
+                $class_def := $?ROLE;
+            }
+            else {
+                $class_def := $?CLASS;
+            }
+            unless defined( $class_def ) {
+                $/.panic(
+                      "attempt to define attribute '"
+                    ~ $name ~ "' outside of class"
+                );
+            }
+
+            # Add attribute to class (always name it with ! twigil).
+            my $variable := $<scoped><variable_decl><variable>;
+            my $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
+            $class_def.push(
+                PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('!keyword_has'),
+                    PAST::Var.new(
+                        :name('Perl6Object'),
+                        :scope('package')
+                    ),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Val.new( :value($name) )
+                )
             );
-        }
 
-        # Add attribute to class (always name it with ! twigil).
-        my $variable := $<scoped><variable_decl><variable>;
-        my $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
-        $class_def.push(
-            PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('!keyword_has'),
-                PAST::Var.new(
-                    :name('Perl6Object'),
-                    :scope('package')
-                ),
-                PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
-                ),
-                PAST::Val.new( :value($name) )
-            )
-        );
+            # If we have no twigil, make $name as an alias to $!name.
+            if $variable<twigil>[0] eq '' {
+                $?BLOCK.symbol(
+                    ~$variable<sigil> ~ ~$variable<name>, :scope('attribute')
+                );
+            }
 
-        # If we have no twigil, make $name as an alias to $!name.
-        if $variable<twigil>[0] eq '' {
-            $?BLOCK.symbol(
-                ~$variable<sigil> ~ ~$variable<name>, :scope('attribute')
-            );
-        }
+            # If we have a . twigil, we need to generate an accessor.
+            elsif $variable<twigil>[0] eq '.' {
+                my $accessor := PAST::Block.new(
+                    PAST::Stmts.new(
+                        PAST::Var.new( :name($name), :scope('attribute') )
+                    ),
+                    :name(~$variable<name>),
+                    :blocktype('declaration'),
+                    :pirflags(':method'),
+                    :node( $/ )
+                );
+                $?CLASS.unshift($accessor);
+            }
 
-        # If we have a . twigil, we need to generate an accessor.
-        elsif $variable<twigil>[0] eq '.' {
-            my $accessor := PAST::Block.new(
-                PAST::Stmts.new(
-                    PAST::Var.new( :name($name), :scope('attribute') )
-                ),
-                :name(~$variable<name>),
-                :blocktype('declaration'),
-                :pirflags(':method'),
-                :node( $/ )
-            );
-            $?CLASS.unshift($accessor);
-        }
+            # If it's a ! twigil, we're done; otherwise, error.
+            elsif $variable<twigil>[0] ne '!' {
+                $/.panic(
+                      "invalid twigil "
+                    ~ $variable<twigil>[0] ~ " in attribute declaration"
+                );
+            }
 
-        # If it's a ! twigil, we're done; otherwise, error.
-        elsif $variable<twigil>[0] ne '!' {
-            $/.panic(
-                  "invalid twigil "
-                ~ $variable<twigil>[0] ~ " in attribute declaration"
-            );
-        }
-
-        # Is there any "handles" trait verb?
-        if $<scoped><variable_decl><trait> {
-            for $<scoped><variable_decl><trait> {
-                if $_<trait_verb><sym> eq 'handles' {
-                    # Get the methods for the handles and add them to
-                    # the class
-                    my $meths := process_handles(
-                        $/,
-                        $( $_<trait_verb><EXPR> ),
-                        $name
-                    );
-                    for @($meths) {
-                        $class_def.push($_);
+            # Is there any "handles" trait verb?
+            if $<scoped><variable_decl><trait> {
+                for $<scoped><variable_decl><trait> {
+                    if $_<trait_verb><sym> eq 'handles' {
+                        # Get the methods for the handles and add them to
+                        # the class
+                        my $meths := process_handles(
+                            $/,
+                            $( $_<trait_verb><EXPR> ),
+                            $name
+                        );
+                        for @($meths) {
+                            $class_def.push($_);
+                        }
                     }
                 }
             }
-        }
 
-        # Register the attribute in the scope.
-        $?BLOCK.symbol($name, :scope('attribute'));
+            # Register the attribute in the scope.
+            $?BLOCK.symbol($name, :scope('attribute'));
 
-        # We don't want to generate any PAST at the point of the declaration.
-        $past := PAST::Stmts.new();
-    }
-    else {
-        # We need to find the actual variable PAST node; we may have something
-        # more complex at this stage that applies types.
-        $past := $( $<scoped> );
-        my $var;
-        if $past.WHAT() eq 'Var' {
-            $var := $past;
+            # We don't want to generate any PAST at the point of the declaration.
+            $past := PAST::Stmts.new();
         }
         else {
-            # It had an initial type assignment.
-            $var := $past[0][0];
-        }
-
-        # Has this already been declared?
-        my $name := $var.name();
-        unless $?BLOCK.symbol($name) {
-            my $scope := 'lexical';
-            if $declarator eq 'my' {
-                $var.isdecl(1);
-            }
-            elsif $declarator eq 'our' {
-                $name := $var.name();
-                $scope := 'package';
-                $var.isdecl(1);
+            # We need to find the actual variable PAST node; we may have something
+            # more complex at this stage that applies types.
+            $past := $( $<scoped> );
+            my $var;
+            if $past.WHAT() eq 'Var' {
+                $var := $past;
             }
             else {
-                $/.panic(
-                      "scope declarator '"
-                    ~ $declarator ~ "' not implemented"
-                );
+                # It had an initial type assignment.
+                $var := $past[0][0];
             }
-            my $untyped := $var =:= $past;
-            $?BLOCK.symbol($name, :scope($scope), :untyped($untyped));
+
+            # Has this already been declared?
+            my $name := $var.name();
+            unless $?BLOCK.symbol($name) {
+                my $scope := 'lexical';
+                if $declarator eq 'my' {
+                    $var.isdecl(1);
+                }
+                elsif $declarator eq 'our' {
+                    $name := $var.name();
+                    $scope := 'package';
+                    $var.isdecl(1);
+                }
+                else {
+                    $/.panic(
+                          "scope declarator '"
+                        ~ $declarator ~ "' not implemented"
+                    );
+                }
+                my $untyped := $var =:= $past;
+                $?BLOCK.symbol($name, :scope($scope), :untyped($untyped));
+            }
         }
+    }
+
+    # Routine?
+    elsif $<scoped><routine_declarator> {
+        $past := $( $<scoped> );
+        
+        # What declarator?
+        if $declarator eq 'our' {
+            # Default, nothing to do.
+        }
+        elsif $declarator eq 'my' {
+            if $<scoped><routine_declarator><sym> eq 'method' {
+                $/.panic("Private methods not yet implemented.");
+            }
+            else {
+                $/.panic("Lexically scoped subs not yet implemented.");
+            }
+        }
+        else {
+            $/.panic("Cannot apply declarator '" ~ $declarator ~ "' to a routine.");
+        }
+    }
+
+    # Something else we've not implemetned yet?
+    else {
+        $/.painc("Don't know how to apply a scope declarator here.");
     }
 
     make $past;

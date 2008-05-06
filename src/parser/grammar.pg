@@ -537,7 +537,12 @@ token variable_decl {
 
 
 rule scoped {
-    <typename>* <variable_decl> {*}
+    <typename>* 
+    [
+    | <variable_decl>
+    | <routine_declarator>
+    ]
+    {*}
 }
 
 rule scope_declarator {

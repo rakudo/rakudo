@@ -92,6 +92,61 @@ Clone v-table method.
 .end
 
 
+=item perl()
+
+Returns a Perl representation of a junction.
+
+=cut
+
+.sub 'perl' :method
+    # Emit junction type.
+    .local int type
+    .local string res
+    type = self.'!type'()
+    if type == JUNCTION_TYPE_ALL goto all
+    if type == JUNCTION_TYPE_ANY goto any
+    if type == JUNCTION_TYPE_ONE goto one
+    if type == JUNCTION_TYPE_NONE goto none
+
+  all:
+    res = 'all'
+    goto okay
+  any:
+    res = 'any'
+    goto okay
+  one:
+    res = 'one'
+    goto okay
+  none:
+    res = 'none'
+    goto okay
+  okay:
+    concat res, '('
+
+    # Now emit .perl of all the values.
+    .local pmc values, iter, value
+    .local int first
+    first = 1
+    values = self.'values'()
+    iter = new 'Iterator', values
+  iter_loop:
+    unless iter goto iter_loop_end
+    if first goto first_time
+    concat res, ", "
+  first_time:
+    first = 0
+    value = shift iter
+    $S0 = value.perl()
+    concat res, $S0
+    goto iter_loop
+  iter_loop_end:
+
+    # Done.
+    concat res, ')'
+    .return (res)
+.end
+
+
 =back
 
 =head1 Functions

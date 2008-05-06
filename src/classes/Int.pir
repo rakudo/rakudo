@@ -34,6 +34,18 @@ Int - Perl 6 integers
 .end
 
 
+=item perl()
+
+Returns a Perl representation of the Int.
+
+=cut
+
+.sub 'perl' :method
+    $S0 = self
+    .return($S0)
+.end
+
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

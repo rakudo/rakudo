@@ -25,6 +25,18 @@ Num - Perl 6 numbers
 .end
 
 
+=item perl()
+
+Returns a Perl representation of the Num.
+
+=cut
+
+.sub 'perl' :method
+    $S0 = self
+    .return($S0)
+.end
+
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

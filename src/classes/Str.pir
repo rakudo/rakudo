@@ -211,6 +211,22 @@ as the Perl 6 C<Str> class.
     .return(retv)
 .end
 
+
+=item perl()
+
+Returns a Perl representation of the Str.
+
+=cut
+
+.sub 'perl' :method
+    $S0 = "\""
+    $S1 = self
+    $S1 = escape $S1
+    concat $S0, $S1
+    concat $S0, "\""
+    .return ($S0)
+.end
+
 =back
 
 =head1 Functions

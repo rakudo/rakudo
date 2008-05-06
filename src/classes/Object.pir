@@ -138,6 +138,33 @@ Parrot class via the C<get_class> opcode.
 .end
 
 
+=item make_grammar_proto(grammar [, 'name'=>name] )
+
+Create protoobjects and mappings for C<grammar>, using C<name>
+as the Perl 6 name for the grammar.  The C<grammar> argument must
+be a Parrot Class object.
+
+=cut
+
+.sub 'make_grammar_proto'
+    .param pmc class
+    .param string name         :optional :named('name')
+    .param int has_name        :opt_flag
+
+    # We check that it has Grammar as a parent, and if not we add it.
+    $I0 = isa class, 'Grammar'
+    if $I0 goto already_grammar
+    $P0 = new 'ResizablePMCArray'
+    $P0 = get_hll_global $P0, 'Grammar'
+    $P0 = $P0.HOW()
+    addparent class, $P0
+  already_grammar:
+
+    # Now let Object's make_proto do the rest of the work.
+    'make_proto'(class, name)
+.end
+
+
 =item !keyword_class(name)
 
 Internal helper method to create a class.
@@ -212,12 +239,8 @@ Internal helper method to create a grammar.
     $P0[0] = name
     info['namespace'] = $P0
 
-    # Create grammar and make a subclass of Grammar.
+    # Create grammar class..
     grammar = new 'Class', info
-    $P0 = new 'ResizablePMCArray'
-    $P0 = get_hll_global $P0, 'Grammar'
-    $P0 = $P0.HOW()
-    addparent grammar, $P0
 
     .return(grammar)
 .end
@@ -571,7 +594,7 @@ Returns the invocant's autovivification closure.
     $P0 = parents[i]
     $P0 = inspect $P0, 'methods'
     found = $P0['ACCEPTS']
-    if found goto find_next_loop_end
+    unless null found goto find_next_loop_end
     inc i
     goto find_next_loop
   find_next_loop_end:

@@ -13,9 +13,9 @@ This file implements the Grammar class.
 .namespace [ 'Grammar' ]
 
 .sub 'onload' :anon :init :load
-    $P0 = subclass 'Any', 'Grammar'
     load_bytecode "PGE.pbc"
-    $P1 = get_class [ 'PGE::Grammar' ]
+    $P0 = subclass 'PGE::Grammar', 'Grammar'
+    $P1 = get_class [ 'Any' ]
     addparent $P0, $P1
     $P1 = get_hll_global ['Perl6Object'], 'make_proto'
     $P1($P0, 'Grammar')
@@ -37,7 +37,8 @@ Invokes the TOP rule in the grammar on the given topic.
     TOP = find_method self, "TOP"
     pop_eh
     .local pmc match
-    match = TOP(topic)
+    $S0 = self.'WHAT'()
+    match = TOP(topic, 'grammar' => $S0)
     $P0 = getinterp
     $P1 = $P0['lexpad';2]
     $P1['$/'] = match

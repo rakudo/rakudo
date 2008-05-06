@@ -1082,7 +1082,7 @@ method package_declarator($/, $key) {
                     PAST::Var.new(
                         :scope('package'),
                         :namespace('Perl6Object'),
-                        :name('make_proto')
+                        :name('make_grammar_proto')
                     ),
                     PAST::Var.new(
                         :scope('lexical'),
@@ -1514,10 +1514,10 @@ method quote_expression($/, $key) {
         $past := PAST::Block.new(
             $<quote_regex>,
             :compiler('PGE::Perl6Regex'),
-            :blocktype('declaration'),
             :namespace($?NS),
+            :blocktype('declaration'),
             :node( $/ )
-        )
+        );
     }
     elsif $key eq 'quote_concat' {
         if +$<quote_concat> == 1 {

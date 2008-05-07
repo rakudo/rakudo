@@ -1434,6 +1434,15 @@ method variable($/, $key) {
         PIR q<  $P1 = pop $P0            >;
         PIR q<  store_lex '$name', $P1   >;
 
+        if $<twigil>[0] eq '^' { our $?BLOCK;
+            $?BLOCK.symbol( ~$<sigil> ~ ~$name, :scope('lexical') );
+            $?BLOCK[0].push( PAST::Var.new( :name(~$<sigil> ~ ~$name), :scope('parameter') ) );
+        }
+        elsif $<twigil>[0] eq ':' { our $?BLOCK;
+            $?BLOCK.symbol( ~$<sigil> ~ ~$name, :scope('lexical') );
+            $?BLOCK[0].push( PAST::Var.new( :name(~$<sigil> ~ ~$name), :scope('parameter'), :named(~$name) ) );
+        }
+
         # If it's $.x, it's a method call, not a variable.
         if $<twigil>[0] eq '.' {
             $past := PAST::Op.new(

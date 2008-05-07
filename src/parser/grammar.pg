@@ -566,7 +566,7 @@ token variable {
 
 token sigil { '$' | '@' | '%' | '&' }
 
-token twigil { <[.!^*+?=]> }
+token twigil { <[.!^:*+?=]> }
 
 token name {
     | <ident> [ '::' <ident> ]*

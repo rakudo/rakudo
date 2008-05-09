@@ -717,7 +717,7 @@ token arglist {
 }
 
 token fatarrow {
-    <key=ident> \h* '=>' <val=EXPR> # XXX should be EXPR(%item_assignment)
+    <key=ident> \h* '=>' <val=EXPR: 'i='>        # EXPR(%item_assignment)
     {*}
 }
 

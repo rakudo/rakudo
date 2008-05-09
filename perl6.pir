@@ -48,7 +48,7 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
     setattribute self, '@stages', $P0
 
     ##  set the command line options
-    $P0 = split ' ', 'c e=s help|h target=s trace|t=s encoding=s output|o=s combine each version|v'
+    $P0 = split ' ', 'c e=s help|h target=s trace|t=s encoding=s output|o=s version|v'
     setattribute self, '@cmdoptions', $P0
 
     ##  set the $usage attribute

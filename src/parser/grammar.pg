@@ -196,12 +196,12 @@ token MARK_STATEMENT_END {
 ##  the calling rule.
 rule statement {
     | <statement_control> {*}                    #= statement_control
-    | $<expr>=<EXPR>
+    | <expr=EXPR>
         [
         || <statement_mod_loop> {*}              #= statement_mod_loop
         || <statement_mod_cond>
             [
-                $<sml>=<statement_mod_loop>
+                <sml=statement_mod_loop>
             ]?
             {*}                                  #= statement_mod_cond
         || {*}                                   #= expr
@@ -227,7 +227,7 @@ rule if_statement {
     $<sym>=[if]
     <EXPR> <block>
     [ 'elsif' <EXPR> <block> ]*
-    [ 'else' $<else>=<block> ]?
+    [ 'else' <else=block> ]?
     {*}
 }
 
@@ -273,9 +273,9 @@ rule loop_statement {
     $<sym>=[loop]
     $<eee>=[
         '('
-            $<e1>=<EXPR> ';'
-            $<e2>=<EXPR> ';'
-            $<e3>=<EXPR>
+            <e1=EXPR> ';'
+            <e2=EXPR> ';'
+            <e3=EXPR>
         ')'
     ]?
     <block>
@@ -629,7 +629,7 @@ token radint {
       ':' $<radix>=[\d+] <.unsp>+
       ::  '<'
           $<intpart>=[<[0..9 a..z A..Z _]>]+
-          [ '*' $<base>=<radint> '**' $<exp>=<radint> ]?
+          [ '*' <base=radint> '**' <exp=radint> ]?
           '>'
       {*}                                        #= rad_number
     ]
@@ -642,7 +642,7 @@ token rad_number {
     ||  '<'
         $<intpart>=[<[0..9 a..z A..Z _]>]+
         $<fracpart>=[ '.' <[0..9 a..z A..Z _]>+ ]?
-        [ '*' $<base>=<radint> '**' $<exp>=<radint> ]?
+        [ '*' <base=radint> '**' <exp=radint> ]?
         '>'
     || <?before '['> <postcircumfix>
     || <?before '('> <postcircumfix>
@@ -704,7 +704,7 @@ rule semilist {
 ##  is left without an argument to parse.  So, for now we treat
 ##  listop as the last (lowest priority) of the terms to be parsed.
 token listop {
-    $<sym>=<ident>
+    <sym=ident>
     [
     || \s <arglist> {*}                          #= arglist
     || {*}                                       #= noarg
@@ -717,7 +717,7 @@ token arglist {
 }
 
 token fatarrow {
-    $<key>=<ident> \h* '=>' $<val>=<EXPR> # XXX should be EXPR(%item_assignment)
+    <key=ident> \h* '=>' <val=EXPR> # XXX should be EXPR(%item_assignment)
     {*}
 }
 

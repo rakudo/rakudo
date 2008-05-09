@@ -48,6 +48,12 @@ Compiler implemented
 * open function for getting a file handle; supports some open modes
 * .say, .print and .close methods on file handles
 * iterating over file handles
+* conditional modifier + loop modifier
+* grammars
+* postcircumfix:<> for colonpairs
+* WHAT, HOW, WHENCE
+* .perl method on junctions, Num, Int and Str
+
 
 To do
 -----

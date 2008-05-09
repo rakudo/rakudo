@@ -749,7 +749,7 @@ token desigilname {
 ##  parser needs a term, it gets it by calling the 'term'
 ##  token above.
 
-rule EXPR is optable { ... }
+## rule EXPR is optable { ... }
 
 proto 'term:' is precedence('z=')
     is parsed(&term)

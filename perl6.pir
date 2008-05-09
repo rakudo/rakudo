@@ -201,6 +201,7 @@ to the Perl 6 compiler.
 
 
 .include 'src/gen_grammar.pir'
+.include 'src/parser/expression.pir'
 .include 'src/parser/quote_expression.pir'
 .include 'src/gen_actions.pir'
 

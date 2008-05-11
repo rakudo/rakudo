@@ -1448,6 +1448,21 @@ method variable($/, $key) {
         my $sigil := ~$<sigil>;
         my $fullname := $sigil ~ $twigil ~ ~$name;
 
+        if $fullname eq '@_' || $fullname eq '%_' {
+            our $?BLOCK;
+            unless $?BLOCK.symbol($fullname) {
+                $?BLOCK.symbol( $fullname, :scope('lexical') );
+                my $var;
+                if $sigil eq '@' {
+                    $var := PAST::Var.new( :name($fullname), :scope('parameter'), :slurpy(1) );
+                }
+                else {
+                    $var := PAST::Var.new( :name($fullname), :scope('parameter'), :slurpy(1), :named(1) );
+                }
+                $?BLOCK[0].unshift($var);
+            }
+        }
+
         if $twigil eq '^' || $twigil eq ':' { our $?BLOCK;
             if $?BLOCK.symbol('___HAVE_A_SIGNATURE') {
                 $/.panic('A signature must not be defined on a sub that uses placeholder vars.');

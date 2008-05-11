@@ -156,6 +156,10 @@ proto infix:<|=> is equiv(infix:<=>) { ... }
 proto infix:<&=> is equiv(infix:<=>) { ... }
 proto infix:<^=> is equiv(infix:<=>) { ... }
 
+## loose unary
+proto prefix:<true> is precedence('h=') { ... }
+proto prefix:<not> is equiv(prefix:<true>) { ... }
+
 ## comma
 proto infix:<,> is precedence('g=')
     is assoc('list')

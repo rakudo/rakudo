@@ -280,6 +280,18 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
+.sub 'prefix:true' :multi(_)
+    .param pmc a
+    .return 'prefix:?'(a)
+.end
+
+
+.sub 'prefix:not' :multi(_)
+    .param pmc a
+    .return 'prefix:!'(a)
+.end
+
+
 =back
 
 =cut

@@ -61,7 +61,7 @@ proto infix:<&> is precedence('q=')
 proto infix:<|> is precedence('p=')
     is assoc('list')
     { ... }
-proto infix:<^> is precedence('p=')
+proto infix:<^> is equiv(infix:<|>)
     is assoc('list')
     { ... }
 
@@ -119,8 +119,8 @@ proto infix:<max> is equiv(infix:<||>)
     { ... }
 
 ## item assignment
-proto infix:<=> is precedence('j=')
-    is pirop('copy')
+proto infix:<=> is precedence('i=')
+    is pasttype('copy')
     is assoc('right')
     is lvalue(1)
     { ... }

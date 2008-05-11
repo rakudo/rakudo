@@ -97,19 +97,18 @@ multi sub flunk($reason) { proclaim(0, "flunk $reason")}
 
 sub proclaim($cond, $desc) {
     $testing_started  = 1;
-    $desc = $desc ~ $todo_reason
-        if $todo_reason and $num_of_tests_run < $todo_upto_test_num;
     $num_of_tests_run = $num_of_tests_run + 1;
 
-    if ( $cond ) {
-        print "ok " ~ $num_of_tests_run ~ " - ";
-    }
-    else {
-        print "not ok " ~ $num_of_tests_run ~ " - ";
-        ++$num_of_tests_failed
+    unless $cond {
+        print "not ";
+        $num_of_tests_failed = $num_of_tests_failed + 1
             unless  $num_of_tests_run <= $todo_upto_test_num;
     }
-    say $desc;
+    print "ok ", $num_of_tests_run;
+    if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
+        print " # ", $todo_reason;
+    }
+    say " - ", $desc;
 
 }
 

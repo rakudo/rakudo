@@ -635,10 +635,10 @@ method signature($/) {
 }
 
 
-method parameter($/, $key) {
+method parameter($/) {
     my $past := $( $<param_var> );
     my $sigil := $<param_var><sigil>;
-    if $key eq 'slurp' {              # slurpy
+    if $<quant> eq '*' {
         $past.slurpy( $sigil eq '@' || $sigil eq '%' );
         $past.named( $sigil eq '%' );
     }
@@ -654,6 +654,15 @@ method parameter($/, $key) {
                 $past.viviself('Undef');
             }
         }
+    }
+    if $<default_value> {
+        if $<quant> eq '!' {
+            $/.panic("Can't put a default on a required parameter");
+        }
+        if $<quant> eq '*' {
+            $/.panic("Can't put a default on a slurpy parameter");
+        }
+        $past.viviself( $( $<default_value>[0]<EXPR> ) );
     }
     make $past;
 }

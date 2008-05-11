@@ -402,14 +402,18 @@ rule type_constraint {
 token parameter {
     <type_constraint>*
     [
-    | [
-        $<named>=[':'?]
+    |   $<quant>=['*'] <param_var>
+    |   $<named>=[':'?]
         <param_var>
         $<quant>=[ <[ ? ! ]>? ]
-      ] {*}                                      #= non-slurp
-    | $<quant>=['*'?] <param_var> {*}            #= slurp
     ]
     <trait>*
+    <default_value>?
+    {*}
+}
+
+rule default_value {
+    '=' <EXPR: 'i='>
 }
 
 token param_var {

@@ -1447,7 +1447,7 @@ method variable($/, $key) {
                 $?BLOCK.symbol( $fullname, :scope('lexical') );
                 my $var;
                 if $twigil eq ':' {
-                    $var := PAST::Var.new( :name($fullname), :scope('parameter'), :named($fullname) );
+                    $var := PAST::Var.new( :name($fullname), :scope('parameter'), :named( ~$name ) );
                 }
                 else {
                     $var := PAST::Var.new( :name($fullname), :scope('parameter') );

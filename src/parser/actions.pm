@@ -1361,7 +1361,7 @@ method scope_declarator($/) {
     if $<scoped><variable_decl> {
         # Variable. Now go by declarator.
         if $declarator eq 'has' {
-            # Has declarations are attributes and need special handling. 
+            # Has declarations are attributes and need special handling.
             declare_attribute($/);
 
             # We don't want to generate any PAST at the point of the declaration.

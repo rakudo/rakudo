@@ -92,7 +92,7 @@ Gets the invocant part of the capture.
 =cut
 
 .sub 'item' :method
-    $P0 = getattribute self, '$!invocant'
+    $P0 = getattribute self, '$!scalar'
     .return ($P0)
 .end
 

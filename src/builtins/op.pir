@@ -292,6 +292,87 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
+.sub 'infix:.?'
+    .param pmc invocant
+    .param string method_name
+    .param pmc pos_args     :slurpy
+    .param pmc named_args   :slurpy :named
+
+    # For now we won't worry about signature, just if a method exists.
+    $I0 = can invocant, method_name
+    if $I0 goto invoke
+    $P0 = get_hll_global 'Failure'
+    .return ($P0)
+
+    # If we do have a method, call it.
+  invoke:
+    .return invocant.method_name(pos_args :flat, named_args :named :flat)
+.end
+
+
+.sub 'infix:.*'
+    .param pmc invocant
+    .param string method_name
+    .param pmc pos_args     :slurpy
+    .param pmc named_args   :slurpy :named
+
+    # Return an empty list if no methods exist at all.
+    $I0 = can invocant, method_name
+    if $I0 goto invoke
+    .return 'list'()
+
+    # Now find all methods and call them - since we know there are methods,
+    # we just pass on to infix:.+.
+  invoke:
+    .return 'infix:.+'(invocant, method_name, pos_args :flat, named_args :named :flat)
+.end
+
+
+.sub 'infix:.+'
+    .param pmc invocant
+    .param string method_name
+    .param pmc pos_args     :slurpy
+    .param pmc named_args   :slurpy :named
+
+    # We need to find all methods we could call with the right name.
+    .local pmc result_list, class, mro, it, cap_class, failure_class
+    result_list = 'list'()
+    class = invocant.'HOW'()
+    mro = inspect class, 'all_parents'
+    it = iter mro
+    cap_class = get_hll_global 'Capture'
+    failure_class = get_hll_global 'Failure'
+  mro_loop:
+    unless it goto mro_loop_end
+    .local pmc cur_class, meths, cur_meth
+    cur_class = shift it
+    meths = inspect cur_class, 'methods'
+    cur_meth = meths[method_name]
+    if null cur_meth goto mro_loop
+
+    # If we're here, found a method. Invoke it and add capture of the results
+    # to the result list.
+    .local pmc pos_res, named_res, cap
+    (pos_res :slurpy, named_res :named :slurpy) = cur_meth(invocant, pos_args :flat, named_args :named :flat)
+    cap = cap_class.'!create'(failure_class, pos_res :flat, named_res :flat :named)
+    push result_list, cap
+    goto mro_loop
+  mro_loop_end:
+
+    # Make sure we got some elements, or we have to die.
+    $I0 = elements result_list
+    if $I0 == 0 goto failure
+    .return (result_list)
+  failure:
+    $S0 = "Could not invoke method '"
+    concat $S0, method_name
+    concat $S0, "' on invocant of type '"
+    $S1 = invocant.WHAT()
+    concat $S0, $S1
+    concat $S0, "'"
+    'die'($S0)
+.end
+
 =back
 
 =cut

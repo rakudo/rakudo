@@ -756,7 +756,28 @@ method dotty($/, $key) {
         }
     }
     elsif $key eq '.*' {
-        $/.panic($key ~ ' method calls not yet implemented.');
+        if $/[0] eq '.?' || $/[0] eq '.+' || $/[0] eq '.*' {
+            if $<methodop><name> {
+                my $args := $past;
+                $past := PAST::Op.new(
+                    :pasttype('call'),
+                    :name('infix:' ~ $/[0]),
+                    PAST::Val.new( :value(~$past.name()) )
+                );
+                for @($args) {
+                    $past.push($_);
+                }
+            }
+            elsif $<methodop><quote> {
+                $/.panic(~$/[0] ~ " unimplemented for non-literal names");
+            }
+            else {
+                $/.panic("Cannot use " ~ $/[0] ~ " when method is a code ref");
+            }
+        }
+        else {
+            $/.panic($/[0] ~ ' method calls not yet implemented');
+        }
     }
 
     make $past;

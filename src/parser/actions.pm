@@ -1594,6 +1594,41 @@ method circumfix($/, $key) {
     elsif $key eq '{ }' {
         $past := $( $<pblock> );
     }
+    elsif $key eq '$( )' {
+        # Context - is just calling .item, .list etc on whatever we got made by the
+        # expression in the brackets.
+        my $expr := $( $<semilist> );
+        if $expr.WHAT() eq 'Op' && $expr.pasttype() eq '' {
+            # We've got an op node that does nothing. Eliminate it for scalars, or
+            # call 'list' for comma-separated.
+            if +@($expr) == 1 {
+                $expr := $expr[0];
+            }
+            else {
+                $expr.pasttype('call');
+                $expr.name('list');
+            }
+        }
+        my $method;
+        if $<sigil> eq '$' {
+            $method := 'item';
+        }
+        elsif $<sigil> eq '@' {
+            $method := 'list';
+        }
+        elsif $<sigil> eq '%' {
+            $method := 'hash';
+        }
+        else {
+            $/.panic("Use of " ~ $<sigil> ~ " as contextualizer not yet implemented.");
+        }
+        $past := PAST::Op.new(
+            :pasttype('callmethod'),
+            :name($method),
+            :node($/),
+            $expr
+        );
+    }
     make $past;
 }
 

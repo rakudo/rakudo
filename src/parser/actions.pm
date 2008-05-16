@@ -535,7 +535,6 @@ method signature($/) {
     my $params := PAST::Stmts.new( :node($/) );
     my $type_check := PAST::Stmts.new( :node($/) );
     my $past := PAST::Block.new( $params, :blocktype('declaration') );
-    my $invocant;
     for $/[0] {
         # Add parameter declaration.
         my $parameter := $($_<parameter>);

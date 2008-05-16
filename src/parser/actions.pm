@@ -1499,6 +1499,7 @@ method variable($/, $key) {
             $?BLOCK.symbol('___HAS_PLACEHOLDERS', :scope('lexical'));
             unless $?BLOCK.symbol($fullname) {
                 $?BLOCK.symbol( $fullname, :scope('lexical') );
+                $?BLOCK.arity( +$?BLOCK.arity() + 1 );
                 my $var;
                 if $twigil eq ':' {
                     $var := PAST::Var.new( :name($fullname), :scope('parameter'), :named( ~$name ) );

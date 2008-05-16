@@ -8,7 +8,7 @@ method TOP($/) {
     my $past := $( $<statement_block> );
     $past.blocktype('declaration');
 
-    # Attatch any initialization code.
+    # Attach any initialization code.
     our $?INIT;
     if defined( $?INIT ) {
         $?INIT.unshift(
@@ -483,7 +483,7 @@ method plurality_declarator($/) {
                 );
             }
 
-            # Comma spearator if needed.
+            # Comma separator if needed.
             $count := $count + 1;
             if $count != $arity {
                 $pirflags := $pirflags ~ ', ';

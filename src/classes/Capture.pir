@@ -93,7 +93,7 @@ Gets the invocant part of the capture.
 
 .sub 'item' :method
     $P0 = getattribute self, '$!invocant'
-    return ($P0)
+    .return ($P0)
 .end
 
 
@@ -105,7 +105,7 @@ Gets the positional part of the capture.
 
 .sub 'list' :method
     $P0 = getattribute self, '@!array'
-    return ($P0)
+    .return ($P0)
 .end
 
 
@@ -117,7 +117,7 @@ Gets the named part of the capture.
 
 .sub 'hash' :method
     $P0 = getattribute self, '%!hash'
-    return ($P0)
+    .return ($P0)
 .end
 
 

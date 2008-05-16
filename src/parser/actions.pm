@@ -706,7 +706,7 @@ method term($/, $key) {
                 $past[0] := $term;
                 $past.unshift($meth);
             }
-            elsif $_<dotty><methodop><quote> {
+            elsif $_<dotty><methodop><quote> && $past.pasttype() eq 'callmethod' {
                 # First child is something that we evaluate to get the
                 # name. Replace it with PIR to call find_method on it.
                 my $meth_name := $past[0];
@@ -757,22 +757,19 @@ method dotty($/, $key) {
     }
     elsif $key eq '.*' {
         if $/[0] eq '.?' || $/[0] eq '.+' || $/[0] eq '.*' {
-            if $<methodop><name> {
-                my $args := $past;
-                $past := PAST::Op.new(
-                    :pasttype('call'),
-                    :name('infix:' ~ $/[0]),
-                    PAST::Val.new( :value(~$past.name()) )
-                );
-                for @($args) {
-                    $past.push($_);
-                }
-            }
-            elsif $<methodop><quote> {
-                $/.panic(~$/[0] ~ " unimplemented for non-literal names");
-            }
-            else {
+            unless $<methodop><name> || $<methodop><quote>  {
                 $/.panic("Cannot use " ~ $/[0] ~ " when method is a code ref");
+            }
+            my $args := $past;
+            $past := PAST::Op.new(
+                :pasttype('call'),
+                :name('infix:' ~ $/[0])
+            );
+            if $<methodop><name> {
+                $past.push(PAST::Val.new( :value(~$args.name()) ));
+            }
+            for @($args) {
+                $past.push($_);
             }
         }
         else {

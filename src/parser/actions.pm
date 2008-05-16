@@ -740,8 +740,20 @@ method dotty($/, $key) {
         # Just a normal method call; nothing to do.
     }
     elsif $key eq '!' {
-        # Private method call. Need to put ! on the start of the name.
-        $/.panic('Private method calls not yet implemented.')
+        # Private method call. Need to put ! on the start of the name
+        # (unless it was call to a code object, in which case we don't do
+        # anything more).
+        if $<methodop><name> {
+            $past.name('!' ~ $past.name());
+        }
+        elsif $<methodop><quote> {
+            $past[0] := PAST::Op.new(
+                :pasttype('call'),
+                :name('infix:~'),
+                PAST::Val.new( :value('!') ),
+                $past[0]
+            );
+        }
     }
     elsif $key eq '.*' {
         $/.panic($key ~ ' method calls not yet implemented.');
@@ -1384,7 +1396,8 @@ method scope_declarator($/) {
         }
         elsif $declarator eq 'my' {
             if $<scoped><routine_declarator><sym> eq 'method' {
-                $/.panic("Private methods not yet implemented.");
+                # Add ! to start of name.
+                $past.name('!' ~ $past.name());
             }
             else {
                 $/.panic("Lexically scoped subs not yet implemented.");

@@ -111,7 +111,45 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-## TODO: prefix:^
+.sub 'prefix:^' :multi('Perl6ProtoObject')
+    .param pmc proto
+    .return proto.'HOW'()
+.end
+
+
+.sub 'prefix:^' :multi('Int')
+    .param int to
+    dec to
+    .return 'infix:..'(0, to)
+.end
+
+
+.sub 'prefix:^' :multi('Num')
+    .param num to
+    dec to
+    .return 'infix:..'(0, to)
+.end
+
+
+.sub 'prefix:^' :multi('List')
+    .param pmc list
+
+    # Iterate over the list and build a list of ranges upto the given subscripts.
+    .local pmc ranges, it
+    ranges = 'list'()
+    it = iter list
+  iter_loop:
+    unless it goto iter_loop_end
+    $P0 = shift it
+    $P0 = $P0 - 1
+    $P0 = 'infix:..'(0, $P0)
+    push ranges, $P0
+    goto iter_loop
+  iter_loop_end:
+
+    # Now just use cross operator to make all the permutations.
+    .return 'infix:X'(ranges)
+.end
 
 
 ## multiplicative

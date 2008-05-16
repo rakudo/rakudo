@@ -550,6 +550,52 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .return(retv)
 .end
 
+=item uniq(...)
+
+=cut
+
+.sub uniq :method
+    .local pmc ulist
+    .local pmc key
+    .local pmc val
+    .local pmc uval
+    .local int len
+    .local int i
+    .local int ulen
+    .local int ui
+
+    ulist = new 'List'
+    len = elements self
+    i = 0
+
+  loop:
+    if i == len goto done
+
+    val = self[i]
+
+    ui = 0
+    ulen = elements ulist
+    inner_loop:
+        if ui == ulen goto inner_loop_done
+
+        uval = ulist[ui]
+        if uval == val goto found
+
+        inc ui
+        goto inner_loop
+    inner_loop_done:
+
+    ulist.'push'(val)
+
+    found:
+
+    inc i
+    goto loop
+
+  done:
+    .return(ulist)
+.end
+
 =back
 
 =head1 Functions
@@ -921,6 +967,12 @@ Returns the elements of LIST in the opposite order.
     .param pmc list :slurpy
 
     .return list.'first'(test)
+.end
+
+.sub uniq :multi('List')
+    .param pmc list
+
+    .return list.'uniq'()
 .end
 
 ## TODO: join map reduce sort zip

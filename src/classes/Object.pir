@@ -535,6 +535,23 @@ Returns false (prototype objects evaluate as undef).
     .return (0)
 .end
 
+=item clone()   (vtable method)
+
+Returns a copy of the proto-object.
+
+=cut
+
+.sub 'clone' :vtable :method
+    .local pmc protoclass, res, props, tmp
+    protoclass = class self
+    res = new protoclass
+    tmp = getattribute self, 'HOW'
+    setattribute res, 'HOW', tmp
+    tmp = getattribute self, 'shortname'
+    setattribute res, 'shortname', tmp
+    .return (res)
+.end
+
 =item HOW()
 
 Returns the metaclass (Parrot class) of the protoobject.

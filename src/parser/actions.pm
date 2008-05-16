@@ -535,11 +535,37 @@ method signature($/) {
     my $params := PAST::Stmts.new( :node($/) );
     my $type_check := PAST::Stmts.new( :node($/) );
     my $past := PAST::Block.new( $params, :blocktype('declaration') );
+    my $invocant;
     for $/[0] {
         # Add parameter declaration.
         my $parameter := $($_<parameter>);
+        my $separator := $_[0];
         $past.symbol($parameter.name(), :scope('lexical'));
         $params.push($parameter);
+
+        # If it is invocant, modify it to be just a lexical and bind self to it.
+        if substr($separator, 0, 1) eq ':' {
+            # Make sure it's first parameter.
+            if +@($params) != 1 {
+                $/.panic("There can only be one invocant and it must be the first parameter");
+            }
+
+            # Modify.
+            $parameter.scope('lexical');
+            $parameter.isdecl(1);
+
+            # Bind self to it.
+            $past.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name($parameter.name()),
+                    :scope('lexical')
+                ),
+                PAST::Op.new(
+                    :inline('%r = self')
+                )
+            ));
+        }
 
         # Add any type check that is needed. The scheme for this: $type_check
         # is a statement block. We create a block for each parameter, which

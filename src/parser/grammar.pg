@@ -133,7 +133,7 @@ rule statement_block {
 
 token lambda { '->' | '<->' }
 
-token pblock { [ <lambda> <signature> ]? {*} <block> }
+token pblock { [ <lambda> <.ws> <signature> ]? <.ws> <block> {*} }
 
 
 ##  Blocks can also have an implied statement end if the
@@ -376,8 +376,8 @@ rule multisig {
     '(' <signature> ')'
 }
 
-rule signature {
-    ( <parameter> ( ',' | <?before ')' | '{'> ) )*
+token signature {
+    ( <parameter> <.ws> ( ',' <.ws> | <?before ')' | '{'> ) )* <.ws>
     {*}
 }
 

@@ -73,6 +73,12 @@ method statement_block($/, $key) {
     if $key eq 'close' {
         my $past := @?BLOCK.shift();
         $?BLOCK := @?BLOCK[0];
+        if $past.symbol('___MAYBE_NEED_TOPIC_FIXUP') && !$past.symbol('___HAVE_A_SIGNATURE') {
+            if $past[0][0].name() ne '$_' { $/.panic('$_ handling is very poor right now.') };
+            $past.symbol('$_', :scope('lexical'));
+            $past[0][0].scope('parameter');
+            $past[0][0].isdecl(0);
+        }
         $past.push($($<statementlist>));
         make $past;
     }
@@ -303,22 +309,8 @@ method for_statement($/) {
 }
 
 method pblock($/) {
-    our $?BLOCK_SIGNATURED;
-    unless $<signature> {
-        $?BLOCK_SIGNATURED :=
-            PAST::Block.new(
-                PAST::Stmts.new(
-                    PAST::Var.new(
-                        :name('$_'),
-                        :scope('parameter'),
-                        :viviself('Undef')
-                    )
-                ),
-                :node( $/ )
-            );
-        $?BLOCK_SIGNATURED.symbol( '$_', :scope('lexical') );
-    }
-    make $?BLOCK_SIGNATURED;
+    my $block := $( $<block> );
+    make $block;
 }
 
 method use_statement($/) {
@@ -1435,6 +1427,7 @@ method variable($/, $key) {
         ));
     }
     else {
+        our $?BLOCK;
         # Handle naming.
         my @ident := $<name><ident>;
         my $name;
@@ -1449,7 +1442,6 @@ method variable($/, $key) {
         my $fullname := $sigil ~ $twigil ~ ~$name;
 
         if $fullname eq '@_' || $fullname eq '%_' {
-            our $?BLOCK;
             unless $?BLOCK.symbol($fullname) {
                 $?BLOCK.symbol( $fullname, :scope('lexical') );
                 my $var;
@@ -1463,10 +1455,11 @@ method variable($/, $key) {
             }
         }
 
-        if $twigil eq '^' || $twigil eq ':' { our $?BLOCK;
+        if $twigil eq '^' || $twigil eq ':' {
             if $?BLOCK.symbol('___HAVE_A_SIGNATURE') {
                 $/.panic('A signature must not be defined on a sub that uses placeholder vars.');
             }
+            $?BLOCK.symbol('___HAS_PLACEHOLDERS', :scope('lexical'));
             unless $?BLOCK.symbol($fullname) {
                 $?BLOCK.symbol( $fullname, :scope('lexical') );
                 my $var;
@@ -1509,6 +1502,10 @@ method variable($/, $key) {
                     $i--;
                 }
             }
+        }
+
+        if $fullname eq '$_' && !$?BLOCK.symbol('___HAVE_A_SIGNATURE') {
+            $?BLOCK.symbol('___MAYBE_NEED_TOPIC_FIXUP', :scope('lexical'));
         }
 
         # If it's $.x, it's a method call, not a variable.

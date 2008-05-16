@@ -77,7 +77,7 @@ XXX Contains workaround until we get keyed_int in place in PCT.
     $P0 = getattribute self, '%!hash'
     $P0 = $P0[key]
     .return ($P0)
- 
+
   int_key:
     $P0 = getattribute self, '@!array'
     $P0 = $P0[key]

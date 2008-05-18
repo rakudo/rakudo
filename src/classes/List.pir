@@ -997,6 +997,14 @@ Returns the elements of LIST in the opposite order.
     .return list.'grep'(test)
 .end
 
+.sub reduce :multi(_,'List')
+    .param pmc test
+    .param pmc list
+
+    .return list.'reduce'(test)
+.end
+
+
 .sub first :multi(_,'List')
     .param pmc test
     .param pmc list :slurpy

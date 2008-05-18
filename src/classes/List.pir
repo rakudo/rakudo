@@ -212,7 +212,7 @@ Treats the list as a stack, popping the last item off the list and returning it.
     goto done
 
   empty:
-    x = undef()
+    x = new 'Undef'
     goto done
 
   done:
@@ -332,7 +332,7 @@ Deletes the given elements from the List, replacing them with Undef.  Returns a 
     .local int len
     .local int i
 
-    newelem = undef()
+    newelem = new 'Undef'
     res = new 'List'
 
     # Index of the last element in the array
@@ -505,6 +505,41 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
   next:
     inc i
     goto loop
+
+  done:
+    .return(retv)
+.end
+
+=item reduce(...)
+
+=cut
+
+.sub reduce :method
+    .param pmc test
+    .local pmc retv
+    .local pmc block
+    .local pmc block_arg
+    .local int narg
+    .local int i
+
+    narg = elements self
+    if narg == 0 goto empty
+    retv = self[0]
+    i = 1
+
+  loop:
+    if i >= narg goto done
+
+    newclosure block, test
+    block_arg = self[i]
+    retv = block(retv, block_arg)
+
+    inc i
+    goto loop
+
+  empty:
+    retv = new 'Undef'
+    goto done
 
   done:
     .return(retv)
@@ -804,7 +839,7 @@ The min operator.
     .local int elems
     elems = elements args
     if elems > 0 goto have_args
-    $P0 = undef()
+    $P0 = new 'Undef'
     .return($P0)
 have_args:
 
@@ -841,7 +876,7 @@ The max operator.
     .local int elems
     elems = elements args
     if elems > 0 goto have_args
-    $P0 = undef()
+    $P0 = new 'Undef'
     .return($P0)
 have_args:
 

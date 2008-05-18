@@ -645,7 +645,9 @@ method signature($/) {
         $type_check.push($cur_param_types);
     }
     $past.arity( +$/[0] );
-    our $?BLOCK_SIGNATURED := $past;
+    if +$/[0] {
+        our $?BLOCK_SIGNATURED := $past;
+    }
     our $?PARAM_TYPE_CHECK := $type_check;
     $past.push($type_check);
     make $past;

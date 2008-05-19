@@ -39,6 +39,29 @@ src/classes/Hash.pir - Perl 6 Hash class, and related functions
     .return ($S0)
 .end
 
+=item kv (method)
+
+Returns elements of hash as array of C<Pair(key, value)>
+
+=cut
+
+.sub 'kv' :method
+    .local pmc iter
+    .local pmc rv
+    iter = new 'Iterator', self
+    rv   = new 'List'
+  loop:
+    unless iter goto end
+    $S1 = shift iter
+    push rv, $S1
+    $S1 = iter[$S1]
+    push rv, $S1
+    goto loop
+  end:
+    .return (rv)
+.end
+
+
 
 .sub 'keys' :method
     .local pmc iter
@@ -121,6 +144,15 @@ otherwise.
 =item keys
 
 =item kv
+
+=cut
+
+.sub kv :multi('Hash')
+    .param pmc hash
+
+    .return hash.'kv'()
+.end
+
 
 =item pairs
 

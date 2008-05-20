@@ -39,6 +39,13 @@ multi sub ok($cond, $desc) {
 multi sub ok($cond) { ok($cond, ''); }
 
 
+multi sub nok($cond, $desc) {
+    proclaim(!$cond, $desc);
+}
+
+multi sub nok($cond) { nok(!$cond, ''); }
+
+
 multi sub is($got, $expected, $desc) {
     my $test = $got eq $expected;
     proclaim($test, $desc);

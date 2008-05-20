@@ -57,7 +57,9 @@ method statement_block($/, $key) {
                 PAST::Op.new(
                     :inline(
                           "    %r = getinterp\n"
+                        ~ "    push_eh no_match_to_copy\n"
                         ~ "    %r = %r['lexpad';1]\n"
+                        ~ "    pop_eh\n"
                         ~ "    if null %r goto no_match_to_copy\n"
                         ~ "    %r = %r['$/']\n"
                         ~ "    store_lex '$/', %r\n"

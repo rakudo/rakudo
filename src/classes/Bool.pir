@@ -25,10 +25,12 @@ symbols for C<Bool::True> and C<Bool::False>.
     $P0 = protoobject.'new'()
     $P0 = 0
     set_hll_global [ 'Bool' ], 'False', $P0
+    set_hll_global 'False', $P0 # TODO remove when we can do 'our bit enum'
 
     $P0 = protoobject.'new'()
     $P0 = 1
     set_hll_global [ 'Bool' ], 'True', $P0
+    set_hll_global 'True', $P0  # TODO remove when we can do 'our bit enum'
 .end
 
 

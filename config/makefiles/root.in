@@ -122,7 +122,7 @@ help:
 	@echo "  test:              Run the test suite."
 	@echo "  testclean:         Clean up test results."
 	@echo "  spectest:          Run the official Perl 6 tests."
- 	@echo "  spectest_regression:  Run the tests of the official test suite that are known to pass."
+	@echo "  spectest_regression:  Run the tests of the official test suite that are known to pass."
 	@echo ""
 	@echo "Cleaning:"
 	@echo "  clean:             Basic cleaning up."

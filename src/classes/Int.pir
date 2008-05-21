@@ -43,10 +43,10 @@ Int - Perl 6 integers
 =cut
 
 .sub 'clone' :method :vtable
-    .local pmc clone_type
-    clone_type = self.HOW()
-    $P0 = clone_type.'new'()
-    $P0 = self
+    .local int val
+    $P0 = self.'new'()
+    $I0 = self
+    $P0 = $I0
     .return($P0)
 .end
 

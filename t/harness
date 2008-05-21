@@ -7,12 +7,14 @@ use File::Spec;
 use lib qw( ../../lib );
 
 our %harness_args;
+our $recurse;
 
 BEGIN {
     our %harness_args = (
         language  => 'perl6',
         compiler  => 'perl6.pbc',
     );
+
 
     my %opts;
     while( $_ = $ARGV[0] ) {
@@ -22,12 +24,34 @@ BEGIN {
         $opts{$_} = $_;
     }
 
+    my %accepted_tests;
+    my $regression_only;
+    if ( delete $opts{'--regression-only'} ) {
+        $regression_only = 1;
+        $recurse = 1;
+        open(my $f, '<', 't/passing_spec') 
+            or die "Can't ope file 't/passing_spec' for reading: $!";
+        my $slash = $^O eq 'MSWin32' ? '\\' : '/';
+        while (<$f>){
+            next if m/^\s*#/;
+            next unless m/\S/;
+            chomp;
+            $_ =~ s/\//$slash/g;
+            $accepted_tests{"t${slash}spec${slash}$_"} = 1;
+        }
+        close $f;
+    }
+
     ##  if we aren't fudging tests, we're done here
     return unless defined delete $opts{'--fudge'};
 
 
     my $impl    = 'rakudo';
     my @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
+    if ($regression_only){
+        @tfiles = grep { $accepted_tests{$_} } @tfiles;
+        die "No regression-only tests to run!" unless @tfiles;
+    }
     my $cmd = join ' ', $^X, 't/spec/fudgeall', keys(%opts), $impl, @tfiles;
     print "$cmd\n";
 
@@ -62,7 +86,6 @@ BEGIN {
 
         return @hits;
     }
-
 }
 
 use Parrot::Test::Harness %harness_args;

@@ -1,0 +1,36 @@
+# this is a list of all spec tests that are supposed to pass
+# on current rakudo.
+# empty lines and those beginning with a # are ignored
+
+S02-literals/autoref.t
+S02-literals/hex_chars.t
+S03-operators/equality.t
+S03-operators/not.t
+S03-operators/relational.t
+S04-statements/until.t
+S04-statements/while.t
+S12-class/attributes.t
+S12-class/instantiate.t
+S12-class/parent_attributes.t
+t/spec/S12-methods/calling_syntax.t
+S29-array/delete.t
+S29-array/exists.t
+S29-array/keys_values.t
+S29-array/kv.t
+S29-array/pairs.t
+S29-list/mutating_listops.t
+S29-num/abs.t
+S29-num/complex.t
+S29-num/exp.t
+S29-num/int.t
+S29-num/log.t
+S29-num/pi.t
+S29-num/roots.t
+S29-num/sign.t
+S29-num/sqrt.t
+S29-str/append.t
+S29-str/capitalize.t
+S29-str/comb.t
+S29-str/lcfirst.t
+S29-str/sprintf.t
+S29-str/ucfirst.t

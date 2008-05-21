@@ -122,6 +122,7 @@ help:
 	@echo "  test:              Run the test suite."
 	@echo "  testclean:         Clean up test results."
 	@echo "  spectest:          Run the official Perl 6 tests."
+ 	@echo "  spectest_regression:  Run the tests of the official test suite that are known to pass."
 	@echo ""
 	@echo "Cleaning:"
 	@echo "  clean:             Basic cleaning up."
@@ -150,11 +151,19 @@ spectest: all t/spec
             t/spec/S03-operators \
             t/spec/S04-statements \
             t/spec/S12-class \
+            t/spec/S12-role \
+            t/spec/S12-methods \
+            t/spec/S12-attributes \
             t/spec/S29-array \
             t/spec/S29-hash \
             t/spec/S29-list \
             t/spec/S29-num \
             t/spec/S29-str \
+
+spectest_regression: all t/spec
+	cd t/spec && svn up
+	$(PERL) t/harness --fudge --regression-only --keep-exit-code \
+            t/spec/ \
 
 fulltest: all testtest spectest
 

@@ -44,7 +44,7 @@ Int - Perl 6 integers
 
 .sub 'clone' :method :vtable
     .local int val
-    $P0 = self.'new'()
+    $P0 = new 'Int'
     $I0 = self
     $P0 = $I0
     .return($P0)

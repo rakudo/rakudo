@@ -76,7 +76,7 @@ Returns a Perl code representation of the range.
 .end
 
 
-=item get_iterator (vtable)
+=item get_iter (vtable)
 
 Just returns this Range itself, since a Range is an iterator.
 

@@ -633,6 +633,48 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
 
 =back
 
+=item sort()
+
+Sort list by copying into FPA, sorting and creating new List.
+
+=cut
+
+.sub 'sort' :method
+    .param pmc comparer :optional
+    .param int have_comparer :opt_flag
+    .local pmc elem, arr, comparer
+    .local int len, i
+
+    # Creating FPA
+    arr = new 'FixedPMCArray'
+    len = elements self
+    arr = len
+
+    # Copy all elements into it
+    i = 0
+  copy_to:
+    if i == len goto done_to
+    elem = self[i]
+    arr[i] = elem
+    inc i
+    goto copy_to
+
+  done_to:
+    
+    # Check comparer
+    if have_comparer goto do_sort
+    get_hll_global comparer, 'infix:cmp'
+
+  do_sort:
+
+    # Sort in-place
+    arr.'sort'(comparer)
+
+    # and return new List.
+    .return 'list'(arr)
+.end
+
+
 =head1 Functions
 
 =over 4
@@ -665,6 +707,28 @@ Build a List from its arguments.
     goto args_loop
   args_end:
     .return (list)
+.end
+
+
+=item C<sort>
+
+Sort arguments using (optional) comparition sub.
+
+=cut
+
+.sub 'sort'
+    .param pmc comparer :optional
+    .param pmc args :slurpy
+    .local pmc l
+
+    $I0 = isa comparer, 'Sub'
+    if $I0 goto with_cmp
+    l = 'list'(comparer, args :flat)
+    .return l.'sort'()
+
+  with_cmp:
+    l = 'list'(args :flat)
+    .return l.'sort'(comparer)
 .end
 
 

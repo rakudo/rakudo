@@ -163,7 +163,7 @@ spectest: all t/spec
 spectest_regression: all t/spec
 	cd t/spec && svn up
 	$(PERL) t/harness --fudge --regression-only --keep-exit-code \
-            t/spec/ \
+			t/spec/ \
 
 fulltest: all testtest spectest
 

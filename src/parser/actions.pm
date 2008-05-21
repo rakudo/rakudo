@@ -1966,6 +1966,24 @@ method EXPR($/, $key) {
             }
         }
 
+        # If it's infix:=> then we want to build a pair.
+        if $past.name() eq 'infix:=>' {
+            $past[0].named( PAST::Val.new( :value('key') ) );
+            $past[1].named( PAST::Val.new( :value('value') ) );
+            $past := PAST::Op.new(
+                :node($/),
+                :pasttype('callmethod'),
+                :name('new'),
+                :returns('Pair'),
+                PAST::Var.new(
+                    :name('Pair'),
+                    :scope('package')
+                ),
+                $past[0],
+                $past[1]
+            );
+        }
+
         make $past;
     }
 }
@@ -2196,6 +2214,15 @@ method capture($/) {
 sub process_arguments($call_past, $args) {
     for @($args) {
         if $_.returns() eq 'Pair' {
+            # It's a pair. If the name is not just a simple value (e.g if it
+            # will create a PMC type), we must make it just a string or give
+            # an error.
+            if $_[1].WHAT() eq 'Val' && $_[1].returns() eq 'Perl6Str' {
+                $_[1].returns(undef);
+            }
+            elsif $_[1].WHAT() ne 'Val' || $_[1].returns() ne '' {
+                $call_past.panic("Cannot use complex pair key in a call.");
+            }
             $_[2].named($_[1]);
             $call_past.push($_[2]);
         }

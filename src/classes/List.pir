@@ -660,13 +660,11 @@ Sort list by copying into FPA, sorting and creating new List.
     goto copy_to
 
   done_to:
-    
     # Check comparer
     if have_comparer goto do_sort
     get_hll_global comparer, 'infix:cmp'
 
   do_sort:
-
     # Sort in-place
     arr.'sort'(comparer)
 

@@ -152,6 +152,8 @@ Returns true if there are any more values to iterate over, and false otherwise.
 
 =head1 Operators
 
+=over
+
 =item infix:<..>
 
 Constructs a range from the value on the LHS to the value on the RHS.

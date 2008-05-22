@@ -1,0 +1,45 @@
+/*
+$Id:$
+Copyright (C) 2001-2008, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/mutable.pmc.template - Template for the mutable PMC
+
+=head1 DESCRIPTION
+
+Forwards all but some methods to the held PMC.
+
+=head2 Methods
+
+=over 4
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+
+pmclass Mutable need_ext dynpmc group perl6_group {
+    VTABLE void init() {
+        /* Initialize with an undef PMC. */
+        PMC_data(SELF) = pmc_new(INTERP, enum_class_Undef);
+    }
+
+    VTABLE void init_pmc() {
+        STATICSELF.init();
+    }
+
+    VTABLE void mark() {
+        if (PMC_data(SELF))
+            pobject_lives(INTERP, PMC_data(SELF));
+    }
+
+    VTABLE void destroy() {
+        /* Just don't pass this on. */
+    }
+
+    VTABLE void assign_pmc(PMC *value) {
+        PMC_data(SELF) = value;
+    }
+}

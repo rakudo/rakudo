@@ -13,22 +13,9 @@ src/classes/Pair.pir - methods for the Pair class
 .namespace ['Perl6Pair']
 
 .sub 'onload' :anon :load :init
-    $P0 = subclass 'Any', 'Perl6Pair'
-    addattribute $P0, "$!key"
-    addattribute $P0, "$!value"
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Pair')
-.end
-
-
-=item clone (vtable method)
-
-Pairs are immutable, so just return ourself.
-
-=cut
-
-.sub 'clone' :method :vtable
-    .return (self)
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('Perl6Pair', 'parent'=>'Any', 'attr'=>'$!key $!value', 'name'=>'Pair')
 .end
 
 

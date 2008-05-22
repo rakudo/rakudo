@@ -47,10 +47,9 @@ BUILTINS_PIR = \
   src/classes/Int.pir \
   src/classes/IO.pir \
   src/classes/List.pir \
-  src/classes/Hash.pir \
+  src/classes/Mapping.pir \
   src/classes/Range.pir \
   src/classes/Code.pir \
-  src/classes/Sub.pir \
   src/classes/Junction.pir \
   src/classes/Undef.pir \
   src/classes/Role.pir \
@@ -163,7 +162,7 @@ spectest: all t/spec
 spectest_regression: all t/spec
 	cd t/spec && svn up
 	$(PERL) t/harness --fudge --regression-only --keep-exit-code \
-			t/spec/ \
+            t/spec/ \
 
 fulltest: all testtest spectest
 

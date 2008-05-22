@@ -1,4 +1,4 @@
-## $Id:$
+## $Id$
 
 =head1 TITLE
 
@@ -14,10 +14,9 @@ may not turn out to be the right thing to do.
 .namespace ['Subset']
 
 .sub 'onload' :anon :init :load
-    $P0 = subclass 'Any', 'Subset'
-    addattribute $P0, '$!condition'
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Subset')
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('Subset', 'parent'=>'Any', 'attr'=>'$!condition')
 .end
 
 .sub '!create' :method

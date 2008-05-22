@@ -13,12 +13,9 @@ This file sets up the Perl 6 C<Capture> class.
 .namespace ['Perl6Capture']
 
 .sub 'onload' :anon :init :load
-    $P0 = subclass 'Any', 'Perl6Capture'
-    addattribute $P0, '$!scalar'
-    addattribute $P0, '@!array'
-    addattribute $P0, '%!hash'
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Capture')
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('Perl6Capture', 'parent'=>'Any', 'attr'=>'$!scalar @!array %!hash', 'name'=>'Capture')
 .end
 
 
@@ -46,17 +43,6 @@ Creates a capture.
 
     # Done.
     .return(capt)
-.end
-
-
-=item clone (vtable method)
-
-Captures are immutable, so just return ourself.
-
-=cut
-
-.sub 'clone' :method :vtable
-    .return (self)
 .end
 
 

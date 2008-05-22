@@ -13,22 +13,9 @@ src/classes/Range.pir - methods for the Range class
 .namespace ['Range']
 
 .sub 'onload' :anon :load :init
-    $P0 = subclass 'Any', 'Range'
-    addattribute $P0, "$!from"
-    addattribute $P0, "$!to"
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Range')
-.end
-
-
-=item clone (vtable method)
-
-Ranges are immutable, so just return ourself.
-
-=cut
-
-.sub 'clone' :method :vtable
-    .return (self)
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!from $!to')
 .end
 
 
@@ -146,19 +133,19 @@ Returns true if there are any more values to iterate over, and false otherwise.
 .end
 
 
-.namespace
-
 =back
 
 =head1 Operators
 
-=over
+=over 4
 
 =item infix:<..>
 
 Constructs a range from the value on the LHS to the value on the RHS.
 
 =cut
+
+.namespace
 
 # XXX We'll uncomment this when we're ready to do lazy ranges for real.
 #.sub "infix:.."

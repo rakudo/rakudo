@@ -19,11 +19,9 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
 .const int JUNCTION_TYPE_NONE = 4
 
 .sub 'onload' :anon :load :init
-    $P0 = subclass 'Perl6Object', 'Junction'
-    addattribute $P0, "@values"
-    addattribute $P0, "$type"
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Junction')
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('Junction', 'parent'=>'Perl6Object', 'attr'=>'@values $type')
 .end
 
 

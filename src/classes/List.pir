@@ -13,12 +13,10 @@ src/classes/List.pir - Perl 6 List class and related functions
 .namespace ['List']
 
 .sub 'onload' :anon :load :init
-    $P0 = subclass 'ResizablePMCArray', 'List'
-    $P1 = get_hll_global 'Any'
-    $P1 = $P1.HOW()
-    addparent $P0, $P1
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'List')
+    .local pmc p6meta, listproto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    listproto = p6meta.'new_class'('List', 'parent'=>'ResizablePMCArray Any')
+    p6meta.'register'('ResizablePMCArray', 'parent'=>'Any', 'protoobject'=>listproto)
 .end
 
 
@@ -631,8 +629,6 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .return(ulist)
 .end
 
-=back
-
 =item sort()
 
 Sort list by copying into FPA, sorting and creating new List.
@@ -660,11 +656,13 @@ Sort list by copying into FPA, sorting and creating new List.
     goto copy_to
 
   done_to:
+
     # Check comparer
     if have_comparer goto do_sort
     get_hll_global comparer, 'infix:cmp'
 
   do_sort:
+
     # Sort in-place
     arr.'sort'(comparer)
 
@@ -672,6 +670,7 @@ Sort list by copying into FPA, sorting and creating new List.
     .return 'list'(arr)
 .end
 
+=back
 
 =head1 Functions
 

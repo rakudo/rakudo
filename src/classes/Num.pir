@@ -4,11 +4,6 @@
 
 Num - Perl 6 numbers
 
-=cut
-
-.namespace [ 'Num' ]
-
-
 =head1 SUBROUTINES
 
 =over 4
@@ -17,14 +12,13 @@ Num - Perl 6 numbers
 
 =cut
 
+.namespace [ 'Num' ]
+
 .sub 'onload' :anon :init :load
-    $P0 = subclass 'Float', 'Num'
-    $P1 = get_hll_global 'Any'
-    $P1 = $P1.HOW()
-    addparent $P0, $P1
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Num')
-    $P1('Float', 'Num')
+    .local pmc p6meta, numproto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    numproto = p6meta.'new_class'('Num', 'parent'=>'Float Any')
+    p6meta.'register'('Float', 'parent'=>'Any', 'protoobject'=>numproto)
 .end
 
 

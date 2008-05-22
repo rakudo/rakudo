@@ -20,9 +20,11 @@ as the Perl 6 C<Str> class.
 .include 'cclass.pasm'
 
 .sub 'onload' :anon :init :load
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1('String', 'Str')
-    $P1('Perl6Str', 'Str')
+    .local pmc p6meta, strproto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    strproto = p6meta.'new_class'('Str', 'parent'=>'Perl6Str Any')
+    p6meta.'register'('Perl6Str', 'parent'=>'Any', 'protoobject'=>strproto)
+    p6meta.'register'('String', 'parent'=>'Any', 'protoobject'=>strproto)
 .end
 
 

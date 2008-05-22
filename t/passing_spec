@@ -1,4 +1,5 @@
-# this is a list of all spec tests that are supposed to pass on current rakudo.
+# this is a list of all spec tests that are supposed to pass
+# on current rakudo.
 # empty lines and those beginning with a # are ignored
 
 S02-literals/autoref.t
@@ -11,7 +12,7 @@ S04-statements/while.t
 S12-class/attributes.t
 S12-class/instantiate.t
 S12-class/parent_attributes.t
-S12-methods/calling_syntax.t
+t/spec/S12-methods/calling_syntax.t
 S29-array/delete.t
 S29-array/exists.t
 S29-array/keys_values.t

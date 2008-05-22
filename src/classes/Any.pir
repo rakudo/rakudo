@@ -13,9 +13,15 @@ This file implements the Any class.
 .namespace [ 'Any' ]
 
 .sub 'onload' :anon :init :load
-    $P0 = subclass 'Perl6Object', 'Any'
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Any')
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('Any', 'parent'=>'Perl6Object')
+.end
+
+.sub 'isa' :method
+    .param pmc x
+    $P0 = self.'HOW'()
+    .return $P0.'isa'(x)
 .end
 
 # Local Variables:

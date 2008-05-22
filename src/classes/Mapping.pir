@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-src/classes/Hash.pir - Perl 6 Hash class, and related functions
+src/classes/Mapping.pir - Perl 6 hash class and related functions
 
 =head1 Methods
 
@@ -10,15 +10,13 @@ src/classes/Hash.pir - Perl 6 Hash class, and related functions
 
 =cut
 
-.namespace ['Perl6Hash']
+.namespace ['Mapping']
 
 .sub 'onload' :anon :load :init
-    $P0 = subclass 'Hash', 'Perl6Hash'
-    $P1 = get_hll_global 'Any'
-    $P1 = $P1.HOW()
-    addparent $P0, $P1
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Hash')
+    .local pmc p6meta, mappingproto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    mappingproto = p6meta.'new_class'('Mapping', 'parent'=>'Hash Any')
+    p6meta.'register'('Hash', 'parent'=>'Any', 'protoobject'=>mappingproto)
 .end
 
 
@@ -96,7 +94,7 @@ Returns elements of hash as array of C<Pair(key, value)>
 
 ## FIXME:  Parrot currently requires us to write our own "clone" method.
 .sub 'clone' :vtable :method
-    $P0 = new 'Perl6Hash'
+    $P0 = new 'Mapping'
     .local pmc iter
     iter = new 'Iterator', self
   loop:

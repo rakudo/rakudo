@@ -28,11 +28,10 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
 
 .sub 'onload' :load :init :anon
     load_bytecode 'PCT.pbc'
-    load_bytecode 'Protoobject.pbc'
 
-    $P0 = get_hll_global 'Protomaker'
-    $P1 = get_class ['PCT::HLLCompiler']
-    $P0.'new_subclass'($P1, 'Perl6::Compiler')
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('Perl6::Compiler', 'parent'=>'PCT::HLLCompiler')
 .end
 
 

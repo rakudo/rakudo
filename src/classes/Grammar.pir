@@ -23,11 +23,9 @@ This file implements the Grammar class.
 
 .sub 'onload' :anon :init :load
     load_bytecode "PGE.pbc"
-    $P0 = subclass 'PGE::Grammar', 'Grammar'
-    $P1 = get_class [ 'Any' ]
-    addparent $P0, $P1
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'Grammar')
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('Grammar', 'parent'=>'PGE::Grammar')
 .end
 
 

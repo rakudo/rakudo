@@ -17,12 +17,11 @@ This file implements the IO file handle class.
 .namespace ['IO']
 
 .sub 'onload' :anon :init :load
-    $P0 = subclass 'Any', 'IO'
-    addattribute $P0, "$!PIO" # for Parrot IO object
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'IO')
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'new_class'('IO', 'parent'=>'Any', 'attr'=>'$!PIO')
+    p6meta.'new_class'('IOIterator', 'parent'=>'Perl6Object', 'attr'=>'$!I0')
 .end
-
 
 =item print
 
@@ -122,13 +121,6 @@ Gets the iterator for the IO object.
 The IOIterator class implements the I/O iterator.
 
 =cut
-
-.sub 'onload' :anon :init :load
-    $P0 = subclass 'Perl6Object', 'IOIterator'
-    addattribute $P0, "$!IO" # for IO object we iterate over
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P1($P0, 'IOIterator')
-.end
 
 .sub get_bool :method :vtable
     .local pmc PIO

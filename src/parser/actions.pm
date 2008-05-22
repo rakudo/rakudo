@@ -877,7 +877,7 @@ method postcircumfix($/, $key) {
         $past := PAST::Var.new(
             $semilist,
             :scope('keyed'),
-            :vivibase('Perl6Hash'),
+            :vivibase('Mapping'),
             :viviself('Undef'),
             :node( $/ )
         );
@@ -886,7 +886,7 @@ method postcircumfix($/, $key) {
         $past := PAST::Var.new(
             $( $<quote_expression> ),
             :scope('keyed'),
-            :vivibase('Perl6Hash'),
+            :vivibase('Mapping'),
             :viviself('Undef'),
             :node( $/ )
         );
@@ -1111,17 +1111,21 @@ method package_declarator($/, $key) {
             # Make proto-object.
             $?CLASS.push(
                 PAST::Op.new(
-                    :pasttype('call'),
+                    :pasttype('callmethod'),
+                    :name('register'),
                     PAST::Var.new(
                         :scope('package'),
-                        :namespace('Perl6Object'),
-                        :name('make_proto')
+                        :name('$!P6META'),
+                        :namespace('Perl6Object')
                     ),
                     PAST::Var.new(
                         :scope('lexical'),
                         :name('$def')
                     ),
-                    PAST::Val.new( :value(~$<name>) )
+                    PAST::Val.new(
+                        :value('Any'),
+                        :named( PAST::Val.new( :value('parent') ) )
+                    )
                 )
             );
 
@@ -1158,17 +1162,21 @@ method package_declarator($/, $key) {
             # Make proto-object.
             $?GRAMMAR.push(
                 PAST::Op.new(
-                    :pasttype('call'),
+                    :pasttype('callmethod'),
+                    :name('register'),
                     PAST::Var.new(
                         :scope('package'),
-                        :namespace('Perl6Object'),
-                        :name('make_grammar_proto')
+                        :name('$!P6META'),
+                        :namespace('Perl6Object')
                     ),
                     PAST::Var.new(
                         :scope('lexical'),
                         :name('$def')
                     ),
-                    PAST::Val.new( :value(~$<name>) )
+                    PAST::Val.new(
+                        :value('Grammar'),
+                        :named( PAST::Val.new( :value('parent') ) )
+                    )
                 )
             );
 
@@ -1590,7 +1598,7 @@ method variable($/, $key) {
             # Variable. Set how it vivifies.
             my $viviself := 'Undef';
             if $<sigil> eq '@' { $viviself := 'List'; }
-            if $<sigil> eq '%' { $viviself := 'Perl6Hash'; }
+            if $<sigil> eq '%' { $viviself := 'Mapping'; }
 
             # [!:^] twigil should be kept in the name.
             if $twigil eq '!' || $twigil eq ':' || $twigil eq '^' { $name := $twigil ~ ~$name; }

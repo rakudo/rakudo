@@ -3,8 +3,9 @@
 .namespace [ 'Undef' ]
 
 .sub 'onload' :anon :init :load
-    $P0 = get_hll_global ['Perl6Object'], 'make_proto'
-    $P0('Undef', 'Failure')
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.'register'('Undef', 'parent'=>'Any', 'name'=>'Failure')
 .end
 
 # Local Variables:

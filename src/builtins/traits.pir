@@ -14,18 +14,14 @@ src/builtins/traits.pir - Perl 6 built-in traits
 
 # Handles the case where you have a trait that is a class being applied to a
 # class, in which case it's inheritance.
-.sub 'trait_auxiliary:is' :multi('Class', 'Class')
+.sub 'trait_auxiliary:is' :multi(_,Class)
     .param pmc parent
     .param pmc child
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    parent = p6meta.'get_parrotclass'(parent)
     addparent child, parent
 .end
-.sub 'trait_auxiliary:is' :multi('Perl6ProtoObject', 'Class')
-    .param pmc parent
-    .param pmc child
-    parent = parent.HOW()
-    'trait_auxiliary:is'(parent, child)
-.end
-
 
 
 =back

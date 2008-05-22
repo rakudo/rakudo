@@ -14,23 +14,26 @@ symbols for C<Bool::True> and C<Bool::False>.
 .namespace ['Bool']
 
 .sub 'onload' :anon :init :load
-    .local pmc protoobject
-    $P0 = subclass 'Boolean', 'Bool'
-    $P1 = get_hll_global 'Any'
-    $P1 = $P1.HOW()
-    addparent $P0, $P1
-    $P1 = get_hll_global ['Perl6Object'], 'make_proto'
-    protoobject = $P1($P0, 'Bool')
+    .local pmc p6meta, boolproto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    boolproto = p6meta.'new_class'('Bool', 'parent'=>'Boolean Any')
+    # p6meta.'register'('Boolean', 'parent'=>'Any', 'protoobject'=>boolproto)
 
-    $P0 = protoobject.'new'()
+    $P0 = boolproto.'new'()
     $P0 = 0
-    set_hll_global [ 'Bool' ], 'False', $P0
-    set_hll_global 'False', $P0 # TODO remove when we can do 'our bit enum'
+    set_hll_global ['Bool'], 'False', $P0
 
-    $P0 = protoobject.'new'()
+    $P0 = boolproto.'new'()
     $P0 = 1
-    set_hll_global [ 'Bool' ], 'True', $P0
-    set_hll_global 'True', $P0  # TODO remove when we can do 'our bit enum'
+    set_hll_global ['Bool'], 'True', $P0
+
+    # 'our bit enum bool <True False>'
+    $P0 = new 'Integer'
+    $P0 = 0
+    set_hll_global 'False', $P0
+    $P0 = new 'Integer'
+    $P0 = 1
+    set_hll_global 'True', $P0
 .end
 
 
@@ -46,6 +49,7 @@ symbols for C<Bool::True> and C<Bool::False>.
 .sub 'decrement' :method :vtable
     self = 0
 .end
+
 
 # Local Variables:
 #   mode: pir

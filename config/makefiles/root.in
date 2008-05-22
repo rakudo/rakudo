@@ -145,23 +145,12 @@ testtest: all test
 #       as the goal is that all tests must pass without fudge
 spectest: all t/spec
 	cd t/spec && svn up
-	$(PERL) t/harness --fudge --keep-exit-code \
-            t/spec/S02-literals \
-            t/spec/S03-operators \
-            t/spec/S04-statements \
-            t/spec/S12-class \
-            t/spec/S12-role \
-            t/spec/S12-methods \
-            t/spec/S12-attributes \
-            t/spec/S29-array \
-            t/spec/S29-hash \
-            t/spec/S29-list \
-            t/spec/S29-num \
-            t/spec/S29-str \
+	$(PERL) t/harness --fudge --keep-exit-code t/spec
 
 spectest_regression: all t/spec
 	cd t/spec && svn up
-	$(PERL) t/harness --fudge --regression-only --keep-exit-code \
+	$(PERL) t/harness --fudge --tests-from-file=t/passing_spec \
+            --keep-exit-code \
             t/spec/ \
 
 fulltest: all testtest spectest

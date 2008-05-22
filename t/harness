@@ -2,96 +2,96 @@
 
 # $Id$
 
+# note: du to a limitation in Getopt::Long options that should be passed
+# through to fudgeall have to come after all other options
+
 use FindBin;
 use File::Spec;
+use Getopt::Long qw(:config pass_through);
 use lib qw( ../../lib );
+use strict;
 
 our %harness_args;
-our $recurse;
+our $recurse = 1;
 
-BEGIN {
-    our %harness_args = (
-        language  => 'perl6',
-        compiler  => 'perl6.pbc',
+our %harness_args = (
+    language  => 'perl6',
+    compiler  => 'perl6.pbc',
+);
+
+GetOptions(
+        'tests-from-file=s' => \my $list_file,
+        'fudge'             => \my $do_fudge,
     );
 
 
-    my %opts;
-    while( $_ = $ARGV[0] ) {
-        last unless defined && /^-/;
-        shift;
-        last if /^--$/;
-        $opts{$_} = $_;
+my @pass_through_options = grep m/^--?[^-]/, @ARGV;
+my @files = grep m/^[^-]/, @ARGV;
+
+my %accepted_tests;
+if ($list_file) {
+    open(my $f, '<', $list_file) 
+        or die "Can't ope file '$list_file' for reading: $!";
+    my $slash = $^O eq 'MSWin32' ? '\\' : '/';
+    while (<$f>){
+        next if m/^\s*#/;
+        next unless m/\S/;
+        chomp;
+        $_ =~ s/\//$slash/g;
+        $accepted_tests{"t${slash}spec${slash}$_"} = 1;
     }
+    close $f;
+}
 
-    my %accepted_tests;
-    my $regression_only;
-    if ( delete $opts{'--regression-only'} ) {
-        $regression_only = 1;
-        $recurse = 1;
-        open(my $f, '<', 't/passing_spec') 
-            or die "Can't ope file 't/passing_spec' for reading: $!";
-        my $slash = $^O eq 'MSWin32' ? '\\' : '/';
-        while (<$f>){
-            next if m/^\s*#/;
-            next unless m/\S/;
-            chomp;
-            $_ =~ s/\//$slash/g;
-            $accepted_tests{"t${slash}spec${slash}$_"} = 1;
-        }
-        close $f;
-    }
-
-    ##  if we aren't fudging tests, we're done here
-    return unless defined delete $opts{'--fudge'};
-
-
-    my $impl    = 'rakudo';
-    my @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
-    if ($regression_only){
+if (defined($do_fudge) || $list_file ){
+    my $impl   = 'rakudo';
+    my @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @files;
+    if ($list_file){
         @tfiles = grep { $accepted_tests{$_} } @tfiles;
-        die "No regression-only tests to run!" unless @tfiles;
+        die "No tests to run!" unless @tfiles;
     }
-    my $cmd = join ' ', $^X, 't/spec/fudgeall', keys(%opts), $impl, @tfiles;
-    print "$cmd\n";
-
-    $harness_args{arguments} = [ split ' ', `$cmd` ];
-
-    # Stolen directly from 'prove'
-    # adapted to return only files ending in '.t'
-    sub all_in {
-        my $start = shift;
-
-        my @hits = ();
-
-        local *DH;
-        if ( opendir( DH, $start ) ) {
-            my @files = sort readdir DH;
-            closedir DH;
-            for my $file ( @files ) {
-                next if $file eq File::Spec->updir || $file eq File::Spec->curdir;
-                next if $file eq ".svn";
-                next if $file eq "CVS";
-
-                my $currfile = File::Spec->catfile( $start, $file );
-                if ( -d $currfile ) {
-                    push( @hits, all_in( $currfile ) ) if $recurse;
-                } else {
-                    push( @hits, $currfile ) if $currfile =~ /\.t$/;
-                }
-            }
-        } else {
-            warn "$start: $!\n";
-        }
-
-        return @hits;
+    if ($do_fudge){
+        my $cmd = join ' ', $^X, 't/spec/fudgeall', @pass_through_options, $impl, @tfiles;
+        print "$cmd\n";
+        $harness_args{arguments} = [ split ' ', `$cmd` ];
+    } else {
+        $harness_args{arguments} = \@tfiles;
     }
 }
 
-use Parrot::Test::Harness %harness_args;
+# Stolen directly from 'prove'
+# adapted to return only files ending in '.t'
+sub all_in {
+    my $start = shift;
+
+    my @hits = ();
+
+    local *DH;
+    if ( opendir( DH, $start ) ) {
+        my @files = sort readdir DH;
+        closedir DH;
+        for my $file ( @files ) {
+            next if $file eq File::Spec->updir || $file eq File::Spec->curdir;
+            next if $file eq ".svn";
+            next if $file eq "CVS";
+
+            my $currfile = File::Spec->catfile( $start, $file );
+            if ( -d $currfile ) {
+                push( @hits, all_in( $currfile ) ) if $recurse;
+            } else {
+                push( @hits, $currfile ) if $currfile =~ /\.t$/;
+            }
+        }
+    } else {
+        warn "$start: $!\n";
+    }
+
+    return @hits;
+}
 
 # Set up PERL6LIB environment path so the "use" tests can find libraries
-$ENV{PERL6LIB} = "$Bin/01-sanity";
+$ENV{PERL6LIB} = "$FindBin::Bin/01-sanity";
 
+eval 'use Parrot::Test::Harness %harness_args';
 
 

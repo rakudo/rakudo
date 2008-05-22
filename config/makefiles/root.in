@@ -51,7 +51,7 @@ BUILTINS_PIR = \
   src/classes/Range.pir \
   src/classes/Code.pir \
   src/classes/Junction.pir \
-  src/classes/Undef.pir \
+  src/classes/Failure.pir \
   src/classes/Role.pir \
   src/classes/Pair.pir \
   src/classes/Whatever.pir \

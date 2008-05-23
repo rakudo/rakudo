@@ -12,8 +12,6 @@ Forwards all but some methods to the held PMC.
 
 =head2 Methods
 
-=over 4
-
 =cut
 
 */

@@ -44,6 +44,45 @@ Clones the list.
 .end
 
 
+=item perl()
+
+Returns a Perl representation of a List.
+
+=cut
+
+.sub 'perl' :method
+    .local string res
+    res .= '('
+
+    .local pmc elem
+    .local int elems
+    .local int i
+
+    elems = self.'elems'()
+    i = 0
+
+  loop:
+    if i == elems goto done
+    unless i  > 0 goto no_comma
+
+    res .= ', '
+  no_comma:
+    elem = self[i]
+    $S0 = elem
+    res .= $S0
+
+    i += 1
+    goto loop
+
+
+  done:
+    res .= ')'
+
+    .return(res)
+
+.end
+
+
 =item ACCEPTS(topic)
 
 =cut

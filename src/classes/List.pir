@@ -52,7 +52,7 @@ Returns a Perl representation of a List.
 
 .sub 'perl' :method
     .local string res
-    res .= '('
+    res .= '['
 
     .local pmc elem
     .local int elems
@@ -76,7 +76,7 @@ Returns a Perl representation of a List.
 
 
   done:
-    res .= ')'
+    res .= ']'
 
     .return(res)
 

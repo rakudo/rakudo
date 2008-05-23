@@ -100,8 +100,8 @@ acc_list:
     # Smartmatch against another list. Smartmatch each
     # element.
     .local int count_1, count_2
-    count_1 = elements self
-    count_2 = elements topic
+    count_1 = self.'elems'()
+    count_2 = topic.'elems'()
     if count_1 != count_2 goto no_match
     i = 0
 list_cmp_loop:
@@ -173,7 +173,7 @@ Returns a List containing the keys of the List.
     .local int i
 
     res = new 'List'
-    len = elements self
+    len = self.'elems'()
     i = 0
 
   loop:
@@ -203,7 +203,7 @@ Returns a List containing the values of the List.
     .local int i
 
     res = new 'List'
-    len = elements self
+    len = self.'elems'()
     i = 0
 
   loop:
@@ -242,7 +242,7 @@ Treats the list as a stack, popping the last item off the list and returning it.
     .local pmc x
     .local int len
 
-    len = elements self
+    len = self.'elems'()
 
     if len == 0 goto empty
     pop x, self
@@ -278,7 +278,7 @@ Treats the list as a stack, pushing ELEMENTS onto the end of the list.  Returns 
     inc i
     goto loop
   done:
-    len = elements self
+    len = self.'elems'()
     .return (len)
 .end
 
@@ -297,7 +297,7 @@ Returns a string comprised of all of the list, separated by the string SEPARATOR
 
     res = ""
 
-    len = elements self
+    len = self.'elems'()
     if len == 0 goto done
 
     len = len - 1
@@ -334,7 +334,7 @@ Returns a list of the elements in revese order.
 
     res = new 'List'
 
-    len = elements self
+    len = self.'elems'()
     if len == 0 goto done
     i = 0
 
@@ -373,7 +373,7 @@ Deletes the given elements from the List, replacing them with Undef.  Returns a 
     res = new 'List'
 
     # Index of the last element in the array
-    last = elements self
+    last = self.'elems'()
     dec last
 
     len = elements indices
@@ -452,7 +452,7 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .local int i
 
     res = new 'List'
-    len = elements self
+    len = self.'elems'()
     i = 0
 
   loop:
@@ -485,7 +485,7 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .local int i
 
     res = new 'List'
-    len = elements self
+    len = self.'elems'()
     i = 0
 
   loop:
@@ -522,7 +522,7 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .local int i
 
     retv = new 'List'
-    narg = elements self
+    narg = self.'elems'()
     i = 0
 
   loop:
@@ -559,7 +559,7 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .local int narg
     .local int i
 
-    narg = elements self
+    narg = self.'elems'()
     if narg == 0 goto empty
     retv = self[0]
     i = 1
@@ -595,7 +595,7 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .local int narg
     .local int i
 
-    narg = elements self
+    narg = self.'elems'()
     i = 0
 
   loop:
@@ -637,7 +637,7 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     .local int ui
 
     ulist = new 'List'
-    len = elements self
+    len = self.'elems'()
     i = 0
 
   loop:
@@ -646,7 +646,7 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
     val = self[i]
 
     ui = 0
-    ulen = elements ulist
+    ulen = ulist.'elems'()
     inner_loop:
         if ui == ulen goto inner_loop_done
 
@@ -682,7 +682,7 @@ Sort list by copying into FPA, sorting and creating new List.
 
     # Creating FPA
     arr = new 'FixedPMCArray'
-    len = elements self
+    len = self.'elems'()
     arr = len
 
     # Copy all elements into it

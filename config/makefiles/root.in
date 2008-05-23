@@ -72,8 +72,8 @@ BUILTINS_PIR = \
   src/builtins/range.pir \
   src/builtins/traits.pir \
 
-$(PMC_DIR)/mutable.pmc : $(PMC_DIR)/mutable.pmc.template build/gen_mutable_pmc.pl
-	$(PERL) build/gen_mutable_pmc.pl $(PMC_DIR)/mutable.pmc.template \
+$(PMC_DIR)/mutable.pmc : $(PMC_DIR)/mutable_pmc.template build/gen_mutable_pmc.pl
+	$(PERL) build/gen_mutable_pmc.pl $(PMC_DIR)/mutable_pmc.template \
 		$(PMC_DIR)/mutable.pmc
 
 PMCS        = perl6str perl6bool mutable

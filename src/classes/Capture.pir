@@ -112,6 +112,18 @@ Gets the named part of the capture.
 =cut
 
 
+.namespace
+
+.sub "infix:\\( )"
+    .param pmc inv
+    .param pmc array           :slurpy
+    .param pmc hash            :slurpy :named
+    $P0 = get_hll_global 'Capture'
+    .return $P0."!create"(inv, array :flat, hash :flat :named)
+.end
+
+
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

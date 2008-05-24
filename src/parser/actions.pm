@@ -817,9 +817,7 @@ method methodop($/, $key) {
         $past := PAST::Op.new();
     }
     else {
-        $past := PAST::Op.new();
-        my $args := $( $/{$key} );
-        process_arguments($past, $args);
+        $past := build_call( $( $/{$key} ) );
     }
     $past.pasttype('callmethod');
     $past.node($/);
@@ -840,18 +838,8 @@ method methodop($/, $key) {
 method postcircumfix($/, $key) {
     my $past;
     if $key eq '[ ]' {
-        # If we got a comma separated list, we'll pass that along as a List,
-        # so we can do slices.
-        my $semilist := $( $<semilist> );
-        if $( $<semilist><EXPR>[0] ).name() eq 'infix:,' {
-            $semilist.pasttype('call');
-            $semilist.name('list');
-        }
-        else {
-            $semilist := $semilist[0];
-        }
         $past := PAST::Var.new(
-            $semilist,
+            $( $<semilist> ),
             :scope('keyed'),
             :vivibase('List'),
             :viviself('Undef'),
@@ -859,23 +847,12 @@ method postcircumfix($/, $key) {
         );
     }
     elsif $key eq '( )' {
-        my $semilist := $( $<semilist> );
-        $past := PAST::Op.new( :node($/), :pasttype('call') );
-        process_arguments($past, $semilist);
+        $past := build_call( $( $<semilist> ) );
+        $past.node($/);
     }
     elsif $key eq '{ }' {
-        # If we got a comma separated list, we'll pass that along as a List,
-        # so we can do slices.
-        my $semilist := $( $<semilist> );
-        if $( $<semilist><EXPR>[0] ).name() eq 'infix:,' {
-            $semilist.pasttype('call');
-            $semilist.name('list');
-        }
-        else {
-            $semilist := $semilist[0];
-        }
         $past := PAST::Var.new(
-            $semilist,
+            $( $<semilist> ),
             :scope('keyed'),
             :vivibase('Mapping'),
             :viviself('Undef'),
@@ -1651,20 +1628,9 @@ method circumfix($/, $key) {
         $past := $( $<pblock> );
     }
     elsif $key eq '$( )' {
-        # Context - is just calling .item, .list etc on whatever we got made by the
-        # expression in the brackets.
+        ##  Context - is just calling .item, .list etc on whatever we
+        ##  got made by the expression in the brackets.
         my $expr := $( $<semilist> );
-        if $expr.WHAT() eq 'Op' && $expr.pasttype() eq '' {
-            # We've got an op node that does nothing. Eliminate it for scalars, or
-            # call 'list' for comma-separated.
-            if +@($expr) == 1 {
-                $expr := $expr[0];
-            }
-            else {
-                $expr.pasttype('call');
-                $expr.name('list');
-            }
-        }
         my $method;
         if $<sigil> eq '$' {
             $method := 'item';
@@ -1836,34 +1802,17 @@ method typename($/) {
 
 
 method subcall($/) {
-    # Build call node.
-    my $past := PAST::Op.new(
-        :name( ~$<ident> ),
-        :pasttype('call'),
-        :node($/)
-    );
-
-    # Process arguments.
-    my $args := $( $<semilist> );
-    process_arguments($past, $args);
-
+    my $past := build_call( $( $<semilist> ) );
+    $past.name( ~$<ident> );
+    $past.node( $/ );
     make $past;
 }
 
 
 method semilist($/) {
-    my $past := PAST::Op.new( :node($/) );
-    if $<EXPR> {
-        my $expr := $($<EXPR>[0]);
-        if $expr.name() eq 'infix:,' {
-            for @($expr) {
-                $past.push( $_ );
-            }
-        }
-        else {
-            $past.push( $expr );
-        }
-    }
+    my $past := $<EXPR>
+                    ?? $( $<EXPR>[0] )
+                    !! PAST::Op.new( :node($/), :name('infix:,') );
     make $past;
 }
 
@@ -1871,30 +1820,19 @@ method semilist($/) {
 method listop($/, $key) {
     my $past;
     if $key eq 'arglist' {
-        $past := $( $<arglist> );
+        $past := build_call( $( $<arglist> ) );
     }
     if $key eq 'noarg' {
-        $past := PAST::Op.new( );
+        $past := PAST::Op.new( :pasttype('call') );
     }
     $past.name( ~$<sym> );
-    $past.pasttype('call');
     $past.node($/);
     make $past;
 }
 
 
 method arglist($/) {
-    my $past := PAST::Op.new( :node($/) );
-    my $expr := $($<EXPR>);
-    if $expr.name() eq 'infix:,' {
-        for @($expr) {
-            $past.push( $_ );
-        }
-    }
-    else {
-        $past.push( $expr );
-    }
-    make $past;
+    make $($<EXPR>);
 }
 
 
@@ -1972,24 +1910,6 @@ method EXPR($/, $key) {
                     $past[1]
                 );
             }
-        }
-
-        # If it's infix:=> then we want to build a pair.
-        if $past.name() eq 'infix:=>' {
-            $past[0].named( PAST::Val.new( :value('key') ) );
-            $past[1].named( PAST::Val.new( :value('value') ) );
-            $past := PAST::Op.new(
-                :node($/),
-                :pasttype('callmethod'),
-                :name('new'),
-                :returns('Pair'),
-                PAST::Var.new(
-                    :name('Pair'),
-                    :scope('package')
-                ),
-                $past[0],
-                $past[1]
-            );
         }
 
         make $past;
@@ -2101,21 +2021,13 @@ method type_declarator($/) {
 
 
 method fatarrow($/) {
-    my $key := PAST::Val.new( :value(~$<key>),
-                               :named( PAST::Val.new( :value('key') ) ) );
-    my $val := $( $<val> );
-    $val.named( PAST::Val.new( :value('value') ) );
     my $past := PAST::Op.new(
         :node($/),
-        :pasttype('callmethod'),
-        :name('new'),
+        :pasttype('call'),
+        :name('infix:=>'),
         :returns('Pair'),
-        PAST::Var.new(
-            :name('Pair'),
-            :scope('package')
-        ),
-        $key,
-        $val
+        PAST::Val.new( :value(~$<key>) ),
+        $( $<val> )
     );
     make $past;
 }
@@ -2132,17 +2044,9 @@ method colonpair($/, $key) {
     elsif $key eq 'value' {
         $pair_key := PAST::Val.new( :value(~$<ident>) );
         if $<postcircumfix> {
-            # What type of postcircumfix?
-            my $type := substr($<val>, 0, 1);
-            if $type eq '(' {
-                my $val := $( $<postcircumfix><semilist> );
-                $pair_val := $val[0];
-            }
-            elsif $type eq '<' {
-                $pair_val := $( $<postcircumfix><quote_expression> );
-            }
-            else {
-                $/.panic($type ~ ' postcircumfix colonpairs not yet implemented');
+            $pair_val := $( $<postcircumfix>[0] );
+            if $pair_val.name() eq 'infix:,' && +@($pair_val) == 1 {
+                $pair_val := $pair_val[0];
             }
         }
         else {
@@ -2164,17 +2068,11 @@ method colonpair($/, $key) {
         $/.panic($key ~ " pairs not yet implemented.");
     }
 
-    $pair_key.named( PAST::Val.new( :value('key') ) );
-    $pair_val.named( PAST::Val.new( :value('value') ) );
     my $past := PAST::Op.new(
         :node($/),
-        :pasttype('callmethod'),
-        :name('new'),
+        :pasttype('call'),
+        :name('infix:=>'),
         :returns('Pair'),
-        PAST::Var.new(
-            :name('Pair'),
-            :scope('package')
-        ),
         $pair_key,
         $pair_val
     );
@@ -2184,60 +2082,35 @@ method colonpair($/, $key) {
 
 method capterm($/) {
     # We will create the capture object, passing the things supplied.
-    my $past := PAST::Op.new(
-        :pasttype('callmethod'),
-        :name('!create'),
-        PAST::Var.new(
-            :name('Capture'),
-            :scope('package')
-        )
-    );
-
-    # First parameter is invocant. XXX null for now, we're not parsing it.
-    $past.push( PAST::Op.new( :inline('%r = null') ) );
-
-    # Process arguments.
-    process_arguments($past, $( $<capture> ));
-
+    my $past := build_call( $( $<capture> ) );
+    $past.name('infix:\\( )');
+    $past.unshift( PAST::Op.new( :inline('    null %r') ) );
     make $past;
 }
 
 
 method capture($/) {
-    my $expr := $( $<EXPR> );
-    my $past := PAST::Op.new();
-    if $expr.name() eq 'infix:,' {
-        for @($expr) {
-            $past.push( $_ );
-        }
-    }
-    else {
-        $past.push( $expr );
-    }
-    make $past;
+    make $( $<EXPR> );
 }
 
 
 # Used by all calling code to process arguments into the correct form.
-sub process_arguments($call_past, $args) {
-    for @($args) {
-        if $_.returns() eq 'Pair' {
-            # It's a pair. If the name is not just a simple value (e.g if it
-            # will create a PMC type), we must make it just a string or give
-            # an error.
-            if $_[1].WHAT() eq 'Val' && $_[1].returns() eq 'Perl6Str' {
-                $_[1].returns(undef);
-            }
-            elsif $_[1].WHAT() ne 'Val' || $_[1].returns() ne '' {
-                $call_past.panic("Cannot use complex pair key in a call.");
-            }
-            $_[2].named($_[1]);
-            $call_past.push($_[2]);
-        }
-        else {
-            $call_past.push($_);
-        }
+sub build_call($args) {
+    if $args.WHAT() ne 'Op' || $args.name() ne 'infix:,' {
+        $args := PAST::Op.new( :node($args), :name('infix:,'), $args);
     }
+    my $i := 0;
+    my $elems := +@($args);
+    while $i < $elems {
+        my $x := $args[$i];
+        if $x.returns() eq 'Pair' {
+            $x[1].named($x[0]);
+            $args[$i] := $x[1];
+        }
+        $i++;
+    }
+    $args.pasttype('call');
+    $args;
 }
 
 

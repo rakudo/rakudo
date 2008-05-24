@@ -2,13 +2,19 @@
 # on current rakudo.
 # empty lines and those beginning with a # are ignored
 
+S02-builtin_data_types/type.t
 S02-literals/autoref.t
 S02-literals/hex_chars.t
 S03-operators/equality.t
 S03-operators/not.t
 S03-operators/relational.t
+S03-operators/true.t
+S03-operators/autoincrement.t
 S04-statements/until.t
 S04-statements/while.t
+S06-signature/named-placeholders.t
+S06-signature/positional-placeholders.t
+S06-signature/slurpy-placeholders.t
 S12-class/attributes.t
 S12-class/instantiate.t
 S12-class/parent_attributes.t
@@ -19,6 +25,7 @@ S29-array/keys_values.t
 S29-array/kv.t
 S29-array/pairs.t
 S29-list/mutating_listops.t
+S29-list/sort.t
 S29-num/abs.t
 S29-num/complex.t
 S29-num/exp.t

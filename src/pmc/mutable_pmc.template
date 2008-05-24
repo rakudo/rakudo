@@ -40,4 +40,8 @@ pmclass Mutable need_ext dynpmc group perl6_group {
     VTABLE void assign_pmc(PMC *value) {
         PMC_data(SELF) = value;
     }
+
+    VTABLE PMC * get_pmc() {
+        return PMC_data(SELF);
+    }
 }

@@ -727,6 +727,7 @@ method term($/, $key) {
         for $<postfix> {
             my $term := $past;
             $past := $($_);
+            if $past.name() eq 'infix:,' { $past.name(''); }
 
             # Check if it's an indirect call.
             if $_<dotty><methodop><variable> {

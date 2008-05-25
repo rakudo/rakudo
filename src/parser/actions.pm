@@ -2046,7 +2046,7 @@ method colonpair($/, $key) {
         $pair_key := PAST::Val.new( :value(~$<ident>) );
         if $<postcircumfix> {
             $pair_val := $( $<postcircumfix>[0] );
-            if $pair_val.name() eq 'infix:,' && +@($pair_val) == 1 {
+            if $pair_val.name() ne 'infix:,' || +@($pair_val) == 1 {
                 $pair_val := $pair_val[0];
             }
         }

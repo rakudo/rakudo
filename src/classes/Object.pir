@@ -28,7 +28,7 @@ Perform initializations and create the base classes.
     .local pmc p6meta
     load_bytecode 'P6object.pbc'
     $P0 = get_hll_global 'P6metaclass'
-    $P0.'new_class'('Perl6Object', 'attr'=>'%!properties')
+    $P0.'new_class'('Perl6Object', 'attr'=>'%!properties', 'name'=>'Object')
     p6meta = $P0.'HOW'()
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
 .end

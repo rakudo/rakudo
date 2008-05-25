@@ -24,6 +24,12 @@ This file implements the Any class.
     .return $P0.'isa'(x)
 .end
 
+.sub 'can' :method
+    .param pmc x
+    $P0 = self.'HOW'()
+    .return $P0.'can'(x)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

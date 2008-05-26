@@ -841,7 +841,7 @@ method postcircumfix($/, $key) {
     if $key eq '[ ]' {
         $past := PAST::Var.new(
             $( $<semilist> ),
-            :scope('keyed'),
+            :scope('keyed_int'),
             :vivibase('List'),
             :viviself('Undef'),
             :node( $/ )
@@ -1457,7 +1457,7 @@ method variable($/, $key) {
     }
     elsif $key eq '$0' {
         $past := PAST::Var.new(
-            :scope('keyed'),
+            :scope('keyed_int'),
             :node($/),
             :viviself('Undef'),
             PAST::Var.new(

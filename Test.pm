@@ -102,6 +102,27 @@ multi sub flunk($reason) { proclaim(0, "flunk $reason")}
 
 sub isa_ok($var,$type) { ok($var.isa($type), "The object is-a '$type'"); }
 
+multi sub dies_ok($closure, $reason) {
+    try {
+        $closure();
+    }
+    proclaim((defined $!), $reason);
+}
+multi sub dies_ok($closure) {
+    dies_ok($closure, '');
+}
+
+multi sub lives_ok($closure, $reason) {
+    try {
+        $closure();
+    }
+    proclaim((not defined $!), $reason);
+}
+multi sub lives_ok($closure) {
+    lives_ok($closure, '');
+}
+
+
 ## 'private' subs
 
 sub proclaim($cond, $desc) {

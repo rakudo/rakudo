@@ -18,7 +18,7 @@ Int - Perl 6 integers
     .local pmc p6meta, intproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     intproto = p6meta.'new_class'('Int', 'parent'=>'Integer Any')
-    p6meta.'register'('Integer', 'parent'=>'Any', 'protoobject'=>intproto)
+    p6meta.'register'('Integer', 'parent'=>intproto, 'protoobject'=>intproto)
 .end
 
 

@@ -16,7 +16,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     .local pmc p6meta, mappingproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     mappingproto = p6meta.'new_class'('Mapping', 'parent'=>'Hash Any')
-    p6meta.'register'('Hash', 'parent'=>'Any', 'protoobject'=>mappingproto)
+    p6meta.'register'('Hash', 'parent'=>mappingproto, 'protoobject'=>mappingproto)
 .end
 
 

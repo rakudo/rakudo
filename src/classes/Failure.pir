@@ -6,7 +6,7 @@
     .local pmc p6meta, failureproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     failureproto = p6meta.'new_class'('Failure', 'parent'=>'Undef Any')
-    p6meta.'register'('Undef', 'parent'=>'Any', 'protoobject'=>failureproto)
+    p6meta.'register'('Undef', 'parent'=>failureproto, 'protoobject'=>failureproto)
 .end
 
 # Local Variables:

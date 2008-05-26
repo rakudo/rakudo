@@ -16,7 +16,7 @@ src/classes/List.pir - Perl 6 List class and related functions
     .local pmc p6meta, listproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     listproto = p6meta.'new_class'('List', 'parent'=>'ResizablePMCArray Any')
-    p6meta.'register'('ResizablePMCArray', 'parent'=>'Any', 'protoobject'=>listproto)
+    p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 .end
 
 

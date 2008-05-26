@@ -17,7 +17,7 @@ symbols for C<Bool::True> and C<Bool::False>.
     .local pmc p6meta, boolproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     boolproto = p6meta.'new_class'('Bool', 'parent'=>'Boolean Any')
-    # p6meta.'register'('Boolean', 'parent'=>'Any', 'protoobject'=>boolproto)
+    p6meta.'register'('Boolean', 'parent'=>boolproto, 'protoobject'=>boolproto)
 
     $P0 = boolproto.'new'()
     $P0 = 0

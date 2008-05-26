@@ -1,5 +1,5 @@
 /*
-$Id:$
+$Id$
 Copyright (C) 2001-2008, The Perl Foundation.
 
 =head1 NAME
@@ -21,3 +21,11 @@ Subclass of Mutable for arrays.
 pmclass Perl6Array extends Mutable need_ext dynpmc group perl6_group {
 
 }
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */
+

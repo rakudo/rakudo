@@ -21,3 +21,11 @@ Subclass of Mutable for Perl 6 scalars.
 pmclass Perl6Scalar extends Mutable need_ext dynpmc group perl6_group {
 
 }
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */
+

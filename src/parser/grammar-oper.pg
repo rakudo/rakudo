@@ -49,6 +49,7 @@ proto infix:<?^> is equiv(infix:<+>) { ... }
 
 ## replication
 proto infix:<x> is precedence('s=') { ... }
+proto infix:<xx> is equiv(infix:<x>) { ... }
 
 ## concatenation
 proto infix:<~> is precedence('r=') { ... }

@@ -186,15 +186,15 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 .sub 'infix:xx' :multi(_,_)
-    .param string a
-    .param int b
-    $P0 = new 'ResizablePMCArray'
-  lp:
-    unless b, ex
+    .param pmc a
+    .param int n
+    $P0 = 'list'()
+  loop:
+    unless n > 0 goto done
     push $P0, a
-    dec b
-    branch lp
-  ex:
+    dec n
+    goto loop
+  done:
     .return ($P0)
 .end
 

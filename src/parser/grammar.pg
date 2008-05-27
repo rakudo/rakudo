@@ -467,7 +467,7 @@ token methodop {
     | <?before '$' | '@' > <variable>
     | <?before <[ ' " ]> > <quote>
 #       { $<quote> ~~ /\W/ or .panic("Useless use of quotes") }
-    ] <.unsp>? 
+    ] <.unsp>?
 
     [
     | '.'? <.unsp>? '(' <semilist> ')' {*}            #= semilist
@@ -541,7 +541,7 @@ token variable_decl {
 
 
 rule scoped {
-    <typename>* 
+    <typename>*
     [
     | <variable_decl>
     | <routine_declarator>
@@ -619,9 +619,9 @@ token integer {
 }
 
 token dec_number {
-    \d+[_\d+]* 
-        [ 
-        | '.' \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]? 
+    \d+[_\d+]*
+        [
+        | '.' \d+[_\d+]* [ <[Ee]> <[+\-]>? \d+ ]?
         |                  <[Ee]> <[+\-]>? \d+
         ] # careful to distinguish from both integer and 42.method
     {*}

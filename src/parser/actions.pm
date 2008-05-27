@@ -1443,7 +1443,7 @@ method scope_declarator($/) {
 
     # Something else we've not implemetned yet?
     else {
-        $/.painc("Don't know how to apply a scope declarator here.");
+        $/.panic("Don't know how to apply a scope declarator here.");
     }
 
     make $past;

@@ -1618,10 +1618,14 @@ method variable($/, $key) {
 method circumfix($/, $key) {
     my $past;
     if $key eq '( )' {
-        $past := $( $<statementlist> );
+        $past := $<statementlist><statement>
+                     ?? $( $<statementlist> )
+                     !! PAST::Op.new(:name('list'));
     }
     if $key eq '[ ]' {
-        $past := $( $<statementlist> );
+        $past := $<statementlist><statement>
+                     ?? $( $<statementlist> )
+                     !! PAST::Op.new(:name('list'));
     }
     elsif $key eq '{ }' {
         $past := $( $<pblock> );

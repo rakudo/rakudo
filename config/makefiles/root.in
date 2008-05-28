@@ -147,7 +147,7 @@ testclean:
 testtest: all test
 	$(PERL) t/harness t/02-test-pm
 
-# NOTE: eventually, we should remove --keep-exit-code
+# NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
 spectest: all t/spec
 	cd t/spec && svn up

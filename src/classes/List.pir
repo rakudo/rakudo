@@ -146,15 +146,11 @@ Prepends ELEMENTS to the front of the list.
     .local int narg
     .local int i
 
-    narg = args
-    i = 0
-
-    .local pmc tmp
   loop:
-    if i == narg goto done
-    pop tmp, args
-    unshift self, tmp
-    inc i
+    unless args goto done
+    .local pmc val
+    val = pop args
+    unshift self, val
     goto loop
   done:
 .end
@@ -166,28 +162,11 @@ Returns a List containing the keys of the List.
 =cut
 
 .sub 'keys' :method
-    .local pmc elem
-    .local pmc res
-    .local int len
-    .local int i
-
-    res = new 'List'
-    len = self.'elems'()
-    i = 0
-
-  loop:
-    if i == len goto done
-
-    elem = new 'Integer'
-    elem = i
-    res.'push'(elem)
-
-    inc i
-    goto loop
-
-  done:
-    .return(res)
+    $I0 = self.'elems'()
+    dec $I0
+    .return 'infix:..'(0, $I0)
 .end
+
 
 =item values()
 
@@ -196,27 +175,7 @@ Returns a List containing the values of the List.
 =cut
 
 .sub 'values' :method
-    .local pmc elem
-    .local pmc res
-    .local int len
-    .local int i
-
-    res = new 'List'
-    len = self.'elems'()
-    i = 0
-
-  loop:
-    if i == len goto done
-
-    elem = new 'Integer'
-    elem = self[i]
-    res.'push'(elem)
-
-    inc i
-    goto loop
-
-  done:
-    .return(res)
+    .return (self)
 .end
 
 =item shift()

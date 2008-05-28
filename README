@@ -47,8 +47,11 @@ it's capable of running a simple test harness.
 
 Running "make spectest" will import relevant portions of the
 "official Perl 6 test suite" from the Pugs repository
-(http://svn.pugscode.org/tests/spec/) and run selected tests from
-there.  At present we do not have any plans to directly store the
+(http://svn.pugscode.org/pugs/tspec/) and run all tests from
+there. Enter C<make spectest_regression> to run those of the tests
+that are currently supposed to pass.
+
+At present we do not have any plans to directly store the
 official test suite as part of the Rakudo/Parrot repository,
 but will continue to fetch it from the Pugs repository.
 
@@ -78,6 +81,7 @@ There are also Perl 6 and Parrot wikis, found at
     L<http://www.perlfoundation.org/perl6/index.cgi>
     L<http://www.perlfoundation.org/parrot/index.cgi>
 
+There is also a Rakudo related blog at L<http://rakudo.org/>.
 
 =head2 Reporting bugs
 

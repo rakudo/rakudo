@@ -229,6 +229,33 @@ Returns a Perl representation of the Str.
     .return ($S0)
 .end
 
+=item substr()
+
+
+=cut
+
+.sub 'substr' :method
+    .param int start
+    .param int len     :optional
+    .param int has_len :opt_flag
+    .local pmc s
+
+    if has_len goto check_len
+    len = self.'chars'()
+
+  check_len:
+    if len > 0 goto end
+    $I0 = self.'chars'()
+    len = $I0 + len
+    len = len - start
+
+  end:
+    $S0 = substr self, start, len
+    s = new 'Str'
+    s = $S0
+    .return (s)
+.end
+
 =back
 
 =head1 Functions
@@ -414,17 +441,11 @@ B<Note:> partial implementation only
     .param string x
     .param int start
     .param int len     :optional
-    .param int has_len :opt_flag
     .local pmc s
 
-    if has_len goto end
     s = new 'Perl6Str'
     s = x
-    len = s.'chars'()
-
-  end:
-    $S0 = substr x, start, len
-    .return ($S0)
+	.return s.'substr'(start, len)
 .end
 
 =item chop

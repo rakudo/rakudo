@@ -76,25 +76,34 @@ proto prefix:<abs> is equiv(prefix:<rand>)
 
 ## nonchaining
 proto infix:<..> is precedence('n=') { ... }
+proto infix:<..^> is equiv(infix:<..>) { ... }
+proto infix:<^..> is equiv(infix:<..>) { ... }
+proto infix:<^..^> is equiv(infix:<..>) { ... }
 proto infix:«<=>» is equiv(infix:<..>) { ... }
 proto infix:<cmp> is equiv(infix:<..>) { ... }
 proto infix:<leg> is equiv(infix:<..>) { ... }
+proto infix:<=:=> is equiv(infix:<..>) { ... }
+proto infix:<!=:=> is equiv(infix:<..>) { ... }
 
 ## chaining
 proto infix:<==>  is precedence('m=') is pasttype('chain') { ... }
 proto infix:<!=>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<!==>  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:«<»   is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:«<=»  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:«>»   is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:«>=»  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<eq>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<!eq>  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<ne>  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<lt>  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<le>  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<gt>  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<ge>  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<~~>  is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<!~~>  is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<===> is equiv(infix:<==>) is pasttype('chain') { ... }
+proto infix:<!===> is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<eqv> is equiv(infix:<==>) is pasttype('chain') { ... }
 proto infix:<!eqv> is equiv(infix:<==>) is pasttype('chain') { ... }
 

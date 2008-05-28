@@ -82,48 +82,6 @@ Returns a Perl representation of a List.
 .end
 
 
-=item ACCEPTS(topic)
-
-=cut
-
-.sub 'ACCEPTS' :method
-    .param pmc topic
-    .local int i
-
-    .local string what
-    what = topic.'WHAT'()
-    if what == "List" goto acc_list
-    goto no_match
-
-acc_list:
-    # Smartmatch against another list. Smartmatch each
-    # element.
-    .local int count_1, count_2
-    count_1 = self.'elems'()
-    count_2 = topic.'elems'()
-    if count_1 != count_2 goto no_match
-    i = 0
-list_cmp_loop:
-    if i >= count_1 goto list_cmp_loop_end
-    .local pmc elem_1, elem_2
-    elem_1 = self[i]
-    elem_2 = topic[i]
-    ($I0) = elem_1.ACCEPTS(elem_2)
-    unless $I0 goto no_match
-    inc i
-    goto list_cmp_loop
-list_cmp_loop_end:
-    goto match
-
-no_match:
-    $P0 = get_hll_global ['Bool'], 'False'
-    .return($P0)
-match:
-    $P0 = get_hll_global ['Bool'], 'True'
-    .return($P0)
-.end
-
-
 =item elems()
 
 Return the number of elements in the list.
@@ -247,35 +205,8 @@ Returns a string comprised of all of the list, separated by the string SEPARATOR
 
 .sub 'join' :method
     .param string sep
-    .local string res
-    .local string tmp
-    .local int len
-    .local int i
-
-    res = ""
-
-    len = self.'elems'()
-    if len == 0 goto done
-
-    len = len - 1
-    i = 0
-
-  loop:
-    if i == len goto last
-
-    tmp = self[i]
-    concat res, tmp
-    concat res, sep
-
-    inc i
-    goto loop
-
-  last:
-    tmp = self[i]
-    concat res, tmp
-
-  done:
-    .return(res)
+    $S0 = join sep, self
+    .return ($S0)
 .end
 
 
@@ -286,29 +217,16 @@ Returns a list of the elements in revese order.
 =cut
 
 .sub 'reverse' :method
-    .local pmc res
-    .local int len
-    .local int i
-
-    res = new 'List'
-
-    len = self.'elems'()
-    if len == 0 goto done
-    i = 0
-
-    .local pmc elem
-loop:
-    if len == 0 goto done
-
-    dec len
-    elem = self[len]
-    res[i] = elem
-    inc i
-
-    goto loop
-
-done:
-    .return(res)
+    .local pmc result, iter
+    result = new 'List'
+    iter = self.'iterator'()
+  iter_loop:
+    unless iter goto iter_done
+    $P0 = shift iter
+    unshift result, $P0
+    goto iter_loop
+  iter_done:
+    .return (result)
 .end
 
 =item delete()

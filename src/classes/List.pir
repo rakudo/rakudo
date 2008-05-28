@@ -44,6 +44,18 @@ Clones the list.
 .end
 
 
+=item iterator()
+
+Returns an iterator for the list.
+
+=cut
+
+.sub 'iterator' :method
+    $P0 = iter self
+    .return ($P0)
+.end
+
+
 =item perl()
 
 Returns a Perl representation of a List.
@@ -51,35 +63,10 @@ Returns a Perl representation of a List.
 =cut
 
 .sub 'perl' :method
-    .local string res
-    res .= '['
-
-    .local pmc elem
-    .local int elems
-    .local int i
-
-    elems = self.'elems'()
-    i = 0
-
-  loop:
-    if i == elems goto done
-    unless i  > 0 goto no_comma
-
-    res .= ', '
-  no_comma:
-    elem = self[i]
-    $S0 = elem
-    res .= $S0
-
-    i += 1
-    goto loop
-
-
-  done:
-    res .= ']'
-
-    .return(res)
-
+    $S0 = join ', ', self
+    $S0 = concat '[', $S0
+    $S0 = concat $S0, ']'
+    .return ($S0)
 .end
 
 

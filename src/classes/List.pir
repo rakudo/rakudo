@@ -63,10 +63,22 @@ Returns a Perl representation of a List.
 =cut
 
 .sub 'perl' :method
-    $S0 = join ', ', self
-    $S0 = concat '[', $S0
-    $S0 = concat $S0, ']'
-    .return ($S0)
+    .local string result
+    result = '['
+
+    .local pmc iter
+    iter = self.'iterator'()
+    unless iter goto iter_done
+  iter_loop:
+    $P1 = shift iter
+    $S1 = $P1.'perl'()
+    result .= $S1
+    unless iter goto iter_done
+    result .= ', '
+    goto iter_loop
+  iter_done:
+    result .= ']'
+    .return (result)
 .end
 
 

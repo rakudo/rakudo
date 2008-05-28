@@ -686,6 +686,31 @@ Sort list by copying into FPA, sorting and creating new List.
     .return 'list'(arr)
 .end
 
+=item map()
+
+Map.
+
+=cut
+
+.sub 'map' :method
+    .param pmc expression
+    .local pmc res, elem, block, mapres, iter
+
+    res = new 'List'
+    iter = new 'Iterator', self
+  loop:
+    unless iter goto done
+    elem = shift iter
+    newclosure block, expression
+    mapres = block(elem)
+
+    res.'push'(mapres)
+    goto loop
+
+  done:
+    .return(res)
+.end
+
 =back
 
 =head1 Functions
@@ -742,6 +767,20 @@ Sort arguments using (optional) comparition sub.
   with_cmp:
     l = 'list'(args :flat)
     .return l.'sort'(comparer)
+.end
+
+
+=item C<map>
+
+Operator form of C<map>. Delegates map to passed list.
+
+=cut
+
+.sub 'map' :multi(_,List)
+    .param pmc expression
+    .param pmc list
+
+    .return list.'map'(expression)
 .end
 
 

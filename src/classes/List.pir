@@ -135,26 +135,6 @@ Return the number of elements in the list.
     .return ($I0)
 .end
 
-=item unshift(ELEMENTS)
-
-Prepends ELEMENTS to the front of the list.
-
-=cut
-
-.sub 'unshift' :method
-    .param pmc args :slurpy
-    .local int narg
-    .local int i
-
-  loop:
-    unless args goto done
-    .local pmc val
-    val = pop args
-    unshift self, val
-    goto loop
-  done:
-.end
-
 =item keys()
 
 Returns a List containing the keys of the List.
@@ -178,6 +158,27 @@ Returns a List containing the values of the List.
     .return (self)
 .end
 
+
+=item unshift(ELEMENTS)
+
+Prepends ELEMENTS to the front of the list.
+
+=cut
+
+.sub 'unshift' :method
+    .param pmc args :slurpy
+
+  loop:
+    unless args goto done
+    .local pmc val
+    val = pop args
+    unshift self, val
+    goto loop
+  done:
+    .return self.'elems'()
+.end
+
+
 =item shift()
 
 Shifts the first item off the list and returns it.
@@ -186,9 +187,18 @@ Shifts the first item off the list and returns it.
 
 .sub 'shift' :method
     .local pmc x
+    .local int len
+
+    len = self.'elems'()
+    if len < 1 goto empty
     x = shift self
+    goto done
+  empty:
+    x = new 'Failure'
+  done:
     .return (x)
 .end
+
 
 =item pop()
 
@@ -201,18 +211,15 @@ Treats the list as a stack, popping the last item off the list and returning it.
     .local int len
 
     len = self.'elems'()
-
-    if len == 0 goto empty
-    pop x, self
+    if len < 1 goto empty
+    x = pop self
     goto done
-
   empty:
-    x = new 'Undef'
-    goto done
-
+    x = new 'Failure'
   done:
     .return (x)
 .end
+
 
 =item push(ELEMENTS)
 
@@ -222,23 +229,15 @@ Treats the list as a stack, pushing ELEMENTS onto the end of the list.  Returns 
 
 .sub 'push' :method
     .param pmc args :slurpy
-    .local int len
-    .local pmc tmp
-    .local int i
-
-    len = args
-    i = 0
-
   loop:
-    if i == len goto done
-    shift tmp, args
-    push self, tmp
-    inc i
+    unless args goto done
+    $P0 = shift args
+    push self, $P0
     goto loop
   done:
-    len = self.'elems'()
-    .return (len)
+    .return self.'elems'()
 .end
+
 
 =item join(SEPARATOR)
 
@@ -278,6 +277,7 @@ Returns a string comprised of all of the list, separated by the string SEPARATOR
   done:
     .return(res)
 .end
+
 
 =item reverse()
 

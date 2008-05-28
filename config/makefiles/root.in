@@ -155,7 +155,7 @@ spectest: all t/spec
 
 spectest_regression: all t/spec
 	cd t/spec && svn up
-	$(PERL) t/harness --fudge --tests-from-file=t/passing_spec \
+	$(PERL) t/harness --fudge --tests-from-file=t/spectest_regression.data \
             --keep-exit-code \
             t/spec/ \
 

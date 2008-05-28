@@ -153,13 +153,25 @@ spectest: all t/spec
 	cd t/spec && svn up
 	$(PERL) t/harness --fudge --keep-exit-code t/spec
 
-spectest_regression: all t/spec
+spectest_regression: all t/spec t/spectest_regression.data
 	cd t/spec && svn up
-	$(PERL) t/harness --fudge --tests-from-file=t/spectest_regression.data \
-            --keep-exit-code \
-            t/spec/ \
+	$(PERL) t/harness \
+        --fudge \
+        --tests-from-file=t/spectest_regression.data \
+        --keep-exit-code \
+        t/spec/ \
 
 fulltest: all testtest spectest
+
+localtest: t/localtest.data
+	$(PERL) t/harness \
+        --fudge \
+        --tests-from-file=t/localtest.data \
+        --keep-exit-code \
+        t/spec/ \
+
+t/localtest.data:
+	$(PERL) -MExtUtils::Command -e test_f $@
 
 t/spec:
 	svn co http:////svn.pugscode.org//pugs//t//spec t/spec

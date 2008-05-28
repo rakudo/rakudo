@@ -231,58 +231,40 @@ Returns a list of the elements in revese order.
 
 =item delete()
 
-Deletes the given elements from the List, replacing them with Undef.  Returns a List of removed elements.
+Deletes the given elements from the List, replacing them with null.  Returns a List of removed elements.
 
 =cut
 
 .sub delete :method
     .param pmc indices :slurpy
-    .local pmc newelem
-    .local pmc elem
-    .local int last
-    .local pmc res
-    .local int ind
-    .local int len
-    .local int i
+    .local pmc result
+    result = new 'List'
+    null $P99
 
-    newelem = new 'Undef'
-    res = new 'List'
+  indices_loop:
+    unless indices goto indices_end
+    $I0 = shift indices
+    $P0 = self[$I0]
+    push result, $P0
+    self[$I0] = $P99
 
-    # Index of the last element in the array
-    last = self.'elems'()
-    dec last
+  shorten:
+    $I0 = self.'elems'()
+    dec $I0
+  shorten_loop:
+    if $I0 < 0 goto shorten_end
+    $P0 = self[$I0]
+    unless null $P0 goto shorten_end
+    delete self[$I0]
+    dec $I0
+    goto shorten_loop
+  shorten_end:
+    goto indices_loop
 
-    len = elements indices
-    i = 0
-
-  loop:
-    if i == len goto done
-
-    ind = indices[i]
-
-    if ind == -1 goto endofarray
-    if ind == last goto endofarray
-    goto restofarray
-
-  endofarray:
-    # If we're at the end of the array, remove the element entirely
-    elem = pop self
-    res.push(elem)
-    goto next
-
-  restofarray:
-    # Replace the element with undef.
-    elem = self[ind]
-    res.push(elem)
-
-    self[ind] = newelem
-
-  next:
-    inc i
-    goto loop
-  done:
-    .return(res)
+  indices_end:
+    .return (result)
 .end
+
 
 =item exists(INDEX)
 
@@ -293,59 +275,38 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
 .sub exists :method
     .param pmc indices :slurpy
     .local int test
-    .local int len
-    .local pmc res
-    .local int ind
-    .local int i
 
-    test = 1
-    len = elements indices
-    i = 0
-
-  loop:
-    if i == len goto done
-
-    ind = indices[i]
-
-    test = exists self[ind]
-    if test == 0 goto done
-
-    inc i
-    goto loop
-
-  done:
+    test = 0
+  indices_loop:
+    unless indices goto indices_end
+    $I0 = shift indices
+    test = exists self[$I0]
+    if test goto indices_loop
+  indices_end:
     .return 'prefix:?'(test)
 .end
+
 
 =item kv()
 
 =cut
 
 .sub kv :method
-    .local pmc elem
-    .local pmc res
-    .local int len
+    .local pmc result, iter
     .local int i
 
-    res = new 'List'
-    len = self.'elems'()
+    result = new 'List'
+    iter = self.'iterator'()
     i = 0
-
-  loop:
-    if i == len goto done
-
-    elem = new 'Integer'
-    elem = i
-    res.'push'(elem)
-
-    elem = self[i]
-    res.'push'(elem)
-
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    push result, i
+    push result, $P0
     inc i
-    goto loop
-
-  done:
-    .return(res)
+    goto iter_loop
+  iter_end:
+    .return (result)
 .end
 
 =item pairs()

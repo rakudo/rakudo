@@ -1095,7 +1095,14 @@ Returns the elements of LIST in the opposite order.
     .return list.'uniq'()
 .end
 
-## TODO: join map reduce sort zip
+.sub 'pop' :multi('List')
+    .param pmc list
+
+    .return list.'pop'()
+.end
+
+
+## TODO: zip
 
 =back
 

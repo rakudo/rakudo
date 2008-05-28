@@ -515,32 +515,19 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
 .sub grep :method
     .param pmc test
     .local pmc retv
-    .local pmc block
+    .local pmc iter
     .local pmc block_res
     .local pmc block_arg
-    .local int narg
-    .local int i
 
     retv = new 'List'
-    narg = self.'elems'()
-    i = 0
-
+    iter = new 'Iterator', self
   loop:
-    if i == narg goto done
-    block_arg = self[i]
+    unless iter goto done
+    block_arg = shift iter
+    block_res = test(block_arg)
 
-    newclosure block, test
-    block_res = block(block_arg)
-
-    if block_res goto grepped
-    goto next
-
-  grepped:
+    unless block_res goto loop
     retv.'push'(block_arg)
-    goto next
-
-  next:
-    inc i
     goto loop
 
   done:
@@ -552,26 +539,22 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
 =cut
 
 .sub reduce :method
-    .param pmc test
+    .param pmc oper
     .local pmc retv
-    .local pmc block
+    .local pmc iter
+    .local pmc block_res
     .local pmc block_arg
-    .local int narg
-    .local int i
 
-    narg = self.'elems'()
-    if narg == 0 goto empty
-    retv = self[0]
-    i = 1
+    retv = new 'List'
+    iter = new 'Iterator', self
+    unless iter goto empty
+
+    retv = shift iter
 
   loop:
-    if i >= narg goto done
-
-    newclosure block, test
-    block_arg = self[i]
-    retv = block(retv, block_arg)
-
-    inc i
+    unless iter goto done
+    block_arg = shift iter
+    block_res = oper(retv, block_arg)
     goto loop
 
   empty:
@@ -589,25 +572,17 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
 .sub first :method
     .param pmc test
     .local pmc retv
-    .local pmc block
+    .local pmc iter
     .local pmc block_res
     .local pmc block_arg
-    .local int narg
-    .local int i
 
-    narg = self.'elems'()
-    i = 0
+    iter = new 'Iterator', self
 
   loop:
-    if i == narg goto nomatch
-    block_arg = self[i]
-
-    newclosure block, test
-    block_res = block(block_arg)
-
+    unless iter goto nomatch
+    block_arg = shift iter
+    block_res = test(block_arg)
     if block_res goto matched
-
-    inc i
     goto loop
 
   matched:
@@ -625,6 +600,8 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
 =item uniq(...)
 
 =cut
+
+# TODO Rewrite it. It's too naive.
 
 .sub uniq :method
     .local pmc ulist

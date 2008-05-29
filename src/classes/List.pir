@@ -15,6 +15,18 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     listproto = p6meta.'new_class'('List', 'parent'=>'ResizablePMCArray Any')
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
+
+    $P0 = split ' ', 'keys kv pairs values'
+    .local pmc iter
+    iter = new 'Iterator', $P0
+  global_loop:
+    unless iter goto global_end
+    $S0 = shift iter
+    $P0 = get_hll_global ['List'], $S0
+    set_hll_global $S0, $P0
+    goto global_loop
+  global_end:
+
 .end
 
 =item clone()    (vtable method)
@@ -141,6 +153,12 @@ Flatten the invocant.
     inc i
     goto flat_loop
   flat_end:
+    $I0 = isa self, 'List'
+    if $I0 goto end
+    $P0 = new 'List'
+    splice $P0, self, 0, 0
+    copy self, $P0
+  end:
     .return (self)
 .end
 
@@ -243,6 +261,44 @@ Returns a string comprised of all of the list, separated by the string SEPARATOR
 .end
 
 
+=item keys()
+
+Returns a List containing the keys of the invocant.
+
+=cut
+
+.sub 'keys' :method :multi(ResizablePMCArray)
+    $I0 = self.'elems'()
+    dec $I0
+    .return 'infix:..'(0, $I0)
+.end
+
+
+=item kv()
+
+Return items in invocant as 2-element (index, value) lists.
+
+=cut
+
+.sub 'kv' :method :multi(ResizablePMCArray)
+    .local pmc result, iter
+    .local int i
+
+    result = new 'List'
+    iter = self.'iterator'()
+    i = 0
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    push result, i
+    push result, $P0
+    inc i
+    goto iter_loop
+  iter_end:
+    .return (result)
+.end
+
+
 =item map()
 
 Map.
@@ -292,6 +348,31 @@ Map.
 .end
 
 
+=item pairs()
+
+Return a list of Pair(index, value) elements for the invocant.
+
+=cut
+
+.sub 'pairs' :method :multi(ResizablePMCArray)
+    .local pmc result, iter
+    .local int i
+
+    result = new 'List'
+    iter = self.'iterator'()
+    i = 0
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $P1 = 'infix:=>'(i, $P0)
+    push result, $P1
+    inc i
+    goto iter_loop
+  iter_end:
+    .return (result)
+.end
+
+
 =item reduce(...)
 
 =cut
@@ -330,7 +411,7 @@ Returns a list of the elements in reverse order.
 
 =cut
 
-.sub 'reverse' :method
+.sub 'reverse' :method :multi(ResizablePMCArray)
     .local pmc result, iter
     result = new 'List'
     iter = self.'iterator'()
@@ -350,7 +431,7 @@ Sort list by copying into FPA, sorting and creating new List.
 
 =cut
 
-.sub 'sort' :method
+.sub 'sort' :method :multi(ResizablePMCArray)
     .param pmc by              :optional
     .param int has_by          :opt_flag
     .local pmc elem, arr
@@ -431,6 +512,18 @@ Sort list by copying into FPA, sorting and creating new List.
   done:
     .return(ulist)
 .end
+
+
+=item values()
+
+Returns a List containing the values of the invocant.
+
+=cut
+
+.sub 'values' :method :multi(ResizablePMCArray)
+    .return (self)
+.end
+
 
 =back
 
@@ -780,6 +873,7 @@ Returns the elements of LIST in the opposite order.
     .return list.'grep'(test)
 .end
 
+
 .sub reduce :multi(_,'List')
     .param pmc test
     .param pmc list
@@ -795,18 +889,12 @@ Returns the elements of LIST in the opposite order.
     .return list.'first'(test)
 .end
 
+
 .sub uniq :multi('List')
     .param pmc list
 
     .return list.'uniq'()
 .end
-
-.sub 'pop' :multi('List')
-    .param pmc list
-
-    .return list.'pop'()
-.end
-
 
 ## TODO: zip
 

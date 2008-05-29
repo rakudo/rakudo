@@ -16,7 +16,7 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     arrayproto = p6meta.'new_class'('Perl6Array', 'parent'=>'List', 'name'=>'Array')
     p6meta.'new_class'('Arrayref', 'parent'=>arrayproto, 'protoobject'=>arrayproto)
 
-    $P0 = split ' ', 'delete exists keys kv pairs pop push shift unshift values'
+    $P0 = split ' ', 'delete exists pop push shift unshift'
     .local pmc iter
     iter = new 'Iterator', $P0
   global_loop:
@@ -110,69 +110,6 @@ Return true if the elements at C<indices> have been assigned to.
 .end
 
 
-=item keys()
-
-Returns a List containing the keys of the List.
-
-=cut
-
-.sub 'keys' :method :multi(Perl6Array)
-    $I0 = self.'elems'()
-    dec $I0
-    .return 'infix:..'(0, $I0)
-.end
-
-
-=item kv()
-
-Return items as 2-element (index, value).
-
-=cut
-
-.sub 'kv' :method :multi(Perl6Array)
-    .local pmc result, iter
-    .local int i
-
-    result = new 'List'
-    iter = self.'iterator'()
-    i = 0
-  iter_loop:
-    unless iter goto iter_end
-    $P0 = shift iter
-    push result, i
-    push result, $P0
-    inc i
-    goto iter_loop
-  iter_end:
-    .return (result)
-.end
-
-
-=item pairs()
-
-Return a list of Pair(index, value) elements for this array.
-
-=cut
-
-.sub 'pairs' :method :multi(Perl6Array)
-    .local pmc result, iter
-    .local int i
-
-    result = new 'List'
-    iter = self.'iterator'()
-    i = 0
-  iter_loop:
-    unless iter goto iter_end
-    $P0 = shift iter
-    $P1 = 'infix:=>'(i, $P0)
-    push result, $P1
-    inc i
-    goto iter_loop
-  iter_end:
-    .return (result)
-.end
-
-
 =item pop()
 
 Remove the last item from the array and return it.
@@ -235,17 +172,6 @@ Adds C<args> to the beginning of the Array.
     args.'!flatten'()
     splice self, args, 0, 0
     .return self.'elems'()
-.end
-
-
-=item values()
-
-Returns a List containing the values of the Array.
-
-=cut
-
-.sub 'values' :method :multi(Perl6Array)
-    .return (self)
 .end
 
 

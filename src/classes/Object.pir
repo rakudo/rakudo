@@ -22,8 +22,6 @@ Perform initializations and create the base classes.
 
 =cut
 
-.namespace ['Perl6Object']
-
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     load_bytecode 'P6object.pbc'
@@ -33,11 +31,55 @@ Perform initializations and create the base classes.
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
 .end
 
+=item infix:=(target, source)  (assignment multisub)
+
+Assigns C<source> to C<target>.  We use the 'item' method to allow Lists
+and Mappings to be converted into Array(ref) and Hash(ref).
+
+=cut
+
+.namespace
+.sub 'infix:=' :multi(_,_)
+    .param pmc target
+    .param pmc source
+    $P0 = source.'item'()
+    .return '!TYPECHECKEDASSIGN'(target, $P0)
+.end
+
+
 =back
 
 =head2 Object methods
 
 =over
+
+=item item()
+
+Return the scalar component of the invocant.  For most objects,
+this is simply the invocant itself.
+
+=cut
+
+.namespace ['Perl6Object']
+
+.sub 'item' :method
+    .return (self)
+.end
+
+
+=item list()
+
+Return the list component of the invocant.  For most (Scalar)
+objects, we create a List containing the invocant.
+
+=cut
+
+.sub 'list' :method
+    $P0 = new 'List'
+    push $P0, self
+    .return ($P0)
+.end
+
 
 =item new()
 

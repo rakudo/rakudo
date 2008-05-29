@@ -47,6 +47,7 @@ BUILTINS_PIR = \
   src/classes/Int.pir \
   src/classes/IO.pir \
   src/classes/List.pir \
+  src/classes/Array.pir \
   src/classes/Mapping.pir \
   src/classes/Range.pir \
   src/classes/Code.pir \
@@ -76,10 +77,9 @@ $(PMC_DIR)/mutable.pmc : $(PMC_DIR)/mutable_pmc.template build/gen_mutable_pmc.p
 	$(PERL) build/gen_mutable_pmc.pl $(PMC_DIR)/mutable_pmc.template \
 		$(PMC_DIR)/mutable.pmc
 
-PMCS        = perl6str mutable perl6scalar perl6array perl6hash
+PMCS        = perl6str mutable perl6scalar
 PMC_SOURCES = $(PMC_DIR)/perl6str.pmc \
-		$(PMC_DIR)/mutable.pmc $(PMC_DIR)/perl6scalar.pmc \
-		$(PMC_DIR)/perl6array.pmc $(PMC_DIR)/perl6hash.pmc
+		$(PMC_DIR)/mutable.pmc $(PMC_DIR)/perl6scalar.pmc
 PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)
 
 # targets for building a standalone perl6.

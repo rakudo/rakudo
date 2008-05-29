@@ -4,13 +4,11 @@
 
 src/classes/List.pir - Perl 6 List class and related functions
 
-=head1 Methods
+=head2 Methods
 
 =over 4
 
 =cut
-
-.namespace ['List']
 
 .sub 'onload' :anon :load :init
     .local pmc p6meta, listproto
@@ -20,11 +18,35 @@ src/classes/List.pir - Perl 6 List class and related functions
 .end
 
 
+=item clone()    (vtable method)
+
+Return a clone of this list.  (Clones its elements also.)
+
+=cut
+
+.namespace ['List']
+.sub 'clone' :vtable :method
+    .local pmc p6meta, result, iter
+    $P0 = typeof self
+    result = new $P0
+    iter = self.'iterator'()
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $P0 = clone $P0
+    push result, $P0
+    goto iter_loop
+  iter_end:
+    .return (result)
+.end
+
+
 =item get_string()    (vtable method)
 
 Return the elements of the list joined by spaces.
 
 =cut
+
 
 .sub 'get_string' :vtable :method
     $S0 = join ' ', self
@@ -32,15 +54,24 @@ Return the elements of the list joined by spaces.
 .end
 
 
-=item clone()    (vtable method)
+=item item()
 
-Clones the list.
+Return the List invocant in scalar context (i.e., an Arrayref).
 
 =cut
 
-.sub 'clone' :vtable :method
-    $P0 = 'list'(self)
-    .return ($P0)
+.sub 'item' :method
+    .return '!Arrayref'(self)
+.end
+
+=item list()
+
+Return the List as a list.
+
+=cut
+
+.sub 'list' :method
+    .return (self)
 .end
 
 
@@ -92,6 +123,7 @@ Return the number of elements in the list.
     $I0 = elements self
     .return ($I0)
 .end
+
 
 =item keys()
 
@@ -507,8 +539,10 @@ Sort list by copying into FPA, sorting and creating new List.
     arr.'sort'(comparer)
 
     # and return new List.
-    .return 'list'(arr)
+    $P0 = get_hll_global 'list'
+    .return $P0(arr)
 .end
+
 
 =item map()
 
@@ -581,8 +615,8 @@ Build a List from its arguments.
     item = shift args
     $I0 = defined item
     unless $I0 goto add_item
-    # $I0 = isa item, 'Array'
-    # if $I0 goto add_item
+    $I0 = isa item, 'Arrayref'
+    if $I0 goto add_item
     $I0 = does item, 'array'
     unless $I0 goto add_item
     splice args, item, 0, 0

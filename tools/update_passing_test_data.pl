@@ -1,6 +1,6 @@
 #! perl
 # Copyright (C) 2001-2008, The Perl Foundation.
-# $Id: Configure.pl 27036 2008-04-19 14:42:57Z jkeenan $
+# $Id$
 use strict;
 use warnings;
 

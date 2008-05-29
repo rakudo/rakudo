@@ -72,7 +72,7 @@ Return the List invocant as a Hash.
 
 .sub 'hash' :method
     .local pmc result, iter
-    result = new 'Hash'
+    result = new 'Perl6Hash'
     iter = self.'iterator'()
   iter_loop:
     unless iter goto iter_end

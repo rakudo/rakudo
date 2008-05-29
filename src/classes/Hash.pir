@@ -10,14 +10,13 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 
 =cut
 
+.namespace
+
 .sub 'onload' :anon :load :init
     .local pmc p6meta, hashproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     hashproto = p6meta.'new_class'('Perl6Hash', 'parent'=>'Mapping', 'name'=>'Hash')
 .end
-
-
-.namespace
 
 .sub 'infix:=' :multi(Perl6Hash, _)
     .param pmc target
@@ -42,6 +41,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 .sub 'hash' :method
     .return (self)
 .end
+
 
 =back
 

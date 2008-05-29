@@ -20,7 +20,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
 .end
 
 
-.sub 'get_string' :vtable :method
+.sub 'get_string' :method :vtable
     $S0 = ''
     .local pmc iter
     iter = new 'Iterator', self
@@ -144,22 +144,6 @@ Returns elements of hash as array of C<Pair(key, value)>
 .end
 
 
-## FIXME:  Parrot currently requires us to write our own "clone" method.
-.sub 'clone' :vtable :method
-    $P0 = new 'Mapping'
-    .local pmc iter
-    iter = new 'Iterator', self
-  loop:
-    unless iter goto end
-    $P1 = shift iter
-    $P2 = iter[$P1]
-    $P0[$P1] = $P2
-    goto loop
-  end:
-    .return ($P0)
-.end
-
-
 =back
 
 =head1 Functions
@@ -197,7 +181,7 @@ otherwise.
 
 =cut
 
-.sub kv :multi('Hash')
+.sub kv :multi(Mapping)
     .param pmc hash
 
     .return hash.'kv'()

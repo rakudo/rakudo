@@ -76,8 +76,8 @@ $(PMC_DIR)/mutable.pmc : $(PMC_DIR)/mutable_pmc.template build/gen_mutable_pmc.p
 	$(PERL) build/gen_mutable_pmc.pl $(PMC_DIR)/mutable_pmc.template \
 		$(PMC_DIR)/mutable.pmc
 
-PMCS        = perl6str perl6bool mutable perl6scalar perl6array perl6hash
-PMC_SOURCES = $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/perl6bool.pmc \
+PMCS        = perl6str mutable perl6scalar perl6array perl6hash
+PMC_SOURCES = $(PMC_DIR)/perl6str.pmc \
 		$(PMC_DIR)/mutable.pmc $(PMC_DIR)/perl6scalar.pmc \
 		$(PMC_DIR)/perl6array.pmc $(PMC_DIR)/perl6hash.pmc
 PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)

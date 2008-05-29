@@ -518,18 +518,41 @@ Map.
 
 .sub 'map' :method
     .param pmc expression
-    .local pmc res, elem, block, mapres, iter
+    .local pmc res, elem, block, mapres, iter, args
+    .local int i, arity
 
+    arity = expression.'arity'()
+    if arity > 0 goto body
+    arity = 1
+  body:
     res = new 'List'
-    iter = new 'Iterator', self
-  loop:
+    iter = self.'iterator'()
+  map_loop:
     unless iter goto done
-    elem = shift iter
-    newclosure block, expression
-    mapres = block(elem)
 
+    # Creates arguments for closure
+    args = new 'ResizablePMCArray'
+
+    i = 0
+  args_loop:
+    if i == arity goto invoke
+    unless iter goto elem_undef
+    elem = shift iter
+    goto push_elem
+  elem_undef:
+    elem = new 'Failure'
+  push_elem:
+    push args, elem
+    inc i
+    goto args_loop
+
+  invoke:
+    mapres = expression(args :flat)
+    if null mapres goto map_loop
+
+  push_res:
     res.'push'(mapres)
-    goto loop
+    goto map_loop
 
   done:
     .return(res)

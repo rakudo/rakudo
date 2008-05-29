@@ -351,9 +351,9 @@ Sort list by copying into FPA, sorting and creating new List.
 =cut
 
 .sub 'sort' :method
-    .param pmc comparer :optional
-    .param int have_comparer :opt_flag
-    .local pmc elem, arr, comparer
+    .param pmc by              :optional
+    .param int has_by          :opt_flag
+    .local pmc elem, arr
     .local int len, i
 
     # Creating FPA
@@ -369,17 +369,14 @@ Sort list by copying into FPA, sorting and creating new List.
     arr[i] = elem
     inc i
     goto copy_to
-
   done_to:
 
     # Check comparer
-    if have_comparer goto do_sort
-    get_hll_global comparer, 'infix:cmp'
-
+    if has_by goto do_sort
+    get_hll_global by, 'infix:cmp'
   do_sort:
-
     # Sort in-place
-    arr.'sort'(comparer)
+    arr.'sort'(by)
 
     # and return new List.
     $P0 = get_hll_global 'list'
@@ -462,12 +459,14 @@ Sort arguments using (optional) comparison sub.
 =cut
 
 .sub 'sort'
-    .param pmc by              :optional
-    .param int has_by          :opt_flag
     .param pmc args            :slurpy
-
-    if has_by goto have_by
+    .local pmc by
     by = get_hll_global 'infix:cmp'
+    unless args goto have_by
+    $P0 = args[0]
+    $I0 = isa $P0, 'Sub'
+    unless $I0 goto have_by
+    by = shift args
   have_by:
     args.'!flatten'()
     .return args.'sort'(by)

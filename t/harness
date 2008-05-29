@@ -39,7 +39,7 @@ if ($list_file || $configfudge) {
         next unless m/\S/;
         chomp;
         my ($fn, $fudgespec) = split m/\s+#\s*/;
-        $fn = "t/spec/$fn";
+        $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s/\//$slash/g;
         $accepted_tests{$fn} = $fudgespec;
     }

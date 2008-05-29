@@ -49,6 +49,7 @@ BUILTINS_PIR = \
   src/classes/List.pir \
   src/classes/Array.pir \
   src/classes/Mapping.pir \
+  src/classes/Hash.pir \
   src/classes/Range.pir \
   src/classes/Code.pir \
   src/classes/Junction.pir \

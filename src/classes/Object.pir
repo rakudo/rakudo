@@ -51,7 +51,20 @@ and Mappings to be converted into Array(ref) and Hash(ref).
 
 =head2 Object methods
 
-=over
+=over 4
+
+=item hash()
+
+Return the scalar as a Hash.
+
+=cut
+
+.namespace ['Perl6Object']
+
+.sub 'hash' :method
+    $P0 = self.'list'()
+    .return $P0.'hash'()
+.end
 
 =item item()
 
@@ -60,7 +73,6 @@ this is simply the invocant itself.
 
 =cut
 
-.namespace ['Perl6Object']
 
 .sub 'item' :method
     .return (self)

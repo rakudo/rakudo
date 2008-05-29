@@ -6,8 +6,6 @@ src/classes/Array.pir - Perl 6 Array class and related functions
 
 =head2 Object Methods
 
-=over 4
-
 =cut
 
 .sub 'onload' :anon :load :init
@@ -41,8 +39,6 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     .return (target)
 .end
 
-
-=back
 
 =head2 Array methods
 
@@ -212,10 +208,6 @@ Adds C<args> to the beginning of the Array.
     push $P0, self
     .return ($P0)
 .end
-
-=back
-
-=cut
 
 
 # Local Variables:

@@ -37,6 +37,58 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     .return ($S0)
 .end
 
+
+=item hash()
+
+Return invocant as a Hash
+
+=cut
+
+.sub 'hash' :method
+    .local pmc result, iter
+    result = new 'Perl6Hash'
+    iter = new 'Iterator', self
+  iter_loop:
+    unless iter goto iter_end
+    $S0 = shift iter
+    $P0 = self[$S0]
+    result[$S0] = $P0
+    goto iter_loop
+  iter_end:
+    .return (result)
+.end
+
+
+=item perl()
+
+Return perl representation of the invocant.
+
+=cut
+
+.sub 'perl' :method
+    .local string result
+    .local pmc keys
+    result = '{'
+    keys = self.'keys'()
+    unless keys goto iter_end
+  iter_loop:
+    .local pmc key, value
+    key = shift keys
+    value = self[key]
+    $S0 = key.'perl'()
+    result .= $S0
+    result .= ' => '
+    $S0 = value.'perl'()
+    result .= $S0
+    unless keys goto iter_end
+    result .= ', '
+    goto iter_loop
+  iter_end:
+    result .= '}'
+    .return (result)
+.end
+
+
 =item kv (method)
 
 Returns elements of hash as array of C<Pair(key, value)>

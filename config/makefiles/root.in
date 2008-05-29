@@ -165,7 +165,7 @@ fulltest: all testtest spectest
 
 localtest: t/localtest.data
 	$(PERL) t/harness \
-        --fudge \
+        --configfudge \
         --tests-from-file=t/localtest.data \
         --keep-exit-code \
         t/spec/ \

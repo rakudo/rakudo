@@ -22,6 +22,7 @@ our %harness_args = (
 GetOptions(
         'tests-from-file=s' => \my $list_file,
         'fudge'             => \my $do_fudge,
+        'configfudge'         => \my $configfudge,
     );
 
 
@@ -29,40 +30,61 @@ my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
 my %accepted_tests;
-if ($list_file) {
-    open(my $f, '<', $list_file) 
-        or die "Can't ope file '$list_file' for reading: $!";
+if ($list_file || $configfudge) {
+    open(my $f, '<', $list_file)
+        or die "Can't open file '$list_file' for reading: $!";
     my $slash = $^O eq 'MSWin32' ? '\\' : '/';
     while (<$f>){
         next if m/^\s*#/;
         next unless m/\S/;
         chomp;
-        $_ =~ s/\//$slash/g;
-        $accepted_tests{"t${slash}spec${slash}$_"} = 1;
+        my ($fn, $fudgespec) = split m/\s+#\s*/;
+        $fn = "t/spec/$fn";
+        $fn =~ s/\//$slash/g;
+        $accepted_tests{$fn} = $fudgespec;
     }
     close $f;
 }
 
-if (defined($do_fudge) || $list_file ){
-    my $impl   = 'rakudo';
-    my @tfiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @files;
-    if ($list_file){
-        @tfiles = grep { $accepted_tests{$_} } @tfiles;
-        die "No tests to run!" unless @tfiles;
-    }
+# first prepare our list of files
+my @tfiles =
+    map { all_in($_) } sort ( $list_file ? keys %accepted_tests : @files );
+
+# then decide if and what to fudge
+if (defined($do_fudge) || defined($configfudge)){
     if ($do_fudge){
-        my $cmd = join ' ', $^X, 't/spec/fudgeall', @pass_through_options, $impl, @tfiles;
-        print "$cmd\n";
-        $harness_args{arguments} = [ split ' ', `$cmd` ];
+        @tfiles = fudge(@tfiles);
     } else {
-        $harness_args{arguments} = \@tfiles;
+        my (@fudge, @nofudge);
+        for (@tfiles){
+            if ($accepted_tests{$_} =~ m/^pure$/){
+                push @nofudge, $_;
+            } else {
+                push @fudge, $_;
+            }
+        }
+        if (@fudge) {
+            @tfiles = sort @nofudge, fudge(@fudge);
+        }
     }
+}
+
+$harness_args{arguments} = \@tfiles;
+
+sub fudge {
+    my $impl   = 'rakudo';
+    my $cmd = join ' ', $^X, 't/spec/fudgeall',
+                        @pass_through_options, $impl, @_;
+    print "$cmd\n";
+    return split ' ', `$cmd`;
 }
 
 # Stolen directly from 'prove'
 # adapted to return only files ending in '.t'
 sub all_in {
     my $start = shift;
+
+    return $start unless -d $start;
 
     my @hits = ();
 

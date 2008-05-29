@@ -314,36 +314,23 @@ Checks to see if the specified index or indices have been assigned to.  Returns 
 =cut
 
 .sub pairs :method
-    .local pmc pair
-    .local pmc key
-    .local pmc val
-    .local pmc res
-    .local int len
+    .local pmc result, iter
     .local int i
 
-    res = new 'List'
-    len = self.'elems'()
+    result = new 'List'
+    iter = self.'iterator'()
     i = 0
-
-  loop:
-    if i == len goto done
-
-    key = new 'Integer'
-    key = i
-
-    val = self[i]
-
-    pair = new 'Pair'
-    pair[key] = val
-
-    res.'push'(pair)
-
+  iter_loop:
+    unless iter goto iter_end
+    $P0 = shift iter
+    $P1 = 'infix:=>'(i, $P0)
+    push result, $P1
     inc i
-    goto loop
-
-  done:
-    .return(res)
+    goto iter_loop
+  iter_end:
+    .return (result)
 .end
+
 
 =item grep(...)
 

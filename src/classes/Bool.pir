@@ -42,11 +42,13 @@ symbols for C<Bool::True> and C<Bool::False>.
     .return (self)
 .end
 
-.sub 'increment' :method :vtable
+
+.sub 'succ' :method :vtable('increment')
     self = 1
 .end
 
-.sub 'decrement' :method :vtable
+
+.sub 'pred' :method :vtable('decrement')
     self = 0
 .end
 

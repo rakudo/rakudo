@@ -73,6 +73,113 @@ Checks the type of a parameter.
 ok:
 .end
 
+
+=item !keyword_class(name)
+
+Internal helper method to create a class.
+
+=cut
+
+.sub '!keyword_class'
+    .param string name
+    .local pmc class, resolve_list, methods, iter
+
+    # Create class.
+    class = newclass name
+
+    # Set resolve list to include all methods of the class.
+    methods = inspect class, 'methods'
+    iter = new 'Iterator', methods
+    resolve_list = new 'ResizableStringArray'
+  resolve_loop:
+    unless iter goto resolve_loop_end
+    $P0 = shift iter
+    push resolve_list, $P0
+    goto resolve_loop
+  resolve_loop_end:
+    class.resolve_method(resolve_list)
+
+    .return(class)
+.end
+
+=item !keyword_role(name)
+
+Internal helper method to create a role.
+
+=cut
+
+.sub '!keyword_role'
+    .param string name
+    .local pmc info, role
+
+    # Need to make sure it ends up attached to the right
+    # namespace.
+    info = new 'Hash'
+    info['name'] = name
+    $P0 = new 'ResizablePMCArray'
+    $P0[0] = name
+    info['namespace'] = $P0
+
+    # Create role.
+    role = new 'Role', info
+
+    # Stash in namespace.
+    $P0 = new 'ResizableStringArray'
+    set_hll_global $P0, name, role
+
+    .return(role)
+.end
+
+=item !keyword_grammar(name)
+
+Internal helper method to create a grammar.
+
+=cut
+
+.sub '!keyword_grammar'
+    .param string name
+    .local pmc info, grammar
+
+    # Need to make sure it ends up attached to the right
+    # namespace.
+    info = new 'Hash'
+    info['name'] = name
+    $P0 = new 'ResizablePMCArray'
+    $P0[0] = name
+    info['namespace'] = $P0
+
+    # Create grammar class..
+    grammar = new 'Class', info
+
+    .return(grammar)
+.end
+
+=item !keyword_does(class, role_name)
+
+Internal helper method to implement the functionality of the does keyword.
+
+=cut
+
+.sub '!keyword_does'
+    .param pmc class
+    .param string role_name
+    .local pmc role
+    role = get_hll_global role_name
+    addrole class, role
+.end
+
+=item !keyword_has(class, attr_name)
+
+Adds an attribute with the given name to the class.
+
+=cut
+
+.sub '!keyword_has'
+    .param pmc class
+    .param string attr_name
+    addattribute class, attr_name
+.end
+
 =back
 
 =cut

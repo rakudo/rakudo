@@ -938,12 +938,8 @@ method package_declarator($/, $key) {
                             :scope('lexical')
                         ),
                         PAST::Op.new(
-                            :pasttype('callmethod'),
+                            :pasttype('call'),
                             :name('!keyword_class'),
-                            PAST::Var.new(
-                                :name('Perl6Object'),
-                                :scope('package')
-                            ),
                             PAST::Val.new( :value(~$<name>) )
                         )
                     )
@@ -970,12 +966,8 @@ method package_declarator($/, $key) {
                             :scope('lexical')
                         ),
                         PAST::Op.new(
-                            :pasttype('callmethod'),
+                            :pasttype('call'),
                             :name('!keyword_role'),
-                            PAST::Var.new(
-                                :name('Perl6Object'),
-                                :scope('package')
-                            ),
                             PAST::Val.new( :value(~$<name>) )
                         )
                     )
@@ -1003,12 +995,8 @@ method package_declarator($/, $key) {
                             :scope('lexical')
                         ),
                         PAST::Op.new(
-                            :pasttype('callmethod'),
+                            :pasttype('call'),
                             :name('!keyword_grammar'),
-                            PAST::Var.new(
-                                :name('Perl6Object'),
-                                :scope('package')
-                            ),
                             PAST::Val.new( :value(~$<name>) )
                         )
                     )
@@ -1050,12 +1038,8 @@ method package_declarator($/, $key) {
                     # Role.
                     $?PACKAGE.push(
                         PAST::Op.new(
-                            :pasttype('callmethod'),
+                            :pasttype('call'),
                             :name('!keyword_does'),
-                            PAST::Var.new(
-                                :name('Perl6Object'),
-                                :scope('package')
-                            ),
                             PAST::Var.new(
                                 :name('$def'),
                                 :scope('lexical')
@@ -1299,12 +1283,8 @@ sub declare_attribute($/) {
     my $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
     $class_def.push(
         PAST::Op.new(
-            :pasttype('callmethod'),
+            :pasttype('call'),
             :name('!keyword_has'),
-            PAST::Var.new(
-                :name('Perl6Object'),
-                :scope('package')
-            ),
             PAST::Var.new(
                 :name('$def'),
                 :scope('lexical')

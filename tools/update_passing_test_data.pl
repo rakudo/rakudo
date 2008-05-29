@@ -17,6 +17,8 @@ my %known_tests;
 while (<$f>){
     chomp;
     next if m/^\s*(?:#|$)/;
+    # ignore end-of-line comments
+    s/\s+#.*$//g;
     $known_tests{$_}++;
 }
 close $f;

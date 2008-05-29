@@ -145,6 +145,7 @@ fatarrow:
 .sub 'infix:=>'
     .param pmc key
     .param pmc value
+    value = value.'item'()
     $P0 = get_hll_global 'Pair'
     .return $P0.'new'('key'=>key, 'value'=>value)
 .end

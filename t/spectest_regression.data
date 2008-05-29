@@ -6,29 +6,29 @@ S02-builtin_data_types/type.t
 S02-literals/autoref.t
 S02-literals/hex_chars.t
 S02-literals/radix.t
-S03-operators/equality.t
-S03-operators/not.t
-S03-operators/relational.t
-S03-operators/true.t
-S03-operators/autoincrement.t
-S04-statements/until.t
+S03-operators/autoincrement.t                   # pure
+S03-operators/equality.t                        # pure
+S03-operators/not.t                             # pure
+S03-operators/relational.t                      # pure
+S03-operators/true.t                            # pure
+S04-statements/until.t                          # pure
 S04-statements/while.t
-S06-signature/named-placeholders.t
-S06-signature/positional-placeholders.t
-S06-signature/slurpy-placeholders.t
-S12-class/attributes.t
-S12-class/instantiate.t
-S12-class/parent_attributes.t
-S12-methods/calling_syntax.t
-S12-role/composition.t
-S16-filehandles/connect.t
-S29-any/cmp.t
-S29-array/delete.t
-S29-array/exists.t
-S29-array/keys_values.t
-S29-array/kv.t
-S29-array/pairs.t
-S29-list/mutating_listops.t
+S06-signature/named-placeholders.t              # pure
+S06-signature/positional-placeholders.t         # pure
+S06-signature/slurpy-placeholders.t             # pure
+S12-class/attributes.t                          # pure
+S12-class/instantiate.t                         # pure
+S12-class/parent_attributes.t                   # pure
+S12-methods/calling_syntax.t                    # pure
+S12-role/composition.t                          # pure
+S16-filehandles/connect.t                       # pure
+S29-any/cmp.t                                   # pure
+S29-array/delete.t                              # pure
+S29-array/exists.t                              # pure
+S29-array/keys_values.t                         # pure
+S29-array/kv.t                                  # pure
+S29-array/pairs.t                               # pure
+S29-list/mutating_listops.t                     # pure
 S29-list/sort.t
 S29-num/abs.t
 S29-num/complex.t
@@ -39,7 +39,7 @@ S29-num/pi.t
 S29-num/roots.t
 S29-num/sign.t
 S29-num/sqrt.t
-S29-str/append.t
+S29-str/append.t                                # pure
 S29-str/capitalize.t
 S29-str/comb.t
 S29-str/lcfirst.t

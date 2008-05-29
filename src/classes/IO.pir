@@ -20,7 +20,7 @@ This file implements the IO file handle class.
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     p6meta.'new_class'('IO', 'parent'=>'Any', 'attr'=>'$!PIO')
-    p6meta.'new_class'('IOIterator', 'parent'=>'Perl6Object', 'attr'=>'$!I0')
+    p6meta.'new_class'('IOIterator', 'parent'=>'Perl6Object', 'attr'=>'$!IO')
 .end
 
 =item print

@@ -1,4 +1,6 @@
 #! perl
+# Copyright (C) 2001-2008, The Perl Foundation.
+# $Id: Configure.pl 27036 2008-04-19 14:42:57Z jkeenan $
 use strict;
 use warnings;
 
@@ -44,4 +46,11 @@ if (@new){
     print "\nNewly passing tests:\n";
     print "$_\n" for @new;
 }
+
+# Local Variables:
+#   mode: cperl
+#   cperl-indent-level: 4
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:
 

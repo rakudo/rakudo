@@ -163,7 +163,7 @@ spectest_regression: all t/spec t/spectest_regression.data
 
 fulltest: all testtest spectest
 
-localtest: t/localtest.data
+localtest: all t/spec t/localtest.data
 	$(PERL) t/harness \
         --configfudge \
         --tests-from-file=t/localtest.data \

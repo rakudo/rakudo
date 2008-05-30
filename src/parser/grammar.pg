@@ -113,7 +113,9 @@ token pod_comment {
     ^^ '=' <.unsp>?
     [
     | begin \h+ <ident> .*? \n
-      '=' <.unsp>? 'end' \h+ $<ident> \N*           {*}         #= block
+      '=' <.unsp>? 'end' \h+ $<ident> >> \N*        {*}         #= tagged
+    | begin \h* \n .*? \n
+      '=' <.unsp>? 'end' >> \N*                     {*}         #= anon
     | \N*                                           {*}         #= misc
     ]
     {*}

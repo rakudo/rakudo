@@ -271,7 +271,7 @@ method default_statement($/) {
 }
 
 method loop_statement($/) {
-    if $<eee> {
+    if $<eee> ne "" {
         my $init := $( $<e1>[0] );
         my $cond := $( $<e2>[0] );
         my $tail := $( $<e3>[0] );

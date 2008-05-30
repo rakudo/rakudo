@@ -373,9 +373,11 @@ src/builtins/op.pir - Perl6 builtin operators
     .param pmc named_args   :slurpy :named
 
     # We need to find all methods we could call with the right name.
-    .local pmc result_list, class, mro, it, cap_class, failure_class
+    .local pmc p6meta, result_list, class, mro, it, cap_class, failure_class
     result_list = 'list'()
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     class = invocant.'HOW'()
+    class = p6meta.get_parrotclass(class)
     mro = inspect class, 'all_parents'
     it = iter mro
     cap_class = get_hll_global 'Capture'

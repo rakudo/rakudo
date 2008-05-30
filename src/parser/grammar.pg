@@ -112,8 +112,8 @@ token afterws {
 token pod_comment {
     ^^ '=' <.unsp>?
     [
-    | begin <.ws> <ident> .*? \n
-      '=' <.unsp>? 'end' <.ws> $<ident> \N*         {*}         #= block
+    | begin \h+ <ident> .*? \n
+      '=' <.unsp>? 'end' \h+ $<ident> \N*           {*}         #= block
     | \N*                                           {*}         #= misc
     ]
     {*}

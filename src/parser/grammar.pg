@@ -552,7 +552,7 @@ rule scoped {
 }
 
 rule scope_declarator {
-    $<declarator>=[my|our|state|constant|has]
+    $<sym>=[my|our|state|constant|has]
     <scoped>
     {*}
 }

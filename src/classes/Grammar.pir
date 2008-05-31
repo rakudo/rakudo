@@ -28,6 +28,17 @@ This file implements the Grammar class.
     p6meta.'new_class'('Grammar', 'parent'=>'PGE::Grammar')
 .end
 
+=item PROTOOVERRIDES()
+
+Tell C<P6object> that the ACCEPTS method overrides the one
+for protoobjects.
+
+=cut
+
+.sub 'PROTOOVERRIDES' :method
+    .return ('new', 'ACCEPTS')
+.end
+
 
 =item ACCEPTS(topic)
 

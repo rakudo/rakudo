@@ -26,24 +26,35 @@ Perform initializations and create the base classes.
     .local pmc p6meta
     load_bytecode 'P6object.pbc'
     $P0 = get_hll_global 'P6metaclass'
-    $P0.'new_class'('Perl6Object', 'attr'=>'%!properties', 'name'=>'Object')
+    $P0.'new_class'('Perl6Object', 'name'=>'Object')
     p6meta = $P0.'HOW'()
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
 .end
 
-=item infix:=(target, source)  (assignment multisub)
+=item infix:=(source)  (assignment method)
 
 Assigns C<source> to C<target>.  We use the 'item' method to allow Lists
 and Mappings to be converted into Array(ref) and Hash(ref).
 
 =cut
 
-.namespace
-.sub 'infix:=' :multi(_,_)
-    .param pmc target
+.namespace ['Perl6Object']
+.sub 'infix:=' :method
     .param pmc source
     $P0 = source.'item'()
-    .return '!TYPECHECKEDASSIGN'(target, $P0)
+
+    .local pmc type
+    getprop type, 'type', self
+    if null type goto do_assign
+    $I0 = type.'ACCEPTS'(source)
+    if $I0 goto do_assign
+    die "Type mismatch in assignment."
+
+  do_assign:
+    eq_addr self, $P0, end
+    copy self, $P0
+  end:
+    .return (self)
 .end
 
 

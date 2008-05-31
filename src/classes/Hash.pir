@@ -18,14 +18,6 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     hashproto = p6meta.'new_class'('Perl6Hash', 'parent'=>'Mapping', 'name'=>'Hash')
 .end
 
-.sub 'infix:=' :multi(Perl6Hash, _)
-    .param pmc target
-    .param pmc source
-    $P0 = source.'hash'()
-    copy target, $P0
-    .return (target)
-.end
-
 
 .sub 'hash'
     .param pmc args            :slurpy
@@ -37,6 +29,13 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 
 
 .namespace ['Perl6Hash']
+
+.sub 'infix:=' :method
+    .param pmc source
+    $P0 = source.'hash'()
+    copy self, $P0
+    .return (self)
+.end
 
 .sub 'hash' :method
     .return (self)

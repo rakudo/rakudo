@@ -4,7 +4,7 @@ Copyright (C) 2001-2008, The Perl Foundation.
 
 =head1 NAME
 
-src/pmc/mutable.pmc.template - Template for the mutable PMC
+src/pmc/mutable_pmc.template - Template for the mutable PMC
 
 =head1 DESCRIPTION
 
@@ -19,29 +19,113 @@ Forwards all but some methods to the held PMC.
 #include "parrot/parrot.h"
 
 pmclass Mutable need_ext dynpmc group perl6_group {
+    ATTR PMC *value;
+    ATTR PMC *cached_type;
+
     VTABLE void init() {
-        /* Initialize with an undef PMC. */
-        PMC_data(SELF) = pmc_new(INTERP, enum_class_Undef);
+        /* Initialize with a null PMC for properties. */
+        STATICSELF.init_pmc(PMCNULL);
     }
 
-    VTABLE void init_pmc() {
-        STATICSELF.init();
+    VTABLE void init_pmc(PMC *value) {
+        PMC *type_obj = PMCNULL;
+
+        /* Create underlying structure. */
+        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Mutable);
+        /* Initialize with an undef PMC and the provided properties hash. */
+        SET_ATTR_cached_type(INTERP, SELF, type_obj);
+
+        if (PMC_IS_NULL(value))
+            value = pmc_new(INTERP, enum_class_Undef);
+        SET_ATTR_value(INTERP, SELF, value);
     }
 
     VTABLE void mark() {
-        if (PMC_data(SELF))
-            pobject_lives(INTERP, PMC_data(SELF));
+        PMC *value;
+        GET_ATTR_value(INTERP, SELF, value);
+        if (value)
+            pobject_lives(INTERP, (PObj*)value);
     }
 
     VTABLE void destroy() {
-        /* Just don't pass this on. */
+        mem_sys_free(PMC_data(SELF));
     }
 
     VTABLE void assign_pmc(PMC *value) {
-        PMC_data(SELF) = value;
+        /* Do we need to do any type-check? */
+        STRING *s_mutable = string_from_literal(INTERP, "Mutable");
+        PMC *type_obj;
+
+        while (VTABLE_isa(INTERP, value, s_mutable))
+            GET_ATTR_value(INTERP, value, value);
+
+        GET_ATTR_cached_type(INTERP, SELF, type_obj);
+        if (PMC_IS_NULL(type_obj)) {
+            STRING *s_type = string_from_literal(INTERP, "type");
+            type_obj = VTABLE_getprop(INTERP, SELF, s_type);
+            if (!PMC_IS_NULL(type_obj))
+                SET_ATTR_cached_type(INTERP, SELF, type_obj);
+        }
+
+        if (!PMC_IS_NULL(type_obj)) {
+            STRING *checker_name = string_from_literal(INTERP, "!DOTYPECHECK");
+            PMC *checker = Parrot_find_global_n(interp,
+                Parrot_get_ctx_HLL_namespace(interp), checker_name);
+            PMC *result = pmc_new(INTERP, enum_class_Integer);
+            Parrot_runops_fromc_args(INTERP, checker, "vPPP", type_obj, value, result);
+            if (!VTABLE_get_integer(INTERP, result))
+                real_exception(interp, NULL, INVALID_OPERATION, "Type check failed");
+        }
+
+        /* Stash the value. */
+        SET_ATTR_value(INTERP, SELF, value);
     }
 
     VTABLE PMC * get_pmc() {
-        return PMC_data(SELF);
+        PMC * value;
+        GET_ATTR_value(INTERP, SELF, value);
+        return value;
     }
+
+    VTABLE INTVAL isa_pmc(PMC *lookup) {
+        PMC * value;
+        if (SUPER(lookup)) return 1;
+        /* PMCProxy_does sends us a proxied Mutable with no value */
+        if (!PMC_data(SELF)) return 0;
+        GET_ATTR_value(INTERP, SELF, value);
+        return VTABLE_isa_pmc(INTERP, value, lookup);
+    }
+
+    VTABLE INTVAL isa(STRING *classname) {
+        PMC * value;
+        if (SUPER(classname)) return 1;
+        /* PMCProxy_does sends us a proxied Mutable with no value */
+        if (!PMC_data(SELF)) return 0;
+        GET_ATTR_value(INTERP, SELF, value);
+        return VTABLE_isa(INTERP, value, classname);
+    }
+
+    VTABLE INTVAL does_pmc(PMC *role) {
+        PMC * value;
+        /* PMCProxy_does sends us a proxied Mutable with no value */
+        if (!PMC_data(SELF)) return 0;
+        GET_ATTR_value(INTERP, SELF, value);
+        return VTABLE_does_pmc(INTERP, value, role);
+    }
+
+    VTABLE INTVAL does(STRING *role) {
+        PMC * value;
+        /* PMCProxy_does sends us a proxied Mutable with no value */
+        if (!PMC_data(SELF)) return 0;
+        GET_ATTR_value(INTERP, SELF, value);
+        return VTABLE_does(INTERP, value, role);
+    }
+
+    /* We don't want any of these to be touched */
+    /* VTABLE PMC * getprop() */
+    /* VTABLE PMC * setprop() */
+    /* VTABLE PMC * delprop() */
+    /* VTABLE PMC * getprops() */
+
+
 }

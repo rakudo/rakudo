@@ -48,7 +48,7 @@ my @generate = grep { !$nogen{$_} } @all_vtables;
 
 # Generate methods and insert into file.
 my $gen_code = join("\n", map { generate_meth($_, $vtable_list) } @generate);
-$template_contents =~ s/(pmclass[^{]+\{)/$1\n$gen_code/;
+$template_contents =~ s/(pmclass[^{]+\{.+?)(VTABLE)/$1\n$gen_code$2/s;
 
 # Write it.
 spew($output, $template_contents);
@@ -86,7 +86,8 @@ sub generate_meth {
     # Generate method.
     my $meth = <<METH;
     VTABLE $ret_type $name($param_list) {
-        PMC * _VALUE = (PMC *)PMC_data(SELF);
+        PMC * _VALUE;
+        GET_ATTR_value(INTERP, SELF, _VALUE);
         ${return}VTABLE_$name(INTERP, _VALUE$pass_list);
     }
 METH

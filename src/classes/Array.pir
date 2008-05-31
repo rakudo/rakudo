@@ -27,16 +27,14 @@ src/classes/Array.pir - Perl 6 Array class and related functions
 .end
 
 
-.namespace
-
-.sub 'infix:=' :multi(Perl6Array, _)
-    .param pmc target
+.namespace ['Perl6Array']
+.sub 'infix:=' :method
     .param pmc source
     $P0 = source.'list'()
     $P0 = clone $P0
-    $I0 = elements target
-    splice target, $P0, 0, $I0
-    .return (target)
+    $I0 = elements self
+    splice self, $P0, 0, $I0
+    .return (self)
 .end
 
 

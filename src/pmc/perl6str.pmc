@@ -143,6 +143,8 @@ digits.
                         }
 
                         return sign * f;
+                    default:
+                        break;
                 }
                 if (s1 < end && *s1 == '_'
                 && isdigit((unsigned char)*(s1+1)))

@@ -1728,7 +1728,8 @@ method typename($/) {
         :name($shortname),
         :namespace($ns),
         :scope('package'),
-        :node($/)
+        :node($/),
+        :viviself('Failure')
     );
 }
 

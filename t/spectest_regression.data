@@ -7,6 +7,8 @@ S02-literals/autoref.t
 S02-literals/hex_chars.t
 S02-literals/radix.t
 S03-operators/autoincrement.t                   # pure
+S03-operators/comparison.t
+S03-operators/cross-metaop.t
 S03-operators/equality.t                        # pure
 S03-operators/not.t                             # pure
 S03-operators/relational.t                      # pure
@@ -22,12 +24,18 @@ S12-class/parent_attributes.t                   # pure
 S12-methods/calling_syntax.t                    # pure
 S12-role/composition.t                          # pure
 S16-filehandles/connect.t                       # pure
+S16-io/say.t
 S29-any/cmp.t                                   # pure
 S29-array/delete.t                              # pure
 S29-array/exists.t                              # pure
 S29-array/keys_values.t                         # pure
 S29-array/kv.t                                  # pure
 S29-array/pairs.t                               # pure
+S29-array/pop.t
+S29-array/shift.t
+S29-list/map_empty_list.t
+S29-list/map_flattening.t
+S29-list/map_function_return_values.t
 S29-list/mutating_listops.t                     # pure
 S29-list/sort.t
 S29-num/abs.t
@@ -36,6 +44,7 @@ S29-num/exp.t
 S29-num/int.t
 S29-num/log.t
 S29-num/pi.t
+S29-num/rand.t
 S29-num/roots.t
 S29-num/sign.t
 S29-num/sqrt.t

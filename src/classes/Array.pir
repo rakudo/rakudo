@@ -52,7 +52,7 @@ to the length of the last non-null (existing) element.
 
 .namespace ['Perl6Array']
 
-.sub 'delete' :method :multi(Perl6Array, _)
+.sub 'delete' :method :multi(Perl6Array)
     .param pmc indices :slurpy
     .local pmc result
     result = new 'List'
@@ -89,7 +89,7 @@ Return true if the elements at C<indices> have been assigned to.
 
 =cut
 
-.sub 'exists' :method :multi(Perl6Array, _)
+.sub 'exists' :method :multi(Perl6Array)
     .param pmc indices :slurpy
     .local int test
 
@@ -128,7 +128,7 @@ Add C<args> to the end of the Array.
 
 =cut
 
-.sub 'push' :method :multi(Perl6Array, _)
+.sub 'push' :method :multi(Perl6Array)
     .param pmc args :slurpy
     args.'!flatten'()
     $I0 = elements self
@@ -161,7 +161,7 @@ Adds C<args> to the beginning of the Array.
 
 =cut
 
-.sub 'unshift' :method :multi(Perl6Array, _)
+.sub 'unshift' :method :multi(Perl6Array)
     .param pmc args :slurpy
     args.'!flatten'()
     splice self, args, 0, 0

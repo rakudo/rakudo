@@ -30,11 +30,15 @@ pmclass Mutable need_ext dynpmc group perl6_group {
     VTABLE void init_pmc(PMC *value) {
         PMC *type_obj = PMCNULL;
 
+        /* Need custom mark and destroy. */
+        PObj_custom_mark_SET(SELF);
+        PObj_active_destroy_SET(SELF);
+
         /* Create underlying structure. */
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Mutable);
-        /* Initialize with an undef PMC and the provided properties hash. */
         SET_ATTR_cached_type(INTERP, SELF, type_obj);
 
+        /* Initialize with an undef PMC if no value. */
         if (PMC_IS_NULL(value))
             value = pmc_new(INTERP, enum_class_Undef);
         SET_ATTR_value(INTERP, SELF, value);
@@ -49,16 +53,25 @@ pmclass Mutable need_ext dynpmc group perl6_group {
 
     VTABLE void destroy() {
         mem_sys_free(PMC_data(SELF));
+        PMC_data(SELF) = NULL;
     }
 
     VTABLE void assign_pmc(PMC *value) {
-        /* Do we need to do any type-check? */
         STRING *s_mutable = string_from_literal(INTERP, "Mutable");
+        STRING *s_ro = string_from_literal(INTERP, "ro");
         PMC *type_obj;
+        PMC *ro;
 
+        /* Check that the read-only property isn't set. */
+        ro = VTABLE_getprop(INTERP, SELF, s_ro);
+        if (!PMC_IS_NULL(ro) && VTABLE_get_integer(INTERP, ro) != 0)
+            real_exception(interp, NULL, INVALID_OPERATION, "Cannot assign to readonly variable");
+
+        /* Chase down the mutable chain until we get a value. */
         while (VTABLE_isa(INTERP, value, s_mutable))
             GET_ATTR_value(INTERP, value, value);
 
+        /* Do we need to do any type-check? */
         GET_ATTR_cached_type(INTERP, SELF, type_obj);
         if (PMC_IS_NULL(type_obj)) {
             STRING *s_type = string_from_literal(INTERP, "type");
@@ -119,6 +132,10 @@ pmclass Mutable need_ext dynpmc group perl6_group {
         if (!PMC_data(SELF)) return 0;
         GET_ATTR_value(INTERP, SELF, value);
         return VTABLE_does(INTERP, value, role);
+    }
+
+    VTABLE void morph(INTVAL type) {
+        real_exception(interp, NULL, INVALID_OPERATION, "Cannot morph a Perl6Scalar.");
     }
 
     /* We don't want any of these to be touched */

@@ -70,19 +70,19 @@ multi sub is_approx($got, $expected) { is_approx($got, $expected, ''); }
 
 multi sub todo($reason, $count) {
     $todo_upto_test_num = $num_of_tests_run + $count;
-    $todo_reason = 'TODO ' ~ $reason;
+    $todo_reason = '# TODO ' ~ $reason;
 }
 
 multi sub todo($reason) {
     $todo_upto_test_num = $num_of_tests_run + 1;
-    $todo_reason = 'TODO ' ~ $reason;
+    $todo_reason = '# TODO ' ~ $reason;
 }
 
-multi sub skip()                { proclaim(1, "skip "); }
-multi sub skip($reason)         { proclaim(1, "skip $reason"); }
+multi sub skip()                { proclaim(1, ""); }
+multi sub skip($reason)         { proclaim(1, $reason); }
 multi sub skip($count, $reason) {
     for 1..$count {
-        proclaim(1, "skip $reason");
+        proclaim(1, "# SKIP $reason");
     }
 }
 
@@ -134,12 +134,11 @@ sub proclaim($cond, $desc) {
         $num_of_tests_failed = $num_of_tests_failed + 1
             unless  $num_of_tests_run <= $todo_upto_test_num;
     }
-    print "ok ", $num_of_tests_run;
+    print "ok ", $num_of_tests_run, " - ", $desc;
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
-        print " # ", $todo_reason;
+        print $todo_reason;
     }
-    say " - ", $desc;
-
+    print "\n";
 }
 
 END {

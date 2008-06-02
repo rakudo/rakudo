@@ -78,11 +78,11 @@ multi sub todo($reason) {
     $todo_reason = '# TODO ' ~ $reason;
 }
 
-multi sub skip()                { proclaim(1, ""); }
-multi sub skip($reason)         { proclaim(1, $reason); }
+multi sub skip()                { proclaim(1, "# SKIP"); }
+multi sub skip($reason)         { proclaim(1, "# SKIP " ~ $reason); }
 multi sub skip($count, $reason) {
     for 1..$count {
-        proclaim(1, "# SKIP $reason");
+        proclaim(1, "# SKIP " ~ $reason);
     }
 }
 

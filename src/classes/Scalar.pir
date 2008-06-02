@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-src/classes/Scalar.pir - Perl 6 Array class and related functions
+src/classes/Scalar.pir - Perl 6 Scalar class and related functions
 
 =head2 Object Methods
 

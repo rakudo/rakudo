@@ -5,7 +5,7 @@
 class Perl6::Grammar::Actions ;
 
 ##  Change this to be 'Perl6Scalar' to try the Mutable PMC version.
-our $?PERL6SCALAR := 'Perl6Scalar';
+our $?PERL6SCALAR := 'Failure';
 
 method TOP($/) {
     my $past := $( $<statement_block> );

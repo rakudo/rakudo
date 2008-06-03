@@ -64,29 +64,21 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 .sub 'prefix:+' :multi(_)
-    .param pmc a
-    $I0 = does a, 'float'
-    if $I0 == 0 goto return_int
-    $N0 = a
-    .return ($N0)
-  return_int:
-    $I0 = a
-    .return ($I0)
+    .param num a
+    .return (a)
 .end
 
 
 .sub 'prefix:-' :multi(_)
-    .param pmc a
-    $N0 = a
-    $N0 = neg $N0
+    .param num a
+    $N0 = neg a
     .return ($N0)
 .end
 
 
 .sub 'prefix:~' :multi(_)
-    .param pmc a
-    $S0 = a
-    .return ($S0)
+    .param string a
+    .return (a)
 .end
 
 
@@ -111,7 +103,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:^' :multi('Perl6ProtoObject')
+.sub 'prefix:^' :multi('P6Protoobject')
     .param pmc proto
     .return proto.'HOW'()
 .end
@@ -154,18 +146,18 @@ src/builtins/op.pir - Perl6 builtin operators
 
 ## multiplicative
 .sub 'infix:*' :multi(_,_)
-    .param pmc a
-    .param pmc b
-    $P0 = n_mul a, b
-    .return ($P0)
+    .param num a
+    .param num b
+    $N0 = a * b
+    .return ($N0)
 .end
 
 
 .sub 'infix:/' :multi(_,_)
-    .param pmc a
-    .param pmc b
-    $P0 = n_div a, b
-    .return ($P0)
+    .param num a
+    .param num b
+    $N0 = a / b
+    .return ($N0)
 .end
 
 
@@ -236,18 +228,18 @@ src/builtins/op.pir - Perl6 builtin operators
 
 ## additive
 .sub 'infix:+' :multi(_,_)
-    .param pmc a
-    .param pmc b
-    $P0 = n_add a, b
-    .return ($P0)
+    .param num a
+    .param num b
+    $N0 = a + b
+    .return ($N0)
 .end
 
 
 .sub 'infix:-' :multi(_,_)
-    .param pmc a
-    .param pmc b
-    $P0 = n_sub a, b
-    .return ($P0)
+    .param num a
+    .param num b
+    $N0 = a - b
+    .return ($N0)
 .end
 
 

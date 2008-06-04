@@ -947,7 +947,7 @@ Returns the elements of LIST in the opposite order.
 .sub 'uniq' :multi(_)
     .param pmc values :slurpy
     .local pmc list
-    
+
     list = 'list'(values :flat)
     .return list.'uniq'()
 .end

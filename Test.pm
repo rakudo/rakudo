@@ -122,6 +122,22 @@ multi sub lives_ok($closure) {
     lives_ok($closure, '');
 }
 
+multi sub eval_dies_ok($code, $reason) {
+    eval ( $code );
+    proclaim((defined $!), $reason);
+}
+multi sub eval_dies_ok($code) {
+    eval_dies_ok($code, '');
+}
+
+multi sub eval_lives_ok($code, $reason) {
+    try { eval ($code) }
+    proclaim((not defined $!), $reason);
+}
+multi sub eval_lives_ok($code) {
+    eval_lives_ok($code, '');
+}
+
 
 ## 'private' subs
 

@@ -619,12 +619,13 @@ Functional form of C<map>. Delegates map to passed list.
 
 =cut
 
-.sub 'map'
+.sub 'map' :multi('Sub')
     .param pmc expression
     .param pmc values          :slurpy
+    .local pmc list
 
-    values.'!flatten'()
-    .return values.'map'(expression)
+    list = 'list'(values :flat)
+    .return list.'map'(expression)
 .end
 
 
@@ -913,33 +914,41 @@ Returns the elements of LIST in the opposite order.
 .end
 
 
-.sub grep :multi(_,'List')
+.sub 'grep' :multi('Sub')
     .param pmc test
-    .param pmc list :slurpy
+    .param pmc values :slurpy
+    .local pmc list
 
+    list = 'list'(values :flat)
     .return list.'grep'(test)
 .end
 
 
-.sub reduce :multi(_,'List')
+.sub 'reduce' :multi('Sub')
     .param pmc test
-    .param pmc list
+    .param pmc values :slurpy
+    .local pmc list
 
+    list = 'list'(values :flat)
     .return list.'reduce'(test)
 .end
 
 
-.sub first :multi(_,'List')
+.sub 'first' :multi(Sub)
     .param pmc test
-    .param pmc list :slurpy
+    .param pmc values :slurpy
+    .local pmc list
 
+    list = 'list'(values :flat)
     .return list.'first'(test)
 .end
 
 
-.sub uniq :multi('List')
-    .param pmc list
-
+.sub 'uniq' :multi(_)
+    .param pmc values :slurpy
+    .local pmc list
+    
+    list = 'list'(values :flat)
     .return list.'uniq'()
 .end
 

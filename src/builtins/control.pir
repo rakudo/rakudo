@@ -100,7 +100,8 @@ to coordinate with entire async model.  -law]
 Execute C<$code> as if it were code written in C<$lang>.  The default
 is the language in effect at the exact location of the eval call.
 
-Returns whatever C<$code> returns, or undef on error.
+Returns whatever C<$code> returns, or undef on error. Sets caller's C<$!>
+on error.
 
 =cut
 
@@ -114,9 +115,26 @@ Returns whatever C<$code> returns, or undef on error.
   no_lang:
 
     .local pmc compiler, invokable
+    .local pmc res, exception
     compiler = compreg 'Perl6'
     invokable = compiler.'compile'(code)
-    .return invokable()
+
+    push_eh catch
+    res = invokable()
+    pop_eh
+    exception = new 'Failure'
+    goto done
+
+  catch:
+    .get_results (exception, $S0)
+    goto done
+
+  done:
+    # Propagate exception to caller
+    $P0 = getinterp
+    $P0 = $P0['lexpad';1]
+    $P0['$!'] = exception
+    .return (res)
 .end
 
 

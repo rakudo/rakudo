@@ -6,6 +6,8 @@ S02-builtin_data_types/type.t
 S02-literals/autoref.t
 S02-literals/hex_chars.t
 S02-literals/radix.t
+S02-polymorphic_types/subset-code.t             # pure
+S02-polymorphic_types/subset-range.t
 S03-operators/autoincrement.t                   # pure
 S03-operators/comparison.t
 S03-operators/cross-metaop.t
@@ -39,6 +41,7 @@ S29-array/unshift.t
 S29-list/map_empty_list.t
 S29-list/map_flattening.t
 S29-list/map_function_return_values.t
+S29-list/map.t
 S29-list/mutating_listops.t                     # pure
 S29-list/sort.t
 S29-num/abs.t

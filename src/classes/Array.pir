@@ -14,16 +14,8 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     arrayproto = p6meta.'new_class'('Perl6Array', 'parent'=>'List', 'name'=>'Array')
     p6meta.'new_class'('Arrayref', 'parent'=>arrayproto, 'protoobject'=>arrayproto)
 
-    $P0 = split ' ', 'delete exists pop push shift unshift'
-    .local pmc iter
-    iter = new 'Iterator', $P0
-  global_loop:
-    unless iter goto global_end
-    $S0 = shift iter
-    $P0 = get_hll_global ['Perl6Array'], $S0
-    set_hll_global $S0, $P0
-    goto global_loop
-  global_end:
+    $P0 = get_hll_namespace ['Perl6Array']
+    '!EXPORT'('delete exists pop push shift unshift', 'from'=>$P0)
 .end
 
 

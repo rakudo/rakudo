@@ -43,6 +43,12 @@ and Mappings to be converted into Array(ref) and Hash(ref).
     .param pmc source
     $P0 = source.'item'()
 
+    $I0 = isa self, 'Mutable'
+    unless $I0 goto copy
+    assign self, $P0
+    goto end
+
+  copy:
     .local pmc type
     getprop type, 'type', self
     if null type goto do_assign

@@ -147,7 +147,14 @@ pmclass Mutable need_ext dynpmc group perl6_group {
     METHOD INTVAL readonly() {
         STRING *s_ro = string_from_literal(INTERP, "readonly");
         PMC *ro = VTABLE_getprop(INTERP, SELF, s_ro);
-        INTVAL res =  VTABLE_get_bool(INTERP, ro);
+        INTVAL res =  PMC_IS_NULL(ro) ? 0 : VTABLE_get_bool(INTERP, ro);
         RETURN(INTVAL res);
+    }
+
+    METHOD INTVAL rw() {
+        INTVAL ro, rw;
+        (INTVAL ro) = PCCINVOKE(INTERP, SELF, "readonly");
+        rw = ro ? 0 : 1;
+        RETURN (INTVAL rw);
     }
 }

@@ -569,6 +569,39 @@ method signature($/) {
             ));
         }
 
+        # See if we have any traits. For now, we just handle ro, rw and copy.
+        my $cont_trait := 'ro';
+        my $cont_traits := 0;
+        for $_<parameter><trait> {
+            if $_<trait_auxiliary> {
+                # Get name of the trait and see if it's one of the special
+                # traits we handle in the compiler.
+                my $name := $_<trait_auxiliary><ident>;
+                if $name eq 'ro' {
+                    $cont_traits := $cont_traits + 1;
+                }
+                elsif $name eq 'rw' {
+                    $cont_trait := 'rw';
+                    $cont_traits := $cont_traits + 1;
+                }
+                elsif $name eq 'copy' {
+                    $cont_trait := 'copy';
+                    $cont_traits := $cont_traits + 1;
+                }
+                else {
+                    $/.panic("Cannot apply traits to parameters yet.");
+                }
+            }
+            else {
+                $/.panic("Cannot apply traits to parameters yet.");
+            }
+        }
+
+        # If we had is copy is rw or some other impossible combination, die.
+        if $cont_traits > 1 {
+            $/.panic("Can only use one of ro, rw and copy on a parameter.");
+        }
+
         # Add any type check that is needed. The scheme for this: $type_check
         # is a statement block. We create a block for each parameter, which
         # will be empty if there are no constraints for that parameter. This
@@ -644,8 +677,49 @@ method signature($/) {
                 }
             }
         }
-
         $type_check.push($cur_param_types);
+
+        # Handle container type traits.
+        if $cont_trait eq 'rw' {
+            # We just leave it as it is.
+        }
+        elsif $cont_trait eq 'ro' {
+            # Create a new container with ro set and bind the parameter to it.
+            $past.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name($parameter.name()),
+                    :scope('lexical')
+                ),
+                PAST::Op.new(
+                    :inline(" %r = new 'Perl6Scalar', %0\n" ~
+                            " $P0 = get_hll_global ['Bool'], 'True'\n" ~
+                            " setprop %r, 'ro', $P0\n"),
+                    PAST::Var.new(
+                        :name($parameter.name()),
+                        :scope('lexical')
+                    )
+                )
+            ));
+        }
+        else {
+            # Create a new container and copy the value into it..
+            $past.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                :name($parameter.name()),
+                :scope('lexical')
+                ),
+                PAST::Op.new(
+                    :inline(" %r = new 'Perl6Scalar'\n" ~
+                            " %r.'infix:='(%0)\n"),
+                    PAST::Var.new(
+                        :name($parameter.name()),
+                        :scope('lexical')
+                    )
+                )
+            ));
+        }
     }
     $past.arity( +$/[0] );
     if +$/[0] {

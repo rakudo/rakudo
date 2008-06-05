@@ -64,7 +64,7 @@ pmclass Mutable need_ext dynpmc group perl6_group {
 
         /* Check that the read-only property isn't set. */
         ro = VTABLE_getprop(INTERP, SELF, s_ro);
-        if (!PMC_IS_NULL(ro) && VTABLE_get_integer(INTERP, ro) != 0)
+        if (!PMC_IS_NULL(ro) && VTABLE_get_bool(INTERP, ro))
             real_exception(interp, NULL, INVALID_OPERATION, "Cannot assign to readonly variable");
 
         /* Chase down the mutable chain until we get a value. */
@@ -86,7 +86,7 @@ pmclass Mutable need_ext dynpmc group perl6_group {
                 Parrot_get_ctx_HLL_namespace(interp), checker_name);
             PMC *result = pmc_new(INTERP, enum_class_Integer);
             Parrot_runops_fromc_args(INTERP, checker, "vPPP", type_obj, value, result);
-            if (!VTABLE_get_integer(INTERP, result))
+            if (!VTABLE_get_bool(INTERP, result))
                 real_exception(interp, NULL, INVALID_OPERATION, "Type check failed");
         }
 
@@ -144,5 +144,10 @@ pmclass Mutable need_ext dynpmc group perl6_group {
     /* VTABLE PMC * delprop() */
     /* VTABLE PMC * getprops() */
 
-
+    METHOD INTVAL readonly() {
+        STRING *s_ro = string_from_literal(INTERP, "readonly");
+        PMC *ro = VTABLE_getprop(INTERP, SELF, s_ro);
+        INTVAL res =  VTABLE_get_bool(INTERP, ro);
+        RETURN(INTVAL res);
+    }
 }

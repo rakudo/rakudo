@@ -1,0 +1,51 @@
+/*
+$Id:$
+Copyright (C) 2001-2008, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/mutablevar.pmc - PMC implementing VAR functionality
+
+=head1 DESCRIPTION
+
+The MutableVAR PMC provides access to the container type of a scalar. This is
+needed as scalar containers forward to their contents.
+
+=head2 Methods
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+
+pmclass MutableVAR need_ext dynpmc group perl6_group {
+    ATTR PMC *scalar;
+
+    VTABLE void init() {
+        real_exception(INTERP, NULL, INVALID_OPERATION,
+            "Must initialize MutableVAR with a scalar");
+    }
+
+    VTABLE void init_pmc(PMC *scalar) {
+        /* Need custom mark and destroy. */
+        PObj_custom_mark_SET(SELF);
+        PObj_active_destroy_SET(SELF);
+
+        /* Create underlying structure and set scalar value. */
+        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_MutableVAR);
+        SET_ATTR_scalar(INTERP, SELF, scalar);
+    }
+
+    VTABLE void mark() {
+        PMC *scalar;
+        GET_ATTR_scalar(INTERP, SELF, scalar);
+        if (scalar)
+            pobject_lives(INTERP, (PObj*)scalar);
+    }
+
+    VTABLE void destroy() {
+        mem_sys_free(PMC_data(SELF));
+        PMC_data(SELF) = NULL;
+    }
+}    

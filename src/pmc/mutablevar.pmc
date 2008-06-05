@@ -1,5 +1,5 @@
 /*
-$Id:$
+$Id$
 Copyright (C) 2001-2008, The Perl Foundation.
 
 =head1 NAME
@@ -47,5 +47,37 @@ pmclass MutableVAR need_ext dynpmc group perl6_group {
     VTABLE void destroy() {
         mem_sys_free(PMC_data(SELF));
         PMC_data(SELF) = NULL;
+    }
+
+    VTABLE PMC *find_method(STRING *method_name) {
+        PMC *scalar;
+        PMC *mro;
+        INTVAL elements, i;
+        GET_ATTR_scalar(INTERP, SELF, scalar);
+
+        /* We can't get Parrot do dispatch this for us as usual, because it
+         * calls VTABLE_namespace, which delegates to what the mutable
+         * contains. We want to call on the container. */
+        mro = scalar->vtable->mro;
+        elements = VTABLE_elements(INTERP, mro);
+        for (i = 0; i < elements; i++) {
+            PMC *cur_class = VTABLE_get_pmc_keyed_int(INTERP, mro, i);
+            PMC *ns = cur_class->vtable->_namespace;
+            if (!PMC_IS_NULL(ns)) {
+                PMC *method = VTABLE_get_pmc_keyed_str(interp, ns, method_name);
+                if (!PMC_IS_NULL(method)) {
+                    /* Found method. If it's an NCI, we return a BoundNCI, to
+                     * make sure we call with the scalar invocant. */
+                    return method;
+                }
+            }
+        }
+        return PMCNULL;
+    }
+
+    VTABLE PMC* getprop(STRING *prop_name) {
+        PMC *scalar;
+        GET_ATTR_scalar(INTERP, SELF, scalar);
+        return VTABLE_getprop(INTERP, scalar, prop_name);
     }
 }    

@@ -886,7 +886,8 @@ method dotty($/, $key) {
     }
     elsif $key eq 'VAR' {
         $past := PAST::Op.new(
-            :inline("%r = new 'MutableVAR', %0\n"),
+            :pasttype('call'),
+            :name('!VAR'),
             :node($/)
         );
     }
@@ -1826,7 +1827,8 @@ method subcall($/, $key) {
     }
     elsif $key eq 'VAR' {
         $past := PAST::Op.new(
-            :inline("%r = new 'MutableVAR', %0\n"),
+            :pasttype('call'),
+            :name('!VAR'),
             :node($/),
             $( $<variable> )
         );

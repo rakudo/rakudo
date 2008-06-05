@@ -73,7 +73,7 @@ Smart-matches the given topic against the range.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
-    
+
     # Get the range of values to test.
     .local pmc from, to
     from = self.'from'()

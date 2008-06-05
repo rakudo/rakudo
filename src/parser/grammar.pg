@@ -150,19 +150,12 @@ token block {
 }
 
 
-##  Here we deviate from STD.pm a fair bit on the handling of
-##  statementlist and statement_end, if only because this
-##  version (first prototyped in NQP) seems a bit more
-##  straightforward.  We may discover that it won't work.
-
 rule statementlist {
-    [ <statement>
-        [  <.statement_end> || <panic: Statement not terminated properly> ]
-    ]*
+    [<statement><.eat_terminator> ]*
     {*}
 }
 
-##  The statement_end rule detects when we're at a valid
+##  The eat_terminator detects when we're at a valid
 ##  statement termination point.  A semicolon always acts as
 ##  a valid statement end, as does the presence of any expression
 ##  terminator.  The MARK_STATEMENT_END subrule is used by other
@@ -170,9 +163,9 @@ rule statementlist {
 ##  isn't present -- e.g., a closing '}' at the end of a line
 ##  for a <block>.
 
-token terminator { <[ } \] ) ]> | $ }
+token terminator { <[ ; ) \] } ]> || '!!' || '<==' || '==>' || '-->' }
 
-token statement_end {
+token eat_terminator {
     || ';'
     || <?before <terminator>>                    # FIXME: <?terminator>
     || {{ $P0 = get_global '$!endstmt'
@@ -182,6 +175,8 @@ token statement_end {
           .return (1)
           end:
        }} <fail>                                 # FIXME: <!>
+    || $
+    || <.panic: "Statement not terminated properly">
 }
 
 token MARK_STATEMENT_END {

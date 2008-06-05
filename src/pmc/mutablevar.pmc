@@ -80,4 +80,13 @@ pmclass MutableVAR need_ext dynpmc group perl6_group {
         GET_ATTR_scalar(INTERP, SELF, scalar);
         return VTABLE_getprop(INTERP, scalar, prop_name);
     }
-}    
+}
+
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */
+

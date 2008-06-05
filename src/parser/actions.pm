@@ -589,7 +589,7 @@ method signature($/) {
                     $cont_traits := $cont_traits + 1;
                 }
                 else {
-                    $/.panic("Cannot apply traits to parameters yet.");
+                    $/.panic("Cannot apply trait " ~ $name ~ " to parameters yet.");
                 }
             }
             else {
@@ -599,7 +599,7 @@ method signature($/) {
 
         # If we had is copy is rw or some other impossible combination, die.
         if $cont_traits > 1 {
-            $/.panic("Can only use one of ro, rw and copy on a parameter.");
+            $/.panic("Can only use one of readonly, rw and copy on a parameter.");
         }
 
         # Add any type check that is needed. The scheme for this: $type_check
@@ -702,7 +702,7 @@ method signature($/) {
                 )
             ));
         }
-        else {
+        elsif $cont_trait eq 'copy' {
             # Create a new container and copy the value into it..
             $past.push(PAST::Op.new(
                 :pasttype('bind'),

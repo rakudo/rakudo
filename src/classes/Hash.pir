@@ -23,7 +23,9 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     .param pmc args            :slurpy
     .param pmc hash            :slurpy :named
     args.'!flatten'()
-    push args, hash
+    unless hash goto hash_done
+    unshift args, hash
+  hash_done:
     .return args.'hash'()
 .end
 

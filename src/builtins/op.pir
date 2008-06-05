@@ -69,7 +69,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:+' :multi(Int)
+.sub 'prefix:+' :multi('Integer')
     .param int a
     .return (a)
 .end
@@ -82,7 +82,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:-' :multi(Int)
+.sub 'prefix:-' :multi('Integer')
     .param int a
     $I0 = neg a
     .return ($I0)
@@ -122,7 +122,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:^' :multi('Int')
+.sub 'prefix:^' :multi('Integer')
     .param int to
     dec to
     .return 'infix:..'(0, to)

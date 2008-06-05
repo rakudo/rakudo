@@ -279,7 +279,7 @@ Return the number of elements in the list.
     .local pmc block_arg
 
     retv = new 'List'
-    iter = new 'Iterator', self
+    iter = self.'iterator'()
   loop:
     unless iter goto done
     block_arg = shift iter

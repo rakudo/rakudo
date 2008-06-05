@@ -1852,10 +1852,25 @@ method type_declarator($/) {
     # We need a block containing the constraint condition.
     my $past := $( $<EXPR> );
     if $past.WHAT() ne 'Block' {
-        # Make block with the expression as its contents.
+        # Make block with a smart match of the the expression as its contents.
         $past := PAST::Block.new(
-            PAST::Stmts.new(),
-            PAST::Stmts.new( $past )
+            PAST::Stmts.new(
+                PAST::Var.new(
+                    :scope('parameter'),
+                    :name('$_')
+                )
+            ),
+            PAST::Stmts.new(
+                PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('ACCEPTS'),
+                    $past,
+                    PAST::Var.new(
+                        :scope('lexical'),
+                        :name('$_')
+                    )
+                )
+            )
         );
     }
 

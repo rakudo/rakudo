@@ -1285,12 +1285,25 @@ method scoped($/) {
     if $<variable_decl> {
         $past := $( $<variable_decl> );
         if $<typename> {
-            my $type_pir := "    %r = new %0\n    %r.'infix:='(%1)\n    setprop %r, 'type', %1\n";
+            my $type_pir := "    %r = new %0, %1\n    setprop %r, 'type', %2\n";
+            my $type := $( $<typename>[0] );
             $past.viviself(
                 PAST::Op.new(
                     :inline($type_pir),
                     PAST::Val.new( :value(~$past.viviself()) ),
-                    $( $<typename>[0] )
+                    PAST::Op.new(
+                        :pasttype('if'),
+                        PAST::Op.new(
+                            :inline("    $I0 = isa %0, 'P6protoobject'\n    %r = new 'Int'\n    %r = $I0\n"),
+                            $type
+                        ),
+                        $type,
+                        PAST::Var.new(
+                            :name('Failure'),
+                            :scope('package')
+                        )
+                    ),
+                    $type
                 )
             );
         }

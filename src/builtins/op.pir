@@ -69,10 +69,23 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
+.sub 'prefix:+' :multi(Int)
+    .param int a
+    .return (a)
+.end
+
+
 .sub 'prefix:-' :multi(_)
     .param num a
     $N0 = neg a
     .return ($N0)
+.end
+
+
+.sub 'prefix:-' :multi(Int)
+    .param int a
+    $I0 = neg a
+    .return ($I0)
 .end
 
 

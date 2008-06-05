@@ -18,6 +18,7 @@ O             = @o@
 EXE           = @exe@
 
 # Setup some commands
+MAKE          = @make_c@
 PERL          = @perl@
 RM_F          = @rm_f@
 PARROT        = ../../parrot$(EXE)
@@ -124,10 +125,14 @@ help:
 	@echo "  xmas:              Christmas is when Perl 6 is released. Alias of perl6$(EXE)."
 	@echo ""
 	@echo "Testing:"
-	@echo "  test:              Run the test suite."
+	@echo "  test:              Run coretest and codetest."
+	@echo "  coretest:          Run rakudo's core tests."
+	@echo "  codetest:          Run Parrot's code tests."
 	@echo "  testclean:         Clean up test results."
 	@echo "  spectest:          Run the official Perl 6 tests."
 	@echo "  spectest_regression:  Run the tests of the official test suite that are known to pass."
+	@echo "  localtest:         Run the official tests given in t/localtest.data."
+	@echo "  fulltest:          Run coretest, spectest_regression, and codetest."
 	@echo ""
 	@echo "Cleaning:"
 	@echo "  clean:             Basic cleaning up."
@@ -138,8 +143,13 @@ help:
 	@echo "  help:              Print this help message."
 	@echo ""
 
-test: all
+test    : coretest codetest
+
+coretest: all
 	$(PERL) t/harness t/00-parrot t/01-sanity
+
+codetest:
+	$(MAKE) $(BUILD_DIR) codetest
 
 # this target has nothing to do
 testclean:
@@ -161,7 +171,7 @@ spectest_regression: all t/spec t/spectest_regression.data
         --keep-exit-code \
         t/spec/ \
 
-fulltest: all testtest spectest
+fulltest: coretest spectest_regression codetest
 
 localtest: all t/spec t/localtest.data
 	$(PERL) t/harness \

@@ -1689,7 +1689,7 @@ method integer($/) {
 
 
 method dec_number($/) {
-    make PAST::Val.new( :value( +$/ ), :returns('Num'), :node( $/ ) );
+    make PAST::Val.new( :value( ~$/ ), :returns('Num'), :node( $/ ) );
 }
 
 method radint($/, $key) {

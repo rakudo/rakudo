@@ -58,7 +58,7 @@ pmclass Mutable need_ext dynpmc group perl6_group {
 
     VTABLE void assign_pmc(PMC *value) {
         STRING *s_mutable = string_from_literal(INTERP, "Mutable");
-        STRING *s_ro = string_from_literal(INTERP, "ro");
+        STRING *s_ro = string_from_literal(INTERP, "readonly");
         PMC *type_obj;
         PMC *ro;
 

@@ -570,14 +570,14 @@ method signature($/) {
         }
 
         # See if we have any traits. For now, we just handle ro, rw and copy.
-        my $cont_trait := 'ro';
+        my $cont_trait := 'readonly';
         my $cont_traits := 0;
         for $_<parameter><trait> {
             if $_<trait_auxiliary> {
                 # Get name of the trait and see if it's one of the special
                 # traits we handle in the compiler.
                 my $name := $_<trait_auxiliary><ident>;
-                if $name eq 'ro' {
+                if $name eq 'readonly' {
                     $cont_traits := $cont_traits + 1;
                 }
                 elsif $name eq 'rw' {
@@ -683,7 +683,7 @@ method signature($/) {
         if $cont_trait eq 'rw' {
             # We just leave it as it is.
         }
-        elsif $cont_trait eq 'ro' {
+        elsif $cont_trait eq 'readonly' {
             # Create a new container with ro set and bind the parameter to it.
             $past.push(PAST::Op.new(
                 :pasttype('bind'),
@@ -694,7 +694,7 @@ method signature($/) {
                 PAST::Op.new(
                     :inline(" %r = new 'Perl6Scalar', %0\n" ~
                             " $P0 = get_hll_global ['Bool'], 'True'\n" ~
-                            " setprop %r, 'ro', $P0\n"),
+                            " setprop %r, 'readonly', $P0\n"),
                     PAST::Var.new(
                         :name($parameter.name()),
                         :scope('lexical')

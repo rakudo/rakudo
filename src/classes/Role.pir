@@ -12,7 +12,17 @@ src/classes/Role.pir - methods for the Role class
 
 .namespace ['Role']
 
+.sub 'onload' :anon :init :load
+    .local pmc p6meta, roleproto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    roleproto = p6meta.'new_class'('Perl6Role', 'parent'=>'Role Any', 'name'=>'Role')
+    p6meta.'register'('Role', 'parent'=>roleproto, 'protoobject'=>roleproto)
+.end
+
+
 =item ACCEPTS(topic)
+
+Checks if the given topic does the role.
 
 =cut
 

@@ -65,6 +65,33 @@ we need to not do that.
 .end
 
 
+=item ACCEPTS(topic)
+
+Smart-matches the given topic against the range.
+
+=cut
+
+.sub 'ACCEPTS' :method
+    .param pmc topic
+    
+    # Get the range of values to test.
+    .local pmc from, to
+    from = self.'from'()
+    to = self.'to'()
+
+    # Do test.
+    lt topic, from, false
+    gt topic, to, false
+
+  true:
+    $P0 = get_hll_global [ 'Bool' ], 'True'
+    .return ($P0)
+  false:
+    $P0 = get_hll_global [ 'Bool' ], 'False'
+    .return ($P0)
+.end
+
+
 =item perl
 
 Returns a Perl code representation of the range.

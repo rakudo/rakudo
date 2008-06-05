@@ -17,7 +17,7 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 
     $P0 = get_hll_namespace ['List']
-    '!EXPORT'('elems first grep keys kv map pairs reduce reverse sort values', $P0)
+    '!EXPORT'('elems first grep keys kv map pairs reduce reverse values', $P0)
 .end
 
 =item clone()    (vtable method)
@@ -530,7 +530,7 @@ Sort list by copying into FPA, sorting and creating new List.
 
 =cut
 
-.sub 'sort' :method :multi('ResizablePMCArray')
+.sub 'sort' :method
     .param pmc by              :optional
     .param int has_by          :opt_flag
     .local pmc elem, arr
@@ -562,6 +562,7 @@ Sort list by copying into FPA, sorting and creating new List.
     .return $P0(arr)
 .end
 
+.namespace []
 .sub 'sort' :multi()
     .param pmc values          :slurpy
     .local pmc by
@@ -583,6 +584,7 @@ Sort list by copying into FPA, sorting and creating new List.
 
 # TODO Rewrite it. It's too naive.
 
+.namespace ['List']
 .sub uniq :method
     .local pmc ulist
     .local pmc key

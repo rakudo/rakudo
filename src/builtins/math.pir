@@ -147,7 +147,8 @@ for a rounded version.
   under:
     ceil a
   return:
-    .return (a)
+    $I0 = a
+    .return ($I0)
 .end
 
 .sub 'int'

@@ -839,15 +839,17 @@ method postfix($/, $key) {
 
 
 method dotty($/, $key) {
-    my $past := $( $<methodop> );
+    my $past;
 
     if $key eq '.' {
-        # Just a normal method call; nothing to do.
+        # Just a normal method call.
+        $past := $( $<methodop> );
     }
     elsif $key eq '!' {
         # Private method call. Need to put ! on the start of the name
         # (unless it was call to a code object, in which case we don't do
         # anything more).
+        $past := $( $<methodop> );
         if $<methodop><name> {
             $past.name('!' ~ $past.name());
         }
@@ -861,6 +863,7 @@ method dotty($/, $key) {
         }
     }
     elsif $key eq '.*' {
+        $past := $( $<methodop> );
         if $/[0] eq '.?' || $/[0] eq '.+' || $/[0] eq '.*' {
             unless $<methodop><name> || $<methodop><quote>  {
                 $/.panic("Cannot use " ~ $/[0] ~ " when method is a code ref");
@@ -880,6 +883,12 @@ method dotty($/, $key) {
         else {
             $/.panic($/[0] ~ ' method calls not yet implemented');
         }
+    }
+    elsif $key eq 'VAR' {
+        $past := PAST::Op.new(
+            :inline("%r = new 'MutableVAR', %0\n"),
+            :node($/)
+        );
     }
 
     make $past;
@@ -1808,10 +1817,20 @@ method typename($/) {
 }
 
 
-method subcall($/) {
-    my $past := build_call( $( $<semilist> ) );
-    $past.name( ~$<ident> );
-    $past.node( $/ );
+method subcall($/, $key) {
+    my $past;
+    if $key eq 'subcall' {
+        $past := build_call( $( $<semilist> ) );
+        $past.name( ~$<ident> );
+        $past.node( $/ );
+    }
+    elsif $key eq 'VAR' {
+        $past := PAST::Op.new(
+            :inline("%r = new 'MutableVAR', %0\n"),
+            :node($/),
+            $( $<variable> )
+        );
+    }
     make $past;
 }
 

@@ -456,6 +456,7 @@ token postfix {
 
 token dotty {
     [
+    | '.VAR' {*}                                      #= VAR
     | '.' <methodop> {*}                              #= .
     | ('.' <[+*?=^:]>) <?unspacey> <methodop> {*}     #= .*
     | '!' <methodop> {*}                              #= !
@@ -668,8 +669,8 @@ token name {
 }
 
 token subcall {
-    <ident> '.'? '(' <semilist> ')'
-    {*}
+    | 'VAR(' <variable> ')' {*}             #= VAR
+    | <ident> '.'? '(' <semilist> ')' {*}   #= subcall
 }
 
 # These regex rules are some way off STD.pm at the moment, but we'll work them

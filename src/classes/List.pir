@@ -189,6 +189,10 @@ layer.  It will likely change substantially when we have lazy lists.
     unless $I0 goto flat_next
     $I0 = isa elem, 'Arrayref'
     if $I0 goto flat_next
+    $I0 = isa elem, 'Range'
+    unless $I0 goto not_range
+    elem = elem.'list'()
+  not_range:
     $I0 = does elem, 'array'
     unless $I0 goto flat_next
     splice self, elem, i, 1
@@ -341,7 +345,8 @@ Returns a List containing the keys of the invocant.
 .sub 'keys' :method :multi(ResizablePMCArray)
     $I0 = self.'elems'()
     dec $I0
-    .return 'infix:..'(0, $I0)
+    $P0 = 'infix:..'(0, $I0)
+    .return $P0.'list'()
 .end
 
 .sub 'keys' :multi()

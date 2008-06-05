@@ -4,7 +4,9 @@
 
 class Perl6::Grammar::Actions ;
 
-##  Change this to be 'Perl6Scalar' to try the Mutable PMC version.
+##  Change this to be 'Failure' to turn off the Mutable PMC version.
+##  Note that to make this work again, you will also need to change:
+##   * scoped method, to not do new %0, %1
 our $?PERL6SCALAR := 'Perl6Scalar';
 
 method TOP($/) {
@@ -1294,8 +1296,9 @@ method scoped($/) {
                     PAST::Op.new(
                         :pasttype('if'),
                         PAST::Op.new(
-                            :inline("    $I0 = isa %0, 'P6protoobject'\n    %r = new 'Int'\n    %r = $I0\n"),
-                            $type
+                            :pirop('isa'),
+                            $type,
+                            PAST::Val.new( :value("P6protoobject") )
                         ),
                         $type,
                         PAST::Var.new(

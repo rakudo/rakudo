@@ -119,13 +119,20 @@ Return the List as a list.
 
 =cut
 
+.namespace ['ResizablePMCArray']
 .sub 'list' :method
-    $I0 = isa self, 'List'
-    if $I0 goto have_list
-    $P0 = new 'List'
+    ##  this code morphs a ResizablePMCArray into a List
+    ##  without causing a clone of any of the elements
+    $P0 = new 'ResizablePMCArray'
     splice $P0, self, 0, 0
-    copy self, $P0
-  have_list:
+    $P1 = new 'List'
+    copy self, $P1
+    splice self, $P0, 0, 0
+    .return (self)
+.end
+
+.namespace ['List']
+.sub 'list' :method
     .return (self)
 .end
 
@@ -205,9 +212,7 @@ layer.  It will likely change substantially when we have lazy lists.
   flat_end:
     $I0 = isa self, 'List'
     if $I0 goto end
-    $P0 = new 'List'
-    splice $P0, self, 0, 0
-    copy self, $P0
+    self.'list'()
   end:
     .return (self)
 .end

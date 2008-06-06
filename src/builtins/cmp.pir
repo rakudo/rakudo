@@ -10,7 +10,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 
 =cut
 
-.namespace
+.namespace []
 
 .sub 'infix:==' :multi(_,_)
     .param num a

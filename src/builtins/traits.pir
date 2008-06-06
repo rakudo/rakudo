@@ -10,7 +10,7 @@ src/builtins/traits.pir - Perl 6 built-in traits
 
 =cut
 
-.namespace
+.namespace []
 
 # Handles the case where you have a trait that is a class being applied to a
 # class, in which case it's inheritance.

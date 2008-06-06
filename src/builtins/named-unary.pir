@@ -10,7 +10,7 @@ src/builtins/named-unary.pir - Perl6 named unary builtins
 
 =cut
 
-.namespace
+.namespace []
 
 =item defined($x)
 

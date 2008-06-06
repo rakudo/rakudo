@@ -10,7 +10,7 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 =cut
 
-.namespace
+.namespace []
 
 .sub 'print'
     .param pmc args            :slurpy

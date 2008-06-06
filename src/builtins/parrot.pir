@@ -12,7 +12,7 @@ src/builtins/parrot.pir - Special-purpose functions for Parrot
 
 =cut
 
-.namespace
+.namespace []
 
 .sub 'parrot_trace'
     .param int tracelevel

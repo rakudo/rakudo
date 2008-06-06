@@ -53,11 +53,12 @@ we need to not do that.
 =cut
 
 .sub 'list' :method
-    .local pmc res, cur_val
+    .local pmc res, cur_val, it
+    it = clone self
     res = new 'List'
   it_loop:
-    unless self goto it_loop_end
-    cur_val = shift self
+    unless it goto it_loop_end
+    cur_val = shift it
     push res, cur_val
     goto it_loop
   it_loop_end:
@@ -112,16 +113,33 @@ Returns a Perl code representation of the range.
 .end
 
 
-=item get_iter (vtable)
+=item iterator()   (vtable 'get_iter')
 
-Just returns this Range itself, since a Range is an iterator.
+Since Range is already an iterator, just return a clone
+of self.
 
 =cut
 
-.sub get_iter :method :vtable
-    .return (self)
+.sub 'iterator' :method :vtable('get_iter')
+    $P0 = clone self
+    .return ($P0)
 .end
 
+=item clone (vtable)
+
+Clone it self
+
+=cut
+
+.sub 'clone' :method :vtable
+    .local pmc from, to, retv
+    $P0 = self.'from'()
+    from = clone $P0
+    $P0 = self.'to'()
+    to = clone $P0
+    retv = 'infix:..'(from, to)
+    .return (retv)
+.end
 
 =item shift_pmc (vtable)
 

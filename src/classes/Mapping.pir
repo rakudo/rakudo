@@ -158,7 +158,7 @@ Returns elements of hash as array of C<Pair(key, value)>
 
 =cut
 
-.namespace
+.namespace []
 
 =item delete
 

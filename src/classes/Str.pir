@@ -264,7 +264,7 @@ Returns a Perl representation of the Str.
 
 =cut
 
-.namespace
+.namespace []
 
 .include 'cclass.pasm'
 

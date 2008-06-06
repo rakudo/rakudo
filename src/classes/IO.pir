@@ -90,7 +90,7 @@ Closes the file.
 .end
 
 
-.namespace
+.namespace []
 
 =back
 

@@ -167,7 +167,7 @@ Adds C<args> to the beginning of the Array.
 
 =cut
 
-.namespace
+.namespace []
 
 .sub '!Arrayref'
     .param pmc args            :slurpy

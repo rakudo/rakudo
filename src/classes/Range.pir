@@ -212,7 +212,7 @@ Constructs a range from the value on the LHS to the value on the RHS.
 
 =cut
 
-.namespace
+.namespace []
 
 .sub "infix:.."
     .param pmc a

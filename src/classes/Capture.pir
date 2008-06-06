@@ -112,7 +112,7 @@ Gets the named part of the capture.
 =cut
 
 
-.namespace
+.namespace []
 
 .sub "infix:\\( )"
     .param pmc inv

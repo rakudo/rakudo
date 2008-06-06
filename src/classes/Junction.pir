@@ -217,7 +217,7 @@ Returns a Perl representation of a junction.
 
 =cut
 
-.namespace
+.namespace []
 
 =item C<all(...)>
 

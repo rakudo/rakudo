@@ -10,7 +10,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 
 =cut
 
-.namespace
+.namespace []
 
 .sub 'onload' :anon :load :init
     .local pmc p6meta, hashproto

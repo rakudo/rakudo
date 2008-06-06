@@ -82,7 +82,7 @@ Returns a Perl code representation of the pair.
 .end
 
 
-.namespace
+.namespace []
 
 .sub 'infix:=>'
     .param pmc key

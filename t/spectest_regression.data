@@ -38,6 +38,7 @@ S29-array/pop.t
 S29-array/push.t
 S29-array/shift.t
 S29-array/unshift.t
+S29-list/grep.t
 S29-list/map_empty_list.t
 S29-list/map_flattening.t
 S29-list/map_function_return_values.t

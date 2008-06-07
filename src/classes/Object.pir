@@ -41,11 +41,14 @@ and Mappings to be converted into Array(ref) and Hash(ref).
 .namespace ['Perl6Object']
 .sub 'infix:=' :method
     .param pmc source
-    $P0 = source.'item'()
+    $I0 = can source, 'item'
+    unless $I0 goto have_source
+    source = source.'item'()
+  have_source:
 
     $I0 = isa self, 'Mutable'
     unless $I0 goto copy
-    assign self, $P0
+    assign self, source
     goto end
 
   copy:
@@ -57,8 +60,8 @@ and Mappings to be converted into Array(ref) and Hash(ref).
     die "Type mismatch in assignment."
 
   do_assign:
-    eq_addr self, $P0, end
-    copy self, $P0
+    eq_addr self, source, end
+    copy self, source
   end:
     .return (self)
 .end

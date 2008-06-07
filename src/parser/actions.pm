@@ -1916,12 +1916,11 @@ method EXPR($/, $key) {
     }
     else {
         my $past := PAST::Op.new(
+            :node($/),
             :name($<type>),
-            :pasttype($<top><pasttype>),
-            :pirop($<top><pirop>),
-            :lvalue($<top><lvalue>),
-            :node($/)
+            :opattr($<top>)
         );
+        if $<top><subname> { $past.name(~$<top><subname>); }
         for @($/) {
             unless +$_.from() == +$_.to() { $past.push( $($_) ) };
         }

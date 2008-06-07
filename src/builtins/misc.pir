@@ -12,12 +12,6 @@ src/builtins/misc.pir - miscellaneous builtins that need reclassification
     .return($P0)
 .end
 
-.sub 'WHAT'
-    .param pmc x
-    .return x.'WHAT'()
-.end
-
-
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

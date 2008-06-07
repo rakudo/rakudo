@@ -19,6 +19,9 @@ Num - Perl 6 numbers
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     numproto = p6meta.'new_class'('Num', 'parent'=>'Float Any')
     p6meta.'register'('Float', 'parent'=>numproto, 'protoobject'=>numproto)
+
+    $P0 = get_hll_namespace ['Num']
+    '!EXPORT'('cis unpolar', 'from'=>$P0)
 .end
 
 
@@ -43,6 +46,33 @@ Returns a Perl representation of the Num.
     .return($S0)
 .end
 
+
+=item cis(angle)
+
+=cut
+
+.sub 'cis' :method
+    .return 'unpolar'(1.0, self)
+.end
+
+=item unpolar(angle)
+
+=cut
+
+.sub 'unpolar' :method
+    .param num angle
+    .local num mag
+    .local pmc result
+    mag = self
+    result = new 'Complex'
+    $N0 = cos angle
+    $N0 *= mag
+    result[0] = $N0
+    $N0 = sin angle
+    $N0 *= mag
+    result[1] = $N0
+    .return (result)
+.end
 
 =back
 

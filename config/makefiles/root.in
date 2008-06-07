@@ -47,6 +47,7 @@ BUILTINS_PIR = \
   src/classes/Str.pir \
   src/classes/Num.pir \
   src/classes/Int.pir \
+  src/classes/Complex.pir \
   src/classes/IO.pir \
   src/classes/List.pir \
   src/classes/Array.pir \

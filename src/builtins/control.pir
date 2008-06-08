@@ -88,7 +88,7 @@ to coordinate with entire async model.  -law]
 
 =cut
 
-.sub 'sleep'
+.sub 'prefix:sleep'
     .param num a
     sleep a
 .end

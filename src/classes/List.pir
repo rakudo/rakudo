@@ -328,17 +328,28 @@ Returns a string comprised of all of the list, separated by the string SEPARATOR
 
 =cut
 
-#.sub 'join' :method :multi('ResizablePMCArray', _)
-#    .param string sep
-#    $S0 = join sep, self
-#    .return ($S0)
-#.end
-#
-#.sub 'join' :multi('String')
-#    .param string sep
-#    .param pmc values          :slurpy
-#    .return values.'join'(sep)
-#.end
+.namespace []
+.sub 'join' :multi('String')
+    .param string sep
+    .param pmc values          :slurpy
+    .return values.'join'(sep)
+.end
+
+.namespace ['List']
+.sub 'join' :method :multi('ResizablePMCArray')
+    .param string sep          :optional
+    .param int has_sep         :opt_flag
+
+    if has_sep goto have_sep
+    sep = ' '
+  have_sep:
+
+    self.'!flatten'()
+    $S0 = join sep, self
+    $P0 = new 'Str'
+    $P0 = $S0
+    .return ($P0)
+.end
 
 
 =item keys()

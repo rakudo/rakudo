@@ -77,7 +77,7 @@ proto prefix:<abs> is equiv(prefix:<rand>)
     { ... }
 proto prefix:<pop> is equiv(prefix:<rand>) is subname('pop') { ... }
 proto prefix:<shift> is equiv(prefix:<rand>) is subname('shift') { ... }
-proto prefix:<sleep> is equiv(prefix:<rand>) { ... }
+proto prefix:<sleep> is equiv(prefix:<rand>) is subname('sleep') { ... }
 
 ## nonchaining
 proto infix:<..> is precedence('n=') { ... }

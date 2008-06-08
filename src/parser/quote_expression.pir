@@ -102,8 +102,13 @@
     .local string escapes
     escapes = ''
     $I0 = options['s']
-    unless $I0 goto have_escapes
+    unless $I0 goto escape_s_done
     escapes = '$'
+  escape_s_done:
+    $I0 = options['c']
+    unless $I0 goto escape_c_done
+    escapes .= '{'
+  escape_c_done:
   have_escapes:
     options['escapes'] = escapes
 
@@ -263,24 +268,35 @@
     leadchar = substr target, pos, 1
     $I0 = index escapes, leadchar
     if $I0 < 0 goto term_literal
-    if leadchar != '$' goto term_literal
-  term_scalar:
-    mob.'to'(pos)
-    $P0 = mob.'variable'('action'=>action)
-    unless $P0 goto term_literal
-    pos = $P0.'to'()
-    mob['variable'] = $P0
-    .local string key
-    key = 'variable'
-    goto succeed
-
+    if leadchar == '$' goto term_scalar
+    if leadchar == '{' goto term_closure
   term_literal:
     mob.'to'(pos)
     $P0 = mob.'quote_literal'(options)
     unless $P0 goto fail
     pos = $P0.'to'()
     mob['quote_literal'] = $P0
+    .local string key
     key = 'literal'
+    goto succeed
+
+  term_scalar:
+    mob.'to'(pos)
+    $P0 = mob.'variable'('action'=>action)
+    unless $P0 goto term_literal
+    pos = $P0.'to'()
+    key = 'variable'
+    mob[key] = $P0
+    goto succeed
+
+  term_closure:
+    mob.'to'(pos)
+    $P0 = mob.'circumfix'('action'=>action)
+    unless $P0 goto term_literal
+    pos = $P0.'to'()
+    key = 'circumfix'
+    mob[key] = $P0
+    goto succeed
 
   succeed:
     mob.'to'(pos)

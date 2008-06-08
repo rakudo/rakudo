@@ -1809,8 +1809,12 @@ method quote_term($/, $key) {
             :returns('Perl6Str'), :node($/)
         );
     }
-    if ($key eq 'variable') {
+    elsif ($key eq 'variable') {
         $past := $( $<variable> );
+    }
+    elsif ($key eq 'circumfix') {
+        $past := $( $<circumfix> );
+        $past.blocktype('immediate');
     }
     make $past;
 }

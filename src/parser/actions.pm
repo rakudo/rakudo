@@ -525,6 +525,7 @@ method routine_def($/) {
         our $?BLOCK;
         $?BLOCK.symbol(~$<ident>[0], :scope('package'));
     }
+    $past.control('return_pir');
     make $past;
 }
 
@@ -533,6 +534,7 @@ method method_def($/) {
     if $<ident> {
         $past.name( ~$<ident>[0] );
     }
+    $past.control('return_pir');
     make $past;
 }
 

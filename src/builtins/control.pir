@@ -16,6 +16,25 @@ src/builtins/control.pir - Perl 6 Control functions
 ## .namespace [ 'Control::Basic' ]
 
 
+=item return
+
+Create a return exception.  (Only handles 1 return value for
+the moment -- we'll do more complex handling a bit later.)
+
+=cut
+
+.include 'except_types.pasm'
+
+.sub 'return'
+    .param pmc value
+    $P0 = new 'Exception'
+    $P0['_type'] = .CONTROL_RETURN
+    setattribute $P0, 'payload', value
+    throw $P0
+    .return (value)
+.end
+
+
 =item die
 
 =cut

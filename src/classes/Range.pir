@@ -169,7 +169,7 @@ Clone it self
 
 .sub 'clone' :method :vtable
     .local pmc from, to, from_exc, to_exc, retv
-    
+
     # Get to and from values.
     $P0 = self.'from'()
     from = clone $P0

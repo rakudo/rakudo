@@ -1379,7 +1379,7 @@ sub declare_attribute($/) {
             :pirflags(':method'),
             :node( $/ )
         );
-        $?CLASS.unshift($accessor);
+        $class_def.unshift($accessor);
     }
 
     # If it's a ! twigil, we're done; otherwise, error.
@@ -1410,7 +1410,6 @@ sub declare_attribute($/) {
 
     # Register the attribute in the scope.
     $?BLOCK.symbol($name, :scope('attribute'));
-
 }
 
 method scope_declarator($/) {
@@ -1614,7 +1613,7 @@ method variable($/, $key) {
 
             # If we have no twigil, but we see the name noted as an attribute in
             # an enclosing scope, add the ! twigil anyway; it's an alias.
-            if $<twigil>[0] eq '' {
+            if $twigil eq '' {
                 our @?BLOCK;
                 for @?BLOCK {
                     if defined( $_ ) {
@@ -1634,6 +1633,11 @@ method variable($/, $key) {
             if @ident || $twigil eq '*' {
                 $past.namespace(@ident);
                 $past.scope('package');
+            }
+
+            # If it has a ! twigil, give it attribute scope.
+            if $twigil eq '!' {
+                $past.scope('attribute');
             }
 
             my $container_type;

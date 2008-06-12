@@ -1102,8 +1102,26 @@ method package_declarator($/, $key) {
                 @?PACKAGE.unshift( $?PACKAGE );
                 $?PACKAGE := $?GRAMMAR;
             }
+        }
+        else {
+            # It's a module. We need a way to mark that the current package is
+            # not a role or a class, so we put the current one on the array and
+            # set $?PACKAGE to undef.
+            @?PACKAGE.unshift( $?PACKAGE );
+            $?PACKAGE := undef;
+        }
+    }
+    else {
+        my $past := $( $/{$key} );
 
-            # Apply any traits and do any roles.
+        # Declare the namespace and that this is something we do
+        # "on load".
+        $past.namespace($<name><ident>);
+        $past.blocktype('declaration');
+        $past.pirflags(':init :load');
+
+        # Apply any traits and do any roles, if it's a class or role or grammar.
+        if $<sym> eq 'class' || $<sym> eq 'role' || $<sym> eq 'grammar' {
             my $does_pir;
             for $<trait_or_does> {
                 if $_<trait> {
@@ -1141,22 +1159,6 @@ method package_declarator($/, $key) {
                 }
             }
         }
-        else {
-            # It's a module. We need a way to mark that the current package is
-            # not a role or a class, so we put the current one on the array and
-            # set $?PACKAGE to undef.
-            @?PACKAGE.unshift( $?PACKAGE );
-            $?PACKAGE := undef;
-        }
-    }
-    else {
-        my $past := $( $/{$key} );
-
-        # Declare the namespace and that this is something we do
-        # "on load".
-        $past.namespace($<name><ident>);
-        $past.blocktype('declaration');
-        $past.pirflags(':init :load');
 
         if $<sym> eq 'class' {
             # Make proto-object.

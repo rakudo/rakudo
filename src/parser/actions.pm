@@ -1200,11 +1200,19 @@ method package_declarator($/, $key) {
             $?CLASS := @?CLASS.shift();
         }
         elsif $<sym> eq 'role' {
-            # Attatch role declaration to the init code.
+            # Attatch role declaration to the init code, skipping blocks since
+            # those are accessors.
             unless defined( $?INIT ) {
                 $?INIT := PAST::Block.new();
             }
-            $?INIT.push( $?ROLE );
+            for @( $?ROLE ) {
+                if $_.WHAT() eq 'Block' {
+                    $past.push( $_ );
+                }
+                else {
+                    $?INIT.push( $_ );
+                }
+            }
 
             # Restore outer role.
             $?ROLE := @?ROLE.shift();

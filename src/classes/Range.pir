@@ -15,7 +15,7 @@ src/classes/Range.pir - methods for the Range class
 .sub 'onload' :anon :load :init
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!from $!to')
+    p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!from $!to $!from_exclusive $!to_exclusive')
 .end
 
 
@@ -75,14 +75,32 @@ Smart-matches the given topic against the range.
 .sub 'ACCEPTS' :method
     .param pmc topic
 
-    # Get the range of values to test.
-    .local pmc from, to
+    # Get the range of values to test and exclusivity of endpoints.
+    .local pmc from, to, from_exc, to_exc
     from = self.'from'()
     to = self.'to'()
+    from_exc = getattribute self, "$!from_exclusive"
+    to_exc = getattribute self, "$!to_exclusive"
 
-    # Do test.
+    # Do test, depending on exclusivity of endpoints.
+    if from_exc goto from_excluded
+    if to_exc goto to_excluded
+  inclusive:
     lt topic, from, false
     gt topic, to, false
+    goto true
+  from_excluded:
+    if to_exc goto both_excluded
+    le topic, from, false
+    gt topic, to, false
+    goto true
+  to_excluded:
+    lt topic, from, false
+    ge topic, to, false
+    goto true
+  both_excluded:
+    le topic, from, false
+    ge topic, to, false
 
   true:
     $P0 = get_hll_global [ 'Bool' ], 'True'
@@ -106,8 +124,26 @@ Returns a Perl code representation of the range.
     $P1 = getattribute self, '$!to'
     $S1 = $P1.'perl'()
 
-    # Generate to...from
+    # Generate to...from (with exclusive endpoints as needed).
+    .local pmc from_exc, to_exc
+    from_exc = getattribute self, "$!from_exclusive"
+    to_exc = getattribute self, "$!to_exclusive"
+    if from_exc goto from_excluded
+    if to_exc goto to_excluded
+  inclusive:
     concat $S0, ".."
+    goto add_to
+  from_excluded:
+    if to_exc goto both_excluded
+    concat $S0, "^.."
+    goto add_to
+  to_excluded:
+    concat $S0, "..^"
+    goto add_to
+  both_excluded:
+    concat $S0, "^..^"
+
+  add_to:
     concat $S0, $S1
     .return($S0)
 .end
@@ -132,14 +168,34 @@ Clone it self
 =cut
 
 .sub 'clone' :method :vtable
-    .local pmc from, to, retv
+    .local pmc from, to, from_exc, to_exc, retv
+    
+    # Get to and from values.
     $P0 = self.'from'()
     from = clone $P0
     $P0 = self.'to'()
     to = clone $P0
+
+    # What sort of range?
+    from_exc = getattribute self, "$!from_exclusive"
+    to_exc = getattribute self, "$!to_exclusive"
+    if from_exc goto from_excluded
+    if to_exc goto to_excluded
+  inclusive:
     retv = 'infix:..'(from, to)
     .return (retv)
+  from_excluded:
+    if to_exc goto both_excluded
+    retv = 'infix:^..'(from, to)
+    .return (retv)
+  to_excluded:
+    retv = 'infix:..^'(from, to)
+    .return (retv)
+  both_excluded:
+    retv = 'infix:^..^'(from, to)
+    .return (retv)
 .end
+
 
 =item shift_pmc (vtable)
 
@@ -148,15 +204,26 @@ Gets the next value from the iterator.
 =cut
 
 .sub shift_pmc :method :vtable
-    .local pmc from_val, to_val, ret_val
-
-    # Check we've still got values.
+    .local pmc from_val, to_val, from_exc, to_exc, end_check, ret_val
     from_val = getattribute self, '$!from'
+    from_exc = getattribute self, '$!from_exclusive'
     to_val = getattribute self, '$!to'
-    if from_val > to_val goto no_more_elements
+    to_exc = getattribute self, '$!to_exclusive'
 
-    # Update current position and return value.
+    # Need to handle differently depending on exclusive or inclusive.
+    end_check = clone to_val
+    unless to_exc goto to_inclusive
+    'postfix:--'(end_check)
+  to_inclusive:
+    if from_exc goto from_exclusive
+  from_inclusive:
+    if from_val > end_check goto no_more_elements
     ret_val = 'postfix:++'(from_val)
+    setattribute self, '$!from', from_val
+    .return (ret_val)
+  from_exclusive:
+    if from_val >= end_check goto no_more_elements
+    ret_val = 'prefix:++'(from_val)
     setattribute self, '$!from', from_val
     .return (ret_val)
 
@@ -175,11 +242,23 @@ Returns true if there are any more values to iterate over, and false otherwise.
 =cut
 
 .sub get_bool :method :vtable
-    # Check we've still got values.
-    .local pmc from_val, to_val
+    .local pmc from_val, to_val, from_exc, to_exc, end_check
     from_val = getattribute self, '$!from'
+    from_exc = getattribute self, '$!from_exclusive'
     to_val = getattribute self, '$!to'
-    $I0 = from_val <= to_val
+    to_exc = getattribute self, '$!to_exclusive'
+
+    # Check we've still got values, sensitive to exclusive or inclusive endpoints.
+    end_check = clone to_val
+    unless to_exc goto to_inclusive
+    'postfix:--'(end_check)
+  to_inclusive:
+    if from_exc goto from_exclusive
+  from_inclusive:
+    $I0 = from_val <= end_check
+    .return ($I0)
+  from_exclusive:
+    $I0 = from_val < end_check
     .return ($I0)
 .end
 
@@ -191,12 +270,8 @@ Returns true if there are any more values to iterate over, and false otherwise.
 =cut
 
 .sub defined :method :vtable
-    # Check we've still got values.
-    .local pmc from_val, to_val
-    from_val = getattribute self, '$!from'
-    to_val = getattribute self, '$!to'
-    $I0 = from_val <= to_val
-    .return ($I0)
+    # Just the same as bool_true.
+    .return self.'true'()
 .end
 
 
@@ -222,6 +297,55 @@ Constructs a range from the value on the LHS to the value on the RHS.
     .return proto.'new'('from' => a, 'to' => b)
 .end
 
+
+=item infix:<^..>
+
+Constructs a range from the value on the LHS to the value on the RHS, where
+the from value is excluded from the range.
+
+=cut
+
+.sub "infix:^.."
+    .param pmc a
+    .param pmc b
+    .local pmc proto, true
+    proto = get_hll_global 'Range'
+    true = get_hll_global [ 'Bool' ], 'True'
+    .return proto.'new'('from' => a, 'to' => b, 'from_exclusive' => true)
+.end
+
+
+=item infix:<..^>
+
+Constructs a range from the value on the LHS to the value on the RHS, where
+the to value is excluded from the range.
+
+=cut
+
+.sub "infix:..^"
+    .param pmc a
+    .param pmc b
+    .local pmc proto, true
+    proto = get_hll_global 'Range'
+    true = get_hll_global [ 'Bool' ], 'True'
+    .return proto.'new'('from' => a, 'to' => b, 'to_exclusive' => true)
+.end
+
+
+=item infix:<^..^>
+
+Constructs a range from the value on the LHS to the value on the RHS, where
+the from and to values are excluded from the range.
+
+=cut
+
+.sub "infix:^..^"
+    .param pmc a
+    .param pmc b
+    .local pmc proto
+    proto = get_hll_global 'Range'
+    .return proto.'new'('from' => a, 'to' => b, 'from_exclusive' => 1, 'to_exclusive' => 1)
+.end
 
 =back
 

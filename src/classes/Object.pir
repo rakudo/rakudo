@@ -309,6 +309,39 @@ Print the object
 
 =back
 
+=head2 Private methods
+
+=over 4
+
+=item !cloneattr(attrlist)
+
+Create a clone of self, also cloning the attributes given by attrlist.
+
+=cut
+
+.sub '!cloneattr' :method
+    .param string attrlist
+    .local pmc p6meta, result
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    $P0 = p6meta.'get_parrotclass'(self)
+    result = new $P0
+
+    .local pmc attr_it
+    attr_it = split ' ', attrlist
+  attr_loop:
+    unless attr_it goto attr_end
+    $S0 = shift attr_it
+    unless $S0 goto attr_loop
+    $P1 = getattribute self, $S0
+    $P1 = clone $P1
+    setattribute result, $S0, $P1
+    goto attr_loop
+  attr_end:
+    .return (result)
+.end
+
+=back
+
 =cut
 
 # Local Variables:

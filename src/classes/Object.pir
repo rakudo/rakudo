@@ -202,15 +202,37 @@ Create a new object having the same class as the invocant.
   iter_loop:
     unless iter goto iter_end
     $S0 = shift iter
+
+    # See if we have an init value; use Undef if not.
+    .local int got_init_value
     $S1 = substr $S0, 2
-    $I0 = exists init_attribs[$S1]
-    if $I0 goto have_init_value
+    got_init_value = exists init_attribs[$S1]
+    if got_init_value goto have_init_value
     $P2 = new 'Undef'
     goto init_done
   have_init_value:
     $P2 = init_attribs[$S1]
     delete init_attribs[$S1]
   init_done:
+
+    # Is it a scalar? If so, want a scalar container with the type set on it.
+    .local string sigil
+    sigil = substr $S0, 0, 1
+    if sigil != '$' goto no_scalar
+    .local pmc attr_info, type
+    attr_info = attribs[$S0]
+    if null attr_info goto no_scalar
+    type = attr_info['type']
+    if null type goto no_scalar
+    if got_init_value goto no_proto_init
+    $I0 = isa type, 'P6protoobject'
+    unless $I0 goto no_proto_init
+    set $P2, type
+  no_proto_init:
+    $P2 = new 'Perl6Scalar', $P2
+    setprop $P2, 'type', type
+  no_scalar:
+
     push_eh set_attrib_eh
     setattribute $P1, cur_class, $S0, $P2
 set_attrib_eh:

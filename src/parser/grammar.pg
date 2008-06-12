@@ -539,7 +539,7 @@ token variable_decl {
 
 
 rule scoped {
-    <typename>*
+    <fulltypename>*
     [
     | <variable_decl>
     | <routine_declarator>
@@ -650,6 +650,12 @@ token rad_number {
     || <?before '['> <postcircumfix>
     || <?before '('> <postcircumfix>
     ]
+    {*}
+}
+
+rule fulltypename {
+    <typename>
+#   [ of <fulltypename> ]?
     {*}
 }
 

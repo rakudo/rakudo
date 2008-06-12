@@ -238,7 +238,7 @@ Internal helper method to implement the functionality of the does keyword.
   ra_iter_loop_end:
 .end
 
-=item !keyword_has(class, attr_name)
+=item !keyword_has(class, attr_name, type)
 
 Adds an attribute with the given name to the class or role.
 
@@ -247,7 +247,8 @@ Adds an attribute with the given name to the class or role.
 .sub '!keyword_has'
     .param pmc class
     .param string attr_name
-    addattribute class, attr_name
+    .param pmc type
+    class.'add_attribute'(attr_name, type)
 .end
 
 =back

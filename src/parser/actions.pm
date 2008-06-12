@@ -1299,9 +1299,12 @@ method scoped($/) {
     # Variable declaration?
     if $<variable_decl> {
         $past := $( $<variable_decl> );
-        if $<typename> {
+
+        # Unless it's an attribute, emit code to set type and initialize it to
+        # the correct proto.
+        if $<fulltypename> && $past.WHAT() eq 'Var' {
             my $type_pir := "    %r = new %0, %1\n    setprop %r, 'type', %2\n";
-            my $type := $( $<typename>[0] );
+            my $type := build_type($<fulltypename>);
             $past.viviself(
                 PAST::Op.new(
                     :inline($type_pir),
@@ -1329,7 +1332,7 @@ method scoped($/) {
         $past := $( $<routine_declarator> );
 
         # Don't support setting return type yet.
-        if $<typename> {
+        if $<fulltypename> {
             $/.panic("Setting return type of a routine not yet implemented.");
         }
     }
@@ -1369,6 +1372,7 @@ sub declare_attribute($/) {
                 :scope('lexical')
             ),
             PAST::Val.new( :value($name) ),
+            build_type($/<scoped><fulltypename>)
         )
     );
 
@@ -2315,8 +2319,17 @@ sub build_type($cons_pt) {
     my $num_types := 0;
     my $type_cons := PAST::Op.new();
     for $cons_pt {
-        $type_cons.push( $( $_ ) );
+        $type_cons.push( $( $_<typename> ) );
         $num_types := $num_types + 1;
+    }
+
+    # If there were none, it's Object.
+    if $num_types == 0 {
+        $type_cons.push(PAST::Var.new(
+            :name('Object'),
+            :scope('package')
+        ));
+        $num_types := 1;
     }
 
     # Now need to apply the type constraints. How many are there?

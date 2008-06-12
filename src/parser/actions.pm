@@ -2281,7 +2281,7 @@ sub make_handles_method($/, $from_name, $to_name, $attr_name) {
                 :name('%h'),
                 :scope('lexical'),
                 :flat(1),
-                :named(1)
+                :named(PAST::Val.new( :value(1) ))
             )
         )
     )

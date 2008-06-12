@@ -204,13 +204,43 @@ Internal helper method to implement the functionality of the does keyword.
     .param pmc class
     .param string role_name
     .local pmc role
+
+    # Get Parrot to compose the role for us (handles the methods).
     role = get_hll_global role_name
     addrole class, role
+
+    # Parrot doesn't handle composing the attributes; we do that here for now.
+    .local pmc role_attrs, class_attrs, ra_iter
+    .local string cur_attr
+    role_attrs = inspect role, "attributes"
+    class_attrs = inspect class, "attributes"
+    ra_iter = iter role_attrs
+  ra_iter_loop:
+    unless ra_iter goto ra_iter_loop_end
+    cur_attr = shift ra_iter
+
+    # Check that this attribute doesn't conflict with one already in the class.
+    $I0 = exists class_attrs[cur_attr]
+    unless $I0 goto no_conflict
+
+    # XXX TODO: If it does conflict in name, but has same type, allow it.
+    $S0 = "Conflict of attribute '"
+    $S0 = concat cur_attr
+    $S0 = concat "' in composition of role '"
+    $S1 = role
+    $S0 = concat $S1
+    $S0 = concat "'"
+    'die'($S0)
+
+  no_conflict:
+    addattribute class, cur_attr
+    goto ra_iter_loop
+  ra_iter_loop_end:
 .end
 
 =item !keyword_has(class, attr_name)
 
-Adds an attribute with the given name to the class.
+Adds an attribute with the given name to the class or role.
 
 =cut
 

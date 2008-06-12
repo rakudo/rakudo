@@ -1362,9 +1362,32 @@ sub declare_attribute($/) {
         );
     }
 
-    # Add attribute to class (always name it with ! twigil).
+    # Is this a role-private or just a normal attribute?
     my $variable := $<scoped><variable_decl><variable>;
-    my $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
+    my $name;
+    if $<sym> eq 'my' {
+        # These are only allowed inside a role.
+        unless $class_def =:= $?ROLE {
+            $/.panic('Role private attributes can only be declared in a role');
+        }
+
+        # We need to name-manage this somehow. We'll do $!rolename!attrname
+        # for now; long term, want some UUID. For the block entry, we enter it
+        # as $!attrname, add the real name and set the scope as rpattribute,
+        # then translate it to the right thing when we see it.
+        our $?NS;
+        $name := ~$variable<sigil> ~ '!' ~ $?NS[0] ~ '!' ~ ~$variable<name>;
+        my $visible_name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
+        my $real_name := '!' ~ $?NS[0] ~ '!' ~ ~$variable<name>;
+        $?BLOCK.symbol($visible_name, :scope('rpattribute'), :real_name($real_name));
+    }
+    else {
+        # Register name as attribute scope.
+        $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
+        $?BLOCK.symbol($name, :scope('attribute'));
+    }
+
+    # Add attribute to class (always name it with ! twigil).
     $class_def.push(
         PAST::Op.new(
             :pasttype('call'),
@@ -1447,9 +1470,6 @@ sub declare_attribute($/) {
             ~ $variable<twigil>[0] ~ " in attribute declaration"
         );
     }
-
-    # Register the attribute in the scope.
-    $?BLOCK.symbol($name, :scope('attribute'));
 }
 
 method scope_declarator($/) {
@@ -1459,9 +1479,10 @@ method scope_declarator($/) {
 
     # What sort of thing are we scoping?
     if $<scoped><variable_decl> {
-        # Variable. Now go by declarator.
-        if $declarator eq 'has' {
-            # Has declarations are attributes and need special handling.
+        # Variable. Now go by declarator or twigil if it's a role-private.
+        my $twigil := $<scoped><variable_decl><variable><twigil>[0];
+        if $declarator eq 'has' || $declarator eq 'my' && $twigil eq '!' {
+            # Attribute declarations need special handling.
             declare_attribute($/);
 
             # We don't have any PAST at the point of the declaration.
@@ -1661,6 +1682,20 @@ method variable($/, $key) {
                         if defined( $sym_table )
                                 && $sym_table<scope> eq 'attribute' {
                             $name := '!' ~ $name;
+                        }
+                    }
+                }
+            }
+
+            # If it's a role-private attribute, fix up the name.
+            if $twigil eq '!' {
+                our @?BLOCK;
+                for @?BLOCK {
+                    if defined( $_ ) {
+                        my $sym_table := $_.symbol($sigil ~ $name);
+                        if defined( $sym_table )
+                                && $sym_table<scope> eq 'rpattribute' {
+                            $name := $sym_table<real_name>;
                         }
                     }
                 }

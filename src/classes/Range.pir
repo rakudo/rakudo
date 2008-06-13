@@ -202,7 +202,7 @@ Construct a range from the endpoints.
     .return proto.'new'('from'=>from, 'to'=>to, 'from_exclusive'=>true, 'to_exclusive'=>true)
 .end
 
-
+=back
 
 =head2 Private methods
 

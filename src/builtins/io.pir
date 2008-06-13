@@ -112,6 +112,21 @@ opened_ok:
     .return(obj)
 .end
 
+.sub 'close'
+    .param pmc obj
+    obj.'close'()
+.end
+
+.sub 'slurp'
+    .param string filename
+    .local string contents
+
+    $P0 = 'open'(filename, 'r')
+    contents = $P0.'slurp'()
+    'close'($P0)
+    .return(contents)
+.end
+
 =back
 
 =cut

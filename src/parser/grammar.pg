@@ -430,13 +430,7 @@ token special_variable {
 token term {
     | <noun> <postfix>* {*}                      #= noun
     | <listop> {*}                               #= listop
-    | <compiler_directive> {*}                   #= compiler_directive
     | '*' {*}                                    #= *
-}
-
-
-rule compiler_directive {
-    $<sym>='#?perl6:' <term> {*}
 }
 
 

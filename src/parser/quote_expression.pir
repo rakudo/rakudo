@@ -406,8 +406,9 @@
     pos += isbracketed
   scan_xdo_char_loop:
     $S0 = substr target, pos, 1
-    $I0 = index '0123456789abcdef', $S0
+    $I0 = index '0123456789abcdef0123456789ABCDEF', $S0
     if $I0 < 0 goto scan_xdo_char_end
+    $I0 %= 16
     if $I0 >= base goto scan_xdo_char_end
     decnum *= base
     decnum += $I0

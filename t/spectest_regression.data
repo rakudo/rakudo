@@ -4,7 +4,7 @@
 
 S02-builtin_data_types/type.t
 S02-literals/autoref.t
-S02-literals/hex_chars.t
+S02-literals/hex_chars.t                        # pure
 S02-literals/radix.t
 S02-polymorphic_types/subset-code.t             # pure
 S02-polymorphic_types/subset-range.t

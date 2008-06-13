@@ -183,7 +183,7 @@ to the Perl 6 compiler.
     set_hll_global '@ARGS', args
 
     $P0 = compreg 'Perl6'
-    $P1 = $P0.'command_line'(args)
+    $P1 = $P0.'command_line'(args, 'encoding'=>'utf8', 'transcode'=>'iso-8859-1')
 
     .include 'iterator.pasm'
     .local pmc iter

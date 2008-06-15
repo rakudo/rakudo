@@ -32,8 +32,6 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     set_hll_global "$ERR", perl6io
 .end
 
-=cut
-
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

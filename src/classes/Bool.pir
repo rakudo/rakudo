@@ -43,6 +43,14 @@ symbols for C<Bool::True> and C<Bool::False>.
 .end
 
 
+.sub 'perl' :method
+    if self goto false
+    .return ('Bool::False')
+  false:
+    .return ('Bool::True')
+.end
+
+
 .sub 'succ' :method :vtable('increment')
     self = 1
 .end

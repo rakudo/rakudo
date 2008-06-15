@@ -182,6 +182,10 @@ to the Perl 6 compiler.
   args_end:
     set_hll_global '@ARGS', args
 
+    ##  create %*ENV
+    $P0 = new 'Env'
+    set_hll_global "%ENV", $P0
+
     $P0 = compreg 'Perl6'
     $P1 = $P0.'command_line'(args, 'encoding'=>'utf8', 'transcode'=>'iso-8859-1')
 

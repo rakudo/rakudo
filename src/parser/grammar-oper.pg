@@ -134,6 +134,9 @@ proto infix:<max> is equiv(infix:<||>)
     is assoc('list')
     { ... }
 
+## conditional
+proto ternary:<?? !!> is precedence('j=') is pasttype('if') { ... }
+
 ## item assignment
 proto infix:<:=> is precedence('i=') is pasttype('bind') { ... }
 proto infix:<::=> is equiv(infix:<:=>) { ... }

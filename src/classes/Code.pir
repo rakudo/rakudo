@@ -37,6 +37,16 @@ for executable objects.
     .return (match)
 .end
 
+=item perl()
+
+Return a response to .perl.
+
+=cut
+
+.sub 'perl' :method
+    .return ('{ ... }')
+.end
+
 =back
 
 =cut

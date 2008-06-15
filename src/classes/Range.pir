@@ -148,6 +148,35 @@ Return true if there are any more values to iterate over.
     .return ($I0)
 .end
 
+
+=item perl()
+
+Returns a Perl representation of the Range.
+
+=cut
+
+.sub 'perl' :method
+    .local string result, tmp
+    .local pmc from, fromexc, toexc, to
+    from = getattribute self, '$!from'
+    fromexc = getattribute self, '$!from_exclusive'
+    toexc = getattribute self, '$!to_exclusive'
+    to = getattribute self, '$!to'
+    result = from.'perl'()
+    unless fromexc goto dots
+    result .= '^'
+  dots:
+    result .= '..'
+    unless toexc goto end
+    result .= '^'
+  end:
+    tmp = to.'perl'()
+    result .= tmp
+    .return (result)
+.end
+
+
+
 =back
 
 =head2 Operators

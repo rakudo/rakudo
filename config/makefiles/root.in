@@ -63,6 +63,7 @@ BUILTINS_PIR = \
   src/classes/Capture.pir \
   src/classes/Subset.pir \
   src/classes/Grammar.pir \
+  src/builtins/globals.pir \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
   src/builtins/control.pir \

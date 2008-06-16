@@ -13,6 +13,14 @@ Complex - Perl 6 complex numbers
 =cut
 
 .namespace []
+
+.sub 'postfix:i' :multi(_)
+    .param num a
+    $P0 = new 'Complex'
+    $P0[1] = a
+    .return ($P0)
+.end
+
 .sub 'infix:+' :multi('Complex', _)
     .param pmc a
     .param pmc b

@@ -42,14 +42,6 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'postfix:i' :multi(_)
-    .param num a
-    $P0 = new 'Complex'
-    $P0[1] = a
-    .return ($P0)
-.end
-
-
 ## exponentiation
 .sub 'infix:**' :multi(_,_)
     .param num base

@@ -122,20 +122,6 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
-.sub 'prefix:^' :multi('Integer')
-    .param int to
-    dec to
-    .return 'infix:..'(0, to)
-.end
-
-
-.sub 'prefix:^' :multi('Num')
-    .param num to
-    dec to
-    .return 'infix:..'(0, to)
-.end
-
-
 .sub 'prefix:^' :multi('List')
     .param pmc list
 

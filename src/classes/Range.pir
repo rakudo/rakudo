@@ -183,6 +183,18 @@ Returns a Perl representation of the Range.
 
 =over 4
 
+=item prefix:<^>($to)
+
+Construct a Range from C< 0 ..^ $to >.
+
+=cut
+
+.namespace[]
+.sub 'prefix:^' :multi(_)
+    .param pmc to
+    .return 'infix:..^'(0, to)
+.end
+
 =item infix:<..>
 
 =item infix:<^..>

@@ -25,12 +25,17 @@ Absolute Value.
 
 =cut
 
-.sub 'abs'
+.sub 'abs' :multi(_)
     .param num a
     $N0 = abs a
     .return ($N0)
 .end
 
+.sub 'abs' :multi('Integer')
+    .param pmc a
+    $P0 = n_abs a
+    .return ($P0)
+.end
 
 =item floor
 

@@ -72,9 +72,7 @@ proto infix:<^> is equiv(infix:<|>)
 proto prefix:<rand> is precedence('o=') { ... }
 proto prefix:<HOW> is equiv(prefix:<rand>) is subname('HOW') { ... }
 proto prefix:<WHAT> is equiv(prefix:<rand>) is subname('WHAT') { ... }
-proto prefix:<abs> is equiv(prefix:<rand>)
-    is pirop('n_abs')
-    { ... }
+proto prefix:<abs> is equiv(prefix:<rand>) is subname('abs') { ... }
 proto prefix:<pop> is equiv(prefix:<rand>) is subname('pop') { ... }
 proto prefix:<shift> is equiv(prefix:<rand>) is subname('shift') { ... }
 proto prefix:<sleep> is equiv(prefix:<rand>) is subname('sleep') { ... }

@@ -26,9 +26,9 @@ Absolute Value.
 =cut
 
 .sub 'abs'
-    .param pmc a
-    $P0 = abs a
-    .return ($P0)
+    .param num a
+    $N0 = abs a
+    .return ($N0)
 .end
 
 

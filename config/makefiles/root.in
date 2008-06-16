@@ -75,6 +75,7 @@ BUILTINS_PIR = \
   src/builtins/named-unary.pir \
   src/builtins/op.pir \
   src/builtins/parrot.pir \
+  src/builtins/system.pir \
   src/builtins/traits.pir \
 
 $(PMC_DIR)/mutable.pmc : $(PMC_DIR)/mutable_pmc.template build/gen_mutable_pmc.pl

@@ -175,25 +175,11 @@ Returns a Perl representation of the Range.
     .return (result)
 .end
 
-
-
 =back
 
 =head2 Operators
 
 =over 4
-
-=item prefix:<^>($to)
-
-Construct a Range from C< 0 ..^ $to >.
-
-=cut
-
-.namespace[]
-.sub 'prefix:^' :multi(_)
-    .param pmc to
-    .return 'infix:..^'(0, to)
-.end
 
 =item infix:<..>
 
@@ -241,6 +227,52 @@ Construct a range from the endpoints.
     proto = get_hll_global 'Range'
     true = get_hll_global ['Bool'], 'True'
     .return proto.'new'('from'=>from, 'to'=>to, 'from_exclusive'=>true, 'to_exclusive'=>true)
+.end
+
+=item prefix:<^>(Any $to)
+
+Construct a Range from C< 0 ..^ $to >.
+
+=cut
+
+.namespace[]
+.sub 'prefix:^' :multi(_)
+    .param pmc to
+    .return 'infix:..^'(0, to)
+.end
+
+=item prefix:<^>(Type $x)
+
+Return $x.HOW.
+
+=cut
+
+.sub 'prefix:^' :multi('P6Protoobject')
+    .param pmc proto
+    .return proto.'HOW'()
+.end
+
+=item prefix:<^>(List @a)
+
+=cut
+
+.sub 'prefix:^' :multi('ResizablePMCArray')
+    .param pmc list
+
+    # Iterate over the list and and create a list of Ranges
+    .local pmc ranges, it
+    ranges = 'list'()
+    it = list.'iterator'()
+  iter_loop:
+    unless it goto iter_loop_end
+    $P0 = shift it
+    $P0 = 'infix:..^'(0, $P0)
+    push ranges, $P0
+    goto iter_loop
+  iter_loop_end:
+
+    # Now just use cross operator to make all the permutations.
+    .return 'infix:X'(ranges)
 .end
 
 =back

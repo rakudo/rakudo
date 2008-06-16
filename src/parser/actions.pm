@@ -782,7 +782,7 @@ method special_variable($/) {
 }
 
 
-method term($/, $key) {
+method expect_term($/, $key) {
     my $past;
     if $key eq '*' {
         # Whatever.

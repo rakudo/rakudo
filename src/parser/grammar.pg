@@ -427,7 +427,7 @@ token special_variable {
 
 #### Terms ####
 
-token term {
+token expect_term {
     | <noun> <postfix>* {*}                      #= noun
     | <listop> {*}                               #= listop
     | '*' {*}                                    #= *
@@ -755,7 +755,7 @@ token desigilname {
 ## rule EXPR is optable { ... }
 
 proto 'term:' is precedence('z=')
-    is parsed(&term)
+    is parsed(&expect_term)
     { ... }
 
 proto 'prefix:' is precedence('e=')

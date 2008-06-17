@@ -308,6 +308,15 @@ honoring exclusive flags.
     .param pmc topic
     .local pmc to, toexc
     to = getattribute self, '$!to'
+    $I0 = isa to, 'String'
+    unless $I0 goto test_value
+    $S0 = topic
+    $I0 = length $S0
+    $S1 = to
+    $I1 = length $S1
+    le $I0, $I1, test_value
+    .return (0)
+  test_value:
     toexc = getattribute self, '$!to_exclusive'
     if toexc goto exclusive_test
     $I0 = isle topic, to

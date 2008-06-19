@@ -219,7 +219,10 @@ CLEANUPS = \
   $(PMC_DIR)/*.pdb \
   $(PMC_DIR)/*.lib \
   $(PMC_DIR)/mutable.pmc \
-
+  $(OPSDIR)/*.h \
+  $(OPSDIR)/*.c \
+  $(OPSDIR)/*$(O) \
+  $(OPSDIR)/*$(LOAD_EXT) \
 
 clean:
 	$(RM_F) $(CLEANUPS)

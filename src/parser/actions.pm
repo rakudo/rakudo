@@ -997,8 +997,47 @@ method noun($/, $key) {
 }
 
 
+sub apply_package_traits($package, $traits) {
+    for $traits {
+        # Apply any "is" traits through MMD.
+        if $_<trait_auxiliary><sym> eq 'is' {
+            $package.push(
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('trait_auxiliary:is'),
+                    PAST::Var.new(
+                        :name(~$_<trait_auxiliary><ident>),
+                        :scope('package')
+                    ),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    )
+                )
+            );
+        }
+        elsif $_<trait_auxiliary><sym> eq 'does' {
+            # Role.
+            $package.push(
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!keyword_does'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Val.new( :value(~$_<trait_auxiliary><role_name><ident>) )
+                )
+            );
+        }
+        else {
+            $traits.panic("Currently only is and does traits are supported on packages.");
+        }
+    }
+}
+
+
 method package_declarator($/, $key) {
-    our $?INIT;
     our $?CLASS;
     our @?CLASS;
     our $?ROLE;
@@ -1007,161 +1046,109 @@ method package_declarator($/, $key) {
     our @?PACKAGE;
     our $?GRAMMAR;
     our @?GRAMMAR;
-    our $?NS;
 
     if $key eq 'open' {
-        # Store the current namespace.
-        $?NS := $<name><ident>;
-
-        # Start of the block; if it's a class or role, need to make $?CLASS or
-        # $?ROLE available for storing current definition in.
-        if $<sym> eq 'class' || $<sym> eq 'role' || $<sym> eq 'grammar' {
-            my $decl_past := PAST::Stmts.new();
-
-            # If it's a class...
-            if $<sym> eq 'class' {
-                # Call method to create the class.
-                $decl_past.push(
-                    PAST::Op.new(
-                        :pasttype('bind'),
-                        PAST::Var.new(
-                            :name('$def'),
-                            :scope('lexical')
-                        ),
-                        PAST::Op.new(
-                            :pasttype('call'),
-                            :name('!keyword_class'),
-                            PAST::Val.new( :value(~$<name>) )
-                        )
-                    )
-                );
-
-                # Put current class, if any, on @?CLASS list so we can handle
-                # nested classes.
-                @?CLASS.unshift( $?CLASS );
-                $?CLASS := $decl_past;
-
-                # Set it as the current package.
-                @?PACKAGE.unshift( $?PACKAGE );
-                $?PACKAGE := $?CLASS;
-            }
-
-            # If it's a role...
-            elsif $<sym> eq 'role' {
-                # Call method to create the role.
-                $decl_past.push(
-                    PAST::Op.new(
-                        :pasttype('bind'),
-                        PAST::Var.new(
-                            :name('$def'),
-                            :scope('lexical')
-                        ),
-                        PAST::Op.new(
-                            :pasttype('call'),
-                            :name('!keyword_role'),
-                            PAST::Val.new( :value(~$<name>) )
-                        )
-                    )
-                );
-
-                # Put current role, if any, on @?ROLE list so we can handle
-                # nested roles.
-                @?ROLE.unshift( $?ROLE );
-                $?ROLE := $decl_past;
-
-                # Set it as the current package.
-                @?PACKAGE.unshift( $?PACKAGE );
-                $?PACKAGE := $?ROLE;
-            }
-
-            # If it's a grammar...
-            elsif $<sym> eq 'grammar' {
-                # Create class for the grammar - a subclass of PGE::Grammar by
-                # default.
-                $decl_past.push(
-                    PAST::Op.new(
-                        :pasttype('bind'),
-                        PAST::Var.new(
-                            :name('$def'),
-                            :scope('lexical')
-                        ),
-                        PAST::Op.new(
-                            :pasttype('call'),
-                            :name('!keyword_grammar'),
-                            PAST::Val.new( :value(~$<name>) )
-                        )
-                    )
-                );
-
-                # Put current grammar, if any, on @?GRAMMAR list so we can
-                # handle nested grammars.
-                @?GRAMMAR.unshift( $?GRAMMAR );
-                $?GRAMMAR := $decl_past;
-
-                # Set it as the current package.
-                @?PACKAGE.unshift( $?PACKAGE );
-                $?PACKAGE := $?GRAMMAR;
-            }
+        # Start of a new package. We create an empty PAST::Stmts node for the
+        # package definition to be stored in and put it onto the current stack
+        # of packages and the stack of its package type.
+        my $decl_past := PAST::Stmts.new();
+        @?PACKAGE.unshift($?PACKAGE);
+        $?PACKAGE := $decl_past;
+        if $<sym> eq 'class' {
+            @?CLASS.unshift($?CLASS);
+            $?CLASS := $decl_past;
         }
-        else {
-            # It's a module. We need a way to mark that the current package is
-            # not a role or a class, so we put the current one on the array and
-            # set $?PACKAGE to undef.
-            @?PACKAGE.unshift( $?PACKAGE );
-            $?PACKAGE := undef;
+        elsif $<sym> eq 'role' {
+            @?ROLE.unshift( $?ROLE );
+            $?ROLE := $decl_past;
+        }
+        elsif $<sym> eq 'grammar' {
+            @?GRAMMAR.unshift( $?GRAMMAR );
+            $?GRAMMAR := $decl_past;
         }
     }
     else {
+        # End of declaration. Our PAST will be that made by the package_def or
+        # role_def.
         my $past := $( $/{$key} );
 
-        # Declare the namespace and that this is something we do
-        # "on load".
+        # Restore outer package.
+        $?PACKAGE := @?PACKAGE.shift();
+        if $<sym> eq 'class' {
+            $?CLASS := @?CLASS.shift();
+        }
+        elsif $<sym> eq 'role' {
+            $?ROLE := @?ROLE.shift();
+        }
+        elsif $<sym> eq 'grammar' {
+            $?GRAMMAR := @?GRAMMAR.shift();
+        }
+
+        make $past;
+    }
+}
+
+
+method package_def($/, $key) {
+    our $?PACKAGE;
+    our $?CLASS;
+    our $?GRAMMAR;
+    our $?NS;
+    our $?INIT;
+
+    if $key eq 'open' {
+        # Start of package definition. Handle class and grammar specially.
+        if $?PACKAGE =:= $?CLASS {
+            # Start of class definition; create class object to work with.
+            $?CLASS.push(
+                PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Op.new(
+                        :pasttype('call'),
+                        :name('!keyword_class'),
+                        PAST::Val.new( :value(~$<name>) )
+                    )
+                )
+            );
+        }
+        elsif $?PACKAGE =:= $?GRAMMAR {
+            # Start of grammar definition. Create grammar class object.
+            $?GRAMMAR.push(
+                PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Op.new(
+                        :pasttype('call'),
+                        :name('!keyword_grammar'),
+                        PAST::Val.new( :value(~$<name>) )
+                    )
+                )
+            );
+        }
+
+        # Also store the current namespace.
+        $?NS := $<name><ident>;
+    }
+    else {
+        # Declare the namespace and that the result block holds things that we
+        # do "on load".
+        my $past := $( $<package_block> );
         $past.namespace($<name><ident>);
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
 
-        # Apply any traits and do any roles, if it's a class or role or grammar.
-        if $<sym> eq 'class' || $<sym> eq 'role' || $<sym> eq 'grammar' {
-            for $<trait> {
-                # Apply any "is" traits through MMD.
-                if $_<trait_auxiliary><sym> eq 'is' {
-                    $?PACKAGE.push(
-                        PAST::Op.new(
-                            :pasttype('call'),
-                            :name('trait_auxiliary:is'),
-                            PAST::Var.new(
-                                :name(~$_<trait_auxiliary><ident>),
-                                :scope('package')
-                            ),
-                            PAST::Var.new(
-                                :name('$def'),
-                                :scope('lexical')
-                            )
-                        )
-                    );
-                }
-                elsif $_<trait_auxiliary><sym> eq 'does' {
-                    # Role.
-                    $?PACKAGE.push(
-                        PAST::Op.new(
-                            :pasttype('call'),
-                            :name('!keyword_does'),
-                            PAST::Var.new(
-                                :name('$def'),
-                                :scope('lexical')
-                            ),
-                            PAST::Val.new( :value(~$_<trait_auxiliary><ident>) )
-                        )
-                    );
-                }
-                else {
-                    $/.panic("Currently only is and does traits are supported on packages.");
-                }
-            }
-        }
+        if $?PACKAGE =:= $?CLASS {
+            # Apply traits.
+            apply_package_traits($?CLASS, $<trait>);
 
-        if $<sym> eq 'class' {
-            # Make proto-object.
+            # It's a class. Make proto-object.
             $?CLASS.push(
                 PAST::Op.new(
                     :pasttype('callmethod'),
@@ -1197,30 +1184,12 @@ method package_declarator($/, $key) {
                     $?INIT.push( $_ );
                 }
             }
-
-            # Restore outer class.
-            $?CLASS := @?CLASS.shift();
         }
-        elsif $<sym> eq 'role' {
-            # Attatch role declaration to the init code, skipping blocks since
-            # those are accessors.
-            unless defined( $?INIT ) {
-                $?INIT := PAST::Block.new();
-            }
-            for @( $?ROLE ) {
-                if $_.WHAT() eq 'Block' {
-                    $past.push( $_ );
-                }
-                else {
-                    $?INIT.push( $_ );
-                }
-            }
+        elsif $?PACKAGE =:= $?GRAMMAR {
+            # Apply traits.
+            apply_package_traits($?GRAMMAR, $<trait>);
 
-            # Restore outer role.
-            $?ROLE := @?ROLE.shift();
-        }
-        elsif $<sym> eq 'grammar' {
-            # Make proto-object.
+            # Make proto-object for grammar.
             $?GRAMMAR.push(
                 PAST::Op.new(
                     :pasttype('callmethod'),
@@ -1246,16 +1215,71 @@ method package_declarator($/, $key) {
                 $?INIT := PAST::Block.new();
             }
             $?INIT.push( $?GRAMMAR );
-
-            # Restore outer grammar.
-            $?GRAMMAR := @?GRAMMAR.shift();
         }
-
-        # Restore outer package.
-        $?PACKAGE := @?PACKAGE.shift();
 
         make $past;
     }
+}
+
+
+method role_def($/, $key) {
+    our $?ROLE;
+    our $?NS;
+    our $?INIT;
+
+    if $key eq 'open' {
+        # Start of role definition. Push on code to create a role object.
+        $?ROLE.push(
+            PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!keyword_role'),
+                    PAST::Val.new( :value(~$<role_name>) )
+                )
+            )
+        );
+
+        # Also store the current namespace.
+        $?NS := $<role_name><ident>;
+    }
+    else {
+        # Declare the namespace and that the result block holds things that we
+        # do "on load".
+        my $past := $( $<package_block> );
+        $past.namespace($<role_name><ident>);
+        $past.blocktype('declaration');
+        $past.pirflags(':init :load');
+
+        # Apply traits.
+        apply_package_traits($?ROLE, $<trait>);
+
+        # Attatch role declaration to the init code, skipping blocks since
+        # those are accessors.
+        unless defined( $?INIT ) {
+            $?INIT := PAST::Block.new();
+        }
+        for @( $?ROLE ) {
+            if $_.WHAT() eq 'Block' {
+                $past.push( $_ );
+            }
+            else {
+                $?INIT.push( $_ );
+            }
+        }
+
+        make $past;
+    }
+}
+
+
+method package_block($/, $key) {
+    my $past := $( $/{$key} );
+    make $past;
 }
 
 

@@ -351,7 +351,7 @@ rule trait {
 
 rule trait_auxiliary {
     | $<sym>=[is] <ident><postcircumfix>?
-    | $<sym>=[does] <ident>
+    | $<sym>=[does] <role_name>
     | $<sym>=[will] <ident> <block>
 }
 
@@ -359,6 +359,8 @@ rule trait_verb {
     | $<sym>=[of|returns] <typename>
     | $<sym>=[handles] <EXPR>
 }
+
+token role_name { <ident> [ <?before '['> <postcircumfix> ]? }
 
 token capterm {
     '\\(' <capture> ')'
@@ -503,9 +505,28 @@ token noun {
 
 
 rule package_declarator {
-    $<sym>=[module|class|role|grammar]
-    <name>
-    <trait>* {*}                                 #= open
+    [
+    | $<sym>=[module|class|grammar] {*}          #= open
+      <package_def> {*}                          #= package_def
+    | $<sym>=[role] {*}                          #= open
+      <role_def> {*}                             #= role_def
+    ]
+}
+
+
+rule package_def {
+    <name> <trait>* {*}                          #= open
+    <package_block> {*}                          #= close
+}
+
+
+rule role_def {
+    <role_name> <trait>* {*}                     #= open
+    <package_block> {*}                          #= close
+}
+
+
+rule package_block {
     [
     || ';' <statement_block> {*}                 #= statement_block
     || <block> {*}                               #= block

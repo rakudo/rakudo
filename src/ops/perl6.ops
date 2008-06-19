@@ -1,5 +1,5 @@
 /*
- * $Id:$
+ * $Id$
  * Copyright (C) 2008, The Perl Foundation.
  */
 
@@ -7,21 +7,18 @@
 #include "../../../../src/pmc/pmc_object.h"
 VERSION = PARROT_VERSION;
 
-/*  */
 inline op rebless_subclass(in PMC, in PMC) :base_core {
-    PMC *current_class;
-    PMC *parent_list;
     PMC *value;
-    int i, num_parents, in_parents, new_attribs;
     
     /* First verify that the object's class is a superclass of the one we're
      * to re-bless it into. While we're at it, count the number of attributes
      * the current class has that the parent class does not. */
-    current_class = VTABLE_get_class(interp, $1);
-    parent_list = VTABLE_inspect_str(interp, $2, string_from_literal(interp, "all_parents"));
-    num_parents = VTABLE_elements(interp, parent_list);
-    in_parents = 0;
-    new_attribs = 0;
+    PMC *current_class = VTABLE_get_class(interp, $1);
+    PMC *parent_list = VTABLE_inspect_str(interp, $2, const_string(interp, "all_parents"));
+    int num_parents = VTABLE_elements(interp, parent_list);
+    int in_parents = 0;
+    int new_attribs = 0;
+    int i;
     for (i = 0; i < num_parents; i++) {
         PMC *test_class = VTABLE_get_pmc_keyed_int(interp, parent_list, i);
         if (test_class == current_class) {
@@ -30,7 +27,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         }
         else {
             new_attribs += VTABLE_elements(interp, VTABLE_inspect_str(interp,
-                test_class, string_from_literal(interp, "attributes")));
+                test_class, const_string(interp, "attributes")));
         }
     }
     if (!in_parents)
@@ -39,7 +36,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
 
     /* Make sure we're operating on the real value, not a mutable. */
     value = $1;
-    while (VTABLE_isa(interp, value, string_from_literal(interp, "Mutable")))
+    while (VTABLE_isa(interp, value, const_string(interp, "Mutable")))
         value = VTABLE_get_pmc(interp, value);
 
     /* Make sure the value is an object and the original and derived class are

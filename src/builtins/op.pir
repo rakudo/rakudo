@@ -408,7 +408,7 @@ src/builtins/op.pir - Perl6 builtin operators
   roles_loop:
     unless role_it goto roles_loop_end
     cur_role = shift role_it
-    '!keyword_does'(derived, role)
+    '!keyword_does'(derived, cur_role)
     goto roles_loop
   roles_loop_end:
   added_roles:

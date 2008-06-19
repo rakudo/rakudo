@@ -1944,6 +1944,7 @@ method quote_term($/, $key) {
 
 
 method typename($/) {
+    # Extract shortname part of identifier, if there is one.
     my $ns := $<name><ident>;
     my $shortname;
     PIR q<    $P0 = find_lex '$ns'         >;
@@ -1951,13 +1952,33 @@ method typename($/) {
     PIR q<    $P1 = pop $P0                >;
     PIR q<    store_lex '$ns', $P0         >;
     PIR q<    store_lex '$shortname', $P1  >;
-    make PAST::Var.new(
+
+    # Create default PAST node for package lookup of type.
+    my $past := PAST::Var.new(
         :name($shortname),
         :namespace($ns),
         :scope('package'),
         :node($/),
         :viviself('Failure')
     );
+
+    # If there's no namespace, could be lexical abstraction type.
+    if +@($ns) == 0 {
+        # See if we got lexical with the right name.
+        our @?BLOCK;
+        my $name := '::' ~ $shortname;
+        for @?BLOCK {
+            if defined($_) {
+                my $sym_table := $_.symbol($name);
+                if defined($sym_table) && defined($sym_table<scope>) {
+                    $past.name( $name );
+                    $past.scope( $sym_table<scope> );
+                }
+            }
+        }
+    }
+
+    make $past;
 }
 
 

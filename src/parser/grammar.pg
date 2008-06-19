@@ -575,7 +575,7 @@ token variable {
     | <sigil> <?before '<' > <postcircumfix> {*} #= $<>
 }
 
-token sigil { '$' | '@' | '%' | '&' }
+token sigil { '$' | '@' | '%' | '&' | '::' }
 
 token twigil { <[.!^:*+?=]> }
 

@@ -417,9 +417,28 @@ src/builtins/op.pir - Perl6 builtin operators
     # construct itself.
     $P0 = new derived
 
-    # Re-bless the object into the subclass and return it.
+    # Re-bless the object into the subclass.
     rebless_subclass var, derived
+
+    # If we were given something to initialize with, do so.
+    unless have_init_value goto no_init
+    .local pmc attrs
+    .local string attr_name
+    attrs = inspect role, "attributes"
+    attrs = attrs.'keys'()
+    $I0 = elements attrs
+    if $I0 != 1 goto attr_error
+    attr_name = attrs[0]
+    attr_name = substr attr_name, 2 # lop of sigil and twigil
+    $P0 = var.attr_name()
+    assign $P0, init_value
+  no_init:
+
+    # We're done - return.
     .return (var)
+
+attr_error:
+    'die'("Can only supply an initialization value to a role with one attribute")
 .end
 
 

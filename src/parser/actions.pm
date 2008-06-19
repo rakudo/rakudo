@@ -1742,6 +1742,21 @@ method variable($/, $key) {
                 $past.scope('attribute');
             }
 
+            # If we have something with an & sigil see if it has any entries
+            # in the enclosing blocks; otherwise, default to package.
+            if $<sigil> eq '&' {
+                $past.scope('package');
+                our @?BLOCK;
+                for @?BLOCK {
+                    if defined($_) {
+                        my $sym_table := $_.symbol($name);
+                        if defined($sym_table) && defined($sym_table<scope>) {
+                            $past.scope( $sym_table<scope> );
+                        }
+                    }
+                }
+            }
+
             my $container_type;
             if    $sigil eq '@' { $container_type := 'Perl6Array'  }
             elsif $sigil eq '%' { $container_type := 'Perl6Hash'   }

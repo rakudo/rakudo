@@ -350,7 +350,7 @@ rule trait {
 }
 
 rule trait_auxiliary {
-    | $<sym>=[is] <ident><postcircumfix>?
+    | $<sym>=[is] <name><postcircumfix>?
     | $<sym>=[does] <role_name>
     | $<sym>=[will] <ident> <block>
 }
@@ -360,7 +360,7 @@ rule trait_verb {
     | $<sym>=[handles] <EXPR>
 }
 
-token role_name { <ident> [ <?before '['> <postcircumfix> ]? }
+token role_name { <name> [ <?before '['> <postcircumfix> ]? }
 
 token capterm {
     '\\(' <capture> ')'

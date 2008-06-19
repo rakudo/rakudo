@@ -580,7 +580,7 @@ method signature($/) {
             if $_<trait_auxiliary> {
                 # Get name of the trait and see if it's one of the special
                 # traits we handle in the compiler.
-                my $name := $_<trait_auxiliary><ident>;
+                my $name := ~$_<trait_auxiliary><name>;
                 if $name eq 'readonly' {
                     $cont_traits := $cont_traits + 1;
                 }
@@ -1006,7 +1006,7 @@ sub apply_package_traits($package, $traits) {
                     :pasttype('call'),
                     :name('trait_auxiliary:is'),
                     PAST::Var.new(
-                        :name(~$_<trait_auxiliary><ident>),
+                        :name(~$_<trait_auxiliary><name>),
                         :scope('package')
                     ),
                     PAST::Var.new(
@@ -1026,7 +1026,10 @@ sub apply_package_traits($package, $traits) {
                         :name('$def'),
                         :scope('lexical')
                     ),
-                    PAST::Val.new( :value(~$_<trait_auxiliary><role_name><ident>) )
+                    PAST::Var.new(
+                        :name(~$_<trait_auxiliary><role_name><name>),
+                        :scope('package')
+                    )
                 )
             );
         }
@@ -1245,13 +1248,13 @@ method role_def($/, $key) {
         );
 
         # Also store the current namespace.
-        $?NS := $<role_name><ident>;
+        $?NS := $<role_name><name><ident>;
     }
     else {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         my $past := $( $<package_block> );
-        $past.namespace($<role_name><ident>);
+        $past.namespace($<role_name><name><ident>);
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
 
@@ -1299,7 +1302,7 @@ method variable_decl($/) {
                         $/.panic("'" ~ ~$trait ~ "' not implemented");
                     }
                     else {
-                        $past.viviself($aux<ident>);
+                        $past.viviself(~$aux<name>);
                     }
                 }
                 else {
@@ -1443,7 +1446,7 @@ sub declare_attribute($/) {
             }
             elsif $_<trait_auxiliary><sym> eq 'is' {
                 # Just handle rw for now.
-                if $_<trait_auxiliary><ident> eq 'rw' {
+                if ~$_<trait_auxiliary><name> eq 'rw' {
                     $rw := 1;
                 }
                 else {

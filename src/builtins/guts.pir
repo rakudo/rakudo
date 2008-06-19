@@ -248,11 +248,9 @@ Internal helper method to implement the functionality of the does keyword.
 
 .sub '!keyword_does'
     .param pmc class
-    .param string role_name
-    .local pmc role
+    .param pmc role
 
     # Get Parrot to compose the role for us (handles the methods).
-    role = get_hll_global role_name
     addrole class, role
 
     # Parrot doesn't handle composing the attributes; we do that here for now.

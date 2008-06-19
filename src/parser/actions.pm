@@ -573,6 +573,29 @@ method signature($/) {
             ));
         }
 
+        # Are we going to take the type of the thing we were passed and bind
+        # it to an abstraction parameter?
+        if $_<parameter><generic_binder> {
+            my $tv_var := $( $_<parameter><generic_binder>[0]<variable> );
+            $params.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name($tv_var.name()),
+                    :scope('lexical'),
+                    :isdecl(1)
+                ),
+                PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('WHAT'),
+                    PAST::Var.new(
+                        :name($parameter.name()),
+                        :scope('lexical')
+                    )
+                )
+            ));
+            $past.symbol($tv_var.name(), :scope('lexical'));
+        }
+
         # See if we have any traits. For now, we just handle ro, rw and copy.
         my $cont_trait := 'readonly';
         my $cont_traits := 0;

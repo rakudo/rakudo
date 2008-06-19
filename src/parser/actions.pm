@@ -1122,28 +1122,25 @@ method package_declarator($/, $key) {
 
         # Apply any traits and do any roles, if it's a class or role or grammar.
         if $<sym> eq 'class' || $<sym> eq 'role' || $<sym> eq 'grammar' {
-            my $does_pir;
-            for $<trait_or_does> {
-                if $_<trait> {
-                    # Apply the trait.
-                    if $_<trait><trait_auxiliary><sym> eq 'is' {
-                        $?PACKAGE.push(
-                            PAST::Op.new(
-                                :pasttype('call'),
-                                :name('trait_auxiliary:is'),
-                                PAST::Var.new(
-                                    :name(~$_<trait><trait_auxiliary><ident>),
-                                    :scope('package')
-                                ),
-                                PAST::Var.new(
-                                    :name('$def'),
-                                    :scope('lexical')
-                                )
+            for $<trait> {
+                # Apply any "is" traits through MMD.
+                if $_<trait_auxiliary><sym> eq 'is' {
+                    $?PACKAGE.push(
+                        PAST::Op.new(
+                            :pasttype('call'),
+                            :name('trait_auxiliary:is'),
+                            PAST::Var.new(
+                                :name(~$_<trait_auxiliary><ident>),
+                                :scope('package')
+                            ),
+                            PAST::Var.new(
+                                :name('$def'),
+                                :scope('lexical')
                             )
-                        );
-                    }
+                        )
+                    );
                 }
-                elsif $_<sym> eq 'does' {
+                elsif $_<trait_auxiliary><sym> eq 'does' {
                     # Role.
                     $?PACKAGE.push(
                         PAST::Op.new(
@@ -1153,9 +1150,12 @@ method package_declarator($/, $key) {
                                 :name('$def'),
                                 :scope('lexical')
                             ),
-                            PAST::Val.new( :value(~$_<name>) )
+                            PAST::Val.new( :value(~$_<trait_auxiliary><ident>) )
                         )
                     );
+                }
+                else {
+                    $/.panic("Currently only is and does traits are supported on packages.");
                 }
             }
         }

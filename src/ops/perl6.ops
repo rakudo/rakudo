@@ -1,0 +1,77 @@
+/*
+ * $Id:$
+ * Copyright (C) 2008, The Perl Foundation.
+ */
+
+#include "parrot/dynext.h"
+#include "../../../../src/pmc/pmc_object.h"
+VERSION = PARROT_VERSION;
+
+/*  */
+inline op rebless_subclass(in PMC, in PMC) :base_core {
+    PMC *current_class;
+    PMC *parent_list;
+    PMC *value;
+    int i, num_parents, in_parents, new_attribs;
+    
+    /* First verify that the object's class is a superclass of the one we're
+     * to re-bless it into. While we're at it, count the number of attributes
+     * the current class has that the parent class does not. */
+    current_class = VTABLE_get_class(interp, $1);
+    parent_list = VTABLE_inspect_str(interp, $2, string_from_literal(interp, "all_parents"));
+    num_parents = VTABLE_elements(interp, parent_list);
+    in_parents = 0;
+    new_attribs = 0;
+    for (i = 0; i < num_parents; i++) {
+        PMC *test_class = VTABLE_get_pmc_keyed_int(interp, parent_list, i);
+        if (test_class == current_class) {
+            in_parents = 1;
+            break;
+        }
+        else {
+            new_attribs += VTABLE_elements(interp, VTABLE_inspect_str(interp,
+                test_class, string_from_literal(interp, "attributes")));
+        }
+    }
+    if (!in_parents)
+        real_exception(interp, NULL, INVALID_OPERATION, 
+            "Attempt to use rebless_subclass where the new class was not a subclass");
+
+    /* Make sure we're operating on the real value, not a mutable. */
+    value = $1;
+    while (VTABLE_isa(interp, value, string_from_literal(interp, "Mutable")))
+        value = VTABLE_get_pmc(interp, value);
+
+    /* Make sure the value is an object and the original and derived class are
+     * standard Parrot classes. TODO: fallbacks to handle when this is not the
+     * case, for HLL interop. */
+    if (value->vtable->base_type != enum_class_Object)
+        real_exception(interp, NULL, INVALID_OPERATION, 
+            "Can only rebless standard Parrot objects.");
+    if ($2->vtable->base_type != enum_class_Class)
+        real_exception(interp, NULL, INVALID_OPERATION, 
+            "Can only rebless into a standard Parrot class.");
+    if (current_class->vtable->base_type != enum_class_Class)
+        real_exception(interp, NULL, INVALID_OPERATION, 
+            "Can only rebless out of a standard Parrot class.");
+
+    /* Shuffle up attributes to the point of the difference between the number
+     * of attributes in the parent and the derived class. Yes, this is evil -
+     * we're diddling the object's internals. */
+    for (i = 0; i < new_attribs; i++)
+        VTABLE_unshift_pmc(interp, PARROT_OBJECT(value)->attrib_store,
+            pmc_new(interp, enum_class_Undef));
+
+    /* Now switch object's class pointer to point at the new class. This is
+     * also evil. */
+    PARROT_OBJECT(value)->_class = $2;
+
+    goto NEXT();
+}
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */

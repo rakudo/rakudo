@@ -11,6 +11,9 @@ PERL6GRAMMAR  = $(PGE_LIBRARY)/Perl6Grammar.pbc
 NQP           = $(BUILD_DIR)/compilers/nqp/nqp.pbc
 PCT           = $(BUILD_DIR)/runtime/parrot/library/PCT.pbc
 PMC_DIR       = src/pmc
+OPSDIR        = src/ops
+OPSLIB        = perl6
+OPS_FILE      = src/ops/perl6.ops
 
 # Set up extensions
 LOAD_EXT      = @load_ext@
@@ -24,6 +27,7 @@ RM_F          = @rm_f@
 PARROT        = ../../parrot$(EXE)
 CAT           = $(PERL) -MExtUtils::Command -e cat
 BUILD_DYNPMC  = $(PERL) $(BUILD_DIR)/tools/build/dynpmc.pl
+BUILD_DYNOPS  = $(PERL) $(BUILD_DIR)/tools/build/dynoplibs.pl
 RECONFIGURE   = $(PERL) $(BUILD_DIR)/tools/dev/reconfigure.pl
 PBC_TO_EXE    = $(BUILD_DIR)/pbc_to_exe$(EXE)
 
@@ -37,7 +41,8 @@ SOURCES = perl6.pir \
   src/gen_builtins.pir \
   src/parser/expression.pir \
   src/parser/quote_expression.pir \
-  $(PERL6_GROUP)
+  $(PERL6_GROUP) \
+  src/ops/perl6_ops$(LOAD_EXT)
 
 BUILTINS_PIR = \
   src/classes/Object.pir \
@@ -112,6 +117,12 @@ $(PERL6_GROUP): $(PARROT) $(PMC_SOURCES)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) compile $(PMCS)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) linklibs $(PMCS)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) copy --destination=$(PARROT_DYNEXT) $(PMCS)
+
+src/ops/perl6_ops$(LOAD_EXT) : $(OPS_FILE)
+	@cd $(OPSDIR) && $(BUILD_DYNOPS) generate $(OPSLIB)
+	@cd $(OPSDIR) && $(BUILD_DYNOPS) compile $(OPSLIB)
+	@cd $(OPSDIR) && $(BUILD_DYNOPS) linklibs $(OPSLIB)
+	@cd $(OPSDIR) && $(BUILD_DYNOPS) copy "--destination=$(PARROT_DYNEXT)" $(OPSLIB)
 
 # regenerate the Makefile
 Makefile: config/makefiles/root.in config/makefiles/utils.in

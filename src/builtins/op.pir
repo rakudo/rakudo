@@ -376,6 +376,53 @@ src/builtins/op.pir - Perl6 builtin operators
     'die'($S0)
 .end
 
+
+.sub 'infix:does'
+    .param pmc var
+    .param pmc role
+    .param pmc init_value      :optional
+    .param int have_init_value :opt_flag
+
+    # Get the class of the variable we're adding roles to.
+    .local pmc p6meta, parrot_class
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    parrot_class = p6meta.get_parrotclass(var)
+
+    # Derive a new class that does the role(s) specified.
+    .local pmc derived
+    derived = new 'Class'
+    addparent derived, parrot_class
+    $I0 = isa role, 'Role'
+    if $I0 goto one_role
+    $I0 = isa role, 'List'
+    if $I0 goto many_roles
+    'die'("'does' expcts a role or a list of roles")
+
+  one_role:
+    '!keyword_does'(derived, role)
+    goto added_roles
+
+  many_roles:
+    .local pmc role_it, cur_role
+    role_it = iter role
+  roles_loop:
+    unless role_it goto roles_loop_end
+    cur_role = shift role_it
+    '!keyword_does'(derived, role)
+    goto roles_loop
+  roles_loop_end:
+  added_roles:
+
+    # We need to make a dummy instance of the class, to force it to internally
+    # construct itself.
+    $P0 = new derived
+
+    # Re-bless the object into the subclass and return it.
+    rebless_subclass var, derived
+    .return (var)
+.end
+
+
 =back
 
 =cut

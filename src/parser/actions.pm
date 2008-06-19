@@ -518,6 +518,23 @@ method routine_declarator($/, $key) {
 }
 
 
+method enum_declarator($/, $key) {
+    # Named enums aren't done yet, just the easy anonymous kind.
+    if $<name> {
+        $/.panic("Named enums not yet implemented.");
+    }
+    else {
+        # Get the list of values and call anonymous enum constructor.
+        my $values := $( $/{$key} );
+        make PAST::Op.new(
+            :pasttype('call'),
+            :name('!anon_enum'),
+            $values
+        );
+    }
+}
+
+
 method routine_def($/) {
     my $past := $( $<block> );
     if $<ident> {
@@ -537,6 +554,7 @@ method method_def($/) {
     $past.control('return_pir');
     make $past;
 }
+
 
 method signature($/) {
     my $params := PAST::Stmts.new( :node($/) );

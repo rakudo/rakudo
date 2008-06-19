@@ -495,6 +495,7 @@ token noun {
     | <scope_declarator> {*}                     #= scope_declarator
     | <plurality_declarator> {*}                 #= plurality_declarator
     | <routine_declarator> {*}                   #= routine_declarator
+    | <enum_declarator> {*}                      #= enum_declarator
     | <circumfix> {*}                            #= circumfix
     | <variable> {*}                             #= variable
     | <subcall> {*}                              #= subcall
@@ -550,6 +551,15 @@ token variable_decl {
 #    | $<op>=['='|'.='] <.ws> <EXPR>
 #    ]?
     {*}
+}
+
+
+rule enum_declarator {
+    'enum' <name>?
+    [
+    | <?before '[' > <circumfix> {*}             #= circumfix
+    | <?before '<' | '«' > <quote> {*}          #= quote
+    ]
 }
 
 

@@ -9,7 +9,7 @@ VERSION = PARROT_VERSION;
 
 inline op rebless_subclass(in PMC, in PMC) :base_core {
     PMC *value;
-    
+
     /* First verify that the object's class is a superclass of the one we're
      * to re-bless it into. While we're at it, count the number of attributes
      * the current class has that the parent class does not. */
@@ -31,7 +31,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         }
     }
     if (!in_parents)
-        real_exception(interp, NULL, INVALID_OPERATION, 
+        real_exception(interp, NULL, INVALID_OPERATION,
             "Attempt to use rebless_subclass where the new class was not a subclass");
 
     /* Make sure we're operating on the real value, not a mutable. */
@@ -43,13 +43,13 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
      * standard Parrot classes. TODO: fallbacks to handle when this is not the
      * case, for HLL interop. */
     if (value->vtable->base_type != enum_class_Object)
-        real_exception(interp, NULL, INVALID_OPERATION, 
+        real_exception(interp, NULL, INVALID_OPERATION,
             "Can only rebless standard Parrot objects.");
     if ($2->vtable->base_type != enum_class_Class)
-        real_exception(interp, NULL, INVALID_OPERATION, 
+        real_exception(interp, NULL, INVALID_OPERATION,
             "Can only rebless into a standard Parrot class.");
     if (current_class->vtable->base_type != enum_class_Class)
-        real_exception(interp, NULL, INVALID_OPERATION, 
+        real_exception(interp, NULL, INVALID_OPERATION,
             "Can only rebless out of a standard Parrot class.");
 
     /* Shuffle up attributes to the point of the difference between the number

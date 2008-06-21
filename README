@@ -45,11 +45,10 @@ with Rakudo on Parrot.  This is a simple suite of tests, designed
 to make sure that the Rakudo compiler is basically working and that
 it's capable of running a simple test harness.
 
-Running "make spectest" will import relevant portions of the
-"official Perl 6 test suite" from the Pugs repository
+Running "make spectest_regression" will import relevant portions
+of the "official Perl 6 test suite" from the Pugs repository
 (http://svn.pugscode.org/pugs/tspec/) and run all tests from
-there. Enter C<make spectest_regression> to run those of the tests
-that are currently supposed to pass.
+there.
 
 At present we do not have any plans to directly store the
 official test suite as part of the Rakudo/Parrot repository,
@@ -73,15 +72,15 @@ Questions about the Rakudo compiler for Parrot and the Parrot
 compiler tools can go to C<perl6-compiler@perl.org>.  Discussion
 about Parrot itself generally takes place on C<parrot-porters@perl.org>.
 
-The Parrot and Rakudo development team tend to hang out on IRC
-a fair bit, either on C<irc.perl.org/#parrot> or (to a somewhat
-lesser extent) C<irc.freenode.net/#perl6>.
+The Parrot and Rakudo development team tend to hang out on IRC a fair
+bit, either on C<irc.perl.org/#parrot> or C<irc.freenode.net/#perl6>.
 
 There are also Perl 6 and Parrot wikis, found at
     L<http://www.perlfoundation.org/perl6/index.cgi>
     L<http://www.perlfoundation.org/parrot/index.cgi>
 
-There is also a Rakudo related blog at L<http://rakudo.org/>.
+There is also a Rakudo related blog at L<http://rakudo.org/>, and
+a Parrot blog at L<http://parrotblog.org/>.
 
 =head2 Reporting bugs
 
@@ -109,8 +108,8 @@ See F<docs/compiler_overview.pod>.
 
 =head1 AUTHOR
 
-Patrick Michaud (pmichaud@pobox.com) is the author and maintainer
-for Rakudo Perl 6 on Parrot.
+Patrick Michaud (pmichaud@pobox.com) is the primary author and
+maintainer for Rakudo Perl 6 on Parrot.
 
 =cut
 

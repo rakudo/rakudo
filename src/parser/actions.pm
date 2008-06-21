@@ -113,7 +113,7 @@ method statement($/, $key) {
     }
     elsif $key eq 'null' {
         $past := PAST::Stmts.new();  # empty stmts seem eliminated by TGE
-    }    
+    }
     else {
         my $expr := $( $<expr> );
         if $expr.WHAT() eq 'Block' && !$expr.blocktype() {

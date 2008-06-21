@@ -22,6 +22,7 @@ Perform initializations and create the base classes.
 
 =cut
 
+.namespace []
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     load_bytecode 'P6object.pbc'
@@ -93,7 +94,21 @@ this is simply the invocant itself.
 
 =cut
 
+.namespace []
+.sub 'item'
+    .param pmc x               :slurpy
+    $I0 = elements x
+    unless $I0 == 1 goto have_x
+    x = shift x
+  have_x:
+    $I0 = can x, 'item'
+    unless $I0 goto have_item
+    x = x.'item'()
+  have_item:
+    .return (x)
+.end
 
+.namespace ['Perl6Object']
 .sub 'item' :method
     .return (self)
 .end

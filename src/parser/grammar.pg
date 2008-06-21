@@ -203,6 +203,7 @@ rule statement {
             {*}                                  #= statement_mod_cond
         || {*}                                   #= expr
         ]
+    | <?before ';'> {*}                          #= null
 }
 
 rule statement_control {

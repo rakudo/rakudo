@@ -15,6 +15,7 @@ S03-operators/equality.t                        # pure
 S03-operators/not.t                             # pure
 S03-operators/relational.t                      # pure
 S03-operators/true.t                            # pure
+S04-statements/terminator.t                     # pure
 S04-statements/try.t
 S04-statements/until.t                          # pure
 S04-statements/while.t

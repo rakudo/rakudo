@@ -174,11 +174,11 @@ testtest: all test
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
 spectest: all t/spec
-	cd t/spec && svn up
+	-cd t/spec && svn up
 	$(PERL) t/harness --fudge --keep-exit-code t/spec
 
 spectest_regression: all t/spec t/spectest_regression.data
-	cd t/spec && svn up
+	-cd t/spec && svn up
 	$(PERL) t/harness \
         --configfudge \
         --tests-from-file=t/spectest_regression.data \

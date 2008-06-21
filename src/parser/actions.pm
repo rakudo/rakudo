@@ -450,7 +450,7 @@ method statement_prefix($/) {
 }
 
 
-method plurality_declarator($/) {
+method multi_declarator($/) {
     my $past := $( $<routine_declarator> );
     if $<sym> eq 'multi' {
         our $?PARAM_TYPE_CHECK;

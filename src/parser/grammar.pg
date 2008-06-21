@@ -322,7 +322,7 @@ rule statement_prefix {
 
 #### Subroutine and method definitions ####
 
-rule plurality_declarator {
+rule multi_declarator {
     $<sym>=[multi|proto|only] <routine_declarator> {*}
 }
 
@@ -492,9 +492,10 @@ token postcircumfix {
 # can be a noun too in STD.pm. However, at the moment that seems to lead us
 # to infinite recursion.
 token noun {
+    | <fatarrow> {*}                             #= fatarrow
     | <package_declarator> {*}                   #= package_declarator
     | <scope_declarator> {*}                     #= scope_declarator
-    | <plurality_declarator> {*}                 #= plurality_declarator
+    | <multi_declarator> {*}                     #= multi_declarator
     | <routine_declarator> {*}                   #= routine_declarator
     | <enum_declarator> {*}                      #= enum_declarator
     | <circumfix> {*}                            #= circumfix
@@ -507,7 +508,6 @@ token noun {
     | <regex_declarator> {*}                     #= regex_declarator
     | <type_declarator> {*}                      #= type_declarator
     | <colonpair> {*}                            #= colonpair
-    | <fatarrow> {*}                             #= fatarrow
     | 'self' >> {*}                              #= self
     | 'undef' >> {*}                             #= undef
 }

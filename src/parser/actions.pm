@@ -1986,13 +1986,8 @@ method quote_term($/, $key) {
 
 method typename($/) {
     # Extract shortname part of identifier, if there is one.
-    my $ns := $<name><ident>;
-    my $shortname;
-    PIR q<    $P0 = find_lex '$ns'         >;
-    PIR q<    $P0 = clone $P0              >;
-    PIR q<    $P1 = pop $P0                >;
-    PIR q<    store_lex '$ns', $P0         >;
-    PIR q<    store_lex '$shortname', $P1  >;
+    my $ns := $<name><ident>.clone();
+    my $shortname := $ns.pop();
 
     # Create default PAST node for package lookup of type.
     my $past := PAST::Var.new(

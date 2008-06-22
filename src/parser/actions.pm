@@ -2033,6 +2033,7 @@ method term($/, $key) {
             $( $<variable> )
         );
     }
+    else { $past := $( $/{$key} ); }
     make $past;
 }
 
@@ -2099,29 +2100,21 @@ method EXPR($/, $key) {
         make $past;
     }
     elsif ~$<type> eq 'infix:does' {
-        # If the RHS is a subcall, need to handle it specially, since this is
-        # not really a call, but supplying value to init first attribute with.
-        my $lhs := $( $/[0] );
-        my $rhs := $( $/[1] );
         my $past := PAST::Op.new(
+            $( $/[0] ),
             :pasttype('call'),
             :name('infix:does'),
-            $lhs
+            :node($/)
         );
-        if $rhs.WHAT() eq 'Op' && $rhs.pasttype() eq 'call' {
+        my $rhs := $( $/[1] );
+        if $rhs.HOW().isa(PAST::Op) && $rhs.pasttype() eq 'call' {
             # Make sure we only have one initialization value.
-            if +@($rhs) != 1 {
+            if +@($rhs) > 2 {
                 $/.panic("Role initialization can only supply a value for one attribute");
             }
-
-            # Extract role name.
-            $past.push(PAST::Var.new(
-                :name($rhs.name()),
-                :scope('package')
-            ));
-
-            # Push on initialization value.
+            # Push role name and argument onto infix:does
             $past.push($rhs[0]);
+            $past.push($rhs[1]);
         }
         else {
             $past.push($rhs);

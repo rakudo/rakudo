@@ -514,8 +514,9 @@ token noun {
 
 
 token term {
-    | 'VAR(' <variable> ')' {*}             #= VAR
-    | <ident> '.'? '(' <semilist> ')' {*}   #= subcall
+    | 'VAR(' <variable> ')' {*}                  #= VAR
+    | <typename> {*}                             #= typename
+    | <ident> '.'? '(' <semilist> ')' {*}        #= subcall
 }
 
 
@@ -611,7 +612,6 @@ token name {
 token value {
     | <quote> {*}                                #= quote
     | <number> {*}                               #= number
-    | <typename> {*}                             #= typename
 }
 
 ##  Quoting is tricky -- the <quote_concat> subrule is in

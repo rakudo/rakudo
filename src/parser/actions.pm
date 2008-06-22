@@ -2020,20 +2020,26 @@ method typename($/) {
 
 method term($/, $key) {
     my $past;
-    if $key eq 'subcall' {
+    if $key eq 'func args' {
         $past := build_call( $( $<semilist> ) );
         $past.name( ~$<ident> );
-        $past.node( $/ );
+    }
+    elsif $key eq 'listop args' {
+        $past := build_call( $( $<arglist> ) );
+        $past.name( ~$<ident> );
+    }
+    elsif $key eq 'listop noarg' {
+        $past := PAST::Op.new( :name( ~$<ident> ), :pasttype('call') );
     }
     elsif $key eq 'VAR' {
         $past := PAST::Op.new(
-            :pasttype('call'),
             :name('!VAR'),
-            :node($/),
+            :pasttype('call'),
             $( $<variable> )
         );
     }
     else { $past := $( $/{$key} ); }
+    $past.node($/);
     make $past;
 }
 
@@ -2042,20 +2048,6 @@ method semilist($/) {
     my $past := $<EXPR>
                     ?? $( $<EXPR>[0] )
                     !! PAST::Op.new( :node($/), :name('infix:,') );
-    make $past;
-}
-
-
-method listop($/, $key) {
-    my $past;
-    if $key eq 'arglist' {
-        $past := build_call( $( $<arglist> ) );
-    }
-    if $key eq 'noarg' {
-        $past := PAST::Op.new( :pasttype('call') );
-    }
-    $past.name( ~$<sym> );
-    $past.node($/);
     make $past;
 }
 

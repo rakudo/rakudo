@@ -10,6 +10,7 @@ S02-polymorphic_types/subset-code.t             # pure
 S02-polymorphic_types/subset-range.t
 S03-operators/autoincrement.t                   # pure
 S03-operators/comparison.t
+S03-operators/context.t
 S03-operators/cross-metaop.t
 S03-operators/equality.t                        # pure
 S03-operators/not.t                             # pure

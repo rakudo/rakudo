@@ -25,6 +25,9 @@ as the Perl 6 C<Str> class.
     strproto = p6meta.'new_class'('Str', 'parent'=>'Perl6Str Any')
     p6meta.'register'('Perl6Str', 'parent'=>strproto, 'protoobject'=>strproto)
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)
+
+    $P0 = get_hll_namespace ['String']
+    '!EXPORT'('sprintf', 'from'=>$P0)
 .end
 
 
@@ -229,8 +232,20 @@ Returns a Perl representation of the Str.
     .return ($S0)
 .end
 
-=item substr()
+=item sprintf( *@args )
 
+=cut
+
+.sub 'sprintf' :method
+    .param pmc args            :slurpy
+    args.'!flatten'()
+    $P0 = new 'Str'
+    sprintf $P0, self, args
+    .return ($P0)
+.end
+
+
+=item substr()
 
 =cut
 

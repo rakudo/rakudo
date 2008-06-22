@@ -2023,7 +2023,7 @@ method typename($/) {
 }
 
 
-method subcall($/, $key) {
+method term($/, $key) {
     my $past;
     if $key eq 'subcall' {
         $past := build_call( $( $<semilist> ) );

@@ -500,7 +500,7 @@ token noun {
     | <enum_declarator> {*}                      #= enum_declarator
     | <circumfix> {*}                            #= circumfix
     | <variable> {*}                             #= variable
-    | <subcall> {*}                              #= subcall
+    | <term> {*}                                 #= term
     | <dotty>                                    #= dotty
     | <value> {*}                                #= value
     | <capterm> {*}                              #= capterm
@@ -511,6 +511,13 @@ token noun {
     | 'self' >> {*}                              #= self
     | 'undef' >> {*}                             #= undef
 }
+
+
+token term {
+    | 'VAR(' <variable> ')' {*}             #= VAR
+    | <ident> '.'? '(' <semilist> ')' {*}   #= subcall
+}
+
 
 
 rule package_declarator {
@@ -693,11 +700,6 @@ token typename {
 token name {
     <ident> [ '::' <ident> ]*
     {*}
-}
-
-token subcall {
-    | 'VAR(' <variable> ')' {*}             #= VAR
-    | <ident> '.'? '(' <semilist> ')' {*}   #= subcall
 }
 
 # These regex rules are some way off STD.pm at the moment, but we'll work them

@@ -69,13 +69,12 @@ proto infix:<^> is equiv(infix:<|>)
     { ... }
 
 ## named unary
-proto prefix:<rand> is precedence('o=') { ... }
-proto prefix:<HOW> is equiv(prefix:<rand>) is subname('HOW') { ... }
-proto prefix:<WHAT> is equiv(prefix:<rand>) is subname('WHAT') { ... }
-proto prefix:<abs> is equiv(prefix:<rand>) is subname('abs') { ... }
-proto prefix:<pop> is equiv(prefix:<rand>) is subname('pop') { ... }
-proto prefix:<shift> is equiv(prefix:<rand>) is subname('shift') { ... }
-proto prefix:<sleep> is equiv(prefix:<rand>) is subname('sleep') { ... }
+proto prefix:<abs> is precedence('o=') is subname('abs') { ... }
+proto prefix:<HOW> is equiv(prefix:<abs>) is subname('HOW') { ... }
+proto prefix:<WHAT> is equiv(prefix:<abs>) is subname('WHAT') { ... }
+proto prefix:<pop> is equiv(prefix:<abs>) is subname('pop') { ... }
+proto prefix:<shift> is equiv(prefix:<abs>) is subname('shift') { ... }
+proto prefix:<sleep> is equiv(prefix:<abs>) is subname('sleep') { ... }
 
 ## nonchaining
 proto infix:<..> is precedence('n=') { ... }

@@ -63,29 +63,6 @@ Sets $x to an undefined value
 .end
 
 
-
-
-=item rand($x)
-
-Returns a random floating point number greater than or equal to zero and less
-than $x.
-
-=cut
-
-.sub 'prefix:rand'
-    .param num limit
-
-    # For now, we'll seed it with the time. Likely sucks.
-    $P0 = new 'Random'
-    $I0 = time
-    $P0 = $I0
-
-    $N0 = $P0
-    $N0 *= limit
-
-    .return ($N0)
-.end
-
 =back
 
 =cut

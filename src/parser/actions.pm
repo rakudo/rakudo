@@ -229,12 +229,12 @@ method given_statement($/) {
     # Node to assign expression to $_.
     my $expr := $( $<EXPR> );
     my $assign := PAST::Op.new(
+        PAST::Var.new( :name('$_') ),
+        $( $<EXPR> ),
         :name('infix::='),
         :pasttype('bind'),
         :node($/)
     );
-    $assign.push( PAST::Var.new( :node($/), :name('$_'), :scope('lexical') ) );
-    $assign.push( $expr );
 
     # Put as first instruction in block (but after .lex $_).
     my $statements := $past[1];
@@ -251,16 +251,13 @@ method when_statement($/) {
     # exit the innermost block in which $_ was set.
 
     # Invoke smartmatch of the expression.
-    my $expr := $( $<EXPR> );
     my $match_past := PAST::Op.new(
+        PAST::Var.new( :name('$_') ),
+        $( $<EXPR> ),
         :name('infix:~~'),
         :pasttype('call'),
         :node($/)
     );
-    $match_past.push(
-        PAST::Var.new( :node($/), :name('$_'), :scope('lexical') )
-    );
-    $match_past.push( $expr );
 
     # Use the smartmatch result as the condition.
     my $past := PAST::Op.new(

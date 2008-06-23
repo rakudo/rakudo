@@ -8,6 +8,8 @@ Any - Perl 6 Any class
 
 This file implements the Any class.
 
+=over 4
+
 =cut
 
 .namespace [ 'Any' ]
@@ -80,6 +82,9 @@ This file implements the Any class.
     .return ()
 .end
 
+=back
+
+=cut
 
 # Local Variables:
 #   mode: pir

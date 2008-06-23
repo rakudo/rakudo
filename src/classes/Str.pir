@@ -15,7 +15,7 @@ as the Perl 6 C<Str> class.
 
 =cut
 
-.namespace ['Perl6Str']
+.namespace ['Str']
 
 .include 'cclass.pasm'
 
@@ -26,7 +26,7 @@ as the Perl 6 C<Str> class.
     p6meta.'register'('Perl6Str', 'parent'=>strproto, 'protoobject'=>strproto)
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)
 
-    $P0 = get_hll_namespace ['String']
+    $P0 = get_hll_namespace ['Str']
     '!EXPORT'('sprintf', 'from'=>$P0)
 .end
 

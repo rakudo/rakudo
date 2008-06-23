@@ -314,8 +314,9 @@ honoring exclusive flags.
     $I0 = length $S0
     $S1 = to
     $I1 = length $S1
-    le $I0, $I1, test_value
-    .return (0)
+    eq $I0, $I1, test_value
+    $I0 = islt $I0, $I1
+    .return ($I0)
   test_value:
     toexc = getattribute self, '$!to_exclusive'
     if toexc goto exclusive_test

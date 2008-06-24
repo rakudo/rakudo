@@ -2,12 +2,14 @@
 # on current rakudo.
 # empty lines and those beginning with a # are ignored
 
+S02-builtin_data_types/num.t
 S02-builtin_data_types/type.t
 S02-literals/autoref.t
 S02-literals/hex_chars.t                        # pure
 S02-literals/radix.t
 S02-polymorphic_types/subset-code.t             # pure
 S02-polymorphic_types/subset-range.t
+S03-operators/assign-is-not-binding.t
 S03-operators/autoincrement.t                   # pure
 S03-operators/comparison.t
 S03-operators/context.t

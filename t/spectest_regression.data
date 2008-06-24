@@ -2,6 +2,8 @@
 # on current rakudo.
 # empty lines and those beginning with a # are ignored
 
+S02-builtin_data_types/flattening.t
+S02-builtin_data_types/nested_arrays.t          # pure
 S02-builtin_data_types/num.t
 S02-builtin_data_types/type.t
 S02-literals/autoref.t

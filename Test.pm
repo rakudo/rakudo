@@ -100,7 +100,10 @@ sub diag($message) { say '# '~$message; }
 multi sub flunk($reason) { proclaim(0, "flunk $reason")}
 
 
-sub isa_ok($var,$type) { ok($var.isa($type), "The object is-a '$type'"); }
+multi sub isa_ok($var,$type) { 
+    ok($var.isa($type), "The object is-a '$type'"); 
+}
+multi sub isa_ok($var,$type, $msg) { ok($var.isa($type), $msg); }
 
 multi sub dies_ok($closure, $reason) {
     try {

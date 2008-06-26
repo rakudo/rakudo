@@ -229,6 +229,11 @@ error.
 =cut
 
 .sub 'pi'
+    .param pmc x               :slurpy
+    ## 0-argument test, RT#56366
+    unless x goto no_args
+    die "too many arguments passed - 0 params expected"
+  no_args:
     $N0 = atan 1
     $N0 *= 4
     .return ($N0)

@@ -43,6 +43,11 @@ This file implements the Any class.
 
 .namespace []
 .sub 'rand'
+    .param pmc x               :slurpy
+    ## 0-argument test, RT#56366
+    unless x goto no_args
+    die "too many arguments passed - 0 params expected"
+  no_args:
     $P0 = get_hll_global ['Any'], '$!random'
     $N0 = $P0
     .return ($N0)

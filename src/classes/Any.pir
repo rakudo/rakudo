@@ -20,18 +20,21 @@ This file implements the Any class.
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     p6meta.'new_class'('Any', 'parent'=>'Perl6Object')
 
+    $P0 = get_hll_namespace ['Any']
+    '!EXPORT'('cis unpolar', 'from'=>$P0)
+
     ##  pre-seed a random number generator
     $P0 = new 'Random'
     set_hll_global ['Any'], '$!random', $P0
     srand()
 .end
 
-.namespace ['Any']
 
 =item can($x)
 
 =cut
 
+.namespace ['Any']
 .sub 'can' :method
     .param pmc x
     $P0 = self.'HOW'()
@@ -53,6 +56,16 @@ This file implements the Any class.
 =head2 C<Num>-like functions and methods
 
 =over 4
+
+=item cis($angle)
+
+=cut
+
+.namespace ['Any']
+.sub 'cis' :method
+    .return 'unpolar'(1.0, self)
+.end
+
 
 =item rand()
 
@@ -103,6 +116,26 @@ This file implements the Any class.
     $P0 = get_hll_global ['Any'], '$!random'
     $P0 = $I0
     .return ()
+.end
+
+
+=item unpolar($angle)
+
+=cut
+
+.sub 'unpolar' :method
+    .param num angle
+    .local num mag
+    .local pmc result
+    mag = self
+    result = new 'Complex'
+    $N0 = cos angle
+    $N0 *= mag
+    result[0] = $N0
+    $N0 = sin angle
+    $N0 *= mag
+    result[1] = $N0
+    .return (result)
 .end
 
 =back

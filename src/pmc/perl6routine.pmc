@@ -1,5 +1,5 @@
 /*
-$Id:$
+$Id$
 Copyright (C) 2001-2008, The Perl Foundation.
 
 =head1 NAME
@@ -19,7 +19,7 @@ Subclass of Perl6Block for Perl 6 routines.
 #include "parrot/parrot.h"
 
 pmclass Perl6Routine extends Perl6Block need_ext dynpmc group perl6_group {
-    
+
 }
 
 /*

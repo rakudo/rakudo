@@ -1,5 +1,5 @@
 /*
-$Id:$
+$Id$
 Copyright (C) 2001-2008, The Perl Foundation.
 
 =head1 NAME
@@ -19,7 +19,7 @@ Subclass of Closure for Perl 6 Blocks.
 #include "parrot/parrot.h"
 
 pmclass Perl6Block extends Closure need_ext dynpmc group perl6_group {
-    
+
 }
 
 /*

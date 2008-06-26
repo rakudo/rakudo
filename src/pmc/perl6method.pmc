@@ -1,5 +1,5 @@
 /*
-$Id:$
+$Id$
 Copyright (C) 2001-2008, The Perl Foundation.
 
 =head1 NAME
@@ -21,7 +21,7 @@ Subclass of Perl6Routine for Perl 6 methods.
 /* We temporarily have to use Sub rather than Perl6Routine thanks to both
  * RT#47956 and RT#47794. */
 pmclass Perl6Method extends Sub need_ext dynpmc group perl6_group {
-    
+
 }
 
 /*

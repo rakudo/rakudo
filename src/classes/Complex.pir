@@ -53,10 +53,11 @@ Returns a Perl representation of the Complex.
 .namespace []
 
 .sub 'postfix:i' :multi(_)
-    .param num a
+    .param pmc a
     .local pmc proto
     $P0 = new 'Complex'
-    $P0[1] = a
+    $P0[1] = 1.0
+    mul $P0, $P0, a
     .return ($P0)
 .end
 

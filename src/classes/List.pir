@@ -17,7 +17,7 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 
     $P0 = get_hll_namespace ['List']
-    '!EXPORT'('elems first grep keys kv map pairs reduce reverse values', $P0)
+    '!EXPORT'('first grep keys kv map pairs reduce reverse values', $P0)
 .end
 
 =item clone()    (vtable method)
@@ -228,11 +228,6 @@ Return the number of elements in the list.
     self.'!flatten'()
     $I0 = elements self
     .return ($I0)
-.end
-
-.sub 'elems' :multi()
-    .param pmc values          :slurpy
-    .return values.'elems'()
 .end
 
 

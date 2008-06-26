@@ -505,13 +505,14 @@ method routine_declarator($/, $key) {
     if $key eq 'sub' {
         my $past := $($<routine_def>);
         $past.blocktype('declaration');
+        $past.pirflags(~$past.pirflags() ~ ' :instanceof("Perl6Sub")');
         $past.node($/);
         make $past;
     }
     elsif $key eq 'method' {
         my $past := $($<method_def>);
         $past.blocktype('declaration');
-        $past.pirflags(':method');
+        $past.pirflags(~$past.pirflags() ~ ' :method :instanceof("Perl6Method")');
         $past.node($/);
         make $past;
     }

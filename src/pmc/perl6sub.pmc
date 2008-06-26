@@ -1,0 +1,30 @@
+/*
+$Id:$
+Copyright (C) 2001-2008, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/perl6sub.pmc - Perl 6 Sub PMC
+
+=head1 DESCRIPTION
+
+Subclass of Perl6Sub for Perl 6 subroutines.
+
+=head2 Methods
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+
+pmclass Perl6Sub extends Perl6Routine need_ext dynpmc group perl6_group {
+    
+}
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */

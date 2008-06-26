@@ -1,0 +1,30 @@
+/*
+$Id:$
+Copyright (C) 2001-2008, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/perl6block.pmc - Perl 6 Block PMC
+
+=head1 DESCRIPTION
+
+Subclass of Closure for Perl 6 Blocks.
+
+=head2 Methods
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+
+pmclass Perl6Block extends Closure need_ext dynpmc group perl6_group {
+    
+}
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */

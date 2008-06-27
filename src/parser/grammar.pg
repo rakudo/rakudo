@@ -527,6 +527,7 @@ token term {
         | <.unsp>? '.'? '(' <semilist> ')' {*}   #= func args
         | :: {*}                                 #= listop noarg
         ]
+    | <sigil> \s <arglist> {*}                   #= sigil
     ]
 }
 

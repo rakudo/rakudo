@@ -1827,25 +1827,18 @@ method circumfix($/, $key) {
     elsif $key eq '$( )' {
         ##  Context - is just calling .item, .list etc on whatever we
         ##  got made by the expression in the brackets.
-        my $expr := $( $<semilist> );
         my $method;
-        if $<sigil> eq '$' {
-            $method := 'item';
-        }
-        elsif $<sigil> eq '@' {
-            $method := 'list';
-        }
-        elsif $<sigil> eq '%' {
-            $method := 'hash';
-        }
+        if    $<sigil> eq '$' { $method := 'item'; }
+        elsif $<sigil> eq '@' { $method := 'list'; }
+        elsif $<sigil> eq '%' { $method := 'hash'; }
         else {
-            $/.panic("Use of " ~ $<sigil> ~ " as contextualizer not yet implemented.");
+            $/.panic("Use of contextualizer " ~ $<sigil> ~ " not implemented.");
         }
         $past := PAST::Op.new(
             :pasttype('callmethod'),
             :name($method),
             :node($/),
-            $expr
+            $( $<semilist> )
         );
     }
     make $past;
@@ -2037,6 +2030,21 @@ method term($/, $key) {
             :name('!VAR'),
             :pasttype('call'),
             $( $<variable> )
+        );
+    }
+    elsif $key eq 'sigil' {
+        my $method;
+        if    $<sigil> eq '$' { $method := 'item'; }
+        elsif $<sigil> eq '@' { $method := 'list'; }
+        elsif $<sigil> eq '%' { $method := 'hash'; }
+        else {
+            $/.panic("Use of contextualizer " ~ $<sigil> ~ " not implemented.");
+        }
+        $past := PAST::Op.new(
+            :pasttype('callmethod'),
+            :name($method),
+            :node($/),
+            $( $<arglist> )
         );
     }
     else { $past := $( $/{$key} ); }

@@ -1825,15 +1825,8 @@ method circumfix($/, $key) {
         $past := $( $<pblock> );
     }
     elsif $key eq '$( )' {
-        ##  Context - is just calling .item, .list etc on whatever we
-        ##  got made by the expression in the brackets.
-        my $method;
-        if    $<sigil> eq '$' { $method := 'item'; }
-        elsif $<sigil> eq '@' { $method := 'list'; }
-        elsif $<sigil> eq '%' { $method := 'hash'; }
-        else {
-            $/.panic("Use of contextualizer " ~ $<sigil> ~ " not implemented.");
-        }
+        my $method := process_contextualizer($/, $<sigil>);
+
         $past := PAST::Op.new(
             :pasttype('callmethod'),
             :name($method),
@@ -2033,13 +2026,8 @@ method term($/, $key) {
         );
     }
     elsif $key eq 'sigil' {
-        my $method;
-        if    $<sigil> eq '$' { $method := 'item'; }
-        elsif $<sigil> eq '@' { $method := 'list'; }
-        elsif $<sigil> eq '%' { $method := 'hash'; }
-        else {
-            $/.panic("Use of contextualizer " ~ $<sigil> ~ " not implemented.");
-        }
+        my $method := process_contextualizer($/, $<sigil>);
+
         $past := PAST::Op.new(
             :pasttype('callmethod'),
             :name($method),
@@ -2347,6 +2335,20 @@ sub build_call($args) {
     }
     $args.pasttype('call');
     $args;
+}
+
+
+sub process_contextualizer($/, $sigil) {
+    ##  Contextualizing is calling .item, .list, .hash, etc.
+    ##  on the expression in the brackets
+    my $method;
+    if    $sigil eq '$' { $method := 'item'; }
+    elsif $sigil eq '@' { $method := 'list'; }
+    elsif $sigil eq '%' { $method := 'hash'; }
+    else {
+        $/.panic("Use of contextualizer " ~ $sigil ~ " not implemented.");
+    }
+    $method
 }
 
 

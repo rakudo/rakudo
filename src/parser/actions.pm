@@ -1818,7 +1818,7 @@ method circumfix($/, $key) {
                      !! PAST::Op.new(:name('list'));
     }
     if $key eq '[ ]' {
-        $past := PAST::Op.new(:name('!Arrayref'), :node($/) );
+        $past := PAST::Op.new(:name('circumfix:[ ]'), :node($/) );
         if $<statementlist><statement> { $past.push( $( $<statementlist> ) ); }
     }
     elsif $key eq '{ }' {
@@ -1826,7 +1826,6 @@ method circumfix($/, $key) {
     }
     elsif $key eq '$( )' {
         my $method := process_contextualizer($/, $<sigil>);
-
         $past := PAST::Op.new(
             :pasttype('callmethod'),
             :name($method),

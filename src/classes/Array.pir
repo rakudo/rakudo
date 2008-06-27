@@ -12,7 +12,6 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     .local pmc p6meta, arrayproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     arrayproto = p6meta.'new_class'('Perl6Array', 'parent'=>'List', 'name'=>'Array')
-    p6meta.'new_class'('Arrayref', 'parent'=>arrayproto, 'protoobject'=>arrayproto)
 
     $P0 = get_hll_namespace ['Perl6Array']
     '!EXPORT'('delete exists pop push shift unshift', 'from'=>$P0)
@@ -27,6 +26,19 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     $I0 = elements self
     splice self, $P0, 0, $I0
     .return (self)
+.end
+
+
+.namespace []
+.sub 'circumfix:[ ]'
+    .param pmc values          :slurpy
+    $P0 = new 'Perl6Array'
+    $I0 = elements values
+    splice $P0, values, 0, $I0
+    $P0.'!flatten'()
+    $P1 = new 'Perl6Scalar'
+    assign $P1, $P0
+    .return ($P1)
 .end
 
 
@@ -96,6 +108,29 @@ Return true if the elements at C<indices> have been assigned to.
 .end
 
 
+=item item()
+
+Return Array in item context (i.e., self)
+
+=cut
+
+.sub 'item' :method
+    .return (self)
+.end
+
+
+=item list()
+
+Return Array in list context (i.e., a List containing self)
+
+=cut
+
+.sub 'list' :method
+    $P0 = get_hll_global 'list'
+    .return $P0(self)
+.end
+
+
 =item pop()
 
 Remove the last item from the array and return it.
@@ -158,45 +193,6 @@ Adds C<args> to the beginning of the Array.
     args.'!flatten'()
     splice self, args, 0, 0
     .return self.'elems'()
-.end
-
-
-=back
-
-=head1  Arrayref
-
-=cut
-
-.namespace []
-
-.sub '!Arrayref'
-    .param pmc args            :slurpy
-    .local pmc result, iter
-    args = 'list'(args)
-    result = new 'Arrayref'
-    iter = args.'iterator'()
-  iter_loop:
-    unless iter goto iter_end
-    $P0 = shift iter
-    $P0 = clone $P0
-    push result, $P0
-    goto iter_loop
-  iter_end:
-    .return (result)
-.end
-
-
-.namespace ['Arrayref']
-
-.sub 'item' :method
-    .return (self)
-.end
-
-
-.sub 'list' :method
-    $P0 = new 'List'
-    push $P0, self
-    .return ($P0)
 .end
 
 

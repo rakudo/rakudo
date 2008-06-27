@@ -104,12 +104,14 @@ Return the List invocant as a Hash.
 
 =item item()
 
-Return the List invocant in scalar context (i.e., an Arrayref).
+Return the List invocant in scalar context (i.e., an Array).
 
 =cut
 
 .sub 'item' :method
-    .return '!Arrayref'(self)
+    $P0 = new 'Perl6Array'
+    splice $P0, self, 0, 0
+    .return ($P0)
 .end
 
 
@@ -194,7 +196,7 @@ layer.  It will likely change substantially when we have lazy lists.
     elem = self[i]
     $I0 = defined elem
     unless $I0 goto flat_next
-    $I0 = isa elem, 'Arrayref'
+    $I0 = isa elem, 'Perl6Scalar'
     if $I0 goto flat_next
     $I0 = isa elem, 'Range'
     unless $I0 goto not_range
@@ -224,7 +226,7 @@ Return the number of elements in the list.
 
 =cut
 
-.sub 'elems' :method :multi('ResizablePMCArray')
+.sub 'elems' :method :multi('ResizablePMCArray') :vtable('get_number')
     self.'!flatten'()
     $I0 = elements self
     .return ($I0)

@@ -42,7 +42,7 @@ S12-role/mixin.t                                # pure
 S16-filehandles/connect.t                       # pure
 S16-io/say.t
 S29-any/cmp.t                                   # pure
-S29-array/delete.t                              # pure
+S29-array/delete.t
 S29-array/exists.t                              # pure
 S29-array/keys_values.t                         # pure
 S29-array/kv.t                                  # pure

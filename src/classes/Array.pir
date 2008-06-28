@@ -62,6 +62,7 @@ to the length of the last non-null (existing) element.
     result = new 'List'
     null $P99
 
+    indices.'!flatten'()
   indices_loop:
     unless indices goto indices_end
     $I0 = shift indices

@@ -1,4 +1,4 @@
-## $Id: Bool.pir 28389 2008-06-15 19:37:26Z pmichaud $
+## $Id$
 
 =head1 TITLE
 

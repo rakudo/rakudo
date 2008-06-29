@@ -70,7 +70,8 @@ for my $tfile (@tfiles) {
         elsif (/^not ok +\d+/)     { $fail++; }
         elsif (/^ok +\d+/)         { $pass++; }
     }
-    if ($plan - $test > 0) { $fail += $plan - $test; }
+    my $abort = $plan - $test;
+    if ($abort > 0) { $fail += $abort; $test += $abort; }
     printf " %4d %4d %4d %4d %4d\n", $test, $pass, $fail, $todo, $skip;
     $sum{'plan'} += $plan;
     $sum{'test'} += $test;

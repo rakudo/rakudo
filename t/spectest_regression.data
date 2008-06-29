@@ -39,7 +39,6 @@ S12-methods/calling_syntax.t                    # pure
 S12-role/attributes.t
 S12-role/composition.t                          # pure
 S12-role/mixin.t                                # pure
-S16-filehandles/connect.t                       # pure
 S16-io/say.t
 S29-any/cmp.t                                   # pure
 S29-array/delete.t

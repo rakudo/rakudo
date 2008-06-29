@@ -58,7 +58,7 @@ for my $tfile (@tfiles) {
     }
     close($th);
     printf "%s%s..%4d", $tfile, '.' x ($max - length($tfile)), $plan;
-    my $cmd = "../../parrot perl6.pbc $tfile";
+    my $cmd = "../../parrot -G perl6.pbc $tfile";
     my @results = split "\n", `$cmd`;
     my ($test, $pass, $fail, $todo, $skip) = (0,0,0,0,0);
     my %skip;
@@ -70,6 +70,7 @@ for my $tfile (@tfiles) {
         elsif (/^not ok +\d+/)     { $fail++; }
         elsif (/^ok +\d+/)         { $pass++; }
     }
+    if ($plan - $test > 0) { $fail += $plan - $test; }
     printf " %4d %4d %4d %4d %4d\n", $test, $pass, $fail, $todo, $skip;
     $sum{'plan'} += $plan;
     $sum{'test'} += $test;

@@ -319,36 +319,6 @@ Returns an iterator for the list.
 .end
 
 
-=item join(SEPARATOR)
-
-Returns a string comprised of all of the list, separated by the string SEPARATOR.  Given an empty list, join returns the empty string.
-
-=cut
-
-.namespace []
-.sub 'join' :multi('String')
-    .param string sep
-    .param pmc values          :slurpy
-    .return values.'join'(sep)
-.end
-
-.namespace ['List']
-.sub 'join' :method :multi('ResizablePMCArray')
-    .param string sep          :optional
-    .param int has_sep         :opt_flag
-
-    if has_sep goto have_sep
-    sep = ' '
-  have_sep:
-
-    self.'!flatten'()
-    $S0 = join sep, self
-    $P0 = new 'Str'
-    $P0 = $S0
-    .return ($P0)
-.end
-
-
 =item keys()
 
 Returns a List containing the keys of the invocant.
@@ -568,60 +538,6 @@ Returns a list of the elements in reverse order.
 .sub 'reverse' :multi()
     .param pmc values          :slurpy
     .return values.'reverse'()
-.end
-
-
-=item sort()
-
-Sort list by copying into FPA, sorting and creating new List.
-
-=cut
-
-.sub 'sort' :method
-    .param pmc by              :optional
-    .param int has_by          :opt_flag
-    .local pmc elem, arr
-    .local int len, i
-
-    # Creating FPA
-    arr = new 'FixedPMCArray'
-    len = self.'elems'()
-    arr = len
-
-    # Copy all elements into it
-    i = 0
-  copy_to:
-    if i == len goto done_to
-    elem = self[i]
-    arr[i] = elem
-    inc i
-    goto copy_to
-  done_to:
-
-    # Check comparer
-    if has_by goto do_sort
-    get_hll_global by, 'infix:cmp'
-  do_sort:
-    # Sort in-place
-    arr.'sort'(by)
-
-    $P0 = get_hll_global 'list'
-    .return $P0(arr)
-.end
-
-.namespace []
-.sub 'sort' :multi()
-    .param pmc values          :slurpy
-    .local pmc by
-    by = get_hll_global 'infix:cmp'
-    unless values goto have_by
-    $P0 = values[0]
-    $I0 = isa $P0, 'Sub'
-    unless $I0 goto have_by
-    by = shift values
-  have_by:
-    $P0 = values.'sort'(by)
-    .return ($P0)
 .end
 
 

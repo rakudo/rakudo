@@ -21,8 +21,8 @@ src/classes/Array.pir - Perl 6 Array class and related functions
 .namespace ['Perl6Array']
 .sub 'infix:=' :method
     .param pmc source
-    $P0 = source.'list'()
-    $P0 = clone $P0
+    $P0 = get_hll_global 'list'
+    $P0 = $P0(source)
     $I0 = elements self
     splice self, $P0, 0, $I0
     .return (self)
@@ -117,18 +117,6 @@ Return Array in item context (i.e., self)
 
 .sub 'item' :method
     .return (self)
-.end
-
-
-=item list()
-
-Return Array in list context (i.e., a List containing self)
-
-=cut
-
-.sub 'list' :method
-    $P0 = get_hll_global 'list'
-    .return $P0(self)
 .end
 
 

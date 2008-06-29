@@ -163,6 +163,31 @@ This file implements the Any class.
 .end
 
 
+=item join
+
+=cut
+
+.namespace []
+.sub 'join' :multi('String')
+    .param string sep
+    .param pmc values          :slurpy
+    .return values.'join'(sep)
+.end
+
+.namespace ['Any']
+.sub 'join' :method :multi(_)
+    .param string sep          :optional
+    .param int has_sep         :opt_flag
+    if has_sep goto have_sep
+    sep = ' '
+  have_sep:
+    $P0 = self.'list'()
+    $P0.'!flatten'()
+    $S0 = join sep, $P0
+    .return ($S0)
+.end
+
+
 =item pick($num, :$repl)
 
 =cut
@@ -246,6 +271,59 @@ This file implements the Any class.
     $I0 = self.'elems'()
     .return self.'pick'($I0)
 .end
+
+
+=item sort()
+
+Sort list.  In this case we copy into an FPA to make use of the
+Parrot's built-in sort algorithm.
+
+=cut
+
+.namespace []
+.sub 'sort' :multi()
+    .param pmc values          :slurpy
+    .local pmc by
+    by = get_hll_global 'infix:cmp'
+    unless values goto have_by
+    $P0 = values[0]
+    $I0 = isa $P0, 'Sub'
+    unless $I0 goto have_by
+    by = shift values
+  have_by:
+    .return values.'sort'(by)
+.end
+
+.namespace ['Any']
+.sub 'sort' :method :multi(_)
+    .param pmc by              :optional
+    .param int has_by          :opt_flag
+    if has_by goto have_by
+    by = get_hll_global 'infix:cmp'
+  have_by:
+
+    .local pmc list, fpa
+    .local int elems
+
+    list = self.'list'()
+    list.'!flatten'()
+    elems = list.'elems'()
+    fpa = new 'FixedPMCArray'
+    fpa = elems
+
+    .local int i
+    i = 0
+  fpa_loop:
+    unless i < elems goto fpa_end
+    $P0 = list[i]
+    fpa[i] = $P0
+    inc i
+    goto fpa_loop
+  fpa_end:
+    fpa.'sort'(by)
+    .return 'list'(fpa)
+.end
+
 
 =back
 

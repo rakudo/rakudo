@@ -96,7 +96,7 @@ For example, here's the parse rule for Rakudo's C<unless> statement
     }
 
 This rule says that an unless statement consists of the word "unless"
-(captured into $<sym>), followed by an expression and then a block.
+(captured into C<< $<sym> >>), followed by an expression and then a block.
 If all of those match successfully, then the C< {*} > invokes the
 corresponding action method for unless_statement.  Here's the action
 method for the unless statement (from src/parser/actions.pm):
@@ -220,7 +220,7 @@ and maintainer.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2007, The Perl Foundation.
+Copyright (C) 2007-2008, The Perl Foundation.
 
 =cut
 

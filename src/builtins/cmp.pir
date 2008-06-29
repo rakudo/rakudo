@@ -144,7 +144,9 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param pmc a
     .param pmc b
     $I0 = cmp a, b
-    .return 'infix:<=>'($I0, 0)
+    ##  Don't use a tailcall here due to RT#56448
+    $P0 = 'infix:<=>'($I0, 0)
+    .return ($P0)
 .end
 
 
@@ -152,7 +154,9 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = cmp a, b
-    .return 'infix:<=>'($I0, 0)
+    ##  Don't use a tailcall here due to RT#56448
+    $P0 = 'infix:<=>'($I0, 0)
+    .return ($P0)
 .end
 
 

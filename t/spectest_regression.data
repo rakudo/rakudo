@@ -21,6 +21,7 @@ S03-operators/context.t
 S03-operators/cross-metaop.t
 S03-operators/equality.t                        # pure
 S03-operators/not.t                             # pure
+S03-operators/range.t
 S03-operators/relational.t                      # pure
 S03-operators/true.t                            # pure
 S04-declarations/multiple.t

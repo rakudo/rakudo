@@ -20,6 +20,34 @@ src/classes/Range.pir - methods for the Range class
     p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!from $!to $!from_exclusive $!to_exclusive')
 .end
 
+
+=item VTABLE_get integer (vtable method)
+
+=item VTABLE_get_number (vtable method)
+
+=item VTABLE_get_string (vtable method)
+
+=cut
+
+.sub 'VTABLE_get_integer' :method :vtable('get_integer')
+    $P0 = self.'list'()
+    $I0 = $P0
+    .return ($I0)
+.end
+
+.sub 'VTABLE_get_number' :method :vtable('get_number')
+    $P0 = self.'list'()
+    $N0 = $P0
+    .return ($N0)
+.end
+
+.sub 'VTABLE_get_string' :method :vtable('get_string')
+    $P0 = self.'list'()
+    $S0 = $P0
+    .return ($S0)
+.end
+
+
 =item ACCEPTS(topic)
 
 Determines if topic is within the range.

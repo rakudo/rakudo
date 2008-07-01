@@ -205,9 +205,8 @@ layer.  It will likely change substantially when we have lazy lists.
     $I0 = does elem, 'array'
     unless $I0 goto flat_next
     splice self, elem, i, 1
-    $I0 = elements self
-    if i < $I0 goto flat_loop
-    goto flat_end
+    len = elements self
+    goto flat_loop
   flat_next:
     inc i
     goto flat_loop

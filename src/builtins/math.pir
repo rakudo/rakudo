@@ -123,7 +123,7 @@ C<$x ** 0.5>
 
 =cut
 
-.sub 'sqrt'
+.sub 'sqrt' :multi(_)
     .param num a
     a = sqrt a
     .return (a)
@@ -172,7 +172,7 @@ constant I<e>.
 
 =cut
 
-.sub 'exp'
+.sub 'exp' :multi(_)
     .param num a
     a = exp a
     .return (a)

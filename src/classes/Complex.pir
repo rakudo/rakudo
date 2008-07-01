@@ -39,10 +39,37 @@ Returns a Perl representation of the Complex.
     .return ($S0)
 .end
 
+=back
+
+=head2 Subs
+
+=over 4
+
+=item exp
+
+=cut
+
+.sub 'exp' :multi(Complex)
+    .param pmc a
+    a = exp a
+    .return(a)
+.end
+
+=item sqrt
+
+=cut
+
+.sub 'sqrt' :multi(Complex)
+    .param pmc a
+    a = sqrt a
+    .return (a)
+.end
+
 
 =back
 
 =head2 Operators
+
 
 =over 4
 
@@ -82,6 +109,14 @@ Returns a Perl representation of the Complex.
     .return ($P0)
 .end
 
+=item prefix:+
+
+=cut
+
+.sub 'prefix:+' :multi('Complex')
+    .param pmc a
+    .return (a)
+.end
 
 =item infix:-
 
@@ -101,6 +136,16 @@ Returns a Perl representation of the Complex.
     $P0 = new 'Complex'
     sub $P0, a, b
     .return ($P0)
+.end
+
+=item prefix:-
+
+=cut
+
+.sub 'prefix:-' :multi('Complex')
+    .param pmc a
+    a = neg a
+    .return (a)
 .end
 
 

@@ -68,7 +68,7 @@ S29-list/mutating_listops.t                     # pure
 S29-list/reduce.t
 S29-list/sort.t
 S29-num/abs.t
-S29-num/complex.t
+S29-num/complex.t                               # pure
 S29-num/exp.t
 S29-num/int.t
 S29-num/log.t

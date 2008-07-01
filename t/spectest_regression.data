@@ -28,6 +28,7 @@ S03-operators/repeat.t
 S03-operators/ternary.t
 S03-operators/short-circuit.t
 S03-operators/true.t                            # pure
+S03-junctions/misc.t
 S04-declarations/multiple.t
 S04-statements/no-implicit-block.t
 S04-statements/terminator.t                     # pure

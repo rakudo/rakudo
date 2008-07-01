@@ -24,6 +24,7 @@ S03-operators/not.t                             # pure
 S03-operators/range.t
 S03-operators/relational.t                      # pure
 S03-operators/repeat.t
+S03-operators/ternary.t
 S03-operators/true.t                            # pure
 S04-declarations/multiple.t
 S04-statements/no-implicit-block.t

@@ -82,5 +82,6 @@ S29-str/append.t                                # pure
 S29-str/capitalize.t
 S29-str/chop.t
 S29-str/lcfirst.t
+S29-str/lc.t
 S29-str/sprintf.t
 S29-str/ucfirst.t

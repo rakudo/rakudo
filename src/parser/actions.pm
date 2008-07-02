@@ -307,7 +307,7 @@ method for_statement($/) {
     my $block := $( $<pblock> );
     $block.blocktype('declaration');
     my $past := PAST::Op.new(
-        $( $<EXPR> ),
+        PAST::Op.new(:name('list'), $($<EXPR>)),
         $block,
         :pasttype($<sym>),
         :node( $/ )

@@ -8,6 +8,7 @@ S02-builtin_data_types/flattening.t
 S02-builtin_data_types/nested_arrays.t          # pure
 S02-builtin_data_types/nested_pairs.t           # pure
 S02-builtin_data_types/num.t
+S02-builtin_data_types/range.t
 S02-builtin_data_types/type.t
 S02-literals/autoref.t
 S02-literals/hex_chars.t                        # pure
@@ -66,6 +67,7 @@ S29-list/map.t
 S29-list/minmax.t
 S29-list/mutating_listops.t                     # pure
 S29-list/reduce.t
+S29-list/reverse.t
 S29-list/sort.t
 S29-num/abs.t
 S29-num/complex.t                               # pure

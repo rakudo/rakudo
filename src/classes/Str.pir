@@ -27,7 +27,7 @@ as the Perl 6 C<Str> class.
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)
 
     $P0 = get_hll_namespace ['Str']
-    '!EXPORT'('sprintf index', 'from'=>$P0)
+    '!EXPORT'('index sprintf', 'from'=>$P0)
 .end
 
 
@@ -238,7 +238,7 @@ and issue a warning.
     .param int has_pos :opt_flag
     .local pmc retv
     .local string s
-    
+
     s = self
 
     # This check is redundant (at least with current parrot).
@@ -476,7 +476,7 @@ B<Note:> partial implementation only
 
     s = new 'Perl6Str'
     s = x
-	.return s.'substr'(start, len)
+    .return s.'substr'(start, len)
 .end
 
 =item chop

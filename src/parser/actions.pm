@@ -1794,7 +1794,7 @@ method circumfix($/, $key) {
         $past := $( $<pblock> );
     }
     elsif $key eq '$( )' {
-        my $method := process_contextualizer($/, $<sigil>);
+        my $method := contextualizer_name($/, $<sigil>);
         $past := PAST::Op.new(
             :pasttype('callmethod'),
             :name($method),
@@ -1994,7 +1994,7 @@ method term($/, $key) {
         );
     }
     elsif $key eq 'sigil' {
-        my $method := process_contextualizer($/, $<sigil>);
+        my $method := contextualizer_name($/, $<sigil>);
 
         $past := PAST::Op.new(
             :pasttype('callmethod'),
@@ -2306,7 +2306,7 @@ sub build_call($args) {
 }
 
 
-sub process_contextualizer($/, $sigil) {
+sub contextualizer_name($/, $sigil) {
     ##  Contextualizing is calling .item, .list, .hash, etc.
     ##  on the expression in the brackets
     my $method;

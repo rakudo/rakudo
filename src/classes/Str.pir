@@ -27,7 +27,7 @@ as the Perl 6 C<Str> class.
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)
 
     $P0 = get_hll_namespace ['Str']
-    '!EXPORT'('sprintf', 'from'=>$P0)
+    '!EXPORT'('sprintf index', 'from'=>$P0)
 .end
 
 
@@ -216,6 +216,59 @@ as the Perl 6 C<Str> class.
     .return(retv)
 .end
 
+=item index
+
+ our StrPos multi method index( Str $string: Str $substring, StrPos $pos = StrPos(0) ) is export
+
+C<index> searches for the first occurrence of C<$substring> in C<$string>,
+starting at C<$pos>.
+
+The value returned is always a StrPos object. If the substring is found, then
+the StrPos represents the position of the first character of the substring. If
+the substring is not found, a bare StrPos containing no position is returned.
+This prototype StrPos evaluates to false because it's really a kind of undef.
+Do not evaluate as a number, because instead of returning -1 it will return 0
+and issue a warning.
+
+=cut
+
+.sub 'index' :method
+    .param string substring
+    .param int pos     :optional
+    .param int has_pos :opt_flag
+    .local pmc retv
+    .local string s
+    
+    s = self
+
+    # This check is redundant (at least with current parrot).
+    # 'int pos' initialised to 0 if it was omited in invokation.
+    if has_pos goto check_substring
+    pos = 0
+
+  check_substring:
+    unless substring goto check_length
+    pos = index s, substring, pos
+    goto check_res
+  check_length:
+    $I0 = length s
+    if $I0 > pos goto done
+    pos = $I0
+
+  check_res:
+    # According to spec we should return StrPos wich yield false in boolean context.
+    # parrot return's -1 from index
+    if pos >= 0 goto done
+
+    # It should be bare StrPos.
+    retv = new 'Failure'
+    .return (retv)
+
+  done:
+    retv = new 'Int'
+    retv  = pos
+    .return (retv)
+.end
 
 =item perl()
 

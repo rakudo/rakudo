@@ -502,20 +502,19 @@ method multi_declarator($/) {
 
 
 method routine_declarator($/, $key) {
+    my $past;
     if $key eq 'sub' {
-        my $past := $($<routine_def>);
+        $past := $($<routine_def>);
         $past.blocktype('declaration');
-        $past.pirflags(~$past.pirflags() ~ ' :instanceof("Perl6Sub")');
-        $past.node($/);
-        make $past;
+        $past.pirflags( ~$past.pirflags() ~ ' :instanceof("Perl6Sub")');
     }
     elsif $key eq 'method' {
-        my $past := $($<method_def>);
-        $past.blocktype('declaration');
-        $past.pirflags(~$past.pirflags() ~ ' :method :instanceof("Perl6Method")');
-        $past.node($/);
-        make $past;
+        $past := $($<method_def>);
+        $past.blocktype('method');
+        $past.pirflags( ~$past.pirflags() ~ ' :instanceof("Perl6Method")');
     }
+    $past.node($/);
+    make $past;
 }
 
 

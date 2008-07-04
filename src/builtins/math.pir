@@ -91,24 +91,6 @@ or more succinctly:
 .end
 
 
-=item sqrt
-
- our Num     multi Num::sqrt ( Num  $x )
- our Complex multi Complex::sqrt ( Num  $x )
- our Complex multi Complex::sqrt ( Complex  $x )
- our Num     multi Math::Basic::sqrt ( Num $x )
-
-C<$x ** 0.5>
-
-=cut
-
-.sub 'sqrt' :multi(_)
-    .param num a
-    a = sqrt a
-    .return (a)
-.end
-
-
 =item truncate
 
  our Int multi Num::truncate ( Num $x )

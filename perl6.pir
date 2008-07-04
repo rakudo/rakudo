@@ -20,12 +20,11 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
 
 =cut
 
+.loadlib 'perl6_group'
 .loadlib 'perl6_ops'
 .include 'src/gen_builtins.pir'
 
 .namespace [ 'Perl6::Compiler' ]
-
-.loadlib 'perl6_group'
 
 .sub 'onload' :load :init :anon
     load_bytecode 'PCT.pbc'
@@ -34,7 +33,6 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     p6meta.'new_class'('Perl6::Compiler', 'parent'=>'PCT::HLLCompiler')
 .end
-
 
 .sub 'init' :vtable :method
     load_bytecode 'config.pbc'

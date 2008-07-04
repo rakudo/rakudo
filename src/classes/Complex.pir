@@ -24,9 +24,10 @@ Implementation is a bit different from other basic objects (Int...) because
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     complexproto = p6meta.'new_class'('Perl6Complex', 'parent'=>'Complex Any', 'name'=>'Complex')
     p6meta.'register'('Complex', 'parent'=>complexproto, 'protoobject'=>complexproto)
-.end
 
-# TODO ACCEPTS()
+    $P0 = get_hll_namespace ['Perl6Complex']
+    '!EXPORT'('exp sqrt', 'from'=>$P0)
+.end
 
 =item perl()
 
@@ -49,27 +50,24 @@ Returns a Perl representation of the Complex.
 
 =cut
 
-.sub 'exp' :multi(Complex)
-    .param pmc a
-    a = exp a
-    .return(a)
+.sub 'exp' :method :multi(Complex)
+    $P0 = exp self
+    .return ($P0)
 .end
 
 =item sqrt
 
 =cut
 
-.sub 'sqrt' :multi(Complex)
-    .param pmc a
-    a = sqrt a
-    .return (a)
+.sub 'sqrt' :method :multi(Complex)
+    $P0 = sqrt self
+    .return ($P0)
 .end
 
 
 =back
 
 =head2 Operators
-
 
 =over 4
 

@@ -198,23 +198,15 @@ method repeat_statement($/) {
 }
 
 method given_statement($/) {
-    my $past := $( $<block> );
-    $past.blocktype('immediate');
-
-    # Node to assign expression to $_.
-    my $expr := $( $<EXPR> );
-    my $assign := PAST::Op.new(
-        PAST::Var.new( :name('$_') ),
-        $( $<EXPR> ),
-        :name('infix::='),
-        :pasttype('bind'),
-        :node($/)
+    my $block := $( $<pblock> );
+    $block.blocktype('declaration');
+    declare_implicit_function_vars($block);
+    ##  call the block using the expression as an argument
+    my $past := PAST::Op.new(
+        :pasttype('call'),
+        $block,
+        $( $<EXPR> )
     );
-
-    # Put as first instruction in block (but after .lex $_).
-    my $statements := $past[1];
-    $statements.unshift( $assign );
-
     make $past;
 }
 

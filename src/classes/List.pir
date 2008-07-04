@@ -17,7 +17,7 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 
     $P0 = get_hll_namespace ['List']
-    '!EXPORT'('first grep keys kv map pairs reduce reverse values', $P0)
+    '!EXPORT'('first grep keys kv map pairs reduce values', $P0)
 .end
 
 =item clone()    (vtable method)
@@ -512,31 +512,6 @@ Return a list of Pair(index, value) elements for the invocant.
     .param pmc expression
     .param pmc values          :slurpy
     .return values.'reduce'(expression)
-.end
-
-
-=item reverse()
-
-Returns a list of the elements in reverse order.
-
-=cut
-
-.sub 'reverse' :method :multi('ResizablePMCArray')
-    .local pmc result, iter
-    result = new 'List'
-    iter = self.'iterator'()
-  iter_loop:
-    unless iter goto iter_done
-    $P0 = shift iter
-    unshift result, $P0
-    goto iter_loop
-  iter_done:
-    .return (result)
-.end
-
-.sub 'reverse' :multi()
-    .param pmc values          :slurpy
-    .return values.'reverse'()
 .end
 
 

@@ -91,38 +91,6 @@ or more succinctly:
 .end
 
 
-=item truncate
-
- our Int multi Num::truncate ( Num $x )
- our &Num::int ::= &Num::truncate;
-
-Returns the closest integer to $x whose absolute value is not greater
-than the absolute value of $x.  (In other words, just chuck any
-fractional part.)  This is the default rounding function used by an
-C<int()> cast, for historic reasons.  But see Int constructor above
-for a rounded version.
-
-=cut
-
-.sub 'truncate'
-    .param num a
-    eq a, 0, return
-    lt a, 0, under
-    floor a
-    goto return
-  under:
-    ceil a
-  return:
-    $I0 = a
-    .return ($I0)
-.end
-
-.sub 'int'
-    .param num a
-    .return 'truncate'(a)
-.end
-
-
 =item exp
 
  our Num multi Num::exp         ( Num $exponent: Num :$base = Num::e )

@@ -58,6 +58,56 @@ it understands how to properly merge C<MultiSub> PMCs.
 .end
 
 
+=item !OUTER(name [,'max'=>max])
+
+Helper function to obtain the lexical C<name> from the
+caller's outer scope.  (Note that it never finds a lexical
+in the caller's lexpad -- use C<find_lex> for that.)  The
+C<max> parameter specifies the maximum outer to search --
+the default value of 1 will search the caller's immediate
+outer scope and no farther.  If the requested lexical is
+not found, C<!OUTER> returns null.
+
+=cut
+
+.sub '!OUTER'
+    .param string name
+    .param int max             :named('max') :optional
+    .param int has_max         :opt_flag
+
+    if has_max goto have_max
+    max = 1
+  have_max:
+
+    .local int min
+    min = 1
+
+    ##  the depth we use here is one more than the minimum,
+    ##  because we want min/max to be relative to the caller's
+    ##  context, not !OUTER itself.
+    .local int depth
+    depth = min + 1
+    .local pmc lexpad, value
+    push_eh outer_err
+    null value
+  loop:
+    unless max >= min goto done
+    $P0 = getinterp
+    lexpad = $P0['outer', depth]
+    unless lexpad goto next
+    value = lexpad[name]
+    unless null value goto done
+  next:
+    inc depth
+    dec max
+    goto loop
+  done:
+    pop_eh
+  outer_err:
+    .return (value)
+.end
+
+
 =item !VAR
 
 Helper function for implementing the VAR and .VAR macros.

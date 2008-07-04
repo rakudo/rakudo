@@ -502,7 +502,7 @@ token noun {
     | <circumfix> {*}                            #= circumfix
     | <variable> {*}                             #= variable
     | <statement_prefix> {*}                     #= statement_prefix
-    | <dotty>                                    #= dotty
+    | <dotty> {*}                                #= dotty
     | <value> {*}                                #= value
     | 'self' >> {*}                              #= self
     | 'undef' >> {*}                             #= undef

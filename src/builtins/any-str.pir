@@ -19,7 +19,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chars', 'from'=>$P0)
+    '!EXPORT'('chars index', 'from'=>$P0)
 .end
 
 
@@ -28,12 +28,51 @@ the size of that file down and to emphasize their generic,
 =cut
 
 .namespace ['Any']
-
 .sub 'chars' :method :multi(_)
     $S0 = self
     $I0 = length $S0
     .return ($I0)
 .end
+
+=item index()
+
+=cut
+
+.namespace ['Any']
+.sub 'index' :method :multi(_)
+    .param string substring
+    .param int pos             :optional
+    .param int has_pos         :opt_flag
+    .local pmc retv
+
+    if has_pos goto have_pos
+    pos = 0
+  have_pos:
+
+    .local string s
+    s = self
+
+  check_substring:
+    if substring goto substring_search
+    $I0 = length s
+    if pos < $I0 goto done
+    pos = $I0
+    goto done
+
+  substring_search:
+    pos = index s, substring, pos
+    if pos < 0 goto fail
+
+  done:
+    $P0 = new 'Int'
+    $P0 = pos
+    .return ($P0)
+
+  fail:
+    $P0 = new 'Failure'
+    .return ($P0)
+.end
+
 
 =back
 

@@ -2,24 +2,29 @@
 
 =head1 NAME
 
-src/builtins/num.pir -  C<Num>-like builtin functions and methods
+src/builtins/any_num.pir -  C<Num>-like functions and methods for C<Any>
 
 =head1 DESCRIPTION
 
 This file implements the methods and functions of C<Any> that
 are most closely associated with the C<Num> class or role.
 We place them here instead of L<src/classes/Any.pir> to keep
-the size of that file down and to emphasize that they're
-builtins.
+the size of that file down and to emphasize their generic,
+"built-in" nature.
 
 =head2 Methods
 
 =cut
 
-.namespace ['Any']
+.namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('abs', 'from'=>$P0)
+    '!EXPORT'('abs cis unpolar', 'from'=>$P0)
+
+    ##  pre-seed a random number generator
+    $P0 = new 'Random'
+    set_hll_global ['Any'], '$!random', $P0
+    srand()
 .end
 
 

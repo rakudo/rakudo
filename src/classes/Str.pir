@@ -36,18 +36,7 @@ as the Perl 6 C<Str> class.
     .return 'infix:eq'(topic, self)
 .end
 
-.sub 'chars' :method
-    .local pmc retv
-
-    retv = new 'Integer'
-    $S0  = self
-    $I0  = length $S0
-    retv = $I0
-
-    .return (retv)
-.end
-
-.sub 'reverse' :method
+.sub 'reverse' :method :multi('String')
     .local pmc retv
 
     retv = self.'split'('')
@@ -57,7 +46,7 @@ as the Perl 6 C<Str> class.
     .return(retv)
 .end
 
-.sub split :method :multi('Perl6Str')
+.sub 'split' :method :multi('Perl6Str')
     .param string delim
     .local string objst
     .local pmc pieces

@@ -136,6 +136,54 @@ just return a clone of the Range.
 .end
 
 
+=item min()
+
+=item minmax()
+
+=item max()
+
+=cut
+
+.namespace ['Range']
+
+.sub 'min' :method
+    .return self.'from'()
+.end
+
+.sub 'minmax' :method
+    $P0 = self.'from'()
+    $P1 = self.'to'()
+    $P2 = get_hll_global 'list'
+    .return $P2($P0, $P1)
+.end
+
+.sub 'max' :method
+    .return self.'to'()
+.end
+
+
+=item pop()  (vtable_method)
+
+Generate the next element at the end of the Range.
+
+=cut
+
+.sub 'pop' :method :vtable('pop_pmc')
+    .local pmc to, toexc, value
+    to = getattribute self, '$!to'
+    toexc = getattribute self, '$!to_exclusive'
+    value = 'postfix:--'(to)
+    unless toexc goto have_value
+    value = clone to
+  have_value:
+    $I0 = self.'!from_test'(value)
+    if $I0 goto success
+    value = new 'Failure'
+  success:
+    .return (value)
+.end
+
+
 =item shift()   (vtable_method)
 
 Generate the next element at the front of the Range.

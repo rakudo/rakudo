@@ -16,27 +16,6 @@ src/builtins/math.pir - Perl6 math functions
 ## .namespace [ 'Math::Basic' ]
 
 
-=item abs
-
- our Num multi Num::abs ( Num $x )
- our Num multi Math::Basic::abs ( Num $x )
-
-Absolute Value.
-
-=cut
-
-.sub 'abs' :multi(_)
-    .param num a
-    $N0 = abs a
-    .return ($N0)
-.end
-
-.sub 'abs' :multi('Integer')
-    .param pmc a
-    $P0 = n_abs a
-    .return ($P0)
-.end
-
 =item floor
 
  our Int multi Num::floor ( Num $x )

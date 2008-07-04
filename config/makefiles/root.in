@@ -86,6 +86,7 @@ BUILTINS_PIR = \
   src/builtins/math.pir \
   src/builtins/misc.pir \
   src/builtins/named-unary.pir \
+  src/builtins/num.pir \
   src/builtins/op.pir \
   src/builtins/parrot.pir \
   src/builtins/system.pir \

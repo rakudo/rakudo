@@ -8,11 +8,13 @@ src/builtins/any-str.pir -  C<Str>-like functions and methods for C<Any>
 
 This file implements the methods and functions of C<Any> that
 are most closely associated with the C<Str> class or role.
-We place them here instead of L<src/classes/Any.pir> to keep
+We place them here instead of F<src/classes/Any.pir> to keep
 the size of that file down and to emphasize their generic,
 "built-in" nature.
 
 =head2 Methods
+
+=over 4
 
 =cut
 

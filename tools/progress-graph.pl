@@ -99,3 +99,9 @@ print $o $g->png;
 close $o;
 print "Image written to file '$out_file'\n";
 
+# Local Variables:
+#   mode: cperl
+#   cperl-indent-level: 4
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

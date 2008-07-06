@@ -23,7 +23,7 @@ while (<$f>){
 }
 close $f;
 
-print "Running the test suite...";
+print "Running the test suite";
 $| = 1;
 
 my @new;
@@ -55,4 +55,3 @@ if (@new){
 #   fill-column: 100
 # End:
 # vim: expandtab shiftwidth=4:
-

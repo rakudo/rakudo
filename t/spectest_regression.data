@@ -4,6 +4,7 @@
 
 S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
+S02-builtin_data_types/array.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/nested_arrays.t          # pure
 S02-builtin_data_types/nested_pairs.t           # pure
@@ -13,6 +14,7 @@ S02-builtin_data_types/type.t
 S02-literals/autoref.t
 S02-literals/hex_chars.t                        # pure
 S02-literals/radix.t
+S02-magicals/dollar-underscore.t                # pure
 S02-polymorphic_types/subset-code.t             # pure
 S02-polymorphic_types/subset-range.t
 S03-operators/arith.t
@@ -38,6 +40,7 @@ S04-statements/terminator.t                     # pure
 S04-statements/try.t
 S04-statements/until.t                          # pure
 S04-statements/while.t
+S06-signature/mixed-placeholders.t              # pure
 S06-signature/named-placeholders.t              # pure
 S06-signature/positional-placeholders.t         # pure
 S06-signature/slurpy-placeholders.t             # pure

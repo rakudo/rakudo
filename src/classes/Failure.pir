@@ -9,6 +9,10 @@
     p6meta.'register'('Undef', 'parent'=>failureproto, 'protoobject'=>failureproto)
 .end
 
+.sub 'perl' :method
+    .return ('undef')
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

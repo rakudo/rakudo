@@ -1,4 +1,4 @@
-## $Id:$
+## $Id$
 
 =head1 TITLE
 
@@ -14,10 +14,9 @@ that have lexical scopes
 .namespace ['Block']
 
 .sub 'onload' :anon :load :init
-    .local pmc p6meta, blockproto
+    .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    blockproto = p6meta.'new_class'('Block', 'parent'=>'Code')
-    p6meta.'register'('Perl6Block', 'parent'=>blockproto, 'protoobject'=>blockproto)
+    p6meta.'new_class'('Block', 'parent'=>'Code')
 .end
 
 =over 4

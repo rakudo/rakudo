@@ -1,4 +1,4 @@
-## $Id:$
+## $Id$
 
 =head1 TITLE
 
@@ -14,10 +14,9 @@ wrappable executable objects.
 .namespace ['Routine']
 
 .sub 'onload' :anon :load :init
-    .local pmc p6meta, routineproto
+    .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    routineproto = p6meta.'new_class'('Routine', 'parent'=>'Block')
-    p6meta.'register'('Perl6Routine', 'parent'=>routineproto, 'protoobject'=>routineproto)
+    p6meta.'new_class'('Routine', 'parent'=>'Block')
 .end
 
 =over 4

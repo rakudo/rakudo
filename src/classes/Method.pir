@@ -1,4 +1,4 @@
-## $Id:$
+## $Id$
 
 =head1 TITLE
 
@@ -13,10 +13,9 @@ This file sets up the Perl 6 C<Method> class, the class for methods.
 .namespace ['Method']
 
 .sub 'onload' :anon :load :init
-    .local pmc p6meta, methodproto
+    .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    methodproto = p6meta.'new_class'('Method', 'parent'=>'Routine')
-    p6meta.'register'('Perl6Method', 'parent'=>methodproto, 'protoobject'=>methodproto)
+    p6meta.'new_class'('Method', 'parent'=>'Routine')
 .end
 
 =over 4

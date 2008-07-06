@@ -47,6 +47,21 @@ Return a response to .perl.
     .return ('{ ... }')
 .end
 
+=item WHAT()
+
+Gets the proto-object for this value.
+
+=cut
+
+.sub 'WHAT' :method
+    $P0 = getprop '$!proto', self
+    if null $P0 goto block
+    .return ($P0)
+  block:
+    $P0 = get_hll_global 'Block'
+    .return ($P0)
+.end
+
 =back
 
 =cut

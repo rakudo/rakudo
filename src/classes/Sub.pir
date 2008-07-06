@@ -1,4 +1,4 @@
-## $Id:$
+## $Id$
 
 =head1 TITLE
 
@@ -13,10 +13,9 @@ This file sets up the Perl 6 C<Sub> class, the class for subroutines.
 .namespace ['Sub']
 
 .sub 'onload' :anon :load :init
-    .local pmc p6meta, subproto
+    .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    subproto = p6meta.'new_class'('P6Sub', 'parent'=>'Routine', 'name'=>'Sub')
-    p6meta.'register'('Perl6Sub', 'parent'=>subproto, 'protoobject'=>subproto)
+    p6meta.'new_class'('Perl6Sub', 'parent'=>'Routine', 'name'=>'Sub')
 .end
 
 =over 4

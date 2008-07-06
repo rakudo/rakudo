@@ -32,6 +32,9 @@ method TOP($/) {
         $?INIT := PAST::Block.new(); # For the next eval.
     }
 
+    # Make sure we have the interpinfo constants.
+    $past.unshift( PAST::Op.new( :inline(".include \"interpinfo.pasm\"\n") ) );
+
     make $past;
 }
 
@@ -474,12 +477,12 @@ method routine_declarator($/, $key) {
     if $key eq 'sub' {
         $past := $($<routine_def>);
         $past.blocktype('declaration');
-        $past.pirflags( ~$past.pirflags() ~ ' :instanceof("Perl6Sub")');
+        set_block_type($past, 'Sub');
     }
     elsif $key eq 'method' {
         $past := $($<method_def>);
         $past.blocktype('method');
-        $past.pirflags( ~$past.pirflags() ~ ' :instanceof("Perl6Method")');
+        set_block_type($past, 'Method');
     }
     $past.node($/);
     declare_implicit_var($past, '$_', 'new');
@@ -2457,6 +2460,48 @@ sub build_type($cons_pt) {
     }
 
     $type_cons
+}
+
+
+# Get's the :immediate setup sub for a block; if it doesn't have one, adds it.
+sub get_block_setup_sub($block) {
+    my $init := $block[0];
+    my $found;
+    for @($init) {
+        if $_.WHAT() eq 'Block' && $_.pirflags() eq ':immediate' {
+            $found := $_;
+        }
+    }
+    unless $found {
+        $found := PAST::Block.new(
+            :blocktype('declaration'),
+            :pirflags(':immediate'),
+
+            # For block type; defaults to Block
+            PAST::Stmts.new(
+                PAST::Op.new(
+                    :inline("    $P0 = interpinfo .INTERPINFO_CURRENT_SUB\n" ~
+                            "    $P0 = $P0.'get_outer'()\n" ~
+                            "    setprop $P0, '$!proto', %0\n"),
+                    PAST::Var.new(
+                        :name('Block'),
+                        :scope('package')
+                    )
+                )
+            ),
+
+            # For signature setup - default to empty = unsignatured.
+            PAST::Stmts.new()
+        );
+        $init.push($found);
+    }
+    $found
+}
+
+# Set the proto object type of a block.
+sub set_block_type($block, $type) {
+    my $setup_sub := get_block_setup_sub($block);
+    $setup_sub[0][0][0].name($type);
 }
 
 

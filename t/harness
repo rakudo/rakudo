@@ -41,7 +41,11 @@ if ($list_file || $configfudge) {
         my ($fn, $fudgespec) = split m/\s+#\s*/;
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s/\//$slash/g;
-        $accepted_tests{$fn} = $fudgespec;
+        if( -r $fn ) {
+            $accepted_tests{$fn} = $fudgespec;
+        } else {
+            warn "Missing test file: $fn\n";
+        }
     }
     close $f;
 }

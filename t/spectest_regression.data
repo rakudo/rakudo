@@ -43,6 +43,7 @@ S04-statements/try.t
 S04-statements/until.t                          # pure
 S04-statements/while.t
 S06-signature/mixed-placeholders.t              # pure
+S06-signature/named-parameters.t
 S06-signature/named-placeholders.t              # pure
 S06-signature/positional-placeholders.t         # pure
 S06-signature/slurpy-placeholders.t             # pure

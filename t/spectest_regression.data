@@ -15,6 +15,7 @@ S02-literals/autoref.t
 S02-literals/hex_chars.t                        # pure
 S02-literals/radix.t
 S02-magicals/dollar-underscore.t                # pure
+S02-names_and_variables/perl.t
 S02-polymorphic_types/subset-code.t             # pure
 S02-polymorphic_types/subset-range.t
 S03-operators/arith.t

@@ -21,7 +21,7 @@ pleae run this script without any options or command line parameters.
 
 =head1 WARNINGS
 
-This tool is very platform dependant, and not tested on anthing but linux.
+This tool is platform dependant, and not tested on anthing but linux.
 
 It assumes that all fudge directives are orthogonal, which might not be the
 case in real world tests. It is not tested with nested fudges (eg a line
@@ -47,19 +47,11 @@ use TAP::Parser::Aggregator;
 use Cwd qw(getcwd);
 use File::Spec;
 use File::Path;
+use Text::Diff;
 
 my $impl = 'rakudo';
 our $debug = 0;
 our $out_filename = 'autounfudge.patch';
-
-if ($^O ne 'linux'){
-    warn <<'WARN';
-Warning: this tool is only tested on linux so far. Currently it depends on
-some linux specific hacks. It requires the `diff' program to be installed.
-If you test this on any platform other than linux, pleaes report your results
-to parrot-porters@perl.org.
-WARN
-}
 
 GetOptions  'impl=s'        => \$impl,
             'debug'         => \$debug,
@@ -77,9 +69,14 @@ else {
     @files = @ARGV or usage();
 }
 
-if (-e $out_filename){
-    unlink $out_filename or warn "Couldn't delete old unfudge.patch";
+open our $diff_fh, '>', $out_filename
+    or die "Can't open '$out_filename' for writing: $!";
+{
+    select $diff_fh;
+    $| = 1;
+    select STDOUT;
 }
+
 our $tmp_dir = tempdir('RAKUDOXXXXXX', CLEANUP => 1);
 
 for (@files){
@@ -122,7 +119,7 @@ sub auto_unfudge_file {
 
     if (@to_unfudge){
         my $u = unfudge_some($file_name, 1, @to_unfudge);
-        system qq{diff -u "$file_name" "$u" >> "$out_filename"};
+        print $diff_fh diff($file_name, $u);
         unlink $u;
     }
 
@@ -208,6 +205,7 @@ sub read_specfile {
 }
 
 END {
+    close $diff_fh;
     File::Path::rmtree($tmp_dir);
 }
 

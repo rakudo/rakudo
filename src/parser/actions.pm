@@ -4,11 +4,6 @@
 
 class Perl6::Grammar::Actions ;
 
-##  Change this to be 'Failure' to turn off the Mutable PMC version.
-##  Note that to make this work again, you will also need to change:
-##   * scoped method, to not do new %0, %1
-our $?PERL6SCALAR := 'Perl6Scalar';
-
 method TOP($/) {
     my $past := $( $<statement_block> );
     $past.blocktype('declaration');
@@ -1721,7 +1716,7 @@ method variable($/, $key) {
             my $container_type;
             if    $sigil eq '@' { $container_type := 'Perl6Array'  }
             elsif $sigil eq '%' { $container_type := 'Perl6Hash'   }
-            else                { $container_type := $?PERL6SCALAR }
+            else                { $container_type := 'Perl6Scalar' }
             $past.viviself($container_type);
         }
     }

@@ -548,7 +548,7 @@ method signature($/) {
             $parameter.isdecl(1);
 
             # Bind self to it.
-            $past.push(PAST::Op.new(
+            $params.push(PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new(
                     :name($parameter.name()),
@@ -699,7 +699,7 @@ method signature($/) {
         }
         elsif $cont_trait eq 'readonly' {
             # Create a new container with ro set and bind the parameter to it.
-            $past.push(PAST::Op.new(
+            $params.push(PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new(
                     :name($parameter.name()),
@@ -718,7 +718,7 @@ method signature($/) {
         }
         elsif $cont_trait eq 'copy' {
             # Create a new container and copy the value into it..
-            $past.push(PAST::Op.new(
+            $params.push(PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new(
                 :name($parameter.name()),
@@ -738,7 +738,7 @@ method signature($/) {
     $past.arity( +$/[0] );
     our $?BLOCK_SIGNATURED := $past;
     our $?PARAM_TYPE_CHECK := $type_check;
-    $past.push($type_check);
+    $params.push($type_check);
     make $past;
 }
 

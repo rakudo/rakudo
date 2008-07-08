@@ -472,12 +472,18 @@ method routine_declarator($/, $key) {
     if $key eq 'sub' {
         $past := $($<routine_def>);
         $past.blocktype('declaration');
-        set_block_type($past, 'Sub');
+        set_block_proto($past, 'Sub');
+        if $<routine_def><multisig> {
+            set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
+        }
     }
     elsif $key eq 'method' {
         $past := $($<method_def>);
         $past.blocktype('method');
-        set_block_type($past, 'Method');
+        set_block_proto($past, 'Method');
+        if $<method_def><multisig> {
+            set_block_sig($past, $( $<method_def><multisig>[0]<signature> ));
+        }
     }
     $past.node($/);
     if (+@($past[1])) {
@@ -531,14 +537,38 @@ method method_def($/) {
 
 
 method signature($/) {
+    # In here, we're going to build a few things, though we may not end up
+    # needing them all.
+    # * $?BLOCK_SIGNATURED ends up containing the PAST tree for a block that
+    #   takes and binds the parameters. This is used for generating subs,
+    #   methods and so forth.
+    # * $?PARAM_TYPE_CHECK is used to export details of the types from here
+    #   so that the multi plurality declarator can make use of them.
+    # * The PAST that we call "make" on is the PAST to build a Signature
+    #   object.
+
+    # Initialize PAST for the signatured block.
     my $params := PAST::Stmts.new( :node($/) );
     my $type_check := PAST::Stmts.new( :node($/) );
-    my $past := PAST::Block.new( $params, :blocktype('declaration') );
+    my $block_past := PAST::Block.new( $params, :blocktype('declaration') );
+
+    # Initialize PAST for constructing the signature object.
+    my $sig_past := PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('!create'),
+        PAST::Var.new(
+            :name('Signature'),
+            :scope('package'),
+            :namespace(list())
+        )
+    );
+
+    # Go through the parameters.
     for $/[0] {
-        # Add parameter declaration.
+        # Add parameter declaration to the block.
         my $parameter := $($_<parameter>);
         my $separator := $_[0];
-        $past.symbol($parameter.name(), :scope('lexical'));
+        $block_past.symbol($parameter.name(), :scope('lexical'));
         $params.push($parameter);
 
         # If it is invocant, modify it to be just a lexical and bind self to it.
@@ -585,7 +615,7 @@ method signature($/) {
                     )
                 )
             ));
-            $past.symbol($tv_var.name(), :scope('lexical'));
+            $block_past.symbol($tv_var.name(), :scope('lexical'));
         }
 
         # See if we have any traits. For now, we just handle ro, rw and copy.
@@ -740,11 +770,15 @@ method signature($/) {
             ));
         }
     }
-    $past.arity( +$/[0] );
-    our $?BLOCK_SIGNATURED := $past;
+
+    # Finish setting up the signatured block.
+    $block_past.arity( +$/[0] );
+    our $?BLOCK_SIGNATURED := $block_past;
     our $?PARAM_TYPE_CHECK := $type_check;
     $params.push($type_check);
-    make $past;
+
+    # Hand back the PAST to construct a signature object.
+    make $sig_past;
 }
 
 
@@ -2225,6 +2259,13 @@ method capture($/) {
 }
 
 
+method sigterm($/) {
+    # Need to knock clear the produced BLOCK_SIGNATURED, which we don't need.
+    our $?BLOCK_SIGNATURED := 0;
+    make $( $/<signature> );
+}
+
+
 # Used by all calling code to process arguments into the correct form.
 sub build_call($args) {
     if $args.WHAT() ne 'Op' || $args.name() ne 'infix:,' {
@@ -2478,20 +2519,40 @@ sub get_block_setup_sub($block) {
                 )
             ),
 
-            # For signature setup - default to empty = unsignatured.
-            PAST::Stmts.new()
+            # For signature setup - default to empty signature object.
+            PAST::Stmts.new(
+                PAST::Op.new(
+                    :inline("    setprop $P0, '$!signature', %0\n"),
+                    PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('!create'),
+                        PAST::Var.new(
+                            :name('Signature'),
+                            :scope('package'),
+                            :namespace(list())
+                        )
+                    )
+                )
+            )
         );
         $init.push($found);
     }
     $found
 }
 
+
 # Set the proto object type of a block.
-sub set_block_type($block, $type) {
+sub set_block_proto($block, $type) {
     my $setup_sub := get_block_setup_sub($block);
     $setup_sub[0][0][0].name($type);
 }
 
+
+# Associate a signature object with a block.
+sub set_block_sig($block, $sig_obj) {
+    my $setup_sub := get_block_setup_sub($block);
+    $setup_sub[1][0][0] := $sig_obj;
+}
 
 # Local Variables:
 #   mode: cperl

@@ -62,6 +62,21 @@ Gets the proto-object for this value.
     .return ($P0)
 .end
 
+=item signature()
+
+Gets the signature for the block, or returns Failure if it lacks one.
+
+=cut
+
+.sub 'signature' :method
+    $P0 = getprop '$!signature', self
+    if null $P0 goto no_sig
+    .return ($P0)
+  no_sig:
+    $P0 = get_hll_global 'Failure'
+    .return ($P0)
+.end
+
 =back
 
 =cut

@@ -383,6 +383,11 @@ token signature {
     {*}
 }
 
+token sigterm {
+    ':(' <signature> [ ')' || <.panic: "Missing right parenthesis in signature"> ]
+    {*}
+}
+
 rule type_declarator {
     'subset'
     <name>
@@ -506,6 +511,7 @@ token noun {
     | 'self' >> {*}                              #= self
     | <term> {*}                                 #= term
     | <capterm> {*}                              #= capterm
+    | <sigterm> {*}                              #= sigterm
     | <colonpair> {*}                            #= colonpair
 }
 

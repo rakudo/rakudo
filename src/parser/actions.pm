@@ -832,6 +832,9 @@ method parameter($/) {
 
 
 method param_var($/) {
+    if $<twigil> && $<twigil>[0] ne '.' && $<twigil>[0] ne '!' {
+        $/.panic('Invalid twigil used in signature parameter.');
+    }
     make PAST::Var.new(
         :name(~$/),
         :scope('parameter'),
@@ -1360,7 +1363,7 @@ method variable_declarator($/) {
 
 method scoped($/) {
     my $past;
-    
+
     # Variable declaration?
     if $<declarator><variable_declarator> {
         $past := $( $<declarator><variable_declarator> );

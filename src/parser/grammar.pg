@@ -431,7 +431,7 @@ rule default_value {
 }
 
 token param_var {
-    <sigil> <ident>
+    <sigil> <twigil>? <ident>
     {*}
 }
 

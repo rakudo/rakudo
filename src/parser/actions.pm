@@ -571,6 +571,22 @@ method signature($/) {
         $block_past.symbol($parameter.name(), :scope('lexical'));
         $params.push($parameter);
 
+        # Now start making a descriptor for the signature.
+        my $descriptor := sig_descriptor_create();
+        $sig_past.push($descriptor);
+        sig_descriptor_set($descriptor, 'name',
+            PAST::Val.new( :value(~$parameter.name()) ));
+        if $parameter.named() {
+            sig_descriptor_set($descriptor, 'named',
+                PAST::Val.new( :value(~$parameter.named()) ));
+        }
+        if $parameter.viviself() {
+            sig_descriptor_set($descriptor, 'optional', PAST::Val.new( :value(1) ));
+        }
+        if $parameter.slurpy() {
+            sig_descriptor_set($descriptor, 'slurpy', PAST::Val.new( :value(1) ));
+        }
+
         # If it is invocant, modify it to be just a lexical and bind self to it.
         if substr($separator, 0, 1) eq ':' {
             # Make sure it's first parameter.
@@ -2509,7 +2525,8 @@ sub get_block_setup_sub($block) {
             # For block type; defaults to Block
             PAST::Stmts.new(
                 PAST::Op.new(
-                    :inline("    $P0 = interpinfo .INTERPINFO_CURRENT_SUB\n" ~
+                    :inline("    .local pmc desc\n" ~
+                            "    $P0 = interpinfo .INTERPINFO_CURRENT_SUB\n" ~
                             "    $P0 = $P0.'get_outer'()\n" ~
                             "    setprop $P0, '$!proto', %0\n"),
                     PAST::Var.new(
@@ -2552,6 +2569,23 @@ sub set_block_proto($block, $type) {
 sub set_block_sig($block, $sig_obj) {
     my $setup_sub := get_block_setup_sub($block);
     $setup_sub[1][0][0] := $sig_obj;
+}
+
+# Creates a signature descriptor (for now, just a hash).
+sub sig_descriptor_create() {
+    PAST::Stmts.new(
+        PAST::Op.new( :inline("    desc = new 'Hash'\n") ),
+        PAST::Stmts.new(),
+        PAST::Op.new( :inline("    %r = desc\n") )
+    )
+}
+
+# Sets a given value in the signature descriptor.
+sub sig_descriptor_set($descriptor, $name, $value) {
+    $descriptor[1].push(PAST::Op.new(
+        :inline("    desc['" ~ ~$name ~ "'] = %0\n"),
+        $value
+    ));
 }
 
 # Local Variables:

@@ -140,10 +140,10 @@ on error.
 
     .local pmc compiler, invokable
     .local pmc res, exception
+    push_eh catch
     compiler = compreg 'Perl6'
     invokable = compiler.'compile'(code)
 
-    push_eh catch
     res = invokable()
     pop_eh
     exception = new 'Failure'

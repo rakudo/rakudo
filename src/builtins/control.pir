@@ -30,8 +30,7 @@ the moment -- we'll do more complex handling a bit later.)
     .param int has_value :opt_flag
 
     if has_value goto have_value
-    ##  This may need to be the Object prototype -- see RT #56638
-    value = 'undef'()
+    value = 'list'()
   have_value:
     $P0 = new 'Exception'
     $P0['_type'] = .CONTROL_RETURN

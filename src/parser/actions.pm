@@ -486,7 +486,7 @@ method routine_declarator($/, $key) {
         declare_implicit_var($past, '$/', 'new');
     }
     else {
-        $past[1].push( PAST::Op.new( :name('undef') ) );
+        $past[1].push( PAST::Op.new( :name('list') ) );
     }
     make $past;
 }

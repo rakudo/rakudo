@@ -1530,8 +1530,7 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
     elsif $variable_twigil eq '!' {
         # Don't need to do anything.
     }
-    elsif $variable_twigil ne '^' && $variable_twigil ne ':' && $variable_twigil ne '*' &&
-          $variable_twigil ne '+' && $variable_twigil ne '?' && $variable_twigil ne '=' {
+    elsif $variable_twigil eq '' {
         # We have no twigil, make $name as an alias to $!name.
         $?BLOCK.symbol(
             ~$variable_sigil ~ ~$variable_name, :scope('attribute')
@@ -1596,6 +1595,18 @@ method scope_declarator($/) {
         my @declare := sig_extract_declarables($/, $past);
         $past := PAST::Stmts.new($past);
         for @declare {
+            # Work out sigil and twigil.
+            my $sigil := substr($_, 0, 1);
+            my $twigil := substr($_, 1, 1);
+            my $desigilname;
+            if $twigil eq '.' || $twigil eq '!' {
+                $desigilname := substr($_, 2);
+            }
+            else {
+                $twigil := '';
+                $desigilname := substr($_, 1);
+            }
+
             # Decide by declarator.
             if $declarator eq 'my' || $declarator eq 'our' {
                 # Add declaration code.
@@ -1615,7 +1626,10 @@ method scope_declarator($/) {
 
                 # Add block entry.
                 $?BLOCK.symbol($_, :scope($scope));
-            } else {
+            } elsif $declarator eq 'has' {
+                declare_attribute($/, $declarator, $sigil, $twigil, $desigilname);
+            }
+            else {
                 $/.panic("Scope declarator " ~ $declarator ~ " unimplemented with signatures.");
             }
         }
@@ -2653,7 +2667,8 @@ sub sig_extract_declarables($/, $sig_setup) {
         if $first {
             # Skip over invocant.
             $first := 0;
-        } else {
+        }
+        else {
             # If it has a name, we're fine; if not, it's something odd - give
             # it a miss for now.
             my $found_name := undef;

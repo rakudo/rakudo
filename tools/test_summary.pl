@@ -61,12 +61,17 @@ for my $tfile (@tfiles) {
     my $cmd = "../../parrot -G perl6.pbc $tfile";
     my @results = split "\n", `$cmd`;
     my ($test, $pass, $fail, $todo, $skip) = (0,0,0,0,0);
-    my %skip;
+    my (%skip, %todopass, %todofail);
     for (@results) {
         next unless /^(not )?ok +\d+/;
         $test++;
         if    (/#\s*SKIP\s*(.*)/i) { $skip++; $skip{$1}++; }
-        elsif (/#\s*TODO/i)        { $todo++; }
+        elsif (/#\s*TODO\s*(.*)/i) {
+            my $reason = $1;
+            $todo++;
+            if (/^ok /) { $todopass{$reason}++ }
+            else        { $todofail{$reason}++ }
+        }
         elsif (/^not ok +\d+/)     { $fail++; }
         elsif (/^ok +\d+/)         { $pass++; }
     }
@@ -80,7 +85,13 @@ for my $tfile (@tfiles) {
     $sum{'todo'} += $todo;
     $sum{'skip'} += $skip;
     for (keys %skip) {
-        printf "    %d skipped: %s\n", $skip{$_}, $_;
+        printf "    %2d skipped: %s\n", $skip{$_}, $_;
+    }
+    for (keys %todofail) {
+        printf "    %2d todo   : %s\n", $todofail{$_}, $_;
+    }
+    for (keys %todopass) {
+        printf "    %2d todo PASSED: %s\n", $todopass{$_}, $_;
     }
 }
 

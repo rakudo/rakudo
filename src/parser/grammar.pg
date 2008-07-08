@@ -570,7 +570,7 @@ rule package_block {
 }
 
 
-token variable_decl {
+token variable_declarator {
     <variable>
     <trait>*
 # XXX let EXPR handle this automatically until we can pass arguments
@@ -591,14 +591,24 @@ rule enum_declarator {
 }
 
 
+token declarator {
+    [
+    | <variable_declarator>
+    | '(' <signature> [ ')' || <.panic: "Missing right parenthsesis after signature"> ]
+    ]
+    {*}
+}
+
+
 rule scoped {
     <fulltypename>*
     [
-    | <variable_decl>
+    | <declarator>
     | <routine_declarator>
     ]
     {*}
 }
+
 
 rule scope_declarator {
     $<sym>=[my|our|state|constant|has]

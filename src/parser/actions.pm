@@ -1321,7 +1321,7 @@ method package_block($/, $key) {
 }
 
 
-method variable_decl($/) {
+method variable_declarator($/) {
     my $past := $( $<variable> );
 
     # If it's an attribute declaration, we handle traits elsewhere.
@@ -1360,9 +1360,10 @@ method variable_decl($/) {
 
 method scoped($/) {
     my $past;
+    
     # Variable declaration?
-    if $<variable_decl> {
-        $past := $( $<variable_decl> );
+    if $<declarator><variable_declarator> {
+        $past := $( $<declarator><variable_declarator> );
 
         # Unless it's an attribute, emit code to set type and initialize it to
         # the correct proto.
@@ -1391,6 +1392,15 @@ method scoped($/) {
             );
         }
     }
+
+    # Variable declaration, but with a signature?
+    elsif $<declarator><signature> {
+        if $<fulltypename> {
+            $/.panic("Distributing a type across a signature at declaration unimplemented.");
+        }
+        $past := $( $<declarator><signature> );
+    }
+
     # Routine declaration?
     else {
         $past := $( $<routine_declarator> );
@@ -1425,7 +1435,7 @@ sub declare_attribute($/) {
     }
 
     # Is this a role-private or just a normal attribute?
-    my $variable := $<scoped><variable_decl><variable>;
+    my $variable := $<scoped><declarator><variable_declarator><variable>;
     my $name;
     if $<sym> eq 'my' {
         # These are only allowed inside a role.
@@ -1465,8 +1475,8 @@ sub declare_attribute($/) {
 
     # Is there any "handles" trait verb or an "is rw" or "is ro"?
     my $rw := 0;
-    if $<scoped><variable_decl><trait> {
-        for $<scoped><variable_decl><trait> {
+    if $<scoped><declarator><variable_declarator><trait> {
+        for $<scoped><variable_declarator><trait> {
             if $_<trait_verb><sym> eq 'handles' {
                 # Get the methods for the handles and add them to
                 # the class
@@ -1540,9 +1550,9 @@ method scope_declarator($/) {
     my $past := $( $<scoped> );
 
     # What sort of thing are we scoping?
-    if $<scoped><variable_decl> {
+    if $<scoped><declarator><variable_declarator> {
         # Variable. Now go by declarator or twigil if it's a role-private.
-        my $twigil := $<scoped><variable_decl><variable><twigil>[0];
+        my $twigil := $<scoped><declarator><variable_declarator><variable><twigil>[0];
         if $declarator eq 'has' || $declarator eq 'my' && $twigil eq '!' {
             # Attribute declarations need special handling.
             declare_attribute($/);

@@ -1415,7 +1415,7 @@ method scoped($/) {
 }
 
 
-sub declare_attribute($/) {
+sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_name) {
     # Get the class or role we're in.
     our $?CLASS;
     our $?ROLE;
@@ -1430,15 +1430,13 @@ sub declare_attribute($/) {
     }
     unless defined( $class_def ) {
         $/.panic(
-                "attempt to define attribute '"
-            ~ $name ~ "' outside of class"
+                "attempt to define attribute '" ~ $name ~ "' outside of class"
         );
     }
 
     # Is this a role-private or just a normal attribute?
-    my $variable := $<scoped><declarator><variable_declarator><variable>;
     my $name;
-    if $<sym> eq 'my' {
+    if $sym eq 'my' {
         # These are only allowed inside a role.
         unless $class_def =:= $?ROLE {
             $/.panic('Role private attributes can only be declared in a role');
@@ -1449,14 +1447,14 @@ sub declare_attribute($/) {
         # as $!attrname, add the real name and set the scope as rpattribute,
         # then translate it to the right thing when we see it.
         our $?NS;
-        $name := ~$variable<sigil> ~ '!' ~ $?NS[0] ~ '!' ~ ~$variable<name>;
-        my $visible_name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
-        my $real_name := '!' ~ $?NS[0] ~ '!' ~ ~$variable<name>;
+        $name := ~$variable_sigil ~ '!' ~ $?NS[0] ~ '!' ~ ~$variable_name;
+        my $visible_name := ~$variable_sigil ~ '!' ~ ~$variable_name;
+        my $real_name := '!' ~ $?NS[0] ~ '!' ~ ~$variable_name;
         $?BLOCK.symbol($visible_name, :scope('rpattribute'), :real_name($real_name));
     }
     else {
         # Register name as attribute scope.
-        $name := ~$variable<sigil> ~ '!' ~ ~$variable<name>;
+        $name := ~$variable_sigil ~ '!' ~ ~$variable_name;
         $?BLOCK.symbol($name, :scope('attribute'));
     }
 
@@ -1505,15 +1503,9 @@ sub declare_attribute($/) {
         }
     }
 
-    # If we have no twigil, make $name as an alias to $!name.
-    if $variable<twigil>[0] eq '' {
-        $?BLOCK.symbol(
-            ~$variable<sigil> ~ ~$variable<name>, :scope('attribute')
-        );
-    }
-
-    # If we have a . twigil, we need to generate an accessor.
-    elsif $variable<twigil>[0] eq '.' {
+    # Twigil handling.
+    if $variable_twigil eq '.' {
+        # We have a . twigil, so we need to generate an accessor.
         my $getset;
         if $rw {
             $getset := PAST::Var.new( :name($name), :scope('attribute') );
@@ -1528,19 +1520,28 @@ sub declare_attribute($/) {
         }
         my $accessor := PAST::Block.new(
             PAST::Stmts.new($getset),
-            :name(~$variable<name>),
+            :name(~$variable_name),
             :blocktype('declaration'),
             :pirflags(':method'),
             :node( $/ )
         );
         $class_def.unshift($accessor);
     }
-
-    # If it's a ! twigil, we're done; otherwise, error.
-    elsif $variable<twigil>[0] ne '!' {
+    elsif $variable_twigil eq '!' {
+        # Don't need to do anything.
+    }
+    elsif $variable_twigil ne '^' && $variable_twigil ne ':' && $variable_twigil ne '*' &&
+          $variable_twigil ne '+' && $variable_twigil ne '?' && $variable_twigil ne '=' {
+        # We have no twigil, make $name as an alias to $!name.
+        $?BLOCK.symbol(
+            ~$variable_sigil ~ ~$variable_name, :scope('attribute')
+        );
+    }
+    else {
+        # It's a twigil that you canny use in an attribute declaration.
         $/.panic(
                 "invalid twigil "
-            ~ $variable<twigil>[0] ~ " in attribute declaration"
+            ~ $variable_twigil ~ " in attribute declaration"
         );
     }
 }
@@ -1556,7 +1557,10 @@ method scope_declarator($/) {
         my $twigil := $<scoped><declarator><variable_declarator><variable><twigil>[0];
         if $declarator eq 'has' || $declarator eq 'my' && $twigil eq '!' {
             # Attribute declarations need special handling.
-            declare_attribute($/);
+            my $sigil := ~$<scoped><declarator><variable_declarator><variable><sigil>;
+            my $twigil := ~$<scoped><declarator><variable_declarator><variable><twigil>[0];
+            my $name := ~$<scoped><declarator><variable_declarator><variable><name>;
+            declare_attribute($/, $declarator, $sigil, $twigil, $name);
 
             # We don't have any PAST at the point of the declaration.
             $past := PAST::Stmts.new();

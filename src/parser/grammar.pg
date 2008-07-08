@@ -384,7 +384,19 @@ token signature {
 }
 
 token sigterm {
-    ':(' <signature> [ ')' || <.panic: "Missing right parenthesis in signature"> ]
+    ':(' 
+    {{
+        $P0 = new 'Integer'
+        $P0 = 1
+        set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
+    }}
+    <signature>
+    {{
+        $P0 = new 'Integer'
+        $P0 = 0
+        set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
+    }}
+    [ ')' || <.panic: "Missing right parenthesis in signature"> ]
     {*}
 }
 
@@ -594,7 +606,19 @@ rule enum_declarator {
 token declarator {
     [
     | <variable_declarator>
-    | '(' <signature> [ ')' || <.panic: "Missing right parenthsesis after signature"> ]
+    | '(' 
+      {{
+          $P0 = new 'Integer'
+          $P0 = 1
+          set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
+      }}
+      <signature>
+      {{
+          $P0 = new 'Integer'
+          $P0 = 0
+          set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
+      }}
+      [ ')' || <.panic: "Missing right parenthsesis after signature"> ]
     ]
     {*}
 }

@@ -488,9 +488,7 @@ token postcircumfix {
 }
 
 
-# XXX Note that 'self' and 'undef' in here should be a term, and that a term
-# can be a noun too in STD.pm. However, at the moment that seems to lead us
-# to infinite recursion.
+# XXX Note that 'self' here should be a term.
 token noun {
     | <fatarrow> {*}                             #= fatarrow
     | <package_declarator> {*}                   #= package_declarator
@@ -506,7 +504,6 @@ token noun {
     | <dotty> {*}                                #= dotty
     | <value> {*}                                #= value
     | 'self' >> {*}                              #= self
-    | 'undef' >> {*}                             #= undef
     | <term> {*}                                 #= term
     | <capterm> {*}                              #= capterm
     | <colonpair> {*}                            #= colonpair
@@ -534,7 +531,7 @@ token term {
 
 ##  XXX: cheat until we get term:pi, term:rand, term:undef, etc.
 token named_0ary {
-    [pi|rand] >>
+    [pi|rand|undef] >>
 }
 
 rule package_declarator {

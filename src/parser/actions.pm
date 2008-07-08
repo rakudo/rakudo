@@ -480,9 +480,14 @@ method routine_declarator($/, $key) {
         set_block_type($past, 'Method');
     }
     $past.node($/);
-    declare_implicit_var($past, '$_', 'new');
-    declare_implicit_var($past, '$!', 'new');
-    declare_implicit_var($past, '$/', 'new');
+    if (+@($past[1])) {
+        declare_implicit_var($past, '$_', 'new');
+        declare_implicit_var($past, '$!', 'new');
+        declare_implicit_var($past, '$/', 'new');
+    }
+    else {
+        $past[1].push( PAST::Op.new( :name('undef') ) );
+    }
     make $past;
 }
 
@@ -960,17 +965,6 @@ method noun($/, $key) {
     my $past;
     if $key eq 'self' {
         $past := PAST::Stmts.new( PAST::Op.new( :inline('%r = self'), :node( $/ ) ) );
-    }
-    elsif $key eq 'undef' {
-        $past := PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('new'),
-            :node($/),
-            PAST::Var.new(
-                :name('Failure'),
-                :scope('package')
-            )
-        );
     }
     elsif $key eq 'dotty' {
         # Call on $_.

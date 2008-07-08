@@ -1399,6 +1399,7 @@ method scoped($/) {
             $/.panic("Distributing a type across a signature at declaration unimplemented.");
         }
         $past := $( $<declarator><signature> );
+        our $?BLOCK_SIGNATURED := 0; # Don't leave sig hanging around for a block.
     }
 
     # Routine declaration?
@@ -1476,7 +1477,7 @@ sub declare_attribute($/) {
     # Is there any "handles" trait verb or an "is rw" or "is ro"?
     my $rw := 0;
     if $<scoped><declarator><variable_declarator><trait> {
-        for $<scoped><variable_declarator><trait> {
+        for $<scoped><declarator><variable_declarator><trait> {
             if $_<trait_verb><sym> eq 'handles' {
                 # Get the methods for the handles and add them to
                 # the class
@@ -1579,6 +1580,39 @@ method scope_declarator($/) {
 
                 # Add block entry.
                 $?BLOCK.symbol($name, :scope($scope));
+            }
+        }
+    }
+
+    # Signature.
+    elsif $<scoped><declarator><signature> {
+        # We'll emit code to declare each of the parameters, then we'll have
+        # the declaration evaluate to the signature object, thus allowing an
+        # assignment to it.
+        my @declare := sig_extract_declarables($/, $past);
+        $past := PAST::Stmts.new($past);
+        for @declare {
+            # Decide by declarator.
+            if $declarator eq 'my' || $declarator eq 'our' {
+                # Add declaration code.
+                my $scope;
+                if $declarator eq 'my' {
+                    $scope := 'lexical'
+                }
+                else {
+                    $scope := 'package';
+                }
+                $past.unshift(PAST::Var.new(
+                    :name($_),
+                    :isdecl(1),
+                    :scope($scope),
+                    :viviself('Perl6Scalar')
+                ));
+
+                # Add block entry.
+                $?BLOCK.symbol($_, :scope($scope));
+            } else {
+                $/.panic("Scope declarator " ~ $declarator ~ " unimplemented with signatures.");
             }
         }
     }
@@ -2584,18 +2618,55 @@ sub set_block_sig($block, $sig_obj) {
 # Creates a signature descriptor (for now, just a hash).
 sub sig_descriptor_create() {
     PAST::Stmts.new(
-        PAST::Op.new( :inline("    desc = new 'Hash'\n") ),
+        PAST::Op.new( :inline("    $P1 = new 'Hash'\n") ),
         PAST::Stmts.new(),
-        PAST::Op.new( :inline("    %r = desc\n") )
+        PAST::Op.new( :inline("    %r = $P1\n") )
     )
 }
 
 # Sets a given value in the signature descriptor.
 sub sig_descriptor_set($descriptor, $name, $value) {
     $descriptor[1].push(PAST::Op.new(
-        :inline("    desc['" ~ ~$name ~ "'] = %0\n"),
+        :inline("    $P1[%0] = %1\n"),
+        PAST::Val.new( :value(~$name) ),
         $value
     ));
+}
+
+# Returns a list of variables from a signature that we are to declare. Panics
+# if the signature is too complex to unpack.
+sub sig_extract_declarables($/, $sig_setup) {
+    # Just make sure it's what we expect.
+    if $sig_setup.WHAT() ne 'Op' || $sig_setup.pasttype() ne 'callmethod' ||
+       $sig_setup[0].name() ne 'Signature' {
+        $/.panic("sig_extract_declarables was not passed signature declaration PAST!");
+    }
+
+    # Now go through what signature and extract what to declare.
+    my @result := list();
+    my $first := 1;
+    for @($sig_setup) {
+        if $first {
+            # Skip over invocant.
+            $first := 0;
+        } else {
+            # If it has a name, we're fine; if not, it's something odd - give
+            # it a miss for now.
+            my $found_name := undef;
+            for @($_[1]) {
+                if $_[0].value() eq 'name' {
+                    $found_name := ~$_[1].value();
+                }
+            }
+            if defined($found_name) {
+                @result.push($found_name);
+            }
+            else {
+                $/.panic("Signature too complex for LHS of assignment.");
+            }
+        }
+    }
+    @result
 }
 
 # Local Variables:

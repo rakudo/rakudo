@@ -417,7 +417,7 @@ Create a clone of self, also cloning the attributes given by attrlist.
     # to the result list.
     .local pmc pos_res, named_res, cap
     (pos_res :slurpy, named_res :named :slurpy) = cur_meth(self, pos_args :flat, named_args :named :flat)
-    cap = cap_class.'!create'(failure_class, pos_res :flat, named_res :flat :named)
+    cap = 'prefix:\\'(pos_res :flat, named_res :flat :named)
     push result_list, cap
     goto mro_loop
   mro_loop_end:

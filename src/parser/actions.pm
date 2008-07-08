@@ -2215,8 +2215,7 @@ method colonpair($/, $key) {
 method capterm($/) {
     # We will create the capture object, passing the things supplied.
     my $past := build_call( $( $<capture> ) );
-    $past.name('infix:\\( )');
-    $past.unshift( PAST::Op.new( :inline('    null %r') ) );
+    $past.name('prefix:\\');
     make $past;
 }
 

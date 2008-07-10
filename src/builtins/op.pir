@@ -338,6 +338,12 @@ src/builtins/op.pir - Perl6 builtin operators
     # construct itself.
     $P0 = new derived
 
+    # Register proto-object.
+    .local pmc p6meta, proto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    proto = var.'WHAT'()
+    p6meta.register(derived, 'protoobject'=>proto)
+
     # Re-bless the object into the subclass.
     rebless_subclass var, derived
 

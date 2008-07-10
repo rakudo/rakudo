@@ -77,6 +77,7 @@ BUILTINS_PIR = \
   src/classes/Signature.pir \
   src/classes/Subset.pir \
   src/classes/Grammar.pir \
+  src/classes/Enum.pir \
   src/builtins/globals.pir \
   src/builtins/any-list.pir \
   src/builtins/any-num.pir \

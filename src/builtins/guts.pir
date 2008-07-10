@@ -290,7 +290,24 @@ Internal helper method to create a grammar.
     .return(grammar)
 .end
 
-=item !keyword_does(class, role_name)
+=item !keyword_enum(name)
+
+Internal helper method to create an enum class.
+
+=cut
+
+.sub '!keyword_enum'
+    .param string name
+    .param pmc role
+    .local pmc class
+
+    # Create subclass of Enum, and attach the required role.
+    class = subclass 'Enum', name
+    "!keyword_does"(class, role)
+    .return(class)
+.end
+
+=item !keyword_does(class, role)
 
 Internal helper method to implement the functionality of the does keyword.
 

@@ -499,13 +499,153 @@ method routine_declarator($/, $key) {
 
 
 method enum_declarator($/, $key) {
-    # Named enums aren't done yet, just the easy anonymous kind.
+    my $values := $( $/{$key} );
+
     if $<name> {
-        $/.panic("Named enums not yet implemented.");
+        # It's a named enumeration. First, we will get a mapping of all the names
+        # we will introduce with this enumeration to their values. We'll compute
+        # these at compile time, so then we can build as much of the enum as possible
+        # as PAST at compile time too. Note that means that, like a BEGIN block, we
+        # will compile, run and get the return value now.
+        my $block := PAST::Block.new(
+            :blocktype('declaration'),
+            PAST::Stmts.new(
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!anon_enum'),
+                    $values
+                )
+            )
+        );
+        my $getvals_sub := PAST::Compiler.compile( $block );
+        my %values := $getvals_sub();
+
+        # Now we need to emit an anonymous role containing:
+        #  * One attribute with the same name as the enum
+        #  * A method of the same name as the enum
+        #  * Methods for each name introduced by the enum that compare the
+        #    attribute with the value of that name.
+        my $role_past := PAST::Stmts.new();
+        $role_past.push(PAST::Op.new(
+            # XXX TODO, if this prototype works out, get rid of this inline
+            :inline("    $P0 = new 'Role'\n" ~
+                    "    addattribute $P0, '$!" ~ ~$<name>[0] ~ "'\n" ~
+                    "    $P0.'add_method'('" ~ ~$<name>[0] ~ "', %0)\n"),
+            make_accessor($/, ~$<name>[0], "$!" ~ ~$<name>[0], 1)
+        ));
+        for %values.keys() {
+            # Method for this value. Note we're using add_method since the
+            # role is anonymous.
+            $role_past.push(PAST::Op.new(
+                :inline("    $P0.'add_method'('" ~ $_ ~ "', %0)\n"),
+                PAST::Block.new(
+                    :blocktype('declaration'),
+                    :pirflags(':method'),
+                    PAST::Stmts.new(
+                        PAST::Op.new(
+                            :pasttype('call'),
+                            :name('infix:eq'), # XXX not generic enough
+                            PAST::Var.new(
+                                :name("$!" ~ ~$<name>[0]),
+                                :scope('attribute')
+                            ),
+                            PAST::Val.new( :value(%values{$_}) )
+                        )
+                    )
+                )
+            ));
+        }
+
+        # Now we emit code to create a class for the enum that inherits from Enum
+        # and does the role that we just implemented, then set up a proto-object.
+        my $class_past := PAST::Stmts.new(
+            PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!keyword_enum'),
+                    PAST::Val.new( :value(~$<name>[0]) ),
+                    PAST::Op.new( :inline('%r = $P0') )
+                )
+            ),
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('register'),
+                PAST::Var.new(
+                    :scope('package'),
+                    :name('$!P6META'),
+                    :namespace('Perl6Object')
+                ),
+                PAST::Var.new(
+                    :scope('lexical'),
+                    :name('$def')
+                )
+            )
+        );
+
+        # Now we need to create instances of each of these and install them
+        # in a package starting with the enum's name, plus an alias to them
+        # in the current package.
+        for %values.keys() {
+            # Instantiate with value.
+            $class_past.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name($_),
+                    :namespace(~$<name>[0]),
+                    :scope('package')
+                ),
+                PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('new'),
+                    PAST::Var.new(
+                        :name(~$<name>[0]),
+                        :scope('package')
+                    ),
+                    PAST::Val.new(
+                        :value(%values{$_}),
+                        :named( PAST::Val.new( :value(~$<name>[0]) ) )
+                    )
+                )
+            ));
+
+            # Add alias in current package.
+            # XXX Need to do collision detection, once we've a registry.
+            $class_past.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name($_),
+                    :scope('package')
+                ),
+                PAST::Var.new(
+                    :name($_),
+                    :namespace(~$<name>[0]),
+                    :scope('package')
+                )
+            ));
+        }
+
+        # Assemble all that we build into a statement list and then place it
+        # into the init code.
+        our $?INIT;
+        unless defined( $?INIT ) {
+            $?INIT := PAST::Block.new();
+        }
+        $?INIT.push(PAST::Stmts.new(
+            $role_past,
+            $class_past
+        ));
+
+        # Finally, since it's a decl, we don't have anything to emit at this
+        # point; just hand back empty statements block.
+        make PAST::Stmts.new();
     }
     else {
-        # Get the list of values and call anonymous enum constructor.
-        my $values := $( $/{$key} );
+        # Emit runtime call anonymous enum constructor.
         make PAST::Op.new(
             :pasttype('call'),
             :name('!anon_enum'),
@@ -1544,25 +1684,7 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
     # Twigil handling.
     if $variable_twigil eq '.' {
         # We have a . twigil, so we need to generate an accessor.
-        my $getset;
-        if $rw {
-            $getset := PAST::Var.new( :name($name), :scope('attribute') );
-        }
-        else {
-            $getset := PAST::Op.new(
-                :inline("    %r = new 'Perl6Scalar', %0\n" ~
-                        "    $P0 = get_hll_global [ 'Bool' ], 'True'\n" ~
-                        "    setprop %r, 'readonly', $P0\n"),
-                PAST::Var.new( :name($name), :scope('attribute') )
-            );
-        }
-        my $accessor := PAST::Block.new(
-            PAST::Stmts.new($getset),
-            :name(~$variable_name),
-            :blocktype('declaration'),
-            :pirflags(':method'),
-            :node( $/ )
-        );
+        my $accessor := make_accessor($/, ~$variable_name, $name, $rw);
         $class_def.unshift($accessor);
     }
     elsif $variable_twigil eq '!' {
@@ -2723,6 +2845,30 @@ sub sig_extract_declarables($/, $sig_setup) {
         }
     }
     @result
+}
+
+# Generates a setter/getter method for an attribute in a class or role.
+sub make_accessor($/, $method_name, $attr_name, $rw) {
+    my $getset;
+    if $rw {
+        $getset := PAST::Var.new( :name($attr_name), :scope('attribute') );
+    }
+    else {
+        $getset := PAST::Op.new(
+            :inline("    %r = new 'Perl6Scalar', %0\n" ~
+                    "    $P0 = get_hll_global [ 'Bool' ], 'True'\n" ~
+                    "    setprop %r, 'readonly', $P0\n"),
+            PAST::Var.new( :name($attr_name), :scope('attribute') )
+        );
+    }
+    my $accessor := PAST::Block.new(
+        PAST::Stmts.new($getset),
+        :blocktype('declaration'),
+        :name($method_name),
+        :pirflags(':method'),
+        :node( $/ )
+    );
+    $accessor
 }
 
 # Local Variables:

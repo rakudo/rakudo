@@ -297,12 +297,13 @@ Internal helper method to create an enum class.
 =cut
 
 .sub '!keyword_enum'
-    .param string name
     .param pmc role
     .local pmc class
 
-    # Create subclass of Enum, and attach the required role.
-    class = subclass 'Enum', name
+    # Create an anonymous class and attach the role.
+    class = new 'Class'
+    $P0 = get_class 'Any'
+    addparent class, $P0
     "!keyword_does"(class, role)
     .return(class)
 .end

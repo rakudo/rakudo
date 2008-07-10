@@ -520,24 +520,59 @@ method enum_declarator($/, $key) {
         my $getvals_sub := PAST::Compiler.compile( $block );
         my %values := $getvals_sub();
 
-        # Now we need to emit an anonymous role containing:
+        # Now we need to emit an role of the name of the enum containing:
         #  * One attribute with the same name as the enum
         #  * A method of the same name as the enum
         #  * Methods for each name introduced by the enum that compare the
         #    attribute with the value of that name.
-        my $role_past := PAST::Stmts.new();
-        $role_past.push(PAST::Op.new(
-            # XXX TODO, if this prototype works out, get rid of this inline
-            :inline("    $P0 = new 'Role'\n" ~
-                    "    addattribute $P0, '$!" ~ ~$<name>[0] ~ "'\n" ~
-                    "    $P0.'add_method'('" ~ ~$<name>[0] ~ "', %0)\n"),
-            make_accessor($/, ~$<name>[0], "$!" ~ ~$<name>[0], 1)
-        ));
+        my $role_past := PAST::Stmts.new(
+            PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!keyword_role'),
+                    PAST::Val.new( :value(~$<name>[0]) )
+                )
+            ),
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('!keyword_has'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Val.new( :value("$!" ~ ~$<name>[0]) ),
+                # XXX Set declared type here, when we parse that.
+                PAST::Var.new(
+                    :name('Object'),
+                    :scope('package')
+                )
+            ),
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('add_method'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Val.new( :value(~$<name>[0]) ),
+                make_accessor($/, undef, "$!" ~ ~$<name>[0], 1)
+            )
+        );
         for %values.keys() {
-            # Method for this value. Note we're using add_method since the
-            # role is anonymous.
+            # Method for this value.
             $role_past.push(PAST::Op.new(
-                :inline("    $P0.'add_method'('" ~ $_ ~ "', %0)\n"),
+                :pasttype('callmethod'),
+                :name('add_method'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Val.new( :value($_) ),
                 PAST::Block.new(
                     :blocktype('declaration'),
                     :pirflags(':method'),
@@ -556,8 +591,9 @@ method enum_declarator($/, $key) {
             ));
         }
 
-        # Now we emit code to create a class for the enum that inherits from Enum
-        # and does the role that we just implemented, then set up a proto-object.
+        # Now we emit code to create a class for the enum that does the role
+        # that we just defined. Note $def in the init code refers to this
+        # class from now on.
         my $class_past := PAST::Stmts.new(
             PAST::Op.new(
                 :pasttype('bind'),
@@ -568,24 +604,113 @@ method enum_declarator($/, $key) {
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('!keyword_enum'),
-                    PAST::Val.new( :value(~$<name>[0]) ),
-                    PAST::Op.new( :inline('%r = $P0') )
-                )
-            ),
-            PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('register'),
-                PAST::Var.new(
-                    :scope('package'),
-                    :name('$!P6META'),
-                    :namespace('Perl6Object')
-                ),
-                PAST::Var.new(
-                    :scope('lexical'),
-                    :name('$def')
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    )
                 )
             )
         );
+
+        # Want to give the class an invoke method that returns the enum value,
+        # and get_string, get_number and get_integer v-table overrides to we
+        # can get data from it..
+        $class_past.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('add_method'),
+            PAST::Var.new(
+                :scope('lexical'),
+                :name('$def')
+            ),
+            PAST::Val.new( :value('invoke') ),
+            PAST::Block.new(
+                :blocktype('declaration'),
+                :pirflags(":method"),
+                PAST::Var.new(
+                    :name("$!" ~ ~$<name>[0]),
+                    :scope('attribute')
+                )
+            ),
+            PAST::Val.new(
+                :value(1),
+                :named( PAST::Val.new( :value('vtable') ) )
+            )
+        ));
+        $class_past.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('add_method'),
+            PAST::Var.new(
+                :scope('lexical'),
+                :name('$def')
+            ),
+            PAST::Val.new( :value('get_string') ),
+            PAST::Block.new(
+                :blocktype('declaration'),
+                :pirflags(":method"),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('prefix:~'),
+                    PAST::Var.new(
+                        :name("$!" ~ ~$<name>[0]),
+                        :scope('attribute')
+                    )
+                )
+            ),
+            PAST::Val.new(
+                :value(1),
+                :named( PAST::Val.new( :value('vtable') ) )
+            )
+        ));
+        $class_past.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('add_method'),
+            PAST::Var.new(
+                :scope('lexical'),
+                :name('$def')
+            ),
+            PAST::Val.new( :value('get_integer') ),
+            PAST::Block.new(
+                :blocktype('declaration'),
+                :pirflags(":method"),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('prefix:+'),
+                    PAST::Var.new(
+                        :name("$!" ~ ~$<name>[0]),
+                        :scope('attribute')
+                    )
+                )
+            ),
+            PAST::Val.new(
+                :value(1),
+                :named( PAST::Val.new( :value('vtable') ) )
+            )
+        ));
+        $class_past.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('add_method'),
+            PAST::Var.new(
+                :scope('lexical'),
+                :name('$def')
+            ),
+            PAST::Val.new( :value('get_number') ),
+            PAST::Block.new(
+                :blocktype('declaration'),
+                :pirflags(":method"),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('prefix:+'),
+                    PAST::Var.new(
+                        :name("$!" ~ ~$<name>[0]),
+                        :scope('attribute')
+                    )
+                )
+            ),
+            PAST::Val.new(
+                :value(1),
+                :named( PAST::Val.new( :value('vtable') ) )
+            )
+        ));
 
         # Now we need to create instances of each of these and install them
         # in a package starting with the enum's name, plus an alias to them
@@ -603,12 +728,12 @@ method enum_declarator($/, $key) {
                     :pasttype('callmethod'),
                     :name('new'),
                     PAST::Var.new(
-                        :name(~$<name>[0]),
-                        :scope('package')
+                        :name('$def'),
+                        :scope('lexical')
                     ),
                     PAST::Val.new(
                         :value(%values{$_}),
-                        :named( PAST::Val.new( :value(~$<name>[0]) ) )
+                        :named( PAST::Val.new( :value("$!" ~ ~$<name>[0]) ) )
                     )
                 )
             ));

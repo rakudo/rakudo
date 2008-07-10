@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('abs cis sqrt truncate int unpolar', 'from'=>$P0)
+    '!EXPORT'('abs cis polar sqrt truncate int unpolar', 'from'=>$P0)
 
     ##  pre-seed a random number generator
     $P0 = new 'Random'
@@ -47,8 +47,19 @@ the size of that file down and to emphasize their generic,
 =cut
 
 .namespace ['Any']
-.sub 'cis' :method
+.sub 'cis' :method :multi(_)
     .return 'unpolar'(1.0, self)
+.end
+
+
+=item polar
+
+=cut
+
+.namespace ['Any']
+.sub 'polar' :method :multi(_)
+    $N0 = self
+    .return 'list'($N0, 0)
 .end
 
 

@@ -26,14 +26,6 @@ symbols for C<Bool::True> and C<Bool::False>.
     $P0 = boolproto.'new'()
     $P0 = 1
     set_hll_global ['Bool'], 'True', $P0
-
-    # 'our bit enum bool <True False>'
-    $P0 = new 'Integer'
-    $P0 = 0
-    set_hll_global 'False', $P0
-    $P0 = new 'Integer'
-    $P0 = 1
-    set_hll_global 'True', $P0
 .end
 
 

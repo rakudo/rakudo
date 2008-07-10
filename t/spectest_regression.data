@@ -51,6 +51,7 @@ S06-signature/slurpy-placeholders.t             # pure
 S12-class/attributes.t                          # pure
 S12-class/instantiate.t                         # pure
 S12-class/parent_attributes.t                   # pure
+S12-enums/as-role.t                             # pure
 S12-methods/calling_syntax.t                    # pure
 S12-role/attributes.t
 S12-role/composition.t                          # pure

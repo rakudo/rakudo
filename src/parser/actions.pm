@@ -593,7 +593,7 @@ method enum_declarator($/, $key) {
 
         # Now we emit code to create a class for the enum that does the role
         # that we just defined. Note $def in the init code refers to this
-        # class from now on.
+        # class from now on. Mark the class as an enum.
         my $class_past := PAST::Stmts.new(
             PAST::Op.new(
                 :pasttype('bind'),
@@ -608,6 +608,17 @@ method enum_declarator($/, $key) {
                         :name('$def'),
                         :scope('lexical')
                     )
+                )
+            ),
+            PAST::Op.new(
+                :inline("    setprop %0, 'enum', %1\n"),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Val.new(
+                    :value(1),
+                    :returns('Int')
                 )
             )
         );

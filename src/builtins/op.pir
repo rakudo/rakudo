@@ -363,6 +363,45 @@ attr_error:
 .end
 
 
+.sub 'infix:but'
+    .param pmc var
+    .param pmc role
+    .local pmc value
+
+    # First off, is the role actually a role?
+    $I0 = isa role, 'Role'
+    if $I0 goto have_role
+
+    # If not, it may be an enum. Get the value's class and find out.
+    .local pmc the_class, prop, role_list
+    push_eh error
+    the_class = class role
+    prop = getprop 'enum', the_class
+    if null prop goto error
+    unless prop goto error
+
+    # We have an enum; get the one role of the class and set the value.
+    role_list = inspect the_class, 'roles'
+    value = role
+    role = role_list[0]
+    goto have_role
+
+    # Did anything go wrong?
+  error:
+    'die'("The but operator can only be used with a role or enum value on the right hand side")
+
+    # Now we have a role, copy the value and call does on the copy.
+  have_role:
+    var = clone var
+    if null value goto no_value
+    'infix:does'(var, role, value)
+    goto return
+  no_value:
+    'infix:does'(var, role)
+  return:
+    .return (var)
+.end
+
 =back
 
 =cut

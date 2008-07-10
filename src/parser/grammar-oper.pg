@@ -88,6 +88,7 @@ proto infix:<leg> is equiv(infix:<..>) { ... }
 proto infix:<=:=> is equiv(infix:<..>) { ... }
 proto infix:<!=:=> is equiv(infix:<..>) { ... }
 proto infix:<does> is equiv(infix:<..>) { ... }
+proto infix:<but> is equiv(infix:<..>) { ... }
 
 ## chaining
 proto infix:<==>  is precedence('m=') is pasttype('chain') { ... }

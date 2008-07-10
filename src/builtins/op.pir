@@ -366,13 +366,16 @@ attr_error:
 .sub 'infix:but'
     .param pmc var
     .param pmc role
-    .local pmc value
+    .param pmc value      :optional
+    .param int have_value :opt_flag
 
     # First off, is the role actually a role?
     $I0 = isa role, 'Role'
     if $I0 goto have_role
 
-    # If not, it may be an enum. Get the value's class and find out.
+    # If not, it may be an enum. If we don't have a value, get the class of
+    # the thing passed as a role and find out.
+    if have_value goto error
     .local pmc the_class, prop, role_list
     push_eh error
     the_class = class role

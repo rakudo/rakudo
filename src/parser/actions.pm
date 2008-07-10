@@ -2404,11 +2404,11 @@ method EXPR($/, $key) {
 
         make $past;
     }
-    elsif ~$<type> eq 'infix:does' {
+    elsif ~$<type> eq 'infix:does' || ~$<type> eq 'infix:but' {
         my $past := PAST::Op.new(
             $( $/[0] ),
             :pasttype('call'),
-            :name('infix:does'),
+            :name(~$<type>),
             :node($/)
         );
         my $rhs := $( $/[1] );
@@ -2417,7 +2417,7 @@ method EXPR($/, $key) {
             if +@($rhs) > 2 {
                 $/.panic("Role initialization can only supply a value for one attribute");
             }
-            # Push role name and argument onto infix:does
+            # Push role name and argument onto infix:does or infix:but.
             $past.push($rhs[0]);
             $past.push($rhs[1]);
         }

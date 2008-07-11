@@ -4,7 +4,7 @@
 
 This document describes the architecture and layout of the
 Rakudo Perl 6 (a.k.a. Rakudo) compiler.  See the F<README>
-or F<STATUS> files for information about how to use the compiler
+or F<docs/STATUS> files for information about how to use the compiler
 or what features have been implemented.
 
 The Rakudo compiler is constructed from four major components:
@@ -59,7 +59,7 @@ The parse grammar is compiled into PIR (F<src/gen_grammar.pir>)
 using the Perl6Grammar compiler that is part of PGE and the Parrot
 Compiler Toolkit.  Because PGE doesn't yet implement the
 proto-regex or longest token matching semantics of S05, we
-make use PGE's built-in operator precedence parser and define
+make use of PGE's built-in operator precedence parser and define
 operator tokens in grammar-oper.pg .
 
 Lastly, the F<src/parser/quote_expression.pir> file implements
@@ -126,7 +126,7 @@ occurs in the C< $(...) > and C<make> expressions in the method
 body.  The C< $(...) > operator is used to retrieve the PAST
 representation of a parsed subtree.  Thus, the first two statements
 of C<unless_statement> retrieve the PAST representation of the
-C<< <block> >> subtree into C<$then>, and sets that block to
+C<< <block> >> subtree into C<$then>, and set that block to
 be an immediately executed block.
 
 The third statement creates a new C<PAST::Op> node for the

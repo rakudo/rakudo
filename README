@@ -2,9 +2,8 @@
 
 =head1 Rakudo Perl 6
 
-This is the Perl 6 compiler for Parrot, called "Rakudo Perl 6,"
-or "Rakudo" for short.  It's still fairly primitive -- only simple
-expressions and functions are available, but it's rapidly expanding.
+This is the Perl 6 compiler for Parrot, called "Rakudo Perl 6",
+or "Rakudo" for short.  It's still fairly primitive, but it is rapidly expanding.
 See L<docs/STATUS> for a list of what has been implemented thus far.
 
 =head2 Building and invoking Rakudo

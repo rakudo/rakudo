@@ -1,3 +1,6 @@
+# Copyright (C) 2007-2008, The Perl Foundation.
+# $Id$
+
 .include 'cclass.pasm'
 
 .namespace ['Perl6::Grammar']

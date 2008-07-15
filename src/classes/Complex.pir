@@ -26,7 +26,7 @@ Implementation is a bit different from other basic objects (Int...) because
     p6meta.'register'('Complex', 'parent'=>complexproto, 'protoobject'=>complexproto)
 
     $P0 = get_hll_namespace ['Perl6Complex']
-    '!EXPORT'('exp polar sqrt', 'from'=>$P0)
+    '!EXPORT'('exp log polar sqrt', 'from'=>$P0)
 .end
 
 =item perl()
@@ -55,6 +55,15 @@ Returns a Perl representation of the Complex.
     .return ($P0)
 .end
 
+=item log
+
+=cut
+
+.sub 'log' :method :multi('Complex')
+    $P0 = ln self
+    .return ($P0)
+.end
+
 =item polar
 
 =cut
@@ -79,6 +88,7 @@ Returns a Perl representation of the Complex.
     $P0 = sqrt self
     .return ($P0)
 .end
+
 
 
 =back

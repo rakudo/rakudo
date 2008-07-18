@@ -333,6 +333,17 @@ Gets the memory address of the object.
     .return ($I0)
 .end
 
+=item WHICH
+
+Gets the object's identity value
+
+=cut
+
+.sub 'WHICH' :method
+    # For normal objects, this can just be the memory address.
+    .return self.'WHERE'()
+.end
+
 =back
 
 =head2 Private methods

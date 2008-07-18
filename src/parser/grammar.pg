@@ -547,7 +547,7 @@ token term {
 
 ##  XXX: cheat until we get term:pi, term:rand, term:undef, etc.
 token named_0ary {
-    [pi|rand|undef] >>
+    [pi|rand|undef|nothing] >>
 }
 
 rule package_declarator {

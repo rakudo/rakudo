@@ -51,6 +51,7 @@ S06-signature/named-parameters.t
 S06-signature/named-placeholders.t              # pure
 S06-signature/positional-placeholders.t         # pure
 S06-signature/slurpy-placeholders.t             # pure
+S12-class/annonymous.t                          # pure
 S12-class/attributes.t                          # pure
 S12-class/instantiate.t                         # pure
 S12-class/parent_attributes.t                   # pure

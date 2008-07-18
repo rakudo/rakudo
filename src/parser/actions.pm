@@ -483,6 +483,7 @@ method routine_declarator($/, $key) {
         if $<method_def><multisig> {
             set_block_sig($past, $( $<method_def><multisig>[0]<signature> ));
         }
+        $past := add_method_to_class($past);
     }
     $past.node($/);
     if (+@($past[1])) {
@@ -1451,23 +1452,32 @@ method package_def($/, $key) {
     if $key eq 'open' {
         # Start of package definition. Handle class and grammar specially.
         if $?PACKAGE =:= $?CLASS {
-            # Start of class definition; create class object to work with.
-            $?CLASS.push(
+            # Start of class definition; make PAST to create class object.
+            my $class_def := PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
                 PAST::Op.new(
-                    :pasttype('bind'),
-                    PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
-                    ),
-                    PAST::Op.new(
-                        :pasttype('call'),
-                        :name('!keyword_class'),
-                        PAST::Val.new( :value(~$<name>) )
-                    )
+                    :pasttype('call'),
+                    :name('!keyword_class')
                 )
             );
+
+            # Add a name, if we have one.
+            if $<name> {
+                $class_def[1].push( PAST::Val.new( :value(~$<name>[0]) ) );
+            }
+
+            $?CLASS.push($class_def);
         }
         elsif $?PACKAGE =:= $?GRAMMAR {
+            # Anonymous grammars not supported.
+            unless $<name> {
+                $/.panic('Anonymous grammars not supported');
+            }
+
             # Start of grammar definition. Create grammar class object.
             $?GRAMMAR.push(
                 PAST::Op.new(
@@ -1479,20 +1489,30 @@ method package_def($/, $key) {
                     PAST::Op.new(
                         :pasttype('call'),
                         :name('!keyword_grammar'),
-                        PAST::Val.new( :value(~$<name>) )
+                        PAST::Val.new( :value(~$<name>[0]) )
                     )
                 )
             );
         }
+        else {
+            # Anonymous modules not supported.
+            unless $<name> {
+                $/.panic('Anonymous modules not supported');
+            }
+        }
 
-        # Also store the current namespace.
-        $?NS := $<name><ident>;
+        # Also store the current namespace, if we're not anonymous.
+        if $<name> {
+            $?NS := $<name>[0]<ident>;
+        }
     }
     else {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         my $past := $( $<package_block> );
-        $past.namespace($<name><ident>);
+        if $<name> {
+            $past.namespace($<name>[0]<ident>);
+        }
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
 
@@ -1521,15 +1541,29 @@ method package_def($/, $key) {
                 )
             );
 
+            # If this is an anonymous class, the block doesn't want to be a
+            # :init :load, and it's going to contain the class definition, so
+            # we need to declare the lexical $def.
+            unless $<name> {
+                $past.pirflags('');
+                $past.blocktype('immediate');
+                $past.push(PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical'),
+                    :isdecl(1)
+                ));
+            }
+
             # Attatch any class initialization code to the init code;
             # note that we skip blocks, which are method accessors that
             # we want to put under this block so they get the correct
-            # namespace.
+            # namespace. If it's an anonymous class, everything goes into
+            # this block.
             unless defined( $?INIT ) {
                 $?INIT := PAST::Block.new();
             }
             for @( $?CLASS ) {
-                if $_.WHAT() eq 'Block' {
+                if $_.WHAT() eq 'Block' || !$<name> {
                     $past.push( $_ );
                 }
                 else {
@@ -1820,7 +1854,7 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
     if $variable_twigil eq '.' {
         # We have a . twigil, so we need to generate an accessor.
         my $accessor := make_accessor($/, ~$variable_name, $name, $rw);
-        $class_def.unshift($accessor);
+        $class_def.push(add_method_to_class($accessor));
     }
     elsif $variable_twigil eq '!' {
         # Don't need to do anything.
@@ -2715,11 +2749,13 @@ sub process_handles($/, $expr, $attr_name) {
     if $expr.WHAT() eq 'Val' && $expr.returns() eq 'Perl6Str' {
         # Just a single string mapping.
         my $name := ~$expr.value();
-        $past.push(make_handles_method($/, $name, $name, $attr_name));
+        my $method := make_handles_method($/, $name, $name, $attr_name);
+        $past.push(add_method_to_class($method));
     }
     elsif $expr.WHAT() eq 'Op' && $expr.returns() eq 'Pair' {
         # Single pair.
-        $past.push(make_handles_method_from_pair($/, $expr, $attr_name));
+        my $method := make_handles_method_from_pair($/, $expr, $attr_name);
+        $past.push(add_method_to_class($method));
     }
     elsif $expr.WHAT() eq 'Op' && $expr.pasttype() eq 'call' &&
           $expr.name() eq 'list' {
@@ -2728,11 +2764,13 @@ sub process_handles($/, $expr, $attr_name) {
             if $_.WHAT() eq 'Val' && $_.returns() eq 'Perl6Str' {
                 # String value.
                 my $name := ~$_.value();
-                $past.push(make_handles_method($/, $name, $name, $attr_name));
+                my $method := make_handles_method($/, $name, $name, $attr_name);
+                $past.push(add_method_to_class($method));
             }
             elsif $_.WHAT() eq 'Op' && $_.returns() eq 'Pair' {
                 # Pair.
-                $past.push(make_handles_method_from_pair($/, $_, $attr_name));
+                my $method := make_handles_method_from_pair($/, $_, $attr_name);
+                $past.push(add_method_to_class($method));
             }
             else {
                 $/.panic(
@@ -2747,11 +2785,13 @@ sub process_handles($/, $expr, $attr_name) {
             if $_.WHAT() eq 'Val' && $_.returns() eq 'Perl6Str' {
                 # String value.
                 my $name := ~$_.value();
-                $past.push(make_handles_method($/, $name, $name, $attr_name));
+                my $method := make_handles_method($/, $name, $name, $attr_name);
+                $past.push(add_method_to_class($method));
             }
             elsif $_.WHAT() eq 'Op' && $_.returns() eq 'Pair' {
                 # Pair.
-                $past.push(make_handles_method_from_pair($/, $_, $attr_name));
+                my $method := make_handles_method_from_pair($/, $_, $attr_name);
+                $past.push(add_method_to_class($method));
             }
             else {
                 $/.panic(
@@ -3004,6 +3044,44 @@ sub make_accessor($/, $method_name, $attr_name, $rw) {
         :node( $/ )
     );
     $accessor
+}
+
+
+# Adds the given method to the current class. This just returns the method that
+# is passed to it if the current class is named; in the case that it is anonymous
+# we need instead to emit an add_method call and remove the methods name so it
+# doesn't pollute the namespace.
+sub add_method_to_class($method) {
+    our $?CLASS;
+    our $?PACKAGE;
+    if $?CLASS =:= $?PACKAGE && +@($?CLASS[0][1]) == 0 {
+        # Create new PAST::Block - can't work out how to unset the name of an
+        # existing one.
+        my $new_method := PAST::Block.new(
+            :blocktype($method.blocktype()),
+            :pirflags($method.pirflags())
+        );
+        for @($method) {
+            $new_method.push($_);
+        }
+
+        # Put call to add method into the class definition.
+        $?CLASS.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('add_method'),
+            PAST::Var.new(
+                :name('$def'),
+                :scope('lexical')
+            ),
+            PAST::Val.new( :value($method.name()) ),
+            $new_method
+        ));
+
+        $new_method
+    }
+    else {
+        $method
+    }
 }
 
 # Local Variables:

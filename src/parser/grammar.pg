@@ -563,7 +563,7 @@ rule package_declarator {
 
 
 rule package_def {
-    <name> <trait>* {*}                          #= open
+    <name>? <trait>* {*}                         #= open
     <package_block> {*}                          #= close
 }
 

@@ -217,11 +217,17 @@ Internal helper method to create a class.
 =cut
 
 .sub '!keyword_class'
-    .param string name
+    .param string name   :optional
+    .param int have_name :opt_flag
     .local pmc class, resolve_list, methods, iter
 
     # Create class.
+    if have_name goto named
+    class = new 'Class'
+    goto created
+  named:
     class = newclass name
+  created:
 
     # Set resolve list to include all methods of the class.
     methods = inspect class, 'methods'

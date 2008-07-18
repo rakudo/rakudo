@@ -322,6 +322,17 @@ Print the object
     .return $P0(self)
 .end
 
+=item WHERE
+
+Gets the memory address of the object.
+
+=cut
+
+.sub 'WHERE' :method
+    $I0 = get_addr self
+    .return ($I0)
+.end
+
 =back
 
 =head2 Private methods

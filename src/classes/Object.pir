@@ -437,6 +437,17 @@ Create a clone of self, also cloning the attributes given by attrlist.
 .end
 
 
+.sub '!.^' :method
+    .param string method_name
+    .param pmc pos_args     :slurpy
+    .param pmc named_args   :slurpy :named
+
+    # Get the HOW or the object and do the call on that.
+    .local pmc how
+    how = self.'HOW'()
+    .return how.method_name(self, pos_args :flat, named_args :flat :named)
+.end
+
 =back
 
 =cut

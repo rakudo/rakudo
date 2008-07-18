@@ -30,7 +30,7 @@ This file implements the Any class.
 .sub 'can' :method
     .param pmc x
     $P0 = self.'HOW'()
-    .return $P0.'can'(x)
+    .return $P0.'can'(self, x)
 .end
 
 =item isa($x)
@@ -40,7 +40,7 @@ This file implements the Any class.
 .sub 'isa' :method
     .param pmc x
     $P0 = self.'HOW'()
-    .return $P0.'isa'(x)
+    .return $P0.'isa'(self, x)
 .end
 
 =back

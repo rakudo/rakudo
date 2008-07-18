@@ -2450,7 +2450,7 @@ method EXPR($/, $key) {
             :node($/)
         );
         my $rhs := $( $/[1] );
-        if $rhs.HOW().isa(PAST::Op) && $rhs.pasttype() eq 'call' {
+        if $rhs.HOW().isa($rhs, PAST::Op) && $rhs.pasttype() eq 'call' {
             # Make sure we only have one initialization value.
             if +@($rhs) > 2 {
                 $/.panic("Role initialization can only supply a value for one attribute");

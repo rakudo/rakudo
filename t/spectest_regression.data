@@ -37,6 +37,7 @@ S03-junctions/misc.t
 S04-declarations/multiple.t
 S04-declarations/my.t
 S04-declarations/implicit-parameter.t           # pure
+S04-statements/do.t
 S04-statements/for.t
 S04-statements/no-implicit-block.t
 S04-statements/repeat.t

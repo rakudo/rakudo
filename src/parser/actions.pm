@@ -1377,7 +1377,7 @@ sub apply_package_traits($package, $traits) {
                         :scope('lexical')
                     ),
                     PAST::Var.new(
-                        :name(~$_<trait_auxiliary><role_name><name>),
+                        :name(~$_<trait_auxiliary><name>),
                         :scope('package')
                     )
                 )
@@ -1625,19 +1625,19 @@ method role_def($/, $key) {
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('!keyword_role'),
-                    PAST::Val.new( :value(~$<role_name>) )
+                    PAST::Val.new( :value(~$<name>) )
                 )
             )
         );
 
         # Also store the current namespace.
-        $?NS := $<role_name><name><ident>;
+        $?NS := $<name><ident>;
     }
     else {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         my $past := $( $<package_block> );
-        $past.namespace($<role_name><name><ident>);
+        $past.namespace($<name><ident>);
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
 

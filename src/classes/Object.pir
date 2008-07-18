@@ -464,7 +464,9 @@ Create a clone of self, also cloning the attributes given by attrlist.
 
 =back
 
-=head2 Methods on P6protoobject.
+=head2 Methods on P6protoobject
+
+=over
 
 =item WHENCE()
 

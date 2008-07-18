@@ -423,6 +423,11 @@ method multi_declarator($/) {
         $pirflags := $pirflags ~ ' :multi(';
         my $arity := +@check_list;
         my $count := 0;
+        if $<routine_declarator><sym> eq 'method' {
+            # For methods, need to have a slot in the multi list for the
+            # invocant. XXX could be a type constraint in the sig on self.
+            $pirflags := $pirflags ~ '_, ';
+        }
         while $count != $arity {
             # How many types do we have?
             my $checks := @check_list[$count];

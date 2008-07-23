@@ -113,6 +113,9 @@ perl6$(EXE): perl6.pbc
 perl6.pbc: $(PARROT) $(SOURCES)
 	$(PARROT) $(PARROT_ARGS) -o perl6.pbc perl6.pir
 
+installable_perl6$(EXE): perl6.pbc
+	$(PBC_TO_EXE) perl6.pbc --install
+
 src/gen_grammar.pir: $(PERL6GRAMMAR) src/parser/grammar.pg src/parser/grammar-oper.pg
 	$(PARROT) $(PARROT_ARGS) $(PERL6GRAMMAR) \
 	    --output=src/gen_grammar.pir \

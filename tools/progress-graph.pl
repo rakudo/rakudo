@@ -30,7 +30,7 @@ use warnings;
 use GD::Graph::bars;
 use Text::CSV_XS;
 use List::Util qw(max sum);
-use POSIX qw(log10);
+use POSIX qw(log10 ceil);
 
 # column names
 use constant DATE       => 0;
@@ -55,6 +55,7 @@ my $csv = Text::CSV_XS->new({
 
 my $max = 0;
 my @columns_to_plot = (PASS, FAIL, TODO, SKIP);
+my $rows = 0;
 
 while (<$f>) {
     next if m/^"[a-z]+"/i; # skip header line
@@ -66,17 +67,19 @@ while (<$f>) {
         push @{$data[$_]}, $cols[$_];
     }
     $max = max $max, sum @cols[@columns_to_plot];
+    $rows++;
 }
 
 my $last_date = $data[DATE][-1];
 
+print scalar(@data), $/;
 my $p = GD::Graph::bars->new(600, 400);
 no warnings 'qw';
 $p->set(
         x_label             => 'Date',
         y_label             => 'Tests',
         title               => 'Passing Rakudo Spectests',
-        x_label_skip        => 2,
+        x_label_skip        => ceil($rows/30),
         x_labels_vertical   => 1,
         cumulate            => 1,
         borderclrs          => [undef],

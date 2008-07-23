@@ -47,6 +47,7 @@ S04-statements/terminator.t                     # pure
 S04-statements/try.t
 S04-statements/until.t                          # pure
 S04-statements/while.t
+S05-metasyntax/unknown.t                        # pure
 S05-transliteration/trans.t
 S06-signature/mixed-placeholders.t              # pure
 S06-signature/named-parameters.t

@@ -221,6 +221,7 @@ CLEANUPS = \
   perl6.c \
   perl6$(O) \
   perl6$(EXE) \
+  installable_perl6$(EXE) \
   src/gen_grammar.pir \
   src/gen_actions.pir \
   src/gen_builtins.pir \

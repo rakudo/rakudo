@@ -55,6 +55,8 @@ S06-signature/named-parameters.t
 S06-signature/named-placeholders.t              # pure
 S06-signature/positional-placeholders.t         # pure
 S06-signature/slurpy-placeholders.t             # pure
+S06-traits/is-copy.t                            # pure
+S06-traits/is-rw.t
 S12-class/anonymous.t                           # pure
 S12-class/attributes.t                          # pure
 S12-class/inheritance.t

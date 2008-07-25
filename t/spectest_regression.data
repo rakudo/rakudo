@@ -18,6 +18,7 @@ S02-magicals/dollar-underscore.t                # pure
 S02-names_and_variables/perl.t
 S02-polymorphic_types/subset-code.t             # pure
 S02-polymorphic_types/subset-range.t
+S02-whitespace_and_comments/one-pass-parsing.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/autoincrement.t                   # pure
@@ -48,6 +49,7 @@ S04-statements/try.t
 S04-statements/until.t                          # pure
 S04-statements/while.t
 S05-metasyntax/changed.t
+S05-metasyntax/regex.t
 S05-metasyntax/unknown.t                        # pure
 S05-transliteration/trans.t
 S06-signature/mixed-placeholders.t              # pure
@@ -85,6 +87,7 @@ S29-list/join.t
 S29-list/map_empty_list.t
 S29-list/map_flattening.t
 S29-list/map_function_return_values.t
+S29-list/map_topic.t                            # pure
 S29-list/map.t
 S29-list/minmax.t
 S29-list/mutating_listops.t                     # pure

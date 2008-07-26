@@ -286,7 +286,7 @@
   term_scalar:
     mob.'to'(pos)
     $P0 = mob.'variable'('action'=>action)
-    unless $P0 goto term_literal
+    unless $P0 goto err_scalar
     pos = $P0.'to'()
     key = 'variable'
     mob[key] = $P0
@@ -295,7 +295,7 @@
   term_closure:
     mob.'to'(pos)
     $P0 = mob.'circumfix'('action'=>action)
-    unless $P0 goto term_literal
+    unless $P0 goto fail
     pos = $P0.'to'()
     key = 'circumfix'
     mob[key] = $P0
@@ -312,6 +312,11 @@
 
   fail:
     mob.'to'(-1)
+    .return (mob)
+
+  err_scalar:
+    mob.'to'(pos)
+    mob.'panic'("Can't use $ as non-variable in interpolated string")
     .return (mob)
 .end
 

@@ -574,7 +574,7 @@ method enum_declarator($/, $key) {
                     :scope('lexical')
                 ),
                 PAST::Val.new( :value(~$<name>[0]) ),
-                make_accessor($/, undef, "$!" ~ ~$<name>[0], 1)
+                make_accessor($/, undef, "$!" ~ ~$<name>[0], 1, 'attribute')
             )
         );
         for %values.keys() {
@@ -1522,9 +1522,17 @@ method package_def($/, $key) {
         }
     }
     else {
+        # XXX For now, to work around the :load :init not being allowed to be
+        # an outer bug, we will enclose the actual package block inside an
+        # immediate block of its own.
+        my $inner_block := $( $<package_block> );
+        $inner_block.blocktype('immediate');
+        my $past := PAST::Block.new(
+            $inner_block
+        );
+
         # Declare the namespace and that the result block holds things that we
         # do "on load".
-        my $past := $( $<package_block> );
         if $<name> {
             $past.namespace($<name>[0]<ident>);
         }
@@ -1562,7 +1570,7 @@ method package_def($/, $key) {
             unless $<name> {
                 $past.pirflags('');
                 $past.blocktype('immediate');
-                $past.push(PAST::Var.new(
+                $past[0].push(PAST::Var.new(
                     :name('$def'),
                     :scope('lexical'),
                     :isdecl(1)
@@ -1579,7 +1587,7 @@ method package_def($/, $key) {
             }
             for @( $?CLASS ) {
                 if $_.WHAT() eq 'Block' || !$<name> {
-                    $past.push( $_ );
+                    $past[0].push( $_ );
                 }
                 else {
                     $?INIT.push( $_ );
@@ -1868,7 +1876,7 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
     # Twigil handling.
     if $variable_twigil eq '.' {
         # We have a . twigil, so we need to generate an accessor.
-        my $accessor := make_accessor($/, ~$variable_name, $name, $rw);
+        my $accessor := make_accessor($/, ~$variable_name, $name, $rw, 'attribute');
         $class_def.push(add_method_to_class($accessor));
     }
     elsif $variable_twigil eq '!' {
@@ -1896,9 +1904,17 @@ method scope_declarator($/) {
 
     # What sort of thing are we scoping?
     if $<scoped><declarator><variable_declarator> {
-        # Variable. Now go by declarator or twigil if it's a role-private.
-        my $twigil := $<scoped><declarator><variable_declarator><variable><twigil>[0];
-        if $declarator eq 'has' || $declarator eq 'my' && $twigil eq '!' {
+        our $?PACKAGE;
+        our $?ROLE;
+        our $?CLASS;
+
+        # Variable. If it's declared with "has" it is always an attribute. If
+        # it is declared with "my" inside a role and has the ! twigil, it is
+        # a role private attribute.
+        my $variable := $<scoped><declarator><variable_declarator><variable>;
+        my $twigil := $variable<twigil>[0];
+        my $role_priv := $?ROLE =:= $?PACKAGE && $declarator eq 'my' && $twigil eq '!';
+        if $declarator eq 'has' || $role_priv {
             # Attribute declarations need special handling.
             my $sigil := ~$<scoped><declarator><variable_declarator><variable><sigil>;
             my $twigil := ~$<scoped><declarator><variable_declarator><variable><twigil>[0];
@@ -1908,6 +1924,29 @@ method scope_declarator($/) {
             # We don't have any PAST at the point of the declaration.
             $past := PAST::Stmts.new();
         }
+
+        # If we're in a class and have something declared with a sigil, then
+        # we need to generate an accessor method and emit that along with the
+        # lexical declaration itself.
+        elsif ($twigil eq '.' || $twigil eq '!') && $?CLASS =:= $?PACKAGE {
+            # This node is just the variable declaration; also register it in
+            # the symbol table.
+            my $orig_past := $past;
+            $past := PAST::Var.new(
+                :name(~$variable<sigil> ~ '!' ~ ~$variable<name>),
+                :scope('lexical'),
+                :isdecl(1),
+                :viviself(container_type(~$variable<sigil>))
+            );
+            $?BLOCK.symbol($past.name(), :scope('lexical'));
+
+            # Now generate accessor, if it's public.
+            if $twigil eq '.' {
+                $?CLASS.push(make_accessor($/, $orig_past.name(), $past.name(), 1, 'lexical'));
+            }
+        }
+
+        # Otherwise, just a normal variable declaration.
         else {
             # Has this already been declared?
             my $name := $past.name();
@@ -2163,11 +2202,7 @@ method variable($/, $key) {
                 }
             }
 
-            my $container_type;
-            if    $sigil eq '@' { $container_type := 'Perl6Array'  }
-            elsif $sigil eq '%' { $container_type := 'Perl6Hash'   }
-            else                { $container_type := 'Perl6Scalar' }
-            $past.viviself($container_type);
+            $past.viviself(container_type($sigil));
         }
     }
     make $past;
@@ -2756,6 +2791,13 @@ sub contextualizer_name($/, $sigil) {
 }
 
 
+sub container_type($sigil) {
+    if    $sigil eq '@' { return 'Perl6Array'  }
+    elsif $sigil eq '%' { return 'Perl6Hash'   }
+    else                { return 'Perl6Scalar' }
+}
+
+
 # Processes a handles expression to produce the appropriate method(s).
 sub process_handles($/, $expr, $attr_name) {
     my $past := PAST::Stmts.new();
@@ -3048,17 +3090,17 @@ sub sig_extract_declarables($/, $sig_setup) {
 }
 
 # Generates a setter/getter method for an attribute in a class or role.
-sub make_accessor($/, $method_name, $attr_name, $rw) {
+sub make_accessor($/, $method_name, $attr_name, $rw, $scope) {
     my $getset;
     if $rw {
-        $getset := PAST::Var.new( :name($attr_name), :scope('attribute') );
+        $getset := PAST::Var.new( :name($attr_name), :scope($scope) );
     }
     else {
         $getset := PAST::Op.new(
             :inline("    %r = new 'Perl6Scalar', %0\n" ~
                     "    $P0 = get_hll_global [ 'Bool' ], 'True'\n" ~
                     "    setprop %r, 'readonly', $P0\n"),
-            PAST::Var.new( :name($attr_name), :scope('attribute') )
+            PAST::Var.new( :name($attr_name), :scope($scope) )
         );
     }
     my $accessor := PAST::Block.new(

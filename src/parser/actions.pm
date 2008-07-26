@@ -426,6 +426,7 @@ method multi_declarator($/, $key) {
         my @check_list;
         if $?PARAM_TYPE_CHECK {
             @check_list := @($?PARAM_TYPE_CHECK);
+            $?PARAM_TYPE_CHECK := 0;
         }
 
         # Go over the parameters and build multi-sig.

@@ -113,7 +113,11 @@ to coordinate with entire async model.  -law]
 =cut
 
 .sub 'sleep'
-    .param num a
+    .param num a               :optional
+    .param int has_a           :opt_flag
+    if has_a goto have_a
+    a = 2147483647                               # FIXME: RT #57294
+  have_a:
     $N0 = time
     sleep a
     $N1 = time

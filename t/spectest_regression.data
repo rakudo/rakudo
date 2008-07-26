@@ -52,6 +52,7 @@ S05-metasyntax/changed.t
 S05-metasyntax/regex.t
 S05-metasyntax/unknown.t                        # pure
 S05-transliteration/trans.t
+S06-multi/syntax.t                              # pure
 S06-signature/mixed-placeholders.t              # pure
 S06-signature/named-parameters.t
 S06-signature/named-placeholders.t              # pure
@@ -59,6 +60,7 @@ S06-signature/positional-placeholders.t         # pure
 S06-signature/slurpy-placeholders.t             # pure
 S06-traits/is-copy.t                            # pure
 S06-traits/is-rw.t
+S12-attributes/class.t                          # pure
 S12-class/anonymous.t                           # pure
 S12-class/attributes.t                          # pure
 S12-class/inheritance.t

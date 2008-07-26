@@ -114,8 +114,11 @@ to coordinate with entire async model.  -law]
 
 .sub 'sleep'
     .param num a
+    $N0 = time
     sleep a
-    .return (a)
+    $N1 = time
+    $N2 = $N1 - $N0
+    .return ($N2)
 .end
 
 =item eval

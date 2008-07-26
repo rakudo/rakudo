@@ -115,6 +115,7 @@ to coordinate with entire async model.  -law]
 .sub 'sleep'
     .param num a
     sleep a
+    .return (a)
 .end
 
 =item eval

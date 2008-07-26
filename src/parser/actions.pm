@@ -412,8 +412,15 @@ method statement_prefix($/) {
 }
 
 
-method multi_declarator($/) {
-    my $past := $( $<routine_declarator> );
+method multi_declarator($/, $key) {
+    my $past := $( $/{$key} );
+
+    # If we just got a routine_def, make it a sub.
+    if $key eq 'routine_def' {
+        create_sub($/, $past);
+    }
+
+    # If it was multi, then emit a :multi and a type list.
     if $<sym> eq 'multi' {
         our $?PARAM_TYPE_CHECK;
         my @check_list := @($?PARAM_TYPE_CHECK);
@@ -475,11 +482,7 @@ method routine_declarator($/, $key) {
     my $past;
     if $key eq 'sub' {
         $past := $($<routine_def>);
-        $past.blocktype('declaration');
-        set_block_proto($past, 'Sub');
-        if $<routine_def><multisig> {
-            set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
-        }
+        create_sub($/, $past);
     }
     elsif $key eq 'method' {
         $past := $($<method_def>);
@@ -2906,6 +2909,16 @@ sub build_type($cons_pt) {
     }
 
     $type_cons
+}
+
+
+# Takes a block and turns it into a sub.
+sub create_sub($/, $past) {
+    $past.blocktype('declaration');
+    set_block_proto($past, 'Sub');
+    if $<routine_def><multisig> {
+        set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
+    }
 }
 
 

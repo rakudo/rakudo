@@ -324,7 +324,10 @@ rule statement_prefix {
 #### Subroutine and method definitions ####
 
 rule multi_declarator {
-    $<sym>=[multi|proto|only] <routine_declarator> {*}
+    $<sym>=[multi|proto|only] 
+    [ <routine_declarator> {*}                   #= routine_declarator
+    | <routine_def> {*}                          #= routine_def
+    ]
 }
 
 token routine_declarator {

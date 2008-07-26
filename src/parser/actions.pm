@@ -423,7 +423,10 @@ method multi_declarator($/, $key) {
     # If it was multi, then emit a :multi and a type list.
     if $<sym> eq 'multi' {
         our $?PARAM_TYPE_CHECK;
-        my @check_list := @($?PARAM_TYPE_CHECK);
+        my @check_list;
+        if $?PARAM_TYPE_CHECK {
+            @check_list := @($?PARAM_TYPE_CHECK);
+        }
 
         # Go over the parameters and build multi-sig.
         my $pirflags := ~ $past.pirflags();
@@ -433,7 +436,10 @@ method multi_declarator($/, $key) {
         if $<routine_declarator><sym> eq 'method' {
             # For methods, need to have a slot in the multi list for the
             # invocant. XXX could be a type constraint in the sig on self.
-            $pirflags := $pirflags ~ '_, ';
+            $pirflags := $pirflags ~ '_';
+            if $arity {
+                $pirflags := $pirflags ~ ', ';
+            }
         }
         while $count != $arity {
             # How many types do we have?

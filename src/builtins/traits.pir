@@ -18,6 +18,14 @@ src/builtins/traits.pir - Perl 6 built-in traits
     .param pmc parent
     .param pmc child
     .local pmc p6meta
+
+    # Make sure we have a parent class.
+    $I0 = isa parent, 'Class'
+    if $I0 goto parent_ok
+    'die'("Attempt to inherit from non-existent parent class")
+  parent_ok:
+
+    # Apply it.
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     parent = p6meta.'get_parrotclass'(parent)
     addparent child, parent

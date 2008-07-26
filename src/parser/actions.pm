@@ -1365,7 +1365,8 @@ sub apply_package_traits($package, $traits) {
                     :name('trait_auxiliary:is'),
                     PAST::Var.new(
                         :name(~$_<trait_auxiliary><name>),
-                        :scope('package')
+                        :scope('package'),
+                        :viviself('Undef')
                     ),
                     PAST::Var.new(
                         :name('$def'),

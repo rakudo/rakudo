@@ -380,7 +380,12 @@ Adds an attribute with the given name to the class or role.
 .sub '!keyword_has'
     .param pmc class
     .param string attr_name
-    .param pmc type
+    .param pmc type     :optional
+    .param int got_type :opt_flag
+    if got_type goto with_type
+    class.'add_attribute'(attr_name)
+    .return ()
+  with_type:
     class.'add_attribute'(attr_name, type)
 .end
 

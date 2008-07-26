@@ -1829,18 +1829,33 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
     }
 
     # Add attribute to class (always name it with ! twigil).
-    $class_def.push(
-        PAST::Op.new(
-            :pasttype('call'),
-            :name('!keyword_has'),
-            PAST::Var.new(
-                :name('$def'),
-                :scope('lexical')
-            ),
-            PAST::Val.new( :value($name) ),
-            build_type($/<scoped><fulltypename>)
-        )
-    );
+    if $/<scoped><fulltypename> {
+        $class_def.push(
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('!keyword_has'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Val.new( :value($name) ),
+                build_type($/<scoped><fulltypename>)
+            )
+        );
+    }
+    else {
+        $class_def.push(
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('!keyword_has'),
+                PAST::Var.new(
+                    :name('$def'),
+                    :scope('lexical')
+                ),
+                PAST::Val.new( :value($name) )
+            )
+        );
+    }
 
     # Is there any "handles" trait verb or an "is rw" or "is ro"?
     my $rw := 0;

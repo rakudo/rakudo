@@ -6,79 +6,79 @@ S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/flattening.t
-S02-builtin_data_types/nested_arrays.t          # pure
-S02-builtin_data_types/nested_pairs.t           # pure
+S02-builtin_data_types/nested_arrays.t
+S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/num.t
 S02-builtin_data_types/range.t
 S02-builtin_data_types/type.t
 S02-literals/autoref.t
-S02-literals/hex_chars.t                        # pure
+S02-literals/hex_chars.t
 S02-literals/radix.t
-S02-magicals/dollar-underscore.t                # pure
+S02-magicals/dollar-underscore.t
 S02-names_and_variables/perl.t
-S02-polymorphic_types/subset-code.t             # pure
+S02-polymorphic_types/subset-code.t
 S02-polymorphic_types/subset-range.t
 S02-whitespace_and_comments/one-pass-parsing.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
-S03-operators/autoincrement.t                   # pure
+S03-operators/autoincrement.t
 S03-operators/comparison.t
 S03-operators/context.t
 S03-operators/cross-metaop.t
-S03-operators/equality.t                        # pure
-S03-operators/not.t                             # pure
+S03-operators/equality.t
+S03-operators/not.t
 S03-operators/numeric-context.t
 S03-operators/range.t
-S03-operators/relational.t                      # pure
+S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/ternary.t
 S03-operators/short-circuit.t
-S03-operators/true.t                            # pure
+S03-operators/true.t
 S03-junctions/misc.t
 S04-declarations/multiple.t
 S04-declarations/my.t
-S04-declarations/implicit-parameter.t           # pure
+S04-declarations/implicit-parameter.t
 S04-statements/do.t
 S04-statements/for.t
 S04-statements/given.t
 S04-statements/no-implicit-block.t
 S04-statements/repeat.t
 S04-statements/return.t
-S04-statements/terminator.t                     # pure
+S04-statements/terminator.t
 S04-statements/try.t
-S04-statements/until.t                          # pure
+S04-statements/until.t
 S04-statements/while.t
 S05-metasyntax/changed.t
 S05-metasyntax/regex.t
-S05-metasyntax/unknown.t                        # pure
+S05-metasyntax/unknown.t
 S05-transliteration/trans.t
-S06-multi/syntax.t                              # pure
-S06-signature/mixed-placeholders.t              # pure
+S06-multi/syntax.t
+S06-signature/mixed-placeholders.t
 S06-signature/named-parameters.t
-S06-signature/named-placeholders.t              # pure
-S06-signature/positional-placeholders.t         # pure
-S06-signature/slurpy-placeholders.t             # pure
-S06-traits/is-copy.t                            # pure
+S06-signature/named-placeholders.t
+S06-signature/positional-placeholders.t
+S06-signature/slurpy-placeholders.t
+S06-traits/is-copy.t
 S06-traits/is-rw.t
-S12-attributes/class.t                          # pure
-S12-class/anonymous.t                           # pure
-S12-class/attributes.t                          # pure
+S12-attributes/class.t
+S12-class/anonymous.t
+S12-class/attributes.t
 S12-class/inheritance.t
 S12-class/inheritance-class-methods.t
-S12-class/instantiate.t                         # pure
-S12-class/parent_attributes.t                   # pure
-S12-enums/as-role.t                             # pure
-S12-methods/calling_syntax.t                    # pure
+S12-class/instantiate.t
+S12-class/parent_attributes.t
+S12-enums/as-role.t
+S12-methods/calling_syntax.t
 S12-role/attributes.t
-S12-role/composition.t                          # pure
-S12-role/mixin.t                                # pure
+S12-role/composition.t
+S12-role/mixin.t
 S16-io/say.t
-S29-any/cmp.t                                   # pure
+S29-any/cmp.t
 S29-array/delete.t
-S29-array/exists.t                              # pure
-S29-array/keys_values.t                         # pure
-S29-array/kv.t                                  # pure
-S29-array/pairs.t                               # pure
+S29-array/exists.t
+S29-array/keys_values.t
+S29-array/kv.t
+S29-array/pairs.t
 S29-array/pop.t
 S29-array/push.t
 S29-array/shift.t
@@ -89,15 +89,15 @@ S29-list/join.t
 S29-list/map_empty_list.t
 S29-list/map_flattening.t
 S29-list/map_function_return_values.t
-S29-list/map_topic.t                            # pure
+S29-list/map_topic.t
 S29-list/map.t
 S29-list/minmax.t
-S29-list/mutating_listops.t                     # pure
+S29-list/mutating_listops.t
 S29-list/reduce.t
 S29-list/reverse.t
 S29-list/sort.t
 S29-num/abs.t
-S29-num/complex.t                               # pure
+S29-num/complex.t
 S29-num/exp.t
 S29-num/int.t
 S29-num/log.t
@@ -105,7 +105,7 @@ S29-num/pi.t
 S29-num/rand.t
 S29-num/sign.t
 S29-num/sqrt.t
-S29-str/append.t                                # pure
+S29-str/append.t
 S29-str/capitalize.t
 S29-str/chop.t
 S29-str/index.t

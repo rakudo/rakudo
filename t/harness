@@ -22,7 +22,6 @@ our %harness_args = (
 GetOptions(
         'tests-from-file=s' => \my $list_file,
         'fudge'             => \my $do_fudge,
-        'configfudge'         => \my $configfudge,
     );
 
 
@@ -30,7 +29,7 @@ my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
 my %accepted_tests;
-if ($list_file || $configfudge) {
+if ($list_file) {
     open(my $f, '<', $list_file)
         or die "Can't open file '$list_file' for reading: $!";
     my $slash = $^O eq 'MSWin32' ? '\\' : '/';
@@ -42,7 +41,7 @@ if ($list_file || $configfudge) {
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s/\//$slash/g;
         if( -r $fn ) {
-            $accepted_tests{$fn} = $fudgespec;
+            push @files, $fn;
         } else {
             warn "Missing test file: $fn\n";
         }
@@ -51,26 +50,11 @@ if ($list_file || $configfudge) {
 }
 
 # first prepare our list of files
-my @tfiles =
-    map { all_in($_) } sort ( $list_file ? keys %accepted_tests : @files );
+my @tfiles = map { all_in($_) } sort @files;
 
 # then decide if and what to fudge
-if (defined($do_fudge) || defined($configfudge)){
-    if ($do_fudge){
-        @tfiles = fudge(@tfiles);
-    } else {
-        my (@fudge, @nofudge);
-        for (@tfiles){
-            if ($accepted_tests{$_} =~ m/^pure$/){
-                push @nofudge, $_;
-            } else {
-                push @fudge, $_;
-            }
-        }
-        if (@fudge) {
-            @tfiles = sort @nofudge, fudge(@fudge);
-        }
-    }
+if ($do_fudge) {
+    @tfiles = fudge(@tfiles);
 }
 
 $harness_args{arguments} = \@tfiles;
@@ -79,7 +63,7 @@ sub fudge {
     my $impl   = 'rakudo';
     my $cmd = join ' ', $^X, 't/spec/fudgeall',
                         @pass_through_options, $impl, @_;
-    print "$cmd\n";
+#    print "$cmd\n";
     return split ' ', `$cmd`;
 }
 

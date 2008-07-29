@@ -44,6 +44,32 @@ Returns a Perl representation of the Num.
 .end
 
 
+=item WHICH()
+
+Returns the identify value.
+
+=cut
+
+.sub 'WHICH' :method
+    $N0 = self
+    .return ($N0)
+.end
+
+
+=item infix:===
+
+Overridden for Num.
+
+=cut
+
+.namespace []
+.sub 'infix:===' :multi(Float,Float)
+    .param num a
+    .param num b
+    .return 'infix:=='(a, b)
+.end
+
+
 =back
 
 =cut

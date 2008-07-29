@@ -160,7 +160,29 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-## TODO: infix:=:= infix:===
+.sub 'infix:===' :multi(_,_)
+    .param pmc a
+    .param pmc b
+    $I0 = '!SAMETYPE_EXACT'(a, b)
+    unless $I0 goto false
+    $P0 = a.'WHICH'()
+    $P1 = b.'WHICH'()
+    .return 'infix:==='($P0, $P1)
+  false:
+    $P0 = get_hll_global [ 'Bool' ], 'False'
+    .return ($P0)
+.end
+
+
+.sub 'infix:!===' :multi(_,_)
+    .param pmc a
+    .param pmc b
+    $P0 = 'infix:==='(a, b)
+    .return 'prefix:!'($P0)
+.end
+
+
+## TODO: infix:=:=
 
 
 =back

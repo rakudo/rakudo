@@ -261,6 +261,19 @@ Returns a Perl representation of the Str.
     .return (s)
 .end
 
+
+=item WHICH()
+
+Returns the identify value.
+
+=cut
+
+.sub 'WHICH' :method
+    $S0 = self
+    .return ($S0)
+.end
+
+
 =back
 
 =head1 Functions
@@ -431,6 +444,21 @@ Returns string with one Char removed from the end.
     s = a
     .return s.'chop'()
 .end
+
+
+=item infix:===
+
+Overridden for Str.
+
+=cut
+
+.namespace []
+.sub 'infix:===' :multi(String,String)
+    .param string a
+    .param string b
+    .return 'infix:eq'(a, b)
+.end
+
 
 =back
 

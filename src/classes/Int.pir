@@ -53,6 +53,31 @@ Returns a Perl representation of the Int.
 .end
 
 
+=item WHICH()
+
+Returns the identify value.
+
+=cut
+
+.sub 'WHICH' :method
+    $I0 = self
+    .return ($I0)
+.end
+
+
+=item infix:===
+
+Overridden for Int.
+
+=cut
+
+.namespace []
+.sub 'infix:===' :multi(Integer,Integer)
+    .param int a
+    .param int b
+    .return 'infix:=='(a, b)
+.end
+
 =back
 
 =cut

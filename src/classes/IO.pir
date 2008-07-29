@@ -90,6 +90,24 @@ Slurp a file into a string.
 .end
 
 
+=item eof
+
+Tests if we have reached the end of the file.
+
+=cut
+
+.sub 'eof' :method
+    .local pmc PIO
+    PIO = getattribute self, "$!PIO"
+    if PIO goto not_eof
+    $P0 = get_hll_global [ 'Bool' ], 'True'
+    .return ($P0)
+  not_eof:
+    $P0 = get_hll_global [ 'Bool' ], 'False'
+    .return ($P0)
+.end
+
+
 =item close
 
 Closes the file.
@@ -146,7 +164,7 @@ more:
     .return(1)
 .end
 
-.sub shift_pmc :method :vtable
+.sub 'item' :method :vtable('shift_pmc')
     .local pmc pio
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"
@@ -154,7 +172,11 @@ more:
     .return($P0)
 .end
 
-.sub get_iter :method :vtable
+.sub 'get_string' :vtable
+    .return self.'item'()
+.end
+
+.sub 'get_iter' :method :vtable
     .return(self)
 .end
 

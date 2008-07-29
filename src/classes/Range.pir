@@ -50,17 +50,35 @@ src/classes/Range.pir - methods for the Range class
 
 =item ACCEPTS(topic)
 
-Determines if topic is within the range.
+Determines if topic is within the range or equal to the range.
 
 =cut
 
 .sub 'ACCEPTS' :method
     .param pmc topic
 
+    $I0 = isa topic, 'Range'
+    unless $I0 goto value_in_range_check
+    $I0 = self.'from'()
+    $I1 = topic.'from'()
+    if $I0 != $I1 goto false
+    $I0 = self.'to'()
+    $I1 = topic.'to'()
+    if $I0 != $I1 goto false
+    $P0 = getattribute self, "$!from_exclusive"
+    $P1 = getattribute topic, "$!from_exclusive"
+    if $P0 != $P1 goto false
+    $P0 = getattribute self, "$!to_exclusive"
+    $P1 = getattribute topic, "$!to_exclusive"
+    if $P0 != $P1 goto false
+    goto true
+
+  value_in_range_check:
     $I0 = self.'!from_test'(topic)
     unless $I0 goto false
     $I0 = self.'!to_test'(topic)
     unless $I0 goto false
+
   true:
     $P0 = get_hll_global ['Bool'], 'True'
     .return ($P0)

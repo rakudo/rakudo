@@ -35,6 +35,24 @@ src/builtins/io.pir - Perl6 builtins for I/O
 .end
 
 
+=item printf
+
+Parses a format string and prints formatted output according to it.
+
+=cut
+
+.sub 'printf' :method
+    .param pmc args            :slurpy
+
+    args.'!flatten'()
+    $P0 = new 'Str'
+    sprintf $P0, self, args
+
+    print $P0
+    .return (1)
+.end
+
+
 .sub 'use'
     .param pmc module
     .param pmc args :slurpy

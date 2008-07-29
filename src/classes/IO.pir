@@ -62,6 +62,26 @@ Writes the given list of items to the file, then a newline character.
 .end
 
 
+=item printf
+
+Parses a format string and prints formatted output according to it.
+
+=cut
+
+.sub 'printf' :method
+    .param pmc args            :slurpy
+    .local pmc PIO
+    PIO = getattribute self, "$!PIO"
+
+    args.'!flatten'()
+    $P0 = new 'Str'
+    sprintf $P0, self, args
+
+    print PIO, $P0
+    .return (1)
+.end
+
+
 =item readline
 
 Reads a line from the file handle.

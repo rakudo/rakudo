@@ -3,22 +3,21 @@ Updated: 2008-04-28
 Milestones
 ----------
 
-This is a rough list of the major components to be added to Rakudo
-over the next few months:
+This is a rough list of some of the major components to be added to Rakudo.
 
 * list context, list assignment
-* return and control exceptions
+* multi-argument return and control exceptions
 * class, role, objects
 * regex, token, rule, grammar
 * selected libraries written in Perl 6
 * modules
 * I/O
-* junctions
-* hyper, reduction operators
-* lazy lists
-* slices
-* multi sub & multi-method dispatch
+* junction auto-threading
+* hyper, reduction and cross meta-operators
+* lazy lists, gather and take
+* slices and slice context
 * captures and signature handling
+* multi sub & multi-method dispatch
 * currying
 * operator overloading
 * other S09 features (typed arrays, sized types)
@@ -33,4 +32,43 @@ not intended to be rigid nor strictly sequential -- it's okay
 for people to work on some of the later milestones even if the
 earlier ones aren't complete.
 
+In addition to the above list of major features, the following list contains
+various smaller tasks that we should accomplish to get the number of tests in
+spectest_regression that we are currently skipping down somewhat. Some of
+them are probably good if you are looking for a more gentle entry point to
+Rakudo development than some of the bigger items listed above.
 
+* Implement whatever (*) in array indexing: @foo[*-1]
+* Implement Rat data type
+* Range smart-matching should accept the same or equivalent range
+* Implement infinite ranges
+* Implement return type co-ercion ("as") and constraint ("of")
+* Fix issues with Int type constraint when we get an Integer PMC back, and
+  similar
+* Implement {} hash composer
+* Implement prefix:<\> operator
+* Finish implementing radix notation (see S02-literals/radix.t for details)
+* Implement eqv and === operators
+* Implement .perl on code objects
+* Investigate various issues with .perl on recursive data structures (see
+  S02-names_and_variables/perl.t)
+* Make junctions in boolean context return a junction of True/False
+* Investigate junction of code object failures (S03-junctions/misc.t)
+* Implement missing infix:<xx=> operator
+* Fix modulo bugs and MMD-related bugs for += and -= (S03-operators\arith.t)
+* Implement NaN and Inf
+* Empty contextualizer @() should be same as @($/)
+* Fix MMD-related bugs in S03-operators\range.t
+* Implement inifx:<orelse>
+* Fix bugs with nested ?? !!
+* Implement state variables
+* Implement last/redo/next/continue control exceptions
+* Fix .{"key"} parsefail when (hash index into $_)
+* Finish implementing given and check/fix tests in S04-statements\given.t
+* Implement CATCH blocks
+* Implement loops and conditionals taking pointy blocks
+* Make m/.../ syntax for constructing a regex work
+* Fix problem with using Str as a type constraint or in MMD
+* Fix lambda expression parse bug when used as rvalue
+* Implement ::?CLASS
+* Implement/fix adverbial blocks

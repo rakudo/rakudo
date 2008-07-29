@@ -493,6 +493,19 @@ method routine_declarator($/, $key) {
     }
     elsif $key eq 'method' {
         $past := $($<method_def>);
+
+        # Add declaration of leixcal self.
+        $past[0].unshift(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new(
+                :name('self'),
+                :scope('lexical'),
+                :isdecl(1)
+            ),
+            PAST::Op.new(:inline("    %r = self\n"))
+        ));
+
+        # Set up the block details.
         $past.blocktype('method');
         set_block_proto($past, 'Method');
         if $<method_def><multisig> {
@@ -1344,7 +1357,11 @@ method postcircumfix($/, $key) {
 method noun($/, $key) {
     my $past;
     if $key eq 'self' {
-        $past := PAST::Stmts.new( PAST::Op.new( :inline('%r = self'), :node( $/ ) ) );
+        $past := PAST::Var.new(
+            :name('self'),
+            :scope('lexical'),
+            :node($/)
+        );
     }
     elsif $key eq 'dotty' {
         # Call on $_.
@@ -2145,8 +2162,10 @@ method variable($/, $key) {
                 :node($/),
                 :pasttype('callmethod'),
                 :name($name),
-                PAST::Op.new(
-                    :inline('%r = self')
+                PAST::Var.new(
+                    :name('self'),
+                    :scope('lexical'),
+                    :node($/)
                 )
             );
         }

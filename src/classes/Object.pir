@@ -304,6 +304,17 @@ Defines the .true method on all objects via C<prefix:?>.
  .return 'prefix:?'(self)
 .end
 
+=item get_bool (vtable)
+
+Returns true if the object is defined, false otherwise.
+
+=cut
+
+.sub '' :vtable('get_bool')
+    $I0 = 'defined'(self)
+    .return ($I0)
+.end
+
 =item print()
 
 =item say()

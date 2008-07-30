@@ -88,10 +88,21 @@ Parses a format string and prints formatted output according to it.
 
 .sub 'require'
     .param pmc filename
+    .local string path
 
+    $S0 = substr filename, 0, 1
+    if $S0 == '/' goto eval_file
+
+    .local pmc env
+    .local string perl6lib
+    env = new 'Env'
+    perl6lib = env['PERL6LIB']
+    path = '!find_file_in_path'(perl6lib, filename)
+
+  eval_file:
     .local pmc p6compiler
     p6compiler = compreg 'Perl6'
-    p6compiler.'evalfiles'(filename)
+    p6compiler.'evalfiles'(path)
 .end
 
 .sub 'open'

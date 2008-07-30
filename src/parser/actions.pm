@@ -87,6 +87,7 @@ method statement($/, $key) {
         if $expr.WHAT() eq 'Block' && !$expr.blocktype() {
             $expr.blocktype('immediate');
         }
+
         if $key eq 'statement_mod_cond' {
             $past := $( $<statement_mod_cond> );
             $past.push( $expr );
@@ -96,7 +97,7 @@ method statement($/, $key) {
                 $<statement_mod_loop> := $<sml>[0];
             }
         }
-        if $key eq 'statement_mod_loop' {
+        elsif $key eq 'statement_mod_loop' {
             my $mod := $( $<statement_mod_loop> );
             if $<statement_mod_loop><sym> eq 'for' {
                 my $loop :=  PAST::Block.new(
@@ -390,8 +391,8 @@ method statement_prefix($/) {
     if $sym eq 'do' {
         # fall through, just use the statement itself
     }
-    ## after the code in the try block is executed, bind $! to Failure,
-    ## and set up the code to catch an exception, in case one is thrown
+    ##  after the code in the try block is executed, bind $! to Failure,
+    ##  and set up the code to catch an exception, in case one is thrown
     elsif $sym eq 'try' {
         $past := PAST::Op.new( $past, :pasttype('try') );
 

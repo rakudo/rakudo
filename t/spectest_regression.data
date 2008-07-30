@@ -19,6 +19,7 @@ S02-names_and_variables/perl.t
 S02-polymorphic_types/subset-code.t
 S02-polymorphic_types/subset-range.t
 S02-whitespace_and_comments/one-pass-parsing.t
+S03-junctions/misc.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/autoincrement.t
@@ -31,13 +32,13 @@ S03-operators/numeric-context.t
 S03-operators/range.t
 S03-operators/relational.t
 S03-operators/repeat.t
-S03-operators/ternary.t
 S03-operators/short-circuit.t
+S03-operators/ternary.t
 S03-operators/true.t
-S03-junctions/misc.t
+S03-operators/value_equivalence.t
+S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
-S04-declarations/implicit-parameter.t
 S04-statements/do.t
 S04-statements/for.t
 S04-statements/given.t
@@ -64,8 +65,8 @@ S06-traits/is-rw.t
 S12-attributes/class.t
 S12-class/anonymous.t
 S12-class/attributes.t
-S12-class/inheritance.t
 S12-class/inheritance-class-methods.t
+S12-class/inheritance.t
 S12-class/instantiate.t
 S12-class/parent_attributes.t
 S12-enums/as-role.t
@@ -91,8 +92,8 @@ S29-list/join.t
 S29-list/map_empty_list.t
 S29-list/map_flattening.t
 S29-list/map_function_return_values.t
-S29-list/map_topic.t
 S29-list/map.t
+S29-list/map_topic.t
 S29-list/minmax.t
 S29-list/mutating_listops.t
 S29-list/reduce.t

@@ -117,3 +117,4 @@ S29-str/lc.t
 S29-str/sprintf.t
 S29-str/ucfirst.t
 S29-str/uc.t
+S29-trig/trig.t

@@ -448,7 +448,7 @@ Searches a standard colon-separated path for a filename.
     $P0 = split ':', search_path
     iter = new 'Iterator', $P0
   iter_start:
-    null path
+    path = filename
     unless iter goto return_path
     $S0 = shift iter
     path = concat $S0, '/'

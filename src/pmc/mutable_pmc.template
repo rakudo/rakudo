@@ -65,7 +65,8 @@ pmclass Mutable need_ext dynpmc group perl6_group {
         /* Check that the read-only property isn't set. */
         ro = VTABLE_getprop(INTERP, SELF, s_ro);
         if (!PMC_IS_NULL(ro) && VTABLE_get_bool(INTERP, ro))
-            real_exception(interp, NULL, INVALID_OPERATION, "Cannot assign to readonly variable");
+            Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
+                "Cannot assign to readonly variable");
 
         /* Chase down the mutable chain until we get a value. */
         while (VTABLE_isa(INTERP, value, s_mutable))
@@ -87,7 +88,8 @@ pmclass Mutable need_ext dynpmc group perl6_group {
             PMC *result = pmc_new(INTERP, enum_class_Integer);
             Parrot_runops_fromc_args(INTERP, checker, "vPPP", type_obj, value, result);
             if (!VTABLE_get_bool(INTERP, result))
-                real_exception(interp, NULL, INVALID_OPERATION, "Type check failed");
+                Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Type check failed");
         }
 
         /* Stash the value. */
@@ -135,7 +137,8 @@ pmclass Mutable need_ext dynpmc group perl6_group {
     }
 
     VTABLE void morph(INTVAL type) {
-        real_exception(interp, NULL, INVALID_OPERATION, "Cannot morph a Perl6Scalar.");
+        Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
+            "Cannot morph a Perl6Scalar.");
     }
 
     /* We don't want any of these to be touched */

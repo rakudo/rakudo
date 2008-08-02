@@ -23,7 +23,7 @@ pmclass MutableVAR need_ext dynpmc group perl6_group {
     ATTR PMC *scalar;
 
     VTABLE void init() {
-        real_exception(INTERP, NULL, INVALID_OPERATION,
+        Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
             "Must initialize MutableVAR with a scalar");
     }
 

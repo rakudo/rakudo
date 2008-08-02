@@ -32,8 +32,8 @@ the moment -- we'll do more complex handling a bit later.)
     if has_value goto have_value
     value = 'list'()
   have_value:
-    $P0 = new 'Exception'
-    $P0['_type'] = .CONTROL_RETURN
+    $P0         = new 'Exception'
+    $P0['type'] = .CONTROL_RETURN
     setattribute $P0, 'payload', value
     throw $P0
     .return (value)
@@ -62,7 +62,7 @@ the moment -- we'll do more complex handling a bit later.)
     message = "Died\n"
   have_message:
     $P0 = new 'Exception'
-    $P0['_message'] = message
+    $P0 = message
     set_global '$!', $P0
     throw $P0
     .return ()

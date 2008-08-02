@@ -399,9 +399,13 @@ The other alternative would be to remove the default. --law]
 
 .sub 'atan2'
     .param num a
-    .param num b
+    .param num b               :optional
+    .param int has_b           :opt_flag
+    if has_b goto have_b
+    b = 1
+  have_b:
     $N0 = atan a, b
-    .return (N0)
+    .return ($N0)
 .end
 
 

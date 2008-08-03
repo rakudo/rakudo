@@ -235,33 +235,6 @@ Returns a Perl representation of the Str.
 .end
 
 
-=item substr()
-
-=cut
-
-.sub 'substr' :method
-    .param int start
-    .param int len     :optional
-    .param int has_len :opt_flag
-    .local pmc s
-
-    if has_len goto check_len
-    len = self.'chars'()
-
-  check_len:
-    if len > 0 goto end
-    $I0 = self.'chars'()
-    len = $I0 + len
-    len = len - start
-
-  end:
-    $S0 = substr self, start, len
-    s = new 'Str'
-    s = $S0
-    .return (s)
-.end
-
-
 =item WHICH()
 
 Returns the identify value.
@@ -407,27 +380,6 @@ B<Note:> partial implementation only
     .return a.'split'(b)
 .end
 
-
-=item substr
-
- multi substr (Str $s, StrPos $start  : StrPos $end,      $replace)
- multi substr (Str $s, StrPos $start,   StrLen $length  : $replace)
- multi substr (Str $s, StrLen $offset : StrLen $length,   $replace)
-
-B<Note:> partial implementation only
-
-=cut
-
-.sub 'substr'
-    .param string x
-    .param int start
-    .param int len     :optional
-    .local pmc s
-
-    s = new 'Perl6Str'
-    s = x
-    .return s.'substr'(start, len)
-.end
 
 =item chop
 

@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chars index', 'from'=>$P0)
+    '!EXPORT'('chars index substr', 'from'=>$P0)
 .end
 
 
@@ -74,6 +74,30 @@ the size of that file down and to emphasize their generic,
     $P0 = new 'Failure'
     .return ($P0)
 .end
+
+=item substr()
+
+=cut
+
+.namespace ['Any']
+.sub 'substr' :method :multi(_, _)
+    .param int start
+    .param int len             :optional
+    .param int has_len         :opt_flag
+
+    if has_len goto have_len
+    len = self.'chars'()
+  have_len:
+    if len >= 0 goto len_done
+    $I0 = self.'chars'()
+    len += $I0
+    len -= start
+  len_done:
+    $S0 = self
+    $S1 = substr $S0, start, len
+    .return ($S1)
+.end
+
 
 =item trans()
 

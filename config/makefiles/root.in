@@ -207,6 +207,10 @@ fulltest: coretest spectest_regression codetest
 localtest: all t/spec t/localtest.data
 	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
 
+# Run the tests in t/localtest.data with a higher verbosity
+localtest_loud: all t/spec t/localtest.data
+	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
+
 # Run many tests of your choise.
 # make somtests TESTFILES=t/foo/bar
 sometests: all

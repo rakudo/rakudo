@@ -17,11 +17,13 @@ our $recurse = 1;
 our %harness_args = (
     language  => 'perl6',
     compiler  => 'perl6.pbc',
+    verbosity => 0,
 );
 
 GetOptions(
         'tests-from-file=s' => \my $list_file,
         'fudge'             => \my $do_fudge,
+        'verbosity=i'       => \$harness_args{verbosity},
     );
 
 

@@ -41,14 +41,10 @@ Parses a format string and prints formatted output according to it.
 
 =cut
 
-.sub 'printf' :method
+.sub 'printf'
     .param pmc args            :slurpy
-
-    args.'!flatten'()
-    $P0 = new 'Str'
-    sprintf $P0, self, args
-
-    print $P0
+    $S0 = 'sprintf'(args :flat)
+    print $S0
     .return (1)
 .end
 

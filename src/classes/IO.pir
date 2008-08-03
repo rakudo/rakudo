@@ -72,12 +72,8 @@ Parses a format string and prints formatted output according to it.
     .param pmc args            :slurpy
     .local pmc PIO
     PIO = getattribute self, "$!PIO"
-
-    args.'!flatten'()
-    $P0 = new 'Str'
-    sprintf $P0, self, args
-
-    print PIO, $P0
+    $S0 = 'sprintf'(args :flat)
+    print PIO, $S0
     .return (1)
 .end
 

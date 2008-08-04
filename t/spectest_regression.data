@@ -22,6 +22,7 @@ S02-whitespace_and_comments/one-pass-parsing.t
 S03-junctions/misc.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
+S03-operators/assign.t
 S03-operators/autoincrement.t
 S03-operators/comparison.t
 S03-operators/context.t

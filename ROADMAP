@@ -41,7 +41,7 @@ Rakudo development than some of the bigger items listed above.
 * Implement whatever (*) in array indexing: @foo[*-1]
 * Implement Rat data type
 * Implement infinite ranges
-* Implement return type co-ercion ("as") and constraint ("of")
+* Implement return type coercion ("as") and constraint ("of")
 * Fix issues with Int type constraint when we get an Integer PMC back, and
   similar
 * Implement {} hash composer

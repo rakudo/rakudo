@@ -1,0 +1,31 @@
+/*
+$Id$
+Copyright (C) 2008, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/perl6multiub.pmc - Perl 6 MultiSub PMC
+
+=head1 DESCRIPTION
+
+Subclass of MultiSub that overrides invoke to implement the Perl 6 multiple
+dispatch algorithm, along with providing various other pieces.
+
+=head2 Methods
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+
+pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
+
+}
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */

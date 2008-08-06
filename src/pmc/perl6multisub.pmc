@@ -50,6 +50,9 @@ access during a dispatch.
 
 */
 
+#include "parrot/oplib/ops.h"
+
+
 typedef struct candidate_info {
     PMC *sub;               /* The sub that is the candidate. */
     INTVAL arity;           /* The number of required arguments. */
@@ -253,7 +256,6 @@ NULL.
 
 */
 
-#include "parrot/parrot.h"
 
 pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
     ATTR PMC  *candidates;

@@ -22,9 +22,10 @@ A few basic sanity tests for the Perl 6 MultiSub PMC.
     .include 'include/test_more.pir'
     load_bytecode "perl6.pbc"
 
-    plan(1)
+    plan(4)
 
     'instantiate'()
+    'push_and_elements'()
 .end    
 
 
@@ -35,6 +36,37 @@ A few basic sanity tests for the Perl 6 MultiSub PMC.
     ok($I0, "instantiated Perl6MultiSub")
 .end
 
+
+.sub 'push_and_elements'
+    # Make sure we can push subs onto the multi-sub.
+    $P0 = new "Perl6MultiSub"
+    $P1 = find_name 'push_test1'
+    push $P0, $P1
+    $I0 = elements $P0
+    is($I0, 1, "added one sub")
+    $P1 = find_name 'push_test2'
+    push $P0, $P1
+    $I0 = elements $P0
+    is($I0, 2, "added two subs")
+
+    # Make sure pushing a non-invokable dies.
+    $P1 = new 'Integer'
+    $I0 = 0
+    push_eh fails_ok
+    push $P0, $P1
+    goto done
+  fails_ok:
+    $I0 = 1
+  done:
+    is($I0, 1, "cannot push a non-invokable")
+.end
+.sub push_test1
+    .return (1)
+.end
+.sub push_test2
+    .param pmc x
+    .return (2)
+.end
 
 # Local Variables:
 #   mode: pir

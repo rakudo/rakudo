@@ -11,7 +11,243 @@ src/pmc/perl6multiub.pmc - Perl 6 MultiSub PMC
 Subclass of MultiSub that overrides invoke to implement the Perl 6 multiple
 dispatch algorithm, along with providing various other pieces.
 
-=head2 Methods
+Since we need to store some extra information, we cannot just actually be
+a ResizablePMCArray, but rather we need to have one.
+
+=head1 TODO
+
+This is a list of things that I need to deal with/come back and worry about
+later (it's not a complete todo list for finishing up the PMC itself, just
+of fixup tasks in what is already done).
+
+=over 4
+
+=item Use Perl 6 types when boxing native arguments in the arg list
+
+=item Fix pmc2c so we can have ATTR candidate_info **candidates_sorted. We
+will have to move them to their own .h file, but in pmc2c we need to be able
+to include that *before* this PMC's generated .h file (I couldn't work out
+how to do that) and also make it parse double indirections. Then we can toss
+any (candidate_info**) casts.
+
+=item Make sure we override everything that ResizablePMCArray and its parents
+would provide us with. Otherwise, we'll just get segfaults 'cus we don't store
+stuff the way it does.
+
+=back
+
+=head1 INTERNAL STRUCTURES
+
+We have some structures that we use to keep data around internally.
+
+=over 4
+
+=item candidate_info
+
+Represents a candidate. We extract various bits of information about it when
+we are building the sorted candidate list and store them in here for fast
+access during a dispatch.
+
+*/
+
+typedef struct candidate_info {
+    PMC *sub;               /* The sub that is the candidate. */
+    INTVAL arity;           /* The number of required arguments. */
+    PMC *type_cons;         /* Any class or role type constraints. */
+    PMC *refinement_cons;   /* Any refinement type constraints (C<subset>). */
+} candidate_info;
+
+/*
+
+=back
+
+=head1 FUNCTIONS
+
+These are worker functions used by the methods of the PMC, and not visible
+from the outside.
+
+=over 4
+
+=item C<static PMC* get_args()>
+
+Gets a list of the arguments that are being passed, taking them from the
+registers and the constants table and flattening any :flat arguments as
+required. Returns a ResizablePMCArray of them.
+
+=cut
+
+*/
+
+PARROT_WARN_UNUSED_RESULT
+PARROT_CANNOT_RETURN_NULL
+static PMC*
+get_args(PARROT_INTERP)
+{
+    INTVAL sig_len, i;
+    PMC    *arg;
+    PMC    *sig;
+
+    /* Initialize results list. */
+    PMC    * const arg_list       = pmc_new(interp, enum_class_ResizablePMCArray);
+
+    /* Get constants table for current segment, so we can look up sig and any
+     * constant arguments. */
+    PackFile_Constant **constants = interp->code->const_table->constants;
+
+    /* Make sure we have a place to source the current arguments from. */
+    opcode_t   *args_op   = interp->current_args;
+    if (!args_op)
+        Parrot_ex_throw_from_c_args(interp, NULL, 1,
+            "No arguments found to dispatch on");
+    PARROT_ASSERT(*args_op == PARROT_OP_set_args_pc);
+
+    /* Get the (Parrot calling conventions) signature PMC. */
+    ++args_op;
+    sig = constants[*args_op]->u.key;
+    ASSERT_SIG_PMC(sig);
+    sig_len = SIG_ELEMS(sig);
+
+    /* If we have a zero-length signature, we're done. */
+    if (sig_len == 0)
+        return arg_list;
+
+    /* Otherwise, we have arguments. */
+    ++args_op;
+    for (i = 0; i < sig_len; ++i, ++args_op) {
+        INTVAL type = SIG_ITEM(sig, i);
+        const int idx = *args_op;
+
+        /* If we find a named argument, then we know there's no more positional
+         * arguments, since they come before named. And we don't dispatch on
+         * named arguments. */
+        if (type & PARROT_ARG_NAME)
+            break;
+
+        /* Put the argument in the list. For some arguments, we must box them into
+         * a PMC to be able to have them in the list. XXX Use Perl 6 box types. */
+        switch (type & (PARROT_ARG_TYPE_MASK | PARROT_ARG_FLATTEN)) {
+            case PARROT_ARG_INTVAL:
+                /* Integer constants always in register. */
+                arg = pmc_new(interp, enum_class_Integer);
+                VTABLE_set_integer_native(interp, arg, REG_INT(interp, idx));
+                VTABLE_push_pmc(interp, arg_list, arg);
+                break;
+            case PARROT_ARG_FLOATVAL:
+                /* May have value in an N register or constants table. */
+                arg = pmc_new(interp, enum_class_Float);
+                if ((type & PARROT_ARG_CONSTANT))
+                    VTABLE_set_number_native(interp, arg, constants[idx]->u.number);
+                else
+                    VTABLE_set_number_native(interp, arg, REG_NUM(interp, idx));
+                VTABLE_push_pmc(interp, arg_list, arg);
+                break;
+            case PARROT_ARG_STRING:
+                /* May have value in an S register or constnats table. */
+                arg = pmc_new(interp, enum_class_String);
+                if ((type & PARROT_ARG_CONSTANT))
+                    VTABLE_set_string_native(interp, arg, constants[idx]->u.string);
+                else
+                    VTABLE_set_string_native(interp, arg, REG_STR(interp, idx));
+                VTABLE_push_pmc(interp, arg_list, arg);
+                break;
+            case PARROT_ARG_PMC:
+                /* May have value in a P register or constants table. */
+                if ((type & PARROT_ARG_CONSTANT))
+                    arg = constants[idx]->u.key;
+                else
+                    arg = REG_PMC(interp, idx);
+                VTABLE_push_pmc(interp, arg_list, arg);
+                break;
+            case PARROT_ARG_FLATTEN | PARROT_ARG_PMC:  {
+                /* Expand flattening arguments; just loop over the array that
+                 * is being flattened and get all of the entries within it. */
+                int j, n;
+                const int idx = *args_op;
+                arg           = REG_PMC(interp, idx);
+                n             = VTABLE_elements(interp, arg);
+                for (j = 0; j < n; ++j)
+                    VTABLE_push_pmc(interp, arg_list,
+                        VTABLE_get_pmc_keyed_int(interp, arg, j));
+                break;
+            }
+            default:
+                Parrot_ex_throw_from_c_args(interp, NULL, 1,
+                        "Unknown signature type %d in Parrot_Perl6MultiSub_get_args", type);
+                break;
+        }
+    }
+
+    return arg_list;
+}
+
+/*
+
+=item C<static candidate_info** sort_candidiates(PMC *candidates)>
+
+Takes a ResizablePMCArray of the candidates, collects information about them
+and then does a topological sort of them.
+
+*/
+static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
+    candidate_info** result = mem_sys_allocate_zeroed(2 * sizeof (candidate_info*));
+    return result;
+}
+
+/*
+
+=item C<static PMC* do_dispatch(candidate_info** candidates, int many)>
+
+Runs the Perl 6 MMD algorithm. If many is set to a true value, returns a
+ResizablePMCArray of all possible candidates, which may be empty. If many
+is set to a false value, then returns either the one winning unambiguous
+candidate or throws an error saying that the dispatch failed if there were
+no candidates or that it was ambiguous if there were tied candidates.
+
+*/
+
+static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, int many) {
+    Parrot_ex_throw_from_c_args(interp, NULL, 1, "Unimplemented.");
+    return PMCNULL;
+}
+
+/*
+
+=item C<static int assert_invokable(PARROT_INTERP, PMC *value)>
+
+Checks if a PMC is invokable; returns a true value if so and a false value if
+not.
+
+*/
+static int check_invokable(PARROT_INTERP, PMC *value) {
+    STRING * const _sub = CONST_STRING(interp, "Sub");
+    STRING * const _nci = CONST_STRING(interp, "NCI");
+    return VTABLE_isa(interp, value, _sub) || VTABLE_isa(interp, value, _nci);
+}
+
+/*
+
+=back
+
+=head1 ATTRIBUTES
+
+=over 4
+
+=item candidates
+
+Unsorted list of all candidates.
+
+=item candidates_sorted
+
+C array of canididate_info structures. It stores a sequence of candidates
+length one or greater that are tied, followed by a NULL, followed by the next
+bunch that are less narrow but tied and so forth. It is terminated by a double
+NULL.
+
+=back
+
+=head1 METHODS
+
+=over 4
 
 =cut
 
@@ -20,8 +256,125 @@ dispatch algorithm, along with providing various other pieces.
 #include "parrot/parrot.h"
 
 pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
+    ATTR PMC  *candidates;
+    ATTR void *candidates_sorted;
 
+/*
+
+=item VTABLE void init()
+
+Allocates the PMC's underlying storage.
+
+=cut
+
+*/
+    VTABLE void init() {
+        /* Allocate the underlying struct and make candidate list an empty
+         * ResizablePMCArray. */
+        PMC *candidates = pmc_new(interp, enum_class_ResizablePMCArray);
+        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Perl6MultiSub);
+        SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates)
+
+        /* Need custom mark and destroy. */
+        PObj_custom_mark_SET(SELF);
+        PObj_active_destroy_SET(SELF);
+    }
+
+/*
+
+=item VTABLE void destroy()
+
+Frees the memory associated with this PMC's underlying storage.
+
+=cut
+
+*/
+    VTABLE void destroy() {
+        mem_sys_free(PMC_data(SELF));
+        PMC_data(SELF) = NULL;
+    }
+
+/*
+
+=item VTABLE opcode_t invoke()
+
+Does a dispatch to the best candidate with the current arguments, according to
+the Perl 6 MMD algorithm.
+
+=cut
+
+*/
+    VTABLE opcode_t* invoke(void* next) {
+        PMC *found;
+
+        /* Make sure that we have a candidate list built. */
+        candidate_info **candidates = NULL;
+        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+        if (!candidates) {
+            PMC *unsorted;
+            GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
+            candidates = sort_candidiates(interp, unsorted);
+            SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+        }
+        if (!candidates)
+            Parrot_ex_throw_from_c_args(interp, next, 1, "Failed to build candidate list");
+
+        /* Now do the dispatch - if it can't find anything, it will throw the required
+         * exceptions. */
+        found = do_dispatch(interp, candidates, 0);
+
+        /* Invoke what was found. */
+        return VTABLE_invoke(interp, found, next);
+    }
+
+/*
+
+=item VTABLE void push_pmc(PMC *sub)
+
+Adds a new candidate to the candidate list.
+
+=cut
+
+*/
+    VTABLE void push_pmc(PMC *sub) {
+        PMC *candidates;
+
+        /* Make sure it's invokable. */
+        if (!check_invokable(interp, sub))
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Cannot add non-Sub PMC to a MultiSub.");
+
+        /* Add it to the candidates list. */
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        VTABLE_push_pmc(interp, candidates, sub);
+
+        /* Invalidate the sorted list - we'll need to re-build it. */
+        SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, NULL);
+    }
+
+/*
+
+=item VTABLE INTVAL elements()
+
+Gets the number of candidate on the candidate list.
+
+=cut
+
+*/
+    VTABLE INTVAL elements() {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        return VTABLE_elements(interp, candidates);
+    }
 }
+
+/*
+
+=back
+
+=cut
+
+*/
 
 /*
  * Local variables:

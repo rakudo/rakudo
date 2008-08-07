@@ -374,8 +374,7 @@ src/builtins/op.pir - Perl6 builtin operators
 
     # Get the class of the variable we're adding roles to.
     .local pmc p6meta, parrot_class
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    parrot_class = p6meta.get_parrotclass(var)
+    parrot_class = class var
 
     # Derive a new class that does the role(s) specified.
     .local pmc derived

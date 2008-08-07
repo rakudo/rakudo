@@ -12,6 +12,21 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .namespace []
 
+## This is used by integer computations, to upgrade the answer and return a
+## Num if we overflow. We may want to return something like a BigInt in the
+## future, but we don't have that yet and this gives something closer to the
+## correct semantics than not upgrading an Int at all.
+.sub '!upgrade_to_num_if_needed'
+    .param num test
+    if test > 2147483647.0 goto upgrade
+    if test < -2147483648.0 goto upgrade
+    $I0 = test
+    .return ($I0)
+  upgrade:
+    .return (test)
+.end
+
+
 ## autoincrement
 .sub 'postfix:++' :multi(_)
     .param pmc a
@@ -48,6 +63,14 @@ src/builtins/op.pir - Perl6 builtin operators
     .param num exp
     $N0 = pow base, exp
     .return ($N0)
+.end
+
+
+.sub 'infix:**' :multi(Integer,Integer)
+    .param num base
+    .param num exp
+    $N0 = pow base, exp
+    .return '!upgrade_to_num_if_needed'($N0)
 .end
 
 
@@ -124,10 +147,31 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
+.sub 'infix:*' :multi(Integer,Integer)
+    .param num a
+    .param num b
+    $N0 = a * b
+    .return '!upgrade_to_num_if_needed'($N0)
+.end
+
+
 .sub 'infix:/' :multi(_,_)
     .param num a
     .param num b
     $N0 = a / b
+    .return ($N0)
+.end
+
+
+.sub 'infix:/' :multi(Integer,Integer)
+    .param num a
+    .param num b
+    $N0 = a / b
+    $I0 = floor $N0
+    $N1 = $N0 - $I0
+    if $N1 != 0 goto upgrade
+    .return '!upgrade_to_num_if_needed'($N0)
+  upgrade:
     .return ($N0)
 .end
 
@@ -137,6 +181,14 @@ src/builtins/op.pir - Perl6 builtin operators
     .param num b
     $N0 = mod a, b
     .return ($N0)
+.end
+
+
+.sub 'infix:%' :multi(Integer,Integer)
+    .param num a
+    .param num b
+    $N0 = mod a, b
+    .return '!upgrade_to_num_if_needed'($N0)
 .end
 
 
@@ -211,11 +263,27 @@ src/builtins/op.pir - Perl6 builtin operators
 .end
 
 
+.sub 'infix:+' :multi(Integer,Integer)
+    .param num a
+    .param num b
+    $N0 = a + b
+    .return '!upgrade_to_num_if_needed'($N0)
+.end
+
+
 .sub 'infix:-' :multi(_,_)
     .param num a
     .param num b
     $N0 = a - b
     .return ($N0)
+.end
+
+
+.sub 'infix:-' :multi(Integer,Integer)
+    .param num a
+    .param num b
+    $N0 = a - b
+    .return '!upgrade_to_num_if_needed'($N0)
 .end
 
 

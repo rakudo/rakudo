@@ -226,7 +226,8 @@ Internal helper method to create a class.
     class = new 'Class'
     goto created
   named:
-    class = newclass name
+    $P0 = split '::', name
+    class = newclass $P0
   created:
 
     # Set resolve list to include all methods of the class.

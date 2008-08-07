@@ -64,6 +64,7 @@ S06-signature/slurpy-placeholders.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
 S12-attributes/class.t
+S12-attributes/delegation.t
 S12-class/anonymous.t
 S12-class/attributes.t
 S12-class/inheritance-class-methods.t

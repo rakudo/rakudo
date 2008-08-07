@@ -236,9 +236,9 @@ Create a new object having the same class as the invocant.
     if sigil != '$' goto no_scalar
     .local pmc attr_info, type
     attr_info = attribs[$S0]
-    if null attr_info goto no_scalar
+    if null attr_info goto set_attrib
     type = attr_info['type']
-    if null type goto no_scalar
+    if null type goto set_attrib
     if got_init_value goto no_proto_init
     $I0 = isa type, 'P6protoobject'
     unless $I0 goto no_proto_init
@@ -246,11 +246,25 @@ Create a new object having the same class as the invocant.
   no_proto_init:
     $P2 = new 'Perl6Scalar', $P2
     setprop $P2, 'type', type
+    goto set_attrib
   no_scalar:
 
+    # Is it an array? If so, initialize to Perl6Array.
+    if sigil != '@' goto no_array
+    $P2 = new 'Perl6Array'
+    goto set_attrib
+  no_array:
+
+    # Is it a Hash? If so, initialize to Perl6Hash.
+    if sigil != '%' goto no_hash
+    $P2 = new 'Perl6Hash'
+    goto set_attrib
+  no_hash:
+
+  set_attrib:
     push_eh set_attrib_eh
     setattribute $P1, cur_class, $S0, $P2
-set_attrib_eh:
+  set_attrib_eh:
     goto iter_loop
   iter_end:
 

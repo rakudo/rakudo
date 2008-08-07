@@ -77,6 +77,7 @@ S12-methods/calling_syntax.t
 S12-role/attributes.t
 S12-role/composition.t
 S12-role/mixin.t
+S16-filehandles/io_in_while_loops.t
 S16-io/basic-open.t
 S16-io/say.t
 S29-any/cmp.t

@@ -2218,9 +2218,13 @@ method variable($/, $key) {
                 $past.scope('package');
             }
 
-            # If it has a ! twigil, give it attribute scope.
+            # If it has a ! twigil, give it attribute scope and add self.
             if $twigil eq '!' {
                 $past.scope('attribute');
+                $past.unshift(PAST::Var.new(
+                    :name('self'),
+                    :scope('lexical')
+                ));
             }
 
             # If we have something with an & sigil see if it has any entries

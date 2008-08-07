@@ -6,6 +6,7 @@ S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/flattening.t
+S02-builtin_data_types/hash.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/num.t

@@ -44,7 +44,6 @@ Rakudo development than some of the bigger items listed above.
 * Implement return type coercion ("as") and constraint ("of")
 * Fix issues with Int type constraint when we get an Integer PMC back, and
   similar
-* Implement {} hash composer
 * Implement prefix:<\> operator
 * Finish implementing radix notation (see S02-literals/radix.t for details)
 * Implement eqv and === operators

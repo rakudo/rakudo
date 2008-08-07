@@ -125,6 +125,25 @@ to coordinate with entire async model.  -law]
     .return ($N2)
 .end
 
+
+=item time
+
+ our Time sub Control::Basic::time()
+
+XXX Should be returning a (currently unspec'd, it seems) Time object that
+numifies to a floating point value giving the number of seconds and
+fractional seconds since 2000. At the moment, just handing back what the
+Parrot time opcode does, since that doesn't give something with a consistent
+epoch. Mails sent about both issues, will fix when answers come back.
+
+=cut
+
+.sub 'time'
+    $N0 = time
+    .return ($N0)
+.end
+
+
 =item eval
 
  multi Control::Basic::eval ( Str $code, Grammar :$lang = CALLER::<$?PARSER>)

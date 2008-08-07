@@ -2951,8 +2951,8 @@ sub make_handles_method_from_pair($/, $pair, $attr_name) {
     my $meth;
 
     # Single pair mapping. Check we have string name and value.
-    my $key := $pair[1];
-    my $value := $pair[2];
+    my $key := $pair[0];
+    my $value := $pair[1];
     if $key.WHAT() eq 'Val' && $value.WHAT() eq 'Val' {
         my $from_name := ~$key.value();
         my $to_name := ~$value.value();

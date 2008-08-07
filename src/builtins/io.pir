@@ -152,6 +152,52 @@ opened_ok:
     .return(contents)
 .end
 
+
+=item unlink LIST
+
+Deletes a list of files.  Returns the number of files successfully
+deleted.
+
+    $cnt = unlink 'a', 'b', 'c';
+
+Be warned that unlinking a directory can inflict damage on your filesystem.
+Finally, using C<unlink> on directories is not supported on many operating
+systems.  Use C<rmdir> instead.
+
+It is an error to use bare C<unlink> without arguments.
+
+=cut
+
+.sub 'unlink'
+    .param pmc to_delete :slurpy
+    .local pmc it, os
+    .local int success_count
+
+    # Error with no arguments.
+    $I0 = elements to_delete
+    if $I0 goto ok
+    'die'("Cannot call unlink without any arguments")
+  ok:
+    
+    os = new 'OS'
+    success_count = 0
+    it = iter to_delete
+  it_loop:
+    unless it goto it_loop_end
+    $S0 = shift it
+    push_eh unlink_eh
+    os.rm($S0)
+    pop_eh
+    inc success_count
+    goto it_loop
+  unlink_eh:
+    goto it_loop
+  it_loop_end:
+
+  .return (success_count)
+.end
+
+
 =back
 
 =cut

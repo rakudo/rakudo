@@ -192,7 +192,7 @@ and then does a topological sort of them.
 
 */
 static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
-    candidate_info** result = mem_sys_allocate_zeroed(2 * sizeof (candidate_info*));
+    candidate_info** result = mem_allocate_n_zeroed_typed(2, candidate_info*);
     return result;
 }
 
@@ -259,7 +259,7 @@ NULL.
 
 pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
     ATTR PMC  *candidates;
-    ATTR void *candidates_sorted;
+    ATTR struct candidate_info *candidates_sorted;
 
 /*
 

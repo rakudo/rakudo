@@ -178,7 +178,7 @@ It is an error to use bare C<unlink> without arguments.
     if $I0 goto ok
     'die'("Cannot call unlink without any arguments")
   ok:
-    
+
     os = new 'OS'
     success_count = 0
     it = iter to_delete

@@ -415,8 +415,12 @@ rule type_declarator {
 rule type_constraint {
     [
     | <typename>
-    | where <EXPR> # XXX <EXPR(%chaining)>
+    | where <EXPR: 'm='> # XXX <EXPR(%chaining)>
     ]
+}
+
+rule post_constraint {
+    where <EXPR: 'm='> # XXX <EXPR(%chaining)>
 }
 
 # XXX This rule doesn't appear in STD.pm; we use this to parse things like
@@ -435,6 +439,7 @@ token parameter {
         $<quant>=[ <[ ? ! ]>? ]
     ]
     <trait>*
+    <post_constraint>*
     <default_value>?
     {*}
 }

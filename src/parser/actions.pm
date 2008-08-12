@@ -1003,59 +1003,18 @@ method signature($/) {
                     );
                 }
                 else {
-                    # We need a block containing the constraint condition.
-                    my $past := $( $_<EXPR> );
-                    if $past.WHAT() ne 'Block' {
-                        # Make block with the expression as its contents.
-                        $past := PAST::Block.new(
-                            PAST::Stmts.new(),
-                            PAST::Stmts.new( $past )
-                        );
-                    }
-
-                    # Make sure it has a parameter.
-                    my $param;
-                    my $dollar_underscore;
-                    for @($past[0]) {
-                        if $_.WHAT() eq 'Var' {
-                            if $_.scope() eq 'parameter' {
-                                $param := $_;
-                            }
-                            elsif $_.name() eq '$_' {
-                                $dollar_underscore := $_;
-                            }
-                        }
-                    }
-                    unless $param {
-                        if $dollar_underscore {
-                            $dollar_underscore.scope('parameter');
-                            $param := $dollar_underscore;
-                        }
-                        else {
-                            $param := PAST::Var.new(
-                                :name('$_'),
-                                :scope('parameter')
-                            );
-                            $past[0].push($param);
-                        }
-                    }
-
-                    # Now we'll just pass this block to the type checker,
-                    # since smart-matching a block invokes it.
-                    $type_obj := PAST::Op.new(
-                        :pasttype('call'),
-                        :name('!TYPECHECKPARAM'),
-                        $past,
-                        PAST::Var.new(
-                            :name($parameter.name()),
-                            :scope('lexical')
-                        )
-                    );
+                    $type_obj := make_anon_subset($( $_<EXPR> ), $parameter);
                 }
 
                 # Add it to the types list.
                 $cur_param_types.push($type_obj);
             }
+        }
+
+        # Add any post-constraints too.
+        for $_<parameter><post_constraint> {
+            my $type_obj := make_anon_subset($( $_<EXPR> ), $parameter);
+            $cur_param_types.push($type_obj);
         }
 
         # For blocks, we just collect the check into the list of all checks.
@@ -3050,7 +3009,7 @@ sub create_sub($/, $past) {
     $past.blocktype('declaration');
     set_block_proto($past, 'Sub');
     if $<routine_def><multisig> {
-        set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
+        #set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
     }
 }
 
@@ -3233,6 +3192,60 @@ sub add_method_to_class($method) {
     else {
         $method
     }
+}
+
+# Creates an anonymous subset type.
+sub make_anon_subset($past, $parameter) {
+    # We need a block containing the constraint condition.
+    if $past.WHAT() ne 'Block' {
+        # Make block with the expression as its contents.
+        $past := PAST::Block.new(
+            PAST::Stmts.new(),
+            PAST::Stmts.new( $past )
+        );
+    }
+
+    # Make sure it has a parameter.
+    my $param;
+    my $dollar_underscore;
+    for @($past[0]) {
+        if $_.WHAT() eq 'Var' {
+            if $_.scope() eq 'parameter' {
+                $param := $_;
+            }
+            elsif $_.name() eq '$_' {
+                $dollar_underscore := $_;
+            }
+        }
+    }
+    unless $param {
+        if $dollar_underscore {
+            $dollar_underscore.scope('parameter');
+            $param := $dollar_underscore;
+        }
+        else {
+            $param := PAST::Var.new(
+                :name('$_'),
+                :scope('parameter')
+            );
+            $past[0].push($param);
+        }
+    }
+
+    # Now we'll just pass this block to the type checker,
+    # since smart-matching a block invokes it.
+    return PAST::Op.new(
+        :pasttype('call'),
+        :name('!TYPECHECKPARAM'),
+        PAST::Op.new(
+            :inline("    %r = newclosure %0\n"),
+            $past
+        ),
+        PAST::Var.new(
+            :name($parameter.name()),
+            :scope('lexical')
+        )
+    );
 }
 
 # Local Variables:

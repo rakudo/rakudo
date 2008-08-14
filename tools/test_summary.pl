@@ -43,7 +43,8 @@ if (@fudge) {
 my @tfiles = sort @pure, @fudge;
 my $max = 0;
 for my $tfile (@tfiles) {
-    if (length($tfile) > $max) { $max = length($tfile); }
+    my $tname = $tfile; $tname =~ s!^t/spec/!!;
+    if (length($tname) > $max) { $max = length($tname); }
 }
 
 $| = 1;
@@ -57,7 +58,8 @@ for my $tfile (@tfiles) {
        if (/^\s*plan\D*(\d+)/) { $plan = $1; last; }
     }
     close($th);
-    printf "%s%s..%4d", $tfile, '.' x ($max - length($tfile)), $plan;
+    my $tname = $tfile; $tname =~ s!^t/spec/!!;
+    printf "%s%s..%4d", $tname, '.' x ($max - length($tname)), $plan;
     my $cmd = "../../parrot -G perl6.pbc $tfile";
     my @results = split "\n", `$cmd`;
     my ($test, $pass, $fail, $todo, $skip) = (0,0,0,0,0);

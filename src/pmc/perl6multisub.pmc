@@ -54,11 +54,12 @@ access during a dispatch.
 
 
 typedef struct candidate_info {
-    PMC *sub;               /* The sub that is the candidate. */
-    INTVAL min_arity;       /* The number of required positonal arguments. */
-    INTVAL max_arity;       /* The number of required and optional positional arguments. */
-    PMC *type_cons;         /* Any class or role type constraints. */
-    PMC *refinement_cons;   /* Any refinement type constraints (C<subset>). */
+    PMC *sub;             /* The sub that is the candidate. */
+    INTVAL min_arity;     /* The number of required positonal arguments. */
+    INTVAL max_arity;     /* The number of required and optional positional arguments. */
+    PMC **types;          /* Class or role type constraints for each parameter. */
+    PMC **constraints;    /* Refinement type constraints for each parameter (if there
+                           * are many, this will be a junction). */
 } candidate_info;
 
 
@@ -74,6 +75,7 @@ in the graph that we have arrows to.
 typedef struct candidate_graph_node {
     candidate_info *info;
     struct candidate_graph_node **edges;
+    int edges_count;
 } candidate_graph_node;
 
 
@@ -200,6 +202,21 @@ get_args(PARROT_INTERP)
     return arg_list;
 }
 
+
+/*
+
+=item C<static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b)>
+
+Takes two candidates and determines if the first one is narrower than the
+second. Returns a true value if they are.
+
+*/
+static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
+    /* XXX TODO */
+    return 0;
+}
+
+
 /*
 
 =item C<static candidate_info** sort_candidiates(PMC *candidates)>
@@ -209,7 +226,8 @@ and then does a topological sort of them.
 
 */
 static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
-    INTVAL i;
+    INTVAL i, j, sig_elems;
+    PMC *signature, *params, *meth;
 
     /* Allocate results array (just allocate it for worst case, which
      * is no ties ever, so a null between all of them, and then space
@@ -237,9 +255,39 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
             info->max_arity = info->min_arity + VTABLE_get_integer(interp,
                     VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
 
-        /* Add it to graph node. */
-        graph[i] = mem_allocate_typed(candidate_graph_node);
+        /* Type information. */
+        meth = VTABLE_find_method(interp, candidate, CONST_STRING(interp, "signature"));
+        signature = Parrot_run_meth_fromc_args(interp, meth, candidate, CONST_STRING(interp, "signature"), "P");
+        meth = VTABLE_find_method(interp, signature, CONST_STRING(interp, "params"));
+        params = Parrot_run_meth_fromc_args(interp, meth, signature, CONST_STRING(interp, "params"), "P");
+        sig_elems = VTABLE_elements(interp, params);
+        info->types = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
+        info->constraints = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
+        for (j = 0; j < sig_elems; j++) {
+            PMC *param = VTABLE_get_pmc_keyed_int(interp, params, j);
+            PMC *type = VTABLE_get_pmc_keyed_str(interp, param, CONST_STRING(interp, "type"));
+            PMC *constraints = VTABLE_get_pmc_keyed_str(interp, param, CONST_STRING(interp, "constraints"));
+            info->types[j] = type;
+            info->constraints[j] = constraints;
+        }
+
+        /* Add it to graph node, and initialize list of edges. */
+        graph[i] = mem_allocate_zeroed_typed(candidate_graph_node);
         graph[i]->info = info;
+        graph[i]->edges = mem_allocate_n_zeroed_typed(num_candidates, candidate_graph_node*);
+    }
+
+    /* Now analyze type narrowness of the candidates relative to each other
+     * and create the edges. */
+    for (i = 0; i < num_candidates; i++) {
+        for (j = 0; j < num_candidates; j++) {
+            if (i == j)
+                continue;
+            if (is_narrower(interp, graph[i]->info, graph[j]->info)) {
+                graph[i]->edges[graph[i]->edges_count] = graph[j];
+                graph[i]->edges_count++;
+            }
+        }
     }
 
     /* XXX Here we do the topological sort. For now, just copy the values
@@ -412,6 +460,9 @@ the Perl 6 MMD algorithm.
     VTABLE opcode_t *invoke(void *next) {
         PMC *found;
 
+        /* Need to make sure current continuation doesn't get destroyed. */
+        PMC *saved_ccont = interp->current_cont;
+
         /* Make sure that we have a candidate list built. */
         candidate_info **candidates = NULL;
         PMC *unsorted;
@@ -430,7 +481,22 @@ the Perl 6 MMD algorithm.
                 VTABLE_elements(interp, unsorted), next);
 
         /* Invoke what was found. */
+        interp->current_cont = saved_ccont;
         return VTABLE_invoke(interp, found, next);
+    }
+
+/*
+
+=item C<VTABLE void mark()>
+
+Marks the candidate list.
+
+*/
+    VTABLE void mark() {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        if (!PMC_IS_NULL(candidates))
+            pobject_lives(interp, (PObj*)candidates);
     }
 
 /*

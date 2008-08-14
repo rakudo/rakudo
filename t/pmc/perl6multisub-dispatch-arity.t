@@ -34,10 +34,13 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
 .sub 'simple'
     $P0 = new "Perl6MultiSub"
     $P1 = find_global 'simple_1'
+    'attach_any_sig'($P1, 0)
     push $P0, $P1
     $P1 = find_global 'simple_2'
+    'attach_any_sig'($P1, 1)
     push $P0, $P1
     $P1 = find_global 'simple_3'
+    'attach_any_sig'($P1, 3)
     push $P0, $P1
 
     $I0 = $P0()
@@ -72,8 +75,10 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
 .sub 'with_optional'
     $P0 = new "Perl6MultiSub"
     $P1 = find_global 'with_optional_1'
+    'attach_any_sig'($P1, 0)
     push $P0, $P1
     $P1 = find_global 'with_optional_2'
+    'attach_any_sig'($P1, 2)
     push $P0, $P1
 
     $I0 = $P0()
@@ -96,6 +101,7 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
 .sub 'with_slurpy'
     $P0 = new "Perl6MultiSub"
     $P1 = find_global 'with_slurpy_1'
+    'attach_any_sig'($P1, 0)
     push $P0, $P1
     
     $I0 = $P0()
@@ -114,8 +120,10 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
 .sub 'another_with_slurpy'
     $P0 = new "Perl6MultiSub"
     $P1 = find_global 'another_with_slurpy_1'
+    'attach_any_sig'($P1, 0)
     push $P0, $P1
     $P1 = find_global 'another_with_slurpy_2'
+    'attach_any_sig'($P1, 1)
     push $P0, $P1
     
     $I0 = $P0()
@@ -134,6 +142,31 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
     .return (1)
 .end
 
+
+.sub 'attach_any_sig'
+    .param pmc sub
+    .param int num_params
+
+    # Get Any type.
+    .local pmc any
+    any = get_hll_global "Any"
+    
+    # Make signature.
+    $P0 = new 'Signature'
+    $P1 = new 'Perl6Array'
+    setattribute $P0, "@!params", $P1
+    $I0 = 0
+  param_loop:
+    if $I0 == num_params goto param_loop_end
+    $P2 = new 'Perl6Hash'
+    $P2["type"] = any
+    push $P1, $P2
+    inc $I0
+    goto param_loop
+  param_loop_end:
+
+    setprop sub, '$!signature', $P0
+.end
 
 # Local Variables:
 #   mode: pir

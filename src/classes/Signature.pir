@@ -19,8 +19,8 @@ bindable. Its keys are as follows.
 * type - the class or role type of the parameter; this references the actual
   type object rather than just naming it, and may well be parametric (but that
   will have been resolved already)
-* constraints - array of any additional "where" refinement types on the
-  parameter
+* constraints - any additional "where" refinement types on the parameter;
+  will be a junction of types
 * invocant - is this the invocant (as in, self for a method, not multi)
 * multi_invocant - is this an invocant for the purpose of MMD
 * optional - is this an optional parameter?
@@ -53,6 +53,17 @@ Used to create a new signature object with the given paramter descriptors.
     .param pmc parameters :slurpy
     $P0 = self.'new'()
     setattribute $P0, '@!params', parameters
+    .return ($P0)
+.end
+
+=item params
+
+Get the array of parameter describing hashes.
+
+=cut
+
+.sub 'params' :method
+    $P0 = getattribute self, "@!params"
     .return ($P0)
 .end
 

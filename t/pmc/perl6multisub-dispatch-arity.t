@@ -22,9 +22,12 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
     .include 'include/test_more.pir'
     load_bytecode "perl6.pbc"
 
-    plan(4)
+    plan(13)
 
     'simple'()
+    'with_optional'()
+    'with_slurpy'()
+    'another_with_slurpy'()
 .end    
 
 
@@ -63,6 +66,72 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
     .param int j
     .param int k
     .return (3)
+.end
+
+
+.sub 'with_optional'
+    $P0 = new "Perl6MultiSub"
+    $P1 = find_global 'with_optional_1'
+    push $P0, $P1
+    $P1 = find_global 'with_optional_2'
+    push $P0, $P1
+
+    $I0 = $P0()
+    is($I0, 0, 'call with 0 args')
+    $I0 = $P0(1)
+    is($I0, 1, 'with 1 arg - optional not supplied')
+    $I0 = $P0(1, 2)
+    is($I0, 1, 'with 2 args - optional supplied')
+.end
+.sub 'with_optional_1'
+    .return (0)
+.end
+.sub 'with_optional_2'
+    .param int i
+    .param int j :optional
+    .return (1)
+.end
+
+
+.sub 'with_slurpy'
+    $P0 = new "Perl6MultiSub"
+    $P1 = find_global 'with_slurpy_1'
+    push $P0, $P1
+    
+    $I0 = $P0()
+    is($I0, 42, 'call with 0 args to slurpy')
+    $I0 = $P0(1)
+    is($I0, 42, 'with 1 arg to slurpy')
+    $I0 = $P0(1, 2)
+    is($I0, 42, 'with 2 args to slurpy')
+.end
+.sub 'with_slurpy_1'
+    .param pmc params :slurpy
+    .return (42)
+.end
+
+
+.sub 'another_with_slurpy'
+    $P0 = new "Perl6MultiSub"
+    $P1 = find_global 'another_with_slurpy_1'
+    push $P0, $P1
+    $P1 = find_global 'another_with_slurpy_2'
+    push $P0, $P1
+    
+    $I0 = $P0()
+    is($I0, 0, 'call with 0 args - not to slurpy')
+    $I0 = $P0(1)
+    is($I0, 1, 'with 1 arg, giving empty slurpy')
+    $I0 = $P0(1, 2, 3)
+    is($I0, 1, 'with 3 args, giving slurpy values')
+.end
+.sub 'another_with_slurpy_1'
+    .return (0)
+.end
+.sub 'another_with_slurpy_2'
+    .param int x
+    .param pmc xs :slurpy
+    .return (1)
 .end
 
 

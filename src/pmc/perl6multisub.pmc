@@ -226,11 +226,17 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
         candidate_info *info = mem_allocate_zeroed_typed(candidate_info);
         PMC *candidate = VTABLE_get_pmc_keyed_int(interp, candidates, i);
         info->sub = candidate;
+
+        /* Arity. */
         info->min_arity = VTABLE_get_integer(interp,
                 VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_required")));
-        info->max_arity = info->min_arity + VTABLE_get_integer(interp,
-                VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
-/* XXX handle slurpy */
+        if (VTABLE_get_integer(interp, VTABLE_inspect_str(interp, candidate,
+               CONST_STRING(interp, "pos_slurpy"))))
+            info->max_arity = 1 << 30;
+        else
+            info->max_arity = info->min_arity + VTABLE_get_integer(interp,
+                    VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
+
         /* Add it to graph node. */
         graph[i] = mem_allocate_typed(candidate_graph_node);
         graph[i]->info = info;

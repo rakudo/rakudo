@@ -256,17 +256,23 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
                     VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
 
         /* Type information. */
-        meth = VTABLE_find_method(interp, candidate, CONST_STRING(interp, "signature"));
-        signature = Parrot_run_meth_fromc_args(interp, meth, candidate, CONST_STRING(interp, "signature"), "P");
-        meth = VTABLE_find_method(interp, signature, CONST_STRING(interp, "params"));
-        params = Parrot_run_meth_fromc_args(interp, meth, signature, CONST_STRING(interp, "params"), "P");
+        meth = VTABLE_find_method(interp, candidate,
+                CONST_STRING(interp, "signature"));
+        signature = Parrot_run_meth_fromc_args(interp, meth, candidate,
+                CONST_STRING(interp, "signature"), "P");
+        meth = VTABLE_find_method(interp, signature,
+                CONST_STRING(interp, "params"));
+        params = Parrot_run_meth_fromc_args(interp, meth, signature,
+                CONST_STRING(interp, "params"), "P");
         sig_elems = VTABLE_elements(interp, params);
         info->types = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         info->constraints = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         for (j = 0; j < sig_elems; j++) {
             PMC *param = VTABLE_get_pmc_keyed_int(interp, params, j);
-            PMC *type = VTABLE_get_pmc_keyed_str(interp, param, CONST_STRING(interp, "type"));
-            PMC *constraints = VTABLE_get_pmc_keyed_str(interp, param, CONST_STRING(interp, "constraints"));
+            PMC *type = VTABLE_get_pmc_keyed_str(interp, param,
+                    CONST_STRING(interp, "type"));
+            PMC *constraints = VTABLE_get_pmc_keyed_str(interp, param,
+                    CONST_STRING(interp, "constraints"));
             info->types[j] = type;
             info->constraints[j] = constraints;
         }

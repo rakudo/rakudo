@@ -55,10 +55,27 @@ access during a dispatch.
 
 typedef struct candidate_info {
     PMC *sub;               /* The sub that is the candidate. */
-    INTVAL arity;           /* The number of required arguments. */
+    INTVAL min_arity;       /* The number of required positonal arguments. */
+    INTVAL max_arity;       /* The number of required and optional positional arguments. */
     PMC *type_cons;         /* Any class or role type constraints. */
     PMC *refinement_cons;   /* Any refinement type constraints (C<subset>). */
 } candidate_info;
+
+
+/*
+
+=item candidate_graph_node
+
+Represents the produced information about a candidate as well as the graph
+edges originating from it. The edges array contains pointers to the edges
+in the graph that we have arrows to.
+
+*/
+typedef struct candidate_graph_node {
+    candidate_info *info;
+    struct candidate_graph_node **edges;
+} candidate_graph_node;
+
 
 /*
 
@@ -192,7 +209,40 @@ and then does a topological sort of them.
 
 */
 static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
-    candidate_info** result = mem_allocate_n_zeroed_typed(2, candidate_info*);
+    INTVAL i;
+
+    /* Allocate results array (just allocate it for worst case, which
+     * is no ties ever, so a null between all of them, and then space
+     * for the terminating null. */
+    INTVAL num_candidates = VTABLE_elements(interp, candidates);
+    candidate_info** result = mem_allocate_n_zeroed_typed(
+            2 * num_candidates + 1, candidate_info*);
+
+    /* Create a node for each candidate in the graph. */
+    candidate_graph_node** graph = mem_allocate_n_zeroed_typed(
+            num_candidates, candidate_graph_node*);
+    for (i = 0; i < num_candidates; i++) {
+        /* Get information about this candidate. */
+        candidate_info *info = mem_allocate_zeroed_typed(candidate_info);
+        PMC *candidate = VTABLE_get_pmc_keyed_int(interp, candidates, i);
+        info->sub = candidate;
+        info->min_arity = VTABLE_get_integer(interp,
+                VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_required")));
+        info->max_arity = info->min_arity + VTABLE_get_integer(interp,
+                VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
+/* XXX handle slurpy */
+        /* Add it to graph node. */
+        graph[i] = mem_allocate_typed(candidate_graph_node);
+        graph[i]->info = info;
+    }
+
+    /* XXX Here we do the topological sort. For now, just copy the values
+     * with the arity to the array, and nothing is narrower than anything
+     * else. */
+    for (i = 0; i < num_candidates; i++) {
+        result[i] = graph[i]->info;
+    }
+
     return result;
 }
 
@@ -202,15 +252,62 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
 
 Runs the Perl 6 MMD algorithm. If many is set to a true value, returns a
 ResizablePMCArray of all possible candidates, which may be empty. If many
-is set to a false value, then returns either the one winning unambiguous
-candidate or throws an error saying that the dispatch failed if there were
-no candidates or that it was ambiguous if there were tied candidates.
+is false, then returns either the one winning unambiguous candidate
+or throws an error saying that the dispatch failed if there were no
+candidates or that it was ambiguous if there were tied candidates.
 
 */
 
-static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, int many) {
-    Parrot_ex_throw_from_c_args(interp, NULL, 1, "Unimplemented.");
-    return PMCNULL;
+static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, int many,
+                        int num_candidates, opcode_t *next) {
+    INTVAL num_args = VTABLE_elements(interp, args);
+    candidate_info **cur_candidate = candidates;
+    candidate_info **possibles = mem_allocate_n_typed(num_candidates, candidate_info*);
+    INTVAL possibles_count = 0;
+
+    /* Iterate over the candidates and collect best ones; terminate
+     * when we see two nulls (may break out earlier). */
+    while (*cur_candidate != NULL) {
+        /* Check if it's admissable by arity. */
+        if (num_args < (*cur_candidate)->min_arity || num_args > (*cur_candidate)->max_arity) {
+            cur_candidate++;
+            continue;
+        }
+
+        /* XXX Check if it's admissable by type. */
+
+        /* If we get here, it's an admissable candidate; add to list. */
+        possibles[possibles_count] = *cur_candidate;
+        possibles_count++;
+
+        /* Next candidate. */
+        cur_candidate++;
+        if (*cur_candidate == NULL) {
+            /* If we're after just one candidate and we have found some, then
+             * we've hit the end of a tied group now, so stop looking if we are
+             * only after one. */
+            if (!many)
+                break;
+            cur_candidate++;
+        }
+    }
+
+    /* XXX Loooooads of other disambiguation logic comes here. */
+
+    if (!many) {
+        /* Need a unique candidate. */
+        if (possibles_count == 1) {
+            return possibles[0]->sub;
+        }
+        else if (possibles_count == 0) {
+            Parrot_ex_throw_from_c_args(interp, next, 1,
+                    "No applicable candidates found to dispatch to.");
+        }
+        else {
+            Parrot_ex_throw_from_c_args(interp, next, 1,
+                    "Ambiguous dispatch.");
+        }
+    }
 }
 
 /*
@@ -259,7 +356,7 @@ NULL.
 
 pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
     ATTR PMC  *candidates;
-    ATTR struct candidate_info *candidates_sorted;
+    ATTR void *candidates_sorted;
 
 /*
 
@@ -306,24 +403,25 @@ the Perl 6 MMD algorithm.
 =cut
 
 */
-    VTABLE opcode_t* invoke(void* next) {
+    VTABLE opcode_t *invoke(void *next) {
         PMC *found;
 
         /* Make sure that we have a candidate list built. */
         candidate_info **candidates = NULL;
+        PMC *unsorted;
         GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
         if (!candidates) {
-            PMC *unsorted;
-            GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
             candidates = sort_candidiates(interp, unsorted);
             SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
         }
         if (!candidates)
             Parrot_ex_throw_from_c_args(interp, next, 1, "Failed to build candidate list");
 
-        /* Now do the dispatch - if it can't find anything, it will throw the required
-         * exceptions. */
-        found = do_dispatch(interp, candidates, 0);
+        /* Now do the dispatch on the args we are being invoked with;
+         * if it can't find anything, it will throw the required exception. */
+        found = do_dispatch(interp, candidates, get_args(interp), 0,
+                VTABLE_elements(interp, unsorted), next);
 
         /* Invoke what was found. */
         return VTABLE_invoke(interp, found, next);

@@ -29,7 +29,8 @@ Checks if the given topic does the role.
 .sub 'ACCEPTS' :method
     .param pmc topic
     $I0 = does topic, self
-    .return 'prefix:?'($I0)
+    $P0 = 'prefix:?'($I0)
+    .return ($P0)
 .end
 
 =back

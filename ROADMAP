@@ -32,41 +32,93 @@ not intended to be rigid nor strictly sequential -- it's okay
 for people to work on some of the later milestones even if the
 earlier ones aren't complete.
 
-In addition to the above list of major features, the following list contains
-various smaller tasks that we should accomplish to get the number of tests in
-spectest_regression that we are currently skipping down somewhat. Some of
-them are probably good if you are looking for a more gentle entry point to
-Rakudo development than some of the bigger items listed above.
+Here's a more detailed list of current to-do items:
 
-* Implement whatever (*) in array indexing: @foo[*-1]
+* Implement Whatever (*) in array indexes
+  - need an implementation of Whatever  
+
 * Implement Rat data type
+  - awaiting clearer spec/understanding of the relationship between Num and Rat
+
 * Implement infinite ranges
-* Implement return type coercion ("as") and constraint ("of")
-* Fix issues with Int type constraint when we get an Integer PMC back, and
-  similar
+  - awaiting Whatever implementation
+
 * Implement prefix:<\> operator
+  - Need some clarity in spec and spectests for Capture objects
+
+* Implement return type coercion ("as") and constraint ("of")
+
+* Fix issues with Int type constraint and Integer PMCs
+  - awaiting .HLL capabilities
+
 * Finish implementing radix notation (see S02-literals/radix.t for details)
+  - C code in Perl6Str.pmc needs refactoring and updating
+
 * Implement eqv and === operators
+  - No dependencies
+
 * Implement .perl on code objects
-* Investigate various issues with .perl on recursive data structures (see
-  S02-names_and_variables/perl.t)
-* Make junctions in boolean context return a junction of True/False
+  - Need a clarification of what .perl should return here
+
+* Comparison operators on junctions should return junction of True/False
+  - Needs junction dispatcher
+
 * Investigate junction of code object failures (S03-junctions/misc.t)
+  - Likely depends on junction dispatcher
+
 * Implement missing infix:<xx=> operator
+  - Awaiting parser improvements to properly parse and 
+    handle infix_postfix_meta_operator
+
 * Fix modulo bugs and MMD-related bugs for += and -= (S03-operators\arith.t)
+  - Awaiting parser improvements to properly parse and 
+    handle infix_postfix_meta_operator
+
 * Implement NaN and Inf
+  - Need to determine if Parrot will support NaN/Inf directly, or if
+    Rakudo should write these
+
 * Empty contextualizer @() should be same as @($/)
+  - File an RT ticket for this with test case
+
 * Fix MMD-related bugs in S03-operators\range.t
-* Implement inifx:<orelse>
+  - Need to refactor comparison ops in rakudo to avoid or handle 'cmp'
+
+* Implement infix:<orelse>
+  - Requires some specialized structures, perhaps a new PAST::Op pasttype (PCT)
+
 * Fix bugs with nested ?? !!
+  - Awaiting parser improvements (PGE)
+
 * Implement state variables
+  - Need to fix lexical and initialization issues (Parrot)
+
 * Implement last/redo/next/continue control exceptions
+  - Needs last/redo/next/continue exceptions in PCT (PCT)
+
 * Fix .{"key"} parsefail when (hash index into $_)
+  - likely parser bug (Rakudo grammar.pg)
+
 * Finish implementing given and check/fix tests in S04-statements\given.t
+  - Need resumable exceptions (Parrot)
+
 * Implement CATCH blocks
+  - Need some parser improvements, updates to 'try' handling
+
 * Implement loops and conditionals taking pointy blocks
+  - Needs some minor PCT updates (PCT)
+
 * Make m/.../ syntax for constructing a regex work
+  - Update grammar.pg (short-term), or wait for STD.pm integration
+
 * Fix problem with using Str as a type constraint or in MMD
+  - File an RT ticket for this?
+
 * Fix lambda expression parse bug when used as rvalue
+  - Needs parser/PGE fix (PGE)
+
 * Implement ::?CLASS
+  - Update in actions.pm to define compiler variable
+
 * Implement/fix adverbial blocks
+  - Needs update to grammar, may need to wait for LTM in PGE

@@ -179,6 +179,7 @@ test    : coretest codetest
 
 coretest: all
 	$(PERL) t/harness t/00-parrot t/01-sanity
+	prove t/pmc
 
 codetest:
 	$(MAKE) $(BUILD_DIR) codetest

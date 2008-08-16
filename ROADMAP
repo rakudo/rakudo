@@ -1,124 +1,158 @@
-Updated: 2008-04-28
+Updated: 2008-08-16
 
 Milestones
 ----------
 
 This is a rough list of some of the major components to be added to Rakudo.
-
-* list context, list assignment
-* multi-argument return and control exceptions
-* class, role, objects
-* regex, token, rule, grammar
-* selected libraries written in Perl 6
-* modules
-* I/O
-* junction auto-threading
-* hyper, reduction and cross meta-operators
-* lazy lists, gather and take
-* slices and slice context
-* captures and signature handling
-* multi sub & multi-method dispatch
-* currying
-* operator overloading
-* other S09 features (typed arrays, sized types)
-* heredocs
-* macros
-* module versioning
-
-The list above also gives a sense of the rough prioritization
+This list also gives a sense of the rough prioritization
 of things -- i.e., getting return and control exceptions to work
 is a higher priority than heredocs or macros.  But it's also
 not intended to be rigid nor strictly sequential -- it's okay
 for people to work on some of the later milestones even if the
 earlier ones aren't complete.
 
-Here's a more detailed list of current to-do items:
+ON ESTIMATES: All hourly estimates in milestones B-W are rough first-cust estimates
+IDEAL PROGRAMMER HOURS. Nobody should depend on them for anything other than relative
+estimates of difficulty
 
-* Implement Whatever (*) in array indexes
-  - need an implementation of Whatever  
 
-* Implement Rat data type
-  - awaiting clearer spec/understanding of the relationship between Num and Rat
+A PGE needs to be refactored and updated to handle protoregexes and
+  longest token matching so we can use the STD grammar
+    Sub-milestones - each is 1 calendar month:
+    Not expected to fully block other milestones, except as indicated below
 
-* Implement infinite ranges
-  - awaiting Whatever implementation
 
-* Implement prefix:<\> operator
-  - Need some clarity in spec and spectests for Capture objects
+	 M1. PGE internal refactors and initial protoregex implementation (D1),
+	     selected protoregex constructs added to Rakudo's grammar (D2),
+	     interface design for pre-compilation and external libraries (D3, D4).
+	
+	 M2. Completed protoregex implementation (D1),
+	     initial implementation of longest token matching in PGE (D1),
+	     completed Rakudo grammar migration to protoregexes (D2),
+	     beginning of P6-based "Prelude" implementation for Rakudo (D3),
+	     initial implementations of external HLL library support (D4).
+	
+	 M3. Substantially complete longest token matching in PGE (D1),
+	     Rakudo using protoregexes and longest token matching in grammar (D2),
+	     full protoregex and LTM support in Rakudo (D3),
+	     integrate P6-based Prelude into Rakudo implementation (D3),
+	     continued improvement of HLL library support (D4).
+	
+	 M4. Completed PGE protoregex and longest token matching implementation (D1),
+	     update Rakudo bottom-up parser to align with STD.pm (D2),
+	     Rakudo and/or compiler tools able to parse STD.pm directly (D2),
+	     substantial implementation of a P6-based Prelude for Rakudo (D3),
+	     substantially complete external HLL libraries support (D4).
+	     updated documentation and tests for all work performed, final report.
 
-* Implement return type coercion ("as") and constraint ("of")
+B signature handling
+    pm estimate: 8h
+    (jonathan implementing)
 
-* Fix issues with Int type constraint and Integer PMCs
-  - awaiting .HLL capabilities
+C list assignment [depends on A, B]
+    PM Estimate: 2h  
 
-* Finish implementing radix notation (see S02-literals/radix.t for details)
-  - C code in Perl6Str.pmc needs refactoring and updating
+D control exceptions
+    Can be done now
+    Requires adding exception types to PCT
+        pm estimate: 6h
+    Writing exception throwers in Rakudo
+        pm estimate: 0.5h 
 
-* Implement eqv and === operators
-  - No dependencies
+E regex, token, rule, grammar (50% done)
+    We have an initial implementation
+    Implementaiton needs tweaking
+    Depends on grammar improvements
+    Some advanced bits depend on PGE improvements
 
-* Implement .perl on code objects
-  - Need a clarification of what .perl should return here
+    grammar improvements
+        2h
+    advanced bits (depends on pge improvements)
+        2h
 
-* Comparison operators on junctions should return junction of True/False
-  - Needs junction dispatcher
+F Allow Perl 6 precompiled sources - write libraries in Perl 6
+    PM Estimate 8h
+    
+G modules
+    50% done
+    subtask: better handling of namespaces 
+    depends on a refactoring of namespaces in p6object  (a MOP implementation) in parrot.
 
-* Investigate junction of code object failures (S03-junctions/misc.t)
-  - Likely depends on junction dispatcher
+    pm estimate: 12h (including refactoring)
 
-* Implement missing infix:<xx=> operator
-  - Awaiting parser improvements to properly parse and 
-    handle infix_postfix_meta_operator
+H lazy lists
+    jw estimate: 8h
 
-* Fix modulo bugs and MMD-related bugs for += and -= (S03-operators\arith.t)
-  - Awaiting parser improvements to properly parse and 
-    handle infix_postfix_meta_operator
+I gather and take
+    depends on resumable exceptions from pir
+    pm estimate: 4h
 
-* Implement NaN and Inf
-  - Need to determine if Parrot will support NaN/Inf directly, or if
-    Rakudo should write these
+J I/O
 
-* Empty contextualizer @() should be same as @($/)
-  - File an RT ticket for this with test case
+    * Depends on an IO spec
+    * Depends on lazy lists 
 
-* Fix MMD-related bugs in S03-operators\range.t
-  - Need to refactor comparison ops in rakudo to avoid or handle 'cmp'
+    Small matter of writing wrapper methods to implement spec.
 
-* Implement infix:<orelse>
-  - Requires some specialized structures, perhaps a new PAST::Op pasttype (PCT)
+K junction auto-threading
+    writing dispatch operators  
+        jw estimate: 8h
+    auto-threading
+        jw estimate: 24h
 
-* Fix bugs with nested ?? !!
-  - Awaiting parser improvements (PGE)
+L hyper, reduction and cross meta-operators
+    [depends on parser improvements]
+    pm estimate: 6h for hyper
+                 1h for reduction
+                 4h for cross
 
-* Implement state variables
-  - Need to fix lexical and initialization issues (Parrot)
+M slices 
+    * tests need writing
+    pm estimate: 
+                    8h study S09
+                    24h implement  (VERY rough)
 
-* Implement last/redo/next/continue control exceptions
-  - Needs last/redo/next/continue exceptions in PCT (PCT)
+N slice context
+    pm estimate: 
+                    32h implement  (VERY rough)
+    
+O captures
+    PM needs to send mail to p6l. - current tests don't seem to match pm's understanding of the spec
+    
+    pm estimate:
+                4h study spec
+                6h implement            
 
-* Fix .{"key"} parsefail when (hash index into $_)
-  - likely parser bug (Rakudo grammar.pg)
+P multi-argument return - return into named arguments [depends on captures]
+    PCT side
+       pm estimate: 8h     
+    Rakudo side
+        pm estimate: 4h
 
-* Finish implementing given and check/fix tests in S04-statements\given.t
-  - Need resumable exceptions (Parrot)
+Q multi sub & multi-method dispatch
+    JW implementing
+    Depends on parrot implementation of MMD (implemented)
+    Depends on P6 Object update [Depends on G]
+    JW estimate: 16h
 
-* Implement CATCH blocks
-  - Need some parser improvements, updates to 'try' handling
+R currying
+    PM estimate: 8h
 
-* Implement loops and conditionals taking pointy blocks
-  - Needs some minor PCT updates (PCT)
+S operator overloading
+    Depends on the parser
 
-* Make m/.../ syntax for constructing a regex work
-  - Update grammar.pg (short-term), or wait for STD.pm integration
+    PM Estimate: 6h
 
-* Fix problem with using Str as a type constraint or in MMD
-  - File an RT ticket for this?
+T heredocs including pod heredocs
+    Depends on the parser
+    PM Estimate: 2h
 
-* Fix lambda expression parse bug when used as rvalue
-  - Needs parser/PGE fix (PGE)
+U macros
+    Depends on the parser
+    PM Estimate: 6h
 
-* Implement ::?CLASS
-  - Update in actions.pm to define compiler variable
-
-* Implement/fix adverbial blocks
-  - Needs update to grammar, may need to wait for LTM in PGE
+V module versioning
+    (estimate for start: christmas)
+     
+W other S09 features (typed arrays, sized types)
+    (estimate for start: christmas)

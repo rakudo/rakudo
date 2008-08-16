@@ -76,7 +76,8 @@ in the graph that we have arrows to.
 typedef struct candidate_graph_node {
     candidate_info *info;
     struct candidate_graph_node **edges;
-    int edges_count;
+    INTVAL edges_in;
+    INTVAL edges_out;
 } candidate_graph_node;
 
 
@@ -213,8 +214,45 @@ second. Returns a true value if they are.
 
 */
 static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
-    /* XXX TODO */
-    return 0;
+    STRING *ACCEPTS = CONST_STRING(interp, "ACCEPTS");
+    INTVAL narrower = 0;
+    INTVAL tied = 0;
+    INTVAL i;
+
+    /* Check if they have the same number of effective parameters - if
+     * not, incomparable. */
+    if (a->num_types != b->num_types)
+        return 0;
+
+    /* Analyse each parameter in the two candidates. */
+    for (i = 0; i < a->num_types; i++) {
+        PMC *type_obj_a = a->types[i];
+        PMC *type_obj_b = b->types[i];
+        if (type_obj_a == type_obj_b) {
+            /* Same type, so tied. */
+            tied++;
+        }
+        else {
+            PMC *accepts_meth_a = VTABLE_find_method(interp, type_obj_b, ACCEPTS);
+            PMC *result_n = Parrot_run_meth_fromc_args(interp, accepts_meth_a, type_obj_b,
+                    ACCEPTS, "PP", type_obj_a);
+            if (VTABLE_get_integer(interp, result_n)) {
+                /* Narrower - note it and we're done. */
+                narrower++;
+            }
+            else {
+                /* Make sure it's tied, rather than the other way around. */
+                PMC *accepts_meth_b = VTABLE_find_method(interp, type_obj_a, ACCEPTS);
+                PMC *result_w = Parrot_run_meth_fromc_args(interp, accepts_meth_b, type_obj_a,
+                        ACCEPTS, "PP", type_obj_b);
+                if (!VTABLE_get_integer(interp, result_w)) {
+                    tied++;
+                }
+            }
+        }
+    }
+
+    return narrower > 1 && narrower + tied == a->num_types;
 }
 
 
@@ -227,7 +265,7 @@ and then does a topological sort of them.
 
 */
 static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
-    INTVAL i, j, sig_elems;
+    INTVAL i, j, sig_elems, candidates_to_sort, result_pos;
     PMC *signature, *params, *meth;
 
     /* Allocate results array (just allocate it for worst case, which
@@ -292,17 +330,39 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
             if (i == j)
                 continue;
             if (is_narrower(interp, graph[i]->info, graph[j]->info)) {
-                graph[i]->edges[graph[i]->edges_count] = graph[j];
-                graph[i]->edges_count++;
+                graph[i]->edges[graph[i]->edges_out] = graph[j];
+                graph[i]->edges_out++;
+                graph[j]->edges_in++;
             }
         }
     }
 
-    /* XXX Here we do the topological sort. For now, just copy the values
-     * with the arity to the array, and nothing is narrower than anything
-     * else. */
-    for (i = 0; i < num_candidates; i++) {
-        result[i] = graph[i]->info;
+    /* Perform the topological sort. */
+    candidates_to_sort = num_candidates;
+    result_pos = 0;
+    while (candidates_to_sort > 0) {
+        INTVAL rem_start_point = result_pos;
+
+        /* Find any nodes that have no incoming edges and add them to results. */
+        for (i = 0; i < num_candidates; i++) {
+            if (graph[i]->edges_in == 0) {
+                /* Add to results. */
+                result[result_pos] = graph[i]->info;
+                result_pos++;
+                candidates_to_sort--;
+                graph[i]->edges_in = -1;
+
+                /* Now we have added this node, remove its outgoing edges. */
+                for (j = 0; j < graph[i]->edges_out; j++)
+                    graph[i]->edges[j]->edges_in--;
+            }
+        }
+        if (rem_start_point == result_pos)
+            Parrot_ex_throw_from_c_args(interp, 0, 1,
+                    "Circularity detected in multi sub types.");
+
+        /* This is end of a tied group, so leave a gap. */
+        result_pos++;
     }
 
     return result;
@@ -332,7 +392,17 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, i
 
     /* Iterate over the candidates and collect best ones; terminate
      * when we see two nulls (may break out earlier). */
-    while (*cur_candidate != NULL) {
+    while (cur_candidate[0] != NULL || cur_candidate[1] != NULL) {
+        if (*cur_candidate == NULL) {
+            /* If we're after just one candidate and we have found some, then
+             * we've hit the end of a tied group now, so stop looking if we are
+             * only after one. */
+            if (!many && possibles_count)
+                break;
+            cur_candidate++;
+            continue;
+        }
+        
         /* Check if it's admissable by arity. */
         if (num_args < (*cur_candidate)->min_arity || num_args > (*cur_candidate)->max_arity) {
             cur_candidate++;
@@ -362,17 +432,7 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, i
         /* If we get here, it's an admissable candidate; add to list. */
         possibles[possibles_count] = *cur_candidate;
         possibles_count++;
-
-        /* Next candidate. */
         cur_candidate++;
-        if (*cur_candidate == NULL) {
-            /* If we're after just one candidate and we have found some, then
-             * we've hit the end of a tied group now, so stop looking if we are
-             * only after one. */
-            if (!many)
-                break;
-            cur_candidate++;
-        }
     }
 
     /* XXX Loooooads of other disambiguation logic comes here. */
@@ -488,6 +548,9 @@ the Perl 6 MMD algorithm.
 */
     VTABLE opcode_t *invoke(void *next) {
         PMC *found;
+        
+        /* Get arguments. */
+        PMC *args = get_args(interp);
 
         /* Need to make sure a wobload of globals don't get destroyed. */
         PMC *saved_ccont            = interp->current_cont;
@@ -512,7 +575,7 @@ the Perl 6 MMD algorithm.
 
         /* Now do the dispatch on the args we are being invoked with;
          * if it can't find anything, it will throw the required exception. */
-        found = do_dispatch(interp, candidates, get_args(interp), 0,
+        found = do_dispatch(interp, candidates, args, 0,
                 VTABLE_elements(interp, unsorted), next);
 
         /* Restore stuff that might have got overwriten by calls during the

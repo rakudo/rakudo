@@ -1,6 +1,6 @@
 #! ../../parrot
 # Copyright (C) 2007-2008, The Perl Foundation.
-# $Id:$
+# $Id$
 
 =head1 NAME
 
@@ -22,11 +22,11 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
     .include 'include/test_more.pir'
     load_bytecode "perl6.pbc"
 
-    plan(4)
+    plan(13)
 
     'basic_class'()
     'role'()
-    #'ordered_class'() # XXX Not passing until we do topological sort
+    'ordered_class'()
 .end
 
 
@@ -128,23 +128,23 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
     stone = stone.'new'()
 
     $I0 = $P0(paper, paper)
-    is($I0, 0, 'basic class')
+    is($I0, 0, 'topological sorting')
     $I0 = $P0(paper, scissors)
-    is($I0, 0, 'basic class')
+    is($I0, 0, 'topological sorting')
     $I0 = $P0(paper, stone)
-    is($I0, 1, 'basic class')
+    is($I0, 1, 'topological sorting')
     $I0 = $P0(scissors, paper)
-    is($I0, 1, 'basic class')
+    is($I0, 1, 'topological sorting')
     $I0 = $P0(scissors, scissors)
-    is($I0, 0, 'basic class')
+    is($I0, 0, 'topological sorting')
     $I0 = $P0(scissors, stone)
-    is($I0, 0, 'basic class')
+    is($I0, 0, 'topological sorting')
     $I0 = $P0(stone, paper)
-    is($I0, 0, 'basic class')
+    is($I0, 0, 'topological sorting')
     $I0 = $P0(stone, scissors)
-    is($I0, 1, 'basic class')
+    is($I0, 1, 'topological sorting')
     $I0 = $P0(stone, stone)
-    is($I0, 0, 'basic class')
+    is($I0, 0, 'topological sorting')
 .end
 .sub 'ordered_class_1'
     .param pmc a

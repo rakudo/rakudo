@@ -382,7 +382,7 @@ candidates or that it was ambiguous if there were tied candidates.
 
 static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, int many,
                         int num_candidates, opcode_t *next) {
-    INTVAL i, type_check_count;
+    INTVAL i, j, type_check_count;
     INTVAL num_args = VTABLE_elements(interp, args);
     candidate_info **cur_candidate = candidates;
     candidate_info **possibles = mem_allocate_n_typed(num_candidates, candidate_info*);
@@ -435,7 +435,60 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, i
         cur_candidate++;
     }
 
-    /* XXX Loooooads of other disambiguation logic comes here. */
+    /* If we have multiple candidates left, tie-break on any constraints. */
+    if (possibles_count > 1) {
+        candidate_info **matching = mem_allocate_n_typed(possibles_count, candidate_info*);
+        candidate_info **constraint_free = mem_allocate_n_typed(possibles_count, candidate_info*);
+        INTVAL matching_count = 0;
+        INTVAL constraint_free_count = 0;
+        for (i = 0; i < possibles_count; i++) {
+            /* Check if we match any constraints. */
+            INTVAL constraint_checked = 0;
+            INTVAL constraint_failed = 0;
+            for (j = 0; j < possibles[i]->num_types; j++) {
+                PMC *type_obj = possibles[i]->constraints[j];
+                if (!PMC_IS_NULL(type_obj)) {
+                    PMC *param = VTABLE_get_pmc_keyed_int(interp, args, j);
+                    PMC *result = Parrot_runops_fromc_args(interp, type_obj,
+                            "PP", param);
+                    constraint_checked = 1;
+                    if (!VTABLE_get_integer(interp, result)) {
+                        constraint_failed = 1;
+                        break;
+                    }
+                }
+            }
+            if (!constraint_failed) {
+                if (constraint_checked) {
+                    matching[matching_count] = possibles[i];
+                    matching_count++;
+                }
+                else {
+                    constraint_free[constraint_free_count] = possibles[i];
+                    constraint_free_count++;
+                }
+            }
+        }
+
+        /* If we did find constraints to check, choose the matching over the
+         * ones without any constraints. */
+        if (matching_count) {
+            mem_sys_free(possibles);
+            mem_sys_free(constraint_free);
+            possibles = matching;
+            possibles_count = matching_count;
+        }
+        else if (constraint_free_count) {
+            mem_sys_free(possibles);
+            mem_sys_free(matching);
+            possibles = constraint_free;
+            possibles_count = constraint_free_count;
+        }
+    }
+
+    /* XXX Check is default trait */
+
+    /* XXX If still none/ambiguous, try and find a proto to call. */
 
     if (!many) {
         /* Need a unique candidate. */

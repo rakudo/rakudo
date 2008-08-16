@@ -402,7 +402,7 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, i
             cur_candidate++;
             continue;
         }
-        
+
         /* Check if it's admissable by arity. */
         if (num_args < (*cur_candidate)->min_arity || num_args > (*cur_candidate)->max_arity) {
             cur_candidate++;
@@ -548,7 +548,7 @@ the Perl 6 MMD algorithm.
 */
     VTABLE opcode_t *invoke(void *next) {
         PMC *found;
-        
+
         /* Get arguments. */
         PMC *args = get_args(interp);
 

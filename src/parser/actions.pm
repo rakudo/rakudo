@@ -504,7 +504,7 @@ method routine_declarator($/, $key) {
                 :scope('lexical'),
                 :isdecl(1)
             ),
-            PAST::Op.new(:inline('    %r = self'))
+            PAST::Var.new( :name('self'), :scope('register') )
         ));
 
         # Set up the block details.
@@ -902,9 +902,7 @@ method signature($/) {
                         :name($parameter.name()),
                         :scope('lexical')
                     ),
-                    PAST::Op.new(
-                        :inline('%r = self')
-                    )
+                    PAST::Var.new( :name('self'), :scope('register') )
                 ));
             }
 

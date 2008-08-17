@@ -4,11 +4,11 @@
 
 =head1 NAME
 
-t/pmc/perl6multisub-dispatch-type.t - Type based dispatch tests
+t/pmc/perl6multisub-type.t - Type based dispatch tests
 
 =head1 SYNOPSIS
 
-    % prove t/pmc/perl6multisub-dispatch-type.t
+    % prove t/pmc/perl6multisub-type.t
 
 =head1 DESCRIPTION
 

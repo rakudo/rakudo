@@ -4,11 +4,11 @@
 
 =head1 NAME
 
-t/pmc/perl6multisub-dispatch-arity.t - Arity based dispatch tests
+t/pmc/perl6multisub-arity.t - Arity based dispatch tests
 
 =head1 SYNOPSIS
 
-    % prove t/pmc/perl6multisub-dispatch-arity.t
+    % prove t/pmc/perl6multisub-arity.t
 
 =head1 DESCRIPTION
 

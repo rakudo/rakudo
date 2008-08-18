@@ -340,7 +340,7 @@ method statement_mod_loop($/) {
     }
     elsif ~$<sym> eq 'for' {
         my $past := PAST::Op.new(
-            $expr,
+            PAST::Op.new($expr, :name('list')),
             :pasttype($<sym>),
             :node( $/ )
         );

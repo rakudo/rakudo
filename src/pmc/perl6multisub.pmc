@@ -234,7 +234,7 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
         }
         else {
             PMC *accepts_meth_a = VTABLE_find_method(interp, type_obj_b, ACCEPTS);
-            PMC *result_n = Parrot_run_meth_fromc_args(interp, accepts_meth_a, type_obj_b,
+            PMC *result_n = (PMC *) Parrot_run_meth_fromc_args(interp, accepts_meth_a, type_obj_b,
                     ACCEPTS, "PP", type_obj_a);
             if (VTABLE_get_integer(interp, result_n)) {
                 /* Narrower - note it and we're done. */
@@ -243,7 +243,8 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
             else {
                 /* Make sure it's tied, rather than the other way around. */
                 PMC *accepts_meth_b = VTABLE_find_method(interp, type_obj_a, ACCEPTS);
-                PMC *result_w = Parrot_run_meth_fromc_args(interp, accepts_meth_b, type_obj_a,
+                PMC *result_w = (PMC *) Parrot_run_meth_fromc_args(interp,
+                        accepts_meth_b, type_obj_a,
                         ACCEPTS, "PP", type_obj_b);
                 if (!VTABLE_get_integer(interp, result_w)) {
                     tied++;
@@ -297,11 +298,11 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
         /* Type information. */
         meth = VTABLE_find_method(interp, candidate,
                 CONST_STRING(interp, "signature"));
-        signature = Parrot_run_meth_fromc_args(interp, meth, candidate,
+        signature = (PMC*)Parrot_run_meth_fromc_args(interp, meth, candidate,
                 CONST_STRING(interp, "signature"), "P");
         meth = VTABLE_find_method(interp, signature,
                 CONST_STRING(interp, "params"));
-        params = Parrot_run_meth_fromc_args(interp, meth, signature,
+        params = (PMC*)Parrot_run_meth_fromc_args(interp, meth, signature,
                 CONST_STRING(interp, "params"), "P");
         sig_elems = VTABLE_elements(interp, params);
         info->types = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
@@ -417,7 +418,7 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, i
             PMC *param = VTABLE_get_pmc_keyed_int(interp, args, i);
             PMC *type_obj = (*cur_candidate)->types[i];
             PMC *accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
-            PMC *result = Parrot_run_meth_fromc_args(interp, accepts_meth, type_obj,
+            PMC *result = (PMC*)Parrot_run_meth_fromc_args(interp, accepts_meth, type_obj,
                     ACCEPTS, "PP", param);
             if (!VTABLE_get_integer(interp, result)) {
                 type_mismatch = 1;
@@ -617,7 +618,15 @@ the Perl 6 MMD algorithm.
         /* Make sure that we have a candidate list built. */
         candidate_info **candidates = NULL;
         PMC *unsorted;
-        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+        {
+        /* Use an aux var to get the attribute, because of
+         * current problems with the declaration of
+         * attributes.
+         */
+        void *aux;
+        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, aux);
+        candidates = (candidate_info **)aux;
+        }
         GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
         if (!candidates) {
             candidates = sort_candidiates(interp, unsorted);
@@ -629,7 +638,7 @@ the Perl 6 MMD algorithm.
         /* Now do the dispatch on the args we are being invoked with;
          * if it can't find anything, it will throw the required exception. */
         found = do_dispatch(interp, candidates, args, 0,
-                VTABLE_elements(interp, unsorted), next);
+                VTABLE_elements(interp, unsorted), (opcode_t *)next);
 
         /* Restore stuff that might have got overwriten by calls during the
          * dispatch algorithm. */

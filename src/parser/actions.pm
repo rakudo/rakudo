@@ -1349,6 +1349,7 @@ method noun($/, $key) {
         $past.unshift(PAST::Var.new(
             :name('$_'),
             :scope('lexical'),
+            :viviself('Failure'),
             :node($/)
         ));
     }

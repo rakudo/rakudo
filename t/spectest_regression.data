@@ -7,10 +7,12 @@ S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash.t
+S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/num.t
 S02-builtin_data_types/range.t
+S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
 S02-literals/autoref.t
 S02-literals/hex_chars.t

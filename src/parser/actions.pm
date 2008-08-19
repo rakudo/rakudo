@@ -29,6 +29,23 @@ method TOP($/) {
     # Make sure we have the interpinfo constants.
     $past.unshift( PAST::Op.new( :inline('.include "interpinfo.pasm"') ) );
 
+    #  convert the last operation of the block into a .return op
+    #  so that :load block below isn't used as return value
+    $past.push( PAST::Op.new( $past.pop(), :pirop('return') ) );
+    #  automatically invoke mainline on :load (but not :init)
+    $past.push(
+        PAST::Block.new(
+            PAST::Op.new(
+                :inline(
+                    '$P0 = interpinfo .INTERPINFO_CURRENT_SUB',
+                    '$P0 = $P0."get_outer"()',
+                    '$P0()'
+                )
+            ),
+            :pirflags(':load')
+        )
+    );
+
     make $past;
 }
 

@@ -49,58 +49,6 @@ Parses a format string and prints formatted output according to it.
 .end
 
 
-.sub 'use'
-    .param pmc module
-    .param pmc args :slurpy
-
-    .local string module_string
-    module_string = module
-
-    .local pmc path
-    path     = split '::', module_string
-
-    .local string file_string
-    file_string = join '/', path
-
-    .local pmc filename
-    $P0 = get_hll_global 'Str'
-    filename  = $P0.'new'()
-    filename  = file_string
-    filename .= '.pm'
-
-    require(filename)
-
-    .local pmc import
-    import = find_global module_string, 'import'
-
-    .local int have_import
-    have_import = defined import
-    unless have_import goto import_finished
-    import(args :flat)
-
-  import_finished:
-
-.end
-
-.sub 'require'
-    .param pmc filename
-    .local string path
-
-    $S0 = substr filename, 0, 1
-    if $S0 == '/' goto eval_file
-
-    .local pmc env
-    .local string perl6lib
-    env = new 'Env'
-    perl6lib = env['PERL6LIB']
-    path = '!find_file_in_path'(perl6lib, filename)
-
-  eval_file:
-    .local pmc p6compiler
-    p6compiler = compreg 'Perl6'
-    p6compiler.'evalfiles'(path)
-.end
-
 .sub 'open'
     .param string filename
     .param int r :named('r') :optional

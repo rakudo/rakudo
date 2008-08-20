@@ -34,7 +34,7 @@ PBC_TO_EXE    = $(BUILD_DIR)/pbc_to_exe$(EXE)
 #CONDITIONED_LINE(darwin):# MACOSX_DEPLOYMENT_TARGET must be defined for OS X compilation/linking
 #CONDITIONED_LINE(darwin):export MACOSX_DEPLOYMENT_TARGET := @osx_version@
 
-all: perl6.pbc
+all: perl6.pbc Test.pir
 
 xmas: perl6$(EXE)
 
@@ -85,6 +85,7 @@ BUILTINS_PIR = \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
   src/builtins/control.pir \
+  src/builtins/eval.pir \
   src/builtins/enums.pir \
   src/builtins/guts.pir \
   src/builtins/io.pir \
@@ -117,6 +118,9 @@ perl6.pbc: $(PARROT) $(SOURCES)
 
 installable_perl6$(EXE): perl6.pbc
 	$(PBC_TO_EXE) perl6.pbc --install
+
+Test.pir: Test.pm perl6.pbc
+	$(PARROT) $(PARROT_ARGS) perl6.pbc --target=pir --output=Test.pir Test.pm
 
 src/gen_grammar.pir: $(PERL6GRAMMAR) src/parser/grammar.pg src/parser/grammar-oper.pg
 	$(PARROT) $(PARROT_ARGS) $(PERL6GRAMMAR) \
@@ -234,6 +238,7 @@ CLEANUPS = \
   perl6$(O) \
   perl6$(EXE) \
   installable_perl6$(EXE) \
+  Test.pir \
   src/gen_grammar.pir \
   src/gen_actions.pir \
   src/gen_builtins.pir \

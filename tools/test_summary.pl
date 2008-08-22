@@ -23,24 +23,22 @@ my $testlist = $ARGV[0] || 't/spectest_regression.data';
 my $fh;
 open($fh, '<', $testlist) || die "Can't read $testlist: $!";
 
-my(@fudge, @pure);
+my @tfiles;
 while (<$fh>) {
     /^ *#/ && next;
     my ($specfile) = split ' ', $_;
     next unless $specfile;
-    $specfile = "t/spec/$specfile";
-    if (/#pure/) { push @pure, $specfile; }
-    else { push @fudge, $specfile; }
+    push @tfiles, "t/spec/$specfile";
 }
 close($fh);
 
-if (@fudge) {
-    my $cmd = join ' ', $^X, 't/spec/fudgeall', 'rakudo', @fudge;
+{
+    my $cmd = join ' ', $^X, 't/spec/fudgeall', 'rakudo', @tfiles;
     print "$cmd\n";
-    @fudge = split ' ', `$cmd`;
+    @tfiles = split ' ', `$cmd`;
 }
 
-my @tfiles = sort @pure, @fudge;
+@tfiles = sort @tfiles;
 my $max = 0;
 for my $tfile (@tfiles) {
     my $tname = $tfile; $tname =~ s!^t/spec/!!;

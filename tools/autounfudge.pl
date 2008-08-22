@@ -193,7 +193,6 @@ sub tests_ok {
     $agg->start();
     $harness->aggregate_tests($agg, $fn);
     $agg->stop();
-#    my $agg = $harness->runtests($fn);
     return !$agg->has_errors;
 }
 
@@ -219,7 +218,7 @@ sub read_specfile {
 }
 
 END {
-    close $diff_fh;
+    close $diff_fh if $diff_fh;
     File::Path::rmtree($tmp_dir);
 }
 

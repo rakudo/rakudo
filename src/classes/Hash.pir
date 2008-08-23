@@ -39,6 +39,14 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     .return (self)
 .end
 
+.sub 'delete' :method
+    .param string key
+    .local pmc result
+    result = self[key]
+    delete self[key]
+    .return (result)
+.end
+
 .sub 'hash' :method
     .return (self)
 .end

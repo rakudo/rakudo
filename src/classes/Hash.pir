@@ -47,7 +47,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     result = new 'List'
     keys.'!flatten'()
 
-  keys_loop: 
+  keys_loop:
     unless keys goto done
     key = shift keys
     tmp = self[key]

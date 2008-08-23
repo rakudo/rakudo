@@ -58,6 +58,7 @@ S04-statements/while.t
 S05-metasyntax/changed.t
 S05-metasyntax/regex.t
 S05-metasyntax/unknown.t
+S05-substitution/subst.t
 S05-transliteration/trans.t
 S06-multi/syntax.t
 S06-multi/type-based.t

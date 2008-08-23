@@ -325,6 +325,84 @@ the size of that file down and to emphasize their generic,
     die "Must pass a List of Pairs for transliteration"
 .end
 
+=item subst
+
+ our Str method Str::subst ( Any $string: Any $substring, Any $replacement )
+ our Str method Str::subst ( Any $string: Code $regexp,   Any $replacement )
+
+Replaces the first occurrence of a given substring or a regular expression
+match with some other substring.
+
+Partial implementation. The :g modifier on regexps doesn't work, for example.
+
+=cut
+
+.sub subst :method :multi(_, _, _)
+    .param string substring
+    .param string replacement
+    .local int pos
+    .local int pos_after
+    .local pmc retv
+
+    retv = new 'Perl6Str'
+
+    $S0 = self
+    pos = index $S0, substring
+    if pos < 0 goto no_match
+
+    pos_after = pos
+    $I0 = length substring
+    add pos_after, $I0
+
+    $S1 = substr $S0, 0, pos
+    $S2 = substr $S0, pos_after
+    concat retv, $S1
+    concat retv, replacement
+    concat retv, $S2
+
+    goto done
+
+  no_match:
+    retv = self
+
+  done:
+    .return(retv)
+.end
+
+.sub subst :method :lex :multi(_, 'Sub', _)
+    .param pmc regexp
+    .param string replacement
+    .local int pos
+    .local int pos_after
+    .local pmc retv
+    .local pmc match
+
+    retv = new 'Perl6Str'
+
+    new $P14, "Perl6Scalar"
+    .lex "$/", $P14
+
+    match = regexp.'ACCEPTS'(self)
+    unless match goto no_match
+    pos = match.'from'()
+    pos_after = match.'to'()
+
+    $S0 = self
+    $S1 = substr $S0, 0, pos
+    $S2 = substr $S0, pos_after
+    concat retv, $S1
+    concat retv, replacement
+    concat retv, $S2
+
+    goto done
+
+  no_match:
+    retv = self
+
+  done:
+    .return(retv)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

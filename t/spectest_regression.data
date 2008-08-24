@@ -95,6 +95,7 @@ S29-array/pop.t
 S29-array/push.t
 S29-array/shift.t
 S29-array/unshift.t
+S29-hash/delete.t
 S29-list/first.t
 S29-list/grep.t
 S29-list/join.t

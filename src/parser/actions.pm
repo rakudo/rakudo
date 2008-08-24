@@ -199,6 +199,7 @@ method unless_statement($/) {
 method while_statement($/) {
     my $cond  := $( $<EXPR> );
     my $block := $( $<block> );
+    declare_implicit_immediate_vars($block);
     $block.blocktype('immediate');
     make PAST::Op.new( $cond, $block, :pasttype(~$<sym>), :node($/) );
 }

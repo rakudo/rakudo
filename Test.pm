@@ -31,6 +31,13 @@ sub plan($number_of_tests) {
     say '1..' ~ $number_of_tests;
 }
 
+multi sub pass($desc) {
+    proclaim(1, $desc);
+}
+
+multi sub fail($desc) {
+    proclaim(0, $desc);
+}
 
 multi sub ok($cond, $desc) {
     proclaim($cond, $desc);

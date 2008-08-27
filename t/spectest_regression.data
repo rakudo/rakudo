@@ -24,6 +24,7 @@ S02-names_and_variables/perl.t
 S02-polymorphic_types/subset-code.t
 S02-polymorphic_types/subset-range.t
 S02-whitespace_and_comments/one-pass-parsing.t
+S03-junctions/boolean-context.t
 S03-junctions/misc.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t

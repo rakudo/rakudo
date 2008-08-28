@@ -24,12 +24,6 @@ of fixup tasks in what is already done).
 
 =item Use Perl 6 types when boxing native arguments in the arg list
 
-=item Fix pmc2c so we can have ATTR candidate_info **candidates_sorted. We
-will have to move them to their own .h file, but in pmc2c we need to be able
-to include that *before* this PMC's generated .h file (I couldn't work out
-how to do that) and also make it parse double indirections. Then we can toss
-any (candidate_info**) casts.
-
 =item Make sure we override everything that ResizablePMCArray and its parents
 would provide us with. Otherwise, we'll just get segfaults 'cus we don't store
 stuff the way it does.
@@ -553,7 +547,7 @@ NULL.
 
 pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
     ATTR PMC  *candidates;
-    ATTR void *candidates_sorted;
+    ATTR struct candidate_info **candidates_sorted;
 
 /*
 
@@ -618,15 +612,7 @@ the Perl 6 MMD algorithm.
         /* Make sure that we have a candidate list built. */
         candidate_info **candidates = NULL;
         PMC *unsorted;
-        {
-        /* Use an aux var to get the attribute, because of
-         * current problems with the declaration of
-         * attributes.
-         */
-        void *aux;
-        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, aux);
-        candidates = (candidate_info **)aux;
-        }
+        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
         GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
         if (!candidates) {
             candidates = sort_candidiates(interp, unsorted);

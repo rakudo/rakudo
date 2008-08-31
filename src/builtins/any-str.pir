@@ -371,7 +371,7 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
 
 .sub subst :method :lex :multi(_, 'Sub', _)
     .param pmc regexp
-    .param string replacement
+    .param pmc replacement
     .local int pos
     .local int pos_after
     .local pmc retv
@@ -390,8 +390,23 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     $S0 = self
     $S1 = substr $S0, 0, pos
     $S2 = substr $S0, pos_after
+    # pre-match
     concat retv, $S1
+
+    # match
+    $I0 = isa replacement, 'Sub'
+    unless $I0 goto is_string
+
+    $S3 = match.'text'()
+    $S3 = replacement($S3)
+    concat retv, $S3
+    goto repl_done
+
+  is_string:
     concat retv, replacement
+
+  repl_done:
+    # post-match
     concat retv, $S2
 
     goto done

@@ -47,11 +47,18 @@ S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
 S04-statement-modifiers/for.t
+S04-statement-modifiers/given.t
+S04-statement-modifiers/if.t
+S04-statement-modifiers/unless.t
+S04-statement-modifiers/until.t
+S04-statement-modifiers/while.t
+S04-statements/for_with_only_one_item.t
 S04-statements/do.t
 S04-statements/for.t
 S04-statements/given.t
 S04-statements/if.t
 S04-statements/loop.t
+S04-statements/map-and-sort-in-for.t
 S04-statements/no-implicit-block.t
 S04-statements/repeat.t
 S04-statements/return.t
@@ -60,6 +67,7 @@ S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
+S05-match/blocks.t
 S05-metasyntax/changed.t
 S05-metasyntax/regex.t
 S05-metasyntax/unknown.t

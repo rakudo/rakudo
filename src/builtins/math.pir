@@ -61,7 +61,7 @@ Returns the nearest integer to $x.  The algorithm is floor($x + 0.5).
     .param num a
     a += 0.5
     $N0 = floor a
-    .return (a)
+    .return ($N0)
 .end
 
 

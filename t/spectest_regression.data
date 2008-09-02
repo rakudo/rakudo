@@ -39,6 +39,7 @@ S03-operators/context.t
 S03-operators/cross-metaop.t
 S03-operators/equality.t
 S03-operators/not.t
+S03-operators/misc.t
 S03-operators/numeric-context.t
 S03-operators/precedence.t
 S03-operators/range.t

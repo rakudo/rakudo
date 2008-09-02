@@ -45,8 +45,9 @@ S03-operators/precedence.t
 S03-operators/range.t
 S03-operators/relational.t
 S03-operators/repeat.t
-S03-operators/smartmatch.t
 S03-operators/short-circuit.t
+S03-operators/smartmatch.t
+S03-operators/spaceship-and-containers.t
 S03-operators/ternary.t
 S03-operators/true.t
 S03-operators/value_equivalence.t

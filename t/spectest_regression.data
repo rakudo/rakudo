@@ -31,11 +31,13 @@ S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
 S03-operators/autoincrement.t
 S03-operators/comparison.t
+S03-operators/context-forcers.t
 S03-operators/context.t
 S03-operators/cross-metaop.t
 S03-operators/equality.t
 S03-operators/not.t
 S03-operators/numeric-context.t
+S03-operators/precedence.t
 S03-operators/range.t
 S03-operators/relational.t
 S03-operators/repeat.t

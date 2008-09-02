@@ -39,6 +39,7 @@ S03-operators/numeric-context.t
 S03-operators/range.t
 S03-operators/relational.t
 S03-operators/repeat.t
+S03-operators/smartmatch.t
 S03-operators/short-circuit.t
 S03-operators/ternary.t
 S03-operators/true.t
@@ -130,6 +131,7 @@ S29-num/int.t
 S29-num/log.t
 S29-num/pi.t
 S29-num/rand.t
+S29-num/rounders.t
 S29-num/sign.t
 S29-num/sqrt.t
 S29-str/append.t

@@ -63,6 +63,12 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     .return (self)
 .end
 
+.sub 'exists' :method
+    .param pmc key
+
+    $I0 = exists self[key]
+    .return( $I0 )
+.end
 
 =back
 

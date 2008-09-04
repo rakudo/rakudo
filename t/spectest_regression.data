@@ -64,6 +64,7 @@ S04-statement-modifiers/values_in_bool_context.t
 S04-statement-modifiers/while.t
 S04-statements/for_with_only_one_item.t
 S04-statements/do.t
+S04-statements/for-scope.t
 S04-statements/for.t
 S04-statements/given.t
 S04-statements/if.t
@@ -84,6 +85,7 @@ S05-metasyntax/unknown.t
 S05-substitution/subst.t
 S05-transliteration/trans.t
 S06-advanced_subroutine_features/recurse.t
+S06-advanced_subroutine_features/return.t
 S06-multi/syntax.t
 S06-multi/type-based.t
 S06-signature/mixed-placeholders.t

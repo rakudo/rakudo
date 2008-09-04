@@ -3035,70 +3035,31 @@ sub create_sub($/, $past) {
 }
 
 
-# Get's the :immediate setup sub for a block; if it doesn't have one, adds it.
-sub get_block_setup_sub($block) {
-    my $init := $block[0];
-    my $found;
-    for @($init) {
-        if $_.WHAT() eq 'Block' && $_.pirflags() eq ':immediate' {
-            $found := $_;
-        }
-    }
-    unless $found {
-        $found := PAST::Block.new(
-            :blocktype('declaration'),
-            :pirflags(':immediate'),
-
-            # For block type; defaults to Block
-            PAST::Stmts.new(
-                PAST::Op.new(
-                    :inline(
-                        '    .local pmc desc',
-                        '    $P0 = interpinfo .INTERPINFO_CURRENT_SUB',
-                        '    $P0 = $P0."get_outer"()',
-                        '    setprop $P0, "$!proto", %0'
-                    ),
-                    PAST::Var.new(
-                        :name('Block'),
-                        :scope('package')
-                    )
-                )
-            ),
-
-            # For signature setup - default to empty signature object.
-            PAST::Stmts.new(
-                PAST::Op.new(
-                    :inline('    setprop $P0, "$!signature", %0'),
-                    PAST::Op.new(
-                        :pasttype('callmethod'),
-                        :name('!create'),
-                        PAST::Var.new(
-                            :name('Signature'),
-                            :scope('package'),
-                            :namespace(list())
-                        )
-                    )
-                )
-            )
-        );
-        $init.push($found);
-    }
-    $found
-}
-
-
 # Set the proto object type of a block.
 sub set_block_proto($block, $type) {
-    my $setup_sub := get_block_setup_sub($block);
-    $setup_sub[0][0][0].name($type);
+    my $loadinit := $block.loadinit();
+    $loadinit.push(
+        PAST::Op.new(
+            :inline('setprop %0, "$!proto", %1'),
+            PAST::Var.new( :name('block'), :scope('register') ),
+            PAST::Var.new( :name($type), :scope('package') )
+        )
+    );
 }
 
 
 # Associate a signature object with a block.
 sub set_block_sig($block, $sig_obj) {
-    my $setup_sub := get_block_setup_sub($block);
-    $setup_sub[1][0][0] := $sig_obj;
+    my $loadinit := $block.loadinit();
+    $loadinit.push(
+        PAST::Op.new(
+            :inline('setprop %0, "$!signature", %1'),
+            PAST::Var.new( :name('block'), :scope('register') ),
+            $sig_obj
+        )
+    );
 }
+
 
 # Creates a signature descriptor (for now, just a hash).
 sub sig_descriptor_create() {

@@ -360,6 +360,13 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
         result_pos++;
     }
 
+    /* Free memory associated with the graph. */
+    for (i = 0; i < num_candidates; i++) {
+        mem_sys_free(graph[i]->edges);
+        mem_sys_free(graph[i]);
+    }
+    mem_sys_free(graph);
+
     return result;
 }
 
@@ -580,6 +587,20 @@ Frees the memory associated with this PMC's underlying storage.
 
 */
     VTABLE void destroy() {
+        /* If we built a sorted candidate list, free that. */
+        candidate_info **candidates = NULL;
+        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+        if (candidates) {
+            candidate_info **cur_candidate = candidates;
+            while (cur_candidate[0] != NULL || cur_candidate[1] != NULL) {
+                if (*cur_candidate)
+                    mem_sys_free(*cur_candidate);
+                cur_candidate++;
+            }
+            mem_sys_free(candidates);
+        }
+
+        /* Free memory associated with this PMC's underlying struct. */
         mem_sys_free(PMC_data(SELF));
         PMC_data(SELF) = NULL;
     }

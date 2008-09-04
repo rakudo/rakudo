@@ -38,7 +38,6 @@ method TOP($/) {
                               'have_perl6:')
         )
     );
-    
 
     #  convert the last operation of the block into a .return op
     #  so that :load block below isn't used as return value

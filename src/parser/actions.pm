@@ -26,8 +26,19 @@ method TOP($/) {
         $?INIT := PAST::Block.new(); # For the next eval.
     }
 
-    # Make sure we have the interpinfo constants.
+    #  Make sure we have the interpinfo constants.
     $past.unshift( PAST::Op.new( :inline('.include "interpinfo.pasm"') ) );
+
+    #  Add code to load perl6.pbc if it's not already present
+    my $loadinit := $past.loadinit();
+    $loadinit.unshift(
+        PAST::Op.new( :inline('$P0 = compreg "Perl6"',
+                              'unless null $P0 goto have_perl6',
+                              'load_bytecode "perl6.pbc"',
+                              'have_perl6:')
+        )
+    );
+    
 
     #  convert the last operation of the block into a .return op
     #  so that :load block below isn't used as return value

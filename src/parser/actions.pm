@@ -272,7 +272,7 @@ method loop_statement($/) {
     my $block := $( $<block> );
     $block.blocktype('immediate');
     my $cond  := $<e2> ?? $( $<e2>[0] ) !! PAST::Val.new( :value( 1 ) );
-    if $<e3> {  
+    if $<e3> {
         $block := PAST::Stmts.new( $block, $( $<e3>[0] ) );
     }
     my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );

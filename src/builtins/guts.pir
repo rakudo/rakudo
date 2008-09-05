@@ -88,18 +88,18 @@ not found, C<!OUTER> returns null.
     .local int depth
     depth = min + 1
     .local pmc lexpad, value
+    $P0 = getinterp
     push_eh outer_err
     null value
   loop:
-    unless max >= min goto done
-    $P0 = getinterp
     lexpad = $P0['outer', depth]
     unless lexpad goto next
     value = lexpad[name]
     unless null value goto done
   next:
+    # depth goes from min + 1 to max + 1
+    if depth > max goto done
     inc depth
-    dec max
     goto loop
   done:
     pop_eh

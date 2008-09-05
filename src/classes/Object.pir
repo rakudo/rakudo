@@ -128,6 +128,23 @@ objects, we create a List containing the invocant.
 .end
 
 
+=item defined()
+
+Return true if the object is defined.
+
+=cut
+
+.sub 'defined' :method
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return ($P0)
+.end
+
+.sub '' :method :vtable('defined')
+    $I0 = self.'defined'()
+    .return ($I0)
+.end
+
+
 =item new()
 
 Create a new object having the same class as the invocant.
@@ -520,6 +537,16 @@ Returns the protoobject's autovivification closure.
   ret_undef:
     whence = new 'Undef'
     .return (whence)
+.end
+
+
+=item defined()
+
+=cut
+
+.sub 'defined' :method
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
 .end
 
 

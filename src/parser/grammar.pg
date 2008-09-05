@@ -272,9 +272,9 @@ rule loop_statement {
     $<sym>=[loop]
     $<eee>=[
         '('
-            <e1=EXPR> ';'
-            <e2=EXPR> ';'
-            <e3=EXPR>
+            <e1=EXPR>? ';'
+            <e2=EXPR>? ';'
+            <e3=EXPR>?
         ')'
     ]?
     <block>

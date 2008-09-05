@@ -196,7 +196,7 @@ Generate the next element at the end of the Range.
   have_value:
     $I0 = self.'!from_test'(value)
     if $I0 goto success
-    value = new 'Failure'
+    value = '!FAIL'('Undefined value popped from empty range')
   success:
     .return (value)
 .end
@@ -218,7 +218,7 @@ Generate the next element at the front of the Range.
   have_value:
     $I0 = self.'!to_test'(value)
     if $I0 goto success
-    value = new 'Failure'
+    value = '!FAIL'('Undefined value shifted from empty range')
   success:
     .return (value)
 .end

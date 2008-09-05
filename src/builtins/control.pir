@@ -26,8 +26,8 @@ the moment -- we'll do more complex handling a bit later.)
 .include 'except_types.pasm'
 
 .sub 'return'
-    .param pmc value     :optional
-    .param int has_value :opt_flag
+    .param pmc value           :optional
+    .param int has_value       :opt_flag
 
     if has_value goto have_value
     value = 'list'()
@@ -37,6 +37,24 @@ the moment -- we'll do more complex handling a bit later.)
     setattribute $P0, 'payload', value
     throw $P0
     .return (value)
+.end
+
+
+=item fail
+
+=cut
+
+.sub '!FAIL'
+    .param string value        :optional
+    .param int has_value       :opt_flag
+    if has_value goto have_value
+    value = 'Use of uninitialized value'
+  have_value:
+    $P0 = new 'Exception'
+    $P0['message'] = value
+    $P1 = new 'Failure'
+    setattribute $P1, '$!exception', $P0
+    .return ($P1)
 .end
 
 

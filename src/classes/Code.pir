@@ -37,7 +37,7 @@ for executable objects.
     .return (match)
 .end
 
-=item ACCEPTS(topic)
+=item REJECTS(topic)
 
 =cut
 

@@ -6,6 +6,7 @@ S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
+S02-builtin_data_types/bool.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash.t
 S02-builtin_data_types/hash_ref.t
@@ -78,7 +79,7 @@ S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
-S05-mass/pge-tests.t
+S05-mass/rx.t
 S05-match/blocks.t
 S05-metasyntax/changed.t
 S05-metasyntax/regex.t

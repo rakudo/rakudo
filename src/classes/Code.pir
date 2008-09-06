@@ -37,20 +37,6 @@ for executable objects.
     .return (match)
 .end
 
-=item REJECTS(topic)
-
-=cut
-
-.sub 'REJECTS' :method
-    .param pmc topic
-    .local pmc match
-    match = self(topic)
-    if match goto matched
-    .return (1)
-  matched:
-    .return (0)
-.end
-
 =item perl()
 
 Return a response to .perl.

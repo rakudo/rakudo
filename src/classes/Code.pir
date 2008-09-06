@@ -37,6 +37,20 @@ for executable objects.
     .return (match)
 .end
 
+=item REJECTS(topic)
+
+=cut
+
+.sub 'REJECTS' :method
+    .param pmc topic
+    .local pmc match
+    match = self(topic)
+    $P0 = getinterp
+    $P1 = $P0['lexpad';1]
+    $P1['$/'] = match
+    .return 'prefix:!'(match)
+.end
+
 =item perl()
 
 Return a response to .perl.

@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chars index substr', 'from'=>$P0)
+    '!EXPORT'('chars index rindex substr', 'from'=>$P0)
 .end
 
 
@@ -63,6 +63,48 @@ the size of that file down and to emphasize their generic,
 
   substring_search:
     pos = index s, substring, pos
+    if pos < 0 goto fail
+
+  done:
+    $P0 = new 'Int'
+    $P0 = pos
+    .return ($P0)
+
+  fail:
+    $P0 = new 'Failure'
+    .return ($P0)
+.end
+
+=item rindex()
+
+=cut
+
+.namespace ['Any']
+.sub 'rindex' :method :multi(_, _)
+    .param string substring
+    .param int pos             :optional
+    .param int has_pos         :opt_flag
+    .local pmc retv
+
+  check_substring:
+    if substring goto substring_search
+
+    # we do not have substring return pos or length
+
+    .local string s
+    s = self
+    $I0 = length s
+
+    if has_pos goto have_pos
+    pos = $I0
+    goto done
+  have_pos:
+    if pos < $I0 goto done
+    pos = $I0
+    goto done
+
+  substring_search:
+    pos = self.'reverse_index'(substring, pos)
     if pos < 0 goto fail
 
   done:

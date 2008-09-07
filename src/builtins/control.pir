@@ -57,6 +57,19 @@ the moment -- we'll do more complex handling a bit later.)
     .return ($P1)
 .end
 
+.sub 'fail'
+    .param pmc value           :optional
+    .param int has_value       :opt_flag
+    .local pmc result
+    if has_value goto have_value
+    result = '!FAIL'()
+    goto done
+  have_value:
+    result = '!FAIL'(value)
+  done:
+    'return'(result)
+    .return(result)
+.end
 
 =item die
 

@@ -35,6 +35,12 @@ Fudge directives containing the words I<unspecced> or I<unicode> are ignored.
 The latter is because Unicode related tests can succeed on platforms with icu
 installed, and fail on other platforms.
 
+By default some files are skipped (which can be overridden with the
+C<--exclude> option) because certain tests loop (at the time of writing
+C<t/spec/S04-statement-modifiers/while.t>), others because processing them
+simply takes too long; C<t/spec/S05-mass/rx.t> contains more than 250
+fudge lines and thus would take about three hours to autoumatically unfudge.
+
 =cut
 
 use strict;
@@ -52,6 +58,7 @@ use Text::Diff;
 my $impl = 'rakudo';
 our $debug = 0;
 our $out_filename = 'autounfudge.patch';
+my $exclude = '(?:rx\.t|modifiers/(while|until).t)$';
 
 GetOptions  'impl=s'        => \$impl,
             'debug'         => \$debug,
@@ -59,6 +66,7 @@ GetOptions  'impl=s'        => \$impl,
             'auto'          => \my $auto,
             'keep-env'      => \my $keep_env,
             'unskip'        => \my $unskip,
+            'exclude'       => \$exclude,
             or usage();
 
 delete $ENV{PERL6LIB} unless $keep_env;
@@ -159,6 +167,7 @@ Valid options:
     --specfile file     Specification file to read filenames from
     --auto              use t/spectest_regression.data for --specfile
     --keep-env          Keep PERL6LIB environment variable.
+    --exclude regex     Don't run the tests that match regex
 USAGE
 }
 
@@ -212,6 +221,7 @@ sub read_specfile {
         next if m/#/;
         next unless m/\S/;
         s/\s+\z//;
+        next if m/$exclude/;
         push @res, "t/spec/$_";
     }
     return @res;

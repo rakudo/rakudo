@@ -35,7 +35,7 @@ pmclass Mutable need_ext dynpmc group perl6_group {
         PObj_active_destroy_SET(SELF);
 
         /* Create underlying structure. */
-        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Mutable);
+        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Mutable_attributes);
         SET_ATTR_cached_type(INTERP, SELF, type_obj);
 
         /* Initialize with an undef PMC if no value. */

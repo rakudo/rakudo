@@ -20,6 +20,7 @@ S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
+S02-literals/pairs.t
 S02-literals/radix.t
 S02-magicals/dollar-underscore.t
 S02-names_and_variables/perl.t

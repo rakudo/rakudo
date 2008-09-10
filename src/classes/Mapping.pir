@@ -104,8 +104,8 @@ Returns elements of hash as array of C<Pair(key, value)>
     unless iter goto end
     $S1 = shift iter
     push rv, $S1
-    $S1 = iter[$S1]
-    push rv, $S1
+    $P1 = iter[$S1]
+    push rv, $P1
     goto loop
   end:
     .return (rv)

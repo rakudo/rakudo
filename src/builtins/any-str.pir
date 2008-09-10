@@ -104,7 +104,16 @@ the size of that file down and to emphasize their generic,
     goto done
 
   substring_search:
-    pos = self.'reverse_index'(substring, pos)
+    $I0 = self.'isa'('String')
+    if $I0 goto self_string
+    $P0 = new 'String'
+    $S0 = self
+    $P0 = $S0
+    goto do_search
+  self_string:
+    $P0 = self
+  do_search:
+    pos = $P0.'reverse_index'(substring, pos)
     if pos < 0 goto fail
 
   done:

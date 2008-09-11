@@ -46,7 +46,7 @@ as the Perl 6 C<Str> class.
     .return(retv)
 .end
 
-.sub 'split' :method :multi('Perl6Str')
+.sub 'split' :method :multi('String')
     .param string delim
     .local string objst
     .local pmc pieces

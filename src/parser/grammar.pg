@@ -550,6 +550,7 @@ token term {
         | :: {*}                                 #= listop noarg
         ]
     | <sigil> \s <arglist> {*}                   #= sigil
+    | '...' {*}                                  #= ...
     ]
 }
 

@@ -189,6 +189,12 @@ Create a new object having the same class as the invocant.
     .local pmc cur_class
     cur_class = shift class_iter
 
+    # If it's PMCProxy, then skip over it, since it's attribute is the delegate
+    # instance of a parent PMC class, which we should not change to Undef.
+    .local int is_pmc_proxy
+    is_pmc_proxy = isa cur_class, "PMCProxy"
+    if is_pmc_proxy goto class_iter_loop_end
+
     # If this the current class?
     .local pmc init_attribs
     eq_addr cur_class, $P0, current_class

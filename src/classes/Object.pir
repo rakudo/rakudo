@@ -550,6 +550,28 @@ Returns the protoobject's autovivification closure.
 .end
 
 
+=item item()
+
+Returns itself in item context.
+
+=cut
+
+.sub 'item' :method
+    .return (self)
+.end
+
+
+=item list()
+
+Returns a list containing itself in list context.
+
+=cut
+
+.sub 'list' :method
+    .return 'list'(self)
+.end
+
+
 =item get_pmc_keyed(key)    (vtable method)
 
 Returns a proto-object with an autovivification closure attached to it.

@@ -53,11 +53,11 @@
 
 .sub 'ACCEPTS' :method
     .param pmc other
-    $I0 = other.'defined'()
-    if $I0 goto undefined
-    .return(0)
-  undefined:
+    $I0 = defined other
+    if $I0 goto defined
     .return(1)
+  defined:
+    .return(0)
 .end
 
 

@@ -24,6 +24,9 @@ GetOptions(
         'tests-from-file=s' => \my $list_file,
         'fudge'             => \my $do_fudge,
         'verbosity=i'       => \$harness_args{verbosity},
+        # A sensible default is num_cores + 1.
+        # Many people have two cores these days.
+        'jobs:3'            => \$harness_args{jobs},
     );
 
 

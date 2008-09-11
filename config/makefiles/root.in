@@ -197,21 +197,22 @@ testtest: all test
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
 HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code
+HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 
 spectest: all t/spec
 	-cd t/spec && svn up
-	$(HARNESS_WITH_FUDGE) t/spec
+	$(HARNESS_WITH_FUDGE_JOBS) t/spec
 
 # Run the spectests that we know work.
 spectest_regression: all t/spec t/spectest_regression.data
 	-cd t/spec && svn up
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest_regression.data
+	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest_regression.data
 
 fulltest: coretest spectest_regression codetest
 
 # Run the tests in t/localtest.data
 localtest: all t/spec t/localtest.data
-	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
+	@$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
 localtest_loud: all t/spec t/localtest.data
@@ -220,11 +221,11 @@ localtest_loud: all t/spec t/localtest.data
 # Run many tests of your choise.
 # make somtests TESTFILES=t/foo/bar
 sometests: all
-	@$(HARNESS_WITH_FUDGE) $(TESTFILES)
+	@$(HARNESS_WITH_FUDGE_JOBS) $(TESTFILES)
 
 # Run a single test
 t/*.t t/*/*.t t/*/*/*.t: all
-	@$(HARNESS_WITH_FUDGE) $@
+	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@

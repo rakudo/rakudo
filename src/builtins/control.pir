@@ -71,6 +71,22 @@ the moment -- we'll do more complex handling a bit later.)
     .return(result)
 .end
 
+
+=item term:...
+
+=cut
+
+.sub '...'
+    .param pmc message        :optional
+    .param int have_message   :opt_flag
+    if have_message goto message_done
+    message = new 'Perl6Str'
+    message = "Attempt to execute stub code (...)"
+  message_done:
+    'fail'(message)
+.end
+
+
 =item die
 
 =cut

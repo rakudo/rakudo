@@ -2501,14 +2501,6 @@ method term($/, $key) {
             $( $<arglist> )
         );
     }
-    elsif $key eq '...' {
-        $past := PAST::Op.new(
-            :pasttype('call'),
-            :name('fail'),
-            :node($/),
-            PAST::Val.new( :value("Attempt to execute stub code (...).") )
-        );
-    }
     else { $past := $( $/{$key} ); }
     $past.node($/);
     make $past;

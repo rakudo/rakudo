@@ -2284,11 +2284,18 @@ method circumfix($/, $key) {
     }
     elsif $key eq '$( )' {
         my $method := contextualizer_name($/, $<sigil>);
+        my $call_on := $( $<semilist> );
+        if $call_on.name() eq 'infix:,' && +@($call_on) == 0 {
+            $call_on := PAST::Var.new(
+                :name('$/'),
+                :scope('lexical')
+            );
+        }
         $past := PAST::Op.new(
             :pasttype('callmethod'),
             :name($method),
             :node($/),
-            $( $<semilist> )
+            $call_on
         );
     }
     make $past;

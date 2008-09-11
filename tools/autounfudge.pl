@@ -58,7 +58,7 @@ use Text::Diff;
 my $impl = 'rakudo';
 our $debug = 0;
 our $out_filename = 'autounfudge.patch';
-my $exclude = '(?:rx\.t|modifiers/(while|until).t)$';
+my $exclude = '(?:(?:chop|rx|rounders)\.t|modifiers/(while|until).t)$';
 
 GetOptions  'impl=s'        => \$impl,
             'debug'         => \$debug,

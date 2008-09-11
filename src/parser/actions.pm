@@ -510,6 +510,16 @@ method routine_declarator($/, $key) {
     elsif $key eq 'method' {
         $past := $($<method_def>);
 
+        # If it's got a name, only valid inside a class, role or grammar.
+        if $past.name() {
+            our @?CLASS;
+            our @?GRAMMAR;
+            our @?ROLE;
+            unless +@?CLASS || +@?GRAMMAR || +@?ROLE {
+                $/.panic("Named methods cannot appear outside of a class, grammar or role.");
+            }
+        }
+
         # Add declaration of leixcal self.
         $past[0].unshift(PAST::Op.new(
             :pasttype('bind'),

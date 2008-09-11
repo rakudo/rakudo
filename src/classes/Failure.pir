@@ -51,6 +51,15 @@
   done:
 .end
 
+.sub 'ACCEPTS' :method
+    .param pmc other
+    $I0 = other.'defined'()
+    if $I0 goto undefined
+    .return(0)
+  undefined:
+    .return(1)
+.end
+
 
 .sub 'defined' :method
     $P0 = self.'!exception'()

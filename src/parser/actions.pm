@@ -1630,6 +1630,9 @@ method package_def($/, $key) {
                 $?INIT := PAST::Block.new();
             }
             $?INIT.push( $?GRAMMAR );
+
+            # Clear namespace.
+            $?NS := '';
         }
 
         make $past;
@@ -1686,6 +1689,9 @@ method role_def($/, $key) {
                 $?INIT.push( $_ );
             }
         }
+
+        # Clear namespace.
+        $?NS := '';
 
         make $past;
     }

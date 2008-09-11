@@ -89,11 +89,10 @@ not found, C<!OUTER> returns null.
     depth = min + 1
     .local pmc lexpad, value
     $P0 = getinterp
-    push_eh outer_err
     null value
   loop:
-    lexpad = $P0['outer', depth]
-    unless lexpad goto next
+    lexpad = $P0['lexpad', depth]
+    if null lexpad goto next
     value = lexpad[name]
     unless null value goto done
   next:
@@ -102,7 +101,6 @@ not found, C<!OUTER> returns null.
     inc depth
     goto loop
   done:
-    pop_eh
   outer_err:
     .return (value)
 .end

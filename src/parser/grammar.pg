@@ -684,7 +684,10 @@ token quote {
     | <.before '<' > <quote_expression: :w :q>
     # | <.before '«' > <quote_expression: :ww :qq>  FIXME: unicode
     | <.before '/'>  <quote_expression: :regex>
-    | m <.ws>        <quote_expression: :regex>
+    | m   <.ws>      <quote_expression: :regex>
+    | qq  <.ws>      <quote_expression: :qq>
+    | qw  <.ws>      <quote_expression: :q :w>
+    | q   <.ws>      <quote_expression: :q>
     ]
     {*}
 }

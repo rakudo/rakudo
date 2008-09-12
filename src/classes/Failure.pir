@@ -3,10 +3,12 @@
 .namespace [ 'Failure' ]
 
 .sub 'onload' :anon :init :load
-    .local pmc p6meta, failureproto
+    .local pmc p6meta, failureproto, exceptionproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     failureproto = p6meta.'new_class'('Failure', 'parent'=>'Undef Any', 'attr'=>'$!exception')
     p6meta.'register'('Undef', 'parent'=>failureproto, 'protoobject'=>failureproto)
+    exceptionproto = p6meta.'new_class'('Perl6Exception', 'parent'=>'Any', 'attr'=>'$!exception')
+    p6meta.'register'('Exception', 'protoobject'=>exceptionproto)
 .end
 
 

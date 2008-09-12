@@ -61,7 +61,7 @@ should be smart enough to do this at compile time.
   param_loop:
     unless param_iter goto param_loop_end
     cur_param = shift param_iter
-    
+
     # Get constraints list, which may have class and role types as well as
     # subset types. If we have no unique role or class type, they all become
     # constraints; otherwise, we find the unique type.

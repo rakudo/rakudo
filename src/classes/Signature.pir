@@ -45,12 +45,58 @@ Again, this probably isn't definitive either, but it'll get us going.
 
 =item !create
 
-Used to create a new signature object with the given paramter descriptors.
+Used to create a new signature object with the given paramter descriptors. The
+constraitns entry that we actually get passed in here contains both class, role
+and subset types; we separate them out in here. At some point in the future, we
+should be smart enough to do this at compile time.
 
 =cut
 
 .sub '!create' :method
     .param pmc parameters :slurpy
+
+    # Iterate over parameters.
+    .local pmc param_iter, cur_param
+    param_iter = iter parameters
+  param_loop:
+    unless param_iter goto param_loop_end
+    cur_param = shift param_iter
+    
+    # Get constraints list, which may have class and role types as well as
+    # subset types. If we have no unique role or class type, they all become
+    # constraints; otherwise, we find the unique type.
+    .local pmc cur_list, cur_list_iter, constraints, type, test_item
+    constraints = 'list'()
+    type = null
+    cur_list = cur_param["constraints"]
+    cur_list_iter = iter cur_list
+
+  cur_list_loop:
+    unless cur_list_iter goto cur_list_loop_end
+    test_item = shift cur_list_iter
+    $I0 = isa test_item, "Role"
+    if $I0 goto is_type
+    $I0 = isa test_item, "P6protoobject"
+    if $I0 goto is_type
+    push constraints, test_item
+    goto cur_list_loop
+  is_type:
+    unless null type goto all_constraints
+    type = test_item
+    goto cur_list_loop
+  all_constraints:
+    type = null
+    constraints = cur_list
+  cur_list_loop_end:
+    unless null type goto have_type
+    type = get_hll_global 'Any'
+  have_type:
+    cur_param["type"] = type
+    cur_param["constraints"] = constraints
+
+    goto param_loop
+  param_loop_end:
+
     $P0 = self.'new'()
     setattribute $P0, '@!params', parameters
     .return ($P0)

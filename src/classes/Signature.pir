@@ -64,7 +64,8 @@ should be smart enough to do this at compile time.
 
     # Get constraints list, which may have class and role types as well as
     # subset types. If we have no unique role or class type, they all become
-    # constraints; otherwise, we find the unique type.
+    # constraints; otherwise, we find the unique type. Finally, we turn the
+    # list of constraints into a junction.
     .local pmc cur_list, cur_list_iter, constraints, type, test_item
     constraints = 'list'()
     type = null
@@ -92,6 +93,13 @@ should be smart enough to do this at compile time.
     type = get_hll_global 'Any'
   have_type:
     cur_param["type"] = type
+    $I0 = elements constraints
+    if $I0 == 0 goto no_constraints
+    constraints = 'all'(constraints)
+    goto set_constraints
+  no_constraints:
+    constraints = null
+  set_constraints:
     cur_param["constraints"] = constraints
 
     goto param_loop

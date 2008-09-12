@@ -3049,7 +3049,7 @@ sub create_sub($/, $past) {
     $past.blocktype('declaration');
     set_block_proto($past, 'Sub');
     if $<routine_def><multisig> {
-        #set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
+        set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
     }
 }
 

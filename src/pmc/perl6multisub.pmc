@@ -451,8 +451,9 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, i
                 PMC *type_obj = possibles[i]->constraints[j];
                 if (!PMC_IS_NULL(type_obj)) {
                     PMC *param = VTABLE_get_pmc_keyed_int(interp, args, j);
-                    PMC *result = Parrot_runops_fromc_args(interp, type_obj,
-                            "PP", param);
+                    PMC *accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
+                    PMC *result = (PMC*)Parrot_run_meth_fromc_args(interp, accepts_meth,
+                        type_obj, ACCEPTS, "PP", param);
                     constraint_checked = 1;
                     if (!VTABLE_get_integer(interp, result)) {
                         constraint_failed = 1;

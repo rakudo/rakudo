@@ -51,10 +51,8 @@ Creates the Perl 6 document reader by subclassing a C<PCT::HLLCompiler> object.
     ##  set the $usage attribute
     $P0 = new 'String'
     $P0 = <<'USAGE'
-Usage: perl6 [switches] [--] [programfile] [arguments]
+Usage: perl6doc [switches] [--] [podfile]
   -h, --help           display this help text
-  --target=[stage]     specify compilation stage to emit
-  -t, --trace=[flags]  enable trace flags
   -V, --version        display version information
 USAGE
     setattribute self, '$usage', $P0

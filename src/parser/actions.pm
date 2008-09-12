@@ -537,6 +537,9 @@ method routine_declarator($/, $key) {
         if $<method_def><multisig> {
             set_block_sig($past, $( $<method_def><multisig>[0]<signature> ));
         }
+        else {
+            set_block_sig($past, empty_signature());
+        }
         $past := add_method_to_class($past);
     }
     $past.node($/);
@@ -3051,6 +3054,9 @@ sub create_sub($/, $past) {
     if $<routine_def><multisig> {
         set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
     }
+    else {
+        set_block_sig($past, empty_signature());
+    }
 }
 
 
@@ -3077,6 +3083,20 @@ sub set_block_sig($block, $sig_obj) {
             $sig_obj
         )
     );
+}
+
+
+# Create an empty signautre object for subs with no signatures.
+sub empty_signature() {
+    PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('!create'),
+        PAST::Var.new(
+            :name('Signature'),
+            :scope('package'),
+            :namespace(list())
+        )
+    )
 }
 
 

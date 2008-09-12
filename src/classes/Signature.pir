@@ -46,7 +46,7 @@ Again, this probably isn't definitive either, but it'll get us going.
 =item !create
 
 Used to create a new signature object with the given paramter descriptors. The
-constraitns entry that we actually get passed in here contains both class, role
+constraints entry that we actually get passed in here contains both class, role
 and subset types; we separate them out in here. At some point in the future, we
 should be smart enough to do this at compile time.
 

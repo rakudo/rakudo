@@ -4,9 +4,13 @@
 
 src/builtins/misc.pir - miscellaneous builtins that need reclassification
 
+=head1 BUILTINS
+
+=over
+
 =item prefix:=
 
-cut
+=cut
 
 .sub 'prefix:=' :multi(_)
     .param pmc what
@@ -24,6 +28,7 @@ cut
     .return 'prefix:='($P0)
 .end
 
+=back
 
 # Local Variables:
 #   mode: pir

@@ -421,6 +421,15 @@ method statement_prefix($/) {
         my $elsepir  := "    new %r, 'Failure'\n    store_lex '$!', %r";
         $past.push( PAST::Op.new( :inline( $elsepir ) ) );
     }
+    elsif $sym eq 'gather' {
+        if $past.isa(PAST::Block) {
+            $past.blocktype('declaration');
+        }
+        else {
+            $past := PAST::Block.new(:blocktype('declaration'), $past)
+        }
+        $past := PAST::Op.new( $past, :pasttype('call'), :name('gather'), :node($/) );
+    }
     else {
         $/.panic( $sym ~ ' not implemented');
     }

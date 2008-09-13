@@ -35,36 +35,36 @@ multi sub pass($desc) {
     proclaim(1, $desc);
 }
 
-multi sub ok($cond, $desc) {
+multi sub ok(Object $cond, $desc) {
     proclaim($cond, $desc);
 }
 
-multi sub ok($cond) { ok($cond, ''); }
+multi sub ok(Object $cond) { ok($cond, ''); }
 
 
-multi sub nok($cond, $desc) {
+multi sub nok(Object $cond, $desc) {
     proclaim(!$cond, $desc);
 }
 
-multi sub nok($cond) { nok(!$cond, ''); }
+multi sub nok(Object $cond) { nok(!$cond, ''); }
 
 
-multi sub is($got, $expected, $desc) {
+multi sub is(Object $got, Object $expected, $desc) {
     my $test = $got eq $expected;
     proclaim($test, $desc);
 }
 
-multi sub is($got, $expected) { is($got, $expected, ''); }
+multi sub is(Object $got, Object $expected) { is($got, $expected, ''); }
 
 
-multi sub isnt($got, $expected, $desc) {
+multi sub isnt(Object $got, Object $expected, $desc) {
     my $test = !($got eq $expected);
     proclaim($test, $desc);
 }
 
-multi sub isnt($got, $expected) { isnt($got, $expected, ''); }
+multi sub isnt(Object $got, Object $expected) { isnt($got, $expected, ''); }
 
-multi sub is_approx($got, $expected, $desc) {
+multi sub is_approx(Object $got, Object $expected, $desc) {
     my $test = abs($got - $expected) <= 0.00001;
     proclaim($test, $desc);
 }

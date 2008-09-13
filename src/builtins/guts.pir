@@ -208,6 +208,49 @@ subtyping relations, etc).
 .end
 
 
+=item !TOPERL6MULTISUB
+
+At the moment, we don't have the abilility to have Parrot use our own MultiSub
+type, nor are we ready to (because built-ins need to get Perl 6 signatures
+first). So for now we just transform multis in user code like this.
+
+=cut
+
+.sub '!TOPERL6MULTISUB'
+    .param pmc sub
+
+    # Look up what's currently installed in the namespace for this sub; if it
+    # is already a Perl6MultiSub, leave it.
+    .local pmc namespace, current_thing
+    .local string name
+    namespace = sub.'get_namespace'()
+    name = sub
+    current_thing = namespace[name]
+    if null current_thing goto error
+    $S0 = typeof current_thing
+    if $S0 == 'MultiSub' goto not_perl6_multisub
+    .return()
+
+    # It's not a Perl6MultiSub, create one, shift contents and install in
+    # the namespace.
+  not_perl6_multisub:
+    .local pmc p6multi, sub_iter
+    p6multi = new 'Perl6MultiSub'
+    sub_iter = iter current_thing
+  iter_loop:
+    unless sub_iter goto iter_loop_end
+    $P0 = shift sub_iter
+    push p6multi, $P0
+    goto iter_loop
+  iter_loop_end:
+    namespace[name] = p6multi
+    .return()
+
+  error:
+    'die'('Sub lookup failed')
+.end
+
+
 =item !keyword_class(name)
 
 Internal helper method to create a class.
@@ -307,9 +350,13 @@ Internal helper method to create an enum class.
 
     # Create an anonymous class and attach the role.
     class = new 'Class'
-    $P0 = get_class 'Any'
-    addparent class, $P0
     "!keyword_does"(class, role)
+
+    # Register it.
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta.register(class, 'parent'=>'Any')
+
     .return(class)
 .end
 

@@ -21,6 +21,7 @@ S02-literals/autoref.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
 S02-literals/pairs.t
+S02-literals/quoting.t
 S02-literals/radix.t
 S02-literals/underscores.t
 S02-magicals/dollar-underscore.t

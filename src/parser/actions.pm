@@ -428,6 +428,11 @@ method statement_prefix($/) {
         else {
             $past := PAST::Block.new(:blocktype('declaration'), $past)
         }
+        # XXX Workaround for lexicals issue.  rt #58854
+        $past := PAST::Op.new(
+            :inline('    %r = newclosure %0'),
+            $past
+        ),
         $past := PAST::Op.new( $past, :pasttype('call'), :name('gather'), :node($/) );
     }
     else {

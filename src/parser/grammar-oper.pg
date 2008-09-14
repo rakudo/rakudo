@@ -75,6 +75,7 @@ proto prefix:<HOW> is equiv(prefix:<abs>) is subname('HOW') { ... }
 proto prefix:<WHAT> is equiv(prefix:<abs>) is subname('WHAT') { ... }
 proto prefix:<pop> is equiv(prefix:<abs>) is subname('pop') { ... }
 proto prefix:<shift> is equiv(prefix:<abs>) is subname('shift') { ... }
+proto prefix:<defined> is equiv(prefix:<abs>) is subname('defined') { ... }
 
 ## nonchaining
 proto infix:<..> is precedence('n=') { ... }

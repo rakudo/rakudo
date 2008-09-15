@@ -2506,7 +2506,10 @@ method semilist($/) {
 
 
 method arglist($/) {
-    make $($<EXPR>);
+    my $past := $<EXPR> 
+                    ?? $( $<EXPR> ) 
+                    !! PAST::Op.new( :node($/), :name('infix:,') );
+    make $past;
 }
 
 

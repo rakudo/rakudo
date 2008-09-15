@@ -163,7 +163,16 @@ rule statementlist {
 ##  isn't present -- e.g., a closing '}' at the end of a line
 ##  for a <block>.
 
-token terminator { <[ ; ) \] } ]> || '!!' || '<==' || '==>' || '-->' }
+token terminator { 
+    |  <[ ; ) \] } ]> 
+    | '!!' 
+    | '-->' 
+    | [ if | unless | while | until | for | given | when ] >> 
+}
+
+token stdstopper {
+    <?terminator>
+}
 
 token eat_terminator {
     || ';'
@@ -809,7 +818,10 @@ rule semilist {
 }
 
 token arglist {
-    <EXPR: 'e='>                                 # EXPR(%list_assignment)
+    [
+    | <?terminator>
+    | <EXPR: 'e='>                                 # EXPR(%list_assignment)
+    ]
     {*}
 }
 

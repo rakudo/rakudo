@@ -3234,7 +3234,7 @@ sub make_anon_subset($past, $parameter) {
         :pasttype('call'),
         :name('!TYPECHECKPARAM'),
         PAST::Op.new(
-            :inline('    %r = newclosure %0'),
+            :pirop('newclosure'),
             $past
         ),
         PAST::Var.new(

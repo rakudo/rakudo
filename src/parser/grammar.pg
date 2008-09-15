@@ -167,7 +167,7 @@ token terminator { <[ ; ) \] } ]> || '!!' || '<==' || '==>' || '-->' }
 
 token eat_terminator {
     || ';'
-    || <?before <terminator>>                    # FIXME: <?terminator>
+    || <?terminator>
     || {{ $P0 = get_global '$!endstmt'
           $P1 = get_global '$!ws'
           $P2 = $P1.'from'()

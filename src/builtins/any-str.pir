@@ -36,6 +36,35 @@ the size of that file down and to emphasize their generic,
     .return ($I0)
 .end
 
+=item comb()
+
+Partial implementation for now, returns a list of strings
+(instead of a list of match objects).
+
+=cut
+
+.sub comb :method :multi(_)
+    .param pmc regex
+    .local pmc retv, match
+    .local string s
+
+    retv = new 'List'
+    s = self
+
+  do_match:
+    match = regex.'ACCEPTS'(s)
+    unless match goto done
+    $S0 = match
+    retv.'push'($S0)
+    $I0 = match.'to'()
+    s = substr s, $I0
+    goto do_match
+
+  done:
+    .return(retv)
+.end
+
+
 =item index()
 
 =cut

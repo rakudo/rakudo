@@ -105,6 +105,17 @@ Partial implementation for now, returns a list of strings
     .return ($P0)
 .end
 
+=item match()
+
+=cut
+
+.sub 'match' :method :multi(_)
+    .param pmc x
+    .local pmc match
+    match = x(self)
+    .return(match)
+.end
+
 =item rindex()
 
 =cut
@@ -178,7 +189,6 @@ Partial implementation for now, returns a list of strings
     $S1 = substr $S0, start, len
     .return ($S1)
 .end
-
 
 =item trans()
 

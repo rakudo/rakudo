@@ -46,7 +46,7 @@ for executable objects.
 .sub 'REJECTS' :method
     .param pmc topic
     .local pmc match
-    match = self(topic)
+    match = topic.'match'(self)
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match

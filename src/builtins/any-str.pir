@@ -54,6 +54,7 @@ Partial implementation for now, returns a list of strings
   do_match:
     match = regex.'ACCEPTS'(s)
     unless match goto done
+    # shouldn't have to coerce to Str here, but see RT #55962
     $S0 = match
     retv.'push'($S0)
     $I0 = match.'to'()

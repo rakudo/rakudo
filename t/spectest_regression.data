@@ -157,6 +157,7 @@ S29-num/sqrt.t
 S29-str/append.t
 S29-str/capitalize.t
 S29-str/chop.t
+S29-str/comb.t
 S29-str/index.t
 S29-str/lcfirst.t
 S29-str/lc.t

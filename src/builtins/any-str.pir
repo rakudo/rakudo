@@ -43,8 +43,10 @@ Partial implementation for now, returns a list of strings
 
 =cut
 
-.sub comb :method :multi(_)
+.sub 'comb' :method :multi(_)
     .param pmc regex
+    .param int count        :optional
+    .param int has_count    :opt_flag
     .local pmc retv, match
     .local string s
 
@@ -54,6 +56,10 @@ Partial implementation for now, returns a list of strings
   do_match:
     match = regex.'ACCEPTS'(s)
     unless match goto done
+    unless has_count goto skip_count
+    dec count
+    if count < 0 goto done
+  skip_count:
     # shouldn't have to coerce to Str here, but see RT #55962
     $S0 = match
     retv.'push'($S0)

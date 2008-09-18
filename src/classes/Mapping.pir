@@ -17,6 +17,8 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     mappingproto = p6meta.'new_class'('Mapping', 'parent'=>'Hash Any')
     p6meta.'register'('Hash', 'parent'=>mappingproto, 'protoobject'=>mappingproto)
+    $P0 = get_hll_namespace ['Mapping']
+    '!EXPORT'('keys kv values', $P0)
 .end
 
 
@@ -95,7 +97,7 @@ Returns elements of hash as array of C<Pair(key, value)>
 
 =cut
 
-.sub 'kv' :method
+.sub 'kv' :method :multi('Hash')
     .local pmc iter
     .local pmc rv
     iter = new 'Iterator', self
@@ -113,7 +115,7 @@ Returns elements of hash as array of C<Pair(key, value)>
 
 
 
-.sub 'keys' :method
+.sub 'keys' :method :multi('Hash')
     .local pmc iter
     .local pmc rv
     iter = new 'Iterator', self
@@ -128,7 +130,7 @@ Returns elements of hash as array of C<Pair(key, value)>
 .end
 
 
-.sub 'values' :method
+.sub 'values' :method :multi('Hash')
     .local pmc iter
     .local pmc rv
     iter = new 'Iterator', self
@@ -175,17 +177,8 @@ returns the value(s) that were associated to those keys.
 True if invocant has an element whose key matches C<$key>, false
 otherwise.
 
-=item keys
-
-=item kv
-
 =cut
 
-.sub kv :multi(Mapping)
-    .param pmc hash
-
-    .return hash.'kv'()
-.end
 
 
 =item pairs

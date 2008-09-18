@@ -885,6 +885,11 @@ method signature($/) {
             $block_past.symbol($parameter.name(), :scope('lexical'));
             $params.push($parameter);
 
+            # If it has & sigil, strip it off.
+            if substr($parameter.name(), 0, 1) eq '&' {
+                $parameter.name(substr($parameter.name(), 1));
+            }
+
             # If it is invocant, modify it to be just a lexical and bind self to it.
             if substr($separator, 0, 1) eq ':' {
                 # Make sure it's first parameter.

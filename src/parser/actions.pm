@@ -2320,7 +2320,9 @@ method integer($/) {
 
 
 method dec_number($/) {
-    make PAST::Val.new( :value( ~$/ ), :returns('Num'), :node( $/ ) );
+    my $num := ~$/;
+    $num := $num.split('_').join('');
+    make PAST::Val.new( :value( $num ), :returns('Num'), :node( $/ ) );
 }
 
 method radint($/, $key) {

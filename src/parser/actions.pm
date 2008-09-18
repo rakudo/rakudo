@@ -313,6 +313,9 @@ method use_statement($/) {
             :pasttype('call'),
             :node( $/ )
         );
+        my $sub := PAST::Compiler.compile( $past );
+        $sub();
+        $past := PAST::Stmts.new( :node($/) );
     }
     make $past;
 }

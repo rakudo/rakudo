@@ -71,7 +71,6 @@ Partial implementation for now, returns a list of strings
     .return(retv)
 .end
 
-
 =item index()
 
 =cut
@@ -171,6 +170,42 @@ Partial implementation for now, returns a list of strings
   fail:
     $P0 = new 'Failure'
     .return ($P0)
+.end
+
+=item split(/PATTERN/)
+
+Splits something on a regular expresion
+
+=cut
+
+.sub 'split' :method :multi(_, 'Sub')
+    .param pmc regex 
+    .local pmc match
+    .local pmc retv
+    .local int start_pos
+    .local int end_pos
+
+    $S0 = self
+    retv = new 'List'
+    start_pos = 0
+
+    match = regex($S0)
+    if match goto loop
+    retv.'push'($S0)
+    goto done
+
+  loop:
+    match = regex($S0, 'continue' => start_pos)
+    end_pos = match.'from'()
+    end_pos -= start_pos
+    $S1 = substr $S0, start_pos, end_pos
+    retv.'push'($S1)
+    unless match goto done
+    start_pos = match.'to'()
+    goto loop
+
+  done:
+    .return(retv)
 .end
 
 =item substr()

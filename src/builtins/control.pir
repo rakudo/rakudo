@@ -103,10 +103,11 @@ the moment -- we'll do more complex handling a bit later.)
     pop_eh
     .return (list)
   handler:
-    .local pmc exception, continuation
+    .local pmc exception
     .local string message
-    .get_results(exception,continuation)
-    message = exception['message']
+    .local pmc continuation
+    .get_results(exception,message)
+    continuation = exception['resume']
     $P0 = exception['payload']
     list.push($P0)
     eh = 0 # work around the workaround
@@ -266,7 +267,7 @@ on error.
     goto done
 
   catch:
-    .get_results (exception, $P1)
+    .get_results (exception, $S0)
     goto done
 
   done:

@@ -179,7 +179,7 @@ Splits something on a regular expresion
 =cut
 
 .sub 'split' :method :multi(_, 'Sub')
-    .param pmc regex 
+    .param pmc regex
     .local pmc match
     .local pmc retv
     .local int start_pos

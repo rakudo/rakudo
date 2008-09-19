@@ -46,36 +46,6 @@ as the Perl 6 C<Str> class.
     .return(retv)
 .end
 
-.sub 'split' :method :multi('String')
-    .param string delim
-    .local string objst
-    .local pmc pieces
-    .local pmc tmps
-    .local pmc retv
-    .local int len
-    .local int i
-
-    retv = new 'List'
-
-    objst = self
-    split pieces, delim, objst
-
-    len = pieces
-    i = 0
-  loop:
-    if i == len goto done
-
-    tmps = new 'Perl6Str'
-    tmps = pieces[i]
-
-    retv.'push'(tmps)
-
-    inc i
-    goto loop
-  done:
-    .return(retv)
-.end
-
 .sub lc :method
     .local string tmps
     .local pmc retv

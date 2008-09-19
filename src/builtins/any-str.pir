@@ -172,6 +172,31 @@ Partial implementation for now, returns a list of strings
     .return ($P0)
 .end
 
+=item split
+
+ our List multi Str::split ( Str $delimiter ,  Str $input = $+_, Int $limit = inf )
+ our List multi Str::split ( Rule $delimiter = /\s+/,  Str $input = $+_, Int $limit = inf )
+ our List multi Str::split ( Str $input :  Str $delimiter          , Int $limit = inf )
+ our List multi Str::split ( Str $input : Rule $delimiter          , Int $limit = inf )
+
+String delimiters must not be treated as rules but as constants.  The
+default is no longer S<' '> since that would be interpreted as a constant.
+P5's C<< split('S< >') >> will translate to C<.words> or some such.  Null trailing fields
+are no longer trimmed by default.  We might add some kind of :trim flag or
+introduce a trimlist function of some sort.
+
+B<Note:> partial implementation only
+
+=cut
+
+.namespace[]
+.sub 'split' :multi(_,_)
+    .param pmc sep
+    .param pmc target
+    .return target.'split'(sep)
+.end
+
+.namespace['Any']
 .sub 'split' :method :multi('String')
     .param string delim
     .local string objst
@@ -201,12 +226,6 @@ Partial implementation for now, returns a list of strings
   done:
     .return(retv)
 .end
-
-=item split(/PATTERN/)
-
-Splits something on a regular expresion
-
-=cut
 
 .sub 'split' :method :multi(_, 'Sub')
     .param pmc regex

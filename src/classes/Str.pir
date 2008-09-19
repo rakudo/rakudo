@@ -318,39 +318,6 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
     .return s.'capitalize'()
 .end
 
-
-=item split
-
- our List multi Str::split ( Str $delimiter ,  Str $input = $+_, Int $limit = inf )
- our List multi Str::split ( Rule $delimiter = /\s+/,  Str $input = $+_, Int $limit = inf )
- our List multi Str::split ( Str $input :  Str $delimiter          , Int $limit = inf )
- our List multi Str::split ( Str $input : Rule $delimiter          , Int $limit = inf )
-
-String delimiters must not be treated as rules but as constants.  The
-default is no longer S<' '> since that would be interpreted as a constant.
-P5's C<< split('S< >') >> will translate to C<.words> or some such.  Null trailing fields
-are no longer trimmed by default.  We might add some kind of :trim flag or
-introduce a trimlist function of some sort.
-
-B<Note:> partial implementation only
-
-=cut
-
-.sub 'split'
-    .param string sep
-    .param string target
-    .local pmc a, b
-
-    a = new 'Perl6Str'
-    b = new 'Perl6Str'
-
-    a = target
-    b = sep
-
-    .return a.'split'(b)
-.end
-
-
 =item chop
 
  our Str method Str::chop ( Str  $string: )

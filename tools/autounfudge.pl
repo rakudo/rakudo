@@ -54,11 +54,15 @@ use Cwd qw(getcwd);
 use File::Spec;
 use File::Path;
 use Text::Diff;
+use threads;
+use threads::shared;
+use Thread::Queue;
 
 my $impl = 'rakudo';
 our $debug = 0;
 our $out_filename = 'autounfudge.patch';
 my $exclude = '(?:(?:chop|rx|rounders)\.t|modifiers/(while|until).t)$';
+our $threads_num = 1;
 
 GetOptions  'impl=s'        => \$impl,
             'debug'         => \$debug,
@@ -67,6 +71,7 @@ GetOptions  'impl=s'        => \$impl,
             'keep-env'      => \my $keep_env,
             'unskip'        => \my $unskip,
             'exclude'       => \$exclude,
+            'jobs=i'        => \$threads_num,
             or usage();
 
 delete $ENV{PERL6LIB} unless $keep_env;
@@ -82,6 +87,7 @@ else {
     @files = @ARGV or usage();
 }
 
+our $diff_lock :shared = 0;
 open our $diff_fh, '>', $out_filename
     or die "Can't open '$out_filename' for writing: $!";
 {
@@ -92,12 +98,30 @@ open our $diff_fh, '>', $out_filename
 
 our $tmp_dir = tempdir('RAKUDOXXXXXX', CLEANUP => 1);
 
-for (@files){
-    auto_unfudge_file($_);
+if ($threads_num > 1) {
+    my $queue = Thread::Queue->new;
+    for (1..$threads_num) {
+        threads->create(sub {
+                while(my $file_name = $queue->dequeue) {
+                    auto_unfudge_file($file_name);
+                }
+            });
+    }
+
+    $queue->enqueue($_) for @files;
+    $queue->enqueue(undef) for 1..$threads_num;
+    $_->join for threads->list;
 }
+else {
+    for (@files) {
+        auto_unfudge_file($_);
+    }
+}
+
 
 sub auto_unfudge_file {
     my $file_name = shift;
+    return unless defined $file_name;
     open my $f, '<:encoding(UTF-8)', $file_name
         or die "Can't open '$file_name' for reading: $!";
     print "Processing file '$file_name'\n";
@@ -140,6 +164,7 @@ sub auto_unfudge_file {
 
     if (@to_unfudge){
         my $u = unfudge_some($file_name, @to_unfudge);
+        lock($diff_lock);
         print $diff_fh diff($file_name, $u);
         unlink $u;
     }

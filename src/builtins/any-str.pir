@@ -300,11 +300,12 @@ B<Note:> partial implementation only
 
 .sub '!transtable' :multi(_)
     .param pmc r
-    .local pmc retval
+    .local pmc retval, tmps
     retval = new 'ResizableStringArray'
+    tmps = clone r
   range_loop:
-    unless r, done
-    $S0 = r.'shift'()
+    unless tmps, done
+    $S0 = tmps.'shift'()
     push retval, $S0
     goto range_loop
   done:

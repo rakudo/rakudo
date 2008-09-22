@@ -197,8 +197,10 @@ B<Note:> partial implementation only
 .end
 
 .namespace['Any']
-.sub 'split' :method :multi('String')
+.sub 'split' :method :multi(_, _)
     .param string delim
+    .param int count        :optional
+    .param int has_count    :opt_flag
     .local string objst
     .local pmc pieces
     .local pmc tmps
@@ -214,6 +216,10 @@ B<Note:> partial implementation only
     len = pieces
     i = 0
   loop:
+    unless has_count goto skip_count
+    dec count
+    if count < 0 goto done
+  skip_count:
     if i == len goto done
 
     tmps = new 'Perl6Str'
@@ -229,6 +235,8 @@ B<Note:> partial implementation only
 
 .sub 'split' :method :multi(_, 'Sub')
     .param pmc regex
+    .param int count        :optional
+    .param int has_count    :opt_flag
     .local pmc match
     .local pmc retv
     .local int start_pos
@@ -244,6 +252,10 @@ B<Note:> partial implementation only
     goto done
 
   loop:
+    unless has_count goto skip_count
+    dec count
+    if count < 0 goto done
+  skip_count:
     match = regex($S0, 'continue' => start_pos)
     end_pos = match.'from'()
     end_pos -= start_pos

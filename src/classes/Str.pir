@@ -183,14 +183,38 @@ Returns a Perl representation of the Str.
 =cut
 
 .sub 'perl' :method
-    $S0 = "\""
-    $S1 = self
-    # TODO: escape $, @, $, {, } and the like
-    $S1 = escape $S1
-    concat $S0, $S1
-    concat $S0, "\""
-    .return ($S0)
+    .local string str, result
+    str = self
+    result = '"'
+    .local int pos
+    pos = 0
+    .local pmc arr
+    arr = new 'ResizablePMCArray'
+  loop:
+    .local string ch
+    ch = substr str, pos, 1
+    if ch == '' goto done
+    if ch == ' ' goto loop_ch
+    ##  check for special escapes
+    $I0 = index  "$ @ % & { \b \n \r \t \\ \"", ch
+    if $I0 < 0 goto loop_nonprint
+    ch = substr  "\\$\\@\\%\\&\\{\\b\\n\\r\\t\\\\\\\"", $I0, 2
+    goto loop_ch
+  loop_nonprint:
+    $I0 = is_cclass .CCLASS_PRINTING, ch, 0
+    if $I0 goto loop_ch
+    $I0 = ord ch
+    arr[0] = $I0
+    ch = sprintf '\x[%x]', arr
+  loop_ch:
+    result .= ch
+    inc pos
+    goto loop
+  done:
+    result .= '"'
+    .return (result)
 .end
+
 
 =item sprintf( *@args )
 

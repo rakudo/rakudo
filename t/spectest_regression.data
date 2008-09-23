@@ -133,6 +133,7 @@ S29-array/unshift.t
 S29-conversions/ord_and_chr.t
 S29-hash/delete.t
 S29-hash/exists.t
+S29-hash/pairs.t
 S29-list/first.t
 S29-list/grep.t
 S29-list/join.t

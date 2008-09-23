@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chars index rindex substr', 'from'=>$P0)
+    '!EXPORT'('chars ord index rindex substr', 'from'=>$P0)
 .end
 
 
@@ -636,10 +636,9 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
 
 =cut
 
-.namespace []
-.sub 'ord' :multi()
-    .param pmc str
-    $S0 = str
+.namespace ['Any']
+.sub 'ord' :method :multi(_)
+    $S0 = self
     $I0 = ord $S0
     .return ($I0)
 .end

@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('abs cis int log polar sqrt truncate unpolar', 'from'=>$P0)
+    '!EXPORT'('abs cis int log chr polar sqrt truncate unpolar', 'from'=>$P0)
 
     ##  pre-seed a random number generator
     $P0 = new 'Random'
@@ -41,6 +41,16 @@ the size of that file down and to emphasize their generic,
     .return ($N1)
 .end
 
+=item chr()
+
+=cut
+
+.namespace ['Any']
+.sub 'chr' :method :multi(_)
+    $I0 = self
+    $S0 = chr $I0
+    .return ($S0)
+.end
 
 =item cis($angle)
 
@@ -188,19 +198,6 @@ error.
     result[1] = $N0
     .return (result)
 .end
-
-=item chr()
-
-=cut
-
-.namespace []
-.sub 'chr' :multi()
-    .param pmc grid
-    $I0 = grid
-    $S0 = chr $I0
-    .return ($S0)
-.end
-
 
 =back
 

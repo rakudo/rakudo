@@ -18,6 +18,7 @@ S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
+S02-literals/char-by-number.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
 S02-literals/pairs.t
@@ -28,6 +29,7 @@ S02-magicals/dollar-underscore.t
 S02-names_and_variables/perl.t
 S02-polymorphic_types/subset-code.t
 S02-polymorphic_types/subset-range.t
+S02-whitespace_and_comments/minimal-whitespace.t
 S02-whitespace_and_comments/one-pass-parsing.t
 S03-junctions/boolean-context.t
 S03-junctions/misc.t
@@ -169,6 +171,7 @@ S29-str/comb.t
 S29-str/index.t
 S29-str/lcfirst.t
 S29-str/lc.t
+S29-str/pos.t
 S29-str/rindex.t
 S29-str/split-simple.t
 S29-str/sprintf.t

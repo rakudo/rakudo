@@ -114,6 +114,29 @@ Returns elements of hash as array of C<Pair(key, value)>
 .end
 
 
+=item pairs (method)
+
+Returns elements of hash as array of C<Pairs>
+
+=cut
+
+.sub 'pairs' :method :multi('Hash')
+    .local pmc iter
+    .local pmc rv
+    iter = new 'Iterator', self
+    rv   = 'list'()
+    $P3 = get_hll_global 'Perl6Pair'
+  loop:
+    unless iter goto end
+    $P1 = shift iter
+    $P2 = iter[$P1]
+    $P4 = $P3.'new'('key' => $P1, 'value' => $P2)
+    push rv, $P4
+    goto loop
+  end:
+    .return (rv)
+.end
+
 
 .sub 'keys' :method :multi('Hash')
     .local pmc iter
@@ -128,7 +151,6 @@ Returns elements of hash as array of C<Pair(key, value)>
   end:
     .return (rv)
 .end
-
 
 .sub 'values' :method :multi('Hash')
     .local pmc iter
@@ -179,9 +201,6 @@ otherwise.
 
 =cut
 
-
-
-=item pairs
 
 =item values
 

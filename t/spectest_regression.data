@@ -38,6 +38,7 @@ S03-operators/autoincrement.t
 S03-operators/binding-arrays.t
 S03-operators/binding-hashes.t
 S03-operators/binding-scalars.t
+S03-operators/chained-declarators.t
 S03-operators/comparison.t
 S03-operators/context-forcers.t
 S03-operators/context.t
@@ -86,7 +87,9 @@ S04-statements/while.t
 S05-mass/rx.t
 S05-match/blocks.t
 S05-metasyntax/changed.t
+S05-metasyntax/charset.t
 S05-metasyntax/regex.t
+S05-metasyntax/single-quotes.t
 S05-metasyntax/unknown.t
 S05-substitution/match.t
 S05-substitution/subst.t
@@ -122,6 +125,7 @@ S16-io/basic-open.t
 S16-io/say.t
 S29-any/cmp.t
 S29-array/delete.t
+S29-array/elems.t
 S29-array/exists.t
 S29-array/keys_values.t
 S29-array/kv.t
@@ -165,6 +169,7 @@ S29-str/comb.t
 S29-str/index.t
 S29-str/lcfirst.t
 S29-str/lc.t
+S29-str/rindex.t
 S29-str/split-simple.t
 S29-str/sprintf.t
 S29-str/substr.t

@@ -189,7 +189,17 @@ error.
     .return (result)
 .end
 
+=item chr()
 
+=cut
+
+.namespace []
+.sub 'chr' :multi()
+    .param pmc grid
+    $I0 = grid
+    $S0 = chr $I0
+    .return ($S0)
+.end
 
 
 =back

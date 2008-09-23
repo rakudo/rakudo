@@ -632,6 +632,18 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     .return(retv)
 .end
 
+=item ord()
+
+=cut
+
+.namespace []
+.sub 'ord' :multi()
+    .param pmc str
+    $S0 = str
+    $I0 = ord $S0
+    .return ($I0)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

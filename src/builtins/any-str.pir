@@ -203,32 +203,43 @@ B<Note:> partial implementation only
     .param int has_count    :opt_flag
     .local string objst
     .local pmc pieces
-    .local pmc tmps
     .local pmc retv
     .local int len
+    .local int pos
     .local int i
 
     retv = new 'List'
 
-    objst = self
-    split pieces, delim, objst
+    # per Perl 5's negative LIMIT behavior
+    unless has_count goto positive_count
+    unless count < 1 goto positive_count
+    has_count = 0
 
+  positive_count:
+    objst = self
+    length $I0, delim
+    split pieces, delim, objst
     len = pieces
+    pos = 0
     i = 0
+
   loop:
     unless has_count goto skip_count
     dec count
-    if count < 0 goto done
+    unless count < 1 goto skip_count
+    $S0 = substr objst, pos
+    retv.'push'($S0)
+    goto done
   skip_count:
     if i == len goto done
-
-    tmps = new 'Perl6Str'
-    tmps = pieces[i]
-
-    retv.'push'(tmps)
-
+    $S0 = pieces[i]
+    retv.'push'($S0)
+    length $I1, $S0
+    pos += $I0
+    pos += $I1
     inc i
     goto loop
+
   done:
     .return(retv)
 .end
@@ -246,6 +257,12 @@ B<Note:> partial implementation only
     retv = new 'List'
     start_pos = 0
 
+    # per Perl 5's negative LIMIT behavior
+    unless has_count goto positive_count
+    unless count < 1 goto positive_count
+    has_count = 0
+
+  positive_count:
     match = regex($S0)
     if match goto loop
     retv.'push'($S0)
@@ -254,7 +271,10 @@ B<Note:> partial implementation only
   loop:
     unless has_count goto skip_count
     dec count
-    if count < 0 goto done
+    unless count < 1 goto skip_count
+    $S1 = substr $S0, start_pos
+    retv.'push'($S1)
+    goto done
   skip_count:
     match = regex($S0, 'continue' => start_pos)
     end_pos = match.'from'()

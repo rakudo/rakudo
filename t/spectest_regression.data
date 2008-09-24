@@ -165,6 +165,7 @@ S29-num/rand.t
 S29-num/rounders.t
 S29-num/sign.t
 S29-num/sqrt.t
+S29-scalar/undef.t
 S29-str/append.t
 S29-str/capitalize.t
 S29-str/chop.t

@@ -8,8 +8,8 @@ S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/bool.t
 S02-builtin_data_types/flattening.t
-S02-builtin_data_types/hash.t
 S02-builtin_data_types/hash_ref.t
+S02-builtin_data_types/hash.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/num.t
@@ -21,6 +21,7 @@ S02-literals/autoref.t
 S02-literals/char-by-number.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
+S02-literals/listquote.t
 S02-literals/pairs.t
 S02-literals/quoting.t
 S02-literals/radix.t
@@ -46,8 +47,8 @@ S03-operators/context-forcers.t
 S03-operators/context.t
 S03-operators/cross-metaop.t
 S03-operators/equality.t
-S03-operators/not.t
 S03-operators/misc.t
+S03-operators/not.t
 S03-operators/numeric-context.t
 S03-operators/precedence.t
 S03-operators/range.t
@@ -69,10 +70,10 @@ S04-statement-modifiers/unless.t
 S04-statement-modifiers/until.t
 S04-statement-modifiers/values_in_bool_context.t
 S04-statement-modifiers/while.t
-S04-statements/for_with_only_one_item.t
 S04-statements/do.t
 S04-statements/for-scope.t
 S04-statements/for.t
+S04-statements/for_with_only_one_item.t
 S04-statements/gather.t
 S04-statements/given.t
 S04-statements/if.t

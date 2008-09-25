@@ -22,6 +22,7 @@ S02-literals/char-by-number.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
 S02-literals/listquote.t
+S02-literals/listquote-whitespace.t
 S02-literals/pairs.t
 S02-literals/quoting.t
 S02-literals/radix.t

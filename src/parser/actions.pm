@@ -2328,9 +2328,17 @@ method integer($/) {
 
 
 method dec_number($/) {
-    my $num := ~$/;
-    $num := $num.split('_').join('');
-    make PAST::Val.new( :value( $num ), :returns('Num'), :node( $/ ) );
+    my $str;
+    PIR q<  $P0 = find_lex '$/'   >;
+    PIR q<  $S0 = $P0             >;
+    PIR q<  $P1 = new 'Perl6Str'  >;
+    PIR q<  assign $P1, $S0       >;
+    PIR q<  store_lex '$str', $P1 >;
+    make PAST::Val.new(
+        :value( +$str ),
+        :returns('Num'),
+        :node( $/ )
+    );
 }
 
 method radint($/, $key) {

@@ -726,7 +726,7 @@ token integer {
 }
 
 token escale {
-    <[Ee]> <[+\-]>? \d+
+    <[Ee]> <[+\-]>? \d+[_\d+]*
 }
 
 # careful to distinguish from both integer and 42.method

@@ -99,8 +99,8 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 .sub 'prefix:+' :multi('Integer')
-    .param int a
-    .return (a)
+    .param num a
+    .return '!upgrade_to_num_if_needed'(a)
 .end
 
 
@@ -112,9 +112,9 @@ src/builtins/op.pir - Perl6 builtin operators
 
 
 .sub 'prefix:-' :multi('Integer')
-    .param int a
-    $I0 = neg a
-    .return ($I0)
+    .param num a
+    $N0 = neg a
+    .return '!upgrade_to_num_if_needed'($N0)
 .end
 
 

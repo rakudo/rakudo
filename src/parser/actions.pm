@@ -1177,8 +1177,8 @@ method expect_term($/, $key) {
         $past := $( $/{$key} );
     }
 
-    if $<postfix> {
-        for $<postfix> {
+    if $<post> {
+        for $<post> {
             my $term := $past;
             $past := $($_);
             if $past.name() eq 'infix:,' { $past.name(''); }
@@ -1200,7 +1200,7 @@ method expect_term($/, $key) {
 }
 
 
-method postfix($/, $key) {
+method post($/, $key) {
     make $( $/{$key} );
 }
 
@@ -1210,7 +1210,7 @@ method dotty($/, $key) {
 
     if $key eq '.' {
         # Just a normal method call.
-        $past := $( $<methodop> );
+        $past := $( $<dottyop> );
     }
     elsif $key eq '!' {
         # Private method call. Need to put ! on the start of the name
@@ -1230,7 +1230,7 @@ method dotty($/, $key) {
         }
     }
     elsif $key eq '.*' {
-        $past := $( $<methodop> );
+        $past := $( $<dottyop> );
         if $/[0] eq '.?' || $/[0] eq '.+' || $/[0] eq '.*' || $/[0] eq '.^' {
             my $name := $past.name();
             unless $name {
@@ -1255,6 +1255,11 @@ method dotty($/, $key) {
     }
 
     make $past;
+}
+
+
+method dottyop($/, $key) {
+    make $( $/{$key} );
 }
 
 

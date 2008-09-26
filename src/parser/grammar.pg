@@ -472,12 +472,12 @@ token special_variable {
 #### Terms ####
 
 token expect_term {
-    | <noun> <postfix>* {*}                      #= noun
+    | <noun> <post>* {*}                         #= noun
     | '*' {*}                                    #= *
 }
 
 
-token postfix {
+token post {
     <!afterws>
     [ <.unsp> || \\ <?before '.'> ]?
     [
@@ -490,10 +490,16 @@ token postfix {
 token dotty {
     [
     | '.VAR' {*}                                      #= VAR
-    | '.' <methodop> {*}                              #= .
-    | ('.' <[+*?=^:]>) <?unspacey> <methodop> {*}     #= .*
+    | '.' <.unspacey> <dottyop> {*}                   #= .
+    | ('.' <[+*?=^:]>) <.unspacey> <dottyop> {*}      #= .*
     | '!' <methodop> {*}                              #= !
     ]
+}
+
+
+token dottyop {
+    | <methodop> {*}                                  #= methodop
+    | <postcircumfix> {*}                             #= postcircumfix
 }
 
 

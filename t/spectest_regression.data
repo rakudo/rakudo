@@ -7,6 +7,7 @@ S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/bool.t
+S02-builtin_data_types/catch_type_cast_mismatch.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t

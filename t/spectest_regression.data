@@ -10,6 +10,7 @@ S02-builtin_data_types/bool.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
+S02-builtin_data_types/multi_dimensional_array.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/num.t
@@ -29,6 +30,7 @@ S02-literals/radix.t
 S02-literals/underscores.t
 S02-magicals/dollar-underscore.t
 S02-names_and_variables/perl.t
+S02-names_and_variables/varnames.t
 S02-polymorphic_types/subset-code.t
 S02-polymorphic_types/subset-range.t
 S02-whitespace_and_comments/minimal-whitespace.t
@@ -42,6 +44,7 @@ S03-operators/autoincrement.t
 S03-operators/binding-arrays.t
 S03-operators/binding-hashes.t
 S03-operators/binding-scalars.t
+S03-operators/bit.t
 S03-operators/chained-declarators.t
 S03-operators/comparison.t
 S03-operators/context-forcers.t

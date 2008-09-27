@@ -197,7 +197,7 @@ form, if uppercase.
 
 =cut
 
-.sub 'lc' :method 
+.sub 'lc' :method
     .local string tmps
     .local pmc retv
 

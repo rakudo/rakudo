@@ -18,7 +18,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     mappingproto = p6meta.'new_class'('Mapping', 'parent'=>'Hash Any')
     p6meta.'register'('Hash', 'parent'=>mappingproto, 'protoobject'=>mappingproto)
     $P0 = get_hll_namespace ['Mapping']
-    '!EXPORT'('keys kv values', $P0)
+    '!EXPORT'('keys kv values reverse', $P0)
 .end
 
 
@@ -113,7 +113,6 @@ Returns elements of hash as array of C<Pair(key, value)>
     .return (rv)
 .end
 
-
 =item pairs (method)
 
 Returns elements of hash as array of C<Pairs>
@@ -151,6 +150,25 @@ Returns elements of hash as array of C<Pairs>
   end:
     .return (rv)
 .end
+
+=item reverse
+
+=cut
+
+.sub 'reverse' :method :multi('Hash')
+    .local pmc result, iter
+    result = new 'Perl6Hash'
+    iter = new 'Iterator', self
+  iter_loop:
+    unless iter goto iter_end
+    $S0 = shift iter
+    $S1 = self[$S0]
+    result[$S1] = $S0
+    goto iter_loop
+  iter_end:
+    .return (result)
+.end
+
 
 .sub 'values' :method :multi('Hash')
     .local pmc iter

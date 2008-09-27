@@ -40,7 +40,7 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
 
 =cut
 
-.sub 'capitalize' :method
+.sub 'capitalize' :method :multi(_)
     .local string tmps
     .local string fchr
     .local pmc retv
@@ -95,7 +95,7 @@ Returns string with one Char removed from the end.
 
 =cut
 
-.sub 'chop' :method
+.sub 'chop' :method :multi(_)
     .local string tmps
     .local pmc retv
     .local int len
@@ -197,7 +197,7 @@ form, if uppercase.
 
 =cut
 
-.sub 'lc' :method
+.sub 'lc' :method :multi(_)
     .local string tmps
     .local pmc retv
 
@@ -218,7 +218,7 @@ Like C<lc>, but only affects the first character.
 
 =cut
 
-.sub 'lcfirst' :method
+.sub 'lcfirst' :method :multi(_)
     .local string tmps
     .local string fchr
     .local pmc retv
@@ -808,7 +808,7 @@ Performs a Unicode "titlecase" operation on the first character of the string.
 
 =cut
 
-.sub 'ucfirst' :method
+.sub 'ucfirst' :method :multi(_)
     .local string tmps
     .local string fchr
     .local pmc retv

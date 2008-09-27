@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chars ord index rindex substr', 'from'=>$P0)
+    '!EXPORT'('capitalize chop chars index lc lcfirst rindex ord substr uc ucfirst', 'from'=>$P0)
 .end
 
 
@@ -30,11 +30,88 @@ the size of that file down and to emphasize their generic,
 =cut
 
 .namespace ['Any']
+
+=item capitalize
+
+ our Str multi Str::capitalize ( Str $string )
+
+Has the effect of first doing an C<lc> on the entire string, then performing a
+C<s:g/(\w+)/{ucfirst $1}/> on it.
+
+=cut
+
+.sub 'capitalize' :method
+    .local string tmps
+    .local string fchr
+    .local pmc retv
+    .local int len
+
+    retv = new 'Perl6Str'
+    tmps = self
+
+    len = length tmps
+    if len == 0 goto done
+
+    downcase tmps
+
+    .local int pos, is_ws, is_lc
+    pos = 0
+    goto first_char
+  next_grapheme:
+    if pos == len goto done
+    is_ws = is_cclass .CCLASS_WHITESPACE, tmps, pos
+    if is_ws goto ws
+  advance:
+    pos += 1
+    goto next_grapheme
+  ws:
+    pos += 1
+  first_char:
+    is_lc = is_cclass .CCLASS_LOWERCASE, tmps, pos
+    unless is_lc goto advance
+    $S1 = substr tmps, pos, 1
+    upcase $S1
+    substr tmps, pos, 1, $S1
+    ## the length may have changed after replacement, so measure it again
+    len = length tmps
+    goto advance
+  done:
+    retv = tmps
+    .return (retv)
+.end
+
 .sub 'chars' :method :multi(_)
     $S0 = self
     $I0 = length $S0
     .return ($I0)
 .end
+
+
+=item chop
+
+ our Str method Str::chop ( Str  $string: )
+
+Returns string with one Char removed from the end.
+
+=cut
+
+.sub 'chop' :method
+    .local string tmps
+    .local pmc retv
+    .local int len
+
+    retv = new 'Perl6Str'
+    tmps = self
+
+    len = length tmps
+    if len == 0 goto done
+    dec len
+    substr tmps,tmps, 0, len
+  done:
+    retv = tmps
+    .return(retv)
+.end
+
 
 =item comb()
 
@@ -109,6 +186,62 @@ Partial implementation for now, returns a list of strings
     $P0 = new 'Failure'
     .return ($P0)
 .end
+
+
+=item lc
+
+ our Str multi Str::lc ( Str $string )
+
+Returns the input string after converting each character to its lowercase
+form, if uppercase.
+
+=cut
+
+.sub 'lc' :method 
+    .local string tmps
+    .local pmc retv
+
+    tmps = self
+    downcase tmps
+
+    retv = new 'Perl6Str'
+    retv = tmps
+
+    .return(retv)
+.end
+
+=item lcfirst
+
+ our Str multi Str::lcfirst ( Str $string )
+
+Like C<lc>, but only affects the first character.
+
+=cut
+
+.sub 'lcfirst' :method
+    .local string tmps
+    .local string fchr
+    .local pmc retv
+    .local int len
+
+    retv = new 'Perl6Str'
+    tmps = self
+
+    len = length tmps
+    if len == 0 goto done
+
+    substr fchr, tmps, 0, 1
+    downcase fchr
+
+    concat retv, fchr
+    substr tmps, tmps, 1
+    concat retv, tmps
+
+  done:
+    .return(retv)
+.end
+
+
 
 =item match()
 
@@ -642,6 +775,62 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     $I0 = ord $S0
     .return ($I0)
 .end
+
+
+=item uc
+
+ our Str multi Str::uc ( Str $string )
+
+Returns the input string after converting each character to its uppercase
+form, if lowercase. This is not a Unicode "titlecase" operation, but a
+full "uppercase".
+
+=cut
+
+.sub 'uc' :method :multi(_)
+    .local string tmps
+    .local pmc retv
+
+    tmps = self
+    upcase tmps
+
+    retv = new 'Perl6Str'
+    retv = tmps
+
+    .return(retv)
+.end
+
+=item ucfirst
+
+ our Str multi Str::ucfirst ( Str $string )
+
+Performs a Unicode "titlecase" operation on the first character of the string.
+
+=cut
+
+.sub 'ucfirst' :method
+    .local string tmps
+    .local string fchr
+    .local pmc retv
+    .local int len
+
+    retv = new 'Perl6Str'
+    tmps = self
+
+    len = length tmps
+    if len == 0 goto done
+
+    substr fchr, tmps, 0, 1
+    upcase fchr
+
+    concat retv, fchr
+    substr tmps, tmps, 1
+    concat retv, tmps
+
+  done:
+    .return(retv)
+.end
+
 
 # Local Variables:
 #   mode: pir

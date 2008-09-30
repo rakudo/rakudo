@@ -106,7 +106,7 @@ S05-metasyntax/charset.t
 S05-metasyntax/regex.t
 S05-metasyntax/single-quotes.t
 S05-metasyntax/unknown.t
-S05-modifiers/ignorecase.t
+S05-modifier/ignorecase.t
 S05-substitution/match.t
 S05-substitution/subst.t
 S05-transliteration/trans.t

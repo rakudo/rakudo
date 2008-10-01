@@ -122,6 +122,15 @@ token pod_comment {
 }
 
 
+token apostrophe {
+    <[ ' \- ]>
+}
+
+token identifier {
+    <.ident> [ <.apostrophe> <.ident> ]*
+}
+
+
 ##  STD.pm doesn't have a statement_block rule -- we have one
 ##  to distinguish lists of statements that produce blocks
 ##  from those that don't.

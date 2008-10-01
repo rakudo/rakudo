@@ -98,16 +98,10 @@ Returns string with one Char removed from the end.
 .sub 'chop' :method :multi(_)
     .local string tmps
     .local pmc retv
-    .local int len
 
-    retv = new 'Perl6Str'
     tmps = self
-
-    len = length tmps
-    if len == 0 goto done
-    dec len
-    substr tmps,tmps, 0, len
-  done:
+    chopn tmps, 1
+    retv = new 'Perl6Str'
     retv = tmps
     .return(retv)
 .end

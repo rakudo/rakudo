@@ -42,7 +42,6 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
 
 .sub 'capitalize' :method :multi(_)
     .local string tmps
-    .local string fchr
     .local pmc retv
     .local int len
 
@@ -54,27 +53,21 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
 
     downcase tmps
 
-    .local int pos, is_ws, is_lc
+    .local int pos
+    .local string s1
     pos = 0
-    goto first_char
-  next_grapheme:
-    if pos == len goto done
-    is_ws = is_cclass .CCLASS_WHITESPACE, tmps, pos
-    if is_ws goto ws
-  advance:
-    pos += 1
-    goto next_grapheme
-  ws:
-    pos += 1
-  first_char:
-    is_lc = is_cclass .CCLASS_LOWERCASE, tmps, pos
-    unless is_lc goto advance
-    $S1 = substr tmps, pos, 1
-    upcase $S1
-    substr tmps, pos, 1, $S1
-    ## the length may have changed after replacement, so measure it again
+  next_word:
+    pos = find_cclass .CCLASS_LOWERCASE, tmps, pos, len
+    s1 = substr tmps, pos, 1
+    upcase s1
+    substr tmps, pos, 1, s1
     len = length tmps
-    goto advance
+    pos+=1
+    if pos == len goto done
+    pos = find_not_cclass .CCLASS_LOWERCASE, tmps, pos, len
+    if pos == len goto done
+    goto next_word
+
   done:
     retv = tmps
     .return (retv)

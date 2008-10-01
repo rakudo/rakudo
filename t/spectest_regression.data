@@ -41,6 +41,7 @@ S02-polymorphic_types/subset-code.t
 S02-polymorphic_types/subset-range.t
 S02-whitespace_and_comments/minimal-whitespace.t
 S02-whitespace_and_comments/one-pass-parsing.t
+S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S03-junctions/boolean-context.t
 S03-junctions/misc.t
 S03-operators/arith.t
@@ -102,6 +103,7 @@ S04-statements/while.t
 S05-mass/rx.t
 S05-mass/stdrules.t
 S05-match/blocks.t
+S05-match/non-capturing.t
 S05-metachars/newline.t
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t

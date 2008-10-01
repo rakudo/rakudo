@@ -2,6 +2,7 @@
 # on current rakudo.
 # empty lines and those beginning with a # are ignored
 
+integration/lexical-array-in-inner-block.t
 S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array_ref.t
@@ -31,8 +32,8 @@ S02-literals/pair-boolean.t
 S02-literals/pairs.t
 S02-literals/quoting.t
 S02-literals/radix.t
-S02-literals/underscores.t
 S02-literals/string-interpolation.t
+S02-literals/underscores.t
 S02-magicals/dollar-underscore.t
 S02-names_and_variables/perl.t
 S02-names_and_variables/varnames.t

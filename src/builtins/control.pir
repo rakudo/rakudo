@@ -114,6 +114,17 @@ the moment -- we'll do more complex handling a bit later.)
     continuation()
 .end
 
+=item next
+
+=cut
+
+.sub 'next'
+    .local pmc e
+    e = new 'Exception'
+    e['severity'] = .EXCEPT_NORMAL
+    e['type'] = .CONTROL_LOOP_NEXT
+    throw e
+.end
 
 =item term:...
 

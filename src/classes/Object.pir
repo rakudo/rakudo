@@ -434,8 +434,7 @@ Create a clone of self, also cloning the attributes given by attrlist.
     # For now we won't worry about signature, just if a method exists.
     $I0 = can self, method_name
     if $I0 goto invoke
-    $P0 = get_hll_global 'Failure'
-    .return ($P0)
+    .return '!FAIL'('Undefined value returned by invocation of undefined method')
 
     # If we do have a method, call it.
   invoke:

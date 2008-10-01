@@ -256,8 +256,7 @@ Return the number of elements in the list.
     goto done
 
   nomatch:
-    retv = new 'Failure'
-    goto done
+    retv = '!FAIL'('Undefined value - first list match of no matches')
 
   done:
     .return(retv)

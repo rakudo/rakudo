@@ -132,7 +132,7 @@ Remove the last item from the array and return it.
     x = pop self
     goto done
   empty:
-    x = new 'Failure'
+    x = '!FAIL'('Undefined value popped from empty array')
   done:
     .return (x)
 .end
@@ -165,7 +165,7 @@ Shift the first item off the array and return it.
     x = shift self
     goto done
   empty:
-    x = new 'Failure'
+    x = '!FAIL'('Undefined value shifted from empty array')
   done:
     .return (x)
 .end

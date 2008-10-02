@@ -40,7 +40,7 @@ Key:
 [S  ]   = some tests passed
 [ P ]   = plan ok (ran all tests)
 [  A]   = all passed
-      ( passed / ran )
+      ( passed / planned or ran )
 ==================================
 KEY
 
@@ -59,13 +59,19 @@ sub go {
     $H->aggregate_tests($agg, $fudged);
     $agg->stop();
 
+    # "older" version (prior to 3.16, which isn't released at the time
+    # of writing) don't have a planned() method, so fall back on
+    # total() instead
+    my $planned = eval { $agg->cplanned };
+    $planned    =  $agg->total unless defined $planned;
+
     my ($some_passed, $plan_ok, $all_passed) = (' ', ' ', ' ');
     my $actually_passed = $agg->passed - $agg->skipped - $agg->todo;
     $some_passed = 'S' if $actually_passed;
     $plan_ok     = 'P' if !scalar($agg->parse_errors);
     $all_passed  = 'A' if !       $agg->has_errors;
     printf "[%s%s%s] (% 3d/%-3d) %s\n", $some_passed, $plan_ok, $all_passed,
-           $actually_passed, $agg->total, $_
+           $actually_passed, $planned, $_
                 if $actually_passed;
 }
 

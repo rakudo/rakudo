@@ -188,6 +188,7 @@ S29-scalar/defined.t
 S29-scalar/undef.t
 S29-str/append.t
 S29-str/capitalize.t
+S29-str/chomp.t
 S29-str/chop.t
 S29-str/comb.t
 S29-str/index.t

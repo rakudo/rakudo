@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('capitalize chop chars index lc lcfirst rindex ord substr uc ucfirst', 'from'=>$P0)
+    '!EXPORT'('capitalize chop chomp chars index lc lcfirst rindex ord substr uc ucfirst', 'from'=>$P0)
 .end
 
 
@@ -99,6 +99,31 @@ Returns string with one Char removed from the end.
     .return(retv)
 .end
 
+=item chomp
+
+ our Str method Str::chomp ( Str $string: )
+
+ Returns string with newline removed from the end.  An arbitrary
+ terminator can be removed if the input filehandle has marked the
+ string for where the "newline" begins.  (Presumably this is stored
+ as a property of the string.)  Otherwise a standard newline is removed.
+
+=cut
+
+.sub 'chomp' :method :multi(_)
+    .local string tmps
+    .local string lastchar
+    .local pmc retv
+
+    tmps = self
+    lastchar = substr tmps,-1
+    if lastchar != "\n" goto done
+    chopn tmps, 1
+  done:
+       retv = new 'Perl6Str'
+       retv = tmps
+       .return (retv)
+.end
 
 =item comb()
 

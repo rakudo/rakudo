@@ -824,10 +824,10 @@ method enum_declarator($/, $key) {
 
 method routine_def($/) {
     my $past := $( $<block> );
-    if $<ident> {
-        $past.name( ~$<ident>[0] );
+    if $<identifier> {
+        $past.name( ~$<identifier>[0] );
         our $?BLOCK;
-        $?BLOCK.symbol(~$<ident>[0], :scope('package'));
+        $?BLOCK.symbol(~$<identifier>[0], :scope('package'));
     }
     $past.control('return_pir');
     make $past;
@@ -835,8 +835,8 @@ method routine_def($/) {
 
 method method_def($/) {
     my $past := $( $<block> );
-    if $<ident> {
-        $past.name( ~$<ident>[0] );
+    if $<identifier> {
+        $past.name( ~$<identifier>[0] );
     }
     $past.control('return_pir');
     make $past;
@@ -1116,7 +1116,7 @@ method parameter($/) {
     }
     else {
         if $<named> eq ':' {          # named
-            $past.named(~$<param_var><ident>);
+            $past.named(~$<param_var><identifier>);
             if $<quant> ne '!' {      #  required (optional is default)
                 $past.viviself('Failure');
             }
@@ -1276,7 +1276,7 @@ method methodop($/, $key) {
     $past.node($/);
 
     if $<name> {
-        $past.name(~$<name><ident>[0]);
+        $past.name(~$<name><identifier>[0]);
     }
     elsif $<variable> {
         $past.unshift( $( $<variable> ) );
@@ -1511,7 +1511,7 @@ method package_def($/, $key) {
 
         # Also store the current namespace, if we're not anonymous.
         if $<name> {
-            $?NS := $<name>[0]<ident>;
+            $?NS := $<name>[0]<identifier>;
         }
     }
     else {
@@ -1527,7 +1527,7 @@ method package_def($/, $key) {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         if $<name> {
-            $past.namespace($<name>[0]<ident>);
+            $past.namespace($<name>[0]<identifier>);
         }
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
@@ -1650,13 +1650,13 @@ method role_def($/, $key) {
         );
 
         # Also store the current namespace.
-        $?NS := $<name><ident>;
+        $?NS := $<name><identifier>;
     }
     else {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         my $past := $( $<package_block> );
-        $past.namespace($<name><ident>);
+        $past.namespace($<name><identifier>);
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
 
@@ -2092,13 +2092,13 @@ method variable($/, $key) {
     else {
         our $?BLOCK;
         # Handle naming.
-        my @ident := $<name><ident>;
+        my @identifier := $<name><identifier>;
         my $name;
-        PIR q<  $P0 = find_lex '@ident'  >;
-        PIR q<  $P0 = clone $P0          >;
-        PIR q<  store_lex '@ident', $P0  >;
-        PIR q<  $P1 = pop $P0            >;
-        PIR q<  store_lex '$name', $P1   >;
+        PIR q<  $P0 = find_lex '@identifier'  >;
+        PIR q<  $P0 = clone $P0               >;
+        PIR q<  store_lex '@identifier', $P0  >;
+        PIR q<  $P1 = pop $P0                 >;
+        PIR q<  store_lex '$name', $P1        >;
 
         my $twigil := ~$<twigil>[0];
         my $sigil := ~$<sigil>;
@@ -2193,8 +2193,8 @@ method variable($/, $key) {
                 :name( $sigil ~ $name ),
                 :node($/)
             );
-            if @ident || $twigil eq '*' {
-                $past.namespace(@ident);
+            if @identifier || $twigil eq '*' {
+                $past.namespace(@identifier);
                 $past.scope('package');
             }
 
@@ -2452,7 +2452,7 @@ method quote_term($/, $key) {
 
 method typename($/) {
     # Extract shortname part of identifier, if there is one.
-    my $ns := $<name><ident>.clone();
+    my $ns := $<name><identifier>.clone();
     my $shortname := $ns.pop();
 
     # Create default PAST node for package lookup of type.
@@ -2488,14 +2488,14 @@ method term($/, $key) {
     my $past;
     if $key eq 'func args' {
         $past := build_call( $( $<semilist> ) );
-        $past.name( ~$<ident> );
+        $past.name( ~$<identifier> );
     }
     elsif $key eq 'listop args' {
         $past := build_call( $( $<arglist> ) );
-        $past.name( ~$<ident> );
+        $past.name( ~$<identifier> );
     }
     elsif $key eq 'listop noarg' {
-        $past := PAST::Op.new( :name( ~$<ident> ), :pasttype('call') );
+        $past := PAST::Op.new( :name( ~$<identifier> ), :pasttype('call') );
     }
     elsif $key eq 'VAR' {
         $past := PAST::Op.new(
@@ -2615,7 +2615,7 @@ method regex_declarator($/, $key) {
 
 method regex_declarator_regex($/) {
     my $past := $( $<quote_expression> );
-    $past.name( ~$<ident>[0] );
+    $past.name( ~$<identifier>[0] );
     make $past;
 }
 
@@ -2623,7 +2623,7 @@ method regex_declarator_regex($/) {
 method regex_declarator_token($/) {
     my $past := $( $<quote_expression> );
     $past.compiler_args( :ratchet(1) );
-    $past.name( ~$<ident>[0] );
+    $past.name( ~$<identifier>[0] );
     make $past;
 }
 
@@ -2631,7 +2631,7 @@ method regex_declarator_token($/) {
 method regex_declarator_rule($/) {
     my $past := $( $<quote_expression> );
     $past.compiler_args( :s(1), :ratchet(1) );
-    $past.name( ~$<ident>[0] );
+    $past.name( ~$<identifier>[0] );
     make $past;
 }
 
@@ -2744,11 +2744,11 @@ method colonpair($/, $key) {
     my $pair_val;
 
     if $key eq 'false' {
-        $pair_key := PAST::Val.new( :value(~$<ident>) );
+        $pair_key := PAST::Val.new( :value(~$<identifier>) );
         $pair_val := PAST::Val.new( :value(0), :returns('Int') );
     }
     elsif $key eq 'value' {
-        $pair_key := PAST::Val.new( :value(~$<ident>) );
+        $pair_key := PAST::Val.new( :value(~$<identifier>) );
         if $<postcircumfix> {
             $pair_val := $( $<postcircumfix>[0] );
             if $pair_val.name() ne 'infix:,' || +@($pair_val) == 1 {

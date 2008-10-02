@@ -112,8 +112,8 @@ token afterws {
 token pod_comment {
     ^^ '=' <.unsp>?
     [
-    | begin \h+ <ident> .*? \n
-      '=' <.unsp>? 'end' \h+ $<ident> >> \N*        {*}         #= tagged
+    | begin \h+ <identifier> .*? \n
+      '=' <.unsp>? 'end' \h+ $<identifier> >> \N*   {*}         #= tagged
     | begin \h* \n .*? \n
       '=' <.unsp>? 'end' >> \N*                     {*}         #= anon
     | \N*                                           {*}         #= misc
@@ -307,7 +307,6 @@ rule for_statement {
 
 rule use_statement {
     $<sym>=[use] <name>
-    [ '-' <ident> ]?     # e.g. 'v6-alpha'
     <EXPR>?
     {*}
 }
@@ -354,14 +353,14 @@ token routine_declarator {
 }
 
 rule routine_def {
-    <ident>? <multisig>?
+    <identifier>? <multisig>?
     <trait>*
     <block>
     {*}
 }
 
 rule method_def {
-    <ident>? <multisig>?
+    <identifier>? <multisig>?
     <trait>*
     <block>
     {*}
@@ -375,7 +374,7 @@ rule trait {
 rule trait_auxiliary {
     | $<sym>=[is] <name><postcircumfix>?
     | $<sym>=[does] <name>['['<EXPR>']']?
-    | $<sym>=[will] <ident> <block>
+    | $<sym>=[will] <identifier> <block>
 }
 
 rule trait_verb {
@@ -467,7 +466,7 @@ rule default_value {
 }
 
 token param_var {
-    <sigil> <twigil>? <ident>
+    <sigil> <twigil>? <identifier>
     {*}
 }
 
@@ -563,12 +562,12 @@ token term {
     [
     | 'VAR(' <variable> ')' {*}                  #= VAR
     | <typename> {*}                             #= typename
-    | <ident=named_0ary>
+    | <identifier=named_0ary>
         [
         | <.unsp>? '.'? '(' <semilist> ')' {*}   #= func args
         | :: {*}                                 #= listop noarg
         ]
-    | <ident>
+    | <identifier>
         [
         | \s <arglist> {*}                       #= listop args
         | <.unsp>? '.'? '(' <semilist> ')' {*}   #= func args
@@ -692,7 +691,7 @@ token sigil { '$' | '@' | '%' | '&' | '::' }
 token twigil { <[.!^:*+?=]> }
 
 token name {
-    | <ident> [ '::' <ident> ]*
+    | <identifier> [ '::' <identifier> ]*
 }
 
 token value {
@@ -795,7 +794,7 @@ token typename {
 }
 
 token name {
-    <ident> [ '::' <ident> ]*
+    <identifier> [ '::' <identifier> ]*
     {*}
 }
 
@@ -809,19 +808,19 @@ rule regex_declarator {
 
 rule regex_declarator_regex {
     $<sym>='regex'
-    <ident>?
+    <identifier>?
     <before '{'> <quote_expression: :regex> {*}
 }
 
 rule regex_declarator_token {
     $<sym>='token'
-    <ident>?
+    <identifier>?
     <before '{'> <quote_expression: :regex :ratchet> {*}
 }
 
 rule regex_declarator_rule {
     $<sym>='rule'
-    <ident>?
+    <identifier>?
     <before '{'> <quote_expression: :regex :ratchet :sigspace> {*}
 }
 
@@ -842,15 +841,15 @@ token arglist {
 }
 
 token fatarrow {
-    <key=ident> \h* '=>' <val=EXPR: 'i='>        # EXPR(%item_assignment)
+    <key=identifier> \h* '=>' <val=EXPR: 'i='>     # EXPR(%item_assignment)
     {*}
 }
 
 token colonpair {
     ':'
     [
-    | '!' <ident>                                        {*}    #= false
-    | <ident> $<val>=[ <.unsp>? <postcircumfix> ]?       {*}    #= value
+    | '!' <identifier>                                   {*}    #= false
+    | <identifier> $<val>=[ <.unsp>? <postcircumfix> ]?  {*}    #= value
     | <postcircumfix>                                    {*}    #= structural
     | <sigil> <twigil>? <desigilname>                    {*}    #= varname
     ]

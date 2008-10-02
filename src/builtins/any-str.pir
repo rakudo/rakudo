@@ -441,24 +441,37 @@ B<Note:> partial implementation only
 .sub '!transtable' :multi(_)
     .param pmc r
     .local pmc retval, tmps
-    retval = new 'ResizableStringArray'
+    retval = new 'ResizablePMCArray'
     tmps = clone r
   range_loop:
     unless tmps, done
-    $S0 = tmps.'shift'()
-    push retval, $S0
+    $P0 = tmps.'shift'()
+    push retval, $P0
     goto range_loop
   done:
     .return(retval)
 .end
 
-.sub '!transtable' :multi('Perl6Str')
+# Handles Regexes and Closures
+
+.sub '!transtable' :multi('Sub')
+    .param pmc r
+    .local pmc retval
+    retval = new 'ResizablePMCArray'
+    push retval, r
+    .return(retval)
+.end
+
+# TODO: Note the multisub type here should be 'Perl6Str' or 'Str', but mapping
+# issues currently prevent this from working correctly unless 'String' is used
+
+.sub '!transtable' :multi('String')
     .param string str
-    .local pmc retval, prior, frm, to
+    .local pmc retval, prior, frm, to, next_str
     .local int start, end, len, ind, skipped, r_start, r_end, s_len
     .local string p
-    retval = new 'ResizableStringArray'
-    prior = new 'ResizableStringArray'
+    retval = new 'ResizablePMCArray'
+    prior = new 'ResizablePMCArray'
     start = 0
     skipped = 0
     len = length str
@@ -475,21 +488,9 @@ B<Note:> partial implementation only
   range_frm:
     $S0 = substr str, r_start, 1
     $I0 = ord $S0
-    # following code may be commented dep. on how we interpret
-    # spaces within ranges, like 'a .. b'
-    unless $S0 == ' ' goto range_to
-    r_start -= 1
-    if r_start < 0 goto illegal_range
-    goto range_frm
   range_to:
     $S1 = substr str, r_end, 1
     $I1 = ord $S1
-    # following code may be commented dep. on how we interpret
-    # spaces within ranges, like 'a .. b'
-    unless $S1 == ' ' goto prev_string
-    r_end += 1
-    if r_end == len goto illegal_range
-    goto range_to
   prev_string:
     s_len = r_start - start
     s_len += skipped
@@ -499,7 +500,9 @@ B<Note:> partial implementation only
   process_pstring:
     unless prior, start_range
     $S2 = shift prior
-    push retval, $S2
+    next_str = new 'Perl6Str'
+    next_str = $S2
+    push retval, next_str
     goto process_pstring
   start_range:
     if $I0 > $I1 goto illegal_range
@@ -509,7 +512,9 @@ B<Note:> partial implementation only
     # If needed we can switch this over to use a true string Range
     if $I0 > $I1 goto next_loop
     $S2 = chr $I0
-    push retval, $S2
+    next_str = new 'Perl6Str'
+    next_str = $S2
+    push retval, next_str
     inc $I0
     goto make_range
   illegal_range:
@@ -523,42 +528,75 @@ B<Note:> partial implementation only
     goto next_index
   last_string:
     s_len = len - start
-    if s_len <= 0 goto done
+    if s_len <= 0 goto check_rval
     p = substr str, start, s_len
     prior = split '', p
   process_lstring:
-    unless prior, done
+    unless prior, check_rval
     $S0 = shift prior
-    push retval, $S0
+    next_str = new 'Perl6Str'
+    next_str = $S0
+    push retval, next_str
     goto process_lstring
+  check_rval:
+    $I0 = elements retval
+    if $I0 > 0 goto done
+    push retval, ''
   done:
     .return(retval)
 .end
 
+
 .sub 'trans' :method
     .param pmc args :slurpy
-    .param int del :named('d') :optional
-    .param int comp :named('c') :optional
-    .param int squash :named('s') :optional
-    .local pmc pair
-    .local pmc table
-    .local pmc itable
-    .local pmc pkey
-    .local pmc pval
-    .local pmc retv
-    .local string tmps, k, v, lv, lastmatch, comp_match
-    .local int len, klen, vlen, adjpos, pos, ind, nhits, isa_pair
-    table = new 'Hash'
-    itable = new 'Hash'
+    .param pmc adverbs         :slurpy :named
+    .local int del, comp, squash
+    $I0 = exists adverbs['d']
+    $I1 = exists adverbs['delete']
+    del = $I0 || $I1
+    $I0 = exists adverbs['c']
+    $I1 = exists adverbs['complement']
+    comp = $I0 || $I1
+    $I0 = exists adverbs['s']
+    $I1 = exists adverbs['squash']
+    squash = $I0 || $I1
+    # TODO: unspec'd behavior: above arguments are similar
+    # to p5 tr/// but are not described in S05, need some
+    # clarification on whether these are implemented correctly
+    .local pmc table, itable, retv, comp_match, by
+    .local int len, klen, vlen, adjpos, pos, ind, nhits
+    by = get_hll_global 'infix:<=>'
+    # itable maps matching positions to key, value array
+    itable = new 'Perl6Hash'
     retv = new 'Perl6Str'
-    tmps = self
-    lv = ''
 
+  init_pair_loop:
+    .local pmc pair, pkey, pval, pairlist
+    .local int isatype
   pair_loop:
-    unless args, st_trans
+    unless args, init_trans
     pair = shift args
-    isa_pair = isa pair, 'Perl6Pair'
-    unless isa_pair, pair_exception
+    # following is a cludge to get around list context issues
+    # should be removed once that works
+    isatype = isa pair, 'Perl6Pair'
+    if isatype goto isa_pair
+    isatype = isa pair, 'Hash'
+    if isatype goto isa_hash
+    isatype = isa pair, 'List'
+    if isatype goto isa_list
+    # change to Failure?
+    die "Must pass a List of Pairs for transliteration"
+  isa_hash:
+    pairlist = pair.'pairs'()
+    goto pairlist_loop
+  isa_list:
+    pairlist = clone pair
+  pairlist_loop:
+    unless pairlist, pair_loop
+    pair = shift pairlist
+    push args, pair
+    goto pairlist_loop
+  isa_pair:
     pkey = pair.'key'()
     pval = pair.'value'()
     pkey = '!transtable'(pkey)
@@ -569,95 +607,180 @@ B<Note:> partial implementation only
     pval = clone pkey
   comp_check:
     # for :c, I am using first element for replacing for now.  I can't find
-    # many examples where this is used otherwise
+    # any reliable examples where this is used otherwise
     comp_match = pval[0]
 
+  init_mapping:
+    .local pmc key, val, lastval, prev_val, prev_key
+    .local string tmps
+    .local int prev_pos, k_isa_regex
+    tmps = self
   mapping:
+    .local pmc match, km
     unless pkey, pair_loop
-    k = shift pkey
+    key = shift pkey
     unless pval, get_prev1
-    lv = shift pval
+    lastval = shift pval
   get_prev1:
-    unless del, get_prev2
-    v = ''
+    if del, get_prev2
+    val = lastval
+    goto init_index_loop
   get_prev2:
-    v = lv
+    val = new 'Perl6Str'
+    val = ''
+  init_index_loop:
     nhits = 0
     pos = 0
-  index_loop:
-    ind = index tmps, k, pos
-    if ind == -1 goto check_elems
+    prev_pos = 0
+    # assume key is always a Str for now (will need to adjust for Regex)
+    k_isa_regex = isa key, 'Sub' # should be Regex
+    unless k_isa_regex, index_loop
+
+  regex_loop:
+    match = key(tmps, 'continue' => pos)
+    unless match goto mapping
+    ind = match.'from'()
+    km = match
     inc nhits
-    $S0 = itable[ind]
-    unless $S0, new_hit
+    goto check_hit
+  index_loop:
+    km = key
+    # change over to index method
+    $S0 = key
+    ind = index tmps, $S0, pos
+    if ind == -1 goto mapping
+    inc nhits
+  check_hit:
+    klen = km.'chars'()     # should work for Match, Str
+    $I0 = exists itable[ind]
+    unless $I0, new_hit
+    prev_key = itable[ind;0]
     # keep longest hit at that index
-    $I0 = length $S0
-    $I1 = length k
-    if $I1 < $I0 goto next_hit
+    $I1 = prev_key.'chars'()
+    if klen < $I1 goto next_hit
   new_hit:
-    itable[ind] = k
+    $P1 = new 'ResizablePMCArray'
+    push $P1, km
+    push $P1, val
+    itable[ind] = $P1
   next_hit:
-    pos = ind + 1
-    goto index_loop
-  check_elems:
-    unless nhits, mapping
-    table[k] = v
-    goto mapping
+    prev_pos = ind
+    pos = ind + klen
+    prev_val = val
+    unless k_isa_regex goto index_loop
+    # Do we just grab the next match (which may backtrack), or only grab longest
+    # match? This will affect closures ...
+    goto regex_loop
+
+  init_trans:
+    .local pmc hit_set, inv_set, inv_table, it
+    .local int kvdiff, llm, pr_pos, st, end
+    .local string vs
+    hit_set = new 'ResizableIntegerArray'
+  normal_hits:
+    hit_set = itable.'keys'()
+    hit_set = hit_set.'sort'(by)
+    unless comp, st_trans
+  comp_hits:
+    # if :c is indicated, rebuild complement set and use that instead
+    # of original itable
+    inv_table = new 'Perl6Hash'
+    st = 0
+    end = 0
+    len = length tmps
+    inv_set = new 'ResizableIntegerArray'
+    it = hit_set.'iterator'()
+  comp_loop1:
+    unless it, fence_post
+    end = shift it
+    key = itable[end;0]
+    klen = key.'chars'()
+  comp_loop2:
+    if st == len goto finish_comp
+    if st == end goto comp_loop3
+    # TODO: unspec'd behavior
+    # depending on how we want to implement complement, we could
+    # modify the following to replace the entire unmatched range once
+    # or each char (latter implemented for now to match tests)
+    push inv_set, st
+    $P1 = new 'ResizablePMCArray'
+    push $P1, 'x' # placeholder char; we can replace with substr if needed
+    push $P1, comp_match
+    inv_table[st] = $P1
+    inc st
+    goto comp_loop2
+  comp_loop3:
+    st += klen
+    goto comp_loop1
+  fence_post:
+    end = len
+    goto comp_loop2
+  finish_comp:
+    hit_set = inv_set
+    itable = inv_table
 
   st_trans:
-    len = length tmps
-    pos = 0
-    adjpos = 0
-    v = ''
-    k = ''
+    .local int k_isa_match, v_isa_closure, pass_match
+    .local pmc lastmatch, v
+    lastmatch = new 'Perl6Str'
     lastmatch = ''
+    pos = 0 # original unadjusted position
+    pr_pos = 0 # prior unadjusted position
+    adjpos = 0 # adjusted position
+    kvdiff = 0 # key-value string length diff
+    klen = 0 # key len
+    vlen = 0 # val len
+    llm = 0 # orig end marker for longest leftmost match
 
   table_loop:
-    if pos >= len goto done
-    k = itable[pos]
-    klen = length k
-    if comp goto complement
-  normal:
-    unless k, skip_pos
-    v = table[k]
-    goto check_squash
-  complement:
-    # may need to change dep. on how we want :c to work
-    if k, skip_pos_comp
-    v = comp_match
-    klen = 1
+    unless hit_set, done
+    pos = shift hit_set
+    if pos < llm goto table_loop
+    key = itable[pos;0]
+    k_isa_match = isa key, 'PGE::Match'
+    klen = key.'chars'()
+    # skip matches between pos and end of llm
+    llm = pos + klen
+    val = itable[pos;1]
+    v_isa_closure = isa val, 'Closure'
+    pass_match = k_isa_match && v_isa_closure
+    unless v_isa_closure, not_closure
+    unless pass_match, simple_closure
+  regex_closure:
+    val = val(key)
+    goto not_closure
+  simple_closure:
+    val = val()
+  not_closure:
+    vlen = val.'chars'()
   check_squash:
     unless squash, replace
-    unless v == lastmatch goto replace
+    # should these be stringified prior to squash?
+    unless lastmatch goto replace
+    unless val == lastmatch goto replace
+    $I0 = pos - prev_pos
+    unless $I0 == klen goto replace
     vlen = 0
-    substr tmps, adjpos, klen, ''
+    prev_pos = pos
+    pos += adjpos
+    substr tmps, pos, klen, ''
     goto next_pos
   replace:
-    vlen = length v
-    substr tmps, adjpos, klen, v
+    prev_pos = pos
+    pos += adjpos
+    $S0 = val
+    substr tmps, pos, klen, $S0
   next_pos:
-    pos      += klen
-    adjpos   += vlen
-    lastmatch = v
-    goto table_loop
-  skip_pos:
-    pos      += 1
-    adjpos   += 1
-    lastmatch = ''
-    goto table_loop
-  skip_pos_comp:
-    pos      += klen
-    adjpos   += klen
-    lastmatch = ''
+    kvdiff = klen - vlen
+    adjpos -= kvdiff
+    lastmatch = val
     goto table_loop
 
   done:
     retv = tmps
     .return(retv)
-
-  pair_exception:
-    die "Must pass a List of Pairs for transliteration"
 .end
+
 
 =item subst
 

@@ -1401,31 +1401,69 @@ sub apply_package_traits($package, $traits) {
 method package_declarator($/, $key) {
     our $?CLASS;
     our @?CLASS;
-    our $?ROLE;
-    our @?ROLE;
-    our $?PACKAGE;
-    our @?PACKAGE;
     our $?GRAMMAR;
     our @?GRAMMAR;
+    our $?MODULE;
+    our @?MODULE;
+    our $?PACKAGE;
+    our @?PACKAGE;
+    our $?ROLE;
+    our @?ROLE;
 
     if $key eq 'open' {
         # Start of a new package. We create an empty PAST::Stmts node for the
         # package definition to be stored in and put it onto the current stack
         # of packages and the stack of its package type.
         my $decl_past := PAST::Stmts.new();
-        @?PACKAGE.unshift($?PACKAGE);
-        $?PACKAGE := $decl_past;
-        if $<sym> eq 'class' {
+
+
+        if    $<sym> eq 'package' {
+            @?PACKAGE.unshift($?PACKAGE);
+            $?PACKAGE := $decl_past;
+        }
+        ##  module isa package
+        elsif $<sym> eq 'module' {
+            @?MODULE.unshift($?MODULE);
+            $?MODULE := $decl_past;
+
+            @?PACKAGE.unshift($?PACKAGE);
+            $?PACKAGE := $decl_past;
+        }
+        ##  role isa module isa package
+        elsif $<sym> eq 'role' {
+            @?ROLE.unshift($?ROLE);
+            $?ROLE := $decl_past;
+
+            @?MODULE.unshift($?MODULE);
+            $?MODULE := $decl_past;
+
+            @?PACKAGE.unshift($?PACKAGE);
+            $?PACKAGE := $decl_past;
+        }
+        ##  class isa module isa package
+        elsif $<sym> eq 'class' {
             @?CLASS.unshift($?CLASS);
             $?CLASS := $decl_past;
+
+            @?MODULE.unshift($?MODULE);
+            $?MODULE := $decl_past;
+
+            @?PACKAGE.unshift($?PACKAGE);
+            $?PACKAGE := $decl_past;
         }
-        elsif $<sym> eq 'role' {
-            @?ROLE.unshift( $?ROLE );
-            $?ROLE := $decl_past;
-        }
+        ##  grammar isa class isa module isa package
         elsif $<sym> eq 'grammar' {
-            @?GRAMMAR.unshift( $?GRAMMAR );
+            @?GRAMMAR.unshift($?GRAMMAR);
             $?GRAMMAR := $decl_past;
+
+            @?CLASS.unshift($?CLASS);
+            $?CLASS := $decl_past;
+
+            @?MODULE.unshift($?MODULE);
+            $?MODULE := $decl_past;
+
+            @?PACKAGE.unshift($?PACKAGE);
+            $?PACKAGE := $decl_past;
         }
     }
     else {
@@ -1434,15 +1472,32 @@ method package_declarator($/, $key) {
         my $past := $( $/{$key} );
 
         # Restore outer package.
-        $?PACKAGE := @?PACKAGE.shift();
-        if $<sym> eq 'class' {
-            $?CLASS := @?CLASS.shift();
+        if    $<sym> eq 'package' {
+            $?PACKAGE := @?PACKAGE.shift();
         }
+        ##  module isa package
+        elsif $<sym> eq 'module' {
+            $?MODULE  := @?MODULE.shift();
+            $?PACKAGE := @?PACKAGE.shift();
+        }
+        ##  role isa module isa package
         elsif $<sym> eq 'role' {
-            $?ROLE := @?ROLE.shift();
+            $?ROLE    := @?ROLE.shift();
+            $?MODULE  := @?MODULE.shift();
+            $?PACKAGE := @?PACKAGE.shift();
         }
+        ##  class isa module isa package
+        elsif $<sym> eq 'class' {
+            $?CLASS   := @?CLASS.shift();
+            $?MODULE  := @?MODULE.shift();
+            $?PACKAGE := @?PACKAGE.shift();
+        }
+        ##  grammar isa class isa module isa package
         elsif $<sym> eq 'grammar' {
             $?GRAMMAR := @?GRAMMAR.shift();
+            $?CLASS   := @?CLASS.shift();
+            $?MODULE  := @?MODULE.shift();
+            $?PACKAGE := @?PACKAGE.shift();
         }
 
         make $past;
@@ -1451,10 +1506,11 @@ method package_declarator($/, $key) {
 
 
 method package_def($/, $key) {
-    our $?PACKAGE;
     our $?CLASS;
     our $?GRAMMAR;
+    our $?MODULE;
     our $?NS;
+    our $?PACKAGE;
     our $?INIT;
 
     if $key eq 'open' {

@@ -138,12 +138,15 @@ Partial implementation for now, returns a list of strings
     .param int has_count    :opt_flag
     .local pmc retv, match
     .local string s
+    .local int pos
 
-    retv = new 'List'
+    retv = 'list'()
     s = self
 
+    pos = 0
+
   do_match:
-    match = regex.'ACCEPTS'(s)
+    match = regex(s, 'continue' => pos)
     unless match goto done
     unless has_count goto skip_count
     dec count
@@ -153,9 +156,13 @@ Partial implementation for now, returns a list of strings
     $S0 = match
     retv.'push'($S0)
     $I0 = match.'to'()
-    s = substr s, $I0
+    if pos == $I0 goto zero_width
+    pos = $I0
     goto do_match
 
+  zero_width:
+    inc pos
+    goto do_match
   done:
     .return(retv)
 .end
@@ -427,7 +434,12 @@ B<Note:> partial implementation only
     $S1 = substr $S0, start_pos, end_pos
     retv.'push'($S1)
     unless match goto done
-    start_pos = match.'to'()
+    $I0 = match.'to'()
+    if $I0 == start_pos goto zero_width
+    start_pos = $I0
+    goto loop
+  zero_width:
+    inc start_pos
     goto loop
 
   done:

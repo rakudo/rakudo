@@ -2476,7 +2476,7 @@ method quote_concat($/) {
         $past := PAST::Op.new(
             $past,
             $( $<quote_term>[$count] ),
-            :pirop('n_concat'),
+            :pirop('concat'),
             :pasttype('pirop')
         );
         $count := $count + 1;

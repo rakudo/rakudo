@@ -18,7 +18,7 @@ proto prefix:<~> is equiv(prefix:<+>) { ... }
 proto prefix:<?> is equiv(prefix:<+>) { ... }
 proto prefix:<!> is equiv(prefix:<+>) { ... }
 proto prefix:<+^> is equiv(prefix:<+>)
-    is pirop('n_bnot')
+    is pirop('bnot')
     { ... }
 proto prefix:<=> is equiv(prefix:<+>) { ... }
 proto prefix:<^> is equiv(prefix:<+>) { ... }

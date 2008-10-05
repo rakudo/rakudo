@@ -68,7 +68,7 @@ src/builtins/inplace.pir - Inplace assignments
 .sub 'infix:x='
     .param pmc a
     .param pmc b
-    repeat a, a, b
+    repeat a, b
     .return (a)
 .end
 

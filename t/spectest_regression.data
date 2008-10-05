@@ -34,6 +34,7 @@ S02-literals/quoting.t
 S02-literals/radix.t
 S02-literals/string-interpolation.t
 S02-literals/underscores.t
+S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-names_and_variables/perl.t
 S02-names_and_variables/varnames.t
@@ -136,8 +137,11 @@ S12-class/inheritance-class-methods.t
 S12-class/inheritance.t
 S12-class/instantiate.t
 S12-class/parent_attributes.t
+S12-enums/basic.t
 S12-enums/as-role.t
 S12-methods/calling_syntax.t
+S12-methods/topic.t
+S12-methods/what.t
 S12-role/attributes.t
 S12-role/composition.t
 S12-role/mixin.t
@@ -155,6 +159,7 @@ S29-array/pop.t
 S29-array/push.t
 S29-array/shift.t
 S29-array/unshift.t
+S29-context/eval.t
 S29-conversions/ord_and_chr.t
 S29-hash/delete.t
 S29-hash/exists.t

@@ -551,7 +551,7 @@ method enum_declarator($/, $key) {
         my $getvals_sub := PAST::Compiler.compile( $block );
         my %values := $getvals_sub();
 
-        # Now we need to emit an role of the name of the enum containing:
+        # Now we need to emit a role of the name of the enum containing:
         #  * One attribute with the same name as the enum
         #  * A method of the same name as the enum
         #  * Methods for each name introduced by the enum that compare the

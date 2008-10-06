@@ -41,6 +41,8 @@ Compiler implemented
 * inheritance
 * roles
 * role composition
+* anonymous classes
+* is rw trait on attributes
 * named regexes
 * defining refinement types using the subset keyword
 * @*ARGS
@@ -52,7 +54,7 @@ Compiler implemented
 * grammars
 * postcircumfix:<> for colonpairs
 * WHAT, HOW, WHENCE
-* .perl method on junctions, Num, Int and Str
+* .perl method on junctions, List, Pair, Hash, Num, Int and Str
 
 
 To do
@@ -63,6 +65,4 @@ To do
 * explicit specification of invocant in methods
 * $?LINE and $?FILE
 * self!method() and $x!method() and private methods generally
-* is rw trait on attributes
-* anonymous classes
 * junction auto-threading

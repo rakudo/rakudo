@@ -35,7 +35,8 @@ If the Rakudo compiler is invoked without an explicit script to
 run -- i.e., as "parrot perl6.pbc" or just "perl6" -- it enters a
 small interactive mode that allows Perl 6 statements to be
 executed from the command line.  Each line entered is treated
-as a separate compilation unit, however.
+as a separate compilation unit, however (which means that subroutines
+are preserved after they are defined, but variables are not).
 
 =head2 Running the test suite
 
@@ -46,7 +47,7 @@ it's capable of running a simple test harness.
 
 Running "make spectest_regression" will import relevant portions
 of the "official Perl 6 test suite" from the Pugs repository
-(http://svn.pugscode.org/pugs/tspec/) and run all tests from
+(http://svn.pugscode.org/pugs/t/spec/) and run all tests from
 there.
 
 At present we do not have any plans to directly store the
@@ -85,7 +86,7 @@ a Parrot blog at L<http://parrotblog.org/>.
 
 Bug reports should be sent to C<rakudobug@perl.org> with the moniker
 [BUG] (including the brackets) at the start of the subject so that
-it gets appropriately tagged in the RT system (https://rt.perl.org/).
+it gets appropriately tagged in the RT system (https://rt.perl.org/rt3/).
 Please include or attach any sample source code that exhibits the
 bug, and if appropriate identify the svn revision number of the code
 that you're working from.  There's no need to cc: the perl6-compiler

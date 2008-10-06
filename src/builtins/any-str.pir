@@ -411,8 +411,7 @@ B<Note:> partial implementation only
 
     # per Perl 5's negative LIMIT behavior
     unless has_count goto positive_count
-    unless count < 1 goto positive_count
-    has_count = 0
+    if count < 1 goto done
 
   positive_count:
     match = regex($S0)

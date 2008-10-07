@@ -2152,7 +2152,7 @@ method variable($/, $key) {
             :viviself('Failure')
         ));
     }
-    else {
+    elsif $key eq '$var' {
         our $?BLOCK;
         # Handle naming.
         my @identifier := $<name><identifier>;

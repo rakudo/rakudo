@@ -37,16 +37,18 @@ src/builtins/globals.pir - initialize miscellaneous global variables
 
     ##  set up $*OS, $*OSVER $*EXECUTABLE_NAME
     .local string info
-    $P0 = new 'Perl6Str'
     info = sysinfo .SYSINFO_PARROT_OS
+    $P0 = new 'Perl6Str'
     $P0 = info
     set_hll_global '$OS', $P0
 
     info = sysinfo .SYSINFO_PARROT_OS_VERSION
+    $P0 = new 'Perl6Str'
     $P0 = info
     set_hll_global '$OSVER', $P0
 
     info = interpinfo .INTERPINFO_EXECUTABLE_FULLNAME
+    $P0 = new 'Perl6Str'
     $P0 = info
     set_hll_global '$EXECUTABLE_NAME', $P0
 

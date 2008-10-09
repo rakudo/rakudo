@@ -767,6 +767,7 @@ B<Note:> partial implementation only
     klen = 0 # key len
     vlen = 0 # val len
     llm = 0 # orig end marker for longest leftmost match
+    tmps = self # reassig; workaround for [perl #59730]
 
   table_loop:
     unless hit_set, done

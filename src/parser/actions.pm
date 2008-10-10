@@ -1276,7 +1276,7 @@ method methodop($/, $key) {
     $past.node($/);
 
     if $<name> {
-        $past.name(~$<name><identifier>[0]);
+        $past.name(~$<name>);
     }
     elsif $<variable> {
         $past.unshift( $( $<variable> ) );
@@ -1574,7 +1574,7 @@ method package_def($/, $key) {
 
         # Also store the current namespace, if we're not anonymous.
         if $<name> {
-            $?NS := ~$<name>[0]<identifier>;
+            $?NS := ~$<name>[0];
         }
     }
     else {
@@ -1590,7 +1590,7 @@ method package_def($/, $key) {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         if $<name> {
-            $past.namespace($<name>[0]<identifier>);
+            $past.namespace( PAST::Compiler.parse_name($<name>[0]) );
         }
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
@@ -1713,13 +1713,13 @@ method role_def($/, $key) {
         );
 
         # Also store the current namespace.
-        $?NS := ~$<name><identifier>;
+        $?NS := ~$<name>;
     }
     else {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         my $past := $( $<package_block> );
-        $past.namespace($<name><identifier>);
+        $past.namespace( PAST::Compiler.parse_name($<name>) );
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
 
@@ -2155,13 +2155,8 @@ method variable($/, $key) {
     elsif $key eq '$var' {
         our $?BLOCK;
         # Handle naming.
-        my @identifier := $<name><identifier>;
-        my $name;
-        PIR q<  $P0 = find_lex '@identifier'  >;
-        PIR q<  $P0 = clone $P0               >;
-        PIR q<  store_lex '@identifier', $P0  >;
-        PIR q<  $P1 = pop $P0                 >;
-        PIR q<  store_lex '$name', $P1        >;
+        my @identifier := Perl6::Compiler.parse_name($<name>);
+        my $name := @identifier.pop();
 
         my $twigil := ~$<twigil>[0];
         my $sigil := ~$<sigil>;
@@ -2515,7 +2510,7 @@ method quote_term($/, $key) {
 
 method typename($/) {
     # Extract shortname part of identifier, if there is one.
-    my $ns := $<name><identifier>.clone();
+    my $ns := Perl6::Compiler.parse_name($<name>);
     my $shortname := $ns.pop();
 
     # Create default PAST node for package lookup of type.

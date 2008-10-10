@@ -691,7 +691,7 @@ token sigil { '$' | '@' | '%' | '&' | '::' }
 token twigil { <[.!^:*+?=]> }
 
 token name {
-    | <identifier> [ '::' <identifier> ]*
+    | <identifier> [ '::' <morename=identifier> ]*
 }
 
 token value {

@@ -28,7 +28,7 @@ Creates the Perl 6 document reader by subclassing a C<PCT::HLLCompiler> object.
     load_bytecode 'Protoobject.pbc'
 
     $P0 = get_hll_global 'Protomaker'
-    $P1 = get_class ['PCT::HLLCompiler']
+    $P1 = get_class ['PCT';'HLLCompiler']
     $P0.'new_subclass'($P1, 'Perl6doc')
 .end
 
@@ -81,7 +81,7 @@ USAGE
 .end
 
 
-.namespace ['Perl6doc::Compiler']
+.namespace ['Perl6doc';'Compiler']
 
 =item main(args :slurpy)  :main
 

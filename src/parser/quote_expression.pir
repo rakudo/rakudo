@@ -3,7 +3,7 @@
 
 .include 'cclass.pasm'
 
-.namespace ['Perl6::Grammar']
+.namespace ['Perl6';'Grammar']
 
 .sub 'peek_brackets' :method
     .param string target
@@ -89,7 +89,7 @@
     $I0 = options['regex']
     unless $I0 goto word_start
   regex_start:
-    p6regex = get_root_global ['parrot';'PGE::Perl6Regex'], 'regex'
+    p6regex = get_root_global ['parrot';'PGE';'Perl6Regex'], 'regex'
     mob.'to'(pos)
     quote_regex = p6regex(mob, options :flat :named)
     unless quote_regex goto fail

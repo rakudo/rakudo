@@ -24,7 +24,7 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
 .loadlib 'perl6_ops'
 .include 'src/gen_builtins.pir'
 
-.namespace [ 'Perl6::Compiler' ]
+.namespace [ 'Perl6';'Compiler' ]
 
 .sub 'onload' :load :init :anon
     load_bytecode 'PCT.pbc'
@@ -121,13 +121,13 @@ USAGE
     set_hll_global ['Perl6'], '@?END_BLOCKS', $P0
 
     ##  tell PAST::Var how to encode Perl6Str and Str values
-    $P0 = get_hll_global ['PAST::Compiler'], '%valflags'
+    $P0 = get_hll_global ['PAST';'Compiler'], '%valflags'
     $P0['Perl6Str'] = 'e'
     $P0['Str'] = 'e'
 .end
 
 
-.namespace ['Perl6::Compiler']
+.namespace ['Perl6';'Compiler']
 
 =item check_syntax(source [, "option" => value, ...])
 

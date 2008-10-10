@@ -1590,7 +1590,7 @@ method package_def($/, $key) {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         if $<name> {
-            $past.namespace( PAST::Compiler.parse_name($<name>[0]) );
+            $past.namespace($<name>[0]<identifier>);
         }
         $past.blocktype('declaration');
         $past.pirflags(':init :load');

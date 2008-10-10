@@ -1574,7 +1574,7 @@ method package_def($/, $key) {
 
         # Also store the current namespace, if we're not anonymous.
         if $<name> {
-            $?NS := $<name>[0]<identifier>;
+            $?NS := ~$<name>[0]<identifier>;
         }
     }
     else {
@@ -1713,7 +1713,7 @@ method role_def($/, $key) {
         );
 
         # Also store the current namespace.
-        $?NS := $<name><identifier>;
+        $?NS := ~$<name><identifier>;
     }
     else {
         # Declare the namespace and that the result block holds things that we
@@ -1879,9 +1879,9 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
         # as $!attrname, add the real name and set the scope as rpattribute,
         # then translate it to the right thing when we see it.
         our $?NS;
-        $name := ~$variable_sigil ~ '!' ~ $?NS[0] ~ '!' ~ ~$variable_name;
+        $name := ~$variable_sigil ~ '!' ~ $?NS ~ '!' ~ ~$variable_name;
         my $visible_name := ~$variable_sigil ~ '!' ~ ~$variable_name;
-        my $real_name := '!' ~ $?NS[0] ~ '!' ~ ~$variable_name;
+        my $real_name := '!' ~ $?NS ~ '!' ~ ~$variable_name;
         $?BLOCK.symbol($visible_name, :scope('rpattribute'), :real_name($real_name));
     }
     else {

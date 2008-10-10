@@ -160,7 +160,6 @@ S29-array/shift.t
 S29-array/unshift.t
 S29-context/eval.t
 S29-conversions/ord_and_chr.t
-S29-hash/delete.t
 S29-hash/exists.t
 S29-hash/keys_values.t
 S29-hash/pairs.t

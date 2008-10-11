@@ -565,17 +565,22 @@ token term {
     | <identifier=named_0ary>
         [
         | <.unsp>? '.'? '(' <semilist> ')' {*}   #= func args
-        | :: {*}                                 #= listop noarg
+        | :: {*}                                 #= noarg
         ]
     | <identifier>
         [
-        | \s <arglist> {*}                       #= listop args
-        | <.unsp>? '.'? '(' <semilist> ')' {*}   #= func args
-        | :: {*}                                 #= listop noarg
+        | <args> {*}                             #= args
+        | :: {*}                                 #= noarg
         ]
     | <sigil> \s <arglist> {*}                   #= sigil
     | '...' {*}                                  #= ...
     ]
+}
+
+
+token args {
+    | \s <arglist> {*}                           #= listop args
+    | <.unsp>? '.'? '(' <semilist> ')' {*}       #= func args
 }
 
 ##  XXX: cheat until we get term:pi, term:rand, term:undef, etc.
@@ -691,7 +696,16 @@ token sigil { '$' | '@' | '%' | '&' | '::' }
 token twigil { <[.!^:*+?=]> }
 
 token name {
-    | <identifier> [ '::' <morename=identifier> ]*
+    | <identifier> <morename>*
+    | <morename>+
+}
+
+token morename {
+    '::'
+    [ 
+    | <identifier>
+    | '(' <EXPR> ')' 
+    ]
 }
 
 token value {

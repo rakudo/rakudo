@@ -2544,16 +2544,16 @@ method typename($/) {
 
 method term($/, $key) {
     my $past;
-    if $key eq 'func args' {
+    if $key eq 'noarg' {
+        $past := PAST::Op.new( :name( ~$<identifier> ), :pasttype('call') );
+    } 
+    elsif $key eq 'args' {
+        $past := $($<args>);
+        $past.name( ~$<identifier> );
+    } 
+    elsif $key eq 'func args' {
         $past := build_call( $( $<semilist> ) );
         $past.name( ~$<identifier> );
-    }
-    elsif $key eq 'listop args' {
-        $past := build_call( $( $<arglist> ) );
-        $past.name( ~$<identifier> );
-    }
-    elsif $key eq 'listop noarg' {
-        $past := PAST::Op.new( :name( ~$<identifier> ), :pasttype('call') );
     }
     elsif $key eq 'VAR' {
         $past := PAST::Op.new(
@@ -2574,6 +2574,14 @@ method term($/, $key) {
     }
     else { $past := $( $/{$key} ); }
     $past.node($/);
+    make $past;
+}
+
+
+method args($/, $key) {
+    my $past := build_call( $key eq 'func args' 
+                                ?? $($<semilist>) 
+                                !! $($<arglist>) );
     make $past;
 }
 

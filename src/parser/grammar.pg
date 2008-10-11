@@ -807,11 +807,6 @@ token typename {
     {*}
 }
 
-token name {
-    <identifier> [ '::' <identifier> ]*
-    {*}
-}
-
 # These regex rules are some way off STD.pm at the moment, but we'll work them
 # closer to it over time.
 rule regex_declarator {

@@ -27,6 +27,7 @@ processed date.
 
 use strict;
 use warnings;
+use GD;
 use GD::Graph::bars;
 use Text::CSV_XS;
 use List::Util qw(max sum);
@@ -42,10 +43,12 @@ use constant PASS       => 4;
 use constant FAIL       => 5;
 use constant TODO       => 6;
 use constant SKIP       => 7;
+use constant SPECPLAN   => 8;
+use constant SPECSKIP   => 9;
 
-use constant MAX_COL    => 7;
+use constant MAX_COL    => 9;
 
-my $size = '600x400';
+my $size = '800x500';
 
 GetOptions
     'size=s'    => \$size,
@@ -61,7 +64,7 @@ my $csv = Text::CSV_XS->new({
     });
 
 my $max = 0;
-my @columns_to_plot = (PASS, FAIL, TODO, SKIP);
+my @columns_to_plot = (PASS, FAIL, TODO, SKIP, SPECSKIP);
 my $rows = 0;
 
 while (<$f>) {
@@ -70,6 +73,7 @@ while (<$f>) {
     $csv->parse($_);
     my @cols = $csv->fields();
     push @{$data[0]}, substr $cols[0], 0, 10;
+    $cols[SPECSKIP] = $cols[SPECPLAN] - sum @cols[PASS, FAIL, TODO, SKIP];
     for (1..MAX_COL){
         push @{$data[$_]}, $cols[$_];
     }
@@ -85,15 +89,17 @@ no warnings 'qw';
 $p->set(
         x_label             => 'Date',
         y_label             => 'Tests',
-        title               => 'Passing Rakudo Spectests',
-        x_label_skip        => ceil($rows/20),
+        title               => 'Rakudo Spectest Progress',
+        x_label_skip        => 7,
         x_labels_vertical   => 1,
         cumulate            => 1,
         borderclrs          => [undef],
-        dclrs               => [qw(#00FF00 #FF0000 #0000FF #FFFF00)]
+        dclrs               => [qw(#00FF00 #FF0000 #0000FF #FFFF00 #DDDDDD)]
     ) or die $p->error;
 
-$p->set_legend('Pass', 'Fail', 'Todo', 'Skip');
+$p->set_legend('Pass', 'Fail', 'Todo', 'RSkip', 'SSkip');
+$p->set_x_axis_font(gdSmallFont);
+$p->set_y_axis_font(gdSmallFont);
 
 # determine a better y_max_value - GD::Graph wastes much space by default
 my $round_to = 10 ** int(log10 $max) / 5;

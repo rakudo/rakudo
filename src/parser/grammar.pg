@@ -562,12 +562,12 @@ token term {
     [
     | 'VAR(' <variable> ')' {*}                  #= VAR
     | <typename> {*}                             #= typename
-    | <identifier=named_0ary>
+    | <name=named_0ary>
         [
         | <.unsp>? '.'? '(' <semilist> ')' {*}   #= func args
         | :: {*}                                 #= noarg
         ]
-    | <identifier>
+    | <name>
         [
         | <args> {*}                             #= args
         | :: {*}                                 #= noarg

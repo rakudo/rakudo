@@ -2545,15 +2545,15 @@ method typename($/) {
 method term($/, $key) {
     my $past;
     if $key eq 'noarg' {
-        $past := PAST::Op.new( :name( ~$<identifier> ), :pasttype('call') );
+        $past := PAST::Op.new( :name( ~$<name> ), :pasttype('call') );
     } 
     elsif $key eq 'args' {
         $past := $($<args>);
-        $past.name( ~$<identifier> );
+        $past.name( ~$<name> );
     } 
     elsif $key eq 'func args' {
         $past := build_call( $( $<semilist> ) );
-        $past.name( ~$<identifier> );
+        $past.name( ~$<name> );
     }
     elsif $key eq 'VAR' {
         $past := PAST::Op.new(

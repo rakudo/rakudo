@@ -774,7 +774,7 @@ B<Note:> partial implementation only
     pos = shift hit_set
     if pos < llm goto table_loop
     key = itable[pos;0]
-    k_isa_match = isa key, 'PGE::Match'
+    k_isa_match = isa key, ['PGE';'Match']
     klen = key.'chars'()
     # skip matches between pos and end of llm
     llm = pos + klen

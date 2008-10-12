@@ -8,7 +8,7 @@ autounfudge - automatically write patches for unfudging spec tests
 
 =head1 DESCRIPTION
 
-This tool runs the non-pure tests of the C<spectest_regression> make target,
+This tool runs the non-pure tests of the C<spectest> make target,
 automatically creates files with less fudges, runs them again, and if the
 modified tests succeeds, it adds a patch to C<autounfudge.patch> that, when
 applied as C<< patch -p0 < autunfudge.patch >>, removes the superflous fudge
@@ -78,7 +78,7 @@ delete $ENV{PERL6LIB} unless $keep_env;
 
 my @files;
 
-$specfile = 't/spectest_regression.data' if $auto;
+$specfile = 't/spectest.data' if $auto;
 
 if ($specfile){
     @files = read_specfile($specfile);
@@ -190,7 +190,7 @@ Valid options:
     --debug             Enable debug output
     --impl impl         Specify a different implementation
     --specfile file     Specification file to read filenames from
-    --auto              use t/spectest_regression.data for --specfile
+    --auto              use t/spectest.data for --specfile
     --keep-env          Keep PERL6LIB environment variable.
     --exclude regex     Don't run the tests that match regex
 USAGE

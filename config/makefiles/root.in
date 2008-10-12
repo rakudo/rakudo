@@ -206,11 +206,11 @@ spectest_full: all t/spec
 
 # Run the spectests that we know work.
 spectest_regression: spectest
-spectest: all t/spec t/spectest_regression.data
+spectest: all t/spec t/spectest.data
 	-cd t/spec && svn up
-	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest_regression.data
+	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data
 
-fulltest: coretest spectest_regression codetest
+fulltest: coretest spectest codetest
 
 # Run the tests in t/localtest.data
 localtest: all t/spec t/localtest.data

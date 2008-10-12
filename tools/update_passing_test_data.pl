@@ -5,13 +5,13 @@
 =head1 DESCRIPTION
 
 This tool runs the same test that C<make spectest> would, except those that
-C<make spectest_regression> runs.
+C<make spectest> runs.
 
 For each file that passes at least one test (criterion might change in future)
 it prints out a short summary about the status of this file.
 
 This is primarily used to identify tests that could be added to
-F<t/spectest_regression.data>, and those that are worth a closer look. But
+F<t/spectest.data>, and those that are worth a closer look. But
 please don't add them blindly just because they all pass - chances are that
 there's a good reason for them not already being included.
 
@@ -31,7 +31,7 @@ use Data::Dumper;
 
 my %not_process;
 {
-    my @not_process = read_specfile('t/spectest_regression.data');
+    my @not_process = read_specfile('t/spectest.data');
     @not_process{@not_process}  = (1) x  @not_process;
 }
 

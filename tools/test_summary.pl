@@ -3,9 +3,9 @@
 # Copyright (C) 2004-2008, The Perl Foundation.
 # $Id$
 
-##  The "make spectest_regression" target tells us how many
+##  The "make spectest" target tells us how many
 ##  tests we failed (hopefully zero!), but doesn't say how
-##  many were actually passed.  This script runs the spectest_regression
+##  many were actually passed.  This script runs the spectest
 ##  tests and summarizes planned, actual, passed, failed, todoed,
 ##  and skipped test results.
 ##
@@ -18,7 +18,7 @@
 use strict;
 use warnings;
 
-my $testlist = $ARGV[0] || 't/spectest_regression.data';
+my $testlist = $ARGV[0] || 't/spectest.data';
 
 my $fh;
 open($fh, '<', $testlist) || die "Can't read $testlist: $!";

@@ -858,7 +858,7 @@ method routine_def($/) {
 
                         ##  create the export namespace(s)
                         my $exp_all_ns := Perl6::Compiler.parse_name(
-                            $?NS ~ '::EXPORT::ALL'
+                            ~ ( $?NS ??  $?NS ~ '::' !! '' ) ~ 'EXPORT::ALL'
                         );
                         ##  bind the routine to the export namespace(s)
                         $loadinit.push(

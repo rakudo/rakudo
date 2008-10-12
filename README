@@ -45,10 +45,10 @@ with Rakudo on Parrot.  This is a simple suite of tests, designed
 to make sure that the Rakudo compiler is basically working and that
 it's capable of running a simple test harness.
 
-Running "make spectest_regression" will import relevant portions
+Running "make spectest" will import relevant portions
 of the "official Perl 6 test suite" from the Pugs repository
-(http://svn.pugscode.org/pugs/t/spec/) and run all tests from
-there.
+(http://svn.pugscode.org/pugs/t/spec/) and run all of these tests that
+are currently known to pass.
 
 At present we do not have any plans to directly store the
 official test suite as part of the Rakudo/Parrot repository,

@@ -165,8 +165,9 @@ help:
 	@echo "  coretest:          Run rakudo's core tests."
 	@echo "  codetest:          Run Parrot's code tests."
 	@echo "  testclean:         Clean up test results."
-	@echo "  spectest:          Run the official Perl 6 tests."
-	@echo "  spectest_regression:  Run the tests of the official test suite that are known to pass."
+	@echo "  spectest:          Run the tests of the official test suite that are known to pass."
+	@echo "  spectest:          Run the tests of the official test suite that are known to pass."
+	@echo "  spectest_full:     Run all tests of the official test suite"
 	@echo "  localtest:         Run the official tests given in t/localtest.data."
 	@echo "  fulltest:          Run coretest, spectest_regression, and codetest."
 	@echo ""
@@ -199,12 +200,13 @@ testtest: all test
 HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code
 HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 
-spectest: all t/spec
+spectest_full: all t/spec
 	-cd t/spec && svn up
 	$(HARNESS_WITH_FUDGE_JOBS) t/spec
 
 # Run the spectests that we know work.
-spectest_regression: all t/spec t/spectest_regression.data
+spectest_regression: spectest
+spectest: all t/spec t/spectest_regression.data
 	-cd t/spec && svn up
 	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest_regression.data
 

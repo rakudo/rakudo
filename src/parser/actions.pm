@@ -824,12 +824,62 @@ method enum_declarator($/, $key) {
 
 method routine_def($/) {
     my $past := $( $<block> );
+
     if $<identifier> {
         $past.name( ~$<identifier>[0] );
         our $?BLOCK;
         $?BLOCK.symbol(~$<identifier>[0], :scope('package'));
     }
     $past.control('return_pir');
+
+    ##  process traits
+    ##  NOTE: much trait processing happens elsewhere at the moment
+    ##        so don't deal with errors until refactoring is complete
+    if $<trait> {
+        for $<trait> {
+            my $trait := $_;
+            if $trait<trait_auxiliary> {
+                my $aux  := $trait<trait_auxiliary>;
+                my $sym  := $aux<sym>;
+
+                if $sym eq 'is' {
+                    my $name := $aux<name>;
+
+                    ##  is export(...)
+                    if $name eq 'export' {
+                        if ! $<identifier> {
+                            $/.panic("use of 'is export(...)' trait"
+                                ~ " on anonymous Routines is not allowed");
+                        }
+
+                        my $loadinit := $past.loadinit();
+                        our $?PACKAGE;
+                        our $?NS;
+
+                        ##  create the export namespace(s)
+                        my $exp_all_ns := Perl6::Compiler.parse_name(
+                            $?NS ~ '::EXPORT::ALL'
+                        );
+                        ##  bind the routine to the export namespace(s)
+                        $loadinit.push(
+                            ##  every exported routine is bound to ::EXPORT::ALL
+                            PAST::Op.new(
+                                :pasttype('bind'),
+                                PAST::Var.new(
+                                    :name( $past.name() ),
+                                    :namespace( $exp_all_ns ),
+                                    :scope('package'),
+                                    :isdecl(1)
+                                ),
+                                PAST::Var.new( :name('block'), :scope('register') )
+                            )
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     make $past;
 }
 

@@ -182,7 +182,20 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-## TODO: infix:=:=
+.sub 'infix:=:=' :multi(_,_)
+    .param pmc a
+    .param pmc b
+    $I0 = issame a, b
+    .return ($I0)
+.end
+
+
+.sub 'infix:!=:=' :multi(_,_)
+    .param pmc a
+    .param pmc b
+    $P0 = 'infix:=:='(a, b)
+    .return 'prefix:!'($P0)
+.end
 
 
 =back

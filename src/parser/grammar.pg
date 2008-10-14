@@ -440,15 +440,8 @@ rule post_constraint {
     where <EXPR: 'm='> # XXX <EXPR(%chaining)>
 }
 
-# XXX This rule doesn't appear in STD.pm; we use this to parse things like
-# sub foo(::T $x) { ... }, since it appears STD.pm doesn't cover that yet.
-rule generic_binder {
-    <?before '::'> <variable>
-}
-
 token parameter {
     <type_constraint>*
-    <generic_binder>?
     [
     |   $<quant>=['*'] <param_var>
     |   $<named>=[':'?]
@@ -691,7 +684,7 @@ token variable {
     | <sigil> <?before '<' > <postcircumfix> {*} #= $<>
 }
 
-token sigil { '$' | '@' | '%' | '&' | '::' }
+token sigil { '$' | '@' | '%' | '&' | '@@' }
 
 token twigil { <[.!^:*+?=]> }
 

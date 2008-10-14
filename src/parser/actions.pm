@@ -853,27 +853,49 @@ method routine_def($/) {
                         }
 
                         my $loadinit := $past.loadinit();
-                        our $?PACKAGE;
                         our $?NS;
 
                         ##  create the export namespace(s)
-                        my $exp_all_ns := Perl6::Compiler.parse_name(
-                            ~ ( $?NS ??  $?NS ~ '::' !! '' ) ~ 'EXPORT::ALL'
-                        );
+                        my $export_ns_base :=
+                            ( $?NS ?? $?NS ~ '::' !! '' ) ~ 'EXPORT::';
+                        my @export_ns;
+
+                        ##  every exported routine is bound to ::EXPORT::ALL
+                        @export_ns.push( $export_ns_base ~ 'ALL' );
+
+                        ##  TODO this is not working, no clue why
+                        ##  it's damned fugly anyway, gotta be a better way
+                        ##  get the names of the tagsets, if any
+#                        my $list := $aux<postcircumfix>[0]<semilist><EXPR>;
+#                        if $list {
+#                            for $list {
+#                                if $_ ne ':ALL' {
+#                                    @export_ns.push(
+#                                        $export_ns_base ~ $_<identifier>
+#                                    );
+#                                }
+#                            }
+#                        }
+
                         ##  bind the routine to the export namespace(s)
-                        $loadinit.push(
-                            ##  every exported routine is bound to ::EXPORT::ALL
-                            PAST::Op.new(
-                                :pasttype('bind'),
-                                PAST::Var.new(
-                                    :name( $past.name() ),
-                                    :namespace( $exp_all_ns ),
-                                    :scope('package'),
-                                    :isdecl(1)
-                                ),
-                                PAST::Var.new( :name('block'), :scope('register') )
-                            )
-                        );
+                        for @export_ns {
+                            $loadinit.push(
+                                PAST::Op.new(
+                                    :pasttype('bind'),
+                                    PAST::Var.new(
+                                        :name( $past.name() ),
+                                        :namespace(
+                                            Perl6::Compiler.parse_name( $_ )
+                                        ),
+                                        :scope('package'),
+                                        :isdecl(1)
+                                    ),
+                                    PAST::Var.new(
+                                        :name('block'), :scope('register')
+                                    )
+                                )
+                            );
+                        }
                     }
                 }
             }

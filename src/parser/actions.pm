@@ -961,29 +961,6 @@ method signature($/) {
                     PAST::Var.new( :name('self'), :scope('register') )
                 ));
             }
-
-            # Are we going to take the type of the thing we were passed and bind
-            # it to an abstraction parameter?
-            if $_<parameter><generic_binder> {
-                my $tv_var := $( $_<parameter><generic_binder>[0]<variable> );
-                $params.push(PAST::Op.new(
-                    :pasttype('bind'),
-                    PAST::Var.new(
-                        :name($tv_var.name()),
-                        :scope('lexical'),
-                        :isdecl(1)
-                    ),
-                    PAST::Op.new(
-                        :pasttype('callmethod'),
-                        :name('WHAT'),
-                        PAST::Var.new(
-                            :name($parameter.name()),
-                            :scope('lexical')
-                        )
-                    )
-                ));
-                $block_past.symbol($tv_var.name(), :scope('lexical'));
-            }
         }
 
         # Now start making a descriptor for the signature.
@@ -1042,11 +1019,9 @@ method signature($/) {
         my $cur_param_types := PAST::Stmts.new();
         if $_<parameter><type_constraint> {
             for $_<parameter><type_constraint> {
-                my $type_obj;
-
                 # Just a type name?
-                if $_<typename> {
-                    $type_obj := PAST::Op.new(
+                if $_<typename><name><identifier> {
+                    my $type_obj := PAST::Op.new(
                         :pasttype('call'),
                         :name('!TYPECHECKPARAM'),
                         $( $_<typename> ),
@@ -1055,13 +1030,29 @@ method signature($/) {
                             :scope('lexical')
                         )
                     );
+                    $cur_param_types.push($type_obj);
+                }
+                # is it a ::Foo type binding?
+                elsif $_<typename> {
+                    my $tvname := ~$_<typename><name><morename>[0]<identifier>;
+                    $params.push(PAST::Op.new(
+                        :pasttype('bind'),
+                        PAST::Var.new( :name($tvname), :scope('lexical'), :isdecl(1)),
+                        PAST::Op.new(
+                            :pasttype('callmethod'),
+                            :name('WHAT'),
+                            PAST::Var.new(
+                                :name($parameter.name()),
+                                :scope('lexical')
+                            )
+                        )
+                    ));
+                    $block_past.symbol($tvname, :scope('lexical'));
                 }
                 else {
-                    $type_obj := make_anon_subset($( $_<EXPR> ), $parameter);
+                    my $type_obj := make_anon_subset($( $_<EXPR> ), $parameter);
+                    $cur_param_types.push($type_obj);
                 }
-
-                # Add it to the types list.
-                $cur_param_types.push($type_obj);
             }
         }
 
@@ -2563,30 +2554,26 @@ method typename($/) {
     my $ns := Perl6::Compiler.parse_name($<name>);
     my $shortname := $ns.pop();
 
+    # determine type's scope
+    my $scope := '';
+    our @?BLOCK;
+    if +$ns == 0 && @?BLOCK {
+        for @?BLOCK {
+            if defined($_) && !$scope {
+                my $sym := $_.symbol($shortname);
+                if defined($sym) && $sym<scope> { $scope := $sym<scope>; }
+            }
+        }
+    }
+
     # Create default PAST node for package lookup of type.
     my $past := PAST::Var.new(
         :name($shortname),
         :namespace($ns),
-        :scope('package'),
         :node($/),
+        :scope($scope ?? $scope !! 'package'),
         :viviself('Failure')
     );
-
-    # If there's no namespace, could be lexical abstraction type.
-    if +@($ns) == 0 {
-        # See if we got lexical with the right name.
-        our @?BLOCK;
-        my $name := '::' ~ $shortname;
-        for @?BLOCK {
-            if defined($_) {
-                my $sym_table := $_.symbol($name);
-                if defined($sym_table) && defined($sym_table<scope>) {
-                    $past.name( $name );
-                    $past.scope( $sym_table<scope> );
-                }
-            }
-        }
-    }
 
     make $past;
 }

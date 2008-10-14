@@ -803,7 +803,7 @@ rule fulltypename {
 }
 
 token typename {
-    <?before <.upper> | '..' > <name>
+    <?before <.upper> | '::' > <name>
     {*}
 }
 

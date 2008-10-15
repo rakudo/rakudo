@@ -856,20 +856,18 @@ method routine_def($/) {
                         our $?NS;
 
                         ##  create the export namespace(s)
-                        my $export_ns_base :=
-                            ( $?NS ?? $?NS ~ '::' !! '' ) ~ 'EXPORT::';
+                        my $export_ns_base := ~$?NS ~ '::EXPORT::';
                         my @export_ns;
 
                         ##  every exported routine is bound to ::EXPORT::ALL
                         @export_ns.push( $export_ns_base ~ 'ALL' );
 
-                        ##  get the names of the tagsets, if any
+                        ##  get the names of the tagsets, if any, from the ast
                         my $tagsets := $( $aux<postcircumfix>[0] );
                         if $tagsets {
                             my $tagsets_past := $( $tagsets );
                             if         $tagsets_past.isa(PAST::Op)
-                                    && $tagsets_past.pasttype() eq 'call'
-                                    && $tagsets_past.name() eq 'infix:,' {
+                                    && $tagsets_past.pasttype() eq 'call' {
                                 for @( $tagsets_past ) {
                                     unless $_.isa(PAST::Val)
                                             && $_.named() {

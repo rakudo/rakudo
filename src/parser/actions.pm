@@ -863,19 +863,31 @@ method routine_def($/) {
                         ##  every exported routine is bound to ::EXPORT::ALL
                         @export_ns.push( $export_ns_base ~ 'ALL' );
 
-                        ##  TODO this is not working, no clue why
-                        ##  it's damned fugly anyway, gotta be a better way
                         ##  get the names of the tagsets, if any
-#                        my $list := $aux<postcircumfix>[0]<semilist><EXPR>;
-#                        if $list {
-#                            for $list {
-#                                if $_ ne ':ALL' {
-#                                    @export_ns.push(
-#                                        $export_ns_base ~ $_<identifier>
-#                                    );
-#                                }
-#                            }
-#                        }
+                        my $tagsets := $( $aux<postcircumfix>[0] );
+                        if $tagsets {
+                            my $tagsets_past := $( $tagsets );
+#                            $loadinit.push( PAST::Val.new( :value('hello') ) );
+#                            $loadinit.push( $list_past );
+                            if         $tagsets_past.isa(PAST::Op)
+                                    && $tagsets_past.pasttype() eq 'call'
+                                    && $tagsets_past.name() eq 'infix:,' {
+                                for @( $tagsets_past ) {
+                                    unless $_.isa(PAST::Val)
+                                            && $_.named() {
+                                        $/.panic('unknown argument "' ~ $_
+                                            ~ '" in "is export()" trait' );
+                                    }
+
+                                    my $tag := $_<named><value>;
+                                    if $tag ne 'ALL' {
+                                        @export_ns.push(
+                                            $export_ns_base ~ $tag
+                                        );
+                                    }
+                                }
+                            }
+                        }
 
                         ##  bind the routine to the export namespace(s)
                         for @export_ns {

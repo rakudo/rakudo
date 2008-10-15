@@ -341,7 +341,9 @@ method end_statement($/) {
 
 method statement_mod_loop($/) {
     my $expr := $( $<EXPR> );
-    if ~$<sym> eq 'given' {
+    my $sym := ~$<sym>;
+
+    if $sym eq 'given' {
         my $assign := PAST::Op.new(
             :name('infix::='),
             :pasttype('bind'),
@@ -355,10 +357,10 @@ method statement_mod_loop($/) {
         my $past := PAST::Stmts.new( $assign, :node($/) );
         make $past;
     }
-    elsif ~$<sym> eq 'for' {
+    elsif $sym eq 'for' {
         my $past := PAST::Op.new(
             PAST::Op.new($expr, :name('list')),
-            :pasttype($<sym>),
+            :pasttype($sym),
             :node( $/ )
         );
         make $past;
@@ -366,14 +368,16 @@ method statement_mod_loop($/) {
     else {
         make PAST::Op.new(
             $expr,
-            :pasttype( ~$<sym> ),
+            :pasttype( $sym ),
             :node( $/ )
         );
     }
 }
 
+
 method statement_mod_cond($/) {
-    if ~$<sym> eq 'when' {
+    my $sym := ~$<sym>;
+    if $sym eq 'when' {
         my $expr := $( $<EXPR> );
         my $match_past := PAST::Op.new(
             :name('infix:~~'),
@@ -395,7 +399,7 @@ method statement_mod_cond($/) {
     else {
         make PAST::Op.new(
             $( $<EXPR> ),
-            :pasttype( ~$<sym> ),
+            :pasttype( $sym ),
             :node( $/ )
         );
     }
@@ -532,7 +536,8 @@ method routine_declarator($/, $key) {
 method enum_declarator($/, $key) {
     my $values := $( $/{$key} );
 
-    if $<name> {
+    my $name := $<name>;
+    if $name {
         # It's a named enumeration. First, we will get a mapping of all the names
         # we will introduce with this enumeration to their values. We'll compute
         # these at compile time, so then we can build as much of the enum as possible
@@ -566,7 +571,7 @@ method enum_declarator($/, $key) {
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('!keyword_role'),
-                    PAST::Val.new( :value(~$<name>[0]) )
+                    PAST::Val.new( :value(~$name[0]) )
                 )
             ),
             PAST::Op.new(
@@ -576,7 +581,7 @@ method enum_declarator($/, $key) {
                     :name('$def'),
                     :scope('lexical')
                 ),
-                PAST::Val.new( :value("$!" ~ ~$<name>[0]) ),
+                PAST::Val.new( :value("$!" ~ ~$name[0]) ),
                 # XXX Set declared type here, when we parse that.
                 PAST::Var.new(
                     :name('Object'),
@@ -590,8 +595,8 @@ method enum_declarator($/, $key) {
                     :name('$def'),
                     :scope('lexical')
                 ),
-                PAST::Val.new( :value(~$<name>[0]) ),
-                make_accessor($/, undef, "$!" ~ ~$<name>[0], 1, 'attribute')
+                PAST::Val.new( :value(~$name[0]) ),
+                make_accessor($/, undef, "$!" ~ ~$name[0], 1, 'attribute')
             )
         );
         for %values.keys() {
@@ -612,7 +617,7 @@ method enum_declarator($/, $key) {
                             :pasttype('call'),
                             :name('infix:eq'), # XXX not generic enough
                             PAST::Var.new(
-                                :name("$!" ~ ~$<name>[0]),
+                                :name("$!" ~ ~$name[0]),
                                 :scope('attribute')
                             ),
                             PAST::Val.new( :value(%values{$_}) )
@@ -669,7 +674,7 @@ method enum_declarator($/, $key) {
                 :blocktype('declaration'),
                 :pirflags(":method"),
                 PAST::Var.new(
-                    :name("$!" ~ ~$<name>[0]),
+                    :name("$!" ~ ~$name[0]),
                     :scope('attribute')
                 )
             ),
@@ -693,7 +698,7 @@ method enum_declarator($/, $key) {
                     :pasttype('call'),
                     :name('prefix:~'),
                     PAST::Var.new(
-                        :name("$!" ~ ~$<name>[0]),
+                        :name("$!" ~ ~$name[0]),
                         :scope('attribute')
                     )
                 )
@@ -718,7 +723,7 @@ method enum_declarator($/, $key) {
                     :pasttype('call'),
                     :name('prefix:+'),
                     PAST::Var.new(
-                        :name("$!" ~ ~$<name>[0]),
+                        :name("$!" ~ ~$name[0]),
                         :scope('attribute')
                     )
                 )
@@ -743,7 +748,7 @@ method enum_declarator($/, $key) {
                     :pasttype('call'),
                     :name('prefix:+'),
                     PAST::Var.new(
-                        :name("$!" ~ ~$<name>[0]),
+                        :name("$!" ~ ~$name[0]),
                         :scope('attribute')
                     )
                 )
@@ -763,7 +768,7 @@ method enum_declarator($/, $key) {
                 :pasttype('bind'),
                 PAST::Var.new(
                     :name($_),
-                    :namespace(~$<name>[0]),
+                    :namespace(~$name[0]),
                     :scope('package')
                 ),
                 PAST::Op.new(
@@ -775,7 +780,7 @@ method enum_declarator($/, $key) {
                     ),
                     PAST::Val.new(
                         :value(%values{$_}),
-                        :named( PAST::Val.new( :value("$!" ~ ~$<name>[0]) ) )
+                        :named( PAST::Val.new( :value("$!" ~ ~$name[0]) ) )
                     )
                 )
             ));
@@ -790,7 +795,7 @@ method enum_declarator($/, $key) {
                 ),
                 PAST::Var.new(
                     :name($_),
-                    :namespace(~$<name>[0]),
+                    :namespace(~$name[0]),
                     :scope('package')
                 )
             ));
@@ -915,8 +920,9 @@ method routine_def($/) {
 
 method method_def($/) {
     my $past := $( $<block> );
-    if $<identifier> {
-        $past.name( ~$<identifier>[0] );
+    my $identifier := $<identifier>;
+    if $identifier {
+        $past.name( ~$identifier[0] );
     }
     $past.control('return_pir');
     make $past;
@@ -1481,19 +1487,20 @@ method package_declarator($/, $key) {
     our $?ROLE;
     our @?ROLE;
 
+    my $sym := $<sym>;
+
     if $key eq 'open' {
         # Start of a new package. We create an empty PAST::Stmts node for the
         # package definition to be stored in and put it onto the current stack
         # of packages and the stack of its package type.
         my $decl_past := PAST::Stmts.new();
 
-
-        if    $<sym> eq 'package' {
+        if    $sym eq 'package' {
             @?PACKAGE.unshift($?PACKAGE);
             $?PACKAGE := $decl_past;
         }
         ##  module isa package
-        elsif $<sym> eq 'module' {
+        elsif $sym eq 'module' {
             @?MODULE.unshift($?MODULE);
             $?MODULE := $decl_past;
 
@@ -1501,7 +1508,7 @@ method package_declarator($/, $key) {
             $?PACKAGE := $decl_past;
         }
         ##  role isa module isa package
-        elsif $<sym> eq 'role' {
+        elsif $sym eq 'role' {
             @?ROLE.unshift($?ROLE);
             $?ROLE := $decl_past;
 
@@ -1512,7 +1519,7 @@ method package_declarator($/, $key) {
             $?PACKAGE := $decl_past;
         }
         ##  class isa module isa package
-        elsif $<sym> eq 'class' {
+        elsif $sym eq 'class' {
             @?CLASS.unshift($?CLASS);
             $?CLASS := $decl_past;
 
@@ -1523,7 +1530,7 @@ method package_declarator($/, $key) {
             $?PACKAGE := $decl_past;
         }
         ##  grammar isa class isa module isa package
-        elsif $<sym> eq 'grammar' {
+        elsif $sym eq 'grammar' {
             @?GRAMMAR.unshift($?GRAMMAR);
             $?GRAMMAR := $decl_past;
 
@@ -1543,28 +1550,28 @@ method package_declarator($/, $key) {
         my $past := $( $/{$key} );
 
         # Restore outer values in @?<magical> arrays
-        if    $<sym> eq 'package' {
+        if    $sym eq 'package' {
             @?PACKAGE.shift();
         }
         ##  module isa package
-        elsif $<sym> eq 'module' {
+        elsif $sym eq 'module' {
             @?MODULE.shift();
             @?PACKAGE.shift();
         }
         ##  role isa module isa package
-        elsif $<sym> eq 'role' {
+        elsif $sym eq 'role' {
             @?ROLE.shift();
             @?MODULE.shift();
             @?PACKAGE.shift();
         }
         ##  class isa module isa package
-        elsif $<sym> eq 'class' {
+        elsif $sym eq 'class' {
             @?CLASS.shift();
             @?MODULE.shift();
             @?PACKAGE.shift();
         }
         ##  grammar isa class isa module isa package
-        elsif $<sym> eq 'grammar' {
+        elsif $sym eq 'grammar' {
             @?GRAMMAR.shift();
             @?CLASS.shift();
             @?MODULE.shift();
@@ -2542,13 +2549,14 @@ method quote_expression($/, $key) {
 
 
 method quote_concat($/) {
-    my $terms := +$<quote_term>;
+    my $quote_term := $<quote_term>;
+    my $terms := +$quote_term;
     my $count := 1;
-    my $past := $( $<quote_term>[0] );
+    my $past := $( $quote_term[0] );
     while ($count != $terms) {
         $past := PAST::Op.new(
             $past,
-            $( $<quote_term>[$count] ),
+            $( $quote_term[$count] ),
             :pirop('concat'),
             :pasttype('pirop')
         );
@@ -2647,33 +2655,36 @@ method term($/, $key) {
 
 method args($/, $key) {
     my $past := build_call( $key eq 'func args'
-                                ?? $($<semilist>)
-                                !! $($<arglist>) );
+        ?? $($<semilist>)
+        !! $($<arglist>)
+    );
     make $past;
 }
 
 
 method semilist($/) {
     my $past := $<EXPR>
-                    ?? $( $<EXPR>[0] )
-                    !! PAST::Op.new( :node($/), :name('infix:,') );
+        ?? $( $<EXPR>[0] )
+        !! PAST::Op.new( :node($/), :name('infix:,') );
     make $past;
 }
 
 
 method arglist($/) {
     my $past := $<EXPR>
-                    ?? $( $<EXPR> )
-                    !! PAST::Op.new( :node($/), :name('infix:,') );
+        ?? $( $<EXPR> )
+        !! PAST::Op.new( :node($/), :name('infix:,') );
     make $past;
 }
 
 
 method EXPR($/, $key) {
+    my $type := ~$<type>;
+
     if $key eq 'end' {
         make $($<expr>);
     }
-    elsif ~$<type> eq 'infix:.=' {
+    elsif ~$type eq 'infix:.=' {
         my $invocant  := $( $/[0] );
         my $call      := $( $/[1] );
 
@@ -2703,11 +2714,11 @@ method EXPR($/, $key) {
 
         make $past;
     }
-    elsif ~$<type> eq 'infix:does' || ~$<type> eq 'infix:but' {
+    elsif ~$type eq 'infix:does' || ~$type eq 'infix:but' {
         my $past := PAST::Op.new(
             $( $/[0] ),
             :pasttype('call'),
-            :name(~$<type>),
+            :name(~$type),
             :node($/)
         );
         my $rhs := $( $/[1] );
@@ -2728,7 +2739,7 @@ method EXPR($/, $key) {
     else {
         my $past := PAST::Op.new(
             :node($/),
-            :name($<type>),
+            :name($type),
             :opattr($<top>)
         );
         if $<top><subname> { $past.name(~$<top><subname>); }
@@ -3181,8 +3192,9 @@ sub build_type($cons_pt) {
 sub create_sub($/, $past) {
     $past.blocktype('declaration');
     set_block_proto($past, 'Sub');
-    if $<routine_def><multisig> {
-        set_block_sig($past, $( $<routine_def><multisig>[0]<signature> ));
+    my $multisig := $<routine_def><multisig>;
+    if $multisig {
+        set_block_sig($past, $( $multisig[0]<signature> ));
     }
     else {
         set_block_sig($past, empty_signature());

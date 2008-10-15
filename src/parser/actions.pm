@@ -867,8 +867,6 @@ method routine_def($/) {
                         my $tagsets := $( $aux<postcircumfix>[0] );
                         if $tagsets {
                             my $tagsets_past := $( $tagsets );
-#                            $loadinit.push( PAST::Val.new( :value('hello') ) );
-#                            $loadinit.push( $list_past );
                             if         $tagsets_past.isa(PAST::Op)
                                     && $tagsets_past.pasttype() eq 'call'
                                     && $tagsets_past.name() eq 'infix:,' {

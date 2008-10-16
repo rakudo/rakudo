@@ -536,7 +536,7 @@ method routine_declarator($/, $key) {
 method enum_declarator($/, $key) {
     my $values := $( $/{$key} );
 
-    my $name := $<name>;
+    my $name := ~$<name>[0];
     if $name {
         # It's a named enumeration. First, we will get a mapping of all the names
         # we will introduce with this enumeration to their values. We'll compute
@@ -571,7 +571,7 @@ method enum_declarator($/, $key) {
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('!keyword_role'),
-                    PAST::Val.new( :value(~$name[0]) )
+                    PAST::Val.new( :value($name) )
                 )
             ),
             PAST::Op.new(
@@ -581,7 +581,7 @@ method enum_declarator($/, $key) {
                     :name('$def'),
                     :scope('lexical')
                 ),
-                PAST::Val.new( :value("$!" ~ ~$name[0]) ),
+                PAST::Val.new( :value("$!" ~ $name) ),
                 # XXX Set declared type here, when we parse that.
                 PAST::Var.new(
                     :name('Object'),
@@ -595,8 +595,8 @@ method enum_declarator($/, $key) {
                     :name('$def'),
                     :scope('lexical')
                 ),
-                PAST::Val.new( :value(~$name[0]) ),
-                make_accessor($/, undef, "$!" ~ ~$name[0], 1, 'attribute')
+                PAST::Val.new( :value($name) ),
+                make_accessor($/, undef, "$!" ~ $name, 1, 'attribute')
             )
         );
         for %values.keys() {
@@ -617,7 +617,7 @@ method enum_declarator($/, $key) {
                             :pasttype('call'),
                             :name('infix:eq'), # XXX not generic enough
                             PAST::Var.new(
-                                :name("$!" ~ ~$name[0]),
+                                :name("$!" ~ $name),
                                 :scope('attribute')
                             ),
                             PAST::Val.new( :value(%values{$_}) )
@@ -674,7 +674,7 @@ method enum_declarator($/, $key) {
                 :blocktype('declaration'),
                 :pirflags(":method"),
                 PAST::Var.new(
-                    :name("$!" ~ ~$name[0]),
+                    :name("$!" ~ $name),
                     :scope('attribute')
                 )
             ),
@@ -698,7 +698,7 @@ method enum_declarator($/, $key) {
                     :pasttype('call'),
                     :name('prefix:~'),
                     PAST::Var.new(
-                        :name("$!" ~ ~$name[0]),
+                        :name("$!" ~ $name),
                         :scope('attribute')
                     )
                 )
@@ -723,7 +723,7 @@ method enum_declarator($/, $key) {
                     :pasttype('call'),
                     :name('prefix:+'),
                     PAST::Var.new(
-                        :name("$!" ~ ~$name[0]),
+                        :name("$!" ~ $name),
                         :scope('attribute')
                     )
                 )
@@ -748,7 +748,7 @@ method enum_declarator($/, $key) {
                     :pasttype('call'),
                     :name('prefix:+'),
                     PAST::Var.new(
-                        :name("$!" ~ ~$name[0]),
+                        :name("$!" ~ $name),
                         :scope('attribute')
                     )
                 )
@@ -768,7 +768,7 @@ method enum_declarator($/, $key) {
                 :pasttype('bind'),
                 PAST::Var.new(
                     :name($_),
-                    :namespace(~$name[0]),
+                    :namespace($name),
                     :scope('package')
                 ),
                 PAST::Op.new(
@@ -780,7 +780,7 @@ method enum_declarator($/, $key) {
                     ),
                     PAST::Val.new(
                         :value(%values{$_}),
-                        :named( PAST::Val.new( :value("$!" ~ ~$name[0]) ) )
+                        :named( PAST::Val.new( :value("$!" ~ $name) ) )
                     )
                 )
             ));
@@ -795,7 +795,7 @@ method enum_declarator($/, $key) {
                 ),
                 PAST::Var.new(
                     :name($_),
-                    :namespace(~$name[0]),
+                    :namespace($name),
                     :scope('package')
                 )
             ));

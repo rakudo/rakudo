@@ -3,7 +3,7 @@
 
 =begin Introduction
 
-This is the rules portion of the grammar for the perl6 compiler,
+This is the rules portion of the grammar for the Rakudo compiler,
 an implementation of Perl 6 on Parrot.  This grammar is modeled
 after the STD.pm grammar that Larry Wall and others are developing,
 available from L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>.

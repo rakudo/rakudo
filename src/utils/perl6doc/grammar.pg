@@ -3,7 +3,7 @@
 
 =begin Introduction
 
-This is the rules portion of the grammar for the perl6 document reader.
+This is the rules portion of the grammar for the Rakudo document reader.
 This grammar is based on the STD.pm grammar available from
 L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>.
 

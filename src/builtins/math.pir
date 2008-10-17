@@ -156,8 +156,6 @@ constant I<e>.
 
 =cut
 
-.include 'library/dumper.pir' # XXX
-
 .sub 'radcalc'
     .param int radix
     .param string intpart

@@ -1187,28 +1187,30 @@ method signature($/) {
 method parameter($/) {
     my $past := $( $<param_var> );
     my $sigil := $<param_var><sigil>;
-    if $<quant> eq '*' {
+    my $quant := $<quant>;
+
+    if $quant eq '*' {
         $past.slurpy( $sigil eq '@' || $sigil eq '%' );
         $past.named( $sigil eq '%' );
     }
     else {
         if $<named> eq ':' {          # named
             $past.named(~$<param_var><identifier>);
-            if $<quant> ne '!' {      #  required (optional is default)
+            if $quant ne '!' {      #  required (optional is default)
                 $past.viviself('Failure');
             }
         }
         else {                        # positional
-            if $<quant> eq '?' {      #  optional (required is default)
+            if $quant eq '?' {      #  optional (required is default)
                 $past.viviself('Failure');
             }
         }
     }
     if $<default_value> {
-        if $<quant> eq '!' {
+        if $quant eq '!' {
             $/.panic("Can't put a default on a required parameter");
         }
-        if $<quant> eq '*' {
+        if $quant eq '*' {
             $/.panic("Can't put a default on a slurpy parameter");
         }
         $past.viviself( $( $<default_value>[0]<EXPR> ) );
@@ -1218,7 +1220,8 @@ method parameter($/) {
 
 
 method param_var($/) {
-    if $<twigil> && $<twigil>[0] ne '.' && $<twigil>[0] ne '!' {
+    my $twigil := $<twigil>;
+    if $twigil && $twigil[0] ne '.' && $twigil[0] ne '!' {
         $/.panic('Invalid twigil used in signature parameter.');
     }
     make PAST::Var.new(
@@ -1294,10 +1297,11 @@ method dotty($/, $key) {
         # (unless it was call to a code object, in which case we don't do
         # anything more).
         $past := $( $<methodop> );
-        if $<methodop><name> {
+        my $methodop := $<methodop>;
+        if $methodop<name> {
             $past.name('!' ~ $past.name());
         }
-        elsif $<methodop><quote> {
+        elsif $methodop<quote> {
             $past[0] := PAST::Op.new(
                 :pasttype('call'),
                 :name('infix:~'),
@@ -1433,14 +1437,15 @@ method noun($/, $key) {
 
 sub apply_package_traits($package, $traits) {
     for $traits {
+        my $aux := $_<trait_auxiliary>;
         # Apply any "is" traits through MMD.
-        if $_<trait_auxiliary><sym> eq 'is' {
+        if $aux<sym> eq 'is' {
             $package.push(
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('trait_auxiliary:is'),
                     PAST::Var.new(
-                        :name(~$_<trait_auxiliary><name>),
+                        :name(~$aux<name>),
                         :scope('package'),
                         :viviself('Undef')
                     ),
@@ -1451,7 +1456,7 @@ sub apply_package_traits($package, $traits) {
                 )
             );
         }
-        elsif $_<trait_auxiliary><sym> eq 'does' {
+        elsif $aux<sym> eq 'does' {
             # Role.
             $package.push(
                 PAST::Op.new(
@@ -1462,7 +1467,7 @@ sub apply_package_traits($package, $traits) {
                         :scope('lexical')
                     ),
                     PAST::Var.new(
-                        :name(~$_<trait_auxiliary><name>),
+                        :name(~$aux<name>),
                         :scope('package')
                     )
                 )
@@ -1597,6 +1602,7 @@ method package_def($/, $key) {
     our $?NS;
     our $?PACKAGE;
     our $?INIT;
+    my $name := $<name>;
 
     if $key eq 'open' {
         # Start of package definition. Handle class and grammar specially.
@@ -1615,15 +1621,15 @@ method package_def($/, $key) {
             );
 
             # Add a name, if we have one.
-            if $<name> {
-                $class_def[1].push( PAST::Val.new( :value(~$<name>[0]) ) );
+            if $name {
+                $class_def[1].push( PAST::Val.new( :value(~$name[0]) ) );
             }
 
             $?CLASS.push($class_def);
         }
         elsif $?PACKAGE =:= $?GRAMMAR {
             # Anonymous grammars not supported.
-            unless $<name> {
+            unless $name {
                 $/.panic('Anonymous grammars not supported');
             }
 
@@ -1638,21 +1644,21 @@ method package_def($/, $key) {
                     PAST::Op.new(
                         :pasttype('call'),
                         :name('!keyword_grammar'),
-                        PAST::Val.new( :value(~$<name>[0]) )
+                        PAST::Val.new( :value(~$name[0]) )
                     )
                 )
             );
         }
         else {
             # Anonymous modules not supported.
-            unless $<name> {
+            unless $name {
                 $/.panic('Anonymous modules not supported');
             }
         }
 
         # Also store the current namespace, if we're not anonymous.
-        if $<name> {
-            $?NS := ~$<name>[0];
+        if $name {
+            $?NS := ~$name[0];
         }
     }
     else {
@@ -1667,8 +1673,8 @@ method package_def($/, $key) {
 
         # Declare the namespace and that the result block holds things that we
         # do "on load".
-        if $<name> {
-            $past.namespace($<name>[0]<identifier>);
+        if $name {
+            $past.namespace($name[0]<identifier>);
         }
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
@@ -1701,7 +1707,7 @@ method package_def($/, $key) {
             # If this is an anonymous class, the block doesn't want to be a
             # :init :load, and it's going to contain the class definition, so
             # we need to declare the lexical $def.
-            unless $<name> {
+            unless $name {
                 $past.pirflags('');
                 $past.blocktype('immediate');
                 $past[0].push(PAST::Var.new(
@@ -1720,7 +1726,7 @@ method package_def($/, $key) {
                 $?INIT := PAST::Block.new();
             }
             for @( $?CLASS ) {
-                if $_.WHAT() eq 'Block' || !$<name> {
+                if $_.WHAT() eq 'Block' || !$name {
                     $past[0].push( $_ );
                 }
                 else {
@@ -1772,6 +1778,7 @@ method role_def($/, $key) {
     our $?ROLE;
     our $?NS;
     our $?INIT;
+    my $name := ~$<name>;
 
     if $key eq 'open' {
         # Start of role definition. Push on code to create a role object.
@@ -1785,19 +1792,19 @@ method role_def($/, $key) {
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('!keyword_role'),
-                    PAST::Val.new( :value(~$<name>) )
+                    PAST::Val.new( :value($name) )
                 )
             )
         );
 
         # Also store the current namespace.
-        $?NS := ~$<name>;
+        $?NS := $name;
     }
     else {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         my $past := $( $<package_block> );
-        $past.namespace( PAST::Compiler.parse_name($<name>) );
+        $past.namespace( PAST::Compiler.parse_name($name) );
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
 

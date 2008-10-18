@@ -18,6 +18,24 @@ src/classes/Pair.pir - methods for the Pair class
     p6meta.'new_class'('Perl6Pair', 'parent'=>'Any', 'attr'=>'$!key $!value', 'name'=>'Pair')
 .end
 
+=item ACCEPTS()
+
+Called from smartmatches '$_ ~~ X'.
+Delegates on to a method call '.:Xkey(Xval)'.
+
+=cut
+
+.sub 'ACCEPTS' :method
+    .param pmc topic
+
+    $S0 = self.key()
+    $S0 = concat ':', $S0
+
+    $P0 = self.value()
+
+    .return topic.$S0($P0)
+.end
+
 =item key
 
 Gets the key of the pair.

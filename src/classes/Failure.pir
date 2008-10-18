@@ -54,8 +54,8 @@
 .end
 
 .sub 'ACCEPTS' :method
-    .param pmc other
-    $I0 = defined other
+    .param pmc topic
+    $I0 = defined topic
     if $I0 goto defined
     .return(1)
   defined:

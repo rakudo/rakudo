@@ -57,17 +57,17 @@ $test_num = $test_num + 1;
 $a +>= 1;
 $a -= 1;
 $a **= 2;
-print 'not ' if $a != 3;
+print 'not ' if $a != 9;
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a /= 3;
 $a += 7;
-print 'not ' if $a != 8;
+print 'not ' if $a != 10;
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a %= 3;
-print 'not ' if ( $a +10 ) != 12;
+print 'not ' if ( $a +10 ) != 11;
 say "ok $test_num";
 $test_num = $test_num + 1;

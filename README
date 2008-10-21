@@ -54,6 +54,22 @@ At present we do not have any plans to directly store the
 official test suite as part of the Rakudo/Parrot repository,
 but will continue to fetch it from the Pugs repository.
 
+While in the C<languages/perl6> directory, you can an individual test from the
+command line with:
+
+    $ make t/spec/S29-str/ucfirst.t
+    t/spec/S29-str/ucfirst.rakudo .. 
+    1..4
+    ok 1 - simple
+    ok 2 - empty string
+    ok 3 - # SKIP unicode
+    ok 4 - # SKIP unicode
+    # FUDGED!
+    ok
+    All tests successful.
+    Files=1, Tests=4,  1 wallclock secs ( 0.02 usr  0.00 sys +  0.57 cusr  0.06 csys =  0.65 CPU)
+    Result: PASS
+
 =head2 Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available

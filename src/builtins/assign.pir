@@ -77,7 +77,8 @@ src/builtins/inplace.pir - Inplace assignments
 .sub 'infix:**='
     .param pmc a
     .param pmc b
-    a = a ** b
+    pow $P0, a, b
+    a.'infix:='($P0)
     .return (a)
 .end
 

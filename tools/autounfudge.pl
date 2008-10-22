@@ -21,7 +21,7 @@ pleae run this script without any options or command line parameters.
 
 =head1 WARNINGS
 
-This tool is platform dependant, and not tested on anthing but linux.
+This tool is platform dependent, and not tested on anthing but linux.
 
 It assumes that all fudge directives are orthogonal, which might not be the
 case in real world tests. It is not tested with nested fudges (eg a line
@@ -29,7 +29,7 @@ based fudge inside a fudged block).
 
 Never blindly apply the automatically generated patch.
 
-=head1 MISCELANEA
+=head1 MISCELLANEA
 
 Fudge directives containing the words I<unspecced> or I<unicode> are ignored.
 The latter is because Unicode related tests can succeed on platforms with icu
@@ -45,6 +45,7 @@ fudge lines and thus would take about three hours to autoumatically unfudge.
 
 use strict;
 use warnings;
+
 use Getopt::Long;
 use Fatal qw(close);
 use File::Temp qw(tempfile tempdir);
@@ -121,6 +122,7 @@ else {
 
 sub auto_unfudge_file {
     my $file_name = shift;
+
     return unless defined $file_name;
     open my $f, '<:encoding(UTF-8)', $file_name
         or die "Can't open '$file_name' for reading: $!";
@@ -173,6 +175,7 @@ sub auto_unfudge_file {
 
 sub fudge {
     my $fn = shift;
+
     open my $p, '-|', 't/spec/fudge', '--keep-exit-code',  $impl, $fn
         or die "Can't launch fudge: $!";
     my $ret_fn = <$p>;
@@ -198,6 +201,7 @@ USAGE
 
 sub unfudge_some {
     my ($file, @lines) = @_;
+
     my ($fh, $tmp_filename) = tempfile(
             'tempXXXXX',
             SUFFIX => '.t',
@@ -221,6 +225,7 @@ sub unfudge_some {
 
 sub tests_ok {
     my $fn = shift;
+
     $fn =~ s/\s+\z//;
     my $harness = get_harness();
     my $agg = TAP::Parser::Aggregator->new();
@@ -240,6 +245,7 @@ sub get_harness {
 
 sub read_specfile {
     my $fn = shift;
+
     my @res;
     open (my $f, '<', $fn) or die "Can't open file '$fn' for reading: $!";
     while (<$f>){

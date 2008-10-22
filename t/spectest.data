@@ -140,6 +140,7 @@ S12-class/parent_attributes.t
 S12-enums/basic.t
 S12-enums/as-role.t
 S12-methods/calling_syntax.t
+S12-methods/instance.t
 S12-methods/topic.t
 S12-methods/what.t
 S12-role/attributes.t

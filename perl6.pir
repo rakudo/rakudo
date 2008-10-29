@@ -84,8 +84,8 @@ USAGE
     $P0 .= 'for '
     $S0  = cfg['archname']
     $P0 .= $S0
-    pop_eh
   _handler:
+    pop_eh
     $P0 .= ".\n\nCopyright 2006-2008, The Perl Foundation.\n"
     setattribute self, '$version', $P0
 

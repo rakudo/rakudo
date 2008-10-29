@@ -56,6 +56,7 @@ A few basic sanity tests for the Perl 6 MultiSub PMC.
     push $P0, $P1
     goto done
   fails_ok:
+    pop_eh
     $I0 = 1
   done:
     is($I0, 1, "cannot push a non-invokable")

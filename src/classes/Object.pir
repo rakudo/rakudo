@@ -288,6 +288,7 @@ Create a new object having the same class as the invocant.
     push_eh set_attrib_eh
     setattribute $P1, cur_class, $S0, $P2
   set_attrib_eh:
+    pop_eh
     goto iter_loop
   iter_end:
 

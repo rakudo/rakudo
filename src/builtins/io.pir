@@ -133,12 +133,11 @@ It is an error to use bare C<unlink> without arguments.
   it_loop:
     unless it goto it_loop_end
     $S0 = shift it
-    push_eh unlink_eh
+    push_eh unlink_skip
     os.rm($S0)
-    pop_eh
     inc success_count
-    goto it_loop
-  unlink_eh:
+  unlink_skip:
+    pop_eh
     goto it_loop
   it_loop_end:
 

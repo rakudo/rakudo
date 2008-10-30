@@ -428,6 +428,7 @@ B<Note:> partial implementation only
     .local pmc retv
     .local int start_pos
     .local int end_pos
+    .local int zwm_start
 
     $S0 = self
     retv = new 'List'
@@ -450,10 +451,23 @@ B<Note:> partial implementation only
     $S1 = substr $S0, start_pos
     retv.'push'($S1)
     goto done
+  next_zwm:
+    zwm_start = start_pos
+  inc_zwm:
+    inc start_pos
+    match = regex($S0, 'continue' => start_pos)
+    end_pos = match.'from'()
+    unless start_pos == end_pos goto inc_zwm
+    start_pos = zwm_start
+    end_pos -= start_pos
+    goto add_str
   skip_count:
     match = regex($S0, 'continue' => start_pos)
     end_pos = match.'from'()
+    $I99 = match.'to'()
+    if $I99 == end_pos goto next_zwm
     end_pos -= start_pos
+  add_str:
     $S1 = substr $S0, start_pos, end_pos
     retv.'push'($S1)
     unless match goto done

@@ -18,6 +18,9 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     hashproto = p6meta.'new_class'('Perl6Hash', 'parent'=>'Mapping', 'name'=>'Hash')
 .end
 
+=item ACCEPTS()
+
+=cut
 
 .sub 'hash'
     .param pmc args            :slurpy
@@ -31,6 +34,11 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 
 
 .namespace ['Perl6Hash']
+
+.sub 'ACCEPTS' :method
+    .param pmc topic
+    .return self.'contains'(topic)
+.end
 
 .sub 'infix:=' :method
     .param pmc source
@@ -64,6 +72,13 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 .end
 
 .sub 'exists' :method
+    .param pmc key
+
+    $I0 = exists self[key]
+    .return( $I0 )
+.end
+
+.sub 'contains' :method
     .param pmc key
 
     $I0 = exists self[key]

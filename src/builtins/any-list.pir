@@ -43,6 +43,19 @@ the size of that file down and to emphasize their generic,
     .return ($I0)
 .end
 
+=item end
+
+=cut
+
+.namespace ['Any']
+.sub 'end' :method :multi(_)
+    .local pmc list
+    list = self.'list'()
+    $I0 = list.'elems'()
+    dec $I0
+    $P0 = list[$I0]
+    .return ($P0)
+.end
 
 =item join
 

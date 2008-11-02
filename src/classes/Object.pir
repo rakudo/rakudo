@@ -574,7 +574,8 @@ Returns a list containing itself in list context.
 =cut
 
 .sub 'list' :method
-    .return 'list'(self)
+    $P0 = get_hll_global 'list'
+    .return $P0(self)
 .end
 
 

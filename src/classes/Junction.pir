@@ -153,10 +153,6 @@ Clone v-table method.
     .return(junc)
 .end
 
-.sub 'VTABLE_get_string' :method :vtable('get_string')
-    $S0 = self.'perl'()
-    .return ($S0)
-.end
 
 =item perl()
 
@@ -1084,21 +1080,21 @@ Override numerical equality for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:=="
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:==' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:=="
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:==' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:=="
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1112,21 +1108,21 @@ Override numerical inequality for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:!="
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:!=' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:!="
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:!=' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:!="
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1140,21 +1136,21 @@ Override numerical greater than for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:>"
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:>' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:>"
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:>' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:>"
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1168,21 +1164,21 @@ Override numerical less than for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:<"
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:<' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:<"
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:<' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:<"
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1196,21 +1192,21 @@ Override numerical greater than or equal to for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:>="
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:>=' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:>="
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:>=' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:>="
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1224,21 +1220,21 @@ Override numerical less than or equal to for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:<="
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:<=' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:<="
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:<=' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:<="
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1252,21 +1248,21 @@ Override string equality for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:eq"
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:eq' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:eq"
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:eq' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:eq"
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1280,21 +1276,21 @@ Override string inequality for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:ne"
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:ne' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:ne"
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:ne' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:ne"
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1308,21 +1304,21 @@ Override string less than for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:lt"
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:lt' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:lt"
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:lt' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:lt"
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1336,21 +1332,21 @@ Override string greater than for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:gt"
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:gt' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:gt"
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:gt' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:gt"
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1364,21 +1360,21 @@ Override string less than or equal for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:le"
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:le' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:le"
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:le' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:le"
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1392,21 +1388,21 @@ Override string greater than or equal for junctions.
     .param pmc j1
     .param pmc j2
     $P0 = find_global "infix:ge"
-    .return infix_junction_helper($P0, j1, j2, 0)
+    .return junction_comparrison_helper($P0, j1, j2, 0)
 .end
 
 .sub 'infix:ge' :multi('Junction',_)
     .param pmc j
     .param pmc x
     $P0 = find_global "infix:ge"
-    .return infix_junction_helper($P0, j, x, 0)
+    .return junction_comparrison_helper($P0, j, x, 0)
 .end
 
 .sub 'infix:ge' :multi(_,'Junction')
     .param pmc x
     .param pmc j
     $P0 = find_global "infix:ge"
-    .return infix_junction_helper($P0, j, x, 1)
+    .return junction_comparrison_helper($P0, j, x, 1)
 .end
 
 
@@ -1440,7 +1436,7 @@ loop:
 sa:
     $P0 = op_sub(x, cur_elem)
 nsa:
-    ResultHash[$P0] = $P0
+    ResultHash[$P0] = 1
     inc i
     goto loop
 loop_end:
@@ -1460,13 +1456,71 @@ loop_end:
 nv_loop:
     unless iterator goto nv_loop_end
     $P0 = shift iterator
-    $P0 = ResultHash[$P0]
     push new_values, $P0
     goto nv_loop
 nv_loop_end:
     new_junc.'!values'(new_values)
 
     .return(new_junc)
+.end
+
+# Helper sub for junction comparrisons.
+.sub junction_comparrison_helper :anon
+    .param pmc op_func
+    .param pmc j
+    .param pmc x
+    .param int second_arg
+
+    # We need to find how many values are equal.
+    .local pmc values
+    .local int num_equal
+    .local int count
+    .local int i
+    values = j.'values'()
+    count = elements values
+    i = 0
+    num_equal = 0
+loop:
+    if i >= count goto end_loop
+    $P0 = values[i]
+    if second_arg goto sa
+    $I0 = op_func($P0, x)
+    goto not_sa
+sa:
+    $I0 = op_func(x, $P0)
+not_sa:
+    num_equal += $I0
+    inc i
+    goto loop
+end_loop:
+
+    # Now go by juction type.
+    .local int type
+    type = j.'!type'()
+    if type == JUNCTION_TYPE_ALL goto all
+    if type == JUNCTION_TYPE_ANY goto any
+    if type == JUNCTION_TYPE_ONE goto one
+    if type == JUNCTION_TYPE_NONE goto none
+
+all:
+    if num_equal == count goto ret_true
+    goto ret_false
+any:
+    if num_equal > 0 goto ret_true
+    goto ret_false
+one:
+    if num_equal == 1 goto ret_true
+    goto ret_false
+none:
+    if num_equal == 0 goto ret_true
+    goto ret_false
+
+ret_true:
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return($P0)
+ret_false:
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return($P0)
 .end
 
 
@@ -1494,7 +1548,7 @@ loop:
     if i >= count goto loop_end
     cur_elem = values[i]
     $P0 = op_sub(cur_elem)
-    ResultHash[$P0] = $P0
+    ResultHash[$P0] = 1
     inc i
     goto loop
 loop_end:
@@ -1514,7 +1568,6 @@ loop_end:
 nv_loop:
     unless iterator goto nv_loop_end
     $P0 = shift iterator
-    $P0 = ResultHash[$P0]
     push new_values, $P0
     goto nv_loop
 nv_loop_end:

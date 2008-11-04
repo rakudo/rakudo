@@ -52,6 +52,7 @@ src/builtins/op.pir - Perl6 builtin operators
     goto done
 
   do_inc:
+    pop_eh
     inc a
 
   done:
@@ -68,6 +69,7 @@ src/builtins/op.pir - Perl6 builtin operators
     goto done
 
   do_dec:
+    pop_eh
     dec a
   done:
     .return (a)

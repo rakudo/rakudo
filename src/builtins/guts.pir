@@ -370,6 +370,12 @@ Internal helper method to implement the functionality of the does keyword.
     .param pmc class
     .param pmc role
 
+    # Ensure that role really is a role.
+    $I0 = isa role, 'Role'
+    if $I0 goto role_ok
+    'die'('does keyword can only be used with roles.')
+  role_ok:
+
     # Get Parrot to compose the role for us (handles the methods).
     addrole class, role
 

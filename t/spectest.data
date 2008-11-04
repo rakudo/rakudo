@@ -137,6 +137,7 @@ S12-class/attributes.t
 S12-class/inheritance-class-methods.t
 S12-class/inheritance.t
 S12-class/instantiate.t
+S12-class/namespaced.t
 S12-class/parent_attributes.t
 S12-enums/anonymous.t
 S12-enums/basic.t

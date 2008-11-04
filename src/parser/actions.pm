@@ -1513,7 +1513,7 @@ method package_declarator($/, $key) {
         # of packages and the stack of its package type.
         my $decl_past := PAST::Stmts.new();
 
-        if    $sym eq 'package' {
+        if $sym eq 'package' {
             @?PACKAGE.unshift($?PACKAGE);
             $?PACKAGE := $decl_past;
         }
@@ -1687,7 +1687,7 @@ method package_def($/, $key) {
         # Declare the namespace and that the result block holds things that we
         # do "on load".
         if $name {
-            $past.namespace($name[0]<identifier>);
+            $past.namespace(Perl6::Compiler.parse_name($<name>[0]));
         }
         $past.blocktype('declaration');
         $past.pirflags(':init :load');

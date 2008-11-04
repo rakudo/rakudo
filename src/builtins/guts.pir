@@ -445,6 +445,9 @@ Constructs a Mapping, based upon the values list.
 .sub '!anon_enum'
     .param pmc values
 
+    # Put the values into list context, so case of a single valued enum works.
+    values = values.'list'()
+
     # For now, we assume integer type, unless we have a first pair that says
     # otherwise.
     .local pmc cur_val

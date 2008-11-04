@@ -418,15 +418,14 @@ src/builtins/op.pir - Perl6 builtin operators
   roles_loop_end:
   added_roles:
 
-    # We need to make a dummy instance of the class, to force it to internally
-    # construct itself.
-    $P0 = new derived
-
     # Register proto-object.
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     proto = var.'WHAT'()
     p6meta.register(derived, 'protoobject'=>proto)
+
+    # Instantiate the class to make it form itself.
+    $P0 = new derived
 
     # Re-bless the object into the subclass.
     rebless_subclass var, derived
@@ -477,6 +476,7 @@ attr_error:
     role_list = inspect the_class, 'roles'
     value = role
     role = role_list[0]
+    pop_eh
     goto have_role
 
     # Did anything go wrong?

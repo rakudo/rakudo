@@ -39,29 +39,64 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
     while (VTABLE_isa(interp, value, const_string(interp, "Mutable")))
         value = VTABLE_get_pmc(interp, value);
 
-    /* Make sure the value is an object and the original and derived class are
-     * standard Parrot classes. TODO: fallbacks to handle when this is not the
-     * case, for HLL interop. */
-    if (value->vtable->base_type != enum_class_Object)
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only rebless standard Parrot objects.");
+    /* Check what we're trying to bless into is a standard Parrot class. */
     if ($2->vtable->base_type != enum_class_Class)
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
             "Can only rebless into a standard Parrot class.");
-    if (current_class->vtable->base_type != enum_class_Class)
+
+    /* Check if the value is a parrot Object and the original class is a standard
+     * Parrot Class. */
+    if (value->vtable->base_type != enum_class_Object
+            && current_class->vtable->base_type != enum_class_Class) {
+        /* In this case, we have something from a foreign class system,
+         * probably a PMC. We'll start by instantiating a new instance
+         * of the derived class. */
+        PMC *new_ins = VTABLE_instantiate(interp, $2, PMCNULL);
+
+        /* Now we do some nasty swapping around of memory. The end result is:
+         *  - The proxy object from new_ins becomes the current value
+         *  - The current value becomes the new instance
+         *  - The new instance becomes the (now-replaced) proxy, and gets
+         *    swept on the next GC run.
+         * We do this by shuffling PMC headers around. It should be safe as
+         * in the end we will end up with just as many PMCs existing. */
+        PMC *temp = mem_sys_allocate(sizeof(PMC));
+        PMC *proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
+                string_from_literal(interp, "proxy"));
+        Parrot_block_GC_mark(interp);
+        memcpy(temp, proxy, sizeof(PMC));
+        memcpy(proxy, value, sizeof(PMC));
+        memcpy(value, new_ins, sizeof(PMC));
+        memcpy(new_ins, temp, sizeof(PMC));
+        Parrot_unblock_GC_mark(interp);
+        mem_sys_free(temp);
+
+        /* Now set any new attributes to be undef. */
+        for (i = 0; i < new_attribs; i++)
+            VTABLE_set_pmc_keyed_int(interp, PARROT_OBJECT(value)->attrib_store,
+                i, pmc_new(interp, enum_class_Undef));
+    }
+    else if (value->vtable->base_type != enum_class_Object
+            || current_class->vtable->base_type != enum_class_Class) {
+        /* If we're here, we found a really odd state - the class claims to be
+         * a standard Parrot one but the object it supposedly created is not.
+         * In this case, something is probably wrong. */
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only rebless out of a standard Parrot class.");
+            "Object to be reblessed does not appear to be of the expected class.");
+    }
+    else {
+        /* We have a standard Parrot class and object and can tweak it's guts.
+         * Shuffle up attributes to the point of the difference between the number
+         * of attributes in the parent and the derived class. Yes, this is evil -
+         * we're diddling the object's internals. */
+        for (i = 0; i < new_attribs; i++)
+            VTABLE_unshift_pmc(interp, PARROT_OBJECT(value)->attrib_store,
+                pmc_new(interp, enum_class_Undef));
 
-    /* Shuffle up attributes to the point of the difference between the number
-     * of attributes in the parent and the derived class. Yes, this is evil -
-     * we're diddling the object's internals. */
-    for (i = 0; i < new_attribs; i++)
-        VTABLE_unshift_pmc(interp, PARROT_OBJECT(value)->attrib_store,
-            pmc_new(interp, enum_class_Undef));
-
-    /* Now switch object's class pointer to point at the new class. This is
-     * also evil. */
-    PARROT_OBJECT(value)->_class = $2;
+        /* Now switch object's class pointer to point at the new class. This is
+         * also evil. */
+        PARROT_OBJECT(value)->_class = $2;
+    }
 
     goto NEXT();
 }

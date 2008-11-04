@@ -111,7 +111,7 @@ method statement($/, $key) {
     }
     else {
         my $expr := $( $<expr> );
-        if $expr.WHAT() eq 'Block' && !$expr.blocktype() {
+        if $expr.isa(PAST::Block) && !$expr.blocktype() {
             $expr.blocktype('immediate');
         }
 
@@ -1513,7 +1513,7 @@ method package_declarator($/, $key) {
         # of packages and the stack of its package type.
         my $decl_past := PAST::Stmts.new();
 
-        if $sym eq 'package' {
+        if    $sym eq 'package' {
             @?PACKAGE.unshift($?PACKAGE);
             $?PACKAGE := $decl_past;
         }
@@ -1739,7 +1739,7 @@ method package_def($/, $key) {
                 $?INIT := PAST::Block.new();
             }
             for @( $?CLASS ) {
-                if $_.WHAT() eq 'Block' || !$name {
+                if $_.isa(PAST::Block) || !$name {
                     $past[0].push( $_ );
                 }
                 else {
@@ -1830,7 +1830,7 @@ method role_def($/, $key) {
             $?INIT := PAST::Block.new();
         }
         for @( $?ROLE ) {
-            if $_.WHAT() eq 'Block' {
+            if $_.isa(PAST::Block) {
                 $past.push( $_ );
             }
             else {
@@ -1898,7 +1898,7 @@ method scoped($/) {
 
         # Unless it's an attribute, emit code to set type and initialize it to
         # the correct proto.
-        if $<fulltypename> && $past.WHAT() eq 'Var' {
+        if $<fulltypename> && $past.isa(PAST::Var) {
             my $type_pir := "    %r = new %0, %1\n    setprop %r, 'type', %2\n";
             my $type := build_type($<fulltypename>);
             $past.viviself(
@@ -2406,19 +2406,19 @@ method circumfix($/, $key) {
                 # Empty block, so a hash.
                 $is_hash := 1;
             }
-            elsif +@($past[1]) == 1 && $past[1][0].WHAT() eq 'Op' {
+            elsif +@($past[1]) == 1 && $past[1][0].isa(PAST::Op) {
                 if $past[1][0].name() eq 'infix:=>' {
                     # Block with just one pair in it, so a hash.
                     $is_hash := 1;
                 }
                 elsif $past[1][0].name() eq 'infix:,' {
                     # List, but first elements must be...
-                    if $past[1][0][0].WHAT() eq 'Op' &&
+                    if $past[1][0][0].isa(PAST::Op) &&
                             $past[1][0][0].name() eq 'infix:=>' {
                         # ...a Pair
                         $is_hash := 1;
                     }
-                    elsif $past[1][0][0].WHAT() eq 'Var' &&
+                    elsif $past[1][0][0].isa(PAST::Var) &&
                             substr($past[1][0][0].name(), 0, 1) eq '%' {
                         # ...or a hash.
                         $is_hash := 1
@@ -2599,7 +2599,7 @@ method quote_term($/, $key) {
     }
     elsif ($key eq 'circumfix') {
         $past := $( $<circumfix> );
-        if $past.WHAT() eq 'Block' {
+        if $past.isa(PAST::Block) {
             $past.blocktype('immediate');
         }
     }
@@ -2709,7 +2709,7 @@ method EXPR($/, $key) {
         my $call      := $( $/[1] );
 
         # Check that we have a sub call.
-        if $call.WHAT() ne 'Op' || $call.pasttype() ne 'call' {
+        if !$call.isa(PAST::Op) || $call.pasttype() ne 'call' {
             $/.panic('.= must have a call on the right hand side');
         }
 
@@ -2742,7 +2742,7 @@ method EXPR($/, $key) {
             :node($/)
         );
         my $rhs := $( $/[1] );
-        if $rhs.HOW().isa($rhs, PAST::Op) && $rhs.pasttype() eq 'call' {
+        if $rhs.isa(PAST::Op) && $rhs.pasttype() eq 'call' {
             # Make sure we only have one initialization value.
             if +@($rhs) > 2 {
                 $/.panic("Role initialization can only supply a value for one attribute");
@@ -2803,7 +2803,7 @@ method regex_declarator_rule($/) {
 method type_declarator($/) {
     # We need a block containing the constraint condition.
     my $past := $( $<EXPR> );
-    if $past.WHAT() ne 'Block' {
+    if !$past.isa(PAST::Block) {
         # Make block with a smart match of the the expression as its contents.
         $past := PAST::Block.new(
             PAST::Stmts.new(
@@ -2830,7 +2830,7 @@ method type_declarator($/) {
     my $param;
     my $dollar_underscore;
     for @($past[0]) {
-        if $_.WHAT() eq 'Var' {
+        if $_.isa(PAST::Var) {
             if $_.scope() eq 'parameter' {
                 $param := $_;
             }
@@ -2971,7 +2971,7 @@ method sigterm($/) {
 
 # Used by all calling code to process arguments into the correct form.
 sub build_call($args) {
-    if $args.WHAT() ne 'Op' || $args.name() ne 'infix:,' {
+    if !$args.isa(PAST::Op) || $args.name() ne 'infix:,' {
         $args := PAST::Op.new( :node($args), :name('infix:,'), $args);
     }
     my $i := 0;
@@ -3050,28 +3050,28 @@ sub process_handles($/, $expr, $attr_name) {
     my $past := PAST::Stmts.new();
 
     # What type of expression do we have?
-    if $expr.WHAT() eq 'Val' && $expr.returns() eq 'Perl6Str' {
+    if $expr.isa(PAST::Val) && $expr.returns() eq 'Perl6Str' {
         # Just a single string mapping.
         my $name := ~$expr.value();
         my $method := make_handles_method($/, $name, $name, $attr_name);
         $past.push(add_method_to_class($method));
     }
-    elsif $expr.WHAT() eq 'Op' && $expr.returns() eq 'Pair' {
+    elsif $expr.isa(PAST::Op) && $expr.returns() eq 'Pair' {
         # Single pair.
         my $method := make_handles_method_from_pair($/, $expr, $attr_name);
         $past.push(add_method_to_class($method));
     }
-    elsif $expr.WHAT() eq 'Op' && $expr.pasttype() eq 'call' &&
+    elsif $expr.isa(PAST::Op) && $expr.pasttype() eq 'call' &&
           $expr.name() eq 'list' {
         # List of something, but what is it?
         for @($expr) {
-            if $_.WHAT() eq 'Val' && $_.returns() eq 'Perl6Str' {
+            if $_.isa(PAST::Val) && $_.returns() eq 'Perl6Str' {
                 # String value.
                 my $name := ~$_.value();
                 my $method := make_handles_method($/, $name, $name, $attr_name);
                 $past.push(add_method_to_class($method));
             }
-            elsif $_.WHAT() eq 'Op' && $_.returns() eq 'Pair' {
+            elsif $_.isa(PAST::Op) && $_.returns() eq 'Pair' {
                 # Pair.
                 my $method := make_handles_method_from_pair($/, $_, $attr_name);
                 $past.push(add_method_to_class($method));
@@ -3083,16 +3083,16 @@ sub process_handles($/, $expr, $attr_name) {
             }
         }
     }
-    elsif $expr.WHAT() eq 'Stmts' && $expr[0].name() eq 'infix:,' {
+    elsif $expr.isa(PAST::Stmts) && $expr[0].name() eq 'infix:,' {
         # Also a list, but constructed differently.
         for @($expr[0]) {
-            if $_.WHAT() eq 'Val' && $_.returns() eq 'Perl6Str' {
+            if $_.isa(PAST::Val) && $_.returns() eq 'Perl6Str' {
                 # String value.
                 my $name := ~$_.value();
                 my $method := make_handles_method($/, $name, $name, $attr_name);
                 $past.push(add_method_to_class($method));
             }
-            elsif $_.WHAT() eq 'Op' && $_.returns() eq 'Pair' {
+            elsif $_.isa(PAST::Op) && $_.returns() eq 'Pair' {
                 # Pair.
                 my $method := make_handles_method_from_pair($/, $_, $attr_name);
                 $past.push(add_method_to_class($method));
@@ -3160,7 +3160,7 @@ sub make_handles_method_from_pair($/, $pair, $attr_name) {
     # Single pair mapping. Check we have string name and value.
     my $key := $pair[0];
     my $value := $pair[1];
-    if $key.WHAT() eq 'Val' && $value.WHAT() eq 'Val' {
+    if $key.isa((PAST::Val) && $value.isa(PAST::Val)) {
         my $from_name := ~$key.value();
         my $to_name := ~$value.value();
         $meth := make_handles_method($/, $from_name, $to_name, $attr_name);
@@ -3284,7 +3284,7 @@ sub sig_descriptor_set($descriptor, $name, $value) {
 # if the signature is too complex to unpack.
 sub sig_extract_declarables($/, $sig_setup) {
     # Just make sure it's what we expect.
-    if $sig_setup.WHAT() ne 'Op' || $sig_setup.pasttype() ne 'callmethod' ||
+    if !$sig_setup.isa(PAST::Op) || $sig_setup.pasttype() ne 'callmethod' ||
        $sig_setup[0].name() ne 'Signature' {
         $/.panic("sig_extract_declarables was not passed signature declaration PAST!");
     }
@@ -3384,7 +3384,7 @@ sub add_method_to_class($method) {
 # Creates an anonymous subset type.
 sub make_anon_subset($past, $parameter) {
     # We need a block containing the constraint condition.
-    if $past.WHAT() ne 'Block' {
+    if !$past.isa(PAST::Block) {
         # Make block with the expression as its contents.
         $past := PAST::Block.new(
             PAST::Stmts.new(),
@@ -3396,7 +3396,7 @@ sub make_anon_subset($past, $parameter) {
     my $param;
     my $dollar_underscore;
     for @($past[0]) {
-        if $_.WHAT() eq 'Var' {
+        if $_.isa(PAST::Var) {
             if $_.scope() eq 'parameter' {
                 $param := $_;
             }

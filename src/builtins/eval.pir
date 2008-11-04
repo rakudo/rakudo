@@ -109,14 +109,15 @@ such as C<eval>, C<require>, and C<use>.
 
   eval_parrot:
     .local pmc result
+    inc_hash[name] = realfilename
     result = 'evalfile'(realfilename, 'lang'=>'Parrot')
     goto done
 
   eval_perl6:
+    inc_hash[name] = realfilename
     result = 'evalfile'(realfilename, 'lang'=>'Perl6')
 
   done:
-    inc_hash[name] = realfilename
     .return (result)
 .end
 

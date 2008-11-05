@@ -64,10 +64,16 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         PMC *proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
                 string_from_literal(interp, "proxy"));
         Parrot_block_GC_mark(interp);
-        memcpy(temp, proxy, sizeof (PMC));
-        memcpy(proxy, value, sizeof (PMC));
-        memcpy(value, new_ins, sizeof (PMC));
-        memcpy(new_ins, temp, sizeof (PMC));
+
+        /* Using memcpy here may trigger gcc optimizations, which at this point
+         * can wreak havoc on register-starved x86:
+         * error: unable to find a register to spill in class 'SIREG'
+         * Use memmove instead, which is slower, but isn't inlined by gcc. */
+        memmove(temp, proxy, sizeof (PMC));
+        memmove(proxy, value, sizeof (PMC));
+        memmove(value, new_ins, sizeof (PMC));
+        memmove(new_ins, temp, sizeof (PMC));
+
         Parrot_unblock_GC_mark(interp);
         mem_sys_free(temp);
 

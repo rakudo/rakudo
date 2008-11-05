@@ -4,8 +4,8 @@
 
 =head1 DESCRIPTION
 
-This tool runs the same test that C<make spectest> would, except those that
-C<make spectest> runs.
+This tool runs all spectets, except those that C<make spectest> runs (that 
+means all tests of which we don't know yet if they will pass or not).
 
 For each file that passes at least one test (criterion might change in future)
 it prints out a short summary about the status of this file.

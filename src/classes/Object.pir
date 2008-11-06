@@ -145,6 +145,28 @@ Return true if the object is defined.
 .end
 
 
+=item Str()
+
+Return a string representation of the object
+
+=cut
+
+.sub 'Str' :method
+    $P0 = new 'ResizableStringArray'
+    $P1 = self.'WHAT'()
+    push $P0, $P1
+    $I0 = get_addr self
+    push $P0, $I0
+    $S0 = sprintf "%s<0x%x>", $P0
+    .return ($S0)
+.end
+
+.sub '' :method :vtable('get_string')
+    $S0 = self.'Str'()
+    .return ($S0)
+.end
+
+
 =item new()
 
 Create a new object having the same class as the invocant.

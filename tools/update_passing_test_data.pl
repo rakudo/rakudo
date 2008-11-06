@@ -4,7 +4,7 @@
 
 =head1 DESCRIPTION
 
-This tool runs all spectets, except those that C<make spectest> runs (that 
+This tool runs all spectets, except those that C<make spectest> runs (that
 means all tests of which we don't know yet if they will pass or not).
 
 For each file that passes at least one test (criterion might change in future)

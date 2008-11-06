@@ -1453,15 +1453,21 @@ sub apply_package_traits($package, $traits) {
         my $aux := $_<trait_auxiliary>;
         # Apply any "is" traits through MMD.
         if $aux<sym> eq 'is' {
+            my @identifier := Perl6::Compiler.parse_name(~$aux<name>);
+            my $name := @identifier.pop();
+            my $superclass := PAST::Var.new(
+                                  :name($name),
+                                  :scope('package'),
+                                  :viviself('Undef')
+                              );
+            if +@identifier != 0 {
+                $superclass.namespace(@identifier);
+            }
             $package.push(
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('trait_auxiliary:is'),
-                    PAST::Var.new(
-                        :name(~$aux<name>),
-                        :scope('package'),
-                        :viviself('Undef')
-                    ),
+                    $superclass,
                     PAST::Var.new(
                         :name('$def'),
                         :scope('lexical')

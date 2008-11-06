@@ -6,7 +6,7 @@ src/builtins/enums.pir - implements various enumerations
 
 =cut
 
-.namespace
+.namespace []
 .sub 'setup' :load :init
     # Set up bool role.
     .local pmc bool_role

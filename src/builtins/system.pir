@@ -10,7 +10,7 @@ src/builtins/system.pir - Perl6 OS-related functions
 
 =cut
 
-.namespace
+.namespace []
 ## TODO: should these be in a namespace?
 ## .namespace [ '???' ]
 

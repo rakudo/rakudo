@@ -32,41 +32,8 @@ Perform initializations and create the base classes.
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
 .end
 
-=item infix:=(source)  (assignment method)
-
-Assigns C<source> to C<target>.  We use the 'item' method to allow Lists
-and Mappings to be converted into Array(ref) and Hash(ref).
-
-=cut
 
 .namespace ['Perl6Object']
-.sub 'infix:=' :method
-    .param pmc source
-    $I0 = can source, 'item'
-    unless $I0 goto have_source
-    source = source.'item'()
-  have_source:
-
-    $I0 = isa self, 'Mutable'
-    unless $I0 goto copy
-    assign self, source
-    goto end
-
-  copy:
-    .local pmc type
-    getprop type, 'type', self
-    if null type goto do_assign
-    $I0 = type.'ACCEPTS'(source)
-    if $I0 goto do_assign
-    die "Type mismatch in assignment."
-
-  do_assign:
-    eq_addr self, source, end
-    copy self, source
-  end:
-    .return (self)
-.end
-
 
 =back
 
@@ -81,6 +48,29 @@ Return the scalar as a Hash.
 =cut
 
 .namespace ['Perl6Object']
+
+=item Scalar()
+
+Default implementation gives reference type semantics, and returns an object
+reference, unless the thing already is one.
+
+=cut
+
+.sub 'Scalar' :method
+    $I0 = isa self, 'ObjectRef'
+    unless $I0 goto not_ref
+    .return (self)
+  not_ref:
+    $P0 = new 'ObjectRef', self
+    .return ($P0)
+.end
+
+
+=item hash()
+
+Return a hash representation of ourself.
+
+=cut
 
 .sub 'hash' :method
     $P0 = self.'list'()

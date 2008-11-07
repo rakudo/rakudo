@@ -18,6 +18,18 @@ src/classes/Pair.pir - methods for the Pair class
     p6meta.'new_class'('Perl6Pair', 'parent'=>'Any', 'attr'=>'$!key $!value', 'name'=>'Pair')
 .end
 
+
+=item Scalar
+
+This is a value type, so just returns itself.
+
+=cut
+
+.sub 'Scalar' :method
+    .return (self)
+.end
+
+
 =item ACCEPTS()
 
 Called from smartmatches '$_ ~~ X'.

@@ -43,7 +43,7 @@ Tests the MutableVAR PMC.
 .sub readonly_true
     $P0 = new 'Boolean'
     $P0 = 1
-    $P1 = new 'Mutable'
+    $P1 = new 'ObjectRef'
     setprop $P1, "readonly", $P0
     $P2 = new 'MutableVAR', $P1
     $I0 = $P2.'readonly'()
@@ -54,7 +54,7 @@ Tests the MutableVAR PMC.
 .sub readonly_false
     $P0 = new 'Boolean'
     $P0 = 0
-    $P1 = new 'Mutable'
+    $P1 = new 'ObjectRef'
     setprop $P1, "readonly", $P0
     $P2 = new 'MutableVAR', $P1
     $I0 = $P2.'readonly'()

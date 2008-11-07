@@ -35,17 +35,28 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 
 .namespace ['Perl6Hash']
 
+=item Scalar()
+
+Returns an ObjectRef referencing itself, unless it already is one in which
+case just returns as is.
+
+=cut
+
+.sub 'Scalar' :method
+    $I0 = isa self, 'ObjectRef'
+    unless $I0 goto not_ref
+    .return (self)
+  not_ref:
+    $P0 = new 'ObjectRef', self
+    .return ($P0)
+.end
+
+
 .sub 'ACCEPTS' :method
     .param pmc topic
     .return self.'contains'(topic)
 .end
 
-.sub 'infix:=' :method
-    .param pmc source
-    $P0 = source.'hash'()
-    copy self, $P0
-    .return (self)
-.end
 
 .sub 'delete' :method
     .param pmc keys :slurpy

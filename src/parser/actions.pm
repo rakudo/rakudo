@@ -1172,7 +1172,7 @@ method signature($/) {
                     PAST::Op.new(
                         :inline(
                             '    %r = new "Perl6Scalar"',
-                            '    %r."infix:="(%0)'
+                            '    "infix:="(%r, %0)'
                         ),
                         PAST::Var.new(
                             :name($parameter.name()),
@@ -2601,13 +2601,14 @@ method quote_term($/, $key) {
         );
     }
     elsif ($key eq 'variable') {
-        $past := $( $<variable> );
+        $past := PAST::Op.new( $( $<variable> ), :name('prefix:~'), :pasttype('call') );
     }
     elsif ($key eq 'circumfix') {
         $past := $( $<circumfix> );
         if $past.isa(PAST::Block) {
             $past.blocktype('immediate');
         }
+        $past := PAST::Op.new( $past, :name('prefix:~'), :pasttype('call') );
     }
     make $past;
 }
@@ -2732,7 +2733,7 @@ method EXPR($/, $key) {
 
         # and assign result to target
         my $past := PAST::Op.new(
-            :inline("    %r = %1.'infix:='(%0)"),
+            :inline("    %r = 'infix:='(%1, %0)"),
             :node($/),
             $call,
             $target

@@ -4,15 +4,15 @@
 
 =head1 NAME
 
-t/pmc/mutable.t - Test the Mutable PMC
+t/pmc/objectref.t - Test the ObjectRef PMC
 
 =head1 SYNOPSIS
 
-    % prove t/pmc/mutable.t
+    % prove t/pmc/objectref.t
 
 =head1 DESCRIPTION
 
-Tests the Mutable PMC.
+Tests the ObjectRef PMC.
 
 =cut
 
@@ -32,8 +32,8 @@ Tests the Mutable PMC.
 
 
 .sub init
-    # Mutable is initialized to contain an undef.
-    $P1 = new "Mutable"
+    # ObjectRef is initialized to contain an undef.
+    $P1 = new "ObjectRef"
     $S1 = typeof $P1
     is($S1, 'Undef', 'typeof newclass retval')
 .end
@@ -41,7 +41,7 @@ Tests the Mutable PMC.
 
 .sub assign_val
     # Assigning a value.
-    $P1 = new 'Mutable'
+    $P1 = new 'ObjectRef'
     $P2 = get_hll_global 'Int'
     $P2 = $P2.'new'()
     $P2 = 42
@@ -55,7 +55,7 @@ Tests the Mutable PMC.
 
 .sub meth_call
     # Check we can call methods.
-    $P1 = new 'Mutable'
+    $P1 = new 'ObjectRef'
     $P2 = 'list'(1,2,3)
     assign $P1, $P2
     $I0 = $P1.'elems'()
@@ -66,8 +66,8 @@ Tests the Mutable PMC.
 .sub multi_call
     # Try and do a multi-dispatch call with two items.
     .local pmc x, y
-    x = new 'Mutable'
-    y = new 'Mutable'
+    x = new 'ObjectRef'
+    y = new 'ObjectRef'
     $P2 = get_hll_global 'Int'
     $P3 = $P2.'new'()
     $P3 = 35

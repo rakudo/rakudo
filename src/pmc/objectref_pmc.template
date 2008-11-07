@@ -4,7 +4,7 @@ Copyright (C) 2008, The Perl Foundation.
 
 =head1 NAME
 
-src/pmc/mutable_pmc.template - Template for the mutable PMC
+src/pmc/objectref_pmc.template - Template for the ObjectRef PMC
 
 =head1 DESCRIPTION
 
@@ -18,7 +18,7 @@ Forwards all but some methods to the held PMC.
 
 #include "parrot/parrot.h"
 
-pmclass Mutable need_ext dynpmc group perl6_group {
+pmclass ObjectRef need_ext dynpmc group perl6_group {
     ATTR PMC *value;
     ATTR PMC *cached_type;
 
@@ -35,7 +35,7 @@ pmclass Mutable need_ext dynpmc group perl6_group {
         PObj_active_destroy_SET(SELF);
 
         /* Create underlying structure. */
-        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Mutable_attributes);
+        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_ObjectRef_attributes);
         SET_ATTR_cached_type(INTERP, SELF, type_obj);
 
         /* Initialize with an undef PMC if no value. */
@@ -56,46 +56,6 @@ pmclass Mutable need_ext dynpmc group perl6_group {
         PMC_data(SELF) = NULL;
     }
 
-    VTABLE void assign_pmc(PMC *value) {
-        STRING *s_mutable = string_from_literal(INTERP, "Mutable");
-        STRING *s_ro = string_from_literal(INTERP, "readonly");
-        PMC *type_obj;
-        PMC *ro;
-
-        /* Check that the read-only property isn't set. */
-        ro = VTABLE_getprop(INTERP, SELF, s_ro);
-        if (!PMC_IS_NULL(ro) && VTABLE_get_bool(INTERP, ro))
-            Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
-                "Cannot assign to readonly variable");
-
-        /* Chase down the mutable chain until we get a value. */
-        while (VTABLE_isa(INTERP, value, s_mutable))
-            GET_ATTR_value(INTERP, value, value);
-
-        /* Do we need to do any type-check? */
-        GET_ATTR_cached_type(INTERP, SELF, type_obj);
-        if (PMC_IS_NULL(type_obj)) {
-            STRING *s_type = string_from_literal(INTERP, "type");
-            type_obj = VTABLE_getprop(INTERP, SELF, s_type);
-            if (!PMC_IS_NULL(type_obj))
-                SET_ATTR_cached_type(INTERP, SELF, type_obj);
-        }
-
-        if (!PMC_IS_NULL(type_obj)) {
-            STRING *checker_name = string_from_literal(INTERP, "!DOTYPECHECK");
-            PMC *checker = Parrot_find_global_n(interp,
-                Parrot_get_ctx_HLL_namespace(interp), checker_name);
-            PMC *result = pmc_new(INTERP, enum_class_Integer);
-            Parrot_runops_fromc_args(INTERP, checker, "vPPP", type_obj, value, result);
-            if (!VTABLE_get_bool(INTERP, result))
-                Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Type check failed");
-        }
-
-        /* Stash the value. */
-        SET_ATTR_value(INTERP, SELF, value);
-    }
-
     VTABLE PMC * get_pmc() {
         PMC * value;
         GET_ATTR_value(INTERP, SELF, value);
@@ -105,7 +65,7 @@ pmclass Mutable need_ext dynpmc group perl6_group {
     VTABLE INTVAL isa_pmc(PMC *lookup) {
         PMC * value;
         if (SUPER(lookup)) return 1;
-        /* PMCProxy_does sends us a proxied Mutable with no value */
+        /* PMCProxy_does sends us a proxied ObjectRef with no value */
         if (!PMC_data(SELF)) return 0;
         GET_ATTR_value(INTERP, SELF, value);
         return VTABLE_isa_pmc(INTERP, value, lookup);
@@ -114,7 +74,7 @@ pmclass Mutable need_ext dynpmc group perl6_group {
     VTABLE INTVAL isa(STRING *classname) {
         PMC * value;
         if (SUPER(classname)) return 1;
-        /* PMCProxy_does sends us a proxied Mutable with no value */
+        /* PMCProxy_does sends us a proxied ObjectRef with no value */
         if (!PMC_data(SELF)) return 0;
         GET_ATTR_value(INTERP, SELF, value);
         return VTABLE_isa(INTERP, value, classname);
@@ -122,7 +82,7 @@ pmclass Mutable need_ext dynpmc group perl6_group {
 
     VTABLE INTVAL does_pmc(PMC *role) {
         PMC * value;
-        /* PMCProxy_does sends us a proxied Mutable with no value */
+        /* PMCProxy_does sends us a proxied ObjectRef with no value */
         if (!PMC_data(SELF)) return 0;
         GET_ATTR_value(INTERP, SELF, value);
         return VTABLE_does_pmc(INTERP, value, role);
@@ -130,15 +90,22 @@ pmclass Mutable need_ext dynpmc group perl6_group {
 
     VTABLE INTVAL does(STRING *role) {
         PMC * value;
-        /* PMCProxy_does sends us a proxied Mutable with no value */
+        /* PMCProxy_does sends us a proxied ObjectRef with no value */
         if (!PMC_data(SELF)) return 0;
         GET_ATTR_value(INTERP, SELF, value);
         return VTABLE_does(INTERP, value, role);
     }
 
     VTABLE void morph(INTVAL type) {
-        Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
-            "Cannot morph a Perl6Scalar.");
+        /* XXX For now silently do nothing - so copy op on us works. */
+    }
+
+    VTABLE PMC * clone() {
+        PMC * value;
+        PMC * copy;
+        GET_ATTR_value(INTERP, SELF, value);
+        copy = pmc_new_init(INTERP, SELF->vtable->base_type, value);
+        return copy;
     }
 
     /* We don't want any of these to be touched */

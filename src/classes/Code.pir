@@ -21,6 +21,18 @@ for executable objects.
     p6meta.'register'('Closure', 'parent'=>codeproto, 'protoobject'=>codeproto)
 .end
 
+
+=item Scalar
+
+This is a value type, so just returns itself.
+
+=cut
+
+.sub 'Scalar' :method
+    .return (self)
+.end
+
+
 =over 4
 
 =item ACCEPTS(topic)

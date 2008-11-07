@@ -34,9 +34,9 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
             "Attempt to use rebless_subclass where the new class was not a subclass");
 
-    /* Make sure we're operating on the real value, not a mutable. */
+    /* Make sure we're operating on the real value, not a ObjectRef. */
     value = $1;
-    while (VTABLE_isa(interp, value, const_string(interp, "Mutable")))
+    while (VTABLE_isa(interp, value, const_string(interp, "ObjectRef")))
         value = VTABLE_get_pmc(interp, value);
 
     /* Check what we're trying to bless into is a standard Parrot class. */

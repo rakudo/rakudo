@@ -21,6 +21,17 @@ src/classes/Range.pir - methods for the Range class
 .end
 
 
+=item Scalar
+
+This is a value type, so just returns itself.
+
+=cut
+
+.sub 'Scalar' :method
+    .return (self)
+.end
+
+
 =item VTABLE_get integer (vtable method)
 
 =item VTABLE_get_number (vtable method)

@@ -19,6 +19,18 @@ This file sets up the Perl 6 C<Capture> class.
     captureproto = p6meta.'new_class'('Perl6Capture', 'parent'=>'Capture_PIR Any', 'name'=>'Capture')
 .end
 
+
+=item Scalar
+
+This is a value type, so just returns itself.
+
+=cut
+
+.sub 'Scalar' :method
+    .return (self)
+.end
+
+
 =head2 Methods
 
 =over 4

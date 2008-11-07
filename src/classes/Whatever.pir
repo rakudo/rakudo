@@ -18,6 +18,18 @@ This file implements the Whatever class.
     p6meta.'new_class'('Whatever', 'parent'=>'Perl6Object')
 .end
 
+
+=item Scalar
+
+This is a value type, so just returns itself.
+
+=cut
+
+.sub 'Scalar' :method
+    .return (self)
+.end
+
+
 .sub 'ACCEPTS' :method
     .param pmc topic
     $P0 = get_hll_global ['Bool'], 'True'

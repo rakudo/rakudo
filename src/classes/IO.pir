@@ -180,6 +180,17 @@ more:
     .return(1)
 .end
 
+
+=item Scalar
+
+Return the value inside this container in item context.
+
+=cut
+
+.sub 'Scalar' :method
+    .tailcall self.'item'()
+.end
+
 .sub 'item' :method :vtable('shift_pmc')
     .local pmc pio
     $P0 = getattribute self, "$!IO"

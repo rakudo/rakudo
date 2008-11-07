@@ -20,6 +20,22 @@ src/classes/List.pir - Perl 6 List class and related functions
     '!EXPORT'('first grep keys kv map pairs reduce values', $P0)
 .end
 
+
+=item Scalar
+
+When we're going to be stored as an item, become an Array and then return
+ourself in a ObjectRef.
+
+=cut
+
+.namespace ['List']
+.sub 'Scalar' :method
+    # promote the list to an Array and return its VALUE
+    $P0 = self.'item'()
+    .tailcall $P0.'Scalar'()
+.end
+
+
 =item clone()    (vtable method)
 
 Return a clone of this list.  (Clones its elements also.)
@@ -108,6 +124,7 @@ Return the List invocant in scalar context (i.e., an Array).
 
 =cut
 
+.namespace ['List']
 .sub 'item' :method
     $P0 = new 'Perl6Array'
     splice $P0, self, 0, 0
@@ -196,7 +213,7 @@ layer.  It will likely change substantially when we have lazy lists.
     elem = self[i]
     $I0 = defined elem
     unless $I0 goto flat_next
-    $I0 = isa elem, 'Perl6Scalar'
+    $I0 = isa elem, 'ObjectRef'
     if $I0 goto flat_next
     $I0 = isa elem, 'Range'
     unless $I0 goto not_range

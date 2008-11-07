@@ -4,15 +4,15 @@
 
 =head1 NAME
 
-gen_mutable_pmc.pl - Generates the Mutable PMC
+gen_objectref_pmc.pl - Generates the ObjectRef PMC
 
 =head1 SYNOPSIS
 
-    % perl gen_mutable_pmc.pl pmc_template output_file
+    % perl gen_objectref_pmc.pl pmc_template output_file
 
 =head1 DESCRIPTION
 
-Takes a template for the mutable PMC, and fills in the missing v-table
+Takes a template for the ObjectRef PMC, and fills in the missing v-table
 methods with methods that simply delegate them to the held value.
 
 =head1 FUNCTIONS
@@ -26,10 +26,10 @@ use strict;
 # Get and check parameters.
 my ($template, $output) = @ARGV;
 unless ($template && $output) {
-    die "Usage: perl gen_mutable_pmc.pl pmc_template output_file";
+    die "Usage: perl gen_objectref_pmc.pl pmc_template output_file";
 }
 unless (-e $template) {
-    die "Mutable PMC template file '$template' does not exist";
+    die "ObjectRef PMC template file '$template' does not exist";
 }
 
 # Read template.
@@ -39,7 +39,7 @@ my $template_contents = slurp($template);
 my $vtable_list = slurp('../../src/vtable.tbl');
 my @all_vtables = extract_matches($vtable_list, '(\w+)\\(');
 
-# Find v-table methods defined in the mutable template and exclude
+# Find v-table methods defined in the ObjectRef template and exclude
 # them from the list.
 my @nogen = extract_matches($template_contents, 'VTABLE\s*\w+\s*\*?\s*(\w+)\\(');
 my %nogen;

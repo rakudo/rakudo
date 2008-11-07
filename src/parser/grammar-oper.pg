@@ -192,7 +192,7 @@ proto infix:<Z> is precedence('f=')
 ## list assignment
 proto infix:<=> is precedence('e=')
 #    is pasttype('copy')
-    is pasttype('callmethod')
+    is pasttype('call')
     is assoc('right')
     is lvalue(1)
     { ... }

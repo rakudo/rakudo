@@ -22,6 +22,17 @@ Num - Perl 6 numbers
 .end
 
 
+=item Scalar
+
+This is a value type, so just returns itself.
+
+=cut
+
+.sub 'Scalar' :method
+    .return (self)
+.end
+
+
 =item ACCEPTS()
 
 =cut

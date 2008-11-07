@@ -15,14 +15,6 @@ src/classes/Scalar.pir - Perl 6 Scalar class and related functions
 #    $P0 = subclass 'Mutable', 'Perl6Scalar'
 #.end
 
-.namespace ['Perl6Scalar']
-.sub 'infix:=' :method
-    .param pmc source
-    $P0 = source.'item'()
-    assign self, $P0
-    .return (self)
-.end
-
 
 # Local Variables:
 #   mode: pir

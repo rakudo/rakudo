@@ -31,10 +31,22 @@ as the Perl 6 C<Str> class.
 .end
 
 
+=item Scalar
+
+This is a value type, so just returns itself.
+
+=cut
+
+.sub 'Scalar' :method
+    .return (self)
+.end
+
+
 .sub 'ACCEPTS' :method
     .param string topic
     .return 'infix:eq'(topic, self)
 .end
+
 
 .sub 'reverse' :method :multi('String')
     .local pmc retv

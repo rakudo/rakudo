@@ -192,7 +192,6 @@ S29-num/int.t
 S29-num/log.t
 S29-num/pi.t
 S29-num/rand.t
-S29-num/rounders.t
 S29-num/sign.t
 S29-num/sqrt.t
 S29-scalar/defined.t

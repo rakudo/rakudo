@@ -98,12 +98,12 @@ BUILTINS_PIR = \
   src/builtins/system.pir \
   src/builtins/traits.pir \
 
-$(PMC_DIR)/mutable.pmc : $(PMC_DIR)/mutable_pmc.template build/gen_mutable_pmc.pl
-	$(PERL) build/gen_mutable_pmc.pl $(PMC_DIR)/mutable_pmc.template \
-		$(PMC_DIR)/mutable.pmc
+$(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
+	$(PERL) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
+		$(PMC_DIR)/objectref.pmc
 
-PMCS        = perl6str mutable perl6scalar mutablevar perl6multisub
-PMC_SOURCES = $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/mutable.pmc $(PMC_DIR)/perl6scalar.pmc \
+PMCS        = perl6str objectref perl6scalar mutablevar perl6multisub
+PMC_SOURCES = $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/objectref.pmc $(PMC_DIR)/perl6scalar.pmc \
               $(PMC_DIR)/mutablevar.pmc $(PMC_DIR)/perl6multisub.pmc
 PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)
 
@@ -253,7 +253,7 @@ CLEANUPS = \
   $(PMC_DIR)/*.manifest \
   $(PMC_DIR)/*.pdb \
   $(PMC_DIR)/*.lib \
-  $(PMC_DIR)/mutable.pmc \
+  $(PMC_DIR)/objectref.pmc \
   $(OPSDIR)/*.h \
   $(OPSDIR)/*.c \
   $(OPSDIR)/*$(O) \

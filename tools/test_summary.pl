@@ -58,7 +58,7 @@ for my $tfile (@tfiles) {
     close($th);
     my $tname = $tfile; $tname =~ s!^t/spec/!!;
     printf "%s%s..%4d", $tname, '.' x ($max - length($tname)), $plan;
-    my $cmd = "../../parrot -G perl6.pbc $tfile";
+    my $cmd = "../../parrot perl6.pbc $tfile";
     my @results = split "\n", `$cmd`;
     my ($test, $pass, $fail, $todo, $skip) = (0,0,0,0,0);
     my (%skip, %todopass, %todofail);

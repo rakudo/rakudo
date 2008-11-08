@@ -1070,10 +1070,19 @@ method signature($/) {
             for $_<parameter><type_constraint> {
                 # Just a type name?
                 if $_<typename><name><identifier> {
+                    # Get type; we may have to fix up the scope if it's
+                    # been captured within the signature.
+                    my $type := $( $_<typename> );
+                    my $local_sym := $block_past.symbol($type.name());
+                    if $local_sym {
+                        $type.scope($local_sym<scope>);
+                    }
+
+                    # Emit check.
                     my $type_obj := PAST::Op.new(
                         :pasttype('call'),
                         :name('!TYPECHECKPARAM'),
-                        $( $_<typename> ),
+                        $type,
                         PAST::Var.new(
                             :name($parameter.name()),
                             :scope('lexical')

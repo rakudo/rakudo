@@ -126,6 +126,7 @@ S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/positional-placeholders.t
 S06-signature/slurpy-placeholders.t
+S06-signature/type-capture.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
 S06-traits/misc.t

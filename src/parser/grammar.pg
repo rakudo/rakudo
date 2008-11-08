@@ -154,10 +154,13 @@ token block {
     '{'
     <statement_block>
     [ '}' || <panic: Missing '}'> ]
-    [ \h* <.unv>? \n <.MARK_STATEMENT_END> ]?
+    <.BLOCK_STATEMENT_END>?
     {*}
 }
 
+token BLOCK_STATEMENT_END {
+    [ \h* <.unv>? \n <.MARK_STATEMENT_END> ]
+}
 
 rule statementlist {
     [<statement><.eat_terminator> ]*
@@ -811,19 +814,22 @@ rule regex_declarator {
 rule regex_declarator_regex {
     $<sym>='regex'
     <identifier>?
-    <before '{'> <quote_expression: :regex> {*}
+    <before '{'> <quote_expression: :regex><.BLOCK_STATEMENT_END>?
+    {*}
 }
 
 rule regex_declarator_token {
     $<sym>='token'
     <identifier>?
-    <before '{'> <quote_expression: :regex :ratchet> {*}
+    <before '{'> <quote_expression: :regex :ratchet><.BLOCK_STATEMENT_END>?
+    {*}
 }
 
 rule regex_declarator_rule {
     $<sym>='rule'
     <identifier>?
-    <before '{'> <quote_expression: :regex :ratchet :sigspace> {*}
+    <before '{'> <quote_expression: :regex :ratchet :sigspace><.BLOCK_STATEMENT_END>?
+    {*}
 }
 
 ##  S05 shows semilist as being a list of statements, in order

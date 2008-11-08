@@ -60,7 +60,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
          *    swept on the next GC run.
          * We do this by shuffling PMC headers around. It should be safe as
          * in the end we will end up with just as many PMCs existing. */
-        PMC *temp = mem_sys_allocate(sizeof (PMC));
+        PMC *temp  = mem_allocate_typed(PMC);
         PMC *proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
                 string_from_literal(interp, "proxy"));
         Parrot_block_GC_mark(interp);

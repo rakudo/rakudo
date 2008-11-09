@@ -157,6 +157,31 @@ Return a string representation of the object
 .end
 
 
+=item increment
+
+Override increment in Objects to use 'succ' method.
+
+=cut
+
+.sub '' :method :vtable('increment')
+    $P0 = self.'succ'()
+    'infix:='(self, $P0)
+    .return(self)
+.end
+
+=item decrement
+
+Override decrement in Objects to use 'pred' method.
+
+=cut
+
+.sub '' :method :vtable('decrement')
+    $P0 = self.'pred'()
+    'infix:='(self, $P0)
+    .return(self)
+.end
+
+
 =item new()
 
 Create a new object having the same class as the invocant.

@@ -31,47 +31,28 @@ src/builtins/op.pir - Perl6 builtin operators
 .sub 'postfix:++' :multi(_)
     .param pmc a
     $P0 = clone a
-    'prefix:++'(a)
+    inc a
     .return ($P0)
 .end
 
 .sub 'postfix:--' :multi(_)
     .param pmc a
     $P0 = clone a
-    'prefix:--'(a)
+    dec a
     .return ($P0)
 .end
 
 
 .sub 'prefix:++' :multi(_)
     .param pmc a
-    push_eh do_inc
-    $P1 = find_method a, "succ"
-    pop_eh
-    a.$P1()
-    goto done
-
-  do_inc:
-    pop_eh
     inc a
-
-  done:
     .return (a)
 .end
 
 
 .sub 'prefix:--' :multi(_)
     .param pmc a
-    push_eh do_dec
-    $P1 = find_method a, "pred"
-    pop_eh
-    a.$P1()
-    goto done
-
-  do_dec:
-    pop_eh
     dec a
-  done:
     .return (a)
 .end
 

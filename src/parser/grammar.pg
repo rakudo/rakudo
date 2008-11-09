@@ -266,7 +266,7 @@ rule repeat_statement {
 
 rule while_statement {
     $<sym>=[while|until]
-    <EXPR> <block>
+    <xblock>
     {*}
 }
 

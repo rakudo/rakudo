@@ -163,6 +163,7 @@ method statement_control($/, $key) {
 method if_statement($/) {
     my $count := +$<xblock> - 1;
     my $past  := $( $<xblock>[$count] );
+    declare_implicit_immediate_vars( $past[1] );
     ## add any 'else' clause
     if $<pblock> {
         my $else := $( $<pblock>[0] );
@@ -175,6 +176,7 @@ method if_statement($/) {
         $count--;
         my $else := $past;
         $past := $( $<xblock>[$count] );
+        declare_implicit_immediate_vars( $past[1] );
         $past.push($else);
     }
     make $past;
@@ -183,12 +185,14 @@ method if_statement($/) {
 method unless_statement($/) {
     my $past := $( $<xblock> );
     $past.pasttype('unless');
+    declare_implicit_immediate_vars( $past[1] );
     make $past;
 }
 
 method while_statement($/) {
     my $past := $( $<xblock> );
     $past.pasttype(~$<sym>);
+    declare_implicit_immediate_vars( $past[1] );
     make $past;
 }
 
@@ -281,7 +285,6 @@ method pblock($/) {
 method xblock($/) {
     my $pblock := $( $<pblock> );
     $pblock.blocktype('immediate');
-    declare_implicit_immediate_vars($pblock);
     my $past := PAST::Op.new(
         $( $<EXPR> ), $pblock,
         :pasttype('if'),

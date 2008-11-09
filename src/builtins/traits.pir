@@ -31,7 +31,6 @@ src/builtins/traits.pir - Perl 6 built-in traits
     addparent child, parent
 .end
 
-
 =back
 
 =cut

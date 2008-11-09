@@ -1452,27 +1452,31 @@ sub apply_package_traits($package, $traits) {
         my $aux := $_<trait_auxiliary>;
         # Apply any "is" traits through MMD.
         if $aux<sym> eq 'is' {
-            my @identifier := Perl6::Compiler.parse_name(~$aux<name>);
-            my $name := @identifier.pop();
-            my $superclass := PAST::Var.new(
-                                  :name($name),
-                                  :scope('package'),
-                                  :viviself('Undef')
-                              );
-            if +@identifier != 0 {
-                $superclass.namespace(@identifier);
-            }
-            $package.push(
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('trait_auxiliary:is'),
-                    $superclass,
-                    PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
+            # Check it's not a compiler-handled one.
+            if $aux<name> ne 'also' {
+                # Emit the call.
+                my @identifier := Perl6::Compiler.parse_name(~$aux<name>);
+                my $name := @identifier.pop();
+                my $superclass := PAST::Var.new(
+                                      :name($name),
+                                      :scope('package'),
+                                      :viviself('Undef')
+                                  );
+                if +@identifier != 0 {
+                    $superclass.namespace(@identifier);
+                }
+                $package.push(
+                    PAST::Op.new(
+                        :pasttype('call'),
+                        :name('trait_auxiliary:is'),
+                        $superclass,
+                        PAST::Var.new(
+                            :name('$def'),
+                            :scope('lexical')
+                        )
                     )
-                )
-            );
+                );
+            }
         }
         elsif $aux<sym> eq 'does' {
             # Role.
@@ -1625,22 +1629,58 @@ method package_def($/, $key) {
     if $key eq 'open' {
         # Start of package definition. Handle class and grammar specially.
         if $?PACKAGE =:= $?CLASS {
-            # Start of class definition; make PAST to create class object.
-            my $class_def := PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
-                ),
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('!keyword_class')
-                )
-            );
+            my $class_def;
 
-            # Add a name, if we have one.
-            if $name {
-                $class_def[1].push( PAST::Val.new( :value(~$name[0]) ) );
+            if !have_trait('also', 'is', $<trait>) {
+                # Start of class definition; make PAST to create class object if
+                # we're creating a new class.
+                $class_def := PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Op.new(
+                        :pasttype('call'),
+                        :name('!keyword_class')
+                    )
+                );
+
+                # Add a name, if we have one.
+                if $name {
+                    $class_def[1].push( PAST::Val.new( :value(~$name[0]) ) );
+                }
+            }
+            else {
+                # We're adding to an existing class. Look up class by name and put
+                # it in $def.
+                unless $<name> {
+                    $/.panic("Can only use is also trait on a named class.");
+                }
+                my @namespace := Perl6::Compiler.parse_name($<name>[0]);
+                my $short_name := @namespace.pop();
+                $class_def := PAST::Op.new(
+                    :node($/),
+                    :pasttype('bind'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('get_parrotclass'),
+                        PAST::Var.new(
+                            :scope('package'),
+                            :name('$!P6META'),
+                            :namespace('Perl6Object')
+                        ),
+                        PAST::Var.new(
+                            :name($short_name),
+                            :namespace(@namespace),
+                            :scope('package')
+                        )
+                    )
+                );
             }
 
             $?CLASS.push($class_def);
@@ -1701,38 +1741,42 @@ method package_def($/, $key) {
             # Apply traits.
             apply_package_traits($?CLASS, $<trait>);
 
-            # It's a class. Make proto-object.
-            $?CLASS.push(
-                PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('register'),
-                    PAST::Var.new(
-                        :scope('package'),
-                        :name('$!P6META'),
-                        :namespace('Perl6Object')
-                    ),
-                    PAST::Var.new(
-                        :scope('lexical'),
-                        :name('$def')
-                    ),
-                    PAST::Val.new(
-                        :value('Any'),
-                        :named( PAST::Val.new( :value('parent') ) )
+            # Check if we have the is also trait - don't re-create
+            # proto-object if so.
+            if !have_trait('also', 'is', $<trait>) {
+                # It's a new class definition. Make proto-object.
+                $?CLASS.push(
+                    PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('register'),
+                        PAST::Var.new(
+                            :scope('package'),
+                            :name('$!P6META'),
+                            :namespace('Perl6Object')
+                        ),
+                        PAST::Var.new(
+                            :scope('lexical'),
+                            :name('$def')
+                        ),
+                        PAST::Val.new(
+                            :value('Any'),
+                            :named( PAST::Val.new( :value('parent') ) )
+                        )
                     )
-                )
-            );
+                );
 
-            # If this is an anonymous class, the block doesn't want to be a
-            # :init :load, and it's going to contain the class definition, so
-            # we need to declare the lexical $def.
-            unless $name {
-                $past.pirflags('');
-                $past.blocktype('immediate');
-                $past[0].push(PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical'),
-                    :isdecl(1)
-                ));
+                # If this is an anonymous class, the block doesn't want to be a
+                # :init :load, and it's going to contain the class definition, so
+                # we need to declare the lexical $def.
+                unless $name {
+                    $past.pirflags('');
+                    $past.blocktype('immediate');
+                    $past[0].push(PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical'),
+                        :isdecl(1)
+                    ));
+                }
             }
 
             # Attatch any class initialization code to the init code;
@@ -3351,13 +3395,15 @@ sub make_accessor($/, $method_name, $attr_name, $rw, $scope) {
 
 
 # Adds the given method to the current class. This just returns the method that
-# is passed to it if the current class is named; in the case that it is anonymous
-# we need instead to emit an add_method call and remove the methods name so it
-# doesn't pollute the namespace.
+# is passed to it if the current class is named and the original declaration; in
+# the case that it is anonymous or we're adding to it we need instead to emit an
+# add_method call and remove the methods name so it doesn't pollute the namespace.
 sub add_method_to_class($method) {
     our $?CLASS;
     our $?PACKAGE;
-    if $?CLASS =:= $?PACKAGE && +@($?CLASS[0][1]) == 0 {
+    if !($?CLASS =:= $?PACKAGE) || $?CLASS[0][1].name() eq '!keyword_class' && +@($?CLASS[0][1]) == 1 {
+        $method
+    } else {
         # Create new PAST::Block - can't work out how to unset the name of an
         # existing one.
         my $new_method := PAST::Block.new(
@@ -3381,9 +3427,6 @@ sub add_method_to_class($method) {
         ));
 
         $new_method
-    }
-    else {
-        $method
     }
 }
 
@@ -3440,6 +3483,24 @@ sub make_anon_subset($past, $parameter) {
         )
     );
 }
+
+
+# Takes a parse tree of traits and checks if we have the trait of the given
+# name applied with the given verb. If it finds the trait, returns the
+# syntax tree for that trait; otherwise, returns undef.
+sub have_trait($name, $verb, $traits) {
+    unless $traits { return 0; }
+    for @($traits) {
+        if $_ && $_<trait_auxiliary> {
+            my $trait := $_<trait_auxiliary>;
+            if $trait<sym> eq $verb && $trait<name> eq $name {
+                return $trait;
+            }
+        }
+    }
+    return 0;
+}
+
 
 # Local Variables:
 #   mode: cperl

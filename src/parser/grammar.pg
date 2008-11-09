@@ -146,6 +146,8 @@ token lambda { '->' | '<->' }
 
 token pblock { [ <lambda> <.ws> <signature> ]? <.ws> <block> {*} }
 
+token xblock { <EXPR> <.ws> <pblock> {*} }
+
 
 ##  Blocks can also have an implied statement end if the
 ##  closing brace is the last non-ws thing on the line.
@@ -244,16 +246,14 @@ rule statement_control {
 
 rule if_statement {
     $<sym>=[if]
-    <EXPR> <block>
-    [ 'elsif' <EXPR> <block> ]*
-    [ 'else' <else=block> ]?
+    <xblock>
+    [ 'elsif' <xblock> ]*
+    [ 'else' <pblock> ]?
     {*}
 }
 
 rule unless_statement {
-    $<sym>=[unless]
-    <EXPR> <block>
-    {*}
+    $<sym>=[unless] <xblock> {*}
 }
 
 rule repeat_statement {

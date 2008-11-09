@@ -161,50 +161,30 @@ method statement_control($/, $key) {
 
 
 method if_statement($/) {
-    my $count := +$<EXPR> - 1;
-    my $expr  := $( $<EXPR>[$count] );
-    my $then  := $( $<block>[$count] );
-    $then.blocktype('immediate');
-    declare_implicit_immediate_vars($then);
-    my $past := PAST::Op.new(
-        $expr, $then,
-        :pasttype('if'),
-        :node( $/ )
-    );
-    if $<else> {
-        my $else := $( $<else>[0] );
+    my $count := +$<xblock> - 1;
+    my $past  := $( $<xblock>[$count] );
+    ## add any 'else' clause
+    if $<pblock> {
+        my $else := $( $<pblock>[0] );
         $else.blocktype('immediate');
         declare_implicit_immediate_vars($else);
         $past.push( $else );
     }
+    ## build if/then/elsif structure
     while $count != 0 {
-        $count := $count - 1;
-        $expr  := $( $<EXPR>[$count] );
-        $then  := $( $<block>[$count] );
-        $then.blocktype('immediate');
-        declare_implicit_immediate_vars($then);
-        $past  := PAST::Op.new(
-            $expr, $then, $past,
-            :pasttype('if'),
-            :node( $/ )
-        );
+        $count--;
+        my $else := $past;
+        $past := $( $<xblock>[$count] );
+        $past.push($else);
     }
     make $past;
 }
 
-
 method unless_statement($/) {
-    my $then := $( $<block> );
-    $then.blocktype('immediate');
-    declare_implicit_immediate_vars($then);
-    my $past := PAST::Op.new(
-        $( $<EXPR> ), $then,
-        :pasttype('unless'),
-        :node( $/ )
-    );
+    my $past := $( $<xblock> );
+    $past.pasttype('unless');
     make $past;
 }
-
 
 method while_statement($/) {
     my $cond  := $( $<EXPR> );
@@ -298,6 +278,18 @@ method for_statement($/) {
 method pblock($/) {
     my $block := $( $<block> );
     make $block;
+}
+
+method xblock($/) {
+    my $pblock := $( $<pblock> );
+    $pblock.blocktype('immediate');
+    declare_implicit_immediate_vars($pblock);
+    my $past := PAST::Op.new(
+        $( $<EXPR> ), $pblock,
+        :pasttype('if'),
+        :node( $/ )
+    );
+    make $past;
 }
 
 method use_statement($/) {

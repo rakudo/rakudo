@@ -3367,7 +3367,8 @@ sub add_method_to_class($method) {
     our $?PACKAGE;
     if !($?CLASS =:= $?PACKAGE) || $?CLASS[0][1].name() eq '!keyword_class' && +@($?CLASS[0][1]) == 1 {
         $method
-    } else {
+    }
+    else {
         # Create new PAST::Block - can't work out how to unset the name of an
         # existing one.
         my $new_method := PAST::Block.new(

@@ -215,15 +215,13 @@ token MARK_STATEMENT_END {
 ##  or an expression.  Any statement termination is handled by
 ##  the calling rule.
 rule statement {
-    | <statement_control> {*}                    #= statement_control
+    | <statement_control> {*}                    #= control
     | <expr=EXPR>
         [
-        || <statement_mod_loop> {*}              #= statement_mod_loop
+        || <statement_mod_loop> {*}              #= mod_loop
         || <statement_mod_cond>
-            [
-                <sml=statement_mod_loop>
-            ]?
-            {*}                                  #= statement_mod_cond
+           <statement_mod_loop>?
+           {*}                                   #= mod_cond
         || {*}                                   #= expr
         ]
     | <?before ';'> {*}                          #= null

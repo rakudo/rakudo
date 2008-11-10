@@ -103,52 +103,36 @@ method statementlist($/) {
 
 method statement($/, $key) {
     my $past;
-    if $key eq 'statement_control' {
+    if $key eq 'control' {
         $past := $( $<statement_control> );
     }
     elsif $key eq 'null' {
         $past := PAST::Stmts.new();  # empty stmts seem eliminated by TGE
     }
     else {
-        my $expr := $( $<expr> );
-        if $expr.isa(PAST::Block) && !$expr.blocktype() {
-            $expr.blocktype('immediate');
+        my $sml;
+        $past := $( $<expr> );
+        if $past.isa(PAST::Block) && !$past.blocktype() {
+            $past.blocktype('immediate');
         }
-
-        if $key eq 'statement_mod_cond' {
+        if $key eq 'mod_cond' {
+            my $body := $past;
             $past := $( $<statement_mod_cond> );
-            $past.push( $expr );
-            if $<sml> {
-                $expr := $past;
-                $key := 'statement_mod_loop';
-                $<statement_mod_loop> := $<sml>[0];
-            }
+            $past.push( $body );
+            $sml := $<statement_mod_loop>[0];
         }
-        elsif $key eq 'statement_mod_loop' {
-            my $mod := $( $<statement_mod_loop> );
-            if $<statement_mod_loop><sym> eq 'for' {
-                my $loop :=  PAST::Block.new(
-                    PAST::Stmts.new(
-                        PAST::Var.new(
-                            :name('$_'),
-                            :scope('parameter'),
-                            :viviself('Failure')
-                        ),
-                        $expr
-                    ),
-                    :node( $/ )
-                );
-                $loop.symbol( '$_', :scope('lexical') );
-                $mod.push($loop);
-                $past := PAST::Stmts.new( $mod, :node($/) );
+        if $key eq 'mod_loop' { $sml := $<statement_mod_loop>; }
+        if $sml {
+            my $body := $past;
+            if $sml<sym> eq 'for' {
+                if !$body.isa(PAST::Block) {
+                    $body := PAST::Block.new( PAST::Stmts.new(), $body );
+                    $body.blocktype('immediate');
+                }
+                declare_implicit_function_vars( $body );
             }
-            else {
-                $mod.push( $expr );
-                $past := PAST::Block.new( $mod, :blocktype('immediate'), :node($/) );
-            }
-        }
-        else {
-            $past := $expr;
+            $past := $( $sml );
+            $past.push( $body );
         }
     }
     make $past;
@@ -374,32 +358,18 @@ method statement_mod_loop($/) {
 
 method statement_mod_cond($/) {
     my $sym := ~$<sym>;
+    my $expr := $( $<EXPR> );
     if $sym eq 'when' {
-        my $expr := $( $<EXPR> );
-        my $match_past := PAST::Op.new(
-            :name('infix:~~'),
-            :pasttype('call'),
-            :node($/)
-        );
-        $match_past.push(
-            PAST::Var.new( :node($/), :name('$_'), :scope('lexical') )
-        );
-        $match_past.push( $expr );
-
-        my $past := PAST::Op.new(
-            $match_past,
-            :pasttype('if'),
-            :node( $/ )
-        );
-        make $past;
+        $expr := PAST::Op.new(
+                     PAST::Var.new( :name('$_'), :scope('lexical') ),
+                     $expr,
+                     :name('infix:~~'),
+                     :pasttype('call'),
+                     :node($/)
+                 );
+        $sym := 'if';
     }
-    else {
-        make PAST::Op.new(
-            $( $<EXPR> ),
-            :pasttype( $sym ),
-            :node( $/ )
-        );
-    }
+    make PAST::Op.new( $expr, :pasttype($sym), :node($/) );
 }
 
 

@@ -141,6 +141,7 @@ src/builtins/inplace.pir - Inplace assignments
 .sub 'infix:**='
     .param pmc a
     .param pmc b
+    '!INIT_IF_PROTO'(a, 1)
     pow $P0, a, b
     'infix:='(a, $P0)
     .return (a)

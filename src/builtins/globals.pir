@@ -64,6 +64,16 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     pio = getstderr
     perl6io = perl6ioclass.'new'("PIO" => pio)
     set_hll_global "$ERR", perl6io
+
+    ##  set up %*VM
+    load_bytecode 'config.pbc'
+    .include 'iglobals.pasm'
+    .local pmc vm, interp, config
+    vm = new 'Perl6Hash'
+    interp = getinterp
+    config = interp[.IGLOBALS_CONFIG_HASH]
+    vm['config'] = config
+    set_hll_global "%VM", vm
 .end
 
 

@@ -36,6 +36,7 @@ S02-literals/string-interpolation.t
 S02-literals/underscores.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
+S02-names_and_variables/fmt.t
 S02-names_and_variables/varnames.t
 S02-polymorphic_types/subset-code.t
 S02-polymorphic_types/subset-range.t

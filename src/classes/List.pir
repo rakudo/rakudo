@@ -538,48 +538,59 @@ Return a list of Pair(index, value) elements for the invocant.
 # TODO Rewrite it. It's too naive.
 
 .namespace ['List']
-.sub uniq :method
+.sub 'uniq' :method
+    .param pmc comparer :optional
+    .param int has_comparer :opt_flag
+
+    if has_comparer goto have_comparer
+    comparer = get_hll_global 'infix:eq'
+  have_comparer:
+
     .local pmc ulist
-    .local pmc key
+    $P0 = get_hll_global 'List'
+    ulist = $P0.'new'()
+
+    .local int lelems, uelems, l, u
+    lelems = self.'elems'()
+    uelems = 0
+    l = 0
+  outer_loop:
+    unless l < lelems goto outer_done
     .local pmc val
-    .local pmc uval
-    .local int len
-    .local int i
-    .local int ulen
-    .local int ui
-
-    ulist = new 'List'
-    len = self.'elems'()
-    i = 0
-
-  loop:
-    if i == len goto done
-
-    val = self[i]
-
-    ui = 0
-    ulen = ulist.'elems'()
-    inner_loop:
-        if ui == ulen goto inner_loop_done
-
-        uval = ulist[ui]
-        if uval == val goto found
-
-        inc ui
-        goto inner_loop
-    inner_loop_done:
-
+    val = self[l]
+    u = 0
+  inner_loop:
+    unless u < uelems goto inner_done
+    $P0 = ulist[u]
+    $P0 = comparer(val, $P0)
+    if $P0 goto outer_next
+    inc u
+    goto inner_loop
+  inner_done:
     ulist.'push'(val)
-
-    found:
-
-    inc i
-    goto loop
-
-  done:
-    .return(ulist)
+    inc uelems
+  outer_next:
+    inc l
+    goto outer_loop
+  outer_done:
+    .return (ulist)
 .end
 
+
+.namespace []
+.sub 'uniq' :multi(Sub)
+    .param pmc comparer
+    .param pmc values :slurpy
+    .return values.'uniq'(comparer)
+.end
+
+.sub 'uniq' :multi()
+    .param pmc values :slurpy
+    .return values.'uniq'()
+.end
+ 
+
+.namespace ['List']
 
 =item values()
 

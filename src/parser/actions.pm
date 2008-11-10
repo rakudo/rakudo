@@ -261,15 +261,10 @@ method loop_statement($/) {
 }
 
 method for_statement($/) {
-    my $block := $( $<pblock> );
-    $block.blocktype('declaration');
-    declare_implicit_function_vars($block);
-    my $past := PAST::Op.new(
-        PAST::Op.new(:name('list'), $($<EXPR>)),
-        $block,
-        :pasttype($<sym>),
-        :node( $/ )
-    );
+    my $past := $( $<xblock> );
+    $past.pasttype('for');
+    $past[0] := PAST::Op.new(:name('list'), $past[0]);
+    declare_implicit_function_vars($past[1]);
     make $past;
 }
 

@@ -303,7 +303,7 @@ rule loop_statement {
 
 rule for_statement {
     $<sym>=[for]
-    <EXPR> <pblock>
+    <xblock>
     {*}
 }
 

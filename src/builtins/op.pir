@@ -31,6 +31,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .sub 'postfix:++' :multi(_)
     .param pmc a
     $P0 = clone a
+    '!INIT_IF_PROTO'(a, 0)
     inc a
     .return ($P0)
 .end
@@ -38,6 +39,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .sub 'postfix:--' :multi(_)
     .param pmc a
     $P0 = clone a
+    '!INIT_IF_PROTO'(a, 0)
     dec a
     .return ($P0)
 .end
@@ -45,6 +47,7 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .sub 'prefix:++' :multi(_)
     .param pmc a
+    '!INIT_IF_PROTO'(a, 0)
     inc a
     .return (a)
 .end
@@ -52,6 +55,7 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .sub 'prefix:--' :multi(_)
     .param pmc a
+    '!INIT_IF_PROTO'(a, 0)
     dec a
     .return (a)
 .end

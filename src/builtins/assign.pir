@@ -66,9 +66,21 @@ src/builtins/inplace.pir - Inplace assignments
 .end
 
 
+.sub '!INIT_IF_PROTO'
+    .param pmc var
+    .param pmc val
+    $I0 = defined var
+    if $I0 goto done
+    'infix:='(var, val)
+  done:
+    .return ()
+.end
+
+
 .sub 'infix:~='
     .param pmc a
     .param pmc b
+    '!INIT_IF_PROTO'(a, '')
     concat a, b
     .return (a)
 .end
@@ -77,6 +89,7 @@ src/builtins/inplace.pir - Inplace assignments
 .sub 'infix:+='
     .param pmc a
     .param pmc b
+    '!INIT_IF_PROTO'(a, 0)
     a += b
     .return (a)
 .end
@@ -85,6 +98,7 @@ src/builtins/inplace.pir - Inplace assignments
 .sub 'infix:-='
     .param pmc a
     .param pmc b
+    '!INIT_IF_PROTO'(a, 0)
     a -= b
     .return (a)
 .end
@@ -93,6 +107,7 @@ src/builtins/inplace.pir - Inplace assignments
 .sub 'infix:*='
     .param pmc a
     .param pmc b
+    '!INIT_IF_PROTO'(a, 1)
     a *= b
     .return (a)
 .end

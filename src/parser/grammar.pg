@@ -272,8 +272,7 @@ rule while_statement {
 
 rule given_statement {
     $<sym>=[given]
-    <EXPR>
-    <pblock>
+    <xblock>
     {*}
 }
 

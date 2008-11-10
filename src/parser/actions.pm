@@ -206,15 +206,11 @@ method repeat_statement($/) {
 }
 
 method given_statement($/) {
-    my $block := $( $<pblock> );
-    $block.blocktype('declaration');
-    declare_implicit_function_vars($block);
-    ##  call the block using the expression as an argument
-    my $past := PAST::Op.new(
-        :pasttype('call'),
-        $block,
-        $( $<EXPR> )
-    );
+    my $past := $( $<xblock> );
+    $past.push( $past.shift() );              # swap <EXPR> and <pblock>
+    $past[0].blocktype('declaration');
+    declare_implicit_function_vars($past[0]);
+    $past.pasttype('call');
     make $past;
 }
 

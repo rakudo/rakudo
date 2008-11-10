@@ -165,6 +165,50 @@ Returns elements of hash as array of C<Pairs>
 .end
 
 
+=item fmt
+
+ our Str multi Mapping::fmt ( Str $format, $separator = "\n" )
+
+Returns the invocant mapping formatted by an implicit call to C<.fmt> on
+every pair, joined by newlines or an explicitly given separator.
+
+=cut
+
+.sub 'fmt' :method :multi('Hash')
+    .param pmc format
+    .param string sep          :optional
+    .param int has_sep         :opt_flag
+
+    .local pmc pairs
+    .local pmc res
+    .local pmc iter
+    .local pmc retv
+    .local pmc elem
+    .local pmc key
+    .local pmc value
+    .local pmc elemres
+
+    if has_sep goto have_sep
+    sep = "\n"
+  have_sep:
+    pairs = self.'pairs'()
+    res = new 'List'
+    iter = pairs.'iterator'()
+  elem_loop:
+    unless iter goto done
+
+  invoke:
+    elem = shift iter
+    elemres = elem.'fmt'(format)
+    push res, elemres
+    goto elem_loop
+
+  done:
+    retv = 'join'(sep, res)
+    .return(retv)
+.end
+
+
 .sub 'keys' :method :multi('Hash')
     .local pmc iter
     .local pmc rv

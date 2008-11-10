@@ -87,6 +87,29 @@ Stringify the Pair.
 .end
 
 
+=item fmt
+
+ our Str multi Pair::fmt ( Str $format )
+
+Returns the invocant pair formatted by an implicit call to C<sprintf> on
+the key and value.
+
+=cut
+
+.sub 'fmt' :method
+    .param pmc format
+
+    .local pmc retv
+    .local pmc key
+    .local pmc value
+
+    key = self.'key'()
+    value = self.'value'()
+    retv = 'sprintf'(format, key, value)
+
+    .return(retv)
+.end
+
 =item perl
 
 Returns a Perl code representation of the pair.

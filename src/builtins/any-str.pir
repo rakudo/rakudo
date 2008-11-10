@@ -191,6 +191,23 @@ Returns whether the file with the name indicated by the invocant exists.
     .return ($P0)
 .end
 
+=item fmt
+
+ our Str multi Any::fmt ( Str $format )
+
+Returns the invocant formatted by an implicit call to C<sprintf>.
+
+=cut
+
+.sub 'fmt' :method :multi(_)
+    .param string format
+    .local pmc retv
+
+    retv = 'sprintf'(format, self)
+
+    .return(retv)
+.end
+
 =item index()
 
 =cut

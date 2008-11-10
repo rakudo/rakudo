@@ -63,6 +63,25 @@ This is a value type, so just returns itself.
     self = 0
 .end
 
+=item
+
+Bool.pick - returns True or False
+
+=cut
+
+.sub 'pick' :method
+    .local pmc rand
+    rand = get_hll_global ['Any'], '$!random'
+    $N0 = rand
+    if $N0 < 0.5 goto ret_true
+    $P0 = get_hll_global ['Bool'], 'False'
+    goto done
+  ret_true:
+    $P0 = get_hll_global ['Bool'], 'True'
+  done:
+    .tailcall 'list'($P0)
+.end
+
 
 # Local Variables:
 #   mode: pir

@@ -36,7 +36,7 @@ for (@binary) {
             .param pmc y
             .tailcall '!DISPATCH_JUNCTION'('$_', x, y)
         .end
-        
+
         .sub '$_' :multi(_, 'Junction')
             .param pmc x
             .param pmc y

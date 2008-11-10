@@ -626,7 +626,7 @@ Return a list of Pair(index, value) elements for the invocant.
     .param pmc values :slurpy
     .return values.'uniq'()
 .end
- 
+
 
 .namespace ['List']
 

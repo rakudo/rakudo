@@ -162,7 +162,7 @@ Smart-matching for junctions, short-circuiting.
     $P0 = get_hll_global ['Bool'], 'True'
     .return ($P0)
 .end
-    
+
 
 =item !type()
 
@@ -217,7 +217,7 @@ Return the components of the Junction.
     setattribute junc, '@!eigenstates', eigenstates
     .return (junc)
 .end
-    
+
 .sub '!DISPATCH_JUNCTION'
     .param pmc the_sub
     .param pmc args            :slurpy

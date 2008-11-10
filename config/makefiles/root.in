@@ -42,6 +42,7 @@ SOURCES = perl6.pir \
   src/gen_grammar.pir \
   src/gen_actions.pir \
   src/gen_builtins.pir \
+  src/gen_junction.pir \
   src/parser/expression.pir \
   src/parser/quote_expression.pir \
   $(PERL6_GROUP) \
@@ -133,6 +134,9 @@ src/gen_actions.pir: $(NQP) $(PCT) src/parser/actions.pm
 
 src/gen_builtins.pir: $(BUILTINS_PIR)
 	$(CAT) $(BUILTINS_PIR) >src/gen_builtins.pir
+
+src/gen_junction.pir: build/gen_junction_pir.pl
+	$(PERL) build/gen_junction_pir.pl src/gen_junction.pir
 
 $(PERL6_GROUP): $(PARROT) $(PMC_SOURCES)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) generate $(PMCS)

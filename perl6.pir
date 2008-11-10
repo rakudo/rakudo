@@ -227,6 +227,7 @@ to the Perl 6 compiler.
 .include 'src/parser/expression.pir'
 .include 'src/parser/quote_expression.pir'
 .include 'src/gen_actions.pir'
+.include 'src/gen_junction.pir'
 
 
 =back

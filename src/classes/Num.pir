@@ -21,34 +21,25 @@ Num - Perl 6 numbers
     p6meta.'register'('Float', 'parent'=>numproto, 'protoobject'=>numproto)
     
     # Override the proto's ACCEPT method so we also accept Ints.
-    .const 'Sub' $P0 = "custom_ACCEPTS"
-    $P1 = class numproto
+    .const 'Sub' $P0 = "Num::ACCEPTS"
+    $P1 = typeof numproto
     $P1.'add_method'('ACCEPTS', $P0)
 .end
 
-.sub 'custom_ACCEPTS' :anon :method
+
+.sub 'Num::ACCEPTS' :anon :method
     .param pmc topic
-    .local pmc topichow, topicwhat, parrotclass
 
-    topichow = topic.'HOW'()
-    topicwhat = topic.'WHAT'()
-
-    # Check if we match Num type.
-    parrotclass = topichow.'get_parrotclass'(self)
-    $I0 = isa topicwhat, parrotclass
-    if $I0 goto end
-    $I0 = does topic, parrotclass
-    if $I0 goto end
-
-    # Check if we match Int type, which Num can also take.
-    $P0 = get_hll_global 'Int'
-    parrotclass = topichow.'get_parrotclass'($P0)
-    $I0 = isa topicwhat, parrotclass
-    if $I0 goto end
-    $I0 = does topic, parrotclass
-
-  end:
+    ##  first, try our superclass .ACCEPTS
+    $P0 = get_hll_global 'Any'
+    $P1 = find_method $P0, 'ACCEPTS'
+    $I0 = self.$P1(topic)
+    unless $I0 goto try_int
     .return ($I0)
+
+  try_int:
+    $P0 = get_hll_global 'Int'
+    .tailcall $P0.'ACCEPTS'(topic)
 .end
 
 

@@ -75,6 +75,10 @@ typedef struct candidate_graph_node {
 } candidate_graph_node;
 
 
+/* Some constants for candidate sorter. */
+#define EDGE_REMOVAL_TODO -1
+#define EDGE_REMOVED -2
+
 /*
 
 =back
@@ -247,7 +251,7 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
         }
     }
 
-    return narrower > 1 && narrower + tied == a->num_types;
+    return narrower >= 1 && narrower + tied == a->num_types;
 }
 
 
@@ -345,16 +349,22 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
                 result[result_pos] = graph[i]->info;
                 result_pos++;
                 candidates_to_sort--;
-                graph[i]->edges_in = -1;
-
-                /* Now we have added this node, remove its outgoing edges. */
-                for (j = 0; j < graph[i]->edges_out; j++)
-                    graph[i]->edges[j]->edges_in--;
+                graph[i]->edges_in = EDGE_REMOVAL_TODO;
             }
         }
         if (rem_start_point == result_pos)
             Parrot_ex_throw_from_c_args(interp, 0, 1,
                     "Circularity detected in multi sub types.");
+
+        /* Now we need to decrement edges in counts for things that had edges
+         * from candidates we added here. */
+        for (i = 0; i < num_candidates; i++) {
+            if (graph[i]->edges_in == EDGE_REMOVAL_TODO) {
+                for (j = 0; j < graph[i]->edges_out; j++)
+                    graph[i]->edges[j]->edges_in--;
+                graph[i]->edges_in = EDGE_REMOVED;
+            }
+        }
 
         /* This is end of a tied group, so leave a gap. */
         result_pos++;

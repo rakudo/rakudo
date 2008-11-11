@@ -2900,7 +2900,14 @@ method type_declarator($/) {
         $past
     );
 
-    make $past;
+    # Put this code in $?INIT, so the type is created early enough, then this
+    # node results in an empty statement node.
+    our $?INIT;
+    unless defined($?INIT) {
+        $?INIT := PAST::Block.new();
+    }
+    $?INIT.push($past);
+    make PAST::Stmts.new();
 }
 
 

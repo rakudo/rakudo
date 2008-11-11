@@ -2557,7 +2557,7 @@ method quote_expression($/, $key) {
         $past := PAST::Block.new(
             $<quote_regex>,
             :compiler('PGE::Perl6Regex'),
-            :namespace($?NS),
+            :namespace(Perl6::Compiler.parse_name( $?NS )),
             :blocktype('declaration'),
             :node( $/ )
         );

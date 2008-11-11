@@ -30,7 +30,7 @@ may not turn out to be the right thing to do.
 .sub 'ACCEPTS' :method
     .param pmc topic
     $P0 = getattribute self, '$!condition'
-    .return $P0(topic)
+    .tailcall $P0(topic)
 .end
 
 # Local Variables:

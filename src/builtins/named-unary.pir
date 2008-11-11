@@ -22,13 +22,13 @@ Return the metaclass or protoobject for C<$x>.
 
 .sub 'HOW'
     .param pmc x
-    .return x.'HOW'()
+    .tailcall x.'HOW'()
 .end
 
 
 .sub 'WHAT'
     .param pmc x
-    .return x.'WHAT'()
+    .tailcall x.'WHAT'()
 .end
 
 

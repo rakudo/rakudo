@@ -200,7 +200,7 @@ Return the value inside this container in item context.
 .end
 
 .sub 'get_string' :vtable
-    .return self.'item'()
+    .tailcall self.'item'()
 .end
 
 .sub 'get_iter' :method :vtable

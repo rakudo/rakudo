@@ -25,7 +25,7 @@ src/builtins/misc.pir - miscellaneous builtins that need reclassification
 
 .sub '=<>'
     $P0 = get_hll_global '@ARGS'
-    .return 'prefix:='($P0)
+    .tailcall 'prefix:='($P0)
 .end
 
 =back

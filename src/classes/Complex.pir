@@ -94,7 +94,7 @@ Returns a Perl representation of the Complex.
     $N2 = $N0 + $N1
     magnitude = sqrt $N2
     angle = atan imag, real
-    .return 'list'(magnitude, angle)
+    .tailcall 'list'(magnitude, angle)
 .end
 
 =item sqrt

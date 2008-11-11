@@ -37,7 +37,7 @@ such as C<eval>, C<require>, and C<use>.
   lang_compile:
     .local pmc compiler
     compiler = compreg lang
-    .return compiler.'evalfiles'(filename)
+    .tailcall compiler.'evalfiles'(filename)
 
   lang_parrot:
     load_bytecode filename

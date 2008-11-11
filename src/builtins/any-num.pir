@@ -58,12 +58,12 @@ the size of that file down and to emphasize their generic,
 
 .namespace ['Any']
 .sub 'cis' :method :multi(_)
-    .return 'unpolar'(1.0, self)
+    .tailcall 'unpolar'(1.0, self)
 .end
 
 
 .sub 'int' :method :multi(_)
-    .return self.'truncate'()
+    .tailcall self.'truncate'()
 .end
 
 =item log
@@ -90,7 +90,7 @@ error.
 .namespace ['Any']
 .sub 'polar' :method :multi(_)
     $N0 = self
-    .return 'list'($N0, 0)
+    .tailcall 'list'($N0, 0)
 .end
 
 

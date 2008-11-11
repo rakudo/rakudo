@@ -74,7 +74,7 @@ Return a hash representation of ourself.
 
 .sub 'hash' :method
     $P0 = self.'list'()
-    .return $P0.'hash'()
+    .tailcall $P0.'hash'()
 .end
 
 =item item()
@@ -376,7 +376,7 @@ Defines the .true method on all objects via C<prefix:?>.
 =cut
 
 .sub 'true' :method
- .return 'prefix:?'(self)
+ .tailcall 'prefix:?'(self)
 .end
 
 =item get_bool (vtable)
@@ -400,12 +400,12 @@ Print the object
 
 .sub 'print' :method
     $P0 = get_hll_global 'print'
-    .return $P0(self)
+    .tailcall $P0(self)
 .end
 
 .sub 'say' :method
     $P0 = get_hll_global 'say'
-    .return $P0(self)
+    .tailcall $P0(self)
 .end
 
 =item WHERE
@@ -427,7 +427,7 @@ Gets the object's identity value
 
 .sub 'WHICH' :method
     # For normal objects, this can just be the memory address.
-    .return self.'WHERE'()
+    .tailcall self.'WHERE'()
 .end
 
 =back
@@ -472,11 +472,11 @@ Create a clone of self, also cloning the attributes given by attrlist.
     # For now we won't worry about signature, just if a method exists.
     $I0 = can self, method_name
     if $I0 goto invoke
-    .return '!FAIL'('Undefined value returned by invocation of undefined method')
+    .tailcall '!FAIL'('Undefined value returned by invocation of undefined method')
 
     # If we do have a method, call it.
   invoke:
-    .return self.method_name(pos_args :flat, named_args :named :flat)
+    .tailcall self.method_name(pos_args :flat, named_args :named :flat)
 .end
 
 
@@ -488,12 +488,12 @@ Create a clone of self, also cloning the attributes given by attrlist.
     # Return an empty list if no methods exist at all.
     $I0 = can self, method_name
     if $I0 goto invoke
-    .return 'list'()
+    .tailcall 'list'()
 
     # Now find all methods and call them - since we know there are methods,
     # we just pass on to infix:.+.
   invoke:
-    .return self.'!.+'(method_name, pos_args :flat, named_args :named :flat)
+    .tailcall self.'!.+'(method_name, pos_args :flat, named_args :named :flat)
 .end
 
 
@@ -552,7 +552,7 @@ Create a clone of self, also cloning the attributes given by attrlist.
     # Get the HOW or the object and do the call on that.
     .local pmc how
     how = self.'HOW'()
-    .return how.method_name(self, pos_args :flat, named_args :flat :named)
+    .tailcall how.method_name(self, pos_args :flat, named_args :flat :named)
 .end
 
 
@@ -612,7 +612,7 @@ Returns a list containing itself in list context.
 
 .sub 'list' :method
     $P0 = get_hll_global 'list'
-    .return $P0(self)
+    .tailcall $P0(self)
 .end
 
 

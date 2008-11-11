@@ -29,7 +29,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     unless hash goto hash_done
     unshift args, hash
   hash_done:
-    .return args.'hash'()
+    .tailcall args.'hash'()
 .end
 
 
@@ -54,7 +54,7 @@ case just returns as is.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
-    .return self.'contains'(topic)
+    .tailcall self.'contains'(topic)
 .end
 
 

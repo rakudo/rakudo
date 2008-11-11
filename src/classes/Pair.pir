@@ -45,7 +45,7 @@ Delegates on to a method call '.:Xkey(Xval)'.
 
     $P0 = self.value()
 
-    .return topic.$S0($P0)
+    .tailcall topic.$S0($P0)
 .end
 
 =item key
@@ -143,7 +143,7 @@ Returns a Perl code representation of the pair.
     key = key.'item'()
     value = value.'item'()
     $P0 = get_hll_global 'Pair'
-    .return $P0.'new'('key'=>key, 'value'=>value)
+    .tailcall $P0.'new'('key'=>key, 'value'=>value)
 .end
 
 

@@ -16,7 +16,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param num a
     .param num b
     $I0 = iseq a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -24,7 +24,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param num a
     .param num b
     $I0 = isne a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 # Shortcut for infix:!==, so same code
@@ -32,7 +32,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param num a
     .param num b
     $I0 = isne a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -40,7 +40,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param num a
     .param num b
     $I0 = islt a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -48,7 +48,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param num a
     .param num b
     $I0 = isle a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -56,7 +56,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param num a
     .param num b
     $I0 = isgt a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -64,7 +64,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param num a
     .param num b
     $I0 = isge a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -89,14 +89,14 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = iseq a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 .sub 'infix:!eq' :multi(_,_)
     .param string a
     .param string b
     $I0 = isne a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -104,7 +104,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = isne a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -112,7 +112,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = islt a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -120,7 +120,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = isle a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -128,7 +128,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = isgt a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -136,7 +136,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = isge a, b
-    .return 'prefix:?'($I0)
+    .tailcall 'prefix:?'($I0)
 .end
 
 
@@ -167,7 +167,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     unless $I0 goto false
     $P0 = a.'WHICH'()
     $P1 = b.'WHICH'()
-    .return 'infix:==='($P0, $P1)
+    .tailcall 'infix:==='($P0, $P1)
   false:
     $P0 = get_hll_global [ 'Bool' ], 'False'
     .return ($P0)
@@ -178,7 +178,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param pmc a
     .param pmc b
     $P0 = 'infix:==='(a, b)
-    .return 'prefix:!'($P0)
+    .tailcall 'prefix:!'($P0)
 .end
 
 
@@ -194,7 +194,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param pmc a
     .param pmc b
     $P0 = 'infix:=:='(a, b)
-    .return 'prefix:!'($P0)
+    .tailcall 'prefix:!'($P0)
 .end
 
 

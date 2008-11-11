@@ -44,7 +44,7 @@ This is a value type, so just returns itself.
 
 .sub 'ACCEPTS' :method
     .param string topic
-    .return 'infix:eq'(topic, self)
+    .tailcall 'infix:eq'(topic, self)
 .end
 
 
@@ -148,7 +148,7 @@ Overridden for Str.
 .sub 'infix:===' :multi(String,String)
     .param string a
     .param string b
-    .return 'infix:eq'(a, b)
+    .tailcall 'infix:eq'(a, b)
 .end
 
 

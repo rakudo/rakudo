@@ -386,7 +386,7 @@ B<Note:> partial implementation only
 .sub 'split' :multi(_,_)
     .param pmc sep
     .param pmc target
-    .return target.'split'(sep)
+    .tailcall target.'split'(sep)
 .end
 
 .namespace['Any']

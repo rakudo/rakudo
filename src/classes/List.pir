@@ -284,7 +284,7 @@ Return the number of elements in the list.
     .param pmc test
     .param pmc values :slurpy
 
-    .return values.'first'(test)
+    .tailcall values.'first'(test)
 .end
 
 =item fmt
@@ -355,7 +355,7 @@ of the elements, then joined with spaces or an explicitly given separator.
 .sub 'grep' :multi('Sub')
     .param pmc test
     .param pmc values          :slurpy
-    .return values.'grep'(test)
+    .tailcall values.'grep'(test)
 .end
 
 
@@ -382,12 +382,12 @@ Returns a List containing the keys of the invocant.
     $I0 = self.'elems'()
     dec $I0
     $P0 = 'infix:..'(0, $I0)
-    .return $P0.'list'()
+    .tailcall $P0.'list'()
 .end
 
 .sub 'keys' :multi()
     .param pmc values          :slurpy
-    .return values.'keys'()
+    .tailcall values.'keys'()
 .end
 
 
@@ -417,7 +417,7 @@ Return items in invocant as 2-element (index, value) lists.
 
 .sub 'kv' :multi()
     .param pmc values          :slurpy
-    .return values.'kv'()
+    .tailcall values.'kv'()
 .end
 
 
@@ -473,7 +473,7 @@ Map.
 .sub 'map' :multi('Sub')
     .param pmc expression
     .param pmc values          :slurpy
-    .return values.'map'(expression)
+    .tailcall values.'map'(expression)
 .end
 
 
@@ -503,7 +503,7 @@ Return a list of Pair(index, value) elements for the invocant.
 
 .sub 'pairs' :multi()
     .param pmc values          :slurpy
-    .return values.'pairs'()
+    .tailcall values.'pairs'()
 .end
 
 
@@ -565,7 +565,7 @@ Return a list of Pair(index, value) elements for the invocant.
 .sub 'reduce' :multi('Sub')
     .param pmc expression
     .param pmc values          :slurpy
-    .return values.'reduce'(expression)
+    .tailcall values.'reduce'(expression)
 .end
 
 
@@ -619,12 +619,12 @@ Return a list of Pair(index, value) elements for the invocant.
 .sub 'uniq' :multi(Sub)
     .param pmc comparer
     .param pmc values :slurpy
-    .return values.'uniq'(comparer)
+    .tailcall values.'uniq'(comparer)
 .end
 
 .sub 'uniq' :multi()
     .param pmc values :slurpy
-    .return values.'uniq'()
+    .tailcall values.'uniq'()
 .end
 
 
@@ -643,7 +643,7 @@ Returns a List containing the values of the invocant.
 
 .sub 'values' :multi()
     .param pmc values          :slurpy
-    .return values.'!flatten'()
+    .tailcall values.'!flatten'()
 .end
 
 
@@ -662,7 +662,7 @@ Build a List from its arguments.
 .namespace []
 .sub 'list'
     .param pmc values          :slurpy
-    .return values.'!flatten'()
+    .tailcall values.'!flatten'()
 .end
 
 =item C<infix:,(...)>
@@ -673,7 +673,7 @@ Operator form for building a list from its arguments.
 
 .sub 'infix:,'
     .param pmc args            :slurpy
-    .return args.'!flatten'()
+    .tailcall args.'!flatten'()
 .end
 
 

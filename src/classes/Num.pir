@@ -39,7 +39,7 @@ This is a value type, so just returns itself.
 
 .sub 'ACCEPTS' :method
     .param num topic
-    .return 'infix:=='(topic, self)
+    .tailcall 'infix:=='(topic, self)
 .end
 
 
@@ -77,7 +77,7 @@ Overridden for Num.
 .sub 'infix:===' :multi(Float,Float)
     .param num a
     .param num b
-    .return 'infix:=='(a, b)
+    .tailcall 'infix:=='(a, b)
 .end
 
 

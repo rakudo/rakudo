@@ -102,7 +102,7 @@ Return true if the elements at C<indices> have been assigned to.
     test = exists self[$I0]
     if test goto indices_loop
   indices_end:
-    .return 'prefix:?'(test)
+    .tailcall 'prefix:?'(test)
 .end
 
 
@@ -146,7 +146,7 @@ Add C<args> to the end of the Array.
     args.'!flatten'()
     $I0 = elements self
     splice self, args, $I0, 0
-    .return self.'elems'()
+    .tailcall self.'elems'()
 .end
 
 
@@ -178,7 +178,7 @@ Adds C<args> to the beginning of the Array.
     .param pmc args :slurpy
     args.'!flatten'()
     splice self, args, 0, 0
-    .return self.'elems'()
+    .tailcall self.'elems'()
 .end
 
 

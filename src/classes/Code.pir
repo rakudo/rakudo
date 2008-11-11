@@ -95,7 +95,7 @@ This is a value type, so just returns itself.
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match
-    .return 'prefix:!'(match)
+    .tailcall 'prefix:!'(match)
 .end
 
 =item perl()

@@ -356,7 +356,7 @@ The other alternative would be to remove the default. --law]
     $S1 = "sin: unrecognized base '"
     $S1 .= $S0
     $S1 .= "'"
-    .return 'die'($S1)
+    .tailcall 'die'($S1)
 .end
 
 

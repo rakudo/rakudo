@@ -74,7 +74,7 @@ src/builtins/op.pir - Perl6 builtin operators
     .param num base
     .param num exp
     $N0 = pow base, exp
-    .return '!upgrade_to_num_if_needed'($N0)
+    .tailcall '!upgrade_to_num_if_needed'($N0)
 .end
 
 
@@ -92,7 +92,7 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .sub 'prefix:^?' :multi(_)
     .param pmc a
-    .return 'prefix:!'(a)
+    .tailcall 'prefix:!'(a)
 .end
 
 
@@ -104,7 +104,7 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .sub 'prefix:+' :multi('Integer')
     .param num a
-    .return '!upgrade_to_num_if_needed'(a)
+    .tailcall '!upgrade_to_num_if_needed'(a)
 .end
 
 
@@ -118,7 +118,7 @@ src/builtins/op.pir - Perl6 builtin operators
 .sub 'prefix:-' :multi('Integer')
     .param num a
     $N0 = neg a
-    .return '!upgrade_to_num_if_needed'($N0)
+    .tailcall '!upgrade_to_num_if_needed'($N0)
 .end
 
 
@@ -155,7 +155,7 @@ src/builtins/op.pir - Perl6 builtin operators
     .param num a
     .param num b
     $N0 = a * b
-    .return '!upgrade_to_num_if_needed'($N0)
+    .tailcall '!upgrade_to_num_if_needed'($N0)
 .end
 
 
@@ -174,7 +174,7 @@ src/builtins/op.pir - Perl6 builtin operators
     $I0 = floor $N0
     $N1 = $N0 - $I0
     if $N1 != 0 goto upgrade
-    .return '!upgrade_to_num_if_needed'($N0)
+    .tailcall '!upgrade_to_num_if_needed'($N0)
   upgrade:
     .return ($N0)
 .end
@@ -192,7 +192,7 @@ src/builtins/op.pir - Perl6 builtin operators
     .param num a
     .param num b
     $N0 = mod a, b
-    .return '!upgrade_to_num_if_needed'($N0)
+    .tailcall '!upgrade_to_num_if_needed'($N0)
 .end
 
 
@@ -271,7 +271,7 @@ src/builtins/op.pir - Perl6 builtin operators
     .param num a
     .param num b
     $N0 = a + b
-    .return '!upgrade_to_num_if_needed'($N0)
+    .tailcall '!upgrade_to_num_if_needed'($N0)
 .end
 
 
@@ -287,7 +287,7 @@ src/builtins/op.pir - Perl6 builtin operators
     .param num a
     .param num b
     $N0 = a - b
-    .return '!upgrade_to_num_if_needed'($N0)
+    .tailcall '!upgrade_to_num_if_needed'($N0)
 .end
 
 
@@ -360,13 +360,13 @@ src/builtins/op.pir - Perl6 builtin operators
 
 .sub 'true' :multi(_)
     .param pmc a
-    .return 'prefix:?'(a)
+    .tailcall 'prefix:?'(a)
 .end
 
 
 .sub 'not' :multi(_)
     .param pmc a
-    .return 'prefix:!'(a)
+    .tailcall 'prefix:!'(a)
 .end
 
 

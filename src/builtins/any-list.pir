@@ -33,7 +33,7 @@ the size of that file down and to emphasize their generic,
 .sub 'elems' :multi()
     .param pmc values          :slurpy
     $P0 = values.'!flatten'()
-    .return values.'elems'()
+    .tailcall values.'elems'()
 .end
 
 .namespace ['Any']
@@ -65,7 +65,7 @@ the size of that file down and to emphasize their generic,
 .sub 'join' :multi('String')
     .param string sep
     .param pmc values          :slurpy
-    .return values.'join'(sep)
+    .tailcall values.'join'(sep)
 .end
 
 .namespace ['Any']
@@ -97,7 +97,7 @@ the size of that file down and to emphasize their generic,
     unless $I0 goto have_by
     by = shift values
   have_by:
-    .return values.'min'(by)
+    .tailcall values.'min'(by)
 .end
 
 
@@ -139,7 +139,7 @@ the size of that file down and to emphasize their generic,
     unless $I0 goto have_by
     by = shift values
   have_by:
-    .return values.'max'(by)
+    .tailcall values.'max'(by)
 .end
 
 
@@ -184,7 +184,7 @@ the size of that file down and to emphasize their generic,
     if has_repl goto have_repl
     p_repl = get_hll_global ['Bool'], 'False'
   have_repl:
-    .return values.'pick'(p_num, 'repl'=>p_repl)
+    .tailcall values.'pick'(p_num, 'repl'=>p_repl)
 .end
 
 .sub 'pick' :multi('Whatever')
@@ -196,7 +196,7 @@ the size of that file down and to emphasize their generic,
     unless p_repl goto no_repl
     die "Infinite lazy pick not implemented"
   no_repl:
-    .return values.'pick'(whatever)
+    .tailcall values.'pick'(whatever)
 .end
 
 .namespace ['Any']
@@ -252,7 +252,7 @@ the size of that file down and to emphasize their generic,
     die "Infinite lazy pick not implemented"
   no_repl:
     $I0 = self.'elems'()
-    .return self.'pick'($I0)
+    .tailcall self.'pick'($I0)
 .end
 
 
@@ -278,7 +278,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'reverse' :multi()
     .param pmc values          :slurpy
-    .return values.'reverse'()
+    .tailcall values.'reverse'()
 .end
 
 
@@ -300,7 +300,7 @@ Parrot's built-in sort algorithm.
     unless $I0 goto have_by
     by = shift values
   have_by:
-    .return values.'sort'(by)
+    .tailcall values.'sort'(by)
 .end
 
 .namespace ['Any']
@@ -330,7 +330,7 @@ Parrot's built-in sort algorithm.
     goto fpa_loop
   fpa_end:
     fpa.'sort'(by)
-    .return 'list'(fpa)
+    .tailcall 'list'(fpa)
 .end
 
 =back

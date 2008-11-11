@@ -1592,7 +1592,29 @@ method package_def($/, $key) {
 
     if $key eq 'open' {
         # Start of package definition. Handle class and grammar specially.
-        if $?PACKAGE =:= $?CLASS {
+        if $?PACKAGE =:= $?GRAMMAR {
+            # Anonymous grammars not supported.
+            unless $name {
+                $/.panic('Anonymous grammars not supported');
+            }
+
+            # Start of grammar definition. Create grammar class object.
+            $?GRAMMAR.push(
+                PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    PAST::Op.new(
+                        :pasttype('call'),
+                        :name('!keyword_grammar'),
+                        PAST::Val.new( :value(~$name[0]) )
+                    )
+                )
+            );
+        }
+        elsif $?PACKAGE =:= $?CLASS {
             my $class_def;
 
             if !have_trait('also', 'is', $<trait>) {
@@ -1649,28 +1671,6 @@ method package_def($/, $key) {
 
             $?CLASS.push($class_def);
         }
-        elsif $?PACKAGE =:= $?GRAMMAR {
-            # Anonymous grammars not supported.
-            unless $name {
-                $/.panic('Anonymous grammars not supported');
-            }
-
-            # Start of grammar definition. Create grammar class object.
-            $?GRAMMAR.push(
-                PAST::Op.new(
-                    :pasttype('bind'),
-                    PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
-                    ),
-                    PAST::Op.new(
-                        :pasttype('call'),
-                        :name('!keyword_grammar'),
-                        PAST::Val.new( :value(~$name[0]) )
-                    )
-                )
-            );
-        }
         else {
             # Anonymous modules not supported.
             unless $name {
@@ -1701,7 +1701,41 @@ method package_def($/, $key) {
         $past.blocktype('declaration');
         $past.pirflags(':init :load');
 
-        if $?PACKAGE =:= $?CLASS {
+        if $?PACKAGE =:= $?GRAMMAR {
+            # Apply traits.
+            apply_package_traits($?GRAMMAR, $<trait>);
+
+            # Make proto-object for grammar.
+            $?GRAMMAR.push(
+                PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('register'),
+                    PAST::Var.new(
+                        :scope('package'),
+                        :name('$!P6META'),
+                        :namespace('Perl6Object')
+                    ),
+                    PAST::Var.new(
+                        :scope('lexical'),
+                        :name('$def')
+                    ),
+                    PAST::Val.new(
+                        :value('Grammar'),
+                        :named( PAST::Val.new( :value('parent') ) )
+                    )
+                )
+            );
+
+            # Attatch grammar declaration to the init code.
+            unless defined( $?INIT ) {
+                $?INIT := PAST::Block.new();
+            }
+            $?INIT.push( $?GRAMMAR );
+
+            # Clear namespace.
+            $?NS := '';
+        }
+        elsif $?PACKAGE =:= $?CLASS {
             # Apply traits.
             apply_package_traits($?CLASS, $<trait>);
 
@@ -1759,40 +1793,6 @@ method package_def($/, $key) {
                     $?INIT.push( $_ );
                 }
             }
-        }
-        elsif $?PACKAGE =:= $?GRAMMAR {
-            # Apply traits.
-            apply_package_traits($?GRAMMAR, $<trait>);
-
-            # Make proto-object for grammar.
-            $?GRAMMAR.push(
-                PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('register'),
-                    PAST::Var.new(
-                        :scope('package'),
-                        :name('$!P6META'),
-                        :namespace('Perl6Object')
-                    ),
-                    PAST::Var.new(
-                        :scope('lexical'),
-                        :name('$def')
-                    ),
-                    PAST::Val.new(
-                        :value('Grammar'),
-                        :named( PAST::Val.new( :value('parent') ) )
-                    )
-                )
-            );
-
-            # Attatch grammar declaration to the init code.
-            unless defined( $?INIT ) {
-                $?INIT := PAST::Block.new();
-            }
-            $?INIT.push( $?GRAMMAR );
-
-            # Clear namespace.
-            $?NS := '';
         }
 
         make $past;

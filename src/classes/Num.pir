@@ -39,7 +39,8 @@ Num - Perl 6 numbers
 
   try_int:
     $P0 = get_hll_global 'Int'
-    .tailcall $P0.'ACCEPTS'(topic)
+    $I0 = $P0.'ACCEPTS'(topic)
+    .return ($I0)
 .end
 
 

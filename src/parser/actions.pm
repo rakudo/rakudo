@@ -56,6 +56,64 @@ method TOP($/) {
         )
     );
 
+    #  emit a :main block that acts as the entry point in pre-compiled scripts
+    $past.push(
+        PAST::Block.new(
+            :pirflags(':main'),
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('!SETUP_ARGS'),
+                PAST::Var.new(
+                 :name('args_str'),
+                 :scope('parameter')
+                ),
+                PAST::Val.new( :value(1) )
+            ),
+            PAST::Op.new(
+                :inline(
+                    '$P0 = interpinfo .INTERPINFO_CURRENT_SUB',
+                    '$P0 = $P0."get_outer"()',
+                    '$P0()'
+                )
+            ),
+            PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new(
+                    :name('main_sub'),
+                    :scope('register'),
+                    :isdecl(1)
+                ),
+                PAST::Var.new(
+                    :name('MAIN'),
+                    :scope('package')
+                )
+            ),
+            PAST::Op.new(
+                :pasttype('unless'),
+                PAST::Op.new(
+                    :pirop('isnull'),
+                    PAST::Var.new(
+                        :name('main_sub'),
+                        :scope('register')
+                    )
+                ),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    PAST::Var.new(
+                        :name('main_sub'),
+                        :scope('register')
+                    ),
+                    PAST::Var.new(
+                        :name('@ARGS'),
+                        :scope('package'),
+                        :namespace(''),
+                        :flat(1)
+                    )
+                )
+            )
+        )
+    );
+
     make $past;
 }
 

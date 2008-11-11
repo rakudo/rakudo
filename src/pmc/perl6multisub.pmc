@@ -511,11 +511,17 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info** candidates, PMC *args, i
         else if (possibles_count == 0) {
             Parrot_ex_throw_from_c_args(interp, next, 1,
                     "No applicable candidates found to dispatch to.");
+            return NULL;
         }
         else {
             Parrot_ex_throw_from_c_args(interp, next, 1,
                     "Ambiguous dispatch.");
+            return NULL;
         }
+    }
+    else {
+        /* XXX TODO: Build PMC array of all possibles. */
+        return PMCNULL;
     }
 }
 

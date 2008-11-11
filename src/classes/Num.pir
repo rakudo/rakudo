@@ -19,6 +19,36 @@ Num - Perl 6 numbers
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     numproto = p6meta.'new_class'('Num', 'parent'=>'Float Any')
     p6meta.'register'('Float', 'parent'=>numproto, 'protoobject'=>numproto)
+    
+    # Override the proto's ACCEPT method so we also accept Ints.
+    .const 'Sub' $P0 = "custom_ACCEPTS"
+    $P1 = class numproto
+    $P1.'add_method'('ACCEPTS', $P0)
+.end
+
+.sub 'custom_ACCEPTS' :anon :method
+    .param pmc topic
+    .local pmc topichow, topicwhat, parrotclass
+
+    topichow = topic.'HOW'()
+    topicwhat = topic.'WHAT'()
+
+    # Check if we match Num type.
+    parrotclass = topichow.'get_parrotclass'(self)
+    $I0 = isa topicwhat, parrotclass
+    if $I0 goto end
+    $I0 = does topic, parrotclass
+    if $I0 goto end
+
+    # Check if we match Int type, which Num can also take.
+    $P0 = get_hll_global 'Int'
+    parrotclass = topichow.'get_parrotclass'($P0)
+    $I0 = isa topicwhat, parrotclass
+    if $I0 goto end
+    $I0 = does topic, parrotclass
+
+  end:
+    .return ($I0)
 .end
 
 

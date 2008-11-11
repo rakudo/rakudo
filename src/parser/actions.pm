@@ -29,6 +29,9 @@ method TOP($/) {
     #  Make sure we have the interpinfo constants.
     $past.unshift( PAST::Op.new( :inline('.include "interpinfo.pasm"') ) );
 
+    # Set package.
+    $past.unshift(set_package_magical());
+
     #  Add code to load perl6.pbc if it's not already present
     my $loadinit := $past.loadinit();
     $loadinit.unshift(
@@ -1598,6 +1601,9 @@ method package_declarator($/, $key) {
         # role_def.
         my $past := $( $/{$key} );
 
+        # Set $?PACKAGE at the start of it.
+        $past.unshift(set_package_magical());
+
         # Restore outer values in @?<magical> arrays
         if    $sym eq 'package' {
             @?PACKAGE.shift();
@@ -2379,7 +2385,9 @@ method variable($/, $key) {
         }
         else {
             # Variable. [!:^] twigil should be kept in the name.
-            if $twigil eq '!' || $twigil eq ':' || $twigil eq '^' { $name := $twigil ~ ~$name; }
+            if $twigil eq '!' || $twigil eq ':' || $twigil eq '^' || $twigil eq '?' {
+                $name := $twigil ~ ~$name;
+            }
 
             # All but subs should keep their sigils.
             my $sigil := '';
@@ -2447,6 +2455,11 @@ method variable($/, $key) {
                         }
                     }
                 }
+            }
+
+            # If we have the ? sigil, lexical scope.
+            if $twigil eq '?' {
+                $past.scope('lexical');
             }
 
             $past.viviself(container_type($sigil));
@@ -3529,6 +3542,25 @@ sub have_trait($name, $verb, $traits) {
         }
     }
     return 0;
+}
+
+
+# Returns the code to set $?PACKAGE to the current package.
+sub set_package_magical() {
+    return PAST::Op.new(
+        :pasttype('bind'),
+        PAST::Var.new(
+            :name('$?PACKAGE'),
+            :scope('lexical'),
+            :isdecl(1)
+        ),
+        PAST::Op.new(
+            :inline(
+                '$P0 = interpinfo .INTERPINFO_CURRENT_SUB',
+                '%r = $P0."get_namespace"()'
+            )
+        )
+    );
 }
 
 

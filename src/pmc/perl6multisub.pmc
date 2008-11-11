@@ -525,13 +525,13 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *args,
         }
         else if (possibles_count == 0) {
             Parrot_ex_throw_from_c_args(interp, next, 1,
-                    "No applicable candidates found to dispatch to.");
-            return NULL;
+                "No applicable candidates found to dispatch to for '%Ss'",
+                    VTABLE_get_string(interp, candidates[0]->sub));
         }
         else {
             Parrot_ex_throw_from_c_args(interp, next, 1,
-                    "Ambiguous dispatch.");
-            return NULL;
+                "Ambiguous dispatch to multi '%Ss'",
+                    VTABLE_get_string(interp, candidates[0]->sub));
         }
     }
     else {

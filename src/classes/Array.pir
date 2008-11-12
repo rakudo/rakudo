@@ -117,6 +117,17 @@ Return Array in item context (i.e., self)
 .end
 
 
+=item list()
+
+Return Array as a List (i.e., values)
+
+=cut
+
+.sub 'list' :method
+    .tailcall self.'values'()
+.end
+
+
 =item pop()
 
 Remove the last item from the array and return it.

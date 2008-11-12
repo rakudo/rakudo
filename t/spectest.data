@@ -129,6 +129,7 @@ S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/positional-placeholders.t
 S06-signature/slurpy-placeholders.t
+S06-signature/sub-ref.t
 S06-signature/type-capture.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
@@ -147,10 +148,11 @@ S12-class/is_also_instead.t
 S12-class/namespaced.t
 S12-class/parent_attributes.t
 S12-enums/anonymous.t
-S12-enums/basic.t
 S12-enums/as-role.t
+S12-enums/basic.t
 S12-introspection/can.t
 S12-methods/calling_syntax.t
+S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/topic.t
 S12-methods/what.t
@@ -198,6 +200,7 @@ S29-num/int.t
 S29-num/log.t
 S29-num/pi.t
 S29-num/rand.t
+S29-num/rounders.t
 S29-num/sign.t
 S29-num/sqrt.t
 S29-scalar/defined.t

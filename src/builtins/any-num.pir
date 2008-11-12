@@ -77,9 +77,12 @@ error.
 =cut
 
 .sub 'log' :method :multi(_)
+    if self == 0 goto fail
     $N0 = self
     $N1 = ln $N0
     .return ($N1)
+  fail:
+    .tailcall '!FAIL'("Can't take log of 0")
 .end
 
 

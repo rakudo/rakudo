@@ -37,7 +37,8 @@ as the Perl 6 C<Str> class.
 .sub 'Scalar' :method
     $P0 = new 'Str'
     assign $P0, self
-    .return ($P0)
+    copy self, $P0
+    .return (self)
 .end
 
 

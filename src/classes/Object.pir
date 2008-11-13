@@ -421,20 +421,20 @@ Gets the object's identity value
     .tailcall self.'WHERE'()
 .end
 
-=item 'PARROTCLASS'
+=item 'PARROT'
 
 Report the object's true nature.
 
 =cut
 
-.sub 'PARROTCLASS' :method
+.sub 'PARROT' :method
     .local pmc obj
     .local string result
     obj = self
     result = ''
     $I0 = isa obj, 'ObjectRef'
     unless $I0 goto have_obj
-    result = 'ObjectRef -> '
+    result = 'ObjectRef->'
     obj = deref obj
   have_obj:
     $P0 = typeof obj

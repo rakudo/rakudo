@@ -3,6 +3,7 @@
 # empty lines and those beginning with a # are ignored
 
 integration/lexical-array-in-inner-block.t
+integration/real-strings.t
 S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array_ref.t

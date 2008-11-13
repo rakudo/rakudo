@@ -18,6 +18,7 @@ Num - Perl 6 numbers
     .local pmc p6meta, numproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     numproto = p6meta.'new_class'('Num', 'parent'=>'Float Any')
+    numproto.'!IMMUTABLE'()
     p6meta.'register'('Float', 'parent'=>numproto, 'protoobject'=>numproto)
 
     # Override the proto's ACCEPT method so we also accept Ints.
@@ -41,17 +42,6 @@ Num - Perl 6 numbers
     $P0 = get_hll_global 'Int'
     $I0 = $P0.'ACCEPTS'(topic)
     .return ($I0)
-.end
-
-
-=item Scalar
-
-This is a value type, so just returns itself.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
 .end
 
 

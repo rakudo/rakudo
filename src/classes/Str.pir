@@ -23,22 +23,12 @@ as the Perl 6 C<Str> class.
     .local pmc p6meta, strproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     strproto = p6meta.'new_class'('Str', 'parent'=>'Perl6Str Any')
+    strproto.'!IMMUTABLE'()
     p6meta.'register'('Perl6Str', 'parent'=>strproto, 'protoobject'=>strproto)
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)
 
     $P0 = get_hll_namespace ['Str']
     '!EXPORT'('sprintf reverse', 'from'=>$P0)
-.end
-
-
-=item Scalar
-
-This is a value type, so just returns itself.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
 .end
 
 

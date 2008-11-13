@@ -16,6 +16,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     .local pmc p6meta, hashproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     hashproto = p6meta.'new_class'('Perl6Hash', 'parent'=>'Mapping', 'name'=>'Hash')
+    hashproto.'!MUTABLE'()
 .end
 
 =item ACCEPTS()
@@ -34,23 +35,6 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 
 
 .namespace ['Perl6Hash']
-
-=item Scalar()
-
-Returns an ObjectRef referencing itself, unless it already is one in which
-case just returns as is.
-
-=cut
-
-.sub 'Scalar' :method
-    $I0 = isa self, 'ObjectRef'
-    unless $I0 goto not_ref
-    .return (self)
-  not_ref:
-    $P0 = new 'ObjectRef', self
-    .return ($P0)
-.end
-
 
 .sub 'ACCEPTS' :method
     .param pmc topic

@@ -17,19 +17,9 @@ for executable objects.
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     codeproto = p6meta.'new_class'('Code', 'parent'=>'Any')
+    codeproto.'!IMMUTABLE'()
     p6meta.'register'('Sub', 'parent'=>codeproto, 'protoobject'=>codeproto)
     p6meta.'register'('Closure', 'parent'=>codeproto, 'protoobject'=>codeproto)
-.end
-
-
-=item Scalar
-
-This is a value type, so just returns itself.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
 .end
 
 

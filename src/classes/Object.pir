@@ -33,21 +33,11 @@ Perform initializations and create the base classes.
 .end
 
 
-.namespace ['Perl6Object']
-
 =back
 
 =head2 Object methods
 
 =over 4
-
-=item hash()
-
-Return the scalar as a Hash.
-
-=cut
-
-.namespace ['Perl6Object']
 
 =item Scalar()
 
@@ -56,6 +46,7 @@ reference, unless the thing already is one.
 
 =cut
 
+.namespace ['Perl6Object']
 .sub 'Scalar' :method
     $I0 = isa self, 'ObjectRef'
     unless $I0 goto not_ref
@@ -692,6 +683,26 @@ Returns a proto-object with an autovivification closure attached to it.
     setattribute res, '%!properties', props
 
     .return (res)
+.end
+
+=item !IMMUTABLE()
+
+=item !MUTABLE()
+
+Indicate that objects in the class are mutable or immutable.
+
+=cut
+
+.sub '!IMMUTABLE' :method
+    $P0 = get_hll_global ['Int'], 'Scalar'
+    $P1 = self.'HOW'()
+    $P1.'add_method'('Scalar', $P0, 'to'=>self)
+.end
+
+.sub '!MUTABLE' :method
+    $P0 = get_hll_global ['Perl6Object'], 'Scalar'
+    $P1 = self.'HOW'()
+    $P1.'add_method'('Scalar', $P0, 'to'=>self)
 .end
 
 =back

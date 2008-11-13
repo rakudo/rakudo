@@ -17,6 +17,7 @@ symbols for C<Bool::True> and C<Bool::False>.
     .local pmc p6meta, boolproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     boolproto = p6meta.'new_class'('Bool', 'parent'=>'Boolean Any')
+    boolproto.'!IMMUTABLE'()
     p6meta.'register'('Boolean', 'parent'=>boolproto, 'protoobject'=>boolproto)
 
     $P0 = boolproto.'new'()
@@ -26,17 +27,6 @@ symbols for C<Bool::True> and C<Bool::False>.
     $P0 = boolproto.'new'()
     $P0 = 1
     set_hll_global ['Bool'], 'True', $P0
-.end
-
-
-=item Scalar
-
-This is a value type, so just returns itself.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
 .end
 
 

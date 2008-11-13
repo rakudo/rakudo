@@ -15,20 +15,10 @@ src/classes/Range.pir - methods for the Range class
 .namespace ['Range']
 
 .sub 'onload' :anon :load :init
-    .local pmc p6meta
+    .local pmc p6meta, rangeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!from $!to $!from_exclusive $!to_exclusive')
-.end
-
-
-=item Scalar
-
-This is a value type, so just returns itself.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
+    rangeproto = p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!from $!to $!from_exclusive $!to_exclusive')
+    rangeproto.'!IMMUTABLE'()
 .end
 
 

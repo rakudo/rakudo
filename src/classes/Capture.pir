@@ -17,17 +17,7 @@ This file sets up the Perl 6 C<Capture> class.
     .local pmc p6meta, captureproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     captureproto = p6meta.'new_class'('Perl6Capture', 'parent'=>'Capture_PIR Any', 'name'=>'Capture')
-.end
-
-
-=item Scalar
-
-This is a value type, so just returns itself.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
+    captureproto.'!IMMUTABLE'()
 .end
 
 

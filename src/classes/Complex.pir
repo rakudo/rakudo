@@ -23,21 +23,11 @@ Implementation is a bit different from other basic objects (Int...) because
     .local pmc p6meta, complexproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     complexproto = p6meta.'new_class'('Perl6Complex', 'parent'=>'Complex Any', 'name'=>'Complex')
+    complexproto.'!IMMUTABLE'()
     p6meta.'register'('Complex', 'parent'=>complexproto, 'protoobject'=>complexproto)
 
     $P0 = get_hll_namespace ['Perl6Complex']
     '!EXPORT'('log polar', 'from'=>$P0)
-.end
-
-
-=item Scalar
-
-This is a value type, so just returns itself.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
 .end
 
 

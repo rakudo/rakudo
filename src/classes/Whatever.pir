@@ -13,20 +13,10 @@ This file implements the Whatever class.
 .namespace ['Whatever']
 
 .sub 'onload' :anon :init :load
-    .local pmc p6meta
+    .local pmc p6meta, whateverproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Whatever', 'parent'=>'Perl6Object')
-.end
-
-
-=item Scalar
-
-This is a value type, so just returns itself.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
+    whateverproto = p6meta.'new_class'('Whatever', 'parent'=>'Perl6Object')
+    whateverproto.'!IMMUTABLE'()
 .end
 
 

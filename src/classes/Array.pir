@@ -12,6 +12,7 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     .local pmc p6meta, arrayproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     arrayproto = p6meta.'new_class'('Perl6Array', 'parent'=>'List', 'name'=>'Array')
+    arrayproto.'!MUTABLE'()
 
     $P0 = get_hll_namespace ['Perl6Array']
     '!EXPORT'('delete exists pop push shift unshift', 'from'=>$P0)
@@ -34,25 +35,9 @@ src/classes/Array.pir - Perl 6 Array class and related functions
 
 =over 4
 
-=item Scalar()
-
-Returns an ObjectRef referencing itself, unless it already is one in which
-case just returns as is.
-
 =cut
 
 .namespace ['Perl6Array']
-
-.sub 'Scalar' :method
-    $I0 = isa self, 'ObjectRef'
-    unless $I0 goto not_ref
-    .return (self)
-  not_ref:
-    $P0 = new 'ObjectRef', self
-    .return ($P0)
-.end
-
-
 .sub 'delete' :method :multi(Perl6Array)
     .param pmc indices :slurpy
     .local pmc result

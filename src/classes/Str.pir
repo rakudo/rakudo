@@ -32,6 +32,16 @@ as the Perl 6 C<Str> class.
 .end
 
 
+## special method to cast Parrot String into Rakudo Str.
+.namespace ['String']
+.sub 'Scalar' :method
+    $P0 = new 'Str'
+    assign $P0, self
+    .return ($P0)
+.end
+
+
+.namespace ['Str']
 .sub 'ACCEPTS' :method
     .param string topic
     .tailcall 'infix:eq'(topic, self)

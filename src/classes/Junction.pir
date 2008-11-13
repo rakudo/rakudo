@@ -214,6 +214,12 @@ Return the components of the Junction.
     $P0 = get_hll_global 'Junction'
     junc = $P0.'new'()
     setattribute junc, '$!type', type
+
+    # Make eigenstates unique if possible
+    if type == JUNCTION_TYPE_ONE goto set_eigenstates
+    $P0 = get_hll_global 'infix:==='
+    eigenstates = eigenstates.'uniq'($P0)
+  set_eigenstates:
     setattribute junc, '@!eigenstates', eigenstates
     .return (junc)
 .end

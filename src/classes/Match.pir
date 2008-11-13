@@ -7,7 +7,7 @@ Match - Perl 6 match objects
 =head1 Description
 
 At the moment file is a dummy file, it does nothing more than
-cause PGE::Match objects to act as mutables via the Scalar method.   
+cause PGE::Match objects to act as mutables via the Scalar method.
 Eventually we'll derive a proper Match subclass here that can
 do it the same way as other Rakudo classes, but this is a
 good workaround for now.

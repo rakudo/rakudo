@@ -41,7 +41,7 @@ close($fh);
 @tfiles = sort @tfiles;
 my $max = 0;
 for my $tfile (@tfiles) {
-    my $tname = $tfile; $tname =~ s!^t/spec/!!; 
+    my $tname = $tfile; $tname =~ s!^t/spec/!!;
     $tname = substr($tname, 0, 49);
     if (length($tname) > $max) { $max = length($tname); }
     $tname{$tfile} = $tname;
@@ -82,10 +82,10 @@ for my $tfile (@tfiles) {
         elsif (/^ok +\d+/)         { $pass++; }
     }
     my $abort = $plan - $test;
-    if ($abort > 0) { 
-        $fail += $abort; 
+    if ($abort > 0) {
+        $fail += $abort;
         push @fail, "$tname aborted $abort test(s)";
-        $test += $abort; 
+        $test += $abort;
     }
     printf " %4d %4d %4d %4d %4d\n", $test, $pass, $fail, $todo, $skip;
     $sum{'plan'} += $plan;

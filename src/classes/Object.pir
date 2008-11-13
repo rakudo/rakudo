@@ -430,6 +430,29 @@ Gets the object's identity value
     .tailcall self.'WHERE'()
 .end
 
+=item 'PARROTCLASS'
+
+Report the object's true nature.
+
+=cut
+
+.sub 'PARROTCLASS' :method
+    .local pmc obj
+    .local string result
+    obj = self
+    result = ''
+    $I0 = isa obj, 'ObjectRef'
+    unless $I0 goto have_obj
+    result = 'ObjectRef -> '
+    obj = deref obj
+  have_obj:
+    $P0 = typeof obj
+    $S0 = $P0
+    result .= $S0
+    .return (result)
+.end
+
+
 =back
 
 =head2 Private methods

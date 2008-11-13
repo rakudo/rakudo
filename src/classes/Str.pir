@@ -53,7 +53,7 @@ This is a value type, so just returns itself.
 
     retv = self.'split'('')
     retv = retv.'reverse'()
-    retv = retv.join('')
+    retv = retv.'join'('')
 
     .return(retv)
 .end

@@ -195,7 +195,7 @@ Create a new object having the same class as the invocant.
     # Instantiate.
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    $P0 = p6meta.get_parrotclass(self)
+    $P0 = p6meta.'get_parrotclass'(self)
     $P1 = new $P0
 
     # If this proto object has a WHENCE auto-vivification, we should use
@@ -258,7 +258,7 @@ Create a new object having the same class as the invocant.
 
     # We found some parent init data, potentially.
   found_parent_init:
-    init_attribs = cur_ip.WHENCE()
+    init_attribs = cur_ip.'WHENCE'()
     $I0 = 'defined'(init_attribs)
     if $I0 goto parent_init_search_done
     init_attribs = new 'Hash'
@@ -530,7 +530,7 @@ Create a clone of self, also cloning the attributes given by attrlist.
     result_list = 'list'()
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     class = self.'HOW'()
-    class = p6meta.get_parrotclass(class)
+    class = p6meta.'get_parrotclass'(class)
     mro = inspect class, 'all_parents'
     it = iter mro
     cap_class = get_hll_global 'Capture'
@@ -560,7 +560,7 @@ Create a clone of self, also cloning the attributes given by attrlist.
     $S0 = "Could not invoke method '"
     concat $S0, method_name
     concat $S0, "' on invocant of type '"
-    $S1 = self.WHAT()
+    $S1 = self.'WHAT'()
     concat $S0, $S1
     concat $S0, "'"
     'die'($S0)

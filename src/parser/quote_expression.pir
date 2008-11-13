@@ -440,7 +440,7 @@
     mob.'to'(pos)
     .return (mob)
   fail_backchar_digit:
-    self.panic('\123 form deprecated, use \o123 instead')
+    self.'panic'('\123 form deprecated, use \o123 instead')
   fail:
     mob.'to'(-1)
     .return (mob)

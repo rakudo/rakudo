@@ -409,7 +409,7 @@ src/builtins/op.pir - Perl6 builtin operators
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     proto = var.'WHAT'()
-    p6meta.register(derived, 'protoobject'=>proto)
+    p6meta.'register'(derived, 'protoobject'=>proto)
 
     # Instantiate the class to make it form itself.
     $P0 = new derived

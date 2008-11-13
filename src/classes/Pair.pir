@@ -40,10 +40,10 @@ Delegates on to a method call '.:Xkey(Xval)'.
 .sub 'ACCEPTS' :method
     .param pmc topic
 
-    $S0 = self.key()
+    $S0 = self.'key'()
     $S0 = concat ':', $S0
 
-    $P0 = self.value()
+    $P0 = self.'value'()
 
     .tailcall topic.$S0($P0)
 .end

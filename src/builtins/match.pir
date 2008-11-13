@@ -15,14 +15,14 @@ src/builtins/match.pir - Perl6 builtins for smart matching
 .sub 'infix:~~'
     .param pmc topic
     .param pmc x
-    .tailcall x.ACCEPTS(topic)
+    .tailcall x.'ACCEPTS'(topic)
 .end
 
 
 .sub 'infix:!~~'
     .param pmc topic
     .param pmc x
-    .tailcall x.REJECTS(topic)
+    .tailcall x.'REJECTS'(topic)
 .end
 
 =back

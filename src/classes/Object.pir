@@ -302,13 +302,27 @@ Create a new object having the same class as the invocant.
 
     # Is it an array? If so, initialize to Perl6Array.
     if sigil != '@' goto no_array
-    $P2 = new 'Perl6Array'
+    $P3 = new 'Perl6Array'
+    $I0 = defined $P2
+    if $I0 goto have_array_value
+    set $P2, $P3
+    goto set_attrib
+  have_array_value:
+    'infix:='($P3, $P2)
+    set $P2, $P3
     goto set_attrib
   no_array:
 
     # Is it a Hash? If so, initialize to Perl6Hash.
     if sigil != '%' goto no_hash
-    $P2 = new 'Perl6Hash'
+    $P3 = new 'Perl6Hash'
+    $I0 = defined $P2
+    if $I0 goto have_hash_value
+    set $P2, $P3
+    goto set_attrib
+  have_hash_value:
+    'infix:='($P3, $P2)
+    set $P2, $P3
     goto set_attrib
   no_hash:
 

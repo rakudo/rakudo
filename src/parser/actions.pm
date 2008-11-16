@@ -2841,6 +2841,12 @@ method EXPR($/, $key) {
         }
         make $past;
     }
+    elsif ~$type eq 'prefix:|' {
+        # Need to make it flatten the argument.
+        my $past := $( $/[0] );
+        $past.flat(1);
+        make $past;
+    }
     else {
         my $past := PAST::Op.new(
             :node($/),

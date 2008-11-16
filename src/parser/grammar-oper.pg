@@ -23,6 +23,7 @@ proto prefix:<+^> is equiv(prefix:<+>)
 proto prefix:<=> is equiv(prefix:<+>) { ... }
 proto prefix:<^> is equiv(prefix:<+>) { ... }
 proto prefix:<\> is equiv(prefix:<+>) { ... }
+proto prefix:<|> is equiv(prefix:<+>) { ... }
 
 ## multiplicative operators
 proto infix:<*> is precedence('u=') { ... }

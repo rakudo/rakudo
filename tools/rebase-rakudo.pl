@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+# Copyright (C) 2008, The Perl Foundation.
+# $Id$
 
 use Cwd;
 use File::Spec;

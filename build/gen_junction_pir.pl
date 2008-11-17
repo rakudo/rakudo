@@ -2,6 +2,9 @@
 # Copyright (C) 2008, The Perl Foundation.
 # $Id$
 
+use strict;
+use warnings;
+
 my @binary = qw(
   infix:**
   infix:* infix:/ infix:% infix:div infix:mod

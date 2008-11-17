@@ -519,8 +519,14 @@ B<Note:> partial implementation only
     len -= start
   len_done:
     $S0 = self
+    push_eh fail
     $S1 = substr $S0, start, len
+    pop_eh
     .return ($S1)
+  fail:
+    .get_results($P0)
+    pop_eh
+    .tailcall '!FAIL'($P0)
 .end
 
 =item trans()

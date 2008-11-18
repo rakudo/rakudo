@@ -11,55 +11,62 @@ not intended to be rigid nor strictly sequential -- it's okay
 for people to work on some of the later milestones even if the
 earlier ones aren't complete.
 
-ON ESTIMATES: All hourly estimates in milestones B-W are rough first-cust estimates
-IDEAL PROGRAMMER HOURS. Nobody should depend on them for anything other than relative
-estimates of difficulty
+ON ESTIMATES: All hourly estimates in milestones B-W are rough 
+first-cut estimates IDEAL PROGRAMMER HOURS. Nobody should 
+depend on them for anything other than relative estimates of 
+difficulty.
+
+Where there's a time given and a percentage of task completion,
+the hours represent the estimate to completion.  For example,
+if a task says "3h" and "50% done", we still have 3 hours of
+idealized effort to go, not 1.5.
 
 
 A PGE needs to be refactored and updated to handle protoregexes and
   longest token matching so we can use the STD grammar
-    Sub-milestones - each is 1 calendar month:
-    Not expected to fully block other milestones, except as indicated below
+  Sub-milestones - each is 1 calendar month:
+  Not expected to fully block other milestones, except as indicated below
 
+    M1. PGE internal refactors and initial protoregex implementation (D1),
+        selected protoregex constructs added to Rakudo's grammar (D2),
+        interface design for pre-compilation and external libraries (D3, D4).
 
-	 M1. PGE internal refactors and initial protoregex implementation (D1),
-	     selected protoregex constructs added to Rakudo's grammar (D2),
-	     interface design for pre-compilation and external libraries (D3, D4).
+    M2. Completed protoregex implementation (D1),
+        initial implementation of longest token matching in PGE (D1),
+        completed Rakudo grammar migration to protoregexes (D2),
+        beginning of P6-based "Prelude" implementation for Rakudo (D3),
+        initial implementations of external HLL library support (D4).
 	
-	 M2. Completed protoregex implementation (D1),
-	     initial implementation of longest token matching in PGE (D1),
-	     completed Rakudo grammar migration to protoregexes (D2),
-	     beginning of P6-based "Prelude" implementation for Rakudo (D3),
-	     initial implementations of external HLL library support (D4).
+    M3. Substantially complete longest token matching in PGE (D1),
+        Rakudo using protoregexes and longest token matching in grammar (D2),
+        full protoregex and LTM support in Rakudo (D3),
+        integrate P6-based Prelude into Rakudo implementation (D3),
+        continued improvement of HLL library support (D4).
 	
-	 M3. Substantially complete longest token matching in PGE (D1),
-	     Rakudo using protoregexes and longest token matching in grammar (D2),
-	     full protoregex and LTM support in Rakudo (D3),
-	     integrate P6-based Prelude into Rakudo implementation (D3),
-	     continued improvement of HLL library support (D4).
-	
-	 M4. Completed PGE protoregex and longest token matching implementation (D1),
-	     update Rakudo bottom-up parser to align with STD.pm (D2),
-	     Rakudo and/or compiler tools able to parse STD.pm directly (D2),
-	     substantial implementation of a P6-based Prelude for Rakudo (D3),
-	     substantially complete external HLL libraries support (D4).
-	     updated documentation and tests for all work performed, final report.
+    M4. Completed PGE protoregex and longest token matching implementation (D1),
+        update Rakudo bottom-up parser to align with STD.pm (D2),
+        Rakudo and/or compiler tools able to parse STD.pm directly (D2),
+        substantial implementation of a P6-based Prelude for Rakudo (D3),
+        substantially complete external HLL libraries support (D4).
+        updated documentation and tests for all work performed, final report.
 
 B signature handling
-    pm estimate: 8h
-    (jonathan implementing)
+    pm estimate: 6h
+    (jonathan implementing, 40% done)
 
 C list assignment [depends on A, B]
-    PM Estimate: 2h  
+    waiting on some spec changes/updates
+    pm Estimate: 2h  
 
-D control exceptions
-    Can be done now
+D control exceptions (50% done)
     Requires adding exception types to PCT
-        pm estimate: 6h
+        pm estimate: 3h     (25% done)
+    Requires adding exception closures (INIT, BEGIN, LAST, NEXT, etc.)
+        pm estimate: 2h
     Writing exception throwers in Rakudo
-        pm estimate: 0.5h 
+        pm estimate: 0.5h   (80% done)
 
-E regex, token, rule, grammar (50% done)
+E regex, token, rule, grammar (60% done)
     We have an initial implementation
     Implementaiton needs tweaking
     Depends on grammar improvements
@@ -67,41 +74,45 @@ E regex, token, rule, grammar (50% done)
 
     grammar improvements
         2h
-    advanced bits (depends on pge improvements)
+    advanced bits [depends on pge improvements in A]
         2h
 
-F Allow Perl 6 precompiled sources - write libraries in Perl 6
-    PM Estimate 8h
+F Allow Perl 6 precompiled sources - write libraries in Perl 6 (85% done)
+    Depends on 'is export' (80% done)
+    Depends on 'is also'   (100% done for what we need here)
+    Depends on inline PIR  (30% done)
+    Depends on build system refactor
+    pm estimate 3h
     
-G modules
-    50% done
-    subtask: better handling of namespaces 
-    depends on a refactoring of namespaces in p6object  (a MOP implementation) in parrot.
-
-    pm estimate: 12h (including refactoring)
-
-H lazy lists
-    jw estimate: 8h
-
-I gather and take
-    depends on resumable exceptions from pir
+G modules (overall 70% done)
+    subtask: better handling of namespaces  (60% done)
+    depends on a refactoring of namespaces in p6object (done)
     pm estimate: 4h
 
-J I/O
+H lazy lists
+    we've decided to wait on this because lazy list specs are in flux
+    jw estimate: 8h
 
+I gather and take (done in Rakudo)
+    depends on resumable exceptions from pir 
+      (mostly done -- some improvements needed)
+
+J I/O
     * Depends on an IO spec
     * Depends on lazy lists 
-
+    * Depends on IO updates in Parrot
     Small matter of writing wrapper methods to implement spec.
 
-K junction auto-threading
+K junction auto-threading (10% complete)
     writing dispatch operators  
         jw estimate: 8h
     auto-threading
         jw estimate: 24h
+    a simple version of autothreading junction operators exists
+    the remainder will hopefully be a grant for jw
 
 L hyper, reduction and cross meta-operators
-    [depends on parser improvements]
+    depends on parser improvements in A
     pm estimate: 6h for hyper
                  1h for reduction
                  4h for cross
@@ -109,27 +120,28 @@ L hyper, reduction and cross meta-operators
 M slices 
     * tests need writing
     pm estimate: 
-                    8h study S09
-                    24h implement  (VERY rough)
+                    5h study S09
+                    12h implement  (VERY rough)
 
 N slice context
     pm estimate: 
                     32h implement  (VERY rough)
     
 O captures
-    PM needs to send mail to p6l. - current tests don't seem to match pm's understanding of the spec
-    
+    Pm needs to send mail to p6l. - current tests don't seem to match 
+       Pm's understanding of the spec
     pm estimate:
-                4h study spec
-                6h implement            
+                3h study spec
+                3h implement            
 
 P multi-argument return - return into named arguments [depends on captures]
+    Waiting for updates to Parrot calling conventions
     PCT side
        pm estimate: 8h     
     Rakudo side
         pm estimate: 4h
 
-Q multi sub & multi-method dispatch
+Q multi sub & multi-method dispatch (50% done)
     JW implementing
     Depends on parrot implementation of MMD (implemented)
     Depends on P6 Object update [Depends on G]
@@ -139,16 +151,16 @@ R currying
     PM estimate: 8h
 
 S operator overloading
-    Depends on the parser
-
-    PM Estimate: 6h
+    Depends on the parser [Depends on A]
+    will likely implement a stub version in meantime
+    PM Estimate: (2h stub, 4h for complete version when A complete)
 
 T heredocs including pod heredocs
-    Depends on the parser
+    Depends on the parser [Depends on A]
     PM Estimate: 2h
 
 U macros
-    Depends on the parser
+    Depends on the parser [Depends on A]
     PM Estimate: 6h
 
 V module versioning

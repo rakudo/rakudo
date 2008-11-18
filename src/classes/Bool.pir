@@ -9,6 +9,10 @@ Bool - Perl 6 boolean class
 This file sets up the Perl 6 C<Bool> class, and initializes
 symbols for C<Bool::True> and C<Bool::False>.
 
+=head1 Methods
+
+=over 4
+
 =cut
 
 .namespace ['Bool']
@@ -53,9 +57,9 @@ symbols for C<Bool::True> and C<Bool::False>.
     self = 0
 .end
 
-=item
+=item Bool.pick
 
-Bool.pick - returns True or False
+Returns True or False
 
 =cut
 
@@ -71,6 +75,11 @@ Bool.pick - returns True or False
   done:
     .tailcall 'list'($P0)
 .end
+
+
+=back
+
+=cut
 
 
 # Local Variables:

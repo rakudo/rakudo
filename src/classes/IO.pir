@@ -144,9 +144,9 @@ Closes the file.
 
 =head1 EXPORTED MULTI SUBS
 
-=over
+=over 4
 
-=item prefix:=(IO $io)
+=item C<prefix:=(IO $io)>
 
 Gets the iterator for the IO object.
 
@@ -167,6 +167,8 @@ Gets the iterator for the IO object.
 =head1 IOIterator
 
 The IOIterator class implements the I/O iterator.
+
+=over 4
 
 =cut
 
@@ -206,6 +208,12 @@ Return the value inside this container in item context.
 .sub 'get_iter' :method :vtable
     .return(self)
 .end
+
+
+=back
+
+=cut
+
 
 # Local Variables:
 #   mode: pir

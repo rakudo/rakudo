@@ -199,8 +199,6 @@ Return the components of the Junction.
 .end
 
 
-=back
-
 =head2 Helper functions
 
 =cut

@@ -19,6 +19,7 @@ Int - Perl 6 integers
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     intproto = p6meta.'new_class'('Int', 'parent'=>'Integer Any')
     p6meta.'register'('Integer', 'parent'=>intproto, 'protoobject'=>intproto)
+    p6meta.'register'('BigInt', 'parent'=>intproto, 'protoobject'=>intproto)
 
     $P0 = get_hll_namespace ['Int']
     '!EXPORT'('abs', 'from'=>$P0)

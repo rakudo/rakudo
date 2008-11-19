@@ -50,6 +50,7 @@ for my $tfile (@tfiles) {
 $| = 1;
 printf "%s  plan test pass fail todo skip\n", ' ' x $max;
 my %sum;
+my %syn;
 my @fail;
 for my $tfile (@tfiles) {
     my $th;
@@ -60,12 +61,14 @@ for my $tfile (@tfiles) {
     }
     close($th);
     my $tname = $tname{$tfile};
+    my $syn = substr($tname, 0, 3); $syn{$syn}++;
     printf "%s%s..%4d", $tname, '.' x ($max - length($tname)), $plan;
     my $cmd = "../../parrot perl6.pbc $tfile";
     my @results = split "\n", `$cmd`;
     my ($test, $pass, $fail, $todo, $skip) = (0,0,0,0,0);
     my (%skip, %todopass, %todofail);
     for (@results) {
+        if    (/^1\.\.(\d+)/) { $plan = $1 if $1 > 0; next; }
         next unless /^(not )?ok +(\d+)/;
         $test++;
         if    (/#\s*SKIP\s*(.*)/i) { $skip++; $skip{$1}++; }
@@ -88,12 +91,12 @@ for my $tfile (@tfiles) {
         $test += $abort;
     }
     printf " %4d %4d %4d %4d %4d\n", $test, $pass, $fail, $todo, $skip;
-    $sum{'plan'} += $plan;
-    $sum{'test'} += $test;
-    $sum{'pass'} += $pass;
-    $sum{'fail'} += $fail;
-    $sum{'todo'} += $todo;
-    $sum{'skip'} += $skip;
+    $sum{'plan'} += $plan;  $sum{"$syn-plan"} += $plan;
+    $sum{'test'} += $test;  $sum{"$syn-test"} += $test;
+    $sum{'pass'} += $pass;  $sum{"$syn-pass"} += $pass;
+    $sum{'fail'} += $fail;  $sum{"$syn-fail"} += $fail;
+    $sum{'todo'} += $todo;  $sum{"$syn-todo"} += $todo;
+    $sum{'skip'} += $skip;  $sum{"$syn-skip"} += $skip;
     for (keys %skip) {
         printf "    %2d skipped: %s\n", $skip{$_}, $_;
     }
@@ -103,6 +106,20 @@ for my $tfile (@tfiles) {
     for (keys %todopass) {
         printf "    %2d todo PASSED: %s\n", $todopass{$_}, $_;
     }
+}
+
+print "----------------\n";
+print "Synopsis summary:\n";
+printf "%s  plan test pass fail todo skip\n", ' ' x $max;
+for my $syn (sort keys %syn) {
+    printf "%s%s..%4d %4d %4d %4d %4d %4d\n", 
+        $syn, '.' x ($max - length($syn)), 
+        $sum{"$syn-plan"},
+        $sum{"$syn-test"},
+        $sum{"$syn-pass"},
+        $sum{"$syn-fail"},
+        $sum{"$syn-todo"},
+        $sum{"$syn-skip"};
 }
 
 print "----------------\n";

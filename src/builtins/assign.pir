@@ -22,15 +22,23 @@ src/builtins/inplace.pir - Inplace assignments
     .param pmc source
 
     $I0 = isa cont, 'ObjectRef'
-    if $I0 goto object_ref
+    if $I0 goto cont_scalar
     $I0 = isa cont, 'Perl6Array'
-    if $I0 goto array
+    if $I0 goto cont_array
     $I0 = isa cont, 'Perl6Hash'
-    if $I0 goto hash
+    if $I0 goto cont_hash
 
-  object_ref:
+  cont_scalar:
+    $I0 = isa source, 'ObjectRef'
+    if $I0 goto have_source
     $I0 = can source, 'Scalar'
-    unless $I0 goto have_source
+    if $I0 goto can_scalar
+    ##  source comes from outside Rakudo's type system
+    $I0 = does source, 'scalar'
+    if $I0 goto have_source
+    source = new 'ObjectRef', source
+    goto have_source
+  can_scalar:
     source = source.'Scalar'()
   have_source:
     .local pmc ro, type
@@ -52,14 +60,14 @@ src/builtins/inplace.pir - Inplace assignments
   skip_copy:
     .return (cont)
 
-  array:
+  cont_array:
     $P0 = get_hll_global 'list'
     $P0 = $P0(source)
     $I0 = elements cont
     splice cont, $P0, 0, $I0
     .return (cont)
 
-  hash:
+  cont_hash:
     $P0 = source.'hash'()
     copy cont, $P0
     .return (cont)

@@ -79,7 +79,7 @@ src/builtins/enums.pir - implements various enumerations
     $P48 = "prefix:~"($P47)
     .return ($P48)
 .end
-.sub "bool_class_number" :method :lexid("26")
+.sub "bool_class_number" :method :subid("26")
     getattribute $P52, self, "$!bool"
     $P53 = "prefix:+"($P52)
     .return ($P53)

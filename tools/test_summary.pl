@@ -112,8 +112,8 @@ print "----------------\n";
 print "Synopsis summary:\n";
 printf "%s  plan test pass fail todo skip\n", ' ' x $max;
 for my $syn (sort keys %syn) {
-    printf "%s%s..%4d %4d %4d %4d %4d %4d\n", 
-        $syn, '.' x ($max - length($syn)), 
+    printf "%s%s..%4d %4d %4d %4d %4d %4d\n",
+        $syn, '.' x ($max - length($syn)),
         $sum{"$syn-plan"},
         $sum{"$syn-test"},
         $sum{"$syn-pass"},

@@ -77,6 +77,13 @@ should be smart enough to do this at compile time.
     test_item = shift cur_list_iter
     $I0 = isa test_item, "Role"
     if $I0 goto is_type
+    $P0 = getprop "subtype_realtype", test_item
+    if null $P0 goto not_refinement
+    unless null type goto all_constraints
+    type = $P0
+    push constraints, test_item
+    goto cur_list_loop
+  not_refinement:
     $I0 = isa test_item, "P6protoobject"
     if $I0 goto is_type
     push constraints, test_item

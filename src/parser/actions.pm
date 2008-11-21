@@ -2958,7 +2958,8 @@ method type_declarator($/) {
             :pasttype('call'),
             :name('!CREATE_SUBSET_TYPE'),
             $<typename> ??
-                $( $<typename>[0] ) !! 
+                $( $<typename>[0] )
+                !!
                 PAST::Var.new(
                     :name('Any'),
                     :scope('package')

@@ -2944,37 +2944,27 @@ method type_declarator($/) {
         }
     }
 
-    # Do we have an existing constraint to check?
-    if $<typename> {
-        my $new_cond := $past[1];
-        my $prev_cond := $( $<typename>[0] );
-        $past[1] := PAST::Op.new(
-            :pasttype('if'),
-            PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('ACCEPTS'),
-                $prev_cond,
-                PAST::Var.new(
-                    :name($param.name())
-                )
-            ),
-            $new_cond
-        )
-    }
-
-    # Set block details.
-    $past.node($/);
-
-    # Now we need to create the block wrapper class.
+    # Create subset type.
+    my @name := Perl6::Compiler.parse_name($<name>);
     $past := PAST::Op.new(
-        :pasttype('callmethod'),
-        :name('!create'),
+        :node($/),
+        :pasttype('bind'),
         PAST::Var.new(
-            :name('Subset'),
+            :name(@name.pop()),
+            :namespace(@name),
             :scope('package')
         ),
-        PAST::Val.new( :value(~$<name>) ),
-        $past
+        PAST::Op.new(
+            :pasttype('call'),
+            :name('!CREATE_SUBSET_TYPE'),
+            $<typename> ??
+                $( $<typename>[0] ) !! 
+                PAST::Var.new(
+                    :name('Any'),
+                    :scope('package')
+                ),
+            $past
+        )
     );
 
     # Put this code in $?INIT, so the type is created early enough, then this

@@ -76,7 +76,6 @@ BUILTINS_PIR = \
   src/classes/Capture.pir \
   src/classes/Match.pir \
   src/classes/Signature.pir \
-  src/classes/Subset.pir \
   src/classes/Grammar.pir \
   src/classes/Module.pir \
   src/builtins/globals.pir \

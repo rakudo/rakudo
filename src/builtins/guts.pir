@@ -208,6 +208,74 @@ subtyping relations, etc).
 .end
 
 
+=item !CREATE_SUBSET_TYPE
+
+Creates a subset type. Basically, we make an anonymous subclass of the
+original type, attach the refinement and override ACCEPTS. We also chase up
+to find a real, non-subtype and stash that away for fast access later.
+
+=cut
+
+.sub '!CREATE_SUBSET_TYPE'
+    .param pmc refinee
+    .param pmc refinement
+
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+
+    # Check if the refinee is a refinement type itself; if so, get the real
+    # base type we're refining.
+    .local pmc real_type, real_type_pc
+    real_type = getprop 'subtype_realtype', refinee
+    unless null $P0 goto got_real_type
+    real_type = refinee
+  got_real_type:
+
+    # Create subclass, register it with the real type's proto.
+    .local pmc parrot_class, subset
+    parrot_class = p6meta.'get_parrotclass'(refinee)
+    subset = subclass parrot_class
+    p6meta.'register'(subset, 'protoobject' => real_type)
+
+    # Override accepts.
+    .local pmc parrotclass
+    .const 'Sub' $P0 = "!SUBTYPE_ACCEPTS"
+    subset.'add_method'('ACCEPTS', $P0)
+
+    # Instantiate it - we'll only ever create this one instance.
+    subset = subset.'new'()
+
+    # Mark it a subtype and stash away real type, refinee  and refinement.
+    setprop subset, 'subtype_realtype', real_type
+    setprop subset, 'subtype_refinement', refinement
+    setprop subset, 'subtype_refinee', refinee
+
+    .return (subset)
+.end
+.sub "!SUBTYPE_ACCEPTS" :anon :method
+    .param pmc topic
+
+    # Get refinement and check against that.
+    .local pmc refinement
+    refinement = getprop 'subtype_refinement', self
+    $P0 = refinement(topic)
+    unless $P0 goto false
+
+    # Recurse up the tree.
+    .local pmc refinee
+    refinee = getprop 'subtype_refinee', self
+    $P0 = refinee.'ACCEPTS'(topic)
+    unless $P0 goto false
+
+  true:
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return ($P0)
+  false:
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
+.end
+
+
 =item !TOPERL6MULTISUB
 
 At the moment, we don't have the abilility to have Parrot use our own MultiSub

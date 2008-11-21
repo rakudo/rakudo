@@ -514,7 +514,29 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *args,
         }
     }
 
-    /* XXX Check is default trait */
+    /* Check is default trait if we still have multiple options. */
+    if (possibles_count > 1) {
+        /* Locate any default candidates; if we find multiple defaults, this is
+         * no help, so we'll not bother collection just which ones are good. */
+        candidate_info *default_cand = NULL;
+        for (i = 0; i < possibles_count; i++) {
+            PMC *default_prop = VTABLE_getprop(interp, possibles[i]->sub,
+                    CONST_STRING(interp, "default"));
+            if (!PMC_IS_NULL(default_prop)) {
+                if (default_cand == NULL) {
+                    default_cand = possibles[i];
+                }
+                else {
+                    default_cand = NULL;
+                    break;
+                }
+            }
+        }
+        if (default_cand) {
+            possibles[0] = default_cand;
+            possibles_count = 1;
+        }
+    }
 
     /* XXX If still none/ambiguous, try and find a proto to call. */
 

@@ -13,8 +13,8 @@ src/builtins/traits.pir - Perl 6 built-in traits
 .namespace []
 
 # Handles the case where you have a trait that is a class being applied to a
-# class, in which case it's inheritance.
-.sub 'trait_auxiliary:is' :multi(_,Class)
+# class, and nothing more specific in which case it's inheritance.
+.sub 'trait_auxiliary:is' :multi(_,'Class')
     .param pmc parent
     .param pmc child
     .local pmc p6meta
@@ -29,6 +29,21 @@ src/builtins/traits.pir - Perl 6 built-in traits
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     parent = p6meta.'get_parrotclass'(parent)
     addparent child, parent
+.end
+
+# Applies the default trait to a sub.
+.sub '' :anon :load :init
+    # Eventually, should be a role defined in Perl 6 in the prelude. For now
+    # this gets Parrot's multi-dispatch to go to the right place.
+    $P0 = newclass 'default'
+    set_hll_global "default", $P0
+.end
+.sub 'trait_auxiliary:is' :multi('default', 'Sub')
+    .param pmc trait
+    .param pmc the_sub
+    $P0 = get_hll_global [ 'Bool' ], 'True'
+    setprop the_sub, 'default', $P0
+    say "oh yes"
 .end
 
 =back

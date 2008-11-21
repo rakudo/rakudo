@@ -22,6 +22,7 @@ S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/num.t
 S02-builtin_data_types/range.t
 S02-builtin_data_types/subscripts_and_context.t
+S02-builtin_data_types/subtypes.t
 S02-builtin_data_types/type.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t

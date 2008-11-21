@@ -938,6 +938,24 @@ method routine_def($/) {
                             );
                         }
                     }
+                    else {
+                        # Trait not handled in the compiler; emit call to apply it.
+                        my @ns := Perl6::Compiler.parse_name( $name );
+                        $past.loadinit().push(
+                            PAST::Op.new(
+                                :pasttype('call'),
+                                :name('trait_auxiliary:is'),
+                                PAST::Var.new(
+                                    :name(@ns.pop()),
+                                    :namespace(@ns),
+                                    :scope('package')
+                                ),
+                                PAST::Var.new(
+                                    :name('block'), :scope('register')
+                                )
+                            )
+                        );
+                    }
                 }
             }
         }
@@ -953,6 +971,39 @@ method method_def($/) {
         $past.name( ~$identifier[0] );
     }
     $past.control('return_pir');
+
+    # Emit code to apply any traits.
+    if $<trait> {
+        for $<trait> {
+            my $trait := $_;
+            if $trait<trait_auxiliary> {
+                my $aux  := $trait<trait_auxiliary>;
+                my $sym  := $aux<sym>;
+
+                if $sym eq 'is' {
+                    my $name := $aux<name>;
+
+                    # Emit call to trait_auxiliary:is apply trait.
+                    my @ns := Perl6::Compiler.parse_name( $name );
+                    $past.loadinit().push(
+                        PAST::Op.new(
+                            :pasttype('call'),
+                            :name('trait_auxiliary:is'),
+                            PAST::Var.new(
+                                :name(@ns.pop()),
+                                :namespace(@ns),
+                                :scope('package')
+                            ),
+                            PAST::Var.new(
+                                :name('block'), :scope('register')
+                            )
+                        )
+                    );
+                }
+            }
+        }
+    }
+
     make $past;
 }
 

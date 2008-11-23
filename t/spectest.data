@@ -150,12 +150,14 @@ S12-class/inheritance.t
 S12-class/instantiate.t
 S12-class/is_also_instead.t
 S12-class/namespaced.t
+S12-class/open.t
 S12-class/parent_attributes.t
 S12-enums/anonymous.t
 S12-enums/as-role.t
 S12-enums/basic.t
 S12-introspection/can.t
 S12-methods/calling_syntax.t
+S12-methods/default-trait.t
 S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/topic.t

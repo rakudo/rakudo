@@ -630,7 +630,7 @@ Allocates the PMC's underlying storage.
 */
     VTABLE void init() {
         MMD_Cache *cache;
-        
+
         /* Allocate the underlying struct and make candidate list an empty
          * ResizablePMCArray. */
         PMC *candidates = pmc_new(interp, enum_class_ResizablePMCArray);

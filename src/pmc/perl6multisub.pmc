@@ -383,7 +383,7 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
 /*
 
 =item C<static PMC* do_dispatch(candidate_info **candidates, PMC *args,
-    int many, int num_candidates, opcode_t *next)>
+    int many, int num_candidates, opcode_t *next, MMD_Cache *cache)>
 
 Runs the Perl 6 MMD algorithm. If many is set to a true value, returns a
 ResizablePMCArray of all possible candidates, which may be empty. If many
@@ -394,7 +394,7 @@ candidates or that it was ambiguous if there were tied candidates.
 */
 
 static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *args,
-    int many, int num_candidates, opcode_t *next) {
+    int many, int num_candidates, opcode_t *next, MMD_Cache *cache) {
     INTVAL           type_mismatch;
     STRING          *ACCEPTS         = CONST_STRING(interp, "ACCEPTS");
     INTVAL           possibles_count = 0;
@@ -454,6 +454,14 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *args,
         possibles_count++;
         cur_candidate++;
     }
+
+    /* If we're at a single candidate here, it's safe to cache for the future,
+     * since it's a purely structural type-based rather than value based
+     * dispatch. Note that we could also store the current candidate set and
+     * re-enter the dispatch algorithm below, making it cheaper to get to that
+     * point. */
+    /*if (possibles_count == 1)
+        Parrot_mmd_cache_store_by_values(interp, cache, NULL, args, possibles[0]->sub);*/
 
     /* If we have multiple candidates left, tie-break on any constraints. */
     if (possibles_count > 1) {
@@ -609,6 +617,7 @@ NULL.
 pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
     ATTR PMC  *candidates;
     ATTR struct candidate_info **candidates_sorted;
+    ATTR MMD_Cache *cache;
 
 /*
 
@@ -620,11 +629,17 @@ Allocates the PMC's underlying storage.
 
 */
     VTABLE void init() {
+        MMD_Cache *cache;
+        
         /* Allocate the underlying struct and make candidate list an empty
          * ResizablePMCArray. */
         PMC *candidates = pmc_new(interp, enum_class_ResizablePMCArray);
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Perl6MultiSub_attributes);
         SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates)
+
+        /* Set up a cache. */
+        cache = Parrot_mmd_cache_create(interp);
+        SETATTR_Perl6MultiSub_cache(interp, SELF, cache)
 
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
@@ -641,8 +656,10 @@ Frees the memory associated with this PMC's underlying storage.
 
 */
     VTABLE void destroy() {
-        /* If we built a sorted candidate list, free that. */
         candidate_info **candidates = NULL;
+        MMD_Cache *cache;
+
+        /* If we built a sorted candidate list, free that. */
         GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
         if (candidates) {
             candidate_info **cur_candidate = candidates;
@@ -653,6 +670,10 @@ Frees the memory associated with this PMC's underlying storage.
             }
             mem_sys_free(candidates);
         }
+
+        /* Free the cache. */
+        GETATTR_Perl6MultiSub_cache(interp, SELF, cache)
+        Parrot_mmd_cache_destroy(interp, cache);
 
         /* Free memory associated with this PMC's underlying struct. */
         mem_sys_free(PMC_data(SELF));
@@ -670,7 +691,10 @@ the Perl 6 MMD algorithm.
 
 */
     VTABLE opcode_t *invoke(void *next) {
-        PMC *found;
+        PMC             *found;
+        MMD_Cache       *cache;
+        candidate_info **candidates = NULL;
+        PMC             *unsorted;
 
         /* Get arguments. */
         PMC *args                   = get_args(interp);
@@ -684,26 +708,28 @@ the Perl 6 MMD algorithm.
         PMC      *params_signature  = interp->params_signature;
         PMC      *returns_signature = interp->returns_signature;
 
-        /* Make sure that we have a candidate list built. */
-        candidate_info **candidates = NULL;
-        PMC             *unsorted;
+        /* See if we have a cache entry. */
+        GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
+        /*found = Parrot_mmd_cache_lookup_by_values(interp, cache, NULL, args);
+        if (PMC_IS_NULL(found)) {*/
+            /* Make sure that we have a candidate list built. */
+            GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+            GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
 
-        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
-        GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
+            if (!candidates) {
+                candidates = sort_candidiates(interp, unsorted);
+                SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+            }
 
-        if (!candidates) {
-            candidates = sort_candidiates(interp, unsorted);
-            SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
-        }
+            if (!candidates)
+                Parrot_ex_throw_from_c_args(interp, next, 1,
+                    "Failed to build candidate list");
 
-        if (!candidates)
-            Parrot_ex_throw_from_c_args(interp, next, 1,
-                "Failed to build candidate list");
-
-        /* Now do the dispatch on the args we are being invoked with;
-         * if it can't find anything, it will throw the required exception. */
-        found = do_dispatch(interp, candidates, args, 0,
-                VTABLE_elements(interp, unsorted), (opcode_t *)next);
+            /* Now do the dispatch on the args we are being invoked with;
+             * if it can't find anything, it will throw the required exception. */
+            found = do_dispatch(interp, candidates, args, 0,
+                    VTABLE_elements(interp, unsorted), (opcode_t *)next, cache);
+        /*}*/
 
         /* Restore stuff that might have got overwriten by calls during the
          * dispatch algorithm. */
@@ -728,9 +754,13 @@ Marks the candidate list.
 */
     VTABLE void mark() {
         PMC *candidates;
+        MMD_Cache *cache;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
         if (!PMC_IS_NULL(candidates))
             pobject_lives(interp, (PObj*)candidates);
+        if (cache)
+            Parrot_mmd_cache_mark(interp, cache);
     }
 
 /*
@@ -744,6 +774,7 @@ Adds a new candidate to the candidate list.
 */
     VTABLE void push_pmc(PMC *sub) {
         PMC *candidates;
+        MMD_Cache *cache;
 
         /* Make sure it's invokable. */
         if (!check_invokable(interp, sub))
@@ -756,6 +787,12 @@ Adds a new candidate to the candidate list.
 
         /* Invalidate the sorted list - we'll need to re-build it. */
         SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, NULL);
+
+        /* Invalidate the cache. */
+        GETATTR_Perl6MultiSub_cache(interp, SELF, cache)
+        Parrot_mmd_cache_destroy(interp, cache);
+        cache = Parrot_mmd_cache_create(interp);
+        SETATTR_Perl6MultiSub_cache(interp, SELF, cache)
     }
 
 /*

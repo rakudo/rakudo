@@ -1014,8 +1014,6 @@ method signature($/) {
     # * $?BLOCK_SIGNATURED ends up containing the PAST tree for a block that
     #   takes and binds the parameters. This is used for generating subs,
     #   methods and so forth.
-    # * $?PARAM_TYPE_CHECK is used to export details of the types from here
-    #   so that the multi plurality declarator can make use of them.
 
     # Initialize PAST for the signatured block, if we're going to have it.
     our $?SIG_BLOCK_NOT_NEEDED;
@@ -1263,7 +1261,6 @@ method signature($/) {
     unless $?SIG_BLOCK_NOT_NEEDED {
         $block_past.arity( +$/[0] );
         our $?BLOCK_SIGNATURED := $block_past;
-        our $?PARAM_TYPE_CHECK := $type_check;
         $params.push($type_check);
     }
 

@@ -840,7 +840,7 @@ B<Note:> partial implementation only
     # skip matches between pos and end of llm
     llm = pos + klen
     val = itable[pos;1]
-    v_isa_closure = isa val, 'Closure'
+    v_isa_closure = isa val, 'Sub'
     pass_match = k_isa_match && v_isa_closure
     unless v_isa_closure, not_closure
     unless pass_match, simple_closure

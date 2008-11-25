@@ -809,6 +809,12 @@ Gets the number of candidate on the candidate list.
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
         return VTABLE_elements(interp, candidates);
     }
+
+    VTABLE PMC * get_iter() {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        return VTABLE_get_iter(interp, candidates);
+    }
 }
 
 /*

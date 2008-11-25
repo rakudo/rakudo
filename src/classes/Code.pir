@@ -19,7 +19,6 @@ for executable objects.
     codeproto = p6meta.'new_class'('Code', 'parent'=>'Any')
     codeproto.'!IMMUTABLE'()
     p6meta.'register'('Sub', 'parent'=>codeproto, 'protoobject'=>codeproto)
-    p6meta.'register'('Closure', 'parent'=>codeproto, 'protoobject'=>codeproto)
 .end
 
 

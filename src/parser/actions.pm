@@ -1038,9 +1038,11 @@ method signature($/) {
     );
 
     # Go through the parameters.
+    my $is_multi_invocant := 1;
     for $/[0] {
         my $parameter := $($_<parameter>);
         my $separator := $_[0];
+        my $is_invocant := 0;
 
         # Add parameter declaration to the block, if we're producing one.
         unless $?SIG_BLOCK_NOT_NEEDED {
@@ -1055,6 +1057,8 @@ method signature($/) {
 
             # If it is invocant, modify it to be just a lexical and bind self to it.
             if substr($separator, 0, 1) eq ':' {
+                $is_invocant := 1;
+
                 # Make sure it's first parameter.
                 if +@($params) != 1 {
                     $/.panic("There can only be one invocant and it must be the first parameter");
@@ -1090,6 +1094,12 @@ method signature($/) {
         }
         if $parameter.slurpy() {
             sig_descriptor_set($descriptor, 'slurpy', PAST::Val.new( :value(1) ));
+        }
+        if $is_invocant {
+            sig_descriptor_set($descriptor, 'invocant', PAST::Val.new( :value(1) ));
+        }
+        if $is_multi_invocant {
+            sig_descriptor_set($descriptor, 'multi_invocant', PAST::Val.new( :value(1) ));
         }
 
         # See if we have any traits. For now, we just handle ro, rw and copy.
@@ -1254,6 +1264,12 @@ method signature($/) {
                     )
                 ));
             }
+        }
+
+        # If the separator is a ;; then parameters beyond this are not multi
+        # invocants.
+        if substr($separator, 0, 2) eq ';;' {
+            $is_multi_invocant := 0;
         }
     }
 

@@ -397,7 +397,7 @@ rule multisig {
 }
 
 token signature {
-    ( <parameter> <.ws> ( ',' <.ws> | ':' <.ws> | <?before ')' | '{'> ) )* <.ws>
+    ( <parameter> <.ws> ( ',' <.ws> | ':' <.ws> | ';;' <.ws> | <?before ')' | '{'> ) )* <.ws>
     {*}
 }
 

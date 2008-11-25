@@ -710,12 +710,13 @@ token value {
 ##  F<src/parser/quote_expression.pir> .
 token quote {
     [
-    | <.before \'>   <quote_expression: :q>
-    | <.before '"' > <quote_expression: :qq>
-    | <.before '<' > <quote_expression: :w :q>
+    | <.before \'>     <quote_expression: :q>
+    | <.before '"' >   <quote_expression: :qq>
+    | <.before '<<' >  <quote_expression: :ww :qq>
+    | <.before '<' >   <quote_expression: :w :q>
     # | <.before '«' > <quote_expression: :ww :qq>  FIXME: unicode
-    | <.before '/'>  <quote_expression: :regex>
-    | m   <.ws>      <quote_expression: :regex>
+    | <.before '/'>    <quote_expression: :regex>
+    | m   <.ws>        <quote_expression: :regex>
     | q 
         [ q <.ws>      <quote_expression: :qq>
         | w <.ws>      <quote_expression: :q :w>

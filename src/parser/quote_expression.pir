@@ -21,6 +21,16 @@
   bracket_valid:
     inc $I0
     stop = substr brackets, $I0, 1
+    .local int len
+    len = 0
+  bracket_loop:
+    inc pos
+    inc len
+    $S0 = substr target, pos, 1
+    if $S0 == start goto bracket_loop
+    if len == 1 goto end
+    start = repeat start, len
+    stop  = repeat stop, len
   end:
     .return (start, stop)
 .end

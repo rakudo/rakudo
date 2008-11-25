@@ -457,15 +457,12 @@ method statement_prefix($/) {
         $past.push( PAST::Op.new( :inline( $elsepir ) ) );
     }
     elsif $sym eq 'gather' {
-        if $past.isa(PAST::Block) {
-            $past.blocktype('declaration');
+        if !$past.isa(PAST::Block) {
+            $past := PAST::Block.new($past)
         }
-        else {
-            $past := PAST::Block.new(:blocktype('declaration'), $past)
-        }
-        # XXX Workaround for lexicals issue.  rt #58854
-        $past := PAST::Op.new(:pirop('newclosure'), $past);
-        $past := PAST::Op.new( $past, :pasttype('call'), :name('gather'), :node($/) );
+        $past.blocktype('declaration');
+        $past := PAST::Op.new( $past, :pasttype('call'), 
+                               :name('gather'), :node($/) );
     }
     else {
         $/.panic( $sym ~ ' not implemented');

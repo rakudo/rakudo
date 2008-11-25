@@ -312,6 +312,15 @@ first). So for now we just transform multis in user code like this.
     goto iter_loop
   iter_loop_end:
     namespace[name] = p6multi
+
+    # If the namespace is associated with a class, need to update the method
+    # entry in that too.
+    .local pmc class
+    class = get_class namespace
+    if null class goto no_class
+    class.'remove_method'(name)
+    class.'add_method'(name, p6multi)
+  no_class:
     .return()
 
   error:

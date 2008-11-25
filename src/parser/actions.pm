@@ -537,13 +537,41 @@ method routine_declarator($/, $key) {
         # Set up the block details.
         $past.blocktype('method');
         set_block_proto($past, 'Method');
+        my $signature;
         if $<method_def><multisig> {
-            set_block_sig($past, $( $<method_def><multisig>[0]<signature> ));
+            $signature := $( $<method_def><multisig>[0]<signature> );
+            set_block_sig($past, $signature);
         }
         else {
-            set_block_sig($past, empty_signature());
+            $signature := empty_signature();
+            set_block_sig($past, $signature);
         }
         $past := add_method_to_class($past);
+
+        # If the signature doesn't include an explicity invocant, add one to
+        # the signature.
+        my $found_invocant := 0;
+        if $signature[1].isa(PAST::Stmts) && $signature[1][1].isa(PAST::Stmts) {
+            for @($signature[1][1]) {
+                if $_[0].value() eq 'invocant' {
+                    $found_invocant := 1;
+                }
+            }
+        }
+        if !$found_invocant {
+            # Add anonymous parameter taking invocant.
+            my $descriptor := sig_descriptor_create();
+            sig_descriptor_set($descriptor, 'name', PAST::Val.new( :value('$') ));
+            sig_descriptor_set($descriptor, 'invocant', PAST::Val.new( :value(1) ));
+            sig_descriptor_set($descriptor, 'constraints',
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('list')
+                ));
+            my $obj := $signature.shift();
+            $signature.unshift($descriptor);
+            $signature.unshift($obj);
+        }
     }
     $past.node($/);
     if (+@($past[1])) {

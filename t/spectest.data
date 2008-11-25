@@ -22,7 +22,6 @@ S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/num.t
 S02-builtin_data_types/range.t
 S02-builtin_data_types/subscripts_and_context.t
-S02-builtin_data_types/subtypes.t
 S02-builtin_data_types/type.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
@@ -167,6 +166,7 @@ S12-role/attributes.t
 S12-role/composition.t
 S12-role/mixin.t
 S12-subset/multi-dispatch.t
+S12-subset/subtypes.t
 S16-filehandles/io_in_while_loops.t
 S16-io/say.t
 S29-any/cmp.t

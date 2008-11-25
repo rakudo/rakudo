@@ -158,6 +158,7 @@ S12-introspection/can.t
 S12-methods/calling_syntax.t
 S12-methods/default-trait.t
 S12-methods/indirect_notation.t
+S12-methods/multi.t
 S12-methods/instance.t
 S12-methods/topic.t
 S12-methods/what.t

@@ -2293,7 +2293,8 @@ method scope_declarator($/) {
                     );
                 }
 
-                # Add block entry.
+                # Add block entry and set scope.
+                $past.scope($scope);
                 $?BLOCK.symbol($name, :scope($scope));
             }
         }

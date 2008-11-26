@@ -262,6 +262,9 @@ on error.
     .param pmc lang            :named('lang') :optional
     .param int have_lang       :opt_flag
 
+    $P0 = get_hll_global 'Str'
+    '!TYPECHECKPARAM'($P0, code)
+
     unless have_lang goto no_lang
     'die'('Lanuage parameter to eval unimplemented.')
   no_lang:

@@ -157,7 +157,13 @@ Checks the type of a parameter.
 
     $I0 = type.'ACCEPTS'(value)
     if $I0 goto ok
-    'die'('Parameter type check failed')
+    $P0 = getinterp
+    $P0 = $P0['sub' ; 1]
+    $S0 = $P0
+    if $S0 goto have_name
+    $S0 = '<anon>'
+  have_name:
+    'die'('Parameter type check failed in call to ', $S0)
 ok:
 .end
 

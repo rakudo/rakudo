@@ -1264,7 +1264,7 @@ method signature($/) {
                     PAST::Op.new(
                         :inline(
                             '    %r = new "Perl6Scalar"',
-                            '    "infix:="(%r, %0)'
+                            '    "!COPYPARAM"(%r, %0)'
                         ),
                         PAST::Var.new(
                             :name($parameter.name()),

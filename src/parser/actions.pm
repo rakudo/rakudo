@@ -2904,7 +2904,7 @@ method EXPR($/, $key) {
 
         # Check that we have a sub call.
         if !$call.isa(PAST::Op) || $call.pasttype() ne 'call' {
-            $/.panic('.= must have a call on the right hand side');
+            $/[0].panic('.= must have a call on the right hand side');
         }
 
         # Make a duplicate of the target node to receive result
@@ -2939,7 +2939,7 @@ method EXPR($/, $key) {
         if $rhs.isa(PAST::Op) && $rhs.pasttype() eq 'call' {
             # Make sure we only have one initialization value.
             if +@($rhs) > 2 {
-                $/.panic("Role initialization can only supply a value for one attribute");
+                $/[0].panic("Role initialization can only supply a value for one attribute");
             }
             # Push role name and argument onto infix:does or infix:but.
             $past.push($rhs[0]);

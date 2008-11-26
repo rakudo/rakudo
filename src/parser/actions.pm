@@ -461,7 +461,7 @@ method statement_prefix($/) {
             $past := PAST::Block.new($past)
         }
         $past.blocktype('declaration');
-        $past := PAST::Op.new( $past, :pasttype('call'), 
+        $past := PAST::Op.new( $past, :pasttype('call'),
                                :name('gather'), :node($/) );
     }
     else {

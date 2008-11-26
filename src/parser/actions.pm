@@ -717,7 +717,7 @@ method enum_declarator($/, $key) {
         # can get data from it..
         $class_past.push(PAST::Op.new(
             :pasttype('callmethod'),
-            :name('add_method'),
+            :name('add_vtable_override'),
             PAST::Var.new(
                 :scope('lexical'),
                 :name('$def')
@@ -730,19 +730,11 @@ method enum_declarator($/, $key) {
                     :name("$!" ~ $name),
                     :scope('attribute')
                 )
-            ),
-            PAST::Val.new(
-                :value(1),
-                :named( PAST::Val.new( :value('vtable') ) )
-            ),
-            PAST::Val.new(
-                :value(1),
-                :named( PAST::Val.new( :value('anon') ) )
             )
         ));
         $class_past.push(PAST::Op.new(
             :pasttype('callmethod'),
-            :name('add_method'),
+            :name('add_vtable_override'),
             PAST::Var.new(
                 :scope('lexical'),
                 :name('$def')
@@ -759,19 +751,11 @@ method enum_declarator($/, $key) {
                         :scope('attribute')
                     )
                 )
-            ),
-            PAST::Val.new(
-                :value(1),
-                :named( PAST::Val.new( :value('vtable') ) )
-            ),
-            PAST::Val.new(
-                :value(1),
-                :named( PAST::Val.new( :value('anon') ) )
             )
         ));
         $class_past.push(PAST::Op.new(
             :pasttype('callmethod'),
-            :name('add_method'),
+            :name('add_vtable_override'),
             PAST::Var.new(
                 :scope('lexical'),
                 :name('$def')
@@ -788,19 +772,11 @@ method enum_declarator($/, $key) {
                         :scope('attribute')
                     )
                 )
-            ),
-            PAST::Val.new(
-                :value(1),
-                :named( PAST::Val.new( :value('vtable') ) )
-            ),
-            PAST::Val.new(
-                :value(1),
-                :named( PAST::Val.new( :value('anon') ) )
             )
         ));
         $class_past.push(PAST::Op.new(
             :pasttype('callmethod'),
-            :name('add_method'),
+            :name('add_vtable_override'),
             PAST::Var.new(
                 :scope('lexical'),
                 :name('$def')
@@ -817,14 +793,6 @@ method enum_declarator($/, $key) {
                         :scope('attribute')
                     )
                 )
-            ),
-            PAST::Val.new(
-                :value(1),
-                :named( PAST::Val.new( :value('vtable') ) )
-            ),
-            PAST::Val.new(
-                :value(1),
-                :named( PAST::Val.new( :value('anon') ) )
             )
         ));
 

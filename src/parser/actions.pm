@@ -1055,14 +1055,14 @@ method signature($/) {
 
         # Add parameter declaration to the block, if we're producing one.
         unless $?SIG_BLOCK_NOT_NEEDED {
-            # Register symbol and put parameter PAST into the node.
-            $block_past.symbol($parameter.name(), :scope('lexical'));
-            $params.push($parameter);
-
             # If it has & sigil, strip it off.
             if substr($parameter.name(), 0, 1) eq '&' {
                 $parameter.name(substr($parameter.name(), 1));
             }
+
+            # Register symbol and put parameter PAST into the node.
+            $block_past.symbol($parameter.name(), :scope('lexical'));
+            $params.push($parameter);
 
             # If it is invocant, modify it to be just a lexical and bind self to it.
             if substr($separator, 0, 1) eq ':' {

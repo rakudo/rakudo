@@ -2907,23 +2907,29 @@ method EXPR($/, $key) {
             $/[0].panic('.= must have a call on the right hand side');
         }
 
-        # Make a duplicate of the target node to receive result
-        my $target := PAST::Var.new(
-            :name($invocant.name()),
-            :scope($invocant.scope()),
-            :lvalue(1)
-        );
-
-        # Change call node to a callmethod and add the invocant
+        # Change call node to a callmethod.
         $call.pasttype('callmethod');
-        $call.unshift($invocant);
 
-        # and assign result to target
+        # We only want to evaluate invocant once; stash it in a register.
+        $call.unshift(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new(
+                :name('detemp'),
+                :scope('register'),
+                :isdecl(1)
+            ),
+            $invocant
+        ));
+
+        # Do call, then assignment to target container.
         my $past := PAST::Op.new(
             :inline("    %r = 'infix:='(%1, %0)"),
             :node($/),
             $call,
-            $target
+            PAST::Var.new(
+                :name('detemp'),
+                :scope('register')
+            )
         );
 
         make $past;

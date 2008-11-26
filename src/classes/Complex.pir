@@ -98,6 +98,24 @@ Returns a Perl representation of the Complex.
     .return ($P0)
 .end
 
+.namespace [ 'Any' ]
+
+=item Complex
+
+Casts a value to a complex number.
+
+=cut
+
+.sub 'Complex' :method :multi(_)
+    $I0 = isa self, 'Complex'
+    unless $I0 goto cast
+    .return (self)
+  cast:
+    $P0 = new 'Complex'
+    $N0 = self
+    $P0[0] = $N0
+    .return ($P0)
+.end
 
 =back
 
@@ -128,6 +146,7 @@ Returns a Perl representation of the Complex.
 .sub 'infix:+' :multi('Complex', _)
     .param pmc a
     .param pmc b
+    b = b.'Complex'()
     $P0 = new 'Complex'
     add $P0, a, b
     .return ($P0)
@@ -136,6 +155,7 @@ Returns a Perl representation of the Complex.
 .sub 'infix:+' :multi(_, 'Complex')
     .param pmc a
     .param pmc b
+    a = a.'Complex'()
     $P0 = new 'Complex'
     add $P0, a, b
     .return ($P0)
@@ -157,6 +177,7 @@ Returns a Perl representation of the Complex.
 .sub 'infix:-' :multi('Complex', _)
     .param pmc a
     .param pmc b
+    b = b.'Complex'()
     $P0 = new 'Complex'
     sub $P0, a, b
     .return ($P0)
@@ -165,6 +186,7 @@ Returns a Perl representation of the Complex.
 .sub 'infix:-' :multi(_, 'Complex')
     .param pmc a
     .param pmc b
+    a = a.'Complex'()
     $P0 = new 'Complex'
     sub $P0, a, b
     .return ($P0)
@@ -188,6 +210,7 @@ Returns a Perl representation of the Complex.
 .sub 'infix:*' :multi('Complex', _)
     .param pmc a
     .param pmc b
+    b = b.'Complex'()
     $P0 = new 'Complex'
     mul $P0, a, b
     .return ($P0)
@@ -196,6 +219,7 @@ Returns a Perl representation of the Complex.
 .sub 'infix:*' :multi(_, 'Complex')
     .param pmc a
     .param pmc b
+    a = a.'Complex'()
     $P0 = new 'Complex'
     mul $P0, a, b
     .return ($P0)
@@ -209,6 +233,7 @@ Returns a Perl representation of the Complex.
 .sub 'infix:/' :multi('Complex', _)
     .param pmc a
     .param pmc b
+    b = b.'Complex'()
     $P0 = new 'Complex'
     div $P0, a, b
     .return ($P0)
@@ -217,6 +242,7 @@ Returns a Perl representation of the Complex.
 .sub 'infix:/' :multi(_, 'Complex')
     .param pmc a
     .param pmc b
+    a = a.'Complex'()
     $P0 = new 'Complex'
     div $P0, a, b
     .return ($P0)

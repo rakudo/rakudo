@@ -4,6 +4,7 @@
 
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
+integration/man-or-boy.t
 integration/real-strings.t
 S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t

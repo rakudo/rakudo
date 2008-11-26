@@ -734,6 +734,10 @@ method enum_declarator($/, $key) {
             PAST::Val.new(
                 :value(1),
                 :named( PAST::Val.new( :value('vtable') ) )
+            ),
+            PAST::Val.new(
+                :value(1),
+                :named( PAST::Val.new( :value('anon') ) )
             )
         ));
         $class_past.push(PAST::Op.new(
@@ -759,6 +763,10 @@ method enum_declarator($/, $key) {
             PAST::Val.new(
                 :value(1),
                 :named( PAST::Val.new( :value('vtable') ) )
+            ),
+            PAST::Val.new(
+                :value(1),
+                :named( PAST::Val.new( :value('anon') ) )
             )
         ));
         $class_past.push(PAST::Op.new(
@@ -784,6 +792,10 @@ method enum_declarator($/, $key) {
             PAST::Val.new(
                 :value(1),
                 :named( PAST::Val.new( :value('vtable') ) )
+            ),
+            PAST::Val.new(
+                :value(1),
+                :named( PAST::Val.new( :value('anon') ) )
             )
         ));
         $class_past.push(PAST::Op.new(
@@ -809,6 +821,10 @@ method enum_declarator($/, $key) {
             PAST::Val.new(
                 :value(1),
                 :named( PAST::Val.new( :value('vtable') ) )
+            ),
+            PAST::Val.new(
+                :value(1),
+                :named( PAST::Val.new( :value('anon') ) )
             )
         ));
 

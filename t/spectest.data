@@ -165,6 +165,7 @@ S12-methods/what.t
 S12-role/attributes.t
 S12-role/composition.t
 S12-role/mixin.t
+S12-role/namespaced.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S16-filehandles/io_in_while_loops.t

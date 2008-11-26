@@ -401,20 +401,22 @@ Internal helper method to create a role.
     .param string name
     .local pmc info, role
 
-    # Need to make sure it ends up attached to the right
-    # namespace.
+    # Need to make sure it ends up attached to the right namespace.
+    .local pmc ns
+    ns = split '::', name
+    name = ns[-1]
     info = new 'Hash'
     info['name'] = name
-    $P0 = new 'ResizablePMCArray'
-    $P0[0] = name
-    info['namespace'] = $P0
+    info['namespace'] = ns
 
     # Create role.
     role = new 'Role', info
 
     # Stash in namespace.
-    $P0 = new 'ResizableStringArray'
-    set_hll_global $P0, name, role
+    $I0 = elements ns
+    dec $I0
+    ns = $I0
+    set_hll_global ns, name, role
 
     .return(role)
 .end

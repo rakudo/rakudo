@@ -1594,6 +1594,13 @@ sub apply_package_traits($package, $traits) {
         }
         elsif $aux<sym> eq 'does' {
             # Role.
+            my @identifier := Perl6::Compiler.parse_name(~$aux<name>);
+            my $name := @identifier.pop();
+            my $role_name := PAST::Var.new(
+                                 :name($name),
+                                 :namespace(@identifier),
+                                 :scope('package'),
+                             );
             $package.push(
                 PAST::Op.new(
                     :pasttype('call'),
@@ -1602,10 +1609,7 @@ sub apply_package_traits($package, $traits) {
                         :name('$def'),
                         :scope('lexical')
                     ),
-                    PAST::Var.new(
-                        :name(~$aux<name>),
-                        :scope('package')
-                    )
+                    $role_name
                 )
             );
         }

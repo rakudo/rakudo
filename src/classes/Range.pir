@@ -332,7 +332,7 @@ Construct a Range from C< 0 ..^ $to >.
 
 .namespace[]
 .sub 'prefix:^' :multi(_)
-    .param pmc to
+    .param num to
     .tailcall 'infix:..^'(0, to)
 .end
 
@@ -345,29 +345,6 @@ Return $x.HOW.
 .sub 'prefix:^' :multi('P6Protoobject')
     .param pmc proto
     .tailcall proto.'HOW'()
-.end
-
-=item prefix:<^>(List @a)
-
-=cut
-
-.sub 'prefix:^' :multi('ResizablePMCArray')
-    .param pmc list
-
-    # Iterate over the list and and create a list of Ranges
-    .local pmc ranges, it
-    ranges = 'list'()
-    it = list.'iterator'()
-  iter_loop:
-    unless it goto iter_loop_end
-    $P0 = shift it
-    $P0 = 'infix:..^'(0, $P0)
-    push ranges, $P0
-    goto iter_loop
-  iter_loop_end:
-
-    # Now just use cross operator to make all the permutations.
-    .tailcall 'infix:X'(ranges)
 .end
 
 =back

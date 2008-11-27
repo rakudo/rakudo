@@ -4,7 +4,7 @@ Copyright (C) 2008, The Perl Foundation.
 
 =head1 NAME
 
-src/pmc/perl6multiub.pmc - Perl 6 MultiSub PMC
+src/pmc/perl6multisub.pmc - Perl 6 MultiSub PMC
 
 =head1 DESCRIPTION
 
@@ -678,6 +678,12 @@ Frees the memory associated with this PMC's underlying storage.
         /* Free memory associated with this PMC's underlying struct. */
         mem_sys_free(PMC_data(SELF));
         PMC_data(SELF) = NULL;
+    }
+
+    VTABLE PMC* get_pmc_keyed_int(INTVAL value) {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        return VTABLE_get_pmc_keyed_int(interp, candidates, value);
     }
 
 /*

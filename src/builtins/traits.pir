@@ -43,7 +43,6 @@ src/builtins/traits.pir - Perl 6 built-in traits
     .param pmc the_sub
     $P0 = get_hll_global [ 'Bool' ], 'True'
     setprop the_sub, 'default', $P0
-    say "oh yes"
 .end
 
 =back

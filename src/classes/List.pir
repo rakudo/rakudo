@@ -688,59 +688,50 @@ The zip operator.
 =cut
 
 .sub 'infix:Z'
-    .param pmc args :slurpy
-    .local int num_args
-    num_args = elements args
+    .param pmc arglist :slurpy
+    .local pmc result
 
-    # Empty list of no arguments.
-    if num_args > 0 goto has_args
-    $P0 = new 'List'
-    .return($P0)
-has_args:
+    # create a list to hold the results
+    result = new 'List'
 
-    # Get minimum element count - what we'll zip to.
-    .local int min_elem
-    .local int i
-    i = 0
-    $P0 = args[0]
-    min_elem = elements $P0
-min_elems_loop:
-    if i >= num_args goto min_elems_loop_end
-    $P0 = args[i]
-    $I0 = elements $P0
-    unless $I0 < min_elem goto not_min
-    min_elem = $I0
-not_min:
-    inc i
-    goto min_elems_loop
-min_elems_loop_end:
+    unless arglist goto result_done
 
-    # Now build result list of lists.
-    .local pmc res
-    res = new 'List'
-    i = 0
-zip_loop:
-    if i >= min_elem goto zip_loop_end
-    .local pmc cur_list
-    cur_list = new 'List'
-    .local int j
-    j = 0
-zip_elem_loop:
-    if j >= num_args goto zip_elem_loop_end
-    $P0 = args[j]
-    $P0 = $P0[i]
-    cur_list[j] = $P0
-    inc j
-    goto zip_elem_loop
-zip_elem_loop_end:
-    res[i] = cur_list
-    inc i
-    goto zip_loop
-zip_loop_end:
+    # create a set of iterators, one per argument
+    .local pmc iterlist, arglist_it
+    iterlist = new 'ResizablePMCArray'
+    arglist_it = iter arglist
+  arglist_loop:
+    unless arglist_it goto arglist_done
+    .local pmc arg, arg_it
+    arg = shift arglist_it
+    arg_it = iter arg
+    push iterlist, arg_it
+    goto arglist_loop
+  arglist_done:
 
-    .return(res)
+    # repeatedly loop through the argument iterators in parallel,
+    # building result elements as we go.  When we reach
+    # an argument iterator with no more elements, we're done. 
+
+  outer_loop:
+    .local pmc iterlist_it, reselem
+    iterlist_it = iter iterlist
+    reselem = new 'List'
+  iterlist_loop:
+    unless iterlist_it goto iterlist_done
+    arg_it = shift iterlist_it
+    unless arg_it goto result_done
+    $P0 = shift arg_it
+    reselem.'push'($P0)
+    goto iterlist_loop
+  iterlist_done:
+    result.'push'(reselem)
+    goto outer_loop
+
+  result_done:
+    .return (result)
 .end
-
+    
 
 =item C<infix:X(...)>
 

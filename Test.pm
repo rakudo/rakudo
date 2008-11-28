@@ -174,7 +174,7 @@ sub _is_deeply( $this, $that) {
         return $this eq $that;
     }
     elsif $this ~~ Pair && $that ~~ Pair {
-        return $this.key eq $that.key 
+        return $this.key eq $that.key
                && _is_deeply( $this.value, $this.value );
     }
     elsif $this ~~ undef && $that ~~ undef && $this.WHAT eq $that.WHAT {

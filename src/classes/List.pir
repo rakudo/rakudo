@@ -711,7 +711,7 @@ The zip operator.
 
     # repeatedly loop through the argument iterators in parallel,
     # building result elements as we go.  When we reach
-    # an argument iterator with no more elements, we're done. 
+    # an argument iterator with no more elements, we're done.
 
   outer_loop:
     .local pmc iterlist_it, reselem
@@ -731,7 +731,7 @@ The zip operator.
   result_done:
     .return (result)
 .end
-    
+
 
 =item C<infix:X(...)>
 

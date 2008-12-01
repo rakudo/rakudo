@@ -3163,7 +3163,7 @@ sub build_call($args) {
 sub declare_implicit_routine_vars($block) {
     for ('$_', '$/', '$!') {
         unless $block.symbol($_) {
-            $block[0].push( PAST::Var.new( :name($_), 
+            $block[0].push( PAST::Var.new( :name($_),
                                            :scope('lexical'),
                                            :isdecl(1),
                                            :viviself('Perl6Scalar') ) );
@@ -3182,7 +3182,7 @@ sub declare_implicit_block_vars($block, $tparam) {
         unless $block.symbol($_) {
             my $lex := PAST::Op.new(:inline('    set %r, outerlex["'~$_~'"]'));
             my $scope := ($tparam && $_ eq '$_') ?? 'parameter' !! 'lexical';
-            $block[0].push( 
+            $block[0].push(
                 PAST::Var.new( :name($_),
                                :scope($scope),
                                :isdecl(1),

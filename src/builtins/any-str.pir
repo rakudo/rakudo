@@ -921,7 +921,7 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     if global_flag goto subst_loop
   subst_done:
     .return (result)
-.end    
+.end
 
 
 .sub 'subst' :method :multi(_, 'Sub', _)
@@ -990,7 +990,7 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
   subst_done:
     .return (result)
 .end
-    
+
 
 =item ord()
 

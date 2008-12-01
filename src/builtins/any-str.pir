@@ -947,7 +947,8 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     push matchlist, match
     unless global_flag goto matchlist_done
   matchlist_loop:
-    match = regex(match)
+    $I0 = match.'to'()
+    match = regex(match, 'continue'=>$I0)
     unless match goto matchlist_done
     push matchlist, match
     goto matchlist_loop

@@ -5,6 +5,9 @@
 use Cwd;
 use File::Spec;
 use Getopt::Long;
+use lib qw| lib ../lib ../../lib |;
+use Parrot::Config;
+
 
 my $help      = 0;
 my $verbose   = 0;
@@ -13,6 +16,8 @@ my $jit       = 0;
 my $test      = 0;
 my $codetest  = 0;
 my $spectest  = 0;
+my $make      = $PConfig{make};
+
 
 GetOptions('help!'      => \$help,
            'verbose!'   => \$verbose,
@@ -29,10 +34,10 @@ options:
   -h|--help        print this usage info
   -v|--verbose     show verbose output
   -j|--jit         enable JIT during configuration
-  -t|--test        run 'make test'      after build
-  -c|--codetest    run 'make codetest'  after build
-  -s|--spectest    run 'make spectest'  after build
-  -r|--realclean   run 'make realclean' before rebase, and configure after
+  -t|--test        run '$make test'      after build
+  -c|--codetest    run '$make codetest'  after build
+  -s|--spectest    run '$make spectest'  after build
+  -r|--realclean   run '$make realclean' before rebase, and configure after
                    (default on; use --no-realclean to turn it off)
 
 For extra golfing goodness, try creating a shell alias
@@ -47,7 +52,7 @@ print "... found at '" . cwd . "'.\n\n" if $verbose;
 
 if ($realclean && -e 'Makefile') {
     print "Cleaning old build ...\n";
-    run_command(qw( make realclean ));
+    run_command( $make, 'realclean' );
 }
 
 print "Rebasing Parrot ...\n";
@@ -64,25 +69,25 @@ unless (-e 'Makefile') {
 }
 
 print "Making Parrot ...\n";
-run_command(qw( make ));
+run_command( $make );
 
 print "Making Rakudo ...\n";
-run_command(qw( make perl6 ));
+run_command( $make, 'perl6' );
 
 if ($test) {
     print "Running standard Parrot tests ...\n";
-    run_command(qw( make test ));
+    run_command( $make, 'test' );
 }
 
 if ($codetest) {
     print "Running coding standard compliance tests ...\n";
-    run_command(qw( make codetest ));
+    run_command( $make, 'codetest' );
 }
 
 if ($spectest) {
     print "Running Perl 6 spec tests ...\n";
     chdir 'languages/perl6';
-    run_command(qw( make spectest ));
+    run_command( $make, 'spectest' );
 }
 
 print "Done.\n";

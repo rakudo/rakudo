@@ -892,7 +892,7 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
 
 =cut
 
-.sub subst :method :multi(_, _, _)
+.sub 'subst' :method :multi(_, _, _)
     .param string substring
     .param string replacement
     .local int pos
@@ -924,54 +924,72 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     .return(retv)
 .end
 
-.sub subst :method :lex :multi(_, 'Sub', _)
-    .param pmc regexp
+.sub 'subst' :method :multi(_, 'Sub', _)
+    .param pmc regex
     .param pmc replacement
-    .local int pos
-    .local int pos_after
-    .local pmc retv
-    .local pmc match
+    .param pmc options         :slurpy :named
 
-    retv = new 'Perl6Str'
+    .local pmc global_flag
+    global_flag = options['global']
+    unless null global_flag goto have_global
+    global_flag = options['g']
+    unless null global_flag goto have_global
+    global_flag = get_hll_global ['Bool'], 'False'
+  have_global:
 
-    new $P14, "Perl6Scalar"
-    .lex "$/", $P14
+    # build a list of matches
+    .local pmc matchlist, match
+    .local string result
+    matchlist = new 'ResizablePMCArray'
+    result = self
+    match = regex(result)
+    unless match goto matchlist_done
+    push matchlist, match
+    unless global_flag goto matchlist_done
+  matchlist_loop:
+    match = regex(match)
+    unless match goto matchlist_done
+    push matchlist, match
+    goto matchlist_loop
+  matchlist_done:
 
-    match = regexp.'ACCEPTS'(self)
-    unless match goto no_match
-    pos = match.'from'()
-    pos_after = match.'to'()
+    # get caller's lexpad
+    .local pmc lexpad
+    $P0 = getinterp
+    lexpad = $P0['lexpad';1]
 
-    $S0 = self
-    $S1 = substr $S0, 0, pos
-    $S2 = substr $S0, pos_after
-    # pre-match
-    concat retv, $S1
-
-    # match
+    # now, perform substitutions on matchlist until done
+    .local int offset
+    offset = 0
+    result = clone result
+  subst_loop:
+    unless matchlist goto subst_done
+    match = shift matchlist
+    lexpad['$/'] = match
+    # get substitution string
+    .local string replacestr
     $I0 = isa replacement, 'Sub'
-    unless $I0 goto is_string
-
-    $S3 = match.'text'()
-    $S3 = replacement($S3)
-    concat retv, $S3
-    goto repl_done
-
-  is_string:
-    concat retv, replacement
-
-  repl_done:
-    # post-match
-    concat retv, $S2
-
-    goto done
-
-  no_match:
-    retv = self
-
-  done:
-    .return(retv)
+    if $I0 goto replacement_sub
+    replacestr = replacement
+    goto have_replacestr
+  replacement_sub:
+    $S0 = match
+    replacestr = replacement($S0)
+  have_replacestr:
+    # perform the replacement
+    $I0 = match.'from'()
+    $I1 = match.'to'()
+    $I2 = $I1 - $I0
+    $I0 += offset
+    substr result, $I0, $I2, replacestr
+    $I3 = length replacestr
+    $I3 -= $I2
+    offset += $I3
+    goto subst_loop
+  subst_done:
+    .return (result)
 .end
+    
 
 =item ord()
 

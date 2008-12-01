@@ -68,7 +68,7 @@ method TOP($/) {
                  :name('args_str'),
                  :scope('parameter')
                 ),
-                PAST::Val.new( :value(1) )
+                1
             ),
             PAST::Op.new(
                 :inline(
@@ -292,7 +292,7 @@ method default_statement($/) {
 method loop_statement($/) {
     my $block := $( $<block> );
     $block.blocktype('immediate');
-    my $cond  := $<e2> ?? $( $<e2>[0] ) !! PAST::Val.new( :value( 1 ) );
+    my $cond  := $<e2> ?? $( $<e2>[0] ) !! 1;
     if $<e3> {
         $block := PAST::Stmts.new( $block, $( $<e3>[0] ) );
     }
@@ -562,7 +562,7 @@ method routine_declarator($/, $key) {
             # Add anonymous parameter taking invocant.
             my $descriptor := sig_descriptor_create();
             sig_descriptor_set($descriptor, 'name', PAST::Val.new( :value('$') ));
-            sig_descriptor_set($descriptor, 'invocant', PAST::Val.new( :value(1) ));
+            sig_descriptor_set($descriptor, 'invocant', 1);
             sig_descriptor_set($descriptor, 'constraints',
                 PAST::Op.new(
                     :pasttype('call'),
@@ -720,7 +720,7 @@ method enum_declarator($/, $key) {
                 :scope('lexical'),
                 :name('$def')
             ),
-            PAST::Val.new( :value('invoke') ),
+            'invoke',
             PAST::Block.new(
                 :blocktype('declaration'),
                 :pirflags(":method"),
@@ -737,7 +737,7 @@ method enum_declarator($/, $key) {
                 :scope('lexical'),
                 :name('$def')
             ),
-            PAST::Val.new( :value('get_string') ),
+            'get_string',
             PAST::Block.new(
                 :blocktype('declaration'),
                 :pirflags(":method"),
@@ -758,7 +758,7 @@ method enum_declarator($/, $key) {
                 :scope('lexical'),
                 :name('$def')
             ),
-            PAST::Val.new( :value('get_integer') ),
+            'get_integer',
             PAST::Block.new(
                 :blocktype('declaration'),
                 :pirflags(":method"),
@@ -779,7 +779,7 @@ method enum_declarator($/, $key) {
                 :scope('lexical'),
                 :name('$def')
             ),
-            PAST::Val.new( :value('get_number') ),
+            'get_number',
             PAST::Block.new(
                 :blocktype('declaration'),
                 :pirflags(":method"),
@@ -1097,16 +1097,16 @@ method signature($/) {
                 PAST::Val.new( :value(~$parameter.named()) ));
         }
         if $parameter.viviself() {
-            sig_descriptor_set($descriptor, 'optional', PAST::Val.new( :value(1) ));
+            sig_descriptor_set($descriptor, 'optional', 1);
         }
         if $parameter.slurpy() {
-            sig_descriptor_set($descriptor, 'slurpy', PAST::Val.new( :value(1) ));
+            sig_descriptor_set($descriptor, 'slurpy', 1);
         }
         if $is_invocant {
-            sig_descriptor_set($descriptor, 'invocant', PAST::Val.new( :value(1) ));
+            sig_descriptor_set($descriptor, 'invocant', 1);
         }
         if $is_multi_invocant {
-            sig_descriptor_set($descriptor, 'multi_invocant', PAST::Val.new( :value(1) ));
+            sig_descriptor_set($descriptor, 'multi_invocant', 1);
         }
 
         # See if we have any traits. For now, we just handle ro, rw and copy.
@@ -3320,7 +3320,7 @@ sub make_handles_method($/, $from_name, $to_name, $attr_name) {
                 :name('%h'),
                 :scope('lexical'),
                 :flat(1),
-                :named(PAST::Val.new( :value(1) ))
+                :named(1)
             )
         )
     )

@@ -6,9 +6,7 @@ class Perl6::Grammar::Actions ;
 method TOP($/) {
     my $past := $( $<statement_block> );
     $past.blocktype('declaration');
-    declare_implicit_var($past, '$_', 'new');
-    declare_implicit_var($past, '$!', 'new');
-    declare_implicit_var($past, '$/', 'new');
+    declare_implicit_routine_vars($past);
 
     # Attach any initialization code.
     our $?INIT;
@@ -208,12 +206,12 @@ method statement_control($/, $key) {
 method if_statement($/) {
     my $count := +$<xblock> - 1;
     my $past  := $( $<xblock>[$count] );
-    declare_implicit_immediate_vars( $past[1] );
+    declare_implicit_block_vars($past[1], 0);
     ## add any 'else' clause
     if $<pblock> {
         my $else := $( $<pblock>[0] );
         $else.blocktype('immediate');
-        declare_implicit_immediate_vars($else);
+        declare_implicit_block_vars($else, 0);
         $past.push( $else );
     }
     ## build if/then/elsif structure
@@ -221,7 +219,7 @@ method if_statement($/) {
         $count--;
         my $else := $past;
         $past := $( $<xblock>[$count] );
-        declare_implicit_immediate_vars( $past[1] );
+        declare_implicit_block_vars($past[1], 0);
         $past.push($else);
     }
     make $past;
@@ -230,14 +228,14 @@ method if_statement($/) {
 method unless_statement($/) {
     my $past := $( $<xblock> );
     $past.pasttype('unless');
-    declare_implicit_immediate_vars( $past[1] );
+    declare_implicit_block_vars($past[1], 0);
     make $past;
 }
 
 method while_statement($/) {
     my $past := $( $<xblock> );
     $past.pasttype(~$<sym>);
-    declare_implicit_immediate_vars( $past[1] );
+    declare_implicit_block_vars($past[1], 0);
     make $past;
 }
 
@@ -365,6 +363,7 @@ method use_statement($/) {
 method begin_statement($/) {
     my $past := $( $<block> );
     $past.blocktype('declaration');
+    declare_implicit_routine_vars($past);                  # FIXME
     my $sub := PAST::Compiler.compile( $past );
     $sub();
     # XXX - should emit BEGIN side-effects, and do a proper return()
@@ -374,6 +373,7 @@ method begin_statement($/) {
 method end_statement($/) {
     my $past := $( $<block> );
     $past.blocktype('declaration');
+    declare_implicit_routine_vars($past);                  # FIXME
     my $sub := PAST::Compiler.compile( $past );
     PIR q<  $P0 = get_hll_global ['Perl6'], '@?END_BLOCKS' >;
     PIR q<  $P1 = find_lex '$sub' >;
@@ -575,9 +575,7 @@ method routine_declarator($/, $key) {
     }
     $past.node($/);
     if (+@($past[1])) {
-        declare_implicit_var($past, '$_', 'new');
-        declare_implicit_var($past, '$!', 'new');
-        declare_implicit_var($past, '$/', 'new');
+        declare_implicit_routine_vars($past);
     }
     else {
         $past[1].push( PAST::Op.new( :name('list') ) );
@@ -3162,40 +3160,43 @@ sub build_call($args) {
 }
 
 
-sub declare_implicit_var($block, $name, $type) {
-    unless $block.symbol($name) {
-        my $var := PAST::Var.new( :name($name), :isdecl(1) );
-        $var.scope($type eq 'parameter' ?? 'parameter' !! 'lexical');
-        if $type eq 'new' {
-            $var.viviself( 'Perl6Scalar' );
+sub declare_implicit_routine_vars($block) {
+    for ('$_', '$/', '$!') {
+        unless $block.symbol($_) {
+            $block[0].push( PAST::Var.new( :name($_), 
+                                           :scope('lexical'),
+                                           :isdecl(1),
+                                           :viviself('Perl6Scalar') ) );
+            $block.symbol($_, :scope('lexical') );
         }
-        else {
-            my $opast := PAST::Op.new(
-                :name('!OUTER'),
-                PAST::Val.new( :value($name) )
-            );
-            $var.viviself($opast);
-        }
-        $block[0].push($var);
-        $block.symbol($name, :scope('lexical') );
     }
 }
 
 
+sub declare_implicit_block_vars($block, $tparam) {
+    $block[0].push( PAST::Op.new(
+                        :inline('    .local pmc outerlex',
+                                '    getinterp $P0',
+                                '    set outerlex, $P0["outer";"lexpad";1]')));
+    for ('$_', '$/', '$!') {
+        unless $block.symbol($_) {
+            my $lex := PAST::Op.new(:inline('    set %r, outerlex[%0]'), $_);
+            my $scope := ($tparam && $_ eq '$_') ?? 'parameter' !! 'lexical';
+            $block[0].push( 
+                PAST::Var.new( :name($_),
+                               :scope($scope),
+                               :isdecl(1),
+                               :viviself($lex)
+                )
+            );
+            $block.symbol($_, :scope('lexical') );
+        }
+    }
+}
+
 sub declare_implicit_function_vars($block) {
-    declare_implicit_var($block, '$_',
-        defined($block.arity()) ?? 'outer' !! 'parameter');
-    declare_implicit_var($block, '$!', 'outer');
-    declare_implicit_var($block, '$/', 'outer');
+    declare_implicit_block_vars($block, !defined($block.arity()));
 }
-
-
-sub declare_implicit_immediate_vars($block) {
-    declare_implicit_var($block, '$_', 'outer');
-    declare_implicit_var($block, '$!', 'outer');
-    declare_implicit_var($block, '$/', 'outer');
-}
-
 
 sub contextualizer_name($/, $sigil) {
     ##  Contextualizing is calling .item, .list, .hash, etc.

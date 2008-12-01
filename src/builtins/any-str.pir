@@ -895,34 +895,34 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
 .sub 'subst' :method :multi(_, _, _)
     .param string substring
     .param string replacement
-    .local int pos
-    .local int pos_after
-    .local pmc retv
+    .param pmc options         :slurpy :named
 
-    retv = new 'Perl6Str'
+    .local pmc global_flag
+    global_flag = options['global']
+    unless null global_flag goto have_global
+    global_flag = options['g']
+    unless null global_flag goto have_global
+    global_flag = get_hll_global ['Bool'], 'False'
+  have_global:
 
-    $S0 = self
-    pos = index $S0, substring
-    if pos < 0 goto no_match
+    .local string result
+    result = self
+    result = clone result
 
-    pos_after = pos
-    $I0 = length substring
-    add pos_after, $I0
+    .local int pos, substringlen, replacelen
+    pos = 0
+    substringlen = length substring
+    replacelen = length replacement
+  subst_loop:
+    pos = index result, substring, pos
+    if pos < 0 goto subst_done
+    substr result, pos, substringlen, replacement
+    pos += replacelen
+    if global_flag goto subst_loop
+  subst_done:
+    .return (result)
+.end    
 
-    $S1 = substr $S0, 0, pos
-    $S2 = substr $S0, pos_after
-    concat retv, $S1
-    concat retv, replacement
-    concat retv, $S2
-
-    goto done
-
-  no_match:
-    retv = self
-
-  done:
-    .return(retv)
-.end
 
 .sub 'subst' :method :multi(_, 'Sub', _)
     .param pmc regex

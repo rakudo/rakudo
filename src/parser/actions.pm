@@ -3180,7 +3180,7 @@ sub declare_implicit_block_vars($block, $tparam) {
                                 '    set outerlex, $P0["outer";"lexpad";1]')));
     for ('$_', '$/', '$!') {
         unless $block.symbol($_) {
-            my $lex := PAST::Op.new(:inline('    set %r, outerlex[%0]'), $_);
+            my $lex := PAST::Op.new(:inline('    set %r, outerlex["'~$_~'"]'));
             my $scope := ($tparam && $_ eq '$_') ?? 'parameter' !! 'lexical';
             $block[0].push( 
                 PAST::Var.new( :name($_),

@@ -2976,7 +2976,7 @@ method regex_declarator_rule($/) {
 method type_declarator($/) {
     # We need a block containing the constraint condition.
     my $past := $( $<EXPR> );
-    if !$past.isa(PAST::Block) {
+    if (!$past.isa(PAST::Block) || $past.compiler() eq 'PGE::Perl6Regex') {
         # Make block with a smart match of the the expression as its contents.
         $past := PAST::Block.new(
             PAST::Stmts.new(

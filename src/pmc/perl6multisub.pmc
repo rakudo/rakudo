@@ -559,9 +559,24 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *args,
                     VTABLE_get_string(interp, candidates[0]->sub));
         }
         else {
+            /* Get signatures of ambiguous candidates. */
+            STRING *sig_name = CONST_STRING(interp, "signature");
+            STRING *perl_name = CONST_STRING(interp, "perl");
+            STRING *newline = CONST_STRING(interp, "\n");
+            STRING *signatures = string_from_cstring(interp, "", 0);
+            for (i = 0; i < possibles_count; i++) {
+                PMC    *sig_meth  = VTABLE_find_method(interp, possibles[i]->sub, sig_name);
+                PMC    *sig_obj   = (PMC *)Parrot_run_meth_fromc_args(interp, sig_meth,
+                        possibles[i]->sub, sig_name, "P");
+                PMC    *perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
+                STRING *sig_perl  = (STRING *)Parrot_run_meth_fromc_args(interp, perl_meth,
+                        sig_obj, perl_name, "S");
+                signatures = string_append(interp, signatures, sig_perl);
+                signatures = string_append(interp, signatures, newline);
+            }
             Parrot_ex_throw_from_c_args(interp, next, 1,
-                "Ambiguous dispatch to multi '%Ss'",
-                    VTABLE_get_string(interp, candidates[0]->sub));
+                "Ambiguous dispatch to multi '%Ss'. Ambiguous candidates had signatures:\n%Ss",
+                    VTABLE_get_string(interp, candidates[0]->sub), signatures);
         }
     }
     else {

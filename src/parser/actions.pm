@@ -479,8 +479,8 @@ method multi_declarator($/, $key) {
         create_sub($/, $past);
     }
 
-    # If it was multi, then emit a :multi and a type list.
-    if $<sym> eq 'multi' {
+    # If it was multi or a proto, then emit a :multi.
+    if $<sym> eq 'multi' || $<sym> eq 'proto' {
         # For now, if this is a multi we need to add code to transform the sub's
         # multi container to a Perl6MultiSub.
         $past.loadinit().push(
@@ -500,6 +500,21 @@ method multi_declarator($/, $key) {
         unless $pirflags { $pirflags := '' }
         $past.pirflags($pirflags  ~ ' :multi()');
     }
+
+    # Protos also need the proto property setting on them.
+    if $<sym> eq 'proto' {
+        $past.loadinit().push(
+            PAST::Op.new(
+                :inline('    setprop %0, "proto", %1'),
+                PAST::Var.new(
+                    :name('block'),
+                    :scope('register')
+                ),
+                1
+            )
+        );
+    }
+
     make $past;
 }
 

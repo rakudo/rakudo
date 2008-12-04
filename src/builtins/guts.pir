@@ -274,9 +274,7 @@ first). So for now we just transform multis in user code like this.
     $S0 = typeof current_thing
     if $S0 == 'MultiSub' goto not_perl6_multisub
     .return()
-
-    # It's not a Perl6MultiSub, create one, shift contents and install in
-    # the namespace.
+    # It's not a Perl6MultiSub, create one and put contents into it.
   not_perl6_multisub:
     .local pmc p6multi, sub_iter
     p6multi = new 'Perl6MultiSub'
@@ -287,16 +285,18 @@ first). So for now we just transform multis in user code like this.
     push p6multi, $P0
     goto iter_loop
   iter_loop_end:
-    namespace[name] = p6multi
 
-    # If the namespace is associated with a class, need to update the method
-    # entry in that too.
+    # If the namespace is associated with a class, need to remove the method
+    # entry in that; inserting the new multi into the namespace will then
+    # also add it back to the class.
     .local pmc class
     class = get_class namespace
     if null class goto no_class
     class.'remove_method'(name)
-    class.'add_method'(name, p6multi)
   no_class:
+
+    # Make new namespace entry.
+    namespace[name] = p6multi
     .return()
 
   error:

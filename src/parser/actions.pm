@@ -2699,17 +2699,7 @@ method quote($/) {
 
 method quote_expression($/, $key) {
     my $past;
-    if $key eq 'quote_regex' {
-        our $?NS;
-        $past := PAST::Block.new(
-            $<quote_regex>,
-            :compiler('PGE::Perl6Regex'),
-            :namespace(Perl6::Compiler.parse_name( $?NS )),
-            :blocktype('declaration'),
-            :node( $/ )
-        );
-    }
-    elsif $key eq 'quote_concat' {
+    if $key eq 'quote_concat' {
         if +$<quote_concat> == 1 {
             $past := $( $<quote_concat>[0] );
         }
@@ -2723,6 +2713,19 @@ method quote_expression($/, $key) {
                 $past.push( $($_) );
             }
         }
+    }
+    elsif $key eq 'quote_regex' {
+        our $?NS;
+        $past := PAST::Block.new(
+            $<quote_regex>,
+            :compiler('PGE::Perl6Regex'),
+            :namespace(Perl6::Compiler.parse_name( $?NS )),
+            :blocktype('declaration'),
+            :node( $/ )
+        );
+    }
+    elsif $key eq 'quote_pir' {
+        $past := PAST::Op.new( :inline( $<quote_pir> ), :node($/) );
     }
     make $past;
 }

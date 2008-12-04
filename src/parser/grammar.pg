@@ -720,6 +720,7 @@ token quote {
     | q 
         [ q <.ws>      <quote_expression: :qq>
         | w <.ws>      <quote_expression: :q :w>
+        | ':PIR' <.ws> <quote_expression: :PIR>
         |   <.ws>      <quote_expression: :q>
         ]
     ]

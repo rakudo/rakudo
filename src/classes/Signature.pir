@@ -194,7 +194,7 @@ Gets a perl representation of the signature.
 
     # If it's optional, the ?.
     $P0 = cur_param["optional"]
-    if null $P0 goto optional_done 
+    if null $P0 goto optional_done
     unless $P0 goto optional_done
     concat s, '?'
   optional_done:

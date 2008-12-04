@@ -460,8 +460,8 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *args,
      * dispatch. Note that we could also store the current candidate set and
      * re-enter the dispatch algorithm below, making it cheaper to get to that
      * point. */
-    /*if (possibles_count == 1)
-        Parrot_mmd_cache_store_by_values(interp, cache, NULL, args, possibles[0]->sub);*/
+    if (possibles_count == 1)
+        Parrot_mmd_cache_store_by_values(interp, cache, NULL, args, possibles[0]->sub);
 
     /* If we have multiple candidates left, tie-break on any constraints. */
     if (possibles_count > 1) {
@@ -716,8 +716,8 @@ the Perl 6 MMD algorithm.
 
         /* See if we have a cache entry. */
         GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
-        /*found = Parrot_mmd_cache_lookup_by_values(interp, cache, NULL, args);
-        if (PMC_IS_NULL(found)) {*/
+        found = Parrot_mmd_cache_lookup_by_values(interp, cache, NULL, args);
+        if (PMC_IS_NULL(found)) {
             /* Make sure that we have a candidate list built. */
             GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
             GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
@@ -735,7 +735,7 @@ the Perl 6 MMD algorithm.
              * if it can't find anything, it will throw the required exception. */
             found = do_dispatch(interp, candidates, args, 0,
                     VTABLE_elements(interp, unsorted), (opcode_t *)next, cache);
-        /*}*/
+        }
 
         /* Restore stuff that might have got overwriten by calls during the
          * dispatch algorithm. */

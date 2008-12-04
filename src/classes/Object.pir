@@ -721,6 +721,17 @@ Indicate that objects in the class are mutable or immutable.
     $P1.'add_method'('Scalar', $P0, 'to'=>self)
 .end
 
+=item perl()
+
+Returns a Perl representation of itself.
+
+=cut
+
+.sub 'perl' :method
+    $S0 = self
+    .return ($S0)
+.end
+
 =back
 
 =cut

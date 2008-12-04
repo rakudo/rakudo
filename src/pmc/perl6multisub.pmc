@@ -816,10 +816,64 @@ Gets the number of candidate on the candidate list.
         return VTABLE_elements(interp, candidates);
     }
 
+/*
+
+=item VTABLE PMC * get_iter()
+
+Get an iterator over the candidates.
+
+=cut
+
+*/
     VTABLE PMC * get_iter() {
         PMC *candidates;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
         return VTABLE_get_iter(interp, candidates);
+    }
+
+/*
+
+=item VTABLE PMC * get_pmc_keyed_int()
+
+Gets the candidate at index C<i>.
+
+=cut
+
+*/
+    VTABLE PMC * get_pmc_keyed_int(INTVAL i) {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        return VTABLE_get_pmc_keyed_int(interp, candidates, i);
+    }
+
+/*
+
+=item VTABLE PMC * get_pmc_keyed_str()
+
+Converts C<s> to an integer and gets the key at that index.
+
+=cut
+
+*/
+    VTABLE PMC * get_pmc_keyed_str(STRING *s) {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        return VTABLE_get_pmc_keyed_str(interp, candidates, s);
+    }
+
+/*
+
+=item VTABLE PMC * get_pmc_keyed()
+
+Converts C<p> to an integer and gets the key at that index.
+
+=cut
+
+*/
+    VTABLE PMC * get_pmc_keyed(PMC *p) {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        return VTABLE_get_pmc_keyed(interp, candidates, p);
     }
 }
 

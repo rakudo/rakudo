@@ -100,7 +100,7 @@
     $I0 = options['PIR']
     if $I0 goto pir_start
     goto word_start
-    
+
   regex_start:
     ##  handle :regex parsing
     p6regex = get_root_global ['parrot';'PGE';'Perl6Regex'], 'regex'

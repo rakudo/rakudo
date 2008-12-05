@@ -2496,6 +2496,7 @@ method variable($/, $key) {
                         if defined( $sym_table )
                                 && $sym_table<scope> eq 'attribute' {
                             $name := '!' ~ $name;
+                            $twigil := '!';
                         }
                     }
                 }

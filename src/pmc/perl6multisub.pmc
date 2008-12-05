@@ -263,9 +263,11 @@ Takes a ResizablePMCArray of the candidates, collects information about them
 and then does a topological sort of them.
 
 */
-static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
+static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **proto_out) {
     INTVAL i, j, sig_elems, candidates_to_sort, result_pos;
-    PMC *signature, *params, *meth;
+    PMC    *signature, *params, *meth;
+    PMC    *found_proto = PMCNULL;
+    char   *error       = NULL;
 
     /* Allocate results array (just allocate it for worst case, which
      * is no ties ever, so a null between all of them, and then space
@@ -277,10 +279,25 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
     /* Create a node for each candidate in the graph. */
     candidate_graph_node** graph = mem_allocate_n_zeroed_typed(
             num_candidates, candidate_graph_node*);
+    INTVAL insert_pos = 0;
     for (i = 0; i < num_candidates; i++) {
+        candidate_info *info;
+
         /* Get information about this candidate. */
-        candidate_info *info = mem_allocate_zeroed_typed(candidate_info);
         PMC *candidate = VTABLE_get_pmc_keyed_int(interp, candidates, i);
+        PMC *proto     = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "proto"));
+        
+        /* Is it a proto? */
+        if (!PMC_IS_NULL(proto) && VTABLE_get_bool(interp, proto)) {
+            if (PMC_IS_NULL(found_proto))
+                found_proto = candidate;
+            else
+                error = "Can only have one proto in a single scope.";
+            continue;
+        }
+
+        /* Otherwise, need an entry. */
+        info = mem_allocate_zeroed_typed(candidate_info);
         info->sub = candidate;
 
         /* Arity. */
@@ -317,66 +334,83 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates) {
         info->num_types = sig_elems;
 
         /* Add it to graph node, and initialize list of edges. */
-        graph[i] = mem_allocate_zeroed_typed(candidate_graph_node);
-        graph[i]->info = info;
-        graph[i]->edges = mem_allocate_n_zeroed_typed(num_candidates, candidate_graph_node*);
+        graph[insert_pos] = mem_allocate_zeroed_typed(candidate_graph_node);
+        graph[insert_pos]->info = info;
+        graph[insert_pos]->edges = mem_allocate_n_zeroed_typed(num_candidates, candidate_graph_node*);
+        insert_pos++;
     }
 
-    /* Now analyze type narrowness of the candidates relative to each other
-     * and create the edges. */
-    for (i = 0; i < num_candidates; i++) {
-        for (j = 0; j < num_candidates; j++) {
-            if (i == j)
-                continue;
-            if (is_narrower(interp, graph[i]->info, graph[j]->info)) {
-                graph[i]->edges[graph[i]->edges_out] = graph[j];
-                graph[i]->edges_out++;
-                graph[j]->edges_in++;
-            }
-        }
-    }
+    /* If we found duplicate protos, don't go any further. */
+    if (!error) {
+        /* The actual number of candidates needs to discount any protos. */
+        num_candidates = insert_pos;
 
-    /* Perform the topological sort. */
-    candidates_to_sort = num_candidates;
-    result_pos = 0;
-    while (candidates_to_sort > 0) {
-        INTVAL rem_start_point = result_pos;
-
-        /* Find any nodes that have no incoming edges and add them to results. */
+        /* Now analyze type narrowness of the candidates relative to each other
+         * and create the edges. */
         for (i = 0; i < num_candidates; i++) {
-            if (graph[i]->edges_in == 0) {
-                /* Add to results. */
-                result[result_pos] = graph[i]->info;
-                result_pos++;
-                candidates_to_sort--;
-                graph[i]->edges_in = EDGE_REMOVAL_TODO;
-            }
-        }
-        if (rem_start_point == result_pos)
-            Parrot_ex_throw_from_c_args(interp, 0, 1,
-                    "Circularity detected in multi sub types.");
-
-        /* Now we need to decrement edges in counts for things that had edges
-         * from candidates we added here. */
-        for (i = 0; i < num_candidates; i++) {
-            if (graph[i]->edges_in == EDGE_REMOVAL_TODO) {
-                for (j = 0; j < graph[i]->edges_out; j++)
-                    graph[i]->edges[j]->edges_in--;
-                graph[i]->edges_in = EDGE_REMOVED;
+            for (j = 0; j < num_candidates; j++) {
+                if (i == j)
+                    continue;
+                if (is_narrower(interp, graph[i]->info, graph[j]->info)) {
+                    graph[i]->edges[graph[i]->edges_out] = graph[j];
+                    graph[i]->edges_out++;
+                    graph[j]->edges_in++;
+                }
             }
         }
 
-        /* This is end of a tied group, so leave a gap. */
-        result_pos++;
+        /* Perform the topological sort. */
+        candidates_to_sort = num_candidates;
+        result_pos = 0;
+        while (candidates_to_sort > 0) {
+            INTVAL rem_start_point = result_pos;
+
+            /* Find any nodes that have no incoming edges and add them to results. */
+            for (i = 0; i < num_candidates; i++) {
+                if (graph[i]->edges_in == 0) {
+                    /* Add to results. */
+                    result[result_pos] = graph[i]->info;
+                    result_pos++;
+                    candidates_to_sort--;
+                    graph[i]->edges_in = EDGE_REMOVAL_TODO;
+                }
+            }
+            if (rem_start_point == result_pos) {
+                error = "Circularity detected in multi sub types.";
+                break;
+            }
+
+            /* Now we need to decrement edges in counts for things that had edges
+             * from candidates we added here. */
+            for (i = 0; i < num_candidates; i++) {
+                if (graph[i]->edges_in == EDGE_REMOVAL_TODO) {
+                    for (j = 0; j < graph[i]->edges_out; j++)
+                        graph[i]->edges[j]->edges_in--;
+                    graph[i]->edges_in = EDGE_REMOVED;
+                }
+            }
+
+            /* This is end of a tied group, so leave a gap. */
+            result_pos++;
+        }
     }
 
     /* Free memory associated with the graph. */
     for (i = 0; i < num_candidates; i++) {
+        if (error)
+            mem_sys_free(graph[i]->info);
         mem_sys_free(graph[i]->edges);
         mem_sys_free(graph[i]);
     }
     mem_sys_free(graph);
 
+    /* If we had an error, free memory for result array and throw exception. */
+    if (error) {
+        mem_sys_free(result);
+        Parrot_ex_throw_from_c_args(interp, 0, 1, error);
+    }
+
+    *proto_out = found_proto;
     return result;
 }
 
@@ -393,8 +427,8 @@ candidates or that it was ambiguous if there were tied candidates.
 
 */
 
-static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *args,
-    int many, int num_candidates, opcode_t *next, MMD_Cache *cache) {
+static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *proto,
+    PMC *args, int many, int num_candidates, opcode_t *next, MMD_Cache *cache) {
     INTVAL           type_mismatch;
     STRING          *ACCEPTS         = CONST_STRING(interp, "ACCEPTS");
     INTVAL           possibles_count = 0;
@@ -546,12 +580,14 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *args,
         }
     }
 
-    /* XXX If still none/ambiguous, try and find a proto to call. */
-
     if (!many) {
         /* Need a unique candidate. */
         if (possibles_count == 1) {
             return possibles[0]->sub;
+        }
+        else if (!PMC_IS_NULL(proto)) {
+            /* If we have a proto at this point, use that. */
+            return proto;
         }
         else if (possibles_count == 0) {
             Parrot_ex_throw_from_c_args(interp, next, 1,
@@ -618,6 +654,15 @@ length one or greater that are tied, followed by a NULL, followed by the next
 bunch that are less narrow but tied and so forth. It is terminated by a double
 NULL.
 
+=item cache
+
+A multiple dispatch cache, which memorizes the types we were invoked with so
+we can dispatch more quickly.
+
+=item proto
+
+The proto that is in effect.
+
 =back
 
 =head1 METHODS
@@ -633,6 +678,7 @@ pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
     ATTR PMC  *candidates;
     ATTR struct candidate_info **candidates_sorted;
     ATTR MMD_Cache *cache;
+    ATTR PMC *proto;
 
 /*
 
@@ -733,13 +779,17 @@ the Perl 6 MMD algorithm.
         GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
         found = Parrot_mmd_cache_lookup_by_values(interp, cache, NULL, args);
         if (PMC_IS_NULL(found)) {
+            PMC *proto;
+
             /* Make sure that we have a candidate list built. */
             GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
             GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
+            GETATTR_Perl6MultiSub_proto(interp, SELF, proto);
 
             if (!candidates) {
-                candidates = sort_candidiates(interp, unsorted);
+                candidates = sort_candidiates(interp, unsorted, &proto);
                 SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+                SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
             }
 
             if (!candidates)
@@ -748,7 +798,7 @@ the Perl 6 MMD algorithm.
 
             /* Now do the dispatch on the args we are being invoked with;
              * if it can't find anything, it will throw the required exception. */
-            found = do_dispatch(interp, candidates, args, 0,
+            found = do_dispatch(interp, candidates, proto, args, 0,
                     VTABLE_elements(interp, unsorted), (opcode_t *)next, cache);
         }
 

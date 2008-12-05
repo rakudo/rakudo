@@ -28,6 +28,9 @@ help here, too.)
 .sub '' :anon :load :init
     $P0 = get_hll_global ['PGE'], 'Match'
     $P0.'!MUTABLE'()
+
+    # Also install Match proto in our HLL namespace.
+    set_hll_global 'Match', $P0
 .end
 
 #

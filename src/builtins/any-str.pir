@@ -45,7 +45,7 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
     .local pmc retv
     .local int len
 
-    retv = new 'Perl6Str'
+    retv = new 'Str'
     tmps = self
 
     len = length tmps
@@ -94,7 +94,7 @@ Returns string with one Char removed from the end.
 
     tmps = self
     chopn tmps, 1
-    retv = new 'Perl6Str'
+    retv = new 'Str'
     retv = tmps
     .return(retv)
 .end
@@ -120,7 +120,7 @@ Returns string with one Char removed from the end.
     if lastchar != "\n" goto done
     chopn tmps, 1
   done:
-       retv = new 'Perl6Str'
+       retv = new 'Str'
        retv = tmps
        .return (retv)
 .end
@@ -264,7 +264,7 @@ form, if uppercase.
     tmps = self
     downcase tmps
 
-    retv = new 'Perl6Str'
+    retv = new 'Str'
     retv = tmps
 
     .return(retv)
@@ -284,7 +284,7 @@ Like C<lc>, but only affects the first character.
     .local pmc retv
     .local int len
 
-    retv = new 'Perl6Str'
+    retv = new 'Str'
     tmps = self
 
     len = length tmps
@@ -559,7 +559,7 @@ B<Note:> partial implementation only
     .return(retval)
 .end
 
-# TODO: Note the multisub type here should be 'Perl6Str' or 'Str', but mapping
+# TODO: Note the multisub type here should be 'Str' or 'Str', but mapping
 # issues currently prevent this from working correctly unless 'String' is used
 
 .sub '!transtable' :multi('String')
@@ -597,7 +597,7 @@ B<Note:> partial implementation only
   process_pstring:
     unless prior, start_range
     $S2 = shift prior
-    next_str = new 'Perl6Str'
+    next_str = new 'Str'
     next_str = $S2
     push retval, next_str
     goto process_pstring
@@ -609,7 +609,7 @@ B<Note:> partial implementation only
     # If needed we can switch this over to use a true string Range
     if $I0 > $I1 goto next_loop
     $S2 = chr $I0
-    next_str = new 'Perl6Str'
+    next_str = new 'Str'
     next_str = $S2
     push retval, next_str
     inc $I0
@@ -631,7 +631,7 @@ B<Note:> partial implementation only
   process_lstring:
     unless prior, check_rval
     $S0 = shift prior
-    next_str = new 'Perl6Str'
+    next_str = new 'Str'
     next_str = $S0
     push retval, next_str
     goto process_lstring
@@ -665,7 +665,7 @@ B<Note:> partial implementation only
     by = get_hll_global 'infix:<=>'
     # itable maps matching positions to key, value array
     itable = new 'Perl6Hash'
-    retv = new 'Perl6Str'
+    retv = new 'Str'
 
   init_pair_loop:
     .local pmc pair, pkey, pval, pairlist
@@ -723,7 +723,7 @@ B<Note:> partial implementation only
     val = lastval
     goto init_index_loop
   get_prev2:
-    val = new 'Perl6Str'
+    val = new 'Str'
     val = ''
   init_index_loop:
     nhits = 0
@@ -819,7 +819,7 @@ B<Note:> partial implementation only
   st_trans:
     .local int k_isa_match, v_isa_closure, pass_match
     .local pmc lastmatch, v
-    lastmatch = new 'Perl6Str'
+    lastmatch = new 'Str'
     lastmatch = ''
     pos = 0 # original unadjusted position
     pr_pos = 0 # prior unadjusted position
@@ -1021,7 +1021,7 @@ full "uppercase".
     tmps = self
     upcase tmps
 
-    retv = new 'Perl6Str'
+    retv = new 'Str'
     retv = tmps
 
     .return(retv)
@@ -1041,7 +1041,7 @@ Performs a Unicode "titlecase" operation on the first character of the string.
     .local pmc retv
     .local int len
 
-    retv = new 'Perl6Str'
+    retv = new 'Str'
     tmps = self
 
     len = length tmps

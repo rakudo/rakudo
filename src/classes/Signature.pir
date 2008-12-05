@@ -136,7 +136,7 @@ Gets a perl representation of the signature.
 
 .sub 'perl' :method
     .local pmc s
-    s = new 'Perl6Str'
+    s = new 'Str'
     concat s, ':('
 
     # Output parameters.

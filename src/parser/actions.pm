@@ -2647,12 +2647,12 @@ method number($/, $key) {
 
 
 ##  for a variety of reasons, this is easier in PIR than NQP for now.
-##  NQP doesn't have assign yet, and Perl6Str is lighter-weight than Str.
+##  NQP doesn't have assign yet, and Str is lighter-weight than Str.
 method integer($/) {
     my $str;
     PIR q<  $P0 = find_lex '$/'   >;
     PIR q<  $S0 = $P0             >;
-    PIR q<  $P1 = new 'Perl6Str'  >;
+    PIR q<  $P1 = new 'Str'  >;
     PIR q<  assign $P1, $S0       >;
     PIR q<  store_lex '$str', $P1 >;
     make PAST::Val.new(
@@ -2667,7 +2667,7 @@ method dec_number($/) {
     my $str;
     PIR q<  $P0 = find_lex '$/'   >;
     PIR q<  $S0 = $P0             >;
-    PIR q<  $P1 = new 'Perl6Str'  >;
+    PIR q<  $P1 = new 'Str'  >;
     PIR q<  assign $P1, $S0       >;
     PIR q<  store_lex '$str', $P1 >;
     make PAST::Val.new(
@@ -2769,7 +2769,7 @@ method quote_term($/, $key) {
     if ($key eq 'literal') {
         $past := PAST::Val.new(
             :value( ~$<quote_literal> ),
-            :returns('Perl6Str'), :node($/)
+            :returns('Str'), :node($/)
         );
     }
     elsif ($key eq 'variable') {
@@ -3242,7 +3242,7 @@ sub process_handles($/, $expr, $attr_name) {
     my $past := PAST::Stmts.new();
 
     # What type of expression do we have?
-    if $expr.isa(PAST::Val) && $expr.returns() eq 'Perl6Str' {
+    if $expr.isa(PAST::Val) && $expr.returns() eq 'Str' {
         # Just a single string mapping.
         my $name := ~$expr.value();
         my $method := make_handles_method($/, $name, $name, $attr_name);
@@ -3257,7 +3257,7 @@ sub process_handles($/, $expr, $attr_name) {
           $expr.name() eq 'list' {
         # List of something, but what is it?
         for @($expr) {
-            if $_.isa(PAST::Val) && $_.returns() eq 'Perl6Str' {
+            if $_.isa(PAST::Val) && $_.returns() eq 'Str' {
                 # String value.
                 my $name := ~$_.value();
                 my $method := make_handles_method($/, $name, $name, $attr_name);
@@ -3278,7 +3278,7 @@ sub process_handles($/, $expr, $attr_name) {
     elsif $expr.isa(PAST::Stmts) && $expr[0].name() eq 'infix:,' {
         # Also a list, but constructed differently.
         for @($expr[0]) {
-            if $_.isa(PAST::Val) && $_.returns() eq 'Perl6Str' {
+            if $_.isa(PAST::Val) && $_.returns() eq 'Str' {
                 # String value.
                 my $name := ~$_.value();
                 my $method := make_handles_method($/, $name, $name, $attr_name);

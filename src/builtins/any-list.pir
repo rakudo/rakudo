@@ -65,6 +65,7 @@ the size of that file down and to emphasize their generic,
 .sub 'join' :multi('String')
     .param string sep
     .param pmc values          :slurpy
+say "in join"
     .tailcall values.'join'(sep)
 .end
 
@@ -72,6 +73,7 @@ the size of that file down and to emphasize their generic,
 .sub 'join' :method :multi(_)
     .param string sep          :optional
     .param int has_sep         :opt_flag
+say "in join2"
     if has_sep goto have_sep
     sep = ' '
   have_sep:

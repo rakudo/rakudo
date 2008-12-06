@@ -286,7 +286,7 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
         /* Get information about this candidate. */
         PMC *candidate = VTABLE_get_pmc_keyed_int(interp, candidates, i);
         PMC *proto     = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "proto"));
-        
+
         /* Is it a proto? */
         if (!PMC_IS_NULL(proto) && VTABLE_get_bool(interp, proto)) {
             if (PMC_IS_NULL(found_proto))

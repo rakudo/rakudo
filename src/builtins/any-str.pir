@@ -905,22 +905,73 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     global_flag = get_hll_global ['Bool'], 'False'
   have_global:
 
+    .local int times            # how many times to match
+                                # a negative number means all of them (:global)
+
+    times = 1                   # the default is to substitute once
+
+    .local pmc x_opt
+    x_opt = options['x']
+    if null x_opt goto check_nth
+    times = x_opt
+    if times < 0 goto x_fail
+  check_nth:
+
+    .local int every            # match every Nth time
+    every = 1
+
+    .local pmc nth_opt
+    nth_opt = options['nth']
+    if null nth_opt goto check_global
+    every = nth_opt
+    if every < 0 goto nth_fail
+  check_global:
+
+    unless global_flag goto do_sub
+    times = -1
+  do_sub:
+
     .local string result
     result = self
     result = clone result
 
-    .local int pos, substringlen, replacelen
+    if times == 0 goto subst_done
+    if every == 0 goto subst_done
+
+    .local int startpos, pos, substringlen, replacelen
+    startpos = 0
     pos = 0
     substringlen = length substring
     replacelen = length replacement
+    .local int n_cnt, x_cnt
+    n_cnt = 0
+    x_cnt = 0
   subst_loop:
-    pos = index result, substring, pos
+    pos = index result, substring, startpos
+    startpos = pos + substringlen
     if pos < 0 goto subst_done
+
+    n_cnt += 1
+    $I5 = n_cnt % every
+    unless $I5 == 0 goto subst_loop
+    
+    if times < 0 goto skip_times
+
+    x_cnt += 1
+    unless x_cnt <= times goto subst_done
+  skip_times:
+
     substr result, pos, substringlen, replacement
-    pos += replacelen
-    if global_flag goto subst_loop
+    startpos = pos + replacelen
+    goto subst_loop
   subst_done:
     .return (result)
+
+  nth_fail:
+    die "Must pass a non-negative integer to :nth()"
+
+  x_fail:
+    die "Must pass a non-negative integer to :x()"
 .end
 
 
@@ -928,6 +979,10 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     .param pmc regex
     .param pmc replacement
     .param pmc options         :slurpy :named
+
+    .local string result
+    result = self
+    result = clone result
 
     .local pmc global_flag
     global_flag = options['global']
@@ -937,15 +992,43 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     global_flag = get_hll_global ['Bool'], 'False'
   have_global:
 
-    # build a list of matches
+    .local int times            # how many times to match
+                                # a negative number means all of them (:global)
+
+    times = 1                   # the default is to substitute once
+
+    .local pmc x_opt
+    x_opt = options['x']
+    if null x_opt goto check_nth
+    times = x_opt
+    if times < 0 goto x_fail
+  check_nth:
+
+    .local int every            # match every Nth time
+    every = 1
+
+    .local pmc nth_opt
+    nth_opt = options['nth']
+    if null nth_opt goto check_global
+    every = nth_opt
+    if every < 0 goto nth_fail
+  check_global:
+
+    unless global_flag goto build_matches
+    times = -1
+
+  build_matches:
+
+    if times == 0 goto subst_done
+    if every == 0 goto subst_done
+
+    # build a list of matches -- actually get all matches, but only
+    # apply the appropriate ones later
     .local pmc matchlist, match
-    .local string result
     matchlist = new 'ResizablePMCArray'
-    result = self
     match = regex(result)
     unless match goto matchlist_done
     push matchlist, match
-    unless global_flag goto matchlist_done
   matchlist_loop:
     $I0 = match.'to'()
     match = regex(match, 'continue'=>$I0)
@@ -961,11 +1044,24 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
 
     # now, perform substitutions on matchlist until done
     .local int offset
+    .local int n_cnt, x_cnt
+    n_cnt = 0
+    x_cnt = 0
     offset = 0
-    result = clone result
   subst_loop:
     unless matchlist goto subst_done
     match = shift matchlist
+    
+    n_cnt += 1
+    $I5 = n_cnt % every
+    unless $I5 == 0 goto subst_loop
+    
+    if times < 0 goto skip_times
+
+    x_cnt += 1
+    unless x_cnt <= times goto subst_done
+  skip_times:
+
     lexpad['$/'] = match
     # get substitution string
     .local string replacestr
@@ -989,6 +1085,12 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     goto subst_loop
   subst_done:
     .return (result)
+
+  nth_fail:
+    die "Must pass a non-negative integer to :nth()"
+
+  x_fail:
+    die "Must pass a non-negative integer to :x()"
 .end
 
 

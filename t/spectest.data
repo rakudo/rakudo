@@ -53,6 +53,7 @@ S03-operators/assign.t
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
 S03-operators/binding-arrays.t
+S03-operators/binding-closure.t
 S03-operators/binding-hashes.t
 S03-operators/binding-scalars.t
 S03-operators/bit.t
@@ -127,6 +128,7 @@ S06-multi/proto.t
 S06-multi/syntax.t
 S06-multi/type-based.t
 S06-signature/code.t
+S06-signature/defaults.t
 S06-signature/errors.t
 S06-signature/mixed-placeholders.t
 S06-signature/named-parameters.t

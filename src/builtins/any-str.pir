@@ -954,7 +954,7 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     n_cnt += 1
     $I5 = n_cnt % every
     unless $I5 == 0 goto subst_loop
-    
+
     if times < 0 goto skip_times
 
     x_cnt += 1
@@ -1051,11 +1051,11 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
   subst_loop:
     unless matchlist goto subst_done
     match = shift matchlist
-    
+
     n_cnt += 1
     $I5 = n_cnt % every
     unless $I5 == 0 goto subst_loop
-    
+
     if times < 0 goto skip_times
 
     x_cnt += 1

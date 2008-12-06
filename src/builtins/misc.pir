@@ -30,6 +30,8 @@ src/builtins/misc.pir - miscellaneous builtins that need reclassification
 
 =back
 
+=cut
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

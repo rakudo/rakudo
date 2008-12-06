@@ -336,7 +336,8 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
         /* Add it to graph node, and initialize list of edges. */
         graph[insert_pos] = mem_allocate_zeroed_typed(candidate_graph_node);
         graph[insert_pos]->info = info;
-        graph[insert_pos]->edges = mem_allocate_n_zeroed_typed(num_candidates, candidate_graph_node*);
+        graph[insert_pos]->edges = mem_allocate_n_zeroed_typed(
+            num_candidates, candidate_graph_node*);
         insert_pos++;
     }
 

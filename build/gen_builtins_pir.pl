@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # Copyright (C) 2008, The Perl Foundation.
-# $Id: gen_junction_pir.pl 32768 2008-11-17 16:19:41Z infinoid $
+# $Id$
 
 use strict;
 use warnings;

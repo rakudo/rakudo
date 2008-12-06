@@ -29,25 +29,23 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
 .sub 'onload' :load :init :anon
     load_bytecode 'PCT.pbc'
 
-    .local pmc p6meta
+    .local pmc p6meta, perl6
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Perl6::Compiler', 'parent'=>'PCT::HLLCompiler')
-.end
+    perl6 = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'PCT::HLLCompiler')
 
-.sub 'init' :vtable :method
     load_bytecode 'config.pbc'
 
-    self.'language'('Perl6')
-    self.'parsegrammar'('Perl6::Grammar')
-    self.'parseactions'('Perl6::Grammar::Actions')
+    perl6.'language'('Perl6')
+    perl6.'parsegrammar'('Perl6::Grammar')
+    perl6.'parseactions'('Perl6::Grammar::Actions')
 
     ##  set the compilation stages in the @stages attribute
     $P0 = split ' ', 'parse past check_syntax post pir evalpmc'
-    setattribute self, '@stages', $P0
+    setattribute perl6, '@stages', $P0
 
     ##  set the command line options
     $P0 = split ' ', 'c e=s help|h target=s trace|t=s encoding=s output|o=s version|v'
-    setattribute self, '@cmdoptions', $P0
+    setattribute perl6, '@cmdoptions', $P0
 
     ##  set the $usage attribute
     $P0 = new 'String'
@@ -62,7 +60,7 @@ Usage: perl6 [switches] [--] [programfile] [arguments]
   -o, --output=[name]  specify name of output file
   -v, --version        display version information
 USAGE
-    setattribute self, '$usage', $P0
+    setattribute perl6, '$usage', $P0
 
     ##  set the $version attribute
     .local pmc cfg
@@ -87,7 +85,7 @@ USAGE
   _handler:
     pop_eh
     $P0 .= ".\n\nCopyright 2006-2008, The Perl Foundation.\n"
-    setattribute self, '$version', $P0
+    setattribute perl6, '$version', $P0
 
     ##  create a list for holding the stack of nested blocks
     $P0 = new 'List'

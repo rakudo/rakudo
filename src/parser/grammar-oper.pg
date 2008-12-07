@@ -142,34 +142,6 @@ proto ternary:<?? !!> is precedence('j=') is pasttype('if') is assoc('right') { 
 proto infix:<:=> is precedence('i=') is pasttype('bind') { ... }
 proto infix:<::=> is equiv(infix:<:=>) { ... }
 proto infix:<.=> is equiv(infix:<:=>) { ... }
-proto infix:<~=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<+=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<-=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<*=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:</=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<%=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<x=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<Y=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<**=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<xx=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<||=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<&&=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<//=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<^^=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:«+<=» is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:«+>=» is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<+|=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<+&=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<+^=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<~|=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<~&=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<~^=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<?|=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<?&=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<?^=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<|=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<&=> is equiv(infix:<:=>) is lvalue(1) { ... }
-proto infix:<^=> is equiv(infix:<:=>) is lvalue(1) { ... }
 proto infix:«=>» is equiv(infix:<:=>) { ... }
 
 ## loose unary

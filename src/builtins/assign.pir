@@ -74,184 +74,55 @@ src/builtins/inplace.pir - Inplace assignments
 .end
 
 
-.sub '!INIT_IF_PROTO'
-    .param pmc var
-    .param pmc val
-    $I0 = defined var
-    if $I0 goto done
-    'infix:='(var, val)
-  done:
-    .return ()
+.sub '!REDUCEMETAOP'
+    .param string opname
+    .param pmc identity
+    .param pmc args                # already :slurpy array by caller
+
+    args.'!flatten'()
+    if args goto reduce
+    if identity == 'fail' goto fail
+    .return (identity)
+
+  fail:
+    .tailcall '!FAIL'()
+
+  reduce:
+    opname = concat 'infix:', opname
+    .local pmc opfunc
+    opfunc = find_name opname
+    .local pmc result
+    result = shift args
+  reduce_loop:
+    unless args goto reduce_done
+    $P0 = shift args
+    result = opfunc(result, $P0)
+    goto reduce_loop
+  reduce_done:
+    .return (result)
 .end
 
 
-.sub 'infix:~='
+.sub '!ASSIGNMETAOP'
+    .param string opname
     .param pmc a
     .param pmc b
-    '!INIT_IF_PROTO'(a, '')
-    concat a, b
-    .return (a)
-.end
 
+    $I0 = defined a
+    if $I0 goto have_a
+    $S0 = concat 'prefix:[', opname
+    concat $S0, ']'
+    $P1 = find_name $S0
+    $P0 = $P1()
+    'infix:='(a, $P0)
+  have_a:
 
-.sub 'infix:+='
-    .param pmc a
-    .param pmc b
-    '!INIT_IF_PROTO'(a, 0)
-    a += b
-    .return (a)
-.end
-
-
-.sub 'infix:-='
-    .param pmc a
-    .param pmc b
-    '!INIT_IF_PROTO'(a, 0)
-    a -= b
-    .return (a)
-.end
-
-
-.sub 'infix:*='
-    .param pmc a
-    .param pmc b
-    '!INIT_IF_PROTO'(a, 1)
-    a *= b
-    .return (a)
-.end
-
-
-.sub 'infix:/='
-    .param pmc a
-    .param pmc b
-    a /= b
-    .return (a)
-.end
-
-
-.sub 'infix:%='
-    .param pmc a
-    .param pmc b
-    a %= b
-    .return (a)
-.end
-
-
-.sub 'infix:x='
-    .param pmc a
-    .param pmc b
-    repeat a, b
-    .return (a)
-.end
-
-
-## TODO: infix:Y=
-.sub 'infix:**='
-    .param pmc a
-    .param pmc b
-    '!INIT_IF_PROTO'(a, 1)
-    pow $P0, a, b
+    opname = concat 'infix:', opname
+    $P1 = find_name opname
+    $P0 = $P1(a, b)
     'infix:='(a, $P0)
     .return (a)
 .end
-
-
-## TODO: infix:xx= infix:||= infix:&&= infix://= infix:^^=
-
-
-.sub 'infix:+<='
-    .param pmc a
-    .param pmc b
-    a <<= b
-    .return (a)
-.end
-
-
-.sub 'infix:+>='
-    .param pmc a
-    .param pmc b
-    a >>= b
-    .return (a)
-.end
-
-
-.sub 'infix:+&='
-    .param pmc a
-    .param pmc b
-    band a, b
-    .return (a)
-.end
-
-
-.sub 'infix:+|='
-    .param pmc a
-    .param pmc b
-    bor a, b
-    .return (a)
-.end
-
-
-.sub 'infix:+^='
-    .param pmc a
-    .param pmc b
-    bxor a, b
-    .return (a)
-.end
-
-
-.sub 'infix:~&='
-    .param pmc a
-    .param pmc b
-    a = bands a, b
-    .return (a)
-.end
-
-
-.sub 'infix:~|='
-    .param pmc a
-    .param pmc b
-    bors a, b
-    .return (a)
-.end
-
-
-.sub 'infix:~^='
-    .param pmc a
-    .param pmc b
-    bxors a, b
-    .return (a)
-.end
-
-
-.sub 'infix:?&='
-    .param pmc a
-    .param pmc b
-    band a, b
-    $I0 = istrue a
-    a = $I0
-    .return (a)
-.end
-
-
-.sub 'infix:?|='
-    .param pmc a
-    .param pmc b
-    bor a, b
-    $I0 = istrue a
-    a = $I0
-    .return (a)
-.end
-
-
-.sub 'infix:?^='
-    .param pmc a
-    .param pmc b
-    bxor a, b
-    $I0 = istrue a
-    a = $I0
-    .return (a)
-.end
-
 
 =back
 

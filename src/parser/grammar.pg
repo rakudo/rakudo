@@ -842,7 +842,7 @@ rule semilist {
 token arglist {
     [
     | <?terminator>
-    | <EXPR: 'e='>                                 # EXPR(%list_assignment)
+    | <EXPR: 'd='>                                 # EXPR(%list_assignment)
     ]
     {*}
 }

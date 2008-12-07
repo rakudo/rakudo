@@ -13,7 +13,7 @@ This file sets up the Perl 6 C<Capture> class.
 .namespace ['Perl6Capture']
 
 .sub 'onload' :anon :init :load
-    load_bytecode 'PCT.pbc'
+    load_bytecode 'Parrot/Capture_PIR.pbc'
     .local pmc p6meta, captureproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     captureproto = p6meta.'new_class'('Perl6Capture', 'parent'=>'Capture_PIR Any', 'name'=>'Capture')

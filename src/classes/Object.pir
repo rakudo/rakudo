@@ -25,7 +25,7 @@ Perform initializations and create the base classes.
 .namespace []
 .sub 'onload' :anon :init :load
     .local pmc p6meta
-    load_bytecode 'P6object.pbc'
+    load_bytecode 'PCT.pbc'
     $P0 = get_root_global ['parrot'], 'P6metaclass'
     $P0.'new_class'('Perl6Object', 'name'=>'Object')
     p6meta = $P0.'HOW'()

@@ -34,7 +34,7 @@ my @ops = qw(
 my $output = $ARGV[0] || '-';
 
 
-my $assignfmt = 
+my $assignfmt =
     "    optable.'newtok'('infix:%s=', 'equiv'=>'infix::=', 'lvalue'=>1)\n";
 my $reducefmt =
     "    optable.'newtok'('prefix:[%s]', 'equiv'=>'infix:=')\n";
@@ -63,7 +63,7 @@ while (@ops) {
 }
 
 my $gtokens = join('', @gtokens);
-  
+
 open my $fh, "> $output" or die "Could not write $output: $!";
 print $fh qq(
 .namespace []

@@ -169,6 +169,10 @@ proto infix:<=> is precedence('e=')
     is assoc('right')
     is lvalue(1)
     { ... }
+proto prefix:<[,]> is precedence('e=') is subname('list') {...}
+proto prefix:<[&]> is equiv(prefix:<[,]>) is subname('all') {...}
+proto prefix:<[|]> is equiv(prefix:<[,]>) is subname('any') {...}
+proto prefix:<[^]> is equiv(prefix:<[,]>) is subname('one') {...}
 
 ## loose and
 proto infix:<and> is precedence('d=')

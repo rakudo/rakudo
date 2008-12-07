@@ -920,7 +920,7 @@ method routine_def($/) {
                         ##  get the names of the tagsets, if any, from the ast
                         my $tagsets := $( $aux<postcircumfix>[0] );
                         if $tagsets {
-                            my $tagsets_past := $tagsets; 
+                            my $tagsets_past := $tagsets;
                             if  $tagsets_past.isa(PAST::Op)
                                     && $tagsets_past.pasttype() eq 'call' {
                                 for @( $tagsets_past ) {

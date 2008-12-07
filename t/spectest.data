@@ -145,6 +145,7 @@ S06-traits/misc.t
 S11-modules/export.t
 S12-attributes/class.t
 S12-attributes/delegation.t
+S12-attributes/instance.t
 S12-class/anonymous.t
 S12-class/attributes.t
 S12-class/basic.t

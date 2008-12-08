@@ -283,7 +283,7 @@ sin, cos, tan, asin, acos, atan, sec, cosec, cotan, asec, acosec,
 acotan, sinh, cosh, tanh, asinh, acosh, atanh, sech, cosech, cotanh,
 asech, acosech, acotanh.
 
-Performs the various trigonmetric functions.
+Performs the various trigonometric functions.
 
 Option C<:$base> is used to declare how you measure your angles.
 Given the value of an arc representing a single full revolution.

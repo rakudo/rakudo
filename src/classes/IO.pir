@@ -101,7 +101,7 @@ Slurp a file into a string.
 .sub 'slurp' :method
     .local pmc PIO
     PIO = getattribute self, "$!PIO"
-    $S0 = PIO.'slurp'('')
+    $S0 = PIO.'readall'()
     .return($S0)
 .end
 

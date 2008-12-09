@@ -6,28 +6,47 @@ use strict;
 use warnings;
 
 my @ops = qw(
-  **        1
-  *         1
-  /         'fail'
-  %         'fail'
-  x         'fail'
-  xx        'fail'
-  +&        -1
-  +<        'fail'
-  +>        'fail'
-  ~&        'fail'
-  ~<        'fail'
-  ~>        'fail'
-  ?&        1
-  +         0
-  -         0
-  ~         ''
-  +|        0
-  +^        0
-  ~|        ''
-  ~^        ''
-  ?|        0
-  ?^        0
+  **        1           op
+  *         1           op
+  /         'fail'      op
+  %         'fail'      op
+  x         'fail'      op
+  xx        'fail'      op
+  +&        -1          op
+  +<        'fail'      op
+  +>        'fail'      op
+  ~&        'fail'      op
+  ~<        'fail'      op
+  ~>        'fail'      op
+  ?&        1           op
+  +         0           op
+  -         0           op
+  ~         ''          op
+  +|        0           op
+  +^        0           op
+  ~|        ''          op
+  ~^        ''          op
+  ?|        0           op
+  ?^        0           op
+  !==       'False'     comp
+  !=        'False'     comp
+  ==        'True'      comp
+  <         'True'      comp
+  <=        'True'      comp
+  >         'True'      comp
+  >=        'True'      comp
+  ~~        'True'      comp
+  !~~       'False'     comp
+  eq        'True'      comp
+  ne        'False'     comp
+  lt        'True'      comp
+  le        'True'      comp
+  gt        'True'      comp
+  ge        'True'      comp
+  ===       'True'      comp
+  !===      'False'     comp
+  =:=       'True'      comp
+  !=:=      'False'     comp
 );
 
 
@@ -45,20 +64,26 @@ my @code = ();
 while (@ops) {
     my $opname   = shift @ops;
     my $identity = shift @ops;
+    my $op_type  = shift @ops;
 
-    push @gtokens, sprintf( $assignfmt, $opname );
-    push @gtokens, sprintf( $reducefmt, $opname );
-
-    push @code, qq(
+    # Only emit assignment meta-ops for standard ops.
+    if ($op_type eq 'op') {
+        push @gtokens, sprintf( $assignfmt, $opname );
+        push @code, qq(
         .sub 'infix:$opname='
             .param pmc a
             .param pmc b
             .tailcall '!ASSIGNMETAOP'('$opname', a, b)
-        .end
+        .end\n);
+    }
 
+    # All ops work for reductions.
+    push @gtokens, sprintf( $reducefmt, $opname );
+    my $chain = $op_type eq 'comp' ? 'CHAIN' : '';
+    push @code, qq(
         .sub 'prefix:[$opname]'
             .param pmc args    :slurpy
-            .tailcall '!REDUCEMETAOP'('$opname', $identity, args)
+            .tailcall '!REDUCEMETAOP$chain'('$opname', $identity, args)
         .end\n);
 }
 

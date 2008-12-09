@@ -188,6 +188,43 @@ src/builtins/inplace.pir - Inplace assignments
 .end
 
 
+.sub '!REDUCEMETAOPCHAIN'
+    .param string opname
+    .param string identity
+    .param pmc args                # already :slurpy array by caller
+
+    .local int want_true
+    want_true = identity == 'True'
+
+    args.'!flatten'()
+    $I0 = elements args
+    if $I0 > 1 goto reduce
+    if want_true goto true
+  false:
+    $P0 = get_hll_global [ 'Bool' ], 'False'
+    .return ($P0)
+  true:
+    $P0 = get_hll_global [ 'Bool' ], 'True'
+    .return ($P0)
+
+  reduce:
+    opname = concat 'infix:', opname
+    .local pmc opfunc
+    opfunc = find_name opname
+    .local pmc a, b
+    b = shift args
+  reduce_loop:
+    unless args goto reduce_done
+    a = b
+    b = shift args
+    $I0 = opfunc(a, b)
+    unless $I0 goto false
+    goto reduce_loop
+  reduce_done:
+    goto true
+.end
+
+
 .sub '!ASSIGNMETAOP'
     .param string opname
     .param pmc a

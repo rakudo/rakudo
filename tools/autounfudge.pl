@@ -62,7 +62,7 @@ use Thread::Queue;
 my $impl = 'rakudo';
 our $debug = 0;
 our $out_filename = 'autounfudge.patch';
-my $exclude = '(?:(?:chop|rx|rounders)\.t|modifiers/(while|until).t)$';
+my $exclude = '(?:(?:radix|modifiers/while|rx)\.t)$';
 our $threads_num = 1;
 
 GetOptions  'impl=s'        => \$impl,
@@ -71,6 +71,7 @@ GetOptions  'impl=s'        => \$impl,
             'auto'          => \my $auto,
             'keep-env'      => \my $keep_env,
             'unskip'        => \my $unskip,
+            'section=s'     => \my $section,
             'exclude'       => \$exclude,
             'jobs=i'        => \$threads_num,
             or usage();
@@ -86,6 +87,14 @@ if ($specfile){
 }
 else {
     @files = @ARGV or usage();
+}
+
+if ($section) {
+    my $s = ($section =~ m/^\d{1,2}$/)
+            ? sprintf('S%02d', $section)
+            : $section;
+    print "Only of section `$section'\n";
+    @files = grep { m{ spec [/\\] \Q$section\E  }x } @files;
 }
 
 our $diff_lock :shared = 0;
@@ -196,6 +205,7 @@ Valid options:
     --auto              use t/spectest.data for --specfile
     --keep-env          Keep PERL6LIB environment variable.
     --exclude regex     Don't run the tests that match regex
+    --section number    Run only on tests belonging to section <number>
 USAGE
 }
 

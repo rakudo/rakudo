@@ -494,72 +494,85 @@ Create a clone of self, also cloning the attributes given by attrlist.
 .end
 
 
+=item !.?
+
+Helper method for implementing the .? operator. Calls at most one matching
+method, and returns undef if there are none.
+
+=cut
+
 .sub '!.?' :method
     .param string method_name
     .param pmc pos_args     :slurpy
     .param pmc named_args   :slurpy :named
 
-    # For now we won't worry about signature, just if a method exists.
-    $I0 = can self, method_name
+    # Get all possible methods.
+    .local pmc methods
+    methods = self.'!MANY_DISPATCH_HELPER'(method_name, pos_args, named_args)
+    
+    # Do we have any?
+    $I0 = elements methods
     if $I0 goto invoke
     .tailcall '!FAIL'('Undefined value returned by invocation of undefined method')
 
     # If we do have a method, call it.
   invoke:
-    .tailcall self.method_name(pos_args :flat, named_args :named :flat)
+    $P0 = methods[0]
+    .tailcall self.$P0(pos_args :flat, named_args :named :flat)
 .end
 
+
+=item !.*
+
+Helper method for implementing the .* operator. Calls one or more matching
+methods.
+
+=cut
 
 .sub '!.*' :method
     .param string method_name
     .param pmc pos_args     :slurpy
     .param pmc named_args   :slurpy :named
 
-    # Return an empty list if no methods exist at all.
-    $I0 = can self, method_name
-    if $I0 goto invoke
-    .tailcall 'list'()
+    # Get all possible methods.
+    .local pmc methods
+    methods = self.'!MANY_DISPATCH_HELPER'(method_name, pos_args, named_args)
 
-    # Now find all methods and call them - since we know there are methods,
-    # we just pass on to infix:.+.
-  invoke:
-    .tailcall self.'!.+'(method_name, pos_args :flat, named_args :named :flat)
+    # Build result capture list.
+    .local pmc pos_res, named_res, cap, result_list, it, cur_meth
+    $P0 = get_hll_global 'list'
+    result_list = $P0()
+    it = iter methods
+  it_loop:
+    unless it goto it_loop_end
+    cur_meth = shift it
+    (pos_res :slurpy, named_res :named :slurpy) = cur_meth(self, pos_args :flat, named_args :named :flat)
+    cap = 'prefix:\\'(pos_res :flat, named_res :flat :named)
+    push result_list, cap
+    goto it_loop
+  it_loop_end:
+
+    .return (result_list)
 .end
 
+
+=item !.+
+
+Helper method for implementing the .+ operator. Calls one or more matching
+methods, dies if there are none.
+
+=cut
 
 .sub '!.+' :method
     .param string method_name
     .param pmc pos_args     :slurpy
     .param pmc named_args   :slurpy :named
 
-    # We need to find all methods we could call with the right name.
-    .local pmc p6meta, result_list, class, mro, it, cap_class, failure_class
-    result_list = 'list'()
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    class = self.'HOW'()
-    class = p6meta.'get_parrotclass'(class)
-    mro = inspect class, 'all_parents'
-    it = iter mro
-    cap_class = get_hll_global 'Capture'
-    failure_class = get_hll_global 'Failure'
-  mro_loop:
-    unless it goto mro_loop_end
-    .local pmc cur_class, meths, cur_meth
-    cur_class = shift it
-    meths = inspect cur_class, 'methods'
-    cur_meth = meths[method_name]
-    if null cur_meth goto mro_loop
+    # Use !.* to produce a (possibly empty) list of result captures.
+    .local pmc result_list
+    result_list = self.'!.*'(method_name, pos_args :flat, named_args :flat :named)
 
-    # If we're here, found a method. Invoke it and add capture of the results
-    # to the result list.
-    .local pmc pos_res, named_res, cap
-    (pos_res :slurpy, named_res :named :slurpy) = cur_meth(self, pos_args :flat, named_args :named :flat)
-    cap = 'prefix:\\'(pos_res :flat, named_res :flat :named)
-    push result_list, cap
-    goto mro_loop
-  mro_loop_end:
-
-    # Make sure we got some elements, or we have to die.
+    # If we got no elements at this point, we must die.
     $I0 = elements result_list
     if $I0 == 0 goto failure
     .return (result_list)
@@ -573,6 +586,67 @@ Create a clone of self, also cloning the attributes given by attrlist.
     'die'($S0)
 .end
 
+
+=item !MANY_DISPATCH_HELPER
+
+This is a helper for implementing .+, .? and .*. In the future, it may well be
+the basis of WALK also. It returns all methods we could possible call.
+
+=cut
+
+.sub '!MANY_DISPATCH_HELPER' :method
+    .param string method_name
+    .param pmc pos_args
+    .param pmc named_args
+
+    # We need to find all methods we could call with the right name.
+    .local pmc p6meta, result_list, class, mro, it
+    $P0 = get_hll_global 'list'
+    result_list = $P0()
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    class = self.'WHAT'()
+    class = p6meta.'get_parrotclass'(class)
+    mro = inspect class, 'all_parents'
+    it = iter mro
+  mro_loop:
+    unless it goto mro_loop_end
+    .local pmc cur_class, meths, cur_meth
+    cur_class = shift it
+    meths = inspect cur_class, 'methods'
+    cur_meth = meths[method_name]
+    if null cur_meth goto mro_loop
+
+    # If we're here, found a method. But is it a multi?
+    $I0 = isa cur_meth, "Perl6MultiSub"
+    if $I0 goto multi_dispatch
+    
+    # Single dispatch - add to the result list.
+    push result_list, cur_meth
+    goto mro_loop
+
+    # Multiple dispatch; get all applicable candidates.
+  multi_dispatch:
+    .local pmc possibles, possibles_it
+    possibles = cur_meth.'find_possible_candidates'(self, pos_args :flat)
+    possibles_it = iter possibles
+  possibles_it_loop:
+    unless possibles_it goto possibles_it_loop_end
+    cur_meth = shift possibles_it
+    push result_list, cur_meth
+    goto possibles_it_loop
+  possibles_it_loop_end:
+    goto mro_loop
+  mro_loop_end:
+
+    .return (result_list)
+.end
+
+
+=item !.^
+
+Helper for doing calls on the metaclass.
+
+=cut
 
 .sub '!.^' :method
     .param string method_name

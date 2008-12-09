@@ -53,7 +53,6 @@ S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
-S03-operators/binding-arrays.t
 S03-operators/binding-closure.t
 S03-operators/binding-hashes.t
 S03-operators/binding-scalars.t
@@ -178,7 +177,6 @@ S12-role/mixin.t
 S12-role/namespaced.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
-S16-filehandles/io_in_while_loops.t
 S16-io/say.t
 S29-any/cmp.t
 S29-array/delete.t

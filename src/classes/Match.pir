@@ -31,6 +31,11 @@ help here, too.)
 
     # Also install Match proto in our HLL namespace.
     set_hll_global 'Match', $P0
+
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    $P1 = get_hll_global 'Positional'
+    p6meta.'add_role'($P1, 'to'=>$P0)
 .end
 
 #

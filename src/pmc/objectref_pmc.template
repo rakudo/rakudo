@@ -62,6 +62,10 @@ pmclass ObjectRef need_ext dynpmc group perl6_group {
         return value;
     }
 
+    VTABLE void set_pmc(PMC *value) {
+        SET_ATTR_value(INTERP, SELF, value);
+    }
+
     VTABLE INTVAL isa_pmc(PMC *lookup) {
         PMC * value;
         if (SUPER(lookup)) return 1;

@@ -4,11 +4,10 @@
 
 src/classes/Array.pir - Perl 6 Array class and related functions
 
-=head2 Object Methods
-
 =cut
 
-.sub 'onload' :anon :load :init
+.namespace []
+.sub '' :anon :load :init
     .local pmc p6meta, arrayproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     arrayproto = p6meta.'new_class'('Perl6Array', 'parent'=>'List', 'name'=>'Array')
@@ -18,22 +17,13 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     '!EXPORT'('delete exists pop push shift unshift', 'from'=>$P0)
 .end
 
+=head2 Methods
 
-.namespace []
-.sub 'circumfix:[ ]'
-    .param pmc values          :slurpy
-    $P0 = new 'Perl6Array'
-    $I0 = elements values
-    splice $P0, values, 0, $I0
-    $P0.'!flatten'()
-    $P1 = new 'ObjectRef', $P0
-    .return ($P1)
-.end
+=over
 
+=item delete
 
-=head2 Array methods
-
-=over 4
+Remove items from an array.
 
 =cut
 
@@ -97,17 +87,19 @@ Return Array in item context (i.e., self)
 
 =cut
 
+.namespace ['Perl6Array']
 .sub 'item' :method
     .return (self)
 .end
 
 
-=item list()
+=item list
 
-Return Array as a List (i.e., values)
+Return invocant as a List.
 
 =cut
 
+.namespace ['Perl6Array']
 .sub 'list' :method
     .tailcall self.'values'()
 .end
@@ -177,19 +169,54 @@ Adds C<args> to the beginning of the Array.
     .tailcall self.'elems'()
 .end
 
-
 =item values()
 
-Return the values of the Array as a List.
+Return Array as a List of its values.
 
 =cut
 
+.namespace ['Perl6Array']
 .sub 'values' :method
     $P0 = new 'List'
     splice $P0, self, 0, 0
     .return ($P0)
 .end
 
+=back
+
+=head2 Operators
+
+=over
+
+=item circumfix:[]
+
+Create an array.
+
+=cut
+
+.namespace []
+.sub 'circumfix:[ ]'
+    .param pmc values          :slurpy
+    .tailcall values.'Scalar'()
+.end
+
+=back
+
+=head2 Coercion methods
+
+=over
+
+=item Array
+
+=cut
+
+.sub 'Array' :method
+    .return (self)
+.end
+
+=back
+
+=cut
 
 # Local Variables:
 #   mode: pir

@@ -9,6 +9,9 @@
     p6meta.'register'('Undef', 'parent'=>failureproto, 'protoobject'=>failureproto)
     exceptionproto = p6meta.'new_class'('Perl6Exception', 'parent'=>'Any', 'attr'=>'$!exception')
     p6meta.'register'('Exception', 'protoobject'=>exceptionproto)
+
+    $P0 = box 1
+    set_hll_global '$WARNINGS', $P0
 .end
 
 
@@ -46,6 +49,8 @@
 .sub '!throw_unhandled' :method
     $I0 = self.'handled'()
     if $I0 goto done
+    $P0 = get_hll_global '$WARNINGS'
+    unless $P0 goto done
     $P0 = self.'!exception'()
     $S0 = $P0['message']
     $S0 = concat $S0, "\n"

@@ -11,6 +11,8 @@ our $num_of_tests_planned;
 our $todo_upto_test_num = 0;
 our $todo_reason = '';
 
+our $*WARNINGS = 0;
+
 # for running the test suite multiple times in the same process
 our $testing_started;
 

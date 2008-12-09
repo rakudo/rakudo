@@ -1495,13 +1495,10 @@ method methodop($/, $key) {
 method postcircumfix($/, $key) {
     my $past;
     if $key eq '[ ]' {
-        $past := PAST::Var.new(
-            $( $<semilist> ),
-            :scope('keyed_int'),
-            :vivibase('Perl6Array'),
-            :viviself('Failure'),
-            :node( $/ )
-        );
+        $past := build_call( $( $<semilist> ) );
+        $past.node($/);
+        $past.name('postcircumfix:[ ]');
+        $past.pasttype('callmethod');
     }
     elsif $key eq '( )' {
         $past := build_call( $( $<semilist> ) );

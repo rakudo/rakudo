@@ -36,13 +36,15 @@ Returns all the lines of a file as a (lazy) List regardless of context. See also
 =cut
 
 .sub 'lines' :method :multi('IO')
-    .local pmc PIO, res
+    .local pmc PIO, res, chomper
     PIO = getattribute self, "$!PIO"
     res = new 'List'
+    chomper = get_hll_global 'chomp'
 
   loop:
     $S0 = PIO.'readline'()
     unless $S0 goto done
+    $S0 = chomper($S0)
     res.'push'($S0)
     goto loop
 
@@ -113,10 +115,11 @@ Reads a line from the file handle.
 =cut
 
 .sub 'readline' :method
-    .local pmc PIO
+    .local pmc PIO, chomper
     PIO = getattribute self, "$!PIO"
     $P0 = PIO.'readline'()
-    .return ($P0)
+    chomper = get_hll_global 'chomp'
+    .tailcall chomper($P0)
 .end
 
 
@@ -222,22 +225,25 @@ Return the value inside this container in item context.
 .end
 
 .sub 'item' :method :vtable('shift_pmc')
-    .local pmc pio
+    .local pmc pio, chomper
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"
     $P0 = pio.'readline'()
-    .return($P0)
+    chomper = get_hll_global 'chomp'
+    .tailcall chomper($P0)
 .end
 
 .sub 'list' :method
-    .local pmc pio, res
+    .local pmc pio, res, chomper
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"
     res = new 'List'
+    chomper = get_hll_global 'chomp'
 
   loop:
     $S0 = pio.'readline'()
     if $S0 == '' goto done
+    $S0 = chomper($S0)
     res.'push'($S0)
     goto loop
 

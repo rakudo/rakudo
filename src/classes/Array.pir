@@ -14,7 +14,7 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     arrayproto.'!MUTABLE'()
 
     $P0 = get_hll_namespace ['Perl6Array']
-    '!EXPORT'('delete exists pop push shift unshift', 'from'=>$P0)
+    '!EXPORT'('delete,exists,pop,push,shift,unshift', 'from'=>$P0)
 .end
 
 =head2 Methods

@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('abs cis int log chr polar sqrt truncate unpolar', 'from'=>$P0)
+    '!EXPORT'('abs,cis,int,log,chr,polar,sqrt,truncate,unpolar', 'from'=>$P0)
 
     ##  pre-seed a random number generator
     $P0 = new 'Random'

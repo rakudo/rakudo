@@ -1498,7 +1498,7 @@ method postcircumfix($/, $key) {
         $past := build_call( $( $<semilist> ) );
         $past.node($/);
         $past.name('postcircumfix:[ ]');
-        $past.pasttype('callmethod');
+        $past.pasttype('call');
     }
     elsif $key eq '( )' {
         $past := build_call( $( $<semilist> ) );

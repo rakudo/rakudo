@@ -27,7 +27,7 @@ Implementation is a bit different from other basic objects (Int...) because
     p6meta.'register'('Complex', 'parent'=>complexproto, 'protoobject'=>complexproto)
 
     $P0 = get_hll_namespace ['Perl6Complex']
-    '!EXPORT'('log polar', 'from'=>$P0)
+    '!EXPORT'('log,polar', 'from'=>$P0)
 .end
 
 

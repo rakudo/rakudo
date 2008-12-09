@@ -18,7 +18,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     mappingproto = p6meta.'new_class'('Mapping', 'parent'=>'Hash Any')
     p6meta.'register'('Hash', 'parent'=>mappingproto, 'protoobject'=>mappingproto)
     $P0 = get_hll_namespace ['Mapping']
-    '!EXPORT'('keys kv values reverse', $P0)
+    '!EXPORT'('keys,kv,values,reverse', $P0)
 .end
 
 

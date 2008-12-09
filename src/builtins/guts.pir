@@ -29,7 +29,7 @@ it understands how to properly merge C<MultiSub> PMCs.
   have_to:
 
     .local pmc list
-    list = split ' ', symbols
+    list = split ',', symbols
   list_loop:
     unless list goto list_end
     .local string symbol

@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('capitalize chop chomp chars :e index lc lcfirst rindex ord substr uc ucfirst', 'from'=>$P0)
+    '!EXPORT'('capitalize,chop,chomp,chars,:e,index,lc,lcfirst,rindex,ord,substr,uc,ucfirst', 'from'=>$P0)
 .end
 
 

@@ -13,9 +13,12 @@ src/classes/Positional.pir - Positional Role
 .sub '' :anon :load :init
     .local pmc positional
     positional = '!keyword_role'('Positional')
+
+    $P0 = get_hll_namespace ['Positional']
+    '!EXPORT'('postcircumfix:[ ]', $P0)
 .end
 
-=head2 Methods
+=head2 Operators
 
 =over
 
@@ -26,7 +29,7 @@ Returns a list element or slice.
 =cut
 
 .namespace ['Positional']
-.sub 'postcircumfix:[ ]' :method
+.sub 'postcircumfix:[ ]' :method :multi(_, _)
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
     .local pmc result

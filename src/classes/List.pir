@@ -16,7 +16,7 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 
     $P0 = get_hll_namespace ['List']
-    '!EXPORT'('first grep keys kv map pairs reduce values', $P0)
+    '!EXPORT'('first,grep,keys,kv,map,pairs,reduce,values', $P0)
 .end
 
 =head2 Methods

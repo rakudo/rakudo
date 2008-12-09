@@ -28,7 +28,7 @@ as the Perl 6 C<Str> class.
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)
 
     $P0 = get_hll_namespace ['Str']
-    '!EXPORT'('sprintf reverse', 'from'=>$P0)
+    '!EXPORT'('sprintf,reverse', 'from'=>$P0)
 .end
 
 

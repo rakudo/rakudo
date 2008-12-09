@@ -240,6 +240,10 @@ layer.  It will likely change substantially when we have lazy lists.
     unless $I0 goto not_range
     elem = elem.'list'()
   not_range:
+    $I0 = isa elem, 'IOIterator'
+    unless $I0 goto not_ioiterator
+    elem = elem.'list'()
+  not_ioiterator:
     $I0 = does elem, 'array'
     unless $I0 goto flat_next
     splice self, elem, i, 1

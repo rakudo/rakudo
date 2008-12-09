@@ -229,6 +229,22 @@ Return the value inside this container in item context.
     .return($P0)
 .end
 
+.sub 'list' :method
+    .local pmc pio, res
+    $P0 = getattribute self, "$!IO"
+    pio = getattribute $P0, "$!PIO"
+    res = new 'List'
+
+  loop:
+    $S0 = pio.'readline'()
+    if $S0 == '' goto done
+    res.'push'($S0)
+    goto loop
+
+  done:
+    .return (res)
+.end
+
 .sub 'get_string' :vtable
     .tailcall self.'item'()
 .end

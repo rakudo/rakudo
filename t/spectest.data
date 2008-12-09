@@ -177,6 +177,7 @@ S12-role/mixin.t
 S12-role/namespaced.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
+S16-io/basic-open.t
 S16-io/say.t
 S29-any/cmp.t
 S29-array/delete.t

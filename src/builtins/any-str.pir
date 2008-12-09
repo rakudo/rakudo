@@ -119,6 +119,9 @@ Returns string with one Char removed from the end.
     lastchar = substr tmps,-1
     if lastchar != "\n" goto done
     chopn tmps, 1
+    lastchar = substr tmps,-1
+    if lastchar != "\r" goto done
+    chopn tmps, 1
   done:
        retv = new 'Str'
        retv = tmps

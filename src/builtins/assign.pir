@@ -342,6 +342,39 @@ src/builtins/inplace.pir - Inplace assignments
     'die'("Non-dwimmy hyperoperator cannot be used on arrays of different sizes or dimensions.")
 .end
 
+
+.sub '!CROSSMETAOP'
+    .param string opname
+    .param string identity
+    .param int chain
+    .param pmc a
+    .param pmc b
+
+    # Use the X operator to get all permutation lists.
+    .local pmc lists
+    lists = 'infix:X'(a, b)
+
+    # Go over the lists and combine them with reduce meta-op.
+    .local pmc result, it, combinder
+    if chain goto chain_reduce
+    combinder = find_name '!REDUCEMETAOP'
+    goto combinder_done
+  chain_reduce:
+    combinder = find_name '!REDUCEMETAOPCHAIN'
+  combinder_done:
+    result = 'list'()
+    it = iter lists
+  it_loop:
+    unless it goto it_loop_end
+    $P0 = shift it
+    $P0 = combinder(opname, identity, $P0)
+    push result, $P0
+    goto it_loop
+  it_loop_end:
+
+    .return (result)
+.end
+
 =back
 
 =cut

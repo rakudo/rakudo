@@ -30,6 +30,10 @@ Returns a list element or slice.
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
     .local pmc result
+    if args goto do_index
+    ## return complete invocant as a list
+    .tailcall self.'list'()
+  do_index:
     args.'!flatten'()
     $I0 = args.'elems'()
     if $I0 != 1 goto slice

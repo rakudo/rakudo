@@ -1859,20 +1859,24 @@ method package_def($/, $key) {
             # Make proto-object for grammar.
             $?GRAMMAR.push(
                 PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('register'),
-                    PAST::Var.new(
-                        :scope('package'),
-                        :name('$!P6META'),
-                        :namespace('Perl6Object')
-                    ),
-                    PAST::Var.new(
-                        :scope('lexical'),
-                        :name('$def')
-                    ),
-                    PAST::Val.new(
-                        :value('Grammar'),
-                        :named( PAST::Val.new( :value('parent') ) )
+                    :pasttype('call'),
+                    :name('!PROTOINIT'),
+                    PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('register'),
+                        PAST::Var.new(
+                            :scope('package'),
+                            :name('$!P6META'),
+                            :namespace('Perl6Object')
+                        ),
+                        PAST::Var.new(
+                            :scope('lexical'),
+                            :name('$def')
+                        ),
+                        PAST::Val.new(
+                            :value('Grammar'),
+                            :named( PAST::Val.new( :value('parent') ) )
+                        )
                     )
                 )
             );
@@ -1896,20 +1900,24 @@ method package_def($/, $key) {
                 # It's a new class definition. Make proto-object.
                 $?CLASS.push(
                     PAST::Op.new(
-                        :pasttype('callmethod'),
-                        :name('register'),
-                        PAST::Var.new(
-                            :scope('package'),
-                            :name('$!P6META'),
-                            :namespace('Perl6Object')
-                        ),
-                        PAST::Var.new(
-                            :scope('lexical'),
-                            :name('$def')
-                        ),
-                        PAST::Val.new(
-                            :value('Any'),
-                            :named( PAST::Val.new( :value('parent') ) )
+                        :pasttype('call'),
+                        :name('!PROTOINIT'),
+                        PAST::Op.new(
+                            :pasttype('callmethod'),
+                            :name('register'),
+                            PAST::Var.new(
+                                :scope('package'),
+                                :name('$!P6META'),
+                                :namespace('Perl6Object')
+                            ),
+                            PAST::Var.new(
+                                :scope('lexical'),
+                                :name('$def')
+                            ),
+                            PAST::Val.new(
+                                :value('Any'),
+                                :named( PAST::Val.new( :value('parent') ) )
+                            )
                         )
                     )
                 );
@@ -2260,8 +2268,14 @@ method scope_declarator($/) {
             my $name := ~$<scoped><declarator><variable_declarator><variable><name>;
             declare_attribute($/, $declarator, $sigil, $twigil, $name);
 
-            # We don't have any PAST at the point of the declaration.
-            $past := PAST::Stmts.new();
+            # Always leave a PAST::Var attribute node behind (can't just use what was
+            # produced as . twigil may have transformed it to a method call).
+            $past := PAST::Var.new(
+                :node($<scoped><declarator><variable_declarator><variable>),
+                :name($name),
+                :scope('attribute'),
+                :isdecl(1)
+            );
         }
 
         # If we're in a class and have something declared with a sigil, then
@@ -2880,6 +2894,46 @@ method EXPR($/, $key) {
 
     if $key eq 'end' {
         make $($<expr>);
+    }
+    elsif ~$type eq 'infix:=' {
+        my $lhs := $( $/[0] );
+        my $rhs := $( $/[1] );
+        my $past;
+
+        # Is it an assignment to an attribute?
+        if $lhs.isa(PAST::Var) && $lhs.scope() eq 'attribute' && $lhs.isdecl() {
+            # Add this to the WHENCE clause.
+            # XXX Need to make it a closure, but will need :subid to get
+            # scoping right.
+            our $?CLASS;
+            $?CLASS.push(
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!ADD_TO_WHENCE'),
+                    PAST::Var.new(
+                        :name('$def'),
+                        :scope('lexical')
+                    ),
+                    $lhs.name(),
+                    $rhs
+                )
+            );
+            
+            # Nothing to emit at this point.
+            $past := PAST::Stmts.new();
+        }
+        else {
+            # Just a normal assignment.
+            $past := PAST::Op.new(
+                :pasttype('call'),
+                :name('infix:='),
+                :lvalue(1),
+                $lhs,
+                $rhs
+            );
+        }
+
+        make $past;
     }
     elsif ~$type eq 'infix:.=' {
         my $invocant  := $( $/[0] );

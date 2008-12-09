@@ -525,6 +525,63 @@ Adds an attribute with the given name to the class or role.
 .end
 
 
+=item !ADD_TO_WHENCE
+
+Adds a key/value mapping to what will become the WHENCE on a proto-object (we
+don't have a proto-object to stick them on yet, so we put a property on the
+class temporarily, then attach it as the WHENCE clause later).
+
+=cut
+
+.sub '!ADD_TO_WHENCE'
+    .param pmc class
+    .param pmc attr_name
+    .param pmc value
+
+    # Get hash if we have it, if not make it.
+    .local pmc whence_hash
+    whence_hash = getprop '%!WHENCE', class
+    unless null whence_hash goto have_hash
+    whence_hash = new 'Perl6Hash'
+    setprop class, '%!WHENCE', whence_hash
+
+    # Make entry.
+  have_hash:
+    whence_hash[attr_name] = value
+.end
+
+
+=item !PROTOINIT
+
+Called after a new proto-object has been made for a new class or grammar. It
+finds any WHENCE data that we may need to add.
+
+=cut
+
+.sub '!PROTOINIT'
+    .param pmc proto
+
+    # See if there's any attribute initializers.
+    .local pmc p6meta, WHENCE
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    $P0 = p6meta.'get_parrotclass'(proto)
+    WHENCE = getprop '%!WHENCE', $P0
+    if null WHENCE goto no_whence
+
+    # Attach the WHENCE property.
+    .local pmc props
+    props = getattribute proto, '%!properties'
+    unless null props goto have_props
+    props = new 'Hash'
+  have_props:
+    props['WHENCE'] = WHENCE
+    setattribute proto, '%!properties', props
+  no_whence:
+
+    .return (proto)
+.end
+
+
 =item !anon_enum(value_list)
 
 Constructs a Mapping, based upon the values list.

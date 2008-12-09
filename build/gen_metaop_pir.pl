@@ -58,8 +58,8 @@ my $assignfmt =
 my $reducefmt =
     "    optable.'newtok'('prefix:[%s]', 'equiv'=>'infix:=')\n";
 my $hyper_no_dwim_fmt =
-    "    optable.'newtok'('infix:>>%s<<', 'equiv'=>'infix:%s')\n" .
-    "    optable.'newtok'(unicode:\"infix:\\u00ab%s\\u00bb\", 'equiv'=>'infix:%s', 'subname'=>'infix:>>%s<<')\n";
+    "    optable.'newtok'(%s, 'equiv'=>'infix:%s')\n" .
+    "    optable.'newtok'('infix:>>%s<<', 'equiv'=>'infix:%s', 'subname'=>%s)\n";
 
 my @gtokens = ();
 my @code = ();
@@ -90,9 +90,10 @@ while (@ops) {
         .end\n);
 
     # Non-dwimming hyper ops.
-    push @gtokens, sprintf( $hyper_no_dwim_fmt, ($opname) x 5 );
+    my $hypername = qq(unicode:"infix:\\u00ab$opname\\u00bb");
+    push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, $opname, $opname, $hypername);
     push @code, qq(
-        .sub 'infix:>>$opname<<'
+        .sub $hypername
             .param pmc a
             .param pmc b
             .tailcall '!HYPEROPNODWIM'('$opname', a, b)

@@ -59,7 +59,7 @@ my $reducefmt =
     "    optable.'newtok'('prefix:[%s]', 'equiv'=>'infix:=')\n";
 my $hyper_no_dwim_fmt =
     "    optable.'newtok'(%s, 'equiv'=>'infix:%s')\n" .
-    "    optable.'newtok'('infix:>>%s<<', 'equiv'=>'infix:%s', 'subname'=>%s)\n";
+    "    optable.'newtok'('infix:%s', 'equiv'=>'infix:%s', 'subname'=>%s)\n";
 
 my @gtokens = ();
 my @code = ();
@@ -91,12 +91,42 @@ while (@ops) {
 
     # Non-dwimming hyper ops.
     my $hypername = qq(unicode:"infix:\\u00ab$opname\\u00bb");
-    push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, $opname, $opname, $hypername);
+    push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, ">>$opname<<", $opname, $hypername);
     push @code, qq(
         .sub $hypername
             .param pmc a
             .param pmc b
-            .tailcall '!HYPEROPNODWIM'('$opname', a, b)
+            .tailcall '!HYPEROP'('$opname', a, b, 0, 0)
+        .end\n);
+
+    # LHS-dwimming hyper ops.
+    my $hypername = qq(unicode:"infix:\u00bbb$opname\\u00bb");
+    push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, "<<$opname<<", $opname, $hypername);
+    push @code, qq(
+        .sub $hypername
+            .param pmc a
+            .param pmc b
+            .tailcall '!HYPEROP'('$opname', a, b, 1, 0)
+        .end\n);
+
+    # RHS-dwimming hyper ops.
+    my $hypername = qq(unicode:"infix:\\u00ab$opname\\u00ab");
+    push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, ">>$opname>>", $opname, $hypername);
+    push @code, qq(
+        .sub $hypername
+            .param pmc a
+            .param pmc b
+            .tailcall '!HYPEROP'('$opname', a, b, 0, 1)
+        .end\n);
+
+    # Dwimming hyper ops.
+    my $hypername = qq(unicode:"infix:\\u00bb$opname\\u00ab");
+    push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, "<<$opname>>", $opname, $hypername);
+    push @code, qq(
+        .sub $hypername
+            .param pmc a
+            .param pmc b
+            .tailcall '!HYPEROP'('$opname', a, b, 1, 1)
         .end\n);
 }
 

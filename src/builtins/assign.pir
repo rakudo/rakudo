@@ -247,47 +247,92 @@ src/builtins/inplace.pir - Inplace assignments
 .end
 
 
-.sub '!HYPEROPNODWIM'
+.sub '!HYPEROP'
     .param string opname
     .param pmc a
     .param pmc b
+    .param int dwim_lhs
+    .param int dwim_rhs
 
     # Make sure they're both lists. XXX Need to handle hashes in future.
     a = a.'list'()
     b = b.'list'()
 
     # Ensure lengths are the same.
-    $I0 = a.'elems'()
-    $I1 = b.'elems'()
-    if $I0 != $I1 goto incompatible
+    .local int elems_a, elems_b
+    elems_a = a.'elems'()
+    elems_b = b.'elems'()
+    if elems_a < elems_b goto extend_lhs
+    if elems_b < elems_a goto extend_rhs
+    goto go_hyper
+
+    # Extend LHS if needed.
+    .local pmc extend_with
+  extend_lhs:
+    unless dwim_lhs goto incompatible
+    if elems_a > 0 goto have_elems_a
+    extend_with = '!FAIL'()
+    a = 'infix:xx'(extend_with, elems_b)
+    goto go_hyper
+  have_elems_a:
+    extend_with = a[-1]
+    $I0 = elems_b - elems_a
+    extend_with = 'infix:xx'(extend_with, $I0)
+    a = 'list'(a, extend_with)
+    goto go_hyper
+
+    # Extend RHS if needed.
+  extend_rhs:
+    unless dwim_rhs goto incompatible
+    if elems_b > 0 goto have_elems_b
+    extend_with = '!FAIL'()
+    b = 'infix:xx'(extend_with, elems_a)
+    goto go_hyper
+  have_elems_b:
+    extend_with = b[-1]
+    $I0 = elems_a - elems_b
+    extend_with = 'infix:xx'(extend_with, $I0)
+    b = 'list'(b, extend_with)
+    goto go_hyper
 
     # Create result list and get iterators over the two.
+  go_hyper:
     .local pmc result, it_a, it_b
     result = new 'Perl6Array'
     it_a = iter a
     it_b = iter b
 
     # Go over them and do the op, recursing if we see a nested array.
-    .local pmc opfunc
+    .local pmc opfunc, cur_a, cur_b
+    .local int array_a, array_b
     $S0 = concat 'infix:', opname
     opfunc = find_name $S0
   loop:
     unless it_a goto loop_end
-    $P0 = shift it_a
-    $P1 = shift it_b
-    $I0 = isa $P0, 'Perl6Array'
-    if $I0 goto nested_array
-    $P2 = opfunc($P0, $P1)
-    push result, $P2
+    cur_a = shift it_a
+    cur_b = shift it_b
+    array_a = isa cur_a, 'Perl6Array'
+    array_b = isa cur_b, 'Perl6Array'
+    if array_a goto nested_array_lhs
+    if array_b goto nested_array_rhs
+    $P0 = opfunc(cur_a, cur_b)
+    push result, $P0
     goto loop
 
-    # If it's a nested array on LHS, must be on RHS too.
-  nested_array:
-    $I0 = isa $P1, 'Perl6Array'
-    unless $I0 goto incompatible
-    $P2 = '!HYPEROPNODWIM'(opname, $P0, $P1)
-    $P2 = new 'ObjectRef', $P2
-    push result, $P2
+    # Handle nested arrays.
+  nested_array_lhs:
+    if array_b goto recurse
+    unless dwim_rhs goto incompatible
+    cur_b = 'list'(cur_b)
+    goto recurse
+  nested_array_rhs:
+    if array_a goto recurse
+    unless dwim_lhs goto incompatible
+    cur_a = 'list'(cur_a)
+  recurse:
+    $P0 = '!HYPEROP'(opname, cur_a, cur_b, dwim_lhs, dwim_rhs)
+    $P0 = new 'ObjectRef', $P0
+    push result, $P0
     goto loop
   
   loop_end:    

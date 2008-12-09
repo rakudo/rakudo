@@ -21,7 +21,35 @@ This file implements the IO file handle class.
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     p6meta.'new_class'('IO', 'parent'=>'Any', 'attr'=>'$!PIO')
     p6meta.'new_class'('IOIterator', 'parent'=>'Perl6Object', 'attr'=>'$!IO')
+
+    $P0 = get_hll_namespace ['IO']
+    '!EXPORT'('lines', 'from'=>$P0)
 .end
+
+
+=item lines
+
+our List multi method lines (IO $handle:) is export;
+
+Returns all the lines of a file as a (lazy) List regardless of context. See also slurp.
+
+=cut
+
+.sub 'lines' :method :multi('IO')
+    .local pmc PIO, res
+    PIO = getattribute self, "$!PIO"
+    res = new 'List'
+
+  loop:
+    $S0 = PIO.'readline'()
+    unless $S0 goto done
+    res.'push'($S0)
+    goto loop
+
+  done:
+    .return (res)
+.end
+
 
 =item print
 

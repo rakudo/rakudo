@@ -57,6 +57,9 @@ my $assignfmt =
     "    optable.'newtok'('infix:%s=', 'equiv'=>'infix::=', 'lvalue'=>1)\n";
 my $reducefmt =
     "    optable.'newtok'('prefix:[%s]', 'equiv'=>'infix:=')\n";
+my $hyper_no_dwim_fmt =
+    "    optable.'newtok'('infix:>>%s<<', 'equiv'=>'infix:%s')\n" .
+    "    optable.'newtok'(unicode:\"infix:\\u00ab%s\\u00bb\", 'equiv'=>'infix:%s', 'subname'=>'infix:>>%s<<')\n";
 
 my @gtokens = ();
 my @code = ();
@@ -84,6 +87,15 @@ while (@ops) {
         .sub 'prefix:[$opname]'
             .param pmc args    :slurpy
             .tailcall '!REDUCEMETAOP$chain'('$opname', $identity, args)
+        .end\n);
+
+    # Non-dwimming hyper ops.
+    push @gtokens, sprintf( $hyper_no_dwim_fmt, ($opname) x 5 );
+    push @code, qq(
+        .sub 'infix:>>$opname<<'
+            .param pmc a
+            .param pmc b
+            .tailcall '!HYPEROPNODWIM'('$opname', a, b)
         .end\n);
 }
 

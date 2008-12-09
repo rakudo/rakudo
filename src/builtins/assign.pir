@@ -246,6 +246,57 @@ src/builtins/inplace.pir - Inplace assignments
     .return (a)
 .end
 
+
+.sub '!HYPEROPNODWIM'
+    .param string opname
+    .param pmc a
+    .param pmc b
+
+    # Make sure they're both lists. XXX Need to handle hashes in future.
+    a = a.'list'()
+    b = b.'list'()
+
+    # Ensure lengths are the same.
+    $I0 = a.'elems'()
+    $I1 = b.'elems'()
+    if $I0 != $I1 goto incompatible
+
+    # Create result list and get iterators over the two.
+    .local pmc result, it_a, it_b
+    result = new 'Perl6Array'
+    it_a = iter a
+    it_b = iter b
+
+    # Go over them and do the op, recursing if we see a nested array.
+    .local pmc opfunc
+    $S0 = concat 'infix:', opname
+    opfunc = find_name $S0
+  loop:
+    unless it_a goto loop_end
+    $P0 = shift it_a
+    $P1 = shift it_b
+    $I0 = isa $P0, 'Perl6Array'
+    if $I0 goto nested_array
+    $P2 = opfunc($P0, $P1)
+    push result, $P2
+    goto loop
+
+    # If it's a nested array on LHS, must be on RHS too.
+  nested_array:
+    $I0 = isa $P1, 'Perl6Array'
+    unless $I0 goto incompatible
+    $P2 = '!HYPEROPNODWIM'(opname, $P0, $P1)
+    $P2 = new 'ObjectRef', $P2
+    push result, $P2
+    goto loop
+  
+  loop_end:    
+    .return (result)
+    
+  incompatible:
+    'die'("Non-dwimmy hyperoperator cannot be used on arrays of different sizes or dimensions.")
+.end
+
 =back
 
 =cut

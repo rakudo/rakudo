@@ -163,6 +163,7 @@ S12-enums/anonymous.t
 S12-enums/as-role.t
 S12-enums/basic.t
 S12-introspection/can.t
+S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
 S12-methods/default-trait.t
 S12-methods/indirect_notation.t

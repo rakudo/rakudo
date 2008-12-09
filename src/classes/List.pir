@@ -774,7 +774,7 @@ produce_next:
 
     # Start out by building list at current counters.
     .local pmc new_list
-    new_list = new 'List'
+    new_list = new 'Perl6Array'
     i = 0
 cur_perm_loop:
     if i >= num_args goto cur_perm_loop_end
@@ -785,6 +785,7 @@ cur_perm_loop:
     inc i
     goto cur_perm_loop
 cur_perm_loop_end:
+    new_list = new 'ObjectRef', new_list
     res[res_count] = new_list
     inc res_count
 

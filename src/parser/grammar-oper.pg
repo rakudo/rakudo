@@ -158,7 +158,11 @@ proto infix:<,> is precedence('g=')
 proto infix:<X> is precedence('f=')
     is assoc('list')
     { ... }
-proto infix:<Z> is precedence('f=')
+proto infix:<X,X> is equiv(infix:<X>)
+    is assoc('list')
+    is subname('infix:X')
+    { ... }
+proto infix:<Z> is equiv(infix:<X>)
     is assoc('list')
     { ... }
 

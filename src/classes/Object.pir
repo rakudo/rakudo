@@ -509,7 +509,7 @@ method, and returns undef if there are none.
     # Get all possible methods.
     .local pmc methods
     methods = self.'!MANY_DISPATCH_HELPER'(method_name, pos_args, named_args)
-    
+
     # Do we have any?
     $I0 = elements methods
     if $I0 goto invoke
@@ -619,7 +619,7 @@ the basis of WALK also. It returns all methods we could possible call.
     # If we're here, found a method. But is it a multi?
     $I0 = isa cur_meth, "Perl6MultiSub"
     if $I0 goto multi_dispatch
-    
+
     # Single dispatch - add to the result list.
     push result_list, cur_meth
     goto mro_loop

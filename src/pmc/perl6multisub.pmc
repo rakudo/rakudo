@@ -77,7 +77,11 @@ typedef struct candidate_graph_node {
 
 /* Some constants for candidate sorter. */
 #define EDGE_REMOVAL_TODO -1
-#define EDGE_REMOVED -2
+#define EDGE_REMOVED      -2
+
+/* Some constants for the dispatcher. */
+#define MMD_ONE_RESULT   0
+#define MMD_MANY_RESULTS 1
 
 /*
 
@@ -495,7 +499,7 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *proto,
      * dispatch. Note that we could also store the current candidate set and
      * re-enter the dispatch algorithm below, making it cheaper to get to that
      * point. */
-    if (possibles_count == 1)
+    if (possibles_count == 1 && cache != NULL)
         Parrot_mmd_cache_store_by_values(interp, cache, NULL, args, possibles[0]->sub);
 
     /* If we have multiple candidates left, tie-break on any constraints. */
@@ -617,8 +621,11 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *proto,
         }
     }
     else {
-        /* XXX TODO: Build PMC array of all possibles. */
-        return PMCNULL;
+        /* Build PMC array of all possibles. */
+        PMC *results = pmc_new(interp, enum_class_ResizablePMCArray);
+        for (i = 0; i < possibles_count; i++)
+            VTABLE_push_pmc(interp, results, possibles[i]->sub);
+        return results;
     }
 }
 
@@ -799,7 +806,7 @@ the Perl 6 MMD algorithm.
 
             /* Now do the dispatch on the args we are being invoked with;
              * if it can't find anything, it will throw the required exception. */
-            found = do_dispatch(interp, candidates, proto, args, 0,
+            found = do_dispatch(interp, candidates, proto, args, MMD_ONE_RESULT,
                     VTABLE_elements(interp, unsorted), (opcode_t *)next, cache);
         }
 
@@ -815,6 +822,64 @@ the Perl 6 MMD algorithm.
 
         /* Invoke the winner. */
         return VTABLE_invoke(interp, found, next);
+    }
+
+/*
+
+=item METHOD PMC *find_possible_candidates()
+
+Takes an array of arguments and finds all possible matching candidates.
+
+=cut
+
+*/
+    METHOD PMC *find_possible_candidates(PMC *args :slurpy) {
+        candidate_info **candidates = NULL;
+        PMC             *unsorted;
+        PMC             *proto;
+        PMC             *results;
+
+        /* Need to make sure a wobload of globals don't get destroyed. */
+        PMC      *saved_ccont       = interp->current_cont;
+        opcode_t *current_args      = interp->current_args;
+        opcode_t *current_params    = interp->current_params;
+        opcode_t *current_returns   = interp->current_returns;
+        PMC      *args_signature    = interp->args_signature;
+        PMC      *params_signature  = interp->params_signature;
+        PMC      *returns_signature = interp->returns_signature;
+
+        /* Make sure that we have a candidate list built. */
+        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
+        GETATTR_Perl6MultiSub_proto(interp, SELF, proto);
+
+        if (!candidates) {
+            candidates = sort_candidiates(interp, unsorted, &proto);
+            SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+            SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
+        }
+
+        if (!candidates)
+            Parrot_ex_throw_from_c_args(interp, NULL, 1,
+                "Failed to build candidate list");
+
+        /* Now do the dispatch on the args we have been supplied with, and
+         * get back a PMC array of possibles. */
+        results = do_dispatch(interp, candidates, proto, args, MMD_MANY_RESULTS,
+                VTABLE_elements(interp, unsorted), NULL, NULL);
+
+        /* Restore stuff that might have got overwriten by calls during the
+         * dispatch algorithm. */
+        interp->current_cont      = saved_ccont;
+        interp->current_args      = current_args;
+        interp->current_params    = current_params;
+        interp->current_returns   = current_returns;
+        interp->args_signature    = args_signature;
+        interp->params_signature  = params_signature;
+        interp->returns_signature = returns_signature;
+
+        /* Return the results that were found. */
+        RETURN(PMC *results);
     }
 
 /*

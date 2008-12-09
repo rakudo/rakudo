@@ -2918,7 +2918,7 @@ method EXPR($/, $key) {
                     $rhs
                 )
             );
-            
+
             # Nothing to emit at this point.
             $past := PAST::Stmts.new();
         }

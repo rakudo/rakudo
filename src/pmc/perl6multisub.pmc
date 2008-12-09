@@ -1006,6 +1006,24 @@ Converts C<p> to an integer and gets the key at that index.
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
         return VTABLE_get_pmc_keyed(interp, candidates, p);
     }
+
+/*
+
+=item VTABLE PMC * clone()
+
+Makes a copy of this Perl6MultiSub PMC.
+
+=cut
+
+*/
+    VTABLE PMC * clone() {
+        PMC *copy = pmc_new(interp, SELF->vtable->base_type);
+        PMC *unsorted;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
+        unsorted = VTABLE_clone(interp, unsorted);
+        SETATTR_Perl6MultiSub_candidates(interp, copy, unsorted);
+        return copy;
+    }
 }
 
 /*

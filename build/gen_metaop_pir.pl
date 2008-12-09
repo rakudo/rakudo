@@ -100,7 +100,7 @@ while (@ops) {
         .end\n);
 
     # LHS-dwimming hyper ops.
-    my $hypername = qq(unicode:"infix:\u00bbb$opname\\u00bb");
+    $hypername = qq(unicode:"infix:\u00bb$opname\\u00bb");
     push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, "<<$opname<<", $opname, $hypername);
     push @code, qq(
         .sub $hypername
@@ -110,7 +110,7 @@ while (@ops) {
         .end\n);
 
     # RHS-dwimming hyper ops.
-    my $hypername = qq(unicode:"infix:\\u00ab$opname\\u00ab");
+    $hypername = qq(unicode:"infix:\\u00ab$opname\\u00ab");
     push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, ">>$opname>>", $opname, $hypername);
     push @code, qq(
         .sub $hypername
@@ -120,7 +120,7 @@ while (@ops) {
         .end\n);
 
     # Dwimming hyper ops.
-    my $hypername = qq(unicode:"infix:\\u00bb$opname\\u00ab");
+    $hypername = qq(unicode:"infix:\\u00bb$opname\\u00ab");
     push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, "<<$opname>>", $opname, $hypername);
     push @code, qq(
         .sub $hypername

@@ -398,7 +398,7 @@ method catch_statement($/) {
     if $?BLOCK.handlers() {
         @handlers := $?BLOCK.handlers();
     }
-    @handlers.push($eh);
+    @handlers.unshift($eh);
     $?BLOCK.handlers(@handlers);
     make PAST::Stmts.new();
 }

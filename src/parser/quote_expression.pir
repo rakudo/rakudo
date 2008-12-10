@@ -51,13 +51,13 @@
     action = options['action']
 
     ##  set up options based on flags
-    .local pmc flagarray, iter
+    .local pmc flagarray, it
     flagarray = split ' ', flags
-    iter = new 'Iterator', flagarray
+    it = iter flagarray
   iter_loop:
-    unless iter goto iter_end
+    unless it goto iter_end
     .local string oname
-    oname = shift iter
+    oname = shift it
     oname = substr oname, 1
     options[oname] = 1
     if oname == 'ww' goto opt_ww
@@ -154,11 +154,11 @@
     ##  using an iterator to do it.
     ##  wwdoubleopts = clone options
             wwdoubleopts = new 'Hash'
-            .local pmc iter2
-            iter2 = new 'Iterator', options
+            .local pmc it2
+            it2 = iter options
           iter2_loop:
-            unless iter2 goto iter2_end
-            $S0 = shift iter2
+            unless it2 goto iter2_end
+            $S0 = shift it2
             $P0 = options[$S0]
             wwdoubleopts[$S0] = $P0
             goto iter2_loop

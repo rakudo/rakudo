@@ -97,12 +97,12 @@ to the Perl 6 compiler.
     ##  coming directly from Parrot, but currently Parrot provides
     ##  it as a ResizableStringArray and we need Undefs for
     ##  non-existent elements (RSA gives empty strings).
-    .local pmc args, iter
+    .local pmc args, it
     args = new 'ResizableStringArray'
-    iter = new 'Iterator', args_str
+    it = iter args_str
   args_loop:
-    unless iter goto args_end
-    $P0 = shift iter
+    unless it goto args_end
+    $P0 = shift it
     push args, $P0
     goto args_loop
   args_end:

@@ -52,12 +52,12 @@ ourself in a ObjectRef.
 
 .sub 'get_string' :method :vtable
     $S0 = ''
-    .local pmc iter
-    iter = new 'Iterator', self
+    .local pmc it
+    it = iter self
   loop:
-    unless iter goto end
-    $S1 = shift iter
-    $S2 = iter[$S1]
+    unless it goto end
+    $S1 = shift it
+    $S2 = it[$S1]
     $S0 = concat $S0, $S1
     concat $S0, "\t"
     concat $S0, $S2
@@ -75,12 +75,12 @@ Return invocant as a Hash
 =cut
 
 .sub 'hash' :method
-    .local pmc result, iter
+    .local pmc result, it
     result = new 'Perl6Hash'
-    iter = new 'Iterator', self
+    it = iter self
   iter_loop:
-    unless iter goto iter_end
-    $S0 = shift iter
+    unless it goto iter_end
+    $S0 = shift it
     $P0 = self[$S0]
     result[$S0] = $P0
     goto iter_loop
@@ -126,15 +126,15 @@ Returns elements of hash as array of C<Pair(key, value)>
 =cut
 
 .sub 'kv' :method :multi('Hash')
-    .local pmc iter
+    .local pmc it
     .local pmc rv
-    iter = new 'Iterator', self
+    it = iter self
     rv   = new 'List'
   loop:
-    unless iter goto end
-    $S1 = shift iter
+    unless it goto end
+    $S1 = shift it
     push rv, $S1
-    $P1 = iter[$S1]
+    $P1 = it[$S1]
     push rv, $P1
     goto loop
   end:
@@ -148,15 +148,15 @@ Returns elements of hash as array of C<Pairs>
 =cut
 
 .sub 'pairs' :method :multi('Hash')
-    .local pmc iter
+    .local pmc it
     .local pmc rv
-    iter = new 'Iterator', self
+    it = iter self
     rv   = 'list'()
     $P3 = get_hll_global 'Perl6Pair'
   loop:
-    unless iter goto end
-    $P1 = shift iter
-    $P2 = iter[$P1]
+    unless it goto end
+    $P1 = shift it
+    $P2 = it[$P1]
     $P4 = $P3.'new'('key' => $P1, 'value' => $P2)
     push rv, $P4
     goto loop
@@ -210,13 +210,13 @@ every pair, joined by newlines or an explicitly given separator.
 
 
 .sub 'keys' :method :multi('Hash')
-    .local pmc iter
+    .local pmc it
     .local pmc rv
-    iter = new 'Iterator', self
+    it = iter self
     rv   = new 'List'
   loop:
-    unless iter goto end
-    $S1 = shift iter
+    unless it goto end
+    $S1 = shift it
     push rv, $S1
     goto loop
   end:
@@ -228,12 +228,12 @@ every pair, joined by newlines or an explicitly given separator.
 =cut
 
 .sub 'reverse' :method :multi('Hash')
-    .local pmc result, iter
+    .local pmc result, it
     result = new 'Perl6Hash'
-    iter = new 'Iterator', self
+    it = iter self
   iter_loop:
-    unless iter goto iter_end
-    $S0 = shift iter
+    unless it goto iter_end
+    $S0 = shift it
     $S1 = self[$S0]
     result[$S1] = $S0
     goto iter_loop
@@ -243,14 +243,14 @@ every pair, joined by newlines or an explicitly given separator.
 
 
 .sub 'values' :method :multi('Hash')
-    .local pmc iter
+    .local pmc it
     .local pmc rv
-    iter = new 'Iterator', self
+    it = iter self
     rv   = new 'List'
   loop:
-    unless iter goto end
-    $S1 = shift iter
-    $P1 = iter[$S1]
+    unless it goto end
+    $S1 = shift it
+    $P1 = it[$S1]
     push rv, $P1
     goto loop
   end:

@@ -113,7 +113,7 @@ Returns a proto-object with an autovivification closure attached to it.
   from_list:
     # List.
     .local pmc list_iter, cur_pair
-    list_iter = new 'Iterator', what
+    list_iter = iter what
   list_iter_loop:
     unless list_iter goto done_whence
     cur_pair = shift list_iter

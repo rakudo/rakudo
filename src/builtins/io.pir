@@ -14,12 +14,12 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 .sub 'print'
     .param pmc args            :slurpy
-    .local pmc iter
+    .local pmc it
     args.'!flatten'()
-    iter = new 'Iterator', args
+    it = iter args
   iter_loop:
-    unless iter goto iter_end
-    $S0 = shift iter
+    unless it goto iter_end
+    $S0 = shift it
     print $S0
     goto iter_loop
   iter_end:

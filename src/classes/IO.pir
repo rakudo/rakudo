@@ -61,14 +61,14 @@ Writes the given list of items to the file.
 
 .sub 'print' :method
     .param pmc args            :slurpy
-    .local pmc iter
+    .local pmc it
     .local pmc PIO
     PIO = getattribute self, "$!PIO"
     args = 'list'(args)
-    iter = new 'Iterator', args
+    it = iter args
   iter_loop:
-    unless iter goto iter_end
-    $S0 = shift iter
+    unless it goto iter_end
+    $S0 = shift it
     print PIO, $S0
     goto iter_loop
   iter_end:

@@ -166,7 +166,7 @@ constant I<e>.
     .param num    exp          :optional
     .param int    has_exp      :opt_flag
     .local num    result, fracdivisor, magnitude
-    .local pmc     iter
+    .local pmc    it
 
     if radix <= 1 goto err_range
     if radix > 36 goto err_range
@@ -175,11 +175,11 @@ constant I<e>.
     fracdivisor = 1.0
 
     $P0 = split '', intpart
-    iter = new 'Iterator', $P0
+    it = iter $P0
 
   lp1: # Accumulate over decimal part
-    unless iter goto ex1
-    $S0 = shift iter
+    unless it goto ex1
+    $S0 = shift it
     $S0 = downcase $S0
     if $S0 == "_" goto lp1
     $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
@@ -197,8 +197,8 @@ constant I<e>.
     $P99 = shift $P0                             # remove the radix point
 
   lp2: # Accumulate over fractional part, keep length
-    unless iter goto ex2
-    $S0 = shift iter
+    unless it goto ex2
+    $S0 = shift it
     $S0 = downcase $S0
     if $S0 == "_" goto lp2
     $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0

@@ -147,14 +147,14 @@ the moment -- we'll do more complex handling a bit later.)
 
 .sub 'die'
     .param pmc list            :slurpy
-    .local pmc iter
+    .local pmc it
     .local string message
 
     message = ''
-    iter = new 'Iterator', list
+    it = iter list
   iter_loop:
-    unless iter goto iter_end
-    $P0 = shift iter
+    unless it goto iter_end
+    $P0 = shift it
     $S0 = $P0
     message .= $S0
     goto iter_loop

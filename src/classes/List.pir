@@ -64,7 +64,7 @@ A List in list context returns itself.
 .namespace ['List']
 .sub 'Iterator' :method
     self.'!flatten'()
-    $P0 = new 'Iterator', self
+    $P0 = iter self
     .return ($P0)
 .end
 

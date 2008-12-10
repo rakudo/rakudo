@@ -315,12 +315,12 @@ need Undefs for non-existent elements (RSA gives empty strings).
 .sub '!SETUP_ARGS'
     .param pmc args_str
     .param int strip_program_name
-    .local pmc args, iter
+    .local pmc args, it
     args = new 'List'
-    iter = new 'Iterator', args_str
+    it = iter args_str
   args_loop:
-    unless iter goto args_end
-    $P0 = shift iter
+    unless it goto args_end
+    $P0 = shift it
     push args, $P0
     goto args_loop
   args_end:
@@ -341,7 +341,7 @@ Internal helper method to create a class.
 .sub '!keyword_class'
     .param string name   :optional
     .param int have_name :opt_flag
-    .local pmc class, resolve_list, methods, iter
+    .local pmc class, resolve_list, methods, it
 
     # Create class.
     if have_name goto named
@@ -354,11 +354,11 @@ Internal helper method to create a class.
 
     # Set resolve list to include all methods of the class.
     methods = inspect class, 'methods'
-    iter = new 'Iterator', methods
+    it = iter methods
     resolve_list = new 'ResizableStringArray'
   resolve_loop:
-    unless iter goto resolve_loop_end
-    $P0 = shift iter
+    unless it goto resolve_loop_end
+    $P0 = shift it
     push resolve_list, $P0
     goto resolve_loop
   resolve_loop_end:

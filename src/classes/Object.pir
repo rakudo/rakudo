@@ -215,7 +215,7 @@ Create a new object having the same class as the invocant.
     whence = self.'WHENCE'()
     unless whence goto no_whence
     .local pmc this_whence_iter
-    this_whence_iter = new 'Iterator', whence
+    this_whence_iter = iter whence
   this_whence_iter_loop:
     unless this_whence_iter goto no_whence
     $S0 = shift this_whence_iter
@@ -231,7 +231,7 @@ Create a new object having the same class as the invocant.
     # the all_parents list includes ourself.
     .local pmc all_parents, class_iter
     all_parents = inspect $P0, "all_parents"
-    class_iter = new 'Iterator', all_parents
+    class_iter = iter all_parents
   class_iter_loop:
     unless class_iter goto class_iter_loop_end
     .local pmc cur_class
@@ -251,7 +251,7 @@ Create a new object having the same class as the invocant.
     # Go through the provided init_parents to see if we have anything that
     # matches.
     .local pmc ip_iter, cur_ip
-    ip_iter = new 'Iterator', init_parents
+    ip_iter = iter init_parents
   ip_iter_loop:
     unless ip_iter goto ip_iter_loop_end
     cur_ip = shift ip_iter
@@ -282,12 +282,12 @@ Create a new object having the same class as the invocant.
   found_init_attribs:
 
     # Now go through attributes of the current class and iternate over them.
-    .local pmc attribs, iter
+    .local pmc attribs, it
     attribs = inspect cur_class, "attributes"
-    iter = new 'Iterator', attribs
+    it = iter attribs
   iter_loop:
-    unless iter goto iter_end
-    $S0 = shift iter
+    unless it goto iter_end
+    $S0 = shift it
 
     # See if we have an init value; use Undef if not.
     .local int got_init_value

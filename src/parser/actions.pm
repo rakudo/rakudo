@@ -479,6 +479,11 @@ method multi_declarator($/, $key) {
         create_sub($/, $past);
     }
 
+    # If we have an only, proto or multi, we must have a name.
+    if $<sym> ne "" && $past.name() eq "" {
+        $/.panic("'" ~ $<sym> ~ "' can only be used on named routines");
+    }
+
     # If it was multi or a proto, then emit a :multi.
     if $<sym> eq 'multi' || $<sym> eq 'proto' {
         # For now, if this is a multi we need to add code to transform the sub's

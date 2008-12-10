@@ -240,6 +240,7 @@ rule statement_control {
     | <use_statement> {*}                        #= use_statement
     | <begin_statement> {*}                      #= begin_statement
     | <end_statement> {*}                        #= end_statement
+    | <catch_statement> {*}                      #= catch_statement
 }
 
 rule if_statement {
@@ -319,6 +320,12 @@ rule begin_statement {
 
 rule end_statement {
     $<sym>=[END]
+    <block>
+    {*}
+}
+
+rule catch_statement {
+    $<sym>=[CATCH]
     <block>
     {*}
 }

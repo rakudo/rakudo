@@ -601,28 +601,22 @@ Return a list of Pair(index, value) elements for the invocant.
     $P0 = get_hll_global 'List'
     ulist = $P0.'new'()
 
-    .local int lelems, uelems, l, u
-    lelems = self.'elems'()
-    uelems = 0
-    l = 0
+    .local pmc it_inner, it_outer, val
+    it_outer = iter self
   outer_loop:
-    unless l < lelems goto outer_done
-    .local pmc val
-    val = self[l]
-    u = 0
+    unless it_outer goto outer_done
+    val = shift it_outer
+    it_inner = iter ulist
   inner_loop:
-    unless u < uelems goto inner_done
-    $P0 = ulist[u]
-    $P0 = comparer(val, $P0)
-    if $P0 goto outer_next
-    inc u
+    unless it_inner goto inner_done
+    $P0 = shift it_inner
+    $P1 = comparer(val, $P0)
+    if $P1 goto outer_loop
     goto inner_loop
   inner_done:
     ulist.'push'(val)
-    inc uelems
-  outer_next:
-    inc l
     goto outer_loop
+
   outer_done:
     .return (ulist)
 .end
@@ -632,11 +626,13 @@ Return a list of Pair(index, value) elements for the invocant.
 .sub 'uniq' :multi(Sub)
     .param pmc comparer
     .param pmc values :slurpy
+    values.'!flatten'()
     .tailcall values.'uniq'(comparer)
 .end
 
 .sub 'uniq' :multi()
     .param pmc values :slurpy
+    values.'!flatten'()
     .tailcall values.'uniq'()
 .end
 
@@ -815,18 +811,15 @@ The min operator.
 have_args:
 
     # Find minimum.
-    .local pmc cur_min
-    .local int i
+    .local pmc cur_min, it
     cur_min = args[0]
-    i = 1
+    it = iter args
 find_min_loop:
-    if i >= elems goto find_min_loop_end
-    $P0 = args[i]
+    unless it goto find_min_loop_end
+    $P0 = shift it
     $I0 = 'infix:cmp'($P0, cur_min)
-    if $I0 != -1 goto not_min
+    unless $I0 < 0 goto find_min_loop
     set cur_min, $P0
-not_min:
-    inc i
     goto find_min_loop
 find_min_loop_end:
 
@@ -852,18 +845,15 @@ The max operator.
 have_args:
 
     # Find maximum.
-    .local pmc cur_max
-    .local int i
+    .local pmc cur_max, it
     cur_max = args[0]
-    i = 1
+    it = iter args
 find_max_loop:
-    if i >= elems goto find_max_loop_end
-    $P0 = args[i]
+    unless it goto find_max_loop_end
+    $P0 = shift it
     $I0 = 'infix:cmp'($P0, cur_max)
-    if $I0 != 1 goto not_max
+    unless $I0 > 0 goto find_max_loop
     set cur_max, $P0
-not_max:
-    inc i
     goto find_max_loop
 find_max_loop_end:
 

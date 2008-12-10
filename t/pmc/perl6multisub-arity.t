@@ -148,8 +148,10 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
     .param int num_params
 
     # Get Any type.
-    .local pmc any
+    .local pmc any, true
     any = get_hll_global "Any"
+    true = new 'Integer'
+    true = 1
     
     # Make signature.
     $P0 = new 'Signature'
@@ -160,6 +162,7 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
     if $I0 == num_params goto param_loop_end
     $P2 = new 'Perl6Hash'
     $P2["type"] = any
+    $P2["multi_invocant"] = true
     push $P1, $P2
     inc $I0
     goto param_loop

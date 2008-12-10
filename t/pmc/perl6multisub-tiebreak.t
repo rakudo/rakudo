@@ -66,8 +66,10 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
     .param pmc constraints :slurpy
     
     # Make signature.
-    .local pmc any
+    .local pmc any, true
     any = get_hll_global 'Any'
+    true = new 'Integer'
+    true = 1
     $P0 = new 'Signature'
     $P1 = new 'Perl6Array'
     setattribute $P0, "@!params", $P1
@@ -79,6 +81,7 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
     $P2 = new 'Perl6Hash'
     $P2["type"] = any
     $P2["constraints"] = con
+    $P2["multi_invocant"] = true
     push $P1, $P2
     goto param_loop
   param_loop_end:

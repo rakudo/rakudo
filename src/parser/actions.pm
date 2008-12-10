@@ -2330,7 +2330,7 @@ method scope_declarator($/) {
         # the declaration evaluate to the signature object, thus allowing an
         # assignment to it.
         my @declare := sig_extract_declarables($/, $past);
-        $past := PAST::Stmts.new($past);
+        $past := PAST::Op.new(:name('list'), :node($/) );
         for @declare {
             # Work out sigil and twigil.
             my $sigil := substr($_, 0, 1);
@@ -2354,7 +2354,7 @@ method scope_declarator($/) {
                 else {
                     $scope := 'package';
                 }
-                $past.unshift(PAST::Var.new(
+                $past.push(PAST::Var.new(
                     :name($_),
                     :isdecl(1),
                     :scope($scope),

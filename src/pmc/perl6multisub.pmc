@@ -327,15 +327,18 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
         info->types = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         info->constraints = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         for (j = 0; j < sig_elems; j++) {
-            PMC *param = VTABLE_get_pmc_keyed_int(interp, params, j);
-            PMC *type = VTABLE_get_pmc_keyed_str(interp, param,
+            PMC *param       = VTABLE_get_pmc_keyed_int(interp, params, j);
+            PMC *type        = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "type"));
             PMC *constraints = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "constraints"));
+            PMC *multi_inv   = VTABLE_get_pmc_keyed_str(interp, param,
+                    CONST_STRING(interp, "multi_invocant"));
             info->types[j] = type;
             info->constraints[j] = constraints;
+            if (!PMC_IS_NULL(multi_inv) && VTABLE_get_bool(interp, multi_inv))
+                info->num_types++;
         }
-        info->num_types = sig_elems;
 
         /* Add it to graph node, and initialize list of edges. */
         graph[insert_pos] = mem_allocate_zeroed_typed(candidate_graph_node);

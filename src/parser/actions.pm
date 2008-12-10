@@ -578,6 +578,7 @@ method routine_declarator($/, $key) {
             my $descriptor := sig_descriptor_create();
             sig_descriptor_set($descriptor, 'name', PAST::Val.new( :value('$') ));
             sig_descriptor_set($descriptor, 'invocant', 1);
+            sig_descriptor_set($descriptor, 'multi_invocant', 1);
             sig_descriptor_set($descriptor, 'constraints',
                 PAST::Op.new(
                     :pasttype('call'),

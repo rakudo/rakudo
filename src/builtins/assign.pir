@@ -334,10 +334,10 @@ src/builtins/inplace.pir - Inplace assignments
     $P0 = new 'ObjectRef', $P0
     push result, $P0
     goto loop
-  
-  loop_end:    
+
+  loop_end:
     .return (result)
-    
+
   incompatible:
     'die'("Non-dwimmy hyperoperator cannot be used on arrays of different sizes or dimensions.")
 .end

@@ -740,80 +740,60 @@ The non-hyper cross operator.
 .sub 'infix:X'
     .param pmc args            :slurpy
     .local pmc res
+
+    .local pmc res, outer, inner, it, val
     res = new 'List'
 
-    # Algorithm: we'll maintain a list of counters for each list, incrementing
-    # the counter for the right-most list and, when it we reach its final
-    # element, roll over the counter to the next list to the left as we go.
-    .local pmc counters
-    .local pmc list_elements
-    .local int num_args
-    counters = new 'FixedIntegerArray'
-    list_elements = new 'FixedIntegerArray'
-    num_args = elements args
-    counters = num_args
-    list_elements = num_args
+    ##  if the are no arguments, result is empty list
+    unless args goto done
 
-    # Get element count for each list.
-    .local int i
-    .local pmc cur_list
-    i = 0
-elem_get_loop:
-    if i >= num_args goto elem_get_loop_end
-    cur_list = args[i]
-    $I0 = elements cur_list
-    list_elements[i] = $I0
-    inc i
-    goto elem_get_loop
-elem_get_loop_end:
+    ##  get the first arg in list context
+    outer = shift args
+    outer = 'list'(outer)
 
-    # Now we'll start to produce them.
-    .local int res_count
-    res_count = 0
-produce_next:
+    ##  if this argument is empty, result is empty list
+    unless outer goto done
 
-    # Start out by building list at current counters.
-    .local pmc new_list
-    new_list = new 'Perl6Array'
-    i = 0
-cur_perm_loop:
-    if i >= num_args goto cur_perm_loop_end
-    $I0 = counters[i]
-    $P0 = args[i]
-    $P1 = $P0[$I0]
-    new_list[i] = $P1
-    inc i
-    goto cur_perm_loop
-cur_perm_loop_end:
-    new_list = new 'ObjectRef', new_list
-    res[res_count] = new_list
-    inc res_count
+    ##  if no more args, then build result from only arg
+    unless args goto one_arg
 
-    # Now increment counters.
-    i = num_args - 1
-inc_counter_loop:
-    $I0 = counters[i]
-    $I1 = list_elements[i]
-    inc $I0
-    counters[i] = $I0
+    ##  There are more args, so recursively compute their cross.
+    ##  If that list is empty, our cross is empty.
+    inner = 'infix:X'(args :flat)
+    unless inner goto done
 
-    # In simple case, we just increment this and we're done.
-    if $I0 < $I1 goto inc_counter_loop_end
+    ##  otherwise, loop through all elements of our first arg
+    it = iter outer
+  outer_loop:
+    unless it goto done
+    val = shift it
+    ##  add the value to a clone of each inner result list
+    $P1 = iter inner
+  inner_loop:
+    unless $P1 goto outer_loop
+    ##  get a result list, clone it
+    $P0 = shift $P1
+    $P0 = clone $P0
+    ##  add our outer value to the beginning
+    unshift $P0, val
+    ##  save it in the result list
+    push res, $P0
+    goto inner_loop
 
-    # Otherwise we have to carry.
-    counters[i] = 0
+    ##  if call to infix:X had only one argument, our result
+    ##  is a list of 1-element lists.
+  one_arg:
+    it = iter outer
+  one_arg_loop:
+    unless it goto done
+    val = shift it
+    $P0 = new 'List'
+    push $P0, val
+    push res, $P0
+    goto one_arg_loop
 
-    # If we're on the first element, all done.
-    if i == 0 goto all_done
-
-    # Otherwise, loop.
-    dec i
-    goto inc_counter_loop
-inc_counter_loop_end:
-    goto produce_next
-
-all_done:
-    .return(res)
+  done:
+    .return (res)
 .end
 
 

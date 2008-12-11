@@ -138,6 +138,7 @@ S06-signature/mixed-placeholders.t
 S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/passing-arrays.t
+S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t
 S06-signature/slurpy-params.t
 S06-signature/slurpy-placeholders.t

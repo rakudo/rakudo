@@ -127,6 +127,35 @@ Gets the signature for the block, or returns Failure if it lacks one.
     .return ($P0)
 .end
 
+=item assumming()
+
+Returns a curried version of self.
+
+=cut
+
+.sub 'assuming' :method :subid('assuming')
+    .param pmc args :slurpy
+    .param pmc named_args :slurpy :named
+    .local pmc curried
+    .lex '@args', args
+    .lex '%args', named_args
+    .lex '$obj', self
+    .const 'Sub' curried = 'assuming_helper'
+    capture_lex curried
+    .return (curried)
+.end
+
+.sub 'assuming_helper' :outer('assuming')
+    .param pmc args :slurpy
+    .param pmc named_args :slurpy :named
+    .local pmc obj, assumed_args, assumed_named_args, result
+    find_lex obj, '$obj'
+    find_lex assumed_args, '@args'
+    find_lex assumed_named_args, '%args'
+    result = obj(assumed_args :flat, args :flat, assumed_named_args :flat :named, named_args :flat :named)
+    .return (result)
+.end
+
 =back
 
 =cut

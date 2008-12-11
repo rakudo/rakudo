@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-src/builtins/op.pir - Perl6 builtin operators
+src/builtins/op.pir - Perl 6 builtin operators
 
 =head1 Functions
 
@@ -400,7 +400,7 @@ src/builtins/op.pir - Perl6 builtin operators
     if $I0 goto one_role
     $I0 = isa role, 'List'
     if $I0 goto many_roles
-    'die'("'does' expcts a role or a list of roles")
+    'die'("'does' expects a role or a list of roles")
 
   one_role:
     '!keyword_does'(derived, role)

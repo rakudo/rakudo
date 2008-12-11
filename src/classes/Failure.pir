@@ -7,7 +7,7 @@
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     failureproto = p6meta.'new_class'('Failure', 'parent'=>'Undef Any', 'attr'=>'$!exception')
     p6meta.'register'('Undef', 'parent'=>failureproto, 'protoobject'=>failureproto)
-    exceptionproto = p6meta.'new_class'('Perl6Exception', 'parent'=>'Any', 'attr'=>'$!exception', 'name'=>'Exception')
+    exceptionproto = p6meta.'new_class'('Perl6Exception', 'parent'=>'Any Exception', 'attr'=>'$!exception', 'name'=>'Exception')
     p6meta.'register'('Exception', 'protoobject'=>exceptionproto)
 
     $P0 = box 1

@@ -145,27 +145,27 @@ the moment -- we'll do more complex handling a bit later.)
 
 =cut
 
-.sub 'die'
+.sub 'die' :multi('Exception')
+    .param pmc ex
+    set_global '$!', ex
+    throw ex
+    .return ()
+.end
+
+.sub 'die' :multi(_)
     .param pmc list            :slurpy
     .local pmc it
     .local string message
+    .local pmc ex
 
-    message = ''
-    it = iter list
-  iter_loop:
-    unless it goto iter_end
-    $P0 = shift it
-    $S0 = $P0
-    message .= $S0
-    goto iter_loop
-  iter_end:
+    message = list.'join'('')
     if message > '' goto have_message
     message = "Died\n"
   have_message:
-    $P0 = new 'Exception'
-    $P0 = message
-    set_global '$!', $P0
-    throw $P0
+    ex = new 'Exception'
+    ex = message
+    set_global '$!', ex
+    throw ex
     .return ()
 .end
 

@@ -154,7 +154,6 @@ the moment -- we'll do more complex handling a bit later.)
 
 .sub 'die' :multi(_)
     .param pmc list            :slurpy
-    .local pmc it
     .local string message
     .local pmc ex
 
@@ -292,6 +291,23 @@ on error.
     .return (res)
 .end
 
+=item warn
+
+=cut
+
+.sub 'warn'
+    .param pmc list            :slurpy
+    .local pmc it
+    .local string message
+
+    message = list.'join'('')
+    if message > '' goto have_message
+    message = "Warning!  Something's wrong\n"
+  have_message:
+    printerr message
+    .return ()
+.end
+
 
 =back
 
@@ -310,6 +326,12 @@ support.
 =item fail
 
 B<TODO>: Research the exception handling system.
+
+=item warn
+
+B<TODO>: Throw a resumable exception when Rakudo supports top-level exception
+handlers.  Note that the default exception handler should print the message of
+this exception to standard error.
 
 
 =back

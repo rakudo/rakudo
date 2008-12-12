@@ -616,6 +616,9 @@ method routine_declarator($/, $key) {
             $signature.unshift($obj);
         }
     }
+    elsif $key eq 'submethod' {
+        $/.panic('submethod declarations not yet implemented');
+    }
     $past.node($/);
     if (+@($past[1])) {
         declare_implicit_routine_vars($past);

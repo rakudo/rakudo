@@ -357,6 +357,7 @@ rule multi_declarator {
 token routine_declarator {
     | $<sym>='sub' <routine_def> {*}             #= sub
     | $<sym>='method' <method_def> {*}           #= method
+    | $<sym>='submethod' <method_def> {*}        #= submethod
 }
 
 rule routine_def {

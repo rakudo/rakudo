@@ -37,13 +37,13 @@ use Getopt::Long;
 # column names
 use constant DATE       => 0;
 use constant REVISION   => 1;
-use constant FILES      => 2;
-use constant TESTS      => 3;
-use constant PASS       => 4;
-use constant FAIL       => 5;
-use constant TODO       => 6;
-use constant SKIP       => 7;
-use constant SPECPLAN   => 8;
+use constant PASS       => 2;
+use constant FAIL       => 3;
+use constant TODO       => 4;
+use constant SKIP       => 5;
+use constant REGR       => 6;
+use constant SPEC       => 7;
+use constant FILES      => 8;
 use constant SPECSKIP   => 9;
 
 use constant MAX_COL    => 9;
@@ -73,7 +73,7 @@ while (<$f>) {
     $csv->parse($_);
     my @cols = $csv->fields();
     push @{$data[0]}, substr $cols[0], 0, 10;
-    $cols[SPECSKIP] = $cols[SPECPLAN] - sum @cols[PASS, FAIL, TODO, SKIP];
+    $cols[SPECSKIP] = $cols[SPEC] - sum @cols[PASS, FAIL, TODO, SKIP];
     for (1..MAX_COL){
         push @{$data[$_]}, $cols[$_];
     }
@@ -97,7 +97,7 @@ $p->set(
         dclrs               => [qw(#00FF00 #FF0000 #0000FF #FFFF00 #DDDDDD)]
     ) or die $p->error;
 
-$p->set_legend('Pass', 'Fail', 'Todo', 'RSkip', 'SSkip');
+$p->set_legend('Pass', 'Fail', 'Todo', 'Regr', 'Spec');
 $p->set_x_axis_font(gdSmallFont);
 $p->set_y_axis_font(gdSmallFont);
 

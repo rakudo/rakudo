@@ -51,6 +51,7 @@ SOURCES = perl6.pir \
 
 BUILTINS_PIR = \
   src/classes/Object.pir \
+  src/classes/Abstraction.pir \
   src/classes/Protoobject.pir \
   src/classes/Positional.pir \
   src/classes/Any.pir \

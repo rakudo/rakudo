@@ -311,28 +311,64 @@ Parrot's built-in sort algorithm.
     by = get_hll_global 'infix:cmp'
   have_by:
 
+    ##  prepare self and FPA for sorting
     .local pmc list, fpa
     .local int elems
-
     list = self.'list'()
-    list.'!flatten'()
     elems = list.'elems'()
     fpa = new 'FixedPMCArray'
-    fpa = elems
+    assign fpa, elems
+    $I0 = by.'arity'()
+    if $I0 < 2 goto by_value_cmp
 
-    .local int i
-    i = 0
+    ##  normal compare function, build fpa from list
+    .local pmc it
+    elems = 0
+    it = iter list
   fpa_loop:
-    unless i < elems goto fpa_end
-    $P0 = list[i]
-    fpa[i] = $P0
-    inc i
+    unless it goto fpa_done
+    $P0 = shift it
+    fpa[elems] = $P0
+    inc elems
     goto fpa_loop
-  fpa_end:
+  fpa_done:
     fpa.'sort'(by)
     .tailcall 'list'(fpa)
+
+  by_value_cmp:
+    ##  Algorithm as Perl 6:
+    ##      my @v     = @list.map($by);
+    ##      my @slice = (0..^@list).sort: { @v[$^a] cmp @v[$^b]};
+    ##      return @list[ @slice ];
+
+    .local pmc values
+    values = list.'map'(by)
+    set_global '@!sort_values', values
+    ##  fill fpa with values 0..elems-1
+    $I0 = 0
+  fpa_range_loop:
+    unless $I0 < elems goto fpa_range_done
+    fpa[$I0] = $I0
+    inc $I0
+    goto fpa_range_loop
+  fpa_range_done:
+    .const 'Sub' sbv = '!sort_by_value'
+    fpa.'sort'(sbv)
+    ##  return sorted slice of original list
+    .tailcall list.'postcircumfix:[ ]'(fpa)
 .end
 
+.sub '!sort_by_value' :anon
+    .param pmc a
+    .param pmc b
+    .local pmc values
+    values = get_global '@!sort_values'
+    $P0 = values[a]
+    $P1 = values[b]
+    $I0 = 'infix:cmp'($P0, $P1)
+    .return ($I0)
+.end
+    
 =back
 
 =cut

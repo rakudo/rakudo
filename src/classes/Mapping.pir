@@ -89,6 +89,17 @@ Return invocant as a Hash
 .end
 
 
+=item list()
+
+Return invocant as a List of Pairs.
+
+=cut
+
+.sub 'list' :method
+    .tailcall self.'pairs'()
+.end
+
+
 =item perl()
 
 Return perl representation of the invocant.
@@ -151,7 +162,8 @@ Returns elements of hash as array of C<Pairs>
     .local pmc it
     .local pmc rv
     it = iter self
-    rv   = 'list'()
+    $P0 = get_hll_global 'list'
+    rv  = $P0()
     $P3 = get_hll_global 'Perl6Pair'
   loop:
     unless it goto end

@@ -147,12 +147,12 @@ multi sub eval_lives_ok($code) is export() {
 
 multi sub is_deeply($this, $that, $reason) {
     my $val = _is_deeply( $this, $that );
-    proclaim( $val, $reason, $this.perl, $that.perl );
+    proclaim($val, $reason);
 }
 
 multi sub is_deeply($this, $that) {
     my $val = _is_deeply( $this, $that );
-    proclaim( $val, '', $this.perl, $that.perl );
+    proclaim($val, '');
 }
 
 sub _is_deeply( $this, $that) {

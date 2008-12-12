@@ -53,8 +53,7 @@ the size of that file down and to emphasize their generic,
     list = self.'list'()
     $I0 = list.'elems'()
     dec $I0
-    $P0 = list[$I0]
-    .return ($P0)
+    .return ($I0)
 .end
 
 =item join

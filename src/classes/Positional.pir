@@ -43,7 +43,6 @@ Returns a list element or slice.
     $I0 = args[0]
     result = self[$I0]
     unless null result goto end
-    $P0 = get_hll_global 'Object'
     result = new 'Failure'
     self[$I0] = result
     goto end

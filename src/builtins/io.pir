@@ -19,8 +19,11 @@ src/builtins/io.pir - Perl6 builtins for I/O
     it = iter args
   iter_loop:
     unless it goto iter_end
-    $S0 = shift it
-    print $S0
+    $P0 = shift it
+    unless null $P0 goto iter_nonull
+    $P0 = new 'Failure'
+  iter_nonull:
+    print $P0
     goto iter_loop
   iter_end:
     .return (1)

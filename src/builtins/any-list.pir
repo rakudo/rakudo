@@ -367,7 +367,7 @@ Parrot's built-in sort algorithm.
     $I0 = 'infix:cmp'($P0, $P1)
     .return ($I0)
 .end
-    
+
 =back
 
 =cut

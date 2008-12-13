@@ -100,7 +100,7 @@ for my $tfile (@tfiles) {
         push @fail, "$tname aborted $abort test(s)";
         $test += $abort;
     }
-    printf "%4d %4d %4d %4d %4d %4d\n", 
+    printf "%4d %4d %4d %4d %4d %4d\n",
         $pass, $fail, $todo, $skip, $test, $plan;
     $sum{'pass'} += $pass;  $sum{"$syn-pass"} += $pass;
     $sum{'fail'} += $fail;  $sum{"$syn-fail"} += $fail;

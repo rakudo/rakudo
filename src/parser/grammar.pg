@@ -61,22 +61,24 @@ token TOP {
 ##  last ws token matched.
 
 token ws {
-    ##  STD.pm: <?{ $¢.pos === $!ws_to }>
-    {{  $P0 = get_global '$!ws'
-        if null $P0 goto end
-        $P1 = $P0.'to'()
-        $P2 = match.'to'()
-        if $P1 != $P2 goto end
-        .return (1)
-      end:
-        set_global '$!ws', match
-    }}
-    <!ww>
-    [
-    | <.unsp>
-    | \v+
-    | <.unv>
-    ]*
+    ## short circuit
+    [ <?{{ $P0 = get_global '$!ws'
+           if null $P0 goto noshort
+           $P1 = $P0.'to'()
+           $P2 = match.'to'()
+           if $P1 != $P2 goto noshort
+           .return (1)
+         noshort:
+           set_global '$!ws', match
+           .return (0)
+      }}>
+    | <!ww>
+      [
+      | <.unsp>
+      | \v+
+      | <.unv>
+      ]*
+    ]
 }
 
 token unsp {

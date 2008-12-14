@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace ['Any']
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('abs', 'from'=>$P0)
+    '!EXPORT'('end', 'from'=>$P0)
 .end
 
 

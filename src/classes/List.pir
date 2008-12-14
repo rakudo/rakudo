@@ -239,14 +239,18 @@ layer.  It will likely change substantially when we have lazy lists.
     $I0 = can elem, '!flatten'
     if $I0 goto flat_elem
     $I0 = does elem, 'array'
-    if $I0 goto flat_splice
+    unless $I0 goto flat_next
+    splice self, elem, i, 1
+    len = elements self
+    goto flat_loop
   flat_next:
     inc i
     goto flat_loop
   flat_elem:
     elem = elem.'!flatten'()
-  flat_splice:
     splice self, elem, i, 1
+    $I0 = elements elem
+    i += $I0
     len = elements self
     goto flat_loop
   flat_end:

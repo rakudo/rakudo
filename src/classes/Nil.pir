@@ -16,7 +16,7 @@ src/classes/Nil.pir - Nil objects
     nilproto = p6meta.'new_class'('Nil', 'parent'=>'Failure')
 .end
 
-=head2 Context methods
+=head2 Methods
 
 =over
 
@@ -30,6 +30,16 @@ src/classes/Nil.pir - Nil objects
     .return ($P0)
 .end
 
+
+=item 'shift'
+
+=cut
+
+.namespace ['Nil']
+.sub 'shift' :method :vtable('shift_pmc')
+    .return (self)
+.end
+
 =back
 
 =head2 Coercion methods
@@ -40,22 +50,30 @@ src/classes/Nil.pir - Nil objects
 
 =cut
 
+.namespace ['Nil']
 .sub 'Scalar' :method
     $P0 = new 'Failure'
     .return ($P0)
 .end
 
+
 =back
 
-=head2 Methods
+=head2 Private methods
 
-=item 'shift'
+=over
+
+=item !flatten
+
+Return an empty list when flattened.
 
 =cut
 
-.sub 'shift' :method :vtable('shift_pmc')
-    .return (self)
+.namespace ['Nil']
+.sub '!flatten' :method
+    .tailcall self.'list'()
 .end
+
 
 =back
 

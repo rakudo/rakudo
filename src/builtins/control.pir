@@ -31,7 +31,7 @@ the moment -- we'll do more complex handling a bit later.)
     .param int has_value       :opt_flag
 
     if has_value goto have_value
-    value = 'list'()
+    value = new 'Nil'
   have_value:
     $P0         = new 'Exception'
     $P0['type'] = .CONTROL_RETURN

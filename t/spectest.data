@@ -10,6 +10,7 @@ integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t
 integration/real-strings.t
+integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
@@ -85,6 +86,7 @@ S03-operators/spaceship-and-containers.t
 S03-operators/ternary.t
 S03-operators/true.t
 S03-operators/value_equivalence.t
+S04-blocks-and-statements/pointy-rw.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
@@ -209,6 +211,7 @@ S29-conversions/ord_and_chr.t
 S29-hash/exists.t
 S29-hash/keys_values.t
 S29-hash/pairs.t
+S29-list/end.t
 S29-list/first.t
 S29-list/grep.t
 S29-list/join.t

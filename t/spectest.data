@@ -1,6 +1,10 @@
 # this is a list of all spec tests that are supposed to pass
 # on current rakudo.
 # empty lines and those beginning with a # are ignored
+#
+# we don't add some files here, although all tests might pass right now
+#
+# S03-operators/overflow.t - passes only if bignum lib is available
 
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
@@ -115,6 +119,7 @@ S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
 S05-match/non-capturing.t
+S05-metachars/line-anchors.t
 S05-metachars/newline.t
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
@@ -128,6 +133,7 @@ S05-transliteration/trans.t
 S05-transliteration/with-closure.t
 S06-advanced_subroutine_features/recurse.t
 S06-advanced_subroutine_features/return.t
+S06-currying/named.t
 S06-multi/proto.t
 S06-multi/syntax.t
 S06-multi/type-based.t
@@ -148,7 +154,9 @@ S06-traits/is-copy.t
 S06-traits/is-rw.t
 S06-traits/misc.t
 S09-subscript_slice/slice.t
+S10-packages/import.t
 S11-modules/export.t
+S12-attributes/class2.t
 S12-attributes/class.t
 S12-attributes/delegation.t
 S12-attributes/instance.t
@@ -181,9 +189,10 @@ S12-role/mixin.t
 S12-role/namespaced.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
-S16-io/basic-open.t
 S16-filehandles/io_in_while_loops.t
+S16-io/basic-open.t
 S16-io/say.t
+S16-unfiled/slurp.t
 S29-any/cmp.t
 S29-array/delete.t
 S29-array/elems.t
@@ -214,6 +223,7 @@ S29-list/pick.t
 S29-list/reduce.t
 S29-list/reverse.t
 S29-list/sort.t
+S29-list/uniq.t
 S29-num/abs.t
 S29-num/complex.t
 S29-num/exp.t

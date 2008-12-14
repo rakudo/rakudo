@@ -568,16 +568,8 @@ finds any WHENCE data that we may need to add.
     WHENCE = getprop '%!WHENCE', $P0
     if null WHENCE goto no_whence
 
-    # Attach the WHENCE property.
-    .local pmc props
-    props = getattribute proto, '%!properties'
-    unless null props goto have_props
-    props = new 'Hash'
-  have_props:
-    props['WHENCE'] = WHENCE
-    setattribute proto, '%!properties', props
+    setprop proto, '%!WHENCE', WHENCE
   no_whence:
-
     .return (proto)
 .end
 

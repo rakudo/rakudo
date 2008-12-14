@@ -40,14 +40,11 @@ Returns the protoobject's autovivification closure.
 
 .namespace ['P6protoobject']
 .sub 'WHENCE' :method
-    .local pmc props, whence
-    props = getattribute self, '%!properties'
-    if null props goto ret_undef
-    whence = props['WHENCE']
-    if null whence goto ret_undef
-    .return (whence)
-  ret_undef:
+    .local pmc whence
+    whence = getprop '%!WHENCE', self
+    unless null whence goto done
     whence = new 'Undef'
+  done:
     .return (whence)
 .end
 
@@ -127,15 +124,7 @@ Returns a proto-object with an autovivification closure attached to it.
     .local pmc protoclass, res, props, tmp
     protoclass = class self
     res = new protoclass
-
-    # Attach the WHENCE property.
-    props = getattribute self, '%!properties'
-    unless null props goto have_props
-    props = new 'Hash'
-  have_props:
-    props['WHENCE'] = WHENCE
-    setattribute res, '%!properties', props
-
+    setprop res, '%!WHENCE', WHENCE
     .return (res)
 .end
 

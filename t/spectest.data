@@ -116,6 +116,7 @@ S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
 S05-grammar/namespace.t
+S05-grammar/ws.t
 S05-mass/rx.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t

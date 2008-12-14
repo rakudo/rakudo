@@ -8,15 +8,10 @@ IO - Perl 6 IO class
 
 This file implements the IO file handle class.
 
-=head1 Methods
-
-=over 4
-
 =cut
 
 .namespace ['IO']
-
-.sub 'onload' :anon :init :load
+.sub '' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     p6meta.'new_class'('IO', 'parent'=>'Any', 'attr'=>'$!PIO')
@@ -26,15 +21,54 @@ This file implements the IO file handle class.
     '!EXPORT'('lines', 'from'=>$P0)
 .end
 
+=head2 Methods
+
+=over 4
+
+=item close
+
+Closes the file.
+
+=cut
+
+.namespace ['IO']
+.sub 'close' :method
+    .local pmc PIO
+    PIO = getattribute self, "$!PIO"
+    close PIO
+    .return(1)
+.end
+
+
+=item eof
+
+Tests if we have reached the end of the file.
+
+=cut
+
+.namespace ['IO']
+.sub 'eof' :method
+    .local pmc PIO
+    PIO = getattribute self, "$!PIO"
+    if PIO goto not_eof
+    $P0 = get_hll_global [ 'Bool' ], 'True'
+    .return ($P0)
+  not_eof:
+    $P0 = get_hll_global [ 'Bool' ], 'False'
+    .return ($P0)
+.end
+
 
 =item lines
 
 our List multi method lines (IO $handle:) is export;
 
-Returns all the lines of a file as a (lazy) List regardless of context. See also slurp.
+Returns all the lines of a file as a (lazy) List regardless of context. 
+See also slurp.
 
 =cut
 
+.namespace ['IO']
 .sub 'lines' :method :multi('IO')
     .local pmc PIO, res, chomper
     PIO = getattribute self, "$!PIO"
@@ -59,6 +93,7 @@ Writes the given list of items to the file.
 
 =cut
 
+.namespace ['IO']
 .sub 'print' :method
     .param pmc args            :slurpy
     .local pmc it
@@ -72,22 +107,6 @@ Writes the given list of items to the file.
     print PIO, $S0
     goto iter_loop
   iter_end:
-    .return (1)
-.end
-
-
-=item say
-
-Writes the given list of items to the file, then a newline character.
-
-=cut
-
-.sub 'say' :method
-    .param pmc list            :slurpy
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
-    self.'print'(list)
-    print PIO, "\n"
     .return (1)
 .end
 
@@ -123,6 +142,22 @@ Reads a line from the file handle.
 .end
 
 
+=item say
+
+Writes the given list of items to the file, then a newline character.
+
+=cut
+
+.sub 'say' :method
+    .param pmc list            :slurpy
+    .local pmc PIO
+    PIO = getattribute self, "$!PIO"
+    self.'print'(list)
+    print PIO, "\n"
+    .return (1)
+.end
+
+
 =item slurp
 
 Slurp a file into a string.
@@ -137,43 +172,9 @@ Slurp a file into a string.
 .end
 
 
-=item eof
-
-Tests if we have reached the end of the file.
-
-=cut
-
-.sub 'eof' :method
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
-    if PIO goto not_eof
-    $P0 = get_hll_global [ 'Bool' ], 'True'
-    .return ($P0)
-  not_eof:
-    $P0 = get_hll_global [ 'Bool' ], 'False'
-    .return ($P0)
-.end
-
-
-=item close
-
-Closes the file.
-
-=cut
-
-.sub 'close' :method
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
-    close PIO
-    .return(1)
-.end
-
-
-.namespace []
-
 =back
 
-=head1 EXPORTED MULTI SUBS
+=head2 Functions
 
 =over 4
 
@@ -183,6 +184,7 @@ Gets the iterator for the IO object.
 
 =cut
 
+.namespace []
 .sub 'prefix:=' :multi('IO')
     .param pmc io
     $P0 = get_hll_global 'IOIterator'
@@ -190,40 +192,23 @@ Gets the iterator for the IO object.
     .return($P0)
 .end
 
-
-.namespace [ 'IOIterator' ]
-
 =back
 
 =head1 IOIterator
 
 The IOIterator class implements the I/O iterator.
 
+=head2 Methods
+
 =over 4
 
-=cut
+=item item()  (Vtable shift_pmc)
 
-.sub get_bool :method :vtable
-    .local pmc PIO
-    $P0 = getattribute self, "$!IO"
-    PIO = getattribute $P0, "$!PIO"
-    if PIO goto more
-    .return(0)
-more:
-    .return(1)
-.end
-
-
-=item Scalar
-
-Return the value inside this container in item context.
+Read a single line and return it.
 
 =cut
 
-.sub 'Scalar' :method
-    .tailcall self.'item'()
-.end
-
+.namespace ['IOIterator']
 .sub 'item' :method :vtable('shift_pmc')
     .local pmc pio, chomper
     $P0 = getattribute self, "$!IO"
@@ -233,6 +218,13 @@ Return the value inside this container in item context.
     .tailcall chomper($P0)
 .end
 
+=item list()
+
+Read all of the lines and return them as a List.
+
+=cut
+
+.namespace ['IOIterator']
 .sub 'list' :method
     .local pmc pio, res, chomper
     $P0 = getattribute self, "$!IO"
@@ -251,18 +243,66 @@ Return the value inside this container in item context.
     .return (res)
 .end
 
-.sub 'get_string' :vtable
-    .tailcall self.'item'()
-.end
 
-.sub 'get_iter' :method :vtable
-    .return(self)
+=back
+
+=head2 Coercion methods
+
+=item Scalar
+
+Return the value inside this container in item context.
+
+=cut
+
+.namespace ['IOIterator']
+.sub 'Scalar' :method
+    .tailcall self.'item'()
 .end
 
 
 =back
 
+=head2 Private methods
+
+=over
+
+=item !flatten
+
+Return the remainder of the input in flattening context.
+
 =cut
+
+.namespace ['IOIterator']
+.sub '!flatten' :method
+    .tailcall self.'list'()
+.end
+
+
+=back
+
+=head2 Vtable functions
+
+=cut
+
+.namespace ['IOIterator']
+.sub '' :vtable('get_bool') :method
+    .local pmc PIO
+    $P0 = getattribute self, "$!IO"
+    PIO = getattribute $P0, "$!PIO"
+    if PIO goto more
+    .return (0)
+  more:
+    .return (1)
+.end
+
+.sub '' :vtable('get_iter') :method
+    .return (self)
+.end
+
+.sub '' :vtable('get_string') :method
+    $S0 = self.'item'()
+    .return ($S0)
+.end
 
 
 # Local Variables:

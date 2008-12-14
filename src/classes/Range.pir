@@ -6,48 +6,20 @@ src/classes/Range.pir - methods for the Range class
 
 =head1 DESCRIPTION
 
-=head2 Methods
-
-=over 4
-
 =cut
 
 .namespace ['Range']
 
-.sub 'onload' :anon :load :init
+.sub '' :anon :load :init
     .local pmc p6meta, rangeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     rangeproto = p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!from $!to $!from_exclusive $!to_exclusive')
     rangeproto.'!IMMUTABLE'()
 .end
 
+=head2 Methods
 
-=item VTABLE_get integer (vtable method)
-
-=item VTABLE_get_number (vtable method)
-
-=item VTABLE_get_string (vtable method)
-
-=cut
-
-.sub 'VTABLE_get_integer' :method :vtable('get_integer')
-    $P0 = self.'list'()
-    $I0 = $P0
-    .return ($I0)
-.end
-
-.sub 'VTABLE_get_number' :method :vtable('get_number')
-    $P0 = self.'list'()
-    $N0 = $P0
-    .return ($N0)
-.end
-
-.sub 'VTABLE_get_string' :method :vtable('get_string')
-    $P0 = self.'list'()
-    $S0 = $P0
-    .return ($S0)
-.end
-
+=over 4
 
 =item ACCEPTS(topic)
 
@@ -120,7 +92,7 @@ Gets the beginning or end of the range.
 .end
 
 
-=item iterator()  (vtable method)
+=item iterator()  (vtable function)
 
 Return an iterator for the Range.  Since Ranges are already
 iterators, we can just return a clone.
@@ -155,15 +127,19 @@ just return a clone of the Range.
 .end
 
 
+=item max()
+
 =item min()
 
 =item minmax()
 
-=item max()
-
 =cut
 
 .namespace ['Range']
+
+.sub 'max' :method
+    .tailcall self.'to'()
+.end
 
 .sub 'min' :method
     .tailcall self.'from'()
@@ -176,8 +152,31 @@ just return a clone of the Range.
     .tailcall $P2($P0, $P1)
 .end
 
-.sub 'max' :method
-    .tailcall self.'to'()
+
+=item perl()
+
+Returns a Perl representation of the Range.
+
+=cut
+
+.sub 'perl' :method
+    .local string result, tmp
+    .local pmc from, fromexc, toexc, to
+    from = getattribute self, '$!from'
+    fromexc = getattribute self, '$!from_exclusive'
+    toexc = getattribute self, '$!to_exclusive'
+    to = getattribute self, '$!to'
+    result = from.'perl'()
+    unless fromexc goto dots
+    result .= '^'
+  dots:
+    result .= '..'
+    unless toexc goto end
+    result .= '^'
+  end:
+    tmp = to.'perl'()
+    result .= tmp
+    .return (result)
 .end
 
 
@@ -243,32 +242,6 @@ Return true if there are any more values to iterate over.
     .return ($I0)
 .end
 
-
-=item perl()
-
-Returns a Perl representation of the Range.
-
-=cut
-
-.sub 'perl' :method
-    .local string result, tmp
-    .local pmc from, fromexc, toexc, to
-    from = getattribute self, '$!from'
-    fromexc = getattribute self, '$!from_exclusive'
-    toexc = getattribute self, '$!to_exclusive'
-    to = getattribute self, '$!to'
-    result = from.'perl'()
-    unless fromexc goto dots
-    result .= '^'
-  dots:
-    result .= '..'
-    unless toexc goto end
-    result .= '^'
-  end:
-    tmp = to.'perl'()
-    result .= tmp
-    .return (result)
-.end
 
 =back
 
@@ -353,6 +326,15 @@ Return $x.HOW.
 
 =over 4
 
+=item !flatten()
+
+=cut
+
+.namespace ['Range']
+.sub '!flatten' :method
+    .tailcall self.'list'()
+.end
+
 =item !from_test(topic)
 
 =item !to_test(topic)
@@ -397,6 +379,38 @@ honoring exclusive flags.
   exclusive_test:
     $I0 = islt topic, to
     .return ($I0)
+.end
+
+=back
+
+=head2 Vtable functions
+
+=over
+
+=item VTABLE_get integer (vtable method)
+
+=item VTABLE_get_number (vtable method)
+
+=item VTABLE_get_string (vtable method)
+
+=cut
+
+.sub 'VTABLE_get_integer' :method :vtable('get_integer')
+    $P0 = self.'list'()
+    $I0 = $P0
+    .return ($I0)
+.end
+
+.sub 'VTABLE_get_number' :method :vtable('get_number')
+    $P0 = self.'list'()
+    $N0 = $P0
+    .return ($N0)
+.end
+
+.sub 'VTABLE_get_string' :method :vtable('get_string')
+    $P0 = self.'list'()
+    $S0 = $P0
+    .return ($S0)
 .end
 
 =back

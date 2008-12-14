@@ -236,21 +236,18 @@ layer.  It will likely change substantially when we have lazy lists.
   no_deref:
     $I0 = isa elem, 'ObjectRef'
     if $I0 goto flat_next
-    $I0 = isa elem, 'Range'
-    unless $I0 goto not_range
-    elem = elem.'list'()
-  not_range:
-    $I0 = isa elem, 'IOIterator'
-    unless $I0 goto not_ioiterator
-    elem = elem.'list'()
-  not_ioiterator:
+    $I0 = can elem, '!flatten'
+    if $I0 goto flat_elem
     $I0 = does elem, 'array'
-    unless $I0 goto flat_next
-    splice self, elem, i, 1
-    len = elements self
-    goto flat_loop
+    if $I0 goto flat_splice
   flat_next:
     inc i
+    goto flat_loop
+  flat_elem:
+    elem = elem.'!flatten'()
+  flat_splice:
+    splice self, elem, i, 1
+    len = elements self
     goto flat_loop
   flat_end:
     $I0 = isa self, 'List'

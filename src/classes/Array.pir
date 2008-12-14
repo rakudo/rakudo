@@ -200,6 +200,7 @@ Create an array.
     .tailcall values.'Scalar'()
 .end
 
+
 =back
 
 =head2 Coercion methods
@@ -213,6 +214,25 @@ Create an array.
 .sub 'Array' :method
     .return (self)
 .end
+
+
+=back
+
+=head2 Private Methods
+
+=over
+
+=item !flatten()
+
+Return self, as Arrays are already flattened.
+
+=cut
+
+.namespace ['Perl6Array']
+.sub '!flatten' :method
+    .return (self)
+.end
+
 
 =back
 

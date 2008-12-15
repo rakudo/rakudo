@@ -160,13 +160,29 @@ an object reference (unless the invocant already is one).
 
 =cut
 
-.sub 'Scalar' :method
+.namespace ['Perl6Object']
+.sub '' :method('Scalar') :anon
     $I0 = isa self, 'ObjectRef'
     unless $I0 goto not_ref
     .return (self)
   not_ref:
     $P0 = new 'ObjectRef', self
     .return ($P0)
+.end
+
+.namespace []
+.sub 'Scalar'
+    .param pmc source
+    $I0 = isa source, 'ObjectRef'
+    if $I0 goto done
+    $I0 = can source, 'Scalar'
+    if $I0 goto can_scalar
+    $I0 = does source, 'scalar'
+    source = new 'ObjectRef', source
+  done:
+    .return (source)
+  can_scalar:
+    .tailcall source.'Scalar'()
 .end
 
 =item Str()
@@ -176,6 +192,7 @@ the object's type and address.
 
 =cut
 
+.namespace ['Perl6Object']
 .sub 'Str' :method
     $P0 = new 'ResizableStringArray'
     $P1 = self.'WHAT'()

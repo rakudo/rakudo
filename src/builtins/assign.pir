@@ -16,18 +16,7 @@ src/builtins/inplace.pir - Inplace assignments
     .param pmc cont
     .param pmc source
 
-    $I0 = isa source, 'ObjectRef'
-    if $I0 goto have_source
-    $I0 = can source, 'Scalar'
-    if $I0 goto can_scalar
-    ##  source comes from outside Rakudo's type system
-    $I0 = does source, 'scalar'
-    if $I0 goto have_source
-    source = new 'ObjectRef', source
-    goto have_source
-  can_scalar:
-    source = source.'Scalar'()
-  have_source:
+    source = 'Scalar'(source)
     .local pmc ro, type
     getprop ro, 'readonly', cont
     if null ro goto ro_ok

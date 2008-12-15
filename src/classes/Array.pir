@@ -100,7 +100,7 @@ Return invocant as a List.
 =cut
 
 .namespace ['Perl6Array']
-.sub 'list' :method
+.sub '' :method('list')
     .tailcall self.'values'()
 .end
 
@@ -246,13 +246,12 @@ Store things into an Array (e.g., upon assignment)
     ## we create a new array here instead of emptying self in case
     ## the source argument contains self or elements of self.
     array = new 'ResizablePMCArray'
-    $P0 = get_hll_global 'list'
-    source = $P0(source)
+    source = 'list'(source)
     it = iter source
   array_loop:
     unless it goto array_done
     $P0 = shift it
-    $P0 = $P0.'Scalar'()
+    $P0 = 'Scalar'($P0)
     $P0 = clone $P0
     push array, $P0
     goto array_loop

@@ -54,6 +54,7 @@ BUILTINS_PIR = \
   src/classes/Abstraction.pir \
   src/classes/Protoobject.pir \
   src/classes/Positional.pir \
+  src/classes/Associative.pir \
   src/classes/Any.pir \
   src/classes/Bool.pir \
   src/classes/Str.pir \

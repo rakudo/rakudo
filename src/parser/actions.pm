@@ -1529,29 +1529,20 @@ method postcircumfix($/, $key) {
         $past := build_call( $( $<semilist> ) );
         $past.node($/);
         $past.name('postcircumfix:[ ]');
-        $past.pasttype('call');
     }
     elsif $key eq '( )' {
         $past := build_call( $( $<semilist> ) );
         $past.node($/);
     }
     elsif $key eq '{ }' {
-        $past := PAST::Var.new(
-            $( $<semilist> ),
-            :scope('keyed'),
-            :vivibase('Perl6Hash'),
-            :viviself('Failure'),
-            :node( $/ )
-        );
+        $past := build_call( $( $<semilist> ) );
+        $past.node($/);
+        $past.name('postcircumfix:{ }');
     }
     elsif $key eq '< >' {
-        $past := PAST::Var.new(
-            $( $<quote_expression> ),
-            :scope('keyed'),
-            :vivibase('Perl6Hash'),
-            :viviself('Failure'),
-            :node( $/ )
-        );
+        $past := build_call( $( $<quote_expression> ) );
+        $past.node($/);
+        $past.name('postcircumfix:{ }');
     }
     else {
         $/.panic("postcircumfix " ~ $key ~ " not yet implemented");

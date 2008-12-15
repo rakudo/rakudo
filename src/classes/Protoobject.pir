@@ -50,6 +50,29 @@ Returns the protoobject's autovivification closure.
 
 =back
 
+=head2 Functions
+
+=over
+
+=item postcircumfix:<{ }>
+
+Return a clone of the protoobject with a new WHENCE property set.
+
+=cut
+
+.namespace ['P6protoobject']
+.sub 'postcircumfix:{ }' :method
+    .param pmc WHENCE :slurpy :named
+    .local pmc protoclass, proto
+    protoclass = typeof self
+    proto = new protoclass
+    setprop proto, '%!WHENCE', WHENCE
+    .return (proto)
+.end
+    
+
+=back
+
 =head2  Private methods
 
 =over
@@ -74,59 +97,6 @@ Indicate that objects in the class are mutable or immutable.
     $P1.'add_method'('Scalar', $P0, 'to'=>self)
 .end
 
-
-=back
-
-=head2 Vtable functions
-
-=over
-
-=item get_pmc_keyed(key)    (vtable method)
-
-Returns a proto-object with an autovivification closure attached to it.
-
-=cut
-
-.sub get_pmc_keyed :vtable :method
-    .param pmc what
-
-    # We'll build auto-vivification hash of values.
-    .local pmc WHENCE, key, val
-    WHENCE = new 'Hash'
-
-    # What is it?
-    $S0 = what.'WHAT'()
-    if $S0 == 'Pair' goto from_pair
-    if $S0 == 'List' goto from_list
-    'die'("Auto-vivification closure did not contain a Pair")
-
-  from_pair:
-    # Just a pair.
-    key = what.'key'()
-    val = what.'value'()
-    WHENCE[key] = val
-    goto done_whence
-
-  from_list:
-    # List.
-    .local pmc list_iter, cur_pair
-    list_iter = iter what
-  list_iter_loop:
-    unless list_iter goto done_whence
-    cur_pair = shift list_iter
-    key = cur_pair.'key'()
-    val = cur_pair.'value'()
-    WHENCE[key] = val
-    goto list_iter_loop
-  done_whence:
-
-    # Now create a clone of the protoobject.
-    .local pmc protoclass, res, props, tmp
-    protoclass = class self
-    res = new protoclass
-    setprop res, '%!WHENCE', WHENCE
-    .return (res)
-.end
 
 =back
 

@@ -5,6 +5,8 @@
 # we don't add some files here, although all tests might pass right now
 #
 # S03-operators/overflow.t - passes only if bignum lib is available
+# S03-operators/binding-arrays.t - regressed to allow slices
+# S03-operators/binding-hashes.t - regressed to allow slices
 
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
@@ -61,7 +63,6 @@ S03-operators/assign.t
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
 S03-operators/binding-closure.t
-S03-operators/binding-hashes.t
 S03-operators/binding-scalars.t
 S03-operators/bit.t
 S03-operators/chained-declarators.t

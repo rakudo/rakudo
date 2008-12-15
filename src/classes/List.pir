@@ -107,54 +107,6 @@ This version of list morphs a ResizablePMCArray into a List.
 .end
 
 
-=item hash()
-
-Return the List invocant as a Hash.
-
-=cut
-
-.namespace ['List']
-.sub 'hash' :method
-    .local pmc result, iter
-    result = new 'Perl6Hash'
-    iter = self.'iterator'()
-  iter_loop:
-    unless iter goto iter_end
-    .local pmc elem, key, value
-    elem = shift iter
-    $I0 = does elem, 'hash'
-    if $I0 goto iter_hash
-    $I0 = isa elem, 'Perl6Pair'
-    if $I0 goto iter_pair
-    unless iter goto err_odd_list
-    value = shift iter
-    value = clone value
-    result[elem] = value
-    goto iter_loop
-  iter_hash:
-    .local pmc hashiter
-    hashiter = elem.'keys'()
-  hashiter_loop:
-    unless hashiter goto hashiter_end
-    $S0 = shift hashiter
-    value = elem[$S0]
-    result[$S0] = value
-    goto hashiter_loop
-  hashiter_end:
-    goto iter_loop
-  iter_pair:
-    key = elem.'key'()
-    value = elem.'value'()
-    result[key] = value
-    goto iter_loop
-  iter_end:
-    .return (result)
-
-  err_odd_list:
-    die "Odd number of elements found where hash expected"
-.end
-
-
 =back
 
 =head2 Methods
@@ -167,6 +119,7 @@ Return the number of elements in the list.
 
 =cut
 
+.namespace ['List']
 .sub 'elems' :method :multi('ResizablePMCArray') :vtable('get_number')
     self.'!flatten'()
     $I0 = elements self

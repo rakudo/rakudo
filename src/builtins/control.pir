@@ -297,13 +297,22 @@ on error.
 
 .sub 'warn'
     .param pmc list            :slurpy
-    .local pmc it
+    .local pmc ex
     .local string message
 
     message = list.'join'('')
     if message > '' goto have_message
     message = "Warning!  Something's wrong\n"
   have_message:
+    ## count_eh is broken
+    # $I0 = count_eh
+    # eq $I0, 0, no_eh
+    ex = new 'Exception'
+    ex['severity'] = .EXCEPT_WARNING
+    ex['message'] = message
+    throw ex
+    .return ()
+  no_eh:
     printerr message
     .return ()
 .end

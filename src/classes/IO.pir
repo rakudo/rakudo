@@ -63,7 +63,7 @@ Tests if we have reached the end of the file.
 
 our List multi method lines (IO $handle:) is export;
 
-Returns all the lines of a file as a (lazy) List regardless of context. 
+Returns all the lines of a file as a (lazy) List regardless of context.
 See also slurp.
 
 =cut

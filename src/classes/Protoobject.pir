@@ -69,7 +69,7 @@ Return a clone of the protoobject with a new WHENCE property set.
     setprop proto, '%!WHENCE', WHENCE
     .return (proto)
 .end
-    
+
 
 =back
 

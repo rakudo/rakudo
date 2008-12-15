@@ -256,7 +256,7 @@ Store things into an Array (e.g., upon assignment)
     push array, $P0
     goto array_loop
   array_done:
-    $I0 = elements self 
+    $I0 = elements self
     splice self, array, 0, $I0
     .return (self)
 .end

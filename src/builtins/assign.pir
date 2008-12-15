@@ -64,9 +64,7 @@ src/builtins/inplace.pir - Inplace assignments
     .tailcall 'infix:='(cont, source)
 
   cont_hash:
-    $P0 = source.'hash'()
-    copy cont, $P0
-    .return (cont)
+    .tailcall cont.'!STORE'(source)
 .end
 
 
@@ -126,7 +124,7 @@ src/builtins/inplace.pir - Inplace assignments
     goto assign_loop
   assign_array:
   assign_hash:
-    'infix:='(cont, slist)
+    cont.'!STORE'(slist)
     slist = new 'Nil'
     goto assign_loop
   assign_done:

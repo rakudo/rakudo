@@ -2639,7 +2639,7 @@ method circumfix($/, $key) {
             my @children := @($past[1]);
             $past := PAST::Op.new(
                 :pasttype('call'),
-                :name('hash'),
+                :name('circumfix:{ }'),
                 :node($/)
             );
             for @children {

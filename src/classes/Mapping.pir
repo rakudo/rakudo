@@ -24,29 +24,16 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
 
 =item Scalar
 
-When we're going to be stored as an item, become a Hash and then return
-ourself in a ObjectRef.
+When we're going to be stored as an item, become a Hash and 
+return an ObjectRef to it.
 
 =cut
 
+.namespace ['Mapping']
 .sub 'Scalar' :method
-    # Create a hash with our values.
-    .local pmc hash, it
-    hash = get_hll_global "Hash"
-    hash = hash.'new'()
-    it = iter self
-  it_loop:
-    unless it goto it_loop_end
-    $P0 = shift it
-    $P1 = self[$P0]
-    hash[$P0] = $P1
-    goto it_loop
-  it_loop_end:
-
-    # Wrap it up in an object ref and return it.
-    .local pmc ref
-    ref = new 'ObjectRef', hash
-    .return (ref)
+    $P0 = self.'Hash'()
+    $P0 = new 'ObjectRef', $P0
+    .return ($P0)
 .end
 
 

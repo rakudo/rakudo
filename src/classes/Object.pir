@@ -43,14 +43,19 @@ Return true if the object is defined.
 
 =item hash
 
-Return invocant in hash context.  Default is to build a Hash from C<.list>.
+Return invocant in hash context.
 
 =cut
 
 .namespace ['Perl6Object']
 .sub 'hash' :method
-    $P0 = self.'list'()
-    .tailcall $P0.'hash'()
+    .tailcall self.'Hash'()
+.end
+
+.namespace []
+.sub 'hash'
+    .param pmc values :slurpy
+    .tailcall values.'Hash'()
 .end
 
 =item item
@@ -140,6 +145,17 @@ Boolean value of object -- defaults to C<.defined> (S02).
 .namespace ['Perl6Object']
 .sub 'Array' :method
     $P0 = new 'Perl6Array'
+    $P0.'!STORE'(self)
+    .return ($P0)
+.end
+
+=item Hash()
+
+=cut
+
+.namespace ['Perl6Object']
+.sub 'Hash' :method
+    $P0 = new 'Perl6Hash'
     $P0.'!STORE'(self)
     .return ($P0)
 .end

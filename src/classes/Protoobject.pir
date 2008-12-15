@@ -77,6 +77,16 @@ Return a clone of the protoobject with a new WHENCE property set.
 
 =over
 
+=item !flatten()
+
+=cut
+
+.sub '!flatten' :method
+    $P0 = new 'ResizablePMCArray'
+    push $P0, self
+    .return ($P0)
+.end
+
 =item !IMMUTABLE()
 
 =item !MUTABLE()

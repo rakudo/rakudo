@@ -48,6 +48,7 @@ src/builtins/inplace.pir - Inplace assignments
     .return (cont)
 .end
 
+
 .sub 'infix:=' :multi(['Perl6Array'], _)
     .param pmc cont
     .param pmc source
@@ -59,22 +60,7 @@ src/builtins/inplace.pir - Inplace assignments
     .tailcall 'infix:='(cont, source)
 
   cont_array:
-    .local pmc list, it, array
-    ## empty the array
-    array = new 'ResizablePMCArray'
-    source = 'list'(source)
-    it = iter source
-  array_loop:
-    unless it goto array_done
-    $P0 = shift it
-    $P0 = $P0.'Scalar'()
-    $P0 = clone $P0
-    push array, $P0
-    goto array_loop
-  array_done:
-    $I0 = elements cont
-    splice cont, array, 0, $I0
-    .return (cont)
+    .tailcall cont.'!STORE'(source)
 .end
 
 

@@ -233,6 +233,35 @@ Return self, as Arrays are already flattened.
     .return (self)
 .end
 
+=item !STORE()
+
+Store things into an Array (e.g., upon assignment)
+
+=cut
+
+.namespace ['Perl6Array']
+.sub '!STORE' :method
+    .param pmc source
+    .local pmc array, it
+    ## we create a new array here instead of emptying self in case
+    ## the source argument contains self or elements of self.
+    array = new 'ResizablePMCArray'
+    $P0 = get_hll_global 'list'
+    source = $P0(source)
+    it = iter source
+  array_loop:
+    unless it goto array_done
+    $P0 = shift it
+    $P0 = $P0.'Scalar'()
+    $P0 = clone $P0
+    push array, $P0
+    goto array_loop
+  array_done:
+    $I0 = elements self 
+    splice self, array, 0, $I0
+    .return (self)
+.end
+
 
 =back
 

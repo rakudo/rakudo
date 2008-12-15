@@ -140,7 +140,7 @@ Boolean value of object -- defaults to C<.defined> (S02).
 .namespace ['Perl6Object']
 .sub 'Array' :method
     $P0 = new 'Perl6Array'
-    'infix:='($P0, self)
+    $P0.'!STORE'(self)
     .return ($P0)
 .end
 

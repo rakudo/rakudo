@@ -292,7 +292,7 @@ Parrot's built-in sort algorithm.
 .sub 'sort' :multi()
     .param pmc values          :slurpy
     .local pmc by
-    by = get_hll_global 'infix:cmp'
+    by = find_name 'infix:cmp'
     unless values goto have_by
     $P0 = values[0]
     $I0 = isa $P0, 'Sub'
@@ -307,66 +307,79 @@ Parrot's built-in sort algorithm.
     .param pmc by              :optional
     .param int has_by          :opt_flag
     if has_by goto have_by
-    by = get_hll_global 'infix:cmp'
+    by = find_name 'infix:cmp'
   have_by:
 
-    ##  prepare self and FPA for sorting
-    .local pmc list, fpa
+    ##  prepare self for sorting
+    .local pmc list
     .local int elems
     list = self.'list'()
     elems = list.'elems'()
+    ##  If there are fewer than two elements, no need to sort.
+    unless elems < 2 goto do_sort
+    .return (list)
+
+  do_sort:
+    ##  Get the comparison function to use.  We don't use C<by>
+    ##  directly, because FPA's sort doesn't work with MultiSub
+    ##  functions and isn't stable.  !COMPARESUB expects to be
+    ##  sorting indexes into C<list>, and also handles generation
+    ##  of values for subs with arity < 2.
+    .local pmc cmp
+    cmp = '!COMPARESUB'(list, by)
+
+    ##  create a FPA of indexes to be sorted using cmp
+    .local pmc fpa
     fpa = new 'FixedPMCArray'
     assign fpa, elems
-    $I0 = by.'arity'()
-    if $I0 < 2 goto by_value_cmp
-
-    ##  normal compare function, build fpa from list
-    .local pmc it
-    elems = 0
-    it = iter list
-  fpa_loop:
-    unless it goto fpa_done
-    $P0 = shift it
-    fpa[elems] = $P0
-    inc elems
-    goto fpa_loop
-  fpa_done:
-    fpa.'sort'(by)
-    .tailcall 'list'(fpa)
-
-  by_value_cmp:
-    ##  Algorithm as Perl 6:
-    ##      my @v     = @list.map($by);
-    ##      my @slice = (0..^@list).sort: { @v[$^a] cmp @v[$^b]};
-    ##      return @list[ @slice ];
-
-    .local pmc values
-    values = list.'map'(by)
-    set_global '@!sort_values', values
-    ##  fill fpa with values 0..elems-1
     $I0 = 0
-  fpa_range_loop:
-    unless $I0 < elems goto fpa_range_done
+  fpa_loop:
+    unless $I0 < elems goto fpa_done
     fpa[$I0] = $I0
     inc $I0
-    goto fpa_range_loop
-  fpa_range_done:
-    .const 'Sub' sbv = '!sort_by_value'
-    fpa.'sort'(sbv)
-    ##  return sorted slice of original list
+    goto fpa_loop
+  fpa_done:
+    fpa.'sort'(cmp)
     .tailcall list.'postcircumfix:[ ]'(fpa)
 .end
 
-.sub '!sort_by_value' :anon
-    .param pmc a
-    .param pmc b
-    .local pmc values
-    values = get_global '@!sort_values'
-    $P0 = values[a]
-    $P1 = values[b]
-    $I0 = 'infix:cmp'($P0, $P1)
+.sub '!COMPARESUB' :anon
+    .param pmc list
+    .param pmc by
+    $I0 = can by, 'arity'
+    unless $I0 goto have_list
+    $I0 = by.'arity'()
+    unless $I0 < 2 goto have_list
+    list = list.'map'(by)
+    by = find_name 'infix:cmp'
+  have_list:
+    ##  Because of TT #56, we can't store Sub PMCs directly into
+    ##  the namespace.  So, we create an array to hold it for us.
+    set_global '@!compare', list
+    $P0 = new 'ResizablePMCArray'
+    push $P0, by
+    set_global '@!compare_by', $P0
+    .const 'Sub' $P99 = '!COMPARE_DO'
+    .return ($P99)
+.end
+
+.sub '!COMPARE_DO' :anon
+    .param int a
+    .param int b
+    .local pmc list, by
+    list = get_global '@!compare'
+    $P0  = get_global '@!compare_by'
+    by   = $P0[0]
+
+    $P0 = list[a]
+    $P1 = list[b]
+    $I0 = by($P0, $P1)
+    unless $I0 == 0 goto done
+    $I0 = cmp a, b
+  done:
     .return ($I0)
 .end
+    
 
 =back
 

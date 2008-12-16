@@ -379,7 +379,7 @@ Parrot's built-in sort algorithm.
   done:
     .return ($I0)
 .end
-    
+
 
 =back
 

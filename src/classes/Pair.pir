@@ -160,7 +160,7 @@ Returns a Perl code representation of the pair.
     $P0 = 'infix:<=>'($I0, 0)
     .return ($P0)
 .end
-  
+
 
 =back
 

@@ -263,35 +263,7 @@ method when_statement($/) {
 
     # Push a handler onto the innermost block so that we can exit if we
     # successfully match
-    when_handler_helper();
-
-    # push a control exception throw onto the end of the block so we
-    # exit the innermost block in which $_ was set.
-    my $last := $block.pop();
-    $block.push(
-        PAST::Op.new(
-            :pasttype('call'),
-            :name('break'),
-            $last
-        )
-    );
-
-    # Push a handler onto the block to handle CONTINUE exceptions so we can
-    # skip throwing the BREAK exception
-    my @handlers;
-    if $block.handlers() {
-        @handlers := $block.handlers();
-    }
-    @handlers.push(
-        PAST::Control.new(
-            PAST::Op.new(
-                :pasttype('pirop'),
-                :pirop('return'),
-            ),
-            :handle_types('CONTINUE')
-        )
-    );
-    $block.handlers(@handlers);
+    when_handler_helper($block);
 
     # Invoke smartmatch of the expression.
     my $match_past := PAST::Op.new(
@@ -318,7 +290,32 @@ method default_statement($/) {
 
     # Push a handler onto the innermost block so that we can exit if we
     # successfully match
-    when_handler_helper();
+    when_handler_helper($block);
+
+    make $block;
+}
+
+sub when_handler_helper($block) {
+    our $?BLOCK;
+    # XXX TODO: This isn't quite the right way to check this...
+    unless $?BLOCK.handlers() {
+        my @handlers;
+        @handlers.push(
+            PAST::Control.new(
+                PAST::Op.new(
+                    :pasttype('pirop'),
+                    :pirop('return'),
+                    PAST::Var.new(
+                        :scope('keyed'),
+                        PAST::Var.new( :name('exception'), :scope('register') ),
+                        'payload',
+                    ),
+                ),
+                :handle_types('BREAK')
+            )
+        );
+        $?BLOCK.handlers(@handlers);
+    }
 
     # push a control exception throw onto the end of the block so we
     # exit the innermost block in which $_ was set.
@@ -347,30 +344,6 @@ method default_statement($/) {
         )
     );
     $block.handlers(@handlers);
-    make $block;
-}
-
-sub when_handler_helper() {
-    our $?BLOCK;
-    # XXX TODO: This isn't quite the right way to check this...
-    unless $?BLOCK.handlers() {
-        my @handlers;
-        @handlers.push(
-            PAST::Control.new(
-                PAST::Op.new(
-                    :pasttype('pirop'),
-                    :pirop('return'),
-                    PAST::Var.new(
-                        :scope('keyed'),
-                        PAST::Var.new( :name('exception'), :scope('register') ),
-                        'payload',
-                    ),
-                ),
-                :handle_types('BREAK')
-            )
-        );
-        $?BLOCK.handlers(@handlers);
-    }
 }
 
 method loop_statement($/) {

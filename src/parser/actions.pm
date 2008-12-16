@@ -447,10 +447,45 @@ method catch_statement($/) {
             PAST::Var.new( :name('$_'), :scope('lexical') ),
             PAST::Var.new( :name('exception'), :scope('register') )
         ),
+        PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name('$!'), :scope('lexical') ),
+            PAST::Var.new( :name('exception'), :scope('register') )
+        ),
         $past
     );
     our $?BLOCK;
     my $eh := PAST::Control.new( $past );
+    my @handlers;
+    if $?BLOCK.handlers() {
+        @handlers := $?BLOCK.handlers();
+    }
+    @handlers.unshift($eh);
+    $?BLOCK.handlers(@handlers);
+    make PAST::Stmts.new();
+}
+
+method control_statement($/) {
+    my $past := $( $<block> );
+    $past.blocktype('immediate');
+    $past := PAST::Stmts.new(
+        PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name('$_'), :scope('lexical') ),
+            PAST::Var.new( :name('exception'), :scope('register') )
+        ),
+        PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name('$!'), :scope('lexical') ),
+            PAST::Var.new( :name('exception'), :scope('register') )
+        ),
+        $past
+    );
+    our $?BLOCK;
+    my $eh := PAST::Control.new(
+        $past,
+        :handle_types('CONTROL')
+    );
     my @handlers;
     if $?BLOCK.handlers() {
         @handlers := $?BLOCK.handlers();

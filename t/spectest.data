@@ -159,6 +159,7 @@ S06-traits/is-rw.t
 S06-traits/misc.t
 S09-subscript_slice/slice.t
 S10-packages/import.t
+S10-packages/use-with-class.t
 S11-modules/export.t
 S12-attributes/class2.t
 S12-attributes/class.t

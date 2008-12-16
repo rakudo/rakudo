@@ -75,6 +75,7 @@ BUILTINS_PIR = \
   src/classes/Method.pir \
   src/classes/Junction.pir \
   src/classes/Failure.pir \
+  src/classes/Exception.pir \
   src/classes/Nil.pir \
   src/classes/Role.pir \
   src/classes/Pair.pir \

@@ -588,7 +588,7 @@ token args {
 
 ##  XXX: cheat until we get term:pi, term:rand, term:undef, etc.
 token named_0ary {
-    | [pi|rand|undef|nothing|time] >>
+    | [pi|rand|undef|nothing|time|next|last|continue|break] >>
     | ['...'|'???'|'!!!'|'=<>']
 }
 

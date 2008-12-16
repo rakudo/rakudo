@@ -16,7 +16,7 @@ This file sets up the Perl 6 C<Capture> class.
     load_bytecode 'Parrot/Capture_PIR.pbc'
     .local pmc p6meta, captureproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    captureproto = p6meta.'new_class'('Perl6Capture', 'parent'=>'Capture_PIR Any', 'name'=>'Capture')
+    captureproto = p6meta.'new_class'('Perl6Capture', 'parent'=>'Capture Any', 'name'=>'Capture')
     captureproto.'!IMMUTABLE'()
 .end
 
@@ -29,9 +29,22 @@ This file sets up the Perl 6 C<Capture> class.
 
 =cut
 
-.sub 'VTABLE_get_string' :method :vtable('get_string')
-    $S0 = self.'list'()
+.sub '' :vtable('get_string') :method
+    $S0 = self.'item'()
     .return ($S0)
+.end
+
+.sub '' :vtable('get_number') :method
+    $N0 = self.'item'()
+    .return ($N0)
+.end
+
+.sub 'item' :method
+    $P0 = self[0]
+    unless null $P0 goto end
+    $P0 = 'undef'()
+  end:
+    .return ($P0)
 .end
 
 
@@ -49,28 +62,12 @@ Build a capture from its argument(s).
 
 .namespace []
 .sub "prefix:\\"
-    .param pmc list            :slurpy
-    .param pmc hash            :slurpy :named
-    .local pmc result, item
-    result = new 'Perl6Capture'
-    setattribute result, '@!list', list
-    item = list
-    $I0 = list.'elems'()
-    if $I0 != 1 goto item_done
-    item = item[0]
-    item = item.'item'()
-  item_done:
-    setattribute result, '$!item', item
-    .local pmc it
-    it = iter hash
-  hash_loop:
-    unless it goto hash_end
-    $S0 = shift it
-    $P0 = hash[$S0]
-    result[$S0] = $P0
-    goto hash_loop
-  hash_end:
-    .return (result)
+    .param pmc arg
+    $I0 = isa arg, 'ObjectRef'
+    if $I0 goto have_ref
+    arg = new 'ObjectRef', arg
+  have_ref:
+    .return (arg)
 .end
 
 # Local Variables:

@@ -119,6 +119,9 @@ src/builtins/inplace.pir - Inplace assignments
     $I0 = isa cont, 'Perl6Hash'
     if $I0 goto assign_hash
   assign_scalar:
+    if slist goto have_slist
+    slist = new 'Nil'
+  have_slist:
     $P0 = shift slist
     'infix:='(cont, $P0)
     goto assign_loop

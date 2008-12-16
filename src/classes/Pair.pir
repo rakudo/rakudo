@@ -62,6 +62,15 @@ Gets the value of the pair.
 .end
 
 
+=item pairs
+
+=cut
+
+.sub 'pairs' :method
+    .tailcall self.'list'()
+.end
+
+
 =item get_string()  (vtable method)
 
 Stringify the Pair.

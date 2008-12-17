@@ -1563,11 +1563,13 @@ method dotty($/, $key) {
             $past.name('!' ~ $past.name());
         }
         elsif $methodop<quote> {
-            $past[0] := PAST::Op.new(
-                :pasttype('call'),
-                :name('infix:~'),
-                PAST::Val.new( :value('!') ),
-                $past[0]
+            $past.name(
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('infix:~'),
+                    '!',
+                    $past.name()
+                )
             );
         }
     }

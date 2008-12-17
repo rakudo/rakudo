@@ -46,6 +46,7 @@ Smart-matches against the list.
     it_a = iter self
     it_b = iter topic
     unless it_a goto it_loop_end
+    unless it_b goto it_loop_end
     cur_a = shift it_a
   it_loop:
     unless it_b goto it_loop_end
@@ -59,6 +60,7 @@ Smart-matches against the list.
     # ending. Otherwise, we see what we're next looking for, and keep pulling
     # from the topic until we see it, or until we run out of topic in which
     # case we can't get no satisfaction.
+  handle_whatever:
     unless it_a goto true
     .local pmc looking_for
     looking_for = shift it_a
@@ -75,11 +77,16 @@ Smart-matches against the list.
 
   not_whatever:
     # Not whatever - check a against b, and pull another a for the next time
-    # around the loop.
+    # around the loop, unless we've run out of b (note that if it's a whatever
+    # then it doesn't matter if we ran out of b; if it's not and we ran out of
+    # list b then we fail).
     $I0 = 'infix:==='(cur_a, cur_b)
     unless $I0 goto false
     unless it_a goto it_loop_end
     cur_a = shift it_a
+    $I0 = isa cur_a, whatever
+    if $I0 goto handle_whatever
+    unless it_b goto false
     goto it_loop
   it_loop_end:
     if it_a goto false

@@ -28,6 +28,14 @@ Checks if the given topic does the role.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
+
+    # Since we aren't re-blessing code objects yet, need to get and test their
+    # proto-object instead.
+    $I0 = topic.'isa'('Code')
+    unless $I0 goto no_proto
+    topic = topic.'WHAT'()
+  no_proto:
+
     $I0 = does topic, self
     $P0 = 'prefix:?'($I0)
     .return ($P0)

@@ -1189,13 +1189,15 @@ method signature($/) {
         my $separator := $_[0];
         my $is_invocant := 0;
 
+        # If it has & sigil, strip it off, but record it was a sub.
+        my $is_callable := 0;
+        if substr($parameter.name(), 0, 1) eq '&' {
+            $parameter.name(substr($parameter.name(), 1));
+            $is_callable := 1;
+        }
+
         # Add parameter declaration to the block, if we're producing one.
         unless $?SIG_BLOCK_NOT_NEEDED {
-            # If it has & sigil, strip it off.
-            if substr($parameter.name(), 0, 1) eq '&' {
-                $parameter.name(substr($parameter.name(), 1));
-            }
-
             # Register symbol and put parameter PAST into the node.
             $block_past.symbol($parameter.name(), :scope('lexical'));
             $params.push($parameter);
@@ -1337,6 +1339,19 @@ method signature($/) {
         for $_<parameter><post_constraint> {
             my $type_obj := make_anon_subset($( $_<EXPR> ), $parameter);
             $cur_param_types.push($type_obj);
+        }
+
+        # Also any constraint from the sigil.
+        if $is_callable {
+            $cur_param_types.push(PAST::Op.new(
+                :pasttype('call'),
+                :name('!TYPECHECKPARAM'),
+                PAST::Var.new( :name('Callable'), :scope('package') ),
+                PAST::Var.new(
+                    :name($parameter.name()),
+                    :scope('lexical')
+                )
+            ));
         }
 
         # For blocks, we just collect the check into the list of all checks.

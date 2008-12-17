@@ -517,8 +517,10 @@ B<Note:> partial implementation only
     len = self.'chars'()
   have_len:
     if len >= 0 goto len_done
+    if start < 0 goto neg_start
     $I0 = self.'chars'()
     len += $I0
+  neg_start:
     len -= start
   len_done:
     $S0 = self

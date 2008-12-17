@@ -23,6 +23,83 @@ src/classes/List.pir - Perl 6 List class and related functions
 
 =over
 
+=item ACCEPTS
+
+Smart-matches against the list.
+
+=cut
+
+.namespace ['List']
+.sub 'ACCEPTS' :method
+    .param pmc topic
+
+    # What do we have?
+    $I0 = isa topic, 'List' # Catches Array too
+    if $I0 goto array
+    goto default
+
+    # Array. Need to DWIM on *s.
+  array:
+    .local pmc whatever
+    whatever = get_hll_global 'Whatever'
+    .local pmc it_a, it_b, cur_a, cur_b
+    it_a = iter self
+    it_b = iter topic
+    unless it_a goto it_loop_end
+    cur_a = shift it_a
+  it_loop:
+    unless it_b goto it_loop_end
+    cur_b = shift it_b
+
+    # If there curent thing is Whatever, need special handling.
+    $I0 = isa cur_a, whatever
+    unless $I0 goto not_whatever
+    
+    # If we don't have anything left other than the Whatever, it matches any
+    # ending. Otherwise, we see what we're next looking for, and keep pulling
+    # from the topic until we see it, or until we run out of topic in which
+    # case we can't get no satisfaction.
+    unless it_a goto true
+    .local pmc looking_for
+    looking_for = shift it_a
+  whatever_loop:
+    $P0 = 'infix:==='(looking_for, cur_b)
+    if $P0 goto found_looking_for
+    unless it_b goto false
+    cur_b = shift it_b
+    goto whatever_loop
+  found_looking_for:
+    unless it_a goto it_loop_end
+    cur_a = shift it_a
+    goto it_loop
+
+  not_whatever:
+    # Not whatever - check a against b, and pull another a for the next time
+    # around the loop.
+    $I0 = 'infix:==='(cur_a, cur_b)
+    unless $I0 goto false
+    unless it_a goto it_loop_end
+    cur_a = shift it_a
+    goto it_loop
+  it_loop_end:
+    if it_a goto false
+    if it_b goto false
+  true:
+    $P0 = get_hll_global [ 'Bool' ], 'True'
+    .return ($P0)
+  false:
+    $P0 = get_hll_global [ 'Bool' ], 'False'
+    .return ($P0)
+
+    # Something else. Just do a hyper ===, and check all the values are matches.
+  default:
+    topic = topic.'list'()
+    $P0 = '!HYPEROP'('infix:===', self, topic, 0, 0)
+    $P0 = 'all'($P0)
+    .tailcall 'prefix:?'($P0)
+.end
+
+
 =item item
 
 A List in item context becomes an Array.

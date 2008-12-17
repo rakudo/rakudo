@@ -32,16 +32,39 @@ care of much of that.
 
 Returns a copy of the object.
 
+NOTE: Don't copy what this method does; it's a tad inside-out. We should be
+overriding the clone vtable method to call .clone() really. But if we do that,
+we can't current get at the Object PMC's clone method, so for now we do it
+like this.
+
 =cut
 
 .namespace ['Perl6Object']
 .sub 'clone' :method
+    .param pmc new_attrs :slurpy :named
+
+    # Make a clone.
+    .local pmc result
     $I0 = isa self, 'ObjectRef'
     unless $I0 goto do_clone
     self = deref self
   do_clone:
-    $P0 = clone self
-    .return ($P0)
+    result = clone self
+
+    # Set any new attributes.
+    .local pmc it
+    it = iter new_attrs
+  it_loop:
+    unless it goto it_loop_end
+    $S0 = shift it
+    $P0 = new_attrs[$S0]
+    $S0 = concat '!', $S0
+    $P1 = result.$S0()
+    'infix:='($P1, $P0)
+    goto it_loop
+  it_loop_end:
+
+    .return (result)
 .end
 
 

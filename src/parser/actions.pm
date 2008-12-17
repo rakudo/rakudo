@@ -2349,9 +2349,13 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
         }
     }
 
+    # Generate private accessor.
+    my $accessor := make_accessor($/, '!' ~ ~$variable_name, $name, 1, 'attribute');
+    $class_def.push(add_method_to_class($accessor));
+
     # Twigil handling.
     if $variable_twigil eq '.' {
-        # We have a . twigil, so we need to generate an accessor.
+        # We have a . twigil, so we need to generate a public accessor.
         my $accessor := make_accessor($/, ~$variable_name, $name, $rw, 'attribute');
         $class_def.push(add_method_to_class($accessor));
     }

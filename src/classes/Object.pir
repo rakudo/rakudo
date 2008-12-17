@@ -28,6 +28,23 @@ care of much of that.
 
 =over 4
 
+=item clone()
+
+Returns a copy of the object.
+
+=cut
+
+.namespace ['Perl6Object']
+.sub 'clone' :method
+    $I0 = isa self, 'ObjectRef'
+    unless $I0 goto do_clone
+    self = deref self
+  do_clone:
+    $P0 = clone self
+    .return ($P0)
+.end
+
+
 =item defined()
 
 Return true if the object is defined.

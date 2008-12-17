@@ -562,6 +562,11 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *proto,
             possibles       = constraint_free;
             possibles_count = constraint_free_count;
         }
+        else {
+            possibles_count = 0;
+            mem_sys_free(matching);
+            mem_sys_free(constraint_free);
+        }
     }
 
     /* Check is default trait if we still have multiple options. */

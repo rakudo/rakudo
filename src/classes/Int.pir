@@ -37,6 +37,12 @@ This is a value type, so just returns itself.
 .end
 
 
+.sub 'abs' :method :multi('Integer')
+    $P0 = n_abs self
+    .return ($P0)
+.end
+
+
 =item ACCEPTS()
 
 =cut
@@ -45,6 +51,7 @@ This is a value type, so just returns itself.
     .param num topic
     .tailcall 'infix:=='(topic, self)
 .end
+
 
 
 =item perl()
@@ -59,8 +66,21 @@ Returns a Perl representation of the Int.
 .end
 
 
-.sub 'abs' :method :multi('Integer')
-    $P0 = n_abs self
+=item succ and pred
+
+Increment and Decrement Methods
+
+=cut
+
+.sub 'pred' :method
+    $P0 = clone self
+    dec $P0
+    .return ($P0)
+.end
+
+.sub 'succ' :method
+    $P0 = clone self
+    inc $P0
     .return ($P0)
 .end
 

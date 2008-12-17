@@ -113,6 +113,24 @@ Returns a Perl representation of the Str.
     .return ($P0)
 .end
 
+=item succ and pred
+
+Increment and Decrement Methods
+
+=cut
+
+.sub 'pred' :method
+    $P0 = clone self
+    dec $P0
+    .return ($P0)
+.end
+
+.sub 'succ' :method
+    $P0 = clone self
+    inc $P0
+    .return ($P0)
+.end
+
 
 =item WHICH()
 

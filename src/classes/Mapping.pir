@@ -37,21 +37,20 @@ return an ObjectRef to it.
 .end
 
 
-.sub 'get_string' :method :vtable
-    $S0 = ''
+.sub '' :vtable('get_string') :method
+    .local string result
+    result = ''
+    $P0 = self.'pairs'()
     .local pmc it
-    it = iter self
-  loop:
-    unless it goto end
-    $S1 = shift it
-    $S2 = it[$S1]
-    $S0 = concat $S0, $S1
-    concat $S0, "\t"
-    concat $S0, $S2
-    concat $S0, "\n"
-    goto loop
-  end:
-    .return ($S0)
+    it = iter $P0
+  it_loop:
+    unless it goto it_done
+    $S0 = shift it
+    result .= $S0
+    result .= "\n"
+    goto it_loop
+  it_done:
+    .return (result)
 .end
 
 

@@ -405,18 +405,10 @@ Internal helper method to create a grammar.
 
 .sub '!keyword_grammar'
     .param string name
-    .local pmc info, grammar
+    .local pmc grammar
 
-    # Need to make sure it ends up attached to the right
-    # namespace.
-    info = new 'Hash'
-    info['name'] = name
-    $P0 = new 'ResizablePMCArray'
-    $P0[0] = name
-    info['namespace'] = $P0
-
-    # Create grammar class..
-    grammar = new 'Class', info
+    $P0 = split "::", name
+    grammar = newclass $P0
 
     .return(grammar)
 .end

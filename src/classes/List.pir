@@ -55,7 +55,7 @@ Smart-matches against the list.
     # If there curent thing is Whatever, need special handling.
     $I0 = isa cur_a, whatever
     unless $I0 goto not_whatever
-    
+
     # If we don't have anything left other than the Whatever, it matches any
     # ending. Otherwise, we see what we're next looking for, and keep pulling
     # from the topic until we see it, or until we run out of topic in which

@@ -304,31 +304,35 @@ first). So for now we just transform multis in user code like this.
 .end
 
 
-=item !SETUP_ARGS
-
-Sets up the @*ARGS global. We could possibly use the args pmc coming directly
-from Parrot, but currently Parrot provides it as a ResizableStringArray and we
-need Undefs for non-existent elements (RSA gives empty strings).
+=item !UNIT_START
 
 =cut
 
-.sub '!SETUP_ARGS'
-    .param pmc args_str
-    .param int strip_program_name
-    .local pmc args, it
-    args = new 'List'
-    it = iter args_str
-  args_loop:
-    unless it goto args_end
-    $P0 = shift it
-    push args, $P0
-    goto args_loop
-  args_end:
-    unless strip_program_name goto done
+.sub '!UNIT_START'
+    .param pmc unitmain
+    .param pmc args
+
+    args = 'list'(args)
+    if args goto start_main
+    .tailcall unitmain()
+
+  start_main:
+    ## We're running as main program
+    ## Remove program argument (0) and set up @ARGS global
     $P0 = shift args
-  done:
+    args = args.'Array'()
     set_hll_global '@ARGS', args
-    .return (args)
+    ## run unitmain
+    .local pmc result, MAIN
+    result = unitmain()
+    ## if there's a MAIN sub in unitmain's namespace, run it also
+    $P0 = unitmain.'get_namespace'()
+    MAIN = $P0['MAIN']
+    if null MAIN goto done
+    args = get_hll_global '@ARGS'
+    result = MAIN(args :flat)
+  done:
+    .return (result)
 .end
 
 

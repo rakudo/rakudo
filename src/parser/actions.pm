@@ -7,32 +7,17 @@ method TOP($/) {
     my $past := $( $<statement_block> );
     $past.blocktype('declaration');
     declare_implicit_routine_vars($past);
-
-    # Attach any initialization code.
-    our $?INIT;
-    if defined( $?INIT ) {
-        $?INIT.unshift(
-            PAST::Var.new(
-                :name('$def'),
-                :scope('lexical'),
-                :isdecl(1)
-            )
-        );
-        $?INIT.blocktype('declaration');
-        $?INIT.pirflags(':init :load');
-        $past.unshift( $?INIT );
-        $?INIT := PAST::Block.new(); # For the next eval.
-    }
+    $past.lexical(0);
 
     #  Make sure we have the interpinfo constants.
     $past.unshift( PAST::Op.new( :inline('.include "interpinfo.pasm"') ) );
 
-    # Set package.
+    # Set package for unit mainline
     $past.unshift(set_package_magical());
 
-    #  Add code to load perl6.pbc if it's not already present
-    my $loadinit := $past.loadinit();
-    $loadinit.unshift(
+    # Create the unit's startup block.
+    my $main := PAST::Block.new( :pirflags(':main') );
+    $main.loadinit().push(
         PAST::Op.new( :inline('$P0 = compreg "Perl6"',
                               'unless null $P0 goto have_perl6',
                               'load_bytecode "perl6.pbc"',
@@ -40,82 +25,34 @@ method TOP($/) {
         )
     );
 
-    #  convert the last operation of the block into a .return op
-    #  so that :load block below isn't used as return value
-    $past.push( PAST::Op.new( $past.pop(), :pirop('return') ) );
-    #  automatically invoke mainline on :load (but not :init)
-    $past.push(
-        PAST::Block.new(
-            PAST::Op.new(
-                :inline(
-                    '$P0 = interpinfo .INTERPINFO_CURRENT_SUB',
-                    '$P0 = $P0."get_outer"()',
-                    '$P0()'
-                )
-            ),
-            :pirflags(':load')
-        )
+   # call the unit mainline, passing any arguments, and return
+   # the result.  We force a tailcall here because we need a
+   # :load sub (below) to occur last in the generated output, but don't 
+   # want it to be treated as the module's return value.
+   $main.push(
+       PAST::Op.new( :pirop('tailcall'),
+           PAST::Op.new( :pirop('find_name'), '!UNIT_START' ),
+           $past,
+           PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
+       )
     );
 
-    #  emit a :main block that acts as the entry point in pre-compiled scripts
-    $past.push(
-        PAST::Block.new(
-            :pirflags(':main'),
+    # generate a :load sub that invokes this one, but does so _last_
+    # (e.g., at the end of a load_bytecode operation)
+    $main.push(
+        PAST::Block.new( :pirflags(':load'), :blocktype('declaration'),
             PAST::Op.new(
-                :pasttype('call'),
-                :name('!SETUP_ARGS'),
-                PAST::Var.new(
-                 :name('args_str'),
-                 :scope('parameter')
-                ),
-                1
-            ),
-            PAST::Op.new(
-                :inline(
-                    '$P0 = interpinfo .INTERPINFO_CURRENT_SUB',
-                    '$P0 = $P0."get_outer"()',
-                    '$P0()'
-                )
-            ),
-            PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new(
-                    :name('main_sub'),
-                    :scope('register'),
-                    :isdecl(1)
-                ),
-                PAST::Var.new(
-                    :name('MAIN'),
-                    :scope('package')
-                )
-            ),
-            PAST::Op.new(
-                :pasttype('unless'),
-                PAST::Op.new(
-                    :pirop('isnull'),
-                    PAST::Var.new(
-                        :name('main_sub'),
-                        :scope('register')
-                    )
-                ),
-                PAST::Op.new(
-                    :pasttype('call'),
-                    PAST::Var.new(
-                        :name('main_sub'),
-                        :scope('register')
-                    ),
-                    PAST::Var.new(
-                        :name('@ARGS'),
-                        :scope('package'),
-                        :namespace(''),
-                        :flat(1)
-                    )
+                :inline( '.include "interpinfo.pasm"',
+                         '$P0 = interpinfo .INTERPINFO_CURRENT_SUB',
+                         '$P0 = $P0."get_outer"()',
+                         '$P0()'
                 )
             )
         )
     );
+    $main.push( PAST::Stmts.new() );
 
-    make $past;
+    make $main;
 }
 
 
@@ -387,33 +324,23 @@ method xblock($/) {
 method use_statement($/) {
     my $name := ~$<name>;
     my $past;
-    if $name eq 'v6' || $name eq 'lib' {
-        $past := PAST::Stmts.new( :node($/) );
-    }
-    else {
-        $past := PAST::Op.new(
-            PAST::Val.new( :value($name) ),
-            :name('use'),
-            :pasttype('call'),
-            :node( $/ )
+    if $name ne 'v6' && $name ne 'lib' {
+        ##  Create a loadinit node so the use module is loaded
+        ##  when this module is loaded...
+        our $?BLOCK;
+        $?BLOCK.loadinit().push(
+            PAST::Op.new(
+                PAST::Val.new( :value($name) ),
+                :name('use'),
+                :pasttype('call'),
+                :node( $/ )
+            )
         );
-
-        # What we'd really like to do now is something like:
-        # my $sub := PAST::Compiler.compile( $past );
-        # $sub();
-        # Which would include it at compile time. But for now, that breaks
-        # pre-compiled PIR modules (we'd also need to emit something to load
-        # modules from the pre-compiled PIR, somehow). But we can't just emit
-        # a call straight into the output code, because then we load the
-        # module too late to inherit from any classes in it. So for now we
-        # stick the use call into $?INIT.
-        our $?INIT;
-        unless defined($?INIT) {
-            $?INIT := PAST::Block.new();
-        }
-        $?INIT.push($past);
-        $past := PAST::Stmts.new( :node($/) );
+        ##  ...and load it immediately to get its BEGIN semantics
+        ##  and symbols for the current compilation.
+        use($name);
     }
+    $past := PAST::Stmts.new( :node($/) );
     make $past;
 }
 
@@ -754,8 +681,9 @@ method enum_declarator($/, $key) {
             PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register'),
+                    :isdecl(1)
                 ),
                 PAST::Op.new(
                     :pasttype('call'),
@@ -767,8 +695,8 @@ method enum_declarator($/, $key) {
                 :pasttype('call'),
                 :name('!keyword_has'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register')
                 ),
                 PAST::Val.new( :value("$!" ~ $name) ),
                 # XXX Set declared type here, when we parse that.
@@ -781,8 +709,8 @@ method enum_declarator($/, $key) {
                 :pasttype('callmethod'),
                 :name('add_method'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register')
                 ),
                 PAST::Val.new( :value($name) ),
                 make_accessor($/, undef, "$!" ~ $name, 1, 'attribute')
@@ -794,8 +722,8 @@ method enum_declarator($/, $key) {
                 :pasttype('callmethod'),
                 :name('add_method'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register')
                 ),
                 PAST::Val.new( :value($_) ),
                 PAST::Block.new(
@@ -823,23 +751,24 @@ method enum_declarator($/, $key) {
             PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register'),
+                    :isdecl(1)
                 ),
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('!keyword_enum'),
                     PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
+                        :name('def'),
+                        :scope('register')
                     )
                 )
             ),
             PAST::Op.new(
                 :inline('    setprop %0, "enum", %1'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register')
                 ),
                 PAST::Val.new(
                     :value(1),
@@ -855,8 +784,8 @@ method enum_declarator($/, $key) {
             :pasttype('callmethod'),
             :name('add_vtable_override'),
             PAST::Var.new(
-                :scope('lexical'),
-                :name('$def')
+                :scope('register'),
+                :name('def')
             ),
             'invoke',
             PAST::Block.new(
@@ -872,8 +801,8 @@ method enum_declarator($/, $key) {
             :pasttype('callmethod'),
             :name('add_vtable_override'),
             PAST::Var.new(
-                :scope('lexical'),
-                :name('$def')
+                :scope('register'),
+                :name('def')
             ),
             'get_string',
             PAST::Block.new(
@@ -893,8 +822,8 @@ method enum_declarator($/, $key) {
             :pasttype('callmethod'),
             :name('add_vtable_override'),
             PAST::Var.new(
-                :scope('lexical'),
-                :name('$def')
+                :scope('register'),
+                :name('def')
             ),
             'get_integer',
             PAST::Block.new(
@@ -914,8 +843,8 @@ method enum_declarator($/, $key) {
             :pasttype('callmethod'),
             :name('add_vtable_override'),
             PAST::Var.new(
-                :scope('lexical'),
-                :name('$def')
+                :scope('register'),
+                :name('def')
             ),
             'get_number',
             PAST::Block.new(
@@ -948,8 +877,8 @@ method enum_declarator($/, $key) {
                     :pasttype('callmethod'),
                     :name('new'),
                     PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
+                        :name('def'),
+                        :scope('register')
                     ),
                     PAST::Val.new(
                         :value(%values{$_}),
@@ -976,14 +905,10 @@ method enum_declarator($/, $key) {
 
         # Assemble all that we build into a statement list and then place it
         # into the init code.
-        our $?INIT;
-        unless defined( $?INIT ) {
-            $?INIT := PAST::Block.new();
-        }
-        $?INIT.push(PAST::Stmts.new(
-            $role_past,
-            $class_past
-        ));
+        our $?BLOCK;
+        my $loadinit := $?BLOCK.loadinit();
+        $loadinit.push($role_past);
+        $loadinit.push($class_past);
 
         # Finally, since it's a decl, we don't have anything to emit at this
         # point; just hand back empty statements block.
@@ -1710,8 +1635,8 @@ sub apply_package_traits($package, $traits) {
                         :name('trait_auxiliary:is'),
                         $superclass,
                         PAST::Var.new(
-                            :name('$def'),
-                            :scope('lexical')
+                            :name('def'),
+                            :scope('register')
                         )
                     )
                 );
@@ -1731,8 +1656,8 @@ sub apply_package_traits($package, $traits) {
                     :pasttype('call'),
                     :name('!keyword_does'),
                     PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
+                        :name('def'),
+                        :scope('register')
                     ),
                     $role_name
                 )
@@ -1869,7 +1794,6 @@ method package_def($/, $key) {
     our $?MODULE;
     our $?NS;
     our $?PACKAGE;
-    our $?INIT;
     my $name := $<name>;
 
     if $key eq 'open' {
@@ -1885,8 +1809,9 @@ method package_def($/, $key) {
                 PAST::Op.new(
                     :pasttype('bind'),
                     PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
+                        :name('def'),
+                        :scope('register'),
+                        :isdecl(1)
                     ),
                     PAST::Op.new(
                         :pasttype('call'),
@@ -1905,8 +1830,9 @@ method package_def($/, $key) {
                 $class_def := PAST::Op.new(
                     :pasttype('bind'),
                     PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
+                        :name('def'),
+                        :scope('register'),
+                        :isdecl(1)
                     ),
                     PAST::Op.new(
                         :pasttype('call'),
@@ -1931,8 +1857,9 @@ method package_def($/, $key) {
                     :node($/),
                     :pasttype('bind'),
                     PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
+                        :name('def'),
+                        :scope('register'),
+                        :isdecl(1)
                     ),
                     PAST::Op.new(
                         :pasttype('callmethod'),
@@ -2001,8 +1928,8 @@ method package_def($/, $key) {
                             :namespace('Perl6Object')
                         ),
                         PAST::Var.new(
-                            :scope('lexical'),
-                            :name('$def')
+                            :scope('register'),
+                            :name('def')
                         ),
                         PAST::Val.new(
                             :value('Grammar'),
@@ -2013,10 +1940,8 @@ method package_def($/, $key) {
             );
 
             # Attatch grammar declaration to the init code.
-            unless defined( $?INIT ) {
-                $?INIT := PAST::Block.new();
-            }
-            $?INIT.push( $?GRAMMAR );
+            our $?BLOCK;
+            $?BLOCK.loadinit().push( $?GRAMMAR );
 
             # Clear namespace.
             $?NS := '';
@@ -2042,8 +1967,8 @@ method package_def($/, $key) {
                                 :namespace('Perl6Object')
                             ),
                             PAST::Var.new(
-                                :scope('lexical'),
-                                :name('$def')
+                                :scope('register'),
+                                :name('def')
                             ),
                             PAST::Val.new(
                                 :value('Any'),
@@ -2060,8 +1985,8 @@ method package_def($/, $key) {
                     $past.pirflags('');
                     $past.blocktype('immediate');
                     $past[0].push(PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical'),
+                        :name('def'),
+                        :scope('register'),
                         :isdecl(1)
                     ));
                 }
@@ -2072,15 +1997,13 @@ method package_def($/, $key) {
             # we want to put under this block so they get the correct
             # namespace. If it's an anonymous class, everything goes into
             # this block.
-            unless defined( $?INIT ) {
-                $?INIT := PAST::Block.new();
-            }
             for @( $?CLASS ) {
                 if $_.isa(PAST::Block) || !$name {
                     $past[0].push( $_ );
                 }
                 else {
-                    $?INIT.push( $_ );
+                    our $?BLOCK;
+                    $?BLOCK.loadinit().push( $_ );
                 }
             }
         }
@@ -2093,7 +2016,6 @@ method package_def($/, $key) {
 method role_def($/, $key) {
     our $?ROLE;
     our $?NS;
-    our $?INIT;
     my $name := ~$<name>;
 
     if $key eq 'open' {
@@ -2102,8 +2024,9 @@ method role_def($/, $key) {
             PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register'),
+                    :isdecl(1)
                 ),
                 PAST::Op.new(
                     :pasttype('call'),
@@ -2129,15 +2052,13 @@ method role_def($/, $key) {
 
         # Attatch role declaration to the init code, skipping blocks since
         # those are accessors.
-        unless defined( $?INIT ) {
-            $?INIT := PAST::Block.new();
-        }
         for @( $?ROLE ) {
             if $_.isa(PAST::Block) {
                 $past.push( $_ );
             }
             else {
-                $?INIT.push( $_ );
+                our $?BLOCK;
+                $?BLOCK.loadinit().push( $_ );
             }
         }
 
@@ -2298,8 +2219,8 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
                 :pasttype('call'),
                 :name('!keyword_has'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register')
                 ),
                 PAST::Val.new( :value($name) ),
                 build_type($/<scoped><fulltypename>)
@@ -2312,8 +2233,8 @@ sub declare_attribute($/, $sym, $variable_sigil, $variable_twigil, $variable_nam
                 :pasttype('call'),
                 :name('!keyword_has'),
                 PAST::Var.new(
-                    :name('$def'),
-                    :scope('lexical')
+                    :name('def'),
+                    :scope('register')
                 ),
                 PAST::Val.new( :value($name) )
             )
@@ -3046,8 +2967,8 @@ method EXPR($/, $key) {
                     :pasttype('call'),
                     :name('!ADD_TO_WHENCE'),
                     PAST::Var.new(
-                        :name('$def'),
-                        :scope('lexical')
+                        :name('def'),
+                        :scope('register')
                     ),
                     $lhs.name(),
                     $rhs
@@ -3255,13 +3176,11 @@ method type_declarator($/) {
         )
     );
 
-    # Put this code in $?INIT, so the type is created early enough, then this
-    # node results in an empty statement node.
-    our $?INIT;
-    unless defined($?INIT) {
-        $?INIT := PAST::Block.new();
-    }
-    $?INIT.push($past);
+    # Put this code in loadinit, so the type is created early enough, 
+    # then this node results in an empty statement node.
+    our $?BLOCK;
+    $?BLOCK.loadinit().push($past);
+
     make PAST::Stmts.new();
 }
 
@@ -3749,8 +3668,8 @@ sub add_method_to_class($method) {
             :pasttype('callmethod'),
             :name('add_method'),
             PAST::Var.new(
-                :name('$def'),
-                :scope('lexical')
+                :name('def'),
+                :scope('register')
             ),
             PAST::Val.new( :value($method.name()) ),
             $new_method

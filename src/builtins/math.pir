@@ -25,9 +25,10 @@ Returns the highest integer not greater than $x.
 =cut
 
 .sub 'floor'
-    .param num a
-    floor a
-    .return (a)
+    .param num n
+    .local int i
+    floor i, n
+    .return (i)
 .end
 
 
@@ -41,9 +42,10 @@ Returns the lowest integer not less than $x.
 =cut
 
 .sub 'ceiling'
-    .param num a
-    ceil a
-    .return (a)
+    .param num n
+    .local int i
+    ceil i, n
+    .return (i)
 .end
 
 
@@ -58,10 +60,11 @@ Returns the nearest integer to $x.  The algorithm is floor($x + 0.5).
 =cut
 
 .sub 'round'
-    .param num a
-    a += 0.5
-    $N0 = floor a
-    .return ($N0)
+    .param num n
+    .local int i
+    n += 0.5
+    floor i, n
+    .return (i)
 .end
 
 

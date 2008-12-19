@@ -1691,52 +1691,31 @@ method package_declarator($/, $key) {
         my $decl_past := PAST::Stmts.new();
 
         if    $sym eq 'package' {
-            @?PACKAGE.unshift($?PACKAGE);
-            $?PACKAGE := $decl_past;
+            @?PACKAGE.unshift($decl_past);
         }
         ##  module isa package
         elsif $sym eq 'module' {
-            @?MODULE.unshift($?MODULE);
-            $?MODULE := $decl_past;
-
-            @?PACKAGE.unshift($?PACKAGE);
-            $?PACKAGE := $decl_past;
+            @?MODULE.unshift($decl_past);
+            @?PACKAGE.unshift($decl_past);
         }
         ##  role isa module isa package
         elsif $sym eq 'role' {
-            @?ROLE.unshift($?ROLE);
-            $?ROLE := $decl_past;
-
-            @?MODULE.unshift($?MODULE);
-            $?MODULE := $decl_past;
-
-            @?PACKAGE.unshift($?PACKAGE);
-            $?PACKAGE := $decl_past;
+            @?ROLE.unshift($decl_past);
+            @?MODULE.unshift($decl_past);
+            @?PACKAGE.unshift($decl_past);
         }
         ##  class isa module isa package
         elsif $sym eq 'class' {
-            @?CLASS.unshift($?CLASS);
-            $?CLASS := $decl_past;
-
-            @?MODULE.unshift($?MODULE);
-            $?MODULE := $decl_past;
-
-            @?PACKAGE.unshift($?PACKAGE);
-            $?PACKAGE := $decl_past;
+            @?CLASS.unshift($decl_past);
+            @?MODULE.unshift($decl_past);
+            @?PACKAGE.unshift($decl_past);
         }
         ##  grammar isa class isa module isa package
         elsif $sym eq 'grammar' {
-            @?GRAMMAR.unshift($?GRAMMAR);
-            $?GRAMMAR := $decl_past;
-
-            @?CLASS.unshift($?CLASS);
-            $?CLASS := $decl_past;
-
-            @?MODULE.unshift($?MODULE);
-            $?MODULE := $decl_past;
-
-            @?PACKAGE.unshift($?PACKAGE);
-            $?PACKAGE := $decl_past;
+            @?GRAMMAR.unshift($decl_past);
+            @?CLASS.unshift($decl_past);
+            @?MODULE.unshift($decl_past);
+            @?PACKAGE.unshift($decl_past);
         }
     }
     else {
@@ -1775,16 +1754,15 @@ method package_declarator($/, $key) {
             @?MODULE.shift();
             @?PACKAGE.shift();
         }
-
-        # make sure @?<magical>[0] is always the same as $?<magical>
-        $?CLASS   := @?CLASS[0];
-        $?GRAMMAR := @?GRAMMAR[0];
-        $?MODULE  := @?MODULE[0];
-        $?PACKAGE := @?PACKAGE[0];
-        $?ROLE    := @?ROLE[0];
-
         make $past;
     }
+
+    # make sure @?<magical>[0] is always the same as $?<magical>
+    $?CLASS   := @?CLASS[0];
+    $?GRAMMAR := @?GRAMMAR[0];
+    $?MODULE  := @?MODULE[0];
+    $?PACKAGE := @?PACKAGE[0];
+    $?ROLE    := @?ROLE[0];
 }
 
 

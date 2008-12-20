@@ -58,6 +58,7 @@ S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/minimal-whitespace.t
 S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
+S02-whitespace_and_comments/unicode-whitespace.t
 S03-junctions/boolean-context.t
 S03-junctions/misc.t
 S03-operators/arith.t

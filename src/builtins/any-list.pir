@@ -55,6 +55,45 @@ the size of that file down and to emphasize their generic,
     .return ($I0)
 .end
 
+=item first(...)
+
+=cut
+
+.namespace []
+.sub 'first' :multi('Sub')
+    .param pmc test
+    .param pmc values :slurpy
+
+    .tailcall values.'first'(test)
+.end
+
+.namespace ['Any']
+.sub 'first' :method :multi(_, 'Sub')
+    .param pmc test
+    .local pmc retv
+    .local pmc iter
+    .local pmc block_res
+    .local pmc block_arg
+
+    iter = self.'iterator'()
+  loop:
+    unless iter goto nomatch
+    block_arg = shift iter
+    block_res = test(block_arg)
+    if block_res goto matched
+    goto loop
+
+  matched:
+    retv = block_arg
+    goto done
+
+  nomatch:
+    retv = '!FAIL'('Undefined value - first list match of no matches')
+
+  done:
+    .return(retv)
+.end
+
 =item grep(...)
 
 =cut
@@ -340,6 +379,66 @@ the size of that file down and to emphasize their generic,
     .tailcall self.'pick'($I0)
 .end
 
+=item reduce(...)
+
+=cut
+
+.namespace []
+.sub 'reduce' :multi('Sub')
+    .param pmc expression
+    .param pmc values          :slurpy
+    .tailcall values.'reduce'(expression)
+.end
+
+.namespace ['Any']
+.sub 'reduce' :method :multi(_, 'Sub')
+    .param pmc expression
+    .local pmc retv
+    .local pmc iter
+    .local pmc elem
+    .local pmc args
+    .local int i, arity
+
+    arity = expression.'arity'()
+    if arity < 2 goto error
+
+    iter = self.'iterator'()
+    unless iter goto empty
+    retv = shift iter
+  loop:
+    unless iter goto done
+
+    # Create arguments for closure
+    args = new 'ResizablePMCArray'
+    # Start with 1. First argument is result of previous call
+    i = 1
+
+  args_loop:
+    if i == arity goto invoke
+    unless iter goto elem_undef
+    elem = shift iter
+    goto push_elem
+  elem_undef:
+    elem = 'undef'()
+
+  push_elem:
+    push args, elem
+    inc i
+    goto args_loop
+
+  invoke:
+    retv = expression(retv, args :flat)
+    goto loop
+
+  empty:
+    .tailcall '!FAIL'('Cannot reduce an empty list')
+
+  error:
+    'die'('Cannot reduce() using a unary or nullary function.')
+
+  done:
+    .return(retv)
+.end
 
 =item reverse()
 

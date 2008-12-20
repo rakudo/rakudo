@@ -16,7 +16,7 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 
     $P0 = get_hll_namespace ['List']
-    '!EXPORT'('first,keys,kv,pairs,reduce,values', $P0)
+    '!EXPORT'('keys,kv,pairs,values', $P0)
 .end
 
 =head2 Methods
@@ -297,45 +297,6 @@ layer.  It will likely change substantially when we have lazy lists.
 .end
 
 
-
-=item first(...)
-
-=cut
-
-.sub 'first' :method :multi('ResizablePMCArray', 'Sub')
-    .param pmc test
-    .local pmc retv
-    .local pmc iter
-    .local pmc block_res
-    .local pmc block_arg
-
-    iter = self.'iterator'()
-  loop:
-    unless iter goto nomatch
-    block_arg = shift iter
-    block_res = test(block_arg)
-    if block_res goto matched
-    goto loop
-
-  matched:
-    retv = block_arg
-    goto done
-
-  nomatch:
-    retv = '!FAIL'('Undefined value - first list match of no matches')
-
-  done:
-    .return(retv)
-.end
-
-
-.sub 'first' :multi('Sub')
-    .param pmc test
-    .param pmc values :slurpy
-
-    .tailcall values.'first'(test)
-.end
-
 =item fmt
 
  our Str multi List::fmt ( Str $format, $separator = ' ' )
@@ -464,69 +425,6 @@ Return a list of Pair(index, value) elements for the invocant.
     .param pmc values          :slurpy
     .tailcall values.'pairs'()
 .end
-
-
-=item reduce(...)
-
-=cut
-
-.sub 'reduce' :method :multi('ResizablePMCArray', 'Sub')
-    .param pmc expression
-    .local pmc retv
-    .local pmc iter
-    .local pmc elem
-    .local pmc args
-    .local int i, arity
-
-    arity = expression.'arity'()
-    if arity < 2 goto error
-
-    iter = self.'iterator'()
-    unless iter goto empty
-    retv = shift iter
-  loop:
-    unless iter goto done
-
-    # Create arguments for closure
-    args = new 'ResizablePMCArray'
-    # Start with 1. First argument is result of previous call
-    i = 1
-
-  args_loop:
-    if i == arity goto invoke
-    unless iter goto elem_undef
-    elem = shift iter
-    goto push_elem
-  elem_undef:
-    elem = new 'Failure'
-
-  push_elem:
-    push args, elem
-    inc i
-    goto args_loop
-
-  invoke:
-    retv = expression(retv, args :flat)
-    goto loop
-
-  empty:
-    retv = new 'Undef'
-    goto done
-
-  error:
-    'die'('Cannot reduce() using a unary or nullary function.')
-    goto done
-
-  done:
-    .return(retv)
-.end
-
-.sub 'reduce' :multi('Sub')
-    .param pmc expression
-    .param pmc values          :slurpy
-    .tailcall values.'reduce'(expression)
-.end
-
 
 =item uniq(...)
 

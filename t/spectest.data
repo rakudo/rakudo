@@ -45,6 +45,7 @@ S02-literals/misc-interpolation.t
 S02-literals/pair-boolean.t
 S02-literals/pairs.t
 S02-literals/quoting.t
+S02-literals/quoting-unicode.t
 S02-literals/radix.t
 S02-literals/string-interpolation.t
 S02-literals/underscores.t

@@ -201,6 +201,7 @@ S12-role/mixin.t
 S12-role/namespaced.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
+S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 S16-io/basic-open.t
@@ -218,10 +219,12 @@ S29-array/push.t
 S29-array/shift.t
 S29-array/unshift.t
 S29-context/eval.t
+S29-context/sleep.t
 S29-conversions/ord_and_chr.t
 S29-hash/exists.t
 S29-hash/keys_values.t
 S29-hash/pairs.t
+S29-hash/slice.t
 S29-list/end.t
 S29-list/first.t
 S29-list/grep.t

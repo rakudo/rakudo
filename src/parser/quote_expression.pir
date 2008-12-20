@@ -401,7 +401,7 @@
     if backchar == stop1 goto add_backchar
     unless optb goto add_litchar
     ##  handle :b options
-    $I0 = index "0abefnrtxdo123456789", backchar
+    $I0 = index "0abefnrtxco123456789", backchar
     if $I0 < 0 goto add_backchar
     if $I0 >= 11 goto fail_backchar_digit
     if $I0 >= 8 goto scan_xdo
@@ -426,13 +426,13 @@
     goto scan_loop
 
   scan_xdo:
-    ##  handle \x, \d, and \o escapes.  start by converting
+    ##  handle \x, \c, and \o escapes.  start by converting
     ##  the backchar into 8, 10, or 16 (yes, it's a hack
     ##  but it works).  Then loop through the characters
     ##  that follow to compute the decimal value of codepoints,
     ##  and add the codepoints to our literal.
     .local int base, decnum, isbracketed
-    base = index '        o d     x', backchar
+    base = index '        o c     x', backchar
     decnum = 0
     pos += 2
     $S0 = substr target, pos, 1

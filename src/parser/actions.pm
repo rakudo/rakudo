@@ -27,7 +27,7 @@ method TOP($/) {
 
    # call the unit mainline, passing any arguments, and return
    # the result.  We force a tailcall here because we need a
-   # :load sub (below) to occur last in the generated output, but don't 
+   # :load sub (below) to occur last in the generated output, but don't
    # want it to be treated as the module's return value.
    $main.push(
        PAST::Op.new( :pirop('tailcall'),
@@ -3154,7 +3154,7 @@ method type_declarator($/) {
         )
     );
 
-    # Put this code in loadinit, so the type is created early enough, 
+    # Put this code in loadinit, so the type is created early enough,
     # then this node results in an empty statement node.
     our $?BLOCK;
     $?BLOCK.loadinit().push($past);

@@ -153,6 +153,7 @@ proto infix:<,> is precedence('g=')
     is assoc('list')
     is nullterm
     { ... }
+proto infix:«p5=>» is equiv(infix:<,>) is subname('infix:,') { ... }
 
 ## list infix
 proto infix:<X> is precedence('f=')

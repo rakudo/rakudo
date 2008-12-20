@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace ['Any']
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('end,map,grep', 'from'=>$P0)
+    '!EXPORT'('end', 'from'=>$P0)
 .end
 
 =item elems()
@@ -59,6 +59,14 @@ the size of that file down and to emphasize their generic,
 
 =cut
 
+.namespace []
+.sub 'grep' :multi('Sub')
+    .param pmc test
+    .param pmc values          :slurpy
+    .tailcall values.'grep'(test)
+.end
+
+.namespace ['Any']
 .sub 'grep' :method :multi(_, 'Sub')
     .param pmc test
     .local pmc retv
@@ -79,12 +87,6 @@ the size of that file down and to emphasize their generic,
 
   done:
     .return(retv)
-.end
-
-.sub 'grep' :multi('Sub')
-    .param pmc test
-    .param pmc values          :slurpy
-    .tailcall values.'grep'(test)
 .end
 
 =item join

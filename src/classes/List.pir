@@ -16,7 +16,7 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 
     $P0 = get_hll_namespace ['List']
-    '!EXPORT'('first,grep,keys,kv,map,pairs,reduce,values', $P0)
+    '!EXPORT'('first,keys,kv,pairs,reduce,values', $P0)
 .end
 
 =head2 Methods
@@ -375,39 +375,6 @@ of the elements, then joined with spaces or an explicitly given separator.
     .return(retv)
 .end
 
-=item grep(...)
-
-=cut
-
-.sub 'grep' :method :multi('ResizablePMCArray', 'Sub')
-    .param pmc test
-    .local pmc retv
-    .local pmc iter
-    .local pmc block_res
-    .local pmc block_arg
-
-    retv = new 'List'
-    iter = self.'iterator'()
-  loop:
-    unless iter goto done
-    block_arg = shift iter
-    block_res = test(block_arg)
-
-    unless block_res goto loop
-    retv.'push'(block_arg)
-    goto loop
-
-  done:
-    .return(retv)
-.end
-
-.sub 'grep' :multi('Sub')
-    .param pmc test
-    .param pmc values          :slurpy
-    .tailcall values.'grep'(test)
-.end
-
-
 =item iterator()
 
 Returns an iterator for the list.
@@ -468,63 +435,6 @@ Return items in invocant as 2-element (index, value) lists.
     .param pmc values          :slurpy
     .tailcall values.'kv'()
 .end
-
-
-=item map()
-
-Map.
-
-=cut
-
-.sub 'map' :method :multi('ResizablePMCArray', 'Sub')
-    .param pmc expression
-    .local pmc res, elem, block, mapres, iter, args
-    .local int i, arity
-
-    arity = expression.'arity'()
-    if arity > 0 goto body
-    arity = 1
-  body:
-    res = new 'List'
-    iter = self.'iterator'()
-  map_loop:
-    unless iter goto done
-
-    # Creates arguments for closure
-    args = new 'ResizablePMCArray'
-
-    i = 0
-  args_loop:
-    if i == arity goto invoke
-    unless iter goto elem_undef
-    elem = shift iter
-    goto push_elem
-  elem_undef:
-    elem = new 'Failure'
-  push_elem:
-    push args, elem
-    inc i
-    goto args_loop
-
-  invoke:
-    (mapres :slurpy) = expression(args :flat)
-    unless mapres goto map_loop
-    mapres.'!flatten'()
-    $I0 = elements res
-    splice res, mapres, $I0, 0
-    goto map_loop
-
-  done:
-    .return(res)
-.end
-
-
-.sub 'map' :multi('Sub')
-    .param pmc expression
-    .param pmc values          :slurpy
-    .tailcall values.'map'(expression)
-.end
-
 
 =item pairs()
 

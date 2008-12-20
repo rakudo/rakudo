@@ -21,9 +21,8 @@ the size of that file down and to emphasize their generic,
 .namespace ['Any']
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('end', 'from'=>$P0)
+    '!EXPORT'('end,map,grep', 'from'=>$P0)
 .end
-
 
 =item elems()
 
@@ -56,6 +55,38 @@ the size of that file down and to emphasize their generic,
     .return ($I0)
 .end
 
+=item grep(...)
+
+=cut
+
+.sub 'grep' :method :multi(_, 'Sub')
+    .param pmc test
+    .local pmc retv
+    .local pmc iter
+    .local pmc block_res
+    .local pmc block_arg
+
+    retv = new 'List'
+    iter = self.'iterator'()
+  loop:
+    unless iter goto done
+    block_arg = shift iter
+    block_res = test(block_arg)
+
+    unless block_res goto loop
+    retv.'push'(block_arg)
+    goto loop
+
+  done:
+    .return(retv)
+.end
+
+.sub 'grep' :multi('Sub')
+    .param pmc test
+    .param pmc values          :slurpy
+    .tailcall values.'grep'(test)
+.end
+
 =item join
 
 =cut
@@ -80,6 +111,59 @@ the size of that file down and to emphasize their generic,
     .return ($S0)
 .end
 
+=item map()
+
+=cut
+
+.namespace []
+.sub 'map' :multi('Sub')
+    .param pmc expression
+    .param pmc values          :slurpy
+    .tailcall values.'map'(expression)
+.end
+
+.namespace ['Any']
+.sub 'map' :method :multi(_, 'Sub')
+    .param pmc expression
+    .local pmc res, elem, block, mapres, iter, args
+    .local int i, arity
+
+    arity = expression.'arity'()
+    if arity > 0 goto body
+    arity = 1
+  body:
+    res = new 'List'
+    iter = self.'iterator'()
+  map_loop:
+    unless iter goto done
+
+    # Creates arguments for closure
+    args = new 'ResizablePMCArray'
+
+    i = 0
+  args_loop:
+    if i == arity goto invoke
+    unless iter goto elem_undef
+    elem = shift iter
+    goto push_elem
+  elem_undef:
+    elem = new 'Failure'
+  push_elem:
+    push args, elem
+    inc i
+    goto args_loop
+
+  invoke:
+    (mapres :slurpy) = expression(args :flat)
+    unless mapres goto map_loop
+    mapres.'!flatten'()
+    $I0 = elements res
+    splice res, mapres, $I0, 0
+    goto map_loop
+
+  done:
+    .return(res)
+.end
 
 =item min
 

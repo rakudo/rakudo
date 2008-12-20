@@ -49,6 +49,28 @@ Gets the key of the pair.
     .return ($P0)
 .end
 
+=item kv
+
+Return key and value as a 2-element List.
+
+=cut
+
+.namespace ['Perl6Pair']
+.sub 'kv' :method
+    $P0 = self.'key'()
+    $P1 = self.'value'()
+    .tailcall 'list'($P0, $P1)
+.end
+
+
+=item pairs
+
+=cut
+
+.sub 'pairs' :method
+    .tailcall self.'list'()
+.end
+
 
 =item value
 
@@ -61,14 +83,6 @@ Gets the value of the pair.
     .return ($P0)
 .end
 
-
-=item pairs
-
-=cut
-
-.sub 'pairs' :method
-    .tailcall self.'list'()
-.end
 
 
 =item get_string()  (vtable method)

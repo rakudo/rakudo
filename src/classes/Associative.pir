@@ -51,7 +51,7 @@ Returns a list element or slice.
     .local pmc elem
     elem = self[$S0]
     unless null elem goto slice_elem
-    elem = new 'Failure'
+    elem = 'undef'()
     self[$S0] = elem
   slice_elem:
     push result, elem
@@ -67,11 +67,14 @@ Returns a list element or slice.
     .param pmc args    :slurpy
     .param pmc options :slurpy :named
     $I0 = can invocant, 'postcircumfix:{ }'
-    unless $I0 goto foreign
-    .tailcall invocant.'postcircumfix:{ }'(args :flat, options :flat :named)
+    if $I0 goto object_method
+    $I0 = isa invocant, 'Perl6Object'
+    if $I0 goto object_method
   foreign:
     $P0 = get_hll_global ['Associative'], 'postcircumfix:{ }'
     .tailcall $P0(invocant, args :flat, options :flat :named)
+  object_method:
+    .tailcall invocant.'postcircumfix:{ }'(args :flat, options :flat :named)
 .end
 
 =back

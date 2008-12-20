@@ -13,9 +13,6 @@ src/classes/Positional.pir - Positional Role
 .sub '' :anon :load :init
     .local pmc positional
     positional = '!keyword_role'('Positional')
-
-    $P0 = get_hll_namespace ['Positional']
-    '!EXPORT'('postcircumfix:[ ]', $P0)
 .end
 
 =head2 Operators
@@ -29,7 +26,7 @@ Returns a list element or slice.
 =cut
 
 .namespace ['Positional']
-.sub 'postcircumfix:[ ]' :method :multi(_, _)
+.sub 'postcircumfix:[ ]' :method
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
     .local pmc result
@@ -54,7 +51,7 @@ Returns a list element or slice.
     .local pmc elem
     elem = self[$I0]
     unless null elem goto slice_elem
-    elem = new 'Failure'
+    elem = 'undef'()
     self[$I0] = elem
   slice_elem:
     push result, elem
@@ -62,6 +59,22 @@ Returns a list element or slice.
   slice_done:
   end:
     .return (result)
+.end
+
+.namespace []
+.sub 'postcircumfix:[ ]'
+    .param pmc invocant
+    .param pmc args    :slurpy
+    .param pmc options :slurpy :named
+    $I0 = can invocant, 'postcircumfix:[ ]'
+    if $I0 goto object_method
+    $I0 = isa invocant, 'Perl6Object'
+    if $I0 goto object_method
+  foreign:
+    $P0 = get_hll_global ['Positional'], 'postcircumfix:[ ]'
+    .tailcall $P0(invocant, args :flat, options :flat :named)
+  object_method:
+    .tailcall invocant.'postcircumfix:[ ]'(args :flat, options :flat :named)
 .end
 
 =back

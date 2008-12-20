@@ -159,7 +159,7 @@ to the Perl 6 compiler.
     .param pmc args_str
 
     $P0 = compreg 'Perl6'
-    $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'iso-8859-1')
+    $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii')
 
     .include 'iterator.pasm'
     .local pmc iter

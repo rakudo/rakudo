@@ -109,7 +109,12 @@ Casts a value to a complex number.
 .sub 'Complex' :method :multi(_)
     $I0 = isa self, 'Complex'
     unless $I0 goto cast
+    $I0 = isa self, 'ObjectRef'
+    if $I0 goto deref
     .return (self)
+  deref:
+    $P0 = deref self
+    .return ($P0)
   cast:
     $P0 = new 'Complex'
     $N0 = self
@@ -147,7 +152,6 @@ Casts a value to a complex number.
     .param pmc a
     .param pmc b
     b = b.'Complex'()
-    $P0 = new 'Complex'
     add $P0, a, b
     .return ($P0)
 .end
@@ -156,7 +160,6 @@ Casts a value to a complex number.
     .param pmc a
     .param pmc b
     a = a.'Complex'()
-    $P0 = new 'Complex'
     add $P0, a, b
     .return ($P0)
 .end
@@ -178,7 +181,6 @@ Casts a value to a complex number.
     .param pmc a
     .param pmc b
     b = b.'Complex'()
-    $P0 = new 'Complex'
     sub $P0, a, b
     .return ($P0)
 .end
@@ -187,7 +189,6 @@ Casts a value to a complex number.
     .param pmc a
     .param pmc b
     a = a.'Complex'()
-    $P0 = new 'Complex'
     sub $P0, a, b
     .return ($P0)
 .end
@@ -211,7 +212,6 @@ Casts a value to a complex number.
     .param pmc a
     .param pmc b
     b = b.'Complex'()
-    $P0 = new 'Complex'
     mul $P0, a, b
     .return ($P0)
 .end
@@ -220,7 +220,6 @@ Casts a value to a complex number.
     .param pmc a
     .param pmc b
     a = a.'Complex'()
-    $P0 = new 'Complex'
     mul $P0, a, b
     .return ($P0)
 .end
@@ -234,7 +233,6 @@ Casts a value to a complex number.
     .param pmc a
     .param pmc b
     b = b.'Complex'()
-    $P0 = new 'Complex'
     div $P0, a, b
     .return ($P0)
 .end
@@ -243,7 +241,6 @@ Casts a value to a complex number.
     .param pmc a
     .param pmc b
     a = a.'Complex'()
-    $P0 = new 'Complex'
     div $P0, a, b
     .return ($P0)
 .end

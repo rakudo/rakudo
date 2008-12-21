@@ -135,6 +135,20 @@ constant I<e>.
     .return ($N0)
 .end
 
+=item Inf / NaN
+
+=cut
+
+.sub 'Inf'
+    $N0 = 'Inf'
+    .return ($N0)
+.end
+
+.sub 'NaN'
+    $N0 = 'NaN'
+    .return ($N0)
+.end
+
 
 =item pi
 

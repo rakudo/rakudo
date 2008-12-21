@@ -571,12 +571,12 @@ token noun {
 token term {
     [
     | 'VAR(' <variable> ')' {*}                  #= VAR
-    | <typename> {*}                             #= typename
     | <name=named_0ary>
         [
         | <.unsp>? '.'? '(' <semilist> ')' {*}   #= func args
         | :: {*}                                 #= noarg
         ]
+    | <typename> {*}                             #= typename
     | <name>
         [
         | <args> {*}                             #= args
@@ -595,7 +595,7 @@ token args {
 
 ##  XXX: cheat until we get term:pi, term:rand, term:undef, etc.
 token named_0ary {
-    | [pi|rand|undef|nothing|time|next|last|continue|break] >>
+    | [pi|rand|undef|nothing|time|next|last|continue|break|Inf|NaN] >>
     | ['...'|'???'|'!!!'|'=<>']
 }
 

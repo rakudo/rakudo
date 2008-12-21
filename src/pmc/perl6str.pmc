@@ -22,6 +22,7 @@ behavior.
 #include "parrot/parrot.h"
 #include <ctype.h>
 #include <math.h>
+#include <string.h>
 
 
 static
@@ -126,7 +127,7 @@ digits.
 
         if (s && s->strstart) {
             const char *s1         = s->strstart;
-            const char * const end = s1 + strlen(s1);
+            const char * const end = s1 + s->bufused;
 
             /* skip leading whitespace */
             while (s1 < end && isspace((unsigned char)*s1))
@@ -154,6 +155,20 @@ digits.
                 s1++;
             else if (s1 < end && *s1 == '-') {
                 sign = -1.0; s1++;
+            }
+
+            if (tolower(*s1) == 'i') {
+                if (strncasecmp(s1, "inf", 3) == 0) s1 += 3;
+                while (s1 < end && isspace((unsigned char)*s1))
+                    s1++;
+                return (s1 == end) ? sign * atof("inf") : 0.0;
+            }
+
+            if (tolower(*s1) == 'n') {
+                if (strncasecmp(s1, "nan", 3) == 0) s1 += 3;
+                while (s1 < end && isspace((unsigned char)*s1)) 
+                    s1++;
+                return (s1 == end) ? sign * atof("nan") : 0.0;
             }
 
             /* handle 0x, 0o, 0d, 0b radix */

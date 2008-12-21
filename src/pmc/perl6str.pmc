@@ -27,10 +27,11 @@ behavior.
 static
 FLOATVAL
 parse_number(const char **start, const char *stop, FLOATVAL radix) {
-    FLOATVAL number = 0.0;
-    const char *pos = *start;
-    int underscore_skip = 0;
-    //continue until the end or until we've hit a non-digit
+    const char *pos             = *start;
+    FLOATVAL    number          = 0.0;
+    int         underscore_skip = 0;
+
+    /* continue until the end or until we've hit a non-digit */
     while (pos + underscore_skip < stop) {
         unsigned int current = *(pos + underscore_skip);
         if (isdigit((unsigned char)current))

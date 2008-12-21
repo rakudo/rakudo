@@ -2392,7 +2392,7 @@ method scope_declarator($/) {
                     :name($_),
                     :isdecl(1),
                     :scope($scope),
-                    :viviself('Perl6Scalar')
+                    :viviself(container_type($sigil))
                 ));
 
                 # Add block entry.

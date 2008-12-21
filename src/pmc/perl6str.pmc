@@ -34,7 +34,7 @@ parse_number(const char **start, const char *stop, FLOATVAL radix) {
     while (pos + underscore_skip < stop) {
         unsigned int current = *(pos + underscore_skip);
         if (isdigit(current))      current -= '0';
-        else if (isalpha(current)) current = tolower(current) - 'a' + 10;
+        else if (isalpha(current)) current = tolower((unsigned char)current) - 'a' + 10;
         else break;
 
         if (current >= radix) break;
@@ -56,9 +56,9 @@ parse_fraction(const char** start, const char* stop, FLOATVAL radix) {
     while (pos + underscore_skip < stop) {
         unsigned int current = *(pos + underscore_skip);
         /* if we find an 'e' in radix 10, we're done */
-        if (radix == 10 && tolower(current) == 'e') break;
+        if (radix == 10 && tolower((unsigned char)current) == 'e') break;
         if (isdigit(current)) current -= '0';
-        else if (isalpha(current)) current = tolower(current) - 'a' + 10;
+        else if (isalpha(current)) current = tolower((unsigned char)current) - 'a' + 10;
         else break;
 
         if (current >= radix) break;

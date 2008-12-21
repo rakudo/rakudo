@@ -246,7 +246,9 @@ the size of that file down and to emphasize their generic,
     result = $P0
     goto loop
   fail:
-    result = 'undef'()
+    .local num failres
+    failres = "+Inf"
+    .return (failres)
   done:
     .return (result)
 .end
@@ -288,7 +290,9 @@ the size of that file down and to emphasize their generic,
     result = $P0
     goto loop
   fail:
-    result = 'undef'()
+    .local num failres
+    failres = "-Inf"
+    .return (failres)
   done:
     .return (result)
 .end

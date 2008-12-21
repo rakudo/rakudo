@@ -23,6 +23,55 @@ behavior.
 #include <ctype.h>
 #include <math.h>
 
+
+static
+FLOATVAL
+parse_number(const char **start, const char *stop, FLOATVAL radix) {
+    FLOATVAL number = 0.0;
+    const char *pos = *start;
+    int underscore_skip = 0;
+    //continue until the end or until we've hit a non-digit
+    while (pos + underscore_skip < stop) {
+        unsigned int current = *(pos + underscore_skip);
+        if (isdigit(current))      current -= '0';
+        else if (isalpha(current)) current = tolower(current) - 'a' + 10;
+        else break;
+
+        if (current >= radix) break;
+        number = number * radix + current;
+        pos += 1 + underscore_skip;
+        underscore_skip = (*pos == '_');
+    }
+    *start = pos;
+    return number;
+}
+
+static
+FLOATVAL
+parse_fraction(const char** start, const char* stop, FLOATVAL radix) {
+    FLOATVAL frac = 1.0;
+    FLOATVAL number = 0.0;
+    const char *pos = *start;
+    int underscore_skip = 0;
+    while (pos + underscore_skip < stop) {
+        unsigned int current = *(pos + underscore_skip);
+        /* if we find an 'e' in radix 10, we're done */
+        if (radix == 10 && tolower(current) == 'e') break;
+        if (isdigit(current)) current -= '0';
+        else if (isalpha(current)) current = tolower(current) - 'a' + 10;
+        else break;
+
+        if (current >= radix) break;
+        frac /= radix;
+        number += current * frac;
+        pos += 1 + underscore_skip;
+        underscore_skip = (*pos == '_');
+    }
+    *start = pos;
+    return number;
+}
+
+
 pmclass Perl6Str
     extends  String
     provides string
@@ -63,16 +112,35 @@ digits.
 
     FLOATVAL get_number() {
         STRING   *s    = (STRING *)PMC_str_val(SELF);
-        FLOATVAL  sign = 1.0;
-        FLOATVAL  f    = 0.0;
+        FLOATVAL sign = 1.0;
+        FLOATVAL f    = 0.0;
+        FLOATVAL radix = 10.0;
+        int      angle = 0;
 
-        if (s) {
+        if (s && s->strstart) {
             const char *s1         = s->strstart;
-            const char * const end = s1 + s->bufused;
+            const char * const end = s1 + strlen(s1);
 
             /* skip leading whitespace */
             while (s1 < end && isspace((unsigned char)*s1))
                 s1++;
+
+            /* handle \d+:([0..9A..Za..z]) radix notation */
+            if (s1 < end && *s1 == ':') {
+                s1++;
+
+                if (s1 >= end)
+                    return f;
+
+                radix = parse_number(&s1, end, 10);
+                if (*s1 != '<') {
+                    return 0.0;
+                }
+                else {
+                    angle = 1;
+                    s1++;
+                }
+            }
 
             /* handle leading +,- */
             if (s1 < end && *s1 == '+')
@@ -92,92 +160,42 @@ digits.
                     case 'x':
                     case 'X':
                         s1++;
-                        while (s1 < end && isxdigit((unsigned char)*s1)) {
-                            f *= 16;
-                            if (isdigit((unsigned char)*s1))
-                                f += (*s1) - '0';
-                            else
-                                f += tolower((unsigned char)*s1) - 'a' + 10;
-
-                            s1++;
-
-                            if (s1 < end && *s1 == '_')
-                                s1++;
-                        }
-                        return sign * f;
+                        return parse_number(&s1, end, 16);
                     case 'd':
                     case 'D':
                         s1++;
-                        while (s1 < end && isdigit((unsigned char)*s1)) {
-                            f = f * 10 + (*s1) - '0';
-                            s1++;
-
-                            if (s1 < end && *s1 == '_')
-                                s1++;
-                        }
-
-                        return sign * f;
+                        return parse_number(&s1, end, 10);
                     case 'o':
                     case 'O':
                         s1++;
-                        while (s1 < end && isdigit((unsigned char)*s1)
-                                        && *s1 <= '7') {
-                            f = f * 8 + (*s1) - '0';
-
-                            s1++;
-
-                            if (s1 < end && *s1 == '_')
-                                s1++;
-                        }
-
-                        return sign * f;
+                        return parse_number(&s1, end, 8);
                     case 'b':
                     case 'B':
                         s1++;
-                        while (s1 < end && (*s1 == '0' || *s1 == '1')) {
-                            f = f * 2 + (*s1) - '0';
-                            s1++;
-
-                            if (s1 < end && *s1 == '_')
-                                s1++;
-                        }
-
-                        return sign * f;
+                        return parse_number(&s1, end, 2);
                     default:
                         break;
                 }
                 if (s1 < end && *s1 == '_'
-                && isdigit((unsigned char)*(s1+1)))
+                    && isdigit((unsigned char)*(s1 + 1)))
                     s1++;
             }
 
             /* handle integer part */
-            while (s1 < end && isdigit((unsigned char)*s1)) {
-                f = f * 10 + (*s1) - '0';
-                s1++;
-
-                if (s1 < end && *s1 == '_' && isdigit((unsigned char)*(s1+1)))
-                    s1++;
+            if (s1 < end && isalnum((unsigned char)*s1)) {
+                f = parse_number(&s1, end, radix);
             }
 
-            /* handle floating point part */
+            /* handle decimal point part */
             if (s1 < end && *s1 == '.') {
-                FLOATVAL frac = 1.0;
                 s1++;
-                while (s1 < end && isdigit((unsigned char)*s1)) {
-                    frac /= 10;
-                    f    += ((*s1) - '0') * frac;
-                    s1++;
-                    if (s1 < end && *s1 == '_'
-                    && isdigit((unsigned char)*(s1+1)))
-                        s1++;
-                }
+                f += parse_fraction(&s1, end, radix);
             }
 
             /* handle exponential part */
             if (s1 < end && (*s1 == 'e' || *s1 == 'E')) {
-                INTVAL exp_val  = 0;
-                INTVAL exp_sign = 1;
+                int exp_val  = 0;
+                int exp_sign = 1;
                 s1++;
 
                 if (s1 < end && *s1 == '+')
@@ -197,8 +215,10 @@ digits.
 
                 return sign * f * pow(10.0, exp_val * exp_sign);
             }
-        }
 
+            if (angle && (s1 >= end || *s1 != '>'))
+                return 0.0;
+        }
         return sign * f;
     }
 

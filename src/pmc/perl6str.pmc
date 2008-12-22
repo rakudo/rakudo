@@ -166,7 +166,7 @@ digits.
 
             if (tolower(*s1) == 'n') {
                 if (strncasecmp(s1, "nan", 3) == 0) s1 += 3;
-                while (s1 < end && isspace((unsigned char)*s1)) 
+                while (s1 < end && isspace((unsigned char)*s1))
                     s1++;
                 return (s1 == end) ? sign * atof("nan") : 0.0;
             }

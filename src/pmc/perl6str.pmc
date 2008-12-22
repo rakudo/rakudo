@@ -157,15 +157,17 @@ digits.
                 sign = -1.0; s1++;
             }
 
-            if (tolower(*s1) == 'i') {
-                if (strncasecmp(s1, "inf", 3) == 0) s1 += 3;
+            if (tolower(s1[0]) == 'i' && tolower(s1[1]) == 'n' 
+                    && tolower(s1[2]) == 'f') {
+                s1 += 3;
                 while (s1 < end && isspace((unsigned char)*s1))
                     s1++;
                 return (s1 == end) ? sign * atof("inf") : 0.0;
             }
 
-            if (tolower(*s1) == 'n') {
-                if (strncasecmp(s1, "nan", 3) == 0) s1 += 3;
+            if (tolower(s1[0]) == 'n' && tolower(s1[1]) == 'a' 
+                    && tolower(s1[2]) == 'n') {
+                s1 += 3;
                 while (s1 < end && isspace((unsigned char)*s1))
                     s1++;
                 return (s1 == end) ? sign * atof("nan") : 0.0;

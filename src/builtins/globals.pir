@@ -29,6 +29,7 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     $P0 = split ':', $S0
     push $P0, '.'
     $P0 = 'list'($P0)
+    $P0 = $P0.'Array'()
     set_hll_global '@INC', $P0
 
     ##  set up %*INC

@@ -26,6 +26,19 @@ This file implements the Whatever class.
     .return ($P0)
 .end
 
+.sub '' :vtable('get_integer') :method
+    $P0 = get_global '$!slice'
+    $I0 = $P0
+    .return ($I0)
+.end
+
+.sub '' :vtable('get_number') :method
+    $P0 = get_global '$!slice'
+    $N0 = $P0
+    .return ($N0)
+.end
+
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

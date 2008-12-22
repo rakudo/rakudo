@@ -38,6 +38,10 @@ Returns a list element or slice.
     $I0 = args.'elems'()
     if $I0 != 1 goto slice
     $I0 = args[0]
+    if $I0 >= 0 goto result_fetch
+    result = new 'Failure'
+    goto end
+  result_fetch:
     result = self[$I0]
     unless null result goto end
     result = new 'Failure'
@@ -48,10 +52,14 @@ Returns a list element or slice.
   slice_loop:
     unless args goto slice_done
     $I0 = shift args
+    if $I0 >= 0 goto slice_fetch
     .local pmc elem
+    elem = new 'Failure'
+    goto slice_elem
+  slice_fetch:
     elem = self[$I0]
     unless null elem goto slice_elem
-    elem = 'undef'()
+    elem = new 'Failure'
     self[$I0] = elem
   slice_elem:
     push result, elem
@@ -62,7 +70,7 @@ Returns a list element or slice.
 .end
 
 .namespace []
-.sub 'postcircumfix:[ ]'
+.sub 'postcircumfix:[ ]' :multi(_)
     .param pmc invocant
     .param pmc args    :slurpy
     .param pmc options :slurpy :named
@@ -75,6 +83,20 @@ Returns a list element or slice.
     .tailcall $P0(invocant, args :flat, options :flat :named)
   object_method:
     .tailcall invocant.'postcircumfix:[ ]'(args :flat, options :flat :named)
+.end
+
+
+.sub 'postcircumfix:[ ]' :multi(_, 'Sub')
+    .param pmc invocant
+    .param pmc argsblock
+    .param pmc options :slurpy :named
+    $I0 = elements invocant
+    $P0 = box $I0
+    set_hll_global ['Whatever'], '$!slice', $P0
+    .local pmc args
+    args = argsblock()
+    args = 'list'(args)
+    .tailcall 'postcircumfix:[ ]'(invocant, args :flat, options :flat :named)
 .end
 
 =back

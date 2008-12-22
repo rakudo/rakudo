@@ -39,20 +39,45 @@ return an ObjectRef to it.
 .end
 
 
-.sub '' :vtable('get_string') :method
-    .local string result
-    result = ''
-    $P0 = self.'pairs'()
+=item fmt
+
+ our Str multi Mapping::fmt ( Str $format, $separator = "\n" )
+
+Returns the invocant mapping formatted by an implicit call to C<.fmt> on
+every pair, joined by newlines or an explicitly given separator.
+
+=cut
+
+.sub 'fmt' :method :multi('Hash')
+    .param pmc format
+    .param string sep  :optional
+    .param int has_sep :opt_flag
+
     .local pmc it
-    it = iter $P0
-  it_loop:
-    unless it goto it_done
-    $S0 = shift it
-    result .= $S0
-    result .= "\n"
-    goto it_loop
-  it_done:
-    .return (result)
+    .local pmc rv
+
+    if has_sep goto have_sep
+    sep = "\n"
+
+  have_sep:
+    it = self.'iterator'()
+    rv = new 'List'
+
+  loop:
+    .local pmc pairfmt
+    .local pmc pair
+
+    unless it goto end
+
+    pair = shift it
+    pairfmt = pair.'fmt'(format)
+
+    push rv, pairfmt
+    goto loop
+
+  end:
+    rv = 'join'(sep, rv)
+    .return(rv)
 .end
 
 
@@ -63,58 +88,82 @@ Return invocant as a Hash
 =cut
 
 .sub 'hash' :method
-    .local pmc result, it
-    result = new 'Perl6Hash'
+    .local pmc rv
+    .local pmc it
+
+    rv = new 'Perl6Hash'
+    it = self.'iterator'()
+
+  loop:
+    .local string key
+    .local pmc val
+
+    unless it goto end
+    key = shift it
+    val = self[$S0]
+
+    rv[key] = val
+    goto loop
+
+  end:
+    .return (rv)
+.end
+
+
+=item iterator()
+
+=cut
+
+.sub 'iterator' :method :multi('Hash')
+    .local pmc it
+    .local pmc rv
+
     it = iter self
-  iter_loop:
-    unless it goto iter_end
-    $S0 = shift it
-    $P0 = self[$S0]
-    result[$S0] = $P0
-    goto iter_loop
-  iter_end:
-    .return (result)
+    rv = new 'List'
+
+  loop:
+    .local string key
+    .local pmc pair
+    .local pmc val
+
+    unless it goto end
+      key = shift it
+      val = it[key]
+
+      pair = 'infix:=>'(key, val)
+      push rv, pair
+    goto loop
+
+  end:	
+    .return (rv)
 .end
 
 
-=item list()
+=item keys()
 
-Return invocant as a List of Pairs.
-
-=cut
-
-.sub 'list' :method
-    .tailcall self.'pairs'()
-.end
-
-
-=item perl()
-
-Return perl representation of the invocant.
+Returns keys of hash as a List
 
 =cut
 
-.sub 'perl' :method
-    .local string result
-    .local pmc keys
-    result = '{'
-    keys = self.'keys'()
-    unless keys goto iter_end
-  iter_loop:
-    .local pmc key, value
-    key = shift keys
-    value = self[key]
-    $S0 = key.'perl'()
-    result .= $S0
-    result .= ' => '
-    $S0 = value.'perl'()
-    result .= $S0
-    unless keys goto iter_end
-    result .= ', '
-    goto iter_loop
-  iter_end:
-    result .= '}'
-    .return (result)
+.sub 'keys' :method :multi('Hash')
+    .local pmc it
+    .local pmc rv
+
+    it = self.'iterator'()
+    rv = new 'List'
+  loop:
+    .local string key
+    .local pmc pair
+
+    unless it goto end
+    pair = shift it
+    key = pair.'key'()
+
+    push rv, key
+    goto loop
+
+  end:
+    .return (rv)
 .end
 
 
@@ -127,18 +176,39 @@ Returns elements of hash as array of C<Pair(key, value)>
 .sub 'kv' :method :multi('Hash')
     .local pmc it
     .local pmc rv
-    it = iter self
-    rv   = new 'List'
+
+    it = self.'iterator'()
+    rv = new 'List'
+
   loop:
+    .local string key
+    .local pmc pair
+    .local pmc val
+
     unless it goto end
-    $S1 = shift it
-    push rv, $S1
-    $P1 = it[$S1]
-    push rv, $P1
+    pair = shift it
+    key = pair.'key'()
+    val = pair.'value'()
+    
+    push rv, key
+    push rv, val
     goto loop
+
   end:
     .return (rv)
 .end
+
+
+=item list()
+
+Return invocant as a List of Pairs.
+
+=cut
+
+.sub 'list' :method
+    .tailcall self.'iterator'()
+.end
+
 
 =item pairs (method)
 
@@ -147,121 +217,157 @@ Returns elements of hash as array of C<Pairs>
 =cut
 
 .sub 'pairs' :method :multi('Hash')
-    .local pmc it
-    .local pmc rv
-    it = iter self
-    $P0 = get_hll_global 'list'
-    rv  = $P0()
-    $P3 = get_hll_global 'Perl6Pair'
-  loop:
-    unless it goto end
-    $P1 = shift it
-    $P2 = it[$P1]
-    $P4 = $P3.'new'('key' => $P1, 'value' => $P2)
-    push rv, $P4
-    goto loop
-  end:
-    .return (rv)
+    .tailcall self.'iterator'()
 .end
 
 
-=item fmt
+=item perl()
 
- our Str multi Mapping::fmt ( Str $format, $separator = "\n" )
-
-Returns the invocant mapping formatted by an implicit call to C<.fmt> on
-every pair, joined by newlines or an explicitly given separator.
+Return perl representation of the invocant.
 
 =cut
 
-.sub 'fmt' :method :multi('Hash')
-    .param pmc format
-    .param string sep          :optional
-    .param int has_sep         :opt_flag
-
-    .local pmc pairs
-    .local pmc res
-    .local pmc iter
-    .local pmc retv
-    .local pmc elem
-    .local pmc key
-    .local pmc value
-    .local pmc elemres
-
-    if has_sep goto have_sep
-    sep = "\n"
-  have_sep:
-    pairs = self.'pairs'()
-    res = new 'List'
-    iter = pairs.'iterator'()
-  elem_loop:
-    unless iter goto done
-
-  invoke:
-    elem = shift iter
-    elemres = elem.'fmt'(format)
-    push res, elemres
-    goto elem_loop
-
-  done:
-    retv = 'join'(sep, res)
-    .return(retv)
-.end
-
-
-.sub 'keys' :method :multi('Hash')
+.sub 'perl' :method
+    .local string rv
     .local pmc it
-    .local pmc rv
-    it = iter self
-    rv   = new 'List'
-  loop:
+
+    rv = '{'
+    it = self.'iterator'()
+
+   loop:
+    .local string str	   
+    .local pmc pair
+    .local pmc key
+    .local pmc val
+
     unless it goto end
-    $S1 = shift it
-    push rv, $S1
+
+    pair = shift it
+
+    key = pair.'key'()
+    val = pair.'value'()
+
+    str = key.'perl'()
+    rv .= str
+
+    rv .= ' => '
+
+    str = val.'perl'()
+    rv .= str
+
+    unless it goto end
+
+    rv .= ', '
     goto loop
+
   end:
+    rv .= '}'
     .return (rv)
 .end
+
 
 =item reverse
 
 =cut
 
 .sub 'reverse' :method :multi('Hash')
-    .local pmc result, it
-    result = new 'Perl6Hash'
-    it = iter self
-  iter_loop:
-    unless it goto iter_end
-    $S0 = shift it
-    $S1 = self[$S0]
-    result[$S1] = $S0
-    goto iter_loop
-  iter_end:
-    .return (result)
-.end
-
-
-.sub 'values' :method :multi('Hash')
     .local pmc it
     .local pmc rv
-    it = iter self
-    rv   = new 'List'
+
+    rv = new 'Perl6Hash'
+    it = self.'iterator'()
+
   loop:
+    .local string key
+    .local pmc pair
+    .local pmc val
+
     unless it goto end
-    $S1 = shift it
-    $P1 = it[$S1]
-    push rv, $P1
+    pair = shift it
+    key = pair.'key'()
+    val = pair.'value'()
+
+    rv[val] = key
     goto loop
+
   end:
     .return (rv)
 .end
 
 
-.sub '!flatten' :method
-    .tailcall self.'pairs'()
+=item values()
+
+Returns values of hash as a List
+
+=cut
+
+.sub 'values' :method :multi('Hash')
+    .local pmc it
+    .local pmc rv
+
+    it = self.'iterator'()
+    rv = new 'List'
+
+  loop:
+    .local pmc pair
+    .local pmc val
+
+    unless it goto end
+    pair = shift it
+    val = pair.'value'()
+
+    push rv, val
+    goto loop
+
+  end:
+    .return (rv)
 .end
 
+
+=head2 Private methods
+
+=over 4
+
+=item !flatten()
+
+Flatten the invocant, as in list context.
+
+=cut
+
+.sub '!flatten' :method
+    .tailcall self.'iterator'()
+.end
+
+=back
+
+
+=head2 Vtable functions
+
+=over 4
+
+=item ''
+
+=cut
+
+.sub '' :vtable('get_string') :method
+    .local string rv
+    .local pmc it
+
+    it = self.'iterator'()
+    rv = ''
+
+  loop:
+    .local string str
+
+    unless it goto end
+    str = shift it
+    rv .= str
+    rv .= "\n"
+    goto loop
+
+  end:	
+    .return (rv)
+.end
 
 =back
 

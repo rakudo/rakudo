@@ -24,6 +24,7 @@ S02-builtin_data_types/catch_type_cast_mismatch.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
+S02-builtin_data_types/infinity.t
 S02-builtin_data_types/lists.t
 S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
@@ -148,6 +149,7 @@ S06-multi/syntax.t
 S06-multi/type-based.t
 S06-other/main.t
 S06-signature/code.t
+S06-signature/arity.t
 S06-signature/defaults.t
 S06-signature/errors.t
 S06-signature/mixed-placeholders.t
@@ -193,6 +195,7 @@ S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/multi.t
 S12-methods/private.t
+S12-methods/syntax.t
 S12-methods/topic.t
 S12-methods/what.t
 S12-role/attributes.t

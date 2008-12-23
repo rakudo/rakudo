@@ -6,8 +6,6 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
 
 =head1 Methods
 
-=over 4
-
 =cut
 
 .namespace ['Mapping']
@@ -23,21 +21,9 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     '!EXPORT'('keys,kv,values,reverse', $P0)
 .end
 
+=head2 Methods
 
-=item Scalar
-
-When we're going to be stored as an item, become a Hash and
-return an ObjectRef to it.
-
-=cut
-
-.namespace ['Mapping']
-.sub 'Scalar' :method
-    $P0 = self.'Hash'()
-    $P0 = new 'ObjectRef', $P0
-    .return ($P0)
-.end
-
+=over
 
 =item fmt
 
@@ -78,35 +64,6 @@ every pair, joined by newlines or an explicitly given separator.
   end:
     rv = 'join'(sep, rv)
     .return(rv)
-.end
-
-
-=item hash()
-
-Return invocant as a Hash
-
-=cut
-
-.sub 'hash' :method
-    .local pmc rv
-    .local pmc it
-
-    rv = new 'Perl6Hash'
-    it = self.'iterator'()
-
-  loop:
-    .local string key
-    .local pmc val
-
-    unless it goto end
-    key = shift it
-    val = self[$S0]
-
-    rv[key] = val
-    goto loop
-
-  end:
-    .return (rv)
 .end
 
 
@@ -233,34 +190,15 @@ Return perl representation of the invocant.
 
     rv = '{'
     it = self.'iterator'()
-
-   loop:
-    .local string str	   
-    .local pmc pair
-    .local pmc key
-    .local pmc val
-
-    unless it goto end
-
-    pair = shift it
-
-    key = pair.'key'()
-    val = pair.'value'()
-
-    str = key.'perl'()
-    rv .= str
-
-    rv .= ' => '
-
-    str = val.'perl'()
-    rv .= str
-
-    unless it goto end
-
+    unless it goto done
+  loop:
+    $P1 = shift it
+    $S1 = $P1.'perl'()
+    rv .= $S1
+    unless it goto done
     rv .= ', '
     goto loop
-
-  end:
+  done:
     rv .= '}'
     .return (rv)
 .end
@@ -323,6 +261,54 @@ Returns values of hash as a List
     .return (rv)
 .end
 
+=back
+
+
+=head2 Coercion methods
+
+=over
+
+=item Scalar
+
+When we're going to be stored as an item, become a Hash and
+return an ObjectRef to it.
+
+=cut
+
+.namespace ['Mapping']
+.sub 'Scalar' :method
+    $P0 = self.'Hash'()
+    $P0 = new 'ObjectRef', $P0
+    .return ($P0)
+.end
+
+=item Str
+
+Stringification of a Mapping
+
+=cut
+
+## FIXME: :vtable('get_string') is wrong here
+.namespace ['Mapping']
+.sub 'Str' :vtable('get_string') :method
+    .local string rv
+    .local pmc it
+
+    it = self.'iterator'()
+    rv = ''
+  loop:
+    .local string str
+
+    unless it goto end
+    str = shift it
+    rv .= str
+    rv .= "\n"
+    goto loop
+
+  end:	
+    .return (rv)
+.end
+
 
 =head2 Private methods
 
@@ -336,37 +322,6 @@ Flatten the invocant, as in list context.
 
 .sub '!flatten' :method
     .tailcall self.'iterator'()
-.end
-
-=back
-
-
-=head2 Vtable functions
-
-=over 4
-
-=item ''
-
-=cut
-
-.sub '' :vtable('get_string') :method
-    .local string rv
-    .local pmc it
-
-    it = self.'iterator'()
-    rv = ''
-
-  loop:
-    .local string str
-
-    unless it goto end
-    str = shift it
-    rv .= str
-    rv .= "\n"
-    goto loop
-
-  end:	
-    .return (rv)
 .end
 
 =back

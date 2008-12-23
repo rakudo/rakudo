@@ -152,6 +152,57 @@ the size of that file down and to emphasize their generic,
     .return ($S0)
 .end
 
+=item keys()
+
+Return a List with the keys of the invocant.
+
+=cut
+
+.namespace []
+.sub 'keys' :multi()
+    .param pmc values          :slurpy
+    values.'!flatten'()
+    .tailcall values.'keys'()
+.end
+
+.namespace ['Any']
+.sub 'keys' :method
+    $I0 = self.'elems'()
+    $P0 = 'infix:^'($I0)
+    .tailcall $P0.'list'()
+.end
+
+
+=item kv
+
+=cut
+
+.namespace []
+.sub 'kv' :multi()
+    .param pmc values          :slurpy
+    values.'!flatten'()
+    .tailcall values.'kv'()
+.end
+    
+.namespace ['Any']
+.sub 'kv' :method
+    .local pmc result, it
+    result = new 'List'
+    it = self.'iterator'()
+    .local int i
+    i = 0
+  loop:
+    unless it goto done
+    $P0 = shift it
+    push result, i
+    push result, $P0
+    inc i
+    goto loop
+  done:
+    .return (result)
+.end
+
+
 =item map()
 
 =cut
@@ -297,6 +348,35 @@ the size of that file down and to emphasize their generic,
     .return (result)
 .end
 
+
+=item pairs()
+
+=cut
+
+.namespace []
+.sub 'pairs' :multi()
+    .param pmc values          :slurpy
+    values.'!flatten'()
+    .tailcall values.'pairs'()
+.end
+
+.namespace ['Any']
+.sub 'pairs' :method
+    .local pmc result, it
+    result = new 'List'
+    it = self.'iterator'()
+    .local int i
+    i = 0
+  loop:
+    unless it goto done
+    $P0 = shift it
+    $P1 = 'infix:=>'(i, $P0)
+    push result, $P1
+    inc i
+    goto loop
+  done:
+    .return (result)
+.end
 
 
 =item pick($num, :$repl)
@@ -567,6 +647,25 @@ Parrot's built-in sort algorithm.
     $I0 = cmp a, b
   done:
     .return ($I0)
+.end
+
+
+=item values
+
+Return values of the list
+
+=cut
+
+.namespace []
+.sub 'values' :multi()
+    .param pmc values          :slurpy
+    .tailcall values.'!flatten'()
+.end
+
+.namespace ['Any']
+.sub 'values' :method
+    self.'!flatten'()
+    .return (self)
 .end
 
 

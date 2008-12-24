@@ -287,10 +287,10 @@ method loop_statement($/) {
     my $block := $( $<block> );
     $block.blocktype('immediate');
     my $cond  := $<e2> ?? $( $<e2>[0] ) !! 1;
-    if $<e3> {
-        $block := PAST::Stmts.new( $block, $( $<e3>[0] ) );
-    }
     my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
+    if $<e3> {
+        $loop.push( $( $<e3>[0] ) );
+    }
     if $<e1> {
         $loop := PAST::Stmts.new( $( $<e1>[0] ), $loop, :node($/) );
     }

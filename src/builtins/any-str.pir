@@ -313,7 +313,7 @@ Like C<lc>, but only affects the first character.
 .sub 'match' :method :multi(_)
     .param pmc x
     .local pmc match
-    match = x(self)
+    match = x(self, 'grammar'=>'Match')
     .return(match)
 .end
 

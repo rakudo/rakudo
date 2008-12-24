@@ -34,6 +34,11 @@ for executable objects.
     .param pmc topic
     .local pmc match
 
+    .local pmc pgesave
+    pgesave = get_hll_global ['PGE'], '$!MATCH'
+    $P0 = get_hll_global 'Match'
+    set_hll_global ['PGE'], '$!MATCH', $P0
+
     # If topic is an Array or Hash, need special treatment.
     $I0 = isa topic, 'Perl6Array'
     if $I0 goto is_array
@@ -72,6 +77,7 @@ for executable objects.
     $P1['$/'] = match
   not_regex:
 
+    set_hll_global ['PGE'], '$!MATCH', pgesave
     .return (match)
 .end
 
@@ -82,7 +88,12 @@ for executable objects.
 .sub 'REJECTS' :method
     .param pmc topic
     .local pmc match
+    .local pmc pgesave
+    pgesave = get_hll_global ['PGE'], '$!MATCH'
+    $P0 = get_hll_global 'Match'
+    set_hll_global ['PGE'], '$!MATCH', $P0
     match = self(topic)
+    set_hll_global ['PGE'], '$!MATCH', pgesave
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match

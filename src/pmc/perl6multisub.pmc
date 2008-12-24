@@ -448,7 +448,7 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *proto,
 
     /* Iterate over the candidates and collect best ones; terminate
      * when we see two nulls (may break out earlier). */
-    while (cur_candidate[0] != NULL || cur_candidate[1] != NULL) {
+    while (cur_candidate[0] || cur_candidate[1]) {
         if (*cur_candidate == NULL) {
             /* If we're after just one candidate and we have found some, then
              * we've hit the end of a tied group now, so stop looking if we are
@@ -502,8 +502,8 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *proto,
      * dispatch. Note that we could also store the current candidate set and
      * re-enter the dispatch algorithm below, making it cheaper to get to that
      * point. */
-    if (possibles_count == 1 && cache != NULL)
-        Parrot_mmd_cache_store_by_values(interp, cache, NULL, args, possibles[0]->sub);
+    if (possibles_count == 1 && cache)
+        Parrot_mmd_cache_store_by_values(interp, cache, "", args, possibles[0]->sub);
 
     /* If we have multiple candidates left, tie-break on any constraints. */
     if (possibles_count > 1) {
@@ -740,7 +740,7 @@ Frees the memory associated with this PMC's underlying storage.
         GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
         if (candidates) {
             candidate_info **cur_candidate = candidates;
-            while (cur_candidate[0] != NULL || cur_candidate[1] != NULL) {
+            while (cur_candidate[0] || cur_candidate[1]) {
                 if (*cur_candidate)
                     mem_sys_free(*cur_candidate);
                 cur_candidate++;
@@ -793,7 +793,7 @@ the Perl 6 MMD algorithm.
 
         /* See if we have a cache entry. */
         GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
-        found = Parrot_mmd_cache_lookup_by_values(interp, cache, NULL, args);
+        found = Parrot_mmd_cache_lookup_by_values(interp, cache, "", args);
         if (PMC_IS_NULL(found)) {
             PMC *proto;
 

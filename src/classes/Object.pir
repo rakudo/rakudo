@@ -124,6 +124,17 @@ Return invocant in item context.  Default is to return self.
 .end
 
 
+=item iterator
+
+=cut
+
+.namespace ['Perl6Object']
+.sub 'iterator' :method
+    $P0 = self.'list'()
+    .tailcall $P0.'iterator'()
+.end
+
+
 =item list
 
 Return invocant in list context.  Default is to return a List containing self.

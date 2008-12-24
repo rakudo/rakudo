@@ -118,11 +118,27 @@ the moment -- we'll do more complex handling a bit later.)
 
 =cut
 
+.sub 'last'
+    .local pmc e
+    e = new 'Exception'
+    e['severity'] = .EXCEPT_NORMAL
+    e['type'] = .CONTROL_LOOP_LAST
+    throw e
+.end
+
 .sub 'next'
     .local pmc e
     e = new 'Exception'
     e['severity'] = .EXCEPT_NORMAL
     e['type'] = .CONTROL_LOOP_NEXT
+    throw e
+.end
+
+.sub 'redo'
+    .local pmc e
+    e = new 'Exception'
+    e['severity'] = .EXCEPT_NORMAL
+    e['type'] = .CONTROL_LOOP_REDO
     throw e
 .end
 

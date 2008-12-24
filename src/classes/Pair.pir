@@ -140,10 +140,8 @@ Returns a Perl code representation of the pair.
 
     # build result
     .local string result
-    result = concat '(', $S0
-    result .= ' => '
+    result = concat $S0, ' => '
     result .= $S1
-    result .= ')'
     .return (result)
 .end
 

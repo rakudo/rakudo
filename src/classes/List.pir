@@ -234,6 +234,21 @@ Returns a Perl representation of a List.
 .end
 
 
+.namespace ['List']
+.sub 'reverse' :method
+    .local pmc result, it
+    result = new 'List'
+    it = self.'iterator'()
+  loop:
+    unless it goto done
+    $P0 = shift it
+    unshift result, $P0
+    goto loop
+  done:
+    .return (result)
+.end
+
+
 =back
 
 =head2 Private methods

@@ -524,31 +524,6 @@ Return a List with the keys of the invocant.
     .return(retv)
 .end
 
-=item reverse()
-
-=cut
-
-.namespace ['Any']
-.sub 'reverse' :method :multi(_)
-    .local pmc result, it
-    result = new 'List'
-    $P0 = self.'list'()
-    it = $P0.'iterator'()
-  loop:
-    unless it goto done
-    $P0 = shift it
-    unshift result, $P0
-    goto loop
-  done:
-    .return (result)
-.end
-
-.namespace []
-.sub 'reverse' :multi()
-    .param pmc values          :slurpy
-    .tailcall values.'reverse'()
-.end
-
 
 =item sort()
 

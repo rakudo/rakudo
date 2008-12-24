@@ -18,7 +18,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     p6meta.'add_role'($P0, 'to'=>mappingproto)
     p6meta.'register'('Hash', 'parent'=>mappingproto, 'protoobject'=>mappingproto)
     $P0 = get_hll_namespace ['Mapping']
-    '!EXPORT'('keys,kv,values,reverse', $P0)
+    '!EXPORT'('keys,kv,values', $P0)
 .end
 
 =head2 Methods
@@ -208,7 +208,8 @@ Return perl representation of the invocant.
 
 =cut
 
-.sub 'reverse' :method :multi('Hash')
+.namespace ['Mapping']
+.sub 'reverse' :method
     .local pmc it
     .local pmc rv
 

@@ -15,8 +15,6 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta.'add_role'($P0, 'to'=>listproto)
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 
-    $P0 = get_hll_namespace ['List']
-    '!EXPORT'('keys,kv,pairs,values', $P0)
 .end
 
 =head2 Methods
@@ -349,83 +347,6 @@ Returns an iterator for the list.
 .end
 
 
-=item keys()
-
-Returns a List containing the keys of the invocant.
-
-=cut
-
-.sub 'keys' :method :multi(ResizablePMCArray)
-    $I0 = self.'elems'()
-    dec $I0
-    $P0 = 'infix:..'(0, $I0)
-    .tailcall $P0.'list'()
-.end
-
-.sub 'keys' :multi()
-    .param pmc values          :slurpy
-    .tailcall values.'keys'()
-.end
-
-
-=item kv()
-
-Return items in invocant as 2-element (index, value) lists.
-
-=cut
-
-.sub 'kv' :method :multi(ResizablePMCArray)
-    .local pmc result, iter
-    .local int i
-
-    result = new 'List'
-    iter = self.'iterator'()
-    i = 0
-  iter_loop:
-    unless iter goto iter_end
-    $P0 = shift iter
-    push result, i
-    push result, $P0
-    inc i
-    goto iter_loop
-  iter_end:
-    .return (result)
-.end
-
-.sub 'kv' :multi()
-    .param pmc values          :slurpy
-    .tailcall values.'kv'()
-.end
-
-=item pairs()
-
-Return a list of Pair(index, value) elements for the invocant.
-
-=cut
-
-.sub 'pairs' :method :multi(ResizablePMCArray)
-    .local pmc result, iter
-    .local int i
-
-    result = new 'List'
-    iter = self.'iterator'()
-    i = 0
-  iter_loop:
-    unless iter goto iter_end
-    $P0 = shift iter
-    $P1 = 'infix:=>'(i, $P0)
-    push result, $P1
-    inc i
-    goto iter_loop
-  iter_end:
-    .return (result)
-.end
-
-.sub 'pairs' :multi()
-    .param pmc values          :slurpy
-    .tailcall values.'pairs'()
-.end
-
 =item uniq(...)
 
 =cut
@@ -478,25 +399,6 @@ Return a list of Pair(index, value) elements for the invocant.
     .param pmc values :slurpy
     values.'!flatten'()
     .tailcall values.'uniq'()
-.end
-
-
-.namespace ['List']
-
-=item values()
-
-Returns a List containing the values of the invocant.
-
-=cut
-
-.sub 'values' :method :multi('ResizablePMCArray')
-    self.'!flatten'()
-    .return (self)
-.end
-
-.sub 'values' :multi()
-    .param pmc values          :slurpy
-    .tailcall values.'!flatten'()
 .end
 
 

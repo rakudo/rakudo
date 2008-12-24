@@ -168,7 +168,7 @@ Return a List with the keys of the invocant.
 .namespace ['Any']
 .sub 'keys' :method
     $I0 = self.'elems'()
-    $P0 = 'infix:^'($I0)
+    $P0 = 'prefix:^'($I0)
     .tailcall $P0.'list'()
 .end
 

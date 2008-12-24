@@ -136,7 +136,9 @@ src/builtins/op.pir - Perl 6 builtin operators
 
 .sub 'prefix:~' :multi(_)
     .param string a
-    .return (a)
+    $P0 = new 'Str'
+    $P0 = a
+    .return ($P0)
 .end
 
 
@@ -307,7 +309,9 @@ src/builtins/op.pir - Perl 6 builtin operators
     .param string a
     .param string b
     $S0 = concat a, b
-    .return ($S0)
+    $P0 = new 'Str'
+    assign $P0, $S0
+    .return ($P0)
 .end
 
 

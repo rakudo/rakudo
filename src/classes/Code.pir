@@ -34,11 +34,6 @@ for executable objects.
     .param pmc topic
     .local pmc match
 
-    .local pmc pgesave
-    pgesave = get_hll_global ['PGE'], '$!MATCH'
-    $P0 = get_hll_global 'Match'
-    set_hll_global ['PGE'], '$!MATCH', $P0
-
     # If topic is an Array or Hash, need special treatment.
     $I0 = isa topic, 'Perl6Array'
     if $I0 goto is_array
@@ -58,7 +53,7 @@ for executable objects.
   it_loop:
     unless it goto it_loop_end
     $P0 = shift it
-    match = self($P0)
+    match = self.'!invoke'($P0)
     if match goto store_match
     goto it_loop
   it_loop_end:
@@ -67,7 +62,7 @@ for executable objects.
 
     # Otherwise, just match on the topic.
   is_match:
-    match = self(topic)
+    match = self.'!invoke'(topic)
 
   store_match:
     # Store match object in $/.
@@ -76,8 +71,6 @@ for executable objects.
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match
   not_regex:
-
-    set_hll_global ['PGE'], '$!MATCH', pgesave
     .return (match)
 .end
 
@@ -89,11 +82,7 @@ for executable objects.
     .param pmc topic
     .local pmc match
     .local pmc pgesave
-    pgesave = get_hll_global ['PGE'], '$!MATCH'
-    $P0 = get_hll_global 'Match'
-    set_hll_global ['PGE'], '$!MATCH', $P0
-    match = self(topic)
-    set_hll_global ['PGE'], '$!MATCH', pgesave
+    match = self.'!invoke'(topic)
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match
@@ -166,6 +155,28 @@ Returns a curried version of self.
     find_lex assumed_args, '@args'
     find_lex assumed_named_args, '%args'
     result = obj(assumed_args :flat, args :flat, assumed_named_args :flat :named, named_args :flat :named)
+    .return (result)
+.end
+
+=item !invoke
+
+Currently we don't have an easy way to distinguish Regex objects
+from other types of Code objects, and so we have to resort to some
+out-of-band mucking with PGE to get it to build Match objects.
+That's the purpose of this method -- to set and restore the
+type of match object that PGE regexes will create, without interfering
+with the behavior of "normal" subs.
+
+=cut
+
+.sub '!invoke' :method
+    .param pmc topic
+    .local pmc pgesave, result
+    pgesave = get_hll_global ['PGE'], '$!MATCH'
+    $P0 = get_hll_global 'Match'
+    set_hll_global ['PGE'], '$!MATCH', $P0
+    result = self(topic)
+    set_hll_global ['PGE'], '$!MATCH', pgesave
     .return (result)
 .end
 

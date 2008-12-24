@@ -183,7 +183,7 @@ Return a List with the keys of the invocant.
     values.'!flatten'()
     .tailcall values.'kv'()
 .end
-    
+
 .namespace ['Any']
 .sub 'kv' :method
     .local pmc result, it

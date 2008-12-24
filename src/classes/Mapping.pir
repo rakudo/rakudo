@@ -91,7 +91,7 @@ every pair, joined by newlines or an explicitly given separator.
       push rv, pair
     goto loop
 
-  end:	
+  end:
     .return (rv)
 .end
 
@@ -146,7 +146,7 @@ Returns elements of hash as array of C<Pair(key, value)>
     pair = shift it
     key = pair.'key'()
     val = pair.'value'()
-    
+
     push rv, key
     push rv, val
     goto loop
@@ -306,7 +306,7 @@ Stringification of a Mapping
     rv .= "\n"
     goto loop
 
-  end:	
+  end:
     .return (rv)
 .end
 

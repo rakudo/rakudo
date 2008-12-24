@@ -313,7 +313,7 @@ Like C<lc>, but only affects the first character.
 .sub 'match' :method :multi(_)
     .param pmc x
     .local pmc match
-    match = x(self, 'grammar'=>'Match')
+    match = x.'!invoke'(self)
     .return(match)
 .end
 
@@ -326,6 +326,7 @@ Like C<lc>, but only affects the first character.
     .param pmc values          :slurpy
     $I0 = elements values
     unless $I0 == 1 goto reverse_list
+    $P0 = values[0]
     .tailcall $P0.'reverse'()
   reverse_list:
     values.'!flatten'()
@@ -1028,9 +1029,9 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     nth_opt = get_hll_global ['Bool'], 'True'
 
   build_matches:
-    .local string result
-    result = self
-    result = clone result
+    .local string source, result
+    source = self
+    result = clone source
 
     if times == 0 goto subst_done
 
@@ -1040,7 +1041,7 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     n_cnt = 0
     x_cnt = 0
     matchlist = new 'ResizablePMCArray'
-    match = regex(result)
+    match = regex.'!invoke'(source)
     unless match goto matchlist_done
 
   matchlist_loop:
@@ -1082,8 +1083,7 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     replacestr = replacement
     goto have_replacestr
   replacement_sub:
-    $S0 = match
-    replacestr = replacement($S0)
+    replacestr = replacement(match)
   have_replacestr:
     # perform the replacement
     $I0 = match.'from'()

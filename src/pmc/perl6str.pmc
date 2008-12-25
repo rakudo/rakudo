@@ -157,16 +157,18 @@ digits.
                 sign = -1.0; s1++;
             }
 
-            if (tolower(s1[0]) == 'i' && tolower(s1[1]) == 'n'
-                    && tolower(s1[2]) == 'f') {
+            if (tolower((unsigned char)s1[0]) == 'i'
+                    && tolower((unsigned char)s1[1]) == 'n'
+                    && tolower((unsigned char)s1[2]) == 'f') {
                 s1 += 3;
                 while (s1 < end && isspace((unsigned char)*s1))
                     s1++;
                 return (s1 == end) ? sign * atof("inf") : 0.0;
             }
 
-            if (tolower(s1[0]) == 'n' && tolower(s1[1]) == 'a'
-                    && tolower(s1[2]) == 'n') {
+            if (tolower((unsigned char)s1[0]) == 'n'
+                    && tolower((unsigned char)s1[1]) == 'a'
+                    && tolower((unsigned char)s1[2]) == 'n') {
                 s1 += 3;
                 while (s1 < end && isspace((unsigned char)*s1))
                     s1++;

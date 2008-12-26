@@ -12,7 +12,7 @@ src/builtins/match.pir - Perl6 builtins for smart matching
 
 .namespace []
 
-.sub 'infix:~~'
+.sub 'infix:~~' :multi()
     .param pmc topic
     .param pmc x
     .tailcall x.'ACCEPTS'(topic)

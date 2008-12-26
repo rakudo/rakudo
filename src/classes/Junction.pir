@@ -349,6 +349,16 @@ Return the components of the Junction.
     .tailcall '!MAKE_JUNCTION'(JUNCTION_TYPE_NONE, args)
 .end
 
+=item infix:<~~>
+
+=cut
+
+.sub 'infix:~~' :multi('Junction', _)
+    .param pmc topic
+    .param pmc x
+    .tailcall '!DISPATCH_JUNCTION'('infix:~~', topic, x)
+.end
+
 
 =back
 

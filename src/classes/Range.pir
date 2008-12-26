@@ -202,6 +202,21 @@ Generate the next element at the end of the Range.
 .end
 
 
+=item reverse()
+
+Generate the range in reverse sequence.  (This is wrong for now--
+really what should happen is that we invert .from and .to and
+switch the :by argument.)
+
+=cut
+
+.namespace ['Range']
+.sub 'reverse' :method
+    $P0 = self.'list'()
+    .tailcall $P0.'reverse'()
+.end
+
+
 =item shift()   (vtable_method)
 
 Generate the next element at the front of the Range.

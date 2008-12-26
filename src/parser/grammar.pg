@@ -902,3 +902,10 @@ token desigilname {
 proto 'term:' is precedence('z=')
     is parsed(&expect_term)
     { ... }
+
+proto 'term:->' is equiv(term:)
+    is parsed(&pblock)
+    is skipkey(0)
+    { ... }
+
+proto 'close:<->' is equiv(term:) { ... }

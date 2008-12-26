@@ -150,7 +150,7 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:leg'
+.sub 'infix:leg' :multi(_,_)
     .param string a
     .param string b
     $I0 = cmp a, b

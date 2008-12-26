@@ -11,7 +11,7 @@ my @binary = qw(
   infix:+ infix:-
   infix:== infix:!= infix:<  infix:>  infix:<= infix:>=
   infix:eq infix:ne infix:lt infix:gt infix:le infix:ge
-  infix:<=> infix:leg infix:cmp infix:eqv infix:=== infix:=:=
+  infix:<=> infix:leg infix:cmp infix:eqv infix:=:=
 );
 
 my @unary = qw(

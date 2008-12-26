@@ -904,7 +904,7 @@ proto 'term:' is precedence('z=')
     { ... }
 
 proto 'term:->' is equiv(term:)
-    is parsed(&pblock)
+    is parsed(&expect_term)
     is skipkey(0)
     { ... }
 

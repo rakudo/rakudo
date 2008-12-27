@@ -155,9 +155,7 @@ token xblock { <EXPR> <.ws> <pblock> {*} }
 ##  closing brace is the last non-ws thing on the line.
 
 token block {
-    '{'
-    <statement_block>
-    [ '}' || <panic: Missing '}'> ]
+    '{' ~ '}' <statement_block>
     <.BLOCK_STATEMENT_END>?
     {*}
 }
@@ -425,13 +423,12 @@ token sigterm {
         $P0 = 1
         set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
     }}
-    <signature>
+    ~ ')' <signature>
     {{
         $P0 = new 'Integer'
         $P0 = 0
         set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
     }}
-    [ ')' || <.panic: "Missing right parenthesis in signature"> ]
     {*}
 }
 
@@ -659,13 +656,12 @@ token declarator {
           $P0 = 1
           set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
       }}
-      <signature>
+      ~ ')' <signature>
       {{
           $P0 = new 'Integer'
           $P0 = 0
           set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
       }}
-      [ ')' || <.panic: "Missing right parenthsesis after signature"> ]
     ]
     {*}
 }

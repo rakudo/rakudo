@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-src/builtins/inplace.pir - Inplace assignments
+src/builtins/assign.pir - assignments
 
 =head1 Functions
 

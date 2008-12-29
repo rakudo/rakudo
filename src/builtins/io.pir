@@ -64,13 +64,13 @@ Parses a format string and prints formatted output according to it.
     if w goto is_write
     if a goto is_append
 is_read:
-    mode = "<"
+    mode = "r"
     goto done_mode
 is_write:
-    mode = ">"
+    mode = "w"
     goto done_mode
 is_append:
-    mode = ">>"
+    mode = "wa"
     goto done_mode
 done_mode:
 

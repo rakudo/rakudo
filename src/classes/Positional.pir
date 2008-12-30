@@ -96,7 +96,7 @@ Returns a list element or slice.
     .local pmc args
     args = argsblock()
     args = 'list'(args)
-    .tailcall 'postcircumfix:[ ]'(invocant, args :flat, options :flat :named)
+    .tailcall 'postcircumfix:[ ]'(invocant, args, options :flat :named)
 .end
 
 =back

@@ -1560,8 +1560,11 @@ method methodop($/, $key) {
 method postcircumfix($/, $key) {
     my $past;
     if $key eq '[ ]' {
-        $past := PAST::Block.new( $( $<semilist> ), :blocktype('declaration') );
-        $past := PAST::Op.new( $past, :name('postcircumfix:[ ]'), :node($/) );
+        $past := PAST::Op.new( :name('postcircumfix:[ ]'), :node($/) );
+        if $<semilist><EXPR> {
+            my $slice := $( $<semilist> );
+            $past.push( PAST::Block.new( $slice, :blocktype('declaration') ) );
+        }
     }
     elsif $key eq '( )' {
         $past := build_call( $( $<semilist> ) );

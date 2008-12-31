@@ -312,19 +312,21 @@ on error.
     invokable = compiler.'compile'(code)
 
     res = invokable()
-    pop_eh
     exception = new 'Failure'
     goto done
 
   catch:
     .get_results (exception)
-    goto done
 
   done:
+    pop_eh
     # Propagate exception to caller
     $P0 = getinterp
     $P0 = $P0['lexpad';1]
     $P0['$!'] = exception
+    unless null res goto with_res
+    res = new ['Nil']
+  with_res: 
     .return (res)
 .end
 

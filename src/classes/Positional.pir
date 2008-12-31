@@ -37,32 +37,47 @@ Returns a list element or slice.
     args.'!flatten'()
     $I0 = args.'elems'()
     if $I0 != 1 goto slice
+    $P0 = args[0]
+    $I0 = isa $P0, ['Whatever']
+    if $I0 goto result_whatever
     $I0 = args[0]
     if $I0 >= 0 goto result_fetch
-    result = new 'Failure'
+    result = 'undef'()
     goto end
   result_fetch:
     result = self[$I0]
     unless null result goto end
-    result = new 'Failure'
+    result = 'undef'()
     self[$I0] = result
     goto end
+  result_whatever:
+    result = 'list'(self)
+    goto end
   slice:
-    result = new 'List'
+    result = new ['List']
   slice_loop:
     unless args goto slice_done
-    $I0 = shift args
-    if $I0 >= 0 goto slice_fetch
+    $P0 = shift args
+    $I0 = isa $P0, ['Whatever']
+    if $I0 goto slice_whatever
+    $I0 = $P0
+    if $I0 >= 0 goto slice_index
+  slice_negative:
     .local pmc elem
-    elem = new 'Failure'
+    elem = 'undef'()
     goto slice_elem
-  slice_fetch:
+  slice_index:
     elem = self[$I0]
     unless null elem goto slice_elem
-    elem = new 'Failure'
+    elem = 'undef'()
     self[$I0] = elem
   slice_elem:
     push result, elem
+    goto slice_loop
+  slice_whatever:
+    ##  add all of the elements to the result
+    $I0 = elements result
+    splice result, self, $I0, 0
     goto slice_loop
   slice_done:
   end:

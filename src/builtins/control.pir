@@ -326,7 +326,7 @@ on error.
     $P0['$!'] = exception
     unless null res goto with_res
     res = new ['Nil']
-  with_res: 
+  with_res:
     .return (res)
 .end
 

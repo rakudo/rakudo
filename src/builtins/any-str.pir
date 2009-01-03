@@ -587,9 +587,6 @@ B<Note:> partial implementation only
     .return(retval)
 .end
 
-# TODO: Note the multisub type here should be 'Str' or 'Str', but mapping
-# issues currently prevent this from working correctly unless 'String' is used
-
 .sub '!transtable' :multi('String')
     .param string str
     .local pmc retval, prior, frm, to, next_str

@@ -157,7 +157,7 @@ multi sub is_deeply($this, $that) {
 
 sub _is_deeply( $this, $that) {
 
-    if $this ~~ Array && $that ~~ Array {
+    if $this ~~ List && $that ~~ List {
         return if +$this.values != +$that.values;
         for $this Z $that -> $a, $b {
             return if ! _is_deeply( $a, $b );

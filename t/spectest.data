@@ -271,4 +271,5 @@ S29-str/sprintf.t
 S29-str/substr.t
 S29-str/ucfirst.t
 S29-str/uc.t
+S29-str/unpack.t
 S29-trig/trig.t

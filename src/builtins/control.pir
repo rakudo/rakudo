@@ -301,14 +301,24 @@ on error.
     $P0 = get_hll_global 'Str'
     '!TYPECHECKPARAM'($P0, code)
 
-    unless have_lang goto no_lang
-    'die'('Lanuage parameter to eval unimplemented.')
-  no_lang:
-
     .local pmc compiler, invokable
     .local pmc res, exception
+    unless have_lang goto no_lang
+    push_eh catch
+    $S0 = lang
+    $S0 = concat 'languages/', $S0
+    $S0 = concat $S0, '/'
+    $S1 = lang
+    $S0 = concat $S0, $S1
+    $S0 = concat $S0, '.pbc'
+    load_bytecode $S0
+    $S0 = lang
+    compiler = compreg $S0
+    goto got_lang
+  no_lang:
     push_eh catch
     compiler = compreg 'Perl6'
+  got_lang:
     invokable = compiler.'compile'(code)
 
     res = invokable()

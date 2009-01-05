@@ -8,9 +8,17 @@
 # S03-operators/binding-arrays.t - regressed to allow slices
 # S03-operators/binding-hashes.t - regressed to allow slices
 
+integration/99problems-01-to-10.t
+integration/99problems-11-to-20.t
+integration/99problems-21-to-30.t
+integration/99problems-31-to-40.t
+integration/99problems-41-to-50.t
+integration/99problems-51-to-60.t
+integration/99problems-61-to-70.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t
+integration/method-calls-and-instantiation.t
 integration/real-strings.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
@@ -28,6 +36,7 @@ S02-builtin_data_types/infinity.t
 S02-builtin_data_types/lists.t
 S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
+S02-builtin_data_types/nan.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/num.t
@@ -67,6 +76,7 @@ S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
+S03-operators/basic-types.t
 S03-operators/binding-closure.t
 S03-operators/binding-scalars.t
 S03-operators/bit.t
@@ -81,6 +91,7 @@ S03-operators/increment.t
 S03-operators/misc.t
 S03-operators/not.t
 S03-operators/numeric-context.t
+S03-operators/p5arrow.t
 S03-operators/precedence.t
 S03-operators/range.t
 S03-operators/reduce-le1arg.t
@@ -94,9 +105,11 @@ S03-operators/ternary.t
 S03-operators/true.t
 S03-operators/value_equivalence.t
 S04-blocks-and-statements/pointy-rw.t
+S04-blocks-and-statements/pointy.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
+S04-exceptions/fail.t
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t
 S04-statement-modifiers/if.t
@@ -122,9 +135,11 @@ S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
+S05-capture/named.t
 S05-grammar/namespace.t
 S05-grammar/ws.t
 S05-mass/rx.t
+S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
@@ -172,11 +187,13 @@ S10-packages/use-with-class.t
 S11-modules/export.t
 S12-attributes/class2.t
 S12-attributes/class.t
+S12-attributes/clone.t
 S12-attributes/delegation.t
 S12-attributes/instance.t
 S12-class/anonymous.t
 S12-class/attributes.t
 S12-class/basic.t
+S12-class/extending-arrays.t
 S12-class/inheritance-class-methods.t
 S12-class/inheritance.t
 S12-class/instantiate.t
@@ -232,11 +249,8 @@ S29-list/end.t
 S29-list/first.t
 S29-list/grep.t
 S29-list/join.t
-S29-list/map_empty_list.t
-S29-list/map_flattening.t
 S29-list/map_function_return_values.t
 S29-list/map.t
-S29-list/map_topic.t
 S29-list/minmax.t
 S29-list/mutating_listops.t
 S29-list/pick.t

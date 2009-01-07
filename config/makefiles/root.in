@@ -182,7 +182,7 @@ help:
 	@echo "  spectest:          Run the tests of the official test suite that are known to pass."
 	@echo "  spectest_full:     Run all tests of the official test suite"
 	@echo "  localtest:         Run the official tests given in t/localtest.data."
-	@echo "  fulltest:          Run coretest, spectest_regression, and codetest."
+	@echo "  fulltest:          Run coretest, spectest, and codetest."
 	@echo ""
 	@echo "Cleaning:"
 	@echo "  clean:             Basic cleaning up."
@@ -193,7 +193,7 @@ help:
 	@echo "  help:              Print this help message."
 	@echo ""
 
-test    : coretest 
+test    : coretest
 
 coretest: all
 	prove t/pmc

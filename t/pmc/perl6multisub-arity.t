@@ -33,13 +33,13 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
 
 .sub 'simple'
     $P0 = new "Perl6MultiSub"
-    $P1 = find_global 'simple_1'
+    $P1 = get_global 'simple_1'
     'attach_any_sig'($P1, 0)
     push $P0, $P1
-    $P1 = find_global 'simple_2'
+    $P1 = get_global 'simple_2'
     'attach_any_sig'($P1, 1)
     push $P0, $P1
-    $P1 = find_global 'simple_3'
+    $P1 = get_global 'simple_3'
     'attach_any_sig'($P1, 3)
     push $P0, $P1
 
@@ -74,10 +74,10 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
 
 .sub 'with_optional'
     $P0 = new "Perl6MultiSub"
-    $P1 = find_global 'with_optional_1'
+    $P1 = get_global 'with_optional_1'
     'attach_any_sig'($P1, 0)
     push $P0, $P1
-    $P1 = find_global 'with_optional_2'
+    $P1 = get_global 'with_optional_2'
     'attach_any_sig'($P1, 2)
     push $P0, $P1
 
@@ -100,7 +100,7 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
 
 .sub 'with_slurpy'
     $P0 = new "Perl6MultiSub"
-    $P1 = find_global 'with_slurpy_1'
+    $P1 = get_global 'with_slurpy_1'
     'attach_any_sig'($P1, 0)
     push $P0, $P1
     
@@ -119,10 +119,10 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
 
 .sub 'another_with_slurpy'
     $P0 = new "Perl6MultiSub"
-    $P1 = find_global 'another_with_slurpy_1'
+    $P1 = get_global 'another_with_slurpy_1'
     'attach_any_sig'($P1, 0)
     push $P0, $P1
-    $P1 = find_global 'another_with_slurpy_2'
+    $P1 = get_global 'another_with_slurpy_2'
     'attach_any_sig'($P1, 1)
     push $P0, $P1
     

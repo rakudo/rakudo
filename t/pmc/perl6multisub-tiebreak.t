@@ -30,12 +30,12 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
 
 .sub 'constraint_tiebreak'
     $P0 = new "Perl6MultiSub"
-    $P1 = find_global 'constraint_tiebreak_1'
+    $P1 = get_global 'constraint_tiebreak_1'
     $P2 = null
     'attach_sig'($P1, $P2)
     push $P0, $P1
-    $P1 = find_global 'constraint_tiebreak_2'
-    $P2 = find_global 'constraint_tiebreak_2_con'
+    $P1 = get_global 'constraint_tiebreak_2'
+    $P2 = get_global 'constraint_tiebreak_2_con'
     'attach_sig'($P1, $P2)
     push $P0, $P1
 

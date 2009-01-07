@@ -32,10 +32,10 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
 
 .sub 'basic_class'
     $P0 = new "Perl6MultiSub"
-    $P1 = find_global 'basic_class_1'
+    $P1 = get_global 'basic_class_1'
     'attach_sig'($P1, 'Int')
     push $P0, $P1
-    $P1 = find_global 'basic_class_2'
+    $P1 = get_global 'basic_class_2'
     'attach_sig'($P1, 'Junction')
     push $P0, $P1
 
@@ -65,10 +65,10 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
 
     # Set up multis.
     $P0 = new "Perl6MultiSub"
-    $P1 = find_global 'role_1'
+    $P1 = get_global 'role_1'
     'attach_sig'($P1, 'R1')
     push $P0, $P1
-    $P1 = find_global 'role_2'
+    $P1 = get_global 'role_2'
     'attach_sig'($P1, 'R2')
     push $P0, $P1
 
@@ -107,16 +107,16 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
     p6meta.'new_class'('Stone', 'parent'=>'Any')
 
     $P0 = new "Perl6MultiSub"
-    $P1 = find_global 'ordered_class_1'
+    $P1 = get_global 'ordered_class_1'
     'attach_sig'($P1, 'Any', 'Any')
     push $P0, $P1
-    $P1 = find_global 'ordered_class_2'
+    $P1 = get_global 'ordered_class_2'
     'attach_sig'($P1, 'Paper', 'Stone')
     push $P0, $P1
-    $P1 = find_global 'ordered_class_3'
+    $P1 = get_global 'ordered_class_3'
     'attach_sig'($P1, 'Stone', 'Scissors')
     push $P0, $P1
-    $P1 = find_global 'ordered_class_4'
+    $P1 = get_global 'ordered_class_4'
     'attach_sig'($P1, 'Scissors', 'Paper')
     push $P0, $P1
 

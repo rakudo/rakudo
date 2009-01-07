@@ -1183,7 +1183,7 @@ Takes a string and expands it out into a list of values.
     .param string packval
     .local pmc retv
     .local int len
-    
+
     retv = new 'List'
 
     len = length template
@@ -1225,7 +1225,7 @@ Takes a string and expands it out into a list of values.
     pos += 1
     if pos == len goto done
     goto next_directive
-    
+
   space:
     pos += 1
     if pos == len goto done

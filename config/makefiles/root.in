@@ -175,6 +175,8 @@ help:
 	@echo "  xmas:              Christmas is when Perl 6 is released. Alias of perl6$(EXE)."
 	@echo "  spectest_checkout  Performs svn checkout of official test suite."
 	@echo "  spectest_update    Performs svn update of official test suite."
+	@echo "  testable:          Create the perl6 executable, compile the Test library,"
+	@echo "                     and update official test suite."
 	@echo ""
 	@echo "Testing:"
 	@echo "  test:              Run coretest and codetest."
@@ -202,7 +204,10 @@ spectest_checkout :
 spectest_update :
 	-cd t/spec && svn up
 
+testable : all Test.pir spectest_checkout spectest_update
 
+
+# test targets
 test    : coretest
 
 coretest: all
@@ -220,12 +225,12 @@ testclean:
 HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code
 HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 
-spectest_full: all Test.pir spectest_checkout spectest_update
+spectest_full: testable
 	$(HARNESS_WITH_FUDGE_JOBS) t/spec
 
 # Run the spectests that we know work.
 spectest_regression: spectest
-spectest: all Test.pir spectest_checkout spectest_update t/spectest.data
+spectest: testable t/spectest.data
 	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data
 
 fulltest: coretest spectest codetest

@@ -15,10 +15,6 @@ src/classes/Abstraction.pir - Abstraction Role
     abstraction = '!keyword_role'('Abstraction')
 .end
 
-=back
-
-=cut
-
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

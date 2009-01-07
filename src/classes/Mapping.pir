@@ -310,6 +310,7 @@ Stringification of a Mapping
     .return (rv)
 .end
 
+=back
 
 =head2 Private methods
 

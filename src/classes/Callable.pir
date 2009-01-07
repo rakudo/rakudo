@@ -15,10 +15,6 @@ src/classes/Callable.pir - Callable Role
     callable = '!keyword_role'('Callable')
 .end
 
-=back
-
-=cut
-
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

@@ -244,6 +244,8 @@ Read all of the lines and return them as a List.
 
 =head2 Coercion methods
 
+=over 4
+
 =item Scalar
 
 Return the value inside this container in item context.

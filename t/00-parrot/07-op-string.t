@@ -30,10 +30,10 @@ $s eq 's' and say 'ok 13';
 
 $s = 'a';
 $s ~&= ' ';
-$s eq 'A' and say 'ok 14';
+$s eq ' ' and say 'ok 14';
 $s = 'abc';
 $s ~&= '    ';
-$s eq 'ABC' and say 'ok 15';
+$s eq '   ' and say 'ok 15';
 
 $s = 'ABC' ~| '   ';
 $s eq 'abc' and say 'ok 16';

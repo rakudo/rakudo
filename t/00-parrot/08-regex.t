@@ -19,7 +19,7 @@ $l   ~~ $r and say 'ok 4';
 '5'  ~~ $r and say 'ok 6';
 '25' ~~ $r or  say 'ok 7';
 
-my $r = / 5 /;
+$r = / 5 /;
 $l   ~~ $r and say 'ok 8';
 5    ~~ $r and say 'ok 9';
 '5'  ~~ $r and say 'ok 10';

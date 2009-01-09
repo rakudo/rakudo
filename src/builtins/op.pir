@@ -404,6 +404,7 @@ src/builtins/op.pir - Perl 6 builtin operators
     if $I0 goto one_role
     $I0 = isa role, 'List'
     if $I0 goto many_roles
+  error:
     'die'("'does' expects a role or a list of roles")
 
   one_role:
@@ -416,6 +417,8 @@ src/builtins/op.pir - Perl 6 builtin operators
   roles_loop:
     unless role_it goto roles_loop_end
     cur_role = shift role_it
+    $I0 = isa cur_role, 'Role'
+    unless $I0 goto error
     '!keyword_does'(derived, cur_role)
     goto roles_loop
   roles_loop_end:

@@ -75,6 +75,10 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     config = interp[.IGLOBALS_CONFIG_HASH]
     vm['config'] = config
     set_hll_global "%VM", vm
+
+    ## the default value for new ObjectRefs
+    $P0 = 'undef'()
+    set_hll_global '$!OBJECTREF', $P0
 .end
 
 

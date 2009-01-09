@@ -73,6 +73,19 @@ Return a clone of the protoobject with a new WHENCE property set.
 
 =back
 
+=head2  Coercions
+
+=over
+
+=item Scalar()
+
+=cut
+
+.namespace ['P6protoobject']
+.sub 'Scalar' :method
+    .return (self)
+.end
+
 =head2  Private methods
 
 =over

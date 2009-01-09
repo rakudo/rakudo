@@ -23,8 +23,10 @@ pmclass ObjectRef need_ext dynpmc group perl6_group {
     ATTR PMC *cached_type;
 
     VTABLE void init() {
-        /* Initialize with a null PMC for properties. */
-        STATICSELF.init_pmc(PMCNULL);
+        PMC * const hll_ns    = Parrot_get_ctx_HLL_namespace(INTERP);
+        STRING * const s_obj  = string_from_literal(INTERP, "!$OBJECTREF");
+        PMC * const objectpmc = Parrot_find_global_n(INTERP, hll_ns, s_obj);
+        STATICSELF.init_pmc(objectpmc);
     }
 
     VTABLE void init_pmc(PMC *value) {

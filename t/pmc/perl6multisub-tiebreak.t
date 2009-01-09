@@ -79,8 +79,8 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
     unless it goto param_loop_end
     con = shift it
     $P2 = new 'Perl6Hash'
-    $P2["type"] = any
-    $P2["constraints"] = con
+    $P2["nom_type"] = any
+    $P2["cons_type"] = con
     $P2["multi_invocant"] = true
     push $P1, $P2
     goto param_loop

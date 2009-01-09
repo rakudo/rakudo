@@ -161,7 +161,7 @@ Tests for arity based dispatch using the Perl 6 MultiSub PMC.
   param_loop:
     if $I0 == num_params goto param_loop_end
     $P2 = new 'Perl6Hash'
-    $P2["type"] = any
+    $P2["nom_type"] = any
     $P2["multi_invocant"] = true
     push $P1, $P2
     inc $I0

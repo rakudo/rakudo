@@ -69,6 +69,7 @@ BUILTINS_PIR = \
   src/classes/Block.pir \
   src/classes/Routine.pir \
   src/classes/Sub.pir \
+  src/classes/Regex.pir \
   src/classes/Method.pir \
   src/classes/Junction.pir \
   src/classes/Failure.pir \

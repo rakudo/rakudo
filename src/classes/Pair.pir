@@ -153,8 +153,12 @@ Returns a Perl code representation of the pair.
     .param pmc value
     key = key.'item'()
     value = value.'item'()
-    $P0 = get_hll_global 'Pair'
-    .tailcall $P0.'new'('key'=>key, 'value'=>value)
+    $P0 = new ['Perl6Pair']
+    $P1 = new ['ObjectRef']
+    'infix:='($P1, key)
+    setattribute $P0, '$!key', $P1
+    setattribute $P0, '$!value', value
+    .return ($P0)
 .end
 
 

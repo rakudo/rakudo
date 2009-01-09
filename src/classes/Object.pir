@@ -52,17 +52,23 @@ like this.
     result = clone self
 
     # Set any new attributes.
-    .local pmc it
-    it = iter new_attrs
-  it_loop:
-    unless it goto it_loop_end
-    $S0 = shift it
-    $P0 = new_attrs[$S0]
-    $S0 = concat '!', $S0
-    $P1 = result.$S0()
-    'infix:='($P1, $P0)
-    goto it_loop
-  it_loop_end:
+    .local pmc p6meta, parrotclass, attributes, it
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    parrotclass = p6meta.'get_parrotclass'(result)
+    attributes = inspect parrotclass, 'attributes'
+    it = iter attributes
+  attrinit_loop:
+    unless it goto attrinit_done
+    .local string attrname, shortname
+    attrname = shift it
+    shortname = substr attrname, 2
+    $I0 = exists new_attrs[shortname]
+    unless $I0 goto attrinit_loop
+    $P0 = getattribute result, attrname
+    $P1 = new_attrs[shortname]
+    'infix:='($P0, $P1)
+    goto attrinit_loop
+  attrinit_done:
 
     .return (result)
 .end
@@ -228,28 +234,13 @@ an object reference (unless the invocant already is one).
 =cut
 
 .namespace ['Perl6Object']
-.sub '' :method('Scalar') :anon
+.sub 'Scalar' :method
     $I0 = isa self, 'ObjectRef'
     unless $I0 goto not_ref
     .return (self)
   not_ref:
     $P0 = new 'ObjectRef', self
     .return ($P0)
-.end
-
-.namespace []
-.sub 'Scalar'
-    .param pmc source
-    $I0 = isa source, 'ObjectRef'
-    if $I0 goto done
-    $I0 = can source, 'Scalar'
-    if $I0 goto can_scalar
-    $I0 = does source, 'scalar'
-    source = new 'ObjectRef', source
-  done:
-    .return (source)
-  can_scalar:
-    .tailcall source.'Scalar'()
 .end
 
 =item Str()
@@ -272,9 +263,134 @@ the object's type and address.
 
 =back
 
-=head2 Special methods
+=head2 Object constructor methods
 
 =over 4
+
+=cut
+
+.namespace ['Perl6Object']
+.sub 'bless' :method
+    .param pmc posargs         :slurpy
+    .param pmc attrinit        :slurpy :named
+
+    .local pmc candidate
+    candidate = self.'CREATE'()
+    .tailcall self.'BUILDALL'(candidate, attrinit, posargs)
+.end
+
+
+.sub 'BUILD' :method
+    .param pmc candidate
+    .param pmc attrinit        :slurpy :named
+
+    .local pmc p6meta, parrotclass, attributes, it
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    parrotclass = p6meta.'get_parrotclass'(self)
+    attributes = inspect parrotclass, 'attributes'
+    it = iter attributes
+  attrinit_loop:
+    unless it goto attrinit_done
+    .local string attrname
+    .local pmc attrhash, itypeclass
+    attrname = shift it
+    attrhash = attributes[attrname]
+    itypeclass = attrhash['itype']
+    unless null itypeclass goto attrinit_itype
+    $S0 = substr attrname, 0, 1
+    if $S0 == '@' goto attrinit_array
+    if $S0 == '%' goto attrinit_hash
+    itypeclass = get_class ['ObjectRef']
+    goto attrinit_itype
+  attrinit_array:
+    itypeclass = get_class ['Perl6Array']
+    goto attrinit_itype
+  attrinit_hash:
+    itypeclass = get_class ['Perl6Hash']
+  attrinit_itype:
+    .local pmc attr
+    attr = new itypeclass
+    setattribute candidate, parrotclass, attrname, attr
+    $P0 = attrhash['type']
+    setprop attr, 'type', $P0
+    .local string keyname
+    $I0 = index attrname, '!'
+    if $I0 < 0 goto attrinit_loop
+    inc $I0
+    keyname = substr attrname, $I0
+    $P0 = attrinit[keyname]
+    unless null $P0 goto attrinit_assign
+    $P0 = attrhash['init_value']
+    if null $P0 goto attrinit_loop
+  attrinit_assign:
+    'infix:='(attr, $P0)
+    goto attrinit_loop
+  attrinit_done:
+    .return (candidate)
+.end
+
+
+.sub 'BUILDALL' :method
+    .param pmc candidate
+    .param pmc attrinit
+    .param pmc posargs
+
+    .include 'iterator.pasm'
+    .local pmc p6meta, parents, it
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    $P0 = p6meta.'get_parrotclass'(self)
+    parents = inspect $P0, 'all_parents'
+    it = iter parents
+    set it, .ITERATE_FROM_END
+  parents_loop:
+    # Loop through all of the parent classes, in reverse mro.
+    # For each parent class, call its BUILD method with the
+    # appropriate arguments.
+    unless it goto parents_done
+    $P0 = pop it
+    $I0 = isa $P0, 'PMCProxy'
+    if $I0 goto parents_loop
+    .local pmc parentproto
+    $P0 = getprop 'metaclass', $P0
+    parentproto = $P0.'WHAT'()
+    $I0 = can parentproto, 'BUILD'
+    unless $I0 goto parents_loop
+    # Look through posargs for a corresponding protoobject
+    # with a WHENCE property.  If found, that WHENCE property
+    # is used as the arguments to the parent class BUILD.
+    .local pmc pos_it, argproto
+    pos_it = iter posargs
+  posargs_loop:
+    unless pos_it goto posargs_done
+    argproto = shift pos_it
+    $P1 = $P0.'WHAT'()
+    ne_addr parentproto, $P1, posargs_loop
+    $P0 = argproto.'WHENCE'()
+    if null $P0 goto posargs_done
+    parentproto.'BUILD'(candidate, $P0 :flat :named)
+    goto parents_loop
+  posargs_done:
+    parentproto.'BUILD'(candidate, attrinit :flat :named)
+    goto parents_loop
+  parents_done:
+    .return (candidate)
+.end
+
+
+=item CREATE()
+
+Create a candidate object of the type given by the invocant.
+
+=cut
+
+.sub 'CREATE' :method
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    $P0 = p6meta.'get_parrotclass'(self)
+    $P1 = new $P0
+    .return ($P1)
+.end
+
 
 =item new()
 
@@ -282,173 +398,11 @@ Create a new object having the same class as the invocant.
 
 =cut
 
-.namespace ['Perl6Object']
 .sub 'new' :method
-    .param pmc init_parents :slurpy
-    .param pmc init_this    :named :slurpy
+    .param pmc posargs         :slurpy
+    .param pmc attrinit        :slurpy :named
 
-    # Instantiate.
-    .local pmc p6meta
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    $P0 = p6meta.'get_parrotclass'(self)
-    $P1 = new $P0
-
-    # If this proto object has a WHENCE auto-vivification, we should use
-    # put any values it contains but that init_this does not into init_this.
-    .local pmc whence
-    whence = self.'WHENCE'()
-    unless whence goto no_whence
-    .local pmc this_whence_iter
-    this_whence_iter = iter whence
-  this_whence_iter_loop:
-    unless this_whence_iter goto no_whence
-    $S0 = shift this_whence_iter
-    $I0 = exists init_this[$S0]
-    if $I0 goto this_whence_iter_loop
-    $P2 = whence[$S0]
-    init_this[$S0] = $P2
-    goto this_whence_iter_loop
-  no_whence:
-
-    # Now we will initialize each attribute in the class itself and it's
-    # parents with an Undef or the specified initialization value. Note that
-    # the all_parents list includes ourself.
-    .local pmc all_parents, class_iter
-    all_parents = inspect $P0, "all_parents"
-    class_iter = iter all_parents
-  class_iter_loop:
-    unless class_iter goto class_iter_loop_end
-    .local pmc cur_class
-    cur_class = shift class_iter
-
-    # If it's PMCProxy, then skip over it, since it's attribute is the delegate
-    # instance of a parent PMC class, which we should not change to Undef.
-    .local int is_pmc_proxy
-    is_pmc_proxy = isa cur_class, "PMCProxy"
-    if is_pmc_proxy goto class_iter_loop_end
-
-    # If this the current class?
-    .local pmc init_attribs
-    eq_addr cur_class, $P0, current_class
-
-    # If it's not the current class, need to see if we have any attributes.
-    # Go through the provided init_parents to see if we have anything that
-    # matches.
-    .local pmc ip_iter, cur_ip
-    ip_iter = iter init_parents
-  ip_iter_loop:
-    unless ip_iter goto ip_iter_loop_end
-    cur_ip = shift ip_iter
-
-    # We will check if their HOW matches.
-    $P2 = p6meta.'get_parrotclass'(cur_ip)
-    eq_addr cur_class, $P2, found_parent_init
-
-    goto found_init_attribs
-  ip_iter_loop_end:
-
-    # If we get here, found nothing.
-    init_attribs = new 'Hash'
-    goto parent_init_search_done
-
-    # We found some parent init data, potentially.
-  found_parent_init:
-    init_attribs = cur_ip.'WHENCE'()
-    $I0 = 'defined'(init_attribs)
-    if $I0 goto parent_init_search_done
-    init_attribs = new 'Hash'
-  parent_init_search_done:
-    goto found_init_attribs
-
-    # If it's the current class, we will take the init_this hash.
-  current_class:
-    init_attribs = init_this
-  found_init_attribs:
-
-    # Now go through attributes of the current class and iternate over them.
-    .local pmc attribs, it
-    attribs = inspect cur_class, "attributes"
-    it = iter attribs
-  iter_loop:
-    unless it goto iter_end
-    $S0 = shift it
-
-    # See if we have an init value; use Undef if not.
-    .local int got_init_value
-    $S1 = substr $S0, 2
-    got_init_value = exists init_attribs[$S1]
-    if got_init_value goto have_init_value
-    $P2 = new 'Undef'
-    goto init_done
-  have_init_value:
-    $P2 = init_attribs[$S1]
-    delete init_attribs[$S1]
-  init_done:
-
-    # Is it a scalar? If so, want a scalar container with the type set on it.
-    .local string sigil
-    sigil = substr $S0, 0, 1
-    if sigil != '$' goto no_scalar
-    .local pmc attr_info, type
-    attr_info = attribs[$S0]
-    if null attr_info goto set_attrib
-    type = attr_info['type']
-    if null type goto set_attrib
-    if got_init_value goto no_proto_init
-    $I0 = isa type, 'P6protoobject'
-    unless $I0 goto no_proto_init
-    set $P2, type
-  no_proto_init:
-    $P2 = new 'Perl6Scalar', $P2
-    setprop $P2, 'type', type
-    goto set_attrib
-  no_scalar:
-
-    # Is it an array? If so, initialize to Perl6Array.
-    if sigil != '@' goto no_array
-    $P3 = new 'Perl6Array'
-    $I0 = defined $P2
-    if $I0 goto have_array_value
-    set $P2, $P3
-    goto set_attrib
-  have_array_value:
-    'infix:='($P3, $P2)
-    set $P2, $P3
-    goto set_attrib
-  no_array:
-
-    # Is it a Hash? If so, initialize to Perl6Hash.
-    if sigil != '%' goto no_hash
-    $P3 = new 'Perl6Hash'
-    $I0 = defined $P2
-    if $I0 goto have_hash_value
-    set $P2, $P3
-    goto set_attrib
-  have_hash_value:
-    'infix:='($P3, $P2)
-    set $P2, $P3
-    goto set_attrib
-  no_hash:
-
-  set_attrib:
-    push_eh set_attrib_eh
-    setattribute $P1, cur_class, $S0, $P2
-  set_attrib_eh:
-    pop_eh
-    goto iter_loop
-  iter_end:
-
-    # Do we have anything left in the hash? If so, unknown.
-    $I0 = elements init_attribs
-    if $I0 == 0 goto init_attribs_ok
-    'die'("You passed an initialization parameter that does not have a matching attribute.")
-  init_attribs_ok:
-
-    # Next class.
-    goto class_iter_loop
-  class_iter_loop_end:
-
-    .return ($P1)
+    .tailcall self.'bless'(posargs :flat, attrinit :flat :named)
 .end
 
 =item 'PARROT'

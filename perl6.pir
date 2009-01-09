@@ -88,7 +88,7 @@ USAGE
     setattribute perl6, '$version', $P0
 
     ##  create a list for holding the stack of nested blocks
-    $P0 = new 'List'
+    $P0 = new ['List']
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0
 
     ## create a list for holding the stack of nested packages
@@ -96,23 +96,19 @@ USAGE
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?PACKAGE', $P0
 
-    ## create a list for holding the stack of nested modules
-    ## (that may be roles, classes or grammars).
+    ## create a list for holding the stack of nested package
+    ## declarators
     $P0 = new 'List'
-    set_hll_global ['Perl6';'Grammar';'Actions'], '@?MODULE', $P0
+    set_hll_global ['Perl6';'Grammar';'Actions'], '@?PKGDECL', $P0
 
-    ## create a list for holding the stack of nested classes
-    ## (that may be classes or grammars).
-    $P0 = new 'List'
-    set_hll_global ['Perl6';'Grammar';'Actions'], '@?CLASS', $P0
+    ## create a (shared) metaclass node
+    $P0 = get_hll_global ['PAST'], 'Var'
+    $P0 = $P0.'new'( 'name'=>'metaclass', 'scope'=>'register' )
+    set_hll_global ['Perl6';'Grammar';'Actions'], '$?METACLASS', $P0
 
-    ## create a list for holding the stack of nested roles
-    $P0 = new 'List'
-    set_hll_global ['Perl6';'Grammar';'Actions'], '@?ROLE', $P0
-
-    ## create a list for holding the stack of nested grammars
-    $P0 = new 'List'
-    set_hll_global ['Perl6';'Grammar';'Actions'], '@?GRAMMAR', $P0
+    ## create the $?CLASSMAP hash
+    $P0 = new ['Hash']
+    set_hll_global ['Perl6';'Grammar';'Actions'], '%?CLASSMAP', $P0
 
     ##  create a list of END blocks to be run
     $P0 = new 'List'

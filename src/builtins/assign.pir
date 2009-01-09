@@ -16,7 +16,7 @@ src/builtins/assign.pir - assignments
     .param pmc cont
     .param pmc source
 
-    source = 'Scalar'(source)
+    source = '!CALLMETHOD'('Scalar', source)
     .local pmc ro, type
     getprop ro, 'readonly', cont
     if null ro goto ro_ok
@@ -27,13 +27,21 @@ src/builtins/assign.pir - assignments
     unless $I0 goto do_assign
     getprop type, 'type', cont
     if null type goto do_assign
+    # XXX FIXME We should instead translate this to a proto.
+    $I0 = isa type, 'NameSpace'
+    if $I0 goto do_assign
     $I0 = type.'ACCEPTS'(source)
     if $I0 goto do_assign
     'die'("Type mismatch in assignment.")
   do_assign:
-    eq_addr cont, source, skip_copy
+    eq_addr cont, source, assign_done
     copy cont, source
-  skip_copy:
+    # We need to copy over any $!signature property on sub objects
+    $I0 = isa source, 'Sub'
+    unless $I0 goto assign_done
+    $P0 = getprop '$!signature', source
+    setprop cont, '$!signature', $P0
+  assign_done:
     .return (cont)
 .end
 
@@ -73,23 +81,41 @@ src/builtins/assign.pir - assignments
     .param pmc source
 
     ##  get the list of containers and sources
+    $P0 = new ['List']
+    splice $P0, list, 0, 0
+    list = $P0
     source = source.'list'()
     source.'!flatten'()
 
-    ##  first, temporarily mark each container with a property
-    ##  so we can clone it in source if needed
-    .local pmc it, true
-    it = iter list
+    ##  now, go through our list of containers, flattening
+    ##  any intermediate lists we find, and marking each
+    ##  container with a property so we can clone it in source
+    ##  if needed
+    .local pmc true
+    .local int i
     true = box 1
+    i = 0
   mark_loop:
-    unless it goto mark_done
-    $P0 = shift it
-    setprop $P0, 'target', true
+    $I0 = elements list
+    unless i < $I0 goto mark_done
+    .local pmc cont
+    cont = list[i]
+    $I0 = isa cont, ['ObjectRef']
+    if $I0 goto mark_next
+    $I0 = isa cont, ['Perl6Array']
+    if $I0 goto mark_next
+    $I0 = does cont, 'array'
+    unless $I0 goto mark_next
+    splice list, cont, $I0, 1
+    goto mark_loop
+  mark_next:
+    setprop cont, 'target', true
+    inc i
     goto mark_loop
   mark_done:
 
     ## now build our 'real' source list, cloning any targets we encounter
-    .local pmc slist
+    .local pmc slist, it
     slist = new 'List'
     it = iter source
   source_loop:

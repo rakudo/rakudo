@@ -34,5 +34,5 @@ $b = "0x0b";  "ok $b" eq 'ok 0x0b' and say 'ok 11';
 
 ##   nested 'our' declarations
 
-our $x = 'not ok 12';  { our $x = 'ok 12'; };  say $x;
+$x = 'not ok 12';  { our $x = 'ok 12'; };  say $x;
 

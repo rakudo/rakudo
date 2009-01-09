@@ -43,24 +43,24 @@ Again, this probably isn't definitive either, but it'll get us going.
 
 =over 4
 
-=item !create
+=item !add_param( $varname, *%attr )
 
-Used to create a new signature object with the given paramter descriptors. The
-constraints entry that we actually get passed in here contains both class, role
-and subset types; we separate them out in here. At some point in the future, we
-should be smart enough to do this at compile time.
+Add the attributes given by C<%attr> as the entry for C<$var> in
+the Signature.
 
 =cut
 
-.sub '!create' :method
-    .param pmc parameters :slurpy
+.sub '!add_param' :method
+    .param string varname
+    .param pmc attr            :slurpy :named
 
-    # Iterate over parameters.
-    .local pmc param_iter, cur_param
-    param_iter = iter parameters
-  param_loop:
-    unless param_iter goto param_loop_end
-    cur_param = shift param_iter
+    attr['name'] = varname
+
+    # If no multi_invocant value, set it to 1 (meaning it is one).
+    $I0 = exists attr['multi_invocant']
+    if $I0 goto have_mi
+    attr['multi_invocant'] = 1
+  have_mi:
 
     # Get constraints list, which may have class and role types as well as
     # subset types. If we have no unique role or class type, they all become
@@ -69,9 +69,10 @@ should be smart enough to do this at compile time.
     .local pmc cur_list, cur_list_iter, constraints, type, test_item
     constraints = 'list'()
     type = null
-    cur_list = cur_param["constraints"]
+    cur_list = attr["type"]
+    if null cur_list goto cur_list_loop_end
+    cur_list = cur_list.'!eigenstates'()
     cur_list_iter = iter cur_list
-
   cur_list_loop:
     unless cur_list_iter goto cur_list_loop_end
     test_item = shift cur_list_iter
@@ -99,7 +100,7 @@ should be smart enough to do this at compile time.
     unless null type goto have_type
     type = get_hll_global 'Any'
   have_type:
-    cur_param["type"] = type
+    attr["nom_type"] = type
     $I0 = elements constraints
     if $I0 == 0 goto no_constraints
     constraints = 'all'(constraints)
@@ -107,15 +108,42 @@ should be smart enough to do this at compile time.
   no_constraints:
     constraints = null
   set_constraints:
-    cur_param["constraints"] = constraints
+    attr["cons_type"] = constraints
 
-    goto param_loop
-  param_loop_end:
-
-    $P0 = self.'new'()
-    setattribute $P0, '@!params', parameters
-    .return ($P0)
+    # Add to parameters list.
+    .local pmc params
+    params = self.'params'()
+    push params, attr
 .end
+
+
+=item !add_implicit_self
+
+Ensures that if there is no explicit invocant, we add one.
+
+=cut
+
+.sub '!add_implicit_self' :method
+    .local pmc params
+    params = self.'params'()
+    $I0 = elements params
+    if $I0 == 0 goto add_implicit_self
+    $P0 = params[0]
+    $I0 = $P0['invocant']
+    if $I0 != 1 goto add_implicit_self
+    .return ()
+
+  add_implicit_self:
+    $P0 = new 'Hash'
+    $P0['name'] = 'self'
+    $P0['invocant'] = 1
+    $P0['multi_invocant'] = 1
+    # XXX Need to get type of class/role/grammar method is in.
+    $P1 = get_hll_global 'Object'
+    $P0['nom_type'] = $P1
+    unshift params, $P0
+.end
+
 
 =item params
 
@@ -125,6 +153,10 @@ Get the array of parameter describing hashes.
 
 .sub 'params' :method
     $P0 = getattribute self, "@!params"
+    unless null $P0 goto done
+    $P0 = 'list'()
+    setattribute self, "@!params", $P0
+  done:
     .return ($P0)
 .end
 
@@ -171,7 +203,7 @@ Gets a perl representation of the signature.
   separator_done:
 
     # First any nominal type.
-    $P0 = cur_param["type"]
+    $P0 = cur_param["nom_type"]
     if null $P0 goto any_type
     $P0 = $P0.'perl'()
     concat s, $P0
@@ -200,7 +232,7 @@ Gets a perl representation of the signature.
   optional_done:
 
     # Now any constraints.
-    $P0 = cur_param["constraints"]
+    $P0 = cur_param["cons_type"]
     if null $P0 goto constraints_done
     unless $P0 goto constraints_done
     concat s, " where "
@@ -223,9 +255,85 @@ Gets a perl representation of the signature.
     .return (s)
 .end
 
+=item !BIND_SIGNATURE
+
+Analyze the signature of the caller, (re)binding the caller's
+lexicals as needed and performing type checks.
+
+=cut
+
+.namespace []
+.sub '!SIGNATURE_BIND'
+    .local pmc callersub, callerlex, callersig
+    $P0 = getinterp
+    callersub = $P0['sub';1]
+    callerlex = $P0['lexpad';1]
+    getprop callersig, '$!signature', callersub
+    if null callersig goto end
+    .local pmc it
+    $P0 = callersig.'params'()
+    if null $P0 goto end
+    it = iter $P0
+  param_loop:
+    unless it goto param_done
+    .local pmc param
+    param = shift it
+    .local string name, sigil
+    name = param['name']
+    if name == 'self' goto param_loop
+    sigil = substr name, 0, 1
+    .local pmc type, orig, var
+    type = param['type']
+    orig = callerlex[name]
+    if sigil == '@' goto param_array
+    if sigil == '%' goto param_hash
+    var = '!CALLMETHOD'('Scalar', orig)
+    ##  typecheck the argument
+    if null type goto param_val_done
+    .lex '$/', $P99
+    $P0 = type.'ACCEPTS'(var)
+    unless $P0 goto err_param_type
+    goto param_val_done
+  param_array:
+    var = '!CALLMETHOD'('Array', orig)
+    goto param_val_done
+  param_hash:
+    var = '!CALLMETHOD'('Hash', orig)
+  param_val_done:
+    ## handle readonly/copy traits
+    $S0 = param['readtype']
+    if $S0 == 'rw' goto param_readtype_done
+    if $S0 == 'copy' goto param_readtype_copy
+    ne_addr orig, var, param_readtype_var
+    var = new 'ObjectRef', var
+  param_readtype_var:
+    $P0 = get_hll_global ['Bool'], 'True'
+    setprop var, 'readonly', $P0
+    goto param_readtype_done
+  param_readtype_copy:
+    var = clone var
+  param_readtype_done:
+    ## set any type properties
+    setprop var, 'type', type
+    ## place the updated variable back into lex
+    callerlex[name] = var
+    goto param_loop 
+  param_done:
+  end:
+    .return ()
+  err_param_type:
+    $S0 = callersub
+    if $S0 goto have_callersub_name
+    $S0 = '<anon>'
+  have_callersub_name:
+    'die'('Parameter type check failed in call to ', $S0)
+.end
+
+
 =back
 
 =cut
+
 
 # Local Variables:
 #   mode: pir

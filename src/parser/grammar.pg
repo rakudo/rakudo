@@ -355,46 +355,63 @@ rule statement_prefix {
 #### Subroutine and method definitions ####
 
 rule multi_declarator {
-    $<sym>=[multi|proto|only] 
-    [ <routine_declarator> {*}                   #= routine_declarator
-    | <routine_def> {*}                          #= routine_def
+    [
+    | $<sym>=[multi|proto|only] [ <declarator> || <routine_def> ]
+    | <declarator>
     ]
+    {*}
 }
 
 token routine_declarator {
-    | $<sym>='sub' <routine_def> {*}             #= sub
-    | $<sym>='method' <method_def> {*}           #= method
+    | $<sym>='sub'       <routine_def> {*}       #= sub
+    | $<sym>='method'    <method_def> {*}        #= method
     | $<sym>='submethod' <method_def> {*}        #= submethod
 }
 
+rule multisig {
+    ':'?'(' ~ ')' <signature>
+    {*}
+}
+
 rule routine_def {
-    <identifier>? <multisig>?
-    <trait>*
+    [ <deflongname=identifier> ]? [ <multisig> | <trait> ]*
     <block>
     {*}
 }
 
 rule method_def {
-    <identifier>? <multisig>?
-    <trait>*
+    [
+    | <longname=name> [ <multisig> | <trait> ]*
+    | <multisig> <trait>*
+    | ::
+    ]
     <block>
     {*}
 }
 
 rule trait {
+    [
     | <trait_auxiliary>
     | <trait_verb>
+    ]
+    {*}
 }
 
 rule trait_auxiliary {
+    [
     | $<sym>=[is] <name><postcircumfix>?
     | $<sym>=[does] <name>['['<EXPR>']']?
     | $<sym>=[will] <identifier> <block>
+    ]
+    {*}
 }
 
 rule trait_verb {
+    [
     | $<sym>=[of|returns] <typename>
     | $<sym>=[handles] <EXPR>
+    ]
+    {*}
 }
 
 token capterm {
@@ -407,29 +424,27 @@ rule capture {
     {*}
 }
 
-rule multisig {
-    '(' <signature> ')'
+token sigterm {
+    ':(' ~ ')' <signature> {*}
 }
+
+rule param_sep { (','|':'|';;'|';') }
 
 token signature {
-    ( <parameter> <.ws> ( ',' <.ws> | ':' <.ws> | ';;' <.ws> | <?before ')' | '{'> ) )* <.ws>
-    {*}
-}
-
-token sigterm {
-    ':(' 
-    {{
-        $P0 = new 'Integer'
-        $P0 = 1
-        set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
-    }}
-    ~ ')' <signature>
-    {{
-        $P0 = new 'Integer'
-        $P0 = 0
-        set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
-    }}
-    {*}
+    {*} #= open
+    <.ws>
+    [
+    | <parameter>
+    | <?before '-->' | ')' | ']' | '{' | ':'<!before ':' > >
+    ] ** 1 ## PGE bug
+    [ <param_sep>
+        [
+        | <parameter>
+        | <?before '-->' | ')' | ']' | '{' | ':'<!before ':' > >
+        ]
+    ]*
+    <.ws>
+    {*} #= close
 }
 
 rule type_declarator {
@@ -445,13 +460,19 @@ rule type_declarator {
 # commented out.
 rule type_constraint {
     [
-    | <typename>
-    | where <EXPR: 'm='> # XXX <EXPR(%chaining)>
+    | <fulltypename>
+    | where <EXPR: 'm='>               # XXX <EXPR(item %chaining)>
     ]
+    {*}
 }
 
 rule post_constraint {
-    where <EXPR: 'm='> # XXX <EXPR(%chaining)>
+    where <EXPR: 'm='> {*}             # XXX <EXPR(item %chaining)>
+}
+
+token param_var {
+    <sigil> <twigil>? <identifier>
+    {*}
 }
 
 token parameter {
@@ -472,17 +493,6 @@ rule default_value {
     '=' <EXPR: 'i='>
 }
 
-token param_var {
-    <sigil> <twigil>? <identifier>
-    {*}
-}
-
-
-#### Special variables ####
-
-token special_variable {
-    $<sym>=[ '$/' | '$!' | '$¢' ] <!before \w> {*}
-}
 
 #### Terms ####
 
@@ -545,15 +555,15 @@ token postcircumfix {
 # XXX Note that 'self' here should be a term.
 token noun {
     | <fatarrow> {*}                             #= fatarrow
+    | <variable> {*}                             #= variable
     | <package_declarator> {*}                   #= package_declarator
     | <scope_declarator> {*}                     #= scope_declarator
-    | <multi_declarator> {*}                     #= multi_declarator
     | <routine_declarator> {*}                   #= routine_declarator
+    | <?before multi|proto|only> <multi_declarator> {*}  #= multi_declarator
     | <regex_declarator> {*}                     #= regex_declarator
     | <type_declarator> {*}                      #= type_declarator
     | <enum_declarator> {*}                      #= enum_declarator
     | <circumfix> {*}                            #= circumfix
-    | <variable> {*}                             #= variable
     | <statement_prefix> {*}                     #= statement_prefix
     | <dotty> {*}                                #= dotty
     | <value> {*}                                #= value
@@ -597,44 +607,21 @@ token named_0ary {
 }
 
 rule package_declarator {
-    [
-    | $<sym>=[class|grammar|module|package] {*}  #= open
-      <package_def> {*}                          #= package_def
-    | $<sym>=[role] {*}                          #= open
-      <role_def> {*}                             #= role_def
-    ]
+    $<sym>=[class|grammar|module|package|role] {*}       #= open
+    <package_def> {*}                                    #= package_def
 }
 
 
 rule package_def {
-    <name>? <trait>* {*}                         #= open
-    <package_block> {*}                          #= close
-}
-
-
-rule role_def {
-    <name>['['<signature>']']? <trait>* {*}      #= open
-    <package_block> {*}                          #= close
-}
-
-
-rule package_block {
     [
-    || ';' <statement_block> {*}                 #= statement_block
-    || <block> {*}                               #= block
-    ]
-}
-
-
-token variable_declarator {
-    <variable>
+        <module_name=name>
+    ]? 
     <trait>*
-# XXX let EXPR handle this automatically until we can pass arguments
-#    <.ws>
-#    [ # XXX <EXPR(%item_assignment)>
-#    | $<op>=['='|'.='] <.ws> <EXPR>
-#    ]?
-    {*}
+    [
+    | ';' <statement_block> {*}                          #= statement_block
+    | <block> {*}                                        #= block
+    | {*}                                                #= panic
+    ]
 }
 
 
@@ -646,41 +633,63 @@ rule enum_declarator {
     ]
 }
 
-
-token declarator {
-    [
-    | <variable_declarator>
-    | '(' 
-      {{
-          $P0 = new 'Integer'
-          $P0 = 1
-          set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
-      }}
-      ~ ')' <signature>
-      {{
-          $P0 = new 'Integer'
-          $P0 = 0
-          set_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '$?SIG_BLOCK_NOT_NEEDED', $P0
-      }}
-    ]
-    {*}
-}
-
-
-rule scoped {
-    <fulltypename>*
-    [
-    | <declarator>
-    | <routine_declarator>
-    ]
-    {*}
-}
-
-
 rule scope_declarator {
     $<sym>=[my|our|state|constant|has]
     <scoped>
     {*}
+}
+
+rule scoped {
+    [
+    | <declarator>
+    | <routine_declarator>
+    | <fulltypename>+ <multi_declarator>
+    ]
+    {*}
+}
+
+token declarator {
+    [
+    | <variable_declarator>
+    | '(' ~ ')' <signature> <trait>*
+    | <routine_declarator>
+    | <regex_declarator>
+    | <type_declarator>
+    ]
+    {*}
+}
+
+token variable_declarator {
+    <variable>
+    <.ws>
+    <trait>*
+    <post_constraint>*
+    {*}
+}
+
+token variable {
+    <?sigil>
+    [
+    | <sigil> <twigil>? <desigilname> {*}                #= desigilname
+    | <special_variable> {*}                             #= special_variable
+    | <sigil> $<matchidx>=[\d+] {*}                      #= $0
+    | <sigil> <?before '<'> <postcircumfix> {*}          #= $<>
+    ]
+}
+
+token sigil { '$' | '@' | '%' | '&' | '@@' }
+
+token twigil { <[.!^:*+?=]> }
+
+token desigilname {
+    [
+    | <?before '$' > <variable>
+    | <longname=name>
+    ]
+}
+
+token special_variable {
+    $<sym>=[ '$/' | '$!' | '$¢' ] <!before \w> {*}
 }
 
 token circumfix {
@@ -689,17 +698,6 @@ token circumfix {
     | <?before '{' | <lambda> > <pblock> {*}     #= { }
     | <sigil> '(' <semilist> ')' {*}             #= $( )
 }
-
-token variable {
-    | <special_variable> {*}                     #= special_variable
-    | <sigil> <twigil>? <name> {*}               #= $var
-    | <sigil> $<matchidx>=[\d+] {*}              #= $0
-    | <sigil> <?before '<' > <postcircumfix> {*} #= $<>
-}
-
-token sigil { '$' | '@' | '%' | '&' | '@@' }
-
-token twigil { <[.!^:*+?=]> }
 
 token name {
     | <identifier> <morename>*
@@ -718,6 +716,18 @@ token value {
     | <quote> {*}                                #= quote
     | <number> {*}                               #= number
 }
+
+token typename {
+    <?before <.upper> | '::' > <name>
+    {*}
+}
+
+rule fulltypename {
+    <typename>
+#   [ of <fulltypename> ]?
+    {*}
+}
+
 
 ##  Quoting is tricky -- the <quote_concat> subrule is in
 ##  F<src/parser/quote_expression.pir> .
@@ -804,45 +814,22 @@ token rad_number {
     {*}
 }
 
-rule fulltypename {
-    <typename>
-#   [ of <fulltypename> ]?
-    {*}
-}
 
-token typename {
-    <?before <.upper> | '::' > <name>
-    {*}
-}
-
-# These regex rules are some way off STD.pm at the moment, but we'll work them
-# closer to it over time.
 rule regex_declarator {
-    | <regex_declarator_regex> {*}          #= regex_declarator_regex
-    | <regex_declarator_token> {*}          #= regex_declarator_token
-    | <regex_declarator_rule> {*}           #= regex_declarator_rule
-}
-
-rule regex_declarator_regex {
-    $<sym>='regex'
-    <identifier>?
-    <before '{'> <quote_expression: :regex><.BLOCK_STATEMENT_END>?
+    $<sym>=[regex|token|rule] <regex_def>
     {*}
 }
 
-rule regex_declarator_token {
-    $<sym>='token'
-    <identifier>?
-    <before '{'> <quote_expression: :regex :ratchet><.BLOCK_STATEMENT_END>?
+rule regex_def {
+    <deflongname=name>?  <regex_block> {*}
+}
+
+token regex_block {
+    <?before '{'> <quote_expression: :regex>
+    <.BLOCK_STATEMENT_END>?
     {*}
 }
 
-rule regex_declarator_rule {
-    $<sym>='rule'
-    <identifier>?
-    <before '{'> <quote_expression: :regex :ratchet :sigspace><.BLOCK_STATEMENT_END>?
-    {*}
-}
 
 ##  S05 shows semilist as being a list of statements, in order
 ##  to support multidimensional argument lists.  For now we
@@ -873,14 +860,6 @@ token colonpair {
     | <postcircumfix>                                    {*}    #= structural
     | <sigil> <twigil>? <desigilname>                    {*}    #= varname
     ]
-}
-
-token desigilname {
-    [
-    | <?before '$' > <variable>
-    | <name>
-    ]
-    {*}
 }
 
 #### expressions and operators ####

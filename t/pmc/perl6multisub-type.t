@@ -187,7 +187,7 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
     $S0 = $P3
     type = get_hll_global $S0
     $P2 = new 'Perl6Hash'
-    $P2["type"] = type
+    $P2["nom_type"] = type
     $P2["multi_invocant"] = true
     push $P1, $P2
     goto param_loop

@@ -329,9 +329,9 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
         for (j = 0; j < sig_elems; j++) {
             PMC *param       = VTABLE_get_pmc_keyed_int(interp, params, j);
             PMC *type        = VTABLE_get_pmc_keyed_str(interp, param,
-                    CONST_STRING(interp, "type"));
+                    CONST_STRING(interp, "nom_type"));
             PMC *constraints = VTABLE_get_pmc_keyed_str(interp, param,
-                    CONST_STRING(interp, "constraints"));
+                    CONST_STRING(interp, "cons_type"));
             PMC *multi_inv   = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "multi_invocant"));
             info->types[j] = type;

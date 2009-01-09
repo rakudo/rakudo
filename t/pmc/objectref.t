@@ -25,7 +25,7 @@ Tests the ObjectRef PMC.
     plan(4)
 
     init()
-    assign_val()
+    init_pmc()
     meth_call()
     multi_call()
 .end    
@@ -39,13 +39,12 @@ Tests the ObjectRef PMC.
 .end
 
 
-.sub assign_val
+.sub init_pmc
     # Assigning a value.
-    $P1 = new 'ObjectRef'
     $P2 = get_hll_global 'Int'
     $P2 = $P2.'new'()
     $P2 = 42
-    assign $P1, $P2
+    $P1 = new 'ObjectRef', $P2
 
     # Get integer value; see what we have stored.
     $I0 = $P1
@@ -55,9 +54,8 @@ Tests the ObjectRef PMC.
 
 .sub meth_call
     # Check we can call methods.
-    $P1 = new 'ObjectRef'
     $P2 = 'list'(1,2,3)
-    assign $P1, $P2
+    $P1 = new 'ObjectRef', $P2
     $I0 = $P1.'elems'()
     is($I0, 3, 'method calls on value work')
 .end
@@ -66,15 +64,13 @@ Tests the ObjectRef PMC.
 .sub multi_call
     # Try and do a multi-dispatch call with two items.
     .local pmc x, y
-    x = new 'ObjectRef'
-    y = new 'ObjectRef'
     $P2 = get_hll_global 'Int'
     $P3 = $P2.'new'()
     $P3 = 35
-    x = $P3
+    x = new 'ObjectRef', $P3
     $P4 = $P2.'new'()
     $P4 = 7
-    y = $P4
+    y = new 'ObjectRef', $P4
     $P5 = 'infix:+'(x, y)
     $I0 = $P5
     is($I0, 42, 'multi call worked')

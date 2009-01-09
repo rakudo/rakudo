@@ -146,6 +146,7 @@ S05-match/blocks.t
 S05-match/non-capturing.t
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
+S05-metachars/tilde.t
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
 S05-metasyntax/regex.t

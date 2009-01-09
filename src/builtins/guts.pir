@@ -853,29 +853,6 @@ Adds an attribute with the given name to the class or role.
 .end
 
 
-=item !PROTOINIT
-
-Called after a new proto-object has been made for a new class or grammar. It
-finds any WHENCE data that we may need to add.
-
-=cut
-
-.sub '!PROTOINIT'
-    .param pmc proto
-
-    # See if there's any attribute initializers.
-    .local pmc p6meta, WHENCE
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    $P0 = p6meta.'get_parrotclass'(proto)
-    WHENCE = getprop '%!WHENCE', $P0
-    if null WHENCE goto no_whence
-
-    setprop proto, '%!WHENCE', WHENCE
-  no_whence:
-    .return (proto)
-.end
-
-
 =item !anon_enum(value_list)
 
 Constructs a Mapping, based upon the values list.

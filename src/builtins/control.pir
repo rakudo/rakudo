@@ -299,7 +299,10 @@ on error.
     .param int have_lang       :opt_flag
 
     $P0 = get_hll_global 'Str'
-    '!TYPECHECKPARAM'($P0, code)
+    $I0 = $P0.'ACCEPTS'(code)
+    if $I0 goto type_ok
+    'die'("Parameter type check failed on call to 'eval'.")
+  type_ok:
 
     .local pmc compiler, invokable
     .local pmc res, exception

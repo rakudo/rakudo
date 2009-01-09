@@ -139,35 +139,6 @@ assignment.
 .end
 
 
-=item !TYPECHECKPARAM
-
-Checks the type of a parameter.
-
-=cut
-
-.sub '!TYPECHECKPARAM'
-    .param pmc type
-    .param pmc value
-    $P0 = getinterp
-    $P0 = $P0['lexpad';1]
-    if null $P0 goto no_match_to_copy
-    $P0 = $P0['$/']
-    .lex "$/", $P0
-  no_match_to_copy:
-
-    $I0 = type.'ACCEPTS'(value)
-    if $I0 goto ok
-    $P0 = getinterp
-    $P0 = $P0['sub' ; 1]
-    $S0 = $P0
-    if $S0 goto have_name
-    $S0 = '<anon>'
-  have_name:
-    'die'('Parameter type check failed in call to ', $S0)
-ok:
-.end
-
-
 =item !SAMETYPE_EXACT
 
 Takes two types and returns true if they match exactly (not accounting for any

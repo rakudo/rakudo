@@ -317,7 +317,7 @@ lexicals as needed and performing type checks.
     setprop var, 'type', type
     ## place the updated variable back into lex
     callerlex[name] = var
-    goto param_loop 
+    goto param_loop
   param_done:
   end:
     .return ()

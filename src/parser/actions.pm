@@ -1037,7 +1037,7 @@ method signature($/, $key) {
                     $sigparam.push(PAST::Val.new( :value(1), :named('invocant')));
                     $var.scope('lexical');
                     $var.isdecl(1);
-                    $var.viviself( 
+                    $var.viviself(
                         PAST::Var.new( :name('self'), :scope('register') )
                     )
                 }
@@ -1124,7 +1124,7 @@ method parameter($/) {
             my $type_past := $( $_ );
             if $type_past.isa(PAST::Var) && $type_past.scope() eq 'lexical' {
                 our @?BLOCK;
-                # Lexical type constraint.  
+                # Lexical type constraint.
                 if $type_past.isdecl() {
                     # If it's a declaration, we need to initialize it.
                     $type_past.viviself(
@@ -1137,7 +1137,7 @@ method parameter($/) {
                 }
                 else {
                     # we need to thunk it
-                    my $thunk := PAST::Op.new( 
+                    my $thunk := PAST::Op.new(
                         :name('ACCEPTS'), :pasttype('callmethod'),
                         $type_past,
                         PAST::Var.new( :name('$_'), :scope('parameter') )
@@ -1671,7 +1671,7 @@ method variable_declarator($/) {
         $var.isdecl(1);
         $var<type>  := PAST::Op.new( :name('and'), :pasttype('call') );
         $var<itype> := container_itype($<variable><sigil>);
-    
+
         if $<trait> {
             my $traitlist := PAST::Op.new( :name('infix:,'), :pasttype('call') );
             $var<traitlist> := $traitlist;
@@ -1795,8 +1795,8 @@ method variable($/, $key) {
         $var := $( $<special_variable> );
     }
     elsif $key eq '$0' {
-        $var := PAST::Var.new( 
-                    :scope('keyed_int'), 
+        $var := PAST::Var.new(
+                    :scope('keyed_int'),
                     :node($/),
                     :viviself('Failure'),
                     PAST::Var.new( :scope('lexical'), :name('$/') ),
@@ -1804,7 +1804,7 @@ method variable($/, $key) {
     }
     elsif $key eq '$<>' {
         $var := $( $<postcircumfix> );
-        $var.unshift( PAST::Var.new( :scope('lexical'), :name('$/'), 
+        $var.unshift( PAST::Var.new( :scope('lexical'), :name('$/'),
                                      :viviself('Failure'), :node($/) )
         );
     }
@@ -2254,11 +2254,11 @@ method EXPR($/, $key) {
 method regex_declarator($/) {
     my $sym  := ~$<sym>;
     my $past := $( $<regex_def> );
-    if $sym eq 'token'   
+    if $sym eq 'token'
         { $past.compiler_args( :grammar(''), :ratchet(1) ); }
-    elsif $sym eq 'rule' 
+    elsif $sym eq 'rule'
         { $past.compiler_args( :grammar(''), :s(1), :ratchet(1) ); }
-    else                
+    else
         { $past.compiler_args( :grammar('') ); }
     make $past;
 }
@@ -2268,10 +2268,10 @@ method regex_def($/) {
     $past.name( ~$<deflongname>[0] );
     make $past;
 }
-   
+
 method regex_block($/) {
     make $( $<quote_expression> );
-} 
+}
 
 
 method type_declarator($/) {

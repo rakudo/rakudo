@@ -398,7 +398,7 @@ of captures.
 
 =item !meta_create(type, name, also)
 
-Create a metaclass object for C<type> with the given C<name>.  
+Create a metaclass object for C<type> with the given C<name>.
 This simply creates a handle on which we can hang methods, attributes,
 traits, etc. -- the class itself isn't created until the class
 is composed (see C<!meta_compose> below).
@@ -448,7 +448,7 @@ is composed (see C<!meta_compose> below).
     $S0 = pop nsarray
     set_hll_global nsarray, $S0, metarole
     .return (metarole)
-.end 
+.end
 
 
 =item !meta_compose(Class metaclass)
@@ -514,7 +514,7 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
     if type == 'trait_auxiliary:is' goto is
     if type == 'trait_auxiliary:does' goto does
     'die'("Unknown trait auxiliary ", type)
-  
+
   is:
     ##  get the (parrot)class object associated with name
     $P0 = compreg 'Perl6'

@@ -41,6 +41,7 @@ SOURCES = perl6.pir \
   src/gen_metaop.pir \
   src/gen_junction.pir \
   src/parser/expression.pir \
+  src/parser/methods.pir \
   src/parser/quote_expression.pir \
   $(PERL6_GROUP) \
   src/ops/perl6_ops$(LOAD_EXT)

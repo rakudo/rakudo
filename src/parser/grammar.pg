@@ -450,6 +450,11 @@ token signature {
 rule type_declarator {
     'subset'
     <name>
+    {{
+        $P0 = match['name']
+        $S0 = $P0.'text'()
+        match.'add_type'($S0)
+    }}
     [ of <typename> ]? # XXX should be <fulltypename>
     where <EXPR>
     {*}
@@ -615,6 +620,12 @@ rule package_declarator {
 rule package_def {
     [
         <module_name=name>
+        {{
+            $P0 = match['module_name']
+            $P0 = $P0[0]
+            $S0 = $P0.'text'()
+            match.'add_type'($S0)
+        }}
     ]? 
     <trait>*
     [
@@ -626,7 +637,17 @@ rule package_def {
 
 
 rule enum_declarator {
-    'enum' <name>?
+    'enum'
+    [
+        <name> ::
+        {{
+            $P0 = match['name']
+            $P0 = $P0[0]
+            $S0 = $P0.'text'()
+            match.'add_type'($S0)
+        }}
+    ]?
+
     [
     | <?before '[' > <circumfix> {*}             #= circumfix
     | <?before '<' | '«' > <quote> {*}          #= quote
@@ -719,6 +740,11 @@ token value {
 
 token typename {
     <?before <.upper> | '::' > <name>
+    <?{{
+        $P0 = match['name']
+        $S0 = $P0.'text'()
+        $I0 = match.'is_type'($S0)
+    }}>
     {*}
 }
 

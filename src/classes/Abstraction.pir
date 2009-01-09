@@ -20,4 +20,3 @@ src/classes/Abstraction.pir - Abstraction Role
 #   fill-column: 100
 # End:
 # vim: expandtab shiftwidth=4 ft=pir:
-

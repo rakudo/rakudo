@@ -123,22 +123,6 @@ dereferencing it so we really do copy the underlying value.
 .end
 
 
-=item !DOTYPECHECK
-
-Checks that the value and the assignee are type-compatible and does the
-assignment.
-
-=cut
-
-.sub '!DOTYPECHECK'
-    .param pmc type
-    .param pmc value
-    .param pmc result
-    $I0 = type.'ACCEPTS'(value)
-    result = $I0
-.end
-
-
 =item !SAMETYPE_EXACT
 
 Takes two types and returns true if they match exactly (not accounting for any
@@ -732,41 +716,6 @@ Helper method to compose the attributes of a role into a class.
 .end
 
 
-=item !keyword_class(name)
-
-Internal helper method to create a class.
-
-=cut
-
-.sub '!keyword_class'
-    .param string name   :optional
-    .param int have_name :opt_flag
-    .local pmc class, resolve_list, methods, it
-
-    # Create class.
-    if have_name goto named
-    class = new 'Class'
-    goto created
-  named:
-    $P0 = split '::', name
-    class = newclass $P0
-  created:
-
-    # Set resolve list to include all methods of the class.
-    methods = inspect class, 'methods'
-    it = iter methods
-    resolve_list = new 'ResizableStringArray'
-  resolve_loop:
-    unless it goto resolve_loop_end
-    $P0 = shift it
-    push resolve_list, $P0
-    goto resolve_loop
-  resolve_loop_end:
-    class.'resolve_method'(resolve_list)
-
-    .return(class)
-.end
-
 =item !keyword_role(name)
 
 Internal helper method to create a role.
@@ -797,21 +746,6 @@ Internal helper method to create a role.
     .return(role)
 .end
 
-=item !keyword_grammar(name)
-
-Internal helper method to create a grammar.
-
-=cut
-
-.sub '!keyword_grammar'
-    .param string name
-    .local pmc grammar
-
-    $P0 = split "::", name
-    grammar = newclass $P0
-
-    .return(grammar)
-.end
 
 =item !keyword_enum(name)
 
@@ -834,6 +768,7 @@ Internal helper method to create an enum class.
 
     .return(class)
 .end
+
 
 =item !keyword_does(class, role)
 
@@ -898,6 +833,7 @@ Internal helper method to implement the functionality of the does keyword.
   ra_iter_loop_end:
 .end
 
+
 =item !keyword_has(class, attr_name, type)
 
 Adds an attribute with the given name to the class or role.
@@ -914,32 +850,6 @@ Adds an attribute with the given name to the class or role.
     .return ()
   with_type:
     class.'add_attribute'(attr_name, type)
-.end
-
-
-=item !ADD_TO_WHENCE
-
-Adds a key/value mapping to what will become the WHENCE on a proto-object (we
-don't have a proto-object to stick them on yet, so we put a property on the
-class temporarily, then attach it as the WHENCE clause later).
-
-=cut
-
-.sub '!ADD_TO_WHENCE'
-    .param pmc class
-    .param pmc attr_name
-    .param pmc value
-
-    # Get hash if we have it, if not make it.
-    .local pmc whence_hash
-    whence_hash = getprop '%!WHENCE', class
-    unless null whence_hash goto have_hash
-    whence_hash = new 'Perl6Hash'
-    setprop class, '%!WHENCE', whence_hash
-
-    # Make entry.
-  have_hash:
-    whence_hash[attr_name] = value
 .end
 
 

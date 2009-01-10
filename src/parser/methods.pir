@@ -19,19 +19,7 @@ Registers a type in the namespace.
 .namespace [ "Perl6";"Grammar" ]
 .sub "add_type" :method
     .param string name
-    
-    # Parse name.
-    .local pmc ns
-    $P0 = compreg 'Perl6'
-    ns = $P0.'parse_name'(name)
-    name = pop ns
-
-    # Create UnderConstructionProto and insert into the namespace.
-    .local pmc proto
-    $P0 = get_hll_global ['Perl6';'Compiler'], 'UnderConstructionProto'
-    proto = $P0.'new'('ns'=>ns, 'short_name'=>name)
-    # XXX Uncomment this to see breakage.
-    # set_hll_global ns, name, proto
+    # XXX TODO
 .end
 
 

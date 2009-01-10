@@ -211,6 +211,7 @@ Create an array.
 
 =cut
 
+.namespace ['Perl6Array']
 .sub 'Array' :method
     .return (self)
 .end

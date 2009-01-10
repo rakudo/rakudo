@@ -279,7 +279,7 @@ return an ObjectRef to it.
 .namespace ['Mapping']
 .sub 'Scalar' :method
     $P0 = self.'Hash'()
-    $P0 = new 'ObjectRef', $P0
+    $P0 = new 'Perl6Scalar', $P0
     .return ($P0)
 .end
 

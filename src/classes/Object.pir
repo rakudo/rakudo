@@ -235,11 +235,11 @@ an object reference (unless the invocant already is one).
 
 .namespace ['Perl6Object']
 .sub 'Scalar' :method
-    $I0 = isa self, 'ObjectRef'
+    $I0 = isa self, 'Perl6Scalar'
     unless $I0 goto not_ref
     .return (self)
   not_ref:
-    $P0 = new 'ObjectRef', self
+    $P0 = new 'Perl6Scalar', self
     .return ($P0)
 .end
 

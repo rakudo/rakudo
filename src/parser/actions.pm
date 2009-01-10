@@ -2524,9 +2524,9 @@ sub contextualizer_name($/, $sigil) {
 
 
 sub container_itype($sigil) {
-    if    $sigil eq '@' { return 'Perl6Array' }
-    elsif $sigil eq '%' { return 'Perl6Hash'  }
-    else                { return 'ObjectRef'  }
+    if    $sigil eq '@' { return 'Perl6Array'  }
+    elsif $sigil eq '%' { return 'Perl6Hash'   }
+    else                { return 'Perl6Scalar' }
 }
 
 

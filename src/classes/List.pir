@@ -153,13 +153,13 @@ A List in list context returns itself.
 
 =item Scalar
 
-A list in Scalar context becomes an Array ObjectRef.
+A list in Scalar context becomes a Scalar containing an Array.
 
 =cut
 
 .sub 'Scalar' :method
     $P0 = self.'Array'()
-    $P0 = new 'ObjectRef', $P0
+    $P0 = new 'Perl6Scalar', $P0
     .return ($P0)
 .end
 

@@ -1413,7 +1413,6 @@ method package_def($/, $key) {
     }
 
     my $block := $( $/{$key} );
-    $block.blocktype('declaration');
     $block.lexical(0);
 
     my $modulename := $<module_name>
@@ -1429,10 +1428,15 @@ method package_def($/, $key) {
 
     if $key eq 'block' {
         # A normal block acts like a BEGIN and is executed ASAP.
+        $block.blocktype('declaration');
         $block.pirflags(':load :init');
     }
-    elsif $key eq 'statement_block' && !$<module_name> {
-        $/.panic("Compilation unit cannot be anonymous");
+    elsif $key eq 'statement_block' {
+        # file-level blocks have their contents as the compunit mainline
+        if !$<module_name> {
+            $/.panic("Compilation unit cannot be anonymous");
+        }
+        $block.blocktype('immediate');
     }
 
     #  Create a node at the beginning of the block's initializer

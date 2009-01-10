@@ -45,6 +45,8 @@ Rules with only one action need no #= comment.
 grammar Perl6::Grammar is PCT::Grammar;
 
 token TOP {
+    {{ $P0 = get_hll_global ['Bool'], 'True'
+       set_global '$begin_compunit', $P0 }}
     <.MARK_STATEMENT_END>
     <statement_block>
     [ $ || <panic: Syntax error> ]
@@ -215,6 +217,7 @@ token MARK_STATEMENT_END {
 ##  or an expression.  Any statement termination is handled by
 ##  the calling rule.
 rule statement {
+    [
     | <statement_control> {*}                    #= control
     | <expr=EXPR>
         [
@@ -225,6 +228,9 @@ rule statement {
         || {*}                                   #= expr
         ]
     | <?before ';'> {*}                          #= null
+    ]
+    {{ $P0 = get_hll_global ['Bool'], 'False'
+       set_global '$begin_compunit', $P0 }}
 }
 
 rule statement_control {
@@ -629,7 +635,9 @@ rule package_def {
     ]? 
     <trait>*
     [
-    | ';' <statement_block> {*}                          #= statement_block
+    | <?{{ $P0 = get_global '$begin_compunit'
+           .return ($P0) }}>
+      ';' <statement_block> {*}                          #= statement_block
     | <block> {*}                                        #= block
     | {*}                                                #= panic
     ]

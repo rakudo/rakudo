@@ -416,11 +416,19 @@ Report the object's true nature.
     .local string result
     obj = self
     result = ''
+  deref_loop:
     $I0 = isa obj, 'ObjectRef'
-    unless $I0 goto have_obj
-    result = 'ObjectRef->'
+    unless $I0 goto deref_done
+    $I0 = isa obj, 'Perl6Scalar'
+    if $I0 goto deref_scalar
+    result .= 'ObjectRef->'
+    goto deref_next
+  deref_scalar:
+    result .= 'Perl6Scalar->'
+  deref_next:
     obj = deref obj
-  have_obj:
+    goto deref_loop
+  deref_done:
     $P0 = typeof obj
     $S0 = $P0
     result .= $S0

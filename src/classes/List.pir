@@ -278,10 +278,6 @@ layer.  It will likely change substantially when we have lazy lists.
   flat_loop_1:
     .local pmc elem
     elem = self[i]
-    $I0 = isa elem, 'Perl6Scalar'
-    unless $I0 goto no_deref
-    elem = deref elem
-  no_deref:
     $I0 = isa elem, 'ObjectRef'
     if $I0 goto flat_next
     $I0 = can elem, '!flatten'

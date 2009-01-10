@@ -2554,7 +2554,7 @@ sub make_accessor($/, $method_name, $attr_name, $rw, $scope) {
     else {
         $getset := PAST::Op.new(
             :inline(
-                '    %r = new "Perl6Scalar", %0',
+                '    %r = new "ObjectRef", %0',
                 '    $P0 = get_hll_global [ "Bool" ], "True"',
                 '    setprop %r, "readonly", $P0'
             ),

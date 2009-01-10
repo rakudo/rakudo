@@ -89,7 +89,7 @@ Create a Hash (hashref).
 .sub 'circumfix:{ }'
     .param pmc values :slurpy
     $P0 = values.'Hash'()
-    $P0 = new 'ObjectRef', $P0
+    $P0 = new 'Perl6Scalar', $P0
     .return ($P0)
 .end
 

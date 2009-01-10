@@ -62,9 +62,9 @@ Build a capture from its argument(s).
 .namespace []
 .sub "prefix:\\"
     .param pmc arg
-    $I0 = isa arg, 'ObjectRef'
+    $I0 = isa arg, 'Perl6Scalar'
     if $I0 goto have_ref
-    arg = new 'ObjectRef', arg
+    arg = new 'Perl6Scalar', arg
   have_ref:
     .return (arg)
 .end

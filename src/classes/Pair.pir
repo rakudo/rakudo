@@ -154,7 +154,7 @@ Returns a Perl code representation of the pair.
     key = key.'item'()
     value = value.'item'()
     $P0 = new ['Perl6Pair']
-    $P1 = new ['ObjectRef']
+    $P1 = new ['Perl6Scalar']
     'infix:='($P1, key)
     setattribute $P0, '$!key', $P1
     setattribute $P0, '$!value', value

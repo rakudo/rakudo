@@ -300,7 +300,7 @@ the object's type and address.
     $S0 = substr attrname, 0, 1
     if $S0 == '@' goto attrinit_array
     if $S0 == '%' goto attrinit_hash
-    itypeclass = get_class ['ObjectRef']
+    itypeclass = get_class ['Perl6Scalar']
     goto attrinit_itype
   attrinit_array:
     itypeclass = get_class ['Perl6Array']

@@ -105,24 +105,6 @@ Helper function for implementing the VAR and .VAR macros.
 .end
 
 
-=item !COPYPARAM
-
-Copies a param for the is copy trait, taking account of any ObjectRef and
-dereferencing it so we really do copy the underlying value.
-
-=cut
-
-.sub '!COPYPARAM'
-    .param pmc target
-    .param pmc source
-    $I0 = isa source, 'ObjectRef'
-    unless $I0 goto no_deref
-    source = deref source
-  no_deref:
-    .tailcall 'infix:='(target, source)
-.end
-
-
 =item !SAMETYPE_EXACT
 
 Takes two types and returns true if they match exactly (not accounting for any

@@ -333,7 +333,7 @@ src/builtins/assign.pir - assignments
     cur_a = 'list'(cur_a)
   recurse:
     $P0 = '!HYPEROP'(opname, cur_a, cur_b, dwim_lhs, dwim_rhs)
-    $P0 = new 'ObjectRef', $P0
+    $P0 = new 'Perl6Scalar', $P0
     push result, $P0
     goto loop
 

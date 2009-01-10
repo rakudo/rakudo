@@ -53,12 +53,7 @@ Sets $x to an undefined value
 
 .sub 'undefine'
     .param pmc x
-    $P0 = new 'Undef'
-    $I0 = isa x, 'ObjectRef'
-    unless $I0 goto copy
-    assign x, $P0
-    .return ()
-  copy:
+    $P0 = new ['Perl6Scalar']
     copy x, $P0
 .end
 

@@ -49,7 +49,7 @@ src/builtins/assign.pir - assignments
 .sub 'infix:=' :multi(['Perl6Array'], _)
     .param pmc cont
     .param pmc source
-    $I0 = isa cont, 'ObjectRef'
+    $I0 = isa cont, 'Perl6Scalar'
     unless $I0 goto cont_array
     # FIXME: use a :subid to directly lookup and call infix:=(_,_) above
     $P0 = get_hll_global 'Object'
@@ -57,6 +57,12 @@ src/builtins/assign.pir - assignments
     .tailcall 'infix:='(cont, source)
 
   cont_array:
+    .local pmc ro
+    getprop ro, 'readonly', cont
+    if null ro goto ro_ok
+    unless ro goto ro_ok
+    'die'('Cannot assign to readonly variable.')
+  ro_ok:
     .tailcall cont.'!STORE'(source)
 .end
 
@@ -64,7 +70,7 @@ src/builtins/assign.pir - assignments
 .sub 'infix:=' :multi(['Perl6Hash'], _)
     .param pmc cont
     .param pmc source
-    $I0 = isa cont, 'ObjectRef'
+    $I0 = isa cont, 'Perl6Scalar'
     unless $I0 goto cont_hash
     # FIXME: use a :subid to directly lookup and call infix:=(_,_) above
     $P0 = get_hll_global 'Object'
@@ -72,6 +78,12 @@ src/builtins/assign.pir - assignments
     .tailcall 'infix:='(cont, source)
 
   cont_hash:
+    .local pmc ro
+    getprop ro, 'readonly', cont
+    if null ro goto ro_ok
+    unless ro goto ro_ok
+    'die'('Cannot assign to readonly variable.')
+  ro_ok:
     .tailcall cont.'!STORE'(source)
 .end
 
@@ -100,7 +112,7 @@ src/builtins/assign.pir - assignments
     unless i < $I0 goto mark_done
     .local pmc cont
     cont = list[i]
-    $I0 = isa cont, ['ObjectRef']
+    $I0 = isa cont, ['Perl6Scalar']
     if $I0 goto mark_next
     $I0 = isa cont, ['Perl6Array']
     if $I0 goto mark_next
@@ -138,7 +150,7 @@ src/builtins/assign.pir - assignments
     .local pmc cont
     cont = shift it
     setprop cont, 'target', pmcnull
-    $I0 = isa cont, 'ObjectRef'
+    $I0 = isa cont, 'Perl6Scalar'
     if $I0 goto assign_scalar
     $I0 = isa cont, 'Perl6Array'
     if $I0 goto assign_array

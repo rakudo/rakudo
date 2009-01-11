@@ -35,7 +35,7 @@ Tests the ObjectRef PMC.
     # ObjectRef is initialized to contain an undef.
     $P1 = new "ObjectRef"
     $S1 = typeof $P1
-    is($S1, 'Undef', 'typeof newclass retval')
+    is($S1, 'Failure', 'typeof newclass retval')
 .end
 
 

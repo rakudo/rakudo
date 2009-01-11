@@ -295,9 +295,19 @@ lexicals as needed and performing type checks.
     unless $P0 goto err_param_type
     goto param_val_done
   param_array:
+    $I0 = does orig, 'Positional'
+    if $I0 goto param_array_1
+    $I0 = does orig, 'array'
+    unless $I0 goto err_array
+  param_array_1:
     var = '!CALLMETHOD'('Array', orig)
     goto param_val_done
   param_hash:
+    $I0 = does orig, 'Associative'
+    if $I0 goto param_hash_1
+    $I0 = does orig, 'hash'
+    unless $I0 goto err_hash
+  param_hash_1:
     var = '!CALLMETHOD'('Hash', orig)
   param_val_done:
     ## handle readonly/copy traits
@@ -321,12 +331,23 @@ lexicals as needed and performing type checks.
   param_done:
   end:
     .return ()
+
   err_param_type:
-    $S0 = callersub
-    if $S0 goto have_callersub_name
-    $S0 = '<anon>'
-  have_callersub_name:
-    'die'('Parameter type check failed in call to ', $S0)
+    .local string errmsg
+    errmsg = 'Parameter type check failed'
+    goto err_throw
+  err_array:
+    errmsg = 'Non-Positional argument'
+    goto err_throw
+  err_hash:
+    errmsg = 'Non-Associative argument'
+  err_throw:
+    .local string callername
+    callername = callersub
+    if callername goto have_callername
+    callername = '<anon>'
+  have_callername:
+    'die'(errmsg, ' for ', name, ' in call to ', callername)
 .end
 
 

@@ -1098,11 +1098,11 @@ method parameter($/) {
     elsif $<named> eq ':' {          # named
         $var.named(~$<param_var><identifier>);
         if $quant ne '!' {      #  required (optional is default)
-            $var.viviself('Nil');
+            $var.viviself(container_itype($sigil));
         }
     }
     elsif $quant eq '?' {           # positional optional
-        $var.viviself('Nil');
+        $var.viviself(container_itype($sigil));
     }
 
     ##  handle any default value

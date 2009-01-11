@@ -639,7 +639,7 @@ Return values of the list
 
 .namespace ['Any']
 .sub 'values' :method
-    self.'!flatten'()
+    self.'list'()
     .return (self)
 .end
 

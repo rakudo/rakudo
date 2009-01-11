@@ -71,7 +71,7 @@ from C<Any>.
 .sub '!CALLMETHOD'
     .param string method
     .param pmc obj
-    $I0 = isa obj, 'ObjectRef'
+    $I0 = isa obj, 'Perl6Scalar'
     if $I0 goto any_method
     $I0 = can obj, method
     unless $I0 goto any_method

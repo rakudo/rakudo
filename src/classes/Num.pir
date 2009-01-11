@@ -51,7 +51,13 @@ Num - Perl 6 numbers
 
 .sub 'ACCEPTS' :method
     .param num topic
+    $S0 = self
+    if $S0 == 'nan' goto test_nan
     .tailcall 'infix:=='(topic, self)
+  test_nan:
+    $S0 = topic
+    $I0 = iseq $S0, 'nan'
+    .tailcall 'prefix:?'($I0)
 .end
 
 

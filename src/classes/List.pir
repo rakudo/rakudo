@@ -223,8 +223,13 @@ Returns a Perl representation of a List.
     unless iter goto iter_done
   iter_loop:
     $P1 = shift iter
+    if null $P1 goto iter_null
     $S1 = $P1.'perl'()
     result .= $S1
+    goto iter_next
+  iter_null:
+    result .= 'undef'
+  iter_next:
     unless iter goto iter_done
     result .= ', '
     goto iter_loop

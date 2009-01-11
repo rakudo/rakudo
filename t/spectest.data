@@ -203,6 +203,7 @@ S12-class/is_also_instead.t
 S12-class/namespaced.t
 S12-class/open.t
 S12-class/parent_attributes.t
+S12-construction/new.t
 S12-enums/anonymous.t
 S12-enums/as-role.t
 S12-enums/basic.t

@@ -300,7 +300,8 @@ lexicals as needed and performing type checks.
     $I0 = does orig, 'array'
     unless $I0 goto err_array
   param_array_1:
-    var = '!CALLMETHOD'('Array', orig)
+    var = '!DEREF'(orig)
+    var = '!CALLMETHOD'('Array', var)
     goto param_val_done
   param_hash:
     $I0 = does orig, 'Associative'
@@ -308,7 +309,8 @@ lexicals as needed and performing type checks.
     $I0 = does orig, 'hash'
     unless $I0 goto err_hash
   param_hash_1:
-    var = '!CALLMETHOD'('Hash', orig)
+    var = '!DEREF'(orig)
+    var = '!CALLMETHOD'('Hash', var)
   param_val_done:
     ## handle readonly/copy traits
     $S0 = param['readtype']

@@ -105,6 +105,24 @@ Helper function for implementing the VAR and .VAR macros.
 .end
 
 
+=item !DEREF
+
+Helper function to dereference any chains
+
+=cut
+
+.sub '!DEREF'
+    .param pmc x
+  loop:
+    $I0 = isa x, ['ObjectRef']
+    unless $I0 goto done
+    x = deref x
+    goto loop
+  done:
+    .return (x)
+.end
+
+
 =item !SAMETYPE_EXACT
 
 Takes two types and returns true if they match exactly (not accounting for any

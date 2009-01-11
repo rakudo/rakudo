@@ -32,12 +32,18 @@ This file implements the Whatever class.
 
 .sub '' :vtable('get_integer') :method
     $P0 = get_global '$!slice'
+    unless null $P0 goto have_whatever
+    $P0 = 'undef'()
+  have_whatever:
     $I0 = $P0
     .return ($I0)
 .end
 
 .sub '' :vtable('get_number') :method
     $P0 = get_global '$!slice'
+    unless null $P0 goto have_whatever
+    $P0 = 'undef'()
+  have_whatever:
     $N0 = $P0
     .return ($N0)
 .end

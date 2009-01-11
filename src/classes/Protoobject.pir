@@ -94,6 +94,7 @@ Return a clone of the protoobject with a new WHENCE property set.
 
 =cut
 
+.namespace ['P6protoobject']
 .sub '!flatten' :method
     $P0 = new 'ResizablePMCArray'
     push $P0, self
@@ -108,18 +109,48 @@ Indicate that objects in the class are mutable or immutable.
 
 =cut
 
+.namespace ['P6protoobject']
 .sub '!IMMUTABLE' :method
     $P0 = get_hll_global ['Int'], 'Scalar'
     $P1 = self.'HOW'()
     $P1.'add_method'('Scalar', $P0, 'to'=>self)
 .end
 
+.namespace ['P6protoobject']
 .sub '!MUTABLE' :method
     $P0 = get_hll_global ['Perl6Object'], 'Scalar'
     $P1 = self.'HOW'()
     $P1.'add_method'('Scalar', $P0, 'to'=>self)
 .end
 
+=back
+
+=head2 Vtable functions
+
+=over
+
+=cut
+
+.namespace ['P6protoobject']
+.sub '' :vtable('get_bool') :method
+    $P0 = '!FAIL'('Use of protoobject as value')
+    $I0 = istrue $P0
+    .return ($I0)
+.end
+
+.namespace ['P6protoobject']
+.sub '' :vtable('get_integer') :method
+    $P0 = '!FAIL'('Use of protoobject as value')
+    $I0 = $P0
+    .return ($I0)
+.end
+
+.namespace ['P6protoobject']
+.sub '' :vtable('get_number') :method
+    $P0 = '!FAIL'('Use of protoobject as value')
+    $N0 = $P0
+    .return ($N0)
+.end
 
 =back
 

@@ -14,7 +14,8 @@ This file implements the IO file handle class.
 .sub '' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('IO', 'parent'=>'Any', 'attr'=>'$!PIO')
+    $P0 = p6meta.'new_class'('IO', 'parent'=>'Any', 'attr'=>'$!PIO')
+    $P0.'!MUTABLE'()
     p6meta.'new_class'('IOIterator', 'parent'=>'Perl6Object', 'attr'=>'$!IO')
 
     $P0 = get_hll_namespace ['IO']
@@ -33,9 +34,9 @@ Closes the file.
 
 .namespace ['IO']
 .sub 'close' :method
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
-    close PIO
+    .local pmc pio
+    pio = getattribute self, "$!PIO"
+    close pio
     .return(1)
 .end
 
@@ -70,13 +71,14 @@ See also slurp.
 
 .namespace ['IO']
 .sub 'lines' :method :multi('IO')
-    .local pmc PIO, res, chomper
-    PIO = getattribute self, "$!PIO"
+    .local pmc pio, res, chomper
+    pio = getattribute self, "$!PIO"
+    pio = '!DEREF'(pio)
     res = new 'List'
     chomper = get_hll_global 'chomp'
 
   loop:
-    $S0 = PIO.'readline'()
+    $S0 = pio.'readline'()
     unless $S0 goto done
     $S0 = chomper($S0)
     res.'push'($S0)
@@ -97,14 +99,14 @@ Writes the given list of items to the file.
 .sub 'print' :method
     .param pmc args            :slurpy
     .local pmc it
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
+    .local pmc pio
+    pio = getattribute self, "$!PIO"
     args = 'list'(args)
     it = iter args
   iter_loop:
     unless it goto iter_end
     $S0 = shift it
-    print PIO, $S0
+    print pio, $S0
     goto iter_loop
   iter_end:
     .return (1)
@@ -119,10 +121,10 @@ Parses a format string and prints formatted output according to it.
 
 .sub 'printf' :method
     .param pmc args            :slurpy
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
+    .local pmc pio
+    pio = getattribute self, "$!PIO"
     $S0 = 'sprintf'(args :flat)
-    print PIO, $S0
+    print pio, $S0
     .return (1)
 .end
 
@@ -148,10 +150,10 @@ Writes the given list of items to the file, then a newline character.
 
 .sub 'say' :method
     .param pmc list            :slurpy
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
+    .local pmc pio
+    pio = getattribute self, "$!PIO"
     self.'print'(list)
-    print PIO, "\n"
+    print pio, "\n"
     .return (1)
 .end
 
@@ -163,9 +165,10 @@ Slurp a file into a string.
 =cut
 
 .sub 'slurp' :method
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
-    $S0 = PIO.'readall'()
+    .local pmc pio
+    pio = getattribute self, "$!PIO"
+    pio = '!DEREF'(pio)
+    $S0 = pio.'readall'()
     .return($S0)
 .end
 
@@ -209,6 +212,7 @@ Read a single line and return it.
     .local pmc pio, chomper
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"
+    pio = '!DEREF'(pio)
     $P0 = pio.'readline'()
     chomper = get_hll_global 'chomp'
     .tailcall chomper($P0)
@@ -225,6 +229,7 @@ Read all of the lines and return them as a List.
     .local pmc pio, res, chomper
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"
+    pio = '!DEREF'(pio)
     res = new 'List'
     chomper = get_hll_global 'chomp'
 
@@ -284,10 +289,10 @@ Return the remainder of the input in flattening context.
 
 .namespace ['IOIterator']
 .sub '' :vtable('get_bool') :method
-    .local pmc PIO
+    .local pmc pio
     $P0 = getattribute self, "$!IO"
-    PIO = getattribute $P0, "$!PIO"
-    if PIO goto more
+    pio = getattribute $P0, "$!PIO"
+    if pio goto more
     .return (0)
   more:
     .return (1)

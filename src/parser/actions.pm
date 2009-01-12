@@ -776,7 +776,9 @@ method enum_declarator($/, $key) {
 
         # Now we need to create instances of each of these and install them
         # in a package starting with the enum's name, plus an alias to them
-        # in the current package.
+        # in the current package. Register the symbols in the current block
+        # as we go.
+        our @?BLOCK;
         for %values.keys() {
             # Instantiate with value.
             $class_past.push(PAST::Op.new(
@@ -799,6 +801,7 @@ method enum_declarator($/, $key) {
                     )
                 )
             ));
+            @?BLOCK[0].symbol($name ~ '::' ~ $_, :does_abstraction(1));
 
             # Add alias in current package.
             # XXX Need to do collision detection, once we've a registry.
@@ -814,11 +817,11 @@ method enum_declarator($/, $key) {
                     :scope('package')
                 )
             ));
+            @?BLOCK[0].symbol($_, :does_abstraction(1));
         }
 
         # Assemble all that we build into a statement list and then place it
         # into the init code.
-        our @?BLOCK;
         my $loadinit := @?BLOCK[0].loadinit();
         $loadinit.push($role_past);
         $loadinit.push($class_past);

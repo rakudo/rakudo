@@ -2091,11 +2091,14 @@ method term($/, $key) {
     }
     elsif $key eq 'args' {
         $past := $($<args>);
-        $past.name( ~$<name> );
+        $past.name( $name );
+        if +@($past) == 0 && ($name eq 'print' || $name eq 'say') {
+            $/.panic($name ~ ' requires an argument');
+        }
     }
     elsif $key eq 'func args' {
         $past := build_call( $( $<semilist> ) );
-        $past.name( ~$<name> );
+        $past.name( $name );
     }
     elsif $key eq 'VAR' {
         $past := PAST::Op.new(

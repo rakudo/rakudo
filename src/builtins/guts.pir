@@ -203,6 +203,10 @@ to find a real, non-subtype and stash that away for fast access later.
     .const 'Sub' $P0 = "!SUBTYPE_ACCEPTS"
     subset.'add_method'('ACCEPTS', $P0)
 
+    # It's an abstraction.
+    $P0 = get_hll_global 'Abstraction'
+    subset.'add_role'($P0)
+
     # Instantiate it - we'll only ever create this one instance.
     subset = subset.'new'()
 

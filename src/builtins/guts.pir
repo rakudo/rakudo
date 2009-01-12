@@ -387,6 +387,7 @@ is composed (see C<!meta_compose> below).
     metaclass = newclass ns
     $P0 = box type
     setprop metaclass, 'pkgtype', $P0
+    '!set_resolves_list'(metaclass)
     .return (metaclass)
   is_also:
     metaclass = get_class ns
@@ -659,6 +660,28 @@ in an ambiguous multiple dispatch.
   arg_done:
     ns = exportns.'make_namespace'('ALL')
     ns[blockname] = block
+.end
+
+
+=item !set_resolves_list(class)
+
+Gets all the methods that the class has and adds them to the resolves list.
+
+=cut
+
+.sub '!set_resolves_list'
+    .param pmc class
+    .local pmc meths, it, res_list
+    meths = class.'methods'()
+    it = iter meths
+    res_list = new 'ResizableStringArray'
+  it_loop:
+    unless it goto it_loop_end
+    $S0 = shift it
+    push res_list, $S0
+    goto it_loop
+  it_loop_end:
+    class.'resolve_method'(res_list)
 .end
 
 

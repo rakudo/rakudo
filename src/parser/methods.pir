@@ -50,13 +50,21 @@ Checks if the name we have been passed represents a type.
 .sub 'is_type' :method
     .param string full_name
 
-    # If it starts with ::, it's a declaration.
+    # Get blocks.
+    .local pmc blocks
+    blocks = get_hll_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '@?BLOCK'
+
+    # If it starts with ::, it's a declaration; note it in the block.
     $S0 = substr full_name, 0, 2
-    if $S0 == '::' goto type_ok
+    if $S0 != '::' goto not_decl
+    $S0 = substr full_name, 2
+    $P0 = blocks[0]
+    $P0.'symbol'($S0, 'does_abstraction'=>1)
+    goto type_ok
+  not_decl:
 
     # Look in @?BLOCK first.
-    .local pmc blocks, block_it, block, sym_info
-    blocks = get_hll_global [ 'Perl6' ; 'Grammar' ; 'Actions' ], '@?BLOCK'
+    .local pmc block_it, block, sym_info
     block_it = iter blocks
     block_it_loop:
     unless block_it goto block_it_loop_end
@@ -95,7 +103,6 @@ Checks if the name we have been passed represents a type.
       type_ok:
         .return (1)
       fail_it:
-        say "failed it"
         .return (0)
 .end
 

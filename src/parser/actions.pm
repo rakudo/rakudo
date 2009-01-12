@@ -2081,8 +2081,12 @@ method quote_term($/, $key) {
 
 
 method term($/, $key) {
+    my $name := ~$<name>;
     my $past;
     if $key eq 'noarg' {
+        if $name eq 'print' || $name eq 'say' {
+            $/.panic($name ~ ' requires an argument');
+        }
         $past := PAST::Op.new( :name( ~$<name> ), :pasttype('call') );
     }
     elsif $key eq 'args' {

@@ -18,10 +18,12 @@ the size of that file down and to emphasize their generic,
 
 =cut
 
+.include 'cclass.pasm'
+
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('capitalize,chop,chomp,chars,:d,:e,:f,index,lc,lcfirst,rindex,ord,substr,uc,ucfirst,unpack', 'from'=>$P0)
+    '!EXPORT'('capitalize,chop,chomp,chars,:d,:e,:f,index,lc,lcfirst,rindex,ord,substr,trim,uc,ucfirst,unpack', 'from'=>$P0)
 .end
 
 
@@ -126,6 +128,39 @@ Returns string with one Char removed from the end.
        retv = new 'Str'
        retv = tmps
        .return (retv)
+.end
+
+=item trim()
+
+Remove leading and trailing whitespace from a string.
+
+=cut
+
+.sub 'trim' :method :multi(_)
+    .local string s
+    .local int start, end, temp, len
+    .local int is_whitespace
+    s = self
+    start = 0
+    end = length s
+    if end == 0 goto donetrailing
+  trimleading:
+    is_whitespace = is_cclass .CCLASS_WHITESPACE, s, start
+    unless is_whitespace goto doneleading
+    inc start
+    goto trimleading
+  doneleading:
+    temp = end
+  trimtrailing:
+    dec temp
+    is_whitespace = is_cclass .CCLASS_WHITESPACE, s, temp
+    unless is_whitespace goto donetrailing
+    end = temp
+    goto trimtrailing
+  donetrailing:
+    len = end - start
+    s = substr s, start, len
+    .return(s)
 .end
 
 =item comb()

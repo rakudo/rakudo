@@ -2081,24 +2081,60 @@ method quote_term($/, $key) {
 
 
 method term($/, $key) {
-    my $name := ~$<name>;
     my $past;
+
+    my @ns;
+    my $short_name;
+    if $<name> {
+        @ns := Perl6::Compiler.parse_name(~$<name>);
+        $short_name := @ns.pop();
+    }
+
     if $key eq 'noarg' {
-        if $name eq 'print' || $name eq 'say' {
-            $/.panic($name ~ ' requires an argument');
+        if @ns {
+            $past := PAST::Op.new(
+                PAST::Var.new(
+                    :name($short_name),
+                    :namespace(@ns),
+                    :scope('package')
+                ),
+                :pasttype('call')
+            );
         }
-        $past := PAST::Op.new( :name( ~$<name> ), :pasttype('call') );
+        else {
+            if $short_name eq 'print' || $short_name eq 'say' {
+                $/.panic($short_name ~ ' requires an argument');
+            }
+            $past := PAST::Op.new( :name( $short_name ), :pasttype('call') );
+        }
     }
     elsif $key eq 'args' {
         $past := $($<args>);
-        $past.name( $name );
-        if +@($past) == 0 && ($name eq 'print' || $name eq 'say') {
-            $/.panic($name ~ ' requires an argument');
+        if @ns {
+            $past.unshift(PAST::Var.new(
+                :name($short_name),
+                :namespace(@ns),
+                :scope('package')
+            ));
+        } else {
+            if +@($past) == 0 && ($short_name eq 'print' || $short_name eq 'say') {
+                $/.panic($short_name ~ ' requires an argument');
+            }
+            $past.name( $short_name );
         }
     }
     elsif $key eq 'func args' {
         $past := build_call( $( $<semilist> ) );
-        $past.name( $name );
+        if @ns {
+            $past.unshift(PAST::Var.new(
+                :name($short_name),
+                :namespace(@ns),
+                :scope('package')
+            ));
+        }
+        else {
+            $past.name( $short_name );
+        }
     }
     elsif $key eq 'VAR' {
         $past := PAST::Op.new(

@@ -2119,7 +2119,8 @@ method term($/, $key) {
                 :namespace(@ns),
                 :scope('package')
             ));
-        } else {
+        }
+        else {
             if +@($past) == 0 && ($short_name eq 'print' || $short_name eq 'say') {
                 $/.panic($short_name ~ ' requires an argument');
             }

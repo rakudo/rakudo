@@ -751,7 +751,11 @@ token typename {
     <?{{
         $P0 = match['name']
         $S0 = $P0.'text'()
-        $I0 = match.'is_type'($S0)
+        # XXX Uncomment next line to test type registration. Disabled in
+        # commited version for now, while I track down the bugs/regressions
+        # that it causes.
+        #.tailcall match.'is_type'($S0)
+        .return (1)
     }}>
     {*}
 }

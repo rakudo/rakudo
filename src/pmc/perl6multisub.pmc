@@ -315,10 +315,7 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
                     VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
 
         /* Type information. */
-        meth = VTABLE_find_method(interp, candidate,
-                CONST_STRING(interp, "signature"));
-        signature = (PMC*)Parrot_run_meth_fromc_args(interp, meth, candidate,
-                CONST_STRING(interp, "signature"), "P");
+        signature = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "$!signature"));
         meth = VTABLE_find_method(interp, signature,
                 CONST_STRING(interp, "params"));
         params = (PMC*)Parrot_run_meth_fromc_args(interp, meth, signature,

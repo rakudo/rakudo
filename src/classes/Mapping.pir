@@ -15,6 +15,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     mappingproto = p6meta.'new_class'('Mapping', 'parent'=>'Hash Any')
     $P0 = get_hll_global 'Associative'
+    $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>mappingproto)
     p6meta.'register'('Hash', 'parent'=>mappingproto, 'protoobject'=>mappingproto)
     $P0 = get_hll_namespace ['Mapping']

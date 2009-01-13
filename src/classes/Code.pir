@@ -18,6 +18,7 @@ for executable objects.
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     codeproto = p6meta.'new_class'('Code', 'parent'=>'Any')
     $P0 = get_hll_global 'Callable'
+    $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>codeproto)
     codeproto.'!IMMUTABLE'()
     p6meta.'register'('Sub', 'parent'=>codeproto, 'protoobject'=>codeproto)

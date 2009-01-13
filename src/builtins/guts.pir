@@ -205,6 +205,7 @@ to find a real, non-subtype and stash that away for fast access later.
 
     # It's an abstraction.
     $P0 = get_hll_global 'Abstraction'
+    $P0 = $P0.'!select'()
     subset.'add_role'($P0)
 
     # Instantiate it - we'll only ever create this one instance.
@@ -355,6 +356,43 @@ of captures.
 .end
 
 
+=item !ADDTOROLE
+
+Adds a given role initializing multi-variant to a Role object, creating it
+and putting it in the namespace if it doesn't already exist.
+
+=cut
+
+.sub '!ADDTOROLE'
+    .param pmc variant
+
+    # Get short name of role.
+    .local pmc ns
+    .local string short_name
+    ns = variant.'get_namespace'()
+    ns = ns.'get_name'()
+    short_name = pop ns
+    $I0 = index short_name, '['
+    if $I0 == -1 goto have_short_name
+    short_name = substr short_name, 0, $I0
+  have_short_name:
+
+    # See if we have a Role object already.
+    .local pmc role_obj
+    role_obj = get_root_global ns, short_name
+    if null role_obj goto need_role_obj
+    $I0 = isa role_obj, 'NameSpace'
+    unless $I0 goto have_role_obj
+  need_role_obj:
+    role_obj = new 'Perl6Role'
+    set_root_global ns, short_name, role_obj
+  have_role_obj:
+
+    # Add this variant.
+    role_obj.'!add_variant'(variant)
+.end
+
+
 =item !meta_create(type, name, also)
 
 Create a metaclass object for C<type> with the given C<name>.
@@ -398,15 +436,24 @@ is composed (see C<!meta_compose> below).
     .return (metaclass)
 
   role:
+    # This is a little fun. We only want to create the Parrot role and suck
+    # in the methods once per role definition. We do this and it is attached to
+    # the namespace. Next time, we will find and clone it.
     .local pmc info, metarole
+    ns = get_hll_namespace nsarray
+    metarole = get_class ns
+    unless null metarole goto have_role
+
     info = new 'Hash'
     $P0 = nsarray[-1]
     info['name'] = $P0
     info['namespace'] = nsarray
     metarole = new 'Role', info
-    nsarray = clone nsarray
-    $S0 = pop nsarray
-    set_hll_global nsarray, $S0, metarole
+  
+  have_role:
+    # XXX At this point, we need to create a clone of the role, but it's a bit
+    # more special than that; we also need to clone and lexically capture the
+    # methods of the role so they will get the parameters captured.
     .return (metarole)
 .end
 
@@ -457,6 +504,7 @@ Default meta composer -- does nothing.
 .sub '!meta_compose' :multi()
     .param pmc metaclass
     # Currently, nothing to do.
+    .return (metaclass)
 .end
 
 
@@ -487,11 +535,15 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
     .return ()
 
   does:
-    ##  get the role to be composed
+    ##  get the Role object for the role to be composed
     $P0 = compreg 'Perl6'
     $P0 = $P0.'parse_name'(name)
     $S0 = pop $P0
     $P0 = get_hll_global $P0, $S0
+
+    ##  select the correct role based upon any parameters
+    ##  XXX need to pass along params; for now, none.
+    $P0 = $P0.'!select'()
 
     ##  add it to the class.
     metaclass.'add_role'($P0)
@@ -751,26 +803,38 @@ Internal helper method to create a role.
 
 .sub '!keyword_role'
     .param string name
-    .local pmc info, role
+    .local pmc info, role, helper
 
-    # Need to make sure it ends up attached to the right namespace.
+    # Create Parrot-level role. Need to make sure it gets its methods from
+    # the right namespace.
     .local pmc ns
     ns = split '::', name
     name = ns[-1]
     info = new 'Hash'
     info['name'] = name
     info['namespace'] = ns
-
-    # Create role.
     role = new 'Role', info
 
-    # Stash in namespace.
-    $I0 = elements ns
-    dec $I0
-    ns = $I0
-    set_hll_global ns, name, role
+    # Now we need to wrap it up as a Perl6Role.
+    helper = find_name '!keyword_role_helper'
+    helper = clone helper
+    setprop helper, '$!metarole', role
+    $P0 = new ["Signature"]
+    setprop helper, '$!signature', $P0
+    role = new ["Perl6Role"]
+    role.'!add_variant'(helper)
 
+    # Store it in the namespace.
+    ns = clone ns
+    $S0 = pop ns
+    set_hll_global ns, $S0, role
     .return(role)
+.end
+.sub '!keyword_role_helper'
+    $P0 = new 'ParrotInterpreter'
+    $P0 = $P0['sub']
+    $P0 = getprop '$!metarole', $P0
+    .return ($P0)
 .end
 
 

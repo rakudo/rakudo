@@ -101,7 +101,7 @@ Checks if the name we have been passed represents a type.
     # XXX The following should be covered by a check for does Abstraction
     $I0 = isa check_symbol, 'P6protoobject'
     if $I0 goto type_ok
-    $I0 = isa check_symbol, 'Role'
+    $I0 = isa check_symbol, 'Perl6Role'
     if $I0 goto type_ok
     $P0 = class check_symbol
     $P0 = getprop 'enum', $P0

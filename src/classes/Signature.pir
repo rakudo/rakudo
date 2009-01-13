@@ -154,7 +154,7 @@ Get the array of parameter describing hashes.
 .sub 'params' :method
     $P0 = getattribute self, "@!params"
     unless null $P0 goto done
-    $P0 = 'list'()
+    $P0 = new 'ResizablePMCArray'
     setattribute self, "@!params", $P0
   done:
     .return ($P0)

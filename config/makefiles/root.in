@@ -48,12 +48,14 @@ SOURCES = perl6.pir \
 
 BUILTINS_PIR = \
   src/classes/Object.pir \
+  src/classes/Any.pir \
+  src/classes/Signature.pir \
+  src/classes/Role.pir \
   src/classes/Abstraction.pir \
   src/classes/Protoobject.pir \
   src/classes/Positional.pir \
   src/classes/Associative.pir \
   src/classes/Callable.pir \
-  src/classes/Any.pir \
   src/classes/Bool.pir \
   src/classes/Str.pir \
   src/classes/Num.pir \
@@ -76,12 +78,10 @@ BUILTINS_PIR = \
   src/classes/Failure.pir \
   src/classes/Exception.pir \
   src/classes/Nil.pir \
-  src/classes/Role.pir \
   src/classes/Pair.pir \
   src/classes/Whatever.pir \
   src/classes/Capture.pir \
   src/classes/Match.pir \
-  src/classes/Signature.pir \
   src/classes/Grammar.pir \
   src/classes/Module.pir \
   src/builtins/globals.pir \

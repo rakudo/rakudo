@@ -12,6 +12,7 @@ src/classes/List.pir - Perl 6 List class and related functions
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     listproto = p6meta.'new_class'('List', 'parent'=>'ResizablePMCArray Any')
     $P0 = get_hll_global 'Positional'
+    $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>listproto)
     p6meta.'register'('ResizablePMCArray', 'parent'=>listproto, 'protoobject'=>listproto)
 

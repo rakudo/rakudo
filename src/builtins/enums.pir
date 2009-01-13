@@ -11,6 +11,7 @@ src/builtins/enums.pir - implements various enumerations
     # Set up bool role.
     .local pmc bool_role
     bool_role = "!keyword_role"("bool")
+    bool_role = bool_role.'!select'()
     get_global $P21, "Object"
     "!keyword_has"(bool_role, "$!bool", $P21)
     get_global $P24, "bool_role_bool"

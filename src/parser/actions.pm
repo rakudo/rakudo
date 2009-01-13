@@ -600,16 +600,20 @@ method enum_declarator($/, $key) {
                 ),
                 PAST::Op.new(
                     :pasttype('call'),
-                    :name('!keyword_role'),
+                   :name('!keyword_role'),
                     PAST::Val.new( :value($name) )
                 )
             ),
             PAST::Op.new(
                 :pasttype('call'),
                 :name('!keyword_has'),
-                PAST::Var.new(
-                    :name('def'),
-                    :scope('register')
+                PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('!select'),
+                    PAST::Var.new(
+                        :name('def'),
+                        :scope('register')
+                    )
                 ),
                 PAST::Val.new( :value("$!" ~ $name) ),
                 # XXX Set declared type here, when we parse that.
@@ -621,9 +625,13 @@ method enum_declarator($/, $key) {
             PAST::Op.new(
                 :pasttype('callmethod'),
                 :name('add_method'),
-                PAST::Var.new(
-                    :name('def'),
-                    :scope('register')
+                PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('!select'),
+                    PAST::Var.new(
+                        :name('def'),
+                        :scope('register')
+                    )
                 ),
                 PAST::Val.new( :value($name) ),
                 make_accessor($/, undef, "$!" ~ $name, 1, 'attribute')
@@ -634,9 +642,13 @@ method enum_declarator($/, $key) {
             $role_past.push(PAST::Op.new(
                 :pasttype('callmethod'),
                 :name('add_method'),
-                PAST::Var.new(
-                    :name('def'),
-                    :scope('register')
+                PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('!select'),
+                    PAST::Var.new(
+                        :name('def'),
+                        :scope('register')
+                    )
                 ),
                 PAST::Val.new( :value($_) ),
                 PAST::Block.new(
@@ -664,28 +676,32 @@ method enum_declarator($/, $key) {
             PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new(
-                    :name('def'),
+                    :name('class_def'),
                     :scope('register'),
                     :isdecl(1)
                 ),
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('!keyword_enum'),
-                    PAST::Var.new(
-                        :name('def'),
-                        :scope('register')
+                    PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('!select'),
+                        PAST::Var.new(
+                            :name('def'),
+                            :scope('register')
+                        )
                     )
                 )
             ),
             PAST::Op.new(
                 :inline('    setprop %0, "enum", %1'),
                 PAST::Var.new(
-                    :name('def'),
+                    :name('class_def'),
                     :scope('register')
                 ),
-                PAST::Val.new(
-                    :value(1),
-                    :returns('Int')
+                PAST::Var.new(
+                    :name('def'),
+                    :scope('register')
                 )
             )
         );
@@ -698,7 +714,7 @@ method enum_declarator($/, $key) {
             :name('add_vtable_override'),
             PAST::Var.new(
                 :scope('register'),
-                :name('def')
+                :name('class_def')
             ),
             'invoke',
             PAST::Block.new(
@@ -715,7 +731,7 @@ method enum_declarator($/, $key) {
             :name('add_vtable_override'),
             PAST::Var.new(
                 :scope('register'),
-                :name('def')
+                :name('class_def')
             ),
             'get_string',
             PAST::Block.new(
@@ -736,7 +752,7 @@ method enum_declarator($/, $key) {
             :name('add_vtable_override'),
             PAST::Var.new(
                 :scope('register'),
-                :name('def')
+                :name('class_def')
             ),
             'get_integer',
             PAST::Block.new(
@@ -757,7 +773,7 @@ method enum_declarator($/, $key) {
             :name('add_vtable_override'),
             PAST::Var.new(
                 :scope('register'),
-                :name('def')
+                :name('class_def')
             ),
             'get_number',
             PAST::Block.new(
@@ -792,7 +808,7 @@ method enum_declarator($/, $key) {
                     :pasttype('callmethod'),
                     :name('new'),
                     PAST::Var.new(
-                        :name('def'),
+                        :name('class_def'),
                         :scope('register')
                     ),
                     PAST::Val.new(
@@ -1425,11 +1441,29 @@ method package_def($/, $key) {
     # See note at top of file for %?CLASSMAP.
     if %?CLASSMAP{$modulename} { $modulename := %?CLASSMAP{$modulename}; }
 
-    if ($modulename) {
-        $block.namespace( Perl6::Compiler.parse_name($modulename) );
-    }
+    if $?PKGDECL eq 'role' {
+        # Parametric roles need to have their bodies evaluated per type-
+        # parmeterization, and are "invoked" by 'does'. We make them
+        # multis, and ensure they have a signature. XXX Need to put
+        # $?CLASS as first item in signature always too.
+        $block.blocktype('declaration');
 
-    if $key eq 'block' {
+        # Also need to put this (possibly parameterized) role into the
+        # set of possible roles.
+        $block.loadinit().push(
+            PAST::Op.new( :name('!ADDTOROLE'), :pasttype('call'),
+                PAST::Var.new( :name('block'), :scope('register') )
+            )
+        );
+
+        # And if there's no signature, make sure we set one up and add [] to
+        # the namespace name.
+        if $modulename eq ~$<module_name>[0]<name> {
+            $modulename := $modulename ~ '[]';
+            block_signature($block);
+        }
+    }
+    elsif $key eq 'block' {
         # A normal block acts like a BEGIN and is executed ASAP.
         $block.blocktype('declaration');
         $block.pirflags(':load :init');
@@ -1440,6 +1474,10 @@ method package_def($/, $key) {
             $/.panic("Compilation unit cannot be anonymous");
         }
         $block.blocktype('immediate');
+    }
+
+    if ($modulename) {
+        $block.namespace( Perl6::Compiler.parse_name($modulename) );
     }
 
     #  Create a node at the beginning of the block's initializer
@@ -1485,17 +1523,21 @@ method package_def($/, $key) {
     #  ...and at the end of the block's initializer (after any other
     #  items added by the block), we finalize the composition. This
     # returns a proto, which we need to keep around and also return at
-    # the end of initialization for anonymous classes.
-    if $<module_name> eq "" && ($?PKGDECL eq 'class' || $?PKGDECL eq 'role'
-            || $?PKGDECL eq 'grammar') {
+    # the end of initialization for anonymous classes. We always need to
+    # return it for roles, since we do a role by invoking the multi-sub
+    # it produces (but those don't want to be immediate).
+    if $<module_name> eq "" && ($?PKGDECL eq 'class' || $?PKGDECL eq 'grammar')
+            || $?PKGDECL eq 'role' {
         $block[0].push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new(:name('proto_store'), :scope('register'), :isdecl(1)),
             PAST::Op.new( :name('!meta_compose'), $?METACLASS)
         ));
         $block.push(PAST::Var.new(:name('proto_store'), :scope('register')));
-        $block.blocktype('immediate');
-        $block.pirflags('');
+        if $?PKGDECL ne 'role' {
+            $block.blocktype('immediate');
+            $block.pirflags('');
+        }
     }
     else {
         $block[0].push( PAST::Op.new( :name('!meta_compose'), $?METACLASS) );

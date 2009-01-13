@@ -31,10 +31,20 @@ Registers a type in the namespace.
     $P0 = get_hll_global ns, short_name
     unless null $P0 goto done
 
-    # Add name to the current block's symbols.
-    .local pmc cur_block
-    cur_block = get_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK'
-    cur_block = cur_block[0]
+    # Work outwards to find a block defining a package and put the type
+    # there. XXX This makes it too visible for lexical types, but if we
+    # assume lexical rather than package scope then we will fail various
+    # tests/code.
+    .local pmc blocks, it, cur_block
+    blocks = get_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK'
+    it = iter blocks
+  it_loop:
+    unless it goto it_loop_end
+    cur_block = shift it
+    $P0 = cur_block['sym']
+    if null $P0 goto it_loop
+    if $P0 == '' goto it_loop
+  it_loop_end:
     cur_block.'symbol'(name, 'does_abstraction'=>1)
 
   done:

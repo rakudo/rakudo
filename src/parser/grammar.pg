@@ -747,15 +747,11 @@ token value {
 }
 
 token typename {
-    <?before <.upper> | '::' > <name>
+    <name>
     <?{{
         $P0 = match['name']
         $S0 = $P0.'text'()
-        # XXX Uncomment next line to test type registration. Disabled in
-        # commited version for now, while I track down the bugs/regressions
-        # that it causes.
-        #.tailcall match.'is_type'($S0)
-        .return (1)
+        .tailcall match.'is_type'($S0)
     }}>
     {*}
 }

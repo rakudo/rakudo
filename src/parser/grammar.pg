@@ -625,10 +625,11 @@ rule package_declarator {
 
 rule package_def {
     [
-        <module_name=name>
+        <module_name>
         {{
             $P0 = match['module_name']
             $P0 = $P0[0]
+            $P0 = $P0['name']
             $S0 = $P0.'text'()
             match.'add_type'($S0)
         }}
@@ -726,6 +727,21 @@ token circumfix {
     | '[' <statementlist> ']' {*}                #= [ ]
     | <?before '{' | <lambda> > <pblock> {*}     #= { }
     | <sigil> '(' <semilist> ')' {*}             #= $( )
+}
+
+token module_name {
+    <name>
+    [
+        :dba('generic role')
+        <?{{
+            ## ($+PKGDECL//'') eq 'role' (more like (@?PKGDECL[0]//'') eq 'role')
+            $P0 = get_hll_global ['Perl6'; 'Grammar'; 'Actions'], '@?PKGDECL'
+            $S0 = $P0[0]
+            $I0 = $S0 == 'role'
+            .return ($I0)
+        }}>
+        '[' ~ ']' <signature>
+    ]?
 }
 
 token name {

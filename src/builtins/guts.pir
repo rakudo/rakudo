@@ -452,7 +452,7 @@ is composed (see C<!meta_compose> below).
     info['namespace'] = nsarray
     metarole = new 'Role', info
   have_role:
-    
+
     # Copy list of roles done by the metarole.
     .local pmc result, tmp, it
     result = new 'Role'

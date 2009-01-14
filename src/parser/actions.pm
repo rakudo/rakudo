@@ -1544,7 +1544,7 @@ method package_def($/, $key) {
     );
 
     #  ...and at the end of the block's initializer (after any other
-    #  items added by the block), we finalize the composition. 
+    #  items added by the block), we finalize the composition.
     if $?PKGDECL eq 'role' {
         #  For a role, we now need to produce a new one which clones the original,
         #  but without the methods. Then we need to add back the methods. We emit

@@ -54,7 +54,7 @@ Selects a variant of the role to do based upon the supplied parameters.
 .sub '!select' :method
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
-    
+
     # XXX We need to look through the parameters we have and keep track
     # of variants we did already initialize/parameterize with.
     .local pmc selector, result, created_list

@@ -1544,23 +1544,41 @@ method package_def($/, $key) {
     );
 
     #  ...and at the end of the block's initializer (after any other
-    #  items added by the block), we finalize the composition. This
-    # returns a proto, which we need to keep around and also return at
-    # the end of initialization for anonymous classes. We always need to
-    # return it for roles, since we do a role by invoking the multi-sub
-    # it produces (but those don't want to be immediate).
-    if $<module_name> eq "" && ($?PKGDECL eq 'class' || $?PKGDECL eq 'grammar')
-            || $?PKGDECL eq 'role' {
+    #  items added by the block), we finalize the composition. 
+    if $?PKGDECL eq 'role' {
+        #  For a role, we now need to produce a new one which clones the original,
+        #  but without the methods. Then we need to add back the methods. We emit
+        #  PIR here to do it rather than doing a call, since we need to call
+        #  new_closure from the correct scope.
+        $block[0].push(PAST::Op.new(:inline(
+                '    .local pmc orig_role, meths, meth_iter',
+                '    orig_role = getprop "$!orig_role", %0',
+                '    meths = orig_role."methods"()',
+                '    meth_iter = iter meths',
+                '  it_loop:',
+                '    unless meth_iter goto it_loop_end',
+                '    $S0 = shift meth_iter',
+                '    $P0 = meths[$S0]',
+                '    $P0 = newclosure $P0',
+                '    %0."add_method"($S0, $P0)',
+                '    goto it_loop',
+                '  it_loop_end:',
+                '    .return (%0)'
+            ),
+            $?METACLASS
+        ));
+    }
+    elsif $<module_name> eq "" && ($?PKGDECL eq 'class' || $?PKGDECL eq 'grammar') {
+        #  We need to keep the proto around and return it at the end of
+        #  initialization for anonymous classes.
         $block[0].push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new(:name('proto_store'), :scope('register'), :isdecl(1)),
             PAST::Op.new( :name('!meta_compose'), $?METACLASS)
         ));
         $block.push(PAST::Var.new(:name('proto_store'), :scope('register')));
-        if $?PKGDECL ne 'role' {
-            $block.blocktype('immediate');
-            $block.pirflags('');
-        }
+        $block.blocktype('immediate');
+        $block.pirflags('');
     }
     else {
         $block[0].push( PAST::Op.new( :name('!meta_compose'), $?METACLASS) );

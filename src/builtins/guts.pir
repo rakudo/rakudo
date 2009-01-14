@@ -438,7 +438,9 @@ is composed (see C<!meta_compose> below).
   role:
     # This is a little fun. We only want to create the Parrot role and suck
     # in the methods once per role definition. We do this and it is attached to
-    # the namespace. Next time, we will find and clone it.
+    # the namespace. Then we attach this "master role" to a new one we create
+    # per invocation, so the methods can be newclosure'd and added into it in
+    # the body.
     .local pmc info, metarole
     ns = get_hll_namespace nsarray
     metarole = get_class ns
@@ -449,12 +451,22 @@ is composed (see C<!meta_compose> below).
     info['name'] = $P0
     info['namespace'] = nsarray
     metarole = new 'Role', info
-  
   have_role:
-    # XXX At this point, we need to create a clone of the role, but it's a bit
-    # more special than that; we also need to clone and lexically capture the
-    # methods of the role so they will get the parameters captured.
-    .return (metarole)
+    
+    # Copy list of roles done by the metarole.
+    .local pmc result, tmp, it
+    result = new 'Role'
+    setprop result, '$!orig_role', metarole
+    tmp = metarole.'roles'()
+    it = iter tmp
+  roles_loop:
+    unless it goto roles_loop_end
+    tmp = shift it
+    result.'add_role'(tmp)
+    goto roles_loop
+  roles_loop_end:
+
+    .return (result)
 .end
 
 

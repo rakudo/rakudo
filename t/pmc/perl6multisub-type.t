@@ -61,7 +61,9 @@ Tests for type based dispatch using the Perl 6 MultiSub PMC.
     # Create a couple of roles.
     .local pmc R1, R2
     R1 = '!keyword_role'('R1')
+    R1 = R1.'!select'()
     R2 = '!keyword_role'('R2')
+    R2 = R2.'!select'()
 
     # Set up multis.
     $P0 = new "Perl6MultiSub"

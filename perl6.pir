@@ -173,6 +173,14 @@ to the Perl 6 compiler.
 
 .sub 'parse_name' :method
     .param string name
+    ##  remove any type parameterization for now
+    .local string type_param
+    type_param = ''
+    $I0 = index name, '['
+    if $I0 == -1 goto type_param_done
+    type_param = substr name, $I0
+    name = substr name, 0, $I0
+  type_param_done:
     ##  divide name based on ::
     .local pmc list
     list = split '::', name
@@ -198,6 +206,11 @@ to the Perl 6 compiler.
     push list, $S0
     goto iter_loop
   iter_done:
+    if type_param == '' goto no_add_type_param
+    $S0 = pop list
+    concat $S0, type_param
+    push list, $S0
+  no_add_type_param:
     .return (list)
 .end
 

@@ -228,6 +228,7 @@ S12-subset/subtypes.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
+S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/say.t
 S16-unfiled/slurp.t

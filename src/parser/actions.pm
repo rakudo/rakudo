@@ -371,11 +371,22 @@ method begin_statement($/) {
 method end_statement($/) {
     my $past := $( $<block> );
     $past.blocktype('declaration');
-    declare_implicit_routine_vars($past);                  # FIXME
-    my $sub := PAST::Compiler.compile( $past );
-    PIR q<  $P0 = get_hll_global ['Perl6'], '@?END_BLOCKS' >;
-    PIR q<  $P1 = find_lex '$sub' >;
-    PIR q<  push $P0, $P1 >;
+    declare_implicit_routine_vars($past);
+    $past.loadinit().push(
+        PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('push'),
+            PAST::Var.new(
+                :namespace('Perl6'),
+                :name('@?END_BLOCKS'),
+                :scope('package')
+            ),
+            PAST::Var.new(
+                :name('block'),
+                :scope('register')
+            )
+        )
+    );
     make $past;
 }
 

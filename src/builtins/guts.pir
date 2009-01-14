@@ -764,10 +764,11 @@ Helper method to compose the attributes of a role into a class.
     .param pmc class
     .param pmc role
 
-    .local pmc role_attrs, class_attrs, ra_iter
+    .local pmc role_attrs, class_attrs, ra_iter, fixup_list
     .local string cur_attr
-    role_attrs = inspect role, "attributes"
-    class_attrs = inspect class, "attributes"
+    role_attrs = role."attributes"()
+    class_attrs = class."attributes"()
+    fixup_list = new ["ResizableStringArray"]
     ra_iter = iter role_attrs
   ra_iter_loop:
     unless ra_iter goto ra_iter_loop_end
@@ -802,9 +803,30 @@ Helper method to compose the attributes of a role into a class.
 
   no_conflict:
     addattribute class, cur_attr
+    push fixup_list, cur_attr
   merge:
     goto ra_iter_loop
   ra_iter_loop_end:
+
+    # Now we need, for any merged in attributes, to copy property data.
+    .local pmc fixup_iter, class_props, role_props, props_iter
+    class_attrs = class."attributes"()
+    fixup_iter = iter fixup_list
+  fixup_iter_loop:
+    unless fixup_iter goto fixup_iter_loop_end
+    cur_attr = shift fixup_iter
+    role_props = role_attrs[cur_attr]
+    class_props = class_attrs[cur_attr]
+    props_iter = iter role_props
+  props_iter_loop:
+    unless props_iter goto props_iter_loop_end
+    $S0 = shift props_iter
+    $P0 = role_props[$S0]
+    class_props[$S0] = $P0
+    goto props_iter_loop
+  props_iter_loop_end:
+    goto fixup_iter_loop
+  fixup_iter_loop_end:
 .end
 
 

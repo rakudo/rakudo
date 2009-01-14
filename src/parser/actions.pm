@@ -1120,6 +1120,18 @@ method parameter($/) {
     my $sigil := $<param_var><sigil>;
     my $quant := $<quant>;
 
+    ##  if it was type a type capture and nothing else, need to make a PAST::Var
+    unless $<param_var> {
+        unless $<type_constraint> == 1 {
+            $/.panic("Invalid signature; cannot have two consecutive parameter separators.");
+        }
+        our @?BLOCK;
+        my $name := ~$<type_constraint>[0];
+        $var     := PAST::Var.new( :scope('parameter') );
+        $var.name($var.unique());
+        @?BLOCK[0].symbol( $var.name(), :scope('lexical') );
+    }
+
     ##  handle slurpy and optional flags
     if $quant eq '*' {
         $var.slurpy( $sigil eq '@' || $sigil eq '%' );

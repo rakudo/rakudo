@@ -493,6 +493,11 @@ token parameter {
     |   $<named>=[':'?]
         <param_var>
         $<quant>=[ <[ ? ! ]>? ]
+    |   <?{{
+            $I0 = match['type_constraint']
+            $I0 = $I0 > 0
+            .return ($I0)
+        }}> <?>
     ]
     <trait>*
     <post_constraint>*

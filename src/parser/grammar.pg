@@ -406,7 +406,7 @@ rule trait {
 rule trait_auxiliary {
     [
     | $<sym>=[is] <name><postcircumfix>?
-    | $<sym>=[does] <name>['['<EXPR>']']?
+    | $<sym>=[does] <name>['['<EXPR>?']']?
     | $<sym>=[will] <identifier> <block>
     ]
     {*}

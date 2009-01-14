@@ -979,6 +979,17 @@ method trait_auxiliary($/) {
     }
     elsif $sym eq 'does' {
         $trait.push( ~$<name> );
+        if $<EXPR> {
+            for @(build_call($( $<EXPR>[0] ))) {
+                if $_.returns() eq 'Pair' {
+                    $_[1].named($_[0]);
+                    $trait.push($_[0]);
+                }
+                else {
+                    $trait.push($_);
+                }
+            }
+        }
     }
     make $trait;
 }

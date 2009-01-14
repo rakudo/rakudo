@@ -518,6 +518,8 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
     .param pmc metaclass
     .param string type
     .param string name
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
 
     if type == 'trait_auxiliary:is' goto is
     if type == 'trait_auxiliary:does' goto does
@@ -542,8 +544,7 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
     $P0 = get_hll_global $P0, $S0
 
     ##  select the correct role based upon any parameters
-    ##  XXX need to pass along params; for now, none.
-    $P0 = $P0.'!select'()
+    $P0 = $P0.'!select'(pos_args :flat, named_args :flat :named)
 
     ##  add it to the class.
     metaclass.'add_role'($P0)

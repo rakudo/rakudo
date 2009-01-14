@@ -222,6 +222,7 @@ S12-role/attributes.t
 S12-role/composition.t
 S12-role/mixin.t
 S12-role/namespaced.t
+S12-role/parameterized-basic.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S16-filehandles/io.t

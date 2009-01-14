@@ -1018,8 +1018,17 @@ method trait_verb($/) {
 method signature($/, $key) {
     our @?BLOCK;
     if $key eq 'open' {
+        our $?BLOCK_OPEN;
         my $sigpast := PAST::Op.new( :pasttype('stmts'), :node($/) );
-        my $block    := PAST::Block.new( $sigpast, :blocktype('declaration') );
+        my $block;
+        if $?BLOCK_OPEN {
+            $block := $?BLOCK_OPEN;
+            $?BLOCK_OPEN := 0;
+            $block.unshift( $sigpast);
+        }
+        else {
+            $block := PAST::Block.new( $sigpast, :blocktype('declaration') );
+        }
         $block<explicit_signature> := 1;
         @?BLOCK.unshift($block);
     }

@@ -114,7 +114,7 @@ Selects a role based upon type.
 .sub 'postcircumfix:[ ]' :method
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
-    
+
     # Need to unwrap the arguments (they are wrapped by postcircumfix:[ ]
     # multi), then call !select.
     pos_args = pos_args[0]

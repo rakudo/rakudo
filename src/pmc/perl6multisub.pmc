@@ -214,6 +214,8 @@ get_args(PARROT_INTERP)
 Takes two candidates and determines if the first one is narrower than the
 second. Returns a true value if they are.
 
+=cut
+
 */
 static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
     STRING *ACCEPTS = CONST_STRING(interp, "ACCEPTS");
@@ -265,6 +267,8 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
 
 Takes a ResizablePMCArray of the candidates, collects information about them
 and then does a topological sort of them.
+
+=cut
 
 */
 static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **proto_out) {
@@ -429,6 +433,8 @@ ResizablePMCArray of all possible candidates, which may be empty. If many
 is false, then returns either the one winning unambiguous candidate
 or throws an error saying that the dispatch failed if there were no
 candidates or that it was ambiguous if there were tied candidates.
+
+=cut
 
 */
 
@@ -640,6 +646,8 @@ static PMC* do_dispatch(PARROT_INTERP, candidate_info **candidates, PMC *proto,
 
 Checks if a PMC is invokable; returns a true value if so and a false value if
 not.
+
+=cut
 
 */
 static int check_invokable(PARROT_INTERP, PMC *value) {
@@ -892,6 +900,8 @@ Takes an array of arguments and finds all possible matching candidates.
 =item C<VTABLE void mark()>
 
 Marks the candidate list.
+
+=cut
 
 */
     VTABLE void mark() {

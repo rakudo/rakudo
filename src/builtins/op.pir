@@ -401,15 +401,17 @@ src/builtins/op.pir - Perl 6 builtin operators
     derived = new 'Class'
     addparent derived, parrot_class
     $I0 = isa role, 'Perl6Role'
+    if $I0 goto one_role_select
+    $I0 = isa role, 'Role'
     if $I0 goto one_role
     $I0 = isa role, 'List'
     if $I0 goto many_roles
   error:
     'die'("'does' expects a role or a list of roles")
 
-  one_role:
-    # XXX Need to handle parameterized roles properly at some point.
+  one_role_select:
     role = role.'!select'()
+  one_role:
     '!keyword_does'(derived, role)
     goto added_roles
 
@@ -419,10 +421,12 @@ src/builtins/op.pir - Perl 6 builtin operators
   roles_loop:
     unless role_it goto roles_loop_end
     cur_role = shift role_it
+    $I0 = isa cur_role, 'Role'
+    if $I0 goto have_parrot_role
     $I0 = isa cur_role, 'Perl6Role'
     unless $I0 goto error
-    # XXX Need to handle parameterized roles properly at some point.
     cur_role = cur_role.'!select'()
+  have_parrot_role:
     '!keyword_does'(derived, cur_role)
     goto roles_loop
   roles_loop_end:

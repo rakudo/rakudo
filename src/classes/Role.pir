@@ -24,6 +24,7 @@ short name for a particular set of parameters.
     .local pmc p6meta, roleproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     roleproto = p6meta.'new_class'('Perl6Role', 'parent'=>'Any', 'name'=>'Role', 'attr'=>'$!selector @!created')
+    p6meta.'register'('Role', 'proto'=>'roleproto')
 .end
 
 
@@ -101,6 +102,37 @@ Checks if the given topic does the role.
 
     $P0 = 'prefix:?'($I0)
     .return ($P0)
+.end
+
+
+=item postcircumfix:<[ ]>
+
+Selects a role based upon type.
+
+=cut
+
+.sub 'postcircumfix:[ ]' :method
+    .param pmc pos_args  :slurpy
+    .param pmc name_args :slurpy :named
+    
+    # Need to unwrap the arguments (they are wrapped by postcircumfix:[ ]
+    # multi), then call !select.
+    pos_args = pos_args[0]
+    .tailcall self.'!select'(pos_args :flat, name_args :flat :named)
+.end
+
+
+=item elements (vtable method)
+
+Gives the number of possible parameterized roles we can select from (but really
+just here so postcircumfix:[ ] doesn't explode).
+
+=cut
+
+.sub 'elements' :vtable
+    $P0 = getattribute self, '$!selector'
+    $I0 = elements $P0
+    .return ($I0)
 .end
 
 =back

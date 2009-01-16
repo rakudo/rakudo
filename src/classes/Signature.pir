@@ -287,6 +287,7 @@ lexicals as needed and performing type checks.
     orig = callerlex[name]
     if sigil == '@' goto param_array
     if sigil == '%' goto param_hash
+    if sigil != '$' goto param_sub
     var = '!CALLMETHOD'('Scalar', orig)
     ##  typecheck the argument
     if null type goto param_val_done
@@ -330,6 +331,11 @@ lexicals as needed and performing type checks.
     ## place the updated variable back into lex
     callerlex[name] = var
     goto param_loop
+  param_sub:
+    $I0 = isa orig, 'Sub'
+    unless $I0 goto err_sub
+    if $I0 goto param_loop
+    
   param_done:
   end:
     .return ()
@@ -343,6 +349,9 @@ lexicals as needed and performing type checks.
     goto err_throw
   err_hash:
     errmsg = 'Non-Associative argument'
+    goto err_throw
+  err_sub:
+    errmsg = 'Non-Callable argument'
   err_throw:
     .local string callername
     callername = callersub

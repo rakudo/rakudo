@@ -883,7 +883,8 @@ method routine_declarator($/, $key) {
         set_block_type($past, 'Method');
     }
     elsif $key eq 'submethod' {
-        $/.panic('submethod declarations not yet implemented');
+        $past := $($<method_def>);
+        set_block_type($past, 'Submethod');
     }
     $past.node($/);
     if (+@($past[1])) {

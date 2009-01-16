@@ -1300,6 +1300,9 @@ method expect_term($/, $key) {
                     $past[0] := $term;
                     $past.unshift($meth);
             }
+            elsif $past<invocant_holder> {
+                $past<invocant_holder>.unshift($term);
+            }
             else {
                 $past.unshift($term);
             }
@@ -1364,6 +1367,30 @@ method dotty($/, $key) {
             :name('!VAR'),
             :node($/)
         );
+    }
+
+    # We actually need to send dispatches for named method calls (other than .*)
+    # through .HOW.dispatch.
+    if $key ne '.*' && $past.pasttype() eq 'callmethod' && $past.name() ne "" {
+        $past.unshift($past.name());
+        $past.name('dispatch');
+        my $inv_var := PAST::Var.new( :scope('register') );
+        $past.unshift($inv_var);
+        $past.unshift(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('HOW'),
+            $inv_var
+        ));
+        my $inv_set_node := PAST::Op.new(
+            :pasttype('bind'),
+            $inv_var,
+            PAST::Stmts.new()
+        );
+        $past := PAST::Stmts.new( $inv_set_node, $past );
+        $past<invocant_holder> := $inv_set_node[1];
+    }
+    else {
+        $past<invocant_holder> := $past;
     }
 
     make $past;
@@ -1442,7 +1469,7 @@ method noun($/, $key) {
     elsif $key eq 'dotty' {
         # Call on $_.
         $past := $( $/{$key} );
-        $past.unshift(PAST::Var.new(
+        $past<invocant_holder>.unshift(PAST::Var.new(
             :name('$_'),
             :scope('lexical'),
             :viviself('Failure'),

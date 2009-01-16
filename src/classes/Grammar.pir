@@ -10,43 +10,31 @@ This file implements the Grammar class.
 
 =cut
 
-.namespace [ 'Grammar' ]
-
-
-=head1 SUBROUTINES
-
-=over 4
-
-=item onload()
-
-=cut
-
-.sub 'onload' :anon :init :load
+.sub '' :anon :init :load
     load_bytecode "PGE.pbc"
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     p6meta.'new_class'('Grammar', 'parent'=>'PGE::Grammar')
 .end
 
-=item PROTOOVERRIDES()
+=head2 Methods
 
-Tell C<P6object> that the ACCEPTS method overrides the one
-for protoobjects.
+=over
+
+=item parse(string)
+
+Parse a string according to the TOP rule in the grammar.
 
 =cut
 
-.sub 'PROTOOVERRIDES' :method
-    .return ('new', 'ACCEPTS')
-.end
-
-
-=item ACCEPTS(topic)
+=item parse(topic)
 
 Invokes the TOP rule in the grammar on the given topic.
 
 =cut
 
-.sub 'ACCEPTS' :method
+.namespace ['Grammar']
+.sub 'parse' :method
     .param pmc topic
     .local pmc TOP
 
@@ -59,16 +47,12 @@ Invokes the TOP rule in the grammar on the given topic.
     match = TOP(topic, 'grammar' => $S0)
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
-    unless null $P1 goto found_pad
-    $P1 = $P0['lexpad';2]
-found_pad:
     $P1['$/'] = match
     .return(match)
 
   no_TOP:
     'die'("The grammar has no TOP rule to invoke.")
 .end
-
 
 =back
 

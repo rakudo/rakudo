@@ -498,6 +498,10 @@ attr_error:
 
     # Now we have a role, copy the value and call does on the copy.
   have_role:
+    $I0 = isa var, 'ObjectRef'
+    unless $I0 goto not_obj_ref
+    var = deref var
+  not_obj_ref:
     var = clone var
     if null value goto no_value
     'infix:does'(var, role, value)

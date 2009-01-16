@@ -335,7 +335,7 @@ lexicals as needed and performing type checks.
     $I0 = isa orig, 'Sub'
     unless $I0 goto err_sub
     if $I0 goto param_loop
-    
+
   param_done:
   end:
     .return ()

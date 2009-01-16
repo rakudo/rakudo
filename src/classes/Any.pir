@@ -43,6 +43,16 @@ This file implements the Any class.
     .tailcall $P0.'isa'(self, x)
 .end
 
+=item does($x)
+
+=cut
+
+.sub 'does' :method
+    .param pmc x
+    $P0 = self.'HOW'()
+    .tailcall $P0.'isa'(self, x)
+.end
+
 =back
 
 =cut

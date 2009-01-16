@@ -520,7 +520,7 @@ token expect_term {
 
 token post {
     <!afterws>
-    [ <.unsp> || \\ <?before '.'> ]?
+    [ <.unsp> || \\ ]?
     [
     | <dotty> {*}                                #= dotty
     | <postcircumfix> {*}                        #= postcircumfix

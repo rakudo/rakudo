@@ -16,7 +16,7 @@ for executable objects.
 .sub 'onload' :anon :load :init
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any')
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Sub Any')
     $P0 = get_hll_global 'Callable'
     $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>codeproto)
@@ -98,21 +98,6 @@ Return a response to .perl.
 
 .sub 'perl' :method
     .return ('{ ... }')
-.end
-
-=item WHAT()
-
-Gets the proto-object for this value.
-
-=cut
-
-.sub 'WHAT' :method
-    $P0 = getprop '$!proto', self
-    if null $P0 goto block
-    .return ($P0)
-  block:
-    $P0 = get_hll_global 'Block'
-    .return ($P0)
 .end
 
 =item signature()

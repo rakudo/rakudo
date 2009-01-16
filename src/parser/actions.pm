@@ -91,7 +91,11 @@ method statement_block($/, $key) {
 
 
 method block($/) {
-    make $( $<statement_block> );
+    my $past := $( $<statement_block> );
+    unless $past<pkgdecl> {
+        set_block_type($past, 'Block');
+    }
+    make $past;
 }
 
 
@@ -872,9 +876,11 @@ method routine_declarator($/, $key) {
     my $past;
     if $key eq 'sub' {
         $past := $($<routine_def>);
+        set_block_type($past, 'Sub');
     }
     elsif $key eq 'method' {
         $past := $($<method_def>);
+        set_block_type($past, 'Method');
     }
     elsif $key eq 'submethod' {
         $/.panic('submethod declarations not yet implemented');
@@ -2788,6 +2794,24 @@ sub block_signature($block) {
     }
 }
 
+
+# Adds to the loadinit to set the type of a block.
+sub set_block_type($block, $type) {
+    # If the block already has a type node, edit it.
+    if $block<block_class_type> {
+        $block<block_class_type>[1] := $type;
+    }
+    else {
+        my $set_type := PAST::Op.new(
+            :pasttype('call'),
+            :name('!fixup_routine_type'),
+            PAST::Var.new( :name('block'), :scope('register') ),
+            $type
+        );
+        $block<block_class_type> := $set_type;
+        $block.loadinit().push($set_type);
+    }
+}
 
 # Local Variables:
 #   mode: cperl

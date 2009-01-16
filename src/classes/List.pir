@@ -405,7 +405,7 @@ Returns an iterator for the list.
 
 
 .namespace []
-.sub 'uniq' :multi(Sub)
+.sub 'uniq' :multi('Block')
     .param pmc comparer
     .param pmc values :slurpy
     values.'!flatten'()

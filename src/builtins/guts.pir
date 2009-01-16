@@ -982,6 +982,25 @@ Constructs a Mapping, based upon the values list.
     .return (result)
 .end
 
+
+=item !fixup_routine_type(sub, new_type)
+
+Reblesses a sub into a new type.
+
+=cut
+
+.sub '!fixup_routine_type'
+    .param pmc sub
+    .param string new_type_name
+
+    # Create the correct object and rebless the sub into that class.
+    .local pmc new_type
+    new_type = get_hll_global new_type_name
+    $P0 = new_type.'new'()
+    $P0 = typeof $P0
+    rebless_subclass sub, $P0
+.end
+
 =back
 
 =cut

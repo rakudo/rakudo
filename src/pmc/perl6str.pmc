@@ -261,6 +261,8 @@ alphabet is contiguous and that there aren't any other characters on
 either side of the letters or digits that return true for C<isalpha()> or
 C<isdigit()> respectively.
 
+=cut
+
 */
 
     VTABLE void increment() {

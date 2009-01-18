@@ -5,6 +5,9 @@
 # we don't add some files here, although all tests might pass right now
 #
 # S03-operators/overflow.t - passes only if bignum lib is available
+#
+# we've regressed on some files for various reasons:
+# 
 # S03-operators/binding-arrays.t - regressed to allow slices
 # S03-operators/binding-hashes.t - regressed to allow slices
 # integration/man-or-boy.t - regressed for rvar branch
@@ -129,6 +132,7 @@ S04-statements/loop.t
 S04-statements/map-and-sort-in-for.t
 S04-statements/next.t
 S04-statements/no-implicit-block.t
+S04-statements/redo.t
 S04-statements/repeat.t
 S04-statements/return.t
 S04-statements/terminator.t
@@ -137,6 +141,7 @@ S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
 S05-capture/named.t
+S05-grammar/inheritance.t
 S05-grammar/namespace.t
 S05-grammar/ws.t
 S05-mass/rx.t
@@ -144,6 +149,7 @@ S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
+S05-match/capturing-contexts.t
 S05-match/non-capturing.t
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
@@ -192,6 +198,7 @@ S12-attributes/class.t
 S12-attributes/clone.t
 S12-attributes/delegation.t
 S12-attributes/instance.t
+S12-attributes/mutator.t
 S12-class/anonymous.t
 S12-class/attributes.t
 S12-class/basic.t

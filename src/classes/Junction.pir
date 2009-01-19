@@ -232,6 +232,7 @@ Does a junctional dispatch. XXX Needs to support named args.
 .sub '!DISPATCH_JUNCTION'
     .param pmc the_sub
     .param pmc args            :slurpy
+    .param pmc name_args       :slurpy :named
 
     ##  lookup a sub by name if needed
     $I0 = isa the_sub, 'Sub'
@@ -246,8 +247,9 @@ Does a junctional dispatch. XXX Needs to support named args.
     .local int argc, index, index_save
     argc = args
     index = 0
+    index_save = -1
   left_loop:
-    unless index < argc goto left_done
+    unless index < argc goto all_done
     .local pmc junc
     junc = args[index]
     $I0 = isa junc, 'Junction'
@@ -275,9 +277,32 @@ Does a junctional dispatch. XXX Needs to support named args.
   all_done:
     index = index_save
     junc = args[index]
-    type = junc.'!type'()
-  have_index:
 
+    # If we don't have a junction now, need to check for anything in named.
+    .local int found_junction
+    found_junction = isa junc, 'Junction'
+    unless found_junction goto check_named
+    type = junc.'!type'()
+  check_named:
+    .local pmc name_iter, name_junc
+    .local string cur_name, name_index
+    name_iter = iter name_args
+  name_loop:
+    unless name_iter goto name_loop_end
+    cur_name = shift name_iter
+    name_junc = name_args[cur_name]
+    $I0 = isa name_junc, 'Junction'
+    unless $I0 goto name_loop
+    $I0 = name_junc.'!type'()
+    if $I0 >= JUNCTION_TYPE_ALL goto have_named_index
+    if found_junction goto name_loop
+  have_named_index:
+    junc = name_junc
+    type = $I0
+    name_index = cur_name
+  name_loop_end:
+
+  have_index:
     .local pmc eigenstates, it, results
     eigenstates = junc.'!eigenstates'()
     it = iter eigenstates
@@ -285,8 +310,13 @@ Does a junctional dispatch. XXX Needs to support named args.
   thread_loop:
     unless it goto thread_done
     $P0 = shift it
+    unless null name_index goto thread_named
     args[index] = $P0
-    $P0 = the_sub(args :flat)
+    goto do_threaded_call
+  thread_named:
+    name_args[name_index] = $P0
+  do_threaded_call:
+    $P0 = the_sub(args :flat, name_args :flat :named)
     push results, $P0
     goto thread_loop
   thread_done:

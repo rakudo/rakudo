@@ -1073,6 +1073,11 @@ method signature($/, $key) {
             my $sigparam := PAST::Op.new( :pasttype('callmethod'),
                                 :name('!add_param'), $sigobj, $name );
 
+            ##  if it's named, note that in the signature object
+            if $var.named() ne "" {
+                $sigparam.push(PAST::Val.new( :value($var.named()), :named('named') ));
+            }
+
             ##  add any typechecks
             my $type := $var<type>;
             if +@($type) > 0 {

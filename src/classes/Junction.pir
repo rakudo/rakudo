@@ -222,6 +222,13 @@ Return the components of the Junction.
     .return (junc)
 .end
 
+
+=item !DISPATCH_JUNCTION
+
+Does a junctional dispatch. XXX Needs to support named args.
+
+=cut
+
 .sub '!DISPATCH_JUNCTION'
     .param pmc the_sub
     .param pmc args            :slurpy
@@ -283,6 +290,68 @@ Return the components of the Junction.
   thread_done:
     .tailcall '!MAKE_JUNCTION'(type, results)
 .end
+
+
+=item !DISPATCH_JUNCTION_SINGLE
+
+Wrapper for junction dispatcher in the single dispatch case, where we are
+passed the sub that is being called along with a way to build tuples of the
+parameters for the dispatcher.
+
+=cut
+
+.sub '!DISPATCH_JUNCTION_SINGLE'
+    .param pmc sub
+    .param pmc lexpad
+    .param pmc signature
+
+    # We build tuples of the args and pass them onto the main junction
+    # dispatcher.
+    .local pmc pos_args, name_args, it, param
+    pos_args = new ['ResizablePMCArray']
+    name_args = new ['Hash']
+    $P0 = signature.'params'()
+    it = iter $P0
+  param_loop:
+    unless it goto param_loop_end
+    .local pmc param
+    param = shift it
+    .local string name
+    .local pmc named, value
+    name = param['name']
+    named = param['named']
+    value = lexpad[name]
+    if null named goto pos_arg
+    name_args[named] = value
+    goto param_loop
+  pos_arg:
+    push pos_args, value
+    goto param_loop
+  param_loop_end:
+
+    .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat :named)
+.end
+
+
+=item !DISPATCH_JUNCTION_MULTI
+
+Wrapper for junction dispatcher in the multi dispatch case. Here we are handed
+back as the thingy to call in place of a candidate, and PCC doesn't give us an
+easy way to unshift another argument into the call, so we have it attached as
+a property.
+
+=cut
+
+.sub '!DISPATCH_JUNCTION_MULTI'
+    .param pmc pos_args  :slurpy
+    .param pmc name_args :slurpy :named
+    .local pmc pi, sub
+    pi = new 'ParrotInterpreter'
+    sub = pi['sub']
+    sub = getprop 'sub', sub
+    .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat)
+.end
+
 
 =head2 Functions
 

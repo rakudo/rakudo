@@ -70,7 +70,11 @@ the Signature.
     constraints = 'list'()
     type = null
     cur_list = attr["type"]
-    if null cur_list goto cur_list_loop_end
+    unless null cur_list goto have_type_attr
+    $P0 = get_hll_global 'Any'
+    cur_list = 'all'($P0)
+    attr["type"] = cur_list
+  have_type_attr:
     cur_list = cur_list.'!eigenstates'()
     cur_list_iter = iter cur_list
   cur_list_loop:
@@ -255,7 +259,7 @@ Gets a perl representation of the signature.
     .return (s)
 .end
 
-=item !BIND_SIGNATURE
+=item !SIGNATURE_BIND
 
 Analyze the signature of the caller, (re)binding the caller's
 lexicals as needed and performing type checks.
@@ -341,6 +345,12 @@ lexicals as needed and performing type checks.
     .return ()
 
   err_param_type:
+    # Is it a junctional parameter?
+    $I0 = isa var, 'Junction'
+    unless $I0 goto not_junctional
+    $P0 = '!DISPATCH_JUNCTION_SINGLE'(callersub, callerlex, callersig)
+    'return'($P0)
+  not_junctional:
     .local string errmsg
     errmsg = 'Parameter type check failed'
     goto err_throw

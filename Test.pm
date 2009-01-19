@@ -195,9 +195,13 @@ sub eval_exception($code) {
     $eval_exception // $!;
 }
 
-sub proclaim($cond, $desc) {
+sub proclaim(Object $cond, $desc) {
     $testing_started  = 1;
     $num_of_tests_run = $num_of_tests_run + 1;
+
+    if $cond.HOW().isa($cond, Junction) {
+        warn("Junction passed to proclaim");
+    }
 
     unless $cond {
         print "not ";

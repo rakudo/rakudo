@@ -236,6 +236,8 @@ Does a junctional dispatch. XXX Needs to support named args.
     ##  lookup a sub by name if needed
     $I0 = isa the_sub, 'Sub'
     if $I0 goto have_sub
+    $I0 = isa the_sub, 'MultiSub'
+    if $I0 goto have_sub
     $S0 = the_sub
     the_sub = find_name $S0
   have_sub:
@@ -349,7 +351,7 @@ a property.
     pi = new 'ParrotInterpreter'
     sub = pi['sub']
     sub = getprop 'sub', sub
-    .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat)
+    .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat :named)
 .end
 
 

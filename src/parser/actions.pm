@@ -571,6 +571,15 @@ method multi_declarator($/) {
                 PAST::Op.new(:inline('    setprop block, "proto", %0'), 1)
             );
         }
+
+        # If it's just a routine, need to mark it as a sub and make sure we
+        # bind its signature.
+        if $<routine_def> {
+            set_block_type($past, 'Sub');
+            $past[0].push(
+                PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
+            );
+        }
     }
 
     make $past;

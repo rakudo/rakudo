@@ -2651,7 +2651,7 @@ sub outer_symbol($name) {
 # Used by all calling code to process arguments into the correct form.
 sub build_call($args) {
     if !$args.isa(PAST::Op) || $args.name() ne 'infix:,' {
-        $args := PAST::Op.new( :node($args), :name('infix:,'), $args);
+        $args := PAST::Op.new( :node($args), $args);
     }
     my $i := 0;
     my $elems := +@($args);
@@ -2664,6 +2664,7 @@ sub build_call($args) {
         $i++;
     }
     $args.pasttype('call');
+    $args.name('');
     $args;
 }
 

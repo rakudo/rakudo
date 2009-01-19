@@ -202,6 +202,23 @@ src/builtins/assign.pir - assignments
 .end
 
 
+=item infix:<//=>
+
+Implemented here as infix:// reduces to a PAST node rather than a call.
+
+=cut
+
+.sub 'infix://='
+    .param pmc a
+    .param pmc b
+    $I0 = 'defined'(a)
+    if $I0 goto done
+    'infix:='(a, b)
+  done:
+    .return (a)
+.end
+
+
 .sub '!REDUCEMETAOPCHAIN'
     .param string opname
     .param string identity

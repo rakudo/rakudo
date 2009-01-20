@@ -485,11 +485,13 @@ and creating the protoobjects.
     # Parrot handles composing methods into roles, but we need to handle the
     # attribute composition ourselves.
     .local pmc roles, roles_it
-    roles = inspect metaclass, 'roles'
+    roles = getprop '@!roles', metaclass
+    if null roles goto roles_it_loop_end
     roles_it = iter roles
   roles_it_loop:
     unless roles_it goto roles_it_loop_end
     $P0 = shift roles_it
+    metaclass.'add_role'($P0)
     '!compose_role_attributes'(metaclass, $P0)
     goto roles_it_loop
   roles_it_loop_end:
@@ -558,8 +560,14 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
     ##  select the correct role based upon any parameters
     $P0 = $P0.'!select'(pos_args :flat, named_args :flat :named)
 
-    ##  add it to the class.
-    metaclass.'add_role'($P0)
+    ##  add it to the composition list (we compose them at the end)
+    .local pmc role_list
+    role_list = getprop '@!roles', metaclass
+    unless null role_list goto have_role_list
+    role_list = new 'ResizablePMCArray'
+    setprop metaclass, '@!roles', role_list
+  have_role_list:
+    push role_list, $P0
 .end
 
 

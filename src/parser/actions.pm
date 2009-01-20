@@ -2603,10 +2603,10 @@ method colonpair($/, $key) {
         }
     }
     elsif $key eq 'varname' {
-        if $<desigilname><name> {
-            $pair_key := PAST::Val.new( :value( ~$<desigilname> ) );
+        if $<desigilname><longname> {
+            $pair_key := PAST::Val.new( :value( $<desigilname>.text() ) );
             $pair_val := PAST::Var.new(
-                :name( ~$<sigil> ~ ~$<twigil> ~ ~$<desigilname> )
+                :name( ~$<sigil> ~ ~$<twigil> ~ $<desigilname>.text() )
             );
         }
         else {

@@ -86,6 +86,8 @@ Return a clone of the protoobject with a new WHENCE property set.
     .return (self)
 .end
 
+=back
+
 =head2  Private methods
 
 =over
@@ -127,8 +129,6 @@ Indicate that objects in the class are mutable or immutable.
 
 =head2 Vtable functions
 
-=over
-
 =cut
 
 .namespace ['P6protoobject']
@@ -151,8 +151,6 @@ Indicate that objects in the class are mutable or immutable.
     $N0 = $P0
     .return ($N0)
 .end
-
-=back
 
 =cut
 

@@ -222,6 +222,7 @@ Return the components of the Junction.
     .return (junc)
 .end
 
+=over
 
 =item !DISPATCH_JUNCTION
 
@@ -384,6 +385,7 @@ a property.
     .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat :named)
 .end
 
+=back
 
 =head2 Functions
 

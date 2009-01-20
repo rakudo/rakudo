@@ -5,12 +5,11 @@
 ## working. It's shamelessly stolen & adapted from MiniPerl6 in the pugs repo.
 
 # globals to keep track of our tests
-our $num_of_tests_run     = 0;
-our $num_of_tests_failed  = 0;
-our $todo_upto_test_num   = 0;
-our $todo_reason          = '';
-our $die_on_fail          = 0;
+our $num_of_tests_run = 0;
+our $num_of_tests_failed = 0;
 our $num_of_tests_planned;
+our $todo_upto_test_num = 0;
+our $todo_reason = '';
 
 our $*WARNINGS = 0;
 
@@ -34,45 +33,53 @@ sub plan($number_of_tests) is export() {
     say '1..' ~ $number_of_tests;
 }
 
-sub die_on_fail() is export() {
-    $die_on_fail = 1;
-}
-
-sub pass($desc) is export() {
+multi sub pass($desc) is export() {
     proclaim(1, $desc);
 }
 
-sub fail($desc) is export() {
-    proclaim(0, $desc);
+multi sub ok(Object $cond, $desc) is export() {
+    proclaim($cond, $desc);
 }
 
-sub ok(Object $passed, $desc='') is export() {
-    my $diagnostics = diag_bool_true($passed);
-    proclaim($passed, $desc, $diagnostics);
+multi sub ok(Object $cond) is export() { ok($cond, ''); }
+
+
+multi sub nok(Object $cond, $desc) is export() {
+    proclaim(!$cond, $desc);
 }
 
-sub nok(Object $passed, $desc='') is export() {
-    my $diagnostics = diag_bool_false($passed);
-    proclaim(!$passed, $desc, $diagnostics);
+multi sub nok(Object $cond) is export() { nok(!$cond, ''); }
+
+
+multi sub is(Object $got, Object $expected, $desc) is export() {
+    my $test = $got eq $expected;
+    proclaim($test, $desc);
 }
 
-sub is(Object $have, Object $want, $desc='') is export() {
-    my $passed = $have eq $want;
-    proclaim($passed, $desc, diag_eq($passed, $have, $want));
+multi sub is(Object $got, Object $expected) is export() { is($got, $expected, ''); }
+
+
+multi sub isnt(Object $got, Object $expected, $desc) is export() {
+    my $test = !($got eq $expected);
+    proclaim($test, $desc);
 }
 
-sub isnt(Object $have, Object $want, $desc='') is export() {
-    my $passed = !($have eq $want);
-    proclaim($passed, $desc, diag_neq($passed, $have, $want));
+multi sub isnt(Object $got, Object $expected) is export() { isnt($got, $expected, ''); }
+
+multi sub is_approx(Object $got, Object $expected, $desc) is export() {
+    my $test = abs($got - $expected) <= 0.00001;
+    proclaim($test, $desc);
 }
 
-sub is_approx(Object $have, Object $want, $desc='') is export() {
-    my $passed = abs($have - $want) <= 0.00001;
-    proclaim($passed, $desc, diag_approx($passed, $have, $want));
-}
+multi sub is_approx($got, $expected) is export() { is_approx($got, $expected, ''); }
 
-sub todo($reason, $count=1) is export() {
+multi sub todo($reason, $count) is export() {
     $todo_upto_test_num = $num_of_tests_run + $count;
+    $todo_reason = '# TODO ' ~ $reason;
+}
+
+multi sub todo($reason) is export() {
+    $todo_upto_test_num = $num_of_tests_run + 1;
     $todo_reason = '# TODO ' ~ $reason;
 }
 
@@ -138,10 +145,14 @@ multi sub eval_lives_ok($code) is export() {
 }
 
 
-sub is_deeply($have, $want, $reason='') {
-    my $passed = _is_deeply( $have, $want );
-    my $diagnostics = diag_eq($passed, $have, $want);
-    proclaim($passed, $reason, $diagnostics);
+multi sub is_deeply($this, $that, $reason) {
+    my $val = _is_deeply( $this, $that );
+    proclaim($val, $reason);
+}
+
+multi sub is_deeply($this, $that) {
+    my $val = _is_deeply( $this, $that );
+    proclaim($val, '');
 }
 
 sub _is_deeply( $this, $that) {
@@ -178,49 +189,21 @@ sub _is_deeply( $this, $that) {
 
 ## 'private' subs
 
-sub diag_bool_true($passed) {
-    # Workaround for: Method 'perl' not found for invocant (various classes,
-    # including some anonymous, so can't just make a list).
-    my $have;
-    try { $have = $passed.perl; CATCH { $have = $passed } }
-    return $passed
-        ?? ''
-        !! "# Expected a true value.\n# have: {$have}";
-}
-
-sub diag_bool_false($passed) {
-    return $passed
-        ?? "# Expected a false value.\n# have: {$passed.perl}"
-        !! '';
-}
-
-sub diag_eq($passed, $have, $want) {
-    # Workaround for: Method 'perl' not found for invocant (various classes,
-    # including some anonymous, so can't just make a list).
-    my $x_have;
-    try { $x_have = $passed.perl; CATCH { $x_have = $passed } }
-    return $passed ?? '' !! "# have: {$x_have}\n# want: {$want.perl}";
-}
-
-sub diag_neq($passed, $have, $want) {
-    return $passed ?? '' !! "# Expected different values\n# have: {$have.perl}\n# want: {$want.perl}";
-}
-
-sub diag_approx($passed, $have, $want) {
-    return $passed ?? '' !! "# Expected approximately the same values\n# have: {$have.perl}\n# want: {$want.perl}";
-}
-
 sub eval_exception($code) {
     my $eval_exception;
     try { eval ($code); $eval_exception = $! }
     $eval_exception // $!;
 }
 
-sub proclaim($passed, $desc, $diagnostics='') {
+sub proclaim(Object $cond, $desc) {
     $testing_started  = 1;
     $num_of_tests_run = $num_of_tests_run + 1;
 
-    unless $passed {
+    if $cond.HOW().isa($cond, Junction) {
+        warn("Junction passed to proclaim");
+    }
+
+    unless $cond {
         print "not ";
         $num_of_tests_failed = $num_of_tests_failed + 1
             unless  $num_of_tests_run <= $todo_upto_test_num;
@@ -230,12 +213,6 @@ sub proclaim($passed, $desc, $diagnostics='') {
         print $todo_reason;
     }
     print "\n";
-    say $diagnostics if $diagnostics;
-    if !$passed && $die_on_fail && !$todo_reason {
-        die "Test failed.  Stopping test.";
-    }
-    $todo_reason = '';   # must reset between tests
-    return $passed;
 }
 
 END {

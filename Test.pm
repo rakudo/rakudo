@@ -179,11 +179,10 @@ sub _is_deeply( $this, $that) {
 ## 'private' subs
 
 sub diag_bool_true($passed) {
-    # Workaround for: Method 'perl' not found for invocant of class 'Match'
-    # and issues with the Exception&Iterator class might work, but I don't grok it.
-    my $have = $passed.WHAT eq any(<Match Exception Iterator>)
-        ?? $passed
-        !! $passed.perl;
+    # Workaround for: Method 'perl' not found for invocant (various classes,
+    # including some anonymous, so can't just make a list).
+    my $have;
+    try { $have = $passed.perl; CATCH { $have = $passed } }
     return $passed
         ?? ''
         !! "# Expected a true value.\n# have: {$have}";
@@ -196,11 +195,10 @@ sub diag_bool_false($passed) {
 }
 
 sub diag_eq($passed, $have, $want) {
-    # Workaround for: Method 'perl' not found for invocant of class 'Match'
-    # and issues with the Exception&Iterator class might work, but I don't grok it.
-    my $x_have = $passed.WHAT eq any(<Match Exception Iterator>)
-        ?? $passed
-        !! $passed.perl;
+    # Workaround for: Method 'perl' not found for invocant (various classes,
+    # including some anonymous, so can't just make a list).
+    my $x_have;
+    try { $x_have = $passed.perl; CATCH { $x_have = $passed } }
     return $passed ?? '' !! "# have: {$x_have}\n# want: {$want.perl}";
 }
 

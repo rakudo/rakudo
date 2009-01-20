@@ -56,17 +56,60 @@ Selects a variant of the role to do based upon the supplied parameters.
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
 
-    # XXX We need to look through the parameters we have and keep track
-    # of variants we did already initialize/parameterize with.
-    .local pmc selector, result, created_list
-    selector = getattribute self, '$!selector'
-    result = selector(pos_args :flat, name_args :flat :named)
+    # @!created is an array of hashes describing role instantiations that have
+    # already taken place. This means that we always hand back, for Foo[Int],
+    # the same Parrot-level role rather than creating one each time we ask for
+    # a Foo[Int]. The hash contains:
+    #  * pos_args - array of the positional arguments for the instantiation
+    #  * role - the Parrot role object
+    # Note that since named parameters don't participate in a multiple dispatch,
+    # they cannot form part of the long name for the role, so we don't need to
+    # check those.
+    .local pmc result, created_list, ins_hash, it, test_pos_args
+    .local int num_pos_args, num_name_args, i
     created_list = getattribute self, '@!created'
     unless null created_list goto got_created_list
     created_list = new 'ResizablePMCArray'
     setattribute self, '@!created', created_list
+    goto select_role
   got_created_list:
-    push created_list, result
+    num_pos_args = elements pos_args
+    it = iter created_list
+  it_loop:
+    unless it goto it_loop_end
+    ins_hash = shift it
+
+    # Compare positional counts.
+    test_pos_args = ins_hash["pos_args"]
+    $I0 = elements test_pos_args
+    if $I0 != num_pos_args goto it_loop
+
+    # Counts match, now look at positionals.
+    i = 0
+  pos_loop:
+    if i >= num_pos_args goto pos_loop_end
+    $P0 = pos_args[i]
+    $P1 = test_pos_args[i]
+    $I0 = 'infix:==='($P0, $P1)
+    unless $I0 goto it_loop
+    inc i
+    goto pos_loop
+  pos_loop_end:
+
+    # If we get here, we've found a match, so return it.
+    result = ins_hash["role"]
+    .return (result)
+  it_loop_end:
+
+    # First time we've had these parameters, so need to instantiate them.
+  select_role:
+    .local pmc selector
+    selector = getattribute self, '$!selector'
+    result = selector(pos_args :flat, name_args :flat :named)
+    ins_hash = new 'Hash'
+    ins_hash["pos_args"] = pos_args
+    ins_hash["role"] = result
+    push created_list, ins_hash
     .return (result)
 .end
 
@@ -96,6 +139,7 @@ Checks if the given topic does the role.
   it_loop:
     unless it goto it_loop_end
     $P0 = shift it
+    $P0 = $P0["role"]
     $I0 = does topic, $P0
     if $I0 == 0 goto it_loop
   it_loop_end:
@@ -134,6 +178,7 @@ just here so postcircumfix:[ ] doesn't explode).
     $I0 = elements $P0
     .return ($I0)
 .end
+
 
 =back
 

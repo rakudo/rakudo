@@ -755,6 +755,9 @@ Gets all the methods that the class has and adds them to the resolves list.
   it_loop:
     unless it goto it_loop_end
     $S0 = shift it
+    $P0 = meths[$S0]
+    $I0 = isa $P0, 'MultiSub'
+    if $I0 goto it_loop
     push res_list, $S0
     goto it_loop
   it_loop_end:

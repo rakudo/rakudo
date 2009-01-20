@@ -166,6 +166,23 @@ Selects a role based upon type.
 .end
 
 
+=item new
+
+Puns the role and instantiates the punned class.
+
+=cut
+
+.sub 'new' :method
+    .param pmc pos_args  :slurpy
+    .param pmc name_args :slurpy :named
+
+    # Must be argument-less case of the role; select that and then tailcall
+    # it's new.
+    $P0 = self.'!select'()
+    .tailcall $P0.'new'(pos_args :flat, name_args :flat :named)
+.end
+
+
 =item elements (vtable method)
 
 Gives the number of possible parameterized roles we can select from (but really
@@ -179,6 +196,60 @@ just here so postcircumfix:[ ] doesn't explode).
     .return ($I0)
 .end
 
+
+=back
+
+=head1 Methods on Parrot Roles
+
+We also add some methods to the Parrot roles.
+
+=item new
+
+Puns the role to a class and instantiates it.
+
+=cut
+
+.namespace ["Role"]
+.sub 'new' :method
+    .param pmc pos_args    :slurpy
+    .param pmc name_args   :slurpy :named
+
+    # See if we have already created a punned class; use it if so.
+    .local pmc pun
+    pun = getprop '$!pun', self
+    if null pun goto make_pun
+    .tailcall pun.'new'(pos_args :flat, name_args :flat :named)
+  make_pun:
+
+    # Otherwise, need to create a punned class.
+    .local pmc p6meta, metaclass, proto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    metaclass = new ['Class']
+    $P0 = box 'class'
+    setprop metaclass, 'pkgtype', $P0
+    metaclass.'add_role'(self)
+    # XXX Would be nice to call !meta_compose here; for some reason, Parrot
+    # ends up calling the wrong multi-variant. Something to investigate, when
+    # I/someone has the energy for it.
+    '!compose_role_attributes'(metaclass, self)
+    proto = p6meta.'register'(metaclass, 'parent'=>'Any')
+
+    # Stash it away, then instantiate it.
+    setprop self, '$!pun', proto
+    .tailcall proto.'new'(pos_args :flat, name_args :flat :named)
+.end
+
+
+=item ACCEPTS
+
+=cut
+
+.sub 'ACCEPTS' :method
+    .param pmc topic
+    $I0 = does topic, self
+    $P0 = 'prefix:?'($I0)
+    .return ($P0)
+.end
 
 =back
 

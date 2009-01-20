@@ -447,8 +447,8 @@ until we get roles).
 .sub 'REJECTS' :method
     .param pmc topic
     $P0 = self.'ACCEPTS'(topic)
-    n_not $P0, $P0
-    .return ($P0)
+    $P1 = not $P0
+    .return ($P1)
 .end
 
 

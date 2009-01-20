@@ -38,7 +38,7 @@ This is a value type, so just returns itself.
 
 
 .sub 'abs' :method :multi('Integer')
-    $P0 = n_abs self
+    $P0 = abs self
     .return ($P0)
 .end
 

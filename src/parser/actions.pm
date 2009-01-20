@@ -556,20 +556,17 @@ method multi_declarator($/) {
         # If we're declaring a multi or a proto, flag the sub as :multi,
         # and transform the sub's container to a Perl6MultiSub.
         if $sym eq 'multi' || $sym eq 'proto' {
-            my $pirflags := ~$past.pirflags();
-            $past.pirflags( $pirflags ~ ' :multi()' );
-            $past.loadinit().push(
-                PAST::Op.new( :name('!TOPERL6MULTISUB'), :pasttype('call'),
-                    PAST::Var.new( :name('block'), :scope('register') )
-                )
-            );
+            transform_to_multi($past);
         }
 
-        # Protos also need the proto property setting on them.
+        # Protos also need the proto property setting on them, plus we note
+        # that we have one in scope.
         if $<sym> eq 'proto' {
             $past.loadinit().push(
                 PAST::Op.new(:inline('    setprop block, "proto", %0'), 1)
             );
+            our @?BLOCK;
+            @?BLOCK[0].symbol($past.name(), :does_callable(1), :is_proto(1));
         }
 
         # If it's just a routine, need to mark it as a sub and make sure we
@@ -906,6 +903,14 @@ method routine_declarator($/, $key) {
     $past[0].push(
         PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
     );
+    ##  If we have a proto in scope of this name, then we need to make this a
+    ##  multi.
+    if $past.name() ne "" {
+        my $sym := outer_symbol($past.name());
+        if $sym && $sym<does_callable> && $sym<is_proto> {
+            transform_to_multi($past);
+        }
+    }
     make $past;
 }
 
@@ -2855,6 +2860,21 @@ sub set_block_type($block, $type) {
         );
         $block<block_class_type> := $set_type;
         $block.loadinit().push($set_type);
+    }
+}
+
+
+# Makes a routine into a multi, if it isn't already one.
+sub transform_to_multi($past) {
+    unless $past<multi_flag> {
+        my $pirflags := ~$past.pirflags();
+        $past.pirflags( $pirflags ~ ' :multi()' );
+        $past.loadinit().push(
+            PAST::Op.new( :name('!TOPERL6MULTISUB'), :pasttype('call'),
+                PAST::Var.new( :name('block'), :scope('register') )
+            )
+        );
+        $past<multi_flag> := 1;
     }
 }
 

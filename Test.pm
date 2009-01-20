@@ -184,13 +184,13 @@ sub diag_bool_true($passed) {
     my $have = $passed.WHAT eq any(<Match Exception Iterator>)
         ?? $passed
         !! $passed.perl;
-    return $passed 
-        ?? '' 
+    return $passed
+        ?? ''
         !! "# Expected a true value.\n# have: {$have}";
 }
 
 sub diag_bool_false($passed) {
-    return $passed 
+    return $passed
         ?? "# Expected a false value.\n# have: {$passed.perl}"
         !! '';
 }

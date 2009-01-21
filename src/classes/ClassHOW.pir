@@ -79,14 +79,15 @@ Dispatches to method of the given name on this class or one of its parents.
   check_handles:
     # See if we have any complex handles to check.
     .local pmc handles_list, handles_it, handles_hash, attr
+    .local string attrname
     handles_list = getprop '@!handles_dispatchers', cur_class
     if null handles_list goto mro_loop
     handles_it = iter handles_list
   handles_loop:
     unless handles_it goto handles_loop_end
     handles_hash = shift handles_it
-    $S0 = handles_hash['attrname']
-    attr = getattribute obj, $S0
+    attrname = handles_hash['attrname']
+    attr = getattribute obj, attrname
     if null attr goto handles_loop
     $P0 = handles_hash['match_against']
 
@@ -100,7 +101,7 @@ Dispatches to method of the given name on this class or one of its parents.
     if $I0 goto handles_parrotrole
     $P1 = $P0.'ACCEPTS'(name)
     unless $P1 goto handles_loop
-    .tailcall attr.name(pos_args :flat, name_args :flat :named)
+    goto do_handles_call
 
   handles_proto:
     $P1 = get_hll_global ['Perl6Object'], '$!P6META'
@@ -113,7 +114,21 @@ Dispatches to method of the given name on this class or one of its parents.
     $P1 = $P0.'methods'()
     $I0 = exists $P1[name]
     unless $I0 goto handles_loop
+  do_handles_call:
+    $S0 = substr attrname, 0, 1
+    if $S0 == '@' goto handles_on_array
     .tailcall attr.name(pos_args :flat, name_args :flat :named)
+  handles_on_array:
+    .local pmc handles_array_it
+    handles_array_it = iter attr
+  handles_array_it_loop:
+    unless handles_array_it goto handles_array_it_loop_end
+    $P0 = shift handles_array_it
+    $I0 = $P0.'can'(name)
+    unless $I0 goto handles_array_it_loop
+    .tailcall $P0.name(pos_args :flat, name_args :flat :named)
+  handles_array_it_loop_end:
+    'die'("You used handles on attribute ", attrname, ", but nothing in the array can do method ", name)
   handles_loop_end:
     goto mro_loop
 

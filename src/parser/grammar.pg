@@ -461,14 +461,12 @@ rule type_declarator {
         $S0 = $P0.'text'()
         match.'add_type'($S0)
     }}
-    [ of <typename> ]? # XXX should be <fulltypename>
+    [ of <fulltypename> ]?
     where <EXPR>
     {*}
 }
 
-# XXX STD.pm uses <value> instead of <typename>, which seems odd, especially
-# as at the time of implementing parameter types <value>'s type parts were
-# commented out.
+# XXX STD.pm also has value in here?
 rule type_constraint {
     [
     | <fulltypename>
@@ -779,7 +777,7 @@ token typename {
 
 rule fulltypename {
     <typename>
-#   [ of <fulltypename> ]?
+    [ of <fulltypename> ]?
     {*}
 }
 

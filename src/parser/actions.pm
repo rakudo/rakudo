@@ -2093,6 +2093,14 @@ method fulltypename($/) {
         $past.isdecl(1);
         $past.scope('lexical');
     }
+    if $<fulltypename> {
+        $past := PAST::Op.new(
+            :pasttype('call'),
+            :name('postcircumfix:[ ]'),
+            $past,
+            PAST::Block.new( $( $<fulltypename>[0] ), :blocktype('declaration') )
+        );
+    }
     make $past;
 }
 
@@ -2550,8 +2558,8 @@ method type_declarator($/) {
         PAST::Op.new(
             :pasttype('call'),
             :name('!CREATE_SUBSET_TYPE'),
-            $<typename> ??
-                $( $<typename>[0] )
+            $<fulltypename> ??
+                $( $<fulltypename>[0] )
                 !!
                 PAST::Var.new(
                     :name('Any'),

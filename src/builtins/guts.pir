@@ -631,19 +631,54 @@ and C<type>.
     trait = shift it
     $S0 = trait[0]
     if $S0 != 'trait_verb:handles' goto traitlist_loop
+
+    # For the handles trait verb, we may have got a name or a list of names.
+    # If so, just generate methods with those names. Otherwise, need to store
+    # them as a property on the metaclass, so the dispatcher can smart-match
+    # against them later.
     .local pmc handles_it
     $P0 = trait[1]
+    $I0 = isa $P0, 'Str'
+    if $I0 goto simple_handles
+    $I0 = isa $P0, 'List'
+    if $I0 goto simple_handles
+    $I0 = isa $P0, 'Perl6Pair'
+    if $I0 goto simple_handles
+
+    .local pmc class_handles_list, handles_hash
+    class_handles_list = getprop '@!handles_dispatchers', metaclass
+    unless null class_handles_list goto have_class_handles_list
+    class_handles_list = new 'ResizablePMCArray'
+    setprop metaclass, '@!handles_dispatchers', class_handles_list
+  have_class_handles_list:
+    handles_hash = new 'Hash'
+    handles_hash['attrname'] = name
+    handles_hash['match_against'] = $P0
+    push class_handles_list, handles_hash
+    goto traitlist_loop
+
+  simple_handles:
     $P0 = 'list'($P0)
     handles_it = iter $P0
   handles_loop:
+    .local string visible_name
+    .local pmc orig_name
     unless handles_it goto handles_done
     $P0 = clone handles
     $P1 = box name
     setprop $P0, 'attrname', $P1
     $P1 = shift handles_it
-    setprop $P0, 'methodname', $P1
-    $S1 = $P1
-    metaclass.'add_method'($S1, $P0)
+    $I0 = isa $P1, 'Perl6Pair'
+    if $I0 goto handles_pair
+    visible_name = $P1
+    orig_name = $P1
+    goto naming_done
+  handles_pair:
+    visible_name = $P1.'key'()
+    orig_name = $P1.'value'()
+  naming_done:
+    setprop $P0, 'methodname', orig_name
+    metaclass.'add_method'(visible_name, $P0)
     goto handles_loop
   handles_done:
     goto traitlist_loop

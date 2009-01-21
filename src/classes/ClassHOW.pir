@@ -72,14 +72,49 @@ Dispatches to method of the given name on this class or one of its parents.
   submethod_check_done:
 
     # Got a method that we can call. XXX Set up exception handlers for if we
-    # have to do auto-threading of junctional arguments, additionally if we
     # get a control expection for callsame or nextsame etc. Won't be able to
     # be tailcall then...
     .tailcall obj.candidate(pos_args :flat, name_args :flat :named)
 
   check_handles:
-    # XXX This is where we will insert logic to run any regex or more complex
-    # 'handles' things to try and find a handler.
+    # See if we have any complex handles to check.
+    .local pmc handles_list, handles_it, handles_hash, attr
+    handles_list = getprop '@!handles_dispatchers', cur_class
+    if null handles_list goto mro_loop
+    handles_it = iter handles_list
+  handles_loop:
+    unless handles_it goto handles_loop_end
+    handles_hash = shift handles_it
+    $S0 = handles_hash['attrname']
+    attr = getattribute obj, $S0
+    if null attr goto handles_loop
+    $P0 = handles_hash['match_against']
+
+    # If we have a class or role, should get its method list and check if it
+    # .can do that. Otherwise, smart-match against method name.
+    $I0 = isa $P0, 'P6protoobject'
+    if $I0 goto handles_proto
+    $I0 = isa $P0, 'Perl6Role'
+    if $I0 goto handles_role
+    $I0 = isa $P0, 'Role'
+    if $I0 goto handles_parrotrole
+    $P1 = $P0.'ACCEPTS'(name)
+    unless $P1 goto handles_loop
+    .tailcall attr.name(pos_args :flat, name_args :flat :named)
+
+  handles_proto:
+    $P1 = get_hll_global ['Perl6Object'], '$!P6META'
+    $P0 = $P1.'get_parrotclass'($P0)
+    goto handles_have_pc
+  handles_role:
+    $P0 = $P0.'!select'()
+  handles_parrotrole:
+  handles_have_pc:
+    $P1 = $P0.'methods'()
+    $I0 = exists $P1[name]
+    unless $I0 goto handles_loop
+    .tailcall attr.name(pos_args :flat, name_args :flat :named)
+  handles_loop_end:
     goto mro_loop
 
   pmc_proxy:

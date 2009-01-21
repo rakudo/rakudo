@@ -1167,15 +1167,16 @@ method parameter($/) {
     my $quant := $<quant>;
 
     ##  if it was type a type capture and nothing else, need to make a PAST::Var
+    my $types_handled := 0;
     unless $<param_var> {
-        unless $<type_constraint> == 1 {
+        unless +@($<type_constraint>) == 1 {
             $/.panic("Invalid signature; cannot have two consecutive parameter separators.");
         }
         our @?BLOCK;
-        my $name := ~$<type_constraint>[0];
-        $var     := PAST::Var.new( :scope('parameter') );
-        $var.name($var.unique());
+        my $name := substr($<type_constraint>[0].text(), 2); # knock off ::
+        $var     := PAST::Var.new( :name($name), :scope('parameter') );
         @?BLOCK[0].symbol( $var.name(), :scope('lexical') );
+        $types_handled := 1;
     }
 
     ##  handle slurpy and optional flags
@@ -1207,7 +1208,7 @@ method parameter($/) {
     ##  keep track of any type constraints
     my $typelist := PAST::Op.new( :name('all'), :pasttype('call') );
     $var<type> := $typelist;
-    if $<type_constraint> {
+    if !$types_handled && $<type_constraint> {
         for @($<type_constraint>) {
             my $type_past := $( $_ );
             if $type_past.isa(PAST::Var) && $type_past.scope() eq 'lexical' {

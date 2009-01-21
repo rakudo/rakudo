@@ -72,6 +72,29 @@ Create a clone of the Range.
      .return ($P0)
 .end
 
+=item pick
+
+Select an element at random from the range.
+
+=cut
+
+.sub 'pick' :method
+    .local pmc result, rand
+    rand = get_hll_global ['Any'], '$!random'
+
+    .local int from,to,diff,result
+    from = self.'from'()
+    to = self.'to'()
+    diff = to - from
+
+    $N0 = rand
+    $N0 *= diff
+
+    result = $N0
+    result += from
+ 
+    .return (result)
+.end
 
 =item from()
 

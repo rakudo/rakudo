@@ -251,6 +251,16 @@ Puns the role to a class and instantiates it.
     .return ($P0)
 .end
 
+
+=item WHICH
+
+=cut
+
+.sub 'WHICH' :method
+    $I0 = get_addr self
+    .return ($I0)
+.end
+
 =back
 
 =cut

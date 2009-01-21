@@ -235,6 +235,7 @@ S12-role/mixin.t
 S12-role/namespaced.t
 S12-role/parameterized-basic.t
 S12-role/parameterized-mixin.t
+S12-role/parameterized-type.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S16-filehandles/io.t

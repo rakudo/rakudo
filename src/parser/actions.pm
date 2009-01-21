@@ -1296,6 +1296,7 @@ method expect_term($/, $key) {
             :lvalue(1),
             PAST::Var.new(
                 :name('Whatever'),
+                :namespace(list()),
                 :scope('package'),
                 :node($/)
             )

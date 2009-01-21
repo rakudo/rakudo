@@ -197,6 +197,25 @@ just here so postcircumfix:[ ] doesn't explode).
 .end
 
 
+=item WHICH
+
+=cut
+
+.sub 'WHICH' :method
+    $I0 = get_addr self
+    .return ($I0)
+.end
+
+
+=item WHAT
+
+=cut
+
+.sub 'WHAT' :method
+    .return (self)
+.end
+
+
 =back
 
 =head1 Methods on Parrot Roles
@@ -259,6 +278,15 @@ Puns the role to a class and instantiates it.
 .sub 'WHICH' :method
     $I0 = get_addr self
     .return ($I0)
+.end
+
+
+=item WHAT
+
+=cut
+
+.sub 'WHAT' :method
+    .return (self)
 .end
 
 =back

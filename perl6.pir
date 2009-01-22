@@ -96,6 +96,12 @@ USAGE
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?PKGDECL', $P0
 
+    ## create a list for holding the stack of nested package
+    ## namespaces (we store the namespace as a flat, ::
+    ## separated string for now, for handing to .parse_name)
+    $P0 = new 'List'
+    set_hll_global ['Perl6';'Grammar';'Actions'], '@?NS', $P0
+
     ## create a (shared) metaclass node
     $P0 = get_hll_global ['PAST'], 'Var'
     $P0 = $P0.'new'( 'name'=>'metaclass', 'scope'=>'register' )

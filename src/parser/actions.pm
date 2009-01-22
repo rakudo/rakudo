@@ -1505,6 +1505,7 @@ method noun($/, $key) {
 
 method package_declarator($/, $key) {
     our @?PKGDECL;
+    our @?NS;
     my $sym := ~$<sym>;
     my $past;
     if $key eq 'open' {
@@ -1523,9 +1524,21 @@ method package_declarator($/, $key) {
 method package_def($/, $key) {
     our @?PKGDECL;
     my $?PKGDECL := @?PKGDECL[0];
+    our @?NS;
 
     if $key eq 'panic' {
         $/.panic("Unable to parse " ~ $?PKGDECL ~ " definition");
+    }
+
+    # At block opening, unshift module name (fully qualified) onto @?NS; otherwise,
+    # shift it off.
+    if $key eq 'open' {
+        my $fqname := +@?NS ?? @?NS[0] ~ '::' ~ ~$<module_name>[0] !! ~$<module_name>[0];
+        @?NS.unshift($fqname);
+        return 0;
+    }
+    else {
+        @?NS.shift();
     }
 
     my $block := $( $/{$key} );
@@ -1534,6 +1547,9 @@ method package_def($/, $key) {
     my $modulename := $<module_name>
                          ?? ~$<module_name>[0] !!
                          $block.unique('!ANON');
+    if +@?NS > 0 {
+        $modulename := @?NS[0] ~ '::' ~ $modulename;
+    }
 
     # See note at top of file for %?CLASSMAP.
     if %?CLASSMAP{$modulename} { $modulename := %?CLASSMAP{$modulename}; }
@@ -1555,7 +1571,7 @@ method package_def($/, $key) {
 
         # And if there's no signature, make sure we set one up and add [] to
         # the namespace name.
-        if $modulename eq ~$<module_name>[0]<name> {
+        if substr($modulename, -1, 1) ne ']' {
             $modulename := $modulename ~ '[]';
             block_signature($block);
         }

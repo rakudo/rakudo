@@ -47,6 +47,19 @@ Registers a type in the namespace.
   it_loop_end:
     cur_block.'symbol'(name, 'does_abstraction'=>1)
 
+    # We also need to register it under it's fully qualified name at the outermost
+    # block.
+    $P0 = get_hll_global ['Perl6';'Grammar';'Actions'], '@?NS'
+    unless $P0 goto no_ns
+    $S0 = $P0[0]
+    concat $S0, '::'
+    name = concat $S0, name
+  no_ns:
+    $I0 = elements blocks
+    dec $I0
+    $P0 = blocks[$I0]
+    $P0.'symbol'(name, 'does_abstraction'=>1)
+
   done:
 .end
 

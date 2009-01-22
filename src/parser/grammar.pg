@@ -636,7 +636,8 @@ rule package_def {
             $S0 = $P0.'text'()
             match.'add_type'($S0)
         }}
-    ]? 
+    ]?
+    {*}                                                  #= open
     <trait>*
     [
     | <?{{ $P0 = get_global '$begin_compunit'

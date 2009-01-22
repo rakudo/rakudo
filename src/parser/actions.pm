@@ -2194,11 +2194,9 @@ method quote_expression($/, $key) {
         }
     }
     elsif $key eq 'quote_regex' {
-        our $?NS;
         $past := PAST::Block.new(
             $<quote_regex>,
             :compiler('PGE::Perl6Regex'),
-            :namespace(Perl6::Compiler.parse_name( $?NS )),
             :blocktype('declaration'),
             :node( $/ )
         );

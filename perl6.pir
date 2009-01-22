@@ -91,11 +91,6 @@ USAGE
     $P0 = new ['List']
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0
 
-    ## create a list for holding the stack of nested packages
-    ## (that may be roles, modules, classes or grammars).
-    $P0 = new 'List'
-    set_hll_global ['Perl6';'Grammar';'Actions'], '@?PACKAGE', $P0
-
     ## create a list for holding the stack of nested package
     ## declarators
     $P0 = new 'List'

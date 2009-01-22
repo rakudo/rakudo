@@ -92,7 +92,7 @@ Select an element at random from the range.
 
     result = $N0
     result += from
- 
+
     .return (result)
 .end
 

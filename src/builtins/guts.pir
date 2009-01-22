@@ -372,6 +372,8 @@ and putting it in the namespace if it doesn't already exist.
     ns = variant.'get_namespace'()
     ns = ns.'get_name'()
     short_name = pop ns
+    $P0 = box short_name
+    setprop variant, "$!shortname", $P0
     $I0 = index short_name, '['
     if $I0 == -1 goto have_short_name
     short_name = substr short_name, 0, $I0
@@ -386,6 +388,8 @@ and putting it in the namespace if it doesn't already exist.
   need_role_obj:
     role_obj = new 'Perl6Role'
     set_root_global ns, short_name, role_obj
+    $P0 = box short_name
+    setprop role_obj, "$!shortname", $P0
   have_role_obj:
 
     # Add this variant.

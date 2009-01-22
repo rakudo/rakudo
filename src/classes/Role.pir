@@ -216,6 +216,16 @@ just here so postcircumfix:[ ] doesn't explode).
 .end
 
 
+=item Str (vtable get_string)
+
+=cut
+
+.sub 'Str' :method :vtable('get_string')
+    $P0 = getprop '$!shortname', self
+    .return ($P0)
+.end
+
+
 =back
 
 =head1 Methods on Parrot Roles
@@ -287,6 +297,16 @@ Puns the role to a class and instantiates it.
 
 .sub 'WHAT' :method
     .return (self)
+.end
+
+
+=item Str (vtable get_string)
+
+=cut
+
+.sub 'Str' :method :vtable('get_string')
+    $P0 = getprop '$!shortname', self
+    .return ($P0)
 .end
 
 =back

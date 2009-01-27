@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2008, The Perl Foundation.
+Copyright (C) 2008-2009, The Perl Foundation.
 
 =head1 NAME
 
@@ -121,7 +121,7 @@ get_args(PARROT_INTERP)
     PackFile_Constant **constants = interp->code->const_table->constants;
 
     /* Make sure we have a place to source the current arguments from. */
-    opcode_t   *args_op   = interp->current_args;
+    const opcode_t *args_op = interp->current_args;
     if (!args_op)
         Parrot_ex_throw_from_c_args(interp, NULL, 1,
             "No arguments found to dispatch on");
@@ -140,8 +140,8 @@ get_args(PARROT_INTERP)
     /* Otherwise, we have arguments. */
     ++args_op;
     for (i = 0; i < sig_len; ++i, ++args_op) {
-        INTVAL    type = SIG_ITEM(sig, i);
-        const int idx  = *args_op;
+        const INTVAL type = SIG_ITEM(sig, i);
+        const int idx     = *args_op;
 
         /* If we find a named argument, then we know there's no more positional
          * arguments, since they come before named. And we don't dispatch on
@@ -230,24 +230,24 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
 
     /* Analyse each parameter in the two candidates. */
     for (i = 0; i < a->num_types; i++) {
-        PMC *type_obj_a = a->types[i];
-        PMC *type_obj_b = b->types[i];
+        PMC * const type_obj_a = a->types[i];
+        PMC * const type_obj_b = b->types[i];
         if (type_obj_a == type_obj_b) {
             /* Same type, so tied. */
             tied++;
         }
         else {
-            PMC *accepts_meth_a = VTABLE_find_method(interp, type_obj_b, ACCEPTS);
-            PMC *result_n = (PMC *) Parrot_run_meth_fromc_args(interp, accepts_meth_a, type_obj_b,
-                    ACCEPTS, "PP", type_obj_a);
+            PMC * const accepts_meth_a = VTABLE_find_method(interp, type_obj_b, ACCEPTS);
+            PMC * const result_n = (PMC *) Parrot_run_meth_fromc_args(interp, accepts_meth_a,
+                    type_obj_b, ACCEPTS, "PP", type_obj_a);
             if (VTABLE_get_integer(interp, result_n)) {
                 /* Narrower - note it and we're done. */
                 narrower++;
             }
             else {
                 /* Make sure it's tied, rather than the other way around. */
-                PMC *accepts_meth_b = VTABLE_find_method(interp, type_obj_a, ACCEPTS);
-                PMC *result_w = (PMC *) Parrot_run_meth_fromc_args(interp,
+                PMC * const accepts_meth_b = VTABLE_find_method(interp, type_obj_a, ACCEPTS);
+                PMC * const result_w = (PMC *) Parrot_run_meth_fromc_args(interp,
                         accepts_meth_b, type_obj_a,
                         ACCEPTS, "PP", type_obj_b);
                 if (!VTABLE_get_integer(interp, result_w)) {
@@ -272,16 +272,15 @@ and then does a topological sort of them.
 
 */
 static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **proto_out) {
-    INTVAL i, j, sig_elems, candidates_to_sort, result_pos;
-    PMC    *signature, *params, *meth;
+    INTVAL i;
     PMC    *found_proto = PMCNULL;
-    char   *error       = NULL;
+    const char *error = NULL;
 
     /* Allocate results array (just allocate it for worst case, which
      * is no ties ever, so a null between all of them, and then space
      * for the terminating null. */
     INTVAL num_candidates = VTABLE_elements(interp, candidates);
-    candidate_info** result = mem_allocate_n_zeroed_typed(
+    candidate_info** const result = mem_allocate_n_zeroed_typed(
             2 * num_candidates + 1, candidate_info*);
 
     /* Create a node for each candidate in the graph. */
@@ -289,11 +288,16 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
             num_candidates, candidate_graph_node*);
     INTVAL insert_pos = 0;
     for (i = 0; i < num_candidates; i++) {
+        PMC *signature;
+        PMC *params;
+        PMC *meth;
         candidate_info *info;
+        INTVAL sig_elems;
+        INTVAL j;
 
         /* Get information about this candidate. */
-        PMC *candidate = VTABLE_get_pmc_keyed_int(interp, candidates, i);
-        PMC *proto     = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "proto"));
+        PMC * const candidate = VTABLE_get_pmc_keyed_int(interp, candidates, i);
+        PMC * const proto     = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "proto"));
 
         /* Is it a proto? */
         if (!PMC_IS_NULL(proto) && VTABLE_get_bool(interp, proto)) {
@@ -351,12 +355,16 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
 
     /* If we found duplicate protos, don't go any further. */
     if (!error) {
+        INTVAL candidates_to_sort;
+        INTVAL result_pos;
+
         /* The actual number of candidates needs to discount any protos. */
         num_candidates = insert_pos;
 
         /* Now analyze type narrowness of the candidates relative to each other
          * and create the edges. */
         for (i = 0; i < num_candidates; i++) {
+            INTVAL j;
             for (j = 0; j < num_candidates; j++) {
                 if (i == j)
                     continue;
@@ -372,7 +380,7 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
         candidates_to_sort = num_candidates;
         result_pos = 0;
         while (candidates_to_sort > 0) {
-            INTVAL rem_start_point = result_pos;
+            const INTVAL rem_start_point = result_pos;
 
             /* Find any nodes that have no incoming edges and add them to results. */
             for (i = 0; i < num_candidates; i++) {
@@ -393,6 +401,7 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
              * from candidates we added here. */
             for (i = 0; i < num_candidates; i++) {
                 if (graph[i]->edges_in == EDGE_REMOVAL_TODO) {
+                    INTVAL j;
                     for (j = 0; j < graph[i]->edges_out; j++)
                         graph[i]->edges[j]->edges_in--;
                     graph[i]->edges_in = EDGE_REMOVED;
@@ -435,11 +444,12 @@ Checks if any of the args are junctional.
 */
 
 static INTVAL has_junctional_args(PARROT_INTERP, PMC *args) {
-    INTVAL num_args  = VTABLE_elements(interp, args);
-    STRING *junction = CONST_STRING(interp, "Junction");
+    const INTVAL num_args   = VTABLE_elements(interp, args);
+    STRING * const junction = CONST_STRING(interp, "Junction");
     INTVAL i;
+
     for (i = 0; i < num_args; i++) {
-        PMC *arg = VTABLE_get_pmc_keyed_int(interp, args, i);
+        PMC * const arg = VTABLE_get_pmc_keyed_int(interp, args, i);
         if (VTABLE_isa(interp, arg, junction))
             return 1;
     }

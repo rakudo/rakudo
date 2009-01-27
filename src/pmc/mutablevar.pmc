@@ -61,10 +61,11 @@ pmclass MutableVAR need_ext dynpmc group perl6_group {
         mro = scalar->vtable->mro;
         elements = VTABLE_elements(INTERP, mro);
         for (i = 0; i < elements; i++) {
-            PMC *cur_class = VTABLE_get_pmc_keyed_int(INTERP, mro, i);
-            PMC *ns = cur_class->vtable->_namespace;
+            PMC * const cur_class = VTABLE_get_pmc_keyed_int(INTERP, mro, i);
+            PMC * const ns        = cur_class->vtable->_namespace;
+
             if (!PMC_IS_NULL(ns)) {
-                PMC *method = VTABLE_get_pmc_keyed_str(interp, ns, method_name);
+                PMC * const method = VTABLE_get_pmc_keyed_str(interp, ns, method_name);
                 if (!PMC_IS_NULL(method)) {
                     /* Found method. If it's an NCI, we return a BoundNCI, to
                      * make sure we call with the scalar invocant. */

@@ -100,7 +100,7 @@ we just call C<get_number()> and return that as an integer.
 */
 
     INTVAL get_integer() {
-        FLOATVAL f = SELF.get_number();
+        const FLOATVAL f = SELF.get_number();
         return (INTVAL)f;
     }
 

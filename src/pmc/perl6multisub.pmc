@@ -131,7 +131,7 @@ get_args(PARROT_INTERP)
     ++args_op;
     sig = constants[*args_op]->u.key;
     ASSERT_SIG_PMC(sig);
-    sig_len = SIG_ELEMS(sig);
+    sig_len = VTABLE_elements(interp, sig);
 
     /* If we have a zero-length signature, we're done. */
     if (sig_len == 0)
@@ -140,7 +140,7 @@ get_args(PARROT_INTERP)
     /* Otherwise, we have arguments. */
     ++args_op;
     for (i = 0; i < sig_len; ++i, ++args_op) {
-        const INTVAL type = SIG_ITEM(sig, i);
+        const INTVAL type = VTABLE_get_integer_keyed_int(interp, sig, i);
         const int idx     = *args_op;
 
         /* If we find a named argument, then we know there's no more positional

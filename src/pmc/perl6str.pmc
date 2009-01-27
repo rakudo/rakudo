@@ -163,7 +163,11 @@ digits.
                 s1 += 3;
                 while (s1 < end && isspace((unsigned char)*s1))
                     s1++;
-                return (s1 == end) ? sign * atof("inf") : 0.0;
+                return (s1 == end)
+                    ? sign > 0
+                        ? PARROT_FLOATVAL_INF_POSITIVE
+                        : PARROT_FLOATVAL_INF_NEGATIVE
+                    : 0.0;
             }
 
             if (tolower((unsigned char)s1[0]) == 'n'
@@ -172,7 +176,7 @@ digits.
                 s1 += 3;
                 while (s1 < end && isspace((unsigned char)*s1))
                     s1++;
-                return (s1 == end) ? sign * atof("nan") : 0.0;
+                return (s1 == end) ? PARROT_FLOATVAL_NAN_QUIET : 0.0;
             }
 
             /* handle 0x, 0o, 0d, 0b radix */

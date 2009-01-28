@@ -144,9 +144,29 @@ Dispatches to method of the given name on this class or one of its parents.
     unless have_pmc_proxy goto error
     ($P0 :slurpy, $P1 :slurpy :named) = obj.name(pos_args :flat, name_args :flat :named)
     .return ($P0 :flat, $P1 :named :flat)
+  
   error:
+    # Error, unless invocant is a junction in which case we thread over it.
+    $I0 = isa obj, 'Junction'
+    if $I0 goto autothread_invocant
     $P0 = getattribute self, 'longname'
     'die'("Could not locate a method '", name, "' to invoke on class '", $P0, "'.")
+
+  autothread_invocant:
+    .local pmc values, values_it, res, res_list, type
+    res_list = 'list'()
+    values = obj.'!eigenstates'()
+    values_it = iter values
+  values_it_loop:
+    unless values_it goto values_it_loop_end
+    $P0 = shift values_it
+    $P1 = $P0.'HOW'()
+    res = $P1.'dispatch'($P0, name, pos_args :flat, name_args :flat :named)
+    push res_list, res
+    goto values_it_loop
+  values_it_loop_end:
+    type = obj.'!type'()
+    .tailcall '!MAKE_JUNCTION'(type, res_list)
 .end
 
 =back

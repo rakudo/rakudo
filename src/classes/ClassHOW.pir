@@ -144,7 +144,7 @@ Dispatches to method of the given name on this class or one of its parents.
     unless have_pmc_proxy goto error
     ($P0 :slurpy, $P1 :slurpy :named) = obj.name(pos_args :flat, name_args :flat :named)
     .return ($P0 :flat, $P1 :named :flat)
-  
+
   error:
     # Error, unless invocant is a junction in which case we thread over it.
     $I0 = isa obj, 'Junction'

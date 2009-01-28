@@ -592,7 +592,7 @@ method enum_declarator($/, $key) {
         if $/.type_redaclaration() {
             $/.panic("Re-declaration of type " ~ $name);
         }
-        
+
         # Get a mapping of all the names we will introduce with this enumeration to their
         # values. We'll compute these at compile time, so then we can build as much of the
         # enum as possible as PAST at compile time too. Note that means that, like a

@@ -588,11 +588,15 @@ method enum_declarator($/, $key) {
 
     my $name := ~$<name>[0];
     if $name {
-        # It's a named enumeration. First, we will get a mapping of all the names
-        # we will introduce with this enumeration to their values. We'll compute
-        # these at compile time, so then we can build as much of the enum as possible
-        # as PAST at compile time too. Note that means that, like a BEGIN block, we
-        # will compile, run and get the return value now.
+        # It's a named enumeration. Ensure the type isn't already declared.
+        if $/.type_redaclaration() {
+            $/.panic("Re-declaration of type " ~ $name);
+        }
+        
+        # Get a mapping of all the names we will introduce with this enumeration to their
+        # values. We'll compute these at compile time, so then we can build as much of the
+        # enum as possible as PAST at compile time too. Note that means that, like a
+        # BEGIN block, we will compile, run and get the return value now.
         my $block := PAST::Block.new(
             :blocktype('declaration'),
             PAST::Stmts.new(
@@ -1615,10 +1619,25 @@ method package_def($/, $key) {
             my $trait := $( $_ );
             if $trait[1] eq 'also' { $block<isalso> := 1; }
             else {
+                ##  If it is a trait_auxiliary:does or a trait_auxiliary:is we
+                ##  should check the name is a type.
+                if $trait[0] eq 'trait_auxiliary:is' || $trait[0] eq 'trait_auxiliary:does' {
+                    unless $/.is_type($trait[1]) {
+                        $_.panic("The type " ~ $trait[1] ~ " does not exist.");
+                    }
+                }
                 $trait.name('!meta_trait');
                 $trait.unshift($?METACLASS);
                 $init.push($trait);
             }
+        }
+    }
+
+    #  If it's not an "is also", have a name and aren't a role (since they can
+    #  have many declarations) we need to check it's not a duplicate.
+    if !$block<isalso> && $<module_name> && $?PKGDECL ne 'role' {
+        if $/.type_redaclaration() {
+            $/.panic("Re-declaration of type " ~ ~$<module_name>[0]);
         }
     }
 
@@ -2507,6 +2526,11 @@ method regex_block($/) {
 
 
 method type_declarator($/) {
+    # Make sure it's not a re-declaration.
+    if $/.type_redaclaration() {
+        $/.panic("Re-declaration of type " ~ ~$<name>);
+    }
+
     # We need a block containing the constraint condition.
     my $past := $( $<EXPR> );
     if (!$past.isa(PAST::Block) || $past.compiler() eq 'PGE::Perl6Regex') {

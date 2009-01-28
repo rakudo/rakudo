@@ -27,9 +27,10 @@ Registers a type in the namespace.
     ns = $P0.'parse_name'(name)
     short_name = pop ns
 
-    # Check if the symbol already exists in the NS; if so we're done.
+    # Check if the symbol already exists in the NS; if so we record it as
+    # an existing type.
     $P0 = get_hll_global ns, short_name
-    unless null $P0 goto done
+    unless null $P0 goto type_exists
 
     # Work outwards to find a block defining a package and put the type
     # there. XXX This makes it too visible for lexical types, but if we
@@ -45,22 +46,33 @@ Registers a type in the namespace.
     if null $P0 goto it_loop
     if $P0 == '' goto it_loop
   it_loop_end:
+    $P0 = cur_block.'symbol'(name)
+    if $P0 goto type_exists
     cur_block.'symbol'(name, 'does_abstraction'=>1)
 
     # We also need to register it under it's fully qualified name at the outermost
     # block.
+    .local pmc bottom_block
+    $I0 = elements blocks
+    dec $I0
+    bottom_block = blocks[$I0]
     $P0 = get_hll_global ['Perl6';'Grammar';'Actions'], '@?NS'
     unless $P0 goto no_ns
     $S0 = $P0[0]
     concat $S0, '::'
     name = concat $S0, name
+    $P0 = bottom_block.'symbol'(name)
+    if $P0 goto type_exists
   no_ns:
-    $I0 = elements blocks
-    dec $I0
-    $P0 = blocks[$I0]
-    $P0.'symbol'(name, 'does_abstraction'=>1)
+    bottom_block.'symbol'(name, 'does_abstraction'=>1)
 
-  done:
+    # Record that a type was added or already existed.
+    $P0 = box 0
+    goto set_redecl
+  type_exists:
+    $P0 = box 1
+  set_redecl:
+    setprop self, '$!type_redecl', $P0
 .end
 
 
@@ -127,6 +139,18 @@ Checks if the name we have been passed represents a type.
         .return (1)
       fail_it:
         .return (0)
+.end
+
+
+=item type_redeclaration
+
+Checks if the most recently added type was a re-declaration.
+
+=cut
+
+.sub 'type_redaclaration' :method
+    $P0 = getprop '$!type_redecl', self
+    .return ($P0)
 .end
 
 =back

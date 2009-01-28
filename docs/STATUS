@@ -16,7 +16,7 @@ Compiler implemented
 * string to numeric conversion
 * scalar interpolation in strings
 * simple subroutines
-* arity-based multi subs
+* arity and type-based multi subs
 * simple for loops and iterators
 * arrays and hashes
 * Perl 6 comments
@@ -55,14 +55,13 @@ Compiler implemented
 * postcircumfix:<> for colonpairs
 * WHAT, HOW, WHENCE
 * .perl method on junctions, List, Pair, Hash, Num, Int and Str
+* last, next, redo, continue control exceptions
+* junction auto-threading
 
 
 To do
 -----
 * Start using .HLL, including mapping of types
 * give named rules and tokens the correct semantics
-* type-based multi-subs and multi-methods
 * explicit specification of invocant in methods
 * $?LINE and $?FILE
-* self!method() and $x!method() and private methods generally
-* junction auto-threading

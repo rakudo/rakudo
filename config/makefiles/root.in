@@ -1,3 +1,4 @@
+# Copyright (C) 2006-2009, The Perl Foundation.
 # $Id$
 
 # arguments we want to run parrot with
@@ -155,7 +156,7 @@ perl6$(EXE): perl6.pbc
 
 spectest_checkout : t/spec
 
-t/spec : 
+t/spec :
 	svn co http:////svn.pugscode.org//pugs//t//spec t/spec
 
 spectest_update :

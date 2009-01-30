@@ -47,7 +47,7 @@ it's capable of running a simple test harness.
 
 Running "make spectest" will import relevant portions
 of the "official Perl 6 test suite" from the Pugs repository
-(http://svn.pugscode.org/pugs/t/spec/) and run all of these tests that
+L<http://svn.pugscode.org/pugs/t/spec/> and run all of these tests that
 are currently known to pass.
 
 At present we do not have any plans to directly store the

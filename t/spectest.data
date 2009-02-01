@@ -10,7 +10,7 @@
 # 
 # S03-operators/binding-arrays.t - regressed to allow slices
 # S03-operators/binding-hashes.t - regressed to allow slices
-# integration/man-or-boy.t - regressed for rvar branch
+# integration/man-or-boy.t - regressed for rvar branch (broke "is copy")
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -205,6 +205,7 @@ S12-attributes/delegation.t
 S12-attributes/inheritance.t
 S12-attributes/instance.t
 S12-attributes/mutators.t
+S12-attributes/recursive.t
 S12-class/anonymous.t
 S12-class/attributes.t
 S12-class/basic.t

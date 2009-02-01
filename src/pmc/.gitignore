@@ -4,3 +4,4 @@
 *.so
 *.h
 *.bundle
+objectref.pmc

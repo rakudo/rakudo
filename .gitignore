@@ -1,0 +1,6 @@
+src/gen_*.pir
+Makefile
+t/spec
+.*.swp
+Test.pir
+perl6.pbc

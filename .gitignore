@@ -4,3 +4,4 @@ t/spec
 .*.swp
 Test.pir
 perl6.pbc
+*.dll

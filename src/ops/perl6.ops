@@ -14,7 +14,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
      * to re-bless it into. While we're at it, count the number of attributes
      * the current class has that the parent class does not. */
     PMC *current_class = VTABLE_get_class(interp, $1);
-    PMC *parent_list = VTABLE_inspect_str(interp, $2, const_string(interp, "all_parents"));
+    PMC *parent_list = VTABLE_inspect_str(interp, $2, Parrot_str_new_constant(interp, "all_parents"));
     int num_parents = VTABLE_elements(interp, parent_list);
     int in_parents = 0;
     int new_attribs = 0;
@@ -27,7 +27,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         }
         else {
             new_attribs += VTABLE_elements(interp, VTABLE_inspect_str(interp,
-                test_class, const_string(interp, "attributes")));
+                test_class, Parrot_str_new_constant(interp, "attributes")));
         }
     }
     if (!in_parents)
@@ -36,7 +36,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
 
     /* Make sure we're operating on the real value, not a ObjectRef. */
     value = $1;
-    while (VTABLE_isa(interp, value, const_string(interp, "ObjectRef")))
+    while (VTABLE_isa(interp, value, Parrot_str_new_constant(interp, "ObjectRef")))
         value = VTABLE_get_pmc(interp, value);
 
     /* Check what we're trying to bless into is a standard Parrot class. */

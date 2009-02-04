@@ -512,10 +512,36 @@ and creating the protoobjects.
 .end
 
 
+=item !meta_compose(Role metarole)
+
+Composes roles.
+
+=cut
+
+.sub '!meta_compose' :multi(['Role'])
+    .param pmc metarole
+
+    # Parrot handles composing methods into roles, but we need to handle the
+    # attribute composition ourselves.
+    .local pmc roles, roles_it
+    roles = getprop '@!roles', metarole
+    if null roles goto roles_it_loop_end
+    roles_it = iter roles
+  roles_it_loop:
+    unless roles_it goto roles_it_loop_end
+    $P0 = shift roles_it
+    metarole.'add_role'($P0)
+    '!compose_role_attributes'(metarole, $P0)
+    goto roles_it_loop
+  roles_it_loop_end:
+
+    .return (metarole)
+.end
+
+
 =item !meta_compose()
 
 Default meta composer -- does nothing.
-
 
 =cut
 

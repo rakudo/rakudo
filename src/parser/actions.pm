@@ -1660,6 +1660,7 @@ method package_def($/, $key) {
         #  PIR here to do it rather than doing a call, since we need to call
         #  new_closure from the correct scope.
         $block[0].push(PAST::Op.new(:inline(
+                '    "!meta_compose"(%0)',
                 '    .local pmc orig_role, meths, meth_iter',
                 '    orig_role = getprop "$!orig_role", %0',
                 '    meths = orig_role."methods"()',

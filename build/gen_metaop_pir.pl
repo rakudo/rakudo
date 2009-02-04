@@ -61,7 +61,7 @@ my $hyper_no_dwim_fmt =
     "    optable.'newtok'(%s, 'equiv'=>'infix:%s')\n" .
     "    optable.'newtok'('infix:%s', 'equiv'=>'infix:%s', 'subname'=>%s)\n";
 my $crossfmt =
-    "    optable.'newtok'('infix:X%sX', 'equiv'=>'infix:X')\n";
+    "    optable.'newtok'('infix:X%s', 'equiv'=>'infix:X')\n";
 
 my @gtokens = ();
 my @code = ();
@@ -95,7 +95,7 @@ while (@ops) {
     push @gtokens, sprintf( $crossfmt, $opname );
     my $is_chaining = $op_type eq 'comp' ? 1 : 0;
     push @code, qq(
-        .sub 'infix:X${opname}X'
+        .sub 'infix:X${opname}'
             .param pmc a
             .param pmc b
             .tailcall '!CROSSMETAOP'('$opname', $identity, $is_chaining, a, b)

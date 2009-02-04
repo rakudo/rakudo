@@ -177,7 +177,7 @@ Test.pir: Test.pm perl6.pbc
 	$(PARROT) $(PARROT_ARGS) perl6.pbc --target=pir --output=Test.pir Test.pm
 
 $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
-	$(PERL) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
+	$(PERL) -I$(BUILD_DIR)/lib build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
 		$(PMC_DIR)/objectref.pmc
 
 src/gen_grammar.pir: $(PERL6GRAMMAR) src/parser/grammar.pg src/parser/grammar-oper.pg

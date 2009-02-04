@@ -235,6 +235,7 @@ S12-methods/what.t
 S12-role/attributes.t
 S12-role/basic.t
 S12-role/composition.t
+S12-role/crony.t
 S12-role/instantiation.t
 S12-role/mixin.t
 S12-role/namespaced.t

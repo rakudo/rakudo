@@ -23,6 +23,8 @@ methods with methods that simply delegate them to the held value.
 
 use strict;
 
+use Parrot::Config;
+
 # Get and check parameters.
 my ($template, $output) = @ARGV;
 unless ($template && $output) {
@@ -36,7 +38,7 @@ unless (-e $template) {
 my $template_contents = slurp($template);
 
 # Read v-tables list and get list of functions from it.
-my $vtable_list = slurp('../../src/vtable.tbl');
+my $vtable_list = slurp($PConfig{build_dir}.'/src/vtable.tbl');
 my @all_vtables = extract_matches($vtable_list, '(\w+)\\(');
 
 # Find v-table methods defined in the ObjectRef template and exclude

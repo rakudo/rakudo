@@ -4,11 +4,18 @@
 # arguments we want to run parrot with
 PARROT_ARGS =
 
-# places to look for things
+# values from parrot_config
 BUILD_DIR     = @build_dir@
+LOAD_EXT      = @load_ext@
+O             = @o@
+EXE           = @exe@
+MAKE          = @make_c@
+PERL          = @perl@
+RM_F          = @rm_f@
+
+# Various paths
 PARROT_DYNEXT = $(BUILD_DIR)/runtime/parrot/dynext
-PGE_LIBRARY   = $(BUILD_DIR)/runtime/parrot/library/PGE
-PERL6GRAMMAR  = $(PGE_LIBRARY)/Perl6Grammar.pbc
+PERL6GRAMMAR  = $(BUILD_DIR)/runtime/parrot/library/PGE/Perl6Grammar.pbc
 NQP           = $(BUILD_DIR)/compilers/nqp/nqp.pbc
 PCT           = $(BUILD_DIR)/runtime/parrot/library/PCT.pbc
 PMC_DIR       = src/pmc
@@ -17,23 +24,14 @@ OPSLIB        = perl6
 OPS_FILE      = src/ops/perl6.ops
 
 # Set up extensions
-LOAD_EXT      = @load_ext@
-O             = @o@
-EXE           = @exe@
 
 # Setup some commands
-MAKE          = @make_c@
-PERL          = @perl@
-RM_F          = @rm_f@
-PARROT        = ../../parrot$(EXE)
+PARROT        = $(BUILD_DIR)/parrot$(EXE)
 CAT           = $(PERL) -MExtUtils::Command -e cat
 BUILD_DYNPMC  = $(PERL) $(BUILD_DIR)/tools/build/dynpmc.pl
 BUILD_DYNOPS  = $(PERL) $(BUILD_DIR)/tools/build/dynoplibs.pl
 RECONFIGURE   = $(PERL) $(BUILD_DIR)/tools/dev/reconfigure.pl
 PBC_TO_EXE    = $(BUILD_DIR)/pbc_to_exe$(EXE)
-#CONDITIONED_LINE(darwin):
-#CONDITIONED_LINE(darwin):# MACOSX_DEPLOYMENT_TARGET must be defined for OS X compilation/linking
-#CONDITIONED_LINE(darwin):export MACOSX_DEPLOYMENT_TARGET := @osx_version@
 
 SOURCES = perl6.pir \
   src/gen_grammar.pir \
@@ -179,7 +177,7 @@ Test.pir: Test.pm perl6.pbc
 	$(PARROT) $(PARROT_ARGS) perl6.pbc --target=pir --output=Test.pir Test.pm
 
 $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
-	$(PERL) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
+	$(PERL) -I$(BUILD_DIR)/lib build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
 		$(PMC_DIR)/objectref.pmc
 
 src/gen_grammar.pir: $(PERL6GRAMMAR) src/parser/grammar.pg src/parser/grammar-oper.pg

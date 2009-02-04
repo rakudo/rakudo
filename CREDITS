@@ -1,0 +1,299 @@
+=pod
+
+# $Id: CREDITS 36163 2009-01-29 23:46:11Z allison $
+
+    Following in the steps of other open source projects that
+    eventually take over the world, here is the partial list
+    of people who have contributed to Parrot and its supporting
+    works.  It is sorted by name and formatted to allow easy
+    grepping and beautification by scripts.
+    The fields are: name (N), email (E), web-address (W),
+    description (D), subversion username (U) and snail-mail
+    address (S).
+
+        Thanks,
+
+        The Parrot Team
+        PS: Yes, this looks remarkably like the Linux CREDITS format
+        PPS: This file is encoded in UTF-8
+
+----------
+N: Ahmed Zawawi
+D: Rakudo builtins
+
+N: Alberto Manuel Brandao Simoes
+U: ambs
+E: ambs@cpan.org
+S: Braga, Portugal
+W: http://alfarrabio.di.uminho.pt/~albie/
+
+N: Allison Randal
+D: Parrot Architect (0.4.6...)
+E: allison@parrot.org
+U: allison
+
+N: Andrew Whitworth
+E: wknight8111@gmail.com
+U: Whiteknight
+
+N: Andy Lester
+E: andy@petdance.com
+U: petdance
+
+U: ask
+N: Ask Bjørn Hansen
+D: Keeps us running
+E: ask@develooper.com
+
+N: Audrey Tang
+U: audreyt
+U: autrijus
+E: audreyt@audreyt.org
+D: Pugs, a Perl6->Parrot implementation.
+
+N: Bernhard Schmalhofer
+U: bernhard
+E: Bernhard.Schmalhofer@gmx.de
+
+N: Bob Rogers
+D: Random small bug fixes
+E: rogers-perl6@rgrjr.dyndns.org
+U: rgrjr
+
+N: Bruce Gray
+U: util
+E: bruce.gray@acm.org
+
+N: Bryan C. Warnock
+D: The First Perl 6 Summarizer
+D: Little things here and there in pre-Parrot days.
+D: And, yes, {sigh}, *that* Warnock.
+E: bwarnock@raba.com
+
+N: Carl Masak
+E: cmasak@gmail.com
+U: masak
+
+N: Chip Salzenberg
+D: Release manager emeritus
+D: Architect emeritus (0.1.2-0.4.5)
+U: chip
+E: chip@pobox.com
+
+N: Chris Davaz
+D: Rakudo builtins
+E: cdavaz@gmail.com
+
+N: Chris Dolan
+U: cdolan
+D: Rakudo patches
+E: cdolan@cpan.org
+
+N: Chris Fields (cjfields)
+D: Rakudo patches
+
+N: Christoph Otto a.k.a. cotto
+U: cotto
+E: christoph@mksig.org
+
+N: chromatic
+U: chromatic
+E: chromatic@wgz.org
+W: http://wgz.org/chromatic/
+
+N: Colin Kuskie
+U: colink
+E: ckuskie@sterling.net
+
+N: Cory Spencer
+U: cspencer
+D: Rakudo builtins
+E: cspencer@sprocket.org
+
+N: Curtis 'Ovid' Poe
+U: Ovid
+D: docs/test cleanups/Makefile fixes
+E: ovid@cpan.org
+
+N: Dan Sugalski
+U: dan
+D: Architect emeritus (0.0.1-0.1.1)
+E: dan@sidhe.org
+W: http://www.sidhe.org/~dan/blog/
+
+N: David Romano
+D: PGE tests and fixes
+E: david.romano+p6i@gmail.com
+
+N: Dino Morelli
+D: PGE tests
+E: dmorelli@reactorweb.net
+
+N: Florian Ragwitz
+U: rafl
+U: flora
+E: rafl@debianforum.de
+W: http://www.tu-chemnitz.de/~rafl/
+S: Chemnitz, Germany
+
+N: François Perrad
+E: francois.perrad@gadz.org
+W: http://fperrad.googlepages.com/home
+U: fperrad
+
+N: Geoff Broadwell (japhb)
+U: japhb
+E: geoff@broadwell.org
+
+U: gregor
+N: Gregor N. Purdy
+E: gregor@focusresearch.com
+S: Sunnyvale, CA
+
+N: James E Keenan (Jim)
+E: jkeenan@cpan.org
+U: jkeenan
+W: http://thenceforward.net/parrot/
+S: Brooklyn, NY, USA
+
+N: Jarkko Hietaniemi
+U: jhi
+E: jhi@iki.fi
+
+N: Jason Gloudon
+
+N: Jeff Horwitz
+E: jeff@smashing.org
+U: jhorwitz
+
+N: Jerry Gay a.k.a. particle
+U: particle
+E: Jerry.Gay@gmail.com
+S: Seattle, WA
+
+N: Jesse Vincent
+U: jesse
+E: jesse@fsck.com
+
+N: Jonathan Scott Duff
+U: duff
+E: duff@pobox.com
+
+N: Jonathan Worthington
+U: jonathan
+E: jnthn@jnthn.net
+W: http://www.jnthn.net/
+
+N: Joshua Gatcomb
+
+N: Julian Albo
+U: julianalbo
+E: julian.notfound@gmail.com
+
+N: Kevin Tew
+U: tewk
+E: tewk@tewk.com
+
+N: Klaas-Jan Stol a.k.a. kj[s]?
+U: kjs
+E: parrotcode@gmail.com
+
+N: Larry Wall
+E: larry@wall.org
+U: larry
+
+N: Leopold Toetsch
+U: leo
+D: Patchmonster & release manager emeritus (0.0.13 - 0.4.5)
+E: lt@toetsch.at
+S: Herrnbaumgarten, Austria
+
+N: Luke Palmer
+E: luke@luqui.org
+U: luqui
+
+N: Mark Glines a.k.a. Infinoid
+U: infinoid
+E: mark@glines.org
+S: South Lake Tahoe, CA, USA
+
+N: Mark Grimes
+E: mgrimes@cpan.org
+
+N: Matt Diephouse
+U: mdiep
+E: matt@diephouse.com
+
+N: Moritz A Lenz
+E: moritz@faui2k3.org
+U: moritz
+D: Test infrastructure for Perl 6 in general
+
+N: Nicholas Clark
+U: nicholas
+E: nick@ccl4.org
+
+N: Notfound
+E: julian.notfound@gmail.com
+
+N: Nuno 'smash' Carvalho
+U: smash
+E: mestre.smash@gmail.com
+
+N: Ovid
+D: Rename 'pbc_to_c' to 'pbc_to_exe'
+
+N: Patrick R. Michaud
+U: pmichaud
+D: Perl 6 (Rakudo Perl) lead developer, pumpking
+E: pmichaud@pobox.com
+
+N: Paul Cochrane
+U: paultcochrane
+E: paultcochrane@gmail.com
+
+N: Peter Gibbs
+U: petergibbs
+E: peter@emkel.co.za
+
+N: Piers Cawley
+U: pdcawley
+D: The Second Perl 6 Summarizer after Bryan C. Warnock
+E: pdcawley@bofh.org.uk
+W: http://www.bofh.org.uk:8080/
+
+N: Reini Urban
+U: rurban
+E: rurban@cpan.org
+D: cygwin fixes
+
+N: Robert Spier
+D: Keeps us running
+U: robert
+E: robert@perl.org
+
+N: Simon Cozens
+U: simon
+E: simon@simon-cozens.org
+
+N: Stéphane Payrard
+D: Various code fixes and improvements
+
+N: Stephen Weeks
+U: tene
+D: Minor Rakudo patches
+E: tene@allalone.org
+
+N: Vasily Chekalkin
+E: bacek@bacek.com
+D: Core and Rakudo patches
+
+N: Will "Coke" Coleda
+U: coke
+E: will@coleda.com
+
+N: Zach Morgan
+E: zpmorgan@gmail.com
+D: Rakudo patch
+
+=cut

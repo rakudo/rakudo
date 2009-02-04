@@ -26,7 +26,7 @@ OPS_FILE      = src/ops/perl6.ops
 # Set up extensions
 
 # Setup some commands
-PARROT        = ../../parrot$(EXE)
+PARROT        = $(BUILD_DIR)/parrot$(EXE)
 CAT           = $(PERL) -MExtUtils::Command -e cat
 BUILD_DYNPMC  = $(PERL) $(BUILD_DIR)/tools/build/dynpmc.pl
 BUILD_DYNOPS  = $(PERL) $(BUILD_DIR)/tools/build/dynoplibs.pl

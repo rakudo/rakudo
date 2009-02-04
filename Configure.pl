@@ -106,8 +106,8 @@ sub done {
 
 You can now use 'make' to build Rakudo Perl.
 After that, you can use 'make test' to run some local tests,
-or 'make spectest' to obtain a copy of the spectest suite
-and test that.
+or 'make spectest' to check out (via svn) a copy of the Perl 6
+official test suite and run its tests.
 
 END
     exit 0;

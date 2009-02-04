@@ -4,4 +4,10 @@ t/spec
 .*.swp
 Test.pir
 perl6.pbc
-*.dll
+src/ops/*.manifest
+src/ops/*.exp
+src/ops/*.ilk
+src/ops/*.lib
+src/ops/*.pdb
+t/localtest.data
+

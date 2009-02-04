@@ -4,7 +4,7 @@
  */
 
 #include "parrot/dynext.h"
-#include "../../../../src/pmc/pmc_object.h"
+#include "pmc_object.h"
 VERSION = PARROT_VERSION;
 
 inline op rebless_subclass(in PMC, in PMC) :base_core {

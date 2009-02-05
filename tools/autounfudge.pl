@@ -9,29 +9,33 @@ autounfudge - automatically write patches for unfudging spec tests
 =head1 DESCRIPTION
 
 This tool runs the non-pure tests of the C<spectest> make target,
-automatically creates files with less fudges, runs them again, and if the
+automatically creates files with less 'skip' fudge directives, runs them 
+again, and if the
 modified tests succeeds, it adds a patch to C<autounfudge.patch> that, when
 applied as C<< patch -p0 < autunfudge.patch >>, removes the superflous fudge
 directives.
 
+With the C<--untodo> option, C<todo> skip markers are also removed (where
+appropriate), with the C<--unskip> option it tries to substitute C<skip>
+markers by C<todo> markers.
+
 =head1 USAGE
 
-Most common usage: C<perl tools/autounfudge.pl --auto>. For more use cases
+Most common usage: C<perl tools/autounfudge.pl --auto>. For more options
 pleae run this script without any options or command line parameters.
 
 =head1 WARNINGS
 
-This tool is platform dependent, and not tested on anthing but linux.
-
-It assumes that all fudge directives are orthogonal, which might not be the
-case in real world tests. It is not tested with nested fudges (eg a line
-based fudge inside a fudged block).
+This tool assumes that all fudge directives are orthogonal,
+which might not be the case in real world tests. So always make sure to
+run C<make spectest> before commiting the changes.
 
 Never blindly apply the automatically generated patch.
 
 =head1 MISCELLANEA
 
-Fudge directives containing the words I<unspecced> or I<unicode> are ignored.
+Fudge directives containing the words I<unspecced>, I<noauto> or I<unicode>  
+are ignored.
 The latter is because Unicode related tests can succeed on platforms with icu
 installed, and fail on other platforms.
 
@@ -62,7 +66,7 @@ use Thread::Queue;
 my $impl = 'rakudo';
 our $debug = 0;
 our $out_filename = 'autounfudge.patch';
-my $exclude = '(?:(?:radix|modifiers/while|rx)\.t)$';
+my $exclude = '(?:(?:radix|modifiers/(?:while|until)|rx|assign)\.t)$';
 our $threads_num = 1;
 
 GetOptions  'impl=s'        => \$impl,
@@ -71,6 +75,7 @@ GetOptions  'impl=s'        => \$impl,
             'auto'          => \my $auto,
             'keep-env'      => \my $keep_env,
             'unskip'        => \my $unskip,
+            'untodo'        => \my $untodo,
             'section=s'     => \my $section,
             'exclude'       => \$exclude,
             'jobs=i'        => \$threads_num,
@@ -139,7 +144,7 @@ sub auto_unfudge_file {
     my @fudge_lines;
     while (<$f>) {
         push @fudge_lines, [$. , $_] if m/^\s*#\?$impl/ &&
-            !m/unspecced|unicode|utf-?8/i;
+            !m/unspecced|unicode|utf-?8|noauto/i;
     }
     close $f;
     if (@fudge_lines){
@@ -157,19 +162,24 @@ sub auto_unfudge_file {
     }
     my @to_unfudge;
     for my $to_unfudge (@fudge_lines){
+        print "trying line $to_unfudge->[0]...\n" if $debug;
+        next if $to_unfudge->[1] =~ m/\btodo\b/ && !$untodo;
         $fudged = fudge(unfudge_some($file_name, [$to_unfudge->[0], '']));
         if (tests_ok($fudged)){
             print "WOOOOOT: Can remove fudge instruction on line $to_unfudge->[0]\n"
                 if $debug;
             push @to_unfudge, [$to_unfudge->[0], ''],
-        } elsif ($unskip && $to_unfudge->[1] =~ s/\bskip\b/todo/) {
+        } 
+        elsif ($unskip && $to_unfudge->[1] =~ s/\bskip\b/todo/) {
             # try to replace 'skip' with 'todo'-markers
             $fudged = fudge(unfudge_some($file_name, $to_unfudge));
             if (tests_ok($fudged)){
                 print "s/skip/todo/ successful\n" if $debug;
                 push @to_unfudge, $to_unfudge;
             }
-
+        }
+        else {
+            print "not successful\n"if $debug;
         }
     }
 
@@ -206,6 +216,8 @@ Valid options:
     --keep-env          Keep PERL6LIB environment variable.
     --exclude regex     Don't run the tests that match regex
     --section number    Run only on tests belonging to section <number>
+    --unskip            Try to change 'skip' to 'todo' markers
+    --untodo            Try to remove 'todo' markers
 USAGE
 }
 

@@ -8,7 +8,7 @@
 use FindBin;
 use File::Spec;
 use Getopt::Long qw(:config pass_through);
-use lib qw( ../../lib );
+use lib qw( parrot/lib  ../../lib );
 use strict;
 
 our %harness_args;

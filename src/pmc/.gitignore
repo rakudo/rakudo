@@ -4,4 +4,10 @@
 *.so
 *.h
 *.bundle
+*.dll
+*.manifest
+*.exp
+*.ilk
+*.lib
+*.pdb
 objectref.pmc

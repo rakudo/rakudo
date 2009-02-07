@@ -221,8 +221,10 @@ directory.
     .local string filename
     filename = self
 
+    push_eh not_a_dir
     $I0 = stat filename, 2
     if $I0 goto file_is_a_dir
+  not_a_dir:
     $P0 = get_hll_global ['Bool'], 'False'
     .return ($P0)
   file_is_a_dir:
@@ -270,6 +272,7 @@ file.
     .local string filename
     filename = self
 
+    push_eh file_isnt_plain
     $I0 = stat filename, 2
     if $I0 goto file_isnt_plain
     $P0 = get_hll_global ['Bool'], 'True'

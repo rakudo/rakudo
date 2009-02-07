@@ -244,6 +244,7 @@ S12-role/parameterized-mixin.t
 S12-role/parameterized-type.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
+S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t

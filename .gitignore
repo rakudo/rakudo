@@ -1,6 +1,7 @@
 src/gen_*.pir
 Makefile
 .*.swp
+*.patch
 Test.pir
 perl6.pbc
 perl6.exe

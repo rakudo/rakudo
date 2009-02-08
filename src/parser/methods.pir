@@ -30,8 +30,11 @@ Registers a type in the namespace.
     # Check if the symbol already exists in the NS; if so we record it as
     # an existing type.
     $P0 = get_hll_global ns, short_name
-    unless null $P0 goto type_exists
+    if null $P0 goto no_namespace
+    $S0 = typeof $P0
+    unless $S0 == 'NameSpace' goto type_exists
 
+  no_namespace:
     # Work outwards to find a block defining a package and put the type
     # there. XXX This makes it too visible for lexical types, but if we
     # assume lexical rather than package scope then we will fail various

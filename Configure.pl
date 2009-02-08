@@ -88,16 +88,15 @@ sub read_parrot_config {
 #  Generate a Makefile from a configuration
 sub create_makefile {
     my %config = @_;
-    open my $ROOTIN, "<config/makefiles/root.in" or
-        die "Unable to read config/makefiles/root.in \n";
+    open my $ROOTIN, "<build/Makefile.in" or
+        die "Unable to read build/Makefile.in \n";
     my $maketext = join('', <$ROOTIN>);
     close $ROOTIN;
-    $maketext =~ s{//}{/}g;
     $maketext =~ s/@(\w+)@/$config{$1}/g;
 
     print "Creating Makefile\n";
     open(MAKEFILE, ">Makefile") ||
-        die "Unable to read config/makefiles/root.in \n";
+        die "Unable to write Makefile\n";
     print MAKEFILE $maketext;
     close(MAKEFILE);
 }

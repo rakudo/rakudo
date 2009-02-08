@@ -3,6 +3,7 @@
 
 use strict;
 use warnings;
+use 5.008;
 
 
 my %valid_options = (
@@ -71,12 +72,12 @@ sub read_parrot_config {
     my %config = ();
     for my $exe (@parrot_config_exe) {
         no warnings;
-        if (open(PARROT_CONFIG, "$exe --dump |")) {
+        if (open my $PARROT_CONFIG, '-|', "$exe --dump") {
             print "Reading configuration information from $exe\n";
-            while (<PARROT_CONFIG>) {
+            while (<$PARROT_CONFIG>) {
                 if (/(\w+) => '(.*)'/) { $config{$1} = $2 }
             }
-            close(PARROT_CONFIG);
+            close $PARROT_CONFIG;
             last;
         }
     }
@@ -87,10 +88,10 @@ sub read_parrot_config {
 #  Generate a Makefile from a configuration
 sub create_makefile {
     my %config = @_;
-    open(ROOTIN, "<config/makefiles/root.in") ||
+    open my $ROOTIN, "<config/makefiles/root.in" or
         die "Unable to read config/makefiles/root.in \n";
-    my $maketext = join('', <ROOTIN>);
-    close(ROOTIN);
+    my $maketext = join('', <$ROOTIN>);
+    close $ROOTIN;
     $maketext =~ s{//}{/}g;
     $maketext =~ s/@(\w+)@/$config{$1}/g;
 
@@ -117,7 +118,7 @@ END
 
 #  Print some help text.
 sub print_help {
-    print <<END;
+    print <<'END';
 Configure.pl - Rakudo Configure
 
 General Options:
@@ -127,3 +128,10 @@ General Options:
 
 END
 }
+
+# Local Variables:
+#   mode: cperl
+#   cperl-indent-level: 4
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

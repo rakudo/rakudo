@@ -11,3 +11,6 @@ src/ops/*.lib
 src/ops/*.pdb
 t/localtest.data
 parrot
+perl6
+perl6.c
+perl6.o

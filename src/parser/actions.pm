@@ -589,7 +589,7 @@ method enum_declarator($/, $key) {
     my $name := ~$<name>[0];
     if $name {
         # It's a named enumeration. Ensure the type isn't already declared.
-        if $/.type_redaclaration() {
+        if $/.type_redeclaration() {
             $/.panic("Re-declaration of type " ~ $name);
         }
 
@@ -1636,7 +1636,7 @@ method package_def($/, $key) {
     #  If it's not an "is also", have a name and aren't a role (since they can
     #  have many declarations) we need to check it's not a duplicate.
     if !$block<isalso> && $<module_name> && $?PKGDECL ne 'role' {
-        if $/.type_redaclaration() {
+        if $/.type_redeclaration() {
             $/.panic("Re-declaration of type " ~ ~$<module_name>[0]);
         }
     }
@@ -2528,7 +2528,7 @@ method regex_block($/) {
 
 method type_declarator($/) {
     # Make sure it's not a re-declaration.
-    if $/.type_redaclaration() {
+    if $/.type_redeclaration() {
         $/.panic("Re-declaration of type " ~ ~$<name>);
     }
 

@@ -148,7 +148,7 @@ Checks if the most recently added type was a re-declaration.
 
 =cut
 
-.sub 'type_redaclaration' :method
+.sub 'type_redeclaration' :method
     $P0 = getprop '$!type_redecl', self
     .return ($P0)
 .end

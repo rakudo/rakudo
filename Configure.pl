@@ -23,16 +23,17 @@ if ($options{'help'}) {
 
 #  If we're in a Parrot build tree and --parrot-config isn't
 #  specified, use the build tree's reconfigure.pl and exit.
-if (!$options{'parrot-config'} && -e "../../tools/dev/reconfigure.pl") {
-    print "Building Makefile with ../../tools/dev/reconfigure.pl\n";
-    chdir '../..';
-    `$^X -Ilib tools/dev/reconfigure.pl --step=gen::languages --languages=rakudo`;
-    done();
-}
+# if (!$options{'parrot-config'} && -e "../../tools/dev/reconfigure.pl") {
+#     print "Building Makefile with ../../tools/dev/reconfigure.pl\n";
+#     chdir '../..';
+#     `$^X -Ilib tools/dev/reconfigure.pl --step=gen::languages --languages=rakudo`;
+#     done();
+# }
 
 
 #  Get a list of parrot-configs to invoke.
-my @parrot_config_exe = qw(parrot/parrot_config parrot_config);
+my @parrot_config_exe = 
+    qw(parrot/parrot_config parrot_config ../../parrot_config);
 if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
     @parrot_config_exe = ($options{'parrot-config'});
 }

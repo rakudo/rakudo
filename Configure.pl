@@ -91,6 +91,7 @@ sub create_makefile {
         die "Unable to read config/makefiles/root.in \n";
     my $maketext = join('', <ROOTIN>);
     close(ROOTIN);
+    $maketext =~ s{//}{/}g;
     $maketext =~ s/@(\w+)@/$config{$1}/g;
 
     print "Creating Makefile\n";

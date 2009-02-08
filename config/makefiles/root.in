@@ -155,7 +155,7 @@ perl6$(EXE): perl6.pbc
 spectest_checkout : t/spec
 
 t/spec :
-	svn co http://svn.pugscode.org/pugs/t/spec t/spec
+	svn co http:////svn.pugscode.org/pugs/t/spec t/spec
 
 spectest_update :
 	-cd t/spec && svn up

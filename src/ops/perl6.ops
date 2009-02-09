@@ -13,14 +13,15 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
     /* First verify that the object's class is a superclass of the one we're
      * to re-bless it into. While we're at it, count the number of attributes
      * the current class has that the parent class does not. */
-    PMC *current_class = VTABLE_get_class(interp, $1);
-    PMC *parent_list = VTABLE_inspect_str(interp, $2, Parrot_str_new_constant(interp, "all_parents"));
-    int num_parents = VTABLE_elements(interp, parent_list);
+    PMC * const current_class = VTABLE_get_class(interp, $1);
+    PMC * const parent_list   = VTABLE_inspect_str(interp, $2, Parrot_str_new_constant(interp, "all_parents"));
+    const int num_parents     = VTABLE_elements(interp, parent_list);
+
     int in_parents = 0;
     int new_attribs = 0;
     int i;
     for (i = 0; i < num_parents; i++) {
-        PMC *test_class = VTABLE_get_pmc_keyed_int(interp, parent_list, i);
+        PMC * const test_class = VTABLE_get_pmc_keyed_int(interp, parent_list, i);
         if (test_class == current_class) {
             in_parents = 1;
             break;
@@ -60,8 +61,8 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
          *    swept on the next GC run.
          * We do this by shuffling PMC headers around. It should be safe as
          * in the end we will end up with just as many PMCs existing. */
-        PMC *temp  = mem_allocate_typed(PMC);
-        PMC *proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
+        PMC * const temp  = mem_allocate_typed(PMC);
+        PMC * const proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
                 string_from_literal(interp, "proxy"));
         Parrot_block_GC_mark(interp);
 

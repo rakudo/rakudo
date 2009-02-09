@@ -218,7 +218,7 @@ second. Returns a true value if they are.
 
 */
 static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
-    STRING *ACCEPTS = CONST_STRING(interp, "ACCEPTS");
+    STRING * const ACCEPTS = CONST_STRING(interp, "ACCEPTS");
     INTVAL narrower = 0;
     INTVAL tied = 0;
     INTVAL i;
@@ -284,7 +284,7 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
             2 * num_candidates + 1, candidate_info*);
 
     /* Create a node for each candidate in the graph. */
-    candidate_graph_node** graph = mem_allocate_n_zeroed_typed(
+    candidate_graph_node** const graph = mem_allocate_n_zeroed_typed(
             num_candidates, candidate_graph_node*);
     INTVAL insert_pos = 0;
     for (i = 0; i < num_candidates; i++) {
@@ -332,12 +332,12 @@ static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **p
         info->types = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         info->constraints = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         for (j = 0; j < sig_elems; j++) {
-            PMC *param       = VTABLE_get_pmc_keyed_int(interp, params, j);
-            PMC *type        = VTABLE_get_pmc_keyed_str(interp, param,
+            PMC * const param       = VTABLE_get_pmc_keyed_int(interp, params, j);
+            PMC * const type        = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "nom_type"));
-            PMC *constraints = VTABLE_get_pmc_keyed_str(interp, param,
+            PMC * const constraints = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "cons_type"));
-            PMC *multi_inv   = VTABLE_get_pmc_keyed_str(interp, param,
+            PMC * const multi_inv   = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "multi_invocant"));
             info->types[j] = type;
             info->constraints[j] = constraints;
@@ -476,17 +476,19 @@ candidates or that it was ambiguous if there were tied candidates.
 static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, PMC *proto,
     PMC *args, int many, int num_candidates, opcode_t *next, MMD_Cache *cache) {
     INTVAL           type_mismatch;
-    STRING          *ACCEPTS         = CONST_STRING(interp, "ACCEPTS");
+    STRING * const   ACCEPTS         = CONST_STRING(interp, "ACCEPTS");
     INTVAL           possibles_count = 0;
-    INTVAL           num_args        = VTABLE_elements(interp, args);
+    const INTVAL     num_args        = VTABLE_elements(interp, args);
     candidate_info **cur_candidate   = candidates;
     candidate_info **possibles       = mem_allocate_n_typed(num_candidates,
                                         candidate_info *);
-    INTVAL i, j, type_check_count;
+    INTVAL type_check_count;
 
     /* Iterate over the candidates and collect best ones; terminate
      * when we see two nulls (may break out earlier). */
     while (cur_candidate[0] || cur_candidate[1]) {
+        INTVAL i;
+
         if (*cur_candidate == NULL) {
             /* If we're after just one candidate and we have found some, then
              * we've hit the end of a tied group now, so stop looking if we are
@@ -511,10 +513,10 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         type_mismatch = 0;
 
         for (i = 0; i < type_check_count; i++) {
-            PMC *param        = VTABLE_get_pmc_keyed_int(interp, args, i);
-            PMC *type_obj     = (*cur_candidate)->types[i];
-            PMC *accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
-            PMC *result       = (PMC *)Parrot_run_meth_fromc_args(interp,
+            PMC * const param        = VTABLE_get_pmc_keyed_int(interp, args, i);
+            PMC * const type_obj     = (*cur_candidate)->types[i];
+            PMC * const accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
+            PMC * const result       = (PMC *)Parrot_run_meth_fromc_args(interp,
                                     accepts_meth, type_obj, ACCEPTS,
                                     "PP", param);
 
@@ -545,25 +547,27 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
 
     /* If we have multiple candidates left, tie-break on any constraints. */
     if (possibles_count > 1) {
-        candidate_info **matching        = mem_allocate_n_typed(possibles_count,
-                                            candidate_info *);
-        candidate_info **constraint_free = mem_allocate_n_typed(possibles_count,
-                                            candidate_info *);
+        candidate_info ** const matching        = mem_allocate_n_typed(possibles_count,
+                                                    candidate_info *);
+        candidate_info ** const constraint_free = mem_allocate_n_typed(possibles_count,
+                                                    candidate_info *);
         INTVAL matching_count            = 0;
         INTVAL constraint_free_count     = 0;
+        INTVAL i;
 
         for (i = 0; i < possibles_count; i++) {
             /* Check if we match any constraints. */
             INTVAL constraint_checked = 0;
             INTVAL constraint_failed  = 0;
+            INTVAL j;
 
             for (j = 0; j < possibles[i]->num_types; j++) {
-                PMC *type_obj = possibles[i]->constraints[j];
+                PMC * const type_obj = possibles[i]->constraints[j];
 
                 if (!PMC_IS_NULL(type_obj)) {
-                    PMC *param        = VTABLE_get_pmc_keyed_int(interp, args, j);
-                    PMC *accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
-                    PMC *result       = (PMC *)Parrot_run_meth_fromc_args(interp, accepts_meth,
+                    PMC * const param        = VTABLE_get_pmc_keyed_int(interp, args, j);
+                    PMC * const accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
+                    PMC * const result       = (PMC *)Parrot_run_meth_fromc_args(interp, accepts_meth,
                         type_obj, ACCEPTS, "PP", param);
                     constraint_checked = 1;
 
@@ -612,8 +616,10 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         /* Locate any default candidates; if we find multiple defaults, this is
          * no help, so we'll not bother collection just which ones are good. */
         candidate_info *default_cand = NULL;
+        INTVAL i;
+
         for (i = 0; i < possibles_count; i++) {
-            PMC *default_prop = VTABLE_getprop(interp, possibles[i]->sub,
+            PMC * const default_prop = VTABLE_getprop(interp, possibles[i]->sub,
                     CONST_STRING(interp, "default"));
             if (!PMC_IS_NULL(default_prop)) {
                 if (default_cand == NULL) {
@@ -659,16 +665,19 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         }
         else {
             /* Get signatures of ambiguous candidates. */
-            STRING *sig_name = CONST_STRING(interp, "signature");
-            STRING *perl_name = CONST_STRING(interp, "perl");
-            STRING *newline = CONST_STRING(interp, "\n");
-            STRING *signatures = Parrot_str_new(interp, "", 0);
+            STRING * const sig_name  = CONST_STRING(interp, "signature");
+            STRING * const perl_name = CONST_STRING(interp, "perl");
+            STRING * const newline   = CONST_STRING(interp, "\n");
+
+            STRING *signatures       = Parrot_str_new(interp, "", 0);
+            INTVAL i;
+
             for (i = 0; i < possibles_count; i++) {
-                PMC    *sig_meth  = VTABLE_find_method(interp, possibles[i]->sub, sig_name);
-                PMC    *sig_obj   = (PMC *)Parrot_run_meth_fromc_args(interp, sig_meth,
+                PMC    * const sig_meth  = VTABLE_find_method(interp, possibles[i]->sub, sig_name);
+                PMC    * const sig_obj   = (PMC *)Parrot_run_meth_fromc_args(interp, sig_meth,
                         possibles[i]->sub, sig_name, "P");
-                PMC    *perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
-                STRING *sig_perl  = (STRING *)Parrot_run_meth_fromc_args(interp, perl_meth,
+                PMC    * const perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
+                STRING * const sig_perl  = (STRING *)Parrot_run_meth_fromc_args(interp, perl_meth,
                         sig_obj, perl_name, "S");
                 signatures = Parrot_str_append(interp, signatures, sig_perl);
                 signatures = Parrot_str_append(interp, signatures, newline);
@@ -680,7 +689,9 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
     }
     else {
         /* Build PMC array of all possibles. */
-        PMC *results = pmc_new(interp, enum_class_ResizablePMCArray);
+        PMC * const results = pmc_new(interp, enum_class_ResizablePMCArray);
+        INTVAL i;
+
         for (i = 0; i < possibles_count; i++)
             VTABLE_push_pmc(interp, results, possibles[i]->sub);
         return results;
@@ -762,7 +773,7 @@ Allocates the PMC's underlying storage.
 
         /* Allocate the underlying struct and make candidate list an empty
          * ResizablePMCArray. */
-        PMC *candidates = pmc_new(interp, enum_class_ResizablePMCArray);
+        PMC * const candidates = pmc_new(interp, enum_class_ResizablePMCArray);
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Perl6MultiSub_attributes);
         SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates)
 
@@ -900,13 +911,13 @@ Takes an array of arguments and finds all possible matching candidates.
         PMC             *results;
 
         /* Need to make sure a wobload of globals don't get destroyed. */
-        PMC      *saved_ccont       = interp->current_cont;
-        opcode_t *current_args      = interp->current_args;
-        opcode_t *current_params    = interp->current_params;
-        opcode_t *current_returns   = interp->current_returns;
-        PMC      *args_signature    = interp->args_signature;
-        PMC      *params_signature  = interp->params_signature;
-        PMC      *returns_signature = interp->returns_signature;
+        PMC      * const saved_ccont       = interp->current_cont;
+        opcode_t * const current_args      = interp->current_args;
+        opcode_t * const current_params    = interp->current_params;
+        opcode_t * const current_returns   = interp->current_returns;
+        PMC      * const args_signature    = interp->args_signature;
+        PMC      * const params_signature  = interp->params_signature;
+        PMC      * const returns_signature = interp->returns_signature;
 
         /* Make sure that we have a candidate list built. */
         GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
@@ -1079,7 +1090,7 @@ Makes a copy of this Perl6MultiSub PMC.
 
 */
     VTABLE PMC * clone() {
-        PMC *copy = pmc_new(interp, SELF->vtable->base_type);
+        PMC * const copy = pmc_new(interp, SELF->vtable->base_type);
         PMC *unsorted;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
         unsorted = VTABLE_clone(interp, unsorted);

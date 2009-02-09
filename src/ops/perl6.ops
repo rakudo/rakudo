@@ -1,6 +1,6 @@
 /*
  * $Id$
- * Copyright (C) 2008, The Perl Foundation.
+ * Copyright (C) 2008-2009, The Perl Foundation.
  */
 
 #include "parrot/dynext.h"
@@ -52,7 +52,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         /* In this case, we have something from a foreign class system,
          * probably a PMC. We'll start by instantiating a new instance
          * of the derived class. */
-        PMC *new_ins = VTABLE_instantiate(interp, $2, PMCNULL);
+        PMC * const new_ins = VTABLE_instantiate(interp, $2, PMCNULL);
 
         /* Now we do some nasty swapping around of memory. The end result is:
          *  - The proxy object from new_ins becomes the current value

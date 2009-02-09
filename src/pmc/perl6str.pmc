@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2001-2008, The Perl Foundation.
+Copyright (C) 2001-2009, The Perl Foundation.
 
 =head1 NAME
 
@@ -61,7 +61,8 @@ parse_fraction(const char** start, const char* stop, FLOATVAL radix) {
     while (pos + underscore_skip < stop) {
         unsigned int current = *(pos + underscore_skip);
         /* if we find an 'e' in radix 10, we're done */
-        if (radix == 10 && tolower((unsigned char)current) == 'e') break;
+        if (radix == 10 && tolower((unsigned char)current) == 'e')
+            break;
         if (isdigit((unsigned char)current))
             current -= '0';
         else if (isalpha((unsigned char)current))
@@ -69,7 +70,8 @@ parse_fraction(const char** start, const char* stop, FLOATVAL radix) {
         else
             break;
 
-        if (current >= radix) break;
+        if (current >= radix)
+            break;
         frac /= radix;
         number += current * frac;
         pos += 1 + underscore_skip;
@@ -119,7 +121,7 @@ digits.
 */
 
     FLOATVAL get_number() {
-        STRING   *s    = (STRING *)PMC_str_val(SELF);
+        STRING   * const s = (STRING *)PMC_str_val(SELF);
         FLOATVAL sign = 1.0;
         FLOATVAL f    = 0.0;
         FLOATVAL radix = 10.0;
@@ -365,9 +367,9 @@ C<isdigit()> respectively.
 
 
     VTABLE void decrement() {
-        STRING      *str   = Parrot_unCOW_string(interp, PMC_str_val(SELF));
-        char        *start = str->strstart;
-        char * const end   = start + Parrot_str_byte_length(INTERP, str);
+        STRING * const str   = Parrot_unCOW_string(interp, PMC_str_val(SELF));
+        char   * const start = str->strstart;
+        char   * const end   = start + Parrot_str_byte_length(INTERP, str);
 
         /* pointer to the substring we're going to decrement */
         char *substr;

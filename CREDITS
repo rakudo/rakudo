@@ -1,7 +1,5 @@
 =pod
 
-# $Id: CREDITS 36163 2009-01-29 23:46:11Z allison $
-
     Following in the steps of other open source projects that
     eventually take over the world, here is the partial list
     of people who have contributed to Parrot and its supporting
@@ -227,7 +225,7 @@ E: matt@diephouse.com
 N: Moritz A Lenz
 E: moritz@faui2k3.org
 U: moritz
-D: Test infrastructure for Perl 6 in general
+D: Test infrastructure for Perl 6 and Rakudo
 
 N: Nicholas Clark
 U: nicholas

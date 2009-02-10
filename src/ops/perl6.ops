@@ -1,6 +1,6 @@
 /*
  * $Id$
- * Copyright (C) 2008, The Perl Foundation.
+ * Copyright (C) 2008-2009, The Perl Foundation.
  */
 
 #include "parrot/dynext.h"
@@ -13,14 +13,15 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
     /* First verify that the object's class is a superclass of the one we're
      * to re-bless it into. While we're at it, count the number of attributes
      * the current class has that the parent class does not. */
-    PMC *current_class = VTABLE_get_class(interp, $1);
-    PMC *parent_list = VTABLE_inspect_str(interp, $2, Parrot_str_new_constant(interp, "all_parents"));
-    int num_parents = VTABLE_elements(interp, parent_list);
+    PMC * const current_class = VTABLE_get_class(interp, $1);
+    PMC * const parent_list   = VTABLE_inspect_str(interp, $2, Parrot_str_new_constant(interp, "all_parents"));
+    const int num_parents     = VTABLE_elements(interp, parent_list);
+
     int in_parents = 0;
     int new_attribs = 0;
     int i;
     for (i = 0; i < num_parents; i++) {
-        PMC *test_class = VTABLE_get_pmc_keyed_int(interp, parent_list, i);
+        PMC * const test_class = VTABLE_get_pmc_keyed_int(interp, parent_list, i);
         if (test_class == current_class) {
             in_parents = 1;
             break;
@@ -51,7 +52,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         /* In this case, we have something from a foreign class system,
          * probably a PMC. We'll start by instantiating a new instance
          * of the derived class. */
-        PMC *new_ins = VTABLE_instantiate(interp, $2, PMCNULL);
+        PMC * const new_ins = VTABLE_instantiate(interp, $2, PMCNULL);
 
         /* Now we do some nasty swapping around of memory. The end result is:
          *  - The proxy object from new_ins becomes the current value
@@ -60,8 +61,8 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
          *    swept on the next GC run.
          * We do this by shuffling PMC headers around. It should be safe as
          * in the end we will end up with just as many PMCs existing. */
-        PMC *temp  = mem_allocate_typed(PMC);
-        PMC *proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
+        PMC * const temp  = mem_allocate_typed(PMC);
+        PMC * const proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
                 string_from_literal(interp, "proxy"));
         Parrot_block_GC_mark(interp);
 

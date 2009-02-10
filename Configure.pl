@@ -21,6 +21,9 @@ if ($options{'help'}) {
     exit(0);
 }
 
+#  Work out slash character to use.
+my $slash = $^O eq 'MSWin32' ? '\\' : '/';
+
 #  If we're in a Parrot build tree and --parrot-config isn't
 #  specified, use the build tree's reconfigure.pl and exit.
 # if (!$options{'parrot-config'} && -e "../../tools/dev/reconfigure.pl") {
@@ -33,7 +36,7 @@ if ($options{'help'}) {
 
 #  Get a list of parrot-configs to invoke.
 my @parrot_config_exe = 
-    qw(parrot/parrot_config parrot_config ../../parrot_config);
+    ("parrot${slash}parrot_config", "parrot_config", "..${slash}..${slash}parrot_config.exe");
 if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
     @parrot_config_exe = ($options{'parrot-config'});
 }
@@ -79,7 +82,7 @@ sub read_parrot_config {
                 if (/(\w+) => '(.*)'/) { $config{$1} = $2 }
             }
             close $PARROT_CONFIG;
-            last;
+            last if %config;
         }
     }
     %config;

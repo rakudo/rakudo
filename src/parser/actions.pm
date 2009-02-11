@@ -324,6 +324,16 @@ method pblock($/) {
         $block[0].push(
             PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
         );
+        if $<lambda>[0] eq '<->' {
+            $block.loadinit().push(PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('!make_parameters_rw'),
+                PAST::Var.new(
+                    :name('signature'),
+                    :scope('register')
+                )
+            ));
+        }
     }
     make $block;
 }

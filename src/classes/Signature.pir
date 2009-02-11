@@ -149,6 +149,25 @@ Ensures that if there is no explicit invocant, we add one.
 .end
 
 
+=item !make_parameters_rw
+
+Makes all parameters have readtype rw (used to implement e.g. <->).
+
+=cut
+
+.sub '!make_parameters_rw' :method
+    .local pmc params, it, param
+    params = self.'params'()
+    it = iter params
+  it_loop:
+    unless it goto it_loop_end
+    param = shift it
+    param['readtype'] = 'rw'
+    goto it_loop
+  it_loop_end:
+.end
+
+
 =item params
 
 Get the array of parameter describing hashes.

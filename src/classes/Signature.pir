@@ -162,6 +162,8 @@ Makes all parameters have readtype rw (used to implement e.g. <->).
   it_loop:
     unless it goto it_loop_end
     param = shift it
+    $P0 = param['readtype']
+    unless null $P0 goto it_loop
     param['readtype'] = 'rw'
     goto it_loop
   it_loop_end:

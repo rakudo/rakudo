@@ -1111,14 +1111,16 @@ method signature($/, $key) {
                 $sigparam.push($trait);
             }
 
-            my $readtype := trait_readtype( $var<traitlist> ) || 'readonly';
+            my $readtype := trait_readtype( $var<traitlist> );
             if $readtype eq 'CONFLICT' {
                 $<parameter>[$i].panic(
                     "Can use only one of readonly, rw, and copy on "
                     ~ $name ~ " parameter"
                 );
             }
-            $sigparam.push(PAST::Val.new(:value($readtype),:named('readtype')));
+            if $readtype {
+                $sigparam.push(PAST::Val.new(:value($readtype),:named('readtype')));
+            }
 
             ##  if it's an invocant, flag it as such and make the var be a
             ##  lexical that has self register bound to it

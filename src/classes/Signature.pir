@@ -307,14 +307,19 @@ lexicals as needed and performing type checks.
     name = param['name']
     if name == 'self' goto param_loop
     sigil = substr name, 0, 1
-    .local pmc type, orig, var
+    .local pmc type, optional, orig, var
     type = param['type']
+    optional = param['optional']
     orig = callerlex[name]
     if sigil == '@' goto param_array
     if sigil == '%' goto param_hash
     if sigil != '$' goto param_sub
     var = '!CALLMETHOD'('Scalar', orig)
-    ##  typecheck the argument
+    ##  typecheck the argument unless it's undef (for optional parameter)
+    if null optional goto not_optional
+    $I0 = defined orig
+    unless $I0 goto param_val_done 
+  not_optional:
     if null type goto param_val_done
     .lex '$/', $P99
     $P0 = type.'ACCEPTS'(var)

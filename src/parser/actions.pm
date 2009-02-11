@@ -1092,9 +1092,12 @@ method signature($/, $key) {
             my $sigparam := PAST::Op.new( :pasttype('callmethod'),
                                 :name('!add_param'), $sigobj, $name );
 
-            ##  if it's named, note that in the signature object
+            ##  if it's named or optional, note that in the signature object
             if $var.named() ne "" {
                 $sigparam.push(PAST::Val.new( :value($var.named()), :named('named') ));
+            }
+            if $var.viviself() {
+                $sigparam.push(PAST::Val.new( :value(1), :named('optional') ));
             }
 
             ##  add any typechecks

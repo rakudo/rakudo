@@ -98,6 +98,10 @@ sub create_makefile {
     close $ROOTIN;
     $maketext =~ s/@(\w+)@/$config{$1}/g;
 
+    if ($^O eq 'MSWin32') {
+        $maketext =~ s{/}{\\}g;
+    }
+
     print "Creating Makefile\n";
     open(MAKEFILE, ">Makefile") ||
         die "Unable to write Makefile\n";

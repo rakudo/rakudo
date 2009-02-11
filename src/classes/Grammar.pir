@@ -54,6 +54,20 @@ Invokes the TOP rule in the grammar on the given topic.
     'die'("The grammar has no TOP rule to invoke.")
 .end
 
+
+=item parsefile(filename)
+
+Reads in the file in filename and then invokes the TOP rule in the
+grammar on it.
+
+=cut
+
+.sub 'parsefile' :method
+    .param string filename
+    $S0 = 'slurp'(filename)
+    .tailcall self.'parse'($S0)
+.end
+
 =back
 
 =cut

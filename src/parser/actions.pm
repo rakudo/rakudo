@@ -1656,6 +1656,11 @@ method package_def($/, $key) {
         }
     }
 
+    ##  If it is an "is also", check that the type did already exist.
+    if $block<isalso> && !$/.type_redeclaration() {
+        $/.panic("Cannot use 'is also' on non-existent class " ~ ~$<module_name>[0]);
+    }
+
     #  At the beginning, create the "class/module/grammar/role/etc"
     #  metaclass handle on which we do the other operations.
     $init.unshift(

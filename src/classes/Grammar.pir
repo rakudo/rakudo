@@ -51,6 +51,7 @@ Invokes the TOP rule in the grammar on the given topic.
     .return(match)
 
   no_TOP:
+    pop_eh
     'die'("The grammar has no TOP rule to invoke.")
 .end
 

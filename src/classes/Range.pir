@@ -409,19 +409,19 @@ honoring exclusive flags.
 
 =cut
 
-.sub 'VTABLE_get_integer' :method :vtable('get_integer')
+.sub '' :method :vtable('get_integer')
     $P0 = self.'list'()
     $I0 = $P0
     .return ($I0)
 .end
 
-.sub 'VTABLE_get_number' :method :vtable('get_number')
+.sub '' :method :vtable('get_number')
     $P0 = self.'list'()
     $N0 = $P0
     .return ($N0)
 .end
 
-.sub 'VTABLE_get_string' :method :vtable('get_string')
+.sub '' :method :vtable('get_string')
     $P0 = self.'list'()
     $S0 = $P0
     .return ($S0)

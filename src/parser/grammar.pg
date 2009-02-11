@@ -387,7 +387,7 @@ rule routine_def {
 
 rule method_def {
     [
-    | <longname=name> [ <multisig> | <trait> ]*
+    | $<longname>=[<[ ! ]>?<name>] [ <multisig> | <trait> ]*
     | <multisig> <trait>*
     | ::
     ]
@@ -678,8 +678,8 @@ rule scoped {
     | <declarator>
     | <routine_declarator>
     | <fulltypename>+ <multi_declarator>
-    ]
-    {*}
+    ] {*}
+    || <.panic: "Malformed declaration"> # STD.pm: <.panic: "Malformed \"$+SCOPE\" declaration">
 }
 
 token declarator {

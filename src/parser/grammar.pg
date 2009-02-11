@@ -383,6 +383,7 @@ rule routine_def {
     [ <deflongname=identifier> ]? [ <multisig> | <trait> ]*
     <block>
     {*}
+    || <.panic: "Malformed routine definition">
 }
 
 rule method_def {
@@ -393,6 +394,7 @@ rule method_def {
     ]
     <block>
     {*}
+    || <.panic: "Malformed method definition">
 }
 
 rule trait {
@@ -875,7 +877,9 @@ rule regex_declarator {
 }
 
 rule regex_def {
-    <deflongname=name>?  <regex_block> {*}
+    <deflongname=name>?
+    <regex_block> {*}
+    || <.panic: "Malformed regex definition">
 }
 
 token regex_block {

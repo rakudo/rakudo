@@ -45,10 +45,7 @@ like this.
 
     # Make a clone.
     .local pmc result
-    $I0 = isa self, 'ObjectRef'
-    unless $I0 goto do_clone
-    self = deref self
-  do_clone:
+    self = '!DEREF'(self)
     result = clone self
 
     # Set any new attributes.

@@ -47,9 +47,17 @@ Dispatches to method of the given name on this class or one of its parents.
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
 
-    # Get MRO and an interator on it.
+    # Get MRO and an interator on it. Note that we need to handle calls on
+    # protos a little specially, since parrotclass on them doesn't hand back
+    # the class with the methods in it that we got from the proto.
     .local pmc parrotclass, mro, mro_it, cur_class, methods, candidate
+    $I0 = isa obj, 'P6protoobject'
+    if $I0 goto is_proto
     parrotclass = getattribute self, 'parrotclass'
+    goto proto_done
+  is_proto:
+    parrotclass = class obj
+  proto_done:
     mro = inspect parrotclass, 'all_parents'
     mro_it = iter mro
 

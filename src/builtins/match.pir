@@ -25,6 +25,16 @@ src/builtins/match.pir - Perl6 builtins for smart matching
     .tailcall x.'REJECTS'(topic)
 .end
 
+
+.sub 'make'
+    .param pmc value
+    $P0 = getinterp
+    $P1 = $P0['lexpad';1]
+    $P2 = $P1['$/']
+    $P2.'result_object'(value)
+.end
+
+
 =back
 
 =cut

@@ -52,6 +52,7 @@ like this.
     .local pmc p6meta, parrotclass, attributes, it
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     parrotclass = p6meta.'get_parrotclass'(result)
+    if null parrotclass goto attrinit_done
     attributes = inspect parrotclass, 'attributes'
     it = iter attributes
   attrinit_loop:

@@ -228,7 +228,7 @@ Generate the next element at the front of the Range.
     fromexc = getattribute self, '$!from_exclusive'
     value = 'postfix:++'(from)
     unless fromexc goto have_value
-    value = clone from
+    value = from.'clone'()
   have_value:
     $I0 = self.'!to_test'(value)
     if $I0 goto success

@@ -30,7 +30,7 @@ src/builtins/op.pir - Perl 6 builtin operators
 ## autoincrement
 .sub 'postfix:++' :multi(_)
     .param pmc a
-    $P0 = clone a
+    $P0 = a.'clone'()
     $I0 = defined a
     if $I0 goto have_a
     'infix:='(a, 0)
@@ -41,7 +41,7 @@ src/builtins/op.pir - Perl 6 builtin operators
 
 .sub 'postfix:--' :multi(_)
     .param pmc a
-    $P0 = clone a
+    $P0 = a.'clone'()
     $I0 = defined a
     if $I0 goto have_a
     'infix:='(a, 0)

@@ -25,6 +25,11 @@ src/builtins/match.pir - Perl6 builtins for smart matching
     .tailcall x.'REJECTS'(topic)
 .end
 
+=item make($item)
+
+Equivalent to C<$/.result_object($item)>.  This changes the item value of the current match object.
+
+=cut
 
 .sub 'make'
     .param pmc value

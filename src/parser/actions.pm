@@ -2565,6 +2565,7 @@ method type_declarator($/) {
 
     # We need a block containing the constraint condition.
     my $past := $( $<EXPR> );
+    my $param_name := '$_';
     if (!$past.isa(PAST::Block) || $past.compiler() eq 'PGE::Perl6Regex') {
         # Make block with a smart match of the the expression as its contents.
         $past := PAST::Block.new(
@@ -2595,6 +2596,7 @@ method type_declarator($/) {
         if $_.isa(PAST::Var) {
             if $_.scope() eq 'parameter' {
                 $param := $_;
+                $param_name := $param.name();
             }
             elsif $_.name() eq '$_' {
                 $dollar_underscore := $_;
@@ -2613,6 +2615,18 @@ method type_declarator($/) {
             );
             $past[0].push($param);
         }
+    }
+
+    # If it doesn't have a signature, give it one.
+    unless $past<signature> {
+        block_signature($past);
+        $past.loadinit().push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('!add_param'),
+            PAST::Var.new( :name('signature'), :scope('register') ),
+            $param_name
+        ));
+        $past[0].push(PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') ));
     }
 
     # Create subset type.
@@ -2863,37 +2877,67 @@ sub make_accessor($/, $method_name, $attr_name, $rw, $scope) {
 
 # Creates an anonymous subset type.
 sub make_anon_subtype($past) {
-    # We need a block containing the constraint condition.
-    if !$past.isa(PAST::Block) {
+    my $param_name := '$_';
+
+    # We need a block containing the constraint condition and do smart-match
+    # it against $_.
+    if !$past.isa(PAST::Block) || $past.compiler() eq 'PGE::Perl6Regex' {
         $past := PAST::Block.new(
-            PAST::Stmts.new(),
-            PAST::Stmts.new( $past )
+            PAST::Stmts.new(
+                PAST::Var.new(
+                    :name('$_'),
+                    :scope('parameter')
+                )
+            ),
+            PAST::Stmts.new( 
+                PAST::Op.new(
+                    :name('infix:~~'),
+                    :pasttype('call'),
+                    PAST::Var.new( :name('$_'), :scope('lexical') ),
+                    $past
+                )
+            )
         );
     }
-
-    # Make sure it has a parameter.
-    my $param;
-    my $dollar_underscore;
-    for @($past[0]) {
-        if $_.isa(PAST::Var) {
-            if $_.scope() eq 'parameter' {
-                $param := $_;
+    else {
+        # Make the block we have has a parameter.
+        my $param;
+        my $dollar_underscore;
+        for @($past[0]) {
+            if $_.isa(PAST::Var) {
+                if $_.scope() eq 'parameter' {
+                    $param := $_;
+                    $param_name := $param.name();
+                }
+                elsif $_.name() eq '$_' {
+                    $dollar_underscore := $_;
+                }
             }
-            elsif $_.name() eq '$_' {
-                $dollar_underscore := $_;
+        }
+        unless $param {
+            if $dollar_underscore {
+                $dollar_underscore.scope('parameter');
+            }
+            else {
+                $past[0].push(PAST::Var.new(
+                    :name('$_'),
+                    :scope('parameter')
+                ));
             }
         }
     }
-    unless $param {
-        if $dollar_underscore {
-            $dollar_underscore.scope('parameter');
-        }
-        else {
-            $past[0].push(PAST::Var.new(
-                :name('$_'),
-                :scope('parameter')
-            ));
-        }
+
+    # Add signature to make sure parameter is read-only, unless block is
+    # already sig'd.
+    unless $past<signature> {
+        block_signature($past);
+        $past.loadinit().push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('!add_param'),
+            PAST::Var.new( :name('signature'), :scope('register') ),
+            $param_name
+        ));
+        $past[0].push(PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') ));
     }
 
     return $past;

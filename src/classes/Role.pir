@@ -232,22 +232,19 @@ just here so postcircumfix:[ ] doesn't explode).
 
 We also add some methods to the Parrot roles.
 
-=item new
+=item !pun
 
-Puns the role to a class and instantiates it.
+Puns the role to a class and returns that class.
 
 =cut
 
 .namespace ["Role"]
-.sub 'new' :method
-    .param pmc pos_args    :slurpy
-    .param pmc name_args   :slurpy :named
-
+.sub '!pun' :method
     # See if we have already created a punned class; use it if so.
     .local pmc pun
     pun = getprop '$!pun', self
     if null pun goto make_pun
-    .tailcall pun.'new'(pos_args :flat, name_args :flat :named)
+    .return (pun)
   make_pun:
 
     # Otherwise, need to create a punned class.
@@ -265,7 +262,22 @@ Puns the role to a class and instantiates it.
 
     # Stash it away, then instantiate it.
     setprop self, '$!pun', proto
-    .tailcall proto.'new'(pos_args :flat, name_args :flat :named)
+    .return (proto)
+.end
+
+
+=item new
+
+Puns the role to a class and instantiates it.
+
+=cut
+
+.sub 'new' :method
+    .param pmc pos_args    :slurpy
+    .param pmc name_args   :slurpy :named
+    .local pmc pun
+    pun = self.'!pun'()
+    .tailcall pun.'new'(pos_args :flat, name_args :flat :named)
 .end
 
 

@@ -354,7 +354,19 @@ lexicals as needed and performing type checks.
     setprop var, 'readonly', $P0
     goto param_readtype_done
   param_readtype_copy:
+    if sigil == '@' goto param_readtype_copy_array
+    if sigil == '%' goto param_readtype_copy_hash
     var = clone var
+    goto param_readtype_done
+  param_readtype_copy_array:
+    $P0 = new 'Perl6Array'
+    'infix:='($P0, var)
+    var = $P0
+    goto param_readtype_done
+  param_readtype_copy_hash:
+    $P0 = new 'Perl6Hash'
+    'infix:='($P0, var)
+    var = $P0
   param_readtype_done:
     ## set any type properties
     setprop var, 'type', type

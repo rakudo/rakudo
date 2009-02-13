@@ -63,6 +63,8 @@ Smart-matches against the list.
     unless it_a goto true
     .local pmc looking_for
     looking_for = shift it_a
+    $I0 = isa looking_for, whatever
+    if $I0 goto handle_whatever
   whatever_loop:
     $P0 = 'infix:==='(looking_for, cur_b)
     if $P0 goto found_looking_for

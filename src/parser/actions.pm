@@ -214,12 +214,9 @@ method when_statement($/) {
     when_handler_helper($block);
 
     # Invoke smartmatch of the expression.
-    my $match_past := PAST::Op.new(
+    my $match_past := process_smartmatch(
         PAST::Var.new( :name('$_') ),
         $( $<EXPR> ),
-        :name('infix:~~'),
-        :pasttype('call'),
-        :node($/)
     );
 
     # Use the smartmatch result as the condition.
@@ -2501,6 +2498,13 @@ method EXPR($/, $key) {
         }
         make $past;
     }
+    elsif ~$type eq 'infix:~~' {
+        # Smart-match. We need to detect and specially dispatch a few special forms; the
+        # rest fall through to a call to .ACCEPTS.
+        my $lhs := $( $/[0] );
+        my $rhs := $( $/[1] );
+        make process_smartmatch($lhs, $rhs);
+    }
     elsif ~$type eq 'prefix:|' {
         # Need to make it flatten the argument.
         my $past := $( $/[0] );
@@ -2943,6 +2947,28 @@ sub transform_to_multi($past) {
             )
         );
         $past<multi_flag> := 1;
+    }
+}
+
+
+# Hanldes syntactic forms of smart-matching (factored out here since it's used
+# by infix:~~ and the when statement.
+sub process_smartmatch($lhs, $rhs) {
+    if $rhs.isa(PAST::Stmts) && $rhs<invocant_holder> {
+        # Method truth - just call RHS.
+        $rhs<invocant_holder>[0] := $lhs;
+        return PAST::Op.new(
+            :pasttype('call'),
+            :name('prefix:?'),
+            $rhs
+        );
+    }
+    else {
+        return PAST::Op.new(
+            :pasttype('call'),
+            :name('infix:~~'),
+            $lhs, $rhs
+        );
     }
 }
 

@@ -259,7 +259,9 @@ rule if_statement {
 }
 
 rule unless_statement {
-    $<sym>=[unless] <xblock> {*}
+    $<sym>=[unless]
+    <xblock> {*}
+    [ <!before 'else'> || <.panic: "unless does not take \"else\" in Perl 6; please rewrite using \"if\""> ]
 }
 
 rule repeat_statement {

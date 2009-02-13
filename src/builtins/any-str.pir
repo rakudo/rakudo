@@ -1071,13 +1071,17 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     startpos = pos + replacelen
     goto subst_loop
   subst_done:
+    if null x_opt goto x_check_done
+    if n_cnt >= times goto x_check_done
+    .return (self)
+  x_check_done:
     .return (result)
 
   nth_fail:
-    die "Must pass a non-negative integer to :nth()"
+    'die'("Must pass a non-negative integer to :nth()")
 
   x_fail:
-    die "Must pass a non-negative integer to :x()"
+    'die'("Must pass a non-negative integer to :x()")
 .end
 
 
@@ -1181,6 +1185,10 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     offset += $I3
     goto subst_loop
   subst_done:
+    if null x_opt goto x_check_done
+    if n_cnt >= times goto x_check_done
+    .return (self)
+  x_check_done:
     .return (result)
 
   nth_fail:

@@ -35,9 +35,10 @@ Smart-matches against the list.
     # What do we have?
     $I0 = isa topic, 'List' # Catches Array too
     if $I0 goto array
-    goto default
+    # XXX When we have a Set type, need to handle that here too.
+    topic = topic.'list'()
 
-    # Array. Need to DWIM on *s.
+    # Need to DWIM on *s.
   array:
     .local pmc whatever
     whatever = get_hll_global 'Whatever'
@@ -98,13 +99,6 @@ Smart-matches against the list.
   false:
     $P0 = get_hll_global [ 'Bool' ], 'False'
     .return ($P0)
-
-    # Something else. Just do a hyper ===, and check all the values are matches.
-  default:
-    topic = topic.'list'()
-    $P0 = '!HYPEROP'('infix:===', self, topic, 0, 0)
-    $P0 = 'all'($P0)
-    .tailcall 'prefix:?'($P0)
 .end
 
 

@@ -332,12 +332,19 @@ method pblock($/) {
             ));
         }
     }
+    ##  If block has no statements, need to return an undef (so we don't
+    ##  get a null PMC access) if it's a lambda (in the non-lambda case,
+    ##  it may be a Hash composer).
+    if $<lambda> {
+        prevent_null_return($block);
+    }
     make $block;
 }
 
 method xblock($/) {
     my $pblock := $( $<pblock> );
     $pblock.blocktype('immediate');
+    prevent_null_return($pblock);
     my $past := PAST::Op.new(
         $( $<EXPR> ), $pblock,
         :pasttype('if'),
@@ -2969,6 +2976,18 @@ sub process_smartmatch($lhs, $rhs) {
             :name('infix:~~'),
             $lhs, $rhs
         );
+    }
+}
+
+
+# Gives a block an undef to return if it has no statements, to prevent Null
+# PMCs being handed back.
+sub prevent_null_return($block) {
+    if +@($block[1]) == 0 {
+        $block[1].push(PAST::Op.new(
+            :pasttype('call'),
+            :name('undef')
+        ));
     }
 }
 

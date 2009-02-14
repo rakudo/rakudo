@@ -263,7 +263,7 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
 
 /*
 
-=item C<static candidate_info** sort_candidiates(PMC *candidates)>
+=item C<static candidate_info** sort_candidates(PMC *candidates)>
 
 Takes a ResizablePMCArray of the candidates, collects information about them
 and then does a topological sort of them.
@@ -271,7 +271,7 @@ and then does a topological sort of them.
 =cut
 
 */
-static candidate_info** sort_candidiates(PARROT_INTERP, PMC *candidates, PMC **proto_out) {
+static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **proto_out) {
     INTVAL i;
     PMC    *found_proto = PMCNULL;
     const char *error = NULL;
@@ -866,7 +866,7 @@ the Perl 6 MMD algorithm.
             GETATTR_Perl6MultiSub_proto(interp, SELF, proto);
 
             if (!candidates) {
-                candidates = sort_candidiates(interp, unsorted, &proto);
+                candidates = sort_candidates(interp, unsorted, &proto);
                 SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
                 SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
             }
@@ -925,7 +925,7 @@ Takes an array of arguments and finds all possible matching candidates.
         GETATTR_Perl6MultiSub_proto(interp, SELF, proto);
 
         if (!candidates) {
-            candidates = sort_candidiates(interp, unsorted, &proto);
+            candidates = sort_candidates(interp, unsorted, &proto);
             SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
             SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
         }

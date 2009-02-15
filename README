@@ -145,6 +145,9 @@ them if you made multiple commits; please attach these to your email.
 (Note to the maintainers: you can apply these patches with the
 C<git-am> command; it preserves meta information like author).
 
+Other ways to create and submit patches are discussed here:
+L<http://wiki.github.com/rakudo/rakudo/steps-to-create-a-patch>.
+
 =head2 How the compiler works
 
 See F<docs/compiler_overview.pod>.

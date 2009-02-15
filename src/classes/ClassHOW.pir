@@ -163,7 +163,7 @@ Dispatches to method of the given name on this class or one of its parents.
   autothread_invocant:
     .local pmc values, values_it, res, res_list, type
     res_list = 'list'()
-    values = obj.'!eigenstates'()
+    values = obj.'eigenstates'()
     values_it = iter values
   values_it_loop:
     unless values_it goto values_it_loop_end

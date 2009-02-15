@@ -147,8 +147,8 @@ subtyping relations, etc).
     unless $I0 == $I1 goto not_junc
     .local pmc j1, j2
     .local int max, i
-    j1 = t1.'!eigenstates'()
-    j2 = t1.'!eigenstates'()
+    j1 = t1.'eigenstates'()
+    j2 = t1.'eigenstates'()
     max = elements j1
     i = 0
   junc_loop:

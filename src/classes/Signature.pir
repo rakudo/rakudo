@@ -75,7 +75,7 @@ the Signature.
     cur_list = 'all'($P0)
     attr["type"] = cur_list
   have_type_attr:
-    cur_list = cur_list.'!eigenstates'()
+    cur_list = cur_list.'eigenstates'()
     cur_list_iter = iter cur_list
   cur_list_loop:
     unless cur_list_iter goto cur_list_loop_end

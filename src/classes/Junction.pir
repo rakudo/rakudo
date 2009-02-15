@@ -53,7 +53,7 @@ Return perl representation.  (This should actually be autothreaded.)
   type_done:
 
     .local pmc it
-    $P0 = self.'!eigenstates'()
+    $P0 = self.'eigenstates'()
     it = iter $P0
     unless it goto states_done
     $P0 = shift it
@@ -82,7 +82,7 @@ Evaluate Junction as a boolean.
 .sub 'true' :method
     .local pmc eigenstates, it
     .local int type
-    eigenstates = self.'!eigenstates'()
+    eigenstates = self.'eigenstates'()
     it = iter eigenstates
     type = self.'!type'()
     if type == JUNCTION_TYPE_NONE goto none
@@ -127,7 +127,7 @@ Smart-matching for junctions, short-circuiting.
     .param pmc topic
     .local pmc eigenstates, it, state
     .local int type
-    eigenstates = self.'!eigenstates'()
+    eigenstates = self.'eigenstates'()
     it = iter eigenstates
     type = self.'!type'()
     if type == JUNCTION_TYPE_NONE goto none
@@ -168,7 +168,7 @@ Smart-matching for junctions, short-circuiting.
 
 Return the type of the Junction.
 
-=item !eigenstates()
+=item eigenstates()
 
 Return the components of the Junction.
 
@@ -180,7 +180,7 @@ Return the components of the Junction.
     .return ($P0)
 .end
 
-.sub '!eigenstates' :method
+.sub 'eigenstates' :method
     $P0 = getattribute self, '@!eigenstates'
     .return ($P0)
 .end
@@ -305,7 +305,7 @@ Does a junctional dispatch. XXX Needs to support named args.
 
   have_index:
     .local pmc eigenstates, it, results
-    eigenstates = junc.'!eigenstates'()
+    eigenstates = junc.'eigenstates'()
     it = iter eigenstates
     results = 'list'()
   thread_loop:

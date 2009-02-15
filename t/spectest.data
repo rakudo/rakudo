@@ -77,6 +77,7 @@ S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/unicode-whitespace.t
 S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
+S03-junctions/eigenstates.t
 S03-junctions/misc.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t

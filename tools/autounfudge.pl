@@ -258,9 +258,10 @@ sub tests_ok {
 }
 
 sub get_harness {
+    my $parrot = -d 'parrot' ? 'parrot/parrot' : '../../parrot';
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => ['../../parrot', '-G', 'perl6.pbc'],
+            exec        => [$parrot, '-G', 'perl6.pbc'],
             merge       => 1,
     });
 }

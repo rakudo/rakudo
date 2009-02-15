@@ -16,7 +16,7 @@ please don't add them blindly just because they all pass - chances are that
 there's a good reason for them not already being included.
 
 This script should be called from the main Rakudo directory (ie
-C<languages/perl6/> relative to parrot).
+C<languages/rakudo/> relative to parrot).
 
 =cut
 
@@ -28,6 +28,7 @@ use TAP::Parser::Aggregator 3.01;
 use File::Find;
 use Data::Dumper;
 
+my $parrot = -d 'parrot' ? 'parrot/parrot' : '../../parrot';
 
 my %not_process;
 {
@@ -91,7 +92,7 @@ sub read_specfile {
 sub get_harness {
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => ['../../parrot', '-G', 'perl6.pbc'],
+            exec        => [$parrot, '-G', 'perl6.pbc'],
             merge       => 1,
     });
 }

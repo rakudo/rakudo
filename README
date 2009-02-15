@@ -1,16 +1,34 @@
 =head1 Rakudo Perl 6
 
 This is the Perl 6 compiler for Parrot, called "Rakudo Perl 6",
-or "Rakudo" for short.  It's still fairly primitive, but it is rapidly expanding.
+or "Rakudo" for short.  It's still fairly basic, but it is rapidly expanding.
 See L<docs/STATUS> for a list of what has been implemented thus far.
 
 =head2 Building and invoking Rakudo
 
-To build the compiler, start by building Parrot, then change
-to the languages/perl6/ subdirectory and type "make".  This
-will create the compiler as a file called "perl6.pbc".  The ".pbc"
+If you build Rakudo for the first time, you need to get and build a
+copy of parrot:
+
+    $ svn checkout https://svn.parrot.org/parrot/trunk parrot
+    $ cd parrot
+    $ perl Configure.pl
+    $ make
+
+Then go to the C<languages> subdirectory and get, configure and build 
+Rakudo there:
+
+    $ git clone git://github.com/rakudo/rakudo.git
+    cd rakudo
+    perl Configure.pl
+    make
+
+This will create the compiler as a file called "perl6.pbc".  The ".pbc"
 stands for "Parrot bytecode", and represents an executable Parrot
 module.
+
+To update your Parrot and Rakudo working copies, type C<svn up> in
+Parrot's directory and build it with C<make>, and C<git pull; make>
+Rakudo's directory.
 
 To run a Perl 6 program with Rakudo, issue a command like
 
@@ -52,7 +70,7 @@ At present we do not have any plans to directly store the
 official test suite as part of the Rakudo/Parrot repository,
 but will continue to fetch it from the Pugs repository.
 
-While in the C<languages/perl6> directory, you can an individual test from the
+While in the C<languages/rakudo> directory, you can an individual test from the
 command line with:
 
     $ make t/spec/S29-str/ucfirst.t
@@ -84,7 +102,8 @@ language itself.
 
 Questions about the Rakudo compiler for Parrot and the Parrot
 compiler tools can go to C<perl6-compiler@perl.org>.  Discussion
-about Parrot itself generally takes place on C<parrot-porters@perl.org>.
+about Parrot itself generally takes place on
+C<parrot-dev@lists.parrot.org>.
 
 The Parrot and Rakudo development team tend to hang out on IRC a fair
 bit, either on C<irc.perl.org/#parrot> or C<irc.freenode.net/#perl6>.
@@ -94,7 +113,8 @@ There are also Perl 6 and Parrot wikis, found at
     L<http://www.perlfoundation.org/parrot/index.cgi>
 
 There is also a Rakudo related blog at L<http://rakudo.org/>, and
-a Parrot blog at L<http://parrotblog.org/>.
+a Parrot blog at L<http://parrotblog.org/>. Most Perl 6 related news is
+assembled at L<http://planetsix.perl.org/>.
 
 =head2 Reporting bugs
 
@@ -112,9 +132,18 @@ If you have a patch that fixes a bug or adds a new feature, please
 submit it to C<rakudobug@perl.org> with the moniker [PATCH]
 (including the brackets) at the start of the subject line.  We'll
 generally accept patches in any form if we can get them to work,
-but unified diff from the svn command is greatly preferred.  In
-general this means you can execute "svn diff >foo.patch" from
-the languages/perl6/ directory and just attach the foo.patch file.
+but unified diff from the C<git> command is greatly preferred.  In
+general this means that in the C<languages/rakudo/> directory you make your
+changes, and then type
+    
+    git commit -m 'Your commit message'
+    git-format-patch HEAD^
+
+This will generate a file called C<001-your-commit-message.patch>, or more of
+them if you made multiple commits; please attach these to your email.
+
+(Note to the maintainers: you can apply these patches with the
+C<git-am> command; it preserves meta information like author).
 
 =head2 How the compiler works
 
@@ -127,4 +156,4 @@ maintainer for Rakudo Perl 6 on Parrot.
 
 =cut
 
-## vim: expandtab sw=4
+## vim: expandtab sw=4 ft=pod tw=70:

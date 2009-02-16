@@ -24,16 +24,6 @@ if ($options{'help'}) {
 #  Work out slash character to use.
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 
-#  If we're in a Parrot build tree and --parrot-config isn't
-#  specified, use the build tree's reconfigure.pl and exit.
-# if (!$options{'parrot-config'} && -e "../../tools/dev/reconfigure.pl") {
-#     print "Building Makefile with ../../tools/dev/reconfigure.pl\n";
-#     chdir '../..';
-#     `$^X -Ilib tools/dev/reconfigure.pl --step=gen::languages --languages=rakudo`;
-#     done();
-# }
-
-
 #  Get a list of parrot-configs to invoke.
 my @parrot_config_exe = ("parrot${slash}parrot_config", 
      "..${slash}..${slash}parrot_config", "parrot_config");

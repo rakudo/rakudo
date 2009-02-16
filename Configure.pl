@@ -9,11 +9,16 @@ use 5.008;
 my %valid_options = (
     'help'          => 'Display configuration help',
     'parrot-config' => 'Use configuration given by parrot_config binary',
+    'gen-parrot'    => 'Automatically retrieve and build Parrot',
 );
+
+#  Work out slash character to use.
+my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 
 
 #  Get any options from the command line
 my %options = get_command_options();
+
 
 #  Print help if it's requested
 if ($options{'help'}) {
@@ -21,8 +26,12 @@ if ($options{'help'}) {
     exit(0);
 }
 
-#  Work out slash character to use.
-my $slash = $^O eq 'MSWin32' ? '\\' : '/';
+
+#  Update/generate parrot build if needed
+if ($options{'gen-parrot'}) {
+    system("$^X build/gen_parrot.pl");
+}
+    
 
 #  Get a list of parrot-configs to invoke.
 my @parrot_config_exe = ("parrot${slash}parrot_config", 
@@ -101,11 +110,12 @@ sub create_makefile {
 
 
 sub done {
-    print <<END;
+    my $make = $config{'make'};
+    print <<"END";
 
-You can now use 'make' to build Rakudo Perl.
-After that, you can use 'make test' to run some local tests,
-or 'make spectest' to check out (via svn) a copy of the Perl 6
+You can now use '$make' to build Rakudo Perl.
+After that, you can use '$make test' to run some local tests,
+or '$make spectest' to check out (via svn) a copy of the Perl 6
 official test suite and run its tests.
 
 END
@@ -120,6 +130,7 @@ Configure.pl - Rakudo Configure
 
 General Options:
     --help             Show this text
+    --gen-parrot       Download and build a copy of Parrot to use
     --parrot-config=(config)
                        Use configuration information from config
 

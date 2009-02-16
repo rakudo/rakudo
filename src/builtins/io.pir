@@ -148,6 +148,19 @@ It is an error to use bare C<unlink> without arguments.
 .end
 
 
+=item prompt
+
+Shows the supplied message and then waits for input from $*IN.
+
+=cut
+
+.sub 'prompt'
+    .param string prompt
+    'print'(prompt)
+    $P0 = get_hll_global "$IN"
+    .tailcall $P0.'readline'()
+.end
+
 =back
 
 =cut

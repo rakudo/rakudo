@@ -217,6 +217,7 @@ method when_statement($/) {
     my $match_past := process_smartmatch(
         PAST::Var.new( :name('$_') ),
         $( $<EXPR> ),
+        $<EXPR><expr>
     );
 
     # Use the smartmatch result as the condition.
@@ -2510,7 +2511,7 @@ method EXPR($/, $key) {
         # rest fall through to a call to .ACCEPTS.
         my $lhs := $( $/[0] );
         my $rhs := $( $/[1] );
-        make process_smartmatch($lhs, $rhs);
+        make process_smartmatch($lhs, $rhs, $/[1]);
     }
     elsif ~$type eq 'prefix:|' {
         # Need to make it flatten the argument.
@@ -3004,8 +3005,8 @@ sub transform_to_multi($past) {
 
 # Hanldes syntactic forms of smart-matching (factored out here since it's used
 # by infix:~~ and the when statement.
-sub process_smartmatch($lhs, $rhs) {
-    if $rhs.isa(PAST::Stmts) && $rhs<invocant_holder> {
+sub process_smartmatch($lhs, $rhs, $rhs_pt) {
+    if $rhs_pt<noun><dotty> {
         # Method truth - just call RHS.
         $rhs<invocant_holder>[0] := $lhs;
         return PAST::Op.new(

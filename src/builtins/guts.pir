@@ -573,10 +573,24 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
     ##  get the (parrot)class object associated with name
     $P0 = compreg 'Perl6'
     $P0 = $P0.'parse_name'(name)
-    $P0 = get_hll_namespace $P0
-    $P0 = get_class $P0
+    $S0 = pop $P0
+    $P0 = get_hll_global $P0, $S0
+
+    ##  Do we have a role here?
+    $I0 = isa $P0, 'Role'
+    if $I0 goto need_to_pun
+    $I0 = isa $P0, 'Perl6Role'
+    if $I0 goto need_to_pun_role
+    goto have_class
+  need_to_pun_role:
+    $P0 = $P0.'!select'()
+  need_to_pun:
+    $P0 = $P0.'!pun'()
 
     ##  add it as parent to metaclass
+  have_class:
+    $P1 = get_hll_global ['Perl6Object'], '$!P6META'
+    $P0 = $P1.'get_parrotclass'($P0)
     metaclass.'add_parent'($P0)
     .return ()
 

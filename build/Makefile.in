@@ -298,7 +298,3 @@ help:
 	@echo "  help:              Print this help message."
 	@echo ""
 
-# regenerate the Makefile
-# Makefile: config/makefiles/root.in config/makefiles/utils.in
-# 	cd $(BUILD_DIR) && $(RECONFIGURE) --step=gen::languages --languages=perl6
-

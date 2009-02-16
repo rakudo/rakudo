@@ -155,6 +155,11 @@ to the Perl 6 compiler.
 .sub 'main' :main
     .param pmc args_str
 
+    $S0 = args_str[1]
+    if $S0 != '-le' goto not_harness
+    exit 0
+  not_harness:
+
     $P0 = compreg 'Perl6'
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii')
 

@@ -145,7 +145,7 @@ HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 
 
 # the default target
-all: perl6.pbc
+all: perl6$(EXE)
 
 ##  targets for building a standalone perl6.
 # (We're not quite ready to make this a default target.)

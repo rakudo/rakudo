@@ -210,6 +210,14 @@ src/ops/perl6_ops$(LOAD_EXT) : $(OPS_FILE)
 	@cd $(OPSDIR) && $(BUILD_DYNOPS) linklibs $(OPSLIB)
 	@cd $(OPSDIR) && $(BUILD_DYNOPS) copy "--destination=$(PARROT_DYNEXT)" $(OPSLIB)
 
+
+##  local copy of Parrot
+parrot: parrot/parrot_config build/PARROT_REVISION
+	$(PERL) build/gen_parrot.pl
+
+parrot/parrot_config:
+	@echo "Don't see parrot/parrot_config."
+
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@
 

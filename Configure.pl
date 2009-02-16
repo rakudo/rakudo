@@ -35,8 +35,8 @@ my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 
 
 #  Get a list of parrot-configs to invoke.
-my @parrot_config_exe = 
-    ("parrot${slash}parrot_config", "parrot_config", "..${slash}..${slash}parrot_config");
+my @parrot_config_exe = ("parrot${slash}parrot_config", 
+     "..${slash}..${slash}parrot_config", "parrot_config");
 if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
     @parrot_config_exe = ($options{'parrot-config'});
 }

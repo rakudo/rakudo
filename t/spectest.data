@@ -266,6 +266,7 @@ S29-array/pop.t
 S29-array/push.t
 S29-array/shift.t
 S29-array/unshift.t
+S29-container/zip.t
 S29-context/eval.t
 S29-context/sleep.t
 S29-conversions/ord_and_chr.t

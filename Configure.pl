@@ -43,8 +43,13 @@ if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
 #  Get configuration information from parrot_config
 my %config = read_parrot_config(@parrot_config_exe);
 unless (%config) {
-    die "Unable to obtain configuration from "
-        . join(', ', @parrot_config_exe) . "\n";
+    die <<"END";
+Unable to locate parrot_config.
+To automatically checkout (svn) and build a copy of parrot,
+try re-running Configure.pl with the '--gen-parrot' option.
+Or, use the '--parrot-config' option to explicitly specify
+the location of parrot_config.
+END
 }
 
 #  Create the Makefile using the information we just got

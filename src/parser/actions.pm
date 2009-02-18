@@ -30,6 +30,7 @@ method TOP($/) {
     our $?SUPPRESS_MAIN;
     my $main;
     if $?SUPPRESS_MAIN {
+        $past.push(PAST::Stmts.new());
         $main := $past;
     }
     else {
@@ -1757,7 +1758,7 @@ method package_def($/, $key) {
         $block.blocktype('immediate');
         $block.pirflags('');
     }
-    else {
+    elsif !$block<isalso> {
         $block[0].push( PAST::Op.new( :name('!meta_compose'), $?METACLASS) );
     }
 

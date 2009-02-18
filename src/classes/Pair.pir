@@ -38,52 +38,6 @@ Delegates on to a method call '.:Xkey(Xval)'.
     .tailcall topic.$S0($P0)
 .end
 
-=item key
-
-Gets the key of the pair.
-
-=cut
-
-.sub 'key' :method
-    $P0 = getattribute self, '$!key'
-    .return ($P0)
-.end
-
-=item kv
-
-Return key and value as a 2-element List.
-
-=cut
-
-.namespace ['Perl6Pair']
-.sub 'kv' :method
-    $P0 = self.'key'()
-    $P1 = self.'value'()
-    .tailcall 'list'($P0, $P1)
-.end
-
-
-=item pairs
-
-=cut
-
-.sub 'pairs' :method
-    .tailcall self.'list'()
-.end
-
-
-=item value
-
-Gets the value of the pair.
-
-=cut
-
-.sub 'value' :method
-    $P0 = getattribute self, '$!value'
-    .return ($P0)
-.end
-
-
 
 =item get_string()  (vtable method)
 
@@ -121,28 +75,6 @@ the key and value.
     retv = 'sprintf'(format, key, value)
 
     .return(retv)
-.end
-
-=item perl
-
-Returns a Perl code representation of the pair.
-
-=cut
-
-.sub perl :method
-    # Get key and value.
-    $P0 = self.'key'()
-    $P1 = self.'value'()
-
-    # Get perl representation
-    $S0 = $P0.'perl'()
-    $S1 = $P1.'perl'()
-
-    # build result
-    .local string result
-    result = concat $S0, ' => '
-    result .= $S1
-    .return (result)
 .end
 
 

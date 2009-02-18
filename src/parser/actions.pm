@@ -1538,9 +1538,26 @@ method package_declarator($/, $key) {
         $?BLOCK_OPEN<pkgdecl> := $sym;
         @?PKGDECL.unshift( $sym );
     }
-    else {
+    elsif $key eq 'package_def' {
         make $( $<package_def> );
         @?PKGDECL.shift();
+    }
+    elsif $key eq 'does' {
+        our @?BLOCK;
+        our $?METACLASS;
+        my $block    := @?BLOCK[0];
+        my $pkgdecl  := $block<pkgdecl>;
+        my $typename := ~$<typename><name>;
+        unless $pkgdecl eq 'class' || $pkgdecl eq 'role' || $pkgdecl eq 'grammar' {
+            $/.panic("Cannot use does package declarator outside of class, role, or grammar");
+        }
+        $block[0].push(PAST::Op.new(
+            :name('!meta_trait'),
+            $?METACLASS,
+            'trait_auxiliary:does',
+            $typename
+        ));
+        make PAST::Stmts.new()
     }
 }
 

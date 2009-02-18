@@ -625,8 +625,9 @@ token named_0ary {
 }
 
 rule package_declarator {
-    $<sym>=[class|grammar|module|package|role] {*}       #= open
-    <package_def> {*}                                    #= package_def
+    | $<sym>=[class|grammar|module|package|role] {*}       #= open
+      <package_def> {*}                                    #= package_def
+    | 'does' <typename> {*}                                #= does
 }
 
 

@@ -12,9 +12,6 @@ my %valid_options = (
     'gen-parrot'    => 'Automatically retrieve and build Parrot',
 );
 
-#  Work out slash character to use.
-my $slash = $^O eq 'MSWin32' ? '\\' : '/';
-
 
 #  Get any options from the command line
 my %options = get_command_options();
@@ -34,8 +31,8 @@ if ($options{'gen-parrot'}) {
     
 
 #  Get a list of parrot-configs to invoke.
-my @parrot_config_exe = ("parrot${slash}parrot_config", 
-     "..${slash}..${slash}parrot_config", "parrot_config");
+my @parrot_config_exe = ("parrot/parrot_config", 
+     "../../parrot_config", "parrot_config");
 if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
     @parrot_config_exe = ($options{'parrot-config'});
 }

@@ -759,10 +759,13 @@ token name {
 
 token morename {
     '::'
-    [ 
-    | <identifier>
-    | '(' <EXPR> ')' 
-    ]
+    [
+        <?before '(' | <alpha> >
+        [ 
+        | <identifier>
+        | '(' <EXPR> ')' 
+        ]
+    ]?
 }
 
 token value {

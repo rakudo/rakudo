@@ -1557,7 +1557,8 @@ method package_def($/, $key) {
     # At block opening, unshift module name (fully qualified) onto @?NS; otherwise,
     # shift it off.
     if $key eq 'open' {
-        my $fqname := +@?NS ?? @?NS[0] ~ '::' ~ ~$<module_name>[0] !! ~$<module_name>[0];
+        my $add := ~$<module_name>[0] eq '::' ?? '' !! ~$<module_name>[0];
+        my $fqname := +@?NS ?? @?NS[0] ~ '::' ~ $add !! $add;
         @?NS.unshift($fqname);
         return 0;
     }
@@ -1568,9 +1569,15 @@ method package_def($/, $key) {
     my $block := $( $/{$key} );
     $block.lexical(0);
 
-    my $modulename := $<module_name>
-                         ?? ~$<module_name>[0] !!
-                         $block.unique('!ANON');
+    my $modulename;
+    my $is_anon := 0;
+    if $<module_name> && ~$<module_name>[0] ne '::' {
+        $modulename :=  ~$<module_name>[0];
+    }
+    else {
+        $modulename := $block.unique('!ANON');
+        $is_anon := 1;
+    }
     if +@?NS > 0 {
         $modulename := @?NS[0] ~ '::' ~ $modulename;
     }
@@ -1655,7 +1662,7 @@ method package_def($/, $key) {
 
     #  If it's not an "is also", have a name and aren't a role (since they can
     #  have many declarations) we need to check it's not a duplicate.
-    if !$block<isalso> && $<module_name> && $?PKGDECL ne 'role' {
+    if !$block<isalso> && !$is_anon && $?PKGDECL ne 'role' {
         if $/.type_redeclaration() {
             $/.panic("Re-declaration of type " ~ ~$<module_name>[0]);
         }
@@ -1705,7 +1712,7 @@ method package_def($/, $key) {
             $?METACLASS
         ));
     }
-    elsif $<module_name> eq "" && ($?PKGDECL eq 'class' || $?PKGDECL eq 'grammar') {
+    elsif $is_anon && ($?PKGDECL eq 'class' || $?PKGDECL eq 'grammar') {
         #  We need to keep the proto around and return it at the end of
         #  initialization for anonymous classes.
         $block[0].push(PAST::Op.new(

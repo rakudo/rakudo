@@ -19,6 +19,11 @@ Registers a type in the namespace.
 .namespace [ "Perl6";"Grammar" ]
 .sub "add_type" :method
     .param string name
+    
+    # :: is really anonymous, so do nothing.
+    if name != '::' goto non_anon
+    .return ()
+  non_anon:
 
     # Parse name.
     .local pmc ns

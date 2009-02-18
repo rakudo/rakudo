@@ -229,7 +229,7 @@ codetest:
 	$(MAKE) $(BUILD_DIR) codetest
 
 coretest: all
-	# prove t/pmc
+#	prove t/pmc
 	$(PERL) t/harness t/00-parrot t/01-sanity
 
 fulltest: coretest spectest codetest

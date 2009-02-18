@@ -12,6 +12,8 @@ my @ops = qw(
   %         'fail'      op
   x         'fail'      op
   xx        'fail'      op
+  min       'fail'      op
+  max       'fail'      op
   +&        -1          op
   +<        'fail'      op
   +>        'fail'      op

@@ -50,6 +50,8 @@ Returns a Perl representation of the Complex.
 
 =item exp
 
+Returns the exponential of a Complex.
+
 =cut
 
 .namespace []
@@ -62,6 +64,8 @@ Returns a Perl representation of the Complex.
 
 =item log
 
+Returns the logarithm of a Complex.
+
 =cut
 
 .namespace ['Perl6Complex']
@@ -71,6 +75,8 @@ Returns a Perl representation of the Complex.
 .end
 
 =item polar
+
+Returns the polar representation of a Complex.
 
 =cut
 
@@ -88,6 +94,8 @@ Returns a Perl representation of the Complex.
 .end
 
 =item sqrt
+
+Returns the square root of a Complex.
 
 =cut
 

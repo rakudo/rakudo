@@ -20,25 +20,6 @@ src/classes/Pair.pir - methods for the Pair class
 .end
 
 
-=item ACCEPTS()
-
-Called from smartmatches '$_ ~~ X'.
-Delegates on to a method call '.:Xkey(Xval)'.
-
-=cut
-
-.sub 'ACCEPTS' :method
-    .param pmc topic
-
-    $S0 = self.'key'()
-    $S0 = concat ':', $S0
-
-    $P0 = self.'value'()
-
-    .tailcall topic.$S0($P0)
-.end
-
-
 =item get_string()  (vtable method)
 
 Stringify the Pair.
@@ -51,30 +32,6 @@ Stringify the Pair.
     $S1 = self.'value'()
     concat $S0, $S1
     .return ($S0)
-.end
-
-
-=item fmt
-
- our Str multi Pair::fmt ( Str $format )
-
-Returns the invocant pair formatted by an implicit call to C<sprintf> on
-the key and value.
-
-=cut
-
-.sub 'fmt' :method
-    .param pmc format
-
-    .local pmc retv
-    .local pmc key
-    .local pmc value
-
-    key = self.'key'()
-    value = self.'value'()
-    retv = 'sprintf'(format, key, value)
-
-    .return(retv)
 .end
 
 

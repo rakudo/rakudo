@@ -9,7 +9,7 @@ proto prefix:<--> is equiv(postfix:<++>) is lvalue(1) { ... }
 proto postfix:<i> is equiv(postfix:<++>) { ... }
 
 ## exponentiation
-proto infix:<**> is precedence('w=') { ... }
+proto infix:<**> is precedence('w=') is assoc('right') { ... }
 
 ## symbolic unary
 proto prefix:<+> is precedence('v=') { ... }

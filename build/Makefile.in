@@ -173,7 +173,8 @@ xmas: perl6$(EXE)
 ##  supporting targets for perl6
 # the Perl 6 compiler
 perl6_s1.pbc: $(PARROT) $(SOURCES) $(BUILTINS_PIR)
-	$(PARROT) $(PARROT_ARGS) -o perl6_s1.pbc perl6_s1.pir
+    $(PERL) -e "" > src/gen_setting.pir
+	$(PARROT) $(PARROT_ARGS) -o perl6_s1.pbc perl6.pir
 
 # the Perl 6 compiler
 perl6.pbc: perl6_s1.pbc src/gen_setting.pm

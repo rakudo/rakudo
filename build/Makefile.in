@@ -160,7 +160,7 @@ t/spec :
 spectest_update :
 	-cd t/spec && svn up
 
-testable : all Test.pir spectest_checkout spectest_update
+testable : perl6.pbc Test.pir spectest_checkout spectest_update
 
 xmas: perl6$(EXE)
 
@@ -228,7 +228,7 @@ test    : coretest
 codetest:
 	$(MAKE) $(BUILD_DIR) codetest
 
-coretest: all
+coretest: perl6.pbc
 #	prove t/pmc
 	$(PERL) t/harness t/00-parrot t/01-sanity
 

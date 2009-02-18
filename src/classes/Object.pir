@@ -361,8 +361,8 @@ the object's type and address.
   posargs_loop:
     unless pos_it goto posargs_done
     argproto = shift pos_it
-    $P1 = $P0.'WHAT'()
-    ne_addr parentproto, $P1, posargs_loop
+    $P1 = argproto.'HOW'()
+    ne_addr $P0, $P1, posargs_loop
     $P0 = argproto.'WHENCE'()
     if null $P0 goto posargs_done
     parentproto.'BUILD'(candidate, $P0 :flat :named)

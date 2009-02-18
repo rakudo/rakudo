@@ -26,42 +26,49 @@ method TOP($/) {
     # Set package for unit mainline
     $past.unshift(set_package_magical());
 
-    # Create the unit's startup block.
-    my $main := PAST::Block.new( :pirflags(':main') );
-    $main.loadinit().push(
-        PAST::Op.new( :inline('$P0 = compreg "Perl6"',
-                              'unless null $P0 goto have_perl6',
-                              'load_bytecode "perl6.pbc"',
-                              'have_perl6:')
-        )
-    );
+    # Create the unit's startup block, unless it's suppressed.
+    our $?SUPPRESS_MAIN;
+    my $main;
+    if $?SUPPRESS_MAIN {
+        $main := $past;
+    }
+    else {
+        $main := PAST::Block.new( :pirflags(':main') );
+        $main.loadinit().push(
+            PAST::Op.new( :inline('$P0 = compreg "Perl6"',
+                                  'unless null $P0 goto have_perl6',
+                                  'load_bytecode "perl6.pbc"',
+                                  'have_perl6:')
+            )
+        );
 
-   # call the unit mainline, passing any arguments, and return
-   # the result.  We force a tailcall here because we need a
-   # :load sub (below) to occur last in the generated output, but don't
-   # want it to be treated as the module's return value.
-   $main.push(
-       PAST::Op.new( :pirop('tailcall'),
-           PAST::Op.new( :pirop('find_name'), '!UNIT_START' ),
-           $past,
-           PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
-       )
-    );
+       # call the unit mainline, passing any arguments, and return
+       # the result.  We force a tailcall here because we need a
+       # :load sub (below) to occur last in the generated output, but don't
+       # want it to be treated as the module's return value.
+       $main.push(
+           PAST::Op.new( :pirop('tailcall'),
+               PAST::Op.new( :pirop('find_name'), '!UNIT_START' ),
+               $past,
+               PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
+           )
+        );
 
-    # generate a :load sub that invokes this one, but does so _last_
-    # (e.g., at the end of a load_bytecode operation)
-    $main.push(
-        PAST::Block.new( :pirflags(':load'), :blocktype('declaration'),
-            PAST::Op.new(
-                :inline( '.include "interpinfo.pasm"',
-                         '$P0 = interpinfo .INTERPINFO_CURRENT_SUB',
-                         '$P0 = $P0."get_outer"()',
-                         '$P0()'
+        # generate a :load sub that invokes this one, but does so _last_
+        # (e.g., at the end of a load_bytecode operation)
+        $main.push(
+            PAST::Block.new( :pirflags(':load'), :blocktype('declaration'),
+                PAST::Op.new(
+                    :inline( '.include "interpinfo.pasm"',
+                             '$P0 = interpinfo .INTERPINFO_CURRENT_SUB',
+                             '$P0 = $P0."get_outer"()',
+                             '$P0()'
+                    )
                 )
             )
-        )
-    );
-    $main.push( PAST::Stmts.new() );
+        );
+        $main.push( PAST::Stmts.new() );
+    }
 
     make $main;
 }
@@ -467,6 +474,15 @@ method control_statement($/) {
     $?BLOCK.handlers(@handlers);
     make PAST::Stmts.new();
 }
+
+
+method no_statement($/) {
+    if ~$<module_name><name> eq 'Main' {
+        our $?SUPPRESS_MAIN := 1;
+    }
+    make PAST::Stmts.new();
+}
+
 
 method statement_mod_loop($/) {
     my $expr := $( $<EXPR> );

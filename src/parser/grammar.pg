@@ -248,6 +248,7 @@ rule statement_control {
     | <end_statement> {*}                        #= end_statement
     | <catch_statement> {*}                      #= catch_statement
     | <control_statement> {*}                    #= control_statement
+    | <no_statement> {*}                         #= no_statement
 }
 
 rule if_statement {
@@ -343,6 +344,10 @@ rule control_statement {
     $<sym>=[CONTROL]
     <block>
     {*}
+}
+
+rule no_statement {
+    'no' <module_name><arglist>? {*}
 }
 
 rule statement_mod_loop {

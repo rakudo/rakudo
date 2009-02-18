@@ -19,17 +19,6 @@ This file implements the Whatever class.
     whateverproto.'!IMMUTABLE'()
 .end
 
-
-.sub 'ACCEPTS' :method
-    .param pmc topic
-    $P0 = get_hll_global ['Bool'], 'True'
-    .return ($P0)
-.end
-
-.sub 'perl' :method
-    .return ('*')
-.end
-
 .sub '' :vtable('get_integer') :method
     $P0 = get_global '$!slice'
     unless null $P0 goto have_whatever

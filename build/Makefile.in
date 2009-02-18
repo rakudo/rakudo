@@ -151,6 +151,7 @@ all: perl6$(EXE)
 # (We're not quite ready to make this a default target.)
 perl6$(EXE): perl6.pbc
 	$(PBC_TO_EXE) perl6.pbc
+	@win32_libparrot_copy@
 
 spectest_checkout : t/spec
 

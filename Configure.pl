@@ -97,8 +97,9 @@ sub create_makefile {
         die "Unable to read build/Makefile.in \n";
     my $maketext = join('', <$ROOTIN>);
     close $ROOTIN;
-    $maketext =~ s/@(\w+)@/$config{$1}/g;
 
+    $config{'win32_libparrot_copy'} = $^O eq 'MSWin32' ? 'copy $(BUILD_DIR)\libparrot.dll .' : '';
+    $maketext =~ s/@(\w+)@/$config{$1}/g;
     if ($^O eq 'MSWin32') {
         $maketext =~ s{/}{\\}g;
     }

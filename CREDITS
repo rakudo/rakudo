@@ -111,6 +111,7 @@ E: cspencer@sprocket.org
 N: Curtis 'Ovid' Poe
 U: Ovid
 D: docs/test cleanups/Makefile fixes
+D: Rename 'pbc_to_c' to 'pbc_to_exe'
 E: ovid@cpan.org
 
 N: Dan Sugalski
@@ -237,9 +238,6 @@ E: julian.notfound@gmail.com
 N: Nuno 'smash' Carvalho
 U: smash
 E: mestre.smash@gmail.com
-
-N: Ovid
-D: Rename 'pbc_to_c' to 'pbc_to_exe'
 
 N: Patrick R. Michaud
 U: pmichaud

@@ -190,8 +190,6 @@ Needs to be in terms of StrPos, not Int.
 
 =item pack
 
-=item pos
-
 =item quotemeta
 
 =item rindex

@@ -1,5 +1,3 @@
-## $Id$
-
 =head1 TITLE
 
 Str - Perl 6 Str class and related functions
@@ -28,7 +26,7 @@ as the Perl 6 C<Str> class.
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)
 
     $P0 = get_hll_namespace ['Str']
-    '!EXPORT'('sprintf,reverse', 'from'=>$P0)
+    '!EXPORT'('sprintf', 'from'=>$P0)
 .end
 
 
@@ -47,18 +45,6 @@ as the Perl 6 C<Str> class.
     .param string topic
     .tailcall 'infix:eq'(topic, self)
 .end
-
-
-.sub 'reverse' :method :multi('String')
-    .local pmc retv
-
-    retv = self.'split'('')
-    retv = retv.'reverse'()
-    retv = retv.'join'('')
-
-    .return(retv)
-.end
-
 
 
 =item perl()

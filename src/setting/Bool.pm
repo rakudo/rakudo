@@ -24,3 +24,5 @@ Returns True or False
     }
 
 }
+
+# vim: ft=perl6

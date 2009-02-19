@@ -67,3 +67,5 @@ Returns a Perl code representation of the pair.
     }
 
 }
+
+# vim: ft=perl6

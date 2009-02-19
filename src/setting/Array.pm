@@ -14,3 +14,5 @@ class Array is also {
         return @deleted;
     }
 }
+
+# vim: ft=perl6

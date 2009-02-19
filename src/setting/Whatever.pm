@@ -6,3 +6,5 @@ class Whatever is also {
         return Bool::True;
     }
 }
+
+# vim: ft=perl6

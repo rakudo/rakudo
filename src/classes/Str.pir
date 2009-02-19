@@ -180,18 +180,6 @@ chopped.
 Related to C<p5chop>, only removes trailing chars that match C</\n/>. In
 either case, it returns the number of chars removed.
 
-=item chomp
-
- our Str method Str::chomp ( Str $string: )
-
-Returns string with newline removed from the end.  An arbitrary
-terminator can be removed if the input filehandle has marked the
-string for where the "newline" begins.  (Presumably this is stored
-as a property of the string.)  Otherwise a standard newline is removed.
-
-Note: Most users should just let their I/O handles autochomp instead.
-(Autochomping is the default.)
-
 =item length
 
 This word is banned in Perl 6.  You must specify units.

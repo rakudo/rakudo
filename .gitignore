@@ -1,11 +1,13 @@
 *~
 src/gen_*.pir
+src/gen_*.pm
 Makefile
 .*.swp
 *.patch
 Test.pir
 perl6
 perl6.pbc
+perl6_s1.pbc
 perl6.exe
 perl6.c
 perl6.o

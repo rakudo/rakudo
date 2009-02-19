@@ -230,6 +230,7 @@ sub proclaim($cond, $desc) {
     }
     # must clear this between tests
     $todo_reason = '';
+    return $cond;
 }
 
 END {

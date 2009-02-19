@@ -205,36 +205,6 @@ Return the number of elements in the list.
     .return ($I0)
 .end
 
-=item perl()
-
-Returns a Perl representation of a List.
-
-=cut
-
-.sub 'perl' :method
-    .local string result
-    result = '['
-
-    .local pmc iter
-    iter = self.'iterator'()
-    unless iter goto iter_done
-  iter_loop:
-    $P1 = shift iter
-    if null $P1 goto iter_null
-    $S1 = $P1.'perl'()
-    result .= $S1
-    goto iter_next
-  iter_null:
-    result .= 'undef'
-  iter_next:
-    unless iter goto iter_done
-    result .= ', '
-    goto iter_loop
-  iter_done:
-    result .= ']'
-    .return (result)
-.end
-
 
 .namespace ['List']
 .sub 'reverse' :method

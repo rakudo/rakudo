@@ -106,7 +106,11 @@ BUILTINS_PIR = \
   src/builtins/traits.pir \
 
 SETTING = \
-  src/setting/Whatever.pm
+  src/setting/Array.pm \
+  src/setting/Bool.pm \
+  src/setting/List.pm \
+  src/setting/Pair.pm \
+  src/setting/Whatever.pm \
 
 PMCS        = perl6str objectref perl6scalar mutablevar perl6multisub
 

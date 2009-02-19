@@ -20,71 +20,6 @@ src/classes/Pair.pir - methods for the Pair class
 .end
 
 
-=item ACCEPTS()
-
-Called from smartmatches '$_ ~~ X'.
-Delegates on to a method call '.:Xkey(Xval)'.
-
-=cut
-
-.sub 'ACCEPTS' :method
-    .param pmc topic
-
-    $S0 = self.'key'()
-    $S0 = concat ':', $S0
-
-    $P0 = self.'value'()
-
-    .tailcall topic.$S0($P0)
-.end
-
-=item key
-
-Gets the key of the pair.
-
-=cut
-
-.sub 'key' :method
-    $P0 = getattribute self, '$!key'
-    .return ($P0)
-.end
-
-=item kv
-
-Return key and value as a 2-element List.
-
-=cut
-
-.namespace ['Perl6Pair']
-.sub 'kv' :method
-    $P0 = self.'key'()
-    $P1 = self.'value'()
-    .tailcall 'list'($P0, $P1)
-.end
-
-
-=item pairs
-
-=cut
-
-.sub 'pairs' :method
-    .tailcall self.'list'()
-.end
-
-
-=item value
-
-Gets the value of the pair.
-
-=cut
-
-.sub 'value' :method
-    $P0 = getattribute self, '$!value'
-    .return ($P0)
-.end
-
-
-
 =item get_string()  (vtable method)
 
 Stringify the Pair.
@@ -97,52 +32,6 @@ Stringify the Pair.
     $S1 = self.'value'()
     concat $S0, $S1
     .return ($S0)
-.end
-
-
-=item fmt
-
- our Str multi Pair::fmt ( Str $format )
-
-Returns the invocant pair formatted by an implicit call to C<sprintf> on
-the key and value.
-
-=cut
-
-.sub 'fmt' :method
-    .param pmc format
-
-    .local pmc retv
-    .local pmc key
-    .local pmc value
-
-    key = self.'key'()
-    value = self.'value'()
-    retv = 'sprintf'(format, key, value)
-
-    .return(retv)
-.end
-
-=item perl
-
-Returns a Perl code representation of the pair.
-
-=cut
-
-.sub perl :method
-    # Get key and value.
-    $P0 = self.'key'()
-    $P1 = self.'value'()
-
-    # Get perl representation
-    $S0 = $P0.'perl'()
-    $S1 = $P1.'perl'()
-
-    # build result
-    .local string result
-    result = concat $S0, ' => '
-    result .= $S1
-    .return (result)
 .end
 
 

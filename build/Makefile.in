@@ -128,6 +128,7 @@ CLEANUPS = \
   *.pdb \
   perl6$(O) \
   perl6$(EXE) \
+  perl6_s1.pbc \
   installable_perl6$(EXE) \
   Test.pir \
   src/gen_*.pir \

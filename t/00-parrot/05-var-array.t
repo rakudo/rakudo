@@ -10,13 +10,13 @@ my @a = (1, 2, 3);
 
 say 'ok ' ~ @a[0];
 say 'ok ' ~ @a[1];
-say 'ok ' ~ @a[-1];
+say 'ok ' ~ @a[*-1];
 say 'ok 4' if 3 eq @a.elems;
 
 my @b = <5 6>;
 
 say 'ok ' ~ @b[0];
-say 'ok ' ~ @b[-1];
+say 'ok ' ~ @b[*-1];
 say 'ok 7' if 2 eq @b.elems;
 
 my @c = <ok 8>; say ~@c;

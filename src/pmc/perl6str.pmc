@@ -121,11 +121,12 @@ digits.
 */
 
     FLOATVAL get_number() {
-        STRING   * const s = (STRING *)PMC_str_val(SELF);
-        FLOATVAL sign = 1.0;
-        FLOATVAL f    = 0.0;
-        FLOATVAL radix = 10.0;
-        int      angle = 0;
+        Parrot_Perl6Str_attributes *attrs = PARROT_PERL6STR(SELF);
+        STRING                     *s     = attrs->str_val;
+        FLOATVAL                    sign  = 1.0;
+        FLOATVAL                    f     = 0.0;
+        FLOATVAL                    radix = 10.0;
+        int                         angle = 0;
 
         if (s && s->strstart) {
             const char *s1         = s->strstart;
@@ -272,7 +273,8 @@ C<isdigit()> respectively.
 */
 
     VTABLE void increment() {
-        STRING            *str   = Parrot_unCOW_string(interp, PMC_str_val(SELF));
+        Parrot_Perl6Str_attributes *attrs = PARROT_PERL6STR(SELF);
+        STRING            *str   = Parrot_unCOW_string(interp, attrs->str_val);
         char              *start = str->strstart;
         const char * const end   = start + Parrot_str_byte_length(INTERP, str);
 
@@ -367,7 +369,8 @@ C<isdigit()> respectively.
 
 
     VTABLE void decrement() {
-        STRING * const str   = Parrot_unCOW_string(interp, PMC_str_val(SELF));
+        Parrot_Perl6Str_attributes *attrs = PARROT_PERL6STR(SELF);
+        STRING * const str   = Parrot_unCOW_string(interp, attrs->str_val);
         char   * const start = str->strstart;
         char   * const end   = start + Parrot_str_byte_length(INTERP, str);
 

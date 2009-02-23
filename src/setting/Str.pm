@@ -6,13 +6,20 @@ class Str is also {
     our List multi method split(Code $delimiter, $limit = *) {
         my $s = self;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
+        my $keep = '';
         return gather {
             while $l > 1 && $s ~~ $delimiter {
-                take $s.substr(0, $/.from);
-                $s.=substr([max] $/.to, 1);
+                take $keep ~ $s.substr(0, $/.from);
+                if $/.from == $/.to {
+                    $keep = $s.substr($/.to, 1);
+                    $s.=substr($/.to + 1);
+                } else {
+                    $keep = '';
+                    $s.=substr($/.to)
+                }
                 $l--;
             }
-            take $s if $l > 0;
+            take $keep ~ $s if $l > 0;
         }
     }
 
@@ -21,6 +28,11 @@ class Str is also {
         my Int $prev = 0;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         $delimiter = ~$delimiter;
+        if $delimiter eq '' {
+            return gather {
+                take self.substr($_, 1) for 0 .. self.chars - 1;
+            }
+        }
         return gather {
             my $pos;
             while $l > 1

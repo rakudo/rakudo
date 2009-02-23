@@ -19,13 +19,15 @@ class Str is also {
         self.split($delimiter).[0..$limit];
     }
 
-    # TODO: substitute with $delimiter as Str once coercion is implemented
+    # TODO: substitute with '$delimiter as Str' once coercion is implemented
     our List multi method split($delimiter is copy) {
         my Int $prev = 0;
         $delimiter = ~$delimiter;
         return gather {
             my $pos;
-            while defined ($pos = self.index($delimiter, $prev)) {
+            # work around a rakudo bug: "102030405".index(0, 10).defined is True
+            while $prev <= self.chars 
+                  && defined ($pos = self.index($delimiter, $prev)) {
                 take self.substr($prev, $pos - $prev);
                 $prev = $pos + $delimiter.chars;
             }

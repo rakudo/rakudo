@@ -1,5 +1,5 @@
 class Any is also {
-    method split($delimiter, Int $limit = *) {
+    method split($delimiter, $limit = *) {
         if $limit ~~ Whatever {
             return (~self).split($delimiter);
         } else {

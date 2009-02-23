@@ -551,69 +551,6 @@ B<Note:> partial implementation only
     .return(retv)
 .end
 
-.sub 'split' :method :multi(_, 'Sub')
-    .param pmc regex
-    .param int count        :optional
-    .param int has_count    :opt_flag
-    .local pmc match
-    .local pmc retv
-    .local int start_pos
-    .local int end_pos
-    .local int zwm_start
-
-    $S0 = self
-    retv = new 'List'
-    start_pos = 0
-
-    # per Perl 5's negative LIMIT behavior
-    unless has_count goto positive_count
-    if count < 1 goto done
-
-  positive_count:
-    match = regex($S0)
-    if match goto loop
-    retv.'push'($S0)
-    goto done
-
-  loop:
-    unless has_count goto skip_count
-    dec count
-    unless count < 1 goto skip_count
-    $S1 = substr $S0, start_pos
-    retv.'push'($S1)
-    goto done
-  next_zwm:
-    zwm_start = start_pos
-  inc_zwm:
-    inc start_pos
-    match = regex($S0, 'continue' => start_pos)
-    end_pos = match.'from'()
-    unless start_pos == end_pos goto inc_zwm
-    start_pos = zwm_start
-    end_pos -= start_pos
-    goto add_str
-  skip_count:
-    match = regex($S0, 'continue' => start_pos)
-    end_pos = match.'from'()
-    $I99 = match.'to'()
-    if $I99 == end_pos goto next_zwm
-    end_pos -= start_pos
-  add_str:
-    $S1 = substr $S0, start_pos, end_pos
-    retv.'push'($S1)
-    unless match goto done
-    $I0 = match.'to'()
-    if $I0 == start_pos goto zero_width
-    start_pos = $I0
-    goto loop
-  zero_width:
-    inc start_pos
-    goto loop
-
-  done:
-    .return(retv)
-.end
-
 =item substr()
 
 =cut

@@ -163,48 +163,6 @@ Remove leading and trailing whitespace from a string.
     .return(s)
 .end
 
-=item comb()
-
-Partial implementation for now, returns a list of strings
-(instead of a list of match objects).
-
-=cut
-
-.sub 'comb' :method :multi(_)
-    .param pmc regex
-    .param int count        :optional
-    .param int has_count    :opt_flag
-    .local pmc retv, match
-    .local string s
-    .local int pos
-
-    retv = 'list'()
-    s = self
-
-    pos = 0
-
-  do_match:
-    match = regex(s, 'continue' => pos)
-    unless match goto done
-    unless has_count goto skip_count
-    dec count
-    if count < 0 goto done
-  skip_count:
-    # shouldn't have to coerce to Str here, but see RT #55962
-    $S0 = match
-    retv.'push'($S0)
-    $I0 = match.'to'()
-    if pos == $I0 goto zero_width
-    pos = $I0
-    goto do_match
-
-  zero_width:
-    inc pos
-    goto do_match
-  done:
-    .return(retv)
-.end
-
 =item ':d'()
 
  our Bool multi Str::':d' ( Str $filename )

@@ -503,54 +503,6 @@ B<Note:> partial implementation only
     .tailcall target.'split'(sep)
 .end
 
-.namespace['Any']
-.sub 'split' :method :multi(_, _)
-    .param string delim
-    .param int count        :optional
-    .param int has_count    :opt_flag
-    .local string objst
-    .local pmc pieces
-    .local pmc retv
-    .local int len
-    .local int pos
-    .local int i
-
-    retv = new 'List'
-
-    # per Perl 5's negative LIMIT behavior
-    unless has_count goto positive_count
-    unless count < 1 goto positive_count
-    has_count = 0
-
-  positive_count:
-    objst = self
-    length $I0, delim
-    split pieces, delim, objst
-    len = pieces
-    pos = 0
-    i = 0
-
-  loop:
-    unless has_count goto skip_count
-    dec count
-    unless count < 1 goto skip_count
-    $S0 = substr objst, pos
-    retv.'push'($S0)
-    goto done
-  skip_count:
-    if i == len goto done
-    $S0 = pieces[i]
-    retv.'push'($S0)
-    length $I1, $S0
-    pos += $I0
-    pos += $I1
-    inc i
-    goto loop
-
-  done:
-    .return(retv)
-.end
-
 =item substr()
 
 =cut

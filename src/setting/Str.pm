@@ -15,8 +15,22 @@ class Str is also {
         }
     }
 
-    our List multi method split(Code $delimiter, Int $limit) {
+    our List multi method split($delimiter, Int $limit) {
         self.split($delimiter).[0..$limit];
+    }
+
+    # TODO: substitute with $delimiter as Str once coercion is implemented
+    our List multi method split($delimiter is copy) {
+        my Int $prev = 0;
+        $delimiter = ~$delimiter;
+        return gather {
+            my $pos;
+            while defined ($pos = self.index($delimiter, $prev)) {
+                take self.substr($prev, $pos - $prev);
+                $prev = $pos + $delimiter.chars;
+            }
+            take self.substr($prev);
+        }
     }
 }
 

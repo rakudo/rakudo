@@ -3,33 +3,34 @@ class Str is also {
         return $str.split('').reverse.join('');
     }
 
-    our List multi method split(Code $delimiter) {
+    our List multi method split(Code $delimiter, $limit = *) {
         my $s = self;
+        my $l = $limit ~~ Whatever ?? Inf !! $limit;
         return gather {
-            # XXX is this valid in Perl 6? or just a Rakudoism?
-            while $s ~~ $delimiter {
+            while $l > 1 && $s ~~ $delimiter {
                 take $s.substr(0, $/.from);
                 $s.=substr([max] $/.to, 1);
+                $l--;
             }
-            take $s;
+            take $s if $l > 0;
         }
     }
 
-    our List multi method split($delimiter, Int $limit) {
-        self.split($delimiter).[0..$limit];
-    }
-
     # TODO: substitute with '$delimiter as Str' once coercion is implemented
-    our List multi method split($delimiter is copy) {
+    our List multi method split($delimiter is copy, $limit = *) {
         my Int $prev = 0;
+        my $l = $limit ~~ Whatever ?? Inf !! $limit;
         $delimiter = ~$delimiter;
         return gather {
             my $pos;
-            while defined ($pos = self.index($delimiter, $prev)) {
+            while $l > 1
+                  && $pos < self.chars 
+                  && defined ($pos = self.index($delimiter, $prev)) {
                 take self.substr($prev, $pos - $prev);
-                $prev = $pos + $delimiter.chars;
+                $prev = [max] 1 + $prev, $pos + $delimiter.chars;
+                $l--;
             }
-            take self.substr($prev);
+            take self.substr($prev) if $l > 0;
         }
     }
 

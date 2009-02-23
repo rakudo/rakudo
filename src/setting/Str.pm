@@ -25,13 +25,13 @@ class Str is also {
         $delimiter = ~$delimiter;
         return gather {
             my $pos;
-            # work around a rakudo bug: "102030405".index(0, 10).defined is True
-            while $prev <= self.chars 
-                  && defined ($pos = self.index($delimiter, $prev)) {
+            while defined ($pos = self.index($delimiter, $prev)) {
                 take self.substr($prev, $pos - $prev);
                 $prev = $pos + $delimiter.chars;
             }
             take self.substr($prev);
+        }
+    }
 
     our List multi method comb (Code $matcher = /\S+/, $limit = *) {
         my $l = $limit ~~ Whatever ?? Inf !! $limit;

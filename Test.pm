@@ -51,10 +51,10 @@ multi sub pass($desc) is export() {
 }
 
 multi sub ok(Object $cond, $desc) is export() {
-    proclaim($cond, $desc);
+    proclaim(?$cond, $desc);
 }
 
-multi sub ok(Object $cond) is export() { ok($cond, ''); }
+multi sub ok(Object $cond) is export() { ok(?$cond, ''); }
 
 
 multi sub nok(Object $cond, $desc) is export() {
@@ -66,7 +66,7 @@ multi sub nok(Object $cond) is export() { nok(!$cond, ''); }
 
 multi sub is(Object $got, Object $expected, $desc) is export() {
     my $test = $got eq $expected;
-    proclaim($test, $desc);
+    proclaim(?$test, $desc);
 }
 
 multi sub is(Object $got, Object $expected) is export() { is($got, $expected, ''); }
@@ -81,10 +81,12 @@ multi sub isnt(Object $got, Object $expected) is export() { isnt($got, $expected
 
 multi sub is_approx(Object $got, Object $expected, $desc) is export() {
     my $test = abs($got - $expected) <= 0.00001;
-    proclaim($test, $desc);
+    proclaim(?$test, $desc);
 }
 
-multi sub is_approx($got, $expected) is export() { is_approx($got, $expected, ''); }
+multi sub is_approx(Object $got, Object $expected) is export() {
+    is_approx($got, $expected, '');
+}
 
 multi sub todo($reason, $count) is export() {
     $todo_upto_test_num = $num_of_tests_run + $count;

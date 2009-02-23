@@ -276,7 +276,8 @@ Returns the invocant formatted by an implicit call to C<sprintf>.
     s = self
 
   check_substring:
-    if substring goto substring_search
+    $I1 = length substring
+    if $I1 goto substring_search
     $I0 = length s
     if pos < $I0 goto done
     pos = $I0

@@ -7,8 +7,8 @@ Delegates on to a method call '.:Xkey(Xval)'.
 
 =end item
     method ACCEPTS($topic) {
-        my $meth_name = ':' ~ self.key;
-        return $topic."$meth_name"(self.value);
+        my $meth_name = ':' ~ $.key;
+        return $topic."$meth_name"($.value);
     }
 
 =begin item fmt
@@ -20,7 +20,7 @@ the key and value.
 
 =end item
     method fmt(Str $format) {
-        return sprintf($format, self.key, self.value);
+        return sprintf($format, $.key, $.value);
     }
 
 =begin item key
@@ -38,7 +38,7 @@ Return key and value as a 2-element List.
 
 =end item
     method kv() {
-        return list(self.key, self.value);
+        return list($.key, $.value);
     }
 
 =begin item pairs
@@ -63,7 +63,7 @@ Returns a Perl code representation of the pair.
 
 =end item
     method perl() {
-        return self.key.perl ~ ' => ' ~ self.value.perl;
+        return $.key.perl ~ ' => ' ~ $.value.perl;
     }
 
 }

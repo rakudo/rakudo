@@ -455,13 +455,6 @@ B<Note:> partial implementation only
 
 =cut
 
-.namespace[]
-.sub 'split' :multi(_,_)
-    .param pmc sep
-    .param pmc target
-    .tailcall target.'split'(sep)
-.end
-
 =item substr()
 
 =cut

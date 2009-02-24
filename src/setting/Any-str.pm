@@ -60,4 +60,8 @@ class Any is also {
     }
 }
 
+sub split($delimiter, $target) {
+    $target.split($delimiter);
+}
+
 # vim: ft=perl6

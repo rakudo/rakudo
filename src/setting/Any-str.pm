@@ -30,7 +30,7 @@ class Any is also {
             }
         }
         return gather {
-            my $pos;
+            my $pos = 0;
             while $l > 1
                   && $pos < $s.chars 
                   && defined ($pos = $s.index($delimiter, $prev)) {

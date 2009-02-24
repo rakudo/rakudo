@@ -20,11 +20,10 @@ class Any is also {
     }
 
     # TODO: substitute with '$delimiter as Str' once coercion is implemented
-    our List multi method split($delimiter is copy, $limit = *) {
+    our List multi method split($delimiter, $limit = *) {
         my Int $prev = 0;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         my $s = ~self;
-        $delimiter = ~$delimiter;
         if $delimiter eq '' {
             return gather {
                 take $s.substr($_, 1) for 0 .. $s.chars - 1;
@@ -36,7 +35,7 @@ class Any is also {
                   && $pos < $s.chars 
                   && defined ($pos = $s.index($delimiter, $prev)) {
                 take $s.substr($prev, $pos - $prev);
-                $prev = [max] 1 + $prev, $pos + $delimiter.chars;
+                $prev = [max] 1 + $prev, $pos + (~$delimiter).chars;
                 $l--;
             }
             take $s.substr($prev) if $l > 0;

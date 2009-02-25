@@ -28,11 +28,14 @@ if ($options{'help'}) {
 if ($options{'gen-parrot'}) {
     system("$^X build/gen_parrot.pl");
 }
-    
 
 #  Get a list of parrot-configs to invoke.
-my @parrot_config_exe = ("parrot/parrot_config", 
-     "../../parrot_config", "parrot_config");
+my @parrot_config_exe = qw(
+    parrot/parrot_config
+    ../../parrot_config
+    parrot_config
+);
+
 if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
     @parrot_config_exe = ($options{'parrot-config'});
 }
@@ -40,7 +43,7 @@ if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
 #  Get configuration information from parrot_config
 my %config = read_parrot_config(@parrot_config_exe);
 unless (%config) {
-    die <<"END";
+    die <<'END';
 Unable to locate parrot_config.
 To automatically checkout (svn) and build a copy of parrot,
 try re-running Configure.pl with the '--gen-parrot' option.
@@ -68,7 +71,7 @@ sub get_command_options {
         }
         die qq/Invalid option "$arg".  See "perl Configure.pl --help" for valid options.\n/;
     }
-    %options;
+    return %options;
 }
 
 
@@ -82,21 +85,22 @@ sub read_parrot_config {
             while (<$PARROT_CONFIG>) {
                 if (/(\w+) => '(.*)'/) { $config{$1} = $2 }
             }
-            close $PARROT_CONFIG;
+            close $PARROT_CONFIG or die $!;
             last if %config;
         }
     }
-    %config;
+    return %config;
 }
 
 
 #  Generate a Makefile from a configuration
 sub create_makefile {
     my %config = @_;
-    open my $ROOTIN, "<build/Makefile.in" or
-        die "Unable to read build/Makefile.in \n";
+    my $infile = 'build/Makefile.in';
+    open my $ROOTIN, '<', $infile or
+        die "Unable to read $infile\n";
     my $maketext = join('', <$ROOTIN>);
-    close $ROOTIN;
+    close $ROOTIN or die $!;
 
     $config{'win32_libparrot_copy'} = $^O eq 'MSWin32' ? 'copy $(BUILD_DIR)\libparrot.dll .' : '';
     $maketext =~ s/@(\w+)@/$config{$1}/g;
@@ -104,11 +108,14 @@ sub create_makefile {
         $maketext =~ s{/}{\\}g;
     }
 
-    print "Creating Makefile\n";
-    open(MAKEFILE, ">Makefile") ||
-        die "Unable to write Makefile\n";
-    print MAKEFILE $maketext;
-    close(MAKEFILE);
+    my $outfile = 'Makefile';
+    print "Creating $outfile\n";
+    open(my $MAKEOUT, '>', $outfile) ||
+        die "Unable to write $outfile\n";
+    print {$MAKEOUT} $maketext;
+    close $MAKEOUT or die $!;
+
+    return;
 }
 
 
@@ -138,6 +145,8 @@ General Options:
                        Use configuration information from config
 
 END
+
+    return;
 }
 
 # Local Variables:

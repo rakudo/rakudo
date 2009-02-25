@@ -42,8 +42,13 @@ Invokes the TOP rule in the grammar on the given topic.
     push_eh no_TOP
     TOP = find_method self, "TOP"
     pop_eh
-    .local pmc match
-    $S0 = self.'WHAT'()
+    .local pmc match, p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    $P0 = p6meta.'get_parrotclass'(self)
+    $P0 = inspect $P0, 'namespace'
+    $P0 = $P0.'get_name'()
+    $S0 = shift $P0
+    $S0 = join '::', $P0
     match = TOP(topic, 'grammar' => $S0)
     $P0 = getinterp
     $P1 = $P0['lexpad';1]

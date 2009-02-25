@@ -192,24 +192,25 @@ to find a real, non-subtype and stash that away for fast access later.
     real_type = refinee
   got_real_type:
 
-    # Create subclass, register it with the real type's proto.
+    # Create subclass.
     .local pmc parrot_class, subset
     parrot_class = p6meta.'get_parrotclass'(refinee)
     subset = subclass parrot_class
-    p6meta.'register'(subset, 'protoobject' => real_type)
 
     # Override accepts.
     .local pmc parrotclass
     .const 'Sub' $P0 = "!SUBTYPE_ACCEPTS"
     subset.'add_method'('ACCEPTS', $P0)
+    .const 'Sub' $P1 = "!SUBTYPE_PROTOOVERRIDES"
+    subset.'add_method'('PROTOOVERRIDES', $P1)
 
     # It's an abstraction.
     $P0 = get_hll_global 'Abstraction'
     $P0 = $P0.'!select'()
     subset.'add_role'($P0)
 
-    # Instantiate it - we'll only ever create this one instance.
-    subset = subset.'new'()
+    # Register it, creating a proto-object.
+    subset = p6meta.'register'(subset)
 
     # Mark it a subtype and stash away real type, refinee  and refinement.
     setprop subset, 'subtype_realtype', real_type
@@ -239,6 +240,9 @@ to find a real, non-subtype and stash that away for fast access later.
   false:
     $P0 = get_hll_global ['Bool'], 'False'
     .return ($P0)
+.end
+.sub '!SUBTYPE_PROTOOVERRIDES' :anon :method
+    .return ('new', 'ACCEPTS')
 .end
 
 

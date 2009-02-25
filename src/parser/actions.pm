@@ -1225,7 +1225,7 @@ method parameter($/) {
         $var.named( $sigil eq '%' );
     }
     elsif $<named> eq ':' {          # named
-        $var.named(~$<param_var><identifier>);
+        $var.named(~$<param_var><identifier>[0]);
         if $quant ne '!' {      #  required (optional is default)
             $var.viviself(container_itype($sigil));
         }
@@ -1302,9 +1302,9 @@ method param_var($/) {
     my $sigil  := ~$<sigil>;
     my $twigil := ~$<twigil>[0];
     if $sigil eq '&' { $sigil := ''; }
-    my $name := $sigil ~ $twigil ~ ~$<identifier>;
+    my $name := $sigil ~ $twigil ~ ~$<identifier>[0];
     if $twigil eq '.' {
-        $name := $sigil ~ '!' ~ $<identifier>;
+        $name := $sigil ~ '!' ~ $<identifier>[0];
     }
     elsif $twigil && $twigil ne '!' {
         $/.panic('Invalid twigil used in signature parameter.');

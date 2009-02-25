@@ -489,7 +489,10 @@ rule post_constraint {
 }
 
 token param_var {
-    <sigil> <twigil>? [ <identifier> || $<identifier>=['/'] ]
+    <sigil> <twigil>? [
+        || <identifier>
+        || $<identifier>=['/'|'!']
+    ]?
     {*}
 }
 

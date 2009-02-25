@@ -482,7 +482,8 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
     candidate_info **cur_candidate   = candidates;
     candidate_info **possibles       = mem_allocate_n_typed(num_candidates,
                                         candidate_info *);
-    INTVAL type_check_count;
+    INTVAL           type_check_count;
+    PMC             *junctional_res  = PMCNULL;
 
     /* Iterate over the candidates and collect best ones; terminate
      * when we see two nulls (may break out earlier). */
@@ -637,28 +638,37 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         }
     }
 
+    /* Perhaps we found nothing but have juncitonal arguments? */
+    if (possibles_count == 0 && has_junctional_args(interp, args)) {
+        /* Look up multi junction dispatcher, clone it, attach this multi-sub
+         * as a property and hand that back as the dispatch result. We also
+         * stick it in the MMD cache for next time around. */
+        PMC *sub = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+                CONST_STRING(interp, "!DISPATCH_JUNCTION_MULTI"));
+        sub = VTABLE_clone(interp, sub);
+        VTABLE_setprop(interp, sub, CONST_STRING(interp, "sub"), self);
+        if (cache)
+            Parrot_mmd_cache_store_by_values(interp, cache, "", args, sub);
+        junctional_res = sub;
+    }
+
     if (!many) {
         /* Need a unique candidate. */
         if (possibles_count == 1) {
-            return possibles[0]->sub;
+            PMC *result = possibles[0]->sub;
+            mem_sys_free(possibles);
+            return result;
         }
-        else if (possibles_count == 0 && has_junctional_args(interp, args)) {
-            /* Look up multi junction dispatcher, clone it, attach this multi-sub
-             * as a property and hand that back as the dispatch result. We also
-             * stick it in the MMD cache for next time around. */
-            PMC *sub = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
-                    CONST_STRING(interp, "!DISPATCH_JUNCTION_MULTI"));
-            sub = VTABLE_clone(interp, sub);
-            VTABLE_setprop(interp, sub, CONST_STRING(interp, "sub"), self);
-            if (cache)
-                Parrot_mmd_cache_store_by_values(interp, cache, "", args, sub);
-            return sub;
+        else if (!PMC_IS_NULL(junctional_res)) {
+            return junctional_res;
         }
         else if (!PMC_IS_NULL(proto)) {
             /* If we have a proto at this point, use that. */
+            mem_sys_free(possibles);
             return proto;
         }
         else if (possibles_count == 0) {
+            mem_sys_free(possibles);
             Parrot_ex_throw_from_c_args(interp, next, 1,
                 "No applicable candidates found to dispatch to for '%Ss'",
                     VTABLE_get_string(interp, candidates[0]->sub));
@@ -682,6 +692,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                 signatures = Parrot_str_append(interp, signatures, sig_perl);
                 signatures = Parrot_str_append(interp, signatures, newline);
             }
+            mem_sys_free(possibles);
             Parrot_ex_throw_from_c_args(interp, next, 1,
                 "Ambiguous dispatch to multi '%Ss'. Ambiguous candidates had signatures:\n%Ss",
                     VTABLE_get_string(interp, candidates[0]->sub), signatures);
@@ -691,9 +702,17 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         /* Build PMC array of all possibles. */
         PMC * const results = pmc_new(interp, enum_class_ResizablePMCArray);
         INTVAL i;
-
         for (i = 0; i < possibles_count; i++)
             VTABLE_push_pmc(interp, results, possibles[i]->sub);
+        mem_sys_free(possibles);
+
+        /* If nothing was found at all, then supply the proto or junction auto-threader
+         * if there is one. */
+        if (!PMC_IS_NULL(junctional_res))
+            VTABLE_push_pmc(interp, results, junctional_res);
+        else if (possibles_count == 0 && !PMC_IS_NULL(proto))
+            VTABLE_push_pmc(interp, results, proto);
+
         return results;
     }
 }

@@ -79,6 +79,14 @@ Dispatches to method of the given name on this class or one of its parents.
     if $I0 goto check_handles
   submethod_check_done:
 
+    # If it's a multi-method, check it has a variant we can call; if not,
+    # keep looking along the MRO.
+    $I0 = isa candidate, 'Perl6MultiSub'
+    unless $I0 goto not_multi
+    $P0 = candidate.'find_possible_candidates'(obj, pos_args :flat)
+    unless $P0 goto mro_loop
+  not_multi:
+
     # Got a method that we can call. XXX Set up exception handlers for if we
     # get a control expection for callsame or nextsame etc. Won't be able to
     # be tailcall then...

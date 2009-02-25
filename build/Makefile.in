@@ -250,7 +250,7 @@ test    : coretest
 codetest:
 	$(MAKE) $(BUILD_DIR) codetest
 
-coretest: perl6.pbc
+coretest: perl6$(EXE)
 #	prove t/pmc
 	$(PERL) t/harness t/00-parrot t/01-sanity
 

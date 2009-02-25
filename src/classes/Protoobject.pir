@@ -48,6 +48,20 @@ Returns the protoobject's autovivification closure.
     .return (whence)
 .end
 
+
+=item WHICH()
+
+Returns a comparable identifier for the proto-object.
+
+=cut
+
+.sub 'WHICH' :method
+    $P0 = self.'HOW'()
+    $I0 = get_addr $P0
+    .return ($I0)
+.end
+
+
 =back
 
 =head2 Functions

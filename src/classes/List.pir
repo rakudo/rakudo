@@ -427,7 +427,7 @@ The zip operator.
     unless arglist_it goto arglist_done
     .local pmc arg, arg_it
     arg = shift arglist_it
-    arg_it = iter arg
+    arg_it = arg.'iterator'()
     push iterlist, arg_it
     goto arglist_loop
   arglist_done:

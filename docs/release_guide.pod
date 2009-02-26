@@ -1,0 +1,41 @@
+=head1 release_guide.pod - guide to Rakudo releases
+
+Rakudo's development release cycle is based on Parrot's release
+cycle.  Parrot releases the third Tuesday of each month; Rakudo
+will generally issue its own development release two days after
+the Parrot release.
+
+Each development release is given a sequential number and a 
+code name based on an active Perl Mongers group.  Rakudo's
+February 2009 release is #14; prior releases were bundled as
+part of monthly Parrot releases.
+
+=head2 Development releases
+
+  2009-02-26   Rakudo #14 "Vienna"
+
+=head2 Planned 2009 releases
+
+Dates are based on Parrot's expected release schedule.
+
+  2009-03-18   Rakudo #15 
+  2009-04-23   Rakudo #16 "Oslo"
+  2009-05-21   Rakudo #17 
+  2009-06-18   Rakudo #18 (likely "Pittsburgh")
+  2009-07-23   Rakudo #19
+  2009-08-20   Rakudo #20
+  2009-09-24   Rakudo #21
+  2009-10-22   Rakudo #22
+  2009-11-19   Rakudo #23
+  2009-12-17   Rakudo #24
+
+=head1 COPYRIGHT
+ 
+Copyright (C) 2009, The Perl Foundation.
+ 
+=cut
+ 
+# Local Variables:
+# fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

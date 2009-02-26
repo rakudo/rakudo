@@ -27,7 +27,7 @@ tree into its equivalent abstract syntax tree representation.
 Parrot design documents are the specifications for Parrot's
 interface to its "outside world".  The PDDs serve basically
 the same purpose for Parrot that the Synopses serve for Perl 6.
-(See L<http://svn.perl.org/parrot/trunk/docs/pdds/>.)
+(See L<http://svn.parrot.org/parrot/trunk/docs/pdds/>.)
 
 =item parse grammar
 
@@ -47,7 +47,7 @@ semantics of a compiled program.  Normally a compiler will
 convert source code into an equivalent PAST, and then allow
 the compiler toolkit to take care of the code generation.
 PAST is documented in PDD 26 - Parrot Abstract Syntax Tree
-(L<http://svn.perl.org/parrot/trunk/docs/pdds/pdd26_ast.pod>).
+(L<http://svn.parrot.org/parrot/trunk/docs/pdds/pdd26_ast.pod>).
 
 =item PCT - Parrot Compiler Toolkit
 

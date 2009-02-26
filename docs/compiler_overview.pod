@@ -26,7 +26,8 @@ the main compiler object (perl6.pir)
 
 =item 4.
 
-builtin functions and runtime support (src/builtins/, src/classes/, src/pmc/)
+builtin functions and runtime support (src/setting/, src/builtins/, 
+src/classes/, src/pmc/)
 
 =back
 
@@ -144,7 +145,7 @@ the unless statement that was just parsed.
 The Parrot Compiler Toolkit provides a wide variety of PAST
 node types for representing the various components of a HLL
 program -- for more details about the available node types,
-see PDD 26 (L<http://svn.perl.org/parrot/trunk/docs/pdds/pdd26_ast.pod>).
+see PDD 26 (L<http://svn.parrot.org/parrot/trunk/docs/pdds/pdd26_ast.pod>).
 
 One important observation to make here is that NQP is used only for
 I<building> the Rakudo compiler, and then only to convert the action methods
@@ -220,7 +221,7 @@ and maintainer.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2007-2008, The Perl Foundation.
+Copyright (C) 2007-2009, The Perl Foundation.
 
 =cut
 

@@ -2,7 +2,7 @@
 
     Following in the steps of other open source projects that
     eventually take over the world, here is the partial list
-    of people who have contributed to Parrot and its supporting
+    of people who have contributed to Rakudo and its supporting
     works.  It is sorted by name and formatted to allow easy
     grepping and beautification by scripts.
     The fields are: name (N), email (E), web-address (W),
@@ -11,7 +11,7 @@
 
         Thanks,
 
-        The Parrot Team
+        The Rakudo Team
         PS: Yes, this looks remarkably like the Linux CREDITS format
         PPS: This file is encoded in UTF-8
 

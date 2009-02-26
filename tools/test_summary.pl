@@ -73,8 +73,7 @@ for my $tfile (@tfiles) {
     my $tname = $tname{$tfile};
     my $syn = substr($tname, 0, 3); $syn{$syn}++;
     printf "%s%s..", $tname, '.' x ($max - length($tname));
-    my $parrot = -d 'parrot' ? 'parrot/parrot' : '../../parrot';
-    my $cmd = "$parrot perl6.pbc $tfile";
+    my $cmd = "./perl6 $tfile";
     my @results = split "\n", `$cmd`;
     my ($test, $pass, $fail, $todo, $skip) = (0,0,0,0,0);
     my (%skip, %todopass, %todofail);

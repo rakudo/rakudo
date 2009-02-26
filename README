@@ -19,7 +19,12 @@ This will create a "perl6" or "perl6.exe" executable in the
 current directory.  Rakudo doesn't currently have a "make install"
 target.
 
-To run a Perl 6 program with Rakudo, issue a command like
+If you don't have git installed, you can visit the Rakudo github page
+at http://github.com/rakudo/rakudo/tree/master and clicking "Download".
+Github will build a tarball or zip file for you.  From there, unpack
+the tarball or zip, and run the C<perl> and C<make> steps above.
+
+To run a Perl 6 program with Rakudo, issue a command like:
 
     $ ./perl6 hello.pl
 
@@ -43,7 +48,7 @@ to make sure that the Rakudo compiler is basically working and that
 it's capable of running a simple test harness.
 
 Running "make spectest" will import relevant portions
-of the "official Perl 6 test suite" from the Pugs repository
+of the official Perl 6 test suite from the Pugs repository
 L<http://svn.pugscode.org/pugs/t/spec/> and run all of these tests that
 are currently known to pass.
 
@@ -111,7 +116,7 @@ generally accept patches in any form if we can get them to work,
 but unified diff from the C<git> command is greatly preferred.  In
 general this means that in the C<languages/rakudo/> directory you make your
 changes, and then type
-    
+
     git commit -m 'Your commit message'
     git-format-patch HEAD^
 
@@ -130,7 +135,7 @@ See F<docs/compiler_overview.pod>.
 
 =head1 AUTHOR
 
-Patrick Michaud (pmichaud@pobox.com) is the primary author and
+Patrick Michaud C<pmichaud@pobox.com> is the primary author and
 maintainer for Rakudo Perl 6 on Parrot.
 
 =cut

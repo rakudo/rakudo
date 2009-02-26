@@ -1,63 +1,44 @@
 =head1 Rakudo Perl 6
 
-This is the Perl 6 compiler for Parrot, called "Rakudo Perl 6",
-or "Rakudo" for short.  It's still fairly basic, but it is rapidly expanding.
-See L<docs/STATUS> for a list of what has been implemented thus far.
+This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine.
+
+Rakudo Perl is Copyright (C) 2008-2009, The Perl Foundation.
+Rakudo Perl is distributed under the terms of the Artistic License 2.0.
+For more details, see the full text of the license in the file LICENSE.
 
 =head2 Building and invoking Rakudo
 
-If you build Rakudo for the first time, you need to get and build a
-copy of parrot:
-
-    $ svn checkout https://svn.parrot.org/parrot/trunk parrot
-    $ cd parrot
-    $ perl Configure.pl
-    $ make
-
-Then go to the C<languages> subdirectory and get, configure and build 
-Rakudo there:
+To obtain Rakudo, we recommend directly downloading from github
+and building from there:
 
     $ git clone git://github.com/rakudo/rakudo.git
-    cd rakudo
-    perl Configure.pl
-    make
+    $ perl Configure.pl --gen-parrot
+    $ make
 
-This will create the compiler as a file called "perl6.pbc".  The ".pbc"
-stands for "Parrot bytecode", and represents an executable Parrot
-module.
-
-To update your Parrot and Rakudo working copies, type C<svn up> in
-Parrot's directory and build it with C<make>, and C<git pull; make>
-Rakudo's directory.
+This will create a "perl6" or "perl6.exe" executable in the
+current directory.  Rakudo doesn't currently have a "make install"
+target.
 
 To run a Perl 6 program with Rakudo, issue a command like
-
-    $ parrot perl6.pbc hello.pl
-
-If you want to create a binary executable of the compiler
-that can be invoked as "perl6" from the command line, then
-try "make perl6".  This will create a "perl6" (or "perl6.exe")
-binary that can be directly used from the command line:
 
     $ ./perl6 hello.pl
 
 This binary executable feature is still somewhat experimental,
 and may not work on all platforms.  Also, the binary has hardcoded
 paths to the Parrot build tree (especially the dynamic libraries
-and modules), so removing the build tree will cause the binary
-to stop working.
+and modules), so removing or moving the build tree will cause the 
+binary to stop working.
 
 If the Rakudo compiler is invoked without an explicit script to
-run -- i.e., as "parrot perl6.pbc" or just "perl6" -- it enters a
-small interactive mode that allows Perl 6 statements to be
-executed from the command line.  Each line entered is treated
+run, it enters a small interactive mode that allows Perl 6 statements 
+to be executed from the command line.  Each line entered is treated
 as a separate compilation unit, however (which means that subroutines
 are preserved after they are defined, but variables are not).
 
 =head2 Running the test suite
 
-Entering "make test" will run the test suite that comes bundled
-with Rakudo on Parrot.  This is a simple suite of tests, designed
+Entering "make test" will run a small test suite that comes 
+bundled with Rakudo.  This is a simple suite of tests, designed
 to make sure that the Rakudo compiler is basically working and that
 it's capable of running a simple test harness.
 
@@ -70,8 +51,7 @@ At present we do not have any plans to directly store the
 official test suite as part of the Rakudo/Parrot repository,
 but will continue to fetch it from the Pugs repository.
 
-While in the C<languages/rakudo> directory, you can an individual test from the
-command line with:
+You can also use "make" to run an individual test from the command line:
 
     $ make t/spec/S29-str/ucfirst.t
     t/spec/S29-str/ucfirst.rakudo .. 
@@ -105,12 +85,8 @@ compiler tools can go to C<perl6-compiler@perl.org>.  Discussion
 about Parrot itself generally takes place on
 C<parrot-dev@lists.parrot.org>.
 
-The Parrot and Rakudo development team tend to hang out on IRC a fair
-bit, either on C<irc.perl.org/#parrot> or C<irc.freenode.net/#perl6>.
-
-There are also Perl 6 and Parrot wikis, found at
-    L<http://www.perlfoundation.org/perl6/index.cgi>
-    L<http://www.perlfoundation.org/parrot/index.cgi>
+The Rakudo and Parrot development teams tend to hang out on IRC a fair
+bit, either on C<irc.freenode.net/#perl6> or C<irc.perl.org/#parrot>.
 
 There is also a Rakudo related blog at L<http://rakudo.org/>, and
 a Parrot blog at L<http://parrotblog.org/>. Most Perl 6 related news is

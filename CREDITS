@@ -36,6 +36,8 @@ U: Whiteknight
 
 N: Andy Lester
 E: andy@petdance.com
+W: http://perlbuzz.com/
+S: McHenry, IL, USA
 U: petdance
 
 U: ask
@@ -87,7 +89,8 @@ U: cdolan
 D: Rakudo patches
 E: cdolan@cpan.org
 
-N: Chris Fields (cjfields)
+N: Chris Fields
+U: cjfields
 D: Rakudo patches
 
 N: Christoph Otto a.k.a. cotto
@@ -140,7 +143,7 @@ E: francois.perrad@gadz.org
 W: http://fperrad.googlepages.com/home
 U: fperrad
 
-N: Geoff Broadwell (japhb)
+N: Geoff Broadwell
 U: japhb
 E: geoff@broadwell.org
 
@@ -165,10 +168,10 @@ N: Jeff Horwitz
 E: jeff@smashing.org
 U: jhorwitz
 
-N: Jerry Gay a.k.a. particle
+N: Jerry Gay
 U: particle
 E: Jerry.Gay@gmail.com
-S: Seattle, WA
+S: Seattle, WA, USA
 
 N: Jesse Vincent
 U: jesse
@@ -193,7 +196,7 @@ N: Kevin Tew
 U: tewk
 E: tewk@tewk.com
 
-N: Klaas-Jan Stol a.k.a. kj[s]?
+N: Klaas-Jan Stol
 U: kjs
 E: parrotcode@gmail.com
 
@@ -211,7 +214,7 @@ N: Luke Palmer
 E: luke@luqui.org
 U: luqui
 
-N: Mark Glines a.k.a. Infinoid
+N: Mark Glines
 U: infinoid
 E: mark@glines.org
 S: South Lake Tahoe, CA, USA

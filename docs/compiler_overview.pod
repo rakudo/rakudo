@@ -4,8 +4,7 @@
 
 This document describes the architecture and layout of the
 Rakudo Perl 6 (a.k.a. Rakudo) compiler.  See the F<README>
-or F<docs/STATUS> files for information about how to use the compiler
-or what features have been implemented.
+file for information about how to build and run the compiler.
 
 The Rakudo compiler is constructed from four major components:
 

@@ -329,3 +329,14 @@ help:
 	@echo "Misc:"
 	@echo "  help:              Print this help message."
 	@echo ""
+
+manifest:
+	echo MANIFEST >MANIFEST
+	git ls-files | $(PERL) -ne '/^\./ || print' >>MANIFEST
+
+release: manifest
+	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyymm'\n\n"; exit 1 )
+	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
+	$(PERL) -ne 'print "rakudo-$(VERSION)/$$_"' MANIFEST | \
+	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
+	rm rakudo-$(VERSION)

@@ -73,7 +73,7 @@ sub all_in {
 
             my $currfile = File::Spec->catfile( $start, $file );
             if ( -d $currfile ) {
-                push( @hits, all_in( $currfile ) ) if $recurse;
+                push( @hits, all_in( $currfile ) );
             } else {
                 push( @hits, $currfile ) if $currfile =~ /\.t$/;
             }

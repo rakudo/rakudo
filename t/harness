@@ -2,8 +2,11 @@
 
 # $Id$
 
-# note: du to a limitation in Getopt::Long options that should be passed
+# note: Due to a limitation in Getopt::Long options that should be passed
 # through to fudgeall have to come after all other options
+
+use strict;
+use warnings;
 
 use FindBin;
 use File::Spec;
@@ -40,7 +43,7 @@ if ($list_file) {
             warn "Missing test file: $fn\n";
         }
     }
-    close $f;
+    close $f or die $!;
 }
 
 my @tfiles = map { all_in($_) } sort @files;
@@ -57,20 +60,20 @@ sub all_in {
 
     return $start unless -d $start;
 
+    my @skip = ( File::Spec->updir, File::Spec->curdir, qw( .svn CVS .git ) );
+    my %skip = map {($_,1)} @skip;
+
     my @hits = ();
 
-    local *DH;
-    if ( opendir( DH, $start ) ) {
-        my @files = sort readdir DH;
-        closedir DH;
+    if ( opendir( my $dh, $start ) ) {
+        my @files = sort readdir $dh;
+        closedir $dh or die $!;
         for my $file ( @files ) {
-            next if $file eq File::Spec->updir || $file eq File::Spec->curdir;
-            next if $file eq ".svn";
-            next if $file eq "CVS";
+            next if $skip{$file};
 
             my $currfile = File::Spec->catfile( $start, $file );
             if ( -d $currfile ) {
-                push( @hits, all_in( $currfile ) ) if $recurse;
+                push( @hits, all_in( $currfile ) );
             } else {
                 push( @hits, $currfile ) if $currfile =~ /\.t$/;
             }
@@ -84,7 +87,7 @@ sub all_in {
 
 sub fudge {
     my $impl = 'rakudo';
-    my $cmd  = join ' ', $^X, 't/spec/fudgeall', 
+    my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
 }

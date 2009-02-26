@@ -50,5 +50,4 @@ for (@binary) {
     );
 }
 
-close $fh;
-0;
+close $fh or die $!;

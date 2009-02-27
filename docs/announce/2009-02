@@ -2,7 +2,7 @@ Announce: Rakudo Perl development release #14 ("Vienna")
 
 On behalf of the Rakudo development team, I'm pleased to announce
 the February 2009 development release of Rakudo Perl #14 "Vienna".
-Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine.
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
 The tarball for the February 2009 release is available from
 
     http://www.pmichaud.com/perl6/rakudo-2009-02.tar.gz
@@ -23,10 +23,10 @@ file.  In general, Rakudo development releases are scheduled to occur
 two days after each Parrot monthly release.  Parrot releases the third
 Tuesday of each month.
 
-Rakudo Perl now uses git (http://git-scm.com/) for its version control
-system, hosted at http://github.com/rakudo/rakudo ; the README file
-there is kept up-to-date with the latest instructions for obtaining and
-building Rakudo Perl.
+Rakudo Perl now uses git [2] for its version control system, hosted 
+at http://github.com/rakudo/rakudo .  The README file there is kept 
+up-to-date with the latest instructions for obtaining and building 
+Rakudo Perl.
 
 In this release of Rakudo Perl, we've made the following major changes
 and improvements:
@@ -53,10 +53,10 @@ and improvements:
 Also, Rakudo now implements the following Perl 6 features:
 
 * Anonymous classes may be specified using ::
-* Existing parameterized roles are now reused instead of creating new ones
-* Roles pun a class when .new is invoked on them
+* Existing parameterized roles are now reused instead of creating new ones.
+* Roles pun a class when .new is invoked on them.
 * "proto" now marks all same-named routines as "multi".
-* XopX is now Xop.
+* "XopX" is now "Xop".
 * <-> (rw) pointy blocks.
 * min= and max= metaoperators.
 * Many many bugfixes and documentation improvements.
@@ -64,3 +64,8 @@ Also, Rakudo now implements the following Perl 6 features:
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible.  The next release of Rakudo (#15) is
 scheduled for March 19, 2009.
+
+
+References:
+[1]  Parrot, http://parrot.org/
+[2]  Git version control system, http://git-scm.org/

@@ -1,5 +1,7 @@
+Announce: Rakudo Perl development release #14 ("Vienna") 
+
 On behalf of the Rakudo development team, I'm please to announce
-the February 2009 development release of Rakudo #14 "Vienna".  
+the February 2009 development release of Rakudo Perl #14 "Vienna".  
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine.
 The tarball for the February 2009 release is available from
 
@@ -11,12 +13,12 @@ to use or work with Rakudo obtain the latest version directly
 from the main repository at github -- more on this in a bit.
 
 This is the fourteenth development release of Rakudo Perl 
-(thus the #14), but the first release independent from Parrot
-releases.  We will continue a monthly release cycle, with each
-release to be code named after a Perl Mongers group.  This release
+(thus the #14), but it's the first release independent from Parrot
+releases.  We will continue to follow a monthly release cycle, with 
+each release to be code named after a Perl Mongers group.  This release
 is named for the Vienna.pm (http://vienna.pm.org), who have been
 sponsoring Jonathan Worthington's work on Rakudo since April 2008.
-A list of the other planned release codenames for 2009 is 
+A list of the other planned release dates and codenames for 2009 is 
 available in the "docs/release_guide.pod" file.  In general, Rakudo
 development releases are scheduled to occur two days after each 
 Parrot monthly release.

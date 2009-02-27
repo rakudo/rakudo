@@ -1,0 +1,66 @@
+On behalf of the Rakudo development team, I'm please to announce
+the February 2009 development release of Rakudo #14 "Vienna".  
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine.
+The tarball for the February 2009 release is available from
+
+    http://www.pmichaud.com/perl6/rakudo-2009-02.tar.gz
+
+However, because of the rapid pace of Rakudo development and
+addition of new features, we still recommend that people wanting
+to use or work with Rakudo obtain the latest version directly
+from the main repository at github -- more on this in a bit.
+
+This is the fourteenth development release of Rakudo Perl 
+(thus the #14), but the first release independent from Parrot
+releases.  We will continue a monthly release cycle, with each
+release to be code named after a Perl Mongers group.  This release
+is named for the Vienna.pm (http://vienna.pm.org), who have been
+sponsoring Jonathan Worthington's work on Rakudo since April 2008.
+A list of the other planned release codenames for 2009 is 
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each 
+Parrot monthly release.
+
+As mentioned earlier, Rakudo Perl has switched to using "git" and
+github.com for its version control system.  The main repository
+page is http://github.com/rakudo/rakudo ; the README file there
+is kept up-to-date with the latest instructions for obtaining
+and building Rakudo Perl.
+
+In this release of Rakudo Perl, we've made the following major
+changes and improvements:
+
+* Rakudo is now passing 7076 spectests; this is an increase 
+  of 796 additional passing tests since the January 2009 release.
+
+* The Configure.pl script supports a "--gen-parrot" option to
+  automatically fetch and build the appropriate version of Parrot.
+
+* The default make target now builds a binary executable directly
+  ("perl6" or "perl6.exe").  Yes, it's still a Parrot "fakecutable", 
+  but we think we've made it more reliable so that it doesn't
+  generate segmentation faults on exits.  (If you don't know
+  what a "fakecutable" is you can safely ignore this.)
+
+* Many builtins are beginning to be written in pure Perl 6, or
+  Perl 6 functions with inline PIR.  These builtins are part of
+  the core "setting" for Perl 6, and appear in the src/setting/
+  directory.  Previously this was known as the "prelude".
+
+* Improved Test.pm diagnostic output.
+
+Also, Rakudo now implements the following Perl 6 features:
+
+* Anonymous classes may be specified using ::
+* Existing parameterized roles are now reused instead of creating new ones
+* Roles pun a class when .new is invoked on them
+* "proto" now marks all same-named routines as "multi".
+* XopX is now Xop.
+* <-> (rw) pointy blocks.
+* min= and max= metaoperators.
+* Many many bugfixes and documentation improvements.
+
+The development team thanks all of our contributors and sponsors
+for making Rakudo Perl possible.  The next release of Rakudo (#15)
+is scheduled for March 19, 2009.
+

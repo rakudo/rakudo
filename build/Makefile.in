@@ -111,6 +111,7 @@ SETTING = \
   src/setting/Bool.pm \
   src/setting/Hash.pm \
   src/setting/List.pm \
+  src/setting/Object.pm \
   src/setting/Pair.pm \
   src/setting/Str.pm \
   src/setting/Whatever.pm \

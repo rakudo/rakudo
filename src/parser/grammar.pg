@@ -816,6 +816,13 @@ token quote {
         | ':PIR' <.ws> <quote_expression: :PIR>
         |   <.ws>      <quote_expression: :q>
         ]
+    | Q [ <.ws> ':' ]?
+        [ 'PIR' <.ws>  <quote_expression: :PIR>
+        | 'q'   <.ws>  <quote_expression: :q>
+        | 'qq'  <.ws>  <quote_expression: :qq>
+        | 'b'   <.ws>  <quote_expression: :b>
+        |       <.ws>  <quote_expression: >
+        ]
     ]
     {*}
 }

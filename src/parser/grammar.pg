@@ -89,6 +89,7 @@ token unsp {
 }
 
 token unspacey { <.unsp>? }
+token nofun { <!before '(' | '.(' | '\\' > }
 
 token unv {
     || \h+
@@ -183,7 +184,7 @@ token terminator {
     |  <[ ; ) \] } ]> 
     | '!!' 
     | '-->' 
-    | [ if | unless | while | until | for | given | when ] >> 
+    | [ if | unless | while | until | for | given | when ] >> <.nofun>
 }
 
 token stdstopper {
@@ -193,13 +194,13 @@ token stdstopper {
 token eat_terminator {
     || ';'
     || <?terminator>
-    || {{ $P0 = get_global '$!endstmt'
+    || <?{{ 
+          $P0 = get_global '$!endstmt'
           $P1 = get_global '$!ws'
           $P2 = $P1.'from'()
-          if $P0 != $P2 goto end
-          .return (1)
-          end:
-       }} <fail>                                 # FIXME: <!>
+          $I0 = iseq $P0, $P2
+          .return ($I0)
+       }}>
     || $
     || <.panic: "Statement not terminated properly">
 }
@@ -252,7 +253,7 @@ rule statement_control {
 }
 
 rule if_statement {
-    $<sym>=[if]
+    $<sym>=[if<.nofun>]
     <xblock>
     [ 'elsif' <xblock> ]*
     [ 'else' <pblock> ]?
@@ -260,7 +261,7 @@ rule if_statement {
 }
 
 rule unless_statement {
-    $<sym>=[unless]
+    $<sym>=[unless<.nofun>]
     <xblock> {*}
     [ <!before 'else'> || <.panic: "unless does not take \"else\" in Perl 6; please rewrite using \"if\""> ]
 }
@@ -274,19 +275,19 @@ rule repeat_statement {
 }
 
 rule while_statement {
-    $<sym>=[while|until]
+    $<sym>=[[while|until]<.nofun>]
     <xblock>
     {*}
 }
 
 rule given_statement {
-    $<sym>=[given]
+    $<sym>=[given<.nofun>]
     <xblock>
     {*}
 }
 
 rule when_statement {
-    $<sym>=[when]
+    $<sym>=[when<.nofun>]
     <EXPR> <block>
     {*}
 }
@@ -311,7 +312,7 @@ rule loop_statement {
 }
 
 rule for_statement {
-    $<sym>=[for]
+    $<sym>=[for<.nofun>]
     <xblock>
     {*}
 }
@@ -351,11 +352,11 @@ rule no_statement {
 }
 
 rule statement_mod_loop {
-    $<sym>=[while|until|for|given] <EXPR> {*}
+    $<sym>=[[while|until|for|given]<.nofun>] <EXPR> {*}
 }
 
 rule statement_mod_cond {
-    $<sym>=[if|unless|when] <EXPR> {*}
+    $<sym>=[[if|unless|when]<.nofun>] <EXPR> {*}
 }
 
 rule statement_prefix {

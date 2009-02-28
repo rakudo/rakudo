@@ -145,7 +145,7 @@ my $rev = $ENV{'REV'};
 if ($rev) {
     my $file = scalar(@tfiles);
     print join(',', $rev, (map { $sum{$_} } @col), $file), "\n";
-    print "[rakudo]: spectest-progress.csv update: ",
+    print "spectest-progress.csv update: ",
           "$file files, $sum{'pass'} passing, $sum{'fail'} failing\n";
 }
 

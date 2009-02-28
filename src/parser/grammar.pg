@@ -225,14 +225,16 @@ token AT_STATEMENT_END {
 token statement {
     [
     | <statement_control> {*}                    #= control
-    | <expr=EXPR> <.ws>
+    | <expr=EXPR>
         [
+        || <?AT_STATEMENT_END> {*}               #= expr
         || <statement_mod_loop> {*}              #= mod_loop
         || <statement_mod_cond> <.ws>
            <statement_mod_loop>?
            {*}                                   #= mod_cond
         || {*}                                   #= expr
         ]
+        <.ws>
     | <?before ';'> {*}                          #= null
     ]
     {{ $P0 = get_hll_global ['Bool'], 'False'

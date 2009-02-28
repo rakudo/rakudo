@@ -194,13 +194,7 @@ token stdstopper {
 token eat_terminator {
     || ';'
     || <?terminator>
-    || <?{{ 
-          $P0 = get_global '$!endstmt'
-          $P1 = get_global '$!ws'
-          $P2 = $P1.'from'()
-          $I0 = iseq $P0, $P2
-          .return ($I0)
-       }}>
+    || <?AT_STATEMENT_END>
     || $
     || <.panic: "Statement not terminated properly">
 }
@@ -212,6 +206,17 @@ token MARK_STATEMENT_END {
     }}
     <.ws>
 }
+
+token AT_STATEMENT_END {
+    <?{{ 
+          $P0 = get_global '$!endstmt'
+          $P1 = get_global '$!ws'
+          $P2 = $P1.'from'()
+          $I0 = iseq $P0, $P2
+          .return ($I0)
+    }}>
+}
+    
 
 
 ##  Parse a single statement, which may be either a bare block

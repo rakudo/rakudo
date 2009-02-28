@@ -216,13 +216,13 @@ token MARK_STATEMENT_END {
 ##  Parse a single statement, which may be either a bare block
 ##  or an expression.  Any statement termination is handled by
 ##  the calling rule.
-rule statement {
+token statement {
     [
     | <statement_control> {*}                    #= control
-    | <expr=EXPR>
+    | <expr=EXPR> <.ws>
         [
         || <statement_mod_loop> {*}              #= mod_loop
-        || <statement_mod_cond>
+        || <statement_mod_cond> <.ws>
            <statement_mod_loop>?
            {*}                                   #= mod_cond
         || {*}                                   #= expr

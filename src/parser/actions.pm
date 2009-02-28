@@ -431,20 +431,11 @@ method catch_statement($/) {
             PAST::Var.new( :name('$!'), :scope('lexical') ),
             PAST::Var.new( :name('exception'), :scope('register') )
         ),
-        $past,
-        PAST::Op.new(
-            :pasttype('bind'),
-            PAST::Var.new( PAST::Var.new( :name('$!'), :scope('lexical') ),
-                "handled", :scope('keyed') ),
-            1,
-        ),
+        $past
     );
     our @?BLOCK;
     my $?BLOCK := @?BLOCK[0];
-    my $eh := PAST::Control.new(
-        $past,
-        :handle_types_except('CONTROL')
-    );
+    my $eh := PAST::Control.new( $past );
     my @handlers;
     if $?BLOCK.handlers() {
         @handlers := $?BLOCK.handlers();
@@ -468,13 +459,7 @@ method control_statement($/) {
             PAST::Var.new( :name('$!'), :scope('lexical') ),
             PAST::Var.new( :name('exception'), :scope('register') )
         ),
-        $past,
-        PAST::Op.new(
-            :pasttype('bind'),
-            PAST::Var.new( PAST::Var.new( :name('$!'), :scope('lexical') ),
-                "handled", :scope('keyed') ),
-            1,
-        ),
+        $past
     );
     our @?BLOCK;
     my $?BLOCK := @?BLOCK[0];
@@ -563,35 +548,17 @@ method statement_prefix($/) {
     ##  after the code in the try block is executed, bind $! to Failure,
     ##  and set up the code to catch an exception, in case one is thrown
     elsif $sym eq 'try' {
-        my $eh := PAST::Control.new(
-            PAST::Stmts.new(
-                PAST::Op.new(
-                    :pasttype('bind'),
-                    PAST::Var.new( :name('$!'), :scope('lexical') ),
-                    PAST::Var.new( :name('exception'), :scope('register') )
-                ),
-                PAST::Op.new(
-                    :pasttype('bind'),
-                    PAST::Var.new( PAST::Var.new( :name('$!'), :scope('lexical') ),
-                        "handled", :scope('keyed') ),
-                    1,
-                ),
-            ),
-            :handle_types_except('CONTROL')
-        );
-        my @handlers;
-        if $past.handlers() {
-            @handlers := $past.handlers();
-        }
-        @handlers.unshift($eh);
-        $past.handlers(@handlers);
-        $past.push(
-            PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new( :name('$!'), :scope('lexical') ),
-                PAST::Op.new(:pasttype('call'), :name('!FAIL')),
-            ),
-        );
+        $past := PAST::Op.new( $past, :pasttype('try') );
+
+        ##  Add a catch node to the try op that captures the
+        ##  exception object into $!.
+        my $catchpir := "    .get_results (%r)\n    store_lex '$!', %r";
+        $past.push( PAST::Op.new( :inline( $catchpir ) ) );
+
+        ##  Add an 'else' node to the try op that clears $! if
+        ##  no exception occurred.
+        my $elsepir  := "    new %r, 'Failure'\n    store_lex '$!', %r";
+        $past.push( PAST::Op.new( :inline( $elsepir ) ) );
     }
     elsif $sym eq 'gather' {
         if !$past.isa(PAST::Block) {

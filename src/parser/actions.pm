@@ -3048,20 +3048,16 @@ sub transform_to_multi($past) {
 # by infix:~~ and the when statement.
 sub process_smartmatch($lhs, $rhs, $rhs_pt) {
     if $rhs_pt<noun><dotty> {
-        # Method truth - just call RHS.
+        # method truth
         $rhs<invocant_holder>[0] := $lhs;
-        return PAST::Op.new(
-            :pasttype('call'),
-            :name('prefix:?'),
-            $rhs
-        );
+        if $rhs_pt<noun><dotty><dottyop><postcircumfix> {
+            # array/hash slice truth
+            $rhs := PAST::Op.new( :pasttype('call'), :name('all'), $rhs);
+        }
+        return PAST::Op.new( :pasttype('call'), :name('prefix:?'), $rhs);
     }
     else {
-        return PAST::Op.new(
-            :pasttype('call'),
-            :name('infix:~~'),
-            $lhs, $rhs
-        );
+        return PAST::Op.new( :pasttype('call'), :name('infix:~~'), $lhs, $rhs);
     }
 }
 

@@ -19,7 +19,7 @@ $Test::Harness::switches = '';
 GetOptions(
     'tests-from-file=s' => \my $list_file,
     'fudge'             => \my $do_fudge,
-    'verbosity=i'       => \my $verbosity,
+    'verbosity=i'       => \$Test::Harness::verbose,
     'jobs:3'            => \my $jobs,
 );
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;

@@ -153,8 +153,9 @@ to the Perl 6 compiler.
 .sub 'main' :main
     .param pmc args_str
 
-    $S0 = args_str[1]
-    if $S0 != '-le' goto not_harness
+    $S0 = args_str[2]
+    $I0 = index $S0, '@INC'
+    if $I0 < 0 goto not_harness
     exit 0
   not_harness:
 

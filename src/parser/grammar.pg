@@ -818,10 +818,11 @@ token quote {
     # | <.before '«' > <quote_expression: :ww :qq>  FIXME: unicode
     | <.before '/'>    <quote_expression: :regex>
     | m   <.ws>        <quote_expression: :regex>
-    | q 
+    | q [ <.ws> ':' ]?
         [ q <.ws>      <quote_expression: :qq>
         | w <.ws>      <quote_expression: :q :w>
-        | ':PIR' <.ws> <quote_expression: :PIR>
+        | 'PIR' <.ws>  <quote_expression: :PIR>
+        | x <.ws>      <.panic: "qx not yet implemented">
         |   <.ws>      <quote_expression: :q>
         ]
     | Q [ <.ws> ':' ]?

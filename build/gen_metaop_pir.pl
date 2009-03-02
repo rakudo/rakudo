@@ -59,6 +59,8 @@ my $assignfmt =
     "    optable.'newtok'('infix:%s=', 'equiv'=>'infix::=', 'lvalue'=>1)\n";
 my $reducefmt =
     "    optable.'newtok'('prefix:[%s]', 'equiv'=>'infix:=')\n";
+my $reversefmt =
+    "    optable.'newtok'('infix:R%s', 'equiv'=>'infix:%s')\n";
 my $hyper_no_dwim_fmt =
     "    optable.'newtok'(%s, 'equiv'=>'infix:%s')\n" .
     "    optable.'newtok'('infix:%s', 'equiv'=>'infix:%s', 'subname'=>%s)\n";
@@ -91,6 +93,15 @@ while (@ops) {
         .sub 'prefix:[$opname]'
             .param pmc args    :slurpy
             .tailcall '!REDUCEMETAOP$chain'('$opname', $identity, args)
+        .end\n);
+
+    # Reverse metaops
+    push @gtokens, sprintf( $reversefmt, $opname, $opname );
+    push @code, qq(
+        .sub 'infix:R${opname}'
+            .param pmc a
+            .param pmc b
+            .tailcall 'infix:$opname'(b, a)
         .end\n);
 
     # Cross operators.

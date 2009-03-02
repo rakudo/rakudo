@@ -61,7 +61,7 @@ Dispatches to method of the given name on this class or one of its parents.
     mro = inspect parrotclass, 'all_parents'
     mro_it = iter mro
 
-    # Iterate MRO and check it's methods.
+    # Iterate MRO and check its methods.
     .local int have_pmc_proxy
     have_pmc_proxy = 0
   mro_loop:

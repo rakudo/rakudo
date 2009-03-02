@@ -57,6 +57,13 @@ for parsers ( C<PCT::Grammar> ), a base class for compilers
 ( C<PCT::HLLCompiler> ), an abstract syntax tree representation
 (PAST), and a PAST compiler.
 
+=item PGE - Parse Grammar Engine
+
+The Parse Grammar Engine is the primarily regular expression
+engine for Rakudo and Parrot.  It's the component that handles
+grammars and regular expressions in Rakudo, as well as being
+the primary foundation for parsing Perl 6 itself.
+
 =item Rakudo
 
 Rakudo is the name of a Perl 6 implementation that runs on Parrot.

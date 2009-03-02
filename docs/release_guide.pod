@@ -18,8 +18,8 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2009-03-18   Rakudo #15 
-  2009-04-23   Rakudo #16 "Oslo"
+  2009-03-18   Rakudo #15 "Oslo"
+  2009-04-23   Rakudo #16 
   2009-05-21   Rakudo #17 
   2009-06-18   Rakudo #18 (likely "Pittsburgh")
   2009-07-23   Rakudo #19

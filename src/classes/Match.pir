@@ -11,7 +11,7 @@ Match - Perl 6 match objects
 .sub '' :anon :load :init
     .local pmc p6meta, matchproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    matchproto = p6meta.'new_class'('Match', 'parent'=>'PGE::Match Any')
+    matchproto = p6meta.'new_class'('Match', 'parent'=>'PGE::Grammar Any')
     $P0 = get_hll_global 'Positional'
     $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>matchproto)

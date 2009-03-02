@@ -153,8 +153,9 @@ to the Perl 6 compiler.
 .sub 'main' :main
     .param pmc args_str
 
-    $S0 = args_str[1]
-    if $S0 != '-le' goto not_harness
+    $S0 = args_str[2]
+    $I0 = index $S0, '@INC'
+    if $I0 < 0 goto not_harness
     exit 0
   not_harness:
 
@@ -230,6 +231,41 @@ to the Perl 6 compiler.
 .include 'src/gen_actions.pir'
 .include 'src/gen_metaop.pir'
 .include 'src/gen_junction.pir'
+
+=item postload()
+
+Perform any tasks that need to be done at the end of loading.
+Currently this does the equivalent of EXPORTALL on the core namespaces.
+
+=cut
+
+.namespace []
+
+.sub '' :anon :load :init
+    .local pmc perl6, nslist, nsiter
+    perl6 = get_hll_global ['Perl6'], 'Compiler'
+    nslist = split ' ', 'Any'
+    nsiter = iter nslist
+  ns_loop:
+    unless nsiter goto ns_done
+    $S0 = shift nsiter
+    $S0 .= '::EXPORT::ALL'
+    $P0 = perl6.'parse_name'($S0)
+    .local pmc ns, symiter
+    ns = get_hll_namespace $P0
+    if null ns goto ns_loop
+    symiter = iter ns
+  sym_loop:
+    unless symiter goto sym_done
+    $S0 = shift symiter
+    $P0 = ns[$S0]
+    set_global $S0, $P0
+    goto sym_loop
+  sym_done:
+    goto ns_loop
+  ns_done:
+.end
+
 
 # Local Variables:
 #   mode: pir

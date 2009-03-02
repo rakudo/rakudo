@@ -39,6 +39,7 @@ class Match is also {
                     } else {
                         take $match.perl;
                     }
+                    take ",\n";
                 }
                 take "$sp\},\n";
             }

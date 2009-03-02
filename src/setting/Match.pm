@@ -33,7 +33,12 @@ class Match is also {
                 take "named => \{\n";
                 for %(self).kv -> $name, $match {
                     take "$sp $name => ";
-                    take $match!_perl($indent + 3);
+                    # XXX why is this a Str, not a Match?
+                    if $match ~~ Match {
+                        take $match!_perl($indent + 3);
+                    } else {
+                        take $match.perl;
+                    }
                 }
                 take "$sp\},\n";
             }

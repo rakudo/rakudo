@@ -103,6 +103,12 @@ while (@ops) {
             .param pmc b
             .tailcall 'infix:$opname'(b, a)
         .end\n);
+    push @gtokens, sprintf( $reducefmt, "R$opname", "R$opname" );
+    push @code, qq(
+        .sub 'prefix:[R$opname]'
+            .param pmc args    :slurpy
+            .tailcall '!REDUCEMETAOP$chain'('R$opname', $identity, args)
+        .end\n);
 
     # Cross operators.
     push @gtokens, sprintf( $crossfmt, $opname );

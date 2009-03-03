@@ -30,7 +30,7 @@ while (<$fh>) {
     next unless $specfile;
     push @tfiles, "t/spec/$specfile";
 }
-close($fh);
+close $fh or die $!;
 
 {
     my $cmd = join ' ', $^X, 't/spec/fudgeall', 'rakudo', @tfiles;
@@ -41,9 +41,12 @@ close($fh);
 @tfiles = sort @tfiles;
 my $max = 0;
 for my $tfile (@tfiles) {
-    my $tname = $tfile; $tname =~ s!^t/spec/!!;
+    my $tname = $tfile;
+    $tname =~ s{^t/spec/}{};
     $tname = substr($tname, 0, 49);
-    if (length($tname) > $max) { $max = length($tname); }
+    if (length($tname) > $max) {
+        $max = length($tname);
+    }
     $tname{$tfile} = $tname;
 }
 
@@ -69,7 +72,7 @@ for my $tfile (@tfiles) {
     while (<$th>) {
        if (/^\s*plan\D*(\d+)/) { $plan = $1; last; }
     }
-    close($th);
+    close $th or die $!;
     my $tname = $tname{$tfile};
     my $syn = substr($tname, 0, 3); $syn{$syn}++;
     printf "%s%s..", $tname, '.' x ($max - length($tname));
@@ -132,24 +135,26 @@ for my $syn (sort keys %syn) {
 
 my $sumfmt = qq(%-9.9s %6s,%6s,%6s,%6s,%6s,%6s\n);
 print "----------------\n";
-print qq("Synopsis","pass","fail","todo","skip","regr","spec"\n);
+print qq{"Synopsis","pass","fail","todo","skip","regr","spec"\n};
 for my $syn (sort keys %syn) {
-    printf $sumfmt, qq("$syn",), map { $sum{"$syn-$_"} } @col;
+    printf $sumfmt, qq{"$syn",}, map { $sum{"$syn-$_"} } @col;
 }
 
 my $total = scalar(@tfiles).' regression files';
-printf $sumfmt, qq("total",), map { $sum{$_} } @col;
+printf $sumfmt, qq{"total",}, map { $sum{$_} } @col;
 
 print "----------------\n";
 my $rev = $ENV{'REV'};
 if ($rev) {
     my $file = scalar(@tfiles);
     print join(',', $rev, (map { $sum{$_} } @col), $file), "\n";
-    print "spectest-progress.csv update: ",
+    print 'spectest-progress.csv update: ',
           "$file files, $sum{'pass'} passing, $sum{'fail'} failing\n";
 }
 
 if (@fail) {
     print "Failure summary:\n";
-    foreach (@fail) { print "    $_\n"; }
+    foreach (@fail) {
+        print "    $_\n";
+    }
 }

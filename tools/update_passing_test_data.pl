@@ -86,6 +86,7 @@ sub read_specfile {
         s/\s+\z//;
         push @res, "t/spec/$_";
     }
+    close $f or die $!;
     return @res;
 }
 

@@ -1,3 +1,11 @@
+New since 2009-02 release
+
++ added R metaoperator.
++ add a initial draft of Match.perl 
++ refactor Grammar and Match class hierarchy
++ fix if/unless/while/until/for/... on line after close curlies
++ add Q quoting, including Q:PIR
+
 New in 2009-02 release (#14, "Vienna")
 + first release independent of Parrot releases
 + passing 7076 spectests (+796 since 2009-01 release)

@@ -2931,7 +2931,7 @@ sub make_anon_subtype($past) {
                     :scope('parameter')
                 )
             ),
-            PAST::Stmts.new( 
+            PAST::Stmts.new(
                 PAST::Op.new(
                     :name('infix:~~'),
                     :pasttype('call'),

@@ -32,7 +32,7 @@ class Any is also {
         return gather {
             my $pos = 0;
             while $l > 1
-                  && $pos < $s.chars 
+                  && $pos < $s.chars
                   && defined ($pos = $s.index($delimiter, $prev)) {
                 take $s.substr($prev, $pos - $prev);
                 $prev = [max] 1 + $prev, $pos + (~$delimiter).chars;

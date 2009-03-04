@@ -36,6 +36,7 @@ Invokes the TOP rule in the grammar on the given topic.
 .namespace ['Grammar']
 .sub 'parse' :method
     .param pmc topic
+    .param pmc options         :slurpy :named
     .local pmc TOP
 
     # If there's a TOP rule, invoke it.
@@ -49,7 +50,7 @@ Invokes the TOP rule in the grammar on the given topic.
     $P0 = $P0.'get_name'()
     $S0 = shift $P0
     $S0 = join '::', $P0
-    match = TOP(topic, 'grammar' => $S0)
+    match = TOP(topic, options :named :flat, 'grammar' => $S0)
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P1['$/'] = match
@@ -70,8 +71,9 @@ grammar on it.
 
 .sub 'parsefile' :method
     .param string filename
+    .param pmc options         :slurpy :named
     $S0 = 'slurp'(filename)
-    .tailcall self.'parse'($S0)
+    .tailcall self.'parse'($S0, options :named :flat)
 .end
 
 =back

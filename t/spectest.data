@@ -150,6 +150,7 @@ S04-statements/until.t
 S04-statements/while.t
 S05-capture/dot.t
 S05-capture/named.t
+S05-grammar/action-stubs.t
 S05-grammar/inheritance.t
 S05-grammar/namespace.t
 S05-grammar/parse_and_parsefile.t

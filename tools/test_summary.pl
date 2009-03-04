@@ -50,7 +50,7 @@ for my $tfile (@tfiles) {
     $tname{$tfile} = $tname;
 }
 
-my @syn = qw(S02 S03 S04 S05 S06 S09 S10 S12 S13 S16 S17 S29);
+my @syn = qw(S02 S03 S04 S05 S06 S09 S10 S12 S13 S16 S17 S29 S32);
 my @col = qw(pass fail todo skip plan spec);
 my %syn;
 my %sum;

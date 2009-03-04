@@ -197,6 +197,7 @@ S06-signature/optional.t
 S06-signature/passing-arrays.t
 S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t
+S06-signature/positional.t
 S06-signature/slurpy-params.t
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t

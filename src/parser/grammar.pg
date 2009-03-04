@@ -117,13 +117,22 @@ token afterws {
 token pod_comment {
     ^^ '=' <.unsp>?
     [
-    | begin \h+ <identifier> .*? \n
-      '=' <.unsp>? 'end' \h+ $<identifier> >> \N*   {*}         #= tagged
-    | begin \h* \n .*? \n
-      '=' <.unsp>? 'end' >> \N*                     {*}         #= anon
-    | \N*                                           {*}         #= misc
+    | 'begin' \h+ <identifier> ::
+        [
+        ||  .*? \n '=' <.unsp>? 'end' \h+ $<identifier> >> \N* {*} #= tagged
+        ||  .*                                                 {*} #= end
+        ]
+    | 'begin' >> :: \h* 
+        [ $$ || '#' || <.panic: "Unrecognized token after =begin"> ]
+        [ .*? \n '=' <.unsp>? 'end' >> \N* || <.panic: "=begin without =end"> ]
+                                                               {*} #= anon
+    | ::
+        [
+            <?before .*? ^^ '=cut' \s >
+            <.panic: "Obsolete pod format, please use =begin/=end instead"> 
+        ]?
+        \N*                                                    {*} #= misc
     ]
-    {*}
 }
 
 
@@ -180,10 +189,10 @@ rule statementlist {
 ##  isn't present -- e.g., a closing '}' at the end of a line
 ##  for a <block>.
 
-token terminator { 
-    |  <[ ; ) \] } ]> 
-    | '!!' 
-    | '-->' 
+token terminator {
+    |  <[ ; ) \] } ]>
+    | '!!'
+    | '-->'
     | [ if | unless | while | until | for | given | when ] >> <.nofun>
 }
 
@@ -208,7 +217,7 @@ token MARK_STATEMENT_END {
 }
 
 token AT_STATEMENT_END {
-    <?{{ 
+    <?{{
           $P0 = get_global '$!endstmt'
           $P1 = get_global '$!ws'
           $P2 = $P1.'from'()
@@ -216,7 +225,7 @@ token AT_STATEMENT_END {
           .return ($I0)
     }}>
 }
-    
+
 
 
 ##  Parse a single statement, which may be either a bare block
@@ -778,9 +787,9 @@ token morename {
     '::'
     [
         <?before '(' | <alpha> >
-        [ 
+        [
         | <identifier>
-        | '(' <EXPR> ')' 
+        | '(' <EXPR> ')'
         ]
     ]?
 }

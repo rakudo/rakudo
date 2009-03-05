@@ -2822,7 +2822,7 @@ sub declare_implicit_routine_vars($block) {
             $block[0].push( PAST::Var.new( :name($_),
                                            :scope('lexical'),
                                            :isdecl(1),
-                                           :viviself('Failure') ) );
+                                           :viviself('Perl6Scalar') ) );
             $block.symbol($_, :scope('lexical') );
         }
     }

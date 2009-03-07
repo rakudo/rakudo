@@ -94,40 +94,6 @@ the size of that file down and to emphasize their generic,
     .return(retv)
 .end
 
-=item grep(...)
-
-=cut
-
-.namespace []
-.sub 'grep' :multi('Sub')
-    .param pmc test
-    .param pmc values          :slurpy
-    .tailcall values.'grep'(test)
-.end
-
-.namespace ['Any']
-.sub 'grep' :method :multi(_, 'Sub')
-    .param pmc test
-    .local pmc retv
-    .local pmc iter
-    .local pmc block_res
-    .local pmc block_arg
-
-    retv = new 'List'
-    iter = self.'iterator'()
-  loop:
-    unless iter goto done
-    block_arg = shift iter
-    block_res = test(block_arg)
-
-    unless block_res goto loop
-    retv.'push'(block_arg)
-    goto loop
-
-  done:
-    .return(retv)
-.end
-
 =item join
 
 =cut

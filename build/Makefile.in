@@ -106,6 +106,7 @@ BUILTINS_PIR = \
   src/builtins/traits.pir \
 
 SETTING = \
+  src/setting/Any-list.pm \
   src/setting/Any-str.pm \
   src/setting/Array.pm \
   src/setting/Bool.pm \

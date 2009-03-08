@@ -33,11 +33,16 @@ class Any is also {
      };
 
 
-    multi method pairs(@values: *@indices) {
+    multi method pairs(*@indices) {
         gather {
-            for (@values.keys Z @values) -> $key, $val is rw {
-                take ($key => $val)
-                    unless (@indices && ($key !~~ any(@indices)));
+            if @indices {
+                for (self.list.keys Z self.list) -> $key, $val is rw {
+                    take ($key => $val) if $key ~~ any(@indices);
+                }
+            } else {
+                for (self.list.keys Z self.list) -> $key, $val is rw {
+                    take ($key => $val)
+                }
             }
         }
     }

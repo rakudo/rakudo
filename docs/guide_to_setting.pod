@@ -1,0 +1,63 @@
+=head1 NAME
+
+Guide to the C<src/setting/> library
+
+=head1 DESCRIPTION
+
+Why we write built-in methods and functions in Perl 6, and what you
+should know when you write more such subs or methods.
+
+=head2 Reasons
+
+There are a few reasons to write built-in methods in Perl 6 and not in
+PIR, as done previously:
+
+=over
+
+=item Perl 6 is a much nicer language than PIR
+
+=item Typed Arrays/Lists are really parametric roles, and those are
+    much easier to write in Perl 6
+
+=item Perl 6's signatures are much more expressive. At some point you
+    can call positional parameters by their names, but you can't with
+    PIR
+
+=back
+
+There is one drawback, and that's slower execution. If that becomes a
+bigger problem, we can use inline PIR to write the critical parts.
+
+=head2 Guidelines
+
+Your patches to migrate PIR builtins to Perl 6 are very welcome,
+especially if they follow these guidelines:
+
+=over
+
+=item Think of lazyness
+
+At some point in the hopefully not-so-distant future Lists will become
+lazy by default. So you should try to avoid anything that forces eager
+evaluation of arrays, like querying their length.
+
+This is bad:
+
+    while $i < self.elems { ... }
+
+Better use a C<for> loop, which will respect lazyness
+
+    for self.list { ...  }
+
+If you assemble multiple items into a potentially lazy list,
+C<gather/take> is a very good 
+
+=item Take care with type constraints
+
+Some of the Synopsis documents list type constraints for some of the
+arguments, specifically for the invocant. They are not always correct,
+when in doubt leave them out.
+
+=back
+
+=for editor vim: ft=pod tw=70

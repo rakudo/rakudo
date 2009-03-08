@@ -20,7 +20,7 @@ class Any is also {
     }
 
      # RT #63700 - parse failed on &infix:<cmp>
-    our Array multi method min( $values: Code $by = sub { $^a cmp $^b } ) {
+    multi method min( $values: Code $by = sub { $^a cmp $^b } ) {
          my @list = $values.list;
          return +Inf unless @list.elems;
          my $res = @list.shift;
@@ -33,7 +33,7 @@ class Any is also {
      };
 
 
-    our List multi method pairs(@values: *@indices) {
+    multi method pairs(@values: *@indices) {
         gather {
             for (@values.keys Z @values) -> $key, $val is rw {
                 take ($key => $val)
@@ -47,7 +47,7 @@ our List multi grep(Code $test, *@values) {
     @values.grep($test)
 }
 
-our List of Capture multi map(Code $expr, *@values) {
+our List multi map(Code $expr, *@values) {
     @values.map($expr)
 }
 
@@ -55,7 +55,7 @@ our List multi pairs(@values, *@indices) {
     @values.pairs(@indices)
 }
 
-our List multi min($by, *@values) {
+multi min(Code $by, *@values) {
     @values.min($by);
 }
 

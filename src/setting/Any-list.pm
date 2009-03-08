@@ -21,6 +21,15 @@ class Any is also {
     our List of Capture multi method map($value: Code *&expr) {
         ($value,).map: &expr
     }
+
+    our List multi method pairs(@values: *@indices) {
+        gather {
+            for (@values.keys Z @values) -> $key, $val is rw {
+                take ($key => $val)
+                    unless (@indices && ($key !~~ any(@indices)));
+            }
+        }
+    }
 }
 
 our List multi grep(Code $test, *@values) {
@@ -29,6 +38,10 @@ our List multi grep(Code $test, *@values) {
 
 our List of Capture multi map(Code $expr, *@values) {
     @values.map($expr)
+}
+
+our List multi pairs(@values, *@indices) {
+    @values.pairs(@indices)
 }
 
 # vim: ft=perl6

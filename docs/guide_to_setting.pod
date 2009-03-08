@@ -60,6 +60,17 @@ Some of the Synopsis documents list type constraints for some of the
 arguments, specifically for the invocant. They are not always correct,
 when in doubt leave them out.
 
+=item When adding a new file in src/setting/
+
+... remeber to add it to L<build/Makefile.in> to the C<SETTING>
+variable.
+
 =back
+
+=head1 SEE ALSO
+
+L<http://rakudo.org/2009/02/rakudo-built-ins-can-now-be-wr.html>
+
+L<http://perlgeek.de/blog-en/perl-6/tidings-2009-03.html>
 
 =for editor vim: ft=pod tw=70

@@ -1,0 +1,32 @@
+=head1 NAME
+
+perl6 - Rakudo Perl 6 Compiler
+
+=head1 SYNOPSIS
+
+perl6 [switches] [--] [programfile] [arguments]
+
+=head1 DESCRIPTION
+
+Compiles C<[programfile]> or the program given by the C<-e> option, and
+by default also exectues the compiled code.
+
+  -c                   check syntax only (runs BEGIN and CHECK blocks)
+  -e program           one line of program
+  -h, --help           display this help text
+  --target=[stage]     specify compilation stage to emit
+  -t, --trace=[flags]  enable trace flags
+  --encoding=[mode]    specify string encoding mode
+  -o, --output=[name]  specify name of output file
+  -v, --version        display version information
+
+Note that only boolean single-letter options may be bundled 
+
+=head1 AUTHORS
+
+Written by the Rakudo contributors, see the CREDITS file.
+
+This manual page was written by Reini Urban, Moritz Lenz and the Rakudo
+contributors.
+
+=cut

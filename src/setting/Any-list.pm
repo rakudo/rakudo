@@ -5,25 +5,22 @@ class Any is also {
         }
     }
 
-    our List of Capture multi method map(List @values: Code *&expr) {
-        gather {
-            my $i = 0;
-            while ($i <= @values.end) {
-                my @args;
-                @args.push(($i <= @values.end) ?? @values[$i++] !! undef)
-                    for (1..&expr.arity || 1);
-
-                take &expr(|@args);
+    our List multi method map(Code *&expr) {
+        return gather {
+            my $arity = &expr.arity || 1;
+            my @args;
+            for self.list {
+                @args.push($_);
+                if (@args == $arity) {
+                    take &expr(|@args);
+                    @args = ();
+                }
             }
         }
     }
 
-    our List of Capture multi method map($value: Code *&expr) {
-        ($value,).map: &expr
-    }
-
      # RT #63700 - parse failed on &infix:<cmp>
-     our Array multi method min( $values: Code $by = sub { $^a cmp $^b } ) {
+    our Array multi method min( $values: Code $by = sub { $^a cmp $^b } ) {
          my @list = $values.list;
          return +Inf unless @list.elems;
          my $res = @list.shift;
@@ -58,8 +55,7 @@ our List multi pairs(@values, *@indices) {
     @values.pairs(@indices)
 }
 
-our List multi min(*@values) {
-    my $by = @values[0] ~~ Code ?? shift @values !! sub { $^a cmp $^b };
+our List multi min($by, *@values) {
     @values.min($by);
 }
 

@@ -1,5 +1,6 @@
 New since 2009-02 release
 
++ next, last etc. work in grep()
 + added R metaoperator.
 + add a initial draft of Match.perl 
 + refactor Grammar and Match class hierarchy

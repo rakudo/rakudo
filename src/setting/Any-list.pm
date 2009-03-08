@@ -22,6 +22,20 @@ class Any is also {
         ($value,).map: &expr
     }
 
+     # RT #63700 - parse failed on &infix:<cmp>
+     our Array multi method min( $values: Code $by = sub { $^a cmp $^b } ) {
+         my @list = $values.list;
+         return +Inf unless @list.elems;
+         my $res = @list.shift;
+         for @list -> $x {
+             if (&$by($res, $x) > 0) {
+                 $res = $x;
+             }
+         }
+         $res;
+     };
+
+
     our List multi method pairs(@values: *@indices) {
         gather {
             for (@values.keys Z @values) -> $key, $val is rw {
@@ -42,6 +56,11 @@ our List of Capture multi map(Code $expr, *@values) {
 
 our List multi pairs(@values, *@indices) {
     @values.pairs(@indices)
+}
+
+our List multi min(*@values) {
+    my $by = @values[0] ~~ Code ?? shift @values !! sub { $^a cmp $^b };
+    @values.min($by);
 }
 
 # vim: ft=perl6

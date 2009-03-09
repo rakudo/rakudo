@@ -72,7 +72,7 @@ variable and re-generate the Makefile using L<Configure.pl>.
 
 Many of the method specifications in the synopses list explicit
 invocant variables.  Using them often makes the code less clear,
-and can sometimes be correct (for example, an invocant of C<@values>
+and can sometimes be incorrect (for example, an invocant of C<@values>
 will restrict the method to invocants that have the C<Positional>
 role).  Better is to use C<self>, or if invoking a method on C<self>
 then you can use C<$.foo> or C<@.bar> directly.

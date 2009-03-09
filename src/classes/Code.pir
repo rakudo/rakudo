@@ -155,12 +155,12 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'signature' :method
-    $P0 = getprop '$!signature', self
+    $P0 = '!DEREF'(self)
+    $P0 = getprop '$!signature', $P0
     if null $P0 goto no_sig
     .return ($P0)
   no_sig:
-    $P0 = get_hll_global 'Failure'
-    .return ($P0)
+    .tailcall '!FAIL'('No signature found')
 .end
 
 

@@ -9,7 +9,7 @@ class Any is also {
         return gather {
             my $arity = &expr.arity || 1;
             my @args;
-            for self.list {
+            for @.list {
                 @args.push($_);
                 if (@args == $arity) {
                     take &expr(|@args);
@@ -36,11 +36,11 @@ class Any is also {
     multi method pairs(*@indices) {
         gather {
             if @indices {
-                for (self.list.keys Z self.list) -> $key, $val is rw {
+                for (@.list.keys Z @.list) -> $key, $val is rw {
                     take ($key => $val) if $key ~~ any(@indices);
                 }
             } else {
-                for (self.list.keys Z self.list) -> $key, $val is rw {
+                for (@.list.keys Z @.list) -> $key, $val is rw {
                     take ($key => $val)
                 }
             }

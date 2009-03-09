@@ -90,31 +90,6 @@ for executable objects.
     .tailcall 'prefix:!'(match)
 .end
 
-=item perl()
-
-Return a response to .perl.
-
-=cut
-
-.sub 'perl' :method
-    .return ('{ ... }')
-.end
-
-=item signature()
-
-Gets the signature for the block, or returns Failure if it lacks one.
-
-=cut
-
-.sub 'signature' :method
-    $P0 = getprop '$!signature', self
-    if null $P0 goto no_sig
-    .return ($P0)
-  no_sig:
-    $P0 = get_hll_global 'Failure'
-    .return ($P0)
-.end
-
 =item assumming()
 
 Returns a curried version of self.
@@ -143,6 +118,51 @@ Returns a curried version of self.
     result = obj(assumed_args :flat, args :flat, assumed_named_args :flat :named, named_args :flat :named)
     .return (result)
 .end
+
+
+=item count()
+
+Return the number of required and optional parameters for a Block.
+Note that we currently do this by adding the method to Parrot's 
+"Sub" PMC, so that it works for non-Rakudo subs.
+
+=cut
+
+.namespace ['Sub']
+.sub 'count' :method
+    $P0 = inspect self, "pos_required"
+    $P1 = inspect self, "pos_optional"
+    add $P0, $P1
+    .return ($P0)
+.end
+
+
+=item perl()
+
+Return a response to .perl.
+
+=cut
+
+.namespace ['Code']
+.sub 'perl' :method
+    .return ('{ ... }')
+.end
+
+=item signature()
+
+Gets the signature for the block, or returns Failure if it lacks one.
+
+=cut
+
+.sub 'signature' :method
+    $P0 = getprop '$!signature', self
+    if null $P0 goto no_sig
+    .return ($P0)
+  no_sig:
+    $P0 = get_hll_global 'Failure'
+    .return ($P0)
+.end
+
 
 =item !invoke
 

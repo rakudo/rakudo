@@ -151,10 +151,22 @@ Casts a value to a complex number.
     .return ($P0)
 .end
 
+=item im
+
+=cut
+
+.namespace ['Perl6Complex']
+
+.sub 'im' :method :multi(_)
+    $N0 = self[1]
+    .return ($N0)
+.end
 
 =item infix:+
 
 =cut
+
+.namespace []
 
 .sub 'infix:+' :multi('Complex', _)
     .param pmc a
@@ -251,6 +263,17 @@ Casts a value to a complex number.
     a = a.'Complex'()
     div $P0, a, b
     .return ($P0)
+.end
+
+=item re
+
+=cut
+
+.namespace ['Perl6Complex']
+
+.sub 're' :method :multi(_)
+    $N0 = self[0]
+    .return ($N0)
 .end
 
 =back

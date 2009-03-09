@@ -21,14 +21,17 @@ PIR, as done previously:
 =item Typed Arrays/Lists are really parametric roles, and those are
     much easier to write in Perl 6
 
-=item Perl 6's signatures are much more expressive. At some point you
-    can call positional parameters by their names, but you can't with
-    PIR
+=item In order for Rakudo's multi-dispatchers to work properly,
+    the target subs have to have Signature objects attached to them.
+    This is far easier to do in Perl 6 than in PIR.
 
 =back
 
-There is one drawback, and that's slower execution. If that becomes a
-bigger problem, we can use inline PIR to write the critical parts.
+There are two potential drawbacks:  (1) slower execution, and (2)
+some operations can be expressed in PIR that cannot yet be expressed
+in Rakudo (and sometimes not even in Perl 6!).  For cases where these
+drawbacks matter, we can use inline PIR or maintain the subroutines
+in PIR as needed.  
 
 =head2 Guidelines
 
@@ -52,18 +55,27 @@ Better use a C<for> loop, which will respect lazyness
     for self.list { ...  }
 
 If you assemble multiple items into a potentially lazy list,
-C<gather/take> is a very good 
+C<gather/take> is a very good construct to remember.
 
 =item Take care with type constraints
 
 Some of the Synopsis documents list type constraints for some of the
-arguments, specifically for the invocant. They are not always correct,
+arguments, including the invocant. They are not always correct,
 when in doubt leave them out.
 
 =item When adding a new file in src/setting/
 
-... remeber to add it to L<build/Makefile.in> to the C<SETTING>
-variable.
+... remember to add it to L<build/Makefile.in> to the C<SETTING>
+variable and re-generate the Makefile using L<Configure.pl>.
+
+=item Prefer C<self> to explicit invocant variables.
+
+Many of the method specifications in the synopses list explicit
+invocant variables.  Using them often makes the code less clear,
+and can sometimes be correct (for example, an invocant of C<@values>
+will restrict the method to invocants that have the C<Positional>
+role).  Better is to use C<self>, or if invoking a method on C<self>
+then you can use C<$.foo> or C<@.bar> directly.
 
 =back
 

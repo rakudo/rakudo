@@ -46,6 +46,33 @@ class Any is also {
             }
         }
     }
+
+    multi method reduce( Code $expression is rw) {
+        my Int $arity = $expression.count;
+        fail('Cannot reduce() using a unary or nullary function.')
+            if $arity < 2;
+
+        my $l := @.list;
+
+        fail('Cannot reduce() empty list') unless +$l;
+
+        my @args;
+        for $l {
+            @args.push($_);
+            if (@args == $arity) {
+                my $res = $expression.(|@args);
+                @args = ($res);
+            }
+        }
+        if @args > 1 {
+            if @args < $expression.arity {
+                warn (@args -1) ~ " trailing item(s) in reduce";
+            } else {
+                return $( $expression.(|@args) );
+            }
+        }
+        return @args[0];
+    }
 }
 
 our List multi grep(Code $test, *@values) {
@@ -56,12 +83,16 @@ our List multi map(Code $expr, *@values) {
     @values.map($expr)
 }
 
+multi min(Code $by, *@values) {
+    @values.min($by);
+}
+
 our List multi pairs(@values, *@indices) {
     @values.pairs(@indices)
 }
 
-multi min(Code $by, *@values) {
-    @values.min($by);
+multi reduce(Code $expression, *@values) {
+    @values.reduce($expression);
 }
 
 # vim: ft=perl6

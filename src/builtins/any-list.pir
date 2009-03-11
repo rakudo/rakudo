@@ -55,45 +55,6 @@ the size of that file down and to emphasize their generic,
     .return ($I0)
 .end
 
-=item first(...)
-
-=cut
-
-.namespace []
-.sub 'first' :multi('Sub')
-    .param pmc test
-    .param pmc values :slurpy
-
-    .tailcall values.'first'(test)
-.end
-
-.namespace ['Any']
-.sub 'first' :method :multi(_, 'Sub')
-    .param pmc test
-    .local pmc retv
-    .local pmc iter
-    .local pmc block_res
-    .local pmc block_arg
-
-    iter = self.'iterator'()
-  loop:
-    unless iter goto nomatch
-    block_arg = shift iter
-    block_res = test(block_arg)
-    if block_res goto matched
-    goto loop
-
-  matched:
-    retv = block_arg
-    goto done
-
-  nomatch:
-    retv = '!FAIL'('Undefined value - first list match of no matches')
-
-  done:
-    .return(retv)
-.end
-
 =item join
 
 =cut

@@ -1,7 +1,13 @@
 class Any is also {
-    our List multi method grep($values: Code $test) {
+    multi method first(Code $test) {
+        return $_ if $test($_) for @.list;
+
+        fail('No values matched');
+    }
+
+    our List multi method grep(Code $test) {
         gather {
-            take $_ if $test($_) for $values.list;
+            take $_ if $test($_) for @.list;
         }
     }
 
@@ -33,7 +39,7 @@ class Any is also {
      };
 
 
-    multi method pairs(*@indices) {
+    our List multi method pairs(*@indices) is export {
         gather {
             if @indices {
                 for (@.list.keys Z @.list) -> $key, $val is rw {
@@ -75,6 +81,10 @@ class Any is also {
     }
 }
 
+multi first(Code $test, *@values) {
+    @values.first($test)
+}
+
 our List multi grep(Code $test, *@values) {
     @values.grep($test)
 }
@@ -85,10 +95,6 @@ our List multi map(Code $expr, *@values) {
 
 multi min(Code $by, *@values) {
     @values.min($by);
-}
-
-our List multi pairs(@values, *@indices) {
-    @values.pairs(@indices)
 }
 
 multi reduce(Code $expression, *@values) {

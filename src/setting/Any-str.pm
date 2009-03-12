@@ -1,4 +1,16 @@
 class Any is also {
+    our Str multi method chop is export {
+        self.substr(0, -1)
+    }
+
+    our Str multi method fmt(Str $format) {
+        sprintf($format, self)
+    }
+
+    our Str multi method lcfirst is export {
+        self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
+    }
+
     our List multi method split(Code $delimiter, $limit = *) {
         my $s = ~self;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
@@ -58,6 +70,11 @@ class Any is also {
             }
         }
     }
+
+    our Str multi method ucfirst is export {
+        self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""
+    }
+
 }
 
 sub split($delimiter, $target) {

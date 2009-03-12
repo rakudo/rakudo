@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('capitalize,chop,chomp,chars,:d,:e,:f,index,lc,lcfirst,rindex,ord,substr,trim,uc,ucfirst,unpack', 'from'=>$P0)
+    '!EXPORT'('capitalize,chomp,chars,:d,:e,:f,index,lc,rindex,ord,substr,trim,uc,unpack', 'from'=>$P0)
 .end
 
 
@@ -79,26 +79,6 @@ C<s:g/(\w+)/{ucfirst $1}/> on it.
     $S0 = self
     $I0 = length $S0
     .return ($I0)
-.end
-
-
-=item chop
-
- our Str method Str::chop ( Str  $string: )
-
-Returns string with one Char removed from the end.
-
-=cut
-
-.sub 'chop' :method :multi(_)
-    .local string tmps
-    .local pmc retv
-
-    tmps = self
-    chopn tmps, 1
-    retv = new 'Str'
-    retv = tmps
-    .return(retv)
 .end
 
 =item chomp
@@ -240,23 +220,6 @@ file.
     .return ($P0)
 .end
 
-=item fmt
-
- our Str multi Any::fmt ( Str $format )
-
-Returns the invocant formatted by an implicit call to C<sprintf>.
-
-=cut
-
-.sub 'fmt' :method :multi(_)
-    .param string format
-    .local pmc retv
-
-    retv = 'sprintf'(format, self)
-
-    .return(retv)
-.end
-
 =item index()
 
 =cut
@@ -319,38 +282,6 @@ form, if uppercase.
 
     .return(retv)
 .end
-
-=item lcfirst
-
- our Str multi Str::lcfirst ( Str $string )
-
-Like C<lc>, but only affects the first character.
-
-=cut
-
-.sub 'lcfirst' :method :multi(_)
-    .local string tmps
-    .local string fchr
-    .local pmc retv
-    .local int len
-
-    retv = new 'Str'
-    tmps = self
-
-    len = length tmps
-    if len == 0 goto done
-
-    substr fchr, tmps, 0, 1
-    downcase fchr
-
-    concat retv, fchr
-    substr tmps, tmps, 1
-    concat retv, tmps
-
-  done:
-    .return(retv)
-.end
-
 
 
 =item match()
@@ -1072,37 +1003,6 @@ full "uppercase".
     retv = new 'Str'
     retv = tmps
 
-    .return(retv)
-.end
-
-=item ucfirst
-
- our Str multi Str::ucfirst ( Str $string )
-
-Performs a Unicode "titlecase" operation on the first character of the string.
-
-=cut
-
-.sub 'ucfirst' :method :multi(_)
-    .local string tmps
-    .local string fchr
-    .local pmc retv
-    .local int len
-
-    retv = new 'Str'
-    tmps = self
-
-    len = length tmps
-    if len == 0 goto done
-
-    substr fchr, tmps, 0, 1
-    upcase fchr
-
-    concat retv, fchr
-    substr tmps, tmps, 1
-    concat retv, tmps
-
-  done:
     .return(retv)
 .end
 

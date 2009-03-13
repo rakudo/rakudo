@@ -88,6 +88,29 @@ from C<Any>.
 .end
 
 
+=item !dispatch_method
+
+Does a method dispatch. If it's a foregin object, just calls it the Parrot
+way. Otherwise, it uses .^dispatch from the metaclass.
+
+=cut
+
+.sub '!dispatch_method'
+    .param pmc obj
+    .param string name
+    .param pmc pos_args  :slurpy
+    .param pmc name_args :slurpy :named
+
+    $I0 = can obj, 'HOW'
+    unless $I0 goto foreign
+    $P0 = obj.'HOW'()
+    .tailcall $P0.'dispatch'(obj, name, pos_args :flat, name_args :flat :named)
+
+  foreign:
+    .tailcall obj.name(pos_args :flat, name_args :flat :named)
+.end
+
+
 =item !VAR
 
 Helper function for implementing the VAR and .VAR macros.

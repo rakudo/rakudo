@@ -123,19 +123,17 @@ Checks if the given topic does the role.
 .sub 'ACCEPTS' :method
     .param pmc topic
 
-    # Since we aren't re-blessing code objects yet, need to get and test their
-    # proto-object instead.
-    $I0 = topic.'isa'('Code')
-    unless $I0 goto no_proto
-    topic = topic.'WHAT'()
-  no_proto:
+    # If the topic is the same as self, then we're done.
+    $I0 = 1
+    topic = '!DEREF'(topic)
+    eq_addr self, topic, done
+    $I0 = 0
 
-    # Now go over the roles we've created and see if one of them is done.
+    # Go over the roles we've created and see if one of them is done.
     .local pmc created, it
     created = getattribute self, '@!created'
     if null created goto it_loop_end
     it = iter created
-    $I0 = 0
   it_loop:
     unless it goto it_loop_end
     $P0 = shift it
@@ -144,6 +142,11 @@ Checks if the given topic does the role.
     if $I0 == 0 goto it_loop
   it_loop_end:
 
+    # Undef is always OK.
+    if $I0 goto done
+    $I0 = isa topic, 'Failure'
+
+  done:
     $P0 = 'prefix:?'($I0)
     .return ($P0)
 .end

@@ -110,7 +110,7 @@ the Signature.
     constraints = 'all'(constraints)
     goto set_constraints
   no_constraints:
-    constraints = null
+    constraints = new 'Failure'
   set_constraints:
     attr["cons_type"] = constraints
 

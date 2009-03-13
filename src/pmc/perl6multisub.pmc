@@ -340,7 +340,9 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
             PMC * const multi_inv   = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "multi_invocant"));
             info->types[j] = type;
-            info->constraints[j] = constraints;
+            info->constraints[j] = PMC_IS_NULL(constraints) || VTABLE_isa(interp,
+                    constraints, CONST_STRING(interp, "Failure")) ?
+                    PMCNULL : constraints;
             if (!PMC_IS_NULL(multi_inv) && VTABLE_get_bool(interp, multi_inv))
                 info->num_types++;
         }

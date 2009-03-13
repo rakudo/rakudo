@@ -1431,24 +1431,12 @@ method dotty($/, $key) {
     }
 
     # We actually need to send dispatches for named method calls (other than .*)
-    # through .HOW.dispatch.
+    # through the.dispatcher.
     if $key ne '.*' && $past.pasttype() eq 'callmethod' && $past.name() ne "" {
         $past.unshift($past.name());
-        $past.name('dispatch');
-        my $inv_var := PAST::Var.new( :scope('register') );
-        $past.unshift($inv_var);
-        $past.unshift(PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('HOW'),
-            $inv_var
-        ));
-        my $inv_set_node := PAST::Op.new(
-            :pasttype('bind'),
-            $inv_var,
-            PAST::Stmts.new()
-        );
-        $past := PAST::Stmts.new( $inv_set_node, $past );
-        $past<invocant_holder> := $inv_set_node[1];
+        $past.name('!dispatch_method');
+        $past.pasttype('call');
+        $past<invocant_holder> := $past;
     }
     else {
         $past<invocant_holder> := $past;

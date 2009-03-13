@@ -75,6 +75,7 @@ BUILTINS_PIR = \
   src/classes/Regex.pir \
   src/classes/Method.pir \
   src/classes/Submethod.pir \
+  src/classes/Multi.pir \
   src/classes/Junction.pir \
   src/classes/Failure.pir \
   src/classes/Exception.pir \

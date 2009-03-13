@@ -1116,6 +1116,36 @@ Makes a copy of this Perl6MultiSub PMC.
         SETATTR_Perl6MultiSub_candidates(interp, copy, unsorted);
         return copy;
     }
+
+/*
+
+=item METHOD void push(candidate)
+
+Adds a candidate.
+
+=cut
+
+*/
+    METHOD push(PMC *candidate) {
+        VTABLE_push_pmc(interp, SELF, candidate);
+        RETURN ()
+    }
+
+/*
+
+=item METHOD PMC * candidates()
+
+Gets a list of all candidates.
+
+=cut
+
+*/
+    METHOD PMC *candidates() {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        RETURN (PMC *candidates);
+    }
+
 }
 
 /*

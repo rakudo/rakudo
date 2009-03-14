@@ -339,8 +339,10 @@ first). So for now we just transform multis in user code like this.
 
   start_main:
     ## We're running as main program
-    ## Remove program argument (0) and set up @ARGS global
+    ## Remove program argument (0) and put it in $*PROGRAM_NAME, then set up
+    ## @ARGS global.
     $P0 = shift args
+    set_hll_global '$PROGRAM_NAME', $P0
     args = args.'Array'()
     set_hll_global '@ARGS', args
     ## run unitmain

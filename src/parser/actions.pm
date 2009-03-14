@@ -29,9 +29,16 @@ method TOP($/) {
     # Create the unit's startup block, unless it's suppressed.
     our $?SUPPRESS_MAIN;
     my $main;
+    our @?BLOCK;
     if $?SUPPRESS_MAIN {
         $past.push(PAST::Stmts.new());
         $main := $past;
+    }
+    elsif +@?BLOCK && @?BLOCK[0]<eval> == 1 {
+        $past.blocktype('immediate');
+        $past.lexical(1);
+        @?BLOCK[0].push($past);
+        $main := @?BLOCK[0];
     }
     else {
         $main := PAST::Block.new( :pirflags(':main') );

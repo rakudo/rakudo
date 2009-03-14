@@ -304,6 +304,31 @@ on error.
     'die'("Parameter type check failed on call to 'eval'.")
   type_ok:
 
+    # We want to make the lexicals known to the Perl 6 compiler. (One day
+    # PCT maybe will provide a way to tell any language about these.)
+    .local pmc blocks, block_info, interp, sub
+    interp = new 'ParrotInterpreter'
+    $P0 = get_hll_global ['PAST'], 'Block'
+    block_info = $P0.'new'()
+    sub = interp["sub"; 1]
+  lex_loop:
+    if null sub goto lex_loop_end
+    $P0 = sub.'get_lexinfo'()
+    $P0 = inspect $P0, 'symbols'
+    $P0 = iter $P0
+  symbols_loop:
+    unless $P0 goto symbols_loop_end
+    $S0 = shift $P0
+    block_info.'symbol'($S0, 'scope'=>'lexical')
+    goto symbols_loop
+  symbols_loop_end:
+    sub = sub.'get_outer'()
+    goto lex_loop
+  lex_loop_end:
+    blocks = get_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK'
+    block_info['eval'] = 1
+    blocks.'unshift'(block_info)
+
     .local pmc compiler, invokable
     .local pmc res, exception
     unless have_lang goto no_lang
@@ -324,6 +349,15 @@ on error.
   got_lang:
     invokable = compiler.'compile'(code)
 
+    # Clear lexical info we added.
+    blocks.'shift'()
+
+    # Set lexical scope.
+    $P0 = interp["sub"; 1]
+    $P1 = invokable[0]
+    $P1.'set_outer'($P0)
+
+    # Invoke.
     res = invokable()
     exception = new 'Failure'
     goto done
@@ -333,6 +367,7 @@ on error.
 
   done:
     pop_eh
+    
     # Propagate exception to caller
     $P0 = getinterp
     $P0 = $P0['lexpad';1]

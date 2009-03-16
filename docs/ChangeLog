@@ -1,8 +1,10 @@
 New since 2009-02 release
 
++ implemented $*PROGRAM_NAME magical variable
++ outer lexicals are now visible in eval()
 + next, last etc. work in grep()
 + added R metaoperator.
-+ add a initial draft of Match.perl 
++ add an initial draft of Match.perl 
 + refactor Grammar and Match class hierarchy
 + fix if/unless/while/until/for/... on line after close curlies
 + add Q quoting, including Q:PIR

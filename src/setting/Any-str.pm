@@ -75,9 +75,8 @@ class Any is also {
         return Q:PIR {
             $S0 = self
             upcase $S0
-            $P0 = new 'Str'
-            $P0 = $S0
-            %r = $P0
+            %r = new 'Str'
+            %r = $S0
         }
     }
 

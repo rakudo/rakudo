@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('capitalize,chomp,chars,:d,:e,:f,index,lc,rindex,ord,substr,trim,uc', 'from'=>$P0)
+    '!EXPORT'('capitalize,chomp,chars,:d,:e,:f,index,lc,rindex,ord,substr,trim', 'from'=>$P0)
 .end
 
 
@@ -980,30 +980,6 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     $S0 = self
     $I0 = ord $S0
     .return ($I0)
-.end
-
-
-=item uc
-
- our Str multi Str::uc ( Str $string )
-
-Returns the input string after converting each character to its uppercase
-form, if lowercase. This is not a Unicode "titlecase" operation, but a
-full "uppercase".
-
-=cut
-
-.sub 'uc' :method :multi(_)
-    .local string tmps
-    .local pmc retv
-
-    tmps = self
-    upcase tmps
-
-    retv = new 'Str'
-    retv = tmps
-
-    .return(retv)
 .end
 
 # Local Variables:

@@ -70,6 +70,16 @@ class Any is also {
             }
         }
     }
+    
+    multi method uc() is export {
+        return Q:PIR {
+            $S0 = self
+            upcase $S0
+            $P0 = new 'Str'
+            $P0 = $S0
+            %r = $P0
+        }
+    }
 
     our Str multi method ucfirst is export {
         self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""

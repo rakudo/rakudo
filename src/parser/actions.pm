@@ -2586,6 +2586,20 @@ method EXPR($/, $key) {
         $past.flat(1);
         make $past;
     }
+    elsif ~$type eq 'infix://=' || ~$type eq 'infix:||=' || ~$type eq 'infix:&&=' {
+        my $lhs := $( $/[0] );
+        my $rhs := $( $/[1] );
+        make PAST::Op.new(
+            :pasttype('call'),
+            :name('infix:='),
+            $lhs,
+            PAST::Op.new($lhs, $rhs, :pasttype(
+                ~$type eq 'infix://=' ?? 'def_or' !!
+                (~$type eq 'infix:||=' ?? 'unless' !!
+                 'if'))
+            )
+        );
+    }
     else {
         my $past := PAST::Op.new(
             :node($/),

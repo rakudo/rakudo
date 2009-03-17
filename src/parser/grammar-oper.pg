@@ -144,6 +144,8 @@ proto infix:<::=> is equiv(infix:<:=>) { ... }
 proto infix:<.=> is equiv(infix:<:=>) { ... }
 proto infix:«=>» is equiv(infix:<:=>) { ... }
 proto infix:<//=> is equiv(infix:<:=>) { ... }
+proto infix:<&&=> is equiv(infix:<:=>) { ... }
+proto infix:<||=> is equiv(infix:<:=>) { ... }
 
 ## loose unary
 proto prefix:<true> is precedence('h=') is subname('true') { ... }

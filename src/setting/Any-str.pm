@@ -81,4 +81,18 @@ sub split($delimiter, $target) {
     $target.split($delimiter);
 }
 
+sub unpack($template, $target) {
+    $template.trans(/\s+/ => '') ~~ / ((<[Ax]>)(\d+))* /
+        or return (); # unknown syntax
+    my $pos = 0;
+    return gather for $0.values -> $chunk {
+        my ($operation, $count) = $chunk.[0, 1];
+        given $chunk.[0] {
+            when 'A' { take $target.substr($pos, $count); }
+            when 'x' { } # just skip
+        }
+        $pos += $count;
+    }
+}
+
 # vim: ft=perl6

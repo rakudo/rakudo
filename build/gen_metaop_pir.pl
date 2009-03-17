@@ -131,7 +131,7 @@ while (@ops) {
         .end\n);
 
     # LHS-dwimming hyper ops.
-    $hypername = qq(unicode:"infix:\u00bb$opname\\u00bb");
+    $hypername = qq(unicode:"infix:\\u00bb$opname\\u00bb");
     push @gtokens, sprintf($hyper_no_dwim_fmt, $hypername, $opname, "<<$opname<<", $opname, $hypername);
     push @code, qq(
         .sub $hypername

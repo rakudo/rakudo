@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('capitalize,chomp,chars,:d,:e,:f,index,lc,rindex,ord,substr,trim,uc,unpack', 'from'=>$P0)
+    '!EXPORT'('capitalize,chomp,chars,:d,:e,:f,index,lc,rindex,ord,substr,trim', 'from'=>$P0)
 .end
 
 
@@ -980,100 +980,6 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     $S0 = self
     $I0 = ord $S0
     .return ($I0)
-.end
-
-
-=item uc
-
- our Str multi Str::uc ( Str $string )
-
-Returns the input string after converting each character to its uppercase
-form, if lowercase. This is not a Unicode "titlecase" operation, but a
-full "uppercase".
-
-=cut
-
-.sub 'uc' :method :multi(_)
-    .local string tmps
-    .local pmc retv
-
-    tmps = self
-    upcase tmps
-
-    retv = new 'Str'
-    retv = tmps
-
-    .return(retv)
-.end
-
-=item unpack
-
- our List multi Str::unpack ( Str $template, Str $packval )
-
-Takes a string and expands it out into a list of values.
-
-=cut
-
-.namespace['Any']
-.sub 'unpack' :multi(_, _)
-    .param string template
-    .param string packval
-    .local pmc retv
-    .local int len
-
-    retv = new 'List'
-
-    len = length template
-    if len == 0 goto done
-
-    .local int pos
-    .local int packpos
-    pos = 0
-    packpos = 0
-
-  next_directive:
-    $S0 = substr template, pos, 1
-    if $S0 == 'A' goto ascii
-    if $S0 == 'x' goto skip
-    if $S0 == ' ' goto space
-    goto fail
-
-  ascii:
-    pos += 1
-    if pos == len goto fail
-    $S0 = substr template, pos, 1
-    $I0 = ord $S0
-    $I0 -= 48
-    $S1 = substr packval, packpos, $I0
-    retv.'push'($S1)
-    packpos += $I0
-    pos += 1
-    if pos == len goto done
-    goto next_directive
-
-  skip:
-    pos += 1
-    if pos == len goto fail
-    $S0 = substr template, pos, 1
-    $I0 = ord $S0
-    $I0 -= 48
-    $S1 = substr packval, packpos, $I0
-    packpos += $I0
-    pos += 1
-    if pos == len goto done
-    goto next_directive
-
-  space:
-    pos += 1
-    if pos == len goto done
-    goto next_directive
-
-  done:
-    .return(retv)
-
-  fail:
-    $P0 = new 'Failure'
-    .return ($P0)
 .end
 
 # Local Variables:

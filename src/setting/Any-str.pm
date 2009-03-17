@@ -70,6 +70,16 @@ class Any is also {
             }
         }
     }
+    
+    multi method uc() is export {
+        return Q:PIR {
+            $S0 = self
+            upcase $S0
+            $P0 = new 'Str'
+            $P0 = $S0
+            %r = $P0
+        }
+    }
 
     our Str multi method ucfirst is export {
         self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""
@@ -79,6 +89,20 @@ class Any is also {
 
 sub split($delimiter, $target) {
     $target.split($delimiter);
+}
+
+sub unpack($template, $target) {
+    $template.trans(/\s+/ => '') ~~ / ((<[Ax]>)(\d+))* /
+        or return (); # unknown syntax
+    my $pos = 0;
+    return gather for $0.values -> $chunk {
+        my ($operation, $count) = $chunk.[0, 1];
+        given $chunk.[0] {
+            when 'A' { take $target.substr($pos, $count); }
+            when 'x' { } # just skip
+        }
+        $pos += $count;
+    }
 }
 
 # vim: ft=perl6

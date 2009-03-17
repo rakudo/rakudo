@@ -1143,14 +1143,11 @@ Reblesses a sub into a new type.
 
 =item !state_var_init
 
-Takes a list of state variables to initialize. Returns wether we need to run
-the initial setting of values for them.
+Loads any existing values of state variables for a block.
 
 =cut
 
 .sub '!state_var_init'
-    .param pmc names :slurpy
-    
     .local pmc lexpad, state_store, names_it
     $P0 = new 'ParrotInterpreter'
     lexpad = $P0['lexpad'; 1]
@@ -1161,19 +1158,33 @@ the initial setting of values for them.
     setprop $P0, '$!state_store', state_store
   have_state_store:
 
-    names_it = iter names
+    names_it = iter state_store
   names_loop:
     unless names_it goto names_loop_end
     $S0 = shift names_it
     $P0 = state_store[$S0]
-    if null $P0 goto need_init
     lexpad[$S0] = $P0
     goto names_loop
   names_loop_end:
-    .return (0)
+.end
 
-  need_init:
-    .return (1)
+
+=item !state_var_inited
+
+Takes the name of a state variable and returns true if it's been
+initialized already.
+
+=cut
+
+.sub '!state_var_inited'
+    .param string name
+    $P0 = new 'ParrotInterpreter'
+    $P0 = $P0['sub'; 1]
+    $P0 = getprop '$!state_store', $P0
+    $P0 = $P0[name]
+    $I0 = isnull $P0
+    $I0 = not $I0
+    .return ($I0)
 .end
 
 =back

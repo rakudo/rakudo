@@ -1877,6 +1877,13 @@ method scope_declarator($/) {
         else { $past.name('infix:,'); $past.pasttype('call'); }
         if $scope eq 'state' {
             $past<scopedecl> := $scope;
+            unless $block<needs_state_loaded> {
+                $block[0].push(PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!state_var_init')
+                ));
+                $block<needs_state_loaded> := 1;
+            }
         }
     }
     make $past;
@@ -2477,16 +2484,14 @@ method EXPR($/, $key) {
         }
         elsif $lhs<scopedecl> eq 'state' {
             # State variables - only want to actually do an assignment if
-            # there is no value. This calls !state_var_init, which does the
-            # initialization of state vars to their previous values and then
-            # returns a false value. In the event that there are not any
-            # existing values, however, it does the assignment.
+            # there is no value.
             $past := PAST::Op.new(
-                :pasttype('if'),
+                :pasttype('unless'),
                 :node($/),
                 PAST::Op.new(
                     :pasttype('call'),
-                    :name('!state_var_init'),
+                    :name('!state_var_inited'),
+                    $lhs.isa(PAST::Var) ?? $lhs.name() !! $lhs[0].name()
                 ),
                 PAST::Op.new(
                     :pasttype('call'),
@@ -2496,12 +2501,6 @@ method EXPR($/, $key) {
                     $rhs
                 )
             );
-            if $lhs.isa(PAST::Op) {
-                for @($lhs) { $past[0].push($_.name()); }
-            }
-            else {
-                $past[0].push($lhs.name());
-            }
         }
         else {
             # Just a normal assignment.

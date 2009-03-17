@@ -44,11 +44,11 @@ XXX TODO: Doesn't yet handle binding beyond the initial one.
     # Do a call to restore any previous values. We can skip the rest
     # if it returns a false value.
     $P0 = self.'uniquereg'('I')
-    ops.'push_pirop'('call', '"!state_var_init"', name, 'result'=>$P0)
+    ops.'push_pirop'('call', '"!state_var_inited"', name, 'result'=>$P0)
     $P1 = get_hll_global ['POST'], 'Label'
     $S0 = self.'unique'('state')
     $P1 = $P1.'new'('result'=>$S0)
-    ops.'push_pirop'('unless', $P0, $P1)
+    ops.'push_pirop'('if', $P0, $P1)
     
     # Vivify and store vivification.
     .local pmc viviself, vivipost

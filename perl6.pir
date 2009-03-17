@@ -10,6 +10,7 @@ This is the base file for the Rakudo Perl 6 compiler.
 
 .loadlib 'perl6_group'
 .loadlib 'perl6_ops'
+.include 'src/pctextensions/state.pir'
 .include 'src/gen_builtins.pir'
 
 =head2 Functions

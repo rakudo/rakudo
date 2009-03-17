@@ -122,6 +122,7 @@ S04-closure-traits/end.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
+S04-declarations/state.t
 S04-exceptions/fail.t
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t

@@ -1767,8 +1767,9 @@ method scope_declarator($/) {
     my $sym   := ~$<sym>;
     my $past  := $( $<scoped> );
     my $scope := 'lexical';
-    if    $sym eq 'our' { $scope := 'package'; }
-    elsif $sym eq 'has' { $scope := 'attribute'; }
+    if    $sym eq 'our'   { $scope := 'package'; }
+    elsif $sym eq 'has'   { $scope := 'attribute'; }
+    elsif $sym eq 'state' { $scope := 'state'; }
 
     #  Private methods get a leading !.
     if $scope eq 'lexical' && $past.isa(PAST::Block)
@@ -1869,11 +1870,14 @@ method scope_declarator($/) {
             $i++;
         }
         if $scope eq 'attribute' {
-            $past.pasttype('null');
             $past<scopedecl> := $scope;
+            $past.pasttype('null');
         }
         elsif +@($past) == 1 { $past := $past[0]; }
         else { $past.name('infix:,'); $past.pasttype('call'); }
+        if $scope eq 'state' {
+            $past<scopedecl> := $scope;
+        }
     }
     make $past;
 }
@@ -2470,6 +2474,34 @@ method EXPR($/, $key) {
             our @?BLOCK;
             @?BLOCK[0][0].push($past);
             $past := PAST::Stmts.new();
+        }
+        elsif $lhs<scopedecl> eq 'state' {
+            # State variables - only want to actually do an assignment if
+            # there is no value. This calls !state_var_init, which does the
+            # initialization of state vars to their previous values and then
+            # returns a false value. In the event that there are not any
+            # existing values, however, it does the assignment.
+            $past := PAST::Op.new(
+                :pasttype('if'),
+                :node($/),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!state_var_init'),
+                ),
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('infix:='),
+                    :lvalue(1),
+                    $lhs,
+                    $rhs
+                )
+            );
+            if $lhs.isa(PAST::Op) {
+                for @($lhs) { $past[0].push($_.name()); }
+            }
+            else {
+                $past[0].push($lhs.name());
+            }
         }
         else {
             # Just a normal assignment.

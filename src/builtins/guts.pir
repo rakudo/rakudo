@@ -1140,6 +1140,42 @@ Reblesses a sub into a new type.
     rebless_subclass sub, $P0
 .end
 
+
+=item !state_var_init
+
+Takes a list of state variables to initialize. Returns wether we need to run
+the initial setting of values for them.
+
+=cut
+
+.sub '!state_var_init'
+    .param pmc names :slurpy
+    
+    .local pmc lexpad, state_store, names_it
+    $P0 = new 'ParrotInterpreter'
+    lexpad = $P0['lexpad'; 1]
+    $P0 = $P0['sub'; 1]
+    state_store = getprop '$!state_store', $P0
+    unless null state_store goto have_state_store
+    state_store = new 'Hash'
+    setprop $P0, '$!state_store', state_store
+  have_state_store:
+
+    names_it = iter names
+  names_loop:
+    unless names_it goto names_loop_end
+    $S0 = shift names_it
+    $P0 = state_store[$S0]
+    if null $P0 goto need_init
+    lexpad[$S0] = $P0
+    goto names_loop
+  names_loop_end:
+    .return (0)
+
+  need_init:
+    .return (1)
+.end
+
 =back
 
 =cut

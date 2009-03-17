@@ -42,6 +42,7 @@ SOURCES = perl6.pir \
   src/parser/expression.pir \
   src/parser/methods.pir \
   src/parser/quote_expression.pir \
+  src/pctextensions/state.pir \
   $(PERL6_GROUP) \
   src/ops/perl6_ops$(LOAD_EXT)
 

@@ -459,9 +459,15 @@ a property.
 .sub 'infix:~~' :multi('Junction', _)
     .param pmc topic
     .param pmc x
+    $I0 = isa x, 'Junction'
+    unless $I0 goto not_proto_rhs
+    $I0 = isa x, 'P6protoobject'
+    if $I0 goto dispatch_on_rhs
+  not_proto_rhs:  
     .tailcall '!DISPATCH_JUNCTION'('infix:~~', topic, x)
+  dispatch_on_rhs:
+    .tailcall x.'ACCEPTS'(topic)
 .end
-
 
 =back
 

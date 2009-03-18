@@ -164,7 +164,7 @@ HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 all: perl6$(EXE)
 
 ##  targets for building a standalone perl6.
-perl6$(EXE): $(PBC_TO_EXE) perl6.pbc
+perl6$(EXE): perl6.pbc
 	$(PBC_TO_EXE) perl6.pbc
 	@win32_libparrot_copy@
 

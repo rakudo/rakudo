@@ -188,6 +188,7 @@ S06-multi/syntax.t
 S06-multi/type-based.t
 S06-other/main.t
 S06-other/main-eval.t
+S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
@@ -224,6 +225,7 @@ S12-attributes/recursive.t
 S12-class/anonymous.t
 S12-class/attributes.t
 S12-class/basic.t
+S12-class/declaration-order.t
 S12-class/extending-arrays.t
 S12-class/inheritance-class-methods.t
 S12-class/inheritance.t
@@ -264,6 +266,7 @@ S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
+S16-filehandles/open.t
 S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/say.t

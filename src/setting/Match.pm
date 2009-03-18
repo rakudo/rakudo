@@ -47,6 +47,10 @@ class Match is also {
             take ")";
         }
     }
+
+    multi method ast() {
+        return $(self);
+    }
 }
 
 # vim: ft=perl6

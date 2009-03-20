@@ -107,6 +107,7 @@ way. Otherwise, it uses .^dispatch from the metaclass.
     .tailcall $P0.'dispatch'(obj, name, pos_args :flat, name_args :flat :named)
 
   foreign:
+    obj = '!DEREF'(obj)
     .tailcall obj.name(pos_args :flat, name_args :flat :named)
 .end
 

@@ -108,7 +108,14 @@ way. Otherwise, it uses .^dispatch from the metaclass.
 
   foreign:
     obj = '!DEREF'(obj)
-    .tailcall obj.name(pos_args :flat, name_args :flat :named)
+    # We should be able to just .tailcall. Unfortuantely, Parrot's calling
+    # implementation is a steaming pile of crap and can't even manage to promsie
+    # to put something that does array into $P0 in the following line...which only
+    # exists because calls to METHODs in PMCs don't seem to work with tail calls.
+    ($P0 :slurpy, $P1 :slurpy :named) = obj.name(pos_args :flat, name_args :flat :named)
+    if null $P0 goto no_return
+    .return ($P0 :flat, $P1 :flat :named)
+  no_return:
 .end
 
 

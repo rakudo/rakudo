@@ -26,20 +26,7 @@ This file implements the IO file handle class.
 
 =over 4
 
-=item close
-
-Closes the file.
-
-=cut
-
 .namespace ['IO']
-.sub 'close' :method
-    .local pmc pio
-    pio = getattribute self, "$!PIO"
-    close pio
-    .return(1)
-.end
-
 
 =item eof
 
@@ -89,30 +76,6 @@ See also slurp.
 .end
 
 
-=item print
-
-Writes the given list of items to the file.
-
-=cut
-
-.namespace ['IO']
-.sub 'print' :method
-    .param pmc args            :slurpy
-    .local pmc it
-    .local pmc pio
-    pio = getattribute self, "$!PIO"
-    args = 'list'(args)
-    it = iter args
-  iter_loop:
-    unless it goto iter_end
-    $S0 = shift it
-    print pio, $S0
-    goto iter_loop
-  iter_end:
-    .return (1)
-.end
-
-
 =item printf
 
 Parses a format string and prints formatted output according to it.
@@ -139,22 +102,6 @@ Reads a line from the file handle.
     $P0 = get_hll_global 'IOIterator'
     $P0 = $P0.'new'('IO' => self)
     .return ($P0)
-.end
-
-
-=item say
-
-Writes the given list of items to the file, then a newline character.
-
-=cut
-
-.sub 'say' :method
-    .param pmc list            :slurpy
-    .local pmc pio
-    pio = getattribute self, "$!PIO"
-    self.'print'(list)
-    print pio, "\n"
-    .return (1)
 .end
 
 

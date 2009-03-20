@@ -114,6 +114,7 @@ SETTING = \
   src/setting/Array.pm \
   src/setting/Bool.pm \
   src/setting/Hash.pm \
+  src/setting/IO.pm \
   src/setting/List.pm \
   src/setting/Match.pm \
   src/setting/Object.pm \

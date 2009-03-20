@@ -158,7 +158,8 @@ Shows the supplied message and then waits for input from $*IN.
     .param string prompt
     'print'(prompt)
     $P0 = get_hll_global "$IN"
-    .tailcall $P0.'readline'()
+    $S0 = $P0.'readline'()
+    .return ($S0)
 .end
 
 =back

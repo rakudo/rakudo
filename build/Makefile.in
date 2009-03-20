@@ -109,6 +109,7 @@ BUILTINS_PIR = \
 
 SETTING = \
   src/setting/Any-list.pm \
+  src/setting/Any-num.pm \
   src/setting/Any-str.pm \
   src/setting/Array.pm \
   src/setting/Bool.pm \

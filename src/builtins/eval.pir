@@ -119,13 +119,17 @@ itself can be found in src/builtins/control.pir.
     goto done
 
   eval_perl6:
-    .local pmc outer_ns_chain
+    .local pmc outer_ns_chain, outer_blocks
     outer_ns_chain = get_hll_global ['Perl6';'Grammar';'Actions'], '@?NS'
+    outer_blocks = get_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK'
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?NS', $P0
+    $P0 = new 'List'
+    set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0
     inc_hash[name] = realfilename
     result = 'evalfile'(realfilename, 'lang'=>'Perl6')
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?NS', outer_ns_chain
+    set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', outer_blocks
 
   done:
     .return (result)

@@ -314,6 +314,7 @@ on error.
   lex_loop:
     if null sub goto lex_loop_end
     $P0 = sub.'get_lexinfo'()
+    if null $P0 goto symbols_loop_end
     $P0 = inspect $P0, 'symbols'
     $P0 = iter $P0
   symbols_loop:

@@ -873,6 +873,18 @@ in an ambiguous multiple dispatch.
   arg_done:
     ns = exportns.'make_namespace'('ALL')
     ns[blockname] = block
+
+    # If it's a multi-sub then we need to export it by default always.
+    $P0 = block.'get_namespace'()
+    block = $P0[blockname]
+    $I0 = isa block, 'MultiSub'
+    unless $I0 goto not_multi
+    ns = exportns['DEFAULT']
+    unless null ns goto have_default
+    ns = exportns.'make_namespace'('DEFAULT')
+  have_default:
+    ns[blockname] = block
+  not_multi:
 .end
 
 

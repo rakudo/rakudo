@@ -386,7 +386,8 @@ method use_statement($/) {
         );
         ##  ...and load it immediately to get its BEGIN semantics
         ##  and symbols for the current compilation.
-        use($name);
+        our @?NS;
+        use($name, :import_to(@?NS ?? @?NS[0] !! ''));
     }
     $past := PAST::Stmts.new( :node($/) );
     make $past;

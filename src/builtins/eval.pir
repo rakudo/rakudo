@@ -141,7 +141,62 @@ itself can be found in src/builtins/control.pir.
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
 
-    $P0 = 'require'(module, 'module'=>1)
+    # Require module.
+    .local pmc retval
+    retval = 'require'(module, 'module'=>1)
+    unless null retval goto have_retval
+    retval = '!FAIL'()
+  have_retval:
+    if retval goto do_import
+    .return (retval)
+  do_import:
+
+    # This is a first cut of import. It's essentially wrong, since it's meant
+    # by default to put stuff into the lexical pad rather than the namespace.
+    # However, it works as a first cut, and lexical stuff isn't quite there
+    # enough in Rakudo yet.
+
+    # See if we've had a namespace name passed in.
+    .local pmc import_ns
+    .local pmc compiler_obj
+    compiler_obj = compreg 'Perl6'
+    $P0 = options['import_to']
+    if null $P0 goto use_caller_ns
+    $S0 = $P0
+    if $S0 == "" goto use_hll_root_ns
+    $P1 = compiler_obj.'parse_name'($S0)
+    $S0 = pop $P1
+    import_ns = get_hll_global $P1, $S0
+    goto got_import_ns
+  use_hll_root_ns:
+    import_ns = get_hll_namespace
+    goto got_import_ns
+  use_caller_ns:
+    $P0 = new 'ParrotInterpreter'
+    $P0 = $P0['sub'; 1]
+    import_ns = $P0.'get_namespace'()
+  got_import_ns:
+
+    # Look up symbols to import by default.
+    .local pmc export_ns
+    $P0 = compiler_obj.'parse_name'(module)
+    push $P0, 'EXPORT'
+    export_ns = get_hll_global $P0, 'DEFAULT'
+    if null export_ns goto done_import
+    
+    # Iterate over them and import.
+    .local pmc it
+    it = iter export_ns
+  it_loop:
+    unless it goto it_loop_end
+    $S0 = shift it
+    $P0 = export_ns[$S0]
+    import_ns[$S0] = $P0
+    goto it_loop
+  it_loop_end:
+
+  done_import:
+    .return (retval)
 .end
 
 

@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('capitalize,chomp,chars,:d,:e,:f,index,lc,rindex,ord,substr,trim', 'from'=>$P0)
+    '!EXPORT'('capitalize,chomp,chars,:d,:e,:f,index,rindex,ord,substr,trim', 'from'=>$P0)
 .end
 
 
@@ -259,30 +259,6 @@ file.
     $P0 = new 'Failure'
     .return ($P0)
 .end
-
-
-=item lc
-
- our Str multi Str::lc ( Str $string )
-
-Returns the input string after converting each character to its lowercase
-form, if uppercase.
-
-=cut
-
-.sub 'lc' :method :multi(_)
-    .local string tmps
-    .local pmc retv
-
-    tmps = self
-    downcase tmps
-
-    retv = new 'Str'
-    retv = tmps
-
-    .return(retv)
-.end
-
 
 =item match()
 

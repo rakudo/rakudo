@@ -7,6 +7,14 @@ class Any is also {
         sprintf($format, self)
     }
 
+    our Str multi method lc is export {
+        return Q:PIR {
+            $S0 = self
+            downcase $S0
+            %r = box $S0
+        }
+    }
+
     our Str multi method lcfirst is export {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
@@ -70,13 +78,12 @@ class Any is also {
             }
         }
     }
-    
-    multi method uc() is export {
+
+    our Str multi method uc is export {
         return Q:PIR {
             $S0 = self
             upcase $S0
-            %r = new 'Str'
-            %r = $S0
+            %r = box $S0
         }
     }
 

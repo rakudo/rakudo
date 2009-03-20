@@ -3,11 +3,14 @@ New since 2009-02 release
 + implemented $*PROGRAM_NAME magical variable
 + outer lexicals are now visible in eval()
 + next, last etc. work in grep()
-+ added R metaoperator.
++ added R metaoperator
 + add an initial draft of Match.perl 
 + refactor Grammar and Match class hierarchy
 + fix if/unless/while/until/for/... on line after close curlies
 + add Q quoting, including Q:PIR
++ added "state" variables
++ more methods and functions moved to (Perl 6) setting
+
 
 New in 2009-02 release (#14, "Vienna")
 + first release independent of Parrot releases

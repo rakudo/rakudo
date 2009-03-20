@@ -1,5 +1,4 @@
-New since 2009-02 release
-
+New in 2009-03 release (#15, "Oslo")
 + implemented $*PROGRAM_NAME magical variable
 + outer lexicals are now visible in eval()
 + next, last etc. work in grep()
@@ -16,7 +15,6 @@ New since 2009-02 release
 + support bare sigils in signatures
 + more methods and functions moved to (Perl 6) setting
 + many other bug fixes
-
 
 New in 2009-02 release (#14, "Vienna")
 + first release independent of Parrot releases

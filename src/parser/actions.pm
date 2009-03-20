@@ -1210,12 +1210,12 @@ method post_constraint($/) {
 
 
 method parameter($/) {
-    my $var   := $( $<param_var> );
-    my $sigil := $<param_var><sigil>;
+    my $var   := $( $<named_param> ?? $<named_param> !! $<param_var> );
+    my $sigil := $<named_param> ?? $<named_param><param_var><sigil> !! $<param_var><sigil>;
     my $quant := $<quant>;
 
     ##  if it was type a type capture and nothing else, need to make a PAST::Var
-    unless $<param_var> {
+    unless $<param_var> || $<named_param> {
         unless $<type_constraint> == 1 {
             $/.panic("Invalid signature; cannot have two consecutive parameter separators.");
         }
@@ -1231,9 +1231,8 @@ method parameter($/) {
         $var.slurpy( $sigil eq '@' || $sigil eq '%' );
         $var.named( $sigil eq '%' );
     }
-    elsif $<named> eq ':' {          # named
-        $var.named(~$<param_var><identifier>[0]);
-        if $quant ne '!' {      #  required (optional is default)
+    elsif $<named_param> {          # named
+        if $quant ne '!' {          # required (optional is default)
             $var.viviself(container_itype($sigil));
         }
     }
@@ -1304,6 +1303,17 @@ method parameter($/) {
     make $var;
 }
 
+
+method named_param($/) {
+    my $var := $( $<param_var> );
+    if $<name> {
+        $var.named(~$<name>);
+    }
+    else {
+        $var.named(~$<param_var><identifier>[0]);
+    }
+    make $var;
+}
 
 method param_var($/) {
     my $sigil  := ~$<sigil>;

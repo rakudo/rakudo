@@ -513,13 +513,23 @@ token param_var {
     {*}
 }
 
+token named_param {
+    ':'
+    [
+    | <name=identifier> '(' <.ws>
+        [ <param_var> <.ws> ]
+        [ ')' || <.panic: "Unable to parse named parameter; couldn't find right parenthesis"> ]
+    | <param_var>
+    ]
+    {*}
+}
+
 token parameter {
     <type_constraint>*
     [
     |   $<quant>=['*'] <param_var>
-    |   $<named>=[':'?]
-        <param_var>
-        $<quant>=[ <[ ? ! ]>? ]
+    |   <param_var> $<quant>=[ <[ ? ! ]>? ]
+    |   <named_param> $<quant>=[ <[ ? ! ]>? ]
     |   <?{{
             $I0 = match['type_constraint']
             $I0 = $I0 > 0

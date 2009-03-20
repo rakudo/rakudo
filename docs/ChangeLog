@@ -9,7 +9,13 @@ New since 2009-02 release
 + fix if/unless/while/until/for/... on line after close curlies
 + add Q quoting, including Q:PIR
 + added "state" variables
++ //= fixed to short-circuit, and added short-circuiting &&= and ||=
++ multi-subs now have the Multi type and have a .candidates method
++ multi-method dispatch now looks up the class hierarchy
++ various fixes to using roles as type constraints
++ support bare sigils in signatures
 + more methods and functions moved to (Perl 6) setting
++ many other bug fixes
 
 
 New in 2009-02 release (#14, "Vienna")

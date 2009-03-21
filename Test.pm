@@ -1,3 +1,4 @@
+package Test;
 # Copyright (C) 2007, The Perl Foundation.
 # $Id: Test.pm 34904 2009-01-03 23:24:38Z masak $
 
@@ -34,11 +35,11 @@ sub die_on_fail($fail=1) {
 }
 
 # "plan 'no_plan';" is now "plan *;"
-multi sub plan(Whatever $plan) is export() {
+multi sub plan(Whatever $plan) is export(:DEFAULT) {
     $no_plan = 1;
 }
 
-multi sub plan($number_of_tests) is export() {
+multi sub plan($number_of_tests) is export(:DEFAULT) {
     $testing_started      = 1;
 
     $num_of_tests_planned = $number_of_tests;
@@ -46,126 +47,126 @@ multi sub plan($number_of_tests) is export() {
     say '1..' ~ $number_of_tests;
 }
 
-multi sub pass($desc) is export() {
+multi sub pass($desc) is export(:DEFAULT) {
     proclaim(1, $desc);
 }
 
-multi sub ok(Object $cond, $desc) is export() {
+multi sub ok(Object $cond, $desc) is export(:DEFAULT) {
     proclaim(?$cond, $desc);
 }
 
-multi sub ok(Object $cond) is export() { ok(?$cond, ''); }
+multi sub ok(Object $cond) is export(:DEFAULT) { ok(?$cond, ''); }
 
 
-multi sub nok(Object $cond, $desc) is export() {
+multi sub nok(Object $cond, $desc) is export(:DEFAULT) {
     proclaim(!$cond, $desc);
 }
 
-multi sub nok(Object $cond) is export() { nok(!$cond, ''); }
+multi sub nok(Object $cond) is export(:DEFAULT) { nok(!$cond, ''); }
 
 
-multi sub is(Object $got, Object $expected, $desc) is export() {
+multi sub is(Object $got, Object $expected, $desc) is export(:DEFAULT) {
     my $test = $got eq $expected;
     proclaim(?$test, $desc);
 }
 
-multi sub is(Object $got, Object $expected) is export() { is($got, $expected, ''); }
+multi sub is(Object $got, Object $expected) is export(:DEFAULT) { is($got, $expected, ''); }
 
 
-multi sub isnt(Object $got, Object $expected, $desc) is export() {
+multi sub isnt(Object $got, Object $expected, $desc) is export(:DEFAULT) {
     my $test = !($got eq $expected);
     proclaim($test, $desc);
 }
 
-multi sub isnt(Object $got, Object $expected) is export() { isnt($got, $expected, ''); }
+multi sub isnt(Object $got, Object $expected) is export(:DEFAULT) { isnt($got, $expected, ''); }
 
-multi sub is_approx(Object $got, Object $expected, $desc) is export() {
+multi sub is_approx(Object $got, Object $expected, $desc) is export(:DEFAULT) {
     my $test = abs($got - $expected) <= 0.00001;
     proclaim(?$test, $desc);
 }
 
-multi sub is_approx(Object $got, Object $expected) is export() {
+multi sub is_approx(Object $got, Object $expected) is export(:DEFAULT) {
     is_approx($got, $expected, '');
 }
 
-multi sub todo($reason, $count) is export() {
+multi sub todo($reason, $count) is export(:DEFAULT) {
     $todo_upto_test_num = $num_of_tests_run + $count;
     $todo_reason = '# TODO ' ~ $reason;
 }
 
-multi sub todo($reason) is export() {
+multi sub todo($reason) is export(:DEFAULT) {
     $todo_upto_test_num = $num_of_tests_run + 1;
     $todo_reason = '# TODO ' ~ $reason;
 }
 
-multi sub skip()                is export() { proclaim(1, "# SKIP"); }
-multi sub skip($reason)         is export() { proclaim(1, "# SKIP " ~ $reason); }
-multi sub skip($count, $reason) is export() {
+multi sub skip()                is export(:DEFAULT) { proclaim(1, "# SKIP"); }
+multi sub skip($reason)         is export(:DEFAULT) { proclaim(1, "# SKIP " ~ $reason); }
+multi sub skip($count, $reason) is export(:DEFAULT) {
     for 1..$count {
         proclaim(1, "# SKIP " ~ $reason);
     }
 }
 
-multi sub skip_rest() is export() {
+multi sub skip_rest() is export(:DEFAULT) {
     skip($num_of_tests_planned - $num_of_tests_run, "");
 }
 
-multi sub skip_rest($reason) is export() {
+multi sub skip_rest($reason) is export(:DEFAULT) {
     skip($num_of_tests_planned - $num_of_tests_run, $reason);
 }
 
-sub diag($message) is export() { say '# '~$message; }
+sub diag($message) is export(:DEFAULT) { say '# '~$message; }
 
 
-multi sub flunk($reason) is export() { proclaim(0, "flunk $reason")}
+multi sub flunk($reason) is export(:DEFAULT) { proclaim(0, "flunk $reason")}
 
 
-multi sub isa_ok(Object $var,$type) is export() {
+multi sub isa_ok(Object $var,$type) is export(:DEFAULT) {
     ok($var.isa($type), "The object is-a '$type'");
 }
-multi sub isa_ok(Object $var,$type, $msg) is export() { ok($var.isa($type), $msg); }
+multi sub isa_ok(Object $var,$type, $msg) is export(:DEFAULT) { ok($var.isa($type), $msg); }
 
-multi sub dies_ok(Callable $closure, $reason) is export() {
+multi sub dies_ok(Callable $closure, $reason) is export(:DEFAULT) {
     try {
         $closure();
     }
     proclaim((defined $!), $reason);
 }
-multi sub dies_ok(Callable $closure) is export() {
+multi sub dies_ok(Callable $closure) is export(:DEFAULT) {
     dies_ok($closure, '');
 }
 
-multi sub lives_ok(Callable $closure, $reason) is export() {
+multi sub lives_ok(Callable $closure, $reason) is export(:DEFAULT) {
     try {
         $closure();
     }
     proclaim((not defined $!), $reason);
 }
-multi sub lives_ok(Callable $closure) is export() {
+multi sub lives_ok(Callable $closure) is export(:DEFAULT) {
     lives_ok($closure, '');
 }
 
-multi sub eval_dies_ok(Str $code, $reason) is export() {
+multi sub eval_dies_ok(Str $code, $reason) is export(:DEFAULT) {
     proclaim((defined eval_exception($code)), $reason);
 }
-multi sub eval_dies_ok(Str $code) is export() {
+multi sub eval_dies_ok(Str $code) is export(:DEFAULT) {
     eval_dies_ok($code, '');
 }
 
-multi sub eval_lives_ok(Str $code, $reason) is export() {
+multi sub eval_lives_ok(Str $code, $reason) is export(:DEFAULT) {
     proclaim((not defined eval_exception($code)), $reason);
 }
-multi sub eval_lives_ok(Str $code) is export() {
+multi sub eval_lives_ok(Str $code) is export(:DEFAULT) {
     eval_lives_ok($code, '');
 }
 
 
-multi sub is_deeply(Object $this, Object $that, $reason) {
+multi sub is_deeply(Object $this, Object $that, $reason) is export(:DEFAULT) {
     my $val = _is_deeply( $this, $that );
     proclaim($val, $reason);
 }
 
-multi sub is_deeply(Object $this, Object $that) {
+multi sub is_deeply(Object $this, Object $that) is export(:DEFAULT) {
     my $val = _is_deeply( $this, $that );
     proclaim($val, '');
 }

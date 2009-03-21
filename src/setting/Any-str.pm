@@ -118,13 +118,8 @@ multi sub lines(Str $filename,
                 :$nl = "\n",
                 :$chomp = True) {
 
-    fail 'Binary mode not supported yet'    if $bin;
-    fail 'Encodings not supported yet'      if $enc ne 'Unicode';
-    fail 'Fancy newlines not supported yet' if $nl ne "\n";
-    fail 'Lack of chomp not supported yet'  if !$chomp;
-
     my $filehandle = open($filename, :r);
-    return lines($filehandle);
+    return lines($filehandle, :$bin, :$enc, :$nl, :$chomp);
 }
 
 # vim: ft=perl6

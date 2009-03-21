@@ -29,4 +29,8 @@ class IO is also {
 
 }
 
+multi sub lines(IO $filehandle) {
+    return $filehandle.lines();
+}
+
 # vim: ft=perl6

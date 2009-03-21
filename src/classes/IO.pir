@@ -19,7 +19,7 @@ This file implements the IO file handle class.
     p6meta.'new_class'('IOIterator', 'parent'=>'Perl6Object', 'attr'=>'$!IO')
 
     $P0 = get_hll_namespace ['IO']
-    '!EXPORT'('lines,readline', 'from'=>$P0)
+    '!EXPORT'('readline', 'from'=>$P0)
 .end
 
 =head2 Methods

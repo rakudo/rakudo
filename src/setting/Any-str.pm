@@ -111,4 +111,10 @@ sub unpack($template, $target) {
     }
 }
 
+# TODO: '$filename as Str' once support for that is in place
+multi sub lines($filename) {
+    my $filehandle = open($filename, :r);
+    return lines($filehandle);
+}
+
 # vim: ft=perl6

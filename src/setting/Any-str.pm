@@ -112,7 +112,17 @@ sub unpack($template, $target) {
 }
 
 # TODO: '$filename as Str' once support for that is in place
-multi sub lines($filename) {
+multi sub lines(Str $filename,
+                :$bin = False,
+                :$enc = 'Unicode',
+                :$nl = "\n",
+                :$chomp = True) {
+
+    fail 'Binary mode not supported yet'    if $bin;
+    fail 'Encodings not supported yet'      if $enc ne 'Unicode';
+    fail 'Fancy newlines not supported yet' if $nl ne "\n";
+    fail 'Lack of chomp not supported yet'  if !$chomp;
+
     my $filehandle = open($filename, :r);
     return lines($filehandle);
 }

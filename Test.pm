@@ -1,4 +1,4 @@
-package Test;
+module Test;
 # Copyright (C) 2007, The Perl Foundation.
 # $Id: Test.pm 34904 2009-01-03 23:24:38Z masak $
 

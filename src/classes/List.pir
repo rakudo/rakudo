@@ -113,17 +113,6 @@ A List in item context becomes an Array.
     .tailcall self.'Array'()
 .end
 
-=item list
-
-A List in list context returns itself.
-
-=cut
-
-.namespace ['List']
-.sub 'list' :method
-    .return (self)
-.end
-
 .namespace []
 .sub 'list'
     .param pmc values          :slurpy
@@ -203,21 +192,6 @@ Return the number of elements in the list.
     self.'!flatten'()
     $I0 = elements self
     .return ($I0)
-.end
-
-
-.namespace ['List']
-.sub 'reverse' :method
-    .local pmc result, it
-    result = new 'List'
-    it = self.'iterator'()
-  loop:
-    unless it goto done
-    $P0 = shift it
-    unshift result, $P0
-    goto loop
-  done:
-    .return (result)
 .end
 
 

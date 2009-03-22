@@ -46,7 +46,10 @@ class Any is also {
         my $s = ~self;
         if $delimiter eq '' {
             return gather {
-                take $s.substr($_, 1) for 0 .. $s.chars - 1;
+                take $s.substr($_, 1) for 0 .. ($s.chars - 1 min $l - 2);
+                if $l <= $s.chars {
+                    take $s.substr($l - 1 );
+                };
             }
         }
         return gather {

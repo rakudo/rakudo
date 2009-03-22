@@ -19,3 +19,26 @@ foreach my $file (@files) {
     print join('', <$fh>);
     close $fh;
 }
+
+my @classes = ('Any');
+foreach my $file (@files) {
+    next unless $file =~ /[\/\\](\w+)\.pm$/;
+    push @classes, $1;
+}
+
+print <<"END_SETTING";
+# Need to use all built-in classes, to import their exports.
+END_SETTING
+print join('', map { "BEGIN { \%*INC<$_> = 1 };\nuse $_;\n" } @classes);
+
+# Why yes, "OMFG" is a correct response to this hack. We need to make sure
+# that we set up %*INC properly for the pre-compiled case, and can't use
+# BEGIN blocks to preserve those changes for now.
+print <<"END_SETTING";
+Q:PIR {
+    .return (1)
+.end
+.sub '' :load :init
+};
+END_SETTING
+print join('', map { "\%*INC<$_> = 1;\n" } @classes);

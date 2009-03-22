@@ -61,6 +61,20 @@ class Match is also {
         @caps = @caps.map: { $_ ~~ List ?? @($_) !! $_ };
         return @caps.sort({ .from });
     }
+
+    multi method chunks() {
+        my $prev = 0;
+        gather {
+            for @.caps {
+                if .from > $prev {
+                    take self.substr($prev, .from - $prev)
+                }
+                take $_;
+                $prev = $_.to;
+            }
+            take self.substr($prev) if $prev < self.chars;
+        }
+    }
 }
 
 # vim: ft=perl6

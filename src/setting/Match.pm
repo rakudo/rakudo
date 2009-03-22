@@ -53,6 +53,14 @@ class Match is also {
     multi method ast() {
         return $(self);
     }
+
+    multi method caps() {
+        my @caps = @(self), %(self).values;
+        # in regexes like [(.) ...]+, the capture for (.) is a List
+        # flatten that.
+        @caps = @caps.map: { $_ ~~ List ?? @($_) !! $_ };
+        return @caps.sort({ .from });
+    }
 }
 
 # vim: ft=perl6

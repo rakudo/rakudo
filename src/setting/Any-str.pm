@@ -93,8 +93,8 @@ class Any is also {
 
 }
 
-sub split($delimiter, $target) {
-    $target.split($delimiter);
+sub split($delimiter, $target, $limit = *) {
+    $target.split($delimiter, $limit);
 }
 
 # TODO: '$filename as Str' once support for that is in place

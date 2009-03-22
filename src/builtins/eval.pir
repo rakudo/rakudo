@@ -147,9 +147,6 @@ itself can be found in src/builtins/control.pir.
     unless null retval goto have_retval
     retval = '!FAIL'()
   have_retval:
-    if retval goto do_import
-    .return (retval)
-  do_import:
 
     # This is a first cut of import. It's essentially wrong, since it's meant
     # by default to put stuff into the lexical pad rather than the namespace.

@@ -28,70 +28,6 @@ This file implements the IO file handle class.
 
 .namespace ['IO']
 
-=item eof
-
-Tests if we have reached the end of the file.
-
-=cut
-
-.namespace ['IO']
-.sub 'eof' :method
-    .local pmc PIO
-    PIO = getattribute self, "$!PIO"
-    if PIO goto not_eof
-    $P0 = get_hll_global [ 'Bool' ], 'True'
-    .return ($P0)
-  not_eof:
-    $P0 = get_hll_global [ 'Bool' ], 'False'
-    .return ($P0)
-.end
-
-
-=item lines
-
-our List multi method lines (IO $handle:) is export;
-
-Returns all the lines of a file as a (lazy) List regardless of context.
-See also slurp.
-
-=cut
-
-.namespace ['IO']
-.sub 'lines' :method :multi('IO')
-    .local pmc pio, res, chomper
-    pio = getattribute self, "$!PIO"
-    pio = '!DEREF'(pio)
-    res = new 'List'
-    chomper = get_hll_global 'chomp'
-
-  loop:
-    $S0 = pio.'readline'()
-    unless $S0 goto done
-    $S0 = chomper($S0)
-    res.'push'($S0)
-    goto loop
-
-  done:
-    .return (res)
-.end
-
-
-=item printf
-
-Parses a format string and prints formatted output according to it.
-
-=cut
-
-.sub 'printf' :method
-    .param pmc args            :slurpy
-    .local pmc pio
-    pio = getattribute self, "$!PIO"
-    $S0 = 'sprintf'(args :flat)
-    print pio, $S0
-    .return (1)
-.end
-
-
 =item readline
 
 Reads a line from the file handle.
@@ -102,21 +38,6 @@ Reads a line from the file handle.
     $P0 = get_hll_global 'IOIterator'
     $P0 = $P0.'new'('IO' => self)
     .return ($P0)
-.end
-
-
-=item slurp
-
-Slurp a file into a string.
-
-=cut
-
-.sub 'slurp' :method
-    .local pmc pio
-    pio = getattribute self, "$!PIO"
-    pio = '!DEREF'(pio)
-    $S0 = pio.'readall'()
-    .return($S0)
 .end
 
 

@@ -97,6 +97,17 @@ sub split($delimiter, $target) {
     $target.split($delimiter);
 }
 
+# TODO: '$filename as Str' once support for that is in place
+multi sub lines(Str $filename,
+                :$bin = False,
+                :$enc = 'Unicode',
+                :$nl = "\n",
+                :$chomp = True) {
+
+    my $filehandle = open($filename, :r);
+    return lines($filehandle, :$bin, :$enc, :$nl, :$chomp);
+}
+
 sub unpack($template, $target) {
     $template.trans(/\s+/ => '') ~~ / ((<[Ax]>)(\d+))* /
         or return (); # unknown syntax
@@ -109,17 +120,6 @@ sub unpack($template, $target) {
         }
         $pos += $count;
     }
-}
-
-# TODO: '$filename as Str' once support for that is in place
-multi sub lines(Str $filename,
-                :$bin = False,
-                :$enc = 'Unicode',
-                :$nl = "\n",
-                :$chomp = True) {
-
-    my $filehandle = open($filename, :r);
-    return lines($filehandle, :$bin, :$enc, :$nl, :$chomp);
 }
 
 # vim: ft=perl6

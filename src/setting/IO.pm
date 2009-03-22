@@ -7,24 +7,38 @@ class IO is also {
         $! ?? fail($!) !! Bool::True
     }
 
+    multi method eof() is export {
+        return ?$!PIO.eof();
+    }
+
+    multi method lines() is export {
+        my @result = ();
+        while !$.eof {
+            push @result, $!PIO.readline().chomp()
+        }
+        return @result;
+    }
+
     multi method print(*@items) is export {
         try {
-            $!PIO.print($_) for @items;
+            for @items -> $item {
+                $!PIO.print($item);
+            }
         }
-        $! ?? fail($!) !! Bool::True
+        return $! ?? fail($!) !! Bool::True;
+    }
+
+    multi method printf($format, *@args) {
+        return self.print(sprintf($format, |@args));
     }
 
     multi method say(*@items) is export {
-        my $print_res = self.print(|@items);
-        if $print_res {
-            try {
-                $!PIO.print("\n");
-            }
-            return $! ?? fail($!) !! Bool::True
-        }
-        else {
-            return $print_res;
-        }
+        @items.push("\n");
+        return self.print(|@items);
+    }
+
+    multi method slurp() is export {
+        return $!PIO.readall();
     }
 
 }

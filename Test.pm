@@ -22,13 +22,6 @@ our $testing_started;
 
 ## test functions
 
-# Compare numeric values with approximation
-sub approx ($x, $y) {
-    my $epsilon = 0.00001;
-    my $diff = abs($x - $y);
-    ($diff < $epsilon);
-}
-
 # you can call die_on_fail; to turn it on and die_on_fail(0) to turn it off
 sub die_on_fail($fail=1) {
     $die_on_fail = $fail;

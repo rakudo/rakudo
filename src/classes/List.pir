@@ -252,58 +252,6 @@ layer.  It will likely change substantially when we have lazy lists.
 .end
 
 
-=item fmt
-
- our Str multi List::fmt ( Str $format, $separator = ' ' )
-
-Returns the invocant list formatted by an implicit call to C<sprintf> on each
-of the elements, then joined with spaces or an explicitly given separator.
-
-=cut
-
-.sub 'fmt' :method :multi('ResizablePMCArray')
-    .param pmc format
-    .param string sep          :optional
-    .param int has_sep         :opt_flag
-
-    .local pmc res
-    .local pmc iter
-    .local pmc retv
-    .local pmc elem
-    .local pmc elemres
-
-    if has_sep goto have_sep
-    sep = ' '
-  have_sep:
-    res = new 'List'
-    iter = self.'iterator'()
-  elem_loop:
-    unless iter goto done
-
-  invoke:
-    elem = shift iter
-    elemres = 'sprintf'(format, elem)
-    push res, elemres
-    goto elem_loop
-
-  done:
-    retv = 'join'(sep, res)
-    .return(retv)
-.end
-
-=item iterator()
-
-Returns an iterator for the list.
-
-=cut
-
-.sub 'iterator' :method
-    self.'!flatten'()
-    $P0 = iter self
-    .return ($P0)
-.end
-
-
 =item uniq(...)
 
 =cut

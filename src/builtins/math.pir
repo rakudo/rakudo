@@ -15,6 +15,15 @@ src/builtins/math.pir - Perl6 math functions
 ## TODO: figure out what to get working, in order to uncomment the following
 ## .namespace [ 'Math::Basic' ]
 
+
+.sub 'roots' :multi(_, 'Integer')
+    .param pmc x
+    .param int n
+    .local pmc result
+     result = x.'roots'(n)
+    .return (result)
+.end
+
 =item sign
 
  our Int multi Num::sign ( Num  $x )
@@ -32,12 +41,20 @@ or more succinctly:
    $x <=> 0;
  }
 
+Returns the sign of $x, i.e +1 for positive numbers (including Inf), zero for zero and -1 for negative numbers (including -Inf).
+
 =cut
 
 .sub 'sign'
     .param pmc a
+    if a == 'Inf' goto unity
+    if a == 'NaN' goto not_a_number
     $I0 = cmp_num a, 0
     .return ($I0)
+  not_a_number:
+    .return (a)
+  unity:
+    .return (1)
 .end
 
 
@@ -61,6 +78,8 @@ constant I<e>.
 =item log10
 
  &log10 := &log.assuming:base(10);
+
+Returns the base 10 logarithm of $x.
 
 =cut
 

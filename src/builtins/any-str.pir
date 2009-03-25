@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('capitalize,chomp,chars,:d,:e,:f,index,rindex,ord,substr,trim', 'from'=>$P0)
+    '!EXPORT'('chomp,chars,:d,:e,:f,index,rindex,ord,substr,trim', 'from'=>$P0)
 .end
 
 
@@ -32,48 +32,6 @@ the size of that file down and to emphasize their generic,
 =cut
 
 .namespace ['Any']
-
-=item capitalize
-
- our Str multi Str::capitalize ( Str $string )
-
-Has the effect of first doing an C<lc> on the entire string, then performing a
-C<s:g/(\w+)/{ucfirst $1}/> on it.
-
-=cut
-
-.sub 'capitalize' :method :multi(_)
-    .local string tmps
-    .local pmc retv
-    .local int len
-
-    retv = new 'Str'
-    tmps = self
-
-    len = length tmps
-    if len == 0 goto done
-
-    downcase tmps
-
-    .local int pos
-    .local string s1
-    pos = 0
-  next_word:
-    pos = find_cclass .CCLASS_LOWERCASE, tmps, pos, len
-    s1 = substr tmps, pos, 1
-    upcase s1
-    substr tmps, pos, 1, s1
-    len = length tmps
-    pos+=1
-    if pos == len goto done
-    pos = find_not_cclass .CCLASS_LOWERCASE, tmps, pos, len
-    if pos == len goto done
-    goto next_word
-
-  done:
-    retv = tmps
-    .return (retv)
-.end
 
 .sub 'chars' :method :multi(_)
     $S0 = self

@@ -3099,7 +3099,7 @@ sub transform_to_multi($past) {
     unless $past<multi_flag> {
         my $pirflags := ~$past.pirflags();
         $past.pirflags( $pirflags ~ ' :multi()' );
-        $past.loadinit().push(
+        $past.loadinit().unshift(
             PAST::Op.new( :name('!TOPERL6MULTISUB'), :pasttype('call'),
                 PAST::Var.new( :name('block'), :scope('register') )
             )

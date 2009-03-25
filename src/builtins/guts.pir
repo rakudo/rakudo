@@ -851,14 +851,29 @@ in an ambiguous multiple dispatch.
     .param pmc block
     .param pmc arg
 
+    # Multis that are exported need to be whole-sale exported as multis.
+    .local pmc blockns
     .local string blockname
-    blockname = block
-    .local pmc blockns, exportns
     blockns = block.'get_namespace'()
+    blockname = block
+    $P0 = blockns[blockname]
+    $I0 = isa $P0, 'MultiSub'
+    unless $I0 goto multi_handled
+    block = $P0
+  multi_handled:
+
+    .local pmc exportns
     exportns = blockns.'make_namespace'('EXPORT')
-    if null arg goto arg_done
+    if null arg goto default_export
     .local pmc it
     arg = arg.'list'()
+    $I0 = arg.'elems'()
+    if $I0 goto have_arg
+  default_export:
+    $P0 = get_hll_global 'Perl6Pair'
+    $P0 = $P0.'new'('key' => 'DEFAULT', 'value' => 1)
+    arg = 'list'($P0)
+  have_arg:
     it = iter arg
   arg_loop:
     unless it goto arg_done
@@ -873,18 +888,6 @@ in an ambiguous multiple dispatch.
   arg_done:
     ns = exportns.'make_namespace'('ALL')
     ns[blockname] = block
-
-    # If it's a multi-sub then we need to export it by default always.
-    $P0 = block.'get_namespace'()
-    block = $P0[blockname]
-    $I0 = isa block, 'MultiSub'
-    unless $I0 goto not_multi
-    ns = exportns['DEFAULT']
-    unless null ns goto have_default
-    ns = exportns.'make_namespace'('DEFAULT')
-  have_default:
-    ns[blockname] = block
-  not_multi:
 .end
 
 

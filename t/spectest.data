@@ -186,6 +186,7 @@ S05-transliteration/with-closure.t
 S06-advanced_subroutine_features/recurse.t
 S06-advanced_subroutine_features/return2.t
 S06-advanced_subroutine_features/return.t
+S06-currying/assuming-and-mmd.t
 S06-currying/named.t
 S06-multi/proto.t
 S06-multi/syntax.t

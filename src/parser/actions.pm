@@ -403,6 +403,26 @@ method begin_statement($/) {
     make PAST::Block.new();
 }
 
+method start_statement($/) {
+    # Create block.
+    my $past := $( $<block> );
+    $past.blocktype('immediate');
+    declare_implicit_routine_vars($past);
+
+    # Mark block as needing to load state.
+    our @?BLOCK;
+    block_has_state(@?BLOCK[0]);
+
+    # We now need to emit code to run the block only once, and store the
+    # result. We'll just piggy-back off state vars.
+    make PAST::Var.new(
+        :scope('state'),
+        :name($past.unique('start_block_')),
+        :viviself($past),
+        :isdecl(1)
+    );
+}
+
 method end_statement($/) {
     my $past := $( $<block> );
     $past.blocktype('declaration');
@@ -1888,13 +1908,7 @@ method scope_declarator($/) {
         else { $past.name('infix:,'); $past.pasttype('call'); }
         if $scope eq 'state' {
             $past<scopedecl> := $scope;
-            unless $block<needs_state_loaded> {
-                $block[0].push(PAST::Op.new(
-                    :pasttype('call'),
-                    :name('!state_var_init')
-                ));
-                $block<needs_state_loaded> := 1;
-            }
+            block_has_state($block);
         }
     }
     make $past;
@@ -3121,6 +3135,19 @@ sub prevent_null_return($block) {
             :pasttype('call'),
             :name('undef')
         ));
+    }
+}
+
+
+# This takes a block and ensures we emit code to load any associated state
+# (START blocks, state variables) at block entry.
+sub block_has_state($block) {
+    unless $block<needs_state_loaded> {
+        $block[0].push(PAST::Op.new(
+            :pasttype('call'),
+            :name('!state_var_init')
+        ));
+        $block<needs_state_loaded> := 1;
     }
 }
 

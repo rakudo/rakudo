@@ -262,6 +262,7 @@ rule statement_control {
     | <for_statement> {*}                        #= for_statement
     | <use_statement> {*}                        #= use_statement
     | <begin_statement> {*}                      #= begin_statement
+    | <start_statement> {*}                      #= start_statement
     | <end_statement> {*}                        #= end_statement
     | <catch_statement> {*}                      #= catch_statement
     | <control_statement> {*}                    #= control_statement
@@ -341,6 +342,12 @@ rule use_statement {
 
 rule begin_statement {
     $<sym>=[BEGIN]
+    <block>
+    {*}
+}
+
+rule start_statement {
+    $<sym>=[START]
     <block>
     {*}
 }

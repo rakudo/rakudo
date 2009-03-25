@@ -175,12 +175,36 @@ itself can be found in src/builtins/control.pir.
     import_ns = $P0.'get_namespace'()
   got_import_ns:
 
-    # Look up symbols to import by default.
-    .local pmc export_ns
-    $P0 = compiler_obj.'parse_name'(module)
-    push $P0, 'EXPORT'
-    export_ns = get_hll_global $P0, 'DEFAULT'
-    if null export_ns goto done_import
+    # Get list of symbols to import.
+    .local pmc tag_hash, tags
+    tag_hash = options['tags']
+    tags = new 'ResizableStringArray'
+    if null tag_hash goto default_tag
+    $P0 = iter tag_hash
+  th_it_loop:
+    unless $P0 goto have_tags
+    $S0 = shift $P0
+    push tags, $S0
+    goto th_it_loop
+  default_tag:
+    push tags, 'DEFAULT'
+  have_tags:
+
+    # Always need to import MANDATORY stuff.
+    push tags, 'MANDATORY'
+
+    # Look up symbols to import and import them by tag.
+    .local pmc export_ns, export_root_nsarray, tag_it
+    export_root_nsarray = compiler_obj.'parse_name'(module)
+    push export_root_nsarray, 'EXPORT'
+    tag_it = iter tags
+  tag_it_loop:
+
+    # Find symbols to be imported from this tag.
+    unless tag_it goto tag_it_loop_end
+    $S0 = shift tag_it
+    export_ns = get_hll_global export_root_nsarray, $S0
+    if null export_ns goto tag_it_loop
     
     # Iterate over them and import.
     .local pmc it
@@ -192,6 +216,9 @@ itself can be found in src/builtins/control.pir.
     import_ns[$S0] = $P0
     goto it_loop
   it_loop_end:
+
+    goto tag_it_loop
+  tag_it_loop_end:
 
   done_import:
     .return (retval)

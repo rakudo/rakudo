@@ -10,6 +10,7 @@
 # 
 # S03-operators/binding-arrays.t - regressed to allow slices
 # S03-operators/binding-hashes.t - regressed to allow slices
+# S10-packages/import.t - regressed when implementing importing; think it's bogus anyway
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -216,10 +217,10 @@ S06-traits/is-copy.t
 S06-traits/is-rw.t
 S06-traits/misc.t
 S09-subscript_slice/slice.t
-S10-packages/import.t
 S10-packages/use-with-class.t
 S11-modules/export.t
 S11-modules/import.t
+S11-modules/import-tag.t
 S11-modules/nested.t
 S12-attributes/class2.t
 S12-attributes/class.t

@@ -373,21 +373,49 @@ method use_statement($/) {
     my $name := ~$<name>;
     my $past;
     if $name ne 'v6' && $name ne 'lib' {
+        ##  Handle tags.
+        my $tags;
+        if $<EXPR> {
+            $tags := $( $<EXPR>[0] );
+            if !($tags.isa(PAST::Op) && $tags.name() eq 'infix:,') {
+                $tags := PAST::Op.new( $tags );
+            }
+            for @($tags) {
+                if $_.returns() ne 'Pair' {
+                    $/.panic("Unknown import list expression in use");
+                }
+            }
+            $tags.name('hash');
+            $tags.pasttype('call');
+        }
+
         ##  Create a loadinit node so the use module is loaded
         ##  when this module is loaded...
         our @?BLOCK;
-        @?BLOCK[0].loadinit().push(
-            PAST::Op.new(
-                PAST::Val.new( :value($name) ),
-                :name('use'),
-                :pasttype('call'),
-                :node( $/ )
-            )
+        my $use_call := PAST::Op.new(
+            PAST::Val.new( :value($name) ),
+            :name('use'),
+            :pasttype('call'),
+            :node( $/ )
         );
-        ##  ...and load it immediately to get its BEGIN semantics
-        ##  and symbols for the current compilation.
+        if $tags {
+            $tags.named('tags');
+            $use_call.push($tags);
+        }
+        @?BLOCK[0].loadinit().push($use_call);
+
+        ##  ...and load it immediately to get its BEGIN semantics and
+        ##  symbols for the current compilation.
+        ##  XXX Need to handle tags here too, and creating needed lexical
+        ##  slots.
         our @?NS;
-        use($name, :import_to(@?NS ?? @?NS[0] !! ''));
+        if $tags {
+            my %tag_hash;
+            for @($tags) { %tag_hash{$_[0].value()} := 1 }
+            use($name, :import_to(@?NS ?? @?NS[0] !! ''), :tags(%tag_hash));
+        } else {
+            use($name, :import_to(@?NS ?? @?NS[0] !! ''));
+        }
     }
     $past := PAST::Stmts.new( :node($/) );
     make $past;

@@ -1,4 +1,8 @@
 class Any is also {
+    our Str multi method capitalize() is export {
+        self.lc.subst(/\w+/, { .ucfirst }, :global)
+    }
+
     our Str multi method chop is export {
         self.substr(0, -1)
     }

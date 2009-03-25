@@ -64,6 +64,7 @@ itself can be found in src/builtins/control.pir.
     unless ismodule goto have_name
 
     ##  convert '::' to '/'
+    name = clone name
   slash_convert:
     $I0 = index name, '::'
     if $I0 < 0 goto have_name

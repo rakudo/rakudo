@@ -21,7 +21,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('abs,cis,int,log,chr,polar,sqrt,truncate,unpolar', 'from'=>$P0)
+    '!EXPORT'('abs,int,log,chr,polar,sqrt,truncate,unpolar', 'from'=>$P0)
 
     ##  pre-seed a random number generator
     $P0 = new 'Random'
@@ -50,15 +50,6 @@ the size of that file down and to emphasize their generic,
     $I0 = self
     $S0 = chr $I0
     .return ($S0)
-.end
-
-=item cis($angle)
-
-=cut
-
-.namespace ['Any']
-.sub 'cis' :method :multi(_)
-    .tailcall 'unpolar'(1.0, self)
 .end
 
 
@@ -91,32 +82,6 @@ error.
 .sub 'polar' :method :multi(_)
     $N0 = self
     .tailcall 'list'($N0, 0)
-.end
-
-
-=item rand()
-
-=cut
-
-.namespace []
-.sub 'rand'
-    .param pmc x               :slurpy
-    ## 0-argument test, RT#56366
-    unless x goto no_args
-    die "too many arguments passed - 0 params expected"
-  no_args:
-    $P0 = get_hll_global ['Any'], '$!random'
-    $N0 = $P0
-    .return ($N0)
-.end
-
-.namespace ['Any']
-.sub 'rand' :method
-    $N0 = self
-    $P0 = get_hll_global ['Any'], '$!random'
-    $N1 = $P0
-    $N0 *= $N1
-    .return ($N0)
 .end
 
 

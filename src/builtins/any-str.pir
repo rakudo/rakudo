@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chomp,chars,:d,:e,:f,index,rindex,ord,substr,trim', 'from'=>$P0)
+    '!EXPORT'('chomp,chars,:d,:e,:f,index,rindex,ord,substr', 'from'=>$P0)
 .end
 
 
@@ -66,39 +66,6 @@ the size of that file down and to emphasize their generic,
        retv = new 'Str'
        retv = tmps
        .return (retv)
-.end
-
-=item trim()
-
-Remove leading and trailing whitespace from a string.
-
-=cut
-
-.sub 'trim' :method :multi(_)
-    .local string s
-    .local int start, end, temp, len
-    .local int is_whitespace
-    s = self
-    start = 0
-    end = length s
-    if end == 0 goto donetrailing
-  trimleading:
-    is_whitespace = is_cclass .CCLASS_WHITESPACE, s, start
-    unless is_whitespace goto doneleading
-    inc start
-    goto trimleading
-  doneleading:
-    temp = end
-  trimtrailing:
-    dec temp
-    is_whitespace = is_cclass .CCLASS_WHITESPACE, s, temp
-    unless is_whitespace goto donetrailing
-    end = temp
-    goto trimtrailing
-  donetrailing:
-    len = end - start
-    s = substr s, start, len
-    .return(s)
 .end
 
 =item ':d'()

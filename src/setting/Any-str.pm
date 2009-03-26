@@ -86,6 +86,11 @@ class Any is also {
         }
     }
 
+    # TODO: signature not fully specced in S32 yet
+    our Str multi method trim is export {
+        (~self).subst(/(^\s+)|(\s+$)/, "", :g)
+    }
+
     our Str multi method uc is export {
         return Q:PIR {
             $S0 = self
@@ -97,7 +102,6 @@ class Any is also {
     our Str multi method ucfirst is export {
         self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""
     }
-
 }
 
 sub split($delimiter, $target, $limit = *) {

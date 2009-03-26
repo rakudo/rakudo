@@ -27,7 +27,7 @@ class Any is also {
         my $num = 0;
 
         for @.list -> $str is rw {
-            if $str ~~ /\o12$/ {
+            if $str ~~ /\x0a$/ {
                 $str = $str.substr(0, $str.chars - 1);
                 $num++;
             }

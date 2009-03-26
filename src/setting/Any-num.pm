@@ -1,26 +1,26 @@
 class Any is also {
-    our Int multi method ceiling is export {
-        return Q:PIR {
+    our Int multi method ceiling() is export {
+        Q:PIR {
             $N0 = self
             $I0 = ceil $N0
             %r = box $I0
         }
     }
 
-    our Complex multi method cis is export {
-        unpolar(1.0, self)
+    our Complex multi method cis() is export {
+        (1.0).unpolar(self)
     }
 
-    our Int multi method floor is export {
-        return Q:PIR {
+    our Int multi method floor() is export {
+        Q:PIR {
             $N0 = self
             $I0 = floor $N0
             %r = box $I0
         }
     }
 
-    our Num method rand {
-        return Q:PIR {
+    our Num method rand() {
+        Q:PIR {
             $N0 = self
             $P0 = get_hll_global ['Any'], '$!random'
             $N1 = $P0
@@ -29,8 +29,8 @@ class Any is also {
         }
     }
 
-    our Int multi method round is export {
-        return Q:PIR {
+    our Int multi method round() is export {
+        Q:PIR {
             $N0 = self
             $N0 = $N0 + 0.5
             $I0 = floor $N0

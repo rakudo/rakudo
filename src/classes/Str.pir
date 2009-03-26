@@ -163,23 +163,6 @@ Overridden for Str.
 
 =over 4
 
-=item p5chop
-
- our Char multi P5emul::Str::p5chop ( Str  $string is rw )
- our Char multi P5emul::Str::p5chop ( Str *@strings = ($+_) is rw )
-
-Trims the last character from C<$string>, and returns it. Called with a
-list, it chops each item in turn, and returns the last character
-chopped.
-
-=item p5chomp
-
- our Int multi P5emul::Str::p5chomp ( Str  $string is rw )
- our Int multi P5emul::Str::p5chomp ( Str *@strings = ($+_) is rw )
-
-Related to C<p5chop>, only removes trailing chars that match C</\n/>. In
-either case, it returns the number of chars removed.
-
 =item length
 
 This word is banned in Perl 6.  You must specify units.

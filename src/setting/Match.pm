@@ -55,22 +55,29 @@ class Match is also {
     }
 
     multi method caps() {
-        my @caps = @(self), %(self).values;
-        # in regexes like [(.) ...]+, the capture for (.) is a List
-        # flatten that.
-        @caps = @caps.map: { $_ ~~ List ?? @($_) !! $_ };
-        return @caps.sort({ .from });
+        my @caps = gather {
+            for @(self).pairs, %(self).pairs -> $p {
+                # in regexes like [(.) ...]+, the capture for (.) is 
+                # a List. flatten that.
+                if $p.value ~~ List {
+                    take ($p.key => $_.value) for @($p);
+                } else {
+                    take $p;
+                }
+            }
+        }
+        @caps.sort({ .value.from });
     }
 
     multi method chunks() {
         my $prev = 0;
         gather {
             for @.caps {
-                if .from > $prev {
-                    take self.substr($prev, .from - $prev)
+                if .value.from > $prev {
+                    take '~' => self.substr($prev, .value.from - $prev)
                 }
                 take $_;
-                $prev = $_.to;
+                $prev = .value.to;
             }
             take self.substr($prev) if $prev < self.chars;
         }

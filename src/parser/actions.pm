@@ -2362,6 +2362,14 @@ method quote_expression($/, $key) {
             :node( $/ )
         );
     }
+    elsif $key eq 'quote_p5regex' {
+        $past := PAST::Block.new(
+            $<quote_p5regex>,
+            :compiler('PGE::P5Regex'),
+            :blocktype('declaration'),
+            :node( $/ )
+        );
+    }
     elsif $key eq 'quote_pir' {
         $past := PAST::Op.new( :inline( $<quote_pir> ), :node($/) );
     }

@@ -1,6 +1,6 @@
-=head1 Rakudo Perl 6
+=head1 Rakudo Perl 6
 
-This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine.
+This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine.
 
 Rakudo Perl is Copyright (C) 2008-2009, The Perl Foundation.
 Rakudo Perl is distributed under the terms of the Artistic License 2.0.
@@ -35,7 +35,7 @@ Configure.pl; the configure system will re-build Parrot only
 if a newer version is needed for whatever version of Rakudo 
 you're working with.
 
-To run a Perl 6 program with Rakudo, issue a command like:
+To run a Perl 6 program with Rakudo, issue a command like:
 
     $ ./perl6 hello.pl
 
@@ -46,7 +46,7 @@ and modules), so removing or moving the build tree will cause the
 binary to stop working.
 
 If the Rakudo compiler is invoked without an explicit script to
-run, it enters a small interactive mode that allows Perl 6 statements 
+run, it enters a small interactive mode that allows Perl 6 statements 
 to be executed from the command line.  Each line entered is treated
 as a separate compilation unit, however (which means that subroutines
 are preserved after they are defined, but variables are not).
@@ -59,7 +59,7 @@ to make sure that the Rakudo compiler is basically working and that
 it's capable of running a simple test harness.
 
 Running "make spectest" will import relevant portions
-of the official Perl 6 test suite from the Pugs repository
+of the official Perl 6 test suite from the Pugs repository
 L<http://svn.pugscode.org/pugs/t/spec/> and run all of these tests that
 are currently known to pass.
 
@@ -85,15 +85,15 @@ You can also use "make" to run an individual test from the command line:
 =head2 Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available
-with help for Perl 6 and Rakudo on Parrot.  Figuring out the right
+with help for Perl 6 and Rakudo on Parrot.  Figuring out the right
 one to use is often the biggest battle.  Here are some rough
 guidelines:
 
-If you have a question about Perl 6 syntax or the right way to
-approach a problem using Perl 6, you probably want the
+If you have a question about Perl 6 syntax or the right way to
+approach a problem using Perl 6, you probably want the
 C<perl6-users@perl.org> mailing list.  This list is primarily
-for the people who want to I<use> Perl 6 to write programs, as
-opposed to those who are implementing or developing the Perl 6
+for the people who want to I<use> Perl 6 to write programs, as
+opposed to those who are implementing or developing the Perl 6
 language itself.
 
 Questions about the Rakudo compiler for Parrot and the Parrot
@@ -105,7 +105,7 @@ The Rakudo and Parrot development teams tend to hang out on IRC a fair
 bit, either on C<irc.freenode.net/#perl6> or C<irc.perl.org/#parrot>.
 
 There is also a Rakudo related blog at L<http://rakudo.org/>, and
-a Parrot blog at L<http://parrotblog.org/>. Most Perl 6 related news is
+a Parrot blog at L<http://parrotblog.org/>. Most Perl 6 related news is
 assembled at L<http://planetsix.perl.org/>.
 
 =head2 Reporting bugs
@@ -147,7 +147,7 @@ See F<docs/compiler_overview.pod>.
 =head1 AUTHOR
 
 Patrick Michaud C<pmichaud@pobox.com> is the primary author and
-maintainer for Rakudo Perl 6 on Parrot.
+maintainer for Rakudo Perl 6 on Parrot.
 
 =cut
 

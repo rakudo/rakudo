@@ -77,6 +77,16 @@ will restrict the method to invocants that have the C<Positional>
 role).  Better is to use C<self>, or if invoking a method on C<self>
 then you can use C<$.foo> or C<@.bar> directly.
 
+=item All subs and methods are really multis
+
+All built-in methods or subroutines should be declared as C<multi>. 
+
+=item Use explicit empty signatures
+
+If a method doesn't take any arguments, give it an explicit empty
+signature C<()>. That's very different from omitting the signature
+alltogether (which would be an implicit caatch-all signature).
+
 =back
 
 =head1 SEE ALSO

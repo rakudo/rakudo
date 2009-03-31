@@ -50,10 +50,6 @@ class Match is also {
         }
     }
 
-    multi method ast() {
-        return $(self);
-    }
-
     multi method caps() {
         my @caps = gather {
             for @(self).pairs, %(self).pairs -> $p {

@@ -541,7 +541,7 @@ token parameter {
             $I0 = match['type_constraint']
             $I0 = $I0 > 0
             .return ($I0)
-        }}> <?>
+        }}>
     ]
     <trait>*
     <post_constraint>*

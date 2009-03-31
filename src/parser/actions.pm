@@ -1259,12 +1259,18 @@ method post_constraint($/) {
 
 
 method parameter($/) {
-    my $var   := $( $<named_param> ?? $<named_param> !! $<param_var> );
     my $sigil := $<named_param> ?? $<named_param><param_var><sigil> !! $<param_var><sigil>;
     my $quant := $<quant>;
 
     ##  if it was type a type capture and nothing else, need to make a PAST::Var
-    unless $<param_var> || $<named_param> {
+    my $var;
+    if $<named_param> {
+        $var := $( $<named_param> );
+    }
+    elsif $<param_var> {
+        $var := $( $<param_var> );
+    }
+    else {
         unless $<type_constraint> == 1 {
             $/.panic("Invalid signature; cannot have two consecutive parameter separators.");
         }
@@ -2399,7 +2405,7 @@ method quote_term($/, $key) {
     my $past;
     if ($key eq 'literal') {
         $past := PAST::Val.new(
-            :value( ~$<quote_literal> ),
+            :value( ~$($<quote_literal>) ),
             :returns('Str'), :node($/)
         );
     }

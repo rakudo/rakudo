@@ -27,7 +27,8 @@ src/builtins/match.pir - Perl6 builtins for smart matching
 
 =item make($item)
 
-Equivalent to C<$/.result_object($item)>.  This changes the item value of the current match object.
+Equivalent to C<$/."!make"($item)>.  This sets the ast value of 
+the current match object.
 
 =cut
 
@@ -36,7 +37,7 @@ Equivalent to C<$/.result_object($item)>.  This changes the item value of the cu
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P2 = $P1['$/']
-    $P2.'result_object'(value)
+    $P2.'!make'(value)
 .end
 
 

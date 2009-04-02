@@ -432,23 +432,7 @@ method begin_statement($/) {
 }
 
 method start_statement($/) {
-    # Create block.
-    my $past := $( $<block> );
-    $past.blocktype('immediate');
-    declare_implicit_routine_vars($past);
-
-    # Mark block as needing to load state.
-    our @?BLOCK;
-    block_has_state(@?BLOCK[0]);
-
-    # We now need to emit code to run the block only once, and store the
-    # result. We'll just piggy-back off state vars.
-    make PAST::Var.new(
-        :scope('state'),
-        :name($past.unique('start_block_')),
-        :viviself($past),
-        :isdecl(1)
-    );
+    make make_start_block($/);
 }
 
 method end_statement($/) {
@@ -2503,6 +2487,11 @@ method term($/, $key) {
 }
 
 
+method term_START($/) {
+    make make_start_block($/);
+}
+
+
 method args($/, $key) {
     my $past := build_call( $key eq 'func args'
         ?? $($<semilist>)
@@ -3180,6 +3169,27 @@ sub prevent_null_return($block) {
     }
 }
 
+
+# This makes a START block (factored out since used as a term and a statement).
+sub make_start_block($/) {
+    # Create block.
+    my $past := $( $<block> );
+    $past.blocktype('immediate');
+    declare_implicit_routine_vars($past);
+
+    # Mark block as needing to load state.
+    our @?BLOCK;
+    block_has_state(@?BLOCK[0]);
+
+    # We now need to emit code to run the block only once, and store the
+    # result. We'll just piggy-back off state vars.
+    return PAST::Var.new(
+        :scope('state'),
+        :name($past.unique('start_block_')),
+        :viviself($past),
+        :isdecl(1)
+    );
+}
 
 # This takes a block and ensures we emit code to load any associated state
 # (START blocks, state variables) at block entry.

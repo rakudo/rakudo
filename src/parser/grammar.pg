@@ -638,6 +638,7 @@ token noun {
 token term {
     [
     | 'VAR(' <variable> ')' {*}                  #= VAR
+    | <term_START> {*}                           #= term_START
     | <name=named_0ary>
         [
         | <.unsp>? '.'? '(' <semilist> ')' {*}   #= func args
@@ -652,6 +653,11 @@ token term {
     | <sigil> \s <arglist> {*}                   #= sigil
     | '...' {*}                                  #= ...
     ]
+}
+
+
+rule term_START {
+    $<sym>=[START] <block> {*}
 }
 
 

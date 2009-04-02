@@ -715,6 +715,11 @@ Helper for doing calls on the metaclass.
     .return ($S0)
 .end
 
+.sub '' :vtable('get_number') :method
+    $N0 = self.'Num'()
+    .return ($N0)
+.end
+
 .sub '' :vtable('increment') :method
     $P0 = self.'succ'()
     'infix:='(self, $P0)

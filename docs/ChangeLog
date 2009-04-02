@@ -1,5 +1,6 @@
 New in 2009-04 release
-* implement Perl 5 regexes
+* implemented \c[character name] in double quoted strings and regexes
+* implemented Perl 5 regexes
 * rx/.../ regex quoting
 * moved many methods to the setting
 * exporting and importing by tags, support :DEFAULT export tag

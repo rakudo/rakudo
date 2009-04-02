@@ -13,96 +13,13 @@ src/classes/Range.pir - methods for the Range class
 .sub '' :anon :load :init
     .local pmc p6meta, rangeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    rangeproto = p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!from $!to $!from_exclusive $!to_exclusive')
+    rangeproto = p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!by $!from $!to $!from_exclusive $!to_exclusive')
     rangeproto.'!IMMUTABLE'()
 .end
 
 =head2 Methods
 
 =over 4
-
-=item ACCEPTS(topic)
-
-Determines if topic is within the range or equal to the range.
-
-=cut
-
-.sub 'ACCEPTS' :method
-    .param pmc topic
-
-    $I0 = isa topic, 'Range'
-    unless $I0 goto value_in_range_check
-    $I0 = self.'from'()
-    $I1 = topic.'from'()
-    if $I0 != $I1 goto false
-    $I0 = self.'to'()
-    $I1 = topic.'to'()
-    if $I0 != $I1 goto false
-    $P0 = getattribute self, "$!from_exclusive"
-    $P1 = getattribute topic, "$!from_exclusive"
-    if $P0 != $P1 goto false
-    $P0 = getattribute self, "$!to_exclusive"
-    $P1 = getattribute topic, "$!to_exclusive"
-    if $P0 != $P1 goto false
-    goto true
-
-  value_in_range_check:
-    $I0 = self.'!from_test'(topic)
-    unless $I0 goto false
-    $I0 = self.'!to_test'(topic)
-    unless $I0 goto false
-
-  true:
-    $P0 = get_hll_global ['Bool'], 'True'
-    .return ($P0)
-  false:
-    $P0 = get_hll_global ['Bool'], 'False'
-    .return ($P0)
-.end
-
-
-=item clone()   (vtable method)
-
-Create a clone of the Range.
-
-=cut
-
-.sub 'clone' :method :vtable
-     $P0 = self.'!cloneattr'('$!from $!to $!from_exclusive $!to_exclusive')
-     .return ($P0)
-.end
-
-=item from()
-
-=item to()
-
-Gets the beginning or end of the range.
-
-=cut
-
-.sub 'from' :method
-    $P0 = getattribute self, '$!from'
-    .return ($P0)
-.end
-
-.sub 'to' :method
-    $P0 = getattribute self, '$!to'
-    .return ($P0)
-.end
-
-
-=item iterator()  (vtable function)
-
-Return an iterator for the Range.  Since Ranges are already
-iterators, we can just return a clone.
-
-=cut
-
-.sub 'iterator' :method :vtable('get_iter')
-    $P0 = clone self
-    .return ($P0)
-.end
-
 
 =item list()
 
@@ -126,65 +43,13 @@ just return a clone of the Range.
 .end
 
 
-=item max()
-
-=item min()
-
-=item minmax()
-
-=cut
-
-.namespace ['Range']
-
-.sub 'max' :method
-    .tailcall self.'to'()
-.end
-
-.sub 'min' :method
-    .tailcall self.'from'()
-.end
-
-.sub 'minmax' :method
-    $P0 = self.'from'()
-    $P1 = self.'to'()
-    $P2 = get_hll_global 'list'
-    .tailcall $P2($P0, $P1)
-.end
-
-
-=item perl()
-
-Returns a Perl representation of the Range.
-
-=cut
-
-.sub 'perl' :method
-    .local string result, tmp
-    .local pmc from, fromexc, toexc, to
-    from = getattribute self, '$!from'
-    fromexc = getattribute self, '$!from_exclusive'
-    toexc = getattribute self, '$!to_exclusive'
-    to = getattribute self, '$!to'
-    result = from.'perl'()
-    unless fromexc goto dots
-    result .= '^'
-  dots:
-    result .= '..'
-    unless toexc goto end
-    result .= '^'
-  end:
-    tmp = to.'perl'()
-    result .= tmp
-    .return (result)
-.end
-
-
 =item pop()  (vtable_method)
 
 Generate the next element at the end of the Range.
 
 =cut
 
+.namespace ['Range']
 .sub 'pop' :method :vtable('pop_pmc')
     .local pmc to, toexc, value
     to = getattribute self, '$!to'
@@ -198,21 +63,6 @@ Generate the next element at the end of the Range.
     value = '!FAIL'('Undefined value popped from empty range')
   success:
     .return (value)
-.end
-
-
-=item reverse()
-
-Generate the range in reverse sequence.  (This is wrong for now--
-really what should happen is that we invert .from and .to and
-switch the :by argument.)
-
-=cut
-
-.namespace ['Range']
-.sub 'reverse' :method
-    $P0 = self.'list'()
-    .tailcall $P0.'reverse'()
 .end
 
 
@@ -235,25 +85,6 @@ Generate the next element at the front of the Range.
     value = '!FAIL'('Undefined value shifted from empty range')
   success:
     .return (value)
-.end
-
-
-=item true()
-
-Return true if there are any more values to iterate over.
-
-=cut
-
-.sub 'true' :method :vtable('get_bool')
-    .local pmc from, fromexc
-    from = getattribute self, '$!from'
-    fromexc = getattribute self, '$!from_exclusive'
-    unless fromexc goto have_value
-    from = clone from
-    'postfix:++'(from)
-  have_value:
-    $I0 = self.'!to_test'(from)
-    .return ($I0)
 .end
 
 
@@ -405,8 +236,6 @@ honoring exclusive flags.
 
 =item VTABLE_get_number (vtable method)
 
-=item VTABLE_get_string (vtable method)
-
 =cut
 
 .sub '' :method :vtable('get_integer')
@@ -419,12 +248,6 @@ honoring exclusive flags.
     $P0 = self.'list'()
     $N0 = $P0
     .return ($N0)
-.end
-
-.sub '' :method :vtable('get_string')
-    $P0 = self.'list'()
-    $S0 = $P0
-    .return ($S0)
 .end
 
 =back

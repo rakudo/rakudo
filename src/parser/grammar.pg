@@ -731,6 +731,7 @@ rule scoped {
     | <declarator>
     | <routine_declarator>
     | <fulltypename>+ <multi_declarator>
+    | <multi_declarator>
     ] {*}
     || <.panic: "Malformed declaration"> # STD.pm: <.panic: "Malformed \"$+SCOPE\" declaration">
 }

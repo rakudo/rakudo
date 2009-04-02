@@ -390,7 +390,7 @@ on error.
 
     message = list.'join'('')
     if message > '' goto have_message
-    message = "Warning!  Something's wrong\n"
+    message = "Warning! Something's wrong.\n"
   have_message:
     ## count_eh is broken
     # $I0 = count_eh

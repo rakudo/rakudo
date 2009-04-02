@@ -23,7 +23,7 @@ MAIN: {
 
     # Update/generate parrot build if needed
     if ($options{'gen-parrot'}) {
-        system("$^X build/gen_parrot.pl");
+        system($^X, "build/gen_parrot.pl");
     }
 
     # Get a list of parrot-configs to invoke.

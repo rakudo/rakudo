@@ -44,7 +44,7 @@ close $REQ;
 }
 
 print "Checking out Parrot r$required via svn...\n";
-system("svn checkout -r $required https://svn.parrot.org/parrot/trunk parrot");
+system(qw(svn checkout -r),  $required , qw(https://svn.parrot.org/parrot/trunk parrot));
 
 chdir('parrot');
 
@@ -55,12 +55,12 @@ if (-f 'Makefile') {
     my $make = $config{'make'};
     if ($make) {
         print "Performing '$make realclean'\n";
-        system("$make realclean");
+        system($make, "realclean");
     }
 }
 
 ##  Configure Parrot
-system("$^X Configure.pl");
+system($^X, "Configure.pl");
 
 my %config = read_parrot_config();
 my $make = $config{'make'};

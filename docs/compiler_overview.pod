@@ -12,20 +12,20 @@ The Rakudo compiler is constructed from four major components:
 
 =item 1.
 
-the parse grammar (src/parser/grammar.pg, src/parser/*.pir)
+The main compiler object (perl6.pir)
 
 =item 2.
 
-a set of action methods to transform the parse tree into an abstract syntax
-tree (src/parser/actions.pm)
+The parse grammar (src/parser/grammar.pg, src/parser/*.pir)
 
 =item 3.
 
-the main compiler object (perl6.pir)
+A set of action methods to transform the parse tree into an abstract syntax
+tree (src/parser/actions.pm)
 
 =item 4.
 
-builtin functions and runtime support (src/setting/, src/builtins/, 
+Builtin functions and runtime support (src/setting/, src/builtins/,
 src/classes/, src/pmc/)
 
 =back
@@ -33,6 +33,26 @@ src/classes/, src/pmc/)
 The F<Makefile> takes care of compiling all of the individual
 components into compiled form and linking them together to
 form the F<perl6.pbc> executable.
+
+
+=head2 Main compiler
+
+The Perl 6 compiler object itself, in F<perl6.pir>, drives the parsing and
+action methods. The compiler is an instance of C<PCT::HLLCompiler>, which
+provides a standard framework for parsing, optimization, and command line
+argument handling for Parrot compilers.  The C<onload> subroutine in
+F<perl6.pir> simply creates a new C<PCT::HLLCompiler> object, registers it as
+the C<Perl6> compiler, and sets it to use the C<Perl6::Grammar> and
+C<Perl6::Grammar::Actions> classes defined above.
+
+The C<main> subroutine in perl6.pir is used when Rakudo is invoked
+from the command line -- it simply passes control to the C<Perl6>
+compiler object registered by the C<onload> subroutine.
+
+Lastly, the C<perl6.pir> source uses PIR C<.include> directives
+to pull in the PIR sources for the parse grammar, action methods,
+and runtime builtin functions.
+
 
 =head2 Parse grammar
 
@@ -71,12 +91,13 @@ rule in the grammar.
 
 =head2 Action methods
 
-The action methods (in F<src/parser/actions.pm>) are used to
-convert the nodes of the parse tree (produced by the parse grammar)
-into an equivalent abstract syntax tree (PAST) representation.  The
-action methods are where the Rakudo compiler does the bulk of the work
-of creating an executable program.  Action methods are written in
-Perl 6, but we use NQP to compile them into PIR as F<src/gen_actions.pir>.
+The action methods (in F<src/parser/actions.pm>) are used to convert the nodes
+of the parse tree (produced by the parse grammar) into an equivalent Parrot
+Abstract Syntax Tree (PAST) representation, which is then passed on to Parrot.
+
+The action methods are where the Rakudo compiler does the bulk of the work of
+creating an executable program.  Action methods are written in Perl 6, but we
+use NQP to compile them into PIR as F<src/gen_actions.pir>.
 
 When Rakudo is compiling a Perl 6 program, action methods are invoked
 by the C< {*} > symbols in the parse grammar.  Each C< {*} > in a rule
@@ -166,24 +187,41 @@ NQP can't or won't support, then that will probably be a good
 point to switch.)
 
 
-=head2 Main compiler
+=head2 How a program is executed by the compiler
 
-Driving the parser and action methods is the Perl 6 compiler
-object itself, in F<perl6.pir>.  The compiler is an instance of
-C<PCT::HLLCompiler>, which provides a standard framework for
-parsing, optimization, and command line argument handling for
-Parrot compilers.  The C<onload> subroutine in F<perl6.pir>
-simply creates a new C<PCT::HLLCompiler> object, registers it
-as the C<Perl6> compiler, and sets it to use the C<Perl6::Grammar>
-and C<Perl6::Grammar::Actions> classes defined above.
+This is a rough outline of how Rakudo executes a program.
 
-The C<main> subroutine in perl6.pir is used when Rakudo is invoked
-from the command line -- it simply passes control to the C<Perl6>
-compiler object registered by the C<onload> subroutine.
+=over 4
 
-Lastly, the C<perl6.pir> source uses PIR C<.include> directives
-to pull in the PIR sources for the parse grammar, action methods,
-and runtime builtin functions.
+=item 1.
+
+The main compiler object (perl6.pir) looks at any parameters and slurps in your program.
+
+=item 2.
+
+The program passes through the parser (as defined in the parse grammar
+(src/parser/grammar.pg, src/parser/*.pir). This outputs the parse tree.
+
+=item 3.
+
+Action methods transform the parse tree into a Parrot Abstract Syntax
+Tree (PAST).
+
+=item 4.
+
+The PAST is provided to Parrot, which does its thing.
+
+=item 5.
+
+The PAST includes references to builtin functions and runtime support. These
+are also provided to Parrot.
+
+=back
+
+The PAST representation is the
+final stage of processing in Rakudo itself. The PAST datastructure is then
+passed on to Parrot directly. Parrot does the remainder of the work translating
+from PAST to pir and then to bytecode.
 
 
 =head2 Builtin functions and runtime support
@@ -209,9 +247,9 @@ Perl 6 program would expect to have available when it is run.
 
 =head2 Still to be documented
 
-* Rakudo PMCs
-* The relationship between Parrot classes and Rakudo classes
-* Protoobject implementation and basic class hierarchy
+    * Rakudo PMCs
+    * The relationship between Parrot classes and Rakudo classes
+    * Protoobject implementation and basic class hierarchy
 
 =head1 AUTHORS
 

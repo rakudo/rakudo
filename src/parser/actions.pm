@@ -1939,7 +1939,7 @@ method scope_declarator($/) {
         if $scope eq 'lexical' {
             # Block needs to become anonymous; register lexical name.
             my $name := $past.name();
-            $past.name(undef);
+            $past.name($past.unique('block_'));
             $block.symbol($name, :scope('lexical'));
 
             if $past<multi_flag> {

@@ -108,6 +108,25 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
     goto NEXT();
 }
 
+inline op find_lex_lift(out PMC, in STR) :base_core {
+    Parrot_Context *ctx = CONTEXT(interp);
+    $1 = PMCNULL;
+    
+    while (ctx->outer_ctx) {
+        const Parrot_Context   * const outer   = ctx->outer_ctx;
+        PMC                    * const lex_pad = outer->lex_pad;
+
+        if (!PMC_IS_NULL(lex_pad) && VTABLE_exists_keyed_str(interp, lex_pad, $2)) {
+            $1 = VTABLE_get_pmc_keyed_str(interp, lex_pad, $2);
+            break;
+        }
+
+        ctx = outer;
+    }    
+
+    goto NEXT();
+}
+
 /*
  * Local variables:
  *   c-file-style: "parrot"

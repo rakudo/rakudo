@@ -432,7 +432,7 @@ method begin_statement($/) {
 }
 
 method start_statement($/) {
-    make make_start_block($/);
+    make make_start_block($( $<block> ));
 }
 
 method end_statement($/) {
@@ -1937,13 +1937,48 @@ method scope_declarator($/) {
     # be costly) we use state variables to persist it.
     if $past.isa(PAST::Block) && $past.blocktype() ne 'method' {
         if $scope eq 'lexical' {
-            # Block needs to become anonymous; register lexical name.
+            # Block needs to become anonymous.
             my $name := $past.name();
             $past.name($past.unique('block_'));
-            $block.symbol($name, :scope('lexical'));
 
             if $past<multi_flag> {
-                $/.panic('Lexical multis not yet supported');
+                my $sym_info := $block.symbol($name);
+                my $result := PAST::Stmts.new(:node($/));
+
+                if $sym_info<scope> ne 'lexical' {
+                    # First multi of this name. Create state var for storing candidate
+                    # list.
+                    my $outer := outer_symbol($name, 1);
+                    $result.push(PAST::Var.new(
+                        :name($name),
+                        :scope('state'),
+                        :isdecl(1),
+                        :viviself(PAST::Op.new(
+                            :pasttype('call'),
+                            :name('!clone_multi_for_lexical'),
+                            $outer<scope> eq 'lexical' ??
+                                PAST::Op.new( :inline("    %r = find_lex_lift '" ~ $name ~ "'") ) !!
+                                PAST::Var.new( :name($name), :scope('package') )
+                        ))
+                    ));
+                    block_has_state($block);
+                    $block.symbol($name, :scope('lexical'), :does_callable(1), :is_multi(1));
+                }
+                elsif !$sym_info<is_multi> {
+                    $/.panic('only sub conflicts with multi');
+                }
+                
+                # Emit START block for adding this candidate.
+                $result.push(make_start_block(PAST::Block.new(
+                    PAST::Stmts.new(),
+                    PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('push'),
+                        PAST::Var.new( :name($name), :scope('lexical') ),
+                        $past
+                    )
+                )));
+                $past := $result;
             }
             else {
                 $past := PAST::Var.new(
@@ -1952,6 +1987,7 @@ method scope_declarator($/) {
                     :isdecl(1),
                     :viviself($past)
                 );
+                $block.symbol($name, :scope('lexical'), :does_callable(1));
             }
         }
         elsif $scope ne 'package' {
@@ -2518,7 +2554,7 @@ method term($/, $key) {
 
 
 method term_START($/) {
-    make make_start_block($/);
+    make make_start_block($( $<block> ));
 }
 
 
@@ -2910,12 +2946,14 @@ method sigterm($/) {
 
 
 # search through outer blocks for a symbol table entry
-sub outer_symbol($name) {
+sub outer_symbol($name, $skip_first?) {
     our @?BLOCK;
     my $symbol;
     for @?BLOCK {
-        $symbol := $_.symbol($name);
-        if $symbol { return $symbol; }
+        if !$skip_first || !($_ =:= @?BLOCK[0]) {
+            $symbol := $_.symbol($name);
+            if $symbol { return $symbol; }
+        }
     }
     return $symbol;
 }
@@ -3201,9 +3239,8 @@ sub prevent_null_return($block) {
 
 
 # This makes a START block (factored out since used as a term and a statement).
-sub make_start_block($/) {
-    # Create block.
-    my $past := $( $<block> );
+sub make_start_block($past) {
+    # Set up block.
     $past.blocktype('immediate');
     declare_implicit_routine_vars($past);
 

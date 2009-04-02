@@ -333,6 +333,22 @@ first). So for now we just transform multis in user code like this.
 .end
 
 
+=item !clone_multi_for_lexical
+
+=cut
+
+.sub '!clone_multi_for_lexical'
+    .param pmc existing
+    if null existing goto fresh
+    unless existing goto fresh
+    $P0 = existing.'clone'()
+    .return ($P0)
+  fresh:
+    $P0 = new 'Perl6MultiSub'
+    .return ($P0)  
+.end
+
+
 =item !UNIT_START
 
 =cut

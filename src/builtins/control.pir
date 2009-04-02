@@ -401,7 +401,9 @@ on error.
     throw ex
     .return ()
   no_eh:
-    printerr message
+    .local pmc err
+    err = get_hll_global "$ERR"
+    err.'print'(message)
     .return ()
 .end
 

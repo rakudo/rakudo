@@ -14,7 +14,8 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 .sub 'print'
     .param pmc args            :slurpy
-    .local pmc it
+    .local pmc it, out
+    out = get_hll_global '$OUT'
     args.'!flatten'()
     it = iter args
   iter_loop:
@@ -23,7 +24,7 @@ src/builtins/io.pir - Perl6 builtins for I/O
     unless null $P0 goto iter_nonull
     $P0 = new 'Failure'
   iter_nonull:
-    print $P0
+    out.'print'($P0)
     goto iter_loop
   iter_end:
     .return (1)
@@ -32,8 +33,10 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 .sub 'say'
     .param pmc list            :slurpy
+    .local pmc it, out
+    out = get_hll_global '$OUT'
     'print'(list :flat)
-    print "\n"
+    out.'print'("\n")
     .return (1)
 .end
 
@@ -46,8 +49,10 @@ Parses a format string and prints formatted output according to it.
 
 .sub 'printf'
     .param pmc args            :slurpy
+    .local pmc it, out
+    out = get_hll_global '$OUT'
     $S0 = 'sprintf'(args :flat)
-    print $S0
+    out.'print'($S0)
     .return (1)
 .end
 

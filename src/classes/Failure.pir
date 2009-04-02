@@ -89,7 +89,9 @@
     $P0 = self.'!exception'()
     $S0 = $P0['message']
     $S0 = concat $S0, "\n"
-    printerr $S0
+    .local pmc err
+    err = get_hll_global "$ERR"
+    err.'print'($S0)
   done:
 .end
 

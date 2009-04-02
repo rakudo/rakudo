@@ -1929,6 +1929,36 @@ method scope_declarator($/) {
             block_has_state($block);
         }
     }
+
+    # If we have a lexical sub, need to do some work. If it's single dispatch
+    # then we just need to grab and bind it to a lexical. If it's a multi, we
+    # need to clone the outer multi if we didn't already and push this candidate
+    # onto it. To avoid doing this clone every time we invoke the block (would
+    # be costly) we use state variables to persist it.
+    if $past.isa(PAST::Block) && $past.blocktype() ne 'method' {
+        if $scope eq 'lexical' {
+            # Block needs to become anonymous; register lexical name.
+            my $name := $past.name();
+            $past.name(undef);
+            $block.symbol($name, :scope('lexical'));
+
+            if $past<multi_flag> {
+                $/.panic('Lexical multis not yet supported');
+            }
+            else {
+                $past := PAST::Var.new(
+                    :name($name),
+                    :scope('lexical'),
+                    :isdecl(1),
+                    :viviself($past)
+                );
+            }
+        }
+        elsif $scope ne 'package' {
+            $/.panic('Can not use ' ~ $scope ~ ' scope with a sub.');
+        }
+    }
+
     make $past;
 }
 

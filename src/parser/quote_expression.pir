@@ -414,7 +414,7 @@
     $I0 = index "0abefnrtxco123456789", backchar
     if $I0 < 0 goto add_backchar
     if $I0 >= 11 goto fail_backchar_digit
-    if $I0 >= 8 goto scan_xdo
+    if $I0 >= 8 goto scan_xco
     litchar = substr "\0\a\b\e\f\n\r\t", $I0, 1
     if $I0 >= 1 goto add_litchar2
     ##  peek ahead for octal digits after \0
@@ -435,42 +435,16 @@
     inc pos
     goto scan_loop
 
-  scan_xdo:
-    ##  handle \x, \c, and \o escapes.  start by converting
-    ##  the backchar into 8, 10, or 16 (yes, it's a hack
-    ##  but it works).  Then loop through the characters
-    ##  that follow to compute the decimal value of codepoints,
-    ##  and add the codepoints to our literal.
-    .local int base, decnum, isbracketed
-    base = index '        o c     x', backchar
-    decnum = 0
-    pos += 2
-    $S0 = substr target, pos, 1
-    isbracketed = iseq $S0, '['
-    pos += isbracketed
-  scan_xdo_char_loop:
-    $S0 = substr target, pos, 1
-    $I0 = index '0123456789abcdef0123456789ABCDEF', $S0
-    if $I0 < 0 goto scan_xdo_char_end
-    $I0 %= 16
-    if $I0 >= base goto scan_xdo_char_end
-    decnum *= base
-    decnum += $I0
-    inc pos
-    goto scan_xdo_char_loop
-  scan_xdo_char_end:
-    $S1 = chr decnum
-    concat literal, $S1
-    unless isbracketed goto scan_xdo_end
-    if $S0 == ']' goto scan_xdo_end
-    if $S0 != ',' goto fail
-    inc pos
-    decnum = 0
-    goto scan_xdo_char_loop
-  scan_xdo_end:
-    pos += isbracketed
+  scan_xco:
+    ##  lean on PGE to handle \x, \c, and \o escapes.
+    $P0 = get_root_global['parrot';'PGE';'Perl6Regex'], 'p6escapes'
+    $P1 = $P0(mob, 'pos'=>pos)
+    unless $P1 goto fail
+    $S0 = $P1.'ast'()
+    literal .= $S0
+    pos = $P1.'to'()
     goto scan_loop
-
+    
   succeed:
     mob.'!make'(literal)
     mob.'to'(pos)

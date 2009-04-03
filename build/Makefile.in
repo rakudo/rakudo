@@ -12,6 +12,7 @@ EXE           = @exe@
 MAKE          = @make_c@
 PERL          = @perl@
 RM_F          = @rm_f@
+HAS_ICU       = @has_icu@
 
 # Various paths
 PARROT_DYNEXT = $(BUILD_DIR)/runtime/parrot/dynext
@@ -159,7 +160,7 @@ CLEANUPS = \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
-HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code
+HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 
 

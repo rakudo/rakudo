@@ -21,6 +21,7 @@ GetOptions(
     'fudge'             => \my $do_fudge,
     'verbosity=i'       => \$Test::Harness::verbose,
     'jobs:3'            => \my $jobs,
+    'icu:1'             => \my $do_icu,
 );
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
@@ -34,7 +35,8 @@ if ($list_file) {
         next if m/^\s*#/;
         next unless m/\S/;
         chomp;
-        my ($fn, $fudgespec) = split m/\s+#\s*/;
+        my ($fn, $fudgespec) = split /\s+#\s*/;
+        next if ($fudgespec && ($fudgespec =~ m/icu/) && !$do_icu);
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s{/}{$slash}g;
         if ( -r $fn ) {

@@ -119,6 +119,7 @@ SETTING = \
   src/setting/Match.pm \
   src/setting/Object.pm \
   src/setting/Pair.pm \
+  src/setting/Range.pm \
   src/setting/Str.pm \
   src/setting/Whatever.pm \
 

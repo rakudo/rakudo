@@ -20,8 +20,9 @@ method TOP($/) {
     declare_implicit_routine_vars($past);
     $past.lexical(0);
 
-    #  Make sure we have the interpinfo constants.
+    #  Make sure we have the interpinfo constants and parametric role macros.
     $past.unshift( PAST::Op.new( :inline('.include "interpinfo.pasm"') ) );
+    $past.unshift( PAST::Op.new( :inline('.include "src/pr_macros.pir"') ) );
 
     # Set package for unit mainline
     $past.unshift(set_package_magical());
@@ -1768,24 +1769,10 @@ method package_def($/, $key) {
         #  For a role, we now need to produce a new one which clones the original,
         #  but without the methods. Then we need to add back the methods. We emit
         #  PIR here to do it rather than doing a call, since we need to call
-        #  new_closure from the correct scope.
+        #  new_closure from the correct scope. (Note: create_parametric_role is a
+        #  PIR macro).
         $block[0].push(PAST::Op.new(:inline(
-                '    "!meta_compose"(%0)',
-                '    .local pmc orig_role, meths, meth_iter',
-                '    orig_role = getprop "$!orig_role", %0',
-                '    meths = orig_role."methods"()',
-                '    meth_iter = iter meths',
-                '  it_loop:',
-                '    unless meth_iter goto it_loop_end',
-                '    $S0 = shift meth_iter',
-                '    $P0 = meths[$S0]',
-                '    $P1 = getprop "$!signature", $P0',
-                '    $P0 = newclosure $P0',
-                '    setprop $P0, "$!signature", $P1',
-                '    %0."add_method"($S0, $P0)',
-                '    goto it_loop',
-                '  it_loop_end:',
-                '    .return (%0)'
+                '    .create_parametric_role(%0)',
             ),
             $?METACLASS
         ));

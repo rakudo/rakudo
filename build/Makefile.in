@@ -50,6 +50,7 @@ BUILTINS_PIR = \
   src/classes/ClassHOW.pir \
   src/classes/Object.pir \
   src/classes/Any.pir \
+  src/classes/Junction.pir \
   src/classes/Signature.pir \
   src/classes/Role.pir \
   src/classes/Abstraction.pir \
@@ -77,7 +78,6 @@ BUILTINS_PIR = \
   src/classes/Method.pir \
   src/classes/Submethod.pir \
   src/classes/Multi.pir \
-  src/classes/Junction.pir \
   src/classes/Failure.pir \
   src/classes/Exception.pir \
   src/classes/Nil.pir \

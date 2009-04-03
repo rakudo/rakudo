@@ -16,7 +16,7 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
 .sub 'onload' :anon :load :init
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Junction', 'parent'=>'Perl6Object', 'attr'=>'@!eigenstates $!type')
+    p6meta.'new_class'('Junction', 'parent'=>'Perl6Object', 'attr'=>'$!eigenstates $!type')
 .end
 
 =head2 Methods
@@ -181,7 +181,7 @@ Return the components of the Junction.
 .end
 
 .sub 'eigenstates' :method
-    $P0 = getattribute self, '@!eigenstates'
+    $P0 = getattribute self, '$!eigenstates'
     .return ($P0)
 .end
 
@@ -216,11 +216,40 @@ Return the components of the Junction.
     # Make eigenstates unique if possible
     if type == JUNCTION_TYPE_ONE goto set_eigenstates
     $P0 = get_hll_global 'infix:==='
-    eigenstates = eigenstates.'uniq'($P0)
+    eigenstates = '!junction_unique_helper'(eigenstates, $P0)
   set_eigenstates:
-    setattribute junc, '@!eigenstates', eigenstates
+    setattribute junc, '$!eigenstates', eigenstates
     .return (junc)
 .end
+
+
+.sub '!junction_unique_helper'
+    .param pmc self
+    .param pmc comparer
+
+    .local pmc ulist
+    ulist = new 'ResizablePMCArray'
+
+    .local pmc it_inner, it_outer, val
+    it_outer = iter self
+  outer_loop:
+    unless it_outer goto outer_done
+    val = shift it_outer
+    it_inner = iter ulist
+  inner_loop:
+    unless it_inner goto inner_done
+    $P0 = shift it_inner
+    $P1 = comparer(val, $P0)
+    if $P1 goto outer_loop
+    goto inner_loop
+  inner_done:
+    ulist.'push'(val)
+    goto outer_loop
+
+  outer_done:
+    .return (ulist)
+.end
+
 
 =over
 

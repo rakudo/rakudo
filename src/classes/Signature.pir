@@ -67,12 +67,12 @@ the Signature.
     # constraints; otherwise, we find the unique type. Finally, we turn the
     # list of constraints into a junction.
     .local pmc cur_list, cur_list_iter, constraints, type, test_item
-    constraints = 'list'()
+    constraints = new 'ResizablePMCArray'
     type = null
     cur_list = attr["type"]
     unless null cur_list goto have_type_attr
     $P0 = get_hll_global 'Any'
-    cur_list = 'all'($P0)
+    cur_list = 'infix:&'($P0) # Unlike C<all>, doesn't call !flatten (too early in bootstrap)
     attr["type"] = cur_list
   have_type_attr:
     cur_list = cur_list.'eigenstates'()
@@ -110,7 +110,7 @@ the Signature.
     constraints = 'all'(constraints)
     goto set_constraints
   no_constraints:
-    constraints = new 'Failure'
+    constraints = new 'Undef'
   set_constraints:
     attr["cons_type"] = constraints
 

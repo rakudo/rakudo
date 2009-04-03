@@ -465,8 +465,9 @@ is composed (see C<!meta_compose> below).
     .param int also
 
     .local pmc nsarray
-    $P0 = compreg 'Perl6'
-    nsarray = $P0.'parse_name'(name)
+    $P0 = get_hll_global [ 'Perl6';'Compiler' ], 'parse_name'
+    $P1 = null
+    nsarray = $P0($P1, name)
 
     if type == 'package' goto package
     if type == 'module' goto package

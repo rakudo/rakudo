@@ -20,34 +20,8 @@ method TOP($/) {
     declare_implicit_routine_vars($past);
     $past.lexical(0);
 
-    #  Make sure we have the interpinfo constants and parametric role macro.
+    #  Make sure we have the interpinfo constants.
     $past.unshift( PAST::Op.new( :inline('.include "interpinfo.pasm"') ) );
-    $past.unshift( PAST::Op.new( :inline('.macro create_parametric_role(mr)',
-                                         '    "!meta_compose"(.mr)',
-                                         '    .local pmc orig_role, meths, meth_iter',
-                                         '    orig_role = getprop "$!orig_role", .mr',
-                                         '    meths = orig_role."methods"()',
-                                         '    meth_iter = iter meths',
-                                         '  it_loop:',
-                                         '    unless meth_iter goto it_loop_end',
-                                         '    $S0 = shift meth_iter',
-                                         '    $P0 = meths[$S0]',
-                                         '    $P1 = clone $P0',
-                                         '    $P2 = getprop "$!signature", $P0',
-                                         '    setprop $P1, "$!signature", $P2',
-                                         '    $I0 = isa $P0, "Code"',
-                                         '    unless $I0 goto ret_pir_skip_rs',
-                                         '    $P2 = getattribute $P0, ["Sub"], "proxy"',
-                                         '    $P2 = getprop "$!real_self", $P2',
-                                         '    $P3 = getattribute $P1, ["Sub"], "proxy"',
-                                         '    setprop $P3, "$!real_self", $P2',
-                                         '  ret_pir_skip_rs:',
-                                         '    .mr."add_method"($S0, $P1)',
-                                         '    goto it_loop',
-                                         '  it_loop_end:',
-                                         '    .return (.mr)',
-                                         '.endm') ) );
-
     # Set package for unit mainline
     $past.unshift(set_package_magical());
 
@@ -1801,16 +1775,15 @@ method package_def($/, $key) {
     #  ...and at the end of the block's initializer (after any other
     #  items added by the block), we finalize the composition.
     if $?PKGDECL eq 'role' {
-        #  For a role, we now need to produce a new one which clones the original,
-        #  but without the methods. Then we need to add back the methods. We emit
-        #  PIR here to do it rather than doing a call, since we need to call
-        #  new_closure from the correct scope. (Note: create_parametric_role is a
-        #  PIR macro).
-        $block[0].push(PAST::Op.new(:inline(
-                '    .create_parametric_role(%0)',
-            ),
-            $?METACLASS
-        ));
+        #  For a role, we now need to produce a copy of the role
+        #  and clones of the methods (having captured the current
+        #  lexical context).
+        $block[0].push(
+            PAST::Op.new(
+                :inline('    .tailcall "!create_parametric_role"(%0)'),
+                $?METACLASS
+            )
+        );
     }
     elsif $is_anon && ($?PKGDECL eq 'class' || $?PKGDECL eq 'grammar') {
         #  We need to keep the proto around and return it at the end of

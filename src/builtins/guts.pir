@@ -1051,6 +1051,39 @@ Helper method to compose the attributes of a role into a class.
   fixup_iter_loop_end:
 .end
 
+=item !create_parametric_role
+
+Helper method for creating parametric roles.
+
+=cut
+
+.sub '!create_parametric_role'
+    .param pmc mr
+    '!meta_compose'(mr)
+    .local pmc orig_role, meths, meth_iter
+    orig_role = getprop '$!orig_role', mr
+    meths = orig_role.'methods'()
+    meth_iter = iter meths
+  it_loop:
+    unless meth_iter goto it_loop_end
+    $S0 = shift meth_iter
+    $P0 = meths[$S0]
+    $P1 = clone $P0
+    $P2 = getprop '$!signature', $P0
+    setprop $P1, '$!signature', $P2
+    $I0 = isa $P0, 'Code'
+    unless $I0 goto ret_pir_skip_rs
+    $P2 = getattribute $P0, ['Sub'], 'proxy'
+    $P2 = getprop '$!real_self', $P2
+    $P3 = getattribute $P1, ['Sub'], 'proxy'
+    setprop $P3, '$!real_self', $P2
+  ret_pir_skip_rs:
+    mr.'add_method'($S0, $P1)
+    goto it_loop
+  it_loop_end:
+    .return (mr)
+.end
+
 
 =item !keyword_role(name)
 

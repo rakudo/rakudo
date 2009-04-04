@@ -61,9 +61,7 @@ class Range is also {
     }
 
     our Range multi method reverse() {
-        Range.new(:from($.to), :from_exclusive($.to_exclusive),
-                  :to($.from), :to_exclusive($.from_exclusive),
-                  :by(-$.by))
+        @.list.reverse;
     }
 
     our Bool multi method true() {

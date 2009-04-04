@@ -29,7 +29,7 @@ just return a clone of the Range.
 
 =cut
 
-.sub 'list' :method
+.sub '' :method('list')
     .local pmc range_it, result
     range_it = self.'iterator'()
     result = new 'List'

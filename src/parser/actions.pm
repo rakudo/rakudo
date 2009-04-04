@@ -166,6 +166,7 @@ method statement($/, $key) {
             my $body := $past;
             $past := $( $<statement_mod_cond> );
             $past.push( $body );
+            $past.push( PAST::Op.new( :name('list') ) );
             $sml := $<statement_mod_loop>[0];
         }
         if $key eq 'mod_loop' { $sml := $<statement_mod_loop>; }

@@ -53,7 +53,7 @@ class Range is also {
                     'from => '           ~ $.from.perl,
                     'to => '             ~ $.to.perl,
                     'by => '             ~ $.by.perl,
-                    'from_exlcusive => ' ~ $.to_exclusive.perl,
+                    'from_exclusive => ' ~ $.from_exclusive.perl,
                     'to_exclusive => '   ~ $.to_exclusive.perl,
                     )
              ~ ')'

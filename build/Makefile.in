@@ -88,6 +88,7 @@ BUILTINS_PIR = \
   src/classes/Match.pir \
   src/classes/Grammar.pir \
   src/classes/Module.pir \
+  src/classes/Iterator.pir \
   src/builtins/globals.pir \
   src/builtins/any-list.pir \
   src/builtins/any-num.pir \

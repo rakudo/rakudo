@@ -8,12 +8,34 @@ src/classes/Positional.pir - Positional Role
 
 =cut
 
-.namespace []
+.namespace ['Positional[::T]']
 
-.sub '' :anon :load :init
-    .local pmc positional
-    positional = '!keyword_role'('Positional')
+.sub '_positional_role_body'
+    .param pmc type :optional
+    
+    # Capture type.
+    if null type goto no_type
+    type = type.'WHAT'()
+    goto type_done
+  no_type:
+    type = get_hll_global 'Object'
+  type_done:
+    .lex 'T', type
+    
+    # Create role.
+    .local pmc metarole
+    metarole = "!meta_create"("role", "Positional[::T]", 0)
+    .create_parametric_role(metarole)
 .end
+.sub '' :load :init
+    .local pmc block, signature
+    block = get_hll_global ['Positional[::T]'], '_positional_role_body'
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("T", 1 :named("optional"))
+    "!ADDTOROLE"(block)
+.end
+
 
 =head2 Operators
 
@@ -25,7 +47,6 @@ Returns a list element or slice.
 
 =cut
 
-.namespace ['Positional']
 .sub 'postcircumfix:[ ]' :method
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
@@ -83,6 +104,15 @@ Returns a list element or slice.
   end:
     .return (result)
 .end
+.sub '' :load :init
+    .local pmc block, signature
+    block = get_hll_global ['Positional[::T]'], 'postcircumfix:[ ]'
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("@args", 0 :named("named"))
+    signature."!add_param"("%options", 1 :named("named"))
+.end
+
 
 .namespace []
 .sub 'postcircumfix:[ ]' :multi(_)
@@ -94,7 +124,7 @@ Returns a list element or slice.
     $I0 = isa invocant, 'Perl6Object'
     if $I0 goto object_method
   foreign:
-    $P0 = get_hll_global ['Positional'], 'postcircumfix:[ ]'
+    $P0 = get_hll_global ['Positional[::T]'], 'postcircumfix:[ ]'
     .tailcall $P0(invocant, args :flat, options :flat :named)
   object_method:
     .tailcall invocant.'postcircumfix:[ ]'(args :flat, options :flat :named)

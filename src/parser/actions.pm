@@ -20,9 +20,26 @@ method TOP($/) {
     declare_implicit_routine_vars($past);
     $past.lexical(0);
 
-    #  Make sure we have the interpinfo constants and parametric role macros.
+    #  Make sure we have the interpinfo constants and parametric role macro.
     $past.unshift( PAST::Op.new( :inline('.include "interpinfo.pasm"') ) );
-    $past.unshift( PAST::Op.new( :inline('.include "src/pr_macros.pir"') ) );
+    $past.unshift( PAST::Op.new( :inline('.macro create_parametric_role(mr)',
+                                         '    "!meta_compose"(.mr)',
+                                         '    .local pmc orig_role, meths, meth_iter',
+                                         '    orig_role = getprop "$!orig_role", .mr',
+                                         '    meths = orig_role."methods"()',
+                                         '    meth_iter = iter meths',
+                                         '  it_loop:',
+                                         '    unless meth_iter goto it_loop_end',
+                                         '    $S0 = shift meth_iter',
+                                         '    $P0 = meths[$S0]',
+                                         '    $P1 = getprop "$!signature", $P0',
+                                         '    $P0 = newclosure $P0',
+                                         '    setprop $P0, "$!signature", $P1',
+                                         '    .mr."add_method"($S0, $P0)',
+                                         '    goto it_loop',
+                                         '  it_loop_end:',
+                                         '    .return (.mr)',
+                                         '.endm') ) );
 
     # Set package for unit mainline
     $past.unshift(set_package_magical());

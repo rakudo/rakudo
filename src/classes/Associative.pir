@@ -8,12 +8,34 @@ src/classes/Associative.pir - Associative Role
 
 =cut
 
-.namespace []
+.namespace ['Associative[::T]']
 
-.sub '' :anon :load :init
-    .local pmc positional
-    positional = '!keyword_role'('Associative')
+.sub '_associative_role_body'
+    .param pmc type :optional
+    
+    # Capture type.
+    if null type goto no_type
+    type = type.'WHAT'()
+    goto type_done
+  no_type:
+    type = get_hll_global 'Object'
+  type_done:
+    .lex 'T', type
+    
+    # Create role.
+    .local pmc metarole
+    metarole = "!meta_create"("role", "Associative[::T]", 0)
+    .create_parametric_role(metarole)
 .end
+.sub '' :load :init :outer('_associative_role_body')
+    .local pmc block, signature
+    block = get_hll_global ['Associative[::T]'], '_associative_role_body'
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("T", 1 :named("optional"))
+    "!ADDTOROLE"(block)
+.end
+
 
 =head2 Operators
 
@@ -25,7 +47,6 @@ Returns a list element or slice.
 
 =cut
 
-.namespace ['Associative']
 .sub 'postcircumfix:{ }' :method
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
@@ -60,6 +81,15 @@ Returns a list element or slice.
   end:
     .return (result)
 .end
+.sub '' :load :init
+    .local pmc block, signature
+    block = get_hll_global ['Associative[::T]'], 'postcircumfix:{ }'
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("@args", 0 :named("named"))
+    signature."!add_param"("%options", 1 :named("named"))
+.end
+
 
 .namespace []
 .sub 'postcircumfix:{ }'

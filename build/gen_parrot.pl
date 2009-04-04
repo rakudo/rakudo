@@ -7,7 +7,7 @@ gen_parrot.pl - script to obtain and build Parrot for Rakudo
 
 =head2 SYNOPSIS
 
-    perl gen_parrot.pl
+    perl gen_parrot.pl [--parrot --configure=options]
 
 =head2 DESCRIPTION
 
@@ -54,17 +54,19 @@ if (-f 'Makefile') {
     my %config = read_parrot_config();
     my $make = $config{'make'};
     if ($make) {
-        print "Performing '$make realclean'\n";
+        print "\nPerforming '$make realclean' ...\n";
         system($make, "realclean");
     }
 }
 
-##  Configure Parrot
-system($^X, "Configure.pl");
+print "\nConfiguring Parrot ...\n";
+my @config_command = ($^X, 'Configure.pl', @ARGV);
+print "@config_command\n";
+system @config_command;
 
+print "\nBuilding Parrot ...\n";
 my %config = read_parrot_config();
-my $make = $config{'make'};
-
+my $make = $config{'make'} or exit(1);
 system($make);
 
 sub read_parrot_config {

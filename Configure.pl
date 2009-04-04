@@ -8,7 +8,8 @@ use Getopt::Long;
 
 MAIN: {
     my %options;
-    GetOptions(\%options, 'help!', 'parrot-config=s', 'gen-parrot!', 'parrot-opt=s@');
+    GetOptions(\%options, 'help!', 'parrot-config=s',
+               'gen-parrot!', 'gen-parrot-option=s@');
 
     # Print help if it's requested
     if ($options{'help'}) {
@@ -18,7 +19,7 @@ MAIN: {
 
     # Update/generate parrot build if needed
     if ($options{'gen-parrot'}) {
-        my @opts    = $options{'parrot-opt'} ? @{$options{'parrot-opt'}} : ();
+        my @opts    = @{ $options{'gen-parrot-option'} || [] };
         my @command = ($^X, "build/gen_parrot.pl", @opts);
 
         print "Generating Parrot ...\n";
@@ -127,10 +128,10 @@ Configure.pl - Rakudo Configure
 General Options:
     --help             Show this text
     --gen-parrot       Download and build a copy of Parrot to use
+    --gen-parrot-option='--option=value'
+                       Set parrot config option when using --gen-parrot
     --parrot-config=(config)
                        Use configuration information from config
-    --parrot-opt='--option=value'
-                       Set parrot config option when using --gen-parrot
 END
 
     return;

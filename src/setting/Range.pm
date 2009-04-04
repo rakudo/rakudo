@@ -40,12 +40,23 @@ class Range is also {
 
     # TODO: Add support for the :by(..) adverbial modifier.
     our Str multi method perl() {
-        [~] gather {
-            take $.from.perl;
-            take "^" if $.from_exclusive;
-            take "..";
-            take "^" if $.to_exclusive;
-            take $.to.perl
+        if $.by == 1 {
+            [~]
+                $.from.perl,
+                ("^" if $.from_exclusive),
+                "..",
+                ("^" if $.to_exclusive),
+                $.to.perl;
+        } else {
+            'Range.new('
+             ~ join(', ', 
+                    'from => '           ~ $.from.perl,
+                    'to => '             ~ $.to.perl,
+                    'by => '             ~ $.by.perl,
+                    'from_exlcusive => ' ~ $.to_exclusive.perl,
+                    'to_exclusive => '   ~ $.to_exclusive.perl,
+                    )
+             ~ ')'
         }
     }
 

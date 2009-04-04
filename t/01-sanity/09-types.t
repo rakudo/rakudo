@@ -26,5 +26,5 @@ sub typeof(::T $x) { return T }
 # Stuff that goes crashy-crashy right now
 #$num = 0;
 #my Array of Int $intarray;
-#($num == $int) && say 'ok 2';
-#($str == $num) && say 'ok 3';
+# ($num == $int) && say 'ok 2';
+# ($str == $num) && say 'ok 3';

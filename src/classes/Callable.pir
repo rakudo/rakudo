@@ -10,7 +10,7 @@ This implements the parametric role Callable[::T = Object].
 
 =cut
 
-.namespace ['Callable[T]']
+.namespace ['Callable[::T]']
 
 .sub '_callable_role_body'
     .param pmc type :optional
@@ -26,36 +26,50 @@ This implements the parametric role Callable[::T = Object].
     
     # Create role.
     .local pmc metarole
-    metarole = "!meta_create"("role", "Callable[T]", 0)
+    metarole = "!meta_create"("role", "Callable[::T]", 0)
     .create_parametric_role(metarole)
 .end
-.sub '' :load :init :outer('_callable_role_body')
+.sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Callable[T]'], '_callable_role_body'
+    block = get_hll_global ['Callable[::T]'], '_callable_role_body'
     signature = new ["Signature"]
     setprop block, "$!signature", signature
     signature."!add_param"("T", 1 :named("optional"))
     "!ADDTOROLE"(block)
 .end
 
+
+=item returns
+
+Returns the type constraining what may be returned.
+
+=cut
+
 .sub 'returns' :method :outer('_callable_role_body')
     $P0 = find_lex 'T'
     .return ($P0)
 .end
-.sub '' :load :init :outer('_callable_role_body')
+.sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Callable[T]'], 'returns'
+    block = get_hll_global ['Callable[::T]'], 'returns'
     signature = new ["Signature"]
     setprop block, "$!signature", signature
 .end
+
+
+=item of
+
+Returns the type constraining what may be returned.
+
+=cut
 
 .sub 'of' :method :outer('_callable_role_body')
     $P0 = find_lex 'T'
     .return ($P0)
 .end
-.sub '' :load :init :outer('_callable_role_body')
+.sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Callable[T]'], 'of'
+    block = get_hll_global ['Callable[::T]'], 'of'
     signature = new ["Signature"]
     setprop block, "$!signature", signature
 .end

@@ -32,7 +32,7 @@ method TOP($/) {
                                          '    unless meth_iter goto it_loop_end',
                                          '    $S0 = shift meth_iter',
                                          '    $P0 = meths[$S0]',
-                                         '    $P1 = newclosure $P0',
+                                         '    $P1 = clone $P0',
                                          '    $P2 = getprop "$!signature", $P0',
                                          '    setprop $P1, "$!signature", $P2',
                                          '    $I0 = isa $P0, "Code"',

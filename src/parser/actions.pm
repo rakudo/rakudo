@@ -32,10 +32,17 @@ method TOP($/) {
                                          '    unless meth_iter goto it_loop_end',
                                          '    $S0 = shift meth_iter',
                                          '    $P0 = meths[$S0]',
-                                         '    $P1 = getprop "$!signature", $P0',
-                                         '    $P0 = newclosure $P0',
-                                         '    setprop $P0, "$!signature", $P1',
-                                         '    .mr."add_method"($S0, $P0)',
+                                         '    $P1 = newclosure $P0',
+                                         '    $P2 = getprop "$!signature", $P0',
+                                         '    setprop $P1, "$!signature", $P2',
+                                         '    $I0 = isa $P0, "Code"',
+                                         '    unless $I0 goto ret_pir_skip_rs',
+                                         '    $P2 = getattribute $P0, ["Sub"], "proxy"',
+                                         '    $P2 = getprop "$!real_self", $P2',
+                                         '    $P3 = getattribute $P1, ["Sub"], "proxy"',
+                                         '    setprop $P3, "$!real_self", $P2',
+                                         '  ret_pir_skip_rs:',
+                                         '    .mr."add_method"($S0, $P1)',
                                          '    goto it_loop',
                                          '  it_loop_end:',
                                          '    .return (.mr)',
@@ -1018,7 +1025,7 @@ method routine_def($/) {
         our @?BLOCK;
         @?BLOCK[0].symbol( $name, :scope('package') );
     }
-    $block.control('return_pir');
+    $block.control(return_handler_past());
     block_signature($block);
 
     if $<trait> {
@@ -1029,7 +1036,12 @@ method routine_def($/) {
             #  We just modify them to call !sub_trait and add
             #  'block' as the first argument.
             my $trait := $( $_ );
-            $trait.name('!sub_trait');
+            if substr($trait[0], 0, 11) eq 'trait_verb:' {
+                $trait.name('!sub_trait_verb');
+            }
+            else {
+                $trait.name('!sub_trait');
+            }
             $trait.unshift($blockreg);
             $loadinit.push($trait);
         }
@@ -1053,7 +1065,7 @@ method method_def($/) {
         )
     );
 
-    $block.control('return_pir');
+    $block.control(return_handler_past());
     block_signature($block);
     # Ensure there's an invocant in the signature.
     $block.loadinit().push(PAST::Op.new(
@@ -1070,7 +1082,12 @@ method method_def($/) {
             #  We just modify them to call !sub_trait and add
             #  'block' as the first argument.
             my $trait := $( $_ );
-            $trait.name('!sub_trait');
+            if substr($trait[0], 0, 11) eq 'trait_verb:' {
+                $trait.name('!sub_trait_verb');
+            }
+            else {
+                $trait.name('!sub_trait');
+            }
             $trait.unshift($blockreg);
             $loadinit.push($trait);
         }
@@ -3193,6 +3210,12 @@ sub set_block_type($block, $type) {
         );
         $block<block_class_type> := $set_type;
         $block.loadinit().push($set_type);
+        # The following is to make sure the Parrot-level sub has a backlink
+        # to the Rakudo-level object, since it's all that we can find from
+        # interpinfo.
+        $block.loadinit().push(PAST::Op.new(
+            :inline("    $P0 = getattribute block, ['Sub'], 'proxy'",
+                    "    setprop $P0, '$!real_self', block") ) );
     }
 }
 
@@ -3272,6 +3295,33 @@ sub block_has_state($block) {
         ));
         $block<needs_state_loaded> := 1;
     }
+}
+
+# Manufactures PAST to handle check of return type.
+sub return_handler_past() {
+    PAST::Stmts.new(
+        PAST::Op.new( :inline('    exception = getattribute exception, "payload"') ),
+        PAST::Op.new(
+            :pasttype('if'),
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('ACCEPTS'),
+                PAST::Op.new( :inline("    %r = interpinfo .INTERPINFO_CURRENT_SUB",
+                                      "    %r = getprop '$!real_self', %r",
+                                      "    %r = %r.'of'()") ),
+                PAST::Var.new( :name('exception'), :scope('register') )
+            ),
+            PAST::Op.new(
+                :inline('    .return (%0)'),
+                PAST::Var.new( :name('exception'), :scope('register') )
+            ),
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('die'),
+                'Type check failed on return value'
+            )
+        )
+    )
 }
 
 # Local Variables:

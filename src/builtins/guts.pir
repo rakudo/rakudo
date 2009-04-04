@@ -883,11 +883,11 @@ in an ambiguous multiple dispatch.
     exportns = blockns.'make_namespace'('EXPORT')
     if null arg goto default_export
     .local pmc it
-    arg = arg.'list'()
+    arg = 'list'(arg)
     $I0 = arg.'elems'()
     if $I0 goto have_arg
   default_export:
-    $P0 = get_hll_global 'Perl6Pair'
+    $P0 = get_hll_global 'Pair'
     $P0 = $P0.'new'('key' => 'DEFAULT', 'value' => 1)
     arg = 'list'($P0)
   have_arg:
@@ -905,6 +905,49 @@ in an ambiguous multiple dispatch.
   arg_done:
     ns = exportns.'make_namespace'('ALL')
     ns[blockname] = block
+.end
+
+=item !sub_trait_verb(sub, trait, arg?)
+
+=cut
+
+.sub '!sub_trait_verb'
+    .param pmc block
+    .param string trait
+    .param pmc arg             :optional
+    .param int has_arg         :opt_flag
+
+    if has_arg goto have_arg
+    null arg
+  have_arg:
+
+    $S0 = substr trait, 11
+    $S0 = concat '!sub_trait_verb_', $S0
+    $P0 = find_name $S0
+    if null $P0 goto done
+    $P0(block, arg)
+  done:
+.end
+
+
+=item !sub_trait_returns(trait, block, arg)
+
+Sets the returns trait, which sets the type that the block must return.
+The of trait is just an alias to this.
+
+=cut
+
+.sub '!sub_trait_verb_returns'
+    .param pmc block
+    .param pmc type
+    $P0 = get_hll_global 'Callable'
+    $P0 = $P0.'!select'(type)
+    'infix:does'(block, $P0)
+.end
+.sub '!sub_trait_verb_of'
+    .param pmc block
+    .param pmc arg
+    .tailcall '!sub_trait_verb_returns'(block, arg)
 .end
 
 

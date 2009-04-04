@@ -41,6 +41,12 @@ src/builtins/assign.pir - assignments
     unless $I0 goto assign_done
     $P0 = getprop '$!signature', source
     setprop cont, '$!signature', $P0
+    $I0 = isa source, 'Code'
+    unless $I0 goto assign_done
+    $P0 = getattribute source, ['Sub'], 'proxy'
+    $P0 = getprop '$!real_self', $P0
+    $P1 = getattribute cont, ['Sub'], 'proxy'
+    setprop $P1, '$!real_self', $P0
   assign_done:
     .return (cont)
 .end

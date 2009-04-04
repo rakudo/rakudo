@@ -260,6 +260,7 @@ S12-enums/basic.t
 S12-introspection/can.t
 S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
+S12-methods/class-and-instance.t
 S12-methods/default-trait.t
 S12-methods/indirect_notation.t
 S12-methods/instance.t

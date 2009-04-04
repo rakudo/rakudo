@@ -77,6 +77,7 @@ S02-names_and_variables/fmt.t
 S02-names_and_variables/varnames.t
 S02-one-pass-parsing/less-than.t
 S02-polymorphic_types/subset.t
+S02-whitespace_and_comments/comments.t
 S02-whitespace_and_comments/minimal-whitespace.t
 S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
@@ -164,6 +165,7 @@ S05-grammar/inheritance.t
 S05-grammar/namespace.t
 S05-grammar/parse_and_parsefile.t
 S05-grammar/ws.t
+S05-mass/named-chars.t                                     # icu
 S05-mass/rx.t
 S05-mass/recursive.t
 S05-mass/stdrules.t
@@ -258,6 +260,7 @@ S12-enums/basic.t
 S12-introspection/can.t
 S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
+S12-methods/class-and-instance.t
 S12-methods/default-trait.t
 S12-methods/indirect_notation.t
 S12-methods/instance.t

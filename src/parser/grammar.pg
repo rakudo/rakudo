@@ -94,7 +94,11 @@ token nofun { <!before '(' | '.(' | '\\' > }
 token unv {
     || \h+
     || ^^ <.pod_comment>
-    || '#' \N*
+    || ^^ '#' <?opener> <.panic: "Can't use embedded columns in column 1">
+    || '#' [
+           | <?opener> <quote_expression: >
+           | \N*
+           ]
 }
 
 ##  The <afterws> rule returns true if we're immediate after

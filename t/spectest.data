@@ -164,6 +164,7 @@ S05-grammar/inheritance.t
 S05-grammar/namespace.t
 S05-grammar/parse_and_parsefile.t
 S05-grammar/ws.t
+S05-mass/named-chars.t                                     # icu
 S05-mass/rx.t
 S05-mass/recursive.t
 S05-mass/stdrules.t

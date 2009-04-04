@@ -20,6 +20,17 @@ src/classes/Pair.pir - methods for the Pair class
 .end
 
 
+=item key
+
+Gets the key of the pair.
+
+=cut
+.sub 'key' :method
+    $P0 = getattribute self, '$!key'
+    .return ($P0)
+.end
+
+
 =item get_string()  (vtable method)
 
 Stringify the Pair.

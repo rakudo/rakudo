@@ -23,15 +23,6 @@ the key and value.
         return sprintf($format, $.key, $.value);
     }
 
-=begin item key
-
-Gets the key of the pair.
-
-=end item
-    method key() {
-        return $!key;
-    }
-
 =begin item kv
 
 Return key and value as a 2-element List.

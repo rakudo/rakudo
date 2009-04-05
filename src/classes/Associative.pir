@@ -25,7 +25,7 @@ src/classes/Associative.pir - Associative Role
     # Create role.
     .local pmc metarole
     metarole = "!meta_create"("role", "Associative[::T]", 0)
-    .create_parametric_role(metarole)
+    .tailcall '!create_parametric_role'(metarole)
 .end
 .sub '' :load :init :outer('_associative_role_body')
     .local pmc block, signature

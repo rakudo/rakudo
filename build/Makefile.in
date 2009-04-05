@@ -192,7 +192,7 @@ perlcritic:
 
 ##  supporting targets for perl6
 # the Perl 6 compiler
-perl6_s1.pbc: $(PARROT) $(SOURCES) $(BUILTINS_PIR) src/pr_macros.pir
+perl6_s1.pbc: $(PARROT) $(SOURCES) $(BUILTINS_PIR)
 	$(PERL) -e "" > src/gen_setting.pir
 	$(PARROT) $(PARROT_ARGS) -o perl6_s1.pbc perl6.pir
 

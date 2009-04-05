@@ -25,9 +25,11 @@ This implements the parametric role Callable[::T = Object].
     .lex 'T', type
     
     # Create role.
+    .const 'Sub' $P0 = 'callable_of'
+    capture_lex $P0
     .local pmc metarole
     metarole = "!meta_create"("role", "Callable[::T]", 0)
-    .create_parametric_role(metarole)
+    .tailcall '!create_parametric_role'(metarole)
 .end
 .sub '' :load :init
     .local pmc block, signature
@@ -63,7 +65,7 @@ Returns the type constraining what may be returned.
 
 =cut
 
-.sub 'of' :method :outer('_callable_role_body')
+.sub 'of' :method :outer('_callable_role_body') :subid('callable_of')
     $P0 = find_lex 'T'
     .return ($P0)
 .end

@@ -25,7 +25,7 @@ src/classes/Positional.pir - Positional Role
     # Create role.
     .local pmc metarole
     metarole = "!meta_create"("role", "Positional[::T]", 0)
-    .create_parametric_role(metarole)
+    .tailcall '!create_parametric_role'(metarole)
 .end
 .sub '' :load :init
     .local pmc block, signature

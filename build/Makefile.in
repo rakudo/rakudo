@@ -328,6 +328,7 @@ Makefile: build/Makefile.in
 	@$(PERL) -e 'exit 1' 
 
 CRITIC_FILES=Configure.pl t/harness build/ tools/
+
 perlcritic:
 	perlcritic -1 --profile tools/util/perlcritic.conf $(CRITIC_FILES)
 

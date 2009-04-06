@@ -11,6 +11,10 @@ class IO is also {
         return ?$!PIO.eof();
     }
 
+    multi method ins() {
+        return $!ins;
+    }
+
     multi method lines() is export {
         my @result = ();
         while !$.eof {

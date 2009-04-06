@@ -14,7 +14,7 @@ This file implements the IO file handle class.
 .sub '' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    $P0 = p6meta.'new_class'('IO', 'parent'=>'Any', 'attr'=>'$!PIO')
+    $P0 = p6meta.'new_class'('IO', 'parent'=>'Any', 'attr'=>'$!PIO $!ins')
     $P0.'!MUTABLE'()
     p6meta.'new_class'('IOIterator', 'parent'=>'Perl6Object', 'attr'=>'$!IO')
 
@@ -77,9 +77,12 @@ Read a single line and return it.
 
 .namespace ['IOIterator']
 .sub 'item' :method :vtable('shift_pmc')
-    .local pmc pio, chomper
+    .local pmc pio, ins, chomper
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"
+    ins = getattribute $P0, "$!ins"
+    'prefix:++'(ins)
+    setattribute $P0, "$!ins", ins
     pio = '!DEREF'(pio)
     $P0 = pio.'readline'()
     chomper = get_hll_global 'chomp'
@@ -94,7 +97,7 @@ Read all of the lines and return them as a List.
 
 .namespace ['IOIterator']
 .sub 'list' :method
-    .local pmc pio, res, chomper
+    .local pmc pio, ins, res, chomper
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"
     pio = '!DEREF'(pio)
@@ -102,6 +105,9 @@ Read all of the lines and return them as a List.
     chomper = get_hll_global 'chomp'
 
   loop:
+    ins = getattribute $P0, "$!ins"
+    'prefix:++'(ins)
+    setattribute $P0, "$!ins", ins
     $S0 = pio.'readline'()
     if $S0 == '' goto done
     $S0 = chomper($S0)

@@ -23,6 +23,7 @@ GetOptions(
     'jobs:3'            => \my $jobs,
     'icu:1'             => \my $do_icu,
 );
+
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
@@ -54,7 +55,17 @@ if ($do_fudge) {
     @tfiles = fudge(@tfiles);
 }
 
-runtests(@tfiles);
+if (eval { require TAP::Harness; 1 }) {
+    my %harness_options = (
+        exec      => ['./perl6'],
+        verbosity => 0+$Test::Harness::verbose,
+        jobs      => $jobs || 1,
+    );
+    TAP::Harness->new( \%harness_options )->runtests(@tfiles);
+}
+else {
+    runtests(@tfiles);
+}
 
 # adapted to return only files ending in '.t'
 sub all_in {

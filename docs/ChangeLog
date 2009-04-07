@@ -1,4 +1,8 @@
 New in 2009-04 release
+* enforce return types of subroutines (partial implementation)
+* parallel testing
+* Configure.pl now supports passing options to parrot's Configure
+* support for lexical subroutines and multis
 * implemented \c[character name] in double quoted strings and regexes
 * implemented Perl 5 regexes
 * rx/.../ regex quoting

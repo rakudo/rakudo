@@ -91,8 +91,8 @@ Returns a list element or slice.
     block = get_hll_global ['Associative[::T]'], 'postcircumfix:{ }'
     signature = new ["Signature"]
     setprop block, "$!signature", signature
-    signature."!add_param"("@args", 0 :named("named"))
-    signature."!add_param"("%options", 1 :named("named"))
+    signature."!add_param"("$args", 0 :named("named"))
+    signature."!add_param"("$options", 1 :named("named"))
 .end
 
 

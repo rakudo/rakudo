@@ -11,7 +11,7 @@ class Any is also {
         }
     }
 
-    our List multi method map(Code *&expr) {
+    our List multi method map(*&expr) {
         return gather {
             my $arity = &expr.arity || 1;
             my @args;
@@ -53,7 +53,7 @@ class Any is also {
         }
     }
 
-    multi method reduce( Code $expression is rw) {
+    multi method reduce(Code $expression is rw) {
         my Int $arity = $expression.count;
         fail('Cannot reduce() using a unary or nullary function.')
             if $arity < 2;

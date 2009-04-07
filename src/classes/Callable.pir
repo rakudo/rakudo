@@ -14,6 +14,11 @@ This implements the parametric role Callable[::T = Object].
 
 .sub '_callable_role_body'
     .param pmc type :optional
+
+    $P0 = get_hll_global ['Callable[::T]'], 'of'
+    capture_lex $P0
+    $P0 = get_hll_global ['Callable[::T]'], 'returns'
+    capture_lex $P0
     
     # Capture type.
     if null type goto no_type

@@ -1164,12 +1164,15 @@ method signature($/, $key) {
             my $sigparam := PAST::Op.new( :pasttype('callmethod'),
                                 :name('!add_param'), $sigobj, $name );
 
-            ##  if it's named or optional, note that in the signature object
+            ##  if it's named optional or slurpy, note that in the signature object
             if $var.named() ne "" {
                 $sigparam.push(PAST::Val.new( :value($var.named()), :named('named') ));
             }
             if $var.viviself() {
                 $sigparam.push(PAST::Val.new( :value(1), :named('optional') ));
+            }
+            if $var.slurpy() {
+                $sigparam.push(PAST::Val.new( :value(1), :named('slurpy') ));
             }
 
             ##  add any typechecks
@@ -1271,7 +1274,7 @@ method parameter($/) {
         our @?BLOCK;
         my $name := ~$<type_constraint>[0];
         $var     := PAST::Var.new( :scope('parameter') );
-        $var.name($var.unique());
+        $var.name($var.unique('::TYPE_CAPTURE'));
         @?BLOCK[0].symbol( $var.name(), :scope('lexical') );
     }
 

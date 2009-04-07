@@ -62,6 +62,30 @@ the Signature.
     attr['multi_invocant'] = 1
   have_mi:
 
+    # Work out any role type that the sigil implies.
+    .local pmc role_type, default_type
+    .local string sigil
+    sigil = substr varname, 0, 1
+    if sigil == '$' goto sigil_scalar
+    default_type = get_hll_global 'Object'
+    if sigil == '@' goto sigil_array
+    if sigil == '%' goto sigil_hash
+    if sigil == '&' goto sigil_code
+    goto sigil_done
+  sigil_scalar:
+    default_type = get_hll_global 'Any'
+    goto sigil_done
+  sigil_array:
+    role_type = get_hll_global 'Positional'
+    goto sigil_done
+  sigil_hash:
+    role_type = get_hll_global 'Associative'
+    goto sigil_done
+  sigil_code:
+    role_type = get_hll_global 'Callable'
+    goto sigil_done
+  sigil_done:
+
     # Get constraints list, which may have class and role types as well as
     # subset types. If we have no unique role or class type, they all become
     # constraints; otherwise, we find the unique type. Finally, we turn the

@@ -82,6 +82,10 @@ You can also use "make" to run an individual test from the command line:
     Files=1, Tests=4,  1 wallclock secs ( 0.02 usr  0.00 sys +  0.57 cusr  0.06 csys =  0.65 CPU)
     Result: PASS
 
+If you want to run the tests in parallel, you need to install a
+fairly recent version of the Perl 5 module L<Test::Harness> (3.16
+works for sure).
+
 =head2 Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available

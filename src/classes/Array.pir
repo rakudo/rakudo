@@ -14,7 +14,7 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     arrayproto.'!MUTABLE'()
 
     $P0 = get_hll_namespace ['Perl6Array']
-    '!EXPORT'('delete,exists,pop,push,shift,unshift', 'from'=>$P0)
+    '!EXPORT'('delete,exists,pop,push,shift,unshift', 'from'=>$P0, 'to_p6_multi'=>1)
 .end
 
 =head2 Methods
@@ -28,7 +28,7 @@ Remove items from an array.
 =cut
 
 .namespace ['Perl6Array']
-.sub 'delete' :method :multi(Perl6Array)
+.sub 'delete' :method :multi() :subid('array_delete')
     .param pmc indices :slurpy
     .local pmc result
     result = new 'List'
@@ -58,6 +58,16 @@ Remove items from an array.
   indices_end:
     .return (result)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "array_delete"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("@indices", 1 :named("slurpy"))
+    $P0 = get_hll_global 'Array'
+    signature."!add_implicit_self"($P0)
+.end
 
 
 =item exists(indices :slurpy)
@@ -66,7 +76,7 @@ Return true if the elements at C<indices> have been assigned to.
 
 =cut
 
-.sub 'exists' :method :multi(Perl6Array)
+.sub 'exists' :method :multi() :subid('array_exists')
     .param pmc indices :slurpy
     .local int test
 
@@ -78,6 +88,16 @@ Return true if the elements at C<indices> have been assigned to.
     if test goto indices_loop
   indices_end:
     .tailcall 'prefix:?'(test)
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "array_exists"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("@indices", 1 :named("slurpy"))
+    $P0 = get_hll_global 'Array'
+    signature."!add_implicit_self"($P0)
 .end
 
 
@@ -111,8 +131,9 @@ Remove the last item from the array and return it.
 
 =cut
 
-.sub 'pop' :method :multi(Perl6Array)
+.sub 'pop' :method :multi() :subid('array_pop')
     .local pmc x
+    '!SIGNATURE_BIND'()
     unless self goto empty
     x = pop self
     goto done
@@ -120,6 +141,15 @@ Remove the last item from the array and return it.
     x = '!FAIL'('Undefined value popped from empty array')
   done:
     .return (x)
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "array_pop"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Array'
+    signature."!add_implicit_self"($P0)
 .end
 
 
@@ -129,12 +159,22 @@ Add C<args> to the end of the Array.
 
 =cut
 
-.sub 'push' :method :multi(Perl6Array)
+.sub 'push' :method :multi() :subid('array_push')
     .param pmc args :slurpy
     args.'!flatten'()
     $I0 = elements self
     splice self, args, $I0, 0
     .tailcall self.'elems'()
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "array_push"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("@items", 1 :named("slurpy"))
+    $P0 = get_hll_global 'Array'
+    signature."!add_implicit_self"($P0)
 .end
 
 
@@ -144,7 +184,7 @@ Shift the first item off the array and return it.
 
 =cut
 
-.sub 'shift' :method :multi(Perl6Array)
+.sub 'shift' :method :multi() :subid('array_shift')
     .local pmc x
     unless self goto empty
     x = shift self
@@ -154,6 +194,15 @@ Shift the first item off the array and return it.
   done:
     .return (x)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "array_shift"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Array'
+    signature."!add_implicit_self"($P0)
+.end
 
 
 =item unshift(args :slurpy)
@@ -162,11 +211,21 @@ Adds C<args> to the beginning of the Array.
 
 =cut
 
-.sub 'unshift' :method :multi(Perl6Array)
+.sub 'unshift' :method :multi() :subid('array_unshift')
     .param pmc args :slurpy
     args.'!flatten'()
     splice self, args, 0, 0
     .tailcall self.'elems'()
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "array_unshift"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("@items", 1 :named("slurpy"))
+    $P0 = get_hll_global 'Array'
+    signature."!add_implicit_self"($P0)
 .end
 
 =item values()
@@ -261,7 +320,6 @@ Store things into an Array (e.g., upon assignment)
     splice self, array, 0, $I0
     .return (self)
 .end
-
 
 =back
 

@@ -23,6 +23,7 @@ it understands how to properly merge C<MultiSub> PMCs.
     .param pmc from            :named('from')
     .param pmc to              :named('to') :optional
     .param int has_to          :opt_flag
+    .param int to_p6_multi     :named('to_p6_multi') :optional
 
     if has_to goto have_to
     to = get_hll_namespace
@@ -38,6 +39,11 @@ it understands how to properly merge C<MultiSub> PMCs.
     value = from[symbol]
     $I0 = isa value, 'MultiSub'
     unless $I0 goto store_value
+    if to_p6_multi != 1 goto no_convert
+    $P0 = value[0]
+    '!TOPERL6MULTISUB'($P0)
+    value = from[symbol]
+  no_convert:
     $P0 = to[symbol]
     if null $P0 goto store_value
     $I0 = isa $P0, 'MultiSub'

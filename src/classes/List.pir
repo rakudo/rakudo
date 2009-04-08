@@ -188,10 +188,19 @@ Return the number of elements in the list.
 =cut
 
 .namespace ['List']
-.sub 'elems' :method :multi('ResizablePMCArray') :vtable('get_number')
+.sub 'elems' :method :multi() :vtable('get_number') :subid('list_elems')
     self.'!flatten'()
     $I0 = elements self
     .return ($I0)
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "list_elems"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_implicit_self"()
+    '!TOPERL6MULTISUB'(block)
 .end
 
 

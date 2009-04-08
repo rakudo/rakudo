@@ -162,6 +162,11 @@ Ensures that if there is no explicit invocant, we add one.
 =cut
 
 .sub '!add_implicit_self' :method
+    .param pmc type :optional
+    unless null type goto have_type
+    type = get_hll_global 'Object'
+  have_type:
+
     .local pmc params
     params = self.'params'()
     $I0 = elements params
@@ -176,9 +181,7 @@ Ensures that if there is no explicit invocant, we add one.
     $P0['name'] = 'self'
     $P0['invocant'] = 1
     $P0['multi_invocant'] = 1
-    # XXX Need to get type of class/role/grammar method is in.
-    $P1 = get_hll_global 'Object'
-    $P0['nom_type'] = $P1
+    $P0['nom_type'] = type
     unshift params, $P0
 .end
 

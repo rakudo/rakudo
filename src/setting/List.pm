@@ -42,14 +42,6 @@ Returns a Perl representation of a List.
         return '[' ~ self.map({ .perl }).join(", ") ~ ']';
     }
 
-    method reverse() {
-        my @result;
-        for self.iterator() {
-            @result.unshift($_);
-        }
-        return @result;
-    }
-
 }
 
 # vim: ft=perl6

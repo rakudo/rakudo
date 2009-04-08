@@ -6,4 +6,8 @@ class Hash is also {
     }
 }
 
+multi reverse(%hash) {
+    %hash.reverse;
+}
+
 # vim: ft=perl6

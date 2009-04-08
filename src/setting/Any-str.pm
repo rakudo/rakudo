@@ -70,6 +70,10 @@ class Any is also {
         }
     }
 
+    multi method flip() is export {
+        (~self).split('').reverse().join;
+    }
+
     # TODO: substitute with '$delimiter as Str' once coercion is implemented
     our List multi method split($delimiter, $limit = *) {
         my Int $prev = 0;
@@ -131,7 +135,7 @@ class Any is also {
     }
 }
 
-sub split($delimiter, $target, $limit = *) {
+multi sub split($delimiter, $target, $limit = *) {
     $target.split($delimiter, $limit);
 }
 

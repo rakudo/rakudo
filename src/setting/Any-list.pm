@@ -79,6 +79,14 @@ class Any is also {
         }
         return @args[0];
     }
+
+    method reverse() {
+        my @result;
+        for @.list {
+            @result.unshift($_);
+        }
+        return @result;
+    }
 }
 
 multi first(Code $test, *@values) {
@@ -99,6 +107,10 @@ multi min(Code $by, *@values) {
 
 multi reduce(Code $expression, *@values) {
     @values.reduce($expression);
+}
+
+multi reverse(*@values) {
+    @values.reverse;
 }
 
 # vim: ft=perl6

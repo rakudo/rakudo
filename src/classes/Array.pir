@@ -48,7 +48,10 @@ Remove items from an array.
   shorten_loop:
     if $I0 < 0 goto shorten_end
     $P0 = self[$I0]
-    unless null $P0 goto shorten_end
+    if null $P0 goto do_shorten
+    $I1 = $P0.'defined'()
+    if $I1 goto shorten_end
+  do_shorten:
     delete self[$I0]
     dec $I0
     goto shorten_loop
@@ -133,7 +136,6 @@ Remove the last item from the array and return it.
 
 .sub 'pop' :method :multi() :subid('array_pop')
     .local pmc x
-    '!SIGNATURE_BIND'()
     unless self goto empty
     x = pop self
     goto done
@@ -161,10 +163,22 @@ Add C<args> to the end of the Array.
 
 .sub 'push' :method :multi() :subid('array_push')
     .param pmc args :slurpy
+    .local pmc type, it
+    type = self.'of'()
     args.'!flatten'()
+    it = iter args
+  it_loop:
+    unless it goto it_loop_end
+    $P0 = shift it
+    $I0 = type.'ACCEPTS'($P0)
+    unless $I0 goto type_error
+    goto it_loop
+  it_loop_end:
     $I0 = elements self
     splice self, args, $I0, 0
     .tailcall self.'elems'()
+  type_error:
+    'die'('Type check failure in push')
 .end
 .sub '' :init :load
     .local pmc block, signature
@@ -213,9 +227,21 @@ Adds C<args> to the beginning of the Array.
 
 .sub 'unshift' :method :multi() :subid('array_unshift')
     .param pmc args :slurpy
+    .local pmc type, it
+    type = self.'of'()
     args.'!flatten'()
+    it = iter args
+  it_loop:
+    unless it goto it_loop_end
+    $P0 = shift it
+    $I0 = type.'ACCEPTS'($P0)
+    unless $I0 goto type_error
+    goto it_loop
+  it_loop_end:
     splice self, args, 0, 0
     .tailcall self.'elems'()
+  type_error:
+    'die'('Type check failure in push')
 .end
 .sub '' :init :load
     .local pmc block, signature
@@ -302,7 +328,8 @@ Store things into an Array (e.g., upon assignment)
 .namespace ['Perl6Array']
 .sub '!STORE' :method
     .param pmc source
-    .local pmc array, it
+    .local pmc array, it, type
+    type = self.'of'()
     ## we create a new array here instead of emptying self in case
     ## the source argument contains self or elements of self.
     array = new 'ResizablePMCArray'
@@ -311,14 +338,19 @@ Store things into an Array (e.g., upon assignment)
   array_loop:
     unless it goto array_done
     $P0 = shift it
+    $I0 = type.'ACCEPTS'($P0)
+    unless $I0 goto type_error
     $P0 = '!CALLMETHOD'('Scalar',$P0)
     $P0 = clone $P0
+    setprop $P0, 'type', type
     push array, $P0
     goto array_loop
   array_done:
     $I0 = elements self
     splice self, array, 0, $I0
     .return (self)
+  type_error:
+    'die'("Type mismatch in assignment to Array.")
 .end
 
 =back

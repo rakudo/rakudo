@@ -134,10 +134,17 @@ inline op find_lex_lift(out PMC, in STR) :base_core {
 
 inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
 #if PARROT_HAS_ICU
-    char      *cstr   = Parrot_str_to_cstring(interp, $2);
-    INTVAL    ord     = string_ord(interp, $3, $4);
-    int32_t   strprop, ordprop;
+    char    *cstr;
+    INTVAL  ord;
+    int32_t strprop, ordprop;
 
+    if ($4 > 0 && (UINTVAL)$4 == ($3->strlen)) {
+        $1 = 0;
+        goto NEXT();
+    }
+
+    ord = string_ord(interp, $3, $4);
+    cstr = Parrot_str_to_cstring(interp, $2);
     strprop = u_getPropertyValueEnum(UCHAR_GENERAL_CATEGORY_MASK, cstr);
     if (strprop != UCHAR_INVALID_CODE) {
         ordprop = u_getIntPropertyValue(ord, UCHAR_GENERAL_CATEGORY_MASK);

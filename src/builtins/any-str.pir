@@ -196,29 +196,6 @@ file.
     .return(match)
 .end
 
-=item reverse
-
-=cut
-
-.namespace []
-.sub 'reverse' :multi()
-    .param pmc values          :slurpy
-    $I0 = elements values
-    unless $I0 == 1 goto reverse_list
-    $P0 = values[0]
-    .tailcall $P0.'reverse'()
-  reverse_list:
-    values.'!flatten'()
-    .tailcall values.'reverse'()
-.end
-
-.namespace ['Any']
-.sub 'reverse' :method
-    $P0 = self.'split'('')
-    $P0 = $P0.'reverse'()
-    .tailcall $P0.'join'('')
-.end
-
 =item rindex()
 
 =cut

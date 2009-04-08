@@ -71,7 +71,7 @@ the size of that file down and to emphasize their generic,
     .param string sep          :optional
     .param int has_sep         :opt_flag
     if has_sep goto have_sep
-    sep = ' '
+    sep = ''
   have_sep:
     $P0 = self.'list'()
     $P0.'!flatten'()

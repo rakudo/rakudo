@@ -52,10 +52,11 @@ Returns a list element or slice.
 
 =cut
 
-.sub 'postcircumfix:{ }' :method
+.sub 'postcircumfix:{ }' :method :outer('_associative_role_body')
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
-    .local pmc result
+    .local pmc result, type
+    type = find_lex 'T'
     if args goto do_index
     ## return complete invocant as a list
     .tailcall self.'list'()
@@ -66,7 +67,8 @@ Returns a list element or slice.
     $S0 = args[0]
     result = self[$S0]
     unless null result goto end
-    result = new 'Failure'
+    result = 'undef'()
+    setprop result, 'type', type
     self[$S0] = result
     goto end
   slice:
@@ -78,6 +80,7 @@ Returns a list element or slice.
     elem = self[$S0]
     unless null elem goto slice_elem
     elem = 'undef'()
+    setprop elem, 'type', type
     self[$S0] = elem
   slice_elem:
     push result, elem

@@ -110,8 +110,17 @@ Store a value into a hash.
     .param pmc source
     ## we create a new hash here instead of emptying self in case
     ## the source argument contains self or elements of self.
-    .local pmc hash, it
+    .local pmc hash, it, type
     hash = new 'Perl6Hash'
+
+    ## Need to preserve typing.
+    type = self.'of'()
+    if type == "Object" goto untyped
+    $P0 = get_hll_global 'Associative'
+    $P0 = $P0.'!select'(type)
+    'infix:does'(hash, $P0)
+  untyped:
+
     source = 'list'(source)
     it = iter source
   iter_loop:
@@ -130,6 +139,8 @@ Store a value into a hash.
     key = elem.'key'()
     value = elem.'value'()
   iter_kv:
+    $I0 = type.'ACCEPTS'(value)
+    unless $I0 goto type_error
     value = '!CALLMETHOD'('Scalar', value)
     hash[key] = value
     goto iter_loop
@@ -140,6 +151,8 @@ Store a value into a hash.
     unless hashiter goto hashiter_done
     $S0 = shift hashiter
     value = elem[$S0]
+    $I0 = type.'ACCEPTS'(value)
+    unless $I0 goto type_error
     value = '!CALLMETHOD'('Scalar', value)
     value = clone value
     hash[$S0] = value
@@ -148,10 +161,23 @@ Store a value into a hash.
     goto iter_loop
   iter_done:
     copy self, hash
+
+    # Since copy calls clone which is deep and loses properties, need to now
+    # re-apply type.
+    it = iter self
+  prop_set_loop:
+    unless it goto prop_set_loop_end
+    $S0 = shift it
+    value = self[$S0]
+    setprop value, 'type', type
+    goto prop_set_loop
+  prop_set_loop_end:
     .return (self)
 
   err_odd_list:
     die "Odd number of elements found where hash expected"
+  type_error:
+    'die'("Type mismatch in assignment to Hash.")
 .end
 
 

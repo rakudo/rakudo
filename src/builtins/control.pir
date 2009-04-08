@@ -200,6 +200,8 @@ the moment -- we'll do more complex handling a bit later.)
   have_message:
     ex = new 'Exception'
     ex = message
+    ex['severity'] = .EXCEPT_FATAL
+    ex['type'] = .CONTROL_ERROR
     set_global '$!', ex
     throw ex
     .return ()

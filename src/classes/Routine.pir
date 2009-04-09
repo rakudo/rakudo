@@ -46,21 +46,23 @@ wrappable executable objects.
     inner = get_hll_global 'Block'
     inner = inner.'new'()
     $P0 = getattribute self, ['Sub'], 'proxy'
-    assign inner, $P0
-    $P0 = prophash self
-    $P1 = iter $P0
+    setattribute inner, ['Sub'], 'proxy', $P0
+    $P1 = prophash self
+    $P2 = iter $P1
   it_loop:
-    unless $P1 goto it_loop_end
-    $S0 = shift $P1
-    $P2 = $P0[$S0]
-    setprop inner, $S0, $P2
+    unless $P2 goto it_loop_end
+    $S0 = shift $P2
+    $P3 = $P1[$S0]
+    setprop inner, $S0, $P3
     goto it_loop
   it_loop_end:
+    setprop $P0, '$!real_self', inner
 
     # Then assign the Parrot sub of the wrapper to ourself, and set the inner block
     # and handle as properties on ourself too.
     $P0 = getattribute wrapper, ['Sub'], 'proxy'
-    assign self, $P0
+    setattribute self, ['Sub'], 'proxy', $P0
+    setprop $P0, '$!real_self', self
     setprop self, '$!wrap_handle', handle
     setprop self, '$!wrap_inner', inner
 
@@ -89,7 +91,8 @@ wrappable executable objects.
   found:
     $P0 = getprop '$!wrap_inner', current
     $P1 = getattribute $P0, ['Sub'], 'proxy'
-    assign current, $P1
+    setattribute current, ['Sub'], 'proxy', $P1
+    setprop $P1, '$!real_self', current
     $P1 = getprop '$!wrap_inner', $P0
     if null $P1 goto unwrap_done
     setprop current, '$!wrap_inner', $P1

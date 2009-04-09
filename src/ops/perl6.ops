@@ -147,6 +147,28 @@ inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
     ord = string_ord(interp, $3, $4);
     cstr = Parrot_str_to_cstring(interp, $2);
 
+    /* try block tests */
+    if (strncmp(cstr, "In", 2) == 0) {
+        strwhich = u_getPropertyValueEnum(UCHAR_BLOCK, cstr+2);
+        ordwhich = u_getIntPropertyValue(ord, UCHAR_BLOCK);
+        if (strwhich != UCHAR_INVALID_CODE) {
+            $1 = (strwhich == ordwhich);
+            Parrot_str_free_cstring(cstr);
+            goto NEXT();
+        }
+    }
+
+    /* try bidi tests */
+    if (strncmp(cstr, "Bidi", 2) == 0) {
+        strwhich = u_getPropertyValueEnum(UCHAR_BIDI_CLASS, cstr+4);
+        ordwhich = u_getIntPropertyValue(ord, UCHAR_BIDI_CLASS);
+        if (strwhich != UCHAR_INVALID_CODE) {
+            $1 = (strwhich == ordwhich);
+            Parrot_str_free_cstring(cstr);
+            goto NEXT();
+        }
+    }
+
     /* try property value aliases */
     strwhich = u_getPropertyValueEnum(UCHAR_GENERAL_CATEGORY_MASK, cstr);
     if (strwhich != UCHAR_INVALID_CODE) {

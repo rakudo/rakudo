@@ -232,6 +232,7 @@ to the Perl 6 compiler.
 .include 'src/gen_actions.pir'
 .include 'src/gen_metaop.pir'
 .include 'src/gen_junction.pir'
+.include 'src/gen_whatever.pir'
 
 =item postload()
 

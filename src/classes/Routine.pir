@@ -99,7 +99,8 @@ wrappable executable objects.
     $P1 = getprop '$!wrap_handle', $P0
     setprop current, '$!wrap_handle', $P1
   unwrap_done:
-    .return ()
+    $P0 = new 'Nil'
+    .return ($P0)
 
   handle_not_found:
     'die'('Could not find unwrap handle ', handle, ' on sub ', self)

@@ -1,8 +1,12 @@
 class Hash is also {
-    our Hash multi method reverse ( %hash: ) is export {
-        my %result;
-        (%result).{%hash.values} = %hash.keys;
-        %result;
+    multi method reverse () is export {
+        gather { 
+            for @.pairs {
+                for @( .value ) -> $i {
+                    take ($i => .key)
+                }
+            }
+        }
     }
 
     multi method push (*@values) {

@@ -120,6 +120,19 @@ Returns a curried version of self.
 .end
 
 
+=item callwith(...)
+
+Just calls this block with the supplied parameters.
+
+=cut
+
+.sub 'callwith' :method
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+    .tailcall self(pos_args :flat, named_args :flat :named)
+.end
+
+
 =item count()
 
 Return the number of required and optional parameters for a Block.

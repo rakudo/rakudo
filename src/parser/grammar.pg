@@ -562,7 +562,6 @@ rule default_value {
 
 token expect_term {
     | <noun> <post>* {*}                         #= noun
-    | '*' {*}                                    #= *
 }
 
 
@@ -656,6 +655,7 @@ token term {
         ]
     | <sigil> \s <arglist> {*}                   #= sigil
     | '...' {*}                                  #= ...
+    | '*' {*}                                    #= *
     ]
 }
 

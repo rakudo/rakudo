@@ -1399,25 +1399,7 @@ method param_var($/) {
 
 
 method expect_term($/, $key) {
-    my $past;
-    if $key eq '*' {
-        # Whatever.
-        $past := PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('new'),
-            :node($/),
-            :lvalue(1),
-            PAST::Var.new(
-                :name('Whatever'),
-                :namespace(list()),
-                :scope('package'),
-                :node($/)
-            )
-        );
-    }
-    else {
-        $past := $( $/{$key} );
-    }
+    my $past := $( $/{$key} );
 
     if $<post> {
         for $<post> {
@@ -2515,7 +2497,22 @@ method term($/, $key) {
         $short_name := @ns.pop();
     }
 
-    if $key eq 'noarg' {
+    if $key eq '*' {
+        # Whatever.
+        $past := PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('new'),
+            :node($/),
+            :lvalue(1),
+            PAST::Var.new(
+                :name('Whatever'),
+                :namespace(list()),
+                :scope('package'),
+                :node($/)
+            )
+        );
+    }
+    elsif $key eq 'noarg' {
         if @ns {
             $past := PAST::Op.new(
                 PAST::Var.new(

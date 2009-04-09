@@ -28,6 +28,7 @@ for (@ops) {
             $P2 = interpinfo .INTERPINFO_CURRENT_SUB
             $P1."set_outer"($P2)
             capture_lex $P1
+            "!fixup_routine_type"($P1, "Block")
             .return ($P1)
         .end
         .sub "$_" :multi(_, "Whatever")
@@ -41,6 +42,7 @@ for (@ops) {
             $P2 = interpinfo .INTERPINFO_CURRENT_SUB
             $P1."set_outer"($P2)
             capture_lex $P1
+            "!fixup_routine_type"($P1, "Block")
             .return ($P1)
         .end
     ';

@@ -2178,6 +2178,9 @@ method variable($/, $key) {
         if $<sigil> eq '&' {
             my $sym := outer_symbol($varname);
             $var.scope( ($sym && $sym<scope>) || 'package');
+            if $var.scope() eq 'package' {
+                $var.viviself(PAST::Op.new( :pasttype('call'), :name('undef') ));
+            }
         }
 
         # The ! twigil always implies attribute scope.

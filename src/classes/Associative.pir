@@ -57,11 +57,11 @@ Returns a list element or slice.
     .param pmc options         :slurpy :named
     .local pmc result, type
     type = find_lex 'T'
-    if args goto do_index
-    ## return complete invocant as a list
-    .tailcall self.'list'()
-  do_index:
     args.'!flatten'()
+    if args goto do_index
+    ## return complete set of values as a list
+    .tailcall self.'values'()
+  do_index:
     $I0 = args.'elems'()
     if $I0 != 1 goto slice
     $S0 = args[0]

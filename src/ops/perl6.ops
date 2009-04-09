@@ -134,9 +134,10 @@ inline op find_lex_lift(out PMC, in STR) :base_core {
 
 inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
 #if PARROT_HAS_ICU
-    char    *cstr;
-    INTVAL  ord;
-    int32_t strprop, ordprop;
+    char     *cstr;
+    INTVAL   ord;
+    int32_t  strwhich, ordwhich;
+    opcode_t *handler;
 
     if ($4 > 0 && (UINTVAL)$4 == ($3->strlen)) {
         $1 = 0;
@@ -145,25 +146,39 @@ inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
 
     ord = string_ord(interp, $3, $4);
     cstr = Parrot_str_to_cstring(interp, $2);
-    strprop = u_getPropertyValueEnum(UCHAR_GENERAL_CATEGORY_MASK, cstr);
-    if (strprop != UCHAR_INVALID_CODE) {
-        ordprop = u_getIntPropertyValue(ord, UCHAR_GENERAL_CATEGORY_MASK);
-        strprop &= ordprop;
+
+    /* try property value aliases */
+    strwhich = u_getPropertyValueEnum(UCHAR_GENERAL_CATEGORY_MASK, cstr);
+    if (strwhich != UCHAR_INVALID_CODE) {
+        ordwhich = u_getIntPropertyValue(ord, UCHAR_GENERAL_CATEGORY_MASK);
+        $1 = ((strwhich & ordwhich) != 0);
+        Parrot_str_free_cstring(cstr);
+        goto NEXT();
     }
-    else {
-        strprop = u_getPropertyValueEnum(UCHAR_SCRIPT, cstr);
-        ordprop = u_getIntPropertyValue(ord, UCHAR_SCRIPT);
+
+    /* try property */
+    strwhich = u_getPropertyEnum(cstr);
+    if (strwhich != UCHAR_INVALID_CODE) {
+        $1 = (u_hasBinaryProperty(ord, strwhich) != 0);
+        Parrot_str_free_cstring(cstr);
+        goto NEXT();
     }
+
+    /* try script aliases */
+    strwhich = u_getPropertyValueEnum(UCHAR_SCRIPT, cstr);
+    if (strwhich != UCHAR_INVALID_CODE) {
+        ordwhich = u_getIntPropertyValue(ord, UCHAR_SCRIPT);
+        $1 = (strwhich == ordwhich);
+        Parrot_str_free_cstring(cstr);
+        goto NEXT();
+    }
+
+    /* unrecognized property name */
     Parrot_str_free_cstring(cstr);
-
-    if (strprop == UCHAR_INVALID_CODE) {
-        opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL, 
-                EXCEPTION_ICU_ERROR,
-                "Unicode property '%Ss' not found", $2);
-        goto ADDRESS(handler);
-    }
-
-    $1 = (strprop == ordprop);
+    handler =  Parrot_ex_throw_from_op_args(interp, NULL, 
+            EXCEPTION_ICU_ERROR,
+            "Unicode property '%Ss' not found", $2);
+    goto ADDRESS(handler);
 #else
     opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL, 
             EXCEPTION_ICU_ERROR,

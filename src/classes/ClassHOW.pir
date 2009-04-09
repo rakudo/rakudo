@@ -54,6 +54,8 @@ Dispatches to method of the given name on this class or one of its parents.
     $I0 = isa obj, 'P6protoobject'
     if $I0 goto is_proto
     parrotclass = getattribute self, 'parrotclass'
+    $I0 = isa obj, 'Whatever'
+    if $I0 goto whatever_closure
     goto proto_done
   is_proto:
     parrotclass = class obj
@@ -183,7 +185,40 @@ Dispatches to method of the given name on this class or one of its parents.
   values_it_loop_end:
     type = obj.'!type'()
     .tailcall '!MAKE_JUNCTION'(type, res_list)
+
+  whatever_closure:
+    if name == 'WHAT' goto proto_done # XXX And this is why .WHAT needs to become a macro...
+    .tailcall '!MAKE_WHATEVER_CLOSURE'(name, pos_args, name_args)
 .end
+
+
+=item !MAKE_WHATEVER_CLOSURE
+
+Creates whatever closures (*.foo => { $_.foo })
+
+=cut
+
+.sub '!MAKE_WHATEVER_CLOSURE'
+    .param pmc name
+    .param pmc pos_args
+    .param pmc named_args
+    .lex '$name', name
+    .lex '$pos_args', pos_args
+    .lex '$named_args', named_args
+    .const 'Sub' $P0 = '!whatever_dispatch_helper'
+    $P0 = newclosure $P0
+    "!fixup_routine_type"($P0, "Block")
+    .return ($P0)
+.end
+.sub '!whatever_dispatch_helper' :outer('!MAKE_WHATEVER_CLOSURE')
+    .param pmc obj
+    $P0 = find_lex '$name'
+    $S0 = $P0
+    $P1 = find_lex '$pos_args'
+    $P2 = find_lex '$named_args'
+    .tailcall obj.$S0($P1 :flat, $P2 :flat :named)
+.end
+
 
 =back
 

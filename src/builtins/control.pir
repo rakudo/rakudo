@@ -456,6 +456,47 @@ on error.
     'die'('Use of callwith in non-wrapped case not yet implemented.')
 .end
 
+
+=item callsame
+
+=cut
+
+.sub 'callsame'
+    # Is our caller a wrapping? If so, find what we need to call.
+    .local pmc caller, inner
+    $P0 = new 'ParrotInterpreter'
+    caller = $P0['sub'; 1]
+  search_loop:
+    inner = getprop '$!wrap_inner', caller
+    unless null inner goto found_inner
+  try_outer:
+    $I0 = isa caller, 'Routine' # Should not search out of current routine.
+    if $I0 goto not_wrapped
+    caller = caller.'get_outer'()
+    if null caller goto not_wrapped
+    $P0 = getprop '$!real_self', caller
+    if null $P0 goto search_loop
+    caller = $P0
+    goto search_loop
+
+  found_inner:
+    # Now we need to get the arguments passed.
+    # XXX TODO: not sure how to do this well just yet. For now, just die if there
+    # are args, but call things that don't get any.
+    .local pmc params
+    params = inner.'signature'()
+    params = params.'params'()
+    $I0 = params
+    if $I0 > 0 goto unimpl
+    .tailcall inner()
+  unimpl:
+    'die'("callsame passing on arguments not yet implemented")
+
+  not_wrapped:
+    'die'('Use of callsame in non-wrapped case not yet implemented.')
+.end
+
+
 =back
 
 =head1 TODO: Functions

@@ -233,7 +233,7 @@ S06-traits/is-copy.t
 S06-traits/is-rw.t
 S06-traits/misc.t
 S09-subscript_slice/slice.t
-S09-typed-arrays/array.t
+S09-typed-arrays/arrays.t
 S10-packages/use-with-class.t
 S11-modules/export.t
 S11-modules/import.t

@@ -14,6 +14,15 @@ src/classes/Range.pir - methods for the Range class
     .local pmc p6meta, rangeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     rangeproto = p6meta.'new_class'('Range', 'parent'=>'Any', 'attr'=>'$!by $!from $!to $!from_exclusive $!to_exclusive')
+    
+    $P0 = p6meta.'get_parrotclass'(rangeproto)
+    $P1 = new 'ResizablePMCArray'
+    push $P1, 'postcircumfix:[ ]'
+    $P0.'resolve_method'($P1)
+    $P0 = get_hll_global 'Positional'
+    $P0 = $P0.'!select'()
+    p6meta.'add_role'($P0, 'to'=>rangeproto)
+    
     rangeproto.'!IMMUTABLE'()
 .end
 
@@ -63,6 +72,25 @@ Generate the next element at the end of the Range.
     value = '!FAIL'('Undefined value popped from empty range')
   success:
     .return (value)
+.end
+
+
+=item postcircumfix:[ ]
+
+=cut
+
+.sub 'postcircumfix:[ ]' :method
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+    # Since ranges aren't lazy yet anyway, we just get the .list() for
+    # this range and then delegate to it's postcircumfix. When they are
+    # truly lazy we can re-visit this and do something smarter.
+    $P0 = self.'list'()
+    .tailcall $P0.'postcircumfix:[ ]'(pos_args :flat, named_args :flat :named)
+.end
+.sub '' :vtable('elements')
+    $I0 = self.'elems'()
+    .return ($I0)
 .end
 
 

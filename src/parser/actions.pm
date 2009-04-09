@@ -1307,6 +1307,9 @@ method parameter($/) {
     my $typelist := PAST::Op.new( :name('all'), :pasttype('call') );
     $var<type> := $typelist;
     if $<type_constraint> {
+        if $<type_constraint> != 1 {
+            $/.panic("Multiple prefix constraints not yet supported");
+        }
         for @($<type_constraint>) {
             my $type_past := $( $_ );
             if $type_past.isa(PAST::Var) && $type_past.scope() eq 'lexical' {

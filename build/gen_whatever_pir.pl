@@ -52,16 +52,16 @@ for (@ops) {
 
 print $fh '
 .sub "!whatever_helper_left"
+    .param pmc left 
+    $P0 = find_lex "$op"
+    $P1 = find_lex "$known"
+    .tailcall $P0(left, $P1)
+.end
+.sub "!whatever_helper_right"
     .param pmc right
     $P0 = find_lex "$op"
     $P1 = find_lex "$known"
     .tailcall $P0($P1, right)
-.end
-.sub "!whatever_helper_right"
-    .param pmc left
-    $P0 = find_lex "$op"
-    $P1 = find_lex "$known"
-    .tailcall $P0(left, $P1)
 .end
 ';
 

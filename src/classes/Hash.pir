@@ -25,20 +25,41 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 =cut
 
 .namespace ['Perl6Hash']
-.sub 'ACCEPTS' :method
+.sub 'ACCEPTS' :method :subid('hash_ACCEPTS')
     .param pmc topic
     .tailcall self.'contains'(topic)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "hash_ACCEPTS"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("$topic")
+    $P0 = get_hll_global 'Hash'
+    signature."!add_implicit_self"($P0)
+.end
+
 
 .namespace ['Perl6Hash']
-.sub 'contains' :method
+.sub 'contains' :method :subid('hash_contains')
     .param pmc key
     $I0 = exists self[key]
     .return( $I0 )
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "hash_contains"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("$key")
+    $P0 = get_hll_global 'Hash'
+    signature."!add_implicit_self"($P0)
+.end
 
 .namespace ['Perl6Hash']
-.sub 'delete' :method
+.sub 'delete' :method :subid('hash_delete')
     .param pmc keys :slurpy
     .local pmc result
     .local string key
@@ -55,22 +76,60 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
   done:
     .return (result)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "hash_delete"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("@keys", 1 :named('slurpy'))
+    $P0 = get_hll_global 'Hash'
+    signature."!add_implicit_self"($P0)
+.end
 
 .namespace ['Perl6Hash']
-.sub 'exists' :method
+.sub 'exists' :method :subid('hash_exists')
     .param pmc key
     $I0 = exists self[key]
     .return( $I0 )
 .end
-
-.namespace ['Perl6Hash']
-.sub 'hash' :method
-    .return (self)
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "hash_exists"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("$key")
+    $P0 = get_hll_global 'Hash'
+    signature."!add_implicit_self"($P0)
 .end
 
 .namespace ['Perl6Hash']
-.sub 'Hash' :method
+.sub 'hash' :method :subid('hash_hash')
     .return (self)
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "hash_hash"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Hash'
+    signature."!add_implicit_self"($P0)
+.end
+
+.namespace ['Perl6Hash']
+.sub 'Hash' :method :subid('hash_Hash')
+    .return (self)
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "hash_Hash"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Hash'
+    signature."!add_implicit_self"($P0)
 .end
 
 =back

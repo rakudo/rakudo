@@ -19,7 +19,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
     p6meta.'add_role'($P0, 'to'=>mappingproto)
     p6meta.'register'('Hash', 'parent'=>mappingproto, 'protoobject'=>mappingproto)
     $P0 = get_hll_namespace ['Mapping']
-    '!EXPORT'('keys,kv,values', $P0)
+    '!EXPORT'('keys,kv,values', 'from'=>$P0, 'to_p6_multi'=>1)
 .end
 
 =head2 Methods
@@ -35,7 +35,7 @@ every pair, joined by newlines or an explicitly given separator.
 
 =cut
 
-.sub 'fmt' :method :multi('Hash')
+.sub 'fmt' :method :multi() :subid('mapping_fmt')
     .param pmc format
     .param string sep  :optional
     .param int has_sep :opt_flag
@@ -66,13 +66,25 @@ every pair, joined by newlines or an explicitly given separator.
     rv = 'join'(sep, rv)
     .return(rv)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "mapping_fmt"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature."!add_param"("$format")
+    signature."!add_param"("$sep", 1 :named('optional'))
+    $P0 = get_hll_global 'Mapping'
+    signature."!add_implicit_self"($P0)
+    '!TOPERL6MULTISUB'(block)
+.end
 
 
 =item iterator()
 
 =cut
 
-.sub 'iterator' :method :multi('Hash')
+.sub 'iterator' :method :multi() :subid('mapping_iterator')
     .local pmc it
     .local pmc rv
 
@@ -95,6 +107,16 @@ every pair, joined by newlines or an explicitly given separator.
   end:
     .return (rv)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "mapping_iterator"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Mapping'
+    signature."!add_implicit_self"($P0)
+    '!TOPERL6MULTISUB'(block)
+.end
 
 
 =item keys()
@@ -103,7 +125,7 @@ Returns keys of hash as a List
 
 =cut
 
-.sub 'keys' :method :multi('Hash')
+.sub 'keys' :method :multi() :subid('mapping_keys')
     .local pmc it
     .local pmc rv
 
@@ -123,6 +145,15 @@ Returns keys of hash as a List
   end:
     .return (rv)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "mapping_keys"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Mapping'
+    signature."!add_implicit_self"($P0)
+.end
 
 
 =item kv (method)
@@ -131,7 +162,7 @@ Returns elements of hash as array of C<Pair(key, value)>
 
 =cut
 
-.sub 'kv' :method :multi('Hash')
+.sub 'kv' :method :multi() :subid('mapping_kv')
     .local pmc it
     .local pmc rv
 
@@ -155,6 +186,15 @@ Returns elements of hash as array of C<Pair(key, value)>
   end:
     .return (rv)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "mapping_kv"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Mapping'
+    signature."!add_implicit_self"($P0)
+.end
 
 
 =item list()
@@ -174,8 +214,18 @@ Returns elements of hash as array of C<Pairs>
 
 =cut
 
-.sub 'pairs' :method :multi('Hash')
+.sub 'pairs' :method :multi() :subid('mapping_pairs')
     .tailcall self.'iterator'()
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "mapping_pairs"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Mapping'
+    signature."!add_implicit_self"($P0)
+    '!TOPERL6MULTISUB'(block)
 .end
 
 
@@ -185,7 +235,7 @@ Return perl representation of the invocant.
 
 =cut
 
-.sub 'perl' :method
+.sub 'perl' :method :subid('mapping_perl')
     .local string rv
     .local pmc it
 
@@ -203,6 +253,15 @@ Return perl representation of the invocant.
     rv .= '}'
     .return (rv)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "mapping_perl"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Mapping'
+    signature."!add_implicit_self"($P0)
+.end
 
 
 =item reverse
@@ -210,7 +269,7 @@ Return perl representation of the invocant.
 =cut
 
 .namespace ['Mapping']
-.sub 'reverse' :method
+.sub 'reverse' :method :subid('mapping_reverse')
     .local pmc it
     .local pmc rv
 
@@ -233,6 +292,15 @@ Return perl representation of the invocant.
   end:
     .return (rv)
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "mapping_reverse"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Mapping'
+    signature."!add_implicit_self"($P0)
+.end
 
 
 =item values()
@@ -241,7 +309,7 @@ Returns values of hash as a List
 
 =cut
 
-.sub 'values' :method :multi('Hash')
+.sub 'values' :method :multi() :subid('mapping_values')
     .local pmc it
     .local pmc rv
 
@@ -261,6 +329,15 @@ Returns values of hash as a List
 
   end:
     .return (rv)
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "mapping_values"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Mapping'
+    signature."!add_implicit_self"($P0)
 .end
 
 =back

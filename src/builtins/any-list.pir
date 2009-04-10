@@ -86,17 +86,36 @@ Return a List with the keys of the invocant.
 =cut
 
 .namespace []
-.sub 'keys' :multi()
+.sub 'keys' :multi() :subid('_keys')
     .param pmc values          :slurpy
     values.'!flatten'()
     .tailcall values.'keys'()
 .end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "_keys"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature.'!add_param'('@values', 1 :named('slurpy'))
+    '!TOPERL6MULTISUB'(block)
+.end
+
 
 .namespace ['Any']
-.sub 'keys' :method
+.sub 'keys' :method :subid('any_keys')
     $I0 = self.'elems'()
     $P0 = 'prefix:^'($I0)
     .tailcall $P0.'list'()
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "any_keys"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    $P0 = get_hll_global 'Any'
+    signature."!add_implicit_self"($P0)
 .end
 
 
@@ -105,10 +124,19 @@ Return a List with the keys of the invocant.
 =cut
 
 .namespace []
-.sub 'kv' :multi()
+.sub 'kv' :multi() :subid('_kv')
     .param pmc values          :slurpy
     values.'!flatten'()
     .tailcall values.'kv'()
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "_kv"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature.'!add_param'('@values', 1 :named('slurpy'))
+    '!TOPERL6MULTISUB'(block)
 .end
 
 .namespace ['Any']
@@ -364,9 +392,18 @@ Return values of the list
 =cut
 
 .namespace []
-.sub 'values' :multi()
+.sub 'values' :multi() :subid('_values')
     .param pmc values          :slurpy
     .tailcall values.'!flatten'()
+.end
+.sub '' :init :load
+    .local pmc block, signature
+    .const 'Sub' $P0 = "_values"
+    block = $P0
+    signature = new ["Signature"]
+    setprop block, "$!signature", signature
+    signature.'!add_param'('@values', 1 :named('slurpy'))
+    '!TOPERL6MULTISUB'(block)
 .end
 
 .namespace ['Any']

@@ -234,6 +234,7 @@ S06-traits/is-rw.t
 S06-traits/misc.t
 S09-subscript_slice/slice.t
 S09-typed-arrays/arrays.t
+S09-typed-arrays/hashes.t
 S10-packages/use-with-class.t
 S11-modules/export.t
 S11-modules/import.t
@@ -320,6 +321,8 @@ S32-container/zip.t
 S32-hash/exists.t
 S32-hash/keys_values.t
 S32-hash/pairs.t
+S32-hash/push.t
+S32-hash/reverse.t
 S32-hash/slice.t
 S32-list/end.t
 S32-list/first.t

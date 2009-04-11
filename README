@@ -108,8 +108,9 @@ C<parrot-dev@lists.parrot.org>.
 The Rakudo and Parrot development teams tend to hang out on IRC a fair
 bit, either on C<irc.freenode.net/#perl6> or C<irc.perl.org/#parrot>.
 
-There is also a Rakudo related blog at L<http://rakudo.org/>, and
-a Parrot blog at L<http://parrotblog.org/>. Most Perl 6 related news is
+Rakudo's official web site is L<http://rakudo.org/>, where you can
+find useful information for developers and users alike. There's also
+a Parrot blog at L<http://parrotblog.org/>, most Perl 6 related news is
 assembled at L<http://planetsix.perl.org/>.
 
 =head2 Reporting bugs

@@ -630,9 +630,7 @@ the basis of WALK also. It returns all methods we could possible call.
     .local pmc p6meta, result_list, class, mro, it
     $P0 = get_hll_global 'list'
     result_list = $P0()
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    class = self.'WHAT'()
-    class = p6meta.'get_parrotclass'(class)
+    class = typeof self
     mro = inspect class, 'all_parents'
     it = iter mro
   mro_loop:

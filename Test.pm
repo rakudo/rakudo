@@ -55,7 +55,7 @@ multi sub nok(Object $cond, $desc) is export(:DEFAULT) {
     proclaim(!$cond, $desc);
 }
 
-multi sub nok(Object $cond) is export(:DEFAULT) { nok(!$cond, ''); }
+multi sub nok(Object $cond) is export(:DEFAULT) { nok($cond, ''); }
 
 
 multi sub is(Object $got, Object $expected, $desc) is export(:DEFAULT) {

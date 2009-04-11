@@ -50,7 +50,7 @@ class Any is also {
         $char
     }
 
-    our List multi method split(Code $delimiter, $limit = *) {
+    our List multi method split(Code $delimiter, $limit = *) is export {
         my $s = ~self;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         my $keep = '';
@@ -75,7 +75,7 @@ class Any is also {
     }
 
     # TODO: substitute with '$delimiter as Str' once coercion is implemented
-    our List multi method split($delimiter, $limit = *) {
+    our List multi method split($delimiter, $limit = *) is export {
         my Int $prev = 0;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         my $s = ~self;
@@ -133,10 +133,6 @@ class Any is also {
     our Str multi method ucfirst is export {
         self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""
     }
-}
-
-multi sub split($delimiter, $target, $limit = *) {
-    $target.split($delimiter, $limit);
 }
 
 # TODO: '$filename as Str' once support for that is in place

@@ -116,6 +116,7 @@ S03-operators/reduce-le1arg.t
 S03-operators/reduce-metaop.t
 S03-operators/relational.t
 S03-operators/repeat.t
+S03-operators/scalar-assign.t
 S03-operators/short-circuit.t
 S03-operators/smartmatch.t
 S03-operators/spaceship-and-containers.t
@@ -223,6 +224,8 @@ S06-signature/passing-arrays.t
 S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t
 S06-signature/positional.t
+S06-signature/scalar-type.t
+S06-signature/slurpy-and-interplation.t
 S06-signature/slurpy-params.t
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t

@@ -159,7 +159,7 @@ inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
     }
 
     /* try bidi tests */
-    if (strncmp(cstr, "Bidi", 2) == 0) {
+    if (strncmp(cstr, "Bidi", 4) == 0) {
         strwhich = u_getPropertyValueEnum(UCHAR_BIDI_CLASS, cstr+4);
         ordwhich = u_getIntPropertyValue(ord, UCHAR_BIDI_CLASS);
         if (strwhich != UCHAR_INVALID_CODE) {

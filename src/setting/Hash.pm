@@ -1,5 +1,5 @@
 class Hash is also {
-    multi method reverse () is export {
+    multi method invert () is export {
         gather { 
             for @.pairs {
                 for @( .value ) -> $i {

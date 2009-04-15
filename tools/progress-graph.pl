@@ -109,7 +109,7 @@ $p->set(y_max_value => $max );
 my $g = $p->plot([@data[DATE, @columns_to_plot]]) or die $p->error;
 my $out_file = $ARGV[1] || "rakudo-tests-$last_date.png";
 open my $o, '>', $out_file
-    or die "Can't open file graph.png for writing: $!";
+    or die "Can't open file `$out_file' for writing: $!";
 binmode $o;
 print $o $g->png;
 close $o;

@@ -169,23 +169,6 @@ Selects a role based upon type.
 .end
 
 
-=item new
-
-Puns the role and instantiates the punned class.
-
-=cut
-
-.sub 'new' :method
-    .param pmc pos_args  :slurpy
-    .param pmc name_args :slurpy :named
-
-    # Must be argument-less case of the role; select that and then tailcall
-    # it's new.
-    $P0 = self.'!select'()
-    .tailcall $P0.'new'(pos_args :flat, name_args :flat :named)
-.end
-
-
 =item elements (vtable method)
 
 Gives the number of possible parameterized roles we can select from (but really
@@ -266,21 +249,6 @@ Puns the role to a class and returns that class.
     # Stash it away, then instantiate it.
     setprop self, '$!pun', proto
     .return (proto)
-.end
-
-
-=item new
-
-Puns the role to a class and instantiates it.
-
-=cut
-
-.sub 'new' :method
-    .param pmc pos_args    :slurpy
-    .param pmc name_args   :slurpy :named
-    .local pmc pun
-    pun = self.'!pun'()
-    .tailcall pun.'new'(pos_args :flat, name_args :flat :named)
 .end
 
 

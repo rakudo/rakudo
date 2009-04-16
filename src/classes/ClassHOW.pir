@@ -47,6 +47,12 @@ Dispatches to method of the given name on this class or one of its parents.
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
 
+    # If it's a call on a role, need to pun it.
+    $I0 = isa obj, 'Perl6Role'
+    if $I0 goto pun_role_unselected
+    $I0 = isa obj, 'Role'
+    if $I0 goto pun_role
+
     # Get MRO and an interator on it. Note that we need to handle calls on
     # protos a little specially, since parrotclass on them doesn't hand back
     # the class with the methods in it that we got from the proto.
@@ -189,6 +195,12 @@ Dispatches to method of the given name on this class or one of its parents.
   whatever_closure:
     if name == 'WHAT' goto proto_done # XXX And this is why .WHAT needs to become a macro...
     .tailcall '!MAKE_WHATEVER_CLOSURE'(name, pos_args, name_args)
+
+  pun_role_unselected:
+    obj = obj.'!select'()
+  pun_role:
+    obj = obj.'!pun'()
+    .tailcall '!dispatch_method'(obj, name, pos_args :flat, name_args :flat :named)
 .end
 
 

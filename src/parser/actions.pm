@@ -2676,7 +2676,9 @@ method EXPR($/, $key) {
         }
 
         # Change call node to a callmethod.
-        $call.pasttype('callmethod');
+        $call.pasttype('call');
+        $call.unshift($call.name());
+        $call.name('!dispatch_method');
 
         # We only want to evaluate invocant once; stash it in a register.
         $call.unshift(PAST::Op.new(

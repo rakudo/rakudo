@@ -1,7 +1,6 @@
 New in 2009-04 release
 * wrap and unwrap for subroutines
 * calling a method on a Whatever star generates a closure
-* sub form of split() now expects delimiter as second argument
 * .invert and .push on Hashes
 * enforce return types of subroutines (partial implementation)
 * parallel testing

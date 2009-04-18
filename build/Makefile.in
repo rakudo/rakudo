@@ -117,6 +117,7 @@ SETTING = \
   src/setting/Bool.pm \
   src/setting/Hash.pm \
   src/setting/IO.pm \
+  src/setting/IO/Socket.pm \
   src/setting/List.pm \
   src/setting/Match.pm \
   src/setting/Num.pm \

@@ -23,6 +23,14 @@ class Any is also {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
+    our Int multi method ord() is export {
+        Q:PIR {
+            $S0 = self
+            $I0 = ord $S0
+            %r = box $I0
+        }
+    }
+
     our Int multi method p5chomp is export(:P5) {
         my $num = 0;
 

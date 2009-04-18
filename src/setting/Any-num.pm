@@ -7,6 +7,14 @@ class Any is also {
         }
     }
 
+    our Str multi method chr() is export {
+        Q:PIR {
+            $I0 = self
+            $S0 = chr $I0
+            %r = box $S0
+        }
+    }
+
     our Complex multi method cis() is export {
         (1.0).unpolar(self)
     }

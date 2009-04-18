@@ -55,30 +55,6 @@ the size of that file down and to emphasize their generic,
     .return ($I0)
 .end
 
-=item join
-
-=cut
-
-.namespace []
-.sub 'join' :multi('String')
-    .param string sep
-    .param pmc values          :slurpy
-    .tailcall values.'join'(sep)
-.end
-
-.namespace ['Any']
-.sub 'join' :method :multi(_)
-    .param string sep          :optional
-    .param int has_sep         :opt_flag
-    if has_sep goto have_sep
-    sep = ''
-  have_sep:
-    $P0 = self.'list'()
-    $P0.'!flatten'()
-    $S0 = join sep, $P0
-    .return ($S0)
-.end
-
 =item keys()
 
 Return a List with the keys of the invocant.

@@ -33,9 +33,8 @@ close $REQ;
 {
     no warnings;
     if (open my $REV, '-|', "parrot${slash}parrot_config revision") {
-        my $revision = <$REV>;
+        my $revision = 0+<$REV>;
         close $REV;
-        chomp $revision;
         if ($revision >= $required) {
             print "Parrot r$revision already available (r$required required)\n";
             exit(0);

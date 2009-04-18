@@ -487,6 +487,7 @@ token signature {
         ]
     ]*
     <.ws>
+    [ '-->' <.ws> <fulltypename> ]?
     {*} #= close
 }
 

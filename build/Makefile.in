@@ -118,6 +118,7 @@ SETTING = \
   src/setting/Hash.pm \
   src/setting/IO.pm \
   src/setting/IO/Socket.pm \
+  src/setting/IO/Socket/INET.pm \
   src/setting/List.pm \
   src/setting/Match.pm \
   src/setting/Num.pm \

@@ -11,6 +11,10 @@ class Any is also {
         }
     }
 
+    our Str multi method join(Str $separator = '') {
+        @.list.reduce({ $^a ~ $separator ~ $^b })
+    }
+
     our List multi method map(*&expr) {
         return gather {
             my $arity = &expr.arity || 1;
@@ -95,6 +99,11 @@ multi first(Code $test, *@values) {
 
 our List multi grep(Code $test, *@values) {
     @values.grep($test)
+}
+
+our Str multi join(Str $separator = '', *@values) {
+    die("Not enough arguments for join") if ! @values;
+    @values.join($separator)
 }
 
 our List multi map(Code $expr, *@values) {

@@ -3,7 +3,7 @@ class Any is also {
         self.lc.subst(/\w+/, { .ucfirst }, :global)
     }
 
-    our Str multi method chop is export {
+    our Str multi method chop() is export {
         self.substr(0, -1)
     }
 
@@ -11,7 +11,7 @@ class Any is also {
         sprintf($format, self)
     }
 
-    our Str multi method lc is export {
+    our Str multi method lc() is export {
         Q:PIR {
             $S0 = self
             downcase $S0
@@ -19,7 +19,7 @@ class Any is also {
         }
     }
 
-    our Str multi method lcfirst is export {
+    our Str multi method lcfirst() is export {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
@@ -31,7 +31,7 @@ class Any is also {
         }
     }
 
-    our Int multi method p5chomp is export(:P5) {
+    our Int multi method p5chomp() is export(:P5) {
         my $num = 0;
 
         for @.list -> $str is rw {
@@ -45,7 +45,7 @@ class Any is also {
     }
 
     # TODO: Return type should be a Char once that is supported.
-    our Str multi method p5chop is export(:P5) {
+    our Str multi method p5chop() is export(:P5) {
         my $char = '';
 
         for @.list -> $str is rw {
@@ -56,6 +56,21 @@ class Any is also {
         }
 
         $char
+    }
+
+    our Str multi method samecase(Str $pattern) is export {
+        my @pattern = $pattern.split('');
+        [~] gather {
+            my $p = "";
+            for (~self).split('') -> $s {
+                $p = @pattern.shift if @pattern;
+                given $p {
+                    when /<upper>/ { take $s.uc }
+                    when /<lower>/ { take $s.lc }
+                    default { take $s }
+                }
+            }
+        }
     }
 
     our List multi method split(Code $delimiter, $limit = *) {
@@ -126,11 +141,11 @@ class Any is also {
     }
 
     # TODO: signature not fully specced in S32 yet
-    our Str multi method trim is export {
+    our Str multi method trim() is export {
         (~self).subst(/(^\s+)|(\s+$)/, "", :g)
     }
 
-    our Str multi method uc is export {
+    our Str multi method uc() is export {
         Q:PIR {
             $S0 = self
             upcase $S0
@@ -138,7 +153,7 @@ class Any is also {
         }
     }
 
-    our Str multi method ucfirst is export {
+    our Str multi method ucfirst() is export {
         self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""
     }
 }

@@ -46,13 +46,16 @@ the moment -- we'll do more complex handling a bit later.)
 =cut
 
 .sub '!FAIL'
-    .param string value        :optional
-    .param int has_value       :opt_flag
-    if has_value goto have_value
-    value = 'Use of uninitialized value'
-  have_value:
+    .param pmc args            :slurpy
+    if args goto message_args
+    .local string message
+    message = 'Use of uninitialized value'
+    goto have_message
+  message_args:
+    message = join '', args
+  have_message:
     $P0 = new 'Exception'
-    $P0['message'] = value
+    $P0['message'] = message
     $P1 = new 'Failure'
     setattribute $P1, '$!exception', $P0
     .return ($P1)

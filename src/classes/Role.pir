@@ -101,7 +101,8 @@ Selects a variant of the role to do based upon the supplied parameters.
     .return (result)
   it_loop_end:
 
-    # First time we've had these parameters, so need to instantiate them.
+    # First time we've had these parameters, so need to create the role
+    # taking them.
   select_role:
     .local pmc selector
     selector = getattribute self, '$!selector'
@@ -110,6 +111,11 @@ Selects a variant of the role to do based upon the supplied parameters.
     ins_hash["pos_args"] = pos_args
     ins_hash["role"] = result
     push created_list, ins_hash
+
+    # Also need to annotate that role with its parameters and the "factory"
+    # that generated it.
+    setprop result, "$!owner", self
+    setprop result, "@!type_args", pos_args
     .return (result)
 .end
 
@@ -245,6 +251,12 @@ Puns the role to a class and returns that class.
     # I/someone has the energy for it.
     '!compose_role_attributes'(metaclass, self)
     proto = p6meta.'register'(metaclass, 'parent'=>'Any')
+    
+    # Set name (don't use name=>... in register so we don't make a
+    # namespace entry though).
+    $P0 = self.'Str'()
+    $P1 = proto.'HOW'()
+    setattribute $P1, 'shortname', $P0
 
     # Stash it away, then instantiate it.
     setprop self, '$!pun', proto
@@ -288,8 +300,9 @@ Puns the role to a class and returns that class.
 =cut
 
 .sub 'Str' :method :vtable('get_string')
-    $P0 = getprop '$!shortname', self
-    .return ($P0)
+    $P0 = getprop '$!owner', self
+    $S0 = $P0
+    .return ($S0)
 .end
 
 =back

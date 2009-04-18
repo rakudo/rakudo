@@ -127,7 +127,7 @@ Returns the type constraining what may be stored.
     $I0 = isa invocant, 'Perl6Object'
     if $I0 goto object_method
   foreign:
-    $P0 = get_hll_global ['Associative'], 'postcircumfix:{ }'
+    $P0 = get_hll_global ['Associative[::T]'], 'postcircumfix:{ }'
     .tailcall $P0(invocant, args :flat, options :flat :named)
   object_method:
     .tailcall invocant.'postcircumfix:{ }'(args :flat, options :flat :named)

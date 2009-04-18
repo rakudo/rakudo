@@ -27,7 +27,7 @@ my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 ##  determine what revision of Parrot we require
 open my $REQ, "build/PARROT_REVISION"
   || die "cannot open build/PARROT_REVISION\n";
-my $required = <$REQ>; chomp $required;
+my $required = 0+<$REQ>;
 close $REQ;
 
 {

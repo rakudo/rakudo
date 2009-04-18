@@ -58,6 +58,21 @@ class Any is also {
         $char
     }
 
+    our Str multi method samecase(Str $pattern) is export {
+        my @pattern = $pattern.split('');
+        [~] gather {
+            my $p = "";
+            for (~self).split('') -> $s {
+                $p = @pattern.shift if @pattern;
+                given $p {
+                    when /<upper>/ { take $s.uc }
+                    when /<lower>/ { take $s.lc }
+                    default { take $s }
+                }
+            }
+        }
+    }
+
     our List multi method split(Code $delimiter, $limit = *) {
         my $s = ~self;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;

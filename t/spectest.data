@@ -27,6 +27,7 @@ integration/method-calls-and-instantiation.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 integration/real-strings.t
+integration/rule-in-class-Str.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 S02-builtin_data_types/anon_block.t
@@ -69,14 +70,17 @@ S02-literals/quoting-unicode.t
 S02-literals/radix.t
 S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
+S02-literals/types.t
 S02-literals/underscores.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-magicals/progname.t
 S02-names_and_variables/fmt.t
+S02-names_and_variables/names.t
 S02-names_and_variables/varnames.t
 S02-one-pass-parsing/less-than.t
 S02-polymorphic_types/subset.t
+S02-whitespace_and_comments/begin_end_pod.t
 S02-whitespace_and_comments/comments.t
 S02-whitespace_and_comments/minimal-whitespace.t
 S02-whitespace_and_comments/one-pass-parsing.t
@@ -178,6 +182,7 @@ S05-match/arrayhash.t
 S05-match/blocks.t
 S05-match/capturing-contexts.t
 S05-match/non-capturing.t
+S05-match/positions.t
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
 S05-metachars/tilde.t
@@ -235,6 +240,7 @@ S06-signature/types.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
 S06-traits/misc.t
+S09-autovivification/autoincrement.t
 S09-subscript_slice/slice.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
@@ -305,6 +311,7 @@ S16-io/basic-open.t
 S16-io/say.t
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
+S28-named-variables/inc.t
 S29-any/cmp.t
 S29-any/isa.t
 S29-context/eval.t
@@ -312,6 +319,7 @@ S29-context/sleep.t
 S29-conversions/ord_and_chr.t
 S32-array/delete.t
 S32-array/elems.t
+S32-array/end.t
 S32-array/exists.t
 S32-array/keys_values.t
 S32-array/kv.t
@@ -359,6 +367,7 @@ S32-str/capitalize.t
 S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t
+S32-str/flip.t
 S32-str/index.t
 S32-str/lcfirst.t
 S32-str/lc.t

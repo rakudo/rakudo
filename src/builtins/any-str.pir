@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chomp,chars,:d,:e,:f,index,rindex,ord,substr', 'from'=>$P0)
+    '!EXPORT'('chomp,chars,:d,:e,:f,index,rindex,substr', 'from'=>$P0)
 .end
 
 
@@ -846,18 +846,6 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
 
   x_fail:
     die "Must pass a non-negative integer to :x()"
-.end
-
-
-=item ord()
-
-=cut
-
-.namespace ['Any']
-.sub 'ord' :method :multi(_)
-    $S0 = self
-    $I0 = ord $S0
-    .return ($I0)
 .end
 
 # Local Variables:

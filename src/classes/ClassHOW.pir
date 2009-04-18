@@ -48,10 +48,12 @@ Dispatches to method of the given name on this class or one of its parents.
     .param pmc name_args :slurpy :named
 
     # If it's a call on a role, need to pun it.
+    if name == 'WHAT' goto no_pun
     $I0 = isa obj, 'Perl6Role'
     if $I0 goto pun_role_unselected
     $I0 = isa obj, 'Role'
     if $I0 goto pun_role
+  no_pun:
 
     # Get MRO and an interator on it. Note that we need to handle calls on
     # protos a little specially, since parrotclass on them doesn't hand back

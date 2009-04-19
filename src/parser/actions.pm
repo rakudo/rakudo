@@ -1229,6 +1229,17 @@ method signature($/, $key) {
             $i++;
         }
 
+        ##  handle return type written with --> T
+        if $<fulltypename> {
+            $loadinit.push(PAST::Op.new(
+                :pasttype('call'),
+                :name('!sub_trait_verb'),
+                PAST::Var.new( :name('block'), :scope('register') ),
+                'trait_verb:returns',
+                $( $<fulltypename>[0] )
+            ));
+        }
+
         ##  restore block stack and return signature ast
         our $?BLOCK_OPEN;
         $?BLOCK_OPEN := $block;
@@ -3219,13 +3230,13 @@ sub set_block_type($block, $type) {
             $type
         );
         $block<block_class_type> := $set_type;
-        $block.loadinit().push($set_type);
         # The following is to make sure the Parrot-level sub has a backlink
         # to the Rakudo-level object, since it's all that we can find from
         # interpinfo.
-        $block.loadinit().push(PAST::Op.new(
+        $block.loadinit().unshift(PAST::Op.new(
             :inline("    $P0 = getattribute block, ['Sub'], 'proxy'",
                     "    setprop $P0, '$!real_self', block") ) );
+        $block.loadinit().unshift($set_type);
     }
 }
 

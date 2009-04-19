@@ -270,9 +270,67 @@ Puns the role to a class and returns that class.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
+    
+    # First, check if this role is directly done by the topic.
     $I0 = does topic, self
+    if $I0 goto done
+
+    # Otherwise, need to consider subtypes in the parameters.
+    .local pmc all_variants, it, want_rf, our_types, cur_variant
+    $P0 = getprop '$!owner', self
+    all_variants = getattribute $P0, '@!created'
+    want_rf = getprop '$!orig_role', self
+    our_types = getprop '@!type_args', self
+    it = iter all_variants
+  it_loop:
+    unless it goto it_loop_end
+    cur_variant = shift it
+
+    # We can exclude a variant if it wasn't from the same role factory.
+    $P0 = cur_variant['role']
+    $P1 = getprop '$!orig_role', $P0
+    eq_addr $P1, want_rf, same_variant
+    goto it_loop
+  same_variant:
+
+    # Also we can exclude it if our topic doens't do it.
+    $I0 = does topic, $P0
+    unless $I0 goto it_loop
+
+    # If it's from the same variant, check all types of the role we're
+    # considering here are broader-or-equal types.
+    .local pmc check_types
+    check_types = cur_variant['pos_args']
+    $I0 = elements check_types
+    $I1 = elements our_types
+    if $I0 != $I1 goto it_loop
+    $I0 = 0
+  type_loop:
+    if $I0 >= $I1 goto type_loop_end
+    $P0 = our_types[$I0]
+    $P1 = check_types[$I0]
+    $I2 = $P0.'ACCEPTS'($P1)
+    unless $I2 goto it_loop
+    inc $I0
+    goto type_loop
+  type_loop_end:
+
+    # If we get here, we found a role that through the subtypes of its
+    # parameters is applicable.
+    $I0 = 1
+    goto done
+  it_loop_end:
+
+    # If we get here, no applicable roles.
+    $I0 = 0
+  done:
     $P0 = 'prefix:?'($I0)
     .return ($P0)
+.end
+.sub 'REJECTS' :method
+    .param pmc topic
+    $P0 = self.'ACCEPTS'(topic)
+    .tailcall 'prefix:!'($P0)
 .end
 
 

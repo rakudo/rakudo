@@ -2748,6 +2748,9 @@ method EXPR($/, $key) {
         # Need to make it flatten the argument.
         my $past := $( $/[0] );
         $past.flat(1);
+        if $past<sigil> eq '%' {
+            $past.named(1);
+        }
         make $past;
     }
     elsif ~$type eq 'infix://=' || ~$type eq 'infix:||=' || ~$type eq 'infix:&&=' {

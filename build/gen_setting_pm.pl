@@ -22,14 +22,18 @@ foreach my $file (@files) {
 
 my @classes = ('Any');
 foreach my $file (@files) {
-    next unless $file =~ /[\/\\](\w+)\.pm$/;
-    push @classes, $1;
+    next unless $file =~ /setting((?:[\/\\]\w+)+)\.pm$/;
+    my $full_modname = substr($1, 1);
+    push @classes, $full_modname;
 }
 
 print <<"END_SETTING";
 # Need to use all built-in classes, to import their exports.
 END_SETTING
-print join('', map { "BEGIN { \%*INC<$_> = 1 };\nuse $_;\n" } @classes);
+print join('', map {
+    my $colon_form = $_;
+    $colon_form =~ s/[\/\\]/::/g;
+    "BEGIN { \%*INC<$_> = 1 };\nuse $colon_form;\n" } @classes);
 
 # Why yes, "OMFG" is a correct response to this hack. We need to make sure
 # that we set up %*INC properly for the pre-compiled case, and can't use

@@ -295,6 +295,7 @@ S12-role/crony.t
 S12-role/instantiation.t
 S12-role/mixin.t
 S12-role/namespaced.t
+S12-role/parameter-subtyping.t
 S12-role/parameterized-basic.t
 S12-role/parameterized-mixin.t
 S12-role/parameterized-type.t
@@ -375,7 +376,7 @@ S32-str/p5chomp.t
 S32-str/p5chop.t
 S32-str/pos.t
 S32-str/rindex.t
-S32-str/samecase.t
+S32-str/samecase.t                                         # icu
 S32-str/split-simple.t
 S32-str/sprintf.t
 S32-str/substr.t

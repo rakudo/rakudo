@@ -1,39 +1,7 @@
+use v6;
+
 role IO::Socket {
-    has %.options;
-    has Bool $.Listener;
-
     has $!PIO;
-
-    method open (Str $hostname, Int $port) {
-
-        Q:PIR {
-            .include "socket.pasm"
-            .local pmc sock
-            .local pmc address
-            .local string hostname
-            .local int port
-            .local string buf
-            .local int ret
-
-            $P0 = find_lex "$hostname"
-            hostname = $P0
-
-            $P0 = find_lex "$port"
-            port = $P0
-
-            # Create the socket handle
-            sock = new 'Socket'
-            unless sock goto ERR
-            sock.'socket'(.PIO_PF_INET, .PIO_SOCK_STREAM, .PIO_PROTO_TCP)
-
-            # Pack a sockaddr_in structure with IP and port
-            address = sock.'sockaddr'(hostname, port)
-            sock.'connect'(address)
-            setattribute self, '$!PIO', sock
-        ERR:
-            .return (0)
-        }
-    }
 
     method recv () {
         fail('Socket not available') unless $!PIO;

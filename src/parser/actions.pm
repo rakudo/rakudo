@@ -2034,6 +2034,15 @@ method scoped($/) {
                 $past.viviself( $( $<fulltypename>[0] ).clone() );
             }
         }
+        elsif $past.isa(PAST::Block) && $<fulltypename> {
+            $past.loadinit().push(PAST::Op.new(
+                :pasttype('call'),
+                :name('!sub_trait_verb'),
+                PAST::Var.new( :name('block'), :scope('register') ),
+                'trait_verb:returns',
+                $( $<fulltypename>[0] )
+            ));
+        }
     }
     make $past;
 }

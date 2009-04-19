@@ -213,7 +213,7 @@ the moment -- we'll do more complex handling a bit later.)
     .local string message
     .local pmc ex
 
-    message = list.'join'('')
+    message = join '', list
     if message > '' goto have_message
     message = "Died\n"
   have_message:

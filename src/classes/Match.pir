@@ -40,11 +40,11 @@ properly delegate to the underlying Capture PMC.
     .return ($P1)
 .end
 
-.sub 'list' :method
-    $P0 = getattribute self, ['Capture'], 'proxy'
-    $P1 = $P0.'hash'()
-    .return ($P1)
-.end
+#.sub 'list' :method
+#    $P0 = getattribute self, ['Capture'], 'proxy'
+#    $P1 = $P0.'list'()
+#    .return ($P1)
+#.end
 
 
 =item of

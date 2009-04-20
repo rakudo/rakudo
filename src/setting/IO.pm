@@ -15,9 +15,10 @@ class IO is also {
         return $!ins;
     }
 
-    multi method lines() is export {
-        my @result = ();
-        while !$.eof {
+    multi method lines($limit = *) is export {
+        my @result;
+        my $l = $limit ~~ Whatever ?? Inf !! $limit;
+        while !$.eof && $l-- > 0 {
             push @result, $!PIO.readline().chomp()
         }
         return @result;

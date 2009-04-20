@@ -1904,30 +1904,39 @@ method scope_declarator($/) {
                     $block[0].push( $has );
                 }
                 else {
-                    # $scope eq 'package' | 'lexical'
+                    # $scope eq 'package' | 'lexical' | 'state'
                     my $viviself := PAST::Op.new( :pirop('new PsP'), $var<itype> );
                     if $init_value { $viviself.push( $init_value ); }
                     $var.viviself( $viviself );
+                    if $var<traitlist> {
+                        for @($var<traitlist>) {
+                            if substr($_[0], 0, 11) eq 'trait_verb:' {
+                                $_.name('!var_trait_verb');
+                            }
+                            else {
+                                $_.name('!var_trait');
+                            }
+                            $_.unshift($var);
+                            $var := $_;
+                        }
+                    }
                     if $type {
                         if $var<sigil> eq '$' {
-                            $var := PAST::Op.new( :pirop('setprop'), $var, 'type', $type );
-                        }
-                        else {
-                            my $role_type;
-                            if $var<sigil> eq '@' { $role_type := 'Positional' }
-                            elsif $var<sigil> eq '%' { $role_type := 'Associative' }
-                            elsif $var<sigil> eq '' { $role_type := 'Callable' } # & becomes null sigil
-                            else { $/.panic("Cannot handle typed variables with sigil " ~ $var<sigil>); }
                             $var := PAST::Op.new(
                                 :pasttype('call'),
-                                :name('infix:does'),
+                                :name('!var_trait_verb_of'),
+                                $var, $type
+                            );
+                        }
+                        else {
+                            if $var<sigil> ne '@' && $var<sigil> ne '%' && $var<sigil> ne '' {
+                                $/.panic("Cannot handle typed variables with sigil " ~ $var<sigil>);
+                            }
+                            $var := PAST::Op.new(
+                                :pasttype('call'),
+                                :name('!var_trait_verb_of'),
                                 $var,
-                                PAST::Op.new(
-                                    :pasttype('callmethod'),
-                                    :name('!select'),
-                                    PAST::Var.new( :name($role_type), :scope('package') ),
-                                    $type
-                                )
+                                $type
                             );
                         }
                     }

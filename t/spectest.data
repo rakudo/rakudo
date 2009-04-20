@@ -301,6 +301,7 @@ S12-role/parameterized-mixin.t
 S12-role/parameterized-type.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
+S13-type-casting/methods.t
 S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t

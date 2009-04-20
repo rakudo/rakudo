@@ -20,7 +20,6 @@ proto prefix:<!> is equiv(prefix:<+>) { ... }
 proto prefix:<+^> is equiv(prefix:<+>)
     is pirop('bnot')
     { ... }
-proto prefix:<=> is equiv(prefix:<+>) { ... }
 proto prefix:<^> is equiv(prefix:<+>) { ... }
 proto prefix:<\> is equiv(prefix:<+>) { ... }
 proto prefix:<|> is equiv(prefix:<+>) { ... }

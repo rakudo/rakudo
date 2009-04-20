@@ -26,6 +26,27 @@ Match - Perl 6 match objects
 .end
 
 
+=item hash, list
+
+Currently C<Object> interposes its own C<hash> and C<list> methods
+on Match objects, these force Match.hash and Match.list to
+properly delegate to the underlying Capture PMC.
+
+=cut
+
+.sub 'hash' :method
+    $P0 = getattribute self, ['Capture'], 'proxy'
+    $P1 = $P0.'hash'()
+    .return ($P1)
+.end
+
+.sub 'list' :method
+    $P0 = getattribute self, ['Capture'], 'proxy'
+    $P1 = $P0.'hash'()
+    .return ($P1)
+.end
+
+
 =item of
 
 Returns the type of value that this Match object may store. Note: we need this

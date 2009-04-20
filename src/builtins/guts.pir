@@ -825,6 +825,89 @@ and C<type>.
 .end
 
 
+=item !var_trait(var, type, trait, arg?)
+
+=cut
+
+.sub '!var_trait'
+    .param pmc var
+    .param string type
+    .param string trait
+    .param pmc arg             :optional
+    .param int has_arg         :opt_flag
+
+    if has_arg goto have_arg
+    null arg
+  have_arg:
+
+    $S0 = concat '!var_trait_', trait
+    $P0 = find_name $S0
+    if null $P0 goto done
+    .tailcall $P0(trait, var, arg)
+  done:
+    .return (var)
+.end
+
+
+=item !var_trait_verb(var, trait, arg?)
+
+=cut
+
+.sub '!var_trait_verb'
+    .param pmc var
+    .param string trait
+    .param pmc arg             :optional
+    .param int has_arg         :opt_flag
+
+    if has_arg goto have_arg
+    null arg
+  have_arg:
+
+    $S0 = substr trait, 11
+    $S0 = concat '!var_trait_verb_', $S0
+    $P0 = find_name $S0
+    if null $P0 goto done
+    .tailcall $P0(var, arg)
+  done:
+    .return (var)
+.end
+
+
+=item !var_trait_verb_of(var, arg?)
+
+Sets the type constraint on the container.
+
+=cut
+
+.sub '!var_trait_verb_of'
+    .param pmc var
+    .param pmc arg
+    $I0 = isa var, 'Perl6Scalar'
+    unless $I0 goto non_scalar
+    setprop var, 'type', arg
+    .return (var)
+  non_scalar:
+    $I0 = isa var, 'Perl6Array'
+    if $I0 goto array
+    $I0 = isa var, 'Perl6Hash'
+    if $I0 goto hash
+    $I0 = isa var, 'Sub'
+    if $I0 goto code
+  array:
+    $P0 = get_hll_global 'Positional'
+    goto mixin
+  hash:
+    $P0 = get_hll_global 'Associative'
+    goto mixin
+  code:
+    $P0 = get_hll_global 'Callable'
+    goto mixin
+  mixin:
+    $P0 = $P0.'!select'(arg)
+    .tailcall 'infix:does'(var, $P0)
+.end
+
+
 =item !sub_trait(sub, type, trait, arg?)
 
 =cut

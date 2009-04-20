@@ -831,21 +831,38 @@ and C<type>.
 
 .sub '!var_trait'
     .param pmc var
-    .param string type
     .param string trait
+    .param string name
     .param pmc arg             :optional
     .param int has_arg         :opt_flag
 
     if has_arg goto have_arg
     null arg
   have_arg:
-
-    $S0 = concat '!var_trait_', trait
+    
+    $S0 = substr trait, 16
+    $S0 = concat '!var_trait_', $S0
     $P0 = find_name $S0
     if null $P0 goto done
-    .tailcall $P0(trait, var, arg)
+    if has_arg goto with_arg
+    .tailcall $P0(var, name)
+  with_arg:
+    .tailcall $P0(var, name, arg)
   done:
     .return (var)
+.end
+
+
+.sub '!var_trait_does'
+    .param pmc var
+    .param string name
+    .param pmc arg :slurpy
+    $P0 = compreg 'Perl6'
+    $P0 = $P0.'parse_name'(name)
+    $S0 = pop $P0
+    $P0 = get_hll_global $P0, $S0
+    $P0 = $P0.'!select'(arg :flat)
+    .tailcall 'infix:does'(var, $P0)
 .end
 
 

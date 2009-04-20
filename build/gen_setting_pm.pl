@@ -30,6 +30,7 @@ foreach my $file (@files) {
 print <<"END_SETTING";
 # Need to use all built-in classes, to import their exports.
 END_SETTING
+s/\\/\//g for @classes;
 print join('', map {
     my $colon_form = $_;
     $colon_form =~ s/[\/\\]/::/g;

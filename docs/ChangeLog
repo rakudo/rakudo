@@ -15,6 +15,8 @@ New in 2009-04 release
 * implemented roots builtin
 * implemented .ast on Match objects
 * split() now supports limits in all cases
+* prefix:<=> is gone
+* .readline is now .get
 
 New in 2009-03 release (#15, "Oslo")
 + implemented $*PROGRAM_NAME magical variable

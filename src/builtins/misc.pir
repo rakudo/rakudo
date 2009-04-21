@@ -19,15 +19,6 @@ src/builtins/misc.pir - miscellaneous builtins that need reclassification
 .end
 
 
-=item term:=<>
-
-=cut
-
-.sub '=<>'
-    $P0 = get_hll_global '@ARGS'
-    .tailcall 'prefix:='($P0)
-.end
-
 =back
 
 =cut

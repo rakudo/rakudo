@@ -56,7 +56,7 @@ class Match is also {
                 # in regexes like [(.) ...]+, the capture for (.) is 
                 # a List. flatten that.
                 if $p.value ~~ List {
-                    take ($p.key => $_.value) for @($p);
+                    take ($p.key => $_) for @($p.value);
                 } else {
                     take $p;
                 }

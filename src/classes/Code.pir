@@ -70,7 +70,8 @@ for executable objects.
     push_eh not_regex
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
-    $P1['$/'] = match
+    $P2 = new 'Perl6Scalar', match
+    $P1['$/'] = $P2
   not_regex:
     .return (match)
 .end

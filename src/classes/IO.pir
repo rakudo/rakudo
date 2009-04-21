@@ -43,6 +43,23 @@ Reads a line from the file handle.
 
 =back
 
+=head2 Functions
+
+=over 4
+
+=item C<prefix:=(IO $io)>
+
+Gets the iterator for the IO object.
+
+=cut
+
+.namespace []
+.sub 'prefix:=' :multi('IO')
+    'die'("prefix:<=> has been superseeded by $handle.lines and $handle.get")
+.end
+
+=back
+
 =head1 IOIterator
 
 The IOIterator class implements the I/O iterator.

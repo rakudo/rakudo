@@ -24,7 +24,7 @@ class Match is also {
                 take "positional => [\n";
                 for @(self) {
                     take "$sp ";
-                    take $_!_perl($indent + 4);
+                    self!_perl_quant($_, $indent);
                     take ",\n";
                 }
                 take $sp;
@@ -33,20 +33,30 @@ class Match is also {
             if %(self) {
                 take $sp;
                 take "named => \{\n";
-                for %(self).kv -> $name, $match {
-                    take "$sp '$name' => ";
-                    # XXX why is this a Str, not a Match?
-                    if $match ~~ Match {
-                        take $match!_perl($indent + 3);
-                    } else {
-                        take $match.perl;
-                    }
+                for %(self).pairs {
+                    take "$sp '{.key}' => ";
+                    self!_perl_quant(.value, $indent);
                     take ",\n";
                 }
                 take "$sp\},\n";
             }
             take ' ' x $indent;
             take ")";
+        }
+    }
+
+    method !_perl_quant($obj, $indent) {
+        my $sp = ' ' x $indent;
+        if $obj ~~ Match {
+            take $obj!_perl($indent + 3);
+        } else {
+            take "[\n";
+            for $obj.list {
+                take $sp ~ '    ';
+                take $_!_perl($indent + 5);
+                take ",\n";
+            }
+            take "$sp ]";
         }
     }
 

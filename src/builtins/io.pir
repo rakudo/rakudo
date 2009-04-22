@@ -163,7 +163,7 @@ Shows the supplied message and then waits for input from $*IN.
     .param string prompt
     'print'(prompt)
     $P0 = get_hll_global "$IN"
-    $S0 = $P0.'readline'()
+    $S0 = $P0.'get'()
     .return ($S0)
 .end
 

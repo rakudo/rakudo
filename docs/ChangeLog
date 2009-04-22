@@ -1,22 +1,28 @@
 New in 2009-04 release
-* wrap and unwrap for subroutines
-* calling a method on a Whatever star generates a closure
-* .invert and .push on Hashes
-* enforce return types of subroutines (partial implementation)
-* parallel testing
-* Configure.pl now supports passing options to parrot's Configure
-* support for lexical subroutines and multis
-* implemented \c[character name] in double quoted strings and regexes
-* implemented Perl 5 regexes
-* rx/.../ regex quoting
-* moved many methods to the setting
-* exporting and importing by tags, support :DEFAULT export tag
-* implemented START 
-* implemented roots builtin
-* implemented .ast on Match objects
-* split() now supports limits in all cases
-* prefix:<=> is gone
-* .readline is now .get
++ wrap and unwrap for subroutines
++ calling a method on a Whatever star generates a closure
++ 1+*, *+1 and others generate closures (*-1 missing)
++ Associative, Positional and Callable are now parametric roles
++ typed arrays and hashes
++ parametric role subtyping (R[T1] ~~ R[T2] where T1 ~~ T2)
++ .invert and .push on Hashes
++ enforce return types of subroutines (partial implementation)
++ parallel testing
++ Configure.pl now supports passing options to parrot's Configure
++ support for lexical subroutines and multis
++ implemented \c[character name] in double quoted strings and regexes
++ implemented Perl 5 regexes
++ rx/.../ regex quoting
++ moved many methods to the setting
++ exporting and importing by tags, support :DEFAULT export tag
++ implemented START blocks
++ implemented roots builtin
++ implemented .ast on Match objects
++ split() now supports limits in all cases
++ prefix:<=> is gone
++ .readline is now .get
++ roles are now punned on any method call on the role
++ many other bug fixes
 
 New in 2009-03 release (#15, "Oslo")
 + implemented $*PROGRAM_NAME magical variable

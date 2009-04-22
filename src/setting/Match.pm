@@ -22,9 +22,10 @@ class Match is also {
             if @(self) {
                 take $sp;
                 take "positional => [\n";
-                for @(self) {
+                # work around RT #64952
+                for ^self.list {
                     take "$sp ";
-                    self!_perl_quant($_, $indent);
+                    self!_perl_quant(self.[$_], $indent);
                     take ",\n";
                 }
                 take $sp;

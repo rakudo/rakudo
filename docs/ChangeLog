@@ -13,13 +13,16 @@ New in 2009-04 release
 + implemented \c[character name] in double quoted strings and regexes
 + implemented Perl 5 regexes
 + rx/.../ regex quoting
++ sockets support has been added (IO::Socket)jj
++ regex patterns may now be quantified by a separator regex
 + moved many methods to the setting
 + exporting and importing by tags, support :DEFAULT export tag
 + implemented START blocks
 + implemented roots builtin
 + implemented .ast on Match objects
++ added Match.caps and Match.chunks
 + split() now supports limits in all cases
-+ prefix:<=> is gone
++ prefix:<=> and the "fish operator" ( =<> ) are now gone
 + .readline is now .get
 + roles are now punned on any method call on the role
 + many other bug fixes

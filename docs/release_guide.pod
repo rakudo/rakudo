@@ -14,20 +14,27 @@ part of monthly Parrot releases.
 
   2009-02-26   Rakudo #14 "Vienna"
   2009-03-20   Rakudo #15 "Oslo"
+  2009-04-23   Rakudo #16 "Bratislava"
 
 =head2 Planned 2009 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2009-04-23   Rakudo #16 
   2009-05-21   Rakudo #17 
-  2009-06-18   Rakudo #18 (likely "Pittsburgh")
+  2009-06-18   Rakudo #18 "Pittsburgh"
   2009-07-23   Rakudo #19
   2009-08-20   Rakudo #20
   2009-09-17   Rakudo #21
   2009-10-22   Rakudo #22
   2009-11-19   Rakudo #23
   2009-12-17   Rakudo #24
+
+=head2 Suggested .pm group names for future releases
+
+  BristolBath.pm
+  Seoul.pm
+  Stockholm.pm
+
 
 =head1 COPYRIGHT
  

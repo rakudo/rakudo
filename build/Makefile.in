@@ -346,6 +346,9 @@ perlcritic:
 manifest:
 	echo MANIFEST >MANIFEST
 	git ls-files | $(PERL) -ne '/^\./ || print' >>MANIFEST
+	rm -rf t/spec
+	svn export "http://svn.pugscode.org/pugs/t/spec" t/spec
+	find t/spec >>MANIFEST
 
 release: manifest
 	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyymm'\n\n"; exit 1 )

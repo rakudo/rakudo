@@ -1,4 +1,8 @@
-New in 2009-04 release
+New in 2009-05 release
++ Implemented Regex type
++ Fixed non-ASCII identifiers
+
+New in 2009-04 release (#16, "Bratislava")
 + wrap and unwrap for subroutines
 + calling a method on a Whatever star generates a closure
 + 1+*, *+1 and others generate closures (*-1 missing)

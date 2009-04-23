@@ -32,6 +32,7 @@ Dates are based on Parrot's expected release schedule.
 =head2 Suggested .pm group names for future releases
 
   BristolBath.pm
+  Milan.pm
   Seoul.pm
   Stockholm.pm
 

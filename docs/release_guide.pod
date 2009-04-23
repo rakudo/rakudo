@@ -35,13 +35,152 @@ Dates are based on Parrot's expected release schedule.
   Seoul.pm
   Stockholm.pm
 
+=head2 Steps to create a release (for release managers)
+
+Each Rakudo development release is timed to occur two
+days after a Parrot monthly release.  
+
+=over 4
+
+=item 1.
+
+A few days before
+the Parrot release, it's a good idea to:
+
+=over 4
+
+=item *
+
+Remind people of the upcoming release, invite people to
+update the ChangeLog file, update the ROADMAP, choose a 
+release name, etc.
+
+=item *
+
+Verify that the Parrot trunk head is able to build Rakudo
+and run the spectest suite.
+
+=item *
+
+If Parrot's trunk exhibits any problems building or running
+Rakudo (that require changes to Parrot to fix), immediately
+report them to the Parrot development team so they can be
+fixed prior to Parrot's release.
+
+=item *
+
+Review the RT queue for tickets that might need resolving
+prior to the release, addressing them as needed.
+
+=back
+
+=item 2.
+
+Once Parrot issues its monthly release, edit Rakudo's 
+build/PARROT_REVISION file to contain the subversion revision 
+number corresponding to Parrot's monthly release.  
+As always, test to make sure Rakudo still builds and
+passes its tests.  Once build/PARROT_REVISION has been
+set to the Parrot release, it must not be changed until
+after the Rakudo release.  In other words, we want each
+monthly release of Rakudo to be able to be built using
+the immediately prior release of Parrot.
+
+=item 3.
+
+The short period following the Parrot release until the 
+Rakudo release is generally intended for fixing bugs, 
+updating documentation, and so on.
+
+=item 4.
+
+As the actual release date nears, review the git log history
+to see if any additional items need to be added to the ChangeLog.
+This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
+
+=item 5.
+
+When it's time to cut the release, create a new release announcement
+in docs/announce/YYYY-MM.  It's often a good idea to use the
+previous month's file as a starting point for this.  Highlight areas
+in which the new release is significant.  If possible, also give
+some small details about the choice of release name.  (If the
+details are a bit lengthy, this can often best be done as a separate
+section at the bottom of the announcement.)
+
+=item 6.
+
+Update the release dates and names at the top of this file
+(docs/release-guide.pod).  Also improve these instructions if
+you find any steps that are missing.
+
+=item 7.
+
+Make sure everything compiles and runs from a known clean state:
+
+  $ make realclean
+  $ perl Configure.pl --gen-parrot
+  $ make
+  $ make test
+  $ make spectest
+
+Continue adjusting things until make spectest passes as expected.
+
+=item 8.
+
+Make sure any locally modified files have been pushed back to github.
+
+=item 9.
+
+Create an initial tarball by entering "make release VERSION=YYYY-MM",
+where YYYY-MM is the month for which the release is being made.
+This will create a candidate tarball file named <rakudo-YYYY-MM.tgz>.
+
+=item 10.
+
+Unpack the tar file into another area, and test that it
+builds and runs properly.  If there are any problems,
+fix them and go back to step 7.
+
+=item 11.
+
+Tag the release by its release month ("MMMM-YY") and its code name.
+
+  $ git tag -a -m"tag release #nn" MMMM-YY    # e.g., 2009-04
+  $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
+  $ git push
+
+=item 12.
+
+Upload the release tarball to github's download area at
+http://github.com/rakudo/rakudo/downloads .  
+
+=item 13.
+
+Publish the release announcement (from #5) above to appropriate
+locations, including rakudo.org, use.perl, perl6-language,
+perl6-announce, perl6-users, and others.
+
+=item 14.
+
+Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
+
+=item 15.
+
+Promote the release anywhere else you think appropriate.
+
+=item 16.
+
+You're done!  Celebrate with the appropriate amount of fun.
+
+=back
 
 =head1 COPYRIGHT
- 
+
 Copyright (C) 2009, The Perl Foundation.
- 
+
 =cut
- 
+
 # Local Variables:
 # fill-column: 100
 # End:

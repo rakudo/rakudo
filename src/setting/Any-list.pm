@@ -102,7 +102,6 @@ our List multi grep(Code $test, *@values) {
 }
 
 our Str multi join(Str $separator = '', *@values) {
-    die("Not enough arguments for join") if ! @values;
     @values.join($separator)
 }
 

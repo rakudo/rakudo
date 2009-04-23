@@ -2460,6 +2460,7 @@ method quote_expression($/, $key) {
             :blocktype('declaration'),
             :node( $/ )
         );
+        set_block_type($past, 'Regex');
     }
     elsif $key eq 'quote_p5regex' {
         $past := PAST::Block.new(
@@ -2468,6 +2469,7 @@ method quote_expression($/, $key) {
             :blocktype('declaration'),
             :node( $/ )
         );
+        set_block_type($past, 'Regex');
     }
     elsif $key eq 'quote_pir' {
         $past := PAST::Op.new( :inline( $<quote_pir> ), :node($/) );

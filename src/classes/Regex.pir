@@ -20,6 +20,24 @@ This file sets up the Perl 6 C<Regex> class, the class for regexes.
 
 =over 4
 
+=item true()
+
+Evaluate a Regex in boolean context -- i.e., perform a match
+against $_.
+
+=cut
+
+.sub '' :method('true')
+    $P0 = find_caller_lex '$_'
+    $P3 = self($P0)
+    .tailcall 'prefix:?'($P3)
+.end
+
+.sub '' :vtable('get_bool') :method
+    $I0 = self.'true'()
+    .return ($I0)
+.end
+
 =back
 
 =cut

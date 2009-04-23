@@ -1,10 +1,10 @@
-Announce: Rakudo Perl 6 development release #16 ("Bratislava") 
+Announce: Rakudo Perl 6 development release #16 ("Bratislava")
 
 On behalf of the Rakudo development team, I'm pleased to announce
 the April 2009 development release of Rakudo Perl #16 "Bratislava".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
 The tarball for the April 2009 release is available from
-http://github.com/rakudo/rakudo/downloads .  
+http://github.com/rakudo/rakudo/downloads .
 
 Due to the continued rapid pace of Rakudo development and the
 frequent addition of new Perl 6 features and bugfixes, we continue
@@ -12,11 +12,11 @@ to recommend that people wanting to use or work with Rakudo obtain
 the latest source directly from the main repository at github.
 More details are available at http://rakudo.org/how-to-get-rakudo .
 
-Rakudo Perl follows a monthly release cycle, with each release code named 
+Rakudo Perl follows a monthly release cycle, with each release code named
 after a Perl Mongers group.  This release is named "Bratislava",
 home to Jonathan Worthington and reportedly an excellent place to
-obtain beer (a key component of Jonathan's contributions to Perl).  
-The Bratislava.pm group is quite active [2], with regular technical 
+obtain beer (a key component of Jonathan's contributions to Perl).
+The Bratislava.pm group is quite active [2], with regular technical
 presentations and social gatherings.
 
 In this release of Rakudo Perl, we've made the following major changes
@@ -24,7 +24,7 @@ and improvements:
 
 * Rakudo is now passing 10,467 spectests, an increase of 3,194
   passing tests since the March 2009 release.  With this release
-  Rakudo is now passing approximately 65% of the available 
+  Rakudo is now passing approximately 65% of the available
   spectest suite.
 
 * About 2/3 of the increase in passing tests is due to improved
@@ -51,7 +51,7 @@ and improvements:
   one can write  / [\w+] ** ',' / to get a comma-separated
   list of words.
 
-* More builtin functions and methods have been rewritten in 
+* More builtin functions and methods have been rewritten in
   Perl 6 and placed as part of the setting.
 
 * Release tar files now contain local copies of the appropriate
@@ -61,15 +61,17 @@ and improvements:
   see docs/ChangeLog for a more complete list.
 
 The development team thanks all of our contributors and sponsors for
-making Rakudo Perl possible.  If you would like to help
-contribute, see http://rakudo.org/how-to-help, ask on the
-perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+making Rakudo Perl possible.  If you would like to contribute,
+see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
+mailing list, or ask on IRC #perl6 on freenode.
 
 The next release of Rakudo (#17) is scheduled for May 21, 2009.
-A list of the other planned release dates and codenames for 2009 is 
-available in the "docs/release_guide.pod" file.  In general, Rakudo 
-development releases are scheduled to occur two days after each 
+A list of the other planned release dates and codenames for 2009 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
 Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
 
 References:
 [1]  Parrot, http://parrot.org/

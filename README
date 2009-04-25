@@ -6,6 +6,20 @@ Rakudo Perl is Copyright (C) 2008-2009, The Perl Foundation.
 Rakudo Perl is distributed under the terms of the Artistic License 2.0.
 For more details, see the full text of the license in the file LICENSE.
 
+=head2 Build requirements
+
+For building Rakudo you need a C compiler, a C<make> utility, a Perl 5
+compiler, version 5.8 or newere,  the C<icu> library 
+(L<http://site.icu-project.org/>) and the C<svn>
+command from Subversion.
+
+For example on Debian GNU/Linux you can install those with the command
+
+    apitude install build-essential libicu36-dev subversion
+
+(Perl is installed by default already). To enable parallel testing you
+also need the CPAN module L<Test::Harness> in version 3.16 or newer.
+
 =head2 Building and invoking Rakudo
 
 Because Rakudo is under rapid development, we generally recommend

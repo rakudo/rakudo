@@ -15,7 +15,7 @@ command from Subversion.
 
 For example on Debian GNU/Linux you can install those with the command
 
-    apitude install build-essential libicu36-dev subversion
+    aptitude install build-essential libicu36-dev subversion
 
 (Perl is installed by default already). To enable parallel testing you
 also need the CPAN module L<Test::Harness> in version 3.16 or newer.

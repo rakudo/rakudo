@@ -95,6 +95,7 @@ sub create_makefile {
     $maketext =~ s/@(\w+)@/$config{$1}/g;
     if ($^O eq 'MSWin32') {
         $maketext =~ s{/}{\\}g;
+        $maketext =~ s{\\\*}{\\\\*}g;
         $maketext =~ s{http:\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
     }
 

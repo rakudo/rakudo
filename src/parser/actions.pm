@@ -206,6 +206,7 @@ method repeat_statement($/) {
     my $cond  := $<EXPR>.ast;
     my $block := $<block>.ast;
     $block.blocktype('immediate');
+    declare_implicit_block_vars($block, 0);
     # pasttype is 'repeat_while' or 'repeat_until'
     my $pasttype := 'repeat_' ~ ~$<loop>;
     make PAST::Op.new( $cond, $block, :pasttype($pasttype), :node($/) );
@@ -223,6 +224,7 @@ method given_statement($/) {
 method when_statement($/) {
     my $block := $<block>.ast;
     $block.blocktype('immediate');
+    declare_implicit_block_vars($block, 0);
 
     # Push a handler onto the innermost block so that we can exit if we
     # successfully match
@@ -248,6 +250,7 @@ method default_statement($/) {
     # Always executed if reached, so just produce the block.
     my $block := $<block>.ast;
     $block.blocktype('immediate');
+    declare_implicit_block_vars($block, 0);
 
     # Push a handler onto the innermost block so that we can exit if we
     # successfully match
@@ -311,6 +314,7 @@ sub when_handler_helper($block) {
 method loop_statement($/) {
     my $block := $<block>.ast;
     $block.blocktype('immediate');
+    declare_implicit_block_vars($block, 0);
     my $cond  := $<e2> ?? $<e2>[0].ast !! 1;
     my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
     if $<e3> {

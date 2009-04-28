@@ -1925,24 +1925,14 @@ method scope_declarator($/) {
                         }
                     }
                     if $type {
-                        if $var<sigil> eq '$' {
-                            $var := PAST::Op.new(
-                                :pasttype('call'),
-                                :name('!var_trait_verb_of'),
-                                $var, $type
-                            );
+                        if $var<sigil> ne '$' && $var<sigil> ne '@' && $var<sigil> ne '%' && $var<sigil> ne '' {
+                            $/.panic("Cannot handle typed variables with sigil " ~ $var<sigil>);
                         }
-                        else {
-                            if $var<sigil> ne '@' && $var<sigil> ne '%' && $var<sigil> ne '' {
-                                $/.panic("Cannot handle typed variables with sigil " ~ $var<sigil>);
-                            }
-                            $var := PAST::Op.new(
-                                :pasttype('call'),
-                                :name('!var_trait_verb_of'),
-                                $var,
-                                $type
-                            );
-                        }
+                        $var := PAST::Op.new(
+                            :pasttype('call'),
+                            :name('!var_trait_verb_of'),
+                            $var, $type
+                        );
                     }
                     if $sym eq 'constant' {
                         # Do init in viviself, and then make sure we mark it readonly after

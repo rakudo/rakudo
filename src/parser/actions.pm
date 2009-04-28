@@ -1937,13 +1937,13 @@ method scope_declarator($/) {
                     if $sym eq 'constant' {
                         # Do init in viviself, and then make sure we mark it readonly after
                         # that point.
-                        $var.viviself(PAST::Op.new(
+                        $var := PAST::Op.new(
                             :pasttype('call'),
                             :name('infix:='),
-                            $var.viviself()
-                        ));
+                            $var
+                        );
                         $var := PAST::Op.new( :pirop('setprop'), $var, 'readonly', 1);
-                        $var<constant_value_slot> := $var[0].viviself();
+                        $var<constant_value_slot> := $var[0];
                         $var<scopedecl> := 'constant';
                     }
                 }
@@ -2014,17 +2014,12 @@ method scope_declarator($/) {
                 $past := $result;
             }
             else {
-                my $new_past := PAST::Var.new(
+                $past := PAST::Var.new(
                     :name($name),
                     :scope('lexical'),
                     :isdecl(1),
                     :viviself($past)
                 );
-                if $past<constant_value_slot> {
-                    $new_past<constant_value_slot> := $past<constant_value_slot>;
-                    $new_past<scopedecl> := 'constant';
-                }
-                $past := $new_past;
                 $block.symbol($name, :scope('lexical'), :does_callable(1));
             }
         }
@@ -2054,7 +2049,7 @@ method scoped($/) {
                 $past.viviself( $<fulltypename>[0].ast.clone() );
             }
         }
-        elsif $past.isa(PAST::Block) && $<fulltypename> && !$past<constant_value_slot> {
+        elsif $past.isa(PAST::Block) && $<fulltypename> {
             $past.loadinit().push(PAST::Op.new(
                 :pasttype('call'),
                 :name('!sub_trait_verb'),
@@ -2120,18 +2115,15 @@ method variable_declarator($/) {
 
 
 method constant_declarator($/) {
-    my $past := PAST::Block.new(
+    our @?BLOCK;
+    my $past := PAST::Var.new(
         :name(~$<identifier>),
-        :blocktype('declaration'),
-        PAST::Op.new(
-            :inline(
-                '    %r = new "ObjectRef", %0',
-                '    $P0 = get_hll_global [ "Bool" ], "True"',
-                '    setprop %r, "readonly", $P0'
-            )
-        )
+        :scope('lexical'),
     );
-    $past<constant_value_slot> := $past[0];
+    $past<itype> := container_itype('Perl6Scalar');
+    $past<type>  := PAST::Op.new( :name('and'), :pasttype('call') );
+    $/.add_type(~$<identifier>);
+    @?BLOCK[0].symbol(~$<identifier>, :scope('lexical'));
     make $past;
 }
 

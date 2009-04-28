@@ -1659,6 +1659,7 @@ method package_def($/, $key) {
 
     my $block := $/{$key}.ast;
     $block.lexical(0);
+    declare_implicit_routine_vars($block);
 
     my $modulename;
     my $is_anon := 0;

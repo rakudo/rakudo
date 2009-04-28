@@ -382,13 +382,13 @@ lexicals as needed and performing type checks.
     goto param_val_done
   param_array:
     $P0 = type.'ACCEPTS'(orig)
-    unless $P0 goto err_array
+    unless $P0 goto err_param_type_non_scalar
     var = '!DEREF'(orig)
     var = '!CALLMETHOD'('Array', var)
     goto param_val_done
   param_hash:
     $P0 = type.'ACCEPTS'(orig)
-    unless $P0 goto err_hash
+    unless $P0 goto err_param_type_non_scalar
     var = '!DEREF'(orig)
     var = '!CALLMETHOD'('Hash', var)
     goto param_val_done
@@ -428,6 +428,8 @@ lexicals as needed and performing type checks.
   end:
     .return ()
 
+  err_param_type_non_scalar:
+    set var, orig
   err_param_type:
     # Is it a junctional parameter?
     $I0 = isa var, 'Junction'
@@ -436,15 +438,12 @@ lexicals as needed and performing type checks.
     'return'($P0)
   not_junctional:
     .local string errmsg
-    errmsg = 'Parameter type check failed'
-    goto err_throw
-  err_array:
-    errmsg = 'Non-Positional argument or Positional of wrong element type'
-    goto err_throw
-  err_hash:
-    errmsg = 'Non-Associative argument or Associative of wrong value type'
-    goto err_throw
-  err_throw:
+    errmsg = 'Parameter type check failed; expected something matching '
+    $S0 = type.'perl'()
+    concat errmsg, $S0
+    concat errmsg, ' but got something of type '
+    $S0 = orig.'WHAT'()
+    concat errmsg, $S0
     .local string callername
     callername = callersub
     if callername goto have_callername

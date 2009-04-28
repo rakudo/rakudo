@@ -2929,7 +2929,8 @@ method type_declarator($/) {
 
     # Create subset type.
     my @name := Perl6::Compiler.parse_name($<name>);
-    $past := PAST::Op.new(
+    $past.blocktype('declaration');
+    $past.loadinit().push(PAST::Op.new(
         :node($/),
         :pasttype('bind'),
         PAST::Var.new(
@@ -2947,16 +2948,11 @@ method type_declarator($/) {
                     :name('Any'),
                     :scope('package')
                 ),
-            $past
+            PAST::Var.new( :name('block'), :scope('register') )
         )
-    );
+    ));
 
-    # Put this code in loadinit, so the type is created early enough,
-    # then this node results in an empty statement node.
-    our @?BLOCK;
-    @?BLOCK[0].loadinit().push($past);
-
-    make PAST::Stmts.new();
+    make $past;
 }
 
 

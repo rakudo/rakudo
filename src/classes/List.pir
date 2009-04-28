@@ -40,8 +40,6 @@ Smart-matches against the list.
 
     # Need to DWIM on *s.
   array:
-    .local pmc whatever
-    whatever = get_hll_global 'Whatever'
     .local pmc it_a, it_b, cur_a, cur_b
     it_a = iter self
     it_b = iter topic
@@ -53,7 +51,7 @@ Smart-matches against the list.
     cur_b = shift it_b
 
     # If there curent thing is Whatever, need special handling.
-    $I0 = isa cur_a, whatever
+    $I0 = isa cur_a, ['Whatever']
     unless $I0 goto not_whatever
 
     # If we don't have anything left other than the Whatever, it matches any
@@ -64,7 +62,7 @@ Smart-matches against the list.
     unless it_a goto true
     .local pmc looking_for
     looking_for = shift it_a
-    $I0 = isa looking_for, whatever
+    $I0 = isa looking_for, ['Whatever']
     if $I0 goto handle_whatever
   whatever_loop:
     $P0 = 'infix:==='(looking_for, cur_b)
@@ -86,7 +84,7 @@ Smart-matches against the list.
     unless $I0 goto false
     unless it_a goto it_loop_end
     cur_a = shift it_a
-    $I0 = isa cur_a, whatever
+    $I0 = isa cur_a, ['Whatever']
     if $I0 goto handle_whatever
     unless it_b goto false
     goto it_loop

@@ -46,7 +46,9 @@ src/builtins/assign.pir - assignments
     if $I0 goto do_assign
     $I0 = type.'ACCEPTS'(source)
     if $I0 goto do_assign
-    'die'("Type mismatch in assignment.")
+    $S0 = type.'perl'()
+    $S1 = source.'WHAT'()
+    'die'("Type mismatch in assignment; expected something matching type ", $S0, " but got something of type ", $S1)
   do_assign:
     eq_addr cont, source, assign_done
     copy cont, source

@@ -727,7 +727,19 @@ rule enum_declarator {
 
 rule scope_declarator {
     $<sym>=[my|our|state|constant|has]
+    {{
+        # XXX Becomes context variable.
+        $P0 = match['sym']
+        $S0 = $P0.'text'()
+        $P1 = get_hll_global ['Perl6';'Grammar';'Actions'], '@?SCOPE'
+        unshift $P1, $S0
+    }}
     <scoped>
+    {{
+        # XXX Goes away when we have context vars.
+        $P1 = get_hll_global ['Perl6';'Grammar';'Actions'], '@?SCOPE'
+        $S0 = shift $P1
+    }}
     {*}
 }
 
@@ -748,6 +760,7 @@ token declarator {
     | <routine_declarator>
     | <regex_declarator>
     | <type_declarator>
+    | <constant_declarator>
     ]
     {*}
 }
@@ -759,6 +772,27 @@ token variable_declarator {
     <post_constraint>*
     {*}
 }
+
+token constant_declarator {
+    <identifier>
+    <?{{
+        # XXX <?{ $*SCOPE eq 'constant' }>
+        $P0 = get_hll_global ['Perl6';'Grammar';'Actions'], '@?SCOPE'
+        $S0 = $P0[0]
+        $I0 = $S0 == 'constant'
+        .return ($I0)
+    }}>
+    <!{{
+        # XXX <!{ $¢.is_name($<identifier>.Str) }>
+        $P0 = match['identifier']
+        $S0 = $P0.'text'()
+        .tailcall match.'is_type'($S0)
+    }}>
+    <.ws>
+    <trait>*
+    {*}
+}
+
 
 token variable {
     <?sigil>

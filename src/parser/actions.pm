@@ -1910,7 +1910,7 @@ method scope_declarator($/) {
                 else {
                     # $scope eq 'package' | 'lexical' | 'state'
                     my $viviself := PAST::Op.new( :pirop('new PsP'), $var<itype> );
-                    if $init_value { $viviself.push( $init_value ); }
+                    if $init_value        { $viviself.push( $init_value ); }
                     $var.viviself( $viviself );
                     if $var<traitlist> {
                         for @($var<traitlist>) {
@@ -1943,6 +1943,18 @@ method scope_declarator($/) {
                                 $type
                             );
                         }
+                    }
+                    if $sym eq 'constant' {
+                        # Do init in viviself, and then make sure we mark it readonly after
+                        # that point.
+                        $var.viviself(PAST::Op.new(
+                            :pasttype('call'),
+                            :name('infix:='),
+                            $var.viviself()
+                        ));
+                        $var := PAST::Op.new( :pirop('setprop'), $var, 'readonly', 1);
+                        $var<constant_value_slot> := $var[0].viviself();
+                        $var<scopedecl> := 'constant';
                     }
                 }
                 $past[$i] := $var;
@@ -2012,12 +2024,17 @@ method scope_declarator($/) {
                 $past := $result;
             }
             else {
-                $past := PAST::Var.new(
+                my $new_past := PAST::Var.new(
                     :name($name),
                     :scope('lexical'),
                     :isdecl(1),
                     :viviself($past)
                 );
+                if $past<constant_value_slot> {
+                    $new_past<constant_value_slot> := $past<constant_value_slot>;
+                    $new_past<scopedecl> := 'constant';
+                }
+                $past := $new_past;
                 $block.symbol($name, :scope('lexical'), :does_callable(1));
             }
         }
@@ -2047,7 +2064,7 @@ method scoped($/) {
                 $past.viviself( $<fulltypename>[0].ast.clone() );
             }
         }
-        elsif $past.isa(PAST::Block) && $<fulltypename> {
+        elsif $past.isa(PAST::Block) && $<fulltypename> && !$past<constant_value_slot> {
             $past.loadinit().push(PAST::Op.new(
                 :pasttype('call'),
                 :name('!sub_trait_verb'),
@@ -2065,6 +2082,9 @@ method declarator($/) {
     my $past;
     if $<variable_declarator> {
         $past := $<variable_declarator>.ast;
+    }
+    elsif $<constant_declarator> {
+        $past := $<constant_declarator>.ast;
     }
     elsif $<signature> {
         $past := $<signature>.ast;
@@ -2107,6 +2127,24 @@ method variable_declarator($/) {
 
     make $var;
 }
+
+
+method constant_declarator($/) {
+    my $past := PAST::Block.new(
+        :name(~$<identifier>),
+        :blocktype('declaration'),
+        PAST::Op.new(
+            :inline(
+                '    %r = new "ObjectRef", %0',
+                '    $P0 = get_hll_global [ "Bool" ], "True"',
+                '    setprop %r, "readonly", $P0'
+            )
+        )
+    );
+    $past<constant_value_slot> := $past[0];
+    make $past;
+}
+
 
 method variable($/, $key) {
     my $var;
@@ -2687,6 +2725,10 @@ method EXPR($/, $key) {
                     $rhs
                 )
             );
+        }
+        elsif $lhs<scopedecl> eq 'constant' {
+            $lhs<constant_value_slot>.push($rhs);
+            $past := $lhs;
         }
         else {
             # Just a normal assignment.

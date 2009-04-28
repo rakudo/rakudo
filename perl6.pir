@@ -95,6 +95,11 @@ USAGE
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?PKGDECL', $P0
 
+    ## create a list for holding the stack of nested scope
+    ## declarators
+    $P0 = new 'List'
+    set_hll_global ['Perl6';'Grammar';'Actions'], '@?SCOPE', $P0
+
     ## create a list for holding the stack of nested package
     ## namespaces (we store the namespace as a flat, ::
     ## separated string for now, for handing to .parse_name)

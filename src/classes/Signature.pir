@@ -267,13 +267,32 @@ Gets a perl representation of the signature.
     # First any nominal type.
     $P0 = cur_param["nom_type"]
     if null $P0 goto any_type
+    $I0 = isa $P0, 'Role'
+    unless $I0 goto type_as_is
+    $S0 = cur_param["name"]
+    $S0 = substr $S0, 0, 1
+    if $S0 == '$' goto type_as_is
+    $S1 = $P0.'perl'()
+    $I0 = index $S1, '['
+    inc $I0
+    $I1 = length $S1
+    $I1 -= $I0
+    dec $I1
+    $S1 = substr $S1, $I0, $I1
+    concat s, $S1
+    goto type_done
+  type_as_is:
     $P0 = $P0.'perl'()
+    if $P0 == 'Positional' goto no_type
+    if $P0 == 'Associative' goto no_type
+    if $P0 == 'Callable' goto no_type
     concat s, $P0
     goto type_done
   any_type:
     concat s, "Any"
   type_done:
     concat s, " "
+  no_type:
 
     # If it's slurpy, the *.
     $P0 = cur_param["slurpy"]

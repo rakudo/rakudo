@@ -189,6 +189,16 @@ just here so postcircumfix:[ ] doesn't explode).
 .end
 
 
+=item perl
+
+=cut
+
+.sub 'perl' :method
+    $S0 = self
+    .return ($S0)
+.end
+
+
 =item WHICH
 
 =cut
@@ -333,6 +343,27 @@ Puns the role to a class and returns that class.
     .tailcall 'prefix:!'($P0)
 .end
 
+
+=item perl
+
+=cut
+
+.sub 'perl' :method
+    .local pmc args, it
+    args = getprop '@!type_args', self
+    $S0 = self.'Str'()
+    $S0 = concat $S0, '['
+    it = iter args
+  it_loop:
+    unless it goto it_loop_end
+    $P0 = shift it
+    $S1 = $P0.'perl'()
+    $S0 = concat $S1
+    goto it_loop
+  it_loop_end:
+    $S0 = concat ']'
+    .return ($S0)
+.end
 
 =item WHICH
 

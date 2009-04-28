@@ -132,6 +132,7 @@ S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
 S04-closure-traits/end.t
 S04-closure-traits/start.t
+S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t

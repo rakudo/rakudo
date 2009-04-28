@@ -20,8 +20,8 @@ $int = 14;
 
 # From http://www.rakudo.org/2008/06/mixins-generic-routines-and-en.html
 sub typeof(::T $x) { return T }
-(typeof(42) eq 'Int') && say 'ok 5';
-(typeof('42') eq 'Str') && say 'ok 6';
+(typeof(42) eq 'Int()') && say 'ok 5';
+(typeof('42') eq 'Str()') && say 'ok 6';
 
 # Stuff that goes crashy-crashy right now
 #$num = 0;

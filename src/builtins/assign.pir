@@ -25,6 +25,8 @@ src/builtins/assign.pir - assignments
 
     # This is a workaround because Parrot's multi-dispatch sometimes gets us
     # here by accident when we have a Perl6Array that got re-blessed.
+    $I0 = isa cont, 'Perl6Scalar'
+    if $I0 goto not_hash
     $I0 = isa cont, 'Perl6Array'
     unless $I0 goto not_array
     .tailcall cont.'!STORE'(source)

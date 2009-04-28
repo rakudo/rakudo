@@ -86,7 +86,7 @@ class Match is also {
                 take $_;
                 $prev = .value.to;
             }
-            take self.substr($prev) if $prev < self.chars;
+            take ('~' => self.substr($prev)) if $prev < self.chars;
         }
     }
 }

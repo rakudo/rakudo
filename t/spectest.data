@@ -24,6 +24,7 @@ integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t
 integration/method-calls-and-instantiation.t
+integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 integration/real-strings.t

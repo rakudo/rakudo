@@ -267,13 +267,32 @@ Gets a perl representation of the signature.
     # First any nominal type.
     $P0 = cur_param["nom_type"]
     if null $P0 goto any_type
+    $I0 = isa $P0, 'Role'
+    unless $I0 goto type_as_is
+    $S0 = cur_param["name"]
+    $S0 = substr $S0, 0, 1
+    if $S0 == '$' goto type_as_is
+    $S1 = $P0.'perl'()
+    $I0 = index $S1, '['
+    inc $I0
+    $I1 = length $S1
+    $I1 -= $I0
+    dec $I1
+    $S1 = substr $S1, $I0, $I1
+    concat s, $S1
+    goto type_done
+  type_as_is:
     $P0 = $P0.'perl'()
+    if $P0 == 'Positional' goto no_type
+    if $P0 == 'Associative' goto no_type
+    if $P0 == 'Callable' goto no_type
     concat s, $P0
     goto type_done
   any_type:
     concat s, "Any"
   type_done:
     concat s, " "
+  no_type:
 
     # If it's slurpy, the *.
     $P0 = cur_param["slurpy"]
@@ -363,13 +382,13 @@ lexicals as needed and performing type checks.
     goto param_val_done
   param_array:
     $P0 = type.'ACCEPTS'(orig)
-    unless $P0 goto err_array
+    unless $P0 goto err_param_type_non_scalar
     var = '!DEREF'(orig)
     var = '!CALLMETHOD'('Array', var)
     goto param_val_done
   param_hash:
     $P0 = type.'ACCEPTS'(orig)
-    unless $P0 goto err_hash
+    unless $P0 goto err_param_type_non_scalar
     var = '!DEREF'(orig)
     var = '!CALLMETHOD'('Hash', var)
     goto param_val_done
@@ -409,6 +428,8 @@ lexicals as needed and performing type checks.
   end:
     .return ()
 
+  err_param_type_non_scalar:
+    set var, orig
   err_param_type:
     # Is it a junctional parameter?
     $I0 = isa var, 'Junction'
@@ -417,15 +438,12 @@ lexicals as needed and performing type checks.
     'return'($P0)
   not_junctional:
     .local string errmsg
-    errmsg = 'Parameter type check failed'
-    goto err_throw
-  err_array:
-    errmsg = 'Non-Positional argument or Positional of wrong element type'
-    goto err_throw
-  err_hash:
-    errmsg = 'Non-Associative argument or Associative of wrong value type'
-    goto err_throw
-  err_throw:
+    errmsg = 'Parameter type check failed; expected something matching '
+    $S0 = type.'perl'()
+    concat errmsg, $S0
+    concat errmsg, ' but got something of type '
+    $S0 = orig.'WHAT'()
+    concat errmsg, $S0
     .local string callername
     callername = callersub
     if callername goto have_callername

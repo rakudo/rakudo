@@ -77,16 +77,16 @@ class Match is also {
     }
 
     multi method chunks() {
-        my $prev = 0;
+        my $prev = $.from;
         gather {
             for @.caps {
                 if .value.from > $prev {
-                    take '~' => self.substr($prev, .value.from - $prev)
+                    take '~' => self.substr($prev - $.from, .value.from - $prev)
                 }
                 take $_;
                 $prev = .value.to;
             }
-            take ('~' => self.substr($prev)) if $prev < self.chars;
+            take ('~' => self.substr($prev - $.from)) if $prev < $.to;
         }
     }
 }

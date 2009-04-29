@@ -516,7 +516,8 @@ is composed (see C<!meta_compose> below).
     metarole = get_class ns
     unless null metarole goto have_role
 
-    info = new 'Hash'
+    $P0 = get_root_namespace ['parrot';'Hash']
+    info = new $P0
     $P0 = nsarray[-1]
     info['name'] = $P0
     info['namespace'] = nsarray
@@ -764,7 +765,8 @@ and C<type>.
     class_handles_list = new 'ResizablePMCArray'
     setprop metaclass, '@!handles_dispatchers', class_handles_list
   have_class_handles_list:
-    handles_hash = new 'Hash'
+    $P1 = get_root_namespace ['parrot';'Hash']
+    handles_hash = new $P1
     handles_hash['attrname'] = name
     handles_hash['match_against'] = $P0
     push class_handles_list, handles_hash
@@ -1212,7 +1214,8 @@ Internal helper method to create a role.
     .local pmc ns
     ns = split '::', name
     name = ns[-1]
-    info = new 'Hash'
+    $P0 = get_root_namespace ['parrot';'Hash']
+    info = new $P0
     info['name'] = name
     info['namespace'] = ns
     role = new 'Role', info
@@ -1382,7 +1385,8 @@ Loads any existing values of state variables for a block.
     $P0 = $P0['sub'; 1]
     state_store = getprop '$!state_store', $P0
     unless null state_store goto have_state_store
-    state_store = new 'Hash'
+    $P1 = get_root_namespace ['parrot';'Hash']
+    state_store = new $P1
     setprop $P0, '$!state_store', state_store
   have_state_store:
 

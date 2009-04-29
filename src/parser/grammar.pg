@@ -276,7 +276,10 @@ rule statement_control {
 rule if_statement {
     $<sym>=[if<.nofun>]
     <xblock>
-    [ 'elsif' <xblock> ]*
+    [ 
+        [ <!before 'else'\s*'if'> || <.panic: "Please use 'elsif'"> ]
+        'elsif' <xblock> 
+    ]*
     [ 'else' <pblock> ]?
     {*}
 }

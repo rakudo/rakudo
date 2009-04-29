@@ -17,7 +17,7 @@ Num - Perl 6 numbers
 .sub 'onload' :anon :init :load
     .local pmc p6meta, numproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    numproto = p6meta.'new_class'('Num', 'parent'=>'Float Any')
+    numproto = p6meta.'new_class'('Num', 'parent'=>'parrot;Float Any')
     numproto.'!IMMUTABLE'()
     p6meta.'register'('Float', 'parent'=>numproto, 'protoobject'=>numproto)
 

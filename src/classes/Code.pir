@@ -16,7 +16,7 @@ for executable objects.
 .sub 'onload' :anon :load :init
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Sub Any')
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'parrot;Sub Any')
     $P0 = get_hll_global 'Callable'
     $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>codeproto)

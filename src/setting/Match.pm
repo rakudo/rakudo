@@ -14,7 +14,7 @@ class Match is also {
             take $sp;
             take "ast  => {$.ast.perl},\n";
             take $sp;
-            take "Str => {$.text.perl},\n";
+            take "Str => {$.Str.perl},\n";
             take $sp;
             take "from => $.from,\n";
             take $sp;

@@ -55,7 +55,7 @@ Gets the iterator for the IO object.
 
 .namespace []
 .sub 'prefix:=' :multi('IO')
-    'die'("prefix:<=> has been superseeded by $handle.lines and $handle.get")
+    'die'("prefix:<=> has been superseded by $handle.lines and $handle.get")
 .end
 
 =back

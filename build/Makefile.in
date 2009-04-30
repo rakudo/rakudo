@@ -39,11 +39,11 @@ SOURCES = perl6.pir \
   src/gen_metaop.pir \
   src/gen_junction.pir \
   src/gen_whatever.pir \
-  src/gen_uprop.pir \
   src/parser/expression.pir \
   src/parser/methods.pir \
   src/parser/quote_expression.pir \
-  src/pctextensions/state.pir \
+  src/parrot/state.pir \
+  src/gen_uprop.pir \
   $(PERL6_GROUP) \
   src/ops/perl6_ops$(LOAD_EXT)
 

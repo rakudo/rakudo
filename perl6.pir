@@ -286,7 +286,7 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 ##  This goes at the bottom because the methods end up in the 'parrot'
 ##  HLL namespace.
 .HLL 'parrot'
-.include 'src/pctextensions/state.pir'
+.include 'src/parrot/state.pir'
 .include 'src/gen_uprop.pir'
 
 # Local Variables:

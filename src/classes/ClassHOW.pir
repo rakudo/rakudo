@@ -221,7 +221,8 @@ Creates whatever closures (*.foo => { $_.foo })
     .lex '$named_args', named_args
     .const 'Sub' $P0 = '!whatever_dispatch_helper'
     $P0 = newclosure $P0
-    "!fixup_routine_type"($P0, "Block")
+    .const 'Sub' fixup = '!fixup_routine_type'
+    fixup($P0, "Block")
     .return ($P0)
 .end
 .sub '!whatever_dispatch_helper' :outer('!MAKE_WHATEVER_CLOSURE')

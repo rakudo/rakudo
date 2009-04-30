@@ -1,7 +1,7 @@
 # $Id$
 
 
-.namespace [ 'Exception' ]
+.namespace [ 'Perl6Exception' ]
 
 .sub '' :anon :init :load
     .local pmc p6meta, failureproto, exceptionproto

@@ -13,7 +13,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
 .sub 'onload' :anon :load :init
     .local pmc p6meta, mappingproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    mappingproto = p6meta.'new_class'('Mapping', 'parent'=>'Hash Any')
+    mappingproto = p6meta.'new_class'('Mapping', 'parent'=>'parrot;Hash Any')
     $P0 = get_hll_global 'Associative'
     $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>mappingproto)

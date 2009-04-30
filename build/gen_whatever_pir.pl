@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2008, The Perl Foundation.
+# Copyright (C) 2008-2009, The Perl Foundation.
 # $Id$
 
 use strict;
@@ -9,10 +9,6 @@ my @ops = qw(
   infix:** infix:* infix:/ infix:% infix:div infix:mod infix:+
   infix:== infix:!= infix:<  infix:>  infix:<= infix:>= infix:<=>
 );
-
-my $output = $ARGV[0] || "-";
-
-open my $fh, "> $output" or die "Could not write $output: $!";
 
 for (@ops) {
     my $gen = '
@@ -47,10 +43,10 @@ for (@ops) {
         .end
     ';
     $gen =~ s/\$_/$_/g;
-    print $fh $gen;
+    print $gen;
 }
 
-print $fh '
+print '
 .sub "!whatever_helper_left"
     .param pmc left 
     $P0 = find_lex "$op"
@@ -64,5 +60,3 @@ print $fh '
     .tailcall $P0($P1, right)
 .end
 ';
-
-close $fh or die $!;

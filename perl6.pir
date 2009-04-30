@@ -10,7 +10,18 @@ This is the base file for the Rakudo Perl 6 compiler.
 
 .loadlib 'perl6_group'
 .loadlib 'perl6_ops'
-.include 'src/pctextensions/state.pir'
+
+.namespace []
+.sub '' :anon :init :load
+    .local pmc p6meta
+    load_bytecode 'PCT.pbc'
+    $P0 = get_root_global ['parrot'], 'P6metaclass'
+    $P0.'new_class'('Perl6Object', 'name'=>'Object')
+    p6meta = $P0.'HOW'()
+    set_hll_global ['Perl6Object'], '$!P6META', p6meta
+.end
+
+
 .include 'src/gen_builtins.pir'
 
 =head2 Functions
@@ -112,7 +123,8 @@ USAGE
     set_hll_global ['Perl6';'Grammar';'Actions'], '$?METACLASS', $P0
 
     ## create the $?CLASSMAP hash
-    $P0 = new ['Hash']
+    $P0 = get_root_namespace ['parrot';'Hash']
+    $P0 = new $P0
     set_hll_global ['Perl6';'Grammar';'Actions'], '%?CLASSMAP', $P0
 
     ##  create a list of END blocks to be run
@@ -124,6 +136,16 @@ USAGE
     $P0['Perl6Str'] = 'e'
     $P0['Str'] = 'e'
 .end
+
+.include 'src/gen_setting.pir'
+.include 'src/gen_grammar.pir'
+.include 'src/parser/expression.pir'
+.include 'src/parser/methods.pir'
+.include 'src/parser/quote_expression.pir'
+.include 'src/gen_actions.pir'
+.include 'src/gen_metaop.pir'
+.include 'src/gen_junction.pir'
+.include 'src/gen_whatever.pir'
 
 
 .namespace ['Perl6';'Compiler']
@@ -227,18 +249,6 @@ to the Perl 6 compiler.
 
 =back
 
-=cut
-
-.include 'src/gen_setting.pir'
-.include 'src/gen_grammar.pir'
-.include 'src/parser/expression.pir'
-.include 'src/parser/methods.pir'
-.include 'src/parser/quote_expression.pir'
-.include 'src/gen_actions.pir'
-.include 'src/gen_metaop.pir'
-.include 'src/gen_junction.pir'
-.include 'src/gen_whatever.pir'
-
 =item postload()
 
 Perform any tasks that need to be done at the end of loading.
@@ -275,7 +285,8 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 
 ##  This goes at the bottom because the methods end up in the 'parrot'
 ##  HLL namespace.
-
+.HLL 'parrot'
+.include 'src/pctextensions/state.pir'
 .include 'src/gen_uprop.pir'
 
 # Local Variables:

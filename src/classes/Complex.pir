@@ -22,7 +22,7 @@ Implementation is a bit different from other basic objects (Int...) because
 .sub 'onload' :anon :init :load
     .local pmc p6meta, complexproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    complexproto = p6meta.'new_class'('Perl6Complex', 'parent'=>'Complex Any', 'name'=>'Complex')
+    complexproto = p6meta.'new_class'('Perl6Complex', 'parent'=>'parrot;Complex Any', 'name'=>'Complex')
     complexproto.'!IMMUTABLE'()
     p6meta.'register'('Complex', 'parent'=>complexproto, 'protoobject'=>complexproto)
 

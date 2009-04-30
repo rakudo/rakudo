@@ -12,7 +12,7 @@ Match - Perl 6 match objects
 .sub '' :anon :load :init
     .local pmc p6meta, matchproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    matchproto = p6meta.'new_class'('Match', 'parent'=>'PGE::Grammar Any')
+    matchproto = p6meta.'new_class'('Match', 'parent'=>'parrot;PGE::Grammar Any')
     $P0 = p6meta.'get_parrotclass'(matchproto)
     $P1 = new 'ResizablePMCArray'
     push $P1, 'of'

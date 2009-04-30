@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2008, The Perl Foundation.
+# Copyright (C) 2008-2009, The Perl Foundation.
 # $Id$
 
 use strict;
@@ -271,14 +271,11 @@ my @prop = qw(
     Zs
 );
 
-my $output = $ARGV[0] || '-';
-
-open my $fh, "> $output" or die "Could not write $output: $!";
-print $fh qq{
+print qq{
 
     .HLL 'parrot'
     .namespace ['PGE';'Match']
-    
+
     .sub '!uprop' :anon
         .param pmc mob
         .param string uprop
@@ -295,11 +292,9 @@ print $fh qq{
 };
 
 for (@prop) {
-    print $fh qq(
+    print qq(
         .sub 'is$_' :method
             .tailcall '!uprop'(self, '$_')
         .end
     );
 }
-        
-close $fh or die $!;

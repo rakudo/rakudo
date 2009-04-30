@@ -15,7 +15,7 @@ This file sets up the Perl 6 C<Module> class.
 .sub 'onload' :anon :load :init
     .local pmc p6meta, moduleproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    moduleproto = p6meta.'new_class'('Module', 'parent'=>'NameSpace Any')
+    moduleproto = p6meta.'new_class'('Module', 'parent'=>'parrot;NameSpace Any')
     p6meta.'register'('NameSpace', 'parent'=>moduleproto, 'protoobject'=>moduleproto)
 .end
 

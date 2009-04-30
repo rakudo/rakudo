@@ -177,7 +177,8 @@ Ensures that if there is no explicit invocant, we add one.
     .return ()
 
   add_implicit_self:
-    $P0 = new 'Hash'
+    $P0 = get_root_namespace ['parrot';'Hash']
+    $P0 = new $P0
     $P0['name'] = 'self'
     $P0['invocant'] = 1
     $P0['multi_invocant'] = 1

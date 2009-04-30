@@ -136,6 +136,16 @@ USAGE
     $P0['Str'] = 'e'
 .end
 
+.include 'src/gen_setting.pir'
+.include 'src/gen_grammar.pir'
+.include 'src/parser/expression.pir'
+.include 'src/parser/methods.pir'
+.include 'src/parser/quote_expression.pir'
+.include 'src/gen_actions.pir'
+.include 'src/gen_metaop.pir'
+.include 'src/gen_junction.pir'
+.include 'src/gen_whatever.pir'
+
 
 .namespace ['Perl6';'Compiler']
 
@@ -237,18 +247,6 @@ to the Perl 6 compiler.
 .end
 
 =back
-
-=cut
-
-.include 'src/gen_setting.pir'
-.include 'src/gen_grammar.pir'
-.include 'src/parser/expression.pir'
-.include 'src/parser/methods.pir'
-.include 'src/parser/quote_expression.pir'
-.include 'src/gen_actions.pir'
-.include 'src/gen_metaop.pir'
-.include 'src/gen_junction.pir'
-.include 'src/gen_whatever.pir'
 
 =item postload()
 

@@ -14,16 +14,6 @@ care of much of that.
 
 =cut
 
-.namespace []
-.sub '' :anon :init :load
-    .local pmc p6meta
-    load_bytecode 'PCT.pbc'
-    $P0 = get_root_global ['parrot'], 'P6metaclass'
-    $P0.'new_class'('Perl6Object', 'name'=>'Object')
-    p6meta = $P0.'HOW'()
-    set_hll_global ['Perl6Object'], '$!P6META', p6meta
-.end
-
 =head2 Methods
 
 =over 4

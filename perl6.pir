@@ -10,7 +10,18 @@ This is the base file for the Rakudo Perl 6 compiler.
 
 .loadlib 'perl6_group'
 .loadlib 'perl6_ops'
-.include 'src/pctextensions/state.pir'
+
+.namespace []
+.sub '' :anon :init :load
+    .local pmc p6meta
+    load_bytecode 'PCT.pbc'
+    $P0 = get_root_global ['parrot'], 'P6metaclass'
+    $P0.'new_class'('Perl6Object', 'name'=>'Object')
+    p6meta = $P0.'HOW'()
+    set_hll_global ['Perl6Object'], '$!P6META', p6meta
+.end
+
+
 .include 'src/gen_builtins.pir'
 
 =head2 Functions
@@ -275,7 +286,8 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 
 ##  This goes at the bottom because the methods end up in the 'parrot'
 ##  HLL namespace.
-
+.HLL 'parrot'
+.include 'src/pctextensions/state.pir'
 .include 'src/gen_uprop.pir'
 
 # Local Variables:

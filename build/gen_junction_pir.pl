@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2008, The Perl Foundation.
+# Copyright (C) 2008-2009, The Perl Foundation.
 # $Id$
 
 use strict;
@@ -19,12 +19,8 @@ my @unary = qw(
   prefix:++ prefix:-- postfix:++ postfix:--
 );
 
-my $output = $ARGV[0] || '-';
-
-open my $fh, "> $output" or die "Could not write $output: $!";
-
 for (@unary) {
-    print $fh qq(
+    print qq(
         .namespace []
         .sub '$_' :multi('Junction')
             .param pmc x
@@ -34,7 +30,7 @@ for (@unary) {
 }
 
 for (@binary) {
-    print $fh qq(
+    print qq(
         .namespace []
         .sub '$_' :multi('Junction', _)
             .param pmc x
@@ -49,5 +45,3 @@ for (@binary) {
         .end
     );
 }
-
-close $fh or die $!;

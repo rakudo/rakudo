@@ -203,13 +203,13 @@ src/gen_metaop.pir: build/gen_metaop_pir.pl
 	$(PERL) build/gen_metaop_pir.pl > src/gen_metaop.pir
 
 src/gen_junction.pir: build/gen_junction_pir.pl
-	$(PERL) build/gen_junction_pir.pl src/gen_junction.pir
+	$(PERL) build/gen_junction_pir.pl > src/gen_junction.pir
 
 src/gen_whatever.pir: build/gen_whatever_pir.pl
-	$(PERL) build/gen_whatever_pir.pl src/gen_whatever.pir
+	$(PERL) build/gen_whatever_pir.pl > src/gen_whatever.pir
 
 src/gen_uprop.pir: build/gen_uprop_pir.pl
-	$(PERL) build/gen_uprop_pir.pl src/gen_uprop.pir
+	$(PERL) build/gen_uprop_pir.pl > src/gen_uprop.pir
 
 src/gen_setting.pm: Makefile build/gen_setting_pm.pl $(SETTING)
 	$(PERL) build/gen_setting_pm.pl $(SETTING) > src/gen_setting.pm

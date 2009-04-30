@@ -123,7 +123,8 @@ USAGE
     set_hll_global ['Perl6';'Grammar';'Actions'], '$?METACLASS', $P0
 
     ## create the $?CLASSMAP hash
-    $P0 = new ['Hash']
+    $P0 = get_root_namespace ['parrot';'Hash']
+    $P0 = new $P0
     set_hll_global ['Perl6';'Grammar';'Actions'], '%?CLASSMAP', $P0
 
     ##  create a list of END blocks to be run

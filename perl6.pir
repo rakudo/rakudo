@@ -34,7 +34,7 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
 
 =cut
 
-.namespace [ 'Perl6';'Compiler' ]
+.namespace ['Perl6';'Compiler']
 
 .sub 'onload' :load :init :anon
     load_bytecode 'PCT.pbc'
@@ -286,6 +286,9 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 ##  This goes at the bottom because the methods end up in the 'parrot'
 ##  HLL namespace.
 .HLL 'parrot'
+.include 'src/parrot/ClassHOW.pir'
+.include 'src/parrot/Protoobject.pir'
+.include 'src/parrot/misc.pir'
 .include 'src/parrot/state.pir'
 .include 'src/gen_uprop.pir'
 

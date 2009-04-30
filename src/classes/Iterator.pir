@@ -12,8 +12,7 @@ Iterator - Perl 6 iterator
 
 =cut
 
-.namespace [ 'Iterator' ]
-
+.namespace []
 .sub 'onload' :anon :init :load
     .local pmc p6meta, iterproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'

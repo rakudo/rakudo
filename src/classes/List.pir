@@ -154,25 +154,6 @@ A list in Scalar context becomes a Scalar containing an Array.
     .return ($S0)
 .end
 
-=item ResizablePMCArray.list
-
-This version of list morphs a ResizablePMCArray into a List.
-
-=cut
-
-.namespace ['ResizablePMCArray']
-.sub 'list' :method
-    ##  this code morphs a ResizablePMCArray into a List
-    ##  without causing a clone of any of the elements
-    $P0 = new 'ResizablePMCArray'
-    splice $P0, self, 0, 0
-    $P1 = new 'List'
-    copy self, $P1
-    splice self, $P0, 0, 0
-    .return (self)
-.end
-
-
 =back
 
 =head2 Methods

@@ -42,20 +42,21 @@ SOURCES = perl6.pir \
   src/parser/expression.pir \
   src/parser/methods.pir \
   src/parser/quote_expression.pir \
+  src/parrot/ClassHOW.pir \
+  src/parrot/Protoobject.pir \
+  src/parrot/misc.pir \
   src/parrot/state.pir \
   src/gen_uprop.pir \
   $(PERL6_GROUP) \
   src/ops/perl6_ops$(LOAD_EXT)
 
 BUILTINS_PIR = \
-  src/classes/ClassHOW.pir \
   src/classes/Object.pir \
   src/classes/Any.pir \
   src/classes/Junction.pir \
   src/classes/Signature.pir \
   src/classes/Role.pir \
   src/classes/Abstraction.pir \
-  src/classes/Protoobject.pir \
   src/classes/Positional.pir \
   src/classes/Associative.pir \
   src/classes/Callable.pir \

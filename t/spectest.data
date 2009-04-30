@@ -10,7 +10,7 @@
 # 
 # S03-operators/binding-arrays.t - regressed to allow slices
 # S03-operators/binding-hashes.t - regressed to allow slices
-# S10-packages/import.t - regressed when implementing importing; think it's bogus anyway
+# integration/rule-in-class-Str.t - 'is also' -> augment
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -28,7 +28,6 @@ integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 integration/real-strings.t
-integration/rule-in-class-Str.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 S02-builtin_data_types/anon_block.t

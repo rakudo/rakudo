@@ -278,6 +278,7 @@ S12-construction/new.t
 S12-enums/anonymous.t
 S12-enums/as-role.t
 S12-enums/basic.t
+S12-enums/thorough.t
 S12-introspection/can.t
 S12-methods/calling_sets.t
 S12-methods/calling_syntax.t

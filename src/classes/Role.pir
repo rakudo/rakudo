@@ -195,7 +195,7 @@ just here so postcircumfix:[ ] doesn't explode).
 =cut
 
 .sub 'perl' :method
-    $S0 = self
+    $P0 = getprop '$!shortname', self
     .return ($S0)
 .end
 
@@ -225,7 +225,9 @@ just here so postcircumfix:[ ] doesn't explode).
 
 .sub 'Str' :method :vtable('get_string')
     $P0 = getprop '$!shortname', self
-    .return ($P0)
+    $S0 = $P0
+    concat $S0, '()'
+    .return ($S0)
 .end
 
 
@@ -352,7 +354,8 @@ Puns the role to a class and returns that class.
 .sub 'perl' :method
     .local pmc args, it
     args = getprop '@!type_args', self
-    $S0 = self.'Str'()
+    $P0 = getprop '$!shortname', self
+    $S0 = $P0
     $S0 = concat $S0, '['
     it = iter args
   it_loop:

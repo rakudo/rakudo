@@ -288,6 +288,7 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 .HLL 'parrot'
 .include 'src/parrot/ClassHOW.pir'
 .include 'src/parrot/Protoobject.pir'
+.include 'src/parrot/misc.pir'
 .include 'src/parrot/state.pir'
 .include 'src/gen_uprop.pir'
 

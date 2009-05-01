@@ -44,6 +44,7 @@ SOURCES = perl6.pir \
   src/parser/quote_expression.pir \
   src/parrot/ClassHOW.pir \
   src/parrot/Protoobject.pir \
+  src/parrot/misc.pir \
   src/parrot/state.pir \
   src/gen_uprop.pir \
   $(PERL6_GROUP) \

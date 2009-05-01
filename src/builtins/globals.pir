@@ -57,12 +57,15 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     .local pmc pio, perl6io, perl6ioclass
     perl6ioclass = get_hll_global "IO"
     pio = getstdin
+    pio.'encoding'('utf8')
     perl6io = perl6ioclass.'new'("PIO" => pio)
     set_hll_global "$IN", perl6io
     pio = getstdout
+    pio.'encoding'('utf8')
     perl6io = perl6ioclass.'new'("PIO" => pio)
     set_hll_global "$OUT", perl6io
     pio = getstderr
+    pio.'encoding'('utf8')
     perl6io = perl6ioclass.'new'("PIO" => pio)
     set_hll_global "$ERR", perl6io
 

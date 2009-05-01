@@ -8,6 +8,11 @@ This is the base file for the Rakudo Perl 6 compiler.
 
 =cut
 
+# Set RAKUDO_HLL to 'Perl6' to try compiling Rakudo in its own HLL.
+.macro_const RAKUDO_HLL 'parrot'
+
+.HLL .RAKUDO_HLL
+
 .loadlib 'perl6_group'
 .loadlib 'perl6_ops'
 
@@ -96,6 +101,9 @@ USAGE
     pop_eh
     $P0 .= ".\n\nCopyright 2006-2008, The Perl Foundation.\n"
     setattribute perl6, '$version', $P0
+
+    $P0 = box .RAKUDO_HLL
+    set_hll_global ['Perl6';'Grammar';'Actions'], '$?RAKUDO_HLL', $P0
 
     ##  create a list for holding the stack of nested blocks
     $P0 = new ['List']

@@ -14,9 +14,14 @@ our %?CLASSMAP;
 %?CLASSMAP<Pair>    := 'Perl6Pair';
 %?CLASSMAP<Complex> := 'Perl6Complex';
 
+# $?RAKUDO_HLL identifies the .HLL to use for compilation --
+# it's ultimately set by the .RAKUDO_HLL macro in F<perl6.pir> .
+our $?RAKUDO_HLL;
+
 method TOP($/) {
     my $past := $<statement_block>.ast;
     $past.blocktype('declaration');
+    $past.hll($?RAKUDO_HLL);
     declare_implicit_routine_vars($past);
     $past.lexical(0);
 
@@ -77,6 +82,7 @@ method TOP($/) {
         $main.push( PAST::Stmts.new() );
     }
 
+    $main.hll($?RAKUDO_HLL);
     make $main;
 }
 
@@ -99,6 +105,7 @@ method statement_block($/, $key) {
     if $key eq 'close' {
         my $past := @?BLOCK.shift();
         $past.push($<statementlist>.ast);
+        $past.hll($?RAKUDO_HLL);
         make $past;
     }
 }

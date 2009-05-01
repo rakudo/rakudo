@@ -83,8 +83,7 @@ sub read_specfile {
     while (<$f>){
         next if m/#/;
         next unless m/\S/;
-        s/\s+\z//;
-        push @res, "t/spec/$_";
+        m/(\S+)/ && push @res, "t/spec/$1";
     }
     close $f or die $!;
     return @res;

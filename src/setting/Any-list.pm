@@ -33,6 +33,10 @@ class Any is also {
     multi method max( $values: Code $by = sub { $^a cmp $^b } ) {
          my @list = $values.list;
          return -Inf unless @list.elems;
+         if $by.arity < 2 {
+            my $transform = $by;
+            $by := sub { $transform($^a) cmp $transform($^b) };
+         }
          my $res = @list.shift;
          for @list -> $x {
              if (&$by($res, $x) < 0) {
@@ -46,6 +50,10 @@ class Any is also {
     multi method min( $values: Code $by = sub { $^a cmp $^b } ) {
          my @list = $values.list;
          return +Inf unless @list.elems;
+         if $by.arity < 2 {
+            my $transform = $by;
+            $by := sub { $transform($^a) cmp $transform($^b) };
+         }
          my $res = @list.shift;
          for @list -> $x {
              if (&$by($res, $x) > 0) {

@@ -1427,6 +1427,9 @@ Constructs an enumeration.
     .lex '$long_name', long_name
     .lex '$short_name', short_name
     $P0 = new 'Role'
+    .const 'Sub' ACCEPTS = '!create_enum_value_role_ACCEPTS'
+    ACCEPTS = newclosure ACCEPTS
+    $P0.'add_method'('ACCEPTS', ACCEPTS)
     .const 'Sub' WHAT = '!create_enum_value_role_WHAT'
     WHAT = newclosure WHAT
     $P0.'add_method'('WHAT', WHAT)
@@ -1437,6 +1440,17 @@ Constructs an enumeration.
     perl = newclosure perl
     $P0.'add_method'('perl', perl)
     .return ($P0)
+.end
+.sub '!create_enum_value_role_ACCEPTS' :method :outer('!create_enum_value_role')
+    .param pmc topic
+    $P0 = find_lex '$enum_role'
+    $I0 = does topic, $P0
+    unless $I0 goto done
+    $P0 = find_lex '$short_name'
+    $S0 = $P0
+    $I0 = topic.$S0()
+  done:
+    .return ($I0)
 .end
 .sub '!create_enum_value_role_WHAT' :method :outer('!create_enum_value_role')
     $P0 = find_lex '$enum_role'

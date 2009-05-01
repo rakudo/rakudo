@@ -134,49 +134,6 @@ Return a List with the keys of the invocant.
 .end
 
 
-.namespace []
-.sub 'max' :multi()
-    .param pmc values          :slurpy
-    .local pmc by
-    by = get_hll_global 'infix:cmp'
-    unless values goto have_by
-    $P0 = values[0]
-    $I0 = isa $P0, 'Sub'
-    unless $I0 goto have_by
-    by = shift values
-  have_by:
-    .tailcall values.'max'(by)
-.end
-
-
-.namespace ['Any']
-.sub 'max' :method :multi(_)
-    .param pmc by              :optional
-    .param int has_by          :opt_flag
-    if has_by goto have_by
-    by = get_hll_global 'infix:cmp'
-  have_by:
-
-    .local pmc it, result
-    $P0 = self.'list'()
-    it = $P0.'iterator'()
-    unless it goto fail
-    result = shift it
-  loop:
-    unless it goto done
-    $P0 = shift it
-    $I0 = by($P0, result)
-    unless $I0 > 0 goto loop
-    result = $P0
-    goto loop
-  fail:
-    .local num failres
-    failres = "-Inf"
-    .return (failres)
-  done:
-    .return (result)
-.end
-
 =item pick($num, :$repl)
 
 =cut

@@ -29,6 +29,19 @@ class Any is also {
         }
     }
 
+    # RT #63700 - parse failed on &infix:<cmp>
+    multi method max( $values: Code $by = sub { $^a cmp $^b } ) {
+         my @list = $values.list;
+         return -Inf unless @list.elems;
+         my $res = @list.shift;
+         for @list -> $x {
+             if (&$by($res, $x) < 0) {
+                 $res = $x;
+             }
+         }
+         $res;
+     };
+
      # RT #63700 - parse failed on &infix:<cmp>
     multi method min( $values: Code $by = sub { $^a cmp $^b } ) {
          my @list = $values.list;
@@ -107,6 +120,10 @@ our Str multi join(Str $separator = '', *@values) {
 
 our List multi map(Code $expr, *@values) {
     @values.map($expr)
+}
+
+multi max(Code $by, *@values) {
+    @values.max($by);
 }
 
 multi min(Code $by, *@values) {

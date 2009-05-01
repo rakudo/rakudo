@@ -723,7 +723,7 @@ rule enum_declarator {
     ]?
 
     [
-    | <?before '[' > <circumfix> {*}             #= circumfix
+    | <?before '(' > <circumfix> {*}             #= circumfix
     | <?before '<' | '«' > <quote> {*}          #= quote
     ]
 }

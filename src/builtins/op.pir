@@ -420,7 +420,8 @@ src/builtins/op.pir - Perl 6 builtin operators
   one_role_select:
     role = role.'!select'()
   one_role:
-    '!keyword_does'(derived, role)
+    addrole derived, role
+    '!compose_role_attributes'(derived, role)
     goto added_roles
 
   many_roles:
@@ -435,7 +436,8 @@ src/builtins/op.pir - Perl 6 builtin operators
     unless $I0 goto error
     cur_role = cur_role.'!select'()
   have_parrot_role:
-    '!keyword_does'(derived, cur_role)
+    addrole derived, cur_role
+    '!compose_role_attributes'(derived, cur_role)
     goto roles_loop
   roles_loop_end:
   added_roles:
@@ -494,10 +496,14 @@ attr_error:
     # If not, it may be an enum. If we don't have a value, get the class of
     # the thing passed as a role and find out.
     if have_value goto error
-    .local pmc the_class
-    push_eh error
-    the_class = class role
-    role = getprop 'enum', the_class
+    .local pmc maybe_enum
+    maybe_enum = role.'WHAT'()
+    $P0 = getprop '$!is_enum', maybe_enum
+    if null $P0 goto error
+    unless $P0 goto error
+    value = role
+    role = maybe_enum
+    goto have_role
     unless null role goto have_role
 
     # Did anything go wrong?

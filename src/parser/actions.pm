@@ -676,279 +676,30 @@ method enum_declarator($/, $key) {
             $/.panic("Re-declaration of type " ~ $name);
         }
 
-        # Get a mapping of all the names we will introduce with this enumeration to their
-        # values. We'll compute these at compile time, so then we can build as much of the
-        # enum as possible as PAST at compile time too. Note that means that, like a
-        # BEGIN block, we will compile, run and get the return value now.
-        my $block := PAST::Block.new(
+        # Get all of the names of the enum values we will introduce and register
+        # them as type names.
+        our @?BLOCK;
+        my $getvals_sub := PAST::Compiler.compile(PAST::Block.new(
             :blocktype('declaration'),
-            PAST::Stmts.new(
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('!anon_enum'),
-                    $values
-                )
-            )
-        );
-        my $getvals_sub := PAST::Compiler.compile( $block );
-        my %values := $getvals_sub();
-
-        # Now we need to emit a role of the name of the enum containing:
-        #  * One attribute with the same name as the enum
-        #  * A method of the same name as the enum
-        #  * Methods for each name introduced by the enum that compare the
-        #    attribute with the value of that name.
-        my $role_past := PAST::Stmts.new(
-            PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new(
-                    :name('def'),
-                    :scope('register'),
-                    :isdecl(1)
-                ),
-                PAST::Op.new(
-                    :pasttype('call'),
-                   :name('!keyword_role'),
-                    PAST::Val.new( :value($name) )
-                )
-            ),
             PAST::Op.new(
                 :pasttype('call'),
-                :name('!keyword_has'),
-                PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('!select'),
-                    PAST::Var.new(
-                        :name('def'),
-                        :scope('register')
-                    )
-                ),
-                PAST::Val.new( :value("$!" ~ $name) ),
-                # XXX Set declared type here, when we parse that.
-                PAST::Var.new(
-                    :name('Object'),
-                    :scope('package')
-                )
-            ),
-            PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('add_method'),
-                PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('!select'),
-                    PAST::Var.new(
-                        :name('def'),
-                        :scope('register')
-                    )
-                ),
-                PAST::Val.new( :value($name) ),
-                make_accessor($/, undef, "$!" ~ $name, 1, 'attribute')
+                :name('!create_anon_enum'),
+                $values
             )
-        );
+        ));
+        my %values := $getvals_sub();
         for %values.keys() {
-            # Method for this value.
-            $role_past.push(PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('add_method'),
-                PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('!select'),
-                    PAST::Var.new(
-                        :name('def'),
-                        :scope('register')
-                    )
-                ),
-                PAST::Val.new( :value($_) ),
-                PAST::Block.new(
-                    :blocktype('declaration'),
-                    :pirflags(':method'),
-                    PAST::Stmts.new(
-                        PAST::Op.new(
-                            :pasttype('call'),
-                            :name('infix:eq'), # XXX not generic enough
-                            PAST::Var.new(
-                                :name("$!" ~ $name),
-                                :scope('attribute')
-                            ),
-                            PAST::Val.new( :value(%values{$_}) )
-                        )
-                    )
-                )
-            ));
-        }
-
-        # Now we emit code to create a class for the enum that does the role
-        # that we just defined. Note $def in the init code refers to this
-        # class from now on. Mark the class as an enum.
-        my $class_past := PAST::Stmts.new(
-            PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new(
-                    :name('class_def'),
-                    :scope('register'),
-                    :isdecl(1)
-                ),
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('!keyword_enum'),
-                    PAST::Op.new(
-                        :pasttype('callmethod'),
-                        :name('!select'),
-                        PAST::Var.new(
-                            :name('def'),
-                            :scope('register')
-                        )
-                    )
-                )
-            ),
-            PAST::Op.new(
-                :inline('    setprop %0, "enum", %1'),
-                PAST::Var.new(
-                    :name('class_def'),
-                    :scope('register')
-                ),
-                PAST::Var.new(
-                    :name('def'),
-                    :scope('register')
-                )
-            )
-        );
-
-        # Want to give the class an invoke method that returns the enum value,
-        # and get_string, get_number and get_integer v-table overrides to we
-        # can get data from it..
-        $class_past.push(PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('add_vtable_override'),
-            PAST::Var.new(
-                :scope('register'),
-                :name('class_def')
-            ),
-            'invoke',
-            PAST::Block.new(
-                :blocktype('declaration'),
-                :pirflags(":method"),
-                PAST::Var.new(
-                    :name("$!" ~ $name),
-                    :scope('attribute')
-                )
-            )
-        ));
-        $class_past.push(PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('add_vtable_override'),
-            PAST::Var.new(
-                :scope('register'),
-                :name('class_def')
-            ),
-            'get_string',
-            PAST::Block.new(
-                :blocktype('declaration'),
-                :pirflags(":method"),
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('prefix:~'),
-                    PAST::Var.new(
-                        :name("$!" ~ $name),
-                        :scope('attribute')
-                    )
-                )
-            )
-        ));
-        $class_past.push(PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('add_vtable_override'),
-            PAST::Var.new(
-                :scope('register'),
-                :name('class_def')
-            ),
-            'get_integer',
-            PAST::Block.new(
-                :blocktype('declaration'),
-                :pirflags(":method"),
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('prefix:+'),
-                    PAST::Var.new(
-                        :name("$!" ~ $name),
-                        :scope('attribute')
-                    )
-                )
-            )
-        ));
-        $class_past.push(PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('add_vtable_override'),
-            PAST::Var.new(
-                :scope('register'),
-                :name('class_def')
-            ),
-            'get_number',
-            PAST::Block.new(
-                :blocktype('declaration'),
-                :pirflags(":method"),
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('prefix:+'),
-                    PAST::Var.new(
-                        :name("$!" ~ $name),
-                        :scope('attribute')
-                    )
-                )
-            )
-        ));
-
-        # Now we need to create instances of each of these and install them
-        # in a package starting with the enum's name, plus an alias to them
-        # in the current package. Register the symbols in the current block
-        # as we go.
-        our @?BLOCK;
-        for %values.keys() {
-            # Instantiate with value.
-            $class_past.push(PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new(
-                    :name($_),
-                    :namespace($name),
-                    :scope('package')
-                ),
-                PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('new'),
-                    PAST::Var.new(
-                        :name('class_def'),
-                        :scope('register')
-                    ),
-                    PAST::Val.new(
-                        :value(%values{$_}),
-                        :named( PAST::Val.new( :value("$!" ~ $name) ) )
-                    )
-                )
-            ));
             @?BLOCK[0].symbol($name ~ '::' ~ $_, :does_abstraction(1));
-
-            # Add alias in current package.
-            # XXX Need to do collision detection, once we've a registry.
-            $class_past.push(PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new(
-                    :name($_),
-                    :scope('package')
-                ),
-                PAST::Var.new(
-                    :name($_),
-                    :namespace($name),
-                    :scope('package')
-                )
-            ));
             @?BLOCK[0].symbol($_, :does_abstraction(1));
         }
 
-        # Assemble all that we build into a statement list and then place it
-        # into the init code.
-        my $loadinit := @?BLOCK[0].loadinit();
-        $loadinit.push($role_past);
-        $loadinit.push($class_past);
+        # Emit call to enum constructor in the block's loadinit.
+        @?BLOCK[0].loadinit().push(PAST::Op.new(
+            :pasttype('call'),
+            :name('!create_enum'),
+            $name,
+            $values
+        ));
 
         # Finally, since it's a decl, we don't have anything to emit at this
         # point; just hand back empty statements block.
@@ -958,7 +709,7 @@ method enum_declarator($/, $key) {
         # Emit runtime call anonymous enum constructor.
         make PAST::Op.new(
             :pasttype('call'),
-            :name('!anon_enum'),
+            :name('!create_anon_enum'),
             $values
         );
     }

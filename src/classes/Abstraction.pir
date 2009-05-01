@@ -12,7 +12,7 @@ src/classes/Abstraction.pir - Abstraction Role
 
 .sub '' :anon :load :init
     .local pmc abstraction
-    abstraction = '!keyword_role'('Abstraction')
+    abstraction = '!create_simple_role'('Abstraction')
 .end
 
 # Local Variables:

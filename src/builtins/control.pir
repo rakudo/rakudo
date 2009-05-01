@@ -327,11 +327,12 @@ on error.
 
     # We want to make the lexicals known to the Perl 6 compiler. (One day
     # PCT maybe will provide a way to tell any language about these.)
-    .local pmc blocks, block_info, interp, sub
+    .local pmc blocks, block_info, interp, sub, my_caller
     interp = new 'ParrotInterpreter'
     $P0 = get_hll_global ['PAST'], 'Block'
     block_info = $P0.'new'()
-    sub = interp["sub"; 1]
+    my_caller = interp["sub"; 1]
+    set sub, my_caller
   lex_loop:
     if null sub goto lex_loop_end
     $P0 = sub.'get_lexinfo'()
@@ -350,6 +351,12 @@ on error.
     blocks = get_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK'
     block_info['eval'] = 1
     blocks.'unshift'(block_info)
+
+    # Also set namespace.
+    $P0 = my_caller.'get_namespace'()
+    $P0 = $P0.'get_name'()
+    $S0 = shift $P0
+    block_info.'namespace'($P0)
 
     .local pmc compiler, invokable
     .local pmc res, exception
@@ -370,9 +377,8 @@ on error.
     blocks.'shift'()
 
     # Set lexical scope.
-    $P0 = interp["sub"; 1]
     $P1 = invokable[0]
-    $P1.'set_outer'($P0)
+    $P1.'set_outer'(my_caller)
 
     # Invoke.
     res = invokable()

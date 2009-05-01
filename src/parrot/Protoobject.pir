@@ -29,6 +29,11 @@ Returns a Perl representation of itself.
 
 .sub 'perl' :method
     $S0 = self
+    $I0 = length $S0
+    if $I0 < 2 goto done
+    $I0 -= 2
+    $S0 = substr $S0, 0, $I0
+  done:
     .return ($S0)
 .end
 

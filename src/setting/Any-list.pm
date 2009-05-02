@@ -11,8 +11,14 @@ class Any is also {
         }
     }
 
-    our Str multi method join(Str $separator = '') {
-        @.list.reduce({ $^a ~ $separator ~ $^b })
+    our Str multi method join($separator = '') {
+        Q:PIR {
+            $P0 = self.'list'()
+            $P1 = find_lex '$separator'
+            $S1 = $P1
+            $S0 = join $S1, $P0
+            %r = box $S0
+        }
     }
 
     our List multi method map(*&expr) {

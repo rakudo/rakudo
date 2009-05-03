@@ -24,6 +24,7 @@ integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t
 integration/method-calls-and-instantiation.t
+integration/no-indirect-new.t
 integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
@@ -387,6 +388,6 @@ S32-str/sprintf.t
 S32-str/substr.t
 S32-str/trim.t
 S32-str/ucfirst.t
-S32-str/uc.t
+S32-str/uc.t                                               # icu
 S32-str/unpack.t
 S32-trig/trig.t

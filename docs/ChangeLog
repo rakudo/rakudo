@@ -17,7 +17,7 @@ New in 2009-04 release (#16, "Bratislava")
 + implemented \c[character name] in double quoted strings and regexes
 + implemented Perl 5 regexes
 + rx/.../ regex quoting
-+ sockets support has been added (IO::Socket)jj
++ sockets support has been added (IO::Socket)
 + regex patterns may now be quantified by a separator regex
 + moved many methods to the setting
 + exporting and importing by tags, support :DEFAULT export tag

@@ -13,7 +13,8 @@ class Any is also {
 
     our Str multi method join($separator = '') {
         Q:PIR {
-            $P0 = 'list'(self)
+            $P0 = self.'list'()
+            $P0.'!flatten'()
             $P1 = find_lex '$separator'
             $S1 = $P1
             $S0 = join $S1, $P0

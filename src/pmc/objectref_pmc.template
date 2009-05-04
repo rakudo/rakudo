@@ -102,7 +102,7 @@ pmclass ObjectRef need_ext dynpmc group perl6_group {
         return VTABLE_does(INTERP, value, role);
     }
 
-    VTABLE void morph(INTVAL type) {
+    VTABLE void morph(PMC *type) {
         /* XXX For now silently do nothing - so copy op on us works. */
     }
 

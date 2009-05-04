@@ -117,8 +117,8 @@ inline op find_lex_lift(out PMC, in STR) :base_core {
     $1 = PMCNULL;
     
     while (ctx->outer_ctx) {
-        const Parrot_Context   * const outer   = ctx->outer_ctx;
-        PMC                    * const lex_pad = outer->lex_pad;
+        Parrot_Context   * const outer   = ctx->outer_ctx;
+        PMC              * const lex_pad = outer->lex_pad;
 
         if (!PMC_IS_NULL(lex_pad) && VTABLE_exists_keyed_str(interp, lex_pad, $2)) {
             $1 = VTABLE_get_pmc_keyed_str(interp, lex_pad, $2);
@@ -181,7 +181,7 @@ inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
     /* try property */
     strwhich = u_getPropertyEnum(cstr);
     if (strwhich != UCHAR_INVALID_CODE) {
-        $1 = (u_hasBinaryProperty(ord, strwhich) != 0);
+        $1 = (u_hasBinaryProperty(ord, (UProperty) strwhich) != 0);
         Parrot_str_free_cstring(cstr);
         goto NEXT();
     }

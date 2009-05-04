@@ -105,24 +105,29 @@ USAGE
     $P0 = box .RAKUDO_HLL
     set_hll_global ['Perl6';'Grammar';'Actions'], '$?RAKUDO_HLL', $P0
 
-    ##  create a list for holding the stack of nested blocks
-    $P0 = new ['List']
+    ##  create an array for holding the stack of nested blocks
+    $P99 = get_hll_global 'Array'
+    $P0 = $P99.'new'()
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0
 
     ## create a list for holding the stack of nested package
     ## declarators
-    $P0 = new 'List'
+    $P0 = $P99.'new'()
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?PKGDECL', $P0
 
     ## create a list for holding the stack of nested scope
     ## declarators
-    $P0 = new 'List'
+    $P0 = $P99.'new'()
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?SCOPE', $P0
+
+    ##  create a list of END blocks to be run
+    $P0 = $P99.'new'()
+    set_hll_global ['Perl6'], '@?END_BLOCKS', $P0
 
     ## create a list for holding the stack of nested package
     ## namespaces (we store the namespace as a flat, ::
     ## separated string for now, for handing to .parse_name)
-    $P0 = new 'List'
+    $P0 = $P99.'new'()
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?NS', $P0
 
     ## create a (shared) metaclass node
@@ -134,10 +139,6 @@ USAGE
     $P0 = get_root_namespace ['parrot';'Hash']
     $P0 = new $P0
     set_hll_global ['Perl6';'Grammar';'Actions'], '%?CLASSMAP', $P0
-
-    ##  create a list of END blocks to be run
-    $P0 = new 'List'
-    set_hll_global ['Perl6'], '@?END_BLOCKS', $P0
 
     ##  tell PAST::Var how to encode Perl6Str and Str values
     $P0 = get_hll_global ['PAST';'Compiler'], '%valflags'

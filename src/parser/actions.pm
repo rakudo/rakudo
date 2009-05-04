@@ -905,7 +905,6 @@ method signature($/, $key) {
         my $block    := @?BLOCK.shift();
         my $sigpast := $block[0];
         my $loadinit := $block.loadinit();
-        my $sigobj   := PAST::Var.new( :name('signature'), :scope('register') );
 
         block_signature($block);
 
@@ -923,19 +922,7 @@ method signature($/, $key) {
             }
 
             ##  add parameter to the signature object
-            my $sigparam := PAST::Op.new( :pasttype('callmethod'),
-                                :name('!add_param'), $sigobj, $name );
-
-            ##  if it's named optional or slurpy, note that in the signature object
-            if $var.named() ne "" {
-                $sigparam.push(PAST::Val.new( :value($var.named()), :named('named') ));
-            }
-            if $var.viviself() {
-                $sigparam.push(PAST::Val.new( :value(1), :named('optional') ));
-            }
-            if $var.slurpy() {
-                $sigparam.push(PAST::Val.new( :value(1), :named('slurpy') ));
-            }
+            my $sigparam := make_sigparam( $var );
 
             ##  add any typechecks
             my $type := $var<type>;
@@ -1931,12 +1918,7 @@ method variable($/, $key) {
 
                 ##  add to block's signature
                 block_signature($?BLOCK);
-                $?BLOCK.loadinit().push(
-                    PAST::Op.new( :pasttype('callmethod'), :name('!add_param'),
-                        PAST::Var.new( :name('signature'), :scope('register') ),
-                        $varname
-                    )
-                );
+                $?BLOCK.loadinit().push( make_sigparam( $param ) );
             }
             ## use twigil-less form afterwards
             $twigil := '';
@@ -1964,6 +1946,8 @@ method variable($/, $key) {
                                             :scope('parameter'),
                                             :slurpy(1) );
                 if $sigil eq '%' { $param.named(1); }
+                block_signature($?BLOCK);
+                $?BLOCK.loadinit().push( make_sigparam( $param ) );
                 $?BLOCK[0].unshift($param);
             }
         }
@@ -3150,6 +3134,26 @@ sub return_handler_past() {
         )
     )
 }
+
+
+sub make_sigparam($var) {
+    my $sigparam := 
+        PAST::Op.new( :pasttype('callmethod'), :name('!add_param'), 
+                      PAST::Var.new( :name('signature'), :scope('register') ),
+                      $var.name() 
+        );
+    if $var.named() ne "" {
+        $sigparam.push(PAST::Val.new( :value($var.named()), :named('named') ));
+    }
+    if $var.viviself() {
+        $sigparam.push(PAST::Val.new( :value(1), :named('optional') ));
+    }
+    if $var.slurpy() {
+        $sigparam.push(PAST::Val.new( :value(1), :named('slurpy') ));
+    }
+    $sigparam;
+}
+    
 
 # Local Variables:
 #   mode: cperl

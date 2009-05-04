@@ -1,0 +1,78 @@
+/*
+$Id$
+Copyright (C) 2009, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/P6Invocation.pmc - PMC representing a current invocation
+
+=head1 DESCRIPTION
+
+When we invoke a method in Perl 6, we need to keep the list of candidates
+available for callwith, callsame, nextwith, nextsame etc. This PMC is what
+gets stuck into the lex pad to represent the the candidate list.
+
+=head2 Methods
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+
+/* This does the grunt work of working out what the next candidate is. Takes
+ * account of us maybe needing to look into multi variants and all that lot. */
+static PMC *get_next_candidate(PARROT_INTERP, PMC *self, PMC *pos_args) {
+    /* XXX TODO... */
+    return PMCNULL;
+}
+
+pmclass P6Invocation need_ext dynpmc group perl6_group {
+    ATTR PMC *first_candidate;
+    ATTR PMC *candidate_list;
+    ATTR INTVAL position;
+
+    VTABLE init() {
+        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_P6Invocation_attributes);
+        PObj_custom_mark_SET(SELF);
+        PObj_active_destroy_SET(SELF);
+    }
+
+    VTABLE init_pmc(PMC *list) {
+        SELF.init();
+        SETATTR_P6Invocation_candidate_list(interp, SELF, list);
+    }
+
+    VTABLE mark() {
+        if (PMC_data(SELF)) {
+            PMC *first_candidate, *candidate_list;
+            GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
+            GETATTR_P6Invocation_first_candidate(interp, SELF, candidate_list);
+            if (!PMC_IS_NULL(first_candidate))
+                pobject_lives(interp, (PObj*)first_candidate);
+            if (!PMC_IS_NULL(candidate_list))
+                pobject_lives(interp, (PObj*)candidate_list);
+        }
+    }
+
+    VTABLE destroy() {
+        mem_sys_free(PMC_data(SELF));
+        PMC_data(SELF) = NULL;
+    }
+    
+    VTABLE opcode_t *invoke(void *next) {
+        /* In the straightforward case, we know our first candidate right off the
+         * bat; if not, use list. */
+        PMC *first_candidate;
+        GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
+        if (PMC_IS_NULL(first_candidate))
+            first_candidate = get_next_candidate(interp, SELF, PMCNULL);
+        return VTABLE_invoke(interp, first_candidate, next);
+    }
+
+    METHOD PMC *get_next_candidate(PMC *args :slurpy)
+    {
+        PMC *next = get_next_candidate(interp, SELF, args);
+        RETURN(PMC *next);
+    }
+}

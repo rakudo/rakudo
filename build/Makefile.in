@@ -108,7 +108,6 @@ BUILTINS_PIR = \
   src/builtins/op.pir \
   src/builtins/parrot.pir \
   src/builtins/system.pir \
-  src/builtins/traits.pir \
 
 SETTING = \
   src/setting/Any-list.pm \

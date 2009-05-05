@@ -136,7 +136,7 @@ Return invocant in list context.  Default is to return a List containing self.
 =cut
 
 .namespace ['Perl6Object']
-.sub 'list' :method
+.sub '' :method('list')
     $P0 = new 'List'
     push $P0, self
     .return ($P0)

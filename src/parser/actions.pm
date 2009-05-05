@@ -879,7 +879,7 @@ method trait_auxiliary($/) {
 method trait_verb($/) {
     my $sym := ~$<sym>;
     my $value;
-    if $sym eq 'handles' { $value := $<EXPR>.ast; }
+    if $sym eq 'handles' { $value := $<noun>.ast; }
     else { $value := $<typename>.ast; }
     make PAST::Op.new( :name('infix:,'), 'trait_verb:' ~ $sym, $value );
 }

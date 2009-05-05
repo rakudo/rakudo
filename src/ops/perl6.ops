@@ -135,9 +135,10 @@ inline op find_lex_lift(out PMC, in STR) :base_core {
 inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
 #if PARROT_HAS_ICU
     char     *cstr;
-    INTVAL   ord;
-    int32_t  strwhich, ordwhich;
-    opcode_t *handler;
+    INTVAL    ord;
+    int32_t   strwhich, ordwhich;
+    UProperty strprop;
+    opcode_t  *handler;
 
     if ($4 > 0 && (UINTVAL)$4 == ($3->strlen)) {
         $1 = 0;
@@ -179,9 +180,9 @@ inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
     }
 
     /* try property */
-    strwhich = u_getPropertyEnum(cstr);
-    if (strwhich != UCHAR_INVALID_CODE) {
-        $1 = (u_hasBinaryProperty(ord, (UProperty) strwhich) != 0);
+    strprop = u_getPropertyEnum(cstr);
+    if (strprop != UCHAR_INVALID_CODE) {
+        $1 = (u_hasBinaryProperty(ord, strprop) != 0);
         Parrot_str_free_cstring(cstr);
         goto NEXT();
     }

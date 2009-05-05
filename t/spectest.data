@@ -342,6 +342,7 @@ S32-hash/keys_values.t
 S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
+S32-io/IO-Socket-INET.t
 S32-list/end.t
 S32-list/first.t
 S32-list/grep.t

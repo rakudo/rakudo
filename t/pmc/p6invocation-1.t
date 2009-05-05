@@ -19,7 +19,7 @@ Test the P6Invocation PMC.
 .loadlib 'perl6_group'
 
 .sub 'main'
-    say "1..6"
+    say "1..9"
     
     $P0 = new 'ResizablePMCArray'
     $P1 = find_name 'first'
@@ -33,7 +33,7 @@ Test the P6Invocation PMC.
 
     $P0()
 
-    say "ok 6"
+    say "ok 9"
 .end
 
 .sub 'first'
@@ -46,18 +46,37 @@ Test the P6Invocation PMC.
   ok_3:
     say "ok 3"
 
-   $P0()
+    $I0 = $P0.'have_more_candidates'()
+    if $I0 != 0 goto ok_4
+    print "not"
+  ok_4:
+    say "ok 4"
+
+    $P0()
 .end
 
 .sub 'second'
     .lex '__CANDIATE_LIST__', $P0
-    say "ok 4"
+    say "ok 5"
+
+    $I0 = $P0.'have_more_candidates'()
+    if $I0 != 0 goto ok_6
+    print "not"
+  ok_6:
+    say "ok 6"
+
     $P0()
 .end
 
 .sub 'third'
     .lex '__CANDIATE_LIST__', $P0
-    say "ok 5"
+    say "ok 7"
+
+    $I0 = $P0.'have_more_candidates'()
+    if $I0 == 0 goto ok_8
+    print "not"
+  ok_8:
+    say "ok 8"
 .end
 
 

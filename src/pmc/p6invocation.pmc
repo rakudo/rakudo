@@ -117,4 +117,15 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
             VTABLE_set_pmc_keyed_str(interp, lexpad, lexname, SELF);
         return addr;
     }
+
+    METHOD INTVAL have_more_candidates() {
+        PMC    *candidates;
+        INTVAL  position, result;
+    
+        /* Get candidates and position, and check if we have more candidates. */
+        GETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
+        GETATTR_P6Invocation_position(interp, SELF, position);
+        result = position < VTABLE_elements(interp, candidates);
+        RETURN(INTVAL result);
+    }
 }

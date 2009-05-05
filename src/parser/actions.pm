@@ -795,12 +795,13 @@ method method_def($/) {
         $block.name( ~$<longname> );
     }
 
-    # Add lexical 'self'.
+    # Add lexical 'self' and a slot for the candidate dispatcher list.
     $block[0].unshift(
         PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1),
             :viviself( PAST::Var.new( :name('self'), :scope('register' ) ) )
         )
     );
+    $block[0].unshift(PAST::Var.new( :name('__CANDIATE_LIST__'), :scope('lexical'), :isdecl(1) ));
 
     $block.control(return_handler_past());
     block_signature($block);

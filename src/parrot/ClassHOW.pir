@@ -35,6 +35,69 @@ Tests role membership.
 .end
 
 
+=item isa()
+
+Gets a list of this class' parents.
+
+=cut
+
+.sub 'isa' :method :multi(_,_)
+    .param pmc obj
+    
+    .local pmc parrot_class, result_list, parrot_list, it
+    result_list = get_hll_global 'Array'
+    result_list = result_list.'new'()
+    parrot_class = self.'get_parrotclass'(obj)
+    parrot_list = inspect parrot_class, 'parents'
+    it = iter parrot_list
+  it_loop:
+    unless it goto it_loop_end
+    $P0 = shift it
+    $P0 = getprop 'metaclass', $P0
+    $P0 = $P0.'WHAT'()
+    result_list.'push'($P0)
+    goto it_loop
+  it_loop_end:
+
+    .return (result_list)
+.end
+
+
+=item methods(object)
+
+Gets a list of methods.
+
+XXX Spec and implement various flags it takes, which currently aren't in S12.
+
+XXX Fix bugs with introspecting some built-in classes (List, Str...)
+
+=cut
+
+.sub 'methods' :method
+    .param pmc obj
+
+    .local pmc parrot_class, method_hash, result_list, it, cur_meth
+    parrot_class = self.'get_parrotclass'(obj)
+
+    # Create array to put results in.
+    result_list = get_hll_global 'Array'
+    result_list = result_list.'new'()
+
+    # Get methods hash and build list of methods.
+    method_hash = inspect parrot_class, "methods"
+    it = iter method_hash
+  it_loop:
+    unless it goto it_loop_end
+    $S0 = shift it
+    cur_meth = method_hash[$S0]
+    result_list.'push'(cur_meth)
+    goto it_loop
+  it_loop_end:
+
+    .return (result_list)
+.end
+
+
 =item dispatch(obj, name, ...)
 
 Dispatches to method of the given name on this class or one of its parents.

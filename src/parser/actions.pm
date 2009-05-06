@@ -1251,11 +1251,12 @@ method dotty($/, $key) {
         $past.unshift($past.name());
         $past.name('!dispatch_method');
         $past.pasttype('call');
-        $past<invocant_holder> := $past;
     }
-    else {
-        $past<invocant_holder> := $past;
+    elsif $<dottyop><methodop><variable> {
+        $past.name('!dispatch_method_indirect');
+        $past.pasttype('call');
     }
+    $past<invocant_holder> := $past;
 
     make $past;
 }

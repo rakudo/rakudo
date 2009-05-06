@@ -125,6 +125,29 @@ way. Otherwise, it uses .^dispatch from the metaclass.
 .end
 
 
+=item !dispatch_method_indirect
+
+Does an indirect method dispatch.
+
+=cut
+
+.sub '!dispatch_method_indirect'
+    .param pmc obj
+    .param pmc methodish
+    .param pmc pos_args  :slurpy
+    .param pmc name_args :slurpy :named
+
+    $P0 = get_hll_global 'Callable'
+    $I0 = $P0.'ACCEPTS'(methodish)
+    unless $I0 goto candidate_list
+    .tailcall methodish(obj, pos_args :flat, name_args :flat :named)
+
+  candidate_list:
+    $P0 = new 'P6Invocation', methodish
+    $P0(obj, pos_args :flat, name_args :flat :named)
+.end
+
+
 =item !VAR
 
 Helper function for implementing the VAR and .VAR macros.

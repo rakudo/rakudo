@@ -693,6 +693,7 @@ rule package_def {
         {{
             $P0 = match['module_name']
             $P0 = $P0[0]
+            $P0 = $P0['longname']
             $P0 = $P0['name']
             $S0 = $P0.'text'()
             match.'add_type'($S0)
@@ -830,8 +831,8 @@ token circumfix {
 }
 
 token module_name {
-    <name>
-    [
+    <longname>
+    $<role_params>=[
         :dba('generic role')
         <?{{
             ## ($+PKGDECL//'') eq 'role' (more like (@?PKGDECL[0]//'') eq 'role')
@@ -842,6 +843,10 @@ token module_name {
         }}>
         '[' ~ ']' <signature>
     ]?
+}
+
+token longname {
+    <name> <colonpair>*
 }
 
 token name {

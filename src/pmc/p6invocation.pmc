@@ -25,7 +25,7 @@ gets stuck into the lex pad to represent the the candidate list.
 static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF) {
     PMC    *candidates, *current;
     INTVAL  position;
-    
+
     /* Get candidates and position. */
     GETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
     GETATTR_P6Invocation_position(interp, SELF, position);
@@ -97,9 +97,6 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         STRING   *lexname = CONST_STRING(interp, "__CANDIATE_LIST__");
         PMC      *lexpad, *first_candidate;
         opcode_t *addr;
-
-        /* We always operate on a clone of ourself. */
-        SELF = VTABLE_clone(interp, SELF);
 
         /* In the straightforward case, we know our first candidate right off the
          * bat; if not, use list. We also nullify first candidate so we hit the

@@ -1261,7 +1261,7 @@ Internal helper method to create a role with a single parameterless variant.
     .return(role)
 .end
 .sub '!create_simple_role_helper'
-    $P0 = new 'ParrotInterpreter'
+    $P0 = getinterp
     $P0 = $P0['sub']
     $P0 = getprop '$!metarole', $P0
     .return ($P0)
@@ -1516,7 +1516,7 @@ Loads any existing values of state variables for a block.
 
 .sub '!state_var_init'
     .local pmc lexpad, state_store, names_it
-    $P0 = new 'ParrotInterpreter'
+    $P0 = getinterp
     lexpad = $P0['lexpad'; 1]
     $P0 = $P0['sub'; 1]
     state_store = getprop '$!state_store', $P0
@@ -1546,7 +1546,7 @@ initialized already.
 
 .sub '!state_var_inited'
     .param string name
-    $P0 = new 'ParrotInterpreter'
+    $P0 = getinterp
     $P0 = $P0['sub'; 1]
     $P0 = getprop '$!state_store', $P0
     $P0 = $P0[name]

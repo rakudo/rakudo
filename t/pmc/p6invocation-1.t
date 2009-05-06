@@ -46,7 +46,7 @@ Test the P6Invocation PMC.
   ok_3:
     say "ok 3"
 
-    $I0 = $P0.'have_more_candidates'()
+    $I0 = istrue $P0
     if $I0 != 0 goto ok_4
     print "not"
   ok_4:
@@ -59,7 +59,7 @@ Test the P6Invocation PMC.
     .lex '__CANDIATE_LIST__', $P0
     say "ok 5"
 
-    $I0 = $P0.'have_more_candidates'()
+    $I0 = istrue $P0
     if $I0 != 0 goto ok_6
     print "not"
   ok_6:
@@ -72,7 +72,7 @@ Test the P6Invocation PMC.
     .lex '__CANDIATE_LIST__', $P0
     say "ok 7"
 
-    $I0 = $P0.'have_more_candidates'()
+    $I0 = istrue $P0
     if $I0 == 0 goto ok_8
     print "not"
   ok_8:

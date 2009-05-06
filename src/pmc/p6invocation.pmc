@@ -92,6 +92,16 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         SETATTR_P6Invocation_position(interp, copy, position);
         return copy;
     }
+
+    VTABLE INTVAL get_bool() {
+        PMC    *candidates;
+        INTVAL  position;
+    
+        /* Get candidates and position, and check if we have more candidates. */
+        GETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
+        GETATTR_P6Invocation_position(interp, SELF, position);
+        return position < VTABLE_elements(interp, candidates);
+    }
     
     VTABLE opcode_t *invoke(void *next) {
         STRING   *lexname = CONST_STRING(interp, "__CANDIATE_LIST__");
@@ -115,14 +125,8 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         return addr;
     }
 
-    METHOD INTVAL have_more_candidates() {
-        PMC    *candidates;
-        INTVAL  position, result;
-    
-        /* Get candidates and position, and check if we have more candidates. */
-        GETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
-        GETATTR_P6Invocation_position(interp, SELF, position);
-        result = position < VTABLE_elements(interp, candidates);
-        RETURN(INTVAL result);
+    METHOD PMC *get() {
+        PMC *next = get_next_candidate(interp, SELF);
+        RETURN(PMC *next);
     }
 }

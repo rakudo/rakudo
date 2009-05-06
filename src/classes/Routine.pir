@@ -24,6 +24,16 @@ wrappable executable objects.
 
 =over 4
 
+=item name
+
+=cut
+
+.sub 'name' :method
+    $S0 = self
+    .return ($S0)
+.end
+
+
 =item wrap
 
 =cut

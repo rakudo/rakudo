@@ -1394,7 +1394,8 @@ method package_def($/, $key) {
     # At block opening, unshift module name (fully qualified) onto @?NS; otherwise,
     # shift it off.
     if $key eq 'open' {
-        my $add := ~$<module_name>[0] eq '::' ?? '' !! ~$<module_name>[0];
+        my $add := ~$<module_name>[0]<longname><name> eq '::' ?? '' !!
+            (~$<module_name>[0]<longname><name> ~ ~$<module_name>[0]<role_params>);
         my $fqname := +@?NS ?? @?NS[0] ~ '::' ~ $add !! $add;
         @?NS.unshift($fqname);
         return 0;
@@ -1409,8 +1410,8 @@ method package_def($/, $key) {
 
     my $modulename;
     my $is_anon := 0;
-    if $<module_name> && ~$<module_name>[0] ne '::' {
-        $modulename :=  ~$<module_name>[0];
+    if $<module_name> && ~$<module_name>[0]<longname><name> ne '::' {
+        $modulename :=  ~$<module_name>[0]<longname><name> ~ ~$<module_name>[0]<role_params>;
     }
     else {
         $modulename := $block.unique('!ANON');

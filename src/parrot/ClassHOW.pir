@@ -48,6 +48,8 @@ Gets a list of this class' parents.
     result_list = get_hll_global 'Array'
     result_list = result_list.'new'()
     parrot_class = self.'get_parrotclass'(obj)
+    $S0 = parrot_class.'name'()
+    if $S0 == 'Perl6Object' goto it_loop_end # Fake top of Perl 6 hierarchy
     parrot_list = inspect parrot_class, 'parents'
     it = iter parrot_list
   it_loop:

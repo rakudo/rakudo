@@ -14,7 +14,7 @@ class Object is also {
         # First, build list of classes in the order we'll need them.
         my @classes;
         if $super {
-            @classes = self.^isa();
+            @classes = self.^parents(:local);
         } else {
             if $breadth {
                 die ":breadth unimplemented";
@@ -66,7 +66,7 @@ class Object is also {
                     return @result;
                 }
                 my sub compute_c3($class) {
-                    my @immediates = $class.^isa();
+                    my @immediates = $class.^parents(:local);
                     if @immediates.elems == 0 {
                         @classes = $class;
                     } else {

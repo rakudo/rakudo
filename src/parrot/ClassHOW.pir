@@ -41,16 +41,33 @@ Gets a list of this class' parents.
 
 =cut
 
-.sub 'isa' :method :multi(_,_)
+.sub 'parents' :method
     .param pmc obj
+    .param pmc local         :named('local') :optional
+    .param pmc hierarchical  :named('hierarchical') :optional
     
     .local pmc parrot_class, result_list, parrot_list, it
     result_list = get_hll_global 'Array'
     result_list = result_list.'new'()
     parrot_class = self.'get_parrotclass'(obj)
+    
+    # Fake top of Perl 6 hierarchy
     $S0 = parrot_class.'name'()
-    if $S0 == 'Perl6Object' goto it_loop_end # Fake top of Perl 6 hierarchy
+    if $S0 != 'Perl6Object' goto not_object
+    unless null local goto done
+    $P0 = get_hll_global 'Object'
+    result_list.'push'($P0)
+    goto done
+  not_object:
+
+    # If it's local or default, can just use inspect.
+    unless null hierarchical goto do_hierarchical
+    if null local goto all_parents
     parrot_list = inspect parrot_class, 'parents'
+    goto have_list
+  all_parents:
+    parrot_list = inspect parrot_class, 'all_parents'
+  have_list:
     it = iter parrot_list
   it_loop:
     unless it goto it_loop_end
@@ -60,7 +77,12 @@ Gets a list of this class' parents.
     result_list.'push'($P0)
     goto it_loop
   it_loop_end:
+    goto done
 
+  do_hierarchical:
+    'die'(':hierarchical not yet implemented')
+
+  done:
     .return (result_list)
 .end
 

@@ -140,6 +140,10 @@ class Any is also {
         }
     }
 
+    our List multi method words($limit = *) {
+        self.comb(/\S+/, $limit);
+    }
+
     # TODO: signature not fully specced in S32 yet
     our Str multi method trim() is export {
         (~self).subst(/(^\s+)|(\s+$)/, "", :g)

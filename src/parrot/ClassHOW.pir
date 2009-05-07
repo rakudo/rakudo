@@ -35,7 +35,7 @@ Tests role membership.
 .end
 
 
-=item isa()
+=item parents()
 
 Gets a list of this class' parents.
 
@@ -72,6 +72,9 @@ Gets a list of this class' parents.
   it_loop:
     unless it goto it_loop_end
     $P0 = shift it
+    parrot_class = self.'get_parrotclass'($P0)
+    $S0 = parrot_class.'name'()
+    if $S0 == 'P6object' goto done
     $P0 = getprop 'metaclass', $P0
     $P0 = $P0.'WHAT'()
     result_list.'push'($P0)

@@ -52,8 +52,14 @@ END
 
 #  Create the Makefile using the information we just got
     create_makefile(%config);
-
     my $make = $config{'make'};
+
+    {
+        no warnings;
+        print "Cleaning up ...\n";
+        if (open my $REV, '-|', "$make clean") { close $REV; }
+    }
+
     print <<"END";
 
 You can now use '$make' to build Rakudo Perl.

@@ -36,7 +36,7 @@ Again, this probably isn't definitive either, but it'll get us going.
     load_bytecode 'PCT.pbc'
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'@!params')
+    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'@!params $!default_type')
 .end
 
 =head2 Methods
@@ -126,7 +126,9 @@ the Signature.
     all_types = new 'ResizablePMCArray'
     unless null type goto have_type
     unless null role_type goto simple_role_type
-    type = get_hll_global 'Any'
+    type = getattribute self, '$!default_type'
+    unless null type goto done_role_type
+    type = get_hll_global 'Object'
     goto done_role_type
   simple_role_type:
     type = role_type
@@ -152,6 +154,19 @@ the Signature.
     .local pmc params
     params = self.'params'()
     push params, attr
+.end
+
+
+=item !set_default_param_type
+
+Sets the default parameter type if none is supplied (since it differs for
+blocks and routines).
+
+=cut
+
+.sub '!set_default_param_type' :method
+    .param pmc type
+    setattribute self, '$!default_type', type
 .end
 
 

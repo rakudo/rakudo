@@ -773,6 +773,7 @@ method routine_def($/) {
     }
     $block.control(return_handler_past());
     block_signature($block);
+    $block<default_param_type_node>.name('Any');
 
     if $<trait> {
         my $loadinit := $block.loadinit();
@@ -814,6 +815,7 @@ method method_def($/) {
 
     $block.control(return_handler_past());
     block_signature($block);
+    $block<default_param_type_node>.name('Any');
     # Ensure there's an invocant in the signature.
     $block.loadinit().push(PAST::Op.new(
         :pasttype('callmethod'),
@@ -3007,10 +3009,14 @@ sub set_package_magical() {
 
 sub block_signature($block) {
     unless $block<signature> {
+        $block<default_param_type_node> := PAST::Var.new(
+            :scope('package'), :name('Object'), :namespace(list()) );
         $block.loadinit().push(
             PAST::Op.new( :inline('    .local pmc signature',
                                   '    signature = new ["Signature"]',
-                                  '    setprop block, "$!signature", signature')
+                                  '    setprop block, "$!signature", signature',
+                                  '    signature."!set_default_param_type"(%0)'),
+                          $block<default_param_type_node>
             )
         );
         $block<signature> := 1;

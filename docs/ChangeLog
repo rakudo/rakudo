@@ -1,6 +1,15 @@
 New in 2009-05 release
 + Implemented Regex type
 + Fixed non-ASCII identifiers
++ .WALK (parent classes in configurable order)
++ performance improvements
++ .name method on routines
++ refactored enums, thereby fixing many enum related bugs
++ fixed namespace of eval()ed code
++ fixes to Match.perl and Match.chunks
++ implemented 'constant name = $value'
++ documented build dependencies
++ trigonemtric functions (sin, cos, ...) now available via 'use Num :Trig'
 
 New in 2009-04 release (#16, "Bratislava")
 + wrap and unwrap for subroutines

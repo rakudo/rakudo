@@ -330,14 +330,14 @@ Makefile: build/Makefile.in build/PARROT_REVISION $(PARROT) Configure.pl
 	@echo "warning: Makefile is out of date... re-run Configure.pl"
 	@echo ""
 
-##  local copy of Parrot
+config:
+	$(PERL) Configure.pl
+	
+
+##  Parrot targets
+parrot: build/PARROT_REVISION build/gen_parrot.pl
+	$(PERL) Configure.pl --gen-parrot
 $(PARROT): 
-
-parrot: parrot/parrot_config build/PARROT_REVISION
-	$(PERL) build/gen_parrot.pl
-
-parrot/parrot_config:
-	@echo "Don't see parrot/parrot_config."
 
 
 CRITIC_FILES=Configure.pl t/harness build/ tools/

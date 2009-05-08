@@ -282,6 +282,7 @@ S12-enums/basic.t
 S12-enums/thorough.t
 S12-introspection/can.t
 S12-introspection/meta-class.t
+S12-introspection/walk.t
 S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
 S12-methods/class-and-instance.t
@@ -392,4 +393,5 @@ S32-str/trim.t
 S32-str/ucfirst.t
 S32-str/uc.t                                               # icu
 S32-str/unpack.t
+S32-str/words.t
 S32-trig/trig.t

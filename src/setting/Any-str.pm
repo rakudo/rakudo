@@ -123,7 +123,7 @@ class Any is also {
         }
     }
 
-    our List multi method comb (Code $matcher = /\S+/, $limit = *) {
+    our List multi method comb (Code $matcher = /./, $limit = *) {
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         # currently we use a copy of self and destroy it piece by piece.
         # the preferred way of doing it is using self, not destroying it,
@@ -138,6 +138,10 @@ class Any is also {
                 $s.=substr([max] 1, $/.to);
             }
         }
+    }
+
+    our List multi method words($limit = *) {
+        self.comb(/\S+/, $limit);
     }
 
     # TODO: signature not fully specced in S32 yet

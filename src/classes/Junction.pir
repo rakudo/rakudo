@@ -409,7 +409,7 @@ a property.
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
     .local pmc pi, sub
-    pi = new 'ParrotInterpreter'
+    pi = getinterp
     sub = pi['sub']
     sub = getprop 'sub', sub
     .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat :named)

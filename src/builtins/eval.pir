@@ -170,7 +170,7 @@ itself can be found in src/builtins/control.pir.
     import_ns = get_hll_namespace
     goto got_import_ns
   use_caller_ns:
-    $P0 = new 'ParrotInterpreter'
+    $P0 = getinterp
     $P0 = $P0['sub'; 1]
     import_ns = $P0.'get_namespace'()
   got_import_ns:

@@ -328,7 +328,7 @@ on error.
     # We want to make the lexicals known to the Perl 6 compiler. (One day
     # PCT maybe will provide a way to tell any language about these.)
     .local pmc blocks, block_info, interp, sub, my_caller
-    interp = new 'ParrotInterpreter'
+    interp = getinterp
     $P0 = get_hll_global ['PAST'], 'Block'
     block_info = $P0.'new'()
     my_caller = interp["sub"; 1]
@@ -440,7 +440,7 @@ on error.
 
     # Is our caller a wrapping? If so, call inner.
     .local pmc caller, inner
-    $P0 = new 'ParrotInterpreter'
+    $P0 = getinterp
     caller = $P0['sub'; 1]
   search_loop:
     inner = getprop '$!wrap_inner', caller
@@ -468,7 +468,7 @@ on error.
 .sub 'callsame'
     # Is our caller a wrapping? If so, find what we need to call.
     .local pmc caller, inner
-    $P0 = new 'ParrotInterpreter'
+    $P0 = getinterp
     caller = $P0['sub'; 1]
   search_loop:
     inner = getprop '$!wrap_inner', caller

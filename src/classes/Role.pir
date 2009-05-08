@@ -258,11 +258,26 @@ Puns the role to a class and returns that class.
     metaclass = new ['Class']
     $P0 = box 'class'
     setprop metaclass, 'pkgtype', $P0
-    metaclass.'add_role'(self)
+
+    # Compose ourself and any roles we do.
+    .local pmc role_list, roles_it
+    role_list = new 'ResizablePMCArray'
+    push role_list, self
+    role_list = '!get_flattened_roles_list'(role_list)
+    roles_it = iter role_list
+  roles_it_loop:
+    unless roles_it goto roles_it_loop_end
+    $P0 = shift roles_it
+    $I0 = does metaclass, $P0
+    if $I0 goto roles_it_loop
+    metaclass.'add_role'($P0)
+    '!compose_role_attributes'(metaclass, $P0)
+    goto roles_it_loop
+  roles_it_loop_end:
+
     # XXX Would be nice to call !meta_compose here; for some reason, Parrot
     # ends up calling the wrong multi-variant. Something to investigate, when
     # I/someone has the energy for it.
-    '!compose_role_attributes'(metaclass, self)
     proto = p6meta.'register'(metaclass, 'parent'=>'Any')
     
     # Set name (don't use name=>... in register so we don't make a

@@ -581,10 +581,13 @@ and creating the protoobjects.
     .local pmc roles, roles_it
     roles = getprop '@!roles', metaclass
     if null roles goto roles_it_loop_end
+    roles = '!get_flattened_roles_list'(roles)
     roles_it = iter roles
   roles_it_loop:
     unless roles_it goto roles_it_loop_end
     $P0 = shift roles_it
+    $I0 = does metaclass, $P0
+    if $I0 goto roles_it_loop
     metaclass.'add_role'($P0)
     '!compose_role_attributes'(metaclass, $P0)
     goto roles_it_loop
@@ -602,30 +605,49 @@ and creating the protoobjects.
 .end
 
 
-=item !meta_compose(Role metarole)
+=item !get_flattened_roles_list
 
-Composes roles.
+Flattens out the list of roles.
+
+=cut
+
+.sub '!get_flattened_roles_list'
+    .param pmc unflat_list
+    .local pmc flat_list, it, cur_role, nested_roles, nested_it
+    flat_list = new 'ResizablePMCArray'
+    it = iter unflat_list
+  it_loop:
+    unless it goto it_loop_end
+    cur_role = shift it
+    $I0 = isa cur_role, 'Role'
+    unless $I0 goto error_not_a_role
+    push flat_list, cur_role
+    nested_roles = getprop '@!roles', cur_role
+    if null nested_roles goto it_loop
+    nested_roles = '!get_flattened_roles_list'(nested_roles)
+    nested_it = iter nested_roles
+  nested_it_loop:
+    unless nested_it goto it_loop
+    $P0 = shift nested_it
+    push flat_list, $P0
+    goto nested_it_loop
+  it_loop_end:
+    .return (flat_list)
+  error_not_a_role:
+    'die'('Can not compose a non-role.')
+.end
+
+
+=item !meta_compose(Role)
+
+Role meta composer -- does nothing.
 
 =cut
 
 .sub '!meta_compose' :multi(['Role'])
-    .param pmc metarole
-
-    # Parrot handles composing methods into roles, but we need to handle the
-    # attribute composition ourselves.
-    .local pmc roles, roles_it
-    roles = getprop '@!roles', metarole
-    if null roles goto roles_it_loop_end
-    roles_it = iter roles
-  roles_it_loop:
-    unless roles_it goto roles_it_loop_end
-    $P0 = shift roles_it
-    metarole.'add_role'($P0)
-    '!compose_role_attributes'(metarole, $P0)
-    goto roles_it_loop
-  roles_it_loop_end:
-
-    .return (metarole)
+    .param pmc metaclass
+    # Currently, nothing to do.
+    .return (metaclass)
 .end
 
 

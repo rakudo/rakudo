@@ -640,6 +640,11 @@ method multi_declarator($/) {
         # and transform the sub's container to a Perl6MultiSub.
         if $sym eq 'multi' || $sym eq 'proto' {
             transform_to_multi($past);
+            our @?BLOCK;
+            my $existing := @?BLOCK[0].symbol($past.name());
+            @?BLOCK[0].symbol($past.name(), :does_callable(1),
+                              :is_proto($sym eq 'proto' || $existing<is_proto>),
+                              :is_multi($sym eq 'multi'));
         }
 
         # Protos also need the proto property setting on them, plus we note
@@ -648,8 +653,6 @@ method multi_declarator($/) {
             $past.loadinit().push(
                 PAST::Op.new(:inline('    setprop block, "proto", %0'), 1)
             );
-            our @?BLOCK;
-            @?BLOCK[0].symbol($past.name(), :does_callable(1), :is_proto(1));
         }
 
         # If it's just a routine, need to mark it as a sub and make sure we
@@ -758,9 +761,15 @@ method routine_def($/) {
     $block.blocktype('declaration');
     if $<deflongname> {
         my $name := ~$<deflongname>[0];
-        $block.name( $name );
         our @?BLOCK;
-        @?BLOCK[0].symbol( $name, :scope('package') );
+        my $existing := @?BLOCK[0].symbol($name);
+        if $existing && !$existing<is_proto> && !$existing<is_multi> {
+            warn("Redefinition of routine " ~ $name);
+        }
+        elsif !$existing || !$existing<is_proto> {
+            @?BLOCK[0].symbol( $name, :scope('package') );
+        }
+        $block.name( $name );
     }
     $block.control(return_handler_past());
     block_signature($block);

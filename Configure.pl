@@ -17,6 +17,12 @@ MAIN: {
         exit(0);
     }
 
+    # Determine the revision of Parrot we require
+    open my $REQ, "build/PARROT_REVISION"
+      || die "cannot open build/PARROT_REVISION\n";
+    my $required = 0+<$REQ>;
+    close $REQ;
+
     # Update/generate parrot build if needed
     if ($options{'gen-parrot'}) {
         my @opts    = @{ $options{'gen-parrot-option'} || [] };
@@ -40,13 +46,22 @@ MAIN: {
 
     #  Get configuration information from parrot_config
     my %config = read_parrot_config(@parrot_config_exe);
-    unless (%config) {
-        die <<'END';
-Unable to locate parrot_config.
-To automatically checkout (svn) and build a copy of parrot,
+
+    my $parrot_errors = '';
+    if (!%config) { 
+        $parrot_errors .= "Unable to locate parrot_config\n"; 
+    }
+    elsif ($required > $config{'revision'}) {
+        $parrot_errors .= "Parrot revision r$required required (currently r$config{'revision'})\n";
+    }
+
+    if ($parrot_errors) {
+        die <<"END";
+$parrot_errors
+To automatically checkout (svn) and build a copy of parrot r$required,
 try re-running Configure.pl with the '--gen-parrot' option.
 Or, use the '--parrot-config' option to explicitly specify
-the location of parrot_config.
+the location of parrot_config to be used to build Rakudo Perl.
 END
     }
 

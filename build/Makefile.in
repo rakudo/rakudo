@@ -9,7 +9,6 @@ BUILD_DIR     = @build_dir@
 LOAD_EXT      = @load_ext@
 O             = @o@
 EXE           = @exe@
-MAKE          = @make_c@
 PERL          = @perl@
 RM_F          = @rm_f@
 HAS_ICU       = @has_icu@
@@ -183,7 +182,7 @@ perl6.pbc: perl6_s1.pbc src/gen_setting.pm
 	$(PARROT) $(PARROT_ARGS) -o perl6.pbc perl6.pir
 
 # the Perl 6 stage-1 compiler
-perl6_s1.pbc: Makefile $(PARROT) $(SOURCES) $(BUILTINS_PIR)
+perl6_s1.pbc: $(PARROT) $(SOURCES) $(BUILTINS_PIR)
 	$(PERL) -e "" > src/gen_setting.pir
 	$(PARROT) $(PARROT_ARGS) -o perl6_s1.pbc perl6.pir
 
@@ -196,7 +195,7 @@ src/gen_actions.pir: $(PARROT) $(NQP) $(PCT) src/parser/actions.pm
 	$(PARROT) $(PARROT_ARGS) $(NQP) --output=src/gen_actions.pir \
 	    --encoding=fixed_8 --target=pir src/parser/actions.pm
 
-src/gen_builtins.pir: Makefile build/gen_builtins_pir.pl
+src/gen_builtins.pir: build/gen_builtins_pir.pl
 	$(PERL) build/gen_builtins_pir.pl $(BUILTINS_PIR) > src/gen_builtins.pir
 
 src/gen_metaop.pir: build/gen_metaop_pir.pl
@@ -211,10 +210,10 @@ src/gen_whatever.pir: build/gen_whatever_pir.pl
 src/gen_uprop.pir: build/gen_uprop_pir.pl
 	$(PERL) build/gen_uprop_pir.pl > src/gen_uprop.pir
 
-src/gen_setting.pm: Makefile build/gen_setting_pm.pl $(SETTING)
+src/gen_setting.pm: build/gen_setting_pm.pl $(SETTING)
 	$(PERL) build/gen_setting_pm.pl $(SETTING) > src/gen_setting.pm
 
-$(PERL6_GROUP): Makefile $(PARROT) $(PMC_SOURCES)
+$(PERL6_GROUP): $(PARROT) $(PMC_SOURCES)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) generate $(PMCS)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) compile $(PMCS)
 	cd $(PMC_DIR) && $(BUILD_DYNPMC) linklibs $(PMCS)
@@ -230,13 +229,6 @@ $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref
 	$(PERL) -I$(BUILD_DIR)/lib build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
 		$(PMC_DIR)/objectref.pmc
 
-
-##  local copy of Parrot
-parrot: parrot/parrot_config build/PARROT_REVISION
-	$(PERL) build/gen_parrot.pl
-
-parrot/parrot_config:
-	@echo "Don't see parrot/parrot_config."
 
 ##  testing targets
 Test.pir: Test.pm perl6.pbc
@@ -293,7 +285,7 @@ clean:
 distclean: realclean
 
 realclean: clean
-	$(RM_F) src/utils/Makefile Makefile
+	$(RM_F) Makefile
 
 testclean:
 
@@ -333,10 +325,20 @@ help:
 	@echo "  help:              Print this help message."
 	@echo ""
 
-Makefile: build/Makefile.in
+Makefile: build/Makefile.in build/PARROT_REVISION $(PARROT) Configure.pl
 	@echo ""
 	@echo "warning: Makefile is out of date... re-run Configure.pl"
 	@echo ""
+
+##  local copy of Parrot
+$(PARROT): 
+
+parrot: parrot/parrot_config build/PARROT_REVISION
+	$(PERL) build/gen_parrot.pl
+
+parrot/parrot_config:
+	@echo "Don't see parrot/parrot_config."
+
 
 CRITIC_FILES=Configure.pl t/harness build/ tools/
 

@@ -134,23 +134,6 @@ Just calls this block with the supplied parameters.
 .end
 
 
-=item count()
-
-Return the number of required and optional parameters for a Block.
-Note that we currently do this by adding the method to Parrot's 
-"Sub" PMC, so that it works for non-Rakudo subs.
-
-=cut
-
-.namespace ['Sub']
-.sub 'count' :method
-    $P0 = inspect self, "pos_required"
-    $P1 = inspect self, "pos_optional"
-    add $P0, $P1
-    .return ($P0)
-.end
-
-
 =item perl()
 
 Return a response to .perl.

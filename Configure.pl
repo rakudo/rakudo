@@ -72,7 +72,10 @@ END
     {
         no warnings;
         print "Cleaning up ...\n";
-        if (open my $REV, '-|', "$make clean") { close $REV; }
+        if (open my $CLEAN, '-|', "$make clean") { 
+            my @slurp = <$CLEAN>;
+            close $CLEAN; 
+        }
     }
 
     print <<"END";

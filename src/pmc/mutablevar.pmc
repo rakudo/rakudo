@@ -41,7 +41,7 @@ pmclass MutableVAR need_ext dynpmc group perl6_group {
         PMC *scalar;
         GET_ATTR_scalar(INTERP, SELF, scalar);
         if (scalar)
-            pobject_lives(INTERP, (PObj*)scalar);
+            Parrot_gc_mark_PObj_alive(INTERP, (PObj*)scalar);
     }
 
     VTABLE void destroy() {

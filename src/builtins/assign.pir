@@ -290,7 +290,16 @@ src/builtins/assign.pir - assignments
     .param int dwim_lhs
     .param int dwim_rhs
 
-    # Make sure they're both lists. XXX Need to handle hashes in future.
+    # If we have a hash, go to the hyper op for hashes implementation.
+    $P0 = get_hll_global 'Associative'
+    $I0 = $P0.'ACCEPTS'(a)
+    unless $I0 goto not_hash
+    $I0 = $P0.'ACCEPTS'(b)
+    unless $I0 goto not_hash
+    .tailcall '!HYPEROPHASH'(opname, a, b, dwim_lhs, dwim_rhs)
+  not_hash:
+
+    # Make sure they're both lists.
     a = a.'list'()
     b = b.'list'()
 
@@ -376,6 +385,88 @@ src/builtins/assign.pir - assignments
 
   incompatible:
     'die'("Non-dwimmy hyperoperator cannot be used on arrays of different sizes or dimensions.")
+.end
+
+
+.sub '!HYPEROPHASH'
+    .param string opname
+    .param pmc a
+    .param pmc b
+    .param int dwim_lhs
+    .param int dwim_rhs
+
+    # First, work out applicable keys.
+    .local pmc keys_applicable, it
+    keys_applicable = new 'ResizablePMCArray'
+    $I0 = dwim_lhs * dwim_rhs
+    if $I0 goto intersection
+    $I0 = dwim_lhs + dwim_rhs
+    unless $I0 goto union
+    if dwim_rhs goto keys_a
+    keys_applicable = b.'keys'()
+    goto have_applicable_keys
+  keys_a:
+    keys_applicable = a.'keys'()
+    goto have_applicable_keys
+
+  intersection:
+    it = iter a
+  intersection_it_loop:
+    unless it goto intersection_it_loop_end
+    $P0 = shift it
+    $I0 = b.'exists'($P0)
+    unless $I0 goto intersection_it_loop
+    push keys_applicable, $P0
+    goto intersection_it_loop
+  intersection_it_loop_end:
+    goto have_applicable_keys
+
+  union:
+    it = iter a
+  union_it_loop_a:
+    unless it goto union_it_loop_a_end
+    $P0 = shift it
+    push keys_applicable, $P0
+    goto union_it_loop_a
+  union_it_loop_a_end:
+    it = iter b
+  union_it_loop_b:
+    unless it goto union_it_loop_b_end
+    $P0 = shift it
+    $I0 = a.'exists'($P0)
+    if $I0 goto union_it_loop_b
+    push keys_applicable, $P0
+    goto union_it_loop_b
+  union_it_loop_b_end:
+    goto have_applicable_keys
+
+  have_applicable_keys:
+    .local pmc opfunc, result
+    $S0 = concat 'infix:', opname
+    opfunc = find_name $S0
+    result = new 'Perl6Hash'
+    it = iter keys_applicable
+  it_loop:
+    unless it goto it_loop_end
+    $P0 = shift it
+    # XXX Would be nice to do:
+    # $P1 = a.'postcircumfix:{ }'($P0)
+    # $P2 = b.'postcircumfix:{ }'($P0)
+    # But we can't until the auto-vivification-on-read bug is fixed.
+    $P1 = a[$P0]
+    unless null $P1 goto got_first
+    $P1 = 'undef'()
+  got_first:
+    $P2 = b[$P0]
+    unless null $P2 goto got_second
+    $P2 = 'undef'()
+  got_second:
+    $P3 = opfunc($P1, $P2)
+    result[$P0] = $P3
+    goto it_loop
+  it_loop_end:
+
+    .return (result)
 .end
 
 

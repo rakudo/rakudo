@@ -40,6 +40,7 @@ S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/assigning-refs.t
 S02-builtin_data_types/bool.t
+S02-builtin_data_types/capture.t
 S02-builtin_data_types/catch_type_cast_mismatch.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
@@ -63,6 +64,7 @@ S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/char-by-name.t                                # icu
 S02-literals/char-by-number.t
+S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
 S02-literals/listquote.t
@@ -77,10 +79,13 @@ S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
 S02-literals/types.t
 S02-literals/underscores.t
+S02-magicals/config.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
+S02-magicals/env.t
 S02-magicals/progname.t
 S02-names_and_variables/fmt.t
+S02-names_and_variables/perl.t
 S02-names_and_variables/names.t
 S02-names_and_variables/varnames.t
 S02-one-pass-parsing/less-than.t
@@ -251,6 +256,7 @@ S09-autovivification/autoincrement.t
 S09-subscript_slice/slice.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
+S10-packages/basic.t
 S10-packages/use-with-class.t
 S11-modules/export.t
 S11-modules/import.t

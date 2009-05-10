@@ -11,6 +11,9 @@
 # S03-operators/binding-arrays.t - regressed to allow slices
 # S03-operators/binding-hashes.t - regressed to allow slices
 # integration/rule-in-class-Str.t - 'is also' -> augment
+# S12-class/extending-arrays.t - 'is also' -> augment
+# S12-class/open.t - 'is also' -> augment
+# S12-class/is_also_instead.t - 'is also' -> augment
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -265,13 +268,10 @@ S12-class/anonymous.t
 S12-class/attributes.t
 S12-class/basic.t
 S12-class/declaration-order.t
-S12-class/extending-arrays.t
 S12-class/inheritance-class-methods.t
 S12-class/inheritance.t
 S12-class/instantiate.t
-S12-class/is_also_instead.t
 S12-class/namespaced.t
-S12-class/open.t
 S12-class/parent_attributes.t
 S12-construction/autopairs.t
 S12-construction/construction.t

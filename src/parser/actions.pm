@@ -2784,14 +2784,14 @@ sub declare_implicit_block_vars($block, $tparam) {
     for ('$_', '$/', '$!') {
         unless $block.symbol($_) {
             my $lex := PAST::Op.new(:inline('    set %r, outerlex["'~$_~'"]'));
-            my $scope := ($tparam && $_ eq '$_') ?? 'parameter' !! 'lexical';
-            $block[0].push(
-                PAST::Var.new( :name($_),
-                               :scope($scope),
-                               :isdecl(1),
-                               :viviself($lex)
-                )
-            );
+            my $var := PAST::Var.new( :name($_), :scope('lexical'), 
+                                      :isdecl(1), :viviself($lex) );
+            if $tparam && $_ eq '$_' {
+                $var.scope('parameter');
+                block_signature($block);
+                $block.loadinit().push( make_sigparam( $var ) );
+            }
+            $block[0].push( $var );
             $block.symbol($_, :scope('lexical') );
         }
     }

@@ -811,7 +811,7 @@ method method_def($/) {
             :viviself( PAST::Var.new( :name('self'), :scope('register' ) ) )
         )
     );
-    $block[0].unshift(PAST::Var.new( :name('__CANDIATE_LIST__'), :scope('lexical'), :isdecl(1) ));
+    $block[0].unshift(PAST::Var.new( :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1) ));
 
     $block.control(return_handler_past());
     block_signature($block);

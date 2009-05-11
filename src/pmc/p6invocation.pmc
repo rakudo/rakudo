@@ -104,7 +104,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
     }
     
     VTABLE opcode_t *invoke(void *next) {
-        STRING   *lexname = CONST_STRING(interp, "__CANDIATE_LIST__");
+        STRING   *lexname = CONST_STRING(interp, "__CANDIDATE_LIST__");
         PMC      *lexpad, *first_candidate;
         opcode_t *addr;
 

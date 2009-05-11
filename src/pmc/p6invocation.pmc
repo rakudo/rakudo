@@ -126,7 +126,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
     }
 
     METHOD PMC *get() {
-        PMC *next = get_next_candidate(interp, SELF);
+        PMC *next = VTABLE_clone(interp, SELF);
         RETURN(PMC *next);
     }
 }

@@ -242,6 +242,57 @@ inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
 
 
 /*
+
+=item get_next_candidate_info(out PMC, out PMC, out PMC)
+
+Looks through the outers of our caller, until we find a Routine, for a lexical
+named __CANDIATE_LIST__. Hands this lexical back in $1, the PMC for the Routine
+it was found in as $2 and the lexpad of that routine as $3. This is a fairly
+special-purpose op that does just what callwith, callsame, nextwith and
+nextsame need.
+
+=cut
+
+*/
+inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
+    Parrot_Context *ctx       = CONTEXT(interp)->caller_ctx;
+    STRING         *name      = string_from_literal(interp, "__CANDIATE_LIST__");
+    STRING         *real_self = string_from_literal(interp, "$!real_self");
+    STRING         *routine   = string_from_literal(interp, "Routine");
+
+    while (ctx) {
+        /* See if we've found a candidate list. */
+        PMC *lexpad = ctx->lex_pad;
+        PMC *clist  = VTABLE_get_pmc_keyed_str(interp, lexpad, name);
+        if (!PMC_IS_NULL(clist)) {
+            /* Found. Set results and we're done. */
+            $1 = clist;
+            $2 = ctx->current_sub;
+            $3 = lexpad;
+            break;
+        }
+        else {
+            /* Not found; we'll only keep going if what we now have is not a routine. */
+            PMC *sub = ctx->current_sub;
+            PMC *real_sub = VTABLE_getprop(interp, sub, real_self);
+            if (!PMC_IS_NULL(real_sub))
+                sub = real_sub;
+            if (VTABLE_isa(interp, sub, routine)) {
+                ctx = NULL;
+                break;
+            }
+            else {
+                ctx = ctx->outer_ctx;
+            }
+        }
+    }
+    if (!ctx)
+        $1 = $2 = $3 = PMCNULL;
+
+    goto NEXT();
+}
+
+/*
  * Local variables:
  *   c-file-style: "parrot"
  * End:

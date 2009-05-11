@@ -2618,70 +2618,7 @@ method type_declarator($/) {
     }
 
     # We need a block containing the constraint condition.
-    my $past := $<EXPR>.ast;
-    my $param_name := '$_';
-    if (!$past.isa(PAST::Block) || $past.compiler() eq 'PGE::Perl6Regex') {
-        # Make block with a smart match of the the expression as its contents.
-        $past := PAST::Block.new(
-            PAST::Stmts.new(
-                PAST::Var.new(
-                    :scope('parameter'),
-                    :name('$_')
-                )
-            ),
-            PAST::Stmts.new(
-                PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('ACCEPTS'),
-                    $past,
-                    PAST::Var.new(
-                        :scope('lexical'),
-                        :name('$_')
-                    )
-                )
-            )
-        );
-    }
-
-    # Make sure it has a parameter and keep hold of it if found.
-    my $param;
-    my $dollar_underscore;
-    for @($past[0]) {
-        if $_.isa(PAST::Var) {
-            if $_.scope() eq 'parameter' {
-                $param := $_;
-                $param_name := $param.name();
-            }
-            elsif $_.name() eq '$_' {
-                $dollar_underscore := $_;
-            }
-        }
-    }
-    unless $param {
-        if $dollar_underscore {
-            $dollar_underscore.scope('parameter');
-            $param := $dollar_underscore;
-        }
-        else {
-            $param := PAST::Var.new(
-                :name('$_'),
-                :scope('parameter')
-            );
-            $past[0].push($param);
-        }
-    }
-
-    # If it doesn't have a signature, give it one.
-    unless $past<signature> {
-        block_signature($past);
-        $past.loadinit().push(PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('!add_param'),
-            PAST::Var.new( :name('signature'), :scope('register') ),
-            $param_name
-        ));
-        $past[0].push(PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') ));
-    }
+    my $past := make_anon_subtype($<EXPR>.ast);
 
     # Create subset type.
     my @name := Perl6::Compiler.parse_name($<name>);
@@ -2992,7 +2929,7 @@ sub make_anon_subtype($past) {
         $past[0].push(PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') ));
     }
 
-    return $past;
+    $past;
 }
 
 

@@ -1750,7 +1750,7 @@ method scope_declarator($/) {
                             :pasttype('call'),
                             :name('!clone_multi_for_lexical'),
                             $outer<scope> eq 'lexical' ??
-                                PAST::Op.new( :inline("    %r = find_lex_lift '" ~ $name ~ "'") ) !!
+                                PAST::Op.new( :inline("    %r = find_lex_skip_current '" ~ $name ~ "'") ) !!
                                 PAST::Var.new( :name($name), :scope('package') )
                         ))
                     ));

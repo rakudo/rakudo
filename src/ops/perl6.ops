@@ -11,6 +11,16 @@ VERSION = PARROT_VERSION;
 #  include <unicode/uchar.h>
 #endif
 
+/*
+
+=item rebless_subclass(in PMC, in PMC)
+
+Takes PMC $1 and reblesses it in-place, without any change of address, to be
+an instance of class $2, where $2 is a subclass of the class of $1.
+
+=cut
+
+*/
 inline op rebless_subclass(in PMC, in PMC) :base_core {
     PMC *value;
 
@@ -112,7 +122,17 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
     goto NEXT();
 }
 
-inline op find_lex_lift(out PMC, in STR) :base_core {
+/*
+
+=item find_lex_skip_current(out PMC, in STR)
+
+Finds the lexical named $2 and returns it. However, unlike find_lex this op
+skips the current sub and starts looking immediately at its outers.
+
+=cut
+
+*/
+inline op find_lex_skip_current(out PMC, in STR) :base_core {
     Parrot_Context *ctx = CONTEXT(interp);
     $1 = PMCNULL;
     
@@ -132,6 +152,16 @@ inline op find_lex_lift(out PMC, in STR) :base_core {
 }
 
 
+/*
+
+=item inline op is_uprop(out INT, in STR, in STR, in INT)
+
+Sets a true value in $1 if character $4 in string $3 has the unicode property
+named $2.
+
+=cut
+
+*/
 inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
 #if PARROT_HAS_ICU
     char     *cstr;

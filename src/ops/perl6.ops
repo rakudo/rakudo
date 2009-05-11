@@ -257,8 +257,6 @@ nextsame need.
 inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
     Parrot_Context *ctx         = CONTEXT(interp)->caller_ctx;
     STRING         *name        = string_from_literal(interp, "__CANDIDATE_LIST__");
-    STRING         *real_self   = string_from_literal(interp, "$!real_self");
-    STRING         *routine     = string_from_literal(interp, "Routine");
     STRING         *wrapper     = string_from_literal(interp, "$!wrapper_block");
     PMC            *last_lexpad = PMCNULL;
     PMC            *last_sub    = PMCNULL;

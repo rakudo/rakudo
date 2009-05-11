@@ -438,26 +438,32 @@ on error.
     .param pmc pos_args    :slurpy
     .param pmc named_args  :slurpy :named
 
-    # Is our caller a wrapping? If so, call inner.
-    .local pmc caller, inner
-    $P0 = getinterp
-    caller = $P0['sub'; 1]
-  search_loop:
-    inner = getprop '$!wrap_inner', caller
-    if null inner goto try_outer
-    .tailcall inner(pos_args :flat, named_args :flat :named)
-  try_outer:
-    $I0 = isa caller, 'Routine' # Should not search out of current routine.
-    if $I0 goto not_wrapped
-    caller = caller.'get_outer'()
-    if null caller goto not_wrapped
-    $P0 = getprop '$!real_self', caller
-    if null $P0 goto search_loop
-    caller = $P0
-    goto search_loop
+    # For callwith, it's easy - just want to get the next candidate, call
+    # it and hand back it's return values. A tailcall does fine.
+    .local pmc clist, lexpad, self, next
+    get_next_candidate_info clist, $P0, lexpad
+    next = clist.'get'()
+    self = lexpad['self']
+    .tailcall next(self, pos_args :flat, named_args :flat :named)
+.end
 
-  not_wrapped:
-    'die'('Use of callwith in non-wrapped case not yet implemented.')
+
+=item nextwith
+
+=cut
+
+.sub 'nextwith'
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+
+    # Find next candiate, invoke it and get its return value, then use
+    # return to return it as if it was from our original call.
+    .local pmc clist, lexpad, self, next, result
+    get_next_candidate_info clist, $P0, lexpad
+    next = clist.'get'()
+    self = lexpad['self']
+    (result) = next(self, pos_args :flat, named_args :flat :named)
+    'return'(result)
 .end
 
 
@@ -466,38 +472,72 @@ on error.
 =cut
 
 .sub 'callsame'
-    # Is our caller a wrapping? If so, find what we need to call.
-    .local pmc caller, inner
-    $P0 = getinterp
-    caller = $P0['sub'; 1]
-  search_loop:
-    inner = getprop '$!wrap_inner', caller
-    unless null inner goto found_inner
-  try_outer:
-    $I0 = isa caller, 'Routine' # Should not search out of current routine.
-    if $I0 goto not_wrapped
-    caller = caller.'get_outer'()
-    if null caller goto not_wrapped
-    $P0 = getprop '$!real_self', caller
-    if null $P0 goto search_loop
-    caller = $P0
-    goto search_loop
+    # Find next candidate as well as caller and lexpad.
+    .local pmc clist, routine, lexpad, next
+    get_next_candidate_info clist, routine, lexpad
+    next = clist.'get'()
+    
+    # Build arguments based upon what the caller was originall invoked with,
+    # and tailcall the next candidate.
+    .local pmc pos_args, named_args
+    (pos_args, named_args) = '!get_original_args'(routine, lexpad)
+    .tailcall next(pos_args :flat, named_args :flat :named)
+.end
 
-  found_inner:
-    # Now we need to get the arguments passed.
-    # XXX TODO: not sure how to do this well just yet. For now, just die if there
-    # are args, but call things that don't get any.
-    .local pmc params
-    params = inner.'signature'()
-    params = params.'params'()
-    $I0 = params
-    if $I0 > 0 goto unimpl
-    .tailcall inner()
-  unimpl:
-    'die'("callsame passing on arguments not yet implemented")
 
-  not_wrapped:
-    'die'('Use of callsame in non-wrapped case not yet implemented.')
+=item nextsame
+
+=cut
+
+.sub 'nextsame'
+    # Find next candidate as well as caller and lexpad.
+    .local pmc clist, routine, lexpad, next
+    get_next_candidate_info clist, routine, lexpad
+    next = clist.'get'()
+    
+    # Build arguments based upon what the caller was originall invoked with,
+    # get the result of the next candidate and use return to retrun from
+    # the caller.
+    .local pmc pos_args, named_args, result
+    (pos_args, named_args) = '!get_original_args'(routine, lexpad)
+    (result) = next(pos_args :flat, named_args :flat :named)
+    'return'(result)
+.end
+
+
+=item !get_original_args
+
+Helper for callsame and nextsame that uses the signature and lexpad of a
+routine to build up the next caller args. Maybe once day Parrot gives us
+some Capture support and this gets massively easier.
+
+=cut
+
+.sub '!get_original_args'
+    .param pmc routine
+    .param pmc lexpad
+
+    .local pmc signature, it, cur_param, pos_args, named_args
+    signature = routine.'signature'()
+    $P0 = signature.'params'()
+    it = iter $P0
+    pos_args = new 'ResizablePMCArray'
+    named_args = new 'Hash'
+  it_loop:
+    unless it goto it_loop_end
+    cur_param = shift it
+    $S0 = cur_param['name']
+    $P0 = lexpad[$S0]
+    $P1 = cur_param['named']
+    unless null $P1 goto named
+    push pos_args, $P0
+    goto it_loop
+  named:
+    named_args[$P1] = $P0
+    goto it_loop
+  it_loop_end:
+
+    .return (pos_args, named_args)
 .end
 
 

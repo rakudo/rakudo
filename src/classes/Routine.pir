@@ -11,6 +11,8 @@ wrappable executable objects.
 
 =cut
 
+.include 'interpinfo.pasm'
+
 .namespace ['Routine']
 
 .sub 'onload' :anon :load :init
@@ -41,42 +43,80 @@ wrappable executable objects.
 .sub 'wrap' :method
     .param pmc wrapper
 
-    # Did we already wrap? If so, get handle and increment it to make a new
-    # one; otherwise, start from 1.
-    .local pmc handle
-    handle = getprop '$!wrap_handle', self
-    unless null handle goto have_handle
-    handle = box 0
-  have_handle:
-    handle = 'infix:+'(handle, 1)
+    # Did we already wrap?
+    .local pmc cand_list, cur_sub
+    cur_sub = getattribute self, ['Sub'], 'proxy'
+    cand_list = getprop '@!candidates', cur_sub
+    unless null cand_list goto have_cand_list
 
-    # Take current Parrot-level sub and re-bless it into a block (so CALLER
-    # won't see it as a routine). Copy properties.
-    .local pmc inner
-    inner = get_hll_global 'Block'
-    inner = inner.'new'()
-    $P0 = getattribute self, ['Sub'], 'proxy'
-    setattribute inner, ['Sub'], 'proxy', $P0
-    $P1 = prophash self
-    $P2 = iter $P1
-  it_loop:
-    unless $P2 goto it_loop_end
-    $S0 = shift $P2
-    $P3 = $P1[$S0]
-    setprop inner, $S0, $P3
-    goto it_loop
-  it_loop_end:
-    setprop $P0, '$!real_self', inner
-
-    # Then assign the Parrot sub of the wrapper to ourself, and set the inner block
-    # and handle as properties on ourself too.
-    $P0 = getattribute wrapper, ['Sub'], 'proxy'
+    # If not, need to create a new candidate list with the current sub,
+    # and install the wrap helper that will start dispatching at the
+    # start of the candidate list.
+    .local pmc p6i
+    cand_list = new ['ResizablePMCArray']
+    unshift cand_list, cur_sub
+    p6i = new 'P6Invocation', cand_list
+    .lex '__CANDIDATE_LIST__', p6i
+    .const 'Sub' $P0 = '!wrap_start_helper'
+    $P0 = newclosure $P0
     setattribute self, ['Sub'], 'proxy', $P0
-    setprop $P0, '$!real_self', self
-    setprop self, '$!wrap_handle', handle
-    setprop self, '$!wrap_inner', inner
+    setprop $P0, '@!candidates', cand_list
 
+    # We need to clone the wrapper, then tweak it to have an outer of
+    # !wrap_clholder_helper, which we use to hold the candidate list,
+    # and set the helper's outer to the block's original outer to maintain
+    # the static chain. This is so we have a lexical slot for the
+    # candidate list to go in; beats giving every single block one.
+  have_cand_list:
+    .local pmc orig_wrapper, tmp, tmp2
+    orig_wrapper = wrapper
+    wrapper = clone orig_wrapper
+    tmp = getprop '$!signature', orig_wrapper
+    setprop wrapper, '$!signature', tmp
+    $I0 = isa wrapper, 'Code'
+    unless $I0 goto copyprops_done
+    tmp = getattribute orig_wrapper, ['Sub'], 'proxy'
+    tmp = getprop '$!real_self', tmp
+    tmp2 = getattribute wrapper, ['Sub'], 'proxy'
+    setprop tmp2, '$!real_self', tmp
+  copyprops_done:
+    .const 'Sub' $P1 = '!wrap_clholder_helper'
+    $P1 = clone $P1
+    setprop $P1, '$!wrapper_block', wrapper
+    $P2 = wrapper.'get_outer'()
+    $P1.'set_outer'($P2)
+    wrapper.'set_outer'($P1)
+
+    # Unshift this candidate onto the list; generate a wrap handle also, stick
+    # it on the candidate and return it.
+    .local pmc handle
+    $I0 = 1
+    $P2 = cand_list[0]
+    $P2 = getprop '$!handle', $P2
+    if null $P2 goto no_handle
+    $I0 = $P2
+  no_handle:
+    inc $I0
+    handle = box $I0
+    setprop $P1, '$!handle', handle
+    unshift cand_list, $P1
     .return (handle)
+.end
+.sub '!wrap_start_helper' :anon :outer('wrap')
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    $P0 = find_lex '__CANDIDATE_LIST__'
+    $P1 = $P0.'get'()
+    .tailcall $P1(pos_args :flat, named_args :flat :named)
+.end
+.sub '!wrap_clholder_helper' :anon
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    .lex '__CANDIDATE_LIST__', $P0
+    $P1 = interpinfo .INTERPINFO_CURRENT_SUB
+    $P1 = getprop '$!wrapper_block', $P1
+    capture_lex $P1
+    .tailcall $P1(pos_args :flat, named_args :flat :named)
 .end
 
 
@@ -86,34 +126,40 @@ wrappable executable objects.
 
 .sub 'unwrap' :method
     .param pmc handle
+    
+    # Check it's wrapped.
+    .local pmc cand_list, cur_sub
+    cur_sub = getattribute self, ['Sub'], 'proxy'
+    cand_list = getprop '@!candidates', cur_sub
+    if null cand_list goto error
 
-    # Search for wrap handle.
-    .local pmc current
-    current = self
-  search_loop:
-    $P0 = getprop '$!wrap_handle', current
-    if null $P0 goto handle_not_found
-    if $P0 == handle goto found
-    current = getprop '$!wrap_inner', current
-    goto search_loop
+    # Look by handle for what to remove and remove it.
+    $I0 = elements cand_list
+    $I1 = 0
+  find_loop:
+    if $I1 >= $I0 goto error
+    $P0 = cand_list[$I1]
+    $P0 = getprop '$!handle', $P0
+    if null $P0 goto error
+    if handle == $P0 goto remove
+    inc $I1
+    goto find_loop
+  remove:
+    delete cand_list[$I1]
 
-    # If found, unwrap and fix up chain to eliminate now-unused sub.
-  found:
-    $P0 = getprop '$!wrap_inner', current
-    $P1 = getattribute $P0, ['Sub'], 'proxy'
-    setattribute current, ['Sub'], 'proxy', $P1
-    setprop $P1, '$!real_self', current
-    $P1 = getprop '$!wrap_inner', $P0
-    if null $P1 goto unwrap_done
-    setprop current, '$!wrap_inner', $P1
-    $P1 = getprop '$!wrap_handle', $P0
-    setprop current, '$!wrap_handle', $P1
-  unwrap_done:
-    $P0 = new 'Nil'
-    .return ($P0)
+    # If it's not the last wrapper we're done, otherwise  we'll remove the
+    # wrapper completely and restore the sub.
+    $I0 = elements cand_list
+    if $I0 == 1 goto final
+    .return (handle)
 
-  handle_not_found:
-    'die'('Could not find unwrap handle ', handle, ' on sub ', self)
+  final:
+    $P0 = shift cand_list
+    setattribute self, ['Sub'], 'proxy', $P0
+    .return (handle)
+
+  error:
+    'die'('Could not unwrap; unrecognized wrap handle')
 .end
 
 =back

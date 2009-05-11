@@ -518,11 +518,13 @@ some Capture support and this gets massively easier.
     .param pmc lexpad
 
     .local pmc signature, it, cur_param, pos_args, named_args
-    signature = routine.'signature'()
-    $P0 = signature.'params'()
-    it = iter $P0
     pos_args = new 'ResizablePMCArray'
     named_args = new 'Hash'
+    signature = routine.'signature'()
+    $I0 = defined signature
+    unless $I0 goto it_loop_end
+    $P0 = signature.'params'()
+    it = iter $P0
   it_loop:
     unless it goto it_loop_end
     cur_param = shift it

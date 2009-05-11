@@ -255,10 +255,13 @@ nextsame need.
 
 */
 inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
-    Parrot_Context *ctx       = CONTEXT(interp)->caller_ctx;
-    STRING         *name      = string_from_literal(interp, "__CANDIDATE_LIST__");
-    STRING         *real_self = string_from_literal(interp, "$!real_self");
-    STRING         *routine   = string_from_literal(interp, "Routine");
+    Parrot_Context *ctx         = CONTEXT(interp)->caller_ctx;
+    STRING         *name        = string_from_literal(interp, "__CANDIDATE_LIST__");
+    STRING         *real_self   = string_from_literal(interp, "$!real_self");
+    STRING         *routine     = string_from_literal(interp, "Routine");
+    STRING         *wrapper     = string_from_literal(interp, "$!wrapper_block");
+    PMC            *last_lexpad = PMCNULL;
+    PMC            *last_sub    = PMCNULL;
 
     while (ctx) {
         /* See if we've found a candidate list. */
@@ -267,23 +270,21 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
         if (!PMC_IS_NULL(clist)) {
             /* Found. Set results and we're done. */
             $1 = clist;
-            $2 = ctx->current_sub;
-            $3 = lexpad;
+            if (PMC_IS_NULL(VTABLE_getprop(interp, ctx->current_sub, wrapper))) {
+                $2 = ctx->current_sub;
+                $3 = lexpad;
+            }
+            else {
+                $2 = last_sub;
+                $3 = last_lexpad;
+            }
             break;
         }
         else {
-            /* Not found; we'll only keep going if what we now have is not a routine. */
-            PMC *sub = ctx->current_sub;
-            PMC *real_sub = VTABLE_getprop(interp, sub, real_self);
-            if (!PMC_IS_NULL(real_sub))
-                sub = real_sub;
-            if (VTABLE_isa(interp, sub, routine)) {
-                ctx = NULL;
-                break;
-            }
-            else {
-                ctx = ctx->outer_ctx;
-            }
+            /* Not found; keep looking. */
+            last_sub = ctx->current_sub;
+            last_lexpad = lexpad;
+            ctx = ctx->outer_ctx;
         }
     }
     if (!ctx)

@@ -2872,12 +2872,7 @@ sub make_anon_subtype($past) {
     # it against $_.
     if !$past.isa(PAST::Block) || $past.compiler() eq 'PGE::Perl6Regex' {
         $past := PAST::Block.new(
-            PAST::Stmts.new(
-                PAST::Var.new(
-                    :name('$_'),
-                    :scope('parameter')
-                )
-            ),
+            PAST::Stmts.new(),
             PAST::Stmts.new(
                 PAST::Op.new(
                     :name('infix:~~'),
@@ -2887,46 +2882,7 @@ sub make_anon_subtype($past) {
                 )
             )
         );
-    }
-    else {
-        # Make the block we have has a parameter.
-        my $param;
-        my $dollar_underscore;
-        for @($past[0]) {
-            if $_.isa(PAST::Var) {
-                if $_.scope() eq 'parameter' {
-                    $param := $_;
-                    $param_name := $param.name();
-                }
-                elsif $_.name() eq '$_' {
-                    $dollar_underscore := $_;
-                }
-            }
-        }
-        unless $param {
-            if $dollar_underscore {
-                $dollar_underscore.scope('parameter');
-            }
-            else {
-                $past[0].push(PAST::Var.new(
-                    :name('$_'),
-                    :scope('parameter')
-                ));
-            }
-        }
-    }
-
-    # Add signature to make sure parameter is read-only, unless block is
-    # already sig'd.
-    unless $past<signature> {
-        block_signature($past);
-        $past.loadinit().push(PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('!add_param'),
-            PAST::Var.new( :name('signature'), :scope('register') ),
-            $param_name
-        ));
-        $past[0].push(PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') ));
+        declare_implicit_function_vars($past);
     }
 
     $past;

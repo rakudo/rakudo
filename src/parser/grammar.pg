@@ -105,7 +105,7 @@ token unv {
 ##  a set of whitespace.
 
 token afterws {
-    ##  <?{ $Â¢ == $!ws_to != $!ws_from }>
+    ##  <?{ $¢ == $!ws_to != $!ws_from }>
     {{  $P0 = match.'to'()
         $P1 = get_global '$!ws'
         $P2 = $P1.'to'()
@@ -727,7 +727,7 @@ rule enum_declarator {
 
     [
     | <?before '(' > <circumfix> {*}             #= circumfix
-    | <?before '<' | 'Â«' > <quote> {*}          #= quote
+    | <?before '<' | '«' > <quote> {*}          #= quote
     ]
 }
 
@@ -822,7 +822,7 @@ token desigilname {
 }
 
 token special_variable {
-    $<sym>=[ '$/' | '$!' | '$Â¢' ] <!before \w> {*}
+    $<sym>=[ '$/' | '$!' | '$¢' ] <!before \w> {*}
 }
 
 token circumfix {
@@ -897,7 +897,7 @@ token quote {
     | <.before '"' >   <quote_expression: :qq>
     | <.before '<<' >  <quote_expression: :ww :qq>
     | <.before '<' >   <quote_expression: :w :q>
-    # | <.before 'Â«' > <quote_expression: :ww :qq>  FIXME: unicode
+    # | <.before '«' > <quote_expression: :ww :qq>  FIXME: unicode
     | <.before '/'>    <quote_expression: :regex>
     | [m|rx] <.ws> 
         [ [':P5'|':Perl5'] <.ws> <quote_expression: :regex :P5>

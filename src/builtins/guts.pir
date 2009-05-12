@@ -144,7 +144,7 @@ Does an indirect method dispatch.
 
   candidate_list:
     $P0 = new 'P6Invocation', methodish
-    $P0(obj, pos_args :flat, name_args :flat :named)
+    .tailcall $P0(obj, pos_args :flat, name_args :flat :named)
 .end
 
 

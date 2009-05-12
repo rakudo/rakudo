@@ -188,7 +188,7 @@ perl6_s1.pbc: $(PARROT) $(SOURCES) $(BUILTINS_PIR)
 
 src/gen_grammar.pir: $(PARROT) $(PERL6GRAMMAR) src/parser/grammar.pg src/parser/grammar-oper.pg
 	$(PARROT) $(PARROT_ARGS) $(PERL6GRAMMAR) \
-	    --output=src/gen_grammar.pir \
+	    --output=src/gen_grammar.pir --encoding=utf8 \
 	    src/parser/grammar.pg src/parser/grammar-oper.pg
 
 src/gen_actions.pir: $(PARROT) $(NQP) $(PCT) src/parser/actions.pm

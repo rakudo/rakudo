@@ -105,7 +105,7 @@ token unv {
 ##  a set of whitespace.
 
 token afterws {
-    ##  <?{ $¢ == $!ws_to != $!ws_from }>
+    ##  <?{ $Â¢ == $!ws_to != $!ws_from }>
     {{  $P0 = match.'to'()
         $P1 = get_global '$!ws'
         $P2 = $P1.'to'()
@@ -579,7 +579,7 @@ token post {
     ]
 }
 
-token postfix_prefix_meta_operator { '�' | '>>' }
+token postfix_prefix_meta_operator { '»' | '>>' }
 
 token dotty {
     [
@@ -727,7 +727,7 @@ rule enum_declarator {
 
     [
     | <?before '(' > <circumfix> {*}             #= circumfix
-    | <?before '<' | '«' > <quote> {*}          #= quote
+    | <?before '<' | 'Â«' > <quote> {*}          #= quote
     ]
 }
 
@@ -789,7 +789,7 @@ token constant_declarator {
         .return ($I0)
     }}>
     <!{{
-        # XXX <!{ $�.is_name($<identifier>.Str) }>
+        # XXX <!{ $¢.is_name($<identifier>.Str) }>
         $P0 = match['identifier']
         $S0 = $P0.'text'()
         .tailcall match.'is_type'($S0)
@@ -822,7 +822,7 @@ token desigilname {
 }
 
 token special_variable {
-    $<sym>=[ '$/' | '$!' | '$¢' ] <!before \w> {*}
+    $<sym>=[ '$/' | '$!' | '$Â¢' ] <!before \w> {*}
 }
 
 token circumfix {
@@ -897,7 +897,7 @@ token quote {
     | <.before '"' >   <quote_expression: :qq>
     | <.before '<<' >  <quote_expression: :ww :qq>
     | <.before '<' >   <quote_expression: :w :q>
-    # | <.before '«' > <quote_expression: :ww :qq>  FIXME: unicode
+    # | <.before 'Â«' > <quote_expression: :ww :qq>  FIXME: unicode
     | <.before '/'>    <quote_expression: :regex>
     | [m|rx] <.ws> 
         [ [':P5'|':Perl5'] <.ws> <quote_expression: :regex :P5>

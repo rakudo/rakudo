@@ -170,6 +170,7 @@ dispatcher for each thingy we're dispatching over.
     unless it goto it_loop_done
     $P0 = shift it
     $P0 = disp($P0, pos_args :flat, named_args :flat :named)
+    $P0 = $P0.'Scalar'()
     result.'push'($P0)
     goto it_loop
   it_loop_done:
@@ -199,6 +200,7 @@ array of invocants.
     unless it goto it_loop_done
     $P0 = shift it
     $P0 = $P0.name(pos_args :flat, named_args :flat :named)
+    $P0 = $P0.'Scalar'()
     result.'push'($P0)
     goto it_loop
   it_loop_done:

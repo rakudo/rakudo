@@ -12,7 +12,8 @@ use FindBin;
 use File::Spec;
 use Getopt::Long qw(:config pass_through);
 
-$ENV{'HARNESS_PERL'} = './perl6';
+my $slash = $^O eq 'MSWin32' ? '\\' : '/';
+$ENV{'HARNESS_PERL'} = ".${slash}perl6";
 use Test::Harness;
 $Test::Harness::switches = '';
 
@@ -26,8 +27,6 @@ GetOptions(
 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
-
-my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 
 if ($list_file) {
     open(my $f, '<', $list_file)

@@ -297,6 +297,7 @@ S12-methods/default-trait.t
 S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/multi.t
+S12-methods/parallel-dispatch.t
 S12-methods/private.t
 S12-methods/syntax.t
 S12-methods/topic.t

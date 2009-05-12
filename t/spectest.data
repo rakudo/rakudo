@@ -381,10 +381,10 @@ S32-num/sqrt.t
 S32-scalar/defined.t
 S32-scalar/undef.t
 S32-str/append.t
-S32-str/capitalize.t
+S32-str/capitalize.t                                       # icu
 S32-str/chomp.t
 S32-str/chop.t
-S32-str/comb.t
+S32-str/comb.t                                             # icu
 S32-str/flip.t
 S32-str/index.t
 S32-str/lcfirst.t
@@ -401,5 +401,5 @@ S32-str/trim.t
 S32-str/ucfirst.t
 S32-str/uc.t                                               # icu
 S32-str/unpack.t
-S32-str/words.t
+S32-str/words.t                                            # icu
 S32-trig/trig.t

@@ -572,12 +572,14 @@ token expect_term {
 token post {
     <!afterws>
     [ <.unsp> || \\ ]?
+    <postfix_prefix_meta_operator>?
     [
     | <dotty> {*}                                #= dotty
     | <postcircumfix> {*}                        #= postcircumfix
     ]
 }
 
+token postfix_prefix_meta_operator { '«' | '>>' }
 
 token dotty {
     [

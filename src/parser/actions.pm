@@ -1250,7 +1250,7 @@ method dotty($/, $key) {
     }
     elsif $key eq '.*' {
         $past := $<dottyop>.ast;
-        if $/[0] eq '.?' || $/[0] eq '.+' || $/[0] eq '.*' || $/[0] eq '.^' {
+        if $/[0] eq '.?' || $/[0] eq '.+' || $/[0] eq '.*' || $/[0] eq '.^'  || $/[0] eq '.=' {
             my $name := $past.name();
             unless $name {
                 $/.panic("Cannot use " ~ $/[0] ~ " when method is a code ref");

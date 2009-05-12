@@ -585,7 +585,7 @@ token dotty {
     [
     | '.VAR' {*}                                      #= VAR
     | '.' <.unspacey> <dottyop> {*}                   #= .
-    | ('.' <[+*?^:]>) <.unspacey> <dottyop> {*}       #= .*
+    | ('.' <[+*?^:=]>) <.unspacey> <dottyop> {*}      #= .*
     | '!' <methodop> {*}                              #= !
     ]
 }

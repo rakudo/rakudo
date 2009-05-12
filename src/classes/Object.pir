@@ -673,6 +673,31 @@ Helper for doing calls on the metaclass.
     .tailcall how.method_name(self, pos_args :flat, named_args :flat :named)
 .end
 
+=item !.=
+
+Helper for doing .= calls.
+
+=cut
+
+.sub '!.=' :method
+    .param string method_name
+    .param pmc pos_args     :slurpy
+    .param pmc named_args   :slurpy :named
+
+    # Get result and assign it to self. (XXX Also while $/ is not accessed
+    # as a context var properly, need to cheat bit with that to keep
+    # some other things happy.)
+    $P0 = find_lex_skip_current '$/'
+    .lex '$/', $P0
+    ($P0) = self.method_name(pos_args :flat, named_args :flat :named)
+    $P1 = getinterp
+    $P1 = $P1['lexpad'; 1]
+    if null $P1 goto done
+    $P1['$/'] = $P0
+  done:
+    .tailcall 'infix:='(self, $P0)
+.end
+
 =back
 
 =head2 Vtable functions

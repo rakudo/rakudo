@@ -579,7 +579,7 @@ token post {
     ]
 }
 
-token postfix_prefix_meta_operator { 'Â«' | '>>' }
+token postfix_prefix_meta_operator { '»' | '>>' }
 
 token dotty {
     [

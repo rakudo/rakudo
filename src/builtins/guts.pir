@@ -148,6 +148,65 @@ Does an indirect method dispatch.
 .end
 
 
+=item !dispatch_dispatcher_parallel
+
+Does a parallel method dispatch over an existing dispatcher. Just invokes the normal
+dispatcher for each thingy we're dispatching over.
+
+=cut
+
+.sub '!dispatch_dispatcher_parallel'
+    .param pmc invocanty
+    .param string dispatcher
+    .param pmc pos_args        :slurpy
+    .param pmc named_args      :slurpy :named
+
+    .local pmc it, result, disp
+    disp = find_name dispatcher
+    result = new ['Perl6Array']
+    invocanty = invocanty.'list'()
+    it = iter invocanty
+  it_loop:
+    unless it goto it_loop_done
+    $P0 = shift it
+    $P0 = disp($P0, pos_args :flat, named_args :flat :named)
+    result.'push'($P0)
+    goto it_loop
+  it_loop_done:
+
+    .return (result)
+.end
+
+
+=item !dispatch_method_parallel
+
+Does a parallel method dispatch. Invokes the method for each thing in the
+array of invocants.
+
+=cut
+
+.sub '!dispatch_method_parallel'
+    .param pmc invocanty
+    .param string name
+    .param pmc pos_args        :slurpy
+    .param pmc named_args      :slurpy :named
+
+    .local pmc it, result
+    result = new ['Perl6Array']
+    invocanty = invocanty.'list'()
+    it = iter invocanty
+  it_loop:
+    unless it goto it_loop_done
+    $P0 = shift it
+    $P0 = $P0.name(pos_args :flat, named_args :flat :named)
+    result.'push'($P0)
+    goto it_loop
+  it_loop_done:
+
+    .return (result)
+.end
+
+
 =item !VAR
 
 Helper function for implementing the VAR and .VAR macros.

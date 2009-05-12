@@ -1200,7 +1200,24 @@ method expect_term($/, $key) {
 
 
 method post($/, $key) {
-    make $/{$key}.ast;
+    my $past := $/{$key}.ast;
+
+    if $<postfix_prefix_meta_operator> {
+        if $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
+            $past.unshift($past.name());
+            $past.name('!dispatch_dispatcher_parallel');
+        }
+        elsif $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
+            $past.unshift($past.name());
+            $past.name('!dispatch_method_parallel');
+            $past.pasttype('call');
+        }
+        else {
+            $/.panic("Unimplemented or invalid use of parallel dispatch");
+        }
+    }
+
+    make $past;
 }
 
 

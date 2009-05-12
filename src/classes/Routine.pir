@@ -112,11 +112,28 @@ wrappable executable objects.
 .sub '!wrap_clholder_helper' :anon
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
+
+    # Slot for candidate list.
     .lex '__CANDIDATE_LIST__', $P0
+
+    # Set up return handler, so next[with|same] work.
+    $P2 = new 'ExceptionHandler'
+    set_addr $P2, ret_handler
+    $P2."handle_types"(58)
+    push_eh $P2
+
+    # Get the inner block and call it.
     $P1 = interpinfo .INTERPINFO_CURRENT_SUB
     $P1 = getprop '$!wrapper_block', $P1
     capture_lex $P1
-    .tailcall $P1(pos_args :flat, named_args :flat :named)
+    ($P3) = $P1(pos_args :flat, named_args :flat :named)
+    .return ($P3)
+
+  ret_handler:
+    .local pmc exception, result
+    .get_results (exception)
+    result = getattribute exception, "payload"
+    .return (result)
 .end
 
 

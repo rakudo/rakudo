@@ -443,8 +443,12 @@ on error.
     .local pmc clist, lexpad, self, next
     get_next_candidate_info clist, $P0, lexpad
     next = clist.'get'()
+    $I0 = isa next, 'Method'
+    unless $I0 goto not_method
     self = lexpad['self']
     .tailcall next(self, pos_args :flat, named_args :flat :named)
+  not_method:
+    .tailcall next(pos_args :flat, named_args :flat :named)
 .end
 
 
@@ -461,8 +465,13 @@ on error.
     .local pmc clist, lexpad, self, next, result
     get_next_candidate_info clist, $P0, lexpad
     next = clist.'get'()
+    $I0 = isa next, 'Method'
+    unless $I0 goto not_method
     self = lexpad['self']
     (result) = next(self, pos_args :flat, named_args :flat :named)
+    'return'(result)
+  not_method:
+    (result) = next(pos_args :flat, named_args :flat :named)
     'return'(result)
 .end
 

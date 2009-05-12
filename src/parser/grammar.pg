@@ -897,7 +897,7 @@ token quote {
     | <.before '"' >   <quote_expression: :qq>
     | <.before '<<' >  <quote_expression: :ww :qq>
     | <.before '<' >   <quote_expression: :w :q>
-    # | <.before '«' > <quote_expression: :ww :qq>  FIXME: unicode
+    | <.before '«' >   <quote_expression: :ww :qq>
     | <.before '/'>    <quote_expression: :regex>
     | [m|rx] <.ws> 
         [ [':P5'|':Perl5'] <.ws> <quote_expression: :regex :P5>

@@ -17,6 +17,24 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     '!EXPORT'('delete,exists,pop,push,shift,unshift', 'from'=>$P0, 'to_p6_multi'=>1)
 .end
 
+
+# This is here since this is the first thing in the built-ins that needs it.
+.macro fixup_cloned_sub(orig, copy)
+    .local pmc tmp, tmp2
+    $I0 = isa .orig, 'Sub'
+    unless $I0 goto sub_fixup_done
+    tmp = getprop '$!signature', .orig
+    setprop .copy, '$!signature', tmp
+    $I0 = isa .orig, 'Code'
+    unless $I0 goto sub_fixup_done
+    tmp = getattribute .orig, ['Sub'], 'proxy'
+    tmp = getprop '$!real_self', tmp
+    tmp2 = getattribute .copy, ['Sub'], 'proxy'
+    setprop tmp2, '$!real_self', tmp
+  sub_fixup_done:
+.endm
+
+
 =head2 Methods
 
 =over
@@ -341,9 +359,10 @@ Store things into an Array (e.g., upon assignment)
     $I0 = type.'ACCEPTS'($P0)
     unless $I0 goto type_error
     $P0 = '!CALLMETHOD'('Scalar',$P0)
-    $P0 = clone $P0
-    setprop $P0, 'type', type
-    push array, $P0
+    $P1 = clone $P0
+    .fixup_cloned_sub($P0, $P1)
+    setprop $P1, 'type', type
+    push array, $P1
     goto array_loop
   array_done:
     $I0 = elements self

@@ -71,15 +71,7 @@ wrappable executable objects.
     .local pmc orig_wrapper, tmp, tmp2
     orig_wrapper = wrapper
     wrapper = clone orig_wrapper
-    tmp = getprop '$!signature', orig_wrapper
-    setprop wrapper, '$!signature', tmp
-    $I0 = isa wrapper, 'Code'
-    unless $I0 goto copyprops_done
-    tmp = getattribute orig_wrapper, ['Sub'], 'proxy'
-    tmp = getprop '$!real_self', tmp
-    tmp2 = getattribute wrapper, ['Sub'], 'proxy'
-    setprop tmp2, '$!real_self', tmp
-  copyprops_done:
+    .fixup_cloned_sub(orig_wrapper, wrapper)
     .const 'Sub' $P1 = '!wrap_clholder_helper'
     $P1 = clone $P1
     setprop $P1, '$!wrapper_block', wrapper

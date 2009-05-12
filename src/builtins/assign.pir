@@ -10,7 +10,6 @@ src/builtins/assign.pir - assignments
 
 =cut
 
-
 .namespace []
 .sub 'infix:=' :multi(_,_)
     .param pmc cont
@@ -52,17 +51,7 @@ src/builtins/assign.pir - assignments
   do_assign:
     eq_addr cont, source, assign_done
     copy cont, source
-    # We need to copy over any $!signature property on sub objects
-    $I0 = isa source, 'Sub'
-    unless $I0 goto assign_done
-    $P0 = getprop '$!signature', source
-    setprop cont, '$!signature', $P0
-    $I0 = isa source, 'Code'
-    unless $I0 goto assign_done
-    $P0 = getattribute source, ['Sub'], 'proxy'
-    $P0 = getprop '$!real_self', $P0
-    $P1 = getattribute cont, ['Sub'], 'proxy'
-    setprop $P1, '$!real_self', $P0
+    .fixup_cloned_sub(source, cont)
   assign_done:
     .return (cont)
 .end

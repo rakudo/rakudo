@@ -16,7 +16,7 @@ Protoobject - methods on Protoobjects
 
 .namespace ['P6protoobject']
 .sub 'defined' :method
-    $P0 = get_hll_global ['Bool'], 'False'
+    $P0 = get_root_global [.RAKUDO_HLL ; 'Bool'], 'False'
     .return ($P0)
 .end
 

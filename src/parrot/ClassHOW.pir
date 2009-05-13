@@ -48,7 +48,7 @@ Gets a list of this class' parents.
     .param pmc hierarchical  :named('hierarchical') :optional
     
     .local pmc parrot_class, result_list, parrot_list, it
-    result_list = get_hll_global 'Array'
+    result_list = get_root_global [.RAKUDO_HLL], 'Array'
     result_list = result_list.'new'()
     parrot_class = self.'get_parrotclass'(obj)
     
@@ -108,7 +108,7 @@ XXX Fix bugs with introspecting some built-in classes (List, Str...)
     parrot_class = self.'get_parrotclass'(obj)
 
     # Create array to put results in.
-    result_list = get_hll_global 'Array'
+    result_list = get_root_global [.RAKUDO_HLL], 'Array'
     result_list = result_list.'new'()
 
     # Get methods hash and build list of methods.

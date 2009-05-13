@@ -25,7 +25,7 @@ src/classes/Nil.pir - Nil objects
 =cut
 
 .namespace ['Nil']
-.sub 'list' :method
+.sub 'list' :method :subid('')
     $P0 = new 'List'
     .return ($P0)
 .end

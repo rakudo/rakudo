@@ -5,7 +5,7 @@ This version of list morphs a ResizablePMCArray into a List.
 =cut
 
 .namespace ['ResizablePMCArray']
-.sub 'list' :method
+.sub 'list' :method :subid('')
     ##  this code morphs a ResizablePMCArray into a List
     ##  without causing a clone of any of the elements
     $P0 = new 'ResizablePMCArray'

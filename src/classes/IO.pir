@@ -95,7 +95,7 @@ Read all of the lines and return them as a List.
 =cut
 
 .namespace ['IOIterator']
-.sub 'list' :method
+.sub 'list' :method :subid('')
     .local pmc pio, ins, res, chomper
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"

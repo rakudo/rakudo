@@ -271,7 +271,8 @@ Dispatches to method of the given name on this class or one of its parents.
 
   autothread_invocant:
     .local pmc values, values_it, res, res_list, type
-    res_list = 'list'()
+    .const 'Sub' $P1 = 'list'
+    res_list = $P1()
     values = obj.'eigenstates'()
     values_it = iter values
   values_it_loop:

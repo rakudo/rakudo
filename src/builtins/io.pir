@@ -83,8 +83,10 @@ done_mode:
     $P0 = open filename, mode
     if $P0 goto opened_ok
     'die'("Unable to open file") # XXX better message
-opened_ok:
 
+  opened_ok:
+    # Set default encoding to utf8
+    $P0.'encoding'('utf8')
     # Create IO object and set handle.
     .local pmc obj
     obj = get_hll_global 'IO'

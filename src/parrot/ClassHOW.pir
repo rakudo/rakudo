@@ -221,7 +221,7 @@ Dispatches to method of the given name on this class or one of its parents.
     goto do_handles_call
 
   handles_proto:
-    $P1 = get_hll_global ['Perl6Object'], '$!P6META'
+    $P1 = get_root_global [.RAKUDO_HLL ; 'Perl6Object'], '$!P6META'
     $P0 = $P1.'get_parrotclass'($P0)
     goto handles_have_pc
   handles_role:

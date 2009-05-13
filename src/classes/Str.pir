@@ -20,7 +20,7 @@ as the Perl 6 C<Str> class.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, strproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    strproto = p6meta.'new_class'('Str', 'parent'=>'Perl6Str Any')
+    strproto = p6meta.'new_class'('Str', 'parent'=>'parrot;Perl6Str Any')
     strproto.'!IMMUTABLE'()
     p6meta.'register'('Perl6Str', 'parent'=>strproto, 'protoobject'=>strproto)
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)

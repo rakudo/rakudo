@@ -8,7 +8,8 @@ This is the base file for the Rakudo Perl 6 compiler.
 
 =cut
 
-# Set RAKUDO_HLL to 'Perl6' to try compiling Rakudo in its own HLL.
+# Set RAKUDO_HLL to 'perl6' to try compiling Rakudo in its own HLL.
+# MUST BE LOWERCASE
 .macro_const RAKUDO_HLL 'parrot'
 
 .HLL .RAKUDO_HLL
@@ -24,6 +25,11 @@ This is the base file for the Rakudo Perl 6 compiler.
     $P0.'new_class'('Perl6Object', 'name'=>'Object')
     p6meta = $P0.'HOW'()
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
+    .local pmc hllns, parrotns, exports
+    hllns = get_hll_namespace
+    parrotns = get_root_namespace ['parrot']
+    exports = split ' ', 'PAST PGE PCT'
+    parrotns.'export_to'(hllns, exports)
 .end
 
 
@@ -51,8 +57,10 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
     load_bytecode 'config.pbc'
 
     perl6.'language'('Perl6')
-    perl6.'parsegrammar'('Perl6::Grammar')
-    perl6.'parseactions'('Perl6::Grammar::Actions')
+    $P0 = get_hll_namespace ['Perl6';'Grammar']
+    perl6.'parsegrammar'($P0)
+    $P0 = get_hll_namespace ['Perl6';'Grammar';'Actions']
+    perl6.'parseactions'($P0)
 
     ##  set the compilation stages in the @stages attribute
     $P0 = split ' ', 'parse past check_syntax post pir evalpmc'

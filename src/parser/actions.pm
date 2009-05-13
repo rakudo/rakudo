@@ -684,11 +684,12 @@ method enum_declarator($/, $key) {
         our @?BLOCK;
         my $getvals_sub := PAST::Compiler.compile(PAST::Block.new(
             :blocktype('declaration'),
+            :hll($?RAKUDO_HLL),
             PAST::Op.new(
                 :pasttype('call'),
                 :name('!create_anon_enum'),
                 $values
-            )
+            ),
         ));
         my %values := $getvals_sub();
         for %values.keys() {

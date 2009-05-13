@@ -31,7 +31,8 @@ Tests role membership.
     .tailcall type.'ACCEPTS'(obj)
   not_p6role:
     $I0 = does obj, type
-    .tailcall 'prefix:?'($I0)
+    .const 'Sub' $P1 = 'prefix:?'
+    .tailcall $P1($I0)
 .end
 
 
@@ -282,7 +283,8 @@ Dispatches to method of the given name on this class or one of its parents.
     goto values_it_loop
   values_it_loop_end:
     type = obj.'!type'()
-    .tailcall '!MAKE_JUNCTION'(type, res_list)
+    .const 'Sub' $P1 = '!MAKE_JUNCTION'
+    .tailcall $P1(type, res_list)
 
   whatever_closure:
     if name == 'WHAT' goto proto_done # XXX And this is why .WHAT needs to become a macro...
@@ -292,7 +294,8 @@ Dispatches to method of the given name on this class or one of its parents.
     obj = obj.'!select'()
   pun_role:
     obj = obj.'!pun'()
-    .tailcall '!dispatch_method'(obj, name, pos_args :flat, name_args :flat :named)
+    .const 'Sub' $P1 = '!dispatch_method'
+    .tailcall $P1(obj, name, pos_args :flat, name_args :flat :named)
 .end
 
 

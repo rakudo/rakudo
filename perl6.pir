@@ -304,6 +304,7 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 ##  HLL namespace.
 .HLL 'parrot'
 .include 'src/parrot/ClassHOW.pir'
+.include 'src/parrot/Role.pir'
 .include 'src/parrot/Protoobject.pir'
 .include 'src/parrot/misc.pir'
 .include 'src/parrot/state.pir'

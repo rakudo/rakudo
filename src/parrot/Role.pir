@@ -25,16 +25,33 @@ Puns the role to a class and returns that class.
 
     # Otherwise, need to create a punned class.
     .local pmc p6meta, metaclass, proto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_root_global [.RAKUDO_HLL ; 'Perl6Object'], '$!P6META'
     metaclass = new ['Class']
     $P0 = box 'class'
     setprop metaclass, 'pkgtype', $P0
-    metaclass.'add_role'(self)
+    # Compose ourself and any roles we do.
+    .local pmc role_list, roles_it
+    role_list = new 'ResizablePMCArray'
+    push role_list, self
+    .const 'Sub' $P1 = '!get_flattened_roles_list'
+    role_list = $P1(role_list)
+    roles_it = iter role_list
+  roles_it_loop:
+    unless roles_it goto roles_it_loop_end
+    $P0 = shift roles_it
+    $I0 = does metaclass, $P0
+    if $I0 goto roles_it_loop
+    metaclass.'add_role'($P0)
+    .const 'Sub' $P1 = '!compose_role_attributes'
+    $P1(metaclass, $P0)
+    goto roles_it_loop
+  roles_it_loop_end:
+
     # XXX Would be nice to call !meta_compose here; for some reason, Parrot
     # ends up calling the wrong multi-variant. Something to investigate, when
     # I/someone has the energy for it.
-    '!compose_role_attributes'(metaclass, self)
-    proto = p6meta.'register'(metaclass, 'parent'=>'Any')
+    $S0 = concat .RAKUDO_HLL, ';Any'
+    proto = p6meta.'register'(metaclass, 'parent'=>$S0)
     
     # Set name (don't use name=>... in register so we don't make a
     # namespace entry though).
@@ -108,13 +125,15 @@ Puns the role to a class and returns that class.
     # If we get here, no applicable roles.
     $I0 = 0
   done:
-    $P0 = 'prefix:?'($I0)
+    .const 'Sub' $P0 = 'prefix:?'
+    $P0 = $P0($I0)
     .return ($P0)
 .end
 .sub 'REJECTS' :method
     .param pmc topic
     $P0 = self.'ACCEPTS'(topic)
-    .tailcall 'prefix:!'($P0)
+    .const 'Sub' $P1 = 'prefix:!'
+    .tailcall $P1($P0)
 .end
 
 
@@ -125,7 +144,8 @@ Puns the role to a class and returns that class.
 .sub 'perl' :method
     .local pmc args, it
     args = getprop '@!type_args', self
-    $S0 = self.'Str'()
+    $P0 = getprop '$!shortname', self
+    $S0 = $P0
     $S0 = concat $S0, '['
     it = iter args
   it_loop:

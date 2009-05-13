@@ -25,11 +25,13 @@ This is the base file for the Rakudo Perl 6 compiler.
     $P0.'new_class'('Perl6Object', 'name'=>'Object')
     p6meta = $P0.'HOW'()
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
-    .local pmc hllns, parrotns, exports
+    .local pmc hllns, parrotns, imports, exports
     hllns = get_hll_namespace
     parrotns = get_root_namespace ['parrot']
-    exports = split ' ', 'PAST PGE PCT'
-    parrotns.'export_to'(hllns, exports)
+    imports = split ' ', 'PAST PGE PCT'
+    exports = split ' ', '!DISPATCH_JUNCTION_MULTI'
+    parrotns.'export_to'(hllns, imports)
+    hllns.'export_to'(parrotns, exports)
 .end
 
 

@@ -10,7 +10,7 @@ This is the base file for the Rakudo Perl 6 compiler.
 
 # Set RAKUDO_HLL to 'perl6' to try compiling Rakudo in its own HLL.
 # MUST BE LOWERCASE
-.macro_const RAKUDO_HLL 'parrot'
+.macro_const RAKUDO_HLL 'perl6'
 
 .HLL .RAKUDO_HLL
 

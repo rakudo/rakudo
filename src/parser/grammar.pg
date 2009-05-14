@@ -418,9 +418,9 @@ rule multisig {
 }
 
 rule routine_def {
-    [ <deflongname=identifier> ]? [ <multisig> | <trait> ]*
-    <block>
+    [ <deflongname=longname> ]? [ <multisig> | <trait> ]*
     {*}
+    <block>
     || <.panic: "Malformed routine definition">
 }
 

@@ -758,10 +758,16 @@ method routine_declarator($/, $key) {
 
 
 method routine_def($/) {
-    my $block := $<block>.ast;
+    our $?BLOCK_OPEN;
+    unless $?BLOCK_OPEN {
+        $?BLOCK_OPEN := PAST::Block.new( PAST::Stmts.new(), :node($/) );
+    }
+    my $block := $?BLOCK_OPEN;
     $block.blocktype('declaration');
     if $<deflongname> {
         my $name := ~$<deflongname>[0];
+        my $match := Perl6::Grammar::opname($name, :grammar('Perl6::Grammar') );
+        if $match { $name := ~$match<category> ~ ':' ~ ~$match[0]; }
         our @?BLOCK;
         my $existing := @?BLOCK[0].symbol($name);
         if $existing && !$existing<is_proto> && !$existing<is_multi> {

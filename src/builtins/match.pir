@@ -37,7 +37,13 @@ the current match object.
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
     $P2 = $P1['$/']
+    $I0 = can $P2, '!make'
+    unless $I0 goto err_make
     $P2.'!make'(value)
+    .return ()
+  err_make:
+    'die'("make() cannot set result of non-Match object in $/")
+    .return ()
 .end
 
 

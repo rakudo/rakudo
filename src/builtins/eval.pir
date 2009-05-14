@@ -38,7 +38,8 @@ itself can be found in src/builtins/control.pir.
   lang_compile:
     .local pmc compiler
     compiler = compreg lang
-    .tailcall compiler.'evalfiles'(filename)
+    # XXX FIXME:  We should allow the compiler to choose default encoding/transcode
+    .tailcall compiler.'evalfiles'(filename, 'encoding'=>'utf8', 'transcode'=>'ascii')
 
   lang_parrot:
     ##  load_bytecode currently doesn't accept non-ascii filenames (TT #65)

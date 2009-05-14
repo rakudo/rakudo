@@ -1,4 +1,6 @@
 New in 2009-05 release
++ Basic support for custom operators
++ You can now refer to operators as &infix:<+>
 + Implemented Regex type
 + Fixed non-ASCII identifiers
 + .WALK (parent classes in configurable order)
@@ -6,6 +8,9 @@ New in 2009-05 release
 + .name method on routines
 + refactored enums, thereby fixing many enum related bugs
 + fixed namespace of eval()ed code
++ implemented parallel dispatch (@objects>>.methods)
++ initial support for «...» quotes
++ Reading text files decodes them
 + fixes to Match.perl and Match.chunks
 + implemented 'constant name = $value'
 + documented build dependencies

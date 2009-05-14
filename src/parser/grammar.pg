@@ -617,7 +617,8 @@ token postcircumfix {
     | '(' <semilist> ')' {*}                          #= ( )
     | '[' <semilist> ']' {*}                          #= [ ]
     | '{' <semilist> '}' {*}                          #= { }
-    | <?before '<' > <quote_expression: :w :q> {*}    #= < >
+    | <?before '<<' | '«' > <quote_expression: :ww :qq> {*} #= < >
+    | <?before '<' >  <quote_expression: :w :q> {*}   #= < >
 }
 
 
@@ -877,8 +878,9 @@ token category { 'infix' | 'prefix' | 'postfix' }
 ## used internally to convert p6 opnames to internal ones
 regex opname { 
     <category> ':'
-    [ '<' \s* [ (\S+) \s* ] '>'
+    [ '<<' \s* [ (\S+) \s* ] '>>'
     | '«' \s* [ (\S+) \s* ] '»'
+    | '<' \s* [ (\S+) \s* ] '>'
     ]
 }
 
@@ -910,9 +912,8 @@ token quote {
     [
     | <.before \'>     <quote_expression: :q>
     | <.before '"' >   <quote_expression: :qq>
-    | <.before '<<' >  <quote_expression: :ww :qq>
+    | <.before '<<' | '«'>  <quote_expression: :ww :qq>
     | <.before '<' >   <quote_expression: :w :q>
-    | <.before '«' >   <quote_expression: :ww :qq>
     | <.before '/'>    <quote_expression: :regex>
     | [m|rx] <.ws> 
         [ [':P5'|':Perl5'] <.ws> <quote_expression: :regex :P5>

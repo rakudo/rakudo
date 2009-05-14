@@ -1046,7 +1046,7 @@ Sets the type constraint on the container.
 .sub '!sub_trait'
     .param pmc block
     .param string type
-    .param string trait
+    .param string trait         # XXX Eventually should not be name
     .param pmc arg             :optional
     .param int has_arg         :opt_flag
 
@@ -1054,11 +1054,26 @@ Sets the type constraint on the container.
     null arg
   have_arg:
 
+    # XXX For now, handle special case traits.
     $S0 = concat '!sub_trait_', trait
     $P0 = find_name $S0
-    if null $P0 goto done
-    $P0(trait, block, arg)
-  done:
+    if null $P0 goto not_special
+    .tailcall $P0(trait, block, arg)
+  not_special:
+
+    # Look up the trait and dispatch.
+    $P0 = get_hll_global trait
+    if null $P0 goto err
+    $P1 = get_hll_global type
+    if has_arg goto with_arg
+    .tailcall $P1($P0, block)
+  with_arg:
+    .tailcall $P1($P0, block, arg)
+
+  err:
+    # XXX For now, until we hunt down all uses of non-existent traits, just
+    # warn.
+    'warn'('Use of non-existent trait.')
 .end
 
 

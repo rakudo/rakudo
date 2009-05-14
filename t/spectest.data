@@ -225,6 +225,7 @@ S06-multi/lexical-multis.t
 S06-multi/proto.t
 S06-multi/syntax.t
 S06-multi/type-based.t
+S06-operator-overloading/imported-subs.t
 S06-operator-overloading/sub.t
 S06-other/main.t
 S06-other/main-eval.t

@@ -873,7 +873,7 @@ token subshortname {
     <category> <colonpair>+
 }
 
-token category { 'infix' | 'prefix' | 'postfix' }
+token category { 'infix' | 'prefix' | 'postfix' | 'trait_auxiliary' }
 
 ## used internally to convert p6 opnames to internal ones
 regex opname { 

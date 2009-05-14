@@ -3104,21 +3104,23 @@ sub make_sigparam($var) {
 sub add_optoken($block, $match) {
     my $category := ~$match<category>;
     my $name := $category ~ ':' ~ ~$match[0];
-    my $equiv := 'infix:+';
-    if $category eq 'prefix' { $equiv := 'prefix:+' }
-    elsif $category eq 'postfix' { $equiv := 'postfix:++' }
-    my $past := PAST::Op.new( :name('newtok'), :pasttype('callmethod'),
-        PAST::Op.new( 
-            :inline("    %r = get_hll_global ['Perl6';'Grammar'], '$optable'")
-        ),
-        $name,
-        PAST::Val.new( :value($equiv), :named('equiv') ),
-    );
-    my $sub := PAST::Compiler.compile( 
-        PAST::Block.new( $past, :hll($?RAKUDO_HLL), :blocktype('declaration') )
-    );
-    $sub();
-    $block.loadinit().push($past);
+    if $category ne 'trait_auxiliary' {
+        my $equiv := 'infix:+';
+        if $category eq 'prefix' { $equiv := 'prefix:+' }
+        elsif $category eq 'postfix' { $equiv := 'postfix:++' }
+        my $past := PAST::Op.new( :name('newtok'), :pasttype('callmethod'),
+            PAST::Op.new( 
+                :inline("    %r = get_hll_global ['Perl6';'Grammar'], '$optable'")
+            ),
+            $name,
+            PAST::Val.new( :value($equiv), :named('equiv') ),
+        );
+        my $sub := PAST::Compiler.compile( 
+            PAST::Block.new( $past, :hll($?RAKUDO_HLL), :blocktype('declaration') )
+        );
+        $sub();
+        $block.loadinit().push($past);
+    }
     $name;
 }
     

@@ -803,10 +803,11 @@ token constant_declarator {
 token variable {
     <?sigil>
     [
-    | <sigil> <twigil>? <desigilname> {*}                #= desigilname
-    | <special_variable> {*}                             #= special_variable
-    | <sigil> $<matchidx>=[\d+] {*}                      #= $0
-    | <sigil> <?before '<'> <postcircumfix> {*}          #= $<>
+    || '&' <twigil>? <sublongname=subshortname> {*}       #= subnoun
+    || <sigil> <twigil>? <desigilname> {*}                #= desigilname
+    || <special_variable> {*}                             #= special_variable
+    || <sigil> $<matchidx>=[\d+] {*}                      #= $0
+    || <sigil> <?before '<'> <postcircumfix> {*}          #= $<>
     ]
 }
 
@@ -865,6 +866,20 @@ token morename {
         | '(' <EXPR> ')'
         ]
     ]?
+}
+
+token subshortname {
+    <category> <colonpair>+
+}
+
+token category { 'infix' | 'prefix' | 'postfix' }
+
+## used internally to convert p6 opnames to internal ones
+regex opname { 
+    <category> ':'
+    [ '<' \s* [ (\S+) \s* ] '>'
+    | '«' \s* [ (\S+) \s* ] '»'
+    ]
 }
 
 token value {

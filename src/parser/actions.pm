@@ -2033,6 +2033,20 @@ method variable($/, $key) {
                                      :viviself('Failure'), :node($/) )
         );
     }
+    elsif $key eq 'subnoun' {
+        my $varname := ~$<sublongname>;
+        my $match := 
+            Perl6::Grammar::opname($varname, :grammar('Perl6::Grammar'));
+        if $match { $varname := ~$match<category> ~ ':' ~ ~$match[0]; }
+        $var := PAST::Var.new( :name($varname), :node($/) );
+        $var<sigil> := '';
+        my $sym := outer_symbol($varname);
+        $var.scope( ($sym && $sym<scope>) || 'package');
+        if $var.scope() eq 'package' {
+            $var.viviself(PAST::Op.new( :pasttype('call'), :name('undef') ));
+        }
+    }
+        
     make $var;
 }
 
@@ -2710,9 +2724,6 @@ method colonpair($/, $key) {
         else {
             $/.panic('complex varname colonpair case not yet implemented');
         }
-    }
-    else {
-        $/.panic($key ~ " pairs not yet implemented.");
     }
 
     my $past := PAST::Op.new(

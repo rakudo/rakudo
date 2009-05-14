@@ -767,7 +767,7 @@ method routine_def($/) {
     if $<deflongname> {
         my $name := ~$<deflongname>[0];
         my $match := Perl6::Grammar::opname($name, :grammar('Perl6::Grammar') );
-        if $match { $name := ~$match<category> ~ ':' ~ ~$match[0]; }
+        if $match { $name := add_optoken($block, $match); }
         our @?BLOCK;
         my $existing := @?BLOCK[0].symbol($name);
         if $existing && !$existing<is_proto> && !$existing<is_multi> {
@@ -3098,6 +3098,16 @@ sub make_sigparam($var) {
         $sigparam.push(PAST::Val.new( :value(1), :named('slurpy') ));
     }
     $sigparam;
+}
+
+
+sub add_optoken($block, $match) {
+    my $?OPTABLE := 
+        Q:PIR { %r = get_hll_global ['Perl6';'Grammar'], '$optable' };
+    my $name := ~$match<category> ~ ':' ~ ~$match[0];
+    my $category := $match<category>;
+    $?OPTABLE.newtok($name, :equiv('infix:+'));
+    $name;
 }
     
 

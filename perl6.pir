@@ -227,11 +227,20 @@ and report exceptions.
 
     # Show the exception message.
     $S0 = exception
+    if $S0 == "" goto no_message
     print $S0
     $I0 = index $S0, "\n"
-    if $I0 > 0 goto nl_done
+    if $I0 > 0 goto message_done
     say ""
-  nl_done:
+    goto message_done
+  no_message:
+    $I0 = exception['type']
+    if $I0 == .CONTROL_RETURN goto uncaught_return
+    say "Died"
+    goto message_done
+  uncaught_return:
+    say "Can't return outside a routine"
+  message_done:
 
     # Now we'll go back, printing one line/file per routine.
     .local pmc cur_sub
@@ -303,13 +312,14 @@ and report exceptions.
     concat $S0, ":"
     $S1 = anno['line']
     if $S1 != "" goto have_line
+    if $S0 == "(<unknown>:" goto unknown
     $S1 = "<unknown>"
   have_line:
     concat $S0, $S1
     concat $S0, ")"
     .return ($S0)
   unknown:
-    .return ('unknown location')
+    .return ("")
 .end
 
 

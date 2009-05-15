@@ -400,6 +400,14 @@ method use_statement($/) {
             $tags.pasttype('call');
         }
 
+        ##  Handle versioning
+        my $ver;
+        if $<colonpair> {
+            $ver := PAST::Op.new( :pasttype('call'), :name('hash') );
+            for $<colonpair> {
+                $ver.push( $_.ast );
+            }
+        }
         ##  Create a loadinit node so the use module is loaded
         ##  when this module is loaded...
         our @?BLOCK;
@@ -412,6 +420,10 @@ method use_statement($/) {
         if $tags {
             $tags.named('tags');
             $use_call.push($tags);
+        }
+        if $ver {
+            $ver.named('ver');
+            $use_call.push($ver);
         }
         @?BLOCK[0].loadinit().push($use_call);
 

@@ -342,7 +342,7 @@ rule for_statement {
 }
 
 rule use_statement {
-    $<sym>=[use] <name>
+    $<sym>=[use] <name><colonpair>*
     <EXPR>?
     {*}
 }

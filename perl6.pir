@@ -190,6 +190,129 @@ to ensure C<BEGIN> and C<CHECK> blocks have been executed.
 .end
 
 
+=item eval(code [, "option" => value, ...])
+
+Compile and execute the given C<code> taking into account any
+options provided. We subclass the HLLCompiler version to catch
+and report exceptions.
+
+=cut
+
+.sub 'eval' :method
+    .param pmc code
+    .param pmc args            :slurpy
+    .param pmc adverbs         :slurpy :named
+
+    $P0 = get_root_global ['parrot';'PCT';'HLLCompiler'], 'eval'
+    push_eh trap_errors
+    $P0 = $P0(self, code, args :flat, adverbs :flat :named)
+    pop_eh
+    .return ($P0)
+
+   trap_errors:
+    .local pmc exception, bt, it, cur_block, anno
+    .get_results (exception)
+    pop_eh
+    bt = exception.'backtrace'()
+    it = iter bt
+
+    # If the first entry is "die", skip it.
+    cur_block = bt[0]
+    if null cur_block goto not_die
+    $P0 = cur_block['sub']
+    $S0 = $P0
+    if $S0 != 'die' goto not_die
+    $P0 = shift bt
+  not_die:
+
+    # Show the exception message.
+    $S0 = exception
+    print $S0
+    $I0 = index $S0, "\n"
+    if $I0 > 0 goto nl_done
+    say ""
+  nl_done:
+
+    # Now we'll go back, printing one line/file per routine.
+    .local pmc cur_sub
+    .local string cur_info
+    .local string intro
+    cur_info = ""
+    intro = "in "
+  it_loop:
+    unless it goto it_loop_end
+    cur_block = shift it
+
+    if cur_info != "" goto got_cur_info
+    cur_info = 'format_location'(cur_block)
+  got_cur_info:
+    
+    cur_sub = cur_block['sub']
+    if null cur_sub goto it_loop
+    $P0 = getprop '$!real_self', cur_sub
+    if null $P0 goto already_real
+    cur_sub = $P0
+  already_real:
+    $I0 = isa cur_sub, 'Routine'
+    unless $I0 goto it_loop
+
+    # Show entry.
+    print intro
+    intro = "called from "
+    $P0 = cur_sub.'WHAT'()
+    $S0 = $P0.'perl'()
+    $S0 = downcase $S0
+    print $S0
+    print " "
+    $P0 = cur_sub.'get_namespace'()
+    if null $P0 goto ns_done
+    $P0 = $P0.'get_name'()
+    $P1 = shift $P0
+    $S0 = join '::', $P0
+    if $S0 == "" goto ns_done
+    print $S0
+    print '::'
+  ns_done:
+    print cur_sub
+    print " "
+    say cur_info
+    cur_info = ""
+
+    goto it_loop
+  it_loop_end:
+
+    if cur_info == "" goto done
+    if cur_info == "(<unknown>:0)" goto done
+    print intro
+    print "Main "
+    say cur_info
+  done:
+
+    exit 1
+.end
+.sub 'format_location'
+    .param pmc cur_block
+    .local pmc anno
+    anno = cur_block['annotations']
+    if null anno goto unknown
+    $S1 = anno['file']
+    if $S1 != "" goto have_file
+    $S1 = "<unknown>"
+  have_file:
+    $S0 = concat "(", $S1
+    concat $S0, ":"
+    $S1 = anno['line']
+    if $S1 != "" goto have_line
+    $S1 = "<unknown>"
+  have_line:
+    concat $S0, $S1
+    concat $S0, ")"
+    .return ($S0)
+  unknown:
+    .return ('unknown location')
+.end
+
+
 =item main(args :slurpy)  :main
 
 Start compilation by passing any command line C<args>

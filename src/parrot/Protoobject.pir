@@ -153,7 +153,7 @@ Indicate that objects in the class are mutable or immutable.
 .namespace ['P6protoobject']
 .sub '' :vtable('get_bool') :method
     .const 'Sub' $P1 = '!FAIL'
-    $P0 = $P1('Use of protoobject as value')
+    $P0 = $P1('Use of type object as value')
     $I0 = istrue $P0
     .return ($I0)
 .end
@@ -161,7 +161,7 @@ Indicate that objects in the class are mutable or immutable.
 .namespace ['P6protoobject']
 .sub '' :vtable('get_integer') :method
     .const 'Sub' $P1 = '!FAIL'
-    $P0 = $P1('Use of protoobject as value')
+    $P0 = $P1('Use of type object as value')
     $I0 = $P0
     .return ($I0)
 .end
@@ -169,7 +169,7 @@ Indicate that objects in the class are mutable or immutable.
 .namespace ['P6protoobject']
 .sub '' :vtable('get_number') :method
     .const 'Sub' $P1 = '!FAIL'
-    $P0 = $P1('Use of protoobject as value')
+    $P0 = $P1('Use of type object as value')
     $N0 = $P0
     .return ($N0)
 .end

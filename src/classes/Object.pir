@@ -607,7 +607,7 @@ methods, dies if there are none.
 =item !MANY_DISPATCH_HELPER
 
 This is a helper for implementing .+, .? and .*. In the future, it may well be
-the basis of WALK also. It returns all methods we could possible call.
+the basis of WALK also. It returns all methods we could possibly call.
 
 =cut
 

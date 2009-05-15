@@ -213,6 +213,7 @@ and report exceptions.
     .local pmc exception, bt, it, cur_block, anno
     .get_results (exception)
     $I0 = exception['severity']
+    if $I0 == .EXCEPT_EXIT goto exit
     if $I0 != .EXCEPT_WARNING goto not_warning
     say exception
     $P0 = exception["resume"]
@@ -261,7 +262,7 @@ and report exceptions.
     if cur_info != "" goto got_cur_info
     cur_info = 'format_location'(cur_block)
   got_cur_info:
-    
+
     cur_sub = cur_block['sub']
     if null cur_sub goto it_loop
     $P0 = getprop '$!real_self', cur_sub
@@ -304,6 +305,10 @@ and report exceptions.
   done:
 
     exit 1
+
+  exit:
+    pop_eh
+    exit 0
 .end
 .sub 'format_location'
     .param pmc cur_block

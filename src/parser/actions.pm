@@ -818,8 +818,11 @@ method method_def($/) {
     my $block := $<block>.ast;
     $block.blocktype('method');
 
-    if $<longname> {
-        $block.name( ~$<longname> );
+    if $<deflongname> {
+        my $name := ~$<deflongname>;
+        my $match := Perl6::Grammar::opname($name, :grammar('Perl6::Grammar') );
+        if $match { $name := add_optoken($block, $match); }
+        $block.name( $name );
     }
 
     # Add lexical 'self' and a slot for the candidate dispatcher list.
@@ -3118,7 +3121,7 @@ sub add_optoken($block, $match) {
         my $equiv := 'infix:+';
         if $category eq 'prefix' { $equiv := 'prefix:+' }
         elsif $category eq 'postfix' { $equiv := 'postfix:++' }
-        elsif $category eq 'circumfix' { $equiv := 'term:' }
+        elsif $category eq 'circumfix' || $category eq 'postcircumfix' { $equiv := 'term:' }
         my $past := PAST::Op.new( :name('newtok'), :pasttype('callmethod'),
             PAST::Op.new( 
                 :inline("    %r = get_hll_global ['Perl6';'Grammar'], '$optable'")

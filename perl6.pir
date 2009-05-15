@@ -212,6 +212,12 @@ and report exceptions.
    trap_errors:
     .local pmc exception, bt, it, cur_block, anno
     .get_results (exception)
+    $I0 = exception['severity']
+    if $I0 != .EXCEPT_WARNING goto not_warning
+    say exception
+    $P0 = exception["resume"]
+    $P0()
+  not_warning:
     pop_eh
     bt = exception.'backtrace'()
     it = iter bt

@@ -3120,6 +3120,7 @@ sub add_optoken($block, $match) {
         my $equiv := 'infix:+';
         if $category eq 'prefix' { $equiv := 'prefix:+' }
         elsif $category eq 'postfix' { $equiv := 'postfix:++' }
+        elsif $category eq 'circumfix' { $equiv := 'term:' }
         my $past := PAST::Op.new( :name('newtok'), :pasttype('callmethod'),
             PAST::Op.new( 
                 :inline("    %r = get_hll_global ['Perl6';'Grammar'], '$optable'")

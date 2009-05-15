@@ -367,14 +367,17 @@ lexicals as needed and performing type checks.
     callerlex = $P0['lexpad';1]
     getprop callersig, '$!signature', callersub
     if null callersig goto end
-    .local pmc it
-    $P0 = callersig.'params'()
-    if null $P0 goto end
-    it = iter $P0
+    .local pmc params
+    params = getattribute callersig, "@!params"
+    if null params goto end
+    .local int cur_param, count
+    count = elements params
+    cur_param = -1
   param_loop:
-    unless it goto param_done
+    inc cur_param
+    unless cur_param < count goto param_done
     .local pmc param
-    param = shift it
+    param = params[cur_param]
     .local string name, sigil
     name = param['name']
     if name == 'self' goto param_loop

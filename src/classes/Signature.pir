@@ -455,7 +455,7 @@ lexicals as needed and performing type checks.
   not_junctional:
     .local string errmsg
     errmsg = 'Parameter type check failed; expected something matching '
-    $S0 = type.'perl'()
+    $S0 = type.'WHAT'()
     concat errmsg, $S0
     concat errmsg, ' but got something of type '
     $S0 = orig.'WHAT'()

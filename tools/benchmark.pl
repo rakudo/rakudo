@@ -52,6 +52,15 @@ my %benchmarks = (
     }
 },
 
+# This one is for operators dispatch.
+"06 - 10,000 operator dispatches" => q{
+    my $x = 3;
+    my $y = 39;
+    for 1..5000 {
+        $x + $y;
+        $x - $y;
+    }
+}
 );
 
 # Run the benchmarks and output results.

@@ -384,6 +384,16 @@ method use_statement($/) {
     my $name := ~$<name>;
     my $past;
     if $name ne 'v6' && $name ne 'lib' {
+        ##  Create a loadinit node so the use module is loaded
+        ##  when this module is loaded...
+        our @?BLOCK;
+        my $use_call := PAST::Op.new(
+            PAST::Val.new( :value($name) ),
+            :name('use'),
+            :pasttype('call'),
+            :node( $/ )
+        );
+
         ##  Handle tags.
         my $tags;
         if $<EXPR> {
@@ -398,30 +408,16 @@ method use_statement($/) {
             }
             $tags.name('hash');
             $tags.pasttype('call');
-        }
-
-        ##  Handle versioning
-        my $ver;
-        if $<colonpair> {
-            $ver := PAST::Op.new( :pasttype('call'), :name('hash') );
-            for $<colonpair> {
-                $ver.push( $_.ast );
-            }
-        }
-        ##  Create a loadinit node so the use module is loaded
-        ##  when this module is loaded...
-        our @?BLOCK;
-        my $use_call := PAST::Op.new(
-            PAST::Val.new( :value($name) ),
-            :name('use'),
-            :pasttype('call'),
-            :node( $/ )
-        );
-        if $tags {
             $tags.named('tags');
             $use_call.push($tags);
         }
-        if $ver {
+
+        ##  Handle versioning
+        if $<colonpair> {
+            my $ver := PAST::Op.new( :pasttype('call'), :name('hash') );
+            for $<colonpair> {
+                $ver.push( $_.ast );
+            }
             $ver.named('ver');
             $use_call.push($ver);
         }

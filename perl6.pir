@@ -215,7 +215,8 @@ and report exceptions.
     $I0 = exception['severity']
     if $I0 == .EXCEPT_EXIT goto exit
     if $I0 != .EXCEPT_WARNING goto not_warning
-    say exception
+    printerr exception
+    printerr "\n"
     $P0 = exception["resume"]
     $P0()
   not_warning:
@@ -235,18 +236,18 @@ and report exceptions.
     # Show the exception message.
     $S0 = exception
     if $S0 == "" goto no_message
-    print $S0
+    printerr $S0
     $I0 = index $S0, "\n"
     if $I0 > 0 goto message_done
-    say ""
+    printerr "\n"
     goto message_done
   no_message:
     $I0 = exception['type']
     if $I0 == .CONTROL_RETURN goto uncaught_return
-    say "Died"
+    printerr "Died\n"
     goto message_done
   uncaught_return:
-    say "Can't return outside a routine"
+    printerr "Can't return outside a routine\n"
   message_done:
 
     # Now we'll go back, printing one line/file per routine.
@@ -273,25 +274,26 @@ and report exceptions.
     unless $I0 goto it_loop
 
     # Show entry.
-    print intro
+    printerr intro
     intro = "called from "
     $P0 = cur_sub.'WHAT'()
     $S0 = $P0.'perl'()
     $S0 = downcase $S0
-    print $S0
-    print " "
+    printerr $S0
+    printerr " "
     $P0 = cur_sub.'get_namespace'()
     if null $P0 goto ns_done
     $P0 = $P0.'get_name'()
     $P1 = shift $P0
     $S0 = join '::', $P0
     if $S0 == "" goto ns_done
-    print $S0
-    print '::'
+    printerr $S0
+    printerr '::'
   ns_done:
-    print cur_sub
-    print " "
-    say cur_info
+    printerr cur_sub
+    printerr " "
+    printerr cur_info
+    printerr "\n"
     cur_info = ""
 
     goto it_loop
@@ -299,9 +301,10 @@ and report exceptions.
 
     if cur_info == "" goto done
     if cur_info == "(<unknown>:0)" goto done
-    print intro
-    print "Main "
-    say cur_info
+    printerr intro
+    printerr "Main "
+    printerr cur_info
+    printerr "\n"
   done:
 
     exit 1

@@ -143,6 +143,38 @@ itself can be found in src/builtins/control.pir.
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
 
+    .local pmc ver, compiler_obj
+    .local string lang
+    compiler_obj = compreg 'perl6'
+
+    # This HLL stuff *should* be integrated with the rest... I spent an hour on it and failed.
+    ver = options['ver']
+    if null ver goto no_hll
+    $P0 = ver['lang']
+    if null $P0 goto no_hll
+    lang = $P0
+    .local pmc compiler, request, library, imports, callerns
+    $P0 = getinterp
+    callerns = $P0['namespace';1]
+    'load-language'(lang)
+    compiler = compreg lang
+    request = new 'Hash'
+    $P0 = compiler_obj.'parse_name'(module)
+    request['name'] = $P0
+    library = compiler.'fetch-library'(request)
+    imports = library['symbols']
+    imports = imports['DEFAULT']
+    .local pmc ns_iter, item
+    ns_iter = new 'Iterator', imports
+  import_loop:
+    unless ns_iter goto import_loop_end
+    $S0 = shift ns_iter
+    $P0 = imports[$S0]
+    callerns[$S0] = $P0
+    goto import_loop
+  import_loop_end:
+    .return (library)
+  no_hll:
     # Require module.
     .local pmc retval
     retval = 'require'(module, 'module'=>1)
@@ -157,8 +189,6 @@ itself can be found in src/builtins/control.pir.
 
     # See if we've had a namespace name passed in.
     .local pmc import_ns
-    .local pmc compiler_obj
-    compiler_obj = compreg 'perl6'
     $P0 = options['import_to']
     if null $P0 goto use_caller_ns
     $S0 = $P0

@@ -28,7 +28,7 @@ Registers a type in the namespace.
     # Parse name.
     .local pmc ns
     .local string short_name
-    $P0 = compreg 'Perl6'
+    $P0 = compreg 'perl6'
     ns = $P0.'parse_name'(name)
     short_name = pop ns
 

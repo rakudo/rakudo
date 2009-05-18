@@ -369,7 +369,7 @@ on error.
     goto got_lang
   no_lang:
     push_eh catch
-    compiler = compreg 'Perl6'
+    compiler = compreg 'perl6'
   got_lang:
     invokable = compiler.'compile'(code)
 

@@ -34,7 +34,7 @@ itself can be found in src/builtins/control.pir.
     lang = options['lang']
     if lang == 'Parrot' goto lang_parrot
     if lang goto lang_compile
-    lang = 'Perl6'
+    lang = 'perl6'
   lang_compile:
     .local pmc compiler
     compiler = compreg lang
@@ -129,7 +129,7 @@ itself can be found in src/builtins/control.pir.
     $P0 = new 'List'
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0
     inc_hash[name] = realfilename
-    result = 'evalfile'(realfilename, 'lang'=>'Perl6')
+    result = 'evalfile'(realfilename, 'lang'=>'perl6')
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?NS', outer_ns_chain
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', outer_blocks
 
@@ -158,7 +158,7 @@ itself can be found in src/builtins/control.pir.
     # See if we've had a namespace name passed in.
     .local pmc import_ns
     .local pmc compiler_obj
-    compiler_obj = compreg 'Perl6'
+    compiler_obj = compreg 'perl6'
     $P0 = options['import_to']
     if null $P0 goto use_caller_ns
     $S0 = $P0

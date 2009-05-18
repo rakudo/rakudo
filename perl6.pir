@@ -58,7 +58,7 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
 
     load_bytecode 'config.pbc'
 
-    perl6.'language'('Perl6')
+    perl6.'language'('perl6')
     $P0 = get_hll_namespace ['Perl6';'Grammar']
     perl6.'parsegrammar'($P0)
     $P0 = get_hll_namespace ['Perl6';'Grammar';'Actions']
@@ -350,7 +350,7 @@ to the Perl 6 compiler.
     exit 0
   not_harness:
 
-    $P0 = compreg 'Perl6'
+    $P0 = compreg 'perl6'
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii')
 
     .include 'iterator.pasm'

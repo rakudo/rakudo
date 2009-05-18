@@ -47,7 +47,7 @@ method TOP($/) {
     else {
         $main := PAST::Block.new( :pirflags(':main') );
         $main.loadinit().push(
-            PAST::Op.new( :inline('$P0 = compreg "Perl6"',
+            PAST::Op.new( :inline('$P0 = compreg "perl6"',
                                   'unless null $P0 goto have_perl6',
                                   'load_bytecode "perl6.pbc"',
                                   'have_perl6:')

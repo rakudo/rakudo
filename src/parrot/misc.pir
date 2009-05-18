@@ -44,4 +44,9 @@ Note that we currently do this by adding the method to Parrot's
 .end
 
 
-
+.namespace []
+# work around a parrot bug.
+.sub 'load-language'
+    .param string lang
+    load_language lang
+.end

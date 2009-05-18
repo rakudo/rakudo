@@ -744,7 +744,7 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
 
   is:
     ##  get the (parrot)class object associated with name
-    $P0 = compreg 'Perl6'
+    $P0 = compreg 'perl6'
     $P0 = $P0.'parse_name'(name)
     $S0 = pop $P0
     $P0 = get_hll_global $P0, $S0
@@ -769,7 +769,7 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
 
   does:
     ##  get the Role object for the role to be composed
-    $P0 = compreg 'Perl6'
+    $P0 = compreg 'perl6'
     $P0 = $P0.'parse_name'(name)
     $S0 = pop $P0
     $P0 = get_hll_global $P0, $S0
@@ -971,7 +971,7 @@ and C<type>.
     .param pmc var
     .param string name
     .param pmc arg :slurpy
-    $P0 = compreg 'Perl6'
+    $P0 = compreg 'perl6'
     $P0 = $P0.'parse_name'(name)
     $S0 = pop $P0
     $P0 = get_hll_global $P0, $S0

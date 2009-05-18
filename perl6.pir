@@ -425,6 +425,8 @@ to the Perl 6 compiler.
     library['filename'] = $S0
     $P0 = get_hll_global name, 'EXPORT'
     library['symbols'] = $P0
+    $P0 = get_hll_namespace name
+    library['namespace'] = $P0
     .return (library)
   fail:
     .return (retval)

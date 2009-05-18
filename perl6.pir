@@ -410,6 +410,26 @@ to the Perl 6 compiler.
     .return (list)
 .end
 
+
+.sub 'fetch-library' :method
+    .param pmc request
+    .local pmc name, retval, library, inc_hash
+    name = request['name']
+    $S0 = join '::', name
+    retval = 'require'($S0, 'module'=>1)
+    if null retval goto fail
+    library = new 'Hash'
+    library['name'] = name
+    inc_hash = get_hll_global '%INC'
+    $S0 = inc_hash[$S0]
+    library['filename'] = $S0
+    $P0 = get_hll_global name, 'EXPORT'
+    library['symbols'] = $P0
+    .return (library)
+  fail:
+    .return (retval)
+.end
+
 =back
 
 =item postload()

@@ -5,9 +5,9 @@ class Any is also {
         fail('No values matched');
     }
 
-    our List multi method grep(Code $test) {
+    our List multi method grep($test) {
         gather {
-            take $_ if $test($_) for @.list;
+            take $_ if $_ ~~ $test for @.list;
         }
     }
 
@@ -125,7 +125,7 @@ multi first(Code $test, *@values) {
     @values.first($test)
 }
 
-our List multi grep(Code $test, *@values) {
+our List multi grep($test, *@values) {
     @values.grep($test)
 }
 

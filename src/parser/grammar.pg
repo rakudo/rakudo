@@ -121,10 +121,12 @@ token afterws {
 token pod_comment {
     ^^ '=' <.unsp>?
     [
+    | 'begin' \h+ 'END' >> ::
+        [ .*? \n '=' <.unsp>? 'end' \h+ 'END' >> \N* || .* ]
     | 'begin' \h+ <identifier> ::
         [
         ||  .*? \n '=' <.unsp>? 'end' \h+ $<identifier> >> \N* {*} #= tagged
-        ||  .*                                                 {*} #= end
+        ||  <.panic: "=begin without matching =end">
         ]
     | 'begin' >> :: \h* 
         [ $$ || '#' || <.panic: "Unrecognized token after =begin"> ]

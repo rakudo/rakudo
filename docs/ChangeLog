@@ -1,6 +1,8 @@
 New in 2009-05 release
 + Basic support for custom operators
 + You can now refer to operators as &infix:<+>
++ Cross-language library loading
++ stack traces now include source file name and line number
 + Implemented Regex type
 + Fixed non-ASCII identifiers
 + .WALK (parent classes in configurable order)
@@ -14,7 +16,8 @@ New in 2009-05 release
 + fixes to Match.perl and Match.chunks
 + implemented 'constant name = $value'
 + documented build dependencies
-+ trigonemtric functions (sin, cos, ...) now available via 'use Num :Trig'
++ grep() accepts general matcher, things like @list.grep(Int) work
++ trigonometric functions (sin, cos, ...) now available via 'use Num :Trig'
 
 New in 2009-04 release (#16, "Bratislava")
 + wrap and unwrap for subroutines

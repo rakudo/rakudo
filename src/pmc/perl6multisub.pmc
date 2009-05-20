@@ -83,6 +83,9 @@ typedef struct candidate_graph_node {
 #define MMD_ONE_RESULT   0
 #define MMD_MANY_RESULTS 1
 
+/* Special value we set arity to when we have a slurpy. */
+#define SLURPY_ARITY     1 << 30
+
 /*
 
 =back
@@ -294,6 +297,7 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
         candidate_info *info;
         INTVAL sig_elems;
         INTVAL j;
+        INTVAL significant_param;
 
         /* Get information about this candidate. */
         PMC * const candidate = VTABLE_get_pmc_keyed_int(interp, candidates, i);
@@ -317,20 +321,20 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
                 VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_required")));
         if (VTABLE_get_integer(interp, VTABLE_inspect_str(interp, candidate,
                CONST_STRING(interp, "pos_slurpy"))))
-            info->max_arity = 1 << 30;
+            info->max_arity = SLURPY_ARITY;
         else
             info->max_arity = info->min_arity + VTABLE_get_integer(interp,
                     VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
 
         /* Type information. */
-        signature = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "$!signature"));
-        meth = VTABLE_find_method(interp, signature,
-                CONST_STRING(interp, "params"));
-        params = (PMC*)Parrot_run_meth_fromc_args(interp, meth, signature,
+        signature         = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "$!signature"));
+        meth              = VTABLE_find_method(interp, signature, CONST_STRING(interp, "params"));
+        params            = (PMC*)Parrot_run_meth_fromc_args(interp, meth, signature,
                 CONST_STRING(interp, "params"), "P");
-        sig_elems = VTABLE_elements(interp, params);
-        info->types = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
+        sig_elems         = VTABLE_elements(interp, params);
+        info->types       = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         info->constraints = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
+        significant_param = 0;
         for (j = 0; j < sig_elems; j++) {
             PMC * const param       = VTABLE_get_pmc_keyed_int(interp, params, j);
             PMC * const type        = VTABLE_get_pmc_keyed_str(interp, param,
@@ -339,12 +343,17 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
                     CONST_STRING(interp, "cons_type"));
             PMC * const multi_inv   = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "multi_invocant"));
-            info->types[j] = type;
-            info->constraints[j] = PMC_IS_NULL(constraints) || VTABLE_isa(interp,
+            PMC * const named       = VTABLE_get_pmc_keyed_str(interp, param,
+                    CONST_STRING(interp, "named"));
+            if (!PMC_IS_NULL(named))
+                continue;
+            info->types[significant_param] = type;
+            info->constraints[significant_param] = PMC_IS_NULL(constraints) || VTABLE_isa(interp,
                     constraints, CONST_STRING(interp, "Undef")) ?
                     PMCNULL : constraints;
             if (!PMC_IS_NULL(multi_inv) && VTABLE_get_bool(interp, multi_inv))
                 info->num_types++;
+            significant_param++;
         }
 
         /* Add it to graph node, and initialize list of edges. */

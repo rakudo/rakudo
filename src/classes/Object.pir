@@ -280,12 +280,13 @@ the object's type and address.
   attrinit_loop:
     unless it goto attrinit_done
     .local string attrname
-    .local pmc attrhash, itypeclass
+    .local pmc attrhash, itypeclass, type
     attrname = shift it
     attrhash = attributes[attrname]
     itypeclass = attrhash['itype']
-    unless null itypeclass goto attrinit_itype
+    type = attrhash['type']
     $S0 = substr attrname, 0, 1
+    unless null itypeclass goto attrinit_itype
     if $S0 == '@' goto attrinit_array
     if $S0 == '%' goto attrinit_hash
     itypeclass = get_class ['Perl6Scalar']
@@ -299,8 +300,20 @@ the object's type and address.
     .local pmc attr
     attr = new itypeclass
     setattribute candidate, parrotclass, attrname, attr
-    $P0 = attrhash['type']
-    setprop attr, 'type', $P0
+    if null type goto type_done
+    if $S0 == '@' goto pos_type
+    if $S0 == '%' goto ass_type
+    setprop attr, 'type', type
+    goto type_done
+  ass_type:
+    $P0 = get_hll_global 'Associative'
+    goto apply_type
+  pos_type:
+    $P0 = get_hll_global 'Positional'
+  apply_type:
+    $P0 = $P0.'!select'(type)
+    'infix:does'(attr, $P0)
+  type_done:
     .local string keyname
     $I0 = index attrname, '!'
     if $I0 < 0 goto attrinit_loop

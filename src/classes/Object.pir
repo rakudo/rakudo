@@ -137,7 +137,7 @@ Return invocant in list context.  Default is to return a List containing self.
 
 .namespace ['Perl6Object']
 .sub '' :method('list')
-    $P0 = new 'List'
+    $P0 = new ['List']
     push $P0, self
     .return ($P0)
 .end
@@ -189,7 +189,7 @@ Boolean value of object -- defaults to C<.defined> (S02).
 
 .namespace ['Perl6Object']
 .sub 'Array' :method
-    $P0 = new 'Perl6Array'
+    $P0 = new ['Perl6Array']
     $P0.'!STORE'(self)
     .return ($P0)
 .end
@@ -200,7 +200,7 @@ Boolean value of object -- defaults to C<.defined> (S02).
 
 .namespace ['Perl6Object']
 .sub 'Hash' :method
-    $P0 = new 'Perl6Hash'
+    $P0 = new ['Perl6Hash']
     $P0.'!STORE'(self)
     .return ($P0)
 .end
@@ -227,7 +227,7 @@ an object reference (unless the invocant already is one).
     unless $I0 goto not_ref
     .return (self)
   not_ref:
-    $P0 = new 'Perl6Scalar', self
+    $P0 = root_new ['parrot';'Perl6Scalar'], self
     .return ($P0)
 .end
 
@@ -240,7 +240,7 @@ the object's type and address.
 
 .namespace ['Perl6Object']
 .sub 'Str' :method
-    $P0 = new 'ResizableStringArray'
+    $P0 = root_new ['parrot';'ResizableStringArray']
     $P1 = self.'WHAT'()
     push $P0, $P1
     $I0 = get_addr self

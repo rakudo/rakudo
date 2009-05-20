@@ -143,7 +143,7 @@ A list in Scalar context becomes a Scalar containing an Array.
 
 .sub 'Scalar' :method
     $P0 = self.'Array'()
-    $P0 = new 'Perl6Scalar', $P0
+    $P0 = root_new ['parrot';'Perl6Scalar'], $P0
     .return ($P0)
 .end
 
@@ -325,13 +325,13 @@ The zip operator.
     .local pmc result
 
     # create a list to hold the results
-    result = new 'List'
+    result = new ['List']
 
     unless arglist goto result_done
 
     # create a set of iterators, one per argument
     .local pmc iterlist, arglist_it
-    iterlist = new 'ResizablePMCArray'
+    iterlist = root_new ['parrot';'ResizablePMCArray']
     arglist_it = iter arglist
   arglist_loop:
     unless arglist_it goto arglist_done
@@ -349,7 +349,7 @@ The zip operator.
   outer_loop:
     .local pmc iterlist_it, reselem
     iterlist_it = iter iterlist
-    reselem = new 'List'
+    reselem = new ['List']
   iterlist_loop:
     unless iterlist_it goto iterlist_done
     arg_it = shift iterlist_it
@@ -377,7 +377,7 @@ The non-hyper cross operator.
     .local pmc res
 
     .local pmc res, outer, inner, it, val
-    res = new 'List'
+    res = new ['List']
 
     ##  if the are no arguments, result is empty list
     unless args goto done
@@ -422,7 +422,7 @@ The non-hyper cross operator.
   one_arg_loop:
     unless it goto done
     val = shift it
-    $P0 = new 'List'
+    $P0 = new ['List']
     push $P0, val
     push res, $P0
     goto one_arg_loop
@@ -445,7 +445,7 @@ The min operator.
     .local int elems
     elems = elements args
     if elems > 0 goto have_args
-    $P0 = new 'Undef'
+    $P0 = root_new ['parrot';'Undef']
     .return($P0)
 have_args:
 
@@ -479,7 +479,7 @@ The max operator.
     .local int elems
     elems = elements args
     if elems > 0 goto have_args
-    $P0 = new 'Undef'
+    $P0 = root_new ['parrot';'Undef']
     .return($P0)
 have_args:
 

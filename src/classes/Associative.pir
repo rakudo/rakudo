@@ -72,7 +72,7 @@ Returns a list element or slice.
     self[$S0] = result
     goto end
   slice:
-    result = new 'List'
+    result = new ['List']
   slice_loop:
     unless args goto slice_done
     $S0 = shift args

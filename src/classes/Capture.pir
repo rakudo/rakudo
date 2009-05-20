@@ -64,7 +64,7 @@ Build a capture from its argument(s).
     .param pmc arg
     $I0 = isa arg, 'Perl6Scalar'
     if $I0 goto have_ref
-    arg = new 'Perl6Scalar', arg
+    arg = root_new ['parrot';'Perl6Scalar'], arg
   have_ref:
     .return (arg)
 .end

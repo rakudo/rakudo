@@ -228,7 +228,7 @@ Return the components of the Junction.
     .param pmc comparer
 
     .local pmc ulist
-    ulist = new 'ResizablePMCArray'
+    ulist = root_new ['parrot';'ResizablePMCArray']
 
     .local pmc it_inner, it_outer, val
     it_outer = iter self
@@ -370,9 +370,8 @@ parameters for the dispatcher.
     # We build tuples of the args and pass them onto the main junction
     # dispatcher.
     .local pmc pos_args, name_args, it, param
-    pos_args = new ['ResizablePMCArray']
-    $P0 = get_root_namespace ['parrot';'Hash']
-    name_args = new $P0
+    pos_args = root_new ['parrot';'ResizablePMCArray']
+    name_args = root_new ['parrot';'Hash']
     $P0 = signature.'params'()
     it = iter $P0
   param_loop:

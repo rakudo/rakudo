@@ -39,7 +39,7 @@ Adds a parameterized variant of the role.
     .local pmc selector
     selector = getattribute self, '$!selector'
     unless null selector goto have_selector
-    selector = new 'Perl6MultiSub'
+    selector = root_new ['parrot';'Perl6MultiSub']
     setattribute self, '$!selector', selector
   have_selector:
     push selector, variant
@@ -69,7 +69,7 @@ Selects a variant of the role to do based upon the supplied parameters.
     .local int num_pos_args, num_name_args, i
     created_list = getattribute self, '@!created'
     unless null created_list goto got_created_list
-    created_list = new 'ResizablePMCArray'
+    created_list = root_new ['parrot';'ResizablePMCArray']
     setattribute self, '@!created', created_list
     goto select_role
   got_created_list:
@@ -107,8 +107,7 @@ Selects a variant of the role to do based upon the supplied parameters.
     .local pmc selector
     selector = getattribute self, '$!selector'
     result = selector(pos_args :flat, name_args :flat :named)
-    $P0 = get_root_namespace ['parrot';'Hash']
-    ins_hash = new $P0
+    ins_hash = root_new ['parrot';'Hash']
     ins_hash["pos_args"] = pos_args
     ins_hash["role"] = result
     push created_list, ins_hash

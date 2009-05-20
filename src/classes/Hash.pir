@@ -64,7 +64,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     .local pmc result
     .local string key
     .local pmc tmp
-    result = new 'List'
+    result = new ['List']
     keys.'!flatten'()
   keys_loop:
     unless keys goto done
@@ -148,7 +148,7 @@ Create a Hash (hashref).
 .sub 'circumfix:{ }'
     .param pmc values :slurpy
     $P0 = values.'Hash'()
-    $P0 = new 'Perl6Scalar', $P0
+    $P0 = root_new ['parrot';'Perl6Scalar'], $P0
     .return ($P0)
 .end
 
@@ -170,7 +170,7 @@ Store a value into a hash.
     ## we create a new hash here instead of emptying self in case
     ## the source argument contains self or elements of self.
     .local pmc hash, it, type
-    hash = new 'Perl6Hash'
+    hash = new ['Perl6Hash']
 
     ## Need to preserve typing.
     type = self.'of'()

@@ -48,7 +48,7 @@ every pair, joined by newlines or an explicitly given separator.
 
   have_sep:
     it = self.'iterator'()
-    rv = new 'List'
+    rv = new ['List']
 
   loop:
     .local pmc pairfmt
@@ -89,7 +89,7 @@ every pair, joined by newlines or an explicitly given separator.
     .local pmc rv
 
     it = iter self
-    rv = new 'List'
+    rv = new ['List']
 
   loop:
     .local string key
@@ -130,7 +130,7 @@ Returns keys of hash as a List
     .local pmc rv
 
     it = self.'iterator'()
-    rv = new 'List'
+    rv = new ['List']
   loop:
     .local string key
     .local pmc pair
@@ -167,7 +167,7 @@ Returns elements of hash as array of C<Pair(key, value)>
     .local pmc rv
 
     it = self.'iterator'()
-    rv = new 'List'
+    rv = new ['List']
 
   loop:
     .local string key
@@ -273,7 +273,7 @@ Return perl representation of the invocant.
     .local pmc it
     .local pmc rv
 
-    rv = new 'Perl6Hash'
+    rv = new ['Perl6Hash']
     it = self.'iterator'()
 
   loop:
@@ -314,7 +314,7 @@ Returns values of hash as a List
     .local pmc rv
 
     it = self.'iterator'()
-    rv = new 'List'
+    rv = new ['List']
 
   loop:
     .local pmc pair
@@ -357,7 +357,7 @@ return a Perl6Scalar with it.
 .namespace ['Mapping']
 .sub 'Scalar' :method
     $P0 = self.'Hash'()
-    $P0 = new 'Perl6Scalar', $P0
+    $P0 = root_new ['parrot';'Perl6Scalar'], $P0
     .return ($P0)
 .end
 

@@ -49,7 +49,7 @@ Returns a Perl representation of the Str.
     .local int pos
     pos = 0
     .local pmc arr
-    arr = new 'ResizablePMCArray'
+    arr = root_new ['parrot';'ResizablePMCArray']
   loop:
     .local string ch
     ch = substr str, pos, 1
@@ -83,7 +83,7 @@ Returns a Perl representation of the Str.
 .sub 'sprintf' :method
     .param pmc args            :slurpy
     args.'!flatten'()
-    $P0 = new 'Str'
+    $P0 = new ['Str']
     sprintf $P0, self, args
     .return ($P0)
 .end

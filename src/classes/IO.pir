@@ -100,7 +100,7 @@ Read all of the lines and return them as a List.
     $P0 = getattribute self, "$!IO"
     pio = getattribute $P0, "$!PIO"
     pio = '!DEREF'(pio)
-    res = new 'List'
+    res = new ['List']
     chomper = get_hll_global 'chomp'
 
   loop:

@@ -14,7 +14,7 @@ Match - Perl 6 match objects
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     matchproto = p6meta.'new_class'('Match', 'parent'=>'parrot;PGE::Grammar Any')
     $P0 = p6meta.'get_parrotclass'(matchproto)
-    $P1 = new 'ResizablePMCArray'
+    $P1 = root_new ['parrot';'ResizablePMCArray']
     push $P1, 'of'
     $P0.'resolve_method'($P1)
     $P0 = get_hll_global 'Positional'

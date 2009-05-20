@@ -56,7 +56,7 @@
     unless x goto no_args
     die "Obsolete use of undef; in Perl 6 please use undefine instead"
   no_args:
-    $P0 = new 'Failure'
+    $P0 = new ['Failure']
     .return ($P0)
 .end
 
@@ -73,7 +73,7 @@
     $I0 = isa exception, 'Exception'
     if $I0 goto have_exception
   make_exception:
-    exception = new 'Exception'
+    exception = root_new ['parrot';'Exception']
     exception['message'] = 'Use of uninitialized value'
     setattribute self, '$!exception', exception
   have_exception:

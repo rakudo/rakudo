@@ -58,7 +58,7 @@ for executable objects.
     if match goto store_match
     goto it_loop
   it_loop_end:
-    match = new 'Undef' # Otherwise we'd get a Null PMC Exception later
+    match = root_new ['parrot';'Undef'] # Otherwise we'd get a Null PMC Exception later
     goto store_match
 
     # Otherwise, just match on the topic.
@@ -70,7 +70,7 @@ for executable objects.
     push_eh not_regex
     $P0 = getinterp
     $P1 = $P0['lexpad';1]
-    $P2 = new 'Perl6Scalar', match
+    $P2 = root_new ['parrot';'Perl6Scalar'], match
     $P1['$/'] = $P2
   not_regex:
     .return (match)

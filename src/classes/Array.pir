@@ -49,7 +49,7 @@ Remove items from an array.
 .sub 'delete' :method :multi() :subid('array_delete')
     .param pmc indices :slurpy
     .local pmc result
-    result = new 'List'
+    result = new ['List']
     null $P99
 
     indices.'!flatten'()
@@ -280,7 +280,7 @@ Return Array as a List of its values.
 
 .namespace ['Perl6Array']
 .sub 'values' :method
-    $P0 = new 'List'
+    $P0 = new ['List']
     splice $P0, self, 0, 0
     .return ($P0)
 .end
@@ -350,7 +350,7 @@ Store things into an Array (e.g., upon assignment)
     type = self.'of'()
     ## we create a new array here instead of emptying self in case
     ## the source argument contains self or elements of self.
-    array = new 'ResizablePMCArray'
+    array = root_new ['parrot';'ResizablePMCArray']
     source = 'list'(source)
     it = iter source
   array_loop:

@@ -53,9 +53,9 @@ wrappable executable objects.
     # and install the wrap helper that will start dispatching at the
     # start of the candidate list.
     .local pmc p6i
-    cand_list = new ['ResizablePMCArray']
+    cand_list = root_new ['parrot';'ResizablePMCArray']
     unshift cand_list, cur_sub
-    p6i = new 'P6Invocation', cand_list
+    p6i = root_new ['parrot';'P6Invocation'], cand_list
     .lex '__CANDIDATE_LIST__', p6i
     .const 'Sub' $P0 = '!wrap_start_helper'
     $P0 = newclosure $P0
@@ -109,7 +109,7 @@ wrappable executable objects.
     .lex '__CANDIDATE_LIST__', $P0
 
     # Set up return handler, so next[with|same] work.
-    $P2 = new 'ExceptionHandler'
+    $P2 = root_new ['parrot';'ExceptionHandler']
     set_addr $P2, ret_handler
     $P2."handle_types"(58)
     push_eh $P2

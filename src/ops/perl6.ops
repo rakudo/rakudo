@@ -292,6 +292,52 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
 }
 
 /*
+
+=item B<root_new>(out PMC, in PMC)
+
+Instantiate a new object from the key given by $2; the first component
+of the key is the hll namespace.
+
+=cut
+
+*/
+inline op root_new(out PMC, in PMC) {
+    PMC * const key      = $2;
+    PMC * const root_ns  = interp->root_namespace;
+    PMC * const ns       = Parrot_get_namespace_keyed(interp, root_ns, key);
+    PMC * classobj       = PMCNULL;
+
+    if (!PMC_IS_NULL(ns))
+        classobj = Parrot_oo_get_class(interp, ns);
+    if (!PMC_IS_NULL(classobj)) 
+        $1 = VTABLE_instantiate(interp, classobj, PMCNULL);
+    else {
+        opcode_t *dest = Parrot_ex_throw_from_op_args(interp, expr NEXT(),
+            EXCEPTION_NO_CLASS,
+            "Class '%Ss' not found", VTABLE_get_repr(interp, key));
+        goto ADDRESS(dest);
+    }
+}
+
+inline op root_new(out PMC, in PMC, in PMC) {
+    PMC * const key      = $2;
+    PMC * const root_ns  = interp->root_namespace;
+    PMC * const ns       = Parrot_get_namespace_keyed(interp, root_ns, key);
+    PMC * classobj       = PMCNULL;
+
+    if (!PMC_IS_NULL(ns))
+        classobj = Parrot_oo_get_class(interp, ns);
+    if (!PMC_IS_NULL(classobj)) 
+        $1 = VTABLE_instantiate(interp, classobj, $3);
+    else {
+        opcode_t *dest = Parrot_ex_throw_from_op_args(interp, expr NEXT(),
+            EXCEPTION_NO_CLASS,
+            "Class '%Ss' not found", VTABLE_get_repr(interp, key));
+        goto ADDRESS(dest);
+    }
+}
+
+/*
  * Local variables:
  *   c-file-style: "parrot"
  * End:

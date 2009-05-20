@@ -323,6 +323,7 @@ the object's type and address.
     unless null $P0 goto attrinit_assign
     $P0 = attrhash['init_value']
     if null $P0 goto attrinit_loop
+    $P0 = $P0(candidate, attr)
   attrinit_assign:
     'infix:='(attr, $P0)
     goto attrinit_loop

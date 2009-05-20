@@ -1695,6 +1695,7 @@ method scope_declarator($/) {
                                    $?METACLASS, $var.name(), $var<itype> );
                     if $type { $type.named('type'); $has.push($type); }
                     if $init_value {
+                        $init_value := make_attr_init_closure($init_value);
                         $init_value.named('init_value');
                         $has.push($init_value);
                     }
@@ -2491,6 +2492,8 @@ method EXPR($/, $key) {
         my $past;
 
         if $lhs<scopedecl> eq 'attribute' {
+            # Need to transform RHS into an anonymous method.
+            $rhs := make_attr_init_closure($rhs);
             $rhs.named('init_value');
             our $?METACLASS;
             $past := PAST::Op.new( :name('!meta_attribute'),
@@ -3141,7 +3144,27 @@ sub add_optoken($block, $match) {
     }
     $name;
 }
-    
+
+
+sub make_attr_init_closure($init_value) {
+    # Need to not just build the closure, but new_closure it; otherwise, we
+    # run into trouble if our initialization value involves a parameter from
+    # a parametric role.
+    PAST::Op.new(
+        :inline('%r = newclosure %0'),
+        PAST::Block.new(
+            :blocktype('method'),
+            PAST::Stmts.new(
+                PAST::Var.new( :name('$_'), :scope('parameter') ),
+                PAST::Op.new( :pasttype('bind'),
+                    PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1) ),
+                    PAST::Var.new( :name('self'), :scope('register') )
+                )
+            ),
+            PAST::Stmts.new( $init_value )
+        )
+    );
+}
 
 # Local Variables:
 #   mode: cperl

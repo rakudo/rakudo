@@ -1654,7 +1654,11 @@ method scope_declarator($/) {
                 # accessor method for it in the block (class/grammar/role)
                 if $var<twigil> eq '.' {
                     my $method := PAST::Block.new( :blocktype('method') );
-                    $method.name( substr($var.name(), 2) );
+                    if $var<sigil> eq '&' {
+                        $method.name( substr($var.name(), 1) );
+                    } else {
+                        $method.name( substr($var.name(), 2) );
+                    }
                     my $value := PAST::Var.new( :name($var.name()) );
                     my $readtype := trait_readtype( $var<traitlist> ) || 'readonly';
                     if $readtype eq 'CONFLICT' {
@@ -1977,7 +1981,7 @@ method variable($/, $key) {
         }
 
         $var := PAST::Var.new( :name($varname), :node($/) );
-        $var<sigil> := $sigil;
+        $var<sigil> := ~$<sigil>;
         if $twigil { $var<twigil> := $twigil; }
 
         # If namespace qualified or has a '*' twigil, it's a package var.

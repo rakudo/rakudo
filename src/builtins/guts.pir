@@ -802,15 +802,21 @@ and C<type>.
     .param int has_itype       :opt_flag
     .param pmc attr            :slurpy :named
 
-    # twigil handling
+    # twigil handling (for has &!foo, we just get name as !foo)
+    .local int offset
     .local string twigil
-    twigil = substr name, 1, 1
+    offset = 1
+    $S0 = substr name, 0, 1
+    if $S0 != '!' goto offset_done
+    offset = 0
+  offset_done:
+    twigil = substr name, offset, 1
     if twigil == '.' goto twigil_public
     if twigil == '!' goto twigil_done
-    substr name, 1, 0, '!'
+    substr name, offset, 0, '!'
     goto twigil_done
   twigil_public:
-    substr name, 1, 1, '!'
+    substr name, offset, 1, '!'
   twigil_done:
 
     $P0 = metaclass.'attributes'()

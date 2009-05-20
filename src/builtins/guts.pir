@@ -787,9 +787,9 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
 .end
 
 
-=item !meta_attribute(metaclass, name, itype [, 'type'=>type] )
+=item !meta_attribute(metaclass, name, itypename [, 'type'=>type] )
 
-Add attribute C<name> to C<metaclass> with the given C<itype>
+Add attribute C<name> to C<metaclass> with the given C<itypename>
 and C<type>.
 
 =cut
@@ -797,8 +797,8 @@ and C<type>.
 .sub '!meta_attribute'
     .param pmc metaclass
     .param string name
-    .param string itype        :optional
-    .param int has_itype       :opt_flag
+    .param string itypename    :optional
+    .param int has_itypename   :opt_flag
     .param pmc attr            :slurpy :named
 
     # twigil handling
@@ -823,7 +823,15 @@ and C<type>.
     attrhash = $P0[name]
 
     # Set any itype for the attribute.
-    unless has_itype goto itype_done
+    unless has_itypename goto itype_done
+    .local pmc itype
+    if itypename == 'Perl6Scalar' goto itype_pmc
+    itype = get_class itypename
+    goto have_itype
+  itype_pmc:
+    $P0 = get_root_namespace ['parrot';'Perl6Scalar']
+    itype = get_class $P0
+  have_itype:
     attrhash['itype'] = itype
   itype_done:
 

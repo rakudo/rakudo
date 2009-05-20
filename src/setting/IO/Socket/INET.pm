@@ -20,7 +20,7 @@ class IO::Socket::INET does IO::Socket {
             port = $P0
 
             # Create the socket handle
-            sock = new 'Socket'
+            sock = root_new ['parrot';'Socket']
             unless sock goto ERR
             sock.'socket'(.PIO_PF_INET, .PIO_SOCK_STREAM, .PIO_PROTO_TCP)
 
@@ -34,7 +34,7 @@ class IO::Socket::INET does IO::Socket {
     }
 
     method socket(Int $domain, Int $type, Int $protocol) {
-        my $listener := Q:PIR {{ %r = new 'Socket' }};
+        my $listener := Q:PIR {{ %r = root_new ['parrot';'Socket'] }};
         $listener.socket($domain, $type, $protocol);
         return IO::Socket::INET.new( :listener($listener) );
     }

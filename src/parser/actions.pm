@@ -618,7 +618,7 @@ method statement_prefix($/) {
 
         ##  Add an 'else' node to the try op that clears $! if
         ##  no exception occurred.
-        my $elsepir  := "    new %r, 'Failure'\n    store_lex '$!', %r";
+        my $elsepir  := "    new %r, ['Failure']\n    store_lex '$!', %r";
         $past.push( PAST::Op.new( :inline( $elsepir ) ) );
     }
     elsif $sym eq 'gather' {
@@ -2209,7 +2209,7 @@ method integer($/) {
     my $str;
     PIR q<  $P0 = find_lex '$/'   >;
     PIR q<  $S0 = $P0             >;
-    PIR q<  $P1 = new 'Str'  >;
+    PIR q<  $P1 = new ['Str']  >;
     PIR q<  assign $P1, $S0       >;
     PIR q<  store_lex '$str', $P1 >;
     make PAST::Val.new(
@@ -2224,7 +2224,7 @@ method dec_number($/) {
     my $str;
     PIR q<  $P0 = find_lex '$/'   >;
     PIR q<  $S0 = $P0             >;
-    PIR q<  $P1 = new 'Str'  >;
+    PIR q<  $P1 = new ['Str']  >;
     PIR q<  assign $P1, $S0       >;
     PIR q<  store_lex '$str', $P1 >;
     make PAST::Val.new(
@@ -2821,10 +2821,11 @@ sub build_call($args) {
 sub declare_implicit_routine_vars($block) {
     for ('$_', '$/', '$!') {
         unless $block.symbol($_) {
-            $block[0].push( PAST::Var.new( :name($_),
-                                           :scope('lexical'),
-                                           :isdecl(1),
-                                           :viviself('Perl6Scalar') ) );
+            $block[0].push( PAST::Var.new( 
+                :name($_), :scope('lexical'), :isdecl(1), 
+                :viviself(PAST::Op.new(
+                    :inline('    %r = root_new ["parrot";"Perl6Scalar"]') ) ) 
+            ) );
             $block.symbol($_, :scope('lexical') );
         }
     }
@@ -2901,7 +2902,7 @@ sub make_accessor($/, $method_name, $attr_name, $rw, $scope) {
     else {
         $getset := PAST::Op.new(
             :inline(
-                '    %r = new "ObjectRef", %0',
+                '    %r = root_new ["parrot";"ObjectRef"], %0',
                 '    $P0 = get_hll_global [ "Bool" ], "True"',
                 '    setprop %r, "readonly", $P0'
             ),

@@ -289,7 +289,8 @@ the object's type and address.
     unless null itypeclass goto attrinit_itype
     if $S0 == '@' goto attrinit_array
     if $S0 == '%' goto attrinit_hash
-    itypeclass = get_class ['Perl6Scalar']
+    $P0 = get_root_namespace ['parrot';'Perl6Scalar']
+    itypeclass = get_class $P0
     goto attrinit_itype
   attrinit_array:
     itypeclass = get_class ['Perl6Array']

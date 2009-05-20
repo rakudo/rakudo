@@ -2265,7 +2265,11 @@ method rad_number($/) {
 
 
 method quote($/) {
-    make $<quote_expression>.ast;
+    my $past := $<quote_expression>.ast;
+    if $<x> eq 'x' {
+        $past := PAST::Op.new( :name('!qx'), :pasttype('call'), $past );
+    }
+    make $past;
 }
 
 method quote_expression($/, $key) {

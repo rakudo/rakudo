@@ -169,6 +169,21 @@ Shows the supplied message and then waits for input from $*IN.
     .return ($S0)
 .end
 
+
+.sub '!qx'
+    .param string cmd
+    .local pmc pio
+    pio = open cmd, 'rp'
+    unless pio goto err_qx
+    pio.'encoding'('utf8')
+    $P0 = pio.'readall'()
+    pio.'close'()
+    .return ($P0)
+  err_qx:
+    .tailcall '!FAIL'('Unable to execute "', cmd, '"')
+.end
+  
+
 =back
 
 =cut

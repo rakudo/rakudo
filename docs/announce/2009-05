@@ -14,9 +14,10 @@ More details are available at http://rakudo.org/how-to-get-rakudo .
 
 Rakudo Perl follows a monthly release cycle, with each release code named
 after a Perl Mongers group.  This release is named "Stockholm",
-a city in whose Perl Mongers group Carl Mäsak (one of the main authors of
-November [2], Druid [3], proto [4], and other Perl 6-based packages) is a
-member.
+a city in whose Perl Mongers group Carl Mäsak is a member. Carl is one of
+the main authors of November [2], Druid [3], proto [4], and other Perl
+6-based packages. He contributes patches to Rakudo, and has been stress-
+testing Rakudo over the past year, submitting nearly 400 bug reports.
 
 In this release of Rakudo Perl, we've made the following major changes
 and improvements:

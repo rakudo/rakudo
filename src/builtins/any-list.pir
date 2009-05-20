@@ -118,7 +118,7 @@ Return a List with the keys of the invocant.
 .namespace ['Any']
 .sub 'kv' :method
     .local pmc result, it
-    result = new 'List'
+    result = new ['List']
     it = self.'iterator'()
     .local int i
     i = 0
@@ -267,7 +267,7 @@ Parrot's built-in sort algorithm.
 
     ##  create a FPA of indexes to be sorted using cmp
     .local pmc fpa
-    fpa = new 'FixedPMCArray'
+    fpa = root_new ['parrot';'FixedPMCArray']
     assign fpa, elems
     $I0 = 0
   fpa_loop:
@@ -293,7 +293,7 @@ Parrot's built-in sort algorithm.
     ##  Because of TT #56, we can't store Sub PMCs directly into
     ##  the namespace.  So, we create an array to hold it for us.
     set_global '@!compare', list
-    $P0 = new 'ResizablePMCArray'
+    $P0 = root_new ['parrot';'ResizablePMCArray']
     push $P0, by
     set_global '@!compare_by', $P0
     .const 'Sub' $P99 = '!COMPARE_DO'

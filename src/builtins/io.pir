@@ -22,7 +22,7 @@ src/builtins/io.pir - Perl6 builtins for I/O
     unless it goto iter_end
     $P0 = shift it
     unless null $P0 goto iter_nonull
-    $P0 = new 'Failure'
+    $P0 = '!FAIL'()
   iter_nonull:
     out.'print'($P0)
     goto iter_loop
@@ -137,7 +137,7 @@ It is an error to use bare C<unlink> without arguments.
     'die'("Cannot call unlink without any arguments")
   ok:
 
-    os = new 'OS'
+    os = root_new ['parrot';'OS']
     success_count = 0
     it = iter to_delete
   it_loop:

@@ -31,9 +31,9 @@ the moment -- we'll do more complex handling a bit later.)
     .param int has_value       :opt_flag
 
     if has_value goto have_value
-    value = new 'Nil'
+    value = new ['Nil']
   have_value:
-    $P0         = new 'Exception'
+    $P0         = root_new ['parrot';'Exception']
     $P0['type'] = .CONTROL_RETURN
     setattribute $P0, 'payload', value
     throw $P0
@@ -54,9 +54,9 @@ the moment -- we'll do more complex handling a bit later.)
   message_args:
     message = join '', args
   have_message:
-    $P0 = new 'Exception'
+    $P0 = root_new ['parrot';'Exception']
     $P0['message'] = message
-    $P1 = new 'Failure'
+    $P1 = new ['Failure']
     setattribute $P1, '$!exception', $P0
     .return ($P1)
 .end
@@ -82,7 +82,7 @@ the moment -- we'll do more complex handling a bit later.)
 .sub 'take'
     .param pmc value
 
-    $P0         = new 'Exception'
+    $P0         = root_new ['parrot';'Exception']
     $P0['type'] = .CONTROL_TAKE
     $P0['severity'] = .EXCEPT_NORMAL
     setattribute $P0, 'payload', value
@@ -99,7 +99,7 @@ the moment -- we'll do more complex handling a bit later.)
     .local pmc list
     .local pmc eh
     list = 'list'()
-    eh = new 'ExceptionHandler'
+    eh = root_new ['parrot';'ExceptionHandler']
     eh.'handle_types'(.CONTROL_TAKE)
     set_addr eh, handler
     push_eh eh
@@ -123,7 +123,7 @@ the moment -- we'll do more complex handling a bit later.)
 
 .sub 'last'
     .local pmc e
-    e = new 'Exception'
+    e = root_new ['parrot';'Exception']
     e['severity'] = .EXCEPT_NORMAL
     e['type'] = .CONTROL_LOOP_LAST
     throw e
@@ -135,7 +135,7 @@ the moment -- we'll do more complex handling a bit later.)
 
 .sub 'next'
     .local pmc e
-    e = new 'Exception'
+    e = root_new ['parrot';'Exception']
     e['severity'] = .EXCEPT_NORMAL
     e['type'] = .CONTROL_LOOP_NEXT
     throw e
@@ -147,7 +147,7 @@ the moment -- we'll do more complex handling a bit later.)
 
 .sub 'redo'
     .local pmc e
-    e = new 'Exception'
+    e = root_new ['parrot';'Exception']
     e['severity'] = .EXCEPT_NORMAL
     e['type'] = .CONTROL_LOOP_REDO
     throw e
@@ -159,7 +159,7 @@ the moment -- we'll do more complex handling a bit later.)
 
 .sub 'continue'
     .local pmc e
-    e = new 'Exception'
+    e = root_new ['parrot';'Exception']
     e['severity'] = .EXCEPT_NORMAL
     e['type'] = .CONTROL_CONTINUE
     throw e
@@ -173,7 +173,7 @@ the moment -- we'll do more complex handling a bit later.)
     .param pmc arg :optional
     .param int has_arg :opt_flag
     .local pmc e
-    e = new 'Exception'
+    e = root_new ['parrot';'Exception']
     e['severity'] = .EXCEPT_NORMAL
     e['type'] = .CONTROL_BREAK
     unless has_arg, no_arg
@@ -190,7 +190,7 @@ the moment -- we'll do more complex handling a bit later.)
     .param pmc message        :optional
     .param int have_message   :opt_flag
     if have_message goto message_done
-    message = new 'Str'
+    message = new ['Str']
     message = "Attempt to execute stub code (...)"
   message_done:
     'fail'(message)
@@ -217,7 +217,7 @@ the moment -- we'll do more complex handling a bit later.)
     if message > '' goto have_message
     message = "Died\n"
   have_message:
-    ex = new 'Exception'
+    ex = root_new ['parrot';'Exception']
     ex = message
     ex['severity'] = .EXCEPT_FATAL
     ex['type'] = .CONTROL_ERROR
@@ -382,7 +382,7 @@ on error.
 
     # Invoke.
     res = invokable()
-    exception = new 'Failure'
+    exception = new ['Failure']
     goto done
 
   catch:
@@ -417,7 +417,7 @@ on error.
     ## count_eh is broken
     # $I0 = count_eh
     # eq $I0, 0, no_eh
-    ex = new 'Exception'
+    ex = root_new ['parrot';'Exception']
     ex['severity'] = .EXCEPT_WARNING
     ex['message'] = message
     throw ex
@@ -527,8 +527,8 @@ some Capture support and this gets massively easier.
     .param pmc lexpad
 
     .local pmc signature, it, cur_param, pos_args, named_args
-    pos_args = new 'ResizablePMCArray'
-    named_args = new 'Hash'
+    pos_args = root_new ['parrot';'ResizablePMCArray']
+    named_args = root_new ['parrot';'Hash']
     signature = routine.'signature'()
     $I0 = defined signature
     unless $I0 goto it_loop_end

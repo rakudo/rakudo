@@ -139,7 +139,7 @@ src/builtins/assign.pir - assignments
 
     ## now build our 'real' source list, cloning any targets we encounter
     .local pmc slist, it
-    slist = new 'List'
+    slist = new ['List']
     it = iter source
   source_loop:
     unless it goto source_done
@@ -169,7 +169,7 @@ src/builtins/assign.pir - assignments
     if $I0 goto assign_hash
   assign_scalar:
     if slist goto have_slist
-    slist = new 'Nil'
+    slist = new ['Nil']
   have_slist:
     $P0 = shift slist
     'infix:='(cont, $P0)
@@ -177,7 +177,7 @@ src/builtins/assign.pir - assignments
   assign_array:
   assign_hash:
     cont.'!STORE'(slist)
-    slist = new 'Nil'
+    slist = new ['Nil']
     goto assign_loop
   assign_done:
     .return (list)
@@ -332,7 +332,7 @@ src/builtins/assign.pir - assignments
     # Create result list and get iterators over the two.
   go_hyper:
     .local pmc result, it_a, it_b
-    result = new 'Perl6Array'
+    result = new ['Perl6Array']
     it_a = iter a
     it_b = iter b
 
@@ -365,7 +365,7 @@ src/builtins/assign.pir - assignments
     cur_a = 'list'(cur_a)
   recurse:
     $P0 = '!HYPEROP'(opname, cur_a, cur_b, dwim_lhs, dwim_rhs)
-    $P0 = new 'Perl6Scalar', $P0
+    $P0 = root_new ['parrot';'Perl6Scalar'], $P0
     push result, $P0
     goto loop
 
@@ -386,7 +386,7 @@ src/builtins/assign.pir - assignments
 
     # First, work out applicable keys.
     .local pmc keys_applicable, it
-    keys_applicable = new 'ResizablePMCArray'
+    keys_applicable = root_new ['parrot';'ResizablePMCArray']
     $I0 = dwim_lhs * dwim_rhs
     if $I0 goto intersection
     $I0 = dwim_lhs + dwim_rhs
@@ -433,7 +433,7 @@ src/builtins/assign.pir - assignments
     .local pmc opfunc, result
     $S0 = concat 'infix:', opname
     opfunc = find_name $S0
-    result = new 'Perl6Hash'
+    result = new ['Perl6Hash']
     it = iter keys_applicable
   it_loop:
     unless it goto it_loop_end

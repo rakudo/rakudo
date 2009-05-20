@@ -86,7 +86,7 @@ from C<Any>.
     .local pmc anyobj
     anyobj = get_global '$!ANY'
     unless null anyobj goto any_method_1
-    anyobj = new 'Any'
+    anyobj = new ['Any']
     set_global '$!ANY', anyobj
   any_method_1:
     $P0 = find_method anyobj, method
@@ -143,7 +143,7 @@ Does an indirect method dispatch.
     .tailcall methodish(obj, pos_args :flat, name_args :flat :named)
 
   candidate_list:
-    $P0 = new 'P6Invocation', methodish
+    $P0 = root_new ['parrot';'P6Invocation'], methodish
     .tailcall $P0(obj, pos_args :flat, name_args :flat :named)
 .end
 
@@ -219,7 +219,7 @@ Helper function for implementing the VAR and .VAR macros.
     .param pmc variable
     $I0 = isa variable, 'Perl6Scalar'
     unless $I0 goto nothing
-    $P0 = new 'MutableVAR', variable
+    $P0 = root_new ['parrot';'MutableVAR'], variable
     .return ($P0)
   nothing:
     .return (variable)
@@ -398,7 +398,7 @@ first). So for now we just transform multis in user code like this.
     # It's not a Perl6MultiSub, create one and put contents into it.
   not_perl6_multisub:
     .local pmc p6multi, sub_iter
-    p6multi = new 'Perl6MultiSub'
+    p6multi = root_new ['parrot';'Perl6MultiSub']
     sub_iter = iter current_thing
   iter_loop:
     unless sub_iter goto iter_loop_end
@@ -440,7 +440,7 @@ first). So for now we just transform multis in user code like this.
     $P0 = existing.'clone'()
     .return ($P0)
   fresh:
-    $P0 = new 'Perl6MultiSub'
+    $P0 = root_new ['parrot';'Perl6MultiSub']
     .return ($P0)  
 .end
 
@@ -535,7 +535,7 @@ and putting it in the namespace if it doesn't already exist.
     $I0 = isa role_obj, 'NameSpace'
     unless $I0 goto have_role_obj
   need_role_obj:
-    role_obj = new 'Perl6Role'
+    role_obj = new ['Perl6Role']
     set_root_global ns, short_name, role_obj
     $P0 = box short_name
     setprop role_obj, "$!shortname", $P0
@@ -600,17 +600,16 @@ is composed (see C<!meta_compose> below).
     metarole = get_class ns
     unless null metarole goto have_role
 
-    $P0 = get_root_namespace ['parrot';'Hash']
-    info = new $P0
+    info = root_new ['parrot';'Hash']
     $P0 = nsarray[-1]
     info['name'] = $P0
     info['namespace'] = nsarray
-    metarole = new 'Role', info
+    metarole = root_new ['parrot';'Role'], info
   have_role:
 
     # Copy list of roles done by the metarole.
     .local pmc result, tmp, it
-    result = new 'Role'
+    result = root_new ['parrot';'Role']
     setprop result, '$!orig_role', metarole
     tmp = metarole.'roles'()
     it = iter tmp
@@ -675,7 +674,7 @@ Flattens out the list of roles.
 .sub '!get_flattened_roles_list'
     .param pmc unflat_list
     .local pmc flat_list, it, cur_role, nested_roles, nested_it
-    flat_list = new 'ResizablePMCArray'
+    flat_list = root_new ['parrot';'ResizablePMCArray']
     it = iter unflat_list
   it_loop:
     unless it goto it_loop_end
@@ -781,7 +780,7 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
     .local pmc role_list
     role_list = getprop '@!roles', metaclass
     unless null role_list goto have_role_list
-    role_list = new 'ResizablePMCArray'
+    role_list = root_new ['parrot';'ResizablePMCArray']
     setprop metaclass, '@!roles', role_list
   have_role_list:
     push role_list, $P0
@@ -868,11 +867,10 @@ and C<type>.
     .local pmc class_handles_list, handles_hash
     class_handles_list = getprop '@!handles_dispatchers', metaclass
     unless null class_handles_list goto have_class_handles_list
-    class_handles_list = new 'ResizablePMCArray'
+    class_handles_list = root_new ['parrot';'ResizablePMCArray']
     setprop metaclass, '@!handles_dispatchers', class_handles_list
   have_class_handles_list:
-    $P1 = get_root_namespace ['parrot';'Hash']
-    handles_hash = new $P1
+    handles_hash = root_new ['parrot';'Hash']
     handles_hash['attrname'] = name
     handles_hash['match_against'] = $P0
     push class_handles_list, handles_hash
@@ -1088,8 +1086,7 @@ in an ambiguous multiple dispatch.
     .param string trait
     .param pmc block
     .param pmc arg
-    $P0 = new 'Integer'
-    $P0 = 1
+    $P0 = box 1
     setprop block, 'default', $P0
 .end
 
@@ -1197,7 +1194,7 @@ Gets all the methods that the class has and adds them to the resolves list.
     .local pmc meths, it, res_list
     meths = class.'methods'()
     it = iter meths
-    res_list = new 'ResizableStringArray'
+    res_list = root_new ['parrot';'ResizableStringArray']
   it_loop:
     unless it goto it_loop_end
     $S0 = shift it
@@ -1225,7 +1222,7 @@ Helper method to compose the attributes of a role into a class.
     .local string cur_attr
     role_attrs = role."attributes"()
     class_attrs = class."attributes"()
-    fixup_list = new ["ResizableStringArray"]
+    fixup_list = root_new ['parrot';'ResizableStringArray']
     ra_iter = iter role_attrs
   ra_iter_loop:
     unless ra_iter goto ra_iter_loop_end
@@ -1335,11 +1332,10 @@ Internal helper method to create a role with a single parameterless variant.
     .local pmc ns
     ns = split '::', name
     name = ns[-1]
-    $P0 = get_root_namespace ['parrot';'Hash']
-    info = new $P0
+    info = root_new ['parrot';'Hash']
     info['name'] = name
     info['namespace'] = ns
-    role = new 'Role', info
+    role = root_new ['parrot';'Role'], info
 
     # Now we need to wrap it up as a Perl6Role.
     helper = find_name '!create_simple_role_helper'
@@ -1381,12 +1377,12 @@ Constructs a Mapping, based upon the values list.
     # For now, we assume integer type, unless we have a first pair that says
     # otherwise.
     .local pmc cur_val
-    cur_val = new 'Int'
+    cur_val = new ['Int']
     cur_val = 0
 
     # Iterate over values and make mapping.
     .local pmc result, values_it, cur_item
-    result = new 'Mapping'
+    result = new ['Mapping']
     values_it = iter values
   values_loop:
     unless values_it goto values_loop_end
@@ -1472,8 +1468,7 @@ Constructs an enumeration.
     # use that (Enum.pick then just works through punning).
     .local pmc value_list
     .local string value_name
-    $P0 = get_root_namespace ['parrot';'ResizablePMCArray']
-    value_list = new $P0
+    value_list = root_new ['parrot';'ResizablePMCArray']
     .lex '@values', value_list
     .const 'Sub' pick = '!create_enum_helper_pick'
     pick = newclosure pick
@@ -1547,7 +1542,7 @@ Constructs an enumeration.
     .lex '$enum_role', enum_role
     .lex '$long_name', long_name
     .lex '$short_name', short_name
-    $P0 = new 'Role'
+    $P0 = root_new ['parrot';'Role']
     .const 'Sub' ACCEPTS = '!create_enum_value_role_ACCEPTS'
     ACCEPTS = newclosure ACCEPTS
     $P0.'add_method'('ACCEPTS', ACCEPTS)
@@ -1619,8 +1614,7 @@ Loads any existing values of state variables for a block.
     $P0 = $P0['sub'; 1]
     state_store = getprop '$!state_store', $P0
     unless null state_store goto have_state_store
-    $P1 = get_root_namespace ['parrot';'Hash']
-    state_store = new $P1
+    state_store = root_new ['parrot';'Hash']
     setprop $P0, '$!state_store', state_store
   have_state_store:
 

@@ -144,7 +144,7 @@ src/builtins/op.pir - Perl 6 builtin operators
 
 .sub 'prefix:~' :multi(_)
     .param string a
-    $P0 = new 'Str'
+    $P0 = new ['Str']
     $P0 = a
     .return ($P0)
 .end
@@ -317,7 +317,7 @@ src/builtins/op.pir - Perl 6 builtin operators
     .param string a
     .param string b
     $S0 = concat a, b
-    $P0 = new 'Str'
+    $P0 = new ['Str']
     assign $P0, $S0
     .return ($P0)
 .end
@@ -406,13 +406,15 @@ src/builtins/op.pir - Perl 6 builtin operators
 
     # Derive a new class that does the role(s) specified.
     .local pmc derived
-    derived = new 'Class'
+    derived = root_new ['parrot';'Class']
     addparent derived, parrot_class
-    $I0 = isa role, 'Perl6Role'
+    $I0 = isa role, ['Perl6Role']
     if $I0 goto one_role_select
-    $I0 = isa role, 'Role'
+    $P0 = get_root_namespace ['parrot';'Role']
+    $P0 = get_class $P0
+    $I0 = isa role, $P0
     if $I0 goto one_role
-    $I0 = isa role, 'List'
+    $I0 = isa role, ['List']
     if $I0 goto many_roles
   error:
     'die'("'does' expects a role or a list of roles")

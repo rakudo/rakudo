@@ -53,7 +53,7 @@ Sets $x to an undefined value
 
 .sub 'undefine'
     .param pmc x
-    $P0 = new ['Perl6Scalar']
+    $P0 = root_new ['parrot';'Perl6Scalar']
     copy x, $P0
 .end
 

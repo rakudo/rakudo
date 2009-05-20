@@ -124,9 +124,9 @@ itself can be found in src/builtins/control.pir.
     .local pmc outer_ns_chain, outer_blocks
     outer_ns_chain = get_hll_global ['Perl6';'Grammar';'Actions'], '@?NS'
     outer_blocks = get_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK'
-    $P0 = new 'List'
+    $P0 = new ['List']
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?NS', $P0
-    $P0 = new 'List'
+    $P0 = new ['List']
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', $P0
     inc_hash[name] = realfilename
     result = 'evalfile'(realfilename, 'lang'=>'perl6')
@@ -158,14 +158,14 @@ itself can be found in src/builtins/control.pir.
     callerns = $P0['namespace';1]
     'load-language'(lang)
     compiler = compreg lang
-    request = new 'Hash'
+    request = root_new ['parrot';'Hash']
     $P0 = compiler_obj.'parse_name'(module)
     request['name'] = $P0
     library = compiler.'fetch-library'(request)
     imports = library['symbols']
     imports = imports['DEFAULT']
     .local pmc ns_iter, item
-    ns_iter = new 'Iterator', imports
+    ns_iter = iter imports
   import_loop:
     unless ns_iter goto import_loop_end
     $S0 = shift ns_iter
@@ -209,7 +209,7 @@ itself can be found in src/builtins/control.pir.
     # Get list of symbols to import.
     .local pmc tag_hash, tags
     tag_hash = options['tags']
-    tags = new 'ResizableStringArray'
+    tags = root_new ['parrot';'ResizableStringArray']
     if null tag_hash goto default_tag
     $P0 = iter tag_hash
   th_it_loop:

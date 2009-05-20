@@ -24,7 +24,7 @@ the size of that file down and to emphasize their generic,
     '!EXPORT'('abs,int,log,polar,sqrt,truncate,unpolar', 'from'=>$P0)
 
     ##  pre-seed a random number generator
-    $P0 = new 'Random'
+    $P0 = root_new ['parrot';'Random']
     set_hll_global ['Any'], '$!random', $P0
     srand()
 .end
@@ -169,7 +169,7 @@ interval -pi <= $theta <= pi .
     x        = self
     pi       = atan 1
     pi      *= 4
-    roots    = new 'FixedPMCArray'
+    roots    = root_new ['parrot';'FixedPMCArray']
   if n > 0 goto positive
     roots    = 1                # single element array
     roots[0] = 'NaN'
@@ -199,7 +199,7 @@ interval -pi <= $theta <= pi .
     $N1   = ln $N4              # ln(abs(x)) = ln(r)
  loop:
    if $I0 >= n goto done
-    $P2    = new 'Complex'      # this can surely be optimized
+    $P2    = root_new ['parrot';'Complex']   # this can surely be optimized
     $N3    = $N0
     $N3   *= 2
     $N3   *= pi
@@ -233,7 +233,7 @@ interval -pi <= $theta <= pi .
     .local num mag
     .local pmc result
     mag = self
-    result = new 'Complex'
+    result = root_new ['parrot';'Complex']
     $N0 = cos angle
     $N0 *= mag
     result[0] = $N0

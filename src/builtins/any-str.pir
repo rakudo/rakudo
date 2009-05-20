@@ -63,7 +63,7 @@ the size of that file down and to emphasize their generic,
     if lastchar != "\r" goto done
     chopn tmps, 1
   done:
-       retv = new 'Str'
+       retv = new ['Str']
        retv = tmps
        .return (retv)
 .end
@@ -176,13 +176,12 @@ file.
     if pos < 0 goto fail
 
   done:
-    $P0 = new 'Int'
+    $P0 = new ['Int']
     $P0 = pos
     .return ($P0)
 
   fail:
-    $P0 = new 'Failure'
-    .return ($P0)
+    .tailcall '!FAIL'("Attempt to index from negative position")
 .end
 
 =item match()
@@ -227,7 +226,7 @@ file.
   substring_search:
     $I0 = self.'isa'('String')
     if $I0 goto self_string
-    $P0 = new 'String'
+    $P0 = root_new ['parrot';'String']
     $S0 = self
     $P0 = $S0
     goto do_search
@@ -238,13 +237,12 @@ file.
     if pos < 0 goto fail
 
   done:
-    $P0 = new 'Int'
+    $P0 = new ['Int']
     $P0 = pos
     .return ($P0)
 
   fail:
-    $P0 = new 'Failure'
-    .return ($P0)
+    .tailcall '!FAIL'("Attempt to index from negative position")
 .end
 
 =item split
@@ -304,7 +302,7 @@ B<Note:> partial implementation only
 .sub '!transtable' :multi(_)
     .param pmc r
     .local pmc retval, tmps
-    retval = new 'ResizablePMCArray'
+    retval = root_new ['parrot';'ResizablePMCArray']
     tmps = clone r
   range_loop:
     unless tmps, done
@@ -320,7 +318,7 @@ B<Note:> partial implementation only
 .sub '!transtable' :multi('Sub')
     .param pmc r
     .local pmc retval
-    retval = new 'ResizablePMCArray'
+    retval = root_new ['parrot';'ResizablePMCArray']
     push retval, r
     .return(retval)
 .end
@@ -330,8 +328,8 @@ B<Note:> partial implementation only
     .local pmc retval, prior, frm, to, next_str
     .local int start, end, len, ind, skipped, r_start, r_end, s_len
     .local string p
-    retval = new 'ResizablePMCArray'
-    prior = new 'ResizablePMCArray'
+    retval = root_new ['parrot';'ResizablePMCArray']
+    prior = root_new ['parrot';'ResizablePMCArray']
     start = 0
     skipped = 0
     len = length str
@@ -360,7 +358,7 @@ B<Note:> partial implementation only
   process_pstring:
     unless prior, start_range
     $S2 = shift prior
-    next_str = new 'Str'
+    next_str = new ['Str']
     next_str = $S2
     push retval, next_str
     goto process_pstring
@@ -372,7 +370,7 @@ B<Note:> partial implementation only
     # If needed we can switch this over to use a true string Range
     if $I0 > $I1 goto next_loop
     $S2 = chr $I0
-    next_str = new 'Str'
+    next_str = new ['Str']
     next_str = $S2
     push retval, next_str
     inc $I0
@@ -394,7 +392,7 @@ B<Note:> partial implementation only
   process_lstring:
     unless prior, check_rval
     $S0 = shift prior
-    next_str = new 'Str'
+    next_str = new ['Str']
     next_str = $S0
     push retval, next_str
     goto process_lstring
@@ -427,8 +425,8 @@ B<Note:> partial implementation only
     .local int len, klen, vlen, adjpos, pos, ind, nhits
     by = get_hll_global 'infix:<=>'
     # itable maps matching positions to key, value array
-    itable = new 'Perl6Hash'
-    retv = new 'Str'
+    itable = new ['Perl6Hash']
+    retv = new ['Str']
 
   init_pair_loop:
     .local pmc pair, pkey, pval, pairlist
@@ -486,7 +484,7 @@ B<Note:> partial implementation only
     val = lastval
     goto init_index_loop
   get_prev2:
-    val = new 'Str'
+    val = new ['Str']
     val = ''
   init_index_loop:
     nhits = 0
@@ -519,7 +517,7 @@ B<Note:> partial implementation only
     $I1 = prev_key.'chars'()
     if klen < $I1 goto next_hit
   new_hit:
-    $P1 = new 'ResizablePMCArray'
+    $P1 = root_new ['parrot';'ResizablePMCArray']
     push $P1, km
     push $P1, val
     itable[ind] = $P1
@@ -536,7 +534,7 @@ B<Note:> partial implementation only
     .local pmc hit_set, inv_set, inv_table, it
     .local int kvdiff, llm, pr_pos, st, end
     .local string vs
-    hit_set = new 'ResizableIntegerArray'
+    hit_set = root_new ['parrot';'ResizableIntegerArray']
   normal_hits:
     hit_set = itable.'keys'()
     hit_set = hit_set.'sort'(by)
@@ -544,11 +542,11 @@ B<Note:> partial implementation only
   comp_hits:
     # if :c is indicated, rebuild complement set and use that instead
     # of original itable
-    inv_table = new 'Perl6Hash'
+    inv_table = new ['Perl6Hash']
     st = 0
     end = 0
     len = length tmps
-    inv_set = new 'ResizableIntegerArray'
+    inv_set = root_new ['parrot';'ResizableIntegerArray']
     it = hit_set.'iterator'()
   comp_loop1:
     unless it, fence_post
@@ -563,7 +561,7 @@ B<Note:> partial implementation only
     # modify the following to replace the entire unmatched range once
     # or each char (latter implemented for now to match tests)
     push inv_set, st
-    $P1 = new 'ResizablePMCArray'
+    $P1 = root_new ['parrot';'ResizablePMCArray']
     push $P1, 'x' # placeholder char; we can replace with substr if needed
     push $P1, comp_match
     inv_table[st] = $P1
@@ -582,7 +580,7 @@ B<Note:> partial implementation only
   st_trans:
     .local int k_isa_match, v_isa_closure, pass_match
     .local pmc lastmatch, v
-    lastmatch = new 'Str'
+    lastmatch = new ['Str']
     lastmatch = ''
     pos = 0 # original unadjusted position
     pr_pos = 0 # prior unadjusted position
@@ -779,7 +777,7 @@ Partial implementation. The :g modifier on regexps doesn't work, for example.
     .local int n_cnt, x_cnt
     n_cnt = 0
     x_cnt = 0
-    matchlist = new 'ResizablePMCArray'
+    matchlist = root_new ['parrot';'ResizablePMCArray']
     match = regex.'!invoke'(source)
     unless match goto matchlist_done
 

@@ -20,7 +20,7 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2009-05-21   Rakudo #17 
+  2009-05-21   Rakudo #17 "Stockholm"
   2009-06-18   Rakudo #18 "Pittsburgh"
   2009-07-23   Rakudo #19
   2009-08-20   Rakudo #20
@@ -34,7 +34,6 @@ Dates are based on Parrot's expected release schedule.
   BristolBath.pm
   Milan.pm
   Seoul.pm
-  Stockholm.pm
 
 =head2 Steps to create a release (for release managers)
 

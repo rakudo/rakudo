@@ -1,0 +1,61 @@
+Announce: Rakudo Perl 6 development release #17 ("Bratislava")
+
+On behalf of the Rakudo development team, I'm pleased to announce
+the May 2009 development release of Rakudo Perl #17 "Stockholm".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
+The tarball for the May 2009 release is available from
+http://github.com/rakudo/rakudo/downloads .
+
+Due to the continued rapid pace of Rakudo development and the
+frequent addition of new Perl 6 features and bugfixes, we continue
+to recommend that people wanting to use or work with Rakudo obtain
+the latest source directly from the main repository at github.
+More details are available at http://rakudo.org/how-to-get-rakudo .
+
+Rakudo Perl follows a monthly release cycle, with each release code named
+after a Perl Mongers group.  This release is named "Stockholm",
+home to Carl Mäsak (one of the main authors of November [2], 
+Druid [3], proto [4], and other Perl 6-based packages).
+
+In this release of Rakudo Perl, we've made the following major changes
+and improvements:
+
+* Rakudo is now passing XXX spectests, an increase of XXX
+  passing tests since the April 2009 release.  With this release
+  Rakudo is now passing approximately XX% of the available
+  spectest suite.
+
+* Errors and stack traces now report the file name and line number
+  in the original source code.
+
+* Some custom operators can be defined, and it's possible to
+  refer to operators using &infix:<op> syntax.
+
+* We can start to load libraries written in other Parrot languages.
+
+* Regexes now produce a Regex sub.
+
+* More builtin functions and methods have been rewritten in
+  Perl 6 and placed as part of the setting.
+
+* There are additional improvements and features in this release,
+  see docs/ChangeLog for a more complete list.
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible.  If you would like to contribute,
+see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
+mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#18) is scheduled for June 18, 2009.
+A list of the other planned release dates and codenames for 2009 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
+
+References:
+[1]  Parrot, http://parrot.org/
+[2]  November wiki engine, http://github.com/viklund/november/
+[3]  Druid, http://github.com/masak/druid/
+[4]  Proto, http://github.com/masak/proto/

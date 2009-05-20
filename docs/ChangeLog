@@ -1,10 +1,10 @@
 New in 2009-05 release
-+ Basic support for custom operators
-+ You can now refer to operators as &infix:<+>
-+ Cross-language library loading
++ basic support for custom operators
++ operators can now be referenced as &infix:<+>
++ cross-language library loading
 + stack traces now include source file name and line number
-+ Implemented Regex type
-+ Fixed non-ASCII identifiers
++ implemented Regex type
++ fixed non-ASCII identifiers
 + .WALK (parent classes in configurable order)
 + performance improvements
 + .name method on routines
@@ -12,12 +12,13 @@ New in 2009-05 release
 + fixed namespace of eval()ed code
 + implemented parallel dispatch (@objects>>.methods)
 + initial support for «...» quotes
-+ Reading text files decodes them
++ text files now default to utf8 encoding
 + fixes to Match.perl and Match.chunks
 + implemented 'constant name = $value'
 + documented build dependencies
 + grep() accepts general matcher, things like @list.grep(Int) work
 + trigonometric functions (sin, cos, ...) now available via 'use Num :Trig'
++ qx{} quotes now work
 
 New in 2009-04 release (#16, "Bratislava")
 + wrap and unwrap for subroutines

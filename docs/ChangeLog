@@ -19,6 +19,13 @@ New in 2009-05 release
 + grep() accepts general matcher, things like @list.grep(Int) work
 + trigonometric functions (sin, cos, ...) now available via 'use Num :Trig'
 + qx{} quotes now work
++ hyper-operators on hashes now work (%a >>+<< %b)
++ initial implementation of $foo.@bar
++ refactored wrap and unwrap to work with candidate lists; fixes some bugs
++ refactored/improved callsame and callwith, and added nextsame and nextwith
+  (only work for dispatches of the form $foo.@bar and with wrap so far)
++ partial implementation of .^parents and .^methods
++ many other bug fixes
 
 New in 2009-04 release (#16, "Bratislava")
 + wrap and unwrap for subroutines

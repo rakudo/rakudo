@@ -3145,6 +3145,18 @@ sub add_optoken($block, $match) {
         );
         $sub();
         $block.loadinit().push($past);
+        if $category eq 'infix' {
+            # For infix operators, we generate the meta-operators too.
+            $past := PAST::Op.new(
+                :name('!generate_meta_ops'), :pasttype('call'),
+                $name, $equiv
+            );
+            $sub := PAST::Compiler.compile( 
+                PAST::Block.new( $past, :hll($?RAKUDO_HLL), :blocktype('declaration') )
+            );
+            $sub();
+            $block.loadinit().push($past);
+        }
     }
     $name;
 }

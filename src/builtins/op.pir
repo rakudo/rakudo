@@ -526,6 +526,130 @@ attr_error:
     .return (var)
 .end
 
+
+=item !generate_meta_ops
+
+Generates meta-ops for user defined operators.
+
+=cut
+
+.sub '!generate_meta_ops'
+    .param string full_name
+    .param string equiv
+
+    # If op is already generated, defined, we're done.
+    .local string name
+    name = substr full_name, 6
+    $S0 = concat 'infix:R', name
+    $P0 = get_hll_global $S0
+    unless null $P0 goto done
+
+    # Generate all the names we'll need.
+    .local string assignment, reverse, cross, reduce, hyper1, hyper2, hyper3, hyper4
+    .local string hyper1_asc, hyper2_asc, hyper3_asc, hyper4_asc
+    assignment = concat 'infix:', name
+                 concat assignment, '='
+    reverse    = concat 'infix:R', name
+    cross      = concat 'infix:X', name
+    reduce     = concat 'prefix:[', name
+                 concat reduce, ']'
+    hyper1_asc = concat 'infix:<<', name
+                 concat hyper1_asc, '>>'
+    hyper2_asc = concat 'infix:>>', name
+                 concat hyper2_asc, '<<'
+    hyper3_asc = concat 'infix:<<', name
+                 concat hyper3_asc, '<<'
+    hyper4_asc = concat 'infix:>>', name
+                 concat hyper4_asc, '>>'
+    hyper1     = concat unicode:"infix:\u00ab", name
+                 concat hyper1, unicode:"\u00bb"
+    hyper2     = concat unicode:"infix:\u00bb", name
+                 concat hyper2, unicode:"\u00ab"
+    hyper3     = concat unicode:"infix:\u00ab", name
+                 concat hyper3, unicode:"\u00ab"
+    hyper4     = concat unicode:"infix:\u00bb", name
+                 concat hyper4, unicode:"\u00bb"
+
+    # Add all of the tokens.
+    .local pmc optable
+    optable = get_hll_global ['Perl6';'Grammar'], '$optable'
+    optable.'newtok'(assignment, 'equiv'=>'infix::=', 'lvalue'=>1)
+    optable.'newtok'(reduce, 'equiv'=>'infix:=')
+    optable.'newtok'(reverse, 'equiv'=>equiv)
+    optable.'newtok'(cross, 'equiv'=>'infix:X')
+    optable.'newtok'(hyper1, 'equiv'=>equiv)
+    optable.'newtok'(hyper1_asc, 'equiv'=>equiv, 'subname'=>hyper1)
+    optable.'newtok'(hyper2, 'equiv'=>equiv)
+    optable.'newtok'(hyper2_asc, 'equiv'=>equiv, 'subname'=>hyper2)
+    optable.'newtok'(hyper3, 'equiv'=>equiv)
+    optable.'newtok'(hyper3_asc, 'equiv'=>equiv, 'subname'=>hyper3)
+    optable.'newtok'(hyper4, 'equiv'=>equiv)
+    optable.'newtok'(hyper4_asc, 'equiv'=>equiv, 'subname'=>hyper4)
+
+    # Now generate the subs.
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_simple', '!ASSIGNMETAOP', name)
+    set_hll_global assignment, $P0
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_reduce', name)
+    set_hll_global reduce, $P0
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_reverse', full_name)
+    set_hll_global reverse, $P0
+    $P0 = '!FAIL'()
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_simple', '!CROSSMETAOP', name, $P0, 0)
+    set_hll_global cross, $P0
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_hyper', '!HYPEROP', name, 0, 0)
+    set_hll_global hyper1, $P0
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_hyper', '!HYPEROP', name, 1, 1)
+    set_hll_global hyper2, $P0
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_hyper', '!HYPEROP', name, 0, 1)
+    set_hll_global hyper3, $P0
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_hyper', '!HYPEROP', name, 1, 0)
+    set_hll_global hyper4, $P0
+  done:
+.end
+.sub '!generate_meta_op_sub'
+    .param string which_helper
+    .param pmc delegate_to
+    .param pmc args :slurpy
+    .lex '$delegate_to', delegate_to
+    .lex '@args', args
+    $P0 = find_name which_helper
+    $P0 = newclosure $P0
+    .return ($P0)
+.end
+.sub '!generate_meta_op_helper_simple' :outer('!generate_meta_op_sub')
+    .param pmc a
+    .param pmc b
+    $P0 = find_lex '$delegate_to'
+    $S0 = $P0
+    $P0 = find_name $S0
+    $P1 = find_lex '@args'
+    .tailcall $P0($P1 :flat, a, b)
+.end
+.sub '!generate_meta_op_helper_reverse' :outer('!generate_meta_op_sub')
+    .param pmc a
+    .param pmc b
+    $P0 = find_lex '$delegate_to'
+    $S0 = $P0
+    $P0 = find_name $S0
+    .tailcall $P0(b, a)
+.end
+.sub '!generate_meta_op_helper_reduce' :outer('!generate_meta_op_sub')
+    .param pmc args :slurpy
+    $P0 = find_lex '$delegate_to'
+    .tailcall '!REDUCEMETAOP'($P0, 0, args :flat)
+.end
+.sub '!generate_meta_op_helper_hyper' :outer('!generate_meta_op_sub')
+    .param pmc a
+    .param pmc b
+    $P0 = find_lex '$delegate_to'
+    $S0 = $P0
+    $P0 = find_name $S0
+    $P1 = find_lex '@args'
+    $I1 = pop $P1
+    $I0 = pop $P1
+    .tailcall $P0($P1 :flat, a, b, $I0, $I1)
+.end
+
 =back
 
 =cut

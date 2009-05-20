@@ -602,7 +602,7 @@ token dottyop {
 token methodop {
     [
     | <name>
-    | <?before '$' | '@' > <variable>
+    | <?before '$' | '@' | '&' > <variable>
     | <?before <[ ' " ]> > <quote>
 #       { $<quote> ~~ /\W/ or .panic("Useless use of quotes") }
     ] <.unsp>?

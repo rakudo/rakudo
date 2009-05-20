@@ -308,6 +308,7 @@ S12-methods/what.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S13-type-casting/methods.t
+S13-overloading/metaoperators.t
 S13-overloading/operators.t
 S14-roles/attributes.t
 S14-roles/basic.t

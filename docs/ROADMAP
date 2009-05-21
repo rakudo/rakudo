@@ -1,170 +1,169 @@
-Updated: 2008-08-16
+Rakudo Roadmap
+--------------
 
-Milestones
-----------
+This document identifies the current major milestones and tasks
+planned for Rakudo development as of May 2009.  The first
+section identifies (in no particular order) large-scale and/or
+significant development tasks that are currently being planned
+or worked on by the development team.  The second section
+then identifies specific Perl 6 features and capabilities,
+and maps each to the large-scale tasks on which the feature
+currently depends.  Overall we hope this gives a feel for
+where current efforts are being placed and what we intend to
+accomplish during the next 4-6 months.
 
-This is a rough list of some of the major components to be added to Rakudo.
-This list also gives a sense of the rough prioritization
-of things -- i.e., getting return and control exceptions to work
-is a higher priority than heredocs or macros.  But it's also
-not intended to be rigid nor strictly sequential -- it's okay
-for people to work on some of the later milestones even if the
-earlier ones aren't complete.
+In general we haven't identified specific timelines or
+priorities for the tasks; one of our goals for early Summer 2009
+will be to develop an expected timeline for each item to make 
+it easier to evaluate our rate of progress.
 
-ON ESTIMATES: All hourly estimates in milestones B-W are rough 
-first-cut estimates IDEAL PROGRAMMER HOURS. Nobody should 
-depend on them for anything other than relative estimates of 
-difficulty.
-
-Where there's a time given and a percentage of task completion,
-the hours represent the estimate to completion.  For example,
-if a task says "3h" and "50% done", we still have 3 hours of
-idealized effort to go, not 1.5.
+Patches to this document are welcome.
 
 
-A PGE needs to be refactored and updated to handle protoregexes and
-  longest token matching so we can use the STD grammar
-  Sub-milestones - each is 1 calendar month:
-  Not expected to fully block other milestones, except as indicated below
+Large-scale tasks
+-----------------
 
-    M1. PGE internal refactors and initial protoregex implementation (D1),
-        selected protoregex constructs added to Rakudo's grammar (D2),
-        interface design for pre-compilation and external libraries (D3, D4).
+A.  PGE refactors:  The Parrot Grammar Engine (PGE) will be 
+undergoing some significant refactoring in summer 2009; these 
+refactors will provide the ability to implement protoregexes 
+and longest token matching.  The goal is to get something that 
+is much closer to what is being used to develop STD.pm .  
+Internally these refactors will likely involve a new operator 
+precedence parser and grafting DFA capabilities to the existing 
+regex engine.  Patrick Michaud is leading this development.
 
-    M2. Completed protoregex implementation (D1),
-        initial implementation of longest token matching in PGE (D1),
-        completed Rakudo grammar migration to protoregexes (D2),
-        beginning of P6-based "Prelude" implementation for Rakudo (D3),
-        initial implementations of external HLL library support (D4).
-	
-    M3. Substantially complete longest token matching in PGE (D1),
-        Rakudo using protoregexes and longest token matching in grammar (D2),
-        full protoregex and LTM support in Rakudo (D3),
-        integrate P6-based Prelude into Rakudo implementation (D3),
-        continued improvement of HLL library support (D4).
-	
-    M4. Completed PGE protoregex and longest token matching implementation (D1),
-        update Rakudo bottom-up parser to align with STD.pm (D2),
-        Rakudo and/or compiler tools able to parse STD.pm directly (D2),
-        substantial implementation of a P6-based Prelude for Rakudo (D3),
-        substantially complete external HLL libraries support (D4).
-        updated documentation and tests for all work performed, final report.
+B.  Parrot calling conventions:  As of May 2009, Parrot's
+calling conventions do not facilitate all of the dispatch
+mechanisms needed for Perl 6; in particular, Parrot does
+not cleanly support "named-only" parameters, binding named
+arguments to positional parameters, or collecting arguments
+into "captures".  These features are currently scheduled
+to be implemented by the July 2009 Parrot release.
 
-B signature handling
-    pm estimate: 6h
-    (jonathan implementing, 40% done)
+C.  Rakudo method and sub dispatch:  As the Parrot calling
+conventions evolve, Rakudo's existing dispatch (largely
+written in a mixture of PIR and C) can be replaced by
+much more efficient dispatch algorithms.  This may also
+involve significant refactors of the base Object class
+and Parrot's P6object implementation.  Jonathan Worthington
+is heading up this effort.
 
-C list assignment [depends on A, B]
-    waiting on some spec changes/updates
-    pm Estimate: 2h  
+D.  Parrot context and return continuation handling:  Ideally 
+we'd like Parrot to directly support "leave" semantics -- i.e.,
+forcing a sub (other than the current one) to return
+and rolling up the dynamic stack as appropriate.
+In addition, we'd like to be able to tag subs with
+"exit handlers" -- code to be automatically invoked
+on subroutine exit.  Parrot has some (limited?) support
+for these features; we need to investigate what exists
+now and determine what needs to be added.
 
-D control exceptions (50% done)
-    Requires adding exception types to PCT
-        pm estimate: 3h     (25% done)
-    Requires adding exception closures (INIT, BEGIN, LAST, NEXT, etc.)
-        pm estimate: 2h
-    Writing exception throwers in Rakudo
-        pm estimate: 0.5h   (80% done)
+In particular, it's conjectured that "leave" and roll-up
+capabilities should I<not> be implemented using exceptions
+and exception handlers.
 
-E regex, token, rule, grammar (60% done)
-    We have an initial implementation
-    Implementaiton needs tweaking
-    Depends on grammar improvements
-    Some advanced bits depend on PGE improvements
+E.  Lexical symbol management:  Much of Rakudo and Parrot is
+designed on a Perl 5 "package-based" model; by contrast,
+most of Perl 6 is based purely on lexical scoping rules.
+Rakudo will need some significant refactoring to change its
+various package-based views of name lookups into equivalent 
+lexically-scoped ones.
 
-    grammar improvements
-        2h
-    advanced bits [depends on pge improvements in A]
-        2h
+F.  Laziness:  Many operations in Rakudo are currently "eager";
+these need to be into lazy equivalents.  The first step of
+this will be a substantial refactor of List, Array, and
+Positional roles to avoid inheriting from Parrot's
+ResizablePMCArray; afterwards we'll update these roles
+to incorporate laziness.  This task will also require
+exploration of the Iterator role and specification.
 
-F Allow Perl 6 precompiled sources - write libraries in Perl 6 (85% done)
-    Depends on 'is export' (80% done)
-    Depends on 'is also'   (100% done for what we need here)
-    Depends on inline PIR  (30% done)
-    Depends on build system refactor
-    pm estimate 3h
-    
-G modules (overall 70% done)
-    subtask: better handling of namespaces  (60% done)
-    depends on a refactoring of namespaces in p6object (done)
-    pm estimate: 4h
+G.  Native types and compact structs:  Currently we don't
+have a detailed plan for handling "native types" (int, str,
+num) or compact arrays and structs in Parrot, nor do we
+have a definite timeline for creating a plan.  Essentially
+we're waiting for someone to step up to work on this task.
+It will require some knowledge of PIR, C, and Parrot internals.
 
-H lazy lists
-    we've decided to wait on this because lazy list specs are in flux
-    jw estimate: 8h
+H.  Perl 6 specification:  Some items to be completed
+really want/need spec clarification before a great detail
+of progress can be made.  Sometimes this is a catch-22,
+in that the spec sometimes wants implementations to try
+a variety of designs before settling on a specific design.
+Either way, there's still a fair bit of spec work to be done, 
+especially for I/O, modules, language interoperability, and
+STD.pm itself.
 
-I gather and take (done in Rakudo)
-    depends on resumable exceptions from pir 
-      (mostly done -- some improvements needed)
+I.  Parrot and other installation issues:  As of this writing,
+Rakudo still has minor issues working against an installed
+Parrot; we also need to work out library storage and
+resolution issues at each of the Parrot, Rakudo, and Perl 6
+levels.
 
-J I/O
-    * Depends on an IO spec
-    * Depends on lazy lists 
-    * Depends on IO updates in Parrot
-    Small matter of writing wrapper methods to implement spec.
+Z.  Explicitly postponed items:  Some items we explicitly
+postpone until later in Rakudo development.  There are generally
+a variety of reasons we might do this:
+  (Z1) it's not an immediately pressing issue and there's
+       little penalty or some benefit from delaying work on it
+  (Z2) the spec is vague or non-existent on the topic
+  (Z3) we expect the spec to change or evolve substantially
+  (Z4) we expect Parrot or the compiler environment to change substantially
+  (Z5) the item appears to be Really Hard "right now"
+  (Z6) other blockers
 
-K junction auto-threading (10% complete)
-    writing dispatch operators  
-        jw estimate: 8h
-    auto-threading
-        jw estimate: 24h
-    a simple version of autothreading junction operators exists
-    the remainder will hopefully be a grant for jw
 
-L hyper, reduction and cross meta-operators
-    depends on parser improvements in A
-    pm estimate: 6h for hyper
-                 1h for reduction
-                 4h for cross
+Specific Perl 6 features and development tasks
+----------------------------------------------
 
-M slices 
-    * tests need writing
-    pm estimate: 
-                    5h study S09
-                    12h implement  (VERY rough)
+  * protoregexes (A)
+  * longest token matching semantics in regexes (A)
+  * operator adverbs (A)
+  * quoting adverbs (A)
+  * regex modifiers (A)
+  * domain-specific languages (A)
+  * item assignment (A)
+  * embedded closures in regexes (A)
+  * declare contextual and lexical vars in regexes (A)
+  * lexical variable lookups in regexes (A)
+  * cleanly add circumfix:, postcircumfix:, other custom tokens (A)
+  * true hyper/cross/reverse/other metaoperators (A)
 
-N slice context
-    pm estimate: 
-                    32h implement  (VERY rough)
-    
-O captures
-    Pm needs to send mail to p6l. - current tests don't seem to match 
-       Pm's understanding of the spec
-    pm estimate:
-                3h study spec
-                3h implement            
+  * binding named arguments to positional parameters (B)
+  * nested signatures (B)
+  * captures in signatures and return values (B)
+  * unpacking arguments (B,C)
+  * clean up subtypes in multi-dispatch (?)
+  * better gather/take handling of arguments (H)
 
-P multi-argument return - return into named arguments [depends on captures]
-    Waiting for updates to Parrot calling conventions
-    PCT side
-       pm estimate: 8h     
-    Rakudo side
-        pm estimate: 4h
+  * better return value checking (D)
+  * ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (D)
+  * return multiple values from a sub (B,D)
+  * temp variables (D)
 
-Q multi sub & multi-method dispatch (50% done)
-    JW implementing
-    Depends on parrot implementation of MMD (implemented)
-    Depends on P6 Object update [Depends on G]
-    JW estimate: 16h
+  * maintain candidate lists in lexicals (C, E)
+  * lexical classes and roles (E)
+  * importing module symbols into the current lexical scope (E)
+  * develop installation standards (E, F, I)
+  * Pseudo-packages MY, CONTEXT, OUTER, $?LINE, etc.  (D, E)
 
-R currying
-    PM estimate: 8h
+  * lazy lists (F)
+  * array/hash element vivification (F)
+  * array/hash vivification (F)
+  * overloadable postcircumfix:<[ ]> and postcircumfix:<{ }> (F)
+  * lazy gather/take (F)
+  * feed operators (F)
+  * slice context (B, F, H, C?)
+  * proper trait definition and usage (H)
+ 
+  * Buf (G)
+  * Native typed scalars (G)
+  * Packed arrays (G)
+  * Compact structures (G)
+  * Rat, BigNum, numification improvements (G, H)
+  * Other S02 data types -- KeySet, KeyBag (G, H)
+  * Sized types -- int32, int8  (G)
+  * Specialized Unicode bits -- .codes, .graphs, .bytes (G, H)
 
-S operator overloading
-    Depends on the parser [Depends on A]
-    will likely implement a stub version in meantime
-    PM Estimate: (2h stub, 4h for complete version when A complete)
-
-T heredocs including pod heredocs
-    Depends on the parser [Depends on A]
-    PM Estimate: 2h
-
-U macros
-    Depends on the parser [Depends on A]
-    PM Estimate: 6h
-
-V module versioning
-    (estimate for start: christmas)
-     
-W other S09 features (typed arrays, sized types)
-    (estimate for start: christmas)
+  * heredocs (H, Z3)
+  * pod heredocs (H, Z3)
+  * macros (H, Z)
+  * module versioning and download (I, Z)

@@ -1,12 +1,12 @@
 New in 2009-05 release
++ updated docs/ROADMAP
 + basic support for custom operators
 + operators can now be referenced as &infix:<+>
++ meta operator support for custom operators
 + cross-language library loading
 + stack traces now include source file name and line number
 + implemented Regex type
-+ fixed non-ASCII identifiers
 + .WALK (parent classes in configurable order)
-+ performance improvements
 + .name method on routines
 + refactored enums, thereby fixing many enum related bugs
 + fixed namespace of eval()ed code
@@ -26,7 +26,7 @@ New in 2009-05 release
   (only work for dispatches of the form $foo.@bar and with wrap so far)
 + partial implementation of .^parents and .^methods
 + can initialize attributes in terms of others
-+ many other bug fixes
++ many other bug fixes and performance enhancements
 
 New in 2009-04 release (#16, "Bratislava")
 + wrap and unwrap for subroutines

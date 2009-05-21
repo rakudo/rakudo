@@ -1,6 +1,8 @@
 Rakudo Roadmap
 --------------
 
+Last updated: 2009-05-21
+
 This document identifies the current major milestones and tasks
 planned for Rakudo development as of May 2009.  The first
 section identifies (in no particular order) large-scale and/or
@@ -105,7 +107,7 @@ a variety of reasons we might do this:
   (Z1) it's not an immediately pressing issue and there's
        little penalty or some benefit from delaying work on it
   (Z2) the spec is vague or non-existent on the topic
-  (Z3) we expect the spec to change or evolve substantially
+  (Z3) we expect the spec or STD.pm to change or evolve substantially
   (Z4) we expect Parrot or the compiler environment to change substantially
   (Z5) the item appears to be Really Hard "right now"
   (Z6) other blockers

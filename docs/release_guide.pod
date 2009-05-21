@@ -148,7 +148,7 @@ Tag the release by its release month ("MMMM-YY") and its code name.
 
   $ git tag -a -m"tag release #nn" MMMM-YY    # e.g., 2009-04
   $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
-  $ git push
+  $ git push --tags
 
 =item 12.
 

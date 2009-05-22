@@ -259,11 +259,15 @@ the object's type and address.
 
 .namespace ['Perl6Object']
 .sub 'bless' :method
+    .param pmc candidate
     .param pmc posargs         :slurpy
     .param pmc attrinit        :slurpy :named
 
-    .local pmc candidate
-    candidate = self.'CREATE'()
+    $I0 = isa candidate, 'Whatever'
+    unless $I0 goto have_candidate
+    candidate = self.'CREATE'('P6opaque')
+  have_candidate:
+
     .tailcall self.'BUILDALL'(candidate, attrinit, posargs)
 .end
 
@@ -384,14 +388,46 @@ the object's type and address.
 
 Create a candidate object of the type given by the invocant.
 
+XXX This had probably best really just tailcall .^CREATE; move this stuff later.
+
 =cut
 
 .sub 'CREATE' :method
-    .local pmc p6meta
+    .param string repr    :optional
+    .param int have_repr  :opt_flag
+
+    # Default to P6opaque.
+    if have_repr goto repr_done
+    repr = 'P6opaque'
+  repr_done:
+
+    # If we already have an "example" of how this representation looks for the
+    # current class, just clone it.
+    .local pmc how
+    .local string repr_lookup
+    how = self.'HOW'()
+    repr_lookup = concat 'repr_', repr
+    $P0 = getprop repr_lookup, how
+    if null $P0 goto no_example
+    $P0 = clone $P0
+    .return ($P0)
+
+  no_example:
+    if repr != 'P6opaque' goto unknown_repr
+
+    # P6opaque. Create example.
+    .local pmc p6meta, parrot_class, example
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    $P0 = p6meta.'get_parrotclass'(self)
-    $P1 = new $P0
-    .return ($P1)
+    parrot_class = p6meta.'get_parrotclass'(self)
+    example = new parrot_class
+    
+    # Stash the example, clone it and we're done.
+    setprop how, repr_lookup, example
+    $P0 = clone example
+    .return ($P0)
+
+  unknown_repr:
+    'die'('Unknown representation: ', repr)
 .end
 
 
@@ -404,8 +440,9 @@ Create a new object having the same class as the invocant.
 .sub 'new' :method
     .param pmc posargs         :slurpy
     .param pmc attrinit        :slurpy :named
-
-    .tailcall self.'bless'(posargs :flat, attrinit :flat :named)
+    .local pmc candidate
+    candidate = self.'CREATE'('P6opaque')
+    .tailcall self.'bless'(candidate, posargs :flat, attrinit :flat :named)
 .end
 
 =item 'PARROT'

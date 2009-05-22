@@ -77,6 +77,7 @@ S02-literals/quoting-unicode.t
 S02-literals/radix.t
 S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
+S02-literals/subscripts.t
 S02-literals/types.t
 S02-literals/underscores.t
 S02-magicals/config.t
@@ -134,6 +135,8 @@ S03-operators/scalar-assign.t
 S03-operators/short-circuit.t
 S03-operators/smartmatch.t
 S03-operators/spaceship-and-containers.t
+S03-operators/spaceship.t
+S03-operators/subscript-vs-lt.t
 S03-operators/ternary.t
 S03-operators/true.t
 S03-operators/value_equivalence.t

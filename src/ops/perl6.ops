@@ -23,6 +23,7 @@ an instance of class $2, where $2 is a subclass of the class of $1.
 */
 inline op rebless_subclass(in PMC, in PMC) :base_core {
     PMC *value;
+    INTVAL p6opaque = pmc_type(interp, string_from_literal(interp, "P6opaque"));
 
     /* First verify that the object's class is a superclass of the one we're
      * to re-bless it into. While we're at it, count the number of attributes
@@ -96,8 +97,11 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         for (i = 0; i < new_attribs; i++)
             VTABLE_set_pmc_keyed_int(interp, PARROT_OBJECT(value)->attrib_store,
                 i, pmc_new(interp, enum_class_Undef));
+
+        /* And make sure the new object is of the right type. */
+        new_ins->vtable = interp->vtables[p6opaque];
     }
-    else if (value->vtable->base_type != enum_class_Object
+    else if ((value->vtable->base_type != enum_class_Object && value->vtable->base_type != p6opaque)
             || current_class->vtable->base_type != enum_class_Class) {
         /* If we're here, we found a really odd state - the class claims to be
          * a standard Parrot one but the object it supposedly created is not.
@@ -289,6 +293,31 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
         $1 = $2 = $3 = PMCNULL;
 
     goto NEXT();
+}
+
+
+/*
+
+=item transform_to_p6opaque(inout PMC)
+
+Takes PMC $1 and swaps out its Object vtable for a P6opaque vtable. (Expect
+this op to be temporary, but for now it lets us get things in the right
+kinda direction.)
+
+=cut
+
+*/
+inline op transform_to_p6opaque(inout PMC) :base_core {
+    /* Sanity check. */
+    if ($1->vtable->base_type == enum_class_Object) {
+        INTVAL type_id = pmc_type(interp, string_from_literal(interp, "P6opaque"));
+        $1->vtable = interp->vtables[type_id];
+    }
+    else {
+        opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL, 
+            EXCEPTION_INVALID_OPERATION, "Can only transform an Object to p6opaque");
+        goto ADDRESS(handler);
+    }
 }
 
 /*

@@ -450,6 +450,10 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     if $S0 != 'Perl6Object' goto classinit_loop
   classinit_loop_end:
     
+    # Turn the example from a Parrot Object into a p6opaque; we'll ideally be
+    # able to create it as one in the future.
+    transform_to_p6opaque example
+
     # Stash the example, clone it and we're done.
     setprop how, repr_lookup, example
     $P0 = clone example

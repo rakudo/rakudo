@@ -1,0 +1,60 @@
+/*
+$Id$
+Copyright (C) 2009, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/P6opaque.pmc - implements the P6opaque representation
+
+=head1 DESCRIPTION
+
+This subclasses Parrot's Object PMC to give us something P6opaque-ish. It will
+end up containing various object behaviors that are specific to Perl 6.
+
+=head2 Methods
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+#include "parrot/oo_private.h"
+
+pmclass P6opaque extends Object need_ext dynpmc group perl6_group {
+    
+/*
+
+=item C<PMC * clone()>
+
+Creates a clone of the object. Largely delegates to Parrot's clone, but then
+also associates the meta-data of the original with the new, so that typed
+attributes don't lose their typedness. Also make sure the new object has the
+correct vtable (should maybe fix Parrot's Object to honor sublcassing a bit
+more.)
+
+=cut
+
+*/
+    VTABLE PMC * clone() {
+        Parrot_Object_attributes * const my_guts = PARROT_OBJECT(SELF);
+        INTVAL const num_attrs = VTABLE_elements(INTERP, my_guts->attrib_store);
+        INTVAL i;
+
+        /* First, delegate to our SUPER. */
+        PMC *clone = SUPER();
+        Parrot_Object_attributes * clone_guts = PARROT_OBJECT(clone);
+
+        /* Set vtable. */
+        clone->vtable = SELF->vtable;
+
+        /* Copy over metadata. */
+        for (i = 0; i < num_attrs; i++) {
+            PMC * const original = VTABLE_get_pmc_keyed_int(INTERP, my_guts->attrib_store, i);
+            PMC * const new      = VTABLE_get_pmc_keyed_int(INTERP, clone_guts->attrib_store, i);
+            if (original->pmc_ext && new->pmc_ext)
+                PMC_metadata(new) = PMC_metadata(original);
+        }
+
+        return clone;
+    }
+}

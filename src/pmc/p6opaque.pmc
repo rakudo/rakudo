@@ -49,10 +49,10 @@ more.)
 
         /* Copy over metadata. */
         for (i = 0; i < num_attrs; i++) {
-            PMC * const original = VTABLE_get_pmc_keyed_int(INTERP, my_guts->attrib_store, i);
-            PMC * const new      = VTABLE_get_pmc_keyed_int(INTERP, clone_guts->attrib_store, i);
-            if (original->pmc_ext && new->pmc_ext)
-                PMC_metadata(new) = PMC_metadata(original);
+            PMC * const original_data = VTABLE_get_pmc_keyed_int(INTERP, my_guts->attrib_store, i);
+            PMC * const new_data      = VTABLE_get_pmc_keyed_int(INTERP, clone_guts->attrib_store, i);
+            if (original_data->pmc_ext && new_data->pmc_ext)
+                PMC_metadata(new_data) = PMC_metadata(original_data);
         }
 
         return clone;

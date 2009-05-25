@@ -312,6 +312,7 @@ inline op transform_to_p6opaque(inout PMC) :base_core {
     if ($1->vtable->base_type == enum_class_Object) {
         INTVAL type_id = pmc_type(interp, string_from_literal(interp, "P6opaque"));
         $1->vtable = interp->vtables[type_id];
+        goto NEXT();
     }
     else {
         opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL, 

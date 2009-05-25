@@ -283,43 +283,11 @@ the object's type and address.
     it = iter attributes
   attrinit_loop:
     unless it goto attrinit_done
-    .local string attrname
-    .local pmc attrhash, itypeclass, type
+    .local string attrname, keyname
+    .local pmc attr, attrhash
     attrname = shift it
+    attr = getattribute candidate, parrotclass, attrname
     attrhash = attributes[attrname]
-    itypeclass = attrhash['itype']
-    type = attrhash['type']
-    $S0 = substr attrname, 0, 1
-    unless null itypeclass goto attrinit_itype
-    if $S0 == '@' goto attrinit_array
-    if $S0 == '%' goto attrinit_hash
-    $P0 = get_root_namespace ['parrot';'Perl6Scalar']
-    itypeclass = get_class $P0
-    goto attrinit_itype
-  attrinit_array:
-    itypeclass = get_class ['Perl6Array']
-    goto attrinit_itype
-  attrinit_hash:
-    itypeclass = get_class ['Perl6Hash']
-  attrinit_itype:
-    .local pmc attr
-    attr = new itypeclass
-    setattribute candidate, parrotclass, attrname, attr
-    if null type goto type_done
-    if $S0 == '@' goto pos_type
-    if $S0 == '%' goto ass_type
-    setprop attr, 'type', type
-    goto type_done
-  ass_type:
-    $P0 = get_hll_global 'Associative'
-    goto apply_type
-  pos_type:
-    $P0 = get_hll_global 'Positional'
-  apply_type:
-    $P0 = $P0.'!select'(type)
-    'infix:does'(attr, $P0)
-  type_done:
-    .local string keyname
     $I0 = index attrname, '!'
     if $I0 < 0 goto attrinit_loop
     inc $I0
@@ -420,6 +388,67 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     parrot_class = p6meta.'get_parrotclass'(self)
     example = new parrot_class
+
+    # Set up attribute containers along with their types and any other
+    # traits. (We could do this while constructing the class too, but
+    # that would have the unfortunate side-effect of increased startup
+    # cost, which we're currently wanting to avoid. Let's see how far
+    # we can go while doing the init here.)
+    .local pmc parents, cur_class, attributes, class_it, it
+    parents = inspect parrot_class, 'all_parents'
+    class_it = iter parents
+  classinit_loop:
+    unless class_it goto classinit_loop_end
+    cur_class = shift class_it
+    attributes = inspect cur_class, 'attributes'
+    it = iter attributes
+  attrinit_loop:
+    unless it goto attrinit_done
+    .local string attrname
+    .local pmc attrhash, itypeclass, type
+    attrname = shift it
+    $I0 = index attrname, '!'
+    if $I0 < 0 goto attrinit_loop
+    attrhash = attributes[attrname]
+    itypeclass = attrhash['itype']
+    type = attrhash['type']
+    $S0 = substr attrname, 0, 1
+    unless null itypeclass goto attrinit_itype
+    if $S0 == '@' goto attrinit_array
+    if $S0 == '%' goto attrinit_hash
+    $P0 = get_root_namespace ['parrot';'Perl6Scalar']
+    itypeclass = get_class $P0
+    goto attrinit_itype
+  attrinit_array:
+    itypeclass = get_class ['Perl6Array']
+    goto attrinit_itype
+  attrinit_hash:
+    itypeclass = get_class ['Perl6Hash']
+  attrinit_itype:
+    .local pmc attr
+    attr = new itypeclass
+    setattribute example, cur_class, attrname, attr
+    if null type goto type_done
+    if $S0 == '@' goto pos_type
+    if $S0 == '%' goto ass_type
+    setprop attr, 'type', type
+    goto type_done
+  ass_type:
+    $P0 = get_hll_global 'Associative'
+    goto apply_type
+  pos_type:
+    $P0 = get_hll_global 'Positional'
+  apply_type:
+    $P0 = $P0.'!select'(type)
+    'infix:does'(attr, $P0)
+  type_done:
+    goto attrinit_loop
+  attrinit_done:
+    # Only go to next class if we didn't already reach the top of the Perl 6
+    # hierarchy.
+    $S0 = cur_class
+    if $S0 != 'Perl6Object' goto classinit_loop
+  classinit_loop_end:
     
     # Stash the example, clone it and we're done.
     setprop how, repr_lookup, example

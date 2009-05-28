@@ -15,7 +15,7 @@ class IO is also {
         return $!ins;
     }
 
-    multi method lines($limit = *) is export {
+    multi method lines($limit = *) {
         my @result;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         while !$.eof && $l-- > 0 {

@@ -24,7 +24,7 @@ class IO is also {
         return @result;
     }
 
-    multi method print(*@items) is export {
+    multi method print(*@items) {
         try {
             for @items -> $item {
                 $!PIO.print($item);
@@ -37,9 +37,8 @@ class IO is also {
         return self.print(sprintf($format, |@args));
     }
 
-    multi method say(*@items) is export {
-        @items.push("\n");
-        return self.print(|@items);
+    multi method say(*@items) {
+        self.print(@items, "\n");
     }
 
     multi method slurp() is export {

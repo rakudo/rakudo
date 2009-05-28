@@ -41,7 +41,7 @@ class IO is also {
         self.print(@items, "\n");
     }
 
-    multi method slurp() is export {
+    multi method slurp() {
         return $!PIO.readall();
     }
 

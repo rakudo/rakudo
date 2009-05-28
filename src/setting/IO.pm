@@ -24,7 +24,7 @@ class IO is also {
         my @result;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         while !$.eof && $l-- > 0 {
-            push @result, $!PIO.readline().chomp()
+            push @result, $.get;
         }
         @result;
     }

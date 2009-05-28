@@ -28,25 +28,14 @@ foreach my $file (@files) {
 }
 
 print <<"END_SETTING";
-# Need to use all built-in classes, to import their exports.
+# Need to import all built-in classes and set \%*INC for each.
 sub SETTING_INIT() {
 END_SETTING
 s/\\/\//g for @classes;
 print join('', map {
         my $colon_form = $_;
         $colon_form =~ s/[\/\\]/::/g;
-        "  Perl6::Compiler.import('$colon_form', ':DEFAULT', ':MANDATORY');\n"
+        "  \%*INC<$_> = 1;\n  Perl6::Compiler.import('$colon_form', ':DEFAULT', ':MANDATORY');\n"
     } @classes);
 print "}\n";
 
-# Why yes, "OMFG" is a correct response to this hack. We need to make sure
-# that we set up %*INC properly for the pre-compiled case, and can't use
-# BEGIN blocks to preserve those changes for now.
-#print <<"END_SETTING";
-#Q:PIR {
-#    .return (1)
-#.end
-#.sub '' :load :init
-#};
-#END_SETTING
-#print join('', map { "\%*INC<$_> = 1;\n" } @classes);

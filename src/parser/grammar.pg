@@ -918,25 +918,25 @@ token quote {
     | <.before '<' >   <quote_expression: :w :q>
     | <.before '/'>    <quote_expression: :regex>
     | [m|rx] <.nofun> <.ws> 
-        [ [':P5'|':Perl5'] <.ws> <quote_expression: :regex :P5>
+        [ [':P5'|':Perl5'] <.nofun> <.ws> <quote_expression: :regex :P5>
         |              <quote_expression: :regex>
         ]
-    | qq <.nofun> [ <.ws> ':' ]?
-        [ w <.ws>         <quote_expression: :qq :w>
-        | $<x>=[x?] <.ws> <quote_expression: :qq>
+    | qq [ <.ws> ':' ]?
+        [ w         <.nofun> <.ws> <quote_expression: :qq :w>
+        | $<x>=[x?] <.nofun> <.ws> <quote_expression: :qq>
         ]
-    | q <.nofun> [ <.ws> ':' ]?
-        [ q <.ws>         <quote_expression: :qq>
-        | w <.ws>         <quote_expression: :q :w>
-        | 'PIR' <.ws>     <quote_expression: :PIR>
-        | $<x>=[x?] <.ws> <quote_expression: :q>
+    | q [ <.ws> ':' ]?
+        [ q         <.nofun> <.ws> <quote_expression: :qq>
+        | w         <.nofun> <.ws> <quote_expression: :q :w>
+        | PIR       <.nofun> <.ws> <quote_expression: :PIR>
+        | $<x>=[x?] <.nofun> <.ws> <quote_expression: :q>
         ]
-    | Q <.nofun> [ <.ws> ':' ]?
-        [ 'PIR' <.ws>     <quote_expression: :PIR>
-        | 'q'   <.ws>     <quote_expression: :q>
-        | 'qq'  <.ws>     <quote_expression: :qq>
-        | 'b'   <.ws>     <quote_expression: :b>
-        | $<x>=[x?] <.ws> <quote_expression: >
+    | Q [ <.ws> ':' ]?
+        [ PIR       <.nofun> <.ws> <quote_expression: :PIR>
+        | q         <.nofun> <.ws> <quote_expression: :q>
+        | qq        <.nofun> <.ws> <quote_expression: :qq>
+        | b         <.nofun> <.ws> <quote_expression: :b>
+        | $<x>=[x?] <.nofun> <.ws> <quote_expression: >
         ]
     | s <.nofun> <.ws> <quote_expression: :q> 
         <.panic: 's/// not implemented, try .subst as workaround'>

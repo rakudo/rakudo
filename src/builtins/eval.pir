@@ -110,7 +110,7 @@ itself can be found in src/builtins/control.pir.
     goto inc_loop
   inc_end:
     $S0 = concat "Can't find ", basename
-    concat $S0, ' in @INC'
+    concat $S0, ' in @*INC'
     'die'($S0)
     .return (0)
 

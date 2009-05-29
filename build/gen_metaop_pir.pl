@@ -112,9 +112,8 @@ while (@ops) {
     my $is_chaining = $op_type eq 'comp' ? 1 : 0;
     push @code, qq(
         .sub 'infix:X${opname}'
-            .param pmc a
-            .param pmc b
-            .tailcall '!CROSSMETAOP'('$opname', $identity, $is_chaining, a, b)
+            .param pmc args :slurpy
+            .tailcall '!CROSSMETAOP'('$opname', $identity, $is_chaining, args :flat)
         .end\n);
 
     # Non-dwimming hyper ops.

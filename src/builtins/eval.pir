@@ -39,7 +39,7 @@ itself can be found in src/builtins/control.pir.
     .local pmc compiler
     compiler = compreg lang
     # XXX FIXME:  We should allow the compiler to choose default encoding/transcode
-    .tailcall compiler.'evalfiles'(filename, 'encoding'=>'utf8', 'transcode'=>'ascii')
+    .tailcall compiler.'evalfiles'(filename, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
 
   lang_parrot:
     ##  load_bytecode currently doesn't accept non-ascii filenames (TT #65)

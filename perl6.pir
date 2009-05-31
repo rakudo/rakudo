@@ -354,7 +354,7 @@ to the Perl 6 compiler.
   not_harness:
 
     $P0 = compreg 'perl6'
-    $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii')
+    $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
 
     .include 'iterator.pasm'
     .local pmc iter

@@ -153,15 +153,13 @@ itself can be found in src/builtins/control.pir.
     $P0 = ver['lang']
     if null $P0 goto no_hll
     lang = $P0
-    .local pmc compiler, request, library, imports, callerns
+    .local pmc compiler, library, imports, callerns
     $P0 = getinterp
     callerns = $P0['namespace';1]
     'load-language'(lang)
     compiler = compreg lang
-    request = root_new ['parrot';'Hash']
     $P0 = compiler_obj.'parse_name'(module)
-    request['name'] = $P0
-    library = compiler.'fetch-library'(request)
+    library = compiler.'load_library'($P0)
     imports = library['symbols']
     imports = imports['DEFAULT']
     .local pmc ns_iter, item

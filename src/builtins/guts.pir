@@ -495,7 +495,7 @@ and putting it in the namespace if it doesn't already exist.
     transform_to_p6opaque role_obj
     set_root_global ns, short_name, role_obj
     $P0 = box short_name
-    setprop role_obj, "$!shortname", $P0
+    setattribute role_obj, "$!shortname", $P0
   have_role_obj:
 
     # Add this variant.
@@ -1318,7 +1318,7 @@ Internal helper method to create a role with a single parameterless variant.
     transform_to_p6opaque role
 
     $P0 = box name
-    setprop role, '$!shortname', $P0
+    setattribute role, '$!shortname', $P0
     role.'!add_variant'(helper)
 
     # Store it in the namespace.

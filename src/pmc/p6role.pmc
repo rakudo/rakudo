@@ -37,6 +37,8 @@ pmclass P6role extends Role need_ext dynpmc group perl6_group {
             return SUPER(name);
         if (Parrot_str_equal(interp, name, CONST_STRING(interp, "WHAT")))
             return SUPER(name);
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "Scalar")))
+            return SUPER(name);
         first_char = Parrot_str_substr(interp, name, 0, 1, NULL, 0);
         if (Parrot_str_equal(interp, first_char, CONST_STRING(interp, "!")))
             return SUPER(name);

@@ -23,7 +23,7 @@ short name for a particular set of parameters.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, roleproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    roleproto = p6meta.'new_class'('Perl6Role', 'parent'=>'Any', 'name'=>'Role', 'attr'=>'$!selector $!created')
+    roleproto = p6meta.'new_class'('Perl6Role', 'parent'=>'Object', 'name'=>'Role', 'attr'=>'$!selector $!created $!shortname')
     p6meta.'register'('P6role', 'proto'=>'roleproto')
 .end
 
@@ -212,7 +212,8 @@ just here so postcircumfix:[ ] doesn't explode).
 =cut
 
 .sub 'perl' :method
-    $P0 = getprop '$!shortname', self
+    $P0 = getattribute self, '$!shortname'
+    $S0 = $P0
     .return ($S0)
 .end
 
@@ -241,7 +242,7 @@ just here so postcircumfix:[ ] doesn't explode).
 =cut
 
 .sub 'Str' :method :vtable('get_string')
-    $P0 = getprop '$!shortname', self
+    $P0 = getattribute self, '$!shortname'
     $S0 = $P0
     concat $S0, '()'
     .return ($S0)
@@ -255,7 +256,7 @@ just here so postcircumfix:[ ] doesn't explode).
     .param pmc named_args :slurpy :named
     $I0 = isa role, 'P6role'
     if $I0 goto already_selected
-    role = role.'!select'(pos_args :flat, named_args :flat :named)
+    role = role.'!select'()
   already_selected:
     $P0 = interpinfo .INTERPINFO_CURRENT_SUB
     $P0 = getprop 'name', $P0

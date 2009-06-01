@@ -84,7 +84,7 @@ src/builtins/op.pir - Perl 6 builtin operators
 
 .sub 'postfix:++' :multi(Integer)
     .param pmc a
-    $P0 = '!DEREF'(a)
+    $P0 = deref_objectref a
     $P0 = clone $P0
     .const 'Sub' $P1 = '!prefix:++Int'
     $P1(a)

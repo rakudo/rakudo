@@ -35,7 +35,7 @@ like this.
 
     # Make a clone.
     .local pmc result
-    self = '!DEREF'(self)
+    self = deref_objectref self
     result = clone self
 
     # Set any new attributes.

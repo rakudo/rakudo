@@ -11,6 +11,10 @@ VERSION = PARROT_VERSION;
 #  include <unicode/uchar.h>
 #endif
 
+/* We cache a couple of type IDs for an op that we hit on every method call. */
+static INTVAL p6s_id = 0;
+static INTVAL or_id = 0;
+
 /*
 
 =item rebless_subclass(in PMC, in PMC)
@@ -333,8 +337,10 @@ to the real underlying value.
 
 */
 inline op deref_objectref(out PMC, in PMC) :base_core {
-    INTVAL p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
-    INTVAL or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
+    if (!p6s_id) {
+        p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
+        or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
+    }
     $1 = $2;
     while ($1->vtable->base_type == p6s_id || $1->vtable->base_type == or_id)
         $1 = VTABLE_get_pmc(interp, $1);

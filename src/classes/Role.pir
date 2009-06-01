@@ -131,7 +131,7 @@ Checks if the given topic does the role.
 
     # If the topic is the same as self, then we're done.
     $I0 = 1
-    topic = '!DEREF'(topic)
+    topic = deref_objectref topic
     eq_addr self, topic, done
     $I0 = 0
 

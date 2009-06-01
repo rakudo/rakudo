@@ -16,12 +16,6 @@ class Range is also {
         self!from_test($topic) && self!to_test($topic)
     }
 
-    our Range multi method clone() {
-        Range.new(:from($.from), :from_exclusive($.from_exclusive),
-                  :to($.to), :to_exclusive($.to_exclusive),
-                  :by($.by))
-    }
-
     our Range multi method iterator() {
         $.clone
     }

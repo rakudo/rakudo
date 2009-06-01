@@ -8,42 +8,46 @@ class IO is also {
     }
 
     multi method eof() is export {
-        return ?$!PIO.eof();
+        ?$!PIO.eof();
+    }
+
+    multi method get() is export {
+        $!ins++;
+        $!PIO.readline.chomp;
     }
 
     multi method ins() {
-        return $!ins;
+        $!ins;
     }
 
-    multi method lines($limit = *) is export {
+    multi method lines($limit = *) {
         my @result;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         while !$.eof && $l-- > 0 {
-            push @result, $!PIO.readline().chomp()
+            push @result, $.get;
         }
-        return @result;
+        @result;
     }
 
-    multi method print(*@items) is export {
+    multi method print(*@items) {
         try {
             for @items -> $item {
                 $!PIO.print($item);
             }
         }
-        return $! ?? fail($!) !! Bool::True;
+        $! ?? fail($!) !! Bool::True;
     }
 
     multi method printf($format, *@args) {
-        return self.print(sprintf($format, |@args));
+        self.print(sprintf($format, |@args));
     }
 
-    multi method say(*@items) is export {
-        @items.push("\n");
-        return self.print(|@items);
+    multi method say(*@items) {
+        self.print(@items, "\n");
     }
 
-    multi method slurp() is export {
-        return $!PIO.readall();
+    multi method slurp() {
+        $!PIO.readall();
     }
 
 }
@@ -59,7 +63,7 @@ multi sub lines(IO $filehandle,
     fail 'Fancy newlines not supported yet' if $nl ne "\n";
     fail 'Lack of chomp not supported yet'  if !$chomp;
 
-    return $filehandle.lines();
+    $filehandle.lines();
 }
 
 # vim: ft=perl6

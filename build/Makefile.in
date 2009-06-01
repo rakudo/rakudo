@@ -96,6 +96,7 @@ BUILTINS_PIR = \
   src/builtins/any-str.pir \
   src/builtins/assign.pir \
   src/builtins/cmp.pir \
+  src/builtins/compiler.pir \
   src/builtins/control.pir \
   src/builtins/eval.pir \
   src/builtins/guts.pir \

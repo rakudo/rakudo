@@ -596,7 +596,7 @@ Generates meta-ops for user defined operators.
     $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_reverse', full_name)
     set_hll_global reverse, $P0
     $P0 = '!FAIL'()
-    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_simple', '!CROSSMETAOP', name, $P0, 0)
+    $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_cross', name)
     set_hll_global cross, $P0
     $P0 = '!generate_meta_op_sub'('!generate_meta_op_helper_hyper', '!HYPEROP', name, 0, 0)
     set_hll_global hyper1, $P0
@@ -639,6 +639,11 @@ Generates meta-ops for user defined operators.
     .param pmc args :slurpy
     $P0 = find_lex '$delegate_to'
     .tailcall '!REDUCEMETAOP'($P0, 0, args :flat)
+.end
+.sub '!generate_meta_op_helper_cross' :outer('!generate_meta_op_sub')
+    .param pmc args :slurpy
+    $P0 = find_lex '$delegate_to'
+    .tailcall '!CROSSMETAOP'($P0, 0, 0, args :flat)
 .end
 .sub '!generate_meta_op_helper_hyper' :outer('!generate_meta_op_sub')
     .param pmc a

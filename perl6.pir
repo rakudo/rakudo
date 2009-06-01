@@ -109,7 +109,7 @@ USAGE
     $P0 .= $S0
   _handler:
     pop_eh
-    $P0 .= ".\n\nCopyright 2006-2008, The Perl Foundation.\n"
+    $P0 .= ".\n\nCopyright 2006-2009, The Perl Foundation.\n"
     setattribute perl6, '$version', $P0
 
     $P0 = box .RAKUDO_HLL
@@ -354,7 +354,7 @@ to the Perl 6 compiler.
   not_harness:
 
     $P0 = compreg 'perl6'
-    $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii')
+    $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
 
     .include 'iterator.pasm'
     .local pmc iter
@@ -414,10 +414,10 @@ to the Perl 6 compiler.
 .end
 
 
-.sub 'fetch-library' :method
-    .param pmc request
+.sub 'load_library' :method
+    .param pmc name
+    .param pmc extra :named :slurpy
     .local pmc name, retval, library, inc_hash
-    name = request['name']
     $S0 = join '::', name
     retval = 'require'($S0, 'module'=>1)
     if null retval goto fail
@@ -445,30 +445,11 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 =cut
 
 .namespace []
-
 .sub '' :anon :load :init
-    .local pmc perl6, nslist, nsiter
-    perl6 = get_hll_global ['Perl6'], 'Compiler'
-    nslist = split ' ', 'Any'
-    nsiter = iter nslist
-  ns_loop:
-    unless nsiter goto ns_done
-    $S0 = shift nsiter
-    $S0 .= '::EXPORT::ALL'
-    $P0 = perl6.'parse_name'($S0)
-    .local pmc ns, symiter
-    ns = get_hll_namespace $P0
-    if null ns goto ns_loop
-    symiter = iter ns
-  sym_loop:
-    unless symiter goto sym_done
-    $S0 = shift symiter
-    $P0 = ns[$S0]
-    set_global $S0, $P0
-    goto sym_loop
-  sym_done:
-    goto ns_loop
-  ns_done:
+    $P0 = get_global 'SETTING_INIT'
+    if null $P0 goto done
+    $P0()
+  done:
 .end
 
 ##  This goes at the bottom because the methods end up in the 'parrot'

@@ -463,12 +463,11 @@ src/builtins/assign.pir - assignments
     .param string opname
     .param string identity
     .param int chain
-    .param pmc a
-    .param pmc b
+    .param pmc args :slurpy
 
     # Use the X operator to get all permutation lists.
     .local pmc lists
-    lists = 'infix:X'(a, b)
+    lists = 'infix:X'(args :flat)
 
     # Go over the lists and combine them with reduce meta-op.
     .local pmc result, it, combinder

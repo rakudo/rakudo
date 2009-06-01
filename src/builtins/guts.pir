@@ -94,37 +94,6 @@ from C<Any>.
 .end
 
 
-=item !dispatch_method
-
-Does a method dispatch. If it's a foregin object, just calls it the Parrot
-way. Otherwise, it uses .^dispatch from the metaclass.
-
-=cut
-
-.sub '!dispatch_method'
-    .param pmc obj
-    .param string name
-    .param pmc pos_args  :slurpy
-    .param pmc name_args :slurpy :named
-
-    $I0 = can obj, 'HOW'
-    unless $I0 goto foreign
-    $P0 = obj.'HOW'()
-    .tailcall $P0.'dispatch'(obj, name, pos_args :flat, name_args :flat :named)
-
-  foreign:
-    obj = '!DEREF'(obj)
-    # We should be able to just .tailcall. Unfortuantely, Parrot's calling
-    # implementation is a steaming pile of crap and can't even manage to promsie
-    # to put something that does array into $P0 in the following line...which only
-    # exists because calls to METHODs in PMCs don't seem to work with tail calls.
-    ($P0 :slurpy, $P1 :slurpy :named) = obj.name(pos_args :flat, name_args :flat :named)
-    if null $P0 goto no_return
-    .return ($P0 :flat, $P1 :flat :named)
-  no_return:
-.end
-
-
 =item !dispatch_method_indirect
 
 Does an indirect method dispatch.
@@ -407,21 +376,8 @@ first). So for now we just transform multis in user code like this.
     goto iter_loop
   iter_loop_end:
 
-    # If the namespace is associated with a class, need to remove the method
-    # entry in that; inserting the new multi into the namespace will then
-    # also add it back to the class.
-    .local pmc class
-    class = get_class namespace
-    if null class goto class_done
-    class.'remove_method'(name)
-    $I0 = isa class, 'Class'
-    if $I0 goto class_done
-    ##  class isn't really a Class, it's (likely) a Role
-    class.'add_method'(name, p6multi)
-  class_done:
-
-    # Make new namespace entry.
-    namespace[name] = p6multi
+    # Nor replace the current thing with the new data structure.
+    copy current_thing, p6multi
     .return()
 
   error:
@@ -536,6 +492,7 @@ and putting it in the namespace if it doesn't already exist.
     unless $I0 goto have_role_obj
   need_role_obj:
     role_obj = new ['Perl6Role']
+    transform_to_p6opaque role_obj
     set_root_global ns, short_name, role_obj
     $P0 = box short_name
     setprop role_obj, "$!shortname", $P0
@@ -604,12 +561,12 @@ is composed (see C<!meta_compose> below).
     $P0 = nsarray[-1]
     info['name'] = $P0
     info['namespace'] = nsarray
-    metarole = root_new ['parrot';'Role'], info
+    metarole = root_new ['parrot';'P6role'], info
   have_role:
 
     # Copy list of roles done by the metarole.
     .local pmc result, tmp, it
-    result = root_new ['parrot';'Role']
+    result = root_new ['parrot';'P6role']
     setprop result, '$!orig_role', metarole
     tmp = metarole.'roles'()
     it = iter tmp
@@ -821,7 +778,7 @@ and C<type>.
     $P0 = metaclass.'attributes'()
     $I0 = exists $P0[name]
     if $I0 goto attr_exists
-    metaclass.'add_attribute'(name)
+    addattribute metaclass, name
     $P0 = metaclass.'attributes'()
   attr_exists:
 
@@ -1234,7 +1191,7 @@ Helper method to compose the attributes of a role into a class.
 
     .local pmc role_attrs, class_attrs, ra_iter, fixup_list
     .local string cur_attr
-    role_attrs = role."attributes"()
+    role_attrs = inspect role, "attributes"
     class_attrs = class."attributes"()
     fixup_list = root_new ['parrot';'ResizableStringArray']
     ra_iter = iter role_attrs
@@ -1324,7 +1281,7 @@ Helper method for creating parametric roles.
     $P3 = getattribute $P1, ['Sub'], 'proxy'
     setprop $P3, '$!real_self', $P2
   ret_pir_skip_rs:
-    mr.'add_method'($S0, $P1)
+    addmethod mr, $S0, $P1
     goto it_loop
   it_loop_end:
     .return (mr)
@@ -1349,7 +1306,7 @@ Internal helper method to create a role with a single parameterless variant.
     info = root_new ['parrot';'Hash']
     info['name'] = name
     info['namespace'] = ns
-    role = root_new ['parrot';'Role'], info
+    role = root_new ['parrot';'P6role'], info
 
     # Now we need to wrap it up as a Perl6Role.
     helper = find_name '!create_simple_role_helper'
@@ -1357,7 +1314,9 @@ Internal helper method to create a role with a single parameterless variant.
     setprop helper, '$!metarole', role
     $P0 = new ["Signature"]
     setprop helper, '$!signature', $P0
-    role = new ["Perl6Role"]
+    role = new ['Perl6Role']
+    transform_to_p6opaque role
+
     $P0 = box name
     setprop role, '$!shortname', $P0
     role.'!add_variant'(helper)
@@ -1461,7 +1420,7 @@ Constructs an enumeration.
     .lex '$attr_name', attr_name_pmc
     .const 'Sub' accessor = '!create_enum_helper_accessor'
     accessor = newclosure accessor
-    role.'add_method'(short_name, accessor)
+    addmethod role, short_name, accessor
 
     # Next, we need methods on the role for each variant, returning
     # a true or false value depending on if the current value of the
@@ -1474,7 +1433,7 @@ Constructs an enumeration.
     $S0 = shift it
     cur_value = values[$S0]
     $P0 = checker_create(attr_name, cur_value)
-    role.'add_method'($S0, $P0)
+    addmethod role, $S0, $P0
     goto checker_loop
   checker_loop_end:
 
@@ -1486,7 +1445,7 @@ Constructs an enumeration.
     .lex '@values', value_list
     .const 'Sub' pick = '!create_enum_helper_pick'
     pick = newclosure pick
-    role.'add_method'('pick', pick)
+    addmethod role, 'pick', pick
 
     # Go over all of the values...
     it = iter values
@@ -1556,19 +1515,19 @@ Constructs an enumeration.
     .lex '$enum_role', enum_role
     .lex '$long_name', long_name
     .lex '$short_name', short_name
-    $P0 = root_new ['parrot';'Role']
+    $P0 = root_new ['parrot';'P6role']
     .const 'Sub' ACCEPTS = '!create_enum_value_role_ACCEPTS'
     ACCEPTS = newclosure ACCEPTS
-    $P0.'add_method'('ACCEPTS', ACCEPTS)
+    addmethod $P0, 'ACCEPTS', ACCEPTS
     .const 'Sub' WHAT = '!create_enum_value_role_WHAT'
     WHAT = newclosure WHAT
-    $P0.'add_method'('WHAT', WHAT)
+    addmethod $P0, 'WHAT', WHAT
     .const 'Sub' name = '!create_enum_value_role_name'
     name = newclosure name
-    $P0.'add_method'('name', name)
+    addmethod $P0, 'name', name
     .const 'Sub' perl = '!create_enum_value_role_perl'
     perl = newclosure perl
-    $P0.'add_method'('perl', perl)
+    addmethod $P0, 'perl', perl
     .return ($P0)
 .end
 .sub '!create_enum_value_role_ACCEPTS' :method :outer('!create_enum_value_role')
@@ -1659,6 +1618,78 @@ initialized already.
     $I0 = isnull $P0
     $I0 = not $I0
     .return ($I0)
+.end
+
+
+=item !MAKE_WHATEVER_CLOSURE
+
+Creates whatever closures (*.foo => { $_.foo })
+
+=cut
+
+.sub '!MAKE_WHATEVER_CLOSURE'
+    .param pmc whatever
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    .local pmc name
+    $P0 = getinterp
+    $P0 = $P0['sub']
+    name = getprop 'name', $P0
+    .lex '$name', name
+    .lex '$pos_args', pos_args
+    .lex '$named_args', named_args
+    .const 'Sub' $P0 = '!whatever_dispatch_helper'
+    $P0 = newclosure $P0
+    .const 'Sub' fixup = '!fixup_routine_type'
+    fixup($P0, "Block")
+    .return ($P0)
+.end
+.sub '!whatever_dispatch_helper' :outer('!MAKE_WHATEVER_CLOSURE')
+    .param pmc obj
+    $P0 = find_lex '$name'
+    $S0 = $P0
+    $P1 = find_lex '$pos_args'
+    $P2 = find_lex '$named_args'
+    .tailcall obj.$S0($P1 :flat, $P2 :flat :named)
+.end
+
+
+=item !HANDLES_HELPER
+
+=cut
+
+.sub '!HANDLES_DISPATCH_HELPER'
+    .param pmc obj
+    .param pmc pos_args   :slurpy
+    .param pmc name_args  :slurpy :named
+    
+    # Look up attribute and method name, and look up the attribute.
+    .local pmc attr
+    .local string attrname, methodname
+    $P0 = getinterp
+    $P0 = $P0['sub']
+    $P1 = getprop 'methodname', $P0
+    methodname = $P1
+    $P1 = getprop 'attrname', $P0
+    attrname = $P1
+    attr = getattribute obj, attrname
+
+    # If it's an array, need to iterate over the set of options. Otherwise,
+    # just delegate.
+    $S0 = substr attrname, 0, 1
+    if $S0 == '@' goto handles_on_array
+    .tailcall attr.methodname(pos_args :flat, name_args :flat :named)
+  handles_on_array:
+    .local pmc handles_array_it
+    handles_array_it = iter attr
+  handles_array_it_loop:
+    unless handles_array_it goto handles_array_it_loop_end
+    $P0 = shift handles_array_it
+    $I0 = $P0.'can'(methodname)
+    unless $I0 goto handles_array_it_loop
+    .tailcall $P0.methodname(pos_args :flat, name_args :flat :named)
+  handles_array_it_loop_end:
+    'die'("You used handles on attribute ", attrname, ", but nothing in the array can do method ", methodname)
 .end
 
 =back

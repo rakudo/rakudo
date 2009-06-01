@@ -23,8 +23,8 @@ short name for a particular set of parameters.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, roleproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    roleproto = p6meta.'new_class'('Perl6Role', 'parent'=>'Any', 'name'=>'Role', 'attr'=>'$!selector @!created')
-    p6meta.'register'('Role', 'proto'=>'roleproto')
+    roleproto = p6meta.'new_class'('Perl6Role', 'parent'=>'Any', 'name'=>'Role', 'attr'=>'$!selector $!created')
+    p6meta.'register'('P6role', 'proto'=>'roleproto')
 .end
 
 
@@ -56,7 +56,7 @@ Selects a variant of the role to do based upon the supplied parameters.
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
 
-    # @!created is an array of hashes describing role instantiations that have
+    # $!created is an array of hashes describing role instantiations that have
     # already taken place. This means that we always hand back, for Foo[Int],
     # the same Parrot-level role rather than creating one each time we ask for
     # a Foo[Int]. The hash contains:
@@ -67,10 +67,10 @@ Selects a variant of the role to do based upon the supplied parameters.
     # check those.
     .local pmc result, created_list, ins_hash, it, test_pos_args
     .local int num_pos_args, num_name_args, i
-    created_list = getattribute self, '@!created'
+    created_list = getattribute self, '$!created'
     unless null created_list goto got_created_list
     created_list = root_new ['parrot';'ResizablePMCArray']
-    setattribute self, '@!created', created_list
+    setattribute self, '$!created', created_list
     goto select_role
   got_created_list:
     num_pos_args = elements pos_args
@@ -137,7 +137,7 @@ Checks if the given topic does the role.
 
     # Go over the roles we've created and see if one of them is done.
     .local pmc created, it
-    created = getattribute self, '@!created'
+    created = getattribute self, '$!created'
     if null created goto it_loop_end
     it = iter created
   it_loop:
@@ -175,6 +175,24 @@ Selects a role based upon type.
 .end
 
 
+=item new
+
+XXX Because of the way punning is currently handled - look for methods the role
+should handles and pun the rest - we end up punning some bits we should not.
+Need a cleaner solution in the end...for now we make sure the new from P6object
+doesn't get through to here.
+
+=cut
+
+.sub 'new' :method
+    .param pmc pos_args  :slurpy
+    .param pmc name_args :slurpy :named
+    $P0 = self.'!select'()
+    $P0 = $P0.'!pun'()
+    .tailcall $P0.'new'(pos_args :flat, name_args :flat :named)
+.end
+
+
 =item elements (vtable method)
 
 Gives the number of possible parameterized roles we can select from (but really
@@ -182,7 +200,7 @@ just here so postcircumfix:[ ] doesn't explode).
 
 =cut
 
-.sub 'elements' :vtable
+.sub 'elems' :vtable('elements')
     $P0 = getattribute self, '$!selector'
     $I0 = elements $P0
     .return ($I0)
@@ -229,6 +247,22 @@ just here so postcircumfix:[ ] doesn't explode).
     .return ($S0)
 .end
 
+
+.include "interpinfo.pasm"
+.sub '!pun_helper'
+    .param pmc role
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    $I0 = isa role, 'P6role'
+    if $I0 goto already_selected
+    role = role.'!select'(pos_args :flat, named_args :flat :named)
+  already_selected:
+    $P0 = interpinfo .INTERPINFO_CURRENT_SUB
+    $P0 = getprop 'name', $P0
+    $S0 = $P0
+    $P0 = role.'!pun'()
+    .tailcall $P0.$S0(pos_args :flat, named_args :flat :named)
+.end
 
 =back
 

@@ -19,25 +19,76 @@ gets stuck into the lex pad to represent the the candidate list.
 */
 
 #include "parrot/parrot.h"
+#include "pmc_perl6multisub.h"
+
+
+/* Declaration; definition of this is in p6opaque.pmc. */
+PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING *name);
+
+/* Another declaration; this one is defined in perl6multisub.pmc. */
+PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *self);
+
 
 /* This does the grunt work of working out what the next candidate is. Takes
  * account of us maybe needing to look into multi variants and all that lot. */
 static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF) {
-    PMC    *candidates, *current;
-    INTVAL  position;
+    PMC    *candidates, *current, *search_list;
+    STRING *name;
+    INTVAL  position, resume_point;
 
     /* Get candidates and position. */
     GETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
     GETATTR_P6Invocation_position(interp, SELF, position);
 
     /* Make sure we're not past the end of the candidate list. */
-    if (position >= VTABLE_elements(interp, candidates))
-        return PMCNULL;
+  check_and_continue_search:
+    if (PMC_IS_NULL(candidates) || position >= VTABLE_elements(interp, candidates)) {
+        /* Past the end; see if we've got a way to resume the search. */
+        GETATTR_P6Invocation_search_list(interp, SELF, search_list);
+        GETATTR_P6Invocation_name(interp, SELF, name);
+        GETATTR_P6Invocation_resume_point(interp, SELF, resume_point);
+        if (!PMC_IS_NULL(search_list) && name) {
+            /* We can look for more candidates. Try to do so. */
+            PMC *found = look_for_method(interp, search_list, &resume_point, name);
+            SETATTR_P6Invocation_resume_point(interp, SELF, resume_point);
+            if (PMC_IS_NULL(found))
+                return PMCNULL;
+
+            /* If we get here, we have more. Push this next candidate onto the
+             * candidate list, creating it in the process if needed. */
+            if (PMC_IS_NULL(candidates)) {
+                candidates = pmc_new(interp, enum_class_ResizablePMCArray);
+                SETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
+            }
+            VTABLE_push_pmc(interp, candidates, found);
+        }
+        else {
+            /* No way; give up. */
+            return PMCNULL;
+        }
+    }
 
     /* Grab current candidate. */
     current = VTABLE_get_pmc_keyed_int(interp, candidates, position);
     if (VTABLE_isa(interp, current, CONST_STRING(interp, "Perl6MultiSub"))) {
-        /* XXX Multi potrebuje nieco specialne... */
+        /* Multi. Ask the multi-dispatcher for all possible variants that we
+         * could call with the current argument. */
+        PMC *possibles = get_all_candidates_with_cur_args(interp, current);
+        if (VTABLE_elements(interp, possibles) == 0) {
+            /* No candidates here; increment the position, and then jump back
+             * to check if we need to find another candidate and try again or
+             * if the list is already containing more things for us to try. */
+            position++;
+            SETATTR_P6Invocation_position(interp, SELF, position);
+            goto check_and_continue_search;
+        }
+
+        /* If we get here, we have some possibles; splice them into the candidate
+         * list, then continue as normal. This means that deferal will take into
+         * account the other multi-variants. Then our current becomes the first
+         * of the multi candidates. */
+        VTABLE_splice(interp, candidates, possibles, position, 1);
+        current = VTABLE_get_pmc_keyed_int(interp, candidates, position);
     }
 
     /* Increment position in candidate list, and we're done. */
@@ -47,9 +98,12 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF) {
 }
 
 pmclass P6Invocation need_ext dynpmc group perl6_group {
-    ATTR PMC *first_candidate;
-    ATTR PMC *candidate_list;
-    ATTR INTVAL position;
+    ATTR PMC    *first_candidate;
+    ATTR PMC    *candidate_list;
+    ATTR INTVAL  position;
+    ATTR STRING *name;
+    ATTR PMC    *search_list;
+    ATTR INTVAL  resume_point;
 
     VTABLE void init() {
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_P6Invocation_attributes);
@@ -64,13 +118,20 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
 
     VTABLE void mark() {
         if (PMC_data(SELF)) {
-            PMC *first_candidate, *candidate_list;
+            PMC *first_candidate, *candidate_list, *search_list;
+            STRING *name;
             GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
             GETATTR_P6Invocation_candidate_list(interp, SELF, candidate_list);
+            GETATTR_P6Invocation_search_list(interp, SELF, search_list);
+            GETATTR_P6Invocation_name(interp, SELF, name);
             if (!PMC_IS_NULL(first_candidate))
                 Parrot_gc_mark_PObj_alive(interp, (PObj*)first_candidate);
             if (!PMC_IS_NULL(candidate_list))
                 Parrot_gc_mark_PObj_alive(interp, (PObj*)candidate_list);
+            if (!PMC_IS_NULL(search_list))
+                Parrot_gc_mark_PObj_alive(interp, (PObj*)search_list);
+            if (name)
+                Parrot_gc_mark_PObj_alive(interp, (PObj*)name);
         }
     }
 
@@ -80,16 +141,23 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
     }
 
     VTABLE PMC *clone() {
-        PMC *first_candidate, *candidate_list;
-        INTVAL position;
+        PMC *first_candidate, *candidate_list, *search_list;
+        STRING *name;
+        INTVAL position, resume_point;
 
         PMC *copy = pmc_new(interp, SELF->vtable->base_type);
         GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
         GETATTR_P6Invocation_candidate_list(interp, SELF, candidate_list);
         GETATTR_P6Invocation_position(interp, SELF, position);
+        GETATTR_P6Invocation_search_list(interp, SELF, search_list);
+        GETATTR_P6Invocation_name(interp, SELF, name);
+        GETATTR_P6Invocation_resume_point(interp, SELF, resume_point);
         SETATTR_P6Invocation_first_candidate(interp, copy, first_candidate);
         SETATTR_P6Invocation_candidate_list(interp, copy, candidate_list);
         SETATTR_P6Invocation_position(interp, copy, position);
+        SETATTR_P6Invocation_search_list(interp, copy, search_list);
+        SETATTR_P6Invocation_name(interp, copy, name);
+        SETATTR_P6Invocation_resume_point(interp, copy, resume_point);
         return copy;
     }
 
@@ -120,7 +188,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         /* Invoke it, then fudge ourself into its lexpad. */
         addr = VTABLE_invoke(interp, first_candidate, next);
         lexpad = CONTEXT(interp)->lex_pad;
-        if (VTABLE_exists_keyed_str(interp, lexpad, lexname))
+        if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, lexname))
             VTABLE_set_pmc_keyed_str(interp, lexpad, lexname, SELF);
         return addr;
     }

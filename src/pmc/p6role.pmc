@@ -1,0 +1,58 @@
+/*
+$Id$
+Copyright (C) 2009, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/p6role.pmc - subclass of Parrot role with some Perl 6 bits
+
+=head1 DESCRIPTION
+
+This subclasses Parrot's Role PMC and adds some Perl 6 specific behaviors,
+like punning.
+
+=head2 Methods
+
+=cut
+
+*/
+
+#include "parrot/parrot.h"
+
+pmclass P6role extends Role need_ext dynpmc group perl6_group {
+    VTABLE PMC *find_method(STRING *name) {
+        PMC *ns_key, *ns, *punner, *boxed_name;
+        STRING *first_char;
+
+        /* Is this a method we want to pun? If not, just dispatch normally. */
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "attributes")))
+            return SUPER(name);
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "methods")))
+            return SUPER(name);
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "roles")))
+            return SUPER(name);
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")))
+            return SUPER(name);
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "perl")))
+            return SUPER(name);
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "WHAT")))
+            return SUPER(name);
+        first_char = Parrot_str_substr(interp, name, 0, 1, NULL, 0);
+        if (Parrot_str_equal(interp, first_char, CONST_STRING(interp, "!")))
+            return SUPER(name);
+        
+        /* Find the punner. XXX cache for the performance win! */
+        ns_key = pmc_new(interp, enum_class_ResizableStringArray);
+        VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
+        VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Perl6Role"));
+        ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
+        punner = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "!pun_helper"));
+
+        /* Return a clone with the method name set as a property. */
+        punner = VTABLE_clone(interp, punner);
+        boxed_name = pmc_new(interp, enum_class_String);
+        VTABLE_set_string_native(interp, boxed_name, name);
+        VTABLE_setprop(interp, punner, CONST_STRING(interp, "name"), boxed_name);
+        return punner;
+    }
+}

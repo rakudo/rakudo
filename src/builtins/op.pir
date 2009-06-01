@@ -410,9 +410,9 @@ src/builtins/op.pir - Perl 6 builtin operators
     addparent derived, parrot_class
     $I0 = isa role, ['Perl6Role']
     if $I0 goto one_role_select
-    $P0 = get_root_namespace ['parrot';'Role']
-    $P0 = get_class $P0
-    $I0 = isa role, $P0
+    #$P0 = get_root_namespace ['parrot';'Role']
+    #$P0 = get_class $P0
+    $I0 = isa role, 'P6role'
     if $I0 goto one_role
     $I0 = isa role, ['List']
     if $I0 goto many_roles

@@ -255,7 +255,7 @@ Return the components of the Junction.
 
 =item !DISPATCH_JUNCTION
 
-Does a junctional dispatch. XXX Needs to support named args.
+Does a junctional dispatch.
 
 =cut
 
@@ -412,6 +412,40 @@ a property.
     sub = pi['sub']
     sub = getprop 'sub', sub
     .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat :named)
+.end
+
+
+=item !DISPATCH_JUNCTION_METHOD
+
+Used to dispatch methods on a junction, where we need to auto-thread.
+
+=cut
+
+.sub '!DISPATCH_JUNCTION_METHOD'
+    .param pmc junc
+    .param pmc pos_args  :slurpy
+    .param pmc name_args :slurpy :named
+
+    .local string name
+    $P0 = getinterp
+    $P0 = $P0['sub']
+    $P0 = getprop 'name', $P0
+    name = $P0
+
+    .local pmc values, values_it, res, res_list, type
+    res_list = new ['Perl6Array']
+    values = junc.'eigenstates'()
+    values_it = iter values
+  values_it_loop:
+    unless values_it goto values_it_loop_end
+    $P0 = shift values_it
+    res = $P0.name(pos_args :flat, name_args :flat :named)
+    push res_list, res
+    goto values_it_loop
+  values_it_loop_end:
+    type = junc.'!type'()
+    .const 'Sub' $P1 = '!MAKE_JUNCTION'
+    .tailcall $P1(type, res_list)
 .end
 
 =back

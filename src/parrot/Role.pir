@@ -2,11 +2,11 @@
 
 =head1 NAME
 
-src/parrot/Role.pir - methods for the Parrot's Role class
+src/parrot/Role.pir - methods for the our P6role class
 
-=head2 Methods on Parrot Roles
+=head2 Methods on P6role
 
-We also add some methods to the Parrot roles.
+We also add some methods to P6role.
 
 =item !pun
 
@@ -14,7 +14,7 @@ Puns the role to a class and returns that class.
 
 =cut
 
-.namespace ["Role"]
+.namespace ["P6role"]
 .sub '!pun' :method
     # See if we have already created a punned class; use it if so.
     .local pmc pun
@@ -41,7 +41,7 @@ Puns the role to a class and returns that class.
     $P0 = shift roles_it
     $I0 = does metaclass, $P0
     if $I0 goto roles_it_loop
-    metaclass.'add_role'($P0)
+    addrole metaclass, $P0
     .const 'Sub' $P1 = '!compose_role_attributes'
     $P1(metaclass, $P0)
     goto roles_it_loop
@@ -55,8 +55,9 @@ Puns the role to a class and returns that class.
     
     # Set name (don't use name=>... in register so we don't make a
     # namespace entry though).
-    $P0 = self.'Str'()
     $P1 = proto.'HOW'()
+    $S0 = self
+    $P0 = box $S0
     setattribute $P1, 'shortname', $P0
 
     # Stash it away, then instantiate it.
@@ -79,7 +80,7 @@ Puns the role to a class and returns that class.
     # Otherwise, need to consider subtypes in the parameters.
     .local pmc all_variants, it, want_rf, our_types, cur_variant
     $P0 = getprop '$!owner', self
-    all_variants = getattribute $P0, '@!created'
+    all_variants = getattribute $P0, '$!created'
     want_rf = getprop '$!orig_role', self
     our_types = getprop '@!type_args', self
     it = iter all_variants

@@ -1208,7 +1208,7 @@ method expect_term($/, $key) {
                     $past.unshift($meth);
             }
             elsif $past<invocant_holder> {
-                $past<invocant_holder>.unshift($term);
+                $past<invocant_holder>.unshift(deref_invocant($term));
             }
             else {
                 $past.unshift($term);
@@ -1295,12 +1295,7 @@ method dotty($/, $key) {
 
     # We actually need to send dispatches for named method calls (other than .*)
     # through the.dispatcher.
-    if $key ne '.*' && $past.pasttype() eq 'callmethod' && $past.name() ne "" {
-        $past.unshift($past.name());
-        $past.name('!dispatch_method');
-        $past.pasttype('call');
-    }
-    elsif $<dottyop><methodop><variable> {
+    if $<dottyop><methodop><variable> {
         $past.name('!dispatch_method_indirect');
         $past.pasttype('call');
     }
@@ -1382,12 +1377,12 @@ method noun($/, $key) {
     elsif $key eq 'dotty' {
         # Call on $_.
         $past := $/{$key}.ast;
-        $past<invocant_holder>.unshift(PAST::Var.new(
+        $past<invocant_holder>.unshift(deref_invocant(PAST::Var.new(
             :name('$_'),
             :scope('lexical'),
             :viviself('Failure'),
             :node($/)
-        ));
+        )));
     }
     else {
         $past := $/{$key}.ast;
@@ -2554,9 +2549,7 @@ method EXPR($/, $key) {
         }
 
         # Change call node to a callmethod.
-        $call.pasttype('call');
-        $call.unshift($call.name());
-        $call.name('!dispatch_method');
+        $call.pasttype('callmethod');
 
         # We only want to evaluate invocant once; stash it in a register.
         $call.unshift(PAST::Op.new(
@@ -3022,7 +3015,7 @@ sub transform_to_multi($past) {
 sub process_smartmatch($lhs, $rhs, $rhs_pt) {
     if $rhs_pt<noun><dotty> {
         # method truth
-        $rhs<invocant_holder>[0] := $lhs;
+        $rhs<invocant_holder>[0] := deref_invocant($lhs);
         if $rhs_pt<noun><dotty><dottyop><postcircumfix> {
             # array/hash slice truth
             $rhs := PAST::Op.new( :pasttype('call'), :name('all'), $rhs);
@@ -3182,6 +3175,12 @@ sub make_attr_init_closure($init_value) {
         )
     );
 }
+
+
+sub deref_invocant($inv) {
+    PAST::Op.new( :inline('    %r = deref_objectref %0'), $inv )
+}
+
 
 # Local Variables:
 #   mode: cperl

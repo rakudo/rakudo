@@ -124,11 +124,11 @@ SETTING = \
   src/setting/Range.pm \
   src/setting/Whatever.pm \
 
-PMCS        = perl6str objectref perl6scalar mutablevar perl6multisub p6invocation p6opaque
+PMCS        = perl6str objectref perl6scalar mutablevar perl6multisub p6invocation p6opaque p6role
 
 PMC_SOURCES = $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/objectref.pmc $(PMC_DIR)/perl6scalar.pmc \
               $(PMC_DIR)/mutablevar.pmc $(PMC_DIR)/perl6multisub.pmc $(PMC_DIR)/p6invocation.pmc \
-              $(PMC_DIR)/p6opaque.pmc
+              $(PMC_DIR)/p6opaque.pmc $(PMC_DIR)/p6role.pmc
 
 PERL6_GROUP = $(PMC_DIR)/perl6_group$(LOAD_EXT)
 

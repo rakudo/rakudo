@@ -214,6 +214,11 @@ layer.  It will likely change substantially when we have lazy lists.
     elem = self[i]
     $I0 = isa elem, 'Perl6Scalar'
     if $I0 goto flat_next
+    # always treat a Junction and Whatever as one item, whether they can !flatten or not
+    $I0 = isa elem, 'Junction'
+    if $I0 goto flat_next
+    $I0 = isa elem, 'Whatever'
+    if $I0 goto flat_next
     $I0 = can elem, '!flatten'
     if $I0 goto flat_elem
     $I0 = does elem, 'array'

@@ -321,6 +321,26 @@ inline op transform_to_p6opaque(inout PMC) :base_core {
     }
 }
 
+
+/*
+
+=item deref_objectref(out PMC, in PMC)
+
+If $2 is an ObjectRef or Perl6Scalar, then dereferences it recursively until we get
+to the real underlying value.
+
+=cut
+
+*/
+inline op deref_objectref(out PMC, in PMC) :base_core {
+    INTVAL p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
+    INTVAL or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
+    $1 = $2;
+    while ($1->vtable->base_type == p6s_id || $1->vtable->base_type == or_id)
+        $1 = VTABLE_get_pmc(interp, $1);
+    goto NEXT();
+}
+
 /*
  * Local variables:
  *   c-file-style: "parrot"

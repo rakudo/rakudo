@@ -597,6 +597,30 @@ Create a clone of self, also cloning the attributes given by attrlist.
     .return (result)
 .end
 
+
+=item !rebox
+
+If we end up with an object that isn't a subclass of Perl6Object
+(e.g., a parrot Integer, Float, or Str), the C<!rebox> method will
+adjust it.
+
+=cut
+
+.namespace ['Perl6Object']
+.sub '!rebox' :method
+    $I0 = isa self, ['Perl6Object']
+    if $I0 goto done
+    .local pmc p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    $P0 = self.'WHAT'()
+    $P0 = p6meta.'get_parrotclass'($P0)
+    $P0 = new $P0
+    assign $P0, self
+    copy self, $P0
+  done:
+.end
+    
+
 =item !.?
 
 Helper method for implementing the .? operator. Calls at most one matching

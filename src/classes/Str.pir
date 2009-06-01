@@ -94,16 +94,116 @@ Increment and Decrement Methods
 
 =cut
 
-.sub 'pred' :method
-    $P0 = clone self
-    dec $P0
-    .return ($P0)
+.namespace ['Str']
+.const string RANGES = "01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZAabcdefghijklmnopqrstuvwxyza"
+
+.sub '!range_pos' :anon
+    .param string str
+
+    .local int len, pos, r0, r1
+    len = length str
+
+    # Scan from the end of a string for a character that is in RANGES.
+    # This is the potential end of the substring to be incremented.
+    pos = len
+  scan_loop:
+    # Reset range positions to indicate that we haven't found a valid substr
+    r0 = 0
+    r1 = -1
+  scan_end_loop:
+    unless pos > 0 goto done
+    dec pos
+    $S0 = substr str, pos, 1
+    $I0 = index RANGES, $S0
+    if $I0 < 0 goto scan_end_loop
+
+    # we found a candidate end of the range, now scan for start
+    r1 = pos
+  scan_start_loop:
+    # if we reach the beginning of the string, the range starts at pos 0
+    unless pos > 0 goto done
+    dec pos
+    $S0 = substr str, pos, 1
+    # if we find a dot: this isn't a valid range, scan again
+    if $S0 == '.' goto scan_loop
+    # if we find a valid character, keep scanning
+    $I0 = index RANGES, $S0
+    if $I0 >= 0 goto scan_start_loop
+    # pos + 1 is the start of the range, we're done
+    r0 = pos + 1
+
+  done:
+    .return (r0, r1)
 .end
 
+
+.sub 'pred' :method
+    .local string str
+    str = self
+    str = clone str
+
+    .local int r0, r1, ipos
+    (r0, r1) = '!range_pos'(str)
+    if r1 < 0 goto done
+
+  dec_1:
+    .local string orig, repl
+    orig = substr str, r1, 1
+    ipos = index RANGES, orig 
+    $I0 = ipos + 1
+    $I0 = index RANGES, orig, $I0
+    if $I0 < 0 goto dec_2
+    ipos = $I0
+  dec_2:
+    dec ipos
+    repl = substr RANGES, ipos, 1
+    substr str, r1, 1, repl
+    # if the replacement wasn't a carry, we're done
+    if orig > repl goto done
+  carry:
+    # if there are more characters in the range, decrement those first
+    dec r1
+    if r1 >= r0 goto dec_1
+  extend:
+    .tailcall '!FAIL'('Decrement out of range')
+
+  done:
+    .return (str)
+.end
+
+
 .sub 'succ' :method
-    $P0 = clone self
-    inc $P0
-    .return ($P0)
+    .local string str
+    str = self
+    str = clone str
+
+    .local int r0, r1, ipos
+    (r0, r1) = '!range_pos'(str)
+    if r1 < 0 goto done
+
+  inc_1:
+    .local string orig, repl
+    orig = substr str, r1, 1
+    ipos = index RANGES, orig 
+    inc ipos
+    .local string repl
+    repl = substr RANGES, ipos, 1
+    substr str, r1, 1, repl
+    # if the replacement wasn't a carry, we're done
+    if orig < repl goto done
+  carry:
+    # if there are more characters in the range, increment those first
+    dec r1
+    if r1 >= r0 goto inc_1
+  extend:
+    # insert a new character based on the previous one
+    unless repl == '0' goto extend_1
+    repl = '1'
+  extend_1:
+    substr str, r0, 0, repl
+
+  done:
+    .return (str)
 .end
 
 

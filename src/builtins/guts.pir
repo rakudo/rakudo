@@ -203,8 +203,10 @@ Helper function to dereference any chains
 
 .sub '!DEREF'
     .param pmc x
+    $P0 = get_root_namespace ['parrot';'ObjectRef']
+    $P0 = get_class $P0
   loop:
-    $I0 = isa x, ['ObjectRef']
+    $I0 = isa x, $P0
     unless $I0 goto done
     x = deref x
     goto loop
@@ -1350,8 +1352,7 @@ Constructs a Mapping, based upon the values list.
     # For now, we assume integer type, unless we have a first pair that says
     # otherwise.
     .local pmc cur_val
-    cur_val = new ['Int']
-    cur_val = 0
+    cur_val = box 0
 
     # Iterate over values and make mapping.
     .local pmc result, values_it, cur_item

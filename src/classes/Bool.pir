@@ -41,13 +41,15 @@ symbols for C<Bool::True> and C<Bool::False>.
 .end
 
 
-.sub 'succ' :method :vtable('increment')
-    self = 1
+.sub 'succ' :method
+    $P0 = get_global 'True'
+    .return ($P0)
 .end
 
 
-.sub 'pred' :method :vtable('decrement')
-    self = 0
+.sub 'pred' :method
+    $P0 = get_global 'False'
+    .return ($P0)
 .end
 
 =back

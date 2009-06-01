@@ -28,56 +28,67 @@ src/builtins/op.pir - Perl 6 builtin operators
 
 
 ## autoincrement
-.sub 'postfix:++' :multi(_)
+.sub 'prefix:++' :multi(_) :subid('!prefix:++')
+    .param pmc a
+    $I0 = defined a
+    unless $I0 goto inc_undef
+    $P1 = a.'succ'()
+    .tailcall 'infix:='(a, $P1)
+  inc_undef:
+    .tailcall 'infix:='(a, 1)
+.end
+
+.sub 'postfix:++' :multi(_) :subid('!postfix:++')
     .param pmc a
     $P0 = a.'clone'()
-    $I0 = defined a
-    if $I0 goto have_a
-    'infix:='(a, 0)
-  have_a:
-    $P1 = a.'clone'()
-    inc $P1
-    'infix:='(a, $P1)
+    .const 'Sub' $P1 = '!prefix:++'
+    $P1(a)
     .return ($P0)
+.end
+
+.sub 'prefix:--' :multi(_) :subid('!prefix:--')
+    .param pmc a
+    $I0 = defined a
+    unless $I0 goto dec_undef
+    $P1 = a.'pred'()
+    .tailcall 'infix:='(a, $P1)
+  dec_undef:
+    .tailcall 'infix:='(a, -1)
 .end
 
 .sub 'postfix:--' :multi(_)
     .param pmc a
     $P0 = a.'clone'()
-    $I0 = defined a
-    if $I0 goto have_a
-    'infix:='(a, 0)
-  have_a:
-    $P1 = a.'clone'()
-    dec $P1
-    'infix:='(a, $P1)
+    .const 'Sub' $P1 = '!prefix:--'
+    $P1(a)
     .return ($P0)
 .end
 
-
-.sub 'prefix:++' :multi(_)
+.sub 'prefix:++' :multi(Integer) :subid('!prefix:++Int')
     .param pmc a
-    $I0 = defined a
-    if $I0 goto have_a
-    'infix:='(a, 0)
-  have_a:
-    $P0 = a.'clone'()
-    inc $P0
-    'infix:='(a, $P0)
+    unless a < 2147483647 goto fallback
+    $P0 = getprop 'readonly', a
+    unless null $P0 goto fallback
+    $P0 = getprop 'type', a
+    if null $P0 goto fast_inc
+    $P1 = get_hll_global 'Int'
+    $I0 = issame $P0, $P1
+    unless $I0 goto fallback
+  fast_inc:
+    inc a
     .return (a)
+  fallback:
+    .const 'Sub' fb = '!prefix:++'
+    .tailcall fb(a)
 .end
 
-
-.sub 'prefix:--' :multi(_)
+.sub 'postfix:++' :multi(Integer)
     .param pmc a
-    $I0 = defined a
-    if $I0 goto have_a
-    'infix:='(a, 0)
-  have_a:
-    $P0 = a.'clone'()
-    dec $P0
-    'infix:='(a, $P0)
-    .return (a)
+    $P0 = '!DEREF'(a)
+    $P0 = clone $P0
+    .const 'Sub' $P1 = '!prefix:++Int'
+    $P1(a)
+    .return ($P0)
 .end
 
 
@@ -402,6 +413,7 @@ src/builtins/op.pir - Perl 6 builtin operators
 
     # Get the class of the variable we're adding roles to.
     .local pmc p6meta, parrot_class
+    var.'!rebox'()
     parrot_class = class var
 
     # Derive a new class that does the role(s) specified.

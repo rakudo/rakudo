@@ -487,14 +487,15 @@ candidates or that it was ambiguous if there were tied candidates.
 static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, PMC *proto,
     PMC *args, int many, int num_candidates, opcode_t *next, MMD_Cache *cache) {
     INTVAL           type_mismatch;
-    STRING * const   ACCEPTS         = CONST_STRING(interp, "ACCEPTS");
-    INTVAL           possibles_count = 0;
-    const INTVAL     num_args        = VTABLE_elements(interp, args);
-    candidate_info **cur_candidate   = candidates;
-    candidate_info **possibles       = mem_allocate_n_typed(num_candidates,
-                                        candidate_info *);
+    STRING * const   ACCEPTS          = CONST_STRING(interp, "ACCEPTS");
+    INTVAL           possibles_count  = 0;
+    const INTVAL     num_args         = VTABLE_elements(interp, args);
+    candidate_info **cur_candidate    = candidates;
+    candidate_info **possibles        = mem_allocate_n_typed(num_candidates,
+                                         candidate_info *);
     INTVAL           type_check_count;
-    PMC             *junctional_res  = PMCNULL;
+    PMC             *junctional_res   = PMCNULL;
+    INTVAL           pure_type_result = 1;
 
     /* Iterate over the candidates and collect best ones; terminate
      * when we see two nulls (may break out earlier). */
@@ -549,24 +550,6 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         cur_candidate++;
     }
 
-    /* If we're at a single candidate here, and there are no constraints, it's
-     * safe to cache for the future, since it's a purely nominal type-based 
-     * rather than value based dispatch. Note that we could also store the current
-     * candidate set and re-enter the dispatch algorithm below, making it cheaper to
-     * get to this point. */
-    if (possibles_count == 1 && cache) {
-        INTVAL has_constraints = 0;
-        INTVAL i;
-        for (i = 0; i < possibles[0]->num_types; i++) {
-            if (!PMC_IS_NULL(possibles[0]->constraints[i])) {
-                has_constraints = 1;
-                break;
-            }
-        }
-        if (!has_constraints)
-            Parrot_mmd_cache_store_by_values(interp, cache, "", args, possibles[0]->sub);
-    }
-
     /* If we have candidates from arity/nominal type, check out any constraints. */
     if (possibles_count > 0) {
         candidate_info ** const matching        = mem_allocate_n_typed(possibles_count,
@@ -592,6 +575,9 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                     PMC * const result       = (PMC *)Parrot_run_meth_fromc_args(interp, accepts_meth,
                         type_obj, ACCEPTS, "PP", param);
                     constraint_checked = 1;
+                    
+                    /* Set the dispatch-wide flag influencing caching. */
+                    pure_type_result = 0;
 
                     if (!VTABLE_get_integer(interp, result)) {
                         constraint_failed = 1;
@@ -633,7 +619,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         }
     }
 
-    /* Check is default trait if we still have multiple options. */
+    /* Check is default trait if we still have multiple options and we want one. */
     if (possibles_count > 1) {
         /* Locate any default candidates; if we find multiple defaults, this is
          * no help, so we'll not bother collection just which ones are good. */
@@ -659,6 +645,16 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         }
     }
 
+    /* If we're at a single candidate here, and we are only looking for one, and we
+     * also know there's no type constraints that follow, we can cache the result. */
+    if (many == MMD_ONE_RESULT && possibles_count == 1 && pure_type_result) {
+        if (!cache) {
+            cache = Parrot_mmd_cache_create(interp);
+            SETATTR_Perl6MultiSub_cache_single(interp, self, cache);
+        }
+        Parrot_mmd_cache_store_by_values(interp, cache, "", args, possibles[0]->sub);
+    }
+
     /* Perhaps we found nothing but have juncitonal arguments? */
     if (possibles_count == 0 && has_junctional_args(interp, args)) {
         /* Look up multi junction dispatcher, clone it, attach this multi-sub
@@ -668,7 +664,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                 CONST_STRING(interp, "!DISPATCH_JUNCTION_MULTI"));
         sub = VTABLE_clone(interp, sub);
         VTABLE_setprop(interp, sub, CONST_STRING(interp, "sub"), self);
-        if (cache)
+        if (cache && many == MMD_ONE_RESULT)
             Parrot_mmd_cache_store_by_values(interp, cache, "", args, sub);
         junctional_res = sub;
     }
@@ -734,6 +730,15 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         else if (possibles_count == 0 && !PMC_IS_NULL(proto))
             VTABLE_push_pmc(interp, results, proto);
 
+        /* If we didn't depend upon constraints at all, then we can cache it. */
+        if (pure_type_result) {
+            if (!cache) {
+                cache = Parrot_mmd_cache_create(interp);
+                SETATTR_Perl6MultiSub_cache_many(interp, self, cache);
+            }
+            Parrot_mmd_cache_store_by_values(interp, cache, "", args, results);
+        }
+
         return results;
     }
 }
@@ -753,7 +758,8 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *ar
     candidate_info **candidates = NULL;
     PMC             *unsorted;
     PMC             *proto;
-    PMC             *results;
+    PMC             *results    = PMCNULL;
+    MMD_Cache       *cache;
 
     /* Need to make sure a wobload of globals don't get destroyed. */
     PMC      * const saved_ccont       = interp->current_cont;
@@ -764,25 +770,31 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *ar
     PMC      * const params_signature  = interp->params_signature;
     PMC      * const returns_signature = interp->returns_signature;
 
-    /* Make sure that we have a candidate list built. */
-    GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
-    GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
-    GETATTR_Perl6MultiSub_proto(interp, SELF, proto);
+    /* See if we have a cache entry. */
+    GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache);
+    if (cache)
+        results = Parrot_mmd_cache_lookup_by_values(interp, cache, "", args);
+    if (PMC_IS_NULL(results)) {
+        /* Make sure that we have a candidate list built. */
+        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
+        GETATTR_Perl6MultiSub_proto(interp, SELF, proto);
 
-    if (!candidates) {
-        candidates = sort_candidates(interp, unsorted, &proto);
-        SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
-        SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
+        if (!candidates) {
+            candidates = sort_candidates(interp, unsorted, &proto);
+            SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+            SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
+        }
+
+        if (!candidates)
+            Parrot_ex_throw_from_c_args(interp, NULL, 1,
+                "Failed to build candidate list");
+
+        /* Now do the dispatch on the args we have been supplied with, and
+         * get back a PMC array of possibles. */
+        results = do_dispatch(interp, SELF, candidates, proto, args, MMD_MANY_RESULTS,
+                VTABLE_elements(interp, unsorted), NULL, cache);
     }
-
-    if (!candidates)
-        Parrot_ex_throw_from_c_args(interp, NULL, 1,
-            "Failed to build candidate list");
-
-    /* Now do the dispatch on the args we have been supplied with, and
-     * get back a PMC array of possibles. */
-    results = do_dispatch(interp, SELF, candidates, proto, args, MMD_MANY_RESULTS,
-            VTABLE_elements(interp, unsorted), NULL, NULL);
 
     /* Restore stuff that might have got overwriten by calls during the
      * dispatch algorithm. */
@@ -872,7 +884,8 @@ The proto that is in effect.
 pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group {
     ATTR PMC  *candidates;
     ATTR struct candidate_info **candidates_sorted;
-    ATTR MMD_Cache *cache;
+    ATTR MMD_Cache *cache_single;
+    ATTR MMD_Cache *cache_many;
     ATTR PMC *proto;
 
 /*
@@ -885,17 +898,11 @@ Allocates the PMC's underlying storage.
 
 */
     VTABLE void init() {
-        MMD_Cache *cache;
-
         /* Allocate the underlying struct and make candidate list an empty
          * ResizablePMCArray. */
         PMC * const candidates = pmc_new(interp, enum_class_ResizablePMCArray);
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Perl6MultiSub_attributes);
-        SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates)
-
-        /* Set up a cache. */
-        cache = Parrot_mmd_cache_create(interp);
-        SETATTR_Perl6MultiSub_cache(interp, SELF, cache)
+        SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
 
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
@@ -913,7 +920,8 @@ Frees the memory associated with this PMC's underlying storage.
 */
     VTABLE void destroy() {
         candidate_info **candidates = NULL;
-        MMD_Cache *cache;
+        MMD_Cache *cache_single;
+        MMD_Cache *cache_many;
 
         /* If we built a sorted candidate list, free that. */
         GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
@@ -928,8 +936,12 @@ Frees the memory associated with this PMC's underlying storage.
         }
 
         /* Free the cache. */
-        GETATTR_Perl6MultiSub_cache(interp, SELF, cache)
-        Parrot_mmd_cache_destroy(interp, cache);
+        GETATTR_Perl6MultiSub_cache_single(interp, SELF, cache_single);
+        if (cache_single)
+            Parrot_mmd_cache_destroy(interp, cache_single);
+        GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache_many);
+        if (cache_many)
+            Parrot_mmd_cache_destroy(interp, cache_many);
 
         /* Free memory associated with this PMC's underlying struct. */
         mem_sys_free(PMC_data(SELF));
@@ -953,7 +965,7 @@ the Perl 6 MMD algorithm.
 
 */
     VTABLE opcode_t *invoke(void *next) {
-        PMC             *found;
+        PMC             *found      = PMCNULL;
         MMD_Cache       *cache;
         candidate_info **candidates = NULL;
         PMC             *unsorted;
@@ -971,8 +983,9 @@ the Perl 6 MMD algorithm.
         PMC      *returns_signature = interp->returns_signature;
 
         /* See if we have a cache entry. */
-        GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
-        found = Parrot_mmd_cache_lookup_by_values(interp, cache, "", args);
+        GETATTR_Perl6MultiSub_cache_single(interp, SELF, cache);
+        if (cache)
+            found = Parrot_mmd_cache_lookup_by_values(interp, cache, "", args);
         if (PMC_IS_NULL(found)) {
             PMC *proto;
 
@@ -1036,13 +1049,16 @@ Marks the candidate list.
 */
     VTABLE void mark() {
         PMC *candidates;
-        MMD_Cache *cache;
+        MMD_Cache *cache_single, *cache_many;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
-        GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
+        GETATTR_Perl6MultiSub_cache_single(interp, SELF, cache_single);
+        GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache_many);
         if (!PMC_IS_NULL(candidates))
             Parrot_gc_mark_PObj_alive(interp, (PObj*)candidates);
-        if (cache)
-            Parrot_mmd_cache_mark(interp, cache);
+        if (cache_single)
+            Parrot_mmd_cache_mark(interp, cache_single);
+        if (cache_many)
+            Parrot_mmd_cache_mark(interp, cache_many);
     }
 
 /*
@@ -1070,11 +1086,17 @@ Adds a new candidate to the candidate list.
         /* Invalidate the sorted list - we'll need to re-build it. */
         SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, NULL);
 
-        /* Invalidate the cache. */
-        GETATTR_Perl6MultiSub_cache(interp, SELF, cache)
-        Parrot_mmd_cache_destroy(interp, cache);
-        cache = Parrot_mmd_cache_create(interp);
-        SETATTR_Perl6MultiSub_cache(interp, SELF, cache)
+        /* Invalidate the caches. */
+        GETATTR_Perl6MultiSub_cache_single(interp, SELF, cache);
+        if (cache)
+            Parrot_mmd_cache_destroy(interp, cache);
+        cache = NULL;
+        SETATTR_Perl6MultiSub_cache_single(interp, SELF, cache);
+        GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache);
+        if (cache)
+            Parrot_mmd_cache_destroy(interp, cache);
+        cache = NULL;
+        SETATTR_Perl6MultiSub_cache_many(interp, SELF, cache);
     }
 
 /*

@@ -802,13 +802,14 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *ar
 
 =item C<PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *self)>
 
-Uses the arguments currently being passed to find all possible candidates that we
-could run, sorted in order of preference. This is made available for calling by
-the method dispatcher.
+Uses the arguments currently being passed to find all possible candidates that
+we could run, sorted in order of preference. This is made available for calling
+by the method dispatcher.
 
 =cut
 
 */
+
 PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *multi) {
     return find_many_candidates_with_arg_list(interp, multi, get_args(interp));
 }
@@ -891,11 +892,11 @@ Allocates the PMC's underlying storage.
          * ResizablePMCArray. */
         PMC * const candidates = pmc_new(interp, enum_class_ResizablePMCArray);
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Perl6MultiSub_attributes);
-        SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates)
+        SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
 
         /* Set up a cache. */
         cache = Parrot_mmd_cache_create(interp);
-        SETATTR_Perl6MultiSub_cache(interp, SELF, cache)
+        SETATTR_Perl6MultiSub_cache(interp, SELF, cache);
 
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
@@ -928,7 +929,7 @@ Frees the memory associated with this PMC's underlying storage.
         }
 
         /* Free the cache. */
-        GETATTR_Perl6MultiSub_cache(interp, SELF, cache)
+        GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
         Parrot_mmd_cache_destroy(interp, cache);
 
         /* Free memory associated with this PMC's underlying struct. */
@@ -1071,10 +1072,10 @@ Adds a new candidate to the candidate list.
         SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, NULL);
 
         /* Invalidate the cache. */
-        GETATTR_Perl6MultiSub_cache(interp, SELF, cache)
+        GETATTR_Perl6MultiSub_cache(interp, SELF, cache);
         Parrot_mmd_cache_destroy(interp, cache);
         cache = Parrot_mmd_cache_create(interp);
-        SETATTR_Perl6MultiSub_cache(interp, SELF, cache)
+        SETATTR_Perl6MultiSub_cache(interp, SELF, cache);
     }
 
 /*

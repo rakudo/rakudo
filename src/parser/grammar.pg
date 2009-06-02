@@ -806,6 +806,9 @@ token constant_declarator {
 token variable {
     <?sigil>
     [
+    || <sigil> '.' <longname> 
+           [ [<.unsp> | '\\']? <?before '('> <postcircumfix> ]?
+           {*}                                            #= methcall
     || '&' <twigil>? <sublongname=subshortname> {*}       #= subnoun
     || <sigil> <twigil>? <desigilname> {*}                #= desigilname
     || <special_variable> {*}                             #= special_variable

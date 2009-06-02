@@ -1,40 +1,9 @@
 class Any is also {
     our Int multi method bytes() is export {
         Q:PIR {
-            .local string str
-            .local pmc chars
-            .local pmc bytes
-            .local int count
-            .local string nextchar
-            .local int charcode
-            .local string hexstring
-            .local int hexstringlength
-            .local string firsttwo
-            str = self
-            chars = split '', str
-            bytes = new 'FixedIntegerArray'
-            set bytes, 1
-            count = 0
-          loop:
-            unless bytes goto done
-            nextchar = shift chars
-            charcode = ord nextchar
-            bytes[0] = charcode
-            hexstring = sprintf '%08x', bytes
-          eat_zeroes:
-            hexstringlength = length hexstring
-            if hexstringlength == 2 goto inc_length
-            firsttwo = substr hexstring, 0, 2
-            unless firsttwo == '00' goto inc_length
-            hexstring = substr hexstring, 2
-            goto eat_zeroes
-          inc_length:
-            hexstringlength = length hexstring
-            count += hexstringlength
-            goto loop
-          done:
-            count /= 2
-            %r = box count
+            $S0 = self
+            $I0 = bytelength $S0
+            %r = box $I0
         }
     }
 

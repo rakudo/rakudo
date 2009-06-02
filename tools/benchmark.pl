@@ -60,6 +60,12 @@ my %benchmarks = (
         $x + $y;
         $x - $y;
     }
+},
+
+# This one tests posfix:<++> performance.
+"07 - postfix:<++> 10,000 times" => q{
+    my $i = 0;
+    while $i < 10000 { $i++ }
 }
 );
 

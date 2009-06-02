@@ -620,7 +620,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
     }
 
     /* Check is default trait if we still have multiple options and we want one. */
-    if (possibles_count > 1) {
+    if (possibles_count > 1 && many == MMD_ONE_RESULT) {
         /* Locate any default candidates; if we find multiple defaults, this is
          * no help, so we'll not bother collection just which ones are good. */
         candidate_info *default_cand = NULL;

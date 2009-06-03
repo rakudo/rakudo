@@ -2012,28 +2012,37 @@ method variable($/, $key) {
             }
         }
 
-        # The ! twigil always implies attribute scope.
+        # The ! twigil always implies attribute scope and needs self.
         if $twigil eq '!' {
             $var.scope('attribute');
-        }
-
-        # ! and . twigils may need 'self' for attribute lookup ...
-        if $twigil eq '!' || $twigil eq '.' {
             $var.unshift( PAST::Var.new( :name('self'), :scope('lexical') ) );
         }
 
-        # ...but return . twigil as a method call, saving the
-        # PAST::Var node in $var<vardecl> where it can be easily
-        # retrieved by <variable_declarator> if we're called from there.
-        if $twigil eq '.' {
-            my $vardecl := $var;
-            $vardecl.name( $sigil ~ '!' ~ $name );
-            $var := PAST::Op.new( :node($/), :pasttype('callmethod'),
-                :name($name),
-                PAST::Var.new( :name('self'), :scope('lexical') )
-            );
-            $var<vardecl> := $vardecl;
-        }
+    }
+    elsif $key eq 'methcall' {
+        my $name := ~$<longname>;
+        my $sigil := ~$<sigil>;
+        if $sigil eq '&' { $sigil := ''; }
+
+        # Normally $.foo is a method call, so we return a PAST::Op node for it.
+        $var := $<postcircumfix> ?? $<postcircumfix>[0].ast !! PAST::Op.new();
+        $var.pasttype('callmethod');
+        $var.name($name);
+        $var.unshift( PAST::Var.new( :name('self'), :scope('lexical') ) );
+        $var.node($/);
+
+        # Sometimes $.foo is an attribute declaration, so we create a
+        # PAST::Var node in $var<vardecl> where it can be retrieved
+        # by <variable_declarator>.  (Eventually we'll be able to use
+        # $*IN_DECL to decide which to return.)
+        my $vardecl := PAST::Var.new( 
+                           :name($sigil ~ '!' ~ $name),
+                           :scope('attribute'),
+                           :node($/),
+                           PAST::Var.new( :name('self'), :scope('lexical') ) );
+        $vardecl<sigil> := ~$<sigil>;
+        $vardecl<twigil> := '.';
+        $var<vardecl> := $vardecl;
     }
     elsif $key eq 'special_variable' {
         $var := $<special_variable>.ast;

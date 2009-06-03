@@ -471,7 +471,9 @@ src/builtins/op.pir - Perl 6 builtin operators
     rebless_subclass var, derived
 
     # We need to set any initial attribute values up.
-    new_proto.'BUILD'(var)
+    .lex '$CLASS', new_proto
+    $P0 = find_method new_proto, 'BUILD'
+    $P0(var)
 
     # If we were given something to initialize with, do so.
     unless have_init_value goto no_init

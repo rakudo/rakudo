@@ -273,12 +273,12 @@ the object's type and address.
 
 
 .sub 'BUILD' :method
-    .param pmc candidate
     .param pmc attrinit        :slurpy :named
 
-    .local pmc p6meta, parrotclass, attributes, it
+    .local pmc p6meta, parentproto, parrotclass, attributes, it
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    parrotclass = p6meta.'get_parrotclass'(self)
+    parentproto = find_caller_lex '$CLASS'
+    parrotclass = p6meta.'get_parrotclass'(parentproto)
     attributes = inspect parrotclass, 'attributes'
     it = iter attributes
   attrinit_loop:
@@ -286,7 +286,7 @@ the object's type and address.
     .local string attrname, keyname
     .local pmc attr, attrhash
     attrname = shift it
-    attr = getattribute candidate, parrotclass, attrname
+    attr = getattribute self, parrotclass, attrname
     attrhash = attributes[attrname]
     $I0 = index attrname, '!'
     if $I0 < 0 goto attrinit_loop
@@ -296,12 +296,12 @@ the object's type and address.
     unless null $P0 goto attrinit_assign
     $P0 = attrhash['init_value']
     if null $P0 goto attrinit_loop
-    $P0 = $P0(candidate, attr)
+    $P0 = $P0(self, attr)
   attrinit_assign:
     'infix:='(attr, $P0)
     goto attrinit_loop
   attrinit_done:
-    .return (candidate)
+    .return (self)
 .end
 
 
@@ -330,6 +330,7 @@ the object's type and address.
     parentproto = $P0.'WHAT'()
     $I0 = can parentproto, 'BUILD'
     unless $I0 goto parents_loop
+    .lex '$CLASS', parentproto
     # Look through posargs for a corresponding protoobject
     # with a WHENCE property.  If found, that WHENCE property
     # is used as the arguments to the parent class BUILD.
@@ -342,10 +343,12 @@ the object's type and address.
     ne_addr $P0, $P1, posargs_loop
     $P0 = argproto.'WHENCE'()
     if null $P0 goto posargs_done
-    parentproto.'BUILD'(candidate, $P0 :flat :named)
+    $P1 = find_method parentproto, 'BUILD'
+    $P1(candidate, $P0 :flat :named)
     goto parents_loop
   posargs_done:
-    parentproto.'BUILD'(candidate, attrinit :flat :named)
+    $P1 = find_method parentproto, 'BUILD'
+    $P1(candidate, attrinit :flat :named)
     goto parents_loop
   parents_done:
     .return (candidate)

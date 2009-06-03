@@ -123,6 +123,7 @@ SETTING = \
   src/setting/Object.pm \
   src/setting/Pair.pm \
   src/setting/Range.pm \
+  src/setting/Temporal.pm \
   src/setting/Whatever.pm \
 
 PMCS        = perl6str objectref perl6scalar mutablevar perl6multisub p6invocation p6opaque p6role

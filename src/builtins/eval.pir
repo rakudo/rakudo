@@ -153,13 +153,13 @@ itself can be found in src/builtins/control.pir.
     $P0 = ver['lang']
     if null $P0 goto no_hll
     lang = $P0
-    .local pmc compiler, library, imports, callerns
+    .local pmc name, compiler, library, imports, callerns, foreignlibns
     $P0 = getinterp
     callerns = $P0['namespace';1]
     'load-language'(lang)
     compiler = compreg lang
-    $P0 = compiler_obj.'parse_name'(module)
-    library = compiler.'load_library'($P0)
+    name = compiler_obj.'parse_name'(module)
+    library = compiler.'load_library'(name)
     imports = library['symbols']
     imports = imports['DEFAULT']
     .local pmc ns_iter, item
@@ -171,6 +171,11 @@ itself can be found in src/builtins/control.pir.
     callerns[$S0] = $P0
     goto import_loop
   import_loop_end:
+    foreignlibns = library['namespace']
+    if null foreignlibns goto no_foreign_ns
+    $S0 = pop name
+    set_hll_global name, $S0, foreignlibns
+  no_foreign_ns:
     .return (library)
   no_hll:
     # Require module.

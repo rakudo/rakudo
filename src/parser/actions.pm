@@ -415,8 +415,9 @@ method use_statement($/) {
         }
 
         ##  Handle versioning
+        my $ver;
         if $<colonpair> {
-            my $ver := PAST::Op.new( :pasttype('call'), :name('hash') );
+            $ver := PAST::Op.new( :pasttype('call'), :name('hash') );
             for $<colonpair> {
                 $ver.push( $_.ast );
             }
@@ -430,12 +431,14 @@ method use_statement($/) {
         ##  XXX Need to handle tags here too, and creating needed lexical
         ##  slots.
         our @?NS;
+        my %ver_hash;
+        for @($ver) { if $_ { %ver_hash{$_[0].value()} := $_[1].value() } }
         if $tags {
             my %tag_hash;
             for @($tags) { %tag_hash{$_[0].value()} := 1 }
-            use($name, :import_to(@?NS ?? @?NS[0] !! ''), :tags(%tag_hash));
+            use($name, :import_to(@?NS ?? @?NS[0] !! ''), :ver(%ver_hash), :tags(%tag_hash));
         } else {
-            use($name, :import_to(@?NS ?? @?NS[0] !! ''));
+            use($name, :import_to(@?NS ?? @?NS[0] !! ''), :ver(%ver_hash),);
         }
     }
     $past := PAST::Stmts.new( :node($/) );

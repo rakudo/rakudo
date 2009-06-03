@@ -833,6 +833,17 @@ method method_def($/) {
     );
     $block[0].unshift(PAST::Var.new( :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1) ));
 
+    # Add *%_ parameter if there's no other named slurpy.
+    my $need_slurpy_hash := 1;
+    for @($block[0]) {
+        if $_.isa(PAST::Var) && $_.scope() eq 'parameter' && $_.named() && $_.slurpy() {
+            $need_slurpy_hash := 0;
+        }
+    }
+    if $need_slurpy_hash {
+        $block[0].push(PAST::Var.new( :name('%_'), :scope('parameter'), :named(1), :slurpy(1) ));
+    }
+
     $block.control(return_handler_past());
     block_signature($block);
     $block<default_param_type_node>.name('Any');

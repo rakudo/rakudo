@@ -417,7 +417,7 @@ to the Perl 6 compiler.
 .sub 'load_library' :method
     .param pmc name
     .param pmc extra :named :slurpy
-    .local pmc name, retval, library, inc_hash
+    .local pmc retval, library, inc_hash, symbols
     $S0 = join '::', name
     retval = 'require'($S0, 'module'=>1)
     if null retval goto fail
@@ -426,10 +426,17 @@ to the Perl 6 compiler.
     inc_hash = get_hll_global '%INC'
     $S0 = inc_hash[$S0]
     library['filename'] = $S0
-    $P0 = get_hll_global name, 'EXPORT'
-    library['symbols'] = $P0
     $P0 = get_hll_namespace name
     library['namespace'] = $P0
+    push name, 'EXPORT'
+    symbols = get_hll_namespace name
+    unless null symbols goto have_symbols
+    symbols = new 'Hash'
+    $P0 = new 'ResizablePMCArray'
+    symbols['ALL'] = $P0
+    symbols['DEFAULT'] = $P0
+  have_symbols:
+    library['symbols'] = symbols
     .return (library)
   fail:
     .return (retval)

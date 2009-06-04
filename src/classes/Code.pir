@@ -152,7 +152,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'signature' :method
-    $P0 = deref_objectref self
+    $P0 = descalarref self
     $P0 = getprop '$!signature', $P0
     if null $P0 goto no_sig
     .return ($P0)

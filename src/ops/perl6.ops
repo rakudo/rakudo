@@ -328,22 +328,49 @@ inline op transform_to_p6opaque(inout PMC) :base_core {
 
 /*
 
-=item deref_objectref(out PMC, in PMC)
+=item deobjectref(out PMC, in PMC)
 
-If $2 is an ObjectRef or Perl6Scalar, then dereferences it recursively until we get
-to the real underlying value.
+If $2 is an ObjectRef, then follow the chain of ObjectRef
+references until we get to a value of some sort (which could be
+a Perl6Scalar).
 
 =cut
 
 */
-inline op deref_objectref(out PMC, in PMC) :base_core {
+inline op deobjectref(out PMC, in PMC) :base_core {
+    PMC * ref;
     if (!p6s_id) {
         p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
         or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
     }
-    $1 = $2;
-    while ($1->vtable->base_type == p6s_id || $1->vtable->base_type == or_id)
-        $1 = VTABLE_get_pmc(interp, $1);
+    ref = $2;
+    while (ref->vtable->base_type == or_id)
+        ref = VTABLE_get_pmc(interp, ref);
+    $1 = ref;
+    goto NEXT();
+}
+
+/*
+
+=item descalarref(out PMC, in PMC)
+
+If $2 is an ObjectRef or Perl6Scalar, then follow the chain of
+ObjectRef/Perl6Scalar references until we get to the real
+underlying value.
+
+=cut
+
+*/
+inline op descalarref(out PMC, in PMC) :base_core {
+    PMC * ref;
+    if (!p6s_id) {
+        p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
+        or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
+    }
+    ref = $2;
+    while (ref->vtable->base_type == or_id || ref->vtable->base_type == p6s_id)
+        ref = VTABLE_get_pmc(interp, ref);
+    $1 = ref;
     goto NEXT();
 }
 

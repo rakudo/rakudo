@@ -401,13 +401,13 @@ lexicals as needed and performing type checks.
   param_array:
     $P0 = type.'ACCEPTS'(orig)
     unless $P0 goto err_param_type_non_scalar
-    var = deref_objectref orig
+    var = descalarref orig
     var = '!CALLMETHOD'('Array', var)
     goto param_val_done
   param_hash:
     $P0 = type.'ACCEPTS'(orig)
     unless $P0 goto err_param_type_non_scalar
-    var = deref_objectref orig
+    var = descalarref orig
     var = '!CALLMETHOD'('Hash', var)
     goto param_val_done
   param_val_done:

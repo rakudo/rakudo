@@ -3201,7 +3201,7 @@ sub make_attr_init_closure($init_value) {
 
 
 sub deref_invocant($inv) {
-    PAST::Op.new( :inline('    %r = deref_objectref %0'), $inv )
+    PAST::Op.new( :inline('    %r = descalarref %0'), $inv )
 }
 
 

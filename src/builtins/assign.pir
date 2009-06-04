@@ -49,6 +49,7 @@ src/builtins/assign.pir - assignments
     $S1 = source.'WHAT'()
     'die'("Type mismatch in assignment; expected something matching type ", $S0, " but got something of type ", $S1)
   do_assign:
+    source = deobjectref source
     eq_addr cont, source, assign_done
     copy cont, source
     .fixup_cloned_sub(source, cont)

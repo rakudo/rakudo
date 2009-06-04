@@ -419,7 +419,11 @@ method use_statement($/) {
         if $<colonpair> {
             $ver := PAST::Op.new( :pasttype('call'), :name('hash') );
             for $<colonpair> {
-                $ver.push( $_.ast );
+                my $pair := $_.ast;
+                $ver.push( $pair );
+                if $pair[0].value() eq 'lang' {
+                    $/.add_type($name);
+                }
             }
             $ver.named('ver');
             $use_call.push($ver);

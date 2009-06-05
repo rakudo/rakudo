@@ -812,6 +812,9 @@ method routine_def($/) {
             my $trait := $_.ast;
             if substr($trait[0], 0, 11) eq 'trait_verb:' {
                 $trait.name('!sub_trait_verb');
+                if $trait[0] eq 'trait_verb:returns' || $trait[0] eq 'trait_verb:of' {
+                    $block<has_return_constraint> := 1;
+                }
             }
             else {
                 $trait.name('!sub_trait');

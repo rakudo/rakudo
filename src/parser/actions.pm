@@ -758,10 +758,13 @@ method routine_declarator($/, $key) {
     else {
         $past[1].push( PAST::Op.new( :name('list') ) );
     }
-    ##  Add a call to !SIGNATURE_BIND to fixup params and do typechecks.
+    ##  Add a call to !SIGNATURE_BIND to fixup params and do typechecks, and
+    ##  a return to make sure we type-check any implicitly return values for
+    ##  routines with return type constraints.
     $past[0].push(
         PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
     );
+    add_return_type_check_if_needed($past);
     ##  If we have a proto in scope of this name, then we need to make this a
     ##  multi.
     if $past.name() ne "" {
@@ -1030,13 +1033,7 @@ method signature($/, $key) {
 
         ##  handle return type written with --> T
         if $<fulltypename> {
-            $loadinit.push(PAST::Op.new(
-                :pasttype('call'),
-                :name('!sub_trait_verb'),
-                PAST::Var.new( :name('block'), :scope('register') ),
-                'trait_verb:returns',
-                $<fulltypename>[0].ast
-            ));
+            set_return_type($block, $<fulltypename>);
         }
 
         ##  restore block stack and return signature ast
@@ -1865,16 +1862,8 @@ method scoped($/) {
             }
         }
         elsif $past.isa(PAST::Block) && $<fulltypename> {
-            if +$<fulltypename> > 1 {
-                $/.panic("Multiple prefix constraints not yet supported");
-            }
-            $past.loadinit().push(PAST::Op.new(
-                :pasttype('call'),
-                :name('!sub_trait_verb'),
-                PAST::Var.new( :name('block'), :scope('register') ),
-                'trait_verb:returns',
-                $<fulltypename>[0].ast
-            ));
+            set_return_type($past, $<fulltypename>);
+            add_return_type_check_if_needed($past);
         }
     }
     make $past;
@@ -3209,6 +3198,35 @@ sub make_attr_init_closure($init_value) {
 
 sub deref_invocant($inv) {
     PAST::Op.new( :inline('    %r = descalarref %0'), $inv )
+}
+
+
+sub set_return_type($block, $type_parse_tree) {
+    if +$type_parse_tree > 1 {
+        $type_parse_tree[0].panic("Multiple prefix constraints not yet supported");
+    }
+    if $block<has_return_constraint> {
+        $type_parse_tree[0].panic("Can not apply two sets of return types to one routine");
+    }
+    $block.loadinit().push(PAST::Op.new(
+        :pasttype('call'),
+        :name('!sub_trait_verb'),
+        PAST::Var.new( :name('block'), :scope('register') ),
+        'trait_verb:returns',
+        $type_parse_tree[0].ast
+    ));
+    $block<has_return_constraint> := 1;
+}
+
+
+sub add_return_type_check_if_needed($block) {
+    if $block<has_return_constraint> {
+        $block[1] := PAST::Op.new(
+            :pasttype('call'),
+            :name('return'),
+            $block[1]
+        );
+    }
 }
 
 

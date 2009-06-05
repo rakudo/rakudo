@@ -1865,6 +1865,9 @@ method scoped($/) {
             }
         }
         elsif $past.isa(PAST::Block) && $<fulltypename> {
+            if +$<fulltypename> > 1 {
+                $/.panic("Multiple prefix constraints not yet supported");
+            }
             $past.loadinit().push(PAST::Op.new(
                 :pasttype('call'),
                 :name('!sub_trait_verb'),

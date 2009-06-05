@@ -15,6 +15,11 @@ This file implements the Grammar class.
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     p6meta.'new_class'('Grammar', 'parent'=>'Match')
+
+    $P0 = get_root_namespace ['parrot';'PGE';'Grammar']
+    $P0 = get_class $P0
+    .const 'Sub' $P1 = 'Grammar.parse'
+    $P0.'add_method'('parse', $P1)
 .end
 
 =head2 Methods
@@ -34,7 +39,7 @@ Invokes the TOP rule in the grammar on the given topic.
 =cut
 
 .namespace ['Grammar']
-.sub 'parse' :method
+.sub 'parse' :method :subid('Grammar.parse')
     .param pmc topic
     .param pmc options         :slurpy :named
     .local pmc TOP

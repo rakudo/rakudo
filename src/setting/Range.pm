@@ -6,14 +6,14 @@ class Range is also {
     has $.to_exclusive = Bool::False;
 
     our Bool multi method ACCEPTS(Range $topic) {
-        ($.from == $topic.from) && ($.to == $topic.to) &&
-        ($.from_exclusive == $topic.from_exclusive) &&
-        ($.to_exclusive == $topic.from_exclusive) &&
-        ($.by == $topic.by)
+        ?(($.from == $topic.from) && ($.to == $topic.to) &&
+          ($.from_exclusive == $topic.from_exclusive) &&
+          ($.to_exclusive == $topic.from_exclusive) &&
+          ($.by == $topic.by))
     }
 
     our Bool multi method ACCEPTS($topic) {
-        self!from_test($topic) && self!to_test($topic)
+        ?(self!from_test($topic) && self!to_test($topic))
     }
 
     our Range multi method iterator() {
@@ -54,15 +54,18 @@ class Range is also {
         }
     }
 
-    our Range multi method reverse() {
+    our #(Range) multi method reverse() {
+        # XXX Should eventually return a reversed Range.
         @.list.reverse;
     }
 
-    our Bool multi method true() {
+    our #(Bool) multi method true() {
+        # XXX For some reason, simply ?-ing what follows does not fix the
+        # return type to Bool. Needs investigating...
         self!to_test($.from_exclusive ?? ++($.from.clone) !! $.from)
     }
 
     our Str multi method Str() {
-        $.list
+        ~$.list
     }
 }

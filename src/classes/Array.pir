@@ -18,26 +18,7 @@ src/classes/Array.pir - Perl 6 Array class and related functions
 .end
 
 
-# This is here since this is the first thing in the built-ins that needs it.
-.macro fixup_cloned_sub(orig, copy)
-    .local pmc tmp, tmp2
-    $I0 = isa .orig, 'Sub'
-    unless $I0 goto sub_fixup_done
-    tmp = getprop '$!signature', .orig
-    setprop .copy, '$!signature', tmp
-    $I0 = isa .orig, 'Code'
-    unless $I0 goto sub_fixup_done
-    tmp = getattribute .orig, ['Sub'], 'proxy'
-    tmp = getprop '$!real_self', tmp
-    tmp2 = getattribute .copy, ['Sub'], 'proxy'
-    setprop tmp2, '$!real_self', tmp
-  sub_fixup_done:
-.endm
-
-
 =head2 Methods
-
-=over
 
 =item delete
 

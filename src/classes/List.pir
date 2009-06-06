@@ -117,6 +117,99 @@ A List in item context becomes an Array.
     .tailcall values.'!flatten'()
 .end
 
+
+=item !STORE(source)
+
+Store the values from C<source> into C<self>.
+
+=cut
+
+.namespace ['List']
+.sub '!STORE' :method
+    .param pmc source
+
+    ##  get the list of containers and sources
+    .local pmc list
+    $P0 = new ['List']
+    splice $P0, self, 0, 0
+    list = $P0
+    source = source.'list'()
+    source.'!flatten'()
+
+    ##  now, go through our list of containers, flattening
+    ##  any intermediate lists we find, and marking each
+    ##  container with a property so we can clone it in source
+    ##  if needed
+    .local pmc true
+    .local int i
+    true = box 1
+    i = 0
+  mark_loop:
+    $I0 = elements list
+    unless i < $I0 goto mark_done
+    .local pmc cont
+    cont = list[i]
+    $I0 = isa cont, ['Perl6Scalar']
+    if $I0 goto mark_next
+    $I0 = isa cont, ['Perl6Array']
+    if $I0 goto mark_next
+    $I0 = does cont, 'array'
+    unless $I0 goto mark_next
+    splice list, cont, $I0, 1
+    goto mark_loop
+  mark_next:
+    setprop cont, 'target', true
+    inc i
+    goto mark_loop
+  mark_done:
+
+    ## now build our 'real' source list, cloning any targets we encounter
+    .local pmc slist, it
+    slist = new ['List']
+    it = iter source
+  source_loop:
+    unless it goto source_done
+    $P0 = shift it
+    $P1 = getprop 'target', $P0
+    if null $P1 goto source_next
+    $P0 = clone $P0
+  source_next:
+    push slist, $P0
+    goto source_loop
+  source_done:
+
+    ## now perform the assignments, clearing targets as we go
+    .local pmc pmcnull
+    null pmcnull
+    it = iter list
+  assign_loop:
+    unless it goto assign_done
+    .local pmc cont
+    cont = shift it
+    setprop cont, 'target', pmcnull
+    $I0 = isa cont, 'Perl6Scalar'
+    if $I0 goto assign_scalar
+    $I0 = isa cont, 'Perl6Array'
+    if $I0 goto assign_array
+    $I0 = isa cont, 'Perl6Hash'
+    if $I0 goto assign_hash
+  assign_scalar:
+    if slist goto have_slist
+    slist = new ['Nil']
+  have_slist:
+    $P0 = shift slist
+    'infix:='(cont, $P0)
+    goto assign_loop
+  assign_array:
+  assign_hash:
+    cont.'!STORE'(slist)
+    slist = new ['Nil']
+    goto assign_loop
+  assign_done:
+    .return (list)
+.end
+
+
 =back
 
 =head2 Coercion methods

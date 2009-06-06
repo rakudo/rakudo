@@ -61,6 +61,19 @@ like this.
     .return (result)
 .end
 
+.macro fixup_cloned_sub(orig, copy)
+    .local pmc tmp, tmp2
+    tmp = getprop '$!signature', .orig
+    if null tmp goto sub_fixup_done
+    setprop .copy, '$!signature', tmp
+    tmp = getattribute .orig, ['Sub'], 'proxy'
+    tmp = getprop '$!real_self', tmp
+    if null tmp goto sub_fixup_done
+    tmp2 = getattribute .copy, ['Sub'], 'proxy'
+    setprop tmp2, '$!real_self', tmp
+  sub_fixup_done:
+.endm
+
 
 =item defined()
 
@@ -525,6 +538,43 @@ until we get roles).
     $P0 = self.'ACCEPTS'(topic)
     $P1 = not $P0
     .return ($P1)
+.end
+
+
+=item !STORE(source)
+
+Store C<source> into C<self>, performing type checks
+as needed.  (This method is listed with the other public
+methods simply because I expect it may switch to public
+in the future.)
+
+=cut
+
+.sub '!STORE' :method :subid('Object::!STORE')
+    .param pmc source
+    source = '!CALLMETHOD'('Scalar', source)
+    $I0 = defined source
+    unless $I0 goto do_store
+    .local pmc type
+    getprop type, 'type', self
+    if null type goto do_store
+    $I0 = isa type, 'NameSpace'
+    if $I0 goto do_store
+    $I0 = type.'ACCEPTS'(source)
+    unless $I0 goto err_type
+  do_store:
+    source = deobjectref source
+    eq_addr self, source, store_done
+    copy self, source
+    .fixup_cloned_sub(source, self)
+  store_done:
+    .return (self)
+
+  err_type:
+    $S0 = type.'perl'()
+    $S1 = source.'WHAT'()
+    'die'("Type mismatch in assignment; expected something matching type ", $S0, " but got something of type ", $S1)
+    .return (self)
 .end
 
 

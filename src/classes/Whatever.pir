@@ -15,28 +15,8 @@ This file implements the Whatever class.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, whateverproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    whateverproto = p6meta.'new_class'('Whatever', 'parent'=>'Any')
-    whateverproto.'!IMMUTABLE'()
+    whateverproto = p6meta.'new_class'('Whatever', 'parent'=>'Failure')
 .end
-
-.sub '' :vtable('get_integer') :method
-    $P0 = get_global '$!slice'
-    unless null $P0 goto have_whatever
-    $P0 = 'undef'()
-  have_whatever:
-    $I0 = $P0
-    .return ($I0)
-.end
-
-.sub '' :vtable('get_number') :method
-    $P0 = get_global '$!slice'
-    unless null $P0 goto have_whatever
-    $P0 = 'undef'()
-  have_whatever:
-    $N0 = $P0
-    .return ($N0)
-.end
-
 
 # Local Variables:
 #   mode: pir

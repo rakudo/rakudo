@@ -14,7 +14,7 @@ role Temporal::Date {
     has Month  $.month = 1;
     has Day    $.day = 1;
 
-    method day-of-week( ) { # returns DayOfWeek {
+    method day-of-week { # returns DayOfWeek {
         my ( $a, $y, $m, $jd );         # algorithm from Claus Tøndering
         $a = int((14 - $.month) / 12 );
         $y = $.year + 4800 - $a;
@@ -24,17 +24,17 @@ role Temporal::Date {
         return ($jd + 1) % 7 + 1;
     }
 
-    our Str method month-name( ) {
+    our Str method month-name {
         return <January February March April May June July August
             September October November December>[$.month-1];
     }
 
-    our Str method day-name( ) {
+    our Str method day-name {
         return <Sunday Monday Tuesday Wednesday Thursday Friday
                 Saturday>[self.day-of-week-1];
     }
 
-    our Str method iso8601() {
+    our Str method iso8601 {
         given self {
             return sprintf '%04d-%02d-%02d', .year, .month, .day;
         }
@@ -59,7 +59,7 @@ role Temporal::Time {
     has Minute $.minute = 0;
     has Second $.second = 0;
 
-    our Str method iso8601() {
+    our Str method iso8601 {
         given self {
             return sprintf '%02d:%02d:%02d', .hour, .minute, .second;
         }
@@ -79,23 +79,41 @@ role Temporal::Time {
 
 }
 
+role Temporal::TimeZone::Observance {
+    my subset Offset of Int where { -86400 < $^a < 86400 };
+    has Offset $.offset;
+    has Bool   $.isdst;
+    has Str    $.abbreviation; # UTC, CST, AST
+
+    # The ISO8601 standard does not allow for offsets with sub-minute
+    # resolutions. In real-world practice, this is not an issue.
+    our Str method iso8601 {
+        sprintf "%+03d%02d", self.offset / 3600,
+            int( abs(self.offset) / 60 ) % 60;
+    }
+
+    method Str { self.iso8601 }
+}
+
+
 role Temporal::DateTime {
     has Temporal::Date $.date;
     has Temporal::Time $.time;
+    has Temporal::TimeZone::Observance $.timezone;
+    # TODO: replace the three above with the three below somehow fixed,
+    # and then revise the tests accordingly
 #   has Temporal::Date $!date handles <year month day day-of-week>;
 #   has Temporal::Time $!time handles <hour minute second fractional-second>;
 #   has Temporal::TimeZone::Observance $!timezone handles <offset isdst>;
 
-    our Str method iso8601 () {
+    our Str method iso8601 {
         self.date.iso8601 ~ 'T' ~ self.time.iso8601 ~ self.timezone.iso8601;
     }
 
     method Str { self.iso8601 }
 
-    # This involves a whole bunch of code - see Perl 5's
-    # Time::Local
-    our Num method epoch( )
-    {
+    # This involves a whole bunch of code - see Perl 5's Time::Local
+    our Num method epoch {
         my ( $a, $y, $m, $jd );         # algorithm from Claus Tøndering
         $a = int((14 - $.date.month) / 12 );
         $y = $.date.year + 4800 - $a;
@@ -106,9 +124,9 @@ role Temporal::DateTime {
                + ($.time.hour*60 + $.time.minute)*60 + $.time.second;
     }
 
-#   method Int { self.epoch.truncate }
+    method Int { self.epoch.truncate }
 
-#   method Num { self.epoch }
+    method Num { self.epoch }
 }
 
 class Time {
@@ -135,7 +153,9 @@ class Time {
             date => Temporal::Date.new(
                 year => $year, month  => $mon, day    => $mday ),
             time => Temporal::Time.new(
-                hour => $hour, minute => $min, second => $sec  )
+                hour => $hour, minute => $min, second => $sec  ),
+            timezone => Temporal::TimeZone::Observance.new(
+                offset=>0, isdst=>Bool::False, abbreviation=>'UTC' )
         );
     }
 #   Not clear what spec S32-Temporal really means here...
@@ -146,42 +166,16 @@ class Time {
 
 =begin pod
 
-# Example:
-
-#$date = Date.new( :year(2008), :month(1), :day(25) ); $date.month(); # 1
-#Temporal::Time
-
-role Temporal::TimeZone::Observance {
-    my subset Offset of Int where { -86400 < $^a < 86400 };
-    has Offset $.offset;
-    has Bool   $.isdst;
-    has Str    $.abbreviation; # CST, AST
-
-    # The ISO8601 standard does not allow for offsets with
-    # sub-minute resolutions. In real-world practice, this is not
-    # an issue.
-    our Str method iso8601 {
-        my $hours = self.offset.abs / 3600;
-        my $minutes = self.offset.abs % 3600;
-
-        return self.offset < 0 ?? '-' :: '+'
-                ~ $hours.fmt('%02d')
-                ~ $minutes.truncate.fmt('%02d');
-    }
-
-    method Str { self.iso8601 }
-}
-
-=end pod
-
-=begin pod
-
 =head1 SEE ALSO
+Perl 6 spec <S32-Temporal|http://perlcabal.org/syn/S32/Temporal.html>.
+Perl 5 perldoc L<doc:Time::Local>.
+
 The best yet seen explanation of calendars, by Claus Tøndering
 L<Calendar FAQ|http://www.tondering.dk/claus/calendar.html>.
 Similar algorithms at L<http://www.hermetic.ch/cal_stud/jdn.htm>
 and L<http://www.merlyn.demon.co.uk/daycount.htm>.
-Perl 5 perldoc L<doc:Time::Local>.
-L<S32-Temporal|http://perlcabal.org/syn/S32/Temporal.html>
+
+<ISO 8601|http://en.wikipedia.org/wiki/ISO_8601>
+<Time zones|http://en.wikipedia.org/wiki/List_of_time_zones>
 
 =end pod

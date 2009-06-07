@@ -6,57 +6,76 @@ use strict;
 use warnings;
 
 my @ops = qw(
-  infix:** infix:* infix:/ infix:% infix:div infix:mod infix:+
+  infix:** infix:* infix:/ infix:% infix:div infix:mod infix:+ infix:-
   infix:== infix:!= infix:<  infix:>  infix:<= infix:>= infix:<=>
+  infix:.. infix:^.. infix:..^ infix:^..^
 );
 
 for (@ops) {
-    my $gen = '
+    print qq{
         .namespace []
-        .sub "$_" :multi("Whatever", _)
+        .sub '$_' :multi('Whatever', _)
             .param pmc x
             .param pmc y
-            $P0 = get_hll_global "$_"
-            .lex "$op", $P0
-            .lex "$known", y
-            .const "Sub" $P1 = "!whatever_helper_left"
-            $P1 = clone $P1
-            $P2 = interpinfo .INTERPINFO_CURRENT_SUB
-            $P1."set_outer"($P2)
-            capture_lex $P1
-            "!fixup_routine_type"($P1, "Block")
-            .return ($P1)
+            .tailcall '!whatever_helper'('$_', x, y)
         .end
-        .sub "$_" :multi(_, "Whatever")
+        .sub '$_' :multi(_, 'Whatever')
             .param pmc x
             .param pmc y
-            $P0 = get_hll_global "$_"
-            .lex "$op", $P0
-            .lex "$known", x
-            .const "Sub" $P1 = "!whatever_helper_right"
-            $P1 = clone $P1
-            $P2 = interpinfo .INTERPINFO_CURRENT_SUB
-            $P1."set_outer"($P2)
-            capture_lex $P1
-            "!fixup_routine_type"($P1, "Block")
-            .return ($P1)
+            .tailcall '!whatever_helper'('$_', x, y)
         .end
-    ';
-    $gen =~ s/\$_/$_/g;
-    print $gen;
+        .sub '$_' :multi('WhateverCode', _)
+            .param pmc x
+            .param pmc y
+            .tailcall '!whatever_helper'('$_', x, y)
+        .end
+        .sub '$_' :multi(_, 'WhateverCode')
+            .param pmc x
+            .param pmc y
+            .tailcall '!whatever_helper'('$_', x, y)
+        .end
+    };
 }
 
-print '
-.sub "!whatever_helper_left"
-    .param pmc left 
-    $P0 = find_lex "$op"
-    $P1 = find_lex "$known"
-    .tailcall $P0(left, $P1)
-.end
-.sub "!whatever_helper_right"
-    .param pmc right
-    $P0 = find_lex "$op"
-    $P1 = find_lex "$known"
-    .tailcall $P0($P1, right)
-.end
-';
+print q{
+    .namespace []
+    .sub '!whatever_helper' :anon
+        .param string opname
+        .param pmc left
+        .param pmc right
+        .local pmc opfunc
+        opfunc = find_name opname
+        .lex '$opfunc', opfunc
+        .lex '$left', left
+        .lex '$right', right
+        .const 'Sub' $P0 = '!whatever_closure'
+        $P1 = newclosure $P0
+        '!fixup_routine_type'($P1, 'WhateverCode')
+        .return ($P1)
+    .end
+    .sub '!whatever_closure' :anon :outer('!whatever_helper')
+        .param pmc arg
+        .local pmc opfunc, left, right
+        opfunc = find_lex '$opfunc'
+        left   = find_lex '$left'
+        right  = find_lex '$right'
+        left   = '!whatever_eval'(left, arg)
+        right  = '!whatever_eval'(right, arg)
+        .tailcall opfunc(left, right)
+    .end
+    .sub '!whatever_eval' :multi(_)
+        .param pmc whatever
+        .param pmc arg
+        .return (whatever)
+    .end
+    .sub '!whatever_eval' :multi('Whatever')
+        .param pmc whatever
+        .param pmc arg
+        .return (arg)
+    .end
+    .sub '!whatever_eval' :multi('WhateverCode')
+        .param pmc whatever
+        .param pmc arg
+        .tailcall whatever(arg)
+    .end
+};

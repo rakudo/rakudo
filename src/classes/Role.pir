@@ -170,7 +170,7 @@ Selects a role based upon type.
 
     # Need to unwrap the arguments (they are wrapped by postcircumfix:[ ]
     # multi), then call !select.
-    pos_args = pos_args[0]
+    pos_args.'!flatten'()
     .tailcall self.'!select'(pos_args :flat, name_args :flat :named)
 .end
 

@@ -13,10 +13,10 @@ src/classes/Positional.pir - Positional Role
 .sub '_positional_role_body'
     .param pmc type :optional
 
-    $P0 = get_hll_global ['Positional[::T]'], 'postcircumfix:[ ]'
+    .const 'Sub' $P0 = 'Positional::postcircumfix:[Int]'
     capture_lex $P0
-    $P0 = get_hll_global ['Positional[::T]'], 'of'
-    capture_lex $P0
+    .const 'Sub' $P1 = 'Positional::of'
+    capture_lex $P1
     
     # Capture type.
     if null type goto no_type
@@ -48,87 +48,87 @@ src/classes/Positional.pir - Positional Role
 
 =item postcircumfix:<[ ]>
 
-Returns a list element or slice.
-
 =cut
 
-.sub 'postcircumfix:[ ]' :method :outer('_positional_role_body')
-    .param pmc args            :slurpy
+.sub 'postcircumfix:[ ]' :method :multi(_, 'Integer') :outer('_positional_role_body') :subid('Positional::postcircumfix:[Int]')
+    .param int index
     .param pmc options         :slurpy :named
-    .local pmc result, type
+    .local pmc result
+    if index < 0 goto err_undef
+    .local pmc type
     type = find_lex 'T'
-    if args goto do_index
-    ## return complete invocant as a list
-    .tailcall self.'list'()
-  do_index:
-    args.'!flatten'()
-    $I0 = args.'elems'()
-    if $I0 != 1 goto slice
-    $P0 = args[0]
-    $I0 = isa $P0, ['Whatever']
-    if $I0 goto result_whatever
-    $I0 = args[0]
-    if $I0 >= 0 goto result_fetch
-    result = 'undef'()
-    goto end
-  result_fetch:
-    result = self[$I0]
-    unless null result goto end
-    .local int cur_elems
-    cur_elems = elements self
-  viv_loop:
-    if cur_elems > $I0 goto end
+    .local int count
+    count = elements self
+  extend_loop:
+    unless count < index goto extend_done
     result = 'undef'()
     setprop result, 'type', type
-    self[cur_elems] = result
-    inc cur_elems
-    goto viv_loop
-  result_whatever:
-    result = 'list'(self)
-    goto end
-  slice:
-    result = new ['List']
-  slice_loop:
-    unless args goto slice_done
-    $P0 = shift args
-    $I0 = isa $P0, ['Whatever']
-    if $I0 goto slice_whatever
-    $I0 = $P0
-    if $I0 >= 0 goto slice_index
-  slice_negative:
-    .local pmc elem
-    elem = 'undef'()
-    goto slice_elem
-  slice_index:
-    elem = self[$I0]
-    unless null elem goto slice_elem
-    cur_elems = elements self
-  viv_loop_slice:
-    if cur_elems > $I0 goto slice_elem
-    elem = 'undef'()
-    setprop elem, 'type', type
-    self[cur_elems] = elem
-    inc cur_elems
-    goto viv_loop_slice
-  slice_elem:
-    push result, elem
-    goto slice_loop
-  slice_whatever:
-    ##  add all of the elements to the result
-    $I0 = elements result
-    splice result, self, $I0, 0
-    goto slice_loop
-  slice_done:
-  end:
+    self[count] = result
+    inc count
+    goto extend_loop
+  extend_done:
+    result = self[index]
+    unless null result goto done
+    result = 'undef'()
+    setprop result, 'type', type
+    self[index] = result
+  done:
+    .return (result)
+  err_undef:
+    result = 'undef'()
     .return (result)
 .end
+
+.sub 'postcircumfix:[ ]' :method :multi(_, 'Sub')
+    .param pmc arg
+    .param pmc options         :slurpy :named
+    $I0 = elements self
+    $P0 = arg($I0)
+    .tailcall 'postcircumfix:[ ]'(self, $P0, options :named :flat)
+.end
+
+.sub 'postcircumfix:[ ]' :method :multi(_, 'Whatever')
+    .param pmc arg
+    .param pmc options         :slurpy :named
+    .tailcall 'list'(self)
+.end
+
+.sub 'postcircumfix:[ ]' :method :multi(_)
+    .param pmc options         :slurpy :named
+    .tailcall self.'list'()
+.end
+
+.sub 'postcircumfix:[ ]' :method :multi(_, _)
+    .param pmc args            :slurpy
+    .param pmc options         :slurpy :named
+    .local pmc result
+    args = 'list'(args)
+    $I0 = elements args
+    if $I0 == 1 goto arg_slice
+    result = new ['List']
+  args_loop:
+    unless args goto args_done
+    $P0 = shift args
+    $P0 = 'postcircumfix:[ ]'(self, $P0, options :named :flat)
+    $P0 = 'list'($P0)
+    $I0 = elements result
+    splice result, $P0, $I0, 0
+    goto args_loop
+  args_done:
+    .return (result)
+  arg_slice:
+    $P0 = args[0]
+    .const 'Sub' $P1 = 'Positional::postcircumfix:[Int]'
+    .tailcall $P1(self, $P0, options :named :flat)
+.end
+    
 .sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Positional[::T]'], 'postcircumfix:[ ]'
+    .const 'Sub' block1 = 'Positional::postcircumfix:[Int]'
     signature = new ["Signature"]
-    setprop block, "$!signature", signature
-    signature."!add_param"("$args", 0 :named("named"))
-    signature."!add_param"("$options", 1 :named("named"))
+    setprop block1, "$!signature", signature
+#    signature."!add_param"("$args", 0 :named("named"))
+#    signature."!add_param"("$options", 1 :named("named"))
 .end
 
 
@@ -138,20 +138,20 @@ Returns the type constraining what may be stored.
 
 =cut
 
-.sub 'of' :method :outer('_positional_role_body')
+.sub 'of' :method :outer('_positional_role_body') :subid('Positional::of')
     $P0 = find_lex 'T'
     .return ($P0)
 .end
 .sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Positional[::T]'], 'of'
+    .const 'Sub' block = 'Positional::of'
     signature = new ["Signature"]
     setprop block, "$!signature", signature
 .end
 
 
 .namespace []
-.sub 'postcircumfix:[ ]' :multi(_)
+.sub 'postcircumfix:[ ]'
     .param pmc invocant
     .param pmc args    :slurpy
     .param pmc options :slurpy :named
@@ -164,20 +164,6 @@ Returns the type constraining what may be stored.
     .tailcall $P0(invocant, args :flat, options :flat :named)
   object_method:
     .tailcall invocant.'postcircumfix:[ ]'(args :flat, options :flat :named)
-.end
-
-
-.sub 'postcircumfix:[ ]' :multi(_, 'Sub')
-    .param pmc invocant
-    .param pmc argsblock
-    .param pmc options :slurpy :named
-    $I0 = elements invocant
-    $P0 = box $I0
-    set_hll_global ['Whatever'], '$!slice', $P0
-    .local pmc args
-    args = argsblock()
-    args = 'list'(args)
-    .tailcall 'postcircumfix:[ ]'(invocant, args, options :flat :named)
 .end
 
 =back

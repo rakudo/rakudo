@@ -85,6 +85,7 @@ BUILTINS_PIR = \
   src/classes/Nil.pir \
   src/classes/Pair.pir \
   src/classes/Whatever.pir \
+  src/classes/WhateverCode.pir \
   src/classes/Capture.pir \
   src/classes/Match.pir \
   src/classes/Grammar.pir \

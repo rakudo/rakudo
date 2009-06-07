@@ -135,7 +135,7 @@ Construct a range from the endpoints.
 =cut
 
 .namespace []
-.sub 'infix:..' :multi()
+.sub 'infix:..'
     .param pmc from
     .param pmc to
     .local pmc proto
@@ -143,7 +143,7 @@ Construct a range from the endpoints.
     .tailcall proto.'new'('from'=>from, 'to'=>to)
 .end
 
-.sub 'infix:^..' :multi()
+.sub 'infix:^..'
     .param pmc from
     .param pmc to
     .local pmc proto, true
@@ -152,7 +152,7 @@ Construct a range from the endpoints.
     .tailcall proto.'new'('from'=>from, 'to'=>to, 'from_exclusive'=>true)
 .end
 
-.sub 'infix:..^' :multi()
+.sub 'infix:..^'
     .param pmc from
     .param pmc to
     .local pmc proto, true
@@ -161,7 +161,7 @@ Construct a range from the endpoints.
     .tailcall proto.'new'('from'=>from, 'to'=>to, 'to_exclusive'=>true)
 .end
 
-.sub 'infix:^..^' :multi()
+.sub 'infix:^..^'
     .param pmc from
     .param pmc to
     .local pmc proto, true

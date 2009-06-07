@@ -1358,7 +1358,8 @@ method postcircumfix($/, $key) {
     if $key eq '[ ]' {
         $past := PAST::Op.new( :name('postcircumfix:[ ]'), :node($/) );
         if $<semilist><EXPR> {
-            $past.push( $<semilist>.ast );
+            my $slice := $<semilist>.ast;
+            $past.push( PAST::Block.new( $slice, :blocktype('declaration') ) );
         }
     }
     elsif $key eq '( )' {
@@ -2211,7 +2212,7 @@ method fulltypename($/) {
             :pasttype('call'),
             :name('postcircumfix:[ ]'),
             $past,
-            $<fulltypename>[0].ast
+            PAST::Block.new( $<fulltypename>[0].ast, :blocktype('declaration') )
         );
     }
     make $past;

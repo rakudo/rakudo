@@ -252,8 +252,6 @@ token statement {
         <.ws>
     | <?before ';'> {*}                          #= null
     ]
-    {{ $P0 = get_hll_global ['Bool'], 'False'
-       set_global '$begin_compunit', $P0 }}
 }
 
 rule statement_control {
@@ -707,10 +705,12 @@ rule package_def {
     {*}                                                  #= open
     <trait>*
     [
+    | <block> {*}                                        #= block
     | <?{{ $P0 = get_global '$begin_compunit'
+           $P1 = get_hll_global ['Bool'], 'False'
+           set_global '$begin_compunit', $P1
            .return ($P0) }}>
       ';' <statement_block> {*}                          #= statement_block
-    | <block> {*}                                        #= block
     | {*}                                                #= panic
     ]
 }

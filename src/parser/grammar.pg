@@ -454,7 +454,7 @@ rule trait_auxiliary {
 
 rule trait_verb {
     [
-    | $<sym>=[of|returns] <typename>
+    | $<sym>=[of|returns] <fulltypename>
     | $<sym>=[handles] <noun>
     ]
     {*}

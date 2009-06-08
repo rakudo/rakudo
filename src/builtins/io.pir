@@ -165,8 +165,12 @@ Shows the supplied message and then waits for input from $*IN.
     .param string prompt
     'print'(prompt)
     $P0 = get_hll_global "$IN"
-    $S0 = $P0.'get'()
+    $P1 = $P0.'get'()
+    unless $P1 goto undef
+    $S0 = $P1
     .return ($S0)
+  undef:
+    .return ($P1)
 .end
 
 

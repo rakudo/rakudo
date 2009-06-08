@@ -47,12 +47,16 @@ Gets a list of this class' parents.
     .param pmc local         :named('local') :optional
     .param pmc hierarchical  :named('hierarchical') :optional
     
+    # Create result list.
     .local pmc parrot_class, result_list, parrot_list, it
     result_list = get_root_global [.RAKUDO_HLL], 'Array'
     result_list = result_list.'new'()
+
+    # We'll get the proto-object, then get the Parrot Class from that.
+    obj = obj.'WHAT'()
     parrot_class = self.'get_parrotclass'(obj)
-    
-    # Fake top of Perl 6 hierarchy
+
+    # Fake top of Perl 6 hierarchy.
     $S0 = parrot_class.'name'()
     if $S0 != 'Perl6Object' goto not_object
     unless null local goto done
@@ -61,23 +65,34 @@ Gets a list of this class' parents.
     goto done
   not_object:
 
-    # If it's local or default, can just use inspect.
+    # If it's local can just use inspect.
     unless null hierarchical goto do_hierarchical
     if null local goto all_parents
     parrot_list = inspect parrot_class, 'parents'
-    goto have_list
+    it = iter parrot_list
+    goto it_loop
+
+    # If it's all parents, get the MRO and just waste the first item (which
+    # is ourself).
   all_parents:
     parrot_list = inspect parrot_class, 'all_parents'
-  have_list:
     it = iter parrot_list
+    $P0 = shift it
+
+    # Now loop and build result list. We package up things inside an
+    # ObjectRef to make sure List and Array introspection doesn't go
+    # horribly wrong.
   it_loop:
     unless it goto it_loop_end
     $P0 = shift it
+    $I0 = isa $P0, 'PMCProxy'
+    if $I0 goto it_loop
     parrot_class = self.'get_parrotclass'($P0)
     $S0 = parrot_class.'name'()
     if $S0 == 'P6object' goto done
     $P0 = getprop 'metaclass', $P0
     $P0 = $P0.'WHAT'()
+    $P0 = new 'ObjectRef', $P0
     result_list.'push'($P0)
     goto it_loop
   it_loop_end:

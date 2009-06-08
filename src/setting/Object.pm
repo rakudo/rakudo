@@ -51,8 +51,10 @@ class Object is also {
                 }
                 build_descendent(self.WHAT);
             } else {
-                # Canonical, the default (just whatever the meta-class says).
+                # Canonical, the default (just whatever the meta-class says) with us
+                # on the start.
                 @classes = self.^parents();
+                @classes.unshift(self.WHAT);
             }
         }
         # Now we have classes, build method list.

@@ -165,12 +165,11 @@ XXX Fix bugs with introspecting some built-in classes (List, Str...)
     if $I0 goto parent_it_loop
     cur_parent = getprop 'metaclass', cur_parent
     cur_parent = cur_parent.'WHAT'()
-    parent_methods = self.'methods'(cur_parent)
+    parent_methods = self.'methods'(cur_parent, adverbs :flat :named)
     if null tree goto not_tree
-    if tree goto flatten_done
+    unless tree goto not_tree
+    parent_methods = new 'Perl6Scalar', parent_methods
   not_tree:
-    parent_methods = parent_methods.'list'()
-  flatten_done:
     result_list.'push'(parent_methods)
     goto parent_it_loop
   parent_it_loop_end:

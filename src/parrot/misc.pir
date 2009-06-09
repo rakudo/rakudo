@@ -52,13 +52,17 @@ Note that we currently do this by adding the method to Parrot's
 .end
 
 
-# Twiddle MultiSub - at least one of these can go away when it stops inheriting
+# Twiddle MultiSub - at most of these can go away when it stops inheriting
 # from RPA.
 
 .namespace ['MultiSub']
 
 .sub 'Scalar' :method
     .return (self)
+.end
+
+.sub 'perl' :method
+    .return ('{ ... }')
 .end
 
 =item name

@@ -50,3 +50,29 @@ Note that we currently do this by adding the method to Parrot's
     .param string lang
     load_language lang
 .end
+
+
+# Twiddle MultiSub - at least one of these can go away when it stops inheriting
+# from RPA.
+
+.namespace ['MultiSub']
+
+.sub 'Scalar' :method
+    .return (self)
+.end
+
+=item name
+
+Gets the name of the routine.
+
+=cut
+
+.sub 'name' :method
+    # We'll just use the name of the first candidate.
+    $S0 = ''
+    $P0 = self[0]
+    if null $P0 goto done
+    $S0 = $P0
+  done:
+    .return ($S0)
+.end

@@ -44,8 +44,8 @@ Gets a list of this class' parents.
 
 .sub 'parents' :method
     .param pmc obj
-    .param pmc local         :named('local') :optional
-    .param pmc hierarchical  :named('hierarchical') :optional
+    .param pmc local   :named('local') :optional
+    .param pmc tree    :named('tree') :optional
     
     # Create result list.
     .local pmc parrot_class, result_list, parrot_list, it
@@ -66,7 +66,7 @@ Gets a list of this class' parents.
   not_object:
 
     # If it's local can just use inspect.
-    unless null hierarchical goto do_hierarchical
+    unless null tree goto do_tree
     if null local goto all_parents
     parrot_list = inspect parrot_class, 'parents'
     it = iter parrot_list
@@ -98,8 +98,8 @@ Gets a list of this class' parents.
   it_loop_end:
     goto done
 
-  do_hierarchical:
-    'die'(':hierarchical not yet implemented')
+  do_tree:
+    'die'(':tree not yet implemented')
 
   done:
     .return (result_list)
@@ -118,15 +118,22 @@ XXX Fix bugs with introspecting some built-in classes (List, Str...)
 
 .sub 'methods' :method
     .param pmc obj
+    .param pmc adverbs :named :slurpy
+
+    .local pmc local, tree, private
+    local = adverbs['local']
+    tree = adverbs['tree']
+    private = adverbs['private']
 
     .local pmc parrot_class, method_hash, result_list, it, cur_meth
+    obj = obj.'WHAT'()
     parrot_class = self.'get_parrotclass'(obj)
 
     # Create array to put results in.
     result_list = get_root_global [.RAKUDO_HLL], 'Array'
     result_list = result_list.'new'()
 
-    # Get methods hash and build list of methods.
+    # Get methods for this class and build list of methods.
     method_hash = inspect parrot_class, "methods"
     it = iter method_hash
   it_loop:
@@ -137,6 +144,38 @@ XXX Fix bugs with introspecting some built-in classes (List, Str...)
     goto it_loop
   it_loop_end:
 
+    # If we're in local mode or we reached the top of the hierarchy, we're done.
+    $S0 = parrot_class
+    if $S0 == 'Perl6Object' goto done
+    if null local goto not_local
+    if local goto done
+  not_local:
+
+    # Otherwise, need to get methods of our parent classes too. Recurse; if
+    # we are wanting a hierarchical list then we push the resulting Array
+    # straight on, so it won't flatten. Otherwise we do .list so what we
+    # push will flatten.
+    .local pmc parents, cur_parent, parent_methods
+    parents = inspect parrot_class, 'parents'
+    it = iter parents
+  parent_it_loop:
+    unless it goto parent_it_loop_end
+    cur_parent = shift it
+    $I0 = isa cur_parent, 'PMCProxy'
+    if $I0 goto parent_it_loop
+    cur_parent = getprop 'metaclass', cur_parent
+    cur_parent = cur_parent.'WHAT'()
+    parent_methods = self.'methods'(cur_parent)
+    if null tree goto not_tree
+    if tree goto flatten_done
+  not_tree:
+    parent_methods = parent_methods.'list'()
+  flatten_done:
+    result_list.'push'(parent_methods)
+    goto parent_it_loop
+  parent_it_loop_end:
+
+  done:
     .return (result_list)
 .end
 

@@ -133,6 +133,14 @@ Just calls this block with the supplied parameters.
     .tailcall self(pos_args :flat, named_args :flat :named)
 .end
 
+=item name
+
+=cut
+
+.sub 'name' :method
+    $S0 = self
+    .return ($S0)
+.end
 
 =item perl()
 

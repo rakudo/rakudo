@@ -317,6 +317,8 @@ layer.  It will likely change substantially when we have lazy lists.
     if $I0 goto flat_next
     $I0 = isa elem, 'P6role'
     if $I0 goto flat_next
+    $I0 = isa elem, 'MultiSub'
+    if $I0 goto flat_next
     $I0 = can elem, '!flatten'
     if $I0 goto flat_elem
     $I0 = does elem, 'array'

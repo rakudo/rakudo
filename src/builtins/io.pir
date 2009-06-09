@@ -155,25 +155,6 @@ It is an error to use bare C<unlink> without arguments.
 .end
 
 
-=item prompt
-
-Shows the supplied message and then waits for input from $*IN.
-
-=cut
-
-.sub 'prompt'
-    .param string prompt
-    'print'(prompt)
-    $P0 = get_hll_global "$IN"
-    $P1 = $P0.'get'()
-    unless $P1 goto undef
-    $S0 = $P1
-    .return ($S0)
-  undef:
-    .return ($P1)
-.end
-
-
 .sub '!qx'
     .param string cmd
     .local pmc pio

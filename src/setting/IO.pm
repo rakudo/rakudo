@@ -68,4 +68,9 @@ multi sub lines(IO $filehandle,
     $filehandle.lines();
 }
 
+multi sub prompt($msg) {
+    print $msg;
+    $*IN.get;
+}
+
 # vim: ft=perl6

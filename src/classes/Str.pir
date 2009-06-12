@@ -95,7 +95,24 @@ Increment and Decrement Methods
 =cut
 
 .namespace ['Str']
-.const string RANGES = "01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZAabcdefghijklmnopqrstuvwxyza"
+
+## The RANGES constant indicates the successor to each character in
+## a defined range.  ## Currently supported increment/decrement ranges:
+##    0..9   ASCII digits  (U+0030..U+0039)
+##    A..Z   ASCII uc       (U+0041..U+005a)
+##    a..z   ASCII lc       (U+0061..U+006a)
+##    Α..Ω   Greek uc       (U+0391..U+03a9, skip u+03a2)
+##    α..ω   Greek lc       (U+03b1..U+03c9, skip u+03c2)
+##    Ⅰ..Ⅻ   clock roman uc (U+2160..U+216b)
+##    ⅰ..ⅻ   clock roman lc (U+2170..U+217b)
+##    ①..⑳   circled digits (U+2460..U+2473)
+##    ⑴..⒇   parenth digits (U+2474..U+2487)
+##    ⒜..⒵   parenth lc     (U+249c..U+24b5)
+##    ⚀..⚅   die faces      (U+2680..U+2685)
+## Note that in each cycle, the first character of the cycle is repeated
+## at the end of the cycle (to indicate carries).
+
+.const string RANGES = unicode:"01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZAabcdefghijklmnopqrstuvwxyza\u0391\u0392\u0393\u0394\u0395\u0396\u0397\u0398\u0399\u039a\u039b\u039c\u039d\u039e\u039f\u03a0\u03a1\u03a3\u03a4\u03a5\u03a6\u03a7\u03a8\u03a9\u0391\u03b1\u03b2\u03b3\u03b4\u03b5\u03b6\u03b7\u03b8\u03b9\u03ba\u03bb\u03bc\u03bd\u03be\u03bf\u03c0\u03c1\u03c3\u03c4\u03c5\u03c6\u03c7\u03c8\u03c9\u03b1\u2160\u2161\u2162\u2163\u2164\u2165\u2166\u2167\u2168\u2169\u216a\u216b\u2160\u2170\u2171\u2172\u2173\u2174\u2175\u2176\u2177\u2178\u2179\u217a\u217b\u2170\u2460\u2461\u2462\u2463\u2464\u2465\u2466\u2467\u2468\u2469\u246a\u246b\u246c\u246d\u246e\u246f\u2470\u2471\u2472\u2473\u2460\u2474\u2475\u2476\u2477\u2478\u2479\u247a\u247b\u247c\u247d\u247e\u247f\u2480\u2481\u2482\u2483\u2484\u2485\u2486\u2487\u2474\u249c\u249d\u249e\u249f\u24a0\u24a1\u24a2\u24a3\u24a4\u24a5\u24a6\u24a7\u24a8\u24a9\u24aa\u24ab\u24ac\u24ad\u24ae\u24af\u24b0\u24b1\u24b2\u24b3\u24b4\u24b5\u249c\u2680\u2681\u2682\u2683\u2684\u2685\u2680"
 
 .sub '!range_pos' :anon
     .param string str

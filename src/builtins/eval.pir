@@ -150,7 +150,7 @@ itself can be found in src/builtins/control.pir.
     # This HLL stuff *should* be integrated with the rest... I spent an hour on it and failed.
     ver = options['ver']
     if null ver goto no_hll
-    $P0 = ver['lang']
+    $P0 = ver['from']
     if null $P0 goto no_hll
     lang = $P0
     .local pmc name, compiler, library, imports, callerns, foreignlibns

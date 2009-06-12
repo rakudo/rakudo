@@ -421,7 +421,7 @@ method use_statement($/) {
             for $<colonpair> {
                 my $pair := $_.ast;
                 $ver.push( $pair );
-                if $pair[0].value() eq 'lang' {
+                if $pair[0].value() eq 'from' {
                     $/.add_type($name);
                 }
             }

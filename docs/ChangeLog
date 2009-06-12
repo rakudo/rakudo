@@ -1,3 +1,13 @@
+New in 2009-06 release
++ refactored and corrected object initialization
++ attributes initilizations can now use attributes defined earlier
++ method calls are now faster
++ basic safe mode that forbids IO and execution of external programs
++ implemented meta operators for user defined operators
++ initial implementation of Temporal (date/time related objects)
++ type checking of implicit return values
++ improved introspection methods
+
 New in 2009-05 release
 + updated docs/ROADMAP
 + basic support for custom operators

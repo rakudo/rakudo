@@ -1,5 +1,5 @@
 class Array is also {
-    multi method splice(@array is rw: Int $offset = 0, Int $size = @array.elems - $offset, *@values) is export {
+    multi method splice(@array is rw: $offset = 0, $size = @array.elems - $offset, *@values) is export {
         my @spliced;
         my @deleted;
 

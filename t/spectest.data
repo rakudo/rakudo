@@ -121,6 +121,7 @@ S03-operators/cross-metaop.t
 S03-operators/equality.t
 S03-operators/hyper.t
 S03-operators/increment.t
+S03-operators/inplace.t
 S03-operators/misc.t
 S03-operators/not.t
 S03-operators/numeric-context.t
@@ -287,6 +288,7 @@ S12-class/parent_attributes.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
+S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-enums/anonymous.t
 S12-enums/as-role.t
@@ -415,4 +417,5 @@ S32-str/ucfirst.t
 S32-str/uc.t                                               # icu
 S32-str/unpack.t
 S32-str/words.t                                            # icu
+S32-trig/e.t
 S32-trig/trig.t

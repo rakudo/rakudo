@@ -7,6 +7,11 @@ New in 2009-06 release
 + initial implementation of Temporal (date/time related objects)
 + type checking of implicit return values
 + improved introspection methods
++ cleaned up IO methods
++ automatically transcode to iso-8859-1 for faster parsing when possible
++ refactored and corrected assignment, .succ, .pred, C<++>, C<-->, 
+  postcircumfix:<[ ]>, Whatever
++ "module Foo;"  now allows statements before it
 
 New in 2009-05 release
 + updated docs/ROADMAP

@@ -12,7 +12,7 @@ say "1..2";
 # variables and file-scoped lexicals from such a routine.
 #
 
-$Main::was_in_second_end_block = 0;
+our $Main::was_in_second_end_block = 0;
 
 END {
     if $Main::was_in_second_end_block {

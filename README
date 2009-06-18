@@ -135,8 +135,7 @@ it gets appropriately tagged in the RT system (https://rt.perl.org/rt3/).
 Please include or attach any sample source code that exhibits the
 bug, and include either the release name/date or the git commit
 identifier. You find that identifier in the first output line of 
-the C<git log> command.
-There's no need to cc: the perl6-compiler
+the C<git log> command.  There's no need to cc: the perl6-compiler
 mailing list, as the RT system will handle this on its own.
 
 =head2 Submitting patches

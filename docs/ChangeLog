@@ -8,6 +8,7 @@ New in 2009-06 release
 + type checking of implicit return values
 + improved introspection methods
 + cleaned up IO methods
++ improved "is export" handling for modules and setting
 + automatically transcode to iso-8859-1 for faster parsing when possible
 + refactored and corrected assignment, .succ, .pred, C<++>, C<-->, 
   postcircumfix:<[ ]>, Whatever

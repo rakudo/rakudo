@@ -48,6 +48,9 @@ and improvements in this release include:
 * User-defined operators now also receive some of their associated 
   meta variants.
 
+* The 'is export' trait has been improved; more builtin functions
+  and methods can be written in Perl 6 instead of PIR.
+
 * Many Parrot changes have improved performance and reduced overall
   memory leaks (although there's still much more improvement needed).
 

@@ -18,15 +18,36 @@ is the host for YAPC|10 (YAPC::NA 2009) [2] and the Parrot Virtual Machine
 Workshop [3].  Pittsburgh.pm has also sponsored hackathons for Rakudo 
 Perl as part of the 2008 Pittsburgh Perl Workshop [4].
 
-In this release of Rakudo Perl, we've made the following major changes
-and improvements:
+In this release of Rakudo Perl, we've focused our efforts on refactoring
+many of Rakudo's internals; these refactors improve performance, 
+bring us closer to the Perl 6 specification, operate more cleanly
+with Parrot, and provide a stronger foundation for features to be
+implemented in the near future.  Some of the specific major changes
+and improvements in this release include:
 
-* Rakudo is now passing NN,NNN spectests, an increase of NNN
+* Rakudo is now passing 11,536 spectests, an increase of 194
   passing tests since the May 2009 release.  With this release
-  Rakudo is now passing NN% of the available spectest suite.
+  Rakudo is now passing 68% of the available spectest suite.
 
-[...more items here...]
+* Method dispatch has been substantially refactored; the new dispatcher
+  is significantly faster and follows the Perl 6 specification more
+  closely.
 
+* Object initialization via the BUILD and CREATE (sub)methods is
+  substantially improved.
+
+* All return values are now type checked (previously only explicit
+  'return' statements would perform type checking).
+
+* String handling is significantly improved; fewer Unicode-related
+  bugs exist, and parsing speed is improved for some programs containing
+  characters in the Latin-1 set.
+
+* The IO .lines and .get methods now follow the specification more closely.
+
+* User-defined operators now also receive some of their associated 
+  meta variants.
+  
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible.  If you would like to contribute,
 see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org

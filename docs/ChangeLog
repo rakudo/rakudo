@@ -1,5 +1,5 @@
 New in 2009-06 release
-+ refactored and corrected object initialization
++ refactored and corrected object initialization (BUILD/CREATE)
 + attributes initilizations can now use attributes defined earlier
 + method calls are now faster
 + basic safe mode that forbids IO and execution of external programs
@@ -12,6 +12,9 @@ New in 2009-06 release
 + refactored and corrected assignment, .succ, .pred, C<++>, C<-->, 
   postcircumfix:<[ ]>, Whatever
 + "module Foo;"  now allows statements before it
++ improved Unicode string handling
++ better support for Str increment/decrement in Unicode ranges
++ many performance improvements
 
 New in 2009-05 release
 + updated docs/ROADMAP

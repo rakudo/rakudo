@@ -1,7 +1,7 @@
 Announce: Rakudo Perl 6 development release #18 ("Pittsburgh")
 
 On behalf of the Rakudo development team, I'm pleased to announce
-the May 2009 development release of Rakudo Perl #18 "Pittsburgh".
+the June 2009 development release of Rakudo Perl #18 "Pittsburgh".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
 The tarball for the June 2009 release is available from
 http://github.com/rakudo/rakudo/downloads .
@@ -39,15 +39,18 @@ and improvements in this release include:
 * All return values are now type checked (previously only explicit
   'return' statements would perform type checking).
 
-* String handling is significantly improved; fewer Unicode-related
-  bugs exist, and parsing speed is improved for some programs containing
-  characters in the Latin-1 set.
+* String handling is significantly improved: fewer Unicode-related
+  bugs exist, and parsing speed is greatly improved for some programs 
+  containing characters in the Latin-1 set.
 
 * The IO .lines and .get methods now follow the specification more closely.
 
 * User-defined operators now also receive some of their associated 
   meta variants.
-  
+
+* Many Parrot changes have improved performance and reduced overall
+  memory leaks (although there's still much more improvement needed).
+
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible.  If you would like to contribute,
 see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org

@@ -27,7 +27,8 @@ my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 ##  determine what revision of Parrot we require
 open my $REQ, "build/PARROT_REVISION"
   || die "cannot open build/PARROT_REVISION\n";
-my $required = 0+<$REQ>;
+my ($reqsvn, $reqpar) = split(' ', <$REQ>);
+$reqsvn += 0;
 close $REQ;
 
 {
@@ -35,15 +36,15 @@ close $REQ;
     if (open my $REV, '-|', "parrot${slash}parrot_config revision") {
         my $revision = 0+<$REV>;
         close $REV;
-        if ($revision >= $required) {
-            print "Parrot r$revision already available (r$required required)\n";
+        if ($revision >= $reqsvn) {
+            print "Parrot r$revision already available (r$reqsvn required)\n";
             exit(0);
         }
     }
 }
 
-print "Checking out Parrot r$required via svn...\n";
-system(qw(svn checkout -r),  $required , qw(https://svn.parrot.org/parrot/trunk parrot));
+print "Checking out Parrot r$reqsvn via svn...\n";
+system(qw(svn checkout -r),  $reqsvn , qw(https://svn.parrot.org/parrot/trunk parrot));
 
 chdir('parrot');
 

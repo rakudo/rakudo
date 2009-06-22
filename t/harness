@@ -58,7 +58,7 @@ if (eval { require TAP::Harness; 1 }) {
     my %harness_options = (
         exec      => ['./perl6'],
         verbosity => 0+$Test::Harness::verbose,
-        jobs      => $jobs || 1,
+        jobs      => $ENV{TEST_JOBS} || $jobs || 1,
     );
     TAP::Harness->new( \%harness_options )->runtests(@tfiles);
 }

@@ -90,7 +90,7 @@ $p->set(
         x_label             => 'Date',
         y_label             => 'Tests',
         title               => 'Rakudo Spectest Progress',
-        x_label_skip        => 7,
+        x_label_skip        => int($rows / 20),
         x_labels_vertical   => 1,
         cumulate            => 1,
         borderclrs          => [undef],

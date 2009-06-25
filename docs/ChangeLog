@@ -1,3 +1,7 @@
+New in 2009-07 release
++ operators can be defined in the setting
++ basic implementation of the series operator
+
 New in 2009-06 release
 + refactored and corrected object initialization (BUILD/CREATE)
 + attributes initilizations can now use attributes defined earlier

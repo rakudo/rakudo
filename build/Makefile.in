@@ -122,6 +122,7 @@ SETTING = \
   src/setting/Match.pm \
   src/setting/Num.pm \
   src/setting/Object.pm \
+  src/setting/Operators.pm \
   src/setting/Pair.pm \
   src/setting/Range.pm \
   src/setting/Temporal.pm \

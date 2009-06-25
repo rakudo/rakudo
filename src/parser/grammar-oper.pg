@@ -161,6 +161,10 @@ proto infix:«p5=>» is equiv(infix:<,>) is subname('infix:,') { ... }
 ## list infix
 proto infix:<X> is precedence('f=')
     is assoc('list')
+   { ... }
+# needs to come before the others because of missing LTM
+proto infix:<...> is equiv(infix:<X>)
+    is assoc('list')
     { ... }
 proto infix:<X,X> is equiv(infix:<X>)
     is assoc('list')

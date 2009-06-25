@@ -134,6 +134,7 @@ S03-operators/reduce-metaop.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
+S03-operators/series.t
 S03-operators/short-circuit.t
 S03-operators/smartmatch.t
 S03-operators/spaceship-and-containers.t

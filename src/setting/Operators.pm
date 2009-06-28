@@ -7,12 +7,18 @@ multi sub infix:<...> (@lhs, Code $generator) {
     }
     my @result = @lhs;
     my @r;
-    # XXX work around http://rt.perl.org/rt3/Ticket/Display.html?id=66824
-    # this is a bit ugly.. since @a[1..1] returns a single item and not 
-    # an array, |@result[$one-item-range] throws the error
-    # "argument doesn't array"
-    while @r = $generator(|@(@result[*-$c..*-1])) {
-        @result.push: @r;
+    if ?any( $generator.signature.params>>.<slurpy> ) {
+        while @r = $generator(|@result) {
+            @result.push: @r;
+        }
+    } else {
+        # XXX work around http://rt.perl.org/rt3/Ticket/Display.html?id=66824
+        # this is a bit ugly.. since @a[1..1] returns a single item and not
+        # an array, |@result[$one-item-range] throws the error
+        # "argument doesn't array"
+        while @r = $generator(|@(@result[*-$c..*-1])) {
+            @result.push: @r;
+        }
     }
     return @result;
 }

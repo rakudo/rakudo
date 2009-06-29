@@ -437,23 +437,17 @@ rule method_def {
 
 rule trait {
     [
-    | <trait_auxiliary>
-    | <trait_verb>
+    | <trait_mod>
+    | <colonpair>
     ]
     {*}
 }
 
-rule trait_auxiliary {
+rule trait_mod {
     [
     | $<sym>=[is] <name><postcircumfix>?
     | $<sym>=[does] <name>['['<EXPR>?']']?
     | $<sym>=[will] <identifier> <block>
-    ]
-    {*}
-}
-
-rule trait_verb {
-    [
     | $<sym>=[of|returns] <fulltypename>
     | $<sym>=[handles] <noun>
     ]

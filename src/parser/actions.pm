@@ -901,20 +901,21 @@ method method_def($/) {
 
 method trait($/) {
     my $past;
-    if $<trait_auxiliary> {
-        $past := $<trait_auxiliary>.ast;
+    if $<trait_mod> {
+        $past := $<trait_mod>.ast;
     }
-    elsif $<trait_verb> {
-        $past := $<trait_verb>.ast;
+    elsif $<colonpair> {
+        $/.panic('traits specified as colon pairs not yet understood');
     }
     make $past;
 }
 
 
-method trait_auxiliary($/) {
+method trait_mod($/) {
     my $sym   := ~$<sym>;
-    my $trait := PAST::Op.new( :name('infix:,'), 'trait_auxiliary:' ~ $sym);
+    my $trait := PAST::Op.new( :name('infix:,'));
     if $sym eq 'is' {
+        $trait.push( 'trait_auxiliary:' ~ $sym );
         $trait.push( ~$<name> );
         if $<postcircumfix> {
             my $arg := $<postcircumfix>[0].ast;
@@ -923,6 +924,7 @@ method trait_auxiliary($/) {
         }
     }
     elsif $sym eq 'does' {
+        $trait.push( 'trait_auxiliary:' ~ $sym );
         $trait.push( ~$<name> );
         if $<EXPR> {
             for @(build_call($<EXPR>[0].ast)) {
@@ -936,16 +938,15 @@ method trait_auxiliary($/) {
             }
         }
     }
+    elsif $sym eq 'handles' { 
+        $trait.push( 'trait_verb:' ~ $sym );
+        $trait.push( $<noun>.ast );
+    }
+    else {
+        $trait.push( 'trait_verb:' ~ $sym );
+        $trait.push( $<fulltypename>.ast );
+    }
     make $trait;
-}
-
-
-method trait_verb($/) {
-    my $sym := ~$<sym>;
-    my $value;
-    if $sym eq 'handles' { $value := $<noun>.ast; }
-    else { $value := $<fulltypename>.ast; }
-    make PAST::Op.new( :name('infix:,'), 'trait_verb:' ~ $sym, $value );
 }
 
 

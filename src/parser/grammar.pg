@@ -702,8 +702,8 @@ rule package_def {
             match.'add_type'($S0)
         }}
     ]?
-    {*}                                                  #= open
     <trait>*
+    {*}                                                  #= open
     [
     | <block> {*}                                        #= block
     | <?{{ $P0 = get_global '$begin_compunit'

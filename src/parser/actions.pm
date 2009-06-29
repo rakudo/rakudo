@@ -1423,10 +1423,14 @@ method package_declarator($/, $key) {
     my $sym := ~$<sym>;
     my $past;
     if $key eq 'open' {
+        # Start of a package. Create a block and mark it as a package declaration.
         our $?BLOCK_OPEN;
         $?BLOCK_OPEN := PAST::Block.new( PAST::Stmts.new(), :node($/) );
         $?BLOCK_OPEN<pkgdecl> := $sym;
         @?PKGDECL.unshift( $sym );
+
+        # Attach traits list to it.
+        $?BLOCK_OPEN<traits> := $<traits>;
     }
     elsif $key eq 'package_def' {
         make $<package_def>.ast;

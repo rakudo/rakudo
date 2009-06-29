@@ -850,14 +850,14 @@ method method_def($/) {
     );
     $block[0].unshift(PAST::Var.new( :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1) ));
 
-    # Add *%_ parameter if there's no other named slurpy.
+    # Add *%_ parameter if there's no other named slurpy or the package isn't hidden.
     my $need_slurpy_hash := 1;
     for @($block[0]) {
         if $_.isa(PAST::Var) && $_.scope() eq 'parameter' && $_.named() && $_.slurpy() {
             $need_slurpy_hash := 0;
         }
     }
-    if $need_slurpy_hash {
+    if $need_slurpy_hash && !package_has_trait('hidden') {
         $block[0].push(PAST::Var.new( :name('%_'), :scope('parameter'), :named(1), :slurpy(1) ));
         $block.loadinit().push(PAST::Op.new(
             :pasttype('callmethod'),
@@ -1423,14 +1423,10 @@ method package_declarator($/, $key) {
     my $sym := ~$<sym>;
     my $past;
     if $key eq 'open' {
-        # Start of a package. Create a block and mark it as a package declaration.
         our $?BLOCK_OPEN;
         $?BLOCK_OPEN := PAST::Block.new( PAST::Stmts.new(), :node($/) );
         $?BLOCK_OPEN<pkgdecl> := $sym;
         @?PKGDECL.unshift( $sym );
-
-        # Attach traits list to it.
-        $?BLOCK_OPEN<traits> := $<traits>;
     }
     elsif $key eq 'package_def' {
         make $<package_def>.ast;
@@ -1472,6 +1468,11 @@ method package_def($/, $key) {
             (~$<module_name>[0]<longname><name> ~ ~$<module_name>[0]<role_params>);
         my $fqname := +@?NS ?? @?NS[0] ~ '::' ~ $add !! $add;
         @?NS.unshift($fqname);
+
+        # Also attach traits to the node.
+        our $?BLOCK_OPEN;
+        $?BLOCK_OPEN<traits> := $<trait>;
+
         return 0;
     }
     else {
@@ -1558,7 +1559,7 @@ method package_def($/, $key) {
             #  the metaclass as the first argument.
             my $trait := $_.ast;
             if $trait[1] eq 'also' { $block<isalso> := 1; }
-            else {
+            elsif $trait[1] ne 'rw' && $trait[1] ne 'hidden' {
                 ##  If it is a trait_auxiliary:does or a trait_auxiliary:is we
                 ##  should check the name is a type.
                 if $trait[0] eq 'trait_auxiliary:is' || $trait[0] eq 'trait_auxiliary:does' {
@@ -1685,7 +1686,8 @@ method scope_declarator($/) {
                         $method.name( substr($var.name(), 2) );
                     }
                     my $value := PAST::Var.new( :name($var.name()) );
-                    my $readtype := trait_readtype( $var<traitlist> ) || 'readonly';
+                    my $default_readtype := package_has_trait('rw') ?? 'rw' !! 'readonly';
+                    my $readtype := trait_readtype( $var<traitlist> ) || $default_readtype;
                     if $readtype eq 'CONFLICT' {
                         $<scoped>.panic(
                             "Can use only one of readonly, rw, and copy on "
@@ -3242,6 +3244,20 @@ sub add_return_type_check_if_needed($block) {
             $block[1]
         );
     }
+}
+
+
+sub package_has_trait($name) {
+    our $?BLOCK_OPEN;
+    our @?BLOCK;
+    my $block := $?BLOCK_OPEN || @?BLOCK[0];
+    for $block<traits> {
+        my $ast := $_.ast;
+        if +@($ast) >= 2 && $ast[0] eq 'trait_auxiliary:is' && $ast[1] eq $name {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 

@@ -25,6 +25,7 @@ multi sub infix:<...> (@lhs, Code $generator) {
 
 multi sub infix:<eqv> (Num $a, Num $b) { $a === $b }
 multi sub infix:<eqv> (Str $a, Str $b) { $a === $b }
+multi sub infix:<eqv> (Code $a, Code $b) { $a === $b }
 multi sub infix:<eqv> (Positional $a, Positional $b) {
     return Bool::False unless $a.WHAT === $b.WHAT;
     return Bool::False unless $a.elems == $b.elems;

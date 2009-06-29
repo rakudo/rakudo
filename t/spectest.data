@@ -120,6 +120,7 @@ S03-operators/context-forcers.t
 S03-operators/context.t
 S03-operators/cross-metaop.t
 S03-operators/equality.t
+S03-operators/eqv.t
 S03-operators/hyper.t
 S03-operators/increment.t
 S03-operators/inplace.t

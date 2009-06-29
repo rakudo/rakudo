@@ -285,8 +285,10 @@ S12-class/declaration-order.t
 S12-class/inheritance-class-methods.t
 S12-class/inheritance.t
 S12-class/instantiate.t
+S12-class/interface-consistency.t
 S12-class/namespaced.t
 S12-class/parent_attributes.t
+S12-class/rw.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t

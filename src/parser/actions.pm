@@ -838,6 +838,10 @@ method method_def($/) {
         $block.name( $name );
     }
 
+    $block.control(return_handler_past());
+    block_signature($block);
+    $block<default_param_type_node>.name('Any');
+
     # Add lexical 'self' and a slot for the candidate dispatcher list.
     $block[0].unshift(
         PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1),
@@ -855,11 +859,16 @@ method method_def($/) {
     }
     if $need_slurpy_hash {
         $block[0].push(PAST::Var.new( :name('%_'), :scope('parameter'), :named(1), :slurpy(1) ));
+        $block.loadinit().push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('!add_param'),
+            PAST::Var.new( :name('signature'), :scope('register') ),
+            PAST::Val.new( :value('%_') ),
+            PAST::Val.new( :value(1), :named('named') ),
+            PAST::Val.new( :value(1), :named('slurpy') )
+        ));
     }
 
-    $block.control(return_handler_past());
-    block_signature($block);
-    $block<default_param_type_node>.name('Any');
     # Ensure there's an invocant in the signature.
     $block.loadinit().push(PAST::Op.new(
         :pasttype('callmethod'),

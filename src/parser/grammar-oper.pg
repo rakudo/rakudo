@@ -143,7 +143,7 @@ proto infix:<:=> is precedence('i=') is pasttype('bind') { ... }
 proto infix:<::=> is equiv(infix:<:=>) { ... }
 proto infix:<.=> is equiv(infix:<:=>) { ... }
 proto infix:«=>» is equiv(infix:<:=>) { ... }
-proto infix:<//=> is equiv(infix:<:=>) { ... }
+proto infix:<//=> is equiv(infix:<:=>) is lvalue(1) { ... }
 proto infix:<&&=> is equiv(infix:<:=>) { ... }
 proto infix:<||=> is equiv(infix:<:=>) { ... }
 

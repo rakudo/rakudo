@@ -2526,6 +2526,28 @@ method EXPR($/, $key) {
     if $key eq 'end' {
         make $<expr>.ast;
     }
+    elsif +@($/) == 2 && $/[0].ast<scopedecl> eq 'state' && $<top><lvalue> {
+        # State variables - only want to actually do an assignment if
+        # there is no value.
+        my $lhs := $/[0].ast;
+        my $rhs := $/[1].ast;
+        make PAST::Op.new(
+            :pasttype('unless'),
+            :node($/),
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('!state_var_inited'),
+                $lhs.isa(PAST::Var) ?? $lhs.name() !! $lhs[0].name()
+            ),
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('infix:='),
+                :lvalue(1),
+                $lhs,
+                $rhs
+            )
+        );
+    }
     elsif ~$type eq 'infix:=' {
         my $lhs := $/[0].ast;
         my $rhs := $/[1].ast;
@@ -2542,26 +2564,6 @@ method EXPR($/, $key) {
             our @?BLOCK;
             @?BLOCK[0][0].push($past);
             $past := PAST::Stmts.new();
-        }
-        elsif $lhs<scopedecl> eq 'state' {
-            # State variables - only want to actually do an assignment if
-            # there is no value.
-            $past := PAST::Op.new(
-                :pasttype('unless'),
-                :node($/),
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('!state_var_inited'),
-                    $lhs.isa(PAST::Var) ?? $lhs.name() !! $lhs[0].name()
-                ),
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('infix:='),
-                    :lvalue(1),
-                    $lhs,
-                    $rhs
-                )
-            );
         }
         elsif $lhs<scopedecl> eq 'constant' {
             $lhs<constant_value_slot>.push($rhs);

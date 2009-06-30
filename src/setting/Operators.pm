@@ -44,4 +44,8 @@ multi sub infix:<eqv> ($a, $b) {
     die "infix:<eqv> is only implemented for certain special cases yet";
 }
 
+multi sub infix:<minmax>(@a, @b) {
+    (@a[0] min @b[0], @a[1] max @b[1]);
+}
+
 # vim: ft=perl6

@@ -574,10 +574,8 @@ in the future.)
     .return (self)
 
   err_type:
-    $S0 = type.'perl'()
-    $S1 = source.'WHAT'()
-    'die'("Type mismatch in assignment; expected something matching type ", $S0, " but got something of type ", $S1)
-    .return (self)
+    $S0 = '!make_type_fail_message'('Assignment', source, type)
+    'die'($S0)
 .end
 
 

@@ -350,7 +350,8 @@ Store things into an Array (e.g., upon assignment)
     splice self, array, 0, $I0
     .return (self)
   type_error:
-    'die'("Type mismatch in assignment to Array.")
+    $S0 = '!make_type_fail_message'('Array assignment', $P0, type)
+    'die'($S0)
 .end
 
 =back

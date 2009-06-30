@@ -344,8 +344,6 @@ Gets a perl representation of the signature.
     concat s, ':'
   no_trailing_colon:
 
-    # XXX TODO: Return type, once we support those.
-
     # Done.
     concat s, ')'
     .return (s)
@@ -455,14 +453,8 @@ lexicals as needed and performing type checks.
     $P0 = '!DISPATCH_JUNCTION_SINGLE'(callersub, callerlex, callersig)
     'return'($P0)
   not_junctional:
-    .local string errmsg
-    errmsg = 'Parameter type check failed; expected something matching '
-    $S0 = type.'WHAT'()
-    concat errmsg, $S0
-    concat errmsg, ' but got something of type '
-    $S0 = orig.'WHAT'()
-    concat errmsg, $S0
-    .local string callername
+    .local string errmsg, callername
+    errmsg = '!make_type_fail_message'('Parameter', orig, type)
     callername = callersub
     if callername goto have_callername
     callername = '<anon>'

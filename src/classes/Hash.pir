@@ -236,7 +236,8 @@ Store a value into a hash.
   err_odd_list:
     die "Odd number of elements found where hash expected"
   type_error:
-    'die'("Type mismatch in assignment to Hash.")
+    $S0 = '!make_type_fail_message'('Hash assignment', value, type)
+    'die'($S0)
 .end
 
 

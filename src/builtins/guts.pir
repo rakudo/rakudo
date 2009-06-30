@@ -1679,6 +1679,37 @@ Creates whatever closures (*.foo => { $_.foo })
     'die'("You used handles on attribute ", attrname, ", but nothing in the array can do method ", methodname)
 .end
 
+
+=item !make_type_fail_message
+
+Makes a type check failure error message, so we don't have to be doing so all
+over the rest of the code base.
+
+=cut
+
+.sub '!make_type_fail_message'
+    .param string what_failed
+    .param pmc got_type
+    .param pmc wanted_type
+
+    # Initial bit.
+    .local string output
+    output = concat what_failed, " type check failed; expected "
+
+    # Work out what we were looking for and show that.
+    $P0 = wanted_type.'WHAT'()
+    $S0 = $P0.'perl'()
+    output = concat $S0
+
+    # Report what we actually got.
+    output = concat ", but got "
+    $P0 = got_type.'WHAT'()
+    $S0 = $P0.'perl'()
+    output = concat $S0
+
+    .return (output)
+.end
+
 =back
 
 =cut

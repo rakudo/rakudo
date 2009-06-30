@@ -3127,7 +3127,8 @@ sub return_handler_past() {
                 :name('ACCEPTS'),
                 PAST::Op.new( :inline("    %r = interpinfo .INTERPINFO_CURRENT_SUB",
                                       "    %r = getprop '$!real_self', %r",
-                                      "    %r = %r.'of'()") ),
+                                      "    %r = %r.'of'()",
+                                      "    $P0 = %r") ),
                 PAST::Var.new( :name('exception'), :scope('register') )
             ),
             PAST::Op.new(
@@ -3137,7 +3138,13 @@ sub return_handler_past() {
             PAST::Op.new(
                 :pasttype('call'),
                 :name('die'),
-                'Type check failed on return value'
+                PAST::Op.new(
+                    :pasttype('call'),
+                    :name('!make_type_fail_message'),
+                    'Return value',
+                    PAST::Var.new( :name('exception'), :scope('register') ),
+                    PAST::Var.new( :name('$P0'), :scope('register') )
+                )
             )
         )
     )

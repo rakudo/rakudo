@@ -173,7 +173,7 @@ file.
 
   substring_search:
     pos = index s, substring, pos
-    if pos < 0 goto fail
+    if pos < 0 goto notfound
 
   done:
     $P0 = new ['Int']
@@ -182,6 +182,8 @@ file.
 
   fail:
     .tailcall '!FAIL'("Attempt to index from negative position")
+  notfound:
+    .tailcall '!FAIL'("Substring '", substring, "' not found in '", s, "'")
 .end
 
 =item match()
@@ -234,7 +236,7 @@ file.
     $P0 = self
   do_search:
     pos = $P0.'reverse_index'(substring, pos)
-    if pos < 0 goto fail
+    if pos < 0 goto notfound
 
   done:
     $P0 = new ['Int']
@@ -243,6 +245,8 @@ file.
 
   fail:
     .tailcall '!FAIL'("Attempt to index from negative position")
+  notfound:
+    .tailcall '!FAIL'("Substring '", substring, "' not found in '", s, "'")
 .end
 
 =item split

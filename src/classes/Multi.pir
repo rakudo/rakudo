@@ -25,6 +25,14 @@ Multi - Perl 6 multi-dispatch routine
     .return (self)
 .end
 
+
+.namespace []
+
+.sub 'prefix:~' :multi('MultiSub')
+    .param pmc multi
+    .tailcall multi.'name'()
+.end
+
 =back
 
 =cut

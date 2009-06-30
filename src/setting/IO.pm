@@ -34,7 +34,7 @@ class IO is also {
     multi method print(*@items) {
         try {
             for @items -> $item {
-                $!PIO.print($item);
+                $!PIO.print(~$item);
             }
         }
         $! ?? fail($!) !! Bool::True;

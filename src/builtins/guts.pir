@@ -592,7 +592,11 @@ and creating the protoobjects.
     goto roles_it_loop
   roles_it_loop_end:
 
-    # Create proto-object with default parent being Any or Grammar.
+    # Create proto-object with default parent being Any or Grammar, unless
+    # there already is a parent.
+    $P0 = metaclass.'parents'()
+    $I0 = elements $P0
+    if $I0 goto register_parent_set
     $S0 = 'Any'
     $P0 = getprop 'pkgtype', metaclass
     if null $P0 goto no_pkgtype
@@ -600,6 +604,8 @@ and creating the protoobjects.
     $S0 = 'Grammar'
   register:
     .tailcall p6meta.'register'(metaclass, 'parent'=>$S0)
+  register_parent_set:
+    .tailcall p6meta.'register'(metaclass)
   no_pkgtype:
 .end
 

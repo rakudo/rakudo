@@ -53,6 +53,13 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     $P0 = info
     set_hll_global '$EXECUTABLE_NAME', $P0
 
+    ## create basic $*CWD
+    .local pmc os
+    os = new ['OS']
+    $S0 = os."cwd"()
+    $P0 = box $S0
+    set_hll_global '$CWD', $P0
+
     ##  create $*IN, $*OUT, $*ERR filehandles
     .local pmc pio, perl6io, perl6ioclass
     perl6ioclass = get_hll_global "IO"

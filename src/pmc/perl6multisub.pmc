@@ -1194,6 +1194,24 @@ Makes a copy of this Perl6MultiSub PMC.
 
 /*
 
+=item VTABLE STRING * get_string()
+
+Get an iterator over the candidates.
+
+=cut
+
+*/
+    VTABLE STRING * get_string() {
+        PMC *candidates;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        if (VTABLE_elements(interp, candidates) > 0)
+            return VTABLE_get_string(interp, VTABLE_get_pmc_keyed_int(interp, candidates, 0));
+        else
+            return CONST_STRING(interp, "<anon>");
+    }
+
+/*
+
 =item METHOD void push(candidate)
 
 Adds a candidate.

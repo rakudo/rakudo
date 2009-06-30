@@ -1062,8 +1062,20 @@ method type_constraint($/) {
     if $<fulltypename> {
         $past := $<fulltypename>.ast;
     }
-    else {
+    elsif $<EXPR> {
         $past := make_anon_subtype($<EXPR>.ast);
+    }
+    else {
+        my $value := $<value>.ast;
+        $past := PAST::Op.new(
+            :name('infix:,'),
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('WHAT'),
+                $value
+            ),
+            make_anon_subtype($value)
+        );
     }
     make $past;
 }

@@ -502,9 +502,9 @@ rule type_declarator {
     {*}
 }
 
-# XXX STD.pm also has value in here?
 rule type_constraint {
     [
+    | <value>
     | <fulltypename>
     | where <EXPR: 'm='>               # XXX <EXPR(item %chaining)>
     ]

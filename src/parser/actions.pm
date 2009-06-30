@@ -746,6 +746,9 @@ method routine_declarator($/, $key) {
     elsif $key eq 'method' {
         $past := $<method_def>.ast;
         set_block_type($past, 'Method');
+        if $past.name() eq 'BUILD' {
+            warn("BUILD declared as a method; you probably wanted to declare it as a submethod.");
+        }
     }
     elsif $key eq 'submethod' {
         $past := $<method_def>.ast;

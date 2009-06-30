@@ -199,6 +199,7 @@ true value is returned.
     .return ($P0)
 
   failure:
+    pop_eh
     .tailcall '!FAIL'('Unable to change to directory "', newdir, '"')
 .end
 

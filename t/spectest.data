@@ -348,6 +348,7 @@ S16-io/basic-open.t
 S16-io/say.t
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
+S28-named-variables/cwd.t
 S28-named-variables/inc.t
 S29-any/cmp.t
 S29-any/isa.t
@@ -372,6 +373,7 @@ S32-hash/keys_values.t
 S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
+S32-io/chdir.t
 S32-io/IO-Socket-INET.t
 S32-list/end.t
 S32-list/first.t

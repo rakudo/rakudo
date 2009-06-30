@@ -167,7 +167,40 @@ It is an error to use bare C<unlink> without arguments.
   err_qx:
     .tailcall '!FAIL'('Unable to execute "', cmd, '"')
 .end
-  
+
+
+=item chdir STRING
+
+Changes the current working directory.
+
+  chdir '/new/dir';
+
+On success the value of the new directory is put in $*CWD and a
+true value is returned.
+
+=cut
+
+.sub 'chdir'
+    .param string newdir
+
+    # Try to change directory; if we fail, exception thrown, so catch
+    # it and fail if needed.
+    .local pmc os
+    os = new ['OS']
+    push_eh failure
+    os.'chdir'(newdir)
+    pop_eh
+    
+    # Update $*CWD and we're done.
+    $S0 = os."cwd"()
+    $P0 = box $S0
+    set_hll_global '$CWD', $P0
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return ($P0)
+
+  failure:
+    .tailcall '!FAIL'('Unable to change to directory "', newdir, '"')
+.end
 
 =back
 

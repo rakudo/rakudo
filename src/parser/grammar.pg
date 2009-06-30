@@ -489,7 +489,7 @@ token signature {
 }
 
 rule type_declarator {
-    'subset'
+    subset
     <name>
     {{
         $P0 = match['name']
@@ -497,7 +497,8 @@ rule type_declarator {
         match.'add_type'($S0)
     }}
     [ of <fulltypename> ]?
-    where <EXPR>
+    <trait>*
+    [where <EXPR>]?                # XXX <EXPR(item %chaining)>
     {*}
 }
 

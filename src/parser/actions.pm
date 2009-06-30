@@ -2403,18 +2403,7 @@ method term($/, $key) {
 
     if $key eq '*' {
         # Whatever.
-        $past := PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('new'),
-            :node($/),
-            :lvalue(1),
-            PAST::Var.new(
-                :name('Whatever'),
-                :namespace(list()),
-                :scope('package'),
-                :node($/)
-            )
-        );
+        $past := make_whatever($/);
     }
     elsif $key eq 'noarg' {
         if @ns {
@@ -2709,8 +2698,9 @@ method type_declarator($/) {
         $/.panic("Re-declaration of type " ~ ~$<name>);
     }
 
-    # We need a block containing the constraint condition.
-    my $past := make_anon_subtype($<EXPR>.ast);
+    # We need a block containing the constraint condition if there is one; if
+    # not, we just pass along the PAST for Whatever, which smart-matches anything.
+    my $past := make_anon_subtype($<EXPR> ?? $<EXPR>[0].ast !! make_whatever($/));
 
     # Create subset type.
     my @name := Perl6::Compiler.parse_name($<name>);
@@ -3261,6 +3251,21 @@ sub package_has_trait($name) {
     return 0;
 }
 
+
+sub make_whatever($/) {
+    PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('new'),
+        :node($/),
+        :lvalue(1),
+        PAST::Var.new(
+            :name('Whatever'),
+            :namespace(list()),
+            :scope('package'),
+            :node($/)
+        )
+    )
+}
 
 # Local Variables:
 #   mode: cperl

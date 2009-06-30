@@ -42,10 +42,13 @@ src/builtins/assign.pir - assignments
     args.'!flatten'()
     if args goto reduce
     if identity == 'fail' goto fail
+    if identity == 'list' goto list
     .return (identity)
 
   fail:
     .tailcall '!FAIL'()
+  list:
+    .tailcall 'list'()
 
   reduce:
     opname = concat 'infix:', opname

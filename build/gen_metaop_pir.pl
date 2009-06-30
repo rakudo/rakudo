@@ -30,6 +30,7 @@ my @ops = qw(
   ~^        ''          op
   ?|        0           op
   ?^        0           op
+  X         'list'      op
   !==       'False'     comp
   !=        'False'     comp
   ==        'True'      comp

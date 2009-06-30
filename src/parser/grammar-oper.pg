@@ -162,16 +162,12 @@ proto infix:«p5=>» is equiv(infix:<,>) is subname('infix:,') { ... }
 proto infix:<X> is precedence('f=')
     is assoc('list')
    { ... }
-# needs to come before the others because of missing LTM
-proto infix:<...> is equiv(infix:<X>)
-    is assoc('list')
-    { ... }
+proto infix:<Z> is equiv(infix:<X>) { ... }
+proto infix:<...> is equiv(infix:<X>) { ... }
+proto infix:<minmax> is equiv(infix:<X>) { ... }
 proto infix:<X,X> is equiv(infix:<X>)
     is assoc('list')
     is subname('infix:X')
-    { ... }
-proto infix:<Z> is equiv(infix:<X>)
-    is assoc('list')
     { ... }
 
 ## list assignment

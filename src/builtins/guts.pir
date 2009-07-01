@@ -682,9 +682,9 @@ Add a trait with the given C<type> and C<name> to C<metaclass>.
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
 
-    if type == 'trait_auxiliary:is' goto is
-    if type == 'trait_auxiliary:does' goto does
-    'die'("Unknown trait auxiliary ", type)
+    if type == 'trait_mod:is' goto is
+    if type == 'trait_mod:does' goto does
+    'die'("Unknown trait_mod: ", type)
 
   is:
     ##  get the (parrot)class object associated with name
@@ -911,7 +911,7 @@ and C<type>.
     null arg
   have_arg:
     
-    $S0 = substr trait, 16
+    $S0 = substr trait, 10
     $S0 = concat '!var_trait_', $S0
     $P0 = find_name $S0
     if null $P0 goto done

@@ -918,7 +918,7 @@ method trait_mod($/) {
     my $sym   := ~$<sym>;
     my $trait := PAST::Op.new( :name('infix:,'));
     if $sym eq 'is' {
-        $trait.push( 'trait_auxiliary:' ~ $sym );
+        $trait.push( 'trait_mod:' ~ $sym );
         $trait.push( ~$<name> );
         if $<postcircumfix> {
             my $arg := $<postcircumfix>[0].ast;
@@ -927,7 +927,7 @@ method trait_mod($/) {
         }
     }
     elsif $sym eq 'does' {
-        $trait.push( 'trait_auxiliary:' ~ $sym );
+        $trait.push( 'trait_mod:' ~ $sym );
         $trait.push( ~$<name> );
         if $<EXPR> {
             for @(build_call($<EXPR>[0].ast)) {
@@ -1460,7 +1460,7 @@ method package_declarator($/, $key) {
         $block[0].push(PAST::Op.new(
             :name('!meta_trait'),
             $?METACLASS,
-            'trait_auxiliary:does',
+            'trait_mod:does',
             $typename
         ));
         make PAST::Stmts.new()
@@ -1576,9 +1576,9 @@ method package_def($/, $key) {
             my $trait := $_.ast;
             if $trait[1] eq 'also' { $block<isalso> := 1; }
             elsif $trait[1] ne 'rw' && $trait[1] ne 'hidden' {
-                ##  If it is a trait_auxiliary:does or a trait_auxiliary:is we
+                ##  If it is a trait_mod:does or a trait_mod:is we
                 ##  should check the name is a type.
-                if $trait[0] eq 'trait_auxiliary:is' || $trait[0] eq 'trait_auxiliary:does' {
+                if $trait[0] eq 'trait_mod:is' || $trait[0] eq 'trait_mod:does' {
                     unless $/.is_type($trait[1]) {
                         $_.panic("The type " ~ $trait[1] ~ " does not exist.");
                     }
@@ -3173,7 +3173,7 @@ sub make_sigparam($var) {
 sub add_optoken($block, $match) {
     my $category := ~$match<category>;
     my $name := $category ~ ':' ~ ~$match[0];
-    if $category ne 'trait_auxiliary' {
+    if $category ne 'trait_mod' {
         my $equiv := 'infix:+';
         if $category eq 'prefix' { $equiv := 'prefix:+' }
         elsif $category eq 'postfix' { $equiv := 'postfix:++' }
@@ -3268,7 +3268,7 @@ sub package_has_trait($name) {
     my $block := $?BLOCK_OPEN || @?BLOCK[0];
     for $block<traits> {
         my $ast := $_.ast;
-        if +@($ast) >= 2 && $ast[0] eq 'trait_auxiliary:is' && $ast[1] eq $name {
+        if +@($ast) >= 2 && $ast[0] eq 'trait_mod:is' && $ast[1] eq $name {
             return 1;
         }
     }

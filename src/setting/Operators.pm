@@ -48,4 +48,8 @@ multi sub infix:<minmax>(@a, @b) {
     (@a[0] min @b[0], @a[1] max @b[1]);
 }
 
+multi sub infix:<leg>($a, $b) {
+    ~$a cmp ~$b;
+}
+
 # vim: ft=perl6

@@ -150,16 +150,6 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:leg' :multi(_,_)
-    .param string a
-    .param string b
-    $I0 = cmp a, b
-    ##  Don't use a tailcall here due to RT#56448
-    $P0 = 'infix:<=>'($I0, 0)
-    .return ($P0)
-.end
-
-
 .sub 'infix:===' :multi(_,_)
     .param pmc a
     .param pmc b

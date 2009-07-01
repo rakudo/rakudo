@@ -214,7 +214,7 @@ and report exceptions.
     .get_results (exception)
     $I0 = exception['severity']
     if $I0 == .EXCEPT_EXIT goto exit
-    if $I0 != .EXCEPT_WARNING goto not_warning
+    if $I0 > .EXCEPT_WARNING goto not_warning
     printerr exception
     printerr "\n"
     $P0 = exception["resume"]

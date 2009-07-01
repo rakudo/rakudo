@@ -85,6 +85,7 @@ the moment -- we'll do more complex handling a bit later.)
     $P0         = root_new ['parrot';'Exception']
     $P0['type'] = .CONTROL_TAKE
     $P0['severity'] = .EXCEPT_NORMAL
+    $P0['message'] = 'take without gather'
     setattribute $P0, 'payload', value
     throw $P0
     .return (value)

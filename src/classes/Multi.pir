@@ -19,6 +19,7 @@ Multi - Perl 6 multi-dispatch routine
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     proto = p6meta.'new_class'('Multi', 'parent'=>'parrot;Perl6MultiSub Code Any')
     p6meta.'register'('Perl6MultiSub', 'parent'=>proto, 'protoobject'=>proto)
+    p6meta.'register'('MultiSub', 'parent'=>proto, 'protoobject'=>proto)
 .end
 
 .sub 'Scalar' :method

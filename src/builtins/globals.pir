@@ -83,6 +83,7 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     vm = new ['Perl6Hash']
     interp = getinterp
     config = interp[.IGLOBALS_CONFIG_HASH]
+    config = new ['Perl6Scalar'], config
     vm['config'] = config
     set_hll_global "%VM", vm
 

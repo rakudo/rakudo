@@ -1710,6 +1710,46 @@ over the rest of the code base.
     .return (output)
 .end
 
+
+=item !bindability_checker
+
+Invokes a sub in bindability checking mode. Catches any exceptions that are
+thrown while trying to bind. If the bind fails, returns null. Otherwise, we
+return the resume continuation so we can continue execution after the bind.
+
+=cut
+
+.sub '!bindability_checker'
+    .param pmc orig_sub
+    .param pmc pos_args
+    .param pmc named_args
+
+    # Clone sub and attach a prop to say we're just doing a bindability check.
+    .local pmc sub
+    sub = clone orig_sub
+    .fixup_cloned_sub(orig_sub, sub)
+    setprop sub, '$!bind_check_only', sub
+
+    # Set up exception handler and invoke. We really should get an exception
+    # whether it binds or not; if we don't, best we can do is hand back the
+    # sub, but warn something may be very wrong.
+    push_eh oh_noes
+    sub(pos_args :flat, named_args :flat :named)
+    pop_eh
+    warn("Potential internal error: bindability check may have done more than just binding.")
+    .return (sub)
+
+  oh_noes:
+    .local pmc ex
+    .get_results (ex)
+    if ex == '__BIND_SUCCESSFUL__' goto success
+    null $P0
+    .return ($P0)
+  success:
+    $P0 = ex["resume"]
+    .return ($P0)
+.end
+
 =back
 
 =cut

@@ -442,6 +442,13 @@ lexicals as needed and performing type checks.
 
   param_done:
   end:
+    
+    # In theory we're done now, however we may be doing only a bindability check
+    # for the purposes of MMD. In that case, throw a resumable exception here.
+    $P0 = getprop '$!bind_check_only', callersub
+    if null $P0 goto done
+    die '__BIND_SUCCESSFUL__' # XXX A little fragile...think of something better
+  done:
     .return ()
 
   err_param_type_non_scalar:

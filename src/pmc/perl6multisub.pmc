@@ -237,8 +237,11 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
         PMC * const type_obj_a = a->types[i];
         PMC * const type_obj_b = b->types[i];
         if (type_obj_a == type_obj_b) {
-            /* Same type, so tied. */
-            tied++;
+            /* Same type, so tied, unless one has constraints and the other doesn't. */
+            if (!PMC_IS_NULL(a->constraints[i]) && PMC_IS_NULL(b->constraints[i]))
+                narrower++;
+            else
+                tied++;
         }
         else {
             PMC * const accepts_meth_a = VTABLE_find_method(interp, type_obj_b, ACCEPTS);
@@ -513,17 +516,66 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
 
     /* Iterate over the candidates and collect best ones; terminate
      * when we see two nulls (may break out earlier). */
-    while (cur_candidate[0] || cur_candidate[1]) {
+    while (1) {
         INTVAL i;
 
         if (*cur_candidate == NULL) {
-            /* If we're after just one candidate and we have found some, then
-             * we've hit the end of a tied group now, so stop looking if we are
-             * only after one. */
-            if (!many && possibles_count)
+            /* We've hit the end of a tied group now. If any of them have a
+             * bindability check requirement, we'll do any of those now. */
+            if (possibles_count) {
+                PMC *checker = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+                        CONST_STRING(interp, "!bindability_checker"));
+                PMC *bind_check_result;
+                candidate_info **new_possibles = NULL;
+                INTVAL new_possibles_count = 0;
+                INTVAL i;
+
+                for (i = 0; i < possibles_count; i++) {
+                    if (possibles[i]->bind_check) {
+                        /* We have one that needs a bindability check. Thus this will
+                         * not be a pure nominal type result. */
+                        pure_type_result = 0;
+
+                        /* Run the bindability check. XXX TODO: named args. */
+                        bind_check_result = Parrot_runops_fromc_args(interp, checker, "PPPP",
+                                possibles[i]->sub, args, pmc_new(interp, enum_class_Hash));
+
+                        /* If we haven't got a possibles storage space, allocate it now. */
+                        if (!new_possibles)
+                            new_possibles = mem_allocate_n_typed(num_candidates, candidate_info *);
+
+                        /* If we got a non-null result, need to put this one onto the list.
+                         * XXX actually we should keep around the resume cont that we get
+                         * here and invoke that to avoid dupe type checks. */
+                        if (!PMC_IS_NULL(bind_check_result)) {
+                            new_possibles[new_possibles_count] = possibles[i];
+                            new_possibles_count++;
+                        }
+                    }
+                }
+
+                /* If we have an updated list of possibles, free old one and use this
+                 * new one from here on in. */
+                if (new_possibles) {
+                    mem_sys_free(possibles);
+                    possibles = new_possibles;
+                    possibles_count = new_possibles_count;
+                }
+            }
+
+            /* Now we have eliminated any that fail the bindability check. If
+             * we're looking for just one result, we now have it so we can stop. */
+            if (many == MMD_ONE_RESULT && possibles_count)
                 break;
-            cur_candidate++;
-            continue;
+
+            /* Otherwise, we keep looping and looking, unless we really hit the end. */
+            if (cur_candidate[1]) {
+                cur_candidate++;
+                continue;
+            }
+            else {
+                break;
+            }
         }
 
         /* Check if it's admissable by arity. */
@@ -562,75 +614,6 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         possibles[possibles_count] = *cur_candidate;
         possibles_count++;
         cur_candidate++;
-    }
-
-    /* If we have candidates from arity/nominal type, check out any constraints. */
-    if (possibles_count > 0) {
-        candidate_info ** const matching        = mem_allocate_n_typed(possibles_count,
-                                                    candidate_info *);
-        candidate_info ** const constraint_free = mem_allocate_n_typed(possibles_count,
-                                                    candidate_info *);
-        INTVAL matching_count            = 0;
-        INTVAL constraint_free_count     = 0;
-        INTVAL i;
-
-        for (i = 0; i < possibles_count; i++) {
-            /* Check if we match any constraints. */
-            INTVAL constraint_checked = 0;
-            INTVAL constraint_failed  = 0;
-            INTVAL j;
-
-            for (j = 0; j < possibles[i]->num_types; j++) {
-                PMC * const type_obj = possibles[i]->constraints[j];
-
-                if (!PMC_IS_NULL(type_obj)) {
-                    PMC * const param        = VTABLE_get_pmc_keyed_int(interp, args, j);
-                    PMC * const accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
-                    PMC * const result       = (PMC *)Parrot_run_meth_fromc_args(interp, accepts_meth,
-                        type_obj, ACCEPTS, "PP", param);
-                    constraint_checked = 1;
-                    
-                    /* Set the dispatch-wide flag influencing caching. */
-                    pure_type_result = 0;
-
-                    if (!VTABLE_get_integer(interp, result)) {
-                        constraint_failed = 1;
-                        break;
-                    }
-                }
-            }
-
-            if (!constraint_failed) {
-                if (constraint_checked) {
-                    matching[matching_count] = possibles[i];
-                    matching_count++;
-                }
-                else {
-                    constraint_free[constraint_free_count] = possibles[i];
-                    constraint_free_count++;
-                }
-            }
-        }
-
-        /* If we did find constraints to check, choose the matching over the
-         * ones without any constraints. */
-        if (matching_count) {
-            mem_sys_free(possibles);
-            mem_sys_free(constraint_free);
-            possibles       = matching;
-            possibles_count = matching_count;
-        }
-        else if (constraint_free_count) {
-            mem_sys_free(possibles);
-            mem_sys_free(matching);
-            possibles       = constraint_free;
-            possibles_count = constraint_free_count;
-        }
-        else {
-            possibles_count = 0;
-            mem_sys_free(matching);
-            mem_sys_free(constraint_free);
-        }
     }
 
     /* Check is default trait if we still have multiple options and we want one. */

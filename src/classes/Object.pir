@@ -805,7 +805,7 @@ the basis of WALK also. It returns all methods we could possibly call.
     # Multiple dispatch; get all applicable candidates.
   multi_dispatch:
     .local pmc possibles, possibles_it
-    possibles = cur_meth.'find_possible_candidates'(self, pos_args :flat)
+    possibles = cur_meth.'find_possible_candidates'(self, pos_args :flat, named_args :flat :named)
     possibles_it = iter possibles
   possibles_it_loop:
     unless possibles_it goto possibles_it_loop_end

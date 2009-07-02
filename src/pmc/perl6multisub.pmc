@@ -55,6 +55,7 @@ typedef struct candidate_info {
     INTVAL num_types;   /* Number of entries in the above two arrays. */
     INTVAL min_arity;   /* The number of required positonal arguments. */
     INTVAL max_arity;   /* # of required and optional positional arguments. */
+    INTVAL bind_check;  /* A true value if any parameters have constraints and/or are named. */
 } candidate_info;
 
 /*
@@ -336,6 +337,7 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
         info->constraints = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         significant_param = 0;
         for (j = 0; j < sig_elems; j++) {
+            /* Look up various bits from the signature. */
             PMC * const param       = VTABLE_get_pmc_keyed_int(interp, params, j);
             PMC * const type        = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "nom_type"));
@@ -345,12 +347,24 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
                     CONST_STRING(interp, "multi_invocant"));
             PMC * const named       = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "named"));
-            if (!PMC_IS_NULL(named))
+
+            /* If it's named, don't need its type info but we will need a bindability
+             * check during the dispatch for it. */
+            if (!PMC_IS_NULL(named)) {
+                info->bind_check = 1;
                 continue;
+            }
+
+            /* Record type info for this parameter. */
             info->types[significant_param] = type;
-            info->constraints[significant_param] = PMC_IS_NULL(constraints) || VTABLE_isa(interp,
-                    constraints, CONST_STRING(interp, "Undef")) ?
-                    PMCNULL : constraints;
+            if (PMC_IS_NULL(constraints) || VTABLE_isa(interp, constraints, CONST_STRING(interp, "Undef"))) {
+                info->constraints[significant_param] = PMCNULL;
+            }
+            else {
+                /* We will need a bindability check for constraints. */
+                info->constraints[significant_param] = constraints;
+                info->bind_check = 1;
+            }
             if (!PMC_IS_NULL(multi_inv) && VTABLE_get_bool(interp, multi_inv))
                 info->num_types++;
             significant_param++;

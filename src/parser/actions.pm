@@ -1480,8 +1480,8 @@ method package_def($/, $key) {
     # At block opening, unshift module name (fully qualified) onto @?NS; otherwise,
     # shift it off.
     if $key eq 'open' {
-        my $add := ~$<module_name>[0]<longname><name> eq '::' ?? '' !!
-            (~$<module_name>[0]<longname><name> ~ ~$<module_name>[0]<role_params>);
+        my $add := ~$<def_module_name>[0]<longname><name> eq '::' ?? '' !!
+            (~$<def_module_name>[0]<longname><name> ~ ~$<def_module_name>[0]<role_params>);
         my $fqname := +@?NS ?? @?NS[0] ~ '::' ~ $add !! $add;
         @?NS.unshift($fqname);
 
@@ -1501,8 +1501,8 @@ method package_def($/, $key) {
 
     my $modulename;
     my $is_anon := 0;
-    if $<module_name> && ~$<module_name>[0]<longname><name> ne '::' {
-        $modulename :=  ~$<module_name>[0]<longname><name> ~ ~$<module_name>[0]<role_params>;
+    if $<def_module_name> && ~$<def_module_name>[0]<longname><name> ne '::' {
+        $modulename :=  ~$<def_module_name>[0]<longname><name> ~ ~$<def_module_name>[0]<role_params>;
     }
     else {
         $modulename := $block.unique('!ANON');
@@ -1544,7 +1544,7 @@ method package_def($/, $key) {
     }
     elsif $key eq 'statement_block' {
         # file-level blocks have their contents as the compunit mainline
-        if !$<module_name> {
+        if !$<def_module_name> {
             $/.panic("Compilation unit cannot be anonymous");
         }
         $block.blocktype('immediate');
@@ -1594,13 +1594,13 @@ method package_def($/, $key) {
     #  have many declarations) we need to check it's not a duplicate.
     if !$block<isalso> && !$is_anon && $?PKGDECL ne 'role' {
         if $/.type_redeclaration() {
-            $/.panic("Re-declaration of type " ~ ~$<module_name>[0]);
+            $/.panic("Re-declaration of type " ~ ~$<def_module_name>[0]);
         }
     }
 
     ##  If it is an "is also", check that the type did already exist.
     if $block<isalso> && !$/.type_redeclaration() {
-        $/.panic("Cannot use 'is also' on non-existent class " ~ ~$<module_name>[0]);
+        $/.panic("Cannot use 'is also' on non-existent class " ~ ~$<def_module_name>[0]);
     }
 
     #  At the beginning, create the "class/module/grammar/role/etc"

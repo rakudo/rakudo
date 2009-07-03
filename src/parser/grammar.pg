@@ -688,9 +688,9 @@ rule package_declarator {
 
 rule package_def {
     [
-        <module_name>
+        <def_module_name>
         {{
-            $P0 = match['module_name']
+            $P0 = match['def_module_name']
             $P0 = $P0[0]
             $P0 = $P0['longname']
             $P0 = $P0['name']
@@ -835,7 +835,7 @@ token circumfix {
     | <sigil> '(' <semilist> ')' {*}             #= $( )
 }
 
-token module_name {
+token def_module_name {
     <longname>
     $<role_params>=[
         :dba('generic role')
@@ -846,6 +846,14 @@ token module_name {
             $I0 = $S0 == 'role'
             .return ($I0)
         }}>
+        '[' ~ ']' <signature>
+    ]?
+}
+
+token module_name {
+    <longname>
+    $<role_params>=[
+        :dba('generic role')
         '[' ~ ']' <signature>
     ]?
 }

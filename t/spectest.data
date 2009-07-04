@@ -124,6 +124,7 @@ S03-operators/eqv.t
 S03-operators/hyper.t
 S03-operators/increment.t
 S03-operators/inplace.t
+S03-operators/list-quote-junction.t
 S03-operators/misc.t
 S03-operators/not.t
 S03-operators/numeric-context.t
@@ -235,6 +236,7 @@ S06-multi/type-based.t
 S06-multi/value-based.t
 S06-operator-overloading/imported-subs.t
 S06-operator-overloading/sub.t
+S06-other/anon-hashes-vs-blocks.t
 S06-other/main.t
 S06-other/main-eval.t
 S06-routine-modifiers/scoped-named-subs.t

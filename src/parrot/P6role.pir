@@ -16,6 +16,8 @@ Puns the role to a class and returns that class.
 
 .namespace ["P6role"]
 .sub '!pun' :method
+    self = descalarref self
+
     # See if we have already created a punned class; use it if so.
     .local pmc pun
     pun = getprop '$!pun', self
@@ -79,6 +81,7 @@ Puns the role to a class and returns that class.
 
     # Otherwise, need to consider subtypes in the parameters.
     .local pmc all_variants, it, want_rf, our_types, cur_variant
+    self = descalarref self
     $P0 = getprop '$!owner', self
     all_variants = getattribute $P0, '$!created'
     want_rf = getprop '$!orig_role', self
@@ -144,6 +147,7 @@ Puns the role to a class and returns that class.
 
 .sub 'perl' :method
     .local pmc args, it
+    self = descalarref self
     args = getprop '@!type_args', self
     $P0 = getprop '$!shortname', self
     $S0 = $P0
@@ -175,6 +179,7 @@ Puns the role to a class and returns that class.
 =cut
 
 .sub 'WHAT' :method
+    self = descalarref self
     .return (self)
 .end
 
@@ -184,6 +189,7 @@ Puns the role to a class and returns that class.
 =cut
 
 .sub 'Str' :method :vtable('get_string')
+    self = descalarref self
     $P0 = getprop '$!owner', self
     $S0 = $P0
     .return ($S0)

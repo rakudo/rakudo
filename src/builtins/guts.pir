@@ -669,69 +669,6 @@ Default meta composer -- does nothing.
 .end
 
 
-=item !meta_trait(metaclass, type, name)
-
-Add a trait with the given C<type> and C<name> to C<metaclass>.
-
-=cut
-
-.sub '!meta_trait'
-    .param pmc metaclass
-    .param string type
-    .param string name
-    .param pmc pos_args   :slurpy
-    .param pmc named_args :slurpy :named
-
-    if type == 'trait_mod:is' goto is
-    if type == 'trait_mod:does' goto does
-    'die'("Unknown trait_mod: ", type)
-
-  is:
-    ##  get the (parrot)class object associated with name
-    $P0 = compreg 'perl6'
-    $P0 = $P0.'parse_name'(name)
-    $S0 = pop $P0
-    $P0 = get_hll_global $P0, $S0
-
-    ##  Do we have a role here?
-    $I0 = isa $P0, 'Role'
-    if $I0 goto need_to_pun
-    $I0 = isa $P0, 'Perl6Role'
-    if $I0 goto need_to_pun_role
-    goto have_class
-  need_to_pun_role:
-    $P0 = $P0.'!select'()
-  need_to_pun:
-    $P0 = $P0.'!pun'()
-
-    ##  add it as parent to metaclass
-  have_class:
-    $P1 = get_hll_global ['Perl6Object'], '$!P6META'
-    $P0 = $P1.'get_parrotclass'($P0)
-    metaclass.'add_parent'($P0)
-    .return ()
-
-  does:
-    ##  get the Role object for the role to be composed
-    $P0 = compreg 'perl6'
-    $P0 = $P0.'parse_name'(name)
-    $S0 = pop $P0
-    $P0 = get_hll_global $P0, $S0
-
-    ##  select the correct role based upon any parameters
-    $P0 = $P0.'!select'(pos_args :flat, named_args :flat :named)
-
-    ##  add it to the composition list (we compose them at the end)
-    .local pmc role_list
-    role_list = getprop '@!roles', metaclass
-    unless null role_list goto have_role_list
-    role_list = root_new ['parrot';'ResizablePMCArray']
-    setprop metaclass, '@!roles', role_list
-  have_role_list:
-    push role_list, $P0
-.end
-
-
 =item !meta_attribute(metaclass, name, itypename [, 'type'=>type] )
 
 Add attribute C<name> to C<metaclass> with the given C<itypename>
@@ -796,26 +733,19 @@ and C<type>.
     goto attr_loop
   attr_done:
 
-    .const 'Sub' handles = '!handles'
-    $P0 = attr['traitlist']
-    if null $P0 goto traitlist_done
-    it = iter $P0
-  traitlist_loop:
-    unless it goto traitlist_done
-    .local pmc trait
-    trait = shift it
-    $S0 = trait[0]
-    if $S0 != 'trait_verb:handles' goto traitlist_loop
+    # Anything to do with handles?
+    $P0 = attr['handles']
+    if null $P0 goto handles_done
 
     # For the handles trait verb, we may have got a name or a list of names.
     # If so, just generate methods with those names. Otherwise, need to store
     # them as a property on the metaclass, so the dispatcher can smart-match
     # against them later. Also, the % syntax is spec'd as reserved, so we give
     # an error on that for now.
+    .const 'Sub' handles = '!handles'
     .local pmc handles_it
     $S0 = substr name, 0, 1
     if $S0 == '%' goto reserved_syntax_error
-    $P0 = trait[1]
     $I0 = isa $P0, 'Str'
     if $I0 goto simple_handles
     $I0 = isa $P0, 'List'
@@ -833,7 +763,7 @@ and C<type>.
     handles_hash['attrname'] = name
     handles_hash['match_against'] = $P0
     push class_handles_list, handles_hash
-    goto traitlist_loop
+    goto handles_done
 
   simple_handles:
     $P0 = 'list'($P0)
@@ -859,8 +789,6 @@ and C<type>.
     metaclass.'add_method'(visible_name, $P0)
     goto handles_loop
   handles_done:
-    goto traitlist_loop
-  traitlist_done:
     .return ()
   reserved_syntax_error:
     'die'("The use of a %hash with the handles trait verb is reserved")
@@ -893,252 +821,6 @@ and C<type>.
     'die'("You used handles on attribute ", attrname, ", but nothing in the array can do method ", $S1)
   single_dispatch:
     .tailcall attribute.$S1(args :flat, options :flat :named)
-.end
-
-
-=item !var_trait(var, type, trait, arg?)
-
-=cut
-
-.sub '!var_trait'
-    .param pmc var
-    .param string trait
-    .param string name
-    .param pmc arg             :optional
-    .param int has_arg         :opt_flag
-
-    if has_arg goto have_arg
-    null arg
-  have_arg:
-    
-    $S0 = substr trait, 10
-    $S0 = concat '!var_trait_', $S0
-    $P0 = find_name $S0
-    if null $P0 goto done
-    if has_arg goto with_arg
-    .tailcall $P0(var, name)
-  with_arg:
-    .tailcall $P0(var, name, arg)
-  done:
-    .return (var)
-.end
-
-
-.sub '!var_trait_does'
-    .param pmc var
-    .param string name
-    .param pmc arg :slurpy
-    $P0 = compreg 'perl6'
-    $P0 = $P0.'parse_name'(name)
-    $S0 = pop $P0
-    $P0 = get_hll_global $P0, $S0
-    $P0 = $P0.'!select'(arg :flat)
-    .tailcall 'infix:does'(var, $P0)
-.end
-
-
-=item !var_trait_verb(var, trait, arg?)
-
-=cut
-
-.sub '!var_trait_verb'
-    .param pmc var
-    .param string trait
-    .param pmc arg             :optional
-    .param int has_arg         :opt_flag
-
-    if has_arg goto have_arg
-    null arg
-  have_arg:
-
-    $S0 = substr trait, 11
-    $S0 = concat '!var_trait_verb_', $S0
-    $P0 = find_name $S0
-    if null $P0 goto done
-    .tailcall $P0(var, arg)
-  done:
-    .return (var)
-.end
-
-
-=item !var_trait_verb_of(var, arg?)
-
-Sets the type constraint on the container.
-
-=cut
-
-.sub '!var_trait_verb_of'
-    .param pmc var
-    .param pmc arg
-    $I0 = isa var, 'Perl6Scalar'
-    unless $I0 goto non_scalar
-    setprop var, 'type', arg
-    .return (var)
-  non_scalar:
-    $I0 = isa var, 'Perl6Array'
-    if $I0 goto array
-    $I0 = isa var, 'Perl6Hash'
-    if $I0 goto hash
-    $I0 = isa var, 'Sub'
-    if $I0 goto code
-  array:
-    $P0 = get_hll_global 'Positional'
-    goto mixin
-  hash:
-    $P0 = get_hll_global 'Associative'
-    goto mixin
-  code:
-    $P0 = get_hll_global 'Callable'
-    goto mixin
-  mixin:
-    $P0 = $P0.'!select'(arg)
-    .tailcall 'infix:does'(var, $P0)
-.end
-
-
-=item !sub_trait(sub, type, trait, arg?)
-
-=cut
-
-.sub '!sub_trait'
-    .param pmc block
-    .param string type
-    .param string trait         # XXX Eventually should not be name
-    .param pmc arg             :optional
-    .param int has_arg         :opt_flag
-
-    if has_arg goto have_arg
-    null arg
-  have_arg:
-
-    # XXX For now, handle special case traits.
-    $S0 = concat '!sub_trait_', trait
-    $P0 = find_name $S0
-    if null $P0 goto not_special
-    .tailcall $P0(trait, block, arg)
-  not_special:
-
-    # Look up the trait and dispatch.
-    $P0 = get_hll_global trait
-    if null $P0 goto err
-    $P1 = get_hll_global type
-    if has_arg goto with_arg
-    .tailcall $P1($P0, block)
-  with_arg:
-    .tailcall $P1($P0, block, arg)
-
-  err:
-    # XXX For now, until we hunt down all uses of non-existent traits, just
-    # warn.
-    'warn'('Use of non-existent trait.')
-.end
-
-
-=item !sub_trait_default(trait, block, arg)
-
-Sets the default trait, which marks a multi candidate as the default choice
-in an ambiguous multiple dispatch.
-
-=cut
-
-.sub '!sub_trait_default'
-    .param string trait
-    .param pmc block
-    .param pmc arg
-    $P0 = box 1
-    setprop block, 'default', $P0
-.end
-
-
-=item !sub_trait_export(trait, block, arg)
-
-=cut
-
-.sub '!sub_trait_export'
-    .param string trait
-    .param pmc block
-    .param pmc arg
-
-    # Multis that are exported need to be whole-sale exported as multis.
-    .local pmc blockns
-    .local string blockname
-    blockns = block.'get_namespace'()
-    blockname = block
-    $P0 = blockns[blockname]
-    $I0 = isa $P0, 'MultiSub'
-    unless $I0 goto multi_handled
-    block = $P0
-  multi_handled:
-
-    .local pmc exportns
-    exportns = blockns.'make_namespace'('EXPORT')
-    if null arg goto default_export
-    .local pmc it
-    arg = 'list'(arg)
-    $I0 = arg.'elems'()
-    if $I0 goto have_arg
-  default_export:
-    $P0 = get_hll_global 'Pair'
-    $P0 = $P0.'new'('key' => 'DEFAULT', 'value' => 1)
-    arg = 'list'($P0)
-  have_arg:
-    it = iter arg
-  arg_loop:
-    unless it goto arg_done
-    .local pmc tag, ns
-    tag = shift it
-    $I0 = isa tag, ['Perl6Pair']
-    unless $I0 goto arg_loop
-    $S0 = tag.'key'()
-    ns = exportns.'make_namespace'($S0)
-    ns[blockname] = block
-    goto arg_loop
-  arg_done:
-    ns = exportns.'make_namespace'('ALL')
-    ns[blockname] = block
-.end
-
-=item !sub_trait_verb(sub, trait, arg?)
-
-=cut
-
-.sub '!sub_trait_verb'
-    .param pmc block
-    .param string trait
-    .param pmc arg             :optional
-    .param int has_arg         :opt_flag
-
-    if has_arg goto have_arg
-    null arg
-  have_arg:
-
-    $S0 = substr trait, 11
-    $S0 = concat '!sub_trait_verb_', $S0
-    $P0 = find_name $S0
-    if null $P0 goto done
-    $P0(block, arg)
-  done:
-.end
-
-
-=item !sub_trait_returns(trait, block, arg)
-
-Sets the returns trait, which sets the type that the block must return.
-The of trait is just an alias to this.
-
-=cut
-
-.sub '!sub_trait_verb_returns'
-    .param pmc block
-    .param pmc type
-    $P0 = get_hll_global 'Callable'
-    $P0 = $P0.'!select'(type)
-    'infix:does'(block, $P0)
-.end
-.sub '!sub_trait_verb_of'
-    .param pmc block
-    .param pmc arg
-    .tailcall '!sub_trait_verb_returns'(block, arg)
 .end
 
 

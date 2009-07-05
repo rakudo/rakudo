@@ -809,22 +809,12 @@ method routine_def($/) {
         my $loadinit := $block.loadinit();
         my $blockreg := PAST::Var.new( :name('block'), :scope('register') );
         for @($<trait>) {
-            #  Trait nodes come in as PAST::Op( :name('list') ).
-            #  We just modify them to call !sub_trait and add
-            #  'block' as the first argument.
-            my $trait := $_.ast;
-            if substr($trait[0], 0, 11) eq 'trait_verb:' {
-                $trait.name('!sub_trait_verb');
-                if $trait[0] eq 'trait_verb:returns' || $trait[0] eq 'trait_verb:of' {
-                    $block<has_return_constraint> := 1;
-                }
+            my $name := $_.ast.name;
+            if $name eq 'trait_mod:returns' || $name eq 'trait_mod:of' {
+                $block<has_return_constraint> := 1;
             }
-            else {
-                $trait.name('!sub_trait');
-            }
-            $trait.unshift($blockreg);
-            $loadinit.push($trait);
         }
+        emit_traits($<trait>, $loadinit, $blockreg);
     }
     make $block;
 }
@@ -879,23 +869,17 @@ method method_def($/) {
         PAST::Var.new( :name('signature'), :scope('register') )
     ));
 
+    # Handle traits.
     if $<trait> {
         my $loadinit := $block.loadinit();
         my $blockreg := PAST::Var.new( :name('block'), :scope('register') );
         for @($<trait>) {
-            #  Trait nodes come in as PAST::Op( :name('list') ).
-            #  We just modify them to call !sub_trait and add
-            #  'block' as the first argument.
-            my $trait := $_.ast;
-            if substr($trait[0], 0, 11) eq 'trait_verb:' {
-                $trait.name('!sub_trait_verb');
+            my $name := $_.ast.name;
+            if $name eq 'trait_verb:returns' || $name eq 'trait_verb:of' {
+                $block<has_return_constraint> := 1;
             }
-            else {
-                $trait.name('!sub_trait');
-            }
-            $trait.unshift($blockreg);
-            $loadinit.push($trait);
         }
+        emit_traits($<trait>, $loadinit, $blockreg);
     }
 
     make $block;
@@ -916,39 +900,72 @@ method trait($/) {
 
 method trait_mod($/) {
     my $sym   := ~$<sym>;
-    my $trait := PAST::Op.new( :name('infix:,'));
+
+    # Traits are mostly handled by a call to a trait_mod routine. We build
+    # a call to this; the declarand will get unshifted onto it later.
+    my $trait := PAST::Op.new(
+        :pasttype('call'),
+        :name('trait_mod:' ~ $sym)
+    );
+
+    # Now handle the bits specific to each type of trait.
     if $sym eq 'is' {
-        $trait.push( 'trait_mod:' ~ $sym );
-        $trait.push( ~$<name> );
         if $<postcircumfix> {
             my $arg := $<postcircumfix>[0].ast;
             $arg.name('!capture');
             $trait.push($arg);
         }
+        if $/.is_type(~$<longname>) {
+            # It's a type - look it up and send it in as a positional, before
+            # the parameter.
+            my @name := Perl6::Compiler.parse_name(~$<longname>);
+            $trait.unshift(PAST::Var.new(
+                :scope('package'),
+                :name(@name.pop()),
+                :namespace(@name)
+            ));
+        }
+        else {
+            # Not a type name, so construct a named parameter with this name; it
+            # is a named param so it has to go on the end.
+            $trait.push(PAST::Var.new(
+                :name('True'),
+                :namespace('Bool'),
+                :scope('package'),
+                :named(~$<longname>)
+            ));
+        }
+        $trait<is_name> := ~$<longname>;
     }
     elsif $sym eq 'does' {
-        $trait.push( 'trait_mod:' ~ $sym );
-        $trait.push( ~$<name> );
-        if $<EXPR> {
-            for @(build_call($<EXPR>[0].ast)) {
-                if $_.returns() eq 'Pair' {
-                    $_[1].named($_[0]);
-                    $trait.push($_[0]);
-                }
-                else {
-                    $trait.push($_);
-                }
-            }
-        }
-    }
-    elsif $sym eq 'handles' { 
-        $trait.push( 'trait_verb:' ~ $sym );
-        $trait.push( $<noun>.ast );
-    }
-    else {
-        $trait.push( 'trait_verb:' ~ $sym );
         $trait.push( $<fulltypename>.ast );
     }
+    elsif $sym eq 'handles' { 
+        $trait.push( $<noun>.ast );
+    }
+    elsif $sym eq 'will' {
+        $trait.push( $<block>.ast );
+        if $/.is_type(~$<identifier>) {
+            # It's a type - look it up and send it in as a positional, before
+            # the parameter.
+            $trait.unshift(PAST::Var.new(
+                :scope('package'),
+                :name(~$<identifier>)
+            ));
+        }
+        else {
+            # Not a type name, so construct a named parameter with this name; it
+            # is a named param so it has to go on the end.
+            $trait.push(PAST::Val.new(
+                :value(PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') )),
+                :named(~$<identifier>)
+            ));
+        }
+    }
+    else {
+        $trait.push( $<fulltypename>.ast );
+    }
+
     make $trait;
 }
 
@@ -1000,13 +1017,6 @@ method signature($/, $key) {
                 $sigparam.push($type);
             }
 
-            ##  add traits (we're not using this yet.)
-            my $trait := $var<trait>;
-            if $trait {
-                $trait.named('trait');
-                $sigparam.push($trait);
-            }
-
             my $readtype := trait_readtype( $var<traitlist> );
             if $readtype eq 'CONFLICT' {
                 $<parameter>[$i].panic(
@@ -1016,6 +1026,14 @@ method signature($/, $key) {
             }
             if $readtype {
                 $sigparam.push(PAST::Val.new(:value($readtype),:named('readtype')));
+            }
+
+            ##  add traits (we're not using this yet.)
+            ##  XXX review this
+            my $trait := $var<trait>;
+            if $trait {
+                $trait.named('trait');
+                $sigparam.push($trait);
             }
 
             ##  if it's an invocant, flag it as such and make the var be a
@@ -1184,11 +1202,8 @@ method parameter($/) {
         }
     }
 
-    if $<trait> {
-        my $traitlist := PAST::Op.new( :name('infix:,'), :pasttype('call') );
-        $var<traitlist> := $traitlist;
-        for @($<trait>) { $traitlist.push( $_.ast ); }
-    }
+    # Attatch list of traits.
+    $var<traitlist> := $<trait>;
 
     make $var;
 }
@@ -1453,15 +1468,13 @@ method package_declarator($/, $key) {
         our $?METACLASS;
         my $block    := @?BLOCK[0];
         my $pkgdecl  := $block<pkgdecl>;
-        my $typename := ~$<typename><name>;
         unless $pkgdecl eq 'class' || $pkgdecl eq 'role' || $pkgdecl eq 'grammar' {
             $/.panic("Cannot use does package declarator outside of class, role, or grammar");
         }
         $block[0].push(PAST::Op.new(
-            :name('!meta_trait'),
+            :name('trait_mod:does'),
             $?METACLASS,
-            'trait_mod:does',
-            $typename
+            $<typename>.ast
         ));
         make PAST::Stmts.new()
     }
@@ -1559,39 +1572,17 @@ method package_def($/, $key) {
     my $init := PAST::Stmts.new();
     $block[0].unshift( $init );
 
-    #  Normally we would create the metaclass object first,
-    #  but if there's an "is also" trait we want to do a class
-    #  lookup instead.  So we do the trait processing first
-    #  (scanning for 'is also' as we go), and then decide how
-    #  to obtain the metaclass.
+    #  Set is also flag.
+    $block<isalso> := has_compiler_trait_with_val($<trait>, 'trait_mod:is', 'also');
 
-    #  Add any traits coming from the package declarator.
-    #  Traits in the body have already been added to the block.
-    our $?METACLASS;
-    if $<trait> {
-        for @($<trait>) {
-            #  Trait nodes come in as PAST::Op( :name('list') ).
-            #  We just modify them to call !meta_trait and add
-            #  the metaclass as the first argument.
-            my $trait := $_.ast;
-            if $trait[1] eq 'also' { $block<isalso> := 1; }
-            elsif $trait[1] ne 'rw' && $trait[1] ne 'hidden' {
-                ##  If it is a trait_mod:does or a trait_mod:is we
-                ##  should check the name is a type.
-                if $trait[0] eq 'trait_mod:is' || $trait[0] eq 'trait_mod:does' {
-                    unless $/.is_type($trait[1]) {
-                        $_.panic("The type " ~ $trait[1] ~ " does not exist.");
-                    }
-                }
-                $trait.name('!meta_trait');
-                $trait.unshift($?METACLASS);
-                $init.push($trait);
-            }
-        }
-    }
+    #  Emit traits; make sure rw and hidden, if given, were marked as handled first.
+    has_compiler_trait_with_val($<trait>, 'trait_mod:is', 'rw');
+    has_compiler_trait_with_val($<trait>, 'trait_mod:is', 'hidden');
+    emit_traits($<trait>, $init, $?METACLASS);
 
     #  If it's not an "is also", have a name and aren't a role (since they can
     #  have many declarations) we need to check it's not a duplicate.
+    our $?METACLASS;
     if !$block<isalso> && !$is_anon && $?PKGDECL ne 'role' {
         if $/.type_redeclaration() {
             $/.panic("Re-declaration of type " ~ ~$<def_module_name>[0]);
@@ -1609,7 +1600,7 @@ method package_def($/, $key) {
         PAST::Op.new( :pasttype('bind'),
             PAST::Var.new(:name('metaclass'), :scope('register'), :isdecl(1) ),
             PAST::Op.new(:name('!meta_create'),
-                $?PKGDECL, $modulename, +$block<isalso>
+                $?PKGDECL, $modulename, ($block<isalso> ?? 1 !! 0)
             )
         )
     );
@@ -1653,9 +1644,9 @@ method scope_declarator($/) {
     my $sym   := ~$<sym>;
     my $past  := $<scoped>.ast;
     my $scope := 'lexical';
-    if    $sym eq 'our'   { $scope := 'package'; }
-    elsif $sym eq 'has'   { $scope := 'attribute'; }
-    elsif $sym eq 'state' { $scope := 'state'; }
+    if    $sym eq 'our'      { $scope := 'package'; }
+    elsif $sym eq 'has'      { $scope := 'attribute'; }
+    elsif $sym eq 'state'    { $scope := 'state'; }
 
     #  Private methods get a leading !.
     if $scope eq 'lexical' && $past.isa(PAST::Block)
@@ -1747,8 +1738,26 @@ method scope_declarator($/) {
                         $has.push($init_value);
                     }
                     if $var<traitlist> {
-                        $var<traitlist>.named('traitlist');
-                        $has.push($var<traitlist>);
+                        # If we have a handles, then we pass that specially.
+                        my $handles := has_compiler_trait($var<traitlist>, 'trait_mod:handles');
+                        if $handles {
+                            $handles[0].named('handles');
+                            $has.push($handles[0]);
+                        }
+                        
+                        # We'll make a block for calling other handles, which'll be
+                        # thunked.
+                        my $trait_stmts := PAST::Stmts.new();
+                        emit_traits($var<traitlist>, $trait_stmts, PAST::Var.new( :name('$_'), :scope('lexical') ));
+                        if +@($trait_stmts) > 0 {
+                            my $trait_block := PAST::Block.new(
+                                :blocktype('declaration'),
+                                PAST::Var.new( :name('$_'), :scope('parameter') ),
+                                $trait_stmts
+                            );
+                            $trait_block.named('traits');
+                            $has.push($trait_block);
+                        }
                     }
                     $block[0].push( $has );
                 }
@@ -1756,29 +1765,28 @@ method scope_declarator($/) {
                     # $scope eq 'package' | 'lexical' | 'state'
                     my $viviself := PAST::Op.new( :pirop('new PsP'), $var<itype> );
                     if $init_value        { $viviself.push( $init_value ); }
-                    $var.viviself( $viviself );
-                    if $var<traitlist> {
-                        for @($var<traitlist>) {
-                            if substr($_[0], 0, 11) eq 'trait_verb:' {
-                                $_.name('!var_trait_verb');
-                            }
-                            else {
-                                $_.name('!var_trait');
-                            }
-                            $_.unshift($var);
-                            $var := $_;
-                        }
-                    }
+                    my $init_reg_name := $viviself.unique('initvar_');
+                    my $init_reg := PAST::Var.new( :name($init_reg_name), :scope('register') );
+                    $var.viviself(PAST::Stmts.new(
+                        PAST::Op.new(
+                            :pasttype('bind'),
+                            PAST::Var.new( :name($init_reg_name), :scope('register'), :isdecl(1) ),
+                            $viviself
+                        )
+                    ));
+                    emit_traits($var<traitlist>, $var.viviself(), $init_reg);
                     if $type {
                         if $var<sigil> ne '$' && $var<sigil> ne '@' && $var<sigil> ne '%' && $var<sigil> ne '' {
                             $/.panic("Cannot handle typed variables with sigil " ~ $var<sigil>);
                         }
-                        $var := PAST::Op.new(
+                        $var.viviself.push(PAST::Op.new(
                             :pasttype('call'),
-                            :name('!var_trait_verb_of'),
-                            $var, $type
-                        );
+                            :name('trait_mod:of'),
+                            $init_reg,
+                            $type
+                        ));
                     }
+                    $var.viviself.push(PAST::Op.new( :inline('    %r = %0'), $init_reg ));
                     if $sym eq 'constant' {
                         # Do init in viviself, and then make sure we mark it readonly after
                         # that point.
@@ -1942,12 +1950,7 @@ method variable_declarator($/) {
         $var.isdecl(1);
         $var<type>  := PAST::Op.new( :name('and'), :pasttype('call') );
         $var<itype> := container_itype($<variable><sigil>);
-
-        if $<trait> {
-            my $traitlist := PAST::Op.new( :name('infix:,'), :pasttype('call') );
-            $var<traitlist> := $traitlist;
-            for @($<trait>) { $traitlist.push( $_.ast ); }
-        }
+        $var<traitlist> :=  $<trait>;
     }
 
     make $var;
@@ -2236,6 +2239,11 @@ method fulltypename($/) {
     if substr( $<typename>.text(), 0, 2) eq '::' {
         $past.isdecl(1);
         $past.scope('lexical');
+    }
+    if $<postcircumfix> {
+        my $call := $<postcircumfix>[0].ast;
+        $call.unshift($past);
+        $past := $call;
     }
     if $<fulltypename> {
         $past := PAST::Op.new(
@@ -2919,15 +2927,16 @@ sub container_itype($sigil) {
 }
 
 
-sub trait_readtype($traitpast) {
+sub trait_readtype($traits) {
     my $readtype;
-    if $traitpast {
-        for @($traitpast) {
-            my $tname := $_[1];
-            if $tname eq 'readonly' || $tname eq 'rw' || $tname eq 'copy' {
-                $readtype := $readtype ?? 'CONFLICT' !! $tname;
-            }
-        }
+    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'readonly') {
+        $readtype := 'readonly';
+    }
+    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'rw') {
+        $readtype := $readtype ?? 'CONFLICT' !! 'rw';
+    }
+    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'copy') {
+        $readtype := $readtype ?? 'CONFLICT' !! 'copy';
     }
     $readtype;
 }
@@ -3242,9 +3251,8 @@ sub set_return_type($block, $type_parse_tree) {
     }
     $block.loadinit().push(PAST::Op.new(
         :pasttype('call'),
-        :name('!sub_trait_verb'),
+        :name('trait_mod:of'),
         PAST::Var.new( :name('block'), :scope('register') ),
-        'trait_verb:returns',
         $type_parse_tree[0].ast
     ));
     $block<has_return_constraint> := 1;
@@ -3266,13 +3274,7 @@ sub package_has_trait($name) {
     our $?BLOCK_OPEN;
     our @?BLOCK;
     my $block := $?BLOCK_OPEN || @?BLOCK[0];
-    for $block<traits> {
-        my $ast := $_.ast;
-        if +@($ast) >= 2 && $ast[0] eq 'trait_mod:is' && $ast[1] eq $name {
-            return 1;
-        }
-    }
-    return 0;
+    return has_compiler_trait_with_val($block<traits>, 'trait_mod:is', $name);
 }
 
 
@@ -3289,6 +3291,58 @@ sub make_whatever($/) {
             :node($/)
         )
     )
+}
+
+
+# This routine checks if the given list of traits contains one of the given
+# name. If so, it marks it as compiler handled so no multi call will be
+# emitted when we emit the traits. If there is such a trait, it returns it's
+# AST.
+sub has_compiler_trait($trait_list, $name) {
+    if $trait_list {
+        for @($trait_list) {
+            my $ast := $_.ast;
+            if $ast.name eq $name {
+                $ast<trait_is_compiler_handled> := 1;
+                return $ast;
+            }
+        }
+    }
+    return 0;
+}
+
+
+# This routine checks if the given list of traits contains one of the given
+# names and also that it carries the given value as a named parameter. If so,
+# it marks it as compiler handled so no multi call will be emitted when we emit
+# the traits. If there is such a trait, it returns it's AST.
+sub has_compiler_trait_with_val($trait_list, $name, $value) {
+    if $trait_list {
+        for @($trait_list) {
+            my $ast := $_.ast;
+            if $ast.name eq $name && $ast<is_name> eq $value {
+                $ast<trait_is_compiler_handled> := 1;
+                return $ast;
+            }
+        }
+    }
+    return 0;
+}
+
+
+# This sub takes a list of traits, the PAST node for a declarand and a
+# target PAST node. For all non-compiler-handled traits, it unshifts
+# the declarand onto the call and adds it to the target node.
+sub emit_traits($trait_list, $to, $declarand) {
+    if $trait_list {
+        for @($trait_list) {
+            my $ast := $_.ast;
+            unless $ast<trait_is_compiler_handled> {
+                $ast.unshift($declarand);
+                $to.push($ast);
+            }
+        }
+    }
 }
 
 # Local Variables:

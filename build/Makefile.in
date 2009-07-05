@@ -109,6 +109,7 @@ BUILTINS_PIR = \
   src/builtins/system.pir \
 
 SETTING = \
+  src/setting/traits.pm \
   src/setting/Any-list.pm \
   src/setting/Any-num.pm \
   src/setting/Any-str.pm \
@@ -127,7 +128,6 @@ SETTING = \
   src/setting/Range.pm \
   src/setting/Temporal.pm \
   src/setting/Whatever.pm \
-  src/setting/traits.pm \
 
 PMCS        = perl6str objectref perl6scalar mutablevar perl6multisub p6invocation p6opaque p6role
 

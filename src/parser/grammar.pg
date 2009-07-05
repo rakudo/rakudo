@@ -445,9 +445,9 @@ rule trait {
 
 rule trait_mod {
     [
-    | $<sym>=[is] <name><postcircumfix>?
+    | $<sym>=[is] <longname><postcircumfix>?
     | $<sym>=[hides] <module_name>
-    | $<sym>=[does] <name>['['<EXPR>?']']?
+    | $<sym>=[does] <fulltypename>
     | $<sym>=[will] <identifier> <block>
     | $<sym>=[of|returns] <fulltypename>
     | $<sym>=[handles] <noun>
@@ -852,9 +852,10 @@ token def_module_name {
 
 token module_name {
     <longname>
-    $<role_params>=[
+    [
+        <?before '['>
         :dba('generic role')
-        '[' ~ ']' <signature>
+        '[' ~ ']' <EXPR>
     ]?
 }
 
@@ -908,9 +909,10 @@ token typename {
     {*}
 }
 
-rule fulltypename {
+token fulltypename {
     <typename>
-    [ of <fulltypename> ]?
+    <.unsp>? [ <?before '['> <postcircumfix> ]?
+    <.ws> [ 'of' <.ws> <fulltypename> ]?
     {*}
 }
 

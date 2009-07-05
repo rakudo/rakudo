@@ -14,6 +14,7 @@
 # S12-class/extending-arrays.t - 'is also' -> augment
 # S12-class/open.t - 'is also' -> augment
 # S12-class/is_also_instead.t - 'is also' -> augment
+# S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -278,7 +279,6 @@ S12-attributes/clone.t
 S12-attributes/delegation.t
 S12-attributes/inheritance.t
 S12-attributes/instance.t
-S12-attributes/mutators.t
 S12-attributes/recursive.t
 S12-class/anonymous.t
 S12-class/attributes.t

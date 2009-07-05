@@ -106,13 +106,6 @@ multi trait_mod:<does>(Object $class is rw, Object $role) {
     if $I0 goto have_role
     role = role.'!select'()
   have_role:
-say "# adding to role list"
-$S0 = typeof metaclass
-print "# "
-say $S0
-$S0 = typeof role
-print "# "
-say $S0
     # Now add it to the list of roles to compose into the class.
     .local pmc role_list
     role_list = getprop '@!roles', metaclass

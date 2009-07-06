@@ -186,7 +186,7 @@ true value is returned.
     # Try to change directory; if we fail, exception thrown, so catch
     # it and fail if needed.
     .local pmc os
-    os = new ['OS']
+    os = root_new ['parrot';'OS']
     push_eh failure
     os.'chdir'(newdir)
     pop_eh

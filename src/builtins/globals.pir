@@ -55,7 +55,7 @@ src/builtins/globals.pir - initialize miscellaneous global variables
 
     ## create basic $*CWD
     .local pmc os
-    os = new ['OS']
+    os = root_new ['parrot';'OS']
     $S0 = os."cwd"()
     $P0 = box $S0
     set_hll_global '$CWD', $P0

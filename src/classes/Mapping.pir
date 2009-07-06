@@ -28,7 +28,7 @@ src/classes/Mapping.pir - Perl 6 hash class and related functions
 
 =item fmt
 
- our Str multi Mapping::fmt ( Str $format, $separator = "\n" )
+ our Str multi Mapping::fmt ( Str $format = "%s\t%s", $separator = "\n" )
 
 Returns the invocant mapping formatted by an implicit call to C<.fmt> on
 every pair, joined by newlines or an explicitly given separator.
@@ -36,13 +36,18 @@ every pair, joined by newlines or an explicitly given separator.
 =cut
 
 .sub 'fmt' :method :multi() :subid('mapping_fmt')
-    .param pmc format
-    .param string sep  :optional
-    .param int has_sep :opt_flag
+    .param string format  :optional
+    .param int has_format :opt_flag
+    .param string sep     :optional
+    .param int has_sep    :opt_flag
 
     .local pmc it
     .local pmc rv
 
+    if has_format goto have_format
+    format = "%s\t%s"
+
+  have_format:
     if has_sep goto have_sep
     sep = "\n"
 

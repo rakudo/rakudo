@@ -13,13 +13,13 @@ Delegates on to a method call '.:Xkey(Xval)'.
 
 =begin item fmt
 
-  our Str multi Pair::fmt ( Str $format )
+  our Str multi Pair::fmt ( Str $format = "%s\t%s" )
 
 Returns the invocant pair formatted by an implicit call to C<sprintf> on
 the key and value.
 
 =end item
-    method fmt(Str $format) {
+    method fmt(Str $format = "%s\t%s") {
         return sprintf($format, $.key, $.value);
     }
 

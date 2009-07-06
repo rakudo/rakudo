@@ -15,7 +15,7 @@ class Any is also {
         self.substr(0, -1)
     }
 
-    our Str multi method fmt(Str $format) {
+    our Str multi method fmt(Str $format = '%s') {
         sprintf($format, self)
     }
 

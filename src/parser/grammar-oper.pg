@@ -179,6 +179,8 @@ proto prefix:<[,]> is precedence('e=') is subname('list') {...}
 proto prefix:<[&]> is equiv(prefix:<[,]>) is subname('all') {...}
 proto prefix:<[|]> is equiv(prefix:<[,]>) is subname('any') {...}
 proto prefix:<[^]> is equiv(prefix:<[,]>) is subname('one') {...}
+proto prefix:<[||]> is equiv(prefix:<[,]>) {...}
+proto prefix:<[//]> is equiv(prefix:<[,]>) {...}
 
 ## loose and
 proto infix:<and> is precedence('d=')

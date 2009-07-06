@@ -33,7 +33,7 @@ Puns the role to a class and returns that class.
     setprop metaclass, 'pkgtype', $P0
     # Compose ourself and any roles we do.
     .local pmc role_list, roles_it
-    role_list = new 'ResizablePMCArray'
+    role_list = root_new ['parrot';'ResizablePMCArray']
     push role_list, self
     .const 'Sub' $P1 = '!get_flattened_roles_list'
     role_list = $P1(role_list)

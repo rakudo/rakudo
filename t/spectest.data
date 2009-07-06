@@ -8,6 +8,7 @@
 #
 # we've regressed on some files for various reasons:
 # 
+# S03-operators/smartmatch.t - tests themselves are quite wrong in many places
 # S03-operators/binding-arrays.t - regressed to allow slices
 # S03-operators/binding-hashes.t - regressed to allow slices
 # integration/rule-in-class-Str.t - 'is also' -> augment
@@ -139,7 +140,6 @@ S03-operators/repeat.t
 S03-operators/scalar-assign.t
 S03-operators/series.t
 S03-operators/short-circuit.t
-S03-operators/smartmatch.t
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t

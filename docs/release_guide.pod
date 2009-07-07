@@ -134,7 +134,7 @@ Make sure any locally modified files have been pushed back to github.
 
 =item 9.
 
-Create an initial tarball by entering "make release VERSION=YYYY-MM",
+Create an initial tarball by entering C<make release VERSION=YYYY-MM>,
 where YYYY-MM is the month for which the release is being made.
 This will create a candidate tarball file named <rakudo-YYYY-MM.tgz>.
 

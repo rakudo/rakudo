@@ -238,7 +238,7 @@ Adds C<args> to the beginning of the Array.
     goto it_loop
   it_loop_end:
     splice self, args, 0, 0
-    .tailcall self.'elems'()
+    .return (self)
   type_error:
     'die'('Type check failure in push')
 .end

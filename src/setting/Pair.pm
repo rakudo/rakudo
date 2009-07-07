@@ -3,10 +3,19 @@ class Pair is also {
 =begin item ACCEPTS()
 
 Called from smartmatches '$_ ~~ X'.
-Delegates on to a method call '.:Xkey(Xval)'.
+
+For C<$_ ~~ Mapping> tests if C<$_{X.key} ~~ X.value>
+
+Else it delegates to a  method call '.:Xkey(Xval)'
+(TODO: should actually be .Xkey, not .:Xkey).
 
 =end item
-    method ACCEPTS($topic) {
+
+    multi method ACCEPTS(Mapping $topic) {
+	$topic{$.key} ~~ $.value;
+    }
+
+    multi method ACCEPTS($topic) {
         my $meth_name = ':' ~ $.key;
         return $topic."$meth_name"($.value);
     }

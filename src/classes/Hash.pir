@@ -25,7 +25,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
 =cut
 
 .namespace ['Perl6Hash']
-.sub 'ACCEPTS' :method :subid('hash_ACCEPTS')
+.sub '' :method :subid('hash_ACCEPTS')
     .param pmc topic
     .tailcall self.'contains'(topic)
 .end

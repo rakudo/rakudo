@@ -1,4 +1,17 @@
 class Hash is also {
+
+    multi method ACCEPTS(Regex $topic) {
+        any(@.keys) ~~ $topic;
+    }
+
+    multi method ACCEPTS(%topic) {
+        @.keys.sort eqv %topic.keys.sort;
+    }
+
+    multi method ACCEPTS($topic) {
+        $.contains($topic)
+    }
+
     multi method invert () is export {
         gather { 
             for @.pairs {

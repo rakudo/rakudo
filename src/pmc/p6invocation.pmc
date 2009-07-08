@@ -170,6 +170,15 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         GETATTR_P6Invocation_position(interp, SELF, position);
         return position < VTABLE_elements(interp, candidates);
     }
+
+    VTABLE PMC *get_pmc() {
+        PMC *first_candidate;
+        PMC *clone = VTABLE_clone(interp, SELF);
+        GETATTR_P6Invocation_first_candidate(interp, clone, first_candidate);
+        if (PMC_IS_NULL(first_candidate))
+            first_candidate = get_next_candidate(interp, clone);
+        return first_candidate;
+    }
     
     VTABLE opcode_t *invoke(void *next) {
         STRING   *lexname = CONST_STRING(interp, "__CANDIDATE_LIST__");

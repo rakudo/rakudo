@@ -41,10 +41,10 @@ This will create a "perl6" or "perl6.exe" executable in the
 current directory.  Rakudo doesn't currently have a "make install"
 target.
 
-The "--gen-parrot" option tells Configure.pl to automatically 
+The C<--gen-parrot> option tells Configure.pl to automatically 
 download (via 'svn') and build the version of Parrot most 
 appropriate for the copy of Rakudo you currently have.  It's
-okay to use the --gen-parrot option on later invocations of
+okay to use the C<--gen-parrot> option on later invocations of
 Configure.pl; the configure system will re-build Parrot only
 if a newer version is needed for whatever version of Rakudo 
 you're working with.
@@ -67,13 +67,13 @@ are preserved after they are defined, but variables are not).
 
 =head2 Running the test suite
 
-Entering "make test" will run a small test suite that comes 
+Entering C<make test> will run a small test suite that comes 
 bundled with Rakudo.  This is a simple suite of tests, designed
 to make sure that the Rakudo compiler is basically working and that
 it's capable of running a simple test harness.
 
-Running "make spectest" will import relevant portions
-of the official Perl 6 test suite from the Pugs repository
+Running C<make spectest> will import the official Perl 6 test suite
+from the Pugs repository
 L<http://svn.pugscode.org/pugs/t/spec/> and run all of these tests that
 are currently known to pass.
 

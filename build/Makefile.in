@@ -358,7 +358,7 @@ manifest:
 	sort -u -o MANIFEST MANIFEST
 
 release: manifest
-	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyymm'\n\n"; exit 1 )
+	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=YYYY-MM'\n\n"; exit 1 )
 	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
 	$(PERL) -ne 'print "rakudo-$(VERSION)/$$_"' MANIFEST | \
 	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz

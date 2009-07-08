@@ -101,6 +101,8 @@ As the actual release date nears, review the git log history
 to see if any additional items need to be added to the ChangeLog.
 This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
 
+  $ git commit docs/ChangeLog
+
 =item 5.
 
 When it's time to cut the release, create a new release announcement
@@ -111,11 +113,16 @@ some small details about the choice of release name.  (If the
 details are a bit lengthy, this can often best be done as a separate
 section at the bottom of the announcement.)
 
+  $ git add docs/announce/YYYY-MM
+  $ git commit docs
+
 =item 6.
 
 Update the release dates and names at the top of this file
 (docs/release-guide.pod).  Also improve these instructions if
 you find any steps that are missing.
+
+  $ git commit docs/release-guide.pod
 
 =item 7.
 
@@ -128,10 +135,16 @@ Make sure everything compiles and runs from a known clean state:
   $ make spectest
 
 Continue adjusting things until make spectest passes as expected.
+Often this means fixing a bug, fudging a test, or removing a
+test from t/spectest.data .  Use your best judgement or ask others
+if uncertain what to do here.
 
 =item 8.
 
 Make sure any locally modified files have been pushed back to github.
+
+  $ git status
+  $ git push
 
 =item 9.
 

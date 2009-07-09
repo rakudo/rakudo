@@ -20,7 +20,6 @@ Forwards all but some methods to the held PMC.
 
 pmclass ObjectRef need_ext dynpmc group perl6_group {
     ATTR PMC *value;
-    ATTR PMC *cached_type;
 
     VTABLE void init() {
         PMC * const hll_ns    = Parrot_get_ctx_HLL_namespace(INTERP);
@@ -30,15 +29,12 @@ pmclass ObjectRef need_ext dynpmc group perl6_group {
     }
 
     VTABLE void init_pmc(PMC *value) {
-        PMC *type_obj = PMCNULL;
-
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
         PObj_active_destroy_SET(SELF);
 
         /* Create underlying structure. */
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_ObjectRef_attributes);
-        SET_ATTR_cached_type(INTERP, SELF, type_obj);
 
         /* Initialize with an undef PMC if no value. */
         if (PMC_IS_NULL(value))

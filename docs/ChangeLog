@@ -1,6 +1,10 @@
 New in 2009-07 release
++ extensive refactor of the multi dispatch code
++ better handling of named arguments in multi dispatch
 + operators can be defined in the setting
-+ basic implementation of the series operator
++ basic implementation of the series and eqv operators
++ implemented more cases of smartmatching against hashes
++ fixed state variables to work with //= and ||= initialization
 
 New in 2009-06 release
 + refactored and corrected object initialization (BUILD/CREATE)

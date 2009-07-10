@@ -42,6 +42,10 @@ Returns a Perl representation of a List.
         return '[' ~ self.map({ .perl }).join(", ") ~ ']';
     }
 
+    method rotate(Int $n = 1) is export {
+        my Int $k = $n % $.elems;
+        self.[$k .. $.elems-1, 0 .. $k-1]
+    }
 }
 
 # vim: ft=perl6

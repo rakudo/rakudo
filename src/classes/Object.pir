@@ -63,12 +63,14 @@ like this.
 
 .macro fixup_cloned_sub(orig, copy)
     .local pmc tmp, tmp2
-    .local string tmp_str
     tmp = getprop '$!signature', .orig
     if null tmp goto sub_fixup_done
     setprop .copy, '$!signature', tmp
-    tmp_str = typeof .orig
-    if tmp_str == "Sub" goto sub_fixup_done
+    .local pmc oclass, sclass
+    oclass = typeof .orig
+    sclass = get_class ['Sub']
+    $I0 = issame oclass, sclass
+    if $I0 goto sub_fixup_done
     tmp = getattribute .orig, ['Sub'], 'proxy'
     tmp = getprop '$!real_self', tmp
     if null tmp goto sub_fixup_done

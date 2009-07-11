@@ -81,7 +81,7 @@ class Any is also {
         }
     }
 
-    our List multi method split(Code $delimiter, $limit = *) {
+    our List multi method split(Code $delimiter, $limit = *, :$all) {
         my $s = ~self;
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         my $keep = '';
@@ -96,6 +96,11 @@ class Any is also {
                     $s.=substr($/.to)
                 }
                 $l--;
+                next if $l < 1;
+                if $all {
+                    $l--;
+                    take $/;
+                }
             }
             take $keep ~ $s if $l > 0;
         }
@@ -170,8 +175,8 @@ class Any is also {
     }
 }
 
-multi sub split($delimiter, $target, $limit = *) {
-    $target.split($delimiter, $limit);
+multi sub split($delimiter, $target, $limit = *, :$all) {
+    $target.split($delimiter, $limit, :$all);
 }
 
 # TODO: '$filename as Str' once support for that is in place

@@ -203,7 +203,13 @@ Return a List with the keys of the invocant.
     elems = list.'elems'()
     goto loop
   done:
+    $I0 = result.'elems'()
+    dec $I0
+    unless $I0 goto single_item
     .return (result)
+  single_item:
+     $P0 = result[0]
+    .return ($P0)
 .end
 
 .sub 'pick' :method :multi(_, 'Whatever')

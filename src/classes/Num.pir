@@ -68,15 +68,15 @@ Increment and Decrement Methods
 =cut
 
 .sub 'pred' :method
-    $P0 = clone self
-    dec $P0
-    .return ($P0)
+    $N0 = self
+    dec $N0
+    .return ($N0)
 .end
 
 .sub 'succ' :method
-    $P0 = clone self
-    inc $P0
-    .return ($P0)
+    $N0 = self
+    inc $N0
+    .return ($N0)
 .end
 
 

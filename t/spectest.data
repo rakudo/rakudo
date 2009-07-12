@@ -419,13 +419,14 @@ S32-str/pos.t
 S32-str/rindex.t
 S32-str/samecase.t                                         # icu
 S32-str/split-simple.t
+S32-str/split.t
 S32-str/sprintf.t
 S32-str/substr.t
-S32-temporal/Temporal.t
 S32-str/trim.t
 S32-str/ucfirst.t
 S32-str/uc.t                                               # icu
 S32-str/unpack.t
 S32-str/words.t                                            # icu
+S32-temporal/Temporal.t
 S32-trig/e.t
 S32-trig/trig.t

@@ -115,6 +115,7 @@ SETTING = \
   src/setting/Any-str.pm \
   src/setting/Array.pm \
   src/setting/Bool.pm \
+  src/setting/Buf.pm \
   src/setting/Hash.pm \
   src/setting/IO.pm \
   src/setting/IO/Socket.pm \
@@ -126,6 +127,7 @@ SETTING = \
   src/setting/Operators.pm \
   src/setting/Pair.pm \
   src/setting/Range.pm \
+  src/setting/Str.pm \
   src/setting/Temporal.pm \
   src/setting/Whatever.pm \
 

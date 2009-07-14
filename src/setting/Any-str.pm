@@ -81,9 +81,7 @@ class Any is also {
         }
     }
 
-=begin pod
-
-=head2 split
+=begin item split
 
  our List multi Str::split ( Str $delimiter ,  Str $input = $+_, Int $limit = inf )
  our List multi Str::split ( Rule $delimiter = /\s+/,  Str $input = $+_, Int $limit = inf )
@@ -98,7 +96,7 @@ introduce a trimlist function of some sort.
 
 B<Note:> partial implementation only
 
-=end pod
+=end item
 
     our List multi method split(Code $delimiter, $limit = *, :$all) {
         my $s = ~self;

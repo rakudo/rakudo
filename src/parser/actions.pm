@@ -2236,7 +2236,7 @@ method typename($/) {
 
 method fulltypename($/) {
     my $past := $<typename>.ast;
-    if substr( $<typename>.text(), 0, 2) eq '::' {
+    if substr( ~$<typename>, 0, 2) eq '::' {
         $past.isdecl(1);
         $past.scope('lexical');
     }
@@ -2303,8 +2303,8 @@ method rad_number($/) {
     my $fracpart := ~$<fracpart>;
     my $base;
     my $exp;
-    if defined( $<base>[0] ) { $base := $<base>[0].text(); }
-    if defined( $<exp>[0] ) { $exp := $<exp>[0].text(); }
+    if defined( $<base>[0] ) { $base := ~$<base>[0]; }
+    if defined( $<exp>[0] ) { $exp := ~$<exp>[0]; }
     if ~$<postcircumfix> {
         my $radcalc := $<postcircumfix>.ast;
         $radcalc.name('radcalc');
@@ -2791,9 +2791,9 @@ method colonpair($/, $key) {
     }
     elsif $key eq 'varname' {
         if $<desigilname><longname> {
-            $pair_key := PAST::Val.new( :value( $<desigilname>.text() ) );
+            $pair_key := PAST::Val.new( :value( ~$<desigilname> ) );
             $pair_val := PAST::Var.new(
-                :name( ~$<sigil> ~ ~$<twigil> ~ $<desigilname>.text() )
+                :name( ~$<sigil> ~ ~$<twigil> ~ $<desigilname> )
             );
         }
         else {

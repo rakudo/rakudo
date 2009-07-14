@@ -115,7 +115,7 @@ token afterws {
         .return (1)
       end:
     }}
-    <fail>
+    <!>
 }
 
 token pod_comment {
@@ -493,8 +493,7 @@ rule type_declarator {
     subset
     <name>
     {{
-        $P0 = match['name']
-        $S0 = $P0.'text'()
+        $S0 = match['name']
         match.'add_type'($S0)
     }}
     [ of <fulltypename> ]?
@@ -693,8 +692,7 @@ rule package_def {
             $P0 = match['def_module_name']
             $P0 = $P0[0]
             $P0 = $P0['longname']
-            $P0 = $P0['name']
-            $S0 = $P0.'text'()
+            $S0 = $P0['name']
             match.'add_type'($S0)
         }}
     ]?
@@ -718,8 +716,7 @@ rule enum_declarator {
         <name> ::
         {{
             $P0 = match['name']
-            $P0 = $P0[0]
-            $S0 = $P0.'text'()
+            $S0 = $P0[0]
             match.'add_type'($S0)
         }}
     ]?
@@ -734,8 +731,7 @@ rule scope_declarator {
     $<sym>=[my|our|state|constant|has]
     {{
         # XXX Becomes context variable.
-        $P0 = match['sym']
-        $S0 = $P0.'text'()
+        $S0 = match['sym']
         $P1 = get_hll_global ['Perl6';'Grammar';'Actions'], '@?SCOPE'
         unshift $P1, $S0
     }}
@@ -789,8 +785,7 @@ token constant_declarator {
     }}>
     <!{{
         # XXX <!{ $¢.is_name($<identifier>.Str) }>
-        $P0 = match['identifier']
-        $S0 = $P0.'text'()
+        $S0 = match['identifier']
         .tailcall match.'is_type'($S0)
     }}>
     <.ws>
@@ -902,8 +897,7 @@ token value {
 token typename {
     <name>
     <?{{
-        $P0 = match['name']
-        $S0 = $P0.'text'()
+        $S0 = match['name']
         .tailcall match.'is_type'($S0)
     }}>
     {*}

@@ -139,7 +139,7 @@ proto infix:<max> is equiv(infix:<||>)
 proto ternary:<?? !!> is precedence('j=') is pasttype('if') is assoc('right') { ... }
 
 ## item assignment
-proto infix:<:=> is precedence('i=') is pasttype('bind') { ... }
+proto infix:<:=> is precedence('i=') is assoc('right') is pasttype('bind') { ... }
 proto infix:<::=> is equiv(infix:<:=>) { ... }
 proto infix:<.=> is equiv(infix:<:=>) { ... }
 proto infix:«=>» is equiv(infix:<:=>) { ... }

@@ -123,7 +123,10 @@ multi sub dies_ok(Callable $closure, $reason) is export(:DEFAULT) {
     try {
         $closure();
     }
-    proclaim((defined $!), $reason);
+    if "$!" ~~ / ^ 'Null PMC access ' / {
+        diag "wrong way to die: '$!'";
+    }
+    proclaim((defined $! && "$!" !~~ / ^ 'Null PMC access ' /), $reason);
 }
 multi sub dies_ok(Callable $closure) is export(:DEFAULT) {
     dies_ok($closure, '');
@@ -140,7 +143,11 @@ multi sub lives_ok(Callable $closure) is export(:DEFAULT) {
 }
 
 multi sub eval_dies_ok(Str $code, $reason) is export(:DEFAULT) {
-    proclaim((defined eval_exception($code)), $reason);
+    my $ee = eval_exception($code);
+    if "$ee" ~~ / ^ 'Null PMC access ' / {
+        diag "wrong way to die: '$ee'";
+    }
+    proclaim((defined $ee && "$ee" !~~ / ^ 'Null PMC access' /), $reason);
 }
 multi sub eval_dies_ok(Str $code) is export(:DEFAULT) {
     eval_dies_ok($code, '');

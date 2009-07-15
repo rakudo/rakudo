@@ -50,6 +50,7 @@ multi sub infix:<eqv>(Mapping $a, Mapping $b) {
 
 multi sub infix:<eqv> ($a, $b) {
     return Bool::False unless $a.WHAT === $b.WHAT;
+    return Bool::True  if     $a      === $b;
     die "infix:<eqv> is only implemented for certain special cases yet";
 }
 

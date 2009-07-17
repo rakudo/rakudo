@@ -8,6 +8,17 @@ class Hash is also {
         @.keys.sort eqv %topic.keys.sort;
     }
 
+    # the spec says Array, not Positional, so we can't use the @ sigil here
+    multi method ACCEPTS(Array $topic) {
+        # we can't simply write
+        # $.contains(any(@($topic)))
+        # because .contains doesn't autothread, so we have to do it manually:
+        for $topic.list {
+            return Bool::True if $.exists($_);
+        }
+        Bool::False;
+    }
+
     multi method ACCEPTS($topic) {
         $.contains($topic)
     }

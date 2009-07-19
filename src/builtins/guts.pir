@@ -704,6 +704,12 @@ and C<type>.
     $I0 = exists $P0[name]
     if $I0 goto attr_exists
     addattribute metaclass, name
+    $P1 = getprop '@!attribute_list', metaclass
+    unless null $P1 goto have_attrlist
+    $P1 = root_new ['parrot';'ResizableStringArray']
+    setprop metaclass, '@!attribute_list', $P1
+  have_attrlist:
+    push $P1, name
     $P0 = metaclass.'attributes'()
   attr_exists:
 

@@ -44,7 +44,7 @@ like this.
     parrotclass = p6meta.'get_parrotclass'(result)
     if null parrotclass goto attrinit_done
     attributes = inspect parrotclass, 'attributes'
-    it = iter attributes
+    it = parrotclass.'attriter'()
   attrinit_loop:
     unless it goto attrinit_done
     .local string attrname, shortname
@@ -298,7 +298,7 @@ the object's type and address.
     parentproto = find_caller_lex '$CLASS'
     parrotclass = p6meta.'get_parrotclass'(parentproto)
     attributes = inspect parrotclass, 'attributes'
-    it = iter attributes
+    it = parrotclass.'attriter'()
   attrinit_loop:
     unless it goto attrinit_done
     .local string attrname, keyname
@@ -422,7 +422,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     unless class_it goto classinit_loop_end
     cur_class = shift class_it
     attributes = inspect cur_class, 'attributes'
-    it = iter attributes
+    it = cur_class.'attriter'()
   attrinit_loop:
     unless it goto attrinit_done
     .local string attrname

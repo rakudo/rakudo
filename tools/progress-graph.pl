@@ -83,7 +83,6 @@ while (<$f>) {
 
 my $last_date = $data[DATE][-1];
 
-print scalar(@data), $/;
 my $p = GD::Graph::bars->new(split m/x/, $size, 2);
 no warnings 'qw';
 $p->set(
@@ -99,7 +98,7 @@ $p->set(
 
 $p->set_legend('Pass', 'Fail', 'Todo', 'Regr', 'Spec');
 $p->set_x_axis_font(gdSmallFont);
-$p->set_y_axis_font(gdSmallFont);
+$p->set_y_axis_font(gdLargeFont);
 
 # determine a better y_max_value - GD::Graph wastes much space by default
 my $round_to = 10 ** int(log10 $max) / 5;

@@ -119,7 +119,7 @@ section at the bottom of the announcement.)
 =item 6.
 
 Update the release dates and names at the top of this file
-(docs/release-guide.pod).  Also improve these instructions if
+(F<docs/release-guide.pod>).  Also improve these instructions if
 you find any steps that are missing.
 
   $ git commit docs/release-guide.pod
@@ -169,7 +169,7 @@ Tag the release by its release month ("MMMM-YY") and its code name.
 =item 12.
 
 Upload the release tarball to github's download area at
-http://github.com/rakudo/rakudo/downloads .  
+L<http://github.com/rakudo/rakudo/downloads>.  
 
 =item 13.
 

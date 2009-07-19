@@ -46,6 +46,12 @@ the size of that file down and to emphasize their generic,
     .tailcall self.'truncate'()
 .end
 
+.namespace ['Any']
+.sub 'Int' :method :multi(_)
+    .tailcall self.'truncate'()
+.end
+
+
 =item log
 
  our Num multi Num::log         ( Num $x: Num :$base )

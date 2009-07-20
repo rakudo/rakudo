@@ -149,7 +149,7 @@ general this means that in the C<languages/rakudo/> directory you make your
 changes, and then type
 
     git commit -m 'Your commit message'
-    git-format-patch HEAD^
+    git format-patch HEAD^
 
 This will generate a file called C<001-your-commit-message.patch>, or more of
 them if you made multiple commits; please attach these to your email.

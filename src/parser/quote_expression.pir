@@ -182,6 +182,8 @@
     .local int optww
     optww = options['ww']
     unless optww goto have_wwopts
+    escapes .= '#'
+    options['escapes'] = escapes
     .local pmc wwsingleopts, wwdoubleopts, hashclass
     hashclass = get_root_namespace ['parrot';'Hash']
     wwsingleopts = new hashclass
@@ -207,10 +209,16 @@
   have_wwopts:
 
     .local pmc quote_concat
-    quote_concat = new 'ResizablePMCArray'
+    quote_concat = root_new ['parrot';'ResizablePMCArray']
 
     unless wsstop goto word_plain
   word_loop:
+    unless optww goto word_ws_plain
+    mob.'to'(pos)
+    $P0 = mob.'ws'()
+    unless $P0 goto word_ws_plain
+    pos = $P0.'to'()
+  word_ws_plain:
     pos = find_not_cclass .CCLASS_WHITESPACE, target, pos, lastpos
     if pos > lastpos goto fail
     $S0 = substr target, pos, stoplen

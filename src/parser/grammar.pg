@@ -89,7 +89,7 @@ token unsp {
 }
 
 token unspacey { <.unsp>? }
-token nofun { <!before '(' | '.(' | '\\' > }
+token nofun { <!before '(' | '.(' | '\\' | '\'' | '-'> }
 
 token unv {
     || \h+
@@ -390,7 +390,7 @@ rule statement_mod_cond {
 }
 
 rule statement_prefix {
-    $<sym>=[do|try|gather|contend|async|lazy]
+    $<sym>=[do|try|gather|contend|async|lazy]<.nofun>
     <statement>
     {*}
 }
@@ -400,16 +400,16 @@ rule statement_prefix {
 
 rule multi_declarator {
     [
-    | $<sym>=[multi|proto|only] [ <declarator> || <routine_def> ]
+    | $<sym>=[multi|proto|only]<.nofun> [ <declarator> || <routine_def> ]
     | <declarator>
     ]
     {*}
 }
 
 token routine_declarator {
-    | $<sym>='sub'       <routine_def> {*}       #= sub
-    | $<sym>='method'    <method_def> {*}        #= method
-    | $<sym>='submethod' <method_def> {*}        #= submethod
+    | $<sym>='sub'       <.nofun> <routine_def> {*}       #= sub
+    | $<sym>='method'    <.nofun> <method_def> {*}        #= method
+    | $<sym>='submethod' <.nofun> <method_def> {*}        #= submethod
 }
 
 rule multisig {

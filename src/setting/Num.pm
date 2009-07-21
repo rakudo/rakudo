@@ -238,6 +238,10 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
+    our Str multi method Str() {
+        ~self
+    }
+
     our Num multi method tan($base = 'radians') is export(:Trig) {
         my $x = self!to-radians($base);
         Q:PIR {

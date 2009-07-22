@@ -178,6 +178,62 @@ XXX Fix bugs with introspecting some built-in classes (List, Str...)
     .return (result_list)
 .end
 
+
+=item roles(object)
+
+Gets a list of roles done by the class of this object.
+
+=cut
+
+.sub 'roles' :method
+    .param pmc obj
+    .param pmc local :named('local') :optional
+
+    # Create result list.
+    .local pmc result_list
+    result_list = get_root_global [.RAKUDO_HLL], 'Array'
+    result_list = result_list.'new'()
+
+    # Get list of parents whose roles we are interested in, and put
+    # us on the start. With the local flag, that's just us.
+    .local pmc parents, parents_it, cur_class
+    if null local goto all_parents
+    unless local goto all_parents
+    parents = get_root_global [.RAKUDO_HLL], 'Array'
+    parents = parents.'new'()
+    goto parents_list_made
+  all_parents:
+    parents = self.'parents'(obj)
+  parents_list_made:
+    $P0 = obj.'WHAT'()
+    parents.'unshift'($P0)
+    parents_it = iter parents
+  parents_it_loop:
+    unless parents_it goto done
+    cur_class = shift parents_it
+
+    # Get Parrot-level class.
+    .local pmc parrot_class, roles, role_it, cur_role
+    parrot_class = self.'get_parrotclass'(cur_class)
+
+    # The list of roles is flattened out when we actually compose, so we
+    # don't inspect the Parrot class, but rather the to-compose list that
+    # is attached to it.
+    roles = getprop '@!roles', parrot_class
+    if null roles goto done
+    role_it = iter roles
+  role_it_loop:
+    unless role_it goto role_it_loop_end
+    cur_role = shift role_it
+    result_list.'push'(cur_role)
+    goto role_it_loop
+  role_it_loop_end:
+    goto parents_it_loop
+
+  done:
+    .return (result_list)
+.end
+
 =back
 
 =cut

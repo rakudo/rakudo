@@ -58,8 +58,8 @@ Puns the role to a class and returns that class.
     # Set name (don't use name=>... in register so we don't make a
     # namespace entry though).
     $P1 = proto.'HOW'()
-    $S0 = self
-    $P0 = box $S0
+    $P0 = getprop '$!owner', self
+    $P0 = getattribute $P0, '$!shortname'
     setattribute $P1, 'shortname', $P0
 
     # Stash it away, then instantiate it.
@@ -148,10 +148,11 @@ Puns the role to a class and returns that class.
 .sub 'perl' :method
     .local pmc args, it
     self = descalarref self
-    args = getprop '@!type_args', self
-    $P0 = getprop '$!shortname', self
+    $P0 = getprop '$!owner', self
+    $P0 = getattribute $P0, '$!shortname'
     $S0 = $P0
     $S0 = concat $S0, '['
+    args = getprop '@!type_args', self
     it = iter args
   it_loop:
     unless it goto it_loop_end
@@ -163,6 +164,7 @@ Puns the role to a class and returns that class.
     $S0 = concat ']'
     .return ($S0)
 .end
+
 
 =item WHICH
 

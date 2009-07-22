@@ -57,4 +57,9 @@ pmclass P6role extends Role need_ext dynpmc group perl6_group {
         VTABLE_setprop(interp, punner, CONST_STRING(interp, "name"), boxed_name);
         return punner;
     }
+
+    VTABLE STRING *get_string() {
+        PMC *owner = VTABLE_getprop(interp, SELF, CONST_STRING(interp, "$!owner"));
+        return VTABLE_get_string(interp, owner);
+    }
 }

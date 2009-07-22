@@ -36,6 +36,64 @@ Tests role membership.
 .end
 
 
+=item attributes()
+
+Gets the attributes that the class declares, returning a list of
+Attribute descriptors.
+
+=cut
+
+.sub 'attributes' :method
+    .param pmc obj
+    .param pmc local :named('local') :optional
+
+    # Create result list and get Attribute proto.
+    .local pmc result_list, attr_proto
+    result_list = get_root_global [.RAKUDO_HLL], 'Array'
+    result_list = result_list.'new'()
+    attr_proto = get_root_global [.RAKUDO_HLL], 'Attribute'
+
+    # Get list of parents whose attributes we are interested in, and put
+    # this class on the start. With the local flag, that's just it.
+    .local pmc parents, parents_it, cur_class
+    if null local goto all_parents
+    unless local goto all_parents
+    parents = get_root_global [.RAKUDO_HLL], 'Array'
+    parents = parents.'new'()
+    goto parents_list_made
+  all_parents:
+    parents = self.'parents'(obj)
+  parents_list_made:
+    $P0 = obj.'WHAT'()
+    parents.'unshift'($P0)
+    parents_it = iter parents
+  parents_it_loop:
+    unless parents_it goto done
+    cur_class = shift parents_it
+
+    # Get Parrot-level class.
+    .local pmc parrot_class, attributes, attr_it, cur_attr_hash, cur_attr_info
+    parrot_class = self.'get_parrotclass'(cur_class)
+
+    # Iterate over attributes and build an Attribute descriptor for each one.
+    attributes = parrot_class.'attributes'()
+    attr_it = iter attributes
+  attr_it_loop:
+    unless attr_it goto attr_it_loop_end
+    $S0 = shift attr_it
+    cur_attr_hash = attributes[$S0]
+    $S0 = cur_attr_hash['name']
+    cur_attr_info = attr_proto.'new'('name' => $S0)
+    result_list.'push'(cur_attr_info)
+    goto attr_it_loop
+  attr_it_loop_end:
+    goto parents_it_loop
+
+  done:
+    .return (result_list)
+.end
+
+
 =item parents()
 
 Gets a list of this class' parents.

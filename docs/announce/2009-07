@@ -35,9 +35,9 @@ Some of the specific major changes and improvements in this release include:
 * User defined traits now follow the specification much more closely; some
   built-in traits are written in Perl 6
 
-* Improved testing: when Rakudo dies with a Null PMC Access, this is never now
-  never considered a success, even if throwing an exception , forcing more
-  informative error message to be emitted. 
+* Improved testing: when Rakudo dies with a Null PMC Access, this is now
+  never considered a success, even if throwing an exception, forcing more
+  informative error messages to be emitted. 
 
 Since the Perl 6 specification is still in flux, some deprecated features
 will be removed from Rakudo. Prominently among those are:

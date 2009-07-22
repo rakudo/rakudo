@@ -314,7 +314,15 @@ Gets a perl representation of the signature.
     if null $P0 goto slurpy_done
     unless $P0 goto slurpy_done
     concat s, '*'
+    goto named_done
   slurpy_done:
+
+    # If it's named, the :.
+    $S0 = cur_param['named']
+    if null $S0 goto named_done
+    if $S0 == '' goto named_done
+    concat s, ':'
+  named_done:
 
     # Now the name.
     $P0 = cur_param["name"]

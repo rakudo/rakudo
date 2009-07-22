@@ -33,7 +33,7 @@ close $REQ;
 
 {
     no warnings;
-    if (open my $REV, '-|', "parrot${slash}parrot_config revision") {
+    if (open my $REV, '-|', "parrot_install${slash}bin${slash}parrot_config revision") {
         my $revision = 0+<$REV>;
         close $REV;
         if ($revision >= $reqsvn) {
@@ -67,7 +67,7 @@ system @config_command;
 print "\nBuilding Parrot ...\n";
 my %config = read_parrot_config();
 my $make = $config{'make'} or exit(1);
-system($make);
+system($make, 'install-dev');
 
 sub read_parrot_config {
     my %config = ();

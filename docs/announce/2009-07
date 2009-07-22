@@ -39,8 +39,8 @@ Some of the specific major changes and improvements in this release include:
   never considered a success, even if throwing an exception, forcing more
   informative error messages to be emitted. 
 
-* Improved introspection: you can now get a list of roles composing a class,
-  and a list of attributes.
+* Improved introspection: you can now get a list of roles composed into a
+  class, and a list of attributes.
 
 Since the Perl 6 specification is still in flux, some deprecated features
 will be removed from Rakudo. Prominently among those are:

@@ -15,16 +15,29 @@ More details are available at http://rakudo.org/how-to-get-rakudo .
 Rakudo Perl follows a monthly release cycle, with each release code named
 after a Perl Mongers group.  TODO: reason for $release_name
 
-TODO: one-sentence summary of changes
 
-Some of the specific major changes
-and improvements in this release include:
+In this release of Rakudo Perl, we've focused our efforts on quality
+improvements and bootstrapping; to that goal we wrote the first operators
+in Perl 6.
 
+Some of the specific major changes and improvements in this release include:
+  
 * Rakudo is now passing [TODO] spectests, an increase of [TODO]
   passing tests since the June 2009 release.  With this release
   Rakudo is now passing [TODO] of the available spectest suite.
+ 
+* Operators can now be written in Perl 6, and this has been done for the
+  series operator '...', 'eqv' and the 'leg' operator
 
-* TODO: more
+* The multi dispatcher has been refactored extensively, and now handles many
+  more edge cases correctly.
+ 
+* User defined traits now follow the specification much more closely; some
+  built-in traits are written in Perl 6
+
+* Improved testing: when Rakudo dies with a Null PMC Access, this is now
+  never considered a success, even if throwing an exception, forcing more
+  informative error messages to be emitted. 
 
 Since the Perl 6 specification is still in flux, some deprecated features
 will be removed from Rakudo. Prominently among those are:

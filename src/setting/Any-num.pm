@@ -11,7 +11,7 @@ class Any is also {
         Q:PIR {
             $I0 = self
             $S0 = chr $I0
-            %r = box $S0
+            %r = 'prefix:~'($S0)
         }
     }
 

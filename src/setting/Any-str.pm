@@ -23,7 +23,7 @@ class Any is also {
         Q:PIR {
             $S0 = self
             downcase $S0
-            %r = box $S0
+            %r = 'prefix:~'($S0)
         }
     }
 
@@ -183,7 +183,7 @@ B<Note:> partial implementation only
         Q:PIR {
             $S0 = self
             upcase $S0
-            %r = box $S0
+            %r = 'prefix:~'($S0)
         }
     }
 

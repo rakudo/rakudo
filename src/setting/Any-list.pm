@@ -18,7 +18,7 @@ class Any is also {
             $P1 = find_lex '$separator'
             $S1 = $P1
             $S0 = join $S1, $P0
-            %r = box $S0
+            %r = 'prefix:~'($S0)
         }
     }
 

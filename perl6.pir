@@ -259,6 +259,7 @@ and report exceptions.
   it_loop:
     unless it goto it_loop_end
     cur_block = shift it
+    if null cur_block goto it_loop # XXX Why'd we have null anyway? Parrot bug?
 
     if cur_info != "" goto got_cur_info
     cur_info = 'format_location'(cur_block)

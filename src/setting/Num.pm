@@ -1,5 +1,5 @@
 class Num is also {
-    our Num multi method acos($base = 'radians') is export(:Trig) {
+    our Num multi method acos($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = acos $N0
@@ -8,7 +8,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method acosh($base = 'radians') is export(:Trig) {
+    our Num multi method acosh($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = $N0 * $N0
@@ -21,7 +21,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method acosec($base = 'radians') is export(:Trig) {
+    our Num multi method acosec($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = 1 / $N0
@@ -31,11 +31,11 @@ class Num is also {
         self!from-radians($r, $base)
    }
 
-    our Num multi method acosech($base = 'radians') is export(:Trig) {
+    our Num multi method acosech($base = 'radians') is export {
         self!from-radians(asinh(1/+self), $base)
     }
 
-    our Num multi method acotan($base = 'radians') is export(:Trig) {
+    our Num multi method acotan($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = 1 / $N0
@@ -45,7 +45,7 @@ class Num is also {
         self!from-radians($r, $base)
    }
 
-    our Num multi method acotanh($base = 'radians') is export(:Trig) {
+    our Num multi method acotanh($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = 1 + $N0
@@ -58,7 +58,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method asec($base = 'radians') is export(:Trig) {
+    our Num multi method asec($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = asec $N0
@@ -67,7 +67,7 @@ class Num is also {
         self!from-radians($r, $base)
    }
 
-    our Num multi method asech($base = 'radians') is export(:Trig) {
+    our Num multi method asech($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = neg $N0
@@ -82,7 +82,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method asin($base = 'radians') is export(:Trig) {
+    our Num multi method asin($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = asin $N0
@@ -91,7 +91,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method asinh($base = 'radians') is export(:Trig) {
+    our Num multi method asinh($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = $N0 * $N0
@@ -104,7 +104,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method atan($base = 'radians') is export(:Trig) {
+    our Num multi method atan($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = atan $N0
@@ -113,7 +113,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method atan2(Num $x = 1, $base = 'radians') is export(:Trig) {
+    our Num multi method atan2(Num $x = 1, $base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $P1 = find_lex "$x"
@@ -124,7 +124,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method atanh($base = 'radians') is export(:Trig) {
+    our Num multi method atanh($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = 1 - $N0
@@ -137,7 +137,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method cos($base = 'radians') is export(:Trig) {
+    our Num multi method cos($base = 'radians') is export {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"
@@ -147,7 +147,7 @@ class Num is also {
         };
     }
 
-    our Num multi method cosh($base = 'radians') is export(:Trig) {
+    our Num multi method cosh($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = cosh $N0
@@ -156,7 +156,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method cosec($base = 'radians') is export(:Trig) {
+    our Num multi method cosec($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = sin $N0
@@ -166,7 +166,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method cosech($base = 'radians') is export(:Trig) {
+    our Num multi method cosech($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = sinh $N0
@@ -176,7 +176,7 @@ class Num is also {
         self!from-radians($r, $base)
    }
 
-    our Num multi method cotan($base = 'radians') is export(:Trig) {
+    our Num multi method cotan($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = tan $N0
@@ -186,7 +186,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method cotanh($base = 'radians') is export(:Trig) {
+    our Num multi method cotanh($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = tanh $N0
@@ -200,7 +200,7 @@ class Num is also {
         ~self
     }
 
-    our Num multi method sec($base = 'radians') is export(:Trig) {
+    our Num multi method sec($base = 'radians') is export {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"
@@ -210,7 +210,7 @@ class Num is also {
         }
     }
 
-    our Num multi method sech($base = 'radians') is export(:Trig) {
+    our Num multi method sech($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = sech $N0
@@ -219,7 +219,7 @@ class Num is also {
         self!from-radians($r, $base)
     }
 
-    our Num multi method sin($base = 'radians') is export(:Trig) {
+    our Num multi method sin($base = 'radians') is export {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"
@@ -229,7 +229,7 @@ class Num is also {
         }
     }
 
-    our Num multi method sinh($base = 'radians') is export(:Trig) {
+    our Num multi method sinh($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = sinh $N0
@@ -242,7 +242,7 @@ class Num is also {
         ~self
     }
 
-    our Num multi method tan($base = 'radians') is export(:Trig) {
+    our Num multi method tan($base = 'radians') is export {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"
@@ -252,7 +252,7 @@ class Num is also {
         }
     }
 
-    our Num multi method tanh($base = 'radians') is export(:Trig) {
+    our Num multi method tanh($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
             $N1 = tanh $N0

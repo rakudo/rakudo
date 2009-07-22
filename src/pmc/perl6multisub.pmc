@@ -381,10 +381,12 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
                     CONST_STRING(interp, "multi_invocant"));
             PMC * const named       = VTABLE_get_pmc_keyed_str(interp, param,
                     CONST_STRING(interp, "named"));
+            PMC * const slurpy      = VTABLE_get_pmc_keyed_str(interp, param,
+                    CONST_STRING(interp, "slurpy"));
 
-            /* If it's named, don't need its type info but we will need a bindability
-             * check during the dispatch for it. */
-            if (!PMC_IS_NULL(named)) {
+            /* If it's named, and not slurpy, don't need its type info but we will
+             * need a bindability check during the dispatch for it. */
+            if (!PMC_IS_NULL(named) && PMC_IS_NULL(slurpy)) {
                 info->bind_check = 1;
                 continue;
             }

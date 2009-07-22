@@ -311,7 +311,8 @@ and report exceptions.
 
   exit:
     pop_eh
-    exit 0
+    $I0 = exception['exit_code']
+    exit $I0
 .end
 .sub 'format_location'
     .param pmc cur_block

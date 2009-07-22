@@ -83,7 +83,15 @@ Attribute descriptors.
     $S0 = shift attr_it
     cur_attr_hash = attributes[$S0]
     $S0 = cur_attr_hash['name']
-    cur_attr_info = attr_proto.'new'('name' => $S0)
+    $P0 = cur_attr_hash['type']
+    unless null $P0 goto type_done
+    $P0 = get_root_global [.RAKUDO_HLL], 'Object'
+  type_done:
+    $P1 = cur_attr_hash['init_value']
+    unless null $P1 goto build_done
+    $P1 = root_new [.RAKUDO_HLL; 'Failure']
+  build_done:
+    cur_attr_info = attr_proto.'new'('name' => $S0, 'type' => $P0, 'build' => $P1)
     result_list.'push'(cur_attr_info)
     goto attr_it_loop
   attr_it_loop_end:

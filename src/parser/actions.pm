@@ -1737,6 +1737,9 @@ method scope_declarator($/) {
                         $init_value.named('init_value');
                         $has.push($init_value);
                     }
+                    if $var<twigil> eq '.' {
+                        $has.push(PAST::Val.new( :value(1), :named('accessor') ));
+                    }
                     if $var<traitlist> {
                         # If we have a handles, then we pass that specially.
                         my $handles := has_compiler_trait($var<traitlist>, 'trait_mod:handles');

@@ -26,9 +26,9 @@ builtin functions written in Perl 6.
 
 Some of the specific major changes and improvements in this release include:
   
-* Rakudo is now passing [TODO] spectests, an increase of [TODO]
+* Rakudo is now passing 11,876 spectests, an increase of 340
   passing tests since the June 2009 release.  With this release
-  Rakudo is now passing [TODO] of the available spectest suite.
+  Rakudo is now passing 68% of the available spectest suite.
  
 * Operators can now be written in Perl 6, and this has been done for the
   series operator '...', 'eqv' and the 'leg' operator.

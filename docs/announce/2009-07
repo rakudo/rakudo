@@ -1,7 +1,7 @@
-Announce: Rakudo Perl 6 development release #19 ("TODO")
+Announce: Rakudo Perl 6 development release #19 ("Chicago")
 
 On behalf of the Rakudo development team, I'm pleased to announce
-the June 2009 development release of Rakudo Perl #19 "TODO".
+the June 2009 development release of Rakudo Perl #19 "Chicago".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
 The tarball for the July 2009 release is available from
 http://github.com/rakudo/rakudo/downloads .
@@ -13,12 +13,16 @@ the latest source directly from the main repository at github.
 More details are available at http://rakudo.org/how-to-get-rakudo .
 
 Rakudo Perl follows a monthly release cycle, with each release code named
-after a Perl Mongers group.  TODO: reason for $release_name
-
+after a Perl Mongers group.  The July 2009 release is named "Chicago",
+as chosen by Perl 6 contributor Kyle Hasselbacher.  Kyle has been
+doing a truly outstanding job of turning open tickets in the RT queues
+into tests for the spectest suite.  Chicago.pm has been the host for
+the 2006 and 2008 YAPC::NA conferences and sponsored Perl 6 hackathons
+at each conference.
 
 In this release of Rakudo Perl, we've focused our efforts on quality
-improvements and bootstrapping; to that goal we wrote the first operators
-in Perl 6.
+improvements and bootstrapping.  We now have operators and additional
+builtin functions written in Perl 6.
 
 Some of the specific major changes and improvements in this release include:
   
@@ -27,17 +31,17 @@ Some of the specific major changes and improvements in this release include:
   Rakudo is now passing [TODO] of the available spectest suite.
  
 * Operators can now be written in Perl 6, and this has been done for the
-  series operator '...', 'eqv' and the 'leg' operator
+  series operator '...', 'eqv' and the 'leg' operator.
 
 * The multi dispatcher has been refactored extensively, and now handles many
   more edge cases correctly.
  
 * User defined traits now follow the specification much more closely; some
-  built-in traits are written in Perl 6
+  built-in traits are written in Perl 6.
 
-* Improved testing: when Rakudo dies with a Null PMC Access, this is now
-  never considered a success, even if throwing an exception, forcing more
-  informative error messages to be emitted. 
+* Improved testing: Null PMC Access exceptions are never considered
+  "successful" by the test suite, even if the test was expecting a
+  (different) exception to be thrown.
 
 * Improved introspection: you can now get a list of roles composed into a
   class, and a list of attributes.

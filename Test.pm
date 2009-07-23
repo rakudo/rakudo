@@ -11,13 +11,15 @@ our $num_of_tests_failed = 0;
 our $todo_upto_test_num  = 0;
 our $todo_reason         = '';
 our $num_of_tests_planned;
-our $no_plan;
+our $no_plan = 1;
 our $die_on_fail;
 
 our $*WARNINGS = 0;
 
-# for running the test suite multiple times in the same process
-our $testing_started;
+## If done_testing hasn't been run when we hit our END block, we need to know
+## so that it can be run. This allows compatibility with old tests that use
+## plans and don't call done_testing.
+our $done_testing_has_been_run = 0;
 
 
 ## test functions
@@ -28,14 +30,14 @@ sub die_on_fail($fail=1) {
 }
 
 # "plan 'no_plan';" is now "plan *;"
+# It is also the default if nobody calls plan at all
 multi sub plan(Whatever $plan) is export(:DEFAULT) {
     $no_plan = 1;
 }
 
 multi sub plan($number_of_tests) is export(:DEFAULT) {
-    $testing_started      = 1;
-
     $num_of_tests_planned = $number_of_tests;
+    $no_plan = 0;
 
     say '1..' ~ $number_of_tests;
 }
@@ -212,7 +214,6 @@ sub eval_exception($code) {
 }
 
 sub proclaim($cond, $desc) {
-    $testing_started  = 1;
     $num_of_tests_run = $num_of_tests_run + 1;
 
     unless $cond {
@@ -234,25 +235,32 @@ sub proclaim($cond, $desc) {
     return $cond;
 }
 
-END {
-    # until END blocks can access compile-time symbol tables of outer scopes,
-    #  we need these declarations
-    our $testing_started;
-    our $num_of_tests_planned;
-    our $num_of_tests_run;
-    our $num_of_tests_failed;
-    our $no_plan;
+sub done_testing() is export(:DEFAULT) {
+    our $done_testing_has_been_run;
+
+    $done_testing_has_been_run = 1;
 
     if $no_plan {
         $num_of_tests_planned = $num_of_tests_run;
         say "1..$num_of_tests_planned";
     }
 
-    if ($testing_started and $num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
+    if ($num_of_tests_planned != $num_of_tests_run) {  ##Wrong quantity of tests
         diag("Looks like you planned $num_of_tests_planned tests, but ran $num_of_tests_run");
     }
-    if ($testing_started and $num_of_tests_failed) {
+    if ($num_of_tests_failed) {
         diag("Looks like you failed $num_of_tests_failed tests of $num_of_tests_run");
+    }
+}
+
+END {
+    our $done_testing_has_been_run;
+    our $no_plan;
+
+    ## In planned mode, people don't necessarily expect to have to call done_testing
+    ## So call it for them if they didn't
+    if !$done_testing_has_been_run && !$no_plan {
+        done_testing;
     }
 }
 

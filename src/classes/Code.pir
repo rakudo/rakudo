@@ -133,6 +133,17 @@ Just calls this block with the supplied parameters.
     .tailcall self(pos_args :flat, named_args :flat :named)
 .end
 
+
+=item multi
+
+=cut
+
+.sub 'multi' :method
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
+.end
+
+
 =item name
 
 =cut

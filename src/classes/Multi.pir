@@ -22,6 +22,15 @@ Multi - Perl 6 multi-dispatch routine
     p6meta.'register'('MultiSub', 'parent'=>proto, 'protoobject'=>proto)
 .end
 
+=item multi
+
+=cut
+
+.sub 'multi' :method
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return ($P0)
+.end
+
 .sub 'Scalar' :method
     .return (self)
 .end

@@ -307,6 +307,7 @@ S12-introspection/can.t
 S12-introspection/meta-class.t
 S12-introspection/methods.t
 S12-introspection/parents.t
+S12-introspection/roles.t
 S12-introspection/walk.t
 S12-methods/calling_sets.t
 S12-methods/calling_syntax.t

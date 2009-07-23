@@ -191,10 +191,6 @@ Gets a list of this class' parents.
 
 Gets a list of methods.
 
-XXX Spec and implement various flags it takes, which currently aren't in S12.
-
-XXX Fix bugs with introspecting some built-in classes (List, Str...)
-
 =cut
 
 .sub 'methods' :method
@@ -205,6 +201,10 @@ XXX Fix bugs with introspecting some built-in classes (List, Str...)
     local = adverbs['local']
     tree = adverbs['tree']
     private = adverbs['private']
+    if null private goto private_setup
+    if private goto private_setup
+    private = null
+  private_setup:
 
     .local pmc parrot_class, method_hash, result_list, it, cur_meth
     obj = obj.'WHAT'()
@@ -220,6 +220,10 @@ XXX Fix bugs with introspecting some built-in classes (List, Str...)
   it_loop:
     unless it goto it_loop_end
     $S0 = shift it
+    unless null private goto private_done
+    $S1 = substr $S0, 0, 1
+    if $S1 == '!' goto it_loop
+  private_done:
     cur_meth = method_hash[$S0]
     result_list.'push'(cur_meth)
     goto it_loop

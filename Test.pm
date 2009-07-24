@@ -63,6 +63,14 @@ multi sub nok(Object $cond) is export(:DEFAULT) { nok($cond, ''); }
 multi sub is(Object $got, Object $expected, $desc) is export(:DEFAULT) {
     my $test = $got eq $expected;
     proclaim(?$test, $desc);
+    if !$test {
+        my $got_perl      = try { $got.perl };
+        my $expected_perl = try { $expected.perl };
+        if $got_perl.defined && $expected_perl.defined {
+            diag "     got: $got_perl";
+            diag "expected: $expected_perl";
+        }
+    }
 }
 
 multi sub is(Object $got, Object $expected) is export(:DEFAULT) { is($got, $expected, ''); }

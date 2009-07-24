@@ -17,16 +17,11 @@ multi trait_mod:<is>(Object $child, Object $parent) {
     parent = parent.'!pun'()
   have_class:
 
-    # Is child a metaclass?
-    $I0 = isa child, 'ClassHOW'
-    unless $I0 goto have_parrotclass
-    child = getattribute child, 'parrotclass'
-  have_parrotclass:
-
     # Now the the real parrot class and add parent.
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     parent = p6meta.'get_parrotclass'(parent)
+    child = getattribute child, 'parrotclass'
     child.'add_parent'(parent)
     };
 }

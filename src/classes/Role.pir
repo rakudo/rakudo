@@ -218,6 +218,16 @@ just here so postcircumfix:[ ] doesn't explode).
 .end
 
 
+=item HOW
+
+=cut
+
+.sub 'HOW' :method
+    $P0 = self.'!select'()
+    .tailcall $P0.'HOW'()
+.end
+
+
 =item WHICH
 
 =cut

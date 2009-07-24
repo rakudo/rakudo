@@ -537,32 +537,42 @@ is composed (see C<!meta_compose> below).
     # the namespace. Then we attach this "master role" to a new one we create
     # per invocation, so the methods can be newclosure'd and added into it in
     # the body.
-    .local pmc info, metarole
+    .local pmc info, parrotrole
     ns = get_hll_namespace nsarray
-    metarole = get_class ns
-    unless null metarole goto have_role
+    parrotrole = get_class ns
+    unless null parrotrole goto have_role
 
     info = root_new ['parrot';'Hash']
     $P0 = nsarray[-1]
     info['name'] = $P0
     info['namespace'] = nsarray
-    metarole = root_new ['parrot';'P6role'], info
+    parrotrole = root_new ['parrot';'P6role'], info
   have_role:
 
-    # Copy list of roles done by the metarole.
-    .local pmc result, tmp, it
-    result = root_new ['parrot';'P6role']
-    setprop result, '$!orig_role', metarole
-    tmp = metarole.'roles'()
+    # Copy list of roles done by the original role into this specific
+    # one.
+    .local pmc specific_role, tmp, it
+    specific_role = root_new ['parrot';'P6role']
+    setprop specific_role, '$!orig_role', parrotrole
+    tmp = parrotrole.'roles'()
     it = iter tmp
   roles_loop:
     unless it goto roles_loop_end
     tmp = shift it
-    result.'add_role'(tmp)
+    specific_role.'add_role'(tmp)
     goto roles_loop
   roles_loop_end:
 
-    .return (result)
+    # Now create a meta-object (RoleHOW) to package this all up in.
+    .local pmc metaclass
+    metaclass = new ['RoleHOW']
+    setprop specific_role, 'metaclass', metaclass
+    setattribute metaclass, 'parrotclass', specific_role
+    setattribute metaclass, 'protoobject', specific_role
+    setattribute metaclass, 'shortname', $P0
+    $P1 = box name
+    setattribute metaclass, 'longname', $P1
+    .return (metaclass)
 .end
 
 
@@ -573,7 +583,7 @@ and creating the protoobjects.
 
 =cut
 
-.sub '!meta_compose' :multi(['P6metaclass'])
+.sub '!meta_compose' :multi(['ClassHOW'])
     .param pmc metaclass
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
@@ -656,7 +666,7 @@ Role meta composer -- does nothing.
 
 =cut
 
-.sub '!meta_compose' :multi(['Role'])
+.sub '!meta_compose' :multi(['RoleHOW'])
     .param pmc metaclass
     # Currently, nothing to do.
     .return (metaclass)
@@ -951,10 +961,11 @@ Helper method for creating parametric roles.
 =cut
 
 .sub '!create_parametric_role'
-    .param pmc mr
-    '!meta_compose'(mr)
-    .local pmc orig_role, meths, meth_iter
-    orig_role = getprop '$!orig_role', mr
+    .param pmc metarole
+    '!meta_compose'(metarole)
+    .local pmc parrotrole, orig_role, meths, meth_iter
+    parrotrole = getattribute metarole, 'parrotclass'
+    orig_role = getprop '$!orig_role', parrotrole
     meths = orig_role.'methods'()
     meth_iter = iter meths
   it_loop:
@@ -971,10 +982,10 @@ Helper method for creating parametric roles.
     $P3 = getattribute $P1, ['Sub'], 'proxy'
     setprop $P3, '$!real_self', $P2
   ret_pir_skip_rs:
-    addmethod mr, $S0, $P1
+    addmethod parrotrole, $S0, $P1
     goto it_loop
   it_loop_end:
-    .return (mr)
+    .return (parrotrole)
 .end
 
 

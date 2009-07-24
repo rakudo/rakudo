@@ -166,6 +166,16 @@ Puns the role to a class and returns that class.
 .end
 
 
+=item HOW
+
+=cut
+
+.sub 'HOW' :method
+    $P0 = getprop 'metaclass', self
+    .return ($P0)
+.end
+
+
 =item WHICH
 
 =cut

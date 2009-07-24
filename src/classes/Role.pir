@@ -223,8 +223,14 @@ just here so postcircumfix:[ ] doesn't explode).
 =cut
 
 .sub 'HOW' :method
+    $I0 = isa self, 'P6protoobject'
+    if $I0 goto proto
     $P0 = self.'!select'()
     .tailcall $P0.'HOW'()
+  proto:
+    $P0 = typeof self
+    $P0 = getprop 'metaclass', $P0
+    .return ($P0)
 .end
 
 

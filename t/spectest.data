@@ -89,6 +89,7 @@ S02-magicals/env.t
 S02-magicals/progname.t
 S02-names_and_variables/fmt.t
 S02-names_and_variables/names.t
+S02-names_and_variables/our.t
 S02-names_and_variables/perl.t
 S02-names_and_variables/varnames.t
 S02-names/identifier.t
@@ -110,6 +111,7 @@ S03-junctions/misc.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
+S03-operators/autoincrement-range.t
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
 S03-operators/basic-types.t
@@ -124,6 +126,7 @@ S03-operators/cross-metaop.t
 S03-operators/equality.t
 S03-operators/eqv.t
 S03-operators/hyper.t
+S03-operators/identity.t
 S03-operators/increment.t
 S03-operators/inplace.t
 S03-operators/list-quote-junction.t
@@ -212,6 +215,7 @@ S05-metasyntax/angle-brackets.t
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
 S05-metasyntax/lookaround.t
+S05-metasyntax/null.t
 S05-metasyntax/regex.t
 S05-metasyntax/repeat.t
 S05-metasyntax/single-quotes.t
@@ -356,6 +360,7 @@ S28-named-variables/cwd.t
 S28-named-variables/inc.t
 S29-any/cmp.t
 S29-any/isa.t
+S29-context/die.t
 S29-context/eval.t
 S29-context/sleep.t
 S29-conversions/ord_and_chr.t

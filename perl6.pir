@@ -359,13 +359,13 @@ to the Perl 6 compiler.
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
 
     .include 'iterator.pasm'
-    .local pmc iter
+    .local pmc it
     $P0 = get_hll_global ['Perl6'], '@?END_BLOCKS'
-    iter = new 'Iterator', $P0
-    iter = .ITERATE_FROM_END
+    it = iter $P0
+    it = .ITERATE_FROM_END
   iter_loop:
-    unless iter goto iter_end
-    $P0 = pop iter
+    unless it goto iter_end
+    $P0 = pop it
     $P0()
     goto iter_loop
   iter_end:

@@ -89,10 +89,10 @@ S02-magicals/env.t
 S02-magicals/progname.t
 S02-names_and_variables/fmt.t
 S02-names_and_variables/names.t
-S02-names_and_variables/our.t
 S02-names_and_variables/perl.t
 S02-names_and_variables/varnames.t
 S02-names/identifier.t
+S02-names/our.t
 S02-one-pass-parsing/less-than.t
 S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/begin_end_pod.t

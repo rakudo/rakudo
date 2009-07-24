@@ -17,6 +17,12 @@ multi trait_mod:<is>(Object $child, Object $parent) {
     parent = parent.'!pun'()
   have_class:
 
+    # Is child a metaclass?
+    $I0 = isa child, 'ClassHOW'
+    unless $I0 goto have_parrotclass
+    child = getattribute child, 'parrotclass'
+  have_parrotclass:
+
     # Now the the real parrot class and add parent.
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
@@ -94,12 +100,14 @@ multi trait_mod:<does>(Object $class is rw, Object $role) {
     $I0 = isa metaclass, 'Class'
     if $I0 goto is_class
     $I0 = isa metaclass, 'P6role'
-    if $I0 goto is_class
+    if $I0 goto is_role
     $I0 = isa metaclass, 'Perl6Role'
-    if $I0 goto is_class
+    if $I0 goto is_role
     'infix:does'(metaclass, role)
     .return ()
   is_class:
+    metaclass = getattribute metaclass, 'parrotclass'
+  is_role:
 
     # If it's an un-selected role, do so.
     $I0 = isa role, 'P6role'

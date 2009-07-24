@@ -516,16 +516,19 @@ is composed (see C<!meta_compose> below).
     .return ($P0)
 
   class:
-    .local pmc metaclass, ns
+    .local pmc parrotclass, metaclass, ns
     ns = get_hll_namespace nsarray
     if also goto is_also
-    metaclass = newclass ns
+    parrotclass = newclass ns
     $P0 = box type
-    setprop metaclass, 'pkgtype', $P0
-    '!set_resolves_list'(metaclass)
+    setprop parrotclass, 'pkgtype', $P0
+    '!set_resolves_list'(parrotclass)
+    metaclass = new ['ClassHOW']
+    setattribute metaclass, 'parrotclass', parrotclass
     .return (metaclass)
   is_also:
-    metaclass = get_class ns
+    parrotclass = get_class ns
+    metaclass = getprop 'metaclass', parrotclass
     .return (metaclass)
 
   role:
@@ -570,47 +573,46 @@ and creating the protoobjects.
 
 =cut
 
-.sub '!meta_compose' :multi(['Class'])
+.sub '!meta_compose' :multi(['P6metaclass'])
     .param pmc metaclass
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
 
+    # Extract the parrotclass form the metaclass.
+    .local pmc parrotclass
+    parrotclass = getattribute metaclass, 'parrotclass'
+
     # Parrot handles composing methods into roles, but we need to handle the
     # attribute composition ourselves.
     .local pmc roles, roles_it
-    roles = getprop '@!roles', metaclass
+    roles = getprop '@!roles', parrotclass
     if null roles goto roles_it_loop_end
     roles = '!get_flattened_roles_list'(roles)
     roles_it = iter roles
   roles_it_loop:
     unless roles_it goto roles_it_loop_end
     $P0 = shift roles_it
-    $I0 = does metaclass, $P0
+    $I0 = does parrotclass, $P0
     if $I0 goto roles_it_loop
-    metaclass.'add_role'($P0)
-    '!compose_role_attributes'(metaclass, $P0)
+    parrotclass.'add_role'($P0)
+    '!compose_role_attributes'(parrotclass, $P0)
     goto roles_it_loop
   roles_it_loop_end:
 
-    # Create a HOW of the right type.
-    .local pmc how
-    how = new ['ClassHOW']
-    setattribute how, 'parrotclass', metaclass
-
     # Create proto-object with default parent being Any or Grammar, unless
     # there already is a parent.
-    $P0 = metaclass.'parents'()
+    $P0 = parrotclass.'parents'()
     $I0 = elements $P0
     if $I0 goto register_parent_set
     $S0 = 'Any'
-    $P0 = getprop 'pkgtype', metaclass
+    $P0 = getprop 'pkgtype', parrotclass
     if null $P0 goto no_pkgtype
     if $P0 != 'grammar' goto register
     $S0 = 'Grammar'
   register:
-    .tailcall p6meta.'register'(metaclass, 'parent'=>$S0, 'how'=>how)
+    .tailcall p6meta.'register'(parrotclass, 'parent'=>$S0, 'how'=>metaclass)
   register_parent_set:
-    .tailcall p6meta.'register'(metaclass, 'how'=>how)
+    .tailcall p6meta.'register'(parrotclass, 'how'=>metaclass)
   no_pkgtype:
 .end
 
@@ -704,6 +706,13 @@ and C<type>.
   twigil_public:
     substr name, offset, 1, '!'
   twigil_done:
+
+    # In the future, we'll want to have just called metaclass.add_attribute(...)
+    # here and let it handle all of this, but we ain't quite ready for that yet.
+    $I0 = isa metaclass, 'P6metaclass'
+    unless $I0 goto got_parrot_class
+    metaclass = getattribute metaclass, 'parrotclass'
+  got_parrot_class:
 
     $P0 = metaclass.'attributes'()
     $I0 = exists $P0[name]

@@ -19,15 +19,31 @@ This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
     # We need to specially construct our subclass of p6metaclass. We also
     # make it subclass Object.
     $P0 = newclass 'ClassHOW'
-    $P1 = get_root_global ['parrot'], 'P6metaclass'
-    $P1 = typeof $P1
+    $P1 = get_class 'P6metaclass'
     addparent $P0, $P1
     $P1 = get_hll_global 'Object'
     $P1 = p6meta.'get_parrotclass'($P1)
     addparent $P0, $P1
 
-    # Now rebless p6meta - which means Object's metaclass - into it.
-    rebless_subclass p6meta, $P0
+    # Create proto-object for it.
+    classhowproto = p6meta.'register'($P0)
+
+    # Transform Object's metaclass to be of the right type.
+    $P0 = new ['ClassHOW']
+    $P1 = getattribute p6meta, 'parrotclass'
+    setattribute $P0, 'parrotclass', $P1
+    $P1 = getattribute p6meta, 'protoobject'
+    setattribute $P0, 'protoobject', $P1
+    $P1 = getattribute p6meta, 'longname'
+    setattribute $P0, 'longname', $P1
+    $P1 = getattribute p6meta, 'shortname'
+    setattribute $P0, 'shortname', $P1
+    set_hll_global ['Perl6Object'], '$!P6META', $P0
+    $P1 = getattribute p6meta, 'parrotclass'
+    setprop $P1, 'metaclass', $P0
+    $P1 = get_hll_global 'Object'
+    $P1 = typeof $P1
+    setprop $P1, 'metaclass', $P0
 .end
 
 =head2 Methods on ClassHOW
@@ -336,6 +352,23 @@ Gets a list of roles done by the class of this object.
 
   done:
     .return (result_list)
+.end
+
+
+=item WHAT
+
+Overridden since WHAT inherited from P6metaclass doesn't quite work out.
+XXX Work out exactly why.
+
+=cut
+
+.sub 'WHAT' :method
+    $P0 = getattribute self, 'protoobject'
+    if null $P0 goto proto_of_how
+    .return ($P0)
+  proto_of_how:
+    $P0 = self.'HOW'()
+    .tailcall $P0.'WHAT'()
 .end
 
 =back

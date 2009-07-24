@@ -4,7 +4,7 @@
 .namespace [ 'Failure' ]
 
 .sub '' :anon :init :load
-    .local pmc p6meta, failureproto, exceptionproto
+    .local pmc p6meta, failureproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     failureproto = p6meta.'new_class'('Failure', 'parent'=>'parrot;Undef Any', 'attr'=>'$!exception')
     p6meta.'register'('Undef', 'parent'=>failureproto, 'protoobject'=>failureproto)

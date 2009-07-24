@@ -2,15 +2,35 @@
 
 =head1 TITLE
 
-ClassHOW - default metaclass
+ClassHOW - default metaclass for Perl 6
 
 =head1 DESCRIPTION
 
-This file for now actually just adds a method or two into P6metaclass. In the
-long run, we probably need to subclass that, and make sure we have all of the
-methods in here that are defined in the HOW API.
+This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
 
-=head2 Methods on P6metaclass
+=cut
+
+.namespace ['ClassHOW']
+
+.sub 'onload' :anon :init :load
+    .local pmc p6meta, classhowproto
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    
+    # We need to specially construct our subclass of p6metaclass. We also
+    # make it subclass Object.
+    $P0 = newclass 'ClassHOW'
+    $P1 = get_root_global ['parrot'], 'P6metaclass'
+    $P1 = typeof $P1
+    addparent $P0, $P1
+    $P1 = get_hll_global 'Object'
+    $P1 = p6meta.'get_parrotclass'($P1)
+    addparent $P0, $P1
+
+    # Now rebless p6meta - which means Object's metaclass - into it.
+    rebless_subclass p6meta, $P0
+.end
+
+=head2 Methods on ClassHOW
 
 =over
 
@@ -20,7 +40,6 @@ Tests role membership.
 
 =cut
 
-.namespace ['P6metaclass']
 .sub 'does' :method
     .param pmc obj
     .param pmc type

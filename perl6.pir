@@ -22,8 +22,8 @@ This is the base file for the Rakudo Perl 6 compiler.
     .local pmc p6meta
     load_bytecode 'PCT.pbc'
     $P0 = get_root_global ['parrot'], 'P6metaclass'
-    $P0.'new_class'('Perl6Object', 'name'=>'Object')
-    p6meta = $P0.'HOW'()
+    $P1 = $P0.'new_class'('Perl6Object', 'name'=>'Object')
+    p6meta = $P1.'HOW'()
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
     .local pmc hllns, parrotns, imports, exports
     hllns = get_hll_namespace
@@ -464,7 +464,6 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 ##  This goes at the bottom because the methods end up in the 'parrot'
 ##  HLL namespace.
 .HLL 'parrot'
-.include 'src/parrot/ClassHOW.pir'
 .include 'src/parrot/P6role.pir'
 .include 'src/parrot/Protoobject.pir'
 .include 'src/parrot/misc.pir'

@@ -592,6 +592,11 @@ and creating the protoobjects.
     goto roles_it_loop
   roles_it_loop_end:
 
+    # Create a HOW of the right type.
+    .local pmc how
+    how = new ['ClassHOW']
+    setattribute how, 'parrotclass', metaclass
+
     # Create proto-object with default parent being Any or Grammar, unless
     # there already is a parent.
     $P0 = metaclass.'parents'()
@@ -603,9 +608,9 @@ and creating the protoobjects.
     if $P0 != 'grammar' goto register
     $S0 = 'Grammar'
   register:
-    .tailcall p6meta.'register'(metaclass, 'parent'=>$S0)
+    .tailcall p6meta.'register'(metaclass, 'parent'=>$S0, 'how'=>how)
   register_parent_set:
-    .tailcall p6meta.'register'(metaclass)
+    .tailcall p6meta.'register'(metaclass, 'how'=>how)
   no_pkgtype:
 .end
 

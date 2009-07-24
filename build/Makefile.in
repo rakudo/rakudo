@@ -129,6 +129,7 @@ SETTING = \
   src/setting/List.pm \
   src/setting/Match.pm \
   src/setting/Num.pm \
+  src/setting/NYI.pm \
   src/setting/Object.pm \
   src/setting/Operators.pm \
   src/setting/Pair.pm \

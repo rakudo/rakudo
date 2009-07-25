@@ -25,6 +25,8 @@ PERL          = @perl@
 CP            = @cp@
 MV            = @mv@
 RM_F          = @rm_f@
+MKPATH        = $(PERL) -MExtUtils::Command -e mkpath
+CHMOD         = $(PERL) -MExtUtils::Command -e chmod
 
 # locations of parrot resources
 PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
@@ -39,13 +41,14 @@ PMC2C_INCLUDES   = --include src/pmc --include $(PARROT_SRC_DIR) --include $(PAR
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
 LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT)
 
-# our source directories
-DYNEXT_DIR   = dynext
-PMC_DIR      = src/pmc
-OPS_DIR      = src/ops
-OPS_SOURCE   = perl6.ops
+# rakudo directories
+DYNEXT_DIR     = dynext
+PMC_DIR        = src/pmc
+OPS_DIR        = src/ops
+PERL6_LANG_DIR = $(PARROT_LIB_DIR)/languages/perl6
 
 # files we create
+PERL6EXE      = perl6$(EXE)
 GROUP         = perl6_group
 OPS           = perl6_ops
 DYNEXT_TARGET = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
@@ -55,7 +58,6 @@ DYNOPS        = \
   $(OPS_DIR)/$(OPS)_switch$(LOAD_EXT) \
   $(OPS_DIR)/$(OPS)_cg$(LOAD_EXT) \
   $(OPS_DIR)/$(OPS)_cgp$(LOAD_EXT) \
-
 
 SOURCES = perl6.pir \
   src/gen_grammar.pir \
@@ -164,13 +166,15 @@ PMC_SOURCES = \
   $(PMC_DIR)/perl6multisub.pmc $(PMC_DIR)/p6invocation.pmc \
   $(PMC_DIR)/p6opaque.pmc $(PMC_DIR)/p6role.pmc
 
+OPS_SOURCE   = perl6.ops
+
 CLEANUPS = \
   perl6.pbc \
   perl6.c \
   *.manifest \
   *.pdb \
   perl6$(O) \
-  perl6$(EXE) \
+  $(PERL6EXE) \
   perl6_s1.pbc \
   Test.pir \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
@@ -198,7 +202,17 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 
 # the default target
-all: perl6$(EXE)
+all: $(PERL6EXE)
+
+# the install target
+install: all
+	$(MKPATH)                     $(PERL6_LANG_DIR)/lib
+	$(CP)     perl6.pbc           $(PERL6_LANG_DIR)
+	$(CP)     Test.pm             $(PERL6_LANG_DIR)/lib
+	$(CP)     lib/*.pm            $(PERL6_LANG_DIR)/lib
+	$(CP)     $(DYNPMC) $(DYNOPS) $(PARROT_LIB_DIR)/dynext
+	$(CP)     $(PERL6EXE)         $(PARROT_BIN_DIR)
+	$(CHMOD) 755 $(PARROT_BIN_DIR)/$(PERL6EXE)
 
 xmas: perl6$(EXE)
 

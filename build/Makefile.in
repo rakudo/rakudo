@@ -40,16 +40,22 @@ CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
 LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT)
 
 # our source directories
-DYNEXT       = dynext
-GROUP        = perl6_group
-OPS          = perl6_ops
+DYNEXT_DIR   = dynext
 PMC_DIR      = src/pmc
 OPS_DIR      = src/ops
 OPS_SOURCE   = perl6.ops
 
 # files we create
-DYNPMC         = $(DYNEXT)/$(GROUP)$(LOAD_EXT)
-DYNOPS         = $(DYNEXT)/$(OPS)$(LOAD_EXT)
+GROUP         = perl6_group
+OPS           = perl6_ops
+DYNEXT_TARGET = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
+DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
+DYNOPS        = \
+  $(OPS_DIR)/$(OPS)$(LOAD_EXT) \
+  $(OPS_DIR)/$(OPS)_switch$(LOAD_EXT) \
+  $(OPS_DIR)/$(OPS)_cg$(LOAD_EXT) \
+  $(OPS_DIR)/$(OPS)_cgp$(LOAD_EXT) \
+
 
 SOURCES = perl6.pir \
   src/gen_grammar.pir \
@@ -67,8 +73,7 @@ SOURCES = perl6.pir \
   src/parrot/misc.pir \
   src/parrot/state.pir \
   src/gen_uprop.pir \
-  $(DYNPMC) \
-  $(DYNOPS)
+  $(DYNEXT_TARGET)
 
 BUILTINS_PIR = \
   src/classes/Object.pir \
@@ -168,7 +173,7 @@ CLEANUPS = \
   perl6$(EXE) \
   perl6_s1.pbc \
   Test.pir \
-  dynext/*$(LOAD_EXT) \
+  $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen_*.pir \
   src/gen_*.pm \
   $(PMC_DIR)/*.h \
@@ -369,6 +374,9 @@ release: manifest
 	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
 	rm rakudo-$(VERSION)
 
+$(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
+	$(CP) $(DYNPMC) $(DYNOPS) $(DYNEXT_DIR)
+
 $(DYNPMC): $(PMC_SOURCES)
 	$(PMC2C) --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
 	$(PMC2C) --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
@@ -377,15 +385,6 @@ $(DYNPMC): $(PMC_SOURCES)
 	$(CC) $(CC_OUT) $(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
 	cd $(PMC_DIR) && $(CC) $(CINCLUDES) $(CFLAGS) *.c
 	$(LD) $(LD_OUT)$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)
-
-DYNOPS_TARGETS = \
-	$(OPS_DIR)/$(OPS)$(LOAD_EXT) \
-	$(OPS_DIR)/$(OPS)_switch$(LOAD_EXT) \
-	$(OPS_DIR)/$(OPS)_cg$(LOAD_EXT) \
-	$(OPS_DIR)/$(OPS)_cgp$(LOAD_EXT) \
-
-$(DYNOPS): $(DYNOPS_TARGETS)
-	$(CP) $(DYNOPS_TARGETS) dynext
 
 $(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE)
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)

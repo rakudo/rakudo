@@ -10,12 +10,10 @@ PARROT_INCLUDE_DIR = @includedir@$(PARROT_VERSION)
 PARROT_LIB_DIR     = @libdir@$(PARROT_VERSION)
 PARROT_SRC_DIR     = @srcdir@$(PARROT_VERSION)
 
-CC            = @cc@ -c
-CC_OUT        = @cc_o_out@
+CC            = @cc@
 CFLAGS        = @ccflags@ @cc_shared@ @cc_debug@ @ccwarn@ @cc_hasjit@ @cg_flag@ @gc_flag@
 EXE           = @exe@
 LD            = @ld@
-LD_OUT        = @ld_out@
 LDFLAGS       = @ldflags@ @ld_debug@
 LD_LOAD_FLAGS = @ld_load_flags@
 LIBPARROT     = @inst_libparrot_ldflags@
@@ -391,33 +389,38 @@ release: manifest
 $(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
 	$(CP) $(DYNPMC) $(DYNOPS) $(DYNEXT_DIR)
 
+# (at)cc_o_out(at) and (at)ld_out(at) below cannot be assigned to
+# makefile macros, because some make utilities drop the trailing
+# spaces and some compilers/linkers forbid a (forced) space.
+# See RT #66558 and TT #700.
+
 $(DYNPMC): $(PMC_SOURCES)
 	$(PMC2C) --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
 	$(PMC2C) --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --library $(GROUP) --c $(PMC_SOURCES)
-	$(CC) $(CC_OUT) $(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
-	cd $(PMC_DIR) && $(CC) $(CINCLUDES) $(CFLAGS) *.c
-	$(LD) $(LD_OUT)$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)
+	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
+	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
+	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)
 
 $(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE)
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
-	cd $(OPS_DIR) && $(CC) $(CC_OUT) $(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
-	cd $(OPS_DIR) && $(LD) $(LD_OUT)$(OPS)$(LOAD_EXT) $(OPS)$(O) $(LINKARGS)
+	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) $(LINKARGS)
 
 $(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE)
 	cd $(OPS_DIR) && $(OPS2C) CSwitch --dynamic $(OPS_SOURCE)
-	cd $(OPS_DIR) && $(CC) $(CC_OUT) $(OPS)_switch$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_switch.c
-	cd $(OPS_DIR) && $(LD) $(LD_OUT)$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) $(LINKARGS)
+	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_switch$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_switch.c
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) $(LINKARGS)
 
 $(OPS_DIR)/$(OPS)_cg$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE)
 	cd $(OPS_DIR) && $(OPS2C) CGoto --dynamic $(OPS_SOURCE)
-	cd $(OPS_DIR) && $(CC) $(CC_OUT) $(OPS)_cg$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_cg.c
-	cd $(OPS_DIR) && $(LD) $(LD_OUT)$(OPS)_cg$(LOAD_EXT) $(OPS)_cg$(O) $(LINKARGS)
+	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_cg$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_cg.c
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_cg$(LOAD_EXT) $(OPS)_cg$(O) $(LINKARGS)
 
 $(OPS_DIR)/$(OPS)_cgp$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE)
 	cd $(OPS_DIR) && $(OPS2C) CGP --dynamic $(OPS_SOURCE)
-	cd $(OPS_DIR) && $(CC) $(CC_OUT) $(OPS)_cgp$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_cgp.c
-	cd $(OPS_DIR) && $(LD) $(LD_OUT)$(OPS)_cgp$(LOAD_EXT) $(OPS)_cgp$(O) $(LINKARGS)
+	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_cgp$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_cgp.c
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_cgp$(LOAD_EXT) $(OPS)_cgp$(O) $(LINKARGS)
 
 

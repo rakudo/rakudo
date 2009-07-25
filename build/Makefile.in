@@ -13,6 +13,7 @@ PARROT_SRC_DIR     = @srcdir@$(PARROT_VERSION)
 CC            = @cc@ -c
 CC_OUT        = @cc_o_out@
 CFLAGS        = @ccflags@ @cc_shared@ @cc_debug@ @ccwarn@ @cc_hasjit@ @cg_flag@ @gc_flag@
+EXE           = @exe@
 LD            = @ld@
 LD_OUT        = @ld_out@
 LDFLAGS       = @ldflags@ @ld_debug@
@@ -26,8 +27,8 @@ MV            = @mv@
 RM_F          = @rm_f@
 
 # locations of parrot resources
-PARROT           = $(PARROT_BIN_DIR)/parrot
-PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe
+PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
+PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe$(EXE)
 PARROT_TOOLS_DIR = $(PARROT_LIB_DIR)/tools
 PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
 PERL6GRAMMAR_PBC = $(PARROT_LIB_DIR)/library/PGE/Perl6Grammar.pbc

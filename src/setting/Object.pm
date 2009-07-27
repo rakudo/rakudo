@@ -10,7 +10,7 @@ class Object is also {
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
-                :$super, Matcher :$omit = False, Matcher :$include = True) {
+                :$super, Matcher :$omit, Matcher :$include) {
         # First, build list of classes in the order we'll need them.
         my @classes;
         if $super {
@@ -61,7 +61,7 @@ class Object is also {
         # Now we have classes, build method list.
         my @methods;
         for @classes -> $class {
-            if $include.ACCEPTS($class) && !$omit.ACCEPTS($class) {
+            if (!$include || $include.ACCEPTS($class)) && (!$omit || !$omit.ACCEPTS($class)) {
                 for $class.^methods(:local) -> $method {
                     my $check_name = $method.?name;
                     if $check_name.defined && $check_name eq $name {

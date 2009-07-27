@@ -62,4 +62,20 @@ multi sub infix:<leg>($a, $b) {
     ~$a cmp ~$b;
 }
 
+sub prefix:<[//]>(*@a) {
+    for @a -> $item {
+        $item // next;
+        return $item;
+    }
+    return ();
+}
+
+sub prefix:<[||]>(*@a) {
+    for @a -> $item {
+        $item || next;
+        return $item;
+    }
+    return ();
+}
+
 # vim: ft=perl6

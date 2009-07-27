@@ -118,6 +118,7 @@ SETTING = \
   src/setting/Attribute.pm \
   src/setting/Bool.pm \
   src/setting/Buf.pm \
+  src/setting/Code.pm \
   src/setting/Hash.pm \
   src/setting/Int.pm \
   src/setting/IO.pm \

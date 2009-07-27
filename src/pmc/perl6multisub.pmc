@@ -268,10 +268,12 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
         PMC * const type_obj_a = a->types[i];
         PMC * const type_obj_b = b->types[i];
         if (type_obj_a == type_obj_b) {
-            /* Same type, so tied, unless one has constraints and the other doesn't. */
+            /* Same type; narrower if first has constraints and other doesn't;
+             * tied if neither has constraints or both have constraints. */
             if (!PMC_IS_NULL(a->constraints[i]) && PMC_IS_NULL(b->constraints[i]))
                 narrower++;
-            else
+            else if (PMC_IS_NULL(a->constraints[i]) && PMC_IS_NULL(b->constraints[i]) ||
+                     !PMC_IS_NULL(a->constraints[i]) && !PMC_IS_NULL(b->constraints[i]))
                 tied++;
         }
         else {

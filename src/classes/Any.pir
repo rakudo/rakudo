@@ -50,7 +50,7 @@ This file implements the Any class.
 .sub 'does' :method
     .param pmc x
     $P0 = self.'HOW'()
-    .tailcall $P0.'isa'(self, x)
+    .tailcall $P0.'does'(self, x)
 .end
 
 =back

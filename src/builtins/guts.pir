@@ -583,10 +583,16 @@ and creating the protoobjects.
 
 =cut
 
-.sub '!meta_compose' :multi(['ClassHOW'])
+.sub '!meta_compose' 
     .param pmc metaclass
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+
+    # If it's a RoleHOW or otherwise just not a ClassHOW, nothing to do.
+    $I0 = isa metaclass, 'RoleHOW'
+    if $I0 goto no_pkgtype
+    $I0 = isa metaclass, 'ClassHOW'
+    unless $I0 goto no_pkgtype
 
     # Extract the parrotclass form the metaclass.
     .local pmc parrotclass
@@ -624,6 +630,7 @@ and creating the protoobjects.
   register_parent_set:
     .tailcall p6meta.'register'(parrotclass, 'how'=>metaclass)
   no_pkgtype:
+    .return (metaclass)
 .end
 
 
@@ -657,32 +664,6 @@ Flattens out the list of roles.
     .return (flat_list)
   error_not_a_role:
     'die'('Can not compose a non-role.')
-.end
-
-
-=item !meta_compose(Role)
-
-Role meta composer -- does nothing.
-
-=cut
-
-.sub '!meta_compose' :multi(['RoleHOW'])
-    .param pmc metaclass
-    # Currently, nothing to do.
-    .return (metaclass)
-.end
-
-
-=item !meta_compose()
-
-Default meta composer -- does nothing.
-
-=cut
-
-.sub '!meta_compose' :multi()
-    .param pmc metaclass
-    # Currently, nothing to do.
-    .return (metaclass)
 .end
 
 
@@ -953,6 +934,39 @@ Helper method to compose the attributes of a role into a class.
     goto fixup_iter_loop
   fixup_iter_loop_end:
 .end
+
+
+=item !add_metaclass_method
+
+=cut
+
+.sub '!add_metaclass_method'
+    .param pmc metaclass
+    .param pmc name
+    .param pmc method
+    
+    # Create role for the method and mix it into the meta-class.
+    $P0 = root_new ['parrot';'P6role']
+    $S0 = name
+    addmethod $P0, $S0, method
+    'infix:does'(metaclass, $P0)
+
+    # Add forward method to the class itself.
+    .lex '$meth_name', name
+    .const 'Sub' $P1 = '!metaclass_method_forwarder'
+    $P1 = newclosure $P1
+    $P0 = getattribute metaclass, 'parrotclass'
+    $P0.'add_method'(name, $P1)
+.end
+.sub '!metaclass_method_forwarder' :outer('!add_metaclass_method') :method :anon
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+    $P0 = self.'HOW'()
+    $P1 = find_lex '$meth_name'
+    $S0 = $P1
+    .tailcall $P0.$S0(self, pos_args :flat, named_args :flat :named)
+.end
+
 
 =item !create_parametric_role
 

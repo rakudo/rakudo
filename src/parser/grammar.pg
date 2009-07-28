@@ -426,7 +426,7 @@ rule routine_def {
 
 rule method_def {
     [
-    | $<deflongname>=[<[ ! ]>?<longname>] [ <multisig> | <trait> ]*
+    | $<meth_mod>=[<[ ! ^ ]>?]$<deflongname>=[<longname>?] [ <multisig> | <trait> ]*
     | <multisig> <trait>*
     | ::
     ]

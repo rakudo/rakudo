@@ -1,4 +1,4 @@
-# Copyright (C) 2007-2008, The Perl Foundation.
+# Copyright (C) 2007-2009, The Perl Foundation.
 # $Id$
 
 class Perl6::Grammar::Actions ;
@@ -826,6 +826,7 @@ method method_def($/) {
 
     if $<deflongname> {
         my $name := ~$<deflongname>;
+        if $<meth_mod> eq '!' { $name := '!' ~ $name }
         my $match := Perl6::Grammar::opname($name, :grammar('Perl6::Grammar') );
         if $match { $name := add_optoken($block, $match); }
         $block.name( $name );
@@ -880,6 +881,21 @@ method method_def($/) {
             }
         }
         emit_traits($<trait>, $loadinit, $blockreg);
+    }
+
+    # If it's a metaclass method, make it anonymous and then push a call to
+    # !add_metaclass_method onto the current class definition.
+    if $<meth_mod> eq '^' {
+        our $?METACLASS;
+        our @?BLOCK;
+        $block.pirflags(~$block.pirflags() ~ ' :anon ');
+        @?BLOCK[0][0].push(PAST::Op.new(
+            :pasttype('call'),
+            :name('!add_metaclass_method'),
+            $?METACLASS,
+            $block.name,
+            PAST::Op.new( :inline('    .const "Sub" %r = "' ~ $block.subid ~ '"') )
+        ));
     }
 
     make $block;

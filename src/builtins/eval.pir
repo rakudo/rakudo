@@ -56,6 +56,10 @@ itself can be found in src/builtins/control.pir.
     .param string name
     .param pmc options         :named :slurpy
 
+    #  Save current begin_compunit flag for restoration later.
+    .local pmc begin_compunit
+    begin_compunit = get_global '$begin_compunit'
+
     .local int ismodule
     .local pmc module
     ismodule = 0
@@ -134,6 +138,7 @@ itself can be found in src/builtins/control.pir.
     set_hll_global ['Perl6';'Grammar';'Actions'], '@?BLOCK', outer_blocks
 
   done:
+    set_global '$begin_compunit', begin_compunit
     .return (result)
 .end
 

@@ -204,13 +204,15 @@ all: $(PERL6EXE)
 
 # the install target
 install: all
-	$(MKPATH)                     $(PERL6_LANG_DIR)/lib
-	$(CP)     perl6.pbc           $(PERL6_LANG_DIR)
-	$(CP)     Test.pm             $(PERL6_LANG_DIR)/lib
-	$(CP)     lib/*.pm            $(PERL6_LANG_DIR)/lib
-	$(CP)     $(DYNPMC) $(DYNOPS) $(PARROT_LIB_DIR)/dynext
-	$(CP)     $(PERL6EXE)         $(PARROT_BIN_DIR)
-	$(CHMOD) 755 $(PARROT_BIN_DIR)/$(PERL6EXE)
+	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
+	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     lib/*.pm            $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
+	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
+	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
+	$(CP)     $(PERL6EXE)         $(DESTDIR)$(PARROT_BIN_DIR)
+	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6EXE)
 
 xmas: perl6$(EXE)
 

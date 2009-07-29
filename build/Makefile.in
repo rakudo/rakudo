@@ -397,10 +397,10 @@ $(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
 # See RT #66558 and TT #700.
 
 $(DYNPMC): $(PMC_SOURCES)
-	$(PMC2C) --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
-	$(PMC2C) --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
-	$(PMC2C) --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
-	$(PMC2C) --library $(GROUP) --c $(PMC_SOURCES)
+	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
+	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
+	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
+	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)
 	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
 	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)

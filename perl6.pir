@@ -464,6 +464,7 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 ##  This goes at the bottom because the methods end up in the 'parrot'
 ##  HLL namespace.
 .HLL 'parrot'
+.include 'src/parrot/P6Invocation.pir'
 .include 'src/parrot/P6role.pir'
 .include 'src/parrot/Protoobject.pir'
 .include 'src/parrot/misc.pir'

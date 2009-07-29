@@ -443,7 +443,7 @@ on error.
     # it and hand back it's return values. A tailcall does fine.
     .local pmc clist, lexpad, self, next
     get_next_candidate_info clist, $P0, lexpad
-    next = clist.'get'()
+    next = clone clist
     $P0 = deref next
     $I0 = isa $P0, 'Method'
     unless $I0 goto not_method
@@ -466,7 +466,7 @@ on error.
     # return to return it as if it was from our original call.
     .local pmc clist, lexpad, self, next, result
     get_next_candidate_info clist, $P0, lexpad
-    next = clist.'get'()
+    next = clone clist
     $P0 = deref next
     $I0 = isa $P0, 'Method'
     unless $I0 goto not_method
@@ -487,7 +487,7 @@ on error.
     # Find next candidate as well as caller and lexpad.
     .local pmc clist, routine, lexpad, next
     get_next_candidate_info clist, routine, lexpad
-    next = clist.'get'()
+    next = clone clist
     
     # Build arguments based upon what the caller was originall invoked with,
     # and tailcall the next candidate.
@@ -505,7 +505,7 @@ on error.
     # Find next candidate as well as caller and lexpad.
     .local pmc clist, routine, lexpad, next
     get_next_candidate_info clist, routine, lexpad
-    next = clist.'get'()
+    next = clone clist
     
     # Build arguments based upon what the caller was originall invoked with,
     # get the result of the next candidate and use return to retrun from

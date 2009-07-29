@@ -88,7 +88,7 @@ wrappable executable objects.
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
     $P0 = find_lex '__CANDIDATE_LIST__'
-    $P1 = $P0.'get'()
+    $P1 = clone $P0
     .tailcall $P1(pos_args :flat, named_args :flat :named)
 .end
 .sub '!wrap_clholder_helper' :anon

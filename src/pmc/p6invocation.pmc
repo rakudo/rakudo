@@ -22,6 +22,9 @@ gets stuck into the lex pad to represent the the candidate list.
 #include "pmc_perl6multisub.h"
 
 
+#define P6I_MODE_DISPATCH 0
+#define P6I_MODE_CHECK    1
+
 /* Declaration; definition of this is in p6opaque.pmc. */
 PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING *name);
 
@@ -31,7 +34,7 @@ PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *self);
 
 /* This does the grunt work of working out what the next candidate is. Takes
  * account of us maybe needing to look into multi variants and all that lot. */
-static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF) {
+static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only) {
     PMC    *candidates, *current, *search_list;
     STRING *name;
     INTVAL  position, resume_point;
@@ -72,27 +75,31 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF) {
     current = VTABLE_get_pmc_keyed_int(interp, candidates, position);
     if (VTABLE_isa(interp, current, CONST_STRING(interp, "Perl6MultiSub"))) {
         /* Multi. Ask the multi-dispatcher for all possible variants that we
-         * could call with the current argument. */
-        PMC *possibles = get_all_candidates_with_cur_args(interp, current);
-        if (VTABLE_elements(interp, possibles) == 0) {
-            /* No candidates here; increment the position, and then jump back
-             * to check if we need to find another candidate and try again or
-             * if the list is already containing more things for us to try. */
-            position++;
-            SETATTR_P6Invocation_position(interp, SELF, position);
-            goto check_and_continue_search;
-        }
+         * could call with the current argument, unless we have none in
+         * which we're just gonna have to leave the multi here in the list. */
+        if (interp->current_args) {
+            PMC *possibles = get_all_candidates_with_cur_args(interp, current);
+            if (VTABLE_elements(interp, possibles) == 0) {
+                /* No candidates here; increment the position, and then jump back
+                 * to check if we need to find another candidate and try again or
+                 * if the list is already containing more things for us to try. */
+                position++;
+                SETATTR_P6Invocation_position(interp, SELF, position);
+                goto check_and_continue_search;
+            }
 
-        /* If we get here, we have some possibles; splice them into the candidate
-         * list, then continue as normal. This means that deferal will take into
-         * account the other multi-variants. Then our current becomes the first
-         * of the multi candidates. */
-        VTABLE_splice(interp, candidates, possibles, position, 1);
-        current = VTABLE_get_pmc_keyed_int(interp, candidates, position);
+            /* If we get here, we have some possibles; splice them into the candidate
+             * list, then continue as normal. This means that deferal will take into
+             * account the other multi-variants. Then our current becomes the first
+             * of the multi candidates. */
+            VTABLE_splice(interp, candidates, possibles, position, 1);
+            current = VTABLE_get_pmc_keyed_int(interp, candidates, position);
+        }
     }
 
-    /* Increment position in candidate list, and we're done. */
-    position++;
+    /* Increment position in candidate list if we're in check mode, and we're done. */
+    if (!check_only)
+        position++;
     SETATTR_P6Invocation_position(interp, SELF, position);
     return current;
 }
@@ -162,13 +169,27 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
     }
 
     VTABLE INTVAL get_bool() {
-        PMC    *candidates;
+        PMC    *first_candidate, *candidates;
         INTVAL  position;
+
+        /* First, check if we have a first candidate. */
+        GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
+        if (!PMC_IS_NULL(first_candidate))
+            return 1;
     
-        /* Get candidates and position, and check if we have more candidates. */
+        /* Get candidates and position, and check if we have more candidates
+         * already known about. */
         GETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
         GETATTR_P6Invocation_position(interp, SELF, position);
-        return position < VTABLE_elements(interp, candidates);
+        if (!PMC_IS_NULL(candidates) && position < VTABLE_elements(interp, candidates))
+            return 1;
+        
+        /* If not, then we see if the dispatcher can potentially find more. */
+        return !PMC_IS_NULL(get_next_candidate(interp, SELF, P6I_MODE_CHECK));
+    }
+
+    VTABLE INTVAL get_integer() {
+        return VTABLE_get_bool(interp, SELF);
     }
 
     VTABLE PMC *get_pmc() {
@@ -176,8 +197,12 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         PMC *clone = VTABLE_clone(interp, SELF);
         GETATTR_P6Invocation_first_candidate(interp, clone, first_candidate);
         if (PMC_IS_NULL(first_candidate))
-            first_candidate = get_next_candidate(interp, clone);
+            first_candidate = get_next_candidate(interp, clone, P6I_MODE_CHECK);
         return first_candidate;
+    }
+
+    VTABLE PMC *get_iter() {
+        return VTABLE_clone(interp, SELF);
     }
     
     VTABLE opcode_t *invoke(void *next) {
@@ -190,7 +215,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
          * candidate list next time we're used. */
         GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
         if (PMC_IS_NULL(first_candidate))
-            first_candidate = get_next_candidate(interp, SELF);
+            first_candidate = get_next_candidate(interp, SELF, P6I_MODE_DISPATCH);
         else
             SETATTR_P6Invocation_first_candidate(interp, SELF, PMCNULL);
 
@@ -202,8 +227,24 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         return addr;
     }
 
+    VTABLE PMC *shift_pmc() {
+        /* Result is a clone of ourself. We clone ourself rather than handing
+         * back the method so invocations of it that defer will work out. */
+        PMC *result = VTABLE_clone(interp, SELF);
+        
+        /* Now shuffle along one candidate. */
+        PMC *first_candidate;
+        GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
+        if (PMC_IS_NULL(first_candidate))
+            get_next_candidate(interp, SELF, P6I_MODE_DISPATCH);
+        else
+            SETATTR_P6Invocation_first_candidate(interp, SELF, PMCNULL);
+        
+        return result;
+    }
+
     METHOD PMC *get() {
-        PMC *next = VTABLE_clone(interp, SELF);
-        RETURN(PMC *next);
+        PMC *result = VTABLE_shift_pmc(interp, SELF);
+        RETURN(PMC *result);
     }
 }

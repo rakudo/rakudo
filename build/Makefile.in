@@ -42,6 +42,7 @@ SOURCES = perl6.pir \
   src/parser/methods.pir \
   src/parser/quote_expression.pir \
   src/parrot/Protoobject.pir \
+  src/parrot/P6Invocation.pir \
   src/parrot/P6role.pir \
   src/parrot/misc.pir \
   src/parrot/state.pir \

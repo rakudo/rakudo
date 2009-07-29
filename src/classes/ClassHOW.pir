@@ -50,6 +50,24 @@ This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
 
 =over
 
+=item can(object, name)
+
+=cut
+
+.sub 'can' :method
+    .param pmc obj
+    .param string name
+    push_eh not_found
+    $P0 = find_method obj, name
+    pop_eh
+    .return ($P0)
+  not_found:
+    pop_eh
+    $P0 = new ['Nil']
+    .return ($P0)
+.end
+
+
 =item does(object, role)
 
 Tests role membership.

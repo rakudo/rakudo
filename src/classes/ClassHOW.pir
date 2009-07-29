@@ -174,16 +174,12 @@ Gets a list of this class' parents.
 
     # Fake top of Perl 6 hierarchy.
     $S0 = parrot_class.'name'()
-    if $S0 != 'Perl6Object' goto not_object
-    unless null local goto done
-    $P0 = get_hll_global 'Object'
-    result_list.'push'($P0)
-    goto done
-  not_object:
+    if $S0 == 'Perl6Object' goto done
 
     # If it's local can just use inspect.
     unless null tree goto do_tree
     if null local goto all_parents
+  do_tree:
     parrot_list = inspect parrot_class, 'parents'
     it = iter parrot_list
     goto it_loop
@@ -209,13 +205,15 @@ Gets a list of this class' parents.
     $P0 = getprop 'metaclass', $P0
     $P0 = $P0.'WHAT'()
     $P0 = new 'ObjectRef', $P0
+    if null tree goto push_this
+    $P1 = self.'parents'($P0, 'tree'=>tree)
+    $P1.'unshift'($P0)
+    $P0 = new 'Perl6Scalar', $P1
+  push_this:
     result_list.'push'($P0)
     goto it_loop
   it_loop_end:
     goto done
-
-  do_tree:
-    'die'(':tree not yet implemented')
 
   done:
     .return (result_list)

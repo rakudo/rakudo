@@ -81,6 +81,17 @@ Attribute descriptors.
 .sub 'attributes' :method
     .param pmc obj
     .param pmc local :named('local') :optional
+    .param pmc tree :named('tree') :optional
+
+    # Transform false values to nulls.
+    if null local goto local_setup
+    if local goto local_setup
+    local = null
+  local_setup:
+    if null tree goto tree_setup
+    if tree goto tree_setup
+    tree = null
+  tree_setup:
 
     # Create result list and get Attribute proto.
     .local pmc result_list, attr_proto
@@ -89,22 +100,35 @@ Attribute descriptors.
     attr_proto = get_root_global [.RAKUDO_HLL], 'Attribute'
 
     # Get list of parents whose attributes we are interested in, and put
-    # this class on the start. With the local flag, that's just it.
-    .local pmc parents, parents_it, cur_class
+    # this class on the start. With the local flag , that's just us.
+    .local pmc parents, parents_it, cur_class, us
+    unless null tree goto do_tree
     if null local goto all_parents
-    unless local goto all_parents
     parents = get_root_global [.RAKUDO_HLL], 'Array'
     parents = parents.'new'()
     goto parents_list_made
   all_parents:
     parents = self.'parents'(obj)
+    goto parents_list_made
+  do_tree:
+    parents = self.'parents'(obj, 'local'=>1)
   parents_list_made:
-    $P0 = obj.'WHAT'()
-    parents.'unshift'($P0)
+    us = obj.'WHAT'()
+    parents.'unshift'(us)
     parents_it = iter parents
   parents_it_loop:
     unless parents_it goto done
     cur_class = shift parents_it
+
+    # If it's us, disregard :tree. Otherwise, if we have :tree, now we call
+    # ourself recursively and push an array onto the result.
+    if null tree goto tree_handled
+    eq_addr cur_class, us, tree_handled
+    $P0 = self.'attributes'(cur_class, 'tree'=>tree)
+    $P0 = new 'Perl6Scalar', $P0
+    result_list.'push'($P0)
+    goto parents_it_loop
+  tree_handled:
 
     # Get Parrot-level class.
     .local pmc parrot_class, attributes, attr_it, cur_attr_hash, cur_attr_info

@@ -870,6 +870,14 @@ Helper method to compose the attributes of a role into a class.
     .param pmc class
     .param pmc role
 
+    # Need to get hold of attribute order list for the class.
+    .local pmc attr_order_list
+    attr_order_list = getprop '@!attribute_list', class
+    unless null attr_order_list goto have_attr_order_list
+    attr_order_list = root_new ['parrot';'ResizableStringArray']
+    setprop class, '@!attribute_list', attr_order_list
+  have_attr_order_list:
+
     .local pmc role_attrs, class_attrs, ra_iter, fixup_list
     .local string cur_attr
     role_attrs = inspect role, "attributes"
@@ -910,6 +918,7 @@ Helper method to compose the attributes of a role into a class.
   no_conflict:
     addattribute class, cur_attr
     push fixup_list, cur_attr
+    push attr_order_list, cur_attr
   merge:
     goto ra_iter_loop
   ra_iter_loop_end:

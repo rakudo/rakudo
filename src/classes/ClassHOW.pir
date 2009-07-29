@@ -165,7 +165,14 @@ Attribute descriptors.
     $P3 = get_root_global [.RAKUDO_HLL], 'prefix:?'
     $P2 = $P3($P2)
 
-    cur_attr_info = attr_proto.'new'('name' => $S0, 'type' => $P0, 'build' => $P1, 'accessor' => $P2)
+    # rw
+    $P4 = cur_attr_hash['rw']
+    unless null $P4 goto rw_done
+    $P4 = box 0
+  rw_done:
+    $P4 = $P3($P4)
+
+    cur_attr_info = attr_proto.'new'('name' => $S0, 'type' => $P0, 'build' => $P1, 'accessor' => $P2, 'rw' => $P4)
     result_list.'push'(cur_attr_info)
     goto attr_it_loop
   attr_it_loop_end:

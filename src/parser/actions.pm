@@ -1701,6 +1701,7 @@ method scope_declarator($/) {
 
                 # If the var has a '.' twigil, we need to create an
                 # accessor method for it in the block (class/grammar/role)
+                my $readtype;
                 if $var<twigil> eq '.' {
                     my $method := PAST::Block.new( :blocktype('method') );
                     if $var<sigil> eq '&' {
@@ -1710,7 +1711,7 @@ method scope_declarator($/) {
                     }
                     my $value := PAST::Var.new( :name($var.name()) );
                     my $default_readtype := package_has_trait('rw') ?? 'rw' !! 'readonly';
-                    my $readtype := trait_readtype( $var<traitlist> ) || $default_readtype;
+                    $readtype := trait_readtype( $var<traitlist> ) || $default_readtype;
                     if $readtype eq 'CONFLICT' {
                         $<scoped>.panic(
                             "Can use only one of readonly, rw, and copy on "
@@ -1755,6 +1756,9 @@ method scope_declarator($/) {
                     }
                     if $var<twigil> eq '.' {
                         $has.push(PAST::Val.new( :value(1), :named('accessor') ));
+                    }
+                    if $readtype eq 'rw' {
+                        $has.push(PAST::Val.new( :value(1), :named('rw') ));
                     }
                     if $var<traitlist> {
                         # If we have a handles, then we pass that specially.

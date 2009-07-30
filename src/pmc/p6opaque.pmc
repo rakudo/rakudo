@@ -138,11 +138,24 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
         /* Make sure it's got the memory layout of a standard Parrot class. */
         if (all_in_universe || VTABLE_isa(interp, cur_class, CONST_STRING(interp, "Class"))) {
             /* Look and see if we have a method; eliminate sub-methods unless
-             * they are in the most-derived class. */
+             * they are in the most-derived class or the most-dereived class is
+             * the proto-object one. */
             method = VTABLE_get_pmc_keyed_str(interp, class_info->methods, name);
-            if (!PMC_IS_NULL(method) && (i == 0 ||
-                    !VTABLE_isa(interp, method, CONST_STRING(interp, "Submethod"))))
-                break;
+            if (!PMC_IS_NULL(method)) {
+                /* In most derived class anything is OK. */
+                if (i == 0)
+                    break;
+                
+                /* If it's not a submethod, it's fine. */
+                if (!VTABLE_isa(interp, method, CONST_STRING(interp, "Submethod")))
+                    break;
+
+                /* Otherwise, check if most derived class is a proto-object, in
+                 * which case this sub-method is also admissable. */
+                if (VTABLE_isa(interp, VTABLE_get_pmc_keyed_int(interp, search_list, i - 1),
+                        CONST_STRING(interp, "P6protoobject")))
+                    break;
+            }
         }
         else {
             Parrot_ex_throw_from_c_args(interp, NULL, -1,

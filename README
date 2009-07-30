@@ -9,7 +9,7 @@ For more details, see the full text of the license in the file LICENSE.
 =head2 Build requirements
 
 For building Rakudo you need a C compiler, a C<make> utility, a Perl 5
-compiler, version 5.8 or newere,  the C<icu> library 
+compiler, version 5.8 or newer,  the C<icu> library 
 (L<http://site.icu-project.org/>) and the C<svn>
 command from Subversion.
 

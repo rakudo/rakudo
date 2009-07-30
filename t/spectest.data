@@ -345,6 +345,7 @@ S14-roles/parameter-subtyping.t
 S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
+S14-traits/routines.t
 S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t

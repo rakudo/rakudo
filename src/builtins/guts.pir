@@ -617,6 +617,7 @@ and creating the protoobjects.
 
     # Create proto-object with default parent being Any or Grammar, unless
     # there already is a parent.
+    .local pmc proto
     $P0 = parrotclass.'parents'()
     $I0 = elements $P0
     if $I0 goto register_parent_set
@@ -626,9 +627,13 @@ and creating the protoobjects.
     if $P0 != 'grammar' goto register
     $S0 = 'Grammar'
   register:
-    .tailcall p6meta.'register'(parrotclass, 'parent'=>$S0, 'how'=>metaclass)
+    proto = p6meta.'register'(parrotclass, 'parent'=>$S0, 'how'=>metaclass)
+    goto have_proto
   register_parent_set:
-    .tailcall p6meta.'register'(parrotclass, 'how'=>metaclass)
+    proto = p6meta.'register'(parrotclass, 'how'=>metaclass)
+  have_proto:
+    transform_to_p6opaque proto
+    .return (proto)
   no_pkgtype:
     .return (metaclass)
 .end

@@ -1,5 +1,4 @@
 %define parrot_version 1.4.0
-%define rakudo_version 2009-08
 
 Name:           rakudo
 Version:        2009.08
@@ -8,7 +7,7 @@ Summary:        Rakudo Perl 6
 License:        Artistic 2.0
 Group:          Development/Libraries
 URL:            http://www.rakudo.org/
-Source0:        http://cloud.github.com/downloads/rakudo/rakudo/rakudo-%{rakudo_version}.tar.gz
+Source0:        http://cloud.github.com/downloads/rakudo/rakudo/rakudo-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  parrot           >= %parrot_version
 BuildRequires:  parrot-devel     >= %parrot_version

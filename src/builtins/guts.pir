@@ -1438,7 +1438,20 @@ over the rest of the code base.
     output = concat what_failed, " type check failed; expected "
 
     # Work out what we were looking for and show that.
+    $I0 = isa wanted_type, 'P6protoobject'
+    if $I0 goto simple_type
+    $I0 = isa wanted_type, 'Junction'
+    if $I0 goto junc_wanted
+  simple_type:
     $P0 = wanted_type.'WHAT'()
+    goto wanted_type_done
+  junc_wanted:
+    $P0 = wanted_type
+    $P1 = $P0.'eigenstates'()
+    $I0 = elements $P1
+    if $I0 > 1 goto wanted_type_done
+    $P0 = $P1[0]
+  wanted_type_done:
     $S0 = $P0.'perl'()
     output = concat $S0
 

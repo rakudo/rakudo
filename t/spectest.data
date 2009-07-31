@@ -267,6 +267,7 @@ S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
 S06-signature/type-capture.t
 S06-signature/types.t
+S06-signature/unspecified.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
 S06-traits/misc.t

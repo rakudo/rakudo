@@ -122,8 +122,6 @@ the Signature.
   cur_list_loop_end:
 
     # Set parametric type, if any.
-    .local pmc all_types
-    all_types = root_new ['parrot';'ResizablePMCArray']
     unless null type goto have_type
     unless null role_type goto simple_role_type
     type = getattribute self, '$!default_type'

@@ -1446,11 +1446,10 @@ over the rest of the code base.
     $P0 = wanted_type.'WHAT'()
     goto wanted_type_done
   junc_wanted:
-    $P0 = wanted_type
-    $P1 = $P0.'eigenstates'()
-    $I0 = elements $P1
+    $P0 = wanted_type.'eigenstates'()
+    $I0 = elements $P0
     if $I0 > 1 goto wanted_type_done
-    $P0 = $P1[0]
+    $P0 = $P0[0]
   wanted_type_done:
     $S0 = $P0.'perl'()
     output = concat $S0

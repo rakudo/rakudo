@@ -33,9 +33,9 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 .sub 'say'
     .param pmc list            :slurpy
-    .local pmc it, out
+    .local pmc out
     out = get_hll_global '$OUT'
-    'print'(list :flat)
+    out.'print'(list :flat)
     out.'print'("\n")
     .return (1)
 .end

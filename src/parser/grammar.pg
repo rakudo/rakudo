@@ -567,7 +567,9 @@ token expect_term {
 token post {
     <!afterws>
     [ <.unsp> || \\ ]?
-    <postfix_prefix_meta_operator>?
+
+    [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>? ]*
+
     [
     | <dotty> {*}                                #= dotty
     | <postcircumfix> {*}                        #= postcircumfix

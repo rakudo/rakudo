@@ -143,7 +143,7 @@ the Signature.
     constraints = 'infix:&'(constraints :flat)
     goto set_constraints
   no_constraints:
-    constraints = root_new ['parrot';'Undef']
+    null constraints
     attr["type"] = type
   set_constraints:
     attr["cons_type"] = constraints

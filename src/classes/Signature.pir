@@ -123,9 +123,12 @@ the Signature.
 
     # Set parametric type, if any.
     unless null type goto have_type
+    $I0 = attr['slurpy']
+    if $I0 goto object_type
     unless null role_type goto simple_role_type
     type = getattribute self, '$!default_type'
     unless null type goto done_role_type
+  object_type:
     type = get_hll_global 'Object'
     goto done_role_type
   simple_role_type:

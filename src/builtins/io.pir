@@ -12,35 +12,6 @@ src/builtins/io.pir - Perl6 builtins for I/O
 
 .namespace []
 
-.sub 'print'
-    .param pmc args            :slurpy
-    .local pmc it, out
-    out = get_hll_global '$OUT'
-    args.'!flatten'()
-    it = iter args
-  iter_loop:
-    unless it goto iter_end
-    $P0 = shift it
-    unless null $P0 goto iter_nonull
-    $P0 = '!FAIL'()
-  iter_nonull:
-    out.'print'($P0)
-    goto iter_loop
-  iter_end:
-    .return (1)
-.end
-
-
-.sub 'say'
-    .param pmc list            :slurpy
-    .local pmc out
-    out = get_hll_global '$OUT'
-    out.'print'(list :flat)
-    out.'print'("\n")
-    .return (1)
-.end
-
-
 =item printf
 
 Parses a format string and prints formatted output according to it.

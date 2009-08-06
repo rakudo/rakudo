@@ -94,46 +94,6 @@ Return a List with the keys of the invocant.
     signature."!add_implicit_self"($P0)
 .end
 
-
-=item kv
-
-=cut
-
-.namespace []
-.sub 'kv' :multi() :subid('_kv')
-    .param pmc values          :slurpy
-    values.'!flatten'()
-    .tailcall values.'kv'()
-.end
-.sub '' :init :load
-    .local pmc block, signature
-    .const 'Sub' $P0 = "_kv"
-    block = $P0
-    signature = new ["Signature"]
-    setprop block, "$!signature", signature
-    signature.'!add_param'('@values', 1 :named('slurpy'))
-    '!TOPERL6MULTISUB'(block)
-.end
-
-.namespace ['Any']
-.sub 'kv' :method
-    .local pmc result, it
-    result = new ['List']
-    it = self.'iterator'()
-    .local int i
-    i = 0
-  loop:
-    unless it goto done
-    $P0 = shift it
-    push result, i
-    push result, $P0
-    inc i
-    goto loop
-  done:
-    .return (result)
-.end
-
-
 =item pick($num, :$repl)
 
 =cut

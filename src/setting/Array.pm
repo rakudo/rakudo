@@ -1,18 +1,27 @@
+# "is export" on Array does not work (it's Perl6Array internally)
+
 class Array is also {
-    multi method splice(@array is rw: $offset = 0, $size = @array.elems - $offset, *@values) is export {
+    multi method splice(@array is rw: $offset is copy = 0, $size? is copy, *@values) {
         my @spliced;
         my @deleted;
 
-        my $off = ($offset > @array.end) ?? @array.end !! $offset;
-        my $len = $size;
-        @spliced.push(@array.shift) while ($off-- > 0 && @array);
-        @deleted.push(@array.shift) while ($len-- > 0 && @array);
+        $offset += @array.elems if $offset < 0;
+        $offset = @array.elems min floor($offset);
+        $size = floor( $size // (@array - $offset) );
+        $size += @array.end if $size < 0;
+
+        @spliced.push(@array.shift) while (--$offset >= 0 && @array);
+        @deleted.push(@array.shift) while (--$size >= 0 && @array);
         @spliced.push(@values) if @values;
         @spliced.push(@array) if @array;
 
         @array = @spliced;
         return @deleted;
     }
+}
+
+multi splice(@array is rw, $offset?, $size?, *@values) {
+    @array.splice($offset,$size,@values);
 }
 
 # vim: ft=perl6

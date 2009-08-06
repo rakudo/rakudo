@@ -382,6 +382,7 @@ S32-array/pop.t
 S32-array/push.t
 S32-array/rotate.t
 S32-array/shift.t
+S32-array/splice.t
 S32-array/unshift.t
 S32-container/zip.t
 S32-hash/exists.t

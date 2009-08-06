@@ -1,7 +1,5 @@
 class IO::Socket::INET does IO::Socket {
 
-    has $!listener;
-
     method open (Str $hostname, Int $port) {
 
         Q:PIR {
@@ -34,22 +32,22 @@ class IO::Socket::INET does IO::Socket {
     }
 
     method socket(Int $domain, Int $type, Int $protocol) {
-        my $listener := Q:PIR {{ %r = root_new ['parrot';'Socket'] }};
-        $listener.socket($domain, $type, $protocol);
-        return IO::Socket::INET.new( :listener($listener) );
+        my $PIO := Q:PIR {{ %r = root_new ['parrot';'Socket'] }};
+        $PIO.socket($domain, $type, $protocol);
+        return IO::Socket::INET.new( :PIO($PIO) );
     }
 
     method bind($host, $port) {
-        $!listener.bind($!listener.sockaddr($host, $port));
+        $!PIO.bind($!PIO.sockaddr($host, $port));
         return self;
     }
 
     method listen() {
-        $!listener.listen(1);
+        $!PIO.listen(1);
         return self;
     }
 
     method accept() {
-        return $!listener.accept();
+        return $!PIO.accept();
     }
 }

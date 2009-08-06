@@ -1,0 +1,108 @@
+<html>
+<head>
+    <title>Rakudo architectural overview</title>
+</head>
+<body style="margin:2ex">
+
+<h1>Rakudo architectural overview</h1>
+
+<p>(This started off <a
+href="http://perlgeek.de/blog-en/perl-6/rakudo-overview.html">as a blog
+post</a>, which didn't have the fancy clickable SVG image).</p>
+
+<object 
+    style="margin:2ex; float:left"
+    data="/architecture.svg"
+    type="image/svg+xml"
+    alt="Rakudo flow chart"
+    >
+    </object>
+<a id="action-methods" />
+<h2 id="parser" >Parser and action methods</h2>
+
+<p>The source code is entered at the top of the machine named Rakudo, and is
+transformed in various stages. The first two, parser and action methods, are
+actually part of Rakudo, and are hosted in the Rakudo repository. They are
+written in two different subsets of Perl 6, the regexes (parser), and "Not
+Quite Perl 6", short NQP (action methods).</p>
+
+<a id="post-compiler" />
+<h2 id="past-compiler">PAST and POST
+compiler</h2>
+
+<p>The next two stages (PAST and POST compiler) are part of the so-called
+"Parrot Compiler Toolkit", short PCT. Both PAST and POST are structural
+representations of the program, with PAST being more high-level than POST.
+Both compilers are written in PIR, the parrot
+assembly language, and are distributed along with parrot. They are also used
+by many other parrot based languages.</p>
+
+<a id="parrot-runloops" />
+<h2 id="imcc">IMCC and Parrot runcores</h2>
+
+<p>The POST compiler emits PIR, which IMCC transforms into byte code. IMCC is
+parrot's PIR compiler, written in C and statically linked into parrot. The
+byte code (PBC) can then be stored to disk, or executed in memory by a
+so-called <em>run core</em> or <em>run loop</em>, which is in some sense
+the heart
+of parrot - or one of the hearts, because there are several different ones
+available (one for just-in-time compilation (JIT), one for debugging etc.).</p>
+
+<p>There are also some supporting custom types and operations in Rakudo called
+<em>dynamic PMCs</em> and <em>dynamic ops</em> which are written in C, and
+helper functions written in other languages (namely NQP and PIR). Those do
+not show up in the flow chart.</p>
+
+<h2 id="setting">Setting library</h2>
+
+<p>The part of Rakudo described so far is the <em>stage one</em> compiler.
+In the build process it is compiled first, and then it compiles the <em>setting
+library</em> down to PBC. "Setting library" is a fancy term describing the
+built-in functions which are written in Perl 6. The result of this compilation
+(together with a low level runtime library in PIR) is linked together with the
+stage one compiler and parrot, the result is the <code>perl6</code>
+executable.</p>
+
+<h2 id="glossary">Glossary</h2>
+
+<dl>
+    <dt>PGE</dt>
+    <dd>Parrot Grammar Engine, parrot's grammar engine for Perl 6 regexes and
+        grammars.</dd>
+
+    <dt>NQP</dt>
+    <dd>Not Quite Perl 6, a small subset of Perl 6 that is used for tree
+        transformations in compilers.</dd>
+
+    <dt>PAST</dt>
+    <dd>Parrot Abstract Syntax Tree, an in-memory representation of
+        structures common to many programming languages (like variable
+        declarations, branches, loops, subroutine calls).</dd>
+
+    <dt>POST</dt>
+    <dd>Parrot Opcode Syntax Tree, an in-memory low level representation
+        of programs.</dd>
+
+     <dt>PCT</dt>
+     <dd>Parrot Compiler Toolkit, a collection of tools and compilers useful
+         for writing other compilers.</dd>
+
+     <dt>PIR</dt>
+     <dd>Parrot Intermediate Representation, the most commonly used for of
+         parrot assembly (which is still high-level enough to be written by
+         humans).</dd>
+
+      <dt>IMCC</dt>
+      <dd>InterMediate Code Compiler, the part of parrot that compiles PIR
+          into byte code.</dd>
+
+       <dt>PBC</dt>
+       <dd>Parrot Byte Code, the binary form to which all parrot programs are
+           compiled in the end.</dd>
+</dl>
+
+</body>
+</html>
+<!-- 
+    vim: ft=html spell sw=4 ts=4 expandtab tw=75
+-->

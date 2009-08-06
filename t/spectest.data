@@ -189,6 +189,7 @@ S04-statements/while.t
 S05-capture/caps.t
 S05-capture/dot.t
 S05-capture/named.t
+S05-capture/subrule.t
 S05-grammar/action-stubs.t
 S05-grammar/inheritance.t
 S05-grammar/namespace.t
@@ -267,6 +268,7 @@ S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
 S06-signature/type-capture.t
 S06-signature/types.t
+S06-signature/unspecified.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
 S06-traits/misc.t
@@ -345,6 +347,7 @@ S14-roles/parameter-subtyping.t
 S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
+S14-roles/submethods.t
 S14-traits/routines.t
 S16-filehandles/filetest.t
 S16-filehandles/io.t
@@ -393,7 +396,6 @@ S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t
 S32-list/minmax.t
-S32-list/mutating_listops.t
 S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t

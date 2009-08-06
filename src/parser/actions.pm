@@ -1649,6 +1649,9 @@ method package_def($/, $key) {
     elsif !$block<isalso> {
         $block[0].push( PAST::Op.new( :name('!meta_compose'), $?METACLASS) );
     }
+    else {
+        $block[0].push( PAST::Op.new( :name('!setup_invoke_vtable'), $?METACLASS) );
+    }
 
     make $block;
 }
@@ -3205,7 +3208,7 @@ sub make_sigparam($var) {
 sub add_optoken($block, $match) {
     my $category := ~$match<category>;
     my $name := $category ~ ':' ~ ~$match[0];
-    if $category ne 'trait_mod' {
+    if $category ne 'trait_mod' && $name ne 'postcircumfix:( )' {
         my $equiv := 'infix:+';
         if $category eq 'prefix' { $equiv := 'prefix:+' }
         elsif $category eq 'postfix' { $equiv := 'postfix:++' }

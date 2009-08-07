@@ -48,6 +48,12 @@ multi sub infix:<eqv>(Mapping $a, Mapping $b) {
     return Bool::True;
 }
 
+multi sub infix:<eqv>(Failure $a, Failure $b) {
+    # do we have different values of undef yet?
+    # if so, how do I detect them?
+    Bool::True;
+}
+
 multi sub infix:<eqv> ($a, $b) {
     return Bool::False unless $a.WHAT === $b.WHAT;
     return Bool::True  if     $a      === $b;

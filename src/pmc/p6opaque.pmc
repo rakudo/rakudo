@@ -18,6 +18,7 @@ end up containing various object behaviors that are specific to Perl 6.
 */
 
 #include "parrot/parrot.h"
+#include "parrot/oo.h"
 #include "parrot/oo_private.h"
 #include "pmc_class.h"
 #include "pmc_object.h"
@@ -315,5 +316,51 @@ back some kind of iterator to let us get all of the possible candidates.
         }
 
         return method;
+    }
+
+/*
+
+=item C<opcode_t *invoke(void *next)>
+
+Invokes the object (if this vtable function is overridden).
+
+=cut
+
+*/
+    opcode_t * invoke(void *next) {
+        Parrot_Object_attributes * const obj    = PARROT_OBJECT(pmc);
+        Parrot_Class_attributes  * const _class = PARROT_CLASS(obj->_class);
+
+        /* Walk and search for the vtable method. */
+        const int num_classes = VTABLE_elements(interp, _class->all_parents);
+        int i;
+
+        for (i = 0; i < num_classes; i++) {
+            /* Get the class. */
+            STRING * const meth_name = CONST_STRING(interp, "invoke");
+            STRING * const proxy     = CONST_STRING(interp, "proxy");
+            PMC * const cur_class =
+                VTABLE_get_pmc_keyed_int(interp, _class->all_parents, i);
+
+            PMC * meth =
+                Parrot_oo_find_vtable_override_for_class(interp, cur_class,
+                                                         meth_name);
+            if (!PMC_IS_NULL(meth)) {
+                meth = VTABLE_clone(interp, meth);
+                VTABLE_setprop(interp, meth, CONST_STRING(interp, "$!self"), SELF);
+                return VTABLE_invoke(interp, meth, next);
+            }
+
+            if (cur_class->vtable->base_type == enum_class_PMCProxy) {
+                /* Get the PMC instance and call the vtable method on that. */
+                PMC * const del_object =
+                    VTABLE_get_attr_keyed(interp, pmc, cur_class, proxy);
+
+                if (!PMC_IS_NULL(del_object))
+                    return VTABLE_invoke(interp, del_object, next);
+            }
+        }
+
+        return (opcode_t *)interp->vtables[enum_class_default]->invoke(interp, pmc, next);
     }
 }

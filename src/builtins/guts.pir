@@ -615,6 +615,10 @@ and creating the protoobjects.
     goto roles_it_loop
   roles_it_loop_end:
 
+    # We may need to set up invoke vtable if postcircumfix:<( )>
+    # is implemented.
+    '!setup_invoke_vtable'(metaclass)
+
     # Create proto-object with default parent being Any or Grammar, unless
     # there already is a parent.
     .local pmc proto
@@ -636,6 +640,34 @@ and creating the protoobjects.
     .return (proto)
   no_pkgtype:
     .return (metaclass)
+.end
+
+
+=item !setup_invoke_vtable
+
+If we override postcircumfix:<( )> then also add a
+vtable override for invoke.
+
+=cut
+
+.sub '!setup_invoke_vtable'
+    .param pmc metaclass
+    .local pmc parrotclass
+    parrotclass = getattribute metaclass, 'parrotclass'
+    $P0 = parrotclass.'methods'()
+    $P0 = $P0['postcircumfix:( )']
+    if null $P0 goto no_invoke
+    .const 'Sub' $P1 = '!invoke_vtable_override_helper'
+    parrotclass.'add_vtable_override'('invoke', $P1)
+  no_invoke:
+.end
+.sub '' :subid('!invoke_vtable_override_helper')
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+    $P0 = getinterp
+    $P0 = $P0['sub']
+    $P0 = getprop '$!self', $P0
+    .tailcall $P0.'postcircumfix:( )'(pos_args :flat, named_args :flat :named)
 .end
 
 

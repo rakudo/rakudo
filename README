@@ -18,7 +18,9 @@ For example on Debian GNU/Linux you can install those with the command
     aptitude install build-essential libicu-dev subversion
 
 (Perl is installed by default already). To enable parallel testing you
-also need the CPAN module L<Test::Harness> in version 3.16 or newer.
+also need the CPAN module L<Test::Harness> in version 3.16 or newer;
+you can control the number of parallel jobs with the C<TEST_JOBS>
+environment variable.
 
 =head2 Building and invoking Rakudo
 

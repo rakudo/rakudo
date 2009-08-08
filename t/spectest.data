@@ -44,6 +44,7 @@ S02-builtin_data_types/assigning-refs.t
 S02-builtin_data_types/bool.t
 S02-builtin_data_types/capture.t
 S02-builtin_data_types/catch_type_cast_mismatch.t
+S02-builtin_data_types/declare.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
@@ -54,6 +55,7 @@ S02-builtin_data_types/multi_dimensional_array.t
 S02-builtin_data_types/nan.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
+S02-builtin_data_types/nil.t
 S02-builtin_data_types/num.t
 S02-builtin_data_types/pair.t
 S02-builtin_data_types/parsing-bool.t
@@ -174,6 +176,7 @@ S04-statements/for_with_only_one_item.t
 S04-statements/gather.t
 S04-statements/given.t
 S04-statements/if.t
+S04-statements/last.t
 S04-statements/loop.t
 S04-statements/map-and-sort-in-for.t
 S04-statements/next.t

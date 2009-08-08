@@ -22,7 +22,7 @@ markers by C<todo> markers.
 =head1 USAGE
 
 Most common usage: C<perl tools/autounfudge.pl --auto>. For more options
-pleae run this script without any options or command line parameters.
+please run this script without any options or command line parameters.
 
 =head1 WARNINGS
 

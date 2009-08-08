@@ -3,7 +3,7 @@ class Code is also {
 =begin item ACCEPTS
 
 =end item
-    method ACCEPTS($topic) {
+    method ACCEPTS(Object $topic) {
         self($topic);
     }
 

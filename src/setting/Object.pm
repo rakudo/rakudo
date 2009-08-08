@@ -31,7 +31,7 @@ class Object is also {
                     @search_list = @new_search_list;
                 }
             } elsif $ascendant | $preorder {
-                my sub build_ascendent($class) {
+                my sub build_ascendent(Object $class) {
                     unless any(@classes <<===>> $class) {
                         push @classes, $class;
                         for $class.^parents(:local) {
@@ -41,7 +41,7 @@ class Object is also {
                 }
                 build_ascendent(self.WHAT);
             } elsif $descendant {
-                my sub build_descendent($class) {
+                my sub build_descendent(Object $class) {
                     unless any(@classes <<===>> $class) {
                         for $class.^parents(:local) {
                             build_descendent($^parent);

@@ -18,12 +18,6 @@ the size of that file down and to emphasize their generic,
 
 =cut
 
-.namespace ['Any']
-.sub 'onload' :anon :init :load
-    $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('end', 'from'=>$P0)
-.end
-
 =item elems()
 
 =cut
@@ -42,18 +36,6 @@ the size of that file down and to emphasize their generic,
     .return ($I0)
 .end
 
-=item end
-
-=cut
-
-.namespace ['Any']
-.sub 'end' :method :multi(_)
-    .local pmc list
-    list = self.'list'()
-    $I0 = list.'elems'()
-    dec $I0
-    .return ($I0)
-.end
 
 =item keys()
 

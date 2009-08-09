@@ -1,4 +1,6 @@
 class Any is also {
+    multi method end() is export { $.list.elems - 1; }
+
     multi method first(Code $test) {
         return $_ if $test($_) for @.list;
 

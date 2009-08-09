@@ -185,7 +185,7 @@ itself can be found in src/builtins/control.pir.
   no_hll:
     # Require module.
     .local pmc retval
-    retval = 'require'(module, 'module'=>1)
+    retval = 'require'(module, 'module'=>1, 'ver'=>ver)
     unless null retval goto have_retval
     retval = '!FAIL'()
   have_retval:

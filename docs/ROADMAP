@@ -14,11 +14,6 @@ currently depends.  Overall we hope this gives a feel for
 where current efforts are being placed and what we intend to
 accomplish during the next 4-6 months.
 
-In general we haven't identified specific timelines or
-priorities for the tasks; one of our goals for early Summer 2009
-will be to develop an expected timeline for each item to make 
-it easier to evaluate our rate of progress.
-
 Patches to this document are welcome.
 
 
@@ -69,7 +64,7 @@ designed on a Perl 5 "package-based" model; by contrast,
 most of Perl 6 is based purely on lexical scoping rules.
 Rakudo will need some significant refactoring to change its
 various package-based views of name lookups into equivalent 
-lexically-scoped ones.
+lexically-scoped ones.  (Also partially blocking on A above.)
 
 F.  Laziness:  Many operations in Rakudo are currently "eager";
 these need to be into lazy equivalents.  The first step of
@@ -101,6 +96,11 @@ Parrot; we also need to work out library storage and
 resolution issues at each of the Parrot, Rakudo, and Perl 6
 levels.
 
+J.  Other (non-spec) design issues.  Some conventions about
+modules and library management are not properly part of the
+specification, but need to be designed in conjunction with
+Parrot and other module expectations.
+
 Z.  Explicitly postponed items:  Some items we explicitly
 postpone until later in Rakudo development.  There are generally
 a variety of reasons we might do this:
@@ -116,56 +116,78 @@ a variety of reasons we might do this:
 Specific Perl 6 features and development tasks
 ----------------------------------------------
 
-  * protoregexes (A)
-  * longest token matching semantics in regexes (A)
-  * operator adverbs (A)
-  * quoting adverbs (A)
-  * regex modifiers (A)
-  * domain-specific languages (A)
-  * item assignment (A)
-  * embedded closures in regexes (A)
-  * declare contextual and lexical vars in regexes (A)
-  * lexical variable lookups in regexes (A)
-  * cleanly add circumfix:, postcircumfix:, other custom tokens (A)
-  * true hyper/cross/reverse/other metaoperators (A)
+For each item below we've given a 1-3 priority for the April 2010 
+"Rakudo *" release, where 1 is "really important", 2 is "ought to have", 
+and 3 is "nice to have".  Each item also lists any large-scale tasks
+(from the section above) on which the item is currently blocking.
+(If no large-scale tasks are given, it may simply be that we just
+haven't got around to the problem yet.)
 
-  * binding named arguments to positional parameters (B)
-  * nested signatures (B)
-  * captures in signatures and return values (B)
-  * unpacking arguments (B,C)
-  * clean up subtypes in multi-dispatch (?)
-  * better gather/take handling of arguments (H)
+1  * protoregexes (A)
+1  * using STD.pm (or close analog) for parsing (A)
+2  * longest token matching semantics in regexes (A)
+1  * operator adverbs (A)
+1  * quoting adverbs (A)
+1  * regex modifiers (A)
+3  * domain-specific languages (A)
+1  * item assignment (A)
+1  * embedded closures in regexes (A)
+1  * declare contextual and lexical vars in regexes (A)
+1  * lexical variable lookups in regexes (A)
+2  * cleanly add circumfix:, postcircumfix:, other custom tokens (A)
+3  * true hyper/cross/reverse/other metaoperators (A)
+1  * lexicals refactor (A)
 
-  * better return value checking (D)
-  * ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (D)
-  * return multiple values from a sub (B,D)
-  * temp variables (D)
+1  * binding named arguments to positional parameters (B)
+3  * nested signatures (B)
+2  * captures in signatures and return values (B,H)
+3  * unpacking arguments (B,C)
+2  * better gather/take handling of arguments (H)
 
-  * maintain candidate lists in lexicals (C, E)
-  * lexical classes and roles (E)
-  * importing module symbols into the current lexical scope (E)
-  * develop installation standards (E, F, I)
-  * Pseudo-packages MY, CONTEXT, OUTER, $?LINE, etc.  (D, E)
+3  * ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (B,D)
+1  * return multiple values from a sub (B,D)
+2  * temp variables (D)
 
-  * lazy lists (F)
-  * array/hash element vivification (F)
-  * array/hash vivification (F)
-  * overloadable postcircumfix:<[ ]> and postcircumfix:<{ }> (F)
-  * lazy gather/take (F)
-  * feed operators (F)
-  * slice context (B, F, H, C?)
-  * proper trait definition and usage (H)
+1  * lexical classes and roles (E)
+1  * importing module symbols into the current lexical scope (E)
+2  * develop installation standards (I, J)
+3  * Pseudo-packages MY, CONTEXT, OUTER, $?LINE, etc.  (D,E)
+
+1  * lazy lists (F)
+1  * array/hash element vivification (H, need Proxy class)
+1  * array/hash vivification (need update undef/Failure role)
+1  * lazy gather/take (F)
+3  * feed operators (F)
+3  * slice context (B,F,H,C?)
  
-  * Buf (G)
-  * Native typed scalars (G)
-  * Packed arrays (G)
-  * Compact structures (G)
-  * Rat, BigNum, numification improvements (G, H)
-  * Other S02 data types -- KeySet, KeyBag (G, H)
-  * Sized types -- int32, int8  (G)
-  * Specialized Unicode bits -- .codes, .graphs, .bytes (G, H)
+1  * Buf 1 - Rakudo * implementation (H)
+3  * Buf 2 - complete implementation (G,H)
+3  * Sized types -- int32, int8  (G)
+3  * Native typed scalars (G)
+3  * Packed arrays (G)
+3  * Compact structures (G)
+2  * Rat, BigNum, numification improvements (G,H)
+2  * Other S02 data types -- KeySet, KeyBag (G,H)
+2  * Specialized Unicode bits -- .codes, .graphs, .bytes (G,H)
 
-  * heredocs (H, Z3)
-  * pod heredocs (H, Z3)
-  * macros (H, Z)
-  * module versioning and download (I, Z)
+2  * heredocs (A,H)
+3  * pod heredocs (A,H)
+3  * macros (A,H,Z)
+3  * module versioning and download (I,J)
+
+3  * native calling interface (B,H)
+1  * speed issues (A,B,profiling tools)
+1  * REPL
+3  * Perl 5 interop (Z5)
+1  * attention-grabbing examples 
+1  * improved error messages and failure modes (E)
+1  * release announcement draft
+2  * synopsis 19 handling
+1  * correctly return failure instead of die
+
+Completed ROADMAP items:
+-  * better return value checking (done)
+-  * clean up subtypes in multi-dispatch (done)
+-  * maintain candidate lists in lexicals (done)
+-  * overloadable postcircumfix:<[ ]> and postcircumfix:<{ }> (done)
+-  * proper trait definition and usage (need to fix edge cases)

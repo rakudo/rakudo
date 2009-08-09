@@ -723,10 +723,7 @@ rule enum_declarator {
         }}
     ]?
 
-    [
-    | <?before '(' > <circumfix> {*}             #= circumfix
-    | <?before '<' | '«' > <quote> {*}          #= quote
-    ]
+    <?before '(' | '<' | '<<' | '«' > <circumfix> {*}     #= circumfix
 }
 
 rule scope_declarator {
@@ -826,10 +823,12 @@ token special_variable {
 }
 
 token circumfix {
-    | '(' <statementlist> ')' {*}                #= ( )
-    | '[' <statementlist> ']' {*}                #= [ ]
-    | <?before '{' | <lambda> > <pblock> {*}     #= { }
-    | <sigil> '(' <semilist> ')' {*}             #= $( )
+    | '(' <statementlist> ')' {*}                            #= ( )
+    | '[' <statementlist> ']' {*}                            #= [ ]
+    | <?before '{' | <lambda> > <pblock> {*}                 #= { }
+    | <sigil> '(' <semilist> ')' {*}                         #= $( )
+    | <?before '<<' | '«'> <quote_expression: :ww :qq> {*}   #= quote
+    | <?before '<' > <quote_expression: :w :q> {*}           #= quote
 }
 
 token def_module_name {
@@ -919,8 +918,6 @@ token quote {
     [
     | <.before \'>     <quote_expression: :q>
     | <.before '"' >   <quote_expression: :qq>
-    | <.before '<<' | '«'>  <quote_expression: :ww :qq>
-    | <.before '<' >   <quote_expression: :w :q>
     | <.before '/'>    <quote_expression: :regex>
     | [m|rx] <.nofun> <.ws> 
         [ [':P5'|':Perl5'] <.nofun> <.ws> <quote_expression: :regex :P5>

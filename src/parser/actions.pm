@@ -2228,6 +2228,9 @@ method circumfix($/, $key) {
             $call_on
         );
     }
+    elsif $key eq 'quote' {
+        $past := $<quote_expression>.ast;
+    }
     make $past;
 }
 

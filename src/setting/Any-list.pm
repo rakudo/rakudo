@@ -86,14 +86,7 @@ class Any is also {
     }
 
     our List multi method kv() {
-        my $i=0;
-        gather {
-            for @.list -> $value {
-                take 0+$i;
-                take $value;
-                ++$i
-            }
-        }
+        @.keys Z @.values
     }
 
     multi method reduce(Code $expression is rw) {

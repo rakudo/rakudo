@@ -84,4 +84,6 @@ sub prefix:<[||]>(*@a) {
     return ();
 }
 
+sub infix:<!%>($a, $b) { ! ($a % $b) }
+
 # vim: ft=perl6

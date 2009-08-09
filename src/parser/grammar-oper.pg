@@ -29,6 +29,7 @@ proto prefix:<|> is equiv(prefix:<+>) { ... }
 proto infix:<*> is precedence('u=') { ... }
 proto infix:</> is equiv(infix:<*>) { ... }
 proto infix:<%> is equiv(infix:<*>) { ... }
+proto infix:<!%> is equiv(infix:<*>) { ... }
 proto infix:<+&> is equiv(infix:<*>) { ... }
 proto infix:<+^> is equiv(infix:<*>) { ... }
 proto infix:«+<» is equiv(infix:<*>) { ... }

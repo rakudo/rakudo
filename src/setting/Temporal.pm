@@ -26,7 +26,7 @@ role Temporal::Date {
 
     our Str method month-name {
         return <January February March April May June July August
-            September October November December>[$.month-1];
+                September October November December>[$.month-1];
     }
 
     our Str method day-name {
@@ -45,11 +45,11 @@ role Temporal::Date {
     sub infix:{'<=>'}( Temporal::Date $left, Temporal::Date $right )
         is export   # would like to define it with «<=>»
     {
-        $left.year <=> $right.year
+        $left.year  <=> $right.year
         ||
         $left.month <=> $right.month
         ||
-        $left.day <=> $right.day;
+        $left.day   <=> $right.day;
     }
 
 }
@@ -70,7 +70,7 @@ role Temporal::Time {
     sub infix:{'<=>'}( Temporal::Time $left, Temporal::Time $right )
         is export   # would like to define it with «<=>»
     {
-        $left.hour <=> $right.hour
+        $left.hour   <=> $right.hour
         ||
         $left.minute <=> $right.minute
         ||
@@ -120,7 +120,7 @@ role Temporal::DateTime {
         $m = $.date.month + 12 * $a - 3;
         $jd = $.date.day + int((153 * $m + 2) / 5) + 365 * $y
             + int( $y / 4 ) - int( $y / 100 ) + int( $y / 400 ) - 32045;
-        return $jd - 2440588 
+        return ($jd - 2440588) * 24 * 60 * 60
                + ($.time.hour*60 + $.time.minute)*60 + $.time.second;
     }
 
@@ -132,11 +132,11 @@ role Temporal::DateTime {
 class Time {
 
     our method gmtime( Num $epoch = time ) {
-        my ( $time, $sec, $min, $hour, $mday, $mon, $year );
+        my ( $time, $second, $minute, $hour, $day, $month, $year );
         $time = int( $epoch );
-        $sec  = $time % 60; $time = int($time/60);
-        $min  = $time % 60; $time = int($time/60);
-        $hour = $time % 24; $time = int($time/24);
+        $second  = $time % 60; $time = int($time/60);
+        $minute  = $time % 60; $time = int($time/60);
+        $hour    = $time % 24; $time = int($time/24);
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
         $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
@@ -146,14 +146,12 @@ class Time {
         my $d = int((4 * $c + 3) / 1461);       # 1461 = days in 4 years
         my $e = $c - int(($d * 1461) / 4);
         my $m = int((5 * $e + 2) / 153); # 153 = days in Mar-Jul Aug-Dec
-        $mday = $e - int((153 * $m + 2) / 5 ) + 1;
-        $mon  = $m + 3 - 12 * int( $m / 10 );
-        $year = $b * 100 + $d - 4800 + int( $m / 10 );
+        $day   = $e - int((153 * $m + 2) / 5 ) + 1;
+        $month = $m + 3 - 12 * int( $m / 10 );
+        $year  = $b * 100 + $d - 4800 + int( $m / 10 );
         Temporal::DateTime.new(
-            date => Temporal::Date.new(
-                year => $year, month  => $mon, day    => $mday ),
-            time => Temporal::Time.new(
-                hour => $hour, minute => $min, second => $sec  ),
+            date => Temporal::Date.new(:$year, :$month, :$day),
+            time => Temporal::Time.new(:$hour, :$minute, :$second),
             timezone => Temporal::TimeZone::Observance.new(
                 offset=>0, isdst=>Bool::False, abbreviation=>'UTC' )
         );

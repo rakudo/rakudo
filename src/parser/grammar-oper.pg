@@ -197,3 +197,8 @@ proto infix:<xor> is equiv(infix:<or>)
     is pasttype('xor')
     { ... }
 proto infix:<orelse> is equiv(infix:<or>) { ... }
+
+proto infix:«<==»    is precedence('b=')    { ... }
+proto ifnix:«==>»    is equiv(infix:«<==»)  { ... }
+proto ifnix:«<<==»   is equiv(infix:«<==»)  { ... }
+proto ifnix:«==>>»   is equiv(infix:«<==»)  { ... }

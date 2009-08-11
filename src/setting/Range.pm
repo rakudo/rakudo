@@ -54,12 +54,12 @@ class Range is also {
         }
     }
 
-    our #(Range) multi method reverse() {
+    our #`(Range) multi method reverse() {
         # XXX Should eventually return a reversed Range.
         @.list.reverse;
     }
 
-    our #(Bool) multi method true() {
+    our #`(Bool) multi method true() {
         # XXX For some reason, simply ?-ing what follows does not fix the
         # return type to Bool. Needs investigating...
         self!to_test($.from_exclusive ?? ++($.from.clone) !! $.from)

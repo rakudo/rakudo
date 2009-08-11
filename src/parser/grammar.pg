@@ -94,11 +94,11 @@ token nofun { <!before '(' | '.(' | '\\' | '\'' | '-'> }
 token unv {
     || \h+
     || ^^ <.pod_comment>
-    || ^^ '#' <?opener> <.panic: "Can't use embedded columns in column 1">
-    || '#' [
-           | <?opener> <quote_expression: >
-           | \N*
-           ]
+    || \h* '#' [
+         | '`' <quote_expression: >
+         | <?opener> <.panic: "Embedded comments now require backticks">
+         | \N*
+         ]
 }
 
 ##  The <afterws> rule returns true if we're immediate after

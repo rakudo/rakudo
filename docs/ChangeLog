@@ -1,3 +1,17 @@
+New in 2009-08 release
++ separate Perl 6 meta class
++ introspection on roles
++ declaration of methods in the meta class by writing method ^newmethod($obj)
++ :tree options for parent class, attribute and role introspection
++ allow custom postcircumfix:<( )> methods
++ moved more built-ins into the setting
++ implement operators infix:<!%> (divisibility test) and prefix [||] and [//]
++ updated ROADMAP in preparation for the Rakudo Star release
++ instead of throwing nasty parse errors, Rakudo now informs you that feed
+  operators are not yet implemented.
++ improved testing: planless testing with done_testing(); better diagnostic
+  output from is()
+
 New in 2009-07 release
 + extensive refactor of the multi dispatch code to get closer to the spec
 + better handling of named arguments in multi dispatch

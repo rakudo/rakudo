@@ -16,6 +16,7 @@
 # S12-class/is_also_instead.t - 'is also' -> augment
 # S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S16-filehandles/filetest.t - regressed when spec changed (RT #68160)
+# S16-filehandles/unlink.t   - regressed when spec changed (RT #68160)
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -357,7 +358,6 @@ S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 S16-filehandles/open.t
-S16-filehandles/unlink.t
 S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/say.t

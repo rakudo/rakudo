@@ -1,6 +1,6 @@
-=head1 Rakudo Perl 6
+=head1 Rakudo Perl 6
 
-This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine.
+This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine.
 
 Rakudo Perl is Copyright (C) 2008-2009, The Perl Foundation.
 Rakudo Perl is distributed under the terms of the Artistic License 2.0.
@@ -40,7 +40,7 @@ Once you have a copy of Rakudo, build it as follows:
     $ make
 
 This will create a "perl6" or "perl6.exe" executable in the
-current directory.  
+current (rakudo) directory.
 
 The C<--gen-parrot> option tells Configure.pl to automatically 
 download and build the most appropriate version of Parrot into 
@@ -51,23 +51,30 @@ invocations of Configure.pl; the configure system will re-build
 Parrot only if a newer version is needed for whatever version 
 of Rakudo you're working with.
 
-Rakudo no longer builds using Parrot's build tree directly;
-an installed version of Parrot is required.  If you want to
-have Rakudo use an already installed Parrot, make sure that
-Parrot's development environment is also installed (i.e., use
-C<make install-dev> to install Parrot, or install the
-C<parrot-devel> and/or C<libparrot-dev> packages).  Note that
-an installed Parrot still has to satisfy the minimum version
-requirement, and that the HEAD version of Rakudo (from github)
-often requires a newer Parrot than the latest monthly development
-release provides.
+You can use C<--parrot-config=/path/to/parrot_config> instead
+of C<--gen-parrot> to point to an already installed Parrot that
+must include its development environment. You can build such a
+Parrot from source using Parrot's C<make install-dev> target, or
+install prebuilt C<parrot-devel> and/or C<libparrot-dev> packages.
+The version of this already installed Parrot must satisfy a
+minimum specified by the Rakudo being built. The latest version of
+Rakudo (called HEAD on github) often requires one newer than
+the preceding monthly Parrot release.
 
 Rakudo's C<make install> target will install Rakudo and its
 libraries into the Parrot installation that was used to create it.
 
-To run a Perl 6 program with Rakudo, issue a command like:
+To run a Perl 6 program in the Rakudo build directory, issue a
+commands like:
 
     $ ./perl6 hello.pl
+
+To run Perl 6 programs in any directory, install Rakudo with the
+C<make install> command. You can then refer to
+C<parrot_install/bin/perl6> with a symbolic link, shell alias or
+search path and then use:
+
+    $ perl6 hello.pl
 
 If the Rakudo compiler is invoked without an explicit script to
 run, it enters a small interactive mode that allows Perl 6 statements 
@@ -178,7 +185,7 @@ See F<docs/compiler_overview.pod>.
 =head1 AUTHOR
 
 Patrick Michaud C<pmichaud@pobox.com> is the primary author and
-maintainer for Rakudo Perl 6 on Parrot.
+maintainer for Rakudo Perl 6 on Parrot.
 
 =cut
 

@@ -38,7 +38,7 @@ unless (-e $template) {
 my $template_contents = slurp($template);
 
 # Read v-tables list and get list of functions from it.
-my $vtable_list = slurp($PConfig{build_dir}.'/src/vtable.tbl');
+my $vtable_list = slurp($PConfig{srcdir}.$PConfig{versiondir}.'/vtable.tbl');
 my @all_vtables = extract_matches($vtable_list, '(\w+)\\(');
 
 # Find v-table methods defined in the ObjectRef template and exclude

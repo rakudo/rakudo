@@ -9,6 +9,7 @@ PARROT_VERSION     = @versiondir@
 PARROT_INCLUDE_DIR = @includedir@$(PARROT_VERSION)
 PARROT_LIB_DIR     = @libdir@$(PARROT_VERSION)
 PARROT_SRC_DIR     = @srcdir@$(PARROT_VERSION)
+HAS_ICU            = @has_icu@
 
 CC            = @cc@
 CFLAGS        = @ccflags@ @cc_shared@ @cc_debug@ @ccwarn@ @cc_hasjit@ @cg_flag@ @gc_flag@

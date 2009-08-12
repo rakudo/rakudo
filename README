@@ -136,7 +136,8 @@ bit, either on C<irc.freenode.net/#perl6> or C<irc.perl.org/#parrot>.
 Rakudo's official web site is L<http://rakudo.org/>, where you can
 find useful information for developers and users alike. There's also
 a Parrot blog at L<http://parrotblog.org/>, most Perl 6 related news is
-assembled at L<http://planetsix.perl.org/>.
+assembled at L<http://planetsix.perl.org/>. Links to many other
+resources can be found on L<http://perl6-projects.org/>.
 
 =head2 Reporting bugs
 

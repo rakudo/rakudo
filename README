@@ -51,6 +51,15 @@ Configure.pl; the configure system will re-build Parrot only
 if a newer version is needed for whatever version of Rakudo 
 you're working with.
 
+(If you want to build Rakudo on top of an installed parrot, make sure 
+that the development files are also installed (C<make install-dev>
+when installing parrot, or the C<parrot-devel> and C<libparrot-dev>
+packages on Debian). Note that an installed parrot still has to
+satisfy the minimum version requirement, so if you have an official
+parrot release installed, chances are that you can only build the
+corresponding Rakudo release on top of that, not the latest
+development version.)
+
 To run a Perl 6 program with Rakudo, issue a command like:
 
     $ ./perl6 hello.pl

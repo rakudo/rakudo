@@ -38,7 +38,7 @@ OPS2C            = $(PERL) $(PARROT_TOOLS_DIR)/build/ops2c.pl
 PMC2C            = $(PERL) $(PARROT_TOOLS_DIR)/build/pmc2c.pl
 PMC2C_INCLUDES   = --include src/pmc --include $(PARROT_SRC_DIR) --include $(PARROT_SRC_DIR)/pmc
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
-LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT)
+LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@
 
 # rakudo directories
 DYNEXT_DIR     = dynext
@@ -55,8 +55,6 @@ DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
 DYNOPS        = \
   $(OPS_DIR)/$(OPS)$(LOAD_EXT) \
   $(OPS_DIR)/$(OPS)_switch$(LOAD_EXT) \
-  $(OPS_DIR)/$(OPS)_cg$(LOAD_EXT) \
-  $(OPS_DIR)/$(OPS)_cgp$(LOAD_EXT) \
 
 SOURCES = perl6.pir \
   src/gen_grammar.pir \
@@ -421,14 +419,5 @@ $(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_switch$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_switch.c
 	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)_cg$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE)
-	cd $(OPS_DIR) && $(OPS2C) CGoto --dynamic $(OPS_SOURCE)
-	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_cg$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_cg.c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_cg$(LOAD_EXT) $(OPS)_cg$(O) $(LINKARGS)
-
-$(OPS_DIR)/$(OPS)_cgp$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE)
-	cd $(OPS_DIR) && $(OPS2C) CGP --dynamic $(OPS_SOURCE)
-	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_cgp$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_cgp.c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_cgp$(LOAD_EXT) $(OPS)_cgp$(O) $(LINKARGS)
 
 

@@ -229,19 +229,6 @@ src/builtins/op.pir - Perl 6 builtin operators
 .end
 
 
-.sub 'infix:x' :multi(_,_)
-    .param string str
-    .param int count
-    if count > 0 goto do_work
-    $S0 = ""
-    goto done
-  do_work:
-    $S0 = repeat str, count
-  done:
-    .return ($S0)
-.end
-
-
 .sub 'infix:xx' :multi(_,_)
     .param pmc a
     .param int n

@@ -221,4 +221,20 @@ sub unpack($template, $target) {
     }
 }
 
+multi sub infix:<x>($str, $n) {
+    Q:PIR {
+        $P1 = find_lex '$n'
+        $I0 = $P1
+        if $I0 > 0 goto do_repeat
+        $S0 = ''
+        goto done
+      do_repeat:
+        $P0 = find_lex '$str'
+        $S0 = $P0
+        $S0 = repeat $S0, $I0
+      done:
+        %r = box $S0
+    }
+}
+
 # vim: ft=perl6

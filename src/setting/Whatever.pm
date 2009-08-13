@@ -5,6 +5,9 @@ class Whatever is also {
     method ACCEPTS(Any $topic) {
         return Bool::True;
     }
+    method postcircumfix:<( )>(*@pos, *%named) {
+        return -> $x { $x(|@pos, |%named) };
+    }
 }
 
 # vim: ft=perl6

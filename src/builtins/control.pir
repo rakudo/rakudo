@@ -517,6 +517,21 @@ on error.
 .end
 
 
+=item lastcall
+
+Trims the candidate list so that nextsame/nextwith/callsame/callwith will
+find nothing more to call.
+
+=cut
+
+.sub 'lastcall'
+    # Find candidate list and trim it.
+    .local pmc clist
+    get_next_candidate_info clist, $P0, $P1
+    clist.'trim_candidate_list'()
+.end
+
+
 =item !get_original_args
 
 Helper for callsame and nextsame that uses the signature and lexpad of a

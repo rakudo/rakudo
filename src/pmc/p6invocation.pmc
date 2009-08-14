@@ -249,4 +249,14 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         PMC *result = VTABLE_shift_pmc(interp, SELF);
         RETURN(PMC *result);
     }
+    
+    METHOD void trim_candidate_list() {
+        /* Just blank out everything we could use to find another
+         * method. */
+        SETATTR_P6Invocation_candidate_list(interp, SELF, PMCNULL);
+        SETATTR_P6Invocation_position(interp, SELF, 0);
+        SETATTR_P6Invocation_name(interp, SELF, NULL);
+        SETATTR_P6Invocation_search_list(interp, SELF, PMCNULL);
+        SETATTR_P6Invocation_resume_point(interp, SELF, 0);
+    }
 }

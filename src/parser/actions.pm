@@ -1318,63 +1318,74 @@ method post($/, $key) {
 method dotty($/, $key) {
     my $past;
 
-    if $key eq '.' {
-        # Just a normal method call.
-        $past := $<dottyop>.ast;
-    }
-    elsif $key eq '!' {
-        # Private method call. Need to put ! on the start of the name
-        # (unless it was call to a code object, in which case we don't do
-        # anything more).
-        $past := $<methodop>.ast;
-        my $methodop := $<methodop>;
-        if $methodop<name> {
-            $past.name('!' ~ $past.name());
-        }
-        elsif $methodop<quote> {
-            $past.name(
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('infix:~'),
-                    '!',
-                    $past.name()
-                )
-            );
-        }
-    }
-    elsif $key eq '.*' {
+    if $key eq '.*' {
         $past := $<dottyop>.ast;
         if $/[0] eq '.?' || $/[0] eq '.+' || $/[0] eq '.*' || $/[0] eq '.^'  || $/[0] eq '.=' {
             my $name := $past.name();
-            unless $name {
-                $/.panic("Cannot use " ~ $/[0] ~ " when method is a code ref");
-            }
-            unless $name.isa(PAST::Node) {
+            if $name && !$name.isa(PAST::Node) {
                 $name := PAST::Val.new( :value($name) );
             }
-            $past.unshift($name);
+            if $name {
+                $past.unshift($name);
+                $past.unshift(PAST::Op.new(:inline('    null %r')));
+            }
+            else {
+                my $cands := $past.shift();
+                $past.unshift('');
+                $past.unshift(PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('list'),
+                    $cands
+                ));
+            }
             $past.name('!' ~ $/[0]);
         }
         else {
             $/.panic($/[0] ~ ' method calls not yet implemented');
         }
     }
-    elsif $key eq 'VAR' {
-        $past := PAST::Op.new(
-            :pasttype('call'),
-            :name('!VAR'),
-            :node($/)
-        );
+    else {
+        if $key eq '.' {
+            # Just a normal method call.
+            $past := $<dottyop>.ast;
+        }
+        elsif $key eq '!' {
+            # Private method call. Need to put ! on the start of the name
+            # (unless it was call to a code object, in which case we don't do
+            # anything more).
+            $past := $<methodop>.ast;
+            my $methodop := $<methodop>;
+            if $methodop<name> {
+                $past.name('!' ~ $past.name());
+            }
+            elsif $methodop<quote> {
+                $past.name(
+                    PAST::Op.new(
+                        :pasttype('call'),
+                        :name('infix:~'),
+                        '!',
+                        $past.name()
+                    )
+                );
+            }
+        }
+        elsif $key eq 'VAR' {
+            $past := PAST::Op.new(
+                :pasttype('call'),
+                :name('!VAR'),
+                :node($/)
+            );
+        }
+
+        # We actually need to send dispatches for named method calls (other than .*)
+        # through the.dispatcher.
+        if $<dottyop><methodop><variable> {
+            $past.name('!dispatch_method_indirect');
+            $past.pasttype('call');
+        }
     }
 
-    # We actually need to send dispatches for named method calls (other than .*)
-    # through the.dispatcher.
-    if $<dottyop><methodop><variable> {
-        $past.name('!dispatch_method_indirect');
-        $past.pasttype('call');
-    }
     $past<invocant_holder> := $past;
-
     make $past;
 }
 

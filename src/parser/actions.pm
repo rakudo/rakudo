@@ -978,6 +978,14 @@ method trait_mod($/) {
             ));
         }
     }
+    elsif $sym eq 'hides' {
+        my @name := Perl6::Compiler.parse_name(~$<module_name>);
+        $trait.push(PAST::Var.new(
+            :name(@name.pop),
+            :namespace(@name),
+            :scope('package')
+        ));
+    }
     else {
         $trait.push( $<fulltypename>.ast );
     }

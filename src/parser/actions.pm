@@ -1610,9 +1610,11 @@ method package_def($/, $key) {
     #  Set is also flag.
     $block<isalso> := has_compiler_trait_with_val($<trait>, 'trait_mod:is', 'also');
 
-    #  Emit traits; make sure rw and hidden, if given, were marked as handled first.
+    #  Emit traits; make sure rw always is marked as compiler handled and hidden is
+    #  always emitted even though we also have somewhat handled it in the compiler.
     has_compiler_trait_with_val($<trait>, 'trait_mod:is', 'rw');
-    has_compiler_trait_with_val($<trait>, 'trait_mod:is', 'hidden');
+    my $hidden := has_compiler_trait_with_val($<trait>, 'trait_mod:is', 'hidden');
+    if $hidden { $hidden<trait_is_compiler_handled> := 0 }
     emit_traits($<trait>, $init, $?METACLASS);
 
     #  If it's not an "is also", have a name and aren't a role (since they can

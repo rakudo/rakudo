@@ -474,7 +474,8 @@ Accessor for hidden property.
 .sub 'hidden' :method
     $P0 = getattribute self, '$!hidden'
     unless null $P0 goto done
-    $P0 = new ['Perl6Scalar']
+    $P0 = get_hll_global ['Bool'], 'False'
+    $P0 = new ['Perl6Scalar'], $P0
     setattribute self, '$!hidden', $P0
   done:
     .return ($P0)

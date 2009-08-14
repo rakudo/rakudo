@@ -692,9 +692,18 @@ method, and returns undef if there are none.
 
     # If we were already given a list, just check it's non-empty and use that.
     if null methods goto no_list
+  retry:
     $I0 = elements methods
     unless $I0 goto error
     $P0 = methods[0]
+    $I0 = isa $P0, 'Perl6MultiSub'
+    unless $I0 goto ready_to_call
+    $P0 = $P0.'find_possible_candidates'(self, pos_args :flat, named_args :named :flat)
+    $P0 = $P0[0]
+    unless null $P0 goto ready_to_call
+    $P0 = shift methods
+    goto retry
+  ready_to_call:
     .tailcall self.$P0(pos_args :flat, named_args :named :flat)
 
     # If there's no list, use .can to try and get us one.

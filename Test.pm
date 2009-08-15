@@ -171,41 +171,46 @@ multi sub eval_lives_ok(Str $code) is export(:DEFAULT) {
 }
 
 
-multi sub is_deeply(Object $this, Object $that, $reason) is export(:DEFAULT) {
-    my $val = _is_deeply( $this, $that );
-    proclaim($val, $reason);
+multi sub is_deeply(Object $got, Object $expected, $reason = '')
+                                                is export(:DEFAULT)
+{
+    my $test = _is_deeply( $got, $expected );
+    proclaim($test, $reason);
+    if !$test {
+        my $got_perl      = try { $got.perl };
+        my $expected_perl = try { $expected.perl };
+        if $got_perl.defined && $expected_perl.defined {
+            diag "     got: $got_perl";
+            diag "expected: $expected_perl";
+        }
+    }
 }
 
-multi sub is_deeply(Object $this, Object $that) is export(:DEFAULT) {
-    my $val = _is_deeply( $this, $that );
-    proclaim($val, '');
-}
+sub _is_deeply(Object $got, Object $expected) {
 
-sub _is_deeply(Object $this, Object $that) {
-
-    if $this ~~ List && $that ~~ List {
-        return if +$this.values != +$that.values;
-        for $this Z $that -> $a, $b {
+    if $got ~~ List && $expected ~~ List {
+        return if +$got.values != +$expected.values;
+        for $got Z $expected -> $a, $b {
             return if ! _is_deeply( $a, $b );
         }
         return True;
     }
-    elsif $this ~~ Hash && $that ~~ Hash {
-        return if +$this.keys != +$that.keys;
-        for $this.keys.sort Z $that.keys.sort -> $a, $b {
+    elsif $got ~~ Hash && $expected ~~ Hash {
+        return if +$got.keys != +$expected.keys;
+        for $got.keys.sort Z $expected.keys.sort -> $a, $b {
             return if $a ne $b;
-            return if ! _is_deeply( $this{$a}, $that{$b} );
+            return if ! _is_deeply( $got{$a}, $expected{$b} );
         }
         return True;
     }
-    elsif $this ~~ Str | Num | Int && $that ~~ Str | Num | Int {
-        return $this eq $that;
+    elsif $got ~~ Str | Num | Int && $expected ~~ Str | Num | Int {
+        return $got eq $expected;
     }
-    elsif $this ~~ Pair && $that ~~ Pair {
-        return $this.key eq $that.key
-               && _is_deeply( $this.value, $this.value );
+    elsif $got ~~ Pair && $expected ~~ Pair {
+        return $got.key eq $expected.key
+               && _is_deeply( $got.value, $expected.value );
     }
-    elsif $this ~~ undef && $that ~~ undef && $this.WHAT eq $that.WHAT {
+    elsif $got ~~ undef && $expected ~~ undef && $got.WHAT eq $expected.WHAT {
         return True;
     }
 

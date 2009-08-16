@@ -19,14 +19,13 @@ the size of that file down and to emphasize their generic,
 =cut
 
 .namespace []
+.loadlib 'math_ops'
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
     '!EXPORT'('abs,int,log,polar,sqrt,truncate,unpolar', 'from'=>$P0)
 
     ##  pre-seed a random number generator
-    $P0 = root_new ['parrot';'Random']
-    set_hll_global ['Any'], '$!random', $P0
-    srand()
+    'srand'()
 .end
 
 
@@ -103,18 +102,14 @@ error.
     if has_seed goto have_seed
     seed = time
   have_seed:
-    $P0 = get_hll_global ['Any'], '$!random'
-    $I0 = seed
-    $P0 = $I0
+    srand seed
     .return ()
 .end
 
 .namespace ['Any']
 .sub 'srand' :method
     $N0 = self
-    $I0 = $N0
-    $P0 = get_hll_global ['Any'], '$!random'
-    $P0 = $I0
+    srand $N0
     .return ()
 .end
 

@@ -30,10 +30,8 @@ class Any is also {
     our Num method rand() {
         Q:PIR {
             $N0 = self
-            $P0 = get_hll_global ['Any'], '$!random'
-            $N1 = $P0
-            $N0 *= $N1
-            %r = box $N0
+            $N1 = rand $N0
+            %r = box $N1
         }
     }
 

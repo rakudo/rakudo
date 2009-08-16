@@ -105,18 +105,18 @@ Return a List with the keys of the invocant.
 .end
 
 .namespace ['Any']
+.loadlib 'math_ops'
 .sub 'pick' :method :multi()
     .param int p_num           :optional
     .param int has_num         :opt_flag
     .param pmc p_repl          :optional :named('repl')
     .param int has_repl        :opt_flag
 
-    .local pmc list, result, rand
+    .local pmc list, result
     .local int elems
     list = self.'list'()
     elems = list.'elems'()
     result = 'list'()
-    rand = get_hll_global ['Any'], '$!random'
 
     if has_num goto have_num
     p_num = 1
@@ -134,8 +134,7 @@ Return a List with the keys of the invocant.
   loop:
     unless p_num > 0 goto done
     unless elems > 0 goto done
-    $N0 = rand
-    $N0 *= elems
+    $N0 = rand elems
     $I0 = $N0
     $P0 = list[$I0]
     push result, $P0

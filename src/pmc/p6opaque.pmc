@@ -259,31 +259,42 @@ back some kind of iterator to let us get all of the possible candidates.
             method = VTABLE_clone(interp, sub);
             VTABLE_setprop(interp, method, CONST_STRING(interp, "name"), boxed_name);
         }
+
+        /* If it's a role and the method name is not on the no-pun list, we
+         * should pun it. */
+        else if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Perl6Role")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "WHAT")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "HOW")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "isa")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "Scalar")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "defined")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "perl")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!select")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!add_variant")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "postcircumfix:[ ]"))) {
+            PMC *ns_key, *ns, *punner, *boxed_name;
+            ns_key = pmc_new(interp, enum_class_ResizableStringArray);
+            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
+            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Perl6Role"));
+            ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
+            punner = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "!pun_helper"));
+
+            /* Return a clone with the method name set as a property. */
+            method = VTABLE_clone(interp, punner);
+            boxed_name = pmc_new(interp, enum_class_String);
+            VTABLE_set_string_native(interp, boxed_name, name);
+            VTABLE_setprop(interp, method, CONST_STRING(interp, "name"), boxed_name);
+        }
+
+        /* Otherwise, just do a normal method lookup. */
         else {
-            /* Do the method lookup. */
             method = look_for_method(interp, _class->all_parents, &pos, name);
         }
 
+        /* If it's a junction and we need to auto-thread the call. */
         if (PMC_IS_NULL(method)) {
-            /* There are a few other options. One is that it's a role, and we
-             * need to pun it. */
-            if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Perl6Role"))) {
-                PMC *ns_key, *ns, *punner, *boxed_name;
-                ns_key = pmc_new(interp, enum_class_ResizableStringArray);
-                VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
-                VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Perl6Role"));
-                ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
-                punner = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "!pun_helper"));
-
-                /* Return a clone with the method name set as a property. */
-                method = VTABLE_clone(interp, punner);
-                boxed_name = pmc_new(interp, enum_class_String);
-                VTABLE_set_string_native(interp, boxed_name, name);
-                VTABLE_setprop(interp, method, CONST_STRING(interp, "name"), boxed_name);
-            }
-
-            /* Otherwise, it could be a junction and we need to auto-thread the call. */
-            else if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Junction"))) {
+            if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Junction"))) {
                 PMC *sub = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
                         CONST_STRING(interp, "!DISPATCH_JUNCTION_METHOD"));
                 PMC *boxed_name = pmc_new(interp, enum_class_String);

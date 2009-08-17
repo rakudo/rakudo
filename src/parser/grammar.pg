@@ -96,6 +96,8 @@ token unv {
     || ^^ <.pod_comment>
     || \h* '#' [
          | '`' <quote_expression: >
+         | '= ' \N*
+         | '=' <quote_expression: >
          | <?opener> <.panic: "Embedded comments now require backticks">
          | \N*
          ]

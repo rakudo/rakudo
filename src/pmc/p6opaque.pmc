@@ -136,6 +136,18 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
         PMC * const cur_class = VTABLE_get_pmc_keyed_int(interp, search_list, i);
         const Parrot_Class_attributes * const class_info = PARROT_CLASS(cur_class);
 
+        /* Support is hidden and the hides trait mod iff we're in deferal mode (that
+         * is, we're continuing a lookup rather than starting from the bottom). */
+        if (*start_pos > 0) {
+            /* Does this class have the is hidden property? */
+            PMC *metaclass = VTABLE_getprop(interp, cur_class, CONST_STRING(interp, "metaclass"));
+            if (!PMC_IS_NULL(metaclass)) {
+                PMC *hidden = VTABLE_get_attr_str(interp, metaclass, CONST_STRING(interp, "$!hidden"));
+                if (!PMC_IS_NULL(hidden) && VTABLE_get_bool(interp, hidden))
+                    continue;
+            }
+        }
+
         /* Make sure it's got the memory layout of a standard Parrot class. */
         if (all_in_universe || VTABLE_isa(interp, cur_class, CONST_STRING(interp, "Class"))) {
             /* Look and see if we have a method; eliminate sub-methods unless

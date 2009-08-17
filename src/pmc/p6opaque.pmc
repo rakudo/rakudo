@@ -140,38 +140,39 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
          * is, we're continuing a lookup rather than starting from the bottom). */
         if (*start_pos > 0) {
             PMC *my_metaclass = VTABLE_getprop(interp, cur_class, CONST_STRING(interp, "metaclass"));
-            int j, k, found;
-            
-            /* Does this class have the is hidden property? */
-            if (!PMC_IS_NULL(my_metaclass)) {
+            if (!PMC_IS_NULL(my_metaclass) && VTABLE_isa(interp, my_metaclass,
+                    CONST_STRING(interp, "ClassHOW"))) {
+                int j, k, found;
+
+                /* Does this class have the is hidden property? */                
                 PMC *hidden = VTABLE_get_attr_str(interp, my_metaclass, CONST_STRING(interp, "$!hidden"));
                 if (!PMC_IS_NULL(hidden) && VTABLE_get_bool(interp, hidden))
                     continue;
-            }
 
-            /* Does anything before it hide it? */
-            found = 0;
-            for (j = 0; j < i; j++) {
-                PMC *check_class     = VTABLE_get_pmc_keyed_int(interp, search_list, j);
-                PMC *check_metaclass = VTABLE_getprop(interp, check_class, CONST_STRING(interp, "metaclass"));
-                if (!PMC_IS_NULL(check_metaclass)) {
-                    PMC *hides = VTABLE_get_attr_str(interp, check_metaclass, CONST_STRING(interp, "$!hides"));
-                    if (!PMC_IS_NULL(hides)) {
-                        INTVAL hides_cnt = VTABLE_elements(interp, hides);
-                        for (k = 0; k < hides_cnt; k++) {
-                            PMC *cur_type_obj  = VTABLE_get_pmc_keyed_int(interp, hides, k);
-                            PMC *cur_metaclass = VTABLE_getprop(interp, VTABLE_get_class(interp,
-                                    cur_type_obj), CONST_STRING(interp, "metaclass"));
-                            if (cur_metaclass == my_metaclass) {
-                                found = 1;
-                                break;
+                /* Does anything before it hide it? */
+                found = 0;
+                for (j = 0; j < i; j++) {
+                    PMC *check_class     = VTABLE_get_pmc_keyed_int(interp, search_list, j);
+                    PMC *check_metaclass = VTABLE_getprop(interp, check_class, CONST_STRING(interp, "metaclass"));
+                    if (!PMC_IS_NULL(check_metaclass)) {
+                        PMC *hides = VTABLE_get_attr_str(interp, check_metaclass, CONST_STRING(interp, "$!hides"));
+                        if (!PMC_IS_NULL(hides)) {
+                            INTVAL hides_cnt = VTABLE_elements(interp, hides);
+                            for (k = 0; k < hides_cnt; k++) {
+                                PMC *cur_type_obj  = VTABLE_get_pmc_keyed_int(interp, hides, k);
+                                PMC *cur_metaclass = VTABLE_getprop(interp, VTABLE_get_class(interp,
+                                        cur_type_obj), CONST_STRING(interp, "metaclass"));
+                                if (cur_metaclass == my_metaclass) {
+                                    found = 1;
+                                    break;
+                                }
                             }
                         }
                     }
                 }
+                if (found)
+                    continue;
             }
-            if (found)
-                continue;
         }
 
         /* Make sure it's got the memory layout of a standard Parrot class. */

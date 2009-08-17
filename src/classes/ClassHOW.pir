@@ -25,6 +25,11 @@ This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
     $P1 = p6meta.'get_parrotclass'($P1)
     addparent $P0, $P1
 
+    # Couple of useful attributes for tracking interface consistency
+    # information.
+    addattribute $P0, '$!hides'
+    addattribute $P0, '$!hidden'
+
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
 
@@ -440,6 +445,40 @@ XXX Work out exactly why.
   proto_of_how:
     $P0 = self.'HOW'()
     .tailcall $P0.'WHAT'()
+.end
+
+
+=item hides
+
+Accessor for hides property.
+
+=cut
+
+.sub 'hides' :method
+    $P0 = getattribute self, '$!hides'
+    unless null $P0 goto done
+    $P0 = get_hll_global 'Array'
+    $P0 = $P0.'new'()
+    setattribute self, '$!hides', $P0
+  done:
+    .return ($P0)
+.end
+
+
+=item hidden
+
+Accessor for hidden property.
+
+=cut
+
+.sub 'hidden' :method
+    $P0 = getattribute self, '$!hidden'
+    unless null $P0 goto done
+    $P0 = get_hll_global ['Bool'], 'False'
+    $P0 = new ['Perl6Scalar'], $P0
+    setattribute self, '$!hidden', $P0
+  done:
+    .return ($P0)
 .end
 
 =back

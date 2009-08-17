@@ -29,6 +29,10 @@ multi trait_mod:<is>(Class $child, Object $parent) {
     };
 }
 
+multi trait_mod:<is>(Class $child, :$hidden!) {
+    $child.hidden = True;
+}
+
 multi trait_mod:<is>(Code $block, $arg?, :$export!) {
     # Maybe we can re-write some more of this out of PIR and into Perl 6.
     Q:PIR {
@@ -141,4 +145,9 @@ multi trait_mod:<returns>(Code $block is rw, Object $type) {
 
 multi trait_mod:<will>($declarand, &arg, *%name) {
     &trait_mod:<is>($declarand, &arg, |%name);
+}
+
+multi trait_mod:<hides>(Class $child, Object $parent) {
+    &trait_mod:<is>($child, $parent);
+    $child.hides.push($parent)
 }

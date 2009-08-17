@@ -1,4 +1,6 @@
 New in 2009-08 release
++ Rakudo can now be built from an installed parrot, and can be installed
+  itself
 + separate Perl 6 meta class
 + introspection on roles
 + declaration of methods in the meta class by writing method ^newmethod($obj)

@@ -20,3 +20,5 @@ perl6.c
 perl6.o
 MANIFEST
 commits.png
+dynext/perl6_*.bundle
+perl6_group.?

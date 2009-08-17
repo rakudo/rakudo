@@ -22,8 +22,16 @@ gets stuck into the lex pad to represent the the candidate list.
 #include "pmc_perl6multisub.h"
 
 
+/* Selects whether we're doing a real dispatch or just a test to see if
+ * we could dispatch. */
 #define P6I_MODE_DISPATCH 0
 #define P6I_MODE_CHECK    1
+
+
+/* Flag on the PMC to say whether we're in quiet failure mode (if set)
+ * or exception mode if we are unable to dispatch. */
+#define PObj_P6I_FAILURE_MODE_FLAG PObj_private0_FLAG
+
 
 /* Declaration; definition of this is in p6opaque.pmc. */
 PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING *name);
@@ -165,6 +173,8 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         SETATTR_P6Invocation_search_list(interp, copy, search_list);
         SETATTR_P6Invocation_name(interp, copy, name);
         SETATTR_P6Invocation_resume_point(interp, copy, resume_point);
+        if (PObj_flag_TEST(P6I_FAILURE_MODE, SELF))
+            PObj_flag_SET(P6I_FAILURE_MODE, copy);
         return copy;
     }
 
@@ -220,6 +230,19 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
             SETATTR_P6Invocation_first_candidate(interp, SELF, PMCNULL);
 
         /* Invoke it, then fudge ourself into its lexpad. */
+        if (PMC_IS_NULL(first_candidate)) {
+            PMC *ns;
+
+            /* Oh noes, no candidate. If we aren't in soft-fail mode, then
+             * throw an exception. */
+            if (!PObj_flag_TEST(P6I_FAILURE_MODE, SELF))
+                Parrot_ex_throw_from_c_args(interp, next, 1, "No candidates found to invoke");
+
+            /* Otherwise, we look up something that when invoked will just give a
+             * dispatch failure. */
+            ns = Parrot_get_namespace_keyed_str(interp, interp->root_namespace, CONST_STRING(interp, "perl6"));
+            first_candidate = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "!deferal_fail"));
+        }
         addr = VTABLE_invoke(interp, first_candidate, next);
         lexpad = CONTEXT(interp)->lex_pad;
         if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, lexname))
@@ -246,5 +269,19 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
     METHOD PMC *get() {
         PMC *result = VTABLE_shift_pmc(interp, SELF);
         RETURN(PMC *result);
+    }
+    
+    METHOD void trim_candidate_list() {
+        /* Just blank out everything we could use to find another
+         * method. */
+        SETATTR_P6Invocation_candidate_list(interp, SELF, PMCNULL);
+        SETATTR_P6Invocation_position(interp, SELF, 0);
+        SETATTR_P6Invocation_name(interp, SELF, NULL);
+        SETATTR_P6Invocation_search_list(interp, SELF, PMCNULL);
+        SETATTR_P6Invocation_resume_point(interp, SELF, 0);
+    }
+
+    METHOD void set_failure_mode() {
+        PObj_flag_SET(P6I_FAILURE_MODE, SELF);
     }
 }

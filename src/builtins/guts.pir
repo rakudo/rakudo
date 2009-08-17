@@ -1535,6 +1535,21 @@ return the resume continuation so we can continue execution after the bind.
     .return ($P0)
 .end
 
+
+=item !deferal_fail
+
+Used by P6invocation to help us get soft-failure semantics when no deferal
+is possible.
+
+=cut
+
+.sub '!deferal_fail'
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+    .lex '__CANDIDATE_LIST__', $P0
+    .tailcall '!FAIL'('No method to defer to')
+.end
+
 =back
 
 =cut

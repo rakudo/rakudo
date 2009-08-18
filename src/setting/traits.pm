@@ -114,29 +114,20 @@ multi trait_mod:<does>(Class $class is rw, Object $role) {
     };
 }
 
-multi trait_mod:<does>(Object $var, Object $role) {
-    $var does $role;
+multi trait_mod:<does>(ContainerDeclarand $c, Object $role) {
+    $c.container does $role;
 }
 
 multi trait_mod:<of>(Code $block is rw where { .defined }, Object $type is rw) {
     $block does Callable[$type];
 }
 
-multi trait_mod:<of>(Array $var is rw, Object $type is rw) {
-    $var does Positional[$type];
-}
-
-multi trait_mod:<of>(Hash $var is rw, Object $type is rw) {
-    $var does Associative[$type];
-}
-
-multi trait_mod:<of>(Object $var is rw, Object $type is rw) {
-    Q:PIR {
-    .local pmc var, type
-    var = find_lex '$var'
-    type = find_lex '$type'
-    setprop var, 'type', type
-    };
+multi trait_mod:<of>(ContainerDeclarand $c, Object $type is rw) {
+    given $c.container {
+        when Array { $_ does Positional[$type] }
+        when Hash { $_ does Associative[$type] }
+        default { .of($type) }
+    }
 }
 
 multi trait_mod:<returns>(Code $block is rw, Object $type) {

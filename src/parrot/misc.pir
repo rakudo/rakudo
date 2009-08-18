@@ -85,7 +85,7 @@ Gets the name of the routine.
 =item Class.attriter
 
 Return an iterator that iterates over a Class' attributes.
-If the Class object has a @!attribute_list property, use 
+If the Class object has a @!attribute_list property, use
 that as the order of attributes, otherwise introspect the
 class and use its list.  (As of Parrot 1.4.0 we can't
 always introspect the class directly, as the order of

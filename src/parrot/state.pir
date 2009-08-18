@@ -40,7 +40,7 @@ XXX TODO: Doesn't yet handle binding beyond the initial one.
 
   lexical_decl:
     ops = $P0.'new'('node'=>node)
-    
+
     # Do a call to restore any previous values. We can skip the rest
     # if it returns a false value.
     $P0 = self.'uniquereg'('I')
@@ -49,7 +49,7 @@ XXX TODO: Doesn't yet handle binding beyond the initial one.
     $S0 = self.'unique'('state')
     $P1 = $P1.'new'('result'=>$S0)
     ops.'push_pirop'('if', $P0, $P1)
-    
+
     # Vivify and store vivification.
     .local pmc viviself, vivipost
     viviself = node.'viviself'()

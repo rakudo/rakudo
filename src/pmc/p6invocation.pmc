@@ -186,14 +186,14 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
         if (!PMC_IS_NULL(first_candidate))
             return 1;
-    
+
         /* Get candidates and position, and check if we have more candidates
          * already known about. */
         GETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
         GETATTR_P6Invocation_position(interp, SELF, position);
         if (!PMC_IS_NULL(candidates) && position < VTABLE_elements(interp, candidates))
             return 1;
-        
+
         /* If not, then we see if the dispatcher can potentially find more. */
         return !PMC_IS_NULL(get_next_candidate(interp, SELF, P6I_MODE_CHECK));
     }
@@ -214,7 +214,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
     VTABLE PMC *get_iter() {
         return VTABLE_clone(interp, SELF);
     }
-    
+
     VTABLE opcode_t *invoke(void *next) {
         STRING   *lexname = CONST_STRING(interp, "__CANDIDATE_LIST__");
         PMC      *lexpad, *first_candidate;
@@ -254,7 +254,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         /* Result is a clone of ourself. We clone ourself rather than handing
          * back the method so invocations of it that defer will work out. */
         PMC *result = VTABLE_clone(interp, SELF);
-        
+
         /* Now shuffle along one candidate. */
         PMC *first_candidate;
         GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
@@ -262,7 +262,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
             get_next_candidate(interp, SELF, P6I_MODE_DISPATCH);
         else
             SETATTR_P6Invocation_first_candidate(interp, SELF, PMCNULL);
-        
+
         return result;
     }
 
@@ -270,7 +270,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         PMC *result = VTABLE_shift_pmc(interp, SELF);
         RETURN(PMC *result);
     }
-    
+
     METHOD void trim_candidate_list() {
         /* Just blank out everything we could use to find another
          * method. */

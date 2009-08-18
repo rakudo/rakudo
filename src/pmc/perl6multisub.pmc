@@ -396,7 +396,7 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
             /* Record type info for this parameter. */
             info->types[significant_param] = type;
             info->constraints[significant_param] = constraints;
-            if (!PMC_IS_NULL(constraints)) 
+            if (!PMC_IS_NULL(constraints))
                 info->bind_check = 1;
             if (!PMC_IS_NULL(multi_inv) && VTABLE_get_bool(interp, multi_inv))
                 info->num_types++;

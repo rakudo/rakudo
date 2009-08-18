@@ -31,7 +31,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     STRING *P6role        = CONST_STRING(interp, "P6role");
     STRING *Perl6Role     = CONST_STRING(interp, "Perl6Role");
     STRING *attrname      = CONST_STRING(interp, "attrname");
-    
+
     /* Need to make sure a wobload of globals don't get destroyed, since we very
      * liekly have a call set up when we are running this code. */
     PMC      * const saved_ccont       = interp->current_cont;
@@ -144,7 +144,7 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
                     CONST_STRING(interp, "ClassHOW"))) {
                 int j, k, found;
 
-                /* Does this class have the is hidden property? */                
+                /* Does this class have the is hidden property? */
                 PMC *hidden = VTABLE_get_attr_str(interp, my_metaclass, CONST_STRING(interp, "$!hidden"));
                 if (!PMC_IS_NULL(hidden) && VTABLE_get_bool(interp, hidden))
                     continue;
@@ -185,7 +185,7 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
                 /* In most derived class anything is OK. */
                 if (i == 0)
                     break;
-                
+
                 /* If it's not a submethod, it's fine. */
                 if (!VTABLE_isa(interp, method, CONST_STRING(interp, "Submethod")))
                     break;
@@ -224,7 +224,7 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
 
 
 pmclass P6opaque extends Object need_ext dynpmc group perl6_group {
-    
+
 /*
 
 =item C<PMC * clone()>
@@ -279,7 +279,7 @@ back some kind of iterator to let us get all of the possible candidates.
         Parrot_Class_attributes  * const _class = PARROT_CLASS(obj->_class);
         INTVAL                           pos    = 0;
         PMC                      *       method;
-        
+
         /* If we're calling a method on Whatever, we need to generate a closure
          * instead. XXX It sucks that every method invocation pays for this, so
          * we really must find something better to do. */

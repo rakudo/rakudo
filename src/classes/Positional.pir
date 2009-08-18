@@ -17,7 +17,7 @@ src/classes/Positional.pir - Positional Role
     capture_lex $P0
     .const 'Sub' $P1 = 'Positional::of'
     capture_lex $P1
-    
+
     # Capture type.
     if null type goto no_type
     type = type.'WHAT'()
@@ -26,7 +26,7 @@ src/classes/Positional.pir - Positional Role
     type = get_hll_global 'Object'
   type_done:
     .lex 'T', type
-    
+
     # Create role.
     .local pmc metarole
     metarole = "!meta_create"("role", "Positional[::T]", 0)
@@ -121,7 +121,7 @@ src/classes/Positional.pir - Positional Role
     .const 'Sub' $P1 = 'Positional::postcircumfix:[Int]'
     .tailcall $P1(self, $P0, options :named :flat)
 .end
-    
+
 .sub '' :load :init
     .local pmc block, signature
     .const 'Sub' block1 = 'Positional::postcircumfix:[Int]'

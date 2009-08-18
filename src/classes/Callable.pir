@@ -19,7 +19,7 @@ This implements the parametric role Callable[::T = Object].
     capture_lex $P0
     $P0 = get_hll_global ['Callable[::T]'], 'returns'
     capture_lex $P0
-    
+
     # Capture type.
     if null type goto no_type
     type = type.'WHAT'()
@@ -28,7 +28,7 @@ This implements the parametric role Callable[::T = Object].
     type = get_hll_global 'Object'
   type_done:
     .lex 'T', type
-    
+
     # Create role.
     .const 'Sub' $P0 = 'callable_of'
     capture_lex $P0

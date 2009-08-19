@@ -2484,7 +2484,8 @@ method term($/, $key) {
                 PAST::Var.new(
                     :name($short_name),
                     :namespace(@ns),
-                    :scope('package')
+                    :scope('package'),
+                    :viviself('Failure'),
                 ),
                 :pasttype('call')
             );
@@ -2502,7 +2503,8 @@ method term($/, $key) {
             $past.unshift(PAST::Var.new(
                 :name($short_name),
                 :namespace(@ns),
-                :scope('package')
+                :scope('package'),
+                :viviself('Failure'),
             ));
         }
         else {
@@ -2518,7 +2520,8 @@ method term($/, $key) {
             $past.unshift(PAST::Var.new(
                 :name($short_name),
                 :namespace(@ns),
-                :scope('package')
+                :scope('package'),
+                :viviself('Failure'),
             ));
         }
         else {

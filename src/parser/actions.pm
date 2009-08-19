@@ -625,7 +625,7 @@ method statement_prefix($/) {
 
         ##  Add an 'else' node to the try op that clears $! if
         ##  no exception occurred.
-        my $elsepir  := "    new %r, ['Failure']\n    store_lex '$!', %r";
+        my $elsepir  := "    %r = '!FAIL'()\n    store_lex '$!', %r";
         $past.push( PAST::Op.new( :inline( $elsepir ) ) );
     }
     elsif $sym eq 'gather' {
@@ -675,6 +675,12 @@ method multi_declarator($/) {
         # If it's just a routine, need to mark it as a sub and make sure we
         # bind its signature.
         if $<routine_def> {
+            if (+@($past[1])) {
+                declare_implicit_routine_vars($past);
+            }
+            else {
+                $past[1].push( PAST::Op.new( :name('list') ) );
+            }
             set_block_type($past, 'Sub');
             $past[0].push(
                 PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
@@ -2484,7 +2490,8 @@ method term($/, $key) {
                 PAST::Var.new(
                     :name($short_name),
                     :namespace(@ns),
-                    :scope('package')
+                    :scope('package'),
+                    :viviself('Failure'),
                 ),
                 :pasttype('call')
             );
@@ -2502,7 +2509,8 @@ method term($/, $key) {
             $past.unshift(PAST::Var.new(
                 :name($short_name),
                 :namespace(@ns),
-                :scope('package')
+                :scope('package'),
+                :viviself('Failure'),
             ));
         }
         else {
@@ -2518,7 +2526,8 @@ method term($/, $key) {
             $past.unshift(PAST::Var.new(
                 :name($short_name),
                 :namespace(@ns),
-                :scope('package')
+                :scope('package'),
+                :viviself('Failure'),
             ));
         }
         else {

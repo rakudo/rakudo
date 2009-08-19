@@ -56,7 +56,7 @@
     unless x goto no_args
     die "Obsolete use of undef; in Perl 6 please use undefine instead"
   no_args:
-    $P0 = new ['Failure']
+    $P0 = '!FAIL'()
     .return ($P0)
 .end
 

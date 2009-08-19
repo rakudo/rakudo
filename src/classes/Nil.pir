@@ -52,7 +52,7 @@ src/classes/Nil.pir - Nil objects
 
 .namespace ['Nil']
 .sub 'Scalar' :method
-    $P0 = new ['Failure']
+    $P0 = '!FAIL'()
     .return ($P0)
 .end
 

@@ -625,7 +625,7 @@ method statement_prefix($/) {
 
         ##  Add an 'else' node to the try op that clears $! if
         ##  no exception occurred.
-        my $elsepir  := "    new %r, ['Failure']\n    store_lex '$!', %r";
+        my $elsepir  := "    %r = '!FAIL'()\n    store_lex '$!', %r";
         $past.push( PAST::Op.new( :inline( $elsepir ) ) );
     }
     elsif $sym eq 'gather' {

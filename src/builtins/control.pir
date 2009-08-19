@@ -383,7 +383,7 @@ on error.
 
     # Invoke.
     res = invokable()
-    exception = new ['Failure']
+    exception = '!FAIL'()
     goto done
 
   catch:

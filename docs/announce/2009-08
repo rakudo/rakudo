@@ -1,7 +1,7 @@
 Announce: Rakudo Perl 6 development release #20 ("PDX")
 
 On behalf of the Rakudo development team, I'm pleased to announce
-the August 2009 development release of Rakudo Perl #19 "Chicago".
+the August 2009 development release of Rakudo Perl #20 "PDX".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
 The tarball for the August 2009 release is available from
 http://github.com/rakudo/rakudo/downloads .

@@ -28,11 +28,10 @@ Dates are based on Parrot's expected release schedule.
   2009-10-22   Rakudo #22                      (duff)
   2009-11-19   Rakudo #23                      (masak)
   2009-12-17   Rakudo #24                      (chromatic)
-  2010-01-21   Rakudo #25
+  2010-01-21   Rakudo #25                      (smash)
 
 =head2 Suggested .pm group names for future releases
 
-  PDX.pm
   Atlanta.pm
   BristolBath.pm
   Milan.pm

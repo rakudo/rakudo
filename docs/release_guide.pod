@@ -18,16 +18,17 @@ part of monthly Parrot releases.
   2009-05-21   Rakudo #17 "Stockholm"          (pmichaud)
   2009-06-18   Rakudo #18 "Pittsburgh"         (pmichaud)
   2009-07-23   Rakudo #19 "Chicago"            (moritz)
+  2009-08-20   Rakudo #20 "PDX"                (kyle)
 
 =head2 Planned 2009 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2009-08-20   Rakudo #20                      (kyle)
   2009-09-17   Rakudo #21 "Seattle"            (particle)
   2009-10-22   Rakudo #22                      (duff)
   2009-11-19   Rakudo #23                      (masak)
   2009-12-17   Rakudo #24                      (chromatic)
+  2010-01-21   Rakudo #25
 
 =head2 Suggested .pm group names for future releases
 
@@ -72,7 +73,11 @@ fixed prior to Parrot's release.
 =item *
 
 Review the RT queue for tickets that might need resolving
-prior to the release, addressing them as needed.
+prior to the release, addressing them as needed.  "Tickets
+that need resolving" is left your discretion.  Any problem
+that has a large impact on users is worth addressing either
+as a fix or as prominent documentation (the README and/or
+the release announcement).
 
 =back
 

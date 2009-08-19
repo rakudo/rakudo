@@ -3195,14 +3195,23 @@ sub return_handler_past() {
                 PAST::Var.new( :name('exception'), :scope('register') )
             ),
             PAST::Op.new(
-                :pasttype('call'),
-                :name('die'),
+                :pasttype('if'),
+                PAST::Op.new( :inline("    $I0 = isa exception, 'Failure'",
+                                      "    %r = box $I0") ),
+                PAST::Op.new(
+                    :inline('    .return (%0)'),
+                    PAST::Var.new( :name('exception'), :scope('register') )
+                ),
                 PAST::Op.new(
                     :pasttype('call'),
-                    :name('!make_type_fail_message'),
-                    'Return value',
-                    PAST::Var.new( :name('exception'), :scope('register') ),
-                    PAST::Var.new( :name('$P0'), :scope('register') )
+                    :name('die'),
+                    PAST::Op.new(
+                        :pasttype('call'),
+                        :name('!make_type_fail_message'),
+                        'Return value',
+                        PAST::Var.new( :name('exception'), :scope('register') ),
+                        PAST::Var.new( :name('$P0'), :scope('register') )
+                    )
                 )
             )
         )

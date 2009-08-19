@@ -675,6 +675,12 @@ method multi_declarator($/) {
         # If it's just a routine, need to mark it as a sub and make sure we
         # bind its signature.
         if $<routine_def> {
+            if (+@($past[1])) {
+                declare_implicit_routine_vars($past);
+            }
+            else {
+                $past[1].push( PAST::Op.new( :name('list') ) );
+            }
             set_block_type($past, 'Sub');
             $past[0].push(
                 PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )

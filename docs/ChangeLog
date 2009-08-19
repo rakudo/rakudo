@@ -10,13 +10,17 @@ New in 2009-08 release
 + implement operators infix:<!%> (divisibility test) and prefix [||] and [//]
 + updated ROADMAP in preparation for the Rakudo Star release
 + instead of throwing nasty parse errors, Rakudo now informs you that feed
-  operators are not yet implemented.
+  operators are not yet implemented
 + improved testing: planless testing with done_testing(); better diagnostic
   output from is()
-+ The syntax for embedded comments has changed.
++ the syntax for embedded comments has changed
 + embedded Pod comments are now recognized
-+ traits on classes and roles
++ support for defining traits and applying them to routines, classes and roles
 + "hides" trait (class A hides B { ... }), and "is hidden"
++ better handling of slurpy and optional in multi-dispatch
++ use of .?, .+ and .* with indirect calling form ($obj.+@cands)
++ .can improved; now returns something usable as an iterator
++ lastcall implemented
 
 New in 2009-07 release
 + extensive refactor of the multi dispatch code to get closer to the spec

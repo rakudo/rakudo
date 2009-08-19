@@ -398,7 +398,7 @@ lexicals as needed and performing type checks.
     ##  typecheck the argument unless it's undef (for optional parameter)
     if null optional goto not_optional
     $I0 = defined orig
-    unless $I0 goto param_val_done 
+    unless $I0 goto param_val_done
   not_optional:
     if null type goto param_val_done
     .lex '$/', $P99
@@ -451,7 +451,7 @@ lexicals as needed and performing type checks.
 
   param_done:
   end:
-    
+
     # In theory we're done now, however we may be doing only a bindability check
     # for the purposes of MMD. In that case, throw a resumable exception here.
     $P0 = getprop '$!bind_check_only', callersub

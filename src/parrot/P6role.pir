@@ -54,7 +54,7 @@ Puns the role to a class and returns that class.
     # I/someone has the energy for it.
     $S0 = concat .RAKUDO_HLL, ';Any'
     proto = p6meta.'register'(metaclass, 'parent'=>$S0)
-    
+
     # Set name (don't use name=>... in register so we don't make a
     # namespace entry though).
     $P1 = proto.'HOW'()
@@ -74,7 +74,7 @@ Puns the role to a class and returns that class.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
-    
+
     # First, check if this role is directly done by the topic.
     $I0 = does topic, self
     if $I0 goto done

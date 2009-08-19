@@ -66,7 +66,7 @@ class Match is also {
     multi method caps() {
         my @caps = gather {
             for self.list.pairs, self.hash.pairs -> $p {
-                # in regexes like [(.) ...]+, the capture for (.) is 
+                # in regexes like [(.) ...]+, the capture for (.) is
                 # a List. flatten that.
                 if $p.value ~~ List {
                     take ($p.key => $_) for @($p.value);

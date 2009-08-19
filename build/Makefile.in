@@ -86,6 +86,8 @@ BUILTINS_PIR = \
   src/classes/Positional.pir \
   src/classes/Associative.pir \
   src/classes/Callable.pir \
+  src/classes/ContainerDeclarand.pir \
+  src/classes/AttributeDeclarand.pir \
   src/classes/Bool.pir \
   src/classes/Str.pir \
   src/classes/Num.pir \

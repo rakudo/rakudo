@@ -146,7 +146,7 @@ skips the current sub and starts looking immediately at its outers.
 inline op find_lex_skip_current(out PMC, in STR) :base_core {
     Parrot_Context *ctx = CONTEXT(interp);
     $1 = PMCNULL;
-    
+
     while (ctx->outer_ctx) {
         Parrot_Context   * const outer   = ctx->outer_ctx;
         PMC              * const lex_pad = outer->lex_pad;
@@ -157,7 +157,7 @@ inline op find_lex_skip_current(out PMC, in STR) :base_core {
         }
 
         ctx = outer;
-    }    
+    }
 
     goto NEXT();
 }
@@ -239,12 +239,12 @@ inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
 
     /* unrecognized property name */
     Parrot_str_free_cstring(cstr);
-    handler =  Parrot_ex_throw_from_op_args(interp, NULL, 
+    handler =  Parrot_ex_throw_from_op_args(interp, NULL,
             EXCEPTION_ICU_ERROR,
             "Unicode property '%Ss' not found", $2);
     goto ADDRESS(handler);
 #else
-    opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL, 
+    opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
             EXCEPTION_ICU_ERROR,
             "ICU not loaded", $2);
     goto ADDRESS(handler);
@@ -322,7 +322,7 @@ inline op transform_to_p6opaque(inout PMC) :base_core {
         goto NEXT();
     }
     else {
-        opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL, 
+        opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
             EXCEPTION_INVALID_OPERATION, "Can only transform an Object to p6opaque");
         goto ADDRESS(handler);
     }

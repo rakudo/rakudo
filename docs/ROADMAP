@@ -1,10 +1,10 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2009-05-21
+Last updated: 2009-08-09
 
 This document identifies the current major milestones and tasks
-planned for Rakudo development as of May 2009.  The first
+planned for Rakudo development as of August 2009.  The first
 section identifies (in no particular order) large-scale and/or
 significant development tasks that are currently being planned
 or worked on by the development team.  The second section
@@ -35,7 +35,7 @@ mechanisms needed for Perl 6; in particular, Parrot does
 not cleanly support "named-only" parameters, binding named
 arguments to positional parameters, or collecting arguments
 into "captures".  These features are currently scheduled
-to be implemented by the July 2009 Parrot release.
+to be implemented by the September 2009 Parrot release.
 
 C.  Rakudo method and sub dispatch:  As the Parrot calling
 conventions evolve, Rakudo's existing dispatch (largely

@@ -125,7 +125,7 @@ wrappable executable objects.
 
 .sub 'unwrap' :method
     .param pmc handle
-    
+
     # Check it's wrapped.
     .local pmc cand_list, cur_sub
     cur_sub = getattribute self, ['Sub'], 'proxy'

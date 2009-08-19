@@ -391,7 +391,7 @@ on error.
 
   done:
     pop_eh
-    
+
     # Propagate exception to caller
     $P0 = getinterp
     $P0 = $P0['lexpad';1]
@@ -501,7 +501,7 @@ on error.
     .local pmc clist, routine, lexpad, next
     get_next_candidate_info clist, routine, lexpad
     next = clone clist
-    
+
     # Build arguments based upon what the caller was originall invoked with,
     # and tailcall the next candidate.
     .local pmc pos_args, named_args
@@ -520,7 +520,7 @@ on error.
     .local pmc clist, routine, lexpad, next
     get_next_candidate_info clist, routine, lexpad
     next = clone clist
-    
+
     # Build arguments based upon what the caller was originall invoked with,
     # get the result of the next candidate and use return to retrun from
     # the caller, provided the defer did not fail.
@@ -528,7 +528,7 @@ on error.
     (pos_args, named_args) = '!get_original_args'(routine, lexpad)
     next.'set_failure_mode'()
     (result) = next(pos_args :flat, named_args :flat :named)
-    
+
     $I0 = isa result, ['Failure']
     unless $I0 goto did_defer
     $P0 = getattribute result, '$!exception'

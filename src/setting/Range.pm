@@ -43,7 +43,7 @@ class Range is also {
                 $.to.perl;
         } else {
             'Range.new('
-             ~ join(', ', 
+             ~ join(', ',
                     'from => '           ~ $.from.perl,
                     'to => '             ~ $.to.perl,
                     'by => '             ~ $.by.perl,

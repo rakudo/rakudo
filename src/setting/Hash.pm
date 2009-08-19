@@ -24,7 +24,7 @@ class Hash is also {
     }
 
     multi method invert () is export {
-        gather { 
+        gather {
             for @.pairs {
                 for @( .value ) -> $i {
                     take ($i => .key)

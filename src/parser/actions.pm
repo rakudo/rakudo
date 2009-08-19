@@ -1393,7 +1393,7 @@ method dotty($/, $key) {
 
         # We actually need to send dispatches for named method calls (other than .*)
         # through the.dispatcher.
-        if $<dottyop><methodop><variable> {
+        if $past<indirect_call> {
             $past.name('!dispatch_method_indirect');
             $past.pasttype('call');
         }
@@ -1422,10 +1422,27 @@ method methodop($/, $key) {
     $past.node($/);
 
     if $<name> {
-        $past.name(~$<name>);
+        my @ns := Perl6::Compiler.parse_name(~$<name>);
+        my $short_name := ~@ns.pop();
+
+        if @ns {
+            $past.name('');
+            $past.unshift(PAST::Op.new(
+                :inline('    %r = find_method %0, "' ~ $short_name ~ '"'),
+                PAST::Var.new(
+                    :scope('package'),
+                    :name(@ns.pop),
+                    :namespace(@ns)
+                )));
+            $past<indirect_call> := 1;
+        }
+        else {
+            $past.name(~$<name>);
+        }
     }
     elsif $<variable> {
         $past.unshift( $<variable>.ast );
+        $past<indirect_call> := 1;
     }
     else {
         $past.name( $<quote>.ast );

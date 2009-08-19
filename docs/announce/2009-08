@@ -16,9 +16,9 @@ Rakudo Perl follows a monthly release cycle, with each release code named
 after a Perl Mongers group.  The August 2009 release is named "PDX",
 ...and PDX is awesome for reasons that have not been filled in...
 
-In this release of Rakudo Perl, we've focused our efforts on quality
-improvements and bootstrapping.  We now have operators and additional
-builtin functions written in Perl 6.
+In this release of Rakudo Perl, we re-worked the build process, enabling
+us to build Rakudo against an installed parrot, and installing Rakudo itself.
+There was also great progress in the area of user defined traits.
 
 Some of the specific major changes and improvements in this release include:
   
@@ -26,7 +26,13 @@ Some of the specific major changes and improvements in this release include:
   passing tests since the July 2009 release.  With this release
   Rakudo is now passing XX% of the available spectest suite.
 
-* 
+* User defined traits can now be applied to classes and roles.
+
+* The 'hides' trait on classes can make one class hide another
+
+* Various operators that are not yet implemented give helpful error messages,
+  instead of giving parse errors (which were sometimes much harder to
+  understand).
 
 Since the Perl 6 specification is still in flux, some deprecated features
 will be removed from Rakudo. Prominently among those are:

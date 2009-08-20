@@ -38,7 +38,7 @@ OPS2C            = $(PERL) $(PARROT_TOOLS_DIR)/build/ops2c.pl
 PMC2C            = $(PERL) $(PARROT_TOOLS_DIR)/build/pmc2c.pl
 PMC2C_INCLUDES   = --include src/pmc --include $(PARROT_SRC_DIR) --include $(PARROT_SRC_DIR)/pmc
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
-LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@
+LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@ @icu_shared@
 
 # rakudo directories
 DYNEXT_DIR     = dynext

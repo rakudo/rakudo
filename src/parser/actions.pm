@@ -1818,11 +1818,18 @@ method scope_declarator($/) {
                         # We'll make a block for calling other handles, which'll be
                         # thunked.
                         my $trait_stmts := PAST::Stmts.new();
-                        emit_traits($var<traitlist>, $trait_stmts, PAST::Var.new( :name('$_'), :scope('lexical') ));
+                        emit_traits($var<traitlist>, $trait_stmts, PAST::Op.new(
+                            :pasttype('callmethod'), :name('new'),
+                            PAST::Var.new( :name('AttributeDeclarand'), :scope('package'), :namespace(list()) ),
+                            PAST::Var.new( :name('$_'), :scope('lexical'), :named('container') ),
+                            PAST::Val.new( :value($var.name()), :named('name') ),
+                            PAST::Var.new( :name('$how'), :scope('lexical'), :named('how') )
+                        ));
                         if +@($trait_stmts) > 0 {
                             my $trait_block := PAST::Block.new(
                                 :blocktype('declaration'),
                                 PAST::Var.new( :name('$_'), :scope('parameter') ),
+                                PAST::Var.new( :name('$how'), :scope('parameter') ),
                                 $trait_stmts
                             );
                             $trait_block.named('traits');
@@ -1844,7 +1851,16 @@ method scope_declarator($/) {
                             $viviself
                         )
                     ));
-                    emit_traits($var<traitlist>, $var.viviself(), $init_reg);
+
+                    # Trait and type handling.
+                    $init_reg.named('container');
+                    my $declarand := PAST::Op.new(
+                        :pasttype('callmethod'), :name('new'),
+                        PAST::Var.new( :name('ContainerDeclarand'), :scope('package'), :namespace(list()) ),
+                        $init_reg,
+                        PAST::Val.new( :value($var.name()), :named('name') )
+                    );
+                    emit_traits($var<traitlist>, $var.viviself(), $declarand);
                     if $type {
                         if $var<sigil> ne '$' && $var<sigil> ne '@' && $var<sigil> ne '%' && $var<sigil> ne '' {
                             $/.panic("Cannot handle typed variables with sigil " ~ $var<sigil>);
@@ -1852,7 +1868,7 @@ method scope_declarator($/) {
                         $var.viviself.push(PAST::Op.new(
                             :pasttype('call'),
                             :name('trait_mod:of'),
-                            $init_reg,
+                            $declarand,
                             $type
                         ));
                     }

@@ -49,37 +49,38 @@ pmclass MutableVAR need_ext dynpmc group perl6_group {
         PMC_data(SELF) = NULL;
     }
 
-    VTABLE PMC *find_method(STRING *method_name) {
-        PMC *scalar;
-        PMC *mro;
-        INTVAL elements, i;
-        GET_ATTR_scalar(INTERP, SELF, scalar);
-
-        /* We can't get Parrot do dispatch this for us as usual, because it
-         * calls VTABLE_namespace, which delegates to what the mutable
-         * contains. We want to call on the container. */
-        mro = scalar->vtable->mro;
-        elements = VTABLE_elements(INTERP, mro);
-        for (i = 0; i < elements; i++) {
-            PMC * const cur_class = VTABLE_get_pmc_keyed_int(INTERP, mro, i);
-            PMC * const ns        = cur_class->vtable->_namespace;
-
-            if (!PMC_IS_NULL(ns)) {
-                PMC * const method = VTABLE_get_pmc_keyed_str(interp, ns, method_name);
-                if (!PMC_IS_NULL(method)) {
-                    /* Found method. If it's an NCI, we return a BoundNCI, to
-                     * make sure we call with the scalar invocant. */
-                    return method;
-                }
-            }
-        }
-        return PMCNULL;
-    }
-
     VTABLE PMC* getprop(STRING *prop_name) {
         PMC *scalar;
         GET_ATTR_scalar(INTERP, SELF, scalar);
         return VTABLE_getprop(INTERP, scalar, prop_name);
+    }
+
+    METHOD INTVAL readonly() {
+        STRING *s_ro = string_from_literal(INTERP, "readonly");
+        PMC    *ro, *scalar;
+        INTVAL  res;
+        
+        GET_ATTR_scalar(INTERP, SELF, scalar);
+        ro = VTABLE_getprop(INTERP, scalar, s_ro);
+        res = PMC_IS_NULL(ro) ? 0 : VTABLE_get_bool(INTERP, ro);
+        RETURN(INTVAL res);
+    }
+
+    METHOD INTVAL rw() {
+        INTVAL ro, rw;
+        (INTVAL ro) = PCCINVOKE(INTERP, SELF, "readonly");
+        rw = ro ? 0 : 1;
+        RETURN (INTVAL rw);
+    }
+
+    METHOD PMC *of(PMC *type) {
+        PMC *scalar;
+        GET_ATTR_scalar(INTERP, SELF, scalar);
+        if (!PMC_IS_NULL(type))
+            VTABLE_setprop(interp, scalar, CONST_STRING(interp, "type"), type);
+        else
+            type = VTABLE_getprop(interp, scalar, CONST_STRING(interp, "type"));
+        RETURN (PMC *type);
     }
 }
 

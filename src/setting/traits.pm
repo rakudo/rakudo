@@ -126,7 +126,7 @@ multi trait_mod:<of>(ContainerDeclarand $c, Object $type is rw) {
     given $c.container {
         when Array { $_ does Positional[$type] }
         when Hash { $_ does Associative[$type] }
-        default { .of($type) }
+        default { VAR($_).of($type) }
     }
 }
 

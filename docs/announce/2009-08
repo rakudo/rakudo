@@ -41,13 +41,21 @@ with this release include:
   passing tests since the July 2009 release.  With this release
   Rakudo is now passing 69.9% of the available spectest suite.
 
-* User defined traits can now be applied to classes and roles.
+* We now have a much cleaner traits implementation.  Many of the
+  Perl 6 built-in traits are now implemented in Perl 6, and
+  user-defined traits can now be defined and applied to classes 
+  and roles.
 
 * The 'hides' trait on classes can make one class hide another.
 
 * Many not-yet-implemented operators and features now provide
   more helpful error messages instead of simply producing
   parse errors.
+
+* The ROADMAP has been substantially updated and includes some
+  details regarding the "Rakudo Star" release [2].
+
+* Embedded comments now require backticks (Perl 6 specification change).
 
 Since the Perl 6 specification is still in flux, some deprecated features
 will be removed from Rakudo. Prominently among those are:
@@ -72,3 +80,4 @@ Have fun!
 
 References:
 [1]  Parrot, http://parrot.org/
+[2]  Rakudo Star, http://use.perl.org/~pmichaud/journal/39411

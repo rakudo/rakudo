@@ -18,21 +18,19 @@ Portland Perl Mongers.  PDX.pm has been home to several Rakudo
 contributors (chromatic, Allison Randal, and more) and PDX.pm has
 held meetings that have produced feature and bugfix patches for Rakudo.
 
-Beginning with this release, Rakudo Perl now builds itself from an
-"installed Parrot" instead of using Parrot's build tree.  This
-release of Rakudo requires Parrot 1.5.0.  See the "Building and
-invoking Rakudo" section of the README file for the latest
-information on building and using Rakudo Perl.  (Quick note:
-the "--gen-parrot" option still automatically downloads and
-builds Parrot as before, if you prefer that approach.)
+Beginning with this release, Rakudo Perl builds from an "installed
+Parrot" instead of using Parrot's build tree.  This release of Rakudo
+requires Parrot 1.5.0.  For the latest information on building and
+using Rakudo Perl, see the README file section titled "Building and
+invoking Rakudo".  (Quick note: the "--gen-parrot" option still
+automatically downloads and builds Parrot as before, if you prefer
+that approach.)
 
-Also, unlike previous versions of Rakudo Perl, the "perl6" 
-(or "perl6.exe") binaries will only work when run from the 
+Also, unlike previous versions of Rakudo Perl, the "perl6"
+(or "perl6.exe") executables only work when run from the
 Rakudo root directory until a "make install" is performed.
-The "make install" target installs Rakudo into the appropriate
-locations provided by the installed Parrot that was used to build
-Rakudo.  Once this is done, the executables can be run from
-any directory.
+Running "make install" will install Rakudo into the appropriate
+locations, and those executables can be run from any directory.
 
 Some of the specific major changes and improvements occuring
 with this release include:

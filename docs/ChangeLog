@@ -1,11 +1,11 @@
 New in 2009-08 release
-+ Rakudo can now be built from an installed parrot, and can be installed
++ Rakudo must now be built from an installed parrot, and can be installed
   itself
 + separate Perl 6 meta class
 + introspection on roles
 + declaration of methods in the meta class by writing method ^newmethod($obj)
 + :tree options for parent class, attribute and role introspection
-+ allow custom postcircumfix:<( )> methods
++ allow some custom postcircumfix:<( )> methods
 + moved more built-ins into the setting
 + implement operators infix:<!%> (divisibility test) and prefix [||] and [//]
 + updated ROADMAP in preparation for the Rakudo Star release

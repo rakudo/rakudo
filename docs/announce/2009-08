@@ -27,17 +27,18 @@ automatically downloads and builds Parrot as before, if you prefer
 that approach.)
 
 Also, unlike previous versions of Rakudo Perl, the "perl6"
-(or "perl6.exe") executables only work when run from the
+(or "perl6.exe") executables only work when invoked from the
 Rakudo root directory until a "make install" is performed.
-Running "make install" will install Rakudo into the appropriate
-locations, and those executables can be run from any directory.
+Running "make install" will install Rakudo and its libraries
+into the Parrot installation that was used to build it, and then
+the executables will work when invoked from any directory.
 
 Some of the specific major changes and improvements occuring
 with this release include:
   
 * Rakudo is now passing 12,369 spectests, an increase of 493
   passing tests since the July 2009 release.  With this release
-  Rakudo is now passing 69.9% of the available spectest suite.
+  Rakudo is now passing 69.98% of the available spectest suite.
 
 * We now have a much cleaner traits implementation.  Many of the
   Perl 6 built-in traits are now implemented in Perl 6, and

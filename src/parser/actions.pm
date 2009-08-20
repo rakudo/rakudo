@@ -625,7 +625,7 @@ method statement_prefix($/) {
 
         ##  Add an 'else' node to the try op that clears $! if
         ##  no exception occurred.
-        my $elsepir  := "    new %r, ['Failure']\n    store_lex '$!', %r";
+        my $elsepir  := "    %r = '!FAIL'()\n    store_lex '$!', %r";
         $past.push( PAST::Op.new( :inline( $elsepir ) ) );
     }
     elsif $sym eq 'gather' {
@@ -675,6 +675,12 @@ method multi_declarator($/) {
         # If it's just a routine, need to mark it as a sub and make sure we
         # bind its signature.
         if $<routine_def> {
+            if (+@($past[1])) {
+                declare_implicit_routine_vars($past);
+            }
+            else {
+                $past[1].push( PAST::Op.new( :name('list') ) );
+            }
             set_block_type($past, 'Sub');
             $past[0].push(
                 PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
@@ -1387,7 +1393,7 @@ method dotty($/, $key) {
 
         # We actually need to send dispatches for named method calls (other than .*)
         # through the.dispatcher.
-        if $<dottyop><methodop><variable> {
+        if $past<indirect_call> {
             $past.name('!dispatch_method_indirect');
             $past.pasttype('call');
         }
@@ -1416,10 +1422,27 @@ method methodop($/, $key) {
     $past.node($/);
 
     if $<name> {
-        $past.name(~$<name>);
+        my @ns := Perl6::Compiler.parse_name(~$<name>);
+        my $short_name := ~@ns.pop();
+
+        if @ns {
+            $past.name('');
+            $past.unshift(PAST::Op.new(
+                :inline('    %r = find_method %0, "' ~ $short_name ~ '"'),
+                PAST::Var.new(
+                    :scope('package'),
+                    :name(@ns.pop),
+                    :namespace(@ns)
+                )));
+            $past<indirect_call> := 1;
+        }
+        else {
+            $past.name(~$<name>);
+        }
     }
     elsif $<variable> {
         $past.unshift( $<variable>.ast );
+        $past<indirect_call> := 1;
     }
     else {
         $past.name( $<quote>.ast );
@@ -2484,7 +2507,8 @@ method term($/, $key) {
                 PAST::Var.new(
                     :name($short_name),
                     :namespace(@ns),
-                    :scope('package')
+                    :scope('package'),
+                    :viviself('Failure'),
                 ),
                 :pasttype('call')
             );
@@ -2502,7 +2526,8 @@ method term($/, $key) {
             $past.unshift(PAST::Var.new(
                 :name($short_name),
                 :namespace(@ns),
-                :scope('package')
+                :scope('package'),
+                :viviself('Failure'),
             ));
         }
         else {
@@ -2518,7 +2543,8 @@ method term($/, $key) {
             $past.unshift(PAST::Var.new(
                 :name($short_name),
                 :namespace(@ns),
-                :scope('package')
+                :scope('package'),
+                :viviself('Failure'),
             ));
         }
         else {
@@ -3195,14 +3221,23 @@ sub return_handler_past() {
                 PAST::Var.new( :name('exception'), :scope('register') )
             ),
             PAST::Op.new(
-                :pasttype('call'),
-                :name('die'),
+                :pasttype('if'),
+                PAST::Op.new( :inline("    $I0 = isa exception, 'Failure'",
+                                      "    %r = box $I0") ),
+                PAST::Op.new(
+                    :inline('    .return (%0)'),
+                    PAST::Var.new( :name('exception'), :scope('register') )
+                ),
                 PAST::Op.new(
                     :pasttype('call'),
-                    :name('!make_type_fail_message'),
-                    'Return value',
-                    PAST::Var.new( :name('exception'), :scope('register') ),
-                    PAST::Var.new( :name('$P0'), :scope('register') )
+                    :name('die'),
+                    PAST::Op.new(
+                        :pasttype('call'),
+                        :name('!make_type_fail_message'),
+                        'Return value',
+                        PAST::Var.new( :name('exception'), :scope('register') ),
+                        PAST::Var.new( :name('$P0'), :scope('register') )
+                    )
                 )
             )
         )

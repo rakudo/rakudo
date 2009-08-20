@@ -32,6 +32,7 @@ class Any is also {
     }
 
     our Int multi method ord() is export {
+        fail('Can not take ord of empty string') if self.chars == 0;
         Q:PIR {
             $S0 = self
             $I0 = ord $S0

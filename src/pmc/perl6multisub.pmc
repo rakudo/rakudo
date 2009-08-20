@@ -256,15 +256,19 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
     STRING * const ACCEPTS = CONST_STRING(interp, "ACCEPTS");
     INTVAL narrower = 0;
     INTVAL tied = 0;
-    INTVAL i;
+    INTVAL i, types_to_check;
 
-    /* Check if they have the same number of effective parameters - if
-     * not, incomparable. */
-    if (a->num_types != b->num_types)
+    /* Work out how many parameters to compare, factoring in slurpiness
+     * and optionals. */
+    if (a->num_types == b->num_types)
+        types_to_check = a->num_types;
+    else if (a->min_arity == b->min_arity)
+        types_to_check = a->num_types > b->num_types ? b->num_types : a->num_types;
+    else
         return 0;
 
     /* Analyse each parameter in the two candidates. */
-    for (i = 0; i < a->num_types; i++) {
+    for (i = 0; i < types_to_check; i++) {
         PMC * const type_obj_a = a->types[i];
         PMC * const type_obj_b = b->types[i];
         if (type_obj_a == type_obj_b) {
@@ -297,7 +301,17 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
         }
     }
 
-    return narrower >= 1 && narrower + tied == a->num_types;
+    /* If one is narrower than the other from current analysis, we're done. */
+    if (narrower >= 1 && narrower + tied == types_to_check)
+        return 1;
+
+    /* If they aren't tied, we're also done. */
+    else if (tied != types_to_check)
+        return 0;
+
+    /* Otherwise, we see if one has a slurpy and the other not. A lack of
+     * slurpiness makes the candidate narrower. Otherwise, they're tied. */
+    return a->max_arity != SLURPY_ARITY && b->max_arity == SLURPY_ARITY;
 }
 
 

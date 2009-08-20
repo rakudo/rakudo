@@ -340,6 +340,7 @@ S12-methods/what.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S13-type-casting/methods.t
+S13-overloading/typecasting-long.t
 S13-overloading/metaoperators.t
 S13-overloading/operators.t
 S14-roles/attributes.t
@@ -372,7 +373,7 @@ S29-any/isa.t
 S29-context/die.t
 S29-context/eval.t
 S29-context/sleep.t
-S29-conversions/ord_and_chr.t
+S29-conversions/ord_and_chr.t                              #icu
 S32-array/delete.t
 S32-array/elems.t
 S32-array/end.t

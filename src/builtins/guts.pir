@@ -106,9 +106,12 @@ Does an indirect method dispatch.
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
 
+    $I0 = isa methodish, 'P6Invocation'
+    if $I0 goto ready_to_dispatch
     $P0 = get_hll_global 'Callable'
     $I0 = $P0.'ACCEPTS'(methodish)
     unless $I0 goto candidate_list
+  ready_to_dispatch:
     .tailcall methodish(obj, pos_args :flat, name_args :flat :named)
 
   candidate_list:

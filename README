@@ -8,12 +8,17 @@ For more details, see the full text of the license in the file LICENSE.
 
 =head2 Build requirements
 
-For building Rakudo you need a C compiler, a C<make> utility, a Perl 5
-compiler, version 5.8 or newer,  the C<icu> library 
-(L<http://site.icu-project.org/>) and the C<svn>
-command from Subversion.
+For building Rakudo you need at least a C compiler, a C<make> utility,
+and Perl 5.8 or newer.  To automatically obtain and build Parrot
+or the spectest suite you may also need a subversion (svn) client.
 
-For example on Debian GNU/Linux you can install those with the command
+In order to fully support Unicode, you'll also want to have the
+ICU library installed (L<http://site.icu-project.org/>).
+Rakudo can run without ICU, but some Unicode-related features
+may not work properly.
+
+As an example, on Debian GNU/Linux or Ubuntu Linux the necessary
+components for building Rakudo can be installed via the command
 
     aptitude install build-essential libicu-dev subversion
 
@@ -29,8 +34,8 @@ downloading Rakudo directly from github and building from there:
 
     $ git clone git://github.com/rakudo/rakudo.git
 
-If you don't have git installed, you can get a tarball or zip of Rakudo 
-from github by visiting http://github.com/rakudo/rakudo/tree/master 
+If you don't have git installed, you can get a tarball or zip of Rakudo
+from github by visiting http://github.com/rakudo/rakudo/tree/master
 and clicking "Download".  Then unpack the tarball or zip.
 
 Once you have a copy of Rakudo, build it as follows:
@@ -40,59 +45,56 @@ Once you have a copy of Rakudo, build it as follows:
     $ make
 
 This will create a "perl6" or "perl6.exe" executable in the
-current (rakudo) directory.
-
-The C<--gen-parrot> option tells Configure.pl to automatically 
-download and build the most appropriate version of Parrot into 
-a local "parrot/" subdirectory, install that Parrot into
-the "parrot_install/" subdirectory, and use that for building
-Rakudo.  It's okay to use the C<--gen-parrot> option on later 
-invocations of Configure.pl; the configure system will re-build 
-Parrot only if a newer version is needed for whatever version 
-of Rakudo you're working with.
-
-You can use C<--parrot-config=/path/to/parrot_config> instead
-of C<--gen-parrot> to point to an already installed Parrot that
-must include its development environment. You can build such a
-Parrot from source using Parrot's C<make install-dev> target, or
-install prebuilt C<parrot-devel> and/or C<libparrot-dev> packages.
-The version of this already installed Parrot must satisfy a
-minimum specified by the Rakudo being built. The latest version of
-Rakudo (called HEAD on github) often requires one newer than
-the preceding monthly Parrot release.
-
-Rakudo's C<make install> target will install Rakudo and its
-libraries into the Parrot installation that was used to create it.
-
-To run a Perl 6 program in the Rakudo build directory, issue a
-commands like:
+current (rakudo) directory.  Programs can then be run from
+the build directory using a command like:
 
     $ ./perl6 hello.pl
 
-To run Perl 6 programs in any directory, install Rakudo with the
-C<make install> command. You can then refer to
-C<parrot_install/bin/perl6> with a symbolic link, shell alias or
-search path and then use:
+The C<--gen-parrot> above option tells Configure.pl to automatically
+download and build the most appropriate version of Parrot into
+a local "parrot/" subdirectory, install that Parrot into
+the "parrot_install/" subdirectory, and use that for building
+Rakudo.  It's okay to use the C<--gen-parrot> option on later
+invocations of Configure.pl; the configure system will re-build
+Parrot only if a newer version is needed for whatever version
+of Rakudo you're working with.
 
-    $ perl6 hello.pl
+You can use C<--parrot-config=/path/to/parrot_config> instead
+of C<--gen-parrot> to use an already installed Parrot for building
+Rakudo.  This installed Parrot must include its development
+environment; typically this is done via Parrot's C<make install-dev>
+target or by installing prebuilt C<parrot-devel> and/or C<libparrot-dev>
+packages.  The version of the already installed Parrot must satisfy a
+minimum specified by the Rakudo being built -- Configure.pl will
+verify this for you.  Released versions of Rakudo always build
+against the latest release of Parrot; checkouts of the HEAD revision
+from github often require a version of Parrot that is newer than
+the most recent Parrot monthly release.
+
+Once built, Rakudo's C<make install> target will install Rakudo
+and its libraries into the Parrot installation that was used to
+create it.  Until this step is performed, the "perl6" executable
+created by C<make> above can only be reliably run from the root of
+Rakudo's build directory.  After C<make install> is performed
+the executable can be run from any directory (as long as the
+Parrot installation that was used to create it remains intact).
 
 If the Rakudo compiler is invoked without an explicit script to
-run, it enters a small interactive mode that allows Perl 6 statements 
+run, it enters a small interactive mode that allows Perl 6 statements
 to be executed from the command line.  Each line entered is treated
 as a separate compilation unit, however (which means that subroutines
 are preserved after they are defined, but variables are not).
 
 =head2 Running the test suite
 
-Entering C<make test> will run a small test suite that comes 
+Entering C<make test> will run a small test suite that comes
 bundled with Rakudo.  This is a simple suite of tests, designed
 to make sure that the Rakudo compiler is basically working and that
 it's capable of running a simple test harness.
 
 Running C<make spectest> will import the official Perl 6 test suite
-from the Pugs repository
-L<http://svn.pugscode.org/pugs/t/spec/> and run all of these tests that
-are currently known to pass.
+from the Pugs repository L<http://svn.pugscode.org/pugs/t/spec/>
+and run all of these tests that are currently known to pass.
 
 At present we do not have any plans to directly store the
 official test suite as part of the Rakudo/Parrot repository,
@@ -101,7 +103,7 @@ but will continue to fetch it from the Pugs repository.
 You can also use "make" to run an individual test from the command line:
 
     $ make t/spec/S29-str/ucfirst.t
-    t/spec/S29-str/ucfirst.rakudo .. 
+    t/spec/S29-str/ucfirst.rakudo ..
     1..4
     ok 1 - simple
     ok 2 - empty string
@@ -152,7 +154,7 @@ Bug reports should be sent to C<rakudobug@perl.org> with the moniker
 it gets appropriately tagged in the RT system (https://rt.perl.org/rt3/).
 Please include or attach any sample source code that exhibits the
 bug, and include either the release name/date or the git commit
-identifier. You find that identifier in the first output line of 
+identifier. You find that identifier in the first output line of
 the C<git log> command.  There's no need to cc: the perl6-compiler
 mailing list, as the RT system will handle this on its own.
 

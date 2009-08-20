@@ -1,0 +1,82 @@
+Announce: Rakudo Perl 6 development release #20 ("PDX")
+
+On behalf of the Rakudo development team, I'm pleased to announce
+the August 2009 development release of Rakudo Perl #20 "PDX".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
+The tarball for the August 2009 release is available from
+http://github.com/rakudo/rakudo/downloads .
+
+Due to the continued rapid pace of Rakudo development and the
+frequent addition of new Perl 6 features and bugfixes, we continue
+to recommend that people wanting to use or work with Rakudo obtain
+the latest source directly from the main repository at github.
+More details are available at http://rakudo.org/how-to-get-rakudo .
+
+Rakudo Perl follows a monthly release cycle, with each release code named
+after a Perl Mongers group.  August 2009 is code named "PDX" for the
+Portland Perl Mongers.  PDX.pm has been home to several Rakudo
+contributors (chromatic, Allison Randal, and more) and PDX.pm has
+held meetings that have produced feature and bugfix patches for Rakudo.
+
+Beginning with this release, Rakudo Perl builds from an "installed
+Parrot" instead of using Parrot's build tree.  This release of Rakudo
+requires Parrot 1.5.0.  For the latest information on building and
+using Rakudo Perl, see the README file section titled "Building and
+invoking Rakudo".  (Quick note: the "--gen-parrot" option still
+automatically downloads and builds Parrot as before, if you prefer
+that approach.)
+
+Also, unlike previous versions of Rakudo Perl, the "perl6"
+(or "perl6.exe") executables only work when invoked from the
+Rakudo root directory until a "make install" is performed.
+Running "make install" will install Rakudo and its libraries
+into the Parrot installation that was used to build it, and then
+the executables will work when invoked from any directory.
+
+Some of the specific major changes and improvements occuring
+with this release include:
+  
+* Rakudo is now passing 12,369 spectests, an increase of 493
+  passing tests since the July 2009 release.  With this release
+  Rakudo is now passing 69.98% of the available spectest suite.
+
+* We now have a much cleaner traits implementation.  Many of the
+  Perl 6 built-in traits are now implemented in Perl 6, and
+  user-defined traits can now be defined and applied to classes 
+  and roles.
+
+* The 'hides' trait on classes can make one class hide another.
+
+* Many not-yet-implemented operators and features now provide
+  more helpful error messages instead of simply producing
+  parse errors.
+
+* The ROADMAP has been substantially updated and includes some
+  details regarding the "Rakudo Star" release [2].
+
+* Embedded comments now require backticks (Perl 6 specification change).
+
+Since the Perl 6 specification is still in flux, some deprecated features
+will be removed from Rakudo. Prominently among those are:
+
+ * '=$handle' is deprecated in favor of '$handle.get' (one line)
+   and '$handle.lines' (all lines).
+
+ * 'int $obj' is deprecated in favor of '$obj.Int'.
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible.  If you would like to contribute,
+see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
+mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#21) is scheduled for September 17, 2009.
+A list of the other planned release dates and codenames for 2009 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
+
+References:
+[1]  Parrot, http://parrot.org/
+[2]  Rakudo Star, http://use.perl.org/~pmichaud/journal/39411

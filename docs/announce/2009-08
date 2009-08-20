@@ -13,28 +13,41 @@ the latest source directly from the main repository at github.
 More details are available at http://rakudo.org/how-to-get-rakudo .
 
 Rakudo Perl follows a monthly release cycle, with each release code named
-after a Perl Mongers group.  The August 2009 release is named "PDX",
-XXX
-XXX and PDX is awesome for reasons that have not been filled in.
-XXX
+after a Perl Mongers group.  August 2009 is code named "PDX" for the
+Portland Perl Mongers.  PDX.pm has been home to several Rakudo
+contributors (chromatic, Allison Randal, and more) and PDX.pm has
+held meetings that have produced feature and bugfix patches for Rakudo.
 
-In this release of Rakudo Perl, we re-worked the build process, enabling
-us to build Rakudo against an installed parrot, and installing Rakudo itself.
-There was also great progress in the area of user defined traits.
+Beginning with this release, Rakudo Perl now builds itself from an
+"installed Parrot" instead of using Parrot's build tree.  This
+release of Rakudo requires Parrot 1.5.0.  See the "Building and
+invoking Rakudo" section of the README file for the latest
+information on building and using Rakudo Perl.  (Quick note:
+the "--gen-parrot" option still automatically downloads and
+builds Parrot as before, if you prefer that approach.)
 
-Some of the specific major changes and improvements in this release include:
+Also, unlike previous versions of Rakudo Perl, the "perl6" 
+(or "perl6.exe") binaries will only work when run from the 
+Rakudo root directory until a "make install" is performed.
+The "make install" target installs Rakudo into the appropriate
+locations provided by the installed Parrot that was used to build
+Rakudo.  Once this is done, the executables can be run from
+any directory.
+
+Some of the specific major changes and improvements occuring
+with this release include:
   
 * Rakudo is now passing 12,369 spectests, an increase of 493
   passing tests since the July 2009 release.  With this release
-  Rakudo is now passing 82% of the available spectest suite.
+  Rakudo is now passing 69.9% of the available spectest suite.
 
 * User defined traits can now be applied to classes and roles.
 
-* The 'hides' trait on classes can make one class hide another
+* The 'hides' trait on classes can make one class hide another.
 
-* Various operators that are not yet implemented give helpful error messages,
-  instead of giving parse errors (which were sometimes much harder to
-  understand).
+* Many not-yet-implemented operators and features now provide
+  more helpful error messages instead of simply producing
+  parse errors.
 
 Since the Perl 6 specification is still in flux, some deprecated features
 will be removed from Rakudo. Prominently among those are:

@@ -14,7 +14,9 @@ More details are available at http://rakudo.org/how-to-get-rakudo .
 
 Rakudo Perl follows a monthly release cycle, with each release code named
 after a Perl Mongers group.  The August 2009 release is named "PDX",
-...and PDX is awesome for reasons that have not been filled in...
+XXX
+XXX and PDX is awesome for reasons that have not been filled in.
+XXX
 
 In this release of Rakudo Perl, we re-worked the build process, enabling
 us to build Rakudo against an installed parrot, and installing Rakudo itself.
@@ -22,9 +24,9 @@ There was also great progress in the area of user defined traits.
 
 Some of the specific major changes and improvements in this release include:
   
-* Rakudo is now passing XX,XXX spectests, an increase of XXX
+* Rakudo is now passing 12,369 spectests, an increase of 493
   passing tests since the July 2009 release.  With this release
-  Rakudo is now passing XX% of the available spectest suite.
+  Rakudo is now passing 82% of the available spectest suite.
 
 * User defined traits can now be applied to classes and roles.
 

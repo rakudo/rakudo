@@ -2775,14 +2775,17 @@ method EXPR($/, $key) {
     elsif ~$type eq 'infix://=' || ~$type eq 'infix:||=' || ~$type eq 'infix:&&=' {
         my $lhs := $/[0].ast;
         my $rhs := $/[1].ast;
-        make PAST::Op.new(
-            :pasttype('call'),
-            :name('infix:='),
-            $lhs,
-            PAST::Op.new($lhs, $rhs, :pasttype(
-                ~$type eq 'infix://=' ?? 'def_or' !!
-                (~$type eq 'infix:||=' ?? 'unless' !!
-                 'if'))
+        make PAST::Stmts.new(
+            PAST::Op.new( :pasttype('bind'), PAST::Var.new( :name('$P0'), :scope('register') ), $lhs ),
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('infix:='),
+                PAST::Var.new( :name('$P0'), :scope('register') ),
+                PAST::Op.new(PAST::Var.new( :name('$P0'), :scope('register') ), $rhs, :pasttype(
+                    ~$type eq 'infix://=' ?? 'def_or' !!
+                    (~$type eq 'infix:||=' ?? 'unless' !!
+                     'if'))
+                )
             )
         );
     }

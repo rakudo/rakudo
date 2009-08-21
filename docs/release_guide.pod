@@ -117,6 +117,14 @@ some small details about the choice of release name.  (If the
 details are a bit lengthy, this can often best be done as a separate
 section at the bottom of the announcement.)
 
+The release announcement has a bullet for passing spectests and the
+percentage of the available spectest suite that's passing.  To get
+the number of available tests, look at "docs/spectest-progress.csv".
+If it hasn't been updated recently, use "git log docs/spectest-progress.csv"
+to find out who has been updating it and seek out this person for an
+update.  As of this writing, there's not a publicly available tool to
+update spectest-progress.csv or to count tests that won't run.
+
   $ git add docs/announce/YYYY-MM
   $ git commit docs
 

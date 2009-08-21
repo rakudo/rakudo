@@ -2,17 +2,18 @@
 #enum dayOfWeek <Sunday Monday Tuesday Wednesday Thursday Friday Saturday>;
 #enum DayOfWeek <Sunday Monday Tuesday Wednesday Thursday Friday Saturday>;
 
-subset Month     of Int where { 1 <= $^a <= 12 };
-subset Day       of Int where { 1 <= $^a <= 31 };
-subset DayOfWeek of Int where { 1 <= $^a <=  7 };
-subset Hour      of Int where { 0 <= $^a <= 23 };
-subset Minute    of Int where { 0 <= $^a <= 59 };
-subset Second    of Num where { 0 <= $^a <= 60 };
+my subset Month     of Int where { 1 <= $^a <= 12 };
+my subset Day       of Int where { 1 <= $^a <= 31 };
+my subset DayOfWeek of Int where { 1 <= $^a <=  7 };
+my subset Hour      of Int where { 0 <= $^a <= 23 };
+my subset Minute    of Int where { 0 <= $^a <= 59 };
+my subset Second    of Num where { 0 <= $^a <= 60 };
 
 role Temporal::Date {
+    ## XXX Rakudo bug - can not use lexical subset types in a class yet
     has Int    $.year;
-    has Month  $.month = 1;
-    has Day    $.day = 1;
+    has #`(Month)  $.month = 1;
+    has #`(Day)    $.day = 1;
 
     method day-of-week { # returns DayOfWeek {
         my ( $a, $y, $m, $jd );         # algorithm from Claus Tøndering
@@ -55,9 +56,10 @@ role Temporal::Date {
 }
 
 role Temporal::Time {
-    has Hour   $.hour = 0;
-    has Minute $.minute = 0;
-    has Second $.second = 0;
+    ## XXX Rakudo bug - can not use lexical subset types in a class yet
+    has #`(Hour)   $.hour = 0;
+    has #`(Minute) $.minute = 0;
+    has #`(Second) $.second = 0;
 
     our Str method iso8601 {
         given self {

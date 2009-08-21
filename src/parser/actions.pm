@@ -2501,6 +2501,9 @@ method term($/, $key) {
         # Whatever.
         $past := make_whatever($/);
     }
+    elsif $key eq '**' {
+        $/.panic('** (HyperWhatever) is not yet implemented');
+    }
     elsif $key eq 'noarg' {
         if @ns {
             $past := PAST::Op.new(

@@ -481,6 +481,19 @@ Accessor for hidden property.
     .return ($P0)
 .end
 
+
+=item add_method
+
+=cut
+
+.sub 'add_method' :method
+    .param pmc obj
+    .param string name
+    .param pmc meth
+    $P0 = getattribute self, 'parrotclass'
+    addmethod $P0, name, meth
+.end
+
 =back
 
 =cut

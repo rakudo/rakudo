@@ -2,12 +2,12 @@
 #enum dayOfWeek <Sunday Monday Tuesday Wednesday Thursday Friday Saturday>;
 #enum DayOfWeek <Sunday Monday Tuesday Wednesday Thursday Friday Saturday>;
 
-my subset Month     of Int where { 1 <= $^a <= 12 };
-my subset Day       of Int where { 1 <= $^a <= 31 };
-my subset DayOfWeek of Int where { 1 <= $^a <=  7 };
-my subset Hour      of Int where { 0 <= $^a <= 23 };
-my subset Minute    of Int where { 0 <= $^a <= 59 };
-my subset Second    of Num where { 0 <= $^a <= 60 };
+subset Month     of Int where { 1 <= $^a <= 12 };
+subset Day       of Int where { 1 <= $^a <= 31 };
+subset DayOfWeek of Int where { 1 <= $^a <=  7 };
+subset Hour      of Int where { 0 <= $^a <= 23 };
+subset Minute    of Int where { 0 <= $^a <= 59 };
+subset Second    of Num where { 0 <= $^a <= 60 };
 
 role Temporal::Date {
     has Int    $.year;
@@ -80,7 +80,7 @@ role Temporal::Time {
 }
 
 role Temporal::TimeZone::Observance {
-    my subset Offset of Int where { -86400 < $^a < 86400 };
+    subset Offset of Int where { -86400 < $^a < 86400 };
     has Offset $.offset;
     has Bool   $.isdst;
     has Str    $.abbreviation; # UTC, CST, AST

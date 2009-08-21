@@ -122,7 +122,12 @@ percentage of the available spectest suite that's passing.  To get
 the number of available tests, look at "docs/spectest-progress.csv".
 If it hasn't been updated recently, use "git log docs/spectest-progress.csv"
 to find out who has been updating it and seek out this person for an
-update.  As of this writing, there's not a publicly available tool to
+update. You can also run F<tools/test_summary.pl> to obtain the latest data.
+To get the total number of available spectes, the tool C<ack> (see
+L<http://search.cpan.org/dist/ack/>) has to be installed and be found in
+C<$PATH>.
+
+As of this writing, there's not a publicly available tool to
 update spectest-progress.csv or to count tests that won't run.
 
   $ git add docs/announce/YYYY-MM

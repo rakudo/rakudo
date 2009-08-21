@@ -19,6 +19,12 @@ This is the base file for the Rakudo Perl 6 compiler.
 
 .namespace []
 .sub '' :anon :init :load
+    $P0 = get_class ['P6role']
+    unless null $P0 goto startup_ok
+    say "== SORRY! ==\nUnable to find Perl 6 dynops and dynpmcs library.\nIf you want to run Rakudo outside of the build directory, please make install."
+    exit 1
+  startup_ok:
+
     .local pmc p6meta
     load_bytecode 'PCT.pbc'
     $P0 = get_root_global ['parrot'], 'P6metaclass'

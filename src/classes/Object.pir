@@ -415,7 +415,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     # that would have the unfortunate side-effect of increased startup
     # cost, which we're currently wanting to avoid. Let's see how far
     # we can go while doing the init here.)
-    .local pmc parents, cur_class, attributes, class_it, it
+    .local pmc parents, cur_class, attributes, class_it, it, traits
     parents = inspect parrot_class, 'all_parents'
     class_it = iter parents
   classinit_loop:
@@ -463,6 +463,12 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     $P0 = $P0.'!select'(type)
     'infix:does'(attr, $P0)
   type_done:
+    traits = attrhash['traits']
+    if null traits goto traits_done
+    $P0 = getprop 'metaclass', cur_class
+    if null $P0 goto traits_done
+    traits(attr, $P0)
+  traits_done:
     goto attrinit_loop
   attrinit_done:
     # Only go to next class if we didn't already reach the top of the Perl 6

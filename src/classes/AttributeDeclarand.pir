@@ -23,7 +23,7 @@ describe a declaration of an attribute container in a class.
     .param pmc container :named('container')
     .param pmc name      :named('name')
     .param pmc how       :named('how')
-    $P0 = new ['ContainerDeclarand']
+    $P0 = new ['AttributeDeclarand']
     setattribute $P0, '$!container', container
     setattribute $P0, '$!name', name
     setattribute $P0, '$!how', how

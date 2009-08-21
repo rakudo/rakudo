@@ -1795,7 +1795,11 @@ method scope_declarator($/) {
                     our $?METACLASS;
                     my $has := PAST::Op.new( :name('!meta_attribute'),
                                    $?METACLASS, $var.name(), $var<itype> );
-                    if $type { $type.named('type'); $has.push($type); }
+                    if $type {
+                        my $type_copy := $type.clone();
+                        $type_copy.named('type');
+                        $has.push($type_copy);
+                    }
                     if $init_value {
                         $init_value := make_attr_init_closure($init_value);
                         $init_value.named('init_value');

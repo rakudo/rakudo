@@ -89,6 +89,10 @@ multi trait_mod:<is>(Code $block, :$default!) {
     };
 }
 
+multi trait_mod:<is>(ContainerDeclarand $c, :$rw!) {
+    # The default anyway, so nothing to do.
+}
+
 multi trait_mod:<does>(Class $class is rw, Object $role) {
     Q:PIR {
     .local pmc metaclass, role

@@ -426,13 +426,12 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
   attrinit_loop:
     unless it goto attrinit_done
     .local string attrname
-    .local pmc attrhash, itypeclass, type
+    .local pmc attrhash, itypeclass
     attrname = shift it
     $I0 = index attrname, '!'
     if $I0 < 0 goto attrinit_loop
     attrhash = attributes[attrname]
     itypeclass = attrhash['itype']
-    type = attrhash['type']
     $S0 = substr attrname, 0, 1
     unless null itypeclass goto attrinit_itype
     if $S0 == '@' goto attrinit_array
@@ -449,20 +448,6 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     .local pmc attr
     attr = new itypeclass
     setattribute example, cur_class, attrname, attr
-    if null type goto type_done
-    if $S0 == '@' goto pos_type
-    if $S0 == '%' goto ass_type
-    setprop attr, 'type', type
-    goto type_done
-  ass_type:
-    $P0 = get_hll_global 'Associative'
-    goto apply_type
-  pos_type:
-    $P0 = get_hll_global 'Positional'
-  apply_type:
-    $P0 = $P0.'!select'(type)
-    'infix:does'(attr, $P0)
-  type_done:
     traits = attrhash['traits']
     if null traits goto traits_done
     $P0 = getprop 'metaclass', cur_class

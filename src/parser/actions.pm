@@ -1807,7 +1807,7 @@ method scope_declarator($/) {
                     if $readtype eq 'rw' {
                         $has.push(PAST::Val.new( :value(1), :named('rw') ));
                     }
-                    if $var<traitlist> {
+                    if $var<traitlist> || $type {
                         # If we have a handles, then we pass that specially.
                         my $handles := has_compiler_trait($var<traitlist>, 'trait_mod:handles');
                         if $handles {
@@ -1818,13 +1818,22 @@ method scope_declarator($/) {
                         # We'll make a block for calling other handles, which'll be
                         # thunked.
                         my $trait_stmts := PAST::Stmts.new();
-                        emit_traits($var<traitlist>, $trait_stmts, PAST::Op.new(
+                        my $declarand := PAST::Op.new(
                             :pasttype('callmethod'), :name('new'),
                             PAST::Var.new( :name('AttributeDeclarand'), :scope('package'), :namespace(list()) ),
                             PAST::Var.new( :name('$_'), :scope('lexical'), :named('container') ),
                             PAST::Val.new( :value($var.name()), :named('name') ),
                             PAST::Var.new( :name('$how'), :scope('lexical'), :named('how') )
-                        ));
+                        );
+                        emit_traits($var<traitlist>, $trait_stmts, $declarand);
+                        if $type {
+                            $trait_stmts.push(PAST::Op.new(
+                                :pasttype('call'),
+                                :name('trait_mod:of'),
+                                $declarand,
+                                $type
+                            ));
+                        }
                         if +@($trait_stmts) > 0 {
                             my $trait_block := PAST::Block.new(
                                 :blocktype('declaration'),

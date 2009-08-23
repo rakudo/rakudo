@@ -73,8 +73,7 @@ my @fail;
 for my $tfile (@tfiles) {
     my $th;
     open($th, '<', $tfile) || die "Can't read $tfile: $!\n";
-    my ($pass, $fail, $todo, $skip, $test, $plan, $abort, $bonus)
-        = (0,0,0,0,0,0,0,0);
+    my ($pass,$fail,$todo,$skip,$plan,$abort,$bonus) = (0,0,0,0,0,0,0);
     while (<$th>) {                # extract the number of tests planned
         if (/^\s*plan\D*(\d+)/) { $plan = $1; last; }
     }                                   # no_plan makes this meaningless
@@ -83,7 +82,7 @@ for my $tfile (@tfiles) {
     # repeat the column headings at the start of each Synopsis
     if ( $syn ne substr($tname, 0, 3) ) {
         $syn  =  substr($tname, 0, 3);
-        printf( "%s  pass fail todo skip test plan\n", ' ' x $max );
+        printf( "%s  pass fail todo skip plan\n", ' ' x $max );
         unless ( exists $syn{$syn} ) {
             push @fail, "note: test_summary.pl \@syn does not have $syn";
         }
@@ -98,44 +97,32 @@ for my $tfile (@tfiles) {
         if    (/^1\.\.(\d+)/) { $plan = $1 if $1 > 0; next; }
         # ignore lines not beginning with "ok $$test" or "not ok $test"
         next unless /^(not )?ok +(\d+)/;
-        $test++;
         if    (/#\s*SKIP\s*(.*)/i) { $skip++; $skip{$1}++; }
-        elsif (/#\s*TODO\s*(.*)/i) {
+        elsif (/#\s*TODO\s*(.*)/i) { $todo++;
             my $reason = $1;
-            $todo++;
             if (/^ok /) { $todopass{$reason}++ }
             else        { $todofail{$reason}++ }
         }
-        elsif (/^not ok +(.*)/) {
-            $fail++;
-            push @fail, "$tname $1";
-        }
+        elsif (/^not ok +(.*)/)    { $fail++; push @fail, "$tname $1"; }
         elsif (/^ok +\d+/)         { $pass++; }
     }
     # using no_plan, plan 0 or planless testing would break this
+    my $test = $pass + $fail + $todo + $skip;
     if ($plan > $test) {
         $abort = $plan - $test;
         $fail += $abort;
         push @fail, "$tname aborted $abort test(s)";
-        $test = $plan;
     }
     elsif ($plan < $test) {
         $bonus = $test - $plan;
         push @fail, "$tname passed $bonus unplanned test(s)";
     }
-    printf "%4d %4d %4d %4d %4d %4d\n",
-        $pass, $fail, $todo, $skip, $test, $plan;
+    printf "%4d %4d %4d %4d %4d\n",
+        $pass, $fail, $todo, $skip, $plan;
     $sum{'pass'} += $pass;  $sum{"$syn-pass"} += $pass;
     $sum{'fail'} += $fail;  $sum{"$syn-fail"} += $fail;
     $sum{'todo'} += $todo;  $sum{"$syn-todo"} += $todo;
     $sum{'skip'} += $skip;  $sum{"$syn-skip"} += $skip;
-    # Deprecation notice:
-    # Either the 'test' or the 'plan' column could be omitted - they
-    # are almost always identical, or the plan is wrong. Discrepancies
-    # are now reported per script and in the failure summary at the end.
-    # The Synopsis totals at the end, based on @col, show a 'plan' but
-    # not a 'test' count.
-    $sum{'test'} += $test;  $sum{"$syn-test"} += $test;
     $sum{'plan'} += $plan;  $sum{"$syn-plan"} += $plan;
     for (keys %skip) {
         printf "   %3d skipped: %s\n", $skip{$_}, $_;
@@ -191,7 +178,7 @@ if ($ENV{'REV'}) {
     print join(',', $testdate, $ENV{'REV'}, (map { $sum{$_} } @col),
         $filecount), "\n";
     printf "spectest-progress.csv update: " .
-        "%d files, %d (%.1f%% of %d) passing, %d failing\n",
+        "%d files, %d (%.1f%% of %d) pass, %d fail\n",
         $filecount, $sum{'pass'}, $passpercent, $sum{'spec'}, $sum{'fail'};
 }
 

@@ -10,9 +10,10 @@ my subset Minute    of Int where { 0 <= $^a <= 59 };
 my subset Second    of Num where { 0 <= $^a <= 60 };
 
 role Temporal::Date {
+    ## XXX Rakudo bug - can not use lexical subset types in a class yet
     has Int    $.year;
-    has Month  $.month = 1;
-    has Day    $.day = 1;
+    has #`(Month)  $.month = 1;
+    has #`(Day)    $.day = 1;
 
     method day-of-week { # returns DayOfWeek {
         my ( $a, $y, $m, $jd );         # algorithm from Claus Tøndering
@@ -55,9 +56,10 @@ role Temporal::Date {
 }
 
 role Temporal::Time {
-    has Hour   $.hour = 0;
-    has Minute $.minute = 0;
-    has Second $.second = 0;
+    ## XXX Rakudo bug - can not use lexical subset types in a class yet
+    has #`(Hour)   $.hour = 0;
+    has #`(Minute) $.minute = 0;
+    has #`(Second) $.second = 0;
 
     our Str method iso8601 {
         given self {
@@ -80,7 +82,7 @@ role Temporal::Time {
 }
 
 role Temporal::TimeZone::Observance {
-    my subset Offset of Int where { -86400 < $^a < 86400 };
+    subset Offset of Int where { -86400 < $^a < 86400 };
     has Offset $.offset;
     has Bool   $.isdst;
     has Str    $.abbreviation; # UTC, CST, AST

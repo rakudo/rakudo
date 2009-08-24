@@ -355,8 +355,10 @@ S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
 S14-roles/submethods.t
+S14-traits/attributes.t
 S14-traits/package.t
 S14-traits/routines.t
+S14-traits/variables.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t

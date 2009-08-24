@@ -134,14 +134,14 @@ Indicate that objects in the class are mutable or immutable.
 .sub '!IMMUTABLE' :method
     $P0 = get_root_global [.RAKUDO_HLL ; 'Int'], 'Scalar'
     $P1 = self.'HOW'()
-    $P1.'add_method'('Scalar', $P0, 'to'=>self)
+    $P1.'add_method'(self, 'Scalar', $P0)
 .end
 
 .namespace ['P6protoobject']
 .sub '!MUTABLE' :method
     $P0 = get_root_global [.RAKUDO_HLL ; 'Perl6Object'], 'Scalar'
     $P1 = self.'HOW'()
-    $P1.'add_method'('Scalar', $P0, 'to'=>self)
+    $P1.'add_method'(self, 'Scalar', $P0)
 .end
 
 =back

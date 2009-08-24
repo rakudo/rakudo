@@ -11,12 +11,21 @@ describe a declaration of a container.
 
 =cut
 
-.namespace []
+.namespace ['ContainerDeclarand']
 
 .sub '' :anon :load :init
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     p6meta.'new_class'('ContainerDeclarand', 'parent'=>'Any', 'attr'=>'$!container $!name')
+.end
+
+.sub 'new' :method
+    .param pmc container :named('container')
+    .param pmc name      :named('name')
+    $P0 = new ['ContainerDeclarand']
+    setattribute $P0, '$!container', container
+    setattribute $P0, '$!name', name
+    .return ($P0)
 .end
 
 .sub 'container' :method

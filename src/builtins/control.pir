@@ -373,6 +373,7 @@ on error.
     compiler = compreg 'perl6'
   got_lang:
     invokable = compiler.'compile'(code)
+    if have_lang goto invoke_direct
 
     # Clear lexical info we added.
     blocks.'shift'()
@@ -382,6 +383,7 @@ on error.
     $P1.'set_outer'(my_caller)
 
     # Invoke.
+  invoke_direct:
     res = invokable()
     exception = '!FAIL'()
     goto done

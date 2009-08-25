@@ -84,8 +84,13 @@ Returns a Perl representation of the Str.
     .param pmc args            :slurpy
     args.'!flatten'()
     $P0 = new ['Str']
+    push_eh args_fail
     sprintf $P0, self, args
+    pop_eh
     .return ($P0)
+  args_fail:
+    pop_eh
+    .tailcall '!FAIL'('Insufficient arguments supplied to sprintf')
 .end
 
 =item succ and pred

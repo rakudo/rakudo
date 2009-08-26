@@ -158,7 +158,7 @@ for my $syn (sort keys %syn) {
 
 # Show test totals grouped by Synopsys, followed by overall totals
 print "----------------\n";
-my $sumfmt = qq(%-9.9s %6s,%6s,%6s,%6s,%6s,%6s\n);
+my $sumfmt = qq(%-11.11s %6s,%6s,%6s,%6s,%6s,%6s\n);
 printf $sumfmt, qq{"Synopsis",}, map { qq{"$_"} } @col;
 for my $syn (sort keys %syn) {
     printf $sumfmt, qq{"$syn",}, map { $sum{"$syn-$_"} } @col;

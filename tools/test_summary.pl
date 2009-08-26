@@ -175,7 +175,7 @@ if ($ENV{'REV'}) {
         $gmt[4]+1, $gmt[3], $gmt[2], $gmt[1];
     my $filecount = scalar(@tfiles);
     my $passpercent = 100 * $sum{'pass'} / $sum{'spec'};
-    print join(',', $testdate, $ENV{'REV'}, (map { $sum{$_} } @col),
+    print join(',', $ENV{'REV'}, (map { $sum{$_} } @col),
         $filecount), "\n";
     printf "spectest-progress.csv update: " .
         "%d files, %d (%.1f%% of %d) pass, %d fail\n",

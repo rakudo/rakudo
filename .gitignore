@@ -15,10 +15,12 @@ perl6.obj
 t/localtest.data
 t/spec
 parrot
+parrot_install
 perl6
 perl6.c
 perl6.o
 MANIFEST
 commits.png
 dynext/perl6_*.bundle
+dynext/perl6_*.so
 perl6_group.?

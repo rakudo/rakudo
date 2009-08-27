@@ -6,7 +6,7 @@ use strict;
 use warnings;
 
 my @ops = qw(
-  infix:** infix:* infix:/ infix:% infix:div infix:mod infix:+ infix:-
+  infix:** infix:* infix:/ infix:% infix:div infix:mod infix:-
   infix:== infix:!= infix:<  infix:>  infix:<= infix:>= infix:<=>
   infix:.. infix:^.. infix:..^ infix:^..^
   prefix:+ prefix:- prefix:~ prefix:? prefix:! prefix:^

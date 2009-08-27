@@ -19,6 +19,16 @@ C<Whatever> operations.
     p6meta.'new_class'('WhateverCode', 'parent'=>'Code')
 .end
 
+
+.namespace []
+
+.sub 'WhateverCodeX'
+    .param string opname
+    .param pmc a
+    .param pmc b
+    .tailcall '!whatever_helper'(opname, a, b)
+.end
+
 =over 4
 
 =back

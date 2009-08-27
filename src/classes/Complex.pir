@@ -184,47 +184,6 @@ Casts a value to a complex number.
 .end
 
 
-=item infix:*
-
-=cut
-
-.sub 'infix:*' :multi('Complex', _)
-    .param pmc a
-    .param pmc b
-    b = b.'Complex'()
-    mul $P0, a, b
-    .return ($P0)
-.end
-
-.sub 'infix:*' :multi(_, 'Complex')
-    .param pmc a
-    .param pmc b
-    a = a.'Complex'()
-    mul $P0, a, b
-    .return ($P0)
-.end
-
-
-=item infix:/
-
-=cut
-
-.sub 'infix:/' :multi('Complex', _)
-    .param pmc a
-    .param pmc b
-    b = b.'Complex'()
-    div $P0, a, b
-    .return ($P0)
-.end
-
-.sub 'infix:/' :multi(_, 'Complex')
-    .param pmc a
-    .param pmc b
-    a = a.'Complex'()
-    div $P0, a, b
-    .return ($P0)
-.end
-
 =item re
 
 =cut

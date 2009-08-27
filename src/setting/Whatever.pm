@@ -35,4 +35,31 @@ multi sub infix:<->($a, Whatever $b)
 multi sub infix:<->($a, Whatever $b)
     { WhateverCodeX('infix:-', $a, $b) }
 
+multi sub infix:<*>(Whatever $a, $b) is default 
+    { WhateverCodeX('infix:*', $a, $b) }
+multi sub infix:<*>(WhateverCode $a, $b) is default 
+    { WhateverCodeX('infix:*', $a, $b) }
+multi sub infix:<*>($a, Whatever $b)
+    { WhateverCodeX('infix:*', $a, $b) }
+multi sub infix:<*>($a, Whatever $b)
+    { WhateverCodeX('infix:*', $a, $b) }
+
+multi sub infix:</>(Whatever $a, $b) is default 
+    { WhateverCodeX('infix:/', $a, $b) }
+multi sub infix:</>(WhateverCode $a, $b) is default 
+    { WhateverCodeX('infix:/', $a, $b) }
+multi sub infix:</>($a, Whatever $b)
+    { WhateverCodeX('infix:/', $a, $b) }
+multi sub infix:</>($a, Whatever $b)
+    { WhateverCodeX('infix:/', $a, $b) }
+
+multi sub infix:<**>(Whatever $a, $b) is default 
+    { WhateverCodeX('infix:**', $a, $b) }
+multi sub infix:<**>(WhateverCode $a, $b) is default 
+    { WhateverCodeX('infix:**', $a, $b) }
+multi sub infix:<**>($a, Whatever $b)
+    { WhateverCodeX('infix:**', $a, $b) }
+multi sub infix:<**>($a, Whatever $b)
+    { WhateverCodeX('infix:**', $a, $b) }
+
 # vim: ft=perl6

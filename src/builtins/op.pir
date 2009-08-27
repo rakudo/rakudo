@@ -279,37 +279,6 @@ src/builtins/op.pir - Perl 6 builtin operators
 
 
 ## additive
-.sub 'infix:+' :multi(_,_)
-    .param num a
-    .param num b
-    $N0 = a + b
-    .return ($N0)
-.end
-
-
-.sub 'infix:+' :multi(Integer,Integer)
-    .param num a
-    .param num b
-    $N0 = a + b
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
-
-
-.sub 'infix:-' :multi(_,_)
-    .param num a
-    .param num b
-    $N0 = a - b
-    .return ($N0)
-.end
-
-
-.sub 'infix:-' :multi(Integer,Integer)
-    .param num a
-    .param num b
-    $N0 = a - b
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
-
 
 .sub 'infix:~' :multi(_,_)
     .param string a

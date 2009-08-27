@@ -47,7 +47,7 @@ MAIN: {
         @parrot_config_exe = ($options{'parrot-config'});
     }
 
-    #  Get configuration information from parrot_config
+    # Get configuration information from parrot_config
     my %config = read_parrot_config(@parrot_config_exe);
 
     my $parrot_errors = '';
@@ -61,15 +61,20 @@ MAIN: {
 
     if ($parrot_errors) {
         die <<"END";
+===SORRY!===
 $parrot_errors
 To automatically checkout (svn) and build a copy of parrot r$reqsvn,
 try re-running Configure.pl with the '--gen-parrot' option.
 Or, use the '--parrot-config' option to explicitly specify
 the location of parrot_config to be used to build Rakudo Perl.
+
 END
     }
 
-#  Create the Makefile using the information we just got
+    # Verify the Parrot installation is sufficient for building Rakudo
+    verify_parrot(%config);
+
+    # Create the Makefile using the information we just got
     create_makefile(%config);
     my $make = $config{'make'};
 
@@ -112,6 +117,32 @@ sub read_parrot_config {
     return %config;
 }
 
+
+sub verify_parrot {
+    print "Verifying Parrot installation...\n";
+    my %config = @_;
+    my $PARROT_LIB_DIR = $config{'libdir'}.$config{'versiondir'};
+    my @required_files = (
+        "$PARROT_LIB_DIR/library/PGE/Perl6Grammar.pbc",
+        "$PARROT_LIB_DIR/library/PCT/HLLCompiler.pbc",
+    );
+    my @missing;
+    for my $reqfile (@required_files) {
+        push @missing, "    $reqfile" unless -f $reqfile;
+    }
+    if (@missing) {
+        my $missing = join("\n", @missing);
+        die <<"END";
+
+===SORRY!===
+I'm missing some needed files from the Parrot installation:
+$missing
+(Perhaps you need to use Parrot's "make install-dev" or
+install the "parrot-devel" package for your system?)
+
+END
+    }
+}
 
 #  Generate a Makefile from a configuration
 sub create_makefile {

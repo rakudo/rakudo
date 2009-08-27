@@ -6,7 +6,12 @@ Rakudo Perl is Copyright (C) 2008-2009, The Perl Foundation.
 Rakudo Perl is distributed under the terms of the Artistic License 2.0.
 For more details, see the full text of the license in the file LICENSE.
 
-=head2 Build requirements
+=head2 Installing with your package manager
+
+Rakudo is currently available for Arch Linux users in the AUR at
+(L<http://aur.archlinux.org/packages.php?ID=29068>)
+
+=head2 Build requirements (Installing from source)
 
 For building Rakudo you need at least a C compiler, a C<make> utility,
 and Perl 5.8 or newer.  To automatically obtain and build Parrot

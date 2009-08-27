@@ -3148,12 +3148,6 @@ sub set_block_type($block, $type) {
             $type
         );
         $block<block_class_type> := $set_type;
-        # The following is to make sure the Parrot-level sub has a backlink
-        # to the Rakudo-level object, since it's all that we can find from
-        # interpinfo.
-        $block.loadinit().unshift(PAST::Op.new(
-            :inline("    $P0 = getattribute block, ['Sub'], 'proxy'",
-                    "    setprop $P0, '$!real_self', block") ) );
         $block.loadinit().unshift($set_type);
     }
 }

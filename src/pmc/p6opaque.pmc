@@ -369,6 +369,33 @@ back some kind of iterator to let us get all of the possible candidates.
 
 /*
 
+=item C<PMC *get_attr_str(STRING *name)>
+
+Gets an attribute from the instance storage.
+
+=cut
+
+*/
+    PMC *get_attr_str(STRING *name) {
+        /* Do a lookup as normal; if we get something non-null, we're done. */
+        PMC *result = SUPER(name);
+        if (!PMC_IS_NULL(result))
+            return result;
+
+        /* Otherwise, check if this is a proto-object, in which case we should
+         * never be accessing state. */
+        if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "P6protoobject")))
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Type objects do not have state, but you tried to access attribute %Ss",
+                    name);
+
+        /* Otherwise, for now we'll just allow the Null PMC Access to happen (yes sucks
+         * somewhat, but probably points to other bugs. */
+        return result;
+    }
+
+/*
+
 =item C<opcode_t *invoke(void *next)>
 
 Invokes the object (if this vtable function is overridden).

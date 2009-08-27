@@ -1341,6 +1341,12 @@ Reblesses a sub into a new type.
     $P0 = new_type.'new'()
     $P0 = typeof $P0
     rebless_subclass sub, $P0
+
+    # We also make sure the Parrot-level sub has a backlink to the
+    # Rakudo-level object, since interpinfo only gives us the
+    # Parrot-level sub.
+    $P0 = getattribute sub, ['Sub'], 'proxy'
+    setprop $P0, '$!real_self', sub
 .end
 
 

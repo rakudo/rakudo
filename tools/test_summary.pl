@@ -158,7 +158,7 @@ for my $syn (sort keys %syn) {
 
 # Show test totals grouped by Synopsys, followed by overall totals
 print "----------------\n";
-my $sumfmt = qq(%-9.9s %6s,%6s,%6s,%6s,%6s,%6s\n);
+my $sumfmt = qq(%-11.11s %6s,%6s,%6s,%6s,%6s,%6s\n);
 printf $sumfmt, qq{"Synopsis",}, map { qq{"$_"} } @col;
 for my $syn (sort keys %syn) {
     printf $sumfmt, qq{"$syn",}, map { $sum{"$syn-$_"} } @col;
@@ -175,7 +175,7 @@ if ($ENV{'REV'}) {
         $gmt[4]+1, $gmt[3], $gmt[2], $gmt[1];
     my $filecount = scalar(@tfiles);
     my $passpercent = 100 * $sum{'pass'} / $sum{'spec'};
-    print join(',', $testdate, $ENV{'REV'}, (map { $sum{$_} } @col),
+    print join(',', $ENV{'REV'}, (map { $sum{$_} } @col),
         $filecount), "\n";
     printf "spectest-progress.csv update: " .
         "%d files, %d (%.1f%% of %d) pass, %d fail\n",

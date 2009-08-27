@@ -173,26 +173,6 @@ Casts a value to a complex number.
     .return (a)
 .end
 
-=item infix:-
-
-=cut
-
-.sub 'infix:-' :multi('Complex', _)
-    .param pmc a
-    .param pmc b
-    b = b.'Complex'()
-    sub $P0, a, b
-    .return ($P0)
-.end
-
-.sub 'infix:-' :multi(_, 'Complex')
-    .param pmc a
-    .param pmc b
-    a = a.'Complex'()
-    sub $P0, a, b
-    .return ($P0)
-.end
-
 =item prefix:-
 
 =cut

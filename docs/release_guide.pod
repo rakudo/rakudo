@@ -29,6 +29,7 @@ Dates are based on Parrot's expected release schedule.
   2009-11-19   Rakudo #23                      (masak)
   2009-12-17   Rakudo #24                      (chromatic)
   2010-01-21   Rakudo #25                      (smash)
+  2010-02-18   Rakudo #26                      (Su-Shee)
 
 =head2 Suggested .pm group names for future releases
 

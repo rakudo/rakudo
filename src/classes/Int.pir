@@ -107,7 +107,8 @@ Overridden for Int.
 .sub 'infix:===' :multi(Integer,Integer)
     .param int a
     .param int b
-    .tailcall 'infix:=='(a, b)
+    $I0 = iseq a, b
+    .tailcall 'prefix:?'($I0)
 .end
 
 =back

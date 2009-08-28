@@ -102,7 +102,8 @@ Overridden for Num.
 .sub 'infix:===' :multi(Float,Float)
     .param num a
     .param num b
-    .tailcall 'infix:=='(a, b)
+    $I0 = iseq a, b
+    .tailcall 'prefix:?'($I0)
 .end
 
 

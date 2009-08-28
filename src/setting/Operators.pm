@@ -182,6 +182,28 @@ multi sub infix:</>(Int $a, Int $b) {
     }
 }
 
+multi sub infix:<%>($a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $N2 = mod $N0, $N1
+        %r = box $N2
+    }
+}
+
+multi sub infix:<%>(Int $a, Int $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $N2 = mod $N0, $N1
+        %r = '!upgrade_to_num_if_needed'($N2)
+    }
+}
+    
 multi sub infix:<**>($a, $b) {
     Q:PIR {
         $P0 = find_lex '$a'

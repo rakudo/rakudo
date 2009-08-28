@@ -20,22 +20,6 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:!==' :multi(_,_)
-    .param num a
-    .param num b
-    $I0 = isne a, b
-    .tailcall 'prefix:?'($I0)
-.end
-
-# Shortcut for infix:!==, so same code
-.sub 'infix:!=' :multi(_,_)
-    .param num a
-    .param num b
-    $I0 = isne a, b
-    .tailcall 'prefix:?'($I0)
-.end
-
-
 .sub 'infix:<' :multi(_,_)
     .param num a
     .param num b
@@ -89,21 +73,6 @@ src/builtins/cmp.pir - Perl6 comparison builtins
     .param string a
     .param string b
     $I0 = iseq a, b
-    .tailcall 'prefix:?'($I0)
-.end
-
-.sub 'infix:!eq' :multi(_,_)
-    .param string a
-    .param string b
-    $I0 = isne a, b
-    .tailcall 'prefix:?'($I0)
-.end
-
-
-.sub 'infix:ne' :multi(_,_)
-    .param string a
-    .param string b
-    $I0 = isne a, b
     .tailcall 'prefix:?'($I0)
 .end
 

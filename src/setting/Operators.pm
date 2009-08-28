@@ -235,4 +235,9 @@ multi sub prefix:<~>(Object $a) {
 
 multi sub prefix:<~>(Multi $a) { $a.name }
 
+multi sub infix:<!=>($a, $b)  { !($a == $b) }
+multi sub infix:<!==>($a, $b) { !($a == $b) }
+multi sub infix:<ne>($a, $b)  { !($a eq $b) }
+multi sub infix:<!eq>($a, $b) { !($a eq $b) }
+
 # vim: ft=perl6

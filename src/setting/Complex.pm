@@ -87,4 +87,12 @@ multi sub infix:</>($a, Complex $b) {
 }
 
 
+multi sub prefix:<->(Complex $a) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        %r = neg $P0
+    }
+}
+
+
 # vim: ft=perl6

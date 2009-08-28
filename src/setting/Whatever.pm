@@ -62,4 +62,9 @@ multi sub infix:<**>($a, Whatever $b)
 multi sub infix:<**>($a, Whatever $b)
     { WhateverCodeX('infix:**', $a, $b) }
 
+multi sub prefix:<->(Whatever $a)
+    { WhateverCodeX('prefix:-', $a) }
+multi sub prefix:<->(WhateverCode $a)
+    { WhateverCodeX('prefix:-', $a) }
+
 # vim: ft=perl6

@@ -122,20 +122,6 @@ src/builtins/op.pir - Perl 6 builtin operators
 .end
 
 
-.sub 'prefix:-' :multi(_)
-    .param num a
-    $N0 = neg a
-    .return ($N0)
-.end
-
-
-.sub 'prefix:-' :multi('Integer')
-    .param num a
-    $N0 = neg a
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
-
-
 .sub 'prefix:~' :multi(_)
     .param string a
     $P0 = new ['Str']

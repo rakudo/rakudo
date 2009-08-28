@@ -9,7 +9,7 @@ my @ops = qw(
   infix:% infix:div infix:mod
   infix:== infix:!= infix:<  infix:>  infix:<= infix:>= infix:<=>
   infix:.. infix:^.. infix:..^ infix:^..^
-  prefix:+ prefix:- prefix:~ prefix:? prefix:! prefix:^
+  prefix:+ prefix:~ prefix:? prefix:! prefix:^
 );
 
 for (@ops) {

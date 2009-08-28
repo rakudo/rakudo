@@ -204,4 +204,22 @@ multi sub infix:<**>(Int $a, Int $b) {
     }
 }
 
+multi sub prefix:<->($a) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $N0 = neg $N0
+        %r = box $N0
+    }
+}
+
+multi sub prefix:<->(Int $a) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $N0 = neg $N0
+        %r = '!upgrade_to_num_if_needed'($N0)
+    }
+}
+
 # vim: ft=perl6

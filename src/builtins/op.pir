@@ -122,14 +122,6 @@ src/builtins/op.pir - Perl 6 builtin operators
 .end
 
 
-.sub 'prefix:~' :multi(_)
-    .param string a
-    $P0 = new ['Str']
-    $P0 = a
-    .return ($P0)
-.end
-
-
 .sub 'prefix:?' :multi(_)
     .param pmc a
     if a goto a_true

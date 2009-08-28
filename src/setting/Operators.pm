@@ -222,4 +222,17 @@ multi sub prefix:<->(Int $a) {
     }
 }
 
+
+multi sub prefix:<~>(Object $a) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $S0 = $P0
+        %r = new ['Str']
+        assign %r, $S0
+    }
+}
+
+
+multi sub prefix:<~>(Multi $a) { $a.name }
+
 # vim: ft=perl6

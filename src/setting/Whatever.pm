@@ -67,4 +67,9 @@ multi sub prefix:<->(Whatever $a)
 multi sub prefix:<->(WhateverCode $a)
     { WhateverCodeX('prefix:-', $a) }
 
+multi sub prefix:<~>(Whatever $a)
+    { WhateverCodeX('prefix:~', $a) }
+multi sub prefix:<~>(WhateverCode $a)
+    { WhateverCodeX('prefix:~', $a) }
+
 # vim: ft=perl6

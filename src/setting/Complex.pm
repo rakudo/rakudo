@@ -94,5 +94,12 @@ multi sub prefix:<->(Complex $a) {
     }
 }
 
+multi sub infix:<**>(Complex $a, $b) is default {
+    ($a.log * $b).exp;
+}
+
+multi sub infix:<**>($a, Complex $b) {
+    ($a.log * $b).exp;
+}
 
 # vim: ft=perl6

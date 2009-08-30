@@ -1,8 +1,20 @@
 class Int is also {
+    our Int multi method Int() { self }
+
+    our Num multi method Num() {
+        Q:PIR {
+            $N0 = self
+            %r = box $N0
+        }
+    }
+ 
+    our Rat multi method Rat() { Rat.new(self, 1); }
+
     our Str multi method Str() {
         ~self;
     }
 }
+
 
 multi sub infix:<+>(Int $a, Int $b) {
     Q:PIR {

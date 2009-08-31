@@ -2,11 +2,26 @@ class Rat {
     has $.numerator;
     has $.denominator;
 
+    my sub gcd(Int $a is copy, Int $b is copy)
+    {
+        $a = -$a if ($a < 0);
+        $b = -$b if ($b < 0);
+        while $a > 0 && $b > 0
+        {
+            ($a, $b) = ($b, $a) if ($b > $a);
+            $a -= $b;
+        }
+        return $a + $b;
+    }
+
     multi method new(Int $numerator is copy, Int $denominator is copy) {
         if $denominator < 0 {
             $numerator = -$numerator;
             $denominator = -$denominator;
         }
+        my $gcd = gcd($numerator, $denominator);
+        $numerator /= $gcd;
+        $denominator /= $gcd;
         self.bless(*, :$numerator, :$denominator);
     }
 
@@ -29,7 +44,7 @@ multi sub infix:<+>(Int $a, Rat $b) {
 }
 
 multi sub infix:<->(Rat $a, Rat $b) {
-    Rat.new($a.numerator * $b.denominator + $b.numerator * $a.denominator,
+    Rat.new($a.numerator * $b.denominator - $b.numerator * $a.denominator,
             $a.denominator * $b.denominator );
 }
 

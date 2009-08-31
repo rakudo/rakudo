@@ -25,10 +25,6 @@ multi infix:«<<==» (*@a) {
     die 'Feed operators are not yet implemented in Rakudo, sorry';
 }
 
-multi infix:<div>($a, $b) {
-    die 'infix:<div> not yet implemented in Rakudo, sorry';
-}
-
 multi infix:<mod>($a, $b) {
     die 'infix:<mod> not yet implemented in Rakudo, sorry';
 }

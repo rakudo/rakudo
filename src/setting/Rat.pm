@@ -45,3 +45,8 @@ multi sub infix:</>(Rat $a, Rat $b) {
     Rat.new($a.numerator * $b.denominator, $a.denominator * $b.numerator);
 }
 
+multi sub infix:<div>(Int $a, Int $b) {
+    Rat.new($a, $b);
+}
+
+# vim: ft=perl6 sw=4 ts=4 expandtab

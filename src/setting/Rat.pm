@@ -12,7 +12,7 @@ class Rat {
 
     multi method Str() { "$!numerator/$!denominator"; }
 
-    multi method Num() { $!numerator + 0.0 / $!denominator }
+    multi method Num() { $!numerator.Num / $!denominator.Num }
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {

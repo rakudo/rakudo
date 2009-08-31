@@ -417,6 +417,7 @@ S32-num/int.t
 S32-num/log.t
 S32-num/pi.t
 S32-num/polar.t
+S32-num/power.t
 S32-num/rand.t
 S32-num/roots.t
 S32-num/rounders.t

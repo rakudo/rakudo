@@ -86,4 +86,98 @@ sub prefix:<[||]>(*@a) {
 
 sub infix:<!%>($a, $b) { ! ($a % $b) }
 
+
+multi sub infix:<+>($a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $N2 = $N0 + $N1
+        %r = box $N2
+    }
+}
+
+multi sub infix:<->($a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $N2 = $N0 - $N1
+        %r = box $N2
+    }
+}
+
+multi sub infix:<*>($a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $N2 = $N0 * $N1
+        %r = box $N2
+    }
+}
+
+multi sub infix:</>($a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $N2 = $N0 / $N1
+        %r = box $N2
+    }
+}
+
+multi sub infix:<%>($a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $N2 = mod $N0, $N1
+        %r = box $N2
+    }
+}
+
+multi sub infix:<**>($a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $N2 = pow $N0, $N1
+        %r = box $N2
+    }
+}
+
+multi sub prefix:<->($a) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $N0 = neg $N0
+        %r = box $N0
+    }
+}
+
+
+multi sub prefix:<~>(Object $a) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $S0 = $P0
+        %r = new ['Str']
+        assign %r, $S0
+    }
+}
+
+
+multi sub prefix:<~>(Multi $a) { $a.name }
+
+multi sub infix:<!=>($a, $b)  { !($a == $b) }
+multi sub infix:<!==>($a, $b) { !($a == $b) }
+multi sub infix:<ne>($a, $b)  { !($a eq $b) }
+multi sub infix:<!eq>($a, $b) { !($a eq $b) }
+
 # vim: ft=perl6

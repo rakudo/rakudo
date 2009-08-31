@@ -146,7 +146,9 @@ SETTING = \
   src/setting/Bool.pm \
   src/setting/Buf.pm \
   src/setting/Code.pm \
+  src/setting/Complex.pm \
   src/setting/Hash.pm \
+  src/setting/Rat.pm \
   src/setting/Int.pm \
   src/setting/IO.pm \
   src/setting/IO/Socket.pm \

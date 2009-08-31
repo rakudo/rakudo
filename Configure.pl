@@ -121,14 +121,25 @@ sub read_parrot_config {
 sub verify_parrot {
     print "Verifying Parrot installation...\n";
     my %config = @_;
-    my $PARROT_LIB_DIR = $config{'libdir'}.$config{'versiondir'};
+    my $PARROT_VERSION = $config{'versiondir'};
+    my $PARROT_LIB_DIR = $config{'libdir'}.$PARROT_VERSION;
+    my $PARROT_SRC_DIR = $config{'srcdir'}.$PARROT_VERSION;
+    my $PARROT_INCLUDE_DIR = $config{'includedir'}.$PARROT_VERSION;
+    my $PARROT_TOOLS_DIR = "$PARROT_LIB_DIR/tools";
     my @required_files = (
         "$PARROT_LIB_DIR/library/PGE/Perl6Grammar.pbc",
         "$PARROT_LIB_DIR/library/PCT/HLLCompiler.pbc",
+        "$PARROT_LIB_DIR/languages/nqp/nqp.pbc",
+        "$PARROT_TOOLS_DIR/build/ops2c.pl",
+        "$PARROT_TOOLS_DIR/build/pmc2c.pl",
+        "$PARROT_SRC_DIR",
+        "$PARROT_SRC_DIR/pmc",
+        "$PARROT_INCLUDE_DIR",
+        "$PARROT_INCLUDE_DIR/pmc",
     );
     my @missing;
     for my $reqfile (@required_files) {
-        push @missing, "    $reqfile" unless -f $reqfile;
+        push @missing, "    $reqfile" unless -e $reqfile;
     }
     if (@missing) {
         my $missing = join("\n", @missing);

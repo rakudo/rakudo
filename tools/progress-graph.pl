@@ -83,6 +83,10 @@ while (<$f>) {
 
 my $last_date = $data[DATE][-1];
 
+# GD::Graph always prints the last label, which leads to overlapping
+# labels. Better remove it.
+$data[DATE][-1] = '';
+
 my $p = GD::Graph::bars->new(split m/x/, $size, 2);
 no warnings 'qw';
 $p->set(

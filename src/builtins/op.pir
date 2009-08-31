@@ -92,23 +92,6 @@ src/builtins/op.pir - Perl 6 builtin operators
 .end
 
 
-## exponentiation
-.sub 'infix:**' :multi(_,_)
-    .param num base
-    .param num exp
-    $N0 = pow base, exp
-    .return ($N0)
-.end
-
-
-.sub 'infix:**' :multi(Integer,Integer)
-    .param num base
-    .param num exp
-    $N0 = pow base, exp
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
-
-
 ## symbolic unary
 .sub 'prefix:!' :multi(_)
     .param pmc a
@@ -139,28 +122,6 @@ src/builtins/op.pir - Perl 6 builtin operators
 .end
 
 
-.sub 'prefix:-' :multi(_)
-    .param num a
-    $N0 = neg a
-    .return ($N0)
-.end
-
-
-.sub 'prefix:-' :multi('Integer')
-    .param num a
-    $N0 = neg a
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
-
-
-.sub 'prefix:~' :multi(_)
-    .param string a
-    $P0 = new ['Str']
-    $P0 = a
-    .return ($P0)
-.end
-
-
 .sub 'prefix:?' :multi(_)
     .param pmc a
     if a goto a_true
@@ -173,60 +134,6 @@ src/builtins/op.pir - Perl 6 builtin operators
 
 
 ## TODO: prefix:= prefix:* prefix:** prefix:~^ prefix:+^
-
-
-## multiplicative
-.sub 'infix:*' :multi(_,_)
-    .param num a
-    .param num b
-    $N0 = a * b
-    .return ($N0)
-.end
-
-
-.sub 'infix:*' :multi(Integer,Integer)
-    .param num a
-    .param num b
-    $N0 = a * b
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
-
-
-.sub 'infix:/' :multi(_,_)
-    .param num a
-    .param num b
-    $N0 = a / b
-    .return ($N0)
-.end
-
-
-.sub 'infix:/' :multi(Integer,Integer)
-    .param num a
-    .param num b
-    $N0 = a / b
-    $I0 = floor $N0
-    $N1 = $N0 - $I0
-    if $N1 != 0 goto upgrade
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-  upgrade:
-    .return ($N0)
-.end
-
-
-.sub 'infix:%' :multi(_,_)
-    .param num a
-    .param num b
-    $N0 = mod a, b
-    .return ($N0)
-.end
-
-
-.sub 'infix:%' :multi(Integer,Integer)
-    .param num a
-    .param num b
-    $N0 = mod a, b
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
 
 
 .sub 'infix:xx' :multi(_,_)
@@ -279,37 +186,6 @@ src/builtins/op.pir - Perl 6 builtin operators
 
 
 ## additive
-.sub 'infix:+' :multi(_,_)
-    .param num a
-    .param num b
-    $N0 = a + b
-    .return ($N0)
-.end
-
-
-.sub 'infix:+' :multi(Integer,Integer)
-    .param num a
-    .param num b
-    $N0 = a + b
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
-
-
-.sub 'infix:-' :multi(_,_)
-    .param num a
-    .param num b
-    $N0 = a - b
-    .return ($N0)
-.end
-
-
-.sub 'infix:-' :multi(Integer,Integer)
-    .param num a
-    .param num b
-    $N0 = a - b
-    .tailcall '!upgrade_to_num_if_needed'($N0)
-.end
-
 
 .sub 'infix:~' :multi(_,_)
     .param string a

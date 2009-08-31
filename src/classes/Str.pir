@@ -264,7 +264,8 @@ Overridden for Str.
 .sub 'infix:===' :multi(String,String)
     .param string a
     .param string b
-    .tailcall 'infix:eq'(a, b)
+    $I0 = iseq a, b
+    .tailcall 'prefix:?'($I0)
 .end
 
 

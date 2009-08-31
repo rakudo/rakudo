@@ -162,107 +162,15 @@ Casts a value to a complex number.
     .return ($N0)
 .end
 
-=item infix:+
+=item prefix:+
 
 =cut
 
 .namespace []
 
-.sub 'infix:+' :multi('Complex', _)
-    .param pmc a
-    .param pmc b
-    b = b.'Complex'()
-    add $P0, a, b
-    .return ($P0)
-.end
-
-.sub 'infix:+' :multi(_, 'Complex')
-    .param pmc a
-    .param pmc b
-    a = a.'Complex'()
-    add $P0, a, b
-    .return ($P0)
-.end
-
-=item prefix:+
-
-=cut
-
 .sub 'prefix:+' :multi('Complex')
     .param pmc a
     .return (a)
-.end
-
-=item infix:-
-
-=cut
-
-.sub 'infix:-' :multi('Complex', _)
-    .param pmc a
-    .param pmc b
-    b = b.'Complex'()
-    sub $P0, a, b
-    .return ($P0)
-.end
-
-.sub 'infix:-' :multi(_, 'Complex')
-    .param pmc a
-    .param pmc b
-    a = a.'Complex'()
-    sub $P0, a, b
-    .return ($P0)
-.end
-
-=item prefix:-
-
-=cut
-
-.sub 'prefix:-' :multi('Complex')
-    .param pmc a
-    a = neg a
-    .return (a)
-.end
-
-
-=item infix:*
-
-=cut
-
-.sub 'infix:*' :multi('Complex', _)
-    .param pmc a
-    .param pmc b
-    b = b.'Complex'()
-    mul $P0, a, b
-    .return ($P0)
-.end
-
-.sub 'infix:*' :multi(_, 'Complex')
-    .param pmc a
-    .param pmc b
-    a = a.'Complex'()
-    mul $P0, a, b
-    .return ($P0)
-.end
-
-
-=item infix:/
-
-=cut
-
-.sub 'infix:/' :multi('Complex', _)
-    .param pmc a
-    .param pmc b
-    b = b.'Complex'()
-    div $P0, a, b
-    .return ($P0)
-.end
-
-.sub 'infix:/' :multi(_, 'Complex')
-    .param pmc a
-    .param pmc b
-    a = a.'Complex'()
-    div $P0, a, b
-    .return ($P0)
 .end
 
 =item re

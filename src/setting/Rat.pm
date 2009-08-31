@@ -9,7 +9,7 @@ class Rat {
         while $a > 0 && $b > 0
         {
             ($a, $b) = ($b, $a) if ($b > $a);
-            $a -= $b;
+            $a %= $b;
         }
         return $a + $b;
     }
@@ -20,10 +20,12 @@ class Rat {
             $denominator = -$denominator;
         }
         my $gcd = gcd($numerator, $denominator);
-        $numerator /= $gcd;
-        $denominator /= $gcd;
+        $numerator = $numerator div $gcd;
+        $denominator = $denominator div $gcd;
         self.bless(*, :$numerator, :$denominator);
     }
+    
+    multi method perl() { "$!numerator/$!denominator"; }
 
     multi method Str() { "$!numerator/$!denominator"; }
 
@@ -52,15 +54,35 @@ multi sub infix:<->(Rat $a, Int $b) {
     Rat.new($a.numerator - $b * $a.denominator, $a.denominator);
 }
 
+multi sub infix:<->(Int $a, Rat $b) {
+    Rat.new($a * $b.denominator - $b.numerator, $b.denominator);
+}
+
 multi sub infix:<*>(Rat $a, Rat $b) {
     Rat.new($a.numerator * $b.numerator, $a.denominator * $b.denominator);
+}
+
+multi sub infix:<*>(Rat $a, Int $b) {
+    Rat.new($a.numerator * $b, $a.denominator);
+}
+
+multi sub infix:<*>(Int $a, Rat $b) {
+    Rat.new($a * $b.numerator, $b.denominator);
 }
 
 multi sub infix:</>(Rat $a, Rat $b) {
     Rat.new($a.numerator * $b.denominator, $a.denominator * $b.numerator);
 }
 
-multi sub infix:<div>(Int $a, Int $b) {
+multi sub infix:</>(Rat $a, Int $b) {
+    Rat.new($a.numerator, $a.denominator * $b);
+}
+
+multi sub infix:</>(Int $a, Rat $b) {
+    Rat.new($b.denominator, $a * $b.numerator);
+}
+
+multi sub infix:</>(Int $a, Int $b) {
     Rat.new($a, $b);
 }
 

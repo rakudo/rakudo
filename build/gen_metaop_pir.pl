@@ -9,6 +9,8 @@ my @ops = qw(
   **        1           op
   *         1           op
   /         'fail'      op
+  div       'fail'      op
+  mod       'fail'      op
   %         'fail'      op
   x         'fail'      op
   xx        'fail'      op

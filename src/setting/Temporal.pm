@@ -17,11 +17,11 @@ role Temporal::Date {
 
     method day-of-week { # returns DayOfWeek {
         my ( $a, $y, $m, $jd );         # algorithm from Claus Tøndering
-        $a = int((14 - $.month) / 12 );
+        $a = floor((14 - $.month) / 12 );
         $y = $.year + 4800 - $a;
         $m = $.month + 12 * $a - 3;
-        $jd = $.day + int((153 * $m + 2) / 5) + 365 * $y + int( $y / 4 )
-              - int( $y / 100 ) + int( $y / 400 ) - 32045;
+        $jd = $.day + floor((153 * $m + 2) / 5) + 365 * $y + floor( $y / 4 )
+              - floor( $y / 100 ) + floor( $y / 400 ) - 32045;
         return ($jd + 1) % 7 + 1;
     }
 
@@ -91,7 +91,7 @@ role Temporal::TimeZone::Observance {
     # resolutions. In real-world practice, this is not an issue.
     our Str method iso8601 {
         sprintf "%+03d%02d", self.offset / 3600,
-            int( abs(self.offset) / 60 ) % 60;
+            floor( abs(self.offset) / 60 ) % 60;
     }
 
     method Str { self.iso8601 }
@@ -117,11 +117,11 @@ role Temporal::DateTime {
     # This involves a whole bunch of code - see Perl 5's Time::Local
     our Num method epoch {
         my ( $a, $y, $m, $jd );         # algorithm from Claus Tøndering
-        $a = int((14 - $.date.month) / 12 );
+        $a = floor((14 - $.date.month) / 12 );
         $y = $.date.year + 4800 - $a;
         $m = $.date.month + 12 * $a - 3;
-        $jd = $.date.day + int((153 * $m + 2) / 5) + 365 * $y
-            + int( $y / 4 ) - int( $y / 100 ) + int( $y / 400 ) - 32045;
+        $jd = $.date.day + floor((153 * $m + 2) / 5) + 365 * $y
+            + floor( $y / 4 ) - floor( $y / 100 ) + floor( $y / 400 ) - 32045;
         return ($jd - 2440588) * 24 * 60 * 60
                + ($.time.hour*60 + $.time.minute)*60 + $.time.second;
     }
@@ -135,22 +135,22 @@ class Time {
 
     our method gmtime( Num $epoch = time ) {
         my ( $time, $second, $minute, $hour, $day, $month, $year );
-        $time = int( $epoch );
-        $second  = $time % 60; $time = int($time/60);
-        $minute  = $time % 60; $time = int($time/60);
-        $hour    = $time % 24; $time = int($time/24);
+        $time = floor( $epoch );
+        $second  = $time % 60; $time = floor($time/60);
+        $minute  = $time % 60; $time = floor($time/60);
+        $hour    = $time % 24; $time = floor($time/24);
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
         $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
         my $a = $time + 32044;     # date algorithm from Claus Tøndering
-        my $b = int((4 * $a + 3) / 146097); # 146097 = days in 400 years
-        my $c = $a - int(( 146097 * $b ) / 4);
-        my $d = int((4 * $c + 3) / 1461);       # 1461 = days in 4 years
-        my $e = $c - int(($d * 1461) / 4);
-        my $m = int((5 * $e + 2) / 153); # 153 = days in Mar-Jul Aug-Dec
-        $day   = $e - int((153 * $m + 2) / 5 ) + 1;
-        $month = $m + 3 - 12 * int( $m / 10 );
-        $year  = $b * 100 + $d - 4800 + int( $m / 10 );
+        my $b = floor((4 * $a + 3) / 146097); # 146097=days in 400 years
+        my $c = $a - floor(( 146097 * $b ) / 4);
+        my $d = floor((4 * $c + 3) / 1461);       # 1461=days in 4 years
+        my $e = $c - floor(($d * 1461) / 4);
+        my $m = floor((5 * $e + 2) / 153); # 153=days in Mar-Jul Aug-Dec
+        $day   = $e - floor((153 * $m + 2) / 5 ) + 1;
+        $month = $m + 3 - 12 * floor( $m / 10 );
+        $year  = $b * 100 + $d - 4800 + floor( $m / 10 );
         Temporal::DateTime.new(
             date => Temporal::Date.new(:$year, :$month, :$day),
             time => Temporal::Time.new(:$hour, :$minute, :$second),

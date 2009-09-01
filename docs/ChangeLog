@@ -1,3 +1,8 @@
+New in 2009-09 release
++ updates to numeric operators: infix</>(Int, Int) creates a Rat
++ Rat (rational) numbers
++ overloadable builtin operators
+
 New in 2009-08 release
 + Rakudo must now be built from an installed parrot, and can be installed
   itself

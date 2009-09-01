@@ -213,7 +213,7 @@ token eat_terminator {
     || <?terminator>
     || <?AT_STATEMENT_END>
     || $
-    || <.panic: "Statement not terminated properly">
+    || <.panic: "Confused">
 }
 
 token MARK_STATEMENT_END {

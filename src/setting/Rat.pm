@@ -2,12 +2,10 @@ class Rat {
     has $.numerator;
     has $.denominator;
 
-    my sub gcd(Int $a is copy, Int $b is copy)
-    {
+    my sub gcd(Int $a is copy, Int $b is copy) {
         $a = -$a if ($a < 0);
         $b = -$b if ($b < 0);
-        while $a > 0 && $b > 0
-        {
+        while $a > 0 && $b > 0 {
             ($a, $b) = ($b, $a) if ($b > $a);
             $a %= $b;
         }
@@ -24,12 +22,14 @@ class Rat {
         $denominator = $denominator div $gcd;
         self.bless(*, :$numerator, :$denominator);
     }
-    
+
     multi method perl() { "$!numerator/$!denominator"; }
 
-    multi method Str() { $.Num.Str }
-
     multi method Num() { $!numerator.Num / $!denominator.Num }
+
+    multi method Str() { $.Num.Str; }
+
+    multi method nude() { $.numerator, $.denominator; }
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {

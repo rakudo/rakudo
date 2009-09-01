@@ -27,7 +27,7 @@ class Rat {
     
     multi method perl() { "$!numerator/$!denominator"; }
 
-    multi method Str() { "$!numerator/$!denominator"; }
+    multi method Str() { $.Num.Str }
 
     multi method Num() { $!numerator.Num / $!denominator.Num }
 }
@@ -79,7 +79,7 @@ multi sub infix:</>(Rat $a, Int $b) {
 }
 
 multi sub infix:</>(Int $a, Rat $b) {
-    Rat.new($b.denominator, $a * $b.numerator);
+    Rat.new($b.denominator * $a, $b.numerator);
 }
 
 multi sub infix:</>(Int $a, Int $b) {

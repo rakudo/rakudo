@@ -58,6 +58,10 @@ multi sub infix:<->(Int $a, Rat $b) {
     Rat.new($a * $b.denominator - $b.numerator, $b.denominator);
 }
 
+multi sub prefix:<->(Rat $a) {
+    Rat.new(-$a.numerator, $a.denominator);
+}
+
 multi sub infix:<*>(Rat $a, Rat $b) {
     Rat.new($a.numerator * $b.numerator, $a.denominator * $b.denominator);
 }

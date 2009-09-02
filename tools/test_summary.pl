@@ -69,14 +69,17 @@ $syn = ''; # to reliably trigger the display of column headings
 
 # Execute all test scripts, aggregate the results, display the failures
 $| = 1;
-my @fail;
+my ( @fail, @plan_hint );
 for my $tfile (@tfiles) {
     my $th;
     open($th, '<', $tfile) || die "Can't read $tfile: $!\n";
     my ($pass,$fail,$todo,$skip,$plan,$abort,$bonus) = (0,0,0,0,0,0,0);
+    my $no_plan = 0; # planless may be fine, but bad for statistics
+    # http://www.shadowcat.co.uk/blog/matt-s-trout/a-cunning-no_plan/
     while (<$th>) {                # extract the number of tests planned
         if (/^\s*plan\D*(\d+)/) { $plan = $1; last; }
-    }                                   # no_plan makes this meaningless
+        elsif (/^\s*plan\s+\*;/) { $no_plan = 1; last; }
+    }
     close $th or die $!;
     my $tname = $tname{$tfile};
     # repeat the column headings at the start of each Synopsis
@@ -106,7 +109,6 @@ for my $tfile (@tfiles) {
         elsif (/^not ok +(.*)/)    { $fail++; push @fail, "$tname $1"; }
         elsif (/^ok +\d+/)         { $pass++; }
     }
-    # using no_plan, plan 0 or planless testing would break this
     my $test = $pass + $fail + $todo + $skip;
     if ($plan > $test) {
         $abort = $plan - $test;
@@ -116,6 +118,9 @@ for my $tfile (@tfiles) {
     elsif ($plan < $test) {
         $bonus = $test - $plan;
         push @fail, "$tname passed $bonus unplanned test(s)";
+    }
+    if ($no_plan) {
+        push @plan_hint, "'plan *;' could become 'plan $plan;' in $tname";
     }
     printf "%4d %4d %4d %4d %4d\n",
         $pass, $fail, $todo, $skip, $plan;
@@ -156,6 +161,13 @@ for my $syn (sort keys %syn) {
     $sum{'spec'} += $spec;
 }
 
+if (@plan_hint) {
+    print "----------------\n";
+    foreach (@plan_hint) {
+        print "    $_\n";
+    }
+}
+
 # Show test totals grouped by Synopsys, followed by overall totals
 print "----------------\n";
 my $sumfmt = qq(%-11.11s %6s,%6s,%6s,%6s,%6s,%6s\n);
@@ -186,7 +198,7 @@ if ($ENV{'REV'}) {
 if (@fail) {
     print "Failure summary:\n";
     foreach (@fail) {
-        print "    $_\n";
+        print "$_\n";
     }
 }
 else {

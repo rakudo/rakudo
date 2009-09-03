@@ -45,12 +45,12 @@ class Any is also {
     }
 
     # Used by the :Trig subs and methods in the Int and Num classes.
-    our Num multi method !to-radians($base) {
+    our multi method !to-radians($base) {
         given $base {
-            when /:i ^d/ { self * pi/180 }    # Convert from degrees.
-            when /:i ^g/ { self * pi/200 }    # Convert from gradians.
-            when /:i ^r/ { self }             # Convert from radians.
-            when Num     { self * 2 * pi }    # Convert from revolutions.
+            when /:i ^d/ { self * pi/180.0 }    # Convert from degrees.
+            when /:i ^g/ { self * pi/200.0 }    # Convert from gradians.
+            when /:i ^r/ { self }               # Convert from radians.
+            when Num     { self * 2.o * pi }    # Convert from revolutions.
             default { die "Unable to convert to base: $base" }
         }
     }

@@ -50,7 +50,7 @@ class Any is also {
             when /:i ^d/ { self * pi/180.0 }    # Convert from degrees.
             when /:i ^g/ { self * pi/200.0 }    # Convert from gradians.
             when /:i ^r/ { self }               # Convert from radians.
-            when Num     { self * 2.o * pi }    # Convert from revolutions.
+            when Num     { self * 2.0 * pi }    # Convert from revolutions.
             default { die "Unable to convert to base: $base" }
         }
     }

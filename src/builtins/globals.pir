@@ -96,6 +96,7 @@ src/builtins/globals.pir - initialize miscellaneous global variables
 .namespace []
 .sub '!find_contextual'
     .param string name
+    substr name, 1, 1, ''
     $P0 = get_global name
     unless null $P0 goto done
     $P0 = '!FAIL'('Contextual ', name, ' not found')

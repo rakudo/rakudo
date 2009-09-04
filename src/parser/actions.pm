@@ -2124,17 +2124,17 @@ method variable($/, $key) {
         $var<sigil> := ~$<sigil>;
         if $twigil { $var<twigil> := $twigil; }
 
-        # If namespace qualified or has a '*' twigil, it's a package var.
+        # Variables with '*' twigils are contextual.
         if $twigil eq '*' {
             my $vardecl := $var;
+            $var := PAST::Op.new( $varname, 
+                                  :name('!find_contextual'),
+                                  :lvalue(0) );
             $varname := $sigil ~ $name;
             $vardecl.name($varname);
             $vardecl.namespace(@ns);
             $vardecl.scope('package');
             $vardecl.viviself( container_itype($sigil) );
-            $var := PAST::Op.new( $varname, 
-                                  :name('!find_contextual'),
-                                  :lvalue(0) );
             $var<vardecl> := $vardecl;
             $twigil := '';
         }

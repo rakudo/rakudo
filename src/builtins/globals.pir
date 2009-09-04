@@ -66,15 +66,15 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     pio = getstdin
     pio.'encoding'('utf8')
     perl6io = perl6ioclass.'new'("PIO" => pio)
-    set_hll_global "$IN", perl6io
+    set_hll_global ['PROCESS'], "$IN", perl6io
     pio = getstdout
     pio.'encoding'('utf8')
     perl6io = perl6ioclass.'new'("PIO" => pio)
-    set_hll_global "$OUT", perl6io
+    set_hll_global ['PROCESS'], "$OUT", perl6io
     pio = getstderr
     pio.'encoding'('utf8')
     perl6io = perl6ioclass.'new'("PIO" => pio)
-    set_hll_global "$ERR", perl6io
+    set_hll_global ['PROCESS'], "$ERR", perl6io
 
     ##  set up %*VM
     load_bytecode 'config.pbc'
@@ -85,7 +85,7 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     config = interp[.IGLOBALS_CONFIG_HASH]
     config = new ['Perl6Scalar'], config
     vm['config'] = config
-    set_hll_global "%VM", vm
+    set_hll_global ['PROCESS'], "%VM", vm
 
     ## the default value for new ObjectRefs
     $P0 = 'undef'()

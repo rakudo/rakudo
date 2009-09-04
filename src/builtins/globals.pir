@@ -22,7 +22,7 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     p6meta.'register'('Env', 'parent'=>$P0, 'protoobject'=>$P0)
     .local pmc env
     env = root_new ['parrot';'Env']
-    set_hll_global '%ENV', env
+    set_hll_global ['PROCESS'], '%ENV', env
 
     ##  set up @*INC
     $S0 = env['PERL6LIB']
@@ -41,17 +41,17 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     info = sysinfo .SYSINFO_PARROT_OS
     $P0 = new ['Str']
     $P0 = info
-    set_hll_global '$OS', $P0
+    set_hll_global ['PROCESS'], '$OS', $P0
 
     info = sysinfo .SYSINFO_PARROT_OS_VERSION
     $P0 = new ['Str']
     $P0 = info
-    set_hll_global '$OSVER', $P0
+    set_hll_global ['PROCESS'], '$OSVER', $P0
 
     info = interpinfo .INTERPINFO_EXECUTABLE_FULLNAME
     $P0 = new ['Str']
     $P0 = info
-    set_hll_global '$EXECUTABLE_NAME', $P0
+    set_hll_global ['PROCESS'], '$EXECUTABLE_NAME', $P0
 
     ## create basic $*CWD
     .local pmc os

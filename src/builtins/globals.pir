@@ -93,6 +93,17 @@ src/builtins/globals.pir - initialize miscellaneous global variables
 .end
 
 
+.namespace []
+.sub '!find_contextual'
+    .param string name
+    $P0 = get_global name
+    unless null $P0 goto done
+    $P0 = '!FAIL'('Contextual ', name, ' not found')
+  done:
+    .return ($P0)
+.end
+
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

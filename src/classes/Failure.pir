@@ -10,7 +10,7 @@
     p6meta.'register'('Undef', 'parent'=>failureproto, 'protoobject'=>failureproto)
 
     $P0 = box 1
-    set_hll_global '$WARNINGS', $P0
+    set_hll_global ['CORE';'GLOBAL'], '$WARNINGS', $P0
 .end
 
 =head2 Methods
@@ -84,7 +84,7 @@
 .sub '!throw_unhandled' :method
     $I0 = self.'handled'()
     if $I0 goto done
-    $P0 = get_hll_global '$WARNINGS'
+    $P0 = get_hll_global ['CORE';'GLOBAL'], '$WARNINGS'
     unless $P0 goto done
     $P0 = self.'!exception'()
     $S0 = $P0['message']

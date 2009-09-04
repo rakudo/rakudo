@@ -30,11 +30,11 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     push $P0, '.'
     $P0 = 'list'($P0)
     $P0 = $P0.'Array'()
-    set_hll_global '@INC', $P0
+    set_hll_global ['PROCESS'], '@INC', $P0
 
     ##  set up %*INC
     $P0 = new ['Perl6Hash']
-    set_hll_global '%INC', $P0
+    set_hll_global ['PROCESS'], '%INC', $P0
 
     ##  set up $*OS, $*OSVER $*EXECUTABLE_NAME
     .local string info
@@ -96,8 +96,13 @@ src/builtins/globals.pir - initialize miscellaneous global variables
 .namespace []
 .sub '!find_contextual'
     .param string name
-    substr name, 1, 1, ''
-    $P0 = get_global name
+
+    .local string pkgname
+    pkgname = clone name
+    substr pkgname, 1, 1, ''
+    $P0 = get_hll_global ['PROCESS'], pkgname
+    unless null $P0 goto done
+    $P0 = get_global pkgname
     unless null $P0 goto done
     $P0 = '!FAIL'('Contextual ', name, ' not found')
   done:

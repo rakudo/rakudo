@@ -21,7 +21,7 @@ Parses a format string and prints formatted output according to it.
 .sub 'printf'
     .param pmc args            :slurpy
     .local pmc it, out
-    out = get_hll_global '$OUT'
+    out = '!find_contextual'('$*OUT')
     $S0 = 'sprintf'(args :flat)
     out.'print'($S0)
     .return (1)

@@ -79,7 +79,7 @@ itself can be found in src/builtins/control.pir.
   have_name:
     ##  see if we loaded this already
     .local pmc inc_hash
-    inc_hash = get_hll_global '%INC'
+    inc_hash = '!find_contextual'('%*INC')
     $I0 = exists inc_hash[name]
     unless $I0 goto require_name
     $I0 = defined inc_hash[name]
@@ -88,7 +88,7 @@ itself can be found in src/builtins/control.pir.
   require_name:
     ##  loop through @INC
     .local pmc inc_it
-    $P0 = get_hll_global '@INC'
+    $P0 = '!find_contextual'('@*INC')
     inc_it = iter $P0
   inc_loop:
     unless inc_it goto inc_end

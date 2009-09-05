@@ -97,9 +97,11 @@ src/builtins/globals.pir - initialize miscellaneous global variables
 .sub '!find_contextual'
     .param string name
 
+    # first search caller scopes
     $P0 = find_dynamic_lex name
     unless null $P0 goto done
 
+    # next, strip twigil and search PROCESS package
     .local string pkgname
     pkgname = clone name
     substr pkgname, 1, 1, ''
@@ -107,6 +109,18 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     unless null $P0 goto done
     $P0 = get_global pkgname
     unless null $P0 goto done
+
+    # if still not found, try %*ENV
+    .local pmc env
+    env = '!find_contextual'('%*ENV')
+    .local string envname
+    envname = clone name
+    substr envname, 0, 2, ''
+    $I0 = exists env[envname]
+    unless $I0 goto fail
+    $P0 = env[envname]
+    unless null $P0 goto done
+  fail:
     $P0 = '!FAIL'('Contextual ', name, ' not found')
   done:
     .return ($P0)

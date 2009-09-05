@@ -129,6 +129,7 @@ It is an error to use bare C<unlink> without arguments.
 .sub '!qx'
     .param string cmd
     .local pmc pio
+    '!hash_to_env'()
     pio = open cmd, 'rp'
     unless pio goto err_qx
     pio.'encoding'('utf8')

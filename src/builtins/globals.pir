@@ -18,10 +18,8 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
 
     ##  set up %*ENV
-    $P0 = get_hll_global 'Hash'
-    p6meta.'register'('Env', 'parent'=>$P0, 'protoobject'=>$P0)
     .local pmc env
-    env = root_new ['parrot';'Env']
+    env = '!env_to_hash'()
     set_hll_global ['PROCESS'], '%ENV', env
 
     ##  set up @*INC
@@ -126,6 +124,52 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     .return ($P0)
 .end
 
+
+.sub '!env_to_hash'
+    .local pmc env, hash
+    env = root_new ['parrot';'Env']
+    hash = new ['Perl6Hash']
+    $P0 = iter env
+  env_loop:
+    unless $P0 goto env_done
+    $S0 = shift $P0
+    $S1 = env[$S0]
+    hash[$S0] = $S1
+    goto env_loop
+  env_done:
+    .return (hash)
+.end
+
+
+.sub '!hash_to_env'
+    .param pmc hash            :optional
+    .param int has_hash        :opt_flag
+
+    if has_hash goto have_hash
+    hash = '!find_contextual'('%*ENV')
+  have_hash:
+
+    .local pmc env
+    env = root_new ['parrot';'Env']
+    $P0 = iter env
+  env_loop:
+    unless $P0 goto env_done
+    $S0 = shift $P0
+    $I0 = exists hash[$S0]
+    if $I0 goto env_loop
+    delete env[$S0]
+    goto env_loop
+  env_done:
+
+    $P0 = iter hash
+  hash_loop:
+    unless $P0 goto hash_done
+    $S0 = shift $P0
+    $S1 = hash[$S0]
+    env[$S0] = $S1
+    goto hash_loop
+  hash_done:
+.end
 
 # Local Variables:
 #   mode: pir

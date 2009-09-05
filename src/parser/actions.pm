@@ -2136,7 +2136,6 @@ method variable($/, $key) {
             $vardecl.name($varname);
             $vardecl.namespace(@ns);
             $vardecl.scope('package');
-            $vardecl.viviself( container_itype($sigil) );
             $var<vardecl> := $vardecl;
             $twigil := '';
         }

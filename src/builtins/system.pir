@@ -29,6 +29,7 @@ return the status code from the C<spawnw> opcode.
     .param string cmd
     .local int retval
 
+    '!hash_to_env'()
     spawnw retval, cmd
     .return (retval)
 .end
@@ -39,6 +40,7 @@ return the status code from the C<spawnw> opcode.
     .local int retval
 
     unshift args, path
+    '!hash_to_env'()
     spawnw retval, args
     .return (retval)
 .end
@@ -47,6 +49,7 @@ return the status code from the C<spawnw> opcode.
     .param pmc path_and_args
     .local int retval
 
+    '!hash_to_env'()
     spawnw retval, path_and_args
     .return (retval)
 .end

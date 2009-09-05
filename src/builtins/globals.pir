@@ -22,18 +22,6 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     env = '!env_to_hash'()
     set_hll_global ['PROCESS'], '%ENV', env
 
-    ##  set up @*INC
-    $S0 = env['PERL6LIB']
-    $P0 = split ':', $S0
-    push $P0, '.'
-    $P0 = 'list'($P0)
-    $P0 = $P0.'Array'()
-    set_hll_global ['PROCESS'], '@INC', $P0
-
-    ##  set up %*INC
-    $P0 = new ['Perl6Hash']
-    set_hll_global ['PROCESS'], '%INC', $P0
-
     ##  set up $*OS, $*OSVER $*EXECUTABLE_NAME
     .local string info
     info = sysinfo .SYSINFO_PARROT_OS
@@ -84,6 +72,27 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     config = new ['Perl6Scalar'], config
     vm['config'] = config
     set_hll_global ['PROCESS'], "%VM", vm
+
+    ##  set up @*INC
+    $S0 = env['PERL6LIB']
+    $P0 = split ':', $S0
+    config = interp[.IGLOBALS_CONFIG_HASH]
+    $S0 = config['libdir']
+    $S1 = config['versiondir']
+    concat $S0, $S1
+    concat $S0, '/languages/perl6/lib'
+    unshift $P0, $S0
+    $S0 = env['HOME']
+    concat $S0, '/.perl6lib'
+    unshift $P0, $S0
+    push $P0, '.'
+    $P0 = 'list'($P0)
+    $P0 = $P0.'Array'()
+    set_hll_global ['PROCESS'], '@INC', $P0
+
+    ##  set up %*INC
+    $P0 = new ['Perl6Hash']
+    set_hll_global ['PROCESS'], '%INC', $P0
 
     ## the default value for new ObjectRefs
     $P0 = 'undef'()

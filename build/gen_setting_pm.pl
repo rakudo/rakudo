@@ -15,8 +15,9 @@ END_SETTING
 
 foreach my $file (@files) {
     print "# From $file\n\n";
-    open(my $fh, "< $file") or die $!;
-    print join('', <$fh>);
+    open(my $fh, "<",  $file) or die $!;
+    local $/;
+    print <$fh>;
     close $fh;
 }
 

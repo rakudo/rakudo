@@ -97,6 +97,9 @@ src/builtins/globals.pir - initialize miscellaneous global variables
 .sub '!find_contextual'
     .param string name
 
+    $P0 = find_dynamic_lex name
+    unless null $P0 goto done
+
     .local string pkgname
     pkgname = clone name
     substr pkgname, 1, 1, ''

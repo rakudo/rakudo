@@ -2124,13 +2124,15 @@ method variable($/, $key) {
         $var<sigil> := ~$<sigil>;
         if $twigil { $var<twigil> := $twigil; }
 
-        # Variables with '*' twigils are contextual.
+        # Variables with '*' twigils are contextual.  Normally
+        # this is handled by a call to !find_contextual, but
+        # we also create a PAST::Var in case it's a variable
+        # declaration.
         if $twigil eq '*' {
             my $vardecl := $var;
             $var := PAST::Op.new( $varname, 
                                   :name('!find_contextual'),
                                   :lvalue(0) );
-            $varname := $sigil ~ $name;
             $vardecl.name($varname);
             $vardecl.namespace(@ns);
             $vardecl.scope('package');

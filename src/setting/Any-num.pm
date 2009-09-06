@@ -64,6 +64,16 @@ class Any is also {
             default { die "Unable to convert to base: $base" }
         }
     }
+    
+    our Num multi method sin($base = 'radians') is export {
+        self.Num!to-radians($base).sin; # seems awkward, but the obvious way of doing
+                                        # this is tripping up on some wierd Rakudo-bug
+    }
+    
+    our Num multi method cos($base = 'radians') is export {
+        self.Num!to-radians($base).cos; # seems awkward, but the obvious way of doing
+                                        # this is tripping up on some wierd Rakudo-bug
+    }
 }
 
 our Num sub rand (*@args) {

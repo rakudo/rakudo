@@ -103,12 +103,12 @@ multi sub infix:<**>($a, Complex $b) {
 }
 
 class Complex is also {
-    method sin($base = 'radians') {
-        $.re.sin($base) * $.im.cosh($base) + 1i * $.re.cos($base) * $.im.sinh($base);
+    multi method sin($base = 'radians') {
+        $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
     }
     
-    method cos($base = 'radians') {
-        $.re.cos($base) * $.im.cosh($base) - 1i * $.re.sin($base) * $.im.sinh($base);
+    multi method cos($base = 'radians') {
+        $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
     }
 }
 

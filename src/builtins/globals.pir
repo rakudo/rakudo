@@ -117,16 +117,6 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     $P0 = get_global pkgname
     unless null $P0 goto done
 
-    # if still not found, try %*ENV
-    .local pmc env
-    env = '!find_contextual'('%*ENV')
-    .local string envname
-    envname = clone name
-    substr envname, 0, 2, ''
-    $I0 = exists env[envname]
-    unless $I0 goto fail
-    $P0 = env[envname]
-    unless null $P0 goto done
   fail:
     $P0 = '!FAIL'('Contextual ', name, ' not found')
   done:

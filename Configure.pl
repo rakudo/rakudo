@@ -42,6 +42,10 @@ MAIN: {
         ../../parrot_config
         parrot_config
     );
+    if (exists $options{'gen-parrot-prefix'}) {
+        unshift @parrot_config_exe,
+                $options{'gen-parrot-prefix'} . '/bin/parrot_config';
+    }
 
     if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
         @parrot_config_exe = ($options{'parrot-config'});

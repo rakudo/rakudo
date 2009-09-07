@@ -70,6 +70,7 @@ $syn = ''; # to reliably trigger the display of column headings
 # Execute all test scripts, aggregate the results, display the failures
 $| = 1;
 my ( @fail, @plan_hint );
+my %plan_per_file;
 for my $tfile (@tfiles) {
     my $th;
     open($th, '<', $tfile) || die "Can't read $tfile: $!\n";
@@ -129,6 +130,11 @@ for my $tfile (@tfiles) {
     $sum{'todo'} += $todo;  $sum{"$syn-todo"} += $todo;
     $sum{'skip'} += $skip;  $sum{"$syn-skip"} += $skip;
     $sum{'plan'} += $plan;  $sum{"$syn-plan"} += $plan;
+    {
+        my $f = $tfile;
+        $f =~ s/\.rakudo$/.t/;
+        $plan_per_file{$f} = $plan;
+    }
     for (keys %skip) {
         printf "   %3d skipped: %s\n", $skip{$_}, $_;
     }
@@ -151,12 +157,18 @@ for my $tfile (@tfiles) {
 # Implementing 'no_plan' or 'plan *' in test scripts would make this
 # total inaccurate.
 for my $syn (sort keys %syn) {
-    my $ackcmd = "ack plan t/spec/$syn* -wh"; # some systems use ack-grep
+    my $ackcmd = "ack ^plan t/spec/$syn* -wH"; # some systems use ack-grep
     my @results = `$ackcmd`;       # gets an array of all the plan lines
     my $spec = 0;
     for (@results) {
-        $spec += $1 if /^\s*plan\s+(\d+)/; # unreliable because some
-    }                                      # plans use expressions
+        my ($fn, undef, $rest) = split /:/, $_;
+        if (exists $plan_per_file{$fn}) {
+            $spec += $plan_per_file{$fn}
+        } else {
+            # unreliable because some tests use expressions
+            $spec += $1 if $rest =~ /^\s*plan\s+(\d+)/;
+        }
+    }
     $sum{"$syn-spec"} = $spec;
     $sum{'spec'} += $spec;
 }

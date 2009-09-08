@@ -16,8 +16,10 @@
         PPS: This file is encoded in UTF-8
 
 ----------
-N: Ahmed Zawawi
-D: Rakudo builtins
+N: Ahmad M. Zawawi
+U: azawawi
+E: ahmad.zawawi@gmail.com
+D: Rakudo builtins, win32 patches
 
 N: Alberto Manuel Brandao Simoes
 U: ambs

@@ -23,4 +23,6 @@ MANIFEST
 commits.png
 dynext/perl6_*.bundle
 dynext/perl6_*.so
+dynext/perl6_*.dll
 perl6_group.?
+libparrot.dll

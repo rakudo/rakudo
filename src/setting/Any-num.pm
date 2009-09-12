@@ -77,9 +77,10 @@ class Any is also {
         self.Num.tan($base);
     }
 
-    our Num multi method sec($base = 'radians') is export {
-        self.Num.sec($base);
-    }
+    # Having Any.sec breaks t/spec/S32-io/IO-Socket-INET.t ???
+    # our Num multi method sec($base = 'radians') is export {
+    #     self.Num.sec($base);
+    # }
 
     our Num multi method cosec($base = 'radians') is export {
         self.Num.cosec($base);

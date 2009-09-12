@@ -251,6 +251,10 @@ class Num is also {
         ~self
     }
 
+    our Num multi method Num() {
+        self;
+    }
+
     our Num multi method tan($base = 'radians') is export {
         my $x = self!to-radians($base);
         Q:PIR {

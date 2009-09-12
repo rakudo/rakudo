@@ -64,15 +64,29 @@ class Any is also {
             default { die "Unable to convert to base: $base" }
         }
     }
-    
+
     our Num multi method sin($base = 'radians') is export {
-        self.Num!to-radians($base).sin; # seems awkward, but the obvious way of doing
-                                        # this is tripping up on some wierd Rakudo-bug
+        self.Num.sin($base);
     }
-    
+
     our Num multi method cos($base = 'radians') is export {
-        self.Num!to-radians($base).cos; # seems awkward, but the obvious way of doing
-                                        # this is tripping up on some wierd Rakudo-bug
+        self.Num.cos($base);
+    }
+
+    our Num multi method tan($base = 'radians') is export {
+        self.Num.tan($base);
+    }
+
+    our Num multi method sec($base = 'radians') is export {
+        self.Num.sec($base);
+    }
+
+    our Num multi method cosec($base = 'radians') is export {
+        self.Num.cosec($base);
+    }
+
+    our Num multi method cotan($base = 'radians') is export {
+        self.Num.cotan($base);
     }
 }
 

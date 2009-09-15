@@ -47,7 +47,7 @@ with this release include:
 * ...
 
 Since the Perl 6 specification is still in flux, some deprecated features
-will be removed from Rakudo. Prominently among those are:
+have been removed from Rakudo. Prominently among those are:
 
  * '=$handle' is deprecated in favor of '$handle.get' (one line)
    and '$handle.lines' (all lines).

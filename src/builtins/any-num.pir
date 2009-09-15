@@ -42,7 +42,7 @@ the size of that file down and to emphasize their generic,
 
 .namespace ['Any']
 .sub 'int' :method :multi(_)
-    .tailcall self.'truncate'()
+    "die"("the int() sub and .int method have been replaced by the .Int method")
 .end
 
 .namespace ['Any']

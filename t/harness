@@ -23,6 +23,8 @@ GetOptions(
     'verbosity=i'       => \$Test::Harness::verbose,
     'jobs:3'            => \my $jobs,
     'icu:1'             => \my $do_icu,
+    'archive=s'         => \my $archive,
+    'parrot_revision=s' => \my $parrot_revision,
 );
 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
@@ -54,14 +56,24 @@ if ($do_fudge) {
     @tfiles = fudge(@tfiles);
 }
 
-if (eval { require TAP::Harness; 1 }) {
+my $tap_harness_class = 'TAP::Harness';
+$tap_harness_class .= '::Archive' if $archive;
+
+my $extra_properties;
+$extra_properties->{'Parrot Revision'} = $parrot_revision
+  if $parrot_revision;
+
+if (eval "require $tap_harness_class;") {
     my %harness_options = (
         exec        => ['./perl6'],
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $ENV{TEST_JOBS} || $jobs || 1,
         ignore_exit => 1,
+        merge       => 1,
+        $archive ? ( archive => $archive ) : (),
+        $extra_properties ? ( extra_properties => $extra_properties ) : (),
     );
-    TAP::Harness->new( \%harness_options )->runtests(@tfiles);
+    $tap_harness_class->new( \%harness_options )->runtests(@tfiles);
 }
 else {
     runtests(@tfiles);

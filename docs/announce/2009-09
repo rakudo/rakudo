@@ -38,6 +38,8 @@ with this release include:
   passing tests since the August 2009 release.  With this release
   Rakudo is now passing XX.XX% of the available spectest suite.
 
+* Rakudo now supports contextual variables.
+
 * Rakudo now supports the rational (Rat) data type.
 
 * Rakudo now supports overloading of many of the builtin operators.

@@ -89,6 +89,32 @@ class Any is also {
     our Num multi method cotan($base = 'radians') is export {
         self.Num.cotan($base);
     }
+    
+    our Num multi method sinh($base = 'radians') is export {
+        self.Num.sinh($base);
+    }
+    
+    our Num multi method cosh($base = 'radians') is export {
+        self.Num.cosh($base);
+    }
+    
+    our Num multi method tanh($base = 'radians') is export {
+        self.Num.tanh($base);
+    }
+
+    our Num multi method sech($base = 'radians') is export {
+        self.Num.sech($base);
+    }
+
+    our Num multi method cosech($base = 'radians') is export {
+        self.Num.cosech($base);
+    }
+
+    our Num multi method cotanh($base = 'radians') is export {
+        self.Num.cotanh($base);
+    }
+
+
 }
 
 our Num sub rand (*@args) {

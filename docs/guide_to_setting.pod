@@ -87,6 +87,15 @@ If a method doesn't take any arguments, give it an explicit empty
 signature C<()>. That's very different from omitting the signature
 alltogether (which would be an implicit caatch-all signature).
 
+=item Use implicit return at the end of routines
+
+If no C<return> statement is executed in a routine, the value of the
+last evaluated expression is returned.
+
+So if a C<return EXPR> is the last statement in a routine, omit the
+C<return> - currently explicit returns take much more time
+than implicit ones.
+
 =back
 
 =head1 SEE ALSO

@@ -4,6 +4,7 @@ New in 2009-09 release
 + overloadable builtin operators
 + contextual variables
 + setting values in %*ENV now works
++ Partial support for trigonometric functions of complex numbers
 
 New in 2009-08 release
 + Rakudo must now be built from an installed parrot, and can be installed

@@ -1,20 +1,20 @@
-Announce: Rakudo Perl 6 development release #21 ("XXX")
+Announce: Rakudo Perl 6 development release #21 ("Seattle")
 
 On behalf of the Rakudo development team, I'm pleased to announce
-the September 2009 development release of Rakudo Perl #21 "XXX".
+the September 2009 development release of Rakudo Perl #21 "Seattle".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
 The tarball for the September 2009 release is available from
 http://github.com/rakudo/rakudo/downloads .
 
-Due to the continued rapid pace of Rakudo development and the
-frequent addition of new Perl 6 features and bugfixes, we continue
-to recommend that people wanting to use or work with Rakudo obtain
-the latest source directly from the main repository at github.
-More details are available at http://rakudo.org/how-to-get-rakudo .
+Due to the continued rapid pace of Rakudo development and the frequent
+addition of new Perl 6 features and bugfixes, we recommend building rakudo
+from the latest source, available from the main repository at github.
+More details are available at http://rakudo.org/how-to-get-rakudo.
 
 Rakudo Perl follows a monthly release cycle, with each release code named
-after a Perl Mongers group.  September 2009 is code named "XXX" for the
-[...add some useful information about XXX group here...]
+after a Perl Mongers group.  September 2009 is code named "Seattle" for the
+enthusiasm they have shown for Perl 6 during monthly meetings, and the
+feedback, encouragement and support given me for the past several years.
 
 Since the 2009-08 release, Rakudo Perl builds from an "installed
 Parrot" instead of using Parrot's build tree.  This release of Rakudo
@@ -34,17 +34,15 @@ the executables will work when invoked from any directory.
 Some of the specific major changes and improvements occuring
 with this release include:
   
-* Rakudo is now passing XXX spectests, an increase of XXX
+* Rakudo is now passing 15,497 spectests, an increase of 3,128
   passing tests since the August 2009 release.  With this release
-  Rakudo is now passing XX.XX% of the available spectest suite.
+  Rakudo is now passing 71.95% of the available spectest suite.
 
 * Rakudo now supports contextual variables.
 
 * Rakudo now supports the rational (Rat) data type.
 
 * Rakudo now supports overloading of many of the builtin operators.
-
-* ...
 
 Since the Perl 6 specification is still in flux, some deprecated features
 have been removed from Rakudo. Prominently among those are:

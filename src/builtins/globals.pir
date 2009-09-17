@@ -83,7 +83,12 @@ src/builtins/globals.pir - initialize miscellaneous global variables
     concat $S0, '/languages/perl6/lib'
     unshift $P0, $S0
     $S0 = env['HOME']
-    concat $S0, '/.perl6lib'
+    if $S0 goto have_home
+    $S0 = env['HOMEDRIVE']
+    $S1 = env['HOMEPATH']
+    concat $S0, $S1
+  have_home:
+    concat $S0, '/.perl6/lib'
     unshift $P0, $S0
     push $P0, '.'
     $P0 = 'list'($P0)

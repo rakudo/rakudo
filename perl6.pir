@@ -375,6 +375,7 @@ to the Perl 6 compiler.
     $P0()
     goto iter_loop
   iter_end:
+    exit 0
 .end
 
 

@@ -155,6 +155,7 @@ SETTING = \
   src/setting/IO/Socket/INET.pm \
   src/setting/Junction.pm \
   src/setting/List.pm \
+  src/setting/Mapping.pm \
   src/setting/Match.pm \
   src/setting/Num.pm \
   src/setting/NYI.pm \

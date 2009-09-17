@@ -34,9 +34,9 @@ the executables will work when invoked from any directory.
 Some of the specific major changes and improvements occuring
 with this release include:
   
-* Rakudo is now passing XXX spectests, an increase of XXX
+* Rakudo is now passing 15,497 spectests, an increase of 3,128
   passing tests since the August 2009 release.  With this release
-  Rakudo is now passing XX.XX% of the available spectest suite.
+  Rakudo is now passing 71.5% of the available spectest suite.
 
 * Rakudo now supports contextual variables.
 

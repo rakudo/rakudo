@@ -17,6 +17,7 @@
 use strict;
 use warnings;
 use Time::Local;
+use Time::HiRes;
 
 # Build the list of test scripts to run in @tfiles
 my $testlist = $ARGV[0] || 't/spectest.data';
@@ -73,14 +74,15 @@ my( %times, @interesting_times );
 if ( open( my $times, '<', 'docs/test_summary.times') ) {
 	while ( <$times> ) {
 	    if (/^(.*),(\d+)-(\d+)-(\d+)\s(\d+):(\d+):(\d+),(.*)/) {
-	        my ( $testname, $year, $mon, $mday, $hour, $min, $sec, $cusertime )
+	        my ( $testname, $year, $mon, $mday, $hour, $min, $sec, $realtime )
 	            = ( $1, $2, $3, $4, $5, $6, $7, $8 );
 	        my $timegm = timegm( $sec, $min, $hour, $mday, $mon-1, $year-1900 );
-	        $times{$testname} = [ $timegm, $cusertime ];
+	        $times{$testname} = [ $timegm, $realtime ];
 	    }
 	}
 	close $times or die $!;
 }
+my $total_start = Time::HiRes::time;
 $times{'test startup'} = [ time, 9999 ]; # ignore test startup from previous runs?
 open( my $times, '>', 'docs/test_summary.times.tmp') or die "cannot create docs/test_summary.times.tmp: $!";
 
@@ -111,9 +113,9 @@ for my $tfile (@tfiles) {
     $syn{$syn}++;
     printf "%s%s..", $tname, '.' x ($max - length($tname));
     my $cmd = "./perl6 $tfile";
-    my ($user1,$system1,$cuser1,$csystem1) = times;
+    my $realtime1 = Time::HiRes::time;
     my @results = split "\n", `$cmd`;  # run the test, @result = all stdout
-    my ($user2,$system2,$cuser2,$csystem2) = times;
+    my $realtime2 = Time::HiRes::time;
     my (%skip, %todopass, %todofail);
     for (@results) {
         # pass over the optional line containing "1..$planned"
@@ -171,78 +173,87 @@ for my $tfile (@tfiles) {
     }
     # track simple relative benchmarking
     {
-        my $cuser = $cuser2 - $cuser1;
-        if ( $cuser < $times{'test startup'}->[1] ) {
-            $times{'test startup'} = [ time, $cuser ];
+        my $testname = $tfile;
+        $testname =~ s{^t/spec/}{};
+        my $realtime = $realtime2 - $realtime1;
+        if ( $realtime < $times{'test startup'}->[1] ) {
+            $times{'test startup'} = [ time, $realtime ];
         }
-        if ( not exists( $times{$tname} ) ) { $times{$tname} = [ time, $cuser ]; }
-        my $datet_old = $times{$tname}->[0];
-        my $cuser_old = $times{$tname}->[1];
-        my $diff_sec = abs($cuser - $times{$tname}->[1]);
-        if ( $diff_sec >= 0.05 ) {
-            push @interesting_times, [ $tname, $datet_old, $cuser_old, time, $cuser, $diff_sec ];
-            $times{$tname} = [ time, $cuser ];
+        if ( not exists( $times{$testname} ) ) { $times{$testname} = [ time, $realtime ]; }
+        my $datetime_old = $times{$testname}->[0];
+        my $realtime_old = $times{$testname}->[1];
+        my $diff_sec = abs($realtime - $times{$testname}->[1]);
+        if ( $diff_sec >= 0.2 ) {
+            push @interesting_times, [ $testname, $datetime_old, $realtime_old, time, $realtime, $diff_sec ];
+            $times{$testname} = [ time, $realtime ];
         }
         my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime($times{$tname}->[0]);
-        printf $times "%s,%04d-%02d-%02d %02d:%02d:%02d,%g\n", $tname,
-            $year+1900, $mon+1, $mday, $hour, $min, $sec, $times{$tname}->[1];
+        printf $times "%s,%04d-%02d-%02d %02d:%02d:%02d,%g\n", $testname,
+            $year+1900, $mon+1, $mday, $hour, $min, $sec, $times{$testname}->[1];
     }
 } # for my $tfile (@tfiles)
 
 # finish simple relative benchmarking
 {
-#   use DateTime;
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime;
     printf $times "%s,%04d-%02d-%02d %02d:%02d:%02d,%g\n", 'test startup',
         $year+1900, $mon+1, $mday, $hour, $min, $sec, $times{'test startup'}->[1];
     close $times or die $!;
     rename 'docs/test_summary.times.tmp', 'docs/test_summary.times';
+    my $total_time = Time::HiRes::time - $total_start;
+
     if ( @interesting_times ) {
-        print "----------------\n";
-        my $test_startup = $times{'test startup'}->[1];
-        print "Minimum test startup ${test_startup}s\n";
         @interesting_times = map  { $_->[0] }             # Schwartzian Transform
                              sort { $b->[1] <=> $a->[1] } # descending
                              map  { [$_, $$_[5]] }        # absolute time difference
                              @interesting_times;
-        @interesting_times = @interesting_times[0..($#interesting_times>19?19:$#interesting_times)];
+        my $top_count = 20;
+        $top_count = @interesting_times if $top_count > @interesting_times;
+        @interesting_times = @interesting_times[0..$top_count-1];
+        print "----------------\n";
+        my $test_startup = $times{'test startup'}->[1];
+        printf "Minimum test startup %.2fs. Total time %d minute(s).\n",
+            $test_startup, $total_time/60;
         for my $interesting ( @interesting_times ) {
-            my( $tname, $dt1, $cuser1, $dt2, $cuser2, $diff_sec ) = @$interesting;
-            my $change = $cuser1 < $cuser2 ? 'slower' : 'faster';
+            my( $testname, $dt1, $realtime1, $dt2, $realtime2, $diff_sec ) = @$interesting;
+            my $change = $realtime1 < $realtime2 ? 'slower' : 'faster';
             # The percentage difference is from the previous child user time minus
             # the presumed startup time. Without a check it can divide by zero.
             my $diff_pct = 100;
-            if ( $cuser1 != $test_startup ) {
-                $diff_pct = 100 * ($cuser2-$cuser1) / ( $cuser1 - $test_startup );
+            if ( $realtime1 != $test_startup ) {
+                $diff_pct = 100 * ($realtime2-$realtime1) / ( $realtime1 - $test_startup );
             }
             my $ago = int($dt2 - $dt1);
             my $unit = 'second'; $unit.='s' if $ago!=1;
-            if ($ago>60) {
-                $ago=int($ago/60); $unit='minute'; $unit.='s' if $ago!=1;
-                if ($ago>60) {
-                    $ago=int($ago/60); $unit='hour'; $unit.='s' if $ago!=1;
-                    if ($ago>24) {
-                        $ago=int($ago/24); $unit='day'; $unit.='s' if $ago!=1;
-                        if ($ago>7) {
-                            $ago=int($ago/7); $unit='week'; $unit.='s' if $ago!=1;
-                        }
-                    }
-                }
+            my $units = [ ['minute',60],['hour',60],['day',24],['week',7] ];
+            for my $refunit ( @$units ) {
+                last if $ago < $$refunit[1];
+                $ago = int($ago/$$refunit[1]);
+                $unit = $$refunit[0];
+                $unit.='s' if $ago!=1;
             }
+#           if ($ago>60) {
+#               $ago=int($ago/60); $unit='minute'; $unit.='s' if $ago!=1;
+#               if ($ago>60) {
+#                   $ago=int($ago/60); $unit='hour'; $unit.='s' if $ago!=1;
+#                   if ($ago>24) {
+#                       $ago=int($ago/24); $unit='day'; $unit.='s' if $ago!=1;
+#                       if ($ago>7) {
+#                           $ago=int($ago/7); $unit='week'; $unit.='s' if $ago!=1;
+#                       }
+#                   }
+#               }
+#           }
             printf "%-38s %.2fs %s (%.1f%%) than %d %s ago\n",
-                $tname, $diff_sec, $change, $diff_pct, $ago, $unit;
-#           my $d1 = DateTime->from_epoch( epoch => $dt1 );
-#           my $d2 = DateTime->from_epoch( epoch => $dt2 );
-#           printf "    (%s, %.2f, %s, %.2f)\n", $d1->ymd.' '.$d1->hms,
-#               $cuser1, $d2->ymd.' '.$d2->hms, $cuser2;
+                $testname, $diff_sec, $change, $diff_pct, $ago, $unit;
         }
     }
 }
 
 # Calculate plan totals from test scripts grouped by Synopsis and overall.
 # This ignores any test list and processes all unfudged files in t/spec/.
-# Implementing 'no_plan' or 'plan *' in test scripts would make this
-# total inaccurate.
+# Implementing 'no_plan' or 'plan *' in test scripts makes this total
+# inaccurate.
 for my $syn (sort keys %syn) {
     my $ackcmd = "ack ^plan t/spec/$syn* -wH"; # some systems use ack-grep
     my @results = `$ackcmd`;       # gets an array of all the plan lines

@@ -299,10 +299,10 @@ spectest_update :
 	-cd t/spec && svn up
 
 rakudo_test_run.tar.gz: testable t/spectest.data
-        - $(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@
+	- $(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@
 
 spectest_smolder: rakudo_test_run.tar.gz
-        curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=`git log -1 --pretty=format:%H` -F report_file=@rakudo_test_run.tar.gz http://smolder.plusthree.com/app/public_projects/process_add_report/18
+	curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=`git log -1 --pretty=format:%H` -F report_file=@rakudo_test_run.tar.gz http://smolder.plusthree.com/app/public_projects/process_add_report/18
 
 testable : perl6$(EXE) Test.pir spectest_checkout spectest_update
 

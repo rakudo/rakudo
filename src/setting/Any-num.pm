@@ -126,6 +126,10 @@ class Any is also {
         self.Num.atan($base);
     }
 
+    our Num multi method atan2($x = 1, $base = 'radians') is export {
+        self.Num.atan2($x, $base);
+    }
+
     our Num multi method asec($base = 'radians') is export {
         self.Num.asec($base);
     }

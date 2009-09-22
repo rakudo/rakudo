@@ -103,13 +103,46 @@ multi sub infix:<**>($a, Complex $b) {
 }
 
 class Complex is also {
-    multi method sin($base = 'radians') {
-        $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
+    # multi method sin($base = 'radians') {
+    #     $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
+    # }
+    #
+    # multi method cos($base = 'radians') {
+    #     $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
+    # }
+
+    multi method cosec($base = 'radians') {
+        1.0 / self!to-radians($base).sin;
     }
-    
-    multi method cos($base = 'radians') {
-        $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
+
+    multi method cosech($base = 'radians') {
+        1.0 / self!to-radians($base).sinh;
     }
+
+    multi method acosec($base = 'radians') {
+        (1.0 / self).asin!to-radians($base);
+    }
+
+    multi method cotan($base = 'radians') {
+        1.0 / self!to-radians($base).tan;
+    }
+
+    multi method cotanh($base = 'radians') {
+        1.0 / self!to-radians($base).tanh;
+    }
+
+    multi method acotan($base = 'radians') {
+        (1.0 / self).atan!to-radians($base);
+    }
+
+    multi method acosech($base = 'radians') {
+        (1.0 / self).asinh!to-radians($base);
+    }
+
+    multi method acotanh($base = 'radians') {
+        (1.0 / self).atanh!to-radians($base);
+    }
+
 }
 
 # vim: ft=perl6

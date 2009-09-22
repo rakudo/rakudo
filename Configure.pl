@@ -29,7 +29,9 @@ MAIN: {
     if ($options{'gen-parrot'}) {
         my @opts    = @{ $options{'gen-parrot-option'} || [] };
         my $prefix  = $options{'gen-parrot-prefix'} || cwd()."/parrot_install";
-        my @command = ($^X, "build/gen_parrot.pl", "--prefix=$prefix", @opts);
+        # parrot's Configure.pl mishandles win32 backslashes in --prefix
+        $prefix =~ s{\\}{/}g;
+        my @command = ($^X, "build/gen_parrot.pl", "--prefix=$prefix", "--optimize", @opts);
 
         print "Generating Parrot ...\n";
         print "@command\n\n";
@@ -42,6 +44,10 @@ MAIN: {
         ../../parrot_config
         parrot_config
     );
+    if (exists $options{'gen-parrot-prefix'}) {
+        unshift @parrot_config_exe,
+                $options{'gen-parrot-prefix'} . '/bin/parrot_config';
+    }
 
     if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
         @parrot_config_exe = ($options{'parrot-config'});

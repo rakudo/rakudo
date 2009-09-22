@@ -16,6 +16,8 @@
 
 use strict;
 use warnings;
+use Time::Local;
+use Time::HiRes;
 
 # Build the list of test scripts to run in @tfiles
 my $testlist = $ARGV[0] || 't/spectest.data';
@@ -67,16 +69,37 @@ for $syn (@syn) {
 }
 $syn = ''; # to reliably trigger the display of column headings
 
+# start simple relative benchmarking
+my( %times, @interesting_times );
+if ( open( my $times, '<', 'docs/test_summary.times') ) {
+	while ( <$times> ) {
+	    if (/^(.*),(\d+)-(\d+)-(\d+)\s(\d+):(\d+):(\d+),(.*)/) {
+	        my ( $testname, $year, $mon, $mday, $hour, $min, $sec, $realtime )
+	            = ( $1, $2, $3, $4, $5, $6, $7, $8 );
+	        my $timegm = timegm( $sec, $min, $hour, $mday, $mon-1, $year-1900 );
+	        $times{$testname} = [ $timegm, $realtime ];
+	    }
+	}
+	close $times or die $!;
+}
+my $total_start = Time::HiRes::time;
+$times{'test startup'} = [ time, 9999 ]; # ignore test startup from previous runs?
+open( my $times, '>', 'docs/test_summary.times.tmp') or die "cannot create docs/test_summary.times.tmp: $!";
+
 # Execute all test scripts, aggregate the results, display the failures
 $| = 1;
-my @fail;
+my ( @fail, @plan_hint );
+my %plan_per_file;
 for my $tfile (@tfiles) {
     my $th;
     open($th, '<', $tfile) || die "Can't read $tfile: $!\n";
     my ($pass,$fail,$todo,$skip,$plan,$abort,$bonus) = (0,0,0,0,0,0,0);
+    my $no_plan = 0; # planless may be fine, but bad for statistics
+    # http://www.shadowcat.co.uk/blog/matt-s-trout/a-cunning-no_plan/
     while (<$th>) {                # extract the number of tests planned
         if (/^\s*plan\D*(\d+)/) { $plan = $1; last; }
-    }                                   # no_plan makes this meaningless
+        elsif (/^\s*plan\s+\*;/) { $no_plan = 1; last; }
+    }
     close $th or die $!;
     my $tname = $tname{$tfile};
     # repeat the column headings at the start of each Synopsis
@@ -90,7 +113,9 @@ for my $tfile (@tfiles) {
     $syn{$syn}++;
     printf "%s%s..", $tname, '.' x ($max - length($tname));
     my $cmd = "./perl6 $tfile";
+    my $realtime1 = Time::HiRes::time;
     my @results = split "\n", `$cmd`;  # run the test, @result = all stdout
+    my $realtime2 = Time::HiRes::time;
     my (%skip, %todopass, %todofail);
     for (@results) {
         # pass over the optional line containing "1..$planned"
@@ -106,7 +131,6 @@ for my $tfile (@tfiles) {
         elsif (/^not ok +(.*)/)    { $fail++; push @fail, "$tname $1"; }
         elsif (/^ok +\d+/)         { $pass++; }
     }
-    # using no_plan, plan 0 or planless testing would break this
     my $test = $pass + $fail + $todo + $skip;
     if ($plan > $test) {
         $abort = $plan - $test;
@@ -117,6 +141,9 @@ for my $tfile (@tfiles) {
         $bonus = $test - $plan;
         push @fail, "$tname passed $bonus unplanned test(s)";
     }
+    if ($no_plan) {
+        push @plan_hint, "'plan *;' could become 'plan $plan;' in $tname";
+    }
     printf "%4d %4d %4d %4d %4d\n",
         $pass, $fail, $todo, $skip, $plan;
     $sum{'pass'} += $pass;  $sum{"$syn-pass"} += $pass;
@@ -124,6 +151,11 @@ for my $tfile (@tfiles) {
     $sum{'todo'} += $todo;  $sum{"$syn-todo"} += $todo;
     $sum{'skip'} += $skip;  $sum{"$syn-skip"} += $skip;
     $sum{'plan'} += $plan;  $sum{"$syn-plan"} += $plan;
+    {
+        my $f = $tfile;
+        $f =~ s/\.rakudo$/.t/;
+        $plan_per_file{$f} = $plan;
+    }
     for (keys %skip) {
         printf "   %3d skipped: %s\n", $skip{$_}, $_;
     }
@@ -139,21 +171,111 @@ for my $tfile (@tfiles) {
     if ($bonus) {
         printf "   %3d tests more than planned were run\n", $bonus;
     }
+    # track simple relative benchmarking
+    {
+        my $testname = $tfile;
+        $testname =~ s{^t/spec/}{};
+        my $realtime = $realtime2 - $realtime1;
+        if ( $realtime < $times{'test startup'}->[1] ) {
+            $times{'test startup'} = [ time, $realtime ];
+        }
+        if ( not exists( $times{$testname} ) ) { $times{$testname} = [ time, $realtime ]; }
+        my $datetime_old = $times{$testname}->[0];
+        my $realtime_old = $times{$testname}->[1];
+        my $diff_sec = abs($realtime - $times{$testname}->[1]);
+        if ( $diff_sec >= 0.2 ) {
+            push @interesting_times, [ $testname, $datetime_old, $realtime_old, time, $realtime, $diff_sec ];
+            $times{$testname} = [ time, $realtime ];
+        }
+        my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime($times{$tname}->[0]);
+        printf $times "%s,%04d-%02d-%02d %02d:%02d:%02d,%g\n", $testname,
+            $year+1900, $mon+1, $mday, $hour, $min, $sec, $times{$testname}->[1];
+    }
 } # for my $tfile (@tfiles)
+
+# finish simple relative benchmarking
+{
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime;
+    printf $times "%s,%04d-%02d-%02d %02d:%02d:%02d,%g\n", 'test startup',
+        $year+1900, $mon+1, $mday, $hour, $min, $sec, $times{'test startup'}->[1];
+    close $times or die $!;
+    rename 'docs/test_summary.times.tmp', 'docs/test_summary.times';
+    my $total_time = Time::HiRes::time - $total_start;
+
+    if ( @interesting_times ) {
+        @interesting_times = map  { $_->[0] }             # Schwartzian Transform
+                             sort { $b->[1] <=> $a->[1] } # descending
+                             map  { [$_, $$_[5]] }        # absolute time difference
+                             @interesting_times;
+        my $top_count = 20;
+        $top_count = @interesting_times if $top_count > @interesting_times;
+        @interesting_times = @interesting_times[0..$top_count-1];
+        print "----------------\n";
+        my $test_startup = $times{'test startup'}->[1];
+        printf "Minimum test startup %.2fs. Total time %d minute(s).\n",
+            $test_startup, $total_time/60;
+        for my $interesting ( @interesting_times ) {
+            my( $testname, $dt1, $realtime1, $dt2, $realtime2, $diff_sec ) = @$interesting;
+            my $change = $realtime1 < $realtime2 ? 'slower' : 'faster';
+            # The percentage difference is from the previous child user time minus
+            # the presumed startup time. Without a check it can divide by zero.
+            my $diff_pct = 100;
+            if ( $realtime1 != $test_startup ) {
+                $diff_pct = 100 * ($realtime2-$realtime1) / ( $realtime1 - $test_startup );
+            }
+            my $ago = int($dt2 - $dt1);
+            my $unit = 'second'; $unit.='s' if $ago!=1;
+            my $units = [ ['minute',60],['hour',60],['day',24],['week',7] ];
+            for my $refunit ( @$units ) {
+                last if $ago < $$refunit[1];
+                $ago = int($ago/$$refunit[1]);
+                $unit = $$refunit[0];
+                $unit.='s' if $ago!=1;
+            }
+#           if ($ago>60) {
+#               $ago=int($ago/60); $unit='minute'; $unit.='s' if $ago!=1;
+#               if ($ago>60) {
+#                   $ago=int($ago/60); $unit='hour'; $unit.='s' if $ago!=1;
+#                   if ($ago>24) {
+#                       $ago=int($ago/24); $unit='day'; $unit.='s' if $ago!=1;
+#                       if ($ago>7) {
+#                           $ago=int($ago/7); $unit='week'; $unit.='s' if $ago!=1;
+#                       }
+#                   }
+#               }
+#           }
+            printf "%-38s %.2fs %s (%.1f%%) than %d %s ago\n",
+                $testname, $diff_sec, $change, $diff_pct, $ago, $unit;
+        }
+    }
+}
 
 # Calculate plan totals from test scripts grouped by Synopsis and overall.
 # This ignores any test list and processes all unfudged files in t/spec/.
-# Implementing 'no_plan' or 'plan *' in test scripts would make this
-# total inaccurate.
+# Implementing 'no_plan' or 'plan *' in test scripts makes this total
+# inaccurate.
 for my $syn (sort keys %syn) {
-    my $ackcmd = "ack plan t/spec/$syn* -wh"; # some systems use ack-grep
+    my $ackcmd = "ack ^plan t/spec/$syn* -wH"; # some systems use ack-grep
     my @results = `$ackcmd`;       # gets an array of all the plan lines
     my $spec = 0;
     for (@results) {
-        $spec += $1 if /^\s*plan\s+(\d+)/; # unreliable because some
-    }                                      # plans use expressions
+        my ($fn, undef, $rest) = split /:/, $_;
+        if (exists $plan_per_file{$fn}) {
+            $spec += $plan_per_file{$fn}
+        } else {
+            # unreliable because some tests use expressions
+            $spec += $1 if $rest =~ /^\s*plan\s+(\d+)/;
+        }
+    }
     $sum{"$syn-spec"} = $spec;
     $sum{'spec'} += $spec;
+}
+
+if (@plan_hint) {
+    print "----------------\n";
+    foreach (@plan_hint) {
+        print "    $_\n";
+    }
 }
 
 # Show test totals grouped by Synopsys, followed by overall totals
@@ -186,9 +308,9 @@ if ($ENV{'REV'}) {
 if (@fail) {
     print "Failure summary:\n";
     foreach (@fail) {
-        print "    $_\n";
+        print "$_\n";
     }
 }
 else {
-    print "No failures!";
+    print "No failures!\n";
 }

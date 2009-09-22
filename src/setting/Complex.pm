@@ -102,4 +102,14 @@ multi sub infix:<**>($a, Complex $b) {
     ($a.log * $b).exp;
 }
 
+class Complex is also {
+    multi method sin($base = 'radians') {
+        $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
+    }
+    
+    multi method cos($base = 'radians') {
+        $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
+    }
+}
+
 # vim: ft=perl6

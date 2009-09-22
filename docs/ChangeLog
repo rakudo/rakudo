@@ -1,3 +1,16 @@
+New in 2009-10 release
++ smolder reports for spectest runs
+
+New in 2009-09 release
++ updates to numeric operators: infix</>(Int, Int) creates a Rat
++ Rat (rational) numbers
++ overloadable builtin operators
++ contextual variables
++ setting values in %*ENV now works
++ partial support for trigonometric functions of complex numbers
++ better handling of custom traits, many builtin traits moved to core setting
++ improved type dispatch for builtin operators, type coercions
+
 New in 2009-08 release
 + Rakudo must now be built from an installed parrot, and can be installed
   itself

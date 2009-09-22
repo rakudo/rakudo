@@ -244,7 +244,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
             first_candidate = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "!deferal_fail"));
         }
         addr = VTABLE_invoke(interp, first_candidate, next);
-        lexpad = CONTEXT(interp)->lex_pad;
+        lexpad = Parrot_pcc_get_lex_pad(INTERP, CURRENT_CONTEXT(interp));
         if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, lexname))
             VTABLE_set_pmc_keyed_str(interp, lexpad, lexname, SELF);
         return addr;

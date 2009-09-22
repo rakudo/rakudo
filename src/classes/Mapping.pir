@@ -234,41 +234,6 @@ Returns elements of hash as array of C<Pairs>
 .end
 
 
-=item perl()
-
-Return perl representation of the invocant.
-
-=cut
-
-.sub 'perl' :method :subid('mapping_perl')
-    .local string rv
-    .local pmc it
-
-    rv = '{'
-    it = self.'iterator'()
-    unless it goto done
-  loop:
-    $P1 = shift it
-    $S1 = $P1.'perl'()
-    rv .= $S1
-    unless it goto done
-    rv .= ', '
-    goto loop
-  done:
-    rv .= '}'
-    .return (rv)
-.end
-.sub '' :init :load
-    .local pmc block, signature
-    .const 'Sub' $P0 = "mapping_perl"
-    block = $P0
-    signature = new ["Signature"]
-    setprop block, "$!signature", signature
-    $P0 = get_hll_global 'Mapping'
-    signature."!add_implicit_self"($P0)
-.end
-
-
 =item reverse
 
 =cut

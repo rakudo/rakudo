@@ -25,6 +25,12 @@ Num - Perl 6 numbers
     .const 'Sub' $P0 = "Num::ACCEPTS"
     $P1 = typeof numproto
     $P1.'add_method'('ACCEPTS', $P0)
+
+    # Map Parrot Float to Rakudo Num
+    $P0 = getinterp
+    $P1 = get_class ['Float']
+    $P2 = get_class ['Num']
+    $P0.'hll_map'($P1, $P2)
 .end
 
 

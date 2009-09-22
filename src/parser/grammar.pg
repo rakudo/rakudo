@@ -213,7 +213,7 @@ token eat_terminator {
     || <?terminator>
     || <?AT_STATEMENT_END>
     || $
-    || <.panic: "Statement not terminated properly">
+    || <.panic: "Confused">
 }
 
 token MARK_STATEMENT_END {
@@ -518,7 +518,7 @@ rule post_constraint {
 }
 
 token param_var {
-    <sigil> <twigil>? [
+    <sigil> [ <twigil> <.before \w> ]? [
         || <identifier>
         || $<identifier>=['/'|'!']
     ]?

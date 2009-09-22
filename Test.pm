@@ -14,7 +14,7 @@ our $num_of_tests_planned;
 our $no_plan = 1;
 our $die_on_fail;
 
-our $*WARNINGS = 0;
+our $GLOBAL::WARNINGS = 0;
 
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use

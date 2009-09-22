@@ -101,6 +101,12 @@ Running C<make spectest> will import the official Perl 6 test suite
 from the Pugs repository L<http://svn.pugscode.org/pugs/t/spec/>
 and run all of these tests that are currently known to pass.
 
+If you want to automatically submit the results of your spectest run
+to a central server, use C<make spectest_smolder> instead. You need
+the Perl 5 module L<TAP::Harness::Archive> and an active internet
+connection for that. The smoke results are collected at
+L<http://smolder.plusthree.com/app/public_projects/details/18>.
+
 At present we do not have any plans to directly store the
 official test suite as part of the Rakudo/Parrot repository,
 but will continue to fetch it from the Pugs repository.

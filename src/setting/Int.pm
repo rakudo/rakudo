@@ -13,6 +13,12 @@ class Int is also {
     our Str multi method Str() {
         ~self;
     }
+
+    # Most of the trig functions for Int are in Any-num.pm, but
+    # sec is a special case.
+    our Num multi method sec($base = 'radians') is export {
+        self.Num.sec($base);
+    }
 }
 
 
@@ -49,21 +55,14 @@ multi sub infix:<*>(Int $a, Int $b) {
     }
 }
 
-multi sub infix:</>(Int $a, Int $b) {
+multi sub infix:<div>(Int $a, Int $b) {
     Q:PIR {
         $P0 = find_lex '$a'
-        $N0 = $P0
+        $I0 = $P0
         $P1 = find_lex '$b'
-        $N1 = $P1
-        $N2 = $N0 / $N1
-        $I2 = floor $N2
-        $N3 = $N2 - $I2
-      if $N3 != 0 goto notint
-        %r = '!upgrade_to_num_if_needed'($N2)
-        goto done
-      notint:
-        %r = box $N2
-      done:
+        $I1 = $P1
+        $I2 = $I0 / $I1
+        %r = box $I2
     }
 }
 

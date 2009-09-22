@@ -36,6 +36,13 @@ class Rat {
     our Num multi method sec($base = 'radians') is export {
         self.Num.sec($base);
     }
+
+    multi method succ {
+        Rat.new($!numerator + $!denominator, $!denominator);
+    }
+    multi method pred {
+        Rat.new($!numerator - $!denominator, $!denominator);
+    }
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {

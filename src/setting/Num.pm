@@ -5,7 +5,7 @@ class Num is also {
             $N1 = acos $N0
             %r = box $N1
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method acosh($base = 'radians') is export {
@@ -18,7 +18,7 @@ class Num is also {
             $N0 = ln $N0
             %r = box $N0
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method acosec($base = 'radians') is export {
@@ -28,13 +28,14 @@ class Num is also {
             $N2 = asin $N1
             %r = box $N2
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
    }
 
     our Num multi method acosech($base = 'radians') is export {
         # MUST: This is certainly wrong -- if nothing else,
         # asinh also calls from-radians on its result.
-        self!from-radians(asinh(1/+self), $base)
+        # (Except it seems to be passing tests?)
+        asinh(1/+self)!from-radians($base)
     }
 
     our Num multi method acotan($base = 'radians') is export {
@@ -44,7 +45,7 @@ class Num is also {
             $N2 = atan $N1
             %r = box $N2
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
    }
 
     our Num multi method acotanh($base = 'radians') is export {
@@ -57,7 +58,7 @@ class Num is also {
             $N4 = $N4 / 2
             %r = box $N4
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method asec($base = 'radians') is export {
@@ -66,7 +67,7 @@ class Num is also {
             $N1 = asec $N0
             %r = box $N1
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
    }
 
     our Num multi method asech($base = 'radians') is export {
@@ -81,7 +82,7 @@ class Num is also {
             $N1 = ln $N1
             %r = box $N1
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method asin($base = 'radians') is export {
@@ -90,7 +91,7 @@ class Num is also {
             $N1 = asin $N0
             %r = box $N1
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method asinh($base = 'radians') is export {
@@ -103,7 +104,7 @@ class Num is also {
             $N0 = ln $N0
             %r = box $N0
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method atan($base = 'radians') is export {
@@ -112,7 +113,7 @@ class Num is also {
             $N1 = atan $N0
             %r = box $N1
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method atan2(Num $x = 1, $base = 'radians') is export {
@@ -123,7 +124,7 @@ class Num is also {
             $N2 = atan $N0, $N1
             %r = box $N2
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method atanh($base = 'radians') is export {
@@ -136,7 +137,7 @@ class Num is also {
             $N0 /= 2
             %r = box $N0
         };
-        self!from-radians($r, $base)
+        $r!from-radians($base)
     }
 
     our Num multi method cos($base = 'radians') is export {

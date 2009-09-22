@@ -55,12 +55,12 @@ class Any is also {
         }
     }
 
-    our Num multi method !from-radians(Num $x, $base) {
+    our multi method !from-radians($base) {
         given $base {
-            when /:i ^d/ { $x * 180/pi  }    # Convert to degrees.
-            when /:i ^g/ { $x * 200/pi  }    # Convert to gradians.
-            when /:i ^r/ { $x }              # Convert to radians.
-            when Num     { $x /(2 * pi) }    # Convert to revolutions.
+            when /:i ^d/ { self * 180/pi  }    # Convert to degrees.
+            when /:i ^g/ { self * 200/pi  }    # Convert to gradians.
+            when /:i ^r/ { self }              # Convert to radians.
+            when Num     { self /(2 * pi) }    # Convert to revolutions.
             default { die "Unable to convert to base: $base" }
         }
     }

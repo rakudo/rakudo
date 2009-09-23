@@ -7,18 +7,19 @@ multi sub infix:<...> (@lhs, Code $generator) {
     }
     my @result = @lhs;
     my @r;
-    if ?any( $generator.signature.params>>.<slurpy> ) {
-        while @r = $generator(|@result) {
-            @result.push: @r;
-        }
+    my $argument-indexes;
+    if any( $generator.signature.params>>.<slurpy> ) {
+        $argument-indexes = 0..*-1;
     } else {
-        # XXX work around http://rt.perl.org/rt3/Ticket/Display.html?id=66824
-        # this is a bit ugly.. since @a[1..1] returns a single item and not
-        # an array, |@result[$one-item-range] throws the error
-        # "argument doesn't array"
-        while @r = $generator(|@(@result[*-$c..*-1])) {
-            @result.push: @r;
-        }
+        $argument-indexes = *-$c .. *-1;
+    }
+
+    # XXX work around http://rt.perl.org/rt3/Ticket/Display.html?id=66824
+    # this is a bit ugly.. since @a[1..1] returns a single item and not
+    # an array, |@result[$one-item-range] throws the error
+    # "argument doesn't array"
+    while @r = $generator(|@(@result[$argument-indexes])) {
+        @result.push: @r;
     }
     return @result;
 }
@@ -26,6 +27,9 @@ multi sub infix:<...> (@lhs, Code $generator) {
 multi sub infix:<eqv> (Num $a, Num $b) { $a === $b }
 multi sub infix:<eqv> (Str $a, Str $b) { $a === $b }
 multi sub infix:<eqv> (Code $a, Code $b) { $a === $b }
+multi sub infix:<eqv> (Rat $a, Rat $b) {
+    $a.numerator === $b.numerator && $a.denominator == $b.denominator
+};
 multi sub infix:<eqv> (Positional $a, Positional $b) {
     return Bool::False unless $a.WHAT === $b.WHAT;
     return Bool::False unless $a.elems == $b.elems;

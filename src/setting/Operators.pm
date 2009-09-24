@@ -57,6 +57,34 @@ multi sub infix:<...> (@lhs, Code $generator, :$limit) {
     @result;
 }
 
+# the magic one that handles stuff like
+# 'a' ... 'z' and 'z' ... 'a'
+multi sub infix:<...>($lhs, $rhs where { !($_ ~~ Code|Whatever) }) {
+    gather {
+        take $lhs;
+        if ($lhs cmp $rhs) == 1 {
+            my $x = $lhs;
+            # since my $a = 'a'; $a-- gives
+            # "Decrement out of range" we can't easily
+            # decrement over our target, which is why the
+            # case of going backwards is slighly more complicated
+            # than going forward
+            while (--$x cmp $rhs) == 1 {
+                # need to make a fresh copy here because of RT #62178
+                my $y = $x;
+                take $y;
+            }
+            take $x if ($x cmp $rhs) == 0;
+        } elsif ($lhs cmp $rhs) == -1 {
+            my $x = $lhs;
+            while (++$x cmp $rhs) <= 0 {
+                my $y = $x;
+                take $y;
+            }
+        }
+    }
+}
+
 multi sub infix:<eqv> (Num $a, Num $b) { $a === $b }
 multi sub infix:<eqv> (Str $a, Str $b) { $a === $b }
 multi sub infix:<eqv> (Code $a, Code $b) { $a === $b }

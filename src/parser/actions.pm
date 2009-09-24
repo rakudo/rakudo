@@ -2919,7 +2919,7 @@ method colonpair($/, $key) {
         if $<desigilname><longname> {
             $pair_key := PAST::Val.new( :value( ~$<desigilname> ) );
             $pair_val := PAST::Var.new(
-                :name( ~$<sigil> ~ ~$<twigil> ~ $<desigilname> )
+                :name( ~$<sigil> ~ ~$<twigil>[0] ~ $<desigilname> )
             );
         }
         else {

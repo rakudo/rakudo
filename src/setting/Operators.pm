@@ -22,8 +22,6 @@ multi sub infix:<...> (@lhs, Code $generator, :$limit) {
     my @result = @lhs;
     my @r;
     my $argument-indexes;
-    warn $generator.perl;
-    warn $generator.signature.perl;
     # WhateverCode objects don't have a signature yet (RT #69362),
     # and we can't simply use a try { ... } block because its result
     # throws a "Null PMC access in get_bool()" when used in boolean context.

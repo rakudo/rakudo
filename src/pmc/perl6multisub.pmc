@@ -1099,7 +1099,7 @@ Marks the candidate list.
         GETATTR_Perl6MultiSub_cache_single(interp, SELF, cache_single);
         GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache_many);
         if (!PMC_IS_NULL(candidates))
-            Parrot_gc_mark_PObj_alive(interp, (PObj*)candidates);
+            Parrot_gc_mark_PMC_alive(interp, candidates);
         if (cache_single)
             Parrot_mmd_cache_mark(interp, cache_single);
         if (cache_many)

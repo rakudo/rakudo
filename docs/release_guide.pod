@@ -19,12 +19,12 @@ part of monthly Parrot releases.
   2009-06-18   Rakudo #18 "Pittsburgh"         (pmichaud)
   2009-07-23   Rakudo #19 "Chicago"            (moritz)
   2009-08-20   Rakudo #20 "PDX"                (kyle)
+  2009-09-17   Rakudo #21 "Seattle"            (particle)
 
 =head2 Planned 2009 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2009-09-17   Rakudo #21 "Seattle"            (particle)
   2009-10-22   Rakudo #22                      (duff)
   2009-11-19   Rakudo #23                      (masak)
   2009-12-17   Rakudo #24                      (chromatic)
@@ -62,7 +62,8 @@ release name, etc.
 =item *
 
 Verify that the Parrot trunk head is able to build Rakudo
-and run the spectest suite.
+and run the spectest suite. Also check the smolder reports
+at L<http://tinyurl.com/rakudosmoke>.
 
 =item *
 

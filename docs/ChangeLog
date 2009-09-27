@@ -1,5 +1,10 @@
 New in 2009-10 release
 + smolder reports for spectest runs
++ more Complex trig functions
++ some variants of the new series operator
++ correct construction of twigilled colonpairs
++ infix:<eqv>, .pred and .succ for the Rat type
++ when configuring with --gen-parrot, pass --optimize to parrot's Configure.pl
 
 New in 2009-09 release
 + updates to numeric operators: infix</>(Int, Int) creates a Rat

@@ -84,7 +84,7 @@ multi sub isnt(Object $got, Object $expected, $desc) is export(:DEFAULT) {
 multi sub isnt(Object $got, Object $expected) is export(:DEFAULT) { isnt($got, $expected, ''); }
 
 multi sub is_approx(Object $got, Object $expected, $desc) is export(:DEFAULT) {
-    my $test = abs($got - $expected) <= 0.00001;
+    my $test = ($got - $expected).abs <= 0.00001;
     proclaim(?$test, $desc);
 }
 

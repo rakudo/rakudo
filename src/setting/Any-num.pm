@@ -56,12 +56,8 @@ class Any is also {
         }
     }
 
-    multi method sqrt() is export {
-        Q:PIR {
-            $N0 = self
-            $N0 = sqrt $N0
-            %r  = box $N0
-        }
+    multi method sqrt() {
+        self.Num.sqrt;
     }
 
     # Used by the :Trig subs and methods in the Int and Num classes.
@@ -200,6 +196,8 @@ our Num sub rand (*@args) {
     1.rand
 }
 
-multi sub sqrt($x) { $x.Num.sqrt }
+multi sub sqrt(Any $x) {
+    $x.Num.sqrt
+}
 
 # vim: ft=perl6

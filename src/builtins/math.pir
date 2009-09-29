@@ -217,10 +217,6 @@ Note that you get one C<srand()> for free when you start a Perl program, so
 you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
 (or if you wish to be differently nondeterministic).
 
-=item i
-
- constant Complex Complex::i = Complex::sqrt(-1);
-
 =back
 
 =cut

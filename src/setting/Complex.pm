@@ -7,7 +7,7 @@ class Complex {
     }
 
     multi method abs() {
-        sqrt($.re * $.re + $.im * $.im)
+        ($!re * $!re + $!im * $!im).sqrt
     }
 
     multi method perl() {

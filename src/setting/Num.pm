@@ -268,6 +268,14 @@ class Num is also {
         }
     }
 
+    multi method sqrt() {
+        Q:PIR {
+            $N0 = self
+            $N0 = sqrt $N0
+            %r  = box $N0
+        }
+    }
+
     our Str multi method Str() {
         ~self
     }

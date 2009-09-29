@@ -18,7 +18,7 @@ class Complex {
         "$.re + {$.im}i";
     }
 
-    multi method exp() is export {
+    multi method exp() {
         Complex.new($.re.Num.exp * $.im.Num.cos, $.re.Num.exp * $.im.Num.sin);
     }
 
@@ -188,6 +188,10 @@ multi sub log(Complex $x) {
 
 multi sub sqrt(Complex $x) {
     $x.sqrt;
+}
+
+multi sub exp(Complex $x) {
+    $x.exp()
 }
 
 # vim: ft=perl6

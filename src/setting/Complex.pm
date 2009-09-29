@@ -140,26 +140,17 @@ multi sub infix:<*>($a, Complex $b) {
     Complex.new($a * $b.re, $a * $b.im);
 }
 
+multi sub infix:</>(Complex $a, Complex $b) {
+    my $d = $a.re * $a.re + $a.im * $a.im;
+    Complex.new($a.re * $b.re / $d, $a.im * $b.re - $a.re * $b.im / $d);
+}
+
 multi sub infix:</>(Complex $a, $b) is default {
-    Q:PIR {
-        $P0 = find_lex '$a'
-        $P1 = find_lex '$b'
-        $P1 = $P1.'Complex'()
-        $P0 = deobjectref $P0
-        $P1 = deobjectref $P1
-        %r = div $P0, $P1
-    }
+    $a * (1/$b);
 }
 
 multi sub infix:</>($a, Complex $b) {
-    Q:PIR { 
-        $P0 = find_lex '$a' 
-        $P0 = $P0.'Complex'()
-        $P1 = find_lex '$b'
-        $P0 = deobjectref $P0
-        $P1 = deobjectref $P1
-        %r = div $P0, $P1
-    }
+    Complex.new($a, 0) / $b;
 }
 
 multi sub postfix:<i>($x) {

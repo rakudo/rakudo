@@ -3,9 +3,13 @@ class Complex {
     has $.im;
 
     multi method new($re, $im) {
-        $!re = $re;
-        $!im = $im;
+        self.bless(*, :$re, :$im);
     }
+
+    multi method perl() { "Complex.new($.re, $.im)"; }
+
+    multi method Str() { "$.re + {$.im}i"; }
+
     # multi method sin($base = 'radians') {
     #     $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
     # }

@@ -116,6 +116,9 @@ multi sub infix:</>($a, Complex $b) {
     }
 }
 
+multi sub postfix:<i>($x) {
+    Complex.new(0, +$x);
+}
 
 multi sub prefix:<->(Complex $a) {
     Complex.new(-$a.re, -$a.im);

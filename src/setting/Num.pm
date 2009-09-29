@@ -3,7 +3,7 @@ class Num is also {
         Complex.new(self, 0);
     }
 
-    our Num multi method exp() is export {
+    our Num multi method exp() {
         my $r = Q:PIR {
             $N0 = self
             $N1 = exp $N0

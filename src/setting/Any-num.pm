@@ -1,7 +1,7 @@
 class Any is also {
-    # multi method exp() is export {
-    #     self.Num.exp;
-    # }
+    multi method exp() {
+        self.Num.exp;
+    }
 
     multi method abs {
         Q:PIR {
@@ -184,6 +184,7 @@ class Any is also {
 }
 
 multi sub abs($x) { $x.Num.abs() }
+multi sub exp($x) { $x.Num.exp() }
 multi sub log($x) { $x.Num.log() }
 
 our Num sub rand (*@args) {

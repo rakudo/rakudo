@@ -1,4 +1,8 @@
 class Any is also {
+    # multi method exp() is export {
+    #     self.Num.exp;
+    # }
+
     our Int multi method ceiling() is export {
         Q:PIR {
             $N0 = self

@@ -1,4 +1,16 @@
 class Num is also {
+    multi method Complex() {
+        Complex.new(self, 0);
+    }
+
+    our Num multi method exp() is export {
+        my $r = Q:PIR {
+            $N0 = self
+            $N1 = exp $N0
+            %r = box $N1
+        };
+    }
+
     our Num multi method acos($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self

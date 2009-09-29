@@ -6,9 +6,17 @@ class Complex {
         self.bless(*, :$re, :$im);
     }
 
-    multi method perl() { "Complex.new($.re, $.im)"; }
+    multi method perl() {
+        "Complex.new($.re, $.im)";
+    }
 
-    multi method Str() { "$.re + {$.im}i"; }
+    multi method Str() {
+        "$.re + {$.im}i";
+    }
+
+    multi method exp() is export {
+        Complex.new($.re.exp * $.im.cos, $.re.exp * $.im.sin);
+    }
 
     # multi method sin($base = 'radians') {
     #     $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
@@ -93,7 +101,8 @@ multi sub infix:<->($a, Complex $b) {
 }
 
 multi sub infix:<*>(Complex $a, Complex $b) {
-    Complex.new($a.re * $a.re - $a.im * $b.im, $a.re * $b.im + $a.im * $b.re);
+    Complex.new($a.re * $b.re - $a.im * $b.im, $a.im * $b.re + $a.re * $b.im);
+#    Complex.new($a.re * $a.re - $a.im * $b.im, $a.re * $b.im + $a.im * $b.re);
 }
 
 multi sub infix:<*>(Complex $a, $b) is default {

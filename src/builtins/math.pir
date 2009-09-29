@@ -58,23 +58,6 @@ Returns the sign of $x, i.e +1 for positive numbers (including Inf), zero for ze
 .end
 
 
-=item exp
-
- our Num multi Num::exp         ( Num $exponent: Num :$base = Num::e )
- our Num multi Math::Basic::exp ( Num $exponent, Num :$base = Num::e )
-
-Performs similar to C<$base ** $exponent>. C<$base> defaults to the
-constant I<e>.
-
-=cut
-
-.sub 'exp' :multi(_)
-    .param num a
-    a = exp a
-    .return (a)
-.end
-
-
 =item log10
 
  &log10 := &log.assuming:base(10);

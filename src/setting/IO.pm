@@ -52,6 +52,9 @@ class IO is also {
         $!PIO.readall();
     }
 
+    multi method t() {
+        $!PIO.isatty;
+    }
 }
 
 multi sub lines(IO $filehandle,

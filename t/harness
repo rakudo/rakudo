@@ -60,8 +60,12 @@ my $tap_harness_class = 'TAP::Harness';
 $tap_harness_class .= '::Archive' if $archive;
 
 my $extra_properties;
-$extra_properties->{'Parrot Revision'} = $parrot_revision
-  if $parrot_revision;
+if ($archive) {
+    $extra_properties->{'Parrot Revision'} = $parrot_revision
+    if $parrot_revision;
+    $extra_properties->{'Submitter'} = $ENV{SMOLDER_SUBMITTER}
+    if $ENV{SMOLDER_SUBMITTER};
+}
 
 if (eval "require $tap_harness_class;") {
     my %harness_options = (

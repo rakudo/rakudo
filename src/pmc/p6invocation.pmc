@@ -115,10 +115,10 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only) {
 pmclass P6Invocation need_ext dynpmc group perl6_group {
     ATTR PMC    *first_candidate;
     ATTR PMC    *candidate_list;
-    ATTR INTVAL  position;
     ATTR STRING *name;
     ATTR PMC    *search_list;
     ATTR INTVAL  resume_point;
+    ATTR INTVAL  position;
 
     VTABLE void init() {
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_P6Invocation_attributes);
@@ -140,13 +140,13 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
             GETATTR_P6Invocation_search_list(interp, SELF, search_list);
             GETATTR_P6Invocation_name(interp, SELF, name);
             if (!PMC_IS_NULL(first_candidate))
-                Parrot_gc_mark_PObj_alive(interp, (PObj*)first_candidate);
+                Parrot_gc_mark_PMC_alive(interp, first_candidate);
             if (!PMC_IS_NULL(candidate_list))
-                Parrot_gc_mark_PObj_alive(interp, (PObj*)candidate_list);
+                Parrot_gc_mark_PMC_alive(interp, candidate_list);
             if (!PMC_IS_NULL(search_list))
-                Parrot_gc_mark_PObj_alive(interp, (PObj*)search_list);
+                Parrot_gc_mark_PMC_alive(interp, search_list);
             if (name)
-                Parrot_gc_mark_PObj_alive(interp, (PObj*)name);
+                Parrot_gc_mark_STRING_alive(interp, name);
         }
     }
 

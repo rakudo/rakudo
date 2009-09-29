@@ -39,4 +39,5 @@ print join('', map {
         "  \%*INC<$_> = 1;\n  Perl6::Compiler.import('$colon_form', ':DEFAULT', ':MANDATORY');\n"
     } @classes);
 print "}\n";
+print "\n# vim: set ft=perl6 nomodifiable :\n";
 

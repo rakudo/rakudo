@@ -22,7 +22,7 @@ the size of that file down and to emphasize their generic,
 .loadlib 'math_ops'
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('int,polar,sqrt,truncate', 'from'=>$P0)
+    '!EXPORT'('int,polar,truncate', 'from'=>$P0)
 
     ##  pre-seed a random number generator
     'srand'()
@@ -47,18 +47,6 @@ the size of that file down and to emphasize their generic,
 .sub 'polar' :method :multi(_)
     $N0 = self
     .tailcall 'list'($N0, 0)
-.end
-
-
-=item sqrt()
-
-=cut
-
-.namespace ['Any']
-.sub 'sqrt' :method :multi(_)
-    $N0 = self
-    $N1 = sqrt $N0
-    .return ($N1)
 .end
 
 

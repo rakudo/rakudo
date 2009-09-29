@@ -56,6 +56,14 @@ class Any is also {
         }
     }
 
+    multi method sqrt() is export {
+        Q:PIR {
+            $N0 = self
+            $N0 = sqrt $N0
+            %r  = box $N0
+        }
+    }
+
     # Used by the :Trig subs and methods in the Int and Num classes.
     our multi method !to-radians($base) {
         given $base {
@@ -190,5 +198,7 @@ our Num sub rand (*@args) {
     die "too many arguments passed - 0 params expected" if @args;
     1.rand
 }
+
+multi sub sqrt($x) { $x.Num.sqrt }
 
 # vim: ft=perl6

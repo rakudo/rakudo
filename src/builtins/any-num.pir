@@ -22,7 +22,7 @@ the size of that file down and to emphasize their generic,
 .loadlib 'math_ops'
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('abs,int,log,polar,sqrt,truncate', 'from'=>$P0)
+    '!EXPORT'('abs,int,polar,sqrt,truncate', 'from'=>$P0)
 
     ##  pre-seed a random number generator
     'srand'()
@@ -48,23 +48,6 @@ the size of that file down and to emphasize their generic,
 .namespace ['Any']
 .sub 'Int' :method :multi(_)
     .tailcall self.'truncate'()
-.end
-
-
-=item log
-
- our Num multi Num::log         ( Num $x: Num :$base )
- our Num multi Math::Basic::log ( Num $x, Num :$base )
-
-Logarithm of base C<$base>, default Natural. Calling with C<$x == 0> is an
-error.
-
-=cut
-
-.sub 'log' :method :multi(_)
-    $N0 = self
-    $N1 = ln $N0
-    .return ($N1)
 .end
 
 

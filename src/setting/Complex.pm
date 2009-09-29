@@ -18,6 +18,27 @@ class Complex {
     #     $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
     # }
 
+    multi method log() {
+        warn self.WHAT();
+        Q:PIR {
+            $P0 = get_root_namespace ['parrot'; 'Complex' ]
+            $P0 = get_class $P0
+            $P0 = $P0.'new'()
+            $N0 = self.'re'()
+            $P0[0] = $N0
+            $N1 = self.'im'()
+            $P0[1] = $N1
+            $P0 = $P0.'ln'()
+            $N0 = $P0[0]
+            $P2 = box $N0
+            $N1 = $P0[1]
+            $P3 = box $N1
+            $P1 = get_hll_global 'Complex'
+            $P1 = $P1.'new'($P2, $P3)
+            %r  = $P1
+        }
+    }
+
     multi method cosec($base = 'radians') {
         1.0 / self!to-radians($base).sin;
     }
@@ -134,6 +155,11 @@ multi sub infix:<**>(Complex $a, $b) is default {
 
 multi sub infix:<**>($a, Complex $b) {
     ($a.log * $b).exp;
+}
+
+multi sub log(Complex $x) {
+    warn "in log(Complex)";
+    $x.log()
 }
 
 # vim: ft=perl6

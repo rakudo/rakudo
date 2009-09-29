@@ -55,6 +55,10 @@ class Any is also {
         }
     }
 
+    multi method log() {
+        $.Num.log();
+    }
+
     our multi method !from-radians($base) {
         given $base {
             when /:i ^d/ { self * 180/pi  }    # Convert to degrees.
@@ -89,15 +93,15 @@ class Any is also {
     our Num multi method cotan($base = 'radians') is export {
         self.Num.cotan($base);
     }
-    
+
     our Num multi method sinh($base = 'radians') is export {
         self.Num.sinh($base);
     }
-    
+
     our Num multi method cosh($base = 'radians') is export {
         self.Num.cosh($base);
     }
-    
+
     our Num multi method tanh($base = 'radians') is export {
         self.Num.tanh($base);
     }
@@ -167,7 +171,11 @@ class Any is also {
     }
 }
 
+multi sub log($x) { $x.Num.log() }
+
 our Num sub rand (*@args) {
     die "too many arguments passed - 0 params expected" if @args;
     1.rand
 }
+
+# vim: ft=perl6

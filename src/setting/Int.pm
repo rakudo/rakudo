@@ -10,6 +10,8 @@ class Int is also {
  
     our Rat multi method Rat() { Rat.new(self, 1); }
 
+    our Complex multi method Complex() { Complex.new(self, 0); }
+
     our Str multi method Str() {
         ~self;
     }

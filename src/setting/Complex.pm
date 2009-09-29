@@ -142,7 +142,8 @@ multi sub infix:<*>($a, Complex $b) {
 
 multi sub infix:</>(Complex $a, Complex $b) {
     my $d = $b.re * $b.re + $b.im * $b.im;
-    Complex.new($a.re * $b.re / $d, $a.im * $b.re - $a.re * $b.im / $d);
+    Complex.new(($a.re * $b.re + $a.im * $b.im) / $d,
+                ($a.im * $b.re - $a.re * $b.im) / $d);
 }
 
 multi sub infix:</>(Complex $a, $b) is default {

@@ -15,7 +15,7 @@ class Complex {
     }
 
     multi method exp() is export {
-        Complex.new($.re.exp * $.im.cos, $.re.exp * $.im.sin);
+        Complex.new($.re.Num.exp * $.im.Num.cos, $.re.Num.exp * $.im.Num.sin);
     }
 
     # multi method sin($base = 'radians') {

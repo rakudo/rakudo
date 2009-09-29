@@ -20,38 +20,6 @@ src/builtins/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub 'infix:<' :multi(_,_)
-    .param num a
-    .param num b
-    $I0 = islt a, b
-    .tailcall 'prefix:?'($I0)
-.end
-
-
-.sub 'infix:<=' :multi(_,_)
-    .param num a
-    .param num b
-    $I0 = isle a, b
-    .tailcall 'prefix:?'($I0)
-.end
-
-
-.sub 'infix:>' :multi(_,_)
-    .param num a
-    .param num b
-    $I0 = isgt a, b
-    .tailcall 'prefix:?'($I0)
-.end
-
-
-.sub 'infix:>=' :multi(_,_)
-    .param num a
-    .param num b
-    $I0 = isge a, b
-    .tailcall 'prefix:?'($I0)
-.end
-
-
 .sub 'infix:<=>' :multi(_,_)
     .param pmc a
     .param pmc b

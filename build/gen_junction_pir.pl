@@ -7,7 +7,7 @@ use warnings;
 
 my @binary = qw(
   infix:~
-  infix:== infix:<  infix:>  infix:<= infix:>=
+  infix:==
   infix:eq infix:lt infix:gt infix:le infix:ge
   infix:<=> infix:cmp infix:=:=
 );

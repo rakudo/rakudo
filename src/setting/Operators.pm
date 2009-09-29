@@ -245,4 +245,112 @@ multi sub infix:<!==>($a, $b) { !($a == $b) }
 multi sub infix:<ne>($a, $b)  { !($a eq $b) }
 multi sub infix:<!eq>($a, $b) { !($a eq $b) }
 
+multi sub infix:<< < >>($a, $b) {
+    ? Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $I0 = islt $N0, $N1
+        %r = box $I0
+    }
+}
+
+multi sub infix:<< > >>($a, $b) {
+    ? Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $I0 = isgt $N0, $N1
+        %r = box $I0
+    }
+}
+
+multi sub infix:<< <= >>($a, $b) {
+    ? Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $I0 = isle $N0, $N1
+        %r = box $I0
+    }
+}
+
+multi sub infix:<< >= >>($a, $b) {
+    ? Q:PIR {
+        $P0 = find_lex '$a'
+        $N0 = $P0
+        $P1 = find_lex '$b'
+        $N1 = $P1
+        $I0 = isge $N0, $N1
+        %r = box $I0
+    }
+}
+
+multi sub infix:<< < >>(Whatever $a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $P1 = find_lex '$b'
+        .tailcall 'WhateverCodeX'('infix:<', $P0, $P1)
+    }
+}
+
+multi sub infix:<< < >>($a, Whatever $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $P1 = find_lex '$b'
+        .tailcall 'WhateverCodeX'('infix:<', $P0, $P1)
+    }
+}
+
+multi sub infix:<< > >>(Whatever $a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $P1 = find_lex '$b'
+        .tailcall 'WhateverCodeX'('infix:>', $P0, $P1)
+    }
+}
+
+multi sub infix:<< > >>($a, Whatever $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $P1 = find_lex '$b'
+        .tailcall 'WhateverCodeX'('infix:>', $P0, $P1)
+    }
+}
+
+multi sub infix:<< <= >>(Whatever $a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $P1 = find_lex '$b'
+        .tailcall 'WhateverCodeX'('infix:<=', $P0, $P1)
+    }
+}
+
+multi sub infix:<< <= >>($a, Whatever $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $P1 = find_lex '$b'
+        .tailcall 'WhateverCodeX'('infix:<=', $P0, $P1)
+    }
+}
+
+multi sub infix:<< >= >>(Whatever $a, $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $P1 = find_lex '$b'
+        .tailcall 'WhateverCodeX'('infix:>=', $P0, $P1)
+    }
+}
+
+multi sub infix:<< >= >>($a, Whatever $b) {
+    Q:PIR {
+        $P0 = find_lex '$a'
+        $P1 = find_lex '$b'
+        .tailcall 'WhateverCodeX'('infix:>=', $P0, $P1)
+    }
+}
+
 # vim: ft=perl6

@@ -190,6 +190,7 @@ class Any is also {
 multi sub abs($x) { (+$x).abs() }
 multi sub exp($x) { $x.Num.exp() }
 multi sub log($x) { $x.Num.log() }
+multi sub log10($x) { $x.Num.log10 }
 
 our Num sub rand (*@args) {
     die "too many arguments passed - 0 params expected" if @args;

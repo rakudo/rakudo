@@ -58,20 +58,6 @@ Returns the sign of $x, i.e +1 for positive numbers (including Inf), zero for ze
 .end
 
 
-=item log10
-
- &log10 := &log.assuming:base(10);
-
-Returns the base 10 logarithm of $x.
-
-=cut
-
-.sub 'log10'
-    .param num a
-    $N0 = log10 a
-    .return ($N0)
-.end
-
 
 =item e
 

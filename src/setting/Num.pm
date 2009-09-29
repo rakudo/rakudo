@@ -224,6 +224,14 @@ class Num is also {
         }
     }
 
+    our method log10 {
+        Q:PIR {
+            $N0 = self
+            $N0 = log10 $N0
+            %r  = box $N0
+        }
+    }
+
     our Str multi method perl() {
         ~self
     }

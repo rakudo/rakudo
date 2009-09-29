@@ -187,7 +187,7 @@ class Any is also {
     }
 }
 
-multi sub abs($x) { $x.Num.abs() }
+multi sub abs($x) { (+$x).abs() }
 multi sub exp($x) { $x.Num.exp() }
 multi sub log($x) { $x.Num.log() }
 

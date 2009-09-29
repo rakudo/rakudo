@@ -1,4 +1,11 @@
 class Int is also {
+    multi method abs() {
+        Q:PIR {
+            $I0 = self
+            $I0 = abs $I0
+            %r  = box $I0
+        }
+    }
     our Int multi method Int() { self }
 
     our Num multi method Num() {
@@ -23,6 +30,7 @@ class Int is also {
     }
 }
 
+multi sub abs(Int $x) { $x.abs }
 
 multi sub infix:<+>(Int $a, Int $b) {
     Q:PIR {

@@ -6,6 +6,10 @@ class Complex {
         self.bless(*, :$re, :$im);
     }
 
+    multi method abs() {
+        sqrt($.re * $.re + $.im * $.im)
+    }
+
     multi method perl() {
         "Complex.new($.re, $.im)";
     }
@@ -79,6 +83,8 @@ class Complex {
     }
 
 }
+
+multi sub abs(Complex $x) { $x.abs }
 
 multi sub infix:<+>(Complex $a, Complex $b) {
     Complex.new($a.re + $b.re, $a.im + $b.im);

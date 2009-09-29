@@ -3,6 +3,14 @@ class Any is also {
     #     self.Num.exp;
     # }
 
+    multi method abs {
+        Q:PIR {
+            $N0 = self
+            $N0 = abs $N0
+            %r = box $N0
+        }
+    }
+
     our Int multi method ceiling() is export {
         Q:PIR {
             $N0 = self
@@ -175,6 +183,7 @@ class Any is also {
     }
 }
 
+multi sub abs($x) { $x.Num.abs() }
 multi sub log($x) { $x.Num.log() }
 
 our Num sub rand (*@args) {

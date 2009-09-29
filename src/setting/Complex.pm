@@ -19,7 +19,6 @@ class Complex {
     # }
 
     multi method log() {
-        warn self.WHAT();
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]
             $P0 = get_class $P0
@@ -93,26 +92,17 @@ multi sub infix:<->($a, Complex $b) {
     $a + (-$b);
 }
 
+multi sub infix:<*>(Complex $a, Complex $b) {
+    Complex.new($a.re * $a.re - $a.im * $b.im, $a.re * $b.im + $a.im * $b.re);
+}
+
 multi sub infix:<*>(Complex $a, $b) is default {
-    Q:PIR {
-        $P0 = find_lex '$a'
-        $P1 = find_lex '$b'
-        $P1 = $P1.'Complex'()
-        $P0 = deobjectref $P0
-        $P1 = deobjectref $P1
-        %r = mul $P0, $P1
-    }
+    Complex.new($a.re * $b, $a.im * $b);
+
 }
 
 multi sub infix:<*>($a, Complex $b) {
-    Q:PIR { 
-        $P0 = find_lex '$a' 
-        $P0 = $P0.'Complex'()
-        $P1 = find_lex '$b'
-        $P0 = deobjectref $P0
-        $P1 = deobjectref $P1
-        %r = mul $P0, $P1
-    }
+    Complex.new($a * $b.re, $a * $b.im);
 }
 
 multi sub infix:</>(Complex $a, $b) is default {
@@ -158,7 +148,6 @@ multi sub infix:<**>($a, Complex $b) {
 }
 
 multi sub log(Complex $x) {
-    warn "in log(Complex)";
     $x.log()
 }
 

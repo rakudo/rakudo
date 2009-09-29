@@ -15,7 +15,7 @@ class Any is also {
         }
     }
 
-    our Complex multi method cis() is export {
+    multi method cis() is export {
         (1.0).unpolar(self)
     }
 

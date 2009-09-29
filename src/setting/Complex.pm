@@ -50,6 +50,10 @@ class Complex {
         }
     }
 
+    multi method log10 {
+        $.log / 10.log;
+    }
+
     multi method sqrt() {
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]
@@ -176,6 +180,10 @@ multi sub infix:<**>($a, Complex $b) {
 
 multi sub log(Complex $x) {
     $x.log()
+}
+
+multi sub log10(Complex $x) {
+    $x.log10;
 }
 
 multi sub sqrt(Complex $x) {

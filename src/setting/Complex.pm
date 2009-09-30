@@ -10,6 +10,8 @@ class Complex {
         ($!re * $!re + $!im * $!im).sqrt
     }
 
+    multi method Complex() { self }
+
     multi method perl() {
         "Complex.new($.re, $.im)";
     }
@@ -58,8 +60,10 @@ class Complex {
         $.abs, atan2($.im, $.re);
     }
 
-    multi method roots($n) {
+    multi method roots($n is copy) {
         my ($mag, $angle) = @.polar;
+	return NaN if $n < 1;
+	$n = $n.Int;
         $mag **= 1/$n;
         (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
     }

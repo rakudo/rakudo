@@ -47,6 +47,10 @@ class Any is also {
         }
     }
 
+    multi method roots($n) {
+        $.Complex.roots($n);
+    }
+
     our Int multi method round() is export {
         Q:PIR {
             $N0 = self
@@ -199,6 +203,10 @@ our Num sub rand (*@args) {
 
 multi sub sqrt(Any $x) {
     $x.Num.sqrt
+}
+
+multi sub roots($x, $n) {
+    $x.Complex.roots($n)
 }
 
 # vim: ft=perl6

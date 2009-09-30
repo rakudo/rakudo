@@ -89,7 +89,7 @@ class Any is also {
         }
     }
 
-    our Num multi method sin($base = 'radians') is export {
+    our Num multi method sin($base = 'radians') {
         self.Num.sin($base);
     }
 
@@ -195,6 +195,7 @@ multi sub abs($x) { (+$x).abs() }
 multi sub exp($x) { $x.Num.exp() }
 multi sub log($x) { $x.Num.log() }
 multi sub log10($x) { $x.Num.log10 }
+multi sub sin($x, $base = 'radians') { $x.sin($base) }
 
 our Num sub rand (*@args) {
     die "too many arguments passed - 0 params expected" if @args;

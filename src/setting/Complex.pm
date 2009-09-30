@@ -24,13 +24,13 @@ class Complex {
         Complex.new($.re.Num.exp * $.im.Num.cos, $.re.Num.exp * $.im.Num.sin);
     }
 
-    # multi method sin($base = 'radians') {
-    #     $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
-    # }
-    #
-    # multi method cos($base = 'radians') {
-    #     $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
-    # }
+    multi method sin($base = 'radians') {
+        $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
+    }
+    
+    multi method cos($base = 'radians') {
+        $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
+    }
 
     multi method log() {
         Q:PIR {
@@ -120,6 +120,7 @@ class Complex {
         (1.0 / self).atanh!to-radians($base);
     }
 
+    multi method Num { die "You can't just coerce a Complex to Num" }
 }
 
 multi sub abs(Complex $x) { $x.abs }
@@ -206,6 +207,13 @@ multi sub sqrt(Complex $x) {
 
 multi sub exp(Complex $x) {
     $x.exp()
+}
+
+multi sub sin(Complex $x) {
+    $x.sin();
+}
+multi sub sin(Complex $x, $base) {
+    $x.sin($base);
 }
 
 # vim: ft=perl6

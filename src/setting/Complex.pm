@@ -122,7 +122,13 @@ class Complex {
         (1.0 / self).atanh!to-radians($base);
     }
 
-    multi method Num { die "You can't just coerce a Complex to Num" }
+    multi method Num {
+	if $!im == 0 {
+	     $!re;
+	} else {
+	     fail "You can only coerce a Complex to Num if the imaginary part is zero"
+	}
+    }
 }
 
 multi sub abs(Complex $x) { $x.abs }

@@ -1,4 +1,11 @@
 class Int is also {
+    multi method abs() {
+        Q:PIR {
+            $I0 = self
+            $I0 = abs $I0
+            %r  = box $I0
+        }
+    }
     our Int multi method Int() { self }
 
     our Num multi method Num() {
@@ -10,6 +17,8 @@ class Int is also {
  
     our Rat multi method Rat() { Rat.new(self, 1); }
 
+    our Complex multi method Complex() { Complex.new(self, 0); }
+
     our Str multi method Str() {
         ~self;
     }
@@ -19,8 +28,13 @@ class Int is also {
     our Num multi method sec($base = 'radians') is export {
         self.Num.sec($base);
     }
+
+    our Complex multi method unpolar($angle) is export {
+        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
+    }
 }
 
+multi sub abs(Int $x) { $x.abs }
 
 multi sub infix:<+>(Int $a, Int $b) {
     Q:PIR {

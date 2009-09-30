@@ -1,5 +1,5 @@
 class Str is also {
-    method encode($encoding = 'UTF-8', $nf = '') {
+    multi method encode($encoding = 'UTF-8', $nf = '') {
         my @bytes = Q:PIR {
             .local int bin_coding, i, max, byte
             .local string bin_string
@@ -20,5 +20,12 @@ class Str is also {
             %r = result
         };
         return Buf.new(|@bytes);
+    }
+    
+    multi method Complex() {
+	# this is a really ugly hack for now
+	# we should properly parse self and also
+	# extract an imaginary part
+	(+self).Complex;
     }
 }

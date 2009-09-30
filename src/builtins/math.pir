@@ -15,15 +15,6 @@ src/builtins/math.pir - Perl6 math functions
 ## TODO: figure out what to get working, in order to uncomment the following
 ## .namespace [ 'Math::Basic' ]
 
-
-.sub 'roots' :multi(_, 'Integer')
-    .param pmc x
-    .param int n
-    .local pmc result
-     result = x.'roots'(n)
-    .return (result)
-.end
-
 =item sign
 
  our Int multi Num::sign ( Num  $x )
@@ -57,37 +48,6 @@ Returns the sign of $x, i.e +1 for positive numbers (including Inf), zero for ze
     .return (1)
 .end
 
-
-=item exp
-
- our Num multi Num::exp         ( Num $exponent: Num :$base = Num::e )
- our Num multi Math::Basic::exp ( Num $exponent, Num :$base = Num::e )
-
-Performs similar to C<$base ** $exponent>. C<$base> defaults to the
-constant I<e>.
-
-=cut
-
-.sub 'exp' :multi(_)
-    .param num a
-    a = exp a
-    .return (a)
-.end
-
-
-=item log10
-
- &log10 := &log.assuming:base(10);
-
-Returns the base 10 logarithm of $x.
-
-=cut
-
-.sub 'log10'
-    .param num a
-    $N0 = log10 a
-    .return ($N0)
-.end
 
 
 =item e
@@ -233,10 +193,6 @@ of various platform dependent characteristics to yield a non-deterministic seed.
 Note that you get one C<srand()> for free when you start a Perl program, so
 you I<must> call C<srand()> yourself if you wish to specify a deterministic seed
 (or if you wish to be differently nondeterministic).
-
-=item i
-
- constant Complex Complex::i = Complex::sqrt(-1);
 
 =back
 

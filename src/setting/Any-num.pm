@@ -1,4 +1,16 @@
 class Any is also {
+    multi method exp() {
+        self.Num.exp;
+    }
+
+    multi method abs {
+        Q:PIR {
+            $N0 = self
+            $N0 = abs $N0
+            %r = box $N0
+        }
+    }
+
     our Int multi method ceiling() is export {
         Q:PIR {
             $N0 = self
@@ -15,7 +27,7 @@ class Any is also {
         }
     }
 
-    our Complex multi method cis() is export {
+    multi method cis() is export {
         (1.0).unpolar(self)
     }
 
@@ -35,6 +47,10 @@ class Any is also {
         }
     }
 
+    multi method roots($n) {
+        $.Complex.roots($n);
+    }
+
     our Int multi method round() is export {
         Q:PIR {
             $N0 = self
@@ -42,6 +58,10 @@ class Any is also {
             $I0 = floor $N0
             %r = box $I0
         }
+    }
+
+    multi method sqrt() {
+        self.Num.sqrt;
     }
 
     # Used by the :Trig subs and methods in the Int and Num classes.
@@ -55,6 +75,10 @@ class Any is also {
         }
     }
 
+    multi method log() {
+        $.Num.log();
+    }
+
     our multi method !from-radians($base) {
         given $base {
             when /:i ^d/ { self * 180/pi  }    # Convert to degrees.
@@ -65,7 +89,7 @@ class Any is also {
         }
     }
 
-    our Num multi method sin($base = 'radians') is export {
+    our Num multi method sin($base = 'radians') {
         self.Num.sin($base);
     }
 
@@ -89,15 +113,15 @@ class Any is also {
     our Num multi method cotan($base = 'radians') is export {
         self.Num.cotan($base);
     }
-    
+
     our Num multi method sinh($base = 'radians') is export {
         self.Num.sinh($base);
     }
-    
+
     our Num multi method cosh($base = 'radians') is export {
         self.Num.cosh($base);
     }
-    
+
     our Num multi method tanh($base = 'radians') is export {
         self.Num.tanh($base);
     }
@@ -167,9 +191,23 @@ class Any is also {
     }
 }
 
+multi sub abs($x) { (+$x).abs() }
+multi sub exp($x) { $x.Num.exp() }
+multi sub log($x) { $x.Num.log() }
+multi sub log10($x) { $x.Num.log10 }
+multi sub sin($x, $base = 'radians') { $x.sin($base) }
+
 our Num sub rand (*@args) {
     die "too many arguments passed - 0 params expected" if @args;
     1.rand
 }
 
+multi sub sqrt(Any $x) {
+    $x.Num.sqrt
+}
 
+multi sub roots($x, $n) {
+    $x.Complex.roots($n)
+}
+
+# vim: ft=perl6

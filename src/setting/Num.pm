@@ -1,4 +1,16 @@
 class Num is also {
+    multi method Complex() {
+        Complex.new(self, 0);
+    }
+
+    our Num multi method exp() {
+        my $r = Q:PIR {
+            $N0 = self
+            $N1 = exp $N0
+            %r = box $N1
+        };
+    }
+
     our Num multi method acos($base = 'radians') is export {
         my $r = Q:PIR {
             $N0 = self
@@ -204,6 +216,22 @@ class Num is also {
         }
    }
 
+    multi method log() {
+        Q:PIR {
+            $N0 = self
+            $N0 = ln $N0
+            %r  = box $N0
+        }
+    }
+
+    our method log10 {
+        Q:PIR {
+            $N0 = self
+            $N0 = log10 $N0
+            %r  = box $N0
+        }
+    }
+
     our Str multi method perl() {
         ~self
     }
@@ -248,6 +276,14 @@ class Num is also {
         }
     }
 
+    multi method sqrt() {
+        Q:PIR {
+            $N0 = self
+            $N0 = sqrt $N0
+            %r  = box $N0
+        }
+    }
+
     our Str multi method Str() {
         ~self
     }
@@ -274,5 +310,9 @@ class Num is also {
             $N1 = tanh $N0
             %r = box $N1
         }
+    }
+
+    our Complex multi method unpolar(Num $angle) is export {
+        Complex.new(self * $angle.cos("radians"), self * $angle.sin("radians"));
     }
 }

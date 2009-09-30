@@ -12,7 +12,6 @@ our %?CLASSMAP;
 %?CLASSMAP<Array>   := 'Perl6Array';
 %?CLASSMAP<Hash>    := 'Perl6Hash';
 %?CLASSMAP<Pair>    := 'Perl6Pair';
-%?CLASSMAP<Complex> := 'Perl6Complex';
 
 # $?RAKUDO_HLL identifies the .HLL to use for compilation --
 # it's ultimately set by the .RAKUDO_HLL macro in F<perl6.pir> .

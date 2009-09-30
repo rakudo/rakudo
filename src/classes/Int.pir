@@ -20,9 +20,6 @@ Int - Perl 6 integers
     intproto = p6meta.'new_class'('Int', 'parent'=>'parrot;Integer Any')
     p6meta.'register'('Integer', 'parent'=>intproto, 'protoobject'=>intproto)
     p6meta.'register'('BigInt', 'parent'=>intproto, 'protoobject'=>intproto)
-
-    $P0 = get_hll_namespace ['Int']
-    '!EXPORT'('abs', 'from'=>$P0)
 .end
 
 
@@ -34,12 +31,6 @@ This is a value type, so just returns its dereferenced self.
 
 .sub 'Scalar' :method
     .return (self)
-.end
-
-
-.sub 'abs' :method :multi('Integer')
-    $P0 = abs self
-    .return ($P0)
 .end
 
 

@@ -50,8 +50,12 @@ class Complex {
         }
     }
 
-    multi method log10 {
+    multi method log10() {
         $.log / 10.log;
+    }
+
+    multi method polar() {
+        $.abs, atan2($.im, $.re);
     }
 
     multi method sqrt() {

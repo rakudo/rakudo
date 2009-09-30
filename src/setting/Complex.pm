@@ -58,6 +58,12 @@ class Complex {
         $.abs, atan2($.im, $.re);
     }
 
+    multi method roots($n) {
+        my ($mag, $angle) = @.polar;
+        $mag **= 1/$n;
+        (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
+    }
+
     multi method sqrt() {
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]

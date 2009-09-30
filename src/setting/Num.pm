@@ -311,4 +311,8 @@ class Num is also {
             %r = box $N1
         }
     }
+
+    our Complex multi method unpolar(Num $angle) is export {
+        Complex.new(self * $angle.cos("radians"), self * $angle.sin("radians"));
+    }
 }

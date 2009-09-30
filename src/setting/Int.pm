@@ -28,6 +28,10 @@ class Int is also {
     our Num multi method sec($base = 'radians') is export {
         self.Num.sec($base);
     }
+
+    our Complex multi method unpolar($angle) is export {
+        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
+    }
 }
 
 multi sub abs(Int $x) { $x.abs }

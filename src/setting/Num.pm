@@ -1,4 +1,18 @@
 class Num is also {
+    multi method ACCEPTS($other) {
+        if self eq 'NaN' {
+            $other eq 'NaN';
+        } else {
+            $other == self;
+        }
+    }
+    multi method ACCEPTS(Complex $other) {
+        if self eq 'NaN' {
+            $other.re eq 'NaN' || $other.im eq 'NaN';
+        } else {
+            $other.im == 0 && $other.re == self;
+        }
+    }
     multi method Complex() {
         Complex.new(self, 0);
     }
@@ -316,3 +330,5 @@ class Num is also {
         Complex.new(self * $angle.cos("radians"), self * $angle.sin("radians"));
     }
 }
+
+# vim: ft=perl6

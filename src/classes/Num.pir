@@ -50,23 +50,6 @@ Num - Perl 6 numbers
     .return ($I0)
 .end
 
-
-=item ACCEPTS()
-
-=cut
-
-.sub 'ACCEPTS' :method
-    .param num topic
-    $S0 = self
-    if $S0 == 'NaN' goto test_nan
-    .tailcall 'infix:=='(topic, self)
-  test_nan:
-    $S0 = topic
-    $I0 = iseq $S0, 'NaN'
-    .tailcall 'prefix:?'($I0)
-.end
-
-
 =item succ and pred
 
 Increment and Decrement Methods

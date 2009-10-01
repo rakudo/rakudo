@@ -244,7 +244,7 @@ sub proclaim($cond, $desc) {
         die "Test failed.  Stopping test";
     }
     # must clear this between tests
-    $todo_reason = '';
+    $todo_reason = '' if $todo_upto_test_num == $num_of_tests_run;
     return $cond;
 }
 

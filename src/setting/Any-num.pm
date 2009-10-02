@@ -93,7 +93,7 @@ class Any is also {
         self.Num.sin($base);
     }
 
-    our Num multi method cos($base = 'radians') is export {
+    our Num multi method cos($base = 'radians') {
         self.Num.cos($base);
     }
 
@@ -142,7 +142,7 @@ class Any is also {
         self.Num.asin($base);
     }
 
-    our Num multi method acos($base = 'radians') is export {
+    our Num multi method acos($base = 'radians') {
         self.Num.acos($base);
     }
 
@@ -202,6 +202,14 @@ multi sub sin($x, $base = 'radians') {
 
 multi sub asin($x, $base = 'radians') {
     $x.asin($base)
+}
+
+multi sub cos($x, $base = 'radians') {
+    $x.cos($base)
+}
+
+multi sub acos($x, $base = 'radians') {
+    $x.acos($base)
 }
 
 our Num sub rand (*@args) {

@@ -36,6 +36,10 @@ class Complex {
         $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
     }
 
+    multi method acos($base = 'radians') {
+       (pi / 2)!from-radians($base) - self.asin($base);
+    }
+
     multi method log() {
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]

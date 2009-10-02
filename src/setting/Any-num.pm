@@ -138,7 +138,7 @@ class Any is also {
         self.Num.cotanh($base);
     }
 
-    our Num multi method asin($base = 'radians') is export {
+    our Num multi method asin($base = 'radians') {
         self.Num.asin($base);
     }
 

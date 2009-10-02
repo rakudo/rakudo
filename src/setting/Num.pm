@@ -111,7 +111,7 @@ class Num is also {
         $r!from-radians($base)
     }
 
-    our Num multi method asin($base = 'radians') is export {
+    our Num multi method asin($base = 'radians') {
         my $r = Q:PIR {
             $N0 = self
             $N1 = asin $N0

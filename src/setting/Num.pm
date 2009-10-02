@@ -120,7 +120,7 @@ class Num is also {
         $r!from-radians($base)
     }
 
-    our Num multi method asinh($base = 'radians') is export {
+    our Num multi method asinh($base = 'radians') {
         my $r = Q:PIR {
             $N0 = self
             $N1 = $N0 * $N0
@@ -280,7 +280,7 @@ class Num is also {
         }
     }
 
-    our Num multi method sinh($base = 'radians') is export {
+    our Num multi method sinh($base = 'radians') {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"

@@ -114,7 +114,7 @@ class Any is also {
         self.Num.cotan($base);
     }
 
-    our Num multi method sinh($base = 'radians') is export {
+    our Num multi method sinh($base = 'radians') {
         self.Num.sinh($base);
     }
 
@@ -166,7 +166,7 @@ class Any is also {
         self.Num.acotan($base);
     }
 
-    our Num multi method asinh($base = 'radians') is export {
+    our Num multi method asinh($base = 'radians') {
         self.Num.asinh($base);
     }
 
@@ -242,6 +242,14 @@ multi sub cotan($x, $base = 'radians') {
 
 multi sub acotan($x, $base = 'radians') {
     $x.acotan($base)
+}
+
+multi sub sinh($x, $base = 'radians') {
+    $x.sinh($base)
+}
+
+multi sub asinh($x, $base = 'radians') {
+    $x.asinh($base)
 }
 
 our Num sub rand (*@args) {

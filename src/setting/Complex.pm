@@ -45,7 +45,7 @@ class Complex {
     }
 
     multi method atan($base = 'radians') {
-       ((log(1 - (self)i) - log(1 + (self)i))i / 2)!from-radians($base);
+        ((log(1 - (self)i) - log(1 + (self)i))i / 2)!from-radians($base);
     }
 
     multi method sec($base = 'radians') {
@@ -62,6 +62,14 @@ class Complex {
 
     multi method acosec($base = 'radians') {
         (1 / self).asin($base);
+    }
+
+    multi method cotan($base = 'radians') {
+        self.cos($base) / self.sin($base);
+    }
+
+    multi method acotan($base = 'radians') {
+        (1 / self).atan($base);
     }
 
     multi method log() {

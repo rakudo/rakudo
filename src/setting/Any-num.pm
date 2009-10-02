@@ -110,7 +110,7 @@ class Any is also {
         self.Num.cosec($base);
     }
 
-    our Num multi method cotan($base = 'radians') is export {
+    our Num multi method cotan($base = 'radians') {
         self.Num.cotan($base);
     }
 
@@ -162,7 +162,7 @@ class Any is also {
         self.Num.acosec($base);
     }
 
-    our Num multi method acotan($base = 'radians') is export {
+    our Num multi method acotan($base = 'radians') {
         self.Num.acotan($base);
     }
 
@@ -234,6 +234,14 @@ multi sub cosec($x, $base = 'radians') {
 
 multi sub acosec($x, $base = 'radians') {
     $x.acosec($base)
+}
+
+multi sub cotan($x, $base = 'radians') {
+    $x.cotan($base)
+}
+
+multi sub acotan($x, $base = 'radians') {
+    $x.acotan($base)
 }
 
 our Num sub rand (*@args) {

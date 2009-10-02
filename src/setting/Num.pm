@@ -64,7 +64,7 @@ class Num is also {
         asinh(1/+self)!from-radians($base)
     }
 
-    our Num multi method acotan($base = 'radians') is export {
+    our Num multi method acotan($base = 'radians') {
         my $r = Q:PIR {
             $N0 = self
             $N1 = 1 / $N0
@@ -208,7 +208,7 @@ class Num is also {
         };
    }
 
-    our Num multi method cotan($base = 'radians') is export {
+    our Num multi method cotan($base = 'radians') {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"

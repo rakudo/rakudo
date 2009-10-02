@@ -270,7 +270,7 @@ class Num is also {
         }
     }
 
-    our Num multi method sin($base = 'radians') is export {
+    our Num multi method sin($base = 'radians') {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"

@@ -27,7 +27,11 @@ class Complex {
     multi method sin($base = 'radians') {
         $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
     }
-    
+
+    multi method asin($base = 'radians') {
+        -1i * log((self)i + sqrt(1 - self * self));
+    }
+
     multi method cos($base = 'radians') {
         $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
     }
@@ -215,13 +219,6 @@ multi sub sqrt(Complex $x) {
 
 multi sub exp(Complex $x) {
     $x.exp()
-}
-
-multi sub sin(Complex $x) {
-    $x.sin();
-}
-multi sub sin(Complex $x, $base) {
-    $x.sin($base);
 }
 
 # vim: ft=perl6

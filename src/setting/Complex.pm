@@ -40,6 +40,14 @@ class Complex {
        (pi / 2)!from-radians($base) - self.asin($base);
     }
 
+    multi method tan($base = 'radians') {
+        self.sin($base) / self.cos($base);
+    }
+
+    multi method atan($base = 'radians') {
+       ((log(1 - (self)i) - log(1 + (self)i))i / 2)!from-radians($base);
+    }
+
     multi method log() {
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]

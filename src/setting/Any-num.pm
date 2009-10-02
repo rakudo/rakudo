@@ -97,7 +97,7 @@ class Any is also {
         self.Num.cos($base);
     }
 
-    our Num multi method tan($base = 'radians') is export {
+    our Num multi method tan($base = 'radians') {
         self.Num.tan($base);
     }
 
@@ -146,7 +146,7 @@ class Any is also {
         self.Num.acos($base);
     }
 
-    our Num multi method atan($base = 'radians') is export {
+    our Num multi method atan($base = 'radians') {
         self.Num.atan($base);
     }
 
@@ -210,6 +210,14 @@ multi sub cos($x, $base = 'radians') {
 
 multi sub acos($x, $base = 'radians') {
     $x.acos($base)
+}
+
+multi sub tan($x, $base = 'radians') {
+    $x.tan($base)
+}
+
+multi sub atan($x, $base = 'radians') {
+    $x.atan($base)
 }
 
 our Num sub rand (*@args) {

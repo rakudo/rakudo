@@ -33,7 +33,7 @@ class Rat {
 
     # Most of the trig functions for Rat are in Any-num.pm, but
     # sec is a special case.
-    our Num multi method sec($base = 'radians') is export {
+    our Num multi method sec($base = 'radians') {
         self.Num.sec($base);
     }
 

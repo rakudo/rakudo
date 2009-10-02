@@ -154,7 +154,7 @@ class Any is also {
         self.Num.atan2($x, $base);
     }
 
-    our Num multi method asec($base = 'radians') is export {
+    our Num multi method asec($base = 'radians') {
         self.Num.asec($base);
     }
 
@@ -218,6 +218,14 @@ multi sub tan($x, $base = 'radians') {
 
 multi sub atan($x, $base = 'radians') {
     $x.atan($base)
+}
+
+multi sub sec($x, $base = 'radians') {
+    $x.sec($base)
+}
+
+multi sub asec($x, $base = 'radians') {
+    $x.asec($base)
 }
 
 our Num sub rand (*@args) {

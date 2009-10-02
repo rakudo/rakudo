@@ -87,7 +87,7 @@ class Num is also {
         $r!from-radians($base)
     }
 
-    our Num multi method asec($base = 'radians') is export {
+    our Num multi method asec($base = 'radians') {
         my $r = Q:PIR {
             $N0 = self
             $N1 = asec $N0
@@ -250,7 +250,7 @@ class Num is also {
         ~self
     }
 
-    our Num multi method sec($base = 'radians') is export {
+    our Num multi method sec($base = 'radians') {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"

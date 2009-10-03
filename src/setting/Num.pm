@@ -34,7 +34,7 @@ class Num is also {
         $r!from-radians($base)
     }
 
-    our Num multi method acosh($base = 'radians') is export {
+    our Num multi method acosh($base = 'radians') {
         my $r = Q:PIR {
             $N0 = self
             $N1 = $N0 * $N0
@@ -176,7 +176,7 @@ class Num is also {
         };
     }
 
-    our Num multi method cosh($base = 'radians') is export {
+    our Num multi method cosh($base = 'radians') {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"

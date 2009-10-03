@@ -80,6 +80,14 @@ class Complex {
         (self + sqrt(1 + self * self)).log!from-radians($base);
     }
 
+    multi method cosh($base = 'radians') {
+        (1i * self).cos($base);
+    }
+
+    multi method acosh($base = 'radians') {
+        (self + sqrt(self * self - 1)).log!from-radians($base);
+    }
+
     multi method log() {
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]

@@ -118,7 +118,7 @@ class Any is also {
         self.Num.sinh($base);
     }
 
-    our Num multi method cosh($base = 'radians') is export {
+    our Num multi method cosh($base = 'radians') {
         self.Num.cosh($base);
     }
 
@@ -170,7 +170,7 @@ class Any is also {
         self.Num.asinh($base);
     }
 
-    our Num multi method acosh($base = 'radians') is export {
+    our Num multi method acosh($base = 'radians') {
         self.Num.acosh($base);
     }
 
@@ -250,6 +250,14 @@ multi sub sinh($x, $base = 'radians') {
 
 multi sub asinh($x, $base = 'radians') {
     $x.asinh($base)
+}
+
+multi sub cosh($x, $base = 'radians') {
+    $x.cosh($base)
+}
+
+multi sub acosh($x, $base = 'radians') {
+    $x.acosh($base)
 }
 
 our Num sub rand (*@args) {

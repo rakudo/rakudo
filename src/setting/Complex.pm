@@ -88,6 +88,14 @@ class Complex {
         (self + sqrt(self * self - 1)).log!from-radians($base);
     }
 
+    multi method tanh($base = 'radians') {
+        -((1i * self).tan($base))i;
+    }
+
+    multi method atanh($base = 'radians') {
+        (((1 + self) / (1 - self)).log / 2)!from-radians($base);
+    }
+
     multi method log() {
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]

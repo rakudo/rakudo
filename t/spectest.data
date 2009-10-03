@@ -453,4 +453,17 @@ S32-str/unpack.t
 S32-str/words.t                                            # icu
 S32-temporal/Temporal.t
 S32-trig/e.t
-S32-trig/trig.t
+S32-trig/pi.t
+S32-trig/sin.t
+S32-trig/cos.t
+S32-trig/tan.t
+S32-trig/sec.t
+S32-trig/cosec.t
+S32-trig/cotan.t
+S32-trig/atan2.t
+S32-trig/sinh.t
+S32-trig/cosh.t
+S32-trig/tanh.t
+S32-trig/sech.t
+S32-trig/cosech.t
+S32-trig/cotanh.t

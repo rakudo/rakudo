@@ -57,7 +57,7 @@ class Num is also {
         $r!from-radians($base)
    }
 
-    our Num multi method acosech($base = 'radians') is export {
+    our Num multi method acosech($base = 'radians') {
         # MUST: This is certainly wrong -- if nothing else,
         # asinh also calls from-radians on its result.
         # (Except it seems to be passing tests?)
@@ -197,7 +197,7 @@ class Num is also {
         };
     }
 
-    our Num multi method cosech($base = 'radians') is export {
+    our Num multi method cosech($base = 'radians') {
         my $x = self!to-radians($base);
         Q:PIR {
             $P0 = find_lex "$x"

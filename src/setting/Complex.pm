@@ -104,6 +104,14 @@ class Complex {
         (1 / self).acosh($base);
     }
 
+    multi method cosech($base = 'radians') {
+        1 / self.sinh($base);
+    }
+
+    multi method acosech($base = 'radians') {
+        (1 / self).asinh($base);
+    }
+
     multi method log() {
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]

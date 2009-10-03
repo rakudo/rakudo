@@ -130,7 +130,7 @@ class Any is also {
         self.Num.sech($base);
     }
 
-    our Num multi method cosech($base = 'radians') is export {
+    our Num multi method cosech($base = 'radians') {
         self.Num.cosech($base);
     }
 
@@ -182,7 +182,7 @@ class Any is also {
         self.Num.asech($base);
     }
 
-    our Num multi method acosech($base = 'radians') is export {
+    our Num multi method acosech($base = 'radians') {
         self.Num.acosech($base);
     }
 
@@ -274,6 +274,14 @@ multi sub sech($x, $base = 'radians') {
 
 multi sub asech($x, $base = 'radians') {
     $x.asech($base)
+}
+
+multi sub cosech($x, $base = 'radians') {
+    $x.cosech($base)
+}
+
+multi sub acosech($x, $base = 'radians') {
+    $x.acosech($base)
 }
 
 our Num sub rand (*@args) {

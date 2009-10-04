@@ -11,7 +11,7 @@ This file sets up the Perl 6 C<Signature> class.
 =head1 GUTS
 
 This class will evolve over time as we understand signatures and how we will
-expose there insides better. For now, a signature under the hood is just an
+expose their insides better. For now, a signature under the hood is just an
 array of hashes, with each hash being a "descriptor" for something that is
 bindable. Its keys are as follows.
 

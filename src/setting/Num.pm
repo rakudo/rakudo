@@ -250,6 +250,34 @@ class Num is also {
         ~self
     }
 
+    sub _modf($num) { my $q = $num.Int; $num - $q, $q; }
+
+    multi method Rat($epsilon = 1.0e-6) {
+        my $num = +self;
+        my $signum = $num < 0 ?? -1 !! 1;
+        $num = -$num if $signum == -1;
+
+        # Find convergents of the continued fraction.
+
+        my ($r, $q) = _modf($num);
+        my ($a, $b) = 1, $q;
+        my ($c, $d) = 0, 1;
+
+        while $r != 0 && abs($num - ($b/$d)) > $epsilon {
+            ($r, $q) = _modf(1/$r);
+
+            ($a, $b) = ($b, $q*$b + $a);
+            ($c, $d) = ($d, $q*$d + $c);
+        }
+
+        # Note that this result has less error than any Rational with a
+        # smaller denominator but it is not (necessarily) the Rational
+        # with the smallest denominator that has less than $epsilon error.
+        # However, to find that Rational would take more processing.
+
+        Rat.new($signum * $b, $d);
+    }
+
     our Num multi method sec($base = 'radians') {
         my $x = self!to-radians($base);
         Q:PIR {

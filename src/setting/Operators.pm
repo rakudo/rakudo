@@ -10,8 +10,14 @@ multi sub infix:<...> (@lhs, @rhs) {
     }
 }
 
+multi sub infix:<...>($lhs, @rhs) {
+    my @a = $lhs;
+    &infix:<...>(@a, @rhs);
+}
+
 multi sub infix:<...>($lhs, Code $generator) {
-    &infix:<...>([$lhs], $generator);
+    my @a = $lhs;
+    &infix:<...>(@a, $generator);
 }
 
 multi sub infix:<...> (@lhs, Code $generator, :$limit) {

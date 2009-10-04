@@ -6,6 +6,13 @@ class Complex {
         self.bless(*, :$re, :$im);
     }
 
+    multi method ACCEPTS(Complex $topic) {
+        ($topic.re ~~ $.re) && ($topic.im ~~ $.im);
+    }
+    multi method ACCEPTS($topic) {
+        ($topic.Num ~~ $.re) && ($.im == 0);
+    }
+
     multi method abs() {
         ($!re * $!re + $!im * $!im).sqrt
     }

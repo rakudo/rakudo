@@ -14,63 +14,11 @@ src/classes/Array.pir - Perl 6 Array class and related functions
     arrayproto.'!MUTABLE'()
 
     $P0 = get_hll_namespace ['Perl6Array']
-    '!EXPORT'('delete,exists,pop,push,shift,unshift', 'from'=>$P0, 'to_p6_multi'=>1)
+    '!EXPORT'('exists,pop,push,shift,unshift', 'from'=>$P0, 'to_p6_multi'=>1)
 .end
 
 
 =head2 Methods
-
-=item delete
-
-Remove items from an array.
-
-=cut
-
-.namespace ['Perl6Array']
-.sub 'delete' :method :multi() :subid('array_delete')
-    .param pmc indices :slurpy
-    .local pmc result
-    result = new ['List']
-    null $P99
-
-    indices.'!flatten'()
-  indices_loop:
-    unless indices goto indices_end
-    $I0 = shift indices
-    $P0 = self[$I0]
-    push result, $P0
-    self[$I0] = $P99
-
-  shorten:
-    $I0 = self.'elems'()
-    dec $I0
-  shorten_loop:
-    if $I0 < 0 goto shorten_end
-    $P0 = self[$I0]
-    if null $P0 goto do_shorten
-    $I1 = $P0.'defined'()
-    if $I1 goto shorten_end
-  do_shorten:
-    delete self[$I0]
-    dec $I0
-    goto shorten_loop
-  shorten_end:
-    goto indices_loop
-
-  indices_end:
-    .return (result)
-.end
-.sub '' :init :load
-    .local pmc block, signature
-    .const 'Sub' $P0 = "array_delete"
-    block = $P0
-    signature = new ["Signature"]
-    setprop block, "$!signature", signature
-    signature."!add_param"("@indices", 1 :named("slurpy"))
-    $P0 = get_hll_global 'Array'
-    signature."!add_implicit_self"($P0)
-.end
-
 
 =item exists(indices :slurpy)
 
@@ -78,6 +26,7 @@ Return true if the elements at C<indices> have been assigned to.
 
 =cut
 
+.namespace ['Perl6Array']
 .sub 'exists' :method :multi() :subid('array_exists')
     .param pmc indices :slurpy
     .local int test

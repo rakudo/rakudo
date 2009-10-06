@@ -61,6 +61,7 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
     .local pmc p6meta, perl6
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     perl6 = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'PCT::HLLCompiler')
+    p6meta.'new_class'('Perl6::Compiler::Signature', 'attr'=>'$!entries')
 
     load_bytecode 'config.pbc'
 
@@ -168,6 +169,7 @@ USAGE
 .include 'src/parser/quote_expression.pir'
 .include 'src/gen_setting.pir'
 .include 'src/gen_actions.pir'
+.include 'src/gen_signature_pm.pir'
 .include 'src/gen_metaop.pir'
 .include 'src/gen_junction.pir'
 .include 'src/gen_whatever.pir'
@@ -210,9 +212,9 @@ and report exceptions.
     .param pmc adverbs         :slurpy :named
 
     $P0 = get_root_global ['parrot';'PCT';'HLLCompiler'], 'eval'
-    push_eh trap_errors
+    #push_eh trap_errors
     $P0 = $P0(self, code, args :flat, adverbs :flat :named)
-    pop_eh
+    #pop_eh
     .return ($P0)
 
    trap_errors:
@@ -475,6 +477,7 @@ Currently this does the equivalent of EXPORTALL on the core namespaces.
 .include 'src/parrot/P6role.pir'
 .include 'src/parrot/Protoobject.pir'
 .include 'src/parrot/misc.pir'
+.include 'src/parrot/signature.pir'
 .include 'src/parrot/state.pir'
 .include 'src/gen_uprop.pir'
 

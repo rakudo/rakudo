@@ -62,8 +62,10 @@ the Signature.
     attr['multi_invocant'] = 1
   have_mi:
 
-    # Work out any role type that the sigil implies. (Skip for slurpy, though.)
+    # Work out any role type that the sigil implies. (Skip for slurpy and invocant, though.)
     $I0 = attr["slurpy"]
+    if $I0 goto sigil_done
+    $I0 = attr["invocant"]
     if $I0 goto sigil_done
     .local pmc role_type
     .local string sigil
@@ -158,19 +160,6 @@ the Signature.
 .end
 
 
-=item !set_default_param_type
-
-Sets the default parameter type if none is supplied (since it differs for
-blocks and routines).
-
-=cut
-
-.sub '!set_default_param_type' :method
-    .param pmc type
-    setattribute self, '$!default_type', type
-.end
-
-
 =item !add_implicit_self
 
 Ensures that if there is no explicit invocant, we add one.
@@ -199,27 +188,6 @@ Ensures that if there is no explicit invocant, we add one.
     $P0['multi_invocant'] = 1
     $P0['nom_type'] = type
     unshift params, $P0
-.end
-
-
-=item !make_parameters_rw
-
-Makes all parameters have readtype rw (used to implement e.g. <->).
-
-=cut
-
-.sub '!make_parameters_rw' :method
-    .local pmc params, it, param
-    params = self.'params'()
-    it = iter params
-  it_loop:
-    unless it goto it_loop_end
-    param = shift it
-    $P0 = param['readtype']
-    unless null $P0 goto it_loop
-    param['readtype'] = 'rw'
-    goto it_loop
-  it_loop_end:
 .end
 
 

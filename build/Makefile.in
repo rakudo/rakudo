@@ -59,6 +59,7 @@ DYNOPS        = \
 SOURCES = perl6.pir \
   src/gen_grammar.pir \
   src/gen_actions.pir \
+  src/gen_signature_pm.pir \
   src/gen_builtins.pir \
   src/gen_metaop.pir \
   src/gen_junction.pir \
@@ -70,6 +71,7 @@ SOURCES = perl6.pir \
   src/parrot/P6Invocation.pir \
   src/parrot/P6role.pir \
   src/parrot/misc.pir \
+  src/parrot/signature.pir \
   src/parrot/state.pir \
   src/gen_uprop.pir \
   $(DYNEXT_TARGET)
@@ -247,6 +249,10 @@ src/gen_grammar.pir: $(PARROT) $(PERL6GRAMMAR_PBC) src/parser/grammar.pg src/par
 src/gen_actions.pir: $(PARROT) $(NQP_PBC) src/parser/actions.pm
 	$(PARROT) $(PARROT_ARGS) $(NQP_PBC) --output=src/gen_actions.pir \
 	    --encoding=fixed_8 --target=pir src/parser/actions.pm
+
+src/gen_signature_pm.pir: $(PARROT) $(NQP_PBC) src/parser/signature.pm
+	$(PARROT) $(PARROT_ARGS) $(NQP_PBC) --output=src/gen_signature_pm.pir \
+	    --encoding=fixed_8 --target=pir src/parser/signature.pm
 
 src/gen_builtins.pir: build/gen_builtins_pir.pl
 	$(PERL) build/gen_builtins_pir.pl $(BUILTINS_PIR) > src/gen_builtins.pir

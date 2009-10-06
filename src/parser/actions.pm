@@ -1042,9 +1042,6 @@ method signature($/, $key) {
                 }
             }
 
-            ##  handle end of multi-invocant sequence
-            if $<param_sep>[$i][0] eq ';;' { $multi_inv_suppress := 1; }
-
             ##  add var node to block
             $sigpast.push( $var );
 
@@ -1059,6 +1056,9 @@ method signature($/, $key) {
                 :multi_invocant( $multi_inv_suppress ?? 0 !! 1 ),
                 :types( $var<type> )
             );
+
+            ##  handle end of multi-invocant sequence
+            if $<param_sep>[$i][0] eq ';;' { $multi_inv_suppress := 1; }
 
             $i++;
         }

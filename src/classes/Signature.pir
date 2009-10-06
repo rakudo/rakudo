@@ -191,6 +191,18 @@ Ensures that if there is no explicit invocant, we add one.
 .end
 
 
+=item !set_default_param_type
+
+Sets the default parameter type.
+
+=cut
+
+.sub '!set_default_param_type' :method
+    .param pmc type
+    setattribute self, '$!default_type', type
+.end
+
+
 =item params
 
 Get the array of parameter describing hashes.

@@ -61,7 +61,7 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
     .local pmc p6meta, perl6
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     perl6 = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'PCT::HLLCompiler')
-    p6meta.'new_class'('Perl6::Compiler::Signature', 'attr'=>'$!entries')
+    p6meta.'new_class'('Perl6::Compiler::Signature', 'attr'=>'$!entries $!default_type')
 
     load_bytecode 'config.pbc'
 
@@ -212,9 +212,9 @@ and report exceptions.
     .param pmc adverbs         :slurpy :named
 
     $P0 = get_root_global ['parrot';'PCT';'HLLCompiler'], 'eval'
-    #push_eh trap_errors
+    push_eh trap_errors
     $P0 = $P0(self, code, args :flat, adverbs :flat :named)
-    #pop_eh
+    pop_eh
     .return ($P0)
 
    trap_errors:

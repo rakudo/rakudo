@@ -53,19 +53,9 @@ method add_invocant() {
 
 # Sets the default type of the parameters.
 method set_default_parameter_type($type_name) {
-    my @entries := self.entries;
-    for @entries {
-        unless $_<types> && +@($_<types>) || substr($_<var_name>, 0, 1) ne "$" {
-            $_<types> := PAST::Op.new(
-                :name('all'),
-                :pasttype('call'),
-                PAST::Var.new(
-                    :namespace(list()),
-                    :name($type_name),
-                    :scope('package')
-                )
-            );
-        }
+    Q:PIR {
+        $P0 = find_lex "$type_name"
+        setattribute self, '$!default_type', $P0
     }
 }
 
@@ -98,6 +88,21 @@ method ast($high_level?) {
         PAST::Op.new( :inline('    %r = new ["Signature"]') )
     ));
     my $sig_var := PAST::Var.new( :name('signature'), :scope('register') );
+
+    # Set default type, if any.
+    Q:PIR {
+        $P0 = getattribute self, '$!default_type'
+        if null $P0 goto default_type_done
+    };
+    $ast.push(PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('!set_default_param_type'),
+        $sig_var,
+        PAST::Var.new( :name(Q:PIR { %r = $P0 }), :namespace(list()), :scope('package') )
+    ));
+    Q:PIR {
+      default_type_done:
+    };
 
     # For each of the parameters, emit a call to add the parameter.
     for self.entries {

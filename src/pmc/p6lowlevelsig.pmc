@@ -1,0 +1,184 @@
+/*
+$Id$
+Copyright (C) 2009, The Perl Foundation.
+
+=head1 NAME
+
+src/pmc/p6lowlevelsig.pmc - Perl 6 Low Level Signature PMC
+
+=head1 DESCRIPTION
+
+This PMC stores the low-level representation of a Perl 6 signature.
+
+*/
+
+
+/* Flags that can be set on a signature element. */
+#define SIG_ELEM_BIND_CAPTURE      1
+#define SIG_ELEM_BIND_PRIVATE_ATTR 2
+#define SIG_ELEM_BIND_PUBLIC_ATTR  4
+#define SIG_ELEM_SLURPY_POS        8
+#define SIG_ELEM_SLURPY_NAMED      16
+#define SIG_ELEM_SLURPY_BLOCK      32
+#define SIG_ELEM_INVOCANT          64
+#define SIG_ELEM_MULTI_INVOCANT    128
+#define SIG_ELEM_IS_RW             256
+#define SIG_ELEM_IS_COPY           512
+#define SIG_ELEM_IS_REF            1024
+
+
+/* Data structure to describe a single element in the signature. */
+typedef struct llsig_element {
+    STRING *variable_name;    /* The name in the lexpad to bind to, if any. */
+    PMC    *named_names;      /* List of the name(s) that a named parameter has,
+                               * or just non-null to mark a named slurpy. */
+    PMC    *type_captures;    /* Name(s) that we bind the type of a parameter to. */
+    INTVAL flags;             /* Various flags about the parameter. */
+    PMC    *nominal_type;     /* The nominal type of the parameter. */
+    PMC    *post_constraints; /* Junction of any extra constraints. */
+    PMC    *sub_signature;    /* Any nested signature. */
+} llsig_element;
+
+
+/*
+
+=back
+
+=head1 FUNCTIONS
+
+These are worker functions used by the methods of the PMC, and not visible
+from the outside.
+
+=over 4
+
+*/
+
+
+
+/*
+
+=back
+
+=head1 ATTRIBUTES
+
+=over 4
+
+=item elements
+
+Array of pointers to llsig_element structs specifying details of the elements
+of the signature.
+
+=item num_elements
+
+The number of items we have inside the signature.
+
+=back
+
+=head1 METHODS
+
+=over 4
+
+=cut
+
+*/
+
+pmclass P6LowLevelSig need_ext dynpmc group perl6_group {
+    ATTR struct llsig_element **elements;
+    ATTR INTVAL                 num_elements;
+
+/*
+
+=item VTABLE void init()
+
+Allocates the PMC's underlying storage.
+
+=cut
+
+*/
+    VTABLE void init() {
+        /* Allocate the underlying struct and initialize it. */
+        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_P6LowLevelSig_attributes);
+
+        /* Need custom mark and destroy. */
+        PObj_custom_mark_SET(SELF);
+        PObj_active_destroy_SET(SELF);
+    }
+
+
+/*
+
+=item VTABLE void destroy()
+
+Frees the memory associated with this PMC's underlying storage.
+
+=cut
+
+*/
+    VTABLE void destroy() {
+        llsig_element **elements;
+        INTVAL        num_elements, i;
+
+        /* Free element structs. */
+        GETATTR_P6LowLevelSig_elements(interp, SELF, elements);
+        GETATTR_P6LowLevelSig_num_elements(interp, SELF, num_elements);
+        for (i = 0; i < num_elements; i++)
+            if (elements[i]) {
+                mem_sys_free(elements[i]);
+                elements[i] = NULL;
+            }
+
+        /* Now free underlying struct. */
+        mem_sys_free(PMC_data(SELF));
+        PMC_data(SELF) = NULL;
+    }
+
+
+/*
+
+=item C<VTABLE void mark()>
+
+Marks anything we're referencing.
+
+=cut
+
+*/
+    VTABLE void mark() {
+        llsig_element **elements;
+        INTVAL        num_elements, i;
+
+        /* Mark everything referenced form the elements structs. */
+        GETATTR_P6LowLevelSig_elements(interp, SELF, elements);
+        GETATTR_P6LowLevelSig_num_elements(interp, SELF, num_elements);
+        for (i = 0; i < num_elements; i++) {
+            if (!elements[i])
+                continue;
+            if (elements[i]->variable_name)
+                Parrot_gc_mark_PMC_alive(interp, elements[i]->variable_name);
+            if (elements[i]->named_names)
+                Parrot_gc_mark_PMC_alive(interp, elements[i]->named_names);
+            if (elements[i]->type_captures)
+                Parrot_gc_mark_PMC_alive(interp, elements[i]->type_captures);
+            if (elements[i]->nominal_type)
+                Parrot_gc_mark_PMC_alive(interp, elements[i]->nominal_type);
+            if (elements[i]->post_constraints)
+                Parrot_gc_mark_PMC_alive(interp, elements[i]->post_constraints);
+            if (elements[i]->sub_signature)
+                Parrot_gc_mark_PMC_alive(interp, elements[i]->sub_signature);
+        }
+    }
+}
+
+/*
+
+=back
+
+=cut
+
+*/
+
+/*
+ * Local variables:
+ *   c-file-style: "parrot"
+ * End:
+ * vim: expandtab shiftwidth=4:
+ */

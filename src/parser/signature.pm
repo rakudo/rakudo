@@ -115,8 +115,8 @@ method ast($high_level?) {
             $_<types>.named('type');
             $add_param.push($_<types>);
         }
-        if $_<readtype> {
-            $add_param.push(PAST::Val.new( :value(~$_<readtype>), :named('readtype') ));
+        if $_<read_type> {
+            $add_param.push(PAST::Val.new( :value(~$_<read_type>), :named('readtype') ));
         }
         if $_<names> {
             if $_<names> eq "1" && $_<slurpy> {

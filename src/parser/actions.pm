@@ -1054,7 +1054,7 @@ method signature($/, $key) {
                 :optional( $var.viviself() ?? 1 !! 0 ),
                 :slurpy( $var.slurpy() ),
                 :names( $var.named() eq "" ?? list() !! list($var.named()) ),
-                :readtype( $readtype ),
+                :read_type( $readtype ),
                 :invocant( $invocant ),
                 :multi_invocant( $multi_inv_suppress ?? 0 !! 1 ),
                 :types( $var<type> )

@@ -45,6 +45,8 @@ access during a dispatch.
 */
 
 #include "parrot/oplib/ops.h"
+#include "sigguts.h"
+#include "pmc_p6lowlevelsig.h"
 
 
 typedef struct candidate_info {
@@ -342,8 +344,7 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
     INTVAL insert_pos = 0;
     for (i = 0; i < num_candidates; i++) {
         PMC *signature;
-        PMC *params;
-        PMC *meth;
+        struct llsig_element **sig_elem_info;
         candidate_info *info;
         INTVAL sig_elems;
         INTVAL j;
@@ -377,41 +378,26 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
                     VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
 
         /* Type information. */
-        signature         = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "$!signature"));
-        meth              = VTABLE_find_method(interp, signature, CONST_STRING(interp, "params"));
-        params            = (PMC*)Parrot_run_meth_fromc_args(interp, meth, signature,
-                CONST_STRING(interp, "params"), "P");
-        sig_elems         = VTABLE_elements(interp, params);
+        signature = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "$!signature"));
+        GETATTR_P6LowLevelSig_elements(interp, signature, sig_elem_info);
+        GETATTR_P6LowLevelSig_num_elements(interp, signature, sig_elems);
         info->types       = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         info->constraints = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         significant_param = 0;
         for (j = 0; j < sig_elems; j++) {
-            /* Look up various bits from the signature. */
-            PMC * const param       = VTABLE_get_pmc_keyed_int(interp, params, j);
-            PMC * const type        = VTABLE_get_pmc_keyed_str(interp, param,
-                    CONST_STRING(interp, "nom_type"));
-            PMC * const constraints = VTABLE_get_pmc_keyed_str(interp, param,
-                    CONST_STRING(interp, "cons_type"));
-            PMC * const multi_inv   = VTABLE_get_pmc_keyed_str(interp, param,
-                    CONST_STRING(interp, "multi_invocant"));
-            PMC * const named       = VTABLE_get_pmc_keyed_str(interp, param,
-                    CONST_STRING(interp, "named"));
-            PMC * const slurpy      = VTABLE_get_pmc_keyed_str(interp, param,
-                    CONST_STRING(interp, "slurpy"));
-
             /* If it's named, and not slurpy, don't need its type info but we will
              * need a bindability check during the dispatch for it. */
-            if (!PMC_IS_NULL(named) && PMC_IS_NULL(slurpy)) {
+            if (!PMC_IS_NULL(sig_elem_info[j]->named_names) && !(sig_elem_info[j]->flags & SIG_ELEM_SLURPY_NAMED)) {
                 info->bind_check = 1;
                 continue;
             }
 
             /* Record type info for this parameter. */
-            info->types[significant_param] = type;
-            info->constraints[significant_param] = constraints;
-            if (!PMC_IS_NULL(constraints))
+            info->types[significant_param] = sig_elem_info[j]->nominal_type;
+            info->constraints[significant_param] = sig_elem_info[j]->post_constraints;
+            if (!PMC_IS_NULL(info->constraints[significant_param]))
                 info->bind_check = 1;
-            if (!PMC_IS_NULL(multi_inv) && VTABLE_get_bool(interp, multi_inv))
+            if (sig_elem_info[j]->flags & SIG_ELEM_MULTI_INVOCANT)
                 info->num_types++;
             significant_param++;
         }

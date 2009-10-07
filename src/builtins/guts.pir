@@ -1083,7 +1083,7 @@ Internal helper method to create a role with a single parameterless variant.
     helper = find_name '!create_simple_role_helper'
     helper = clone helper
     setprop helper, '$!metarole', role
-    $P0 = new ["Signature"]
+    $P0 = allocate_signature 0
     setprop helper, '$!signature', $P0
     role = new ['Perl6Role']
     transform_to_p6opaque role

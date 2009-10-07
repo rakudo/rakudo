@@ -38,6 +38,7 @@ Dates are based on Parrot's expected release schedule.
   Milan.pm
   Seoul.pm
   ThousandOaks.pm (http://www.lowlevelmanager.com/2009/09/perl-6-hackathon.html)
+  Lisbon.pm (hosting YAPC::EU 2009)
 
 =head2 Steps to create a release (for release managers)
 

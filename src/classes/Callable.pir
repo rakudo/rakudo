@@ -60,7 +60,7 @@ Returns the type constraining what may be returned.
 .sub '' :load :init
     .local pmc block, signature
     block = get_hll_global ['Callable[::T]'], 'returns'
-    signature = new ["Signature"]
+    signature = allocate_signature 0
     setprop block, "$!signature", signature
 .end
 
@@ -78,7 +78,7 @@ Returns the type constraining what may be returned.
 .sub '' :load :init
     .local pmc block, signature
     block = get_hll_global ['Callable[::T]'], 'of'
-    signature = new ["Signature"]
+    signature = allocate_signature 0
     setprop block, "$!signature", signature
 .end
 

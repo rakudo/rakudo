@@ -71,10 +71,11 @@ Return a List with the keys of the invocant.
     .local pmc block, signature
     .const 'Sub' $P0 = "any_keys"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Any'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 =item sort()

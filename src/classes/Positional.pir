@@ -144,7 +144,7 @@ Returns the type constraining what may be stored.
 .sub '' :load :init
     .local pmc block, signature
     .const 'Sub' block = 'Positional::of'
-    signature = new ["Signature"]
+    signature = allocate_signature 0
     setprop block, "$!signature", signature
 .end
 

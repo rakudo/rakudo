@@ -116,10 +116,11 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     .local pmc block, signature
     .const 'Sub' $P0 = "hash_hash"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Hash'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 .namespace ['Perl6Hash']
@@ -130,10 +131,11 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     .local pmc block, signature
     .const 'Sub' $P0 = "hash_Hash"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Hash'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 =back

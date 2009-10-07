@@ -97,10 +97,11 @@ Remove the last item from the array and return it.
     .local pmc block, signature
     .const 'Sub' $P0 = "array_pop"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Array'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -162,10 +163,11 @@ Shift the first item off the array and return it.
     .local pmc block, signature
     .const 'Sub' $P0 = "array_shift"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Array'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 

@@ -117,10 +117,11 @@ every pair, joined by newlines or an explicitly given separator.
     .local pmc block, signature
     .const 'Sub' $P0 = "mapping_iterator"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
     '!TOPERL6MULTISUB'(block)
 .end
 
@@ -155,10 +156,11 @@ Returns keys of hash as a List
     .local pmc block, signature
     .const 'Sub' $P0 = "mapping_keys"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -196,10 +198,11 @@ Returns elements of hash as array of C<Pair(key, value)>
     .local pmc block, signature
     .const 'Sub' $P0 = "mapping_kv"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -227,10 +230,11 @@ Returns elements of hash as array of C<Pairs>
     .local pmc block, signature
     .const 'Sub' $P0 = "mapping_pairs"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
     '!TOPERL6MULTISUB'(block)
 .end
 
@@ -267,10 +271,11 @@ Returns elements of hash as array of C<Pairs>
     .local pmc block, signature
     .const 'Sub' $P0 = "mapping_reverse"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -305,10 +310,11 @@ Returns values of hash as a List
     .local pmc block, signature
     .const 'Sub' $P0 = "mapping_values"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 =back

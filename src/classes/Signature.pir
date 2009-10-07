@@ -86,72 +86,50 @@ the Signature.
     goto sigil_done
   sigil_done:
 
-    # Get constraints list, which may have class and role types as well as
-    # subset types. If we have no unique role or class type, they all become
-    # constraints; otherwise, we find the unique type. Finally, we turn the
-    # list of constraints into a junction.
-    .local pmc cur_list, cur_list_iter, constraints, type, test_item
-    constraints = root_new ['parrot';'ResizablePMCArray']
-    type = null
-    cur_list = attr["type"]
-    if null cur_list goto cur_list_loop_end
-  have_type_attr:
-    cur_list = cur_list.'eigenstates'()
-    cur_list_iter = iter cur_list
-  cur_list_loop:
-    unless cur_list_iter goto cur_list_loop_end
-    test_item = shift cur_list_iter
-    $I0 = isa test_item, "Role"
-    if $I0 goto is_type
-    $P0 = getprop "subtype_realtype", test_item
-    if null $P0 goto not_refinement
-    unless null type goto all_constraints
-    type = $P0
-    push constraints, test_item
-    goto cur_list_loop
-  not_refinement:
-    $I0 = isa test_item, "P6protoobject"
-    if $I0 goto is_type
-    push constraints, test_item
-    goto cur_list_loop
-  is_type:
-    unless null type goto all_constraints
-    type = test_item
-    goto cur_list_loop
-  all_constraints:
-    type = null
-    constraints = cur_list
-  cur_list_loop_end:
-
-    # Set parametric type, if any.
-    unless null type goto have_type
+    # Handle the main, nominal type. The main thing to do is make sure we come
+    # out with a type that is not a constraint (but keep any constraint around
+    # for later application).
+    .local pmc nom_type, bonus_constraint
     $I0 = attr['slurpy']
     if $I0 goto object_type
-    unless null role_type goto simple_role_type
-    type = getattribute self, '$!default_type'
-    unless null type goto done_role_type
+    nom_type = attr['nom_type']
+    unless null nom_type goto have_nom_type
+    unless null role_type goto nom_type_done
+    nom_type = getattribute self, '$!default_type'
+    unless null nom_type goto nom_type_done
   object_type:
-    type = get_hll_global 'Object'
+    nom_type = get_hll_global 'Object'
+    goto nom_type_done
+  have_nom_type:
+    $P0 = getprop "subtype_realtype", nom_type
+    if null $P0 goto nom_type_done
+    bonus_constraint = nom_type
+    nom_type = $P0
+  nom_type_done:
+
+    # Set parametric type, if any.
+    if null role_type goto done_role_type
+    if null nom_type goto simple_role_type
+    nom_type = role_type.'!select'(nom_type)
     goto done_role_type
   simple_role_type:
-    type = role_type
-    goto done_role_type
-  have_type:
-    if null role_type goto done_role_type
-    type = role_type.'!select'(type)
+    nom_type = role_type
   done_role_type:
-    attr["nom_type"] = type
-    $I0 = elements constraints
-    if $I0 == 0 goto no_constraints
-    $P0 = 'infix:&'(type, constraints :flat)
-    attr["type"] = $P0
-    constraints = 'infix:&'(constraints :flat)
-    goto set_constraints
-  no_constraints:
-    null constraints
-    attr["type"] = type
-  set_constraints:
-    attr["cons_type"] = constraints
+
+    # Store main nominal type.
+    attr["nom_type"] = nom_type
+
+    # Do we have any constraint types?
+    .local pmc cons_type
+    cons_type = attr['cons_type']
+    if null cons_type goto empty_cons_type
+    if null bonus_constraint goto cons_type_done
+    cons_type = 'infix:&'(cons_type, bonus_constraint)
+  empty_cons_type:
+    if null bonus_constraint goto cons_type_done
+    cons_type = 'infix:&'(bonus_constraint)
+  cons_type_done:
+    attr["cons_type"] = cons_type
 
     # Add to parameters list.
     .local pmc params
@@ -368,8 +346,9 @@ lexicals as needed and performing type checks.
     name = param['name']
     if name == 'self' goto param_loop
     sigil = substr name, 0, 1
-    .local pmc type, optional, orig, var
-    type = param['type']
+    .local pmc nom_type, cons_type, optional, orig, var
+    nom_type = param['nom_type']
+    cons_type = param['cons_type']
     optional = param['optional']
     orig = callerlex[name]
     if sigil == '@' goto param_array
@@ -380,20 +359,30 @@ lexicals as needed and performing type checks.
     $I0 = defined orig
     unless $I0 goto param_val_done
   not_optional:
-    if null type goto param_val_done
     .lex '$/', $P99
-    $P0 = type.'ACCEPTS'(var)
+    $P0 = nom_type.'ACCEPTS'(var)
+    unless $P0 goto err_param_type
+    if null cons_type goto param_val_done
+    $P0 = cons_type.'ACCEPTS'(var)
     unless $P0 goto err_param_type
     goto param_val_done
   param_array:
-    $P0 = type.'ACCEPTS'(orig)
+    $P0 = nom_type.'ACCEPTS'(orig)
     unless $P0 goto err_param_type_non_scalar
+    if null cons_type goto param_array_types_done
+    $P0 = cons_type.'ACCEPTS'(orig)
+    unless $P0 goto err_param_type_non_scalar
+  param_array_types_done:
     var = descalarref orig
     var = '!CALLMETHOD'('Array', var)
     goto param_val_done
   param_hash:
-    $P0 = type.'ACCEPTS'(orig)
+    $P0 = nom_type.'ACCEPTS'(orig)
     unless $P0 goto err_param_type_non_scalar
+    if null cons_type goto param_hash_types_done
+    $P0 = cons_type.'ACCEPTS'(orig)
+    unless $P0 goto err_param_type_non_scalar
+  param_hash_types_done:
     var = descalarref orig
     var = '!CALLMETHOD'('Hash', var)
     goto param_val_done
@@ -424,7 +413,7 @@ lexicals as needed and performing type checks.
     var = $P0
   param_readtype_done:
     ## set any type properties
-    setprop var, 'type', type
+    setprop var, 'type', nom_type
     ## place the updated variable back into lex
     callerlex[name] = var
     goto param_loop
@@ -450,7 +439,7 @@ lexicals as needed and performing type checks.
     'return'($P0)
   not_junctional:
     .local string errmsg, callername
-    errmsg = '!make_type_fail_message'('Parameter', orig, type)
+    errmsg = '!make_type_fail_message'('Parameter', orig, nom_type)
     callername = callersub
     if callername goto have_callername
     callername = '<anon>'

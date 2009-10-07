@@ -1054,7 +1054,8 @@ method signature($/, $key) {
                 :read_type( $readtype ),
                 :invocant( $invocant ),
                 :multi_invocant( $multi_inv_suppress ?? 0 !! 1 ),
-                :types( $var<type> )
+                :nom_type( $var<nom_type> ),
+                :cons_type( $var<cons_type> )
             );
 
             ##  handle end of multi-invocant sequence
@@ -1155,8 +1156,6 @@ method parameter($/) {
     }
 
     ##  keep track of any type constraints
-    my $typelist := PAST::Op.new( :name('all'), :pasttype('call') );
-    $var<type> := $typelist;
     if $<type_constraint> {
         if $<type_constraint> != 1 {
             $/.panic("Multiple prefix constraints not yet supported");
@@ -1177,7 +1176,8 @@ method parameter($/) {
                     @?BLOCK[0].symbol( $type_past.name(), :scope('lexical') );
                 }
                 else {
-                    # we need to thunk it
+                    # we need to thunk it - since it's a thunk, needs to be a
+                    # constraint type really.
                     my $thunk := PAST::Op.new(
                         :name('ACCEPTS'), :pasttype('callmethod'),
                         $type_past,
@@ -1186,17 +1186,25 @@ method parameter($/) {
                     $thunk := PAST::Block.new($thunk, :blocktype('declaration'));
                     @?BLOCK[0].push($thunk);
                     $type_past := PAST::Val.new( :value($thunk) );
-                    $typelist.push( $type_past );
+                    $var<cons_type> := PAST::Op.new( :name('all'), :pasttype('call'), $type_past );
                 }
             }
+            elsif $type_past.isa(PAST::Op) && $type_past.name() eq 'infix:,' {
+                # It's a literal value - implies both a nominal type and constraint type.
+                $var<nom_type> := $type_past[0];
+                $var<cons_type> := PAST::Op.new( :name('all'), :pasttype('call'), $type_past[1] );
+            }
             else {
-                $typelist.push( $type_past );
+                $var<nom_type> := $type_past;
             }
         }
     }
     if $<post_constraint> {
+        unless $var<cons_type> {
+            $var<cons_type> := PAST::Op.new( :name('all'), :pasttype('call') );
+        }
         for @($<post_constraint>) {
-            $typelist.push($_.ast);
+            $var<cons_type>.push($_.ast);
         }
     }
 
@@ -1707,11 +1715,8 @@ method scope_declarator($/) {
                 if $scope eq 'package' { $var.lvalue(1); }
                 my $init_value := $var.viviself();
                 my $type;
-                if +@($var<type>) == 1 {
-                    $type := $var<type>[0];
-                }
-                elsif +@($var<type>) > 1 {
-                    $/.panic("Multiple prefix constraints not yet supported");
+                if $var<nom_type> {
+                    $type := $var<nom_type>;
                 }
 
                 # If the var has a '.' twigil, we need to create an
@@ -1960,9 +1965,11 @@ method scoped($/) {
     elsif $<multi_declarator> {
         $past := $<multi_declarator>.ast;
         if $past.isa(PAST::Var) {
-            my $type := $past<type>;
-            for @($<fulltypename>) {
-                $type.push( $_.ast );
+            if +@($<fulltypename>) == 1 {
+                $past<nom_type> := $<fulltypename>[0].ast;
+            }
+            else {
+                $/.panic("Multiple prefix constraints are not yet supported");
             }
             if $past<sigil> eq '$' {
                 # Scalars auto-vivify to the proto of their type.
@@ -2015,7 +2022,6 @@ method variable_declarator($/) {
     }
     else {
         $var.isdecl(1);
-        $var<type>  := PAST::Op.new( :name('and'), :pasttype('call') );
         $var<itype> := container_itype($<variable><sigil>);
         $var<traitlist> :=  $<trait>;
     }
@@ -2031,7 +2037,6 @@ method constant_declarator($/) {
         :scope('lexical'),
     );
     $past<itype> := container_itype('Perl6Scalar');
-    $past<type>  := PAST::Op.new( :name('and'), :pasttype('call') );
     $/.add_type(~$<identifier>);
     @?BLOCK[0].symbol(~$<identifier>, :scope('lexical'));
     make $past;

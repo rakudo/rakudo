@@ -17,9 +17,8 @@ class Perl6::Compiler::Signature;
 
 # Adds a parameter to the signature.
 #  - var_name is the name of the lexical that we bind to, if any
-#  - types is a list of the types, including constraints, that we take
-#    (for now, and for historical reasons, an all junction, but this
-#    may change)
+#  - nom_type is the main, nominal type of the parameter
+#  - cons_type is (at least for now) a junction of other type constraints
 #  - type_captures is a list of any lexical type names bound to the type of
 #    the incoming parameter
 #  - optional sets if the parameter is optional
@@ -116,9 +115,13 @@ method ast($high_level?) {
         if $_<slurpy>   { $add_param.push(PAST::Val.new( :value(1), :named('slurpy') )); }
         if $_<invocant> { $add_param.push(PAST::Val.new( :value(1), :named('invocant') )); }
         if $_<multi_invocant> eq "0" { $add_param.push(PAST::Val.new( :value(0), :named('multi_invocant') )); }
-        if $_<types> && +@($_<types>) && !$_<slurpy> {
-            $_<types>.named('type');
-            $add_param.push($_<types>);
+        if $_<nom_type> && !$_<slurpy> {
+            $_<nom_type>.named('nom_type');
+            $add_param.push($_<nom_type>);
+        }
+        if $_<cons_type> {
+            $_<cons_type>.named('cons_type');
+            $add_param.push($_<cons_type>);
         }
         if $_<read_type> {
             $add_param.push(PAST::Val.new( :value(~$_<read_type>), :named('readtype') ));

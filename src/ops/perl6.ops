@@ -7,6 +7,8 @@ BEGIN_OPS_PREAMBLE
 
 #include "parrot/dynext.h"
 #include "pmc_object.h"
+#include "../pmc/pmc_p6lowlevelsig.h"
+#include "../pmc/sigguts.h"
 
 #if PARROT_HAS_ICU
 #  include <unicode/uchar.h>
@@ -14,7 +16,8 @@ BEGIN_OPS_PREAMBLE
 
 /* We cache a couple of type IDs for an op that we hit on every method call. */
 static INTVAL p6s_id = 0;
-static INTVAL or_id = 0;
+static INTVAL or_id  = 0;
+static INTVAL lls_id = 0;
 
 END_OPS_PREAMBLE
 
@@ -375,6 +378,166 @@ inline op descalarref(out PMC, in PMC) :base_core {
         ref = VTABLE_get_pmc(interp, ref);
     $1 = ref;
     goto NEXT();
+}
+
+
+/*
+
+=item allocate_signature(out PMC, in INT)
+
+Sets $1 to be a P6LowLevelSig with $2 signature elements allocated.
+
+=cut
+
+*/
+inline op allocate_signature(out PMC, in INT) :base_core {
+    struct llsig_element **elements;
+    INTVAL i;
+    
+    /* Create new low level signature PMC. */
+    if (!lls_id)
+        lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+    $1 = pmc_new(interp, lls_id);
+
+    /* Allocate required amount of structs. */
+    elements = mem_sys_allocate(($2 + 1) * sizeof(llsig_element *));
+    for (i = 0; i < $2; i++)
+        elements[i] = mem_sys_allocate_zeroed(sizeof(llsig_element));
+    elements[$2] = NULL;
+    SETATTR_P6LowLevelSig_elements(interp, $1, elements);
+    
+    /* Stash size. */
+    SETATTR_P6LowLevelSig_num_elements(interp, $1, $2);
+
+    goto NEXT();
+}
+
+
+/*
+
+=item get_signature_size(out INT, in PMC)
+
+Sets $1 to be the number of elements the P6LowLevelSig $2 has.
+
+=cut
+
+*/
+inline op get_signature_size(out INT, in PMC) :base_core {
+    if (!lls_id)
+        lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+    if ($2->vtable->base_type == lls_id) {
+        INTVAL num_elements;
+        GETATTR_P6LowLevelSig_num_elements(interp, $2, num_elements);
+        $1 = num_elements;
+        goto NEXT();
+    }
+    else {
+        opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
+                EXCEPTION_INVALID_OPERATION, "get_signature_size only works on P6LowLevelSig PMCs");
+        goto ADDRESS(handler);
+    }
+}
+
+
+/*
+
+=item set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC)
+
+Takes $1 (a P6LowLevelSig) and sets the contents of the signature element with
+index $2 as follows:
+
+  $3 = lexical name to bind to
+  $4 = flags
+  $5 = main (nominal) type
+  $6 = constraint type or junction of constraint types; null if none
+  $7 = array of names for a named parameter (non-null PMC for named slurpy)
+  $8 = array of type captures
+
+=cut
+
+*/
+inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PMC, inout PMC, inout PMC) :base_core {
+    if (!lls_id)
+        lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+    if ($1->vtable->base_type == lls_id) {
+        struct llsig_element **elements;
+        INTVAL num_elements;
+
+        /* Check we're not out of range. */
+        GETATTR_P6LowLevelSig_elements(interp, $1, elements);
+        GETATTR_P6LowLevelSig_num_elements(interp, $1, num_elements);
+        if ($2 < num_elements) {
+            struct llsig_element *element = elements[$2];
+            element->variable_name    = $3;
+            element->flags            = $4;
+            element->nominal_type     = $5;
+            element->post_constraints = $6;
+            element->named_names      = $7;
+            element->type_captures    = $8;
+            goto NEXT();
+        }
+        else {
+            opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
+                    EXCEPTION_INVALID_OPERATION, "signature element out of range in set_signature_elem");
+            goto ADDRESS(handler);
+        }
+    }
+    else {
+        opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
+                EXCEPTION_INVALID_OPERATION, "set_signature_elem only works on P6LowLevelSig PMCs");
+        goto ADDRESS(handler);
+    }
+}
+
+
+/*
+
+=item get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC, out PMC, out PMC, out PMC)
+
+Takes $1 (a P6LowLevelSig) and sets the registers with the contents of the
+signature element with index $2 as follows:
+
+  $3 = lexical name to bind to
+  $4 = flags
+  $5 = main (nominal) type
+  $6 = constraint type or junction of constraint types; null if none
+  $7 = array of names for a named parameter (non-null PMC for named slurpy)
+  $8 = array of type captures
+
+=cut
+
+*/
+inline op get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC, out PMC, out PMC) :base_core {
+    if (!lls_id)
+        lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+    if ($1->vtable->base_type == lls_id) {
+        struct llsig_element **elements;
+        INTVAL num_elements;
+
+        /* Check we're not out of range. */
+        GETATTR_P6LowLevelSig_elements(interp, $1, elements);
+        GETATTR_P6LowLevelSig_num_elements(interp, $1, num_elements);
+        if ($2 < num_elements) {
+            struct llsig_element *element = elements[$2];
+            $3 = element->variable_name;
+            $4 = element->flags;
+            $5 = element->nominal_type;
+            $6 = element->post_constraints;
+            $7 = element->named_names;
+            $8 = element->type_captures;
+            goto NEXT();
+        }
+        else {
+            opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
+                    EXCEPTION_INVALID_OPERATION, "signature element out of range in set_signature_elem");
+            goto ADDRESS(handler);
+        }
+    }
+    else {
+        opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
+                EXCEPTION_INVALID_OPERATION, "get_signature_elem only works on P6LowLevelSig PMCs");
+        goto ADDRESS(handler);
+    }
 }
 
 /*

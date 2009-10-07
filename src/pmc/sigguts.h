@@ -10,13 +10,13 @@
 #define SIG_ELEM_IS_RW             256
 #define SIG_ELEM_IS_COPY           512
 #define SIG_ELEM_IS_REF            1024
+#define SIG_ELEM_IS_OPTIONAL       2048
 
 
 /* Data structure to describe a single element in the signature. */
 typedef struct llsig_element {
     STRING *variable_name;    /* The name in the lexpad to bind to, if any. */
-    PMC    *named_names;      /* List of the name(s) that a named parameter has,
-                               * or just non-null to mark a named slurpy. */
+    PMC    *named_names;      /* List of the name(s) that a named parameter has. */
     PMC    *type_captures;    /* Name(s) that we bind the type of a parameter to. */
     INTVAL flags;             /* Various flags about the parameter. */
     PMC    *nominal_type;     /* The nominal type of the parameter. */

@@ -72,70 +72,57 @@ method set_rw_by_default() {
 
 # Produces an AST for generating a low-level signature object. Optionally can
 # instead produce code to generate a high-level signature object.
-# XXX Or it will when we have the new signature object support. For now, this
-# is generating the normal high level signatures, just a tad more efficiently
-# than we used to (e.g. we don't go back and add the invocant or tweak things
-# again at runtime when building the signature). This is the method that will
-# change substantially in the future.
 method ast($high_level?) {
-    my $ast := PAST::Stmts.new();
+    my $ast     := PAST::Stmts.new();
+    my @entries := self.entries;
+    my $SIG_ELEM_BIND_CAPTURE       := 1;
+    my $SIG_ELEM_BIND_PRIVATE_ATTR  := 2;
+    my $SIG_ELEM_BIND_PUBLIC_ATTR   := 4;
+    my $SIG_ELEM_SLURPY_POS         := 8;
+    my $SIG_ELEM_SLURPY_NAMED       := 16;
+    my $SIG_ELEM_SLURPY_BLOCK       := 32;
+    my $SIG_ELEM_INVOCANT           := 64;
+    my $SIG_ELEM_MULTI_INVOCANT     := 128;
+    my $SIG_ELEM_IS_RW              := 256;
+    my $SIG_ELEM_IS_COPY            := 512;
+    my $SIG_ELEM_IS_REF             := 1024;
+    my $SIG_ELEM_IS_OPTIONAL        := 2048;
     
-    # Instantiate signature and stick it in a register.
+    # Allocate a signature and stick it in a register.
     $ast.push(PAST::Op.new(
         :pasttype('bind'),
         PAST::Var.new( :name('signature'), :scope('register'), :isdecl(1) ),
-        PAST::Op.new( :inline('    %r = new ["Signature"]') )
+        PAST::Op.new( :inline('    %r = allocate_signature ' ~ +@entries) )
     ));
     my $sig_var := PAST::Var.new( :name('signature'), :scope('register') );
 
-    # Set default type, if any.
-    Q:PIR {
-        $P0 = getattribute self, '$!default_type'
-        if null $P0 goto default_type_done
-    };
-    $ast.push(PAST::Op.new(
-        :pasttype('callmethod'),
-        :name('!set_default_param_type'),
-        $sig_var,
-        PAST::Var.new( :name(Q:PIR { %r = $P0 }), :namespace(list()), :scope('package') )
-    ));
-    Q:PIR {
-      default_type_done:
-    };
+    # We'll likely also find a register holding a null value helpful to have.
+    $ast.push(PAST::Op.new( :inline('    null $P0') ));
+    my $null_reg := PAST::Var.new( :name('$P0'), :scope('register') );
 
     # For each of the parameters, emit a call to add the parameter.
-    for self.entries {
-        my $add_param := PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('!add_param'),
-            $sig_var,
-            ~$_<var_name>
-        );
-        if $_<optional> { $add_param.push(PAST::Val.new( :value(1), :named('optional') )); }
-        if $_<slurpy>   { $add_param.push(PAST::Val.new( :value(1), :named('slurpy') )); }
-        if $_<invocant> { $add_param.push(PAST::Val.new( :value(1), :named('invocant') )); }
-        if $_<multi_invocant> eq "0" { $add_param.push(PAST::Val.new( :value(0), :named('multi_invocant') )); }
-        if $_<nom_type> && !$_<slurpy> {
-            $_<nom_type>.named('nom_type');
-            $add_param.push($_<nom_type>);
-        }
-        if $_<cons_type> {
-            $_<cons_type>.named('cons_type');
-            $add_param.push($_<cons_type>);
-        }
-        if $_<read_type> {
-            $add_param.push(PAST::Val.new( :value(~$_<read_type>), :named('readtype') ));
-        }
-        if $_<names> {
-            if $_<names> eq "1" && $_<slurpy> {
-                $add_param.push(PAST::Val.new( :value(1), :named('named') ));
-            }
-            elsif !$_<slurpy> {
-                # Current signatures only support one name.
-                $add_param.push(PAST::Val.new( :value($_<names>[0]), :named('named') ));
-            }
-        }
-        $ast.push($add_param);
+    my $i := 0;
+    for @entries {
+        # First, compute flags.
+        my $flags := 0;
+        if $_<optional>              { $flags := $flags + $SIG_ELEM_IS_OPTIONAL; }
+        if $_<invocant>              { $flags := $flags + $SIG_ELEM_INVOCANT; }
+        if $_<multi_invocant> ne "0" { $flags := $flags + $SIG_ELEM_MULTI_INVOCANT; }
+        if $_<slurpy> && !$_<names>  { $flags := $flags + $SIG_ELEM_SLURPY_POS; }
+        if $_<slurpy> && $_<names>   { $flags := $flags + $SIG_ELEM_SLURPY_NAMED; }
+        if $_<read_type> eq 'rw'     { $flags := $flags + $SIG_ELEM_IS_RW; }
+        if $_<read_type> eq 'copy'   { $flags := $flags + $SIG_ELEM_IS_COPY; }
+
+        # Emit op to build signature element.
+        $ast.push(PAST::Op.new(
+            :inline('    set_signature_elem signature, ' ~ $i ~ ', "' ~
+                    $_<var_name> ~ '", ' ~ $flags ~ ', %0, %1, %2, %3'),
+            ($_<nom_type> && !$_<slurpy>  ?? $_<nom_type>  !! $null_reg),
+            ($_<cons_type>                ?? $_<cons_type> !! $null_reg),
+            ($_<names> && !$_<slurpy>     ?? $_<names>     !! $null_reg),
+            $null_reg
+        ));
+        $i := $i + 1;
     }
 
     return $ast;

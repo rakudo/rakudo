@@ -6,27 +6,8 @@ Signature - Perl 6 Signature class
 
 =head1 DESCRIPTION
 
-This file sets up the Perl 6 C<Signature> class.
-
-=head1 GUTS
-
-This class will evolve over time as we understand signatures and how we will
-expose their insides better. For now, a signature under the hood is just an
-array of hashes, with each hash being a "descriptor" for something that is
-bindable. Its keys are as follows.
-
-* name - string holding the name of the thing we're binding to, if any
-* type - the class or role type of the parameter; this references the actual
-  type object rather than just naming it, and may well be parametric (but that
-  will have been resolved already)
-* constraints - any additional "where" refinement types on the parameter;
-  will be a junction of types
-* invocant - is this the invocant (as in, self for a method, not multi)
-* multi_invocant - is this an invocant for the purpose of MMD
-* optional - is this an optional parameter?
-* slurpy - is this a slurpy parameter?
-
-Again, this probably isn't definitive either, but it'll get us going.
+This file sets up the high level Perl 6 C<Signature> class. It wraps around a
+P6LowLevelSig and provides higher level access to it.
 
 =cut
 
@@ -36,165 +17,22 @@ Again, this probably isn't definitive either, but it'll get us going.
     load_bytecode 'PCT.pbc'
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'@!params $!default_type')
+    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'$!ll_sig')
 .end
+
+
+# A few useful constants.
+.const int SIG_ELEM_SLURPY         = 56
+.const int SIG_ELEM_INVOCANT       = 64
+.const int SIG_ELEM_MULTI_INVOCANT = 128
+.const int SIG_ELEM_IS_RW          = 256
+.const int SIG_ELEM_IS_COPY        = 512
+.const int SIG_ELEM_IS_OPTIONAL    = 2048
+
 
 =head2 Methods
 
 =over 4
-
-=item !add_param( $varname, *%attr )
-
-Add the attributes given by C<%attr> as the entry for C<$var> in
-the Signature.
-
-=cut
-
-.sub '!add_param' :method
-    .param string varname
-    .param pmc attr            :slurpy :named
-
-    attr['name'] = varname
-
-    # If no multi_invocant value, set it to 1 (meaning it is one).
-    $I0 = exists attr['multi_invocant']
-    if $I0 goto have_mi
-    attr['multi_invocant'] = 1
-  have_mi:
-
-    # Work out any role type that the sigil implies. (Skip for slurpy and invocant, though.)
-    $I0 = attr["slurpy"]
-    if $I0 goto sigil_done
-    $I0 = attr["invocant"]
-    if $I0 goto sigil_done
-    .local pmc role_type
-    .local string sigil
-    sigil = substr varname, 0, 1
-    if sigil == '$' goto sigil_done
-    if sigil == '@' goto sigil_array
-    if sigil == '%' goto sigil_hash
-    if sigil == ':' goto sigil_done
-    goto sigil_code
-  sigil_array:
-    role_type = get_hll_global 'Positional'
-    goto sigil_done
-  sigil_hash:
-    role_type = get_hll_global 'Associative'
-    goto sigil_done
-  sigil_code:
-    role_type = get_hll_global 'Callable'
-    goto sigil_done
-  sigil_done:
-
-    # Handle the main, nominal type. The main thing to do is make sure we come
-    # out with a type that is not a constraint (but keep any constraint around
-    # for later application).
-    .local pmc nom_type, bonus_constraint
-    $I0 = attr['slurpy']
-    if $I0 goto object_type
-    nom_type = attr['nom_type']
-    unless null nom_type goto have_nom_type
-    unless null role_type goto nom_type_done
-    nom_type = getattribute self, '$!default_type'
-    unless null nom_type goto nom_type_done
-  object_type:
-    nom_type = get_hll_global 'Object'
-    goto nom_type_done
-  have_nom_type:
-    $P0 = getprop "subtype_realtype", nom_type
-    if null $P0 goto nom_type_done
-    bonus_constraint = nom_type
-    nom_type = $P0
-  nom_type_done:
-
-    # Set parametric type, if any.
-    if null role_type goto done_role_type
-    if null nom_type goto simple_role_type
-    nom_type = role_type.'!select'(nom_type)
-    goto done_role_type
-  simple_role_type:
-    nom_type = role_type
-  done_role_type:
-
-    # Store main nominal type.
-    attr["nom_type"] = nom_type
-
-    # Do we have any constraint types?
-    .local pmc cons_type
-    cons_type = attr['cons_type']
-    if null cons_type goto empty_cons_type
-    if null bonus_constraint goto cons_type_done
-    cons_type = 'infix:&'(cons_type, bonus_constraint)
-  empty_cons_type:
-    if null bonus_constraint goto cons_type_done
-    cons_type = 'infix:&'(bonus_constraint)
-  cons_type_done:
-    attr["cons_type"] = cons_type
-
-    # Add to parameters list.
-    .local pmc params
-    params = self.'params'()
-    push params, attr
-.end
-
-
-=item !add_implicit_self
-
-Ensures that if there is no explicit invocant, we add one.
-
-=cut
-
-.sub '!add_implicit_self' :method
-    .param pmc type :optional
-    unless null type goto have_type
-    type = get_hll_global 'Object'
-  have_type:
-
-    .local pmc params
-    params = self.'params'()
-    $I0 = elements params
-    if $I0 == 0 goto add_implicit_self
-    $P0 = params[0]
-    $I0 = $P0['invocant']
-    if $I0 != 1 goto add_implicit_self
-    .return ()
-
-  add_implicit_self:
-    $P0 = root_new ['parrot';'Hash']
-    $P0['name'] = 'self'
-    $P0['invocant'] = 1
-    $P0['multi_invocant'] = 1
-    $P0['nom_type'] = type
-    unshift params, $P0
-.end
-
-
-=item !set_default_param_type
-
-Sets the default parameter type.
-
-=cut
-
-.sub '!set_default_param_type' :method
-    .param pmc type
-    setattribute self, '$!default_type', type
-.end
-
-
-=item params
-
-Get the array of parameter describing hashes.
-
-=cut
-
-.sub 'params' :method
-    $P0 = getattribute self, "@!params"
-    unless null $P0 goto done
-    $P0 = root_new ['parrot';'ResizablePMCArray']
-    setattribute self, "@!params", $P0
-  done:
-    .return ($P0)
-.end
 
 =item perl
 
@@ -207,23 +45,37 @@ Gets a perl representation of the signature.
     s = new ['Str']
     concat s, ':('
 
-    # Output parameters.
-    .local pmc params, param_iter, cur_param
+    # Various bits of state we'll want.
     .local int last_was_multi_inv, want_colon, first
     last_was_multi_inv = 1
     want_colon = 0
     first = 1
-    params = self.'params'()
-    param_iter = iter params
-  param_iter_loop:
-    unless param_iter goto param_iter_loop_end
-    cur_param = shift param_iter
+
+    # Grab low level signature we're wrapping.
+    .local pmc signature
+    signature = getattribute self, '$!ll_sig'
+
+    # Loop over parameters.
+    .local int cur_param, count
+    count = get_signature_size signature
+    cur_param = -1
+  param_loop:
+    inc cur_param
+    unless cur_param < count goto param_done
+
+    # Get all curent parameter info.
+    .local pmc nom_type, cons_type, names
+    .local int flags, optional, multi_invocant, slurpy
+    .local string name
+    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, $P1
+    optional       = flags & SIG_ELEM_IS_OPTIONAL
+    multi_invocant = flags & SIG_ELEM_MULTI_INVOCANT
+    slurpy         = flags & SIG_ELEM_SLURPY
 
     # If it's the first time, no separator.
     if first goto first_time
     if want_colon goto emit_colon
-    $P0 = cur_param["multi_invocant"]
-    if $P0 goto emit_comma
+    if multi_invocant goto emit_comma
     unless last_was_multi_inv goto emit_comma
     concat s, ';; '
     last_was_multi_inv = 0
@@ -239,14 +91,12 @@ Gets a perl representation of the signature.
   separator_done:
 
     # First any nominal type.
-    $P0 = cur_param["nom_type"]
-    if null $P0 goto any_type
-    $I0 = isa $P0, 'Role'
+    if null nom_type goto any_type
+    $I0 = isa nom_type, 'Role'
     unless $I0 goto type_as_is
-    $S0 = cur_param["name"]
-    $S0 = substr $S0, 0, 1
+    $S0 = substr name, 0, 1
     if $S0 == '$' goto type_as_is
-    $S1 = $P0.'perl'()
+    $S1 = nom_type.'perl'()
     $I0 = index $S1, '['
     inc $I0
     $I1 = length $S1
@@ -256,7 +106,7 @@ Gets a perl representation of the signature.
     concat s, $S1
     goto type_done
   type_as_is:
-    $P0 = $P0.'perl'()
+    $P0 = nom_type.'perl'()
     if $P0 == 'Positional' goto no_type
     if $P0 == 'Associative' goto no_type
     if $P0 == 'Callable' goto no_type
@@ -269,42 +119,34 @@ Gets a perl representation of the signature.
   no_type:
 
     # If it's slurpy, the *.
-    $P0 = cur_param["slurpy"]
-    if null $P0 goto slurpy_done
-    unless $P0 goto slurpy_done
+    unless slurpy goto slurpy_done
     concat s, '*'
     goto named_done
   slurpy_done:
 
-    # If it's named, the :.
-    $S0 = cur_param['named']
-    if null $S0 goto named_done
-    if $S0 == '' goto named_done
+    # If it's named, the :. XXX Handle different naming/multiple names.
+    if null names goto named_done
     concat s, ':'
   named_done:
 
     # Now the name.
-    $P0 = cur_param["name"]
-    concat s, $P0
+    concat s, name
 
-    # If it's optional, the ?.
-    $P0 = cur_param["optional"]
-    if null $P0 goto optional_done
-    unless $P0 goto optional_done
+    # If it's optional, the ?. XXX Fix named case for non-optional.
+    unless optional goto optional_done
     concat s, '?'
   optional_done:
 
     # Now any constraints.
-    $P0 = cur_param["cons_type"]
-    if null $P0 goto constraints_done
-    unless $P0 goto constraints_done
+    if null cons_type goto constraints_done
+    unless cons_type goto constraints_done
     concat s, " where "
-    $P0 = $P0.'perl'()
+    $P0 = cons_type.'perl'()
     concat s, $P0
   constraints_done:
 
-    goto param_iter_loop
-  param_iter_loop_end:
+    goto param_loop
+  param_done:
 
     # If we just had an invocant, need the colon.
     unless want_colon goto no_trailing_colon
@@ -316,46 +158,59 @@ Gets a perl representation of the signature.
     .return (s)
 .end
 
+
 =item !SIGNATURE_BIND
 
 Analyze the signature of the caller, (re)binding the caller's
 lexicals as needed and performing type checks.
 
+XXX Note that this will be going away in the near future as part
+of the overall signature binding refactor.
+
 =cut
 
 .namespace []
 .sub '!SIGNATURE_BIND'
+    # Get hold of caller's info and sig.
     .local pmc callersub, callerlex, callersig
     $P0 = getinterp
     callersub = $P0['sub';1]
     callerlex = $P0['lexpad';1]
     getprop callersig, '$!signature', callersub
     if null callersig goto end
-    .local pmc params
-    params = getattribute callersig, "@!params"
-    if null params goto end
+
+    # Loop over parameters.
     .local int cur_param, count
-    count = elements params
+    count = get_signature_size callersig
     cur_param = -1
   param_loop:
     inc cur_param
     unless cur_param < count goto param_done
-    .local pmc param
-    param = params[cur_param]
-    .local string name, sigil
-    name = param['name']
+    
+    # Get all curent parameter info.
+    .local pmc nom_type, cons_type
+    .local int flags, optional
+    .local string name
+    get_signature_elem callersig, cur_param, name, flags, nom_type, cons_type, $P0, $P1
+    optional = flags & SIG_ELEM_IS_OPTIONAL
+
+    # Skip invocant.
     if name == 'self' goto param_loop
+    
+    # Get hold of some info we'll need about the value.
+    .local pmc orig, var
+    .local string sigil
     sigil = substr name, 0, 1
-    .local pmc nom_type, cons_type, optional, orig, var
-    nom_type = param['nom_type']
-    cons_type = param['cons_type']
-    optional = param['optional']
     orig = callerlex[name]
+
+    # Go by sigil...
     if sigil == '@' goto param_array
     if sigil == '%' goto param_hash
+    
+    # Scalar.
     var = '!CALLMETHOD'('Scalar', orig)
     ##  typecheck the argument unless it's undef (for optional parameter)
-    if null optional goto not_optional
+    unless optional goto not_optional
     $I0 = defined orig
     unless $I0 goto param_val_done
   not_optional:
@@ -366,6 +221,8 @@ lexicals as needed and performing type checks.
     $P0 = cons_type.'ACCEPTS'(var)
     unless $P0 goto err_param_type
     goto param_val_done
+
+    # Array.
   param_array:
     $P0 = nom_type.'ACCEPTS'(orig)
     unless $P0 goto err_param_type_non_scalar
@@ -376,6 +233,8 @@ lexicals as needed and performing type checks.
     var = descalarref orig
     var = '!CALLMETHOD'('Array', var)
     goto param_val_done
+
+    # Hash.
   param_hash:
     $P0 = nom_type.'ACCEPTS'(orig)
     unless $P0 goto err_param_type_non_scalar
@@ -387,10 +246,12 @@ lexicals as needed and performing type checks.
     var = '!CALLMETHOD'('Hash', var)
     goto param_val_done
   param_val_done:
+
     ## handle readonly/copy traits
-    $S0 = param['readtype']
-    if $S0 == 'rw' goto param_readtype_done
-    if $S0 == 'copy' goto param_readtype_copy
+    $I0 = flags & SIG_ELEM_IS_RW
+    if $I0 goto param_readtype_done
+    $I0 = flags & SIG_ELEM_IS_COPY
+    if $I0 goto param_readtype_copy
     ne_addr orig, var, param_readtype_var
     var = root_new ['parrot';'ObjectRef'], var
   param_readtype_var:
@@ -412,8 +273,10 @@ lexicals as needed and performing type checks.
     'infix:='($P0, var)
     var = $P0
   param_readtype_done:
+
     ## set any type properties
     setprop var, 'type', nom_type
+
     ## place the updated variable back into lex
     callerlex[name] = var
     goto param_loop
@@ -447,11 +310,9 @@ lexicals as needed and performing type checks.
     'die'(errmsg, ' for ', name, ' in call to ', callername)
 .end
 
-
 =back
 
 =cut
-
 
 # Local Variables:
 #   mode: pir

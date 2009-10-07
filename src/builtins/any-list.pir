@@ -53,9 +53,10 @@ Return a List with the keys of the invocant.
     .local pmc block, signature
     .const 'Sub' $P0 = "_keys"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
+    null $P1
+    set_signature_elem signature, 0, "@values", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
     setprop block, "$!signature", signature
-    signature.'!add_param'('@values', 1 :named('slurpy'))
     '!TOPERL6MULTISUB'(block)
 .end
 
@@ -191,9 +192,10 @@ Return values of the list
     .local pmc block, signature
     .const 'Sub' $P0 = "_values"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 1
+    null $P1
+    set_signature_elem signature, 0, "@values", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
     setprop block, "$!signature", signature
-    signature.'!add_param'('@values', 1 :named('slurpy'))
     '!TOPERL6MULTISUB'(block)
 .end
 

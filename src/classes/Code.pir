@@ -123,7 +123,8 @@ Gets the signature for the block, or returns Failure if it lacks one.
     $P0 = descalarref self
     $P0 = getprop '$!signature', $P0
     if null $P0 goto no_sig
-    .return ($P0)
+    $P1 = get_hll_global 'Signature'
+    .tailcall $P1.'new'('ll_sig' => $P0)
   no_sig:
     .tailcall '!FAIL'('No signature found')
 .end

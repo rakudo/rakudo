@@ -21,15 +21,6 @@ P6LowLevelSig and provides higher level access to it.
 .end
 
 
-# A few useful constants.
-.const int SIG_ELEM_SLURPY         = 56
-.const int SIG_ELEM_INVOCANT       = 64
-.const int SIG_ELEM_MULTI_INVOCANT = 128
-.const int SIG_ELEM_IS_RW          = 256
-.const int SIG_ELEM_IS_COPY        = 512
-.const int SIG_ELEM_IS_OPTIONAL    = 2048
-
-
 =head2 Methods
 
 =over 4

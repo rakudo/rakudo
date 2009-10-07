@@ -35,9 +35,10 @@ src/classes/Positional.pir - Positional Role
 .sub '' :load :init
     .local pmc block, signature
     block = get_hll_global ['Positional[::T]'], '_positional_role_body'
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
-    signature."!add_param"("T", 1 :named("optional"))
+    null $P1
+    set_signature_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1
     "!ADDTOROLE"(block)
 .end
 
@@ -125,10 +126,8 @@ src/classes/Positional.pir - Positional Role
 .sub '' :load :init
     .local pmc block, signature
     .const 'Sub' block1 = 'Positional::postcircumfix:[Int]'
-    signature = new ["Signature"]
+    signature = allocate_signature 0
     setprop block1, "$!signature", signature
-#    signature."!add_param"("$args", 0 :named("named"))
-#    signature."!add_param"("$options", 1 :named("named"))
 .end
 
 

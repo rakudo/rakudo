@@ -75,12 +75,13 @@ every pair, joined by newlines or an explicitly given separator.
     .local pmc block, signature
     .const 'Sub' $P0 = "mapping_fmt"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 3
     setprop block, "$!signature", signature
-    signature."!add_param"("$format")
-    signature."!add_param"("$sep", 1 :named('optional'))
     $P0 = get_hll_global 'Mapping'
-    signature."!add_implicit_self"($P0)
+    null $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 1, "$format", 0, $P1, $P1, $P1, $P1
+    set_signature_elem signature, 2, "$sep", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1
     '!TOPERL6MULTISUB'(block)
 .end
 

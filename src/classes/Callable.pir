@@ -39,9 +39,10 @@ This implements the parametric role Callable[::T = Object].
 .sub '' :load :init
     .local pmc block, signature
     block = get_hll_global ['Callable[::T]'], '_callable_role_body'
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
-    signature."!add_param"("T", 1 :named("optional"))
+    null $P1
+    set_signature_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1
     "!ADDTOROLE"(block)
 .end
 

@@ -44,11 +44,12 @@ Return true if the elements at C<indices> have been assigned to.
     .local pmc block, signature
     .const 'Sub' $P0 = "array_exists"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 2
     setprop block, "$!signature", signature
-    signature."!add_param"("@indices", 1 :named("slurpy"))
+    null $P1
     $P0 = get_hll_global 'Array'
-    signature."!add_implicit_self"($P0)
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 1, "@indices", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
 .end
 
 
@@ -132,11 +133,12 @@ Add C<args> to the end of the Array.
     .local pmc block, signature
     .const 'Sub' $P0 = "array_push"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 2
     setprop block, "$!signature", signature
-    signature."!add_param"("@items", 1 :named("slurpy"))
+    null $P1
     $P0 = get_hll_global 'Array'
-    signature."!add_implicit_self"($P0)
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 1, "@items", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
 .end
 
 
@@ -195,11 +197,12 @@ Adds C<args> to the beginning of the Array.
     .local pmc block, signature
     .const 'Sub' $P0 = "array_unshift"
     block = $P0
-    signature = new ["Signature"]
+    signature = allocate_signature 2
     setprop block, "$!signature", signature
-    signature."!add_param"("@items", 1 :named("slurpy"))
+    null $P1
     $P0 = get_hll_global 'Array'
-    signature."!add_implicit_self"($P0)
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 1, "@items", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
 .end
 
 =item values()

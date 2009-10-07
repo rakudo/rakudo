@@ -35,9 +35,10 @@ src/classes/Associative.pir - Associative Role
 .sub '' :load :init :outer('_associative_role_body')
     .local pmc block, signature
     block = get_hll_global ['Associative[::T]'], '_associative_role_body'
-    signature = new ["Signature"]
+    signature = allocate_signature 1
     setprop block, "$!signature", signature
-    signature."!add_param"("T", 1 :named("optional"))
+    null $P1
+    set_signature_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1
     "!ADDTOROLE"(block)
 .end
 
@@ -89,15 +90,6 @@ Returns a list element or slice.
   end:
     .return (result)
 .end
-.sub '' :load :init
-    .local pmc block, signature
-    block = get_hll_global ['Associative[::T]'], 'postcircumfix:{ }'
-    signature = new ["Signature"]
-    setprop block, "$!signature", signature
-    signature."!add_param"("$args", 0 :named("named"))
-    signature."!add_param"("$options", 1 :named("named"))
-.end
-
 
 =item of
 
@@ -109,13 +101,6 @@ Returns the type constraining what may be stored.
     $P0 = find_lex 'T'
     .return ($P0)
 .end
-.sub '' :load :init
-    .local pmc block, signature
-    block = get_hll_global ['Associative[::T]'], 'of'
-    signature = new ["Signature"]
-    setprop block, "$!signature", signature
-.end
-
 
 .namespace []
 .sub 'postcircumfix:{ }'

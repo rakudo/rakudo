@@ -122,7 +122,7 @@ multi trait_mod:<does>(ContainerDeclarand $c, Object $role) {
     $c.container does $role;
 }
 
-multi trait_mod:<of>(Code $block is rw where { .defined }, Object $type is rw) {
+multi trait_mod:<of>(Code $block is rw, Object $type is rw) {
     $block does Callable[$type];
 }
 

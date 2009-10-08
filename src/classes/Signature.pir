@@ -45,6 +45,7 @@ Gets a perl representation of the signature.
     # Grab low level signature we're wrapping.
     .local pmc signature
     signature = getattribute self, '$!ll_sig'
+    signature = descalarref signature
 
     # Loop over parameters.
     .local int cur_param, count

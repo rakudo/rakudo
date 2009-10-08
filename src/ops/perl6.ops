@@ -471,7 +471,11 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
             struct llsig_element *element = elements[$2];
             element->variable_name    = $3;
             element->flags            = $4;
-            element->nominal_type     = $5;
+            if (!PMC_IS_NULL($5))
+                element->nominal_type = $5;
+            else
+                element->nominal_type = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+                        string_from_literal(interp, "Object"));
             element->post_constraints = $6;
             element->named_names      = $7;
             element->type_captures    = $8;

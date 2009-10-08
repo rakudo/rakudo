@@ -132,7 +132,6 @@ Smart-matching for junctions, short-circuiting.
     type = self.'!type'()
     if type == JUNCTION_TYPE_NONE goto none
     if type == JUNCTION_TYPE_ALL goto all
-
   any_one:
     unless it goto false
     state = shift it

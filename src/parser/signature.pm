@@ -117,17 +117,20 @@ method ast($high_level?) {
     for @entries {
         # First, compute flags.
         my $flags := 0;
-        if $_<optional>              { $flags := $flags + $SIG_ELEM_IS_OPTIONAL; }
-        if $_<invocant>              { $flags := $flags + $SIG_ELEM_INVOCANT; }
-        if $_<multi_invocant> ne "0" { $flags := $flags + $SIG_ELEM_MULTI_INVOCANT; }
-        if $_<slurpy> && !$_<names>  { $flags := $flags + $SIG_ELEM_SLURPY_POS; }
-        if $_<slurpy> && $_<names>   { $flags := $flags + $SIG_ELEM_SLURPY_NAMED; }
-        if $_<read_type> eq 'rw'     { $flags := $flags + $SIG_ELEM_IS_RW; }
-        if $_<read_type> eq 'copy'   { $flags := $flags + $SIG_ELEM_IS_COPY; }
+        if $_<optional>                 { $flags := $flags + $SIG_ELEM_IS_OPTIONAL; }
+        if $_<invocant>                 { $flags := $flags + $SIG_ELEM_INVOCANT; }
+        if $_<multi_invocant> ne "0"    { $flags := $flags + $SIG_ELEM_MULTI_INVOCANT; }
+        if $_<slurpy> && !+@($_<names>) { $flags := $flags + $SIG_ELEM_SLURPY_POS; }
+        if $_<slurpy> && +@($_<names>)  { $flags := $flags + $SIG_ELEM_SLURPY_NAMED; }
+        if $_<read_type> eq 'rw'        { $flags := $flags + $SIG_ELEM_IS_RW; }
+        if $_<read_type> eq 'copy'      { $flags := $flags + $SIG_ELEM_IS_COPY; }
 
         # Fix up nominal type.
         my $sigil := substr($_<var_name>, 0, 1);
-        if $sigil eq "$" {
+        if $_<slurpy> {
+            $_<nom_type> := PAST::Var.new( :name('Object'), :scope('package') );
+        }
+        elsif $sigil eq "$" {
             if !$_<nom_type> {
                 $_<nom_type> := PAST::Var.new(
                     :name(self.get_default_parameter_type()),
@@ -157,12 +160,17 @@ method ast($high_level?) {
             }
         }
 
+        # If we have only one constraint type, don't bother emitting a junction.
+        if $_<cons_type> && +@($_<cons_type>) == 1 {
+            $_<cons_type> := $_<cons_type>[0];
+        }
+
         # Emit op to build signature element.
         # XXX Fix nameds to handle multiple names for an argument.
         $ast.push(PAST::Op.new(
             :inline('    set_signature_elem signature, ' ~ $i ~ ', "' ~
                     $_<var_name> ~ '", ' ~ $flags ~ ', %0, %1, %2, %3'),
-            ($_<nom_type> && !$_<slurpy>  ?? $_<nom_type>  !! $null_reg),
+            $_<nom_type>,
             ($_<cons_type>                ?? $_<cons_type> !! $null_reg),
             (+@($_<names>) && !$_<slurpy> ?? $_<names>[0]  !! $null_reg),
             $null_reg

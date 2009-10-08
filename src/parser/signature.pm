@@ -114,12 +114,13 @@ method ast($high_level?) {
         if $_<read_type> eq 'copy'   { $flags := $flags + $SIG_ELEM_IS_COPY; }
 
         # Emit op to build signature element.
+        # XXX Fix nameds to handle multiple names for an argument.
         $ast.push(PAST::Op.new(
             :inline('    set_signature_elem signature, ' ~ $i ~ ', "' ~
                     $_<var_name> ~ '", ' ~ $flags ~ ', %0, %1, %2, %3'),
             ($_<nom_type> && !$_<slurpy>  ?? $_<nom_type>  !! $null_reg),
             ($_<cons_type>                ?? $_<cons_type> !! $null_reg),
-            ($_<names> && !$_<slurpy>     ?? $_<names>     !! $null_reg),
+            (+@($_<names>) && !$_<slurpy> ?? $_<names>[0]  !! $null_reg),
             $null_reg
         ));
         $i := $i + 1;

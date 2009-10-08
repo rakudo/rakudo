@@ -366,30 +366,9 @@ parameters for the dispatcher.
     .param pmc lexpad
     .param pmc signature
 
-    # We build tuples of the args and pass them onto the main junction
-    # dispatcher.
-    .local pmc pos_args, name_args, it, param
-    pos_args = root_new ['parrot';'ResizablePMCArray']
-    name_args = root_new ['parrot';'Hash']
-    $P0 = signature.'params'()
-    it = iter $P0
-  param_loop:
-    unless it goto param_loop_end
-    .local pmc param
-    param = shift it
-    .local string name
-    .local pmc named, value
-    name = param['name']
-    named = param['named']
-    value = lexpad[name]
-    if null named goto pos_arg
-    name_args[named] = value
-    goto param_loop
-  pos_arg:
-    push pos_args, value
-    goto param_loop
-  param_loop_end:
-
+    # Get hold of arguments and defer to main junction dispatcher.
+    .local pmc pos_args, name_args
+    (pos_args, name_args) = '!get_original_args'(signature, lexpad)
     .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat :named)
 .end
 

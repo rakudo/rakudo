@@ -507,7 +507,9 @@ on error.
     # Build arguments based upon what the caller was originall invoked with,
     # and tailcall the next candidate.
     .local pmc pos_args, named_args
-    (pos_args, named_args) = '!get_original_args'(routine, lexpad)
+    $P0 = routine.'signature'()
+    $P0 = getattribute $P0, '$!ll_sig'
+    (pos_args, named_args) = '!get_original_args'($P0, lexpad)
     next.'set_failure_mode'()
     .tailcall next(pos_args :flat, named_args :flat :named)
 .end
@@ -527,7 +529,9 @@ on error.
     # get the result of the next candidate and use return to retrun from
     # the caller, provided the defer did not fail.
     .local pmc pos_args, named_args, result
-    (pos_args, named_args) = '!get_original_args'(routine, lexpad)
+    $P0 = routine.'signature'()
+    $P0 = getattribute $P0, '$!ll_sig'
+    (pos_args, named_args) = '!get_original_args'($P0, lexpad)
     next.'set_failure_mode'()
     (result) = next(pos_args :flat, named_args :flat :named)
 
@@ -570,17 +574,15 @@ of a hack.
 =cut
 
 .sub '!get_original_args'
-    .param pmc routine
+    .param pmc signature
     .param pmc lexpad
 
     # Get hold of the signature.
     .local pmc signature, pos_args, named_args
     pos_args = root_new ['parrot';'ResizablePMCArray']
     named_args = root_new ['parrot';'Hash']
-    signature = routine.'signature'()
     $I0 = defined signature
     unless $I0 goto param_done
-    signature = getattribute signature, '$!ll_sig'
     signature = descalarref signature
 
     # Loop over the parameters.

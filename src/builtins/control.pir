@@ -562,8 +562,10 @@ find nothing more to call.
 =item !get_original_args
 
 Helper for callsame and nextsame that uses the signature and lexpad of a
-routine to build up the next caller args. Maybe once day Parrot gives us
-some Capture support and this gets massively easier.
+routine to build up the next caller args.
+
+XXX Eventually this needs to go on the CallSignature, so this is a bit
+of a hack.
 
 =cut
 
@@ -571,27 +573,47 @@ some Capture support and this gets massively easier.
     .param pmc routine
     .param pmc lexpad
 
-    .local pmc signature, it, cur_param, pos_args, named_args
+    # Get hold of the signature.
+    .local pmc signature, pos_args, named_args
     pos_args = root_new ['parrot';'ResizablePMCArray']
     named_args = root_new ['parrot';'Hash']
     signature = routine.'signature'()
     $I0 = defined signature
-    unless $I0 goto it_loop_end
-    $P0 = signature.'params'()
-    it = iter $P0
-  it_loop:
-    unless it goto it_loop_end
-    cur_param = shift it
-    $S0 = cur_param['name']
-    $P0 = lexpad[$S0]
-    $P1 = cur_param['named']
-    unless null $P1 goto named
+    unless $I0 goto param_done
+    signature = getattribute signature, '$!ll_sig'
+    signature = descalarref signature
+
+    # Loop over the parameters.
+    .local int cur_param, count
+    count = get_signature_size signature
+    cur_param = -1
+  param_loop:
+    inc cur_param
+    unless cur_param < count goto param_done
+
+    # Get curent parameter info.
+    .local pmc names
+    .local string name
+    .local int flags, slurpy
+    get_signature_elem signature, cur_param, name, flags, $P0, $P1, names, $P2
+    
+    # XXX We'll skip slurpies for now.
+    slurpy = flags & SIG_ELEM_SLURPY
+    if slurpy goto param_done
+
+    # Look up value.
+    $P0 = lexpad[name]
+
+    # Named or not?
+    if null names goto positional
+    if names goto named
+  positional:
     push pos_args, $P0
-    goto it_loop
+    goto param_loop
   named:
-    named_args[$P1] = $P0
-    goto it_loop
-  it_loop_end:
+    named_args[names] = $P0
+    goto param_loop
+  param_done:
 
     .return (pos_args, named_args)
 .end

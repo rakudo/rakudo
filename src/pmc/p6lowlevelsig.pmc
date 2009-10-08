@@ -68,8 +68,7 @@ Allocates the PMC's underlying storage.
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_P6LowLevelSig_attributes);
 
         /* Need custom mark and destroy. */
-        PObj_custom_mark_SET(SELF);
-        PObj_active_destroy_SET(SELF);
+        PObj_custom_mark_destroy_SETALL(SELF);
     }
 
 
@@ -121,7 +120,7 @@ Marks anything we're referencing.
             if (!elements[i])
                 continue;
             if (elements[i]->variable_name)
-                Parrot_gc_mark_PMC_alive(interp, elements[i]->variable_name);
+                Parrot_gc_mark_STRING_alive(interp, elements[i]->variable_name);
             if (elements[i]->named_names)
                 Parrot_gc_mark_PMC_alive(interp, elements[i]->named_names);
             if (elements[i]->type_captures)

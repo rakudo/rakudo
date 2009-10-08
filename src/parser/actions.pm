@@ -1050,7 +1050,8 @@ method signature($/, $key) {
                 :var_name( $var.name() ),
                 :optional( $var.viviself() ?? 1 !! 0 ),
                 :slurpy( $var.slurpy() ),
-                :names( $var.named() eq "" ?? list() !! list($var.named()) ),
+                :names( $var.slurpy() ?? $var.named() !!
+                                         ($var.named() eq "" ?? list() !! list($var.named())) ),
                 :read_type( $readtype ),
                 :invocant( $invocant ),
                 :multi_invocant( $multi_inv_suppress ?? 0 !! 1 ),

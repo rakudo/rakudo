@@ -121,8 +121,8 @@ method ast($high_level?) {
         if $_<optional>                 { $flags := $flags + $SIG_ELEM_IS_OPTIONAL; }
         if $_<invocant>                 { $flags := $flags + $SIG_ELEM_INVOCANT; }
         if $_<multi_invocant> ne "0"    { $flags := $flags + $SIG_ELEM_MULTI_INVOCANT; }
-        if $_<slurpy> && !+@($_<names>) { $flags := $flags + $SIG_ELEM_SLURPY_POS; }
-        if $_<slurpy> && +@($_<names>)  { $flags := $flags + $SIG_ELEM_SLURPY_NAMED; }
+        if $_<slurpy> && !$_<names>     { $flags := $flags + $SIG_ELEM_SLURPY_POS; }
+        if $_<slurpy> && $_<names>      { $flags := $flags + $SIG_ELEM_SLURPY_NAMED; }
         if $_<read_type> eq 'rw'        { $flags := $flags + $SIG_ELEM_IS_RW; }
         if $_<read_type> eq 'copy'      { $flags := $flags + $SIG_ELEM_IS_COPY; }
 
@@ -147,7 +147,7 @@ method ast($high_level?) {
             elsif $sigil eq "%" { $role_name := "Associative" }
             elsif $sigil ne ":" { $role_name := "Callable" }
             if $role_name {
-                my $role_type := PAST::Var.new( :name($role_name), :scope('package') );
+                my $role_type := PAST::Var.new( :name($role_name), :namespace(list()), :scope('package') );
                 if !$_<nom_type> {
                     $_<nom_type> := $role_type;
                 }
@@ -170,8 +170,11 @@ method ast($high_level?) {
         # Emit op to build signature element.
         # XXX Fix nameds to handle multiple names for an argument.
         $ast.push(PAST::Op.new(
-            :inline('    set_signature_elem signature, ' ~ $i ~ ', "' ~
-                    $_<var_name> ~ '", ' ~ $flags ~ ', %0, %1, %2, %3'),
+            :pirop('set_signature_elem vPisiPPPP'),
+            PAST::Var.new( :name('signature'), :scope('register') ),
+            $i,
+            ~$_<var_name>,
+            $flags,
             $_<nom_type>,
             ($_<cons_type>                ?? $_<cons_type> !! $null_reg),
             (+@($_<names>) && !$_<slurpy> ?? $_<names>[0]  !! $null_reg),

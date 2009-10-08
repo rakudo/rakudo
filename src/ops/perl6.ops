@@ -468,17 +468,32 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
         GETATTR_P6LowLevelSig_elements(interp, $1, elements);
         GETATTR_P6LowLevelSig_num_elements(interp, $1, num_elements);
         if ($2 < num_elements) {
+            /* Set up sig. */
             struct llsig_element *element = elements[$2];
             element->variable_name    = $3;
             element->flags            = $4;
-            if (!PMC_IS_NULL($5))
-                element->nominal_type = $5;
-            else
-                element->nominal_type = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
-                        string_from_literal(interp, "Object"));
             element->post_constraints = $6;
             element->named_names      = $7;
             element->type_captures    = $8;
+
+            /* Also need to do fixups on the nominal type. */
+            if (!PMC_IS_NULL($5)) {
+                PMC *refined = VTABLE_getprop(interp, $5, string_from_literal(interp, "subtype_realtype"));
+                if (PMC_IS_NULL(refined)) {
+                    /* It's not some subtype, we're fine. */
+                    element->nominal_type = $5;
+                }
+                else {
+                    /* Need to break up into type and constraint. */
+                    element->nominal_type = refined;
+                    element->post_constraints = $5;
+                }
+            }
+            else {
+                element->nominal_type = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+                        string_from_literal(interp, "Object"));
+            }
+
             goto NEXT();
         }
         else {

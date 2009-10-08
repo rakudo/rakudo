@@ -25,6 +25,76 @@ P6LowLevelSig and provides higher level access to it.
 
 =over 4
 
+=item params
+
+Returns a C<List> of C<Parameter> descriptors.
+
+=cut
+
+.sub 'params' :method
+    # Create result.
+    .local pmc result
+    result = new 'ResizablePMCArray'
+
+    # Grab low level signature we're wrapping.
+    .local pmc signature
+    signature = getattribute self, '$!ll_sig'
+    signature = descalarref signature
+
+    # And Parameter proto.
+    .local pmc parameter
+    parameter = get_hll_global 'Parameter'
+
+    # Loop over parameters.
+    .local int cur_param, count
+    count = get_signature_size signature
+    cur_param = -1
+  param_loop:
+    inc cur_param
+    unless cur_param < count goto param_done
+
+    # Get all curent parameter info.
+    .local pmc nom_type, cons_type, names
+    .local int flags, optional, invocant, multi_invocant, slurpy, rw, ref, copy, named
+    .local string name
+    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, $P1
+    optional       = flags & SIG_ELEM_IS_OPTIONAL
+    invocant       = flags & SIG_ELEM_INVOCANT
+    multi_invocant = flags & SIG_ELEM_MULTI_INVOCANT
+    slurpy         = flags & SIG_ELEM_SLURPY
+    rw             = flags & SIG_ELEM_IS_RW
+    ref            = flags & SIG_ELEM_IS_REF
+    copy           = flags & SIG_ELEM_IS_COPY
+
+    # Make sure constraints is non-null.
+    unless null cons_type goto cons_done
+    cons_type = 'undef'()
+  cons_done:
+
+    # Any names?
+    named = 0
+    if null names goto no_names
+    named = 1
+    names = 'list'(names)
+    goto names_done
+  no_names:
+    names = 'list'()
+    $I0 = flags & SIG_ELEM_SLURPY_NAMED
+    unless $I0 goto names_done
+    named = 1
+  names_done:
+
+    # Create parameter instance. XXX Missing $.default, $.signature
+    $P0 = parameter.'new'('name'=>name, 'type'=>nom_type, 'constraint'=>cons_type, 'optional'=>optional, 'slurpy'=>slurpy, 'invocant'=>invocant, 'multi_invocant'=>multi_invocant, 'rw'=>rw, 'ref'=>ref, 'copy'=>copy, 'named'=>named, 'named_names'=>names)
+    push result, $P0
+    goto param_loop
+  param_done:
+
+    # Turn into a List.
+    .tailcall 'list'(result :flat)
+.end
+
+
 =item perl
 
 Gets a perl representation of the signature.

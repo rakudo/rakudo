@@ -16,12 +16,14 @@ care of much of that.
 
 # A few useful constants (just here so they're available going forward).
 .const int SIG_ELEM_SLURPY_POS                  = 8
+.const int SIG_ELEM_SLURPY_NAMED                = 16
 .const int SIG_ELEM_SLURPY                      = 56
 .const int SIG_ELEM_INVOCANT                    = 64
 .const int SIG_ELEM_MULTI_INVOCANT              = 128
 .const int SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT = 192
 .const int SIG_ELEM_IS_RW                       = 256
 .const int SIG_ELEM_IS_COPY                     = 512
+.const int SIG_ELEM_IS_REF                      = 1024
 .const int SIG_ELEM_IS_OPTIONAL                 = 2048
 
 =head2 Methods

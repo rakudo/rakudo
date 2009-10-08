@@ -33,7 +33,7 @@ multi sub infix:<...> (@lhs, Code $generator, :$limit) {
     # throws a "Null PMC access in get_bool()" when used in boolean context.
     # we have to use an ugly special case here.
     # and we can't even used !~~ for that (RT #69364)
-    if !$generator.^isa(WhateverCode) and any( $generator.signature.params>>.<slurpy> ) {
+    if !$generator.^isa(WhateverCode) and any( $generator.signature.params>>.slurpy ) {
         $argument-indexes = 0..*-1;
     } else {
         $argument-indexes = *-$c .. *-1;

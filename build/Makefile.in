@@ -163,6 +163,7 @@ SETTING = \
   src/setting/Object.pm \
   src/setting/Operators.pm \
   src/setting/Pair.pm \
+  src/setting/Parameter.pm \
   src/setting/Range.pm \
   src/setting/Str.pm \
   src/setting/Temporal.pm \

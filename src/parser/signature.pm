@@ -59,6 +59,18 @@ method set_default_parameter_type($type_name) {
 }
 
 
+# Gets the default type of the parameters.
+method get_default_parameter_type() {
+    Q:PIR {
+        %r = getattribute self, '$!default_type'
+        unless null %r goto done
+        %r = new ['String']
+        assign %r, "Object"
+      done:
+    }
+}
+
+
 # Sets all parameters without an explicit read type to default to rw.
 method set_rw_by_default() {
     my @entries := self.entries;
@@ -112,6 +124,38 @@ method ast($high_level?) {
         if $_<slurpy> && $_<names>   { $flags := $flags + $SIG_ELEM_SLURPY_NAMED; }
         if $_<read_type> eq 'rw'     { $flags := $flags + $SIG_ELEM_IS_RW; }
         if $_<read_type> eq 'copy'   { $flags := $flags + $SIG_ELEM_IS_COPY; }
+
+        # Fix up nominal type.
+        my $sigil := substr($_<var_name>, 0, 1);
+        if $sigil eq "$" {
+            if !$_<nom_type> {
+                $_<nom_type> := PAST::Var.new(
+                    :name(self.get_default_parameter_type()),
+                    :scope('package')
+                );
+            }
+        }
+        elsif $sigil ne "" && !$_<invocant> {
+            # May well be a parametric role based type.
+            my $role_name;
+            if    $sigil eq "@" { $role_name := "Positional" }
+            elsif $sigil eq "%" { $role_name := "Associative" }
+            elsif $sigil ne ":" { $role_name := "Callable" }
+            if $role_name {
+                my $role_type := PAST::Var.new( :name($role_name), :scope('package') );
+                if !$_<nom_type> {
+                    $_<nom_type> := $role_type;
+                }
+                else {
+                    $_<nom_type> := PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('!select'),
+                        $role_type,
+                        $_<nom_type>
+                    );
+                }
+            }
+        }
 
         # Emit op to build signature element.
         # XXX Fix nameds to handle multiple names for an argument.

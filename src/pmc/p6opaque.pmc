@@ -123,6 +123,8 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     }
 }
 
+/* used in several other PMCs */
+PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING *name);
 
 PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING *name) {
     /* Walk the MRO from the search point. */

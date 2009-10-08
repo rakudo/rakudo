@@ -393,19 +393,20 @@ Sets $1 to be a P6LowLevelSig with $2 signature elements allocated.
 inline op allocate_signature(out PMC, in INT) :base_core {
     struct llsig_element **elements;
     INTVAL i;
-    
+
     /* Create new low level signature PMC. */
     if (!lls_id)
         lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
     $1 = pmc_new(interp, lls_id);
 
     /* Allocate required amount of structs. */
-    elements = mem_sys_allocate(($2 + 1) * sizeof(llsig_element *));
+    elements = (struct llsig_element **)mem_sys_allocate(($2 + 1) * sizeof(llsig_element *));
+
     for (i = 0; i < $2; i++)
-        elements[i] = mem_sys_allocate_zeroed(sizeof(llsig_element));
+        elements[i] = (llsig_element *)mem_sys_allocate_zeroed(sizeof(llsig_element));
     elements[$2] = NULL;
     SETATTR_P6LowLevelSig_elements(interp, $1, elements);
-    
+
     /* Stash size. */
     SETATTR_P6LowLevelSig_num_elements(interp, $1, $2);
 

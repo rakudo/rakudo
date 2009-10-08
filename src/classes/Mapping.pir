@@ -79,8 +79,8 @@ every pair, joined by newlines or an explicitly given separator.
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
-    set_signature_elem signature, 1, "$format", 0, $P1, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 1, "$format", SIG_ELEM_MULTI_INVOCANT, $P1, $P1, $P1, $P1
     set_signature_elem signature, 2, "$sep", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1
     '!TOPERL6MULTISUB'(block)
 .end
@@ -121,7 +121,7 @@ every pair, joined by newlines or an explicitly given separator.
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     '!TOPERL6MULTISUB'(block)
 .end
 
@@ -160,7 +160,7 @@ Returns keys of hash as a List
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -202,7 +202,7 @@ Returns elements of hash as array of C<Pair(key, value)>
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -234,7 +234,7 @@ Returns elements of hash as array of C<Pairs>
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     '!TOPERL6MULTISUB'(block)
 .end
 
@@ -275,7 +275,7 @@ Returns elements of hash as array of C<Pairs>
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -314,7 +314,7 @@ Returns values of hash as a List
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Mapping'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 =back

@@ -37,7 +37,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Hash'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     set_signature_elem signature, 1, "$topic", 0, $P1, $P1, $P1, $P1
 .end
 
@@ -56,7 +56,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Hash'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     set_signature_elem signature, 1, "$key", 0, $P1, $P1, $P1, $P1
 .end
 
@@ -86,7 +86,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Hash'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     set_signature_elem signature, 1, "@keys", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
 .end
 
@@ -104,7 +104,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Hash'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     set_signature_elem signature, 1, "$key", 0, $P1, $P1, $P1, $P1
 .end
 
@@ -120,7 +120,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Hash'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 .namespace ['Perl6Hash']
@@ -135,7 +135,7 @@ src/classes/Hash.pir - Perl 6 Hash class and related functions
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Hash'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 =back

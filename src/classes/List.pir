@@ -273,7 +273,7 @@ Return the number of elements in the list.
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'List'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     '!TOPERL6MULTISUB'(block)
 .end
 

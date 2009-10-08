@@ -48,7 +48,7 @@ Return true if the elements at C<indices> have been assigned to.
     setprop block, "$!signature", signature
     null $P1
     $P0 = get_hll_global 'Array'
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     set_signature_elem signature, 1, "@indices", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
 .end
 
@@ -101,7 +101,7 @@ Remove the last item from the array and return it.
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Array'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -138,7 +138,7 @@ Add C<args> to the end of the Array.
     setprop block, "$!signature", signature
     null $P1
     $P0 = get_hll_global 'Array'
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     set_signature_elem signature, 1, "@items", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
 .end
 
@@ -167,7 +167,7 @@ Shift the first item off the array and return it.
     setprop block, "$!signature", signature
     $P0 = get_hll_global 'Array'
     null $P1
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
 .end
 
 
@@ -203,7 +203,7 @@ Adds C<args> to the beginning of the Array.
     setprop block, "$!signature", signature
     null $P1
     $P0 = get_hll_global 'Array'
-    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT, $P0, $P1, $P1, $P1
+    set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1
     set_signature_elem signature, 1, "@items", SIG_ELEM_SLURPY_POS, $P1, $P1, $P1, $P1
 .end
 

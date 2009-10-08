@@ -45,6 +45,7 @@ method add_invocant() {
         $param<var_name> := "self";
         $param<invocant> := 1;
         $param<multi_invocant> := 1;
+        $param<names> := list();
         @entries.unshift($param);
     }
 }
@@ -127,13 +128,14 @@ method ast($high_level?) {
 
         # Fix up nominal type.
         my $sigil := substr($_<var_name>, 0, 1);
-        if $_<slurpy> {
-            $_<nom_type> := PAST::Var.new( :name('Object'), :scope('package') );
+        if $_<slurpy> || $_<invocant> {
+            $_<nom_type> := PAST::Var.new( :name('Object'), :namespace(list()), :scope('package') );
         }
         elsif $sigil eq "$" {
             if !$_<nom_type> {
                 $_<nom_type> := PAST::Var.new(
                     :name(self.get_default_parameter_type()),
+                    :namespace(list()),
                     :scope('package')
                 );
             }

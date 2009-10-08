@@ -124,7 +124,8 @@ Gets the signature for the block, or returns Failure if it lacks one.
     $P0 = getprop '$!signature', $P0
     if null $P0 goto no_sig
     $P1 = get_hll_global 'Signature'
-    .tailcall $P1.'new'('ll_sig' => $P0)
+    $P1 = $P1.'new'('ll_sig' => $P0)
+    .return ($P1)
   no_sig:
     .tailcall '!FAIL'('No signature found')
 .end

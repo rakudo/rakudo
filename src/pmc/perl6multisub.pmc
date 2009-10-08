@@ -109,8 +109,6 @@ a Hash of the named parameters.
 
 */
 
-PARROT_WARN_UNUSED_RESULT
-PARROT_CANNOT_RETURN_NULL
 static void
 get_args(PARROT_INTERP, PMC **pos_args, PMC **named_args)
 {
@@ -276,8 +274,9 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
              * tied if neither has constraints or both have constraints. */
             if (!PMC_IS_NULL(a->constraints[i]) && PMC_IS_NULL(b->constraints[i]))
                 narrower++;
-            else if (PMC_IS_NULL(a->constraints[i]) && PMC_IS_NULL(b->constraints[i]) ||
-                     !PMC_IS_NULL(a->constraints[i]) && !PMC_IS_NULL(b->constraints[i]))
+            else if ((PMC_IS_NULL(a->constraints[i]) && PMC_IS_NULL(b->constraints[i]))
+                 ||
+                    (!PMC_IS_NULL(a->constraints[i]) && !PMC_IS_NULL(b->constraints[i])))
                 tied++;
         }
         else {
@@ -852,23 +851,6 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *po
 }
 
 
-/*
-
-=item C<PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *self)>
-
-Uses the arguments currently being passed to find all possible candidates that we
-could run, sorted in order of preference. This is made available for calling by
-the method dispatcher.
-
-=cut
-
-*/
-PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *multi) {
-    PMC *pos_args, *named_args;
-    get_args(interp, &pos_args, &named_args);
-    return find_many_candidates_with_arg_list(interp, multi, pos_args, named_args);
-}
-
 
 /*
 
@@ -884,6 +866,31 @@ static int check_invokable(PARROT_INTERP, PMC *value) {
     STRING * const _sub = CONST_STRING(interp, "Sub");
     STRING * const _nci = CONST_STRING(interp, "NCI");
     return VTABLE_isa(interp, value, _sub) || VTABLE_isa(interp, value, _nci);
+}
+
+/*
+
+=back
+
+=head1 EXTERNAL FUNCTIONS
+
+=item C<PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *self)>
+
+Uses the arguments currently being passed to find all possible candidates that
+we could run, sorted in order of preference. This is made available for calling
+by the method dispatcher.
+
+=cut
+
+*/
+
+/* not static; used in P6Invocation PMC */
+PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *multi);
+
+PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *multi) {
+    PMC *pos_args, *named_args;
+    get_args(interp, &pos_args, &named_args);
+    return find_many_candidates_with_arg_list(interp, multi, pos_args, named_args);
 }
 
 /*

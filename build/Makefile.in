@@ -165,6 +165,7 @@ SETTING = \
   src/setting/Pair.pm \
   src/setting/Parameter.pm \
   src/setting/Range.pm \
+  src/setting/Signature.pm \
   src/setting/Str.pm \
   src/setting/Temporal.pm \
   src/setting/Whatever.pm \

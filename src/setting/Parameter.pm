@@ -20,6 +20,7 @@ class Parameter {
     has $.default;
     has $.invocant;
     has $.multi_invocant;
+    has $.type_captures;
     has $.signature;
 }
 

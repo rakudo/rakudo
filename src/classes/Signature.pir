@@ -54,10 +54,10 @@ Returns a C<List> of C<Parameter> descriptors.
     unless cur_param < count goto param_done
 
     # Get all curent parameter info.
-    .local pmc nom_type, cons_type, names
+    .local pmc nom_type, cons_type, names, type_captures
     .local int flags, optional, invocant, multi_invocant, slurpy, rw, ref, copy, named
     .local string name
-    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, $P1
+    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, type_captures
     optional       = flags & SIG_ELEM_IS_OPTIONAL
     invocant       = flags & SIG_ELEM_INVOCANT
     multi_invocant = flags & SIG_ELEM_MULTI_INVOCANT
@@ -84,8 +84,16 @@ Returns a C<List> of C<Parameter> descriptors.
     named = 1
   names_done:
 
+    # Any type captures?
+    if null type_captures goto no_type_captures
+    type_captures = 'list'(type_captures :flat)
+    goto type_captures_done
+  no_type_captures:
+    type_captures = 'list'()
+  type_captures_done:
+
     # Create parameter instance. XXX Missing $.default, $.signature
-    $P0 = parameter.'new'('name'=>name, 'type'=>nom_type, 'constraint'=>cons_type, 'optional'=>optional, 'slurpy'=>slurpy, 'invocant'=>invocant, 'multi_invocant'=>multi_invocant, 'rw'=>rw, 'ref'=>ref, 'copy'=>copy, 'named'=>named, 'named_names'=>names)
+    $P0 = parameter.'new'('name'=>name, 'type'=>nom_type, 'constraint'=>cons_type, 'optional'=>optional, 'slurpy'=>slurpy, 'invocant'=>invocant, 'multi_invocant'=>multi_invocant, 'rw'=>rw, 'ref'=>ref, 'copy'=>copy, 'named'=>named, 'named_names'=>names, 'type_captures'=>type_captures)
     push result, $P0
     goto param_loop
   param_done:

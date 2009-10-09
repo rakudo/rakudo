@@ -39,6 +39,11 @@ class Signature is also {
                     }
                 }
 
+                # Any type captures.
+                for @($param.type_captures) -> $name {
+                    take '::' ~ $name ~ ' ';
+                }
+
                 # Slurpiness, namedness, then the name.
                 if $param.slurpy { take '*' }
                 for @($param.named_names) -> $name {

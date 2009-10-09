@@ -8,7 +8,7 @@ BEGIN_OPS_PREAMBLE
 #include "parrot/dynext.h"
 #include "pmc_object.h"
 #include "../pmc/pmc_p6lowlevelsig.h"
-#include "../pmc/sigguts.h"
+#include "../binder/sigguts.h"
 
 #if PARROT_HAS_ICU
 #  include <unicode/uchar.h>
@@ -558,6 +558,39 @@ inline op get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC,
                 EXCEPTION_INVALID_OPERATION, "get_signature_elem only works on P6LowLevelSig PMCs");
         goto ADDRESS(handler);
     }
+}
+
+
+/*
+
+=item bind_signature(in PMC, in PMC)
+
+This is emitted into a sub to cause it's Perl 6 signature to be bound. $1 is
+an array of positional arguments (obtained by using :flat) and $2 is a hash of
+named arguments (obtained using :flat :slurpy). Eventually, after Parrot
+refactors are complete, it will take one argument - the CallSignature.
+
+=cut
+
+*/
+inline op bind_signature(in PMC, in PMC) :base_core {
+    PMC *ctx = CURRENT_CONTEXT(interp);
+
+    /* If we aren't already bound, enter the appropriate binder. */
+    if (!PObj_flag_TEST(P6S_ALREADY_BOUND, ctx)) {
+        PMC *lexpad         = Parrot_pcc_get_lex_pad(interp, ctx);
+        PMC *sub            = Parrot_pcc_get_sub(interp, ctx);
+        PMC *signature      = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
+        INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
+        STRING *error       = NULL;
+        if (!Rakudo_binding_bind_signature(interp, lexpad, signature, $1, $2, noms_checked, &error)) {
+            opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
+                    EXCEPTION_INVALID_OPERATION, Parrot_str_to_cstring(interp, error));
+            goto ADDRESS(handler);
+        }
+    }
+
+    goto NEXT();
 }
 
 /*

@@ -23,3 +23,25 @@ typedef struct llsig_element {
     PMC    *post_constraints; /* Junction of any extra constraints. */
     PMC    *sub_signature;    /* Any nested signature. */
 } llsig_element;
+
+
+/* Flags we can set on the Context PMC.
+ *
+ * ALREADY_CHECKED indicates that we have determined that all of the arguments
+ * can be bound to positional parameters without any further type checking
+ * (because the multi-dispatch cache told us so) and any named parameters are
+ * automatically going into the named slurpy variable.
+ *
+ * ALREADY_BOUND indicates that the variables have already been bound into the
+ * lexpad and means the bind_signature op is thus a no-op. This happens if we
+ * had to do a bindability check in the multi-dispatch anyway.
+ */
+#define PObj_P6S_ALREADY_CHECKED_FLAG   PObj_private0_FLAG
+#define PObj_P6S_ALREADY_BOUND_FLAG     PObj_private1_FLAG
+
+
+/* A function we want to share to provide the interface to the binder. */
+INTVAL
+Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
+                              PMC *pos_args, PMC *named_args,
+                              INTVAL no_nom_type_check, STRING **error);

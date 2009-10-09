@@ -613,6 +613,7 @@ of a hack.
     push pos_args, $P0
     goto param_loop
   named:
+    names = names[0]
     named_args[names] = $P0
     goto param_loop
   param_done:

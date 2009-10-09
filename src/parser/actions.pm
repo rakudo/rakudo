@@ -1056,7 +1056,8 @@ method signature($/, $key) {
                 :invocant( $invocant ),
                 :multi_invocant( $multi_inv_suppress ?? 0 !! 1 ),
                 :nom_type( $var<nom_type> ),
-                :cons_type( $var<cons_type> )
+                :cons_type( $var<cons_type> ),
+                :type_captures( $var<type_binding> ?? list($var<type_binding>.name()) !! list() )
             );
 
             ##  handle end of multi-invocant sequence

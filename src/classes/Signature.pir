@@ -75,7 +75,7 @@ Returns a C<List> of C<Parameter> descriptors.
     named = 0
     if null names goto no_names
     named = 1
-    names = 'list'(names)
+    names = 'list'(names :flat)
     goto names_done
   no_names:
     names = 'list'()

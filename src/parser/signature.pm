@@ -167,8 +167,21 @@ method ast($high_level?) {
             $_<cons_type> := $_<cons_type>[0];
         }
 
+        # Names and type capture lists needs to build a ResizablePMCArray.
+        my $names := $null_reg;
+        if !$_<slurpy> && $_<names> && +@($_<names>) {
+            my $pir := "    %r = root_new ['parrot'; 'ResizablePMCArray']\n";
+            for @($_<names>) { $pir := $pir ~ "    push %r, '" ~ ~$_ ~ "'\n"; }
+            $names := PAST::Op.new( :inline($pir) );
+        }
+        my $type_captures := $null_reg;
+        if $_<type_captures> && +@($_<type_captures>) {
+            my $pir := "    %r = root_new ['parrot'; 'ResizablePMCArray']\n";
+            for @($_<type_captures>) { $pir := $pir ~ "    push %r, '" ~ ~$_ ~ "'\n"; }
+            $type_captures := PAST::Op.new( :inline($pir) );
+        }
+
         # Emit op to build signature element.
-        # XXX Fix nameds to handle multiple names for an argument.
         $ast.push(PAST::Op.new(
             :pirop('set_signature_elem vPisiPPPP'),
             PAST::Var.new( :name('signature'), :scope('register') ),
@@ -176,9 +189,9 @@ method ast($high_level?) {
             ~$_<var_name>,
             $flags,
             $_<nom_type>,
-            ($_<cons_type>                ?? $_<cons_type> !! $null_reg),
-            (+@($_<names>) && !$_<slurpy> ?? $_<names>[0]  !! $null_reg),
-            $null_reg
+            ($_<cons_type> ?? $_<cons_type> !! $null_reg),
+            $names,
+            $type_captures
         ));
         $i := $i + 1;
     }

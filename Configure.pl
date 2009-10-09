@@ -19,8 +19,8 @@ MAIN: {
     }
 
     # Determine the revision of Parrot we require
-    open my $REQ, "build/PARROT_REVISION"
-      || die "cannot open build/PARROT_REVISION\n";
+    open my $REQ, '<', "build/PARROT_REVISION"
+      or die "cannot open build/PARROT_REVISION: $!\n";
     my ($reqsvn, $reqpar) = split(' ', <$REQ>);
     $reqsvn += 0;
     close $REQ;
@@ -143,10 +143,7 @@ sub verify_parrot {
         "$PARROT_INCLUDE_DIR",
         "$PARROT_INCLUDE_DIR/pmc",
     );
-    my @missing;
-    for my $reqfile (@required_files) {
-        push @missing, "    $reqfile" unless -e $reqfile;
-    }
+    my @missing = map { "    $_" } grep { ! -e } @required_files;
     if (@missing) {
         my $missing = join("\n", @missing);
         die <<"END";

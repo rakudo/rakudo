@@ -1,4 +1,11 @@
 class Parameter {
+    multi method new(*%args) {
+        for <rw ref copy named slurpy optional default invocant> -> $n {
+            # %args{$n}.=true doesn't seem to work here.
+            %args{$n} = ?%args{$n} if %args.exists($n);
+        }
+        self.bless(*, |%args);
+    }
     has $.name;
     has $.type;
     has $.constraints;

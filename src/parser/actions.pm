@@ -2261,6 +2261,11 @@ method circumfix($/, $key) {
                     }
                 }
             }
+            elsif +@($past[1]) == 1 && $past[1][0].isa(PAST::Var) {
+                if substr($past[1][0].name(), 0, 1) eq '%' {
+                    $is_hash := 1;
+                }
+            }
         }
         if $is_hash {
             my @children := @($past[1]);

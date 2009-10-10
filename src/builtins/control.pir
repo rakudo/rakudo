@@ -597,7 +597,7 @@ of a hack.
     .local pmc names
     .local string name
     .local int flags, slurpy
-    get_signature_elem signature, cur_param, name, flags, $P0, $P1, names, $P2
+    get_signature_elem signature, cur_param, name, flags, $P0, $P1, names, $P2, $P3, $P4
     
     # XXX We'll skip slurpies for now.
     slurpy = flags & SIG_ELEM_SLURPY

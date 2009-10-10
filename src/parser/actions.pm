@@ -1057,7 +1057,9 @@ method signature($/, $key) {
                 :multi_invocant( $multi_inv_suppress ?? 0 !! 1 ),
                 :nom_type( $var<nom_type> ),
                 :cons_type( $var<cons_type> ),
-                :type_captures( $var<type_binding> ?? list($var<type_binding>.name()) !! list() )
+                :type_captures( $var<type_binding> ?? list($var<type_binding>.name()) !! list() ),
+                :default( $var.viviself() && !$invocant ?? 
+                        PAST::Block.new( :blocktype('declaration'), $var.viviself() ) !! 0 )
             );
 
             ##  handle end of multi-invocant sequence

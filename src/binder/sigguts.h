@@ -22,6 +22,7 @@ typedef struct llsig_element {
     PMC    *nominal_type;     /* The nominal type of the parameter. */
     PMC    *post_constraints; /* Junction of any extra constraints. */
     PMC    *sub_signature;    /* Any nested signature. */
+    PMC    *default_closure;  /* The default value closure. */
 } llsig_element;
 
 

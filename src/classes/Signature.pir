@@ -54,10 +54,10 @@ Returns a C<List> of C<Parameter> descriptors.
     unless cur_param < count goto param_done
 
     # Get all curent parameter info.
-    .local pmc nom_type, cons_type, names, type_captures
+    .local pmc nom_type, cons_type, names, type_captures, default, sub_sig
     .local int flags, optional, invocant, multi_invocant, slurpy, rw, ref, copy, named
     .local string name
-    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, type_captures
+    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, type_captures, default, sub_sig
     optional       = flags & SIG_ELEM_IS_OPTIONAL
     invocant       = flags & SIG_ELEM_INVOCANT
     multi_invocant = flags & SIG_ELEM_MULTI_INVOCANT
@@ -92,8 +92,16 @@ Returns a C<List> of C<Parameter> descriptors.
     type_captures = 'list'()
   type_captures_done:
 
-    # Create parameter instance. XXX Missing $.default, $.signature
-    $P0 = parameter.'new'('name'=>name, 'type'=>nom_type, 'constraint'=>cons_type, 'optional'=>optional, 'slurpy'=>slurpy, 'invocant'=>invocant, 'multi_invocant'=>multi_invocant, 'rw'=>rw, 'ref'=>ref, 'copy'=>copy, 'named'=>named, 'named_names'=>names, 'type_captures'=>type_captures)
+    # Make sure default and sub-signature are non-null.
+    unless null default goto default_done
+    default = 'undef'()
+  default_done:
+    unless null sub_sig goto sub_sig_done
+    sub_sig = 'undef'()
+  sub_sig_done:
+
+    # Create parameter instance.
+    $P0 = parameter.'new'('name'=>name, 'type'=>nom_type, 'constraints'=>cons_type, 'optional'=>optional, 'slurpy'=>slurpy, 'invocant'=>invocant, 'multi_invocant'=>multi_invocant, 'rw'=>rw, 'ref'=>ref, 'copy'=>copy, 'named'=>named, 'named_names'=>names, 'type_captures'=>type_captures, 'default'=>default, 'signature'=>sub_sig)
     push result, $P0
     goto param_loop
   param_done:
@@ -135,7 +143,7 @@ of the overall signature binding refactor.
     .local pmc nom_type, cons_type
     .local int flags, optional
     .local string name
-    get_signature_elem callersig, cur_param, name, flags, nom_type, cons_type, $P0, $P1
+    get_signature_elem callersig, cur_param, name, flags, nom_type, cons_type, $P0, $P1, $P2, $P3
     optional = flags & SIG_ELEM_IS_OPTIONAL
 
     # Skip invocant.

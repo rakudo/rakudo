@@ -1,6 +1,6 @@
 class Parameter {
     multi method new(*%args) {
-        for <rw ref copy named slurpy optional default invocant> -> $n {
+        for <rw ref copy named slurpy optional invocant> -> $n {
             # %args{$n}.=true doesn't seem to work here.
             %args{$n} = ?%args{$n} if %args.exists($n);
         }

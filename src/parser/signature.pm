@@ -183,7 +183,7 @@ method ast($high_level?) {
 
         # Emit op to build signature element.
         $ast.push(PAST::Op.new(
-            :pirop('set_signature_elem vPisiPPPP'),
+            :pirop('set_signature_elem vPisiPPPPPP'),
             PAST::Var.new( :name('signature'), :scope('register') ),
             $i,
             ~$_<var_name>,
@@ -191,7 +191,9 @@ method ast($high_level?) {
             $_<nom_type>,
             ($_<cons_type> ?? $_<cons_type> !! $null_reg),
             $names,
-            $type_captures
+            $type_captures,
+            ($_<default> ?? $_<default> !! $null_reg),
+            $null_reg
         ));
         $i := $i + 1;
     }

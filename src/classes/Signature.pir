@@ -68,7 +68,7 @@ Returns a C<List> of C<Parameter> descriptors.
 
     # Make sure constraints is non-null.
     unless null cons_type goto cons_done
-    cons_type = 'undef'()
+    cons_type = get_hll_global ['Bool'], 'True'
   cons_done:
 
     # Any names?

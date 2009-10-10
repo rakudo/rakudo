@@ -57,8 +57,9 @@ class Signature is also {
                 elsif !$param.optional && $param.named && !$param.slurpy { take '!' }
                 
                 # Any constraints?
-                if $param.constraints {
-                    take ' where ' ~ $param.constraints.perl;
+                my $cons_perl = $param.constraints.perl;
+                if $cons_perl ne 'Bool::True' {
+                    take ' where ' ~ $cons_perl;
                 }
 
                 # Default.

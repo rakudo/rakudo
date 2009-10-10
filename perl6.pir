@@ -326,20 +326,21 @@ and report exceptions.
 .sub 'format_location'
     .param pmc cur_block
     .local pmc anno
+    .local string file
+    .local string line
     anno = cur_block['annotations']
     if null anno goto unknown
-    $S1 = anno['file']
-    if $S1 != "" goto have_file
-    $S1 = "<unknown>"
+    file = anno['file']
+    if file != "" goto have_file
+    file = "<unknown>"
   have_file:
-    $S0 = concat "(", $S1
-    concat $S0, ":"
-    $S1 = anno['line']
-    if $S1 != "" goto have_line
-    if $S0 == "(<unknown>:" goto unknown
-    $S1 = "<unknown>"
+    line = anno['line']
+    if line != "" goto have_line
+    line = "<unknown>"
   have_line:
-    concat $S0, $S1
+    $S0 = concat "(file " , file
+    concat $S0, ", line "
+    concat $S0, line
     concat $S0, ")"
     .return ($S0)
   unknown:

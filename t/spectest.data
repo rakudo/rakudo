@@ -259,6 +259,7 @@ S06-signature/closure-parameters.t
 S06-signature/code.t
 S06-signature/defaults.t
 S06-signature/errors.t
+S06-signature/introspection.t
 S06-signature/mixed-placeholders.t
 S06-signature/named-parameters.t
 S06-signature/named-placeholders.t

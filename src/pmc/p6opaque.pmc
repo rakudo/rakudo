@@ -59,7 +59,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
             ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
             p6meta = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "$!P6META"));
             meth = VTABLE_find_method(interp, p6meta, get_pc);
-            can_check = (PMC *) Parrot_run_meth_fromc_args(interp, meth, p6meta, get_pc,
+            can_check = (PMC *) Parrot_call_method(interp, meth, p6meta, get_pc,
                     "PP", matcher);
         }
         else if (VTABLE_isa(interp, matcher, P6role)) {
@@ -70,7 +70,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
             /* Need to select the parameterless role variant. */
             STRING * const select      = CONST_STRING(interp, "!select");
             PMC    * const select_meth = VTABLE_find_method(interp, matcher, select);
-            can_check = (PMC *) Parrot_run_meth_fromc_args(interp, select_meth, matcher,
+            can_check = (PMC *) Parrot_call_method(interp, select_meth, matcher,
                     select, "P");
         }
 
@@ -86,7 +86,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
             /* Use what we were given as something to smart-match against. */
             STRING * const ACCEPTS      = CONST_STRING(interp, "ACCEPTS");
             PMC    * const accepts_meth = VTABLE_find_method(interp, matcher, ACCEPTS);
-            PMC    * const result       = (PMC *) Parrot_run_meth_fromc_args(interp,
+            PMC    * const result       = (PMC *) Parrot_call_method(interp,
                     accepts_meth, matcher, ACCEPTS, "PS", name);
             if (VTABLE_get_bool(interp, result)) {
                 attr = VTABLE_get_string_keyed_str(interp, handles_hash, attrname);

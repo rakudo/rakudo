@@ -283,7 +283,7 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
         }
         else {
             PMC * const accepts_meth_a = VTABLE_find_method(interp, type_obj_b, ACCEPTS);
-            PMC * const result_n = (PMC *) Parrot_run_meth_fromc_args(interp, accepts_meth_a,
+            PMC * const result_n = (PMC *) Parrot_call_method(interp, accepts_meth_a,
                     type_obj_b, ACCEPTS, "PP", type_obj_a);
             if (VTABLE_get_integer(interp, result_n)) {
                 /* Narrower - note it and we're done. */
@@ -292,7 +292,7 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
             else {
                 /* Make sure it's tied, rather than the other way around. */
                 PMC * const accepts_meth_b = VTABLE_find_method(interp, type_obj_a, ACCEPTS);
-                PMC * const result_w = (PMC *) Parrot_run_meth_fromc_args(interp,
+                PMC * const result_w = (PMC *) Parrot_call_method(interp,
                         accepts_meth_b, type_obj_a,
                         ACCEPTS, "PP", type_obj_b);
                 if (!VTABLE_get_integer(interp, result_w)) {
@@ -567,7 +567,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                         pure_type_result = 0;
 
                         /* Run the bindability check. */
-                        bind_check_result = Parrot_runops_fromc_args(interp, checker, "PPPP",
+                        bind_check_result = (PMC*)Parrot_call_sub(interp, checker, "PPPP",
                                 possibles[i]->sub, pos_args, named_args);
 
                         /* If we haven't got a possibles storage space, allocate it now. */
@@ -625,7 +625,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             PMC * const param        = VTABLE_get_pmc_keyed_int(interp, pos_args, i);
             PMC * const type_obj     = (*cur_candidate)->types[i];
             PMC * const accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
-            PMC * const result       = (PMC *)Parrot_run_meth_fromc_args(interp,
+            PMC * const result       = (PMC *)Parrot_call_method(interp,
                                     accepts_meth, type_obj, ACCEPTS,
                                     "PP", param);
 
@@ -728,10 +728,10 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
 
             for (i = 0; i < possibles_count; i++) {
                 PMC    * const sig_meth  = VTABLE_find_method(interp, possibles[i]->sub, sig_name);
-                PMC    * const sig_obj   = (PMC *)Parrot_run_meth_fromc_args(interp, sig_meth,
+                PMC    * const sig_obj   = (PMC *)Parrot_call_method(interp, sig_meth,
                         possibles[i]->sub, sig_name, "P");
                 PMC    * const perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
-                STRING * const sig_perl  = (STRING *)Parrot_run_meth_fromc_args(interp, perl_meth,
+                STRING * const sig_perl  = (STRING *)Parrot_call_method(interp, perl_meth,
                         sig_obj, perl_name, "S");
                 signatures = Parrot_str_append(interp, signatures, sig_perl);
                 signatures = Parrot_str_append(interp, signatures, newline);

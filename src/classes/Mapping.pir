@@ -80,7 +80,7 @@ every pair, joined by newlines or an explicitly given separator.
     $P0 = get_hll_global 'Mapping'
     null $P1
     set_signature_elem signature, 0, "self", SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT, $P0, $P1, $P1, $P1, $P1, $P1
-    set_signature_elem signature, 1, "$format", SIG_ELEM_MULTI_INVOCANT, $P1, $P1, $P1, $P1, $P1, $P1
+    set_signature_elem signature, 1, "$format", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1
     set_signature_elem signature, 2, "$sep", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1
     '!TOPERL6MULTISUB'(block)
 .end

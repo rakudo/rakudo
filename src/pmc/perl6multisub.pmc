@@ -45,12 +45,13 @@ access during a dispatch.
 */
 
 #include "parrot/oplib/ops.h"
-#include "../binder/sigguts.h"
+#include "../binder/bind.h"
 #include "pmc_p6lowlevelsig.h"
 
 
 typedef struct candidate_info {
     PMC   *sub;         /* The sub that is the candidate. */
+    PMC   *signature;   /* The signature of the sub. */
     PMC  **types;       /* Class or role type constraints for each parameter. */
     PMC  **constraints; /* Refinement type constraints for each parameter
                          * (if there are many, this will be a junction). */
@@ -367,29 +368,38 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
         info = mem_allocate_zeroed_typed(candidate_info);
         info->sub = candidate;
 
-        /* Arity. */
-        info->min_arity = VTABLE_get_integer(interp,
-                VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_required")));
-        if (VTABLE_get_integer(interp, VTABLE_inspect_str(interp, candidate,
-               CONST_STRING(interp, "pos_slurpy"))))
-            info->max_arity = SLURPY_ARITY;
-        else
-            info->max_arity = info->min_arity + VTABLE_get_integer(interp,
-                    VTABLE_inspect_str(interp, candidate, CONST_STRING(interp, "pos_optional")));
-
-        /* Type information. */
+        /* Get hold of signature. */
         signature = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "$!signature"));
+        info->signature = signature;
         GETATTR_P6LowLevelSig_elements(interp, signature, sig_elem_info);
         GETATTR_P6LowLevelSig_num_elements(interp, signature, sig_elems);
+
+        /* Type information. */
         info->types       = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         info->constraints = mem_allocate_n_zeroed_typed(sig_elems + 1, PMC*);
         significant_param = 0;
         for (j = 0; j < sig_elems; j++) {
-            /* If it's named, and not slurpy, don't need its type info but we will
+            /* If it's named (and not slurpy) don't need its type info but we will
              * need a bindability check during the dispatch for it. */
-            if (!PMC_IS_NULL(sig_elem_info[j]->named_names) && !(sig_elem_info[j]->flags & SIG_ELEM_SLURPY_NAMED)) {
+            if (!PMC_IS_NULL(sig_elem_info[j]->named_names)) {
                 info->bind_check = 1;
                 continue;
+            }
+
+            /* If it's named slurpy, we're done. */
+            if (sig_elem_info[j]->flags & SIG_ELEM_SLURPY_NAMED)
+                break;
+
+            /* Otherwise, positional or slurpy and contributes to arity. */
+            if (sig_elem_info[j]->flags & SIG_ELEM_SLURPY_POS) {
+                info->max_arity = SLURPY_ARITY;
+            }
+            else if (sig_elem_info[j]->flags & SIG_ELEM_IS_OPTIONAL) {
+                info->max_arity++;
+            }
+            else {
+                info->max_arity++;
+                info->min_arity++;
             }
 
             /* Record type info for this parameter. */
@@ -553,34 +563,48 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             /* We've hit the end of a tied group now. If any of them have a
              * bindability check requirement, we'll do any of those now. */
             if (possibles_count) {
-                PMC *checker = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
-                        CONST_STRING(interp, "!bindability_checker"));
-                PMC *bind_check_result;
+                INTVAL bind_check_result = 0;
                 candidate_info **new_possibles = NULL;
                 INTVAL new_possibles_count = 0;
                 INTVAL i;
 
                 for (i = 0; i < possibles_count; i++) {
+                    interp->current_cont = NEED_CONTINUATION;
+                    interp->current_object = NULL;
                     if (possibles[i]->bind_check) {
-                        /* We have one that needs a bindability check. Thus this will
-                         * not be a pure nominal type result. */
-                        pure_type_result = 0;
+                        /* We'll invoke the sub (but not re-enter the runloop) and
+                         * then attempt to bind the signature. */
+                        opcode_t *where     = VTABLE_invoke(interp, possibles[i]->sub, next);
+                        PMC      *lexpad    = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
+                        PMC      *signature = possibles[i]->signature;
+                        llsig_element **sig_elem_info;
+                        INTVAL bind_check_result, sig_elems;
+                        GETATTR_P6LowLevelSig_elements(interp, signature, sig_elem_info);
+                        GETATTR_P6LowLevelSig_num_elements(interp, signature, sig_elems);
+                        bind_check_result = Rakudo_binding_bind_signature(interp, lexpad,
+                              sig_elem_info, sig_elems, pos_args, named_args, 1, NULL);
 
-                        /* Run the bindability check. */
-                        bind_check_result = (PMC*)Parrot_call_sub(interp, checker, "PPPP",
-                                possibles[i]->sub, pos_args, named_args);
+                        /* XXX In the future, we can actually keep the context if we only
+                         * need one candidate, and then hand back the current PC and mark
+                         * the context as not needing a bind. Just needs some code re-org.
+                         * For now, we always clean up the ret-cont again. */
+                        interp->current_args = NULL;
+                        where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);
 
                         /* If we haven't got a possibles storage space, allocate it now. */
                         if (!new_possibles)
                             new_possibles = mem_allocate_n_typed(num_candidates, candidate_info *);
 
-                        /* If we got a non-null result, need to put this one onto the list.
-                         * XXX actually we should keep around the resume cont that we get
-                         * here and invoke that to avoid dupe type checks. */
-                        if (!PMC_IS_NULL(bind_check_result)) {
+                        /* If we don't fail, need to put this one onto the list
+                         * (note that needing a junction dispatch is OK). */
+                        if (bind_check_result != BIND_RESULT_FAIL) {
                             new_possibles[new_possibles_count] = possibles[i];
                             new_possibles_count++;
                         }
+                        
+                        /* Since we had to do a bindability check, this is not
+                         * a result we can cache on nominal type. */
+                        pure_type_result = 0;
                     }
                 }
 
@@ -1058,8 +1082,11 @@ the Perl 6 MMD algorithm.
         interp->params_signature  = params_signature;
         interp->returns_signature = returns_signature;
 
-        /* Invoke the winner. */
-        return VTABLE_invoke(interp, found, next);
+        /* Invoke the winner, and mark the context so we know not to re-do a
+         * bunch of type checks. */
+        next = VTABLE_invoke(interp, found, next);
+        PObj_flag_SET(P6S_ALREADY_CHECKED, CURRENT_CONTEXT(interp));
+        return next;
     }
 
 /*

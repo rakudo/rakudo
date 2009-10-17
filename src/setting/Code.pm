@@ -4,7 +4,7 @@ class Code is also {
 
 =end item
     method ACCEPTS(Object $topic) {
-        self($topic);
+        self.count == 0 ?? self() !! self($topic)
     }
 
 }

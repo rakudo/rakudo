@@ -1,7 +1,7 @@
 # Copyright (C) 2009, The Perl Foundation.
 # $Id$
 
-class Perl6::Compiler::Signature;
+module Perl6::Compiler::Signature;
 
 # This class represents a signature in the compiler. It takes care of
 # producing an AST that will generate the signature, based upon all of
@@ -33,7 +33,26 @@ class Perl6::Compiler::Signature;
 #   value.
 method add_parameter(*%new_entry) {
     my @entries := self.entries;
-    @entries.push(%new_entry);
+    if %new_entry<var_name> eq '$_' {
+        @entries.unshift(%new_entry); # Always comes first, e.g. before slurpies.
+    }
+    else {
+        @entries.push(%new_entry);
+    }
+}
+
+
+# As for add_parameter, but puts it into position relative to the other
+# positional parameters.
+method add_placeholder_parameter(*%new_entry) {
+    my @entries := self.entries;
+    if +@entries == 0 { @entries.push(%new_entry); return 1; }
+    my @temp := list();
+    while +@entries && @entries[0]<var_name> lt %new_entry<var_name> && !@entries[0]<names> && !@entries[0]<slurpy> {
+        @temp.unshift(@entries.shift);
+    }
+    @entries.unshift(%new_entry);
+    for @temp { @entries.unshift($_); }
 }
 
 
@@ -83,6 +102,46 @@ method set_rw_by_default() {
 }
 
 
+# Checks if the signature contains a named slurpy parameter.
+method has_named_slurpy() {
+    my @entries := self.entries;
+    unless +@entries { return 0; }
+    my $last := @entries[ +@entries - 1 ];
+    return $last<slurpy> && $last<names> ?? 1 !! 0;
+}
+
+
+# Gets a PAST::Op node with children being PAST::Var nodes that declare the
+# various variables mentioned within the signature, with a valid viviself to
+# make sure they are initialized either to the default value or an empty
+# instance of the correct type.
+method get_declarations() {
+    my $result := PAST::Op.new( :pasttype('stmts') );
+    for @(self.entries) {
+        if $_<var_name> {
+            my $sigil  := substr($_<var_name>, 0, 1);
+            if $sigil ne '$' && $sigil ne '&' && $sigil ne '%' && $sigil ne '@' {
+                $sigil := '';
+            }
+            my $var := PAST::Var.new(
+                :name($_<var_name>),
+                :scope('lexical'),
+                :isdecl(1)
+            );
+            $var<sigil>  := $sigil;
+            $var<twigil> := $_<twigil>;
+            $var<itype>  := Perl6::Grammar::Actions::container_itype($sigil);
+            $var<type>   := $_<nom_type>;
+            if $_<default> {
+                $var.viviself($_<default>[0]);
+            }
+            $result.push($var);
+        }
+    }
+    return $result;
+}
+
+
 # Produces an AST for generating a low-level signature object. Optionally can
 # instead produce code to generate a high-level signature object.
 method ast($high_level?) {
@@ -100,6 +159,8 @@ method ast($high_level?) {
     my $SIG_ELEM_IS_COPY            := 512;
     my $SIG_ELEM_IS_REF             := 1024;
     my $SIG_ELEM_IS_OPTIONAL        := 2048;
+    my $SIG_ELEM_ARRAY_SIGIL        := 4096;
+    my $SIG_ELEM_HASH_SIGIL         := 8192;
     
     # Allocate a signature and stick it in a register.
     $ast.push(PAST::Op.new(
@@ -118,16 +179,19 @@ method ast($high_level?) {
     for @entries {
         # First, compute flags.
         my $flags := 0;
+        my $sigil := substr($_<var_name>, 0, 1);
         if $_<optional>                 { $flags := $flags + $SIG_ELEM_IS_OPTIONAL; }
         if $_<invocant>                 { $flags := $flags + $SIG_ELEM_INVOCANT; }
         if $_<multi_invocant> ne "0"    { $flags := $flags + $SIG_ELEM_MULTI_INVOCANT; }
-        if $_<slurpy> && !$_<names>     { $flags := $flags + $SIG_ELEM_SLURPY_POS; }
-        if $_<slurpy> && $_<names>      { $flags := $flags + $SIG_ELEM_SLURPY_NAMED; }
+        if $_<slurpy> && $sigil ne '@' && $sigil ne '%' { } # XXX TODO: Slurpy block.
+        elsif $_<slurpy> && !$_<names>  { $flags := $flags + $SIG_ELEM_SLURPY_POS; }
+        elsif $_<slurpy> && $_<names>   { $flags := $flags + $SIG_ELEM_SLURPY_NAMED; }
         if $_<read_type> eq 'rw'        { $flags := $flags + $SIG_ELEM_IS_RW; }
         if $_<read_type> eq 'copy'      { $flags := $flags + $SIG_ELEM_IS_COPY; }
+        if $sigil eq '@'                { $flags := $flags + $SIG_ELEM_ARRAY_SIGIL; }
+        if $sigil eq '%'                { $flags := $flags + $SIG_ELEM_HASH_SIGIL; }
 
         # Fix up nominal type.
-        my $sigil := substr($_<var_name>, 0, 1);
         if $_<slurpy> || $_<invocant> {
             $_<nom_type> := PAST::Var.new( :name('Object'), :namespace(list()), :scope('package') );
         }
@@ -162,21 +226,29 @@ method ast($high_level?) {
             }
         }
 
-        # If we have only one constraint type, don't bother emitting a junction.
-        if $_<cons_type> && +@($_<cons_type>) == 1 {
-            $_<cons_type> := $_<cons_type>[0];
+        # Constraints list needs to build a ResizablePMCArray.
+        my $constraints := $null_reg;
+        if $_<cons_type> && +@($_<cons_type>) {
+            $constraints := PAST::Op.new( );
+            my $pir := "    %r = root_new ['parrot'; 'ResizablePMCArray']\n";
+            my $i := 0;
+            for @($_<cons_type>) {
+                $pir := $pir ~ "    push %r, %" ~ $i ~ "\n";
+                $constraints.push($_);
+            }
+            $constraints.inline($pir);
         }
 
-        # Names and type capture lists needs to build a ResizablePMCArray.
+        # Names and type capture lists needs to build a ResizableStringArray.
         my $names := $null_reg;
         if !$_<slurpy> && $_<names> && +@($_<names>) {
-            my $pir := "    %r = root_new ['parrot'; 'ResizablePMCArray']\n";
+            my $pir := "    %r = root_new ['parrot'; 'ResizableStringArray']\n";
             for @($_<names>) { $pir := $pir ~ "    push %r, '" ~ ~$_ ~ "'\n"; }
             $names := PAST::Op.new( :inline($pir) );
         }
         my $type_captures := $null_reg;
         if $_<type_captures> && +@($_<type_captures>) {
-            my $pir := "    %r = root_new ['parrot'; 'ResizablePMCArray']\n";
+            my $pir := "    %r = root_new ['parrot'; 'ResizableStringArray']\n";
             for @($_<type_captures>) { $pir := $pir ~ "    push %r, '" ~ ~$_ ~ "'\n"; }
             $type_captures := PAST::Op.new( :inline($pir) );
         }
@@ -184,18 +256,28 @@ method ast($high_level?) {
         # Emit op to build signature element.
         $ast.push(PAST::Op.new(
             :pirop('set_signature_elem vPisiPPPPPP'),
-            PAST::Var.new( :name('signature'), :scope('register') ),
+            $sig_var,
             $i,
             ~$_<var_name>,
             $flags,
             $_<nom_type>,
-            ($_<cons_type> ?? $_<cons_type> !! $null_reg),
+            $constraints,
             $names,
             $type_captures,
             ($_<default> ?? $_<default> !! $null_reg),
             $null_reg
         ));
         $i := $i + 1;
+    }
+
+    # If we had to build a high-level signature, do so.
+    if ($high_level) {
+        $ast.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('new'),
+            PAST::Var.new( :name('Signature'), :namespace(list()), :scope('package') ),
+            PAST::Var.new( :name('signature'), :scope('register'), :named('ll_sig') )
+        ));
     }
 
     return $ast;

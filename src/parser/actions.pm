@@ -344,11 +344,9 @@ method for_statement($/) {
 
 method pblock($/) {
     my $block := $<block>.ast;
-    ##  Add a call to !SIGNATURE_BIND to fixup params and do typechecks.
+    ##  Use bind_signature to fixup params and do typechecks.
     if defined($block<signature>) {
-        $block[0].push(
-            PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
-        );
+        $block[0].push(bind_signature_op());
         if $<lambda>[0] eq '<->' {
             block_signature($block).set_rw_by_default();
         }
@@ -674,9 +672,7 @@ method multi_declarator($/) {
                 $past[1].push( PAST::Op.new( :name('list') ) );
             }
             set_block_type($past, 'Sub');
-            $past[0].push(
-                PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
-            );
+            $past[0].push(bind_signature_op());
         }
     }
 
@@ -759,12 +755,10 @@ method routine_declarator($/, $key) {
     else {
         $past[1].push( PAST::Op.new( :name('list') ) );
     }
-    ##  Add a call to !SIGNATURE_BIND to fixup params and do typechecks, and
-    ##  a return to make sure we type-check any implicitly return values for
-    ##  routines with return type constraints.
-    $past[0].push(
-        PAST::Op.new( :pasttype('call'), :name('!SIGNATURE_BIND') )
-    );
+    ##  Use bind_signature op to bind the signature, and also add a return
+    ##  to make sure we type-check any implicitly return values for routines
+    ##  with return type constraints.
+    $past[0].push(bind_signature_op());
     add_return_type_check_if_needed($past);
     ##  If we have a proto in scope of this name, then we need to make this a
     ##  multi.
@@ -841,19 +835,20 @@ method method_def($/) {
     $block[0].unshift(PAST::Var.new( :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1) ));
 
     # Add *%_ parameter if there's no other named slurpy or the package isn't hidden.
-    my $need_slurpy_hash := 1;
-    for @($block[0]) {
-        if $_.isa(PAST::Var) && $_.scope() eq 'parameter' && $_.named() && $_.slurpy() {
-            $need_slurpy_hash := 0;
-        }
-    }
+    my $need_slurpy_hash := !$block<signature>.has_named_slurpy();
     if $need_slurpy_hash && !package_has_trait('hidden') {
-        $block[0].push(PAST::Var.new( :name('%_'), :scope('parameter'), :named(1), :slurpy(1) ));
+        $block[0].push(PAST::Var.new( :name('%_'), :scope('lexical'), :isdecl(1), :viviself('Perl6Hash') ));
         block_signature($block).add_parameter( :var_name('%_'), :names(1), :slurpy(1) );
     }
 
-    # Ensure there's an invocant in the signature.
+    # Ensure there's an invocant in the signature, and that it's in the
+    # positional arguments.
     block_signature($block).add_invocant();
+    $block[0].push(PAST::Op.new(
+        :pirop('unshift vPP'),
+        PAST::Var.new( :name('pos_args'), :scope('lexical') ),
+        PAST::Var.new( :name('self'), :scope('register') )
+    ));
 
     # Handle traits.
     if $<trait> {
@@ -1025,30 +1020,40 @@ method signature($/, $key) {
                 );
             }
 
-            ##  if it's an invocant, flag it as such and make the var be a
-            ##  lexical that has self register bound to it
+            ##  if it's an invocant, flag it as such provided it is the first
+            ##  parameter; otherwise, it's an error.
             my $invocant := 0;
             if $<param_sep>[$i][0] eq ':' {
                 if $i == 0 {
                     $invocant := 1;
-                    $var.scope('lexical');
-                    $var.isdecl(1);
-                    $var.viviself(
-                        PAST::Var.new( :name('self'), :scope('register') )
-                    )
+                    $sigpast.push(PAST::Var.new(
+                        :name($var.name()),
+                        :scope('lexical'),
+                        :isdecl(1),
+                        :viviself(PAST::Var.new( :name('self'), :scope('register') ))
+                    ));
                 }
                 else {
                     $/.panic("Can only use : separator to denote invocant after first parameter.");
                 }
             }
 
-            ##  add var node to block
-            $sigpast.push( $var );
+            ##  otherwise, if it has a name, create a lexical with a matching name that
+            ##  we will put the parameter in.
+            elsif $var.name() {
+                $var.scope('lexical');
+                $var.isdecl(1);
+                unless $var.viviself() {
+                    $var.viviself($var<itype>);
+                }
+                $sigpast.push($var);
+            }
 
             ##  add entry to signature object
             $signature.add_parameter(
                 :var_name( $var.name() ),
-                :optional( $var.viviself() ?? 1 !! 0 ),
+                :twigil( $var<twigil> ),
+                :optional( $var<optional> ?? 1 !! 0 ),
                 :slurpy( $var.slurpy() ),
                 :names( $var.slurpy() ?? $var.named() !!
                                          ($var.named() eq "" ?? list() !! list($var.named())) ),
@@ -1058,8 +1063,8 @@ method signature($/, $key) {
                 :nom_type( $var<nom_type> ),
                 :cons_type( $var<cons_type> ),
                 :type_captures( $var<type_binding> ?? list($var<type_binding>.name()) !! list() ),
-                :default( $var.viviself() && !$invocant ?? 
-                        PAST::Block.new( :blocktype('declaration'), $var.viviself() ) !! 0 )
+                :default( $var<defualt_value> ?? 
+                        PAST::Block.new( :blocktype('declaration'), $var<defualt_value> ) !! 0 )
             );
 
             ##  handle end of multi-invocant sequence
@@ -1076,7 +1081,7 @@ method signature($/, $key) {
         ##  restore block stack and return signature ast
         our $?BLOCK_OPEN;
         $?BLOCK_OPEN := $block;
-        make $sigpast;
+        make $signature;
     }
 }
 
@@ -1137,15 +1142,15 @@ method parameter($/) {
     ##  handle slurpy and optional flags
     if $quant eq '*' {
         $var.slurpy( $sigil eq '@' || $sigil eq '%' );
-        $var.named( $sigil eq '%' );
+        if $var.slurpy() { $var.named( $sigil eq '%' ); }
     }
     elsif $<named_param> {          # named
         if $quant ne '!' {          # required (optional is default)
-            $var.viviself(container_itype($sigil));
+            $var<optional> := 1;
         }
     }
     elsif $quant eq '?' {           # positional optional
-        $var.viviself(container_itype($sigil));
+        $var<optional> := 1;
     }
 
     ##  handle any default value
@@ -1156,7 +1161,8 @@ method parameter($/) {
         if $quant eq '*' {
             $/.panic("Can't put a default on a slurpy parameter");
         }
-        $var.viviself( $<default_value>[0]<EXPR>.ast );
+        $var<defualt_value> := $<default_value>[0]<EXPR>.ast;
+        $var<optional> := 1;
     }
 
     ##  keep track of any type constraints
@@ -1171,11 +1177,7 @@ method parameter($/) {
                 # Lexical type constraint.
                 if $type_past.isdecl() {
                     # If it's a declaration, we need to initialize it.
-                    $type_past.viviself(
-                        PAST::Op.new( :pasttype('callmethod'), :name('WHAT'),
-                            PAST::Var.new( :name($var.name()) )
-                        )
-                    );
+                    $type_past.viviself(container_itype('$'));
                     $var<type_binding> := $type_past;
                     @?BLOCK[0].symbol( $type_past.name(), :scope('lexical') );
                 }
@@ -1587,6 +1589,7 @@ method package_def($/, $key) {
             $modulename := $modulename ~ '[]';
             block_signature($block);
         }
+        $block[0].push(bind_signature_op());
     }
     elsif $key eq 'block' {
         # A normal block acts like a BEGIN and is executed ASAP.
@@ -1998,7 +2001,11 @@ method declarator($/) {
         $past := $<constant_declarator>.ast;
     }
     elsif $<signature> {
-        $past := $<signature>.ast;
+        # We actually want a list of the thingies that the signature declares,
+        # rather than the signature object itself.
+        $past := $<signature>.ast.get_declarations();
+        
+        # XXX This should really be able to go away shortly...
         our $?BLOCK_OPEN;
         $?BLOCK_OPEN := 0;
     }
@@ -2079,19 +2086,16 @@ method variable($/, $key) {
             unless $?BLOCK.symbol($varname) {
                 $?BLOCK.symbol( $varname, :scope('lexical') );
                 $?BLOCK.arity( +$?BLOCK.arity() + 1 );
-                my $param := PAST::Var.new(:name($varname), :scope('parameter'));
-                if $twigil eq ':' { $param.named( $name ); }
+                my $param := PAST::Var.new(:name($varname), :scope('lexical'), :isdecl(1), :viviself(container_itype($sigil)));
                 my $blockinit := $?BLOCK[0];
-                my $i := +@($blockinit);
-                while $i > 0 && $blockinit[$i-1].name() gt $varname {
-                    $blockinit[$i] := $blockinit[$i-1];
-                    $i--;
-                }
-                $blockinit[$i] := $param;
-
-                ##  add to block's signature
+                $blockinit.push($param);
                 my $signature := block_signature($?BLOCK);
-                add_to_signature_from_past_var($signature, $param);
+                if $twigil eq ':' {
+                    $signature.add_parameter( :var_name($varname), :names( list($name) ) );
+                }
+                else {
+                    $signature.add_placeholder_parameter( :var_name($varname) );
+                }
             }
             ## use twigil-less form afterwards
             $twigil := '';
@@ -2130,12 +2134,10 @@ method variable($/, $key) {
         if $varname eq '@_' || $varname eq '%_' {
             unless $?BLOCK.symbol($varname) {
                 $?BLOCK.symbol( $varname, :scope('lexical') );
-                my $param := PAST::Var.new( :name($varname),
-                                            :scope('parameter'),
-                                            :slurpy(1) );
-                if $sigil eq '%' { $param.named(1); }
+                my $param := PAST::Var.new( :name($varname), :scope('lexical'),
+                                            :isdecl(1), :viviself(container_itype($sigil)) );
                 my $signature := block_signature($?BLOCK);
-                add_to_signature_from_past_var($signature, $param);
+                $signature.add_parameter( :var_name($varname), :slurpy(1), :names($sigil eq '%' ?? 1 !! list()) );
                 $?BLOCK[0].unshift($param);
             }
         }
@@ -2935,7 +2937,10 @@ method capture($/) {
 
 
 method sigterm($/) {
-    my $past := $/<signature>.ast;
+    # Create high-level signature object. (First call extracts Signature
+    # object from Match object, second asks it to generate PAST that
+    # will produce a high-level Perl 6 Signature object.
+    my $past := $<signature>.ast.ast(1);
     make $past;
 }
 
@@ -2999,13 +3004,13 @@ sub declare_implicit_block_vars($block, $tparam) {
             my $lex := PAST::Op.new(:inline('    set %r, outerlex["'~$_~'"]'));
             my $var := PAST::Var.new( :name($_), :scope('lexical'), 
                                       :isdecl(1), :viviself($lex) );
-            if $tparam && $_ eq '$_' {
-                $var.scope('parameter');
-                my $signature := block_signature($block);
-                add_to_signature_from_past_var($signature, $var);
-            }
             $block[0].push( $var );
             $block.symbol($_, :scope('lexical') );
+            if $tparam && $_ eq '$_' {
+                my $signature := block_signature($block);
+                $signature.add_parameter( :var_name('$_'), :optional(1), :read_type('rw') );
+                $block[0].push(bind_signature_op());
+            }
         }
     }
 }
@@ -3080,8 +3085,6 @@ sub make_accessor($/, $method_name, $attr_name, $rw, $scope) {
 
 # Creates an anonymous subset type.
 sub make_anon_subtype($past) {
-    my $param_name := '$_';
-
     # We need a block containing the constraint condition and do smart-match
     # it against $_.
     if !$past.isa(PAST::Block) || $past.compiler() eq 'PGE::Perl6Regex' {
@@ -3097,6 +3100,7 @@ sub make_anon_subtype($past) {
             )
         );
         declare_implicit_function_vars($past);
+        set_block_type($past, 'Block');
     }
 
     $past;
@@ -3121,10 +3125,20 @@ sub block_signature($block) {
         $block.loadinit().push(
             PAST::Op.new( :inline('    setprop block, "$!signature", signature') )
         );
+        $block[0].push(PAST::Var.new( :name('pos_args'), :scope('parameter'), :slurpy(1) ));
+        $block[0].push(PAST::Var.new( :name('named_args'), :scope('parameter'), :slurpy(1), :named(1) ));
     }
     return $block<signature>;
 }
 
+
+sub bind_signature_op() {
+    PAST::Op.new(
+        :pirop('bind_signature vPP'),
+        PAST::Var.new( :name('pos_args'), :scope('lexical') ),
+        PAST::Var.new( :name('named_args'), :scope('lexical') )
+    )
+}
 
 # Adds to the loadinit to set the type of a block.
 sub set_block_type($block, $type) {

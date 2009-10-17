@@ -174,6 +174,10 @@ our List multi sub kv(*@values) is export {
     @values.kv();
 }
 
+our List multi sub kv(:@array) is export {
+    @array.kv();
+}
+
 our List multi map(Code $expr, *@values) {
     @values.map($expr)
 }

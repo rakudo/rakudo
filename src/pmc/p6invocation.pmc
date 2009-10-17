@@ -20,6 +20,7 @@ gets stuck into the lex pad to represent the the candidate list.
 
 #include "parrot/parrot.h"
 #include "pmc_perl6multisub.h"
+#include "../binder/bind.h"
 
 
 /* Selects whether we're doing a real dispatch or just a test to see if
@@ -42,7 +43,7 @@ PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *self);
 
 /* This does the grunt work of working out what the next candidate is. Takes
  * account of us maybe needing to look into multi variants and all that lot. */
-static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only) {
+static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only, INTVAL *is_multi_dispatch) {
     PMC    *candidates, *current, *search_list;
     STRING *name;
     INTVAL  position, resume_point;
@@ -100,6 +101,8 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only) {
              * list, then continue as normal. This means that deferal will take into
              * account the other multi-variants. Then our current becomes the first
              * of the multi candidates. */
+            if (is_multi_dispatch)
+                *is_multi_dispatch = 1;
             VTABLE_splice(interp, candidates, possibles, position, 1);
             current = VTABLE_get_pmc_keyed_int(interp, candidates, position);
         }
@@ -195,7 +198,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
             return 1;
 
         /* If not, then we see if the dispatcher can potentially find more. */
-        return !PMC_IS_NULL(get_next_candidate(interp, SELF, P6I_MODE_CHECK));
+        return !PMC_IS_NULL(get_next_candidate(interp, SELF, P6I_MODE_CHECK, NULL));
     }
 
     VTABLE INTVAL get_integer() {
@@ -207,7 +210,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         PMC *clone = VTABLE_clone(interp, SELF);
         GETATTR_P6Invocation_first_candidate(interp, clone, first_candidate);
         if (PMC_IS_NULL(first_candidate))
-            first_candidate = get_next_candidate(interp, clone, P6I_MODE_CHECK);
+            first_candidate = get_next_candidate(interp, clone, P6I_MODE_CHECK, NULL);
         return first_candidate;
     }
 
@@ -219,13 +222,14 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         STRING   *lexname = CONST_STRING(interp, "__CANDIDATE_LIST__");
         PMC      *lexpad, *first_candidate;
         opcode_t *addr;
+        INTVAL    is_multi_dispatch = 0;
 
         /* In the straightforward case, we know our first candidate right off the
          * bat; if not, use list. We also nullify first candidate so we hit the
          * candidate list next time we're used. */
         GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
         if (PMC_IS_NULL(first_candidate))
-            first_candidate = get_next_candidate(interp, SELF, P6I_MODE_DISPATCH);
+            first_candidate = get_next_candidate(interp, SELF, P6I_MODE_DISPATCH, &is_multi_dispatch);
         else
             SETATTR_P6Invocation_first_candidate(interp, SELF, PMCNULL);
 
@@ -247,6 +251,8 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         lexpad = Parrot_pcc_get_lex_pad(INTERP, CURRENT_CONTEXT(interp));
         if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, lexname))
             VTABLE_set_pmc_keyed_str(interp, lexpad, lexname, SELF);
+        if (is_multi_dispatch)
+            PObj_flag_SET(P6S_ALREADY_CHECKED, CURRENT_CONTEXT(interp));
         return addr;
     }
 
@@ -259,7 +265,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         PMC *first_candidate;
         GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
         if (PMC_IS_NULL(first_candidate))
-            get_next_candidate(interp, SELF, P6I_MODE_DISPATCH);
+            get_next_candidate(interp, SELF, P6I_MODE_DISPATCH, NULL);
         else
             SETATTR_P6Invocation_first_candidate(interp, SELF, PMCNULL);
 

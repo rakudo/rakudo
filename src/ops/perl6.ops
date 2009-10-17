@@ -8,7 +8,7 @@ BEGIN_OPS_PREAMBLE
 #include "parrot/dynext.h"
 #include "pmc_object.h"
 #include "../pmc/pmc_p6lowlevelsig.h"
-#include "../binder/sigguts.h"
+#include "../binder/bind.h"
 
 #if PARROT_HAS_ICU
 #  include <unicode/uchar.h>
@@ -490,7 +490,9 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
                 else {
                     /* Need to break up into type and constraint. */
                     element->nominal_type = refined;
-                    element->post_constraints = $5;
+                    if (PMC_IS_NULL(element->post_constraints))
+                        element->post_constraints = pmc_new(interp, enum_class_ResizablePMCArray);
+                    VTABLE_push_pmc(interp, element->post_constraints, $5);
                 }
             }
             else {
@@ -591,14 +593,64 @@ inline op bind_signature(in PMC, in PMC) :base_core {
         PMC *signature      = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
-        if (!Rakudo_binding_bind_signature(interp, lexpad, signature, $1, $2, noms_checked, &error)) {
+        struct llsig_element **elements;
+        INTVAL num_elements, bind_error;
+
+        /* Ensure Signature is fine. */
+        if (!lls_id)
+            lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+        if (signature->vtable->base_type != lls_id) {
             opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
-                    EXCEPTION_INVALID_OPERATION, Parrot_str_to_cstring(interp, error));
+                    EXCEPTION_INVALID_OPERATION, "bind_signature could not find signature for sub");
             goto ADDRESS(handler);
         }
-    }
+        
+        /* Extract bits from the signature and invoke the binder. */
+        GETATTR_P6LowLevelSig_elements(interp, signature, elements);
+        GETATTR_P6LowLevelSig_num_elements(interp, signature, num_elements);
+        bind_error = Rakudo_binding_bind_signature(interp, lexpad, elements, num_elements, $1, $2, noms_checked, &error);
+        if (!bind_error) {
+            goto NEXT();
+        }
+        else {
+            /* Maybe we need to auto-thread... */
+            if (bind_error == BIND_RESULT_JUNCTION) {
+                /* Find dispatcher and call it. */
+                PMC *dispatcher = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+                        string_from_literal(interp, "!DISPATCH_JUNCTION_SINGLE"));
+                PMC *junc_result = (PMC *)Parrot_call_sub(interp, dispatcher, "PPPP",
+                        sub, $1, $2);
+                PMC *caller_ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
+                PMC *return_sig = pmc_new(interp, enum_class_FixedIntegerArray);
+                opcode_t return_indexes[] = { 0 };
+                opcode_t *next;
 
-    goto NEXT();
+                /* Set up this junctional result as the result of the current sub. Note:
+                 * massive epic evil that changes when CallSignature appears. We just
+                 * stash the parameter in a register and fake up a signature. */
+                VTABLE_set_integer_native(interp, return_sig, 1);
+                VTABLE_set_integer_keyed_int(interp, return_sig, 0, 2);
+                interp->returns_signature = return_sig;
+                CTX_REG_PMC(ctx, 0) = junc_result;
+                parrot_pass_args(interp, ctx, caller_ctx, return_indexes,
+                        Parrot_pcc_get_results(interp, caller_ctx), PARROT_PASS_RESULTS);
+
+                /* Invoke the current return continuation, to return said value. */
+                next = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp,
+                        CURRENT_CONTEXT(interp)), expr NEXT());
+                goto ADDRESS(next);
+            }
+            else {
+                /* Nope, just normal fail... */
+                opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
+                        EXCEPTION_INVALID_OPERATION, Parrot_str_to_cstring(interp, error));
+                goto ADDRESS(handler);
+            }
+        }
+    }
+    else {
+        goto NEXT();
+    }
 }
 
 /*

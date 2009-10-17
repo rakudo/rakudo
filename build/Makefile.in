@@ -20,6 +20,7 @@ LD_LOAD_FLAGS = @ld_load_flags@
 LIBPARROT     = @inst_libparrot_ldflags@
 O             = @o@
 LOAD_EXT      = @load_ext@
+AR            = @ar@
 PERL          = @perl@
 CP            = @cp@
 MV            = @mv@
@@ -144,6 +145,7 @@ SETTING = \
   src/setting/Any-str.pm \
   src/setting/Array.pm \
   src/setting/Attribute.pm \
+  src/setting/Block.pm \
   src/setting/Bool.pm \
   src/setting/Buf.pm \
   src/setting/Code.pm \
@@ -207,6 +209,11 @@ CLEANUPS = \
   $(OPS_DIR)/*$(O) \
   $(OPS_DIR)/*$(LOAD_EXT) \
   binder/*$(O) \
+  binder/*$(LOAD_EXT) \
+  binder/*.lib \
+  binder/*.ilk \
+  binder/*.pdb \
+  binder/*.exp \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
@@ -224,6 +231,7 @@ install: all
 	$(CP)     lib/*.pm            $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
+	$(CP)     src/binder/bind$(LOAD_EXT) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CP)     $(PERL6EXE)         $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6EXE)
@@ -233,7 +241,6 @@ xmas: perl6$(EXE)
 ##  targets for building a standalone perl6.
 perl6$(EXE): perl6.pbc
 	$(PBC_TO_EXE) perl6.pbc
-	@win32_libparrot_copy@
 
 # the Perl 6 compiler
 perl6.pbc: perl6_s1.pbc src/gen_setting.pm
@@ -243,6 +250,7 @@ perl6.pbc: perl6_s1.pbc src/gen_setting.pm
 # the Perl 6 stage-1 compiler
 perl6_s1.pbc: $(PARROT) $(SOURCES) $(BUILTINS_PIR)
 	$(PERL) -e "" > src/gen_setting.pir
+	@win32_libs_copy@
 	$(PARROT) $(PARROT_ARGS) -o perl6_s1.pbc perl6.pir
 
 src/gen_grammar.pir: $(PARROT) $(PERL6GRAMMAR_PBC) src/parser/grammar.pg src/parser/grammar-oper.pg
@@ -412,32 +420,33 @@ release: manifest
 	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
 	rm rakudo-$(VERSION)
 
-$(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
-	$(CP) $(DYNPMC) $(DYNOPS) $(DYNEXT_DIR)
+$(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS) src/binder/bind$(LOAD_EXT)
+	$(CP) $(DYNPMC) $(DYNOPS) src/binder/bind$(LOAD_EXT) $(DYNEXT_DIR)
 
 # (at)cc_o_out(at) and (at)ld_out(at) below cannot be assigned to
 # makefile macros, because some make utilities drop the trailing
 # spaces and some compilers/linkers forbid a (forced) space.
 # See RT #66558 and TT #700.
 
-src/binder/bind$(O):
-	cd src/ops && $(CC) -c @cc_o_out@../binder/bind$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) ../binder/bind.c
+src/binder/bind$(LOAD_EXT): src/binder/bind.c src/binder/bind.h
+	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
+	cd src/binder && $(LD) @ld_out@bind$(LOAD_EXT) bind$(O) $(LINKARGS)
 
-$(DYNPMC): $(PMC_SOURCES) src/binder/sigguts.h
+$(DYNPMC): $(PMC_SOURCES) src/binder/bind$(LOAD_EXT)
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)
 	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
-	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)
+	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) src/binder/bind.$(AR) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/sigguts.h src/binder/bind$(O) $(DYNPMC)
+$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind$(LOAD_EXT)
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../binder/bind$(O) $(LINKARGS)
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../binder/bind.$(AR) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/sigguts.h src/binder/bind$(O) $(DYNPMC)
+$(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind$(LOAD_EXT)
 	cd $(OPS_DIR) && $(OPS2C) CSwitch --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_switch$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_switch.c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) ../binder/bind$(O) $(LINKARGS)
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) ../binder/bind.$(AR) $(LINKARGS)

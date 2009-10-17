@@ -1,7 +1,7 @@
 # Copyright (C) 2009, The Perl Foundation.
 # $Id$
 
-class Perl6::Compiler::Signature;
+module Perl6::Compiler::Signature;
 
 # This class represents a signature in the compiler. It takes care of
 # producing an AST that will generate the signature, based upon all of

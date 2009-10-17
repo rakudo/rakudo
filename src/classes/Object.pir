@@ -903,6 +903,10 @@ Helper for doing .= calls.
     .return ($I0)
 .end
 
+.sub '' :vtable('get_integer') :method
+    .tailcall self.'Int'()
+.end
+
 .sub '' :vtable('get_iter') :method
     .tailcall self.'Iterator'()
 .end

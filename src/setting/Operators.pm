@@ -15,6 +15,14 @@ multi sub infix:<...>($lhs, @rhs) {
     &infix:<...>(@a, @rhs);
 }
 
+multi sub infix:<...>($lhs, Whatever $) {
+    die 'Sorry, lazy lists and infinite ranges are not yet implemented';
+}
+
+multi sub infix:<...>(@lhs, Whatever $) {
+    die 'Sorry, lazy lists and infinite ranges are not yet implemented';
+}
+
 multi sub infix:<...>($lhs, Code $generator) {
     my @a = $lhs;
     &infix:<...>(@a, $generator);

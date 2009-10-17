@@ -6,7 +6,10 @@ New in 2009-10 release
 + correct construction of twigilled colonpairs
 + infix:<eqv>, .pred and .succ for the Rat type
 + when configuring with --gen-parrot, pass --optimize to parrot's Configure.pl
-+ moved more operators the setting and thus made them overloadable
++ moved more operators to the setting and thus made them overloadable
++ { %hash } now correctly constructs a hash, not a closure
++ new, faster low level Signature type
++ improved Signature introspection
 
 New in 2009-09 release
 + updates to numeric operators: infix</>(Int, Int) creates a Rat

@@ -29,7 +29,17 @@ class Any is also {
             my $arity = &expr.arity || 1;
             my @args;
             for @.list {
-                @args.push($_);
+                ## We have to use PIR's 'push' here, because map can
+                ## mutate the elements of the list, and @args.push()
+                ## results in @args getting copies of the elements.
+                ## This may all get fixed when we come up with a way
+                ## to do partial bindings and not have to check .arity
+                ## or .count .
+                Q:PIR {
+                    $P0 = find_lex '@args'
+                    $P1 = find_lex '$_'
+                    push $P0, $P1
+                };
                 if (@args == $arity) {
                     take &expr(|@args);
                     @args = ();

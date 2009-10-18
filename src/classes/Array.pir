@@ -116,19 +116,21 @@ Add C<args> to the end of the Array.
     .local pmc type, it
     type = self.'of'()
     args.'!flatten'()
-    it = iter args
+    $I1 = elements args
+    $I0 = 0
   it_loop:
-    unless it goto it_loop_end
-    $P0 = shift it
-    $I0 = type.'ACCEPTS'($P0)
-    unless $I0 goto type_error
+    if $I0 >= $I1 goto it_loop_end
+    $P0 = new ['Perl6Scalar']
+    setprop $P0, 'type', type
+    $P1 = args[$I0]
+    $P0.'!STORE'($P1, 'Push')
+    args[$I0] = $P0
+    inc $I0
     goto it_loop
   it_loop_end:
     $I0 = elements self
     splice self, args, $I0, 0
     .return (self)
-  type_error:
-    'die'('Type check failure in push')
 .end
 .sub '' :init :load
     .local pmc block, signature

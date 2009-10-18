@@ -560,6 +560,8 @@ in the future.)
 
 .sub '!STORE' :method :subid('Object::!STORE')
     .param pmc source
+    .param string typeerr      :optional
+    .param int has_typeerr     :opt_flag
     source = '!CALLMETHOD'('Scalar', source)
     $I0 = defined source
     unless $I0 goto do_store
@@ -579,7 +581,10 @@ in the future.)
     .return (self)
 
   err_type:
-    $S0 = '!make_type_fail_message'('Assignment', source, type)
+    if has_typeerr goto have_typeerr
+    typeerr = 'Assignment'
+  have_typeerr:
+    $S0 = '!make_type_fail_message'(typeerr, source, type)
     'die'($S0)
 .end
 

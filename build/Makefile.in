@@ -20,7 +20,6 @@ LD_LOAD_FLAGS = @ld_load_flags@
 LIBPARROT     = @inst_libparrot_ldflags@
 O             = @o@
 LOAD_EXT      = @load_ext@
-AR            = @ar@
 PERL          = @perl@
 CP            = @cp@
 MV            = @mv@
@@ -209,11 +208,6 @@ CLEANUPS = \
   $(OPS_DIR)/*$(O) \
   $(OPS_DIR)/*$(LOAD_EXT) \
   binder/*$(O) \
-  binder/*$(LOAD_EXT) \
-  binder/*.lib \
-  binder/*.ilk \
-  binder/*.pdb \
-  binder/*.exp \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
@@ -231,7 +225,6 @@ install: all
 	$(CP)     lib/*.pm            $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
-	$(CP)     src/binder/bind$(LOAD_EXT) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CP)     $(PERL6EXE)         $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6EXE)
@@ -420,33 +413,32 @@ release: manifest
 	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
 	rm rakudo-$(VERSION)
 
-$(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS) src/binder/bind$(LOAD_EXT)
-	$(CP) $(DYNPMC) $(DYNOPS) src/binder/bind$(LOAD_EXT) $(DYNEXT_DIR)
+$(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
+	$(CP) $(DYNPMC) $(DYNOPS) $(DYNEXT_DIR)
 
 # (at)cc_o_out(at) and (at)ld_out(at) below cannot be assigned to
 # makefile macros, because some make utilities drop the trailing
 # spaces and some compilers/linkers forbid a (forced) space.
 # See RT #66558 and TT #700.
 
-src/binder/bind$(LOAD_EXT): src/binder/bind.c src/binder/bind.h
+src/binder/bind$(O): src/binder/bind.c src/binder/bind.h
 	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
-	cd src/binder && $(LD) @ld_out@bind$(LOAD_EXT) bind$(O) $(LINKARGS)
 
-$(DYNPMC): $(PMC_SOURCES) src/binder/bind$(LOAD_EXT)
+$(DYNPMC): $(PMC_SOURCES) src/binder/bind$(O)
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)
 	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
-	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) src/binder/bind.$(AR) $(LINKARGS)
+	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) src/binder/bind$(O) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind$(LOAD_EXT)
+$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../binder/bind.$(AR) $(LINKARGS)
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind$(LOAD_EXT)
+$(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h
 	cd $(OPS_DIR) && $(OPS2C) CSwitch --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_switch$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_switch.c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) ../binder/bind.$(AR) $(LINKARGS)
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) $(LINKARGS)

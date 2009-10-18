@@ -213,7 +213,6 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
  * is a failure and BIND_RESULT_JUNCTION if the failure was because of a
  * Junction being passed (meaning we need to auto-thread). */
 INTVAL
-PARROT_DYNEXT_EXPORT
 Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad,
                               llsig_element **elements, INTVAL num_elements,
                               PMC *pos_args, PMC *named_args,

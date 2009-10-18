@@ -133,6 +133,19 @@ Marks anything we're referencing.
                 Parrot_gc_mark_PMC_alive(interp, elements[i]->sub_signature);
         }
     }
+
+/*
+
+=item C<void *get_pointer()>
+
+Returns a pointer to the signautre binder.
+=cut
+
+*/
+
+    VTABLE void *get_pointer() {
+        return &Rakudo_binding_bind_signature;
+    }
 }
 
 /*

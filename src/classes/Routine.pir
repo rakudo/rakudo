@@ -94,7 +94,7 @@ wrappable executable objects.
 .sub '!wrap_clholder_helper' :anon
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
-
+say "!wrap_clholder_helper"
     # Slot for candidate list.
     .lex '__CANDIDATE_LIST__', $P0
 

@@ -25,6 +25,9 @@ This is the base file for the Rakudo Perl 6 compiler.
     exit 1
   startup_ok:
 
+    # Do dynop initialization tasks.
+    rakudo_dynop_setup
+
     .local pmc p6meta
     load_bytecode 'PCT.pbc'
     $P0 = get_root_global ['parrot'], 'P6metaclass'

@@ -47,9 +47,7 @@ typedef struct llsig_element {
 
 
 /* A function we want to share to provide the interface to the binder. */
-PARROT_EXPORT
 INTVAL
-PARROT_DYNEXT_EXPORT
 Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad,
                               llsig_element **elements, INTVAL num_elements,
                               PMC *pos_args, PMC *named_args,

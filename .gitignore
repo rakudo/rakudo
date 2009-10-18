@@ -12,6 +12,11 @@ perl6.exe
 perl6.c
 perl6.o
 perl6.obj
+perl6.RES
+perl6.ilk
+perl6.opt
+perl6.pdb
+perl6.rc
 t/localtest.data
 t/spec
 parrot
@@ -26,3 +31,5 @@ dynext/perl6_*.so
 dynext/perl6_*.dll
 perl6_group.?
 libparrot.dll
+src/binder/bind.bundle
+src/binder/bind.o

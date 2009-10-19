@@ -20,6 +20,26 @@ descalarref(PARROT_INTERP, PMC *ref) {
 }
 
 
+/* Binds any type captures a variable has. */
+static void
+Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, llsig_element *sig_info, PMC *value) {
+    /* Obtain type object. */
+    STRING * const HOW   = string_from_literal(interp, "HOW");
+    PMC * const how_meth = VTABLE_find_method(interp, value, HOW);
+    PMC * const meta_obj = (PMC *)Parrot_run_meth_fromc_args(interp,
+            how_meth, value, HOW, "P");
+    PMC * const type_obj = VTABLE_get_attr_str(interp, meta_obj,
+            string_from_literal(interp, "protoobject"));
+
+    /* Iterate over symbols we need to bind this to, and bind 'em. */
+    PMC * const iter = VTABLE_get_iter(interp, sig_info->type_captures);
+    while (VTABLE_get_bool(interp, iter)) {
+        STRING *name = VTABLE_shift_string(interp, iter);
+        VTABLE_set_pmc_keyed_str(interp, lexpad, name, type_obj);
+    }
+}
+
+
 /* Binds a single argument into the lexpad, after doing any checks that are
  * needed. Also handles any type captures. If there is a sub signature, then
  * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
@@ -49,22 +69,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
     }
     
     /* Do we have any type captures to bind? */
-    if (!PMC_IS_NULL(sig_info->type_captures)) {
-        /* Obtain type object. */
-        STRING * const HOW   = string_from_literal(interp, "HOW");
-        PMC * const how_meth = VTABLE_find_method(interp, value, HOW);
-        PMC * const meta_obj = (PMC *)Parrot_run_meth_fromc_args(interp,
-                how_meth, value, HOW, "P");
-        PMC * const type_obj = VTABLE_get_attr_str(interp, meta_obj,
-                string_from_literal(interp, "protoobject"));
-
-        /* Iterate over symbols we need to bind this to, and bind 'em. */
-        PMC * const iter = VTABLE_get_iter(interp, sig_info->type_captures);
-        while (VTABLE_get_bool(interp, iter)) {
-            STRING *name = VTABLE_shift_string(interp, iter);
-            VTABLE_set_pmc_keyed_str(interp, lexpad, name, type_obj);
-        }
-    }
+    if (!PMC_IS_NULL(sig_info->type_captures))
+        Rakudo_binding_bind_type_captures(interp, lexpad, sig_info, value);
 
     /* Apply context. */
     if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
@@ -336,10 +342,13 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad,
 
             /* Otherwise, a positional. */
             else {
-                /* Is it the invocant? If so, already handled out of band. */
+                /* Is it the invocant? If so, binding already handled out of band, so
+                 * just handle type captures. */
                 if (elements[i]->flags & SIG_ELEM_INVOCANT) {
+                    PMC *value = VTABLE_get_pmc_keyed_str(interp, lexpad, string_from_literal(interp, "self"));
+                    if (!PMC_IS_NULL(elements[i]->type_captures))
+                        Rakudo_binding_bind_type_captures(interp, lexpad, elements[i], value);
                     cur_pos_arg++;
-                    continue;
                 }
 
                 /* Do we have a value?. */

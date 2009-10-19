@@ -11,6 +11,11 @@ For more details, see the full text of the license in the file LICENSE.
 Rakudo is currently available for Arch Linux users in the AUR at
 (L<http://aur.archlinux.org/packages.php?ID=29068>)
 
+Windows user can download binary builds from
+L<http://sourceforge.net/projects/parrotwin32/files/> and need the
+I<parrotwin32 setup> and the matching version of
+I<parrot-rakudo addon>.
+
 =head2 Build requirements (Installing from source)
 
 For building Rakudo you need at least a C compiler, a C<make> utility,

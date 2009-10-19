@@ -869,13 +869,19 @@ method method_def($/) {
         our $?METACLASS;
         our @?BLOCK;
         $block.pirflags(~$block.pirflags() ~ ' :anon ');
-        @?BLOCK[0][0].push(PAST::Op.new(
+        my $add_meta := PAST::Op.new(
             :pasttype('call'),
             :name('!add_metaclass_method'),
             $?METACLASS,
             $block.name,
             PAST::Op.new( :inline('    .const "Sub" %r = "' ~ $block.subid ~ '"') )
-        ));
+        );
+        if @?BLOCK[0]<pkgdecl> eq 'role' || @?BLOCK[0]<anon> {
+            @?BLOCK[0][0].push($add_meta);
+        }
+        else {
+            @?BLOCK[0].loadinit().push($add_meta);
+        }
     }
 
     make $block;
@@ -1511,7 +1517,8 @@ method package_declarator($/, $key) {
         unless $pkgdecl eq 'class' || $pkgdecl eq 'role' || $pkgdecl eq 'grammar' {
             $/.panic("Cannot use does package declarator outside of class, role, or grammar");
         }
-        $block[0].push(PAST::Op.new(
+        my $pushee := $pkgdecl eq 'role' ?? $block[0] !! $block.loadinit();
+        $pushee.push(PAST::Op.new(
             :name('trait_mod:does'),
             $?METACLASS,
             $<typename>.ast
@@ -1541,6 +1548,9 @@ method package_def($/, $key) {
         # Also attach traits to the node.
         our $?BLOCK_OPEN;
         $?BLOCK_OPEN<traits> := $<trait>;
+        if $add eq '' {
+            $?BLOCK_OPEN<anon> := 1;
+        }
 
         return 0;
     }
@@ -1549,7 +1559,6 @@ method package_def($/, $key) {
     }
 
     my $block := $/{$key}.ast;
-    $block.lexical(0);
     declare_implicit_routine_vars($block);
 
     my $modulename;
@@ -1592,9 +1601,8 @@ method package_def($/, $key) {
         $block[0].push(bind_signature_op());
     }
     elsif $key eq 'block' {
-        # A normal block acts like a BEGIN and is executed ASAP.
-        $block.blocktype('declaration');
-        $block.pirflags(':load :init');
+        # A normal block runs inline.
+        $block.blocktype('immediate');
     }
     elsif $key eq 'statement_block' {
         # file-level blocks have their contents as the compunit mainline
@@ -1609,9 +1617,15 @@ method package_def($/, $key) {
     }
 
     #  Create a node at the beginning of the block's initializer
-    #  for package initializations
+    #  for package initializations if it's a role, or loadinit if
+    #  it's anything else.
     my $init := PAST::Stmts.new();
-    $block[0].unshift( $init );
+    if $?PKGDECL eq 'role' || $is_anon {
+        $block[0].unshift( $init );
+    }
+    else {
+        $block.loadinit().unshift( $init );
+    }
 
     #  Set is also flag.
     $block<isalso> := has_compiler_trait_with_val($<trait>, 'trait_mod:is', 'also');
@@ -1671,13 +1685,12 @@ method package_def($/, $key) {
         ));
         $block.push(PAST::Var.new(:name('proto_store'), :scope('register')));
         $block.blocktype('immediate');
-        $block.pirflags('');
     }
     elsif !$block<isalso> {
-        $block[0].push( PAST::Op.new( :name('!meta_compose'), $?METACLASS) );
+        $block.loadinit().push( PAST::Op.new( :name('!meta_compose'), $?METACLASS) );
     }
     else {
-        $block[0].push( PAST::Op.new( :name('!setup_invoke_vtable'), $?METACLASS) );
+        $block.loadinit().push( PAST::Op.new( :name('!setup_invoke_vtable'), $?METACLASS) );
     }
 
     make $block;
@@ -1829,7 +1842,12 @@ method scope_declarator($/) {
                             $has.push($trait_block);
                         }
                     }
-                    $block[0].push( $has );
+                    if $pkgdecl eq 'role' || $block<anon> {
+                        $block[0].push( $has );
+                    }
+                    else {
+                        $block.loadinit().push( $has );
+                    }
                 }
                 else {
                     # $scope eq 'package' | 'lexical' | 'state'
@@ -2677,7 +2695,12 @@ method EXPR($/, $key) {
                          $?METACLASS, $lhs[0].name(), $rhs
             );
             our @?BLOCK;
-            @?BLOCK[0][0].push($past);
+            if @?BLOCK[0]<pkgdecl> eq 'role' || @?BLOCK[0]<anon> {
+                @?BLOCK[0][0].push($past);
+            }
+            else {
+                @?BLOCK[0].loadinit().push($past);
+            }
             $past := PAST::Stmts.new();
         }
         elsif $lhs<scopedecl> eq 'constant' {

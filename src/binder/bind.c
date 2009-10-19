@@ -20,6 +20,47 @@ descalarref(PARROT_INTERP, PMC *ref) {
 }
 
 
+static STRING *
+Rakudo_binding_arity_fail(PARROT_INTERP, llsig_element **elements, INTVAL num_elements,
+                          INTVAL num_pos_args, INTVAL too_many) {
+    STRING *result;
+    INTVAL arity = 0;
+    INTVAL count = 0;
+    INTVAL i;
+    char *whoz_up = too_many ? "Too many" : "Not enough";
+
+    /* Work out how many we could have been passed. */
+    for (i = 0; i < num_elements; i++) {
+        if (!PMC_IS_NULL(elements[i]->named_names))
+            continue;
+        if (elements[i]->flags & SIG_ELEM_SLURPY_NAMED)
+            continue;
+        if (elements[i]->flags & SIG_ELEM_SLURPY_POS) {
+            count = -1;
+        }
+        else if (elements[i]->flags & SIG_ELEM_IS_OPTIONAL) {
+            count++;
+        }
+        else {
+            count++;
+            arity++;
+        }
+    }
+
+    /* Now generate decent error. */
+    if (arity == count)
+        result = Parrot_sprintf_c(interp, "%s positional parameters passed; got %d but expected %d",
+                whoz_up, num_pos_args, arity);
+    else if (count == -1)
+        result = Parrot_sprintf_c(interp, "%s positional parameters passed; got %d but expected at least %d",
+                whoz_up, num_pos_args, arity);
+    else
+        result = Parrot_sprintf_c(interp, "%s positional parameters passed; got %d but expected between %d and %d",
+                whoz_up, num_pos_args, arity, count);
+    return result;
+}
+
+
 /* Binds any type captures a variable has. */
 static void
 Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, llsig_element *sig_info, PMC *value) {
@@ -58,9 +99,18 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
              * extra checks if the type is just Positional, Associative, or
              * Callable and the thingy we have matches those enough. */
             /* XXX TODO: Implement language interop checks. */
-            /* XXX TODO: Good type check error message. */
-            if (error)
-                *error = string_from_literal(interp, "Nominal type check failed");
+            if (error) {
+                STRING * const perl = string_from_literal(interp, "perl");
+                STRING * const HOW  = string_from_literal(interp, "HOW");
+                PMC * perl_meth     = VTABLE_find_method(interp, type_obj, perl);
+                STRING *expected    = (STRING *)Parrot_run_meth_fromc_args(interp, perl_meth, type_obj, perl, "S");
+                PMC * how_meth      = VTABLE_find_method(interp, value, HOW);
+                PMC * value_how     = (PMC *)Parrot_run_meth_fromc_args(interp, how_meth, value, HOW, "P");
+                PMC * value_type    = VTABLE_get_attr_str(interp, value_how, string_from_literal(interp, "shortname"));
+                STRING *got         = VTABLE_get_string(interp, value_type);
+                *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
+                            sig_info->variable_name, expected, got);
+            }
             if (VTABLE_isa(interp, value, string_from_literal(interp, "Junction")))
                 return BIND_RESULT_JUNCTION;
             else
@@ -156,9 +206,9 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 Parrot_capture_lex(interp, cons_type);
             result = (PMC *)Parrot_run_meth_fromc_args(interp, accepts_meth, cons_type, ACCEPTS, "PP", value);
             if (!VTABLE_get_bool(interp, result)) {
-                /* XXX TODO: Good type check error message. */
                 if (error)
-                    *error = string_from_literal(interp, "Constraint type check failed");
+                    *error = Parrot_sprintf_c(interp, "Constraint type check failed for parameter '%S'",
+                            sig_info->variable_name);
                 return BIND_RESULT_FAIL;
             }
         }
@@ -373,10 +423,8 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad,
                             return bind_fail;
                     }
                     else {
-                        /* XXX TODO: Make this error have some numbers in it,
-                         * or other useful info. */
                         if (error)
-                            *error = string_from_literal(interp, "Not enough positional parameters passed");
+                            *error = Rakudo_binding_arity_fail(interp, elements, num_elements, num_pos_args, 0);
                         return BIND_RESULT_FAIL;
                     }
                 }
@@ -410,9 +458,9 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad,
                             value, 1, error);
                 }
                 else {
-                    /* XXX TODO: Make this error include missing name. */
                     if (error)
-                        *error = string_from_literal(interp, "Required named parameter not passed");
+                        *error = Parrot_sprintf_c(interp, "Required named parameter '%S' not passed",
+                                VTABLE_get_string_keyed_int(interp, elements[i]->named_names, 0));
                     return BIND_RESULT_FAIL;
                 }
             }
@@ -429,15 +477,35 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad,
 
     /* Do we have any left-over args? */
     if (cur_pos_arg < num_pos_args) {
-        /* Oh noes, too many positionals passed. XXX TODO: improve error. */
+        /* Oh noes, too many positionals passed. */
         if (error)
-            *error = string_from_literal(interp, "Too many positional parameters passed");
+            *error = *error = Rakudo_binding_arity_fail(interp, elements, num_elements, num_pos_args, 1);
         return BIND_RESULT_FAIL;
     }
     if (!PMC_IS_NULL(named_args_copy) && VTABLE_elements(interp, named_args_copy)) {
-        /* Oh noes, unexpected named args. XXX TODO: error needs to have names. */
-        if (error)
-            *error = string_from_literal(interp, "Unexpected named parameters passed");
+        /* Oh noes, unexpected named args. */
+        if (error) {
+            INTVAL num_extra = VTABLE_elements(interp, named_args_copy);
+            PMC *iter        = VTABLE_get_iter(interp, named_args_copy);
+            if (num_extra == 1) {
+                *error = Parrot_sprintf_c(interp, "Unexpected named parameter '%S' passed",
+                        VTABLE_shift_string(interp, iter));
+            }
+            else {
+                INTVAL first  = 1;
+                STRING *comma = string_from_literal(interp, ", ");
+                *error = Parrot_sprintf_c(interp, "%d unexpected named parameters passed (", num_extra);
+                while (VTABLE_get_bool(interp, iter)) {
+                    STRING *name = VTABLE_shift_string(interp, iter);
+                    if (!first)
+                        *error = Parrot_str_append(interp, *error, comma);
+                    else
+                        first = 0;
+                    *error = Parrot_str_append(interp, *error, name);
+                }
+                *error = Parrot_str_append(interp, *error, string_from_literal(interp, ")"));
+            }
+        }
         return BIND_RESULT_FAIL;
     }
 

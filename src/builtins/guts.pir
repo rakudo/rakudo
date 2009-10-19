@@ -1341,6 +1341,7 @@ Reblesses a sub into a new type.
     $P0 = new_type.'new'()
     $P0 = typeof $P0
     rebless_subclass sub, $P0
+    transform_to_p6opaque sub
 
     # We also make sure the Parrot-level sub has a backlink to the
     # Rakudo-level object, since interpinfo only gives us the

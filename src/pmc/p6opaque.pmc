@@ -256,7 +256,24 @@ more.)
         for (i = 0; i < num_attrs; i++) {
             PMC * const original_data = VTABLE_get_pmc_keyed_int(INTERP, my_guts->attrib_store, i);
             PMC * const new_data      = VTABLE_get_pmc_keyed_int(INTERP, clone_guts->attrib_store, i);
-            PMC_metadata(new_data) = PMC_metadata(original_data);
+            
+            /* If it's a sub, we need a separate hash, so copy each property over. */
+            if (!PMC_IS_NULL(original_data) && VTABLE_isa(interp, original_data, CONST_STRING(interp, "Sub"))) {
+                PMC * const meta          = VTABLE_getprops(interp, original_data);
+                if (!PMC_IS_NULL(meta)) {
+                    PMC * const iter = VTABLE_get_iter(interp, meta);
+                    while (VTABLE_get_bool(interp, iter)) {
+                        STRING * const key = VTABLE_shift_string(interp, iter);
+                        PMC * const value  = VTABLE_get_pmc_keyed_str(interp, meta, key);
+                        VTABLE_setprop(interp, new_data, key, value);
+                    }
+                }
+            }
+
+            /* Otherwise, they can share. */
+            else {
+                PMC_metadata(new_data) = PMC_metadata(original_data);
+            }
         }
 
         return clone;

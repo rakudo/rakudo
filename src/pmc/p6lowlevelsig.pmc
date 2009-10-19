@@ -21,7 +21,7 @@ from the outside.
 
 */
 
-#include "../binder/sigguts.h"
+#include "../binder/bind.h"
 
 /*
 
@@ -132,6 +132,19 @@ Marks anything we're referencing.
             if (elements[i]->sub_signature)
                 Parrot_gc_mark_PMC_alive(interp, elements[i]->sub_signature);
         }
+    }
+
+/*
+
+=item C<void *get_pointer()>
+
+Returns a pointer to the signautre binder.
+=cut
+
+*/
+
+    VTABLE void *get_pointer() {
+        return &Rakudo_binding_bind_signature;
     }
 }
 

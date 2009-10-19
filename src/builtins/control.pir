@@ -568,56 +568,17 @@ find nothing more to call.
 Helper for callsame and nextsame that uses the signature and lexpad of a
 routine to build up the next caller args.
 
-XXX Eventually this needs to go on the CallSignature, so this is a bit
-of a hack.
+XXX Eventually this needs to go on the CallSignature - for now we just
+have pos_args and named_args in lexicals instead.
 
 =cut
 
 .sub '!get_original_args'
     .param pmc signature
     .param pmc lexpad
-
-    # Get hold of the signature.
-    .local pmc signature, pos_args, named_args
-    pos_args = root_new ['parrot';'ResizablePMCArray']
-    named_args = root_new ['parrot';'Hash']
-    $I0 = defined signature
-    unless $I0 goto param_done
-    signature = descalarref signature
-
-    # Loop over the parameters.
-    .local int cur_param, count
-    count = get_signature_size signature
-    cur_param = -1
-  param_loop:
-    inc cur_param
-    unless cur_param < count goto param_done
-
-    # Get curent parameter info.
-    .local pmc names
-    .local string name
-    .local int flags, slurpy
-    get_signature_elem signature, cur_param, name, flags, $P0, $P1, names, $P2, $P3, $P4
-    
-    # XXX We'll skip slurpies for now.
-    slurpy = flags & SIG_ELEM_SLURPY
-    if slurpy goto param_done
-
-    # Look up value.
-    $P0 = lexpad[name]
-
-    # Named or not?
-    if null names goto positional
-    if names goto named
-  positional:
-    push pos_args, $P0
-    goto param_loop
-  named:
-    names = names[0]
-    named_args[names] = $P0
-    goto param_loop
-  param_done:
-
+    .local pmc pos_args, named_args
+    pos_args = lexpad['pos_args']
+    named_args = lexpad['named_args']
     .return (pos_args, named_args)
 .end
 

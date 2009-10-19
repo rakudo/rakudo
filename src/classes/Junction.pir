@@ -252,16 +252,16 @@ Return the components of the Junction.
 
 =over
 
-=item !DISPATCH_JUNCTION
+=item !DISPATCH_JUNCTION_CORE
 
-Does a junctional dispatch.
+Internals to do a junctional dispatch.
 
 =cut
 
-.sub '!DISPATCH_JUNCTION'
+.sub '!DISPATCH_JUNCTION_CORE'
     .param pmc the_sub
-    .param pmc args            :slurpy
-    .param pmc name_args       :slurpy :named
+    .param pmc args
+    .param pmc name_args
 
     ##  lookup a sub by name if needed
     $I0 = isa the_sub, 'Sub'
@@ -353,23 +353,33 @@ Does a junctional dispatch.
 .end
 
 
+=item !DISPATCH_JUNCTION
+
+Does a junction dispatch.
+
+=cut
+
+.sub '!DISPATCH_JUNCTION'
+    .param pmc the_sub
+    .param pmc args            :slurpy
+    .param pmc name_args       :slurpy :named
+    .tailcall '!DISPATCH_JUNCTION_CORE'(the_sub, args, name_args)
+.end
+
+
 =item !DISPATCH_JUNCTION_SINGLE
 
 Wrapper for junction dispatcher in the single dispatch case, where we are
-passed the sub that is being called along with a way to build tuples of the
-parameters for the dispatcher.
+passed the sub that is being called along the arguments.
 
 =cut
 
 .sub '!DISPATCH_JUNCTION_SINGLE'
     .param pmc sub
-    .param pmc lexpad
-    .param pmc signature
-
-    # Get hold of arguments and defer to main junction dispatcher.
-    .local pmc pos_args, name_args
-    (pos_args, name_args) = '!get_original_args'(signature, lexpad)
-    .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat :named)
+    .param pmc pos_args
+    .param pmc named_args
+    $P0 = '!DISPATCH_JUNCTION_CORE'(sub, pos_args, named_args)
+    .return ($P0)
 .end
 
 
@@ -389,7 +399,7 @@ a property.
     pi = getinterp
     sub = pi['sub']
     sub = getprop 'sub', sub
-    .tailcall '!DISPATCH_JUNCTION'(sub, pos_args :flat, name_args :flat :named)
+    .tailcall '!DISPATCH_JUNCTION_CORE'(sub, pos_args, name_args)
 .end
 
 

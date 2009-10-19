@@ -2,7 +2,8 @@ class Rat {
     has $.numerator;
     has $.denominator;
 
-    my sub gcd(Int $a is copy, Int $b is copy) {
+    # XXX TODO: should be lexical sub, but can't do those subs in setting yet.
+    sub gcd(Int $a is copy, Int $b is copy) {
         $a = -$a if ($a < 0);
         $b = -$b if ($b < 0);
         while $a > 0 && $b > 0 {

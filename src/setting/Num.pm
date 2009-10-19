@@ -250,7 +250,7 @@ class Num is also {
         ~self
     }
 
-    my sub _modf($num) { my $q = $num.Int; $num - $q, $q; }
+    sub _modf($num) { my $q = $num.Int; $num - $q, $q; }
 
     multi method Rat($epsilon = 1.0e-6) {
         my $num = +self;

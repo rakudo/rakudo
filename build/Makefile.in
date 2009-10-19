@@ -144,6 +144,7 @@ SETTING = \
   src/setting/Any-str.pm \
   src/setting/Array.pm \
   src/setting/Attribute.pm \
+  src/setting/Block.pm \
   src/setting/Bool.pm \
   src/setting/Buf.pm \
   src/setting/Code.pm \
@@ -233,7 +234,6 @@ xmas: perl6$(EXE)
 ##  targets for building a standalone perl6.
 perl6$(EXE): perl6.pbc
 	$(PBC_TO_EXE) perl6.pbc
-	@win32_libparrot_copy@
 
 # the Perl 6 compiler
 perl6.pbc: perl6_s1.pbc src/gen_setting.pm
@@ -243,6 +243,7 @@ perl6.pbc: perl6_s1.pbc src/gen_setting.pm
 # the Perl 6 stage-1 compiler
 perl6_s1.pbc: $(PARROT) $(SOURCES) $(BUILTINS_PIR)
 	$(PERL) -e "" > src/gen_setting.pir
+	@win32_libs_copy@
 	$(PARROT) $(PARROT_ARGS) -o perl6_s1.pbc perl6.pir
 
 src/gen_grammar.pir: $(PARROT) $(PERL6GRAMMAR_PBC) src/parser/grammar.pg src/parser/grammar-oper.pg
@@ -420,24 +421,24 @@ $(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
 # spaces and some compilers/linkers forbid a (forced) space.
 # See RT #66558 and TT #700.
 
-src/binder/bind$(O):
-	cd src/ops && $(CC) -c @cc_o_out@../binder/bind$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) ../binder/bind.c
+src/binder/bind$(O): src/binder/bind.c src/binder/bind.h
+	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
 
-$(DYNPMC): $(PMC_SOURCES) src/binder/sigguts.h
+$(DYNPMC): $(PMC_SOURCES) src/binder/bind$(O)
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)
 	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
-	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)
+	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) src/binder/bind$(O) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/sigguts.h src/binder/bind$(O) $(DYNPMC)
+$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../binder/bind$(O) $(LINKARGS)
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/sigguts.h src/binder/bind$(O) $(DYNPMC)
+$(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h
 	cd $(OPS_DIR) && $(OPS2C) CSwitch --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_switch$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_switch.c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) ../binder/bind$(O) $(LINKARGS)
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) $(LINKARGS)

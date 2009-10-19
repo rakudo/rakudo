@@ -1,6 +1,7 @@
 *.c
 *.dump
 *.o
+*.obj
 *.so
 *.h
 *.bundle
@@ -10,3 +11,6 @@
 *.ilk
 *.lib
 *.pdb
+*.opt
+*.dsp
+*.dsw

@@ -51,6 +51,12 @@ wrappable executable objects.
     $P0 = newclosure $P0
     setattribute self, ['Sub'], 'proxy', $P0
     setprop $P0, '@!candidates', cand_list
+
+    # XXX Aww, fick. Some hrovno happens in what follows that puts
+    # some merde value into the p6i register - even though we never
+    # do anything to explicitly change the hora. So, we make a copy,
+    # in another register, and then copy it back over at the end.
+    # Something is srsly buggered up somewhere.
     p6i_copy = p6i
 
     # We need to clone the wrapper, then tweak it to have an outer of

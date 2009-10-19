@@ -243,13 +243,13 @@ method ast($high_level?) {
         my $names := $null_reg;
         if !$_<slurpy> && $_<names> && +@($_<names>) {
             my $pir := "    %r = root_new ['parrot'; 'ResizableStringArray']\n";
-            for @($_<names>) { $pir := $pir ~ "    push %r, '" ~ ~$_ ~ "'\n"; }
+            for @($_<names>) { $pir := $pir ~ '    push %r, unicode:"' ~ ~$_ ~ "\"\n"; }
             $names := PAST::Op.new( :inline($pir) );
         }
         my $type_captures := $null_reg;
         if $_<type_captures> && +@($_<type_captures>) {
             my $pir := "    %r = root_new ['parrot'; 'ResizableStringArray']\n";
-            for @($_<type_captures>) { $pir := $pir ~ "    push %r, '" ~ ~$_ ~ "'\n"; }
+            for @($_<type_captures>) { $pir := $pir ~ '    push %r, unicode:"' ~ ~$_ ~ "\"\n"; }
             $type_captures := PAST::Op.new( :inline($pir) );
         }
 

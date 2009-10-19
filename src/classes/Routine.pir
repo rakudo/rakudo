@@ -42,7 +42,7 @@ wrappable executable objects.
     # If not, need to create a new candidate list with the current sub,
     # and install the wrap helper that will start dispatching at the
     # start of the candidate list.
-    .local pmc p6i
+    .local pmc p6i, p6i_copy
     cand_list = root_new ['parrot';'ResizablePMCArray']
     unshift cand_list, cur_sub
     p6i = root_new ['parrot';'P6Invocation'], cand_list
@@ -51,6 +51,7 @@ wrappable executable objects.
     $P0 = newclosure $P0
     setattribute self, ['Sub'], 'proxy', $P0
     setprop $P0, '@!candidates', cand_list
+    p6i_copy = p6i
 
     # We need to clone the wrapper, then tweak it to have an outer of
     # !wrap_clholder_helper, which we use to hold the candidate list,
@@ -82,6 +83,10 @@ wrappable executable objects.
     handle = box $I0
     setprop $P1, '$!handle', handle
     unshift cand_list, $P1
+
+    if null p6i_copy goto done
+    p6i = p6i_copy
+  done:
     .return (handle)
 .end
 .sub '!wrap_start_helper' :anon :outer('wrap')
@@ -94,7 +99,7 @@ wrappable executable objects.
 .sub '!wrap_clholder_helper' :anon
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
-say "!wrap_clholder_helper"
+
     # Slot for candidate list.
     .lex '__CANDIDATE_LIST__', $P0
 

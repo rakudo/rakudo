@@ -1,7 +1,7 @@
 New in 2009-10 release
 + smolder reports for spectest runs
 + more Complex trig functions
-+ pure Perl implementation of the Complex type
++ pure Perl 6 implementation of the Complex type
 + some variants of the new series operator
 + correct construction of twigilled colonpairs
 + infix:<eqv>, .pred and .succ for the Rat type
@@ -11,6 +11,12 @@ New in 2009-10 release
 + new, faster low level Signature type
 + improved Signature introspection
 + new, much faster signature binder
++ improved various error messages related to signature binding
++ signature literals now supported
++ binding of named arguments to positional parameters
++ attributive parameters implemented
++ package blocks now run as immediate blocks, as per the spec
++ lexical variables declared outside of packages now visible inside them
 
 New in 2009-09 release
 + updates to numeric operators: infix</>(Int, Int) creates a Rat

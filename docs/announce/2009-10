@@ -12,8 +12,8 @@ from the latest source, available from the main repository at github.
 More details are available at http://rakudo.org/how-to-get-rakudo.
 
 Rakudo Perl follows a monthly release cycle, with each release code named
-after a Perl Mongers group. October 2009 is code named "Thousand Oaks" for the
-their amazing Perl 6 hackathon, and their report at
+after a Perl Mongers group. October 2009 is code named "Thousand Oaks"
+for their amazing Perl 6 hackathon, and their report at
 http://www.lowlevelmanager.com/2009/09/perl-6-hackathon.html .
 
 Since the 2009-08 release, Rakudo Perl builds from an "installed
@@ -32,7 +32,7 @@ into the Parrot installation that was used to build it, and then
 the executables will work when invoked from any directory.
 
 For this release we focused on a new signature binder which makes
-calling routines and operators much faster,a and allows binding of
+calling routines and operators much faster, and allows binding of
 positional arguments by name.
 
 Some of the specific major changes and improvements occuring

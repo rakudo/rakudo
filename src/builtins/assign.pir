@@ -34,6 +34,16 @@ src/builtins/assign.pir - assignments
 .end
 
 
+# What follows exists for the benefit of calling this op from C. Turns out
+# Parrot_call_sub won't handle multis, and also there's That Tailcall Bug.
+.sub '!only_infix:='
+    .param pmc cont
+    .param pmc source
+    $P0 = 'infix:='(cont, source)
+    .return ($P0)
+.end
+
+
 .sub '!REDUCEMETAOP'
     .param string opname
     .param pmc identity

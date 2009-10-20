@@ -1045,8 +1045,8 @@ method signature($/, $key) {
             }
 
             ##  otherwise, if it has a name, create a lexical with a matching name that
-            ##  we will put the parameter in.
-            elsif $var.name() {
+            ##  we will put the parameter in. Exception: when it's an attributive.
+            elsif $var.name() && !$var<twigil> {
                 $var.scope('lexical');
                 $var.isdecl(1);
                 unless $var.viviself() {

@@ -86,6 +86,53 @@ Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, llsig_element *sig
 }
 
 
+/* Assigns an attributive parameter to the desired attribute. */
+static INTVAL
+Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, llsig_element *sig_info,
+                                  PMC *value, STRING **error) {
+    PMC *assignee = PMCNULL;
+    PMC *assigner;
+
+    /* Find self. */
+    PMC *self = VTABLE_get_pmc_keyed_str(interp, lexpad,
+            string_from_literal(interp, "self"));
+    if (PMC_IS_NULL(self)) {
+        if (error)
+            *error = Parrot_sprintf_c(interp,
+                    "Unable to bind attributive parameter '%S' - could not find self",
+                    sig_info->variable_name);
+        return BIND_RESULT_FAIL;
+    }
+
+    /* If it's private, just need to fetch the attribute. */
+    if (sig_info->flags & SIG_ELEM_BIND_PRIVATE_ATTR) {
+        assignee = VTABLE_get_attr_str(interp, self, sig_info->variable_name);
+    }
+
+    /* Otherwise if it's public, do a method call to get the assignee. */
+    else {
+        PMC *meth = VTABLE_find_method(interp, self, sig_info->variable_name);
+        if (PMC_IS_NULL(meth)) {
+            if (error)
+                *error = Parrot_sprintf_c(interp,
+                        "Unable to bind attributive parameter '$.%S' - could not find method '%S'",
+                        sig_info->variable_name,
+                        sig_info->variable_name);
+            return BIND_RESULT_FAIL;
+        }
+        assignee = (PMC *)Parrot_run_meth_fromc_args(interp, meth, self,
+                sig_info->variable_name, "P");
+    }
+
+    /* Now look up infix:<=> and do the assignment. */
+    assigner = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+            string_from_literal(interp, "!only_infix:="));
+    Parrot_call_sub(interp, assigner, "vPP", assignee, value);
+
+    return BIND_RESULT_OK;
+}
+
+
 /* Binds a single argument into the lexpad, after doing any checks that are
  * needed. Also handles any type captures. If there is a sub signature, then
  * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
@@ -149,50 +196,54 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
             value = (PMC *)Parrot_run_meth_fromc_args(interp, scalar_meth, value, Scalar, "P");
     }
 
-    /* Is it "is rw"? */
-    if (sig_info->flags & SIG_ELEM_IS_RW) {
-        /* XXX TODO Check if rw flag is set, after rw refactor is done. */
-        /* If it has a name, bind it into the lexpad. */
-        if (sig_info->variable_name)
-            VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, value);
-    }
-    else if (sig_info->flags & SIG_ELEM_IS_REF) {
-        /* XXX TODO Implement is ref. */
-        if (error)
-            *error = string_from_literal(interp, "is ref not yet implemented");
-        return BIND_RESULT_FAIL;
-    }
-    else if (sig_info->flags & SIG_ELEM_IS_COPY) {
-        /* Clone the value appropriately, wrap it into an ObjectRef, and bind it. */
-        if (sig_info->variable_name) {
-            PMC *copy, *ref, *store_meth;
-            if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
-                STRING *STORE = string_from_literal(interp, "!STORE");
-                copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Array")));
-                store_meth    = VTABLE_find_method(interp, copy, STORE);
-                Parrot_run_meth_fromc_args(interp, store_meth, copy, STORE, "vP", value);
-            }
-            else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
-                STRING *STORE = string_from_literal(interp, "!STORE");
-                copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Hash")));
-                store_meth    = VTABLE_find_method(interp, copy, STORE);
-                Parrot_run_meth_fromc_args(interp, store_meth, copy, STORE, "vP", value);
-            }
-            else {
-                copy = VTABLE_clone(interp, value);
-            }
-            ref = pmc_new_init(interp, pmc_type(interp,
-                    string_from_literal(interp, "ObjectRef")), copy);
-            VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
+    /* If it's not got attributive binding, we'll go about binding it into the
+     * lex pad. */
+    if (!(sig_info->flags & SIG_ELEM_BIND_ATTRIBUTIVE)) {
+        /* Is it "is rw"? */
+        if (sig_info->flags & SIG_ELEM_IS_RW) {
+            /* XXX TODO Check if rw flag is set, after rw refactor is done. */
+            /* If it has a name, bind it into the lexpad. */
+            if (sig_info->variable_name)
+                VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, value);
         }
-    }
-    else {
-        /* Read only. Wrap it into a ObjectRef, mark readonly and bind it. */
-        if (sig_info->variable_name) {
-            PMC *ref  = pmc_new_init(interp, pmc_type(interp,
-                    string_from_literal(interp, "ObjectRef")), value);
-            VTABLE_setprop(interp, ref, string_from_literal(interp, "readonly"), ref);
-            VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
+        else if (sig_info->flags & SIG_ELEM_IS_REF) {
+            /* XXX TODO Implement is ref. */
+            if (error)
+                *error = string_from_literal(interp, "is ref not yet implemented");
+            return BIND_RESULT_FAIL;
+        }
+        else if (sig_info->flags & SIG_ELEM_IS_COPY) {
+            /* Clone the value appropriately, wrap it into an ObjectRef, and bind it. */
+            if (sig_info->variable_name) {
+                PMC *copy, *ref, *store_meth;
+                if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
+                    STRING *STORE = string_from_literal(interp, "!STORE");
+                    copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Array")));
+                    store_meth    = VTABLE_find_method(interp, copy, STORE);
+                    Parrot_run_meth_fromc_args(interp, store_meth, copy, STORE, "vP", value);
+                }
+                else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
+                    STRING *STORE = string_from_literal(interp, "!STORE");
+                    copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Hash")));
+                    store_meth    = VTABLE_find_method(interp, copy, STORE);
+                    Parrot_run_meth_fromc_args(interp, store_meth, copy, STORE, "vP", value);
+                }
+                else {
+                    copy = VTABLE_clone(interp, value);
+                }
+                ref = pmc_new_init(interp, pmc_type(interp,
+                        string_from_literal(interp, "ObjectRef")), copy);
+                VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
+            }
+        }
+        else {
+            /* Read only. Wrap it into a ObjectRef, mark readonly and bind it. */
+            if (sig_info->variable_name) {
+                PMC *ref  = pmc_new_init(interp, pmc_type(interp,
+                        string_from_literal(interp, "ObjectRef")), value);
+                VTABLE_setprop(interp, ref, string_from_literal(interp, "readonly"), ref);
+                VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
+            }
         }
     }
 
@@ -217,6 +268,13 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 return BIND_RESULT_FAIL;
             }
         }
+    }
+
+    /* If it's attributive, now we assign it. */
+    if (sig_info->flags & SIG_ELEM_BIND_ATTRIBUTIVE) {
+        INTVAL result = Rakudo_binding_assign_attributive(interp, lexpad, sig_info, value, error);
+        if (result != BIND_RESULT_OK)
+            return result;
     }
 
     /* If it has a sub-signature, bind that. */
@@ -323,9 +381,13 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 /* Strip any sigil, then stick in named to positional array. */
                 STRING *store = elements[i]->variable_name;
                 STRING *sigil = Parrot_str_substr(interp, store, 0, 1, NULL, 0);
+                STRING *twigil = Parrot_str_substr(interp, store, 1, 1, NULL, 0);
                 if (Parrot_str_equal(interp, sigil, string_from_literal(interp, "$")) ||
                         Parrot_str_equal(interp, sigil, string_from_literal(interp, "@")) ||
                         Parrot_str_equal(interp, sigil, string_from_literal(interp, "%")))
+                    store = Parrot_str_substr(interp, store, 1,
+                            Parrot_str_byte_length(interp, store), NULL, 0);
+                if (Parrot_str_equal(interp, twigil, string_from_literal(interp, "!")))
                     store = Parrot_str_substr(interp, store, 1,
                             Parrot_str_byte_length(interp, store), NULL, 0);
                 VTABLE_set_integer_keyed_str(interp, named_to_pos_cache, store, i);

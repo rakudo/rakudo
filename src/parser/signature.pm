@@ -190,6 +190,13 @@ method ast($high_level?) {
         if $_<read_type> eq 'copy'      { $flags := $flags + $SIG_ELEM_IS_COPY; }
         if $sigil eq '@'                { $flags := $flags + $SIG_ELEM_ARRAY_SIGIL; }
         if $sigil eq '%'                { $flags := $flags + $SIG_ELEM_HASH_SIGIL; }
+        if $_<twigil> eq '!'            { $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR }
+        if $_<twigil> eq '.'            {
+            # Set flag, and we'll pull the sigil and twigil off to leave us
+            # with the method name.
+            $flags := $flags + $SIG_ELEM_BIND_PUBLIC_ATTR;
+            $_<var_name> := substr($_<var_name>, 2);
+        }
 
         # Fix up nominal type.
         if $_<slurpy> || $_<invocant> {

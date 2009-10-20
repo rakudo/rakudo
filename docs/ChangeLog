@@ -10,6 +10,7 @@ New in 2009-10 release
 + { %hash } now correctly constructs a hash, not a closure
 + new, faster low level Signature type
 + improved Signature introspection
++ new, much faster signature binder
 
 New in 2009-09 release
 + updates to numeric operators: infix</>(Int, Int) creates a Rat

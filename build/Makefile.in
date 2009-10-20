@@ -421,16 +421,14 @@ $(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
 # spaces and some compilers/linkers forbid a (forced) space.
 # See RT #66558 and TT #700.
 
-src/binder/bind$(O): src/binder/bind.c src/binder/bind.h
-	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
-
-$(DYNPMC): $(PMC_SOURCES) src/binder/bind$(O)
+$(DYNPMC): $(PMC_SOURCES) src/binder/bind.c src/binder/bind.h
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)
 	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
+    cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
 	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) src/binder/bind$(O) $(LINKARGS)
 
 $(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h $(DYNPMC)

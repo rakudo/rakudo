@@ -20,8 +20,7 @@ static INTVAL or_id  = 0;
 static INTVAL lls_id = 0;
 
 /* Plus a function pointer to the binder. */
-static INTVAL (*bind_signature_func) (PARROT_INTERP, PMC *lexpad,
-                                      llsig_element **elements, INTVAL num_elements,
+static INTVAL (*bind_signature_func) (PARROT_INTERP, PMC *lexpad, PMC *signature,
                                       PMC *pos_args, PMC *named_args,
                                       INTVAL no_nom_type_check, STRING **error) = NULL;
 
@@ -607,20 +606,9 @@ inline op bind_signature(in PMC, in PMC) :base_core {
         PMC *signature      = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
-        struct llsig_element **elements;
-        INTVAL num_elements, bind_error;
 
-        /* Ensure Signature is fine. */
-        if (signature->vtable->base_type != lls_id) {
-            opcode_t *handler =  Parrot_ex_throw_from_op_args(interp, NULL,
-                    EXCEPTION_INVALID_OPERATION, "bind_signature could not find signature for sub");
-            goto ADDRESS(handler);
-        }
-        
-        /* Extract bits from the signature and invoke the binder. */
-        GETATTR_P6LowLevelSig_elements(interp, signature, elements);
-        GETATTR_P6LowLevelSig_num_elements(interp, signature, num_elements);
-        bind_error = bind_signature_func(interp, lexpad, elements, num_elements, $1, $2, noms_checked, &error);
+        /* Call signature binder. */
+        INTVAL bind_error = bind_signature_func(interp, lexpad, signature, $1, $2, noms_checked, &error);
         if (!bind_error) {
             goto NEXT();
         }

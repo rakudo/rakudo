@@ -53,6 +53,7 @@ The number of items we have inside the signature.
 pmclass P6LowLevelSig need_ext dynpmc group perl6_group {
     ATTR struct llsig_element **elements;
     ATTR INTVAL                 num_elements;
+    ATTR PMC                   *named_to_pos_cache;
 
 /*
 
@@ -112,10 +113,14 @@ Marks anything we're referencing.
     VTABLE void mark() {
         llsig_element **elements;
         INTVAL        num_elements, i;
+        PMC           *named_to_pos_cache;
 
         /* Mark everything referenced form the elements structs. */
         GETATTR_P6LowLevelSig_elements(interp, SELF, elements);
         GETATTR_P6LowLevelSig_num_elements(interp, SELF, num_elements);
+        GETATTR_P6LowLevelSig_named_to_pos_cache(interp, SELF, named_to_pos_cache);
+        if (named_to_pos_cache)
+            Parrot_gc_mark_PMC_alive(interp, named_to_pos_cache);
         for (i = 0; i < num_elements; i++) {
             if (!elements[i])
                 continue;

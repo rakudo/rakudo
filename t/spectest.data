@@ -198,6 +198,7 @@ S05-capture/named.t
 S05-capture/subrule.t
 S05-grammar/action-stubs.t
 S05-grammar/inheritance.t
+S05-grammar/methods.t
 S05-grammar/namespace.t
 S05-grammar/parse_and_parsefile.t
 S05-grammar/ws.t

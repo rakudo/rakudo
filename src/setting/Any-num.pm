@@ -150,7 +150,7 @@ class Any is also {
         self.Num.atan($base);
     }
 
-    our Num multi method atan2($x = 1, $base = 'radians') is export {
+    our Num multi method atan2($x = 1, $base = 'radians') {
         self.Num.atan2($x, $base);
     }
 

@@ -142,7 +142,7 @@ class Num is also {
         $r!from-radians($base)
     }
 
-    our Num multi method atan2(Num $x = 1, $base = 'radians') is export {
+    our Num multi method atan2(Num $x = 1, $base = 'radians') {
         my $r = Q:PIR {
             $N0 = self
             $P1 = find_lex "$x"

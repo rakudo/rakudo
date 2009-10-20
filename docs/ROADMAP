@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2009-08-09
+Last updated: 2009-10-20
 
 This document identifies the current major milestones and tasks
 planned for Rakudo development as of August 2009.  The first
@@ -35,7 +35,7 @@ mechanisms needed for Perl 6; in particular, Parrot does
 not cleanly support "named-only" parameters, binding named
 arguments to positional parameters, or collecting arguments
 into "captures".  These features are currently scheduled
-to be implemented by the September 2009 Parrot release.
+to be implemented by the November 2009 Parrot release.
 
 C.  Rakudo method and sub dispatch:  As the Parrot calling
 conventions evolve, Rakudo's existing dispatch (largely
@@ -138,7 +138,6 @@ haven't got around to the problem yet.)
 3  * true hyper/cross/reverse/other metaoperators (A)
 1  * lexicals refactor (A)
 
-1  * binding named arguments to positional parameters (B)
 3  * nested signatures (B)
 2  * captures in signatures and return values (B,H)
 3  * unpacking arguments (B,C)
@@ -191,3 +190,4 @@ Completed ROADMAP items:
 -  * maintain candidate lists in lexicals (done)
 -  * overloadable postcircumfix:<[ ]> and postcircumfix:<{ }> (done)
 -  * proper trait definition and usage (need to fix edge cases)
+-  * binding named arguments to positional parameters (done)

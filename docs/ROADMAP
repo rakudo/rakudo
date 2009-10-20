@@ -20,14 +20,14 @@ Patches to this document are welcome.
 Large-scale tasks
 -----------------
 
-A.  PGE refactors:  The Parrot Grammar Engine (PGE) will be 
-undergoing some significant refactoring in summer 2009; these 
-refactors will provide the ability to implement protoregexes 
-and longest token matching.  The goal is to get something that 
-is much closer to what is being used to develop STD.pm .  
-Internally these refactors will likely involve a new operator 
-precedence parser and grafting DFA capabilities to the existing 
-regex engine.  Patrick Michaud is leading this development.
+A.  PGE refactors:  The Parrot Grammar Engine (PGE) is currently
+being replaced by a parser written in NQP; this rewrite includes
+the ability to implement protoregexes and longest token matching.
+The goal is to get something that is much closer to what is being
+used to develop STD.pm.
+The development is being conducted in a project called nqp-rx on
+github: <http://github.com/perl6/nqp-rx>.
+Patrick Michaud is leading this development.
 
 B.  Parrot calling conventions:  As of May 2009, Parrot's
 calling conventions do not facilitate all of the dispatch

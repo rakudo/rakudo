@@ -196,100 +196,206 @@ multi sub exp($x) { $x.Num.exp() }
 multi sub log($x) { $x.Num.log() }
 multi sub log10($x) { $x.Num.log10 }
 
+# jnthn says that we should have both the multi sub declaration and the proto.
+
 multi sub sin($x, $base = 'radians') {
     $x.sin($base)
+}
+
+proto sin($x, $base = 'radians') {
+    sin($x, $base)
 }
 
 multi sub asin($x, $base = 'radians') {
     $x.asin($base)
 }
 
+proto asin($x, $base = 'radians') {
+    asin($x, $base)
+}
+
 multi sub cos($x, $base = 'radians') {
     $x.cos($base)
+}
+
+proto cos($x, $base = 'radians') {
+    cos($x, $base)
 }
 
 multi sub acos($x, $base = 'radians') {
     $x.acos($base)
 }
 
+proto acos($x, $base = 'radians') {
+    acos($x, $base)
+}
+
 multi sub tan($x, $base = 'radians') {
     $x.tan($base)
+}
+
+proto tan($x, $base = 'radians') {
+    tan($x, $base)
 }
 
 multi sub atan($x, $base = 'radians') {
     $x.atan($base)
 }
 
+proto atan($x, $base = 'radians') {
+    atan($x, $base)
+}
+
 multi sub sec($x, $base = 'radians') {
     $x.sec($base)
+}
+
+proto sec($x, $base = 'radians') {
+    sec($x, $base)
 }
 
 multi sub asec($x, $base = 'radians') {
     $x.asec($base)
 }
 
+proto asec($x, $base = 'radians') {
+    asec($x, $base)
+}
+
 multi sub cosec($x, $base = 'radians') {
     $x.cosec($base)
+}
+
+proto cosec($x, $base = 'radians') {
+    cosec($x, $base)
 }
 
 multi sub acosec($x, $base = 'radians') {
     $x.acosec($base)
 }
 
+proto acosec($x, $base = 'radians') {
+    acosec($x, $base)
+}
+
 multi sub cotan($x, $base = 'radians') {
     $x.cotan($base)
+}
+
+proto cotan($x, $base = 'radians') {
+    cotan($x, $base)
 }
 
 multi sub acotan($x, $base = 'radians') {
     $x.acotan($base)
 }
 
+proto acotan($x, $base = 'radians') {
+    acotan($x, $base)
+}
+
 multi sub sinh($x, $base = 'radians') {
     $x.sinh($base)
+}
+
+proto sinh($x, $base = 'radians') {
+    sinh($x, $base)
 }
 
 multi sub asinh($x, $base = 'radians') {
     $x.asinh($base)
 }
 
+proto asinh($x, $base = 'radians') {
+    asinh($x, $base)
+}
+
 multi sub cosh($x, $base = 'radians') {
     $x.cosh($base)
+}
+
+proto cosh($x, $base = 'radians') {
+    cosh($x, $base)
 }
 
 multi sub acosh($x, $base = 'radians') {
     $x.acosh($base)
 }
 
+proto acosh($x, $base = 'radians') {
+    acosh($x, $base)
+}
+
 multi sub tanh($x, $base = 'radians') {
     $x.tanh($base)
+}
+
+proto tanh($x, $base = 'radians') {
+    tanh($x, $base)
 }
 
 multi sub atanh($x, $base = 'radians') {
     $x.atanh($base)
 }
 
+proto atanh($x, $base = 'radians') {
+    atanh($x, $base)
+}
+
 multi sub sech($x, $base = 'radians') {
     $x.sech($base)
+}
+
+proto sech($x, $base = 'radians') {
+    sech($x, $base)
 }
 
 multi sub asech($x, $base = 'radians') {
     $x.asech($base)
 }
 
+proto asech($x, $base = 'radians') {
+    asech($x, $base)
+}
+
 multi sub cosech($x, $base = 'radians') {
     $x.cosech($base)
+}
+
+proto cosech($x, $base = 'radians') {
+    cosech($x, $base)
 }
 
 multi sub acosech($x, $base = 'radians') {
     $x.acosech($base)
 }
 
+proto acosech($x, $base = 'radians') {
+    acosech($x, $base)
+}
+
 multi sub cotanh($x, $base = 'radians') {
     $x.cotanh($base)
 }
 
+proto cotanh($x, $base = 'radians') {
+    cotanh($x, $base)
+}
+
 multi sub acotanh($x, $base = 'radians') {
     $x.acotanh($base)
+}
+
+proto acotanh($x, $base = 'radians') {
+    acotanh($x, $base)
+}
+
+multi sub atan2($y, $x = 1, $base = 'radians') {
+    $y.atan2($x, $base)
+}
+
+proto atan2($y, $x = 1, $base = 'radians') {
+    atan2($y, $x, $base)
 }
 
 our Num sub rand (*@args) {

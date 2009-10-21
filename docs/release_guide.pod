@@ -140,10 +140,10 @@ update spectest-progress.csv or to count tests that won't run.
 =item 6.
 
 Update the release dates and names at the top of this file
-(F<docs/release-guide.pod>).  Also improve these instructions if
+(F<docs/release_guide.pod>).  Also improve these instructions if
 you find any steps that are missing.
 
-  $ git commit docs/release-guide.pod
+  $ git commit docs/release_guide.pod
 
 =item 7.
 

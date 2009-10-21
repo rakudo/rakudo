@@ -59,6 +59,9 @@ typedef struct candidate_info {
     INTVAL min_arity;   /* The number of required positonal arguments. */
     INTVAL max_arity;   /* # of required and optional positional arguments. */
     INTVAL bind_check;  /* A true value if any parameters have constraints and/or are named. */
+    STRING *req_named;  /* Name of one required named argument, if any. This is to allow us
+                         * to quickly rule out candidates disambiguated by a required named
+                         * argument, as is the common case for traits. */
 } candidate_info;
 
 /*
@@ -382,6 +385,8 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
             /* If it's named (and not slurpy) don't need its type info but we will
              * need a bindability check during the dispatch for it. */
             if (!PMC_IS_NULL(sig_elem_info[j]->named_names)) {
+                if (!(sig_elem_info[j]->flags & SIG_ELEM_IS_OPTIONAL))
+                    info->req_named = VTABLE_get_string_keyed_int(interp, sig_elem_info[j]->named_names, 0);
                 info->bind_check = 1;
                 continue;
             }
@@ -571,6 +576,24 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                 for (i = 0; i < possibles_count; i++) {
                     interp->current_cont = NEED_CONTINUATION;
                     interp->current_object = NULL;
+
+                    /* First, if there's a required named parameter and it was not
+                     * passed, we can very quickly eliminate this candidate without
+                     * doing a full bindability check. */
+                    if (possibles[i]->req_named) {
+                        if (!VTABLE_exists_keyed_str(interp, named_args, possibles[i]->req_named)) {
+                            /* Required named arg not passed, so we eliminate it right
+                             * here. Flag that we've built a list of new possibles, and
+                             * that this was not a pure type-based result that we can
+                             * cache. */
+                            if (!new_possibles)
+                                new_possibles = mem_allocate_n_typed(num_candidates, candidate_info *);
+                            pure_type_result = 0;
+                            continue;
+                        }
+                    }
+                    
+                    /* Otherwise, may need full bind check. */
                     if (possibles[i]->bind_check) {
                         /* We'll invoke the sub (but not re-enter the runloop) and
                          * then attempt to bind the signature. */

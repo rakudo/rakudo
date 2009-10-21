@@ -162,7 +162,7 @@ true value is returned.
     push_eh failure
     os.'chdir'(newdir)
     pop_eh
-    
+
     # Update $*CWD and we're done.
     $S0 = os."cwd"()
     $P0 = box $S0
@@ -173,6 +173,47 @@ true value is returned.
   failure:
     pop_eh
     .tailcall '!FAIL'('Unable to change to directory "', newdir, '"')
+.end
+
+
+=item mkdir STRING [, MODE]
+
+Creates a new directory, optionally setting specific permissions (which
+are modified by the user's umask).  If omitted, the permissions default
+to 0o777 (full access to all).
+
+  mkdir '/new/dir';
+  mkdir '/new/dir', 0o755;
+
+On success a true value is returned.
+
+=cut
+
+.sub 'mkdir'
+    .param string newdir
+    .param int    mode     :optional
+    .param int    has_mode :opt_flag
+
+    # Default mode to 0o777
+    if has_mode goto have_mode
+    mode = 0o777
+  have_mode:
+
+    # Try to create the directory; if we fail, exception thrown, so catch
+    # it and fail if needed.
+    .local pmc os
+    os = root_new ['parrot';'OS']
+    push_eh failure
+    os.'mkdir'(newdir, mode)
+    pop_eh
+
+    # Success, we're done.
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return ($P0)
+
+  failure:
+    pop_eh
+    .tailcall '!FAIL'('Unable to create directory "', newdir, '"')
 .end
 
 =back

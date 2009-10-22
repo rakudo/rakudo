@@ -9,9 +9,12 @@ For more details, see the full text of the license in the file LICENSE.
 =head2 Installing with your package manager
 
 Rakudo is currently available for Arch Linux users in the AUR at
-(L<http://aur.archlinux.org/packages.php?ID=29068>)
+(L<http://aur.archlinux.org/packages.php?ID=29068>).
 
-Windows user can download binary builds from
+FreeBSD users may find the Rakudo port at
+L<http://rakudoport.sourceforge.net/> useful.
+
+Windows users can download binary builds from
 L<http://sourceforge.net/projects/parrotwin32/files/> and need the
 I<parrotwin32 setup> and the matching version of
 I<parrot-rakudo addon>.

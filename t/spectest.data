@@ -65,7 +65,7 @@ S02-builtin_data_types/range.t
 S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
 S02-builtin_data_types/whatever.t
-# S02-lexical-conventions/unicode.t                          # icu
+S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/char-by-name.t                                # icu
@@ -107,7 +107,7 @@ S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/unicode-whitespace.t
 S02-whitespace_and_comments/unspace.t
-# S03-junctions/autothreading.t
+S03-junctions/autothreading.t
 S03-junctions/basic.t
 S03-junctions/boolean-context.t
 S03-junctions/chained-operators.t
@@ -304,7 +304,7 @@ S12-class/declaration-order.t
 S12-class/inheritance-class-methods.t
 S12-class/inheritance.t
 S12-class/instantiate.t
-# S12-class/interface-consistency.t
+S12-class/interface-consistency.t
 S12-class/namespaced.t
 S12-class/parent_attributes.t
 S12-class/rw.t

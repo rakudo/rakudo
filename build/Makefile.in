@@ -243,7 +243,7 @@ perl6.pbc: perl6_s1.pbc src/gen_setting.pm
 # the Perl 6 stage-1 compiler
 perl6_s1.pbc: $(PARROT) $(SOURCES) $(BUILTINS_PIR)
 	$(PERL) -e "" > src/gen_setting.pir
-	@win32_libs_copy@
+	@win32_libparrot_copy@
 	$(PARROT) $(PARROT_ARGS) -o perl6_s1.pbc perl6.pir
 
 src/gen_grammar.pir: $(PARROT) $(PERL6GRAMMAR_PBC) src/parser/grammar.pg src/parser/grammar-oper.pg

@@ -1,54 +1,64 @@
 Announce: Rakudo Perl 6 development release #22 ("Thousand Oaks")
 
-On behalf of the Rakudo development team, I'm pleased to announce
-the October 2009 development release of Rakudo Perl #22 "Thousand Oaks".
-Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine [1].
-The tarball for the October 2009 release is available from
-http://github.com/rakudo/rakudo/downloads .
+On behalf of the Rakudo development team, I'm pleased to announce the
+October 2009 development release of Rakudo Perl #22 "Thousand Oaks".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine 
+(see http://www.parrot.org).  The tarball for the October 2009 release
+is available from http://github.com/rakudo/rakudo/downloads
 
 Due to the continued rapid pace of Rakudo development and the frequent
 addition of new Perl 6 features and bugfixes, we recommend building Rakudo
 from the latest source, available from the main repository at github.
 More details are available at http://rakudo.org/how-to-get-rakudo.
 
-Rakudo Perl follows a monthly release cycle, with each release code named
-after a Perl Mongers group. October 2009 is code named "Thousand Oaks"
-for their amazing Perl 6 hackathon, and their report at
-http://www.lowlevelmanager.com/2009/09/perl-6-hackathon.html .
+Rakudo Perl follows a monthly release cycle, with each release code
+named after a Perl Mongers group.  The October 2009 is code named
+"Thousand Oaks" for their amazing Perl 6 hackathon, their report at 
+http://www.lowlevelmanager.com/2009/09/perl-6-hackathon.html, and 
+just because I like the name :-)
 
-Since the 2009-08 release, Rakudo Perl builds from an "installed
-Parrot" instead of using Parrot's build tree.  This release of Rakudo
-requires Parrot 1.7.0.  For the latest information on building and
-using Rakudo Perl, see the README file section titled "Building and
-invoking Rakudo".  (Quick note: the "--gen-parrot" option still
-automatically downloads and builds Parrot as before, if you prefer
-that approach.)
+Since the 2009-08 release, Rakudo Perl builds from an installed Parrot
+instead of using Parrot's build tree.  This means that, unlike previous
+versions of Rakudo Perl, the "perl6" (or "perl6.exe") executables only
+work when invoked from the Rakudo root directory until a "make install"
+is performed.  Running "make install" will install Rakudo and its
+libraries into the Parrot installation that was used to build it, and
+then the executables will work when invoked from any directory.
 
-Also, unlike previous versions of Rakudo Perl, the "perl6"
-(or "perl6.exe") executables only work when invoked from the
-Rakudo root directory until a "make install" is performed.
-Running "make install" will install Rakudo and its libraries
-into the Parrot installation that was used to build it, and then
-the executables will work when invoked from any directory.
+This release of Rakudo requires Parrot 1.7.0.  
 
-For this release we focused on a new signature binder which makes
-calling routines and operators much faster, and allows binding of
-positional arguments by name.
+For the latest information on building and using Rakudo Perl, see the
+readme file section titled "Building and invoking Rakudo".  (Quick note:
+the "--gen-parrot" option still automatically downloads and builds
+Parrot as before, if you prefer that approach.)
 
-Some of the specific major changes and improvements occuring
-with this release include:
-  
-* Rakudo is now passing XX,XXX spectests, an increase of XX,XXX
-  passing tests since the September 2009 release.  With this release
-  Rakudo is now passing XX.X% of the available spectest suite.
+Some of the specific changes and improvements occuring with this
+release include:
 
-* Rakudo now supports accessing outer lexical variables from classes and
-  packages.
+* Rakudo is now passing 32,582 spectests, an increase of 17,085 passing
+  tests since the September 2009 release.  With this release Rakudo is
+  now passing 85.0% of the available spectest suite.
+
+* We have a huge increase in the number of spectests relating to the
+  Complex and Rat numeric types.
 
 * Complex numbers are now implemented as a Perl 6 class, and supports all
   trigonometric functions from the specification.
 
+* Rakudo has a new signature binder which makes calling routines
+  and operators much faster, and allows binding of positional
+  arguments by name.
+
+* Rakudo has improved signature introspection, better errors relating to
+  signatures and signature literals are now supported.
+
+* Rakudo now supports accessing outer lexical variables from classes and
+  packages.
+
 * Some new variants of the series operator are now implemented.
+
+* When configuring Rakudo with --gen-parrot, the --optimize flag is now
+  passed to Parrot's Configure.pl
 
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible.  If you would like to contribute,
@@ -62,6 +72,3 @@ development releases are scheduled to occur two days after each
 Parrot monthly release.  Parrot releases the third Tuesday of each month.
 
 Have fun!
-
-References:
-[1]  Parrot, http://parrot.org/

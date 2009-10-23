@@ -35,6 +35,7 @@ integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 integration/real-strings.t
+integration/return-from-method-in-hash.t
 integration/role-composition-vs-attribute.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t

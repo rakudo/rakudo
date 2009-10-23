@@ -35,7 +35,6 @@ integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 integration/real-strings.t
-integration/return-from-method-in-hash.t
 integration/role-composition-vs-attribute.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
@@ -335,6 +334,7 @@ S12-methods/defer-next.t
 S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/lastcall.t
+S12-methods/method-vs-sub.t
 S12-methods/multi.t
 S12-methods/parallel-dispatch.t
 S12-methods/private.t

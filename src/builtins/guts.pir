@@ -1318,10 +1318,10 @@ Reblesses a sub into a new type.
     .param string new_type_name
 
     # Create the correct object and rebless the sub into that class.
-    .local pmc new_type
+    .local pmc new_type, p6meta
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     new_type = get_hll_global new_type_name
-    $P0 = new_type.'new'()
-    $P0 = typeof $P0
+    $P0 = p6meta.'get_parrotclass'(new_type)
     rebless_subclass sub, $P0
     transform_to_p6opaque sub
 

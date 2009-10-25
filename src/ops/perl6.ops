@@ -7,6 +7,7 @@ BEGIN_OPS_PREAMBLE
 
 #include "parrot/dynext.h"
 #include "pmc_object.h"
+#include "pmc_class.h"
 #include "../pmc/pmc_p6lowlevelsig.h"
 #include "../binder/bind.h"
 
@@ -63,17 +64,25 @@ an instance of class $2, where $2 is a subclass of the class of $1.
 inline op rebless_subclass(in PMC, in PMC) :base_core {
     PMC *value;
     INTVAL p6opaque = pmc_type(interp, string_from_literal(interp, "P6opaque"));
+    PMC * const current_class = VTABLE_get_class(interp, $1);
+    PMC * parent_list;
+    int num_parents;
+    int in_parents = 0;
+    int new_attribs = 0;
+    int i;
+
+    /* Check what we're trying to bless into is a standard Parrot class. */
+    if ($2->vtable->base_type != enum_class_Class)
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only rebless into a standard Parrot class.");
+
+    /* Get parents list. */
+    parent_list = PARROT_CLASS($2)->all_parents;
+    num_parents = VTABLE_elements(interp, parent_list);
 
     /* First verify that the object's class is a superclass of the one we're
      * to re-bless it into. While we're at it, count the number of attributes
      * the current class has that the parent class does not. */
-    PMC * const current_class = VTABLE_get_class(interp, $1);
-    PMC * const parent_list   = VTABLE_inspect_str(interp, $2, Parrot_str_new_constant(interp, "all_parents"));
-    const int num_parents     = VTABLE_elements(interp, parent_list);
-
-    int in_parents = 0;
-    int new_attribs = 0;
-    int i;
     for (i = 0; i < num_parents; i++) {
         PMC * const test_class = VTABLE_get_pmc_keyed_int(interp, parent_list, i);
         if (test_class == current_class) {
@@ -81,8 +90,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
             break;
         }
         else {
-            new_attribs += VTABLE_elements(interp, VTABLE_inspect_str(interp,
-                test_class, Parrot_str_new_constant(interp, "attributes")));
+            new_attribs += VTABLE_elements(interp, PARROT_CLASS($2)->attrib_metadata);
         }
     }
     if (!in_parents)
@@ -91,13 +99,8 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
 
     /* Make sure we're operating on the real value, not a ObjectRef. */
     value = $1;
-    while (VTABLE_isa(interp, value, Parrot_str_new_constant(interp, "ObjectRef")))
+    while (value->vtable->base_type == or_id || value->vtable->base_type == p6s_id)
         value = VTABLE_get_pmc(interp, value);
-
-    /* Check what we're trying to bless into is a standard Parrot class. */
-    if ($2->vtable->base_type != enum_class_Class)
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only rebless into a standard Parrot class.");
 
     /* Check if the value is a parrot Object and the original class is a standard
      * Parrot Class. */

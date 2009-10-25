@@ -646,7 +646,7 @@ method multi_declarator($/) {
         # If we're declaring a multi or a proto, flag the sub as :multi,
         # and transform the sub's container to a Perl6MultiSub.
         if $sym eq 'multi' || $sym eq 'proto' {
-            transform_to_multi($past);
+            transform_to_multi($past, @?BLOCK[0].symbol($past.name())<is_multi>);
             our @?BLOCK;
             my $existing := @?BLOCK[0].symbol($past.name());
             @?BLOCK[0].symbol($past.name(), :does_callable(1),
@@ -765,7 +765,7 @@ method routine_declarator($/, $key) {
     if $past.name() ne "" {
         my $sym := outer_symbol($past.name());
         if $sym && $sym<does_callable> && $sym<is_proto> {
-            transform_to_multi($past);
+            transform_to_multi($past, 0);
         }
     }
     make $past;
@@ -3183,15 +3183,17 @@ sub set_block_type($block, $type) {
 
 
 # Makes a routine into a multi, if it isn't already one.
-sub transform_to_multi($past) {
+sub transform_to_multi($past, $already_p6multi) {
     unless $past<multi_flag> {
         my $pirflags := ~$past.pirflags();
         $past.pirflags( $pirflags ~ ' :multi()' );
-        $past.loadinit().unshift(
-            PAST::Op.new( :name('!TOPERL6MULTISUB'), :pasttype('call'),
-                PAST::Var.new( :name('block'), :scope('register') )
-            )
-        );
+        unless ($already_p6multi) {
+            $past.loadinit().unshift(
+                PAST::Op.new( :name('!TOPERL6MULTISUB'), :pasttype('call'),
+                    PAST::Var.new( :name('block'), :scope('register') )
+                )
+            );
+        }
         $past<multi_flag> := 1;
     }
 }

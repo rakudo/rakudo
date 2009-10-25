@@ -29,6 +29,15 @@
     .return ('undef')
 .end
 
+
+.sub '' :vtable('get_string') :method
+    .local pmc exception
+    exception = getattribute self, '$!exception'
+    $S0 = exception['message']
+    .return ($S0)
+.end
+
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

@@ -204,7 +204,10 @@ the moment -- we'll do more complex handling a bit later.)
 
 .sub 'die' :multi('Exception')
     .param pmc ex
-    set_global '$!', ex
+    .local pmc p6ex
+    p6ex = new ['Perl6Exception']
+    setattribute p6ex, '$!exception', ex
+    set_global '$!', p6ex
     throw ex
     .return ()
 .end
@@ -212,17 +215,20 @@ the moment -- we'll do more complex handling a bit later.)
 .sub 'die' :multi(_)
     .param pmc list            :slurpy
     .local string message
+    .local pmc p6ex
     .local pmc ex
 
     message = join '', list
     if message > '' goto have_message
     message = "Died\n"
   have_message:
+    p6ex = new ['Perl6Exception']
     ex = root_new ['parrot';'Exception']
     ex = message
     ex['severity'] = .EXCEPT_FATAL
     ex['type'] = .CONTROL_ERROR
-    set_global '$!', ex
+    setattribute p6ex, '$!exception', ex
+    set_global '$!', p6ex
     throw ex
     .return ()
 .end
@@ -360,7 +366,7 @@ on error.
     block_info.'namespace'($P0)
 
     .local pmc compiler, invokable
-    .local pmc res, exception
+    .local pmc res, exception, parrotex
     unless have_lang goto no_lang
     push_eh catch
     $S0 = lang
@@ -389,7 +395,9 @@ on error.
     goto done
 
   catch:
-    .get_results (exception)
+    .get_results (parrotex)
+    exception = new ['Perl6Exception']
+    setattribute exception, '$!exception', parrotex
 
   done:
     pop_eh

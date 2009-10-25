@@ -610,8 +610,14 @@ method statement_prefix($/) {
 
         ##  Add a catch node to the try op that captures the
         ##  exception object into $!.
-        my $catchpir := "    .get_results (%r)\n    store_lex '$!', %r";
-        $past.push( PAST::Op.new( :inline( $catchpir ) ) );
+        $past.push( PAST::Op.new(
+                        :inline( "    .get_results (%r)",
+                                 "    $P0 = new ['Perl6Exception']",
+                                 "    setattribute $P0, '$!exception', %r",
+                                 "    store_lex '$!', $P0"
+                        )
+                    )
+        );
 
         ##  Add an 'else' node to the try op that clears $! if
         ##  no exception occurred.

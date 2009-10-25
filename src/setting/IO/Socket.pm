@@ -2,16 +2,22 @@ use v6;
 
 role IO::Socket {
     has $!PIO;
+    has $!buffer = '';
 
-    method recv () {
+    method recv (Int $bufsize = Inf) {
         fail('Socket not available') unless $!PIO;
-        my $received = $!PIO.recv();
-        my $len = $received.chars;
-        my $buf;
-        while $len > 0 {
-            $buf = $!PIO.recv();
-            $received ~= $buf;
-            $len = $buf.chars;
+        my $received;
+        while $bufsize > $!buffer.bytes {
+            $received = $!PIO.recv();
+            last unless $received.chars;
+            $!buffer ~= $received;
+        }
+        if $bufsize == Inf {
+            $received = $!buffer;
+            $!buffer = '';
+        } else {
+            $received = $!buffer.substr(0, $bufsize);
+            $!buffer .= substr($bufsize);
         }
         return $received;
     }

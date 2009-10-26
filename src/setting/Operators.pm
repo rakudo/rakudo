@@ -163,7 +163,7 @@ sub prefix:<[||]>(*@a) {
     return ();
 }
 
-sub infix:<!%>($a, $b) { ! ($a % $b) }
+multi sub infix:<!%>($a, $b) { ! ($a % $b) }
 
 
 multi sub infix:<+>($a, $b) {

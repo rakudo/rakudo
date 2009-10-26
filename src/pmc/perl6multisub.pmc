@@ -121,16 +121,18 @@ get_args(PARROT_INTERP, PMC **pos_args, PMC **named_args)
     PMC *ctx   = CURRENT_CONTEXT(interp);
     PMC *sig   = Parrot_pcc_get_signature(interp, ctx);
     PMC *names = VTABLE_get_attr_str(interp, sig, CONST_STRING(interp, "named"));
-    PMC *iter  = VTABLE_get_iter(interp, names);
 
     /* Positionals can just be the signature itself. For now, we make hash of
      * nameds still, but in the future we can stop bothering. */
     *pos_args = sig;
     *named_args = pmc_new(interp, enum_class_Hash);
-    while (VTABLE_get_bool(interp, iter)) {
-        STRING *name  = VTABLE_shift_string(interp, iter);
-        PMC    *value = VTABLE_get_pmc_keyed_str(interp, sig, name);
-        VTABLE_set_pmc_keyed_str(interp, *named_args, name, value);
+    if (!PMC_IS_NULL(names)) {
+        PMC *iter  = VTABLE_get_iter(interp, names);
+        while (VTABLE_get_bool(interp, iter)) {
+            STRING *name  = VTABLE_shift_string(interp, iter);
+            PMC    *value = VTABLE_get_pmc_keyed_str(interp, sig, name);
+            VTABLE_set_pmc_keyed_str(interp, *named_args, name, value);
+        }
     }
 }
 

@@ -178,8 +178,8 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
         }
         else {
             PMC * const accepts_meth_a = VTABLE_find_method(interp, type_obj_b, ACCEPTS);
-            PMC * const result_n = (PMC *) Parrot_call_method(interp, accepts_meth_a,
-                    type_obj_b, ACCEPTS, "PP", type_obj_a);
+            PMC * result_n             = PMCNULL;
+            Parrot_ext_call(interp, accepts_meth_a, "PiP->P", type_obj_b, type_obj_a, &result_n);
             if (VTABLE_get_integer(interp, result_n)) {
                 /* Narrower - note it and we're done. */
                 narrower++;
@@ -187,12 +187,10 @@ static INTVAL is_narrower(PARROT_INTERP, candidate_info *a, candidate_info *b) {
             else {
                 /* Make sure it's tied, rather than the other way around. */
                 PMC * const accepts_meth_b = VTABLE_find_method(interp, type_obj_a, ACCEPTS);
-                PMC * const result_w = (PMC *) Parrot_call_method(interp,
-                        accepts_meth_b, type_obj_a,
-                        ACCEPTS, "PP", type_obj_b);
-                if (!VTABLE_get_integer(interp, result_w)) {
+                PMC * result_w             = PMCNULL;
+                Parrot_ext_call(interp, accepts_meth_b, "PiP->P", type_obj_a, type_obj_b, &result_w);
+                if (!VTABLE_get_integer(interp, result_w))
                     tied++;
-                }
             }
         }
     }
@@ -559,10 +557,8 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             PMC * const param        = VTABLE_get_pmc_keyed_int(interp, pos_args, i);
             PMC * const type_obj     = (*cur_candidate)->types[i];
             PMC * const accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
-            PMC * const result       = (PMC *)Parrot_call_method(interp,
-                                    accepts_meth, type_obj, ACCEPTS,
-                                    "PP", param);
-
+            PMC * result             = PMCNULL;
+            Parrot_ext_call(interp, accepts_meth, "PiP->P", type_obj, param, &result);
             if (!VTABLE_get_integer(interp, result)) {
                 type_mismatch = 1;
                 break;
@@ -661,12 +657,12 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             INTVAL i;
 
             for (i = 0; i < possibles_count; i++) {
-                PMC    * const sig_meth  = VTABLE_find_method(interp, possibles[i]->sub, sig_name);
-                PMC    * const sig_obj   = (PMC *)Parrot_call_method(interp, sig_meth,
-                        possibles[i]->sub, sig_name, "P");
-                PMC    * const perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
-                STRING * const sig_perl  = (STRING *)Parrot_call_method(interp, perl_meth,
-                        sig_obj, perl_name, "S");
+                PMC    *sig_meth, *sig_obj, *perl_meth;
+                STRING *sig_perl;
+                sig_meth = VTABLE_find_method(interp, possibles[i]->sub, sig_name);
+                Parrot_ext_call(interp, sig_meth, "Pi->P", possibles[i]->sub, &sig_obj);
+                perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
+                Parrot_ext_call(interp, perl_meth, "Pi->S", sig_obj, &sig_perl);
                 signatures = Parrot_str_append(interp, signatures, sig_perl);
                 signatures = Parrot_str_append(interp, signatures, newline);
             }

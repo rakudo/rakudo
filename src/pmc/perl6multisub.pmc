@@ -754,6 +754,7 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *po
 
     /* Restore stuff that might have got overwriten by calls during the
      * dispatch algorithm. */
+    CURRENT_CONTEXT(interp) = ctx;
     interp->current_cont = saved_ccont;
     Parrot_pcc_set_signature(interp, ctx, saved_sig);
     Parrot_pcc_set_results_signature(interp, ctx, saved_rs);

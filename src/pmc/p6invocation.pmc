@@ -272,6 +272,13 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         return result;
     }
 
+    VTABLE INTVAL does(STRING *what) {
+        if (Parrot_str_equal(interp, what, CONST_STRING(interp, "invokable")))
+            return 1;
+        else
+            return SUPER(what);
+    }
+
     METHOD PMC *get() {
         PMC *result = VTABLE_shift_pmc(interp, SELF);
         RETURN(PMC *result);

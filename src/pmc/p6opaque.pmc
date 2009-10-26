@@ -92,6 +92,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     }
 
     /* Restore stuff that might have got overwriten. */
+    CURRENT_CONTEXT(interp) = ctx;
     interp->current_cont = saved_ccont;
     Parrot_pcc_set_signature(interp, ctx, saved_sig);
     Parrot_pcc_set_results_signature(interp, ctx, saved_rs);

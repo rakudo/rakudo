@@ -610,8 +610,26 @@ inline op bind_signature(in PMC, in PMC) :base_core {
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
 
+        /* Need to make sure some stuff doesn't get destroyed. */
+        PMC      * ctx               = CURRENT_CONTEXT(interp);
+        PMC      * const saved_ccont = interp->current_cont;
+        PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
+        PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
+        opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
+        opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
+
         /* Call signature binder. */
         INTVAL bind_error = bind_signature_func(interp, lexpad, signature, $1, $2, noms_checked, &error);
+
+        /* Re-instate anything we may have damaged. */
+        CURRENT_CONTEXT(interp) = ctx;
+        interp->current_cont = saved_ccont;
+        Parrot_pcc_set_signature(interp, ctx, saved_sig);
+        Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
+        Parrot_pcc_set_results(interp, ctx, saved_cr);
+        Parrot_pcc_set_pc(interp, ctx, current_pc);
+
+        /* Bind ok? */
         if (!bind_error) {
             goto NEXT();
         }

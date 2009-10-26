@@ -127,7 +127,7 @@ get_args(PARROT_INTERP, PMC **pos_args, PMC **named_args)
     *pos_args = sig;
     *named_args = pmc_new(interp, enum_class_Hash);
     if (!PMC_IS_NULL(names)) {
-        PMC *iter  = VTABLE_get_iter(interp, names);
+        PMC *iter = VTABLE_get_iter(interp, names);
         while (VTABLE_get_bool(interp, iter)) {
             STRING *name  = VTABLE_shift_string(interp, iter);
             PMC    *value = VTABLE_get_pmc_keyed_str(interp, sig, name);
@@ -465,6 +465,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                 for (i = 0; i < possibles_count; i++) {
                     interp->current_cont = NEED_CONTINUATION;
                     interp->current_object = NULL;
+                    Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), NULL);
 
                     /* First, if there's a required named parameter and it was not
                      * passed, we can very quickly eliminate this candidate without
@@ -719,8 +720,11 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *po
     MMD_Cache       *cache;
 
     /* Need to make sure some bits don't get destroyed. */
-    PMC * const saved_ccont = interp->current_cont;
-    PMC * const saved_sig   = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+    PMC      * ctx               = CURRENT_CONTEXT(interp);
+    PMC      * const saved_ccont = interp->current_cont;
+    PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
+    PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
+    opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
 
     /* See if we have a cache entry. */
     GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache);
@@ -751,7 +755,9 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *po
     /* Restore stuff that might have got overwriten by calls during the
      * dispatch algorithm. */
     interp->current_cont = saved_ccont;
-    Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), saved_sig);
+    Parrot_pcc_set_signature(interp, ctx, saved_sig);
+    Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
+    Parrot_pcc_set_results(interp, ctx, saved_cr);
 
     return results;
 }
@@ -928,8 +934,12 @@ the Perl 6 MMD algorithm.
         PMC             *unsorted;
 
         /* Need to make sure some stuff doesn't get destroyed. */
-        PMC * const saved_ccont = interp->current_cont;
-        PMC * const saved_sig   = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+        PMC      * ctx               = CURRENT_CONTEXT(interp);
+        PMC      * const saved_ccont = interp->current_cont;
+        PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
+        PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
+        opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
+        opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
 
         /* Get arguments. */
         PMC *pos_args, *named_args;
@@ -965,8 +975,12 @@ the Perl 6 MMD algorithm.
 
         /* Restore stuff that might have got overwriten by calls during the
          * dispatch algorithm. */
+        CURRENT_CONTEXT(interp) = ctx;
         interp->current_cont = saved_ccont;
-        Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), saved_sig);
+        Parrot_pcc_set_signature(interp, ctx, saved_sig);
+        Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
+        Parrot_pcc_set_results(interp, ctx, saved_cr);
+        Parrot_pcc_set_pc(interp, ctx, current_pc);
 
         /* Invoke the winner, and mark the context so we know not to re-do a
          * bunch of type checks. */

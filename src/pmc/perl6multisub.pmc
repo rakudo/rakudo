@@ -719,7 +719,8 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *po
     MMD_Cache       *cache;
 
     /* Need to make sure some bits don't get destroyed. */
-    PMC      * const saved_ccont       = interp->current_cont;
+    PMC * const saved_ccont = interp->current_cont;
+    PMC * const saved_sig   = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
 
     /* See if we have a cache entry. */
     GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache);
@@ -749,7 +750,8 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *po
 
     /* Restore stuff that might have got overwriten by calls during the
      * dispatch algorithm. */
-    interp->current_cont      = saved_ccont;
+    interp->current_cont = saved_ccont;
+    Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), saved_sig);
 
     return results;
 }
@@ -926,7 +928,8 @@ the Perl 6 MMD algorithm.
         PMC             *unsorted;
 
         /* Need to make sure some stuff doesn't get destroyed. */
-        PMC      *saved_ccont       = interp->current_cont;
+        PMC * const saved_ccont = interp->current_cont;
+        PMC * const saved_sig   = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
 
         /* Get arguments. */
         PMC *pos_args, *named_args;
@@ -962,7 +965,8 @@ the Perl 6 MMD algorithm.
 
         /* Restore stuff that might have got overwriten by calls during the
          * dispatch algorithm. */
-        interp->current_cont      = saved_ccont;
+        interp->current_cont = saved_ccont;
+        Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), saved_sig);
 
         /* Invoke the winner, and mark the context so we know not to re-do a
          * bunch of type checks. */

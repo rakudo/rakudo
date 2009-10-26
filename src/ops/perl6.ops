@@ -621,9 +621,10 @@ inline op bind_signature(in PMC, in PMC) :base_core {
                 /* Find dispatcher and call it. */
                 PMC *dispatcher = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
                         string_from_literal(interp, "!DISPATCH_JUNCTION_SINGLE"));
-                PMC *junc_result = (PMC *)Parrot_call_sub(interp, dispatcher, "PPPP",
-                        sub, $1, $2);
                 opcode_t *next;
+                PMC *junc_result;
+                Parrot_ext_call(interp, dispatcher, "PPP->P", sub, $1, $2, &junc_result);
+                
 
                 /* XXX TODO: Save the Junctional result as the return value. */
 

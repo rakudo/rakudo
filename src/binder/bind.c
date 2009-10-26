@@ -303,8 +303,10 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
     /* Do we have a default value closure? */
     if (!PMC_IS_NULL(sig_info->default_closure)) {
         /* Run it to get a value. */
+        PMC *result = PMCNULL;
         Parrot_capture_lex(interp, sig_info->default_closure);
-        return (PMC *)Parrot_call_sub(interp, sig_info->default_closure, "P");
+        Parrot_ext_call(interp, sig_info->default_closure, "->P", &result);
+        return result;
     }
 
     /* Did the value already get initialized to something? (We can avoid re-creating a

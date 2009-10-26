@@ -72,7 +72,7 @@ Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, llsig_element *sig
     /* Obtain type object. */
     STRING * const HOW   = string_from_literal(interp, "HOW");
     PMC * const how_meth = VTABLE_find_method(interp, value, HOW);
-    PMC * const meta_obj = (PMC *)Parrot_run_meth_fromc_args(interp,
+    PMC * const meta_obj = (PMC *)Parrot_call_method(interp,
             how_meth, value, HOW, "P");
     PMC * const type_obj = VTABLE_get_attr_str(interp, meta_obj,
             string_from_literal(interp, "protoobject"));
@@ -120,7 +120,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, llsig_element *sig
                         sig_info->variable_name);
             return BIND_RESULT_FAIL;
         }
-        assignee = (PMC *)Parrot_run_meth_fromc_args(interp, meth, self,
+        assignee = (PMC *)Parrot_call_method(interp, meth, self,
                 sig_info->variable_name, "P");
     }
 
@@ -144,7 +144,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         STRING * const ACCEPTS = string_from_literal(interp, "ACCEPTS");
         PMC * const type_obj   = sig_info->nominal_type;
         PMC * accepts_meth     = VTABLE_find_method(interp, type_obj, ACCEPTS);
-        PMC * result           = (PMC *)Parrot_run_meth_fromc_args(interp,
+        PMC * result           = (PMC *)Parrot_call_method(interp,
                 accepts_meth, type_obj, ACCEPTS, "PP", value);
         if (!VTABLE_get_bool(interp, result)) {
             /* Type check failed. However, for language inter-op, we do some
@@ -155,9 +155,9 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 STRING * const perl = string_from_literal(interp, "perl");
                 STRING * const HOW  = string_from_literal(interp, "HOW");
                 PMC * perl_meth     = VTABLE_find_method(interp, type_obj, perl);
-                STRING *expected    = (STRING *)Parrot_run_meth_fromc_args(interp, perl_meth, type_obj, perl, "S");
+                STRING *expected    = (STRING *)Parrot_call_method(interp, perl_meth, type_obj, perl, "S");
                 PMC * how_meth      = VTABLE_find_method(interp, value, HOW);
-                PMC * value_how     = (PMC *)Parrot_run_meth_fromc_args(interp, how_meth, value, HOW, "P");
+                PMC * value_how     = (PMC *)Parrot_call_method(interp, how_meth, value, HOW, "P");
                 PMC * value_type    = VTABLE_get_attr_str(interp, value_how, string_from_literal(interp, "shortname"));
                 STRING *got         = VTABLE_get_string(interp, value_type);
                 *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
@@ -180,20 +180,20 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         PMC *array_meth = VTABLE_find_method(interp, value, Array);
         value = descalarref(interp, value);
         if (!PMC_IS_NULL(array_meth))
-            value = (PMC *)Parrot_run_meth_fromc_args(interp, array_meth, value, Array, "P");
+            value = (PMC *)Parrot_call_method(interp, array_meth, value, Array, "P");
     }
     else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
         STRING *Hash   = string_from_literal(interp, "Hash");
         PMC *hash_meth = VTABLE_find_method(interp, value, Hash);
         value = descalarref(interp, value);
         if (!PMC_IS_NULL(hash_meth))
-            value = (PMC *)Parrot_run_meth_fromc_args(interp, hash_meth, value, Hash, "P");
+            value = (PMC *)Parrot_call_method(interp, hash_meth, value, Hash, "P");
     }
     else {
         STRING *Scalar   = string_from_literal(interp, "Scalar");
         PMC *scalar_meth = VTABLE_find_method(interp, value, Scalar);
         if (!PMC_IS_NULL(scalar_meth))
-            value = (PMC *)Parrot_run_meth_fromc_args(interp, scalar_meth, value, Scalar, "P");
+            value = (PMC *)Parrot_call_method(interp, scalar_meth, value, Scalar, "P");
     }
 
     /* If it's not got attributive binding, we'll go about binding it into the
@@ -220,13 +220,13 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                     STRING *STORE = string_from_literal(interp, "!STORE");
                     copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Array")));
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
-                    Parrot_run_meth_fromc_args(interp, store_meth, copy, STORE, "vP", value);
+                    Parrot_call_method(interp, store_meth, copy, STORE, "vP", value);
                 }
                 else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
                     STRING *STORE = string_from_literal(interp, "!STORE");
                     copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Hash")));
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
-                    Parrot_run_meth_fromc_args(interp, store_meth, copy, STORE, "vP", value);
+                    Parrot_call_method(interp, store_meth, copy, STORE, "vP", value);
                 }
                 else {
                     copy = VTABLE_clone(interp, value);
@@ -260,7 +260,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
             PMC *accepts_meth = VTABLE_find_method(interp, cons_type, ACCEPTS);
             if (VTABLE_isa(interp, cons_type, string_from_literal(interp, "Sub")))
                 Parrot_capture_lex(interp, cons_type);
-            result = (PMC *)Parrot_run_meth_fromc_args(interp, accepts_meth, cons_type, ACCEPTS, "PP", value);
+            result = (PMC *)Parrot_call_method(interp, accepts_meth, cons_type, ACCEPTS, "PP", value);
             if (!VTABLE_get_bool(interp, result)) {
                 if (error)
                     *error = Parrot_sprintf_c(interp, "Constraint type check failed for parameter '%S'",
@@ -468,7 +468,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                     VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, pos_args, cur_pos_arg));
                     cur_pos_arg++;
                 }
-                Parrot_run_meth_fromc_args(interp, store_meth, slurpy, STORE, "vP", temp);
+                Parrot_call_method(interp, store_meth, slurpy, STORE, "vP", temp);
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
                         slurpy, no_nom_type_check, error);
                 if (bind_fail) {

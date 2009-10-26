@@ -32,15 +32,9 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     STRING *Perl6Role     = CONST_STRING(interp, "Perl6Role");
     STRING *attrname      = CONST_STRING(interp, "attrname");
 
-    /* Need to make sure a wobload of globals don't get destroyed, since we very
+    /* Need to make sure a some stuff doesn't get destroyed, since we very
      * liekly have a call set up when we are running this code. */
     PMC      * const saved_ccont       = interp->current_cont;
-    opcode_t * const current_args      = interp->current_args;
-    opcode_t * const current_params    = interp->current_params;
-    opcode_t * const current_returns   = interp->current_returns;
-    PMC      * const args_signature    = interp->args_signature;
-    PMC      * const params_signature  = interp->params_signature;
-    PMC      * const returns_signature = interp->returns_signature;
 
     /* Iterate over the handlers. */
     PMC    *iter       = VTABLE_get_iter(interp, handlers);
@@ -97,12 +91,6 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
 
     /* Restore stuff that might have got overwriten. */
     interp->current_cont      = saved_ccont;
-    interp->current_args      = current_args;
-    interp->current_params    = current_params;
-    interp->current_returns   = current_returns;
-    interp->args_signature    = args_signature;
-    interp->params_signature  = params_signature;
-    interp->returns_signature = returns_signature;
 
     /* Did we find anything? */
     if (attr) {

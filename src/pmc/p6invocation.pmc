@@ -86,7 +86,7 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only, INTVAL 
         /* Multi. Ask the multi-dispatcher for all possible variants that we
          * could call with the current argument, unless we have none in
          * which we're just gonna have to leave the multi here in the list. */
-        if (interp->current_args) {
+        if (!PMC_IS_NULL(Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp)))) {
             PMC *possibles = get_all_candidates_with_cur_args(interp, current);
             if (VTABLE_elements(interp, possibles) == 0) {
                 /* No candidates here; increment the position, and then jump back

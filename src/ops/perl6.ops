@@ -623,20 +623,9 @@ inline op bind_signature(in PMC, in PMC) :base_core {
                         string_from_literal(interp, "!DISPATCH_JUNCTION_SINGLE"));
                 PMC *junc_result = (PMC *)Parrot_call_sub(interp, dispatcher, "PPPP",
                         sub, $1, $2);
-                PMC *caller_ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
-                PMC *return_sig = pmc_new(interp, enum_class_FixedIntegerArray);
-                opcode_t return_indexes[] = { 0 };
                 opcode_t *next;
 
-                /* Set up this junctional result as the result of the current sub. Note:
-                 * massive epic evil that changes when CallSignature appears. We just
-                 * stash the parameter in a register and fake up a signature. */
-                VTABLE_set_integer_native(interp, return_sig, 1);
-                VTABLE_set_integer_keyed_int(interp, return_sig, 0, 2);
-                interp->returns_signature = return_sig;
-                CTX_REG_PMC(ctx, 0) = junc_result;
-                parrot_pass_args(interp, ctx, caller_ctx, return_indexes,
-                        Parrot_pcc_get_results(interp, caller_ctx), PARROT_PASS_RESULTS);
+                /* XXX TODO: Save the Junctional result as the return value. */
 
                 /* Invoke the current return continuation, to return said value. */
                 next = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp,

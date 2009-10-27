@@ -60,7 +60,7 @@ Build a capture from its argument(s).
 =cut
 
 .namespace []
-.sub "prefix:\\"
+.sub 'prefix:\'
     .param pmc arg
     $I0 = isa arg, 'Perl6Scalar'
     if $I0 goto have_ref

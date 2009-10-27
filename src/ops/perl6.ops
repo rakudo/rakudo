@@ -8,6 +8,7 @@ BEGIN_OPS_PREAMBLE
 #include "parrot/dynext.h"
 #include "pmc_object.h"
 #include "pmc_class.h"
+#include "pmc_callsignature.h"
 #include "../pmc/pmc_p6lowlevelsig.h"
 #include "../binder/bind.h"
 
@@ -610,9 +611,26 @@ inline op bind_signature(in PMC, in PMC) :base_core {
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
 
+        /* Need to make sure some stuff doesn't get destroyed. */
+        PMC      * ctx               = CURRENT_CONTEXT(interp);
+        PMC      * const saved_ccont = interp->current_cont;
+        PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
+        PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
+        opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
+        opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
+
         /* Call signature binder. */
         INTVAL bind_error = bind_signature_func(interp, lexpad, signature, $1, $2, noms_checked, &error);
+
+        /* Bind ok? */
         if (!bind_error) {
+            /* Re-instate anything we may have damaged. */
+            CURRENT_CONTEXT(interp) = ctx;
+            interp->current_cont = saved_ccont;
+            Parrot_pcc_set_signature(interp, ctx, saved_sig);
+            Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
+            Parrot_pcc_set_results(interp, ctx, saved_cr);
+            Parrot_pcc_set_pc(interp, ctx, current_pc);
             goto NEXT();
         }
         else {
@@ -621,22 +639,26 @@ inline op bind_signature(in PMC, in PMC) :base_core {
                 /* Find dispatcher and call it. */
                 PMC *dispatcher = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
                         string_from_literal(interp, "!DISPATCH_JUNCTION_SINGLE"));
-                PMC *junc_result = (PMC *)Parrot_call_sub(interp, dispatcher, "PPPP",
-                        sub, $1, $2);
-                PMC *caller_ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
-                PMC *return_sig = pmc_new(interp, enum_class_FixedIntegerArray);
-                opcode_t return_indexes[] = { 0 };
                 opcode_t *next;
+                PMC *junc_result, *caller_sig;
+                Parrot_ext_call(interp, dispatcher, "PPP->P", sub, $1, $2, &junc_result);
 
-                /* Set up this junctional result as the result of the current sub. Note:
-                 * massive epic evil that changes when CallSignature appears. We just
-                 * stash the parameter in a register and fake up a signature. */
-                VTABLE_set_integer_native(interp, return_sig, 1);
-                VTABLE_set_integer_keyed_int(interp, return_sig, 0, 2);
-                interp->returns_signature = return_sig;
-                CTX_REG_PMC(ctx, 0) = junc_result;
-                parrot_pass_args(interp, ctx, caller_ctx, return_indexes,
-                        Parrot_pcc_get_results(interp, caller_ctx), PARROT_PASS_RESULTS);
+                /* Re-instate anything we may have damaged. */
+                CURRENT_CONTEXT(interp) = ctx;
+                interp->current_cont = saved_ccont;
+                Parrot_pcc_set_signature(interp, ctx, saved_sig);
+                Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
+                Parrot_pcc_set_results(interp, ctx, saved_cr);
+                Parrot_pcc_set_pc(interp, ctx, current_pc);
+
+                /* Save the Junctional result as the return value. */
+                caller_sig = Parrot_pcc_get_signature(interp, Parrot_pcc_get_caller_ctx(interp, ctx));
+                if (!PMC_IS_NULL(caller_sig)) {
+                    PMC *returns;
+                    GETATTR_CallSignature_results(interp, caller_sig, returns);
+                    if (!PMC_IS_NULL(returns) && VTABLE_elements(interp, returns) > 0)
+                        VTABLE_set_pmc_keyed_int(interp, returns, 0, junc_result);
+                }
 
                 /* Invoke the current return continuation, to return said value. */
                 next = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp,

@@ -32,15 +32,13 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     STRING *Perl6Role     = CONST_STRING(interp, "Perl6Role");
     STRING *attrname      = CONST_STRING(interp, "attrname");
 
-    /* Need to make sure a wobload of globals don't get destroyed, since we very
+    /* Need to make sure a some stuff doesn't get destroyed, since we very
      * liekly have a call set up when we are running this code. */
-    PMC      * const saved_ccont       = interp->current_cont;
-    opcode_t * const current_args      = interp->current_args;
-    opcode_t * const current_params    = interp->current_params;
-    opcode_t * const current_returns   = interp->current_returns;
-    PMC      * const args_signature    = interp->args_signature;
-    PMC      * const params_signature  = interp->params_signature;
-    PMC      * const returns_signature = interp->returns_signature;
+    PMC      * ctx               = CURRENT_CONTEXT(interp);
+    PMC      * const saved_ccont = interp->current_cont;
+    PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
+    PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
+    opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
 
     /* Iterate over the handlers. */
     PMC    *iter       = VTABLE_get_iter(interp, handlers);
@@ -59,8 +57,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
             ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
             p6meta = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "$!P6META"));
             meth = VTABLE_find_method(interp, p6meta, get_pc);
-            can_check = (PMC *) Parrot_call_method(interp, meth, p6meta, get_pc,
-                    "PP", matcher);
+            Parrot_ext_call(interp, meth, "PiP->P", p6meta, matcher, &can_check);
         }
         else if (VTABLE_isa(interp, matcher, P6role)) {
             /* Can just use a selected role directly. */
@@ -70,8 +67,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
             /* Need to select the parameterless role variant. */
             STRING * const select      = CONST_STRING(interp, "!select");
             PMC    * const select_meth = VTABLE_find_method(interp, matcher, select);
-            can_check = (PMC *) Parrot_call_method(interp, select_meth, matcher,
-                    select, "P");
+            Parrot_ext_call(interp, select_meth, "Pi->P", matcher, &can_check);
         }
 
         /* If any of these got something to do a can check on, do so. */
@@ -86,8 +82,8 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
             /* Use what we were given as something to smart-match against. */
             STRING * const ACCEPTS      = CONST_STRING(interp, "ACCEPTS");
             PMC    * const accepts_meth = VTABLE_find_method(interp, matcher, ACCEPTS);
-            PMC    * const result       = (PMC *) Parrot_call_method(interp,
-                    accepts_meth, matcher, ACCEPTS, "PS", name);
+            PMC    * result             = PMCNULL;;
+            Parrot_ext_call(interp, accepts_meth, "PiS->P", matcher, name, &result);
             if (VTABLE_get_bool(interp, result)) {
                 attr = VTABLE_get_string_keyed_str(interp, handles_hash, attrname);
                 break;
@@ -96,13 +92,11 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     }
 
     /* Restore stuff that might have got overwriten. */
-    interp->current_cont      = saved_ccont;
-    interp->current_args      = current_args;
-    interp->current_params    = current_params;
-    interp->current_returns   = current_returns;
-    interp->args_signature    = args_signature;
-    interp->params_signature  = params_signature;
-    interp->returns_signature = returns_signature;
+    CURRENT_CONTEXT(interp) = ctx;
+    interp->current_cont = saved_ccont;
+    Parrot_pcc_set_signature(interp, ctx, saved_sig);
+    Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
+    Parrot_pcc_set_results(interp, ctx, saved_cr);
 
     /* Did we find anything? */
     if (attr) {

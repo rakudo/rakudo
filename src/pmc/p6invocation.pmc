@@ -198,6 +198,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
             return 1;
 
         /* If not, then we see if the dispatcher can potentially find more. */
+        Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), NULL);
         return !PMC_IS_NULL(get_next_candidate(interp, SELF, P6I_MODE_CHECK, NULL));
     }
 
@@ -209,8 +210,10 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         PMC *first_candidate;
         PMC *clone = VTABLE_clone(interp, SELF);
         GETATTR_P6Invocation_first_candidate(interp, clone, first_candidate);
-        if (PMC_IS_NULL(first_candidate))
+        if (PMC_IS_NULL(first_candidate)) {
+            Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), NULL);
             first_candidate = get_next_candidate(interp, clone, P6I_MODE_CHECK, NULL);
+        }
         return first_candidate;
     }
 
@@ -264,10 +267,13 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         /* Now shuffle along one candidate. */
         PMC *first_candidate;
         GETATTR_P6Invocation_first_candidate(interp, SELF, first_candidate);
-        if (PMC_IS_NULL(first_candidate))
+        if (PMC_IS_NULL(first_candidate)) {
+            Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), NULL);
             get_next_candidate(interp, SELF, P6I_MODE_DISPATCH, NULL);
-        else
+        }
+        else {
             SETATTR_P6Invocation_first_candidate(interp, SELF, PMCNULL);
+        }
 
         return result;
     }

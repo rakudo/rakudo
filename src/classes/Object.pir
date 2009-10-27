@@ -758,14 +758,18 @@ methods.
     methods = $P0.'can'(self, method_name)
     unless methods goto it_loop_end
   have_methods:
-
     # Call each method, expanding out any multis along the way.
     .local pmc pos_res, named_res, cap, it, multi_it, cur_meth
     it = iter methods
   it_loop:
     unless it goto it_loop_end
     cur_meth = shift it
-    $I0 = isa cur_meth, 'Perl6MultiSub'
+    $P0 = cur_meth
+    $I0 = isa $P0, 'P6Invocation'
+    unless $I0 goto did_deref
+    $P0 = deref cur_meth
+  did_deref:
+    $I0 = isa $P0, 'Perl6MultiSub'
     if $I0 goto is_multi
     push_eh check_error
     (pos_res :slurpy, named_res :named :slurpy) = cur_meth(self, pos_args :flat, named_args :named :flat)
@@ -774,7 +778,7 @@ methods.
     push result_list, cap
     goto it_loop
   is_multi:
-    $P0 = cur_meth.'find_possible_candidates'(self, pos_args :flat, named_args :named :flat)
+    $P0 = $P0.'find_possible_candidates'(self, pos_args :flat, named_args :named :flat)
     multi_it = iter $P0
   multi_it_loop:
     unless multi_it goto it_loop

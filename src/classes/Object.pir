@@ -770,7 +770,7 @@ methods.
     push_eh check_error
     (pos_res :slurpy, named_res :named :slurpy) = cur_meth(self, pos_args :flat, named_args :named :flat)
     pop_eh
-    cap = 'prefix:\\'(pos_res :flat, named_res :flat :named)
+    cap = 'prefix:\'(pos_res :flat, named_res :flat :named)
     push result_list, cap
     goto it_loop
   is_multi:
@@ -780,7 +780,7 @@ methods.
     unless multi_it goto it_loop
     cur_meth = shift multi_it
     (pos_res :slurpy, named_res :named :slurpy) = cur_meth(self, pos_args :flat, named_args :named :flat)
-    cap = 'prefix:\\'(pos_res :flat, named_res :flat :named)
+    cap = 'prefix:\'(pos_res :flat, named_res :flat :named)
     push result_list, cap
     goto multi_it_loop
   check_error:

@@ -213,6 +213,9 @@ sub _is_deeply(Object $got, Object $expected) {
     elsif $got ~~ undef && $expected ~~ undef && $got.WHAT eq $expected.WHAT {
         return True;
     }
+    elsif $got ~~ Bool && $expected ~~ Bool {
+        return ($got && $expected) || (!$got && !$expected);
+    }
 
     return;
 }

@@ -157,10 +157,10 @@ class Complex {
 
     multi method roots($n is copy) {
         my ($mag, $angle) = @.polar;
-	return NaN  if $n < 1;
-	return self if $n == 1;
-	return NaN  if $!re|$!im ~~  Inf|NaN|-Inf; 
-	$n = $n.Int;
+        return NaN  if $n < 1;
+        return self if $n == 1;
+        return NaN  if $!re|$!im ~~  Inf|NaN|-Inf;
+        $n = $n.Int;
         $mag **= 1/$n;
         (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
     }
@@ -218,11 +218,11 @@ class Complex {
     }
 
     multi method Num {
-	if $!im == 0 {
-	     $!re;
-	} else {
-	     fail "You can only coerce a Complex to Num if the imaginary part is zero"
-	}
+        if $!im == 0 {
+            $!re;
+        } else {
+            fail "You can only coerce a Complex to Num if the imaginary part is zero"
+        }
     }
 }
 

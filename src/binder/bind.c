@@ -337,12 +337,13 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
  * Junction being passed (meaning we need to auto-thread). */
 INTVAL
 Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
-                              PMC *pos_args, PMC *named_args,
-                              INTVAL no_nom_type_check, STRING **error) {
+                              PMC *capture, INTVAL no_nom_type_check,
+                              STRING **error) {
     INTVAL        i;
     INTVAL        bind_fail;
     INTVAL        cur_pos_arg = 0;
-    INTVAL        num_pos_args = VTABLE_elements(interp, pos_args);
+    INTVAL        num_pos_args = VTABLE_elements(interp, capture);
+    PMC           *named_names = VTABLE_get_attr_str(interp, capture, string_from_literal(interp, "named"));
     llsig_element **elements;
     INTVAL        num_elements;
     PMC           *named_to_pos_cache;
@@ -401,8 +402,8 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
 
     /* First, consider named arguments, to see if there are any that we will
      * be wanting to bind positionally. */
-    if (VTABLE_elements(interp, named_args)) {
-        PMC *iter = VTABLE_get_iter(interp, named_args);
+    if (!PMC_IS_NULL(named_names)) {
+        PMC *iter = VTABLE_get_iter(interp, named_names);
         named_args_copy = pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Hash")));
         while (VTABLE_get_bool(interp, iter)) {
             STRING *name = VTABLE_shift_string(interp, iter);
@@ -412,13 +413,13 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 INTVAL pos = VTABLE_get_integer_keyed_str(interp, named_to_pos_cache, name);
                 if (!pos_from_named)
                     pos_from_named = mem_sys_allocate_zeroed(sizeof(PMC *) * num_elements);
-                pos_from_named[pos] = VTABLE_get_pmc_keyed_str(interp, named_args, name);
+                pos_from_named[pos] = VTABLE_get_pmc_keyed_str(interp, capture, name);
             }
             else {
                 /* Otherwise, we'll enter it into the hash of things to bind
                  * to nameds. */
                 VTABLE_set_pmc_keyed_str(interp, named_args_copy, name,
-                        VTABLE_get_pmc_keyed_str(interp, named_args, name));
+                        VTABLE_get_pmc_keyed_str(interp, capture, name));
             }
         }
     }
@@ -469,7 +470,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 STRING *STORE   = string_from_literal(interp, "!STORE");
                 PMC *store_meth = VTABLE_find_method(interp, slurpy, STORE);
                 while (cur_pos_arg < num_pos_args) {
-                    VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, pos_args, cur_pos_arg));
+                    VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg));
                     cur_pos_arg++;
                 }
                 Parrot_ext_call(interp, store_meth, "PiP", slurpy, temp);
@@ -496,7 +497,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 /* Do we have a value?. */
                 else if (cur_pos_arg < num_pos_args) {
                     /* Easy - just bind that. */
-                    PMC *arg = VTABLE_get_pmc_keyed_int(interp, pos_args, cur_pos_arg);
+                    PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
                             arg, no_nom_type_check, error);
                     if (bind_fail) {

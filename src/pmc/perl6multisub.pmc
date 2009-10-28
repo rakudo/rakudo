@@ -104,36 +104,21 @@ from the outside.
 
 =over 4
 
-=item C<static void get_args(PARROT_INTERP, PMC **pos_args, PMC **named_args)>
+=item C<static PMC *get_args(PARROT_INTERP)>
 
-Gets a list of the arguments that are being passed, taking them from the
-registers and the constants table and flattening any :flat arguments as
-required. Hands back a ResizablePMCArray of the positional parameters and
-a Hash of the named parameters.
+Gets and returns the currnet capture holding the arguments we're being
+called with.
 
 =cut
 
 */
 
-static void
-get_args(PARROT_INTERP, PMC **pos_args, PMC **named_args)
+static PMC *
+get_args(PARROT_INTERP)
 {
-    PMC *ctx   = CURRENT_CONTEXT(interp);
-    PMC *sig   = Parrot_pcc_get_signature(interp, ctx);
-    PMC *names = VTABLE_get_attr_str(interp, sig, CONST_STRING(interp, "named"));
-
-    /* Positionals can just be the signature itself. For now, we make hash of
-     * nameds still, but in the future we can stop bothering. */
-    *pos_args = sig;
-    *named_args = pmc_new(interp, enum_class_Hash);
-    if (!PMC_IS_NULL(names)) {
-        PMC *iter = VTABLE_get_iter(interp, names);
-        while (VTABLE_get_bool(interp, iter)) {
-            STRING *name  = VTABLE_shift_string(interp, iter);
-            PMC    *value = VTABLE_get_pmc_keyed_str(interp, sig, name);
-            VTABLE_set_pmc_keyed_str(interp, *named_args, name, value);
-        }
-    }
+    PMC *ctx = CURRENT_CONTEXT(interp);
+    PMC *sig = Parrot_pcc_get_signature(interp, ctx);
+    return sig;
 }
 
 
@@ -421,8 +406,8 @@ static INTVAL has_junctional_args(PARROT_INTERP, PMC *args) {
 /*
 
 =item C<static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates,
-                                PMC *proto, PMC *pos_args, PMC *named_args, int many,
-                                int num_candidates, opcode_t *next, MMD_Cache *cache)>
+                                PMC *proto, PMC *capture, int many, int num_candidates,
+                                opcode_t *next, MMD_Cache *cache)>
 
 Runs the Perl 6 MMD algorithm. If many is set to a true value, returns a
 ResizablePMCArray of all possible candidates, which may be empty. If many
@@ -435,12 +420,12 @@ candidates or that it was ambiguous if there were tied candidates.
 */
 
 static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, PMC *proto,
-        PMC *pos_args, PMC *named_args, int many, int num_candidates, opcode_t *next,
+        PMC *capture, int many, int num_candidates, opcode_t *next,
         MMD_Cache *cache) {
     INTVAL           type_mismatch;
     STRING * const   ACCEPTS          = CONST_STRING(interp, "ACCEPTS");
     INTVAL           possibles_count  = 0;
-    const INTVAL     num_args         = VTABLE_elements(interp, pos_args);
+    const INTVAL     num_args         = VTABLE_elements(interp, capture);
     candidate_info **cur_candidate    = candidates;
     candidate_info **possibles        = mem_allocate_n_typed(num_candidates,
                                          candidate_info *);
@@ -471,7 +456,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                      * passed, we can very quickly eliminate this candidate without
                      * doing a full bindability check. */
                     if (possibles[i]->req_named) {
-                        if (!VTABLE_exists_keyed_str(interp, named_args, possibles[i]->req_named)) {
+                        if (!VTABLE_exists_keyed_str(interp, capture, possibles[i]->req_named)) {
                             /* Required named arg not passed, so we eliminate it right
                              * here. Flag that we've built a list of new possibles, and
                              * that this was not a pure type-based result that we can
@@ -492,7 +477,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                         PMC      *signature = possibles[i]->signature;
                         INTVAL bind_check_result;
                         bind_check_result = Rakudo_binding_bind_signature(interp, lexpad,
-                              signature, pos_args, named_args, 1, NULL);
+                              signature, capture, 1, NULL);
 
                         /* XXX In the future, we can actually keep the context if we only
                          * need one candidate, and then hand back the current PC and mark
@@ -555,7 +540,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         type_mismatch = 0;
 
         for (i = 0; i < type_check_count; i++) {
-            PMC * const param        = VTABLE_get_pmc_keyed_int(interp, pos_args, i);
+            PMC * const param        = VTABLE_get_pmc_keyed_int(interp, capture, i);
             PMC * const type_obj     = (*cur_candidate)->types[i];
             PMC * const accepts_meth = VTABLE_find_method(interp, type_obj, ACCEPTS);
             PMC * result             = PMCNULL;
@@ -610,11 +595,11 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             cache = Parrot_mmd_cache_create(interp);
             SETATTR_Perl6MultiSub_cache_single(interp, self, cache);
         }
-        Parrot_mmd_cache_store_by_values(interp, cache, "", pos_args, possibles[0]->sub);
+        Parrot_mmd_cache_store_by_values(interp, cache, "", capture, possibles[0]->sub);
     }
 
     /* Perhaps we found nothing but have juncitonal arguments? */
-    if (possibles_count == 0 && has_junctional_args(interp, pos_args)) {
+    if (possibles_count == 0 && has_junctional_args(interp, capture)) {
         /* Look up multi junction dispatcher, clone it, attach this multi-sub
          * as a property and hand that back as the dispatch result. We also
          * stick it in the MMD cache for next time around. */
@@ -623,7 +608,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         sub = VTABLE_clone(interp, sub);
         VTABLE_setprop(interp, sub, CONST_STRING(interp, "sub"), self);
         if (cache && many == MMD_ONE_RESULT)
-            Parrot_mmd_cache_store_by_values(interp, cache, "", pos_args, sub);
+            Parrot_mmd_cache_store_by_values(interp, cache, "", capture, sub);
         junctional_res = sub;
     }
 
@@ -694,7 +679,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                 cache = Parrot_mmd_cache_create(interp);
                 SETATTR_Perl6MultiSub_cache_many(interp, self, cache);
             }
-            Parrot_mmd_cache_store_by_values(interp, cache, "", pos_args, results);
+            Parrot_mmd_cache_store_by_values(interp, cache, "", capture, results);
         }
 
         return results;
@@ -704,7 +689,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
 
 /*
 
-=item C<static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *self, PMC *pos_args, PMC *named_args)>
+=item C<static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *self, PMC *capture)>
 
 Uses the given argument list to find all possible candidates that we could run, sorted
 in order of preference.
@@ -712,7 +697,7 @@ in order of preference.
 =cut
 
 */
-static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *pos_args, PMC *named_args) {
+static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *capture) {
     candidate_info **candidates = NULL;
     PMC             *unsorted;
     PMC             *proto;
@@ -729,7 +714,7 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *po
     /* See if we have a cache entry. */
     GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache);
     if (cache)
-        results = Parrot_mmd_cache_lookup_by_values(interp, cache, "", pos_args);
+        results = Parrot_mmd_cache_lookup_by_values(interp, cache, "", capture);
     if (PMC_IS_NULL(results)) {
         /* Make sure that we have a candidate list built. */
         GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
@@ -748,7 +733,7 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *po
 
         /* Now do the dispatch on the args we have been supplied with, and
          * get back a PMC array of possibles. */
-        results = do_dispatch(interp, SELF, candidates, proto, pos_args, named_args,
+        results = do_dispatch(interp, SELF, candidates, proto, capture,
                  MMD_MANY_RESULTS, VTABLE_elements(interp, unsorted), NULL, cache);
     }
 
@@ -798,12 +783,8 @@ by the method dispatcher.
 */
 
 /* not static; used in P6Invocation PMC */
-PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *multi);
-
 PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *multi) {
-    PMC *pos_args, *named_args;
-    get_args(interp, &pos_args, &named_args);
-    return find_many_candidates_with_arg_list(interp, multi, pos_args, named_args);
+    return find_many_candidates_with_arg_list(interp, multi, get_args(interp));
 }
 
 /*
@@ -943,13 +924,12 @@ the Perl 6 MMD algorithm.
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
 
         /* Get arguments. */
-        PMC *pos_args, *named_args;
-        get_args(interp, &pos_args, &named_args);
+        PMC *capture = get_args(interp);
 
         /* See if we have a cache entry. */
         GETATTR_Perl6MultiSub_cache_single(interp, SELF, cache);
         if (cache)
-            found = Parrot_mmd_cache_lookup_by_values(interp, cache, "", pos_args);
+            found = Parrot_mmd_cache_lookup_by_values(interp, cache, "", capture);
         if (PMC_IS_NULL(found)) {
             PMC *proto;
 
@@ -970,8 +950,8 @@ the Perl 6 MMD algorithm.
 
             /* Now do the dispatch on the args we are being invoked with;
              * if it can't find anything, it will throw the required exception. */
-            found = do_dispatch(interp, SELF, candidates, proto, pos_args, named_args,
-                    MMD_ONE_RESULT, VTABLE_elements(interp, unsorted), (opcode_t *)next, cache);
+            found = do_dispatch(interp, SELF, candidates, proto, capture, MMD_ONE_RESULT,
+                    VTABLE_elements(interp, unsorted), (opcode_t *)next, cache);
         }
 
         /* Restore stuff that might have got overwriten by calls during the
@@ -999,8 +979,8 @@ Takes an array of arguments and finds all possible matching candidates.
 =cut
 
 */
-    METHOD PMC *find_possible_candidates(PMC *pos_args :slurpy, PMC *named_args :named :slurpy) {
-        PMC *results = find_many_candidates_with_arg_list(interp, SELF, pos_args, named_args);
+    METHOD PMC *find_possible_candidates(PMC *capture) {
+        PMC *results = find_many_candidates_with_arg_list(interp, SELF, capture);
         RETURN(PMC *results);
     }
 

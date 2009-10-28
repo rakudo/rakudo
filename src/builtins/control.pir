@@ -515,9 +515,8 @@ on error.
     # Build arguments based upon what the caller was originall invoked with,
     # and tailcall the next candidate.
     .local pmc pos_args, named_args
-    $P0 = routine.'signature'()
-    $P0 = getattribute $P0, '$!ll_sig'
-    (pos_args, named_args) = '!get_original_args'($P0, lexpad)
+    $P1 = lexpad['call_sig']
+    (pos_args, named_args) = '!deconstruct_call_sig'($P1)
     next.'set_failure_mode'()
     .tailcall next(pos_args :flat, named_args :flat :named)
 .end
@@ -537,9 +536,8 @@ on error.
     # get the result of the next candidate and use return to retrun from
     # the caller, provided the defer did not fail.
     .local pmc pos_args, named_args, result
-    $P0 = routine.'signature'()
-    $P0 = getattribute $P0, '$!ll_sig'
-    (pos_args, named_args) = '!get_original_args'($P0, lexpad)
+    $P1 = lexpad['call_sig']
+    (pos_args, named_args) = '!deconstruct_call_sig'($P1)
     next.'set_failure_mode'()
     (result) = next(pos_args :flat, named_args :flat :named)
 
@@ -571,22 +569,43 @@ find nothing more to call.
 .end
 
 
-=item !get_original_args
+=item !deconstruct_call_sig
 
-Helper for callsame and nextsame that uses the signature and lexpad of a
-routine to build up the next caller args.
+Transforms a capture into positional and named parts.
 
-XXX Eventually this needs to go on the CallSignature - for now we just
-have pos_args and named_args in lexicals instead.
+XXX Eventually we will have caller-side :call_sig and won't have to do this.
 
 =cut
 
-.sub '!get_original_args'
-    .param pmc signature
-    .param pmc lexpad
-    .local pmc pos_args, named_args
-    pos_args = lexpad['pos_args']
-    named_args = lexpad['named_args']
+.sub '!deconstruct_call_sig'
+    .param pmc call_sig
+    .local pmc pos_args, named_args, names
+    
+    pos_args = new ['ResizablePMCArray']
+    $I0 = elements call_sig
+    $I1 = 0
+  pos_loop:
+    if $I1 == $I0 goto pos_loop_end
+    $P0 = call_sig[$I1]
+    pos_args[$I1] = $P0
+    inc $I1
+    goto pos_loop
+  pos_loop_end:
+
+    named_args = new ['Hash']
+    names = getattribute call_sig, 'named'
+    if null names goto named_loop_end
+    $I0 = elements names
+    $I1 = 0
+  named_loop:
+    if $I1 == $I0 goto named_loop_end
+    $S0 = names[$I1]
+    $P0 = call_sig[$S0]
+    named_args[$S0] = $P0
+    inc $I1
+    goto named_loop
+  named_loop_end:
+    
     .return (pos_args, named_args)
 .end
 

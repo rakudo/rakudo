@@ -850,11 +850,6 @@ method method_def($/) {
     # Ensure there's an invocant in the signature, and that it's in the
     # positional arguments.
     block_signature($block).add_invocant();
-    $block[0].push(PAST::Op.new(
-        :pirop('unshift vPP'),
-        PAST::Var.new( :name('pos_args'), :scope('lexical') ),
-        PAST::Var.new( :name('self'), :scope('register') )
-    ));
 
     # Handle traits.
     if $<trait> {
@@ -3154,8 +3149,7 @@ sub block_signature($block) {
         $block.loadinit().push(
             PAST::Op.new( :inline('    setprop block, "$!signature", signature') )
         );
-        $block[0].push(PAST::Var.new( :name('pos_args'), :scope('parameter'), :slurpy(1) ));
-        $block[0].push(PAST::Var.new( :name('named_args'), :scope('parameter'), :slurpy(1), :named(1) ));
+        $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
     }
     return $block<signature>;
 }
@@ -3163,9 +3157,8 @@ sub block_signature($block) {
 
 sub bind_signature_op() {
     PAST::Op.new(
-        :pirop('bind_signature vPP'),
-        PAST::Var.new( :name('pos_args'), :scope('lexical') ),
-        PAST::Var.new( :name('named_args'), :scope('lexical') )
+        :pirop('bind_signature vP'),
+        PAST::Var.new( :name('call_sig'), :scope('lexical') )
     )
 }
 

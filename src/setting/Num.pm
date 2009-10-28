@@ -318,6 +318,10 @@ class Num is also {
         }
     }
 
+    multi method sign {
+        self ~~ NaN ?? NaN !! self <=> 0;
+    }
+
     multi method sqrt() {
         Q:PIR {
             $N0 = self

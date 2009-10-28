@@ -10,46 +10,6 @@ src/builtins/math.pir - Perl6 math functions
 
 =over 4
 
-=cut
-
-## TODO: figure out what to get working, in order to uncomment the following
-## .namespace [ 'Math::Basic' ]
-
-=item sign
-
- our Int multi Num::sign ( Num  $x )
- our Int multi Math::Basic::sign ( Num $x )
-   if !defined($x) { return undef };
-   if $x < 0       { return -1    };
-   if $x > 0       { return  1    };
-   if $x == 0      { return  0    };
-   fail;
- }
-
-or more succinctly:
-
- our Int multi Math::Basic::sign ( Num $x )
-   $x <=> 0;
- }
-
-Returns the sign of $x, i.e +1 for positive numbers (including Inf), zero for zero and -1 for negative numbers (including -Inf).
-
-=cut
-
-.sub 'sign'
-    .param pmc a
-    if a == 'Inf' goto unity
-    if a == 'NaN' goto not_a_number
-    $I0 = cmp_num a, 0
-    .return ($I0)
-  not_a_number:
-    .return (a)
-  unity:
-    .return (1)
-.end
-
-
-
 =item e
 
  constant Num Num::e = exp(1);

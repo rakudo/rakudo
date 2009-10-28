@@ -75,7 +75,7 @@ of Rakudo you're working with.
 You can use C<--parrot-config=/path/to/parrot_config> instead
 of C<--gen-parrot> to use an already installed Parrot for building
 Rakudo.  This installed Parrot must include its development
-environment; typically this is done via Parrot's C<make install-dev>
+environment; typically this is done via Parrot's C<make install>
 target or by installing prebuilt C<parrot-devel> and/or C<libparrot-dev>
 packages.  The version of the already installed Parrot must satisfy a
 minimum specified by the Rakudo being built -- Configure.pl will

@@ -165,6 +165,10 @@ class Complex {
         (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
     }
 
+    multi method sign() {
+        fail('Cannot take the sign() of a Complex number');
+    }
+
     multi method sqrt() {
         Q:PIR {
             $P0 = get_root_namespace ['parrot'; 'Complex' ]
@@ -303,6 +307,8 @@ multi sub log(Complex $x) {
 multi sub log10(Complex $x) {
     $x.log10;
 }
+
+multi sub sign(Complex $x) { $x.sign }
 
 multi sub sqrt(Complex $x) {
     $x.sqrt;

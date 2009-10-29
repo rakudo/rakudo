@@ -1056,6 +1056,16 @@ method signature($/, $key) {
                 $sigpast.push($var);
             }
 
+            ##  if there's a sub-signature, need lexicals it declares too.
+            if defined($var<sub_signature>) {
+                for @($var<sub_signature>.lexicals()) {
+                    if $_.isa(PAST::Var) && $_.scope() eq 'lexical' {
+                        $sigpast.push($_);
+                        $block.symbol( $_.name(), :scope('lexical') );
+                    }
+                }
+            }
+
             ##  add entry to signature object
             $signature.add_parameter(
                 :var_name( $var.name() ),
@@ -1071,7 +1081,8 @@ method signature($/, $key) {
                 :cons_type( $var<cons_type> ),
                 :type_captures( $var<type_binding> ?? list($var<type_binding>.name()) !! list() ),
                 :default( $var<defualt_value> ?? 
-                        PAST::Block.new( :blocktype('declaration'), $var<defualt_value> ) !! 0 )
+                        PAST::Block.new( :blocktype('declaration'), $var<defualt_value> ) !! 0 ),
+                :sub_signature( defined($var<sub_signature>) ?? $var<sub_signature> !! undef() )
             );
 
             ##  handle end of multi-invocant sequence
@@ -1079,6 +1090,9 @@ method signature($/, $key) {
 
             $i++;
         }
+
+        ##  attach leicals we made to the signature, for sub-signature handling.
+        $signature.lexicals($sigpast);
 
         ##  handle return type written with --> T
         if $<fulltypename> {
@@ -1240,30 +1254,43 @@ method named_param($/) {
 }
 
 method param_var($/) {
-    my $sigil  := ~$<sigil>;
-    my $twigil := ~$<twigil>[0];
-    if $sigil eq '&' { $sigil := ''; }
-    my $name := $sigil ~ $twigil ~ ~$<identifier>[0];
-    if $twigil eq '.' {
-        $name := $sigil ~ '!' ~ $<identifier>[0];
+    if $<signature> {
+        my $sigil := substr(~$/, 0, 1);
+        my $name  := $sigil eq '[' ?? '@' !! '$';
+        my $var   := PAST::Var.new(
+            :name($name),
+            :scope('parameter'),
+            :node($/)
+        );
+        $var<itype> := container_itype($sigil);
+        $var<sub_signature> := $<signature>.ast;
+        make $var;
     }
-    elsif $twigil && $twigil ne '!' {
-        $/.panic('Invalid twigil used in signature parameter.');
+    else {
+        my $sigil  := ~$<sigil>;
+        my $twigil := ~$<twigil>[0];
+        if $sigil eq '&' { $sigil := ''; }
+        my $name := $sigil ~ $twigil ~ ~$<identifier>[0];
+        if $twigil eq '.' {
+            $name := $sigil ~ '!' ~ $<identifier>[0];
+        }
+        elsif $twigil && $twigil ne '!' {
+            $/.panic('Invalid twigil used in signature parameter.');
+        }
+        my $var := PAST::Var.new(
+            :name($name),
+            :scope('parameter'),
+            :node($/)
+        );
+        $var<twigil> := $twigil;
+        $var<itype>  := container_itype( $<sigil> );
+        # Declare symbol as lexical in current (signature) block.
+        # This is needed in case any post_constraints try to reference
+        # this new param_var.
+        our @?BLOCK;
+        @?BLOCK[0].symbol( $name, :scope('lexical') );
+        make $var;
     }
-    my $var := PAST::Var.new(
-        :name($name),
-        :scope('parameter'),
-        :node($/)
-    );
-    $var<twigil> := $twigil;
-    $var<itype>  := container_itype( $<sigil> );
-    # Declare symbol as lexical in current (signature) block.
-    # This is needed in case any post_constraints try to reference
-    # this new param_var.
-    our @?BLOCK;
-    @?BLOCK[0].symbol( $name, :scope('lexical') );
-
-    make $var;
 }
 
 

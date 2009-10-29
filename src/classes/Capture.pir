@@ -24,6 +24,39 @@ This file sets up the Perl 6 C<Capture> class.
 
 =over 4
 
+=item new
+
+Turns the positional arguments into the capture's positionals, and the named
+arguments into the capture's nameds.
+
+=cut
+
+.sub 'new' :method
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    
+    .local pmc it, result
+    result = new ['Perl6Capture']
+    it = iter pos_args
+  it_pos_loop:
+    unless it goto it_pos_loop_end
+    $P0 = shift it
+    push result, $P0
+    goto it_pos_loop
+  it_pos_loop_end:
+    it = iter named_args
+  it_named_loop:
+    unless it goto it_named_loop_end
+    $S0 = shift it
+    $P0 = named_args[$S0]
+    result[$S0] = $P0
+    goto it_named_loop
+  it_named_loop_end:
+
+    .return (result)
+.end
+
+
 =item get_string()   (vtable)
 
 =cut

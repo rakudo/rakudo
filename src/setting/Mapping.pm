@@ -7,5 +7,9 @@ Returns a Perl representation of a Mapping.
     method perl() {
         return '{' ~ self.pairs.map({ .perl }).join(", ") ~ '}';
     }
+
+    method Capture(%self:) {
+        Capture.new(|%self)
+    }
 }
 

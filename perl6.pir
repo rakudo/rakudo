@@ -64,7 +64,7 @@ Creates the Perl 6 compiler by subclassing a C<PCT::HLLCompiler> object.
     .local pmc p6meta, perl6
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     perl6 = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'PCT::HLLCompiler')
-    p6meta.'new_class'('Perl6::Compiler::Signature', 'attr'=>'$!entries $!default_type')
+    p6meta.'new_class'('Perl6::Compiler::Signature', 'attr'=>'$!entries $!default_type $!lexicals')
 
     load_bytecode 'config.pbc'
 

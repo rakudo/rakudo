@@ -265,6 +265,10 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
                 continue;
             }
 
+            /* If it's got a sub-signature, also need a bind check. */
+            if (!PMC_IS_NULL(sig_elem_info[j]->sub_signature))
+                info->bind_check = 1;
+
             /* If it's named slurpy, we're done. */
             if (sig_elem_info[j]->flags & SIG_ELEM_SLURPY_NAMED)
                 break;

@@ -518,10 +518,14 @@ rule post_constraint {
 }
 
 token param_var {
-    <sigil> [ <twigil> <.before \w> ]? [
-        || <identifier>
-        || $<identifier>=['/'|'!']
-    ]?
+    [
+    | '[' ~ ']' <signature>
+    | '(' ~ ')' <signature>
+    | <sigil> [ <twigil> <.before \w> ]? [
+            || <identifier>
+            || $<identifier>=['/'|'!']
+        ]?
+    ]
     {*}
 }
 

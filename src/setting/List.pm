@@ -46,6 +46,10 @@ Returns a Perl representation of a List.
         my Int $k = $n % $.elems;
         self.[$k .. $.elems-1, 0 .. $k-1]
     }
+
+    method Capture(@self:) {
+        Capture.new(|@self)
+    }
 }
 
 # vim: ft=perl6

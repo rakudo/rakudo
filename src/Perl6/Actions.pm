@@ -3,7 +3,14 @@ class Perl6::Actions is HLL::Actions;
 our @BLOCK;
 
 INIT {
+    # initialize @BLOCK
     our @BLOCK := Q:PIR { %r = new ['ResizablePMCArray'] };
+
+    # Tell PAST::Var how to encode Perl6Str and Str values
+    my %valflags := 
+        Q:PIR { %r = get_hll_global ['PAST';'Compiler'], '%valflags' };
+    %valflags<Perl6Str> := 'e';
+    %valflags<Str>      := 'e';
 }
 
 sub xblock_immediate($xblock) {
@@ -27,8 +34,6 @@ sub sigiltype($sigil) {
     !! ($sigil eq '@' ?? 'ResizablePMCArray' !! 'Undef');
 }
 
-method TOP($/) { make $<comp_unit>.ast; }
-
 method deflongname($/) {
     if $<sym> { make ~$<identifier> ~ ':sym<' ~ ~$<sym>[0] ~ '>'; }
 }
@@ -38,6 +43,8 @@ method comp_unit($/) {
     my $BLOCK := @BLOCK.shift;
     $BLOCK.push($past);
     $BLOCK.node($/);
+    our $?RAKUDO_HLL;
+    $BLOCK.hll($?RAKUDO_HLL);
     make $BLOCK;
 }
 
@@ -459,7 +466,8 @@ method term:sym<name>($/) {
     my $past := $var;
     if $<args> {
         $past := $<args>[0].ast;
-        $past.unshift($var);
+        if $ns { $past.unshift($var); }
+        else { $past.name(~$name); }
     }
     make $past;
 }
@@ -561,6 +569,42 @@ method quote:sym<Q:PIR>($/) {
                        :pasttype('inline'),
                        :node($/) );
 }
+
+
+# overrides version from HLL::Actions to create Perl6Str
+method quote_delimited($/) {
+    my @parts;
+    my $lastlit := '';
+    for $<quote_atom> {
+        my $ast := $_.ast;
+        if !HLL::Actions::isaPAST($ast) {
+            $lastlit := $lastlit ~ $ast;
+        }
+        elsif $ast.isa(PAST::Val) {
+            $lastlit := $lastlit ~ $ast.value;
+        }
+        else {
+            if $lastlit gt '' {
+                @parts.push(
+                    PAST::Val.new( :value($lastlit), :returns('Perl6Str') ) 
+                ); 
+            }
+            @parts.push($ast);
+            $lastlit := '';
+        }
+    }
+    if $lastlit gt '' { 
+        @parts.push(
+            PAST::Val.new( :value($lastlit), :returns('Perl6Str') ) 
+        ); 
+    }
+    my $past := @parts ?? @parts.shift !! '';
+    while @parts {
+        $past := PAST::Op.new( $past, @parts.shift, :pirop('concat') );
+    }
+    make $past;
+}
+
 
 ## Operators
 

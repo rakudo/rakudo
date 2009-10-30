@@ -38,7 +38,7 @@ Perl6::Compiler - Perl6 compiler
 .include 'src/gen/signature_pm.pir'
 .include 'src/gen/parameter_pm.pir'
 .include 'src/classes/Object.pir'
-# .include 'src/cheats/-builtins.pir'
+.include 'src/cheats/print-say.pir'
 
 .namespace ['Perl6';'Compiler']
 

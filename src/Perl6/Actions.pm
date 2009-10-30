@@ -659,7 +659,9 @@ sub add_signature($block, $sig_obj) {
     # Add call to signature binder as well as lexical declarations
     # to the start of the block.
     $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
-    $block[0].push($sig_obj.get_declarations());
+    my $decls := $sig_obj.get_declarations();
+    for @($decls) { $block.symbol( $_.name, :scope('lexical') ) }
+    $block[0].push($decls);
     $block[0].push(PAST::Op.new(
         :pirop('bind_signature vP'),
         PAST::Var.new( :name('call_sig'), :scope('lexical') )

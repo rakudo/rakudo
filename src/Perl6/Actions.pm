@@ -291,6 +291,7 @@ method routine_def($/) {
     my $past := $<blockoid>.ast;
     $past.blocktype('declaration');
     $past.control('return_pir');
+    add_signature($past, $<signature>.ast);
     if $<deflongname> {
         my $name := ~$<deflongname>[0].ast;
         $past.name($name);
@@ -311,6 +312,7 @@ method method_def($/) {
     $past.control('return_pir');
     $past[0].unshift( PAST::Op.new( :inline('    .lex "self", self') ) );
     $past.symbol('self', :scope('lexical') );
+    add_signature($past, $<signature>.ast);
     if $<deflongname> {
         my $name := ~$<deflongname>[0].ast;
         $past.name($name);
@@ -320,29 +322,17 @@ method method_def($/) {
 
 
 method signature($/) {
-    my $BLOCKINIT := @BLOCK[0][0];
-    for $<parameter> { $BLOCKINIT.push($_.ast); }
+    my $signature := Perl6::Compiler::Signature.new();
+    for $<parameter> {
+        $signature.add_parameter($_.ast);
+    }
+    make $signature;
 }
 
 method parameter($/) { 
     my $quant := $<quant>;
-    my $past;
-    if $<named_param> {
-        $past := $<named_param>.ast;
-        if $quant ne '!' { 
-            $past.viviself( sigiltype($<named_param><param_var><sigil>) );
-        }
-    }
-    else {
-        $past := $<param_var>.ast;
-        if $quant eq '*' {
-            $past.slurpy(1);
-            $past.named( $<param_var><sigil> eq '%' );
-        }
-        elsif $quant eq '?' {
-            $past.viviself( sigiltype($<param_var><sigil>) );
-        }
-    }
+    
+    # Sanity checks.
     if $<default_value> { 
         if $quant eq '*' { 
             $/.CURSOR.panic("Can't put default on slurpy parameter");
@@ -350,23 +340,23 @@ method parameter($/) {
         if $quant eq '!' { 
             $/.CURSOR.panic("Can't put default on required parameter");
         }
-        $past.viviself( $<default_value>[0]<EXPR>.ast ); 
     }
-    make $past; 
+
+    # Set various flags on the parameter.
+    $*PARAMETER.pos_slurpy( $quant eq '*' && $*PARAMETER.sigil eq '@' );
+    $*PARAMETER.named_slurpy( $quant eq '*' && $*PARAMETER.sigil eq '%' );
+    $*PARAMETER.optional( $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!') );
+    if $<default_value> { $*PARAMETER.default( $<default_value>[0]<EXPR>.ast ); }
+    make $*PARAMETER;
 }
 
 method param_var($/) {
-    my $name := ~$/;
-    my $past :=  PAST::Var.new( :name($name), :scope('parameter'), 
-                                :isdecl(1), :node($/) );
-    @BLOCK[0].symbol($name, :scope('lexical') );
-    make $past;
+    $*PARAMETER.var_name(~$/);
 }
 
 method named_param($/) {
-    my $past := $<param_var>.ast;
-    $past.named( ~$<param_var><name> );
-    make $past;
+    if $<name>               { $*PARAMETER.names.push(~$<name>); }
+    if $<param_var>[0]<name> { $*PARAMETER.names.push(~$<param_var>[0]<name>); }
 }
 
 method regex_declarator($/, $key?) {
@@ -659,4 +649,19 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
             );
         make $past;
     }
+}
+
+sub add_signature($block, $sig_obj) {
+    # Add signature building code to the block.
+    $block.loadinit.push($sig_obj.ast);
+    $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!signature", signature') ));
+
+    # Add call to signature binder as well as lexical declarations
+    # to the start of the block.
+    $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
+    $block[0].push($sig_obj.get_declarations());
+    $block[0].push(PAST::Op.new(
+        :pirop('bind_signature vP'),
+        PAST::Var.new( :name('call_sig'), :scope('lexical') )
+    ));
 }

@@ -35,10 +35,15 @@ Perl6::Compiler - Perl6 compiler
 .include 'src/cheats/print-say.pir'
 .include 'src/gen/perl6-grammar.pir'
 .include 'src/gen/perl6-actions.pir'
+.include 'src/gen/signature_pm.pir'
+.include 'src/gen/parameter_pm.pir'
+.include 'src/classes/Object.pir'
+# .include 'src/cheats/-builtins.pir'
 
 .namespace ['Perl6';'Compiler']
 
 .sub '' :anon :load :init
+    # Set up parser/actions.
     .local pmc p6meta, nqpproto
     p6meta = get_root_global ['parrot'], 'P6metaclass'
     nqpproto = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'HLL::Compiler')
@@ -47,6 +52,12 @@ Perl6::Compiler - Perl6 compiler
     nqpproto.'parsegrammar'($P0)
     $P0 = get_hll_global ['Perl6'], 'Actions'
     nqpproto.'parseactions'($P0)
+
+    # Init Rakudo dynops.
+    rakudo_dynop_setup
+
+    # Set up Object. XXX Stop calling it Perl6Object.
+    p6meta.'new_class'('Perl6Object', 'name'=>'Object')
 .end
 
 .sub 'main' :main

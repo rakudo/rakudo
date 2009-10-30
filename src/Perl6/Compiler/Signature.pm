@@ -1,7 +1,7 @@
 # Copyright (C) 2009, The Perl Foundation.
 # $Id$
 
-module Perl6::Compiler::Signature;
+class Perl6::Compiler::Signature;
 
 # This class represents a signature in the compiler. It takes care of
 # producing an AST that will generate the signature, based upon all of
@@ -13,6 +13,10 @@ module Perl6::Compiler::Signature;
 # Note that NQP does not yet support accessing attributes or declaring
 # them, so we have a little inline PIR and also we create this class at
 # first elsewhere.
+
+has $!entries;
+has $!default_type;
+has $!lexicals;
 
 
 # Adds a parameter to the signature.
@@ -73,22 +77,13 @@ method add_invocant() {
 
 # Sets the default type of the parameters.
 method set_default_parameter_type($type_name) {
-    Q:PIR {
-        $P0 = find_lex "$type_name"
-        setattribute self, '$!default_type', $P0
-    }
+    $!default_type := $type_name;
 }
 
 
 # Gets the default type of the parameters.
 method get_default_parameter_type() {
-    Q:PIR {
-        %r = getattribute self, '$!default_type'
-        unless null %r goto done
-        %r = new ['String']
-        assign %r, "Object"
-      done:
-    }
+    $!default_type || 'Object'
 }
 
 
@@ -114,14 +109,8 @@ method has_named_slurpy() {
 
 # Accessor for declared lexicals stash.
 method lexicals($lexicals?) {
-    Q:PIR {
-        $P0 = find_lex '$lexicals'
-        $I0 = defined $P0
-        unless $I0 goto done
-        setattribute self, '$!lexicals', $P0
-      done:
-        %r = getattribute self, '$!lexicals'
-    }
+    if $lexicals { $!lexicals := $lexicals; }
+    $!lexicals
 }
 
 
@@ -322,13 +311,8 @@ method ast($high_level?) {
 
 # Accessor for entries in the signature object.
 method entries() {
-    Q:PIR {
-        %r = getattribute self, '$!entries'
-        unless null %r goto have_entries
-        %r = new ['ResizablePMCArray']
-        setattribute self, '$!entries', %r
-      have_entries:
-    };
+    unless $!entries { $!entries := Q:PIR { %r = new ['ResizablePMCArray'] } }
+    $!entries
 }
 
 # Local Variables:

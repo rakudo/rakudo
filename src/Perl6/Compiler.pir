@@ -14,6 +14,7 @@ Perl6::Compiler - Perl6 compiler
 
 .include 'src/gen/perl6-grammar.pir'
 .include 'src/gen/perl6-actions.pir'
+.include 'src/gen/signature_pm.pir'
 # .include 'src/cheats/-builtins.pir'
 
 .namespace ['Perl6';'Compiler']

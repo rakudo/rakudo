@@ -123,6 +123,10 @@ token statement_control:sym<make> {
     [ <EXPR> || <.panic: 'make requires an expression argument'> ]
 }
 
+token statement_control:sym<use> {
+    <sym> <.ws> 'v6'
+}
+
 proto token statement_prefix { <...> }
 token statement_prefix:sym<INIT> { <sym> <blorst> }
 
@@ -265,7 +269,13 @@ token term:sym<pir::op> {
 }
 
 token args {
-    | '(' <arglist> ')'
+    | '(' <semiarglist> ')'
+    | [ \s <arglist> ]
+    | <?>
+}
+
+token semiarglist {
+    <arglist>
 }
 
 token arglist {

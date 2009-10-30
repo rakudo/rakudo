@@ -1,6 +1,6 @@
 *~
-src/gen_*.pir
-src/gen_*.pm
+/src/gen/*.pir
+/nqp-rx/
 Makefile
 .*.swp
 *.patch

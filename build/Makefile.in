@@ -60,6 +60,7 @@ DYNOPS        = \
 
 SOURCES = \
   src/Perl6/Compiler.pir \
+  src/cheats/print-say.pir \
   $(PERL6_G) \
   $(PERL6_A) \
   $(DYNEXT_TARGET)
@@ -312,7 +313,7 @@ sometests: all
 	@$(HARNESS_WITH_FUDGE_JOBS) $(TESTFILES)
 
 # Run a single test
-t/*.t t/*/*.t t/*/*/*.t: all Test.pir
+t/*.t t/*/*.t t/*/*/*.t: all
 	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 ##  cleaning

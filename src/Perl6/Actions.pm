@@ -139,6 +139,10 @@ method statement_control:sym<for>($/) {
     make $past;
 }
 
+method statement_control:sym<use>($/) {
+    make PAST::Stmts.new( :node($/) );
+}
+
 method statement_control:sym<return>($/) {
     make PAST::Op.new( $<EXPR>.ast, :pasttype('return'), :node($/) );
 }
@@ -475,7 +479,17 @@ method term:sym<pir::op>($/) {
     make $past;
 }
 
-method args($/) { make $<arglist>.ast; }
+method args($/) { 
+    my $past;
+    if    $<semiarglist> { $past := $<semiarglist>.ast; }
+    elsif $<arglist>     { $past := $<arglist>.ast; }
+    else {
+        $past := PAST::Op.new( :pasttype('call'), :node($/) );
+    }
+    make $past;
+}
+
+method semiarglist($/) { make $<arglist>.ast; }
 
 method arglist($/) {
     my $past := PAST::Op.new( :pasttype('call'), :node($/) );

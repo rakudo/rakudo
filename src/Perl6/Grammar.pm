@@ -319,6 +319,7 @@ INIT {
     Perl6::Grammar.O(':prec<u=>, :assoc<left>',  '%multiplicative');
     Perl6::Grammar.O(':prec<t=>, :assoc<left>',  '%additive');
     Perl6::Grammar.O(':prec<r=>, :assoc<left>',  '%concatenation');
+    Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
     Perl6::Grammar.O(':prec<m=>, :assoc<left>',  '%relational');
     Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
     Perl6::Grammar.O(':prec<k=>, :assoc<left>',  '%tight_or');
@@ -370,15 +371,23 @@ token prefix:sym<~>   { <sym>  <O('%symbolic_unary, :pirop<set S*>')> }
 token prefix:sym<->   { <sym>  <O('%symbolic_unary, :pirop<neg>')> }
 token prefix:sym<?>   { <sym>  <O('%symbolic_unary, :pirop<istrue>')> }
 token prefix:sym<!>   { <sym>  <O('%symbolic_unary, :pirop<isfalse>')> }
+token prefix:sym<+^>  { <sym>  <O('%symbolic_unary, :pirop<bnot>')> }
 
 token infix:sym<*>    { <sym>  <O('%multiplicative, :pirop<mul>')> }
 token infix:sym</>    { <sym>  <O('%multiplicative, :pirop<div>')> }
 token infix:sym<%>    { <sym>  <O('%multiplicative, :pirop<mod>')> }
+token infix:sym<+&>   { <sym>  <O('%additive, :pirop<band>')> }
 
 token infix:sym<+>    { <sym>  <O('%additive, :pirop<add>')> }
 token infix:sym<->    { <sym>  <O('%additive, :pirop<sub>')> }
+token infix:sym<+|>   { <sym>  <O('%additive, :pirop<bor>')> }
+token infix:sym<+^>   { <sym>  <O('%additive, :pirop<bxor>')> }
+token infix:sym«+<»   { <sym>  <O('%additive, :pirop<shl>')> }
+token infix:sym«+>»   { <sym>  <O('%additive, :pirop<shr>')> }
 
 token infix:sym<~>    { <sym>  <O('%concatenation , :pirop<concat>')> }
+
+token prefix:sym<abs> { <sym> » <O('%named_unary, :pirop<abs PP>')> }
 
 token infix:sym«==»   { <sym>  <O('%relational, :pirop<iseq INn>')> }
 token infix:sym«!=»   { <sym>  <O('%relational, :pirop<isne INn>')> }

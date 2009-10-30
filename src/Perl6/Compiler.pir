@@ -47,6 +47,8 @@ Perl6::Compiler - Perl6 compiler
     nqpproto.'parsegrammar'($P0)
     $P0 = get_hll_global ['Perl6'], 'Actions'
     nqpproto.'parseactions'($P0)
+    $P0 = split ' ', 'e=s help|h target=s dumper=s trace|t=s encoding=s output|o=s combine version|v parsetrace'
+    setattribute nqpproto, '@cmdoptions', $P0
 .end
 
 .sub 'main' :main

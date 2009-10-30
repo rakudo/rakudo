@@ -208,9 +208,28 @@ rule method_def {
     <blockoid>
 }
 
-token signature { [ [<.ws><parameter><.ws>] ** ',' ]? }
 
-token parameter { 
+###########################
+# Captures and Signatures #
+###########################
+
+rule param_sep { [','|':'|';'|';;'] }
+
+token signature {
+    :my $*IN_DECL := 'sig';
+    :my $*zone := 'posreq';
+    <.ws>
+    [
+    | <?before '-->' | ')' | ']' | '{' | ':'\s >
+    | [ <parameter> || <.panic: 'Malformed parameter'> ]
+    ] ** <param_sep>
+    <.ws>
+    { $*IN_DECL := ''; }
+    [ '-->' <.ws> <typename> ]?
+}
+
+token parameter {
+    :my $*PARAMETER := Perl6::Compiler::Parameter.new();
     [
     | $<quant>=['*'] <param_var>
     | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
@@ -224,10 +243,19 @@ token param_var {
 }
 
 token named_param {
-    ':' <param_var>
+    ':'
+    [
+    | <name=identifier> '(' <.ws>
+        [ <named_param> | <param_var> <.ws> ]
+        [ ')' || <.panic: 'Unable to parse named parameter; couldnt find right parenthesis'> ]
+    | <param_var>
+    ]
 }
 
-rule default_value { '=' <EXPR('i=')> }
+rule default_value {
+    :my $*IN_DECL := '';
+    '=' <EXPR('i=')>
+}
 
 rule regex_declarator {
     [

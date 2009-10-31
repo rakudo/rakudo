@@ -32,12 +32,12 @@ Perl6::Compiler - Perl6 compiler
     set_hll_global ['Perl6';'Actions'], '$?RAKUDO_HLL', $P0
 .end
 
-.include 'src/classes/Object.pir'
+.include 'src/gen/builtins.pir'
 .include 'src/gen/cheats.pir'
-.include 'src/gen/perl6-grammar.pir'
-.include 'src/gen/perl6-actions.pir'
 .include 'src/gen/signature_pm.pir'
 .include 'src/gen/parameter_pm.pir'
+.include 'src/gen/perl6-grammar.pir'
+.include 'src/gen/perl6-actions.pir'
 
 .namespace ['Perl6';'Compiler']
 

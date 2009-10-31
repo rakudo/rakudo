@@ -476,6 +476,13 @@ token nulltermish {
     | <?>
 }
 
+token infixish {
+    | <OPER=infix=infix> <![=]>
+    | <infix> <OPER=infix_postfix_meta_operator=infix_postfix_meta_operator>
+}
+
+proto token infix_postfix_meta_operator { <...> }
+
 token postcircumfix:sym<[ ]> { 
     '[' <.ws> <EXPR> ']' 
     <O('%methodop')>
@@ -560,6 +567,8 @@ token infix:sym<?? !!> {
 
 #token infix:sym<:=>   { <sym>  <O('%assignment, :pasttype<bind>')> }
 #token infix:sym<::=>  { <sym>  <O('%assignment, :pasttype<bind>')> }
+
+token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
 
 token infix:sym<,>    { <sym>  <O('%comma, :pasttype<list>')> }
 

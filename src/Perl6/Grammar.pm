@@ -348,7 +348,7 @@ INIT {
     Perl6::Grammar.O(':prec<t=>, :assoc<left>',  '%additive');
     Perl6::Grammar.O(':prec<r=>, :assoc<left>',  '%concatenation');
     Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
-    Perl6::Grammar.O(':prec<m=>, :assoc<chain>, :pasttype<chain>',  '%chaining');
+    Perl6::Grammar.O(':prec<m=>, :assoc<left>, :pasttype<chain>',  '%chaining');
     Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
     Perl6::Grammar.O(':prec<k=>, :assoc<left>',  '%tight_or');
     Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');

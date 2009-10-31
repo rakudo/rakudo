@@ -20,6 +20,17 @@ Perl6::Compiler - Perl6 compiler
 .sub '' :anon :load :init
     load_bytecode 'P6Regex.pbc'
 
+    # Init Rakudo dynops.
+    rakudo_dynop_setup
+
+    # Set up Object. XXX Stop calling it Perl6Object.
+    .local pmc objproto, p6meta
+    $P0 = get_root_global ['parrot'], 'P6metaclass'
+    objproto = $P0.'new_class'('Perl6Object', 'name'=>'Object')
+    p6meta = objproto.'HOW'()
+    set_hll_global ['Perl6Object'], '$!P6META', p6meta
+    set_hll_global '$!OBJECTREF', objproto
+
     ## Bring in PAST, PCT, HLL, and NQP namespaces from parrot hllns
     .local pmc hllns, parrotns, imports
     hllns = get_hll_namespace
@@ -44,7 +55,7 @@ Perl6::Compiler - Perl6 compiler
 .sub '' :anon :load :init
     # Set up parser/actions.
     .local pmc p6meta, nqpproto
-    p6meta = get_root_global ['parrot'], 'P6metaclass'
+    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     nqpproto = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'HLL::Compiler')
     nqpproto.'language'('Perl6')
     $P0 = get_hll_global ['Perl6'], 'Grammar'
@@ -53,12 +64,6 @@ Perl6::Compiler - Perl6 compiler
     nqpproto.'parseactions'($P0)
     $P0 = split ' ', 'e=s help|h target=s dumper=s trace|t=s encoding=s output|o=s combine version|v parsetrace'
     setattribute nqpproto, '@cmdoptions', $P0
-
-    # Init Rakudo dynops.
-    rakudo_dynop_setup
-
-    # Set up Object. XXX Stop calling it Perl6Object.
-    p6meta.'new_class'('Perl6Object', 'name'=>'Object')
 .end
 
 .sub 'main' :main

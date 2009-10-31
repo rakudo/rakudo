@@ -46,7 +46,6 @@ Perl6::Compiler - Perl6 compiler
 .end
 
 .include 'src/gen/builtins.pir'
-.include 'src/gen/cheats.pir'
 .include 'src/gen/signature_pm.pir'
 .include 'src/gen/parameter_pm.pir'
 .include 'src/gen/perl6-grammar.pir'
@@ -118,6 +117,10 @@ Perl6::Compiler - Perl6 compiler
   no_add_type_param:
     .return (list)
 .end
+
+# Cheats go at the end, because some of them are in the 'parrot' HLL
+# namespace.
+.include 'src/gen/cheats.pir'
 
 =cut
 

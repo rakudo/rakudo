@@ -16,7 +16,6 @@ class Perl6::Compiler::Signature;
 
 has $!entries;
 has $!default_type;
-has $!lexicals;
 
 
 # Adds a parameter to the signature.
@@ -125,18 +124,20 @@ method ast($high_level?) {
 
         # Fix up nominal type.
         my $nom_type := $null_reg;
-#        if $_.slurpy || $_.invocant {
-#            $_<nom_type> := PAST::Var.new( :name('Object'), :namespace(list()), :scope('package') );
-#        }
-#        elsif $sigil eq "$" {
-#            if !$_<nom_type> {
-#                $_<nom_type> := PAST::Var.new(
-#                    :name(self.get_default_parameter_type()),
-#                    :namespace(list()),
-#                    :scope('package')
-#                );
-#            }
-#        }
+        if $_.pos_slurpy || $_.named_slurpy || $_.invocant {
+            $nom_type := PAST::Var.new( :name('Object'), :scope('package') );
+        }
+        elsif $_.sigil eq "$" {
+            if !$_.nom_type {
+                $nom_type := PAST::Var.new(
+                    :name(self.get_default_parameter_type()),
+                    :scope('package')
+                );
+            }
+             else {
+                $nom_type := $_.nom_type;
+             }
+        }
 #        elsif $sigil ne "" && !$_<invocant> {
 #            # May well be a parametric role based type.
 #            my $role_name;
@@ -161,38 +162,38 @@ method ast($high_level?) {
 
         # Constraints list needs to build a ResizablePMCArray.
         my $constraints := $null_reg;
-#        if $_<cons_type> && +@($_<cons_type>) {
-#            $constraints := PAST::Op.new( );
-#            my $pir := "    %r = root_new ['parrot'; 'ResizablePMCArray']\n";
-#            my $i := 0;
-#            for @($_<cons_type>) {
-#                $pir := $pir ~ "    push %r, %" ~ $i ~ "\n";
-#                $constraints.push($_);
-#            }
-#            $constraints.inline($pir);
-#        }
+        if +@($_.cons_types) {
+            $constraints := PAST::Op.new( );
+            my $pir := "    %r = root_new ['parrot'; 'ResizablePMCArray']\n";
+            my $i := 0;
+            for @($_.cons_types) {
+                $pir := $pir ~ "    push %r, %" ~ $i ~ "\n";
+                $constraints.push($_);
+            }
+            $constraints.inline($pir);
+        }
 
         # Names and type capture lists needs to build a ResizableStringArray.
         my $names := $null_reg;
-        if $_.names && +@($_.names) {
+        if +@($_.names) {
             my $pir := "    %r = root_new ['parrot'; 'ResizableStringArray']\n";
             for @($_.names) { $pir := $pir ~ '    push %r, unicode:"' ~ ~$_ ~ "\"\n"; }
             $names := PAST::Op.new( :inline($pir) );
         }
         my $type_captures := $null_reg;
-        #if $_<type_captures> && +@($_<type_captures>) {
-        #    my $pir := "    %r = root_new ['parrot'; 'ResizableStringArray']\n";
-        #    for @($_<type_captures>) { $pir := $pir ~ '    push %r, unicode:"' ~ ~$_ ~ "\"\n"; }
-        #    $type_captures := PAST::Op.new( :inline($pir) );
-        #}
+        if +@($_.type_captures) {
+            my $pir := "    %r = root_new ['parrot'; 'ResizableStringArray']\n";
+            for @($_.type_captures) { $pir := $pir ~ '    push %r, unicode:"' ~ ~$_ ~ "\"\n"; }
+            $type_captures := PAST::Op.new( :inline($pir) );
+        }
 
         # Fix up sub-signature AST.
         my $sub_sig := $null_reg;
-        #if defined($_<sub_signature>) {
-        #    $sub_sig := PAST::Stmts.new();
-        #    $sub_sig.push( $_<sub_signature>.ast );
-        #    $sub_sig.push( PAST::Var.new( :name('signature'), :scope('register') ) );
-        #}
+        if pir::defined__IP($_.sub_signature) {
+            $sub_sig := PAST::Stmts.new();
+            $sub_sig.push( $_.sub_signature.ast );
+            $sub_sig.push( PAST::Var.new( :name('signature'), :scope('register') ) );
+        }
 
         # Emit op to build signature element.
         $ast.push(PAST::Op.new(
@@ -216,7 +217,7 @@ method ast($high_level?) {
         $ast.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('new'),
-            PAST::Var.new( :name('Signature'), :namespace(list()), :scope('package') ),
+            PAST::Var.new( :name('Signature'),, :scope('package') ),
             PAST::Var.new( :name($sig_var.name()), :scope('register'), :named('ll_sig') )
         ));
     }
@@ -291,12 +292,6 @@ method has_named_slurpy() {
     return $last<slurpy> && $last<names> ?? 1 !! 0;
 }
 
-
-# Accessor for declared lexicals stash.
-method lexicals($lexicals?) {
-    if $lexicals { $!lexicals := $lexicals; }
-    $!lexicals
-}
 
 # Local Variables:
 #   mode: cperl

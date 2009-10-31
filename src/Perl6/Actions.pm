@@ -361,6 +361,39 @@ method named_param($/) {
     if $<param_var><name>    { $*PARAMETER.names.push(~$<param_var><name>); }
 }
 
+method type_constraint($/) {
+    if $<typename> {
+        if pir::substr(~$<typename>, 0, 2) eq '::' {
+            $*PARAMETER.type_captures.push(pir::substr(~$<typename>, 2));
+        }
+        else {
+            if $*PARAMETER.nom_type {
+                $/.CURSOR.panic('Parameter may only have one prefix type constraint');
+            }
+            $*PARAMETER.nom_type($<typename>.ast);
+        }
+    }
+    else {
+        $/.CURSOR.panic('Can not do non-typename cases of type_constraint yet');
+    }
+}
+
+method post_constraint($/) {
+    if $<signature> {
+        if $*PARAMETER.sub_signature {
+            $/.CURSOR.panic('Can not have more than one sub-signature for a parameter');
+        }
+        $*PARAMETER.sub_signature( $<signature>.ast );
+    }
+    else {
+        my $past := $<EXPR>.ast;
+        unless $past.isa(PAST::Block) {
+            $/.CURSOR.panic('Non-block anonymous sub-types su todo');
+        }
+        $*PARAMETER.cons_types.push($past);
+    }
+}
+
 method regex_declarator($/, $key?) {
     my @MODIFIERS := Q:PIR {
         %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
@@ -550,6 +583,15 @@ method value($/) {
     make $past;
 }
 
+method typename($/) {
+    my @name := Perl6::Compiler::parse_name($<longname>.Str);
+    my $past := PAST::Var.new(
+        :name(@name.pop),
+        :namespace(@name),
+        :scope('package')
+    );
+    make $past;
+}
 
 method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
 method quote:sym<dblq>($/) { make $<quote_EXPR>.ast; }

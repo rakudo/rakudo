@@ -11,11 +11,43 @@ method TOP() {
     self.comp_unit;
 }
 
+method add_my_name($name) {
+    my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
+    @BLOCK[0].symbol($name, :does_abstraction(1));
+    return 1;
+}
+
+method is_name($name) {
+    # Check in the blocks.
+    my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
+    for @BLOCK {
+        my $sym := $_.symbol($name);
+        if $sym && $sym<does_abstraction> {
+            return 1;
+        }
+    }
+
+    # Otherwise, check in the namespace.
+    my @parts := pir::split('::', $name);
+    my $final := pir::pop(@parts);
+    my $test  := pir::get_hll_global__PPS(@parts, $final);
+    if !pir::isnull__IP($test) && (pir::does__IPS($test, 'Abstraction') || pir::isa__IPS($test, 'P6protoobject')) {
+        return 1;
+    }
+
+    # Otherwise, it's a fail.
+    return 0;
+}
+
 ## Lexer stuff
 
 token identifier { <ident> }
 
 token name { <identifier> ** '::' }
+
+token longname {
+    <name> <colonpair>*
+}
 
 token deflongname { 
     <identifier> 
@@ -231,9 +263,16 @@ token signature {
 token parameter {
     :my $*PARAMETER := Perl6::Compiler::Parameter.new();
     [
+    | <type_constraint>+
+        [
+        | $<quant>=['*'] <param_var>
+        | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+        ]
     | $<quant>=['*'] <param_var>
     | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+    | <longname> <.panic('Invalid typename in parameter declaration')>
     ]
+    <post_constraint>*
     <default_value>?
 }
 
@@ -255,6 +294,26 @@ token named_param {
 rule default_value {
     :my $*IN_DECL := '';
     '=' <EXPR('i=')>
+}
+
+token type_constraint {
+    :my $*IN_DECL := '';
+    [
+    | <value>
+    | <typename>
+    | where <.ws> <EXPR('m=')>
+    ]
+    <.ws>
+}
+
+rule post_constraint {
+    :my $*IN_DECL := '';
+#    :dba('constraint')
+    [
+    | '[' ~ ']' <signature>
+    | '(' ~ ')' <signature>
+    | where <EXPR('m=')>
+    ]
 }
 
 rule regex_declarator {
@@ -320,6 +379,25 @@ token term:sym<value> { <value> }
 token value {
     | <integer>
     | <quote>
+}
+
+token typename {
+    [
+    | '::?'<identifier>                 # parse ::?CLASS as special case
+    | <longname>
+      <?{
+        my $longname := $<longname>.Str;
+        if pir::substr($longname, 0, 2) eq '::' {
+            $/.CURSOR.add_my_name(pir::substr($longname, 2));
+        }
+        else {
+            $/.CURSOR.is_name($longname);
+        }
+      }>
+    ]
+    # parametric type?
+#    <.unsp>? [ <?before '['> <postcircumfix> ]?
+#    <.ws> [ 'of' <.ws> <typename> ]?
 }
 
 proto token quote { <...> }

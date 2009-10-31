@@ -182,6 +182,7 @@ method term:sym<variable>($/)           { make $<variable>.ast; }
 method term:sym<package_declarator>($/) { make $<package_declarator>.ast; }
 method term:sym<scope_declarator>($/)   { make $<scope_declarator>.ast; }
 method term:sym<routine_declarator>($/) { make $<routine_declarator>.ast; }
+method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
 
@@ -249,6 +250,20 @@ method package_def($/) {
 method scope_declarator:sym<my>($/)  { make $<scoped>.ast; }
 method scope_declarator:sym<our>($/) { make $<scoped>.ast; }
 method scope_declarator:sym<has>($/) { make $<scoped>.ast; }
+
+method declarator($/) {
+    if    $<variable_declarator> { make $<variable_declarator>.ast }
+    elsif $<routine_declarator>  { make $<routine_declarator>.ast  }
+    elsif $<regex_declarator>    { make $<regex_declarator>.ast    }
+    else {
+        $/.CURSOR.panic('Unknown declarator type');
+    }
+}
+
+method multi_declarator:sym<multi>($/) { make $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast }
+method multi_declarator:sym<proto>($/) { make $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast }
+method multi_declarator:sym<only>($/)  { make $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast }
+method multi_declarator:sym<null>($/)  { make $<declarator>.ast }
 
 method scoped($/) {
     make $<routine_declarator>

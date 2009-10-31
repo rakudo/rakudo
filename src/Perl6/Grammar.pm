@@ -173,6 +173,7 @@ token term:sym<variable>           { <variable> }
 token term:sym<package_declarator> { <package_declarator> }
 token term:sym<scope_declarator>   { <scope_declarator> }
 token term:sym<routine_declarator> { <routine_declarator> }
+token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
 token term:sym<regex_declarator>   { <regex_declarator> }
 token term:sym<statement_prefix>   { <statement_prefix> }
 
@@ -206,6 +207,35 @@ rule package_def {
     || <?[{]> <pblock>
     || <.panic: 'Malformed package declaration'>
     ]
+}
+
+token declarator {
+    [
+#    | <constant_declarator>
+    | <variable_declarator>
+#    | '(' ~ ')' <signature> <trait>*
+    | <routine_declarator>
+    | <regex_declarator>
+#    | <type_declarator>
+    ]
+}
+
+proto token multi_declarator { <...> }
+token multi_declarator:sym<multi> {
+    :my $*MULTINESS := 'multi';
+    <sym> <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed multi'> ]
+}
+token multi_declarator:sym<proto> {
+    :my $*MULTINESS := 'proto';
+    <sym> <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed proto'> ]
+}
+token multi_declarator:sym<only> {
+    :my $*MULTINESS := 'only';
+    <sym> <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed only'> ]
+}
+token multi_declarator:sym<null> {
+    :my $*MULTINESS := '';
+    <declarator>
 }
 
 proto token scope_declarator { <...> }

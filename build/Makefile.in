@@ -195,7 +195,7 @@ src/gen/parameter_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Parameter.pm
 src/gen/cheats.pir: build/gen_cheats_pir.pl $(CHEATS_PIR)
 	$(PERL) build/gen_cheats_pir.pl $(CHEATS_PIR) > src/gen/cheats.pir
 
-src/gen/builtins.pir: build/gen_builtins_pir.pl
+src/gen/builtins.pir: build/gen_builtins_pir.pl $(BUILTINS_PIR)
 	$(PERL) build/gen_builtins_pir.pl $(BUILTINS_PIR) > src/gen/builtins.pir
 
 src/gen_metaop.pir: build/gen_metaop_pir.pl

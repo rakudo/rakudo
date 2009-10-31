@@ -306,7 +306,7 @@ method routine_def($/) {
     my $past := $<blockoid>.ast;
     $past.blocktype('declaration');
     $past.control('return_pir');
-    add_signature($past, $<signature>.ast);
+    add_signature($past, $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new());
     if $<deflongname> {
         # Set name.
         my $name := '&' ~ ~$<deflongname>[0].ast;

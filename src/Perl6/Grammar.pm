@@ -258,8 +258,7 @@ token routine_declarator:sym<method> { <sym> <method_def> }
 rule routine_def {
     <deflongname>?
     <.newpad>
-    [ '(' <signature> ')'
-        || <.panic: 'Routine declaration requires a signature'> ]
+    [ '(' <signature> ')' ]?
     <blockoid>
 }
 

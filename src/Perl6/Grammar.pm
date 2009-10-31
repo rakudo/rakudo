@@ -348,7 +348,7 @@ INIT {
     Perl6::Grammar.O(':prec<t=>, :assoc<left>',  '%additive');
     Perl6::Grammar.O(':prec<r=>, :assoc<left>',  '%concatenation');
     Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
-    Perl6::Grammar.O(':prec<m=>, :assoc<left>',  '%relational');
+    Perl6::Grammar.O(':prec<m=>, :assoc<chain>, :pasttype<chain>',  '%chaining');
     Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
     Perl6::Grammar.O(':prec<k=>, :assoc<left>',  '%tight_or');
     Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');
@@ -419,19 +419,19 @@ token infix:sym<~>    { <sym>  <O('%concatenation , :pirop<concat>')> }
 
 token prefix:sym<abs> { <sym> » <O('%named_unary, :pirop<abs PP>')> }
 
-token infix:sym«==»   { <sym>  <O('%relational, :pirop<iseq INn>')> }
-token infix:sym«!=»   { <sym>  <O('%relational, :pirop<isne INn>')> }
-token infix:sym«<=»   { <sym>  <O('%relational, :pirop<isle INn>')> }
-token infix:sym«>=»   { <sym>  <O('%relational, :pirop<isge INn>')> }
-token infix:sym«<»    { <sym>  <O('%relational, :pirop<islt INn>')> }
-token infix:sym«>»    { <sym>  <O('%relational, :pirop<isgt INn>')> }
-token infix:sym«eq»   { <sym>  <O('%relational, :pirop<iseq ISs>')> }
-token infix:sym«ne»   { <sym>  <O('%relational, :pirop<isne ISs>')> }
-token infix:sym«le»   { <sym>  <O('%relational, :pirop<isle ISs>')> }
-token infix:sym«ge»   { <sym>  <O('%relational, :pirop<isge ISs>')> }
-token infix:sym«lt»   { <sym>  <O('%relational, :pirop<islt ISs>')> }
-token infix:sym«gt»   { <sym>  <O('%relational, :pirop<isgt ISs>')> }
-token infix:sym«=:=»  { <sym>  <O('%relational, :pirop<issame>')> }
+token infix:sym«==»   { <sym>  <O('%chaining')> }
+token infix:sym«!=»   { <sym>  <O('%chaining')> }
+token infix:sym«<=»   { <sym>  <O('%chaining')> }
+token infix:sym«>=»   { <sym>  <O('%chaining')> }
+token infix:sym«<»    { <sym>  <O('%chaining')> }
+token infix:sym«>»    { <sym>  <O('%chaining')> }
+token infix:sym«eq»   { <sym>  <O('%chaining')> }
+token infix:sym«ne»   { <sym>  <O('%chaining')> }
+token infix:sym«le»   { <sym>  <O('%chaining')> }
+token infix:sym«ge»   { <sym>  <O('%chaining')> }
+token infix:sym«lt»   { <sym>  <O('%chaining')> }
+token infix:sym«gt»   { <sym>  <O('%chaining')> }
+token infix:sym«=:=»  { <sym>  <O('%chaining')> }
 
 token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 

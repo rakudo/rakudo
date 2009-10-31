@@ -442,7 +442,7 @@ method term:sym<self>($/) {
 
 method term:sym<identifier>($/) {
     my $past := $<args>.ast;
-    $past.name(~$<identifier>);
+    $past.name('&' ~ $<identifier>);
     make $past;
 }
 
@@ -459,7 +459,7 @@ method term:sym<name>($/) {
     if $<args> {
         $past := $<args>[0].ast;
         if $ns { $past.unshift($var); }
-        else { $past.name(~$name); }
+        else { $past.name('&' ~ $name); }
     }
     make $past;
 }
@@ -495,7 +495,7 @@ method arglist($/) {
     my $past := PAST::Op.new( :pasttype('call'), :node($/) );
     if $<EXPR> {
         my $expr := $<EXPR>.ast;
-        if $expr.name eq 'infix:<,>' && !$expr.named {
+        if $expr.name eq '&infix:<,>' && !$expr.named {
             for $expr.list { $past.push($_); }
         }
         else { $past.push($expr); }

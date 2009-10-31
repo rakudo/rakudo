@@ -279,26 +279,23 @@ method variable_declarator($/) {
     if $BLOCK.symbol($name) {
         $/.CURSOR.panic("Redeclaration of symbol ", $name);
     }
-    if $*SCOPE eq 'has' {
-        $BLOCK.symbol($name, :scope('attribute') );
-        unless $BLOCK<attributes> {
-            $BLOCK<attributes> := 
-                PAST::Op.new( :pasttype('list'), :named('attr') );
-        }
-        $BLOCK<attributes>.push( $name );
-        $past := PAST::Stmts.new();
+
+    # First, create a container and give it a 'rw' property
+    # Create the container, give it a 'rw' property
+    my $cont := PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
+    my $true := PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') );
+    my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
+
+    # For 'our' variables, we first bind or lookup in the namespace
+    if $*SCOPE eq 'our' {
+        $vivipast := PAST::Var.new( :name($name), :scope('package'), :isdecl(1),
+                                     :lvalue(1), :viviself($vivipast), :node($/) );
     }
-    else { 
-        my $scope := $*SCOPE eq 'our' ?? 'package' !! 'lexical';
-        my $vivipast := PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
-        my $true := PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') );
-        $vivipast := PAST::Op.new( $vivipast, 'rw', $true, :pirop('setprop') );
-        my $decl := PAST::Var.new( :name($name), :scope($scope), :isdecl(1), 
-                                   :lvalue(1), :viviself($vivipast), 
-                                   :node($/) );
-        $BLOCK.symbol($name, :scope($scope) );
-        $BLOCK[0].push($decl);
-    }
+    # Now bind a lexical in the block
+    my $decl := PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
+                               :lvalue(1), :viviself($vivipast), :node($/) );
+    $BLOCK.symbol($name, :scope('lexical') );
+    $BLOCK[0].push($decl);
     make $past;
 }
 

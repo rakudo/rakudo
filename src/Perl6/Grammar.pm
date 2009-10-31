@@ -8,6 +8,7 @@ method TOP() {
     %*LANG<MAIN>          := Perl6::Grammar;
     %*LANG<MAIN-actions>  := Perl6::Actions;
     my $*SCOPE := '';
+    my $*MULTINESS := '';
     self.comp_unit;
 }
 

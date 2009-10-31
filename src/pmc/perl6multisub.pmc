@@ -847,11 +847,8 @@ Allocates the PMC's underlying storage.
 
 */
     VTABLE void init() {
-        /* Allocate the underlying struct and make candidate list an empty
-         * ResizablePMCArray. */
-        PMC * const candidates = pmc_new(interp, enum_class_ResizablePMCArray);
+        /* Allocate the underlying struct. */
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Perl6MultiSub_attributes);
-        SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
 
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
@@ -1031,6 +1028,10 @@ Adds a new candidate to the candidate list.
 
         /* Add it to the candidates list. */
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        if (PMC_IS_NULL(candidates)) {
+            candidates = pmc_new(interp, enum_class_ResizablePMCArray);
+            SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        }
         VTABLE_push_pmc(interp, candidates, sub);
 
         /* Invalidate the sorted list - we'll need to re-build it. */
@@ -1189,6 +1190,20 @@ Gets a list of all candidates.
         RETURN (PMC *candidates);
     }
 
+/*
+
+=item METHOD PMC * set_candidates()
+
+Sets the candidate list for this multi, replacing any previous candidate list
+that we may have in place. Returns SELF.
+
+=cut
+
+*/
+    METHOD PMC *set_candidates(PMC *candidates :slurpy) {
+        SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        RETURN (PMC *SELF);
+    }
 }
 
 /*

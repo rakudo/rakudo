@@ -9,6 +9,7 @@ has $!named_slurpy;
 has $!optional;
 has $!names;
 has $!invocant;
+has $!multi_invocant;
 has $!default;
 has $!nom_type;
 has $!cons_types;
@@ -42,6 +43,11 @@ method optional($optional?) {
 method names() {
     unless $!names { $!names := PAST::Node.new() }
     $!names
+}
+
+method multi_invocant($multi_invocant?) {
+    if $multi_invocant { $!multi_invocant := $multi_invocant }
+    $!multi_invocant
 }
 
 method invocant($invocant?) {

@@ -346,7 +346,9 @@ method parameter($/) {
     $*PARAMETER.pos_slurpy( $quant eq '*' && $*PARAMETER.sigil eq '@' );
     $*PARAMETER.named_slurpy( $quant eq '*' && $*PARAMETER.sigil eq '%' );
     $*PARAMETER.optional( $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!') );
-    if $<default_value> { $*PARAMETER.default( $<default_value>[0]<EXPR>.ast ); }
+    if $<default_value> {
+        $*PARAMETER.default( PAST::Block.new( $<default_value>[0]<EXPR>.ast ) );
+    }
     make $*PARAMETER;
 }
 
@@ -356,7 +358,7 @@ method param_var($/) {
 
 method named_param($/) {
     if $<name>               { $*PARAMETER.names.push(~$<name>); }
-    if $<param_var>[0]<name> { $*PARAMETER.names.push(~$<param_var>[0]<name>); }
+    if $<param_var><name>    { $*PARAMETER.names.push(~$<param_var><name>); }
 }
 
 method regex_declarator($/, $key?) {

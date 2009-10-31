@@ -355,6 +355,8 @@ INIT {
     Perl6::Grammar.O(':prec<i=>, :assoc<right>', '%assignment');
     Perl6::Grammar.O(':prec<g=>, :assoc<list>, :nextterm<nulltermish>',  '%comma');
     Perl6::Grammar.O(':prec<f=>, :assoc<list>',  '%list_infix');
+    Perl6::Grammar.O(':prec<d=>, :assoc<left>',  '%loose_and');
+    Perl6::Grammar.O(':prec<c=>, :assoc<left>',  '%loose_or');
 }
 
 
@@ -434,6 +436,7 @@ token infix:sym«=:=»  { <sym>  <O('%relational, :pirop<issame>')> }
 token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 
 token infix:sym<||>   { <sym>  <O('%tight_or, :pasttype<unless>')> }
+token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor>')> }
 token infix:sym<//>   { <sym>  <O('%tight_or, :pasttype<def_or>')> }
 
 token infix:sym<?? !!> { 
@@ -449,6 +452,11 @@ token infix:sym<::=>  { <sym>  <O('%assignment, :pasttype<bind>')> }
 
 token infix:sym<,>    { <sym>  <O('%comma, :pasttype<list>')> }
 
+token infix:sym<and>  { <sym>  <O('%tight_and, :pasttype<if>')> }
+
+token infix:sym<or>   { <sym>  <O('%tight_or, :pasttype<unless>')> }
+token infix:sym<xor>  { <sym>  <O('%tight_or, :pasttype<xor>')> }
+token infix:sym<err>  { <sym>  <O('%tight_or, :pasttype<def_or>')> }
 
 grammar Perl6::Regex is Regex::P6Regex::Grammar {
     token metachar:sym<:my> { 

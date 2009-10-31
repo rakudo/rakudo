@@ -18,12 +18,14 @@ in the final Rakudo PBC, just in the PBC for perl6_s1.pbc.
     .param pmc args :slurpy
     $S0 = join '', args
     say $S0
+    .return (1)
 .end
 
 .sub 'print'
     .param pmc args :slurpy
     $S0 = join '', args
     print $S0
+    .return (1)
 .end
 
 # Local Variables:

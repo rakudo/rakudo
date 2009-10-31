@@ -607,6 +607,7 @@ method quote:sym<Q:PIR>($/) {
                        :node($/) );
 }
 
+method quote_escape:sym<$>($/) { make $<variable>.ast; }
 
 # overrides version from HLL::Actions to create Perl6Str
 method quote_delimited($/) {

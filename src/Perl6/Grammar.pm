@@ -430,9 +430,10 @@ INIT {
     Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
     Perl6::Grammar.O(':prec<k=>, :assoc<left>',  '%tight_or');
     Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');
-    Perl6::Grammar.O(':prec<i=>, :assoc<right>', '%assignment');
+    Perl6::Grammar.O(':prec<i=>, :assoc<right>', '%item_assignment');
     Perl6::Grammar.O(':prec<g=>, :assoc<list>, :nextterm<nulltermish>',  '%comma');
     Perl6::Grammar.O(':prec<f=>, :assoc<list>',  '%list_infix');
+    Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_assignment');
     Perl6::Grammar.O(':prec<d=>, :assoc<left>',  '%loose_and');
     Perl6::Grammar.O(':prec<c=>, :assoc<left>',  '%loose_or');
 }
@@ -525,16 +526,18 @@ token infix:sym<?? !!> {
     <O('%conditional, :reducecheck<ternary>, :pasttype<if>')> 
 }
 
-token infix:sym<:=>   { <sym>  <O('%assignment, :pasttype<bind>')> }
-token infix:sym<::=>  { <sym>  <O('%assignment, :pasttype<bind>')> }
+#token infix:sym<:=>   { <sym>  <O('%assignment, :pasttype<bind>')> }
+#token infix:sym<::=>  { <sym>  <O('%assignment, :pasttype<bind>')> }
 
 token infix:sym<,>    { <sym>  <O('%comma, :pasttype<list>')> }
 
-token infix:sym<and>  { <sym>  <O('%tight_and, :pasttype<if>')> }
+token infix:sym<=>    { <sym>  <O('%list_assignment')> }
 
-token infix:sym<or>   { <sym>  <O('%tight_or, :pasttype<unless>')> }
-token infix:sym<xor>  { <sym>  <O('%tight_or, :pasttype<xor>')> }
-token infix:sym<err>  { <sym>  <O('%tight_or, :pasttype<def_or>')> }
+token infix:sym<and>  { <sym>  <O('%loose_and, :pasttype<if>')> }
+
+token infix:sym<or>   { <sym>  <O('%loose_or, :pasttype<unless>')> }
+token infix:sym<xor>  { <sym>  <O('%loose_or, :pasttype<xor>')> }
+token infix:sym<err>  { <sym>  <O('%loose_or, :pasttype<def_or>')> }
 
 grammar Perl6::Regex is Regex::P6Regex::Grammar {
     token metachar:sym<:my> { 

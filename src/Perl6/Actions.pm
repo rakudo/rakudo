@@ -31,7 +31,7 @@ sub block_immediate($block) {
 sub sigiltype($sigil) {
     $sigil eq '%' 
     ?? 'Hash' 
-    !! ($sigil eq '@' ?? 'ResizablePMCArray' !! 'Undef');
+    !! ($sigil eq '@' ?? 'ResizablePMCArray' !! 'Perl6Scalar');
 }
 
 method deflongname($/) {
@@ -275,8 +275,11 @@ method variable_declarator($/) {
     }
     else { 
         my $scope := $*SCOPE eq 'our' ?? 'package' !! 'lexical';
+        my $vivipast := PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
+        my $true := PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') );
+        $vivipast := PAST::Op.new( $vivipast, 'rw', $true, :pirop('setprop') );
         my $decl := PAST::Var.new( :name($name), :scope($scope), :isdecl(1), 
-                                   :lvalue(1), :viviself( sigiltype($sigil) ), 
+                                   :lvalue(1), :viviself($vivipast), 
                                    :node($/) );
         $BLOCK.symbol($name, :scope($scope) );
         $BLOCK[0].push($decl);

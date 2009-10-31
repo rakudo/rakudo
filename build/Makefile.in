@@ -74,6 +74,8 @@ CHEATS_PIR = \
 
 BUILTINS_PIR = \
   src/builtins/Object.pir \
+  src/builtins/Bool.pir \
+  src/builtins/assign.pir \
 
 # SETTING = \
 #   src/setting/traits.pm \

@@ -373,32 +373,12 @@ in the future.)
 
 .sub '!STORE' :method :subid('Object::!STORE')
     .param pmc source
-    .param string typeerr      :optional
-    .param int has_typeerr     :opt_flag
-    source = '!CALLMETHOD'('Scalar', source)
-    $I0 = defined source
-    unless $I0 goto do_store
-    .local pmc type
-    getprop type, 'type', self
-    if null type goto do_store
-    $I0 = isa type, 'NameSpace'
-    if $I0 goto do_store
-    $I0 = type.'ACCEPTS'(source)
-    unless $I0 goto err_type
-  do_store:
     source = deobjectref source
     eq_addr self, source, store_done
     copy self, source
-    .fixup_cloned_sub(source, self)
+    # .fixup_cloned_sub(source, self)
   store_done:
     .return (self)
-
-  err_type:
-    if has_typeerr goto have_typeerr
-    typeerr = 'Assignment'
-  have_typeerr:
-    $S0 = '!make_type_fail_message'(typeerr, source, type)
-    'die'($S0)
 .end
 
 

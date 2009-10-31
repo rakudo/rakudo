@@ -29,7 +29,9 @@ Perl6::Compiler - Perl6 compiler
     objproto = $P0.'new_class'('Perl6Object', 'name'=>'Object')
     p6meta = objproto.'HOW'()
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
-    set_hll_global '$!OBJECTREF', objproto
+
+    $P0 = new ['Perl6Object']
+    set_hll_global '$!OBJECTREF', $P0
 
     ## Bring in PAST, PCT, HLL, and NQP namespaces from parrot hllns
     .local pmc hllns, parrotns, imports

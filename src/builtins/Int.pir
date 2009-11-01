@@ -4,11 +4,9 @@
 
 Int - Perl 6 integers
 
-=head1 SUBROUTINES
+=head2 Methods
 
 =over 4
-
-=item onload
 
 =cut
 
@@ -22,18 +20,6 @@ Int - Perl 6 integers
     p6meta.'register'('BigInt', 'parent'=>intproto, 'protoobject'=>intproto)
 .end
 
-
-=item Scalar
-
-This is a value type, so just returns its dereferenced self.
-
-=cut
-
-.sub 'Scalar' :method
-    .return (self)
-.end
-
-
 =item ACCEPTS()
 
 =cut
@@ -42,8 +28,6 @@ This is a value type, so just returns its dereferenced self.
     .param num topic
     .tailcall 'infix:=='(topic, self)
 .end
-
-
 
 =item perl()
 
@@ -87,19 +71,41 @@ Returns the identify value.
     .return ($I0)
 .end
 
+=back
 
-=item infix:===
+=head2 Operators
+
+=over 4
+
+=item &infix:<===>
 
 Overridden for Int.
 
 =cut
 
 .namespace []
-.sub 'infix:===' :multi(Integer,Integer)
+.sub '&infix:<===>' :multi(Integer,Integer)
     .param int a
     .param int b
     $I0 = iseq a, b
-    .tailcall 'prefix:?'($I0)
+    .return ($I0)
+    # .tailcall 'prefix:?'($I0)
+.end
+
+=back
+
+=head2 Private methods
+
+=over 4
+
+=item !FETCH()
+
+Value type, so return self.
+
+=cut
+
+.sub '!FETCH' :method
+    .return (self)
 .end
 
 =back

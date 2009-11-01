@@ -10,9 +10,22 @@ src/classes/Positional.pir - Positional Role
 
 .namespace ['Positional[::T]']
 
-.sub '_positional_role_body'
+.sub '' :load :init
+    # Create a parametric role with 1 possible candidate.
+    .local pmc role
+    .const 'Sub' $P0 = '_positional_role_body'
+    role = new ['Perl6Role']
+    role.'!add_variant'($P0)
+    set_hll_global 'Positional', role
+.end
+
+
+# This defines the body of the role, which is run per type the role is
+# parameterized with.
+.sub '' :anon :subid('_positional_role_body')
     .param pmc type :optional
 
+    # Need to capture the methods that belong in this role.
     .const 'Sub' $P0 = 'Positional::postcircumfix:[Int]'
     capture_lex $P0
     .const 'Sub' $P1 = 'Positional::of'
@@ -28,18 +41,16 @@ src/classes/Positional.pir - Positional Role
     .lex 'T', type
 
     # Create role.
-    .local pmc metarole
-    metarole = "!meta_create"("role", "Positional[::T]", 0)
-    .tailcall '!create_parametric_role'(metarole)
+    .tailcall '!create_parametric_role'("Positional[::T]")
 .end
 .sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Positional[::T]'], '_positional_role_body'
+    .const 'Sub' $P0 = '_positional_role_body'
+    block = $P0
     signature = allocate_signature 1
     setprop block, "$!signature", signature
     null $P1
     set_signature_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1
-    "!ADDTOROLE"(block)
 .end
 
 

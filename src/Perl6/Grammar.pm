@@ -8,6 +8,7 @@ method TOP() {
     %*LANG<MAIN>          := Perl6::Grammar;
     %*LANG<MAIN-actions>  := Perl6::Actions;
     my $*SCOPE := '';
+    my $*MULTINESS := '';
     self.comp_unit;
 }
 
@@ -258,8 +259,7 @@ token routine_declarator:sym<method> { <sym> <method_def> }
 rule routine_def {
     <deflongname>?
     <.newpad>
-    [ '(' <signature> ')'
-        || <.panic: 'Routine declaration requires a signature'> ]
+    [ '(' <signature> ')' ]?
     <blockoid>
 }
 

@@ -4,7 +4,7 @@ use Time::HiRes qw( gettimeofday tv_interval );
 
 my %benchmarks = (
 # The Hello World benchmark mostly exists to benchmark our start-up time.
-"01 - hello world" => q{;
+"01 - hello world" => q{
     "Hello, world!"; # don't say, don't want output from benchmarks
 },
 

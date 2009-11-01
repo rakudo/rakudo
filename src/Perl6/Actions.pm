@@ -306,16 +306,59 @@ method routine_def($/) {
     my $past := $<blockoid>.ast;
     $past.blocktype('declaration');
     $past.control('return_pir');
-    add_signature($past, $<signature>.ast);
+    add_signature($past, $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new());
     if $<deflongname> {
-        my $name := ~$<deflongname>[0].ast;
+        # Set name.
+        my $name := '&' ~ ~$<deflongname>[0].ast;
         $past.name($name);
+        $past.nsentry($*SCOPE eq 'our' ?? $name !! '');
+
+        # Handle multi-ness, if any.
+        my $symbol := @BLOCK[0].symbol($name);
+        if $*MULTINESS eq 'only' {
+            if $symbol {
+                $/.CURSOR.panic('Can not declare only routine ' ~ $name ~
+                    ' when another routine with this name was already declared');
+            }
+        }
+        elsif $*MULTINESS || ($symbol && $symbol<multis>) {
+            # If no multi declarator and no proto, error.
+            if !$*MULTINESS && !$symbol<proto> {
+                $/.CURSOR.panic('Can not re-declare sub ' ~ $name ~ ' without declaring it multi');
+            }
+
+            # If it's a proto, stash it away in the symbol entry.
+            if $*MULTINESS eq 'proto' { @BLOCK[0].symbol($name, :proto($past)) }
+
+            # Otherwise, create multi container if we don't have one; otherwise,
+            # just push this candidate onto it.
+            if $symbol<multis> {
+                $symbol<multis>.push($past);
+                $past := 0;
+            }
+            else {
+                $past := PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('set_candidates'),
+                    PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
+                    $past
+                );
+                @BLOCK[0].symbol($name, :multis($past))
+            }
+        }
+
+        # Install in lexical scope if it's not package scoped.
         if $*SCOPE ne 'our' {
-            @BLOCK[0][0].push(PAST::Var.new( :name($name), :isdecl(1), 
-                                  :viviself($past), :scope('lexical') ) );
-            @BLOCK[0].symbol($name, :scope('lexical') );
+            if $past {
+                @BLOCK[0][0].push(PAST::Var.new( :name($name), :isdecl(1), 
+                                      :viviself($past), :scope('lexical') ) );
+                @BLOCK[0].symbol($name, :scope('lexical') );
+            }
             $past := PAST::Var.new( :name($name) );
         }
+    }
+    elsif $*MULTINESS {
+        $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     make $past;
 }
@@ -332,6 +375,9 @@ method method_def($/) {
         my $name := ~$<deflongname>[0].ast;
         $past.name($name);
     }
+    elsif $*MULTINESS {
+        $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
+    }
     make $past;
 }
 
@@ -339,7 +385,9 @@ method method_def($/) {
 method signature($/) {
     my $signature := Perl6::Compiler::Signature.new();
     for $<parameter> {
-        $signature.add_parameter($_.ast);
+        my $param := $_.ast;
+        $param.multi_invocant(1);
+        $signature.add_parameter($param);
     }
     make $signature;
 }

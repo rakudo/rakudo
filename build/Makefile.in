@@ -78,6 +78,7 @@ BUILTINS_PIR = \
 CHEATS_PIR = \
   src/cheats/print-say.pir \
   src/cheats/relops.pir \
+  src/cheats/mathops.pir \
   src/cheats/parrot-attriter.pir \
 
 # SETTING = \

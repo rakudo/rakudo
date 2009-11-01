@@ -26,6 +26,34 @@ src/builtins/assign.pir - assignment operations
     .tailcall cont.$P0(source)
 .end
 
+
+.sub '!gen_assign_metaop'
+    .param string sym
+    .local string opname, metaname
+    $S0 = concat '&infix:<', sym
+    opname = concat $S0, '>'
+    metaname = concat $S0, '=>'
+    $P0 = get_global metaname
+    unless null $P0 goto done
+    $P1 = box opname
+    .lex '$opname', $P1
+    .const 'Sub' metasub = '!assign_metaop'
+    $P0 = newclosure metasub
+    set_global metaname, $P0
+  done:
+.end
+
+# XXX -- we might want this to be a Perl6MultiSub
+.sub '!assign_metaop' :anon :outer('!gen_assign_metaop')
+    .param pmc a
+    .param pmc b
+    $P0 = find_lex '$opname'
+    $S0 = $P0
+    $P0 = get_global $S0
+    $P1 = $P0(a, b)
+    .tailcall '&infix:<=>'(a, $P1)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

@@ -569,6 +569,21 @@ method circumfix:sym<sigil>($/) {
 
 method semilist($/) { make $<statement>.ast }
 
+method infixish($/) {
+    if $<infix_postfix_meta_operator> {
+        my $sym := ~$<infix><sym>;
+        my $opsub := "&infix:<$sym=>";
+        unless %*METAOPGEN{$opsub} {
+            @BLOCK[0].loadinit.push(
+                PAST::Op.new( :name('!gen_assign_metaop'), $sym, 
+                              :pasttype('call') )
+            );
+            %*METAOPGEN{$opsub} := 1;
+        }
+        make PAST::Op.new( :name($opsub), :pasttype('call') );
+    }
+}
+
 method postcircumfix:sym<[ ]>($/) {
     make PAST::Var.new( $<EXPR>.ast , :scope('keyed_int'),
                         :viviself('Undef'),

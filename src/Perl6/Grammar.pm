@@ -60,7 +60,8 @@ token ENDSTMT {
 
 ## Top-level rules
 
-token comp_unit { 
+token comp_unit {
+    :my %*METAOPGEN;                           # hash of generated metaops
     <.newpad>
     <statementlist> 
     [ $ || <.panic: 'Confused'> ] 
@@ -512,7 +513,7 @@ token prefix:sym<-->  { <sym>  <O('%autoincrement, :pirop<dec>')> }
 token postfix:sym<++> { <sym>  <O('%autoincrement')> }
 token postfix:sym<--> { <sym>  <O('%autoincrement')> }
 
-token infix:sym<**>   { <sym>  <O('%exponentiation, :pirop<pow>')> }
+token infix:sym<**>   { <sym>  <O('%exponentiation')> }
 
 token prefix:sym<+>   { <sym>  <O('%symbolic_unary, :pirop<set N*>')> }
 token prefix:sym<~>   { <sym>  <O('%symbolic_unary, :pirop<set S*>')> }
@@ -521,17 +522,17 @@ token prefix:sym<?>   { <sym>  <O('%symbolic_unary, :pirop<istrue>')> }
 token prefix:sym<!>   { <sym>  <O('%symbolic_unary, :pirop<isfalse>')> }
 token prefix:sym<+^>  { <sym>  <O('%symbolic_unary, :pirop<bnot>')> }
 
-token infix:sym<*>    { <sym>  <O('%multiplicative, :pirop<mul>')> }
-token infix:sym</>    { <sym>  <O('%multiplicative, :pirop<div>')> }
-token infix:sym<%>    { <sym>  <O('%multiplicative, :pirop<mod>')> }
-token infix:sym<+&>   { <sym>  <O('%additive, :pirop<band>')> }
+token infix:sym<*>    { <sym>  <O('%multiplicative')> }
+token infix:sym</>    { <sym>  <O('%multiplicative')> }
+token infix:sym<%>    { <sym>  <O('%multiplicative')> }
+token infix:sym<+&>   { <sym>  <O('%additive')> }
 
-token infix:sym<+>    { <sym>  <O('%additive, :pirop<add>')> }
-token infix:sym<->    { <sym>  <O('%additive, :pirop<sub>')> }
-token infix:sym<+|>   { <sym>  <O('%additive, :pirop<bor>')> }
-token infix:sym<+^>   { <sym>  <O('%additive, :pirop<bxor>')> }
-token infix:sym«+<»   { <sym>  <O('%additive, :pirop<shl>')> }
-token infix:sym«+>»   { <sym>  <O('%additive, :pirop<shr>')> }
+token infix:sym<+>    { <sym>  <O('%additive')> }
+token infix:sym<->    { <sym>  <O('%additive')> }
+token infix:sym<+|>   { <sym>  <O('%additive')> }
+token infix:sym<+^>   { <sym>  <O('%additive')> }
+token infix:sym«+<»   { <sym>  <O('%additive')> }
+token infix:sym«+>»   { <sym>  <O('%additive')> }
 
 token infix:sym<~>    { <sym>  <O('%concatenation , :pirop<concat>')> }
 

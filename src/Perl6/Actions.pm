@@ -186,6 +186,8 @@ method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
 
+method name($/) { }
+
 method colonpair($/) {
     my $past := $<circumfix> 
                 ?? $<circumfix>[0].ast 
@@ -242,7 +244,7 @@ method package_declarator:sym<class>($/) {
 
 method package_def($/) {
     my $past := $<pblock> ?? $<pblock>.ast !! $<comp_unit>.ast;
-    $past.namespace( $<name><identifier> );
+    $past.namespace( Perl6::Grammar::parse_name(~$<name>) );
     $past.blocktype('immediate');
     make $past;
 }
@@ -543,7 +545,7 @@ method term:sym<identifier>($/) {
 }
 
 method term:sym<name>($/) {
-    my $ns := $<name><identifier>;
+    my $ns := Perl6::Grammar::parse_name(~$<name>);
     $ns := Q:PIR { 
                $P0 = find_lex '$ns'
                %r = clone $P0
@@ -665,7 +667,7 @@ method value($/) {
 }
 
 method typename($/) {
-    my @name := Perl6::Compiler::parse_name($<longname>.Str);
+    my @name := Perl6::Grammar::parse_name($<longname>.Str);
     my $past := PAST::Var.new(
         :name(@name.pop),
         :namespace(@name),

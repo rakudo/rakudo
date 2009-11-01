@@ -72,10 +72,14 @@ The canonical operator for creating a Parcel.
 .namespace []
 .sub '&infix:<,>'
     .param pmc args            :slurpy
-    # Recast the arguments into a Parcel object, and we're done!
-    $P0 = new ['Parcel']
-    splice $P0, args, 0, 0
-    .return ($P0)
+    # Recast the arguments into a Parcel object
+    .local pmc parcel
+    parcel = new ['Parcel']
+    splice parcel, args, 0, 0
+    # mark the Parcel as a flattening object
+    $P0 = get_hll_global ['Bool'], 'True'
+    setprop parcel, 'flatten', $P0
+    .return (parcel)
 .end
 
 =back
@@ -93,6 +97,20 @@ Retrieve a value for storage.
 .namespace ['Parcel']
 .sub '!FETCH' :method
     .tailcall self.'item'()
+.end
+
+=item !generate(n)
+
+Parcels don't really need to know about laziness, they
+can just return their list of elements and let the caller
+take care of things.
+
+=cut
+
+.namespace ['Parcel']
+.sub '!generate' :method
+    .param int n               :optional
+    .return (self)
 .end
 
 =cut

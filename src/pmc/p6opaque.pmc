@@ -287,10 +287,10 @@ back some kind of iterator to let us get all of the possible candidates.
 
 */
     VTABLE PMC *find_method(STRING *name) {
-        Parrot_Object_attributes * const obj    = PARROT_OBJECT(SELF);
-        Parrot_Class_attributes  * const _class = PARROT_CLASS(obj->_class);
-        INTVAL                           pos    = 0;
-        PMC                      *       method;
+        Parrot_Object_attributes * obj    = PARROT_OBJECT(SELF);
+        Parrot_Class_attributes  * _class = PARROT_CLASS(obj->_class);
+        INTVAL                     pos    = 0;
+        PMC                      * method;
 
         /* If it's a parcel, need to .item it. */
         if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Parcel"))) {
@@ -302,6 +302,10 @@ back some kind of iterator to let us get all of the possible candidates.
             ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
             itemizer = Parrot_find_global_n(interp, ns, CONST_STRING(interp, "!parcel_item"));
             Parrot_ext_call(interp, itemizer, "P", SELF);
+
+            /* SELF updated, re-fetch info about the object. */
+            obj    = PARROT_OBJECT(SELF);
+            _class = PARROT_CLASS(obj->_class);
         }
 
         /* If we're calling a method on Whatever, we need to generate a closure

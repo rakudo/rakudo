@@ -629,6 +629,7 @@ token infix:sym«ge»   { <sym>  <O('%chaining')> }
 token infix:sym«lt»   { <sym>  <O('%chaining')> }
 token infix:sym«gt»   { <sym>  <O('%chaining')> }
 token infix:sym«=:=»  { <sym>  <O('%chaining')> }
+token infix:sym<eqv>  { <sym>  <O('%chaining')> }
 
 token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 

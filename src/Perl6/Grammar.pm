@@ -515,6 +515,7 @@ INIT {
     Perl6::Grammar.O(':prec<v=>, :assoc<unary>', '%symbolic_unary');
     Perl6::Grammar.O(':prec<u=>, :assoc<left>',  '%multiplicative');
     Perl6::Grammar.O(':prec<t=>, :assoc<left>',  '%additive');
+    Perl6::Grammar.O(':prec<s=>, :assoc<left>',  '%replication');
     Perl6::Grammar.O(':prec<r=>, :assoc<left>',  '%concatenation');
     Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
     Perl6::Grammar.O(':prec<m=>, :assoc<left>, :pasttype<chain>',  '%chaining');
@@ -564,17 +565,15 @@ token postcircumfix:sym<( )> {
 
 token postfix:sym<.>  { <dotty> <O('%methodop')> }
 
-token prefix:sym<++>  { <sym>  <O('%autoincrement, :pirop<inc>')> }
-token prefix:sym<-->  { <sym>  <O('%autoincrement, :pirop<dec>')> }
-
-# see Actions.pm for postfix:<++> and postfix:<-->
+token prefix:sym<++>  { <sym>  <O('%autoincrement')> }
+token prefix:sym<-->  { <sym>  <O('%autoincrement')> }
 token postfix:sym<++> { <sym>  <O('%autoincrement')> }
 token postfix:sym<--> { <sym>  <O('%autoincrement')> }
 
 token infix:sym<**>   { <sym>  <O('%exponentiation')> }
 
 token prefix:sym<+>   { <sym>  <O('%symbolic_unary, :pirop<set N*>')> }
-token prefix:sym<~>   { <sym>  <O('%symbolic_unary, :pirop<set S*>')> }
+token prefix:sym<~>   { <sym>  <O('%symbolic_unary')> }
 token prefix:sym<->   { <sym>  <O('%symbolic_unary, :pirop<neg>')> }
 token prefix:sym<?>   { <sym>  <O('%symbolic_unary, :pirop<istrue>')> }
 token prefix:sym<!>   { <sym>  <O('%symbolic_unary, :pirop<isfalse>')> }
@@ -583,14 +582,19 @@ token prefix:sym<+^>  { <sym>  <O('%symbolic_unary, :pirop<bnot>')> }
 token infix:sym<*>    { <sym>  <O('%multiplicative')> }
 token infix:sym</>    { <sym>  <O('%multiplicative')> }
 token infix:sym<%>    { <sym>  <O('%multiplicative')> }
-token infix:sym<+&>   { <sym>  <O('%additive')> }
+token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
+token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
 
 token infix:sym<+>    { <sym>  <O('%additive')> }
 token infix:sym<->    { <sym>  <O('%additive')> }
 token infix:sym<+|>   { <sym>  <O('%additive')> }
 token infix:sym<+^>   { <sym>  <O('%additive')> }
+token infix:sym<~|>   { <sym>  <O('%additive')> }
+token infix:sym<~^>   { <sym>  <O('%additive')> }
 token infix:sym«+<»   { <sym>  <O('%additive')> }
 token infix:sym«+>»   { <sym>  <O('%additive')> }
+
+token infix:sym<x>    { <sym>  <O('%replication')> }
 
 token infix:sym<~>    { <sym>  <O('%concatenation , :pirop<concat>')> }
 

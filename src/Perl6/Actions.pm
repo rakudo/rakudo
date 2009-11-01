@@ -751,18 +751,6 @@ method nulltermish($/) {
 
 method postfix:sym<.>($/) { make $<dotty>.ast; }
 
-method postfix:sym<++>($/) {
-    make PAST::Op.new( :name('postfix:<++>'),
-                       :inline('    clone %r, %0', '    inc %0'),
-                       :pasttype('inline') );
-}
-
-method postfix:sym<-->($/) {
-    make PAST::Op.new( :name('postfix:<-->'),
-                       :inline('    clone %r, %0', '    dec %0'),
-                       :pasttype('inline') );
-}
-
 
 class Perl6::RegexActions is Regex::P6Regex::Actions {
 

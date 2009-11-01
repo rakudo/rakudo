@@ -83,11 +83,13 @@ BUILTINS_PIR = \
 
 # Make sure parrot cheats are last in this list
 CHEATS_PIR = \
+  src/cheats/autoincrement.pir \
   src/cheats/fail.pir \
   src/cheats/postcircumfix-array.pir \
   src/cheats/print-say.pir \
+  src/cheats/num-ops.pir \
+  src/cheats/str-ops.pir \
   src/cheats/relops.pir \
-  src/cheats/mathops.pir \
   src/cheats/parrot-attriter.pir \
 
 # SETTING = \

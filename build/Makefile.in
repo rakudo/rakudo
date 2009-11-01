@@ -64,6 +64,7 @@ SOURCES = \
   src/gen/cheats.pir \
   src/gen/signature_pm.pir \
   src/gen/parameter_pm.pir \
+  src/gen/package_pm.pir \
   $(PERL6_G) \
   $(PERL6_A) \
   $(DYNEXT_TARGET)
@@ -204,6 +205,10 @@ src/gen/signature_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Signature.pm
 src/gen/parameter_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Parameter.pm
 	$(NQP_EXE) --output=src/gen/parameter_pm.pir --encoding=utf8 \
 	    --target=pir src/Perl6/Compiler/Parameter.pm
+
+src/gen/package_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Package.pm
+	$(NQP_EXE) --output=src/gen/package_pm.pir --encoding=utf8 \
+	    --target=pir src/Perl6/Compiler/Package.pm
 
 src/gen/cheats.pir: build/gen_cheats_pir.pl $(CHEATS_PIR)
 	$(PERL) build/gen_cheats_pir.pl $(CHEATS_PIR) > src/gen/cheats.pir

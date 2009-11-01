@@ -14,8 +14,6 @@ our $num_of_tests_planned;
 our $no_plan = 1;
 our $die_on_fail;
 
-our $GLOBAL::WARNINGS = 0;
-
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
 ## plans and don't call done_testing.
@@ -31,9 +29,9 @@ sub die_on_fail($fail=1) {
 
 # "plan 'no_plan';" is now "plan *;"
 # It is also the default if nobody calls plan at all
-multi sub plan(Whatever $plan) is export(:DEFAULT) {
-    $no_plan = 1;
-}
+# multi sub plan(Whatever $plan) is export(:DEFAULT) {
+#     $no_plan = 1;
+# }
 
 multi sub plan($number_of_tests) is export(:DEFAULT) {
     $num_of_tests_planned = $number_of_tests;
@@ -84,7 +82,7 @@ multi sub isnt(Object $got, Object $expected, $desc) is export(:DEFAULT) {
 multi sub isnt(Object $got, Object $expected) is export(:DEFAULT) { isnt($got, $expected, ''); }
 
 multi sub is_approx(Object $got, Object $expected, $desc) is export(:DEFAULT) {
-    my $test = ($got - $expected).abs <= 0.00001;
+    my $test = ($got - $expected).abs <= 1/100000;
     proclaim(?$test, $desc);
 }
 
@@ -105,9 +103,8 @@ multi sub todo($reason) is export(:DEFAULT) {
 multi sub skip()                is export(:DEFAULT) { proclaim(1, "# SKIP"); }
 multi sub skip($reason)         is export(:DEFAULT) { proclaim(1, "# SKIP " ~ $reason); }
 multi sub skip($count, $reason) is export(:DEFAULT) {
-    for 1..$count {
-        proclaim(1, "# SKIP " ~ $reason);
-    }
+    my $i = 1;
+    while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
 }
 
 multi sub skip_rest() is export(:DEFAULT) {
@@ -129,35 +126,35 @@ multi sub isa_ok(Object $var,$type) is export(:DEFAULT) {
 }
 multi sub isa_ok(Object $var,$type, $msg) is export(:DEFAULT) { ok($var.isa($type), $msg); }
 
-multi sub dies_ok(Callable $closure, $reason) is export(:DEFAULT) {
+multi sub dies_ok($closure, $reason) is export(:DEFAULT) {
     try {
         $closure();
     }
-    if "$!" ~~ / ^ 'Null PMC access ' / {
-        diag "wrong way to die: '$!'";
-    }
-    proclaim((defined $! && "$!" !~~ / ^ 'Null PMC access ' /), $reason);
+    #if "$!" ~~ / ^ 'Null PMC access ' / {
+    #    diag "wrong way to die: '$!'";
+    #}
+    #proclaim((defined $! && "$!" !~~ / ^ 'Null PMC access ' /), $reason);
 }
-multi sub dies_ok(Callable $closure) is export(:DEFAULT) {
+multi sub dies_ok($closure) is export(:DEFAULT) {
     dies_ok($closure, '');
 }
 
-multi sub lives_ok(Callable $closure, $reason) is export(:DEFAULT) {
+multi sub lives_ok($closure, $reason) is export(:DEFAULT) {
     try {
         $closure();
     }
     proclaim((not defined $!), $reason);
 }
-multi sub lives_ok(Callable $closure) is export(:DEFAULT) {
+multi sub lives_ok($closure) is export(:DEFAULT) {
     lives_ok($closure, '');
 }
 
 multi sub eval_dies_ok(Str $code, $reason) is export(:DEFAULT) {
     my $ee = eval_exception($code);
-    if "$ee" ~~ / ^ 'Null PMC access ' / {
-        diag "wrong way to die: '$ee'";
-    }
-    proclaim((defined $ee && "$ee" !~~ / ^ 'Null PMC access' /), $reason);
+    #if "$ee" ~~ / ^ 'Null PMC access ' / {
+    #    diag "wrong way to die: '$ee'";
+    #}
+    #proclaim((defined $ee && "$ee" !~~ / ^ 'Null PMC access' /), $reason);
 }
 multi sub eval_dies_ok(Str $code) is export(:DEFAULT) {
     eval_dies_ok($code, '');

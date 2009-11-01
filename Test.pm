@@ -184,37 +184,7 @@ multi sub is_deeply(Object $got, Object $expected, $reason = '')
 }
 
 sub _is_deeply(Object $got, Object $expected) {
-
-    if $got ~~ List && $expected ~~ List {
-        return if +$got.values != +$expected.values;
-        for $got Z $expected -> $a, $b {
-            return if ! _is_deeply( $a, $b );
-        }
-        return True;
-    }
-    elsif $got ~~ Hash && $expected ~~ Hash {
-        return if +$got.keys != +$expected.keys;
-        for $got.keys.sort Z $expected.keys.sort -> $a, $b {
-            return if $a ne $b;
-            return if ! _is_deeply( $got{$a}, $expected{$b} );
-        }
-        return True;
-    }
-    elsif $got ~~ Str | Num | Int && $expected ~~ Str | Num | Int {
-        return $got eq $expected;
-    }
-    elsif $got ~~ Pair && $expected ~~ Pair {
-        return $got.key eq $expected.key
-               && _is_deeply( $got.value, $expected.value );
-    }
-    elsif $got ~~ undef && $expected ~~ undef && $got.WHAT eq $expected.WHAT {
-        return True;
-    }
-    elsif $got ~~ Bool && $expected ~~ Bool {
-        return ($got && $expected) || (!$got && !$expected);
-    }
-
-    return;
+    $got eqv $expected;
 }
 
 
@@ -245,7 +215,7 @@ sub proclaim($cond, $desc) {
     }
     # must clear this between tests
     $todo_reason = '' if $todo_upto_test_num == $num_of_tests_run;
-    return $cond;
+    $cond;
 }
 
 sub done_testing() is export(:DEFAULT) {

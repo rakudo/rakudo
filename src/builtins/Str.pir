@@ -7,7 +7,7 @@ Str - Perl 6 Str class and related functions
 This file sets up the C<Perl6Str> PMC type (from F<src/pmc/perl6str.pmc>)
 as the Perl 6 C<Str> class.
 
-=head1 Methods
+=head2 Methods
 
 =over 4
 
@@ -21,18 +21,14 @@ as the Perl 6 C<Str> class.
     .local pmc p6meta, strproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     strproto = p6meta.'new_class'('Str', 'parent'=>'parrot;Perl6Str Any')
-    strproto.'!IMMUTABLE'()
     p6meta.'register'('Perl6Str', 'parent'=>strproto, 'protoobject'=>strproto)
     p6meta.'register'('String', 'parent'=>strproto, 'protoobject'=>strproto)
-
-    $P0 = get_hll_namespace ['Str']
-    '!EXPORT'('sprintf', 'from'=>$P0)
 .end
 
 
 .sub 'ACCEPTS' :method
     .param string topic
-    .tailcall 'infix:eq'(topic, self)
+    .tailcall '&infix:<eq>'(topic, self)
 .end
 
 
@@ -75,23 +71,6 @@ Returns a Perl representation of the Str.
     .return (result)
 .end
 
-
-=item sprintf( *@args )
-
-=cut
-
-.sub 'sprintf' :method
-    .param pmc args            :slurpy
-    args.'!flatten'()
-    $P0 = new ['Str']
-    push_eh args_fail
-    sprintf $P0, self, args
-    pop_eh
-    .return ($P0)
-  args_fail:
-    pop_eh
-    .tailcall '!FAIL'('Insufficient arguments supplied to sprintf')
-.end
 
 =item succ and pred
 
@@ -243,66 +222,24 @@ Returns the identify value.
 
 =back
 
-=head1 Functions
+=head2 Functions
 
 =over 4
 
-=cut
-
-.namespace []
-
-.include 'cclass.pasm'
-
-
-=item infix:===
+=item &infix:<===>
 
 Overridden for Str.
 
 =cut
 
 .namespace []
-.sub 'infix:===' :multi(String,String)
+.sub '&infix:<===>' :multi(String,String)
     .param string a
     .param string b
     $I0 = iseq a, b
     .tailcall 'prefix:?'($I0)
 .end
 
-
-=back
-
-=head2 TODO Functions
-
-=over 4
-
-=item length
-
-This word is banned in Perl 6.  You must specify units.
-
-=item index
-
-Needs to be in terms of StrPos, not Int.
-
-=item pack
-
-=item quotemeta
-
-=item rindex
-
-Needs to be in terms of StrPos, not Int.
-
-=item sprintf
-
-=item unpack
-
-=item vec
-
-Should replace vec with declared arrays of bit, uint2, uint4, etc.
-
-=item words
-
- our List multi Str::words ( Rule $matcher = /\S+/,  Str $input = $+_, Int $limit = inf )
- our List multi Str::words ( Str $input : Rule $matcher = /\S+/, Int $limit = inf )
 
 =back
 

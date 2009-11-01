@@ -12,6 +12,18 @@ This implements the parametric role Callable[::T = Object].
 
 .namespace ['Callable[::T]']
 
+.sub '' :load :init
+    # Create a parametric role with 1 possible candidate.
+    .local pmc role
+    .const 'Sub' $P0 = '_callable_role_body'
+    role = new ['Perl6Role']
+    role.'!add_variant'($P0)
+    set_hll_global 'Callable', role
+.end
+
+
+# This defines the body of the role, which is run per type the role is
+# parameterized with.
 .sub '_callable_role_body'
     .param pmc type :optional
 
@@ -32,9 +44,7 @@ This implements the parametric role Callable[::T = Object].
     # Create role.
     .const 'Sub' $P0 = 'callable_of'
     capture_lex $P0
-    .local pmc metarole
-    metarole = "!meta_create"("role", "Callable[::T]", 0)
-    .tailcall '!create_parametric_role'(metarole)
+    .tailcall '!create_parametric_role'("Callable[::T]")
 .end
 .sub '' :load :init
     .local pmc block, signature
@@ -43,7 +53,6 @@ This implements the parametric role Callable[::T = Object].
     setprop block, "$!signature", signature
     null $P1
     set_signature_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1
-    "!ADDTOROLE"(block)
 .end
 
 

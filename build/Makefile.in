@@ -80,6 +80,7 @@ BUILTINS_PIR = \
   src/builtins/Int.pir \
   src/builtins/Num.pir \
   src/builtins/Str.pir \
+  src/builtins/Callable.pir \
   src/builtins/Positional.pir \
   src/builtins/Parcel.pir \
   src/builtins/List.pir \

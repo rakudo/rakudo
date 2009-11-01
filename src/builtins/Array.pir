@@ -45,6 +45,22 @@ Arrays are the mutable form of Lists.
 
 =back
 
+=head2 Operators
+
+=over 4
+
+=item &circumfix:<[ ]>()
+
+=cut
+
+.namespace []
+.sub '&circumfix:<[ ]>' 
+    .param pmc values            :slurpy
+    $P0 = new ['Array']
+    setattribute $P0, '$!values', values
+    .return ($P0)
+.end
+
 =head2 Private methods
 
 =over 4
@@ -53,13 +69,13 @@ Arrays are the mutable form of Lists.
 
 =cut
 
+.namespace ['Array']
 .sub '!STORE' :method
     .param pmc source
     .local pmc values, source, source_it, true
     values = root_new ['parrot';'ResizablePMCArray']
     true = get_hll_global ['Bool'], 'True'
-    source = '&infix:<,>'(source)
-    source = source.'list'()
+    source = '&list'(source)
     source_it = iter source
   array_loop:
     unless source_it goto array_done

@@ -7,7 +7,7 @@ Parcel - Perl 6 Parcel class
 This file implements Parcels, which holds a sequence of
 elements and can be flattened into Captures or Lists.
 
-=head2 Methods
+=head2 Private functions
 
 =over 4
 
@@ -18,25 +18,31 @@ elements and can be flattened into Captures or Lists.
     .local pmc p6meta, parcelproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Any')
-    p6meta.'register'('ResizablePMCArray', 'parent'=>parcelproto, 'protoobject'=>parcelproto)
 .end
 
-=item item()
+.sub 'list' :method
+    '!parcel_item'(self)
+    .tailcall self.'list'()
+.end
+
+=item !parcel_item(parcel)
 
 Return the Parcel in item context.
 
 =cut
 
-.sub 'item' :method
-    $I0 = elements self
+.namespace ['Parcel']
+.sub '!parcel_item'
+    .param pmc parcel
+    $I0 = elements parcel
     if $I0 != 1 goto return_list
-    $P0 = self[0]
+    $P0 = parcel[0]
     .return ($P0)
   return_list:
-    .tailcall self.'list'()
+    .tailcall '!parcel_list'(parcel)
 .end
  
-=item list()
+=item !parcel_list(parcel)
 
 Return the Parcel in list context -- i.e., convert it
 to a List.
@@ -44,15 +50,17 @@ to a List.
 =cut
 
 .namespace ['Parcel']
-.sub 'list' :method
+.sub '!parcel_list'
+    .param pmc parcel
     .local pmc values, list, gen
-    values = clone self
+    values = root_new ['parrot';'ResizablePMCArray']
+    splice values, parcel, 0, 0
     list = new ['List']
-    copy self, list
-    setattribute self, '$!values', values
+    copy parcel, list
+    setattribute parcel, '$!values', values
     gen = box 0
-    setattribute self, '$!gen', gen
-    .return (self)
+    setattribute parcel, '$!gen', gen
+    .return (parcel)
 .end
    
 =back
@@ -73,8 +81,9 @@ The canonical operator for creating a Parcel.
     # Recast the arguments into a Parcel object
     .local pmc parcel
     parcel = new ['Parcel']
+    transform_to_p6opaque parcel
     splice parcel, args, 0, 0
-    # mark the Parcel as a flattening object
+    # mark the Parcel as flattening objects
     $P0 = get_hll_global ['Bool'], 'True'
     setprop parcel, 'flatten', $P0
     .return (parcel)
@@ -94,24 +103,11 @@ Retrieve a value for storage.
 
 .namespace ['Parcel']
 .sub '!FETCH' :method
-    $P0 = self.'item'()
-    $P1 = root_new ['parrot';'Perl6Scalar'], $P0
-    .return ($P1)
+    $P0 = '!parcel_item'(self)
+    .tailcall $P0.'!FETCH'()
 .end
 
-=item !generate(n)
 
-Parcels don't really need to know about laziness, they
-can just return their list of elements and let the caller
-take care of things.
-
-=cut
-
-.namespace ['Parcel']
-.sub '!generate' :method
-    .param int n               :optional
-    .return (self)
-.end
 
 =cut
 

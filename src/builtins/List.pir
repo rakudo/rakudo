@@ -88,11 +88,53 @@ Return the number of elements in the list.
     .tailcall '!FAIL'('Index beyond end of List')
 .end
 
+=item Str()
+
+=cut
+
+.sub 'Str' :method
+    .local pmc values
+    values = self.'!generate'()
+    $S0 = join ' ', values
+    .return ($S0)
+.end
+
+=cut
+
+=head2 Functions
+
+=over 4
+
+=item &list(...)
+
+Creates a List from its arguments.
+
+=cut
+
+.namespace []
+.sub '&list'
+    .param pmc args            :slurpy
+    $P0 = new ['List']
+    setattribute $P0, '$!values', args
+    .return ($P0)
+.end
+
+
 =back
 
 =head2 Private methods
 
 =over 4
+
+=item !FETCH()
+
+=cut
+
+.namespace ['List']
+.sub '!FETCH' :method
+    $P0 = root_new ['parrot';'Perl6Scalar'], self
+    .return ($P0)
+.end
 
 =item !generator(int n)
 
@@ -103,6 +145,7 @@ generate the entire list.
 
 =cut
 
+.namespace ['List']
 .sub '!generate' :method
     .param int n               :optional
     .param int has_n           :opt_flag
@@ -132,8 +175,11 @@ generate the entire list.
     $P0 = getprop 'flatten', elem
     if null $P0 goto gen_next
     $I0 = n - gen_i
-    $P0 = elem.'!generate'($I0)
-    splice values, $P0, gen_i, 1
+    $I1 = isa elem, ['ResizablePMCArray']
+    if $I1 goto have_flat_elem
+    elem = elem.'!generate'($I0)
+  have_flat_elem:
+    splice values, elem, gen_i, 1
     goto gen_loop
   gen_next:
     inc gen

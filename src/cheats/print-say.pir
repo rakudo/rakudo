@@ -16,16 +16,14 @@ in the final Rakudo PBC, just in the PBC for perl6_s1.pbc.
 
 .sub '&say'
     .param pmc args :slurpy
-    $P0 = args.'list'()
-    $S0 = join '', $P0
+    $S0 = join '', args
     say $S0
     .return (1)
 .end
 
 .sub '&print'
     .param pmc args :slurpy
-    $P0 = args.'list'()
-    $S0 = join '', $P0
+    $S0 = join '', args
     print $S0
     .return (1)
 .end

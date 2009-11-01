@@ -317,6 +317,7 @@ rule routine_def {
     <deflongname>?
     <.newpad>
     [ '(' <signature> ')' ]?
+    <trait>*
     <blockoid>
 }
 
@@ -418,6 +419,20 @@ rule regex_declarator {
     ]
 }
 
+rule trait {
+    [
+    | <trait_mod>
+    | <colonpair>
+    ]
+}
+
+proto token trait_mod { <...> }
+
+token trait_mod:sym<is> {
+    <sym>:s <longname><circumfix>?
+}
+
+# XXX This should elsewhere in this file
 token dotty {
     '.' <identifier>
     [ 
@@ -425,7 +440,8 @@ token dotty {
     | ':' \s <args=arglist>
     ]?
 }
-    
+
+## Nouns    
 
 proto token term { <...> }
 
@@ -634,6 +650,8 @@ token infix:sym<?? !!> {
 token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
 
 token infix:sym<,>    { <sym>  <O('%comma')> }
+
+token infix:sym<Z>    { <sym>  <O('%list_infix')> }
 
 token infix:sym<=>    { <sym>  <O('%list_assignment')> }
 

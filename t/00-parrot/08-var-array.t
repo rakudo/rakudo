@@ -10,18 +10,18 @@ my @a = (1, 2, 3);
 
 say 'ok ' ~ @a[0];
 say 'ok ' ~ @a[1];
-say 'ok ' ~ @a[*-1];
-say 'ok 4' if 3 == @a.elems;
+say 'ok ' ~ @a[2];
+3 == @a.elems and say 'ok 4';
 
 my @b = <5 6>;
 
 say 'ok ' ~ @b[0];
-say 'ok ' ~ @b[*-1];
-say 'ok 7' if 2 == @b.elems;
+say 'ok ' ~ @b[1];
+2 == @b.elems and say 'ok 7';
 
 my @c = <ok 8>; say ~@c;
 
-say 'ok 9' if 2 == (1, 2).elems;
-say 'ok 10' if 3 == <a b c>.elems;
-say 'ok 11' if 3 == ['a', <2 three>].elems;
+2 == (1, 2).elems and say 'ok 9';
+3 == <a b c>.elems and say 'ok 10';
+3 == ['a', <2 three>].elems and say 'ok 11';
 

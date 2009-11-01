@@ -201,8 +201,9 @@ sub proclaim($cond, $desc) {
 
     unless $cond {
         print "not ";
-        $num_of_tests_failed = $num_of_tests_failed + 1
-            unless  $num_of_tests_run <= $todo_upto_test_num;
+        unless  $num_of_tests_run <= $todo_upto_test_num {
+            $num_of_tests_failed = $num_of_tests_failed + 1
+        }
     }
     print "ok ", $num_of_tests_run, " - ", $desc;
     if $todo_reason and $num_of_tests_run <= $todo_upto_test_num {
@@ -214,7 +215,7 @@ sub proclaim($cond, $desc) {
         die "Test failed.  Stopping test";
     }
     # must clear this between tests
-    $todo_reason = '' if $todo_upto_test_num == $num_of_tests_run;
+    if $todo_upto_test_num == $num_of_tests_run { $todo_reason = '' }
     $cond;
 }
 

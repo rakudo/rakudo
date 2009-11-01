@@ -373,7 +373,15 @@ in the future.)
 
 .sub '!STORE' :method :subid('Object::!STORE')
     .param pmc source
+    $I0 = can source, '!FETCH'
+    if $I0 goto source_fetch
     source = deobjectref source
+    source = new ['ObjectRef'], source
+    goto have_source
+  source_fetch:
+    source = source.'!FETCH'()
+    source = deobjectref source
+  have_source:
     eq_addr self, source, store_done
     copy self, source
     # .fixup_cloned_sub(source, self)

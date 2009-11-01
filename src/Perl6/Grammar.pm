@@ -571,7 +571,7 @@ token infix:sym<?? !!> {
 
 token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
 
-token infix:sym<,>    { <sym>  <O('%comma, :pasttype<list>')> }
+token infix:sym<,>    { <sym>  <O('%comma')> }
 
 token infix:sym<=>    { <sym>  <O('%list_assignment')> }
 

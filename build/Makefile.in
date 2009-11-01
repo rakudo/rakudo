@@ -72,10 +72,14 @@ BUILTINS_PIR = \
   src/builtins/Object.pir \
   src/builtins/Any.pir \
   src/builtins/Bool.pir \
+  src/builtins/Parcel.pir \
+  src/builtins/List.pir \
   src/builtins/assign.pir \
 
 # Make sure parrot cheats are last in this list
 CHEATS_PIR = \
+  src/cheats/fail.pir \
+  src/cheats/postcircumfix-array.pir \
   src/cheats/print-say.pir \
   src/cheats/relops.pir \
   src/cheats/mathops.pir \

@@ -31,7 +31,7 @@ sub block_immediate($block) {
 sub sigiltype($sigil) {
     $sigil eq '%' 
     ?? 'Hash' 
-    !! ($sigil eq '@' ?? 'ResizablePMCArray' !! 'Perl6Scalar');
+    !! ($sigil eq '@' ?? 'ResizablePMCArray' !! 'ObjectRef');
 }
 
 method deflongname($/) {
@@ -633,9 +633,8 @@ method infixish($/) {
 }
 
 method postcircumfix:sym<[ ]>($/) {
-    make PAST::Var.new( $<EXPR>.ast , :scope('keyed_int'),
-                        :viviself('Undef'),
-                        :vivibase('ResizablePMCArray') );
+    make PAST::Op.new( $<EXPR>.ast, :name('!postcircumfix:<[ ]>'),
+                       :pasttype('call'), :node($/) );
 }
 
 method postcircumfix:sym<{ }>($/) {

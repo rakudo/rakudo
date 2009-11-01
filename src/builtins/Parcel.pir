@@ -20,11 +20,6 @@ elements and can be flattened into Captures or Lists.
     parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Any')
 .end
 
-.sub 'list' :method
-    '!parcel_item'(self)
-    .tailcall self.'list'()
-.end
-
 =item !parcel_item(parcel)
 
 Return the Parcel in item context.
@@ -90,24 +85,6 @@ The canonical operator for creating a Parcel.
 .end
 
 =back
-
-=head2 Private methods
-
-=over 4
-
-=item !FETCH()
-
-Retrieve a value for storage.
-
-=cut
-
-.namespace ['Parcel']
-.sub '!FETCH' :method
-    $P0 = '!parcel_item'(self)
-    .tailcall $P0.'!FETCH'()
-.end
-
-
 
 =cut
 

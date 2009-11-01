@@ -42,6 +42,19 @@ Return the number of elements in the list.
     .tailcall self.'elems'()
 .end
 
+=item Iterator()
+
+=cut
+
+.sub 'Iterator' :method
+    .local pmc list_it, index
+    list_it = new ['ListIterator']
+    index = box 0
+    setattribute list_it, '$!list', self
+    setattribute list_it, '$!index', index
+    .return (list_it)
+.end
+
 =item list()
 
 =cut
@@ -66,7 +79,8 @@ Return the number of elements in the list.
     .param int n
     .local pmc values, elem
     if n < 0 goto fail
-    values = self.'!generate'(n)
+    $I0 = n + 1
+    values = self.'!generate'($I0)
     elem = values[n]
     if null elem goto fail
     .return (elem)
@@ -94,7 +108,15 @@ generate the entire list.
     .param int has_n           :opt_flag
     .local pmc values, gen
     values = getattribute self, '$!values'
+    unless null values goto have_values
+    values = new ['ResizablePMCArray']
+    setattribute self, '$!values', values
+  have_values:
     gen    = getattribute self, '$!gen'
+    unless null gen goto have_gen
+    gen = box 0
+    setattribute self, '$!gen', gen
+  have_gen:
   gen_loop:
     .local int gen_i, values_i
     gen_i = gen
@@ -106,6 +128,7 @@ generate the entire list.
     if gen_i >= values_i goto gen_done
     .local pmc elem
     elem = values[gen_i]
+    if null elem goto gen_next
     $P0 = getprop 'flatten', elem
     if null $P0 goto gen_next
     $I0 = n - gen_i

@@ -31,7 +31,7 @@ sub block_immediate($block) {
 sub sigiltype($sigil) {
     $sigil eq '%' 
     ?? 'Hash' 
-    !! ($sigil eq '@' ?? 'ResizablePMCArray' !! 'ObjectRef');
+    !! ($sigil eq '@' ?? 'Array' !! 'ObjectRef');
 }
 
 method deflongname($/) {

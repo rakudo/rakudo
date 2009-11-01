@@ -74,6 +74,9 @@ BUILTINS_PIR = \
   src/builtins/Bool.pir \
   src/builtins/Parcel.pir \
   src/builtins/List.pir \
+  src/builtins/ListIterator.pir \
+  src/builtins/Array.pir \
+  src/builtins/Proxy.pir \
   src/builtins/assign.pir \
 
 # Make sure parrot cheats are last in this list

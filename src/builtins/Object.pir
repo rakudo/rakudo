@@ -92,6 +92,15 @@ like this.
     .return (result)
 .end
 
+=item defined()
+
+=cut
+
+.sub 'defined' :method
+    $P0 = get_hll_global ['Bool'], 'True'
+    .return ($P0)
+.end
+
 =back
 
 =head2 Object constructor methods
@@ -481,7 +490,11 @@ Gets the object's identity value
 .sub '' :vtable('increment') :method
     $P0 = self.'succ'()
     'infix:='(self, $P0)
-    .return(self)
+    .return (self)
+.end
+
+.sub '' :vtable('shift_pmc') :method
+    .tailcall self.'shift'()
 .end
 
 # Local Variables:

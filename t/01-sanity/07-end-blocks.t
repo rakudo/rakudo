@@ -12,10 +12,10 @@ say "1..2";
 # variables and file-scoped lexicals from such a routine.
 #
 
-our $Main::was_in_second_end_block = 0;
+our $was_in_second_end_block = 0;
 
 END {
-    if $Main::was_in_second_end_block {
+    if $was_in_second_end_block {
         say "ok 2";
     } else {
         say "not ok 2";
@@ -23,6 +23,6 @@ END {
 }
 
 END {
-    $Main::was_in_second_end_block = 1;
+    $was_in_second_end_block = 1;
     say "ok 1";
 }

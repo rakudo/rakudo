@@ -608,6 +608,10 @@ method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 
 method circumfix:sym<{ }>($/) { make $<pblock>.ast; }
 
+method circumfix:sym<[ ]>($/) {
+    make PAST::Op.new( :name('&circumfix:<[ ]>'), $<EXPR>.ast, :node($/) );
+}
+
 method circumfix:sym<sigil>($/) {
     my $name := ~$<sigil> eq '@' ?? 'list' !!
                 ~$<sigil> eq '%' ?? 'hash' !!
@@ -683,7 +687,26 @@ method quote:sym<Q:PIR>($/) {
 
 method quote_escape:sym<$>($/) { make $<variable>.ast; }
 
-# overrides version from HLL::Actions to create Perl6Str
+# overrides versions from HLL::Actions to handle Perl6Str
+# and use &infix:<,> to build the parcel
+method quote_EXPR($/) {
+    my $past := $<quote_delimited>.ast;
+    if HLL::Grammar::quotemod_check($/, 'w') {
+        if !$past.isa(PAST::Val) {
+            $/.CURSOR.panic("Can't form :w list from non-constant strings (yet)");
+        }
+        else {
+            my @words := HLL::Grammar::split_words($/, $past.value);
+            if +@words > 1 {
+                $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
+                for @words { $past.push($_); }
+            }
+        }
+    }
+    make $past;
+}
+     
+
 method quote_delimited($/) {
     my @parts;
     my $lastlit := '';

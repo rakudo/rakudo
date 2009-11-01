@@ -444,6 +444,11 @@ Gets the object's identity value
     .return ($I0)
 .end
 
+.sub '' :vtable('elements') :method
+    $I0 = self.'elems'()
+    .return ($I0)
+.end
+
 .sub '' :vtable('get_bool') :method
     $I0 = self.'true'()
     .return ($I0)
@@ -459,6 +464,12 @@ Gets the object's identity value
 
 .sub '' :vtable('get_string') :method
     $S0 = self.'Str'()
+    .return ($S0)
+.end
+
+.sub '' :vtable('get_string_keyed_int') :method
+    .param int i
+    $S0 = self.'postcircumfix:<[ ]>'(i)
     .return ($S0)
 .end
 

@@ -31,9 +31,7 @@ Return the Parcel in item context.
     $I0 = elements self
     if $I0 != 1 goto return_list
     $P0 = self[0]
-    $P1 = new ['ObjectRef'], $P0
-    copy self, $P1
-    .return (self)
+    .return ($P0)
   return_list:
     .tailcall self.'list'()
 .end
@@ -96,7 +94,9 @@ Retrieve a value for storage.
 
 .namespace ['Parcel']
 .sub '!FETCH' :method
-    .tailcall self.'item'()
+    $P0 = self.'item'()
+    $P1 = root_new ['parrot';'Perl6Scalar'], $P0
+    .return ($P1)
 .end
 
 =item !generate(n)

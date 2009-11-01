@@ -4,8 +4,9 @@ List - Perl 6 List class
 
 =head1 DESCRIPTION
 
-This file implements Parcels, which holds a sequence of
-elements and can be flattened into Captures or Lists.
+This file implements Lists, which are immutable sequences
+of objects.  Lists are also lazy, which means that some
+items are not generated until they are needed.
 
 =head2 Methods
 
@@ -18,6 +19,43 @@ elements and can be flattened into Captures or Lists.
     .local pmc p6meta, listproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     listproto = p6meta.'new_class'('List', 'parent'=>'Any', 'attr'=>'$!values $!gen')
+.end
+
+=item elems()
+
+Return the number of elements in the list.
+
+=cut
+
+.sub 'elems' :method
+    .local pmc values
+    values = self.'!generate'()
+    $I0 = values
+    .return ($I0)
+.end
+
+=item Int()
+
+=cut
+
+.sub 'Int' :method
+    .tailcall self.'elems'()
+.end
+
+=item list()
+
+=cut
+
+.sub 'list' :method
+    .return (self)
+.end
+
+=item Num()
+
+=cut
+
+.sub 'Num' :method
+    .tailcall self.'elems'()
 .end
 
 =item postcircumfix:<[ ]>(Int)
@@ -46,7 +84,8 @@ elements and can be flattened into Captures or Lists.
 
 Ask the list to make at least the first C<n> elements as non-lazy
 as it can, then return its entire list of elements as a 
-ResizablePMCArray or Parcel.
+ResizablePMCArray or Parcel.  If C<n> isn't given, then eagerly
+generate the entire list.
 
 =cut
 
@@ -57,14 +96,14 @@ ResizablePMCArray or Parcel.
     values = getattribute self, '$!values'
     gen    = getattribute self, '$!gen'
   gen_loop:
-    .local int gen_i
+    .local int gen_i, values_i
     gen_i = gen
-    $I0 = elements values
-    if has_n goto gen_n
-    n = $I0
-  gen_n:
+    values_i = elements values
+    if has_n goto gen_elem
+    n = values_i
+  gen_elem:
     unless gen_i < n goto gen_done
-    if gen_i >= $I0 goto gen_done
+    if gen_i >= values_i goto gen_done
     .local pmc elem
     elem = values[gen_i]
     $P0 = getprop 'flatten', elem

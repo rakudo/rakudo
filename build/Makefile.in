@@ -74,6 +74,7 @@ BUILTINS_PIR = \
   src/builtins/Any.pir \
   src/builtins/Bool.pir \
   src/builtins/Int.pir \
+  src/builtins/Num.pir \
   src/builtins/Str.pir \
   src/builtins/Parcel.pir \
   src/builtins/List.pir \

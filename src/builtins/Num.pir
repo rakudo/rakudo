@@ -4,11 +4,9 @@
 
 Num - Perl 6 numbers
 
-=head1 SUBROUTINES
+=head2 Methods
 
 =over 4
-
-=item onload()
 
 =cut
 
@@ -18,7 +16,6 @@ Num - Perl 6 numbers
     .local pmc p6meta, numproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     numproto = p6meta.'new_class'('Num', 'parent'=>'parrot;Float Any')
-    numproto.'!IMMUTABLE'()
     p6meta.'register'('Float', 'parent'=>numproto, 'protoobject'=>numproto)
 
     # Override the proto's ACCEPT method so we also accept Ints.
@@ -80,19 +77,41 @@ Returns the identify value.
     .return ($N0)
 .end
 
+=back
 
-=item infix:===
+=head2 Operators
+
+=over 4
+
+=item &infix:<===>
 
 Overridden for Num.
 
 =cut
 
 .namespace []
-.sub 'infix:===' :multi(Float,Float)
+.sub '&infix:<===>' :multi(Float,Float)
     .param num a
     .param num b
     $I0 = iseq a, b
-    .tailcall 'prefix:?'($I0)
+    .return ($I0)
+    # .tailcall 'prefix:?'($I0)
+.end
+
+=back
+
+=head2 Private methods
+
+=over 4
+
+=item !FETCH()
+
+Value type, so return self.
+
+=cut
+
+.sub '!FETCH' :method
+    .return (self)
 .end
 
 

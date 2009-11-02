@@ -1,10 +1,12 @@
 class Perl6::Actions is HLL::Actions;
 
 our @BLOCK;
+our $TRUE;
 
 INIT {
     # initialize @BLOCK
     our @BLOCK := Q:PIR { %r = new ['ResizablePMCArray'] };
+    our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
 
     # Tell PAST::Var how to encode Perl6Str and Str values
     my %valflags := 
@@ -26,7 +28,7 @@ sub block_immediate($block) {
 sub sigiltype($sigil) {
     $sigil eq '%' 
     ?? 'Hash' 
-    !! ($sigil eq '@' ?? 'Array' !! 'ObjectRef');
+    !! ($sigil eq '@' ?? 'Array' !! 'Perl6Scalar');
 }
 
 method deflongname($/) {
@@ -93,6 +95,37 @@ method newpad($/) {
         )
     )));
 }
+
+method finishpad($/) {
+    # Generate the $_, $/, and $! lexicals if they aren't already
+    # declared.  For routines and methods, they're simply created as
+    # undefs; for other blocks they initialize to their outer lexical.
+
+    my $BLOCK := @BLOCK[0];
+    my $outer := $*IN_DECL ne 'routine' && $*IN_DECL ne 'method';
+
+    for <$_ $/ $!> {
+        # Generate the lexical variable except if...
+        #   (1) the block already has one, or
+        #   (2) the variable is '$_' and $*IMPLICIT is set
+        #       (this case gets handled by getsig)
+        unless $BLOCK.symbol($_) || ($_ eq '$_' && $*IMPLICIT) {
+            my $base := 
+                $outer
+                ?? PAST::Op.new( :inline("    %r = new ['Perl6Scalar'], %0"),
+                       PAST::Op.new(:pirop('find_lex_skip_current Ps'), $_)
+                   )
+                !! PAST::Op.new( :inline("    %r = new ['Perl6Scalar']") );
+            $base := PAST::Op.new( $base, 'rw', $TRUE, :pirop('setprop') );
+            $BLOCK[0].push(
+                PAST::Var.new( :name($_), :scope('lexical'), :isdecl(1),
+                               :viviself($base), :node($/) )
+            );
+            $BLOCK.symbol($_, :scope('lexical') );
+        }
+    }
+}
+
 
 ## Statement control
 

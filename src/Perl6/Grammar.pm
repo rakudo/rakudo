@@ -120,7 +120,10 @@ token ENDSTMT {
 
 token comp_unit {
     :my %*METAOPGEN;                           # hash of generated metaops
+    :my $*IN_DECL;                             # what declaration we're in
+    :my $*IMPLICIT;                            # whether we allow an implicit param
     <.newpad>
+    <.finishpad>
     <statementlist> 
     [ $ || <.panic: 'Confused'> ] 
 }
@@ -145,17 +148,17 @@ token eat_terminator {
     | $
 }
 
-token xblock {
-    <EXPR> <.ws> <pblock>
+token xblock($*IMPLICIT = 0) {
+    <EXPR> <.ws> <pblock($*IMPLICIT)>
 }
 
-token pblock {
+token pblock($*IMPLICIT = 0) {
     [ <?[{]> || <.panic: 'Missing block'> ]
     <.newpad>
     <blockoid>
 }
 
-token block {
+token block($*IMPLICIT = 0) {
     [ <?[{]> || <.panic: 'Missing block'> ]
     <.newpad>
     <blockoid>
@@ -207,7 +210,7 @@ token statement_control:sym<repeat> {
 
 token statement_control:sym<for> {
     <sym> :s
-    <xblock>
+    <xblock(1)>
 }
 
 token statement_control:sym<return> {
@@ -523,7 +526,7 @@ token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
 token circumfix:sym<( )> { '(' <.ws> <EXPR> ')' }
 token circumfix:sym<[ ]> { '[' <.ws> <EXPR> ']' }
 token circumfix:sym<ang> { <?[<]>  <quote_EXPR: ':q', ':w'>  }
-token circumfix:sym<{ }> { <?[{]> <pblock> }
+token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
 token circumfix:sym<sigil> { <sigil> '(' ~ ')' <semilist> }
 
 rule semilist { <statement> }

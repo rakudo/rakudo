@@ -20,11 +20,6 @@ sub xblock_immediate($xblock) {
 
 sub block_immediate($block) {
     $block.blocktype('immediate');
-    unless $block.symtable() {
-        my $stmts := PAST::Stmts.new( :node($block) );
-        for $block.list { $stmts.push($_); }
-        $block := $stmts;
-    }
     $block;
 }
 
@@ -75,6 +70,10 @@ method xblock($/) {
 }
 
 method pblock($/) {
+    make $<blockoid>.ast;
+}
+
+method block($/) {
     make $<blockoid>.ast;
 }
 
@@ -174,8 +173,8 @@ method statement_prefix:sym<INIT>($/) {
 }
 
 method blorst($/) {
-    make $<pblock>
-         ?? block_immediate($<pblock>.ast)
+    make $<block>
+         ?? block_immediate($<block>.ast)
          !! $<statement>.ast;
 }
 
@@ -247,7 +246,7 @@ method package_declarator:sym<class>($/) {
 }
 
 method package_def($/) {
-    my $past := $<pblock> ?? $<pblock>.ast !! $<comp_unit>.ast;
+    my $past := $<block> ?? $<block>.ast !! $<comp_unit>.ast;
     $past.namespace( Perl6::Grammar::parse_name(~$<name>) );
     $past.blocktype('immediate');
     make $past;

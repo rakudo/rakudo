@@ -150,7 +150,13 @@ token xblock {
 }
 
 token pblock {
-    <?[{]> 
+    [ <?[{]> || <.panic: 'Missing block'> ]
+    <.newpad>
+    <blockoid>
+}
+
+token block {
+    [ <?[{]> || <.panic: 'Missing block'> ]
     <.newpad>
     <blockoid>
 }
@@ -222,7 +228,7 @@ proto token statement_prefix { <...> }
 token statement_prefix:sym<INIT> { <sym> <blorst> }
 
 token blorst {
-    \s <.ws> [ <pblock> | <statement> ]
+    \s <.ws> [ <block> | <statement> ]
 }
 
 ## Terms
@@ -263,7 +269,7 @@ rule package_def {
     [ 'is' <parent=name> ]? 
     [ 
     || ';' <comp_unit>
-    || <?[{]> <pblock>
+    || <?[{]> <block>
     || <.panic: 'Malformed package declaration'>
     ]
 }
@@ -676,6 +682,6 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
     }
 
     token codeblock {
-        <block=LANG('MAIN','pblock')>
+        <block=LANG('MAIN','block')>
     }
 }

@@ -771,12 +771,12 @@ method quote_delimited($/) {
             $lastlit := '';
         }
     }
-    if $lastlit gt '' { 
+    if $lastlit gt '' || !@parts { 
         @parts.push(
             PAST::Val.new( :value($lastlit), :returns('Perl6Str') ) 
         ); 
     }
-    my $past := @parts ?? @parts.shift !! '';
+    my $past := @parts.shift;
     while @parts {
         $past := PAST::Op.new( $past, @parts.shift, :pirop('concat') );
     }

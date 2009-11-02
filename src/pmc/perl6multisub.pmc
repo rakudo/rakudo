@@ -246,7 +246,9 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
         info->sub = candidate;
 
         /* Get hold of signature. */
-        signature = VTABLE_getprop(interp, candidate, CONST_STRING(interp, "$!signature"));
+        signature = VTABLE_getprop(interp, candidate->vtable->base_type == enum_class_Sub ?
+                candidate : VTABLE_get_attr_str(interp, candidate, CONST_STRING(interp, "$!do")),
+                CONST_STRING(interp, "$!signature"));
         info->signature = signature;
         GETATTR_P6LowLevelSig_elements(interp, signature, sig_elem_info);
         GETATTR_P6LowLevelSig_num_elements(interp, signature, sig_elems);

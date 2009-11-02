@@ -16,7 +16,7 @@ for executable objects.
 .sub 'onload' :anon :load :init
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!name')
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do')
     $P0 = get_hll_global 'Callable'
     $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>codeproto)
@@ -27,17 +27,16 @@ for executable objects.
 .end
 
 
-=item new(name, do)
+=item new(do)
 
 =cut
 
 .sub 'new' :method
-    .param pmc name
     .param pmc do
     $P0 = self.'HOW'()
-    $P0 = getprop 'parrotclass', $P0
+    $P0 = getattribute $P0, 'parrotclass'
     $P0 = new $P0
-    setattribute $P0, '$!name', name
+    transform_to_p6opaque $P0
     setattribute $P0, '$!do', do
     .return ($P0)
 .end
@@ -102,7 +101,7 @@ Just calls this block with the supplied parameters.
 =cut
 
 .sub 'name' :method
-    $P0 = getattribute self, '$!name'
+    $P0 = getattribute self, '$!do'
     $S0 = $P0
     .return ($S0)
 .end

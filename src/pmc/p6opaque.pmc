@@ -451,8 +451,9 @@ Invokes the object (if this vtable function is overridden).
                 Parrot_oo_find_vtable_override_for_class(interp, cur_class,
                                                          meth_name);
             if (!PMC_IS_NULL(meth)) {
-                meth = VTABLE_clone(interp, meth);
-                VTABLE_setprop(interp, meth, CONST_STRING(interp, "$!self"), SELF);
+                /* Fudge outselves onto the start of the call signature and call. */
+                PMC *call_sig = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                VTABLE_unshift_pmc(interp, call_sig, SELF);
                 return VTABLE_invoke(interp, meth, next);
             }
 

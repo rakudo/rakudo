@@ -356,6 +356,9 @@ method routine_def($/) {
         $past.name($name);
         $past.nsentry($*SCOPE eq 'our' ?? $name !! '');
 
+        # Wrap it in the correct routine type.
+        $past := wrap_parrot_sub($past, 'Sub');
+
         # Handle multi-ness, if any.
         my $symbol := @BLOCK[0].symbol($name);
         if $*MULTINESS eq 'only' {
@@ -842,4 +845,13 @@ sub add_signature($block, $sig_obj) {
         :pirop('bind_signature vP'),
         PAST::Var.new( :name('call_sig'), :scope('lexical') )
     ));
+}
+
+sub wrap_parrot_sub($block, $type) {
+    PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('new'),
+        PAST::Var.new( :name($type), :scope('package') ),
+        $block
+    );
 }

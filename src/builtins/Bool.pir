@@ -30,6 +30,7 @@ symbols for C<Bool::True> and C<Bool::False>.
     $P0 = boolproto.'new'()
     $P0 = 1
     set_hll_global ['Bool'], 'True', $P0
+    set_hll_global 'True', $P0
 .end
 
 

@@ -88,7 +88,11 @@ method blockoid($/) {
 
 method newpad($/) {
     our @BLOCK;
-    @BLOCK.unshift( PAST::Block.new( PAST::Stmts.new() ) );
+    @BLOCK.unshift( PAST::Block.new( PAST::Stmts.new(
+        PAST::Op.new(
+            :inline("    .local pmc true\n    true = get_hll_global 'True'")
+        )
+    )));
 }
 
 ## Statement control
@@ -285,7 +289,7 @@ method variable_declarator($/) {
     # First, create a container and give it a 'rw' property
     # Create the container, give it a 'rw' property
     my $cont := PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
-    my $true := PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') );
+    my $true := PAST::Var.new( :name('true'), :scope('register') );
     my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
 
     # For 'our' variables, we first bind or lookup in the namespace

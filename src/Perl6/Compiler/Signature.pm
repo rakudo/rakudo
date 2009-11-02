@@ -70,7 +70,8 @@ method get_declarations() {
             my $var := PAST::Var.new(
                 :name($_.var_name),
                 :scope('lexical'),
-                :isdecl(1)
+                :isdecl(1),
+                :viviself(Perl6::Actions::sigiltype($_.sigil))
             );
             $result.push($var);
         }

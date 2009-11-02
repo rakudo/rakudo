@@ -292,6 +292,11 @@ method variable_declarator($/) {
     my $true := PAST::Var.new( :name('true'), :scope('register') );
     my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
 
+    # If it's an array or hash, it flattens in list context.
+    if $sigil eq '@' || $sigil eq '%' {
+        $vivipast := PAST::Op.new($vivipast,'flatten',$true,:pirop('setprop'));
+    }
+
     # For 'our' variables, we first bind or lookup in the namespace
     if $*SCOPE eq 'our' {
         $vivipast := PAST::Var.new( :name($name), :scope('package'), :isdecl(1),

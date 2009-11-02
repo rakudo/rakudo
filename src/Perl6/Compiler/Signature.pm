@@ -30,6 +30,21 @@ method add_parameter($new_entry) {
 }
 
 
+# As for add_parameter, but puts it into position relative to the other
+# positional parameters.
+method add_placeholder_parameter($new_entry) {
+    my @entries := self.entries;
+    if +@entries == 0 { @entries.push($new_entry); return 1; }
+    my @temp := list();
+    while +@entries && @entries[0].var_name lt $new_entry.var_name &&
+            !@entries[0].names && !@entries[0].pos_slurpy && !@entries[0].named_slurpy {
+        @temp.unshift(@entries.shift);
+    }
+    @entries.unshift($new_entry);
+    for @temp { @entries.unshift($_); }
+}
+
+
 # Sets the default type of the parameters.
 method set_default_parameter_type($type_name) {
     $!default_type := $type_name;
@@ -244,19 +259,6 @@ method entries() {
 #############################################################################
 ####################### CODE TO RE-WRITE IN NG BRANCH #######################
 #############################################################################
-
-# As for add_parameter, but puts it into position relative to the other
-# positional parameters.
-method add_placeholder_parameter(*%new_entry) {
-    my @entries := self.entries;
-    if +@entries == 0 { @entries.push(%new_entry); return 1; }
-    my @temp := list();
-    while +@entries && @entries[0]<var_name> lt %new_entry<var_name> && !@entries[0]<names> && !@entries[0]<slurpy> {
-        @temp.unshift(@entries.shift);
-    }
-    @entries.unshift(%new_entry);
-    for @temp { @entries.unshift($_); }
-}
 
 
 # Adds an invocant to the signature, if it does not already have one.

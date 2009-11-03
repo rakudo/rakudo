@@ -20,7 +20,7 @@ class Complex {
     multi method Complex() { self }
 
     multi method perl() {
-        "Complex.new($.re.perl, $.im.perl)";
+        "Complex.new({$.re.perl}, {$.im.perl})";
     }
 
     multi method Str() {

@@ -48,6 +48,12 @@ Perl6::Compiler - Perl6 compiler
     set_hll_global ['Perl6';'Actions'], '$?RAKUDO_HLL', $P0
 .end
 
+.sub 'DEBUG'
+    .param string msg
+    printerr msg
+    printerr "\n"
+.end
+
 .include 'src/gen/builtins.pir'
 .include 'src/gen/signature_pm.pir'
 .include 'src/gen/parameter_pm.pir'

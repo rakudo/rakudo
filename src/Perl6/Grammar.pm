@@ -485,7 +485,13 @@ token term:sym<identifier> {
 }
 
 token term:sym<name> {
-    <name> <args>?
+    <name> 
+    [
+    ||  <?{
+            $/.CURSOR.is_name($<name>.Str)
+        }>
+    || <args>
+    ]
 }
 
 token term:sym<pir::op> {

@@ -625,7 +625,7 @@ method term:sym<name>($/) {
         PAST::Var.new( :name(~$name), :namespace($ns), :scope('package') );
     my $past := $var;
     if $<args> {
-        $past := $<args>[0].ast;
+        $past := $<args>.ast;
         if $ns { $past.unshift($var); }
         else { $past.name('&' ~ $name); }
     }

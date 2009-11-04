@@ -89,6 +89,7 @@ method finish($block) {
     if $!scope eq 'our' {
         $block.loadinit().push($decl);
         $block.blocktype('immediate');
+        $block.namespace(Perl6::Grammar::parse_name(~$!name));
     }
     else {
         pir::die("Can't handle scope declarator " ~ $!scope ~ " on packages yet");

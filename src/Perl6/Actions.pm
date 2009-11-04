@@ -268,7 +268,7 @@ method package_def($/, $key?) {
     if $key eq 'open' {
         # Create the right kind of package compiler.
         my $pkg_compiler := %*PKGCOMPILER{$*PKGDECL};
-        unless $pkg_compiler { $pkg_compiler := Perl6::Compiler::Package; }
+        if pir::isa__IPS($pkg_compiler, 'Undef') { $pkg_compiler := Perl6::Compiler::Package; }
         my $package := $pkg_compiler.new();
 
         # Set HOW and other details.

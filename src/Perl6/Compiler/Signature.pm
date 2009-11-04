@@ -57,6 +57,19 @@ method get_default_parameter_type() {
 }
 
 
+# Adds an invocant to the signature, if it does not already have one.
+method add_invocant() {
+    my @entries := self.entries;
+    if +@entries == 0 || !@entries[0].invocant {
+        my $param := Perl6::Compiler::Parameter.new();
+        $param.var_name("self");
+        $param.invocant(1);
+        $param.multi_invocant(1);
+        @entries.unshift($param);
+    }
+}
+
+
 # Gets a PAST::Op node with children being PAST::Var nodes that declare the
 # various variables mentioned within the signature, with a valid viviself to
 # make sure they are initialized either to the default value or an empty
@@ -260,21 +273,6 @@ method entries() {
 #############################################################################
 ####################### CODE TO RE-WRITE IN NG BRANCH #######################
 #############################################################################
-
-
-# Adds an invocant to the signature, if it does not already have one.
-method add_invocant() {
-    my @entries := self.entries;
-    if +@entries == 0 || !@entries[0]<invocant> {
-        my $param := Q:PIR{ %r = new ['Hash'] };
-        $param<var_name> := "self";
-        $param<invocant> := 1;
-        $param<multi_invocant> := 1;
-        $param<names> := list();
-        @entries.unshift($param);
-    }
-}
-
 
 # Sets all parameters without an explicit read type to default to rw.
 method set_rw_by_default() {

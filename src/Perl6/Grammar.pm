@@ -7,6 +7,11 @@ method TOP() {
     %*LANG<Regex-actions> := Perl6::RegexActions;
     %*LANG<MAIN>          := Perl6::Grammar;
     %*LANG<MAIN-actions>  := Perl6::Actions;
+    my %*HOW;
+    %*HOW<class> := 'ClassHOW';
+    %*HOW<role>  := 'RoleHOW';
+    my %*PKGCOMPILER;
+    %*PKGCOMPILER<role> := Perl6::Compiler::Role;
     my $*SCOPE := '';
     my $*MULTINESS := '';
     self.comp_unit;
@@ -264,12 +269,29 @@ token sigil { <[$@%&]> }
 token twigil { <[*!?]> }
 
 proto token package_declarator { <...> }
-token package_declarator:sym<module> { <sym> <package_def> }
-token package_declarator:sym<class>  { $<sym>=[class|grammar] <package_def> }
+token package_declarator:sym<module> {
+    :my $*PKGDECL := 'module';
+    <sym> <package_def>
+}
+token package_declarator:sym<class> {
+    :my $*PKGDECL := 'class';
+    <sym> <package_def>
+}
+token package_declarator:sym<grammar> {
+    :my $*PKGDECL := 'grammar';
+    <sym> <package_def>
+}
+token package_declarator:sym<role> {
+    :my $*PKGDECL := 'role';
+    <sym> <package_def>
+}
 
 rule package_def { 
-    <name> 
-    [ 'is' <parent=name> ]? 
+    :my $*IN_DECL := 'package';
+    { $*SCOPE := $*SCOPE || 'our'; }
+    <name>
+    [ 'is' <parent=name> ]?
+    {*} #= open
     [ 
     || ';' <comp_unit>
     || <?[{]> <block>

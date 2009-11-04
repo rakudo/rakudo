@@ -48,6 +48,8 @@ Perl6::Compiler - Perl6 compiler
 .include 'src/gen/builtins.pir'
 .include 'src/gen/signature_pm.pir'
 .include 'src/gen/parameter_pm.pir'
+.include 'src/gen/package_pm.pir'
+.include 'src/gen/role_pm.pir'
 .include 'src/gen/perl6-grammar.pir'
 .include 'src/gen/perl6-actions.pir'
 

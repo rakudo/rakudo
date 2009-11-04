@@ -55,6 +55,56 @@ This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
 
 =over
 
+=item new()
+
+Creates a new instance of the meta-class.
+
+=cut
+
+.sub 'new' :method
+    .param pmc name :optional
+    $P0 = new ['ClassHOW']
+    $P1 = new ['Class']
+    setattribute $P0, 'parrotclass', $P1
+    setattribute $P0, 'longname', name
+    .return ($P0)
+.end
+
+
+=item add_method
+
+Add a method to the given meta.
+
+=cut
+
+.sub 'add_method' :method
+    .param pmc meta
+    .param string name
+    .param pmc meth
+    $P0 = getattribute meta, 'parrotclass'
+    addmethod $P0, name, meth
+.end
+
+
+=item compose
+
+Completes the creation of the metaclass 
+
+=cut
+
+.sub 'compose' :method
+    .param pmc meta
+    .local pmc parrotclass
+    parrotclass = getattribute meta, 'parrotclass'
+    
+    # XXX All kinds of stuff...
+
+    # Finally, create proto object.
+    .local pmc proto
+    proto = self.'register'(parrotclass, 'how'=>meta)
+.end
+
+
 =item can(object, name)
 
 =cut
@@ -481,18 +531,6 @@ Accessor for hidden property.
     .return ($P0)
 .end
 
-
-=item add_method
-
-=cut
-
-.sub 'add_method' :method
-    .param pmc obj
-    .param string name
-    .param pmc meth
-    $P0 = getattribute self, 'parrotclass'
-    addmethod $P0, name, meth
-.end
 
 =back
 

@@ -1,11 +1,13 @@
 class Perl6::Actions is HLL::Actions;
 
 our @BLOCK;
+our @PACKAGE;
 our $TRUE;
 
 INIT {
-    # initialize @BLOCK
+    # initialize @BLOCK and @PACKAGE
     our @BLOCK := Q:PIR { %r = new ['ResizablePMCArray'] };
+    our @PACKAGE := Q:PIR { %r = new ['ResizablePMCArray'] };
     our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
 
     # Tell PAST::Var how to encode Perl6Str and Str values
@@ -254,35 +256,40 @@ method variable($/) {
     make $past;
 }
 
-method package_declarator:sym<module>($/) { make $<package_def>.ast; }
-method package_declarator:sym<class>($/) {
-    my $past := $<package_def>.ast;
-    my $classinit :=
-        PAST::Op.new(
-            PAST::Op.new( 
-                :inline( '    %r = get_root_global ["parrot"], "P6metaclass"')
-            ),
-            ~$<package_def><name>,
-            :name('new_class'),
-            :pasttype('callmethod')
-        );
-    my $parent := ~$<package_def><parent>[0]
-                  || ($<sym> eq 'grammar' ?? 'Regex::Cursor' !! '');
-    if $parent {
-        $classinit.push( PAST::Val.new( :value($parent), :named('parent') ) );
-    }
-    if $past<attributes> {
-        $classinit.push( $past<attributes> );
-    }
-    @BLOCK[0].loadinit.push($classinit);
-    make $past;
-}
+method package_declarator:sym<module>($/)  { make $<package_def>.ast; }
+method package_declarator:sym<class>($/)   { make $<package_def>.ast; }
+method package_declarator:sym<grammar>($/) { make $<package_def>.ast; }
+method package_declarator:sym<role>($/)    { make $<package_def>.ast; }
 
-method package_def($/) {
-    my $past := $<block> ?? $<block>.ast !! $<comp_unit>.ast;
-    $past.namespace( Perl6::Grammar::parse_name(~$<name>) );
-    $past.blocktype('immediate');
-    make $past;
+method package_def($/, $key?) {
+    our @PACKAGE;
+
+    # Is this the opening of a new package?
+    if $key eq 'open' {
+        # Create the right kind of package compiler.
+        my $pkg_compiler := %*PKGCOMPILER{$*PKGDECL};
+        unless $pkg_compiler { $pkg_compiler := Perl6::Compiler::Package; }
+        my $package := $pkg_compiler.new();
+
+        # Set HOW and other details.
+        my $how := %*HOW{$*PKGDECL};
+        unless $how { $/.CURSOR.panic("No HOW declared for package declarator $*PKGDECL"); }
+        $package.how($how);
+        $package.scope($*SCOPE);
+
+        # Put on front of packages list. Note - nesting a package in a role is
+        # not supported (gets really tricky in the parametric case - needs more
+        # thought and consideration).
+        if +@PACKAGE && @PACKAGE[0].isa(Perl6::Compiler::Role) {
+            $/.CURSOR.panic("Can not nest a package inside a role");
+        }
+        @PACKAGE.unshift($package);
+    }
+    else {
+        # We just need to finish up the current package.
+        my $package := @PACKAGE.shift;
+        make $package.finish($<block> ?? $<block>.ast !! $<comp_unit>.ast);
+    }
 }
 
 method scope_declarator:sym<my>($/)  { make $<scoped>.ast; }
@@ -412,18 +419,37 @@ method routine_def($/) {
 
 method method_def($/) {
     my $past := $<blockoid>.ast;
-    $past.blocktype('method');
+    $past.blocktype('declaration');
     $past.control('return_pir');
-    $past[0].unshift( PAST::Op.new( :inline('    .lex "self", self') ) );
-    $past.symbol('self', :scope('lexical') );
-    add_signature($past, $<signature>.ast);
+    
+    # Set signature and invocant handling set up.
+    my $sig := $<signature>.ast;
+    $sig.add_invocant();
+    add_signature($past, $sig);
+
+    # Method container.    
     if $<deflongname> {
+        # Set up us the name.
         my $name := ~$<deflongname>[0].ast;
         $past.name($name);
+        $past.nsentry('');
+        $past := wrap_parrot_sub($past, 'Method');
+
+        # Add to methods table, and we're done.
+        our @PACKAGE;
+        unless +@PACKAGE { $/.CURSOR.panic("Can not declare method outside of a package"); }
+        my %table := @PACKAGE[0].methods();
+        unless %table{$name} { my %tmp; %table{$name} := %tmp; }
+        %table{$name}<code_ref> := $past;
+        $past := PAST::Stmts.new();
     }
     elsif $*MULTINESS {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
+    else {
+        $past := wrap_parrot_sub($past, 'Method');
+    }
+
     make $past;
 }
 

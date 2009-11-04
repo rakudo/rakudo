@@ -290,7 +290,6 @@ token package_declarator:sym<role> {
 
 rule package_def { 
     :my $*IN_DECL := 'package';
-    { $*SCOPE := $*SCOPE || 'our'; }
     <name>
     [ 'is' <parent=name> ]?
     {*} #= open

@@ -63,11 +63,25 @@ Creates a new instance of the meta-class.
 
 .sub 'new' :method
     .param pmc name :optional
-    $P0 = new ['ClassHOW']
-    $P1 = new ['Class']
-    setattribute $P0, 'parrotclass', $P1
-    setattribute $P0, 'longname', name
-    .return ($P0)
+    .local pmc how, parrotclass, nsarray, ns
+    if null name goto anon_class
+
+    # Named class - associate with Parrot namespace.
+    $P0 = get_hll_global [ 'Perl6';'Grammar' ], 'parse_name'
+    nsarray = $P0(name)
+    ns = get_hll_namespace nsarray
+    parrotclass = newclass ns
+    goto have_parrotclass
+
+    # Anonymous class - just create a new Parrot class and we're done.
+  anon_class:
+    parrotclass = new ['Class']
+
+    # Stash in metaclass instance, and hand it back.
+  have_parrotclass:
+    how = new ['ClassHOW']
+    setattribute how, 'parrotclass', parrotclass
+    .return (how)
 .end
 
 
@@ -101,6 +115,8 @@ Completes the creation of the metaclass
 
     # Finally, create proto object.
     .local pmc proto
+    .local pmc name
+    name = getattribute meta, 'longname'
     proto = self.'register'(parrotclass, 'how'=>meta)
 .end
 

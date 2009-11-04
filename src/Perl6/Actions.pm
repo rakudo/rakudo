@@ -275,7 +275,9 @@ method package_def($/, $key?) {
         my $how := %*HOW{$*PKGDECL};
         unless $how { $/.CURSOR.panic("No HOW declared for package declarator $*PKGDECL"); }
         $package.how($how);
+        $*SCOPE := $*SCOPE || 'our';
         $package.scope($*SCOPE);
+        $package.name($<name>);
 
         # Put on front of packages list. Note - nesting a package in a role is
         # not supported (gets really tricky in the parametric case - needs more
@@ -874,10 +876,11 @@ sub add_signature($block, $sig_obj) {
 }
 
 sub wrap_parrot_sub($block, $type) {
+    my @name := Perl6::Grammar::parse_name($type);
     PAST::Op.new(
         :pasttype('callmethod'),
         :name('new'),
-        PAST::Var.new( :name($type), :scope('package') ),
+        PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
         $block
     );
 }

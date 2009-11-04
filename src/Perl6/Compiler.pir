@@ -33,11 +33,14 @@ Perl6::Compiler - Perl6 compiler
     $P0 = new ['Perl6Object']
     set_hll_global '$!OBJECTREF', $P0
 
+    ## Also want _dumper for now.
+    load_bytecode 'dumper.pbc'
+
     ## Bring in PAST, PCT, HLL, and NQP namespaces from parrot hllns
     .local pmc hllns, parrotns, imports
     hllns = get_hll_namespace
     parrotns = get_root_namespace ['parrot']
-    imports = split ' ', 'PAST PCT HLL Regex'
+    imports = split ' ', 'PAST PCT HLL Regex _dumper'
     parrotns.'export_to'(hllns, imports)
 
     # Tell the actions compiler what hllns we're using
@@ -72,7 +75,6 @@ Perl6::Compiler - Perl6 compiler
 
 .sub 'main' :main
     .param pmc args_str
-
     $P0 = compreg 'Perl6'
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
     exit 0

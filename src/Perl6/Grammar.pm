@@ -8,9 +8,10 @@ method TOP() {
     %*LANG<MAIN>          := Perl6::Grammar;
     %*LANG<MAIN-actions>  := Perl6::Actions;
     my %*HOW;
-    %*HOW<module> := 'none';
-    %*HOW<class>  := 'ClassHOW';
-    %*HOW<role>   := 'RoleHOW';
+    %*HOW<module>  := 'none';
+    %*HOW<class>   := 'ClassHOW';
+    %*HOW<grammar> := 'GrammarHOW';
+    %*HOW<role>    := 'RoleHOW';
     my %*PKGCOMPILER;
     %*PKGCOMPILER<role>   := Perl6::Compiler::Role;
     %*PKGCOMPILER<module> := Perl6::Compiler::Module;

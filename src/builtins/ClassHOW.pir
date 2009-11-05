@@ -124,6 +124,13 @@ Completes the creation of the metaclass
     .param pmc meta
     .local pmc parrotclass
     parrotclass = getattribute meta, 'parrotclass'
+
+    # If we have no parents explicitly given, inherit from Any.
+    $P0 = inspect parrotclass, 'parents'
+    if $P0 goto have_parents
+    $P0 = get_hll_global 'Any'
+    self.'add_parent'(meta, $P0)
+  have_parents:
     
     # XXX All kinds of stuff...
 
@@ -132,6 +139,7 @@ Completes the creation of the metaclass
     .local pmc name
     name = getattribute meta, 'longname'
     proto = self.'register'(parrotclass, 'how'=>meta)
+    .return (proto)
 .end
 
 

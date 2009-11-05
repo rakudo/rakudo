@@ -14,12 +14,15 @@ This file implements the Grammar class.
     load_bytecode "PGE.pbc"
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Grammar', 'parent'=>'Match')
+    p6meta.'new_class'('Grammar', 'parent'=>'Any')
 
-    $P0 = get_root_namespace ['parrot';'PGE';'Grammar']
-    $P0 = get_class $P0
-    .const 'Sub' $P1 = 'Grammar.parse'
-    $P0.'add_method'('parse', $P1)
+    # XXX pmichaud++ needs to fix this bunch. kplzthnxbai jnthn :-)
+    #p6meta.'new_class'('Grammar', 'parent'=>'Match')
+
+    #$P0 = get_root_namespace ['parrot';'PGE';'Grammar']
+    #$P0 = get_class $P0
+    #.const 'Sub' $P1 = 'Grammar.parse'
+    #$P0.'add_method'('parse', $P1)
 .end
 
 =head2 Methods

@@ -76,6 +76,14 @@ If you need to do something different, you may return something else here, thoug
 Adds a method to the methods table of C<$meta> under the given C<$name> and with
 the given implementation.
 
+=item add_attribute($meta, $name)
+
+Adds an attribute of the given C<$name> to C<$meta>.
+
+=item add_parent($meta, $parent)
+
+Adds the given parent to C<$meta>.
+
 =item compose($meta)
 
 This returns the the type object that we're going to actually install into the

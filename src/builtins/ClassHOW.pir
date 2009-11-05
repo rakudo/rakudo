@@ -85,7 +85,7 @@ Creates a new instance of the meta-class.
 .end
 
 
-=item add_method
+=item add_method(meta, name, code_ref)
 
 Add a method to the given meta.
 
@@ -100,7 +100,21 @@ Add a method to the given meta.
 .end
 
 
-=item compose
+=item add_attribute(meta, name)
+
+Adds an attribute of the given name to the given meta.
+
+=cut
+
+.sub 'add_attribute' :method
+    .param pmc meta
+    .param string name
+    $P0 = getattribute meta, 'parrotclass'
+    addattribute $P0, name
+.end
+
+
+=item compose(meta)
 
 Completes the creation of the metaclass 
 

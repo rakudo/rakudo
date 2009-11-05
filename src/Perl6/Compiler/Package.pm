@@ -77,7 +77,14 @@ method finish($block) {
     }
 
     # Attributes.
-
+    my %attrs := $!attributes;
+    for %attrs {
+        $decl.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('add_attribute'),
+            $metaclass, $meta_reg, ~$_
+        ));
+    }
 
     # Traits.
 

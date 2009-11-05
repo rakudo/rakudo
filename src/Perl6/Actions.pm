@@ -321,33 +321,55 @@ method scoped($/) {
 method variable_declarator($/) {
     my $past := $<variable>.ast;
     my $sigil := $<variable><sigil>;
+    my $twigil := $<variable><twigil>;
     my $name := $past.name;
-    my $BLOCK := @BLOCK[0];
-    if $BLOCK.symbol($name) {
-        $/.CURSOR.panic("Redeclaration of symbol ", $name);
+
+    if $*SCOPE eq 'has' {
+        # Find the current package and add the attribute.
+        my $attrname := ~$sigil ~ '!' ~ ~$<variable><desigilname>;
+        our @PACKAGE;
+        unless +@PACKAGE { $/.CURSOR.panic("Can not declare attribute outside of a package"); }
+        my %attr_table := @PACKAGE[0].attributes;
+        if %attr_table{$attrname} { $/.CURSOR.panic("Can not re-declare attribute " ~ $attrname); }
+        %attr_table{$attrname} := Q:PIR { %r = new ['Hash'] };
+        %attr_table{$attrname}<name>     := $attrname;
+        %attr_table{$attrname}<accessor> := $twigil eq '.' ?? 1 !! 0;
+        
+        # Nothing to emit here.
+        $past := PAST::Stmts.new( );
+    }
+    else {
+        # Not an attribute - need to emit delcaration here. Check it's
+        # not a duplicate.
+        my $BLOCK := @BLOCK[0];
+        if $BLOCK.symbol($name) {
+            $/.CURSOR.panic("Redeclaration of symbol ", $name);
+        }
+
+        # First, create a container and give it a 'rw' property
+        # Create the container, give it a 'rw' property
+        my $cont := PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
+        my $true := PAST::Var.new( :name('true'), :scope('register') );
+        my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
+
+        # If it's an array or hash, it flattens in list context.
+        if $sigil eq '@' || $sigil eq '%' {
+            $vivipast := PAST::Op.new($vivipast,'flatten',$true,:pirop('setprop'));
+        }
+
+        # For 'our' variables, we first bind or lookup in the namespace
+        if $*SCOPE eq 'our' {
+            $vivipast := PAST::Var.new( :name($name), :scope('package'), :isdecl(1),
+                                         :lvalue(1), :viviself($vivipast), :node($/) );
+        }
+
+        # Now bind a lexical in the block
+        my $decl := PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
+                                   :lvalue(1), :viviself($vivipast), :node($/) );
+        $BLOCK.symbol($name, :scope('lexical') );
+        $BLOCK[0].push($decl);
     }
 
-    # First, create a container and give it a 'rw' property
-    # Create the container, give it a 'rw' property
-    my $cont := PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
-    my $true := PAST::Var.new( :name('true'), :scope('register') );
-    my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
-
-    # If it's an array or hash, it flattens in list context.
-    if $sigil eq '@' || $sigil eq '%' {
-        $vivipast := PAST::Op.new($vivipast,'flatten',$true,:pirop('setprop'));
-    }
-
-    # For 'our' variables, we first bind or lookup in the namespace
-    if $*SCOPE eq 'our' {
-        $vivipast := PAST::Var.new( :name($name), :scope('package'), :isdecl(1),
-                                     :lvalue(1), :viviself($vivipast), :node($/) );
-    }
-    # Now bind a lexical in the block
-    my $decl := PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
-                               :lvalue(1), :viviself($vivipast), :node($/) );
-    $BLOCK.symbol($name, :scope('lexical') );
-    $BLOCK[0].push($decl);
     make $past;
 }
 

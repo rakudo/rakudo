@@ -62,7 +62,7 @@ method add_invocant() {
     my @entries := self.entries;
     if +@entries == 0 || !@entries[0].invocant {
         my $param := Perl6::Compiler::Parameter.new();
-        $param.var_name("self");
+        $param.var_name("");
         $param.invocant(1);
         $param.multi_invocant(1);
         @entries.unshift($param);
@@ -126,7 +126,9 @@ method ast($high_level?) {
 
     # We'll likely also find a register holding a null value helpful to have.
     $ast.push(PAST::Op.new( :inline('    null $P0') ));
+    $ast.push(PAST::Op.new( :inline('    null $S0') ));
     my $null_reg := PAST::Var.new( :name('$P0'), :scope('register') );
+    my $null_str := PAST::Var.new( :name('$S0'), :scope('register') );
 
     # For each of the parameters, emit a call to add the parameter.
     my $i := 0;
@@ -229,7 +231,7 @@ method ast($high_level?) {
             :pirop('set_signature_elem vPisiPPPPPP'),
             $sig_var,
             $i,
-            ~$_.var_name,
+            ($_.var_name eq '' || $_.var_name eq $_.sigil ?? $null_str !! ~$_.var_name),
             $flags,
             $nom_type,
             $constraints,

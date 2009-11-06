@@ -246,11 +246,14 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
             if (sig_info->variable_name) {
                 PMC *ref  = pmc_new_init(interp, pmc_type(interp,
                         string_from_literal(interp, "ObjectRef")), value);
-                VTABLE_setprop(interp, ref, string_from_literal(interp, "readonly"), ref);
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
             }
         }
     }
+
+    /* Is it the invocant? If so, also have to bind to self lexical. */
+    if (sig_info->flags & SIG_ELEM_INVOCANT)
+        VTABLE_set_pmc_keyed_str(interp, lexpad, string_from_literal(interp, "self"), value);
 
     /* Handle any constraint types (note that they may refer to the parameter by
      * name, so we need to have bound it already). */
@@ -522,17 +525,8 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
 
             /* Otherwise, a positional. */
             else {
-                /* Is it the invocant? If so, binding already handled out of band, so
-                 * just handle type captures. */
-                if (elements[i]->flags & SIG_ELEM_INVOCANT) {
-                    PMC *value = VTABLE_get_pmc_keyed_str(interp, lexpad, string_from_literal(interp, "self"));
-                    if (!PMC_IS_NULL(elements[i]->type_captures))
-                        Rakudo_binding_bind_type_captures(interp, lexpad, elements[i], value);
-                    cur_pos_arg++;
-                }
-
                 /* Do we have a value?. */
-                else if (cur_pos_arg < num_pos_args) {
+                if (cur_pos_arg < num_pos_args) {
                     /* Easy - just bind that. */
                     PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],

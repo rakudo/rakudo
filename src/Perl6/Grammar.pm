@@ -357,8 +357,7 @@ rule routine_def {
 rule method_def {
     <deflongname>?
     <.newpad>
-    [ '(' <signature> ')'
-        || <.panic: 'Routine declaration requires a signature'> ]
+    [ '(' <signature> ')' ]?
     <blockoid>
 }
 

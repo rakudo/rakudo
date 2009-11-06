@@ -253,6 +253,7 @@ method variable($/) {
         elsif $<twigil>[0] eq '!' {
             $past.scope('attribute');
             $past.viviself( sigiltype( $<sigil> ) );
+            $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
         }
     }
     make $past;
@@ -449,11 +450,13 @@ method method_def($/) {
     $past.control('return_pir');
     
     # Set signature and invocant handling set up.
-    my $sig := $<signature>.ast;
+    my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
     $sig.add_invocant();
     add_signature($past, $sig);
+    $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
+    $past.symbol('self', :scope('lexical'));
 
-    # Method container.    
+    # Method container.
     if $<deflongname> {
         # Set up us the name.
         my $name := ~$<deflongname>[0].ast;

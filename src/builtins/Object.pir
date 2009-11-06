@@ -281,6 +281,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
   attrinit_itype:
     .local pmc attr
     attr = new itypeclass
+    setprop attr, 'rw', attr
     setattribute example, cur_class, attrname, attr
     traits = attrhash['traits']
     if null traits goto traits_done

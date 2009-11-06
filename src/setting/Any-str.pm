@@ -154,7 +154,7 @@ B<Note:> partial implementation only
         }
     }
 
-    our List multi method comb (Code $matcher = /./, $limit = *) {
+    our List multi method comb (Regex $matcher = /./, $limit = *) {
         my $l = $limit ~~ Whatever ?? Inf !! $limit;
         # currently we use a copy of self and destroy it piece by piece.
         # the preferred way of doing it is using self, not destroying it,

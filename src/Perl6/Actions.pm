@@ -34,7 +34,9 @@ sub sigiltype($sigil) {
 }
 
 method deflongname($/) {
-    if $<sym> { make ~$<identifier> ~ ':sym<' ~ ~$<sym>[0] ~ '>'; }
+    make $<colonpair>
+         ?? ~$<name> ~ ':<' ~ $<colonpair>[0]<circumfix><quote_EXPR>.ast.value ~ '>'
+         !! ~$<name>;
 }
 
 method comp_unit($/) {
@@ -228,7 +230,7 @@ method name($/) { }
 
 method colonpair($/) {
     my $past := $<circumfix> 
-                ?? $<circumfix>[0].ast 
+                ?? $<circumfix>.ast 
                 !! PAST::Val.new( :value( !$<not> ) );
     $past.named( ~$<identifier> );
     make $past;

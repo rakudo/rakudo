@@ -116,8 +116,7 @@ token longname {
 }
 
 token deflongname { 
-    <identifier> 
-    [ ':sym<' $<sym>=[<-[>]>*] '>' | ':sym«' $<sym>=[<-[»]>*] '»' ]?
+    <name> <colonpair>*
 }
 
 token ENDSTMT {
@@ -257,7 +256,8 @@ token colonpair {
     ':' 
     [ 
     | $<not>='!' <identifier>
-    | <identifier> <circumfix>?
+    | <identifier> [ <circumfix> | <?> ]
+    | <circumfix>
     ]
 }
 

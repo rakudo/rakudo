@@ -240,7 +240,10 @@ token statement_control:sym<use> {
 }
 
 proto token statement_prefix { <...> }
-token statement_prefix:sym<INIT> { <sym> <blorst> }
+token statement_prefix:sym<BEGIN> { <sym> <blorst> }
+token statement_prefix:sym<CHECK> { <sym> <blorst> }
+token statement_prefix:sym<INIT>  { <sym> <blorst> }
+token statement_prefix:sym<END>   { <sym> <blorst> }
 
 token blorst {
     \s <.ws> [ <block> | <statement> ]

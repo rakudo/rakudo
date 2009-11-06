@@ -204,15 +204,27 @@ method statement_control:sym<make>($/) {
     );
 }
 
-method statement_prefix:sym<INIT>($/) {
-    @BLOCK[0].loadinit.push($<blorst>.ast);
-    make PAST::Stmts.new(:node($/));
-}
+# XXX BEGIN isn't correct here, but I'm adding it along with this
+# note so that everyone else knows it's wrong too.  :-)
+method statement_prefix:sym<BEGIN>($/) { add_phaser($/, 'BEGIN'); }
+method statement_prefix:sym<CHECK>($/) { add_phaser($/, 'CHECK'); }
+method statement_prefix:sym<INIT>($/)  { add_phaser($/, 'INIT'); }
+method statement_prefix:sym<END>($/)   { add_phaser($/, 'END'); }
 
 method blorst($/) {
-    make $<block>
-         ?? block_immediate($<block>.ast)
-         !! $<statement>.ast;
+    my $block := $<block>
+                 ?? $<block>.ast
+                 !! PAST::Block.new( $<statement.ast>, :node($/) );
+    $block.blocktype('declaration');
+    make $block;
+}
+
+sub add_phaser($/, $bank) {
+    @BLOCK[0].loadinit.push(
+        PAST::Op.new( :pasttype('call'), :name('!add_phaser'), 
+                      $bank, $<blorst>.ast, :node($/))
+    );
+    make PAST::Stmts.new(:node($/));
 }
 
 ## Terms
@@ -1051,3 +1063,4 @@ sub wrap_parrot_sub($block, $type) {
         $block
     );
 }
+

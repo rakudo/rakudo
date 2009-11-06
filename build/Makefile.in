@@ -74,6 +74,7 @@ SOURCES = \
   $(DYNEXT_TARGET)
 
 BUILTINS_PIR = \
+  src/glue/phasers.pir \
   src/glue/role.pir \
   src/builtins/Object.pir \
   src/builtins/ClassHOW.pir \

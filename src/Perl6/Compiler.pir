@@ -84,6 +84,7 @@ Perl6::Compiler - Perl6 compiler
     .param pmc args_str
     $P0 = compreg 'Perl6'
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
+    '!fire_phasers'('END')
     exit 0
 .end
 

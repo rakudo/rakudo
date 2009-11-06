@@ -1,5 +1,5 @@
 *~
-/src/gen/*.pir
+/src/gen/*
 /nqp-rx/
 Makefile
 .*.swp

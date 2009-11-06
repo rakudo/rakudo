@@ -402,7 +402,7 @@ method variable_declarator($/) {
             # Wrap it in a Method handle, and install in methods table.
             my %meth_table := @PACKAGE[0].methods;
             my %meth_hash;
-            %meth_hash<code_ref> := wrap_parrot_sub($meth, 'Method');
+            %meth_hash<code_ref> := create_code_object($meth, 'Method');
             %meth_table{~$<variable><desigilname>} := %meth_hash;
         }
         
@@ -459,7 +459,7 @@ method routine_def($/) {
         $past.nsentry($*SCOPE eq 'our' ?? $name !! '');
 
         # Wrap it in the correct routine type.
-        $past := wrap_parrot_sub($past, 'Sub');
+        $past := create_code_object($past, 'Sub');
 
         # Handle multi-ness, if any.
         my $symbol := @BLOCK[0].symbol($name);
@@ -530,7 +530,7 @@ method method_def($/) {
         my $name := ~$<deflongname>[0].ast;
         $past.name($name);
         $past.nsentry('');
-        $past := wrap_parrot_sub($past, 'Method');
+        $past := create_code_object($past, 'Method');
 
         # Add to methods table, and we're done.
         our @PACKAGE;
@@ -544,7 +544,7 @@ method method_def($/) {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
-        $past := wrap_parrot_sub($past, 'Method');
+        $past := create_code_object($past, 'Method');
     }
 
     make $past;
@@ -1088,7 +1088,7 @@ sub add_signature($block, $sig_obj) {
 }
 
 # Wraps a sub up in a block type.
-sub wrap_parrot_sub($block, $type) {
+sub create_code_object($block, $type) {
     my @name := Perl6::Grammar::parse_name($type);
     PAST::Op.new(
         :pasttype('callmethod'),

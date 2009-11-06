@@ -48,7 +48,7 @@ class Any is also {
         }
     }
 
-    multi method pick(Int $num is copy = 1, :$repl) {
+    multi method pick(Int $num is copy = 1, :$replace) {
 
         $num=floor($num);
 
@@ -57,7 +57,7 @@ class Any is also {
         }
 
         my @l;
-        if ($repl) {
+        if ($replace) {
             @l := @.list;
         }
         else {
@@ -68,14 +68,14 @@ class Any is also {
             while ($num > 0 and @l.elems > 0) {
                 my $idx = floor(@l.elems.rand());
                 take @l[$idx];
-                @l.splice($idx,1) unless $repl;
+                @l.splice($idx,1) unless $replace;
                 --$num;
             }
         }
     }
 
-    multi method pick(Whatever $, :$repl) {
-        die "Infinite lazy pick not implemented" if $repl;
+    multi method pick(Whatever $, :$replace) {
+        die "Infinite lazy pick not implemented" if $replace;
         @.pick(@.elems);
     }
 
@@ -192,12 +192,12 @@ our List multi map(Code $expr, *@values) {
     @values.map($expr)
 }
 
-multi pick(Int $num, :$repl, *@values) {
-    @values.pick($num,:repl($repl));
+multi pick(Int $num, :$replace, *@values) {
+    @values.pick($num, :$replace);
 }
 
-multi pick(Whatever $, :$repl, *@values) {
-    @values.pick(*,:repl($repl));
+multi pick(Whatever $, :$replace, *@values) {
+    @values.pick(*,:$replace);
 }
 
 multi max(Code $by, *@values) {

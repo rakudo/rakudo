@@ -124,6 +124,16 @@ token module_name {
     [ <?before '['> '[' ~ ']' <arglist> ]?
 }
 
+token def_module_name {
+    <longname>
+    [
+        <?before '['>
+        <?{ $*PKGDECL eq 'role' }>
+        '[' ~ ']' <signature>
+    ]?
+}
+
+
 token ENDSTMT {
     [ \h* $$ <.ws> <?MARKER('endstmt')> ]?
 }
@@ -299,7 +309,7 @@ token package_declarator:sym<role> {
 
 rule package_def { 
     :my $*IN_DECL := 'package';
-    <name>
+    <def_module_name>?
     <trait>*
     {*} #= open
     [ 
@@ -396,6 +406,7 @@ token parameter {
         [
         | $<quant>=['*'] <param_var>
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+        | <?>
         ]
     | $<quant>=['*'] <param_var>
     | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]

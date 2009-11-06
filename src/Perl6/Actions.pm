@@ -311,7 +311,16 @@ method package_def($/, $key?) {
         $package.how($how);
         $*SCOPE := $*SCOPE || 'our';
         $package.scope($*SCOPE);
-        $package.name($<name>);
+        if $<def_module_name> {
+            my $name := ~$<def_module_name>[0]<longname>;
+            if $name ne '::' {
+                $package.name($name);
+                $/.CURSOR.add_my_name($name);
+            }
+            if $<def_module_name>[0]<signature> {
+                $package.signature($<def_module_name>[0]<signature>[0].ast);
+            }
+        }
 
         # Add traits.
         for $<trait> {

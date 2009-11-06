@@ -62,6 +62,7 @@ Perl6::Compiler - Perl6 compiler
 .include 'src/gen/role_pm.pir'
 .include 'src/gen/perl6-grammar.pir'
 .include 'src/gen/perl6-actions.pir'
+.include 'src/gen/core.pir'
 
 .namespace ['Perl6';'Compiler']
 

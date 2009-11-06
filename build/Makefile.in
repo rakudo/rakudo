@@ -50,6 +50,8 @@ PERL6_PBC     = perl6.pbc
 PERL6_EXE     = perl6$(EXE)
 PERL6_G       = src/gen/perl6-grammar.pir
 PERL6_A       = src/gen/perl6-actions.pir
+S1_PERL6_PBC  = src/gen/$(PERL6_PBC)
+CORE_PIR      = src/gen/core.pir
 GROUP         = perl6_group
 OPS           = perl6_ops
 DYNEXT_TARGET = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
@@ -110,6 +112,9 @@ CHEATS_PIR = \
   src/cheats/relops.pir \
   src/cheats/parrot-attriter.pir \
 
+CORE_SOURCES = \
+  src/core/traits.pm \
+
 # SETTING = \
 #   src/setting/traits.pm \
 #   src/setting/Any-list.pm \
@@ -163,6 +168,7 @@ CLEANUPS = \
   Test.pir \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen/*.pir \
+  src/gen/*.pbc \
   $(PMC_DIR)/pmc_*.h \
   $(PMC_DIR)/*.c \
   $(PMC_DIR)/*.dump \
@@ -206,10 +212,17 @@ xmas: perl6$(EXE)
 $(PERL6_EXE): $(PERL6_PBC)
 	$(PBC_TO_EXE) $(PERL6_PBC)
 
-# the Perl 6 compiler
-$(PERL6_PBC): $(PARROT) $(SOURCES)
-	@win32_libparrot_copy@
+# the complete compiler, including core/setting
+$(PERL6_PBC): $(S1_PERL6_PBC) src/gen/core.pm
+	$(PARROT) $(PARROT_ARGS) $(S1_PERL6_PBC) --target=pir \
+	    src/gen/core.pm > $(CORE_PIR)
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/Perl6/Compiler.pir
+
+# the stage-1 compiler
+$(S1_PERL6_PBC): $(PARROT) $(SOURCES)
+	$(PERL) -e "" > $(CORE_PIR)
+	@win32_libparrot_copy@
+	$(PARROT) $(PARROT_ARGS) -o $(S1_PERL6_PBC) src/Perl6/Compiler.pir
 
 $(PERL6_G): $(NQP_EXE) src/Perl6/Grammar.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
@@ -239,11 +252,14 @@ src/gen/role_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Role.pm
 	$(NQP_EXE) --output=src/gen/role_pm.pir --encoding=utf8 \
 	    --target=pir src/Perl6/Compiler/Role.pm
 
+src/gen/builtins.pir: build/gen_builtins_pir.pl $(BUILTINS_PIR)
+	$(PERL) build/gen_builtins_pir.pl $(BUILTINS_PIR) > src/gen/builtins.pir
+
 src/gen/cheats.pir: build/gen_cheats_pir.pl $(CHEATS_PIR)
 	$(PERL) build/gen_cheats_pir.pl $(CHEATS_PIR) > src/gen/cheats.pir
 
-src/gen/builtins.pir: build/gen_builtins_pir.pl $(BUILTINS_PIR)
-	$(PERL) build/gen_builtins_pir.pl $(BUILTINS_PIR) > src/gen/builtins.pir
+src/gen/core.pm: build/gen_core_pm.pl $(CORE_SOURCES)
+	$(PERL) build/gen_core_pm.pl $(CORE_SOURCES) > src/gen/core.pm
 
 src/gen_metaop.pir: build/gen_metaop_pir.pl
 	$(PERL) build/gen_metaop_pir.pl > src/gen_metaop.pir

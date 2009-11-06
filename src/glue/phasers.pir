@@ -20,9 +20,9 @@ all others are at the end.
     .param string bank
     .param pmc phaser
 
-    .local pmc phash, pbank
-    $P0 = get_hll_namespace
-    phash = vivify $P0, '%!PHASERS', ['Hash']
+    .local pmc our, phash, pbank
+    our = get_hll_namespace
+    phash = vivify our, '%!PHASERS', ['Hash']
     pbank = vivify phash, bank, ['ResizablePMCArray']
     if bank == 'CHECK' goto bank_lifo
     if bank == 'END' goto bank_lifo

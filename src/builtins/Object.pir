@@ -84,7 +84,7 @@ like this.
     unless $I0 goto attrinit_loop
     $P0 = getattribute result, attrname
     $P1 = new_attrs[shortname]
-    '&infix:='($P0, $P1)
+    '&infix:<=>'($P0, $P1)
     goto attrinit_loop
   attrinit_done:
 
@@ -150,7 +150,7 @@ like this.
     if null $P0 goto attrinit_loop
     $P0 = $P0(self, attr)
   attrinit_assign:
-    'infix:='(attr, $P0)
+    '&infix:<=>'(attr, $P0)
     goto attrinit_loop
   attrinit_done:
     .return (self)
@@ -445,7 +445,7 @@ Gets the object's identity value
 .namespace ['Perl6Object']
 .sub '' :vtable('decrement') :method
     $P0 = self.'pred'()
-    'infix:='(self, $P0)
+    '&infix:<=>'(self, $P0)
     .return(self)
 .end
 
@@ -490,7 +490,7 @@ Gets the object's identity value
 
 .sub '' :vtable('increment') :method
     $P0 = self.'succ'()
-    'infix:='(self, $P0)
+    '&infix:<=>'(self, $P0)
     .return (self)
 .end
 

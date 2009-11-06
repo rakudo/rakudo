@@ -96,9 +96,11 @@ method finish($block) {
     }
 
     # Traits.
-    for @($!traits) {
-        $_.unshift($meta_reg);
-        $decl.push($_);
+    if $!traits {
+        for @($!traits) {
+            $_.unshift($meta_reg);
+            $decl.push($_);
+        }
     }
 
     # Finally, compose call, and we're done with the decls.

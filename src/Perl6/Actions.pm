@@ -228,6 +228,25 @@ method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
 
 method name($/) { }
 
+method module_name($/) {
+    my @name := Perl6::Grammar::parse_name(~$<longname>);
+    my $var := PAST::Var.new(
+        :name(@name.pop),
+        :namespace(@name),
+        :scope('package')
+    );
+    if $<arglist> {
+        my $past := $<arglist>[0].ast;
+        $past.pasttype('callmethod');
+        $past.name('postcircumfix:<[ ]>');
+        $past.unshift($var);
+        make $past;
+    }
+    else {
+        make $var;
+    }
+}
+
 method colonpair($/) {
     my $past := $<circumfix> 
                 ?? $<circumfix>.ast 
@@ -556,6 +575,121 @@ method post_constraint($/) {
         }
         $*PARAMETER.cons_types.push($past);
     }
+}
+
+method trait($/) {
+    my $past;
+    if $<trait_mod> {
+        $past := $<trait_mod>.ast;
+    }
+    elsif $<colonpair> {
+        $/.panic('traits specified as colon pairs not yet understood');
+    }
+    make $past;
+}
+
+method trait_mod:sym<is>($/) {
+    my $trait := PAST::Op.new( :pasttype('call'), :name('trait_mod:is') );
+    if $<circumfix> { $trait.push($<circumfix>[0].ast); }
+    
+    if $/.CURSOR.is_name(~$<longname>) {
+        # It's a type - look it up and send it in as a positional, before
+        # the parameter.
+        my @name := Perl6::Grammar.parse_name(~$<longname>);
+        $trait.unshift(PAST::Var.new(
+            :scope('package'),
+            :name(@name.pop()),
+            :namespace(@name)
+        ));
+    }
+    else {
+        # Not a type name, so construct a named parameter with this name; it
+        # is a named param so it has to go on the end.
+        $trait.push(PAST::Var.new(
+            :name('True'),
+            :namespace('Bool'),
+            :scope('package'),
+            :named(~$<longname>)
+        ));
+    }
+    
+    $trait<is_name> := ~$<longname>;
+    make $trait;
+}
+
+method trait_mod:sym<hides>($/) {
+    make PAST::Op.new(
+        :pasttype('call'),
+        :name('trait_mod:hides'),
+        $<module_name>.ast
+    );
+}
+
+method trait_mod:sym<does>($/) {
+    make PAST::Op.new(
+        :pasttype('call'),
+        :name('trait_mod:does'),
+        $<module_name>.ast
+    );
+}
+
+method trait_mod:sym<will>($/) {
+    my $trait := PAST::Op.new(
+        :pasttype('call'),
+        :name('trait_mod:will'),
+        $<pblock>.ast
+    );
+
+    if $/.CURSOR.is_name(~$<identifier>) {
+        # It's a type - look it up and send it in as a positional, before
+        # the parameter.
+        $trait.unshift(PAST::Var.new(
+            :scope('package'),
+            :name(~$<identifier>)
+        ));
+    }
+    else {
+        # Not a type name, so construct a named parameter with this name; it
+        # is a named param so it has to go on the end.
+        $trait.push(PAST::Val.new(
+            :value(PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') )),
+            :named(~$<identifier>)
+        ));
+    }
+
+    make $trait;
+}
+
+method trait_mod:sym<of>($/) {
+    make PAST::Op.new(
+        :pasttype('call'),
+        :name('trait_mod:of'),
+        $<typename>.ast
+    );
+}
+
+method trait_mod:sym<as>($/) {
+    make PAST::Op.new(
+        :pasttype('call'),
+        :name('trait_mod:as'),
+        $<typename>.ast
+    );
+}
+
+method trait_mod:sym<returns>($/) {
+    make PAST::Op.new(
+        :pasttype('call'),
+        :name('trait_mod:returns'),
+        $<typename>.ast
+    );
+}
+
+method trait_mod:sym<handles>($/) {
+    make PAST::Op.new(
+        :pasttype('call'),
+        :name('trait_mod:handles'),
+        $<term>.ast
+    );
 }
 
 method regex_declarator($/, $key?) {

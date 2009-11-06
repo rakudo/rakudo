@@ -119,6 +119,11 @@ token deflongname {
     <name> <colonpair>*
 }
 
+token module_name {
+    <longname>
+    [ <?before '['> '[' ~ ']' <arglist> ]?
+}
+
 token ENDSTMT {
     [ \h* $$ <.ws> <?MARKER('endstmt')> ]?
 }
@@ -459,10 +464,14 @@ rule trait {
 }
 
 proto token trait_mod { <...> }
-
-token trait_mod:sym<is> {
-    <sym>:s <longname><circumfix>?
-}
+token trait_mod:sym<is>      { <sym>:s <longname><circumfix>? }
+token trait_mod:sym<hides>   { <sym>:s <module_name> }
+token trait_mod:sym<does>    { <sym>:s <module_name> }
+token trait_mod:sym<will>    { <sym>:s <identifier> <pblock> }
+token trait_mod:sym<of>      { <sym>:s <typename> }
+token trait_mod:sym<as>      { <sym>:s <typename> }
+token trait_mod:sym<returns> { <sym>:s <typename> }
+token trait_mod:sym<handles> { <sym>:s <term> }
 
 # XXX This should elsewhere in this file
 token dotty {

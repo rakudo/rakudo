@@ -15,6 +15,9 @@ has $!methods;
 # Table of attributes meta-data hashes. Maps name to hash.
 has $!attributes;
 
+# List of traits.
+has $!traits;
+
 # Accessor for how.
 method how($how?) {
     if $how { $!how := $how }
@@ -43,6 +46,12 @@ method methods() {
 method attributes() {
     unless $!attributes { $!attributes := Q:PIR { %r = new ['Hash'] } }
     $!attributes
+}
+
+# Accessor for traits list.
+method traits() {
+    unless $!traits { $!traits := PAST::Node.new() }
+    $!traits
 }
 
 # This method drives the code generation and fixes up the block.
@@ -87,7 +96,10 @@ method finish($block) {
     }
 
     # Traits.
-
+    for @($!traits) {
+        $_.unshift($meta_reg);
+        $decl.push($_);
+    }
 
     # Finally, compose call, and we're done with the decls.
     $decl.push(PAST::Op.new( :pasttype('callmethod'), :name('compose'), $metaclass, $meta_reg ));

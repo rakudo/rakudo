@@ -301,6 +301,12 @@ method package_def($/, $key?) {
         $package.scope($*SCOPE);
         $package.name($<name>);
 
+        # Add traits.
+        for $<trait> {
+            pir::say('omg trait');
+            $package.traits.push($_.ast);
+        }
+
         # Put on front of packages list. Note - nesting a package in a role is
         # not supported (gets really tricky in the parametric case - needs more
         # thought and consideration).
@@ -589,13 +595,13 @@ method trait($/) {
 }
 
 method trait_mod:sym<is>($/) {
-    my $trait := PAST::Op.new( :pasttype('call'), :name('trait_mod:is') );
+    my $trait := PAST::Op.new( :pasttype('call'), :name('&trait_mod:is') );
     if $<circumfix> { $trait.push($<circumfix>[0].ast); }
     
     if $/.CURSOR.is_name(~$<longname>) {
         # It's a type - look it up and send it in as a positional, before
         # the parameter.
-        my @name := Perl6::Grammar.parse_name(~$<longname>);
+        my @name := Perl6::Grammar::parse_name(~$<longname>);
         $trait.unshift(PAST::Var.new(
             :scope('package'),
             :name(@name.pop()),
@@ -620,7 +626,7 @@ method trait_mod:sym<is>($/) {
 method trait_mod:sym<hides>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('trait_mod:hides'),
+        :name('&trait_mod:hides'),
         $<module_name>.ast
     );
 }
@@ -628,7 +634,7 @@ method trait_mod:sym<hides>($/) {
 method trait_mod:sym<does>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('trait_mod:does'),
+        :name('&trait_mod:does'),
         $<module_name>.ast
     );
 }
@@ -636,7 +642,7 @@ method trait_mod:sym<does>($/) {
 method trait_mod:sym<will>($/) {
     my $trait := PAST::Op.new(
         :pasttype('call'),
-        :name('trait_mod:will'),
+        :name('&trait_mod:will'),
         $<pblock>.ast
     );
 
@@ -663,7 +669,7 @@ method trait_mod:sym<will>($/) {
 method trait_mod:sym<of>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('trait_mod:of'),
+        :name('&trait_mod:of'),
         $<typename>.ast
     );
 }
@@ -671,7 +677,7 @@ method trait_mod:sym<of>($/) {
 method trait_mod:sym<as>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('trait_mod:as'),
+        :name('&trait_mod:as'),
         $<typename>.ast
     );
 }
@@ -679,7 +685,7 @@ method trait_mod:sym<as>($/) {
 method trait_mod:sym<returns>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('trait_mod:returns'),
+        :name('&trait_mod:returns'),
         $<typename>.ast
     );
 }
@@ -687,7 +693,7 @@ method trait_mod:sym<returns>($/) {
 method trait_mod:sym<handles>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('trait_mod:handles'),
+        :name('&trait_mod:handles'),
         $<term>.ast
     );
 }

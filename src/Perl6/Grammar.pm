@@ -297,7 +297,7 @@ token package_declarator:sym<role> {
 rule package_def { 
     :my $*IN_DECL := 'package';
     <name>
-    [ 'is' <parent=name> ]?
+    <trait>*
     {*} #= open
     [ 
     || ';' <comp_unit>

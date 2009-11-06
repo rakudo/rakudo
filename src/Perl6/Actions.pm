@@ -361,7 +361,7 @@ method scoped($/) {
 method variable_declarator($/) {
     my $past := $<variable>.ast;
     my $sigil := $<variable><sigil>;
-    my $twigil := $<variable><twigil>;
+    my $twigil := $<variable><twigil>[0];
     my $name := $past.name;
 
     if $*SCOPE eq 'has' {
@@ -374,6 +374,37 @@ method variable_declarator($/) {
         %attr_table{$attrname} := Q:PIR { %r = new ['Hash'] };
         %attr_table{$attrname}<name>     := $attrname;
         %attr_table{$attrname}<accessor> := $twigil eq '.' ?? 1 !! 0;
+
+        # If the trait is . then need an accessor method adding too.
+        if $twigil eq '.' {
+            # Create block to return either the attribute itself, or
+            # wrapped to hide the rw-ness.
+            my $var := PAST::Var.new(
+                :name($attrname),
+                :scope('attribute'),
+                PAST::Var.new( :name('self'), :scope('lexical') )
+            );
+            unless $<trait> && has_compiler_trait_with_val($<trait>, '&trait_mod:<is>', 'rw') {
+                $var := PAST::Op.new( :pirop('new PsP'), 'Perl6Scalar', $var);
+            }
+            my $meth := PAST::Block.new(
+                :name(~$<variable><desigilname>),
+                :nsentry(''),
+                PAST::Stmts.new(
+                    PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1) )
+                ),
+                $var
+            );
+            my $sig := Perl6::Compiler::Signature.new();
+            $sig.add_invocant();
+            add_signature($meth, $sig);
+
+            # Wrap it in a Method handle, and install in methods table.
+            my %meth_table := @PACKAGE[0].methods;
+            my %meth_hash;
+            %meth_hash<code_ref> := wrap_parrot_sub($meth, 'Method');
+            %meth_table{~$<variable><desigilname>} := %meth_hash;
+        }
         
         # Nothing to emit here.
         $past := PAST::Stmts.new( );
@@ -607,7 +638,7 @@ method trait($/) {
 }
 
 method trait_mod:sym<is>($/) {
-    my $trait := PAST::Op.new( :pasttype('call'), :name('&trait_mod:is') );
+    my $trait := PAST::Op.new( :pasttype('call'), :name('&trait_mod:<is>') );
     if $<circumfix> { $trait.push($<circumfix>[0].ast); }
     
     if $/.CURSOR.is_name(~$<longname>) {
@@ -638,7 +669,7 @@ method trait_mod:sym<is>($/) {
 method trait_mod:sym<hides>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('&trait_mod:hides'),
+        :name('&trait_mod:<hides>'),
         $<module_name>.ast
     );
 }
@@ -646,7 +677,7 @@ method trait_mod:sym<hides>($/) {
 method trait_mod:sym<does>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('&trait_mod:does'),
+        :name('&trait_mod:<does>'),
         $<module_name>.ast
     );
 }
@@ -681,7 +712,7 @@ method trait_mod:sym<will>($/) {
 method trait_mod:sym<of>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('&trait_mod:of'),
+        :name('&trait_mod:<of>'),
         $<typename>.ast
     );
 }
@@ -689,7 +720,7 @@ method trait_mod:sym<of>($/) {
 method trait_mod:sym<as>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('&trait_mod:as'),
+        :name('&trait_mod:<as>'),
         $<typename>.ast
     );
 }
@@ -697,7 +728,7 @@ method trait_mod:sym<as>($/) {
 method trait_mod:sym<returns>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('&trait_mod:returns'),
+        :name('&trait_mod:<returns>'),
         $<typename>.ast
     );
 }
@@ -705,7 +736,7 @@ method trait_mod:sym<returns>($/) {
 method trait_mod:sym<handles>($/) {
     make PAST::Op.new(
         :pasttype('call'),
-        :name('&trait_mod:handles'),
+        :name('&trait_mod:<handles>'),
         $<term>.ast
     );
 }
@@ -1037,6 +1068,8 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
     }
 }
 
+# Takes a block and adds a signature ot it, as well as code to bind the call
+# capture against the signature.
 sub add_signature($block, $sig_obj) {
     # Add signature building code to the block.
     $block.loadinit.push($sig_obj.ast);
@@ -1054,6 +1087,7 @@ sub add_signature($block, $sig_obj) {
     ));
 }
 
+# Wraps a sub up in a block type.
 sub wrap_parrot_sub($block, $type) {
     my @name := Perl6::Grammar::parse_name($type);
     PAST::Op.new(
@@ -1064,3 +1098,37 @@ sub wrap_parrot_sub($block, $type) {
     );
 }
 
+# This routine checks if the given list of traits contains one of the given
+# name. If so, it marks it as compiler handled so no multi call will be
+# emitted when we emit the traits. If there is such a trait, it returns it's
+# AST.
+sub has_compiler_trait($trait_list, $name) {
+    if $trait_list {
+        for $trait_list {
+            my $ast := $_.ast;
+            if $ast.name eq $name {
+                $ast<trait_is_compiler_handled> := 1;
+                return $ast;
+            }
+        }
+    }
+    return 0;
+}
+
+
+# This routine checks if the given list of traits contains one of the given
+# names and also that it carries the given value as a named parameter. If so,
+# it marks it as compiler handled so no multi call will be emitted when we emit
+# the traits. If there is such a trait, it returns it's AST.
+sub has_compiler_trait_with_val($trait_list, $name, $value) {
+    if $trait_list {
+        for $trait_list {
+            my $ast := $_.ast;
+            if $ast.name eq $name && $ast<is_name> eq $value {
+                $ast<trait_is_compiler_handled> := 1;
+                return $ast;
+            }
+        }
+    }
+    return 0;
+}

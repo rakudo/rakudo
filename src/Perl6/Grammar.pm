@@ -265,7 +265,10 @@ rule package_def {
     <trait>*
     {*} #= open
     [ 
-    || ';' <comp_unit>
+    || ';' 
+        <.newpad>
+        <.finishpad>
+        <statementlist> 
     || <?[{]> <block>
     || <.panic: 'Malformed package declaration'>
     ]

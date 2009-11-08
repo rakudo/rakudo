@@ -339,7 +339,10 @@ method package_def($/, $key?) {
     else {
         # We just need to finish up the current package.
         my $package := @PACKAGE.shift;
-        make $package.finish($<block> ?? $<block>.ast !! $<comp_unit>.ast);
+        my $block := $<block> 
+                     ?? $<block>.ast 
+                     !! PAST::Block.new( $<statement_list>.ast, :node($/) );
+        make $package.finish($block);
     }
 }
 

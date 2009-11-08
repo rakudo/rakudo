@@ -30,8 +30,7 @@ Perl6::Compiler - Perl6 compiler
     p6meta = objproto.'HOW'()
     set_hll_global ['Perl6Object'], '$!P6META', p6meta
 
-    $P0 = new ['Perl6Object']
-    set_hll_global '$!OBJECTREF', $P0
+    set_hll_global '$!OBJECTREF', objproto
 
     ## Also want _dumper for now.
     load_bytecode 'dumper.pbc'

@@ -9,6 +9,7 @@ use the one in Positional.
 
 =cut
 
+.namespace []
 .sub '!postcircumfix:<[ ]>'
     .param pmc invocant
     .param pmc args            :slurpy

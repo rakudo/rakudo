@@ -349,13 +349,15 @@ token multi_declarator:sym<null> {
 }
 
 proto token scope_declarator { <...> }
-token scope_declarator:sym<my>  { <sym> <scoped('my')> }
-token scope_declarator:sym<our> { <sym> <scoped('our')> }
-token scope_declarator:sym<has> { <sym> <scoped('has')> }
+token scope_declarator:sym<my>      { <sym> <scoped('my')> }
+token scope_declarator:sym<our>     { <sym> <scoped('our')> }
+token scope_declarator:sym<has>     { <sym> <scoped('has')> }
+token scope_declarator:sym<augment> { <sym> <scoped('augment')> }
 
 rule scoped($*SCOPE) {
-    | <variable_declarator>
-    | <routine_declarator>
+    | <DECL=variable_declarator=variable_declarator>
+    | <DECL=routine_declarator=routine_declarator>
+    | <DECL=package_declarator=package_declarator>
 }
 
 token variable_declarator { <variable> <trait>* }
@@ -675,7 +677,8 @@ token infix:sym<x>    { <sym>  <O('%replication')> }
 
 token infix:sym<~>    { <sym>  <O('%concatenation , :pirop<concat>')> }
 
-token prefix:sym<abs> { <sym> » <O('%named_unary, :pirop<abs PP>')> }
+token prefix:sym<abs>     { <sym> » <O('%named_unary, :pirop<abs PP>')> }
+token prefix:sym<defined> { <sym> » <O('%named_unary')> }
 
 token infix:sym«==»   { <sym>  <O('%chaining')> }
 token infix:sym«!=»   { <sym>  <O('%chaining')> }

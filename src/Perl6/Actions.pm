@@ -362,9 +362,7 @@ method multi_declarator:sym<only>($/)  { make $<declarator> ?? $<declarator>.ast
 method multi_declarator:sym<null>($/)  { make $<declarator>.ast }
 
 method scoped($/) {
-    make $<routine_declarator>
-         ?? $<routine_declarator>.ast
-         !! $<variable_declarator>.ast;
+    make $<DECL>.ast;
 }
 
 method variable_declarator($/) {

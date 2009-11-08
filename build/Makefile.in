@@ -113,6 +113,7 @@ CHEATS_PIR = \
   src/cheats/str-ops.pir \
   src/cheats/relops.pir \
   src/cheats/parrot-attriter.pir \
+  src/cheats/parrot/Protoobject.pir \
 
 CORE_SOURCES = \
   src/core/traits.pm \

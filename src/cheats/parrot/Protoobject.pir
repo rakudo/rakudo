@@ -92,60 +92,6 @@ Return a clone of the protoobject with a new WHENCE property set.
 
 =back
 
-=head2  Coercions
-
-=over
-
-=item Scalar()
-
-=cut
-
-.namespace ['P6protoobject']
-.sub 'Scalar' :method
-    .return (self)
-.end
-
-=back
-
-=head2  Private methods
-
-=over
-
-=item !flatten()
-
-=cut
-
-.namespace ['P6protoobject']
-.sub '!flatten' :method
-    $P0 = new 'ResizablePMCArray'
-    push $P0, self
-    .return ($P0)
-.end
-
-=item !IMMUTABLE()
-
-=item !MUTABLE()
-
-Indicate that objects in the class are mutable or immutable.
-
-=cut
-
-.namespace ['P6protoobject']
-.sub '!IMMUTABLE' :method
-    $P0 = get_root_global [.RAKUDO_HLL ; 'Int'], 'Scalar'
-    $P1 = self.'HOW'()
-    $P1.'add_method'(self, 'Scalar', $P0)
-.end
-
-.namespace ['P6protoobject']
-.sub '!MUTABLE' :method
-    $P0 = get_root_global [.RAKUDO_HLL ; 'Perl6Object'], 'Scalar'
-    $P1 = self.'HOW'()
-    $P1.'add_method'(self, 'Scalar', $P0)
-.end
-
-=back
-
 =head2 Vtable functions
 
 =cut

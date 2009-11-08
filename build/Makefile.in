@@ -105,6 +105,7 @@ BUILTINS_PIR = \
 CHEATS_PIR = \
   src/cheats/autoincrement.pir \
   src/cheats/fail.pir \
+  src/cheats/object.pir \
   src/cheats/postcircumfix-array.pir \
   src/cheats/print-say.pir \
   src/cheats/int-ops.pir \

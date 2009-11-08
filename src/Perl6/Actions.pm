@@ -43,6 +43,7 @@ method comp_unit($/) {
     my $past := $<statementlist>.ast;
     my $BLOCK := @BLOCK.shift;
     $BLOCK.push($past);
+    $BLOCK.namespace('GLOBAL');
     $BLOCK.node($/);
     our $?RAKUDO_HLL;
     $BLOCK.hll($?RAKUDO_HLL);

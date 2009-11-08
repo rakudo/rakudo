@@ -285,7 +285,7 @@ S09-typed-arrays/hashes.t
 S10-packages/basic.t
 S10-packages/use-with-class.t
 S11-modules/export.t
-S11-modules/import.t
+S11-modules/importing.t
 S11-modules/import-tag.t
 S11-modules/nested.t
 S12-attributes/class.t

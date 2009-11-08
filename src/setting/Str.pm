@@ -1,5 +1,5 @@
 class Str is also {
-    method Str() { self; } # does this do the right thing for classes derived from Str?
+    method Str() { self; }
 
     multi method encode($encoding = 'UTF-8', $nf = '') {
         my @bytes = Q:PIR {

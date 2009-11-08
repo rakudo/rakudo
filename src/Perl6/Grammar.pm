@@ -20,54 +20,6 @@ method TOP() {
     self.comp_unit;
 }
 
-sub parse_name($name) {
-    # XXX Some enterprising soul could re-write this in NQP. ;-)
-    Q:PIR {
-        .local string name
-        $P0 = find_lex '$name'
-        name = $P0
-        ##  remove any type parameterization for now
-        .local string type_param
-        type_param = ''
-        $I0 = index name, '['
-        if $I0 == -1 goto type_param_done
-        type_param = substr name, $I0
-        name = substr name, 0, $I0
-      type_param_done:
-        ##  divide name based on ::
-        .local pmc list
-        list = split '::', name
-        ##  move any leading sigil to the last item
-        .local string sigil
-        $S0 = list[0]
-        sigil = substr $S0, 0, 1
-        $I0 = index '$@%&', $S1
-        if $I0 < 0 goto sigil_done
-        substr $S0, 0, 1, ''
-        list[0] = $S0
-        $S0 = list[-1]
-        $S0 = concat sigil, $S0
-        list[-1] = $S0
-      sigil_done:
-        ##  remove any empty items from the list
-        $P0 = iter list
-        list = new 'ResizablePMCArray'
-      iter_loop:
-        unless $P0 goto iter_done
-        $S0 = shift $P0
-        unless $S0 goto iter_loop
-        push list, $S0
-        goto iter_loop
-      iter_done:
-        if type_param == '' goto no_add_type_param
-        $S0 = pop list
-        concat $S0, type_param
-        push list, $S0
-      no_add_type_param:
-        .return (list)
-    }
-}
-
 method add_my_name($name) {
     my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
     @BLOCK[0].symbol($name, :does_abstraction(1));
@@ -743,3 +695,53 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
         <block=LANG('MAIN','block')>
     }
 }
+
+
+sub parse_name($name) {
+    # XXX Some enterprising soul could re-write this in NQP. ;-)
+    Q:PIR {
+        .local string name
+        $P0 = find_lex '$name'
+        name = $P0
+        ##  remove any type parameterization for now
+        .local string type_param
+        type_param = ''
+        $I0 = index name, '['
+        if $I0 == -1 goto type_param_done
+        type_param = substr name, $I0
+        name = substr name, 0, $I0
+      type_param_done:
+        ##  divide name based on ::
+        .local pmc list
+        list = split '::', name
+        ##  move any leading sigil to the last item
+        .local string sigil
+        $S0 = list[0]
+        sigil = substr $S0, 0, 1
+        $I0 = index '$@%&', $S1
+        if $I0 < 0 goto sigil_done
+        substr $S0, 0, 1, ''
+        list[0] = $S0
+        $S0 = list[-1]
+        $S0 = concat sigil, $S0
+        list[-1] = $S0
+      sigil_done:
+        ##  remove any empty items from the list
+        $P0 = iter list
+        list = new 'ResizablePMCArray'
+      iter_loop:
+        unless $P0 goto iter_done
+        $S0 = shift $P0
+        unless $S0 goto iter_loop
+        push list, $S0
+        goto iter_loop
+      iter_done:
+        if type_param == '' goto no_add_type_param
+        $S0 = pop list
+        concat $S0, type_param
+        push list, $S0
+      no_add_type_param:
+        .return (list)
+    }
+}
+

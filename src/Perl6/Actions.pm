@@ -40,14 +40,20 @@ method deflongname($/) {
 }
 
 method comp_unit($/) {
-    my $past := $<statementlist>.ast;
-    my $BLOCK := @BLOCK.shift;
-    $BLOCK.push($past);
-    $BLOCK.namespace('GLOBAL');
-    $BLOCK.node($/);
+    my $mainline := @BLOCK.shift;
+    $mainline.push($<statementlist>.ast);
     our $?RAKUDO_HLL;
-    $BLOCK.hll($?RAKUDO_HLL);
-    make $BLOCK;
+    my $unit := PAST::Block.new( :node($/), :namespace('GLOBAL'), :hll($?RAKUDO_HLL) );
+
+    $unit.push(
+        PAST::Op.new(
+            :pirop('tailcall'),
+            PAST::Var.new( :name('!UNIT_START'), :namespace(''), :scope('package') ),
+            $mainline,
+            PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
+        )
+    );
+    make $unit;
 }
 
 method statementlist($/) {

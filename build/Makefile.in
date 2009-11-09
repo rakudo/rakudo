@@ -76,6 +76,7 @@ SOURCES = \
 BUILTINS_PIR = \
   src/glue/phasers.pir \
   src/glue/role.pir \
+  src/glue/run.pir \
   src/builtins/Object.pir \
   src/builtins/ClassHOW.pir \
   src/builtins/RoleHOW.pir \

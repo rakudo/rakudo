@@ -125,14 +125,21 @@ Completes the creation of the metaclass
     .local pmc parrotclass
     parrotclass = getattribute meta, 'parrotclass'
 
+    # XXX All kinds of stuff...
+
+    # Haz we already a proto-object? If so, we're done, so just hand
+    # it back.
+    $P0 = getattribute meta, 'protoobject'
+    if null $P0 goto no_its_new
+    .return ($P0)
+  no_its_new:
+
     # If we have no parents explicitly given, inherit from Any.
     $P0 = inspect parrotclass, 'parents'
     if $P0 goto have_parents
     $P0 = get_hll_global 'Any'
     self.'add_parent'(meta, $P0)
   have_parents:
-    
-    # XXX All kinds of stuff...
 
     # Finally, create proto object.
     .local pmc proto

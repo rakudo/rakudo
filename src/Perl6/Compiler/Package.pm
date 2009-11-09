@@ -59,21 +59,38 @@ method traits() {
 method finish($block) {
     my $decl := PAST::Stmts.new();
 
-    # Create meta-class.
+    # Create or look up meta-class.
     my $how := $!how;
     my @how := Perl6::Grammar::parse_name(~$how);
     my $metaclass := PAST::Var.new( :name(@how.pop), :namespace(@how), :scope('package') );
     my $meta_reg := PAST::Var.new( :name('meta'), :scope('register') );
-    $decl.push(PAST::Op.new(
-        :pasttype('bind'),
-        PAST::Var.new( :name('meta'), :scope('register'), :isdecl(1) ),
-        PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('new'),
-            $metaclass,
-            $!name ?? ~$!name !! ''
-        )
-    ));
+    my $name := $!name ?? ~$!name !! '';
+    if $!scope ne 'augment' {
+        $decl.push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name('meta'), :scope('register'), :isdecl(1) ),
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('new'),
+                $metaclass,
+                $name
+            )
+        ));
+    }
+    else {
+        # Augment, so look up existing metaclass and grab it's HOW.
+        unless $name { pir::die('Can not augment an anonymous package') }
+        my @name := Perl6::Grammar::parse_name($name);
+        $decl.push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name('meta'), :scope('register'), :isdecl(1) ),
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('HOW'),
+                PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
+            )
+        ));
+    }
 
     # Methods.
     my %methods := $!methods;
@@ -107,10 +124,10 @@ method finish($block) {
     $decl.push(PAST::Op.new( :pasttype('callmethod'), :name('compose'), $metaclass, $meta_reg ));
 
     # Check scope and put decls in the right place.
-    if $!scope eq 'our' {
+    if $!scope eq 'our' || $!scope eq 'augment' {
         $block.loadinit().push($decl);
         $block.blocktype('immediate');
-        $block.namespace(Perl6::Grammar::parse_name(~$!name));
+        $block.namespace(Perl6::Grammar::parse_name($name));
     }
     else {
         pir::die("Can't handle scope declarator " ~ $!scope ~ " on packages yet");

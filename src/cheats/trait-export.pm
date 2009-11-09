@@ -26,14 +26,14 @@ our multi trait_mod:<is>(Code $block, $arg?, :$export!) {
   default_export:
     $P0 = get_hll_global 'Pair'
     $P0 = $P0.'new'('key' => 'DEFAULT', 'value' => 1)
-    arg = 'list'($P0)
+    arg = '&infix:<,>'($P0)
   have_arg:
     it = iter arg
   arg_loop:
     unless it goto arg_done
     .local pmc tag, ns
     tag = shift it
-    $I0 = isa tag, ['Perl6Pair']
+    $I0 = isa tag, 'Pair'
     unless $I0 goto arg_loop
     $S0 = tag.'key'()
     ns = exportns.'make_namespace'($S0)

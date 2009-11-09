@@ -371,6 +371,7 @@ token parameter {
     | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
     | <longname> <.panic('Invalid typename in parameter declaration')>
     ]
+    <trait>*
     <post_constraint>*
     <default_value>?
 }

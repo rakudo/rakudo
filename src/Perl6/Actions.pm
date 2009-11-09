@@ -658,6 +658,19 @@ method parameter($/) {
     if $<default_value> {
         $*PARAMETER.default( PAST::Block.new( $<default_value>[0]<EXPR>.ast ) );
     }
+
+    # Handle traits.
+    if $<trait> {
+        # Handle built-in ones.
+        my $read_type := trait_readtype($<trait>);
+        if $read_type eq 'CONFLICT' {
+            $/.CURSOR.panic('Can not apply more than one of: is ref, is copy, is rw, is readonly');
+        }
+        $*PARAMETER.is_rw( $read_type eq 'rw' );
+        $*PARAMETER.is_ref( $read_type eq 'ref' );
+        $*PARAMETER.is_copy( $read_type eq 'copy' );
+    }
+
     make $*PARAMETER;
 }
 
@@ -1223,4 +1236,24 @@ sub emit_routine_traits($routine, @trait_list, $type) {
         $ast.unshift(PAST::Var.new( :name('trait_subject'), :scope('register') ));
         $routine.loadinit.push($ast);
     }
+}
+
+
+# Finds out which readtype trait we have, and marks all of the relevant ones
+# as compiler handled.
+sub trait_readtype($traits) {
+    my $readtype;
+    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'readonly') {
+        $readtype := 'readonly';
+    }
+    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'rw') {
+        $readtype := $readtype ?? 'CONFLICT' !! 'rw';
+    }
+    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'copy') {
+        $readtype := $readtype ?? 'CONFLICT' !! 'copy';
+    }
+    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'ref') {
+        $readtype := $readtype ?? 'CONFLICT' !! 'ref';
+    }
+    $readtype;
 }

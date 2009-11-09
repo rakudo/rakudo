@@ -15,6 +15,9 @@ has $!nom_type;
 has $!cons_types;
 has $!sub_signature;
 has $!type_captures;
+has $!is_rw;
+has $!is_ref;
+has $!is_copy;
 
 method var_name($var_name?) {
     if $var_name { $!var_name := $var_name }
@@ -78,4 +81,19 @@ method sub_signature($sub_signature?) {
 method type_captures() {
     unless $!type_captures { $!type_captures := PAST::Node.new() }
     $!type_captures
+}
+
+method is_rw($is_rw?) {
+    if $is_rw { $!is_rw := $is_rw }
+    $!is_rw
+}
+
+method is_ref($is_ref?) {
+    if $is_ref { $!is_ref := $is_ref }
+    $!is_ref
+}
+
+method is_copy($is_copy?) {
+    if $is_copy { $!is_copy := $is_copy }
+    $!is_copy
 }

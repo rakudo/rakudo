@@ -142,9 +142,9 @@ method ast($high_level?) {
         if $_.sigil eq '%'              { $flags := $flags + $SIG_ELEM_HASH_SIGIL; }
         if $_.invocant                  { $flags := $flags + $SIG_ELEM_INVOCANT; }
         if $_.multi_invocant            { $flags := $flags + $SIG_ELEM_MULTI_INVOCANT; }
-        #if $_<slurpy> && $sigil ne '@' && $sigil ne '%' { } # XXX TODO: Slurpy block.
-        #if $_<read_type> eq 'rw'        { $flags := $flags + $SIG_ELEM_IS_RW; }
-        #if $_<read_type> eq 'copy'      { $flags := $flags + $SIG_ELEM_IS_COPY; }
+        if $_.is_rw                     { $flags := $flags + $SIG_ELEM_IS_RW; }
+        if $_.is_ref                    { $flags := $flags + $SIG_ELEM_IS_REF; }
+        if $_.is_copy                   { $flags := $flags + $SIG_ELEM_IS_COPY; }
         #if $_<twigil> eq '!'            { $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR }
         #if $_<twigil> eq '.'            {
         #    # Set flag, and we'll pull the sigil and twigil off to leave us

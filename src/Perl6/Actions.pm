@@ -40,11 +40,18 @@ method deflongname($/) {
 }
 
 method comp_unit($/) {
+    # Create the block for the mainline code.
     my $mainline := @BLOCK.shift;
     $mainline.push($<statementlist>.ast);
+
+    # Create a block for the entire compilation unit.
     our $?RAKUDO_HLL;
     my $unit := PAST::Block.new( :node($/), :namespace('GLOBAL'), :hll($?RAKUDO_HLL) );
 
+    # Executing the compilation unit causes the mainline to be executed.
+    # We force a tailcall here, because we have other :load/:init blocks 
+    # that have to be done at the end of the unit, and we don't want them 
+    # executed by the mainline.
     $unit.push(
         PAST::Op.new(
             :pirop('tailcall'),
@@ -53,6 +60,30 @@ method comp_unit($/) {
             PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
         )
     );
+
+    # CHECK time occurs at the end of the compilation unit, :load/:init.
+    # (We can't # use the .loadinit property because that will generate 
+    # the CHECK block too early.)
+    $unit.push(
+        PAST::Block.new( 
+            :pirflags(':load :init'), :lexical(0), :namespace(''),
+            PAST::Op.new( :name('!fire_phasers'), 'CHECK' )
+        )
+    );
+
+    # If this unit is loaded via load_bytecode, we want it to automatically
+    # execute the mainline code above after all other initializations have
+    # occurred.
+    $unit.push(
+        PAST::Block.new(
+            :pirflags(':load'), :lexical(0), :namespace(''),
+            PAST::Op.new( 
+                :name('!UNIT_START'), :pasttype('call'),
+                PAST::Val.new( :value($unit) ),
+            )
+        )
+    );
+
     make $unit;
 }
 

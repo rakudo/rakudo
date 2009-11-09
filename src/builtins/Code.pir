@@ -149,6 +149,16 @@ Gets the signature for the block, or returns Failure if it lacks one.
     .return ($P0)
 .end
 
+=item Str()
+
+=cut
+
+.sub 'Str' :method
+    $P0 = getattribute self, '$!do'
+    $S0 = $P0
+    .return ($S0)
+.end
+
 =back
 
 =cut

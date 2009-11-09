@@ -384,7 +384,7 @@ method package_def($/, $key?) {
         my $package := @PACKAGE.shift;
         my $block := $<block> 
                      ?? $<block>.ast 
-                     !! PAST::Block.new( $<statement_list>.ast, :node($/) );
+                     !! PAST::Block.new( $<statementlist>.ast, :node($/) );
         make $package.finish($block);
     }
 }

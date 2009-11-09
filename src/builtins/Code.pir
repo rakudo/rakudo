@@ -140,6 +140,14 @@ Gets the signature for the block, or returns Failure if it lacks one.
     .tailcall '!FAIL'('No signature found')
 .end
 
+=item do()
+
+=cut
+
+.sub 'do' :method
+    $P0 = getattribute self, '$!do'
+    .return ($P0)
+.end
 
 =back
 

@@ -25,7 +25,21 @@ method var_name($var_name?) {
 }
 
 method sigil() {
-    pir::substr($!var_name, 0, 1)
+    my $check;
+    if $!var_name { $check := pir::substr($!var_name, 0, 1); }
+    unless $check eq '$' || $check eq '@' || $check eq '%' || $check eq '&' {
+        $check := '';
+    }
+    $check
+}
+
+method twigil() {
+    my $check;
+    if $!var_name { $check := pir::substr($!var_name, 1, 1); }
+    unless $check eq '!' || $check eq '.' || $check eq '*' {
+        $check := '';
+    }
+    $check
 }
 
 method pos_slurpy($pos_slurpy?) {

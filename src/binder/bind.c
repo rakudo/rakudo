@@ -128,7 +128,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, llsig_element *sig
     }
 
     /* Now look up infix:<=> and do the assignment. */
-    assigner = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+    assigner = VTABLE_get_pmc_keyed_str(interp, Parrot_get_ctx_HLL_namespace(interp),
             string_from_literal(interp, "!only_infix:="));
     Parrot_ext_call(interp, assigner, "PP", assignee, value);
 

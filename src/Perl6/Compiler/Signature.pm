@@ -145,13 +145,13 @@ method ast($high_level?) {
         if $_.is_rw                     { $flags := $flags + $SIG_ELEM_IS_RW; }
         if $_.is_ref                    { $flags := $flags + $SIG_ELEM_IS_REF; }
         if $_.is_copy                   { $flags := $flags + $SIG_ELEM_IS_COPY; }
-        #if $_<twigil> eq '!'            { $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR }
-        #if $_<twigil> eq '.'            {
-        #    # Set flag, and we'll pull the sigil and twigil off to leave us
-        #    # with the method name.
-        #    $flags := $flags + $SIG_ELEM_BIND_PUBLIC_ATTR;
-        #    $_<var_name> := substr($_<var_name>, 2);
-        #}
+        if $_.twigil eq '!'             { $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR }
+        if $_.twigil eq '.' {
+            # Set flag, and we'll pull the sigil and twigil off to leave us
+            # with the method name.
+            $flags := $flags + $SIG_ELEM_BIND_PUBLIC_ATTR;
+            $_.var_name(pir::substr($_.var_name, 2));
+        }
 
         # Fix up nominal type.
         my $nom_type := $null_reg;

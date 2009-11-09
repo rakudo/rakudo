@@ -114,6 +114,7 @@ CHEATS_PIR = \
   src/cheats/num-ops.pir \
   src/cheats/str-ops.pir \
   src/cheats/relops.pir \
+  src/cheats/only_infix_redispatcher.pir \
   src/cheats/parrot-attriter.pir \
   src/cheats/parrot/Protoobject.pir \
 

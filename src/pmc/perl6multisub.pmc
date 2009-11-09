@@ -1092,9 +1092,11 @@ Gets the candidate at index C<i>.
 
 */
     VTABLE PMC * get_pmc_keyed_int(INTVAL i) {
-        PMC *candidates;
+        PMC *candidates, *found;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
-        return VTABLE_get_pmc_keyed_int(interp, candidates, i);
+        found = VTABLE_get_pmc_keyed_int(interp, candidates, i);
+        return found->vtable->base_type == enum_class_Sub ? found :
+                VTABLE_get_attr_str(interp, found, CONST_STRING(interp, "$!do"));
     }
 
 /*
@@ -1107,9 +1109,11 @@ Converts C<s> to an integer and gets the key at that index.
 
 */
     VTABLE PMC * get_pmc_keyed_str(STRING *s) {
-        PMC *candidates;
+        PMC *candidates, *found;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
-        return VTABLE_get_pmc_keyed_str(interp, candidates, s);
+        found = VTABLE_get_pmc_keyed_str(interp, candidates, s);
+        return found->vtable->base_type == enum_class_Sub ? found :
+                VTABLE_get_attr_str(interp, found, CONST_STRING(interp, "$!do"));
     }
 
 /*
@@ -1122,9 +1126,11 @@ Converts C<p> to an integer and gets the key at that index.
 
 */
     VTABLE PMC * get_pmc_keyed(PMC *p) {
-        PMC *candidates;
+        PMC *candidates, *found;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
-        return VTABLE_get_pmc_keyed(interp, candidates, p);
+        found = VTABLE_get_pmc_keyed(interp, candidates, p);
+        return found->vtable->base_type == enum_class_Sub ? found :
+                VTABLE_get_attr_str(interp, found, CONST_STRING(interp, "$!do"));
     }
 
 /*
@@ -1203,7 +1209,18 @@ that we may have in place. Returns SELF.
 
 */
     METHOD PMC *set_candidates(PMC *candidates :slurpy) {
-        SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        /* If we already have candidates, add these, otherwise just use them. */
+        PMC *existing;
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, existing);
+        if (PMC_IS_NULL(existing)) {
+            SETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
+        }
+        else {
+            /* If we already have candidates, add these. */
+            PMC *iter = VTABLE_get_iter(interp, candidates);
+            while (VTABLE_get_bool(interp, iter))
+                VTABLE_push_pmc(interp, SELF, VTABLE_shift_pmc(interp, iter));
+        }
         RETURN (PMC *SELF);
     }
 }

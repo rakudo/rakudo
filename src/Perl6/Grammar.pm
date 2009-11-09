@@ -313,6 +313,7 @@ rule scoped($*SCOPE) {
     | <DECL=variable_declarator=variable_declarator>
     | <DECL=routine_declarator=routine_declarator>
     | <DECL=package_declarator=package_declarator>
+    | <DECL=multi_declarator=multi_declarator>
 }
 
 token variable_declarator { <variable> <trait>* }

@@ -1,5 +1,8 @@
 class Perl6::Compiler::Package;
 
+# The block associated with this package.
+has $!block;
+
 # This is the name of the HOW this package is based on.
 has $!how;
 
@@ -17,6 +20,12 @@ has $!attributes;
 
 # List of traits.
 has $!traits;
+
+# Accessor for block.
+method block($block?) {
+    if $block { $!block := $block }
+    $!block
+}
 
 # Accessor for how.
 method how($how?) {
@@ -55,7 +64,7 @@ method traits() {
 }
 
 # This method drives the code generation and fixes up the block.
-# XXX Doesn't support much besides our scope yet...
+# XXX Need to support lexical and anonymous.
 method finish($block) {
     my $decl := PAST::Stmts.new();
 

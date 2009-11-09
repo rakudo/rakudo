@@ -8,6 +8,7 @@ INIT {
     # initialize @BLOCK and @PACKAGE
     our @BLOCK := Q:PIR { %r = new ['ResizablePMCArray'] };
     our @PACKAGE := Q:PIR { %r = new ['ResizablePMCArray'] };
+    @PACKAGE.unshift(Perl6::Compiler::Module.new());
     our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
 
     # Tell PAST::Var how to encode Perl6Str and Str values
@@ -131,11 +132,16 @@ method blockoid($/) {
 
 method newpad($/) {
     our @BLOCK;
-    @BLOCK.unshift( PAST::Block.new( PAST::Stmts.new(
+    our @PACKAGE;
+    my $new_block := PAST::Block.new( PAST::Stmts.new(
         PAST::Op.new(
             :inline("    .local pmc true\n    true = get_hll_global 'True'")
         )
-    )));
+    ));
+    @BLOCK.unshift($new_block);
+    unless @PACKAGE[0].block {
+        @PACKAGE[0].block($new_block);
+    }
 }
 
 method finishpad($/) {
@@ -369,7 +375,7 @@ method package_def($/, $key?) {
         # Put on front of packages list. Note - nesting a package in a role is
         # not supported (gets really tricky in the parametric case - needs more
         # thought and consideration).
-        if +@PACKAGE && @PACKAGE[0].isa(Perl6::Compiler::Role) {
+        if +@PACKAGE && pir::isa__IPS(@PACKAGE[0], 'Role') {
             $/.CURSOR.panic("Can not nest a package inside a role");
         }
         @PACKAGE.unshift($package);
@@ -505,13 +511,14 @@ method routine_def($/) {
         # Set name.
         my $name := '&' ~ ~$<deflongname>[0].ast;
         $past.name($name);
-        $past.nsentry($*SCOPE eq 'our' ?? $name !! '');
+        $past.nsentry('');
 
         # Wrap it in the correct routine type.
         $past := create_code_object($past, 'Sub');
 
         # Handle multi-ness, if any.
-        my $symbol := @BLOCK[0].symbol($name);
+        my $symbol_holder := $*SCOPE eq 'our' ?? @PACKAGE[0].block !! @BLOCK[0];
+        my $symbol := $symbol_holder.symbol($name);
         if $*MULTINESS eq 'only' {
             if $symbol {
                 $/.CURSOR.panic('Can not declare only routine ' ~ $name ~
@@ -525,7 +532,7 @@ method routine_def($/) {
             }
 
             # If it's a proto, stash it away in the symbol entry.
-            if $*MULTINESS eq 'proto' { @BLOCK[0].symbol($name, :proto($past)) }
+            if $*MULTINESS eq 'proto' { $symbol_holder.symbol($name, :proto($past)) }
 
             # Otherwise, create multi container if we don't have one; otherwise,
             # just push this candidate onto it.
@@ -540,7 +547,7 @@ method routine_def($/) {
                     PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
                     $past
                 );
-                @BLOCK[0].symbol($name, :multis($past))
+                $symbol_holder.symbol($name, :multis($past))
             }
         }
 
@@ -551,8 +558,24 @@ method routine_def($/) {
                                       :viviself($past), :scope('lexical') ) );
                 @BLOCK[0].symbol($name, :scope('lexical') );
             }
-            $past := PAST::Var.new( :name($name) );
         }
+
+        # Otherwise, package scoped; add something to loadinit to install them.
+        else {
+            if $past {
+                if $symbol_holder.symbol($name)<multis> {
+                    $past[0] := PAST::Var.new( :name($name), :scope('package'), :viviself($past[0]) );
+                }
+                @PACKAGE[0].block.loadinit.push(PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new( :name($name), :scope('package') ),
+                    $past
+                ));
+            }
+            @BLOCK[0].symbol($name, :scope('package') );
+        }
+
+        $past := PAST::Var.new( :name($name) );
     }
     elsif $*MULTINESS {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');

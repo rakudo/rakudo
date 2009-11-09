@@ -368,7 +368,6 @@ method package_def($/, $key?) {
 
         # Add traits.
         for $<trait> {
-            pir::say('omg trait');
             $package.traits.push($_.ast);
         }
 

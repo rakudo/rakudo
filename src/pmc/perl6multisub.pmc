@@ -478,7 +478,9 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                     if (possibles[i]->bind_check) {
                         /* We'll invoke the sub (but not re-enter the runloop) and
                          * then attempt to bind the signature. */
-                        opcode_t *where     = VTABLE_invoke(interp, possibles[i]->sub, next);
+                        PMC      *invokee   = possibles[i]->sub->vtable->base_type == enum_class_Sub ?
+                                possibles[i]->sub : VTABLE_get_attr_str(interp, possibles[i]->sub, CONST_STRING(interp, "$!do"));
+                        opcode_t *where     = VTABLE_invoke(interp, invokee, next);
                         PMC      *lexpad    = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
                         PMC      *signature = possibles[i]->signature;
                         INTVAL bind_check_result;

@@ -33,11 +33,16 @@ for executable objects.
 
 .sub 'new' :method
     .param pmc do
+    $P0 = getprop '$!p6type', do
+    if null $P0 goto need_create
+    .return ($P0)
+  need_create:
     $P0 = self.'HOW'()
     $P0 = getattribute $P0, 'parrotclass'
     $P0 = new $P0
     transform_to_p6opaque $P0
     setattribute $P0, '$!do', do
+    setprop do, '$!p6type', $P0
     .return ($P0)
 .end
 

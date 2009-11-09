@@ -334,6 +334,7 @@ rule method_def {
     <deflongname>?
     <.newpad>
     [ '(' <signature> ')' ]?
+    <trait>*
     <blockoid>
 }
 

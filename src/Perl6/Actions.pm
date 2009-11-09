@@ -47,7 +47,7 @@ method comp_unit($/) {
 
     # Create a block for the entire compilation unit.
     our $?RAKUDO_HLL;
-    my $unit := PAST::Block.new( :node($/), :namespace('GLOBAL'), :hll($?RAKUDO_HLL) );
+    my $unit := PAST::Block.new( :node($/), :hll($?RAKUDO_HLL) );
 
     # Executing the compilation unit causes the mainline to be executed.
     # We force a tailcall here, because we have other :load/:init blocks 
@@ -506,6 +506,9 @@ method routine_def($/) {
     $past.blocktype('declaration');
     $past.control('return_pir');
     add_signature($past, $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new());
+    if $<trait> {
+        emit_routine_traits($past, $<trait>, 'Sub');
+    }
     if $<deflongname> {
         # Set name.
         my $name := '&' ~ ~$<deflongname>[0].ast;
@@ -587,6 +590,9 @@ method method_def($/) {
     my $past := $<blockoid>.ast;
     $past.blocktype('declaration');
     $past.control('return_pir');
+    if $<trait> {
+        emit_routine_traits($past, $<trait>, 'Method');
+    }
     
     # Set signature and invocant handling set up.
     my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
@@ -1202,4 +1208,19 @@ sub has_compiler_trait_with_val($trait_list, $name, $value) {
         }
     }
     return 0;
+}
+
+
+# Emits routine traits into the loadinit for the routine.
+sub emit_routine_traits($routine, @trait_list, $type) {
+    $routine.loadinit.push(PAST::Op.new(
+        :pasttype('bind'),
+        PAST::Var.new( :name('trait_subject'), :scope('register'), :isdecl(1) ),
+        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type)
+    ));
+    for @trait_list {
+        my $ast := $_.ast;
+        $ast.unshift(PAST::Var.new( :name('trait_subject'), :scope('register') ));
+        $routine.loadinit.push($ast);
+    }
 }

@@ -1297,16 +1297,16 @@ sub emit_routine_traits($routine, @trait_list, $type) {
 # as compiler handled.
 sub trait_readtype($traits) {
     my $readtype;
-    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'readonly') {
+    if has_compiler_trait_with_val($traits, '&trait_mod:<is>', 'readonly') {
         $readtype := 'readonly';
     }
-    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'rw') {
+    if has_compiler_trait_with_val($traits, '&trait_mod:<is>', 'rw') {
         $readtype := $readtype ?? 'CONFLICT' !! 'rw';
     }
-    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'copy') {
+    if has_compiler_trait_with_val($traits, '&trait_mod:<is>', 'copy') {
         $readtype := $readtype ?? 'CONFLICT' !! 'copy';
     }
-    if has_compiler_trait_with_val($traits, 'trait_mod:is', 'ref') {
+    if has_compiler_trait_with_val($traits, '&trait_mod:<is>', 'ref') {
         $readtype := $readtype ?? 'CONFLICT' !! 'ref';
     }
     $readtype;

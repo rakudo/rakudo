@@ -102,6 +102,7 @@ BUILTINS_PIR = \
   src/builtins/Routine.pir \
   src/builtins/Sub.pir \
   src/builtins/Method.pir \
+  src/builtins/ContainerDeclarand.pir \
   src/builtins/assign.pir \
 
 # Make sure parrot cheats are last in this list.

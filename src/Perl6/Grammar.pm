@@ -192,13 +192,12 @@ token statement_control:sym<return> {
     [ <EXPR> || <.panic: 'return requires an expression argument'> ]
 }
 
-token statement_control:sym<make> {
-    <sym> :s 
-    [ <EXPR> || <.panic: 'make requires an expression argument'> ]
-}
-
 token statement_control:sym<use> {
-    <sym> <.ws> 'v6'
+    <sym> <.ws> 
+    [
+    | 'v6'
+    | <module_name=longname>
+    ]
 }
 
 proto token statement_prefix { <...> }

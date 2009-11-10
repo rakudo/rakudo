@@ -231,6 +231,11 @@ method statement_control:sym<for>($/) {
 }
 
 method statement_control:sym<use>($/) {
+    if $<module_name> {
+        @BLOCK[0][0].unshift(
+            PAST::Op.new( :name('!use'), ~$<module_name>, :node($/) )
+        );
+    }
     make PAST::Stmts.new( :node($/) );
 }
 
@@ -238,15 +243,6 @@ method statement_control:sym<return>($/) {
     make PAST::Op.new( $<EXPR>.ast, :pasttype('return'), :node($/) );
 }
 
-method statement_control:sym<make>($/) {
-    make PAST::Op.new(
-             PAST::Var.new( :name('$/'), :scope('contextual') ),
-             $<EXPR>.ast,
-             :pasttype('callmethod'),
-             :name('!make'),
-             :node($/)
-    );
-}
 
 # XXX BEGIN isn't correct here, but I'm adding it along with this
 # note so that everyone else knows it's wrong too.  :-)

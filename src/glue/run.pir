@@ -16,7 +16,7 @@ Invoke the code given by mainline, using C<args> as the initial
 .namespace []
 .sub '!UNIT_START'
     .param pmc mainline
-    .param pmc args
+    .param pmc args            :slurpy
 
     # INIT time
     '!fire_phasers'('INIT')

@@ -316,7 +316,12 @@ rule scoped($*SCOPE) {
     | <DECL=multi_declarator=multi_declarator>
 }
 
-token variable_declarator { <variable> <trait>* }
+token variable_declarator {
+    :my $*IN_DECL := 'variable';
+    <variable>
+    { $*IN_DECL := '' }
+    <trait>*
+}
 
 proto token routine_declarator { <...> }
 token routine_declarator:sym<sub>       { <sym> <routine_def> }
@@ -324,18 +329,22 @@ token routine_declarator:sym<method>    { :my $*METHODTYPE := 'Method'; <sym> <m
 token routine_declarator:sym<submethod> { :my $*METHODTYPE := 'Submethod'; <sym> <method_def> }
 
 rule routine_def {
+    :my $*IN_DECL := 'routine';
     <deflongname>?
     <.newpad>
     [ '(' <signature> ')' ]?
     <trait>*
+    { $*IN_DECL := ''; }
     <blockoid>
 }
 
 rule method_def {
+    :my $*IN_DECL := 'method';
     <deflongname>?
     <.newpad>
     [ '(' <signature> ')' ]?
     <trait>*
+    { $*IN_DECL := ''; }
     <blockoid>
 }
 
@@ -432,6 +441,7 @@ rule regex_declarator {
 }
 
 rule trait {
+    :my $*IN_DECL := 0;
     [
     | <trait_mod>
     | <colonpair>

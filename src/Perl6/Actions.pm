@@ -456,7 +456,7 @@ method variable_declarator($/) {
             # Wrap it in a Method handle, and install in methods table.
             my %meth_table := @PACKAGE[0].methods;
             my %meth_hash;
-            %meth_hash<code_ref> := create_code_object($meth, 'Method');
+            %meth_hash<code_ref> := create_code_object($meth, 'Method', 0);
             %meth_table{~$<variable><desigilname>} := %meth_hash;
         }
         
@@ -516,7 +516,8 @@ method routine_def($/) {
         $past.nsentry('');
 
         # Wrap it in the correct routine type.
-        $past := create_code_object($past, 'Sub');
+        my $multi_flag := PAST::Val.new( :value(0) );
+        $past := create_code_object($past, 'Sub', $multi_flag);
 
         # Handle multi-ness, if any.
         my $symbol_holder := $*SCOPE eq 'our' ?? @PACKAGE[0].block !! @BLOCK[0];
@@ -551,6 +552,7 @@ method routine_def($/) {
                 );
                 $symbol_holder.symbol($name, :multis($past))
             }
+            $multi_flag.value(1);
         }
 
         # Install in lexical scope if it's not package scoped.
@@ -607,7 +609,7 @@ method method_def($/) {
         my $name := ~$<deflongname>[0].ast;
         $past.name($name);
         $past.nsentry('');
-        $past := create_code_object($past, 'Method');
+        $past := create_code_object($past, 'Method', 0);
 
         # Add to methods table, and we're done.
         our @PACKAGE;
@@ -621,7 +623,7 @@ method method_def($/) {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
-        $past := create_code_object($past, 'Method');
+        $past := create_code_object($past, 'Method', 0);
     }
 
     make $past;
@@ -1178,13 +1180,14 @@ sub add_signature($block, $sig_obj) {
 }
 
 # Wraps a sub up in a block type.
-sub create_code_object($block, $type) {
+sub create_code_object($block, $type, $multiness) {
     my @name := Perl6::Grammar::parse_name($type);
     PAST::Op.new(
         :pasttype('callmethod'),
         :name('new'),
         PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
-        $block
+        $block,
+        $multiness
     );
 }
 
@@ -1229,7 +1232,7 @@ sub emit_routine_traits($routine, @trait_list, $type) {
     $routine.loadinit.push(PAST::Op.new(
         :pasttype('bind'),
         PAST::Var.new( :name('trait_subject'), :scope('register'), :isdecl(1) ),
-        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type)
+        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, 0)
     ));
     for @trait_list {
         my $ast := $_.ast;

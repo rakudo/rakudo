@@ -16,7 +16,7 @@ for executable objects.
 .sub 'onload' :anon :load :init
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do')
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi')
     $P0 = get_hll_global 'Callable'
     $P0 = $P0.'!select'()
     p6meta.'add_role'($P0, 'to'=>codeproto)
@@ -33,6 +33,7 @@ for executable objects.
 
 .sub 'new' :method
     .param pmc do
+    .param pmc multi
     $P0 = getprop '$!p6type', do
     if null $P0 goto need_create
     .return ($P0)
@@ -42,6 +43,7 @@ for executable objects.
     $P0 = new $P0
     transform_to_p6opaque $P0
     setattribute $P0, '$!do', do
+    setattribute $P0, '$!multi', multi
     setprop do, '$!p6type', $P0
     .return ($P0)
 .end
@@ -96,7 +98,7 @@ Just calls this block with the supplied parameters.
 =cut
 
 .sub 'multi' :method
-    $P0 = get_hll_global ['Bool'], 'False'
+    $P0 = getattribute self, '$!multi'
     .return ($P0)
 .end
 

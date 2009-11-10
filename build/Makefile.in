@@ -126,6 +126,7 @@ CHEATS_PIR = \
 
 CORE_SOURCES = \
   src/core/traits.pm \
+  src/core/operators.pm \
   src/cheats/trait-export.pm \
   src/core/Any-num.pm \
   src/core/Whatever.pm \

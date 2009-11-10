@@ -1027,9 +1027,12 @@ Adds a new candidate to the candidate list.
         MMD_Cache *cache;
 
         /* Make sure it's invokable. */
-        if (!check_invokable(interp, sub))
-            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Cannot add non-Sub PMC to a MultiSub.");
+        /* XXX Comment out for now, it's bogus (per jnthn++) */
+        /*
+         * if (!check_invokable(interp, sub))
+         *     Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+         *           "Cannot add non-Sub PMC to a MultiSub.");
+         */
 
         /* Add it to the candidates list. */
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);

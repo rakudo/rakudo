@@ -83,6 +83,7 @@ BUILTINS_PIR = \
   src/builtins/GrammarHOW.pir \
   src/builtins/Any.pir \
   src/builtins/Role.pir \
+  src/builtins/Abstraction.pir \
   src/builtins/Grammar.pir \
   src/builtins/Bool.pir \
   src/builtins/Int.pir \

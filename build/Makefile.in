@@ -122,6 +122,7 @@ CHEATS_PIR = \
 CORE_SOURCES = \
   src/core/traits.pm \
   src/cheats/trait-export.pm \
+  src/core/Any-num.pm \
   src/core/Pair.pm \
 
 # SETTING = \

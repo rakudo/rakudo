@@ -310,10 +310,19 @@ token scope_declarator:sym<has>     { <sym> <scoped('has')> }
 token scope_declarator:sym<augment> { <sym> <scoped('augment')> }
 
 rule scoped($*SCOPE) {
+    [
     | <DECL=variable_declarator=variable_declarator>
     | <DECL=routine_declarator=routine_declarator>
     | <DECL=package_declarator=package_declarator>
+    | <typename>+ <DECL=multi_declarator=multi_declarator>
     | <DECL=multi_declarator=multi_declarator>
+    ]
+    || <?before <[A..Z]>><longname>{
+            my $t := $<longname>.Str;
+            $/.CURSOR.panic("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
+        }
+        <!> # drop through
+    || { $/.CURSOR.panic("Malformed $*SCOPE") }
 }
 
 token variable_declarator {

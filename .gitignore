@@ -19,8 +19,8 @@ perl6.pdb
 perl6.rc
 t/localtest.data
 t/spec
-parrot
-parrot_install
+/parrot
+/parrot_install
 perl6
 perl6.c
 perl6.o

@@ -21,7 +21,6 @@ symbols for C<Bool::True> and C<Bool::False>.
     .local pmc p6meta, boolproto, abstraction
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     boolproto = p6meta.'new_class'('Bool', 'parent'=>'parrot;Boolean Any')
-    p6meta.'register'('Boolean', 'parent'=>boolproto, 'protoobject'=>boolproto)
     abstraction = get_hll_global 'Abstraction'
 
     $P0 = boolproto.'new'()

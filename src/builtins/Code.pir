@@ -23,7 +23,6 @@ for executable objects.
     $P1 = new ['Role']
     $P1.'name'('invokable')
     p6meta.'add_role'($P1, 'to'=>codeproto)
-    p6meta.'register'('Sub', 'parent'=>codeproto, 'protoobject'=>codeproto)
 .end
 
 

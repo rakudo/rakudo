@@ -1,6 +1,6 @@
 augment class Any {
 
-    method abs() {
+    method abs() is export {
         pir::abs__Nn(self);
     }
 

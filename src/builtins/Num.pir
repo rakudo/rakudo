@@ -16,7 +16,6 @@ Num - Perl 6 numbers
     .local pmc p6meta, numproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     numproto = p6meta.'new_class'('Num', 'parent'=>'parrot;Float Any')
-    p6meta.'register'('Float', 'parent'=>numproto, 'protoobject'=>numproto)
 
     # Override the proto's ACCEPT method so we also accept Ints.
     .const 'Sub' $P0 = "Num::ACCEPTS"

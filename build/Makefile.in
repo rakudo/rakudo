@@ -104,7 +104,10 @@ BUILTINS_PIR = \
   src/builtins/Method.pir \
   src/builtins/assign.pir \
 
-# Make sure parrot cheats are last in this list
+# Make sure parrot cheats are last in this list.
+# First parrot cheat must be attriter.pir (to get .HLL),
+# last cheat must be register.pir (to register Parrot
+# classes).
 CHEATS_PIR = \
   src/cheats/autoincrement.pir \
   src/cheats/fail.pir \
@@ -117,8 +120,9 @@ CHEATS_PIR = \
   src/cheats/relops.pir \
   src/cheats/use.pir \
   src/cheats/only_infix_redispatcher.pir \
-  src/cheats/parrot-attriter.pir \
+  src/cheats/parrot/attriter.pir \
   src/cheats/parrot/Protoobject.pir \
+  src/cheats/parrot/register.pir \
 
 CORE_SOURCES = \
   src/core/traits.pm \

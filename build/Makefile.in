@@ -216,7 +216,7 @@ install: all
 	$(CP)     $(PERL6EXE)         $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6EXE)
 
-xmas: perl6$(EXE)
+xmas: $(PERL6_EXE)
 
 ##  targets for building a standalone perl6.
 $(PERL6_EXE): $(PERL6_PBC)
@@ -299,7 +299,7 @@ test    : coretest
 
 fulltest: coretest spectest
 
-coretest: testable perl6$(EXE)
+coretest: Test.pir $(PERL6_EXE)
 	$(PERL) t/harness t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
@@ -323,7 +323,7 @@ rakudo_test_run.tar.gz: testable t/spectest.data
 spectest_smolder: rakudo_test_run.tar.gz
 	curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=`git log -1 --pretty=format:%H` -F report_file=@rakudo_test_run.tar.gz http://smolder.plusthree.com/app/public_projects/process_add_report/18
 
-testable : perl6$(EXE) Test.pir spectest_checkout spectest_update
+testable : $(PERL6_EXE) Test.pir spectest_checkout spectest_update
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@
@@ -365,7 +365,7 @@ help:
 	@echo ""
 	@echo "  all:               perl6.pbc"
 	@echo "                     This is the default."
-	@echo "  perl6$(EXE):       Some want a pony, others are satisfied with an executable."
+	@echo "  $(PERL6_EXE):      Some want a pony, others are satisfied with an executable."
 	@echo "  xmas:              Christmas is when Perl 6 is released. Alias of perl6$(EXE)."
 	@echo ""
 	@echo "Testing:"

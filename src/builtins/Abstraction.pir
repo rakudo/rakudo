@@ -17,6 +17,8 @@ This implements the role Abstraction[].
     .local pmc role
     .const 'Sub' $P0 = '_abstraction_role_body'
     role = new ['Perl6Role']
+    $P1 = box 'Abstraction'
+    setattribute role, '$!shortname', $P1
     role.'!add_variant'($P0)
     set_hll_global 'Abstraction', role
 .end

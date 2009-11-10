@@ -18,17 +18,21 @@ symbols for C<Bool::True> and C<Bool::False>.
 .namespace ['Bool']
 
 .sub 'onload' :anon :init :load
-    .local pmc p6meta, boolproto
+    .local pmc p6meta, boolproto, abstraction
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     boolproto = p6meta.'new_class'('Bool', 'parent'=>'parrot;Boolean Any')
     p6meta.'register'('Boolean', 'parent'=>boolproto, 'protoobject'=>boolproto)
+    abstraction = get_hll_global 'Abstraction'
 
     $P0 = boolproto.'new'()
     $P0 = 0
+    '&infix:<does>'($P0, abstraction)
     set_hll_global ['Bool'], 'False', $P0
+    set_hll_global 'False', $P0
 
     $P0 = boolproto.'new'()
     $P0 = 1
+    '&infix:<does>'($P0, abstraction)
     set_hll_global ['Bool'], 'True', $P0
     set_hll_global 'True', $P0
 .end

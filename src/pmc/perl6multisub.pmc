@@ -853,6 +853,7 @@ Allocates the PMC's underlying storage.
     VTABLE void init() {
         /* Allocate the underlying struct. */
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_Perl6MultiSub_attributes);
+        SETATTR_Perl6MultiSub_candidates(interp, SELF, PMCNULL);
 
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
@@ -1066,7 +1067,7 @@ Gets the number of candidate on the candidate list.
     VTABLE INTVAL elements() {
         PMC *candidates;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
-        return VTABLE_elements(interp, candidates);
+        return PMC_IS_NULL(candidates) ? 0 : VTABLE_elements(interp, candidates);
     }
 
 /*

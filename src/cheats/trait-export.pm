@@ -17,30 +17,11 @@ our multi trait_mod:<is>(Code $block, $arg?, :$export!) {
     block = $P0
   multi_handled:
 
-    .local pmc exportns
+    .local pmc exportns, tagns
     exportns = blockns.'make_namespace'('EXPORT')
-    unless arg goto default_export
-    .local pmc it
-    $I0 = arg.'elems'()
-    if $I0 goto have_arg
-  default_export:
-    $P0 = get_hll_global 'Pair'
-    $P0 = $P0.'new'('key' => 'DEFAULT', 'value' => 1)
-    arg = '&infix:<,>'($P0)
-  have_arg:
-    it = iter arg
-  arg_loop:
-    unless it goto arg_done
-    .local pmc tag, ns
-    tag = shift it
-    $I0 = isa tag, 'Pair'
-    unless $I0 goto arg_loop
-    $S0 = tag.'key'()
-    ns = exportns.'make_namespace'($S0)
-    ns[blockname] = block
-    goto arg_loop
-  arg_done:
-    ns = exportns.'make_namespace'('ALL')
-    ns[blockname] = block
+    tagns = exportns.'make_namespace'('DEFAULT')
+    tagns[blockname] = block
+    tagns = exportns.'make_namespace'('ALL')
+    tagns[blockname] = block
     }
 }

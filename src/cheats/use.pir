@@ -6,8 +6,6 @@
     filename = concat name, '.pir'
     load_bytecode filename
 
-    trace 1
-
     .local pmc targetns
     $P0 = getinterp
     targetns = $P0['namespace';1]

@@ -128,6 +128,7 @@ CORE_SOURCES = \
   src/core/traits.pm \
   src/cheats/trait-export.pm \
   src/core/Any-num.pm \
+  src/core/Whatever.pm \
   src/core/Pair.pm \
 
 # SETTING = \

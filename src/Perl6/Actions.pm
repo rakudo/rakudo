@@ -987,6 +987,14 @@ method term:sym<pir::op>($/) {
     make $past;
 }
 
+method term:sym<*>($/) {
+    my @name := Perl6::Grammar::parse_name('Whatever');
+    make PAST::Op.new(
+        :pasttype('callmethod'), :name('new'), :node($/), :lvalue(1),
+        PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
+    )
+}
+
 method args($/) { 
     my $past;
     if    $<semiarglist> { $past := $<semiarglist>.ast; }

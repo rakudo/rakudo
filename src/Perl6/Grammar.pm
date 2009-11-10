@@ -220,6 +220,7 @@ token term:sym<routine_declarator> { <routine_declarator> }
 token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
 token term:sym<regex_declarator>   { <regex_declarator> }
 token term:sym<statement_prefix>   { <statement_prefix> }
+token term:sym<*>                  { <sym> }
 
 token colonpair {
     ':' 

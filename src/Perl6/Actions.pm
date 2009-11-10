@@ -609,14 +609,50 @@ method method_def($/) {
         my $name := ~$<deflongname>[0].ast;
         $past.name($name);
         $past.nsentry('');
-        $past := create_code_object($past, 'Method', 0);
+        my $multi_flag := PAST::Val.new( :value(0) );
+        $past := create_code_object($past, 'Method', $multi_flag);
 
-        # Add to methods table, and we're done.
+        # Get hold of methods table.
         our @PACKAGE;
         unless +@PACKAGE { $/.CURSOR.panic("Can not declare method outside of a package"); }
         my %table := @PACKAGE[0].methods();
         unless %table{$name} { my %tmp; %table{$name} := %tmp; }
-        %table{$name}<code_ref> := $past;
+
+        # If it's an only and there's already a symbol, problem.
+        if $*MULTINESS eq 'only' && %table{$name} {
+            $/.CURSOR.panic('Can not declare only method ' ~ $name ~
+                ' when another method with this name was already declared');
+        }
+        elsif $*MULTINESS || %table{$name}<multis> {
+            # If no multi declarator and no proto, error.
+            if !$*MULTINESS && !%table{$name}<proto> {
+                $/.CURSOR.panic('Can not re-declare method ' ~ $name ~ ' without declaring it multi');
+            }
+
+            # If it's a proto, stash it away in the symbol entry.
+            if $*MULTINESS eq 'proto' { %table{$name}<proto> := $past; }
+
+            # Otherwise, create multi container if we don't have one; otherwise,
+            # just push this candidate onto it.
+            if %table{$name}<multis> {
+                %table{$name}<multis>.push($past);
+            }
+            else {
+                $past := PAST::Op.new(
+                    :pasttype('callmethod'),
+                    :name('set_candidates'),
+                    PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
+                    $past
+                );
+                %table{$name}<code_ref> := %table{$name}<multis> := $past;
+            }
+            $multi_flag.value(1);
+        }
+        else {
+            %table{$name}<code_ref> := $past;
+        }
+
+        # Added via meta-class; needn't add anything.
         $past := PAST::Stmts.new();
     }
     elsif $*MULTINESS {

@@ -318,8 +318,9 @@ rule scoped($*SCOPE) {
 token variable_declarator { <variable> <trait>* }
 
 proto token routine_declarator { <...> }
-token routine_declarator:sym<sub>    { <sym> <routine_def> }
-token routine_declarator:sym<method> { <sym> <method_def> }
+token routine_declarator:sym<sub>       { <sym> <routine_def> }
+token routine_declarator:sym<method>    { :my $*METHODTYPE := 'Method'; <sym> <method_def> }
+token routine_declarator:sym<submethod> { :my $*METHODTYPE := 'Submethod'; <sym> <method_def> }
 
 rule routine_def {
     <deflongname>?

@@ -298,7 +298,7 @@ test    : coretest
 
 fulltest: coretest spectest
 
-coretest: perl6$(EXE)
+coretest: testable perl6$(EXE)
 	$(PERL) t/harness t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.

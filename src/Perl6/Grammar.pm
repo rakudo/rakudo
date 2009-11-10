@@ -441,7 +441,7 @@ rule regex_declarator {
 }
 
 rule trait {
-    :my $*IN_DECL := 0;
+    :my $*IN_DECL := '';
     [
     | <trait_mod>
     | <colonpair>

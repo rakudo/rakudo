@@ -326,6 +326,13 @@ method variable($/) {
             $past.viviself( sigiltype( $<sigil> ) );
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
         }
+        elsif $<twigil>[0] eq '.' && !$*IN_DECL {
+            # Need to transform this to a method call.
+            $past := PAST::Op.new(
+                :pasttype('callmethod'), :name(~$<desigilname>),
+                PAST::Var.new( :name('self'), :scope('lexical') )
+            );
+        }
     }
     make $past;
 }

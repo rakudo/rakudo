@@ -90,7 +90,7 @@ Selects a variant of the role to do based upon the supplied parameters.
     if i >= num_pos_args goto pos_loop_end
     $P0 = pos_args[i]
     $P1 = test_pos_args[i]
-    $I0 = 'infix:==='($P0, $P1)
+    $I0 = '&infix:<===>'($P0, $P1)
     unless $I0 goto it_loop
     inc i
     goto pos_loop

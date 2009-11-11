@@ -286,7 +286,7 @@ Helper method to compose the attributes of a role into a class.
     if null $P0 goto conflict
     role_attr_type = $P0['type']
     if null role_attr_type goto conflict
-    $I0 = '!SAMETYPE_EXACT'(class_attr_type, role_attr_type)
+    $I0 = '!have_exact_same_type'(class_attr_type, role_attr_type)
     if $I0 goto merge
 
   conflict:

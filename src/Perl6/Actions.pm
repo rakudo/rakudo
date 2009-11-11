@@ -115,11 +115,35 @@ method xblock($/) {
 }
 
 method pblock($/) {
-    my $past := $<blockoid>.ast;
-    add_signature($past, $<signature> 
-                         ?? $<signature>.ast 
-                         !! Perl6::Compiler::Signature.new());
-    make $past;
+    my $block := $<blockoid>.ast;
+    my $signature;
+    if $<signature> { $signature := $<signature>.ast; }
+    else {
+        $signature := Perl6::Compiler::Signature.new();
+        unless $block.symbol('$_') {
+            if $*IMPLICIT {
+                my $parameter := Perl6::Compiler::Parameter.new();
+                $parameter.var_name('$_');
+                $parameter.optional(1);
+                $parameter.is_ref(1);
+                $parameter.default(
+                    PAST::Block.new(
+                        PAST::Op.new(
+                            :inline('    $P0 = getinterp',
+                                    '    $P1 = $P0["outer";"lexpad";2]',
+                                    '    %r = $P1["$_"]')
+                        )
+                    )
+                );
+                $signature.add_parameter($parameter);
+            }
+            else {
+                add_implicit_var($block, '$_', 1);
+            }
+        }
+    }
+    add_signature($block, $signature);
+    make $block;
 }
 
 method block($/) {

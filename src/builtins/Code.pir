@@ -19,10 +19,10 @@ for executable objects.
     codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi')
     $P0 = get_hll_global 'Callable'
     $P0 = $P0.'!select'()
-    p6meta.'add_role'($P0, 'to'=>codeproto)
+    p6meta.'compose_role'(codeproto, $P0)
     $P1 = new ['Role']
     $P1.'name'('invokable')
-    p6meta.'add_role'($P1, 'to'=>codeproto)
+    p6meta.'compose_role'(codeproto, $P1)
 .end
 
 

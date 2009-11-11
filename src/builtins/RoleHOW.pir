@@ -21,7 +21,7 @@ on.
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('RoleHOW', 'parent'=>'ClassHOW', 'attr'=>'$!parents $!roles')
+    p6meta.'new_class'('RoleHOW', 'parent'=>'ClassHOW', 'attr'=>'$!parents')
 .end
 
 
@@ -54,8 +54,6 @@ Creates a new instance of the meta-class.
     setattribute how, 'parrotclass', p6role
     $P0 = new ['ResizablePMCArray']
     setattribute how, '$!parents', $P0
-    $P0 = new ['ResizablePMCArray']
-    setattribute how, '$!roles', $P0
     .return (how)
 .end
 

@@ -29,6 +29,7 @@ This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
     # information.
     addattribute $P0, '$!hides'
     addattribute $P0, '$!hidden'
+    addattribute $P0, '$!roles'
 
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
@@ -81,6 +82,8 @@ Creates a new instance of the meta-class.
   have_parrotclass:
     how = new ['ClassHOW']
     setattribute how, 'parrotclass', parrotclass
+    $P0 = new ['ResizablePMCArray']
+    setattribute how, '$!roles', $P0
     .return (how)
 .end
 
@@ -111,6 +114,20 @@ Adds an attribute of the given name to the given meta.
     .param string name
     $P0 = getattribute meta, 'parrotclass'
     addattribute $P0, name
+.end
+
+
+=item add_role
+
+Stores a role taht we will compose when we're finally composed into a class.
+
+=cut
+
+.sub 'add_role' :method
+    .param pmc meta
+    .param pmc role
+    $P0 = getattribute meta, '$!roles'
+    push $P0, role
 .end
 
 

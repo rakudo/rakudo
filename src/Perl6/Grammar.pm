@@ -128,10 +128,17 @@ token xblock($*IMPLICIT = 0) {
 }
 
 token pblock($*IMPLICIT = 0) {
-    [ <?[{]> || <.panic: 'Missing block'> ]
-    <.newpad>
-    <blockoid>
+    | <.lambda>
+        <.newpad>
+        <signature>
+        <blockoid>
+    | <?[{]> 
+        <.newpad>
+        <blockoid>
+    | <.panic: 'Missing block'>
 }
+
+token lambda { '->' | '<->' }
 
 token block($*IMPLICIT = 0) {
     [ <?[{]> || <.panic: 'Missing block'> ]
@@ -222,6 +229,7 @@ token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_dec
 token term:sym<regex_declarator>   { <regex_declarator> }
 token term:sym<statement_prefix>   { <statement_prefix> }
 token term:sym<*>                  { <sym> }
+token term:sym<lambda>             { <?lambda> <pblock> }
 
 token colonpair {
     ':' 
@@ -642,7 +650,7 @@ token infix:sym<**>   { <sym>  <O('%exponentiation')> }
 
 token prefix:sym<+>   { <sym>  <O('%symbolic_unary, :pirop<set N*>')> }
 token prefix:sym<~>   { <sym>  <O('%symbolic_unary')> }
-token prefix:sym<->   { <sym>  <O('%symbolic_unary, :pirop<neg>')> }
+token prefix:sym<->   { <sym> <![>]> <O('%symbolic_unary, :pirop<neg>')> }
 token prefix:sym<?>   { <sym>  <O('%symbolic_unary, :pirop<istrue>')> }
 token prefix:sym<!>   { <sym>  <O('%symbolic_unary, :pirop<isfalse>')> }
 token prefix:sym<+^>  { <sym>  <O('%symbolic_unary, :pirop<bnot>')> }

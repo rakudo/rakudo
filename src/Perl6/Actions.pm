@@ -115,7 +115,11 @@ method xblock($/) {
 }
 
 method pblock($/) {
-    make $<blockoid>.ast;
+    my $past := $<blockoid>.ast;
+    add_signature($past, $<signature> 
+                         ?? $<signature>.ast 
+                         !! Perl6::Compiler::Signature.new());
+    make $past;
 }
 
 method block($/) {
@@ -277,6 +281,7 @@ method term:sym<routine_declarator>($/) { make $<routine_declarator>.ast; }
 method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
+method term:sym<lambda>($/)             { make $<pblock>.ast; }
 
 method name($/) { }
 

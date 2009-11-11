@@ -74,8 +74,8 @@ class Any is also {
             for (~self).split('') -> $s {
                 $p = @pattern.shift if @pattern;
                 given $p {
-                    when /<upper>/ { take $s.uc }
-                    when /<lower>/ { take $s.lc }
+                    when /<.upper>/ { take $s.uc }
+                    when /<.lower>/ { take $s.lc }
                     default { take $s }
                 }
             }

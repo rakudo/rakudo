@@ -116,7 +116,7 @@ Adds an attribute of the given name to the given meta.
 
 =item compose(meta)
 
-Completes the creation of the metaclass 
+Completes the creation of the metaclass and return a proto-object.
 
 =cut
 

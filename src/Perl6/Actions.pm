@@ -156,24 +156,13 @@ method finishpad($/) {
     my $BLOCK := @BLOCK[0];
     my $outer := $*IN_DECL ne 'routine' && $*IN_DECL ne 'method';
 
-    for <$_ $/ $!> {
+    for <$_ $/ $!> { 
         # Generate the lexical variable except if...
         #   (1) the block already has one, or
         #   (2) the variable is '$_' and $*IMPLICIT is set
         #       (this case gets handled by getsig)
         unless $BLOCK.symbol($_) || ($_ eq '$_' && $*IMPLICIT) {
-            my $base := 
-                $outer
-                ?? PAST::Op.new( :inline("    %r = new ['Perl6Scalar'], %0"),
-                       PAST::Op.new(:pirop('find_lex_skip_current Ps'), $_)
-                   )
-                !! PAST::Op.new( :inline("    %r = new ['Perl6Scalar']") );
-            $base := PAST::Op.new( $base, 'rw', $TRUE, :pirop('setprop') );
-            $BLOCK[0].push(
-                PAST::Var.new( :name($_), :scope('lexical'), :isdecl(1),
-                               :viviself($base), :node($/) )
-            );
-            $BLOCK.symbol($_, :scope('lexical') );
+            add_implicit_var($BLOCK, $_, $outer);
         }
     }
 }
@@ -1386,4 +1375,18 @@ sub get_var_traits_node($block, $name) {
     $decl.viviself($vivinode);
     $block.symbol($name, :traits_node($traits_node));
     $traits_node;
+}
+
+sub add_implicit_var($block, $name, $outer) {
+    my $base := $outer
+                ?? PAST::Op.new( :inline("    %r = new ['Perl6Scalar'], %0"),
+                       PAST::Op.new(:pirop('find_lex_skip_current Ps'), $name)
+                   )
+                !! PAST::Op.new( :inline("    %r = new ['Perl6Scalar']") );
+    $base := PAST::Op.new( $base, 'rw', $TRUE, :pirop('setprop') );
+    $block[0].push(
+        PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
+                       :viviself($base) )
+    );
+    $block.symbol($name, :scope('lexical') );
 }

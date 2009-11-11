@@ -6,6 +6,7 @@ Copyright (C) 2009, The Perl Foundation.
 #define PARROT_IN_EXTENSION
 #include "parrot/parrot.h"
 #include "parrot/extend.h"
+#include "pmc_context.h"
 #include "bind.h"
 #include "../pmc/pmc_p6lowlevelsig.h"
 
@@ -315,9 +316,16 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
 static PMC *
 Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexpad) {
     PMC *cur_lex;
+
+    /* Is the "get default from outer" flag set? */
+    if (sig_info->flags & SIG_ELEM_DEFAULT_FROM_OUTER) {
+        PMC *outer_ctx    = Parrot_pcc_get_outer_ctx(interp, CURRENT_CONTEXT(interp));
+        PMC *outer_lexpad = Parrot_pcc_get_lex_pad(interp, outer_ctx);
+        return VTABLE_get_pmc_keyed_str(interp, outer_lexpad, sig_info->variable_name);
+    }
     
     /* Do we have a default value closure? */
-    if (!PMC_IS_NULL(sig_info->default_closure)) {
+    else if (!PMC_IS_NULL(sig_info->default_closure)) {
         /* Run it to get a value. */
         PMC *result = PMCNULL;
         Parrot_capture_lex(interp, sig_info->default_closure);

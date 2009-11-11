@@ -11,6 +11,7 @@ has $!names;
 has $!invocant;
 has $!multi_invocant;
 has $!default;
+has $!default_from_outer;
 has $!nom_type;
 has $!cons_types;
 has $!sub_signature;
@@ -75,6 +76,11 @@ method invocant($invocant?) {
 method default($default?) {
     if $default { $!default := $default }
     $!default
+}
+
+method default_from_outer($default_from_outer?) {
+    if $default_from_outer { $!default_from_outer := $default_from_outer }
+    $!default_from_outer
 }
 
 method nom_type($nom_type?) {

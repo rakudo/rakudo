@@ -126,15 +126,7 @@ method pblock($/) {
                 $parameter.var_name('$_');
                 $parameter.optional(1);
                 $parameter.is_ref(1);
-                $parameter.default(
-                    PAST::Block.new(
-                        PAST::Op.new(
-                            :inline('    $P0 = getinterp',
-                                    '    $P1 = $P0["outer";"lexpad";2]',
-                                    '    %r = $P1["$_"]')
-                        )
-                    )
-                );
+                $parameter.default_from_outer(1);
                 $signature.add_parameter($parameter);
             }
             else {

@@ -90,7 +90,11 @@ method get_declarations() {
         }
 
         # Check any sub-signatures.
-        # XXX TODO
+        if pir::defined__IP($_.sub_signature) {
+            for @($_.sub_signature.get_declarations) {
+                $result.push($_);
+            }
+        }
     }
     return $result;
 }

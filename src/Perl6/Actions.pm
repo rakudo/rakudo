@@ -720,7 +720,18 @@ method parameter($/) {
 }
 
 method param_var($/) {
-    $*PARAMETER.var_name(~$/);
+    if $<signature> {
+        if pir::defined__IP($*PARAMETER.sub_signature) {
+            $/.CURSOR.panic('Can not have more than one sub-signature for a parameter');
+        }
+        $*PARAMETER.sub_signature( $<signature>.ast );
+        if pir::substr(~$/, 0, 1) eq '[' {
+            $*PARAMETER.var_name('@');
+        }
+    }
+    else {
+        $*PARAMETER.var_name(~$/);
+    }
 }
 
 method named_param($/) {
@@ -747,7 +758,7 @@ method type_constraint($/) {
 
 method post_constraint($/) {
     if $<signature> {
-        if $*PARAMETER.sub_signature {
+        if pir::defined__IP($*PARAMETER.sub_signature) {
             $/.CURSOR.panic('Can not have more than one sub-signature for a parameter');
         }
         $*PARAMETER.sub_signature( $<signature>.ast );

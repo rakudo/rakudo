@@ -88,7 +88,7 @@ method cons_types() {
 }
 
 method sub_signature($sub_signature?) {
-    if $sub_signature { $!sub_signature := $sub_signature }
+    if pir::defined__IP($sub_signature) { $!sub_signature := $sub_signature }
     $!sub_signature
 }
 

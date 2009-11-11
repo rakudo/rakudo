@@ -395,9 +395,11 @@ token parameter {
     <default_value>?
 }
 
-token param_var { 
-    <sigil> <twigil>?
-    [ <name=ident> | $<name>=[<[/!]>] ]
+token param_var {
+    | '[' ~ ']' <signature>
+    | '(' ~ ')' <signature>
+    | <sigil> <twigil>?
+      [ <name=ident> | $<name>=[<[/!]>] ]
 }
 
 token named_param {

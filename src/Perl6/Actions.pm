@@ -508,6 +508,13 @@ method variable_declarator($/) {
             for $<trait> {
                 my $trait := $_.ast;
                 $trait.unshift(PAST::Var.new( :name('declarand'), :scope('register') ));
+                if $trait.name() eq '&trait_mod:<of>' && $*TYPENAME {
+                    $trait[1] := PAST::Op.new(
+                        :pasttype('callmethod'), :name('postcircumfix:<[ ]>'),
+                        $*TYPENAME, $trait[1]
+                    );
+                    $*TYPENAME := '';
+                }
                 $trait_node.push($trait);
             }
             if $*TYPENAME {

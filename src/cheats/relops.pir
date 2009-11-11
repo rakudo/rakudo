@@ -143,7 +143,7 @@ src/cheats/cmp.pir - Perl6 comparison builtins
     .param pmc b
     $I0 = cmp a, b
     ##  Don't use a tailcall here due to RT#56448
-    $P0 = 'infix:<<=>'($I0, 0)
+    $P0 = '&infix:<<=>>'($I0, 0)
     .return ($P0)
 .end
 
@@ -151,11 +151,11 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 .sub '&infix:<===>' :multi(_,_)
     .param pmc a
     .param pmc b
-    $I0 = '!SAMETYPE_EXACT'(a, b)
+    $I0 = '!have_exact_same_type'(a, b)
     unless $I0 goto false
     $P0 = a.'WHICH'()
     $P1 = b.'WHICH'()
-    .tailcall 'infix:<==='($P0, $P1)
+    .tailcall '&infix:<===>'($P0, $P1)
   false:
     $P0 = get_hll_global [ 'Bool' ], 'False'
     .return ($P0)
@@ -165,7 +165,7 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 .sub '&infix:<!===>' :multi(_,_)
     .param pmc a
     .param pmc b
-    $P0 = 'infix:<==='(a, b)
+    $P0 = '&infix:<===>'(a, b)
     $P1 = not $P0
     .return ($P1)
     # .tailcall '&prefix:!'($P0)
@@ -183,7 +183,7 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 .sub '&infix:<!=:=>' :multi(_,_)
     .param pmc a
     .param pmc b
-    $P0 = 'infix:<=:='(a, b)
+    $P0 = '&infix:<=:=>'(a, b)
     .tailcall '&prefix:!'($P0)
 .end
 

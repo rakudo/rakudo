@@ -17,6 +17,7 @@ method TOP() {
     %*PKGCOMPILER<module> := Perl6::Compiler::Module;
     my $*SCOPE := '';
     my $*MULTINESS := '';
+    my $*TYPENAME := '';
     self.comp_unit;
 }
 
@@ -310,11 +311,19 @@ token scope_declarator:sym<has>     { <sym> <scoped('has')> }
 token scope_declarator:sym<augment> { <sym> <scoped('augment')> }
 
 rule scoped($*SCOPE) {
+    :my $*TYPENAME := '';
     [
     | <DECL=variable_declarator=variable_declarator>
     | <DECL=routine_declarator=routine_declarator>
     | <DECL=package_declarator=package_declarator>
-    | <typename>+ <DECL=multi_declarator=multi_declarator>
+    | <typename>+ 
+      {
+        if +$<typename> > 1 {
+            $/.CURSOR.panic("Multiple prefix constraints not yet supported");
+        }
+        $*TYPENAME := $<typename>[0].ast;
+      }
+      <DECL=multi_declarator=multi_declarator>
     | <DECL=multi_declarator=multi_declarator>
     ]
     || <?before <[A..Z]>><longname>{

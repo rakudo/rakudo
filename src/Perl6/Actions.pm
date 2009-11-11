@@ -503,12 +503,19 @@ method variable_declarator($/) {
 
         # If we have traits, set up us the node to emit handlers into, then
         # emit them.
-        if $<trait> {
+        if $<trait> || $*TYPENAME {
             my $trait_node := get_var_traits_node($BLOCK, $name);
             for $<trait> {
                 my $trait := $_.ast;
                 $trait.unshift(PAST::Var.new( :name('declarand'), :scope('register') ));
                 $trait_node.push($trait);
+            }
+            if $*TYPENAME {
+                $trait_node.push(PAST::Op.new(
+                    :pasttype('call'), :name('&trait_mod:<of>'),
+                    PAST::Var.new( :name('declarand'), :scope('register') ),
+                    $*TYPENAME
+                ));
             }
         }
     }
@@ -1362,7 +1369,7 @@ sub get_var_traits_node($block, $name) {
             )
         ),
         $traits_node,
-        PAST::Var.new( :name('$P0'), :scope('register') )
+        PAST::Op.new( :inline('    %r = $P0') )
     );
     $decl.viviself($vivinode);
     $block.symbol($name, :traits_node($traits_node));

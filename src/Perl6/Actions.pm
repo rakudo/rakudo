@@ -498,8 +498,19 @@ method variable_declarator($/) {
         # Now bind a lexical in the block
         my $decl := PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
                                    :lvalue(1), :viviself($vivipast), :node($/) );
-        $BLOCK.symbol($name, :scope('lexical') );
+        $BLOCK.symbol($name, :scope('lexical'), :decl_node($decl) );
         $BLOCK[0].push($decl);
+
+        # If we have traits, set up us the node to emit handlers into, then
+        # emit them.
+        if $<trait> {
+            my $trait_node := get_var_traits_node($BLOCK, $name);
+            for $<trait> {
+                my $trait := $_.ast;
+                $trait.unshift(PAST::Var.new( :name('declarand'), :scope('register') ));
+                $trait_node.push($trait);
+            }
+        }
     }
 
     make $past;
@@ -1321,4 +1332,39 @@ sub trait_readtype($traits) {
         $readtype := $readtype ?? 'CONFLICT' !! 'ref';
     }
     $readtype;
+}
+
+
+# Handles trait node on a block and setting up the ContainerDeclarand.
+sub get_var_traits_node($block, $name) {
+    # Do we already have a traits node?
+    my %symtab := $block.symbol($name);
+    if %symtab<traits_node> {
+        return %symtab<traits_node>;
+    }
+
+    # Create one, in the viviself.
+    my $decl := %symtab<decl_node>;
+    my @cd_name := Perl6::Grammar::parse_name('ContainerDeclarand');
+    my $traits_node := PAST::Stmts.new();
+    my $vivinode := PAST::Stmts.new(
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :name('$P0'), :scope('register') ),
+            $decl.viviself()
+        ),
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :name('declarand'), :scope('register'), :isdecl(1) ),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('new'),
+                PAST::Var.new( :name(@cd_name.pop), :namespace(@cd_name), :scope('package') ),
+                PAST::Var.new( :name('$P0'), :scope('register') ),
+                PAST::Val.new( :value($name), :named('name') )
+            )
+        ),
+        $traits_node,
+        PAST::Var.new( :name('$P0'), :scope('register') )
+    );
+    $decl.viviself($vivinode);
+    $block.symbol($name, :traits_node($traits_node));
+    $traits_node;
 }

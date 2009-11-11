@@ -41,7 +41,7 @@ method is_name($name) {
     my @parts := parse_name($name);
     my $final := pir::pop(@parts);
     my $test  := pir::get_hll_global__PPS(@parts, $final);
-    if !pir::isnull__IP($test) && (pir::get_hll_global__PS('Abstraction').ACCEPTS($test) || pir::isa__IPS($test, 'P6protoobject')) {
+    if !pir::isnull__IP($test) && (pir::get_hll_global__PS('Abstraction').ACCEPTS($test) || pir::isa__IPS($test, 'P6protoobject') || pir::isa__IPS($test, 'Perl6Role')) {
         return 1;
     }
 

@@ -164,13 +164,9 @@ Selects a role based upon type.
 
 =cut
 
-.sub 'postcircumfix:[ ]' :method
+.sub 'postcircumfix:<[ ]>' :method
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
-
-    # Need to unwrap the arguments (they are wrapped by postcircumfix:[ ]
-    # multi), then call !select.
-    pos_args.'!flatten'()
     .tailcall self.'!select'(pos_args :flat, name_args :flat :named)
 .end
 

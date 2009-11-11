@@ -10,10 +10,23 @@ src/glue/role.pir - internals bits to do with roles
 
 .namespace []
 
+=item !create_master_role
+
+Creates a master-role object, containing all the various role variants.
+
+=cut
+
+.sub 'create_master_role'
+    .param pmc shortname
+    $P0 = new ['Perl6Role']
+    setattribute $P0, '$!shortname', shortname
+    .return ($P0)
+.end
+
 
 =item !create_parametric_role
 
-Helper method for creating parametric roles.
+Helper method for creating parametric roles from PIR.
 
 =cut
 

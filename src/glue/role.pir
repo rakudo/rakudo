@@ -16,7 +16,7 @@ Creates a master-role object, containing all the various role variants.
 
 =cut
 
-.sub 'create_master_role'
+.sub '!create_master_role'
     .param pmc shortname
     $P0 = new ['Perl6Role']
     setattribute $P0, '$!shortname', shortname

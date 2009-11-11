@@ -85,7 +85,7 @@ method finish($block) {
             PAST::Var.new( :name('master_role'), :scope('register'), :isdecl(1) ),
             PAST::Var.new(
                 :name($short_name), :namespace(@name), :scope('package'),
-                :viviself(PAST::Op.new( :pasttype('call'), :name('create_master_role'), ~$short_name ))
+                :viviself(PAST::Op.new( :pasttype('call'), :name('!create_master_role'), ~$short_name ))
             )
          ));
         $block.loadinit.push(PAST::Op.new(
@@ -101,7 +101,17 @@ method finish($block) {
 
     # Otherwise, for anonymous, make such an object and hand it back.
     else {
-        pir::die('Anonymous roles not yet implemented');
+        $block := PAST::Stmts.new(
+            PAST::Op.new( :pasttype('bind'),
+                PAST::Var.new( :name('tmp_role'), :scope('register'), :isdecl(1) ),
+                PAST::Op.new( :pasttype('call'), :name('!create_master_role'), '')
+            ),
+            PAST::Op.new( :pasttype('callmethod'), :name('!add_variant'),
+                PAST::Var.new( :name('tmp_role'), :scope('register') ),
+                $block
+            ),
+            PAST::Var.new( :name('tmp_role'), :scope('register') )
+        );
     }
 
     return $block;

@@ -29,7 +29,7 @@ CHMOD         = $(PERL) -MExtUtils::Command -e chmod
 
 # locations of parrot resources
 PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
-NQP_EXE          = $(PARROT_BIN_DIR)/nqp$(EXE)
+NQP_EXE          = $(PARROT_BIN_DIR)/parrot-nqp$(EXE)
 PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe$(EXE)
 PARROT_TOOLS_DIR = $(PARROT_LIB_DIR)/tools
 PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib

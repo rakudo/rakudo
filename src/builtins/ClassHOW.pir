@@ -142,14 +142,15 @@ Completes the creation of the metaclass and return a proto-object.
     .local pmc parrotclass
     parrotclass = getattribute meta, 'parrotclass'
 
-    # XXX All kinds of stuff...
-
     # Haz we already a proto-object? If so, we're done, so just hand
     # it back.
     $P0 = getattribute meta, 'protoobject'
     if null $P0 goto no_its_new
     .return ($P0)
   no_its_new:
+
+    # See if we have any roles to compose.
+
 
     # If we have no parents explicitly given, inherit from Any.
     $P0 = inspect parrotclass, 'parents'
@@ -520,14 +521,11 @@ Gets a list of roles done by the class of this object.
     goto parents_it_loop
   tree_handled:
 
-    # Get Parrot-level class.
-    .local pmc parrot_class, roles, role_it, cur_role
-    parrot_class = self.'get_parrotclass'(cur_class)
-
     # The list of roles is flattened out when we actually compose, so we
     # don't inspect the Parrot class, but rather the to-compose list that
     # is attached to it.
-    roles = getprop '@!roles', parrot_class
+    .local pmc roles, role_it, cur_role
+    roles = getattribute self, '$!roles'
     if null roles goto done
     role_it = iter roles
   role_it_loop:

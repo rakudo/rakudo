@@ -545,10 +545,11 @@ token term:sym<identifier> {
 }
 
 token term:sym<name> {
-    <name> 
+    <longname> 
     [
     ||  <?{
-            $/.CURSOR.is_name($<name>.Str)
+            my $longname := $<longname>.Str;
+            pir::substr($longname, 0, 2) eq '::' || $/.CURSOR.is_name($longname)
         }>
     || <args>
     ]

@@ -1043,7 +1043,7 @@ method term:sym<identifier>($/) {
 }
 
 method term:sym<name>($/) {
-    my $ns := Perl6::Grammar::parse_name(~$<name>);
+    my $ns := Perl6::Grammar::parse_name(~$<longname>);
     $ns := Q:PIR { 
                $P0 = find_lex '$ns'
                %r = clone $P0

@@ -86,9 +86,42 @@ token def_module_name {
     ]?
 }
 
-
 token ENDSTMT {
     [ \h* $$ <.ws> <?MARKER('endstmt')> ]?
+}
+
+token ws { 
+    ||  <?MARKED('ws')> 
+    ||  <!ww>
+        [ \s+
+        | '#' \N*
+        | ^^ <.pod_comment>
+        ]*
+        <?MARKER('ws')>
+}
+
+token pod_comment {
+    ^^ \h* '=' 
+    [
+    | 'begin' \h+ 'END' >>
+        [ .*? \n '=' 'end' \h+ 'END' » \N* || .* ]
+    | 'begin' \h+ <identifier>
+        [
+        ||  .*? \n '=' 'end' \h+ $<identifier> » \N*
+        ||  <.panic: '=begin without matching =end'>
+        ]
+    | 'begin' » \h* 
+        [ $$ || '#' || <.panic: 'Unrecognized token after =begin'> ]
+        [ 
+        || .*? \n \h* '=' 'end' » \N*
+        || <.panic: '=begin without matching =end'> 
+        ]
+    | 
+        [ <?before .*? ^^ '=cut' » > 
+          <.panic: 'Obsolete pod format, please use =begin/=end instead'> ]?
+        [ <alpha> || \s || <.panic: 'Illegal pod directive'> ]
+        \N*
+    ]
 }
 
 ## Top-level rules

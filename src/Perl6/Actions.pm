@@ -267,10 +267,38 @@ method statement_prefix:sym<CHECK>($/) { add_phaser($/, 'CHECK'); }
 method statement_prefix:sym<INIT>($/)  { add_phaser($/, 'INIT'); }
 method statement_prefix:sym<END>($/)   { add_phaser($/, 'END'); }
 
+method statement_prefix:sym<do>($/) {
+    my $past := $<blorst>.ast;
+    $past.blocktype('immediate');
+    make $past;
+}
+
+method statement_prefix:sym<try>($/) {
+    my $block := $<blorst>.ast;
+    $block.blocktype('immediate');
+    my $past := PAST::Op.new( :pasttype('try'), $block );
+
+    # On failure, capture the exception object into $!.
+    $past.push(PAST::Op.new(
+        :inline( '    .get_results (%r)',
+                 '    $P0 = new ["Perl6Exception"]',
+                 '    setattribute $P0, "$!exception", %r',
+                 '    store_lex "$!", $P0' )
+    ));
+
+    # Otherwise, put a failure into $!.
+    $past.push(PAST::Op.new( :pasttype('bind'),
+        PAST::Var.new( :name('$!'), :scope('lexical') ),
+        PAST::Op.new( :pasttype('call'), :name('!FAIL') )
+    ));
+
+    make $past;
+}
+
 method blorst($/) {
     my $block := $<block>
                  ?? $<block>.ast
-                 !! PAST::Block.new( $<statement.ast>, :node($/) );
+                 !! PAST::Block.new( $<statement>.ast, :node($/) );
     $block.blocktype('declaration');
     make $block;
 }

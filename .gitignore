@@ -26,6 +26,7 @@ perl6.c
 perl6.o
 MANIFEST
 commits.png
+docs/test_summary.times
 dynext/perl6_*.bundle
 dynext/perl6_*.so
 dynext/perl6_*.dll

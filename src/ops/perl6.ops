@@ -23,8 +23,7 @@ static INTVAL lls_id = 0;
 
 /* Plus a function pointer to the binder. */
 static INTVAL (*bind_signature_func) (PARROT_INTERP, PMC *lexpad, PMC *signature,
-                                      PMC *pos_args, PMC *named_args,
-                                      INTVAL no_nom_type_check, STRING **error) = NULL;
+                                      PMC *capture, INTVAL no_nom_type_check, STRING **error) = NULL;
 
 END_OPS_PREAMBLE
 
@@ -600,7 +599,7 @@ refactors are complete, it will take one argument - the CallSignature.
 =cut
 
 */
-inline op bind_signature(in PMC, in PMC) :base_core {
+inline op bind_signature(in PMC) :base_core {
     PMC *ctx = CURRENT_CONTEXT(interp);
 
     /* If we aren't already bound, enter the appropriate binder. */
@@ -620,7 +619,7 @@ inline op bind_signature(in PMC, in PMC) :base_core {
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
 
         /* Call signature binder. */
-        INTVAL bind_error = bind_signature_func(interp, lexpad, signature, $1, $2, noms_checked, &error);
+        INTVAL bind_error = bind_signature_func(interp, lexpad, signature, $1, noms_checked, &error);
 
         /* Bind ok? */
         if (!bind_error) {
@@ -641,7 +640,7 @@ inline op bind_signature(in PMC, in PMC) :base_core {
                         string_from_literal(interp, "!DISPATCH_JUNCTION_SINGLE"));
                 opcode_t *next;
                 PMC *junc_result, *caller_sig;
-                Parrot_ext_call(interp, dispatcher, "PPP->P", sub, $1, $2, &junc_result);
+                Parrot_ext_call(interp, dispatcher, "PP->P", sub, $1, &junc_result);
 
                 /* Re-instate anything we may have damaged. */
                 CURRENT_CONTEXT(interp) = ctx;

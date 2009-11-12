@@ -107,11 +107,9 @@ S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/unicode-whitespace.t
 S02-whitespace_and_comments/unspace.t
+S03-junctions/associative.t
 S03-junctions/autothreading.t
-S03-junctions/basic.t
 S03-junctions/boolean-context.t
-S03-junctions/chained-operators.t
-S03-junctions/eigenstates.t
 S03-junctions/misc.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
@@ -157,8 +155,9 @@ S03-operators/true.t
 S03-operators/value_equivalence.t
 S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
-S04-closure-traits/end.t
-S04-closure-traits/start.t
+S04-phasers/end.t
+S04-phasers/in-eval.t
+S04-phasers/start.t
 S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
@@ -288,7 +287,7 @@ S09-typed-arrays/hashes.t
 S10-packages/basic.t
 S10-packages/use-with-class.t
 S11-modules/export.t
-S11-modules/import.t
+S11-modules/importing.t
 S11-modules/import-tag.t
 S11-modules/nested.t
 S12-attributes/class.t

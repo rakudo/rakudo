@@ -1,6 +1,5 @@
 #! perl
 # Copyright (C) 2008, The Perl Foundation.
-# $Id$
 
 =head1 DESCRIPTION
 
@@ -15,8 +14,7 @@ F<t/spectest.data>, and those that are worth a closer look. But
 please don't add them blindly just because they all pass - chances are that
 there's a good reason for them not already being included.
 
-This script should be called from the main Rakudo directory (ie
-C<languages/rakudo/> relative to parrot).
+This script should be called from the main Rakudo directory.
 
 =cut
 
@@ -81,8 +79,7 @@ sub read_specfile {
     my @res;
     open (my $f, '<', $fn) or die "Can't open file '$fn' for reading: $!";
     while (<$f>){
-        next if m/#/;
-        next unless m/\S/;
+        s/\s*\#.*//;   # strip out comments and any spaces before them
         m/(\S+)/ && push @res, "t/spec/$1";
     }
     close $f or die $!;

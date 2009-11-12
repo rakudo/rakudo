@@ -31,6 +31,7 @@ module Perl6::Compiler::Signature;
 # - read_type should be one of readonly (the default), rw, copy or ref
 # - default should be a PAST::Block that when invoked computes the default
 #   value.
+# - sub_signature is the AST to produce a sub-signature
 method add_parameter(*%new_entry) {
     my @entries := self.entries;
     if %new_entry<var_name> eq '$_' {
@@ -111,6 +112,19 @@ method has_named_slurpy() {
 }
 
 
+# Accessor for declared lexicals stash.
+method lexicals($lexicals?) {
+    Q:PIR {
+        $P0 = find_lex '$lexicals'
+        $I0 = defined $P0
+        unless $I0 goto done
+        setattribute self, '$!lexicals', $P0
+      done:
+        %r = getattribute self, '$!lexicals'
+    }
+}
+
+
 # Gets a PAST::Op node with children being PAST::Var nodes that declare the
 # various variables mentioned within the signature, with a valid viviself to
 # make sure they are initialized either to the default value or an empty
@@ -163,12 +177,12 @@ method ast($high_level?) {
     my $SIG_ELEM_HASH_SIGIL         := 8192;
     
     # Allocate a signature and stick it in a register.
+    my $sig_var := PAST::Var.new( :name($ast.unique('signature_')), :scope('register') );
     $ast.push(PAST::Op.new(
         :pasttype('bind'),
-        PAST::Var.new( :name('signature'), :scope('register'), :isdecl(1) ),
+        PAST::Var.new( :name($sig_var.name()), :scope('register'), :isdecl(1) ),
         PAST::Op.new( :inline('    %r = allocate_signature ' ~ +@entries) )
     ));
-    my $sig_var := PAST::Var.new( :name('signature'), :scope('register') );
 
     # We'll likely also find a register holding a null value helpful to have.
     $ast.push(PAST::Op.new( :inline('    null $P0') ));
@@ -260,6 +274,14 @@ method ast($high_level?) {
             $type_captures := PAST::Op.new( :inline($pir) );
         }
 
+        # Fix up sub-signature AST.
+        my $sub_sig := $null_reg;
+        if defined($_<sub_signature>) {
+            $sub_sig := PAST::Stmts.new();
+            $sub_sig.push( $_<sub_signature>.ast );
+            $sub_sig.push( PAST::Var.new( :name('signature'), :scope('register') ) );
+        }
+
         # Emit op to build signature element.
         $ast.push(PAST::Op.new(
             :pirop('set_signature_elem vPisiPPPPPP'),
@@ -272,7 +294,7 @@ method ast($high_level?) {
             $names,
             $type_captures,
             ($_<default> ?? $_<default> !! $null_reg),
-            $null_reg
+            $sub_sig
         ));
         $i := $i + 1;
     }
@@ -283,7 +305,14 @@ method ast($high_level?) {
             :pasttype('callmethod'),
             :name('new'),
             PAST::Var.new( :name('Signature'), :namespace(list()), :scope('package') ),
-            PAST::Var.new( :name('signature'), :scope('register'), :named('ll_sig') )
+            PAST::Var.new( :name($sig_var.name()), :scope('register'), :named('ll_sig') )
+        ));
+    }
+    else {
+        $ast.push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name('signature'), :scope('register'), :isdecl(1) ),
+            $sig_var
         ));
     }
 

@@ -50,8 +50,8 @@ typedef struct llsig_element {
 /* A function we want to share to provide the interface to the binder. */
 INTVAL
 Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
-                              PMC *pos_args, PMC *named_args,
-                              INTVAL no_nom_type_check, STRING **error);
+                              PMC *capture, INTVAL no_nom_type_check,
+                              STRING **error);
 
 
 /* Things Rakudo_binding_bind_signature may return to indicate a problem. */

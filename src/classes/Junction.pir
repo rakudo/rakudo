@@ -376,8 +376,9 @@ passed the sub that is being called along the arguments.
 
 .sub '!DISPATCH_JUNCTION_SINGLE'
     .param pmc sub
-    .param pmc pos_args
-    .param pmc named_args
+    .param pmc capture
+    .local pmc pos_args, named_args
+    (pos_args, named_args) = '!deconstruct_call_sig'(capture)
     $P0 = '!DISPATCH_JUNCTION_CORE'(sub, pos_args, named_args)
     .return ($P0)
 .end

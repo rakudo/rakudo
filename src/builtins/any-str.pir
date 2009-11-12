@@ -273,7 +273,9 @@ file.
     push_eh fail
     $S1 = substr $S0, start, len
     pop_eh
-    .return ($S1)
+    $P0 = new ['Str']
+    $P0 = $S1
+    .return ($P0)
   fail:
     .get_results($P0)
     pop_eh

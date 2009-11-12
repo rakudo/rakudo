@@ -55,7 +55,7 @@
 # S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
 # S02-builtin_data_types/nan.t
- S02-builtin_data_types/nested_arrays.t
+S02-builtin_data_types/nested_arrays.t
 # S02-builtin_data_types/nested_pairs.t
 # S02-builtin_data_types/nil.t
 # S02-builtin_data_types/num.t

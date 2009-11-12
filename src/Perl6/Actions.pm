@@ -1044,10 +1044,7 @@ method term:sym<identifier>($/) {
 
 method term:sym<name>($/) {
     my $ns := Perl6::Grammar::parse_name(~$<longname>);
-    $ns := Q:PIR { 
-               $P0 = find_lex '$ns'
-               %r = clone $P0
-           };
+    $ns := pir::clone__PP($ns);
     my $name := $ns.pop;
     my $var := 
         PAST::Var.new( :name(~$name), :namespace($ns), :scope('package') );

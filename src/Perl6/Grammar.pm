@@ -208,6 +208,10 @@ token statement_control:sym<use> {
     ]
 }
 
+token statement_control:sym<given> {
+    <sym> :s <xblock(1)>
+}
+
 proto token statement_prefix { <...> }
 token statement_prefix:sym<BEGIN> { <sym> <blorst> }
 token statement_prefix:sym<CHECK> { <sym> <blorst> }

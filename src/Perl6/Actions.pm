@@ -252,6 +252,13 @@ method statement_control:sym<return>($/) {
     make PAST::Op.new( $<EXPR>.ast, :pasttype('return'), :node($/) );
 }
 
+method statement_control:sym<given>($/) {
+    my $past := $<xblock>.ast;
+    $past.push($past.shift); # swap [0] and [1] elements
+    $past.pasttype('call');
+    make $past;
+}
+
 
 # XXX BEGIN isn't correct here, but I'm adding it along with this
 # note so that everyone else knows it's wrong too.  :-)

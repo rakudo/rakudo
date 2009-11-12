@@ -53,9 +53,9 @@
 # S02-builtin_data_types/infinity.t
 # S02-builtin_data_types/lists.t
 # S02-builtin_data_types/mixed_multi_dimensional.t
-# S02-builtin_data_types/multi_dimensional_array.t
+S02-builtin_data_types/multi_dimensional_array.t
 # S02-builtin_data_types/nan.t
-# S02-builtin_data_types/nested_arrays.t
+ S02-builtin_data_types/nested_arrays.t
 # S02-builtin_data_types/nested_pairs.t
 # S02-builtin_data_types/nil.t
 # S02-builtin_data_types/num.t
@@ -100,7 +100,7 @@ S02-builtin_data_types/parsing-bool.t
 # S02-names/our.t
 # S02-one-pass-parsing/less-than.t
 # S02-polymorphic_types/subset.t
-# S02-whitespace_and_comments/begin_end_pod.t
+S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
 # S02-whitespace_and_comments/minimal-whitespace.t
 # S02-whitespace_and_comments/one-pass-parsing.t

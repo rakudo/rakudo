@@ -106,6 +106,7 @@ BUILTINS_PIR = \
   src/builtins/ContainerDeclarand.pir \
   src/builtins/Exception.pir \
   src/builtins/assign.pir \
+  src/builtins/control.pir \
 
 # Make sure parrot cheats are last in this list.
 # First parrot cheat must be attriter.pir (to get .HLL),

@@ -639,6 +639,7 @@ INIT {
     Perl6::Grammar.O(':prec<k=>, :assoc<left>',  '%tight_or');
     Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');
     Perl6::Grammar.O(':prec<i=>, :assoc<right>', '%item_assignment');
+    Perl6::Grammar.O(':prec<h=>, :assoc<unary>', '%loose_unary');
     Perl6::Grammar.O(':prec<g=>, :assoc<list>, :nextterm<nulltermish>',  '%comma');
     Perl6::Grammar.O(':prec<f=>, :assoc<list>',  '%list_infix');
     Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_assignment');
@@ -751,6 +752,9 @@ token infix:sym<?? !!> {
 #token infix:sym<::=>  { <sym>  <O('%assignment, :pasttype<bind>')> }
 
 token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
+
+token prefix:sym<true> { <sym> >> <O('%loose_unary')> }
+token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
 token infix:sym<,>    { <sym>  <O('%comma')> }
 

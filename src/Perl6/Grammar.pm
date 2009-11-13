@@ -751,6 +751,7 @@ token prefix:sym<+^>  { <sym>  <O('%symbolic_unary, :pirop<bnot>')> }
 
 token infix:sym<*>    { <sym>  <O('%multiplicative')> }
 token infix:sym</>    { <sym>  <O('%multiplicative')> }
+token infix:sym<div>  { <sym>  <O('%multiplicative')> }
 token infix:sym<%>    { <sym>  <O('%multiplicative')> }
 token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<~&>   { <sym>  <O('%multiplicative')> }

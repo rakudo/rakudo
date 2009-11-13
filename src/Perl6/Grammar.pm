@@ -51,7 +51,13 @@ method is_name($name) {
 
 ## Lexer stuff
 
-token identifier { <ident> }
+token apostrophe {
+    <[ ' \- ]>
+}
+
+token identifier {
+    <.ident> [ <.apostrophe> <.ident> ]*
+}
 
 token name {
     [

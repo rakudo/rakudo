@@ -192,6 +192,7 @@ CLEANUPS = \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen/*.pir \
   src/gen/*.pbc \
+  src/gen/*.pm \
   $(PMC_DIR)/pmc_*.h \
   $(PMC_DIR)/*.c \
   $(PMC_DIR)/*.dump \

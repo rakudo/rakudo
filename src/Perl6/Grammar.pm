@@ -51,7 +51,13 @@ method is_name($name) {
 
 ## Lexer stuff
 
-token identifier { <ident> }
+token apostrophe {
+    <[ ' \- ]>
+}
+
+token identifier {
+    <.ident> [ <.apostrophe> <.ident> ]*
+}
 
 token name {
     [
@@ -259,6 +265,12 @@ token statement_control:sym<use> {
 
 token statement_control:sym<given> {
     <sym> :s <xblock(1)>
+}
+token statement_control:sym<when> {
+    <sym> :s <xblock>
+}
+rule statement_control:sym<default> {
+    <sym> <block>
 }
 
 proto token statement_prefix { <...> }

@@ -47,7 +47,7 @@ augment class Any {
 #            when /:i ^g/ { self * pi/200.0 }    # Convert from gradians.
 #            when /:i ^r/ { self }               # Convert from radians.
 #            when Num     { self * 2.0 * pi }    # Convert from revolutions.
-#            default { die "Unable to convert to base: $base" }
+            default { die "Unable to convert to base: $base" }
         }
     }
 
@@ -61,7 +61,7 @@ augment class Any {
 #            when /:i ^g/ { self * 200/pi  }    # Convert to gradians.
 #            when /:i ^r/ { self }              # Convert to radians.
 #            when Num     { self /(2 * pi) }    # Convert to revolutions.
-#            default { die "Unable to convert to base: $base" }
+            default { die "Unable to convert to base: $base" }
         }
     }
 

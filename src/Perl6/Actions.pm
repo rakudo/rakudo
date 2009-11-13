@@ -1210,11 +1210,19 @@ method value:sym<quote>($/) {
 }
 
 method value:sym<number>($/) {
-    make PAST::Val.new( :value($<number>.ast) );
+    make $<number>.ast;
 }
 
 method number:sym<numish>($/) {
-    make $<numish>.ast;
+    make PAST::Val.new( :value($<numish>.ast) );
+}
+
+method number:sym<rational>($/) {
+    make PAST::Op.new(
+        :pasttype('callmethod'), :name('new'),
+        PAST::Var.new( :name('Rat'), :namespace(''), :scope('package') ),
+        $<nu>.ast, $<de>.ast
+    );
 }
 
 method numish($/) {

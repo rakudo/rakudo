@@ -428,12 +428,16 @@ rule routine_def {
 
 rule method_def {
     :my $*IN_DECL := 'method';
-    <deflongname>?
-    <.newpad>
-    [ '(' <signature> ')' ]?
-    <trait>*
-    { $*IN_DECL := ''; }
-    <blockoid>
+    [
+        <.newpad>
+        [
+            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <signature> ')' ]? <trait>*
+            | [ '(' <signature> ')' ]? <trait>*
+            | <?>
+        ]
+        { $*IN_DECL := ''; }
+        <blockoid>
+    ] || <.panic: 'Malformed method'>
 }
 
 

@@ -692,9 +692,10 @@ method method_def($/) {
     $past.symbol('self', :scope('lexical'));
 
     # Method container.
-    if $<deflongname> {
+    if $<longname> {
         # Set up us the name.
-        my $name := ~$<deflongname>[0].ast;
+        my $name := $<longname>.Str;
+        if $<specials> && ~$<specials>[0] eq '!' { $name := '!' ~ $name; }
         $past.name($name);
         $past.nsentry('');
         my $multi_flag := PAST::Val.new( :value(0) );

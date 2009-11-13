@@ -20,7 +20,7 @@ class Rat {
         my $gcd = gcd($numerator, $denominator);
         $numerator = $numerator div $gcd;
         $denominator = $denominator div $gcd;
-        self.bless(*, :$numerator, :$denominator);
+        self.bless(*, :numerator($numerator), :denominator($denominator));
     }
 
     multi method perl() { "$!numerator/$!denominator"; }

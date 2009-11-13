@@ -16,6 +16,7 @@ Perl6::Compiler - Perl6 compiler
 
 .loadlib 'perl6_group'
 .loadlib 'perl6_ops'
+.loadlib 'math_ops'
 
 .sub '' :anon :load :init
     load_bytecode 'P6Regex.pbc'

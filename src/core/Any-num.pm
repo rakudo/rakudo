@@ -125,9 +125,9 @@ augment class Any {
         self.Num.atan($base);
     }
 
-#    our Num multi method atan2($x = 1, $base = 'radians') {
-#        self.Num.atan2($x, $base);
-#    }
+    our Num multi method atan2($x = 1, $base = 'radians') {
+        self.Num.atan2($x, $base);
+    }
 
     our Num multi method asec($base = 'radians') {
         self.Num.asec($base);
@@ -365,13 +365,13 @@ our proto acotanh($x, $base = 'radians') {
     acotanh($x, $base)
 }
 
-#our multi sub atan2($y, $x = 1, $base = 'radians') {
-#    $y.atan2($x, $base)
-#}
+our multi sub atan2($y, $x = 1, $base = 'radians') {
+    $y.atan2($x, $base)
+}
 
-#our proto atan2($y, $x = 1, $base = 'radians') {
-#    atan2($y, $x, $base)
-#}
+our proto atan2($y, $x = 1, $base = 'radians') {
+    atan2($y, $x, $base)
+}
 
 our Num sub rand (*@args) {
     die "too many arguments passed - 0 params expected" if @args;
@@ -383,8 +383,9 @@ our multi sub sqrt(Any $x) {
 }
 
 our proto sign($x) { sign($x) }
+
 our multi sub sign(Any $x) {
-#    defined($x) ?? $x.Num.sign !! undef;
+    defined($x) ?? $x.Num.sign !! undef;
 }
 
 our multi sub roots($x, $n) {

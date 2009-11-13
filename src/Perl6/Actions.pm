@@ -264,6 +264,37 @@ method statement_control:sym<given>($/) {
     make $past;
 }
 
+method statement_control:sym<when>($/) {
+    # Get hold of the smartmatch expression and the block.
+    my $xblock := $<xblock>.ast;
+    my $sm_exp := $xblock.shift;
+    my $block  := $xblock.shift;
+
+    # Add exception handler to the block so we fall out of the enclosing block
+    # after it's executed.
+    $block.blocktype('immediate');
+    when_handler_helper($block);
+
+    # Handle the smart-match. XXX Need to handle syntactic cases too.
+    my $match_past := PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
+        PAST::Var.new( :name('$_'), :scope('lexical') ),
+        $sm_exp
+    );
+
+    # Use the smartmatch result as the condition for running the block.
+    make PAST::Op.new( :pasttype('if'), :node( $/ ),
+        $match_past, $block,
+    );
+}
+
+method statement_control:sym<default>($/) {
+    # We always execute this, so just need the block, however we also
+    # want to make sure we break after running it.
+    my $block := $<block>.ast;
+    $block.blocktype('immediate');
+    when_handler_helper($block);
+    make $block;
+}
 
 # XXX BEGIN isn't correct here, but I'm adding it along with this
 # note so that everyone else knows it's wrong too.  :-)
@@ -1449,4 +1480,56 @@ sub add_implicit_var($block, $name, $outer) {
                        :viviself($base) )
     );
     $block.symbol($name, :scope('lexical') );
+}
+
+sub when_handler_helper($block) {
+    our @BLOCK;
+    my $BLOCK := @BLOCK[0];
+    # XXX TODO: This isn't quite the right way to check this...
+    unless $BLOCK.handlers() {
+        my @handlers;
+        @handlers.push(
+            PAST::Control.new(
+                PAST::Op.new(
+                    :pasttype('pirop'),
+                    :pirop('return'),
+                    PAST::Var.new(
+                        :scope('keyed'),
+                        PAST::Var.new( :name('exception'), :scope('register') ),
+                        'payload',
+                    ),
+                ),
+                :handle_types('BREAK')
+            )
+        );
+        $BLOCK.handlers(@handlers);
+    }
+
+    # push a control exception throw onto the end of the block so we
+    # exit the innermost block in which $_ was set.
+    my $last := $block.pop();
+    $block.push(
+        PAST::Op.new(
+            :pasttype('call'),
+            :name('break'),
+            $last
+        )
+    );
+
+    # Push a handler onto the block to handle CONTINUE exceptions so we can
+    # skip throwing the BREAK exception
+    my @handlers;
+    if $block.handlers() {
+        @handlers := $block.handlers();
+    }
+    @handlers.push(
+        PAST::Control.new(
+            PAST::Op.new(
+                :pasttype('pirop'),
+                :pirop('return'),
+            ),
+            :handle_types('CONTINUE')
+        )
+    );
+    $block.handlers(@handlers);
 }

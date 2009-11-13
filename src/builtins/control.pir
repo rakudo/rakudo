@@ -36,6 +36,35 @@ src/builtins/control.pir - control flow related functions
     .return ()
 .end
 
+=item continue
+
+=cut
+
+.sub 'continue'
+    .local pmc e
+    e = root_new ['parrot';'Exception']
+    e['severity'] = .EXCEPT_NORMAL
+    e['type'] = .CONTROL_CONTINUE
+    throw e
+.end
+
+=item break
+
+=cut
+
+.sub 'break'
+    .param pmc arg :optional
+    .param int has_arg :opt_flag
+    .local pmc e
+    e = root_new ['parrot';'Exception']
+    e['severity'] = .EXCEPT_NORMAL
+    e['type'] = .CONTROL_BREAK
+    unless has_arg, no_arg
+    e['payload'] = arg
+  no_arg:
+    throw e
+.end
+
 =back
 
 =cut

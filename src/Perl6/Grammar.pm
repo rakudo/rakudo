@@ -266,6 +266,12 @@ token statement_control:sym<use> {
 token statement_control:sym<given> {
     <sym> :s <xblock(1)>
 }
+token statement_control:sym<when> {
+    <sym> :s <xblock>
+}
+rule statement_control:sym<default> {
+    <sym> <block>
+}
 
 proto token statement_prefix { <...> }
 token statement_prefix:sym<BEGIN> { <sym> <blorst> }

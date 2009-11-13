@@ -189,6 +189,7 @@ CLEANUPS = \
   perl6$(O) \
   Test.pir \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
+  src/gen/core.pm \
   src/gen/*.pir \
   src/gen/*.pbc \
   $(PMC_DIR)/pmc_*.h \

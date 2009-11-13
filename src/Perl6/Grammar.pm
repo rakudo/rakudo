@@ -619,10 +619,9 @@ token arglist {
 
 token term:sym<value> { <value> }
 
-token value {
-    | <integer>
-    | <quote>
-}
+proto token value { <...> }
+token value:sym<quote>  { <quote> }
+token value:sym<number> { <integer> }
 
 token typename {
     [

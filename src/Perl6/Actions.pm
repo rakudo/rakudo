@@ -1205,11 +1205,12 @@ method postcircumfix:sym<( )>($/) {
     make $<arglist>.ast;
 }
 
-method value($/) {
-    my $past := $<quote>
-                ?? $<quote>.ast
-                !! PAST::Val.new( :value($<integer>.ast) );
-    make $past;
+method value:sym<quote>($/) {
+    make $<quote>.ast;
+}
+
+method value:sym<number>($/) {
+    make PAST::Val.new( :value($<integer>.ast) );
 }
 
 method typename($/) {

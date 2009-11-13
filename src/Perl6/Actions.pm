@@ -1210,7 +1210,18 @@ method value:sym<quote>($/) {
 }
 
 method value:sym<number>($/) {
-    make PAST::Val.new( :value($<integer>.ast) );
+    make PAST::Val.new( :value($<number>.ast) );
+}
+
+method number:sym<numish>($/) {
+    make $<numish>.ast;
+}
+
+method numish($/) {
+    if $<integer> { make $<integer>.ast; }
+    else {
+        $/.CURSOR.panic('Number parsing not fully implemented yet');
+    }
 }
 
 method typename($/) {

@@ -621,7 +621,22 @@ token term:sym<value> { <value> }
 
 proto token value { <...> }
 token value:sym<quote>  { <quote> }
-token value:sym<number> { <integer> }
+token value:sym<number> { <number> }
+
+proto token number { <...> }
+token number:sym<numish> { <numish> }
+
+token numish {
+    [
+    | <integer>
+#    | <dec_number>
+#    | <rad_number>
+    | 'NaN' >>
+    | 'Inf' >>
+    | '+Inf' >>
+    | '-Inf' >>
+    ]
+}
 
 token typename {
     [

@@ -134,9 +134,16 @@ method finish($block) {
 
     # Check scope and put decls in the right place.
     if $!scope eq 'our' || $!scope eq 'augment' {
-        $block.loadinit().push($decl);
+        my $init_decl_name := $block.unique('!class_init_');
+        my @ns := Perl6::Grammar::parse_name($name);
+        $block.push(PAST::Block.new( :name($init_decl_name), :blocktype('declaration'), $decl ));
+        my @PACKAGE := Q:PIR { %r = get_hll_global ['Perl6'; 'Actions'], '@PACKAGE' };
+        @PACKAGE[0].block.loadinit().push(PAST::Op.new(
+            :pasttype('call'),
+            PAST::Var.new( :name($init_decl_name), :namespace(@ns), :scope('package') )
+        ));
         $block.blocktype('immediate');
-        $block.namespace(Perl6::Grammar::parse_name($name));
+        $block.namespace(@ns);
     }
     else {
         pir::die("Can't handle scope declarator " ~ $!scope ~ " on packages yet");

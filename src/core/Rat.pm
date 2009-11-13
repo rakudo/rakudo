@@ -17,9 +17,9 @@ class Rat {
             $numerator = -$numerator;
             $denominator = -$denominator;
         }
-        my $gcd = gcd($numerator, $denominator);
-        $numerator = $numerator div $gcd;
-        $denominator = $denominator div $gcd;
+        #my $gcd = gcd($numerator, $denominator);
+        #$numerator = $numerator div $gcd;
+        #$denominator = $denominator div $gcd;
         self.bless(*, :numerator($numerator), :denominator($denominator));
     }
 

@@ -87,7 +87,10 @@ token def_module_name {
 }
 
 token ENDSTMT {
-    [ \h* $$ <.ws> <?MARKER('endstmt')> ]?
+    [ 
+    | \h* $$ <.ws> <?MARKER('endstmt')> 
+    | <.unv>? $$ <.ws> <?MARKER('endstmt')>
+    ]?
 }
 
 token ws { 
@@ -99,6 +102,16 @@ token ws {
         ]*
         <?MARKER('ws')>
 }
+
+token unv {
+    # :dba('horizontal whitespace')
+    [
+    | ^^ <?before \h* '=' [ \w | '\\'] > <.pod_comment>
+    | \h* '#' \N*
+    | \h+
+    ]
+}
+
 
 token pod_comment {
     ^^ \h* '=' 

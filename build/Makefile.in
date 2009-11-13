@@ -135,6 +135,7 @@ CORE_SOURCES = \
   src/core/Object.pm \
   src/core/Any-num.pm \
   src/core/Int.pm \
+  src/core/Rat.pm \
   src/core/Whatever.pm \
   src/core/Pair.pm \
 

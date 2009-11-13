@@ -41,29 +41,29 @@ augment class Any {
     }
 
     # Used by the :Trig subs and methods in the Int and Num classes.
-#    our multi method !to-radians($base) {
-#        given $base {
+    our multi method !to-radians($base) {
+        given $base {
 #            when /:i ^d/ { self * pi/180.0 }    # Convert from degrees.
 #            when /:i ^g/ { self * pi/200.0 }    # Convert from gradians.
 #            when /:i ^r/ { self }               # Convert from radians.
 #            when Num     { self * 2.0 * pi }    # Convert from revolutions.
 #            default { die "Unable to convert to base: $base" }
-#        }
-#    }
+        }
+    }
 
     multi method log() {
         $.Num.log();
     }
 
-#    our multi method !from-radians($base) {
-#        given $base {
+    our multi method !from-radians($base) {
+        given $base {
 #            when /:i ^d/ { self * 180/pi  }    # Convert to degrees.
 #            when /:i ^g/ { self * 200/pi  }    # Convert to gradians.
 #            when /:i ^r/ { self }              # Convert to radians.
 #            when Num     { self /(2 * pi) }    # Convert to revolutions.
 #            default { die "Unable to convert to base: $base" }
-#        }
-#    }
+        }
+    }
 
     our Num multi method sin($base = 'radians') {
         self.Num.sin($base);

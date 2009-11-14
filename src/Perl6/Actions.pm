@@ -1213,10 +1213,6 @@ method value:sym<number>($/) {
     make $<number>.ast;
 }
 
-method number:sym<numish>($/) {
-    make PAST::Val.new( :value($<numish>.ast) );
-}
-
 method number:sym<rational>($/) {
     make PAST::Op.new(
         :pasttype('callmethod'), :name('new'),
@@ -1233,11 +1229,42 @@ method number:sym<complex>($/) {
     );
 }
 
+method number:sym<numish>($/) {
+    make $<numish>.ast;
+}
+
 method numish($/) {
-    if $<integer> { make $<integer>.ast; }
+    if $<integer> { make PAST::Val.new( :value($<integer>.ast) ); }
+    elsif $<dec_number> { make $<dec_number>.ast; }
     else {
         $/.CURSOR.panic('Number parsing not fully implemented yet');
     }
+}
+
+method dec_number($/) {
+    my $int  := $<int> ?? $<int>.ast !! 0;
+    my $frac := $<frac>.ast;
+    my $base := Q:PIR {
+        $P0 = find_lex '$/'
+        $S0 = $P0['frac']
+        $I1 = length $S0
+        $I0 = 0
+        $I2 = 1
+      loop:
+        unless $I0 < $I1 goto done
+        $S1 = substr $S0, $I0, 1
+        inc $I0
+        if $S1 == '_' goto loop
+        $I2 *= 10
+        goto loop
+      done:
+        %r = box $I2
+    };
+    make PAST::Op.new(
+        :pasttype('callmethod'), :name('new'),
+        PAST::Var.new( :name('Rat'), :namespace(''), :scope('package') ),
+        $int * $base + $frac, $base, :node($/)
+    );
 }
 
 method typename($/) {

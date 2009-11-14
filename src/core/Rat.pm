@@ -6,7 +6,13 @@ class Rat {
         $a = -$a if ($a < 0);
         $b = -$b if ($b < 0);
         while $a > 0 && $b > 0 {
-            ($a, $b) = ($b, $a) if ($b > $a);
+            # ($a, $b) = ($b, $a) if ($b > $a);  # TODO: next block could be this if NG supported it
+            if ($b > $a)
+            {
+                my $temp = $a;
+                $a = $b;
+                $b = $temp;
+            }
             $a %= $b;
         }
         return $a + $b;
@@ -17,9 +23,9 @@ class Rat {
             $numerator = -$numerator;
             $denominator = -$denominator;
         }
-        #my $gcd = gcd($numerator, $denominator);
-        #$numerator = $numerator div $gcd;
-        #$denominator = $denominator div $gcd;
+        my $gcd = gcd($numerator, $denominator);
+        $numerator = $numerator div $gcd;
+        $denominator = $denominator div $gcd;
         self.bless(*, :numerator($numerator), :denominator($denominator));
     }
 

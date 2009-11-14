@@ -1243,7 +1243,7 @@ method numish($/) {
 
 method dec_number($/) {
     my $int  := $<int> ?? $<int>.ast !! 0;
-    my $frac := $<frac>.ast;
+    my $frac := $<frac> ?? $<frac>.ast !! 0;
     my $base := Q:PIR {
         $P0 = find_lex '$/'
         $S0 = $P0['frac']
@@ -1260,11 +1260,20 @@ method dec_number($/) {
       done:
         %r = box $I2
     };
-    make PAST::Op.new(
-        :pasttype('callmethod'), :name('new'),
-        PAST::Var.new( :name('Rat'), :namespace(''), :scope('package') ),
-        $int * $base + $frac, $base, :node($/)
-    );
+    if $<escale> {
+        my $exp := $<escale>[0]<decint>.ast;
+        if $<escale>[0]<sign> eq '-' { $exp := -$exp; }
+        make PAST::Val.new( 
+            :value(($int * $base + $frac) / $base * 10 ** +$exp ) 
+        );
+    }
+    else {
+        make PAST::Op.new(
+            :pasttype('callmethod'), :name('new'),
+            PAST::Var.new( :name('Rat'), :namespace(''), :scope('package') ),
+            $int * $base + $frac, $base, :node($/)
+        );
+    }
 }
 
 method typename($/) {

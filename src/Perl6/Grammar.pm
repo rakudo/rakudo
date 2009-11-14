@@ -646,7 +646,7 @@ token dec_number {
     | $<coeff> = [ <int=.decint>                    ] <escale>
 }
 
-token escale { <[Ee]> <[+\-]>? <decint> }
+token escale { <[Ee]> $<sign>=[<[+\-]>?] <decint> }
 
 token typename {
     [

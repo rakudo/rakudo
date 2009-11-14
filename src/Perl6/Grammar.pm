@@ -625,6 +625,7 @@ token value:sym<number> { <number> }
 
 proto token number { <...> }
 token number:sym<rational> { <nu=integer>'/'<de=integer> }
+token number:sym<complex>  { <re=numish>'+'<im=numish>'\\'?'i' | <im=numish>'\\'?'i' }
 token number:sym<numish>   { <numish> }
 
 token numish {
@@ -735,6 +736,8 @@ token postcircumfix:sym<( )> {
 }
 
 token postfix:sym<.>  { <dotty> <O('%methodop')> }
+
+token postfix:sym<i>  { <sym> >> <O('%methodop')> }
 
 token prefix:sym<++>  { <sym>  <O('%autoincrement')> }
 token prefix:sym<-->  { <sym>  <O('%autoincrement')> }

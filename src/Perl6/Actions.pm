@@ -1225,6 +1225,14 @@ method number:sym<rational>($/) {
     );
 }
 
+method number:sym<complex>($/) {
+    make PAST::Op.new(
+        :pasttype('callmethod'), :name('new'),
+        PAST::Var.new( :name('Complex'), :namespace(''), :scope('package') ),
+        ($<re> ?? $<re>.ast !! 0), $<im>.ast
+    );
+}
+
 method numish($/) {
     if $<integer> { make $<integer>.ast; }
     else {

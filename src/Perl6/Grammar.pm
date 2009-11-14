@@ -223,7 +223,7 @@ token statement_control:sym<if> {
     <sym> :s
     <xblock>
     [ 'elsif'\s <xblock> ]*
-    [ 'else'\s <else=pblock> ]?
+    [ 'else'\s <else=.pblock> ]?
 }
 
 token statement_control:sym<unless> {
@@ -259,7 +259,7 @@ token statement_control:sym<use> {
     <sym> <.ws> 
     [
     | 'v6'
-    | <module_name=longname>
+    | <module_name=.longname>
     ]
 }
 
@@ -289,8 +289,8 @@ token blorst {
 
 proto token statement_mod_cond { <...> }
 
-token statement_mod_cond:sym<if>     { <sym> :s <mod_expr=EXPR> }
-token statement_mod_cond:sym<unless> { <sym> :s <mod_expr=EXPR> }
+token statement_mod_cond:sym<if>     { <sym> :s <mod_expr=.EXPR> }
+token statement_mod_cond:sym<unless> { <sym> :s <mod_expr=.EXPR> }
 
 ## Terms
 
@@ -308,14 +308,14 @@ token term:sym<lambda>             { <?lambda> <pblock> }
 token colonpair {
     ':' 
     [ 
-    | $<not>='!' <identifier>
+    | $<not>=['!'] <identifier>
     | <identifier> [ <circumfix> | <?> ]
     | <circumfix>
     ]
 }
 
 token variable {
-    | <sigil> <twigil>? <desigilname=ident>
+    | <sigil> <twigil>? <desigilname=.ident>
     | <sigil> <?[<[]> <postcircumfix>
     | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
 }
@@ -395,9 +395,9 @@ token scope_declarator:sym<augment> { <sym> <scoped('augment')> }
 rule scoped($*SCOPE) {
     :my $*TYPENAME := '';
     [
-    | <DECL=variable_declarator=variable_declarator>
-    | <DECL=routine_declarator=routine_declarator>
-    | <DECL=package_declarator=package_declarator>
+    | <DECL=variable_declarator>
+    | <DECL=routine_declarator>
+    | <DECL=package_declarator>
     | <typename>+ 
       {
         if +$<typename> > 1 {
@@ -405,8 +405,8 @@ rule scoped($*SCOPE) {
         }
         $*TYPENAME := $<typename>[0].ast;
       }
-      <DECL=multi_declarator=multi_declarator>
-    | <DECL=multi_declarator=multi_declarator>
+      <DECL=multi_declarator>
+    | <DECL=multi_declarator>
     ]
     || <?before <[A..Z]>><longname>{
             my $t := $<longname>.Str;
@@ -494,13 +494,13 @@ token param_var {
     | '[' ~ ']' <signature>
     | '(' ~ ')' <signature>
     | <sigil> <twigil>?
-      [ <name=ident> | $<name>=[<[/!]>] ]
+      [ <name=.ident> | $<name>=[<[/!]>] ]
 }
 
 token named_param {
     ':'
     [
-    | <name=identifier> '(' <.ws>
+    | <name=.identifier> '(' <.ws>
         [ <named_param> | <param_var> <.ws> ]
         [ ')' || <.panic: 'Unable to parse named parameter; couldnt find right parenthesis'> ]
     | <param_var>
@@ -542,7 +542,7 @@ rule regex_declarator {
       <.newpad>
       [ '(' <signature> ')' ]?
       {*} #= open
-      '{'<p6regex=LANG('Regex','nibbler')>'}'<?ENDSTMT>
+      '{'<p6regex=.LANG('Regex','nibbler')>'}'<?ENDSTMT>
     ]
 }
 
@@ -569,7 +569,7 @@ token dotty {
     '.' <identifier>
     [ 
     | <?[(]> <args>
-    | ':' \s <args=arglist>
+    | ':' \s <args=.arglist>
     ]?
 }
 
@@ -624,8 +624,8 @@ token value:sym<quote>  { <quote> }
 token value:sym<number> { <number> }
 
 proto token number { <...> }
-token number:sym<rational> { <nu=integer>'/'<de=integer> }
-token number:sym<complex>  { <re=numish>'+'<im=numish>'\\'?'i' | <im=numish>'\\'?'i' }
+token number:sym<rational> { <nu=.integer>'/'<de=.integer> }
+token number:sym<complex>  { <re=.numish>'+'<im=.numish>'\\'?'i' | <im=.numish>'\\'?'i' }
 token number:sym<numish>   { <numish> }
 
 token numish {
@@ -704,13 +704,13 @@ INIT {
 
 
 token nulltermish { 
-    | <OPER=term=termish> 
+    | <OPER=term=.termish> 
     | <?>
 }
 
 token infixish {
-    | <OPER=infix=infix> <![=]>
-    | <infix> <OPER=infix_postfix_meta_operator=infix_postfix_meta_operator>
+    | <OPER=infix> <![=]>
+    | <infix> <OPER=infix_postfix_meta_operator>
 }
 
 proto token infix_postfix_meta_operator { <...> }
@@ -828,7 +828,7 @@ token infix:sym<err>  { <sym>  <O('%loose_or, :pasttype<def_or>')> }
 
 grammar Perl6::Regex is Regex::P6Regex::Grammar {
     token metachar:sym<:my> { 
-        ':' <?before 'my'> <statement=LANG('MAIN', 'statement')> <.ws> ';' 
+        ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';' 
     }
 
     token metachar:sym<{ }> {
@@ -840,7 +840,7 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
     }
 
     token codeblock {
-        <block=LANG('MAIN','block')>
+        <block=.LANG('MAIN','block')>
     }
 }
 

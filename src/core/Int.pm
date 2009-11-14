@@ -24,7 +24,8 @@ augment class Int {
         pir::box__PN(pir::set__NP(self))
     }
  
-#    our Rat multi method Rat() { Rat.new(self, 1); }
+    # Next has been moved to Rat.pm for the moment.
+   # our Rat multi method Rat() { Rat.new(self, 1); }
 
 #    our Complex multi method Complex() { Complex.new(self, 0); }
 

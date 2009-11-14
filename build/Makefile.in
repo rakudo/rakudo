@@ -132,6 +132,7 @@ CORE_SOURCES = \
   src/core/traits.pm \
   src/core/operators.pm \
   src/cheats/trait-export.pm \
+  src/cheats/num.pm \
   src/core/Object.pm \
   src/core/Any-num.pm \
   src/core/Int.pm \

@@ -24,7 +24,7 @@ Int - Perl 6 integers
 
 .sub 'ACCEPTS' :method
     .param num topic
-    .tailcall 'infix:=='(topic, self)
+    .tailcall '&infix:<==>'(topic, self)
 .end
 
 =item perl()

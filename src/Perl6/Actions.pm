@@ -1205,11 +1205,75 @@ method postcircumfix:sym<( )>($/) {
     make $<arglist>.ast;
 }
 
-method value($/) {
-    my $past := $<quote>
-                ?? $<quote>.ast
-                !! PAST::Val.new( :value($<integer>.ast) );
-    make $past;
+method value:sym<quote>($/) {
+    make $<quote>.ast;
+}
+
+method value:sym<number>($/) {
+    make $<number>.ast;
+}
+
+method number:sym<rational>($/) {
+    make PAST::Op.new(
+        :pasttype('callmethod'), :name('new'),
+        PAST::Var.new( :name('Rat'), :namespace(''), :scope('package') ),
+        $<nu>.ast, $<de>.ast
+    );
+}
+
+method number:sym<complex>($/) {
+    make PAST::Op.new(
+        :pasttype('callmethod'), :name('new'),
+        PAST::Var.new( :name('Complex'), :namespace(''), :scope('package') ),
+        ($<re> ?? $<re>.ast !! 0), $<im>.ast
+    );
+}
+
+method number:sym<numish>($/) {
+    make $<numish>.ast;
+}
+
+method numish($/) {
+    if $<integer> { make PAST::Val.new( :value($<integer>.ast) ); }
+    elsif $<dec_number> { make $<dec_number>.ast; }
+    else {
+        $/.CURSOR.panic('Number parsing not fully implemented yet');
+    }
+}
+
+method dec_number($/) {
+    my $int  := $<int> ?? $<int>.ast !! 0;
+    my $frac := $<frac> ?? $<frac>.ast !! 0;
+    my $base := Q:PIR {
+        $P0 = find_lex '$/'
+        $S0 = $P0['frac']
+        $I1 = length $S0
+        $I0 = 0
+        $I2 = 1
+      loop:
+        unless $I0 < $I1 goto done
+        $S1 = substr $S0, $I0, 1
+        inc $I0
+        if $S1 == '_' goto loop
+        $I2 *= 10
+        goto loop
+      done:
+        %r = box $I2
+    };
+    if $<escale> {
+        my $exp := $<escale>[0]<decint>.ast;
+        if $<escale>[0]<sign> eq '-' { $exp := -$exp; }
+        make PAST::Val.new( 
+            :value(($int * $base + $frac) / $base * 10 ** +$exp ) 
+        );
+    }
+    else {
+        make PAST::Op.new(
+            :pasttype('callmethod'), :name('new'),
+            PAST::Var.new( :name('Rat'), :namespace(''), :scope('package') ),
+            $int * $base + $frac, $base, :node($/)
+        );
+    }
 }
 
 method typename($/) {

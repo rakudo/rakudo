@@ -239,6 +239,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 }
                 ref = pmc_new_init(interp, pmc_type(interp,
                         string_from_literal(interp, "ObjectRef")), copy);
+                VTABLE_setprop(interp, ref, string_from_literal(interp, "rw"), ref);
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
             }
         }

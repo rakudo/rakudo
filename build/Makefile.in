@@ -134,6 +134,9 @@ CORE_SOURCES = \
   src/cheats/trait-export.pm \
   src/core/Object.pm \
   src/core/Any-num.pm \
+  src/core/Int.pm \
+  src/core/Rat.pm \
+  src/core/Complex.pm \
   src/core/Whatever.pm \
   src/core/Pair.pm \
 
@@ -192,6 +195,7 @@ CLEANUPS = \
   src/gen/core.pm \
   src/gen/*.pir \
   src/gen/*.pbc \
+  src/gen/*.pm \
   $(PMC_DIR)/pmc_*.h \
   $(PMC_DIR)/*.c \
   $(PMC_DIR)/*.dump \

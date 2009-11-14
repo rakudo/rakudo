@@ -630,8 +630,8 @@ token number:sym<numish>   { <numish> }
 
 token numish {
     [
+    | <dec_number>
     | <integer>
-#    | <dec_number>
 #    | <rad_number>
     | 'NaN' >>
     | 'Inf' >>
@@ -639,6 +639,14 @@ token numish {
     | '-Inf' >>
     ]
 }
+
+token dec_number {
+    | $<coeff> = [               '.' <frac=.decint> ] <escale>?
+    | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
+    | $<coeff> = [ <int=.decint>                    ] <escale>
+}
+
+token escale { <[Ee]> <[+\-]>? <decint> }
 
 token typename {
     [

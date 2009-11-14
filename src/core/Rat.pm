@@ -109,4 +109,9 @@ our multi sub infix:</>(Int $a, Int $b) {
     Rat.new($a, $b);
 }
 
+augment class Int {
+    # Comes from Int.pm, moved here for the moment.
+   our Rat multi method Rat() { Rat.new(self, 1); }
+}
+
 # vim: ft=perl6 sw=4 ts=4 expandtab

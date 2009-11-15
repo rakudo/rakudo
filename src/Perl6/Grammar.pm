@@ -160,6 +160,11 @@ rule statementlist {
     | [<statement><.eat_terminator> ]*
 }
 
+rule semilist {
+    | <?[ ) \] } ]>
+    | [<statement><.eat_terminator> ]*
+}
+
 token statement {
     <!before <[\])}]> | $ >
     [
@@ -213,6 +218,8 @@ token finishpad { <?> }
 proto token terminator { <...> }
 
 token terminator:sym<;> { <?[;]> }
+token terminator:sym<)> { <?[)]> }
+token terminator:sym<]> { <?[\]]> }
 token terminator:sym<}> { <?[}]> }
 
 ## Statement control
@@ -677,14 +684,12 @@ token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quote_EXPR> }
 
 token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
 
-token circumfix:sym<( )> { '(' <.ws> <EXPR> ')' }
+token circumfix:sym<( )> { '(' <semilist> ')' }
 token circumfix:sym<[ ]> { '[' <.ws> <EXPR> ']' }
 token circumfix:sym<ang> { <?[<]>  <quote_EXPR: ':q', ':w'>  }
 token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':w'> }
 token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
 token circumfix:sym<sigil> { <sigil> '(' ~ ')' <semilist> }
-
-rule semilist { <statement> }
 
 ## Operators
 

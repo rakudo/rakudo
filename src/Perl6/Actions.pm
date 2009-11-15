@@ -102,6 +102,14 @@ method statementlist($/) {
     make $past;
 }
 
+method semilist($/) {
+    my $past := PAST::Stmts.new( :node($/) );
+    if $<statement> {
+        for $<statement> { $past.push($_.ast); }
+    }
+    make $past;
+}
+
 method statement($/, $key?) {
     my $past;
     if $<EXPR> {
@@ -1147,7 +1155,7 @@ method arglist($/) {
 
 method term:sym<value>($/) { make $<value>.ast; }
 
-method circumfix:sym<( )>($/) { make $<EXPR>.ast; }
+method circumfix:sym<( )>($/) { make $<semilist>.ast; }
 
 method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 
@@ -1165,8 +1173,6 @@ method circumfix:sym<sigil>($/) {
                                     'item';
     make PAST::Op.new( :pasttype('callmethod'), :name($name), $<semilist>.ast );
 }
-
-method semilist($/) { make $<statement>.ast }
 
 method infixish($/) {
     if $<infix_postfix_meta_operator> {

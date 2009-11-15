@@ -107,6 +107,7 @@ method semilist($/) {
     if $<statement> {
         for $<statement> { $past.push($_.ast); }
     }
+    else { $past.push( PAST::Op.new( :name('&list') ) ); }
     make $past;
 }
 

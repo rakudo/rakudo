@@ -251,9 +251,9 @@ multi sub infix:<+>($a, Complex $b) {
     Complex.new($a + $b.re, $b.im);
 }
 
-# Originally infix:<-> was implemented in terms of addition, but 
+# Originally infix:<-> was implemented in terms of addition, but
 # that adds an extra function call to each.  This repeats ourselves,
-# but should avoid odd performance anomalies. 
+# but should avoid odd performance anomalies.
 
 multi sub infix:<->(Complex $a, Complex $b) {
     Complex.new($a.re - $b.re, $a.im - $b.im);

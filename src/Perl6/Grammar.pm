@@ -711,11 +711,6 @@ INIT {
 }
 
 
-token nulltermish { 
-    | <OPER=term=.termish> 
-    | <?>
-}
-
 token infixish {
     | <OPER=infix> <![=]>
     | <infix> <OPER=infix_postfix_meta_operator>

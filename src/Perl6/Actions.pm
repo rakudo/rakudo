@@ -1317,23 +1317,22 @@ method quote_EXPR($/) {
     }
     make $past;
 }
-     
 
 method quote_delimited($/) {
     my @parts;
     my $lastlit := '';
     for $<quote_atom> {
         my $ast := $_.ast;
-        if !HLL::Actions::isaPAST($ast) {
+        if !PAST::Node.ACCEPTS($ast) {
             $lastlit := $lastlit ~ $ast;
         }
         elsif $ast.isa(PAST::Val) {
             $lastlit := $lastlit ~ $ast.value;
         }
         else {
-            if $lastlit gt '' {
+            if $lastlit gt '' { 
                 @parts.push(
-                    PAST::Val.new( :value($lastlit), :returns('Perl6Str') ) 
+                    PAST::Val.new( :value($lastlit), :returns('Perl6Str') )
                 ); 
             }
             @parts.push($ast);
@@ -1342,22 +1341,17 @@ method quote_delimited($/) {
     }
     if $lastlit gt '' || !@parts { 
         @parts.push(
-            PAST::Val.new( :value($lastlit), :returns('Perl6Str') ) 
+            PAST::Val.new( :value($lastlit), :returns('Perl6Str') )
         ); 
     }
-    my $past := @parts.shift;
+    my $past := @parts ?? @parts.shift !! '';
     while @parts {
         $past := PAST::Op.new( $past, @parts.shift, :pirop('concat') );
     }
     make $past;
 }
 
-
 ## Operators
-
-method nulltermish($/) {
-    make $<term> ?? $<term>.ast !! 0;
-}
 
 method postfix:sym<.>($/) { make $<dotty>.ast; }
 

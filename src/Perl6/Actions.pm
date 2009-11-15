@@ -234,13 +234,9 @@ method statement_control:sym<repeat>($/) {
 }
 
 method statement_control:sym<for>($/) {
-    my $past := $<xblock>.ast;
+    my $past := xblock_immediate($<xblock>.ast);
     $past.pasttype('for');
-    my $block := $past[1];
-    $block[0].push( PAST::Var.new( :name('$_'), :scope('parameter') ) );
-    $block.symbol('$_', :scope('lexical') );
-    $block.arity(1);
-    $block.blocktype('immediate');
+    $past[0] := PAST::Op.new(:name('&list'), $past[0]);
     make $past;
 }
 
@@ -1154,6 +1150,8 @@ method circumfix:sym<( )>($/) { make $<EXPR>.ast; }
 
 method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 
+method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
+
 method circumfix:sym<{ }>($/) { make $<pblock>.ast; }
 
 method circumfix:sym<[ ]>($/) {
@@ -1394,6 +1392,7 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
 # capture against the signature.
 sub add_signature($block, $sig_obj) {
     # Add signature building code to the block.
+    $block.arity($sig_obj.arity);
     $block.loadinit.push($sig_obj.ast);
     $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!signature", signature') ));
 

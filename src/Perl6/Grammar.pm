@@ -680,6 +680,7 @@ token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
 token circumfix:sym<( )> { '(' <.ws> <EXPR> ')' }
 token circumfix:sym<[ ]> { '[' <.ws> <EXPR> ']' }
 token circumfix:sym<ang> { <?[<]>  <quote_EXPR: ':q', ':w'>  }
+token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':w'> }
 token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
 token circumfix:sym<sigil> { <sigil> '(' ~ ')' <semilist> }
 
@@ -764,7 +765,7 @@ token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
 
 token infix:sym<+>    { <sym>  <O('%additive')> }
-token infix:sym<->    { <sym>  <O('%additive')> }
+token infix:sym<->    { <sym> <![>]> <O('%additive')> }
 token infix:sym<+|>   { <sym>  <O('%additive')> }
 token infix:sym<+^>   { <sym>  <O('%additive')> }
 token infix:sym<~|>   { <sym>  <O('%additive')> }

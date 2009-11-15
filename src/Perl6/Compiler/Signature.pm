@@ -270,6 +270,15 @@ method ast($high_level?) {
 }
 
 
+method arity() {
+    my $arity := 0;
+    for self.entries {
+        $arity := $arity + !($_.optional || $_.pos_slurpy || $_.named_slurpy);
+    }
+    $arity;
+}
+
+
 # Accessor for entries in the signature object.
 method entries() {
     unless $!entries { $!entries := Q:PIR { %r = new ['ResizablePMCArray'] } }

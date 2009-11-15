@@ -240,29 +240,40 @@ multi sub infix:<+>(Complex $a, Complex $b) {
     Complex.new($a.re + $b.re, $a.im + $b.im);
 }
 
-#multi sub infix:<+>(Complex $a, $b) is default {
-#    Complex.new($a.re + $b, $a.im);
-#}
-
-multi sub infix:<+>($a, Complex $b) {
-    $b + $a;
+multi sub infix:<+>(Complex $a, $b) {
+   Complex.new($a.re + $b, $a.im);
 }
 
-#multi sub infix:<->(Complex $a, $b) is default {
-#    $a + (-$b);
-#}
+multi sub infix:<+>($a, Complex $b) {
+    # Was $b + $a; but that trips a ng bug, and also means
+    # that Num + Complex is slower than Complex + Num, which
+    # seems daft.
+    Complex.new($a + $b.re, $b.im);
+}
+
+# Originally infix:<-> was implemented in terms of addition, but 
+# that adds an extra function call to each.  This repeats ourselves,
+# but should avoid odd performance anomalies. 
+
+multi sub infix:<->(Complex $a, Complex $b) {
+    Complex.new($a.re - $b.re, $a.im - $b.im);
+}
+
+multi sub infix:<->(Complex $a, $b) {
+   Complex.new($a.re - $b, $a.im);
+}
 
 multi sub infix:<->($a, Complex $b) {
-    $a + (-$b);
+    Complex.new($a - $b.re, -$b.im);
 }
 
 multi sub infix:<*>(Complex $a, Complex $b) {
     Complex.new($a.re * $b.re - $a.im * $b.im, $a.im * $b.re + $a.re * $b.im);
 }
 
-#multi sub infix:<*>(Complex $a, $b) is default {
-#    Complex.new($a.re * $b, $a.im * $b);
-#}
+multi sub infix:<*>(Complex $a, $b) {
+   Complex.new($a.re * $b, $a.im * $b);
+}
 
 multi sub infix:<*>($a, Complex $b) {
     Complex.new($a * $b.re, $a * $b.im);
@@ -274,12 +285,14 @@ multi sub infix:</>(Complex $a, Complex $b) {
                 ($a.im * $b.re - $a.re * $b.im) / $d);
 }
 
-#multi sub infix:</>(Complex $a, $b) is default {
-#    $a * (1/$b);
-#}
+multi sub infix:</>(Complex $a, $b) {
+    Complex.new($a.re / $b, $a.im / $b);
+}
 
 multi sub infix:</>($a, Complex $b) {
-    Complex.new($a, 0) / $b;
+    my $d = $b.re * $b.re + $b.im * $b.im;
+    Complex.new(($a * $b.re) / $d,
+                ($a`` * $b.im) / $d);
 }
 
 multi sub postfix:<i>($x) {

@@ -292,7 +292,7 @@ multi sub infix:</>(Complex $a, $b) {
 multi sub infix:</>($a, Complex $b) {
     my $d = $b.re * $b.re + $b.im * $b.im;
     Complex.new(($a * $b.re) / $d,
-                ($a`` * $b.im) / $d);
+                ($a * $b.im) / $d);
 }
 
 multi sub postfix:<i>($x) {

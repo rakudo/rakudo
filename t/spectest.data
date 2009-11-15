@@ -173,7 +173,7 @@ S03-operators/true.t
 # S04-statements/do.t
 # S04-statements/for-scope.t
 # S04-statements/for.t
-# S04-statements/for_with_only_one_item.t
+S04-statements/for_with_only_one_item.t
 # S04-statements/gather.t
 # S04-statements/given.t
 # S04-statements/if.t

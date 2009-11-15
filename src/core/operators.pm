@@ -2,6 +2,10 @@ our multi infix:<~~>($topic, $matcher) {
     $matcher.ACCEPTS($topic)
 }
 
+our multi sub prefix:<->($a) {
+    pir::box__PN(pir::neg__NN($a))
+}
+
 our multi sub infix:<+>($a, $b) {
     pir::box__PN(pir::add__NNN($a, $b))
 }

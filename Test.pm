@@ -133,6 +133,7 @@ multi sub dies_ok($closure, $reason) is export {
     #if "$!" ~~ / ^ 'Null PMC access ' / {
     #    diag "wrong way to die: '$!'";
     #}
+    proclaim(defined($!), $reason);
     #proclaim((defined $! && "$!" !~~ / ^ 'Null PMC access ' /), $reason);
 }
 multi sub dies_ok($closure) is export {
@@ -155,6 +156,7 @@ multi sub eval_dies_ok(Str $code, $reason) is export {
     #    diag "wrong way to die: '$ee'";
     #}
     #proclaim((defined $ee && "$ee" !~~ / ^ 'Null PMC access' /), $reason);
+    proclaim(defined($ee), $reason);
 }
 multi sub eval_dies_ok(Str $code) is export {
     eval_dies_ok($code, '');

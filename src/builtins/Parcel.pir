@@ -84,6 +84,20 @@ The canonical operator for creating a Parcel.
     .return (parcel)
 .end
 
+
+=item &Nil
+
+The canonical function for creating an empty Parcel.
+
+=cut
+
+.sub '&Nil'
+    .param pmc args            :slurpy
+    $P0 = '&infix:<,>'()
+    .return ($P0)
+.end
+
+
 =back
 
 =cut

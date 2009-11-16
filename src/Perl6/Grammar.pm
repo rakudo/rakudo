@@ -92,6 +92,8 @@ token def_module_name {
     ]?
 }
 
+token nofun { <![ ( \\ ' \- ]> » }
+
 token ENDSTMT {
     [ 
     | \h* $$ <.ws> <?MARKER('endstmt')> 
@@ -584,7 +586,9 @@ token dotty {
 
 proto token term { <...> }
 
-token term:sym<self> { <sym> » }
+token term:sym<self> { <sym> <.nofun> }
+
+token term:sym<Nil> { <sym> <.nofun> }
 
 token term:sym<identifier> {
     <identifier> <?[(]> <args>
@@ -685,7 +689,7 @@ token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quote_EXPR> }
 token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
 
 token circumfix:sym<( )> { '(' <semilist> ')' }
-token circumfix:sym<[ ]> { '[' <.ws> <EXPR> ']' }
+token circumfix:sym<[ ]> { '[' <semilist> ']' }
 token circumfix:sym<ang> { <?[<]>  <quote_EXPR: ':q', ':w'>  }
 token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':w'> }
 token circumfix:sym<{ }> { <?[{]> <pblock(1)> }

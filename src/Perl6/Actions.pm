@@ -107,7 +107,7 @@ method semilist($/) {
     if $<statement> {
         for $<statement> { $past.push($_.ast); }
     }
-    else { $past.push( PAST::Op.new( :name('&list') ) ); }
+    else { $past.push( PAST::Op.new( :name('&Nil') ) ); }
     make $past;
 }
 
@@ -1082,7 +1082,11 @@ method dotty($/) {
 ## Terms
 
 method term:sym<self>($/) {
-    make PAST::Var.new( :name('self') );
+    make PAST::Var.new( :name('self'), :node($/) );
+}
+
+method term:sym<Nil>($/) {
+    make PAST::Op.new(:name('&Nil'), :node($/) );
 }
 
 method term:sym<identifier>($/) {
@@ -1165,7 +1169,7 @@ method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
 method circumfix:sym<{ }>($/) { make $<pblock>.ast; }
 
 method circumfix:sym<[ ]>($/) {
-    make PAST::Op.new( :name('&circumfix:<[ ]>'), $<EXPR>.ast, :node($/) );
+    make PAST::Op.new( :name('&circumfix:<[ ]>'), $<semilist>.ast, :node($/) );
 }
 
 method circumfix:sym<sigil>($/) {

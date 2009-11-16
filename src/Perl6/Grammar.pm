@@ -726,7 +726,8 @@ token postfixish {
 
 proto token infix_postfix_meta_operator { <...> }
 
-token dotty {
+proto token dotty { <...> }
+token dotty:sym<.> {
     '.' <identifier>
     [ 
     | <?[(]> <args>

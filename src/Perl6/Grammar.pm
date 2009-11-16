@@ -739,7 +739,9 @@ token dotty:sym<.> {
     <O('%methodop')>
 }
 
-token dottyop {
+token dottyop { <methodop> }
+
+token methodop {
     <identifier>
     [ 
     | <?[(]> <args>

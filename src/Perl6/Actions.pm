@@ -1090,12 +1090,15 @@ method regex_declarator($/, $key?) {
 
 method dotty:sym<.>($/) { make $<dottyop>.ast; }
 
-method dottyop($/) {
+method dottyop($/) { make $<methodop>.ast; }
+
+method methodop($/) {
     my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
     $past.name( ~$<identifier> );
     $past.pasttype('callmethod');
     make $past;
 }
+
 
 method term:sym<self>($/) {
     make PAST::Var.new( :name('self'), :node($/) );

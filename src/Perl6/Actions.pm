@@ -1215,7 +1215,13 @@ method EXPR($/, $key?) {
             $past.name('&' ~ $name);
         }
     }
-    if $key eq 'POSTFIX' { $past.unshift($/[0].ast); }
+    if $key eq 'POSTFIX' { 
+        $past.unshift(
+            PAST::Op.ACCEPTS($past) && $past.pasttype eq 'callmethod'
+            ?? PAST::Op.new( :pirop('descalarref PP'), $/[0].ast )
+            !! $/[0].ast
+        );
+    }
     else {
         for $/.list { if $_.ast { $past.push($_.ast); } }
     }

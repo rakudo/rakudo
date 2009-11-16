@@ -1114,6 +1114,15 @@ method term:sym<Nil>($/) {
     make PAST::Op.new(:name('&Nil'), :node($/) );
 }
 
+method term:sym<dotty>($/) {
+    my $past := $<dotty>.ast;
+    $past.unshift(PAST::Op.new(
+        :pirop('descalarref PP'),
+        PAST::Var.new( :name('$_'), :scope('lexical') )
+    ));
+    make $past;
+}
+
 method term:sym<identifier>($/) {
     my $past := $<args>.ast;
     $past.name('&' ~ $<identifier>);

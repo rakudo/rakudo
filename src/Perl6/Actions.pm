@@ -692,7 +692,7 @@ method routine_def($/) {
                 );
                 $symbol_holder.symbol($name, :multis($past))
             }
-            $multi_flag.value(1);
+            $multi_flag.value($*MULTINESS eq 'proto' ?? 2 !! 1);
         }
 
         # Install in lexical scope if it's not package scoped.
@@ -787,7 +787,7 @@ method method_def($/) {
                 );
                 %table{$name}<code_ref> := %table{$name}<multis> := $past;
             }
-            $multi_flag.value(1);
+            $multi_flag.value($*MULTINESS eq 'proto' ?? 2 !! 1);
         }
         else {
             %table{$name}<code_ref> := $past;

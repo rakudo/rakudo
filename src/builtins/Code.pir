@@ -43,6 +43,10 @@ for executable objects.
     transform_to_p6opaque $P0
     setattribute $P0, '$!do', do
     setattribute $P0, '$!multi', multi
+    if multi != 2 goto proto_done
+    $P1 = box 1
+    setprop $P0, 'proto', $P1
+  proto_done:
     setprop do, '$!p6type', $P0
     .return ($P0)
 .end
@@ -98,7 +102,12 @@ Just calls this block with the supplied parameters.
 
 .sub 'multi' :method
     $P0 = getattribute self, '$!multi'
-    .return ($P0)
+    if $P0 goto is_multi
+    $P1 = get_hll_global ['Bool'], 'False'
+    .return ($P1)
+  is_multi:
+    $P1 = get_hll_global ['Bool'], 'True'
+    .return ($P1)
 .end
 
 

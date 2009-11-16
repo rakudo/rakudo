@@ -1085,7 +1085,9 @@ method regex_declarator($/, $key?) {
 }
 
 
-method dotty:sym<.>($/) {
+method dotty:sym<.>($/) { make $<dottyop>.ast; }
+
+method dottyop($/) {
     my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
     $past.name( ~$<identifier> );
     $past.pasttype('callmethod');

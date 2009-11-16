@@ -728,12 +728,16 @@ proto token infix_postfix_meta_operator { <...> }
 
 proto token dotty { <...> }
 token dotty:sym<.> {
+    <dottyop>
+    <O('%methodop')>
+}
+
+token dottyop {
     '.' <identifier>
     [ 
     | <?[(]> <args>
     | ':' \s <args=.arglist>
     ]?
-    <O('%methodop')>
 }
 
 token postcircumfix:sym<[ ]> { 

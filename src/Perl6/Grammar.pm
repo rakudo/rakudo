@@ -617,6 +617,8 @@ token term:sym<pir::op> {
     'pir::' $<op>=[\w+] <args>?
 }
 
+token term:sym<dotty> { <dotty> }
+
 token args {
     | '(' <semiarglist> ')'
     | [ \s <arglist> ]

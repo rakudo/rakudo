@@ -747,7 +747,7 @@ method method_def($/) {
     if $<longname> {
         # Set up us the name.
         my $name := $<longname>.Str;
-        if $<specials> && ~$<specials>[0] eq '!' { $name := '!' ~ $name; }
+        if $<specials> eq '!' { $name := '!' ~ $name; }
         $past.name($name);
         $past.nsentry('');
         my $multi_flag := PAST::Val.new( :value(0) );

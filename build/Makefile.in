@@ -135,6 +135,7 @@ CORE_SOURCES = \
   src/cheats/num.pm \
   src/core/Object.pm \
   src/core/Any-num.pm \
+  src/core/Any-list.pm \
   src/core/Int.pm \
   src/core/Num.pm \
   src/core/Rat.pm \

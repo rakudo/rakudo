@@ -630,6 +630,7 @@ token semiarglist {
 token arglist {
     <.ws> 
     [ 
+    | <?stdstopper>
     | <EXPR('f=')>
     | <?>
     ]

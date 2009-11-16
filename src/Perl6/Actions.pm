@@ -1097,8 +1097,6 @@ method dottyop($/) {
     make $past;
 }
 
-## Terms
-
 method term:sym<self>($/) {
     make PAST::Var.new( :name('self'), :node($/) );
 }
@@ -1195,6 +1193,33 @@ method circumfix:sym<sigil>($/) {
                 ~$<sigil> eq '%' ?? 'hash' !!
                                     'item';
     make PAST::Op.new( :pasttype('callmethod'), :name($name), $<semilist>.ast );
+}
+
+## Expressions
+
+method EXPR($/, $key?) {
+    unless $key { return 0; }
+    my $past := $/.peek_ast // $<OPER>.peek_ast;
+    unless $past {
+        $past := PAST::Op.new( :node($/) );
+        if $<OPER><O><pasttype> { $past.pasttype( ~$<OPER><O><pasttype> ); }
+        elsif $<OPER><O><pirop>    { $past.pirop( ~$<OPER><O><pirop> ); }
+        unless $past.name {
+            if $key eq 'LIST' { $key := 'infix'; }
+            my $name := Q:PIR {
+                $P0 = find_lex '$key'
+                $S0 = $P0
+                $S0 = downcase $S0
+                %r = box $S0
+            } ~ ':<' ~ $<OPER><sym> ~ '>';
+            $past.name('&' ~ $name);
+        }
+    }
+    if $key eq 'POSTFIX' { $past.unshift($/[0].ast); }
+    else {
+        for $/.list { if $_.ast { $past.push($_.ast); } }
+    }
+    make $past;
 }
 
 method infixish($/) {

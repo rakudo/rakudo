@@ -166,7 +166,7 @@ S03-operators/true.t
 # S04-statement-modifiers/for.t
 # S04-statement-modifiers/given.t
 # S04-statement-modifiers/if.t
-# S04-statement-modifiers/unless.t
+S04-statement-modifiers/unless.t
 # S04-statement-modifiers/until.t
 # S04-statement-modifiers/values_in_bool_context.t
 # S04-statement-modifiers/while.t

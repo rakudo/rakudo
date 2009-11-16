@@ -498,6 +498,14 @@ method declarator($/) {
     if    $<variable_declarator> { make $<variable_declarator>.ast }
     elsif $<routine_declarator>  { make $<routine_declarator>.ast  }
     elsif $<regex_declarator>    { make $<regex_declarator>.ast    }
+    elsif $<signature> {
+        my $list  := PAST::Op.new( :pasttype('call'), :name('&infix:<,>') );
+        my $decls := $<signature>.ast.get_declarations;
+        for @($decls) {
+            $list.push(declare_variable($/, $_, $_<sigil>, $_<twigil>, $_<desigilname>, $_<traits>));
+        }
+        make $list;
+    }
     else {
         $/.CURSOR.panic('Unknown declarator type');
     }
@@ -516,11 +524,15 @@ method variable_declarator($/) {
     my $past := $<variable>.ast;
     my $sigil := $<variable><sigil>;
     my $twigil := $<variable><twigil>[0];
-    my $name := $past.name;
+    make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);
+}
+
+sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
+    my $name := $sigil ~ $twigil ~ $desigilname;
 
     if $*SCOPE eq 'has' {
         # Find the current package and add the attribute.
-        my $attrname := ~$sigil ~ '!' ~ ~$<variable><desigilname>;
+        my $attrname := ~$sigil ~ '!' ~ $desigilname;
         our @PACKAGE;
         unless +@PACKAGE { $/.CURSOR.panic("Can not declare attribute outside of a package"); }
         my %attr_table := @PACKAGE[0].attributes;
@@ -538,11 +550,11 @@ method variable_declarator($/) {
                 :scope('attribute'),
                 PAST::Var.new( :name('self'), :scope('lexical') )
             );
-            unless $<trait> && has_compiler_trait_with_val($<trait>, '&trait_mod:<is>', 'rw') {
+            unless $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') {
                 $var := PAST::Op.new( :pirop('new PsP'), 'Perl6Scalar', $var);
             }
             my $meth := PAST::Block.new(
-                :name(~$<variable><desigilname>),
+                :name($desigilname),
                 :nsentry(''),
                 PAST::Stmts.new(
                     PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1) )
@@ -557,7 +569,7 @@ method variable_declarator($/) {
             my %meth_table := @PACKAGE[0].methods;
             my %meth_hash;
             %meth_hash<code_ref> := create_code_object($meth, 'Method', 0);
-            %meth_table{~$<variable><desigilname>} := %meth_hash;
+            %meth_table{~$desigilname} := %meth_hash;
         }
         
         # Nothing to emit here.
@@ -596,9 +608,9 @@ method variable_declarator($/) {
 
         # If we have traits, set up us the node to emit handlers into, then
         # emit them.
-        if $<trait> || $*TYPENAME {
+        if $trait_list || $*TYPENAME {
             my $trait_node := get_var_traits_node($BLOCK, $name);
-            for $<trait> {
+            for $trait_list {
                 my $trait := $_.ast;
                 $trait.unshift(PAST::Var.new( :name('declarand'), :scope('register') ));
                 if $trait.name() eq '&trait_mod:<of>' && $*TYPENAME {
@@ -620,7 +632,7 @@ method variable_declarator($/) {
         }
     }
 
-    make $past;
+    return $past;
 }
 
 method routine_declarator:sym<sub>($/) { make $<routine_def>.ast; }
@@ -824,6 +836,7 @@ method parameter($/) {
     }
 
     # Handle traits.
+    $*PARAMETER.traits($<trait>);
     if $<trait> {
         # Handle built-in ones.
         my $read_type := trait_readtype($<trait>);
@@ -1409,7 +1422,10 @@ sub add_signature($block, $sig_obj) {
     # to the start of the block.
     $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
     my $decls := $sig_obj.get_declarations();
-    for @($decls) { $block.symbol( $_.name, :scope('lexical') ) }
+    for @($decls) {
+        $_.isdecl(1);
+        $block.symbol( $_.name, :scope('lexical') )
+    }
     $block[0].push($decls);
     $block[0].push(PAST::Op.new(
         :pirop('bind_signature vP'),

@@ -15,9 +15,14 @@ augment class Any {
             setattribute mapper, '&!block', $P0
             $P0 = get_hll_global ['Bool'], 'True'
             setprop mapper, 'flatten', $P0
-            %r = '&infix:<,>'(mapper)
+            %r = '&list'(mapper)
         }
     }
+
+    method perl() {
+        '(' ~ self.map({ $_.perl }).join(', ') ~ ')';
+    }
+
 }
 
 # vim: ft=perl6

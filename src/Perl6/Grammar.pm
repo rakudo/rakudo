@@ -223,6 +223,15 @@ token terminator:sym<;> { <?[;]> }
 token terminator:sym<)> { <?[)]> }
 token terminator:sym<]> { <?[\]]> }
 token terminator:sym<}> { <?[}]> }
+token terminator:sym<if>     { 'if'     <.nofun> }
+token terminator:sym<unless> { 'unless' <.nofun> }
+token terminator:sym<while>  { 'while'  <.nofun> }
+token terminator:sym<until>  { 'until'  <.nofun> }
+token terminator:sym<for>    { 'for'    <.nofun> }
+token terminator:sym<given>  { 'given'  <.nofun> }
+token terminator:sym<when>   { 'when'   <.nofun> }
+
+token stdstopper { <?terminator> }
 
 ## Statement control
 

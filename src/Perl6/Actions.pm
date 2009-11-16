@@ -116,7 +116,8 @@ method statement($/, $key?) {
     if $<EXPR> {
         my $mc := $<statement_mod_cond>[0];
         $past := $mc
-              ?? PAST::Op.new($mc.ast, $<EXPR>.ast, :pasttype(~$mc<sym>), :node($/) )
+              ?? PAST::Op.new(:pasttype(~$mc<sym>), :node($/),
+                     $mc.ast, $<EXPR>.ast, PAST::Op.new(:name('&Nil')))
               !! $<EXPR>.ast;
     }
     elsif $<statement_control> { $past := $<statement_control>.ast; }

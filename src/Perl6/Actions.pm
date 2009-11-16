@@ -1363,9 +1363,6 @@ method quote_delimited($/) {
 
 ## Operators
 
-method postfix:sym<.>($/) { make $<dotty>.ast; }
-
-
 class Perl6::RegexActions is Regex::P6Regex::Actions {
 
     method metachar:sym<:my>($/) {

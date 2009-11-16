@@ -573,14 +573,6 @@ token trait_mod:sym<as>      { <sym>:s <typename> }
 token trait_mod:sym<returns> { <sym>:s <typename> }
 token trait_mod:sym<handles> { <sym>:s <term> }
 
-# XXX This should elsewhere in this file
-token dotty {
-    '.' <identifier>
-    [ 
-    | <?[(]> <args>
-    | ':' \s <args=.arglist>
-    ]?
-}
 
 ## Nouns    
 
@@ -726,7 +718,22 @@ token infixish {
     | <infix> <OPER=infix_postfix_meta_operator>
 }
 
+token postfixish {
+    | <OPER=dotty>
+    | <OPER=postfix>
+    | <OPER=postcircumfix>
+}
+
 proto token infix_postfix_meta_operator { <...> }
+
+token dotty {
+    '.' <identifier>
+    [ 
+    | <?[(]> <args>
+    | ':' \s <args=.arglist>
+    ]?
+    <O('%methodop')>
+}
 
 token postcircumfix:sym<[ ]> { 
     '[' <.ws> <EXPR> ']' 
@@ -747,8 +754,6 @@ token postcircumfix:sym<( )> {
     '(' <.ws> <arglist> ')' 
     <O('%methodop')>
 }
-
-token postfix:sym<.>  { <dotty> <O('%methodop')> }
 
 token postfix:sym<i>  { <sym> >> <O('%methodop')> }
 

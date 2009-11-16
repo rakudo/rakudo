@@ -31,7 +31,9 @@ class Rat {
 
     multi method perl() { "$!numerator/$!denominator"; }
 
-    multi method Num() { $!numerator.Num / $!denominator.Num }
+    multi method Num() { $!numerator.Num / $!denominator.Num; }
+
+    multi method Int() { self.Num.Int; }
 
     multi method Str() { $.Num.Str; }
 

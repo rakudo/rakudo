@@ -9,6 +9,10 @@ augment class Num {
         }
     }
 
+    multi method exp() {
+        pir::exp__Nn(self);
+    }
+
     multi method sin($base = 'radians') {
         pir::sin__Nn(self!to-radians($base));
     }

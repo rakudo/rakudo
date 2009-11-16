@@ -238,12 +238,14 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                     copy          = Rakudo_binding_create_array(interp);
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
+                    VTABLE_setprop(interp, copy, string_from_literal(interp, "flatten"), copy);
                 }
                 else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
                     STRING *STORE = string_from_literal(interp, "!STORE");
                     copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_HASH)));
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
+                    VTABLE_setprop(interp, copy, string_from_literal(interp, "flatten"), copy);
                 }
                 else {
                     copy = VTABLE_clone(interp, value);
@@ -259,6 +261,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
             if (sig_info->variable_name) {
                 PMC *ref  = pmc_new_init(interp, pmc_type(interp,
                         string_from_literal(interp, "ObjectRef")), value);
+                if (sig_info->flags & (SIG_ELEM_ARRAY_SIGIL | SIG_ELEM_HASH_SIGIL))
+                    VTABLE_setprop(interp, ref, string_from_literal(interp, "flatten"), ref);
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
             }
         }

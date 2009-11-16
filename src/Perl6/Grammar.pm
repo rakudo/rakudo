@@ -323,8 +323,15 @@ token colonpair {
     ]
 }
 
+token desigilname {
+    [
+#    | <?before '$' > <variable>
+    | <longname>
+    ]
+}
+
 token variable {
-    | <sigil> <twigil>? <desigilname=.ident>
+    | <sigil> <twigil>? <desigilname>
     | <sigil> <?[<[]> <postcircumfix>
     | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
 }
@@ -889,7 +896,7 @@ sub parse_name($name) {
         .local string sigil
         $S0 = list[0]
         sigil = substr $S0, 0, 1
-        $I0 = index '$@%&', $S1
+        $I0 = index '$@%&', sigil
         if $I0 < 0 goto sigil_done
         substr $S0, 0, 1, ''
         list[0] = $S0

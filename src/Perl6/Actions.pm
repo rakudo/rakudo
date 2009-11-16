@@ -407,7 +407,12 @@ method variable($/) {
         $past.unshift( PAST::Var.new( :name('$/') ) );
     }
     else {
-        $past := PAST::Var.new( :name(~$/) );
+        my @name := Perl6::Grammar::parse_name(~$/);
+        $past := PAST::Var.new( :name(@name.pop) );
+        if @name {
+            $past.namespace(@name);
+            $past.scope('package');
+        }
         if $<twigil>[0] eq '*' { 
             $past.scope('contextual'); 
             $past.viviself( PAST::Op.new( 'Contextual ' ~ ~$/ ~ ' not found', 

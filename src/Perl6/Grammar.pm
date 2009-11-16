@@ -697,7 +697,7 @@ token circumfix:sym<sigil> { <sigil> '(' ~ ')' <semilist> }
 ## Operators
 
 INIT {
-    Perl6::Grammar.O(':prec<y=>, :assoc<unary>', '%methodop');
+    Perl6::Grammar.O(':prec<y=>, :assoc<unary>', '%methodcall');
     Perl6::Grammar.O(':prec<x=>, :assoc<unary>', '%autoincrement');
     Perl6::Grammar.O(':prec<w=>, :assoc<left>',  '%exponentiation');
     Perl6::Grammar.O(':prec<v=>, :assoc<unary>', '%symbolic_unary');
@@ -727,6 +727,7 @@ token infixish {
 
 token postfixish {
     | <OPER=dotty>
+    | <OPER=privop>
     | <OPER=postfix>
     | <OPER=postcircumfix>
 }
@@ -736,10 +737,15 @@ proto token infix_postfix_meta_operator { <...> }
 proto token dotty { <...> }
 token dotty:sym<.> {
     <sym> <dottyop>
-    <O('%methodop')>
+    <O('%methodcall')>
 }
 
 token dottyop { <methodop> }
+
+token privop { 
+    '!' <methodop>
+    <O('%methodcall')>
+}
 
 token methodop {
     <identifier>
@@ -751,25 +757,25 @@ token methodop {
 
 token postcircumfix:sym<[ ]> { 
     '[' <.ws> <EXPR> ']' 
-    <O('%methodop')>
+    <O('%methodcall')>
 }
 
 token postcircumfix:sym<{ }> {
     '{' <.ws> <EXPR> '}'
-    <O('%methodop')>
+    <O('%methodcall')>
 }
 
 token postcircumfix:sym<ang> {
     <?[<]> <quote_EXPR: ':q'>
-    <O('%methodop')>
+    <O('%methodcall')>
 }
 
 token postcircumfix:sym<( )> { 
     '(' <.ws> <arglist> ')' 
-    <O('%methodop')>
+    <O('%methodcall')>
 }
 
-token postfix:sym<i>  { <sym> >> <O('%methodop')> }
+token postfix:sym<i>  { <sym> >> <O('%methodcall')> }
 
 token prefix:sym<++>  { <sym>  <O('%autoincrement')> }
 token prefix:sym<-->  { <sym>  <O('%autoincrement')> }

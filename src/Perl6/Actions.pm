@@ -1092,6 +1092,12 @@ method dotty:sym<.>($/) { make $<dottyop>.ast; }
 
 method dottyop($/) { make $<methodop>.ast; }
 
+method privop($/) {
+    my $past := $<methodop>.ast;
+    $past.name( '!' ~ $past.name );
+    make $past;
+}
+
 method methodop($/) {
     my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
     $past.name( ~$<identifier> );

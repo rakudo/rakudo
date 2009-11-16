@@ -78,6 +78,7 @@ BUILTINS_PIR = \
   src/glue/role.pir \
   src/glue/run.pir \
   src/glue/types.pir \
+  src/glue/contextuals.pir \
   src/builtins/Object.pir \
   src/builtins/ClassHOW.pir \
   src/builtins/RoleHOW.pir \
@@ -117,7 +118,6 @@ CHEATS_PIR = \
   src/cheats/fail.pir \
   src/cheats/object.pir \
   src/cheats/postcircumfix-array.pir \
-  src/cheats/print-say.pir \
   src/cheats/int-ops.pir \
   src/cheats/num-ops.pir \
   src/cheats/str-ops.pir \
@@ -143,6 +143,8 @@ CORE_SOURCES = \
   src/core/Complex.pm \
   src/core/Whatever.pm \
   src/core/Pair.pm \
+  src/core/IO.pm \
+  src/cheats/setup-io.pm \
 
 # SETTING = \
 #   src/setting/traits.pm \

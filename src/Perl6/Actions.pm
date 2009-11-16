@@ -414,10 +414,7 @@ method variable($/) {
             $past.scope('package');
         }
         if $<twigil>[0] eq '*' { 
-            $past.scope('contextual'); 
-            $past.viviself( PAST::Op.new( 'Contextual ' ~ ~$/ ~ ' not found', 
-                                          :pirop('die') )
-            );
+            $past := PAST::Op.new( $past.name(), :pasttype('call'), :name('!find_contextual'), :lvalue(0) );
         }
         elsif $<twigil>[0] eq '!' {
             $past.scope('attribute');

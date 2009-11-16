@@ -83,9 +83,12 @@ method get_declarations() {
             my $var := PAST::Var.new(
                 :name($_.var_name),
                 :scope('lexical'),
-                :isdecl(1),
                 :viviself(Perl6::Actions::sigiltype($_.sigil))
             );
+            $var<sigil>       := $_.sigil;
+            $var<twigil>      := $_.twigil;
+            $var<desigilname> := pir::substr($_.var_name, ($_.twigil ?? 2 !! 1));
+            $var<traits>      := $_.traits;
             $result.push($var);
         }
 

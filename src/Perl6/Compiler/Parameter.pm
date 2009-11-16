@@ -19,6 +19,7 @@ has $!type_captures;
 has $!is_rw;
 has $!is_ref;
 has $!is_copy;
+has $!traits;
 
 method var_name($var_name?) {
     if $var_name { $!var_name := $var_name }
@@ -116,4 +117,9 @@ method is_ref($is_ref?) {
 method is_copy($is_copy?) {
     if $is_copy { $!is_copy := $is_copy }
     $!is_copy
+}
+
+method traits($traits?) {
+    if $traits { $!traits := $traits }
+    $!traits
 }

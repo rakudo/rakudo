@@ -370,7 +370,7 @@ token declarator {
     [
 #    | <constant_declarator>
     | <variable_declarator>
-#    | '(' ~ ')' <signature> <trait>*
+    | '(' ~ ')' <signature> <trait>*
     | <routine_declarator>
     | <regex_declarator>
 #    | <type_declarator>

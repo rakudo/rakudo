@@ -15,7 +15,6 @@ Copyright (C) 2009, The Perl Foundation.
 static INTVAL lls_id = 0;
 
 /* Names of types we create. */
-#define PERL6_ARRAY "Perl6Array"
 #define PERL6_HASH  "Hash"
 
 /* Unwraps things inside a scalar reference. */
@@ -26,6 +25,18 @@ descalarref(PARROT_INTERP, PMC *ref) {
     while (ref->vtable->base_type == or_id || ref->vtable->base_type == p6s_id)
         ref = VTABLE_get_pmc(interp, ref);
     return ref;
+}
+
+
+/* Creates a Perl 6 Array. */
+static PMC *
+Rakudo_binding_create_array(PARROT_INTERP) {
+    PMC *ns        = Parrot_get_ctx_HLL_namespace(interp);
+    PMC *arr_ns    = Parrot_get_namespace_keyed_str(interp, ns, string_from_literal(interp, "Array"));
+    PMC *arr_class = VTABLE_get_class(interp, arr_ns);
+    PMC *result    = VTABLE_instantiate(interp, arr_class, PMCNULL);
+    VTABLE_setprop(interp, result, string_from_literal(interp, "flatten"), result);
+    return result;
 }
 
 
@@ -224,7 +235,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 PMC *copy, *ref, *store_meth;
                 if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
                     STRING *STORE = string_from_literal(interp, "!STORE");
-                    copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_ARRAY)));
+                    copy          = Rakudo_binding_create_array(interp);
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
                 }
@@ -343,7 +354,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
     /* Otherwise, go by sigil to pick the correct default type of value. */
     else {
         if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
-            return pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_ARRAY)));
+            return Rakudo_binding_create_array(interp);
         }
         else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
             return pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_HASH)));
@@ -514,7 +525,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
             if (elements[i]->flags & SIG_ELEM_SLURPY_POS) {
                 /* Create Perl 6 array, create RPA of all remaining things, then
                  * store it. */
-                PMC *slurpy     = pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_ARRAY)));
+                PMC *slurpy     = Rakudo_binding_create_array(interp);
                 PMC *temp       = pmc_new(interp, enum_class_ResizablePMCArray);
                 STRING *STORE   = string_from_literal(interp, "!STORE");
                 PMC *store_meth = VTABLE_find_method(interp, slurpy, STORE);
@@ -522,6 +533,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                     VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg));
                     cur_pos_arg++;
                 }
+                VTABLE_setprop(interp, temp, string_from_literal(interp, "flatten"), temp);
                 Parrot_ext_call(interp, store_meth, "PiP", slurpy, temp);
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
                         slurpy, no_nom_type_check, error);

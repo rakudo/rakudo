@@ -8,6 +8,10 @@ augment class Num {
             %r  = $P1
         }
     }
+
+    multi method sin($base = 'radians') {
+        pir::sin__Nn(self!to-radians($base));
+    }
 }
 
 # vim: ft=perl6

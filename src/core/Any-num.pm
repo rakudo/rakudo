@@ -45,7 +45,7 @@ augment class Any {
         given $base {
 #            when /:i ^d/ { self * pi/180.0 }    # Convert from degrees.
 #            when /:i ^g/ { self * pi/200.0 }    # Convert from gradians.
-#            when /:i ^r/ { self }               # Convert from radians.
+           when 'radians' { self }               # Convert from radians.
 #            when Num     { self * 2.0 * pi }    # Convert from revolutions.
             default { die "Unable to convert to base: $base" }
         }

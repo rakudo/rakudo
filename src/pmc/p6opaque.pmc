@@ -312,6 +312,11 @@ back some kind of iterator to let us get all of the possible candidates.
          * instead. XXX It sucks that every method invocation pays for this, so
          * we really must find something better to do. */
         if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Whatever")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "new")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "bless")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "CREATE")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "BUILD")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "BUILDALL")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "WHAT")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "HOW")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")) &&

@@ -1141,12 +1141,16 @@ method term:sym<name>($/) {
     my $ns := Perl6::Grammar::parse_name(~$<longname>);
     $ns := pir::clone__PP($ns);
     my $name := $ns.pop;
-    my $var := 
-        PAST::Var.new( :name(~$name), :namespace($ns), :scope('package') );
+    my $var := PAST::Var.new( :name(~$name), :namespace($ns), :scope('package') );
     my $past := $var;
     if $<args> {
         $past := $<args>.ast;
-        if $ns { $past.unshift($var); }
+        if $ns {
+            $past.unshift($var);
+            unless pir::substr($var.name, 0, 1) eq '&' {
+                $var.name('&' ~ $var.name);
+            }
+        }
         else { $past.name('&' ~ $name); }
     }
     make $past;

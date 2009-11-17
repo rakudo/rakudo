@@ -712,6 +712,7 @@ token quote:sym<Q>    { 'Q'  <![(]> <.ws> <quote_EXPR> }
 token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quote_EXPR> }
 
 token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
+token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }
 
 token circumfix:sym<( )> { '(' <semilist> ')' }
 token circumfix:sym<[ ]> { '[' <semilist> ']' }

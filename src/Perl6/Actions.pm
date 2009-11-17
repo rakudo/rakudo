@@ -1422,6 +1422,11 @@ method quote:sym<Q:PIR>($/) {
 }
 
 method quote_escape:sym<$>($/) { make $<variable>.ast; }
+method quote_escape:sym<{ }>($/) {
+    make PAST::Op.new(
+        :pirop('set S*'), block_immediate($<block>.ast), :node($/)
+    );
+}
 
 # overrides versions from HLL::Actions to handle Perl6Str
 # and use &infix:<,> to build the parcel

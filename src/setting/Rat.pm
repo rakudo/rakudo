@@ -44,6 +44,10 @@ class Rat {
     multi method pred {
         Rat.new($!numerator - $!denominator, $!denominator);
     }
+
+    multi method abs {
+        self < 0 ?? -self !! self;
+    }
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {

@@ -840,7 +840,7 @@ method method_def($/) {
     );
     $block[0].unshift(PAST::Var.new( :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1) ));
 
-    # Add *%_ parameter if there's no other named slurpy or the package isn't hidden.
+    # Add *%_ parameter if there's no other named slurpy and the package isn't hidden.
     my $need_slurpy_hash := !$block<signature>.has_named_slurpy();
     if $need_slurpy_hash && !package_has_trait('hidden') {
         $block[0].push(PAST::Var.new( :name('%_'), :scope('lexical'), :isdecl(1), :viviself('Perl6Hash') ));

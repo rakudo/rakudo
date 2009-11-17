@@ -871,7 +871,7 @@ method param_var($/) {
 
 method named_param($/) {
     if $<name>               { $*PARAMETER.names.push(~$<name>); }
-    if $<param_var><name>    { $*PARAMETER.names.push(~$<param_var><name>); }
+    if $<param_var><name>    { $*PARAMETER.names.push(~$<param_var><name>[0]); }
 }
 
 method type_constraint($/) {

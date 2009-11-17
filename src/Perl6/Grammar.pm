@@ -519,7 +519,10 @@ token param_var {
     | '[' ~ ']' <signature>
     | '(' ~ ')' <signature>
     | <sigil> <twigil>?
-      [ <name=.ident> | $<name>=[<[/!]>] ]
+      [
+      || <name=.identifier>
+      || $<name>=[<[/!]>]
+      ]?
 }
 
 token named_param {

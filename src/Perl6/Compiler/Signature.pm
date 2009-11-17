@@ -178,27 +178,27 @@ method ast($high_level?) {
                 $nom_type := $_.nom_type;
              }
         }
-#        elsif $sigil ne "" && !$_<invocant> {
-#            # May well be a parametric role based type.
-#            my $role_name;
-#            if    $sigil eq "@" { $role_name := "Positional" }
-#            elsif $sigil eq "%" { $role_name := "Associative" }
-#            elsif $sigil ne ":" { $role_name := "Callable" }
-#            if $role_name {
-#                my $role_type := PAST::Var.new( :name($role_name), :namespace(list()), :scope('package') );
-#                if !$_<nom_type> {
-#                    $_<nom_type> := $role_type;
-#                }
-#                else {
-#                    $_<nom_type> := PAST::Op.new(
-#                        :pasttype('callmethod'),
-#                        :name('!select'),
-#                        $role_type,
-#                        $_<nom_type>
-#                    );
-#                }
-#            }
-#        }
+        elsif $_.sigil ne "" && !$_.invocant {
+            # May well be a parametric role based type.
+            my $role_name;
+            if    $_.sigil eq "@" { $role_name := "Positional" }
+#            elsif $_.sigil eq "%" { $role_name := "Associative" }
+            elsif $_.sigil ne ":" { $role_name := "Callable" }
+            if $role_name {
+                my $role_type := PAST::Var.new( :name($role_name), :namespace(''), :scope('package') );
+                if !$_.nom_type {
+                    $nom_type := $role_type;
+                }
+                else {
+                    $nom_type := PAST::Op.new(
+                        :pasttype('callmethod'),
+                        :name('!select'),
+                        $role_type,
+                        $_.nom_type
+                    );
+                }
+            }
+        }
 
         # Constraints list needs to build a ResizablePMCArray.
         my $constraints := $null_reg;

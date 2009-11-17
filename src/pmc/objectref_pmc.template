@@ -43,10 +43,12 @@ pmclass ObjectRef need_ext dynpmc group perl6_group {
     }
 
     VTABLE void mark() {
-        PMC *value;
-        GET_ATTR_value(INTERP, SELF, value);
-        if (value)
-            Parrot_gc_mark_PObj_alive(INTERP, (PObj*)value);
+        if (PMC_data(SELF)) {
+            PMC *value;
+            GET_ATTR_value(INTERP, SELF, value);
+            if (value)
+                Parrot_gc_mark_PObj_alive(INTERP, (PObj*)value);
+        }
     }
 
     VTABLE void destroy() {

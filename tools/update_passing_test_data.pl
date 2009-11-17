@@ -28,13 +28,9 @@ use Data::Dumper;
 
 my $parrot = -d 'parrot' ? 'parrot/parrot' : '../../parrot';
 
-my %not_process;
-{
-    my @not_process = read_specfile('t/spectest.data');
-    @not_process{@not_process}  = (1) x  @not_process;
-}
+my %not_process = map { $_ => 1 } read_specfile('t/spectest.data');
 
-print <<KEY;
+print <<'KEY';
 Key:
 [S  ]   = some tests passed
 [ P ]   = plan ok (ran all tests)
@@ -43,15 +39,56 @@ Key:
 ==================================
 KEY
 
-find({ wanted => \&go, no_chdir => 1 }, 't/spec/');
+my @wanted;
 
-sub go {
+find({ wanted => \&queue, no_chdir => 1 }, 't/spec/');
+
+sub queue {
     return if -d $_;
     return if m/\.sv[nk]/;
     return unless m/\.t$/;
     return if $not_process{$_};
-    my $fudged = qx{t/spec/fudge --keep-exit-code rakudo $_};
+
+    push @wanted, $_;
+}
+
+if ( ! defined $ENV{TEST_JOBS} || int $ENV{TEST_JOBS} <= 1 ) {
+    go( $_ ) for @wanted;
+}
+else {
+    my $jobs_wanted = int $ENV{TEST_JOBS};
+    my %running;
+
+    while( @wanted || %running ) {
+        if ( @wanted && $jobs_wanted > keys %running ) {
+            my $file = shift @wanted;
+            my $pid = fork;
+            if ( $pid ) {                # parent
+                $running{ $pid } = $file;
+            }
+            elsif ( defined $pid ) {     # child
+                go( $file );
+                exit;
+            }
+            else {
+                die "Can't fork: $!";
+            }
+        }
+        else {
+            my $pid = wait;
+            if ( ! defined delete $running{ $pid } ) {
+                die "reaped unknown child PID '$pid'";
+            }
+        }
+    }
+}
+
+sub go {
+    my $orig = shift @_;
+
+    my $fudged = qx{t/spec/fudge --keep-exit-code rakudo $orig};
     chomp $fudged;
+
     my $H = get_harness();
     my $agg = TAP::Parser::Aggregator->new();
     $agg->start();
@@ -70,7 +107,7 @@ sub go {
     $plan_ok     = 'P' if !scalar($agg->parse_errors);
     $all_passed  = 'A' if !       $agg->has_errors;
     printf "[%s%s%s] (% 3d/%-3d) %s\n", $some_passed, $plan_ok, $all_passed,
-           $actually_passed, $planned, $_
+           $actually_passed, $planned, $orig
                 if $actually_passed;
 }
 

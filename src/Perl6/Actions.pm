@@ -1273,6 +1273,25 @@ method infixish($/) {
     }
 }
 
+method postfixish($/) {
+    if $<postfix_prefix_meta_operator> {
+        my $past := $<OPER>.ast;
+        if $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
+            $past.unshift($past.name());
+            $past.name('!dispatch_dispatcher_parallel');
+        }
+        elsif $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
+            $past.unshift($past.name());
+            $past.name('!dispatch_method_parallel');
+            $past.pasttype('call');
+        }
+        else {
+            $/.CURSOR.panic("Unimplemented or invalid use of parallel dispatch");
+        }
+        make $past;
+    }
+}
+
 method postcircumfix:sym<[ ]>($/) {
     make PAST::Op.new( $<EXPR>.ast, :name('!postcircumfix:<[ ]>'),
                        :pasttype('call'), :node($/) );

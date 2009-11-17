@@ -747,13 +747,22 @@ token infixish {
 }
 
 token postfixish {
+    <postfix_prefix_meta_operator>?
+    [
     | <OPER=dotty>
     | <OPER=privop>
     | <OPER=postfix>
     | <OPER=postcircumfix>
+    ]
 }
 
 proto token infix_postfix_meta_operator { <...> }
+
+proto token postfix_prefix_meta_operator { <...> }
+
+token postfix_prefix_meta_operator:sym< » > {
+    [ <sym> | '>>' ] <!before '('>
+}
 
 proto token dotty { <...> }
 token dotty:sym<.> {

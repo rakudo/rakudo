@@ -96,6 +96,9 @@ method statementlist($/) {
             if $ast.isa(PAST::Block) && !$ast.blocktype {
                 $ast := block_immediate($ast);
             }
+            elsif $ast<past_block> && !$ast<past_block>.blocktype {
+                $ast := block_immediate($ast<past_block>);
+            }
             $past.push( $ast ); 
         }
     }
@@ -370,7 +373,7 @@ method term:sym<routine_declarator>($/) { make $<routine_declarator>.ast; }
 method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
-method term:sym<lambda>($/)             { make $<pblock>.ast; }
+method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0); }
 
 method name($/) { }
 
@@ -723,6 +726,10 @@ method routine_def($/) {
     }
     elsif $*MULTINESS {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
+    }
+    else {
+        # Just wrap in a Sub.
+        $past := create_code_object($past, 'Sub', 0);
     }
     make $past;
 }
@@ -1200,7 +1207,7 @@ method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 
 method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
 
-method circumfix:sym<{ }>($/) { make $<pblock>.ast; }
+method circumfix:sym<{ }>($/) { make create_code_object($<pblock>.ast, 'Block', 0); }
 
 method circumfix:sym<[ ]>($/) {
     make PAST::Op.new( :name('&circumfix:<[ ]>'), $<semilist>.ast, :node($/) );
@@ -1490,13 +1497,15 @@ sub add_signature($block, $sig_obj) {
 # Wraps a sub up in a block type.
 sub create_code_object($block, $type, $multiness) {
     my @name := Perl6::Grammar::parse_name($type);
-    PAST::Op.new(
+    my $past := PAST::Op.new(
         :pasttype('callmethod'),
         :name('new'),
         PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
         $block,
         $multiness
     );
+    $past<past_block> := $block;
+    $past
 }
 
 # This routine checks if the given list of traits contains one of the given

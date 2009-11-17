@@ -801,6 +801,10 @@ token methodop {
     ]?
 }
 
+token dottyopish {
+    <term=.dottyop>
+}
+
 token postcircumfix:sym<[ ]> { 
     '[' <.ws> <EXPR> ']' 
     <O('%methodcall')>
@@ -892,6 +896,8 @@ token infix:sym<?? !!> {
 
 #token infix:sym<:=>   { <sym>  <O('%assignment, :pasttype<bind>')> }
 #token infix:sym<::=>  { <sym>  <O('%assignment, :pasttype<bind>')> }
+
+token infix:sym<.=> { <sym> <O('%item_assignment, :nextterm<dottyopish>')> }
 
 token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
 

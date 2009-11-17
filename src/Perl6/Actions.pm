@@ -1247,6 +1247,10 @@ method circumfix:sym<sigil>($/) {
 method EXPR($/, $key?) {
     unless $key { return 0; }
     my $past := $/.peek_ast // $<OPER>.peek_ast;
+    if !$past && $<infix><sym> eq '.=' {
+        make make_dot_equals($/);
+        return 1;
+    }
     unless $past {
         $past := PAST::Op.new( :node($/) );
         if $<OPER><O><pasttype> { $past.pasttype( ~$<OPER><O><pasttype> ); }
@@ -1723,4 +1727,20 @@ sub when_handler_helper($block) {
         )
     );
     $block.handlers(@handlers);
+}
+
+sub make_dot_equals($/) {
+    my $thingy  := $/[0].ast;
+    my $call    := $/[1].ast;
+    my $tmp_reg := $thingy.unique('dotequals_');
+    $call.unshift(PAST::Op.new(
+        :pasttype('bind'),
+        PAST::Var.new( :name($tmp_reg), :scope('register'), :isdecl(1) ),
+        $thingy
+    ));
+    return PAST::Op.new(
+        :pasttype('call'), :name('&infix:<=>'),
+        PAST::Var.new( :name($tmp_reg), :scope('register') ),
+        $call
+    );
 }

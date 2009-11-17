@@ -164,6 +164,7 @@ Completes the creation of the metaclass and return a proto-object.
     .local pmc name
     name = getattribute meta, 'longname'
     proto = self.'register'(parrotclass, 'how'=>meta)
+    transform_to_p6opaque proto
     .return (proto)
 .end
 

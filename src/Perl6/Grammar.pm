@@ -8,13 +8,15 @@ method TOP() {
     %*LANG<MAIN>          := Perl6::Grammar;
     %*LANG<MAIN-actions>  := Perl6::Actions;
     my %*HOW;
+    %*HOW<package> := 'none';
     %*HOW<module>  := 'none';
     %*HOW<class>   := 'ClassHOW';
     %*HOW<grammar> := 'GrammarHOW';
     %*HOW<role>    := 'RoleHOW';
     my %*PKGCOMPILER;
-    %*PKGCOMPILER<role>   := Perl6::Compiler::Role;
-    %*PKGCOMPILER<module> := Perl6::Compiler::Module;
+    %*PKGCOMPILER<role>    := Perl6::Compiler::Role;
+    %*PKGCOMPILER<module>  := Perl6::Compiler::Module;
+    %*PKGCOMPILER<package> := Perl6::Compiler::Module;
     my $*SCOPE := '';
     my $*MULTINESS := '';
     my $*TYPENAME := '';
@@ -350,6 +352,10 @@ token sigil { <[$@%&]> }
 token twigil { <[*!?.]> }
 
 proto token package_declarator { <...> }
+token package_declarator:sym<package> {
+    :my $*PKGDECL := 'package';
+    <sym> <package_def>
+}
 token package_declarator:sym<module> {
     :my $*PKGDECL := 'module';
     <sym> <package_def>

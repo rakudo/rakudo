@@ -436,6 +436,7 @@ method variable($/) {
     make $past;
 }
 
+method package_declarator:sym<package>($/) { make $<package_def>.ast; }
 method package_declarator:sym<module>($/)  { make $<package_def>.ast; }
 method package_declarator:sym<class>($/)   { make $<package_def>.ast; }
 method package_declarator:sym<grammar>($/) { make $<package_def>.ast; }

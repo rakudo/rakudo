@@ -756,6 +756,11 @@ token postfixish {
     ]
 }
 
+token postop {
+    | <postfix>
+    | <postcircumfix>
+}
+
 proto token infix_postfix_meta_operator { <...> }
 
 proto token postfix_prefix_meta_operator { <...> }
@@ -770,7 +775,12 @@ token dotty:sym<.> {
     <O('%methodcall')>
 }
 
-token dottyop { <methodop> }
+token dottyop {
+    [
+    | <methodop>
+    | <!alpha> <postop>
+    ]
+}
 
 token privop { 
     '!' <methodop>

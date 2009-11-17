@@ -1095,10 +1095,19 @@ method regex_declarator($/, $key?) {
     make $past;
 }
 
+method postop($/) {
+    make $<postfix> ?? $<postfix>.ast !! $<postcircumfix>.ast;
+}
 
 method dotty:sym<.>($/) { make $<dottyop>.ast; }
 
-method dottyop($/) { make $<methodop>.ast; }
+method dottyop($/) {
+    if $<methodop> {
+        make $<methodop>.ast;
+    } else {
+        make $<postop>.ast;
+    }
+}
 
 method privop($/) {
     my $past := $<methodop>.ast;

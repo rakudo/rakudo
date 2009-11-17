@@ -365,6 +365,7 @@ method statement_mod_cond:sym<unless>($/) { make $<mod_expr>.ast; }
 
 ## Terms
 
+method term:sym<fatarrow>($/)           { make $<fatarrow>.ast; }
 method term:sym<colonpair>($/)          { make $<colonpair>.ast; }
 method term:sym<variable>($/)           { make $<variable>.ast; }
 method term:sym<package_declarator>($/) { make $<package_declarator>.ast; }
@@ -394,6 +395,12 @@ method module_name($/) {
     else {
         make $var;
     }
+}
+
+method fatarrow($/) {
+    my $past := $<val>.ast;
+    $past.named( $<key>.Str );
+    make $past;
 }
 
 method colonpair($/) {

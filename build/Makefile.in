@@ -107,6 +107,7 @@ BUILTINS_PIR = \
   src/builtins/Method.pir \
   src/builtins/ContainerDeclarand.pir \
   src/builtins/Exception.pir \
+  src/builtins/Signature.pir \
   src/builtins/assign.pir \
   src/builtins/control.pir \
 
@@ -146,6 +147,7 @@ CORE_SOURCES = \
   src/core/Whatever.pm \
   src/core/Pair.pm \
   src/core/IO.pm \
+  src/core/Parameter.pm \
   src/cheats/setup-io.pm \
 
 # SETTING = \

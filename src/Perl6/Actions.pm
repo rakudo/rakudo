@@ -651,6 +651,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
 
 method routine_declarator:sym<sub>($/) { make $<routine_def>.ast; }
 method routine_declarator:sym<method>($/) { make $<method_def>.ast; }
+method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
 
 method routine_def($/) {
     my $past := $<blockoid>.ast;
@@ -748,7 +749,7 @@ method method_def($/) {
     $past.blocktype('declaration');
     $past.control('return_pir');
     if $<trait> {
-        emit_routine_traits($past, $<trait>, 'Method');
+        emit_routine_traits($past, $<trait>, $*METHODTYPE);
     }
     
     # Set signature and invocant handling set up.
@@ -766,7 +767,7 @@ method method_def($/) {
         $past.name($name);
         $past.nsentry('');
         my $multi_flag := PAST::Val.new( :value(0) );
-        $past := create_code_object($past, 'Method', $multi_flag);
+        $past := create_code_object($past, $*METHODTYPE, $multi_flag);
 
         # Get hold of methods table.
         our @PACKAGE;
@@ -815,7 +816,7 @@ method method_def($/) {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
-        $past := create_code_object($past, 'Method', 0);
+        $past := create_code_object($past, $*METHODTYPE, 0);
     }
 
     make $past;

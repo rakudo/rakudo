@@ -78,7 +78,7 @@ class RangeIterator {
 
     multi method get() {
         say "in get";
-        $.current < $.range.max ?? $.current++ !! Nil;
+        $!current <= $!range.max ?? $!current++ !! Nil;
     }
 }
 

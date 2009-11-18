@@ -19,6 +19,10 @@ augment class Num {
         pir::ln__Nn(self);
     }
 
+    multi method sqrt() {
+        pir::sqrt__Nn(self);
+    }
+
     multi method sin($base = 'radians') {
         pir::sin__Nn(self!to-radians($base));
     }

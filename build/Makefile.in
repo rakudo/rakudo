@@ -151,6 +151,7 @@ CORE_SOURCES = \
   src/core/Range.pm \
   src/core/IO.pm \
   src/core/Parameter.pm \
+  src/core/Block.pm \
   src/cheats/setup-io.pm \
 
 # SETTING = \

@@ -12,31 +12,21 @@ print <<"END_SETTING";
 
 END_SETTING
 
+my %classnames;
 foreach my $file (@files) {
     print "# From $file\n\n";
     open(my $fh, "<",  $file) or die $!;
     local $/;
-    print <$fh>;
+    my $x = <$fh>;
     close $fh;
+    print $x;
+    foreach ($x =~ /\bclass\s+(\S+)/g) { $classnames{$_}++; }
 }
 
-# my @classes = ('Any');
-# foreach my $file (@files) {
-#     next unless $file =~ /setting((?:[\/\\]\w+)+)\.pm$/;
-#     my $full_modname = substr($1, 1);
-#     push @classes, $full_modname;
-# }
-# 
-# print <<"END_SETTING";
-# # Need to import all built-in classes and set \%*INC for each.
-# sub SETTING_INIT() {
-# END_SETTING
-# s/\\/\//g for @classes;
-# print join('', map {
-#         my $colon_form = $_;
-#         $colon_form =~ s/[\/\\]/::/g;
-#         "  \%*INC<$_> = 1;\n  Perl6::Compiler.import('$colon_form', ':DEFAULT', ':MANDATORY');\n"
-#     } @classes);
-# print "}\n";
+print "CHECK {\n";
+foreach (keys(%classnames)) {
+    print "    Perl6::Compiler.import('$_');\n";
+}
+print "}\n";
 
 print "\n# vim: set ft=perl6 nomodifiable :\n";

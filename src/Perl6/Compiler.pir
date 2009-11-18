@@ -62,7 +62,6 @@ Perl6::Compiler - Perl6 compiler
 .include 'src/gen/role_pm.pir'
 .include 'src/gen/perl6-grammar.pir'
 .include 'src/gen/perl6-actions.pir'
-.include 'src/gen/core.pir'
 
 .namespace ['Perl6';'Compiler']
 
@@ -87,6 +86,8 @@ Perl6::Compiler - Perl6 compiler
     '!fire_phasers'('END')
     exit 0
 .end
+
+.include 'src/gen/core.pir'
 
 # Cheats go at the end, because some of them are in the 'parrot' HLL
 # namespace.

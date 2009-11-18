@@ -4,8 +4,14 @@ class Range {
     has $.max;
     has $.excludes_max = Bool::False;
 
-    multi method new($min, $max) {
-        self.bless(*, :min($min), :max($max));
+    multi method new($min,
+                     $max,
+                     Bool $excludes_min = Bool::False,
+                     Bool $excludes_max = Bool::False) {
+        self.bless(*, :min($min),
+                      :max($max),
+                      :excludes_min($excludes_min),
+                      :excludes_max($excludes_max));
     }
 
     # our Bool multi method ACCEPTS(Range $topic) {
@@ -48,4 +54,16 @@ class Range {
 
 our multi sub infix:<..>($a, $b) {
     Range.new($a, $b);
+}
+
+our multi sub infix:<^..>($a, $b) {
+    Range.new($a, $b, Bool::True, Bool::False);
+}
+
+our multi sub infix:<..^>($a, $b) {
+    Range.new($a, $b, Bool::False, Bool::True);
+}
+
+our multi sub infix:<^..^>($a, $b) {
+    Range.new($a, $b, Bool::True, Bool::True);
 }

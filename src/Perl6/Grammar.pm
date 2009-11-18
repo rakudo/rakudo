@@ -733,6 +733,7 @@ INIT {
     Perl6::Grammar.O(':prec<s=>, :assoc<left>',  '%replication');
     Perl6::Grammar.O(':prec<r=>, :assoc<left>',  '%concatenation');
     Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
+    Perl6::Grammar.O(':prec<n=>, :assoc<left>',  '%structural');
     Perl6::Grammar.O(':prec<m=>, :assoc<left>, :pasttype<chain>',  '%chaining');
     Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
     Perl6::Grammar.O(':prec<k=>, :assoc<left>',  '%tight_or');
@@ -915,6 +916,11 @@ token infix:sym<and>  { <sym>  <O('%loose_and, :pasttype<if>')> }
 token infix:sym<or>   { <sym>  <O('%loose_or, :pasttype<unless>')> }
 token infix:sym<xor>  { <sym>  <O('%loose_or, :pasttype<xor>')> }
 token infix:sym<err>  { <sym>  <O('%loose_or, :pasttype<def_or>')> }
+
+token infix:sym<..>   { <sym> <O('%structural')> }
+token infix:sym<^..>  { <sym> <O('%structural')> }
+token infix:sym<..^>  { <sym> <O('%structural')> }
+token infix:sym<^..^> { <sym> <O('%structural')> }
 
 grammar Perl6::Regex is Regex::P6Regex::Grammar {
     token metachar:sym<:my> { 

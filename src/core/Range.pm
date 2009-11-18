@@ -1,45 +1,51 @@
 class Range {
-    has $.from;
-    has $.from_exclusive = Bool::False;
-    has $.to;
-    has $.to_exclusive = Bool::False;
+    has $.min;
+    has $.excludes_min = Bool::False;
+    has $.max;
+    has $.excludes_max = Bool::False;
+
+    multi method new($min, $max) {
+        self.bless(*, :min($min), :max($max));
+    }
 
     # our Bool multi method ACCEPTS(Range $topic) {
-    #     ?(($.from == $topic.from) && ($.to == $topic.to) &&
-    #       ($.from_exclusive == $topic.from_exclusive) &&
-    #       ($.to_exclusive == $topic.from_exclusive)
+    #     ?(($.min == $topic.min) && ($.max == $topic.max) &&
+    #       ($.excludes_min == $topic.excludes_min) &&
+    #       ($.excludes_max == $topic.excludes_min)
     # }
 
     our Bool multi method ACCEPTS($topic) {
-        ?(self!from_test($topic) && self!to_test($topic))
+        ?(self!min_test($topic) && self!max_test($topic))
     }
 
     # our Range multi method iterator() {
     #     $.clone
     # }
 
-    multi method max() {
-        $.to
-    }
-
-    multi method min() {
-        $.from
-    }
-
     multi method minmax() {
-        ($.from, $.to)
+        ($.min, $.max)
     }
 
+    # Beautiful implementation which does not work yet in ng
     # our Str multi method perl() {
     #     [~]
-    #         $.from.perl,
-    #         ("^" if $.from_exclusive),
+    #         $.min.perl,
+    #         ("^" if $.excludes_min),
     #         "..",
-    #         ("^" if $.to_exclusive),
-    #         $.to.perl;
+    #         ("^" if $.excludes_max),
+    #         $.max.perl;
     # }
+
+    # CHEAT: This ignores excludes_min and excludes_max
+    our Str multi method perl() {
+        $.min.perl ~ ".." ~ $.max.perl;
+    }
 
     our Str multi method Str() {
         ~$.list
     }
+}
+
+our multi sub infix:<..>($a, $b) {
+    Range.new($a, $b);
 }

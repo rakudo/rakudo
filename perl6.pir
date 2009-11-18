@@ -438,7 +438,7 @@ to the Perl 6 compiler.
     if null retval goto fail
     library = new 'Hash'
     library['name'] = name
-    inc_hash = get_hll_global '%INC'
+    inc_hash = get_hll_global ['PROCESS'], '%INC'
     $S0 = inc_hash[$S0]
     library['filename'] = $S0
     $P0 = get_hll_namespace name

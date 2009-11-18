@@ -24,10 +24,6 @@ class Range {
         ?(self!min_test($topic) && self!max_test($topic))
     }
 
-    # our Range multi method iterator() {
-    #     $.clone
-    # }
-
     multi method minmax() {
         ($.min, $.max)
     }
@@ -42,9 +38,10 @@ class Range {
     #         $.max.perl;
     # }
 
-    # CHEAT: This ignores excludes_min and excludes_max
     our Str multi method perl() {
-        $.min.perl ~ ".." ~ $.max.perl;
+        my $emin = $.excludes_min ?? "^" !! "";
+        my $emax = $.excludes_max ?? "^" !! "";
+        $.min.perl ~ $emin ~ ".." ~ $emax ~ $.max.perl;
     }
 
     our Str multi method Str() {
@@ -66,4 +63,27 @@ our multi sub infix:<..^>($a, $b) {
 
 our multi sub infix:<^..^>($a, $b) {
     Range.new($a, $b, Bool::True, Bool::True);
+}
+
+class RangeIterator {
+    has $.range;
+    has $.current;
+
+    multi method new(Range $range,
+                     $current) {
+        say "making" ~ $range.perl;
+        self.bless(*, :range($range),
+                      :current($current));
+    }
+
+    multi method get() {
+        say "in get";
+        $.current < $.range.max ?? $.current++ !! Nil;
+    }
+}
+
+augment class Range {
+    our Range multi method Iterator() {
+        RangeIterator.new(self, $.min);
+    }
 }

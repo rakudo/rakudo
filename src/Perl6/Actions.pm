@@ -1366,7 +1366,7 @@ method numish($/) {
     if $<integer> { make PAST::Val.new( :value($<integer>.ast) ); }
     elsif $<dec_number> { make $<dec_number>.ast; }
     else {
-        $/.CURSOR.panic('Number parsing not fully implemented yet');
+        make PAST::Var.new( :name(~$/), :namespace(''), :scope('package') );
     }
 }
 

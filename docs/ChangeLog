@@ -1,3 +1,9 @@
+New in 2009-11 release
++ Rakudo now uses Parrot's updated calling convention features
++ support nested signatures
++ changed .pick to use :replace instead of :repl
++ many core setting optimizations and bugfixes
+
 New in 2009-10 release
 + smolder reports for spectest runs
 + more Complex trig functions

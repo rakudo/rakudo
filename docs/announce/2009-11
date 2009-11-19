@@ -1,0 +1,63 @@
+Announce: Rakudo Perl 6 development release #23 ("XXX")
+
+On behalf of the Rakudo development team, I'm pleased to announce the
+November 2009 development release of Rakudo Perl #23 "XXX".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine 
+(see http://www.parrot.org).  The tarball for the November 2009 release
+is available from http://github.com/rakudo/rakudo/downloads
+
+Due to the continued rapid pace of Rakudo development and the frequent
+addition of new Perl 6 features and bugfixes, we recommend building Rakudo
+from the latest source, available from the main repository at github.
+More details are available at http://rakudo.org/how-to-get-rakudo.
+
+Rakudo Perl follows a monthly release cycle, with each release code
+named after a Perl Mongers group.  The November 2009 is code named
+"XXX" for XXX.
+
+Shortly after the October 2009 (#22) release, the Rakudo team
+began a new branch of Rakudo development ("ng") that refactors
+the grammar to much more closely align with STD.pm as well as
+update some core features that have been difficult to achieve
+in the master branch [1, 2].  Most of our effort for the past month
+has been in this new branch, but as of the release date the new
+version had not sufficiently progressed to be the release copy.
+We expect to have the new version in place in the December 2009 release.
+
+This release of Rakudo requires Parrot 1.8.0.  One must still
+perform "make install" in the Rakudo directory before the "perl6"
+executable will run anywhere other than the Rakudo build directory.
+For the latest information on building and using Rakudo Perl, see the
+readme file section titled "Building and invoking Rakudo".  
+
+Some of the specific changes and improvements occuring with this
+release include:
+
+* Rakudo is now passing 32,582 spectests, an increase of 17,085 passing
+  tests since the October 2009 release.  With this release Rakudo is
+  now passing 85.0% of the available spectest suite.
+
+* As mentioned above, most development effort for Rakudo in November
+  has taken place in the "ng" branch, and will likely be reflected
+  in the December 2009 release.
+
+* Rakudo now supports nested signatures.
+
+* Rakudo has been updated to use Parrot's new internal calling conventions,
+  resulting in a slight performance increase.
+  
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible.  If you would like to contribute,
+see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
+mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#24) is scheduled for December 17, 2009.
+A list of the other planned release dates and codenames for 2009 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
+
+[1] http://use.perl.org/~pmichaud/journal/39779
+[2] http://use.perl.org/~pmichaud/journal/39874

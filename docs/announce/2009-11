@@ -1,7 +1,7 @@
-Announce: Rakudo Perl 6 development release #23 ("XXX")
+Announce: Rakudo Perl 6 development release #23 ("Lisbon")
 
 On behalf of the Rakudo development team, I'm pleased to announce the
-November 2009 development release of Rakudo Perl #23 "XXX".
+November 2009 development release of Rakudo Perl #23 "Lisbon".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine 
 (see http://www.parrot.org).  The tarball for the November 2009 release
 is available from http://github.com/rakudo/rakudo/downloads
@@ -12,8 +12,9 @@ from the latest source, available from the main repository at github.
 More details are available at http://rakudo.org/how-to-get-rakudo.
 
 Rakudo Perl follows a monthly release cycle, with each release code
-named after a Perl Mongers group.  The November 2009 is code named
-"XXX" for XXX.
+named after a Perl Mongers group.  The November 2009 release is code
+named "Lisbon" for Lisbon.pm, who did a marvellous job arranging this
+year's YAPC::EU.
 
 Shortly after the October 2009 (#22) release, the Rakudo team
 began a new branch of Rakudo development ("ng") that refactors

@@ -354,7 +354,7 @@ token variable {
 
 token sigil { <[$@%&]> }
 
-token twigil { <[*!?.]> }
+token twigil { <[*!?.^:]> }
 
 proto token package_declarator { <...> }
 token package_declarator:sym<package> {

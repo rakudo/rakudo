@@ -35,7 +35,7 @@ method add_parameter($new_entry) {
 method add_placeholder_parameter($new_entry) {
     my @entries := self.entries;
     if +@entries == 0 { @entries.push($new_entry); return 1; }
-    my @temp := list();
+    my @temp;
     while +@entries && @entries[0].var_name lt $new_entry.var_name &&
             !@entries[0].names && !@entries[0].pos_slurpy && !@entries[0].named_slurpy {
         @temp.unshift(@entries.shift);

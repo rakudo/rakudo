@@ -135,7 +135,11 @@ method xblock($/) {
 method pblock($/) {
     my $block := $<blockoid>.ast;
     my $signature;
-    if $<signature> { $signature := $<signature>.ast; }
+    if pir::defined__IP($block<placeholder_sig>) && $<signature> {
+        $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+    }
+    elsif pir::defined__IP($block<placeholder_sig>) { $signature := $block<placeholder_sig>; }
+    elsif $<signature> { $signature := $<signature>.ast; }
     else {
         $signature := Perl6::Compiler::Signature.new();
         unless $block.symbol('$_') {
@@ -439,6 +443,15 @@ method variable($/) {
                 PAST::Var.new( :name('self'), :scope('lexical') )
             );
         }
+        elsif $<twigil>[0] eq '^' || $<twigil>[0] eq ':' {
+            $past := add_placeholder_parameter($<sigil>.Str, $<desigilname>.Str, :named($<twigil>[0] eq ':'));
+        }
+        elsif ~$/ eq '@_' {
+            $past := add_placeholder_parameter('@', '_', :slurpy_pos(1));
+        }
+        elsif ~$/ eq '%_' {
+            $past := add_placeholder_parameter('%', '_', :slurpy_named(1));
+        }
     }
     make $past;
 }
@@ -657,7 +670,12 @@ method routine_def($/) {
     my $past := $<blockoid>.ast;
     $past.blocktype('declaration');
     $past.control('return_pir');
-    add_signature($past, $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new());
+    if pir::defined__IP($past<placeholder_sig>) && $<signature> {
+        $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+    }
+    add_signature($past, $<signature>                             ?? $<signature>[0].ast !! 
+                         pir::defined__IP($past<placeholder_sig>) ?? $past<placeholder_sig> !!
+                         Perl6::Compiler::Signature.new());
     if $<trait> {
         emit_routine_traits($past, $<trait>, 'Sub');
     }
@@ -753,6 +771,9 @@ method method_def($/) {
     }
     
     # Set signature and invocant handling set up.
+    if pir::defined__IP($past<placeholder_sig>) {
+        $/.CURSOR.panic('Placeholder variables cannot be used in a method');
+    }
     my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
     $sig.add_invocant();
     add_signature($past, $sig);
@@ -1229,7 +1250,9 @@ method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 
 method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
 
-method circumfix:sym<{ }>($/) { make create_code_object($<pblock>.ast, 'Block', 0); }
+method circumfix:sym<{ }>($/) {
+    make create_code_object($<pblock>.ast, 'Block', 0);
+}
 
 method circumfix:sym<[ ]>($/) {
     make PAST::Op.new( :name('&circumfix:<[ ]>'), $<semilist>.ast, :node($/) );
@@ -1542,6 +1565,27 @@ sub add_signature($block, $sig_obj) {
         :pirop('bind_signature vP'),
         PAST::Var.new( :name('call_sig'), :scope('lexical') )
     ));
+}
+
+# Adds a placeholder parameter to this block's signature.
+sub add_placeholder_parameter($sigil, $ident, :$named, :$slurpy_pos, :$slurpy_named) {
+    our @BLOCK;
+    my $block := @BLOCK[0];
+
+    # Add entry to the block signature.
+    my $placeholder_sig := $block<placeholder_sig>;
+    unless pir::defined__IP($placeholder_sig) {
+        $block<placeholder_sig> := $placeholder_sig := Perl6::Compiler::Signature.new();
+    }
+    my $param := Perl6::Compiler::Parameter.new();
+    $param.var_name(~$sigil ~ ~$ident);
+    $param.pos_slurpy($slurpy_pos);
+    $param.named_slurpy($slurpy_named);
+    if $named { $param.names.push($ident) }
+    $placeholder_sig.add_placeholder_parameter($param);
+
+    # Just want a lookup of the variable here.
+    return PAST::Var.new( :name(~$sigil ~ ~$ident), :scope('lexical') );
 }
 
 # Wraps a sub up in a block type.

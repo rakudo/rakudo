@@ -33,9 +33,9 @@ readme file section titled "Building and invoking Rakudo".
 Some of the specific changes and improvements occuring with this
 release include:
 
-* Rakudo is now passing 32,582 spectests, an increase of 17,085 passing
+* Rakudo is now passing 32,753 spectests, an increase of 171 passing
   tests since the October 2009 release.  With this release Rakudo is
-  now passing 85.0% of the available spectest suite.
+  now passing 85.5% of the available spectest suite.
 
 * As mentioned above, most development effort for Rakudo in November
   has taken place in the "ng" branch, and will likely be reflected

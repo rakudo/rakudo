@@ -41,11 +41,12 @@ release include:
   has taken place in the "ng" branch, and will likely be reflected
   in the December 2009 release.
 
-* Rakudo now supports nested signatures.
+* Rakudo now supports unpacking of arrays, hashes and objects in
+  signatures
 
 * Rakudo has been updated to use Parrot's new internal calling conventions,
   resulting in a slight performance increase.
-  
+
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible.  If you would like to contribute,
 see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org

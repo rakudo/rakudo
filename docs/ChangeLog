@@ -1,6 +1,6 @@
 New in 2009-11 release
 + Rakudo now uses Parrot's updated calling convention features
-+ support nested signatures
++ support unpacking of arrays, hashes and objects in signatures
 + changed .pick to use :replace instead of :repl
 + many core setting optimizations and bugfixes
 

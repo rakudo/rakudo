@@ -138,6 +138,7 @@ S03-operators/assign-is-not-binding.t
 S03-operators/numeric-context.t
 # S03-operators/p5arrow.t
 # S03-operators/precedence.t
+S03-operators/range-basic.t
 # S03-operators/range.t
 # S03-operators/reduce-le1arg.t
 # S03-operators/reduce-metaop.t

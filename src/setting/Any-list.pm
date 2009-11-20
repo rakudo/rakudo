@@ -48,9 +48,9 @@ class Any is also {
         }
     }
 
-    multi method pick(Int $num is copy = 1, :$replace) {
+    multi method pick($num is copy = 1, :$replace) {
 
-        $num=floor($num);
+        $num .= floor;
 
         if ($num == 1) {
             return @.list[floor(@.list.elems.rand)];

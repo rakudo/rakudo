@@ -54,7 +54,7 @@ class Range {
     }
 
     our Str multi method Str() {
-        ~$.list
+        self.perl;
     }
 }
 
@@ -72,6 +72,12 @@ our multi sub infix:<..^>($min, $max) {
 
 our multi sub infix:<^..^>($min, $max) {
     Range.new($min, $max, Bool::True, Bool::True);
+}
+
+# CHEAT: This is overly broad, but I don't know how to
+# limit it to numeric types in ng.
+our multi sub prefix:<^>($max) {
+    0..^$max;
 }
 
 class RangeIterator {

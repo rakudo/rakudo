@@ -14,11 +14,20 @@ class Range {
                       :excludes_max($excludes_max));
     }
 
-    # our Bool multi method ACCEPTS(Range $topic) {
-    #     ?(($.min == $topic.min) && ($.max == $topic.max) &&
-    #       ($.excludes_min == $topic.excludes_min) &&
-    #       ($.excludes_max == $topic.excludes_min)
-    # }
+    our Bool multi method ACCEPTS(Range $topic) {
+        ?(($.min == $topic.min)
+          && ($.max == $topic.max)
+          && ($.excludes_min == $topic.excludes_min)
+          && ($.excludes_max == $topic.excludes_min));
+    }
+
+    my Bool multi method !min_test($topic) {
+        $.min < $topic || (!$.excludes_min && $.min == $topic);
+    }
+
+    my Bool multi method !max_test($topic) {
+        $topic < $.max || (!$.excludes_max && $.max == $topic);
+    }
 
     our Bool multi method ACCEPTS($topic) {
         ?(self!min_test($topic) && self!max_test($topic))

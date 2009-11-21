@@ -22,11 +22,11 @@ class Range {
     }
 
     my Bool multi method !min_test($topic) {
-        $.min < $topic || (!$.excludes_min && $.min == $topic);
+        $.min lt $topic || (!$.excludes_min && $.min eq $topic);
     }
 
     my Bool multi method !max_test($topic) {
-        $topic < $.max || (!$.excludes_max && $.max == $topic);
+        $topic lt $.max || (!$.excludes_max && $.max eq $topic);
     }
 
     our Bool multi method ACCEPTS($topic) {

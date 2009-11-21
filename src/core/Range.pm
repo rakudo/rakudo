@@ -58,20 +58,20 @@ class Range {
     }
 }
 
-our multi sub infix:<..>($a, $b) {
-    Range.new($a, $b);
+our multi sub infix:<..>($min, $max) {
+    Range.new($min, $max);
 }
 
-our multi sub infix:<^..>($a, $b) {
-    Range.new($a, $b, Bool::True, Bool::False);
+our multi sub infix:<^..>($min, $max) {
+    Range.new($min, $max, Bool::True, Bool::False);
 }
 
-our multi sub infix:<..^>($a, $b) {
-    Range.new($a, $b, Bool::False, Bool::True);
+our multi sub infix:<..^>($min, $max) {
+    Range.new($min, $max, Bool::False, Bool::True);
 }
 
-our multi sub infix:<^..^>($a, $b) {
-    Range.new($a, $b, Bool::True, Bool::True);
+our multi sub infix:<^..^>($min, $max) {
+    Range.new($min, $max, Bool::True, Bool::True);
 }
 
 class RangeIterator {

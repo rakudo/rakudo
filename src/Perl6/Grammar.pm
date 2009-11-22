@@ -462,9 +462,12 @@ token variable_declarator {
 }
 
 proto token routine_declarator { <...> }
-token routine_declarator:sym<sub>       { <sym> <routine_def> }
-token routine_declarator:sym<method>    { :my $*METHODTYPE := 'Method'; <sym> <method_def> }
-token routine_declarator:sym<submethod> { :my $*METHODTYPE := 'Submethod'; <sym> <method_def> }
+token routine_declarator:sym<sub>       
+    { <sym> <.nofun> <routine_def> }
+token routine_declarator:sym<method>    
+    { <sym> <.nofun> :my $*METHODTYPE := 'Method'; <method_def> }
+token routine_declarator:sym<submethod> 
+    { <sym> <.nofun> :my $*METHODTYPE := 'Submethod'; <method_def> }
 
 rule routine_def {
     :my $*IN_DECL := 'routine';

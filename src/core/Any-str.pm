@@ -35,6 +35,19 @@ augment class Any {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
+    our multi method match(Regex $pat) {
+        Q:PIR {
+            $P0 = get_hll_global ['Regex'], 'Cursor'
+            $P1 = find_lex '$pat'
+            $P2 = find_lex 'self'
+            $P0 = $P0.'parse'($P2, 'rule'=>$P1)
+            $P1 = getinterp
+            $P1 = $P1['lexpad';1]
+            $P1['$/'] = $P0
+            %r = $P0
+        };
+    }
+
     our Int multi method ord() is export {
         fail('Can not take ord of empty string') if self.chars == 0;
         pir::box__PI(pir::ord__IS(self))

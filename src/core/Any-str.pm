@@ -7,8 +7,8 @@ augment class Any {
         pir::length__IS(self);
     }
 
-    our Str multi method substr($start, $given_len?) is export {
-        my $len = $given_len // self.chars;
+    our Str multi method substr($start, $length?) is export {
+        my $len = $length // self.chars;
         if ($len < 0) {
             if ($start >= 0) {
                 $len += self.chars;

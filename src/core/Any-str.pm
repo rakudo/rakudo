@@ -19,6 +19,21 @@ augment class Any {
         pir::substr(self, $start, $len);
     }
 
+    our Int multi method index($substring, $pos = 0) is export {
+        if ($substring.chars == 0) {
+            my $string_length = self.chars;
+            return $pos < $string_length ?? $pos !! $string_length;
+        }
+
+        my $result = pir::index__ISSi(self, $substring, $pos);
+        fail("Substring '$substring' not found in '{self}'") if ($result < 0);
+        return $result;
+
+        # also used to be a the following error message, but the condition
+        # was never checked:
+        # .tailcall '!FAIL'("Attempt to index from negative position")
+    }
+
     our Str multi method chop() is export {
         self.substr(0, -1)
     }

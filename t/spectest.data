@@ -30,7 +30,7 @@ integration/code-blocks-as-sub-args.t
 integration/lexicals-and-attributes.t
 # integration/man-or-boy.t
 # integration/method-calls-and-instantiation.t
-# integration/no-indirect-new.t
+integration/no-indirect-new.t
 # integration/packages.t
 # integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
@@ -85,7 +85,7 @@ S02-builtin_data_types/parsing-bool.t
 # S02-literals/sub-calls.t
 # S02-literals/subscript.t
 # S02-literals/types.t
-# S02-literals/underscores.t
+S02-literals/underscores.t
 # S02-magicals/config.t
 # S02-magicals/dollar_bang.t
 # S02-magicals/dollar-underscore.t
@@ -102,8 +102,8 @@ S02-builtin_data_types/parsing-bool.t
 # S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
-# S02-whitespace_and_comments/minimal-whitespace.t
-# S02-whitespace_and_comments/one-pass-parsing.t
+S02-whitespace_and_comments/minimal-whitespace.t
+S02-whitespace_and_comments/one-pass-parsing.t
 # S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 # S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
@@ -150,13 +150,13 @@ S03-operators/scalar-assign.t
 # S03-operators/short-circuit.t
 # S03-operators/spaceship-and-containers.t
 # S03-operators/spaceship.t
-# S03-operators/subscript-vs-lt.t
+S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
 S03-operators/true.t
 # S03-operators/value_equivalence.t
 # S04-blocks-and-statements/pointy-rw.t
 # S04-blocks-and-statements/pointy.t
-# S04-phasers/end.t
+S04-phasers/end.t
 # S04-phasers/start.t
 # S04-declarations/constant.t
 # S04-declarations/implicit-parameter.t
@@ -236,7 +236,7 @@ S04-statements/until.t
 # S05-substitution/subst.t
 # S05-transliteration/trans.t
 # S05-transliteration/with-closure.t
-# S06-advanced_subroutine_features/lexical-subs.t
+S06-advanced_subroutine_features/lexical-subs.t
 # S06-advanced_subroutine_features/recurse.t
 # S06-advanced_subroutine_features/return.t
 # S06-advanced_subroutine_features/wrap.t
@@ -261,13 +261,13 @@ S06-signature/code.t
 S06-signature/defaults.t
 # S06-signature/errors.t
 # S06-signature/introspection.t
-# S06-signature/mixed-placeholders.t
+S06-signature/mixed-placeholders.t
 # S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 # S06-signature/optional.t
 # S06-signature/passing-arrays.t
 # S06-signature/passing-hashes.t
-# S06-signature/positional-placeholders.t
+S06-signature/positional-placeholders.t
 # S06-signature/positional.t
 # S06-signature/scalar-type.t
 # S06-signature/slurpy-and-interpolation.t
@@ -439,7 +439,7 @@ S32-str/append.t
 # S32-str/encode.t
 # S32-str/flip.t
 # S32-str/index.t
-# S32-str/lcfirst.t
+S32-str/lcfirst.t
 # S32-str/lc.t
 # S32-str/p5chomp.t
 # S32-str/p5chop.t
@@ -451,7 +451,7 @@ S32-str/append.t
 # S32-str/sprintf.t
 # S32-str/substr.t
 # S32-str/trim.t
-# S32-str/ucfirst.t
+S32-str/ucfirst.t
 # S32-str/uc.t                                               # icu
 # S32-str/unpack.t
 # S32-str/words.t                                            # icu

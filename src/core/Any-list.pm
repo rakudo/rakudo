@@ -18,11 +18,6 @@ augment class Any {
             %r = '&list'(mapper)
         }
     }
-
-    method perl() {
-        '(' ~ self.map({ $_.perl }).join(', ') ~ ')';
-    }
-
 }
 
 # vim: ft=perl6

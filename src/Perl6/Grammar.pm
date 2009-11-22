@@ -154,6 +154,7 @@ token comp_unit {
     :my $*IN_DECL;                             # what declaration we're in
     :my $*IMPLICIT;                            # whether we allow an implicit param
     <.newpad>
+    <.outerlex>
     <.finishpad>
     <statementlist> 
     [ $ || <.panic: 'Confused'> ] 
@@ -217,6 +218,7 @@ token blockoid {
 }
 
 token newpad { <?> }
+token outerlex { <?> }
 token finishpad { <?> }
 
 proto token terminator { <...> }

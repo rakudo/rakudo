@@ -186,6 +186,18 @@ method newpad($/) {
     }
 }
 
+method outerlex($/) {
+    my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
+    if pir::defined__IP($outer_ctx) {
+        my $block := @BLOCK[0];
+        my %lexinfo := Perl6::Compiler.get_lexinfo($outer_ctx);
+        for %lexinfo { $block.symbol($_.key, :scope<lexical>); }
+        my @ns := $outer_ctx<current_namespace>.get_name;
+        @ns.shift;
+        $block.namespace(@ns);
+    }
+}
+
 method finishpad($/) {
     # Generate the $_, $/, and $! lexicals if they aren't already
     # declared.  For routines and methods, they're simply created as

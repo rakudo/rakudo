@@ -50,8 +50,8 @@ augment class Any {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
-    our multi method match(Regex $pat) {
-        Regex::Cursor.parse(self, :rule($pat), :c(0));
+    our multi method match(Regex $pat, :$c = 0) {
+        Regex::Cursor.parse(self, :rule($pat), :c($c));
     }
 
     our Int multi method ord() is export {

@@ -40,9 +40,22 @@ Perl6::Compiler - Perl6 compiler
     .local pmc hllns, parrotns, imports
     hllns = get_hll_namespace
     parrotns = get_root_namespace ['parrot']
-    imports = split ' ', 'PAST PCT HLL Regex _dumper'
+    imports = split ' ', 'PAST PCT HLL _dumper'
     parrotns.'export_to'(hllns, imports)
-
+    .local pmc regexns
+    regexns = hllns.'make_namespace'('Regex')
+    $P0 = get_root_namespace ['parrot';'Regex';'Cursor']
+    regexns.'add_namespace'('Cursor', $P0)
+    $P0 = get_root_global ['parrot';'Regex'], 'Cursor'
+    regexns['Cursor'] = $P0
+    $P0 = get_root_namespace ['parrot';'Regex';'Match']
+    regexns.'add_namespace'('Match', $P0)
+    $P0 = get_root_global ['parrot';'Regex'], 'Match'
+    regexns['Match'] = $P0
+    $P0 = get_root_namespace ['parrot';'Regex';'P6Regex']
+    regexns.'add_namespace'('P6Regex', $P0)
+    $P0 = get_root_global ['parrot';'Regex'], 'P6Regex'
+    regexns['P6Regex'] = $P0
     # Tell the actions compiler what hllns we're using
     $P0 = box .RAKUDO_HLL
     set_hll_global ['Perl6';'Actions'], '$?RAKUDO_HLL', $P0

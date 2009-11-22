@@ -18,6 +18,13 @@ This file sets up the Perl 6 C<Regex> class, the class for regexes.
     p6meta.'new_class'('Regex', 'parent'=>'Method')
 .end
 
+.sub 'ACCEPTS' :method
+    .param pmc topic
+    .local pmc match
+    match = topic.'match'(self)
+    .return (match)
+.end
+
 =over 4
 
 =back

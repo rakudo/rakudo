@@ -36,16 +36,7 @@ augment class Any {
     }
 
     our multi method match(Regex $pat) {
-        Q:PIR {
-            $P0 = get_hll_global ['Regex'], 'Cursor'
-            $P1 = find_lex '$pat'
-            $P2 = find_lex 'self'
-            $P0 = $P0.'parse'($P2, 'rule'=>$P1)
-            $P1 = getinterp
-            $P1 = $P1['lexpad';1]
-            $P1['$/'] = $P0
-            %r = $P0
-        };
+        Regex::Cursor.parse(self, :rule($pat), :c(0));
     }
 
     our Int multi method ord() is export {

@@ -3,3 +3,5 @@ augment class List {
         '(' ~ self.map({ $_.perl }).join(', ') ~ ')';
     }
 }
+
+# vim: ft=perl6

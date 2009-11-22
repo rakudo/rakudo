@@ -10,9 +10,6 @@ class Perl6::Compiler::Signature;
 # the underlying signature construction mechanism to change more easily.
 # It will also allow more efficient code generation.
 
-# Note that NQP does not yet support accessing attributes or declaring
-# them, so we have a little inline PIR and also we create this class at
-# first elsewhere.
 
 has $!entries;
 has $!default_type;
@@ -34,14 +31,42 @@ method add_parameter($new_entry) {
 # positional parameters.
 method add_placeholder_parameter($new_entry) {
     my @entries := self.entries;
-    if +@entries == 0 { @entries.push($new_entry); return 1; }
     my @temp;
-    while +@entries && @entries[0].var_name lt $new_entry.var_name &&
-            !@entries[0].names && !@entries[0].pos_slurpy && !@entries[0].named_slurpy {
-        @temp.unshift(@entries.shift);
+    if +@entries == 0 {
+        @entries.push($new_entry);
+        return 1;
     }
-    @entries.unshift($new_entry);
-    for @temp { @entries.unshift($_); }
+    elsif $new_entry.named_slurpy {
+        unless @entries[+@entries - 1].named_slurpy {
+            @entries.push($new_entry);
+        }
+    }
+    elsif $new_entry.pos_slurpy {
+        if @entries[+@entries - 1].named_slurpy {
+            @temp.unshift(@entries.pop);
+        }
+        unless +@entries && @entries[+@entries - 1].pos_slurpy {
+            @entries.push($new_entry);
+        }
+        for @temp { @entries.push($_); }
+    }
+    elsif +@($new_entry.names) {
+        # Named.
+        while +@entries && !@(@entries[0].names) {
+            @temp.unshift(@entries.shift);
+        }
+        @entries.unshift($new_entry);
+        for @temp { @entries.unshift($_); }
+    }
+    else {
+        # Positional.
+        while +@entries && @entries[0].var_name lt $new_entry.var_name &&
+                !@(@entries[0].names) && !@entries[0].pos_slurpy && !@entries[0].named_slurpy {
+            @temp.unshift(@entries.shift);
+        }
+        @entries.unshift($new_entry);
+        for @temp { @entries.unshift($_); }
+    }
 }
 
 

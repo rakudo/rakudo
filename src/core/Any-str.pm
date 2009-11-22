@@ -8,7 +8,7 @@ augment class Any {
     }
 
     our Str multi method substr($start, $given_len?) is export {
-        my $len = $given_len || self.chars;
+        my $len = $given_len // self.chars;
         if ($len < 0) {
             if ($start >= 0) {
                 $len += self.chars;

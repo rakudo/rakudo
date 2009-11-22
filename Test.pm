@@ -151,12 +151,12 @@ multi sub lives_ok($closure) is export {
 }
 
 multi sub eval_dies_ok(Str $code, $reason) is export {
-    die 'eval_dies_ok not yet implemented; waits on eval()';
     my $ee = eval_exception($code);
     #if "$ee" ~~ / ^ 'Null PMC access ' / {
     #    diag "wrong way to die: '$ee'";
     #}
-    #proclaim((defined $ee && "$ee" !~~ / ^ 'Null PMC access' /), $reason);
+    proclaim((defined $ee), $reason);
+    # proclaim((defined $ee && "$ee" !~~ / ^ 'Null PMC access' /), $reason);
 }
 multi sub eval_dies_ok(Str $code) is export {
     eval_dies_ok($code, '');

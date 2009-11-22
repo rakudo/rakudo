@@ -2,6 +2,15 @@ our multi infix:<~~>($topic, $matcher) {
     $matcher.ACCEPTS($topic)
 }
 
+our multi infix:<~~>($topic, Regex $matcher) {
+    Q:PIR {
+        $P0 = find_lex '$matcher'
+        $P1 = find_lex '$topic'
+        %r = $P0.'ACCEPTS'($P1)
+        store_dynamic_lex '$/', %r
+    };
+}
+
 our multi infix:<!~~>($topic, $matcher) {
     $matcher.REJECTS($topic)
 }

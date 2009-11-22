@@ -10,18 +10,19 @@ This file sets up the Perl 6 C<Regex> class, the class for regexes.
 
 =cut
 
-.namespace ['Regex']
+.namespace ['Perl6Regex']
 
 .sub 'onload' :anon :load :init
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Regex', 'parent'=>'Method')
+    p6meta.'new_class'('Perl6Regex', 'parent'=>'Method', 'name'=>'Regex')
 .end
 
 .sub 'ACCEPTS' :method
     .param pmc topic
     .local pmc match
     match = topic.'match'(self)
+    store_dynamic_lex '$/', match
     .return (match)
 .end
 

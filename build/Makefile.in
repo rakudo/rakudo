@@ -151,6 +151,7 @@ CORE_SOURCES = \
   src/core/Whatever.pm \
   src/core/Pair.pm \
   src/core/Range.pm \
+  src/core/List.pm \
   src/core/IO.pm \
   src/core/Parameter.pm \
   src/core/Block.pm \

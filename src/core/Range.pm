@@ -6,8 +6,8 @@ class Range {
 
     multi method new($min,
                      $max,
-                     Bool $excludes_min = Bool::False,
-                     Bool $excludes_max = Bool::False) {
+                     Bool :$excludes_min = Bool::False,
+                     Bool :$excludes_max = Bool::False) {
         self.bless(*, :min($min),
                       :max($max),
                       :excludes_min($excludes_min),
@@ -63,15 +63,15 @@ our multi sub infix:<..>($min, $max) {
 }
 
 our multi sub infix:<^..>($min, $max) {
-    Range.new($min, $max, Bool::True, Bool::False);
+    Range.new($min, $max, :excludes_min(Bool::True));
 }
 
 our multi sub infix:<..^>($min, $max) {
-    Range.new($min, $max, Bool::False, Bool::True);
+    Range.new($min, $max, :excludes_max(Bool::True));
 }
 
 our multi sub infix:<^..^>($min, $max) {
-    Range.new($min, $max, Bool::True, Bool::True);
+    Range.new($min, $max, :excludes_min(Bool::True), :excludes_max(Bool::True));
 }
 
 # CHEAT: This is overly broad, but I don't know how to

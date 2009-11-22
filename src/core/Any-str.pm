@@ -3,6 +3,22 @@ augment class Any {
         pir::box__PI(pir::bytelength__IS(self))
     }
 
+    our Int multi method chars() is export {
+        pir::length__IS(self);
+    }
+
+    our Str multi method substr($start, $given_len?) is export {
+        my $len = $given_len || self.chars;
+        if ($len < 0) {
+            if ($start >= 0) {
+                $len += self.chars;
+            }
+            $len -= $start;
+        }
+
+        pir::substr(self, $start, $len);
+    }
+
     our Str multi method chop() is export {
         self.substr(0, -1)
     }

@@ -25,12 +25,12 @@ class Range {
         $.min lt $topic || (!$.excludes_min && $.min eq $topic);
     }
 
-    my Bool multi method !max_test($topic) {
+    our Bool multi method max_test($topic) {
         $topic lt $.max || (!$.excludes_max && $.max eq $topic);
     }
 
     our Bool multi method ACCEPTS($topic) {
-        ?(self!min_test($topic) && self!max_test($topic))
+        ?(self!min_test($topic) && self.max_test($topic))
     }
 
     multi method minmax() {
@@ -86,19 +86,19 @@ class RangeIterator {
 
     multi method new(Range $range,
                      $current) {
-        say "making" ~ $range.perl;
+        say "making RangeIterator on $range";
         self.bless(*, :range($range),
                       :current($current));
     }
 
     multi method get() {
         say "in get";
-        $!current <= $!range.max ?? $!current++ !! Nil;
+        $.range.max_test($!current) ?? $!current++ !! Nil;
     }
 }
 
 augment class Range {
     our Range multi method Iterator() {
-        RangeIterator.new(self, $.min);
+        RangeIterator.new(self, $.excludes_min ?? $.min.succ !! $.min);
     }
 }

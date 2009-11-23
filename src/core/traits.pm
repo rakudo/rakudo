@@ -4,6 +4,6 @@ our multi trait_mod:<is>(Object $child, Object $parent) {
     $child.HOW.add_parent($child, $parent);
 }
 
-our multi trait_mod:<of>(ContainerDeclarand $cont, Object $type is ref) {
+our multi trait_mod:<of>(ContainerDeclarand $cont, Object \$type) {
     
 }

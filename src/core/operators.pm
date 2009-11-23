@@ -75,7 +75,7 @@ our multi prefix:<not>($x) { !$x }
 
 our multi prefix:<true>($x) { ?$x }
 
-our sub undefine($x is ref) {
+our sub undefine(\$x) {
     my $undefined;
     $x = $undefined;
 }

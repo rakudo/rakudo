@@ -147,7 +147,7 @@ method pblock($/) {
                 my $parameter := Perl6::Compiler::Parameter.new();
                 $parameter.var_name('$_');
                 $parameter.optional(1);
-                $parameter.is_ref(1);
+                $parameter.is_parcel(1);
                 $parameter.default_from_outer(1);
                 $signature.add_parameter($parameter);
             }
@@ -886,6 +886,8 @@ method parameter($/) {
     $*PARAMETER.pos_slurpy( $quant eq '*' && $*PARAMETER.sigil eq '@' );
     $*PARAMETER.named_slurpy( $quant eq '*' && $*PARAMETER.sigil eq '%' );
     $*PARAMETER.optional( $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!') );
+    $*PARAMETER.is_parcel( $quant eq '\\' );
+    $*PARAMETER.is_capture( $quant eq '|' );
     if $<default_value> {
         $*PARAMETER.default( PAST::Block.new( $<default_value>[0]<EXPR>.ast ) );
     }
@@ -896,10 +898,9 @@ method parameter($/) {
         # Handle built-in ones.
         my $read_type := trait_readtype($<trait>);
         if $read_type eq 'CONFLICT' {
-            $/.CURSOR.panic('Can not apply more than one of: is ref, is copy, is rw, is readonly');
+            $/.CURSOR.panic('Can not apply more than one of: is copy, is rw, is readonly');
         }
         $*PARAMETER.is_rw( $read_type eq 'rw' );
-        $*PARAMETER.is_ref( $read_type eq 'ref' );
         $*PARAMETER.is_copy( $read_type eq 'copy' );
     }
 
@@ -1620,9 +1621,6 @@ sub trait_readtype($traits) {
     }
     if has_compiler_trait_with_val($traits, '&trait_mod:<is>', 'copy') {
         $readtype := $readtype ?? 'CONFLICT' !! 'copy';
-    }
-    if has_compiler_trait_with_val($traits, '&trait_mod:<is>', 'ref') {
-        $readtype := $readtype ?? 'CONFLICT' !! 'ref';
     }
     $readtype;
 }

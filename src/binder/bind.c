@@ -191,8 +191,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
     if (!PMC_IS_NULL(sig_info->type_captures))
         Rakudo_binding_bind_type_captures(interp, lexpad, sig_info, value);
 
-    /* Apply context, unless it's rw or ref. */
-    if (!(sig_info->flags & (SIG_ELEM_IS_RW | SIG_ELEM_IS_REF))) {
+    /* Apply context, unless it's rw or parcel. */
+    if (!(sig_info->flags & (SIG_ELEM_IS_RW | SIG_ELEM_IS_PARCEL))) {
         if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
             STRING *Array   = string_from_literal(interp, "Array");
             PMC *array_meth = VTABLE_find_method(interp, value, Array);
@@ -224,7 +224,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
             if (sig_info->variable_name)
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, value);
         }
-        else if (sig_info->flags & SIG_ELEM_IS_REF) {
+        else if (sig_info->flags & SIG_ELEM_IS_PARCEL) {
             /* Just bind the thing as is into the lexpad. */
             if (sig_info->variable_name)
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, value);

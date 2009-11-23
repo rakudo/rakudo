@@ -11,11 +11,12 @@
 #define SIG_ELEM_MULTI_INVOCANT     128
 #define SIG_ELEM_IS_RW              256
 #define SIG_ELEM_IS_COPY            512
-#define SIG_ELEM_IS_REF             1024
+#define SIG_ELEM_IS_PARCEL          1024
 #define SIG_ELEM_IS_OPTIONAL        2048
 #define SIG_ELEM_ARRAY_SIGIL        4096
 #define SIG_ELEM_HASH_SIGIL         8192
 #define SIG_ELEM_DEFAULT_FROM_OUTER 16384
+#define SIG_ELEM_IS_CAPTURE         32768
 
 
 /* Data structure to describe a single element in the signature. */

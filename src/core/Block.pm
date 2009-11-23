@@ -5,7 +5,8 @@ augment class Block {
 =end item
     method arity() {
         my $arity = 0;
-        for self.signature.params -> $p {
+        my @params = self.signature.params;
+        for @params -> $p {
             $arity++ unless $p.slurpy || $p.optional;
         }
         $arity
@@ -16,7 +17,8 @@ augment class Block {
 =end item
     method count() {
         my $count = 0;
-        for self.signature.params -> $p {
+        my @params = self.signature.params;
+        for @params -> $p {
             $count++ unless $p.slurpy;
         }
         $count

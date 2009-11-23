@@ -71,17 +71,17 @@ Returns a C<List> of C<Parameter> descriptors.
     cons_type = get_hll_global ['Bool'], 'True'
     goto cons_done
   have_cons:
-    cons_type = 'infix:&'(cons_type :flat)
+    cons_type = '&list'(cons_type :flat)
   cons_done:
 
     # Any names?
     named = 0
     if null names goto no_names
     named = 1
-    names = '&infix:<,>'(names :flat)
+    names = '&list'(names :flat)
     goto names_done
   no_names:
-    names = '&infix:<,>'()
+    names = '&list'()
     $I0 = flags & SIG_ELEM_SLURPY_NAMED
     unless $I0 goto names_done
     named = 1
@@ -89,10 +89,10 @@ Returns a C<List> of C<Parameter> descriptors.
 
     # Any type captures?
     if null type_captures goto no_type_captures
-    type_captures = '&infix:<,>'(type_captures :flat)
+    type_captures = '&list'(type_captures :flat)
     goto type_captures_done
   no_type_captures:
-    type_captures = '&infix:<,>'()
+    type_captures = '&list'()
   type_captures_done:
 
     # Make sure default and sub-signature are non-null.
@@ -110,7 +110,9 @@ Returns a C<List> of C<Parameter> descriptors.
   param_done:
 
     # Turn into a List.
-    .tailcall '&infix:<,>'(result :flat)
+    $P0 = '&list'(result :flat)
+    setprop $P0, 'flatten', $P0 # XXX Workaround for .arity and .count; when we get list assignment, can go away
+    .return ($P0)
 .end
 
 =back

@@ -44,15 +44,31 @@ our multi sub infix:<**>($a, $b) {
 }
 
 our multi sub infix:<&>(*@items) {
-    all(@items)
+    Junction.new(@items, :all)
 }
 
 our multi sub infix:<|>(*@items) {
-    any(@items)
+    Junction.new(@items, :any)
 }
 
 our multi sub infix:<^>(*@items) {
-    one(@items)
+    Junction.new(@items, :one)
+}
+
+our sub all(*@items) {
+    Junction.new(@items, :all);
+}
+
+our sub any(*@items) {
+    Junction.new(@items, :any);
+}
+
+our sub one(*@items) {
+    Junction.new(@items, :one);
+}
+
+our sub none(*@items) {
+    Junction.new(@items, :none);
 }
 
 our multi prefix:<not>($x) { !$x }

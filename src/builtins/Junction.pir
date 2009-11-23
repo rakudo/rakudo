@@ -19,9 +19,63 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
     p6meta.'new_class'('Junction', 'parent'=>'Perl6Object', 'attr'=>'$!eigenstates $!type')
 .end
 
+
 =head2 Methods
 
 =over 4
+
+=item new()
+
+=cut
+
+.namespace ['Junction']
+.sub 'new' :method
+    .param pmc eigenstates
+    .param pmc any   :named('any') :optional
+    .param pmc all   :named('any') :optional
+    .param pmc one   :named('any') :optional
+    .param pmc none  :named('any') :optional
+
+    # Work out type.
+    .local int type
+    if null any goto not_any
+    unless any goto not_any
+    type = JUNCTION_TYPE_ANY
+    goto type_done
+  not_any:
+    if null all goto not_all
+    unless all goto not_all
+    type = JUNCTION_TYPE_ALL
+    goto type_done
+  not_all:
+    if null one goto not_one
+    unless one goto not_one
+    type = JUNCTION_TYPE_ONE
+    goto type_done
+  not_one:
+    if null none goto some
+    unless none goto some
+    type = JUNCTION_TYPE_NONE
+    goto type_done
+  some:
+    die "Junction type not specified; must call Junction.new with :all, :any, :one or :none"
+  type_done:
+
+    # Create junction.
+    .local pmc junc
+    junc = new ['Junction']
+    $P0 = box type
+    setattribute junc, '$!type', $P0
+
+    # Make eigenstates unique if possible
+    if type == JUNCTION_TYPE_ONE goto set_eigenstates
+    $P0 = get_hll_global '&infix:<===>'
+    eigenstates = '!junction_unique_helper'(eigenstates, $P0)
+  set_eigenstates:
+    setattribute junc, '$!eigenstates', eigenstates
+    .return (junc)
+.end
+
 
 =item perl()
 
@@ -29,7 +83,6 @@ Return perl representation.  (This should actually be autothreaded.)
 
 =cut
 
-.namespace ['Junction']
 .sub 'perl' :method
     .local int type
     type = self.'!type'()
@@ -116,6 +169,7 @@ Evaluate Junction as a boolean.
     .return ($P0)
 .end
 
+
 =item ACCEPTS
 
 Smart-matching for junctions, short-circuiting.
@@ -200,27 +254,11 @@ Return the components of the Junction.
 
 =head2 Helper functions
 
+=over 4
+
 =cut
 
 .namespace []
-.sub '!MAKE_JUNCTION'
-    .param pmc type
-    .param pmc eigenstates
-
-    .local pmc junc
-    $P0 = get_hll_global 'Junction'
-    junc = $P0.'new'()
-    setattribute junc, '$!type', type
-
-    # Make eigenstates unique if possible
-    if type == JUNCTION_TYPE_ONE goto set_eigenstates
-    $P0 = get_hll_global 'infix:==='
-    eigenstates = '!junction_unique_helper'(eigenstates, $P0)
-  set_eigenstates:
-    setattribute junc, '$!eigenstates', eigenstates
-    .return (junc)
-.end
-
 
 .sub '!junction_unique_helper'
     .param pmc self
@@ -433,55 +471,6 @@ Used to dispatch methods on a junction, where we need to auto-thread.
     type = junc.'!type'()
     .const 'Sub' $P1 = '!MAKE_JUNCTION'
     .tailcall $P1(type, res_list)
-.end
-
-
-=head2 Functions
-
-=over 4
-
-=item any()
-
-=cut
-
-.namespace []
-.sub '&any'
-    .param pmc args            :slurpy
-    args.'!flatten'()
-    .tailcall '!MAKE_JUNCTION'(JUNCTION_TYPE_ANY, args)
-.end
-
-
-=item one()
-
-=cut
-
-.sub '&one'
-    .param pmc args            :slurpy
-    args.'!flatten'()
-    .tailcall '!MAKE_JUNCTION'(JUNCTION_TYPE_ONE, args)
-.end
-
-
-=item all()
-
-=cut
-
-.sub '&all'
-    .param pmc args            :slurpy
-    args.'!flatten'()
-    .tailcall '!MAKE_JUNCTION'(JUNCTION_TYPE_ALL, args)
-.end
-
-
-=item none()
-
-=cut
-
-.sub '&none'
-    .param pmc args            :slurpy
-    args.'!flatten'()
-    .tailcall '!MAKE_JUNCTION'(JUNCTION_TYPE_NONE, args)
 .end
 
 =back

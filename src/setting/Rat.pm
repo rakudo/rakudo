@@ -49,8 +49,8 @@ class Rat {
         self < 0 ?? -self !! self;
     }
 
-    our Rat multi method sign() {
-        self.Num.sign.Rat
+    our Int multi method sign() {
+        self.Num.sign
     }
 }
 

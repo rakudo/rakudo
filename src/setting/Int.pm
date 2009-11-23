@@ -34,7 +34,7 @@ class Int is also {
     }
 
     our Int multi method sign() {
-        self.Num.sign.Int
+        self.Num.sign
     }
 }
 

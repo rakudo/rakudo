@@ -32,6 +32,10 @@ class Int is also {
     our Complex multi method unpolar($angle) is export {
         Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
     }
+
+    our Int multi method sign() {
+        self.Num.sign.Int
+    }
 }
 
 multi sub abs(Int $x) { $x.abs }

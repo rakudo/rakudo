@@ -260,6 +260,26 @@ Return the components of the Junction.
 
 .namespace []
 
+.sub '!MAKE_JUNCTION'
+    .param pmc type
+    .param pmc results
+    .local pmc junc
+    junc = get_hll_global 'Junction'
+    if type == JUNCTION_TYPE_ANY goto any
+    if type == JUNCTION_TYPE_ONE goto one
+    if type == JUNCTION_TYPE_ALL goto all
+    if type == JUNCTION_TYPE_NONE goto none
+  any:
+    .tailcall junc.'new'(results, 'any'=>1)
+  one:
+    .tailcall junc.'new'(results, 'one'=>1)
+  all:
+    .tailcall junc.'new'(results, 'all'=>1)
+  none:
+    .tailcall junc.'new'(results, 'none'=>1)
+.end
+
+
 .sub '!junction_unique_helper'
     .param pmc self
     .param pmc comparer
@@ -371,7 +391,7 @@ Internals to do a junctional dispatch.
     .local pmc eigenstates, it, results
     eigenstates = junc.'eigenstates'()
     it = iter eigenstates
-    results = 'list'()
+    results = root_new ['parrot'; 'ResizablePMCArray']
   thread_loop:
     unless it goto thread_done
     $P0 = shift it
@@ -385,6 +405,7 @@ Internals to do a junctional dispatch.
     push results, $P0
     goto thread_loop
   thread_done:
+    results = '&infix:<,>'(results :flat)
     .tailcall '!MAKE_JUNCTION'(type, results)
 .end
 
@@ -458,7 +479,7 @@ Used to dispatch methods on a junction, where we need to auto-thread.
     name = $P0
 
     .local pmc values, values_it, res, res_list, type
-    res_list = new ['Perl6Array']
+    res_list = root_new ['parrot'; 'ResizablePMCArray']
     values = junc.'eigenstates'()
     values_it = iter values
   values_it_loop:
@@ -469,6 +490,7 @@ Used to dispatch methods on a junction, where we need to auto-thread.
     goto values_it_loop
   values_it_loop_end:
     type = junc.'!type'()
+    res_list = '&infix:<,>'(res_list :flat)
     .const 'Sub' $P1 = '!MAKE_JUNCTION'
     .tailcall $P1(type, res_list)
 .end

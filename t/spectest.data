@@ -219,7 +219,7 @@ S04-statements/until.t
 # S05-metachars/newline.t
 # S05-metachars/tilde.t
 # S05-metasyntax/angle-brackets.t
-# S05-metasyntax/changed.t
+S05-metasyntax/changed.t
 # S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t
 # S05-metasyntax/null.t

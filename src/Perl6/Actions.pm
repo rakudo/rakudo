@@ -1363,7 +1363,8 @@ method dec_number($/) {
         my $exp := $<escale>[0]<decint>.ast;
         if $<escale>[0]<sign> eq '-' { $exp := -$exp; }
         make PAST::Val.new( 
-            :value(($int * $base + $frac) / $base * 10 ** +$exp ) 
+            :value(($int * $base + $frac) / $base * 10 ** +$exp ) ,
+            :returns('Num')
         );
     }
     else {

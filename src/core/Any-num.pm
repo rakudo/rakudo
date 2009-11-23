@@ -384,7 +384,7 @@ our multi sub sqrt(Any $x) {
 
 our proto sign($x) { sign($x) }
 
-our multi sub sign(Any $x) {
+our multi sub sign($x) {
     defined($x) ?? $x.Num.sign !! undef;
 }
 

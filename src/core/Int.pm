@@ -39,6 +39,11 @@ augment class Int {
         self.Num.sec($base);
     }
 
+    our Int multi method sign {
+        # self ~~ NaN ?? NaN !! self <=> 0;
+        self < 0 ?? -1 !! ( self == 0 ?? 0 !! 1);
+    }
+
 #    our Complex multi method unpolar($angle) is export {
 #        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
 #    }

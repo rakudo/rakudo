@@ -51,6 +51,11 @@ class Rat {
     multi method pred {
         Rat.new($!numerator - $!denominator, $!denominator);
     }
+
+    our Int multi method sign {
+        # self ~~ NaN ?? NaN !! self <=> 0;
+        self < 0 ?? -1 !! ( self == 0 ?? 0 !! 1);
+    }
 }
 
 # CHEAT: In the subs that follow, all the seemingly unneeded calls to .Int

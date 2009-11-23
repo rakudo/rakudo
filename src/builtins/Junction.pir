@@ -31,10 +31,10 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
 .namespace ['Junction']
 .sub 'new' :method
     .param pmc eigenstates
-    .param pmc any   :named('any') :optional
-    .param pmc all   :named('any') :optional
-    .param pmc one   :named('any') :optional
-    .param pmc none  :named('any') :optional
+    .param pmc any   :named('any')  :optional
+    .param pmc all   :named('all')  :optional
+    .param pmc one   :named('one')  :optional
+    .param pmc none  :named('none') :optional
 
     # Work out type.
     .local int type

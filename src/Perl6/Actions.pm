@@ -494,7 +494,7 @@ method package_def($/, $key?) {
             my $name := ~$<def_module_name>[0]<longname>;
             if $name ne '::' {
                 $package.name($name);
-                $/.CURSOR.add_my_name($name);
+                $/.CURSOR.add_name($name);
             }
             if $<def_module_name>[0]<signature> {
                 $package.signature($<def_module_name>[0]<signature>[0].ast);

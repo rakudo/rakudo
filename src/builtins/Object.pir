@@ -23,8 +23,9 @@ care of much of that.
 .const int SIG_ELEM_INVOCANT_AND_MULTI_INVOCANT = 192
 .const int SIG_ELEM_IS_RW                       = 256
 .const int SIG_ELEM_IS_COPY                     = 512
-.const int SIG_ELEM_IS_REF                      = 1024
+.const int SIG_ELEM_IS_PARCEL                   = 1024
 .const int SIG_ELEM_IS_OPTIONAL                 = 2048
+.const int SIG_ELEM_IS_CAPTURE                  = 32768
 
 =head2 Methods
 

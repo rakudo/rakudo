@@ -50,6 +50,10 @@ augment class Any {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
+    our multi method match(Regex $pat, :$c = 0) {
+        Regex::Cursor.parse(self, :rule($pat), :c($c));
+    }
+
     our Int multi method ord() is export {
         fail('Can not take ord of empty string') if self.chars == 0;
         pir::box__PI(pir::ord__IS(self))

@@ -715,6 +715,8 @@ token quote:sym<q>    { 'q'  <![(]> <.ws> <quote_EXPR: ':q'>  }
 token quote:sym<qq>   { 'qq' <![(]> <.ws> <quote_EXPR: ':qq'> }
 token quote:sym<Q>    { 'Q'  <![(]> <.ws> <quote_EXPR> }
 token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quote_EXPR> }
+token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
+token quote:sym</ />  { '/'<p6regex=.LANG('Regex','nibbler')>'/' }
 
 token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
 token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }
@@ -737,6 +739,8 @@ INIT {
     Perl6::Grammar.O(':prec<t=>, :assoc<left>',  '%additive');
     Perl6::Grammar.O(':prec<s=>, :assoc<left>',  '%replication');
     Perl6::Grammar.O(':prec<r=>, :assoc<left>',  '%concatenation');
+    Perl6::Grammar.O(':prec<q=>, :assoc<list>', '%junctive_and');
+    Perl6::Grammar.O(':prec<p=>, :assoc<list>', '%junctive_or');
     Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
     Perl6::Grammar.O(':prec<n=>, :assoc<left>',  '%structural');
     Perl6::Grammar.O(':prec<m=>, :assoc<left>, :pasttype<chain>',  '%chaining');
@@ -867,6 +871,10 @@ token infix:sym«+>»   { <sym>  <O('%additive')> }
 token infix:sym<x>    { <sym>  <O('%replication')> }
 
 token infix:sym<~>    { <sym>  <O('%concatenation , :pirop<concat>')> }
+
+token infix:sym<&>    { <sym> <O('%junctive_and')> }
+token infix:sym<|>    { <sym> <O('%junctive_or')> }
+token infix:sym<^>    { <sym> <O('%junctive_or')> }
 
 token prefix:sym<abs>     { <sym> » <O('%named_unary, :pirop<abs PP>')> }
 token prefix:sym<defined> { <sym> » <O('%named_unary')> }

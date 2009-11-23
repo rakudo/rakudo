@@ -1071,71 +1071,6 @@ method trait_mod:sym<handles>($/) {
     );
 }
 
-method regex_declarator($/, $key?) {
-    my @MODIFIERS := Q:PIR {
-        %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
-    };
-    my $name := ~$<deflongname>.ast;
-    my $past;
-    if $key eq 'open' {
-        my %h;
-        if $<sym> eq 'token' { %h<r> := 1; }
-        if $<sym> eq 'rule'  { %h<r> := 1;  %h<s> := 1; }
-        @MODIFIERS.unshift(%h);
-        Q:PIR {
-            $P0 = find_lex '$name'
-            set_hll_global ['Regex';'P6Regex';'Actions'], '$REGEXNAME', $P0
-        };
-        @BLOCK[0].symbol('$¢', :scope('lexical'));
-        @BLOCK[0].symbol('$/', :scope('lexical'));
-        return 0;
-    }
-    elsif $<proto> {
-        $past :=
-            PAST::Stmts.new(
-                PAST::Block.new( :name($name),
-                    PAST::Op.new(
-                        PAST::Var.new( :name('self'), :scope('register') ),
-                        $name,
-                        :name('!protoregex'),
-                        :pasttype('callmethod'),
-                    ),
-                    :blocktype('method'),
-                    :lexical(0),
-                    :node($/)
-                ),
-                PAST::Block.new( :name('!PREFIX__' ~ $name),
-                    PAST::Op.new(
-                        PAST::Var.new( :name('self'), :scope('register') ),
-                        $name,
-                        :name('!PREFIX__!protoregex'),
-                        :pasttype('callmethod'),
-                    ),
-                    :blocktype('method'),
-                    :lexical(0),
-                    :node($/)
-                )
-            );
-    }
-    else {
-        my $rpast := $<p6regex>.ast;
-        my %capnames := Regex::P6Regex::Actions::capnames($rpast, 0);
-        %capnames{''} := 0;
-        $rpast := PAST::Regex.new(
-                     $rpast,
-                     PAST::Regex.new( :pasttype('pass') ),
-                     :pasttype('concat'),
-                     :capnames(%capnames)
-        );
-        $past := @BLOCK.shift;
-        $past.blocktype('method');
-        $past.name($name);
-        $past.push($rpast);
-        @MODIFIERS.shift;
-    }
-    make $past;
-}
-
 method postop($/) {
     make $<postfix> ?? $<postfix>.ast !! $<postcircumfix>.ast;
 }
@@ -1459,6 +1394,10 @@ method quote:sym<Q:PIR>($/) {
     make PAST::Op.new( :inline( $<quote_EXPR>.ast.value ),
                        :pasttype('inline'),
                        :node($/) );
+}
+method quote:sym</ />($/) {
+    my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
+    make create_code_object($past, 'Regex', 0);
 }
 
 method quote_escape:sym<$>($/) { make $<variable>.ast; }

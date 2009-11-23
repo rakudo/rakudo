@@ -43,6 +43,18 @@ our multi sub infix:<**>($a, $b) {
     pir::box__PN(pir::pow__NNN($a, $b))
 }
 
+our multi sub infix:<&>(*@items) {
+    all(@items)
+}
+
+our multi sub infix:<|>(*@items) {
+    any(@items)
+}
+
+our multi sub infix:<^>(*@items) {
+    one(@items)
+}
+
 our multi prefix:<not>($x) { !$x }
 
 our multi prefix:<true>($x) { ?$x }

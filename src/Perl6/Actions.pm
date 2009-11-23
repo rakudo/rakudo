@@ -1111,6 +1111,18 @@ method term:sym<Nil>($/) {
     make PAST::Op.new(:name('&Nil'), :node($/) );
 }
 
+method term:sym<...>($/) {
+    make PAST::Op.new( :pasttype('call'), :name('fail'), 'Stub code executed' );
+}
+
+method term:sym<???>($/) {
+    make PAST::Op.new( :pasttype('call'), :name('warn'), 'Stub code executed' );
+}
+
+method term:sym<!!!>($/) {
+    make PAST::Op.new( :pasttype('call'), :name('die'), 'Stub code executed' );
+}
+
 method term:sym<dotty>($/) {
     my $past := $<dotty>.ast;
     $past.unshift(PAST::Op.new(

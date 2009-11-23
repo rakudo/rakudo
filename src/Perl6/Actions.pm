@@ -685,9 +685,11 @@ method routine_def($/) {
     if pir::defined__IP($past<placeholder_sig>) && $<signature> {
         $/.CURSOR.panic('Placeholder variable cannot override existing signature');
     }
-    add_signature($past, $<signature>                             ?? $<signature>[0].ast !! 
-                         pir::defined__IP($past<placeholder_sig>) ?? $past<placeholder_sig> !!
-                         Perl6::Compiler::Signature.new());
+    my $signature := $<signature>                    ?? $<signature>[0].ast    !! 
+            pir::defined__IP($past<placeholder_sig>) ?? $past<placeholder_sig> !!
+            Perl6::Compiler::Signature.new();
+    $signature.set_default_parameter_type('Any');
+    add_signature($past, $signature);
     if $<trait> {
         emit_routine_traits($past, $<trait>, 'Sub');
     }
@@ -788,6 +790,7 @@ method method_def($/) {
     }
     my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
     $sig.add_invocant();
+    $sig.set_default_parameter_type('Any');
     add_signature($past, $sig);
     $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
     $past.symbol('self', :scope('lexical'));

@@ -249,8 +249,8 @@ install: all
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
-	$(CP)     $(PERL6EXE)         $(DESTDIR)$(PARROT_BIN_DIR)
-	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6EXE)
+	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
+	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
 
 xmas: $(PERL6_EXE)
 

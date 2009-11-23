@@ -1,0 +1,29 @@
+augment class Array {
+
+    our method push(*@values) is export {
+        my @a = @values;
+        Q:PIR {
+            $P0 = find_lex '@a'
+            $P0 = getattribute $P0, '$!values'
+            $P1 = find_lex 'self'
+            $P2 = $P1.'!generate'(0)
+            $I0 = elements $P2
+            splice $P2, $P0, $I0, 0
+        };
+        self;
+    }
+
+    our method unshift(*@values) is export {
+        my @a = @values;
+        Q:PIR {
+            $P0 = find_lex '@a'
+            $P0 = getattribute $P0, '$!values'
+            $P1 = find_lex 'self'
+            $P2 = $P1.'!generate'(0)
+            splice $P2, $P0, 0, 0
+            $P0 = box 0
+            setattribute $P1, '$!gen', $P0
+        };
+        self;
+    }
+}

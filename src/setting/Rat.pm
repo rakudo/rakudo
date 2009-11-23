@@ -48,6 +48,10 @@ class Rat {
     multi method abs {
         self < 0 ?? -self !! self;
     }
+
+    our Int multi method sign() {
+        self.Num.sign
+    }
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {

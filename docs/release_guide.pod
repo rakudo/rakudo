@@ -21,12 +21,12 @@ part of monthly Parrot releases.
   2009-08-20   Rakudo #20 "PDX"                (kyle)
   2009-09-17   Rakudo #21 "Seattle"            (particle)
   2009-10-22   Rakudo #22 "Thousand Oaks"      (duff)
+  2009-11-19   Rakudo #23 "Lisbon"             (masak)
 
 =head2 Planned 2009 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2009-11-19   Rakudo #23                      (masak)
   2009-12-17   Rakudo #24                      (chromatic)
   2010-01-21   Rakudo #25                      (smash)
   2010-02-18   Rakudo #26                      (Su-Shee)
@@ -37,7 +37,6 @@ Dates are based on Parrot's expected release schedule.
   BristolBath.pm
   Milan.pm
   Seoul.pm
-  Lisbon.pm (hosting YAPC::EU 2009)
 
 =head2 Steps to create a release (for release managers)
 

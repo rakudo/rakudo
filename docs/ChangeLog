@@ -1,8 +1,12 @@
 New in 2009-11 release
 + Rakudo now uses Parrot's updated calling convention features
-+ support nested signatures
++ support unpacking of arrays, hashes and objects in signatures
 + changed .pick to use :replace instead of :repl
 + many core setting optimizations and bugfixes
++ IO::Socket.recv() has been extended to accept a parameter specifying the
+  number of bytes which will be received
++ Rakudo now looks up %INC in the right namespace when loading libraries for
+  foreign languages
 
 New in 2009-10 release
 + smolder reports for spectest runs

@@ -66,7 +66,7 @@ S02-builtin_data_types/parsing-bool.t
 # S02-builtin_data_types/type.t
 # S02-builtin_data_types/whatever.t
 # S02-lexical-conventions/unicode.t                          # icu
-# S02-literals/array-interpolation.t
+S02-literals/array-interpolation.t
 # S02-literals/autoref.t
 # S02-literals/char-by-name.t                                # icu
 # S02-literals/char-by-number.t
@@ -272,7 +272,7 @@ S06-signature/positional-placeholders.t
 # S06-signature/scalar-type.t
 # S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t
-# S06-signature/slurpy-placeholders.t
+S06-signature/slurpy-placeholders.t
 # S06-signature/sub-ref.t
 # S06-signature/type-capture.t
 # S06-signature/types.t

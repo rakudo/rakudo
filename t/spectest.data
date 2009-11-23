@@ -298,7 +298,7 @@ S06-signature/slurpy-placeholders.t
 # S12-attributes/recursive.t
 # S12-class/anonymous.t
 # S12-class/attributes.t
-# S12-class/basic.t
+S12-class/basic.t
 # S12-class/declaration-order.t
 S12-class/inheritance-class-methods.t
 # S12-class/inheritance.t

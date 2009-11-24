@@ -103,7 +103,7 @@ S02-literals/underscores.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
 S02-whitespace_and_comments/minimal-whitespace.t
-# S02-whitespace_and_comments/one-pass-parsing.t
+S02-whitespace_and_comments/one-pass-parsing.t
 # S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 # S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
@@ -302,7 +302,7 @@ S12-class/basic.t
 # S12-class/declaration-order.t
 S12-class/inheritance-class-methods.t
 # S12-class/inheritance.t
-# S12-class/instantiate.t
+S12-class/instantiate.t
 # S12-class/interface-consistency.t
 # S12-class/namespaced.t
 # S12-class/parent_attributes.t

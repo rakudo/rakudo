@@ -143,11 +143,12 @@ method ast($high_level?) {
     my $SIG_ELEM_MULTI_INVOCANT     := 128;
     my $SIG_ELEM_IS_RW              := 256;
     my $SIG_ELEM_IS_COPY            := 512;
-    my $SIG_ELEM_IS_REF             := 1024;
+    my $SIG_ELEM_IS_PARCEL          := 1024;
     my $SIG_ELEM_IS_OPTIONAL        := 2048;
     my $SIG_ELEM_ARRAY_SIGIL        := 4096;
     my $SIG_ELEM_HASH_SIGIL         := 8192;
     my $SIG_ELEM_DEFAULT_FROM_OUTER := 16384;
+    my $SIG_ELEM_IS_CAPTURE         := 32768;
     
     # Allocate a signature and stick it in a register.
     my $sig_var := PAST::Var.new( :name($ast.unique('signature_')), :scope('register') );
@@ -176,9 +177,10 @@ method ast($high_level?) {
         if $_.invocant                  { $flags := $flags + $SIG_ELEM_INVOCANT; }
         if $_.multi_invocant            { $flags := $flags + $SIG_ELEM_MULTI_INVOCANT; }
         if $_.is_rw                     { $flags := $flags + $SIG_ELEM_IS_RW; }
-        if $_.is_ref                    { $flags := $flags + $SIG_ELEM_IS_REF; }
+        if $_.is_parcel                 { $flags := $flags + $SIG_ELEM_IS_PARCEL; }
         if $_.is_copy                   { $flags := $flags + $SIG_ELEM_IS_COPY; }
         if $_.default_from_outer        { $flags := $flags + $SIG_ELEM_DEFAULT_FROM_OUTER; }
+        if $_.is_capture                { $flags := $flags + $SIG_ELEM_IS_CAPTURE; }
         if $_.twigil eq '!'             { $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR }
         if $_.twigil eq '.' {
             # Set flag, and we'll pull the sigil and twigil off to leave us

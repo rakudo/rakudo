@@ -81,9 +81,11 @@ BUILTINS_PIR = \
   src/glue/run.pir \
   src/glue/types.pir \
   src/builtins/Object.pir \
-  src/builtins/ClassHOW.pir \
-  src/builtins/RoleHOW.pir \
-  src/builtins/GrammarHOW.pir \
+  src/metamodel/ParrotBacked.pir \
+  src/metamodel/ClassHOW.pir \
+  src/metamodel/RoleHOW.pir \
+  src/metamodel/RoleToClassApplier.pir \
+  src/metamodel/GrammarHOW.pir \
   src/builtins/Any.pir \
   src/builtins/Role.pir \
   src/builtins/Abstraction.pir \
@@ -110,6 +112,7 @@ BUILTINS_PIR = \
   src/builtins/ContainerDeclarand.pir \
   src/builtins/Exception.pir \
   src/builtins/Signature.pir \
+  src/builtins/Junction.pir \
   src/builtins/assign.pir \
   src/builtins/control.pir \
 
@@ -131,8 +134,10 @@ CHEATS_PIR = \
   src/cheats/use.pir \
   src/cheats/only_infix_redispatcher.pir \
   src/cheats/import.pir \
+  src/cheats/want-caller-side-callsig.pir \
   src/cheats/parrot/attriter.pir \
   src/cheats/parrot/Protoobject.pir \
+  src/cheats/parrot/P6role.pir \
   src/cheats/parrot/register.pir \
 
 CORE_SOURCES = \
@@ -145,6 +150,7 @@ CORE_SOURCES = \
   src/core/Any-num.pm \
   src/core/Any-list.pm \
   src/core/Any-str.pm \
+  src/core/Array.pm \
   src/core/Int.pm \
   src/core/Num.pm \
   src/core/Rat.pm \
@@ -248,8 +254,8 @@ install: all
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
-	$(CP)     $(PERL6EXE)         $(DESTDIR)$(PARROT_BIN_DIR)
-	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6EXE)
+	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
+	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
 
 xmas: $(PERL6_EXE)
 

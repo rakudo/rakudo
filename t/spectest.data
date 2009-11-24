@@ -37,7 +37,7 @@ integration/passing-pair-class-to-sub.t
 # integration/real-strings.t
 # integration/role-composition-vs-attribute.t
 # integration/say-crash.t
-# integration/substr-after-match-in-gather-in-for.t
+integration/substr-after-match-in-gather-in-for.t
 # S02-builtin_data_types/anon_block.t
 # S02-builtin_data_types/array_extending.t
 # S02-builtin_data_types/array_ref.t
@@ -66,7 +66,7 @@ S02-builtin_data_types/parsing-bool.t
 # S02-builtin_data_types/type.t
 # S02-builtin_data_types/whatever.t
 # S02-lexical-conventions/unicode.t                          # icu
-# S02-literals/array-interpolation.t
+S02-literals/array-interpolation.t
 # S02-literals/autoref.t
 # S02-literals/char-by-name.t                                # icu
 # S02-literals/char-by-number.t
@@ -82,7 +82,7 @@ S02-builtin_data_types/parsing-bool.t
 # S02-literals/quoting-unicode.t
 # S02-literals/radix.t
 # S02-literals/string-interpolation.t
-# S02-literals/sub-calls.t
+S02-literals/sub-calls.t
 # S02-literals/subscript.t
 # S02-literals/types.t
 S02-literals/underscores.t
@@ -96,14 +96,14 @@ S02-literals/underscores.t
 # S02-names_and_variables/names.t
 # S02-names_and_variables/perl.t
 # S02-names_and_variables/varnames.t
-# S02-names/identifier.t
+S02-names/identifier.t
 # S02-names/our.t
 # S02-one-pass-parsing/less-than.t
 # S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
 S02-whitespace_and_comments/minimal-whitespace.t
-# S02-whitespace_and_comments/one-pass-parsing.t
+S02-whitespace_and_comments/one-pass-parsing.t
 # S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 # S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
@@ -219,7 +219,7 @@ S04-statements/until.t
 # S05-metachars/newline.t
 # S05-metachars/tilde.t
 # S05-metasyntax/angle-brackets.t
-# S05-metasyntax/changed.t
+S05-metasyntax/changed.t
 # S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t
 # S05-metasyntax/null.t
@@ -272,7 +272,7 @@ S06-signature/positional-placeholders.t
 # S06-signature/scalar-type.t
 # S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t
-# S06-signature/slurpy-placeholders.t
+S06-signature/slurpy-placeholders.t
 # S06-signature/sub-ref.t
 # S06-signature/type-capture.t
 # S06-signature/types.t
@@ -298,11 +298,11 @@ S06-signature/positional-placeholders.t
 # S12-attributes/recursive.t
 # S12-class/anonymous.t
 # S12-class/attributes.t
-# S12-class/basic.t
+S12-class/basic.t
 # S12-class/declaration-order.t
 S12-class/inheritance-class-methods.t
 # S12-class/inheritance.t
-# S12-class/instantiate.t
+S12-class/instantiate.t
 # S12-class/interface-consistency.t
 # S12-class/namespaced.t
 # S12-class/parent_attributes.t

@@ -7,6 +7,20 @@ augment class Any {
         pir::length__IS(self);
     }
 
+    multi method comb(Regex $matcher, $limit = *, :$match) {
+        my $c = 0;
+        # XXX this is an ugly hack. I'd prefer $limit ~~ Whatever,
+        # but the Whatever type object isn't available yet,
+        # and trying to introduce it leads to strainge MDD-related
+        # bugs
+        my $l = $limit.WHAT eq 'Whatever()' ?? Inf !! $limit;
+        gather while $l > 0 && (my $m = self.match($matcher, :c($c))) {
+            take $match ?? $m !! ~$m;
+            $c = $m.to == $c ?? $c + 1 !! $m.to;
+            --$l;
+        }
+    }
+
     our Str multi method substr($start, $length?) is export {
         my $len = $length // self.chars;
         if ($len < 0) {

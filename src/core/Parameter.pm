@@ -10,7 +10,8 @@ class Parameter {
     has $.type;
     has $.constraints;
     has $.rw;
-    has $.ref;
+    has $.parcel;
+    has $.capture;
     has $.copy;
     method readonly() { !$!rw && !$!ref && !$!copy }
     has $.named;

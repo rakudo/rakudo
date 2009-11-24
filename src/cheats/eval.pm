@@ -3,7 +3,7 @@ our sub eval(Str $code) {
         .local pmc interp, caller, code, result, exception, parrotex
         interp = getinterp
         caller = interp['context';1]
-#        push_eh catch
+        push_eh catch
         $P0 = compreg 'Perl6'
         code = find_lex '$code'
         result = $P0.'eval'(code, 'outer_ctx'=>caller)
@@ -14,7 +14,7 @@ our sub eval(Str $code) {
         exception = new ['Perl6Exception']
         setattribute exception, '$!exception', parrotex
       done:
-#        pop_eh
+        pop_eh
         $P0 = interp['lexpad';1]
         $P0['$!'] = exception
         unless null result goto have_result

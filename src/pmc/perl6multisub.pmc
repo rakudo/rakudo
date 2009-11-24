@@ -221,7 +221,7 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
             num_candidates, candidate_graph_node*);
     INTVAL insert_pos = 0;
     for (i = 0; i < num_candidates; i++) {
-        PMC *signature;
+        PMC *signature, *p6_do;
         struct llsig_element **sig_elem_info;
         candidate_info *info;
         INTVAL sig_elems;
@@ -246,9 +246,17 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
         info->sub = candidate;
 
         /* Get hold of signature. */
-        signature = VTABLE_getprop(interp, candidate->vtable->base_type == enum_class_Sub ?
-                candidate : VTABLE_get_attr_str(interp, candidate, CONST_STRING(interp, "$!do")),
-                CONST_STRING(interp, "$!signature"));
+        p6_do = candidate->vtable->base_type == enum_class_Sub ? candidate :
+                VTABLE_get_attr_str(interp, candidate, CONST_STRING(interp, "$!do"));
+        signature = VTABLE_getprop(interp, p6_do, CONST_STRING(interp, "$!signature"));
+        if (PMC_IS_NULL(signature)) {
+            /* No signature - need to lazily generate it. */
+            PMC *p6_code_obj = VTABLE_getprop(interp, p6_do, string_from_literal(interp, "$!p6type"));
+            PMC *sig_meth    = VTABLE_find_method(interp, p6_code_obj, string_from_literal(interp, "signature"));
+            PMC *result;
+            Parrot_ext_call(interp, sig_meth, "P->P", p6_code_obj, &result);
+            signature = VTABLE_getprop(interp, p6_do, string_from_literal(interp, "$!signature"));
+        }
         info->signature = signature;
         GETATTR_P6LowLevelSig_elements(interp, signature, sig_elem_info);
         GETATTR_P6LowLevelSig_num_elements(interp, signature, sig_elems);

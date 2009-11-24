@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-src/parrot/Role.pir - methods for the our P6role class
+src/parrot/P6role.pir - methods for the our P6role class
 
 =head2 Methods on P6role
 
@@ -205,6 +205,15 @@ Puns the role to a class and returns that class.
     $P0 = getprop '$!owner', self
     $S0 = $P0
     .return ($S0)
+.end
+
+
+=item postcircumfix:<[ ]>
+
+=cut
+
+.sub 'postcircumfix:<[ ]>' :method
+    .return (self)
 .end
 
 =back

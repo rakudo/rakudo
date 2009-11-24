@@ -1,5 +1,10 @@
 grammar Perl6::Grammar is HLL::Grammar;
 
+our %COMPILINGPACKAGES;
+
+INIT {
+    our %COMPILINGPACKAGES := Q:PIR { %r = new ['Hash'] };
+}
 
 method TOP() {
     my %*LANG;
@@ -25,7 +30,65 @@ method TOP() {
 
 method add_my_name($name) {
     my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
+    
+    # We need to flag up most re-declaration collisions.
+    if @BLOCK[0].symbol($name) {
+        if $*PKGDECL eq 'role' {
+            return 1;
+        }
+        else {
+            pir::die("Illegal redeclaration of symbol '$name'");
+        }
+    }
+
+    # Add it.
     @BLOCK[0].symbol($name, :does_abstraction(1));
+    return 1;
+}
+
+method add_our_name($name) {
+    our %COMPILINGPACKAGES;
+
+    # Check if it already exists, if we care.
+    if $*PKGDECL ne 'role' {
+        my $exists := 0;
+        if %COMPILINGPACKAGES{$name} {
+            $exists := 1;
+        }
+        else {
+            my @parts := parse_name($name);
+            my $final := pir::pop(@parts);
+            my $test  := pir::get_hll_global__PPS(@parts, $final);
+            $exists   := !pir::isnull__IP($test);
+        }
+        if $exists {
+            pir::die("Illegal redeclaration of symbol '$name'");
+        }
+    }
+
+    # For now, just add a marker to say we saw this. We'll most likely want
+    # to do something more here later (STD does quite a bit more, but we'll
+    # build our way towards it).
+    %COMPILINGPACKAGES{$name} := 1;
+
+    # Always need to add our names as lexical names too.
+    return self.add_my_name($name);
+}
+
+method add_name($name) {
+    if $*SCOPE eq 'augment' || $*SCOPE eq 'supersede' {
+        unless self.is_name($name) {
+            pir::die("Can't $*SCOPE something that doesn't exist");
+        }
+    }
+    else {
+        if $*SCOPE eq 'our' {
+            self.add_our_name($name);
+        }
+        else {
+            self.add_my_name($name);
+        }
+    }
     return 1;
 }
 
@@ -301,6 +364,7 @@ token statement_prefix:sym<CHECK> { <sym> <blorst> }
 token statement_prefix:sym<INIT>  { <sym> <blorst> }
 token statement_prefix:sym<END>   { <sym> <blorst> }
 token statement_prefix:sym<try>   { <sym> <blorst> }
+token statement_prefix:sym<gather>{ <sym> <blorst> }
 token statement_prefix:sym<do>    { <sym> <blorst> }
 
 token blorst {
@@ -518,11 +582,11 @@ token parameter {
     [
     | <type_constraint>+
         [
-        | $<quant>=['*'] <param_var>
+        | $<quant>=['*'|'\\'|'|'] <param_var>
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <?>
         ]
-    | $<quant>=['*'] <param_var>
+    | $<quant>=['*'|'\\'|'|'] <param_var>
     | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
     | <longname> <.panic('Invalid typename in parameter declaration')>
     ]
@@ -616,6 +680,10 @@ proto token term { <...> }
 token term:sym<self> { <sym> <.nofun> }
 
 token term:sym<Nil> { <sym> <.nofun> }
+
+token term:sym<...> { <sym> <args>? }
+token term:sym<???> { <sym> <args>? }
+token term:sym<!!!> { <sym> <args>? }
 
 token term:sym<identifier> {
     <identifier> <?[(]> <args>
@@ -763,6 +831,9 @@ token infixish {
 }
 
 token postfixish {
+    # last whitespace didn't end here
+    <!MARKED('ws')>
+
     <postfix_prefix_meta_operator>?
     [
     | <OPER=dotty>

@@ -17,8 +17,9 @@ has $!cons_types;
 has $!sub_signature;
 has $!type_captures;
 has $!is_rw;
-has $!is_ref;
 has $!is_copy;
+has $!is_parcel;
+has $!is_capture;
 has $!traits;
 
 method var_name($var_name?) {
@@ -109,14 +110,19 @@ method is_rw($is_rw?) {
     $!is_rw
 }
 
-method is_ref($is_ref?) {
-    if $is_ref { $!is_ref := $is_ref }
-    $!is_ref
-}
-
 method is_copy($is_copy?) {
     if $is_copy { $!is_copy := $is_copy }
     $!is_copy
+}
+
+method is_parcel($is_parcel?) {
+    if $is_parcel { $!is_parcel := $is_parcel }
+    $!is_parcel
+}
+
+method is_capture($is_capture?) {
+    if $is_capture { $!is_capture := $is_capture }
+    $!is_capture
 }
 
 method traits($traits?) {

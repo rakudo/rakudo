@@ -609,6 +609,7 @@ inline op bind_signature(in PMC) :base_core {
         PMC *signature      = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
+        INTVAL bind_error;
 
         /* Need to make sure some stuff doesn't get destroyed. */
         PMC      * ctx               = CURRENT_CONTEXT(interp);
@@ -618,8 +619,18 @@ inline op bind_signature(in PMC) :base_core {
         opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
 
+        /* Ensure we actually have a signature; if not, try to lazily generate
+         * it. */
+        if (PMC_IS_NULL(signature)) {
+            PMC *p6_code_obj = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!p6type"));
+            PMC *sig_meth    = VTABLE_find_method(interp, p6_code_obj, string_from_literal(interp, "signature"));
+            PMC *result;
+            Parrot_ext_call(interp, sig_meth, "P->P", p6_code_obj, &result);
+            signature = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
+        }
+
         /* Call signature binder. */
-        INTVAL bind_error = bind_signature_func(interp, lexpad, signature, $1, noms_checked, &error);
+        bind_error = bind_signature_func(interp, lexpad, signature, $1, noms_checked, &error);
 
         /* Bind ok? */
         if (!bind_error) {

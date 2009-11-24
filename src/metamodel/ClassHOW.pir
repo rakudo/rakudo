@@ -2,11 +2,15 @@
 
 =head1 TITLE
 
-ClassHOW - default metaclass for Perl 6
+ClassHOW - metaclass for Perl 6 classes
 
 =head1 DESCRIPTION
 
-This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
+This class subclasses P6metaclass to give Perl 6 specific meta-class
+behaviors. We do a bit of multiple inheritance to inherit from both
+Object and P6metaclass, so ClassHOW is within the Perl6 object
+hierarchy but so we can also deal with having a Parrot Class as our
+backing store.
 
 =cut
 
@@ -25,14 +29,19 @@ This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
     $P1 = p6meta.'get_parrotclass'($P1)
     addparent $P0, $P1
 
-    # Couple of useful attributes for tracking interface consistency
-    # information.
+    # Extra attributes for interface consistency and compositiony stuff.
     addattribute $P0, '$!hides'
     addattribute $P0, '$!hidden'
-    addattribute $P0, '$!roles'
+    addattribute $P0, '$!composees'
 
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
+
+    # Also want to get various methods from the ParrotBacked role, since we're
+    # backed by a Parrot Class PMC and using it to store most things.
+    .local pmc parrotbacked
+    parrotbacked = get_class ['Perl6';'Metamodel';'ParrotBackend']
+    p6meta.'compose_role'(classhowproto, parrotbacked)
 
     # Transform Object's metaclass to be of the right type.
     $P0 = new ['ClassHOW']
@@ -82,52 +91,43 @@ Creates a new instance of the meta-class.
   have_parrotclass:
     how = new ['ClassHOW']
     setattribute how, 'parrotclass', parrotclass
-    $P0 = new ['ResizablePMCArray']
-    setattribute how, '$!roles', $P0
+    $P0 = root_new ['parrot';'ResizablePMCArray']
+    setattribute how, '$!composees', $P0
     .return (how)
 .end
 
 
-=item add_method(meta, name, code_ref)
+=item add_composable
 
-Add a method to the given meta.
+Stores something that we will compose (e.g. a role) at class composition time.
 
 =cut
 
-.sub 'add_method' :method
+.sub 'add_composable' :method
     .param pmc meta
-    .param string name
-    .param pmc meth
-    $P0 = getattribute meta, 'parrotclass'
-    addmethod $P0, name, meth
+    .param pmc composee
+
+    # XXX Picking a role variant should be done in the trait_mod, not here,
+    # but zen slices aren't parsed yet.
+    composee = composee.'postcircumfix:<[ ]>'()
+
+    $P0 = getattribute meta, '$!composees'
+    push $P0, composee
 .end
 
 
-=item add_attribute(meta, name)
+=item applier_for
 
-Adds an attribute of the given name to the given meta.
-
-=cut
-
-.sub 'add_attribute' :method
-    .param pmc meta
-    .param string name
-    $P0 = getattribute meta, 'parrotclass'
-    addattribute $P0, name
-.end
-
-
-=item add_role
-
-Stores a role taht we will compose when we're finally composed into a class.
+For now, we can't use a class as a composable thing. In the future we can
+instead extract a role from the class (or rather, hand back a composer that
+knows how to do that).
 
 =cut
 
-.sub 'add_role' :method
+.sub 'applier_for' :method
     .param pmc meta
-    .param pmc role
-    $P0 = getattribute meta, '$!roles'
-    push $P0, role
+    .param pmc for
+    die "A class can not be composed into another package yet"
 .end
 
 
@@ -149,8 +149,36 @@ Completes the creation of the metaclass and return a proto-object.
     .return ($P0)
   no_its_new:
 
-    # See if we have any roles to compose.
-
+    # See if we have anything to compose. Also, make sure our composees
+    # all want the same composer.
+    .local pmc composees, chosen_applier, composee_it
+    composees = getattribute meta, '$!composees'
+    $I0 = elements composees
+    if $I0 == 0 goto composition_done
+    if $I0 == 1 goto one_composee
+    composee_it = iter composees
+  composee_it_loop:
+    unless composee_it goto apply_composees
+    $P0 = shift composee_it
+    if null chosen_applier goto first_composee
+    $P1 = $P0.'HOW'()
+    $P1 = $P1.'applier_for'($P0, meta)
+    $P2 = chosen_applier.'WHAT'()
+    $P3 = $P1.'WHAT'()
+    $I0 = '&infix:<===>'($P2, $P3)
+    if $I0 goto composee_it_loop
+    die 'Can not compose multiple composees that want different appliers'
+  first_composee:
+    $P1 = $P0.'HOW'()
+    chosen_applier = $P1.'applier_for'($P0, meta)
+    goto composee_it_loop
+  one_composee:
+    $P0 = composees[0]
+    $P1 = $P0.'HOW'()
+    chosen_applier = $P1.'applier_for'($P0, meta)
+  apply_composees:
+    chosen_applier.'apply'(meta, composees)
+  composition_done:
 
     # If we have no parents explicitly given, inherit from Any.
     $P0 = inspect parrotclass, 'parents'
@@ -203,120 +231,8 @@ Tests role membership.
     .tailcall type.'ACCEPTS'(obj)
   not_p6role:
     $I0 = does obj, type
-    .const 'Sub' $P1 = 'prefix:?'
+    .const 'Sub' $P1 = '&prefix:<?>'
     .tailcall $P1($I0)
-.end
-
-
-=item attributes()
-
-Gets the attributes that the class declares, returning a list of
-Attribute descriptors.
-
-=cut
-
-.sub 'attributes' :method
-    .param pmc obj
-    .param pmc local :named('local') :optional
-    .param pmc tree :named('tree') :optional
-
-    # Transform false values to nulls.
-    if null local goto local_setup
-    if local goto local_setup
-    local = null
-  local_setup:
-    if null tree goto tree_setup
-    if tree goto tree_setup
-    tree = null
-  tree_setup:
-
-    # Create result list and get Attribute proto.
-    .local pmc result_list, attr_proto
-    result_list = get_root_global [.RAKUDO_HLL], 'Array'
-    result_list = result_list.'new'()
-    attr_proto = get_root_global [.RAKUDO_HLL], 'Attribute'
-
-    # Get list of parents whose attributes we are interested in, and put
-    # this class on the start. With the local flag , that's just us.
-    .local pmc parents, parents_it, cur_class, us
-    unless null tree goto do_tree
-    if null local goto all_parents
-    parents = get_root_global [.RAKUDO_HLL], 'Array'
-    parents = parents.'new'()
-    goto parents_list_made
-  all_parents:
-    parents = self.'parents'(obj)
-    goto parents_list_made
-  do_tree:
-    parents = self.'parents'(obj, 'local'=>1)
-  parents_list_made:
-    us = obj.'WHAT'()
-    parents.'unshift'(us)
-    parents_it = iter parents
-  parents_it_loop:
-    unless parents_it goto done
-    cur_class = shift parents_it
-
-    # If it's us, disregard :tree. Otherwise, if we have :tree, now we call
-    # ourself recursively and push an array onto the result.
-    if null tree goto tree_handled
-    eq_addr cur_class, us, tree_handled
-    $P0 = self.'attributes'(cur_class, 'tree'=>tree)
-    $P0 = new 'Perl6Scalar', $P0
-    result_list.'push'($P0)
-    goto parents_it_loop
-  tree_handled:
-
-    # Get Parrot-level class.
-    .local pmc parrot_class, attributes, attr_it, cur_attr_hash, cur_attr_info
-    parrot_class = self.'get_parrotclass'(cur_class)
-
-    # Iterate over attributes and build an Attribute descriptor for each one.
-    attributes = parrot_class.'attributes'()
-    attr_it = iter attributes
-  attr_it_loop:
-    unless attr_it goto attr_it_loop_end
-    $S0 = shift attr_it
-    cur_attr_hash = attributes[$S0]
-    
-    # Name
-    $S0 = cur_attr_hash['name']
-    
-    # Type
-    $P0 = cur_attr_hash['type']
-    unless null $P0 goto type_done
-    $P0 = get_root_global [.RAKUDO_HLL], 'Object'
-  type_done:
-
-    # Build
-    $P1 = cur_attr_hash['init_value']
-    unless null $P1 goto build_done
-    $P1 = root_new [.RAKUDO_HLL; 'Failure']
-  build_done:
-
-    # Accessor
-    $P2 = cur_attr_hash['accessor']
-    unless null $P2 goto accessor_done
-    $P2 = box 0
-  accessor_done:
-    $P3 = get_root_global [.RAKUDO_HLL], 'prefix:?'
-    $P2 = $P3($P2)
-
-    # rw
-    $P4 = cur_attr_hash['rw']
-    unless null $P4 goto rw_done
-    $P4 = box 0
-  rw_done:
-    $P4 = $P3($P4)
-
-    cur_attr_info = attr_proto.'new'('name' => $S0, 'type' => $P0, 'build' => $P1, 'accessor' => $P2, 'rw' => $P4)
-    result_list.'push'(cur_attr_info)
-    goto attr_it_loop
-  attr_it_loop_end:
-    goto parents_it_loop
-
-  done:
-    .return (result_list)
 .end
 
 

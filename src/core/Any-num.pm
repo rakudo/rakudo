@@ -382,11 +382,14 @@ our multi sub sqrt(Any $x) {
     $x.Num.sqrt
 }
 
-our proto sign($x) { sign($x) }
-
-our multi sub sign(Any $x) {
+our proto sign($x) {
     defined($x) ?? $x.Num.sign !! undef;
 }
+
+# This one doesn't seem to be needed with the above defined.
+# our multi sub sign($x) {
+#     defined($x) ?? $x.Num.sign !! undef;
+# }
 
 our multi sub roots($x, $n) {
     $x.Complex.roots($n)

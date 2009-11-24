@@ -43,11 +43,39 @@ our multi sub infix:<**>($a, $b) {
     pir::box__PN(pir::pow__NNN($a, $b))
 }
 
+our multi sub infix:<&>(*@items) {
+    Junction.new(@items, :all)
+}
+
+our multi sub infix:<|>(*@items) {
+    Junction.new(@items, :any)
+}
+
+our multi sub infix:<^>(*@items) {
+    Junction.new(@items, :one)
+}
+
+our sub all(*@items) {
+    Junction.new(@items, :all);
+}
+
+our sub any(*@items) {
+    Junction.new(@items, :any);
+}
+
+our sub one(*@items) {
+    Junction.new(@items, :one);
+}
+
+our sub none(*@items) {
+    Junction.new(@items, :none);
+}
+
 our multi prefix:<not>($x) { !$x }
 
 our multi prefix:<true>($x) { ?$x }
 
-our sub undefine($x is ref) {
+our sub undefine(\$x) {
     my $undefined;
     $x = $undefined;
 }

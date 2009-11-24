@@ -31,7 +31,7 @@ ones included in Rakudo include ClassHOW, GrammarHOW and RoleHOW.
 =item Attribute meta-objects (representing attributes); the default one of
 these is simply called Attribute.
 
-=item Composition meta-objects (specifying role composition algorithms)
+=item Composition meta-objects (e.g. specifying role composition algorithms)
 
 =back
 
@@ -153,6 +153,45 @@ all of the composees.
 =back
 
 
+=head2 Metaclass Compatibility
+
+Warning: Conjectural.
+
+One rather complex issue we run into is what happens if you want to inherit
+from something that has a different metaclass. For now, we forbid this unless
+the metaclass of the thing we're inheriting from is a superclass of the thing
+that is inheriting. This means that all other types of class-ish things that
+want to have a custom metaclass should subclass ClassHOW (either directly or
+transitively). Thus, this is fine:
+
+    class A { }
+    thingy B is A { }
+    otherthingy C is B { }
+
+If the following is true:
+
+    OtherThingyHOW.isa(ThingyHOW) and ThingyHOW.isa(ClassHOW)
+
+
+=head2 Composer Compatibility
+
+Warning: Conjectural.
+
+TODO: Provide a solution to the problems described here.
+
+Given it's the things we compose that determine what composer to use, we may
+easily run into a situation where different things want a different composer.
+At some level that's OK - if we want to support a more general notion of
+"things that do something composition-ish" then it is probably too restrictive
+to just always make this an error in the long run. For now, however, we do
+just that; when we have a good solution, we can relax the restriction.
+
+We do have the nicety that once we hit runtime, since composition is flattening
+by nature, we don't have any relationship at runtime with something  that was
+composed in (besides keeping it in our list of "things that we composed"). Thus
+the problem of the behaviors of two 
+
+
 =head2 Associating a package declarator with a metaclass
 
 Rakudo provides two levels of hookage for creating new types of package
@@ -178,6 +217,99 @@ in the $*PKGDECL global. For example, here is one from STD.
 
 You should do the same (and it's probably nice if what you set matches the
 name of the symbol you parse).
+
+
+=head2 Meta-programming Example: Adding AOP Support
+
+Note that this currently does not work in Rakudo, and will probably change a
+bit. It's purpose is mostly a thought experiment to try and help sanify the
+design of the metamodel.
+
+    slang AOP {
+        method TOP {
+            temp %*HOW;
+            %*HOW<aspect> := AspectHOW;
+            my $lang = self.cursor_fresh( AOP );
+            $lang.comp_unit;
+        }
+        token package_declarator:sym<aspect> {
+            :my $*PKGDECL := 'aspect';
+            <sym> <package_def>
+        }
+    }
+
+    class AspectComposer {
+        method apply($target, @aspects) {
+            my @wrappables = $target.methods(:local);
+            for @aspects -> $aspect {
+                for $aspect.method_wrappers.kv -> $name, $wrapper {
+                    my ($wrappee) = @wrappables.grep({ .name eq $name });
+                    if $wrappee {
+                        $wrappee.wrap($wrapper);
+                    }
+                    else {
+                        die "No sub found to wrap named '$name'";
+                    }
+                }
+            }
+        }
+    }
+
+    class AspectHOW {
+        has %.method_wrappers;
+        
+        method add_method($meta, $name, $method) {
+            $meta.method_wrappers{$name} = $method;
+        }
+        
+        multi method composer_for($meta, $ where { .can('methods') }) {
+            return AspectComposer;
+        }
+        
+        multi method composer_for($meta, Object) {
+            die "Can only apply aspects to things that expose methods";
+        }
+
+        method compose($meta) {
+            # We'll just install ourself into the namespace. XXX Or should we
+            # have some standard way of making a "type object"?
+            return $meta;
+        }
+
+        method add_attribute($meta, $attr) {
+            die "Aspects do not support attributes";
+        }
+
+        method add_parent($meta, $parent) {
+            die "Aspects do not support inheritance";
+        }
+
+        method add_composable($meta, $composable) {
+            die "Aspects do not support being composed into";
+        }
+    }
+
+This could then we used as something like:
+
+    use AOP;
+
+    aspect LogToStderrToo {
+        method log($message) {
+            $*ERR.say($message);
+            nextsame;
+        }
+    }
+
+    class ErrorLog does LogToStderrToo {
+        method log($message) {
+            my $fh = open("log", :a);
+            $fh.say($message);
+            $fh.close;
+        }
+    }
+
+Note that a usable implementation would want a bit more than this, and have
+many other design considerations.
 
 
 =head2 Influencing package code generation

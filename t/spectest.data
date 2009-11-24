@@ -82,7 +82,7 @@ S02-literals/array-interpolation.t
 # S02-literals/quoting-unicode.t
 # S02-literals/radix.t
 # S02-literals/string-interpolation.t
-# S02-literals/sub-calls.t
+S02-literals/sub-calls.t
 # S02-literals/subscript.t
 # S02-literals/types.t
 S02-literals/underscores.t
@@ -96,7 +96,7 @@ S02-literals/underscores.t
 # S02-names_and_variables/names.t
 # S02-names_and_variables/perl.t
 # S02-names_and_variables/varnames.t
-# S02-names/identifier.t
+S02-names/identifier.t
 # S02-names/our.t
 # S02-one-pass-parsing/less-than.t
 # S02-polymorphic_types/subset.t

@@ -6,7 +6,11 @@ ClassHOW - default metaclass for Perl 6
 
 =head1 DESCRIPTION
 
-This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
+This class subclasses P6metaclass to give Perl 6 specific meta-class
+behaviors. We do a bit of multiple inheritance to inherit from both
+Object and P6metaclass, so ClassHOW is within the Perl6 object
+hierarchy but so we can also deal with having a Parrot Class as our
+backing store.
 
 =cut
 
@@ -29,7 +33,7 @@ This class subclasses P6metaclass to give Perl 6 specific meta-class behaviors.
     # information.
     addattribute $P0, '$!hides'
     addattribute $P0, '$!hidden'
-    addattribute $P0, '$!roles'
+    addattribute $P0, '$!composees'
 
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
@@ -83,7 +87,7 @@ Creates a new instance of the meta-class.
     how = new ['ClassHOW']
     setattribute how, 'parrotclass', parrotclass
     $P0 = new ['ResizablePMCArray']
-    setattribute how, '$!roles', $P0
+    setattribute how, '$!composees', $P0
     .return (how)
 .end
 
@@ -117,17 +121,32 @@ Adds an attribute of the given name to the given meta.
 .end
 
 
-=item add_role
+=item add_composable
 
-Stores a role taht we will compose when we're finally composed into a class.
+Stores something that we will compose (e.g. a role) at class composition time.
 
 =cut
 
-.sub 'add_role' :method
+.sub 'add_composable' :method
     .param pmc meta
-    .param pmc role
-    $P0 = getattribute meta, '$!roles'
-    push $P0, role
+    .param pmc composee
+    $P0 = getattribute meta, '$!composees'
+    push $P0, composee
+.end
+
+
+=item applier_for
+
+For now, we can't use a class as a composable thing. In the future we can
+instead extract a role from the class (or rather, hand back a composer that
+knows how to do that).
+
+=cut
+
+.sub 'applier_for' :method
+    .param pmc meta
+    .param pmc for
+    die "A class can not be composed into another package yet"
 .end
 
 
@@ -149,7 +168,7 @@ Completes the creation of the metaclass and return a proto-object.
     .return ($P0)
   no_its_new:
 
-    # See if we have any roles to compose.
+    # See if we have anything to compose.
 
 
     # If we have no parents explicitly given, inherit from Any.
@@ -203,7 +222,7 @@ Tests role membership.
     .tailcall type.'ACCEPTS'(obj)
   not_p6role:
     $I0 = does obj, type
-    .const 'Sub' $P1 = 'prefix:?'
+    .const 'Sub' $P1 = '&prefix:<?>'
     .tailcall $P1($I0)
 .end
 

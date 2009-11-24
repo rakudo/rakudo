@@ -364,6 +364,7 @@ token statement_prefix:sym<CHECK> { <sym> <blorst> }
 token statement_prefix:sym<INIT>  { <sym> <blorst> }
 token statement_prefix:sym<END>   { <sym> <blorst> }
 token statement_prefix:sym<try>   { <sym> <blorst> }
+token statement_prefix:sym<gather>{ <sym> <blorst> }
 token statement_prefix:sym<do>    { <sym> <blorst> }
 
 token blorst {

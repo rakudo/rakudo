@@ -335,6 +335,12 @@ method statement_prefix:sym<do>($/) {
     make $past;
 }
 
+method statement_prefix:sym<gather>($/) {
+    my $past := $<blorst>.ast;
+    $past.blocktype('declaration');
+    make PAST::Op.new( :pasttype('call'), :name('!GATHER'), $past );
+}
+
 method statement_prefix:sym<try>($/) {
     my $block := $<blorst>.ast;
     $block.blocktype('immediate');

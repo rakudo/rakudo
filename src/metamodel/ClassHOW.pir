@@ -174,7 +174,8 @@ Completes the creation of the metaclass and return a proto-object.
     goto composee_it_loop
   one_composee:
     $P0 = composees[0]
-    chosen_applier = $P0.'applier_for'($P0, meta)
+    $P1 = $P0.'HOW'()
+    chosen_applier = $P1.'applier_for'($P0, meta)
   apply_composees:
     chosen_applier.'apply'(meta, composees)
   composition_done:

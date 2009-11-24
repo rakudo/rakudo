@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-src/parrot/Role.pir - methods for the our P6role class
+src/parrot/P6role.pir - methods for the our P6role class
 
 =head2 Methods on P6role
 

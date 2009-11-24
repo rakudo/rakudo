@@ -136,6 +136,7 @@ CHEATS_PIR = \
   src/cheats/want-caller-side-callsig.pir \
   src/cheats/parrot/attriter.pir \
   src/cheats/parrot/Protoobject.pir \
+  src/cheats/parrot/P6role.pir \
   src/cheats/parrot/register.pir \
 
 CORE_SOURCES = \

@@ -60,6 +60,7 @@ Creates a new instance of the meta-class.
     setattribute how, 'parrotclass', p6role
     $P0 = new ['ResizablePMCArray']
     setattribute how, '$!parents', $P0
+    setprop p6role, 'metaclass', how
     .return (how)
 .end
 

@@ -25,13 +25,15 @@ pmclass P6role extends Role need_ext dynpmc group perl6_group {
         STRING *first_char;
 
         /* Is this a method we want to pun? If not, just dispatch normally. */
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "postcircumfix:<[ ]>")))
+            return SUPER(name);
+        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")))
+            return SUPER(name);
         if (Parrot_str_equal(interp, name, CONST_STRING(interp, "attributes")))
             return SUPER(name);
         if (Parrot_str_equal(interp, name, CONST_STRING(interp, "methods")))
             return SUPER(name);
         if (Parrot_str_equal(interp, name, CONST_STRING(interp, "roles")))
-            return SUPER(name);
-        if (Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")))
             return SUPER(name);
         if (Parrot_str_equal(interp, name, CONST_STRING(interp, "perl")))
             return SUPER(name);

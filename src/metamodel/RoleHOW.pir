@@ -6,7 +6,7 @@ RoleHOW - default metaclass for Perl 6 roles
 
 =head1 DESCRIPTION
 
-This class subclasses ClassHOW to provide role-specific behaviors.
+This is the metaclass for roles.
 
 We use a P6role as our backing store. However, we keep a list of parents
 separately - we simply pass these on to the class as an "implementation
@@ -21,7 +21,7 @@ on.
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('RoleHOW', 'parent'=>'ClassHOW', 'attr'=>'$!parents')
+    p6meta.'new_class'('RoleHOW', 'parent'=>'ClassHOW', 'attr'=>'$!parents $!composees $!requires $!conflicts')
 .end
 
 

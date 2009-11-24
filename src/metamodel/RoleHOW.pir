@@ -21,7 +21,7 @@ on.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, rolehowproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    rolehowproto = p6meta.'new_class'('RoleHOW', 'parent'=>'Object', 'attr'=>'parrotclass shortname longname protoobject $!parents $!composees $!requires $!conflicts')
+    rolehowproto = p6meta.'new_class'('RoleHOW', 'parent'=>'Object', 'attr'=>'parrotclass shortname longname protoobject $!parents $!composees $!requirements $!collisions')
 
     # Also want to get various methods from the ParrotBacked role, since we're
     # backed by a Parrot Class PMC and using it to store most things.
@@ -60,6 +60,12 @@ Creates a new instance of the meta-class.
     setattribute how, 'parrotclass', p6role
     $P0 = new ['ResizablePMCArray']
     setattribute how, '$!parents', $P0
+    $P0 = new ['ResizablePMCArray']
+    setattribute how, '$!composees', $P0
+    $P0 = new ['ResizablePMCArray']
+    setattribute how, '$!requirements', $P0
+    $P0 = new ['ResizablePMCArray']
+    setattribute how, '$!collisions', $P0
     setprop p6role, 'metaclass', how
     .return (how)
 .end
@@ -90,6 +96,32 @@ Stores something that we will compose (e.g. a role) at class composition time.
     .param pmc composee
     $P0 = getattribute meta, '$!composees'
     push $P0, composee
+.end
+
+
+=item requirements
+
+Accessor for list of method names a role requires.
+
+=cut
+
+.sub 'requirements' :method
+    .param pmc meta
+    $P0 = getattribute meta, '$!requirements'
+    .return ($P0)
+.end
+
+
+=item collisions
+
+Accessor for list of method names in conflict; the class must resolve them.
+
+=cut
+
+.sub 'collisions' :method
+    .param pmc meta
+    $P0 = getattribute meta, '$!collisions'
+    .return ($P0)
 .end
 
 

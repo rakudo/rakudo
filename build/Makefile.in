@@ -84,6 +84,7 @@ BUILTINS_PIR = \
   src/metamodel/ParrotBacked.pir \
   src/metamodel/ClassHOW.pir \
   src/metamodel/RoleHOW.pir \
+  src/metamodel/RoleToClassApplier.pir \
   src/metamodel/GrammarHOW.pir \
   src/builtins/Any.pir \
   src/builtins/Role.pir \

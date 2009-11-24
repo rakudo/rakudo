@@ -112,7 +112,8 @@ knows how to do that).
     if $I0 goto instance_applier
 
   class_applier:
-    die 'Applying a role to a class is not yet supported.'
+    $P0 = get_hll_global ['Perl6';'Metamodel'], 'RoleToClassApplier'
+    .return ($P0)
 
   role_applier:
     die 'Applying a role to a role is not yet supported.'

@@ -37,7 +37,7 @@ integration/passing-pair-class-to-sub.t
 # integration/real-strings.t
 # integration/role-composition-vs-attribute.t
 # integration/say-crash.t
-# integration/substr-after-match-in-gather-in-for.t
+integration/substr-after-match-in-gather-in-for.t
 # S02-builtin_data_types/anon_block.t
 # S02-builtin_data_types/array_extending.t
 # S02-builtin_data_types/array_ref.t

@@ -44,9 +44,9 @@ close $REQ;
 }
 
 print "Checking out Parrot r$reqsvn via svn...\n";
-system(qw(svn checkout -r),  $reqsvn , qw(https://svn.parrot.org/parrot/trunk parrot));
+system_or_die(qw(svn checkout -r),  $reqsvn , qw(https://svn.parrot.org/parrot/trunk parrot));
 
-chdir('parrot');
+chdir('parrot') || die "Can't chdir to 'parrot': $!";
 
 
 ##  If we have a Makefile from a previous build, do a 'make realclean'
@@ -55,19 +55,19 @@ if (-f 'Makefile') {
     my $make = $config{'make'};
     if ($make) {
         print "\nPerforming '$make realclean' ...\n";
-        system($make, "realclean");
+        system_or_die($make, "realclean");
     }
 }
 
 print "\nConfiguring Parrot ...\n";
 my @config_command = ($^X, 'Configure.pl', @ARGV);
 print "@config_command\n";
-system @config_command;
+system_or_die( @config_command );
 
 print "\nBuilding Parrot ...\n";
 my %config = read_parrot_config();
 my $make = $config{'make'} or exit(1);
-system($make, 'install-dev');
+system_or_die($make, 'install-dev');
 
 sub read_parrot_config {
     my %config = ();
@@ -80,3 +80,9 @@ sub read_parrot_config {
     %config;
 }
     
+sub system_or_die {
+    my @cmd = @_;
+
+    system( @cmd ) == 0
+        or die "Command failed (status $?): @cmd\n";
+}

@@ -70,7 +70,7 @@ method finish($block) {
     # We need the block to get the signature, or a default one, plus the
     # decl code as a body.
     my $sig := pir::defined__IP($!signature) ?? $!signature !! Perl6::Compiler::Signature.new();
-    Perl6::Actions::add_signature($block, $sig);
+    my $lazy_sig_block_name := Perl6::Actions::add_signature($block, $sig, 1);
     $block.push($decl);
     $block.blocktype('declaration');
     $block.nsentry('');
@@ -97,7 +97,7 @@ method finish($block) {
             PAST::Op.new(
                 :pasttype('callmethod'), :name('!add_variant'),
                 PAST::Var.new( :name('master_role'), :scope('register') ),
-                Perl6::Actions::create_code_object($block, 'Sub', 1)
+                Perl6::Actions::create_code_object($block, 'Sub', 1, $lazy_sig_block_name)
             ),
             PAST::Op.new( :pasttype('bind'),
                 PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') ),

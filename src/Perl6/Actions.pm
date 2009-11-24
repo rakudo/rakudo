@@ -156,7 +156,7 @@ method pblock($/) {
             }
         }
     }
-    add_signature($block, $signature);
+    add_signature($block, $signature, 0);
     make $block;
 }
 
@@ -396,7 +396,7 @@ method term:sym<routine_declarator>($/) { make $<routine_declarator>.ast; }
 method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
-method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0); }
+method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0, ''); }
 
 method name($/) { }
 
@@ -608,12 +608,12 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
             );
             my $sig := Perl6::Compiler::Signature.new();
             $sig.add_invocant();
-            add_signature($meth, $sig);
+            my $sig_setup_block := add_signature($meth, $sig, 1);
 
             # Wrap it in a Method handle, and install in methods table.
             my %meth_table := @PACKAGE[0].methods;
             my %meth_hash;
-            %meth_hash<code_ref> := create_code_object($meth, 'Method', 0);
+            %meth_hash<code_ref> := create_code_object($meth, 'Method', 0, $sig_setup_block);
             %meth_table{~$desigilname} := %meth_hash;
         }
         
@@ -695,7 +695,7 @@ method routine_def($/) {
             pir::defined__IP($past<placeholder_sig>) ?? $past<placeholder_sig> !!
             Perl6::Compiler::Signature.new();
     $signature.set_default_parameter_type('Any');
-    add_signature($past, $signature);
+    my $sig_setup_block := add_signature($past, $signature, 1);
     if $<trait> {
         emit_routine_traits($past, $<trait>, 'Sub');
     }
@@ -707,7 +707,7 @@ method routine_def($/) {
 
         # Wrap it in the correct routine type.
         my $multi_flag := PAST::Val.new( :value(0) );
-        $past := create_code_object($past, 'Sub', $multi_flag);
+        $past := create_code_object($past, 'Sub', $multi_flag, $sig_setup_block);
 
         # Handle multi-ness, if any.
         my $symbol_holder := $*SCOPE eq 'our' ?? @PACKAGE[0].block !! @BLOCK[0];
@@ -776,7 +776,7 @@ method routine_def($/) {
     }
     else {
         # Just wrap in a Sub.
-        $past := create_code_object($past, 'Sub', 0);
+        $past := create_code_object($past, 'Sub', 0, $sig_setup_block);
     }
     make $past;
 }
@@ -797,7 +797,7 @@ method method_def($/) {
     my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
     $sig.add_invocant();
     $sig.set_default_parameter_type('Any');
-    add_signature($past, $sig);
+    my $sig_setup_block := add_signature($past, $sig, 1);
     $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
     $past.symbol('self', :scope('lexical'));
 
@@ -809,7 +809,7 @@ method method_def($/) {
         $past.name($name);
         $past.nsentry('');
         my $multi_flag := PAST::Val.new( :value(0) );
-        $past := create_code_object($past, $*METHODTYPE, $multi_flag);
+        $past := create_code_object($past, $*METHODTYPE, $multi_flag, $sig_setup_block);
 
         # Get hold of methods table.
         our @PACKAGE;
@@ -858,7 +858,7 @@ method method_def($/) {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
-        $past := create_code_object($past, $*METHODTYPE, 0);
+        $past := create_code_object($past, $*METHODTYPE, 0, $sig_setup_block);
     }
 
     make $past;
@@ -1220,7 +1220,7 @@ method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
 
 method circumfix:sym<{ }>($/) {
-    make create_code_object($<pblock>.ast, 'Block', 0);
+    make create_code_object($<pblock>.ast, 'Block', 0, '');
 }
 
 method circumfix:sym<[ ]>($/) {
@@ -1420,7 +1420,7 @@ method quote:sym<Q:PIR>($/) {
 }
 method quote:sym</ />($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make create_code_object($past, 'Regex', 0);
+    make create_code_object($past, 'Regex', 0, '');
 }
 
 method quote_escape:sym<$>($/) { make $<variable>.ast; }
@@ -1519,12 +1519,10 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
 }
 
 # Takes a block and adds a signature ot it, as well as code to bind the call
-# capture against the signature.
-sub add_signature($block, $sig_obj) {
-    # Add signature building code to the block.
+# capture against the signature. Returns the name of the signature setup block.
+sub add_signature($block, $sig_obj, $lazy) {
+    # Set arity.
     $block.arity($sig_obj.arity);
-    $block.loadinit.push($sig_obj.ast);
-    $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!signature", signature') ));
 
     # Add call to signature binder as well as lexical declarations
     # to the start of the block.
@@ -1539,6 +1537,21 @@ sub add_signature($block, $sig_obj) {
         :pirop('bind_signature vP'),
         PAST::Var.new( :name('call_sig'), :scope('lexical') )
     ));
+
+    # If lazy, make and push signature setup block.
+    if $lazy {
+        my $sig_setup_block_name := $block.unique('!sig_setup_' ~ pir::time__N() ~ '_');
+        $block[0].push(PAST::Block.new(
+            :name($sig_setup_block_name),
+            :blocktype('declaration'),
+            $sig_obj.ast
+        ));
+        $sig_setup_block_name
+    }
+    else {
+        $block.loadinit.push($sig_obj.ast);
+        $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!signature", signature') ));
+    }
 }
 
 # Adds a placeholder parameter to this block's signature.
@@ -1563,14 +1576,15 @@ sub add_placeholder_parameter($sigil, $ident, :$named, :$slurpy_pos, :$slurpy_na
 }
 
 # Wraps a sub up in a block type.
-sub create_code_object($block, $type, $multiness) {
+sub create_code_object($block, $type, $multiness, $lazy_init) {
     my @name := Perl6::Grammar::parse_name($type);
     my $past := PAST::Op.new(
         :pasttype('callmethod'),
         :name('new'),
         PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
         $block,
-        $multiness
+        $multiness,
+        $lazy_init
     );
     $past<past_block> := $block;
     $past
@@ -1617,7 +1631,7 @@ sub emit_routine_traits($routine, @trait_list, $type) {
     $routine.loadinit.push(PAST::Op.new(
         :pasttype('bind'),
         PAST::Var.new( :name('trait_subject'), :scope('register'), :isdecl(1) ),
-        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, 0)
+        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, 0, '')
     ));
     for @trait_list {
         my $ast := $_.ast;

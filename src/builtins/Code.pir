@@ -16,7 +16,7 @@ for executable objects.
 .sub 'onload' :anon :load :init
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi')
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi $!lazy_sig_init_name')
     $P0 = get_hll_global 'Callable'
     $P0 = $P0.'!select'()
     p6meta.'compose_role'(codeproto, $P0)
@@ -33,6 +33,7 @@ for executable objects.
 .sub 'new' :method
     .param pmc do
     .param pmc multi
+    .param pmc lazy_sig_init_name
     $P0 = getprop '$!p6type', do
     if null $P0 goto need_create
     .return ($P0)
@@ -43,6 +44,7 @@ for executable objects.
     transform_to_p6opaque $P0
     setattribute $P0, '$!do', do
     setattribute $P0, '$!multi', multi
+    setattribute $P0, '$!lazy_sig_init_name', lazy_sig_init_name
     if multi != 2 goto proto_done
     $P1 = box 1
     setprop $P0, 'proto', $P1
@@ -140,14 +142,29 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'signature' :method
-    $P0 = getattribute self, '$!do'
-    $P0 = getprop '$!signature', $P0
-    if null $P0 goto no_sig
-    $P1 = get_hll_global 'Signature'
-    $P1 = $P1.'new'('ll_sig' => $P0)
-    .return ($P1)
-  no_sig:
+    .local pmc do, ll_sig, lazy_name
+
+    # Look up the signature if the block already has one.
+    do = getattribute self, '$!do'
+    ll_sig = getprop '$!signature', do
+    unless null ll_sig goto have_sig
+
+    # No signautre yet, but maybe we have a lazy creator.
+    lazy_name = getattribute self, '$!lazy_sig_init_name'
+    if lazy_name == '' goto srsly_no_sig
+    $P0 = do.'get_namespace'()
+    $P0 = $P0[lazy_name]
+    ll_sig = $P0()
+    setprop do, '$!signature', ll_sig
+    goto have_sig
+  srsly_no_sig:
     .tailcall '!FAIL'('No signature found')
+
+    # Now we have the signature; need to make it a high level one.
+  have_sig:
+    $P1 = get_hll_global 'Signature'
+    $P1 = $P1.'new'('ll_sig' => ll_sig)
+    .return ($P1)
 .end
 
 =item do()

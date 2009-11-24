@@ -79,24 +79,45 @@ method finish($block) {
     # to add this role variant to the main role object that goes in the
     # namespace or lexpad.
     if $name {
+        # Create block that we'll call to do role setup, and embed the
+        # block we've already made within it.
+        my $init_decl_name := $block.unique('!class_init_');
         my @name := Perl6::Grammar::parse_name($name);
         my $short_name := @name.pop;
-        $block.loadinit.push(PAST::Op.new( :pasttype('bind'),
-            PAST::Var.new( :name('master_role'), :scope('register'), :isdecl(1) ),
-            PAST::Var.new(
-                :name($short_name), :namespace(@name), :scope('package'),
-                :viviself(PAST::Op.new( :pasttype('call'), :name('!create_master_role'), ~$short_name ))
+        $block := PAST::Block.new(
+            :name($init_decl_name),
+            :blocktype('declaration'),
+            PAST::Op.new( :pasttype('bind'),
+                PAST::Var.new( :name('master_role'), :scope('register'), :isdecl(1) ),
+                PAST::Op.new( :pasttype('call'), :name('!create_master_role'),
+                    ~$short_name,
+                    PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') )
+                )
+            ),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('!add_variant'),
+                PAST::Var.new( :name('master_role'), :scope('register') ),
+                Perl6::Actions::create_code_object($block, 'Sub', 1)
+            ),
+            PAST::Op.new( :pasttype('bind'),
+                PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') ),
+                PAST::Var.new( :name('master_role'), :scope('register') )
             )
-         ));
-        $block.loadinit.push(PAST::Op.new(
-            :pasttype('callmethod'), :name('!add_variant'),
-            PAST::Var.new( :name('master_role'), :scope('register') ),
-            Perl6::Actions::create_code_object(PAST::Var.new( :name('block'), :scope('register') ), 'Sub', 1)
-        ));
-        $block.loadinit.push(PAST::Op.new( :pasttype('bind'),
-            PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') ),
-            PAST::Var.new( :name('master_role'), :scope('register') )
-        ));
+        );
+        
+        # Set namespace and install in package, if our scoped.
+        if $!scope eq 'our' {
+            my @ns := Perl6::Grammar::parse_name($name);
+            $block.namespace(@ns);
+            my @PACKAGE := Q:PIR { %r = get_hll_global ['Perl6'; 'Actions'], '@PACKAGE' };
+            @PACKAGE[0].block.loadinit().push(PAST::Op.new(
+                :pasttype('call'),
+                PAST::Var.new( :name($init_decl_name), :namespace(@ns), :scope('package') )
+            ));
+        }
+        else {
+            pir::die('Do not support ' ~ ~$!scope ~ ' scoped roles yet');
+        }
     }
 
     # Otherwise, for anonymous, make such an object and hand it back.

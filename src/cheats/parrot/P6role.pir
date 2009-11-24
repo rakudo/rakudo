@@ -207,6 +207,15 @@ Puns the role to a class and returns that class.
     .return ($S0)
 .end
 
+
+=item postcircumfix:<[ ]>
+
+=cut
+
+.sub 'postcircumfix:<[ ]>' :method
+    .return (self)
+.end
+
 =back
 
 =cut

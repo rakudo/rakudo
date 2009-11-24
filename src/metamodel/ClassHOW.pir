@@ -91,7 +91,7 @@ Creates a new instance of the meta-class.
   have_parrotclass:
     how = new ['ClassHOW']
     setattribute how, 'parrotclass', parrotclass
-    $P0 = new ['ResizablePMCArray']
+    $P0 = root_new ['parrot';'ResizablePMCArray']
     setattribute how, '$!composees', $P0
     .return (how)
 .end
@@ -106,6 +106,11 @@ Stores something that we will compose (e.g. a role) at class composition time.
 .sub 'add_composable' :method
     .param pmc meta
     .param pmc composee
+
+    # XXX Picking a role variant should be done in the trait_mod, not here,
+    # but zen slices aren't parsed yet.
+    composee = composee.'postcircumfix:<[ ]>'()
+
     $P0 = getattribute meta, '$!composees'
     push $P0, composee
 .end
@@ -144,8 +149,35 @@ Completes the creation of the metaclass and return a proto-object.
     .return ($P0)
   no_its_new:
 
-    # See if we have anything to compose.
-
+    # See if we have anything to compose. Also, make sure our composees
+    # all want the same composer.
+    .local pmc composees, chosen_applier, composee_it
+    composees = getattribute meta, '$!composees'
+    $I0 = elements composees
+    if $I0 == 0 goto composition_done
+    if $I0 == 1 goto one_composee
+    composee_it = iter composees
+  composee_it_loop:
+    unless composee_it goto apply_composees
+    $P0 = shift composee_it
+    if null chosen_applier goto first_composee
+    $P1 = $P0.'HOW'()
+    $P1 = $P1.'applier_for'($P0, meta)
+    $P2 = chosen_applier.'WHAT'()
+    $P3 = $P1.'WHAT'()
+    $I0 = '&infix:<===>'($P2, $P3)
+    if $I0 goto composee_it_loop
+    die 'Can not compose multiple composees that want different appliers'
+  first_composee:
+    $P1 = $P0.'HOW'()
+    chosen_applier = $P1.'applier_for'($P0, meta)
+    goto composee_it_loop
+  one_composee:
+    $P0 = composees[0]
+    chosen_applier = $P0.'applier_for'($P0, meta)
+  apply_composees:
+    chosen_applier.'apply'(meta, composees)
+  composition_done:
 
     # If we have no parents explicitly given, inherit from Any.
     $P0 = inspect parrotclass, 'parents'

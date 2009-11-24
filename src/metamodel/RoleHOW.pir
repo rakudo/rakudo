@@ -78,6 +78,49 @@ Stores the parent; we'll add it to a class at compose time.
 .end
 
 
+=item add_composable
+
+Stores something that we will compose (e.g. a role) at class composition time.
+
+=cut
+
+.sub 'add_composable' :method
+    .param pmc meta
+    .param pmc composee
+    $P0 = getattribute meta, '$!composees'
+    push $P0, composee
+.end
+
+
+=item applier_for
+
+For now, we can't use a class as a composable thing. In the future we can
+instead extract a role from the class (or rather, hand back a composer that
+knows how to do that).
+
+=cut
+
+.sub 'applier_for' :method
+    .param pmc meta
+    .param pmc for
+    
+    $I0 = isa for, 'ClassHOW'
+    if $I0 goto class_applier
+    $I0 = isa for, 'RoleHOW'
+    if $I0 goto role_applier
+    if $I0 goto instance_applier
+
+  class_applier:
+    die 'Applying a role to a class is not yet supported.'
+
+  role_applier:
+    die 'Applying a role to a role is not yet supported.'
+
+  instance_applier:
+    die 'Applying a role to an instance is not yet supported.'
+.end
+
+
 =item compose(meta)
 
 Completes the creation of the metaclass and return the P6role.

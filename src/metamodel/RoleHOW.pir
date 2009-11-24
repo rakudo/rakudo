@@ -19,9 +19,15 @@ on.
 .namespace ['RoleHOW']
 
 .sub 'onload' :anon :init :load
-    .local pmc p6meta
+    .local pmc p6meta, rolehowproto
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('RoleHOW', 'parent'=>'ClassHOW', 'attr'=>'$!parents $!composees $!requires $!conflicts')
+    rolehowproto = p6meta.'new_class'('RoleHOW', 'parent'=>'Object', 'attr'=>'parrotclass shortname longname protoobject $!parents $!composees $!requires $!conflicts')
+
+    # Also want to get various methods from the ParrotBacked role, since we're
+    # backed by a Parrot Class PMC and using it to store most things.
+    .local pmc parrotbacked
+    parrotbacked = get_class ['Perl6';'Metamodel';'ParrotBackend']
+    p6meta.'compose_role'(rolehowproto, parrotbacked)
 .end
 
 
@@ -85,6 +91,7 @@ Completes the creation of the metaclass and return the P6role.
     # Associate the metaclass with the p6role.
     p6role = getattribute meta, 'parrotclass'
     setprop p6role, 'how', meta
+    setattribute meta, 'protoobject', p6role
     .return (p6role)
 .end
 

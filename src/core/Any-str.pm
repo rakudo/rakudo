@@ -7,6 +7,14 @@ augment class Any {
         pir::length__IS(self);
     }
 
+    multi method comb(Regex $matcher, :$match) {
+        my $c = 0;
+        gather while my $m = self.match($matcher, :c($c)) {
+            take $match ?? $m !! ~$m;
+            $c = $m.to == $c ?? $c + 1 !! $m.to;
+        }
+    }
+
     our Str multi method substr($start, $length?) is export {
         my $len = $length // self.chars;
         if ($len < 0) {

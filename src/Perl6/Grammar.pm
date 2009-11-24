@@ -831,6 +831,9 @@ token infixish {
 }
 
 token postfixish {
+    # last whitespace didn't end here
+    <!MARKED('ws')>
+
     <postfix_prefix_meta_operator>?
     [
     | <OPER=dotty>

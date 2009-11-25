@@ -41,7 +41,7 @@ the interface in the expectation that one day we might want to have things
 that are composed into a class following some composition algorithm that may
 be given a different name. Thus we talk in terms of "composables".
 
-There are three important things. First, the actual composer - implementing the
+There are two important things. First, the actual composer - implementing the
 composition algorithm - is not a part of the thing we're composing or the
 thing we're composing into (that is, it is independent of the class and the
 role). Second, it is up to the thing being composed (e.g. the role in the case
@@ -78,11 +78,11 @@ Adds the given parent to C<$meta>.
 =item add_composable($meta, $composee)
 
 Takes something that we are able to compose (for example, a role) and adds it
-to the composition list. Certainly all of the built-in implementations of this
-do not actually perform any composition at this point. Instead, they add the
-composable to a "to do" list, and at the point we call "compose" to finish the
-composition of the package, and the application of all the composables takes
-place. You probably want to do something similar.
+to the composition list. Certainly, none of the built-in implementations of
+add_composable immediately perform any composition at this point. Instead,
+they add the composable to a "to do" list, and at the point we call "compose"
+to finish the composition of the package, and the application of all the
+composables takes place. You probably want to do something similar.
 
 =item applier_for($meta, $target)
 
@@ -93,10 +93,11 @@ composer API. It may be convenient to implement this is a set of multi subs.
 
 =item compose($meta)
 
-This returns the the type object that we're going to actually install into the
-namespace or lexical pad or just return if it's an anonymous declaration. It
-can do any other composition time operations, such as role composition and
-calling the composition hook on all attributes added to the package.
+Finalizes the creation of the package. It can do any other composition-time
+operations, such as role composition and calling the composition hook on all
+attributes added to the package. Returns the the type object that we're
+going to actually install into the namespace or lexical pad, or just return if
+it's an anonymous declaration.
 
 =back
 
@@ -107,13 +108,13 @@ details on this.
 
 =head2 Attribute meta-object API
 
-This is the API that objects that represent attributes should expose. The
+This is the API that objects representing attributes should expose. The
 attribute meta-object is responsible for generating any accessor and/or
 delegation methods associated with the attribute.
 
 =over 4
 
-=item new($name, :$accessor, :$rw, :$handles)
+=item new($name, :$has-accessor, :$rw, :$handles)
 
 Creates a new attribute meta-object, initialized with the name, whether or
 not the attribute has an accessor, whether or not that accessor 'is rw' and -
@@ -146,7 +147,7 @@ Applies all of the composees to the target, or throws an exception if there
 is a problem with doing so. It's totally up to the composer exactly what it
 does; the default composer for Perl 6 roles will construct a single
 intermediate role and then compose that into the target, for example. Since
-the model is intended for more general compositiony things rather than just
+the model is intended for more general composition-y things rather than just
 roles as are commonly defined today, we choose to give the composer a view of
 all of the composees.
 
@@ -158,11 +159,10 @@ all of the composees.
 Warning: Conjectural.
 
 One rather complex issue we run into is what happens if you want to inherit
-from something that has a different metaclass. For now, we forbid this unless
-the metaclass of the thing we're inheriting from is a superclass of the thing
-that is inheriting. This means that all other types of class-ish things that
-want to have a custom metaclass should subclass ClassHOW (either directly or
-transitively). Thus, this is fine:
+from something that has a different metaclass. For now, we require that if
+some class S isa T, then also S.HOW isa T.HOW. This means that all other types
+of class-ish things that want to have a custom metaclass should subclass
+ClassHOW (either directly or transitively). Thus, this is fine:
 
     class A { }
     thingy B is A { }
@@ -189,7 +189,8 @@ just that; when we have a good solution, we can relax the restriction.
 We do have the nicety that once we hit runtime, since composition is flattening
 by nature, we don't have any relationship at runtime with something  that was
 composed in (besides keeping it in our list of "things that we composed"). Thus
-the problem of the behaviors of two 
+the problem of the behaviors of two different appliers is only
+acomposition-time issue and not a runtime one.
 
 
 =head2 Associating a package declarator with a metaclass
@@ -314,16 +315,16 @@ many other design considerations.
 
 =head2 Influencing package code generation
 
-Note: This is highly Rakudo specific and very likely to remain that way.
+Note: This is highly Rakudo-specific and very likely to remain that way.
 The good news is that you won't need to do it often.
 
-Rakudo has a compile-time representation of a package that it is currently in
-the process of compiling. This is the thing that ends up actually generating
+Rakudo has a compile-time representation of the package currently being
+compiled. This is the thing that ends up actually generating
 the code - PAST nodes - that make the calls on the metaclass. By default, we
 always create an instance of Perl6::Compiler::Package, apart from for roles
 and modules, for which we need to do some slightly different code generation
-for - those use a subclass of it, such as Perl6::Compiler::Role. You may modify
+- those use a subclass of it, such as Perl6::Compiler::Role. You may modify
 %*PKGCOMPILER, again keying on $*PKGDECL, to specify something other than the
-default. You then should write a subclass of an existing handler for this and
+default. You should then write a subclass of an existing handler for this and
 implement the same interface (plus any other bits you'll need - it's just a
 class).

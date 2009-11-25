@@ -6,7 +6,7 @@ Perl6::Metamodel::RoleToClassApplier
 
 =head1 DESCRIPTION
 
-Applies a role to a class.
+Applies roles to a class.
 
 =head1 METHODS
 
@@ -14,11 +14,20 @@ Applies a role to a class.
 
 =item apply(target, composees)
 
-Creates a new instance of the meta-class.
+Applies the composees to the class. If there is more than one, it builds up a
+composite role first.
 
 =end
 
 class Perl6::Metamodel::RoleToClassApplier;
+
+sub has_method($target, $name, $local) {
+    my @methods := $target.methods($target, :local($local));
+    for @methods {
+        if $_.name eq $name { return 1; }
+    }
+    return 0;
+}
 
 method apply($target, @composees) {
     # If we have many things to compose, then get them into a single helper
@@ -32,7 +41,7 @@ method apply($target, @composees) {
     else {
         $to_compose_meta := RoleHOW.new();
         for @composees {
-            RoleHOW.add_composable($to_compose_meta);
+            RoleHOW.add_composable($to_compose_meta, $_);
         }
         $to_compose := RoleHOW.compose($to_compose_meta);
     }
@@ -40,7 +49,7 @@ method apply($target, @composees) {
     # Collisions?
     my @collisions := RoleHOW.collisions($to_compose_meta);
     for @collisions {
-        unless $target.can($target, ~$_) {
+        unless has_method($target, ~$_, 1) {
             # XXX This error is LTA.
             pir::die("Method '$_' collides and a resolution must be provided by the class");
         }
@@ -49,7 +58,7 @@ method apply($target, @composees) {
     # Unsatisfied requirements?
     my @requirements := RoleHOW.requirements($to_compose_meta);
     for @requirements {
-        unless $target.can($target, ~$_) {
+        unless has_method($target, ~$_, 0) {
             # XXX This error is LTA.
             pir::die("Method '$_' is required by a role and must be provided by the class, a parent class or by composing another role that implements it");
         }

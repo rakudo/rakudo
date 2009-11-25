@@ -85,6 +85,35 @@ Stores the parent; we'll add it to a class at compose time.
 .end
 
 
+=item add_requirement
+
+Adds the name of a required method to the requirements list for the role.
+
+=cut
+
+.sub 'add_requirement' :method
+    .param pmc meta
+    .param pmc requirement
+    $P0 = getattribute meta, '$!requirements'
+    push $P0, requirement
+.end
+
+
+=item add_collision
+
+Adds the name of a colliding method that needs the class or a role to resolve
+it to the collisions list for the role.
+
+=cut
+
+.sub 'add_collision' :method
+    .param pmc meta
+    .param pmc collision
+    $P0 = getattribute meta, '$!collisions'
+    push $P0, collision
+.end
+
+
 =item add_composable
 
 Stores something that we will compose (e.g. a role) at class composition time.
@@ -96,6 +125,44 @@ Stores something that we will compose (e.g. a role) at class composition time.
     .param pmc composee
     $P0 = getattribute meta, '$!composees'
     push $P0, composee
+.end
+
+
+=item methods
+
+Gets the list of methods that this role does.
+
+=cut
+
+.sub 'methods' :method
+    .param pmc meta
+    .local pmc result, it, p6role
+    result = root_new ['parrot';'ResizablePMCArray']
+    p6role = getattribute meta, 'parrotclass'
+    $P0 = inspect p6role, 'methods'
+    it = iter $P0
+  it_loop:
+    unless it goto it_loop_end
+    $S0 = shift it
+    $P1 = $P0[$S0]
+    push result, $P1
+    goto it_loop
+  it_loop_end:
+    .return (result)
+.end
+
+
+=item parents
+
+Gets the parents list for this role (e.g. the parents we are passing along for
+later being added to the class).
+
+=cut
+
+.sub 'parents' :method
+    .param pmc meta
+    $P0 = getattribute meta, '$!parents'
+    .return ($P0)
 .end
 
 
@@ -148,7 +215,8 @@ knows how to do that).
     .return ($P0)
 
   role_applier:
-    die 'Applying a role to a role is not yet supported.'
+    $P0 = get_hll_global ['Perl6';'Metamodel'], 'RoleToRoleApplier'
+    .return ($P0)
 
   instance_applier:
     die 'Applying a role to an instance is not yet supported.'
@@ -163,9 +231,40 @@ Completes the creation of the metaclass and return the P6role.
 
 .sub 'compose' :method
     .param pmc meta
-    .local pmc p6role
+
+    # See if we have anything to compose. Also, make sure our composees
+    # all want the same composer.
+    .local pmc composees, chosen_applier, composee_it
+    composees = getattribute meta, '$!composees'
+    $I0 = elements composees
+    if $I0 == 0 goto composition_done
+    if $I0 == 1 goto one_composee
+    composee_it = iter composees
+  composee_it_loop:
+    unless composee_it goto apply_composees
+    $P0 = shift composee_it
+    if null chosen_applier goto first_composee
+    $P1 = $P0.'HOW'()
+    $P1 = $P1.'applier_for'($P0, meta)
+    $P2 = chosen_applier.'WHAT'()
+    $P3 = $P1.'WHAT'()
+    $I0 = '&infix:<===>'($P2, $P3)
+    if $I0 goto composee_it_loop
+    die 'Can not compose multiple composees that want different appliers'
+  first_composee:
+    $P1 = $P0.'HOW'()
+    chosen_applier = $P1.'applier_for'($P0, meta)
+    goto composee_it_loop
+  one_composee:
+    $P0 = composees[0]
+    $P1 = $P0.'HOW'()
+    chosen_applier = $P1.'applier_for'($P0, meta)
+  apply_composees:
+    chosen_applier.'apply'(meta, composees)
+  composition_done:
 
     # Associate the metaclass with the p6role.
+    .local pmc p6role
     p6role = getattribute meta, 'parrotclass'
     setprop p6role, 'how', meta
     setattribute meta, 'protoobject', p6role

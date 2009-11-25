@@ -210,8 +210,8 @@ Completes the creation of the metaclass and return a proto-object.
     .return ($P0)
   not_found:
     pop_eh
-    $P0 = new ['Nil']
-    .return ($P0)
+    $P0 = get_hll_global '&Nil'
+    .tailcall $P0()
 .end
 
 

@@ -41,6 +41,10 @@ This is the base file for the Rakudo Perl 6 compiler.
     exports = split ' ', '!DISPATCH_JUNCTION_MULTI'
     parrotns.'export_to'(hllns, imports)
     hllns.'export_to'(parrotns, exports)
+
+    # to ease transition, make Mu and alias to Object for now
+    $P2 = get_hll_global 'Object'
+    set_hll_global 'Mu', $P2
 .end
 
 

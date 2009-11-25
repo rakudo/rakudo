@@ -95,9 +95,9 @@ composer API. It may be convenient to implement this is a set of multi subs.
 
 Finalizes the creation of the package. It can do any other composition-time
 operations, such as role composition and calling the composition hook on all
-attributes added to the package. Returns the the type object that we're
-going to actually install into the namespace or lexical pad, or just return if
-it's an anonymous declaration.
+attributes added to the package. Returns the type object that we're going to
+actually install into the namespace or lexical pad, or just return if it's
+an anonymous declaration.
 
 =back
 
@@ -187,10 +187,10 @@ to just always make this an error in the long run. For now, however, we do
 just that; when we have a good solution, we can relax the restriction.
 
 We do have the nicety that once we hit runtime, since composition is flattening
-by nature, we don't have any relationship at runtime with something  that was
+by nature, we don't have any relationship at runtime with something that was
 composed in (besides keeping it in our list of "things that we composed"). Thus
 the problem of the behaviors of two different appliers is only
-acomposition-time issue and not a runtime one.
+a composition-time issue and not a runtime one.
 
 
 =head2 Associating a package declarator with a metaclass
@@ -272,8 +272,9 @@ design of the metamodel.
         }
 
         method compose($meta) {
-            # We'll just install ourself into the namespace. XXX Or should we
-            # have some standard way of making a "type object"?
+            # We'll just install ourself into the namespace.
+            # XXX Or should we have some standard way of making a
+            #     "type object"?
             return $meta;
         }
 

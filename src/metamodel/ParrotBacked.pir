@@ -36,17 +36,25 @@ Add a method to the given meta.
 .end
 
 
-=item add_attribute(meta, name)
+=item add_attribute(meta, attribute)
 
-Adds an attribute of the given name to the given meta.
+Add an attribute.
 
 =cut
 
 .sub 'add_attribute' :method
     .param pmc meta
-    .param string name
+    .param pmc attribute
+
+    # Add the attribute at the Parrot level.
+    .local string name
+    name = attribute.'name'()
     $P0 = getattribute meta, 'parrotclass'
     addattribute $P0, name
+
+    # Add it to our attributes array.
+    $P0 = getattribute meta, '$!attributes'
+    push $P0, attribute
 .end
 
 

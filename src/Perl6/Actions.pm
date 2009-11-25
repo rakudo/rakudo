@@ -585,37 +585,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         %attr_table{$attrname} := Q:PIR { %r = new ['Hash'] };
         %attr_table{$attrname}<name>     := $attrname;
         %attr_table{$attrname}<accessor> := $twigil eq '.' ?? 1 !! 0;
-
-        # If the trait is . then need an accessor method adding too.
-        if $twigil eq '.' {
-            # Create block to return either the attribute itself, or
-            # wrapped to hide the rw-ness.
-            my $var := PAST::Var.new(
-                :name($attrname),
-                :scope('attribute'),
-                PAST::Var.new( :name('self'), :scope('lexical') )
-            );
-            unless $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') {
-                $var := PAST::Op.new( :pirop('new PsP'), 'Perl6Scalar', $var);
-            }
-            my $meth := PAST::Block.new(
-                :name($desigilname),
-                :nsentry(''),
-                PAST::Stmts.new(
-                    PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1) )
-                ),
-                $var
-            );
-            my $sig := Perl6::Compiler::Signature.new();
-            $sig.add_invocant();
-            my $sig_setup_block := add_signature($meth, $sig, 1);
-
-            # Wrap it in a Method handle, and install in methods table.
-            my %meth_table := @PACKAGE[0].methods;
-            my %meth_hash;
-            %meth_hash<code_ref> := create_code_object($meth, 'Method', 0, $sig_setup_block);
-            %meth_table{~$desigilname} := %meth_hash;
-        }
+        %attr_table{$attrname}<rw>       := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;
         
         # Nothing to emit here.
         $past := PAST::Stmts.new( );

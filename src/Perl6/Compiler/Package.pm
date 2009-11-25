@@ -114,10 +114,18 @@ method finish($block) {
     # Attributes.
     my %attrs := $!attributes;
     for %attrs {
+        my $attr := PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('new'),
+            PAST::Var.new( :name('Attribute'), :namespace(''), :scope('package') ),
+            PAST::Val.new( :value(~$_),                  :named('name') ),
+            PAST::Val.new( :value(%attrs{$_}<accessor>), :named('has_accessor') ),
+            PAST::Val.new( :value(%attrs{$_}<rw>),       :named('rw') ),
+        );
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_attribute'),
-            $metaclass, $meta_reg, ~$_
+            $metaclass, $meta_reg, $attr
         ));
     }
 

@@ -30,6 +30,7 @@ backing store.
     addparent $P0, $P1
 
     # Extra attributes for interface consistency and compositiony stuff.
+    addattribute $P0, '$!attributes'
     addattribute $P0, '$!hides'
     addattribute $P0, '$!hidden'
     addattribute $P0, '$!composees'
@@ -93,6 +94,8 @@ Creates a new instance of the meta-class.
     setattribute how, 'parrotclass', parrotclass
     $P0 = root_new ['parrot';'ResizablePMCArray']
     setattribute how, '$!composees', $P0
+    $P0 = root_new ['parrot';'ResizablePMCArray']
+    setattribute how, '$!attributes', $P0
     .return (how)
 .end
 
@@ -179,6 +182,17 @@ Completes the creation of the metaclass and return a proto-object.
   apply_composees:
     chosen_applier.'apply'(meta, composees)
   composition_done:
+
+    # Iterate over the attributes and compose them.
+    .local pmc attr_it, attributes
+    attributes = getattribute meta, '$!attributes'
+    attr_it = iter attributes
+  attr_it_loop:
+    unless attr_it goto attr_it_loop_end
+    $P0 = shift attr_it
+    $P0.'compose'(meta)
+    goto attr_it_loop
+  attr_it_loop_end:
 
     # If we have no parents explicitly given, inherit from Any.
     $P0 = inspect parrotclass, 'parents'

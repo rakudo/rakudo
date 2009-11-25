@@ -5,6 +5,10 @@ class Object is also {
         self.WHAT.substr(0, -2) ~ '.new()';
     }
 
+    multi method notdef() {
+        ! $.defined;
+    }
+
     multi method eigenstates {
         list(self)
     }

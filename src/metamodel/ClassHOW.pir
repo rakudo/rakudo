@@ -249,8 +249,7 @@ Gets a list of this class' parents.
     
     # Create result list.
     .local pmc parrot_class, result_list, parrot_list, it
-    result_list = get_root_global [.RAKUDO_HLL], 'Array'
-    result_list = result_list.'new'()
+    result_list = new 'Array'
 
     # We'll get the proto-object, then get the Parrot Class from that.
     obj = obj.'WHAT'()
@@ -328,8 +327,7 @@ Gets a list of methods.
     parrot_class = self.'get_parrotclass'(obj)
 
     # Create array to put results in.
-    result_list = get_root_global [.RAKUDO_HLL], 'Array'
-    result_list = result_list.'new'()
+    result_list = new 'Array'
 
     # Get methods for this class and build list of methods.
     method_hash = inspect parrot_class, "methods"
@@ -404,16 +402,14 @@ Gets a list of roles done by the class of this object.
 
     # Create result list.
     .local pmc result_list
-    result_list = get_root_global [.RAKUDO_HLL], 'Array'
-    result_list = result_list.'new'()
+    result_list = new 'Array'
 
     # Get list of parents whose roles we are interested in, and put
     # us on the start. With the local flag, that's just us.
     .local pmc parents, parents_it, cur_class, us
     unless null tree goto do_tree
     if null local goto all_parents
-    parents = get_root_global [.RAKUDO_HLL], 'Array'
-    parents = parents.'new'()
+    parents = new 'Array'
     goto parents_list_made
   all_parents:
     parents = self.'parents'(obj)
@@ -484,8 +480,7 @@ Accessor for hides property.
 .sub 'hides' :method
     $P0 = getattribute self, '$!hides'
     unless null $P0 goto done
-    $P0 = get_hll_global 'Array'
-    $P0 = $P0.'new'()
+    $P0 = new 'Array'
     setattribute self, '$!hides', $P0
   done:
     .return ($P0)

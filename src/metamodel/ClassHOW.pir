@@ -251,9 +251,14 @@ Gets a list of this class' parents.
     .local pmc parrot_class, result_list, parrot_list, it
     result_list = new 'Array'
 
-    # We'll get the proto-object, then get the Parrot Class from that.
-    obj = obj.'WHAT'()
+    # Get the parrot class.
+    $I0 = isa obj, 'ClassHOW'
+    unless $I0 goto is_not_meta
+    parrot_class = getattribute obj, 'parrotclass'
+    goto got_parrotclass
+  is_not_meta:
     parrot_class = self.'get_parrotclass'(obj)
+  got_parrotclass:
 
     # Fake top of Perl 6 hierarchy.
     $S0 = parrot_class.'name'()
@@ -322,9 +327,15 @@ Gets a list of methods.
     private = null
   private_setup:
 
+    # Get the Parrot class.
     .local pmc parrot_class, method_hash, result_list, it, cur_meth
-    obj = obj.'WHAT'()
+    $I0 = isa obj, 'ClassHOW'
+    unless $I0 goto is_not_meta
+    parrot_class = getattribute obj, 'parrotclass'
+    goto got_parrotclass
+  is_not_meta:
     parrot_class = self.'get_parrotclass'(obj)
+  got_parrotclass:
 
     # Create array to put results in.
     result_list = new 'Array'

@@ -48,8 +48,8 @@ class Match is also {
 
     method !_perl_quant($obj, $indent) {
         my $sp = ' ' x $indent;
-        if $obj ~~ undef {
-            take 'undef';
+        if !defined($obj) {
+            take '()';
         } elsif $obj ~~ Match {
             take $obj!_perl($indent + 3);
         } else {

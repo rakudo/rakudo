@@ -81,6 +81,7 @@ BUILTINS_PIR = \
   src/glue/run.pir \
   src/glue/types.pir \
   src/builtins/Object.pir \
+  src/gen/Attribute.pir \
   src/metamodel/ParrotBacked.pir \
   src/metamodel/ClassHOW.pir \
   src/metamodel/RoleHOW.pir \
@@ -311,6 +312,10 @@ src/gen/RoleToClassApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToClassAp
 src/gen/RoleToRoleApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToRoleApplier.nqp
 	$(NQP_EXE) --output=src/gen/RoleToRoleApplier.pir --encoding=utf8 \
 	    --target=pir src/metamodel/RoleToRoleApplier.nqp
+
+src/gen/Attribute.pir: $(PARROT) $(NQP_PBC) src/metamodel/Attribute.nqp
+	$(NQP_EXE) --output=src/gen/Attribute.pir --encoding=utf8 \
+	    --target=pir src/metamodel/Attribute.nqp
 
 src/gen/builtins.pir: build/gen_builtins_pir.pl $(BUILTINS_PIR)
 	$(PERL) build/gen_builtins_pir.pl $(BUILTINS_PIR) > src/gen/builtins.pir

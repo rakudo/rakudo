@@ -114,19 +114,19 @@ delegation methods associated with the attribute.
 
 =over 4
 
-=item new($name, :$has-accessor, :$rw, :$handles)
+=item new($name, :$has-accessor, :$rw, :$handles, :$build, :$type)
 
 Creates a new attribute meta-object, initialized with the name, whether or
 not the attribute has an accessor, whether or not that accessor 'is rw' and -
 if there was a handles trait modifier on the attribute - the handles trait
 modifier.
 
-=item compose($attr, $meta-package)
+=item compose($meta-package)
 
 Takes the attribute and does any final composition tasks (such as installing
-any accessor methods and/or delegators). The second parameter is the
-meta-object of the package that the attribute belongs to; you can call
-.^add_method on it to add methods, for example.
+any accessor methods and/or delegators). The parameter is the meta-object of
+the package that the attribute belongs to; you can call .add_method on it to
+add methods, for example.
 
 =back
 

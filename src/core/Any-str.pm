@@ -21,6 +21,19 @@ augment class Any {
         }
     }
 
+    multi method split(Regex $matcher, $limit = *, :$all) {
+        my $c = 0;
+        my $l = $limit.WHAT eq 'Whatever()' ?? Inf !! $limit - 1;
+        gather {
+            while $l > 0 && (my $m = $.match($matcher, :c($c))) {
+                take $.substr($c, $m.to);
+                take $m if $all;
+                $c = $m.to == $c ?? $c + 1 !! $m.to;
+            }
+            take $.substr($c);
+        }
+    }
+
     our Str multi method substr($start, $length?) is export {
         my $len = $length // self.chars;
         if ($len < 0) {

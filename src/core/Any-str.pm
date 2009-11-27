@@ -9,11 +9,7 @@ augment class Any {
 
     multi method comb(Regex $matcher, $limit = *, :$match) {
         my $c = 0;
-        # XXX this is an ugly hack. I'd prefer $limit ~~ Whatever,
-        # but the Whatever type object isn't available yet,
-        # and trying to introduce it leads to strange MDD-related
-        # bugs
-        my $l = $limit.isa('Whatever') ?? Inf !! $limit;
+        my $l = $limit ~~ ::Whatever ?? Inf !! $limit;
         gather while $l > 0 && (my $m = self.match($matcher, :c($c))) {
             take $match ?? $m !! ~$m;
             $c = $m.to == $c ?? $c + 1 !! $m.to;
@@ -23,7 +19,7 @@ augment class Any {
 
     multi method split(Regex $matcher, $limit = *, :$all) {
         my $c = 0;
-        my $l = $limit.isa('Whatever') ?? Inf !! $limit - 1;
+        my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
         gather {
             while $l > 0 && (my $m = $.match($matcher, :c($c))) {
                 take $.substr($c, $m.to);

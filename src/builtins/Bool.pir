@@ -22,16 +22,16 @@ symbols for C<Bool::True> and C<Bool::False>.
     p6meta = get_hll_global ['Perl6Object'], '$!P6META'
     boolproto = p6meta.'new_class'('Bool', 'parent'=>'parrot;Boolean Any')
     abstraction = get_hll_global 'Abstraction'
+    abstraction = abstraction.'!select'()
+    p6meta.'add_role'(abstraction, 'to'=>boolproto) 
 
     $P0 = boolproto.'new'()
     $P0 = 0
-    '&infix:<does>'($P0, abstraction)
     set_hll_global ['Bool'], 'False', $P0
     set_hll_global 'False', $P0
 
     $P0 = boolproto.'new'()
     $P0 = 1
-    '&infix:<does>'($P0, abstraction)
     set_hll_global ['Bool'], 'True', $P0
     set_hll_global 'True', $P0
 .end

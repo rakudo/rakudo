@@ -30,13 +30,12 @@ augment class Any {
         }
     }
 
-    multi method split(Str $delimiter, $limit = *, :$all) {
+    multi method split(Str $delimiter, $limit = *) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
         gather {
             while $l > 0 && (my $m = self.index($delimiter, $c)) {
                 take self.substr($c, $m - $c);
-                take $delimiter if $all;
                 $c = $delimiter.chars + ($m == $c ?? $c + 1 !! $m);
             }
             take self.substr($c);

@@ -1071,6 +1071,14 @@ method postop($/) {
 
 method dotty:sym<.>($/) { make $<dottyop>.ast; }
 
+method dotty:sym<.*>($/) {
+    my $past := $<dottyop>.ast;
+    $past.unshift($past.name);
+    $past.name('!dispatch_' ~ $<sym>.Str);
+    $past.pasttype('call');
+    make $past;
+}
+
 method dottyop($/) {
     if $<methodop> {
         make $<methodop>.ast;
@@ -1224,7 +1232,7 @@ method EXPR($/, $key?) {
     unless $key { return 0; }
     my $past := $/.peek_ast // $<OPER>.peek_ast;
     if !$past && $<infix><sym> eq '.=' {
-        make make_dot_equals($/);
+        make make_dot_equals($/[0].ast, $/[1].ast);
         return 1;
     }
     unless $past {
@@ -1742,9 +1750,7 @@ sub when_handler_helper($block) {
     $block.handlers(@handlers);
 }
 
-sub make_dot_equals($/) {
-    my $thingy  := $/[0].ast;
-    my $call    := $/[1].ast;
+sub make_dot_equals($thingy, $call) {
     my $tmp_reg := $thingy.unique('dotequals_');
     $call.unshift(PAST::Op.new(
         :pasttype('bind'),

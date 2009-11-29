@@ -89,3 +89,37 @@ array of invocants.
 
     .tailcall '&infix:<,>'(results :flat)
 .end
+
+
+=item !dispatch_.^
+
+Does a call on the metaclass.
+
+=cut
+
+.sub '!dispatch_.^'
+    .param pmc invocant
+    .param string name
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    .local pmc how
+    how = invocant.'HOW'()
+    .tailcall how.name(invocant, pos_args :flat, named_args :flat :named)
+.end
+
+
+=item !dispatch_.=
+
+Does a call on the LHS and assigns the result back to it.
+
+=cut
+
+.sub '!dispatch_.='
+    .param pmc invocant
+    .param string name
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    .param pmc result
+    result = invocant.name(pos_args :flat, named_args :flat :named)
+    .tailcall '&infix:<=>'(invocant, result)
+.end

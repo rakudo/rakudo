@@ -874,6 +874,11 @@ token dotty:sym<.> {
     <O('%methodcall')>
 }
 
+token dotty:sym<.*> {
+    $<sym>=['.' [ <[+*?=]> | '^' '!'? ]] <dottyop>
+    <O('%methodcall')>
+}
+
 token dottyop {
     [
     | <methodop>

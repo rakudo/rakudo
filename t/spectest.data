@@ -43,7 +43,7 @@ integration/substr-after-match-in-gather-in-for.t
 # S02-builtin_data_types/array_ref.t
 # S02-builtin_data_types/array.t
 # S02-builtin_data_types/assigning-refs.t
-# S02-builtin_data_types/bool.t
+S02-builtin_data_types/bool.t
 # S02-builtin_data_types/capture.t
 # S02-builtin_data_types/catch_type_cast_mismatch.t
 # S02-builtin_data_types/declare.t
@@ -105,6 +105,7 @@ S02-whitespace_and_comments/begin_end_pod.t
 S02-whitespace_and_comments/minimal-whitespace.t
 S02-whitespace_and_comments/one-pass-parsing.t
 # S02-whitespace_and_comments/pod-in-multi-line-exprs.t
+S02-whitespace_and_comments/sub-block-parsing.t
 # S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
 # S03-junctions/autothreading.t
@@ -134,7 +135,7 @@ S03-operators/assign-is-not-binding.t
 # S03-operators/inplace.t
 # S03-operators/list-quote-junction.t
 # S03-operators/misc.t
-# S03-operators/not.t
+S03-operators/not.t
 S03-operators/numeric-context.t
 # S03-operators/p5arrow.t
 # S03-operators/precedence.t
@@ -184,11 +185,11 @@ S04-statements/for_with_only_one_item.t
 # S04-statements/next.t
 # S04-statements/no-implicit-block.t
 # S04-statements/redo.t
-# S04-statements/repeat.t
+S04-statements/repeat.t
 # S04-statements/return.t
 # S04-statements/terminator.t
 # S04-statements/try.t
-# S04-statements/unless.t
+S04-statements/unless.t
 S04-statements/until.t
 # S04-statements/while.t
 # S05-capture/caps.t
@@ -264,7 +265,7 @@ S06-signature/defaults.t
 S06-signature/mixed-placeholders.t
 # S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
-# S06-signature/optional.t
+S06-signature/optional.t
 # S06-signature/passing-arrays.t
 # S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t

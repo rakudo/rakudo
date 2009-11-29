@@ -22,7 +22,7 @@ augment class Any {
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
         gather {
             while $l > 0 && (my $m = self.match($matcher, :c($c))) {
-                take self.substr($c, $m.to);
+                take self.substr($c, $m.from - $c);
                 take $m if $all;
                 $c = $m.to == $c ?? $c + 1 !! $m.to;
             }

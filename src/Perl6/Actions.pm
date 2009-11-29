@@ -1751,15 +1751,9 @@ sub when_handler_helper($block) {
 }
 
 sub make_dot_equals($thingy, $call) {
-    my $tmp_reg := $thingy.unique('dotequals_');
-    $call.unshift(PAST::Op.new(
-        :pasttype('bind'),
-        PAST::Var.new( :name($tmp_reg), :scope('register'), :isdecl(1) ),
-        $thingy
-    ));
-    return PAST::Op.new(
-        :pasttype('call'), :name('&infix:<=>'),
-        PAST::Var.new( :name($tmp_reg), :scope('register') ),
-        $call
-    );
+    $call.unshift($call.name);
+    $call.unshift($thingy);
+    $call.name('!dispatch_.=');
+    $call.pasttype('call');
+    $call;
 }

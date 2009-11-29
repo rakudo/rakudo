@@ -34,10 +34,15 @@ sub die_on_fail($fail=1) {
 # }
 
 multi sub plan($number_of_tests) is export {
-    $num_of_tests_planned = $number_of_tests;
-    $no_plan = 0;
+    if $number_of_tests ~~ ::Whatever {
+        $no_plan = 1;
+    }
+    else {
+        $num_of_tests_planned = $number_of_tests;
+        $no_plan = 0;
 
-    say '1..' ~ $number_of_tests;
+        say '1..' ~ $number_of_tests;
+    }
 }
 
 multi sub pass($desc) is export {

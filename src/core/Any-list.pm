@@ -18,6 +18,14 @@ augment class Any {
             %r = '&list'(mapper)
         }
     }
+
+    method reverse() {
+        my @result;
+        for @.list {
+            @result.unshift($_);
+        }
+        return @result;
+    }
 }
 
 # vim: ft=perl6

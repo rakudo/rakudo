@@ -21,12 +21,25 @@ augment class Any {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
         gather {
-            while $l > 0 && (my $m = $.match($matcher, :c($c))) {
-                take $.substr($c, $m.to);
+            while $l > 0 && (my $m = self.match($matcher, :c($c))) {
+                take self.substr($c, $m.to);
                 take $m if $all;
                 $c = $m.to == $c ?? $c + 1 !! $m.to;
             }
-            take $.substr($c);
+            take self.substr($c);
+        }
+    }
+
+    multi method split(Str $delimiter, $limit = *, :$all) {
+        my $c = 0;
+        my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
+        gather {
+            while $l > 0 && (my $m = self.index($delimiter, $c)) {
+                take self.substr($c, $m - $c);
+                take $delimiter if $all;
+                $c = $delimiter.chars + ($m == $c ?? $c + 1 !! $m);
+            }
+            take self.substr($c);
         }
     }
 

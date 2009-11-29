@@ -54,6 +54,7 @@ augment class Any {
         pir::substr(self, $start, $len);
     }
 
+    # S32/Str says that this should always return a StrPos object
     our Int multi method index($substring, $pos = 0) is export {
         if ($substring.chars == 0) {
             my $string_length = self.chars;
@@ -61,7 +62,8 @@ augment class Any {
         }
 
         my $result = pir::index__ISSi(self, $substring, $pos);
-        fail("Substring '$substring' not found in '{self}'") if ($result < 0);
+        # fail("Substring '$substring' not found in '{self}'") if ($result < 0);
+        if $result < 0 { return pir::new__PS('Undef'); } # no StrPos yet
         return $result;
 
         # also used to be a the following error message, but the condition

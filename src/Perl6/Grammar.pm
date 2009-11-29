@@ -1025,6 +1025,9 @@ token infix:sym<^..>  { <sym> <O('%structural')> }
 token infix:sym<..^>  { <sym> <O('%structural')> }
 token infix:sym<^..^> { <sym> <O('%structural')> }
 
+token infix:sym<but>  { <sym> <O('%structural')> }
+token infix:sym<does> { <sym> <O('%structural')> }
+
 grammar Perl6::Regex is Regex::P6Regex::Grammar {
     token metachar:sym<:my> { 
         ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';' 

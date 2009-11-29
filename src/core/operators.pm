@@ -79,3 +79,14 @@ our sub undefine(\$x) {
     my $undefined;
     $x = $undefined;
 }
+
+our multi infix:<does>(Object \$do-it-to-me, Role $r) {
+    my $specific_role = $r!select;
+    my $applicator    = $specific_role.^applier_for($do-it-to-me);
+    $applicator.apply($do-it-to-me, $r);
+    $do-it-to-me
+}
+
+our multi infix:<but>(Object $do-it-to-me is copy, \$r) {
+    $do-it-to-me does $r
+}

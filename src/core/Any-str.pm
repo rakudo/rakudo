@@ -39,9 +39,17 @@ augment class Any {
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
         if $l >= 0 {
             gather {
-                while $l-- > 0 && (my $m = self.index($delimiter, $c)) {
-                    take self.substr($c, $m - $c);
-                    $c = $delimiter.chars + ($m == $c ?? $c + 1 !! $m);
+                while $l-- > 0 {
+                    if ($delimiter eq "") {
+                        last unless $c + 1 < self.chars;
+                        take self.substr($c, 1);
+                        $c++;
+                    } else {
+                        my $m = self.index($delimiter, $c);
+                        last if $m == 0; # CHEAT, but the best I can do for now
+                        take self.substr($c, $m - $c);
+                        $c = $delimiter.chars + ($m == $c ?? $c + 1 !! $m);
+                    }
                 }
                 take self.substr($c);
             }

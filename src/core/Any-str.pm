@@ -34,21 +34,22 @@ augment class Any {
         }
     }
 
-    multi method split(Str $delimiter, $limit = *) {
+    multi method split($delimiter, $limit = *) {
+        my Str $match-string = $delimiter ~~ Str ?? $delimiter !! $delimiter.Str;
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
         if $l >= 0 {
             gather {
                 while $l-- > 0 {
-                    if ($delimiter eq "") {
+                    if ($match-string eq "") {
                         last unless $c + 1 < self.chars;
                         take self.substr($c, 1);
                         $c++;
                     } else {
-                        my $m = self.index($delimiter, $c);
+                        my $m = self.index($match-string, $c);
                         last if $m == 0; # CHEAT, but the best I can do for now
                         take self.substr($c, $m - $c);
-                        $c = $delimiter.chars + ($m == $c ?? $c + 1 !! $m);
+                        $c = $match-string.chars + ($m == $c ?? $c + 1 !! $m);
                     }
                 }
                 take self.substr($c);

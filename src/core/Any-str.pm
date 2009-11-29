@@ -47,9 +47,9 @@ augment class Any {
                         $c++;
                     } else {
                         my $m = self.index($match-string, $c);
-                        last if $m == 0; # CHEAT, but the best I can do for now
+                        last if $m.notdef; # CHEAT, but the best I can do for now
                         take self.substr($c, $m - $c);
-                        $c = $match-string.chars + ($m == $c ?? $c + 1 !! $m);
+                        $c = $m + $match-string.chars;
                     }
                 }
                 take self.substr($c);
@@ -80,7 +80,7 @@ augment class Any {
 
         my $result = pir::index__ISSi(self, $substring, $pos);
         # fail("Substring '$substring' not found in '{self}'") if ($result < 0);
-        if $result < 0 { return pir::new__PS('Undef'); } # no StrPos yet
+        if $result < 0 { return Mu; } # no StrPos yet
         return $result;
 
         # also used to be a the following error message, but the condition

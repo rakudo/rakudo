@@ -71,6 +71,51 @@ src/builtins/control.pir - control flow related functions
     throw e
 .end
 
+=item next
+
+=cut
+
+.sub '&next'
+    .local pmc e, p6ex
+    e = root_new ['parrot';'Exception']
+    e['severity'] = .EXCEPT_NORMAL
+    e['type'] = .CONTROL_LOOP_NEXT
+    p6ex = new ['Perl6Exception']
+    setattribute p6ex, '$!exception', e
+    set_global '$!', p6ex
+    throw e
+.end
+
+=item redo
+
+=cut
+
+.sub '&redo'
+    .local pmc e, p6ex
+    e = root_new ['parrot';'Exception']
+    e['severity'] = .EXCEPT_NORMAL
+    e['type'] = .CONTROL_LOOP_REDO
+    p6ex = new ['Perl6Exception']
+    setattribute p6ex, '$!exception', e
+    set_global '$!', p6ex
+    throw e
+.end
+
+=item last
+
+=cut
+
+.sub '&last'
+    .local pmc e, p6ex
+    e = root_new ['parrot';'Exception']
+    e['severity'] = .EXCEPT_NORMAL
+    e['type'] = .CONTROL_LOOP_LAST
+    p6ex = new ['Perl6Exception']
+    setattribute p6ex, '$!exception', e
+    set_global '$!', p6ex
+    throw e
+.end
+
 =item take
 
 =cut

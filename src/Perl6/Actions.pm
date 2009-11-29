@@ -270,6 +270,20 @@ method statement_control:sym<for>($/) {
     make $past;
 }
 
+method statement_control:sym<loop>($/) {
+    my $block := $<block>.ast;
+    $block.blocktype('immediate');
+    my $cond := $<e2> ?? $<e2>[0].ast !! 1;
+    my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
+    if $<e3> {
+        $loop.push( $<e3>[0].ast );
+    }
+    if $<e1> {
+        $loop := PAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );
+    }
+    make $loop;
+}
+
 method statement_control:sym<use>($/) {
     if $<module_name> {
         @BLOCK[0][0].unshift(

@@ -335,6 +335,16 @@ token statement_control:sym<for> {
     <xblock(1)>
 }
 
+token statement_control:sym<loop> {
+    <sym> :s
+        [ '('
+            <e1=.EXPR>? ';'
+            <e2=.EXPR>? ';'
+            <e3=.EXPR>?
+        ')' ]?
+    <block>
+}
+
 token statement_control:sym<return> {
     <sym> :s 
     [ <EXPR> || <.panic: 'return requires an expression argument'> ]

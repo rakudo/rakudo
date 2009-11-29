@@ -20,25 +20,33 @@ augment class Any {
     multi method split(Regex $matcher, $limit = *, :$all) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
-        gather {
-            while $l > 0 && (my $m = self.match($matcher, :c($c))) {
-                take self.substr($c, $m.from - $c);
-                take $m if $all;
-                $c = $m.to == $c ?? $c + 1 !! $m.to;
+        if $l >= 0 {
+            gather {
+                while $l-- > 0 && (my $m = self.match($matcher, :c($c))) {
+                    take self.substr($c, $m.from - $c);
+                    take $m if $all;
+                    $c = $m.to == $c ?? $c + 1 !! $m.to;
+                }
+                take self.substr($c);
             }
-            take self.substr($c);
+        } else {
+            Nil;
         }
     }
 
     multi method split(Str $delimiter, $limit = *) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
-        gather {
-            while $l > 0 && (my $m = self.index($delimiter, $c)) {
-                take self.substr($c, $m - $c);
-                $c = $delimiter.chars + ($m == $c ?? $c + 1 !! $m);
+        if $l >= 0 {
+            gather {
+                while $l-- > 0 && (my $m = self.index($delimiter, $c)) {
+                    take self.substr($c, $m - $c);
+                    $c = $delimiter.chars + ($m == $c ?? $c + 1 !! $m);
+                }
+                take self.substr($c);
             }
-            take self.substr($c);
+        } else {
+            Nil;
         }
     }
 

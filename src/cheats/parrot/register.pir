@@ -19,7 +19,7 @@ Rakudo classes before we compose the Parrot equivalents.
 
 .sub '' :anon :load :init
     .local pmc p6meta, rakudons, proto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
 
     proto = get_hll_global 'Bool'
     p6meta.'register'('Boolean', 'parent'=>proto, 'protoobject'=>proto)

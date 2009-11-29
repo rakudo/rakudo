@@ -80,7 +80,7 @@ BUILTINS_PIR = \
   src/glue/role.pir \
   src/glue/run.pir \
   src/glue/types.pir \
-  src/builtins/Object.pir \
+  src/builtins/Mu.pir \
   src/gen/Attribute.pir \
   src/metamodel/ParrotBacked.pir \
   src/metamodel/ClassHOW.pir \
@@ -148,7 +148,7 @@ CORE_SOURCES = \
   src/cheats/trait-export.pm \
   src/cheats/num.pm \
   src/cheats/eval.pm \
-  src/core/Object.pm \
+  src/core/Mu.pm \
   src/core/Any-num.pm \
   src/core/Any-list.pm \
   src/core/Any-str.pm \

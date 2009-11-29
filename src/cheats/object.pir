@@ -1,8 +1,8 @@
-# method cheats for Object
+# method cheats for Mu
 
 # most of these can potentially go into CORE, when we have 'augment' working.
 
-.namespace ['Perl6Object']
+.namespace ['Mu']
 
 .sub 'print' :method
     $P0 = get_hll_global '&print'

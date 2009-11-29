@@ -515,7 +515,7 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
             }
             else {
                 element->nominal_type = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
-                        string_from_literal(interp, "Object"));
+                        string_from_literal(interp, "Mu"));
             }
 
             goto NEXT();

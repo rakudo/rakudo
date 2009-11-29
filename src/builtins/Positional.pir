@@ -36,7 +36,7 @@ src/classes/Positional.pir - Positional Role
     type = type.'WHAT'()
     goto type_done
   no_type:
-    type = get_hll_global 'Object'
+    type = get_hll_global 'Mu'
   type_done:
     .lex 'T', type
 
@@ -167,7 +167,7 @@ Returns the type constraining what may be stored.
     .param pmc options :slurpy :named
     $I0 = can invocant, 'postcircumfix:[ ]'
     if $I0 goto object_method
-    $I0 = isa invocant, 'Perl6Object'
+    $I0 = isa invocant, 'Mu'
     if $I0 goto object_method
   foreign:
     $P0 = get_hll_global ['Positional[::T]'], 'postcircumfix:[ ]'

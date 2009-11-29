@@ -135,7 +135,7 @@ Attribute descriptors.
     # Type
     $P0 = cur_attr_hash['type']
     unless null $P0 goto type_done
-    $P0 = get_root_global [.RAKUDO_HLL], 'Object'
+    $P0 = get_root_global [.RAKUDO_HLL], 'Mu'
   type_done:
 
     # Build

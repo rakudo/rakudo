@@ -13,7 +13,7 @@ This file implements the Grammar class.
 .sub '' :anon :init :load
     load_bytecode "PGE.pbc"
     .local pmc p6meta
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     p6meta.'new_class'('Grammar', 'parent'=>'Any')
 
     # XXX pmichaud++ needs to fix this bunch. kplzthnxbai jnthn :-)
@@ -52,7 +52,7 @@ Invokes the TOP rule in the grammar on the given topic.
     TOP = find_method self, "TOP"
     pop_eh
     .local pmc match, p6meta
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     $P0 = p6meta.'get_parrotclass'(self)
     $P0 = inspect $P0, 'namespace'
     $P0 = $P0.'get_name'()

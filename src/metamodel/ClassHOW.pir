@@ -18,14 +18,14 @@ backing store.
 
 .sub 'onload' :anon :init :load
     .local pmc p6meta, classhowproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     
     # We need to specially construct our subclass of p6metaclass. We also
     # make it subclass Object.
     $P0 = newclass 'ClassHOW'
     $P1 = get_class 'P6metaclass'
     addparent $P0, $P1
-    $P1 = get_hll_global 'Object'
+    $P1 = get_hll_global 'Mu'
     $P1 = p6meta.'get_parrotclass'($P1)
     addparent $P0, $P1
 
@@ -54,10 +54,10 @@ backing store.
     setattribute $P0, 'longname', $P1
     $P1 = getattribute p6meta, 'shortname'
     setattribute $P0, 'shortname', $P1
-    set_hll_global ['Perl6Object'], '$!P6META', $P0
+    set_hll_global ['Mu'], '$!P6META', $P0
     $P1 = getattribute p6meta, 'parrotclass'
     setprop $P1, 'metaclass', $P0
-    $P1 = get_hll_global 'Object'
+    $P1 = get_hll_global 'Mu'
     $P1 = typeof $P1
     setprop $P1, 'metaclass', $P0
 .end
@@ -276,7 +276,7 @@ Gets a list of this class' parents.
 
     # Fake top of Perl 6 hierarchy.
     $S0 = parrot_class.'name'()
-    if $S0 == 'Perl6Object' goto done
+    if $S0 == 'Mu' goto done
 
     # If it's local can just use inspect.
     unless null tree goto do_tree
@@ -371,7 +371,7 @@ Gets a list of methods.
 
     # If we're in local mode or we reached the top of the hierarchy, we're done.
     $S0 = parrot_class
-    if $S0 == 'Perl6Object' goto done
+    if $S0 == 'Mu' goto done
     if null local goto not_local
     if local goto done
   not_local:

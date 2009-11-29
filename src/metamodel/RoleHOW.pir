@@ -20,8 +20,8 @@ on.
 
 .sub 'onload' :anon :init :load
     .local pmc p6meta, rolehowproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    rolehowproto = p6meta.'new_class'('RoleHOW', 'parent'=>'Object', 'attr'=>'parrotclass shortname longname protoobject $!parents $!composees $!requirements $!collisions $!attributes')
+    p6meta = get_hll_global ['Mu'], '$!P6META'
+    rolehowproto = p6meta.'new_class'('RoleHOW', 'parent'=>'Mu', 'attr'=>'parrotclass shortname longname protoobject $!parents $!composees $!requirements $!collisions $!attributes')
 
     # Also want to get various methods from the ParrotBacked role, since we're
     # backed by a Parrot Class PMC and using it to store most things.

@@ -1230,7 +1230,7 @@ method circumfix:sym<sigil>($/) {
 
 method EXPR($/, $key?) {
     unless $key { return 0; }
-    my $past := $/.peek_ast // $<OPER>.peek_ast;
+    my $past := $/.ast // $<OPER>.ast;
     if !$past && $<infix><sym> eq '.=' {
         make make_dot_equals($/[0].ast, $/[1].ast);
         return 1;

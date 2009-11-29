@@ -16,7 +16,7 @@ A Perl 6 Exception object.
 
 .sub '' :anon :init :load
     .local pmc p6meta, exceptionproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     exceptionproto = p6meta.'new_class'('Perl6Exception', 'parent'=>'Any parrot;Exception', 'attr'=>'$!exception', 'name'=>'Exception')
     p6meta.'register'('Exception', 'protoobject'=>exceptionproto)
 .end

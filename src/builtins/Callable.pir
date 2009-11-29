@@ -6,7 +6,7 @@ src/classes/Callable.pir - Callable Role
 
 =head1 DESCRIPTION
 
-This implements the parametric role Callable[::T = Object].
+This implements the parametric role Callable[::T = Mu].
 
 =cut
 
@@ -39,7 +39,7 @@ This implements the parametric role Callable[::T = Object].
     type = type.'WHAT'()
     goto type_done
   no_type:
-    type = get_hll_global 'Object'
+    type = get_hll_global 'Mu'
   type_done:
     .lex 'T', type
 

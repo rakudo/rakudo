@@ -53,7 +53,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
             STRING * const get_pc = CONST_STRING(interp, "get_parrotclass");
             ns_key = pmc_new(interp, enum_class_ResizableStringArray);
             VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
-            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Perl6Object"));
+            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Mu"));
             ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
             p6meta = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "$!P6META"));
             meth = VTABLE_find_method(interp, p6meta, get_pc);

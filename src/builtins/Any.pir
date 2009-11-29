@@ -17,8 +17,8 @@ This file implements the Any class.
 .namespace []
 .sub 'onload' :anon :init :load
     .local pmc p6meta
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
-    p6meta.'new_class'('Any', 'parent'=>'Perl6Object')
+    p6meta = get_hll_global ['Mu'], '$!P6META'
+    p6meta.'new_class'('Any', 'parent'=>'Mu')
 .end
 
 

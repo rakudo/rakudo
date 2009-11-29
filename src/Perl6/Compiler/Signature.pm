@@ -78,7 +78,7 @@ method set_default_parameter_type($type_name) {
 
 # Gets the default type of the parameters.
 method get_default_parameter_type() {
-    $!default_type || 'Object'
+    $!default_type || 'Mu'
 }
 
 
@@ -192,7 +192,7 @@ method ast($high_level?) {
         # Fix up nominal type.
         my $nom_type := $null_reg;
         if $_.pos_slurpy || $_.named_slurpy || $_.invocant {
-            $nom_type := PAST::Var.new( :name('Object'), :scope('package') );
+            $nom_type := PAST::Var.new( :name('Mu'), :scope('package') );
         }
         elsif $_.sigil eq "$" {
             if !$_.nom_type {

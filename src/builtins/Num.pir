@@ -14,7 +14,7 @@ Num - Perl 6 numbers
 
 .sub 'onload' :anon :init :load
     .local pmc p6meta, numproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     numproto = p6meta.'new_class'('Num', 'parent'=>'parrot;Float Any')
 
     # Override the proto's ACCEPT method so we also accept Ints.

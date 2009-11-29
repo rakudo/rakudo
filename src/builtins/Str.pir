@@ -19,7 +19,7 @@ as the Perl 6 C<Str> class.
 
 .sub 'onload' :anon :init :load
     .local pmc p6meta, strproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     strproto = p6meta.'new_class'('Str', 'parent'=>'parrot;Perl6Str Any')
 .end
 

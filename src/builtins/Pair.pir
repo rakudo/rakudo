@@ -14,7 +14,7 @@ src/classes/Pair.pir - methods for the Pair class
 
 .sub 'onload' :anon :load :init
     .local pmc p6meta, pairproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     pairproto = p6meta.'new_class'('Pair', 'parent'=>'Any', 'attr'=>'$!key $!value')
 .end
 

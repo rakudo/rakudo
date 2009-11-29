@@ -17,7 +17,7 @@ wrappable executable objects.
 
 .sub 'onload' :anon :load :init
     .local pmc p6meta
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     p6meta.'new_class'('Routine', 'parent'=>'Block')
 .end
 

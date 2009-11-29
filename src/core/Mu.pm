@@ -1,3 +1,3 @@
-augment class Object {
+augment class Mu {
     method true { $.defined }
 }

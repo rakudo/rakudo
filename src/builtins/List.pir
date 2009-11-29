@@ -17,7 +17,7 @@ items are not generated until they are needed.
 .namespace ['List']
 .sub 'onload' :anon :init :load
     .local pmc p6meta, listproto, pos_role
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     
     # Select generic version of Positional (for untyped) and do it.
     # XXX When List becomes a parametric role too, we'd pass in the

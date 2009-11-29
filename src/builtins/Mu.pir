@@ -2,7 +2,7 @@
 
 =head1 TITLE
 
-Object - Perl 6 Object class
+Mu - Perl 6 Mu class
 
 =head1 DESCRIPTION
 
@@ -60,7 +60,7 @@ like this.
   sub_fixup_done:
 .endm
 
-.namespace ['Perl6Object']
+.namespace ['Mu']
 .sub 'clone' :method
     .param pmc new_attrs :slurpy :named
 
@@ -71,7 +71,7 @@ like this.
 
     # Set any new attributes.
     .local pmc p6meta, parrotclass, attributes, it
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     parrotclass = p6meta.'get_parrotclass'(result)
     if null parrotclass goto attrinit_done
     attributes = inspect parrotclass, 'attributes'
@@ -110,7 +110,7 @@ like this.
 
 =cut
 
-.namespace ['Perl6Object']
+.namespace ['Mu']
 .sub 'bless' :method
     .param pmc candidate
     .param pmc posargs         :slurpy
@@ -129,7 +129,7 @@ like this.
     .param pmc attrinit        :slurpy :named
 
     .local pmc p6meta, parentproto, parrotclass, attributes, it
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     parentproto = find_caller_lex '$CLASS'
     parrotclass = p6meta.'get_parrotclass'(parentproto)
     attributes = inspect parrotclass, 'attributes'
@@ -165,7 +165,7 @@ like this.
 
     .include 'iterator.pasm'
     .local pmc p6meta, parents, it
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     $P0 = p6meta.'get_parrotclass'(self)
     parents = inspect $P0, 'all_parents'
     it = iter parents
@@ -241,7 +241,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
 
     # P6opaque. Create example.
     .local pmc p6meta, parrot_class, example
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     parrot_class = p6meta.'get_parrotclass'(self)
     example = new parrot_class
 
@@ -295,7 +295,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     # Only go to next class if we didn't already reach the top of the Perl 6
     # hierarchy.
     $S0 = cur_class
-    if $S0 != 'Perl6Object' goto classinit_loop
+    if $S0 != 'Mu' goto classinit_loop
   classinit_loop_end:
     
     # Turn the example from a Parrot Object into a p6opaque; we'll ideally be
@@ -443,7 +443,7 @@ Gets the object's identity value
 
 =cut
 
-.namespace ['Perl6Object']
+.namespace ['Mu']
 .sub '' :vtable('decrement') :method
     $P0 = self.'pred'()
     '&infix:<=>'(self, $P0)

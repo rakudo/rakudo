@@ -14,7 +14,7 @@ This file sets up the Perl 6 C<Method> class, the class for methods.
 
 .sub 'onload' :anon :load :init
     .local pmc p6meta
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     p6meta.'new_class'('Method', 'parent'=>'Routine')
 .end
 

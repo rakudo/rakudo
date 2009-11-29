@@ -15,7 +15,7 @@ Grammar by default.
 
 .sub 'onload' :anon :init :load
     .local pmc p6meta
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     p6meta.'new_class'('GrammarHOW', 'parent'=>'ClassHOW')
 .end
 

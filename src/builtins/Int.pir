@@ -14,7 +14,7 @@ Int - Perl 6 integers
 
 .sub 'onload' :anon :init :load
     .local pmc p6meta, intproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     intproto = p6meta.'new_class'('Int', 'parent'=>'parrot;Integer Any')
 .end
 

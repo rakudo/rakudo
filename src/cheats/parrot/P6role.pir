@@ -27,7 +27,7 @@ Puns the role to a class and returns that class.
 
     # Otherwise, need to create a punned class.
     .local pmc p6meta, metaclass, proto
-    p6meta = get_root_global [.RAKUDO_HLL ; 'Perl6Object'], '$!P6META'
+    p6meta = get_root_global [.RAKUDO_HLL ; 'Mu'], '$!P6META'
     metaclass = root_new ['parrot';'Class']
     $P0 = box 'class'
     setprop metaclass, 'pkgtype', $P0

@@ -24,12 +24,12 @@ Perl6::Compiler - Perl6 compiler
     # Init Rakudo dynops.
     rakudo_dynop_setup
 
-    # Set up Object. XXX Stop calling it Perl6Object.
+    # Set up Mu.
     .local pmc objproto, p6meta
     $P0 = get_root_global ['parrot'], 'P6metaclass'
-    objproto = $P0.'new_class'('Perl6Object', 'name'=>'Object')
+    objproto = $P0.'new_class'('Mu')
     p6meta = objproto.'HOW'()
-    set_hll_global ['Perl6Object'], '$!P6META', p6meta
+    set_hll_global ['Mu'], '$!P6META', p6meta
 
     set_hll_global '$!OBJECTREF', objproto
 
@@ -81,7 +81,7 @@ Perl6::Compiler - Perl6 compiler
 .sub '' :anon :load :init
     # Set up parser/actions.
     .local pmc p6meta, nqpproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     nqpproto = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'HLL::Compiler')
     nqpproto.'language'('Perl6')
     $P0 = get_hll_global ['Perl6'], 'Grammar'

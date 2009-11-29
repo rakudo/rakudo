@@ -15,7 +15,7 @@ use the one in Positional.
     .param pmc args            :slurpy
     $I0 = can invocant, 'postcircumfix:<[ ]>'
     if $I0 goto object_method
-    $I0 = isa invocant, 'Perl6Object'
+    $I0 = isa invocant, 'Mu'
     if $I0 goto object_method
   foreign:
     die "Can't postcircumfix:<[ ]> foreign objects yet."

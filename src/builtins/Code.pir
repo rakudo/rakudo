@@ -15,7 +15,7 @@ for executable objects.
 
 .sub 'onload' :anon :load :init
     .local pmc p6meta, codeproto
-    p6meta = get_hll_global ['Perl6Object'], '$!P6META'
+    p6meta = get_hll_global ['Mu'], '$!P6META'
     codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi $!lazy_sig_init_name')
     $P0 = get_hll_global 'Callable'
     $P0 = $P0.'!select'()

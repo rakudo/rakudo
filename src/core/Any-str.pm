@@ -166,6 +166,10 @@ augment class Any {
         }
     }
 
+    multi method words(Int $limit = *) {
+        self.comb( / \S+ /, $limit );
+    }
+
     our Str multi method uc() is export {
         ~(pir::upcase__SS(self))
     }

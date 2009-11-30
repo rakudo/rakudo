@@ -96,6 +96,23 @@ augment class Any {
         # .tailcall '!FAIL'("Attempt to index from negative position")
     }
 
+    # S32/Str says that this should always return a StrPos object
+    # our Int multi method rindex($substring, $pos?) is export {
+    #     if ($substring.chars == 0) {
+    #         my $string_length = self.chars;
+    #         return $pos.defined && $pos < $string_length ?? $pos !! $string_length;
+    #     }
+    #
+    #     my $result = pir::reverse_index__ISSi(self, $substring, $pos);
+    #     # fail("Substring '$substring' not found in '{self}'") if ($result < 0);
+    #     if $result < 0 { return Mu; } # no StrPos yet
+    #     return $result;
+    #
+    #     # also used to be a the following error message, but the condition
+    #     # was never checked:
+    #     # .tailcall '!FAIL'("Attempt to index from negative position")
+    # }
+
     our Str multi method chop() is export {
         self.substr(0, -1)
     }
@@ -137,6 +154,16 @@ augment class Any {
 
     multi method flip() is export {
         (~self).split('').reverse().join;
+    }
+
+    # TODO: signature not fully specced in S32 yet
+    multi method trim() is export {
+        # (~self).subst(/(^\s+)|(\s+$)/, "", :g)
+        if self ~~ /^\s*(.*?)\s*$/ {
+            ~$/[0];
+        } else {
+            self;
+        }
     }
 
     our Str multi method uc() is export {

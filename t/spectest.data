@@ -439,7 +439,7 @@ S32-str/append.t
 # S32-str/comb.t                                             # icu
 # S32-str/encode.t
 # S32-str/flip.t
-# S32-str/index.t
+S32-str/index.t
 S32-str/lcfirst.t
 # S32-str/lc.t
 # S32-str/p5chomp.t

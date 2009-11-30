@@ -7,6 +7,14 @@ augment class Any {
         pir::length__IS(self);
     }
 
+    our multi method chomp() is export {
+        if self ~~ /\x0a$/ {
+            self.substr(0, self.chars - 1);
+        } else {
+            self;
+        }
+    }
+
     multi method comb(Regex $matcher, $limit = *, :$match) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit;

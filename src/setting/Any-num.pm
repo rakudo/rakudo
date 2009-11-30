@@ -407,9 +407,8 @@ multi sub sqrt(Any $x) {
     $x.Num.sqrt
 }
 
-proto sign($x) { sign($x) }
-multi sub sign(Any $x) {
-    defined($x) ?? $x.Num.sign !! undef;
+proto sign($x) {
+    defined($x) ?? $x.Num.sign !! Bool;
 }
 
 multi sub roots($x, $n) {

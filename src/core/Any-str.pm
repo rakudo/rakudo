@@ -15,7 +15,7 @@ augment class Any {
         }
     }
 
-    multi method comb(Regex $matcher, $limit = *, :$match) {
+    multi method comb(Regex $matcher = /./, $limit = *, :$match) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit;
         gather while $l > 0 && (my $m = self.match($matcher, :c($c))) {

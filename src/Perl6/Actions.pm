@@ -118,10 +118,15 @@ method statement($/, $key?) {
     my $past;
     if $<EXPR> {
         my $mc := $<statement_mod_cond>[0];
-        $past := $mc
-              ?? PAST::Op.new(:pasttype(~$mc<sym>), :node($/),
-                     $mc.ast, $<EXPR>.ast, PAST::Op.new(:name('&Nil')))
-              !! $<EXPR>.ast;
+        my $ml := $<statement_mod_loop>[0];
+        $past := $<EXPR>.ast;
+        if $mc {
+            $past := PAST::Op.new($mc<cond>.ast, $past, PAST::Op.new(:name('&Nil')), 
+                        :pasttype(~$mc<sym>), :node($/) );
+        }
+        if $ml {
+            $past := PAST::Op.new($ml<cond>.ast, $past, :pasttype(~$ml<sym>), :node($/) );
+        }
     }
     elsif $<statement_control> { $past := $<statement_control>.ast; }
     else { $past := 0; }
@@ -395,9 +400,11 @@ sub add_phaser($/, $bank) {
 
 # Statement modifiers
 
-method statement_mod_cond:sym<if>($/)     { make $<mod_expr>.ast; }
-method statement_mod_cond:sym<unless>($/) { make $<mod_expr>.ast; }
+method statement_mod_cond:sym<if>($/)     { make $<cond>.ast; }
+method statement_mod_cond:sym<unless>($/) { make $<cond>.ast; }
 
+method statement_mod_loop:sym<while>($/)  { make $<cond>.ast; }
+method statement_mod_loop:sym<until>($/)  { make $<cond>.ast; }
 
 ## Terms
 

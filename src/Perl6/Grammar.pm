@@ -240,7 +240,7 @@ token statement {
     | <EXPR> <.ws>
         [
         | <statement_mod_cond> <statement_mod_loop>?
-        | <statement_mod_cond>
+        | <statement_mod_loop>
         ]?
     ]
     | <?before ';'>

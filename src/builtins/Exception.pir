@@ -21,18 +21,54 @@ A Perl 6 Exception object.
     p6meta.'register'('Exception', 'protoobject'=>exceptionproto)
 .end
 
+# IIUC we shouldn't need this... but Exception.new(:exception(...)) didn't work
+.sub 'new' :method
+    .param pmc ex
+    .local pmc e, c
+    c = self.'CREATE'('P6opaque')
+    e = self.'bless'(c)
+    setattribute e, '$!exception', ex
+    .return (e)
+.end
+
+.sub exception :method
+    .param pmc ex :optional
+    .param int has_ex :opt_flag
+    unless has_ex goto get_ex
+    setattribute self, '$!exception', ex
+    .return (ex)
+  get_ex:
+    ex = getattribute self, '$!exception'
+    .return (ex)
+.end
+
 
 .sub 'resume' :method
-    .local pmc resume
-    resume = self['resume']
+    .local pmc ex, resume
+    ex = getattribute self, '$!exception'
+    resume = ex['resume']
     resume()
 .end
 
 
 .sub 'rethrow' :method
-    rethrow self
+    .local pmc ex
+    ex = getattribute self, '$!exception'
+    rethrow ex
 .end
 
+.sub 'payload' :method
+    .param pmc payload :optional
+    .param int has_payload :opt_flag
+    .local pmc ex
+    ex = getattribute self, '$!exception'
+    unless has_payload goto no_payload
+    setattribute ex, 'payload', payload
+    .return (payload)
+  no_payload:
+    payload = getattribute ex, 'payload'
+    .return (payload)
+.end
 
 .sub 'perl' :method
     .return ('undef')

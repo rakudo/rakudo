@@ -341,6 +341,20 @@ method statement_control:sym<default>($/) {
     make $block;
 }
 
+method statement_control:sym<CATCH>($/) {
+    my $block := $<block>.ast;
+    push_block_handler($/, $block);
+    @BLOCK[0].handlers()[0].handle_types_except('CONTROL');
+    make PAST::Stmts.new(:node($/));
+}
+
+method statement_control:sym<CONTROL>($/) {
+    my $block := $<block>.ast;
+    push_block_handler($/, $block);
+    @BLOCK[0].handlers()[0].handle_types('CONTROL');
+    make PAST::Stmts.new(:node($/));
+}
+
 # XXX BEGIN isn't correct here, but I'm adding it along with this
 # note so that everyone else knows it's wrong too.  :-)
 method statement_prefix:sym<BEGIN>($/) { add_phaser($/, 'BEGIN'); }
@@ -1764,3 +1778,60 @@ sub make_dot_equals($thingy, $call) {
     $call.pasttype('call');
     $call;
 }
+
+# XXX This isn't quite right yet... need to evaluate these semantics
+sub push_block_handler($/, $block) {
+    unless @BLOCK[0].handlers() {
+        @BLOCK[0].handlers([]);
+    }
+    $block.blocktype('declaration');
+    $block := PAST::Block.new(
+        :blocktype('declaration'),
+        PAST::Var.new( :scope('parameter'), :name('$_') ),
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :scope('lexical'), :name('$_') ),
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('new'),
+                PAST::Var.new(
+                    :name('Exception'),
+                    :namespace([]),
+                    :scope('package'),
+                ),
+                PAST::Var.new( :scope('lexical'), :name('$_') ),
+            ),
+        ),
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :scope('lexical'), :name('$!'), :isdecl(1) ),
+            PAST::Var.new( :scope('lexical'), :name('$_') ),
+        ),
+        PAST::Op.new( :pasttype('call'),
+            $block,
+        ),
+    );
+    $block.symbol('$_', :scope('lexical'));
+    $block.symbol('$!', :scope('lexical'));
+    $block := PAST::Stmts.new(
+        PAST::Op.new( :pasttype('call'),
+            $block,
+            PAST::Var.new( :scope('register'), :name('exception') ),
+        ),
+        # XXX Rakudo needs to set this when $! is inspected
+        # We just cheat for now.  Call .rethrow() if you want it rethrown.
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :scope('keyed'),
+                PAST::Var.new( :scope('register'), :name('exception')),
+                'handled'
+            ),
+            1
+        )
+    );
+
+    @BLOCK[0].handlers.unshift(
+        PAST::Control.new(
+            :node($/),
+            $block,
+        )
+    );
+}
+

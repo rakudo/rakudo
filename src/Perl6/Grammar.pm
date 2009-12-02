@@ -372,6 +372,9 @@ rule statement_control:sym<default> {
     <sym> <block>
 }
 
+rule statement_control:sym<CATCH> {<sym> <block(1)> }
+rule statement_control:sym<CONTROL> {<sym> <block(1)> }
+
 proto token statement_prefix { <...> }
 token statement_prefix:sym<BEGIN> { <sym> <blorst> }
 token statement_prefix:sym<CHECK> { <sym> <blorst> }

@@ -1131,15 +1131,15 @@ method term:sym<Nil>($/) {
 }
 
 method term:sym<...>($/) {
-    make PAST::Op.new( :pasttype('call'), :name('fail'), 'Stub code executed' );
+    make PAST::Op.new( :pasttype('call'), :name('&fail'), 'Stub code executed' );
 }
 
 method term:sym<???>($/) {
-    make PAST::Op.new( :pasttype('call'), :name('warn'), 'Stub code executed' );
+    make PAST::Op.new( :pasttype('call'), :name('&warn'), 'Stub code executed' );
 }
 
 method term:sym<!!!>($/) {
-    make PAST::Op.new( :pasttype('call'), :name('die'), 'Stub code executed' );
+    make PAST::Op.new( :pasttype('call'), :name('&die'), 'Stub code executed' );
 }
 
 method term:sym<dotty>($/) {

@@ -405,7 +405,7 @@ our multi sub infix:<cmp>(Num $a, Num $b) {
     }
 }
 
-our multi sub infix:«<=>»(Num $a, Num $b) {
+our multi sub infix:«<=>»($a, $b) {
     +$a cmp +$b
 }
 

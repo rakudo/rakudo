@@ -183,4 +183,25 @@ multi sub infix:<x>($str, $n) {
     $n > 0 ?? ~(pir::repeat__SSI($str, $n)) !!  ''
 }
 
+our multi sub infix:<cmp>($a, $b) {
+    if $a eq $b {
+        0;
+    } else {
+        $a lt $b ?? -1 !! 1;
+    }
+}
+
+our multi sub infix:<leg>($a, $b) {
+    ~$a cmp ~$b
+}
+
+our multi sub infix:<cmp>(Num $a, Num $b) {
+    if $a == $b {
+        0;
+    } else {
+        $a < $b ?? -1 !! 1;
+    }
+}
+
+
 # vim: ft=perl6

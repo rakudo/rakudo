@@ -65,25 +65,6 @@ src/cheats/cmp.pir - Perl6 comparison builtins
     # .tailcall '&prefix:?'($I0)
 .end
 
-
-
-.sub '&infix:<<=>>' :multi(_,_)
-    .param pmc a
-    .param pmc b
-    $I0 = cmp_num a, b
-    if $I0 < 0 goto increase
-    if $I0 > 0 goto decrease
-    $P0 = get_hll_global ['Order'], 'Same'
-    .return ($P0)
-  increase:
-    $P0 = get_hll_global ['Order'], 'Increase'
-    .return ($P0)
-  decrease:
-    $P0 = get_hll_global ['Order'], 'Decrease'
-    .return ($P0)
-.end
-
-
 .sub '&infix:<eq>' :multi(_,_)
     .param string a
     .param string b
@@ -135,16 +116,6 @@ src/cheats/cmp.pir - Perl6 comparison builtins
     $I0 = isge a, b
     .return ($I0)
     # .tailcall '&prefix:?'($I0)
-.end
-
-
-.sub '&infix:<cmp>' :multi(_,_)
-    .param pmc a
-    .param pmc b
-    $I0 = cmp a, b
-    ##  Don't use a tailcall here due to RT#56448
-    $P0 = '&infix:<<=>>'($I0, 0)
-    .return ($P0)
 .end
 
 

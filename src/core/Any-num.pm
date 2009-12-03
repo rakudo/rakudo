@@ -395,4 +395,19 @@ our multi sub roots($x, $n) {
     $x.Complex.roots($n)
 }
 
+
+our multi sub infix:<cmp>(Num $a, Num $b) {
+    # TODO: should be Order::Same, ::Increase, ::Decrease once they work
+    if $a == $b {
+        0;
+    } else {
+        $a < $b ?? -1 !! 1;
+    }
+}
+
+our multi sub infix:«<=>»(Num $a, Num $b) {
+    +$a cmp $b
+}
+
+
 # vim: ft=perl6

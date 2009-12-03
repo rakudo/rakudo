@@ -55,8 +55,9 @@ class Rat {
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {
-    ($a.numerator * $b.denominator + $b.numerator * $a.denominator)
-        / ($a.denominator * $b.denominator);
+    my $gcd = Rat::gcd($a.denominator, $b.denominator);
+    ($a.numerator * ($b.denominator div $gcd) + $b.numerator * ($a.denominator div $gcd))
+        / (($a.denominator div $gcd) * $b.denominator);
 }
 
 multi sub infix:<+>(Rat $a, Int $b) {
@@ -68,8 +69,9 @@ multi sub infix:<+>(Int $a, Rat $b) {
 }
 
 multi sub infix:<->(Rat $a, Rat $b) {
-    ($a.numerator * $b.denominator - $b.numerator * $a.denominator)
-        / ($a.denominator * $b.denominator);
+    my $gcd = Rat::gcd($a.denominator, $b.denominator);
+    ($a.numerator * ($b.denominator div $gcd) - $b.numerator * ($a.denominator div $gcd))
+        / (($a.denominator div $gcd) * $b.denominator);
 }
 
 multi sub infix:<->(Rat $a, Int $b) {

@@ -515,6 +515,16 @@ method package_declarator:sym<class>($/)   { make $<package_def>.ast; }
 method package_declarator:sym<grammar>($/) { make $<package_def>.ast; }
 method package_declarator:sym<role>($/)    { make $<package_def>.ast; }
 
+method package_declarator:sym<does>($/) {
+    our @PACKAGE;
+    @PACKAGE[0].traits.push(PAST::Op.new(
+        :pasttype('call'),
+        :name('&trait_mod:<does>'),
+        $<typename>.ast
+    ));
+    make PAST::Stmts.new();
+}
+
 method package_def($/, $key?) {
     our @PACKAGE;
 

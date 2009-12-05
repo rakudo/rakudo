@@ -466,6 +466,11 @@ token package_declarator:sym<role> {
     <sym> <package_def>
 }
 
+token package_declarator:sym<does> {
+    <sym> <.ws>
+    <typename>
+}
+
 rule package_def { 
     :my $*IN_DECL := 'package';
     <def_module_name>?

@@ -111,6 +111,10 @@ augment class Num {
     multi method cotanh($base = 'radians') {
         1 / self.tanh($base);
     }
+
+    multi method atan2(Num $x = 1, $base = 'radians') {
+        pir::atan__NNn(self, $x)!from-radians($base);
+    }
 }
 
 # vim: ft=perl6

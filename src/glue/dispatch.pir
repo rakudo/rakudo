@@ -124,3 +124,132 @@ Does a call on the LHS and assigns the result back to it.
     result = invocant.name(pos_args :flat, named_args :flat :named)
     .tailcall '&infix:<=>'(invocant, result)
 .end
+
+
+=item !dispatch_.?
+
+Implements the .? operator. Calls at most one matching method, and returns
+a failure if there is none.
+
+=cut
+
+.sub '!dispatch_.?'
+    .param pmc invocant
+    .param string method_name
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+
+    # Use .can to try and get us a method to call.
+    $P0 = invocant.'HOW'()
+    $P0 = $P0.'can'(invocant, method_name)
+    unless $P0 goto error
+    push_eh check_error
+    $P1 = $P0(invocant, pos_args :flat, named_args :named :flat)
+    .return ($P1)
+  check_error:
+    .local pmc exception
+    .get_results (exception)
+    pop_eh
+    if exception == "No candidates found to invoke" goto error
+    rethrow exception
+
+  error:
+    .tailcall '!FAIL'('Undefined value returned by invocation of undefined method')
+.end
+
+
+=item !dispatch_.*
+
+Implements the .* operator. Calls one or more matching methods.
+
+=cut
+
+.sub '!dispatch_.*'
+    .param pmc invocant
+    .param string method_name
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+
+    # Set up result list.
+    .local pmc result_list
+    result_list = new ['ResizablePMCArray']
+
+    # Get all possible methods.
+    .local pmc methods
+    $P0 = invocant.'HOW'()
+    methods = $P0.'can'(invocant, method_name)
+    unless methods goto it_loop_end
+
+    # Call each method, expanding out any multis along the way.
+    .local pmc res_parcel, it, multi_it, cur_meth
+    it = iter methods
+  it_loop:
+    unless it goto it_loop_end
+    cur_meth = shift it
+    $P0 = cur_meth
+    $I0 = isa $P0, 'P6Invocation'
+    unless $I0 goto did_deref
+    $P0 = deref cur_meth
+  did_deref:
+    $I0 = isa $P0, 'Perl6MultiSub'
+    if $I0 goto is_multi
+    push_eh check_error
+    res_parcel = cur_meth(invocant, pos_args :flat, named_args :named :flat)
+    pop_eh
+    res_parcel = root_new ['parrot';'ObjectRef'], res_parcel
+    push result_list, res_parcel
+    goto it_loop
+  is_multi:
+    # XXX To do: need a call_sig
+    die 'Multis and .* NYI.'
+    #$P0 = $P0.'find_possible_candidates'(call_sig)
+    multi_it = iter $P0
+  multi_it_loop:
+    unless multi_it goto it_loop
+    cur_meth = shift multi_it
+    res_parcel = cur_meth(invocant, pos_args :flat, named_args :named :flat)
+    push result_list, res_parcel
+    goto multi_it_loop
+  check_error:
+    .local pmc exception
+    .get_results (exception)
+    pop_eh
+    if exception == "No candidates found to invoke" goto it_loop
+    rethrow exception
+  it_loop_end:
+
+    result_list = '&infix:<,>'(result_list :flat)
+    .tailcall '&list'(result_list)
+.end
+
+
+=item !.+
+
+Implements the .+ operator. Calls one or more matching methods, dies if
+there are none.
+
+=cut
+
+.sub '!dispatch_.+'
+    .param pmc invocant
+    .param string method_name
+    .param pmc pos_args     :slurpy
+    .param pmc named_args   :slurpy :named
+
+    # Use .* to produce a (possibly empty) list of result captures.
+    .local pmc result_list
+    result_list = '!dispatch_.*'(invocant, method_name, pos_args :flat, named_args :flat :named)
+
+    # If we got no elements at this point, we must die.
+    $I0 = result_list.'elems'()
+    if $I0 == 0 goto failure
+    .return (result_list)
+  failure:
+    $S0 = "Could not invoke method '"
+    concat $S0, method_name
+    concat $S0, "' on invocant of type '"
+    $S1 = invocant.'WHAT'()
+    concat $S0, $S1
+    concat $S0, "'"
+    '&die'($S0)
+.end

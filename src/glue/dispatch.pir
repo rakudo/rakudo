@@ -103,6 +103,7 @@ Does a call on the metaclass.
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
     .local pmc how
+    invocant = descalarref invocant
     how = invocant.'HOW'()
     .tailcall how.name(invocant, pos_args :flat, named_args :flat :named)
 .end

@@ -102,3 +102,9 @@ augment class Range {
         RangeIterator.new(self, $.excludes_min ?? $.min.succ !! $.min);
     }
 }
+
+multi sub infix:<...>(Int $a, Int $b) {
+    gather loop (my $i = $a; $i <= $b; $i++) {
+        take $i;
+    }
+}

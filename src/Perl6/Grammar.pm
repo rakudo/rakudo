@@ -1027,6 +1027,9 @@ token infix:sym<,>    { <sym>  <O('%comma')> }
 
 token infix:sym<Z>    { <sym>  <O('%list_infix')> }
 
+token infix:sym<...>  { <sym>  <O('%list_infix')> }
+# token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }
+
 token infix:sym<=>    { <sym>  <O('%list_assignment')> }
 
 token infix:sym<and>  { <sym>  <O('%loose_and, :pasttype<if>')> }

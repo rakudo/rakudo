@@ -17,7 +17,7 @@ augment class Any {
     }
 
     multi method cis() is export {
-#        (1.0).unpolar(self)
+        1.unpolar(self)
     }
 
     our Int multi method floor() is export {

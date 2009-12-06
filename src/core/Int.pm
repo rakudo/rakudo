@@ -25,9 +25,9 @@ augment class Int {
     }
  
     # Next has been moved to Rat.pm for the moment.
-   # our Rat multi method Rat() { Rat.new(self, 1); }
+    # our Rat multi method Rat() { Rat.new(self, 1); }
 
-#    our Complex multi method Complex() { Complex.new(self, 0); }
+    our ::Complex multi method Complex() { Complex.new(self, 0); }
 
     our Str multi method Str() {
         ~self;
@@ -44,9 +44,9 @@ augment class Int {
         self < 0 ?? -1 !! ( self == 0 ?? 0 !! 1);
     }
 
-#    our Complex multi method unpolar($angle) is export {
-#        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
-#    }
+    our Complex multi method unpolar($angle) is export {
+        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
+    }
 }
 
 our multi sub abs(Int $x) { $x.abs }

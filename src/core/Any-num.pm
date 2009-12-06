@@ -17,7 +17,7 @@ augment class Any {
     }
 
     multi method cis() is export {
-#        (1.0).unpolar(self)
+        1.unpolar(self)
     }
 
     our Int multi method floor() is export {
@@ -43,26 +43,26 @@ augment class Any {
     # Used by the :Trig subs and methods in the Int and Num classes.
     our multi method !to-radians($base) {
         given $base {
-#            when /:i ^d/ { self * pi/180.0 }    # Convert from degrees.
-#            when /:i ^g/ { self * pi/200.0 }    # Convert from gradians.
-           when 'radians' { self }               # Convert from radians.
-#            when Num     { self * 2.0 * pi }    # Convert from revolutions.
-            default { die "Unable to convert to base: $base" }
+            when /:i degrees/  { self * (312689/99532)/180.0 }    # Convert from degrees.
+            when /:i gradians/ { self * (312689/99532)/200.0 }    # Convert from gradians.
+            when /:i radians/  { self }                           # Convert from radians.
+            when Num           { self * 2.0 * (312689/99532) }    # Convert from revolutions.
+            default            { die "Unable to convert to base: $base" }
+        }
+    }
+
+    our multi method !from-radians($base) {
+        given $base {
+            when /:i degrees/  { self * 180/(312689/99532)  }    # Convert to degrees.
+            when /:i gradians/ { self * 200/(312689/99532)  }    # Convert to gradians.
+            when /:i radians/  { self }                          # Convert to radians.
+            when Num           { self /(2 * (312689/99532)) }    # Convert to revolutions.
+            default            { die "Unable to convert to base: $base" }
         }
     }
 
     multi method log() {
         $.Num.log();
-    }
-
-    our multi method !from-radians($base) {
-        given $base {
-#            when /:i ^d/ { self * 180/pi  }    # Convert to degrees.
-#            when /:i ^g/ { self * 200/pi  }    # Convert to gradians.
-#            when /:i ^r/ { self }              # Convert to radians.
-#            when Num     { self /(2 * pi) }    # Convert to revolutions.
-            default { die "Unable to convert to base: $base" }
-        }
     }
 
     our Num multi method sin($base = 'radians') {
@@ -163,6 +163,10 @@ augment class Any {
 
     our Num multi method acotanh($base = 'radians') {
         self.Num.acotanh($base);
+    }
+
+    our ::Complex multi method unpolar($angle) is export {
+        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
     }
 }
 

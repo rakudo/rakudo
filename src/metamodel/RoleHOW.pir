@@ -210,7 +210,7 @@ knows how to do that).
     if $I0 goto class_applier
     $I0 = isa for, 'RoleHOW'
     if $I0 goto role_applier
-    if $I0 goto instance_applier
+    goto instance_applier
 
   class_applier:
     $P0 = get_hll_global ['Perl6';'Metamodel'], 'RoleToClassApplier'
@@ -221,7 +221,8 @@ knows how to do that).
     .return ($P0)
 
   instance_applier:
-    die 'Applying a role to an instance is not yet supported.'
+    $P0 = get_hll_global ['Perl6';'Metamodel'], 'RoleToInstanceApplier'
+    .return ($P0)
 .end
 
 

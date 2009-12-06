@@ -208,11 +208,11 @@ Puns the role to a class and returns that class.
 .end
 
 
-=item postcircumfix:<[ ]>
+=item !select
 
 =cut
 
-.sub 'postcircumfix:<[ ]>' :method
+.sub '!select' :method
     .return (self)
 .end
 

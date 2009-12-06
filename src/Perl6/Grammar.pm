@@ -466,6 +466,11 @@ token package_declarator:sym<role> {
     <sym> <package_def>
 }
 
+token package_declarator:sym<does> {
+    <sym> <.ws>
+    <typename>
+}
+
 rule package_def { 
     :my $*IN_DECL := 'package';
     <def_module_name>?
@@ -1021,6 +1026,9 @@ token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 token infix:sym<,>    { <sym>  <O('%comma')> }
 
 token infix:sym<Z>    { <sym>  <O('%list_infix')> }
+
+token infix:sym<...>  { <sym>  <O('%list_infix')> }
+# token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }
 
 token infix:sym<=>    { <sym>  <O('%list_assignment')> }
 

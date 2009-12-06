@@ -87,6 +87,7 @@ BUILTINS_PIR = \
   src/metamodel/RoleHOW.pir \
   src/gen/RoleToRoleApplier.pir \
   src/gen/RoleToClassApplier.pir \
+  src/gen/RoleToInstanceApplier.pir \
   src/metamodel/GrammarHOW.pir \
   src/builtins/Any.pir \
   src/builtins/Role.pir \
@@ -312,6 +313,10 @@ src/gen/RoleToClassApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToClassAp
 src/gen/RoleToRoleApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToRoleApplier.nqp
 	$(NQP_EXE) --output=src/gen/RoleToRoleApplier.pir --encoding=utf8 \
 	    --target=pir src/metamodel/RoleToRoleApplier.nqp
+
+src/gen/RoleToInstanceApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToInstanceApplier.nqp
+	$(NQP_EXE) --output=src/gen/RoleToInstanceApplier.pir --encoding=utf8 \
+	    --target=pir src/metamodel/RoleToInstanceApplier.nqp
 
 src/gen/Attribute.pir: $(PARROT) $(NQP_PBC) src/metamodel/Attribute.nqp
 	$(NQP_EXE) --output=src/gen/Attribute.pir --encoding=utf8 \

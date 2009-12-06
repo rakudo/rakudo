@@ -12,7 +12,7 @@ augment class Any {
         pir::box__PN(pir::ceil__IN(self))
     }
 
-    our Str multi method chr() is export {
+    our Str multi method chr() {
         ~(pir::chr__SI(self))
     }
 
@@ -387,7 +387,7 @@ our multi sub sqrt(Any $x) {
 }
 
 our proto sign($x) {
-    defined($x) ?? $x.Num.sign !! undef;
+    defined($x) ?? $x.Num.sign !! Mu;
 }
 
 # This one doesn't seem to be needed with the above defined.
@@ -413,5 +413,8 @@ our multi sub infix:«<=>»($a, $b) {
     +$a cmp +$b
 }
 
+our proto chr($graph) {
+    $graph.chr;
+}
 
 # vim: ft=perl6

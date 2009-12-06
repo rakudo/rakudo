@@ -133,7 +133,7 @@ augment class Any {
         Regex::Cursor.parse(self, :rule($pat), :c($c));
     }
 
-    our Int multi method ord() is export {
+    our Int multi method ord() {
         fail('Can not take ord of empty string') if self.chars == 0;
         pir::box__PI(pir::ord__IS(self))
     }
@@ -177,6 +177,14 @@ augment class Any {
     our Str multi method ucfirst() is export {
         self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""
     }
+}
+
+our multi sub ord($string) {
+    $string.ord;
+}
+
+our proto ord($string) {
+    $string.ord;
 }
 
 multi sub infix:<x>($str, $n) {

@@ -164,6 +164,10 @@ augment class Any {
     our Num multi method acotanh($base = 'radians') {
         self.Num.acotanh($base);
     }
+
+    our ::Complex multi method unpolar($angle) is export {
+        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
+    }
 }
 
 our multi sub abs($x) { (+$x).abs() }

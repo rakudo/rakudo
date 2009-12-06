@@ -43,10 +43,6 @@ augment class Int {
         # self ~~ NaN ?? NaN !! self <=> 0;
         self < 0 ?? -1 !! ( self == 0 ?? 0 !! 1);
     }
-
-    our Complex multi method unpolar($angle) is export {
-        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
-    }
 }
 
 our multi sub abs(Int $x) { $x.abs }

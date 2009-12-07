@@ -5,6 +5,8 @@
 
 BEGIN_OPS_PREAMBLE
 
+#include "parrot/parrot.h"
+#include "parrot/extend.h"
 #include "parrot/dynext.h"
 #include "pmc_object.h"
 #include "pmc_class.h"
@@ -663,12 +665,8 @@ inline op bind_signature(in PMC) :base_core {
 
                 /* Save the Junctional result as the return value. */
                 caller_sig = Parrot_pcc_get_signature(interp, Parrot_pcc_get_caller_ctx(interp, ctx));
-                if (!PMC_IS_NULL(caller_sig)) {
-                    PMC *returns;
-                    GETATTR_CallSignature_results(interp, caller_sig, returns);
-                    if (!PMC_IS_NULL(returns) && VTABLE_elements(interp, returns) > 0)
-                        VTABLE_set_pmc_keyed_int(interp, returns, 0, junc_result);
-                }
+                if (!PMC_IS_NULL(caller_sig))
+                    Parrot_pcc_fill_returns_from_c_args(interp, caller_sig, "P", junc_result);
 
                 /* Invoke the current return continuation, to return said value. */
                 next = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp,

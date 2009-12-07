@@ -36,6 +36,26 @@ src/builtins/control.pir - control flow related functions
     .return ()
 .end
 
+=item fail
+
+=cut
+
+# XXX Need to throw a Failure, not a Mu
+# XXX Need to check for 'use fatal'
+.sub '&fail'
+    .param pmc value :optional
+    .param int has_value :opt_flag
+    .local pmc ex, failure
+
+    failure = new ['Mu']
+
+    ex = root_new ['parrot';'Exception']
+    ex['payload'] = failure
+    ex['severity'] = .EXCEPT_ERROR
+    ex['type'] = .CONTROL_RETURN
+    throw ex
+.end
+
 =item continue
 
 =cut

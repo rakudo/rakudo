@@ -461,7 +461,7 @@ Gets the object's identity value
 .end
 
 .sub '' :vtable('get_bool') :method
-    $I0 = self.'true'()
+    $I0 = self.'Bool'()
     .return ($I0)
 .end
 

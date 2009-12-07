@@ -42,13 +42,13 @@ returns a Failure.
 .end
 
 
-=item true()
+=item Bool()
 
 Returns true if the iterator has not reached the end of the list.
 
 =cut
 
-.sub 'true' :method
+.sub 'Bool' :method
     .local pmc list, index, values
     list = getattribute self, '$!list'
     index = getattribute self, '$!index'

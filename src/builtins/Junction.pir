@@ -125,14 +125,14 @@ Return perl representation.  (This should actually be autothreaded.)
 .end
 
 
-=item true()
+=item Bool()
 
 Evaluate Junction as a boolean.
 
 =cut
 
 .namespace ['Junction']
-.sub 'true' :method
+.sub 'Bool' :method
     .local pmc eigenstates, it
     .local int type
     eigenstates = self.'eigenstates'()
@@ -247,7 +247,7 @@ Return the components of the Junction.
 
 .namespace ['Junction']
 .sub '' :method :vtable('get_bool')
-    $I0 = self.'true'()
+    $I0 = self.'Bool'()
     .return ($I0)
 .end
 

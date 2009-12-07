@@ -1,5 +1,5 @@
 augment class Mu {
-    method true { $.defined }
+    method Bool { $.defined }
 
     multi method notdef() { !self.defined; }
 }

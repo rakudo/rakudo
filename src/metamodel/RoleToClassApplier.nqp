@@ -67,9 +67,20 @@ method apply($target, @composees) {
     # Do Parrot-level composition, which handles the methods.
     pir::addrole__vPP(pir::getattribute__PPS($target, 'parrotclass'), $to_compose);
 
-    # XXX Attributes...
+    # Compose in any role attributes.
+    my @attributes := RoleHOW.attributes($to_compose_meta);
+    for @attributes {
+        if has_attribute($target, $_.name) {
+            pir::die("Attribute '" ~ $_.name ~ "' already exists in the class, but a role also wishes to compose it");
+        }
+        $target.add_attribute($target, $_);
+    }
 
-    # XXX Parents that are passed along as impl detail.
+    # Add any parents that are passed along as impl detail.
+    my @parents := RoleHOW.parents($to_compose_meta);
+    for @parents {
+        $target.add_parent($target, $_);
+    }
 }
 
 =begin

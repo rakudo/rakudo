@@ -27,6 +27,7 @@ method apply($target, @composees) {
         my @methods := $_.HOW.methods($_.HOW);
         for @methods {
             my $name := $_.name;
+            my $meth := $_;
             my @meth_list;
             if %meth_info{$name} {
                 @meth_list := %meth_info{$name};
@@ -34,7 +35,15 @@ method apply($target, @composees) {
             else {
                 %meth_info{$name} := @meth_list;
             }
-            @meth_list.push($_);
+            my $found := 0;
+            for @meth_list {
+                if $meth =:= $_ {
+                    $found := 1;
+                }
+            }
+            unless $found {
+                @meth_list.push($meth);
+            }
         }
     }
 
@@ -72,17 +81,41 @@ method apply($target, @composees) {
         }
     }
 
-    # XXX Attributes.
-
-    # XXX Pass on any unsatisfied requirements.
-
-    # Any parents our composees bring should be added to the target's parent
-    # list.
+    # Now do the other bits.
     for @composees {
         my $how := $_.HOW;
+
+        # Compose is any attributes, unless there's a conflict.
+        my @attributes := $how.attributes($how);
+        for @attributes {
+            my $add_attr := $_;
+            my $skip := 0;
+            my @cur_attrs := $target.attributes($target, :local(1));
+            for @cur_attrs {
+                if $_ =:= $add_attr {
+                    $skip := 1;
+                }
+                else {
+                    if $_.name eq $add_attr.name {
+                        pir::die("Attribute '" ~ $_.name ~ "' conflicts in role composition");
+                    }
+                }
+            }
+            unless $skip {
+                $target.add_attribute($target, $add_attr);
+            }
+        }
+
+        # Pass along any requirements.
+        my @requirements := $how.requirements($how);
+        for @requirements {
+            $target.add_requirement($target, $_);
+        }
+
+        # Pass along any parents.
         my @parents := $how.parents($how);
         for @parents {
-            $target.add_parent($_);
+            $target.add_parent($target, $_);
         }
     }
 }

@@ -116,6 +116,20 @@ it to the collisions list for the role.
 .end
 
 
+=item add_attribute
+
+Adds an attribute to the role.
+
+=cut
+
+.sub 'add_attribute' :method
+    .param pmc meta
+    .param pmc attribute
+    $P0 = getattribute meta, '$!attributes'
+    push $P0, attribute
+.end
+
+
 =item add_composable
 
 Stores something that we will compose (e.g. a role) at class composition time.
@@ -190,6 +204,19 @@ Accessor for list of method names in conflict; the class must resolve them.
 .sub 'collisions' :method
     .param pmc meta
     $P0 = getattribute meta, '$!collisions'
+    .return ($P0)
+.end
+
+
+=item attributes
+
+Accessor for list of attributes in the role.
+
+=cut
+
+.sub 'attributes' :method
+    .param pmc meta
+    $P0 = getattribute meta, '$!attributes'
     .return ($P0)
 .end
 

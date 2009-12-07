@@ -47,7 +47,7 @@ src/builtins/control.pir - control flow related functions
     .param int has_value :opt_flag
     .local pmc ex, failure
 
-    failure = new ['Mu']
+    failure = get_hll_global 'Mu'
 
     ex = root_new ['parrot';'Exception']
     ex['payload'] = failure

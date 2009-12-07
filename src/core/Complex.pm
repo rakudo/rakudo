@@ -329,8 +329,4 @@ multi sub sqrt(Complex $x) {
     $x.sqrt;
 }
 
-multi sub exp(Complex $x) {
-    $x.exp()
-}
-
 # vim: ft=perl6

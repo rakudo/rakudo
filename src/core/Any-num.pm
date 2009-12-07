@@ -171,7 +171,7 @@ augment class Any {
 }
 
 our multi sub abs($x) { (+$x).abs() }
-our multi sub exp($x) { $x.Num.exp() }
+our proto sub exp($exponent) { $exponent.exp() }
 our multi sub log($x) { $x.Num.log() }
 our multi sub log10($x) { $x.Num.log10 }
 

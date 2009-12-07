@@ -29,6 +29,14 @@ sub has_method($target, $name, $local) {
     return 0;
 }
 
+sub has_attribute($target, $name) {
+    my @attributes := $target.attributes($target, :local(1));
+    for @attributes {
+        if $_.name eq $name { return 1; }
+    }
+    return 0;
+}
+
 method apply($target, @composees) {
     # If we have many things to compose, then get them into a single helper
     # role first.

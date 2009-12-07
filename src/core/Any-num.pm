@@ -62,7 +62,11 @@ augment class Any {
     }
 
     multi method log() {
-        $.Num.log();
+        $.Num.log;
+    }
+
+    multi method log10() {
+        $.Num.log10;
     }
 
     our Num multi method sin($base = 'radians') {
@@ -170,10 +174,10 @@ augment class Any {
     }
 }
 
-our multi sub abs($x) { (+$x).abs() }
-our proto sub exp($exponent) { $exponent.exp() }
-our multi sub log($x) { $x.Num.log() }
-our multi sub log10($x) { $x.Num.log10 }
+our multi sub abs($x) { (+$x).abs }
+our proto sub exp($exponent) { $exponent.exp }
+our proto sub log($x) { $x.log }
+our proto sub log10($x) { $x.log10 }
 
 # jnthn says that we should have both the multi sub declaration and the proto.
 

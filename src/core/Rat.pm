@@ -52,6 +52,10 @@ class Rat {
         Rat.new($!numerator - $!denominator, $!denominator);
     }
 
+    multi method abs() {
+        self < 0 ?? -self !! self;
+    }
+
     our Int multi method sign {
         # self ~~ NaN ?? NaN !! self <=> 0;
         self < 0 ?? -1 !! ( self == 0 ?? 0 !! 1);

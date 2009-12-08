@@ -234,8 +234,6 @@ class Complex {
     }
 }
 
-multi sub abs(Complex $x) { $x.abs }
-
 multi sub infix:<+>(Complex $a, Complex $b) {
     Complex.new($a.re + $b.re, $a.im + $b.im);
 }

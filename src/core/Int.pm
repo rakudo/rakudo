@@ -15,7 +15,7 @@ our sub upgrade_to_num_if_needed($test) {
 
 augment class Int {
     multi method abs() {
-        pir::box__PI(pir::abs__II(self))
+        self < 0 ?? -self !! self;
     }
 
     our Int multi method Int() { self }
@@ -44,8 +44,6 @@ augment class Int {
         self < 0 ?? -1 !! ( self == 0 ?? 0 !! 1);
     }
 }
-
-our multi sub abs(Int $x) { $x.abs }
 
 our multi sub infix:<+>(Int $a, Int $b) {
     upgrade_to_num_if_needed(pir::add__NNN($a, $b))

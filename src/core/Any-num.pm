@@ -1,7 +1,6 @@
 augment class Any {
-
-    method abs() is export {
-        pir::abs__Nn(self);
+    multi method abs() {
+        self.Num.abs;
     }
 
     multi method exp() {
@@ -174,7 +173,8 @@ augment class Any {
     }
 }
 
-our multi sub abs($x) { (+$x).abs }
+our proto sub abs($x) { $x.abs }
+our multi sub prefix:<abs>($x) { $x.abs }
 our proto sub exp($exponent) { $exponent.exp }
 our proto sub log($x) { $x.log }
 our proto sub log10($x) { $x.log10 }

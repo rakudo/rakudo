@@ -979,7 +979,7 @@ token infix:sym<&>    { <sym> <O('%junctive_and')> }
 token infix:sym<|>    { <sym> <O('%junctive_or')> }
 token infix:sym<^>    { <sym> <O('%junctive_or')> }
 
-token prefix:sym<abs>     { <sym> » <O('%named_unary, :pirop<abs PP>')> }
+token prefix:sym<abs>     { <sym> » <O('%named_unary')> }
 token prefix:sym<defined> { <sym> » <O('%named_unary')> }
 
 token infix:sym«==»   { <sym>  <O('%chaining')> }

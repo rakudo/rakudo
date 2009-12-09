@@ -27,9 +27,16 @@ augment class Array {
         self;
     }
 
+    #CHEAT: Should return fail rather than Mu
     our multi method pop() {
         self.elems > 0 ?? pir::pop__PP($!values) !! Mu;
+    }
+
+    #CHEAT: Should return fail rather than Mu
+    our multi method shift() {
+        self.elems > 0 ?? pir::shift__PP($!values) !! Mu;
     }
 }
 
 our proto sub pop(@array) { @array.pop; }
+our proto sub shift(@array) { @array.shift; }

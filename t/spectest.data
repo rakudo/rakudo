@@ -413,7 +413,7 @@ S29-any/cmp.t
 # S32-list/minmax.t
 # S32-list/pick.t
 # S32-list/reduce.t
-# S32-list/reverse.t
+S32-list/reverse.t
 # S32-list/sort.t
 # S32-list/uniq.t
 S32-num/abs.t

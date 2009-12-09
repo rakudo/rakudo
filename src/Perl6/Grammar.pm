@@ -747,7 +747,7 @@ token arglist {
     <.ws> 
     [ 
     | <?stdstopper>
-    | <EXPR('f=')>
+    | <EXPR('e=')>
     | <?>
     ]
 }
@@ -846,7 +846,8 @@ INIT {
     Perl6::Grammar.O(':prec<h=>, :assoc<unary>', '%loose_unary');
     Perl6::Grammar.O(':prec<g=>, :assoc<list>, :nextterm<nulltermish>',  '%comma');
     Perl6::Grammar.O(':prec<f=>, :assoc<list>',  '%list_infix');
-    Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_assignment');
+    Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_assignment');   # XXX
+    Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_prefix');
     Perl6::Grammar.O(':prec<d=>, :assoc<left>',  '%loose_and');
     Perl6::Grammar.O(':prec<c=>, :assoc<left>',  '%loose_or');
 }

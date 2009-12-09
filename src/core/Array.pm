@@ -26,4 +26,10 @@ augment class Array {
         };
         self;
     }
+
+    our multi method pop() {
+        self.elems > 0 ?? pir::pop__PP($!values) !! Mu;
+    }
 }
+
+our proto sub pop(@array) { @array.pop; }

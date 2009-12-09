@@ -15,7 +15,7 @@ class IO {
 
     multi method get() is export {
         my $x = $!PIO.readline;
-        return if $.eof && $x eq '';
+        fail if $.eof && $x eq '';
         $!ins++;
         $x.chomp;
     }

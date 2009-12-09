@@ -19,7 +19,7 @@ augment class Any {
         }
     }
 
-    method reverse() {
+    multi method reverse() {
         my @result;
         for @.list {
             @result.unshift($_);
@@ -27,5 +27,9 @@ augment class Any {
         return @result;
     }
 }
+
+our proto sub reverse(@values) { @values.reverse; }
+our multi sub reverse(*@v) { @v.reverse; }
+
 
 # vim: ft=perl6

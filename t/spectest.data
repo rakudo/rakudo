@@ -349,7 +349,7 @@ S12-construction/named-params-in-BUILD.t
 # S13-overloading/typecasting-long.t
 # S13-overloading/metaoperators.t
 # S13-overloading/operators.t
-# S14-roles/attributes.t
+S14-roles/attributes.t
 # S14-roles/basic.t
 # S14-roles/composition.t
 # S14-roles/crony.t

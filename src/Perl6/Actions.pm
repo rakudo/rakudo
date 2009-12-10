@@ -632,8 +632,10 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         %attr_table{$attrname}<accessor> := $twigil eq '.' ?? 1 !! 0;
         %attr_table{$attrname}<rw>       := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;
         
-        # Nothing to emit here.
+        # Nothing to emit here; just hand  back an empty node, but also
+        # annotate it with the attribute table.
         $past := PAST::Stmts.new( );
+        $past<attribute_data> := %attr_table{$attrname};
     }
     else {
         # Not an attribute - need to emit delcaration here. Check it's
@@ -1261,6 +1263,7 @@ method circumfix:sym<sigil>($/) {
 
 method EXPR($/, $key?) {
     unless $key { return 0; }
+    if $/<drop> { make PAST::Stmts.new() }
     my $past := $/.ast // $<OPER>.ast;
     if !$past && $<infix><sym> eq '.=' {
         make make_dot_equals($/[0].ast, $/[1].ast);
@@ -1845,3 +1848,22 @@ sub push_block_handler($/, $block) {
     );
 }
 
+# Makes the closure for the RHS of has $.answer = 42.
+sub make_attr_init_closure($init_value) {
+    # Need to not just build the closure, but new_closure it; otherwise, we
+    # run into trouble if our initialization value involves a parameter from
+    # a parametric role.
+    my $block := PAST::Block.new(
+        :blocktype('declaration'),
+        PAST::Stmts.new( ),
+        PAST::Stmts.new( $init_value )
+    );
+    $block[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
+    my $sig := Perl6::Compiler::Signature.new();
+    my $parameter := Perl6::Compiler::Parameter.new();
+    $parameter.var_name('$_');
+    $sig.add_parameter($parameter);
+    $sig.add_invocant();
+    my $lazy_name := add_signature($block, $sig, 1);
+    create_code_object(PAST::Op.new( :pirop('newclosure PP'), $block ), 'Method', 0, $lazy_name);
+}

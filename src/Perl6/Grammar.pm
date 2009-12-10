@@ -1031,7 +1031,16 @@ token infix:sym<Z>    { <sym>  <O('%list_infix')> }
 token infix:sym<...>  { <sym>  <O('%list_infix')> }
 # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }
 
-token infix:sym<=>    { <sym>  <O('%list_assignment')> }
+token infix:sym<=>    { <sym>  <O('%list_assignment, :reducecheck<assign_check>')> }
+
+method assign_check($/) {
+    my $lhs_ast := $/[0].ast;
+    my $rhs_ast := $/[1].ast;
+    if $lhs_ast<attribute_data> {
+        $lhs_ast<attribute_data><build> := Perl6::Actions::make_attr_init_closure($rhs_ast);
+        $/<drop> := 1;
+    }
+}
 
 token infix:sym<and>  { <sym>  <O('%loose_and, :pasttype<if>')> }
 

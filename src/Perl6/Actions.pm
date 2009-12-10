@@ -981,7 +981,21 @@ method post_constraint($/) {
     else {
         my $past := $<EXPR>.ast;
         unless $past.isa(PAST::Block) {
-            $/.CURSOR.panic('Non-block anonymous sub-types su todo');
+            $past := PAST::Block.new( :blocktype('declaration'),
+                PAST::Stmts.new( ),
+                PAST::Stmts.new(
+                    PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
+                        PAST::Var.new( :name('$_'), :scope('lexical') ),
+                        $past
+                    )
+                )
+            );
+            my $sig := Perl6::Compiler::Signature.new();
+            my $param := Perl6::Compiler::Parameter.new();
+            $param.var_name('$_');
+            $sig.add_parameter($param);
+            my $lazy_name := add_signature($past, $sig, 1);
+            $past := create_code_object($past, 'Block', 0, $lazy_name);
         }
         $*PARAMETER.cons_types.push($past);
     }

@@ -24,6 +24,10 @@ augment class Block {
         $count
     }
 
+    method ACCEPTS($topic) {
+        self.arity == 0 ?? self.() !! self.($topic);
+    }
+
 }
 
 # vim: ft=perl6

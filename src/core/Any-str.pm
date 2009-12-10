@@ -87,8 +87,7 @@ augment class Any {
         }
 
         my $result = pir::index__ISSi(self, $substring, $pos);
-        # fail("Substring '$substring' not found in '{self}'") if ($result < 0);
-        if $result < 0 { return Mu; } # no StrPos yet
+        fail("Substring '$substring' not found in '{self}'") if $result < 0;
         return $result;
 
         # also used to be a the following error message, but the condition
@@ -104,8 +103,7 @@ augment class Any {
     #     }
     #
     #     my $result = pir::reverse_index__ISSi(self, $substring, $pos);
-    #     # fail("Substring '$substring' not found in '{self}'") if ($result < 0);
-    #     if $result < 0 { return Mu; } # no StrPos yet
+    #     fail("Substring '$substring' not found in '{self}'") if $result < 0;
     #     return $result;
     #
     #     # also used to be a the following error message, but the condition

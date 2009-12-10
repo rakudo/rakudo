@@ -27,14 +27,14 @@ augment class Array {
         self;
     }
 
-    #CHEAT: Should return fail rather than Mu
     our multi method pop() {
-        self.elems > 0 ?? pir::pop__PP($!values) !! Mu;
+        self.elems > 0 ?? pir::pop__PP($!values)
+                       !! fail('Undefined value popped from empty array');
     }
 
-    #CHEAT: Should return fail rather than Mu
     our multi method shift() {
-        self.elems > 0 ?? pir::shift__PP($!values) !! Mu;
+        self.elems > 0 ?? pir::shift__PP($!values)
+                       !! fail('Undefined value shifted from empty array');
     }
 }
 

@@ -128,27 +128,30 @@ like this.
 .sub 'BUILD' :method
     .param pmc attrinit        :slurpy :named
 
-    .local pmc p6meta, parentproto, parrotclass, attributes, it
+    .local pmc p6meta, parentproto, how, parrotclass, attributes, it
     p6meta = get_hll_global ['Mu'], '$!P6META'
     parentproto = find_caller_lex '$CLASS'
+    how = parentproto.'HOW'()
     parrotclass = p6meta.'get_parrotclass'(parentproto)
-    attributes = inspect parrotclass, 'attributes'
-    it = parrotclass.'attriter'()
+    attributes = how.'attributes'(how, 'local'=>1)
+    it = iter attributes
   attrinit_loop:
     unless it goto attrinit_done
     .local string attrname, keyname
-    .local pmc attr, attrhash
-    attrname = shift it
+    .local pmc attr_info, attr
+    attr_info = shift it
+    attrname = attr_info.'name'()
     attr = getattribute self, parrotclass, attrname
-    attrhash = attributes[attrname]
     $I0 = index attrname, '!'
     if $I0 < 0 goto attrinit_loop
     inc $I0
     keyname = substr attrname, $I0
     $P0 = attrinit[keyname]
     unless null $P0 goto attrinit_assign
-    $P0 = attrhash['init_value']
+    $P0 = attr_info.'build'()
     if null $P0 goto attrinit_loop
+    $I0 = defined $P0
+    unless $I0 goto attrinit_loop
     $P0 = $P0(self, attr)
   attrinit_assign:
     '&infix:<=>'(attr, $P0)

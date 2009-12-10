@@ -278,7 +278,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     itypeclass = get_class $P0
     goto attrinit_itype
   attrinit_array:
-    itypeclass = get_class ['Perl6Array']
+    itypeclass = get_class ['Array']
     goto attrinit_itype
   attrinit_hash:
     itypeclass = get_class ['Perl6Hash']

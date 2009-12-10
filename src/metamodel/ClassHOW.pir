@@ -144,19 +144,17 @@ Attribute descriptors.
     tree = null
   tree_setup:
 
-    # Create result list and get Attribute proto.
+    # Create result list.
     .local pmc result_list, attr_proto
-    result_list = get_root_global [.RAKUDO_HLL], 'Array'
-    result_list = result_list.'new'()
-    attr_proto = get_root_global [.RAKUDO_HLL], 'Attribute'
+    result_list = new 'Array'
 
     # Get list of parents whose attributes we are interested in, and put
     # this class on the start. With the local flag , that's just us.
     .local pmc parents, parents_it, cur_class, us
     unless null tree goto do_tree
     if null local goto all_parents
-    parents = get_root_global [.RAKUDO_HLL], 'Array'
-    parents = parents.'new'()
+    unless local goto all_parents
+    parents = new 'Array'
     goto parents_list_made
   all_parents:
     parents = self.'parents'(obj)
@@ -164,8 +162,7 @@ Attribute descriptors.
   do_tree:
     parents = self.'parents'(obj, 'local'=>1)
   parents_list_made:
-    us = obj.'WHAT'()
-    parents.'unshift'(us)
+    parents.'unshift'(obj)
     parents_it = iter parents
   parents_it_loop:
     unless parents_it goto done
@@ -181,50 +178,19 @@ Attribute descriptors.
     goto parents_it_loop
   tree_handled:
 
-    # Get Parrot-level class.
-    .local pmc parrot_class, attributes, attr_it, cur_attr_hash, cur_attr_info
-    parrot_class = self.'get_parrotclass'(cur_class)
-
-    # Iterate over attributes and build an Attribute descriptor for each one.
-    attributes = parrot_class.'attributes'()
+    # Get attributes list and push the attribute descriptors onto
+    # the results.
+    $I0 = isa cur_class, 'ClassHOW'
+    if $I0 goto have_our_how
+    cur_class = cur_class.'HOW'()
+  have_our_how:
+    .local pmc attributes, attr_it
+    attributes = getattribute cur_class, '$!attributes'
     attr_it = iter attributes
   attr_it_loop:
     unless attr_it goto attr_it_loop_end
-    $S0 = shift attr_it
-    cur_attr_hash = attributes[$S0]
-    
-    # Name
-    $S0 = cur_attr_hash['name']
-    
-    # Type
-    $P0 = cur_attr_hash['type']
-    unless null $P0 goto type_done
-    $P0 = get_root_global [.RAKUDO_HLL], 'Mu'
-  type_done:
-
-    # Build
-    $P1 = cur_attr_hash['init_value']
-    unless null $P1 goto build_done
-    $P1 = root_new [.RAKUDO_HLL; 'Failure']
-  build_done:
-
-    # Accessor
-    $P2 = cur_attr_hash['accessor']
-    unless null $P2 goto accessor_done
-    $P2 = box 0
-  accessor_done:
-    $P3 = get_root_global [.RAKUDO_HLL], 'prefix:?'
-    $P2 = $P3($P2)
-
-    # rw
-    $P4 = cur_attr_hash['rw']
-    unless null $P4 goto rw_done
-    $P4 = box 0
-  rw_done:
-    $P4 = $P3($P4)
-
-    cur_attr_info = attr_proto.'new'('name' => $S0, 'type' => $P0, 'build' => $P1, 'accessor' => $P2, 'rw' => $P4)
-    result_list.'push'(cur_attr_info)
+    $P0 = shift attr_it
+    result_list.'push'($P0)
     goto attr_it_loop
   attr_it_loop_end:
     goto parents_it_loop

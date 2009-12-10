@@ -10,6 +10,7 @@ class Parameter {
     has $.type;
     has $.constraints;
     has $.rw;
+    has $.ref;
     has $.parcel;
     has $.capture;
     has $.copy;

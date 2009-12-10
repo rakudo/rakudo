@@ -632,6 +632,81 @@ Accessor for hidden property.
 .end
 
 
+=item new_class(name [, 'parent'=>parentclass] [, 'attr'=>attr] [, 'hll'=>hll])
+
+Override of new_class from P6metaclass that handles attributes through the
+correct protocol.
+
+=cut
+
+.sub 'new_class' :method
+    .param pmc name
+    .param pmc options         :slurpy :named
+
+    .local pmc parrotclass, hll
+
+    hll = options['hll']
+    $I0 = defined hll
+    if $I0, have_hll
+    $P0 = getinterp
+    $P0 = $P0['namespace';1]
+    $P0 = $P0.'get_name'()
+    hll = shift $P0
+    options['hll'] = hll
+  have_hll:
+
+    .local pmc class_ns, ns
+    $S0 = typeof name
+    $I0 = isa name, 'String'
+    if $I0, parrotclass_string
+    $I0 = isa name, 'ResizableStringArray'
+    if $I0, parrotclass_array
+    parrotclass = newclass name
+    goto have_parrotclass
+  parrotclass_string:
+    $S0 = name
+    class_ns = split '::', $S0
+    unshift class_ns, hll
+    $P0 = get_root_namespace
+    ns = $P0.'make_namespace'(class_ns)
+    parrotclass = newclass ns
+    goto have_parrotclass
+  parrotclass_array:
+    class_ns = name
+    unshift class_ns, hll
+    $P0 = get_root_namespace
+    ns = $P0.'make_namespace'(class_ns)
+    parrotclass = newclass ns
+    goto have_parrotclass
+  have_parrotclass:
+
+    # Make ClassHOW instance.
+    .local pmc how
+    how = self.'new'()
+    setattribute how, 'parrotclass', parrotclass
+
+    .local pmc attrlist, it, attribute
+    attribute = get_hll_global 'Attribute'
+    attrlist = options['attr']
+    if null attrlist goto attr_done
+    $I0 = does attrlist, 'array'
+    if $I0 goto have_attrlist
+    $S0 = attrlist
+    attrlist = split ' ', $S0
+  have_attrlist:
+    it = iter attrlist
+  iter_loop:
+    unless it goto iter_end
+    $S0 = shift it
+    unless $S0 goto iter_loop
+    $P0 = attribute.'new'('name'=>$S0)
+    self.'add_attribute'(how, $P0)
+    goto iter_loop
+  iter_end:
+  attr_done:
+    .tailcall self.'register'(parrotclass, 'how'=>how, options :named :flat)
+.end
+
 =back
 
 =cut

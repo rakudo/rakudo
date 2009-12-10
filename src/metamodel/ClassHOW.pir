@@ -146,7 +146,7 @@ Attribute descriptors.
 
     # Create result list.
     .local pmc result_list, attr_proto
-    result_list = new 'Array'
+    result_list = root_new ['parrot';'ResizablePMCArray']
 
     # Get list of parents whose attributes we are interested in, and put
     # this class on the start. With the local flag , that's just us.
@@ -154,15 +154,17 @@ Attribute descriptors.
     unless null tree goto do_tree
     if null local goto all_parents
     unless local goto all_parents
-    parents = new 'Array'
+    parents = root_new ['parrot';'ResizablePMCArray']
     goto parents_list_made
   all_parents:
-    parents = self.'parents'(obj)
+    $P0 = self.'parents'(obj)
+    parents = $P0.'list'()
     goto parents_list_made
   do_tree:
-    parents = self.'parents'(obj, 'local'=>1)
+    $P0 = self.'parents'(obj, 'local'=>1)
+    parents = $P0.'list'()
   parents_list_made:
-    parents.'unshift'(obj)
+    unshift parents, obj
     parents_it = iter parents
   parents_it_loop:
     unless parents_it goto done
@@ -174,7 +176,7 @@ Attribute descriptors.
     eq_addr cur_class, us, tree_handled
     $P0 = self.'attributes'(cur_class, 'tree'=>tree)
     $P0 = new 'Perl6Scalar', $P0
-    result_list.'push'($P0)
+    push result_list, $P0
     goto parents_it_loop
   tree_handled:
 
@@ -186,11 +188,12 @@ Attribute descriptors.
   have_our_how:
     .local pmc attributes, attr_it
     attributes = getattribute cur_class, '$!attributes'
+    if null attributes goto attr_it_loop_end
     attr_it = iter attributes
   attr_it_loop:
     unless attr_it goto attr_it_loop_end
     $P0 = shift attr_it
-    result_list.'push'($P0)
+    push result_list, $P0
     goto attr_it_loop
   attr_it_loop_end:
     goto parents_it_loop
@@ -363,7 +366,7 @@ Gets a list of this class' parents.
     
     # Create result list.
     .local pmc parrot_class, result_list, parrot_list, it
-    result_list = new 'Array'
+    result_list = root_new ['parrot';'ResizablePMCArray']
 
     # Get the parrot class.
     $I0 = isa obj, 'ClassHOW'
@@ -409,10 +412,10 @@ Gets a list of this class' parents.
     $P0 = new 'ObjectRef', $P0
     if null tree goto push_this
     $P1 = self.'parents'($P0, 'tree'=>tree)
-    $P1.'unshift'($P0)
+    unshift $P1, $P0
     $P0 = new 'Perl6Scalar', $P1
   push_this:
-    result_list.'push'($P0)
+    push result_list, $P0
     goto it_loop
   it_loop_end:
     goto done

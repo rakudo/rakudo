@@ -33,8 +33,10 @@ method apply($target, @composees) {
 
     # Complete construction of anonymous subclass and then rebless the target
     # into it. XXX This bit is a tad Parrot-specific at the moment; need to
-    # better encapsulate reblessing.
+    # better encapsulate reblessing. Also we need to make a fake instance of
+    # the subclass to have Parrot internally form it's various bits.
     my $new_class := $how.compose($subclass);
+    pir::new__PP($how.get_parrotclass($new_class));
     pir::rebless_subclass__vPP($target, $how.get_parrotclass($new_class));
 }
 

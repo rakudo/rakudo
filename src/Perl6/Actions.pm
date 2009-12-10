@@ -85,6 +85,10 @@ method comp_unit($/) {
         )
     );
 
+    # Make sure we have a clean @PACKAGE for next time.
+    @PACKAGE.shift;
+    @PACKAGE.unshift(Perl6::Compiler::Module.new());
+
     make $unit;
 }
 

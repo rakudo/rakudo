@@ -57,6 +57,10 @@ method finish($block) {
             PAST::Val.new( :value(%attrs{$_}<accessor>), :named('has_accessor') ),
             PAST::Val.new( :value(%attrs{$_}<rw>),       :named('rw') ),
         );
+        if %attrs{$_}<build> {
+            %attrs{$_}<build>.named('build');
+            $attr.push(%attrs{$_}<build>);
+        }
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_attribute'),

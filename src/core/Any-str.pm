@@ -131,9 +131,16 @@ augment class Any {
         Regex::Cursor.parse(self, :rule($pat), :c($c));
     }
 
-    our Int multi method ord() {
-        fail('Can not take ord of empty string') if self.chars == 0;
-        pir::box__PI(pir::ord__IS(self))
+    our multi method ord() {
+        given self.chars {
+            when 0  { fail('Can not take ord of empty string'); }
+            when 1  { pir::box__PI(pir::ord__IS(self)); }
+            default {
+                        gather for self.comb {
+                            take pir::box__PI(pir::ord__IS($_))
+                        }
+                    }
+        }
     }
 
     # TODO: Return type should be a Char once that is supported.

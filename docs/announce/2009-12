@@ -38,6 +38,22 @@ release include:
   tests since the November 2009 release.  With this release Rakudo is
   now passing % of the available spectest suite.
 
+The Perl 6 language specification is still in flux. Please take note of the
+following changes, which might affect your existing programs. In the next
+release of Rakudo, the deprecated features will likely be gone.
+
+* The root of the object hierarchy has been changed from 'Object' to 'Mu'.
+  The type 'Object' goes away.
+
+* The term 'undef' is gone. You can replace it with other constructs,
+  depending on context:
+    - 'Nil' is undefined in item context, and the empty list in list context
+    - 'Mu' is the most general undefined value which does not flatten in list
+      context
+    - as a smart matching target, you can replace '$obj ~~ undef'
+      by '$obj ~~ *.notdef'
+
+
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible.  If you would like to contribute,
 see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org

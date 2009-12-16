@@ -17,6 +17,10 @@
 # S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S16-filehandles/filetest.t - regressed when spec changed (RT #68160)
 # S16-filehandles/unlink.t   - regressed when spec changed (RT #68160)
+# S02-lexical-conventions/unicode.t                          # icu, #24 release
+# S03-junctions/associative.t          # skipped for #24 release
+# S06-other/main-eval.t                # skipped for #24 release
+# S12-class/basic.t                    # skipped for #24 release
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -65,7 +69,6 @@ S02-builtin_data_types/range.t
 S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
 S02-builtin_data_types/whatever.t
-S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/char-by-name.t                                # icu
@@ -107,9 +110,8 @@ S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/unicode-whitespace.t
 S02-whitespace_and_comments/unspace.t
-S03-junctions/associative.t
-S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
+S03-junctions/autothreading.t
 S03-junctions/misc.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
@@ -252,7 +254,6 @@ S06-operator-overloading/sub.t
 S06-operator-overloading/workout.t
 S06-other/anon-hashes-vs-blocks.t
 S06-other/main.t
-S06-other/main-eval.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
 S06-signature/closure-over-parameters.t
@@ -298,7 +299,6 @@ S12-attributes/instance.t
 S12-attributes/recursive.t
 S12-class/anonymous.t
 S12-class/attributes.t
-S12-class/basic.t
 S12-class/declaration-order.t
 S12-class/inheritance-class-methods.t
 S12-class/inheritance.t

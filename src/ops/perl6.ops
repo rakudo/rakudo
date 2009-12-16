@@ -24,11 +24,12 @@ static INTVAL or_id  = 0;
 static INTVAL lls_id = 0;
 
 /* Plus a function pointer to the binder. */
-static INTVAL (*bind_signature_func) (PARROT_INTERP, PMC *lexpad, PMC *signature,
-                                      PMC *capture, INTVAL no_nom_type_check, STRING **error) = NULL;
+typedef INTVAL (*bind_signature_func_type) (PARROT_INTERP, PMC *lexpad,
+    PMC *signature, PMC *capture, INTVAL no_nom_type_check, STRING **error);
+
+static bind_signature_func_type bind_signature_func = NULL;
 
 END_OPS_PREAMBLE
-
 
 /*
 
@@ -45,9 +46,9 @@ inline op rakudo_dynop_setup() :base_core {
     or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
     lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
 
-    /* Create dummy low level sig op and use it's get_pointer to get a pointer
+    /* Create dummy low level sig op and use its get_pointer to get a pointer
      * to the signature binder. */
-    bind_signature_func = VTABLE_get_pointer(interp, pmc_new(interp, lls_id));
+    bind_signature_func = (bind_signature_func_type)VTABLE_get_pointer(interp, pmc_new(interp, lls_id));
 
     goto NEXT();
 }

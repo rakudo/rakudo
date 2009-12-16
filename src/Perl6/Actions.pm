@@ -381,28 +381,23 @@ method statement_prefix:sym<gather>($/) {
 method statement_prefix:sym<try>($/) {
     my $block := $<blorst>.ast;
     $block.blocktype('immediate');
-    unless $block.handlers() {
-        $block.handlers([]);
-    }
-    $block.handlers().push(
-        PAST::Control.new(
-            :handle_types_except('CONTROL'),
-            PAST::Op.new(
-                    :inline( '    .get_results (%r)',
-                             '    $P0 = new ["Perl6Exception"]',
-                             '    setattribute $P0, "$!exception", %r',
-                             '    store_lex "$!", $P0' )
-                ),
-        )
-    );
+    my $past := PAST::Op.new( :pasttype('try'), $block );
+
+    # On failure, capture the exception object into $!.
+    $past.push(PAST::Op.new(
+        :inline( '    .get_results (%r)',
+                 '    $P0 = new ["Perl6Exception"]',
+                 '    setattribute $P0, "$!exception", %r',
+                 '    store_lex "$!", $P0' )
+    ));
 
     # Otherwise, put a failure into $!.
-    $block.push(PAST::Op.new( :pasttype('bind'),
+    $past.push(PAST::Op.new( :pasttype('bind'),
         PAST::Var.new( :name('$!'), :scope('lexical') ),
         PAST::Op.new( :pasttype('call'), :name('!FAIL') )
     ));
 
-    make $block;
+    make $past;
 }
 
 method blorst($/) {

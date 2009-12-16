@@ -33,6 +33,8 @@ class Rat {
 
     multi method Num() { $!numerator.Num / $!denominator.Num; }
 
+    multi method Rat() { self; }
+
     multi method Int() { self.Num.Int; }
 
     multi method Str() { $.Num.Str; }

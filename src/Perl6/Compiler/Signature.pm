@@ -208,9 +208,9 @@ method ast($high_level?) {
         elsif $_.sigil ne "" && !$_.invocant {
             # May well be a parametric role based type.
             my $role_name;
-            if    $_.sigil eq "@" { $role_name := "Positional" }
+#            if    $_.sigil eq "@" { $role_name := "Positional" }
 #            elsif $_.sigil eq "%" { $role_name := "Associative" }
-            elsif $_.sigil ne ":" { $role_name := "Callable" }
+#            elsif $_.sigil ne ":" { $role_name := "Callable" }
             if $role_name {
                 my $role_type := PAST::Var.new( :name($role_name), :namespace(''), :scope('package') );
                 if !$_.nom_type {

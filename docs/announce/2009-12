@@ -22,8 +22,8 @@ closely align with STD.pm as well as update some core features that have been
 difficult to achieve in the master branch [1, 2].  Most of our effort for the
 past month has been in this new branch, but as of the release date the new
 version had not sufficiently progressed to be the release copy.  We expect to
-have the new version in place in the January 2010 release, but reserve the
-right to release an interim release from this branch before then.
+have the new version in place in the January 2010 release, but may elect
+to have an interim release from the new branch before then.
 
 This release of Rakudo requires Parrot 1.9.0.  One must still
 perform "make install" in the Rakudo directory before the "perl6"
@@ -37,6 +37,9 @@ release include:
 * Rakudo is now passing # spectests, an increase of # passing
   tests since the November 2009 release.  With this release Rakudo is
   now passing % of the available spectest suite.
+
+* More improvements to the Rat type and related math functions to
+  remain aligned with the specification.
 
 The Perl 6 language specification is still in flux. Please take note of the
 following changes, which might affect your existing programs. In the next

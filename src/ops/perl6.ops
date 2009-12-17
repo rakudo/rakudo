@@ -5,6 +5,8 @@
 
 BEGIN_OPS_PREAMBLE
 
+#include "parrot/parrot.h"
+#include "parrot/extend.h"
 #include "parrot/dynext.h"
 #include "pmc_object.h"
 #include "pmc_class.h"
@@ -22,11 +24,12 @@ static INTVAL or_id  = 0;
 static INTVAL lls_id = 0;
 
 /* Plus a function pointer to the binder. */
-static INTVAL (*bind_signature_func) (PARROT_INTERP, PMC *lexpad, PMC *signature,
-                                      PMC *capture, INTVAL no_nom_type_check, STRING **error) = NULL;
+typedef INTVAL (*bind_signature_func_type) (PARROT_INTERP, PMC *lexpad,
+    PMC *signature, PMC *capture, INTVAL no_nom_type_check, STRING **error);
+
+static bind_signature_func_type bind_signature_func = NULL;
 
 END_OPS_PREAMBLE
-
 
 /*
 
@@ -43,9 +46,9 @@ inline op rakudo_dynop_setup() :base_core {
     or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
     lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
 
-    /* Create dummy low level sig op and use it's get_pointer to get a pointer
+    /* Create dummy low level sig op and use its get_pointer to get a pointer
      * to the signature binder. */
-    bind_signature_func = VTABLE_get_pointer(interp, pmc_new(interp, lls_id));
+    bind_signature_func = (bind_signature_func_type)VTABLE_get_pointer(interp, pmc_new(interp, lls_id));
 
     goto NEXT();
 }
@@ -652,12 +655,8 @@ inline op bind_signature(in PMC) :base_core {
 
                 /* Save the Junctional result as the return value. */
                 caller_sig = Parrot_pcc_get_signature(interp, Parrot_pcc_get_caller_ctx(interp, ctx));
-                if (!PMC_IS_NULL(caller_sig)) {
-                    PMC *returns;
-                    GETATTR_CallSignature_results(interp, caller_sig, returns);
-                    if (!PMC_IS_NULL(returns) && VTABLE_elements(interp, returns) > 0)
-                        VTABLE_set_pmc_keyed_int(interp, returns, 0, junc_result);
-                }
+                if (!PMC_IS_NULL(caller_sig))
+                    Parrot_pcc_fill_returns_from_c_args(interp, caller_sig, "P", junc_result);
 
                 /* Invoke the current return continuation, to return said value. */
                 next = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp,

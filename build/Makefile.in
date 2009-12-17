@@ -402,7 +402,7 @@ manifest:
 	echo MANIFEST >MANIFEST
 	git ls-files | $(PERL) -ne '/^\./ || print' >>MANIFEST
 	rm -rf t/spec
-	svn export "http://svn.pugscode.org/pugs/t/spec" t/spec
+	svn export -r29188 "http://svn.pugscode.org/pugs/t/spec" t/spec
 	find t/spec -type f >>MANIFEST
 	sort -u -o MANIFEST MANIFEST
 

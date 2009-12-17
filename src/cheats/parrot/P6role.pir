@@ -12,6 +12,8 @@ We also add some methods to P6role.
 
 Puns the role to a class and returns that class.
 
+XXX TODO: Needs a complete re-write for ng.
+
 =cut
 
 .namespace ["P6role"]
@@ -44,8 +46,7 @@ Puns the role to a class and returns that class.
     $I0 = does metaclass, $P0
     if $I0 goto roles_it_loop
     addrole metaclass, $P0
-    .const 'Sub' $P1 = '!compose_role_attributes'
-    $P1(metaclass, $P0)
+    '!compose_role_attributes'(metaclass, $P0)
     goto roles_it_loop
   roles_it_loop_end:
 

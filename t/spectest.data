@@ -389,10 +389,10 @@ S32-array/elems.t
 # S32-array/keys_values.t
 # S32-array/kv.t
 # S32-array/pairs.t
-# S32-array/pop.t
+S32-array/pop.t
 # S32-array/push.t
 # S32-array/rotate.t
-# S32-array/shift.t
+S32-array/shift.t
 # S32-array/splice.t
 # S32-array/unshift.t
 # S32-container/zip.t

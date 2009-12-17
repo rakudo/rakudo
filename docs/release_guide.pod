@@ -22,21 +22,21 @@ part of monthly Parrot releases.
   2009-09-17   Rakudo #21 "Seattle"            (particle)
   2009-10-22   Rakudo #22 "Thousand Oaks"      (duff)
   2009-11-19   Rakudo #23 "Lisbon"             (masak)
+  2009-12-17   Rakudo #24 "Seoul"              (chromatic)
 
-=head2 Planned 2009 releases
+=head2 Planned 2010 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2009-12-17   Rakudo #24                      (chromatic)
   2010-01-21   Rakudo #25                      (smash)
   2010-02-18   Rakudo #26                      (Su-Shee)
+  2010-03-18   Rakudo #27                      (volunteers wanted)
 
 =head2 Suggested .pm group names for future releases
 
   Atlanta.pm
   BristolBath.pm
   Milan.pm
-  Seoul.pm
 
 =head2 Steps to create a release (for release managers)
 
@@ -47,8 +47,7 @@ days after a Parrot monthly release.
 
 =item 1.
 
-A few days before
-the Parrot release, it's a good idea to:
+A few days before the Parrot release, it's a good idea to:
 
 =over 4
 
@@ -155,7 +154,7 @@ Make sure everything compiles and runs from a known clean state:
 
 Continue adjusting things until make spectest passes as expected.
 Often this means fixing a bug, fudging a test, or removing a
-test from t/spectest.data .  Use your best judgement or ask others
+test from t/spectest.data .  Use your best judgment or ask others
 if uncertain what to do here.
 
 =item 8.

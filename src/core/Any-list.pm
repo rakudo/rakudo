@@ -26,11 +26,14 @@ augment class Any {
         }
         return @result;
     }
+
+    multi method end() { self.elems - 1; }
 }
 
 our proto sub join (Str $separator = '', *@values) { @values.join($separator); }
 our proto sub reverse(@values) { @values.reverse; }
 our multi sub reverse(*@v) { @v.reverse; }
+our proto sub end(@array) { @array.end; }
 
 
 # vim: ft=perl6

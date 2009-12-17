@@ -34,9 +34,12 @@ readme file section titled "Building and invoking Rakudo".
 Some of the specific changes and improvements occuring with this
 release include:
 
-* Rakudo is now passing # spectests, an increase of # passing
-  tests since the November 2009 release.  With this release Rakudo is
-  now passing % of the available spectest suite.
+* Rakudo is now passing 32,192 spectests, a "decrease" of 561 passing
+  tests since the November 2009 release.  We pass fewer tests now
+  because specification changes caused many obsolete (but passing)
+  tests to be removed from the suite -- from 38,318 in November to
+  37,376 now.  The percentage of passing tests has increased, from
+  85.5% in November to 86.1% today.
 
 * More improvements to the Rat type and related math functions to
   remain aligned with the specification.

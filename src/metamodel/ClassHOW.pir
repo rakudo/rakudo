@@ -34,6 +34,7 @@ backing store.
     addattribute $P0, '$!hides'
     addattribute $P0, '$!hidden'
     addattribute $P0, '$!composees'
+    addattribute $P0, '$!done'
 
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
@@ -255,36 +256,8 @@ Completes the creation of the metaclass and return a proto-object.
     .return ($P0)
   no_its_new:
 
-    # See if we have anything to compose. Also, make sure our composees
-    # all want the same composer.
-    .local pmc composees, chosen_applier, composee_it
-    composees = getattribute meta, '$!composees'
-    $I0 = elements composees
-    if $I0 == 0 goto composition_done
-    if $I0 == 1 goto one_composee
-    composee_it = iter composees
-  composee_it_loop:
-    unless composee_it goto apply_composees
-    $P0 = shift composee_it
-    if null chosen_applier goto first_composee
-    $P1 = $P0.'HOW'()
-    $P1 = $P1.'applier_for'($P0, meta)
-    $P2 = chosen_applier.'WHAT'()
-    $P3 = $P1.'WHAT'()
-    $I0 = '&infix:<===>'($P2, $P3)
-    if $I0 goto composee_it_loop
-    die 'Can not compose multiple composees that want different appliers'
-  first_composee:
-    $P1 = $P0.'HOW'()
-    chosen_applier = $P1.'applier_for'($P0, meta)
-    goto composee_it_loop
-  one_composee:
-    $P0 = composees[0]
-    $P1 = $P0.'HOW'()
-    chosen_applier = $P1.'applier_for'($P0, meta)
-  apply_composees:
-    chosen_applier.'apply'(meta, composees)
-  composition_done:
+    # Compose any composables.
+    'compose_composables'(meta)
 
     # Iterate over the attributes and compose them.
     .local pmc attr_it, attributes
@@ -343,13 +316,27 @@ Tests role membership.
     .param pmc type
 
     # Check if we have a Perl6Role - needs special handling.
+    # It will end up calling back to us, but with individual
+    # variants, 
     $I0 = isa type, 'Perl6Role'
     unless $I0 goto not_p6role
     .tailcall type.'ACCEPTS'(obj)
+
+    # Otherwise, see if the target is in our done list.
   not_p6role:
-    $I0 = does obj, type
-    .const 'Sub' $P1 = '&prefix:<?>'
-    .tailcall $P1($I0)
+    type = descalarref type
+    $P0 = getattribute self, '$!done'
+    if null $P0 goto false
+    $P0 = iter $P0
+  it_loop:
+    unless $P0 goto false
+    $P1 = shift $P0
+    eq_addr $P1, type, true
+    goto it_loop
+  false:
+    .return (0)
+  true:
+    .return (1)
 .end
 
 
@@ -632,7 +619,7 @@ Accessor for hidden property.
 .end
 
 
-=item new_class(name [, 'parent'=>parentclass] [, 'attr'=>attr] [, 'hll'=>hll])
+=item new_class(name [, 'parent'=>parentclass] [, 'attr'=>attr] [, 'hll'=>hll] [, 'does_role'=>r)
 
 Override of new_class from P6metaclass that handles attributes through the
 correct protocol.
@@ -704,7 +691,51 @@ correct protocol.
     goto iter_loop
   iter_end:
   attr_done:
+
+    $P0 = options['does_role']
+    if null $P0 goto role_done
+    self.'add_composable'(how, $P0)
+    'compose_composables'(how)
+  role_done:
+
     .tailcall self.'register'(parrotclass, 'how'=>how, options :named :flat)
+.end
+
+
+.sub 'compose_composables'
+    .param pmc meta
+
+    # See if we have anything to compose. Also, make sure our composees
+    # all want the same composer.
+    .local pmc composees, chosen_applier, composee_it, done
+    composees = getattribute meta, '$!composees'
+    $I0 = elements composees
+    if $I0 == 0 goto composition_done
+    if $I0 == 1 goto one_composee
+    composee_it = iter composees
+  composee_it_loop:
+    unless composee_it goto apply_composees
+    $P0 = shift composee_it
+    if null chosen_applier goto first_composee
+    $P1 = $P0.'HOW'()
+    $P1 = $P1.'applier_for'($P0, meta)
+    $P2 = chosen_applier.'WHAT'()
+    $P3 = $P1.'WHAT'()
+    $I0 = '&infix:<===>'($P2, $P3)
+    if $I0 goto composee_it_loop
+    die 'Can not compose multiple composees that want different appliers'
+  first_composee:
+    $P1 = $P0.'HOW'()
+    chosen_applier = $P1.'applier_for'($P0, meta)
+    goto composee_it_loop
+  one_composee:
+    $P0 = composees[0]
+    $P1 = $P0.'HOW'()
+    chosen_applier = $P1.'applier_for'($P0, meta)
+  apply_composees:
+    done = chosen_applier.'apply'(meta, composees)
+    setattribute meta, '$!done', done
+  composition_done:
 .end
 
 =back

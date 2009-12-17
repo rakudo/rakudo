@@ -82,6 +82,7 @@ method apply($target, @composees) {
     }
 
     # Now do the other bits.
+    my @all_composees;
     for @composees {
         my $how := $_.HOW;
 
@@ -117,7 +118,15 @@ method apply($target, @composees) {
         for @parents {
             $target.add_parent($target, $_);
         }
+
+        # Build up full list.
+        my @composees := $how.composees($how, :transitive(1));
+        for @composees {
+            @all_composees.push($_);
+        }
     }
+
+    return @all_composees;
 }
 
 =begin

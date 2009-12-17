@@ -21,7 +21,7 @@ on.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, rolehowproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    rolehowproto = p6meta.'new_class'('RoleHOW', 'parent'=>'Mu', 'attr'=>'parrotclass shortname longname protoobject $!parents $!composees $!requirements $!collisions $!attributes')
+    rolehowproto = p6meta.'new_class'('RoleHOW', 'parent'=>'Mu', 'attr'=>'parrotclass shortname longname protoobject $!parents $!composees $!requirements $!collisions $!attributes $!done')
 
     # Also want to get various methods from the ParrotBacked role, since we're
     # backed by a Parrot Class PMC and using it to store most things.
@@ -221,6 +221,28 @@ Accessor for list of attributes in the role.
 .end
 
 
+=item composees
+
+Returns all of the composees that this role has. With the :trasitive flag
+it represents all of those that have been composed in from other roles too.
+
+XXX This is non-spec ATM.
+
+=cut
+
+.sub 'composees' :method
+    .param pmc meta
+    .param pmc transitive :named('transitive') :optional
+    if null transitive goto intransitive
+    unless transitive goto intransitive
+    $P0 = getattribute meta, '$!done'
+    .return ($P0)
+  intransitive:
+    $P0 = getattribute meta, '$!composees'
+    .return ($P0)
+.end
+
+
 =item applier_for
 
 For now, we can't use a class as a composable thing. In the future we can
@@ -261,10 +283,12 @@ Completes the creation of the metaclass and return the P6role.
 
 .sub 'compose' :method
     .param pmc meta
+    .local pmc p6role
+    p6role = getattribute meta, 'parrotclass'
 
     # See if we have anything to compose. Also, make sure our composees
     # all want the same composer.
-    .local pmc composees, chosen_applier, composee_it
+    .local pmc composees, chosen_applier, composee_it, done
     composees = getattribute meta, '$!composees'
     $I0 = elements composees
     if $I0 == 0 goto composition_done
@@ -290,12 +314,15 @@ Completes the creation of the metaclass and return the P6role.
     $P1 = $P0.'HOW'()
     chosen_applier = $P1.'applier_for'($P0, meta)
   apply_composees:
-    chosen_applier.'apply'(meta, composees)
+    done = chosen_applier.'apply'(meta, composees)
   composition_done:
+    unless null done goto done_done
+    done = root_new ['parrot';'ResizablePMCArray']
+  done_done:
+    done.'unshift'(p6role)
+    setattribute meta, '$!done', done
 
     # Associate the metaclass with the p6role.
-    .local pmc p6role
-    p6role = getattribute meta, 'parrotclass'
     setprop p6role, 'how', meta
     setattribute meta, 'protoobject', p6role
     .return (p6role)

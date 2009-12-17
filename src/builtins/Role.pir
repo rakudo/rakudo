@@ -145,6 +145,13 @@ Checks if the given topic does the role.
     unless it goto it_loop_end
     $P0 = shift it
     $P0 = $P0["role"]
+    $P1 = topic.'HOW'()
+    $I0 = can $P1, 'does'
+    unless $I0 goto try_parrot_does
+    $I0 = $P1.'does'(topic, $P0)
+    if $I0 == 0 goto it_loop
+    goto it_loop_end
+  try_parrot_does:
     $I0 = does topic, $P0
     if $I0 == 0 goto it_loop
   it_loop_end:

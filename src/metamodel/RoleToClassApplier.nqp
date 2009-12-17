@@ -89,6 +89,10 @@ method apply($target, @composees) {
     for @parents {
         $target.add_parent($target, $_);
     }
+
+    # The full list of done roles is just the list of the one role we have
+    # composed in.
+    return RoleHOW.composees($to_compose_meta, :transitive(1));
 }
 
 =begin

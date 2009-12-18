@@ -209,11 +209,11 @@ XXX TODO: Needs a complete re-write for ng.
 .end
 
 
-=item !select
+=item postcircumfix:<[ ]>
 
 =cut
 
-.sub '!select' :method
+.sub 'postcircumfix:<[ ]>' :method
     .return (self)
 .end
 

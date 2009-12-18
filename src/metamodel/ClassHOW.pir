@@ -322,18 +322,30 @@ Tests role membership.
     unless $I0 goto not_p6role
     .tailcall type.'ACCEPTS'(obj)
 
-    # Otherwise, see if the target is in our done list.
+    # Otherwise, see if the target is in our done list or in the done list
+    # of any of our parents.
   not_p6role:
+    .local pmc parent_it, current_how
     type = descalarref type
-    $P0 = getattribute self, '$!done'
-    if null $P0 goto false
+    $P0 = getattribute self, 'parrotclass'
+    $P0 = inspect $P0, 'all_parents'
+    parent_it = iter $P0
+  parent_it_loop:
+    unless parent_it goto parent_it_loop_end
+    $P0 = shift parent_it
+    current_how = getprop 'metaclass', $P0
+    if null current_how goto parent_it_loop
+    $I0 = isa current_how, 'ClassHOW'
+    unless $I0 goto parent_it_loop
+    $P0 = getattribute current_how, '$!done'
+    if null $P0 goto parent_it_loop
     $P0 = iter $P0
   it_loop:
-    unless $P0 goto false
+    unless $P0 goto parent_it_loop
     $P1 = shift $P0
     eq_addr $P1, type, true
     goto it_loop
-  false:
+  parent_it_loop_end:
     .return (0)
   true:
     .return (1)

@@ -25,8 +25,8 @@ items are not generated until they are needed.
     pos_role = get_hll_global 'Positional'
     pos_role = pos_role.'!select'()
 
-    # Create the class. XXX pm - you'd add the pos_role here, somehow. :-)
-    listproto = p6meta.'new_class'('List', 'parent'=>'Any', 'attr'=>'$!values $!gen')
+    # Create the class.
+    listproto = p6meta.'new_class'('List', 'parent'=>'Any', 'attr'=>'$!values $!gen', 'does_role'=>pos_role)
 .end
 
 =item elems()

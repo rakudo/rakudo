@@ -191,6 +191,10 @@ B<Note:> partial implementation only
     our Str multi method ucfirst() is export {
         self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""
     }
+
+    our multi method eval() {
+        eval(~self);
+    }
 }
 
 multi sub split($delimiter, $target, $limit = *, :$all) {

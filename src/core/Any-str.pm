@@ -157,6 +157,10 @@ augment class Any {
         $char
     }
 
+    multi method eval() {
+        eval(~self);
+    }
+
     multi method flip() is export {
         (~self).split('').reverse().join;
     }

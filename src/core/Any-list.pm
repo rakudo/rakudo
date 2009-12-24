@@ -19,6 +19,24 @@ augment class Any {
         }
     }
 
+    multi method first($test) {
+        for @.list {
+            if $_ ~~ $test {
+                return $_;
+            }
+        }
+
+        fail('No values matched');
+    }
+
+    our List multi method grep($test) {
+        gather {
+            for @.list {
+                take $_ if $_ ~~ $test;
+            }
+        }
+    }
+
     multi method reverse() {
         my @result;
         for @.list {

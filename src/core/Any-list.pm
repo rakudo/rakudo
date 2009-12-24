@@ -52,6 +52,8 @@ our proto sub join (Str $separator = '', *@values) { @values.join($separator); }
 our proto sub reverse(@values) { @values.reverse; }
 our multi sub reverse(*@v) { @v.reverse; }
 our proto sub end(@array) { @array.end; }
+our proto sub grep($test, @values) { @values.grep($test); }
+our proto sub first($test, @values) { @values.first($test); }
 
 
 # vim: ft=perl6

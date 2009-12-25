@@ -1,14 +1,4 @@
 augment class Array {
-    method perl() {
-        if self.elems() == 0 { return Nil.WHAT };
-        # '[' ~ self.map({ $_.perl }).join(', ') ~ ']';
-        my $result = '[';
-        for 0 ... self.end -> $x {
-            $result ~= ', ' if $result.chars > 1;
-            $result ~= self[$x].perl;
-        }
-        return $result ~ ']';
-    }
 
     our method push(*@values) is export {
         my @a = @values;

@@ -5,7 +5,7 @@ augment class List {
         my $result = '(';
         for self -> $x {
             $result ~= ', ' if $result.chars > 1;
-            $result ~= (~$x.WHAT eq 'Array()' ?? gather { for 0 ... $x.end { take $x.[$_] } } !! $x).perl;
+            $result ~= $x.perl;
         }
         return $result ~ ')';
     }

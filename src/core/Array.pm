@@ -1,4 +1,9 @@
 augment class Array {
+   method perl() {
+        # XXX: $_.perl and .perl don't work, but this does...
+        '[' ~ self.map({ $^a.perl }).join(', ') ~ ']';
+    }
+ 
 
     our method push(*@values) is export {
         my @a = @values;

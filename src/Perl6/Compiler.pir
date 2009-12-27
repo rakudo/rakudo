@@ -83,7 +83,7 @@ Perl6::Compiler - Perl6 compiler
     .local pmc p6meta, nqpproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     nqpproto = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'HLL::Compiler')
-    nqpproto.'language'('Perl6')
+    nqpproto.'language'('perl6')
     $P0 = get_hll_global ['Perl6'], 'Grammar'
     nqpproto.'parsegrammar'($P0)
     $P0 = get_hll_global ['Perl6'], 'Actions'
@@ -114,7 +114,7 @@ Perl6::Compiler - Perl6 compiler
 
 .sub 'main' :main
     .param pmc args_str
-    $P0 = compreg 'Perl6'
+    $P0 = compreg 'perl6'
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
     '!fire_phasers'('END')
     exit 0

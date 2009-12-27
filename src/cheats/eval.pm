@@ -4,7 +4,7 @@ our sub eval(Str $code) {
         interp = getinterp
         caller = interp['context';1]
         push_eh catch
-        $P0 = compreg 'Perl6'
+        $P0 = compreg 'perl6'
         code = find_lex '$code'
         result = $P0.'eval'(code, 'outer_ctx'=>caller)
         exception = '!FAIL'()

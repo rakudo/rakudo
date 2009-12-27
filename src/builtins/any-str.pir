@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chomp,chars,:d,:e,:f,index,rindex,substr', 'from'=>$P0)
+    '!EXPORT'('chomp,chars,:d,:e,:f,:s,index,rindex,substr', 'from'=>$P0)
 .end
 
 
@@ -143,6 +143,25 @@ file.
   file_isnt_plain:
     $P0 = get_hll_global ['Bool'], 'False'
     .return ($P0)
+.end
+
+=item ':s'()
+
+ our Int multi Str::':s' ( Str $filename )
+
+Returns file size.
+
+=cut
+
+.sub ':s' :method :multi(_)
+    .param int arg :optional
+    .param int has_arg :opt_flag
+
+    .local string filename
+    filename = self
+
+    $I0 = stat filename, 1
+    .return ($I0)
 .end
 
 =item index()

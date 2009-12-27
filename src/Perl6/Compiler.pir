@@ -92,6 +92,26 @@ Perl6::Compiler - Perl6 compiler
     setattribute nqpproto, '@cmdoptions', $P0
 .end
 
+.sub load_module :method
+    .param string name
+    .local string base, filename
+    .local pmc namelist, module
+    namelist = self.'parse_name'(name)
+    base = join '/', namelist
+    push_eh no_precompiled
+    filename = concat base, '.pir'
+    load_bytecode filename
+    pop_eh
+    goto done
+  no_precompiled:
+    pop_eh
+    filename = concat base, '.pm'
+    self.'evalfiles'(filename)
+  done:
+    module = self.'get_module'(name)
+    .return (module)
+.end
+
 .sub 'main' :main
     .param pmc args_str
     $P0 = compreg 'Perl6'

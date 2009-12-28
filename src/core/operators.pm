@@ -73,7 +73,7 @@ our sub none(*@items) {
 
 our multi prefix:<not>($x) { !$x }
 
-our multi prefix:<true>($x) { ?$x }
+our multi prefix:<so>($x) { ?$x }
 
 our sub undefine(\$x) {
     my $undefined;

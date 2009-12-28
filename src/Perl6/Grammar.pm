@@ -1021,7 +1021,7 @@ token infix:sym<.=> { <sym> <O('%item_assignment, :nextterm<dottyopish>')> }
 
 token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
 
-token prefix:sym<true> { <sym> >> <O('%loose_unary')> }
+token prefix:sym<so> { <sym> >> <O('%loose_unary')> }
 token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
 token infix:sym<,>    { <sym>  <O('%comma')> }

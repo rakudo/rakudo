@@ -153,7 +153,7 @@ S03-operators/scalar-assign.t
 # S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
-S03-operators/true.t
+S03-operators/so.t
 # S03-operators/value_equivalence.t
 # S04-blocks-and-statements/pointy-rw.t
 # S04-blocks-and-statements/pointy.t

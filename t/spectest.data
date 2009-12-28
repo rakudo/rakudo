@@ -95,6 +95,7 @@ S02-literals/underscores.t
 # S02-names_and_variables/fmt.t
 # S02-names_and_variables/names.t
 # S02-names_and_variables/perl.t
+S02-names_and_variables/list_array_perl.t
 # S02-names_and_variables/varnames.t
 S02-names/identifier.t
 # S02-names/our.t

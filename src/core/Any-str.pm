@@ -196,7 +196,7 @@ our proto ord($string) {
     $string.ord;
 }
 
-multi sub infix:<x>($str, $n) {
+our Str proto sub infix:<x>($str, $n) {
     $n > 0 ?? ~(pir::repeat__SSI($str, $n)) !!  ''
 }
 

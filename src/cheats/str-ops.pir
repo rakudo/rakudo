@@ -34,10 +34,3 @@
     $S0 = bxors a, b
     .return ($S0)
 .end
-
-.sub '&infix:<x>'
-    .param string left
-    .param int right
-    $S0 = repeat left, right
-    .return ($S0)
-.end

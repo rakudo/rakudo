@@ -15,6 +15,10 @@ augment class Any {
         }
     }
 
+    multi method subst(Regex $matcher, Str $replacement) {
+        self.split($matcher).Str.join($replacement);
+    }
+
     multi method comb(Regex $matcher = /./, $limit = *, :$match) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit;

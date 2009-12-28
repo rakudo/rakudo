@@ -973,6 +973,7 @@ token infix:sym«+<»   { <sym>  <O('%additive')> }
 token infix:sym«+>»   { <sym>  <O('%additive')> }
 
 token infix:sym<x>    { <sym>  <O('%replication')> }
+token infix:sym<xx>    { <sym>  <O('%replication')> }
 
 token infix:sym<~>    { <sym>  <O('%concatenation , :pirop<concat>')> }
 

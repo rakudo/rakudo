@@ -55,5 +55,16 @@ our proto sub end(@array) { @array.end; }
 our proto sub grep($test, @values) { @values.grep($test); }
 our proto sub first($test, @values) { @values.first($test); }
 
+our List sub infix:<xx>($item, $n) {
+    if $item.isa('List') {
+        if $item.list.elems == 0 || $n <= 0 { return List };
+        gather {
+            for 1 ... $n { for 0 ... $item.list.end { take $item.list.[$_] } }
+        };
+    }
+    else {
+        gather { for 1 ... $n { take $item } };
+    }
+}
 
 # vim: ft=perl6

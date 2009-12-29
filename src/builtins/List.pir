@@ -71,14 +71,6 @@ Return the number of elements in the list.
     .return (self)
 .end
 
-=item Num()
-
-=cut
-
-.sub 'Num' :method
-    .tailcall self.'elems'()
-.end
-
 =item postcircumfix:<[ ]>(Int)
 
 =cut

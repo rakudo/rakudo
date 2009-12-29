@@ -29,19 +29,6 @@ items are not generated until they are needed.
     listproto = p6meta.'new_class'('List', 'parent'=>'Any', 'attr'=>'$!values $!gen', 'does_role'=>pos_role)
 .end
 
-=item elems()
-
-Return the number of elements in the list.
-
-=cut
-
-.sub 'elems' :method
-    .local pmc values
-    values = self.'!generate'()
-    $I0 = values
-    .return ($I0)
-.end
-
 =item Iterator()
 
 =cut

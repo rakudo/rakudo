@@ -4,6 +4,7 @@ augment class List {
     }
     method list() { self; }
     method Num() { self.elems; }
+    method Int() { self.elems; }
     method perl() {
         if self.elems() == 0 { return Nil.WHAT };
         # XXX: $_.perl and .perl don't work, but this does...

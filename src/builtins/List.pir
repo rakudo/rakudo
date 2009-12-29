@@ -42,14 +42,6 @@ Return the number of elements in the list.
     .return ($I0)
 .end
 
-=item Int()
-
-=cut
-
-.sub 'Int' :method
-    .tailcall self.'elems'()
-.end
-
 =item Iterator()
 
 =cut

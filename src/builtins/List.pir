@@ -96,19 +96,6 @@ Return the number of elements in the list.
     .tailcall '!FAIL'('Index beyond end of List')
 .end
 
-=item Str()
-
-=cut
-
-.sub 'Str' :method
-    .local pmc values
-    values = self.'!generate'()
-    $S0 = join ' ', values
-    .return ($S0)
-.end
-
-=cut
-
 =head2 Functions
 
 =over 4

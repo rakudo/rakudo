@@ -23,7 +23,7 @@ the size of that file down and to emphasize their generic,
 .namespace []
 .sub 'onload' :anon :init :load
     $P0 = get_hll_namespace ['Any']
-    '!EXPORT'('chomp,chars,:d,:e,:f,:s,index,rindex,substr', 'from'=>$P0)
+    '!EXPORT'('chomp,chars,:d,:e,:f,:l,:s,index,rindex,substr', 'from'=>$P0)
 .end
 
 
@@ -143,6 +143,28 @@ file.
   file_isnt_plain:
     $P0 = get_hll_global ['Bool'], 'False'
     .return ($P0)
+.end
+
+=item ':l'()
+
+ our Bool multi Str::':l' ( Str $filename )
+
+Returns whether the file with the name indicated by the invocant is a symbolic link.
+
+=cut
+
+.sub ':l' :method :multi(_)
+    .param int arg :optional
+    .param int has_arg :opt_flag
+
+    .local string filename
+    filename = self
+
+    .local pmc file
+    file = root_new ['parrot';'File']
+
+    $I0 = file.'is_link'(filename)
+    .return ($I0)
 .end
 
 =item ':s'()

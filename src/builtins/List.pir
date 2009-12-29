@@ -63,14 +63,6 @@ Return the number of elements in the list.
     .return (list_it)
 .end
 
-=item list()
-
-=cut
-
-.sub 'list' :method
-    .return (self)
-.end
-
 =item postcircumfix:<[ ]>(Int)
 
 =cut

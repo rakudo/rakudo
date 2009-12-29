@@ -2,6 +2,7 @@ augment class List {
     method Str() {
         pir::join(' ', self!generate);
     }
+    method list() { self; }
     method Num() { self.elems; }
     method perl() {
         if self.elems() == 0 { return Nil.WHAT };

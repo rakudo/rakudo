@@ -131,8 +131,20 @@ augment class Any {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
-    our multi method match(Regex $pat, :$c = 0) {
-        Regex::Cursor.parse(self, :rule($pat), :c($c));
+    our multi method match(Regex $pat, :$c = 0, :$g) {
+        if $g {
+            my $cont = $c;
+            gather while my $m = Regex::Cursor.parse(self, :rule($pat), :c($cont)) {
+                take $m;
+                if $m.to == $m.from {
+                    $cont = $m.to + 1;
+                } else {
+                    $cont = $m.to;
+                }
+            }
+        } else {
+            Regex::Cursor.parse(self, :rule($pat), :c($c));
+        }
     }
 
     our multi method ord() {

@@ -15,8 +15,8 @@ augment class Any {
         }
     }
 
-    multi method subst(Regex $matcher, Str $replacement) {
-        self.split($matcher).join($replacement);
+    multi method subst(Regex $matcher, Str $replacement, :$g) {
+        self.split($matcher, :limit($g ?? * !! 2)).join($replacement);
     }
 
     multi method comb(Regex $matcher = /./, $limit = *, :$match) {

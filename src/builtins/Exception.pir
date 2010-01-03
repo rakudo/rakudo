@@ -57,6 +57,12 @@ A Perl 6 Exception object.
     rethrow ex
 .end
 
+.sub 'throw' :method
+    .local pmc ex
+    ex = getattribute self, '$!exception'
+    throw ex
+.end
+
 .sub 'payload' :method
     .param pmc payload :optional
     .param int has_payload :opt_flag
@@ -70,12 +76,29 @@ A Perl 6 Exception object.
     .return (payload)
 .end
 
+.sub 'handled' :method
+    .param int handled :optional
+    .param int has_handled :opt_flag
+    .local pmc ex
+    ex = getattribute self, '$!exception'
+    unless has_handled goto no_handled
+    ex['handled'] = handled
+    .return (handled)
+  no_handled:
+    handled = ex['handled']
+    .return (handled)
+.end
+
 .sub 'perl' :method
     .return ('undef')
 .end
 
 
 .sub '' :vtable('get_string') :method
+    .tailcall self.'Str'()
+.end
+
+.sub 'Str' :method
     .local pmc exception
     exception = getattribute self, '$!exception'
     $S0 = exception['message']

@@ -114,6 +114,7 @@ BUILTINS_PIR = \
   src/builtins/Regex.pir \
   src/builtins/ContainerDeclarand.pir \
   src/builtins/Exception.pir \
+  src/builtins/Failure.pir \
   src/builtins/Signature.pir \
   src/builtins/Junction.pir \
   src/builtins/assign.pir \

@@ -64,6 +64,7 @@ multi sub nok(Mu $cond) is export { nok($cond, ''); }
 
 
 multi sub is(Mu $got, Mu $expected, $desc) is export {
+    $got.defined; # Hack to deal with Failures
     my $test = $got eq $expected;
     proclaim(?$test, $desc);
     if !$test {

@@ -45,16 +45,20 @@ src/builtins/control.pir - control flow related functions
 .sub '&fail'
     .param pmc value :optional
     .param int has_value :opt_flag
-    .local pmc ex, p6ex, failure
+    .local pmc ex, p6ex, failure, fatal
 
     ex = root_new ['parrot';'Exception']
-    $P0 = get_hll_global 'Exception'
-    p6ex = $P0.'new'(ex)
     unless has_value goto no_value
     ex['payload'] = value
     $S0 = value
     ex['message'] = value
   no_value:
+    fatal = "!find_contextual"("$*FATAL")
+    unless fatal goto no_fatal
+    throw ex
+  no_fatal:
+    $P0 = get_hll_global 'Exception'
+    p6ex = $P0.'new'(ex)
     $P0 = get_hll_global 'Failure'
     failure = $P0.'new'(p6ex)
 

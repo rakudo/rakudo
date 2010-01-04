@@ -51,7 +51,7 @@ A Perl 6 Exception object.
     $P0 = self.'exception'()
     $I0 = $P0.'handled'()
     if $I0 goto okay
-    $P0.'throw'()
+    .tailcall $P0.'throw'()
   okay:
 .end
 

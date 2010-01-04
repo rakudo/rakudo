@@ -166,6 +166,20 @@ token ENDSTMT {
     ]?
 }
 
+token unsp {
+    \\ <?before [\s|'#'] >
+    # :dba('unspace')
+    [
+    | <.vws>
+    | <.unv>
+    ]*
+}
+
+token vws {
+    #:dba('vertical whitespace')
+    \v
+}
+
 token ws { 
     ||  <?MARKED('ws')> 
     ||  <!ww>

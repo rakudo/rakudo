@@ -69,11 +69,11 @@ src/builtins/control.pir - control flow related functions
     throw ex
 .end
 
-=item continue
+=item proceed
 
 =cut
 
-.sub '&continue'
+.sub '&proceed'
     .local pmc ex, p6ex
     ex = root_new ['parrot';'Exception']
     ex['severity'] = .EXCEPT_NORMAL
@@ -84,11 +84,11 @@ src/builtins/control.pir - control flow related functions
     throw ex
 .end
 
-=item break
+=item succeed
 
 =cut
 
-.sub '&break'
+.sub '&succeed'
     .param pmc arg :optional
     .param int has_arg :opt_flag
     .local pmc e, p6ex

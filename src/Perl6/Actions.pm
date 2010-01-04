@@ -1800,7 +1800,7 @@ sub when_handler_helper($block) {
     $block.push(
         PAST::Op.new(
             :pasttype('call'),
-            :name('&break'),
+            :name('&succeed'),
             $last
         )
     );

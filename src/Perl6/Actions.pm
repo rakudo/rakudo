@@ -294,12 +294,33 @@ method statement_control:sym<loop>($/) {
 }
 
 method statement_control:sym<use>($/) {
+    my $past := PAST::Stmts.new( :node($/) );
     if $<module_name> {
-        @BLOCK[0][0].unshift(
-            PAST::Op.new( :name('!use'), ~$<module_name>, :node($/) )
-        );
+        if ~$<module_name> eq 'fatal' {
+            declare_variable($/, PAST::Stmts.new(), '$', '*', 'FATAL', 0);
+            $past := PAST::Op.new(
+                :name('&infix:<=>'),
+                :node($/),
+                PAST::Op.new(
+                    :name('!find_contextual'),
+                    :pasttype('call'),
+                    :lvalue(0),
+                    '$*FATAL',
+                ),
+                PAST::Var.new(
+                    :name('True'),
+                    :namespace(['Bool']),
+                    :scope('package'),
+                ),
+            );
+        }
+        else {
+            @BLOCK[0][0].unshift(
+                PAST::Op.new( :name('!use'), ~$<module_name>, :node($/) )
+            );
+        }
     }
-    make PAST::Stmts.new( :node($/) );
+    make $past;
 }
 
 method statement_control:sym<return>($/) {

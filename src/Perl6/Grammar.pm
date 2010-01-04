@@ -563,6 +563,14 @@ token variable_declarator {
     :my $*IN_DECL := 'variable';
     <variable>
     { $*IN_DECL := '' }
+    [
+        <.unsp>? 
+        $<shape>=[
+        | '(' ~ ')' <signature>
+        | '[' ~ ']' <semilist>
+        | '{' ~ '}' <semilist>
+        ]*
+    ]?
     <trait>*
 }
 

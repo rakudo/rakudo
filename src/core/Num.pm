@@ -23,6 +23,10 @@ augment class Num {
         pir::ln__Nn(self);
     }
 
+    multi method log($base) {
+        $.log / $base.log;
+    }
+
     multi method log10() {
         pir::log10__Nn(self);
     }

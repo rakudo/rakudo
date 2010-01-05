@@ -64,6 +64,10 @@ augment class Any {
         $.Num.log;
     }
 
+    multi method log($base) {
+        $.Num.log($base);
+    }
+
     multi method log10() {
         $.Num.log10;
     }
@@ -177,6 +181,7 @@ our proto sub abs($x) { $x.abs }
 our multi sub prefix:<abs>($x) { $x.abs }
 our proto sub exp($exponent) { $exponent.exp }
 our proto sub log($x) { $x.log }
+our multi sub log($x, $base) { $x.log($base) }
 our proto sub log10($x) { $x.log10 }
 
 # jnthn says that we should have both the multi sub declaration and the proto.

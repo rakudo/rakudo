@@ -149,6 +149,10 @@ class Complex {
         }
     }
 
+    multi method log($base) {
+        $.log / $base.log;
+    }
+
     multi method log10() {
         $.log / 10.log;
     }

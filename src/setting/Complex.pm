@@ -147,6 +147,10 @@ class Complex {
         }
     }
 
+    multi method log($base) {
+        $.log / $base.log;
+    }
+
     multi method log10() {
         $.log / 10.log;
     }
@@ -298,14 +302,6 @@ multi sub infix:<**>(Complex $a, $b) is default {
 
 multi sub infix:<**>($a, Complex $b) {
     ($a.log * $b).exp;
-}
-
-multi sub log(Complex $x) {
-    $x.log()
-}
-
-multi sub log10(Complex $x) {
-    $x.log10;
 }
 
 multi sub sign(Complex $x) { $x.sign }

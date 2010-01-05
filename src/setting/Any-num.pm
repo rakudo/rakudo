@@ -79,6 +79,14 @@ class Any is also {
         $.Num.log();
     }
 
+    multi method log($base) {
+        $.Num.log($base);
+    }
+
+    multi method log10() {
+        $.Num.log10();
+    }
+
     our multi method !from-radians($base) {
         given $base {
             when /:i ^d/ { self * 180/pi  }    # Convert to degrees.
@@ -193,8 +201,9 @@ class Any is also {
 
 multi sub abs($x) { $x.abs() }
 multi sub exp($x) { $x.Num.exp() }
-multi sub log($x) { $x.Num.log() }
-multi sub log10($x) { $x.Num.log10 }
+multi sub log($x) { $x.log() }
+multi sub log($x, $base) { $x.log($base) }
+multi sub log10($x) { $x.log10 }
 
 # jnthn says that we should have both the multi sub declaration and the proto.
 

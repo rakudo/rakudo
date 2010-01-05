@@ -238,6 +238,10 @@ class Num is also {
         }
     }
 
+    multi method log($base) {
+        $.log / $base.log;
+    }
+
     our method log10 {
         Q:PIR {
             $N0 = self

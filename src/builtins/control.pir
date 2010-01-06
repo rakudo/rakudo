@@ -20,7 +20,7 @@ src/builtins/control.pir - control flow related functions
     .local string message
     .local pmc p6ex
     .local pmc ex
- 
+
     message = join '', list
     if message > '' goto have_message
     message = "Died\n"
@@ -29,6 +29,27 @@ src/builtins/control.pir - control flow related functions
     ex = root_new ['parrot';'Exception']
     ex = message
     ex['severity'] = .EXCEPT_FATAL
+    ex['type'] = .CONTROL_ERROR
+    setattribute p6ex, '$!exception', ex
+    set_global '$!', p6ex
+    throw ex
+    .return ()
+.end
+
+.sub '&warn'
+    .param pmc list :slurpy
+    .local string message
+    .local pmc p6ex
+    .local pmc ex
+
+    message = join '', list
+    if message > '' goto have_message
+    message = "Warning\n"
+  have_message:
+    p6ex = new ['Perl6Exception']
+    ex = root_new ['parrot';'Exception']
+    ex = message
+    ex['severity'] = .EXCEPT_WARNING
     ex['type'] = .CONTROL_ERROR
     setattribute p6ex, '$!exception', ex
     set_global '$!', p6ex

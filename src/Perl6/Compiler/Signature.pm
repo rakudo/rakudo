@@ -117,6 +117,19 @@ method get_declarations() {
             $result.push($var);
         }
 
+        # If there are captured type variables, need variables for those too.
+        if $_.type_captures {
+            for @($_.type_captures) {
+                my $var := PAST::Var.new(
+                    :name($_),
+                    :scope('lexical'),
+                    :viviself(Perl6::Actions::sigiltype('::'))
+                );
+                $var<sigil> := '::';
+                $result.push($var);
+            }
+        }
+
         # Check any sub-signatures.
         if pir::defined__IP($_.sub_signature) {
             for @($_.sub_signature.get_declarations) {

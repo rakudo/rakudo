@@ -967,6 +967,8 @@ method param_var($/) {
     }
     else {
         $*PARAMETER.var_name(~$/);
+        my @BlOCK;
+        @BLOCK[0].symbol(~$/, :scope('lexical'));
     }
 }
 
@@ -978,7 +980,10 @@ method named_param($/) {
 method type_constraint($/) {
     if $<typename> {
         if pir::substr(~$<typename>, 0, 2) eq '::' {
-            $*PARAMETER.type_captures.push(pir::substr(~$<typename>, 2));
+            my $desigilname := pir::substr(~$<typename>, 2);
+            $*PARAMETER.type_captures.push($desigilname);
+            my @BlOCK;
+            @BLOCK[0].symbol($desigilname, :scope('lexical'));
         }
         else {
             if $*PARAMETER.nom_type {
@@ -1212,7 +1217,13 @@ method term:sym<name>($/) {
     my $ns := Perl6::Grammar::parse_name(~$<longname>);
     $ns := pir::clone__PP($ns);
     my $name := $ns.pop;
-    my $var := PAST::Var.new( :name(~$name), :namespace($ns), :scope('package') );
+    my $var;
+    if is_lexical(~$<longname>) {
+        $var := PAST::Var.new( :name(~$<longname>), :scope('lexical') );
+    }
+    else {
+        $var := PAST::Var.new( :name(~$name), :namespace($ns), :scope('package') );
+    }
     my $past := $var;
     if $<args> {
         $past := $<args>.ast;
@@ -1595,7 +1606,7 @@ sub add_signature($block, $sig_obj, $lazy) {
     my $decls := $sig_obj.get_declarations();
     for @($decls) {
         $_.isdecl(1);
-        $block.symbol( $_.name, :scope('lexical') )
+        $block.symbol( $_.name, :scope('lexical') );
     }
     $block[0].push($decls);
     $block[0].push(PAST::Op.new(
@@ -1905,4 +1916,16 @@ sub make_attr_init_closure($init_value) {
     $sig.add_invocant();
     my $lazy_name := add_signature($block, $sig, 1);
     create_code_object(PAST::Op.new( :pirop('newclosure PP'), $block ), 'Method', 0, $lazy_name);
+}
+
+# Looks through the lexpads and sees if we recognize the symbol as a lexical.
+sub is_lexical($name) {
+    our @BLOCK;
+    for @BLOCK {
+        my %entry := $_.symbol($name);
+        if %entry && %entry<scope> eq 'lexical' {
+            return 1;
+        }
+    }
+    return 0;
 }

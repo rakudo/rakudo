@@ -255,7 +255,7 @@ S06-advanced_subroutine_features/lexical-subs.t
 # S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t
 # S06-other/main-eval.t
-# S06-routine-modifiers/scoped-named-subs.t
+S06-routine-modifiers/scoped-named-subs.t
 # S06-signature/arity.t
 # S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
@@ -293,7 +293,7 @@ S06-signature/slurpy-placeholders.t
 # S11-modules/import-tag.t
 # S11-modules/nested.t
 # S12-attributes/class.t
-# S12-attributes/clone.t
+S12-attributes/clone.t
 # S12-attributes/delegation.t
 # S12-attributes/inheritance.t
 # S12-attributes/instance.t
@@ -301,7 +301,7 @@ S06-signature/slurpy-placeholders.t
 # S12-class/anonymous.t
 # S12-class/attributes.t
 S12-class/basic.t
-# S12-class/declaration-order.t
+S12-class/declaration-order.t
 S12-class/inheritance-class-methods.t
 # S12-class/inheritance.t
 S12-class/instantiate.t

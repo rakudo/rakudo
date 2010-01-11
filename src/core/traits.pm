@@ -5,7 +5,12 @@ our multi trait_mod:<is>(Mu $child, Mu $parent) {
 }
 
 our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
-    
+    given substr($cont.name, 0, 1) {
+        when '@' { }
+        when '%' { }
+        when '&' { }
+        default  { pir::setprop__vPSP($cont.container, 'type', $type) }
+    }
 }
 
 our multi trait_mod:<does>(Mu $target, Role $r) {

@@ -387,6 +387,8 @@ in the future.)
 
 .sub '!STORE' :method :subid('Object::!STORE')
     .param pmc source
+
+    # Get hold of the source object to assign.
     $I0 = can source, '!FETCH'
     if $I0 goto source_fetch
     source = deobjectref source
@@ -396,11 +398,27 @@ in the future.)
     source = source.'!FETCH'()
     source = deobjectref source
   have_source:
+
+    # If source and destination are the same, we're done.
     eq_addr self, source, store_done
+    
+    # Need a type-check?
+    .local pmc type
+    type = getprop 'type', self
+    if null type goto type_check_done
+    $I0 = type.'ACCEPTS'(source)
+    unless $I0 goto type_check_failed
+  
+    # All is well - do the assignment.
+  type_check_done:
     copy self, source
-    # .fixup_cloned_sub(source, self)
+    
   store_done:
     .return (self)
+
+  type_check_failed:
+    # XXX TODO: Awesomize this error.
+    '&die'('Type check failed for assignment')
 .end
 
 

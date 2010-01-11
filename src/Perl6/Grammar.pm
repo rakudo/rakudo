@@ -850,7 +850,7 @@ token circumfix:sym<sigil> { <sigil> '(' ~ ')' <semilist> }
 INIT {
     Perl6::Grammar.O(':prec<y=>, :assoc<unary>', '%methodcall');
     Perl6::Grammar.O(':prec<x=>, :assoc<unary>', '%autoincrement');
-    Perl6::Grammar.O(':prec<w=>, :assoc<left>',  '%exponentiation');
+    Perl6::Grammar.O(':prec<w=>, :assoc<right>', '%exponentiation');
     Perl6::Grammar.O(':prec<v=>, :assoc<unary>', '%symbolic_unary');
     Perl6::Grammar.O(':prec<u=>, :assoc<left>',  '%multiplicative');
     Perl6::Grammar.O(':prec<t=>, :assoc<left>',  '%additive');

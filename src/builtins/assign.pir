@@ -22,7 +22,7 @@ src/builtins/assign.pir - assignment operations
     unless $I0 goto obj_store
     .tailcall cont.'!STORE'(source)
   obj_store:
-    .const 'Sub' $P0 = 'Object::!STORE'
+    .const 'Sub' $P0 = 'Mu::!STORE'
     .tailcall cont.$P0(source)
 .end
 

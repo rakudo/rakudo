@@ -53,7 +53,7 @@ container.
     base[key] = self
 
     # and complete the STORE on self
-    .const 'Sub' $P0 = 'Object::!STORE'
+    .const 'Sub' $P0 = 'Mu::!STORE'
     .tailcall self.$P0(source)
 .end
 

@@ -385,7 +385,7 @@ in the future.)
 
 =cut
 
-.sub '!STORE' :method :subid('Object::!STORE')
+.sub '!STORE' :method :subid('Mu::!STORE')
     .param pmc source
 
     # Get hold of the source object to assign.

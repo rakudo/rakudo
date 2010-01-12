@@ -162,13 +162,24 @@ class Complex {
     }
 
     multi method roots($n is copy) {
-#        my ($mag, $angle) = @.polar;
-#        return NaN  if $n < 1;
-#        return self if $n == 1;
-#        return NaN  if $!re|$!im ~~  Inf|NaN|-Inf;
-#        $n = $n.Int;
-#        $mag **= 1/$n;
-#        (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
+       # my ($mag, $angle) = @.polar;
+       my $mag = $.abs;
+       my $angle = atan2($.im, $.re);
+       if $n < 1
+       {
+           return NaN;
+       }
+
+       if $n == 1
+       {
+           return self;
+       }
+
+       # return NaN  if $!re|$!im ~~  Inf|NaN|-Inf;
+       $n = $n.Int;
+       $mag **= 1/$n;
+       # (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
+       (0 ... ($n-1)).map: { $mag.unpolar( ($angle + $^x * 2 * 312689/99532) / $n) };
     }
 
     multi method sign() {

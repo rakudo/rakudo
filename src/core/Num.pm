@@ -11,6 +11,8 @@ augment class Num {
 
     multi method Num() { self; }
 
+    multi method Complex() { self + 0i; }
+
     multi method abs() {
         pir::abs__Nn(self);
     }

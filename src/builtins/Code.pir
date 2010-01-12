@@ -52,6 +52,20 @@ for executable objects.
 .end
 
 
+=item clone(do)
+
+=cut
+
+.sub 'clone' :method
+    $P0 = getattribute self, '$!do'
+    $P0 = clone $P0
+    $P1 = getattribute self, '$!multi'
+    $P2 = getattribute self, '$!lazy_sig_init_name'
+    $P3 = self.'new'($P0, $P1, $P2)
+    .return ($P3)
+.end
+
+
 =item assumming()
 
 Returns a curried version of self.

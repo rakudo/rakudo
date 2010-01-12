@@ -51,7 +51,12 @@ method finish($block) {
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_method'),
-            $metaclass, $meta_reg, ~$_, %methods{~$_}<code_ref>
+            $metaclass, $meta_reg, ~$_, 
+            PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('clone'),
+                %methods{~$_}<code_ref>
+            )
         ));
     }
 

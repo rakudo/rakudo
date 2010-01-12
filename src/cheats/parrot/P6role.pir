@@ -130,15 +130,13 @@ XXX TODO: Needs a complete re-write for ng.
     # If we get here, no applicable roles.
     $I0 = 0
   done:
-    .const 'Sub' $P0 = 'prefix:?'
-    $P0 = $P0($I0)
-    .return ($P0)
+    .return ($I0)
 .end
 .sub 'REJECTS' :method
     .param pmc topic
     $P0 = self.'ACCEPTS'(topic)
-    .const 'Sub' $P1 = 'prefix:!'
-    .tailcall $P1($P0)
+    $I0 = isfalse $P0
+    .return ($I0)
 .end
 
 

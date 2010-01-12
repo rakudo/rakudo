@@ -3,10 +3,19 @@ class Perl6::Compiler::Role is Perl6::Compiler::Package;
 # Holds the signautre for this parametric role, if any.
 has $!signature;
 
+# Textual representation of the signature, for constructing the long package name.
+has $!signature_text;
+
 # Accessor for signature.
 method signature($signature?) {
     if pir::defined__IP($signature) { $!signature := $signature }
     $!signature
+}
+
+# Accessor for signature text.
+method signature_text($signature_text?) {
+    if pir::defined__IP($signature_text) { $!signature_text := $signature_text }
+    pir::isnull__IP($!signature_text) ?? '' !! $!signature_text
 }
 
 # Do the code generation for the parametric role.
@@ -119,7 +128,7 @@ method finish($block) {
         
         # Set namespace and install in package, if our scoped.
         if $!scope eq 'our' {
-            my @ns := Perl6::Grammar::parse_name($name);
+            my @ns := Perl6::Grammar::parse_name($name ~ '[' ~ self.signature_text ~ ']');
             $block.namespace(@ns);
             my @PACKAGE := Q:PIR { %r = get_hll_global ['Perl6'; 'Actions'], '@PACKAGE' };
             @PACKAGE[0].block.loadinit().push(PAST::Op.new(

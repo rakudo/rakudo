@@ -172,6 +172,7 @@ XXX TODO: Needs a complete re-write for ng.
 =cut
 
 .sub 'HOW' :method
+    self = descalarref self
     $P0 = getprop 'metaclass', self
     .return ($P0)
 .end

@@ -39,18 +39,9 @@ Creates a new instance of the meta-class.
 
 .sub 'new' :method
     .param pmc name :optional
-    .local pmc how, p6role, nsarray, ns
-    if null name goto anon_role
+    .local pmc how, p6role
 
-    # Named role - associate with Parrot namespace.
-    $P0 = get_hll_global [ 'Perl6';'Grammar' ], 'parse_name'
-    nsarray = $P0(name)
-    ns = get_hll_namespace nsarray
-    p6role = new ['P6role'], ns
-    goto have_p6role
-
-    # Anonymous class - just create a new Parrot class and we're done.
-  anon_role:
+    # Create P6role object, which is what we will install in the namespace.
     p6role = new ['P6role']
 
     # Stash in metaclass instance, init a couple of other fields,

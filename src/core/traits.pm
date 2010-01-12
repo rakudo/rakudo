@@ -13,7 +13,7 @@ our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
     }
 }
 
-our multi trait_mod:<does>(Mu $target, Role $r) {
+our multi trait_mod:<does>(Mu $target, Mu $r) {
     $target.add_composable($target, $r);
 }
 

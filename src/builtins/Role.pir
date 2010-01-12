@@ -24,7 +24,6 @@ short name for a particular set of parameters.
     .local pmc p6meta, roleproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     roleproto = p6meta.'new_class'('Perl6Role', 'parent'=>'Any', 'name'=>'Role', 'attr'=>'$!selector $!created $!shortname')
-    p6meta.'register'('P6role', 'proto'=>'roleproto')
 .end
 
 

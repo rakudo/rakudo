@@ -1484,6 +1484,7 @@ method dec_number($/) {
 
 method typename($/) {
     my $past;
+
     if is_lexical($<longname>.Str) {
         # We need to build a thunk.
         $past := PAST::Block.new(
@@ -1508,6 +1509,15 @@ method typename($/) {
             :scope('package')
         );
     }
+
+    # Parametric type?
+    if $<typename> {
+        $past := PAST::Op.new(
+            :pasttype('callmethod'), :name('postcircumfix:<[ ]>'),
+            $past, $<typename>[0].ast
+        );
+    }
+
     make $past;
 }
 

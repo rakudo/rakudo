@@ -822,7 +822,7 @@ token typename {
     ]
     # parametric type?
 #    <.unsp>? [ <?before '['> <postcircumfix> ]?
-#    <.ws> [ 'of' <.ws> <typename> ]?
+    [<.ws> 'of' <.ws> <typename> ]?
 }
 
 proto token quote { <...> }

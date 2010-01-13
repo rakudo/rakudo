@@ -138,7 +138,7 @@ Add a metamethod to the given meta.
     .param pmc meta
     .param string name
     .param pmc meth
-    die "Not Yet Implemented"
+    '&die'("Adding meta-methods to roles is not yet implemented.")
 .end
 
 =item add_method(meta, name, code_ref)

@@ -45,6 +45,16 @@ method finish($block) {
         )
     ));
 
+    # Meta Methods.
+    my %meta_methods := $!meta_methods;
+    for %meta_methods {
+        $decl.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('add_meta_method'),
+            $metaclass, $meta_reg, ~$_, %meta_methods{~$_}<code_ref>
+        ));
+    }
+
     # Methods.
     my %methods := self.methods;
     for %methods {

@@ -22,12 +22,6 @@ on.
     .local pmc p6meta, rolehowproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     rolehowproto = p6meta.'new_class'('RoleHOW', 'parent'=>'Mu', 'attr'=>'parrotclass shortname longname protoobject $!parents $!composees $!requirements $!collisions $!attributes $!done')
-
-    # Also want to get various methods from the ParrotBacked role, since we're
-    # backed by a Parrot Class PMC and using it to store most things.
-    .local pmc parrotbacked
-    parrotbacked = get_class ['Perl6';'Metamodel';'ParrotBackend']
-    p6meta.'compose_role'(rolehowproto, parrotbacked)
 .end
 
 
@@ -134,6 +128,32 @@ Stores something that we will compose (e.g. a role) at class composition time.
     push $P0, composee
 .end
 
+=item add_meta_method(meta, name, code_ref)
+
+Add a metamethod to the given meta.
+
+=cut
+
+.sub 'add_meta_method' :method
+    .param pmc meta
+    .param string name
+    .param pmc meth
+    die "Not Yet Implemented"
+.end
+
+=item add_method(meta, name, code_ref)
+
+Add a method to the given meta.
+
+=cut
+
+.sub 'add_method' :method
+    .param pmc meta
+    .param string name
+    .param pmc meth
+    $P0 = getattribute meta, 'parrotclass'
+    addmethod $P0, name, meth
+.end
 
 =item methods
 

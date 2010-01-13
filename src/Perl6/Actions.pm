@@ -858,7 +858,13 @@ method method_def($/) {
         # Get hold of methods table.
         our @PACKAGE;
         unless +@PACKAGE { $/.CURSOR.panic("Can not declare method outside of a package"); }
-        my %table := @PACKAGE[0].methods();
+        my %table;
+        if $<specials> eq '^' {
+            %table := @PACKAGE[0].meta_methods();
+        } 
+        else {
+            %table := @PACKAGE[0].methods();
+        }
         unless %table{$name} { my %tmp; %table{$name} := %tmp; }
 
         # If it's an only and there's already a symbol, problem.

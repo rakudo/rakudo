@@ -39,12 +39,6 @@ backing store.
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
 
-    # Also want to get various methods from the ParrotBacked role, since we're
-    # backed by a Parrot Class PMC and using it to store most things.
-    .local pmc parrotbacked
-    parrotbacked = get_class ['Perl6';'Metamodel';'ParrotBackend']
-    p6meta.'compose_role'(classhowproto, parrotbacked)
-
     # Transform Object's metaclass to be of the right type.
     $P0 = new ['ClassHOW']
     $P1 = getattribute p6meta, 'parrotclass'
@@ -423,6 +417,51 @@ Gets a list of this class' parents.
     .return (result_list)
 .end
 
+=item add_meta_method(meta, name, code_ref)
+
+Add a meta method to the given meta.
+
+=cut
+
+.sub 'add_meta_method' :method
+    .param pmc meta
+    .param string name
+    .param pmc meth
+    .local pmc meth_name
+    # Add the method to the meta model
+    $P0 = meta.'HOW'()
+    $P0.'add_method'(name, meth)
+
+    # Add forward method to the class itself.
+    meth_name = box name
+    .lex '$meth_name', meth_name
+    .const 'Sub' $P1 = '!metaclass_method_forwarder'
+    $P1 = newclosure $P1
+    $P0 = getattribute meta, 'parrotclass' 
+    meta.'add_method'(meta, name, $P1)
+.end
+.sub '!metaclass_method_forwarder' :outer('add_meta_method') :method :anon
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+    $P0 = self.'HOW'()
+    $P1 = find_lex '$meth_name'
+    $S0 = $P1
+    .tailcall $P0.$S0(self, pos_args :flat, named_args :flat :named)
+.end
+
+=item add_method(meta, name, code_ref)
+
+Add a method to the given meta.
+
+=cut
+
+.sub 'add_method' :method
+    .param pmc meta
+    .param string name
+    .param pmc meth
+    $P0 = getattribute meta, 'parrotclass'
+    addmethod $P0, name, meth
+.end
 
 =item methods(object)
 

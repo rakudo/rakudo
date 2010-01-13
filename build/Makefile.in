@@ -82,7 +82,6 @@ BUILTINS_PIR = \
   src/glue/types.pir \
   src/builtins/Mu.pir \
   src/gen/Attribute.pir \
-  src/metamodel/ParrotBacked.pir \
   src/metamodel/ClassHOW.pir \
   src/metamodel/RoleHOW.pir \
   src/gen/RoleToRoleApplier.pir \

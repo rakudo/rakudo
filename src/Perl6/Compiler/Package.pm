@@ -15,6 +15,9 @@ has $!scope;
 # Table of methods we're adding (name => PAST::Block).
 has $!methods;
 
+# Table of methods we're adding to the meta model
+has $!meta_methods;
+
 # Table of attributes meta-data hashes. Maps name to hash.
 has $!attributes;
 
@@ -49,6 +52,12 @@ method scope($scope?) {
 method methods() {
     unless $!methods { $!methods := Q:PIR { %r = new ['Hash'] } }
     $!methods
+}
+
+# Accessor for meta_methods hash.
+method meta_methods() {
+    unless $!meta_methods { $!meta_methods := Q:PIR { %r = new ['Hash'] } }
+    $!meta_methods
 }
 
 # Accessor for attributes hash.
@@ -98,6 +107,16 @@ method finish($block) {
                 :name('HOW'),
                 PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
             )
+        ));
+    }
+
+    # Meta Methods.
+    my %meta_methods := $!meta_methods;
+    for %meta_methods {
+        $decl.push(PAST::Op.new(
+            :pasttype('callmethod'),
+            :name('add_meta_method'),
+            $metaclass, $meta_reg, ~$_, %meta_methods{~$_}<code_ref>
         ));
     }
 

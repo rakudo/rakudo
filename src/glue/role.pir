@@ -25,6 +25,7 @@ Creates a master-role object, containing all the various role variants.
     .return (existing)
   need_new:
     $P0 = new ['Perl6Role']
+    transform_to_p6opaque $P0
     setattribute $P0, '$!shortname', shortname
     .return ($P0)
 .end

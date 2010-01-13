@@ -12,8 +12,6 @@ We also add some methods to P6role.
 
 Puns the role to a class and returns that class.
 
-XXX TODO: Needs a complete re-write for ng.
-
 =cut
 
 .namespace ["P6role"]
@@ -28,42 +26,13 @@ XXX TODO: Needs a complete re-write for ng.
   make_pun:
 
     # Otherwise, need to create a punned class.
-    .local pmc p6meta, metaclass, proto
-    p6meta = get_root_global [.RAKUDO_HLL ; 'Mu'], '$!P6META'
-    metaclass = root_new ['parrot';'Class']
-    $P0 = box 'class'
-    setprop metaclass, 'pkgtype', $P0
-    # Compose ourself and any roles we do.
-    .local pmc role_list, roles_it
-    role_list = root_new ['parrot';'ResizablePMCArray']
-    push role_list, self
-    .const 'Sub' $P1 = '!get_flattened_roles_list'
-    role_list = $P1(role_list)
-    roles_it = iter role_list
-  roles_it_loop:
-    unless roles_it goto roles_it_loop_end
-    $P0 = shift roles_it
-    $I0 = does metaclass, $P0
-    if $I0 goto roles_it_loop
-    addrole metaclass, $P0
-    '!compose_role_attributes'(metaclass, $P0)
-    goto roles_it_loop
-  roles_it_loop_end:
-
-    # XXX Would be nice to call !meta_compose here; for some reason, Parrot
-    # ends up calling the wrong multi-variant. Something to investigate, when
-    # I/someone has the energy for it.
-    $S0 = concat .RAKUDO_HLL, ';Any'
-    proto = p6meta.'register'(metaclass, 'parent'=>$S0)
-
-    # Set name (don't use name=>... in register so we don't make a
-    # namespace entry though).
-    $P1 = proto.'HOW'()
-    $P0 = getprop '$!owner', self
-    $P0 = getattribute $P0, '$!shortname'
-    setattribute $P1, 'shortname', $P0
-
-    # Stash it away, then instantiate it.
+    .local pmc ClassHOW, meta, proto
+    ClassHOW = get_root_global ['perl6'], 'ClassHOW'
+    meta = ClassHOW.'new'() # XXX Name?
+    ClassHOW.'add_composable'(meta, self)
+    proto = ClassHOW.'compose'(meta)
+    
+    # Stash it away, and return it.
     setprop self, '$!pun', proto
     .return (proto)
 .end

@@ -4,6 +4,10 @@ our multi trait_mod:<is>(Mu $child, Mu $parent) {
     $child.add_parent($child, $parent);
 }
 
+our multi trait_mod:<is>(Mu $child, Role $r) {
+    $child.add_parent($child, $r!select!pun);
+}
+
 our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
     given substr($cont.name, 0, 1) {
         when '@' { }

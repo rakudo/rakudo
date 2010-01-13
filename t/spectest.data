@@ -354,7 +354,7 @@ S14-roles/attributes.t
 # S14-roles/basic.t
 # S14-roles/composition.t
 S14-roles/crony.t
-# S14-roles/instantiation.t
+S14-roles/instantiation.t
 # S14-roles/mixin.t
 S14-roles/namespaced.t
 # S14-roles/parameter-subtyping.t

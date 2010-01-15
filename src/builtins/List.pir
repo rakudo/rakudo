@@ -29,6 +29,23 @@ items are not generated until they are needed.
     listproto = p6meta.'new_class'('List', 'parent'=>'Any', 'attr'=>'$!values $!gen', 'does_role'=>pos_role)
 .end
 
+=item new(*@args)
+
+Setup initializers for built in variables.
+
+=cut
+
+.sub 'new' :method
+    .param pmc args :slurpy
+    .local pmc candidate, attrinit
+    candidate = self.'CREATE'('P6opaque')
+    attrinit = new ['Hash']
+    attrinit['values'] = args
+    $P0 = box 0
+    attrinit['gen'] = $P0
+    .tailcall self.'bless'(candidate, attrinit :flat :named)
+.end
+
 =item Iterator()
 
 =cut

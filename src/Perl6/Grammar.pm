@@ -938,7 +938,7 @@ token methodop {
     | <?before <[ ' " ]> >
         <quote>
         [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments"> ]
-    ]
+    ] <.unsp>? 
     [ 
     | <?[(]> <args>
     | ':' \s <args=.arglist>

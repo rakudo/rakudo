@@ -357,7 +357,7 @@ S12-methods/calling_syntax.t
 # S12-methods/method-vs-sub.t
 # S12-methods/multi.t
 # S12-methods/parallel-dispatch.t
-# S12-methods/private.t
+S12-methods/private.t
 # S12-methods/submethods.t
 # S12-methods/syntax.t
 # S12-methods/topic.t

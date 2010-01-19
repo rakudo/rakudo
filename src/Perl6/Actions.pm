@@ -1205,7 +1205,12 @@ method privop($/) {
 
 method methodop($/) {
     my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
-    $past.name( ~$<identifier> );
+    if $<identifier> {
+        $past.name( ~$<identifier> );
+    }
+    elsif $<quote> {
+        $past.name( $<quote>.ast );
+    }
     $past.pasttype('callmethod');
     make $past;
 }

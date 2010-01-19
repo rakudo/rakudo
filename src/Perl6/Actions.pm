@@ -530,6 +530,15 @@ method variable($/) {
         elsif ~$/ eq '%_' {
             $past := add_placeholder_parameter('%', '_', :slurpy_named(1));
         }
+        else {
+            my $attr_alias := is_attr_alias($past.name);
+            if $attr_alias {
+                $past.name($attr_alias);
+                $past.scope('attribute');
+                $past.viviself( sigiltype( $<sigil> ) );
+                $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
+            }
+        }
     }
     make $past;
 }
@@ -658,7 +667,13 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         %attr_table{$attrname}<name>     := $attrname;
         %attr_table{$attrname}<accessor> := $twigil eq '.' ?? 1 !! 0;
         %attr_table{$attrname}<rw>       := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;
-        
+
+        # If no twivil, note $foo is an alias to $!foo.
+        if $twigil eq '' {
+            my $BLOCK := @BLOCK[0];
+            $BLOCK.symbol($name, :attr_alias($attrname));
+        }
+
         # Nothing to emit here; just hand  back an empty node, but also
         # annotate it with the attribute table.
         $past := PAST::Stmts.new( );
@@ -2000,4 +2015,16 @@ sub is_lexical($name) {
         }
     }
     return 0;
+}
+
+# Looks to see if a variable has been set up as an alias to an attribute.
+sub is_attr_alias($name) {
+    our @BLOCK;
+    for @BLOCK {
+        my %entry := $_.symbol($name);
+        if %entry {
+            return %entry<attr_alias>;
+        }
+    }
+    return "";
 }

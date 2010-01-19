@@ -37,7 +37,7 @@ as the result of the overall Map.
     list_it = getattribute self, '$!list_it'
     block   = getattribute self, '&!block'
     .local int count
-    count = block.'arity'()
+    count = block.'count'()
 
   iter_loop:
     unless list_it goto iter_done

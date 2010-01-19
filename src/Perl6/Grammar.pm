@@ -611,11 +611,14 @@ rule method_def {
 # Captures and Signatures #
 ###########################
 
-rule param_sep { [','|':'|';'|';;'] }
+rule param_sep {
+    $<sep>=[','|':'|';'|';;'] { @*seps.push($<sep>) }
+}
 
 token signature {
     :my $*IN_DECL := 'sig';
     :my $*zone := 'posreq';
+    :my @*seps := pir::new__PS('ResizablePMCArray');
     <.ws>
     [
     | <?before '-->' | ')' | ']' | '{' | ':'\s >

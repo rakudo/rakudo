@@ -917,10 +917,24 @@ method method_def($/) {
 
 method signature($/) {
     my $signature := Perl6::Compiler::Signature.new();
+    my $cur_param := 0;
+    my $is_multi_invocant := 1;
     for $<parameter> {
         my $param := $_.ast;
-        $param.multi_invocant(1);
+        $param.multi_invocant($is_multi_invocant);
+        if ~@*seps[$cur_param] eq ':' {
+            if $cur_param == 0 {
+                $param.invocant(1);
+            }
+            else {
+                $/.CURSOR.panic("Can not put ':' parameter seperator after first parameter");
+            }
+        }
+        if $<param_sep>[$cur_param]<sep> eq ';;' {
+            $is_multi_invocant := 0;
+        }
         $signature.add_parameter($param);
+        $cur_param := $cur_param + 1;
     }
     make $signature;
 }

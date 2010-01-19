@@ -345,7 +345,7 @@ S12-construction/named-params-in-BUILD.t
 # S12-introspection/roles.t
 # S12-introspection/walk.t
 # S12-methods/calling_sets.t
-# S12-methods/calling_syntax.t
+S12-methods/calling_syntax.t
 # S12-methods/chaining.t
 # S12-methods/class-and-instance.t
 # S12-methods/default-trait.t

@@ -95,6 +95,15 @@ method add_invocant() {
 }
 
 
+# Checks if the signature contains a named slurpy parameter.
+method has_named_slurpy() {
+    my @entries := self.entries;
+    unless +@entries { return 0; }
+    my $last := @entries[ +@entries - 1 ];
+    return $last.named_slurpy();
+}
+
+
 # Gets a PAST::Op node with children being PAST::Var nodes that declare the
 # various variables mentioned within the signature, with a valid viviself to
 # make sure they are initialized either to the default value or an empty
@@ -342,15 +351,6 @@ method set_rw_by_default() {
             $_<read_type> := 'rw';
         }
     }
-}
-
-
-# Checks if the signature contains a named slurpy parameter.
-method has_named_slurpy() {
-    my @entries := self.entries;
-    unless +@entries { return 0; }
-    my $last := @entries[ +@entries - 1 ];
-    return $last<slurpy> && $last<names> ?? 1 !! 0;
 }
 
 

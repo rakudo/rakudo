@@ -834,13 +834,24 @@ method method_def($/) {
         emit_routine_traits($past, $<trait>, $*METHODTYPE);
     }
     
-    # Set signature and invocant handling set up.
+    # Get signature - or create - and sort out invocant handling.
     if pir::defined__IP($past<placeholder_sig>) {
         $/.CURSOR.panic('Placeholder variables cannot be used in a method');
     }
     my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
     $sig.add_invocant();
     $sig.set_default_parameter_type('Any');
+
+    # Add *%_ parameter if there's no other named slurpy and the package isn't hidden.
+    my $need_slurpy_hash := !$sig.has_named_slurpy();
+    if $need_slurpy_hash { # XXX ADD BACK: && !package_has_trait('hidden') {
+        my $param := Perl6::Compiler::Parameter.new();
+        $param.var_name('%_');
+        $param.named_slurpy(1);
+        $sig.add_parameter($param);
+    }
+
+    # Add signature to block.
     my $sig_setup_block := add_signature($past, $sig, 1);
     $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
     $past.symbol('self', :scope('lexical'));

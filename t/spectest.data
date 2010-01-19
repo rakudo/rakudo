@@ -402,6 +402,7 @@ S29-any/cmp.t
 # S29-context/eval.t
 # S29-context/sleep.t
 S29-conversions/ord_and_chr.t                              #icu
+S32-array/create.t
 # S32-array/delete.t
 S32-array/elems.t
 S32-array/end.t
@@ -424,6 +425,7 @@ S32-array/shift.t
 # S32-hash/slice.t
 # S32-io/chdir.t
 # S32-io/IO-Socket-INET.t
+S32-list/create.t
 S32-list/end.t
 S32-list/first.t
 # S32-list/grep.t

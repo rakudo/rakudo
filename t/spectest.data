@@ -380,7 +380,7 @@ S14-roles/namespaced.t
 # S14-roles/parameterized-basic.t
 # S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
-# S14-roles/submethods.t
+S14-roles/submethods.t
 # S14-traits/attributes.t
 # S14-traits/package.t
 # S14-traits/routines.t

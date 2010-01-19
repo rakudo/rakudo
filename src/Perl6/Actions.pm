@@ -1199,7 +1199,12 @@ method dottyop($/) {
 
 method privop($/) {
     my $past := $<methodop>.ast;
-    $past.name( '!' ~ $past.name );
+    if $<methodop><quote> {
+        $past.name(PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), '!', $past.name ));
+    }
+    else {
+        $past.name( '!' ~ $past.name );
+    }
     make $past;
 }
 

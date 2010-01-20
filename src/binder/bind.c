@@ -440,11 +440,11 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
         }
     }
 
-    /* If we've got a CallContext, just has an attribute with list of named
+    /* If we've got a CallSignature, just has an attribute with list of named
      * parameter names. Otherwise, it's a Capture and we need to do .hash and
      * grab out the keys. */
-    if (capture->vtable->base_type == enum_class_CallContext ||
-            VTABLE_isa(interp, capture, string_from_literal(interp, "CallContext"))) {
+    if (capture->vtable->base_type == enum_class_CallSignature ||
+            VTABLE_isa(interp, capture, string_from_literal(interp, "CallSignature"))) {
         named_names = VTABLE_get_attr_str(interp, capture, string_from_literal(interp, "named"));
     }
     else if (VTABLE_isa(interp, capture, string_from_literal(interp, "Capture"))) {

@@ -8,7 +8,7 @@
 
   context_loop:
     if null context goto context_done
-    lexpad = context['lex_pad']
+    lexpad = getattribute context, 'lex_pad'
     lexpad_it = iter lexpad
   lexpad_loop:
     unless lexpad_it goto lexpad_done
@@ -19,7 +19,7 @@
     lexinfo[$S0] = $P0
     goto lexpad_loop
   lexpad_done:
-    context = context['outer_ctx']
+    context = getattribute context, 'outer_ctx'
     goto context_loop
   context_done:
     .return (lexinfo)

@@ -201,7 +201,7 @@ method outerlex($/) {
         my $block := @BLOCK[0];
         my %lexinfo := Perl6::Compiler.get_lexinfo($outer_ctx);
         for %lexinfo { $block.symbol($_.key, :scope<lexical>); }
-        my @ns := $outer_ctx<current_namespace>.get_name;
+        my @ns := pir::getattribute__PPs($outer_ctx, 'current_namespace').get_name;
         @ns.shift;
         $block.namespace(@ns);
     }

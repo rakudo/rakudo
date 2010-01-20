@@ -6,7 +6,7 @@ Copyright (C) 2009, The Perl Foundation.
 #define PARROT_IN_EXTENSION
 #include "parrot/parrot.h"
 #include "parrot/extend.h"
-#include "pmc_callcontext.h"
+#include "pmc_context.h"
 #include "bind.h"
 #include "../pmc/pmc_p6lowlevelsig.h"
 

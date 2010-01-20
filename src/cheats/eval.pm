@@ -1,12 +1,22 @@
 our sub eval(Str $code) {
     Q:PIR {
-        .local pmc interp, caller, code, result, exception, parrotex
+        .local pmc interp, caller, code, pbc, result, exception, parrotex
         interp = getinterp
         caller = interp['context';1]
         push_eh catch
         $P0 = compreg 'perl6'
         code = find_lex '$code'
-        result = $P0.'eval'(code, 'outer_ctx'=>caller)
+        pbc = $P0.'compile'(code, 'outer_ctx'=>caller)
+
+        # set the outer context for the compiled code
+        $P1 = pbc[0]
+        $P2 = getattribute caller, 'current_sub'
+        $P1.'set_outer'($P2)
+
+        # invoke the compiled code
+        result = pbc()
+
+        # no exception occurred, so generate a dummy exception
         exception = '!FAIL'()
         goto done
       catch:

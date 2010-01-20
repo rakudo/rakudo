@@ -10,7 +10,7 @@ BEGIN_OPS_PREAMBLE
 #include "parrot/dynext.h"
 #include "pmc_object.h"
 #include "pmc_class.h"
-#include "pmc_callsignature.h"
+#include "pmc_callcontext.h"
 #include "../pmc/pmc_p6lowlevelsig.h"
 #include "../binder/bind.h"
 
@@ -596,7 +596,7 @@ inline op get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC,
 This is emitted into a sub to cause it's Perl 6 signature to be bound. $1 is
 an array of positional arguments (obtained by using :flat) and $2 is a hash of
 named arguments (obtained using :flat :slurpy). Eventually, after Parrot
-refactors are complete, it will take one argument - the CallSignature.
+refactors are complete, it will take one argument - the CallContext.
 
 =cut
 

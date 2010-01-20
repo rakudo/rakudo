@@ -31,12 +31,25 @@ Dates are based on Parrot's expected release schedule.
   2010-01-21   Rakudo #25                      (smash)
   2010-02-18   Rakudo #26                      (Su-Shee)
   2010-03-18   Rakudo #27                      (volunteers wanted)
+  2010-04-22   Rakudo #28                      (volunteers wanted)
+  2010-05-20   Rakudo #29                      (volunteers wanted)
+  2010-06-17   Rakudo #30                      (volunteers wanted)
+  2010-07-22   Rakudo #31                      (volunteers wanted)
+  2010-08-19   Rakudo #32                      (volunteers wanted)
+  2010-09-23   Rakudo #33                      (volunteers wanted)
+  2010-10-21   Rakudo #34                      (volunteers wanted)
+  2010-11-18   Rakudo #35                      (volunteers wanted)
+  2010-12-23   Rakudo #36                      (volunteers wanted)
 
 =head2 Suggested .pm group names for future releases
 
   Atlanta.pm
   BristolBath.pm
   Milan.pm
+
+More names can be gotten from L<http://www.pm.org> if you 
+can't think of one with any particular significance to Perl 
+6 or Rakudo
 
 =head2 Steps to create a release (for release managers)
 

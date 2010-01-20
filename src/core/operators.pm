@@ -1,8 +1,8 @@
-our multi infix:<~~>($topic, $matcher) {
+our multi infix:<~~>(Mu $topic, Mu $matcher) {
     $matcher.ACCEPTS($topic)
 }
 
-our multi infix:<~~>($topic, Regex $matcher) {
+our multi infix:<~~>(Mu $topic, Regex $matcher) {
     Q:PIR {
         $P0 = find_lex '$matcher'
         $P1 = find_lex '$topic'
@@ -11,7 +11,7 @@ our multi infix:<~~>($topic, Regex $matcher) {
     };
 }
 
-our multi infix:<!~~>($topic, $matcher) {
+our multi infix:<!~~>(Mu $topic, Mu $matcher) {
     $matcher.REJECTS($topic)
 }
 

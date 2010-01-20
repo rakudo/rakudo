@@ -668,7 +668,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         %attr_table{$attrname}<accessor> := $twigil eq '.' ?? 1 !! 0;
         %attr_table{$attrname}<rw>       := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;
 
-        # If no twivil, note $foo is an alias to $!foo.
+        # If no twigil, note $foo is an alias to $!foo.
         if $twigil eq '' {
             my $BLOCK := @BLOCK[0];
             $BLOCK.symbol($name, :attr_alias($attrname));

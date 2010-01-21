@@ -37,13 +37,11 @@ Setup initializers for built in variables.
 
 .sub 'new' :method
     .param pmc args :slurpy
-    .local pmc candidate, attrinit
+    .local pmc candidate, true
     candidate = self.'CREATE'('P6opaque')
-    attrinit = new ['Hash']
-    attrinit['values'] = args
-    $P0 = box 0
-    attrinit['gen'] = $P0
-    .tailcall self.'bless'(candidate, attrinit :flat :named)
+    true = get_hll_global ['Bool'], 'True'
+    setprop candidate, 'flatten', true
+    .tailcall self.'bless'(candidate, 'values'=>args, 'gen'=>0 )
 .end
 
 =item Iterator()

@@ -87,9 +87,14 @@ Creates a List from its arguments.
 .namespace []
 .sub '&list'
     .param pmc args            :slurpy
-    $P0 = new ['List']
-    setattribute $P0, '$!values', args
-    .return ($P0)
+    .local pmc list, gen, true
+    list = new ['List']
+    setattribute list, '$!values', args
+    gen = box 0
+    setattribute list, '$!gen', gen
+    true = get_hll_global ['Bool'], 'True'
+    setprop list, 'flatten', true
+    .return (list)
 .end
 
 

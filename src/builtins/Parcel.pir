@@ -81,6 +81,9 @@ The canonical operator for creating a Parcel.
     parcel = new ['Parcel']
     transform_to_p6opaque parcel
     splice parcel, args, 0, 0
+    # treat parcel itself as rw (for list assignment)
+    $P0 = get_hll_global ['Bool'], 'True'
+    setprop parcel, 'rw', $P0
     .return (parcel)
 .end
 

@@ -173,6 +173,60 @@ always flatten here, even if not marked with the 'flatten' flag.
     .return (values)
 .end
 
+=item !STORE(source)
+
+Performs list assignment using the values from C<source>.
+
+=cut
+
+.namespace ['List']
+.sub '!STORE' :method
+    .param pmc source
+
+    # First, create a flattening Array from C<source>.  This 
+    # creates # copies of values in C<source>, in case any lvalue target
+    # containers in C<self> also happen to be listed as rvalues
+    # in C<source>.  (Creating a copy of everything in C<source>
+    # likely isn't the most efficient approach to this, but it 
+    # works for now.)
+    source = '&circumfix:<[ ]>'(source)
+    $P0 = get_hll_global ['Bool'], 'True'
+    setprop source, 'flatten', $P0
+   
+
+    # Now, loop through targets of C<self>, storing the corresponding
+    # values from source and flattening any RPAs we encounter.  If a 
+    # target is an array or hash, then it will end up consuming all 
+    # of the remaining elements of source.
+    .local pmc targets
+    targets = getattribute self, '$!values'
+    targets = clone targets
+  store_loop:
+    unless targets goto store_done
+    .local pmc cont
+    cont = shift targets
+    $I0 = isa cont, ['ResizablePMCArray']
+    if $I0 goto store_rpa
+    $I0 = isa cont, ['Perl6Scalar']
+    if $I0 goto store_scalar
+    $I0 = isa cont, ['Array']
+    if $I0 goto store_array
+  store_scalar:
+    $P0 = shift source
+    cont.'!STORE'($P0)
+    goto store_loop
+  store_array:
+    cont.'!STORE'(source)
+    source = '&circumfix:<[ ]>'()
+    goto store_loop
+  store_rpa:
+    splice targets, cont, 0, 0
+    goto store_loop
+  store_done:
+
+    .return (self)
+.end
+
 =back
 
 =cut

@@ -119,7 +119,8 @@ Creates a List from its arguments.
 Ask the list to make at least the first C<n> elements as non-lazy
 as it can, then return its entire list of elements as a 
 ResizablePMCArray or Parcel.  If C<n> isn't given, then eagerly
-generate the entire list.
+generate the entire list.  Any RPAs (incl. Parcels) in $!values
+always flatten here, even if not marked with the 'flatten' flag.
 
 =cut
 
@@ -127,42 +128,48 @@ generate the entire list.
 .sub '!generate' :method
     .param int n               :optional
     .param int has_n           :opt_flag
-    .local pmc values, gen
+    .local pmc values
     values = getattribute self, '$!values'
     unless null values goto have_values
     values = new ['ResizablePMCArray']
     setattribute self, '$!values', values
   have_values:
-    gen    = getattribute self, '$!gen'
+    .local pmc gen
+    gen = getattribute self, '$!gen'
     unless null gen goto have_gen
     gen = box 0
     setattribute self, '$!gen', gen
   have_gen:
-  gen_loop:
-    .local int gen_i, values_i
+    .local int gen_i
     gen_i = gen
-    values_i = elements values
-    if has_n goto gen_elem
-    n = values_i
-  gen_elem:
-    unless gen_i < n goto gen_done
-    if gen_i >= values_i goto gen_done
+  gen_loop:
+    $I0 = elements values
+    if gen_i >= $I0 goto gen_done
     .local pmc elem
     elem = values[gen_i]
     if null elem goto gen_next
-    $P0 = getprop 'flatten', elem
-    if null $P0 goto gen_next
-    $I0 = n - gen_i
+    # RPAs (incl Parcel) always flatten
     $I1 = isa elem, ['ResizablePMCArray']
     if $I1 goto have_flat_elem
+    # see if we have a flattening element
+    $P0 = getprop 'flatten', elem
+    if null $P0 goto gen_next
+    # see if we need to flatten a certain number of elems
+    if has_n goto gen_elem_n
+    elem = elem.'!generate'()
+    goto have_flat_elem
+  gen_elem_n:
+    $I0 = n - gen_i
     elem = elem.'!generate'($I0)
   have_flat_elem:
     splice values, elem, gen_i, 1
     goto gen_loop
   gen_next:
-    inc gen
-    goto gen_loop
+    inc gen_i
+    unless has_n goto gen_loop
+    if gen_i < n goto gen_loop
   gen_done:
+    gen = gen_i
     .return (values)
 .end
 

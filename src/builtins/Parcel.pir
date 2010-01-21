@@ -55,6 +55,9 @@ to a List.
     setattribute parcel, '$!values', values
     gen = box 0
     setattribute parcel, '$!gen', gen
+    # mark the List as a flattening object
+    $P0 = get_hll_global ['Bool'], 'True'
+    setprop parcel, 'flatten', $P0
     .return (parcel)
 .end
    
@@ -78,9 +81,6 @@ The canonical operator for creating a Parcel.
     parcel = new ['Parcel']
     transform_to_p6opaque parcel
     splice parcel, args, 0, 0
-    # mark the Parcel as flattening objects
-    $P0 = get_hll_global ['Bool'], 'True'
-    setprop parcel, 'flatten', $P0
     .return (parcel)
 .end
 

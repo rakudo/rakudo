@@ -56,8 +56,11 @@ Arrays are the mutable form of Lists.
 .namespace []
 .sub '&circumfix:<[ ]>' 
     .param pmc values            :slurpy
+    .local pmc true
+    true = get_hll_global ['Bool'], 'True'
+    setprop values, 'flatten', true
     $P0 = new ['Array']
-    setattribute $P0, '$!values', values
+    $P0.'!STORE'(values)
     .return ($P0)
 .end
 

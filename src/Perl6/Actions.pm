@@ -147,8 +147,13 @@ method pblock($/) {
     if pir::defined__IP($block<placeholder_sig>) && $<signature> {
         $/.CURSOR.panic('Placeholder variable cannot override existing signature');
     }
-    elsif pir::defined__IP($block<placeholder_sig>) { $signature := $block<placeholder_sig>; }
-    elsif $<signature> { $signature := $<signature>.ast; }
+    elsif pir::defined__IP($block<placeholder_sig>) { 
+        $signature := $block<placeholder_sig>; 
+    }
+    elsif $<signature> { 
+        $signature := $<signature>.ast; 
+        $block.blocktype('declaration'); 
+    }
     else {
         $signature := Perl6::Compiler::Signature.new();
         unless $block.symbol('$_') {

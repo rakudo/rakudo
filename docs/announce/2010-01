@@ -9,10 +9,11 @@ is available from http://github.com/rakudo/rakudo/downloads .
 Rakudo Perl follows a monthly release cycle, with each release 
 code named after a Perl Mongers group.  The January 2010 release 
 is code named "Minneapolis" for Minneapolis.pm, hosts of the annual 
-Frozen Perl Workshop [1] (February 6, 2010).  In 2009 the Frozen Perl 
-Workshop featured a one-day hackathon for Perl 6 and Rakudo development, 
-which ultimately informed the design and implementation of the current
-build system.
+Frozen Perl Workshop [1].  In 2009 the Frozen Perl Workshop featured a 
+one-day hackathon for Perl 6 and Rakudo development, which ultimately 
+informed the design and implementation of the current build system.
+(The 2010 Frozen Perl Workshop will be on February 6, 2010, for those
+interested in attending.)
 
 Shortly after the October 2009 (#22) release, the Rakudo team began a new
 branch of Rakudo development ("ng") that refactors the grammar to much more
@@ -27,7 +28,7 @@ This release of Rakudo requires Parrot 2.0.0.  One must still
 perform "make install" in the Rakudo directory before the "perl6"
 executable will run anywhere other than the Rakudo build directory.
 For the latest information on building and using Rakudo Perl, see the
-readme file section titled "Building and invoking Rakudo".
+README file section titled "Building and invoking Rakudo".
 
 Some of the specific changes and improvements occuring with this
 release include:

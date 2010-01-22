@@ -1,3 +1,9 @@
+New in 2010-01 release
++ Added method form of eval.
++ Implemented :s and :l file operators
++ Added functions for logarithms using $base
++ Refactored subroutine calls to use new Context structures in Parrot 2.0.0
+
 New in 2009-11 release
 + Rakudo now uses Parrot's updated calling convention features
 + support unpacking of arrays, hashes and objects in signatures

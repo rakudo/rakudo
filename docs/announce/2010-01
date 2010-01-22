@@ -59,6 +59,11 @@ release of Rakudo, the deprecated features will likely be gone.
   Most of the builtin methods on these classes will be defined in the
   'Cool' class instead of 'Any'.  See Synopsis 2 for more details.
 
+* Starting with the next release, we will likely switch to using
+  "YYYY.MM" instead of "YYYY-MM" (dot instead of hyphen) as release 
+  identifiers.  This is intended to simplify building and packaging
+  for other distribution systems.
+
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible.  If you would like to contribute,
 see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org

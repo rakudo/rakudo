@@ -23,27 +23,27 @@ part of monthly Parrot releases.
   2009-10-22   Rakudo #22 "Thousand Oaks"      (duff)
   2009-11-19   Rakudo #23 "Lisbon"             (masak)
   2009-12-17   Rakudo #24 "Seoul"              (chromatic)
+  2010-01-22   Rakudo #25 "Minneapolis"        (pmichaud)
 
 =head2 Planned 2010 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2010-01-21   Rakudo #25                      (smash)
   2010-02-18   Rakudo #26                      (Su-Shee)
-  2010-03-18   Rakudo #27                      (volunteers wanted)
-  2010-04-22   Rakudo #28                      (volunteers wanted)
-  2010-05-20   Rakudo #29                      (volunteers wanted)
-  2010-06-17   Rakudo #30                      (volunteers wanted)
-  2010-07-22   Rakudo #31                      (volunteers wanted)
-  2010-08-19   Rakudo #32                      (volunteers wanted)
-  2010-09-23   Rakudo #33                      (volunteers wanted)
-  2010-10-21   Rakudo #34                      (volunteers wanted)
-  2010-11-18   Rakudo #35                      (volunteers wanted)
-  2010-12-23   Rakudo #36                      (volunteers wanted)
+  2010-03-18   Rakudo #27                      (smash)
+  2010-04-22   Rakudo #28                      (pmichaud?)
+  2010-05-20   Rakudo #29                      (open)
+  2010-06-17   Rakudo #30                      (open)
+  2010-07-22   Rakudo #31                      (open)
+  2010-08-19   Rakudo #32                      (open)
+  2010-09-23   Rakudo #33                      (open)
+  2010-10-21   Rakudo #34                      (open)
+  2010-11-18   Rakudo #35                      (open)
+  2010-12-23   Rakudo #36                      (open)
 
 =head2 Suggested .pm group names for future releases
 
-  Atlanta.pm
+  Atlanta.pm (* check with Pm before using this one)
   BristolBath.pm
   Milan.pm
 

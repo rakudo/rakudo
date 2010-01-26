@@ -353,13 +353,13 @@ token statement_control:sym<for> {
 
 token statement_control:sym<loop> {
     <sym>
-    [ <?before '(' | '{' > <.panic: "Whitespace required after 'loop'"> ]?
-        <.ws>
-        [ '(' :s
-            <e1=.EXPR>? ';'
-            <e2=.EXPR>? ';'
-            <e3=.EXPR>?
-        ')' ]?
+    [ <?[({]> <.panic: "Whitespace required after 'loop'"> ]?
+    :s
+    [ '('
+        <e1=.EXPR>? ';'
+        <e2=.EXPR>? ';'
+        <e3=.EXPR>?
+    ')' ]?
     <block>
 }
 

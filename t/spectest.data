@@ -200,7 +200,7 @@ S04-statements/for_with_only_one_item.t
 # S04-statements/given.t
 # S04-statements/if.t
 # S04-statements/last.t
-# S04-statements/loop.t
+S04-statements/loop.t
 # S04-statements/map-and-sort-in-for.t
 # S04-statements/next.t
 # S04-statements/no-implicit-block.t

@@ -292,22 +292,6 @@ back some kind of iterator to let us get all of the possible candidates.
         INTVAL                     pos    = 0;
         PMC                      * method;
 
-        /* If it's a parcel, need to .item it. */
-        if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Parcel"))) {
-            /* Get itemizer and run it (mutates the Parcel in place). */
-            PMC *ns_key, *ns, *itemizer;
-            ns_key = pmc_new(interp, enum_class_ResizableStringArray);
-            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
-            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Parcel"));
-            ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
-            itemizer = Parrot_find_global_n(interp, ns, CONST_STRING(interp, "!parcel_item"));
-            Parrot_ext_call(interp, itemizer, "P", SELF);
-
-            /* SELF updated, re-fetch info about the object. */
-            obj    = PARROT_OBJECT(SELF);
-            _class = PARROT_CLASS(obj->_class);
-        }
-
         /* If we're calling a method on Whatever, we need to generate a closure
          * instead. XXX It sucks that every method invocation pays for this, so
          * we really must find something better to do. */

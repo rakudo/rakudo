@@ -20,47 +20,6 @@ elements and can be flattened into Captures or Lists.
     parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Any')
 .end
 
-=item !parcel_item(parcel)
-
-Return the Parcel in item context.
-
-=cut
-
-.namespace ['Parcel']
-.sub '!parcel_item'
-    .param pmc parcel
-    $I0 = elements parcel
-    if $I0 != 1 goto return_list
-    $P0 = parcel[0]
-    .return ($P0)
-  return_list:
-    .tailcall '!parcel_list'(parcel)
-.end
- 
-=item !parcel_list(parcel)
-
-Return the Parcel in list context -- i.e., convert it
-to a List.
-
-=cut
-
-.namespace ['Parcel']
-.sub '!parcel_list'
-    .param pmc parcel
-    .local pmc values, list, gen
-    values = root_new ['parrot';'ResizablePMCArray']
-    splice values, parcel, 0, 0
-    list = new ['List']
-    copy parcel, list
-    setattribute parcel, '$!values', values
-    gen = box 0
-    setattribute parcel, '$!gen', gen
-    # mark the List as a flattening object
-    $P0 = get_hll_global ['Bool'], 'True'
-    setprop parcel, 'flatten', $P0
-    .return (parcel)
-.end
-   
 =back
 
 =head2 Operators

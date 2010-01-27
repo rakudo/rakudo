@@ -36,20 +36,72 @@ Construct an iterator for the Parcel.
     .return (listiter)
 .end
 
+
 =item list()
 
-Return a list (flattening iterator) for the Parcel.
+Return a flattening version of self.
 
 =cut
 
 .namespace ['Parcel']
 .sub 'list' :method
-    .local pmc listiter, true
-    listiter = self.'iterator'()
+    .local pmc list, true
+    list = new ['ObjectRef'], self
     true = get_hll_global ['Bool'], 'True'
-    setprop listiter, 'flatten', true
-    .return (listiter)
+    setprop list, 'flatten', true
+    .return (list)
 .end
+
+=back
+
+=head2 Functions
+
+=over 4
+
+=item &eager
+
+Return a Parcel containing the eager evaluation of all items
+in a list.
+
+=cut
+
+.namespace []
+.sub '&eager'
+    .param pmc args            :slurpy
+    .local pmc eager, true
+    eager = new ['Parcel']
+    true = get_hll_global ['Bool'], 'True'
+    setprop eager, 'flatten', true
+    setprop eager, 'rw', true
+
+    .local pmc listiter
+    listiter = new ['ListIterator']
+    setattribute listiter, '$!rpa', args
+  iter_loop:
+    .local pmc value
+    value = listiter.'get'()
+    $I0 = isa value, ['IterDone']
+    if $I0 goto iter_done
+    push eager, value
+    goto iter_loop
+  iter_done:
+    .return (eager)
+.end
+
+
+=item &Nil
+
+The canonical function for creating an empty Parcel.
+
+=cut
+
+.namespace []
+.sub '&Nil'
+    .param pmc args            :slurpy
+    $P0 = '&infix:<,>'()
+    .return ($P0)
+.end
+
 
 =back
 
@@ -77,20 +129,6 @@ The canonical operator for creating a Parcel.
     setprop parcel, 'flatten', $P0
     .return (parcel)
 .end
-
-
-=item &Nil
-
-The canonical function for creating an empty Parcel.
-
-=cut
-
-.sub '&Nil'
-    .param pmc args            :slurpy
-    $P0 = '&infix:<,>'()
-    .return ($P0)
-.end
-
 
 =back
 

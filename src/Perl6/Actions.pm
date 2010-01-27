@@ -279,7 +279,7 @@ method statement_control:sym<repeat>($/) {
 method statement_control:sym<for>($/) {
     my $past := xblock_immediate($<xblock>.ast);
     $past.pasttype('for');
-    $past[0] := PAST::Op.new(:name('&list'), $past[0]);
+    $past[0] := PAST::Op.new(:name('&eager'), $past[0]);
     $past.arity($past[1].arity || 1);
     make $past;
 }

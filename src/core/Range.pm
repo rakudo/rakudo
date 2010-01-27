@@ -8,10 +8,12 @@ class Range {
                      $max,
                      Bool :$excludes_min = Bool::False,
                      Bool :$excludes_max = Bool::False) {
-        self.bless(*, :min($min),
-                      :max($max),
-                      :excludes_min($excludes_min),
-                      :excludes_max($excludes_max));
+        pir::setprop__0PsP(
+            self.bless(*, :min($min), :max($max),
+                          :excludes_min($excludes_min),
+                          :excludes_max($excludes_max)),
+            'flatten', True
+        );
     }
 
     our Bool multi method ACCEPTS(Range $topic) {
@@ -19,6 +21,11 @@ class Range {
           && ($.max == $topic.max)
           && ($.excludes_min == $topic.excludes_min)
           && ($.excludes_max == $topic.excludes_min));
+    }
+
+    our method iterator() {
+        #  RangeIterator.new(self);
+        pir::get_hll_global__Ps('RangeIterator').new(self);
     }
 
     my Bool multi method !min_test($topic) {

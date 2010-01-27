@@ -1028,6 +1028,8 @@ token infix:sym«lt»   { <sym>  <O('%chaining')> }
 token infix:sym«gt»   { <sym>  <O('%chaining')> }
 token infix:sym«=:=»  { <sym>  <O('%chaining')> }
 token infix:sym<eqv>  { <sym>  <O('%chaining')> }
+token infix:sym<before>  { <sym>  <O('%chaining')> }
+token infix:sym<after>  { <sym>  <O('%chaining')> }
 token infix:sym<~~>   { <sym>  <O('%chaining')> }
 token infix:sym<!~~>  { <sym>  <O('%chaining')> }
 

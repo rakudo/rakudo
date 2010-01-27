@@ -90,3 +90,11 @@ our multi infix:<does>(Mu \$do-it-to-me, Role $r) {
 our multi infix:<but>(Mu $do-it-to-me is copy, \$r) {
     $do-it-to-me does $r
 }
+
+our multi infix:<before>($a, $b) {
+    ($a cmp $b) == -1;
+}
+
+our multi infix:<after>($a, $b) {
+    ($a cmp $b) == +1;
+}

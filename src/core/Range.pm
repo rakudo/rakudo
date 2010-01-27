@@ -80,29 +80,6 @@ our multi sub prefix:<^>($max) {
     0..^$max;
 }
 
-class RangeIterator {
-    has $.range;
-    has $.current;
-
-    multi method new(Range $range,
-                     $current) {
-        say "making RangeIterator on $range";
-        self.bless(*, :range($range),
-                      :current($current));
-    }
-
-    multi method get() {
-        say "in get";
-        $.range.max_test($!current) ?? $!current++ !! Nil;
-    }
-}
-
-augment class Range {
-    our Range multi method Iterator() {
-        RangeIterator.new(self, $.excludes_min ?? $.min.succ !! $.min);
-    }
-}
-
 multi sub infix:<...>(Int $a, Int $b) {
     gather loop (my $i = $a; $i <= $b; $i++) {
         take $i;

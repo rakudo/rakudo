@@ -49,6 +49,7 @@ Returns the next element of the list.
     value = shift rpa
     # If the value doesn't flatten, we return it directly.  
     $P0 = getprop 'flatten', value
+    if null $P0 goto get_done
     unless $P0 goto get_done
     # If the thing we shifted is a (flattening) RPA, splice 
     # it directly and repeat.

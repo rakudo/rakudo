@@ -48,7 +48,7 @@ Returns the next element of the list.
     unless rpa goto rpa_done
     value = shift rpa
     # If the value doesn't flatten, we return it directly.  
-    $P0 = getprop value, 'flatten'
+    $P0 = getprop 'flatten', value
     unless $P0 goto get_done
     # If the thing we shifted is a (flattening) RPA, splice 
     # it directly and repeat.

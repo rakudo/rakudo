@@ -16,7 +16,7 @@ class RangeIterator {
         my $return = $!value;
         return IterDone if $return after $!max 
                            || $!excludes_max && !($return before $!max);
-        $value .= succ;
+        $!value .= succ;
         $return;
     }
 }

@@ -100,6 +100,7 @@ BUILTINS_PIR = \
   src/builtins/Pair.pir \
   src/builtins/Callable.pir \
   src/builtins/Positional.pir \
+  src/builtins/IterDone.pir \
   src/builtins/List.pir \
   src/builtins/ListIterator.pir \
   src/builtins/Array.pir \

@@ -17,7 +17,7 @@ a Parcel.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('ListIterator', 'parent'=>'Any', 'attr'=>'$!iter $!rpa')
+    proto = p6meta.'new_class'('ListIterator', 'parent'=>'Iterator', 'attr'=>'$!iter $!rpa')
 .end
 
 =item get()

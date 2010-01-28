@@ -104,6 +104,7 @@ BUILTINS_PIR = \
   src/builtins/IterDone.pir \
   src/builtins/ListIterator.pir \
   src/builtins/Seq.pir \
+  src/builtins/SeqIterator.pir \
   src/builtins/Array.pir \
   src/builtins/Proxy.pir \
   src/builtins/Code.pir \

@@ -1,0 +1,57 @@
+=head1 TITLE
+
+SeqIterator - Perl 6 sequence iterator class
+
+=head1 DESCRIPTION
+
+SeqIterator is used to iterate over the elements of a Seq
+(and Array).  Each Seqiterator maintains a reference to the
+Seq object that it is iterating, and the index of the next
+item to be retrieved.
+
+=head2 Methods
+
+=over 4
+
+=cut
+
+.namespace ['SeqIterator']
+.sub 'onload' :anon :init :load
+    .local pmc p6meta, proto
+    p6meta = get_hll_global ['Mu'], '$!P6META'
+    proto = p6meta.'new_class'('SeqIterator', 'parent'=>'Iterator', 'attr'=>'$!seq $!index')
+.end
+
+
+=item get()
+
+Return the next item from the Seq.  Returns IterDone when
+all items have been returned.
+
+=cut
+
+.sub 'get' :method
+    .local pmc seq, index, items
+    seq   = getattribute self, '$!seq'
+    index = getattribute self, '$!index'
+    items = getattribute seq, '@!items'
+    $I0 = index
+    $I1 = elements items
+    if $I0 >= $I1 goto get_done
+    $P0 = items[$I0]
+    inc index
+    .return ($P0)
+  get_done:
+    $P0 = get_hll_global 'IterDone'
+    .return ($P0)
+.end
+
+=back
+
+=cut
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4 ft=pir:

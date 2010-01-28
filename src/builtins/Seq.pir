@@ -28,6 +28,21 @@ sequence of items.
     seqproto = p6meta.'new_class'('Seq', 'parent'=>'Any', 'attr'=>'@!items $!rest')
 .end
 
+=item iterator()
+
+Return a new SeqIterator for the invocant.
+
+=cut
+
+.sub 'iterator' :method
+    .local pmc seqiter
+    seqiter = new ['SeqIterator']
+    setattribute seqiter, '$!seq', self
+    $P0 = box 0
+    setattribute seqiter, '$!index', $P0
+    .return (seqiter)
+.end
+
 
 =item postcircumfix:<[ ]>(Int)
 

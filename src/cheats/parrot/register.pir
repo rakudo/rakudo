@@ -38,4 +38,9 @@ Rakudo classes before we compose the Parrot equivalents.
     p6meta.'register'('Perl6Str', 'parent'=>proto, 'protoobject'=>proto)
     p6meta.'register'('String', 'parent'=>proto, 'protoobject'=>proto)
 
+    # Import Parcel.seq into ResizablePMCArray.
+    proto = get_hll_global 'Parcel'
+    $P0 = find_method proto, 'seq'
+    set_root_global ['parrot';'ResizablePMCArray'], 'seq', $P0
+
 .end

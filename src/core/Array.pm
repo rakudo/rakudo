@@ -1,7 +1,8 @@
 augment class Array {
    method perl() {
+        @!items.perl;
         # XXX: $_.perl and .perl don't work, but this does...
-        '[' ~ self.map({ $^a.perl }).join(', ') ~ ']';
+        # '[' ~ self.map({ $^a.perl }).join(', ') ~ ']';
     }
  
 

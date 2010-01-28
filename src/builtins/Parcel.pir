@@ -52,6 +52,46 @@ Return a flattening version of self.
     .return (list)
 .end
 
+=item perl
+
+=cut
+
+.namespace ['Parcel']
+.sub 'perl' :method
+    .local pmc self_it, perllist
+    self_it = iter self
+    perllist = new ['ResizablePMCArray']
+  self_loop:
+    unless self_it goto self_done
+    $P0 = shift self_it
+    $S0 = $P0.'perl'()
+    push perllist, $S0
+    goto self_loop
+  self_done:
+    $I0 = elements perllist
+    unless $I0 == 1 goto have_perllist
+    push perllist, ''
+  have_perllist:
+    $S0 = join ',', perllist
+    $S0 = concat '(', $S0
+    $S0 = concat $S0, ')'
+    .return ($S0)
+.end
+
+
+=item seq
+
+Sequence the items in the Parcel.
+
+=cut
+
+.namespace ['Parcel']
+.sub 'seq' :method
+    $P0 = new ['Parcel']
+    splice $P0, self, 0, 0
+    .return ($P0)
+.end
+
 =back
 
 =head2 Functions

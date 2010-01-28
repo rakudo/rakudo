@@ -72,7 +72,6 @@ Performs list assignment using the values from C<source>.
   seq_loop:
     unless source goto seq_done
     item = shift source
-    push parcel, item
     $P0 = getprop 'flatten', item
     if null $P0 goto seq_item
     unless $P0 goto seq_item
@@ -81,7 +80,7 @@ Performs list assignment using the values from C<source>.
     goto seq_loop
   seq_item:
     $P0 = new ['ObjectRef']
-    $P0.'!STORE'($P0)
+    $P0.'!STORE'(item)
     push parcel, $P0
     goto seq_loop
   seq_done:

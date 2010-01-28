@@ -14,14 +14,12 @@ Arrays are the mutable form of Lists.
 
 .namespace ['Array']
 .sub 'onload' :anon :init :load
-    .local pmc p6meta, listproto
+    .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    listproto = p6meta.'new_class'('Array', 'parent'=>'List')
+    proto = p6meta.'new_class'('Array', 'parent'=>'Seq')
 .end
 
 =item postcircumfix:<[ ]>(Int)
-
-=cut
 
 .sub 'postcircumfix:<[ ]>' :method :multi(_, ['Integer']) 
     .param int n
@@ -72,24 +70,19 @@ Arrays are the mutable form of Lists.
 .namespace ['Array']
 .sub '!STORE' :method
     .param pmc source
-    .local pmc values, source, source_it, true
-    values = root_new ['parrot';'ResizablePMCArray']
+    $P0 = get_hll_global 'Seq'
+    $P0 = find_method $P0, '!STORE'
+    self.$P0(source)
+    .local pmc items, items_it, true
+    items = getattribute self, '@!items'
+    items_it = iter items
     true = get_hll_global ['Bool'], 'True'
-    source = '&list'(source)
-    source_it = iter source
-  array_loop:
-    unless source_it goto array_done
-    $P0 = shift source_it
-    $P1 = new ['ObjectRef']
-    setprop $P1, 'rw', true
-    push values, $P1
-    $P1.'!STORE'($P0)
-    goto array_loop
-  array_done:
-    $I0 = elements values
-    $P0 = box $I0
-    setattribute self, '$!values', values
-    setattribute self, '$!gen', $P0
+  items_loop:
+    unless items_it goto items_done
+    $P0 = shift items_it
+    setprop $P0, 'rw', true
+    goto items_loop
+  items_done:
     .return (self)
 .end
 

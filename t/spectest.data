@@ -301,6 +301,7 @@ S06-signature/type-capture.t
 # S06-traits/is-copy.t
 # S06-traits/is-rw.t
 # S06-traits/misc.t
+S07-iterators/range-iterator.t 
 # S09-autovivification/autoincrement.t
 # S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t

@@ -34,15 +34,21 @@ all items have been returned.
     .local pmc seq, index, items
     seq   = getattribute self, '$!seq'
     index = getattribute self, '$!index'
-    items = getattribute seq, '@!items'
-    $I0 = index
-    $I1 = elements items
-    if $I0 >= $I1 goto get_done
-    $P0 = items[$I0]
-    inc index
-    .return ($P0)
-  get_done:
+    items = getattribute seq,  '@!items'
+
+    .local int n
+    n = index
+    $I0 = elements items
+    if n < $I0 goto have_items
+    $I0 = n + 1
+    items = seq.'!fill'($I0)
+    $I0 = elements items
+    if n < $I0 goto have_items
     $P0 = get_hll_global 'IterDone'
+    .return ($P0)
+  have_items:
+    inc index
+    $P0 = items[n]
     .return ($P0)
 .end
 

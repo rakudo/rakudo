@@ -40,6 +40,17 @@ Rakudo_binding_create_array(PARROT_INTERP) {
 }
 
 
+/* Creates a Perl 6 object of the type given by C<classname> */
+static PMC *
+Rakudo_binding_create(PARROT_INTERP, STRING *classname) {
+    PMC *ns        = Parrot_get_ctx_HLL_namespace(interp);
+    PMC *class_ns  = Parrot_get_namespace_keyed_str(interp, ns, classname);
+    PMC *class_obj = VTABLE_get_class(interp, class_ns);
+    PMC *result    = VTABLE_instantiate(interp, class_obj, PMCNULL);
+    return result;
+}
+
+
 static STRING *
 Rakudo_binding_arity_fail(PARROT_INTERP, llsig_element **elements, INTVAL num_elements,
                           INTVAL num_pos_args, INTVAL too_many) {
@@ -530,7 +541,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 /* Create Perl 6 array, create RPA of all remaining things, then
                  * store it. */
                 PMC *slurpy     = Rakudo_binding_create_array(interp);
-                PMC *temp       = pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *temp       = Rakudo_binding_create(interp, string_from_literal(interp, "Parcel"));
                 STRING *STORE   = string_from_literal(interp, "!STORE");
                 PMC *store_meth = VTABLE_find_method(interp, slurpy, STORE);
                 while (cur_pos_arg < num_pos_args) {

@@ -59,7 +59,8 @@ Arrays are the mutable form of Lists.
     splice parcel, values, 0, 0
     $P0 = new ['Array']
     $P0.'!STORE'(parcel)
-    .return ($P0)
+    $P1 = new ['Perl6Scalar'], $P0
+    .return ($P1)
 .end
 
 =head2 Private methods

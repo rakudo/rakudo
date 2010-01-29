@@ -48,6 +48,8 @@ Returns the next element of the list.
     unless rpa goto rpa_done
     value = shift rpa
     # If the value doesn't flatten, we return it directly.  
+    $I0 = isa value, ['Perl6Scalar']
+    if $I0 goto get_done
     $I0 = isa value, ['Iterable']
     unless $I0 goto get_done
     # If the thing we shifted is a (flattening) RPA, splice 

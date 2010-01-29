@@ -25,7 +25,7 @@ sequence of items.
     pos_role = pos_role.'!select'()
 
     # Create the class.
-    seqproto = p6meta.'new_class'('Seq', 'parent'=>'Any', 'attr'=>'@!items $!rest')
+    seqproto = p6meta.'new_class'('Seq', 'parent'=>'Iterable', 'attr'=>'@!items $!rest')
 .end
 
 =item iterator()

@@ -1,4 +1,4 @@
-class Range {
+class Range is Iterable {
     has $.min;
     has $.excludes_min = Bool::False;
     has $.max;

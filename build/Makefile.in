@@ -157,6 +157,7 @@ CORE_SOURCES = \
   src/core/Any-num.pm \
   src/core/Any-list.pm \
   src/core/Any-str.pm \
+  src/core/Seq.pm \
   src/core/Array.pm \
   src/core/Int.pm \
   src/core/Num.pm \

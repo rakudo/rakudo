@@ -698,9 +698,9 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         my $true := PAST::Var.new( :name('true'), :scope('register') );
         my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
 
-        # If it's an array or hash, it flattens in list context.
-        if $sigil eq '@' || $sigil eq '%' {
-            $vivipast := PAST::Op.new($vivipast,'flatten',$true,:pirop('setprop'));
+        # If it's a scalar, mark it as scalar (non-flattening)
+        if $sigil eq '$' {
+            $vivipast := PAST::Op.new($vivipast,'scalar',$true,:pirop('setprop'));
         }
 
         # For 'our' variables, we first bind or lookup in the namespace

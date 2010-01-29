@@ -67,6 +67,30 @@ Perl6::Compiler - Perl6 compiler
     printerr "\n"
 .end
 
+.sub '&PARROT'
+    .param pmc obj
+    .local string result
+    result = ''
+  deref_loop:
+    $I0 = isa obj, 'ObjectRef'
+    unless $I0 goto deref_done
+    $I0 = isa obj, 'Perl6Scalar'
+    if $I0 goto deref_scalar
+    result .= 'ObjectRef->'
+    goto deref_next
+  deref_scalar:
+    result .= 'Perl6Scalar->'
+  deref_next:
+    obj = deref obj
+    goto deref_loop
+  deref_done:
+    $P0 = typeof obj
+    $S0 = $P0
+    result .= $S0
+    .return (result)
+.end
+
+
 .include 'src/gen/builtins.pir'
 .include 'src/gen/signature_pm.pir'
 .include 'src/gen/parameter_pm.pir'

@@ -9,6 +9,9 @@ Iterator is the base class for creating iterators.
 may be a role.)  Subclasses are required to override
 the .get method; other methods may also be overridden.
 
+Conjecturally, Iterators are also Iterable -- i.e., they
+flatten in list context.
+
 =head2 Methods
 
 =over 4
@@ -19,7 +22,7 @@ the .get method; other methods may also be overridden.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('Iterator', 'parent'=>'Any')
+    proto = p6meta.'new_class'('Iterator', 'parent'=>'Iterable')
 .end
 
 =item eager()
@@ -43,6 +46,11 @@ continue until memory is exhausted.
     goto iter_loop
   iter_done:
     .return (parcel)
+.end
+
+
+.sub 'iterator' :method
+    .return (self)
 .end
 
 

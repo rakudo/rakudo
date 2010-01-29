@@ -91,6 +91,10 @@ BUILTINS_PIR = \
   src/builtins/Any.pir \
   src/builtins/Role.pir \
   src/builtins/Abstraction.pir \
+  src/builtins/Iterable.pir \
+  src/builtins/Iterator.pir \
+  src/builtins/IterDone.pir \
+  src/builtins/ListIterator.pir \
   src/builtins/Grammar.pir \
   src/builtins/Parcel.pir \
   src/builtins/Bool.pir \
@@ -100,9 +104,6 @@ BUILTINS_PIR = \
   src/builtins/Pair.pir \
   src/builtins/Callable.pir \
   src/builtins/Positional.pir \
-  src/builtins/Iterator.pir \
-  src/builtins/IterDone.pir \
-  src/builtins/ListIterator.pir \
   src/builtins/Seq.pir \
   src/builtins/SeqIterator.pir \
   src/builtins/Array.pir \

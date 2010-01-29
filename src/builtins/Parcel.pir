@@ -17,7 +17,7 @@ elements and can be flattened into Captures or Lists.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, parcelproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Any')
+    parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Iterable')
 .end
 
 =item iterator()

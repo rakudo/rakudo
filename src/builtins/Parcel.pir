@@ -37,19 +37,6 @@ Construct an iterator for the Parcel.
 .end
 
 
-=item list()
-
-Return a flattening version of self.
-
-=cut
-
-.namespace ['Parcel']
-.sub 'list' :method
-    .local pmc list
-    list = new ['ObjectRef'], self
-    .return (list)
-.end
-
 =item perl
 
 =cut

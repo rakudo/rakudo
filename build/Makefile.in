@@ -154,6 +154,7 @@ CORE_SOURCES = \
   src/cheats/num.pm \
   src/cheats/eval.pm \
   src/core/Mu.pm \
+  src/core/Parcel.pm \
   src/core/Any-num.pm \
   src/core/Any-list.pm \
   src/core/Any-str.pm \

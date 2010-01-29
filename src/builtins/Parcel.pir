@@ -76,6 +76,19 @@ Return a flattening version of self.
     .return ($S0)
 .end
 
+=item Seq()
+
+Return the Parcel as a Seq.
+
+=cut
+
+.sub 'Seq' :method
+    .local pmc seq
+    seq = new ['Seq']
+    seq.'!STORE'(self)
+    .return (seq)
+.end
+
 
 =back
 

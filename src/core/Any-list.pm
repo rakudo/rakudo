@@ -6,17 +6,16 @@ augment class Any {
 
     our multi method map(&block) {
         Q:PIR {
-            .local pmc mapper
-            mapper = new ['!Mapper']
-            $P0 = find_lex 'self'
-            $P0 = iter $P0
-            setattribute mapper, '$!list_it', $P0
-            $P0 = find_lex '&block'
-            setattribute mapper, '&!block', $P0
-            $P0 = get_hll_global ['Bool'], 'True'
-            setprop mapper, 'flatten', $P0
-            %r = '&list'(mapper)
-        }
+            .local pmc self, block, map
+            self = find_lex 'self'
+            block = find_lex '&block'
+            $P0 = self.'list'()
+            $P0 = $P0.'iterator'()
+            map = new ['MapIterator']
+            setattribute map, '$!iter', $P0
+            setattribute map, '&!block', block
+            %r = map
+        };
     }
 
     multi method first($test) {

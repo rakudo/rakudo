@@ -49,6 +49,29 @@ continue until memory is exhausted.
 .end
 
 
+.namespace ['Iterator']
+.sub 'getbatch' :method
+    .param int n
+    .local pmc parcel
+
+    parcel = new ['Parcel']
+  batch_loop:
+    unless n > 0 goto batch_done
+    .local pmc item
+    item = self.'get'()
+    $I0 = isa item, ['IterDone']
+    unless $I0 goto batch_next
+    if parcel goto batch_done
+    .return (item)
+  batch_next:
+    push parcel, item
+    dec n
+    goto batch_loop
+  batch_done:
+    .return (parcel)
+.end
+
+
 .sub 'iterator' :method
     .return (self)
 .end

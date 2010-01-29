@@ -70,6 +70,27 @@ Returns the next element of the list.
     
 =back
 
+=head2 Functions
+
+=over 4
+
+=item list(slurpy)
+
+Create a list from C<slurpy>.
+
+=cut
+
+.namespace []
+.sub '&list'
+    .param pmc values          :slurpy
+    .local pmc listiter
+    listiter = new ['List']
+    setattribute listiter, '$!rpa', values
+    .return (listiter)
+.end
+
+=back
+
 =cut
 
 # Local Variables:

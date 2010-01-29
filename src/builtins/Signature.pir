@@ -33,7 +33,7 @@ Returns a C<List> of C<Parameter> descriptors.
 .sub 'params' :method
     # Create result.
     .local pmc result
-    result = new 'ResizablePMCArray'
+    result = new ['Parcel']
 
     # Grab low level signature we're wrapping.
     .local pmc signature
@@ -109,10 +109,7 @@ Returns a C<List> of C<Parameter> descriptors.
     goto param_loop
   param_done:
 
-    # Turn into a List.
-    $P0 = '&list'(result :flat)
-    setprop $P0, 'flatten', $P0 # XXX Workaround for .arity and .count; when we get list assignment, can go away
-    .return ($P0)
+    .return (result)
 .end
 
 =back

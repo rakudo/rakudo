@@ -137,7 +137,7 @@ CHEATS_PIR = \
   src/cheats/num-ops.pir \
   src/cheats/str-ops.pir \
   src/cheats/relops.pir \
-  src/cheats/any-map.pir \
+  src/cheats/mapiterator.pir \
   src/cheats/use.pir \
   src/cheats/only_infix_redispatcher.pir \
   src/cheats/import.pir \
@@ -155,8 +155,8 @@ CORE_SOURCES = \
   src/cheats/eval.pm \
   src/core/Mu.pm \
   src/core/Parcel.pm \
-  src/core/Any-num.pm \
   src/core/Any-list.pm \
+  src/core/Any-num.pm \
   src/core/Any-str.pm \
   src/core/Seq.pm \
   src/core/Array.pm \

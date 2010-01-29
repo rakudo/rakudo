@@ -46,20 +46,6 @@ continue until memory is exhausted.
 .end
 
 
-=item seq()
-
-Return the invocant in a form suitable for use in a Seq object.
-The default is to eagerly evaluate the invocant; subclasses
-can override this default to handle infinite or other lazily
-evaluated series.
-
-=cut
-
-.namespace ['Iterator']
-.sub 'seq' :method
-    .tailcall self.'eager'()
-.end
-
 =back
 
 =cut

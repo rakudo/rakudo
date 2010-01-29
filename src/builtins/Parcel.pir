@@ -77,19 +77,6 @@ Return a flattening version of self.
 .end
 
 
-=item seq
-
-Sequence the items in the Parcel.
-
-=cut
-
-.namespace ['Parcel']
-.sub 'seq' :method
-    $P0 = new ['Parcel']
-    splice $P0, self, 0, 0
-    .return ($P0)
-.end
-
 =back
 
 =head2 Functions

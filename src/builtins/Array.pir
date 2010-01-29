@@ -54,8 +54,11 @@ Arrays are the mutable form of Lists.
 .namespace []
 .sub '&circumfix:<[ ]>' 
     .param pmc values            :slurpy
+    .local pmc parcel
+    parcel = new ['Parcel']
+    splice parcel, values, 0, 0
     $P0 = new ['Array']
-    $P0.'!STORE'(values)
+    $P0.'!STORE'(parcel)
     .return ($P0)
 .end
 

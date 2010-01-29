@@ -45,10 +45,8 @@ Return a flattening version of self.
 
 .namespace ['Parcel']
 .sub 'list' :method
-    .local pmc list, true
+    .local pmc list
     list = new ['ObjectRef'], self
-    true = get_hll_global ['Bool'], 'True'
-    setprop list, 'flatten', true
     .return (list)
 .end
 

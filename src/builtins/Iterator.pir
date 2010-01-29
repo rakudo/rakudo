@@ -34,8 +34,6 @@ continue until memory is exhausted.
 .sub 'eager' :method
     .local pmc parcel, true
     parcel = new ['Parcel']
-    true = get_hll_global ['Bool'], 'True'
-    setprop parcel, 'flatten', true
   iter_loop:
     .local pmc item
     item = self.'get'()

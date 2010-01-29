@@ -8,12 +8,9 @@ class Range is Iterable {
                      $max,
                      Bool :$excludes_min = Bool::False,
                      Bool :$excludes_max = Bool::False) {
-        pir::setprop__0PsP(
-            self.bless(*, :min($min), :max($max),
-                          :excludes_min($excludes_min),
-                          :excludes_max($excludes_max)),
-            'flatten', True
-        );
+        self.bless(*, :min($min), :max($max),
+                      :excludes_min($excludes_min),
+                      :excludes_max($excludes_max));
     }
 
     our Bool multi method ACCEPTS(Range $topic) {

@@ -121,8 +121,8 @@ Performs list assignment using the values from C<source>.
     items = new ['Parcel']
     null rest
 
-    $P0 = getprop 'flatten', source
-    if null $P0 goto source_item
+    $I0 = isa source, ['Iterable']
+    unless $I0 goto source_item
     $P0 = source.'iterator'()
     source = $P0.'eager'()
 

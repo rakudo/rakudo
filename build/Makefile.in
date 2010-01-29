@@ -94,7 +94,7 @@ BUILTINS_PIR = \
   src/builtins/Iterable.pir \
   src/builtins/Iterator.pir \
   src/builtins/IterDone.pir \
-  src/builtins/ListIterator.pir \
+  src/builtins/List.pir \
   src/builtins/Grammar.pir \
   src/builtins/Parcel.pir \
   src/builtins/Bool.pir \

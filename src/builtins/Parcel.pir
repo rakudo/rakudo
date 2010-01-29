@@ -29,7 +29,7 @@ Construct an iterator for the Parcel.
 .namespace ['Parcel']
 .sub 'iterator' :method
     .local pmc listiter, rpa
-    listiter = new ['ListIterator']
+    listiter = new ['List']
     rpa = new ['ResizablePMCArray']
     splice rpa, self, 0, 0
     setattribute listiter, '$!rpa', rpa
@@ -113,7 +113,7 @@ in a list.
     setprop eager, 'rw', true
 
     .local pmc listiter
-    listiter = new ['ListIterator']
+    listiter = new ['List']
     setattribute listiter, '$!rpa', args
   iter_loop:
     .local pmc value

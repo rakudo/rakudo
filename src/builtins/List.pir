@@ -1,11 +1,11 @@
 =head1 TITLE
 
-ListIterator - Perl 6 ListIterator class
+List - Perl 6 List iterators
 
 =head1 DESCRIPTION
 
-ListIterator is used to iterate over flattening items in
-a Parcel.
+List is used to iterate over items in a Parcel, flattening
+as in list context.
 
 =head2 Methods
 
@@ -13,11 +13,11 @@ a Parcel.
 
 =cut
 
-.namespace ['ListIterator']
+.namespace ['List']
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('ListIterator', 'parent'=>'Iterator', 'attr'=>'$!iter $!rpa')
+    proto = p6meta.'new_class'('List', 'parent'=>'Iterator', 'attr'=>'$!iter $!rpa')
 .end
 
 =item get()

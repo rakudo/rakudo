@@ -138,6 +138,7 @@ CHEATS_PIR = \
   src/cheats/str-ops.pir \
   src/cheats/relops.pir \
   src/cheats/mapiterator.pir \
+  src/cheats/gatheriterator.pir \
   src/cheats/use.pir \
   src/cheats/only_infix_redispatcher.pir \
   src/cheats/import.pir \

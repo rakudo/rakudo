@@ -197,25 +197,23 @@ src/builtins/control.pir - control flow related functions
 
 .sub '!GATHER'
     .param pmc block
-    .local pmc true, array, eh
+    .local pmc true, parcel, eh
     true = get_hll_global 'True'
-    array = new ['Array']
-    setprop array, "rw", true
-    setprop array, "flatten", true
+    parcel = new ['Parcel']
     eh = root_new ['parrot';'ExceptionHandler']
     eh.'handle_types'(.CONTROL_TAKE)
     set_addr eh, handler
     push_eh eh
     block()
     pop_eh
-    .return (array)
+    .return (parcel)
   handler:
     .local pmc exception, continuation
     .local string message
     .get_results(exception)
     continuation = exception['resume']
     $P0 = exception['payload']
-    array.'push'($P0)
+    push parcel, $P0
     continuation()
 .end
 

@@ -62,7 +62,8 @@ Returns the next element of the list.
     gi = new ['GatherIterator']
     setattribute gi, '$!block', block
     .const 'Sub' coro = '!gather_coroutine'
-    setattribute gi, '$!coro', coro
+    $P0 = clone coro
+    setattribute gi, '$!coro', $P0
     .return (gi)
 .end
 

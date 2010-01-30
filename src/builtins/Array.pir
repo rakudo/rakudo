@@ -63,33 +63,6 @@ Arrays are the mutable form of Lists.
     .return ($P1)
 .end
 
-=head2 Private methods
-
-=over 4
-
-=item !STORE(source)
-
-=cut
-
-.namespace ['Array']
-.sub '!STORE' :method
-    .param pmc source
-    $P0 = get_hll_global 'Seq'
-    $P0 = find_method $P0, '!STORE'
-    self.$P0(source)
-    .local pmc items, items_it, true
-    items = getattribute self, '@!items'
-    items_it = iter items
-    true = get_hll_global ['Bool'], 'True'
-  items_loop:
-    unless items_it goto items_done
-    $P0 = shift items_it
-    setprop $P0, 'rw', true
-    goto items_loop
-  items_done:
-    .return (self)
-.end
-
 =back
 
 =cut

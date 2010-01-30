@@ -20,11 +20,20 @@ as "is Iterable" should be come "does Iterable".
 
 =cut
 
-.namespace ['Iterator']
+.namespace ['Iterable']
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     proto = p6meta.'new_class'('Iterable', 'parent'=>'Any')
+.end
+
+=item list()
+
+=cut
+
+.sub 'list' :method
+    $P0 = descalarref self
+    .return ($P0)
 .end
 
 =back

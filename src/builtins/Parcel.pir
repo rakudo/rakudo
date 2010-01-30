@@ -57,7 +57,7 @@ Construct an iterator for the Parcel.
     unless $I0 == 1 goto have_perllist
     push perllist, ''
   have_perllist:
-    $S0 = join ',', perllist
+    $S0 = join ', ', perllist
     $S0 = concat '(', $S0
     $S0 = concat $S0, ')'
     .return ($S0)
@@ -74,6 +74,17 @@ Return the Parcel as a Seq.
     seq = new ['Seq']
     seq.'!STORE'(self)
     .return (seq)
+.end
+
+
+=item !FETCH()
+
+=cut
+
+.sub '!FETCH' :method
+    $P0 = self.'Seq'()
+    $P0 = new ['Perl6Scalar'], $P0
+    .return ($P0)
 .end
 
 

@@ -1,7 +1,7 @@
 augment class Any {
 
     our Str multi method join($separator = '') {
-        pir::join__SsP($separator, self.list);
+        pir::join__SsP($separator, self.list.eager);
     }
 
     our multi method map(&block) {

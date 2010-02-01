@@ -13,9 +13,11 @@ class RangeIterator is Iterator {
     
     method get() {
         my $current = $!value;
-        if $current after $!max
-           || $!excludes_max && !($current before $!max) {
-            return IterDone;
+        unless $!max ~~ ::Whatever {
+            if $current after $!max
+               || $!excludes_max && !($current before $!max) {
+                return IterDone;
+            }
         }
         $!value .= succ;
         $current;

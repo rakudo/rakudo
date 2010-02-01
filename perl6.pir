@@ -123,7 +123,7 @@ USAGE
     $P0 .= $S0
   _handler:
     pop_eh
-    $P0 .= ".\n\nCopyright 2006-2009, The Perl Foundation.\n"
+    $P0 .= ".\n\nCopyright 2006-2010, The Perl Foundation.\n"
     setattribute perl6, '$version', $P0
 
     $P0 = box .RAKUDO_HLL

@@ -53,9 +53,11 @@ class Range is Iterable {
     # }
 
     our Str multi method perl() {
+        my $min = $.min ~~ ::Whatever ?? "*" !! $.min.perl;
         my $emin = $.excludes_min ?? "^" !! "";
+        my $max = $.max ~~ ::Whatever ?? "*" !! $.max.perl;
         my $emax = $.excludes_max ?? "^" !! "";
-        $.min.perl ~ $emin ~ ".." ~ $emax ~ $.max.perl;
+        $min ~ $emin ~ ".." ~ $emax ~ $max;
     }
 
     our Str multi method Str() {

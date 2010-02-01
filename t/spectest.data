@@ -38,7 +38,7 @@ integration/passing-pair-class-to-sub.t
 # integration/role-composition-vs-attribute.t
 # integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
-# S02-builtin_data_types/anon_block.t
+S02-builtin_data_types/anon_block.t
 # S02-builtin_data_types/array_extending.t
 # S02-builtin_data_types/array_ref.t
 # S02-builtin_data_types/array.t
@@ -348,7 +348,7 @@ S12-construction/named-params-in-BUILD.t
 # S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
 # S12-methods/chaining.t
-# S12-methods/class-and-instance.t
+S12-methods/class-and-instance.t
 # S12-methods/default-trait.t
 # S12-methods/defer-call.t
 # S12-methods/defer-next.t

@@ -19,7 +19,7 @@ Creates whatever closures (*.foo => { $_.foo })
     .const 'Sub' $P0 = '!whatever_dispatch_helper'
     $P0 = newclosure $P0
     $P1 = get_hll_global 'Block'
-    $P1 = $P1.'new'($P0, 0)
+    $P1 = $P1.'new'($P0, 0, '')
     .return ($P1)
 .end
 .sub '!whatever_dispatch_helper' :outer('!MAKE_WHATEVER_CLOSURE')

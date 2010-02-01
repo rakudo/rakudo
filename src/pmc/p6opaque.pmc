@@ -322,7 +322,8 @@ back some kind of iterator to let us get all of the possible candidates.
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "isa")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "Scalar")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "defined"))) {
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "defined")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!FETCH"))) {
             /* Look up closure maker, clone it, attach name and return that. */
             PMC *sub = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
                     CONST_STRING(interp, "!MAKE_WHATEVER_CLOSURE"));

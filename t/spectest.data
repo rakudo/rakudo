@@ -104,7 +104,7 @@ S02-names/identifier.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
 S02-whitespace_and_comments/minimal-whitespace.t
-S02-whitespace_and_comments/one-pass-parsing.t
+## S02-whitespace_and_comments/one-pass-parsing.t
 # S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
 # S02-whitespace_and_comments/unicode-whitespace.t
@@ -403,7 +403,7 @@ S29-any/cmp.t
 # S29-context/eval.t
 # S29-context/sleep.t
 S29-conversions/ord_and_chr.t                              #icu
-S32-array/create.t
+## S32-array/create.t
 # S32-array/delete.t
 S32-array/elems.t
 S32-array/end.t
@@ -426,17 +426,17 @@ S32-array/unshift.t
 # S32-hash/slice.t
 # S32-io/chdir.t
 # S32-io/IO-Socket-INET.t
-S32-list/create.t
-S32-list/end.t
+## S32-list/create.t
+## S32-list/end.t
 S32-list/first.t
 # S32-list/grep.t
-S32-list/join.t
+## S32-list/join.t
 # S32-list/map_function_return_values.t
 # S32-list/map.t
 # S32-list/minmax.t
 # S32-list/pick.t
 # S32-list/reduce.t
-S32-list/reverse.t
+## S32-list/reverse.t
 # S32-list/sort.t
 # S32-list/uniq.t
 S32-num/abs.t

@@ -22,8 +22,8 @@ class Range is Iterable {
     }
 
     our method iterator() {
-        #  RangeIterator.new(self);
-        pir::get_hll_global__Ps('RangeIterator').new(self);
+        #  RangeIter.new(self);
+        pir::get_hll_global__Ps('RangeIter').new(self);
     }
 
     my Bool multi method !min_test($topic) {

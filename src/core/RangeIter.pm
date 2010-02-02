@@ -1,6 +1,6 @@
 
 
-class RangeIterator is Iterator {
+class RangeIter is Iterator {
     has $!value;
     has $!max;
     has $!excludes_max;

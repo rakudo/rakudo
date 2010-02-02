@@ -35,7 +35,7 @@ Returns the next element of the list.
     if null iter goto iter_done
   iter_get:
     value = iter.'get'()
-    $I0 = isa value, ['IterDone']
+    $I0 = isa value, ['EMPTY']
     unless $I0 goto get_done
     null iter
     setattribute self, '$!iter', iter
@@ -43,7 +43,7 @@ Returns the next element of the list.
 
     # We've exhausted the active subiterator, so now grab a value
     # from the remainder of the list.  If the list is empty, we
-    # return IterDone.
+    # return EMPTY.
   rpa_get:
     unless rpa goto rpa_done
     value = shift rpa
@@ -64,7 +64,7 @@ Returns the next element of the list.
     setattribute self, '$!iter', iter
     goto iter_get
   rpa_done:
-    value = get_hll_global 'IterDone'
+    value = get_hll_global 'EMPTY'
 
   get_done:
     .return (value)

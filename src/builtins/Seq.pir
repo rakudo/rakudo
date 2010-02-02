@@ -93,7 +93,7 @@ C<n> items.  If C<n> is omitted, then reify the entire sequence.
   rest_1:
     .local pmc item
     item = rest.'get'()
-    $I0 = isa item, ['IterDone']
+    $I0 = isa item, ['EMPTY']
     if $I0 goto rest_done
     push items, item
     inc items_n

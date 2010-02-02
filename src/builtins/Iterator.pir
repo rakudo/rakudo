@@ -40,7 +40,7 @@ continue until memory is exhausted.
   iter_loop:
     .local pmc item
     item = self.'get'()
-    $I0 = isa item, ['IterDone']
+    $I0 = isa item, ['EMPTY']
     if $I0 goto iter_done
     push parcel, item
     goto iter_loop
@@ -59,7 +59,7 @@ continue until memory is exhausted.
     unless n > 0 goto batch_done
     .local pmc item
     item = self.'get'()
-    $I0 = isa item, ['IterDone']
+    $I0 = isa item, ['EMPTY']
     unless $I0 goto batch_next
     if parcel goto batch_done
     .return (item)

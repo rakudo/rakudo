@@ -93,7 +93,7 @@ BUILTINS_PIR = \
   src/builtins/Abstraction.pir \
   src/builtins/Iterable.pir \
   src/builtins/Iterator.pir \
-  src/builtins/EMPTY.pir \
+  src/builtins/IterDone.pir \
   src/builtins/List.pir \
   src/builtins/Grammar.pir \
   src/builtins/Parcel.pir \

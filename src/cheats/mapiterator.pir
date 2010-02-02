@@ -15,7 +15,7 @@ exceptions here.  Perl 6 source would be something like:
 
         method get() {
             my $parcel = $!iter.getbatch(&!block.count);
-            $parcel ~~ IterDone ?? IterDone !! &!block(|$parcel);
+            $parcel ~~ EMPTY ?? EMPTY !! &!block(|$parcel);
         }
     }
 
@@ -45,7 +45,7 @@ Returns the next element of the list.
 
     $I0 = block.'count'()
     parcel = iter.'getbatch'($I0)
-    $I0 = isa parcel, ['IterDone']
+    $I0 = isa parcel, ['EMPTY']
     if $I0 goto done
     parcel = block(parcel :flat)
   done:

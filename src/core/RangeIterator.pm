@@ -16,7 +16,7 @@ class RangeIterator is Iterator {
         unless $!max ~~ ::Whatever {
             if $current after $!max
                || $!excludes_max && !($current before $!max) {
-                return IterDone;
+                return EMPTY;
             }
         }
         $!value .= succ;

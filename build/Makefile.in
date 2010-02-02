@@ -93,7 +93,7 @@ BUILTINS_PIR = \
   src/builtins/Abstraction.pir \
   src/builtins/Iterable.pir \
   src/builtins/Iterator.pir \
-  src/builtins/IterDone.pir \
+  src/builtins/EMPTY.pir \
   src/builtins/List.pir \
   src/builtins/Grammar.pir \
   src/builtins/Parcel.pir \
@@ -105,7 +105,7 @@ BUILTINS_PIR = \
   src/builtins/Callable.pir \
   src/builtins/Positional.pir \
   src/builtins/Seq.pir \
-  src/builtins/SeqIterator.pir \
+  src/builtins/SeqIter.pir \
   src/builtins/Array.pir \
   src/builtins/Proxy.pir \
   src/builtins/Code.pir \
@@ -168,7 +168,7 @@ CORE_SOURCES = \
   src/core/Whatever.pm \
   src/core/Pair.pm \
   src/core/Range.pm \
-  src/core/RangeIterator.pm \
+  src/core/RangeIter.pm \
   src/core/IO.pm \
   src/core/Parameter.pm \
   src/core/Block.pm \

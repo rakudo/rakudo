@@ -25,7 +25,7 @@ item to be retrieved.
 
 =item get()
 
-Return the next item from the Seq.  Returns EMPTY when
+Return the next item from the Seq.  Returns IterDone when
 all items have been returned.
 
 =cut
@@ -44,7 +44,7 @@ all items have been returned.
     items = seq.'!fill'($I0)
     $I0 = elements items
     if n < $I0 goto have_items
-    $P0 = get_hll_global 'EMPTY'
+    $P0 = get_hll_global 'IterDone'
     .return ($P0)
   have_items:
     inc index

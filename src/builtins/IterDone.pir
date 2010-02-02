@@ -1,10 +1,10 @@
 =head1 TITLE
 
-EMPTY - list iterator sentinel
+IterDone - list iterator sentinel
 
 =head1 DESCRIPTION
 
-EMPTY acts as the "end of list" sentinel for
+IterDone acts as the "end of list" sentinel for
 iterations.  
 
 =head2 Methods
@@ -13,11 +13,11 @@ iterations.
 
 =cut
 
-.namespace ['EMPTY']
+.namespace ['IterDone']
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('EMPTY', 'parent'=>'Any')
+    proto = p6meta.'new_class'('IterDone', 'parent'=>'Any')
 .end
 
 =back

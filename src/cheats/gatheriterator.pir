@@ -43,7 +43,7 @@ Returns the next element of the list.
     block()
     pop_eh
   gather_done:
-    $P0 = get_hll_global 'EMPTY'
+    $P0 = get_hll_global 'IterDone'
     .yield ($P0)
     goto gather_done
 

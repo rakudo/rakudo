@@ -116,7 +116,7 @@ in a list.
   iter_loop:
     .local pmc value
     value = listiter.'get'()
-    $I0 = isa value, ['EMPTY']
+    $I0 = isa value, ['IterDone']
     if $I0 goto iter_done
     push eager, value
     goto iter_loop

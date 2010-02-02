@@ -1,10 +1,10 @@
 =head1 TITLE
 
-SeqIterator - Perl 6 sequence iterator class
+SeqIter - Perl 6 sequence iterator class
 
 =head1 DESCRIPTION
 
-SeqIterator is used to iterate over the elements of a Seq
+SeqIter is used to iterate over the elements of a Seq
 (and Array).  Each Seqiterator maintains a reference to the
 Seq object that it is iterating, and the index of the next
 item to be retrieved.
@@ -15,11 +15,11 @@ item to be retrieved.
 
 =cut
 
-.namespace ['SeqIterator']
+.namespace ['SeqIter']
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('SeqIterator', 'parent'=>'Iterator', 'attr'=>'$!seq $!index')
+    proto = p6meta.'new_class'('SeqIter', 'parent'=>'Iterator', 'attr'=>'$!seq $!index')
 .end
 
 

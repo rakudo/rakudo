@@ -30,13 +30,13 @@ sequence of items.
 
 =item iterator()
 
-Return a new SeqIterator for the invocant.
+Return a new SeqIter for the invocant.
 
 =cut
 
 .sub 'iterator' :method
     .local pmc seqiter
-    seqiter = new ['SeqIterator']
+    seqiter = new ['SeqIter']
     setattribute seqiter, '$!seq', self
     $P0 = box 0
     setattribute seqiter, '$!index', $P0

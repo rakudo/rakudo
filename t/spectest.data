@@ -406,15 +406,15 @@ S29-conversions/ord_and_chr.t                              #icu
 ## S32-array/create.t
 # S32-array/delete.t
 S32-array/elems.t
-S32-array/end.t
+## S32-array/end.t
 # S32-array/exists.t
 # S32-array/keys_values.t
 # S32-array/kv.t
 # S32-array/pairs.t
-S32-array/pop.t
+## S32-array/pop.t
 S32-array/push.t
 # S32-array/rotate.t
-S32-array/shift.t
+## S32-array/shift.t
 # S32-array/splice.t
 S32-array/unshift.t
 # S32-container/zip.t
@@ -428,7 +428,7 @@ S32-array/unshift.t
 # S32-io/IO-Socket-INET.t
 ## S32-list/create.t
 ## S32-list/end.t
-S32-list/first.t
+## S32-list/first.t
 # S32-list/grep.t
 ## S32-list/join.t
 # S32-list/map_function_return_values.t
@@ -460,9 +460,9 @@ S32-str/append.t
 # S32-str/capitalize.t                                       # icu
 S32-str/chomp.t
 S32-str/chop.t
-S32-str/comb.t                                             # icu
+## S32-str/comb.t                                             # icu
 # S32-str/encode.t
-S32-str/flip.t
+## S32-str/flip.t
 S32-str/index.t
 S32-str/lcfirst.t
 # S32-str/lc.t
@@ -472,7 +472,7 @@ S32-str/pos.t
 # S32-str/rindex.t
 # S32-str/samecase.t                                         # icu
 # S32-str/split-simple.t
-S32-str/split-simple2.t   # CHEAT!  simplified version of split-simple.t
+## S32-str/split-simple2.t   # CHEAT!  simplified version of split-simple.t
 # S32-str/split.t
 # S32-str/sprintf.t
 # S32-str/substr.t
@@ -480,7 +480,7 @@ S32-str/split-simple2.t   # CHEAT!  simplified version of split-simple.t
 S32-str/ucfirst.t
 # S32-str/uc.t                                               # icu
 # S32-str/unpack.t
-S32-str/words.t                                            # icu
+## S32-str/words.t                                            # icu
 # S32-temporal/Temporal.t
 # S32-trig/e.t
 # S32-trig/pi.t

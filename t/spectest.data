@@ -430,7 +430,7 @@ S32-array/unshift.t
 ## S32-list/end.t
 ## S32-list/first.t
 # S32-list/grep.t
-## S32-list/join.t
+S32-list/join.t
 # S32-list/map_function_return_values.t
 # S32-list/map.t
 # S32-list/minmax.t

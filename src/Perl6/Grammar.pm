@@ -613,7 +613,7 @@ rule method_def {
 ###########################
 
 rule param_sep {
-    $<sep>=[','|':'|';'|';;'] { @*seps.push($<sep>) }
+    $<sep>=[','|':'|';;'|';'] { @*seps.push($<sep>) }
 }
 
 # XXX Not really implemented yet.

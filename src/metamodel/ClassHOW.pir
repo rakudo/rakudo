@@ -756,6 +756,12 @@ correct protocol.
 .sub 'compose_composables'
     .param pmc meta
 
+    # Before we begin, need to make Parrot's role implementation happy,
+    # since we still partially use it.
+    .local pmc parrot_class
+    parrot_class = getattribute meta, 'parrotclass'
+    '!set_resolves_list'(parrot_class)
+
     # See if we have anything to compose. Also, make sure our composees
     # all want the same composer.
     .local pmc composees, chosen_applier, composee_it, done

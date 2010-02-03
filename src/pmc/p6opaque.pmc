@@ -329,6 +329,7 @@ back some kind of iterator to let us get all of the possible candidates.
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "perl")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "!select")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "!add_variant")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!FETCH")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "postcircumfix:<[ ]>"))) {
             PMC *ns_key, *ns, *punner, *boxed_name;
             ns_key = pmc_new(interp, enum_class_ResizableStringArray);

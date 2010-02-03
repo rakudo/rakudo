@@ -143,6 +143,7 @@ CHEATS_PIR = \
   src/cheats/only_infix_redispatcher.pir \
   src/cheats/import.pir \
   src/cheats/want-caller-side-callsig.pir \
+  src/cheats/parrot-role-quirks.pir \
   src/cheats/parrot/attriter.pir \
   src/cheats/parrot/Protoobject.pir \
   src/cheats/parrot/P6role.pir \

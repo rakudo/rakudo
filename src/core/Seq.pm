@@ -1,4 +1,6 @@
 augment class Seq {
+    multi method eager() { self.iterator.eager; }
+    
     method elems() { pir::set__IP(self!fill); }
 
     method Num() { self.elems; }

@@ -274,6 +274,7 @@ token xblock($*IMPLICIT = 0) {
 token pblock($*IMPLICIT = 0) {
     | <.lambda>
         <.newpad>
+        :my $*SCOPE := 'my';
         <signature>
         <blockoid>
     | <?[{]> 
@@ -586,7 +587,7 @@ rule routine_def {
     :my $*IN_DECL := 'routine';
     <deflongname>?
     <.newpad>
-    [ '(' <signature> ')' ]?
+    [ '(' <multisig> ')' ]?
     <trait>*
     { $*IN_DECL := ''; }
     <blockoid>
@@ -597,8 +598,8 @@ rule method_def {
     [
         <.newpad>
         [
-            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <signature> ')' ]? <trait>*
-            | [ '(' <signature> ')' ]? <trait>*
+            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
+            | [ '(' <multisig> ')' ]? <trait>*
             | <?>
         ]
         { $*IN_DECL := ''; }
@@ -613,6 +614,12 @@ rule method_def {
 
 rule param_sep {
     $<sep>=[','|':'|';'|';;'] { @*seps.push($<sep>) }
+}
+
+# XXX Not really implemented yet.
+rule multisig {
+    :my $*SCOPE := 'my';
+    <signature>
 }
 
 token signature {

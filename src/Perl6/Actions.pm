@@ -655,11 +655,16 @@ method variable_declarator($/) {
     my $past := $<variable>.ast;
     my $sigil := $<variable><sigil>;
     my $twigil := $<variable><twigil>[0];
+    my $name := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
+    if @BLOCK[0].symbol($name) {
+        $/.CURSOR.panic("Redeclaration of symbol ", $name);
+    }
     make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);
 }
 
 sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
-    my $name := $sigil ~ $twigil ~ $desigilname;
+    my $name  := $sigil ~ $twigil ~ $desigilname;
+    my $BLOCK := @BLOCK[0];
 
     if $*SCOPE eq 'has' {
         # Find the current package and add the attribute.
@@ -675,7 +680,6 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
 
         # If no twigil, note $foo is an alias to $!foo.
         if $twigil eq '' {
-            my $BLOCK := @BLOCK[0];
             $BLOCK.symbol($name, :attr_alias($attrname));
         }
 
@@ -685,13 +689,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         $past<attribute_data> := %attr_table{$attrname};
     }
     else {
-        # Not an attribute - need to emit delcaration here. Check it's
-        # not a duplicate.
-        my $BLOCK := @BLOCK[0];
-        if $BLOCK.symbol($name) {
-            $/.CURSOR.panic("Redeclaration of symbol ", $name);
-        }
-
+        # Not an attribute - need to emit delcaration here.
         # First, create a container and give it a 'rw' property
         # Create the container, give it a 'rw' property
         my $cont := PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
@@ -752,10 +750,10 @@ method routine_def($/) {
     my $past := $<blockoid>.ast;
     $past.blocktype('declaration');
     $past.control('return_pir');
-    if pir::defined__IP($past<placeholder_sig>) && $<signature> {
+    if pir::defined__IP($past<placeholder_sig>) && $<multisig> {
         $/.CURSOR.panic('Placeholder variable cannot override existing signature');
     }
-    my $signature := $<signature>                    ?? $<signature>[0].ast    !! 
+    my $signature := $<multisig>                     ?? $<multisig>[0].ast    !! 
             pir::defined__IP($past<placeholder_sig>) ?? $past<placeholder_sig> !!
             Perl6::Compiler::Signature.new();
     $signature.set_default_parameter_type('Any');
@@ -858,7 +856,7 @@ method method_def($/) {
     if pir::defined__IP($past<placeholder_sig>) {
         $/.CURSOR.panic('Placeholder variables cannot be used in a method');
     }
-    my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
+    my $sig := $<multisig> ?? $<multisig>[0].ast !! Perl6::Compiler::Signature.new();
     $sig.add_invocant();
     $sig.set_default_parameter_type('Any');
 
@@ -974,6 +972,10 @@ method regex_declarator($/, $key?) {
     }
 }
 
+method multisig($/) {
+    make $<signature>.ast;
+}
+
 method signature($/) {
     my $signature := Perl6::Compiler::Signature.new();
     my $cur_param := 0;
@@ -1048,8 +1050,10 @@ method param_var($/) {
     }
     else {
         $*PARAMETER.var_name(~$/);
-        my @BlOCK;
-        @BLOCK[0].symbol(~$/, :scope('lexical'));
+        if @BLOCK[0].symbol(~$/) {
+            $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
+        }
+        @BLOCK[0].symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
     }
 }
 

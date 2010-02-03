@@ -37,7 +37,7 @@ augment class Any {
     }
 
     multi method reverse() {
-        my @result;
+        my @result = ();
         for @.list {
             @result.unshift($_);
         }

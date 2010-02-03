@@ -991,7 +991,7 @@ method signature($/) {
                 $/.CURSOR.panic("Can not put ':' parameter seperator after first parameter");
             }
         }
-        if $<param_sep>[$cur_param]<sep> eq ';;' {
+        if @*seps[$cur_param] eq ';;' {
             $is_multi_invocant := 0;
         }
         $signature.add_parameter($param);

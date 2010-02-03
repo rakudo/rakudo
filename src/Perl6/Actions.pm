@@ -945,6 +945,34 @@ method method_def($/) {
     make $past;
 }
 
+method regex_declarator($/, $key?) {
+    if $key ne 'open' {
+        # Create regex code object.
+        # XXX TODO: token/regex/rule differences, signatures, traits.
+        my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
+        $past := create_code_object($past, 'Regex', 0, '');
+
+        # Install in lexpad or namespace. XXX Need & on start of name?
+        my $name := ~$<deflongname>;
+        if $*SCOPE ne 'our' {
+            @BLOCK[0][0].push(PAST::Var.new( :name($name), :isdecl(1), 
+                                             :viviself($past), :scope('lexical') ) );
+            @BLOCK[0].symbol($name, :scope('lexical') );
+        }
+
+        # Otherwise, package scoped; add something to loadinit to install them.
+        else {
+            @PACKAGE[0].block.loadinit.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new( :name($name), :scope('package') ),
+                $past
+            ));
+            @BLOCK[0].symbol($name, :scope('package') );
+        }
+
+        make PAST::Var.new( :name($name) );
+    }
+}
 
 method signature($/) {
     my $signature := Perl6::Compiler::Signature.new();

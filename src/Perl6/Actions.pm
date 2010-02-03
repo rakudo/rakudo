@@ -1050,10 +1050,12 @@ method param_var($/) {
     }
     else {
         $*PARAMETER.var_name(~$/);
-        if @BLOCK[0].symbol(~$/) {
-            $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
+        if $<name> {
+            if @BLOCK[0].symbol(~$/) {
+                $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
+            }
+            @BLOCK[0].symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
         }
-        @BLOCK[0].symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
     }
 }
 

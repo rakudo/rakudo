@@ -715,13 +715,14 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
 
         # If we have traits, set up us the node to emit handlers into, then
         # emit them.
+        my $init_type := 0;
         if $trait_list || $*TYPENAME {
             my $trait_node := get_var_traits_node($BLOCK, $name);
             for $trait_list {
                 my $trait := $_.ast;
                 $trait.unshift(PAST::Var.new( :name('declarand'), :scope('register') ));
                 if $trait.name() eq '&trait_mod:<of>' && $*TYPENAME {
-                    $trait[1] := PAST::Op.new(
+                    $init_type := $trait[1] := PAST::Op.new(
                         :pasttype('callmethod'), :name('postcircumfix:<[ ]>'),
                         $*TYPENAME, $trait[1]
                     );
@@ -735,7 +736,14 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
                     PAST::Var.new( :name('declarand'), :scope('register') ),
                     $*TYPENAME
                 ));
+                $init_type := $*TYPENAME;
             }
+        }
+
+        # If we've a type to init with and it's a scalar, do so.
+        if $init_type && $sigil eq '$' {
+            $cont.pirop('new PsP');
+            $cont.push($init_type);
         }
     }
 

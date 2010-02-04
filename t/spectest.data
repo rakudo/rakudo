@@ -123,6 +123,7 @@ S03-operators/assign-is-not-binding.t
 # S03-operators/binding-closure.t
 # S03-operators/binding-scalars.t
 # S03-operators/bit.t
+S03-operators/boolean-bitwise.t
 # S03-operators/chained-declarators.t
 # S03-operators/comparison.t
 # S03-operators/context-forcers.t

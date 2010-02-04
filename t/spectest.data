@@ -29,7 +29,7 @@ integration/code-blocks-as-sub-args.t
 # integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 # integration/man-or-boy.t
-# integration/method-calls-and-instantiation.t
+integration/method-calls-and-instantiation.t
 integration/no-indirect-new.t
 # integration/packages.t
 # integration/pair-in-array.t

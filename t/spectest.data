@@ -354,7 +354,7 @@ S12-methods/class-and-instance.t
 # S12-methods/defer-call.t
 # S12-methods/defer-next.t
 # S12-methods/indirect_notation.t
-# S12-methods/instance.t
+S12-methods/instance.t
 # S12-methods/lastcall.t
 # S12-methods/method-vs-sub.t
 # S12-methods/multi.t
@@ -362,7 +362,7 @@ S12-methods/class-and-instance.t
 S12-methods/private.t
 # S12-methods/submethods.t
 # S12-methods/syntax.t
-# S12-methods/topic.t
+S12-methods/topic.t
 # S12-methods/typed-attributes.t
 # S12-methods/what.t
 # S12-subset/multi-dispatch.t

@@ -878,7 +878,7 @@ INIT {
     Perl6::Grammar.O(':prec<n=>, :assoc<left>',  '%structural');
     Perl6::Grammar.O(':prec<m=>, :assoc<left>, :pasttype<chain>',  '%chaining');
     Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
-    Perl6::Grammar.O(':prec<k=>, :assoc<left>',  '%tight_or');
+    Perl6::Grammar.O(':prec<k=>, :assoc<list>',  '%tight_or');
     Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');
     Perl6::Grammar.O(':prec<i=>, :assoc<right>', '%item_assignment');
     Perl6::Grammar.O(':prec<h=>, :assoc<unary>', '%loose_unary');

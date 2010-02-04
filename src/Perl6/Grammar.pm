@@ -457,7 +457,13 @@ token variable {
 
 token sigil { <[$@%&]> }
 
-token twigil { <[*!?.^:]> }
+proto token twigil { <...> }
+token twigil:sym<.> { <sym> }
+token twigil:sym<!> { <sym> }
+token twigil:sym<^> { <sym> <?before \w> }
+token twigil:sym<:> { <sym> <?before \w> }
+token twigil:sym<*> { <sym> }
+token twigil:sym<?> { <sym> }
 
 proto token package_declarator { <...> }
 token package_declarator:sym<package> {

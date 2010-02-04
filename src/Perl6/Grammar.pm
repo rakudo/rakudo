@@ -999,6 +999,7 @@ token infix:sym<div>  { <sym>  <O('%multiplicative')> }
 token infix:sym<%>    { <sym>  <O('%multiplicative')> }
 token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
+token infix:sym<?&>   { <sym>  <O('%multiplicative')> }
 
 token infix:sym<+>    { <sym>  <O('%additive')> }
 token infix:sym<->    { <sym> <![>]> <O('%additive')> }
@@ -1008,6 +1009,8 @@ token infix:sym<~|>   { <sym>  <O('%additive')> }
 token infix:sym<~^>   { <sym>  <O('%additive')> }
 token infix:sym«+<»   { <sym>  <O('%additive')> }
 token infix:sym«+>»   { <sym>  <O('%additive')> }
+token infix:sym<?|>   { <sym>  <O('%additive')> }
+token infix:sym<?^>   { <sym>  <O('%additive')> }
 
 token infix:sym<x>    { <sym>  <O('%replication')> }
 token infix:sym<xx>    { <sym>  <O('%replication')> }

@@ -98,3 +98,15 @@ our multi infix:<before>($a, $b) {
 our multi infix:<after>($a, $b) {
     ($a cmp $b) == +1;
 }
+
+our multi infix:<?|>($a, $b) {
+    ?pir::bor__III($a, $b)
+}
+
+our multi infix:<?&>($a, $b) {
+    ?pir::band__III($a, $b)
+}
+
+our multi infix:<?^>($a, $b) {
+    ?pir::bxor__III($a, $b)
+}

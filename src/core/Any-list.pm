@@ -45,6 +45,42 @@ augment class Any {
     }
 
     multi method end() { self.elems - 1; }
+
+    # CHEAT: this should take an ordering parameter
+    # And use the FIRST: phaser
+    multi method min() {
+        my $min = +Inf;
+        my $first-time = Bool::True;
+        for @.list {
+            if $first-time {
+                $min = $_;
+                $first-time = Bool::False;
+                next;
+            }
+            if $_ before $min {
+                $min = $_;
+            }
+        }
+        $min;
+    }
+
+    # CHEAT: this should take an ordering parameter
+    # And use the FIRST: phaser
+    multi method max() {
+        my $max = -Inf;
+        my $first-time = Bool::True;
+        for @.list {
+            if $first-time {
+                $max = $_;
+                $first-time = Bool::False;
+                next;
+            }
+            if $_ after $max {
+                $max = $_;
+            }
+        }
+        $max;
+    }
 }
 
 our proto sub join (Str $separator = '', *@values) { @values.join($separator); }

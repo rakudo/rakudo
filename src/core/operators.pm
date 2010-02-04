@@ -111,10 +111,10 @@ our multi infix:<?^>($a, $b) {
     ?pir::bxor__III($a, $b)
 }
 
-our multi infix:<min>($a, $b) {
-    $a before $b ?? $a !! $b;
+our multi infix:<min>(*@args) {
+    @args.min;
 }
 
-our multi infix:<max>($a, $b) {
-    $a after $b ?? $a !! $b;
+our multi infix:<max>(*@args) {
+    @args.max;
 }

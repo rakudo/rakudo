@@ -100,15 +100,15 @@ our multi infix:<after>($a, $b) {
 }
 
 our multi infix:<?|>($a, $b) {
-    ?pir::bor__III($a, $b)
+    ?(?$a +| ?$b)
 }
 
 our multi infix:<?&>($a, $b) {
-    ?pir::band__III($a, $b)
+    ?(?$a +& ?$b)
 }
 
 our multi infix:<?^>($a, $b) {
-    ?pir::bxor__III($a, $b)
+    ?(?$a +^ ?$b)
 }
 
 our multi infix:<min>(*@args) {

@@ -132,3 +132,8 @@ our multi infix:<~>($a, $b) {
     pir::assign__vPS($result, pir::concat__SSS(~$a, ~$b));
     $result
 }
+
+# XXX Wants to be a macro when we have them.
+our sub WHAT(\$x) {
+    $x.WHAT
+}

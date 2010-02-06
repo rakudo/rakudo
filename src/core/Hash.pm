@@ -15,4 +15,34 @@ role Hash is EnumMap {
           done:
         }
     }
+
+    method !STORE(\$to_store) {
+        # We create a new storage hash, in case we are referenced in
+        # what is being stored.
+        pir::setattribute__vPsP(self, '$!storage', pir::new__Ps('Hash'));
+        
+        # Work through the list, storing the things in it.
+        my $need_value = 0;
+        my $key;
+        for list($to_store) -> $cur {
+            if $need_value {
+                self{$key} = $cur;
+                $need_value = 0;
+            }
+            else {
+                given $cur {
+                    # when Enum { ... }
+                    # when EnumMap { ... }
+                    default {
+                        $key = $cur;
+                        $need_value = 1;
+                    }
+                }
+            }
+        }
+        if $need_value {
+            die('Odd number of elements found where hash expected');
+        }
+        self
+    }
 }

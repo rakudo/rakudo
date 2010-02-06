@@ -171,6 +171,7 @@ CORE_SOURCES = \
   src/core/Num.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \
+  src/core/Str.pm \
   src/core/Whatever.pm \
   src/core/Pair.pm \
   src/core/Range.pm \

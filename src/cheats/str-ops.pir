@@ -5,15 +5,6 @@
     .return ($P0)
 .end
 
-.sub '&infix:<~>'
-    .param string a
-    .param string b
-    $S0 = concat a, b
-    $P0 = new ['Str']
-    assign $P0, $S0
-    .return ($P0)
-.end
-
 .sub '&infix:<~|>'
     .param string a
     .param string b

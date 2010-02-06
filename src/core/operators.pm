@@ -126,3 +126,9 @@ our multi infix:<max>(*@args) {
 our multi infix:«=>»($key, $value) {
     Pair.new(key => $key, value => $value);
 }
+
+our multi infix:<~>($a, $b) {
+    my $result = pir::new__Ps('Str');
+    pir::assign__vPS($result, pir::concat__SSS(~$a, ~$b));
+    $result
+}

@@ -485,17 +485,40 @@ method module_name($/) {
 }
 
 method fatarrow($/) {
-    my $past := $<val>.ast;
-    $past.named( $<key>.Str );
-    make $past;
+    make make_pair($<key>.Str, $<val>.ast);
 }
 
 method colonpair($/) {
-    my $past := $<circumfix> 
-                ?? $<circumfix>.ast 
-                !! PAST::Val.new( :value( !$<not> ) );
-    $past.named( ~$<identifier> );
-    make $past;
+    if $*key {
+        if $<var> {
+            make make_pair($*key, make_variable($/, ~$<var>));
+        }
+        elsif $*value ~~ Regex::Match {
+            make make_pair($*key, $*value.ast);
+        }
+        elsif $*value == 0 {
+            make make_pair($*key, PAST::Var.new( :name('False'), :namespace('Bool'), :scope('package') ));
+        }
+        else {
+            make make_pair($*key, PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') ));
+        }
+    }
+    else {
+        make $*value.ast;
+    }
+}
+
+sub make_pair($key, $value) {
+    my @name := Perl6::Grammar::parse_name('Pair');
+    $value.named('value');
+    PAST::Op.new(
+        :pasttype('callmethod'),
+        :returns('Pair'),
+        :name('new'),
+        PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
+        PAST::Val.new( :value($key), :named('key') ),
+        $value
+    )
 }
 
 method variable($/) {
@@ -505,47 +528,52 @@ method variable($/) {
         $past.unshift( PAST::Var.new( :name('$/') ) );
     }
     else {
-        my @name := Perl6::Grammar::parse_name(~$/);
-        $past := PAST::Var.new( :name(@name.pop) );
-        if @name {
-            $past.namespace(@name);
-            $past.scope('package');
-        }
-        if $<twigil>[0] eq '*' { 
-            $past := PAST::Op.new( $past.name(), :pasttype('call'), :name('!find_contextual'), :lvalue(0) );
-        }
-        elsif $<twigil>[0] eq '!' {
+        $past := make_variable($/, ~$/);
+    }
+    make $past;
+}
+
+sub make_variable($/, $name) {
+    my @name := Perl6::Grammar::parse_name($name);
+    my $past := PAST::Var.new( :name(@name.pop) );
+    if @name {
+        $past.namespace(@name);
+        $past.scope('package');
+    }
+    if $<twigil>[0] eq '*' { 
+        $past := PAST::Op.new( $past.name(), :pasttype('call'), :name('!find_contextual'), :lvalue(0) );
+    }
+    elsif $<twigil>[0] eq '!' {
+        $past.scope('attribute');
+        $past.viviself( sigiltype( $<sigil> ) );
+        $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
+    }
+    elsif $<twigil>[0] eq '.' && !$*IN_DECL {
+        # Need to transform this to a method call.
+        $past := PAST::Op.new(
+            :pasttype('callmethod'), :name(~$<desigilname>),
+            PAST::Var.new( :name('self'), :scope('lexical') )
+        );
+    }
+    elsif $<twigil>[0] eq '^' || $<twigil>[0] eq ':' {
+        $past := add_placeholder_parameter($<sigil>.Str, $<desigilname>.Str, :named($<twigil>[0] eq ':'));
+    }
+    elsif ~$/ eq '@_' {
+        $past := add_placeholder_parameter('@', '_', :slurpy_pos(1));
+    }
+    elsif ~$/ eq '%_' {
+        $past := add_placeholder_parameter('%', '_', :slurpy_named(1));
+    }
+    else {
+        my $attr_alias := is_attr_alias($past.name);
+        if $attr_alias {
+            $past.name($attr_alias);
             $past.scope('attribute');
             $past.viviself( sigiltype( $<sigil> ) );
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
         }
-        elsif $<twigil>[0] eq '.' && !$*IN_DECL {
-            # Need to transform this to a method call.
-            $past := PAST::Op.new(
-                :pasttype('callmethod'), :name(~$<desigilname>),
-                PAST::Var.new( :name('self'), :scope('lexical') )
-            );
-        }
-        elsif $<twigil>[0] eq '^' || $<twigil>[0] eq ':' {
-            $past := add_placeholder_parameter($<sigil>.Str, $<desigilname>.Str, :named($<twigil>[0] eq ':'));
-        }
-        elsif ~$/ eq '@_' {
-            $past := add_placeholder_parameter('@', '_', :slurpy_pos(1));
-        }
-        elsif ~$/ eq '%_' {
-            $past := add_placeholder_parameter('%', '_', :slurpy_named(1));
-        }
-        else {
-            my $attr_alias := is_attr_alias($past.name);
-            if $attr_alias {
-                $past.name($attr_alias);
-                $past.scope('attribute');
-                $past.viviself( sigiltype( $<sigil> ) );
-                $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
-            }
-        }
     }
-    make $past;
+    $past
 }
 
 method package_declarator:sym<package>($/) { make $<package_def>.ast; }
@@ -1384,14 +1412,24 @@ method arglist($/) {
     my $past := PAST::Op.new( :pasttype('call'), :node($/) );
     if $<EXPR> {
         my $expr := $<EXPR>.ast;
-        if $expr.name eq '&infix:<,>' && !$expr.named {
-            for $expr.list { $past.push($_); }
+        if $expr.name eq '&infix:<,>' {
+            for $expr.list { $past.push(handle_named_parameter($_)); }
         }
-        else { $past.push($expr); }
+        else { $past.push(handle_named_parameter($expr)); }
     }
     make $past;
 }
 
+sub handle_named_parameter($arg) {
+    if $arg.returns() eq 'Pair' {
+        my $result := $arg[2];
+        $result.named(~$arg[1].value());
+        $result;
+    }
+    else {
+        $arg;
+    }
+}
 
 method term:sym<value>($/) { make $<value>.ast; }
 

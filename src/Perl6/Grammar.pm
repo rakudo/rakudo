@@ -435,11 +435,23 @@ token fatarrow {
 }
 
 token colonpair {
-    ':' 
-    [ 
-    | $<not>=['!'] <identifier>
-    | <identifier> [ <circumfix> | <?> ]
+    :my $*key;
+    :my $*value;
+
+    ':'
+    [
+    | '!' <identifier> [ <[ \[ \( \< \{ ]> <.panic: "Argument not allowed on negated pair"> ]?
+        { $*key := $<identifier>.Str; $*value := 0; }
+    | <identifier>
+        { $*key := $<identifier>.Str; }
+        [
+        || <.unsp>? <circumfix> { $*value := $<circumfix>; }
+        || { $*value := 1; }
+        ]
     | <circumfix>
+        { $*key := ""; $*value := $<circumfix>; }
+    | $<var> = (<sigil> {} <twigil>? <desigilname>)
+        { $*key := $<var><desigilname>.Str; $*value := $<var>; }
     ]
 }
 

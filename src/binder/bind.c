@@ -14,9 +14,6 @@ Copyright (C) 2009, The Perl Foundation.
 /* Cache of the type ID for low level signatures. */
 static INTVAL lls_id = 0;
 
-/* Names of types we create. */
-#define PERL6_HASH  "Hash"
-
 /* Unwraps things inside a scalar reference. */
 static PMC *
 descalarref(PARROT_INTERP, PMC *ref) {
@@ -36,6 +33,17 @@ Rakudo_binding_create_array(PARROT_INTERP) {
     PMC *arr_class = VTABLE_get_class(interp, arr_ns);
     PMC *result    = VTABLE_instantiate(interp, arr_class, PMCNULL);
     VTABLE_setprop(interp, result, string_from_literal(interp, "flatten"), result);
+    return result;
+}
+
+
+/* Creates a Perl 6 Hash. */
+static PMC *
+Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {    
+    PMC *ns        = Parrot_get_ctx_HLL_namespace(interp);
+    PMC *creator   = Parrot_get_global(interp, ns, string_from_literal(interp, "&CREATE_HASH_LOW_LEVEL"));
+    PMC *result    = PMCNULL;
+    Parrot_ext_call(interp, creator, "P->P", storage, &result);
     return result;
 }
 
@@ -253,7 +261,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 }
                 else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
                     STRING *STORE = string_from_literal(interp, "!STORE");
-                    copy          = pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_HASH)));
+                    copy          = Rakudo_binding_create_hash(interp, pmc_new(interp, enum_class_Hash));
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
                     VTABLE_setprop(interp, copy, string_from_literal(interp, "flatten"), copy);
@@ -372,7 +380,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
             return Rakudo_binding_create_array(interp);
         }
         else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
-            return pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_HASH)));
+            return Rakudo_binding_create_hash(interp, pmc_new(interp, enum_class_Hash));
         }
         else {
             return pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Scalar")));
@@ -479,7 +487,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
      * be wanting to bind positionally. */
     if (!PMC_IS_NULL(named_names)) {
         PMC *iter = VTABLE_get_iter(interp, named_names);
-        named_args_copy = pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_HASH)));
+        named_args_copy = pmc_new(interp, enum_class_Hash);
         while (VTABLE_get_bool(interp, iter)) {
             STRING *name = VTABLE_shift_string(interp, iter);
             if (VTABLE_exists_keyed_str(interp, named_to_pos_cache, name)) {
@@ -519,10 +527,10 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
              * will by definition contain all unbound named parameters and use
              * that, or just create an empty one. */
             PMC *slurpy = PMC_IS_NULL(named_args_copy) ?
-                    pmc_new(interp, pmc_type(interp, string_from_literal(interp, PERL6_HASH))) :
+                    pmc_new(interp, enum_class_Hash) :
                     named_args_copy;
             bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
-                    slurpy, no_nom_type_check, error);
+                    Rakudo_binding_create_hash(interp, slurpy), no_nom_type_check, error);
             if (bind_fail) {
                 if (pos_from_named)
                     mem_sys_free(pos_from_named);

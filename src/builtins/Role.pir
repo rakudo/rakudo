@@ -272,13 +272,13 @@ just here so postcircumfix:[ ] doesn't explode).
     .param pmc role
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
+    $P0 = interpinfo .INTERPINFO_CURRENT_SUB
+    $P0 = getprop 'name', $P0
+    $S0 = $P0
     $I0 = isa role, 'P6role'
     if $I0 goto already_selected
     role = role.'!select'()
   already_selected:
-    $P0 = interpinfo .INTERPINFO_CURRENT_SUB
-    $P0 = getprop 'name', $P0
-    $S0 = $P0
     $P0 = role.'!pun'()
     .tailcall $P0.$S0(pos_args :flat, named_args :flat :named)
 .end

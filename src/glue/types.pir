@@ -55,6 +55,17 @@ subtyping relations, etc).
     .return (1)
 .end
 
+
+.sub '&CREATE_HASH_LOW_LEVEL'
+    .param pmc storage
+    $P0 = get_hll_global 'Hash'
+    $P0 = $P0.'!select'()
+    $P0 = $P0.'!pun'()
+    $P1 = $P0.'CREATE'()
+    $P0 = $P0.'bless'($P1, 'storage'=>storage)
+    .return ($P0)
+.end
+
 =back
 
 =cut

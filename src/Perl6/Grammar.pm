@@ -994,7 +994,7 @@ token infix:sym<**>   { <sym>  <O('%exponentiation')> }
 token prefix:sym<+>   { <sym>  <O('%symbolic_unary, :pirop<set N*>')> }
 token prefix:sym<~>   { <sym>  <O('%symbolic_unary')> }
 token prefix:sym<->   { <sym> <![>]> <O('%symbolic_unary')> }
-token prefix:sym<?>   { <!before '???'> <sym>  <O('%symbolic_unary, :pirop<istrue>')> }
+token prefix:sym<?>   { <!before '???'> <sym>  <O('%symbolic_unary')> }
 token prefix:sym<!>   { <!before '!!!'> <sym>  <O('%symbolic_unary, :pirop<isfalse>')> }
 token prefix:sym<+^>  { <sym>  <O('%symbolic_unary, :pirop<bnot>')> }
 token prefix:sym<^>   { <sym> <O('%symbolic_unary')> }

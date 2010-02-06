@@ -15,6 +15,10 @@ our multi infix:<!~~>(Mu $topic, Mu $matcher) {
     $matcher.REJECTS($topic)
 }
 
+our multi prefix:<?>(Mu $a) {
+    $a.Bool;
+}
+
 our multi sub prefix:<->($a) {
     pir::box__PN(pir::neg__NN($a))
 }

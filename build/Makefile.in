@@ -104,6 +104,7 @@ BUILTINS_PIR = \
   src/builtins/Pair.pir \
   src/builtins/Callable.pir \
   src/builtins/Positional.pir \
+  src/builtins/Associative.pir \
   src/builtins/Seq.pir \
   src/builtins/SeqIter.pir \
   src/builtins/Array.pir \

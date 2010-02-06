@@ -31,6 +31,8 @@ class Rat {
 
     multi method perl() { "$!numerator/$!denominator"; }
 
+    our Bool multi method Bool() { $!numerator != 0 ?? Bool::True !! Bool::False }
+
     multi method Num() { $!numerator.Num / $!denominator.Num; }
 
     multi method Rat() { self; }

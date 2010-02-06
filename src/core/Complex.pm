@@ -19,6 +19,8 @@ class Complex {
 
     multi method Complex() { self }
 
+    our Bool multi method Bool() { ( $!re != 0 || $!im != 0 ) ?? Bool::True !! Bool::False }
+
     multi method perl() {
         "Complex.new($.re, $.im)";
     }

@@ -101,6 +101,7 @@ BUILTINS_PIR = \
   src/builtins/Int.pir \
   src/builtins/Num.pir \
   src/builtins/Str.pir \
+  src/builtins/Enum.pir \
   src/builtins/Pair.pir \
   src/builtins/Callable.pir \
   src/builtins/Positional.pir \

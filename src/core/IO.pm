@@ -92,4 +92,15 @@ sub open($filename, :$r, :$w, :$a) {
     IO.new(:$PIO)
 }
 
+sub close($handle) {
+    $handle.close()
+}
+
+sub slurp($filename) {
+    my $handle = open($filename, :r);
+    my $contents = $handle.slurp();
+    $handle.close();
+    $contents
+}
+
 # vim: ft=perl6

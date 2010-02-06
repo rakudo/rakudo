@@ -1492,15 +1492,13 @@ method postcircumfix:sym<[ ]>($/) {
 }
 
 method postcircumfix:sym<{ }>($/) {
-    make PAST::Var.new( $<EXPR>.ast , :scope('keyed'),
-                        :viviself('Undef'),
-                        :vivibase('Hash') );
+    make PAST::Op.new( $<EXPR>.ast, :name('!postcircumfix:<{ }>'),
+                       :pasttype('call'), :node($/) );
 }
 
 method postcircumfix:sym<ang>($/) {
-    make PAST::Var.new( $<quote_EXPR>.ast, :scope('keyed'),
-                        :viviself('Undef'),
-                        :vivibase('Hash') );
+    make PAST::Op.new( $<quote_EXPR>.ast, :name('!postcircumfix:<{ }>'),
+                       :pasttype('call'), :node($/) );
 }
 
 method postcircumfix:sym<( )>($/) {

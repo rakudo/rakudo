@@ -18,6 +18,8 @@ augment class Int {
         self < 0 ?? -self !! self;
     }
 
+    our Bool multi method Bool() { self != 0 ?? Bool::True !! Bool::False }
+
     our Int multi method Int() { self }
 
     our Num multi method Num() {

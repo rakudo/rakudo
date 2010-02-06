@@ -57,7 +57,10 @@ subtyping relations, etc).
 
 
 .sub '&CREATE_HASH_LOW_LEVEL'
-    .param pmc storage
+    .param pmc storage :optional
+    unless null storage goto have_storage
+    storage = root_new ['parrot';'Hash']
+  have_storage:
     $P0 = get_hll_global 'Hash'
     $P0 = $P0.'!select'()
     $P0 = $P0.'!pun'()

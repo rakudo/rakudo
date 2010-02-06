@@ -692,7 +692,9 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         # Not an attribute - need to emit delcaration here.
         # First, create a container and give it a 'rw' property
         # Create the container, give it a 'rw' property
-        my $cont := PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
+        my $cont := $sigil eq '%' ??
+            PAST::Op.new( :name('&CREATE_HASH_LOW_LEVEL'), :pasttype('call') ) !!
+            PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
         my $true := PAST::Var.new( :name('true'), :scope('register') );
         my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
 

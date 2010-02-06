@@ -1,5 +1,6 @@
 role Hash is EnumMap {
     method postcircumfix:<{ }>($key) {
+        $key ~= $key;
         Q:PIR {
             .local pmc self
             self = find_lex 'self'

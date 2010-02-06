@@ -82,4 +82,14 @@ multi sub prompt($msg) {
 
 multi sub say(Mu *@items) { $*OUT.say(@items); }
 
+sub open($filename, :$r, :$w, :$a) {
+    my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
+    my $PIO = pir::open__PSS($filename, $mode);
+    unless pir::istrue__IP($PIO) {
+        die("Unable to open file '$filename'");
+    }
+    $PIO.encoding('utf8');
+    IO.new(:$PIO)
+}
+
 # vim: ft=perl6

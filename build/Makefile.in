@@ -179,6 +179,7 @@ CORE_SOURCES = \
   src/core/RangeIter.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
+  src/core/Enum.pm \
   src/core/IO.pm \
   src/core/Parameter.pm \
   src/core/Block.pm \

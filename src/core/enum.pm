@@ -1,58 +1,67 @@
-role Enum[$key, $value, $enumeration] {
-    method key() {
-        $key
+augment class Enum {
+
+=begin item ACCEPTS()
+
+Called from smartmatches '$_ ~~ X'.
+
+For C<$_ ~~ Mapping> tests if C<$_{X.key} ~~ X.value>
+
+Else it delegates to a  method call '.:Xkey(Xval)'
+(TODO: should actually be .Xkey, not .:Xkey).
+
+=end item
+
+    multi method ACCEPTS(EnumMap $topic) {
+	    $topic{$.key} ~~ $.value;
+    }
+
+    multi method ACCEPTS($topic) {
+        my $meth_name = $.key;
+        return (?$topic."$meth_name"()) === (?$.value);
+    }
+
+=begin item fmt
+
+  our Str multi Pair::fmt ( Str $format = "%s\t%s" )
+
+Returns the invocant pair formatted by an implicit call to C<sprintf> on
+the key and value.
+
+=end item
+    method fmt(Str $format = "%s\t%s") {
+        return sprintf($format, $.key, $.value);
+    }
+
+=begin item kv
+
+Return key and value as a 2-element List.
+
+=end item
+    method kv() {
+        return list($.key, $.value);
+    }
+
+=begin item pairs
+
+=end item
+    method pairs() {
+        return self.list();
     }
     
     method value() {
-        $value
+        $!value
     }
 
-    method WHAT() {
-        $enumeration
-    }
-}
-
-# XXX Just defining this here, but Rakudo will need it properly before we
-# can actually use any of this code.
-class EnumMap { }
-
-class Enumeration {
-    has $!name;
-    has $.enums;
-
-    method new(::UnderlyingType, $name, @values) {
-        # Create instance.
-        my $self = self.bless(*, :name($name));
-        
-        # Create all of the enum values.
-        my %value_objects;
-        my UnderlyingType $current; 
-        for @values -> $value {
-            my ($key, $val);
-            if $value ~~ Pair {
-                $key = $value.key;
-                $current = $val = $value.value;
-            }
-            else {
-                $key = $value;
-                $val = $current++;
-            }
-            %value_objects{$key} = $val but Enum[$key, $val, $self];
-        }
-
-        # Set enum map in place.
-        pir::setattribute__vPsP($self, '$!enums', EnumMap.new(%value_objects));
+    multi method perl() {
+        # $.key.perl ~ ' => ' ~ $.value.perl;
+        "Pair.new(:key({$.key.perl}), :value({$.value.perl}))";
     }
 
-    method defined() {
-        0
-    }
-
-    method WHAT() {
-        self
-    }
-
-    method Str() {
-        $!name;
+    # I don't see anything in the spec about what
+    # this should do.  This is doing the same thing
+    # that ~Pair did in old Rakudo master, which didn't
+    # seem to have Pair.Str.
+    multi method Str() {
+        "$.key\t$.value";
     }
 }

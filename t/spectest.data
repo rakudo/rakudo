@@ -158,7 +158,7 @@ S03-operators/scalar-assign.t
 # S03-smartmatch/any-hash-slice.t
 # S03-smartmatch/any-method.t
 # S03-smartmatch/any-num.t
-# S03-smartmatch/any-pair.t
+S03-smartmatch/any-pair.t
 # S03-smartmatch/any-str.t
 # S03-smartmatch/any-sub.t
 S03-smartmatch/any-type.t

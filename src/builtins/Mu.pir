@@ -491,7 +491,7 @@ Gets the object's identity value
 .end
 
 .sub '' :vtable('get_iter') :method
-    .tailcall self.'Iterator'()
+    .tailcall self.'iterator'()
 .end
 
 .sub '' :vtable('get_string') :method

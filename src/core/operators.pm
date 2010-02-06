@@ -122,3 +122,7 @@ our multi infix:<min>(*@args) {
 our multi infix:<max>(*@args) {
     @args.max;
 }
+
+our multi infix:«=>»($key, $value) {
+    Pair.new(key => $key, value => $value);
+}

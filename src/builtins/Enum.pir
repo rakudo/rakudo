@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-src/classes/Pair.pir - methods for the Pair class
+src/classes/Enum.pir - methods for the Enum class
 
 =head1 Methods
 
@@ -10,12 +10,24 @@ src/classes/Pair.pir - methods for the Pair class
 
 =cut
 
-.namespace ['Pair']
+.namespace ['Enum']
 
 .sub 'onload' :anon :load :init
     .local pmc p6meta, pairproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    pairproto = p6meta.'new_class'('Pair', 'parent'=>'Enum')
+    pairproto = p6meta.'new_class'('Enum', 'parent'=>'Any', 'attr'=>'$!key $!value')
+.end
+
+
+=item key
+
+Gets the key of the pair.
+
+=cut
+
+.sub 'key' :method
+    $P0 = getattribute self, '$!key'
+    .return ($P0)
 .end
 
 =back

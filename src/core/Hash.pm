@@ -31,7 +31,9 @@ role Hash is EnumMap {
             }
             else {
                 given $cur {
-                    # when Enum { ... }
+                    when Enum {
+                        self{$cur.key} = $cur.value;
+                    }
                     # when EnumMap { ... }
                     default {
                         $key = $cur;

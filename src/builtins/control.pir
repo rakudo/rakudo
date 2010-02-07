@@ -36,6 +36,20 @@ src/builtins/control.pir - control flow related functions
     .return ()
 .end
 
+=item exit
+
+=cut
+
+.sub '&exit'
+    .param int status     :optional
+    .param int has_status :opt_flag
+
+    if has_status goto x
+    status = 0
+  x:
+    exit status
+.end
+
 .sub '&warn'
     .param pmc list :slurpy
     .local string message

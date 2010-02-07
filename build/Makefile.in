@@ -168,6 +168,7 @@ CORE_SOURCES = \
   src/core/Seq.pm \
   src/core/Array.pm \
   src/core/Int.pm \
+  src/core/Iterable.pm \
   src/core/Iterator.pm \
   src/core/Num.pm \
   src/core/Rat.pm \

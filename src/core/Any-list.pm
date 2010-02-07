@@ -81,6 +81,45 @@ augment class Any {
         }
         $max;
     }
+
+    #CHEAT: Simplified version which we can hopefully sneak by ng.
+    multi method pick() {
+        my @l = @.list.Seq;
+        @l[floor(@l.elems.rand)];
+    }
+
+    # multi method pick($num is copy = 1, :$replace) {
+    #     if $num ~~ Whatever {
+    #         $num = +Inf;
+    #     }
+    #     # $num .= floor;
+    #
+    #     my @l = @.list.Seq;
+    #
+    #     if ($num == 1) {
+    #         return @l[floor(@l.elems.rand)];
+    #     }
+    #
+    #     if $replace {
+    #         gather {
+    #             while ($num > 0) {
+    #                 my $idx = floor(@l.elems.rand());
+    #                 take @l[$idx];
+    #                 --$num;
+    #             }
+    #         }
+    #     } else {
+    #         die "Non-replacing pick not yet implemented";
+    #         # gather {
+    #         #     while ($num > 0 and @l.elems > 0) {
+    #         #         my $idx = floor(@l.elems.rand());
+    #         #         take @l[$idx];
+    #         #         @l.splice($idx,1);
+    #         #         --$num;
+    #         #     }
+    #         # }
+    #     }
+    # }
 }
 
 our proto sub join (Str $separator = '', *@values) { @values.join($separator); }

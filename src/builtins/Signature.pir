@@ -16,7 +16,7 @@ P6LowLevelSig and provides higher level access to it.
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'$!ll_sig')
+    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'$!ll_sig $!param_cache')
 .end
 
 
@@ -31,8 +31,14 @@ Returns a C<List> of C<Parameter> descriptors.
 =cut
 
 .sub 'params' :method
-    # Create result.
+    # Did we compute this before?
     .local pmc result
+    result = getattribute self, '$!param_cache'
+    if result == 'Mu()' goto compute_result
+    .return (result)
+  compute_result:
+
+    # Create result.
     result = new ['Parcel']
 
     # Grab low level signature we're wrapping.
@@ -109,6 +115,8 @@ Returns a C<List> of C<Parameter> descriptors.
     goto param_loop
   param_done:
 
+    # Cache and return.
+    setattribute self, '$!param_cache', result
     .return (result)
 .end
 

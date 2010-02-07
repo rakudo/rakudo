@@ -17,7 +17,7 @@ for executable objects.
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     $P0 = get_hll_global 'Callable'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi $!lazy_sig_init_name', 'does_role'=>$P0)
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi $!signature $!lazy_sig_init_name', 'does_role'=>$P0)
     $P1 = new ['Role']
     $P1.'name'('invokable')
     p6meta.'compose_role'(codeproto, $P1)
@@ -156,6 +156,12 @@ Gets the signature for the block, or returns Failure if it lacks one.
 .sub 'signature' :method
     .local pmc do, ll_sig, lazy_name
 
+    # Do we have a cached result?
+    $P0 = getattribute self, '$!signature'
+    if null $P0 goto create_signature
+    .return ($P0)
+  create_signature:
+
     # Look up the signature if the block already has one.
     do = getattribute self, '$!do'
     ll_sig = getprop '$!signature', do
@@ -176,6 +182,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
   have_sig:
     $P1 = get_hll_global 'Signature'
     $P1 = $P1.'new'('ll_sig' => ll_sig)
+    setattribute self, '$!signature', $P1
     .return ($P1)
 .end
 

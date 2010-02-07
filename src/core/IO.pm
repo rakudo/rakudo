@@ -103,4 +103,24 @@ sub slurp($filename) {
     $contents
 }
 
+sub unlink($filename) {
+    Q:PIR {
+        .local string filename_str
+        .local pmc filename_pmc, os
+        .local int status
+        filename_pmc = find_lex '$filename'
+        filename_str = filename_pmc
+        os = root_new ['parrot';'OS']
+        push_eh unlink_catch
+        os.'rm'(filename_str)
+        status = 1
+        goto unlink_finally
+      unlink_catch:
+        status = 0
+      unlink_finally:
+        pop_eh
+        %r = box status
+    }
+}
+
 # vim: ft=perl6

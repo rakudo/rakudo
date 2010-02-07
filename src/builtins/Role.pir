@@ -180,7 +180,7 @@ Selects a role based upon type.
 =item new
 
 XXX Because of the way punning is currently handled - look for methods the role
-should handles and pun the rest - we end up punning some bits we should not.
+should handle and pun the rest - we end up punning some bits we should not.
 Need a cleaner solution in the end...for now we make sure the new from P6object
 doesn't get through to here.
 

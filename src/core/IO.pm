@@ -25,12 +25,10 @@ class IO {
     }
 
     multi method lines($limit = *) {
-        my @result;
-        #my $l = $limit ~~ Whatever ?? Inf !! $limit;
-        #while !$.eof && $l-- > 0 {
-        #    push @result, $.get;
-        #}
-        @result;
+        my $l = $limit ~~ Whatever ?? Inf !! $limit;
+        gather while !$.eof && $l-- > 0 {
+           take $.get;
+        }
     }
 
     multi method print(*@items) {

@@ -388,7 +388,7 @@ S14-roles/submethods.t
 # S14-traits/routines.t
 # S14-traits/variables.t
 # S16-filehandles/io.t
-# S16-filehandles/io_in_for_loops.t
+S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 # S16-filehandles/open.t
 # S16-io/bare-say.t

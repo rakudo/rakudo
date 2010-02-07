@@ -34,7 +34,11 @@ role Hash is EnumMap {
                     when Enum {
                         self{$cur.key} = $cur.value;
                     }
-                    # when EnumMap { ... }
+                    when EnumMap {
+                        for $cur.iterator -> $pair {
+                            self{$pair.key} = $pair.value;
+                        }
+                    }
                     default {
                         $key = $cur;
                         $need_value = 1;

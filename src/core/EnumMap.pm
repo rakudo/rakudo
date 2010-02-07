@@ -20,6 +20,32 @@ role EnumMap {
         }
     }
 
-    
+    method iterator() {
+        # We just work off the low-level Parrot iterator.
+        my $iter = pir::iter__PP($!storage);
+        gather {
+            while pir::istrue__IP($iter) {
+                my $iter_item = pir::shift__PP($iter);
+                take Pair.new(key => $iter_item.key, value => $iter_item.value);
+            }
+        }
+    }
+
+    method keys() {
+        self.iterator.map({ $^pair.key })
+    }
+
+    method kv() {
+        gather {
+            for self.iterator -> $pair {
+                take $pair.key;
+                take $pair.value;
+            }
+        }
+    }
+
+    method values() {
+        self.iterator.map({ $^pair.value })
+    }
 }
 

@@ -395,7 +395,7 @@ S16-filehandles/io_in_while_loops.t
 # S16-io/basic-open.t
 S16-io/say.t
 # S16-unfiled/rebindstdhandles.t
-# S16-unfiled/slurp.t
+S16-unfiled/slurp.t
 # S28-named-variables/cwd.t
 # S28-named-variables/inc.t
 S29-any/cmp.t

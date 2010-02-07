@@ -36,7 +36,7 @@ sub sigiltype($sigil) {
 
 method deflongname($/) {
     make $<colonpair>
-         ?? ~$<name> ~ ':<' ~ $<colonpair>[0]<circumfix><quote_EXPR>.ast.value ~ '>'
+         ?? ~$<name> ~ ':<' ~ ~$<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0] ~ '>'
          !! ~$<name>;
 }
 
@@ -1440,7 +1440,55 @@ method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
 
 method circumfix:sym<{ }>($/) {
-    make create_code_object($<pblock>.ast, 'Block', 0, '');
+    # If it is completely empty or consists of a single list, the first
+    # element of which is either a hash or a pair, it's a hash constructor.
+    my $past := $<pblock>.ast;
+    my $is_hash := 0;
+    if +@($past) == 2 {
+        if +@($past[1]) == 0 {
+            # Empty block, so a hash.
+            $is_hash := 1;
+        }
+        elsif +@($past[1]) == 1 && $past[1][0].isa(PAST::Op) {
+            if $past[1][0].returns() eq 'Pair' {
+                # Block with just one pair in it, so a hash.
+                $is_hash := 1;
+            }
+            elsif $past[1][0].name() eq '&infix:<,>' {
+                # List, but first elements must be...
+                if $past[1][0][0].isa(PAST::Op) &&
+                        $past[1][0][0].returns() eq 'Pair' {
+                    # ...a Pair
+                    $is_hash := 1;
+                }
+                elsif $past[1][0][0].isa(PAST::Var) &&
+                        pir::substr__SSII($past[1][0][0].name(), 0, 1) eq '%' {
+                    # ...or a hash.
+                    $is_hash := 1
+                }
+            }
+        }
+        elsif +@($past[1]) == 1 && $past[1][0].isa(PAST::Var) {
+            if pir::substr__SSII($past[1][0].name(), 0, 1) eq '%' {
+                $is_hash := 1;
+            }
+        }
+    }
+    if $is_hash {
+        my @children := @($past[1]);
+        $past := PAST::Op.new(
+            :pasttype('call'),
+            :name('&circumfix:<{ }>'),
+            :node($/)
+        );
+        for @children {
+            $past.push($_);
+        }
+    }
+    else {
+        $past := create_code_object($past, 'Block', 0, '');
+    }
+    make $past;
 }
 
 method circumfix:sym<[ ]>($/) {

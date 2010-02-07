@@ -133,6 +133,11 @@ our multi infix:<~>($a, $b) {
     $result
 }
 
+our sub circumfix:<{ }>(*@elements) {
+    my %h = @elements;
+    %h
+}
+
 # XXX Wants to be a macro when we have them.
 our sub WHAT(\$x) {
     $x.WHAT

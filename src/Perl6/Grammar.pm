@@ -273,7 +273,7 @@ token xblock($*IMPLICIT = 0) {
 }
 
 token pblock($*IMPLICIT = 0) {
-    | <.lambda>
+    | <lambda>
         <.newpad>
         :my $*SCOPE := 'my';
         <signature>

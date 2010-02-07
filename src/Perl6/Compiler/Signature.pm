@@ -150,6 +150,15 @@ method get_declarations() {
 }
 
 
+# Sets all parameters without an explicit read type to default to rw.
+method set_rw_by_default() {
+    my @entries := self.entries;
+    for @entries {
+        $_.is_rw(1);
+    }
+}
+
+
 # Produces an AST for generating a low-level signature object. Optionally can
 # instead produce code to generate a high-level signature object.
 method ast($high_level?) {
@@ -336,23 +345,6 @@ method entries() {
     unless $!entries { $!entries := Q:PIR { %r = new ['ResizablePMCArray'] } }
     $!entries
 }
-
-
-
-#############################################################################
-####################### CODE TO RE-WRITE IN NG BRANCH #######################
-#############################################################################
-
-# Sets all parameters without an explicit read type to default to rw.
-method set_rw_by_default() {
-    my @entries := self.entries;
-    for @entries {
-        unless $_<read_type> {
-            $_<read_type> := 'rw';
-        }
-    }
-}
-
 
 # Local Variables:
 #   mode: cperl

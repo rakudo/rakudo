@@ -24,4 +24,12 @@ augment class Iterator {
     multi method postcircumfix:<[ ]>($a) {
         self.Seq[$a];
     }
+
+    # CHEAT: this method, not in the spec, included
+    # in hopes of simplifying lazy iterator development.
+    method GrabAndSay($n) {
+        for ^$n {
+            self.get.say;
+        }
+    }
 }

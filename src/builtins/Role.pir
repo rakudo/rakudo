@@ -261,7 +261,10 @@ just here so postcircumfix:[ ] doesn't explode).
 
 .sub 'Str' :method :vtable('get_string')
     $P0 = getattribute self, '$!shortname'
+    $S0 = 'ANON'
+    if null $P0 goto no_name
     $S0 = $P0
+  no_name:
     concat $S0, '()'
     .return ($S0)
 .end

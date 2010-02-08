@@ -15,6 +15,8 @@ src/classes/Positional.pir - Positional Role
     .local pmc role
     .const 'Sub' $P0 = '_positional_role_body'
     role = new ['Perl6Role']
+    $P1 = box 'Positional'
+    setattribute role, '$!shortname', $P1
     role.'!add_variant'($P0)
     set_hll_global 'Positional', role
 .end

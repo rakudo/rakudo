@@ -15,6 +15,8 @@ src/classes/Associative.pir - Associative Role
     .local pmc role
     .const 'Sub' $P0 = '_Associative_role_body'
     role = new ['Perl6Role']
+    $P1 = box 'Associative'
+    setattribute role, '$!shortname', $P1
     role.'!add_variant'($P0)
     set_hll_global 'Associative', role
 .end

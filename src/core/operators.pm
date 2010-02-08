@@ -146,6 +146,16 @@ our sub WHAT(\$x) {
 # the magic one that handles stuff like
 # 'a' ... 'z' and 'z' ... 'a'
 our multi sub infix:<...>($lhs, $rhs) {
+    if $rhs ~~ ::Whatever {
+        my $i = $lhs;
+        return gather {
+            loop {
+                my $j = $i++;
+                take $j;
+            }
+        }
+    }
+
     gather {
         take $lhs;
         if ($lhs cmp $rhs) == 1 {

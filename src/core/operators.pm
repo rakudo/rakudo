@@ -180,3 +180,21 @@ our multi sub infix:<...>($lhs, $rhs) {
         }
     }
 }
+
+our multi sub infix:<...>($lhs, Code $rhs) {
+    if $rhs.count != 1 {
+        die "Series operator currently cannot handle blocks with count != 1";
+    }
+
+    my $i = $lhs;
+    gather {
+        take $i;
+        my $last = $i;
+        loop {
+            $i = $rhs.($last);
+            my $j = $i;
+            take $j;
+            $last = $i;
+        }
+    }
+}

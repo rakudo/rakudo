@@ -1427,7 +1427,7 @@ method arglist($/) {
 }
 
 sub handle_named_parameter($arg) {
-    if $arg.returns() eq 'Pair' {
+    if $arg ~~ PAST::Node && $arg.returns() eq 'Pair' {
         my $result := $arg[2];
         $result.named(~$arg[1].value());
         $result;

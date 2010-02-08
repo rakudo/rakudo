@@ -142,3 +142,10 @@ our sub circumfix:<{ }>(*@elements) {
 our sub WHAT(\$x) {
     $x.WHAT
 }
+
+our multi sub infix:<...>(Int $a, Int $b) {
+    gather loop (my $i = $a; $i <= $b; $i++) {
+        my $j = $i;
+        take $j;
+    }
+}

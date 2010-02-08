@@ -143,9 +143,30 @@ our sub WHAT(\$x) {
     $x.WHAT
 }
 
-our multi sub infix:<...>(Int $a, Int $b) {
-    gather loop (my $i = $a; $i <= $b; $i++) {
-        my $j = $i;
-        take $j;
+# the magic one that handles stuff like
+# 'a' ... 'z' and 'z' ... 'a'
+our multi sub infix:<...>($lhs, $rhs) {
+    gather {
+        take $lhs;
+        if ($lhs cmp $rhs) == 1 {
+            my $x = $lhs;
+            # since my $a = 'a'; $a-- gives
+            # "Decrement out of range" we can't easily
+            # decrement over our target, which is why the
+            # case of going backwards is slighly more complicated
+            # than going forward
+            while (--$x cmp $rhs) == 1 {
+                # need to make a fresh copy here because of RT #62178
+                my $y = $x;
+                take $y;
+            }
+            take $x if ($x cmp $rhs) == 0;
+        } elsif ($lhs cmp $rhs) == -1 {
+            my $x = $lhs;
+            while (++$x cmp $rhs) <= 0 {
+                my $y = $x;
+                take $y;
+            }
+        }
     }
 }

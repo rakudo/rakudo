@@ -104,12 +104,6 @@ BUILTINS_PIR = \
   src/builtins/Enum.pir \
   src/builtins/Pair.pir \
   src/builtins/Callable.pir \
-  src/builtins/Positional.pir \
-  src/builtins/Associative.pir \
-  src/builtins/Seq.pir \
-  src/builtins/SeqIter.pir \
-  src/builtins/Array.pir \
-  src/builtins/Proxy.pir \
   src/builtins/Code.pir \
   src/builtins/Multi.pir \
   src/builtins/Block.pir \
@@ -118,6 +112,12 @@ BUILTINS_PIR = \
   src/builtins/Method.pir \
   src/builtins/Submethod.pir \
   src/builtins/Regex.pir \
+  src/builtins/Positional.pir \
+  src/builtins/Associative.pir \
+  src/builtins/Seq.pir \
+  src/builtins/SeqIter.pir \
+  src/builtins/Array.pir \
+  src/builtins/Proxy.pir \
   src/builtins/ContainerDeclarand.pir \
   src/builtins/Exception.pir \
   src/builtins/Failure.pir \

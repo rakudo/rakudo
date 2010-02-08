@@ -69,8 +69,14 @@ and so forth.
     how = RoleHOW.'new'()
 
     # Clone all of the methods from the Parrot role, to make sure they
-    # capture type variables as they currently stand.
-    .local pmc meths, meth_iter
+    # capture type variables as they currently stand. Provided Method is
+    # defined, we also wrap the Parrot subs in it.
+    .local pmc meths, meth_iter, Method
+    Method = get_hll_global 'Method'
+    $I0 = isa Method, 'NameSpace'
+    unless $I0 goto method_check_done
+    null Method
+  method_check_done:
     meths = parrotrole.'methods'()
     meth_iter = iter meths
   it_loop:
@@ -80,6 +86,9 @@ and so forth.
     $P1 = clone $P0
     $P2 = getprop '$!signature', $P0
     setprop $P1, '$!signature', $P2
+    if null Method goto skip_wrap
+    $P1 = Method.'new'($P1, 0, '')
+  skip_wrap:
     RoleHOW.'add_method'(how, $S0, $P1)
     goto it_loop
   it_loop_end:

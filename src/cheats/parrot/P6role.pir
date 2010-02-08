@@ -28,7 +28,10 @@ Puns the role to a class and returns that class.
     # Otherwise, need to create a punned class.
     .local pmc ClassHOW, meta, proto
     ClassHOW = get_root_global ['perl6'], 'ClassHOW'
-    meta = ClassHOW.'new'() # XXX Name?
+    null $P0
+    $P1 = getprop '$!owner', self
+    $P1 = getattribute $P1, '$!shortname'
+    meta = ClassHOW.'new'($P0, 'name'=>$P1)
     ClassHOW.'add_composable'(meta, self)
     proto = ClassHOW.'compose'(meta)
     

@@ -69,21 +69,23 @@ Creates a new instance of the meta-class.
 
 .sub 'new' :method
     .param pmc name :optional
+    .param pmc options :named :slurpy
     .local pmc how, parrotclass, nsarray, ns
     if null name goto anon_class
 
-    # Named class - associate with Parrot namespace.
+    # Named class that we should associate with the Parrot namespace.
     $P0 = get_hll_global [ 'Perl6';'Grammar' ], 'parse_name'
     nsarray = $P0(name)
     ns = get_hll_namespace nsarray
     parrotclass = newclass ns
     goto have_parrotclass
 
-    # Anonymous class - just create a new Parrot class and we're done.
+    # Anonymous class - at least from a namespae point of view. Just create a new
+    # Parrot class and we're done.
   anon_class:
     parrotclass = new ['Class']
 
-    # Stash in metaclass instance, and hand it back.
+    # Stash in metaclass instance.
   have_parrotclass:
     how = new ['ClassHOW']
     setattribute how, 'parrotclass', parrotclass
@@ -91,6 +93,14 @@ Creates a new instance of the meta-class.
     setattribute how, '$!composees', $P0
     $P0 = root_new ['parrot';'ResizablePMCArray']
     setattribute how, '$!attributes', $P0
+
+    # If we have a name option, use that as the short name.
+    $P0 = options['name']
+    if null $P0 goto no_alt_name
+    setattribute how, 'shortname', $P0
+    setattribute how, 'longname', $P0
+  no_alt_name:
+
     .return (how)
 .end
 
@@ -271,11 +281,21 @@ Completes the creation of the metaclass and return a proto-object.
     self.'add_parent'(meta, $P0)
   have_parents:
 
-    # Finally, create proto object.
+    # Finally, create proto object. If we gave it a name already, then
+    # register will scribble over it (and we don't want to pass in the
+    # name property or it stashes it in the namespace :-(). So we gotta
+    # take care of that here.
     .local pmc proto
-    .local pmc name
-    name = getattribute meta, 'longname'
+    $P0 = getattribute meta, 'shortname'
+    $P1 = getattribute meta, 'longname'
+    if null $P0 goto no_name_override
     proto = self.'register'(parrotclass, 'how'=>meta)
+    setattribute meta, 'shortname', $P0
+    setattribute meta, 'longname', $P1
+    goto proto_made
+  no_name_override:
+    proto = self.'register'(parrotclass, 'how'=>meta)
+  proto_made:
     transform_to_p6opaque proto
     .return (proto)
 .end

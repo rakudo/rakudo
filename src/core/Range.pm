@@ -89,6 +89,7 @@ our multi sub prefix:<^>($max) {
 
 multi sub infix:<...>(Int $a, Int $b) {
     gather loop (my $i = $a; $i <= $b; $i++) {
-        take $i;
+        my $j = $i;
+        take $j;
     }
 }

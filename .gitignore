@@ -33,3 +33,4 @@ perl6_group.?
 libparrot.dll
 src/binder/bind.bundle
 src/binder/bind.o
+docs/test_summary.times

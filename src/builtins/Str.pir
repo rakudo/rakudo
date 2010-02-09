@@ -23,7 +23,6 @@ as the Perl 6 C<Str> class.
     strproto = p6meta.'new_class'('Str', 'parent'=>'parrot;Perl6Str Any')
 .end
 
-
 .sub 'ACCEPTS' :method
     .param string topic
     .tailcall '&infix:<eq>'(topic, self)
@@ -238,10 +237,23 @@ Overridden for Str.
     .tailcall 'prefix:?'($I0)
 .end
 
-
 =back
 
 =cut
+
+.sub '!qx'
+    .param string cmd
+    .local pmc pio
+#   '!hash_to_env'()   # ng: TODO
+    pio = open cmd, 'rp'
+    unless pio goto err_qx
+    pio.'encoding'('utf8')
+    $P0 = pio.'readall'()
+    pio.'close'()
+    .return ($P0)
+  err_qx:
+    .tailcall '!FAIL'('Unable to execute "', cmd, '"')
+.end
 
 # Local Variables:
 #   mode: pir

@@ -855,12 +855,14 @@ token typename {
 }
 
 proto token quote { <...> }
-token quote:sym<apos> { <?[']>            <quote_EXPR: ':q'>  }
-token quote:sym<dblq> { <?["]>            <quote_EXPR: ':qq'> }
-token quote:sym<q>    { 'q'  <![(]> <.ws> <quote_EXPR: ':q'>  }
-token quote:sym<qq>   { 'qq' <![(]> <.ws> <quote_EXPR: ':qq'> }
-token quote:sym<Q>    { 'Q'  <![(]> <.ws> <quote_EXPR> }
-token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quote_EXPR> }
+token quote:sym<apos>  { <?[']>             <quote_EXPR: ':q'>  }
+token quote:sym<dblq>  { <?["]>             <quote_EXPR: ':qq'> }
+token quote:sym<q>     { 'q'   <![(]> <.ws> <quote_EXPR: ':q'>  }
+token quote:sym<qq>    { 'qq'  <![(]> <.ws> <quote_EXPR: ':qq'> }
+token quote:sym<qx>    { 'qx'  <![(]> <.ws> <quote_EXPR: ':q'>  }
+token quote:sym<qqx>   { 'qqx' <![(]> <.ws> <quote_EXPR: ':qq'> }
+token quote:sym<Q>     { 'Q'   <![(]> <.ws> <quote_EXPR> }
+token quote:sym<Q:PIR> { 'Q:PIR'      <.ws> <quote_EXPR> }
 token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
 token quote:sym</ />  { '/'<p6regex=.LANG('Regex','nibbler')>'/' }
 

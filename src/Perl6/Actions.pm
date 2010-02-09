@@ -1720,6 +1720,16 @@ method quote:sym<Q:PIR>($/) {
                        :pasttype('inline'),
                        :node($/) );
 }
+method quote:sym<qx>($/) {
+    make PAST::Op.new( :name('!qx'), :pasttype('call'),
+        $<quote_EXPR>.ast
+    );
+}
+method quote:sym<qqx>($/)  {
+    make PAST::Op.new( :name('!qx'), :pasttype('call'),
+        $<quote_EXPR>.ast
+    );
+}
 method quote:sym</ />($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
     make create_code_object($past, 'Regex', 0, '');

@@ -61,7 +61,7 @@ class Range is Iterable {
     }
 
     our Str multi method Str() {
-        self.perl;
+        $.iterator.join(" ");
     }
 }
 

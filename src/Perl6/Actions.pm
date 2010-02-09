@@ -644,14 +644,26 @@ method package_def($/, $key?) {
     else {
         # We just need to finish up the current package.
         my $package := @PACKAGE.shift;
-        my $block;
-        if $<block> { $block := $<block>.ast }
-        else {
-            $block := @BLOCK.shift;
-            $block.push($<statementlist>.ast);
-            $block.node($/);
+        if pir::substr__SSII($<block><blockoid><statementlist><statement>[0], 0, 3) eq '...' {
+            # Just a stub, so don't do any more work.
+            if $*SCOPE eq 'our' || $*SCOPE eq '' {
+                %Perl6::Grammar::STUBCOMPILINGPACKAGES{~$<def_module_name>[0]<longname>} := 1;
+            }
+            @BLOCK[0].symbol(~$<def_module_name>[0]<longname>, :stub(1));
+            make PAST::Stmts.new( );
         }
-        make $package.finish($block);
+        else {
+            my $block;
+            if $<block> {
+                $block := $<block>.ast;
+            }
+            else {
+                $block := @BLOCK.shift;
+                $block.push($<statementlist>.ast);
+                $block.node($/);
+            }
+            make $package.finish($block);
+        }
     }
 }
 
@@ -1329,15 +1341,15 @@ method term:sym<Nil>($/) {
 }
 
 method term:sym<...>($/) {
-    make PAST::Op.new( :pasttype('call'), :name('&fail'), 'Stub code executed' );
+    make PAST::Op.new( :pasttype('call'), :name('&fail'), 'Stub code executed', :node($/) );
 }
 
 method term:sym<???>($/) {
-    make PAST::Op.new( :pasttype('call'), :name('&warn'), 'Stub code executed' );
+    make PAST::Op.new( :pasttype('call'), :name('&warn'), 'Stub code executed', :node($/) );
 }
 
 method term:sym<!!!>($/) {
-    make PAST::Op.new( :pasttype('call'), :name('&die'), 'Stub code executed' );
+    make PAST::Op.new( :pasttype('call'), :name('&die'), 'Stub code executed', :node($/) );
 }
 
 method term:sym<dotty>($/) {

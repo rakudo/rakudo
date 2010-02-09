@@ -1,9 +1,11 @@
 grammar Perl6::Grammar is HLL::Grammar;
 
 our %COMPILINGPACKAGES;
+our %STUBCOMPILINGPACKAGES;
 
 INIT {
     our %COMPILINGPACKAGES := Q:PIR { %r = new ['Hash'] };
+    our %STUBCOMPILINGPACKAGES := Q:PIR { %r = new ['Hash'] };
 }
 
 method TOP() {
@@ -32,8 +34,9 @@ method add_my_name($name) {
     my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
     
     # We need to flag up most re-declaration collisions.
-    if @BLOCK[0].symbol($name) {
-        if $*PKGDECL eq 'role' {
+    my $cur_decl := @BLOCK[0].symbol($name);
+    if $cur_decl {
+        if $*PKGDECL eq 'role' || $cur_decl<stub> {
             return 1;
         }
         else {
@@ -48,11 +51,15 @@ method add_my_name($name) {
 
 method add_our_name($name) {
     our %COMPILINGPACKAGES;
+    our %STUBCOMPILINGPACKAGES;
 
     # Check if it already exists, if we care.
     if $*PKGDECL ne 'role' {
         my $exists := 0;
-        if %COMPILINGPACKAGES{$name} {
+        if %STUBCOMPILINGPACKAGES{$name} {
+            %STUBCOMPILINGPACKAGES{$name} := 0;
+        }
+        elsif %COMPILINGPACKAGES{$name} {
             $exists := 1;
         }
         else {

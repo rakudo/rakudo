@@ -184,6 +184,7 @@ CORE_SOURCES = \
   src/core/IO.pm \
   src/core/Parameter.pm \
   src/core/Block.pm \
+  src/core/system.pm \
   src/cheats/match-bool.pm \
   src/cheats/setup-io.pm \
 

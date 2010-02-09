@@ -335,7 +335,8 @@ method statement_control:sym<use>($/) {
 }
 
 method statement_control:sym<return>($/) {
-    make PAST::Op.new( $<EXPR>.ast, :pasttype('return'), :node($/) );
+    my $retval := $<EXPR> ?? $<EXPR>[0].ast !! PAST::Op.new( :name('&Nil') );
+    make PAST::Op.new( $retval, :pasttype('return'), :node($/) );
 }
 
 method statement_control:sym<given>($/) {

@@ -366,8 +366,7 @@ token statement_control:sym<loop> {
 }
 
 token statement_control:sym<return> {
-    <sym> :s 
-    [ <EXPR> || <.panic: 'return requires an expression argument'> ]
+    <sym> :s <EXPR>?
 }
 
 token statement_control:sym<use> {

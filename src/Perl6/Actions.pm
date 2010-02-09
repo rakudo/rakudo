@@ -808,7 +808,7 @@ method routine_def($/) {
     if $<deflongname> {
         # Set name.
         my $name := '&' ~ ~$<deflongname>[0].ast;
-        $past.name($name);
+        $past.name(~$<deflongname>[0].ast);
         $past.nsentry('');
 
         # Wrap it in the correct routine type.

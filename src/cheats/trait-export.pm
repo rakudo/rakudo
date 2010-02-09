@@ -9,11 +9,8 @@ our multi trait_mod:<is>(Code $block, $arg?, :$export!) {
     .local string blockname
     blockname = block.'do'()
 
-    # Methods get a & added to their name.
-    $I0 = isa block, ['Method']
-    unless $I0 goto method_done
+    # Need & added to the name.
     blockname = concat '&', blockname
-  method_done:
 
     # Create the EXPORT namespace if it doesn't already exist.
     # Assume our caller is coming from the namespace where exporting

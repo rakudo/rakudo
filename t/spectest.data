@@ -399,7 +399,7 @@ S16-unfiled/slurp.t
 # S28-named-variables/cwd.t
 # S28-named-variables/inc.t
 S29-any/cmp.t
-# S29-any/isa.t
+S29-any/isa.t
 # S29-context/die.t
 # S29-context/eval.t
 # S29-context/sleep.t

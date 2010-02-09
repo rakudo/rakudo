@@ -43,6 +43,7 @@ multi sub plan($number_of_tests) is export {
 
         say '1..' ~ $number_of_tests;
     }
+    say '# t=' ~ time;
 }
 
 multi sub pass($desc) is export {
@@ -218,6 +219,7 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
+    say '# t=' ~ time;
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";

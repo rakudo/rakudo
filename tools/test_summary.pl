@@ -57,7 +57,7 @@ for my $tfile (@tfiles) {
 
 # Prepare arrays and hashes to gather and accumulate test statistics
 my @col = qw(pass fail todo skip plan spec);
-my @syn = qw(S02 S03 S04 S05 S06 S09 S10 S11 S12 S13 S14 S16 S17 S28 S29 S32 int);
+my @syn = qw(S02 S03 S04 S05 S06 S07 S09 S10 S11 S12 S13 S14 S16 S17 S28 S29 S32 int);
 my %syn; # number of test scripts per Synopsis
 my %sum; # total pass/fail/todo/skip/test/plan per Synposis
 my $syn;
@@ -116,10 +116,22 @@ for my $tfile (@tfiles) {
     my $realtime1 = Time::HiRes::time;
     my @results = split "\n", `$cmd`;  # run the test, @result = all stdout
     my $realtime2 = Time::HiRes::time;
-    my (%skip, %todopass, %todofail);
+    my (%skip, %todopass, %todofail, $time1, $time2, $testnumber);
+    my @times = ();
     for (@results) {
         # pass over the optional line containing "1..$planned"
-        if    (/^1\.\.(\d+)/) { $plan = $1 if $1 > 0; next; }
+        if    (/^1\.\.(\d+)/)      { $plan = $1 if $1 > 0; next; }
+        # handle lines containing timestamps
+        if    (/^# t=(\d+\.\d+)/)  {
+            # calculate the per test execution time
+            $time2 = $time1;
+            $time1 = $1;
+            if ( defined( $testnumber ) ) {
+                $times[$testnumber] = $time1 - $time2;
+                undef $testnumber;
+            }
+            next;
+        }
         # ignore lines not beginning with "ok $$test" or "not ok $test"
         next unless /^(not )?ok +(\d+)/;
         if    (/#\s*SKIP\s*(.*)/i) { $skip++; $skip{$1}++; }
@@ -129,7 +141,10 @@ for my $tfile (@tfiles) {
             else        { $todofail{$reason}++ }
         }
         elsif (/^not ok +(.*)/)    { $fail++; push @fail, "$tname $1"; }
-        elsif (/^ok +\d+/)         { $pass++; }
+        elsif (/^ok +\d+/)         {
+            $testnumber = $1;
+            $pass++;
+        }
     }
     my $test = $pass + $fail + $todo + $skip;
     if ($plan > $test) {

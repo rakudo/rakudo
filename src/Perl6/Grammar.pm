@@ -865,6 +865,15 @@ token quote:sym<Q>     { 'Q'   <![(]> <.ws> <quote_EXPR> }
 token quote:sym<Q:PIR> { 'Q:PIR'      <.ws> <quote_EXPR> }
 token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
 token quote:sym</ />  { '/'<p6regex=.LANG('Regex','nibbler')>'/' }
+token quote:sym<rx>   { <sym> >> '/'<p6regex=.LANG('Regex','nibbler')>'/' }
+token quote:sym<m> {
+    <sym> >>
+    [
+    | '/'<p6regex=.LANG('Regex','nibbler')>'/'
+    | '{'<p6regex=.LANG('Regex','nibbler')>'}'
+    ]
+}
+
 
 token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
 token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }

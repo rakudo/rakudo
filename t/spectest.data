@@ -237,17 +237,17 @@ S04-statements/until.t
 # S05-match/non-capturing.t
 # S05-match/perl.t
 # S05-match/positions.t
-# S05-metachars/line-anchors.t
-# S05-metachars/newline.t
+S05-metachars/line-anchors.t
+S05-metachars/newline.t
 # S05-metachars/tilde.t
 # S05-metasyntax/angle-brackets.t
 S05-metasyntax/changed.t
 # S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t
-# S05-metasyntax/null.t
+S05-metasyntax/null.t
 # S05-metasyntax/regex.t
 # S05-metasyntax/repeat.t
-# S05-metasyntax/single-quotes.t
+S05-metasyntax/single-quotes.t
 # S05-metasyntax/unknown.t
 # S05-modifier/ignorecase.t
 # S05-modifier/perl5_1.t

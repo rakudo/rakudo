@@ -1734,6 +1734,14 @@ method quote:sym</ />($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
     make create_code_object($past, 'Regex', 0, '');
 }
+method quote:sym<rx>($/) {
+    my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
+    make create_code_object($past, 'Regex', 0, '');
+}
+method quote:sym<m>($/) {
+    my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
+    make create_code_object($past, 'Regex', 0, '');
+}
 
 method quote_escape:sym<$>($/) { make $<variable>.ast; }
 method quote_escape:sym<{ }>($/) {

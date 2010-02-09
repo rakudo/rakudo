@@ -27,15 +27,15 @@ class Range is Iterable {
     }
 
     my Bool multi method !min_test($topic) {
-        $.min lt $topic || (!$.excludes_min && $.min eq $topic);
+        $.min before $topic || (!$.excludes_min && !($.min after $topic));
     }
 
-    our Bool multi method max_test($topic) {
-        $topic lt $.max || (!$.excludes_max && $.max eq $topic);
+    my Bool multi method !max_test($topic) {
+        $topic before $.max || (!$.excludes_max && !($topic after $.max));
     }
 
     our Bool multi method ACCEPTS($topic) {
-        ?(self!min_test($topic) && self.max_test($topic))
+        ?(self!min_test($topic) && self!max_test($topic))
     }
 
     multi method minmax() {

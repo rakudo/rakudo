@@ -190,7 +190,8 @@ our multi sub infix:<...>($lhs, Code $rhs) {
 
     my $i = $lhs;
     gather {
-        take $i;
+        my $j = $i;
+        take $j;
         my $last = $i;
         loop {
             $i = $rhs.($last);

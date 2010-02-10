@@ -61,7 +61,7 @@ S02-builtin_data_types/nested_pairs.t
 # S02-builtin_data_types/num.t
 # S02-builtin_data_types/pair.t
 S02-builtin_data_types/parsing-bool.t
-# S02-builtin_data_types/range.t
+S02-builtin_data_types/range.t
 # S02-builtin_data_types/subscripts_and_context.t
 # S02-builtin_data_types/type.t
 # S02-builtin_data_types/whatever.t

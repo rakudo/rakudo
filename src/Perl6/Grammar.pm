@@ -1027,7 +1027,8 @@ token prefix:sym<->   { <sym> <![>]> <O('%symbolic_unary')> }
 token prefix:sym<?>   { <!before '???'> <sym>  <O('%symbolic_unary')> }
 token prefix:sym<!>   { <!before '!!!'> <sym>  <O('%symbolic_unary, :pirop<isfalse>')> }
 token prefix:sym<+^>  { <sym>  <O('%symbolic_unary, :pirop<bnot>')> }
-token prefix:sym<^>   { <sym> <O('%symbolic_unary')> }
+token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
+token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
 
 token infix:sym<*>    { <sym>  <O('%multiplicative')> }
 token infix:sym</>    { <sym>  <O('%multiplicative')> }

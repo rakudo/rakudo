@@ -206,5 +206,15 @@ our multi sub infix:<...>(@lhs, Whatever) {
         when 2 {
             @lhs[0] ... { $_ + (@lhs[1] - @lhs[0]) };
         }
+        when 3 {
+            if @lhs[1] - @lhs[0] == @lhs[2] - @lhs[1] {
+                @lhs[0] ... { $_ + (@lhs[1] - @lhs[0]) };
+            } elsif @lhs[1] / @lhs[0] == @lhs[2] / @lhs[1] {
+                @lhs[0] ... { $_ * (@lhs[1] / @lhs[0]) };
+            } else {
+                fail "Unable to figure out pattern of series";
+            }
+        }
+        default { fail "Unable to figure out pattern of series"; }
     }
 }

@@ -402,7 +402,7 @@ S29-any/cmp.t
 S29-any/isa.t
 # S29-context/die.t
 # S29-context/eval.t
-# S29-context/sleep.t
+S29-context/sleep.t
 S29-conversions/ord_and_chr.t                              #icu
 ## S32-array/create.t
 # S32-array/delete.t

@@ -14,7 +14,7 @@ exceptions here.  Perl 6 source would be something like:
         has &!block;
 
         method get() {
-            my $parcel = $!iter.getbatch(&!block.count);
+            my $parcel = $!iter.batch(&!block.count);
             $parcel ~~ EMPTY ?? EMPTY !! &!block(|$parcel);
         }
     }
@@ -44,7 +44,7 @@ Returns the next element of the list.
     block = getattribute self, '&!block'
 
     $I0 = block.'count'()
-    parcel = iter.'getbatch'($I0)
+    parcel = iter.'batch'($I0)
     $I0 = isa parcel, ['EMPTY']
     if $I0 goto done
     parcel = block(parcel :flat)

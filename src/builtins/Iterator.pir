@@ -50,7 +50,7 @@ continue until memory is exhausted.
 
 
 .namespace ['Iterator']
-.sub 'getbatch' :method
+.sub 'batch' :method
     .param int n
     .local pmc parcel
 

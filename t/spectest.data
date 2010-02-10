@@ -26,7 +26,7 @@
 # integration/99problems-51-to-60.t
 # integration/99problems-61-to-70.t
 integration/code-blocks-as-sub-args.t
-# integration/lexical-array-in-inner-block.t
+integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 # integration/man-or-boy.t
 integration/method-calls-and-instantiation.t
@@ -36,7 +36,7 @@ integration/no-indirect-new.t
 integration/passing-pair-class-to-sub.t
 # integration/real-strings.t
 integration/role-composition-vs-attribute.t
-# integration/say-crash.t
+integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 S02-builtin_data_types/anon_block.t
 # S02-builtin_data_types/array_extending.t
@@ -84,7 +84,7 @@ S02-literals/pairs.t
 # S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
 # S02-literals/subscript.t
-# S02-literals/types.t
+S02-literals/types.t
 S02-literals/underscores.t
 # S02-magicals/config.t
 # S02-magicals/dollar_bang.t

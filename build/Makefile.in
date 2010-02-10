@@ -183,6 +183,7 @@ CORE_SOURCES = \
   src/core/Enum.pm \
   src/core/IO.pm \
   src/core/Parameter.pm \
+  src/core/Signature.pm \
   src/core/Block.pm \
   src/core/system.pm \
   src/cheats/match-bool.pm \

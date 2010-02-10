@@ -16,3 +16,10 @@ sub run($commandline) {
         %r = box status
     }
 }
+
+sub sleep($seconds) {         # fractional seconds also allowed
+    my $time1 = time;
+    pir::sleep__vN($seconds);
+    my $time2 = time;
+    return $time2 - $time1;
+}

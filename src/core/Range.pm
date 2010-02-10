@@ -42,6 +42,9 @@ class Range is Iterable {
         ($.min, $.max)
     }
 
+    multi method from() { $.min; }
+    multi method to() { $.max; }
+
     # Beautiful implementation which does not work yet in ng
     # our Str multi method perl() {
     #     [~]
@@ -62,6 +65,10 @@ class Range is Iterable {
 
     our Str multi method Str() {
         $.iterator.join(" ");
+    }
+
+    our multi method Num() {
+        $.iterator.Seq.elems;
     }
 }
 

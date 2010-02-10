@@ -143,10 +143,12 @@ our sub WHAT(\$x) {
     $x.WHAT
 }
 
+class Whatever { ... }
+
 # the magic one that handles stuff like
 # 'a' ... 'z' and 'z' ... 'a'
 our multi sub infix:<...>($lhs, $rhs) {
-    if $rhs ~~ ::Whatever {
+    if $rhs ~~ Whatever {
         my $i = $lhs;
         return gather {
             loop {
@@ -195,6 +197,14 @@ our multi sub infix:<...>($lhs, Code $rhs) {
             my $j = $i;
             take $j;
             $last = $i;
+        }
+    }
+}
+
+our multi sub infix:<...>(@lhs, Whatever) {
+    given @lhs.elems {
+        when 2 {
+            @lhs[0] ... { $_ + (@lhs[1] - @lhs[0]) };
         }
     }
 }

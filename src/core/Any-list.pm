@@ -120,6 +120,36 @@ augment class Any {
     #         # }
     #     }
     # }
+
+    multi method reduce(Code $expression is rw) {
+        my $arity = $expression.count;
+        fail('Cannot reduce() using a unary or nullary function.')
+            if $arity < 2;
+        fail('Can only reduce() using a binary function for now.')
+            if $arity > 2;
+
+        my @args = ();
+        for @.list {
+            @args.push($_);
+            if (@args == $arity) {
+                my $res = $expression.(@args[0], @args[1]);
+                # my $res = $expression.(|@args);
+                @args = ($res);
+            }
+        }
+
+        fail('Cannot reduce() empty list') unless @args > 0;
+
+        if @args > 1 {
+            if @args < $expression.arity {
+                warn (@args -1) ~ " trailing item(s) in reduce";
+            } else {
+                return $( $expression.(@args[0], @args[1]) );
+                # return $( $expression.(|@args) );
+            }
+        }
+        return @args[0];
+    }
 }
 
 our proto sub join (Str $separator = '', *@values) { @values.join($separator); }

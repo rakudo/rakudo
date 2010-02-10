@@ -58,6 +58,17 @@ container.
 .end
 
 
+=item defined
+
+Before we're assigned to, we're not defined.
+
+=cut
+
+.sub 'defined' :method
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
+.end
+
 =back
 
 =cut

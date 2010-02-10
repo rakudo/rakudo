@@ -47,5 +47,12 @@ role EnumMap does Associative {
     method values() {
         self.iterator.map({ $^pair.value })
     }
-}
 
+    method Num() {
+        pir::box__PN(pir::set__NP($!storage))
+    }
+
+    method Int() {
+        pir::box__PI(pir::set__IP($!storage))
+    }
+}

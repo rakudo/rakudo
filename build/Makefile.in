@@ -96,6 +96,7 @@ BUILTINS_PIR = \
   src/builtins/EMPTY.pir \
   src/builtins/List.pir \
   src/builtins/Grammar.pir \
+  src/builtins/Positional.pir \
   src/builtins/Parcel.pir \
   src/builtins/Bool.pir \
   src/builtins/Int.pir \
@@ -112,7 +113,6 @@ BUILTINS_PIR = \
   src/builtins/Method.pir \
   src/builtins/Submethod.pir \
   src/builtins/Regex.pir \
-  src/builtins/Positional.pir \
   src/builtins/Associative.pir \
   src/builtins/Seq.pir \
   src/builtins/SeqIter.pir \

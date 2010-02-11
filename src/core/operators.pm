@@ -147,6 +147,14 @@ our multi infix:sym<//>($a, $b) {
     $a.defined ?? $a !! $b
 }
 
+our multi infix:<==>($a, $b) {
+    pir::iseq__INN(+$a, +$b) ?? True !! False
+}
+
+our multi infix:<!=>($a, $b) {
+    pir::isne__INN(+$a, +$b) ?? True !! False
+}
+
 # XXX Wants to be a macro when we have them.
 our sub WHAT(\$x) {
     $x.WHAT

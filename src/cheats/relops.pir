@@ -12,24 +12,6 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 
 .namespace []
 
-.sub '&infix:<==>' :multi(_,_)
-    .param num a
-    .param num b
-    $I0 = iseq a, b
-    .return ($I0)
-    # .tailcall '&prefix:?'($I0)
-.end
-
-
-.sub '&infix:<!=>' :multi(_,_)
-    .param num a
-    .param num b
-    $I0 = isne a, b
-    .return ($I0)
-    # .tailcall '&prefix:?'($I0)
-.end
-
-
 .sub '&infix:<<>' :multi(_,_)
     .param num a
     .param num b

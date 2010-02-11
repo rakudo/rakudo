@@ -1136,6 +1136,13 @@ method type_constraint($/) {
             $*PARAMETER.nom_type($<typename>.ast);
         }
     }
+    elsif $<value> {
+        if $*PARAMETER.nom_type {
+            $/.CURSOR.panic('Parameter may only have one prefix type constraint');
+        }
+        $*PARAMETER.nom_type(PAST::Op.new( :pasttype('callmethod'), :name('WHAT'), $<value>.ast ));
+        $*PARAMETER.cons_types.push($<value>.ast);
+    }
     else {
         $/.CURSOR.panic('Can not do non-typename cases of type_constraint yet');
     }

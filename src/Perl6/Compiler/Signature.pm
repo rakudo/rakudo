@@ -225,7 +225,7 @@ method ast($high_level?) {
         if $_.pos_slurpy || $_.named_slurpy || $_.invocant {
             $nom_type := PAST::Var.new( :name('Mu'), :scope('package') );
         }
-        elsif $_.sigil eq "$" {
+        elsif $_.sigil eq "$" || $_.sigil eq "" {
             if !$_.nom_type {
                 $nom_type := PAST::Var.new(
                     :name(self.get_default_parameter_type()),

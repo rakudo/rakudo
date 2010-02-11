@@ -272,7 +272,7 @@ S06-multi/syntax.t
 # S06-operator-overloading/imported-subs.t
 # S06-operator-overloading/sub.t
 # S06-operator-overloading/workout.t
-# S06-other/anon-hashes-vs-blocks.t
+S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t
 # S06-other/main-eval.t
 S06-routine-modifiers/scoped-named-subs.t

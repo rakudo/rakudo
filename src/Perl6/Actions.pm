@@ -1469,14 +1469,14 @@ method circumfix:sym<{ }>($/) {
             $is_hash := 1;
         }
         elsif +@($past[1]) == 1 && $past[1][0].isa(PAST::Op) {
-            if $past[1][0].returns() eq 'Pair' {
+            if $past[1][0].returns() eq 'Pair' || $past[1][0].name() eq '&infix:<=>>' {
                 # Block with just one pair in it, so a hash.
                 $is_hash := 1;
             }
             elsif $past[1][0].name() eq '&infix:<,>' {
                 # List, but first elements must be...
                 if $past[1][0][0].isa(PAST::Op) &&
-                        $past[1][0][0].returns() eq 'Pair' {
+                        ($past[1][0][0].returns() eq 'Pair' || $past[1][0][0].name() eq '&infix:<=>>') {
                     # ...a Pair
                     $is_hash := 1;
                 }

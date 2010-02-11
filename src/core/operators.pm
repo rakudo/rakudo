@@ -138,6 +138,11 @@ our sub circumfix:<{ }>(*@elements) {
     %h
 }
 
+our sub hash(*@list, *%hash) {
+    my %h = (@list, %hash);
+    %h
+}
+
 # XXX Wants to be a macro when we have them.
 our sub WHAT(\$x) {
     $x.WHAT

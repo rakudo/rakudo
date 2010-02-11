@@ -143,6 +143,10 @@ our sub hash(*@list, *%hash) {
     %h
 }
 
+our multi infix:sym<//>($a, $b) {
+    $a.defined ?? $a !! $b
+}
+
 # XXX Wants to be a macro when we have them.
 our sub WHAT(\$x) {
     $x.WHAT

@@ -119,7 +119,7 @@ S03-operators/assign-is-not-binding.t
 # S03-operators/autoincrement-range.t                        # icu
 # S03-operators/autoincrement.t
 # S03-operators/autovivification.t
-# S03-operators/basic-types.t
+S03-operators/basic-types.t
 # S03-operators/binding-closure.t
 # S03-operators/binding-scalars.t
 # S03-operators/bit.t

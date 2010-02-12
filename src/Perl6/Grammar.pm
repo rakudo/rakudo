@@ -470,6 +470,7 @@ token desigilname {
 
 token variable {
     | <sigil> <twigil>? <desigilname>
+    | <sigil> $<index>=[\d+]
     | <sigil> <?[<[]> <postcircumfix>
     | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
 }

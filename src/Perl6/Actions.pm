@@ -530,7 +530,14 @@ sub make_pair($key, $value) {
 
 method variable($/) {
     my $past;
-    if $<postcircumfix> {
+    if $<index> {
+        $past := PAST::Op.new(
+            :name('!postcircumfix:<[ ]>'),
+            PAST::Var.new( :name('$/') ),
+            +$<index>
+        );
+    }
+    elsif $<postcircumfix> {
         $past := $<postcircumfix>.ast;
         $past.unshift( PAST::Var.new( :name('$/') ) );
     }

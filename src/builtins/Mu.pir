@@ -465,6 +465,25 @@ Gets the object's identity value
 =cut
 
 .namespace ['Mu']
+.sub '' :vtable('concatenate') :method
+    .param pmc arg
+    .param pmc dest
+    $S0 = self
+    $S1 = arg
+    $S2 = concat $S0, $S1
+    $P2 = box $S2
+    .return ($P2)
+.end
+
+.sub '' :vtable('concatenate_str') :method
+    .param string arg
+    .param pmc dest
+    $S0 = self
+    $S1 = concat $S0, arg
+    $P1 = box $S1
+    .return ($P1)
+.end
+
 .sub '' :vtable('decrement') :method
     $P0 = self.'pred'()
     '&infix:<=>'(self, $P0)

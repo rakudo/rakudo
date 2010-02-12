@@ -58,6 +58,21 @@ src/classes/Associative.pir - Associative Role
 
 =over
 
+=item postcircumfix:<{ }>
+
+=cut
+
+.namespace ['Associative[::T]']
+.sub 'XXX-postcircumfix:<{ }>' :method :multi(_, _)
+    .param pmc key
+    .local pmc result
+    result = self[key]
+    unless null result goto have_result
+    result = new ['Perl6Scalar']
+  have_result:
+    .return (result)
+.end
+
 =item of
 
 Returns the type constraining what may be stored.
@@ -95,7 +110,10 @@ fake it later.
     $I0 = isa invocant, 'Mu'
     if $I0 goto object_method
   foreign:
-    die "Can't postcircumfix:<{ }> foreign objects yet."
+    # XXX relies on the method being in the namespace -- perhaps
+    # should use method lookup instead
+    $P0 = get_hll_global ['Associative[::T]'], 'XXX-postcircumfix:<{ }>'
+    .tailcall invocant.$P0(args :flat)
   object_method:
     .tailcall invocant.'postcircumfix:<{ }>'(args :flat)
 .end

@@ -136,7 +136,6 @@ CHEATS_PIR = \
   src/cheats/autoincrement.pir \
   src/cheats/fail.pir \
   src/cheats/object.pir \
-  src/cheats/postcircumfix-hash.pir \
   src/cheats/int-ops.pir \
   src/cheats/num-ops.pir \
   src/cheats/str-ops.pir \

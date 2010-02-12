@@ -686,6 +686,21 @@ inline op bind_signature(in PMC) :base_core {
     }
 }
 
+
+/*
+
+=item x_setprophash(in PMC, in PMC)
+
+Sets the properties hash of $1 to be $2.
+
+=cut
+
+*/
+inline op x_setprophash(in PMC, in PMC) :base_core {
+    PMC_metadata($1) = $2;
+    goto NEXT();
+}
+
 /*
  * Local variables:
  *   c-file-style: "parrot"

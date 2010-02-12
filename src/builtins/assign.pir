@@ -18,8 +18,13 @@ src/builtins/assign.pir - assignment operations
     unless null rw goto cont_store
     die 'Cannot assign to readonly value'
   cont_store:
+    # if container is a scalar, force item assignment
+    $I0 = isa cont, ['Perl6Scalar']
+    if $I0 goto obj_store
+    # if container doesn't know how to store, force item assignment
     $I0 = can cont, '!STORE'
     unless $I0 goto obj_store
+    # let the container handle storing of source
     .tailcall cont.'!STORE'(source)
   obj_store:
     .const 'Sub' $P0 = 'Mu::!STORE'

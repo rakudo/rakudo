@@ -510,7 +510,10 @@ Gets the object's identity value
 .end
 
 .sub '' :vtable('get_iter') :method
-    .tailcall self.'iterator'()
+    $P0 = self.'iterator'()
+    $P1 = get_hll_global 'ParrotIter'
+    $P1 = $P1.'new'($P0)
+    .return ($P1)
 .end
 
 .sub '' :vtable('get_string') :method

@@ -94,6 +94,7 @@ BUILTINS_PIR = \
   src/builtins/Iterable.pir \
   src/builtins/Iterator.pir \
   src/builtins/EMPTY.pir \
+  src/builtins/ParrotIter.pir \
   src/builtins/List.pir \
   src/builtins/Grammar.pir \
   src/builtins/Positional.pir \

@@ -369,7 +369,7 @@ back some kind of iterator to let us get all of the possible candidates.
             SETATTR_P6Invocation_search_list(interp, p6i, _class->all_parents);
             SETATTR_P6Invocation_name(interp, p6i, name);
             SETATTR_P6Invocation_resume_point(interp, p6i, pos);
-            if (VTABLE_isa(interp, method, CONST_STRING(interp, "Perl6MultiSub"))) {
+            if (VTABLE_isa(interp, method, CONST_STRING(interp, "MultiSub"))) {
                 /* We don't have something definite to invoke, so set it up
                  * inside a candidate list. */
                 PMC *cand_list = pmc_new(interp, enum_class_ResizablePMCArray);

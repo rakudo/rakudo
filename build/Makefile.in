@@ -124,6 +124,7 @@ BUILTINS_PIR = \
   src/builtins/Failure.pir \
   src/builtins/Signature.pir \
   src/builtins/Junction.pir \
+  src/builtins/Capture.pir \
   src/builtins/assign.pir \
   src/builtins/control.pir \
 

@@ -112,13 +112,8 @@ method is_name($name) {
     # Otherwise, check in the namespace.
     my @parts := parse_name($name);
     my $final := pir::pop(@parts);
-    my $test  := pir::get_hll_global__PPS(@parts, $final);
-    if !pir::isnull__IP($test) && (pir::get_hll_global__PS('Abstraction').ACCEPTS($test) || pir::isa__IPS($test, 'P6protoobject') || pir::isa__IPS($test, 'Perl6Role')) {
-        return 1;
-    }
-
-    # Otherwise, it's a fail.
-    return 0;
+    my $test  := pir::get_hll_global__PPs(@parts, $final);
+    !pir::isnull__IP($test);
 }
 
 ## Lexer stuff

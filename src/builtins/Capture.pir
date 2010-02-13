@@ -54,6 +54,18 @@ them.
 .end
 
 
+=item postcircumfix:<{ }>
+
+=cut
+
+.sub 'postcircumfix:<{ }>' :method :vtable('get_pmc_keyed_str')
+    .param pmc key
+    $P0 = getattribute self, '$!named'
+    $P0 = $P0[key]
+    .return ($P0)
+.end
+
+
 =item elems
 
 The number of positional elements in the Capture.

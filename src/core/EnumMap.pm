@@ -55,4 +55,13 @@ role EnumMap does Associative {
     method Int() {
         pir::box__PI(pir::set__IP($!storage))
     }
+
+    method Capture() {
+        Q:PIR {
+            $P0 = get_hll_global 'Capture'
+            $P1 = find_lex 'self'
+            $P1 = getattribute $P1, '$!storage'
+            %r = $P0.'new'($P1 :flat :named)
+        }
+    }
 }

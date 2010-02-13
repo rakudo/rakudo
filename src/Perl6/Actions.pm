@@ -1036,6 +1036,21 @@ method regex_declarator($/, $key?) {
     }
 }
 
+method capterm($/) {
+    # Construct a Parcel, and then call .Capture to coerce it to a capture.
+    my $past := $<termish> ?? $<termish>.ast !!
+                $<capture> ?? $<capture>[0].ast !!
+                PAST::Op.new( :name('&infix:<,>') );
+    unless $past.isa(PAST::Op) && $past.name() eq '&infix:<,>' {
+        $past := PAST::Op.new( :name('&infix:<,>'), $past );
+    }
+    make PAST::Op.new( :pasttype('callmethod'), :name('Capture'), $past);
+}
+
+method capture($/) {
+    make $<EXPR>.ast;
+}
+
 method multisig($/) {
     make $<signature>.ast;
 }
@@ -1427,6 +1442,10 @@ method term:sym<*>($/) {
         :pasttype('callmethod'), :name('new'), :node($/), :lvalue(1),
         PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
     )
+}
+
+method term:sym<capterm>($/) {
+    make $<capterm>.ast;
 }
 
 method args($/) { 

@@ -633,6 +633,19 @@ rule method_def {
 # Captures and Signatures #
 ###########################
 
+token capterm {
+    '\\'
+    [
+    | '(' <capture>? ')'
+    | <?before \S> <termish>
+    | {} <.panic: "You can't backslash that">
+    ]
+}
+
+rule capture {
+    <EXPR>
+}
+
 rule param_sep {
     $<sep>=[','|':'|';;'|';'] { @*seps.push($<sep>) }
 }
@@ -785,6 +798,8 @@ token term:sym<pir::op> {
 }
 
 token term:sym<dotty> { <dotty> }
+
+token term:sym<capterm> { <capterm> }
 
 token args {
     | '(' <semiarglist> ')'

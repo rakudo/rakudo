@@ -65,6 +65,7 @@ Construct an iterator for the Parcel.
     .return ($S0)
 .end
 
+
 =item Seq()
 
 Return the Parcel as a Seq.
@@ -76,6 +77,37 @@ Return the Parcel as a Seq.
     seq = new ['Seq']
     seq.'!STORE'(self)
     .return (seq)
+.end
+
+
+=item Capture()
+
+Coerce the Parcel into a capture.
+
+=cut
+
+.namespace ['Parcel']
+.sub 'Capture' :method
+    .local pmc self_it, pos, named
+    self_it = iter self
+    pos = new ['ResizablePMCArray']
+    named = new ['Hash']
+  self_loop:
+    unless self_it goto self_done
+    $P0 = shift self_it
+    $I0 = isa $P0, 'Enum'
+    if $I0 goto to_named
+    push pos, $P0
+    goto self_loop
+  to_named:
+    $P1 = $P0.'key'()
+    $P2 = $P0.'value'()
+    named[$P1] = $P2
+    goto self_loop
+  self_done:
+    $P0 = get_hll_global 'Capture'
+    $P0 = $P0.'new'(pos :flat, named :flat :named)
+    .return ($P0)
 .end
 
 

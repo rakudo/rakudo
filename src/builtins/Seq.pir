@@ -62,6 +62,21 @@ Return a new SeqIter for the invocant.
     .return (elem)
 .end
 
+
+=item Capture
+
+Coerces the Seq to a Capture. For now, not lazy.
+
+=cut
+
+.sub 'Capture' :method
+    $P0 = self.'!fill'()
+    $P1 = get_hll_global 'Capture'
+    $P1 = $P1.'new'($P0 :flat)
+    .return ($P1)
+.end
+
+
 =head2 Private methods
 
 =over 4

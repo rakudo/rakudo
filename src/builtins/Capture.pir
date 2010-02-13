@@ -35,8 +35,46 @@ them.
     .param pmc named_args :slurpy :named
     
     # Create capture.
-    $P0 = get_hll_global 'Whatever'
-    $P0 = self.'bless'($P0, '$!pos'=>pos_args, '$!named'=>named_args)
+    $P0 = self.'CREATE'('P6opaque')
+    setattribute $P0, '$!pos', pos_args
+    setattribute $P0, '$!named', named_args
+    .return ($P0)
+.end
+
+
+=item postcircumfix:<[ ]>
+
+=cut
+
+.sub 'postcircumfix:<[ ]>' :method :vtable('get_pmc_keyed_int')
+    .param int i
+    $P0 = getattribute self, '$!pos'
+    $P0 = $P0[i]
+    .return ($P0)
+.end
+
+
+=item elems
+
+The number of positional elements in the Capture.
+
+=cut
+
+.sub 'elems' :method :vtable('elements')
+    $P0 = getattribute self, '$!pos'
+    $I0 = elements $P0
+    .return ($I0)
+.end
+
+
+=item hash
+
+XXX Returns Parrot Hash, not Perl 6 Hash.
+
+=cut
+
+.sub 'hash' :method
+    $P0 = getattribute self, '$!named'
     .return ($P0)
 .end
 

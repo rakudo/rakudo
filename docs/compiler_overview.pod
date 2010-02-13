@@ -2,59 +2,88 @@
 
 =head1 Overview of the Rakudo Perl 6 compiler
 
-This document describes the architecture and layout of the
-Rakudo Perl 6 (a.k.a. Rakudo) compiler.  See the F<README>
-file for information about how to build and run the compiler.
+This document describes the architecture and layout of the Rakudo Perl 6
+(aka Rakudo) compiler.  See the F<README> file for information about how
+to build and run the compiler.
 
-The Rakudo compiler is constructed from four major components:
+The Rakudo compiler is constructed from five major components
+(subdirectories relative to src/):
 
 =over 4
 
 =item 1.
 
-The main compiler object (perl6.pir)
+The compiler main program (Perl6/Compiler.pir)
 
 =item 2.
 
-The parse grammar (src/parser/grammar.pg, src/parser/*.pir)
+The Perl 6 language grammar (Perl6/Grammar.pm)
 
 =item 3.
 
-A set of action methods to transform the parse tree into an abstract syntax
-tree (src/parser/actions.pm)
+A set of action methods to transform the parse tree into an abstract
+syntax tree (AST) (Perl6/Actions.pm)
 
 =item 4.
 
-Builtin functions and runtime support (src/setting/, src/builtins/,
-src/classes/, src/pmc/)
+Parrot extensions (TODO: describe) (binder/bind.c, ops/*.c, pmc/*)
+
+=item 5.
+
+Builtin functions and runtime support (builtins/*.pir), cheats/*,
+core/*.pm, glue/*.pir, metamodel/*, ops/)
 
 =back
 
-The F<Makefile> takes care of compiling all of the individual
-components into compiled form and linking them together to
-form the F<perl6.pbc> executable.
-
+The F<Makefile> (generated from build/Makefile.in by Configure.pl) takes
+care of compiling all of the individual components and linking them
+together to form the F<perl6.pbc> executable and the perl6 "fake
+executable".
 
 =head2 Main compiler
 
-The Perl 6 compiler object itself, in F<perl6.pir>, drives the parsing and
-action methods. The compiler is an instance of C<PCT::HLLCompiler>, which
-provides a standard framework for parsing, optimization, and command line
-argument handling for Parrot compilers.  The C<onload> subroutine in
-F<perl6.pir> simply creates a new C<PCT::HLLCompiler> object, registers it as
-the C<Perl6> compiler, and sets it to use the C<Perl6::Grammar> and
-C<Perl6::Grammar::Actions> classes defined above.
+The main subroutine, in F<Perl6/Compiler.pir>, drives the parsing and
+action methods.  It registers a Parrot C<Perl6::Compiler> object for
+the 'perl6' source type.  The Parrot HLLCompiler class provides a
+standard framework for parsing, optimization, and command line argument
+handling for Parrot compilers.  Before tracing the compiler's execution
+further, a few words about Parrot process and module initialization.
 
-The C<main> subroutine in perl6.pir is used when Rakudo is invoked
-from the command line -- it simply passes control to the C<Perl6>
-compiler object registered by the C<onload> subroutine.
+Parrot execution does not simply begin with 'main'.  In a Parrot
+executable, Parrot first calls every subroutine marked with the C<:init>
+modifier at startup time.  Rakudo has over 50 such subroutines that
+dynamically create classes and objects in Parrot's memory, brought in by
+a series of C<.include> directives.
 
-Lastly, the C<perl6.pir> source uses PIR C<.include> directives
-to pull in the PIR sources for the parse grammar, action methods,
-and runtime builtin functions.
+When the executable loads libraries, Parrot similarly calls subs having
+the C<:load> modifier.  The Rakudo C<:init> subs are usually also
+C<:load>, so that the same startup sequence occurs whether Rakudo is run
+as an executable or loaded as a library.
 
+F<Perl6/Compiler.pir> has three C<.loadlib> commands early on, for
+F<perl6_group>, F<perl6_ops> and F<math_ops>.  All three dynamically
+extend Parrot at runtime, respectively with Rakudo specific PMC's (Poly
+Morphic Containers, formerly Parrot Magic Cookies), opcodes, and
+mathematical operators.  The source is in F<pmc/*>, F<ops/*> and
+F<parrot/src/ops/math.ops>.
+
+So, that Rakudo main subroutine had created an HLLCompiler object.  The
+subroutine then calls the 'command_line' method on this object, passing
+the command line arguments in PMC called args_str.
+
+TODO: how C<nqp-rx> (Not Quite Perl - Regex) fits in.
 
 =head2 Parse grammar
+
+The compiler works by calling C<TOP> method in F<Perl6/Grammar.pm>, and
+after some initialization, TOP matches the user program to the comp_unit
+(meaning compilation unit) token.  That triggers a series of matches to
+other tokens and rules (two kinds of regexes) depending on what is
+written in the user program.
+
+The C<Perl6/Actions.pm> file defines what the compiler must output when
+it matches certain tokens or rules.
+
 
 The parse grammar is written using a mix of Perl 6 regular
 expressions, operator tokens, and special-purpose PIR

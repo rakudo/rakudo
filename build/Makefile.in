@@ -94,6 +94,7 @@ BUILTINS_PIR = \
   src/builtins/Iterable.pir \
   src/builtins/Iterator.pir \
   src/builtins/EMPTY.pir \
+  src/builtins/ParrotIter.pir \
   src/builtins/List.pir \
   src/builtins/Grammar.pir \
   src/builtins/Positional.pir \
@@ -135,8 +136,6 @@ CHEATS_PIR = \
   src/cheats/autoincrement.pir \
   src/cheats/fail.pir \
   src/cheats/object.pir \
-  src/cheats/postcircumfix-array.pir \
-  src/cheats/postcircumfix-hash.pir \
   src/cheats/int-ops.pir \
   src/cheats/num-ops.pir \
   src/cheats/str-ops.pir \

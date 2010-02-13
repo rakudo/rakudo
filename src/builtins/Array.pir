@@ -21,16 +21,16 @@ Arrays are the mutable form of Lists.
 
 =item postcircumfix:<[ ]>(Int)
 
+=cut
+
 .sub 'postcircumfix:<[ ]>' :method :multi(_, ['Integer']) 
     .param int n
+    if n < 0 goto err_index
     .local pmc values, elem
-    if n < 0 goto fail
     $I0 = n + 1
-    values = self.'!generate'($I0)
+    values = self.'!fill'($I0)
     elem = values[n]
-    if null elem goto fail
-    .return (elem)
-  fail:
+    unless null elem goto have_elem
     .local pmc key
     key = box n
     elem = new ['Proxy']
@@ -38,7 +38,11 @@ Arrays are the mutable form of Lists.
     setattribute elem, '$!key', key
     $P0 = get_hll_global ['Bool'], 'True'
     setprop elem, 'rw', $P0
+  have_elem:
     .return (elem)
+
+  err_index:
+    "&die"("Cannot use negative index on arrays")
 .end
 
 =back
@@ -61,6 +65,29 @@ Arrays are the mutable form of Lists.
     $P0.'!STORE'(parcel)
     $P1 = new ['Perl6Scalar'], $P0
     .return ($P1)
+.end
+
+=back
+
+=head2 Private methods
+
+=over 4
+
+=item !elem(item)
+
+Create an element for the Array (has the 'rw' property set).
+
+=cut
+
+.namespace ['Array']
+.sub '!elem' :method
+    .param pmc item
+    .local pmc elem, true
+    true = get_hll_global ['Bool'], 'True'
+    elem = new ['Perl6Scalar']
+    setprop elem, 'rw', true
+    elem.'!STORE'(item)
+    .return (elem)
 .end
 
 =back

@@ -228,5 +228,13 @@ our multi sub infix:<leg>($a, $b) {
     ~$a cmp ~$b
 }
 
+our multi split ( Str $delimiter, Str $input, Int $limit = * ) {
+    $input.split($delimiter, $limit);
+}
+
+our multi split ( Regex $delimiter, Str $input, Int $limit = * ) {
+    $input.split($delimiter, $limit);
+}
+
 
 # vim: ft=perl6

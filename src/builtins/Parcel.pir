@@ -75,6 +75,7 @@ Return the Parcel as a Seq.
 .sub 'Seq' :method
     .local pmc seq
     seq = new ['Seq']
+    transform_to_p6opaque seq
     seq.'!STORE'(self)
     .return (seq)
 .end

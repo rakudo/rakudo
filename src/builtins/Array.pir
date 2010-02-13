@@ -62,6 +62,7 @@ Arrays are the mutable form of Lists.
     parcel = new ['Parcel']
     splice parcel, values, 0, 0
     $P0 = new ['Array']
+    transform_to_p6opaque $P0
     $P0.'!STORE'(parcel)
     $P1 = new ['Perl6Scalar'], $P0
     .return ($P1)

@@ -796,6 +796,15 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
             }
         }
 
+        # For arrays, need to transform_to_p6opaque. XXX Find a neater way
+        # to do this.
+        if $sigil eq '@' {
+            get_var_traits_node($BLOCK, $name).push(PAST::Op.new(
+                :pirop('transform_to_p6opaque vP'),
+                PAST::Var.new( :name('$P0'), :scope('register') )
+            ));
+        }
+
         # If we've a type to init with and it's a scalar, do so.
         if $init_type && $sigil eq '$' {
             $cont.pirop('new PsP');

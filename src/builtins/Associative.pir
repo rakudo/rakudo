@@ -58,21 +58,6 @@ src/classes/Associative.pir - Associative Role
 
 =over
 
-=item postcircumfix:<{ }>
-
-=cut
-
-.namespace ['Associative[::T]']
-.sub 'XXX-postcircumfix:<{ }>' :method :multi(_, _)
-    .param pmc key
-    .local pmc result
-    result = self[key]
-    unless null result goto have_result
-    result = new ['Perl6Scalar']
-  have_result:
-    .return (result)
-.end
-
 =item of
 
 Returns the type constraining what may be stored.
@@ -88,34 +73,6 @@ Returns the type constraining what may be stored.
     .const 'Sub' block = 'Associative::of'
     signature = allocate_signature 0
     setprop block, "$!signature", signature
-.end
-
-=item !postcircumfix:<{ }>
-
-Because foreign (non-Rakudo) Parrot objects generally won't
-understand the "postcircumfix:<{ }>" method, we generate
-postcircumfix as a private call to this function, and this
-function then delegates to the appropriate method.  For PMCs
-that don't have a postcircumfix:<{ }> method, we'll have to
-fake it later.
-
-=cut
-
-.namespace []
-.sub '!postcircumfix:<{ }>'
-    .param pmc invocant
-    .param pmc args            :slurpy
-    $I0 = can invocant, 'postcircumfix:<{ }>'
-    if $I0 goto object_method
-    $I0 = isa invocant, 'Mu'
-    if $I0 goto object_method
-  foreign:
-    # XXX relies on the method being in the namespace -- perhaps
-    # should use method lookup instead
-    $P0 = get_hll_global ['Associative[::T]'], 'XXX-postcircumfix:<{ }>'
-    .tailcall invocant.$P0(args :flat)
-  object_method:
-    .tailcall invocant.'postcircumfix:<{ }>'(args :flat)
 .end
 
 =back

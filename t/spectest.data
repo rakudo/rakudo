@@ -407,15 +407,15 @@ S29-conversions/ord_and_chr.t                              #icu
 ## S32-array/create.t
 # S32-array/delete.t
 S32-array/elems.t
-S32-array/end.t
+## S32-array/end.t
 # S32-array/exists.t
 # S32-array/keys_values.t
 # S32-array/kv.t
 # S32-array/pairs.t
-S32-array/pop.t
+## S32-array/pop.t
 S32-array/push.t
 # S32-array/rotate.t
-S32-array/shift.t
+## S32-array/shift.t
 # S32-array/splice.t
 S32-array/unshift.t
 # S32-container/zip.t
@@ -428,8 +428,8 @@ S32-array/unshift.t
 # S32-io/chdir.t
 # S32-io/IO-Socket-INET.t
 ## S32-list/create.t
-S32-list/end.t
-S32-list/first.t
+## S32-list/end.t
+## S32-list/first.t
 # S32-list/grep.t
 S32-list/join.t
 # S32-list/map_function_return_values.t
@@ -450,7 +450,7 @@ S32-num/log.t
 # S32-num/power.t
 # S32-num/rand.t
 S32-num/rat.t
-S32-num/roots.t
+# S32-num/roots.t
 # S32-num/rounders.t
 S32-num/sign.t
 S32-num/sqrt.t

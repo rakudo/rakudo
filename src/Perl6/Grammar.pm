@@ -470,7 +470,6 @@ token desigilname {
 
 token variable {
     | <sigil> <twigil>? <desigilname>
-    | <sigil> $<index>=[\d+]
     | <sigil> <?[<[]> <postcircumfix>
     | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
 }
@@ -1097,15 +1096,8 @@ token infix:sym<?? !!> {
     <O('%conditional, :reducecheck<ternary>, :pasttype<if>')> 
 }
 
-token infix:sym<:=>   { 
-    <sym>  <O('%item_assignment')> 
-    <.panic: ":= binding not yet implemented">
-}
-
-token infix:sym<::=>   { 
-    <sym>  <O('%item_assignment')> 
-    <.panic: "::= binding not yet implemented">
-}
+#token infix:sym<:=>   { <sym>  <O('%assignment, :pasttype<bind>')> }
+#token infix:sym<::=>  { <sym>  <O('%assignment, :pasttype<bind>')> }
 
 token infix:sym<.=> { <sym> <O('%item_assignment, :nextterm<dottyopish>')> }
 

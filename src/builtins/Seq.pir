@@ -66,23 +66,6 @@ Return a new SeqIter for the invocant.
 
 =over 4
 
-=item !elem(item)
-
-Create a new empty element in the Seq, initialize it to item.
-This method is overridden by subclasses (e.g., Array) that
-wish to make other property changes on individual elements.
-
-=cut
-
-.namespace ['Seq']
-.sub '!elem' :method
-    .param pmc item
-    .local pmc elem
-    elem = new ['Perl6Scalar']
-    elem.'!STORE'(item)
-    .return (elem)
-.end
-
 =item !fill([n])
 
 Reify any lazy portions of the sequence until we have at least
@@ -98,11 +81,6 @@ C<n> items.  If C<n> is omitted, then reify the entire sequence.
     items = getattribute self, '@!items'
     rest  = getattribute self, '$!rest'
 
-    unless null items goto have_items
-    items = root_new ['parrot';'ResizablePMCArray']
-    setattribute self, '@!items', items
-  have_items:
-
     # If there's no $!rest, then we can stop immediately, as
     # everything has already been reified.
     if null rest goto done
@@ -117,8 +95,7 @@ C<n> items.  If C<n> is omitted, then reify the entire sequence.
     item = rest.'get'()
     $I0 = isa item, ['EMPTY']
     if $I0 goto rest_done
-    $P0 = self.'!elem'(item)
-    push items, $P0
+    push items, item
     inc items_n
     goto rest_loop
   rest_done:
@@ -154,15 +131,17 @@ Performs list assignment using the values from C<source>.
   source_loop:
     unless source goto source_done
     $P0 = shift source
-    $P1 = self.'!elem'($P0)
+    $P1 = new ['ObjectRef']
     push items, $P1
+    $P1.'!STORE'($P0)
     goto source_loop
   source_done:
     goto done
 
   source_item:
-    $P1 = self.'!elem'(source)
+    $P1 = new ['ObjectRef']
     push items, $P1
+    $P1.'!STORE'(source)
 
   done:
     setattribute self, '@!items', items

@@ -101,24 +101,22 @@ src/classes/Positional.pir - Positional Role
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
     .local pmc result
-    args = 'list'(args)
+    args = '&eager'(args)
     $I0 = elements args
     if $I0 == 1 goto arg_slice
-    result = new ['List']
+    result = new ['Parcel']
   args_loop:
     unless args goto args_done
     $P0 = shift args
-    $P0 = 'postcircumfix:<[ ]>'(self, $P0, options :named :flat)
-    $P0 = 'list'($P0)
-    $I0 = elements result
-    splice result, $P0, $I0, 0
+    $P0 = '!postcircumfix:<[ ]>'(self, $P0, options :named :flat)
+    push result, $P0
     goto args_loop
   args_done:
     .return (result)
   arg_slice:
     $P0 = args[0]
     .const 'Sub' $P1 = 'Positional::postcircumfix:[Int]'
-    .tailcall $P1(self, $P0, options :named :flat)
+    .tailcall self.$P1($P0, options :named :flat)
 .end
 
 .sub '' :load :init

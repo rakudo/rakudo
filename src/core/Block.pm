@@ -25,7 +25,7 @@ augment class Block {
     }
 
     method ACCEPTS($topic) {
-        self.arity == 0 ?? self.() !! self.($topic);
+        self.count == 0 ?? self.() !! self.($topic);
     }
 
 }

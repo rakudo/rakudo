@@ -64,55 +64,40 @@ src/classes/Positional.pir - Positional Role
 
 =cut
 
-.sub 'postcircumfix:[ ]' :method :multi(_, 'Integer') :outer('_positional_role_body') :subid('Positional::postcircumfix:[Int]')
+.sub 'postcircumfix:<[ ]>' :method :multi(_, 'Integer') :outer('_positional_role_body') :subid('Positional::postcircumfix:[Int]')
     .param int index
     .param pmc options         :slurpy :named
+    unless index < 0 goto index_ok
+    die "Negative indexes to .[] not allowed in Perl 6"
+  index_ok:
     .local pmc result
-    if index < 0 goto err_undef
-    .local pmc type
-    type = find_lex 'T'
-    .local int count
-    count = elements self
-  extend_loop:
-    unless count < index goto extend_done
-    result = 'undef'()
-    setprop result, 'type', type
-    self[count] = result
-    inc count
-    goto extend_loop
-  extend_done:
     result = self[index]
-    unless null result goto done
-    result = 'undef'()
-    setprop result, 'type', type
-    self[index] = result
-  done:
-    .return (result)
-  err_undef:
-    result = 'undef'()
+    unless null result goto have_result
+    result = new ['Perl6Scalar']
+  have_result:
     .return (result)
 .end
 
-.sub 'postcircumfix:[ ]' :method :multi(_, 'Sub')
+.sub 'postcircumfix:<[ ]>' :method :multi(_, 'Sub')
     .param pmc arg
     .param pmc options         :slurpy :named
     $I0 = elements self
     $P0 = arg($I0)
-    .tailcall 'postcircumfix:[ ]'(self, $P0, options :named :flat)
+    .tailcall '!postcircumfix:<[ ]>'(self, $P0, options :named :flat)
 .end
 
-.sub 'postcircumfix:[ ]' :method :multi(_, 'Whatever')
+.sub 'postcircumfix:<[ ]>' :method :multi(_, 'Whatever')
     .param pmc arg
     .param pmc options         :slurpy :named
     .tailcall 'list'(self)
 .end
 
-.sub 'postcircumfix:[ ]' :method :multi(_)
+.sub 'postcircumfix:<[ ]>' :method :multi(_)
     .param pmc options         :slurpy :named
     .tailcall self.'list'()
 .end
 
-.sub 'postcircumfix:[ ]' :method :multi(_, _)
+.sub 'postcircumfix:<[ ]>' :method :multi(_, _)
     .param pmc args            :slurpy
     .param pmc options         :slurpy :named
     .local pmc result
@@ -123,7 +108,7 @@ src/classes/Positional.pir - Positional Role
   args_loop:
     unless args goto args_done
     $P0 = shift args
-    $P0 = 'postcircumfix:[ ]'(self, $P0, options :named :flat)
+    $P0 = 'postcircumfix:<[ ]>'(self, $P0, options :named :flat)
     $P0 = 'list'($P0)
     $I0 = elements result
     splice result, $P0, $I0, 0
@@ -162,21 +147,33 @@ Returns the type constraining what may be stored.
 .end
 
 
+=item !postcircumfix:<[ ]>
+
+Because foreign (non-Rakudo) Parrot objects generally won't
+understand the "postcircumfix:<[ ]>" method, we generate
+postcircumfix as a private call to this function, and this
+function then delegates to the appropriate method.  For PMCs
+that don't have a postcircumfix:<[ ]> method, we directly
+use the one in Positional.
+
+=cut
+
 .namespace []
-.sub 'postcircumfix:[ ]'
+.sub '!postcircumfix:<[ ]>'
     .param pmc invocant
-    .param pmc args    :slurpy
-    .param pmc options :slurpy :named
-    $I0 = can invocant, 'postcircumfix:[ ]'
+    .param pmc args            :slurpy
+    $I0 = can invocant, 'postcircumfix:<[ ]>'
     if $I0 goto object_method
     $I0 = isa invocant, 'Mu'
     if $I0 goto object_method
   foreign:
-    $P0 = get_hll_global ['Positional[::T]'], 'postcircumfix:[ ]'
-    .tailcall $P0(invocant, args :flat, options :flat :named)
+    # XXX not a good idea, this relies on the method being in the namespace
+    $P0 = get_hll_global ['Positional[::T]'], 'postcircumfix:<[ ]>'
+    .tailcall invocant.$P0(args :flat)
   object_method:
-    .tailcall invocant.'postcircumfix:[ ]'(args :flat, options :flat :named)
+    .tailcall invocant.'postcircumfix:<[ ]>'(args :flat)
 .end
+
 
 =back
 

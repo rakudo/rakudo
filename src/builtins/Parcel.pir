@@ -170,6 +170,62 @@ The canonical operator for creating a Parcel.
 
 =back
 
+=head2 Private methods
+
+=over 4
+
+=item !STORE(source)
+
+Handle assignment to a Parcel (list assignment).
+
+=cut
+
+.namespace ['Parcel']
+.sub '!STORE' :method
+    .param pmc source
+
+    # First, create a flattening Array from C<source>.  This
+    # creates # copies of values in C<source>, in case any lvalue target
+    # containers in C<self> also happen to be listed as rvalues
+    # in C<source>.  (Creating a copy of everything in C<source>
+    # likely isn't the most efficient approach to this, but it
+    # works for now.)
+    source = '&circumfix:<[ ]>'(source)
+
+    # Now, loop through targets of C<self>, storing the corresponding
+    # values from source and flattening any RPAs we encounter.  If a
+    # target is an array or hash, then it will end up consuming all
+    # of the remaining elements of source.
+    .local pmc targets
+    targets = root_new ['parrot';'ResizablePMCArray']
+    splice targets, self, 0, 0
+  store_loop:
+    unless targets goto store_done
+    .local pmc cont
+    cont = shift targets
+    $I0 = isa cont, ['ResizablePMCArray']
+    if $I0 goto store_rpa
+    $I0 = isa cont, ['Perl6Scalar']
+    if $I0 goto store_scalar
+    $I0 = isa cont, ['Array']
+    if $I0 goto store_array
+  store_scalar:
+    $P0 = source.'shift'()
+    cont.'!STORE'($P0)
+    goto store_loop
+  store_array:
+    cont.'!STORE'(source)
+    source = '&circumfix:<[ ]>'()
+    goto store_loop
+  store_rpa:
+    splice targets, cont, 0, 0
+    goto store_loop
+  store_done:
+
+    .return (self)
+.end
+
+
 =cut
 
 # Local Variables:

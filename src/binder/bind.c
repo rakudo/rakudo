@@ -509,8 +509,26 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
 
     /* Now we'll walk through the signature and go about binding things. */
     for (i = 0; i < num_elements; i++) {
+        /* Is it looking for us to bind a capture here? */
+        if (elements[i]->flags & SIG_ELEM_IS_CAPTURE) {
+            /* XXX In the long run, we need to snapshot any current CaptureCursor.
+             * For now, we don't have that, so we just build off the current
+             * capture. */
+            PMC *ns       = Parrot_get_ctx_HLL_namespace(interp);
+            PMC *snapper  = Parrot_get_global(interp, ns, string_from_literal(interp, "!snapshot_capture"));
+            PMC *snapshot = PMCNULL;
+            Parrot_ext_call(interp, snapper, "PiIP->P", capture, cur_pos_arg, named_args_copy, &snapshot);
+            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i], snapshot,
+                    no_nom_type_check, error);
+            if (bind_fail) {
+                if (pos_from_named)
+                    mem_sys_free(pos_from_named);
+                return bind_fail;
+            }
+        }
+
         /* Is it a positional sourced from a named? */
-        if (pos_from_named && pos_from_named[i]) {
+        else if (pos_from_named && pos_from_named[i]) {
             /* We have the value - try bind this parameter. */
             bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
                     pos_from_named[i], no_nom_type_check, error);

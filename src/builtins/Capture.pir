@@ -92,6 +92,29 @@ XXX Returns Parrot Hash, not Perl 6 Hash.
 
 =back
 
+=head2 Functions
+
+=over 4
+
+=item !snapshot_capture
+
+Snapshots the current capture cursor.
+
+Well, akshually...until we implement Capture Cursor it just kinda pretends
+to. :-) Hands back a Capture containing the snapshot.
+
+=cut
+
+.namespace []
+.sub '!snapshot_capture'
+    .param pmc capture
+    .param int pos_position
+    .param pmc nameds_unbound
+    die "Capture snapshots in signatures not yet implemented."
+.end
+
+=back
+
 =cut
 
 # Local Variables:

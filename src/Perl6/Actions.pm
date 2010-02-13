@@ -1683,7 +1683,7 @@ method number:sym<numish>($/) {
 }
 
 method numish($/) {
-    if $<integer> { make PAST::Val.new( :value($<integer>.ast), :returns('Int') ); }
+    if $<integer> { make PAST::Val.new( :value($<integer>.ast) ); }
     elsif $<dec_number> { make $<dec_number>.ast; }
     else {
         make PAST::Var.new( :name(~$/), :namespace(''), :scope('package') );

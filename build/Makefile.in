@@ -132,6 +132,7 @@ BUILTINS_PIR = \
 # last cheat must be register.pir (to register Parrot
 # classes).
 CHEATS_PIR = \
+  src/cheats/constants.pir \
   src/cheats/perl6-compiler.pir \
   src/cheats/autoincrement.pir \
   src/cheats/fail.pir \

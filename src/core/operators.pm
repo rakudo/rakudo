@@ -80,11 +80,7 @@ our multi prefix:<not>($x) { !$x }
 our multi prefix:<so>($x) { ?$x }
 
 our multi prefix:sym<+^>($x) {
-    Q:PIR {
-        $P0 = find_lex '$x'
-        %r = new ['Integer']
-        bnot %r, $P0
-    }
+    pir::bnot__PP($x)
 }
 
 our sub undefine(\$x) {

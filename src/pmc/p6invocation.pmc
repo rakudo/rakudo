@@ -107,6 +107,23 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only, INTVAL 
             current = VTABLE_get_pmc_keyed_int(interp, candidates, position);
         }
     }
+    else if (VTABLE_isa(interp, current, CONST_STRING(interp, "MultiSub"))) {
+        /* Parrot MultiSub. Any possible candidates? (Note: Poking at
+         * guts a little here.) */
+        PMC * const sig_obj = CONTEXT(interp)->current_sig;
+        PMC * const func = Parrot_mmd_sort_manhattan_by_sig_pmc(interp, current, sig_obj);
+        if (PMC_IS_NULL(func)) {
+            position++;
+            SETATTR_P6Invocation_position(interp, SELF, position);
+            goto check_and_continue_search;
+        }
+        else {
+            if (is_multi_dispatch)
+                *is_multi_dispatch = 1;
+            VTABLE_set_pmc_keyed_int(interp, candidates, position, func);
+            current = func;
+        }
+    }
 
     /* Increment position in candidate list if we're in check mode, and we're done. */
     if (!check_only)

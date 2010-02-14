@@ -1,0 +1,7 @@
+This file lists known cheats that can't otherwise
+easily be placed into the src/cheats directory.
+
+* Iterator and Iterable are currently classes, should
+  probably become roles.
+
+

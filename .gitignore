@@ -1,6 +1,6 @@
 *~
-src/gen_*.pir
-src/gen_*.pm
+/src/gen/*
+/nqp-rx/
 Makefile
 .*.swp
 *.patch
@@ -19,8 +19,8 @@ perl6.pdb
 perl6.rc
 t/localtest.data
 t/spec
-parrot
-parrot_install
+/parrot
+/parrot_install
 perl6
 perl6.c
 perl6.o
@@ -34,3 +34,4 @@ perl6_group.?
 libparrot.dll
 src/binder/bind.bundle
 src/binder/bind.o
+docs/test_summary.times

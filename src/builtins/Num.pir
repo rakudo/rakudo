@@ -1,0 +1,125 @@
+## $Id$
+
+=head1 TITLE
+
+Num - Perl 6 numbers
+
+=head2 Methods
+
+=over 4
+
+=cut
+
+.namespace [ 'Num' ]
+
+.sub 'onload' :anon :init :load
+    .local pmc p6meta, numproto
+    p6meta = get_hll_global ['Mu'], '$!P6META'
+    numproto = p6meta.'new_class'('Num', 'parent'=>'parrot;Float Any')
+
+    # Override the proto's ACCEPT method so we also accept Ints.
+    .const 'Sub' $P0 = "Num::ACCEPTS"
+    $P1 = typeof numproto
+    $P1.'add_method'('ACCEPTS', $P0)
+
+    # Map Parrot Float to Rakudo Num
+    $P0 = getinterp
+    $P1 = get_class ['Float']
+    $P2 = get_class ['Num']
+    $P0.'hll_map'($P1, $P2)
+.end
+
+
+.sub 'Num::ACCEPTS' :anon :method
+    .param pmc topic
+
+    ##  first, try our superclass .ACCEPTS
+    $P0 = get_hll_global 'Any'
+    $P1 = find_method $P0, 'ACCEPTS'
+    $I0 = self.$P1(topic)
+    unless $I0 goto try_int
+    .return ($I0)
+
+  try_int:
+    $P0 = get_hll_global 'Int'
+    $I0 = $P0.'ACCEPTS'(topic)
+    .return ($I0)
+.end
+
+=item succ and pred
+
+Increment and Decrement Methods
+
+=cut
+
+.sub 'pred' :method
+    $N0 = self
+    dec $N0
+    .return ($N0)
+.end
+
+.sub 'succ' :method
+    $N0 = self
+    inc $N0
+    .return ($N0)
+.end
+
+
+=item WHICH()
+
+Returns the identify value.
+
+=cut
+
+.sub 'WHICH' :method
+    $N0 = self
+    .return ($N0)
+.end
+
+=back
+
+=head2 Operators
+
+=over 4
+
+=item &infix:<===>
+
+Overridden for Num.
+
+=cut
+
+.namespace []
+.sub '&infix:<===>' :multi(Float,Float)
+    .param num a
+    .param num b
+    $I0 = iseq a, b
+    .return ($I0)
+    # .tailcall 'prefix:?'($I0)
+.end
+
+=back
+
+=head2 Private methods
+
+=over 4
+
+=item !FETCH()
+
+Value type, so return self.
+
+=cut
+
+.sub '!FETCH' :method
+    .return (self)
+.end
+
+
+=back
+
+=cut
+
+# Local Variables:
+#   mode: pir
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4 ft=pir:

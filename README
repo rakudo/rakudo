@@ -88,9 +88,9 @@ Once built, Rakudo's C<make install> target will install Rakudo
 and its libraries into the Parrot installation that was used to
 create it.  Until this step is performed, the "perl6" executable
 created by C<make> above can only be reliably run from the root of
-Rakudo's build directory.  After C<make install> is performed
-the executable can be run from any directory (as long as the
-Parrot installation that was used to create it remains intact).
+Rakudo's build directory.  After C<make install> is performed,
+the installed executable can be run from any directory (as long as
+the Parrot installation that was used to create it remains intact).
 
 If the Rakudo compiler is invoked without an explicit script to
 run, it enters a small interactive mode that allows Perl 6 statements

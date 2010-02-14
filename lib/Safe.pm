@@ -28,6 +28,7 @@ module Safe {
         $P1 = find_lex '$s'
         $P0['run']  = $P1
         $P0['open'] = $P1
+        $P0['slurp'] = $P1
         $P0['!qx']  = $P1
         null $P1
         set_hll_global ['IO'], 'Socket', $P0

@@ -518,7 +518,7 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
             }
             else {
                 element->nominal_type = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
-                        string_from_literal(interp, "Object"));
+                        string_from_literal(interp, "Mu"));
             }
 
             goto NEXT();
@@ -612,17 +612,27 @@ inline op bind_signature(in PMC) :base_core {
         PMC *signature      = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
+        INTVAL bind_error;
 
         /* Need to make sure some stuff doesn't get destroyed. */
         PMC      * ctx               = CURRENT_CONTEXT(interp);
         PMC      * const saved_ccont = interp->current_cont;
         PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
         PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
-        opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
 
+        /* Ensure we actually have a signature; if not, try to lazily generate
+         * it. */
+        if (PMC_IS_NULL(signature)) {
+            PMC *p6_code_obj = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!p6type"));
+            PMC *sig_meth    = VTABLE_find_method(interp, p6_code_obj, string_from_literal(interp, "signature"));
+            PMC *result;
+            Parrot_ext_call(interp, sig_meth, "P->P", p6_code_obj, &result);
+            signature = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
+        }
+
         /* Call signature binder. */
-        INTVAL bind_error = bind_signature_func(interp, lexpad, signature, $1, noms_checked, &error);
+        bind_error = bind_signature_func(interp, lexpad, signature, $1, noms_checked, &error);
 
         /* Bind ok? */
         if (!bind_error) {
@@ -631,7 +641,6 @@ inline op bind_signature(in PMC) :base_core {
             interp->current_cont = saved_ccont;
             Parrot_pcc_set_signature(interp, ctx, saved_sig);
             Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-            Parrot_pcc_set_results(interp, ctx, saved_cr);
             Parrot_pcc_set_pc(interp, ctx, current_pc);
             goto NEXT();
         }
@@ -650,7 +659,6 @@ inline op bind_signature(in PMC) :base_core {
                 interp->current_cont = saved_ccont;
                 Parrot_pcc_set_signature(interp, ctx, saved_sig);
                 Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-                Parrot_pcc_set_results(interp, ctx, saved_cr);
                 Parrot_pcc_set_pc(interp, ctx, current_pc);
 
                 /* Save the Junctional result as the return value. */
@@ -674,6 +682,21 @@ inline op bind_signature(in PMC) :base_core {
     else {
         goto NEXT();
     }
+}
+
+
+/*
+
+=item x_setprophash(in PMC, in PMC)
+
+Sets the properties hash of $1 to be $2.
+
+=cut
+
+*/
+inline op x_setprophash(in PMC, in PMC) :base_core {
+    PMC_metadata($1) = $2;
+    goto NEXT();
 }
 
 /*

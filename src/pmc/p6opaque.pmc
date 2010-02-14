@@ -38,7 +38,6 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     PMC      * const saved_ccont = interp->current_cont;
     PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
     PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
-    opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
 
     /* Iterate over the handlers. */
     PMC    *iter       = VTABLE_get_iter(interp, handlers);
@@ -53,7 +52,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
             STRING * const get_pc = CONST_STRING(interp, "get_parrotclass");
             ns_key = pmc_new(interp, enum_class_ResizableStringArray);
             VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
-            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Perl6Object"));
+            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Mu"));
             ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
             p6meta = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "$!P6META"));
             meth = VTABLE_find_method(interp, p6meta, get_pc);
@@ -96,7 +95,6 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     interp->current_cont = saved_ccont;
     Parrot_pcc_set_signature(interp, ctx, saved_sig);
     Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-    Parrot_pcc_set_results(interp, ctx, saved_cr);
 
     /* Did we find anything? */
     if (attr) {
@@ -287,21 +285,27 @@ back some kind of iterator to let us get all of the possible candidates.
 
 */
     VTABLE PMC *find_method(STRING *name) {
-        Parrot_Object_attributes * const obj    = PARROT_OBJECT(SELF);
-        Parrot_Class_attributes  * const _class = PARROT_CLASS(obj->_class);
-        INTVAL                           pos    = 0;
-        PMC                      *       method;
+        Parrot_Object_attributes * obj    = PARROT_OBJECT(SELF);
+        Parrot_Class_attributes  * _class = PARROT_CLASS(obj->_class);
+        INTVAL                     pos    = 0;
+        PMC                      * method;
 
         /* If we're calling a method on Whatever, we need to generate a closure
          * instead. XXX It sucks that every method invocation pays for this, so
          * we really must find something better to do. */
         if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Whatever")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "new")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "bless")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "CREATE")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "BUILD")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "BUILDALL")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "WHAT")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "HOW")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "isa")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "Scalar")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "defined"))) {
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "defined")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!FETCH"))) {
             /* Look up closure maker, clone it, attach name and return that. */
             PMC *sub = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
                     CONST_STRING(interp, "!MAKE_WHATEVER_CLOSURE"));
@@ -323,7 +327,8 @@ back some kind of iterator to let us get all of the possible candidates.
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "perl")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "!select")) &&
                 !Parrot_str_equal(interp, name, CONST_STRING(interp, "!add_variant")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "postcircumfix:[ ]"))) {
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!FETCH")) &&
+                !Parrot_str_equal(interp, name, CONST_STRING(interp, "postcircumfix:<[ ]>"))) {
             PMC *ns_key, *ns, *punner, *boxed_name;
             ns_key = pmc_new(interp, enum_class_ResizableStringArray);
             VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
@@ -362,7 +367,7 @@ back some kind of iterator to let us get all of the possible candidates.
             SETATTR_P6Invocation_search_list(interp, p6i, _class->all_parents);
             SETATTR_P6Invocation_name(interp, p6i, name);
             SETATTR_P6Invocation_resume_point(interp, p6i, pos);
-            if (VTABLE_isa(interp, method, CONST_STRING(interp, "Perl6MultiSub"))) {
+            if (VTABLE_isa(interp, method, CONST_STRING(interp, "MultiSub"))) {
                 /* We don't have something definite to invoke, so set it up
                  * inside a candidate list. */
                 PMC *cand_list = pmc_new(interp, enum_class_ResizablePMCArray);
@@ -435,8 +440,9 @@ Invokes the object (if this vtable function is overridden).
                 Parrot_oo_find_vtable_override_for_class(interp, cur_class,
                                                          meth_name);
             if (!PMC_IS_NULL(meth)) {
-                meth = VTABLE_clone(interp, meth);
-                VTABLE_setprop(interp, meth, CONST_STRING(interp, "$!self"), SELF);
+                /* Fudge outselves onto the start of the call signature and call. */
+                PMC *call_sig = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                VTABLE_unshift_pmc(interp, call_sig, SELF);
                 return VTABLE_invoke(interp, meth, next);
             }
 

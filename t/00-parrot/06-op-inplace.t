@@ -9,65 +9,64 @@ say '1..11';
 my $test_num = 1;
 my $a = 0;
 $a += 1;
-print 'not ' if $a != 1;
+$a != 1 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 ++$a;
-print 'not ' if $a != 2;
+$a != 2 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a = 4;
 $a -= 1;
-
-print 'not ' if $a != 3;
+$a != 3 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 
 my $b = 1;
 $a += $b;
-print 'not ' if $a != 4;
+$a != 4 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a +|= $b;
-print 'not ' if $a != 5;
+$a != 5 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a +&= +^$b;
 $a +^= 2;
-print 'not ' if $a != 6;
+$a != 6 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a++;
-print 'not ' if $a != 7;
+$a != 7 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a = 1;
 $a +<= 3;
-print 'not ' if $a != 8;
+$a != 8 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a +>= 1;
 $a -= 1;
 $a **= 2;
-print 'not ' if $a != 9;
+$a != 9 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a /= 3;
 $a += 7;
-print 'not ' if $a != 10;
+$a != 10 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
 
 $a %= 3;
-print 'not ' if ( $a +10 ) != 11;
+$a != 1 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;

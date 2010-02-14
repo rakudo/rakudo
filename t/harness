@@ -1,7 +1,5 @@
 #! perl
 
-# $Id$
-
 # note: Due to a limitation in Getopt::Long options that should be passed
 # through to fudgeall have to come after all other options
 
@@ -36,7 +34,8 @@ if ($list_file) {
     while (<$f>) {
         next if m/^\s*#/;
         next unless m/\S/;
-        chomp;
+        s/^\s+//;
+        s/\s+\z//;
         my ($fn, $fudgespec) = split /\s+#\s*/;
         next if ($fudgespec && ($fudgespec =~ m/icu/) && !$do_icu);
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;

@@ -50,19 +50,19 @@ Returns the next element of the list.
     # If the value doesn't flatten, we return it directly.  
     $I0 = isa value, ['Perl6Scalar']
     if $I0 goto get_done
+    # If the value is a RPA/Parcel, it always flattens directly
+    $I0 = isa value, ['ResizablePMCArray']
+    if $I0 goto rpa_flatten
+    # If the value is otherwise iterable, we get an active subiterator
+    # and use it.
     $I0 = isa value, ['Iterable']
     unless $I0 goto get_done
-    # If the thing we shifted is a (flattening) RPA, splice 
-    # it directly and repeat.
-    $I0 = isa value, ['ResizablePMCArray']
-    unless $I0 goto rpa_flatten_value
-    splice rpa, value, 0, 0
-    goto rpa_get
-  rpa_flatten_value:
-    # Otherwise, get a new active subiterator from value and use it.
     iter = value.'iterator'()
     setattribute self, '$!iter', iter
     goto iter_get
+  rpa_flatten:
+    splice rpa, value, 0, 0
+    goto rpa_get
   rpa_done:
     value = get_hll_global 'EMPTY'
 

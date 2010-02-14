@@ -1,115 +1,142 @@
 ## $Id$
 
-=head1 Overview of the Rakudo Perl 6 compiler
+=head1 RAKUDO COMPILER OVERVIEW
 
-This document describes the architecture and layout of the Rakudo Perl 6
-(aka Rakudo) compiler.  See the F<README> file for information about how
-to build and run the compiler.
+=head2 How the Rakudo Perl 6 compiler works
 
-The Rakudo compiler is constructed from five major components
-(subdirectories relative to src/):
+This document describes the architecture and operation of the Rakudo
+Perl 6 (or simply Rakudo) compiler.  The F<README> describes how to
+build and run Rakudo.
+
+Rakudo has six main parts (source code paths are relative to Rakudo's
+F<src/> directory):
 
 =over 4
 
 =item 1.
 
-The compiler main program (Perl6/Compiler.pir)
+Not Quite Perl builds Perl 6 source code parts into Rakudo
 
 =item 2.
 
-The Perl 6 language grammar (Perl6/Grammar.pm)
+A main program drives parsing, code generation and runtime execution
+(F<Perl6/Compiler.pir>)
 
 =item 3.
 
-A set of action methods to transform the parse tree into an abstract
-syntax tree (AST) (Perl6/Actions.pm)
+A grammar parses user programs (F<Perl6/Grammar.pm>)
 
 =item 4.
 
-Parrot extensions (TODO: describe) (binder/bind.c, ops/*.c, pmc/*)
+Action methods build a Parrot Abstract Syntax Tree (F<Perl6/Actions.pm>)
 
 =item 5.
 
-Builtin functions and runtime support (builtins/*.pir), cheats/*,
-core/*.pm, glue/*.pir, metamodel/*, ops/)
+Parrot extensions provide Perl 6 run time behavior (TODO: describe)
+(F<binder/*>, F<ops/*>, F<pmc/*>)
+
+=item 6.
+
+Libraries provide functions at run time (F<builtins/*.pir>, F<cheats/*>,
+F<core/*.pm>, F<glue/*.pir>, F<metamodel/*>)
 
 =back
 
-The F<Makefile> (generated from build/Makefile.in by Configure.pl) takes
-care of compiling all of the individual components and linking them
-together to form the F<perl6.pbc> executable and the perl6 "fake
-executable".
+The F<Makefile> (generated from F<build/Makefile.in> by F<Configure.pl>)
+compiles all the parts to form the F<perl6.pbc> executable and the
+F<perl6> or F<perl6.exe> "fake executable".  We call it fake because it
+has only a small stub of code to launch the Parrot executable and pass
+itself as a chunk of bytecode for Parrot to execute.
 
-=head2 Main compiler
+=head2 1. NQP[-RX]
 
-The main subroutine, in F<Perl6/Compiler.pir>, drives the parsing and
-action methods.  It registers a Parrot C<Perl6::Compiler> object for
-the 'perl6' source type.  The Parrot HLLCompiler class provides a
-standard framework for parsing, optimization, and command line argument
-handling for Parrot compilers.  Before tracing the compiler's execution
-further, a few words about Parrot process and module initialization.
+The source files of Rakudo are preferably and increasingly written in
+Perl 6, the remainder in Parrot Intermediate Representation (PIR) or C.
+Not Quite Perl (nqp) provides the bootstrap step of compiling compiler
+code (yes!) written in a subset of Perl 6, into PIR.
 
-Parrot execution does not simply begin with 'main'.  In a Parrot
-executable, Parrot first calls every subroutine marked with the C<:init>
-modifier at startup time.  Rakudo has over 50 such subroutines that
-dynamically create classes and objects in Parrot's memory, brought in by
-a series of C<.include> directives.
+The latest version is called B<nqp-rx> because it now also includes a
+powerful Perl 6 regex engine.  This has produced a streamlined compiler
+framework on which to build a very functional Perl 6 implementation.
 
-When the executable loads libraries, Parrot similarly calls subs having
-the C<:load> modifier.  The Rakudo C<:init> subs are usually also
-C<:load>, so that the same startup sequence occurs whether Rakudo is run
-as an executable or loaded as a library.
+NQP itself is also written in PIR, is an important part of the Parrot
+Compiler Toolkit (PCT), and is installed with Parrot.  PCT is a standard
+framework to make and use Parrot based languages.  The source code of
+NQP is in F<../parrot/ext/nqp-rx/> and the resulting (compiler-)
+compiler is F<../parrot_install/bin/parrot-nqp>.  Note, NQP only
+I<builds> the Rakudo compiler, and does not compile or run user
+programs.
+
+We can conceivably use the Rakudo compiler to compile itself to PIR and
+eliminate the need for NQP entirely.  At some point as Rakudo matures we
+will probably do this.  However, for the time being it's slightly easier
+to manage the process if we keep a distinction between the two tools,
+and using NQP for this stage also helps us to limit ourselves to using a
+regular, well-defined, and relatively easy-to-implement subset of Perl 6
+for the core compiler.  So, while it's possible for us to eliminate NQP
+from the process, there are some good reasons not to do so just yet.
+(If at some point we discover that we need something for the compiler
+that NQP can't or won't support, then that will probably be a good point
+to switch.)
+
+=head2 2. Compiler main program
+
+A subroutine called C<'main'>, in F<Perl6/Compiler.pir>, starts the
+source parsing and bytecode generation work.  It creates a
+C<Perl6::Compiler> object for the C<'perl6'> source type.  The
+C<Perl6::Compiler> class inherits from the C<HLLCompiler> class of the
+Parrot Compiler Toolkit, look in
+F<../parrot/compilers/pct/src/PCT/HLLCompiler.pir>.
+
+Before tracing Rakudo's execution further, a few words about Parrot
+process and library initialization.
+
+Parrot execution does not simply begin with 'main'.  When Parrot
+executes a bytecode file, it first calls all subroutines in it that are
+marked with the C<:init> modifier.  Rakudo has over 50 such subroutines,
+brought in by C<.include> directives in F<Perl6/Compiler.pir>, to create
+classes and objects in Parrot's memory.
+
+Similarly, when the executable loads libraries, Parrot automatically
+calls subs having the C<:load> modifier.  The Rakudo C<:init> subs are
+usually also C<:load>, so that the same startup sequence occurs whether
+Rakudo is run as an executable or loaded as a library.
 
 F<Perl6/Compiler.pir> has three C<.loadlib> commands early on, for
-F<perl6_group>, F<perl6_ops> and F<math_ops>.  All three dynamically
-extend Parrot at runtime, respectively with Rakudo specific PMC's (Poly
-Morphic Containers, formerly Parrot Magic Cookies), opcodes, and
-mathematical operators.  The source is in F<pmc/*>, F<ops/*> and
+C<perl6_group>, C<perl6_ops> and C<math_ops>.  All three dynamically
+extend Parrot with respectively Rakudo specific PMC's (Poly Morphic
+Containers, formerly Parrot Magic Cookies), opcodes, and mathematical
+operators.  The source is in F<pmc/*>, F<ops/*> and
 F<parrot/src/ops/math.ops>.
 
-So, that Rakudo main subroutine had created an HLLCompiler object.  The
-subroutine then calls the 'command_line' method on this object, passing
-the command line arguments in PMC called args_str.
+So, that Rakudo 'main' subroutine had created a C<Perl6::Compiler>
+object.  Next, 'main' invokes the C<'command_line'> method on this
+object, passing the command line arguments in a PMC called C<args_str>.
+The C<'command_line'> method is inherited from the C<HLLCompiler> parent
+class (part of the PCT, remember).
 
-TODO: how C<nqp-rx> (Not Quite Perl - Regex) fits in.
+And that's it, apart from a C<'!fire_phasers'('END')> and an C<exit>.
+Well, as far a C<'main'> is concerned.  The remaining work is divided
+between PCT, grammar and actions.
 
-=head2 Parse grammar
+=head2 2. Grammar
 
-The compiler works by calling C<TOP> method in F<Perl6/Grammar.pm>, and
-after some initialization, TOP matches the user program to the comp_unit
+Using C<parrot-nqp>, C<make> target C<PERL6_G> uses F<parrot-nqp> to
+compile F<Perl6/Grammar.pm> to F<gen/perl6-grammar.pir>.
+
+The top-level portion of the grammar is written using Perl 6 rules
+(Synopsis 5) and is based on the STD.pm grammar in the Pugs repository
+(L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>).  There are a few
+places where Rakudo's grammar deviates from STD.pm, but the ultimate
+goal is for the two to converge.  The grammar inherits from
+C<HLL::Grammar>, which provides the C<< <.panic> >> rule to throw
+exceptions for syntax errors.
+
+The compiler works by calling C<TOP> method in F<Perl6/Grammar.pm>.
+After some initialization, TOP matches the user program to the comp_unit
 (meaning compilation unit) token.  That triggers a series of matches to
-other tokens and rules (two kinds of regexes) depending on what is
-written in the user program.
-
-The C<Perl6/Actions.pm> file defines what the compiler must output when
-it matches certain tokens or rules.
-
-
-The parse grammar is written using a mix of Perl 6 regular
-expressions, operator tokens, and special-purpose PIR
-subroutines.  The primary purpose of the parse grammar is
-to parse Perl 6 source code into a parse tree.
-
-Currently the parse grammar is spread across three files:
-
-    src/parser/grammar.pg           - the top-level grammar
-    src/parser/grammer-oper.pg      - operator tokens
-    src/parser/quote_expression.pir - quote rule
-
-The top-level portion of the grammar is written using Perl 6
-rules (Synopsis 5) and is based on the STD.pm grammar in the
-Pugs repository (L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>).
-There are a few places where this grammar deviates from STD.pm,
-but the ultimate goal is for the two to converge.  The grammar
-inherits from C<PCT::Grammar>, which provides the C<< <.panic> >>
-rule to throw exceptions for syntax errors.
-
-The parse grammar is compiled into PIR (F<src/gen_grammar.pir>)
-using the Perl6Grammar compiler that is part of PGE and the Parrot
-Compiler Toolkit.  Because PGE doesn't yet implement the
-proto-regex or longest token matching semantics of S05, we
-make use of PGE's built-in operator precedence parser and define
-operator tokens in grammar-oper.pg .
+other tokens and rules (two kinds of regex) depending on the source in
+the user program.
 
 Lastly, the F<src/parser/quote_expression.pir> file implements
 code to parse the various forms of Perl 6 quoting rules.  It's
@@ -117,8 +144,19 @@ far easier to write this component using PIR instead of a
 regular expression, but otherwise it acts just like any other
 rule in the grammar.
 
+=head2 3. Actions
 
-=head2 Action methods
+The C<Perl6/Actions.pm> file defines what the compiler must output when
+it matches certain tokens or rules.  The output is a tree hierarchy of
+objects representing language syntax elements, such as a statement.
+The tree is called a Parrot Abstract Syntax Tree (PAST).
+
+The PAST representation is the final stage of processing in Rakudo
+itself. The PAST datastructure is then passed on to Parrot directly.
+Parrot does the remainder of the work translating from PAST to pir and
+then to bytecode.
+
+--- ng update progress point
 
 The action methods (in F<src/parser/actions.pm>) are used to convert the nodes
 of the parse tree (produced by the parse grammar) into an equivalent Parrot
@@ -196,64 +234,10 @@ node types for representing the various components of a HLL
 program -- for more details about the available node types,
 see PDD 26 (L<http://svn.parrot.org/parrot/trunk/docs/pdds/pdd26_ast.pod>).
 
-One important observation to make here is that NQP is used only for
-I<building> the Rakudo compiler, and then only to convert the action methods
-in F<src/parser/actions.pm> into equivalent PIR (F<src/gen_actions.pir>).
-The F<src/gen_actions.pir> file is then used to build F<perl6.pbc>.
-In particular, NQP is I<not> part of the Rakudo runtime -- i.e., when
-Rakudo is running, NQP is not loaded or used.  Yes, this does mean that
-we can conceivably use the Rakudo compiler to compile F<actions.pm> to
-PIR and eliminate the need for NQP entirely.  At some point as Rakudo
-matures we will probably do this.  However, for the time being it's
-slightly easier to manage the process if we keep a distinction between
-the two tools, and using NQP for this stage also helps us to limit
-ourselves to using a regular, well-defined, and relatively
-easy-to-implement subset of Perl 6 for the core compiler.
-So, while it's possible for us to eliminate NQP from the process,
-there are some good reasons not to do so just yet.  (If at some
-point we discover that we need something for the compiler that
-NQP can't or won't support, then that will probably be a good
-point to switch.)
 
 
-=head2 How a program is executed by the compiler
 
-This is a rough outline of how Rakudo executes a program.
-
-=over 4
-
-=item 1.
-
-The main compiler object (perl6.pir) looks at any parameters and slurps in your program.
-
-=item 2.
-
-The program passes through the parser (as defined in the parse grammar
-(src/parser/grammar.pg, src/parser/*.pir). This outputs the parse tree.
-
-=item 3.
-
-Action methods transform the parse tree into a Parrot Abstract Syntax
-Tree (PAST).
-
-=item 4.
-
-The PAST is provided to Parrot, which does its thing.
-
-=item 5.
-
-The PAST includes references to builtin functions and runtime support. These
-are also provided to Parrot.
-
-=back
-
-The PAST representation is the
-final stage of processing in Rakudo itself. The PAST datastructure is then
-passed on to Parrot directly. Parrot does the remainder of the work translating
-from PAST to pir and then to bytecode.
-
-
-=head2 Builtin functions and runtime support
+=head2 6. Builtin functions and runtime support
 
 The last component of the compiler are the various builtin
 functions and libraries that a Perl 6 program expects to
@@ -266,14 +250,6 @@ it's simpler to write them that way or because they represent
 very primitive operations (e.g., math primitives) or they're
 easier to write in PIR than in Perl 6 or some other language.
 
-In the very near future we expect to be writing much of the
-additional runtime as Perl 6 code instead of PIR.  In other
-words, we'll build just enough runtime to get a basic Rakudo
-compiler running, and then use that to compile the remainder
-of the runtime libraries (written in Perl 6) that a standard
-Perl 6 program would expect to have available when it is run.
-
-
 =head2 Still to be documented
 
     * Rakudo PMCs
@@ -282,8 +258,8 @@ Perl 6 program would expect to have available when it is run.
 
 =head1 AUTHORS
 
-Patrick Michaud <pmichaud@pobox.com> is the primary author
-and maintainer.
+Patrick Michaud <pmichaud@pobox.com> is the primary author and
+maintainer.
 
 =head1 COPYRIGHT
 

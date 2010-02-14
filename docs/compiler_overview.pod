@@ -138,12 +138,6 @@ After some initialization, TOP matches the user program to the comp_unit
 other tokens and rules (two kinds of regex) depending on the source in
 the user program.
 
-Lastly, the F<src/parser/quote_expression.pir> file implements
-code to parse the various forms of Perl 6 quoting rules.  It's
-far easier to write this component using PIR instead of a
-regular expression, but otherwise it acts just like any other
-rule in the grammar.
-
 =head2 3. Actions
 
 The C<Perl6/Actions.pm> file defines what the compiler must output when
@@ -157,6 +151,12 @@ Parrot does the remainder of the work translating from PAST to pir and
 then to bytecode.
 
 --- ng update progress point
+
+Lastly, the F<src/parser/quote_expression.pir> file implements
+code to parse the various forms of Perl 6 quoting rules.  It's
+far easier to write this component using PIR instead of a
+regular expression, but otherwise it acts just like any other
+rule in the grammar.
 
 The action methods (in F<src/parser/actions.pm>) are used to convert the nodes
 of the parse tree (produced by the parse grammar) into an equivalent Parrot

@@ -63,7 +63,7 @@ src/classes/Associative.pir - Associative Role
 =cut
 
 .namespace ['Associative[::T]']
-.sub 'XXX-postcircumfix:<{ }>' :method :multi(_, _)
+.sub 'postcircumfix:<{ }>' :method :multi(_, _)
     .param pmc key
     .local pmc result
     result = self[key]
@@ -112,7 +112,7 @@ fake it later.
   foreign:
     # XXX relies on the method being in the namespace -- perhaps
     # should use method lookup instead
-    $P0 = get_hll_global ['Associative[::T]'], 'XXX-postcircumfix:<{ }>'
+    $P0 = get_hll_global ['Associative[::T]'], 'postcircumfix:<{ }>'
     .tailcall invocant.$P0(args :flat)
   object_method:
     .tailcall invocant.'postcircumfix:<{ }>'(args :flat)

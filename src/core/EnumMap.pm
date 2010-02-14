@@ -1,4 +1,4 @@
-role EnumMap does Associative {
+class EnumMap does Associative {
     has $!storage;
 
     method new(*%values) {

@@ -48,7 +48,7 @@ augment class Any {
 
     # CHEAT: this should take an ordering parameter
     # And use the FIRST: phaser
-    multi method min() {
+    multi method min($by = { $^a cmp $^b}) {
         my $min = +Inf;
         my $first-time = Bool::True;
         for @.list {
@@ -57,7 +57,7 @@ augment class Any {
                 $first-time = Bool::False;
                 next;
             }
-            if $_ before $min {
+            if $by($_, $min) == -1 {
                 $min = $_;
             }
         }
@@ -66,7 +66,7 @@ augment class Any {
 
     # CHEAT: this should take an ordering parameter
     # And use the FIRST: phaser
-    multi method max() {
+    multi method max($by = { $^a cmp $^b}) {
         my $max = -Inf;
         my $first-time = Bool::True;
         for @.list {
@@ -75,7 +75,7 @@ augment class Any {
                 $first-time = Bool::False;
                 next;
             }
-            if $_ after $max {
+            if $by($_, $max) == 1 {
                 $max = $_;
             }
         }

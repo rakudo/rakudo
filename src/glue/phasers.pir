@@ -22,7 +22,8 @@ all others are at the end.
 
     .local pmc our, phash, pbank
     our = get_hll_namespace
-    phash = vivify our, '%!PHASERS', ['Hash']
+    $P0 = get_root_namespace ['parrot';'Hash']
+    phash = vivify our, '%!PHASERS', $P0
     pbank = vivify phash, bank, ['ResizablePMCArray']
     if bank == 'CHECK' goto bank_lifo
     if bank == 'END' goto bank_lifo
@@ -54,7 +55,8 @@ and firing them if they haven't been fired yet.
     if null pbank goto fire_done
 
     .local pmc fhash
-    fhash = vivify our, '%!PHASERS_FIRED', ['Hash']
+    $P0 = get_root_namespace ['parrot';'Hash']
+    fhash = vivify our, '%!PHASERS_FIRED', $P0
   fire_bank:
     unless pbank goto fire_done
     .local pmc phaser

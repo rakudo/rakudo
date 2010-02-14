@@ -91,8 +91,8 @@ Coerce the Parcel into a capture.
 .sub 'Capture' :method
     .local pmc self_it, pos, named
     self_it = iter self
-    pos = new ['ResizablePMCArray']
-    named = new ['Hash']
+    pos = root_new ['parrot';'ResizablePMCArray']
+    named = root_new ['parrot';'Hash']
   self_loop:
     unless self_it goto self_done
     $P0 = shift self_it

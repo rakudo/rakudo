@@ -4,7 +4,7 @@
     .param pmc context
 
     .local pmc lexinfo, lexpad, lexpad_it
-    lexinfo = new ['Hash']
+    lexinfo = root_new ['parrot';'Hash']
 
   context_loop:
     if null context goto context_done

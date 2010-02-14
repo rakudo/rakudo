@@ -22,7 +22,7 @@ XXX Eventually we will have caller-side :call_sig and won't have to do this.
     goto pos_loop
   pos_loop_end:
 
-    named_args = new ['Hash']
+    named_args = root_new ['parrot';'Hash']
     names = getattribute call_sig, 'named'
     if null names goto named_loop_end
     $I0 = elements names

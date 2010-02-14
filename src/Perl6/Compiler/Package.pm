@@ -50,19 +50,19 @@ method scope($scope?) {
 
 # Accessor for methods hash.
 method methods() {
-    unless $!methods { $!methods := Q:PIR { %r = new ['Hash'] } }
+    unless $!methods { $!methods := Q:PIR { %r = root_new ['parrot';'Hash'] } }
     $!methods
 }
 
 # Accessor for meta_methods hash.
 method meta_methods() {
-    unless $!meta_methods { $!meta_methods := Q:PIR { %r = new ['Hash'] } }
+    unless $!meta_methods { $!meta_methods := Q:PIR { %r = root_new ['parrot';'Hash'] } }
     $!meta_methods
 }
 
 # Accessor for attributes hash.
 method attributes() {
-    unless $!attributes { $!attributes := Q:PIR { %r = new ['Hash'] } }
+    unless $!attributes { $!attributes := Q:PIR { %r = root_new ['parrot';'Hash'] } }
     $!attributes
 }
 

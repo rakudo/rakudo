@@ -727,7 +727,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         unless +@PACKAGE { $/.CURSOR.panic("Can not declare attribute outside of a package"); }
         my %attr_table := @PACKAGE[0].attributes;
         if %attr_table{$attrname} { $/.CURSOR.panic("Can not re-declare attribute " ~ $attrname); }
-        %attr_table{$attrname} := Q:PIR { %r = new ['Hash'] };
+        %attr_table{$attrname} := Q:PIR { %r = root_new ['parrot';'Hash'] };
         %attr_table{$attrname}<name>     := $attrname;
         %attr_table{$attrname}<accessor> := $twigil eq '.' ?? 1 !! 0;
         %attr_table{$attrname}<rw>       := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;

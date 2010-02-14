@@ -4,8 +4,8 @@ our %COMPILINGPACKAGES;
 our %STUBCOMPILINGPACKAGES;
 
 INIT {
-    our %COMPILINGPACKAGES := Q:PIR { %r = new ['Hash'] };
-    our %STUBCOMPILINGPACKAGES := Q:PIR { %r = new ['Hash'] };
+    our %COMPILINGPACKAGES := Q:PIR { %r = root_new ['parrot';'Hash'] };
+    our %STUBCOMPILINGPACKAGES := Q:PIR { %r = root_new ['parrot';'Hash'] };
 }
 
 method TOP() {

@@ -618,7 +618,6 @@ inline op bind_signature(in PMC) :base_core {
         PMC      * const saved_ccont = interp->current_cont;
         PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
         PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
-        opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
 
         /* Ensure we actually have a signature; if not, try to lazily generate
@@ -641,7 +640,6 @@ inline op bind_signature(in PMC) :base_core {
             interp->current_cont = saved_ccont;
             Parrot_pcc_set_signature(interp, ctx, saved_sig);
             Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-            Parrot_pcc_set_results(interp, ctx, saved_cr);
             Parrot_pcc_set_pc(interp, ctx, current_pc);
             goto NEXT();
         }
@@ -660,7 +658,6 @@ inline op bind_signature(in PMC) :base_core {
                 interp->current_cont = saved_ccont;
                 Parrot_pcc_set_signature(interp, ctx, saved_sig);
                 Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-                Parrot_pcc_set_results(interp, ctx, saved_cr);
                 Parrot_pcc_set_pc(interp, ctx, current_pc);
 
                 /* Save the Junctional result as the return value. */

@@ -725,7 +725,6 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *ca
     PMC      * const saved_ccont = interp->current_cont;
     PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
     PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
-    opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
 
     /* See if we have a cache entry. */
     GETATTR_Perl6MultiSub_cache_many(interp, SELF, cache);
@@ -759,7 +758,6 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *ca
     interp->current_cont = saved_ccont;
     Parrot_pcc_set_signature(interp, ctx, saved_sig);
     Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-    Parrot_pcc_set_results(interp, ctx, saved_cr);
 
     return results;
 }
@@ -934,7 +932,6 @@ the Perl 6 MMD algorithm.
         PMC      * const saved_ccont = interp->current_cont;
         PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
         PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
-        opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
 
         /* Get arguments. */
@@ -974,7 +971,6 @@ the Perl 6 MMD algorithm.
         interp->current_cont = saved_ccont;
         Parrot_pcc_set_signature(interp, ctx, saved_sig);
         Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-        Parrot_pcc_set_results(interp, ctx, saved_cr);
         Parrot_pcc_set_pc(interp, ctx, current_pc);
 
         /* Invoke the winner, and mark the context so we know not to re-do a

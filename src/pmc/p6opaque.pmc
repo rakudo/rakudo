@@ -38,7 +38,6 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     PMC      * const saved_ccont = interp->current_cont;
     PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
     PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
-    opcode_t * const saved_cr    = Parrot_pcc_get_results(interp, ctx);
 
     /* Iterate over the handlers. */
     PMC    *iter       = VTABLE_get_iter(interp, handlers);
@@ -96,7 +95,6 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     interp->current_cont = saved_ccont;
     Parrot_pcc_set_signature(interp, ctx, saved_sig);
     Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-    Parrot_pcc_set_results(interp, ctx, saved_cr);
 
     /* Did we find anything? */
     if (attr) {

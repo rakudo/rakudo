@@ -1,0 +1,83 @@
+Announce: Rakudo Perl 6 development release #25 ("Minneapolis")
+
+On behalf of the Rakudo development team, I'm pleased to announce the
+January 2010 development release of Rakudo Perl #25 "Minneapolis".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
+(see http://www.parrot.org).  The tarball for the January 2010 release
+is available from http://github.com/rakudo/rakudo/downloads .
+
+Rakudo Perl follows a monthly release cycle, with each release 
+code named after a Perl Mongers group.  The January 2010 release 
+is code named "Minneapolis" for Minneapolis.pm, hosts of the annual 
+Frozen Perl Workshop [1].  In 2009 the Frozen Perl Workshop featured a 
+one-day hackathon for Perl 6 and Rakudo development, which ultimately 
+informed the design and implementation of the current build system.
+(The 2010 Frozen Perl Workshop will be on February 6, 2010, for those
+interested in attending.)
+
+Shortly after the October 2009 (#22) release, the Rakudo team began a new
+branch of Rakudo development ("ng") that refactors the grammar to much more
+closely align with STD.pm as well as update some core features that have been
+difficult to achieve in the master branch [2, 3].  We had planned for
+this release to be created from the new branch, but holiday vacations
+and other factors conspired against us.  This is absolutely the final 
+release from the old development branch; we expect to make the new branch 
+the official "master" branch shortly after this release.
+
+This release of Rakudo requires Parrot 2.0.0.  One must still
+perform "make install" in the Rakudo directory before the "perl6"
+executable will run anywhere other than the Rakudo build directory.
+For the latest information on building and using Rakudo Perl, see the
+README file section titled "Building and invoking Rakudo".
+
+Some of the specific changes and improvements occuring with this
+release include:
+
+* Rakudo is now passing 31,957 spectests, or 85.7% of the available
+  test suite.  This is roughly the same level as the December 2009
+  release (because most effort has taken place in the "ng" branch
+  as described above).
+
+* Rakudo's calling conventions have been updated to match changes
+  in Parrot 2.0.0's calling and context structures.
+
+The Perl 6 language specification is still in flux. Please take note of the
+following changes, which might affect your existing programs. In the next
+release of Rakudo, the deprecated features will likely be gone.
+
+* The root of the object hierarchy has been changed from 'Object' to 'Mu'.
+  The type 'Object' goes away.
+
+* The term 'undef' is gone. You can replace it with other constructs,
+  depending on context:
+    - 'Nil' is undefined in item context, and the empty list in list context
+    - 'Mu' is the most general undefined value which does not flatten in list
+      context
+    - as a smart matching target, you can replace '$obj ~~ undef'
+      by '$obj ~~ *.notdef'
+
+* Builtin classes will derive from 'Cool' (which itself derives from 'Any').
+  Most of the builtin methods on these classes will be defined in the
+  'Cool' class instead of 'Any'.  See Synopsis 2 for more details.
+
+* Starting with the next release, we will likely switch to using
+  "YYYY.MM" instead of "YYYY-MM" (dot instead of hyphen) as release 
+  identifiers.  This is intended to simplify building and packaging
+  for other distribution systems.
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible.  If you would like to contribute,
+see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
+mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#26) is scheduled for February 18, 2010.
+A list of the other planned release dates and codenames for 2010 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
+
+[1] http://www.frozen-perl.org/
+[2] http://use.perl.org/~pmichaud/journal/39779
+[3] http://use.perl.org/~pmichaud/journal/39874

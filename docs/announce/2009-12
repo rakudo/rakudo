@@ -1,0 +1,77 @@
+Announce: Rakudo Perl 6 development release #24 ("Seoul")
+
+On behalf of the Rakudo development team, I'm pleased to announce the
+December 2009 development release of Rakudo Perl #24 "Seoul".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
+(see http://www.parrot.org).  The tarball for the December 2009 release
+is available from http://github.com/rakudo/rakudo/downloads
+
+Due to the continued rapid pace of Rakudo development and the frequent
+addition of new Perl 6 features and bugfixes, we recommend building Rakudo
+from the latest source, available from the main repository at github.
+More details are available at http://rakudo.org/how-to-get-rakudo.
+
+Rakudo Perl follows a monthly release cycle, with each release code named after
+a Perl Mongers group.  The December 2009 release is code named "Seoul" for
+Seoul.pm, who hosted Jonathan so well recently, and because they have a cake
+duck.
+
+Shortly after the October 2009 (#22) release, the Rakudo team began a new
+branch of Rakudo development ("ng") that refactors the grammar to much more
+closely align with STD.pm as well as update some core features that have been
+difficult to achieve in the master branch [1, 2].  Most of our effort for the
+past month has been in this new branch, but as of the release date the new
+version had not sufficiently progressed to be the release copy.  We expect to
+have the new version in place in the January 2010 release, but may elect
+to have an interim release from the new branch before then.
+
+This release of Rakudo requires Parrot 1.9.0.  One must still
+perform "make install" in the Rakudo directory before the "perl6"
+executable will run anywhere other than the Rakudo build directory.
+For the latest information on building and using Rakudo Perl, see the
+readme file section titled "Building and invoking Rakudo".
+
+Some of the specific changes and improvements occuring with this
+release include:
+
+* Rakudo is now passing 32,192 spectests, a "decrease" of 561 passing
+  tests since the November 2009 release.  We pass fewer tests now
+  because specification changes caused many obsolete (but passing)
+  tests to be removed from the suite -- from 38,318 in November to
+  37,376 now.  The percentage of passing tests has increased, from
+  85.5% in November to 86.1% today.
+
+* More improvements to the Rat type and related math functions to
+  remain aligned with the specification.
+
+The Perl 6 language specification is still in flux. Please take note of the
+following changes, which might affect your existing programs. In the next
+release of Rakudo, the deprecated features will likely be gone.
+
+* The root of the object hierarchy has been changed from 'Object' to 'Mu'.
+  The type 'Object' goes away.
+
+* The term 'undef' is gone. You can replace it with other constructs,
+  depending on context:
+    - 'Nil' is undefined in item context, and the empty list in list context
+    - 'Mu' is the most general undefined value which does not flatten in list
+      context
+    - as a smart matching target, you can replace '$obj ~~ undef'
+      by '$obj ~~ *.notdef'
+
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible.  If you would like to contribute,
+see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
+mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#25) is scheduled for January 21, 2010.
+A list of the other planned release dates and codenames for 2010 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
+
+[1] http://use.perl.org/~pmichaud/journal/39779
+[2] http://use.perl.org/~pmichaud/journal/39874

@@ -79,6 +79,14 @@ our multi prefix:<not>($x) { !$x }
 
 our multi prefix:<so>($x) { ?$x }
 
+our multi prefix:sym<+^>($x) {
+    Q:PIR {
+        $P0 = find_lex '$x'
+        %r = new ['Integer']
+        bnot %r, $P0
+    }
+}
+
 our sub undefine(\$x) {
     my $undefined;
     $x = $undefined;

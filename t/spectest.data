@@ -482,7 +482,7 @@ S32-str/split-simple2.t   # CHEAT!  simplified version of split-simple.t
 # S32-str/split.t
 # S32-str/sprintf.t
 # S32-str/substr.t
-# S32-str/trim.t
+S32-str/trim.t
 S32-str/ucfirst.t
 S32-str/uc.t                                               # icu
 # S32-str/unpack.t

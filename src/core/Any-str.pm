@@ -181,14 +181,27 @@ augment class Any {
         (~self).split('').reverse().join;
     }
 
-    # TODO: signature not fully specced in S32 yet
-    multi method trim() is export {
-        # (~self).subst(/(^\s+)|(\s+$)/, "", :g)
-        if self ~~ /^\s*(.*?)\s*$/ {
+    # Not yet spec'd, I expect it will be renamed
+    multi method trim-leading() is export {
+        if self ~~ /^\s*(\S.*)$/ {
             ~$/[0];
         } else {
             self;
         }
+    }
+
+    # Not yet spec'd, I expect it will be renamed
+    multi method trim-trailing() is export {
+        if self ~~ /^(.*\S)\s*$/ {
+            ~$/[0];
+        } else {
+            self;
+        }
+    }
+
+    # TODO: signature not fully specced in S32 yet
+    multi method trim() is export {
+        self.trim-leading.trim-trailing;
     }
 
     multi method words(Int $limit = *) {

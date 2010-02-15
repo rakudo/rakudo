@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2009, The Perl Foundation.
+Copyright (C) 2009-2010, The Perl Foundation.
 */
 
 #define PARROT_IN_EXTENSION
@@ -66,7 +66,7 @@ Rakudo_binding_arity_fail(PARROT_INTERP, llsig_element **elements, INTVAL num_el
     INTVAL arity = 0;
     INTVAL count = 0;
     INTVAL i;
-    char *whoz_up = too_many ? "Too many" : "Not enough";
+    const char *whoz_up = too_many ? "Too many" : "Not enough";
 
     /* Work out how many we could have been passed. */
     for (i = 0; i < num_elements; i++) {
@@ -495,7 +495,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                  * later. */
                 INTVAL pos = VTABLE_get_integer_keyed_str(interp, named_to_pos_cache, name);
                 if (!pos_from_named)
-                    pos_from_named = mem_sys_allocate_zeroed(sizeof(PMC *) * num_elements);
+                    pos_from_named = mem_allocate_n_zeroed_typed(num_elements, PMC *);
                 pos_from_named[pos] = VTABLE_get_pmc_keyed_str(interp, capture, name);
             }
             else {

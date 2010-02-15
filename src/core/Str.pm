@@ -4,4 +4,5 @@ augment class Str {
     # CHEAT: this implementation is a bit of a cheat,
     # but works fine for now.
     multi method Int { (+self).Int; }
+    multi method Num { (+self).Num; }
 }

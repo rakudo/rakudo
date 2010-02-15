@@ -443,7 +443,7 @@ S32-list/join.t
 # S32-list/reduce.t
 S32-list/reverse.t
 # S32-list/sort.t
-# S32-list/uniq.t
+S32-list/uniq.t
 S32-num/abs.t
 S32-num/complex.t
 S32-num/exp.t
@@ -451,7 +451,7 @@ S32-num/int.t
 S32-num/log.t
 # S32-num/pi.t
 # S32-num/polar.t
-# S32-num/power.t
+S32-num/power.t
 # S32-num/rand.t
 S32-num/rat.t
 S32-num/roots.t
@@ -471,7 +471,7 @@ S32-str/chop.t
 S32-str/flip.t
 S32-str/index.t
 S32-str/lcfirst.t
-# S32-str/lc.t
+S32-str/lc.t
 # S32-str/p5chomp.t
 # S32-str/p5chop.t
 S32-str/pos.t
@@ -484,11 +484,11 @@ S32-str/split-simple2.t   # CHEAT!  simplified version of split-simple.t
 # S32-str/substr.t
 # S32-str/trim.t
 S32-str/ucfirst.t
-# S32-str/uc.t                                               # icu
+S32-str/uc.t                                               # icu
 # S32-str/unpack.t
 ## S32-str/words.t                                            # icu
 # S32-temporal/Temporal.t
-# S32-trig/e.t
+S32-trig/e.t
 # S32-trig/pi.t
 # S32-trig/sin.t
 # S32-trig/cos.t

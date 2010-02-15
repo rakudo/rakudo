@@ -1,4 +1,4 @@
-# Copyright (C) 2006-2009, The Perl Foundation.
+# Copyright (C) 2006-2010, The Perl Foundation.
 # $Id$
 
 PARROT_ARGS      =
@@ -520,7 +520,7 @@ $(DYNPMC): $(PMC_SOURCES) src/binder/bind.c src/binder/bind.h
 	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)
 	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
-	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
+	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
 	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) src/binder/bind$(O) $(LINKARGS)
 
 $(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h $(DYNPMC)

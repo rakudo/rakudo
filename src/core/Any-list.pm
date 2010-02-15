@@ -150,6 +150,20 @@ augment class Any {
         }
         return @args[0];
     }
+
+    # This needs a way of taking a user-defined comparison
+    # specifier, but AFAIK nothing has been spec'd yet.
+    # CHEAT: Almost certainly should be hashed on something
+    # other than the stringification of the objects.
+    multi method uniq() {
+        my %seen;
+        gather for @.list {
+             unless %seen{$_} {
+                 take $_;
+                 %seen{$_} = 1;
+             }
+        }
+    }
 }
 
 our proto sub join (Str $separator = '', *@values) { @values.join($separator); }
@@ -160,5 +174,6 @@ our proto sub grep($test, @values) { @values.grep($test); }
 our proto sub first($test, @values) { @values.first($test); }
 our proto sub min($by, *@values) { @values.min($by); }
 our proto sub max($by, *@values) { @values.max($by); }
+our proto sub uniq(@values) { @values.uniq; }
 
 # vim: ft=perl6

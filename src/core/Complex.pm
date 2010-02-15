@@ -320,9 +320,13 @@ multi sub prefix:<->(Complex $a) {
     Complex.new(-$a.re, -$a.im);
 }
 
-#multi sub infix:<**>(Complex $a, $b) is default {
-#    ($a.log * $b).exp;
-#}
+multi sub infix:<**>(Complex $a, Complex $b) {
+   ($a.log * $b).exp;
+}
+
+multi sub infix:<**>(Complex $a, $b) {
+   ($a.log * $b).exp;
+}
 
 multi sub infix:<**>($a, Complex $b) {
     ($a.log * $b).exp;

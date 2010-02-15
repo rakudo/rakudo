@@ -158,5 +158,7 @@ our multi sub reverse(*@v) { @v.reverse; }
 our proto sub end(@array) { @array.end; }
 our proto sub grep($test, @values) { @values.grep($test); }
 our proto sub first($test, @values) { @values.first($test); }
+our proto sub min($by, *@values) { @values.min($by); }
+our proto sub max($by, *@values) { @values.max($by); }
 
 # vim: ft=perl6

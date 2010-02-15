@@ -183,7 +183,7 @@ augment class Any {
 
     # Not yet spec'd, I expect it will be renamed
     multi method trim-leading() is export {
-        if self ~~ /^\s*(\S.*)$/ {
+        if self ~~ /^\s*:(.*)$/ {
             ~$/[0];
         } else {
             self;
@@ -194,7 +194,10 @@ augment class Any {
     multi method trim-trailing() is export {
         if self ~~ /^(.*\S)\s*$/ {
             ~$/[0];
-        } else {
+        } elsif self ~~ /^\s*$/ {
+            "";
+        }
+        else {
             self;
         }
     }

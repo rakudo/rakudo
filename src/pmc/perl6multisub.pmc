@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2008-2009, The Perl Foundation.
+Copyright (C) 2008-2010, The Perl Foundation.
 
 =head1 NAME
 
@@ -48,6 +48,7 @@ access during a dispatch.
 #include "../binder/bind.h"
 #include "pmc_p6lowlevelsig.h"
 
+PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *multi);
 
 typedef struct candidate_info {
     PMC   *sub;         /* The sub that is the candidate. */
@@ -481,7 +482,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                             continue;
                         }
                     }
-                    
+
                     /* Otherwise, may need full bind check. */
                     if (possibles[i]->bind_check) {
                         /* We'll invoke the sub (but not re-enter the runloop) and
@@ -977,7 +978,7 @@ the Perl 6 MMD algorithm.
          * bunch of type checks. */
         next = VTABLE_invoke(interp, found, next);
         PObj_flag_SET(P6S_ALREADY_CHECKED, CURRENT_CONTEXT(interp));
-        return next;
+        return (opcode_t *)next;
     }
 
 /*

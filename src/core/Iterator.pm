@@ -7,6 +7,10 @@ augment class Iterator {
         $elems;
     }
 
+    multi method Seq() {
+        Seq.new!STORE(self);
+    }
+
     multi method Str() {
         pir::join(' ', self.eager);
     }

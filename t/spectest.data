@@ -139,7 +139,7 @@ S03-operators/boolean-bitwise.t
 # S03-operators/identity.t
 # S03-operators/increment.t
 # S03-operators/inplace.t
-# S03-operators/list-quote-junction.t
+S03-operators/list-quote-junction.t
 # S03-operators/misc.t
 S03-operators/not.t
 S03-operators/numeric-context.t

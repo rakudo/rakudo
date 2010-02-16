@@ -944,6 +944,8 @@ token postfixish {
     # last whitespace didn't end here
     <!MARKED('ws')>
 
+    [ <.unsp> | '\\' ]?
+
     <postfix_prefix_meta_operator>?
     [
     | <OPER=dotty>

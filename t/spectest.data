@@ -263,7 +263,7 @@ S05-metasyntax/single-quotes.t
 # S05-transliteration/with-closure.t
 S06-advanced_subroutine_features/lexical-subs.t
 # S06-advanced_subroutine_features/recurse.t
-# S06-advanced_subroutine_features/return.t
+S06-advanced_subroutine_features/return.t
 # S06-advanced_subroutine_features/wrap.t
 # S06-currying/assuming-and-mmd.t
 # S06-currying/named.t

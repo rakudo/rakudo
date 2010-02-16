@@ -234,7 +234,7 @@ Overridden for Str.
     .param string a
     .param string b
     $I0 = iseq a, b
-    .tailcall 'prefix:?'($I0)
+    .tailcall 'prefix:<?>'($I0)
 .end
 
 =back

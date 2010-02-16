@@ -323,16 +323,21 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
 
     /* If it has a sub-signature, bind that. */
     if (!PMC_IS_NULL(sig_info->sub_signature)) {
-        /* Turn value into a capture. */
+        /* Turn value into a capture, unless we already have one. */
         PMC *capture = PMCNULL;
-        PMC *meth    = VTABLE_find_method(interp, value, string_from_literal(interp, "Capture"));
         INTVAL result;
-        if (PMC_IS_NULL(meth)) {
-            if (error)
-                *error = Parrot_sprintf_c(interp, "Could not turn argument into capture");
-            return BIND_RESULT_FAIL;
+        if (sig_info->flags & SIG_ELEM_IS_CAPTURE) {
+            capture = value;
         }
-        Parrot_ext_call(interp, meth, "Pi->P", value, &capture);
+        else {
+            PMC *meth    = VTABLE_find_method(interp, value, string_from_literal(interp, "Capture"));
+            if (PMC_IS_NULL(meth)) {
+                if (error)
+                    *error = Parrot_sprintf_c(interp, "Could not turn argument into capture");
+                return BIND_RESULT_FAIL;
+            }
+            Parrot_ext_call(interp, meth, "Pi->P", value, &capture);
+        }
         
         /* Recurse into signature binder. */
         result = Rakudo_binding_bind_signature(interp, lexpad, sig_info->sub_signature,
@@ -524,6 +529,14 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 if (pos_from_named)
                     mem_sys_free(pos_from_named);
                 return bind_fail;
+            }
+            else if (i + 1 == num_elements) {
+                /* Since a capture acts as "the ultimate slurpy" in a sense, if
+                 * this is the last parameter in the signature we can return
+                 * success right off the bat. */
+                if (pos_from_named)
+                    mem_sys_free(pos_from_named);
+                return BIND_RESULT_OK;
             }
         }
 

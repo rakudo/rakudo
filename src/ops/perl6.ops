@@ -203,7 +203,7 @@ inline op find_lex_skip_current(out PMC, in STR) :base_core {
 
 /*
 
-=item inline op is_uprop(out INT, in STR, in STR, in INT)
+=item inline op x_is_uprop(out INT, in STR, in STR, in INT)
 
 Sets a true value in $1 if character $4 in string $3 has the unicode property
 named $2.
@@ -211,7 +211,7 @@ named $2.
 =cut
 
 */
-inline op is_uprop(out INT, in STR, in STR, in INT) :base_core {
+inline op x_is_uprop(out INT, in STR, in STR, in INT) :base_core {
 #if PARROT_HAS_ICU
     char     *cstr;
     INTVAL    ord;

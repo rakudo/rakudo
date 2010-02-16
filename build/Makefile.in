@@ -152,6 +152,7 @@ CHEATS_PIR = \
   src/cheats/parrot/attriter.pir \
   src/cheats/parrot/Protoobject.pir \
   src/cheats/parrot/P6role.pir \
+  src/gen/uprop-cheats.pir \
   src/cheats/parrot/register.pir \
 
 CORE_SOURCES = \
@@ -354,20 +355,20 @@ src/gen/cheats.pir: build/gen_cheats_pir.pl $(CHEATS_PIR)
 src/gen/core.pm: build/gen_core_pm.pl $(CORE_SOURCES)
 	$(PERL) build/gen_core_pm.pl $(CORE_SOURCES) > src/gen/core.pm
 
-src/gen_metaop.pir: build/gen_metaop_pir.pl
-	$(PERL) build/gen_metaop_pir.pl > src/gen_metaop.pir
+src/gen/uprop-cheats.pir: build/gen_uprop_pir.pl
+	$(PERL) build/gen_uprop_pir.pl > src/gen/uprop-cheats.pir
 
-src/gen_junction.pir: build/gen_junction_pir.pl
-	$(PERL) build/gen_junction_pir.pl > src/gen_junction.pir
-
-src/gen_whatever.pir: build/gen_whatever_pir.pl
-	$(PERL) build/gen_whatever_pir.pl > src/gen_whatever.pir
-
-src/gen_uprop.pir: build/gen_uprop_pir.pl
-	$(PERL) build/gen_uprop_pir.pl > src/gen_uprop.pir
-
-src/gen_setting.pm: build/gen_setting_pm.pl $(SETTING)
-	$(PERL) build/gen_setting_pm.pl $(SETTING) > src/gen_setting.pm
+#src/gen_metaop.pir: build/gen_metaop_pir.pl
+#	$(PERL) build/gen_metaop_pir.pl > src/gen_metaop.pir
+#
+#src/gen_junction.pir: build/gen_junction_pir.pl
+#	$(PERL) build/gen_junction_pir.pl > src/gen_junction.pir
+#
+#src/gen_whatever.pir: build/gen_whatever_pir.pl
+#	$(PERL) build/gen_whatever_pir.pl > src/gen_whatever.pir
+#
+#src/gen_setting.pm: build/gen_setting_pm.pl $(SETTING)
+#	$(PERL) build/gen_setting_pm.pl $(SETTING) > src/gen_setting.pm
 
 $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
 	$(PERL) -I$(PARROT_PERL_LIB) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \

@@ -272,22 +272,22 @@ my @prop = qw(
 );
 
 print qq{
-
-    .HLL 'parrot'
-    .namespace ['PGE';'Match']
-
+    .namespace ['Regex';'Cursor']
     .sub '!uprop' :anon
-        .param pmc mob
+        .param pmc self
         .param string uprop
-        .local string target
-        \$P0 = get_hll_global ['PGE'], 'Match'
-        (mob, \$I0, target) = \$P0.'new'(mob)
-        \$I1 = is_uprop uprop, target, \$I0
-        unless \$I1 goto end
-        inc \$I0
-        mob.'to'(\$I0)
-      end:
-        .return (mob)
+        .local pmc cur
+        .local int pos
+        .local string tgt
+        (cur, pos, tgt) = self.'!cursor_start'()
+        \$I0 = x_is_uprop uprop, tgt, pos
+        unless \$I0 goto fail
+      pass:
+        inc pos
+        \$S0 = concat 'is', uprop
+        cur.'!cursor_pass'(pos, \$S0)
+      fail:
+        .return (cur)
     .end
 };
 

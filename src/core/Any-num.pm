@@ -44,7 +44,7 @@ augment class Any {
         given $base {
             when /:i degrees/  { self * (312689/99532)/180.0 }    # Convert from degrees.
             when /:i gradians/ { self * (312689/99532)/200.0 }    # Convert from gradians.
-            when /:i radians/  { self }                           # Convert from radians.
+            when /:i radians/  { self + 0 }                       # Convert from radians.
             when Num           { self * 2.0 * (312689/99532) }    # Convert from revolutions.
             default            { die "Unable to convert to base: $base" }
         }
@@ -54,7 +54,7 @@ augment class Any {
         given $base {
             when /:i degrees/  { self * 180/(312689/99532)  }    # Convert to degrees.
             when /:i gradians/ { self * 200/(312689/99532)  }    # Convert to gradians.
-            when /:i radians/  { self }                          # Convert to radians.
+            when /:i radians/  { self + 0 }                      # Convert to radians.
             when Num           { self /(2 * (312689/99532)) }    # Convert to revolutions.
             default            { die "Unable to convert to base: $base" }
         }

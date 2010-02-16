@@ -22,6 +22,17 @@ elements and can be flattened into Captures or Lists.
     parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Iterable', 'does_role'=>pos_role)
 .end
 
+=item item()
+
+A Parcel in item context becomes a Seq.
+
+=cut
+
+.sub 'item' :method
+    .tailcall self.'Seq'()
+.end
+
+
 =item iterator()
 
 Construct an iterator for the Parcel.

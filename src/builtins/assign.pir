@@ -47,8 +47,13 @@ src/builtins/assign.pir - assignment operations
     goto cont_loop
 
   scalar_assign:
-    # fully dereference the source, and set the lhs value to it
+    # fully dereference the source, put it in item context, and set the 
+    # lhs objectref to it
     source = descalarref source
+    $I0 = can source, 'item'
+    unless $I0 goto have_source
+    source = source.'item'()
+  have_source:
     setref cont, source
     .return (cont)
 

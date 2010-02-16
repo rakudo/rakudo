@@ -161,8 +161,8 @@ Performs list assignment using the values from C<source>.
     items = new ['Parcel']
     null rest
 
-    $I0 = isa source, ['Perl6Scalar']
-    if $I0 goto source_item
+    $P0 = getprop 'scalar', source
+    unless null $P0 goto source_item
     $I0 = isa source, ['Iterable']
     unless $I0 goto source_item
     $P0 = source.'iterator'()

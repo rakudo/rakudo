@@ -154,7 +154,7 @@ S03-operators/scalar-assign.t
 # S03-smartmatch/any-any.t
 # S03-smartmatch/any-array-slice.t
 # S03-smartmatch/any-array.t
-# S03-smartmatch/any-bool.t
+S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
 # S03-smartmatch/any-hash-pair.t

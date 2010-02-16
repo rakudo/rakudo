@@ -8,13 +8,11 @@ augment class Iterator {
     }
 
     multi method Seq() {
-        my $seq = Seq.new;
-        $seq = self;
-        $seq;
+        Seq.new!STORE(self);
     }
 
     multi method Str() {
-        self.Seq.Str;
+        pir::join(' ', self.eager);
     }
 
     # TimToady suggests this should be on Cool,

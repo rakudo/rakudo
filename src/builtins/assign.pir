@@ -13,22 +13,52 @@ src/builtins/assign.pir - assignment operations
     .param pmc cont
     .param pmc source
 
+  cont_loop:
+    # If the lhs isn't marked rw, throw exception
     .local pmc rw
-    getprop rw, 'rw', cont
-    unless null rw goto cont_store
-    die 'Cannot assign to readonly value'
+    rw = getprop 'rw', cont
+    unless null rw goto rw_ok
+    '&die'('Cannot assign to readonly value')
+  rw_ok:
+
+    # If the lhs isn't a scalar container, delegate to
+    # object's STORE method.
+    $P0 = getprop 'scalar', cont
+    if null $P0 goto cont_store
+
+  scalar_store:
+    # perform any needed typecheck
+    .local pmc type
+    type = getprop 'type', cont
+    if null type goto type_ok
+    $P0 = type.'ACCEPTS'(source)
+    if $P0 goto type_ok
+    '&die'('Type check failed for assignment')
+  type_ok:
+
+    # Dereference the scalar LHS.  If the thing we're
+    # currently referencing is itself an ObjectRef, delegate
+    # the assignment to it.
+    .local pmc tgt
+    tgt = deref cont
+    $I0 = isa tgt, ['ObjectRef']
+    unless $I0 goto scalar_assign
+    cont = tgt
+    goto cont_loop
+
+  scalar_assign:
+    # fully dereference the source, put it in item context, and set the 
+    # lhs objectref to it
+    source = descalarref source
+    $I0 = can source, 'item'
+    unless $I0 goto have_source
+    source = source.'item'()
+  have_source:
+    setref cont, source
+    .return (cont)
+
   cont_store:
-    # if container is a scalar, force item assignment
-    $I0 = isa cont, ['Perl6Scalar']
-    if $I0 goto obj_store
-    # if container doesn't know how to store, force item assignment
-    $I0 = can cont, '!STORE'
-    unless $I0 goto obj_store
-    # let the container handle storing of source
     .tailcall cont.'!STORE'(source)
-  obj_store:
-    .const 'Sub' $P0 = 'Mu::!STORE'
-    .tailcall cont.$P0(source)
 .end
 
 

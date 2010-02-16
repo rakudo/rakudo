@@ -64,7 +64,9 @@ Arrays are the mutable form of Lists.
     $P0 = new ['Array']
     transform_to_p6opaque $P0
     $P0.'!STORE'(parcel)
-    $P1 = new ['Perl6Scalar'], $P0
+    $P1 = new ['ObjectRef'], $P0
+    $P2 = get_hll_global ['Bool'], 'True'
+    setprop $P1, 'scalar', $P2
     .return ($P1)
 .end
 
@@ -85,9 +87,10 @@ Create an element for the Array (has the 'rw' property set).
     .param pmc item
     .local pmc elem, true
     true = get_hll_global ['Bool'], 'True'
-    elem = new ['Perl6Scalar']
+    item = descalarref item
+    elem = new ['ObjectRef'], item
+    setprop elem, 'scalar', true
     setprop elem, 'rw', true
-    elem.'!STORE'(item)
     .return (elem)
 .end
 

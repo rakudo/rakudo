@@ -290,8 +290,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
             /* Read only. Wrap it into a ObjectRef, mark readonly and bind it. */
             if (sig_info->variable_name) {
                 PMC *ref  = pmc_new_init(interp, or_id, value);
-                if (sig_info->flags & (SIG_ELEM_ARRAY_SIGIL | SIG_ELEM_HASH_SIGIL))
-                    VTABLE_setprop(interp, ref, string_from_literal(interp, "flatten"), ref);
+                if (!(sig_info->flags & (SIG_ELEM_ARRAY_SIGIL | SIG_ELEM_HASH_SIGIL)))
+                    VTABLE_setprop(interp, ref, string_from_literal(interp, "scalar"), ref);
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
             }
         }

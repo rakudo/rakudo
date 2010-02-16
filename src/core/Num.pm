@@ -61,6 +61,10 @@ augment class Num {
         pir::log10__Nn(self);
     }
 
+    multi method perl() {
+        ~self;
+    }
+
     multi method sqrt() {
         pir::sqrt__Nn(self);
     }

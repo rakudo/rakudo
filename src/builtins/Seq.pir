@@ -92,9 +92,11 @@ wish to make other property changes on individual elements.
 .namespace ['Seq']
 .sub '!elem' :method
     .param pmc item
-    .local pmc elem
-    elem = new ['Perl6Scalar']
-    elem.'!STORE'(item)
+    .local pmc elem, true
+    item = descalarref item
+    elem = new ['ObjectRef'], item
+    true = get_hll_global ['Bool'], 'True'
+    setprop elem, 'scalar', true
     .return (elem)
 .end
 
@@ -159,8 +161,8 @@ Performs list assignment using the values from C<source>.
     items = new ['Parcel']
     null rest
 
-    $I0 = isa source, ['Perl6Scalar']
-    if $I0 goto source_item
+    $P0 = getprop 'scalar', source
+    unless null $P0 goto source_item
     $I0 = isa source, ['Iterable']
     unless $I0 goto source_item
     $P0 = source.'iterator'()

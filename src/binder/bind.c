@@ -11,14 +11,27 @@ Copyright (C) 2009-2010, The Perl Foundation.
 #include "../pmc/pmc_p6lowlevelsig.h"
 
 
-/* Cache of the type ID for low level signatures. */
+/* Cache of the type ID for low level signatures and some strings. */
 static INTVAL lls_id = 0;
+static INTVAL or_id = 0;
+static INTVAL p6s_id = 0;
+static STRING *ACCEPTS;
+
+
+/* Initlializes our cached versions of some strings and type IDs that we
+ * use very commonly. For strings, this should mean we only compute their
+ * hash value once, rather than every time we create and consume them. */
+static void setup_binder_statics(PARROT_INTERP) {
+    lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+    or_id = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
+    p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
+    ACCEPTS = Parrot_str_new_constant(interp, "ACCEPTS");
+}
+
 
 /* Unwraps things inside a scalar reference. */
 static PMC *
 descalarref(PARROT_INTERP, PMC *ref) {
-    INTVAL p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
-    INTVAL or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
     while (ref->vtable->base_type == or_id || ref->vtable->base_type == p6s_id)
         ref = VTABLE_get_pmc(interp, ref);
     return ref;
@@ -175,7 +188,6 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                               PMC *value, INTVAL no_nom_type_check, STRING **error) {
     /* If we need to do a type check, do one. */
     if (!no_nom_type_check) {
-        STRING * const ACCEPTS = string_from_literal(interp, "ACCEPTS");
         PMC * const type_obj   = sig_info->nominal_type;
         PMC * accepts_meth     = VTABLE_find_method(interp, type_obj, ACCEPTS);
         PMC * result           = PMCNULL;
@@ -269,8 +281,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 else {
                     copy = VTABLE_clone(interp, value);
                 }
-                ref = pmc_new_init(interp, pmc_type(interp,
-                        string_from_literal(interp, "ObjectRef")), copy);
+                ref = pmc_new_init(interp, or_id, copy);
                 VTABLE_setprop(interp, ref, string_from_literal(interp, "rw"), ref);
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
             }
@@ -278,8 +289,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         else {
             /* Read only. Wrap it into a ObjectRef, mark readonly and bind it. */
             if (sig_info->variable_name) {
-                PMC *ref  = pmc_new_init(interp, pmc_type(interp,
-                        string_from_literal(interp, "ObjectRef")), value);
+                PMC *ref  = pmc_new_init(interp, or_id, value);
                 if (sig_info->flags & (SIG_ELEM_ARRAY_SIGIL | SIG_ELEM_HASH_SIGIL))
                     VTABLE_setprop(interp, ref, string_from_literal(interp, "flatten"), ref);
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
@@ -294,7 +304,6 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
     /* Handle any constraint types (note that they may refer to the parameter by
      * name, so we need to have bound it already). */
     if (!PMC_IS_NULL(sig_info->post_constraints)) {
-        STRING * const ACCEPTS  = string_from_literal(interp, "ACCEPTS");
         PMC * const constraints = sig_info->post_constraints;
         INTVAL num_constraints  = VTABLE_elements(interp, constraints);
         PMC * result            = PMCNULL;
@@ -423,7 +432,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
 
     /* Check that we have a valid signature and pull the bits out of it. */
     if (!lls_id)
-        lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+        setup_binder_statics(interp);
     if (signature->vtable->base_type != lls_id)
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                 "Internal Error: Rakudo_binding_bind_signature passed invalid signature");

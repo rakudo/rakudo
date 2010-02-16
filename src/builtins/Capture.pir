@@ -134,7 +134,39 @@ to. :-) Hands back a Capture containing the snapshot.
     .param pmc capture
     .param int pos_position
     .param pmc nameds_unbound
-    die "Capture snapshots in signatures not yet implemented."
+    
+    .local int num_positionals
+    .local pmc positionals, nameds
+    num_positionals = elements capture
+    positionals = root_new ['parrot';'ResizablePMCArray']
+    nameds = root_new ['parrot';'Hash']
+    
+    # Copy positionals.
+  pos_loop:
+    if pos_position >= num_positionals goto pos_loop_end
+    $P0 = capture[pos_position]
+    push positionals, $P0
+    inc pos_position
+    goto pos_loop
+  pos_loop_end:
+
+    # Copy still unbound named parameters.
+    if null nameds_unbound goto named_loop_end
+    $P0 = iter nameds_unbound
+  named_loop:
+    unless $P0 goto named_loop_end
+    $S0 = shift $P0
+    $P1 = capture[$S0]
+    nameds[$S0] = $P1
+    goto named_loop
+  named_loop_end:
+
+    # Finally, create capture.
+    $P0 = get_hll_global 'Capture'
+    $P0 = $P0.'CREATE'('P6opaque')
+    setattribute $P0, '$!pos', positionals
+    setattribute $P0, '$!named', nameds
+    .return ($P0)
 .end
 
 =back

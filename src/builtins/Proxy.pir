@@ -52,9 +52,20 @@ container.
     # now bind self into the base container
     base[key] = self
 
-    # and complete the STORE on self
-    .const 'Sub' $P0 = 'Mu::!STORE'
-    .tailcall self.$P0(source)
+    # get the item to be stored
+    source = descalarref source
+    $I0 = can source, 'item'
+    unless $I0 goto have_source
+    source = source.'item'()
+  have_source:
+
+    # convert self into a scalar
+    $P0 = new ['ObjectRef'], source
+    copy self, $P0
+    $P0 = get_hll_global ['Bool'], 'True'
+    setprop self, 'scalar', $P0
+
+    .return (self)
 .end
 
 

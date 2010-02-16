@@ -154,6 +154,10 @@ augment class Num {
         1 / self.tan($base);
     }
 
+    multi method acotan($base = 'radians') {
+        (1 / self).atan($base);
+    }
+
     multi method cotanh($base = 'radians') {
         1 / self.tanh($base);
     }

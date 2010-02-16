@@ -97,13 +97,15 @@ method statementlist($/) {
     if $<statement> {
         for $<statement> { 
             my $ast := $_.ast;
-            if $ast.isa(PAST::Block) && !$ast.blocktype {
-                $ast := block_immediate($ast);
+            if $ast {
+                if $ast.isa(PAST::Block) && !$ast.blocktype {
+                    $ast := block_immediate($ast);
+                }
+                elsif $ast<past_block> && !$ast<past_block>.blocktype {
+                    $ast := block_immediate($ast<past_block>);
+                }
+                $past.push( $ast );
             }
-            elsif $ast<past_block> && !$ast<past_block>.blocktype {
-                $ast := block_immediate($ast<past_block>);
-            }
-            $past.push( $ast ); 
         }
     }
     make $past;

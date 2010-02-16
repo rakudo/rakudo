@@ -123,7 +123,7 @@ augment class Num {
     }
 
     multi method atanh($base = 'radians') {
-        (((1 + self) / (1 - self)).log / 2).from-radians($base);
+        (((1 + self) / (1 - self)).log / 2)!from-radians($base);
     }
 
     multi method sech($base = 'radians') {

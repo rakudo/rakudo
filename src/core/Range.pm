@@ -64,11 +64,11 @@ class Range is Iterable {
     }
 
     our Str multi method Str() {
-        $.iterator.join(" ");
+        $.iterator.Str;
     }
 
     our multi method Num() {
-        $.iterator.Seq.elems;
+        $.iterator.elems;
     }
 }
 

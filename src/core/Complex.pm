@@ -38,7 +38,7 @@ class Complex {
     }
 
     multi method asin($base = 'radians') {
-#        (-1i * log((self)i + sqrt(1 - self * self)))!from-radians($base);
+        (-1i * log((self)i + sqrt(1 - self * self)))!from-radians($base);
     }
 
     multi method cos($base = 'radians') {

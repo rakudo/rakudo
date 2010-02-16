@@ -135,7 +135,7 @@ augment class Num {
     }
 
     multi method cosech($base = 'radians') {
-        1 / self.cosh($base);
+        1 / self.sinh($base);
     }
 
     multi method acosech($base = 'radians') {

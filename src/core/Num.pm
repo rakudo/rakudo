@@ -146,6 +146,10 @@ augment class Num {
         1 / self.sin($base);
     }
 
+    multi method acosec($base = 'radians') {
+        (1 / self).asin($base);
+    }
+
     multi method cotan($base = 'radians') {
         1 / self.tan($base);
     }

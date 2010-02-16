@@ -26,6 +26,35 @@ wrappable executable objects.
 
 =over 4
 
+=item assumming()
+
+Returns a curried version of self.
+
+=cut
+
+.sub 'assuming' :method :subid('assuming')
+    .param pmc args :slurpy
+    .param pmc named_args :slurpy :named
+    .local pmc curried
+    .lex '@args', args
+    .lex '%args', named_args
+    .lex '$obj', self
+    .const 'Sub' curried = 'assuming_helper'
+    $P0 = newclosure curried
+    .return ($P0)
+.end
+
+.sub '' :outer('assuming') :subid('assuming_helper')
+    .param pmc args :slurpy
+    .param pmc named_args :slurpy :named
+    .local pmc obj, assumed_args, assumed_named_args, result
+    find_lex obj, '$obj'
+    find_lex assumed_args, '@args'
+    find_lex assumed_named_args, '%args'
+    .tailcall obj(assumed_args :flat, args :flat, assumed_named_args :flat :named, named_args :flat :named)
+.end
+
+
 =item wrap
 
 =cut

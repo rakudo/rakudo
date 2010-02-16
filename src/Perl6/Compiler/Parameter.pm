@@ -86,7 +86,16 @@ method default_from_outer($default_from_outer?) {
 }
 
 method nom_type($nom_type?) {
-    if $nom_type { $!nom_type := $nom_type }
+    if $nom_type {
+        if $nom_type.isa(PAST::Op) && $nom_type.name() eq 'new' {
+            # It's a thunk (cretion of a new code block); we'll make this
+            # a constraint.
+            self.cons_types.push($nom_type)
+        }
+        else {
+            $!nom_type := $nom_type
+        }
+    }
     $!nom_type
 }
 

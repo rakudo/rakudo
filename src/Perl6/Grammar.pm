@@ -552,10 +552,13 @@ token multi_declarator:sym<null> {
 }
 
 proto token scope_declarator { <...> }
-token scope_declarator:sym<my>      { <sym> <scoped('my')> }
-token scope_declarator:sym<our>     { <sym> <scoped('our')> }
-token scope_declarator:sym<has>     { <sym> <scoped('has')> }
-token scope_declarator:sym<augment> { <sym> <scoped('augment')> }
+token scope_declarator:sym<my>        { <sym> <scoped('my')> }
+token scope_declarator:sym<our>       { <sym> <scoped('our')> }
+token scope_declarator:sym<has>       { <sym> <scoped('has')> }
+token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
+token scope_declarator:sym<supercede> { 
+    <sym> <.panic: '"supercede" not yet implemented'>
+}
 
 rule scoped($*SCOPE) {
     :my $*TYPENAME := '';

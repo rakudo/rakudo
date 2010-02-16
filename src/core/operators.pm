@@ -127,7 +127,7 @@ our multi infix:<max>(*@args) {
     @args.max;
 }
 
-our multi infix:«=>»($key, $value) {
+our multi infix:«=>»($key, Mu $value) {
     Pair.new(key => $key, value => $value);
 }
 
@@ -147,7 +147,7 @@ our sub hash(*@list, *%hash) {
     %h
 }
 
-our multi infix:sym<//>($a, $b) {
+our multi infix:sym<//>(Mu $a, Mu $b) {
     $a.defined ?? $a !! $b
 }
 

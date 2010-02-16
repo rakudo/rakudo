@@ -162,6 +162,10 @@ augment class Num {
         1 / self.tanh($base);
     }
 
+    multi method acotanh($base = 'radians') {
+        (1 / self).atanh($base);
+    }
+
     multi method atan2(Num $x = 1, $base = 'radians') {
         pir::atan__NNn(self, $x)!from-radians($base);
     }

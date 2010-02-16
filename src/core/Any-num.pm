@@ -84,7 +84,7 @@ augment class Any {
         self.Num.tan($base);
     }
 
-    our Num multi method sec($base = 'radians') is export {
+    our Num multi method sec($base = 'radians') {
          self.Num.sec($base);
     }
 

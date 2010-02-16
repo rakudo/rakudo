@@ -311,8 +311,9 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         for (i = 0; i < num_constraints; i++) {
             PMC *cons_type    = VTABLE_get_pmc_keyed_int(interp, constraints, i);
             PMC *accepts_meth = VTABLE_find_method(interp, cons_type, ACCEPTS);
-            if (VTABLE_isa(interp, cons_type, string_from_literal(interp, "Sub")))
-                Parrot_capture_lex(interp, cons_type);
+            if (VTABLE_isa(interp, cons_type, string_from_literal(interp, "Block")))
+                Parrot_capture_lex(interp, VTABLE_get_attr_str(interp, cons_type,
+                    string_from_literal(interp, "$!do")));
             Parrot_ext_call(interp, accepts_meth, "PiP->P", cons_type, value, &result);
             if (!VTABLE_get_bool(interp, result)) {
                 if (error)

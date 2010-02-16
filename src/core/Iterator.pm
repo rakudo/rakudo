@@ -7,14 +7,8 @@ augment class Iterator {
         $elems;
     }
 
-    multi method Seq() {
-        my $seq = Seq.new;
-        $seq = self;
-        $seq;
-    }
-
     multi method Str() {
-        self.Seq.Str;
+        pir::join(' ', self.eager);
     }
 
     # TimToady suggests this should be on Cool,

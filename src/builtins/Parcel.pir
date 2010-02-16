@@ -92,6 +92,17 @@ Return the Parcel as a Seq.
 .end
 
 
+
+=item Bool()
+
+=cut
+
+.sub 'Bool' :method
+    $I0 = istrue self
+    .tailcall '&prefix:<?>'($I0)
+.end
+
+
 =item Capture()
 
 Coerce the Parcel into a capture.

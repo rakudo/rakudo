@@ -19,6 +19,10 @@ our multi prefix:<?>(Mu $a) {
     $a.Bool;
 }
 
+our multi prefix:<!>(Mu $a) {
+    $a.Bool ?? False !! True;
+}
+
 our multi sub prefix:<->($a) {
     pir::box__PN(pir::neg__NN($a))
 }

@@ -1,4 +1,8 @@
 augment class Num {
+    multi method Bool() {
+        self != 0.0e0
+    }
+
     multi method Int() {
         Q:PIR {
             $P0 = find_lex 'self'

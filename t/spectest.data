@@ -20,7 +20,6 @@
 # S02-lexical-conventions/unicode.t                          # icu, #24 release
 # S03-junctions/associative.t          # skipped for #24 release
 # S06-other/main-eval.t                # skipped for #24 release
-# S12-class/basic.t                    # skipped for #24 release
 
 # integration/99problems-01-to-10.t
 # integration/99problems-11-to-20.t

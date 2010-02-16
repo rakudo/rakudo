@@ -46,7 +46,7 @@ class Complex {
     }
 
     multi method acos($base = 'radians') {
-#       (pi / 2)!from-radians($base) - self.asin($base);
+      (pi / 2)!from-radians($base) - self.asin($base);
     }
 
     multi method tan($base = 'radians') {
@@ -54,7 +54,7 @@ class Complex {
     }
 
     multi method atan($base = 'radians') {
-#        ((log(1 - (self)i) - log(1 + (self)i))i / 2)!from-radians($base);
+       ((log(1 - (self)i) - log(1 + (self)i))i / 2)!from-radians($base);
     }
 
     multi method sec($base = 'radians') {
@@ -86,7 +86,7 @@ class Complex {
     }
 
     multi method asinh($base = 'radians') {
-#        (self + sqrt(1 + self * self)).log!from-radians($base);
+       (self + sqrt(1 + self * self)).log!from-radians($base);
     }
 
     multi method cosh($base = 'radians') {
@@ -94,7 +94,7 @@ class Complex {
     }
 
     multi method acosh($base = 'radians') {
-#        (self + sqrt(self * self - 1)).log!from-radians($base);
+       (self + sqrt(self * self - 1)).log!from-radians($base);
     }
 
     multi method tanh($base = 'radians') {
@@ -102,7 +102,7 @@ class Complex {
     }
 
     multi method atanh($base = 'radians') {
-#        (((1 + self) / (1 - self)).log / 2)!from-radians($base);
+       (((1 + self) / (1 - self)).log / 2)!from-radians($base);
     }
 
     multi method sech($base = 'radians') {
@@ -211,35 +211,35 @@ class Complex {
     }
 
     multi method cosec($base = 'radians') {
-#        1.0 / self!to-radians($base).sin;
+        1.0 / self!to-radians($base).sin;
     }
 
     multi method cosech($base = 'radians') {
-#        1.0 / self!to-radians($base).sinh;
+        1.0 / self!to-radians($base).sinh;
     }
 
     multi method acosec($base = 'radians') {
-#        (1.0 / self).asin!to-radians($base);
+        (1.0 / self).asin!to-radians($base);
     }
 
     multi method cotan($base = 'radians') {
-#        1.0 / self!to-radians($base).tan;
+        1.0 / self!to-radians($base).tan;
     }
 
     multi method cotanh($base = 'radians') {
- #       1.0 / self!to-radians($base).tanh;
+        1.0 / self!to-radians($base).tanh;
     }
 
     multi method acotan($base = 'radians') {
-#        (1.0 / self).atan!to-radians($base);
+        (1.0 / self).atan!to-radians($base);
     }
 
     multi method acosech($base = 'radians') {
-#        (1.0 / self).asinh!to-radians($base);
+        (1.0 / self).asinh!to-radians($base);
     }
 
     multi method acotanh($base = 'radians') {
-#        (1.0 / self).atanh!to-radians($base);
+        (1.0 / self).atanh!to-radians($base);
     }
 
     multi method Num {

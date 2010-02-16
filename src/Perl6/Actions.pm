@@ -1470,7 +1470,8 @@ method args($/) {
 method semiarglist($/) { make $<arglist>.ast; }
 
 method arglist($/) {
-    my $past := PAST::Op.new( :pasttype('call'), :node($/) );
+    # Build up argument list, hanlding nameds as we go.
+    my $past := PAST::Op.new( );
     if $<EXPR> {
         my $expr := $<EXPR>.ast;
         if $expr.name eq '&infix:<,>' {
@@ -1478,7 +1479,38 @@ method arglist($/) {
         }
         else { $past.push(handle_named_parameter($expr)); }
     }
-    make $past;
+
+    # See if we have any uses of prefix:<|>; if we have, then we take it and
+    # evaluate it once. We then stick it in a register, and pull out an RPA
+    # and a Hash that Parrot knows what to do with.
+    my $result := PAST::Op.new( :pasttype('call'), :node($/) );
+    for @($past) {
+        if $_.isa(PAST::Op) && $_.name() eq '&prefix:<|>' {
+            my $reg_name := $past.unique('flatten_tmp_');
+            my $steps := PAST::Stmts.new(
+                PAST::Op.new( :pasttype('bind'),
+                    PAST::Var.new( :name($reg_name), :scope('register'), :isdecl(1) ),
+                    $_
+                ),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('!PARROT_POSITIONALS'),
+                    PAST::Var.new( :name($reg_name), :scope('register') )
+                )
+            );
+            $steps.flat(1);
+            $result.push($steps);
+            $result.push(PAST::Op.new(
+                :flat(1), :named(1),
+                :pasttype('callmethod'), :name('!PARROT_NAMEDS'),
+                PAST::Var.new( :name($reg_name), :scope('register') )
+            ));
+        }
+        else {
+            $result.push($_);
+        }
+    }
+
+    make $result;
 }
 
 sub handle_named_parameter($arg) {

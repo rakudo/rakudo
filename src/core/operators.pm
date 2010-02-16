@@ -159,6 +159,11 @@ our multi infix:<!=>($a, $b) {
     pir::isne__INN(+$a, +$b) ?? True !! False
 }
 
+our multi prefix:<|>(@a) { @a.Capture }
+our multi prefix:<|>(%h) { %h.Capture }
+our multi prefix:<|>(Capture $c) { $c }
+our multi prefix:<|>(Mu $fail) { die 'Cannot use prefix:<|> with a ' ~ $fail.WHAT; }
+
 # XXX Wants to be a macro when we have them.
 our sub WHAT(\$x) {
     $x.WHAT

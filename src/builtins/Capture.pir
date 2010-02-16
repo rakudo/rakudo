@@ -90,6 +90,30 @@ XXX Returns Parrot Hash, not Perl 6 Hash.
     .return ($P0)
 .end
 
+
+=item !PARROT_POSITIONALS
+
+Gets a Parrot RPA that we can use :flat on.
+
+=cut
+
+.sub '!PARROT_POSITIONALS' :method
+    $P0 = getattribute self, '$!pos'
+    .return ($P0)
+.end
+
+
+=item !PARROT_NAMEDS
+
+Gets a Parrot Hash that we can use :flat :named on.
+
+=cut
+
+.sub '!PARROT_NAMEDS' :method
+    $P0 = getattribute self, '$!named'
+    .return ($P0)
+.end
+
 =back
 
 =head2 Functions

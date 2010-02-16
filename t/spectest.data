@@ -109,7 +109,7 @@ S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
 S02-whitespace_and_comments/minimal-whitespace.t
 S02-whitespace_and_comments/one-pass-parsing.t
-# S02-whitespace_and_comments/pod-in-multi-line-exprs.t
+S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
 # S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
@@ -120,8 +120,8 @@ S02-whitespace_and_comments/sub-block-parsing.t
 # S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 # S03-operators/assign.t
-# S03-operators/autoincrement-range.t                        # icu
-# S03-operators/autoincrement.t
+S03-operators/autoincrement-range.t                        # icu
+S03-operators/autoincrement.t
 # S03-operators/autovivification.t
 S03-operators/basic-types.t
 # S03-operators/binding-closure.t
@@ -156,8 +156,8 @@ S03-operators/scalar-assign.t
 # S03-smartmatch/any-array-slice.t
 # S03-smartmatch/any-array.t
 # S03-smartmatch/any-bool.t
-# S03-smartmatch/any-callable.t
-# S03-smartmatch/any-complex.t
+S03-smartmatch/any-callable.t
+S03-smartmatch/any-complex.t
 # S03-smartmatch/any-hash-pair.t
 # S03-smartmatch/any-hash-slice.t
 # S03-smartmatch/any-method.t
@@ -174,7 +174,7 @@ S03-smartmatch/any-type.t
 # S03-smartmatch/scalar-hash.t
 # S03-operators/series.t
 # S03-operators/short-circuit.t
-# S03-operators/spaceship-and-containers.t
+S03-operators/spaceship-and-containers.t
 # S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
@@ -185,7 +185,7 @@ S04-blocks-and-statements/pointy.t
 S04-phasers/end.t
 # S04-phasers/start.t
 # S04-declarations/constant.t
-# S04-declarations/implicit-parameter.t
+S04-declarations/implicit-parameter.t
 # S04-declarations/multiple.t
 # S04-declarations/my.t
 # S04-declarations/state.t
@@ -194,8 +194,8 @@ S04-exceptions/fail.t
 # S04-statement-modifiers/given.t
 # S04-statement-modifiers/if.t
 S04-statement-modifiers/unless.t
-# S04-statement-modifiers/until.t
-# S04-statement-modifiers/values_in_bool_context.t
+S04-statement-modifiers/until.t
+S04-statement-modifiers/values_in_bool_context.t
 # S04-statement-modifiers/while.t
 # S04-statements/do.t
 # S04-statements/for-scope.t
@@ -204,12 +204,12 @@ S04-statements/for_with_only_one_item.t
 # S04-statements/gather.t
 # S04-statements/given.t
 # S04-statements/if.t
-# S04-statements/last.t
+S04-statements/last.t
 S04-statements/loop.t
 # S04-statements/map-and-sort-in-for.t
-# S04-statements/next.t
-# S04-statements/no-implicit-block.t
-# S04-statements/redo.t
+S04-statements/next.t
+S04-statements/no-implicit-block.t
+S04-statements/redo.t
 S04-statements/repeat.t
 # S04-statements/return.t
 # S04-statements/terminator.t
@@ -302,12 +302,12 @@ S06-signature/slurpy-placeholders.t
 # S06-signature/sub-ref.t
 S06-signature/type-capture.t
 # S06-signature/types.t
-# S06-signature/unspecified.t
+S06-signature/unspecified.t
 S06-traits/is-copy.t
 # S06-traits/is-rw.t
 # S06-traits/misc.t
-S07-iterators/range-iterator.t 
-# S09-autovivification/autoincrement.t
+S07-iterators/range-iterator.t
+S09-autovivification/autoincrement.t
 # S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t
 # S09-typed-arrays/hashes.t
@@ -372,7 +372,7 @@ S12-methods/topic.t
 # S12-subset/multi-dispatch.t
 # S12-subset/subtypes.t
 # S13-type-casting/methods.t
-# S13-overloading/typecasting-long.t
+S13-overloading/typecasting-long.t
 # S13-overloading/metaoperators.t
 # S13-overloading/operators.t
 S14-roles/attributes.t
@@ -396,7 +396,7 @@ S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 # S16-filehandles/open.t
 # S16-io/bare-say.t
-# S16-io/basic-open.t
+S16-io/basic-open.t
 S16-io/say.t
 # S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t

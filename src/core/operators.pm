@@ -159,6 +159,15 @@ our multi infix:<!=>($a, $b) {
     pir::isne__INN(+$a, +$b) ?? True !! False
 }
 
+# XXX Lazy version would be nice in the future too.
+our multi infix:<xx>(Mu \$item, $n) {
+    my @result = ();
+    for 1..$n {
+        @result.push($item);
+    }
+    @result
+}
+
 our multi prefix:<|>(@a) { @a.Capture }
 our multi prefix:<|>(%h) { %h.Capture }
 our multi prefix:<|>(Capture $c) { $c }

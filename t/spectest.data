@@ -149,7 +149,7 @@ S03-operators/range.t
 # S03-operators/reduce-le1arg.t
 # S03-operators/reduce-metaop.t
 S03-operators/relational.t
-# S03-operators/repeat.t
+S03-operators/repeat.t
 S03-operators/scalar-assign.t
 # S03-smartmatch/any-any.t
 # S03-smartmatch/any-array-slice.t

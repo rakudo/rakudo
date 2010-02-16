@@ -48,8 +48,8 @@ Returns the next element of the list.
     unless rpa goto rpa_done
     value = shift rpa
     # If the value doesn't flatten, we return it directly.  
-    $I0 = isa value, ['Perl6Scalar']
-    if $I0 goto get_done
+    $P0 = getprop 'scalar', value
+    unless null $P0 goto get_done
     # If the value is a RPA/Parcel, it always flattens directly
     $I0 = isa value, ['ResizablePMCArray']
     if $I0 goto rpa_flatten

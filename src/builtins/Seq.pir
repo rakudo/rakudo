@@ -92,9 +92,11 @@ wish to make other property changes on individual elements.
 .namespace ['Seq']
 .sub '!elem' :method
     .param pmc item
-    .local pmc elem
-    elem = new ['Perl6Scalar']
-    elem.'!STORE'(item)
+    .local pmc elem, true
+    item = descalarref item
+    elem = new ['ObjectRef'], item
+    true = get_hll_global ['Bool'], 'True'
+    setprop elem, 'scalar', true
     .return (elem)
 .end
 

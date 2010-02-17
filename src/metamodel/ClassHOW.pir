@@ -602,14 +602,14 @@ Gets a list of roles done by the class of this object.
 
     # Create result list.
     .local pmc result_list
-    result_list = new 'Array'
+    result_list = root_new ['parrot';'ResizablePMCArray']
 
     # Get list of parents whose roles we are interested in, and put
     # us on the start. With the local flag, that's just us.
     .local pmc parents, parents_it, cur_class, us
     unless null tree goto do_tree
     if null local goto all_parents
-    parents = new 'Array'
+    parents = root_new ['parrot';'ResizablePMCArray']
     goto parents_list_made
   all_parents:
     parents = self.'parents'(obj)
@@ -618,7 +618,7 @@ Gets a list of roles done by the class of this object.
     parents = self.'parents'(obj, 'local'=>1)
   parents_list_made:
     us = obj.'WHAT'()
-    parents.'unshift'(us)
+    unshift parents, us
     parents_it = iter parents
   parents_it_loop:
     unless parents_it goto done
@@ -629,27 +629,29 @@ Gets a list of roles done by the class of this object.
     if null tree goto tree_handled
     eq_addr cur_class, us, tree_handled
     $P0 = self.'roles'(cur_class, 'tree'=>tree)
-    $P0 = new 'Perl6Scalar', $P0
-    result_list.'push'($P0)
+    $P0 = '&circumfix:<[ ]>'($P0)
+    push result_list, $P0
     goto parents_it_loop
   tree_handled:
 
     # The list of roles is flattened out when we actually compose, so we
     # don't inspect the Parrot class, but rather the to-compose list that
     # is attached to it.
-    .local pmc roles, role_it, cur_role
-    roles = getattribute self, '$!roles'
+    .local pmc how, roles, role_it, cur_role
+    how = cur_class.'HOW'()
+    roles = getattribute how, '$!composees'
     if null roles goto done
     role_it = iter roles
   role_it_loop:
     unless role_it goto role_it_loop_end
     cur_role = shift role_it
-    result_list.'push'(cur_role)
+    push result_list, cur_role
     goto role_it_loop
   role_it_loop_end:
     goto parents_it_loop
 
   done:
+    result_list = '&infix:<,>'(result_list :flat)
     .return (result_list)
 .end
 

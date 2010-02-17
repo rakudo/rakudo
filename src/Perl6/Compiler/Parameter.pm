@@ -21,6 +21,7 @@ has $!is_copy;
 has $!is_parcel;
 has $!is_capture;
 has $!traits;
+has $!coerce_to;
 
 method var_name($var_name?) {
     if $var_name { $!var_name := $var_name }
@@ -137,4 +138,9 @@ method is_capture($is_capture?) {
 method traits($traits?) {
     if $traits { $!traits := $traits }
     $!traits
+}
+
+method coerce_to($coerce_to?) {
+    if $coerce_to { $!coerce_to := $coerce_to }
+    $!coerce_to
 }

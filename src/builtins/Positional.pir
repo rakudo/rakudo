@@ -52,7 +52,7 @@ src/classes/Positional.pir - Positional Role
     signature = allocate_signature 1
     setprop block, "$!signature", signature
     null $P1
-    set_signature_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1
+    set_signature_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1, ""
 .end
 
 

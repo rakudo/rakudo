@@ -29,6 +29,7 @@ typedef struct llsig_element {
     PMC    *post_constraints; /* Array of any extra constraints; we will do a
                                * smart-match against each of them. For now, we
                                * always expect an array of blocks. */
+    STRING *coerce_to;        /* Name of the type to coerce to; for X we do $val.X. */
     PMC    *sub_signature;    /* Any nested signature. */
     PMC    *default_closure;  /* The default value closure. */
 } llsig_element;

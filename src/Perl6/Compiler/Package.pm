@@ -81,12 +81,13 @@ method finish($block) {
     my $how := $!how;
     my @how := Perl6::Grammar::parse_name(~$how);
     my $metaclass := PAST::Var.new( :name(@how.pop), :namespace(@how), :scope('package') );
+    my $obj_reg := PAST::Var.new( :name('obj'), :scope('register') );
     my $meta_reg := PAST::Var.new( :name('meta'), :scope('register') );
     my $name := $!name ?? ~$!name !! '';
     if $!scope ne 'augment' {
         $decl.push(PAST::Op.new(
             :pasttype('bind'),
-            PAST::Var.new( :name('meta'), :scope('register'), :isdecl(1) ),
+            PAST::Var.new( :name('obj'), :scope('register'), :isdecl(1) ),
             PAST::Op.new(
                 :pasttype('callmethod'),
                 :name('new'),
@@ -96,19 +97,20 @@ method finish($block) {
         ));
     }
     else {
-        # Augment, so look up existing metaclass and grab it's HOW.
+        # Augment, so look up existing class.
         unless $name { pir::die('Can not augment an anonymous package') }
         my @name := Perl6::Grammar::parse_name($name);
         $decl.push(PAST::Op.new(
             :pasttype('bind'),
-            PAST::Var.new( :name('meta'), :scope('register'), :isdecl(1) ),
-            PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('HOW'),
-                PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
-            )
+            PAST::Var.new( :name('obj'), :scope('register'), :isdecl(1) ),
+            PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
         ));
     }
+    $decl.push(PAST::Op.new(
+        :pasttype('bind'),
+        PAST::Var.new( :name('meta'), :scope('register'), :isdecl(1) ),
+        PAST::Op.new( :pasttype('callmethod'), :name('HOW'), $obj_reg )
+    ));
 
     # Meta Methods.
     my %meta_methods := $!meta_methods;
@@ -116,7 +118,7 @@ method finish($block) {
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_meta_method'),
-            $metaclass, $meta_reg, ~$_, %meta_methods{~$_}<code_ref>
+            $meta_reg, $obj_reg, ~$_, %meta_methods{~$_}<code_ref>
         ));
     }
 
@@ -126,7 +128,7 @@ method finish($block) {
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_method'),
-            $metaclass, $meta_reg, ~$_, %methods{~$_}<code_ref>
+            $meta_reg, $obj_reg, ~$_, %methods{~$_}<code_ref>
         ));
     }
 
@@ -148,20 +150,20 @@ method finish($block) {
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_attribute'),
-            $metaclass, $meta_reg, $attr
+            $meta_reg, $obj_reg, $attr
         ));
     }
 
     # Traits.
     if $!traits {
         for @($!traits) {
-            $_.unshift($meta_reg);
+            $_.unshift($obj_reg);
             $decl.push($_);
         }
     }
 
     # Finally, compose call, and we're done with the decls.
-    $decl.push(PAST::Op.new( :pasttype('callmethod'), :name('compose'), $metaclass, $meta_reg ));
+    $decl.push(PAST::Op.new( :pasttype('callmethod'), :name('compose'), $meta_reg, $obj_reg ));
 
     # Check scope and put decls in the right place.
     if $!scope eq 'our' || $!scope eq 'augment' {

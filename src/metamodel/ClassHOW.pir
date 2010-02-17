@@ -12,7 +12,27 @@ Object and P6metaclass, so ClassHOW is within the Perl6 object
 hierarchy but so we can also deal with having a Parrot Class as our
 backing store.
 
+We also have a temporary "ClassToBe", which is just a Parrot class.
+The only thing it knows how to do is .HOW, so you can only do meta-
+calls on it.
+
 =cut
+
+.namespace ['ClassToBe']
+
+.sub '' :anon :init
+    $P0 = newclass ['ClassToBe']
+    $P1 = get_root_namespace ['parrot';'P6object']
+    $P1 = get_class $P1
+    $P0.'add_parent'($P1)
+    addattribute $P0, '$!how'
+.end
+
+.sub 'HOW' :method
+    $P0 = getattribute self, '$!how'
+    .return ($P0)
+.end
+
 
 .namespace ['ClassHOW']
 
@@ -63,7 +83,8 @@ backing store.
 
 =item new()
 
-Creates a new instance of the meta-class.
+Creates a new instance of the meta-class and returns it in an associated
+"holder" object.
 
 =cut
 
@@ -101,7 +122,10 @@ Creates a new instance of the meta-class.
     setattribute how, 'longname', $P0
   no_alt_name:
 
-    .return (how)
+    # Finally, wrap it up in a ClassToBe instance.
+    $P0 = new ['ClassToBe']
+    setattribute $P0, '$!how', how
+    .return ($P0)
 .end
 
 
@@ -112,17 +136,17 @@ Add an attribute.
 =cut
 
 .sub 'add_attribute' :method
-    .param pmc meta
+    .param pmc obj
     .param pmc attribute
 
     # Add the attribute at the Parrot level.
     .local string name
     name = attribute.'name'()
-    $P0 = getattribute meta, 'parrotclass'
+    $P0 = getattribute self, 'parrotclass'
     addattribute $P0, name
 
     # Add it to our attributes array.
-    $P0 = getattribute meta, '$!attributes'
+    $P0 = getattribute self, '$!attributes'
     push $P0, attribute
 .end
 
@@ -187,12 +211,8 @@ Attribute descriptors.
 
     # Get attributes list and push the attribute descriptors onto
     # the results.
-    $I0 = isa cur_class, 'ClassHOW'
-    if $I0 goto have_our_how
-    cur_class = cur_class.'HOW'()
-  have_our_how:
     .local pmc attributes, attr_it
-    attributes = getattribute cur_class, '$!attributes'
+    attributes = getattribute self, '$!attributes'
     if null attributes goto attr_it_loop_end
     attr_it = iter attributes
   attr_it_loop:
@@ -215,14 +235,14 @@ Stores something that we will compose (e.g. a role) at class composition time.
 =cut
 
 .sub 'add_composable' :method
-    .param pmc meta
+    .param pmc obj
     .param pmc composee
 
     # XXX Picking a role variant should be done in the trait_mod, not here,
     # but zen slices aren't parsed yet.
     composee = composee.'postcircumfix:<[ ]>'()
 
-    $P0 = getattribute meta, '$!composees'
+    $P0 = getattribute self, '$!composees'
     push $P0, composee
 .end
 
@@ -236,7 +256,7 @@ knows how to do that).
 =cut
 
 .sub 'applier_for' :method
-    .param pmc meta
+    .param pmc obj
     .param pmc for
     die "A class can not be composed into another package yet"
 .end
@@ -249,28 +269,28 @@ Completes the creation of the metaclass and return a proto-object.
 =cut
 
 .sub 'compose' :method
-    .param pmc meta
+    .param pmc obj
     .local pmc parrotclass
-    parrotclass = getattribute meta, 'parrotclass'
+    parrotclass = getattribute self, 'parrotclass'
 
     # Haz we already a proto-object? If so, we're done, so just hand
     # it back.
-    $P0 = getattribute meta, 'protoobject'
+    $P0 = getattribute self, 'protoobject'
     if null $P0 goto no_its_new
     .return ($P0)
   no_its_new:
 
     # Compose any composables.
-    'compose_composables'(meta)
+    'compose_composables'(self, obj)
 
     # Iterate over the attributes and compose them.
     .local pmc attr_it, attributes
-    attributes = getattribute meta, '$!attributes'
+    attributes = getattribute self, '$!attributes'
     attr_it = iter attributes
   attr_it_loop:
     unless attr_it goto attr_it_loop_end
     $P0 = shift attr_it
-    $P0.'compose'(meta)
+    $P0.'compose'(self)
     goto attr_it_loop
   attr_it_loop_end:
 
@@ -278,7 +298,7 @@ Completes the creation of the metaclass and return a proto-object.
     $P0 = inspect parrotclass, 'parents'
     if $P0 goto have_parents
     $P0 = get_hll_global 'Any'
-    self.'add_parent'(meta, $P0)
+    self.'add_parent'(obj, $P0)
   have_parents:
 
     # Finally, create proto object. If we gave it a name already, then
@@ -286,15 +306,15 @@ Completes the creation of the metaclass and return a proto-object.
     # name property or it stashes it in the namespace :-(). So we gotta
     # take care of that here.
     .local pmc proto
-    $P0 = getattribute meta, 'shortname'
-    $P1 = getattribute meta, 'longname'
+    $P0 = getattribute self, 'shortname'
+    $P1 = getattribute self, 'longname'
     if null $P0 goto no_name_override
-    proto = self.'register'(parrotclass, 'how'=>meta)
-    setattribute meta, 'shortname', $P0
-    setattribute meta, 'longname', $P1
+    proto = self.'register'(parrotclass, 'how'=>self)
+    setattribute self, 'shortname', $P0
+    setattribute self, 'longname', $P1
     goto proto_made
   no_name_override:
-    proto = self.'register'(parrotclass, 'how'=>meta)
+    proto = self.'register'(parrotclass, 'how'=>self)
   proto_made:
     transform_to_p6opaque proto
     .return (proto)
@@ -444,12 +464,13 @@ Add a meta method to the given meta.
 =cut
 
 .sub 'add_meta_method' :method
-    .param pmc meta
+    .param pmc obj
     .param string name
     .param pmc meth
     .local pmc meth_name
+
     # Add the method to the meta model
-    $P0 = meta.'HOW'()
+    $P0 = self.'HOW'()
     $P0.'add_method'(name, meth)
 
     # Add forward method to the class itself.
@@ -457,8 +478,7 @@ Add a meta method to the given meta.
     .lex '$meth_name', meth_name
     .const 'Sub' $P1 = '!metaclass_method_forwarder'
     $P1 = newclosure $P1
-    $P0 = getattribute meta, 'parrotclass' 
-    meta.'add_method'(meta, name, $P1)
+    self.'add_method'(obj, name, $P1)
 .end
 .sub '!metaclass_method_forwarder' :outer('add_meta_method') :method :anon
     .param pmc pos_args    :slurpy
@@ -476,10 +496,10 @@ Add a method to the given meta.
 =cut
 
 .sub 'add_method' :method
-    .param pmc meta
+    .param pmc obj
     .param string name
     .param pmc meth
-    $P0 = getattribute meta, 'parrotclass'
+    $P0 = getattribute self, 'parrotclass'
     addmethod $P0, name, meth
 .end
 
@@ -502,15 +522,9 @@ Gets a list of methods.
     private = null
   private_setup:
 
-    # Get the Parrot class.
+    # Get our Parrot class.
     .local pmc parrot_class, method_hash, result_list, it, cur_meth
-    $I0 = isa obj, 'ClassHOW'
-    unless $I0 goto is_not_meta
-    parrot_class = getattribute obj, 'parrotclass'
-    goto got_parrotclass
-  is_not_meta:
-    parrot_class = self.'get_parrotclass'(obj)
-  got_parrotclass:
+    parrot_class = getattribute self, 'parrotclass'
 
     # Create array to put results in.
     result_list = new 'Array'
@@ -664,6 +678,7 @@ Accessor for hides property.
 =cut
 
 .sub 'hides' :method
+    .local pmc obj
     $P0 = getattribute self, '$!hides'
     unless null $P0 goto done
     $P0 = new 'Array'
@@ -680,6 +695,7 @@ Accessor for hidden property.
 =cut
 
 .sub 'hidden' :method
+    .local pmc obj
     $P0 = getattribute self, '$!hidden'
     unless null $P0 goto done
     $P0 = get_hll_global ['Bool'], 'False'
@@ -739,8 +755,9 @@ correct protocol.
   have_parrotclass:
 
     # Make ClassHOW instance.
-    .local pmc how
-    how = self.'new'()
+    .local pmc ctb, how
+    ctb = self.'new'()
+    how = ctb.'HOW'()
     setattribute how, 'parrotclass', parrotclass
 
     .local pmc attrlist, it, attribute
@@ -758,15 +775,15 @@ correct protocol.
     $S0 = shift it
     unless $S0 goto iter_loop
     $P0 = attribute.'new'('name'=>$S0)
-    self.'add_attribute'(how, $P0)
+    how.'add_attribute'(ctb, $P0)
     goto iter_loop
   iter_end:
   attr_done:
 
     $P0 = options['does_role']
     if null $P0 goto role_done
-    self.'add_composable'(how, $P0)
-    'compose_composables'(how)
+    how.'add_composable'(ctb, $P0)
+    'compose_composables'(how, ctb)
   role_done:
 
     .tailcall self.'register'(parrotclass, 'how'=>how, options :named :flat)
@@ -775,6 +792,7 @@ correct protocol.
 
 .sub 'compose_composables'
     .param pmc meta
+    .param pmc obj
 
     # Before we begin, need to make Parrot's role implementation happy,
     # since we still partially use it.
@@ -810,7 +828,7 @@ correct protocol.
     $P1 = $P0.'HOW'()
     chosen_applier = $P1.'applier_for'($P0, meta)
   apply_composees:
-    done = chosen_applier.'apply'(meta, composees)
+    done = chosen_applier.'apply'(obj, composees)
     setattribute meta, '$!done', done
   composition_done:
 .end

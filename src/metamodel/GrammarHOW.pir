@@ -32,16 +32,16 @@ delegates to ClassHOW.
 =cut
 
 .sub 'compose' :method
-    .param pmc meta
+    .param pmc obj
     .local pmc parrotclass
-    parrotclass = getattribute meta, 'parrotclass'
+    parrotclass = getattribute self, 'parrotclass'
     $P0 = inspect parrotclass, 'parents'
     if $P0 goto have_parents
     $P0 = get_hll_global 'Grammar'
-    self.'add_parent'(meta, $P0)
+    self.'add_parent'(obj, $P0)
   have_parents:
     $P0 = get_hll_global ['ClassHOW'], 'compose'
-    .tailcall $P0(self, meta)
+    .tailcall $P0(self, obj)
 .end
 
 =back

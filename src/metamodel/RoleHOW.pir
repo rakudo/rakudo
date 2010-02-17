@@ -39,7 +39,7 @@ Creates a new instance of the meta-class.
     p6role = new ['P6role']
 
     # Stash in metaclass instance, init a couple of other fields,
-    # and hand it back.
+    # and associate it with the P6role object, then hand that back.
   have_p6role:
     how = new ['RoleHOW']
     setattribute how, 'parrotclass', p6role
@@ -54,7 +54,9 @@ Creates a new instance of the meta-class.
     $P0 = new ['ResizablePMCArray']
     setattribute how, '$!collisions', $P0
     setprop p6role, 'metaclass', how
-    .return (how)
+    setattribute how, 'protoobject', p6role
+    
+    .return (p6role)
 .end
 
 
@@ -65,9 +67,9 @@ Stores the parent; we'll add it to a class at compose time.
 =cut
 
 .sub 'add_parent' :method
-    .param pmc meta
+    .param pmc role
     .param pmc parent
-    $P0 = getattribute meta, '$!parents'
+    $P0 = getattribute self, '$!parents'
     push $P0, parent
 .end
 
@@ -79,9 +81,9 @@ Adds the name of a required method to the requirements list for the role.
 =cut
 
 .sub 'add_requirement' :method
-    .param pmc meta
+    .param pmc role
     .param pmc requirement
-    $P0 = getattribute meta, '$!requirements'
+    $P0 = getattribute self, '$!requirements'
     push $P0, requirement
 .end
 
@@ -94,9 +96,9 @@ it to the collisions list for the role.
 =cut
 
 .sub 'add_collision' :method
-    .param pmc meta
+    .param pmc role
     .param pmc collision
-    $P0 = getattribute meta, '$!collisions'
+    $P0 = getattribute self, '$!collisions'
     push $P0, collision
 .end
 
@@ -108,9 +110,9 @@ Adds an attribute to the role.
 =cut
 
 .sub 'add_attribute' :method
-    .param pmc meta
+    .param pmc role
     .param pmc attribute
-    $P0 = getattribute meta, '$!attributes'
+    $P0 = getattribute self, '$!attributes'
     push $P0, attribute
 .end
 
@@ -122,9 +124,9 @@ Stores something that we will compose (e.g. a role) at class composition time.
 =cut
 
 .sub 'add_composable' :method
-    .param pmc meta
+    .param pmc role
     .param pmc composee
-    $P0 = getattribute meta, '$!composees'
+    $P0 = getattribute self, '$!composees'
     push $P0, composee
 .end
 
@@ -135,7 +137,7 @@ Add a metamethod to the given meta.
 =cut
 
 .sub 'add_meta_method' :method
-    .param pmc meta
+    .param pmc role
     .param string name
     .param pmc meth
     '&die'("Adding meta-methods to roles is not yet implemented.")
@@ -148,10 +150,10 @@ Add a method to the given meta.
 =cut
 
 .sub 'add_method' :method
-    .param pmc meta
+    .param pmc role
     .param string name
     .param pmc meth
-    $P0 = getattribute meta, 'parrotclass'
+    $P0 = getattribute self, 'parrotclass'
     addmethod $P0, name, meth
 .end
 
@@ -162,10 +164,10 @@ Gets the list of methods that this role does.
 =cut
 
 .sub 'methods' :method
-    .param pmc meta
+    .param pmc role
     .local pmc result, it, p6role
     result = root_new ['parrot';'ResizablePMCArray']
-    p6role = getattribute meta, 'parrotclass'
+    p6role = getattribute self, 'parrotclass'
     $P0 = inspect p6role, 'methods'
     it = iter $P0
   it_loop:
@@ -187,8 +189,8 @@ later being added to the class).
 =cut
 
 .sub 'parents' :method
-    .param pmc meta
-    $P0 = getattribute meta, '$!parents'
+    .param pmc role
+    $P0 = getattribute self, '$!parents'
     .return ($P0)
 .end
 
@@ -200,8 +202,8 @@ Accessor for list of method names a role requires.
 =cut
 
 .sub 'requirements' :method
-    .param pmc meta
-    $P0 = getattribute meta, '$!requirements'
+    .param pmc role
+    $P0 = getattribute self, '$!requirements'
     .return ($P0)
 .end
 
@@ -213,8 +215,8 @@ Accessor for list of method names in conflict; the class must resolve them.
 =cut
 
 .sub 'collisions' :method
-    .param pmc meta
-    $P0 = getattribute meta, '$!collisions'
+    .param pmc role
+    $P0 = getattribute self, '$!collisions'
     .return ($P0)
 .end
 
@@ -226,8 +228,8 @@ Accessor for list of attributes in the role.
 =cut
 
 .sub 'attributes' :method
-    .param pmc meta
-    $P0 = getattribute meta, '$!attributes'
+    .param pmc role
+    $P0 = getattribute self, '$!attributes'
     .return ($P0)
 .end
 
@@ -242,14 +244,14 @@ XXX This is non-spec ATM.
 =cut
 
 .sub 'composees' :method
-    .param pmc meta
+    .param pmc role
     .param pmc transitive :named('transitive') :optional
     if null transitive goto intransitive
     unless transitive goto intransitive
-    $P0 = getattribute meta, '$!done'
+    $P0 = getattribute self, '$!done'
     .return ($P0)
   intransitive:
-    $P0 = getattribute meta, '$!composees'
+    $P0 = getattribute self, '$!composees'
     .return ($P0)
 .end
 
@@ -263,7 +265,7 @@ knows how to do that).
 =cut
 
 .sub 'applier_for' :method
-    .param pmc meta
+    .param pmc role
     .param pmc for
     
     $I0 = isa for, 'ClassHOW'
@@ -293,14 +295,14 @@ Completes the creation of the metaclass and return the P6role.
 =cut
 
 .sub 'compose' :method
-    .param pmc meta
+    .param pmc role
     .local pmc p6role
-    p6role = getattribute meta, 'parrotclass'
+    p6role = getattribute self, 'parrotclass'
 
     # See if we have anything to compose. Also, make sure our composees
     # all want the same composer.
     .local pmc composees, chosen_applier, composee_it, done
-    composees = getattribute meta, '$!composees'
+    composees = getattribute self, '$!composees'
     $I0 = elements composees
     if $I0 == 0 goto composition_done
     if $I0 == 1 goto one_composee
@@ -310,7 +312,7 @@ Completes the creation of the metaclass and return the P6role.
     $P0 = shift composee_it
     if null chosen_applier goto first_composee
     $P1 = $P0.'HOW'()
-    $P1 = $P1.'applier_for'($P0, meta)
+    $P1 = $P1.'applier_for'($P0, self)
     $P2 = chosen_applier.'WHAT'()
     $P3 = $P1.'WHAT'()
     $I0 = '&infix:<===>'($P2, $P3)
@@ -318,25 +320,23 @@ Completes the creation of the metaclass and return the P6role.
     die 'Can not compose multiple composees that want different appliers'
   first_composee:
     $P1 = $P0.'HOW'()
-    chosen_applier = $P1.'applier_for'($P0, meta)
+    chosen_applier = $P1.'applier_for'($P0, self)
     goto composee_it_loop
   one_composee:
     $P0 = composees[0]
     $P1 = $P0.'HOW'()
-    chosen_applier = $P1.'applier_for'($P0, meta)
+    chosen_applier = $P1.'applier_for'($P0, self)
   apply_composees:
-    done = chosen_applier.'apply'(meta, composees)
+    done = chosen_applier.'apply'(role, composees)
   composition_done:
     unless null done goto done_done
     done = root_new ['parrot';'ResizablePMCArray']
   done_done:
     done.'unshift'(p6role)
-    setattribute meta, '$!done', done
+    setattribute self, '$!done', done
 
     # Associate the metaclass with the p6role.
-    setprop p6role, 'how', meta
-    setattribute meta, 'protoobject', p6role
-    .return (p6role)
+    .return (role)
 .end
 
 =back

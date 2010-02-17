@@ -1,11 +1,10 @@
 # XXX Signature is wrong really - will fix once we can parse other things.
-# XXX Use .^ once we learn how to parse it.
 our multi trait_mod:<is>(Mu $child, Mu $parent) {
-    $child.add_parent($child, $parent);
+    $child.^add_parent($parent);
 }
 
 our multi trait_mod:<is>(Mu $child, Role $r) {
-    $child.add_parent($child, $r!select!pun);
+    $child.^add_parent($r!select!pun);
 }
 
 our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
@@ -18,7 +17,7 @@ our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
 }
 
 our multi trait_mod:<does>(Mu $target, Mu $r) {
-    $target.add_composable($target, $r);
+    $target.^add_composable($r);
 }
 
 our multi trait_mod:<does>(ContainerDeclarand $c, Role $r) {

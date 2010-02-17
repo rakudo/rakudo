@@ -22,7 +22,7 @@ composite role first.
 class Perl6::Metamodel::RoleToClassApplier;
 
 sub has_method($target, $name, $local) {
-    my @methods := $target.methods($target, :local($local));
+    my @methods := $target.HOW.methods($target, :local($local));
     for @methods {
         if $_.name eq $name { return 1; }
     }
@@ -30,7 +30,7 @@ sub has_method($target, $name, $local) {
 }
 
 sub has_attribute($target, $name) {
-    my @attributes := $target.attributes($target, :local(1));
+    my @attributes := $target.HOW.attributes($target, :local(1));
     for @attributes {
         if $_.name eq $name { return 1; }
     }
@@ -47,15 +47,16 @@ method apply($target, @composees) {
         $to_compose_meta := $to_compose.HOW;
     }
     else {
-        $to_compose_meta := RoleHOW.new();
+        $to_compose := RoleHOW.new();
+        $to_compose_meta := $to_compose.HOW;
         for @composees {
-            RoleHOW.add_composable($to_compose_meta, $_);
+            $to_compose_meta.add_composable($to_compose, $_);
         }
-        $to_compose := RoleHOW.compose($to_compose_meta);
+        $to_compose := $to_compose_meta.compose($to_compose);
     }
 
     # Collisions?
-    my @collisions := RoleHOW.collisions($to_compose_meta);
+    my @collisions := $to_compose_meta.collisions($to_compose);
     for @collisions {
         unless has_method($target, ~$_, 1) {
             # XXX This error is LTA.
@@ -64,7 +65,7 @@ method apply($target, @composees) {
     }
 
     # Unsatisfied requirements?
-    my @requirements := RoleHOW.requirements($to_compose_meta);
+    my @requirements := $to_compose_meta.requirements($to_compose);
     for @requirements {
         unless has_method($target, ~$_, 0) {
             # XXX This error is LTA.
@@ -73,26 +74,26 @@ method apply($target, @composees) {
     }
 
     # Do Parrot-level composition, which handles the methods.
-    pir::addrole__vPP(pir::getattribute__PPS($target, 'parrotclass'), $to_compose);
+    pir::addrole__vPP(pir::getattribute__PPS($target.HOW, 'parrotclass'), $to_compose);
 
     # Compose in any role attributes.
-    my @attributes := RoleHOW.attributes($to_compose_meta);
+    my @attributes := $to_compose_meta.attributes($to_compose);
     for @attributes {
         if has_attribute($target, $_.name) {
             pir::die("Attribute '" ~ $_.name ~ "' already exists in the class, but a role also wishes to compose it");
         }
-        $target.add_attribute($target, $_);
+        $target.HOW.add_attribute($target, $_);
     }
 
     # Add any parents that are passed along as impl detail.
-    my @parents := RoleHOW.parents($to_compose_meta);
+    my @parents := $to_compose_meta.parents($to_compose);
     for @parents {
-        $target.add_parent($target, $_);
+        $target.HOW.add_parent($target, $_);
     }
 
     # The full list of done roles is just the list of the one role we have
     # composed in.
-    return RoleHOW.composees($to_compose_meta, :transitive(1));
+    return $to_compose_meta.composees($to_compose, :transitive(1));
 }
 
 =begin

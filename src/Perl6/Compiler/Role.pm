@@ -32,17 +32,23 @@ method finish($block) {
     my $how := self.how;
     my @how := Perl6::Grammar::parse_name(~$how);
     my $metaclass := PAST::Var.new( :name(@how.pop), :namespace(@how), :scope('package') );
+    my $obj_reg := PAST::Var.new( :name('obj'), :scope('register') );
     my $meta_reg := PAST::Var.new( :name('meta'), :scope('register') );
     my $name := $!name ?? ~$!name !! '';
     $decl.push(PAST::Op.new(
         :pasttype('bind'),
-        PAST::Var.new( :name('meta'), :scope('register'), :isdecl(1) ),
+        PAST::Var.new( :name('obj'), :scope('register'), :isdecl(1) ),
         PAST::Op.new(
             :pasttype('callmethod'),
             :name('new'),
             $metaclass,
             $name
         )
+    ));
+    $decl.push(PAST::Op.new(
+        :pasttype('bind'),
+        PAST::Var.new( :name('meta'), :scope('register'), :isdecl(1) ),
+        PAST::Op.new( :pasttype('callmethod'), :name('HOW'), $obj_reg )
     ));
 
     # Meta Methods.
@@ -51,7 +57,7 @@ method finish($block) {
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_meta_method'),
-            $metaclass, $meta_reg, ~$_, %meta_methods{~$_}<code_ref>
+            $meta_reg, $obj_reg, ~$_, %meta_methods{~$_}<code_ref>
         ));
     }
 
@@ -61,7 +67,7 @@ method finish($block) {
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_method'),
-            $metaclass, $meta_reg, ~$_, 
+            $meta_reg, $obj_reg, ~$_, 
             PAST::Op.new(
                 :pasttype('callmethod'),
                 :name('clone'),
@@ -88,20 +94,20 @@ method finish($block) {
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_attribute'),
-            $metaclass, $meta_reg, $attr
+            $meta_reg, $obj_reg, $attr
         ));
     }
 
     # Traits.
     if self.traits {
         for @(self.traits) {
-            $_.unshift($meta_reg);
+            $_.unshift($obj_reg);
             $decl.push($_);
         }
     }
 
     # Call compose to create the role object.
-    $decl.push(PAST::Op.new( :pasttype('callmethod'), :name('compose'), $metaclass, $meta_reg ));
+    $decl.push(PAST::Op.new( :pasttype('callmethod'), :name('compose'), $meta_reg, $obj_reg ));
 
     # We need the block to get the signature, or a default one, plus the
     # decl code as a body.

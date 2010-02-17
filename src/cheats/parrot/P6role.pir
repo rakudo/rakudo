@@ -26,14 +26,15 @@ Puns the role to a class and returns that class.
   make_pun:
 
     # Otherwise, need to create a punned class.
-    .local pmc ClassHOW, meta, proto
+    .local pmc ClassHOW, temp, meta, proto
     ClassHOW = get_root_global ['perl6'], 'ClassHOW'
     null $P0
     $P1 = getprop '$!owner', self
     $P1 = getattribute $P1, '$!shortname'
-    meta = ClassHOW.'new'($P0, 'name'=>$P1)
-    ClassHOW.'add_composable'(meta, self)
-    proto = ClassHOW.'compose'(meta)
+    temp = ClassHOW.'new'($P0, 'name'=>$P1)
+    meta = temp.'HOW'()
+    meta.'add_composable'(temp, self)
+    proto = meta.'compose'(temp)
     
     # Stash it away, and return it.
     setprop self, '$!pun', proto

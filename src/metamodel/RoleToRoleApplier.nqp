@@ -24,7 +24,7 @@ method apply($target, @composees) {
     # Aggregate all of the methods sharing names.
     my %meth_info;
     for @composees {
-        my @methods := $_.HOW.methods($_.HOW);
+        my @methods := $_.HOW.methods($_);
         for @methods {
             my $name := $_.name;
             my $meth := $_;
@@ -49,7 +49,7 @@ method apply($target, @composees) {
 
     # Also need methods of target.
     my %target_meth_info;
-    my @target_meths := $target.methods($target);
+    my @target_meths := $target.HOW.methods($target);
     for @target_meths {
         %target_meth_info{$_.name} := $_;
     }
@@ -65,18 +65,18 @@ method apply($target, @composees) {
             if %target_meth_info{$name}.multi {
                 # Add them anyway.
                 for @add_meths {
-                    $target.add_method($target, $name, $_);
+                    $target.HOW.add_method($target, $name, $_);
                 }
             }
         }
         else {
             # No methods in the target role. If only one, it's easy...
             if +@add_meths == 1 {
-                $target.add_method($target, $name, @add_meths[0]);
+                $target.HOW.add_method($target, $name, @add_meths[0]);
             }
             else {
                 # More than one - add to collisions list.
-                $target.add_collision($target, $name);
+                $target.HOW.add_collision($target, $name);
             }
         }
     }
@@ -87,11 +87,11 @@ method apply($target, @composees) {
         my $how := $_.HOW;
 
         # Compose is any attributes, unless there's a conflict.
-        my @attributes := $how.attributes($how);
+        my @attributes := $how.attributes($_);
         for @attributes {
             my $add_attr := $_;
             my $skip := 0;
-            my @cur_attrs := $target.attributes($target, :local(1));
+            my @cur_attrs := $target.HOW.attributes($target, :local(1));
             for @cur_attrs {
                 if $_ =:= $add_attr {
                     $skip := 1;
@@ -103,24 +103,24 @@ method apply($target, @composees) {
                 }
             }
             unless $skip {
-                $target.add_attribute($target, $add_attr);
+                $target.HOW.add_attribute($target, $add_attr);
             }
         }
 
         # Pass along any requirements.
-        my @requirements := $how.requirements($how);
+        my @requirements := $how.requirements($_);
         for @requirements {
-            $target.add_requirement($target, $_);
+            $target.HOW.add_requirement($target, $_);
         }
 
         # Pass along any parents.
-        my @parents := $how.parents($how);
+        my @parents := $how.parents($_);
         for @parents {
-            $target.add_parent($target, $_);
+            $target.HOW.add_parent($target, $_);
         }
 
         # Build up full list.
-        my @composees := $how.composees($how, :transitive(1));
+        my @composees := $how.composees($_, :transitive(1));
         for @composees {
             @all_composees.push($_);
         }

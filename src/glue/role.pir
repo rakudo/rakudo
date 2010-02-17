@@ -64,9 +64,10 @@ and so forth.
   have_role:
 
     # Create new HOW instance.
-    .local pmc RoleHOW, how
+    .local pmc RoleHOW, role, how
     RoleHOW = get_hll_global 'RoleHOW'
-    how = RoleHOW.'new'()
+    role = RoleHOW.'new'()
+    how = role.'HOW'()
 
     # Clone all of the methods from the Parrot role, to make sure they
     # capture type variables as they currently stand. Provided Method is
@@ -89,12 +90,12 @@ and so forth.
     if null Method goto skip_wrap
     $P1 = Method.'new'($P1, 0, '')
   skip_wrap:
-    RoleHOW.'add_method'(how, $S0, $P1)
+    how.'add_method'(role, $S0, $P1)
     goto it_loop
   it_loop_end:
 
     # Compose and we're done.
-    $P1 = RoleHOW.'compose'(how)
+    $P1 = how.'compose'(role)
     .return ($P1)
 .end
 

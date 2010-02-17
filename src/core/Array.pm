@@ -28,6 +28,15 @@ augment class Array {
         self!fill(1) ?? pir::shift(@!items)
                      !! fail('Undefined value shifted from empty array');
     }
+
+    our multi method splice($offset = 0, $size? is copy, *@values) is export {
+        self!fill;
+        $size //= self.elems - $offset;
+        my @ret = self[$offset..^($offset+$size)];
+        pir::splice__0PPii(@!items, [@values].iterator.eager,
+                           $offset, $size);
+        @ret;
+    }
 }
 
 our proto sub pop(@array) { @array.pop; }

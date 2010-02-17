@@ -45,7 +45,7 @@ S02-builtin_data_types/anon_block.t
 # S02-builtin_data_types/array_extending.t
 # S02-builtin_data_types/array_ref.t
 # S02-builtin_data_types/array.t
-# S02-builtin_data_types/assigning-refs.t
+S02-builtin_data_types/assigning-refs.t
 S02-builtin_data_types/bool.t
 S02-builtin_data_types/capture.t
 # S02-builtin_data_types/catch_type_cast_mismatch.t
@@ -71,7 +71,7 @@ S02-builtin_data_types/range.t
 # S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 # S02-literals/autoref.t
-# S02-literals/char-by-name.t                                # icu
+S02-literals/char-by-name.t                                # icu
 # S02-literals/char-by-number.t
 # S02-literals/fmt-interpolation.t
 # S02-literals/hash-interpolation.t
@@ -110,7 +110,7 @@ S02-whitespace_and_comments/minimal-whitespace.t
 S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
-# S02-whitespace_and_comments/unicode-whitespace.t
+S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
 # S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
@@ -211,7 +211,7 @@ S04-statements/no-implicit-block.t
 S04-statements/redo.t
 S04-statements/repeat.t
 # S04-statements/return.t
-# S04-statements/terminator.t
+S04-statements/terminator.t
 # S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t

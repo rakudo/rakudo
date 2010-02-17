@@ -469,6 +469,7 @@ method term:sym<scope_declarator>($/)   { make $<scope_declarator>.ast; }
 method term:sym<routine_declarator>($/) { make $<routine_declarator>.ast; }
 method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
+method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
 method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0, ''); }
 
@@ -1045,6 +1046,16 @@ method regex_declarator($/, $key?) {
 
         make PAST::Var.new( :name($name) );
     }
+}
+
+method type_declarator:sym<enum>($/) {
+    my $values := $<circumfix>.ast;
+
+    make PAST::Op.new(
+        :pasttype('call'),
+        :name('!create_anon_enum'),
+        $values
+    );
 }
 
 method capterm($/) {

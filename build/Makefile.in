@@ -76,6 +76,7 @@ SOURCES = \
 BUILTINS_PIR = \
   src/glue/contextuals.pir \
   src/glue/dispatch.pir \
+  src/glue/enum.pir \
   src/glue/phasers.pir \
   src/glue/role.pir \
   src/glue/run.pir \

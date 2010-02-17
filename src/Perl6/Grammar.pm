@@ -755,6 +755,14 @@ rule regex_declarator {
     ]
 }
 
+proto token type_declarator { <...> }
+
+token type_declarator:sym<enum> {
+    <sym> <.ws>
+    <name>? <.ws>
+    <?before '(' | '<' | '<<' | '«' > <circumfix>
+}
+
 rule trait {
     :my $*IN_DECL := '';
     [
@@ -883,6 +891,8 @@ token typename {
 #    <.unsp>? [ <?before '['> <postcircumfix> ]?
     [<.ws> 'of' <.ws> <typename> ]?
 }
+
+token term:sym<type_declarator>   { <type_declarator> }
 
 proto token quote { <...> }
 token quote:sym<apos>  { <?[']>             <quote_EXPR: ':q'>  }

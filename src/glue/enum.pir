@@ -30,7 +30,7 @@ Constructs a EnumMap, based upon the values list.
   values_loop:
     unless values_it goto values_loop_end
     cur_item = shift values_it
-    $I0 = isa cur_item, 'Perl6Pair'
+    $I0 = isa cur_item, 'Pair'
     if $I0 goto pair
 
   nonpair:
@@ -42,7 +42,6 @@ Constructs a EnumMap, based upon the values list.
     cur_val = cur_item.'value'()
     $P0 = cur_item.'key'()
     enumhash[$P0] = cur_val
-    cur_val = clone cur_val    # XXX Don't know if this is needed
     cur_val = cur_val.'succ'()
     goto values_loop
 

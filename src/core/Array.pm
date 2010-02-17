@@ -29,9 +29,11 @@ augment class Array {
                      !! fail('Undefined value shifted from empty array');
     }
 
-    our multi method splice($offset = 0, $size? is copy, *@values) is export {
+    our multi method splice($offset is copy = 0, $size? is copy, *@values) is export {
         self!fill;
+        $offset += self.elems if ($offset < 0);
         $size //= self.elems - $offset;
+        $size = self.elems + $size - $offset if ($size < 0);
         my @ret = self[$offset..^($offset+$size)];
         pir::splice__0PPii(@!items, [@values].iterator.eager,
                            $offset, $size);

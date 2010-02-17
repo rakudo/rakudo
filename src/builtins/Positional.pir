@@ -102,6 +102,8 @@ src/classes/Positional.pir - Positional Role
     .param pmc options         :slurpy :named
     .local pmc result
     args = '&eager'(args)
+    $I0 = elements args
+    if $I0 == 1 goto args_single
     result = new ['Parcel']
   args_loop:
     unless args goto args_done
@@ -111,6 +113,9 @@ src/classes/Positional.pir - Positional Role
     goto args_loop
   args_done:
     .return (result)
+  args_single:
+    $I0 = args[0]
+    .tailcall '!postcircumfix:<[ ]>'(self, $I0)
 .end
 
 .sub '' :load :init

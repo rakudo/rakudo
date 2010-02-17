@@ -303,6 +303,7 @@ S06-signature/type-capture.t
 # S06-signature/types.t
 S06-signature/unpack-array.t
 S06-signature/unspecified.t
+S06-traits/as.t
 S06-traits/is-copy.t
 # S06-traits/is-rw.t
 # S06-traits/misc.t

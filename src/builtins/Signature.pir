@@ -61,8 +61,8 @@ Returns a C<List> of C<Parameter> descriptors.
     # Get all curent parameter info.
     .local pmc nom_type, cons_type, names, type_captures, default, sub_sig
     .local int flags, optional, invocant, multi_invocant, slurpy, rw, parcel, capture, copy, named
-    .local string name
-    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, type_captures, default, sub_sig
+    .local string name, coerce_to
+    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, type_captures, default, sub_sig, coerce_to
     optional       = flags & SIG_ELEM_IS_OPTIONAL
     invocant       = flags & SIG_ELEM_INVOCANT
     multi_invocant = flags & SIG_ELEM_MULTI_INVOCANT

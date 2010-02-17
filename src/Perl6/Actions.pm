@@ -1134,6 +1134,10 @@ method parameter($/) {
         }
         $*PARAMETER.is_rw( $read_type eq 'rw' );
         $*PARAMETER.is_copy( $read_type eq 'copy' );
+        my $coerce := has_compiler_trait($<trait>, '&trait_mod:<as>');
+        if $coerce {
+            $*PARAMETER.coerce_to(PAST::Op.new( :pasttype('callmethod'), :name('perl'), $coerce[0]));
+        }
     }
 
     make $*PARAMETER;

@@ -246,6 +246,30 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         }
     }
 
+    /* Do a coercion, if one is needed. */
+    if (sig_info->coerce_to) {
+        PMC *coerce_meth = VTABLE_find_method(interp, value, sig_info->coerce_to);
+        if (!PMC_IS_NULL(coerce_meth)) {
+            Parrot_ext_call(interp, coerce_meth, "Pi->P", value, &value);
+        }
+        else {
+            /* No coercion method availale; whine and fail to bind. */
+            if (error) {
+                STRING * const HOW  = string_from_literal(interp, "HOW");
+                PMC    * how_meth   = VTABLE_find_method(interp, value, HOW);
+                PMC    * value_how, * value_type;
+                STRING * got;
+                Parrot_ext_call(interp, how_meth, "Pi->P", value, &value_how);
+                value_type = VTABLE_get_attr_str(interp, value_how, string_from_literal(interp, "shortname"));
+                got        = VTABLE_get_string(interp, value_type);
+                *error = Parrot_sprintf_c(interp,
+                        "Unable to coerce value for '%S' from %S to %S; no coercion method defined",
+                        sig_info->variable_name, got, sig_info->coerce_to);
+            }
+            return BIND_RESULT_FAIL;
+        }
+    }
+
     /* If it's not got attributive binding, we'll go about binding it into the
      * lex pad. */
     if (!(sig_info->flags & SIG_ELEM_BIND_ATTRIBUTIVE)) {

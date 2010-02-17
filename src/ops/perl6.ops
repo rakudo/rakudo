@@ -465,7 +465,7 @@ inline op get_signature_size(out INT, in PMC) :base_core {
 
 /*
 
-=item set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC)
+=item set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC, in STR)
 
 Takes $1 (a P6LowLevelSig) and sets the contents of the signature element with
 index $2 as follows:
@@ -478,11 +478,12 @@ index $2 as follows:
   $8  = array of type captures
   $9  = default value closure
   $10 = nested signature
+  $11 = name of coercion method to call, if any
 
 =cut
 
 */
-inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC) :base_core {
+inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC, inout PMC, in STR) :base_core {
     if ($1->vtable->base_type == lls_id) {
         struct llsig_element **elements;
         INTVAL num_elements;
@@ -500,6 +501,7 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
             element->type_captures    = $8;
             element->default_closure  = $9;
             element->sub_signature    = $10;
+            element->coerce_to        = $11;
 
             /* Also need to do fixups on the nominal type. */
             if (!PMC_IS_NULL($5)) {
@@ -539,7 +541,7 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
 
 /*
 
-=item get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC, out PMC, out PMC, out PMC, out PMC, out PMC)
+=item get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC, out PMC, out PMC, out PMC, out PMC, out PMC, out STR)
 
 Takes $1 (a P6LowLevelSig) and sets the registers with the contents of the
 signature element with index $2 as follows:
@@ -552,11 +554,12 @@ signature element with index $2 as follows:
   $8  = array of type captures
   $9  = default value closure
   $10 = nested signature
+  $11 = name of coercion method to call, if any
 
 =cut
 
 */
-inline op get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC, out PMC, out PMC, out PMC, out PMC) :base_core {
+inline op get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC, out PMC, out PMC, out PMC, out PMC, out STR) :base_core {
     if ($1->vtable->base_type == lls_id) {
         struct llsig_element **elements;
         INTVAL num_elements;
@@ -574,6 +577,7 @@ inline op get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC,
             $8  = element->type_captures;
             $9  = element->default_closure;
             $10 = element->sub_signature;
+            $11 = element->coerce_to;
             goto NEXT();
         }
         else {

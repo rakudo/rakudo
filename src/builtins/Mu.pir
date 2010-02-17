@@ -542,6 +542,10 @@ Gets the object's identity value
     .tailcall self.'shift'()
 .end
 
+.sub 'list' :method
+    .tailcall '&infix:<,>'(self)
+.end
+
 # Local Variables:
 #   mode: pir
 #   fill-column: 100

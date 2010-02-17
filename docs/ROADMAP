@@ -136,7 +136,6 @@ haven't got around to the problem yet.)
 
 3  * nested signatures (B)
 2  * captures in signatures and return values (B,H)
-3  * unpacking arguments (B,C)
 2  * better gather/take handling of arguments (H)
 
 3  * ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (B,D)
@@ -191,3 +190,4 @@ Completed ROADMAP items:
 -  * embedded closures in regexes (A)
 -  * declare contextual and lexical vars in regexes (A)
 -  * return multiple values from a sub (B,D)
+-  * unpacking arguments (B,C)

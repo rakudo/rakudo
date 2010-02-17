@@ -387,7 +387,7 @@ our proto atan2($y, $x = 1, $base = 'radians') {
 }
 
 our Num sub rand (*@args) {
-    die "too many arguments passed - 0 params expected" if @args;
+    die "too many arguments passed - 0 params expected" if +@args;
     1.rand
 }
 
@@ -424,6 +424,10 @@ our multi sub infix:«<=>»($a, $b) {
 
 our proto chr($graph) {
     $graph.chr;
+}
+
+our sub srand(Int $seed = time) {
+    pir::srand__0I($seed);
 }
 
 # vim: ft=perl6

@@ -1380,6 +1380,10 @@ method term:sym<Nil>($/) {
     make PAST::Op.new(:name('&Nil'), :node($/) );
 }
 
+method term:sym<rand>($/) {
+    make PAST::Op.new(:name('&rand'), :node($/) );
+}
+
 method term:sym<...>($/) {
     make PAST::Op.new( :pasttype('call'), :name('&fail'), 'Stub code executed', :node($/) );
 }

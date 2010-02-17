@@ -775,7 +775,8 @@ proto token term { <...> }
 
 token term:sym<self> { <sym> <.nofun> }
 
-token term:sym<Nil> { <sym> <.nofun> }
+token term:sym<Nil>  { <sym> <.nofun> }
+token term:sym<rand> { <sym> <.nofun> }
 
 token term:sym<...> { <sym> <args>? }
 token term:sym<???> { <sym> <args>? }

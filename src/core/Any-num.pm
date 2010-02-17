@@ -133,7 +133,7 @@ augment class Any {
     }
 
     our Num multi method atan2($x = 1, $base = 'radians') {
-        self.Num.atan2($x, $base);
+        self.Num.atan2($x.Num, $base);
     }
 
     our Num multi method asec($base = 'radians') {

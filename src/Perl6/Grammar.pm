@@ -357,6 +357,10 @@ token statement_control:sym<repeat> {
 
 token statement_control:sym<for> {
     <sym> :s
+    [ <?before 'my'? '$'\w+ '(' >
+        <.panic: "This appears to be Perl 5 code"> ]?
+    [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
+        <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
     <xblock(1)>
 }
 
@@ -435,6 +439,18 @@ token term:sym<regex_declarator>   { <regex_declarator> }
 token term:sym<statement_prefix>   { <statement_prefix> }
 token term:sym<*>                  { <sym> }
 token term:sym<lambda>             { <?lambda> <pblock> }
+
+token term:sym<undef> {
+    <sym> >> {}
+    [ <?before \h*'$/' >
+        <.obs('$/ variable as input record separator',
+             "the filehandle's .slurp method")>
+    ]?
+    [ <?before [ '(' || \h*<sigil><twigil>?\w ] >
+        <.obs('undef as a verb', 'undefine function or assignment of Nil')>
+    ]?
+    <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\tNil as an empty list,\n\t*.notdef as a matcher or method,\n\tAny:U as a type constraint\n\tor fail() as a failure return\n\t   ")>
+}
 
 token fatarrow {
     <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i=')>
@@ -920,7 +936,12 @@ token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }
 
 token circumfix:sym<( )> { '(' <semilist> ')' }
 token circumfix:sym<[ ]> { '[' <semilist> ']' }
-token circumfix:sym<ang> { <?[<]>  <quote_EXPR: ':q', ':w'>  }
+token circumfix:sym<ang> {
+    <?[<]>
+    [ <?before '<STDIN>' > <.obs('<STDIN>', '$*IN.lines')> ]?
+    [ <?before '<>' > <.obs('<>', 'lines() or ()')> ]?
+    <quote_EXPR: ':q', ':w'>
+}
 token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':w'> }
 token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
 token circumfix:sym<sigil> { <sigil> '(' ~ ')' <semilist> }

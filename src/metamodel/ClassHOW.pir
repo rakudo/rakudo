@@ -186,12 +186,10 @@ Attribute descriptors.
     parents = root_new ['parrot';'ResizablePMCArray']
     goto parents_list_made
   all_parents:
-    $P0 = self.'parents'(obj)
-    parents = $P0.'list'()
+    parents = self.'parents'(obj)
     goto parents_list_made
   do_tree:
-    $P0 = self.'parents'(obj, 'local'=>1)
-    parents = $P0.'list'()
+    parents = self.'parents'(obj, 'local'=>1)
   parents_list_made:
     unshift parents, obj
     parents_it = iter parents
@@ -204,7 +202,7 @@ Attribute descriptors.
     if null tree goto tree_handled
     eq_addr cur_class, us, tree_handled
     $P0 = self.'attributes'(cur_class, 'tree'=>tree)
-    $P0 = new 'Perl6Scalar', $P0
+    $P0 = '&circumfix:<[ ]>'($P0)
     push result_list, $P0
     goto parents_it_loop
   tree_handled:
@@ -224,6 +222,7 @@ Attribute descriptors.
     goto parents_it_loop
 
   done:
+    result_list = '&infix:<,>'(result_list :flat)
     .return (result_list)
 .end
 
@@ -402,13 +401,7 @@ Gets a list of this class' parents.
     result_list = root_new ['parrot';'ResizablePMCArray']
 
     # Get the parrot class.
-    $I0 = isa obj, 'ClassHOW'
-    unless $I0 goto is_not_meta
-    parrot_class = getattribute obj, 'parrotclass'
-    goto got_parrotclass
-  is_not_meta:
     parrot_class = self.'get_parrotclass'(obj)
-  got_parrotclass:
 
     # Fake top of Perl 6 hierarchy.
     $S0 = parrot_class.'name'()
@@ -429,24 +422,20 @@ Gets a list of this class' parents.
     it = iter parrot_list
     $P0 = shift it
 
-    # Now loop and build result list. We package up things inside an
-    # ObjectRef to make sure List and Array introspection doesn't go
-    # horribly wrong.
+    # Now loop and build result list.
   it_loop:
     unless it goto it_loop_end
-    $P0 = shift it
-    $I0 = isa $P0, 'PMCProxy'
+    parrot_class = shift it
+    $I0 = isa parrot_class, 'PMCProxy'
     if $I0 goto it_loop
-    parrot_class = self.'get_parrotclass'($P0)
     $S0 = parrot_class.'name'()
     if $S0 == 'P6object' goto done
-    $P0 = getprop 'metaclass', $P0
+    $P0 = getprop 'metaclass', parrot_class
     $P0 = $P0.'WHAT'()
-    $P0 = new 'ObjectRef', $P0
     if null tree goto push_this
     $P1 = self.'parents'($P0, 'tree'=>tree)
     unshift $P1, $P0
-    $P0 = new 'Perl6Scalar', $P1
+    $P0 = '&circumfix:<[ ]>'($P1)
   push_this:
     push result_list, $P0
     goto it_loop
@@ -454,6 +443,7 @@ Gets a list of this class' parents.
     goto done
 
   done:
+    result_list = '&infix:<,>'(result_list :flat)
     .return (result_list)
 .end
 

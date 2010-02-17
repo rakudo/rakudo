@@ -116,6 +116,11 @@ method is_name($name) {
     !pir::isnull__IP($test);
 }
 
+# "when" arg assumes more things will become obsolete after Perl 6 comes out...
+method obs ($old, $new, $when = ' in Perl 6') {
+    self.panic("Unsupported use of $old;$when please use $new");
+}
+
 ## Lexer stuff
 
 token apostrophe {
@@ -776,7 +781,11 @@ proto token term { <...> }
 token term:sym<self> { <sym> <.nofun> }
 
 token term:sym<Nil>  { <sym> <.nofun> }
-token term:sym<rand> { <sym> <.nofun> }
+token term:sym<rand> {
+    <sym> »
+    [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
+    [ <?before '()'> <.obs('rand()', 'rand')> ]?
+}
 
 token term:sym<...> { <sym> <args>? }
 token term:sym<???> { <sym> <args>? }

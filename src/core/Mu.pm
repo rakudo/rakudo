@@ -8,7 +8,7 @@ augment class Mu {
         my @mro = self, self.^parents;
         for @mro -> $class {
             for $class.^attributes() -> $attr {
-                if $attr.accessor {
+                if $attr.has_accessor {
                     my $name = substr($attr.name, 2);
                     %attrs{$name} //= self."$name"();
                 }

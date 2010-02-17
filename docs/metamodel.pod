@@ -50,17 +50,41 @@ of composing a role into a class) to supply the composer.
 
 =head2 Package meta-object API (aka HOW API)
 
-This is the API for packages.
+This is the API for packages. When we compile something like:
+
+    class Town is Place {
+        method bar() { say "mmm beer" }
+    }
+
+Then it results in a set of calls like:
+
+    my $temp = ClassHOW.new('Town');
+    &trait_mod:<is>($temp, Place);
+    $temp.^add_method('bar', anon method bar() { say "mmm beer" });
+    ::Town := $temp.^compose();
+
+Most of these are calls on the meta-class to methods that give meaning to the
+keywords the user wrote in their code. The following methods are supported as
+a minimum.
+
 
 =over 4
 
 =item method new($name?)
 
-Creates a new instance of the thing we're going to operate on to declare a new
-package. This is usually just the type of the invocant, since for a class-based
-OO system you'd have the metaclass holding the details of the class, and if it's
-a prototype based one then you'd return your most basic prototype as the HOW.
-If you need to do something different, you may return something else here, though.
+Creates something that knows how to provide it's metaclass, e.g. through the
+same mechanism as C<.HOW> obtains it. It need not be the final type-object that
+may be installed in a namespace or lexpad - that is for compose to return. However,
+there's nothing to stop it being.
+
+Whether a new instance of the meta-class is created or not is totally up to the
+implementation of the C<new> method. For the standard Perl 6 C<class> keyword in
+Rakudo, we create an instance of the meta-class and a temporary object that only
+knows how to reference the meta-class instance. However, if you were doing a more
+prototype-OO implementation, then you could instead have the meta-class be a
+singleton and return a new object, and the object itself knows completely about
+its methods, attributes and so forth, rather than this knowledge belonging to the
+meta-class.
 
 =item add_method($meta, $name, &code_ref)
 
@@ -256,26 +280,37 @@ design of the metamodel.
         }
     }
 
+    class Aspect {
+        has $.HOW;
+        has $.Str;
+        method WHAT() { self }
+        method defined() { False }
+    }
+
     class AspectHOW {
         has %.method_wrappers;
-        
-        method add_method($meta, $name, $method) {
-            $meta.method_wrappers{$name} = $method;
+
+        method new($name) {
+            return Aspect.new(
+                HOW => self.bless(*),
+                Str => $name . "()"
+            );
         }
         
-        multi method composer_for($meta, $ where { .can('methods') }) {
+        method add_method($obj, $name, $method) {
+            $.method_wrappers{$name} = $method;
+        }
+        
+        multi method composer_for($obj, $ where { .can('methods') }) {
             return AspectComposer;
         }
         
-        multi method composer_for($meta, Object) {
+        multi method composer_for($obj, Object) {
             die "Can only apply aspects to things that expose methods";
         }
 
-        method compose($meta) {
-            # We'll just install ourself into the namespace.
-            # XXX Or should we have some standard way of making a
-            #     "type object"?
-            return $meta;
+        method compose($obj) {
+            return $obj;
         }
 
         method add_attribute($meta, $attr) {

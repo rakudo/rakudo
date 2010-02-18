@@ -39,26 +39,17 @@ augment class Any {
         self.Num.sqrt;
     }
 
-    # our @trig-base-conversions;
-    # INIT {
-    #     @trig-base-conversions = (1.0, pi / 180.0, pi / 200.0, 2.0 * pi);
-    # }
+    INIT {
+        our @trig-base-conversions = (1.0, pi / 180.0, pi / 200.0, 2.0 * pi);
+    }
 
     # Used by the :Trig subs and methods in the Int and Num classes.
     our multi method !to-radians($base) {
-        # my @trig-base-conversions = (1.0, pi / 180.0, pi / 200.0, 2.0 * pi);
-        # self * @trig-base-conversions[$base];
-        $base == Radians  ?? (self + 0)        !!  # Convert from radians.
-        $base == Degrees  ?? (self * pi/180.0) !!  # Convert from degrees.
-        $base == Gradians ?? (self * pi/200.0) !!  # Convert from gradians.
-                             (self * 2.0 * pi)     # Convert from revolutions.
+        self * pir::get_global__Ps('@trig-base-conversions')[$base];
     }
 
     our multi method !from-radians($base) {
-        $base == Radians  ?? (self + 0)        !!  # Convert to radians.
-        $base == Degrees  ?? (self * 180.0/pi) !!  # Convert to degrees.
-        $base == Gradians ?? (self * 200.0/pi) !!  # Convert to gradians.
-                             (self / (2.0 * pi))   # Convert to revolutions.
+        self / pir::get_global__Ps('@trig-base-conversions')[$base];
     }
 
     multi method log() {

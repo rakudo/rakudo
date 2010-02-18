@@ -1,8 +1,34 @@
+New in 2010.02 release
++ The branch formerly known as 'ng' becomes the new master branch
++ The previous master branch is now rakudo/alpha
++ NQP-RX replaces NQP in the Parrot Compiler Toolkit, enabling the
+  source code of the compiler to be written in a subset of Perl 6 that
+  is much more powerful, most importantly with regexes, as the name
+  suggests
++ The revised Perl6/Grammar.pm is much closer to the canonical STD.pm
++ Regexes may declare contextual and lexical variables
++ Lazy lists and arrays are partly implemented
++ The object metamodel is largely written in NQP-RX instead of PIR
++ The name of the root of the object hierarchy is now Mu
++ The term 'undef' is gone, replaced by Nil, Mu or *.notdef depending on
+  context
++ Builin class derive from Cool which derives from Any
++ The refactored source code is more compact and more easily extended
++ The number of spectests passed has reduced from a peak of 32731 in
+  alpha to 24167, because porting the functionality to the new master
+  is still ongoing
++ Release numbering changes from 'dash' to 'dot' delimiter to get on
+  better with various package management systems
+
 New in 2010-01 release
 + Added method form of eval.
 + Implemented :s and :l file operators
 + Added functions for logarithms using $base
 + Refactored subroutine calls to use new Context structures in Parrot 2.0.0
+
+New in 2009-12 release
++ Only minor maintenance was done because all attention was being given
+  to the Rakudo/ng branch, bringing in the new nqp-rx bootstrap compiler
 
 New in 2009-11 release
 + Rakudo now uses Parrot's updated calling convention features

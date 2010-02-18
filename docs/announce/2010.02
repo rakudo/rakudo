@@ -1,14 +1,17 @@
-Announce: Rakudo Perl 6 development release #26 ("XXX")
+Announce: Rakudo Perl 6 development release #26 ("Amsterdam")
 
 On behalf of the Rakudo development team, I'm pleased to announce the
-February 2010 development release of Rakudo Perl #26 "XXX".
+February 2010 development release of Rakudo Perl #26 "Amsterdam".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
 (see http://www.parrot.org).  The tarball for the February 2010 release
 is available from http://github.com/rakudo/rakudo/downloads .
 
-Rakudo Perl follows a monthly release cycle, with each release 
-code named after a Perl Mongers group.  The February 2010 release 
-is code named "XXX" for ...
+Rakudo Perl follows a monthly release cycle, with each release named
+after a Perl Mongers group.  The February 2010 release is code named
+"Amsterdam" for the largest chapter of the Dutch Perl Mongers.  Perl
+development enjoys considerable support from the Netherlands, with
+donations from NLNet, and hosting of the feather machines and several
+important Perl 6 web domains and sites.
 
 This release is the first release based on the new branch of
 Rakudo development begun in October 2009.  The branch refactors 

@@ -1,6 +1,6 @@
 New in 2010.02 release
 + The branch formerly known as 'ng' becomes the new master branch
-+ The previous master branch is now rakudo/alpha
++ The previous master branch is now Rakudo/alpha
 + NQP-RX replaces NQP in the Parrot Compiler Toolkit, enabling the
   source code of the compiler to be written in a subset of Perl 6 that
   is much more powerful, most importantly with regexes, as the name
@@ -12,10 +12,10 @@ New in 2010.02 release
 + The name of the root of the object hierarchy is now Mu
 + The term 'undef' is gone, replaced by Nil, Mu or *.notdef depending on
   context
-+ Builin class derive from Cool which derives from Any
++ Builtin classes derive from Cool which derives from Any
 + The refactored source code is more compact and more easily extended
 + The number of spectests passed has reduced from a peak of 32731 in
-  alpha to 24167, because porting the functionality to the new master
+  alpha to 24563, because porting the functionality to the new master
   is still ongoing
 + Release numbering changes from 'dash' to 'dot' delimiter to get on
   better with various package management systems

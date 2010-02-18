@@ -798,7 +798,7 @@ token trait_mod:sym<returns> { <sym>:s <typename> }
 token trait_mod:sym<handles> { <sym>:s <term> }
 
 
-## Nouns    
+## Terms
 
 proto token term { <...> }
 

@@ -29,8 +29,8 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2010-02-18   Rakudo #26                      (Su-Shee)
-  2010-03-18   Rakudo #27                      (smash)
+  2010-02-18   Rakudo #26 "Amsterdam"          (Su-Shee)
+  2010-03-18   Rakudo #27 "Copenhagen"         (smash)
   2010-04-22   Rakudo #28                      (pmichaud?)
   2010-05-20   Rakudo #29                      (open)
   2010-06-17   Rakudo #30                      (open)

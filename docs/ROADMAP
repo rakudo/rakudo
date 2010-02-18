@@ -134,8 +134,6 @@ haven't got around to the problem yet.)
 2  * cleanly add circumfix:, postcircumfix:, other custom tokens (A)
 3  * true hyper/cross/reverse/other metaoperators (A)
 
-3  * nested signatures (B)
-2  * captures in signatures and return values (B,H)
 2  * better gather/take handling of arguments (H)
 
 3  * ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (B,D)
@@ -191,3 +189,5 @@ Completed ROADMAP items:
 -  * declare contextual and lexical vars in regexes (A)
 -  * return multiple values from a sub (B,D)
 -  * unpacking arguments (B,C)
+-  * nested signatures (B)
+-  * captures in signatures and return values (B,H)

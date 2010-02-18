@@ -132,8 +132,9 @@ like this.
     p6meta = get_hll_global ['Mu'], '$!P6META'
     parentproto = find_caller_lex '$CLASS'
     how = parentproto.'HOW'()
-    parrotclass = p6meta.'get_parrotclass'(parentproto)
-    attributes = how.'attributes'(how, 'local'=>1)
+    parrotclass = getattribute how, 'parrotclass'
+    attributes = getattribute how, '$!attributes'
+    if null attributes goto attrinit_done
     it = iter attributes
   attrinit_loop:
     unless it goto attrinit_done

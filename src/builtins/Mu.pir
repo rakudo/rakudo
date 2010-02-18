@@ -371,7 +371,7 @@ until we get roles).
 .sub 'REJECTS' :method
     .param pmc topic
     $P0 = self.'ACCEPTS'(topic)
-    $P1 = not $P0
+    $P1 = '&prefix:<!>'($P0)
     .return ($P1)
 .end
 

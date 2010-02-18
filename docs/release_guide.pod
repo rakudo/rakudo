@@ -124,7 +124,7 @@ This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
 =item 5.
 
 When it's time to cut the release, create a new release announcement
-in docs/announce/YYYY-MM.  It's often a good idea to use the
+in docs/announce/YYYY.MM.  It's often a good idea to use the
 previous month's file as a starting point for this.  Highlight areas
 in which the new release is significant.  If possible, also give
 some small details about the choice of release name.  (If the
@@ -144,7 +144,7 @@ C<$PATH>.
 As of this writing, there's not a publicly available tool to
 update spectest-progress.csv or to count tests that won't run.
 
-  $ git add docs/announce/YYYY-MM
+  $ git add docs/announce/YYYY.MM
   $ git commit docs
 
 =item 6.
@@ -179,9 +179,9 @@ Make sure any locally modified files have been pushed back to github.
 
 =item 9.
 
-Create an initial tarball by entering C<make release VERSION=YYYY-MM>,
+Create an initial tarball by entering C<make release VERSION=YYYY.MM>,
 where YYYY-MM is the month for which the release is being made.
-This will create a candidate tarball file named <rakudo-YYYY-MM.tgz>.
+This will create a candidate tarball file named <rakudo-YYYY.MM.tgz>.
 
 =item 10.
 
@@ -191,9 +191,9 @@ fix them and go back to step 7.
 
 =item 11.
 
-Tag the release by its release month ("MMMM-YY") and its code name.
+Tag the release by its release month ("MMMM.YY") and its code name.
 
-  $ git tag -a -m"tag release #nn" MMMM-YY    # e.g., 2009-04
+  $ git tag -a -m"tag release #nn" MMMM.YY    # e.g., 2010.02
   $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
   $ git push --tags
 

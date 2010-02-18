@@ -1162,6 +1162,7 @@ method bindish_check($/) {
     # than the list.
     if pir::defined__IP($/[0].ast()<signature_from_declarator>) {
         $/[0] := $/[0].ast()<signature_from_declarator>;
+        $/[0].bind_target('lexical');
     }
 }
 

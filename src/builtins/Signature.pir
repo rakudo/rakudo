@@ -16,7 +16,7 @@ P6LowLevelSig and provides higher level access to it.
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'$!ll_sig $!param_cache')
+    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'$!ll_sig $!param_cache $!try_bind_sub $!bind_target')
 .end
 
 
@@ -129,7 +129,96 @@ Binds the signature into the given bind target.
 
 .sub '!BIND' :method
     .param pmc capture
-    '&die'('!BIND on signature NYI')
+    .param pmc adverbs :named :slurpy
+
+    # Get hold of the bind testing sub.
+    $P0 = getattribute self, '$!try_bind_sub'
+    $I0 = defined $P0
+    if $I0 goto have_try_bind_sub
+    $P0 = self.'!make_try_bind_sub'()
+  have_try_bind_sub:
+
+    # Attempt to bind and get back a hash of the bound variables.
+    .local pmc bound
+    bound = $P0(capture)
+
+    # Update the target.
+    .local pmc target, bound_it
+    target = getattribute self, '$!bind_target'
+    $I0 = defined target
+    unless $I0 goto done
+    bound_it = iter bound
+  bound_it_loop:
+    unless bound_it goto bound_it_loop_end
+    $S0 = shift bound_it
+    $P0 = bound[$S0]
+    target[$S0] = $P0
+    goto bound_it_loop
+  bound_it_loop_end:
+
+  done:
+    .return (bound)
+.end
+
+
+=item !make_try_bind_sub
+
+This is terrifying. To try binding a signature, we want to have a sub so we
+have a proper lex pad to bind against, and constraints will work. However,
+it can't be the actual sub the signature is attached to, and we won't always
+need it, So, we'll "just" manufacture one on demand.
+
+=cut
+
+.sub '!make_try_bind_sub' :method
+    .local pmc params, param_it
+    .local string pir
+
+    # Opening.
+    pir = <<'PIR'
+.sub ''
+    .param pmc capture
+PIR
+
+    # Emit bound variables.
+    $I0 = 1
+    params = self.'params'()
+    param_it = iter params
+  it_loop:
+    unless param_it goto it_loop_end
+    $P0 = shift param_it
+    $S0 = $P0.'name'()
+    if null $S0 goto it_loop
+    if $S0 == '' goto it_loop
+    concat pir, '    $P'
+    $S1 = $I0
+    concat pir, $S1
+    concat pir, " = new ['Perl6Scalar']\n    .lex '"
+    concat pir, $S0
+    concat pir, "', $P"
+    concat pir, $S1
+    concat pir, "\n"
+    inc $I0
+    goto it_loop
+  it_loop_end:
+
+    # Ending.
+    pir = concat <<'PIR'
+    bind_signature capture
+    $P0 = getinterp
+    $P0 = $P0['lexpad']
+    .return ($P0)
+.end
+PIR
+    
+    # Compile and return.
+    $P0 = compreg 'PIR'
+    $P0 = $P0(pir)
+    $P0 = $P0[0]
+    $P1 = getattribute self, '$!ll_sig'
+    $P1 = descalarref $P1
+    setprop $P0, '$!signature', $P1
+    .return ($P0)
 .end
 
 =back

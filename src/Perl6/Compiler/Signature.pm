@@ -13,6 +13,14 @@ class Perl6::Compiler::Signature;
 
 has $!entries;
 has $!default_type;
+has $!bind_target;
+
+
+# Accessor for $!bind_target.
+method bind_target($bind_target?) {
+    if $bind_target { $!bind_target := $bind_target }
+    $!bind_target
+}
 
 
 # Adds a parameter to the signature.
@@ -320,12 +328,20 @@ method ast($low_level?) {
         ));
     }
     else {
-        $ast.push(PAST::Op.new(
+        my $node := PAST::Op.new(
             :pasttype('callmethod'),
             :name('new'),
             PAST::Var.new( :name('Signature'),, :scope('package') ),
             PAST::Var.new( :name($sig_var.name()), :scope('register'), :named('ll_sig') )
-        ));
+        );
+        if self.bind_target() eq 'lexical' {
+            $node.push(PAST::Op.new(
+                :named('bind_target'),
+                :inline('    %r = getinterp',
+                        '    %r = %r["lexpad"]')
+            ));
+        }
+        $ast.push($node);
     }
 
     return $ast;

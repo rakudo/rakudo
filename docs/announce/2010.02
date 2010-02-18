@@ -11,12 +11,13 @@ code named after a Perl Mongers group.  The February 2010 release
 is code named "XXX" for ...
 
 This release is the first release based on the new branch of
-Rakudo development begun in October 2009.  This branch refactors 
+Rakudo development begun in October 2009.  The branch refactors 
 the grammar, object metamodel, and a number of other key features 
-to improve compatibility with the Perl 6 specification.  Indeed, 
-in many ways the development of this new branch has driven important
-changes to the specification in the areas of lists, iterators,
-slices, and much more.  
+to improve compatibility with the Perl 6 specification and give us
+a more solid foundation to build on.  Indeed, in many ways the 
+development of this new branch has driven important changes to the 
+specification in the areas of lists, iterators, slices, and much
+more.
 
 However, this release contains a number of significant regressions
 from previous compiler releases.  We expect to have full functionality
@@ -35,9 +36,16 @@ README file section titled "Building and invoking Rakudo".
 Some of the specific changes and improvements occuring with this
 release include:
 
-*  ????
+*  Now using nqp-rx for parsing and actions
 
-*  ????
+*  Grammar is much closer to STD in many aspects, and makes use of
+   protoregexes
+
+*  Closures and lexical/contextual variable declarations in regexes work
+
+*  Laziness is implemented
+
+*  All class and role construction is handled through the meta-model
 
 The Perl 6 language specification is still in flux. Please take note of the
 following changes, which might affect your existing programs. In the next

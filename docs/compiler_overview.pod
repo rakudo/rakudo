@@ -65,8 +65,8 @@ includes a powerful Perl 6 regex engine.  This gives a streamlined
 compiler framework on which to build a very functional Perl 6
 implementation.
 
-NQP itself is also written in PIR, is an important part of the Parrot
-Compiler Toolkit (PCT), and is installed with Parrot.  PCT is a standard
+NQP itself is also written in PIR. It is an important part of the Parrot
+Compiler Toolkit (PCT) and is installed with Parrot.  PCT is a standard
 framework to make and use Parrot based languages.  The source code of
 NQP is in F<../parrot/ext/nqp-rx/> and the resulting compiler is
 F<../parrot_install/bin/parrot-nqp>.  Note, NQP only I<builds> the
@@ -104,8 +104,8 @@ to switch.)
 A subroutine called C<'main'>, in F<Perl6/Compiler.pir>, starts the
 source parsing and bytecode generation work.  It creates a
 C<Perl6::Compiler> object for the C<'perl6'> source type.  The
-C<Perl6::Compiler> class inherits from the C<HLLCompiler> class of the
-Parrot Compiler Toolkit, look in
+C<Perl6::Compiler> class inherits from the Parrot Compiler Toolkit's
+C<HLLCompiler> class, see
 F<../parrot/compilers/pct/src/PCT/HLLCompiler.pir>.
 
 Before tracing Rakudo's execution further, a few words about Parrot
@@ -122,13 +122,6 @@ calls subs having the C<:load> modifier.  The Rakudo C<:init> subs are
 usually also C<:load>, so that the same startup sequence occurs whether
 Rakudo is run as an executable or loaded as a library.
 
-F<Perl6/Compiler.pir> has three C<.loadlib> commands early on, for
-C<perl6_group>, C<perl6_ops> and C<math_ops>.  All three dynamically
-extend Parrot with respectively Rakudo specific PMC's (Poly Morphic
-Containers, formerly Parrot Magic Cookies), opcodes, and mathematical
-operators.  The source is in F<pmc/*>, F<ops/*> and
-F<parrot/src/ops/math.ops>.
-
 So, that Rakudo 'main' subroutine had created a C<Perl6::Compiler>
 object.  Next, 'main' invokes the C<'command_line'> method on this
 object, passing the command line arguments in a PMC called C<args_str>.
@@ -139,42 +132,16 @@ And that's it, apart from a C<'!fire_phasers'('END')> and an C<exit>.
 Well, as far a C<'main'> is concerned.  The remaining work is divided
 between PCT, grammar and actions.
 
-=head2 2. Grammar
+=head2 3. Grammar
 
 Using C<parrot-nqp>, C<make> target C<PERL6_G> uses F<parrot-nqp> to
 compile F<Perl6/Grammar.pm> to F<gen/perl6-grammar.pir>.
-
-The top-level portion of the grammar is written using Perl 6 rules
-(Synopsis 5) and is based on the STD.pm grammar in the Pugs repository
-(L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>).  There are a few
-places where Rakudo's grammar deviates from STD.pm, but the ultimate
-goal is for the two to converge.  The grammar inherits from
-C<HLL::Grammar>, which provides the C<< <.panic> >> rule to throw
-exceptions for syntax errors.
 
 The compiler works by calling C<TOP> method in F<Perl6/Grammar.pm>.
 After some initialization, TOP matches the user program to the comp_unit
 (meaning compilation unit) token.  That triggers a series of matches to
 other tokens and rules (two kinds of regex) depending on the source in
 the user program.
-
-=head2 3. Actions
-
-The F<Perl6/Actions.pm> file defines the code that the compiler
-generates when it matches each token or rule.  The output is a tree
-hierarchy of objects representing language syntax elements, such as a
-statement.  The tree is called a Parrot Abstract Syntax Tree (PAST).
-
-The C<Perl6::Actions> class inherits from C<HLL::Actions>, another part
-of the Parrot Compiler Toolkit.  The source is in
-F<../parrot/ext/nqp-rx/stage0/src/HLL-s0.pir>, look for several
-instances of C<.namespace ["HLL";"Actions"]>.
-
-When the PCT calls the C<'parse'> method on a grammar, it passes not
-only the program source code, but also a pointer to a parseactions class
-such as our compiled C<Perl6::Actions>.  Then, each time the parser
-matches a named regex in the grammar, it automatically calls the same
-named method in the actions class.
 
 For example, here's the parse rule for Rakudo's C<unless> statement
 (in F<Perl6/Grammar.pm>):
@@ -189,8 +156,7 @@ For example, here's the parse rule for Rakudo's C<unless> statement
 
 This token says that an C<unless> statement consists of the word
 "unless" (captured into C<< $<sym> >>), and then an expression followed
-by a block.  If that all matches, the parser invokes the corresponding
-action method for C<< statement_control:sym<unless> >>.
+by a block.
 
 Remember that for a match, not only must the C<< <sym> >> match the word
 C<unless>, the C<< <xblock> >> must also match the C<xblock> token.  If
@@ -198,7 +164,33 @@ you read more of F<Perl6/Grammar.pm>, you will learn that C<xblock> in
 turn tries to match an C<< <EXPR> >> and a C<< <pblock>  >>, which in
 turn tries to match .....
 
-This is why parsing source code this way is called Recursive Descent.
+That is why this parsing algorithm is called Recursive Descent.
+
+The top-level portion of the grammar is written using Perl 6 rules
+(Synopsis 5) and is based on the STD.pm grammar in the Pugs repository
+(F<http://svn.pugscode.org/pugs/src/perl6/STD.pm>).  There are a few
+places where Rakudo's grammar deviates from STD.pm, but the ultimate
+goal is for the two to converge.  Rakudo's grammar inherits from PCT's
+C<HLL::Grammar>, which provides the C<< <.panic> >> rule to throw
+exceptions for syntax errors.
+
+=head2 4. Actions
+
+The F<Perl6/Actions.pm> file defines the code that the compiler
+generates when it matches each token or rule.  The output is a tree
+hierarchy of objects representing language syntax elements, such as a
+statement.  The tree is called a Parrot Abstract Syntax Tree (PAST).
+
+The C<Perl6::Actions> class inherits from C<HLL::Actions>, another part
+of the Parrot Compiler Toolkit.  Look in
+F<../parrot/ext/nqp-rx/stage0/src/HLL-s0.pir> for several instances of
+C<.namespace ["HLL";"Actions"]>.
+
+When the PCT calls the C<'parse'> method on a grammar, it passes not
+only the program source code, but also a pointer to a parseactions class
+such as our compiled C<Perl6::Actions>.  Then, each time the parser
+matches a named regex in the grammar, it automatically invokes the same
+named method in the actions class.
 
 Back to the C<unless> example, here's the action method for the
 C<unless> statement (from F<Perl6/Actions.pm>):
@@ -236,6 +228,21 @@ itself.  The PAST data structure is then passed on to Parrot directly.
 Parrot does the remainder of the work translating from PAST to pir and
 then to bytecode.
 
+=head2 5. Parrot extensions
+
+F<Perl6/Compiler.pir> has three C<.loadlib> commands early on, for
+C<perl6_group>, C<perl6_ops> and C<math_ops>.  All three dynamically
+extend Parrot with respectively Rakudo specific PMC's (Poly Morphic
+Containers, formerly Parrot Magic Cookies), opcodes, and mathematical
+operators.  The source is in F<pmc/*>, F<ops/*> and
+F<parrot/src/ops/math.ops>.
+
+(F<binder/*>)
+
+(F<ops/*)
+
+(F<pmc/*>)
+
 --- ng update progress point
 
 Lastly, the F<src/parser/quote_expression.pir> file implements
@@ -251,6 +258,16 @@ functions and libraries that a Perl 6 program expects to
 have available when it is running.  These include functions
 for the basic operations (C<< infix:<+> >>, C<< prefix:<abs> >>)
 as well as common global functions such as C<say> and C<print>.
+
+(F<builtins/*.pir>)
+
+(F<cheats/*>)
+
+(F<core/*.pm>)
+
+(F<glue/*.pir>)
+
+(F<metamodel/*>)
 
 =head2 Still to be documented
 

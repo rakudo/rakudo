@@ -37,7 +37,7 @@ augment class Int {
 
     # Most of the trig functions for Int are in Any-num.pm, but
     # sec is a special case.
-    our Num multi method sec($base = 'radians') {
+    our Num multi method sec($base = Radians) {
         self.Num.sec($base);
     }
 

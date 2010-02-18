@@ -78,103 +78,103 @@ augment class Num {
         self eq NaN ?? NaN !! (self < 0 ?? -1 !! ( self == 0 ?? 0 !! 1));
     }
 
-    multi method sin($base = 'radians') {
+    multi method sin($base = Radians) {
         pir::sin__Nn(self!to-radians($base));
     }
 
-    multi method asin($base = 'radians') {
+    multi method asin($base = Radians) {
         pir::asin__Nn(self)!from-radians($base);
     }
 
-    multi method cos($base = 'radians') {
+    multi method cos($base = Radians) {
         pir::cos__Nn(self!to-radians($base));
     }
 
-    multi method acos($base = 'radians') {
+    multi method acos($base = Radians) {
         pir::acos__Nn(self)!from-radians($base);
     }
 
-    multi method tan($base = 'radians') {
+    multi method tan($base = Radians) {
         pir::tan__Nn(self!to-radians($base));
     }
 
-    multi method atan($base = 'radians') {
+    multi method atan($base = Radians) {
         pir::atan__Nn(self)!from-radians($base);
     }
 
-    multi method sec($base = 'radians') {
+    multi method sec($base = Radians) {
         pir::sec__Nn(self!to-radians($base));
     }
 
-    multi method asec($base = 'radians') {
+    multi method asec($base = Radians) {
         pir::asec__Nn(self)!from-radians($base);
     }
 
-    multi method sinh($base = 'radians') {
+    multi method sinh($base = Radians) {
         pir::sinh__Nn(self!to-radians($base));
     }
 
-    multi method asinh($base = 'radians') {
+    multi method asinh($base = Radians) {
         (self + (self * self + 1).sqrt).log!from-radians($base);
     }
 
-    multi method cosh($base = 'radians') {
+    multi method cosh($base = Radians) {
         pir::cosh__Nn(self!to-radians($base));
     }
 
-    multi method acosh($base = 'radians') {
+    multi method acosh($base = Radians) {
         (self + (self * self - 1).sqrt).log!from-radians($base);
     }
 
-    multi method tanh($base = 'radians') {
+    multi method tanh($base = Radians) {
         pir::tanh__Nn(self!to-radians($base));
     }
 
-    multi method atanh($base = 'radians') {
+    multi method atanh($base = Radians) {
         (((1 + self) / (1 - self)).log / 2)!from-radians($base);
     }
 
-    multi method sech($base = 'radians') {
+    multi method sech($base = Radians) {
         pir::sech__Nn(self!to-radians($base));
     }
 
-    multi method asech($base = 'radians') {
+    multi method asech($base = Radians) {
         (1 / self).acosh($base);
     }
 
-    multi method cosech($base = 'radians') {
+    multi method cosech($base = Radians) {
         1 / self.sinh($base);
     }
 
-    multi method acosech($base = 'radians') {
+    multi method acosech($base = Radians) {
         (1 / self).asinh($base);
     }
 
-    multi method cosec($base = 'radians') {
+    multi method cosec($base = Radians) {
         1 / self.sin($base);
     }
 
-    multi method acosec($base = 'radians') {
+    multi method acosec($base = Radians) {
         (1 / self).asin($base);
     }
 
-    multi method cotan($base = 'radians') {
+    multi method cotan($base = Radians) {
         1 / self.tan($base);
     }
 
-    multi method acotan($base = 'radians') {
+    multi method acotan($base = Radians) {
         (1 / self).atan($base);
     }
 
-    multi method cotanh($base = 'radians') {
+    multi method cotanh($base = Radians) {
         1 / self.tanh($base);
     }
 
-    multi method acotanh($base = 'radians') {
+    multi method acotanh($base = Radians) {
         (1 / self).atanh($base);
     }
 
-    multi method atan2(Num $x = 1, $base = 'radians') {
+    multi method atan2(Num $x = 1, $base = Radians) {
         pir::atan__NNn(self, $x)!from-radians($base);
     }
 

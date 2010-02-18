@@ -1153,12 +1153,20 @@ token infix:sym<?? !!> {
     <O('%conditional, :reducecheck<ternary>, :pasttype<if>')> 
 }
 
-token infix:sym<:=>   { 
-    <sym>  <O('%item_assignment')> 
-    <.panic: ":= binding not yet implemented">
+token infix:sym<:=> {
+    <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>
 }
 
-token infix:sym<::=>   { 
+method bindish_check($/) {
+    # Do we have a sigature on the LHS? If so, use that rather
+    # than the list.
+    if pir::defined__IP($/[0].ast()<signature_from_declarator>) {
+        $/[0] := $/[0].ast()<signature_from_declarator>;
+        $/[0].bind_target('lexical');
+    }
+}
+
+token infix:sym<::=> {
     <sym>  <O('%item_assignment')> 
     <.panic: "::= binding not yet implemented">
 }

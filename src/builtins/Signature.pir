@@ -16,7 +16,7 @@ P6LowLevelSig and provides higher level access to it.
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'$!ll_sig $!param_cache')
+    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'$!ll_sig $!param_cache $!try_bind_sub $!bind_target')
 .end
 
 
@@ -105,7 +105,10 @@ Returns a C<List> of C<Parameter> descriptors.
     unless null default goto default_done
     default = '!FAIL'()
   default_done:
-    unless null sub_sig goto sub_sig_done
+    if null sub_sig goto no_sub_sig
+    sub_sig = self.'new'('ll_sig'=>sub_sig)
+    goto sub_sig_done
+  no_sub_sig:
     sub_sig = '!FAIL'()
   sub_sig_done:
 
@@ -118,6 +121,127 @@ Returns a C<List> of C<Parameter> descriptors.
     # Cache and return.
     setattribute self, '$!param_cache', result
     .return (result)
+.end
+
+
+=item !BIND
+
+Binds the signature into the given bind target.
+
+=cut
+
+.sub '!BIND' :method
+    .param pmc capture
+
+    # Get hold of the bind testing sub.
+    $P0 = getattribute self, '$!try_bind_sub'
+    $I0 = defined $P0
+    if $I0 goto have_try_bind_sub
+    $P0 = self.'!make_try_bind_sub'()
+  have_try_bind_sub:
+
+    # Attempt to bind and get back a hash of the bound variables.
+    .local pmc bound
+    bound = $P0(capture)
+
+    # Update the target.
+    .local pmc target, bound_it
+    target = getattribute self, '$!bind_target'
+    $I0 = defined target
+    unless $I0 goto done
+    bound_it = iter bound
+  bound_it_loop:
+    unless bound_it goto bound_it_loop_end
+    $S0 = shift bound_it
+    $P0 = bound[$S0]
+    target[$S0] = $P0
+    goto bound_it_loop
+  bound_it_loop_end:
+
+  done:
+    $P0 = get_hll_global 'True'
+    .return ($P0)
+.end
+
+
+=item !make_try_bind_sub
+
+This is terrifying. To try binding a signature, we want to have a sub so we
+have a proper lex pad to bind against, and constraints will work. However,
+it can't be the actual sub the signature is attached to, and we won't always
+need it, So, we'll "just" manufacture one on demand.
+
+=cut
+
+.sub '!make_try_bind_sub' :method
+    .local string pir
+
+    # Opening.
+    pir = <<'PIR'
+.sub ''
+    .param pmc capture
+PIR
+
+    # Generate code for parameter lexicals.
+    pir = self.'!append_pir_for_sig_vars'(self, pir, 1)
+
+    # Ending.
+    pir = concat <<'PIR'
+    bind_signature capture
+    $P0 = getinterp
+    $P0 = $P0['lexpad']
+    .return ($P0)
+.end
+PIR
+
+    # Compile and return.
+    $P0 = compreg 'PIR'
+    $P0 = $P0(pir)
+    $P0 = $P0[0]
+    $P1 = getattribute self, '$!ll_sig'
+    $P1 = descalarref $P1
+    setprop $P0, '$!signature', $P1
+    .return ($P0)
+.end
+
+.sub '!append_pir_for_sig_vars' :method
+    .param pmc sig
+    .param string pir
+    .param int i
+
+    # Go through params.
+    .local pmc params, param_it
+    params = sig.'params'()
+    param_it = iter params
+  it_loop:
+    unless param_it goto it_loop_end
+    $P0 = shift param_it
+
+    # If we have a sub-signature, emit code for that.
+    .local pmc sub_sig
+    sub_sig = $P0.'signature'()
+    $I0 = defined sub_sig
+    unless $I0 goto no_sub_sig
+    (pir, i) = self.'!append_pir_for_sig_vars'(sub_sig, pir, i)
+  no_sub_sig:
+
+    # Emit PIR for variable.
+    $S0 = $P0.'name'()
+    if null $S0 goto it_loop
+    if $S0 == '' goto it_loop
+    concat pir, '    $P'
+    $S1 = i
+    concat pir, $S1
+    concat pir, " = new ['Perl6Scalar']\n    .lex '"
+    concat pir, $S0
+    concat pir, "', $P"
+    concat pir, $S1
+    concat pir, "\n"
+    inc i
+    goto it_loop
+  it_loop_end:
+
+    .return (pir, i)
 .end
 
 =back

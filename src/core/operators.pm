@@ -177,6 +177,14 @@ our multi prefix:<|>(%h) { %h.Capture }
 our multi prefix:<|>(Capture $c) { $c }
 our multi prefix:<|>(Mu $fail) { die 'Cannot use prefix:<|> with a ' ~ $fail.WHAT; }
 
+our multi infix:<:=>(Mu $a, Mu $b) {
+    die ":= binding of variables not yet implemented";
+}
+
+our multi infix:<:=>(Signature $s, Parcel \$p) {
+    $s!BIND($p.Capture());
+}
+
 # XXX Wants to be a macro when we have them.
 our sub WHAT(\$x) {
     $x.WHAT

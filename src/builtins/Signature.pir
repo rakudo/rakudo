@@ -120,6 +120,18 @@ Returns a C<List> of C<Parameter> descriptors.
     .return (result)
 .end
 
+
+=item !BIND
+
+Binds the signature into the given bind target.
+
+=cut
+
+.sub '!BIND' :method
+    .param pmc capture
+    '&die'('!BIND on signature NYI')
+.end
+
 =back
 
 =cut

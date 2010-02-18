@@ -692,6 +692,7 @@ method declarator($/) {
         for @($decls) {
             $list.push(declare_variable($/, $_, $_<sigil>, $_<twigil>, $_<desigilname>, $_<traits>));
         }
+        $list<signature_from_declarator> := $<signature>.ast;
         make $list;
     }
     else {
@@ -1975,12 +1976,12 @@ sub add_signature($block, $sig_obj, $lazy) {
         $block[0].push(PAST::Block.new(
             :name($sig_setup_block_name),
             :blocktype('declaration'),
-            $sig_obj.ast
+            $sig_obj.ast(1)
         ));
         $sig_setup_block_name
     }
     else {
-        $block.loadinit.push($sig_obj.ast);
+        $block.loadinit.push($sig_obj.ast(1));
         $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!signature", signature') ));
     }
 }

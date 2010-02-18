@@ -161,7 +161,7 @@ method set_rw_by_default() {
 
 # Produces an AST for generating a low-level signature object. Optionally can
 # instead produce code to generate a high-level signature object.
-method ast($high_level?) {
+method ast($low_level?) {
     my $ast     := PAST::Stmts.new();
     my @entries := self.entries;
     my $SIG_ELEM_BIND_CAPTURE       := 1;
@@ -289,7 +289,7 @@ method ast($high_level?) {
         my $sub_sig := $null_reg;
         if pir::defined__IP($_.sub_signature) {
             $sub_sig := PAST::Stmts.new();
-            $sub_sig.push( $_.sub_signature.ast );
+            $sub_sig.push( $_.sub_signature.ast(1) );
             $sub_sig.push( PAST::Var.new( :name('signature'), :scope('register') ) );
         }
 
@@ -312,19 +312,19 @@ method ast($high_level?) {
     }
 
     # If we had to build a high-level signature, do so.
-    if ($high_level) {
+    if ($low_level) {
+        $ast.push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name('signature'), :scope('register'), :isdecl(1) ),
+            $sig_var
+        ));
+    }
+    else {
         $ast.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('new'),
             PAST::Var.new( :name('Signature'),, :scope('package') ),
             PAST::Var.new( :name($sig_var.name()), :scope('register'), :named('ll_sig') )
-        ));
-    }
-    else {
-        $ast.push(PAST::Op.new(
-            :pasttype('bind'),
-            PAST::Var.new( :name('signature'), :scope('register'), :isdecl(1) ),
-            $sig_var
         ));
     }
 

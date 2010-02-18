@@ -185,6 +185,10 @@ our multi infix:<:=>(Signature $s, Parcel \$p) {
     $s!BIND($p.Capture());
 }
 
+our multi infix:<:=>(Signature $s, Mu \$val) {
+    $s!BIND(Capture.new($val));
+}
+
 # XXX Wants to be a macro when we have them.
 our sub WHAT(\$x) {
     $x.WHAT

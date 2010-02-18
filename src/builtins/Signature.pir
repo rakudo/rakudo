@@ -105,7 +105,10 @@ Returns a C<List> of C<Parameter> descriptors.
     unless null default goto default_done
     default = '!FAIL'()
   default_done:
-    unless null sub_sig goto sub_sig_done
+    if null sub_sig goto no_sub_sig
+    sub_sig = self.'new'('ll_sig'=>sub_sig)
+    goto sub_sig_done
+  no_sub_sig:
     sub_sig = '!FAIL'()
   sub_sig_done:
 
@@ -129,7 +132,6 @@ Binds the signature into the given bind target.
 
 .sub '!BIND' :method
     .param pmc capture
-    .param pmc adverbs :named :slurpy
 
     # Get hold of the bind testing sub.
     $P0 = getattribute self, '$!try_bind_sub'
@@ -157,7 +159,8 @@ Binds the signature into the given bind target.
   bound_it_loop_end:
 
   done:
-    .return (bound)
+    $P0 = get_hll_global 'True'
+    .return ($P0)
 .end
 
 
@@ -171,7 +174,6 @@ need it, So, we'll "just" manufacture one on demand.
 =cut
 
 .sub '!make_try_bind_sub' :method
-    .local pmc params, param_it
     .local string pir
 
     # Opening.
@@ -180,27 +182,8 @@ need it, So, we'll "just" manufacture one on demand.
     .param pmc capture
 PIR
 
-    # Emit bound variables.
-    $I0 = 1
-    params = self.'params'()
-    param_it = iter params
-  it_loop:
-    unless param_it goto it_loop_end
-    $P0 = shift param_it
-    $S0 = $P0.'name'()
-    if null $S0 goto it_loop
-    if $S0 == '' goto it_loop
-    concat pir, '    $P'
-    $S1 = $I0
-    concat pir, $S1
-    concat pir, " = new ['Perl6Scalar']\n    .lex '"
-    concat pir, $S0
-    concat pir, "', $P"
-    concat pir, $S1
-    concat pir, "\n"
-    inc $I0
-    goto it_loop
-  it_loop_end:
+    # Generate code for parameter lexicals.
+    pir = self.'!append_pir_for_sig_vars'(self, pir, 1)
 
     # Ending.
     pir = concat <<'PIR'
@@ -210,7 +193,7 @@ PIR
     .return ($P0)
 .end
 PIR
-    
+
     # Compile and return.
     $P0 = compreg 'PIR'
     $P0 = $P0(pir)
@@ -219,6 +202,46 @@ PIR
     $P1 = descalarref $P1
     setprop $P0, '$!signature', $P1
     .return ($P0)
+.end
+
+.sub '!append_pir_for_sig_vars' :method
+    .param pmc sig
+    .param string pir
+    .param int i
+
+    # Go through params.
+    .local pmc params, param_it
+    params = sig.'params'()
+    param_it = iter params
+  it_loop:
+    unless param_it goto it_loop_end
+    $P0 = shift param_it
+
+    # If we have a sub-signature, emit code for that.
+    .local pmc sub_sig
+    sub_sig = $P0.'signature'()
+    $I0 = defined sub_sig
+    unless $I0 goto no_sub_sig
+    (pir, i) = self.'!append_pir_for_sig_vars'(sub_sig, pir, i)
+  no_sub_sig:
+
+    # Emit PIR for variable.
+    $S0 = $P0.'name'()
+    if null $S0 goto it_loop
+    if $S0 == '' goto it_loop
+    concat pir, '    $P'
+    $S1 = i
+    concat pir, $S1
+    concat pir, " = new ['Perl6Scalar']\n    .lex '"
+    concat pir, $S0
+    concat pir, "', $P"
+    concat pir, $S1
+    concat pir, "\n"
+    inc i
+    goto it_loop
+  it_loop_end:
+
+    .return (pir, i)
 .end
 
 =back

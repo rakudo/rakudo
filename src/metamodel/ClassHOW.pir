@@ -402,6 +402,9 @@ Gets a list of this class' parents.
 
     # Get the parrot class.
     parrot_class = self.'get_parrotclass'(obj)
+    unless null parrot_class goto got_parrotclass
+    parrot_class = getattribute self, 'parrotclass'
+  got_parrotclass:
 
     # Fake top of Perl 6 hierarchy.
     $S0 = parrot_class.'name'()
@@ -649,17 +652,20 @@ Gets a list of roles done by the class of this object.
 =item WHAT
 
 Overridden since WHAT inherited from P6metaclass doesn't quite work out.
-XXX Work out exactly why.
+Also we want to wrap it up to make it always a scalar (otherwise List
+will try to flatten etc).
 
 =cut
 
 .sub 'WHAT' :method
     $P0 = getattribute self, 'protoobject'
-    if null $P0 goto proto_of_how
-    .return ($P0)
-  proto_of_how:
+    unless null $P0 goto wrap_result
     $P0 = self.'HOW'()
-    .tailcall $P0.'WHAT'()
+    $P0 = $P0.'WHAT'()
+  wrap_result:
+    $P0 = new ['ObjectRef'], $P0
+    setprop $P0, 'scalar', $P0
+    .return ($P0)
 .end
 
 

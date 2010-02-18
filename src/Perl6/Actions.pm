@@ -1188,7 +1188,10 @@ method type_constraint($/) {
         if $*PARAMETER.nom_type {
             $/.CURSOR.panic('Parameter may only have one prefix type constraint');
         }
-        $*PARAMETER.nom_type(PAST::Op.new( :pasttype('callmethod'), :name('WHAT'), $<value>.ast ));
+        $*PARAMETER.nom_type(PAST::Op.new(
+            :pirop('deobjectref__PP'),
+            PAST::Op.new( :pasttype('callmethod'), :name('WHAT'), $<value>.ast )
+        ));
         $*PARAMETER.cons_types.push($<value>.ast);
     }
     else {

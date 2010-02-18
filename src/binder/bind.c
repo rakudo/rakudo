@@ -12,10 +12,11 @@ Copyright (C) 2009-2010, The Perl Foundation.
 
 
 /* Cache of the type ID for low level signatures and some strings. */
-static INTVAL lls_id = 0;
-static INTVAL or_id = 0;
-static INTVAL p6s_id = 0;
-static STRING *ACCEPTS;
+static INTVAL lls_id      = 0;
+static INTVAL or_id       = 0;
+static INTVAL p6s_id      = 0;
+static STRING *ACCEPTS    = NULL;
+static PMC    *HashPunned = NULL;
 
 
 /* Initlializes our cached versions of some strings and type IDs that we
@@ -52,11 +53,22 @@ Rakudo_binding_create_array(PARROT_INTERP) {
 
 /* Creates a Perl 6 Hash. */
 static PMC *
-Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {    
-    PMC *ns        = Parrot_get_ctx_HLL_namespace(interp);
-    PMC *creator   = Parrot_get_global(interp, ns, string_from_literal(interp, "&CREATE_HASH_LOW_LEVEL"));
-    PMC *result    = PMCNULL;
-    Parrot_ext_call(interp, creator, "P->P", storage, &result);
+Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
+    PMC *result = PMCNULL;
+    PMC *create = PMCNULL;
+    if (!HashPunned) {
+        /* We cache the punned Hash role class so we can very quickly call
+         * CREATE - critical as we have slurpy hashes for all methods. */
+        PMC *root_ns   = Parrot_get_ctx_HLL_namespace(interp);
+        PMC *hash_role = VTABLE_get_pmc_keyed_str(interp, root_ns, string_from_literal(interp, "Hash"));
+        PMC *meth      = VTABLE_find_method(interp, hash_role, string_from_literal(interp, "!select"));
+        Parrot_ext_call(interp, meth, "P->P", hash_role, &hash_role);
+        meth = VTABLE_find_method(interp, hash_role, string_from_literal(interp, "!pun"));
+        Parrot_ext_call(interp, meth, "P->P", hash_role, &HashPunned);
+    }
+    create = VTABLE_find_method(interp, HashPunned, string_from_literal(interp, "CREATE"));
+    Parrot_ext_call(interp, create, "P->P", HashPunned, &result);
+    VTABLE_set_attr_str(interp, result, string_from_literal(interp, "$!storage"), storage);
     return result;
 }
 

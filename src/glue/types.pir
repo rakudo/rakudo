@@ -62,8 +62,8 @@ subtyping relations, etc).
     storage = root_new ['parrot';'Hash']
   have_storage:
     $P0 = get_hll_global 'Hash'
-    $P1 = $P0.'CREATE'()
-    $P0 = $P0.'bless'($P1, 'storage'=>storage)
+    $P0 = $P0.'CREATE'()
+    setattribute $P0, '$!storage', storage
     .return ($P0)
 .end
 

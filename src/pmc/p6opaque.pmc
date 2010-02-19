@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2009, The Perl Foundation.
+Copyright (C) 2009-2010, The Perl Foundation.
 
 =head1 NAME
 
@@ -24,13 +24,61 @@ end up containing various object behaviors that are specific to Perl 6.
 #include "pmc_object.h"
 #include "pmc_p6invocation.h"
 
+static STRING *ACCEPTS_str;
+static STRING *add_variant_str;
+static STRING *attrname_str;
+static STRING *bless_str;
+static STRING *BUILD_str;
+static STRING *BUILDALL_str;
+static STRING *Class_str;
+static STRING *ClassHOW_str;
+static STRING *Code_str;
+static STRING *CREATE_str;
+static STRING *defined_str;
+static STRING *DISPATCH_JUNCTION_METHOD_str;
+static STRING *do_str;
+static STRING *FETCH_str;
+static STRING *get_parrotclass_str;
+static STRING *handles_dispatchers_str;
+static STRING *HANDLES_DISPATCH_HELPER_str;
+static STRING *hidden_str;
+static STRING *hides_str;
+static STRING *HOW_str;
+static STRING *invoke_str;
+static STRING *isa_str;
+static STRING *Junction_str;
+static STRING *MAKE_WHATEVER_CLOSURE_str;
+static STRING *match_against_str;
+static STRING *metaclass_str;
+static STRING *methodname_str;
+static STRING *methods_str;
+static STRING *Mu_str;
+static STRING *MultiSub_str;
+static STRING *name_str;
+static STRING *new_str;
+static STRING *P6Invocation_str;
+static STRING *P6META_str;
+static STRING *P6protoobject_str;
+static STRING *P6role_str;
+static STRING *perl_str;
+static STRING *perl6_str;
+static STRING *Perl6Role_str;
+static STRING *postcircumfix_str;
+static STRING *proxy_str;
+static STRING *pun_helper_str;
+static STRING *Scalar_str;
+static STRING *select_str;
+static STRING *Sub_str;
+static STRING *Submethod_str;
+static STRING *WHAT_str;
+static STRING *Whatever_str;
 
 static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *name) {
-    STRING *match_against = CONST_STRING(interp, "match_against");
-    STRING *P6protoobject = CONST_STRING(interp, "P6protoobject");
-    STRING *P6role        = CONST_STRING(interp, "P6role");
-    STRING *Perl6Role     = CONST_STRING(interp, "Perl6Role");
-    STRING *attrname      = CONST_STRING(interp, "attrname");
+    STRING *match_against = match_against_str;
+    STRING *P6protoobject = P6protoobject_str;
+    STRING *P6role        = P6role_str;
+    STRING *Perl6Role     = Perl6Role_str;
+    STRING *attrname      = attrname_str;
 
     /* Need to make sure a some stuff doesn't get destroyed, since we very
      * liekly have a call set up when we are running this code. */
@@ -48,14 +96,13 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
         PMC *can_check = PMCNULL;
         if (VTABLE_isa(interp, matcher, P6protoobject)) {
             /* Get the Parrot class. */
-            PMC *ns_key, *ns, *p6meta, *meth;
-            STRING * const get_pc = CONST_STRING(interp, "get_parrotclass");
-            ns_key = pmc_new(interp, enum_class_ResizableStringArray);
-            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
-            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Mu"));
+            PMC *ns, *p6meta, *meth;
+            PMC *ns_key = pmc_new(interp, enum_class_ResizableStringArray);
+            VTABLE_push_string(interp, ns_key, perl6_str);
+            VTABLE_push_string(interp, ns_key, Mu_str);
             ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
-            p6meta = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "$!P6META"));
-            meth = VTABLE_find_method(interp, p6meta, get_pc);
+            p6meta = VTABLE_get_pmc_keyed_str(interp, ns, P6META_str);
+            meth = VTABLE_find_method(interp, p6meta, get_parrotclass_str);
             Parrot_ext_call(interp, meth, "PiP->P", p6meta, matcher, &can_check);
         }
         else if (VTABLE_isa(interp, matcher, P6role)) {
@@ -64,14 +111,13 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
         }
         else if (VTABLE_isa(interp, matcher, Perl6Role)) {
             /* Need to select the parameterless role variant. */
-            STRING * const select      = CONST_STRING(interp, "!select");
-            PMC    * const select_meth = VTABLE_find_method(interp, matcher, select);
+            PMC    * const select_meth = VTABLE_find_method(interp, matcher, select_str);
             Parrot_ext_call(interp, select_meth, "Pi->P", matcher, &can_check);
         }
 
         /* If any of these got something to do a can check on, do so. */
         if (!PMC_IS_NULL(can_check)) {
-            PMC *methods = VTABLE_inspect_str(interp, can_check, CONST_STRING(interp, "methods"));
+            PMC *methods = VTABLE_inspect_str(interp, can_check, methods_str);
             if (VTABLE_exists_keyed_str(interp, methods, name)) {
                 attr = VTABLE_get_string_keyed_str(interp, handles_hash, attrname);
                 break;
@@ -79,8 +125,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
         }
         else {
             /* Use what we were given as something to smart-match against. */
-            STRING * const ACCEPTS      = CONST_STRING(interp, "ACCEPTS");
-            PMC    * const accepts_meth = VTABLE_find_method(interp, matcher, ACCEPTS);
+            PMC    * const accepts_meth = VTABLE_find_method(interp, matcher, ACCEPTS_str);
             PMC    * result             = PMCNULL;;
             Parrot_ext_call(interp, accepts_meth, "PiS->P", matcher, name, &result);
             if (VTABLE_get_bool(interp, result)) {
@@ -106,8 +151,8 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
         VTABLE_set_string_native(interp, boxed_attrname, attr);
         VTABLE_set_string_native(interp, boxed_methodname, name);
         sub = VTABLE_clone(interp, sub);
-        VTABLE_setprop(interp, sub, CONST_STRING(interp, "attrname"), boxed_attrname);
-        VTABLE_setprop(interp, sub, CONST_STRING(interp, "methodname"), boxed_methodname);
+        VTABLE_setprop(interp, sub, attrname_str, boxed_attrname);
+        VTABLE_setprop(interp, sub, methodname_str, boxed_methodname);
         return sub;
     }
     else {
@@ -133,9 +178,9 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
         /* Support is hidden and the hides trait mod iff we're in deferal mode (that
          * is, we're continuing a lookup rather than starting from the bottom). */
         if (*start_pos > 0) {
-            PMC *my_metaclass = VTABLE_getprop(interp, cur_class, CONST_STRING(interp, "metaclass"));
+            PMC *my_metaclass = VTABLE_getprop(interp, cur_class, metaclass_str);
             if (!PMC_IS_NULL(my_metaclass) && VTABLE_isa(interp, my_metaclass,
-                    CONST_STRING(interp, "ClassHOW"))) {
+                    ClassHOW_str)) {
                 int j, k, found;
 
                 /* Does this class have the is hidden property? */
@@ -147,7 +192,7 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
                 found = 0;
                 for (j = 0; j < i; j++) {
                     PMC *check_class     = VTABLE_get_pmc_keyed_int(interp, search_list, j);
-                    PMC *check_metaclass = VTABLE_getprop(interp, check_class, CONST_STRING(interp, "metaclass"));
+                    PMC *check_metaclass = VTABLE_getprop(interp, check_class, metaclass_str);
                     if (!PMC_IS_NULL(check_metaclass)) {
                         PMC *hides = VTABLE_get_attr_str(interp, check_metaclass, CONST_STRING(interp, "$!hides"));
                         if (!PMC_IS_NULL(hides)) {
@@ -155,7 +200,7 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
                             for (k = 0; k < hides_cnt; k++) {
                                 PMC *cur_type_obj  = VTABLE_get_pmc_keyed_int(interp, hides, k);
                                 PMC *cur_metaclass = VTABLE_getprop(interp, VTABLE_get_class(interp,
-                                        cur_type_obj), CONST_STRING(interp, "metaclass"));
+                                        cur_type_obj), metaclass_str);
                                 if (cur_metaclass == my_metaclass) {
                                     found = 1;
                                     break;
@@ -170,7 +215,7 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
         }
 
         /* Make sure it's got the memory layout of a standard Parrot class. */
-        if (all_in_universe || VTABLE_isa(interp, cur_class, CONST_STRING(interp, "Class"))) {
+        if (all_in_universe || VTABLE_isa(interp, cur_class, Class_str)) {
             /* Look and see if we have a method; eliminate sub-methods unless
              * they are in the most-derived class or the most-dereived class is
              * the proto-object one. */
@@ -181,13 +226,13 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
                     break;
 
                 /* If it's not a submethod, it's fine. */
-                if (!VTABLE_isa(interp, method, CONST_STRING(interp, "Submethod")))
+                if (!VTABLE_isa(interp, method, Submethod_str))
                     break;
 
                 /* Otherwise, check if most derived class is a proto-object, in
                  * which case this sub-method is also admissable. */
                 if (VTABLE_isa(interp, VTABLE_get_pmc_keyed_int(interp, search_list, i - 1),
-                        CONST_STRING(interp, "P6protoobject")))
+                        P6protoobject_str))
                     break;
             }
         }
@@ -219,6 +264,57 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
 
 pmclass P6opaque extends Object need_ext dynpmc group perl6_group {
 
+    void class_init() {
+        ACCEPTS_str                  = CONST_STRING(interp, "ACCEPTS");
+        add_variant_str              = CONST_STRING(interp, "!add_variant");
+        attrname_str                 = CONST_STRING(interp, "attrname");
+        bless_str                    = CONST_STRING(interp, "bless");
+        BUILD_str                    = CONST_STRING(interp, "BUILD");
+        BUILDALL_str                 = CONST_STRING(interp, "BUILDALL");
+        Class_str                    = CONST_STRING(interp, "Class");
+        ClassHOW_str                 = CONST_STRING(interp, "ClassHOW");
+        Code_str                     = CONST_STRING(interp, "Code");
+        CREATE_str                   = CONST_STRING(interp, "CREATE");
+        defined_str                  = CONST_STRING(interp, "defined");
+        DISPATCH_JUNCTION_METHOD_str = CONST_STRING(interp, "!DISPATCH_JUNCTION_METHOD");
+        do_str                       = CONST_STRING(interp, "$!do");
+        FETCH_str                    = CONST_STRING(interp, "!FETCH");
+        get_parrotclass_str          = CONST_STRING(interp, "get_parrotclass");
+        handles_dispatchers_str      = CONST_STRING(interp, "@!handles_dispatchers");
+        HANDLES_DISPATCH_HELPER_str  = CONST_STRING(interp, "!HANDLES_DISPATCH_HELPER");
+        hidden_str                   = CONST_STRING(interp, "$!hidden");
+        hides_str                    = CONST_STRING(interp, "$!hides");
+        HOW_str                      = CONST_STRING(interp, "HOW");
+        invoke_str                   = CONST_STRING(interp, "invoke");
+        isa_str                      = CONST_STRING(interp, "isa");
+        Junction_str                 = CONST_STRING(interp, "Junction");
+        MAKE_WHATEVER_CLOSURE_str    = CONST_STRING(interp, "!MAKE_WHATEVER_CLOSURE");
+        match_against_str            = CONST_STRING(interp, "match_against");
+        metaclass_str                = CONST_STRING(interp, "metaclass");
+        methodname_str               = CONST_STRING(interp, "methodname");
+        methods_str                  = CONST_STRING(interp, "methods");
+        Mu_str                       = CONST_STRING(interp, "Mu");
+        MultiSub_str                 = CONST_STRING(interp, "MultiSub");
+        name_str                     = CONST_STRING(interp, "name");
+        new_str                      = CONST_STRING(interp, "new");
+        P6Invocation_str             = CONST_STRING(interp, "P6Invocation");
+        P6META_str                   = CONST_STRING(interp, "$!P6META");
+        P6protoobject_str            = CONST_STRING(interp, "P6protoobject");
+        P6role_str                   = CONST_STRING(interp, "P6role");
+        perl_str                     = CONST_STRING(interp, "perl");
+        perl6_str                    = CONST_STRING(interp, "perl6");
+        Perl6Role_str                = CONST_STRING(interp, "Perl6Role");
+        postcircumfix_str            = CONST_STRING(interp, "postcircumfix:<[ ]>");
+        proxy_str                    = CONST_STRING(interp, "proxy");
+        pun_helper_str               = CONST_STRING(interp, "!pun_helper");
+        Scalar_str                   = CONST_STRING(interp, "Scalar");
+        select_str                   = CONST_STRING(interp, "!select");
+        Sub_str                      = CONST_STRING(interp, "Sub");
+        Submethod_str                = CONST_STRING(interp, "Submethod");
+        WHAT_str                     = CONST_STRING(interp, "WHAT");
+        Whatever_str                 = CONST_STRING(interp, "Whatever");
+    }
+
 /*
 
 =item C<PMC * clone()>
@@ -248,9 +344,9 @@ more.)
         for (i = 0; i < num_attrs; i++) {
             PMC * const original_data = VTABLE_get_pmc_keyed_int(INTERP, my_guts->attrib_store, i);
             PMC * const new_data      = VTABLE_get_pmc_keyed_int(INTERP, clone_guts->attrib_store, i);
-            
+
             /* If it's a sub, we need a separate hash, so copy each property over. */
-            if (!PMC_IS_NULL(original_data) && VTABLE_isa(interp, original_data, CONST_STRING(interp, "Sub"))) {
+            if (!PMC_IS_NULL(original_data) && VTABLE_isa(interp, original_data, Sub_str)) {
                 PMC * const meta          = VTABLE_getprops(interp, original_data);
                 if (!PMC_IS_NULL(meta)) {
                     PMC * const iter = VTABLE_get_iter(interp, meta);
@@ -293,46 +389,46 @@ back some kind of iterator to let us get all of the possible candidates.
         /* If we're calling a method on Whatever, we need to generate a closure
          * instead. XXX It sucks that every method invocation pays for this, so
          * we really must find something better to do. */
-        if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Whatever")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "new")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "bless")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "CREATE")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "BUILD")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "BUILDALL")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "WHAT")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "HOW")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "isa")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "Scalar")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "defined")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!FETCH"))) {
+        if (VTABLE_isa(interp, SELF, Whatever_str) &&
+                !Parrot_str_equal(interp, name, new_str) &&
+                !Parrot_str_equal(interp, name, bless_str) &&
+                !Parrot_str_equal(interp, name, CREATE_str) &&
+                !Parrot_str_equal(interp, name, BUILD_str) &&
+                !Parrot_str_equal(interp, name, BUILDALL_str) &&
+                !Parrot_str_equal(interp, name, WHAT_str) &&
+                !Parrot_str_equal(interp, name, HOW_str) &&
+                !Parrot_str_equal(interp, name, ACCEPTS_str) &&
+                !Parrot_str_equal(interp, name, isa_str) &&
+                !Parrot_str_equal(interp, name, Scalar_str) &&
+                !Parrot_str_equal(interp, name, defined_str) &&
+                !Parrot_str_equal(interp, name, FETCH_str)) {
             /* Look up closure maker, clone it, attach name and return that. */
             PMC *sub = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
-                    CONST_STRING(interp, "!MAKE_WHATEVER_CLOSURE"));
+                    MAKE_WHATEVER_CLOSURE_str);
             PMC *boxed_name = pmc_new(interp, enum_class_String);
             VTABLE_set_string_native(interp, boxed_name, name);
             method = VTABLE_clone(interp, sub);
-            VTABLE_setprop(interp, method, CONST_STRING(interp, "name"), boxed_name);
+            VTABLE_setprop(interp, method, name_str, boxed_name);
         }
 
         /* If it's a role and the method name is not on the no-pun list, we
          * should pun it. */
-        else if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Perl6Role")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "WHAT")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "HOW")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "ACCEPTS")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "isa")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "Scalar")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "defined")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "perl")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!select")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!add_variant")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "!FETCH")) &&
-                !Parrot_str_equal(interp, name, CONST_STRING(interp, "postcircumfix:<[ ]>"))) {
+        else if (VTABLE_isa(interp, SELF, Perl6Role_str) &&
+                !Parrot_str_equal(interp, name, WHAT_str) &&
+                !Parrot_str_equal(interp, name, HOW_str) &&
+                !Parrot_str_equal(interp, name, ACCEPTS_str) &&
+                !Parrot_str_equal(interp, name, isa_str) &&
+                !Parrot_str_equal(interp, name, Scalar_str) &&
+                !Parrot_str_equal(interp, name, defined_str) &&
+                !Parrot_str_equal(interp, name, perl_str) &&
+                !Parrot_str_equal(interp, name, select_str) &&
+                !Parrot_str_equal(interp, name, add_variant_str) &&
+                !Parrot_str_equal(interp, name, FETCH_str) &&
+                !Parrot_str_equal(interp, name, postcircumfix_str)) {
             PMC *ns_key, *ns, *punner, *boxed_name;
             ns_key = pmc_new(interp, enum_class_ResizableStringArray);
-            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
-            VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Perl6Role"));
+            VTABLE_push_string(interp, ns_key, perl6_str);
+            VTABLE_push_string(interp, ns_key, Perl6Role_str);
             ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
             punner = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "!pun_helper"));
 
@@ -340,7 +436,7 @@ back some kind of iterator to let us get all of the possible candidates.
             method = VTABLE_clone(interp, punner);
             boxed_name = pmc_new(interp, enum_class_String);
             VTABLE_set_string_native(interp, boxed_name, name);
-            VTABLE_setprop(interp, method, CONST_STRING(interp, "name"), boxed_name);
+            VTABLE_setprop(interp, method, name_str, boxed_name);
         }
 
         /* Otherwise, just do a normal method lookup. */
@@ -350,24 +446,24 @@ back some kind of iterator to let us get all of the possible candidates.
 
         /* If it's a junction and we need to auto-thread the call. */
         if (PMC_IS_NULL(method)) {
-            if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Junction"))) {
+            if (VTABLE_isa(interp, SELF, Junction_str)) {
                 PMC *sub = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
                         CONST_STRING(interp, "!DISPATCH_JUNCTION_METHOD"));
                 PMC *boxed_name = pmc_new(interp, enum_class_String);
                 VTABLE_set_string_native(interp, boxed_name, name);
                 method = VTABLE_clone(interp, sub);
-                VTABLE_setprop(interp, method, CONST_STRING(interp, "name"), boxed_name);
+                VTABLE_setprop(interp, method, name_str, boxed_name);
             }
         }
 
         if (!PMC_IS_NULL(method)) {
             /* Need to construct a P6Invocation, so we can support deference etc. */
-            INTVAL  p6i_type = pmc_type(interp, CONST_STRING(interp, "P6Invocation"));
+            INTVAL  p6i_type = pmc_type(interp, P6Invocation_str);
             PMC    *p6i      = pmc_new(interp, p6i_type);
             SETATTR_P6Invocation_search_list(interp, p6i, _class->all_parents);
             SETATTR_P6Invocation_name(interp, p6i, name);
             SETATTR_P6Invocation_resume_point(interp, p6i, pos);
-            if (VTABLE_isa(interp, method, CONST_STRING(interp, "MultiSub"))) {
+            if (VTABLE_isa(interp, method, MultiSub_str)) {
                 /* We don't have something definite to invoke, so set it up
                  * inside a candidate list. */
                 PMC *cand_list = pmc_new(interp, enum_class_ResizablePMCArray);
@@ -402,7 +498,7 @@ Gets an attribute from the instance storage.
 
         /* Otherwise, check if this is a proto-object, in which case we should
          * never be accessing state. */
-        if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "P6protoobject")))
+        if (VTABLE_isa(interp, SELF, P6protoobject_str))
             Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                     "Type objects do not have state, but you tried to access attribute %Ss",
                     name);
@@ -423,7 +519,7 @@ Invokes the object (if this vtable function is overridden).
 */
     opcode_t * invoke(void *next) {
         /* If it's a Code, we can just grab $!do and go straight on that. */
-        if (VTABLE_isa(interp, SELF, CONST_STRING(interp, "Code"))) {
+        if (VTABLE_isa(interp, SELF, Code_str)) {
             PMC *parrotsub = VTABLE_get_attr_str(interp, SELF, CONST_STRING(interp, "$!do"));
             return VTABLE_invoke(interp, parrotsub, next);
         }
@@ -437,7 +533,7 @@ Invokes the object (if this vtable function is overridden).
 
             for (i = 0; i < num_classes; i++) {
                 /* Get the class. */
-                STRING * const meth_name = CONST_STRING(interp, "invoke");
+                STRING * const meth_name = invoke_str;
                 STRING * const proxy     = CONST_STRING(interp, "proxy");
                 PMC * const cur_class =
                     VTABLE_get_pmc_keyed_int(interp, _class->all_parents, i);

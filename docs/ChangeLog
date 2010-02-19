@@ -15,7 +15,7 @@ New in 2010.02 release
 + Builtin classes derive from Cool which derives from Any
 + The refactored source code is more compact and more easily extended
 + The number of spectests passed has reduced from a peak of 32731 in
-  alpha to 24563, because porting the functionality to the new master
+  alpha to 24221, because porting the functionality to the new master
   is still ongoing
 + Release numbering changes from 'dash' to 'dot' delimiter to get on
   better with various package management systems

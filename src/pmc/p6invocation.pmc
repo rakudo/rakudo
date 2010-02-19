@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2009, The Perl Foundation.
+Copyright (C) 2009-2010, The Perl Foundation.
 
 =head1 NAME
 
@@ -40,6 +40,9 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
 /* Another declaration; this one is defined in perl6multisub.pmc. */
 PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *self);
 
+static STRING *perl6_str;
+static STRING *deferral_fail_str;
+static STRING *CANDIDATE_LIST_str;
 
 /* This does the grunt work of working out what the next candidate is. Takes
  * account of us maybe needing to look into multi variants and all that lot. */
@@ -319,5 +322,11 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
 
     METHOD void set_failure_mode() {
         PObj_flag_SET(P6I_FAILURE_MODE, SELF);
+    }
+
+    void class_init() {
+        perl6_str          = CONST_STRING(interp, "perl6");
+        deferral_fail_str  = CONST_STRING(interp, "!deferal_fail");
+        CANDIDATE_LIST_str = CONST_STRING(interp, "__CANDIDATE_LIST__");
     }
 }

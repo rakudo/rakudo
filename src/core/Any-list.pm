@@ -88,38 +88,36 @@ augment class Any {
         @l[floor(@l.elems.rand)];
     }
 
-    # multi method pick($num is copy = 1, :$replace) {
-    #     if $num ~~ Whatever {
-    #         $num = +Inf;
-    #     }
-    #     # $num .= floor;
-    #
-    #     my @l = @.list.Seq;
-    #
-    #     if ($num == 1) {
-    #         return @l[floor(@l.elems.rand)];
-    #     }
-    #
-    #     if $replace {
-    #         gather {
-    #             while ($num > 0) {
-    #                 my $idx = floor(@l.elems.rand());
-    #                 take @l[$idx];
-    #                 --$num;
-    #             }
-    #         }
-    #     } else {
-    #         die "Non-replacing pick not yet implemented";
-    #         # gather {
-    #         #     while ($num > 0 and @l.elems > 0) {
-    #         #         my $idx = floor(@l.elems.rand());
-    #         #         take @l[$idx];
-    #         #         @l.splice($idx,1);
-    #         #         --$num;
-    #         #     }
-    #         # }
-    #     }
-    # }
+    multi method pick($num is copy = 1, :$replace) {
+        my @l = @.list.Seq;
+
+        if ($num == 1) {
+            return @l[floor(@l.elems.rand)];
+        }
+
+        if $replace {
+            gather {
+                while ($num > 0) {
+                    my $idx = floor(@l.elems.rand());
+                    take @l[$idx];
+                    --$num;
+                }
+            }
+        } else {
+            gather {
+                while ($num > 0 and @l.elems > 0) {
+                    my $idx = floor(@l.elems.rand());
+                    take @l[$idx];
+                    @l.splice($idx,1);
+                    --$num;
+                }
+            }
+        }
+    }
+
+    multi method pick(Whatever, :$replace) {
+        self.pick(Inf, :$replace);
+    }
 
     multi method reduce(Code $expression is rw) {
         my $arity = $expression.count;

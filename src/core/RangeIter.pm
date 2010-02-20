@@ -1,4 +1,11 @@
 
+multi sub RangeIterCmp($a, $b) {
+    $a cmp $b;
+}
+
+multi sub RangeIterCmp(Str $a, Str $b) {
+    $a.chars <=> $b.chars || $a cmp $b;
+}
 
 class RangeIter is Iterator {
     has $!value;
@@ -10,12 +17,12 @@ class RangeIter is Iterator {
                       :max($r.max),
                       :excludes_max($r.excludes_max));
     }
-    
+
     method get() {
         my $current = $!value;
         unless $!max ~~ ::Whatever {
-            if $current after $!max
-               || $!excludes_max && !($current before $!max) {
+            if RangeIterCmp($current, $!max) == 1
+               || $!excludes_max && RangeIterCmp($current, $!max) != -1 {
                 return EMPTY;
             }
         }

@@ -132,14 +132,11 @@ method statement($/, $key?) {
         }
         if $ml {
             if ~$ml<sym> eq 'for' {
-                my $block := PAST::Block.new( :blocktype('immediate'),
+                $past := PAST::Block.new( :blocktype('immediate'),
                     PAST::Var.new( :name('$_'), :scope('parameter'), :isdecl(1) ),
                     $past);
-                $past := PAST::Op.new($ml<EXPR>.ast, $block, :pasttype(~$ml<sym>), :node($/) );
             }
-            else {
-                $past := PAST::Op.new($ml<cond>.ast, $past, :pasttype(~$ml<sym>), :node($/) );
-            }
+            $past := PAST::Op.new($ml<smexpr>.ast, $past, :pasttype(~$ml<sym>), :node($/) );
         }
     }
     elsif $<statement_control> { $past := $<statement_control>.ast; }
@@ -464,9 +461,9 @@ sub add_phaser($/, $bank) {
 method statement_mod_cond:sym<if>($/)     { make $<cond>.ast; }
 method statement_mod_cond:sym<unless>($/) { make $<cond>.ast; }
 
-method statement_mod_loop:sym<while>($/)  { make $<cond>.ast; }
-method statement_mod_loop:sym<until>($/)  { make $<cond>.ast; }
-method statement_mod_loop:sym<for>($/)    { make $<EXPR>.ast; }
+method statement_mod_loop:sym<while>($/)  { make $<smexpr>.ast; }
+method statement_mod_loop:sym<until>($/)  { make $<smexpr>.ast; }
+method statement_mod_loop:sym<for>($/)    { make $<smexpr>.ast; }
 
 ## Terms
 

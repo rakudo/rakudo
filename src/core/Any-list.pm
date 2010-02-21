@@ -174,5 +174,6 @@ our proto sub min($by, *@values) { @values.min($by); }
 our proto sub max($by, *@values) { @values.max($by); }
 our proto sub uniq(@values) { @values.uniq; }
 our proto sub pick ($num, :$replace, *@values) { @values.pick($num, :$replace); }
+our proto sub map(&mapper, @values) { @values.map(&mapper); }
 
 # vim: ft=perl6

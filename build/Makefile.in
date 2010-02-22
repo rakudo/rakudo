@@ -427,7 +427,7 @@ sometests: all
 	@$(HARNESS_WITH_FUDGE_JOBS) $(TESTFILES)
 
 # Run a single test
-t/*.t t/*/*.t t/*/*/*.t: all
+t/*.t t/*/*.t t/*/*/*.t: all Test.pir spectest_checkout
 	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 ##  cleaning

@@ -17,7 +17,7 @@ for executable objects.
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     $P0 = get_hll_global 'Callable'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi $!signature $!lazy_sig_init_name', 'does_role'=>$P0)
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi $!signature $!lazy_sig_init', 'does_role'=>$P0)
     $P1 = new ['Role']
     $P1.'name'('invokable')
     p6meta.'compose_role'(codeproto, $P1)
@@ -31,7 +31,7 @@ for executable objects.
 .sub 'new' :method
     .param pmc do
     .param pmc multi
-    .param pmc lazy_sig_init_name
+    .param pmc lazy_sig_init
     $P0 = getprop '$!p6type', do
     if null $P0 goto need_create
     .return ($P0)
@@ -42,7 +42,7 @@ for executable objects.
     transform_to_p6opaque $P0
     setattribute $P0, '$!do', do
     setattribute $P0, '$!multi', multi
-    setattribute $P0, '$!lazy_sig_init_name', lazy_sig_init_name
+    setattribute $P0, '$!lazy_sig_init', lazy_sig_init
     if multi != 2 goto proto_done
     $P1 = box 1
     setprop $P0, 'proto', $P1
@@ -60,7 +60,7 @@ for executable objects.
     $P0 = getattribute self, '$!do'
     $P0 = clone $P0
     $P1 = getattribute self, '$!multi'
-    $P2 = getattribute self, '$!lazy_sig_init_name'
+    $P2 = getattribute self, '$!lazy_sig_init'
     $P3 = self.'new'($P0, $P1, $P2)
     .return ($P3)
 .end
@@ -154,7 +154,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'signature' :method
-    .local pmc do, ll_sig, lazy_name
+    .local pmc do, ll_sig, lazy_sig
 
     # Do we have a cached result?
     $P0 = getattribute self, '$!signature'
@@ -168,11 +168,9 @@ Gets the signature for the block, or returns Failure if it lacks one.
     unless null ll_sig goto have_sig
 
     # No signautre yet, but maybe we have a lazy creator.
-    lazy_name = getattribute self, '$!lazy_sig_init_name'
-    if lazy_name == '' goto srsly_no_sig
-    $P0 = do.'get_namespace'()
-    $P0 = $P0[lazy_name]
-    ll_sig = $P0()
+    lazy_sig = getattribute self, '$!lazy_sig_init'
+    if null lazy_sig goto srsly_no_sig
+    ll_sig = lazy_sig()
     setprop do, '$!signature', ll_sig
     goto have_sig
   srsly_no_sig:

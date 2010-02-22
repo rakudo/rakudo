@@ -1978,13 +1978,10 @@ sub add_signature($block, $sig_obj, $lazy) {
 
     # If lazy, make and push signature setup block.
     if $lazy {
-        my $sig_setup_block_name := $block.unique('!sig_setup_' ~ pir::time__N() ~ '_');
-        $block[0].push(PAST::Block.new(
-            :name($sig_setup_block_name),
-            :blocktype('declaration'),
-            $sig_obj.ast(1)
-        ));
-        $sig_setup_block_name
+        my $sig_setup_block := 
+            PAST::Block.new( :blocktype<declaration>, $sig_obj.ast(1) );
+        $block[0].push($sig_setup_block);
+        PAST::Val.new(:value($sig_setup_block));
     }
     else {
         $block.loadinit.push($sig_obj.ast(1));

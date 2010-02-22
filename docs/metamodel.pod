@@ -72,7 +72,7 @@ a minimum.
 
 =item method new($name?)
 
-Creates something that knows how to provide it's metaclass, e.g. through the
+Creates something that knows how to provide its metaclass, e.g. through the
 same mechanism as C<.HOW> obtains it. It need not be the final type-object that
 may be installed in a namespace or lexpad - that is for compose to return. However,
 there's nothing to stop it being.

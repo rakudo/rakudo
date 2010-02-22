@@ -965,7 +965,8 @@ method method_def($/) {
         $past.name($name);
         $past.nsentry('');
         my $multi_flag := PAST::Val.new( :value(0) );
-        $past := create_code_object($past, $*METHODTYPE, $multi_flag, $sig_setup_block);
+        # create code object using a reference to $past
+        my $code := create_code_object(PAST::Val.new(:value($past)), $*METHODTYPE, $multi_flag, $sig_setup_block);
 
         # Get hold of methods table.
         our @PACKAGE;
@@ -991,30 +992,30 @@ method method_def($/) {
             }
 
             # If it's a proto, stash it away in the symbol entry.
-            if $*MULTINESS eq 'proto' { %table{$name}<proto> := $past; }
+            if $*MULTINESS eq 'proto' { %table{$name}<proto> := $code; }
 
             # Otherwise, create multi container if we don't have one; otherwise,
             # just push this candidate onto it.
             if %table{$name}<multis> {
-                %table{$name}<multis>.push($past);
+                %table{$name}<multis>.push($code);
             }
             else {
-                $past := PAST::Op.new(
+                $code := PAST::Op.new(
                     :pasttype('callmethod'),
                     :name('set_candidates'),
                     PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
-                    $past
+                    $code
                 );
-                %table{$name}<code_ref> := %table{$name}<multis> := $past;
+                %table{$name}<code_ref> := %table{$name}<multis> := $code;
             }
             $multi_flag.value($*MULTINESS eq 'proto' ?? 2 !! 1);
         }
         else {
-            %table{$name}<code_ref> := $past;
+            %table{$name}<code_ref> := $code;
         }
 
         # Added via meta-class; needn't add anything.
-        $past := PAST::Stmts.new();
+        # $past := PAST::Stmts.new();
     }
     elsif $*MULTINESS {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');

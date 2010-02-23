@@ -62,14 +62,6 @@ class Range is Iterable {
         my $emax = $.excludes_max ?? "^" !! "";
         $min ~ $emin ~ ".." ~ $emax ~ $max;
     }
-
-    our Str multi method Str() {
-        $.iterator.Str;
-    }
-
-    our multi method Num() {
-        $.iterator.elems;
-    }
 }
 
 our multi sub infix:<..>($min, $max) {

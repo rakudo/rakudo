@@ -11,10 +11,6 @@ augment class Iterator {
         Seq.new!STORE(self);
     }
 
-    multi method Str() {
-        pir::join(' ', self.eager);
-    }
-
     # TimToady suggests this should be on Cool,
     # but it makes more sense to me here.  Also
     # should support slices, but I don't know 

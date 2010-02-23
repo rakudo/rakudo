@@ -325,7 +325,7 @@ S12-attributes/clone.t
 # S12-attributes/inheritance.t
 # S12-attributes/instance.t
 # S12-attributes/recursive.t
-t/spec/S12-attributes/undeclared.t
+S12-attributes/undeclared.t
 # S12-class/anonymous.t
 # S12-class/attributes.t
 S12-class/basic.t

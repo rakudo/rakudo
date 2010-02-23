@@ -30,7 +30,7 @@ pmclass MutableVAR need_ext dynpmc group perl6_group {
     VTABLE void init_pmc(PMC *scalar) {
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
-        PObj_active_destroy_SET(SELF);
+        PObj_custom_destroy_SET(SELF);
 
         /* Create underlying structure and set scalar value. */
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_MutableVAR_attributes);

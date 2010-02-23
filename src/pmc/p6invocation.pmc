@@ -146,7 +146,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
     VTABLE void init() {
         PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_P6Invocation_attributes);
         PObj_custom_mark_SET(SELF);
-        PObj_active_destroy_SET(SELF);
+        PObj_custom_destroy_SET(SELF);
     }
 
     VTABLE void init_pmc(PMC *list) {

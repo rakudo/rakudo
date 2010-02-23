@@ -864,7 +864,7 @@ Allocates the PMC's underlying storage.
 
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
-        PObj_active_destroy_SET(SELF);
+        PObj_custom_destroy_SET(SELF);
     }
 
 /*

@@ -124,4 +124,11 @@ sub unlink($filename) {
     }
 }
 
+# CHEAT: This function is missing a bunch of arguments,
+# and should be more robust.
+multi lines (Str $filename, Any  $limit = *) {
+    my $fh = open $filename or fail "Unable to open $filename";
+    $fh.lines($limit);
+}
+
 # vim: ft=perl6

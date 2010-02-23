@@ -51,4 +51,50 @@ role Hash is EnumMap {
         }
         self
     }
+
+    method delete(*@keys) {
+        my @deleted;
+        for @keys -> $k {
+            @deleted.push(self{$k});
+            Q:PIR {
+                $P0 = find_lex '$k'
+                $P1 = find_lex 'self'
+                $P1 = getattribute $P1, '$!storage'
+                delete $P1[$P0]
+            }
+        }
+        @deleted
+    }
+
+    method push(*@values) {
+        my $previous;
+        my $has_previous;
+        for @values -> $e {
+            if $has_previous {
+                self!push_construct($previous, $e);
+                $has_previous = 0;
+            } elsif $e ~~ Pair {
+                self!push_construct($e.key, $e.value);
+            } else {
+                $previous = $e;
+                $has_previous = 1;
+            }
+        }
+        if $has_previous {
+            warn "Trailing item in Hash.push";
+        }
+    }
+
+    # push a value onto a hash Objectitem, constructing an array if necessary
+    method !push_construct(Mu $key, Mu $value) {
+        if self.exists($key) {
+            if self.{$key} ~~ Array {
+                self.{$key}.push($value);
+            } else {
+                self.{$key} = [ self.{$key}, $value];
+            }
+        } else {
+            self.{$key} = $value;
+        }
+    }
 }

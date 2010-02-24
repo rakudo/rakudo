@@ -327,12 +327,10 @@ Completes the creation of the metaclass and return a proto-object.
 .sub 'can' :method
     .param pmc obj
     .param string name
-    push_eh not_found
-    $P0 = find_method obj, name
-    pop_eh
+    $P0 = find_method_null_ok obj, name
+    if null $P0 goto not_found
     .return ($P0)
   not_found:
-    pop_eh
     $P0 = get_hll_global '&Nil'
     .tailcall $P0()
 .end

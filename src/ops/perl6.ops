@@ -703,6 +703,22 @@ inline op x_setprophash(in PMC, in PMC) :base_core {
     goto NEXT();
 }
 
+
+/*
+
+=item find_method_null_ok(out PMC, in PMC, in STR)
+
+Like Parrot's find_method, but returns PMCNULL in $1 if $2 doesn't have a
+method named $3 instead of throwing an exception.
+
+=cut
+
+*/
+inline op find_method_null_ok(out PMC, in PMC, in STR) :base_core {
+    $1 = VTABLE_find_method(interp, $2, $3);
+    goto NEXT();
+}
+
 /*
  * Local variables:
  *   c-file-style: "parrot"

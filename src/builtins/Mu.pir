@@ -167,13 +167,18 @@ like this.
     .param pmc attrinit
     .param pmc posargs
 
+    .local int num_pos_args
+    .local int cur_pos_arg
+    num_pos_args = elements posargs
+
     .include 'iterator.pasm'
-    .local pmc p6meta, parents, it
+    .local pmc p6meta, parents, it, build_method
     p6meta = get_hll_global ['Mu'], '$!P6META'
     $P0 = p6meta.'get_parrotclass'(self)
     parents = inspect $P0, 'all_parents'
     it = iter parents
     set it, .ITERATE_FROM_END
+
   parents_loop:
     # Loop through all of the parent classes, in reverse mro.
     # For each parent class, call its BUILD method with the
@@ -185,27 +190,26 @@ like this.
     .local pmc parentproto
     $P0 = getprop 'metaclass', $P0
     parentproto = $P0.'WHAT'()
-    $I0 = can parentproto, 'BUILD'
-    unless $I0 goto parents_loop
+    build_method = find_method_null_ok parentproto, 'BUILD'
+    if null build_method goto parents_loop
     .lex '$CLASS', parentproto
     # Look through posargs for a corresponding protoobject
     # with a WHENCE property.  If found, that WHENCE property
     # is used as the arguments to the parent class BUILD.
-    .local pmc pos_it, argproto
-    pos_it = iter posargs
+    .local pmc argproto
+    cur_pos_arg = 0
   posargs_loop:
-    unless pos_it goto posargs_done
-    argproto = shift pos_it
+    if cur_pos_arg >= num_pos_args goto posargs_done
+    argproto = posargs[cur_pos_arg]
+    inc cur_pos_arg
     $P1 = argproto.'HOW'()
     ne_addr $P0, $P1, posargs_loop
     $P0 = argproto.'WHENCE'()
     if null $P0 goto posargs_done
-    $P1 = find_method parentproto, 'BUILD'
-    $P1(candidate, $P0 :flat :named)
+    build_method(candidate, $P0 :flat :named)
     goto parents_loop
   posargs_done:
-    $P1 = find_method parentproto, 'BUILD'
-    $P1(candidate, attrinit :flat :named)
+    build_method(candidate, attrinit :flat :named)
     goto parents_loop
   parents_done:
     .return (candidate)

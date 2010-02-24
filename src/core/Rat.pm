@@ -27,7 +27,10 @@ class Rat {
 
     our Bool multi method Bool() { $!numerator != 0 ?? Bool::True !! Bool::False }
 
-    multi method Num() { $!numerator.Num / $!denominator.Num; }
+    multi method Num() {
+        $!denominator == 0 ?? Inf * $!numerator.sign
+                           !! $!numerator.Num / $!denominator.Num;
+    }
 
     multi method Rat() { self; }
 

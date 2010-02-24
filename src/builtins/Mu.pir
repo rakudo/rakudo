@@ -42,24 +42,6 @@ like this.
 
 =cut
 
-.macro fixup_cloned_sub(orig, copy)
-    .local pmc tmp, tmp2
-    tmp = getprop '$!signature', .orig
-    if null tmp goto sub_fixup_done
-    setprop .copy, '$!signature', tmp
-    .local pmc oclass, sclass
-    oclass = typeof .orig
-    sclass = get_class ['Sub']
-    $I0 = issame oclass, sclass
-    if $I0 goto sub_fixup_done
-    tmp = getattribute .orig, ['Sub'], 'proxy'
-    tmp = getprop '$!real_self', tmp
-    if null tmp goto sub_fixup_done
-    tmp2 = getattribute .copy, ['Sub'], 'proxy'
-    setprop tmp2, '$!real_self', tmp
-  sub_fixup_done:
-.endm
-
 .namespace ['Mu']
 .sub 'clone' :method
     .param pmc new_attrs :slurpy :named
@@ -89,7 +71,6 @@ like this.
     goto attrinit_loop
   attrinit_done:
 
-    .fixup_cloned_sub(self, result)
     .return (result)
 .end
 

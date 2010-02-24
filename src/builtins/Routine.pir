@@ -97,7 +97,6 @@ Returns a curried version of self.
     .local pmc orig_wrapper, tmp, tmp2
     orig_wrapper = wrapper
     wrapper = clone orig_wrapper
-    .fixup_cloned_sub(orig_wrapper, wrapper)
     .const 'Sub' $P1 = '!wrap_clholder_helper'
     $P1 = clone $P1
     setprop $P1, '$!wrapper_block', wrapper

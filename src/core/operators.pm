@@ -87,7 +87,7 @@ our multi prefix:sym<+^>($x) {
     pir::bnot__PP($x)
 }
 
-our sub undefine(\$x) {
+our sub undefine(Mu \$x) {
     my $undefined;
     $x = $undefined;
 }

@@ -39,6 +39,27 @@ augment class Array {
                            $offset, $size);
         @ret;
     }
+
+    # This should probably handle lazy arrays too.
+    multi method delete(@array is rw: *@indices) {
+        self!fill;
+        my @result;
+        for @indices -> $index {
+            my $i = $index >= 0
+                        ?? $index
+                        !! +@array + $index;
+            @result.push(@array[$i]);
+            undefine @array[$i];
+
+            # next seems unnecessary but handles an obscure
+            # edge case
+            if $i == (@array - 1) {
+                @array.pop;
+            }
+        }
+        @array.pop while @array.elems && !defined @array[@array.elems - 1];
+        return @result;
+    }
 }
 
 our proto sub pop(@array) { @array.pop; }

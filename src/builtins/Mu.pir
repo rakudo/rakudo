@@ -255,22 +255,19 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     $I0 = index attrname, '!'
     if $I0 < 0 goto attrinit_loop
     attrhash = attributes[attrname]
-    itypeclass = attrhash['itype']
     $S0 = substr attrname, 0, 1
-    unless null itypeclass goto attrinit_itype
     if $S0 == '@' goto attrinit_array
     if $S0 == '%' goto attrinit_hash
-    $P0 = get_root_namespace ['parrot';'Perl6Scalar']
-    itypeclass = get_class $P0
-    goto attrinit_itype
-  attrinit_array:
-    itypeclass = get_class ['Array']
-    goto attrinit_itype
-  attrinit_hash:
-    itypeclass = get_class ['Perl6Hash']
-  attrinit_itype:
     .local pmc attr
-    attr = new itypeclass
+    attr = new ['Perl6Scalar']
+    setprop attr, 'scalar', attr
+    goto attrinit_rw
+  attrinit_array:
+    attr = new ['Array']
+    goto attrinit_rw
+  attrinit_hash:
+    attr = new ['Hash']
+  attrinit_rw:
     setprop attr, 'rw', attr
     setattribute example, cur_class, attrname, attr
     traits = attrhash['traits']

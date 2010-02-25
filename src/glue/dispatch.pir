@@ -165,10 +165,15 @@ Implements the .* operator. Calls one or more matching methods.
 =cut
 
 .sub '!dispatch_.*'
-    .param pmc invocant
-    .param string method_name
-    .param pmc pos_args   :slurpy
-    .param pmc named_args :slurpy :named
+    .param pmc call_sig :call_sig
+
+    # Deconstruct call signature (no caller side :call_sig yet).
+    .local pmc invocant, pos_args, named_args
+    .local string method_name
+    invocant = shift call_sig
+    method_name = shift call_sig
+    (pos_args, named_args) = '!deconstruct_call_sig'(call_sig)
+    unshift call_sig, invocant
 
     # Set up result list.
     .local pmc result_list
@@ -200,9 +205,7 @@ Implements the .* operator. Calls one or more matching methods.
     push result_list, res_parcel
     goto it_loop
   is_multi:
-    # XXX To do: need a call_sig
-    die 'Multis and .* NYI.'
-    #$P0 = $P0.'find_possible_candidates'(call_sig)
+    $P0 = $P0.'find_possible_candidates'(call_sig)
     multi_it = iter $P0
   multi_it_loop:
     unless multi_it goto it_loop

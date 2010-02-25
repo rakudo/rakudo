@@ -354,7 +354,7 @@ S12-enums/anonymous.t
 S12-introspection/parents.t
 S12-introspection/roles.t
 # S12-introspection/walk.t
-# S12-methods/calling_sets.t
+S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
 # S12-methods/chaining.t
 S12-methods/class-and-instance.t
@@ -413,7 +413,7 @@ S29-any/isa.t
 S29-context/sleep.t
 S29-conversions/ord_and_chr.t                              #icu
 ## S32-array/create.t
-# S32-array/delete.t
+S32-array/delete.t
 S32-array/elems.t
 S32-array/end.t
 # S32-array/exists.t

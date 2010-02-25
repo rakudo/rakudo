@@ -24,7 +24,7 @@ class Perl6::Metamodel::RoleToClassApplier;
 sub has_method($target, $name, $local) {
     my @methods := $target.HOW.methods($target, :local($local));
     for @methods {
-        if $_.name eq $name { return 1; }
+        if $_ eq $name { return 1; }
     }
     return 0;
 }

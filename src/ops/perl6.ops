@@ -306,7 +306,7 @@ nextsame need.
 inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
     PMC     *ctx         = Parrot_pcc_get_caller_ctx(interp, CURRENT_CONTEXT(interp));
     STRING  *name        = string_from_literal(interp, "__CANDIDATE_LIST__");
-    STRING  *wrapper     = string_from_literal(interp, "$!wrapper_block");
+    STRING  *wrapper     = string_from_literal(interp, "$!p6type");
     PMC     *last_lexpad = PMCNULL;
     PMC     *last_sub    = PMCNULL;
 
@@ -317,14 +317,8 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
         if (!PMC_IS_NULL(clist)) {
             /* Found. Set results and we're done. */
             $1 = clist;
-            if (PMC_IS_NULL(VTABLE_getprop(interp, Parrot_pcc_get_sub(interp, ctx), wrapper))) {
-                $2 = Parrot_pcc_get_sub(interp, ctx);
-                $3 = lexpad;
-            }
-            else {
-                $2 = last_sub;
-                $3 = last_lexpad;
-            }
+            $2 = Parrot_pcc_get_sub(interp, ctx);
+            $3 = lexpad;
             break;
         }
         else {

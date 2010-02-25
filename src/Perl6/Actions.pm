@@ -205,6 +205,9 @@ method newpad($/) {
     my $new_block := PAST::Block.new( PAST::Stmts.new(
         PAST::Op.new(
             :inline("    .local pmc true\n    true = get_hll_global 'True'")
+        ),
+        PAST::Var.new(
+            :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1)
         )
     ));
     @BLOCK.unshift($new_block);

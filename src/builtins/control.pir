@@ -209,6 +209,140 @@ src/builtins/control.pir - control flow related functions
     .return ($N0)
 .end
 
+
+=item callwith
+
+=cut
+
+.sub '&callwith'
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+
+    # For callwith, it's easy - just want to get the next candidate, call
+    # it and hand back it's return values. A tailcall does fine.
+    .local pmc clist, lexpad, self, next
+    get_next_candidate_info clist, $P0, lexpad
+    next = clone clist
+    next.'set_failure_mode'()
+    $P0 = deref next
+    $I0 = isa $P0, 'Method'
+    unless $I0 goto not_method
+    self = lexpad['self']
+    .tailcall next(self, pos_args :flat, named_args :flat :named)
+  not_method:
+    .tailcall next(pos_args :flat, named_args :flat :named)
+.end
+
+
+=item nextwith
+
+=cut
+
+.sub '&nextwith'
+    .param pmc pos_args    :slurpy
+    .param pmc named_args  :slurpy :named
+
+    # Find next candiate, invoke it and get its return value, then use
+    # return to return it as if it was from our original call.
+    .local pmc clist, lexpad, self, next, result
+    get_next_candidate_info clist, $P0, lexpad
+    next = clone clist
+    next.'set_failure_mode'()
+    $P0 = deref next
+    $I0 = isa $P0, 'Method'
+    unless $I0 goto not_method
+    self = lexpad['self']
+    (result) = next(self, pos_args :flat, named_args :flat :named)
+    goto process_result
+  not_method:
+    (result) = next(pos_args :flat, named_args :flat :named)
+
+  process_result:
+    $I0 = isa result, ['Failure']
+    unless $I0 goto did_defer
+    $P0 = result.'exception'()
+    if null $P0 goto did_defer
+    $S0 = $P0.'Str'()
+    if $S0 != 'No method to defer to' goto did_defer
+    .return (result)
+
+  did_defer:
+    $P0 = root_new ['parrot';'Exception']
+    $P0['type'] = .CONTROL_RETURN
+    setattribute $P0, 'payload', result
+    throw $P0
+.end
+
+
+=item callsame
+
+=cut
+
+.sub '&callsame'
+    # Find next candidate as well as caller and lexpad.
+    .local pmc clist, routine, lexpad, next
+    get_next_candidate_info clist, routine, lexpad
+    next = clone clist
+
+    # Build arguments based upon what the caller was originall invoked with,
+    # and tailcall the next candidate.
+    .local pmc pos_args, named_args
+    $P1 = lexpad['call_sig']
+    (pos_args, named_args) = '!deconstruct_call_sig'($P1)
+    next.'set_failure_mode'()
+    .tailcall next(pos_args :flat, named_args :flat :named)
+.end
+
+
+=item nextsame
+
+=cut
+
+.sub '&nextsame'
+    # Find next candidate as well as caller and lexpad.
+    .local pmc clist, routine, lexpad, next
+    get_next_candidate_info clist, routine, lexpad
+    next = clone clist
+
+    # Build arguments based upon what the caller was originall invoked with,
+    # get the result of the next candidate and use return to retrun from
+    # the caller, provided the defer did not fail.
+    .local pmc pos_args, named_args, result
+    $P1 = lexpad['call_sig']
+    (pos_args, named_args) = '!deconstruct_call_sig'($P1)
+    next.'set_failure_mode'()
+    (result) = next(pos_args :flat, named_args :flat :named)
+
+    $I0 = isa result, ['Failure']
+    unless $I0 goto did_defer
+    $P0 = result.'exception'()
+    if null $P0 goto did_defer
+    $S0 = $P0.'Str'()
+    if $S0 != 'No method to defer to' goto did_defer
+    .return (result)
+
+  did_defer:
+    $P0 = root_new ['parrot';'Exception']
+    $P0['type'] = .CONTROL_RETURN
+    setattribute $P0, 'payload', result
+    throw $P0
+.end
+
+
+=item lastcall
+
+Trims the candidate list so that nextsame/nextwith/callsame/callwith will
+find nothing more to call.
+
+=cut
+
+.sub '&lastcall'
+    # Find candidate list and trim it.
+    .local pmc clist
+    get_next_candidate_info clist, $P0, $P1
+    clist.'trim_candidate_list'()
+.end
+
 =back
 
 =cut

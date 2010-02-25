@@ -3,6 +3,10 @@ augment class Mu {
 
     multi method notdef() { !self.defined; }
 
+    multi method perl {
+        self.WHAT.substr(0, -2) ~ '.new()';
+    }
+
     method Capture() {
         my %attrs;
         my @mro = self, self.^parents;

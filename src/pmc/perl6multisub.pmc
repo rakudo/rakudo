@@ -1162,6 +1162,21 @@ Makes a copy of this Perl6MultiSub PMC.
         return copy;
     }
 
+
+/*
+
+=item METHOD PMC * clone()
+
+Makes a copy of this Perl6MultiSub PMC.
+
+=cut
+
+*/
+    METHOD PMC * clone() {
+        PMC *copy = VTABLE_clone(interp, SELF);
+        RETURN (PMC *copy);
+    }
+
 /*
 
 =item VTABLE STRING * get_string()

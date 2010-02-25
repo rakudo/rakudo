@@ -92,13 +92,13 @@ S02-literals/underscores.t
 # S02-magicals/dollar_bang.t
 # S02-magicals/dollar-underscore.t
 # S02-magicals/env.t
-# S02-magicals/progname.t
+S02-magicals/progname.t
 S02-names_and_variables/contextual.t
 # S02-names_and_variables/fmt.t
 # S02-names_and_variables/names.t
 # S02-names_and_variables/perl.t
 S02-names_and_variables/list_array_perl.t
-# S02-names_and_variables/varnames.t
+S02-names_and_variables/varnames.t
 S02-names/identifier.t
 # S02-names/our.t
 # S02-one-pass-parsing/less-than.t
@@ -417,7 +417,7 @@ S29-conversions/ord_and_chr.t                              #icu
 S32-array/elems.t
 S32-array/end.t
 # S32-array/exists.t
-# S32-array/keys_values.t
+S32-array/keys_values.t
 S32-array/kv.t
 # S32-array/pairs.t
 S32-array/pop.t
@@ -484,7 +484,7 @@ S32-str/pos.t
 # S32-str/split-simple.t
 S32-str/split-simple2.t   # CHEAT!  simplified version of split-simple.t
 # S32-str/split.t
-# S32-str/sprintf.t
+S32-str/sprintf.t
 # S32-str/substr.t
 S32-str/trim.t
 S32-str/ucfirst.t

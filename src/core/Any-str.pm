@@ -218,6 +218,18 @@ augment class Any {
     our Str multi method ucfirst() is export {
         self gt '' ?? self.substr(0,1).uc ~ self.substr(1) !! ""
     }
+
+    our Str multi method sprintf(*@args) {
+        my $result;
+        try {
+            $result = pir::sprintf__SSP(~self, (|@args)!PARROT_POSITIONALS);
+        }
+        $! ?? fail( "Insufficient arguments supplied to sprintf") !! $result
+    }
+
+    method Str() {
+        self
+    }
 }
 
 our multi sub ord($string) {
@@ -252,5 +264,8 @@ our multi split ( Regex $delimiter, Str $input, Int $limit = * ) {
     $input.split($delimiter, $limit);
 }
 
+our multi sub sprintf($str as Str, *@args) {
+    $str.sprintf(|@args)
+}
 
 # vim: ft=perl6

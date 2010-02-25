@@ -430,7 +430,7 @@ S32-array/unshift.t
 # S32-hash/exists.t
 # S32-hash/invert.t
 # S32-hash/keys_values.t
-# S32-hash/pairs.t
+S32-hash/pairs.t
 # S32-hash/push.t
 # S32-hash/slice.t
 # S32-io/chdir.t
@@ -438,7 +438,7 @@ S32-array/unshift.t
 ## S32-list/create.t
 S32-list/end.t
 S32-list/first.t
-# S32-list/grep.t
+S32-list/grep.t
 S32-list/join.t
 # S32-list/map_function_return_values.t
 # S32-list/map.t

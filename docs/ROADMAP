@@ -26,7 +26,7 @@ Really important items
 1 **    complete lazy lists in Seq and Array (pmichaud, others)
 1 *     array/hash vivification (pmichaud)
 1 ***   REPL (D, pmichaud)
-1 **    s/// (B)
+1 **    basic s/// (B)
 1 **    regex modifiers (B, pmichaud)
 1 **    item assignment (B, pmichaud)
 1 *     lexical variables in regexes (B, pmichaud)
@@ -69,6 +69,7 @@ Nice to have items
 3 ?     native typed scalars (C)
 3 ?     packed arrays (C)
 3 ?     compact structures (C)
+3 ****  full s/// including s[\d+] = 42 (B)
 
 Notes:
 A.  Involves Perl 6 spec updates/revisions:  Some items 

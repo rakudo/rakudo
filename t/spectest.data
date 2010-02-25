@@ -98,7 +98,7 @@ S02-names_and_variables/contextual.t
 # S02-names_and_variables/names.t
 # S02-names_and_variables/perl.t
 S02-names_and_variables/list_array_perl.t
-# S02-names_and_variables/varnames.t
+S02-names_and_variables/varnames.t
 S02-names/identifier.t
 # S02-names/our.t
 # S02-one-pass-parsing/less-than.t

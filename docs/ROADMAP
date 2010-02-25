@@ -33,7 +33,7 @@ Really important items
 1 **    operator overloading -- infix:, prefix:, postfix: (B, pmichaud)
 1 **    speed issues and profiling (C, all)
 1 **    operator adverbs (B, pmichaud)
-1 ?     lexical classes and roles (jnthn)
+1 **    lexical classes and roles (jnthn)
 1 **    import module symbols into current lexical scope (D, pmichaud, jnthn)
 1 **    improved error messages and failure modes (B, all)
 1 **    basic Buf implementation (A)

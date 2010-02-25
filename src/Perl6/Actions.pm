@@ -1885,6 +1885,7 @@ method quote_EXPR($/) {
             if +@words > 1 {
                 $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
                 for @words { $past.push($_); }
+                $past := PAST::Stmts.new($past);
             }
         }
     }

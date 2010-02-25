@@ -38,7 +38,7 @@ Return key and value as a 2-element List.
 
 =end item
     method kv() {
-        return list($.key, $.value);
+        ($.key, $.value);
     }
 
 =begin item pairs

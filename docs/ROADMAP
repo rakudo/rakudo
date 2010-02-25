@@ -1,105 +1,86 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2009-10-20
+Last updated: 2010-02-25
 
-This document identifies the current major milestones and tasks
-planned for Rakudo development as of August 2009.  The first
-section identifies (in no particular order) large-scale and/or
-significant development tasks that are currently being planned
-or worked on by the development team.  The second section
-then identifies specific Perl 6 features and capabilities,
-and maps each to the large-scale tasks on which the feature
-currently depends.  Overall we hope this gives a feel for
-where current efforts are being placed and what we intend to
-accomplish during the next 4-6 months.
+This document identifies the major tasks planned for Rakudo
+development as of February 2010.  Most of these tasks are
+oriented around the Rakudo Star distribution, currently targeted
+for late April, 2010 (shortly after the Rakudo #28 release).
+
+The items below are given a 1-3 priority indicator for the
+Rakudo Star release, where 1 is "really important", 2 is
+"ought to have", and 3 is "nice to have".  Each item also
+has from one to five asterisks indicating the estimated
+"degree of effort" required for the item.  Some items also
+have additional notes (A-Z) of larger-scale issues or
+considerations for the item.  Finally, we've also provided
+an indication of the person(s) most likely to be working
+on the item; this is not intended to preclude or discourage
+others from doing so.
 
 Patches to this document are welcome.
 
+Really important items
+1 *     protoregexes in grammars (B, pmichaud)
+1 **    complete lazy lists in Seq and Array (pmichaud, others)
+1 *     array/hash vivification (pmichaud)
+1 ***   REPL (D, pmichaud)
+1 **    s/// (B)
+1 **    regex modifiers (B, pmichaud)
+1 **    item assignment (B, pmichaud)
+1 *     lexical variables in regexes (B, pmichaud)
+1 **    operator overloading -- infix:, prefix:, postfix: (B, pmichaud)
+1 **    speed issues and profiling (C, all)
+1 **    operator adverbs (B, pmichaud)
+1 ?     lexical classes and roles (jnthn)
+1 **    import module symbols into current lexical scope (D, pmichaud, jnthn)
+1 **    improved error messages and failure modes (B, all)
+1 **    basic Buf implementation (A)
+1 *     attention-grabbing examples (all)
+1 **    release announcement draft (pmichaud, all)
 
-Large-scale tasks
------------------
+Ought to have items
+2 ***   installation standards (A)
+2 **    custom operators for circumfix:, postcircumfix: (B, pmichaud)
+2 ***   heredocs (B)
+2 **    Rat, BigNum, numification improvements (C, colomon)
+2 **    true hyper/cross/reverse/other metaoperators (B, pmichaud)
+2 **    synopsis 19 handling (A, D, pmichaud, particle, others)
+2 ***   temp variables (C)
+2 ****  better longest token matching in regexes (A, D, pmichaud)
+2 ?     other S02 data types -- KeySet, KeyBag (A)
+2 ?     specialized Unicode bits -- .codes, .graphs, .bytes (A, C)
 
-A.  PGE refactors:  The Parrot Grammar Engine (PGE) is currently
-being replaced by a parser written in NQP; this rewrite includes
-the ability to implement protoregexes and longest token matching.
-The goal is to get something that is much closer to what is being
-used to develop STD.pm.
-The development is being conducted in a project called nqp-rx on
-github: <http://github.com/perl6/nqp-rx>.
-Patrick Michaud is leading this development.
+Nice to have items
+3 ***   array/hash element vivification via WHENCE (jnthn)
+3 ****  module versioning and download (A, jnthn, mberends, masak, others)
+3 ****  ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (C, Z4)
+3 ?     Perl 5 interop (Z5, jnthn)
+3 ?     Pseudo-packages MY, CONTEXT, OUTER, $?LINE, etc. (jnthn)
+3 ?     feed operators (jnthn)
+3 ****  macros (B, Z)
+3 ***   pod heredocs (B)
+3 ***   complete Buf implementation (C)
+3 ***   slice context (A, Z3)
+3 **    native calling interface (A, C, Z4)
+3 **    domain specific languages (A)
+3 ?     slice context (A, Z3)
+3 ?     sized types -- int32, int8 (C)
+3 ?     native typed scalars (C)
+3 ?     packed arrays (C)
+3 ?     compact structures (C)
 
-B.  Parrot calling conventions:  As of May 2009, Parrot's
-calling conventions do not facilitate all of the dispatch
-mechanisms needed for Perl 6; in particular, Parrot does
-not cleanly support "named-only" parameters, binding named
-arguments to positional parameters, or collecting arguments
-into "captures".  These features are currently scheduled
-to be implemented by the November 2009 Parrot release.
+Notes:
+A.  Involves Perl 6 spec updates/revisions:  Some items 
+involve or require substantial updates or revisions to 
+the synopses in order to progress.  
 
-C.  Rakudo method and sub dispatch:  As the Parrot calling
-conventions evolve, Rakudo's existing dispatch (largely
-written in a mixture of PIR and C) can be replaced by
-much more efficient dispatch algorithms.  This may also
-involve significant refactors of the base Object class
-and Parrot's P6object implementation.  Jonathan Worthington
-is heading up this effort.
+B.  Requires some improvements to the grammar or grammar engine.
 
-D.  Parrot context and return continuation handling:  Ideally 
-we'd like Parrot to directly support "leave" semantics -- i.e.,
-forcing a sub (other than the current one) to return
-and rolling up the dynamic stack as appropriate.
-In addition, we'd like to be able to tag subs with
-"exit handlers" -- code to be automatically invoked
-on subroutine exit.  Parrot has some (limited?) support
-for these features; we need to investigate what exists
-now and determine what needs to be added.
+C.  Some Parrot-level support and/or development needed.
 
-In particular, it's conjectured that "leave" and roll-up
-capabilities should I<not> be implemented using exceptions
-and exception handlers.
-
-E.  Lexical symbol management:  Much of Rakudo and Parrot is
-designed on a Perl 5 "package-based" model; by contrast,
-most of Perl 6 is based purely on lexical scoping rules.
-Rakudo will need some significant refactoring to change its
-various package-based views of name lookups into equivalent 
-lexically-scoped ones.  (Also partially blocking on A above.)
-
-F.  Laziness:  Many operations in Rakudo are currently "eager";
-these need to be into lazy equivalents.  The first step of
-this will be a substantial refactor of List, Array, and
-Positional roles to avoid inheriting from Parrot's
-ResizablePMCArray; afterwards we'll update these roles
-to incorporate laziness.  This task will also require
-exploration of the Iterator role and specification.
-
-G.  Native types and compact structs:  Currently we don't
-have a detailed plan for handling "native types" (int, str,
-num) or compact arrays and structs in Parrot, nor do we
-have a definite timeline for creating a plan.  Essentially
-we're waiting for someone to step up to work on this task.
-It will require some knowledge of PIR, C, and Parrot internals.
-
-H.  Perl 6 specification:  Some items to be completed
-really want/need spec clarification before a great detail
-of progress can be made.  Sometimes this is a catch-22,
-in that the spec sometimes wants implementations to try
-a variety of designs before settling on a specific design.
-Either way, there's still a fair bit of spec work to be done, 
-especially for I/O, modules, language interoperability, and
-STD.pm itself.
-
-I.  Parrot and other installation issues:  As of this writing,
-Rakudo still has minor issues working against an installed
-Parrot; we also need to work out library storage and
-resolution issues at each of the Parrot, Rakudo, and Perl 6
-levels.
-
-J.  Other (non-spec) design issues.  Some conventions about
-modules and library management are not properly part of the
-specification, but need to be designed in conjunction with
-Parrot and other module expectations.
+D.  Some NQP-level support and/or development needed.
 
 Z.  Explicitly postponed items:  Some items we explicitly
 postpone until later in Rakudo development.  There are generally
@@ -112,82 +93,22 @@ a variety of reasons we might do this:
   (Z5) the item appears to be Really Hard "right now"
   (Z6) other blockers
 
-
-Specific Perl 6 features and development tasks
-----------------------------------------------
-
-For each item below we've given a 1-3 priority for the April 2010 
-"Rakudo *" release, where 1 is "really important", 2 is "ought to have", 
-and 3 is "nice to have".  Each item also lists any large-scale tasks
-(from the section above) on which the item is currently blocking.
-(If no large-scale tasks are given, it may simply be that we just
-haven't got around to the problem yet.)
-
-1  * protoregexes (A)
-2  * longest token matching semantics in regexes (A)
-1  * operator adverbs (A)
-1  * quoting adverbs (A)
-1  * regex modifiers (A)
-3  * domain-specific languages (A)
-1  * item assignment (A)
-1  * lexical variable lookups in regexes (A)
-2  * cleanly add circumfix:, postcircumfix:, other custom tokens (A)
-3  * true hyper/cross/reverse/other metaoperators (A)
-
-2  * better gather/take handling of arguments (H)
-
-3  * ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (B,D)
-2  * temp variables (D)
-
-1  * lexical classes and roles (E)
-1  * importing module symbols into the current lexical scope (E)
-2  * develop installation standards (I, J)
-3  * Pseudo-packages MY, CONTEXT, OUTER, $?LINE, etc.  (D,E)
-
-1  * lazy lists (F)
-1  * array/hash element vivification (H, need Proxy class)
-1  * array/hash vivification (need update undef/Failure role)
-1  * lazy gather/take (F)
-3  * feed operators (F)
-3  * slice context (B,F,H,C?)
- 
-1  * Buf 1 - Rakudo * implementation (H)
-3  * Buf 2 - complete implementation (G,H)
-3  * Sized types -- int32, int8  (G)
-3  * Native typed scalars (G)
-3  * Packed arrays (G)
-3  * Compact structures (G)
-2  * Rat, BigNum, numification improvements (G,H)
-2  * Other S02 data types -- KeySet, KeyBag (G,H)
-2  * Specialized Unicode bits -- .codes, .graphs, .bytes (G,H)
-
-2  * heredocs (A,H)
-3  * pod heredocs (A,H)
-3  * macros (A,H,Z)
-3  * module versioning and download (I,J)
-
-3  * native calling interface (B,H)
-1  * speed issues (A,B,profiling tools)
-1  * REPL
-3  * Perl 5 interop (Z5)
-1  * attention-grabbing examples 
-1  * improved error messages and failure modes (E)
-1  * release announcement draft
-2  * synopsis 19 handling
-1  * correctly return failure instead of die
-
 Completed ROADMAP items:
--  * better return value checking (done)
--  * clean up subtypes in multi-dispatch (done)
--  * maintain candidate lists in lexicals (done)
--  * overloadable postcircumfix:<[ ]> and postcircumfix:<{ }> (done)
--  * proper trait definition and usage (need to fix edge cases)
--  * binding named arguments to positional parameters (done)
--  * using STD.pm (or close analog) for parsing (A)
--  * lexicals refactor (A)
--  * embedded closures in regexes (A)
--  * declare contextual and lexical vars in regexes (A)
--  * return multiple values from a sub (B,D)
--  * unpacking arguments (B,C)
--  * nested signatures (B)
--  * captures in signatures and return values (B,H)
+  - better return value checking (done)
+  - clean up subtypes in multi-dispatch (done)
+  - maintain candidate lists in lexicals (done)
+  - overloadable postcircumfix:<[ ]> and postcircumfix:<{ }> (done)
+  - proper trait definition and usage (need to fix edge cases)
+  - binding named arguments to positional parameters (done)
+  - using STD.pm (or close analog) for parsing (done)
+  - lexicals refactor (done)
+  - embedded closures in regexes (done)
+  - declare contextual and lexical vars in regexes (done)
+  - return multiple values from a sub (done)
+  - unpacking arguments (done)
+  - nested signatures (done)
+  - captures in signatures and return values (done)
+  - array/hash element vivification via Proxy (done)
+  - better gather/take handling of arguments (done)
+  - lazy gather/take (done)
+

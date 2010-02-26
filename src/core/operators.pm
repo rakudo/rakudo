@@ -24,31 +24,31 @@ our multi prefix:<!>(Mu $a) {
 }
 
 our multi sub prefix:<->($a) {
-    pir::box__PN(pir::neg__NN($a))
+    pir::neg__NN($a)
 }
 
 our multi sub infix:<+>($a, $b) {
-    pir::box__PN(pir::add__NNN($a, $b))
+    pir::add__NNN($a, $b)
 }
 
 our multi sub infix:<->($a, $b) {
-    pir::box__PN(pir::sub__NNN($a, $b))
+    pir::sub__NNN($a, $b)
 }
 
 our multi sub infix:<*>($a, $b) {
-    pir::box__PN(pir::mul__NNN($a, $b))
+    pir::mul__NNN($a, $b)
 }
 
 our multi sub infix:</>($a, $b) {
-    pir::box__PN(pir::div__NNN($a, $b))
+    pir::div__NNN($a, $b)
 }
 
 our multi sub infix:<%>($a, $b) {
-    pir::box__PN(pir::mod__NNN($a, $b))
+    pir::mod__NNN($a, $b)
 }
 
 our multi sub infix:<**>($a, $b) {
-    pir::box__PN(pir::pow__NNN($a, $b))
+    pir::pow__NNN($a, $b)
 }
 
 our multi sub infix:<&>(*@items) {

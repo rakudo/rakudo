@@ -598,6 +598,9 @@ sub make_variable($/, $name) {
             $past.viviself( sigiltype( $<sigil> ) );
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
         }
+        elsif $<sigil> eq '&' && !@name {
+            $past := PAST::Op.new(:pirop('find_sub_not_null__Ps'), $past.name);
+        }
     }
     $past
 }

@@ -80,6 +80,10 @@ augment class Any {
             $len -= $start;
         }
 
+        if ($start > self.chars || $start < -self.chars) {
+            return Mu;
+        }
+
         pir::substr(self, $start, $len);
     }
 

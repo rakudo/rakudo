@@ -34,10 +34,10 @@ Returns a C<List> of C<Parameter> descriptors.
     # Did we compute this before?
     .local pmc result
     result = getattribute self, '$!param_cache'
-    if result == 'Mu()' goto compute_result
-    .return (result)
-  compute_result:
+    $I0 = defined result
+    if $I0 goto have_result
 
+  compute_result:
     # Create result.
     result = new ['Parcel']
 
@@ -120,6 +120,7 @@ Returns a C<List> of C<Parameter> descriptors.
 
     # Cache and return.
     setattribute self, '$!param_cache', result
+  have_result:
     .return (result)
 .end
 

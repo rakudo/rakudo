@@ -16,9 +16,10 @@ This file implements the Any class.
 
 .namespace []
 .sub 'onload' :anon :init :load
-    .local pmc p6meta
+    .local pmc p6meta, anyproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    p6meta.'new_class'('Any', 'parent'=>'Mu')
+    anyproto = p6meta.'new_class'('Any', 'parent'=>'Mu')
+    set_hll_global '$!OBJECTREF', anyproto
 .end
 
 

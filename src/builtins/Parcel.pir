@@ -164,7 +164,6 @@ in a list.
     .local pmc eager, true
     eager = new ['Parcel']
     true = get_hll_global ['Bool'], 'True'
-    setprop eager, 'flatten', true
     setprop eager, 'rw', true
 
     .local pmc listiter
@@ -219,7 +218,6 @@ The canonical operator for creating a Parcel.
     # treat parcel itself as rw (for list assignment)
     $P0 = get_hll_global ['Bool'], 'True'
     setprop parcel, 'rw', $P0
-    setprop parcel, 'flatten', $P0
     .return (parcel)
 .end
 

@@ -3,6 +3,12 @@ augment class Any {
         pir::box__PI(pir::bytelength__IS(self))
     }
 
+    # The spec has a more elegant approach for this,
+    # but this one works now.
+    our Str multi method capitalize() {
+        self.lc.split(/\w+/, :all).map({ .Str.ucfirst }).join('');
+    }
+
     our Int multi method chars() is export {
         pir::length__IS(self);
     }
@@ -276,5 +282,6 @@ our proto sub uc($string) { $string.uc; }
 our proto sub ucfirst($string) { $string.ucfirst; }
 our proto sub lc($string) { $string.lc; }
 our proto sub lcfirst($string) { $string.lcfirst; }
+our proto sub capitalize($string) { $string.capitalize; }
 
 # vim: ft=perl6

@@ -5,7 +5,7 @@ augment class Seq {
         pir::join(' ', self!fill);
     }
 
-    multi method sort(&by = pir::get_hll_global__Ps('&infix:<cmp>')) {
+    multi method sort(&by = &infix:<cmp>) {
         # Parrot already provides a sort method that works on
         # ResizablePMCArray, so we aim to make use of that here.
         # Instead of sorting the elements directly, we sort an RPA

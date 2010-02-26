@@ -1887,6 +1887,9 @@ method quote_EXPR($/) {
                 for @words { $past.push($_); }
                 $past := PAST::Stmts.new($past);
             }
+            else {
+                $past := PAST::Val.new(:value(~@words[0]), :returns<Perl6Str>);
+            }
         }
     }
     make $past;

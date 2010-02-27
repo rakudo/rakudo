@@ -236,30 +236,6 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
     if (!PMC_IS_NULL(sig_info->type_captures))
         Rakudo_binding_bind_type_captures(interp, lexpad, sig_info, value);
 
-    /* Apply context, unless it's rw or parcel. */
-    if (!(sig_info->flags & (SIG_ELEM_IS_RW | SIG_ELEM_IS_PARCEL))) {
-        if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
-            STRING *Array   = string_from_literal(interp, "Array");
-            PMC *array_meth = VTABLE_find_method(interp, value, Array);
-            value = descalarref(interp, value);
-            if (!PMC_IS_NULL(array_meth))
-                Parrot_ext_call(interp, array_meth, "Pi->P", value, &value);
-        }
-        else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
-            STRING *Hash   = string_from_literal(interp, "Hash");
-            PMC *hash_meth = VTABLE_find_method(interp, value, Hash);
-            value = descalarref(interp, value);
-            if (!PMC_IS_NULL(hash_meth))
-                Parrot_ext_call(interp, hash_meth, "Pi->P", value, &value);
-        }
-        else {
-            STRING *Scalar   = string_from_literal(interp, "Scalar");
-            PMC *scalar_meth = VTABLE_find_method(interp, value, Scalar);
-            if (!PMC_IS_NULL(scalar_meth))
-                Parrot_ext_call(interp, scalar_meth, "Pi->P", value, &value);
-        }
-    }
-
     /* Do a coercion, if one is needed. */
     if (sig_info->coerce_to) {
         PMC *coerce_meth = VTABLE_find_method(interp, value, sig_info->coerce_to);

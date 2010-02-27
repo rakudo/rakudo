@@ -11,7 +11,6 @@ This file implements the Grammar class.
 =cut
 
 .sub '' :anon :init :load
-    load_bytecode "PGE.pbc"
     .local pmc p6meta
     p6meta = get_hll_global ['Mu'], '$!P6META'
     p6meta.'new_class'('Grammar', 'parent'=>'Any')

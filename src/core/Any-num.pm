@@ -36,7 +36,7 @@ augment class Any {
     }
 
     our Int multi method round() is export {
-#        pir::box__PI(pir::floor__IN(pir::add__NNN(self, 0.5)))
+        (self + 0.5).Num.floor;
     }
 
     multi method sqrt() {

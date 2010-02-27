@@ -270,3 +270,8 @@ our multi sub infix:<...>(@lhs, Whatever) {
         default { fail "Unable to figure out pattern of series"; }
     }
 }
+
+our multi sub infix:<eqv>(Mu $a, Mu $b) {
+    $a.WHAT === $b.WHAT && $a === $b;
+}
+        

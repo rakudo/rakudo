@@ -141,14 +141,6 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 .end
 
 
-.sub '&infix:<eqv>' :multi(_,_)
-    .param pmc a
-    .param pmc b
-    $I0 = iseq a, b 
-    .return ($I0)
-.end
-
-
 =back
 
 =cut

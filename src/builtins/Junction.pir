@@ -64,6 +64,7 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
     # Create junction.
     .local pmc junc
     junc = new ['Junction']
+    transform_to_p6opaque junc
     $P0 = box type
     setattribute junc, '$!type', $P0
 
@@ -74,6 +75,15 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
   set_eigenstates:
     setattribute junc, '$!eigenstates', eigenstates
     .return (junc)
+.end
+
+
+=item item()
+
+=cut
+
+.sub 'item' :method
+    .return (self)
 .end
 
 

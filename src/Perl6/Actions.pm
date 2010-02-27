@@ -1249,7 +1249,7 @@ method trait($/) {
         $past := $<trait_mod>.ast;
     }
     elsif $<colonpair> {
-        $/.panic('traits specified as colon pairs not yet understood');
+        $/.CURSOR.panic('traits specified as colon pairs not yet understood');
     }
     make $past;
 }

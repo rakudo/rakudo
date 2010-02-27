@@ -865,6 +865,9 @@ Allocates the PMC's underlying storage.
         /* Need custom mark and destroy. */
         PObj_custom_mark_SET(SELF);
         PObj_custom_destroy_SET(SELF);
+
+        /* Set scalar property to avoid. */
+        VTABLE_setprop(interp, SELF, CONST_STRING(interp, "scalar"), SELF);
     }
 
 /*

@@ -23,6 +23,10 @@ augment class Any {
         pir::box__PI(pir::floor__IN(self))
     }
 
+    our Int multi method truncate() is export {
+        self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
+    }
+
     our Num method rand() {
         pir::box__PN(pir::rand__NN(self))
     }

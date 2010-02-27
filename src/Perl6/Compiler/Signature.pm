@@ -235,8 +235,10 @@ method ast($low_level?) {
         }
         elsif $_.sigil eq "$" || $_.sigil eq "" {
             if !$_.nom_type {
+                my @name := Perl6::Grammar::parse_name(self.get_default_parameter_type());
                 $nom_type := PAST::Var.new(
-                    :name(self.get_default_parameter_type()),
+                    :name(@name.pop()),
+                    :namespace(@name),
                     :scope('package')
                 );
             }

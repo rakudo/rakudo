@@ -271,3 +271,22 @@ is possible.
     .lex '__CANDIDATE_LIST__', $P0
     .tailcall '!FAIL'('No method to defer to')
 .end
+
+
+=item !postcircumfix_forwarder
+
+When we call a postcircumfix:<( )> we need to make sure we pass along just
+one positional that is a capture.
+
+=cut
+
+.sub '!postcircumfix_forwarder'
+    .param pmc method
+    .param pmc invocant
+    .param pmc pos   :slurpy
+    .param pmc named :slurpy :named
+    .local pmc cappy
+    cappy = get_hll_global 'Capture'
+    cappy = cappy.'new'(pos :flat, named :flat :named)
+    method(invocant, cappy)
+.end

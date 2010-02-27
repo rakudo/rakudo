@@ -24,7 +24,7 @@ augment class Block {
         $count
     }
 
-    method ACCEPTS($topic) {
+    method ACCEPTS(Mu $topic) {
         self.count == 0 ?? self.() !! self.($topic);
     }
 

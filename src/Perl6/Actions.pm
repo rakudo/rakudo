@@ -769,7 +769,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
 
         # If it's a scalar, mark it as scalar (non-flattening)
-        if $sigil eq '$' {
+        if $sigil eq '$' || $sigil eq '&' {
             $vivipast := PAST::Op.new($vivipast,'scalar',$true,:pirop('setprop'));
         }
 

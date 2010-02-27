@@ -20,9 +20,11 @@ flatten in list context.
 
 .namespace ['Iterator']
 .sub 'onload' :anon :init :load
-    .local pmc p6meta, proto
+    .local pmc p6meta, proto, pos_role
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('Iterator', 'parent'=>'Iterable')
+    pos_role = get_hll_global 'Positional'
+    pos_role = pos_role.'!select'()
+    proto = p6meta.'new_class'('Iterator', 'parent'=>'Iterable', 'does_role'=>pos_role)
 .end
 
 =item eager()
@@ -76,6 +78,14 @@ continue until memory is exhausted.
     .return (self)
 .end
 
+
+# TimToady suggests this should be on Cool, but it makes more
+# sense to me here.
+.sub 'postcircumfix:<[ ]>' :method :multi(_, ['Integer'])
+    .param pmc a
+    $P0 = self.'Seq'()
+    .tailcall $P0.'postcircumfix:<[ ]>'(a)
+.end
 
 =back
 

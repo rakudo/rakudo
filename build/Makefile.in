@@ -92,13 +92,13 @@ BUILTINS_PIR = \
   src/builtins/Any.pir \
   src/builtins/Role.pir \
   src/builtins/Abstraction.pir \
+  src/builtins/Positional.pir \
   src/builtins/Iterable.pir \
   src/builtins/Iterator.pir \
   src/builtins/EMPTY.pir \
   src/builtins/ParrotIter.pir \
   src/builtins/List.pir \
   src/builtins/Grammar.pir \
-  src/builtins/Positional.pir \
   src/builtins/Parcel.pir \
   src/builtins/Bool.pir \
   src/builtins/Int.pir \

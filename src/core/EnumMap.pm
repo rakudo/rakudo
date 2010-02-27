@@ -37,6 +37,10 @@ class EnumMap does Associative {
     }
 
     method contains($key) {
+        self.exists($key)
+    }
+
+    method exists($key) {
         # Wish we could do pir:: for keyed things. *sigh*
         ?(Q:PIR {
             $P0 = find_lex '$key'
@@ -52,13 +56,13 @@ class EnumMap does Associative {
     }
 
     multi method invert () is export {
-        gather {
+        list(gather {
             for @.pairs {
                 for @( .value ) -> $i {
                     take ($i => .key)
                 }
             }
-        }
+        })
     }
 
     method iterator() {

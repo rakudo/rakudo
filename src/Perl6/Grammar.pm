@@ -1007,7 +1007,7 @@ proto token infix_postfix_meta_operator { <...> }
 
 proto token postfix_prefix_meta_operator { <...> }
 
-token postfix_prefix_meta_operator:sym< » > {
+token postfix_prefix_meta_operator:sym<»> {
     [ <sym> | '>>' ] <!before '('>
 }
 

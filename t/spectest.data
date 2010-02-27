@@ -375,7 +375,7 @@ S12-methods/topic.t
 # S12-methods/what.t
 # S12-subset/multi-dispatch.t
 # S12-subset/subtypes.t
-# S13-type-casting/methods.t
+S13-type-casting/methods.t
 S13-overloading/typecasting-long.t
 # S13-overloading/metaoperators.t
 # S13-overloading/operators.t

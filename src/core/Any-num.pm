@@ -15,7 +15,7 @@ augment class Any {
         ~(pir::chr__SI(self))
     }
 
-    multi method cis() is export {
+    multi method cis() {
         1.unpolar(self)
     }
 
@@ -168,7 +168,7 @@ augment class Any {
         self.Num.acotanh($base);
     }
 
-    our ::Complex multi method unpolar($angle) is export {
+    our ::Complex multi method unpolar($angle) {
         Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
     }
 }
@@ -179,6 +179,8 @@ our proto sub exp($exponent) { $exponent.exp }
 our proto sub log($x) { $x.log }
 our multi sub log($x, $base) { $x.log($base) }
 our proto sub log10($x) { $x.log10 }
+our proto sub cis($angle) { $angle.cis; }
+our proto sub unpolar($mag, $angle) { $mag.unpolar($angle); }
 
 # jnthn says that we should have both the multi sub declaration and the proto.
 

@@ -178,7 +178,7 @@ augment class Num {
         pir::atan__NNn(self, $x)!from-radians($base);
     }
 
-    our ::Complex multi method unpolar($angle) is export {
+    our ::Complex multi method unpolar($angle) {
         Complex.new(self * $angle.cos("radians"), self * $angle.sin("radians"));
     }
 }

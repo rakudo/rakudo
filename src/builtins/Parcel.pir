@@ -22,6 +22,17 @@ elements and can be flattened into Captures or Lists.
     parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Iterable', 'does_role'=>pos_role)
 .end
 
+
+=item defined()
+
+=cut
+
+.sub 'defined' :method :vtable('defined')
+    $I0 = elements self
+    .tailcall '&prefix:<?>'($I0)
+.end
+
+
 =item item()
 
 A Parcel in item context becomes a Seq.

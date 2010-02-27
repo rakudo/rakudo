@@ -366,7 +366,7 @@ S12-methods/instance.t
 S12-methods/lastcall.t
 # S12-methods/method-vs-sub.t
 # S12-methods/multi.t
-# S12-methods/parallel-dispatch.t
+S12-methods/parallel-dispatch.t
 S12-methods/private.t
 # S12-methods/submethods.t
 # S12-methods/syntax.t

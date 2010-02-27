@@ -288,5 +288,5 @@ one positional that is a capture.
     .local pmc cappy
     cappy = get_hll_global 'Capture'
     cappy = cappy.'new'(pos :flat, named :flat :named)
-    method(invocant, cappy)
+    .tailcall method(invocant, cappy)
 .end

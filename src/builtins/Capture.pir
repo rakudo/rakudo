@@ -79,15 +79,24 @@ The number of positional elements in the Capture.
 .end
 
 
-=item hash
+=item list
 
-XXX Returns Parrot Hash, not Perl 6 Hash.
+=cut
+
+.sub 'list' :method
+    $P0 = getattribute self, '$!pos'
+    .tailcall '&circumfix:<[ ]>'($P0 :flat)
+.end
+
+
+=item hash
 
 =cut
 
 .sub 'hash' :method
     $P0 = getattribute self, '$!named'
-    .return ($P0)
+    $P1 = get_hll_global 'Hash'
+    .tailcall $P1.'new'($P0 :flat :named)
 .end
 
 

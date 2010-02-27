@@ -519,7 +519,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
         named_names = VTABLE_get_attr_str(interp, capture, string_from_literal(interp, "named"));
     }
     else if (VTABLE_isa(interp, capture, string_from_literal(interp, "Capture"))) {
-        PMC *meth = VTABLE_find_method(interp, capture, string_from_literal(interp, "hash"));
+        PMC *meth = VTABLE_find_method(interp, capture, string_from_literal(interp, "!PARROT_NAMEDS"));
         PMC *hash = PMCNULL;
         PMC *iter;
         Parrot_ext_call(interp, meth, "Pi->P", capture, &hash);

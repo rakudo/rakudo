@@ -8,7 +8,7 @@ augment class Any {
     }
 
     our Int multi method ceiling() is export {
-        pir::box__PN(pir::ceil__IN(self))
+        pir::box__PI(pir::ceil__IN(self))
     }
 
     our Str multi method chr() {

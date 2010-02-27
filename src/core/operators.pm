@@ -313,3 +313,15 @@ our multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
     }
     Bool::True;
 }
+
+our multi sub infix:<Z>(Iterable $a-iterable, Iterable $b-iterable) {
+    my $ai = $a-iterable.iterator;
+    my $bi = $b-iterable.iterator;
+    gather loop {
+        my $a = $ai.get;
+        my $b = $bi.get;
+        last if ($a ~~ EMPTY) || ($b ~~ EMPTY);
+        take $a;
+        take $b;
+    }
+}

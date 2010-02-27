@@ -81,10 +81,11 @@ continue until memory is exhausted.
 
 # TimToady suggests this should be on Cool, but it makes more
 # sense to me here.
-.sub 'postcircumfix:<[ ]>' :method :multi(_, ['Integer'])
-    .param pmc a
+.sub 'postcircumfix:<[ ]>' :method
+    .param pmc args    :slurpy
+    .param pmc adverbs :slurpy :named
     $P0 = self.'Seq'()
-    .tailcall $P0.'postcircumfix:<[ ]>'(a)
+    .tailcall $P0.'postcircumfix:<[ ]>'(args :flat, adverbs :flat :named)
 .end
 
 =back

@@ -154,7 +154,7 @@ a failure if there is none.
     rethrow exception
 
   error:
-    .tailcall '!FAIL'('Undefined value returned by invocation of undefined method')
+    .tailcall '&Nil'()
 .end
 
 

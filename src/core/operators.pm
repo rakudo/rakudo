@@ -274,4 +274,30 @@ our multi sub infix:<...>(@lhs, Whatever) {
 our multi sub infix:<eqv>(Mu $a, Mu $b) {
     $a.WHAT === $b.WHAT && $a === $b;
 }
-        
+
+our multi sub infix:<eqv>(@a, @b) {
+    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
+        return Bool::False
+    }
+    for @a.keys -> $i {
+        unless @a[$i] eqv @b[$i] {
+            return Bool::False;
+        }
+    }
+    Bool::True
+}
+
+our multi sub infix:<eqv>(Pair $a, Pair $b) {
+    $a.key eqv $b.key && $a.value eqv $b.value;
+}
+
+class EnumMap { ... }
+our multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
+    if +$a != +$b { return Bool::False }
+    for $a.kv -> $k, $v {
+        unless $b.exists($k) && $b{$k} eqv $v {
+            return Bool::False;
+        }
+    }
+    Bool::True;
+}

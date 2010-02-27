@@ -8,7 +8,7 @@ augment class Any {
     }
 
     our Int multi method ceiling() is export {
-        pir::box__PN(pir::ceil__IN(self))
+        pir::box__PI(pir::ceil__IN(self))
     }
 
     our Str multi method chr() {
@@ -23,6 +23,10 @@ augment class Any {
         pir::box__PI(pir::floor__IN(self))
     }
 
+    our Int multi method truncate() is export {
+        self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
+    }
+
     our Num method rand() {
         pir::box__PN(pir::rand__NN(self))
     }
@@ -32,7 +36,7 @@ augment class Any {
     }
 
     our Int multi method round() is export {
-#        pir::box__PI(pir::floor__IN(pir::add__NNN(self, 0.5)))
+        (self + 0.5).Num.floor;
     }
 
     multi method sqrt() {

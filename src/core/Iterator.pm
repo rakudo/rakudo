@@ -18,4 +18,8 @@ augment class Iterator {
     multi method postcircumfix:<[ ]>($a) {
         self.Seq[$a];
     }
+
+    multi method sort(&by = &infix:<cmp>) {
+        self.Seq.sort(&by);
+    }
 }

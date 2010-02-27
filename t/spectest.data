@@ -168,7 +168,7 @@ S03-smartmatch/any-type.t
 # S03-smartmatch/array-array.t
 # S03-smartmatch/array-hash.t
 # S03-smartmatch/disorganized.t
-# S03-smartmatch/hash-hash.t
+S03-smartmatch/hash-hash.t
 # S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
 # S03-operators/series.t
@@ -427,11 +427,11 @@ S32-array/shift.t
 S32-array/splice.t
 S32-array/unshift.t
 # S32-container/zip.t
-# S32-hash/exists.t
-# S32-hash/invert.t
+S32-hash/exists.t
+S32-hash/invert.t
 # S32-hash/keys_values.t
 S32-hash/pairs.t
-# S32-hash/push.t
+S32-hash/push.t
 # S32-hash/slice.t
 # S32-io/chdir.t
 # S32-io/IO-Socket-INET.t

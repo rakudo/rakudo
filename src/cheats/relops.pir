@@ -47,23 +47,6 @@ src/cheats/cmp.pir - Perl6 comparison builtins
     # .tailcall '&prefix:?'($I0)
 .end
 
-.sub '&infix:<eq>' :multi(_,_)
-    .param string a
-    .param string b
-    $I0 = iseq a, b
-    .return ($I0)
-    # .tailcall '&prefix:?'($I0)
-.end
-
-
-.sub '&infix:<ne>' :multi(_,_)
-    .param string a
-    .param string b
-    $I0 = isne a, b
-    .return ($I0)
-    # .tailcall '&prefix:?'($I0)
-.end
-
 
 .sub '&infix:<lt>' :multi(_,_)
     .param string a

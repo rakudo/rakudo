@@ -163,6 +163,14 @@ our multi infix:<!=>($a, $b) {
     pir::isne__INN(+$a, +$b) ?? True !! False
 }
 
+our multi infix:<eq>($a, $b) {
+    pir::iseq__ISS(~$a, ~$b) ?? True !! False
+}
+
+our multi infix:<ne>($a, $b) {
+    pir::isne__ISS(~$a, ~$b) ?? True !! False
+}
+
 # XXX Lazy version would be nice in the future too.
 our multi infix:<xx>(Mu \$item, $n) {
     my @result = ();

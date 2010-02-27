@@ -474,8 +474,8 @@ S32-str/chop.t
 # S32-str/encode.t
 S32-str/flip.t
 S32-str/index.t
-S32-str/lcfirst.t
-S32-str/lc.t
+S32-str/lcfirst.t                                            # icu
+S32-str/lc.t                                                 # icu
 # S32-str/p5chomp.t
 # S32-str/p5chop.t
 S32-str/pos.t
@@ -487,7 +487,7 @@ S32-str/split-simple2.t   # CHEAT!  simplified version of split-simple.t
 S32-str/sprintf.t
 S32-str/substr.t
 S32-str/trim.t
-S32-str/ucfirst.t
+S32-str/ucfirst.t                                          # icu
 S32-str/uc.t                                               # icu
 # S32-str/unpack.t
 ## S32-str/words.t                                            # icu

@@ -4,4 +4,9 @@ augment class Junction {
     multi method Str() {
         self.perl()
     }
+
+    method postcircumfix:<( )>($c) {
+        my @result = $.eigenstates.map({ $^code(|$c) });
+        Junction.new(@result, type => self!type);
+    }
 }

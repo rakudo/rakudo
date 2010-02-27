@@ -129,7 +129,8 @@ multi sub flunk($reason) is export { proclaim(0, "flunk $reason")}
 
 
 multi sub isa_ok(Mu $var,$type) is export {
-    ok($var.isa($type), "The object is-a '$type'");
+    ok($var.isa($type), "The object is-a '$type'")
+        or diag('Actual type: ' ~ $var.WHAT);
 }
 multi sub isa_ok(Mu $var,$type, $msg) is export { ok($var.isa($type), $msg); }
 

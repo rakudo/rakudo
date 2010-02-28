@@ -136,6 +136,8 @@ Marks anything we're referencing.
                 Parrot_gc_mark_PMC_alive(interp, elements[i]->post_constraints);
             if (elements[i]->sub_signature)
                 Parrot_gc_mark_PMC_alive(interp, elements[i]->sub_signature);
+            if (elements[i]->coerce_to)
+                Parrot_gc_mark_STRING_alive(interp, elements[i]->coerce_to);
         }
     }
 

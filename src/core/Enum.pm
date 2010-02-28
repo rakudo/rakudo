@@ -66,6 +66,8 @@ Return key and value as a 2-element List.
     }
 
     multi method hash() {
-        {self};
+        my %h;
+        %h{self.key} = self.value;
+        %h;
     }
 }

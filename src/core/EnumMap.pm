@@ -127,6 +127,6 @@ class EnumMap does Associative {
     }
 
     method Str() {
-        self.pairs.map({ .perl }).join("\n")
+        self.pairs.map({ .Str ~ "\n" }).join();
     }
 }

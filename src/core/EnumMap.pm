@@ -125,4 +125,8 @@ class EnumMap does Associative {
             %r = $P0.'new'($P1 :flat :named)
         }
     }
+
+    method Str() {
+        self.pairs.map({ .perl }).join("\n")
+    }
 }

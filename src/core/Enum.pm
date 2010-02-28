@@ -64,4 +64,8 @@ Return key and value as a 2-element List.
     multi method Str() {
         "$.key\t$.value";
     }
+
+    multi method hash() {
+        {self};
+    }
 }

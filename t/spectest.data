@@ -71,7 +71,7 @@ S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 # S02-literals/autoref.t
 S02-literals/char-by-name.t                                # icu
-# S02-literals/char-by-number.t
+S02-literals/char-by-number.t
 # S02-literals/fmt-interpolation.t
 # S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
@@ -96,7 +96,7 @@ S02-magicals/progname.t
 S02-names_and_variables/contextual.t
 # S02-names_and_variables/fmt.t
 # S02-names_and_variables/names.t
-# S02-names_and_variables/perl.t
+S02-names_and_variables/perl.t
 S02-names_and_variables/list_array_perl.t
 S02-names_and_variables/varnames.t
 S02-names/identifier.t

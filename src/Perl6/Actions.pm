@@ -1035,33 +1035,135 @@ method method_def($/) {
     make $past;
 }
 
-method regex_declarator($/, $key?) {
-    if $key ne 'open' {
-        # Create regex code object.
-        # XXX TODO: token/regex/rule differences, signatures, traits.
-        my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        $past := create_code_object($past, 'Regex', 0, '');
-
-        # Install in lexpad or namespace. XXX Need & on start of name?
-        my $name := ~$<deflongname>;
-        if $*SCOPE ne 'our' {
-            @BLOCK[0][0].push(PAST::Var.new( :name($name), :isdecl(1), 
-                                             :viviself($past), :scope('lexical') ) );
-            @BLOCK[0].symbol($name, :scope('lexical') );
-        }
-
-        # Otherwise, package scoped; add something to loadinit to install them.
-        else {
-            @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new( :name($name), :scope('package') ),
-                $past
-            ));
-            @BLOCK[0].symbol($name, :scope('package') );
-        }
-
-        make PAST::Var.new( :name($name) );
+our %REGEX_MODIFIERS;
+method regex_declarator:sym<regex>($/, $key?) {
+    if ($key) {
+        my %h;
+        %REGEX_MODIFIERS := %h;
+    } else {
+        make $<regex_def>.ast;
     }
+}
+
+method regex_declarator:sym<token>($/, $key?) {
+    if ($key) {
+        my %h;
+        %h<r> := 1;
+        %REGEX_MODIFIERS := %h;
+    } else {
+        make $<regex_def>.ast;
+    }
+}
+
+method regex_declarator:sym<rule>($/, $key?) {
+    if ($key) {
+        my %h;
+        %h<r> := 1; %h<s> :=1;
+        %REGEX_MODIFIERS := %h;
+    } else {
+        make $<regex_def>.ast;
+    }
+}
+
+method regex_def($/, $key?) {
+    my $name := ~$<deflongname>[0];
+    my @MODIFIERS := Q:PIR {
+        %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
+    };
+    my $past;
+    if $key eq 'open' {
+        @MODIFIERS.unshift(%REGEX_MODIFIERS);
+        # The following is so that <sym> can work
+        Q:PIR {
+            $P0 = find_lex '$name'
+            set_hll_global ['Regex';'P6Regex';'Actions'], '$REGEXNAME', $P0
+        };
+        return 0;
+    } elsif $*MULTINESS eq 'proto' {
+        @MODIFIERS.shift;
+        @BLOCK.shift;
+        unless ($name) {
+            $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's cannot be anonymous');  
+        }
+#        $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's not implemented yet');
+        our @PACKAGE;
+        unless +@PACKAGE { 
+            $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
+        }
+        my %table;
+        %table := @PACKAGE[0].methods();
+        unless %table{$name} { my %tmp; %table{$name} := %tmp; }
+        if %table{$name} {
+            $/.CURSOR.panic('Cannot declare proto ' ~ ~$<sym> ~ ' ' ~ $name ~ 
+                ' when another with this name was already declared');
+        }
+        %table{$name}<code_ref> :=
+            create_code_object(
+                PAST::Block.new( :name($name),
+                    PAST::Op.new(
+                        PAST::Var.new( :name('self'), :scope('register') ),
+                        $name,
+                        :name('!protoregex'),
+                        :pasttype('callmethod')
+                    ),
+                    :lexical(0),
+                    :blocktype('method'),
+                    :pirflags(':anon'),
+                    :node($/)
+                ),
+                'Regex', 0, '');
+        %table{'!PREFIX__' ~ $name}<code_ref> :=
+            create_code_object(
+                PAST::Block.new( :name('!PREFIX__' ~ $name),
+                    PAST::Op.new(
+                        PAST::Var.new( :name('self'), :scope('register') ),
+                        $name,
+                        :name('!PREFIX__!protoregex'),
+                        :pasttype('callmethod')
+                    ),
+                    :blocktype('method'),
+                    :pirflags(':anon'),
+                    :lexical(0),
+                    :node($/)
+                ),
+                'Regex', 0, '');
+    } else {
+        @MODIFIERS.shift;
+        $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast, @BLOCK.shift);
+        $past.unshift(PAST::Op.new(
+            :pasttype('inline'),
+            :inline("    .local pmc self\n    self = find_lex 'self'")
+            ));
+        my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
+        $sig.add_invocant();
+        $sig.set_default_parameter_type('Any');
+        $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
+        $past.symbol('self', :scope('lexical'));
+        my $sig_setup_block := add_signature($past, $sig, 1);
+        $past.name($name);
+        $past.blocktype("declaration");
+        # If the methods are not :anon they'll conflict at class composition time.
+        $past.pirflags(':anon');
+        $past := create_code_object($past, 'Regex', 0, $sig_setup_block);
+        if ($name) {
+            our @PACKAGE;
+            unless +@PACKAGE { 
+                $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
+            }
+            my %table;
+            %table := @PACKAGE[0].methods();
+            unless %table{$name} { my %tmp; %table{$name} := %tmp; }
+
+            if %table{$name} {
+                $/.CURSOR.panic('Cannot declare ' ~ ~$<sym> ~ ' ' ~ $name ~ 
+                    ' when another with this name was already declared');
+            }
+            %table{$name}<code_ref> := $past;
+            make PAST::Stmts.new();
+            return 0;
+        }
+    }
+    make $past;
 }
 
 method type_declarator:sym<enum>($/) {
@@ -1949,23 +2051,31 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
     method codeblock($/) {
         my $block := $<block>.ast;
         $block.blocktype('immediate');
-        my $past := 
-            PAST::Regex.new(
-                PAST::Stmts.new(
+        make bindmatch($block);
+    }
+    
+    method p6arglist($/) {
+        my $arglist := $<arglist>.ast;
+#        make bindmatch($arglist);
+        make $arglist;
+    }
+
+    sub bindmatch($past) {
+        PAST::Regex.new(
+            PAST::Stmts.new(
+                PAST::Op.new(
+                    PAST::Var.new( :name('$/') ),
                     PAST::Op.new(
-                        PAST::Var.new( :name('$/') ),
-                        PAST::Op.new(
-                            PAST::Var.new( :name('$¢') ),
-                            :name('MATCH'),
-                            :pasttype('callmethod')
-                        ),
-                        :pasttype('bind')
+                        PAST::Var.new( :name('$¢') ),
+                        :name('MATCH'),
+                        :pasttype('callmethod')
                     ),
-                    $block
+                    :pasttype('bind')
                 ),
-                :pasttype('pastnode')
-            );
-        make $past;
+                $past
+            ),
+            :pasttype('pastnode')
+        );
     }
 }
 
@@ -2321,3 +2431,5 @@ sub prevent_null_return($block) {
         $block[1].push(PAST::Op.new( :name('&Nil') ));
     }
 }
+
+# vim: ft=perl6

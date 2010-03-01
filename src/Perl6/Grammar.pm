@@ -759,18 +759,28 @@ rule post_constraint {
     ]
 }
 
-rule regex_declarator {
+proto token regex_declarator { <...> }
+token regex_declarator:sym<rule> { 
+    <sym> {*} #= open
+    <regex_def> 
+}
+token regex_declarator:sym<token> { 
+    <sym> {*} #= open
+    <regex_def> 
+}
+token regex_declarator:sym<regex> { 
+    <sym> {*} #= open
+    <regex_def> 
+}
+
+rule regex_def {
     [
-    | $<proto>=[proto] [regex|token|rule] 
-      <deflongname> 
-      '{' '<...>' '}'<?ENDSTMT>
-    | $<sym>=[regex|token|rule]
-      <deflongname>
+      <deflongname>?
       <.newpad>
-      [ '(' <signature> ')' ]?
+      [ [ ':'?'(' <signature> ')'] | <trait> ]*
       {*} #= open
-      '{'<p6regex=.LANG('Regex','nibbler')>'}'<?ENDSTMT>
-    ]
+      '{'[ '<...>' |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
+    ] || <.panic: "Malformed regex">
 }
 
 proto token type_declarator { <...> }
@@ -1235,6 +1245,21 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
     token codeblock {
         <block=.LANG('MAIN','block')>
     }
+
+    token assertion:sym<name> {
+        $<longname>=[\w+]
+            [
+            | <?before '>'>
+            | '=' <assertion>
+            | ':' <arglist>
+            | '(' <arglist=p6arglist> ')'
+            | <.normspace> <nibbler>
+            ]?
+    } 
+
+    token p6arglist {
+        <arglist=.LANG('MAIN','arglist')> 
+    }
 }
 
 
@@ -1285,4 +1310,3 @@ sub parse_name($name) {
         .return (list)
     }
 }
-

@@ -98,7 +98,6 @@ BUILTINS_PIR = \
   src/builtins/EMPTY.pir \
   src/builtins/ParrotIter.pir \
   src/builtins/List.pir \
-  src/builtins/Grammar.pir \
   src/builtins/Parcel.pir \
   src/builtins/Bool.pir \
   src/builtins/Int.pir \
@@ -190,6 +189,7 @@ CORE_SOURCES = \
   src/core/Block.pm \
   src/core/Regex.pm \
   src/core/Junction.pm \
+  src/core/Grammar.pm \
   src/core/system.pm \
   src/cheats/match-bool.pm \
   src/cheats/setup-io.pm \

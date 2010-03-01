@@ -220,11 +220,13 @@ S04-statements/while.t
 # S05-capture/dot.t
 # S05-capture/named.t
 # S05-capture/subrule.t
-# S05-grammar/action-stubs.t
+S05-grammar/action-stubs.t
 # S05-grammar/inheritance.t
-# S05-grammar/methods.t
+S05-grammar/methods.t
 # S05-grammar/namespace.t
 # S05-grammar/parse_and_parsefile.t
+S05-grammar/protos.t
+S05-grammar/signatures.t
 # S05-grammar/ws.t
 # S05-mass/named-chars.t                                     # icu
 # S05-mass/properties-block.t                                # icu

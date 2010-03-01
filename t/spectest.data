@@ -125,19 +125,19 @@ S03-operators/autoincrement.t
 S03-operators/basic-types.t
 # S03-operators/binding-closure.t
 # S03-operators/binding-scalars.t
-# S03-operators/bit.t
+S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 # S03-operators/chained-declarators.t
 # S03-operators/comparison.t
 # S03-operators/context-forcers.t
 # S03-operators/context.t
 # S03-operators/cross-metaop.t
-# S03-operators/equality.t
+S03-operators/equality.t
 S03-operators/eqv.t
 # S03-operators/hyper.t
 # S03-operators/identity.t
-# S03-operators/increment.t
-# S03-operators/inplace.t
+S03-operators/increment.t
+S03-operators/inplace.t
 S03-operators/list-quote-junction.t
 # S03-operators/misc.t
 S03-operators/not.t

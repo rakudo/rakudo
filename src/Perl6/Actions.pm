@@ -336,7 +336,7 @@ method statement_control:sym<use>($/) {
             );
         }
         else {
-            @BLOCK[0][0].unshift(
+            @BLOCK[0].loadinit.unshift(
                 PAST::Op.new( :name('!use'), ~$<module_name>, :node($/) )
             );
         }
@@ -848,7 +848,7 @@ method routine_def($/) {
     $signature.set_default_parameter_type('Any');
     my $sig_setup_block := add_signature($past, $signature, 1);
     if $<trait> {
-        emit_routine_traits($past, $<trait>, 'Sub');
+        emit_routine_traits($past, $<trait>, 'Sub', $sig_setup_block);
     }
     if $<deflongname> {
         # Set name.
@@ -937,9 +937,6 @@ method method_def($/) {
     my $past := $<blockoid>.ast;
     $past.blocktype('declaration');
     $past.control('return_pir');
-    if $<trait> {
-        emit_routine_traits($past, $<trait>, $*METHODTYPE);
-    }
     
     # Get signature - or create - and sort out invocant handling.
     if pir::defined__IP($past<placeholder_sig>) {
@@ -962,6 +959,11 @@ method method_def($/) {
     my $sig_setup_block := add_signature($past, $sig, 1);
     $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
     $past.symbol('self', :scope('lexical'));
+
+    # Emit traits.
+    if $<trait> {
+        emit_routine_traits($past, $<trait>, $*METHODTYPE, $sig_setup_block);
+    }
 
     # Method container.
     if $<longname> {
@@ -2073,11 +2075,11 @@ sub has_compiler_trait_with_val($trait_list, $name, $value) {
 
 
 # Emits routine traits into the loadinit for the routine.
-sub emit_routine_traits($routine, @trait_list, $type) {
+sub emit_routine_traits($routine, @trait_list, $type,  $sig_setup_block) {
     $routine.loadinit.push(PAST::Op.new(
         :pasttype('bind'),
         PAST::Var.new( :name('trait_subject'), :scope('register'), :isdecl(1) ),
-        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, 0, '')
+        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, 0,  $sig_setup_block)
     ));
     for @trait_list {
         my $ast := $_.ast;

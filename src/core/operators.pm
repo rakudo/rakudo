@@ -242,40 +242,83 @@ our multi sub infix:<...>($lhs, $rhs) {
     }
 }
 
-our multi sub infix:<...>($lhs, Code $rhs) {
-    if $rhs.count != 1 {
-        die "Series operator currently cannot handle blocks with count != 1";
+# our multi sub infix:<...>($lhs, Code $rhs) {
+#     if $rhs.count != 1 {
+#         die "Series operator currently cannot handle blocks with count != 1";
+#     }
+#
+#     my $i = $lhs;
+#     gather {
+#         my $j = $i;
+#         take $j;
+#         my $last = $i;
+#         loop {
+#             $i = $rhs.($last);
+#             my $j = $i;
+#             take $j;
+#             $last = $i;
+#         }
+#     }
+# }
+#
+# our multi sub infix:<...>(@lhs, Whatever) {
+#     given @lhs.elems {
+#         when 2 {
+#             @lhs[0] ... { $_ + (@lhs[1] - @lhs[0]) };
+#         }
+#         when 3 {
+#             if @lhs[1] - @lhs[0] == @lhs[2] - @lhs[1] {
+#                 @lhs[0] ... { $_ + (@lhs[1] - @lhs[0]) };
+#             } elsif @lhs[1] / @lhs[0] == @lhs[2] / @lhs[1] {
+#                 @lhs[0] ... { $_ * (@lhs[1] / @lhs[0]) };
+#             } else {
+#                 fail "Unable to figure out pattern of series";
+#             }
+#         }
+#         default { fail "Unable to figure out pattern of series"; }
+#     }
+# }
+
+our multi sub infix:<...>(@lhs, $rhs) {
+    my $next;
+    if @lhs[@lhs.elems - 1] ~~ Code {
+        $next = @lhs[@lhs.elems - 1];
+    } else {
+        given @lhs.elems {
+            when 1 {
+                if @lhs[0] cmp $rhs == 1 {
+                    $next = { $.prec };
+                } else {
+                    $next = { $.succ };
+                }
+            }
+            when 2 {
+                $next = { $_ + (@lhs[1] - @lhs[0]) };
+            }
+            when 3 {
+                if @lhs[1] - @lhs[0] == @lhs[2] - @lhs[1] {
+                    $next = { $_ + (@lhs[1] - @lhs[0]) };
+                } elsif @lhs[1] / @lhs[0] == @lhs[2] / @lhs[1] {
+                    $next = { $_ * (@lhs[1] / @lhs[0]) };
+                } else {
+                    fail "Unable to figure out pattern of series";
+                }
+            }
+            default { fail "Unable to figure out pattern of series"; }
+        }
     }
 
-    my $i = $lhs;
+    my $i = @lhs[0];
     gather {
         my $j = $i;
         take $j;
         my $last = $i;
         loop {
-            $i = $rhs.($last);
+            $i = $next.($last);
             my $j = $i;
             take $j;
             $last = $i;
         }
-    }
-}
-
-our multi sub infix:<...>(@lhs, Whatever) {
-    given @lhs.elems {
-        when 2 {
-            @lhs[0] ... { $_ + (@lhs[1] - @lhs[0]) };
-        }
-        when 3 {
-            if @lhs[1] - @lhs[0] == @lhs[2] - @lhs[1] {
-                @lhs[0] ... { $_ + (@lhs[1] - @lhs[0]) };
-            } elsif @lhs[1] / @lhs[0] == @lhs[2] / @lhs[1] {
-                @lhs[0] ... { $_ * (@lhs[1] / @lhs[0]) };
-            } else {
-                fail "Unable to figure out pattern of series";
-            }
-        }
-        default { fail "Unable to figure out pattern of series"; }
     }
 }
 

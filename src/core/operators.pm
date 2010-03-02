@@ -93,8 +93,11 @@ our sub undefine(Mu \$x) {
 }
 
 our multi infix:<does>(Mu \$do-it-to-me, Role $r) {
-    my $specific_role = $r!select;
-    my $applicator    = $specific_role.^applier_for($do-it-to-me);
+    &infix:<does>($do-it-to-me, $r!select)
+}
+
+our multi infix:<does>(Mu \$do-it-to-me, ConcreteRole $r) {
+    my $applicator = $r.^applier_for($do-it-to-me);
     $applicator.apply($do-it-to-me, [$r]);
     $do-it-to-me
 }

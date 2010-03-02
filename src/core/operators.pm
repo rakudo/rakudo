@@ -279,6 +279,16 @@ our multi sub infix:<...>($lhs, $rhs) {
 #     }
 # }
 
+our multi sub infix:<...>(Code $lhs, Whatever) {
+    gather {
+        loop {
+            my $i = $lhs.();
+            my $j = $i;
+            take $j;
+        }
+    }
+}
+
 our multi sub infix:<...>(@lhs, $rhs) {
     my $next;
     if @lhs[@lhs.elems - 1] ~~ Code {

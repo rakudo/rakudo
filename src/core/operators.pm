@@ -282,12 +282,16 @@ our multi sub infix:<...>($lhs, $rhs) {
 our multi sub infix:<...>(Code $lhs, $rhs) {
     my $limit;
     $limit = $rhs if !($rhs ~~ Whatever);
+    my $last;
     gather {
         loop {
             my $i = $lhs.();
             my $j = $i;
+            last if $limit.defined && $last.defined && !($j eqv $limit)
+                 && ($last before $limit before $j || $j before $limit before $last);
             take $j;
             last if $limit.defined && $j eqv $limit;
+            $last = $j;
         }
     }
 }

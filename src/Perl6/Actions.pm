@@ -390,14 +390,14 @@ method statement_control:sym<default>($/) {
 
 method statement_control:sym<CATCH>($/) {
     my $block := $<block>.ast;
-    push_block_handler($/, $block);
+    push_block_handler($/, @BLOCK[0], $block);
     @BLOCK[0].handlers()[0].handle_types_except('CONTROL');
     make PAST::Stmts.new(:node($/));
 }
 
 method statement_control:sym<CONTROL>($/) {
     my $block := $<block>.ast;
-    push_block_handler($/, $block);
+    push_block_handler($/, @BLOCK[0], $block);
     @BLOCK[0].handlers()[0].handle_types('CONTROL');
     make PAST::Stmts.new(:node($/));
 }
@@ -2215,12 +2215,12 @@ sub make_dot_equals($thingy, $call) {
 }
 
 # XXX This isn't quite right yet... need to evaluate these semantics
-sub push_block_handler($/, $block) {
-    unless @BLOCK[0].handlers() {
-        @BLOCK[0].handlers([]);
+sub push_block_handler($/, $block, $handler) {
+    unless $block.handlers() {
+        $block.handlers([]);
     }
-    $block.blocktype('declaration');
-    $block := PAST::Block.new(
+    $handler.blocktype('declaration');
+    $handler := PAST::Block.new(
         :blocktype('declaration'),
         PAST::Var.new( :scope('parameter'), :name('$_') ),
         PAST::Op.new( :pasttype('bind'),
@@ -2241,14 +2241,14 @@ sub push_block_handler($/, $block) {
             PAST::Var.new( :scope('lexical'), :name('$_') ),
         ),
         PAST::Op.new( :pasttype('call'),
-            $block,
+            $handler,
         ),
     );
-    $block.symbol('$_', :scope('lexical'));
-    $block.symbol('$!', :scope('lexical'));
-    $block := PAST::Stmts.new(
+    $handler.symbol('$_', :scope('lexical'));
+    $handler.symbol('$!', :scope('lexical'));
+    $handler := PAST::Stmts.new(
         PAST::Op.new( :pasttype('call'),
-            $block,
+            $handler,
             PAST::Var.new( :scope('register'), :name('exception') ),
         ),
         # XXX Rakudo needs to set this when $! is inspected
@@ -2262,10 +2262,10 @@ sub push_block_handler($/, $block) {
         )
     );
 
-    @BLOCK[0].handlers.unshift(
+    $block.handlers.unshift(
         PAST::Control.new(
             :node($/),
-            $block,
+            $handler,
         )
     );
 }

@@ -53,7 +53,7 @@ of the compilation unit.
     env = root_new ['parrot';'Env']
     $S0 = env['PERL6LIB']
     $P0 = split ':', $S0
-    # Now prepend the installed Parrot languages/perl/lib directory
+    # Now prepend the installed Parrot languages/perl6/lib directory
     interp = getinterp
     config = interp[.IGLOBALS_CONFIG_HASH]
     $S0 = config['libdir']
@@ -79,6 +79,10 @@ of the compilation unit.
     $P2 = new ['Array']
     $P2.'!STORE'($P1)
     set_hll_global '@INC', $P2
+
+    # Turn the env PMC into %*ENV (just read-only so far)
+    $P2 = '&CREATE_HASH_LOW_LEVEL'(env)
+    set_hll_global '%ENV', $P2
 
     # INIT time
     '!fire_phasers'('INIT')

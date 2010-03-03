@@ -15,6 +15,7 @@
     push $P0, 'EXPORT'
     push $P0, 'DEFAULT'
     exportns  = get_hll_namespace $P0
+    if null exportns goto export_done
     exportns_it = iter exportns
   export_loop:
     unless exportns_it goto export_done

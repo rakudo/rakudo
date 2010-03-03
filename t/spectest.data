@@ -60,23 +60,23 @@ S02-builtin_data_types/multi_dimensional_array.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 # S02-builtin_data_types/nil.t
-# S02-builtin_data_types/num.t
-# S02-builtin_data_types/pair.t
+S02-builtin_data_types/num.t
+S02-builtin_data_types/pair.t
 S02-builtin_data_types/parsing-bool.t
 S02-builtin_data_types/range.t
 # S02-builtin_data_types/subscripts_and_context.t
 # S02-builtin_data_types/type.t
 # S02-builtin_data_types/whatever.t
-# S02-lexical-conventions/unicode.t                          # icu
+S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 # S02-literals/autoref.t
 S02-literals/char-by-name.t                                # icu
-# S02-literals/char-by-number.t
+S02-literals/char-by-number.t
 # S02-literals/fmt-interpolation.t
 # S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
 # S02-literals/listquote.t
-# S02-literals/listquote-whitespace.t
+S02-literals/listquote-whitespace.t
 # S02-literals/misc-interpolation.t
 S02-literals/pair-boolean.t
 S02-literals/pairs.t
@@ -96,7 +96,7 @@ S02-magicals/progname.t
 S02-names_and_variables/contextual.t
 # S02-names_and_variables/fmt.t
 # S02-names_and_variables/names.t
-# S02-names_and_variables/perl.t
+S02-names_and_variables/perl.t
 S02-names_and_variables/list_array_perl.t
 S02-names_and_variables/varnames.t
 S02-names/identifier.t
@@ -125,19 +125,19 @@ S03-operators/autoincrement.t
 S03-operators/basic-types.t
 # S03-operators/binding-closure.t
 # S03-operators/binding-scalars.t
-# S03-operators/bit.t
+S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 # S03-operators/chained-declarators.t
 # S03-operators/comparison.t
 # S03-operators/context-forcers.t
 # S03-operators/context.t
 # S03-operators/cross-metaop.t
-# S03-operators/equality.t
+S03-operators/equality.t
 S03-operators/eqv.t
 # S03-operators/hyper.t
 # S03-operators/identity.t
-# S03-operators/increment.t
-# S03-operators/inplace.t
+S03-operators/increment.t
+S03-operators/inplace.t
 S03-operators/list-quote-junction.t
 # S03-operators/misc.t
 S03-operators/not.t
@@ -201,8 +201,8 @@ S04-statement-modifiers/values_in_bool_context.t
 # S04-statements/for.t
 S04-statements/for_with_only_one_item.t
 # S04-statements/gather.t
-# S04-statements/given.t
-# S04-statements/if.t
+S04-statements/given.t
+S04-statements/if.t
 S04-statements/last.t
 S04-statements/loop.t
 # S04-statements/map-and-sort-in-for.t
@@ -405,13 +405,14 @@ S16-io/say.t
 # S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
 # S28-named-variables/cwd.t
-# S28-named-variables/inc.t
+S28-named-variables/inc.t
 S29-any/cmp.t
 S29-any/isa.t
 # S29-context/die.t
 # S29-context/eval.t
 S29-context/sleep.t
 S29-conversions/ord_and_chr.t                              #icu
+S32-array/bool.t
 ## S32-array/create.t
 S32-array/delete.t
 S32-array/elems.t
@@ -463,7 +464,7 @@ S32-num/rounders.t
 S32-num/sign.t
 S32-num/sqrt.t
 S32-num/unpolar.t
-# S32-scalar/defined.t
+S32-scalar/defined.t
 # S32-scalar/undef.t
 S32-str/append.t
 S32-str/bool.t

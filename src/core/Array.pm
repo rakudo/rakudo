@@ -57,7 +57,7 @@ augment class Array {
                 @array.pop;
             }
         }
-        @array.pop while @array.elems && !defined @array[@array.elems - 1];
+        @array.pop while ?@array && !defined @array[@array.elems - 1];
         return @result;
     }
 }

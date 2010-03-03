@@ -385,7 +385,7 @@ our proto atan2($y, $x = 1, $base = Radians) {
 }
 
 our Num sub rand (*@args) {
-    die "too many arguments passed - 0 params expected" if +@args;
+    die "too many arguments passed - 0 params expected" if ?@args;
     1.rand
 }
 

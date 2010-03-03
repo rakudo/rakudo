@@ -58,7 +58,7 @@ augment class Signature {
 
                 # Any constraints?
                 my $cons_perl = $param.constraints.perl;
-                if $cons_perl ne '1' {
+                if $cons_perl ne 'Bool::True' {
                     take ' where ' ~ $cons_perl;
                 }
 

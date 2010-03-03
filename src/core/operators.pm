@@ -332,19 +332,22 @@ our multi sub infix:<...>(@lhs, $rhs) {
     gather {
         my $j = $i;
         take $j;
-        my $last = $i;
-        loop {
-            $i = $next.($last);
-            my $j = $i;
+        if !$limit.defined || $limit cmp $j != 0 {
+            my $last = $i;
 
-            my $cur_cmp = 1;
-            if $limit.defined {
-                $cur_cmp = $limit cmp $j;
-                last if ($last cmp $limit) == $cur_cmp;
+            loop {
+                $i = $next.($last);
+                my $j = $i;
+
+                my $cur_cmp = 1;
+                if $limit.defined {
+                    $cur_cmp = $limit cmp $j;
+                    last if ($last cmp $limit) == $cur_cmp;
+                }
+                take $j;
+                last if $cur_cmp == 0;
+                $last = $i;
             }
-            take $j;
-            last if $cur_cmp == 0;
-            $last = $i;
         }
     }
 }

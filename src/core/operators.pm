@@ -297,6 +297,9 @@ our multi sub infix:<...>(Code $lhs, $rhs) {
 }
 
 our multi sub infix:<...>(@lhs, $rhs) {
+    my $limit;
+    $limit = $rhs if !($rhs ~~ Whatever);
+
     my $next;
     if @lhs[@lhs.elems - 1] ~~ Code {
         $next = @lhs[@lhs.elems - 1];
@@ -333,7 +336,14 @@ our multi sub infix:<...>(@lhs, $rhs) {
         loop {
             $i = $next.($last);
             my $j = $i;
+
+            my $cur_cmp = 1;
+            if $limit.defined {
+                $cur_cmp = $limit cmp $j;
+                last if ($last cmp $limit) == $cur_cmp;
+            }
             take $j;
+            last if $cur_cmp == 0;
             $last = $i;
         }
     }

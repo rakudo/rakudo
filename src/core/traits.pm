@@ -9,8 +9,8 @@ our multi trait_mod:<is>(Mu $child, Role $r) {
 
 our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
     given substr($cont.name, 0, 1) {
-        when '@' { }
-        when '%' { }
+        when '@' { $cont.container does Positional[$type] }
+        when '%' { $cont.container does Associative[$type] }
         when '&' { }
         default  { pir::setprop__vPSP($cont.container, 'type', $type) }
     }
@@ -22,4 +22,12 @@ our multi trait_mod:<does>(Mu $target, Mu $r) {
 
 our multi trait_mod:<does>(ContainerDeclarand $c, Role $r) {
     $c.container does $r;
+}
+
+our multi trait_mod:<of>(Routine $r, Mu \$type) {
+    $r does Callable[$type];
+}
+
+our multi trait_mod:<returns>(Routine $r, Mu \$type) {
+    $r does Callable[$type];
 }

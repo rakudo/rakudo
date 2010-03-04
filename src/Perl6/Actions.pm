@@ -336,7 +336,7 @@ method statement_control:sym<use>($/) {
             );
         }
         else {
-            @BLOCK[0][0].unshift(
+            @BLOCK[0].loadinit.unshift(
                 PAST::Op.new( :name('!use'), ~$<module_name>, :node($/) )
             );
         }
@@ -390,14 +390,14 @@ method statement_control:sym<default>($/) {
 
 method statement_control:sym<CATCH>($/) {
     my $block := $<block>.ast;
-    push_block_handler($/, $block);
+    push_block_handler($/, @BLOCK[0], $block);
     @BLOCK[0].handlers()[0].handle_types_except('CONTROL');
     make PAST::Stmts.new(:node($/));
 }
 
 method statement_control:sym<CONTROL>($/) {
     my $block := $<block>.ast;
-    push_block_handler($/, $block);
+    push_block_handler($/, @BLOCK[0], $block);
     @BLOCK[0].handlers()[0].handle_types('CONTROL');
     make PAST::Stmts.new(:node($/));
 }
@@ -422,24 +422,35 @@ method statement_prefix:sym<gather>($/) {
 }
 
 method statement_prefix:sym<try>($/) {
-    my $block := $<blorst>.ast;
-    $block.blocktype('immediate');
-    my $past := PAST::Op.new( :pasttype('try'), $block );
-
-    # On failure, capture the exception object into $!.
-    $past.push(PAST::Op.new(
-        :inline( '    .get_results (%r)',
-                 '    $P0 = new ["Perl6Exception"]',
-                 '    setattribute $P0, "$!exception", %r',
-                 '    store_lex "$!", $P0' )
-    ));
-
-    # Otherwise, put a failure into $!.
-    $past.push(PAST::Op.new( :pasttype('bind'),
-        PAST::Var.new( :name('$!'), :scope('lexical') ),
-        PAST::Op.new( :pasttype('call'), :name('!FAIL') )
-    ));
-
+    my $past := $<blorst>.ast;
+    $past.blocktype('immediate');
+    unless $past.handlers() {
+        $past := PAST::Stmts.new(
+            $past,
+            PAST::Op.new( :pasttype('bind'),
+                    PAST::Var.new( :name('$!'), :scope('lexical') ),
+                    PAST::Op.new( :pasttype('call'), :name('!FAIL') )
+            ),
+            :handlers([
+                PAST::Control.new(
+                    :handle_types_except('CONTROL'),
+                    PAST::Op.new(
+                        :pasttype('bind'),
+                        PAST::Var.new( :name('$!'), :scope('lexical') ),
+                        PAST::Op.new(
+                            :pasttype('callmethod'),
+                            :name('new'),
+                            PAST::Var.new(:scope('package'),
+                                          :namespace([]),
+                                          :name('Exception')),
+                            PAST::Var.new(:scope('register'),
+                                           :name('exception')),
+                        )
+                    )
+                )
+            ])
+        );
+    }
     make $past;
 }
 
@@ -848,7 +859,7 @@ method routine_def($/) {
     $signature.set_default_parameter_type('Any');
     my $sig_setup_block := add_signature($past, $signature, 1);
     if $<trait> {
-        emit_routine_traits($past, $<trait>, 'Sub');
+        emit_routine_traits($past, $<trait>, 'Sub', $sig_setup_block);
     }
     if $<deflongname> {
         # Set name.
@@ -937,9 +948,6 @@ method method_def($/) {
     my $past := $<blockoid>.ast;
     $past.blocktype('declaration');
     $past.control('return_pir');
-    if $<trait> {
-        emit_routine_traits($past, $<trait>, $*METHODTYPE);
-    }
     
     # Get signature - or create - and sort out invocant handling.
     if pir::defined__IP($past<placeholder_sig>) {
@@ -962,6 +970,11 @@ method method_def($/) {
     my $sig_setup_block := add_signature($past, $sig, 1);
     $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
     $past.symbol('self', :scope('lexical'));
+
+    # Emit traits.
+    if $<trait> {
+        emit_routine_traits($past, $<trait>, $*METHODTYPE, $sig_setup_block);
+    }
 
     # Method container.
     if $<longname> {
@@ -2073,11 +2086,11 @@ sub has_compiler_trait_with_val($trait_list, $name, $value) {
 
 
 # Emits routine traits into the loadinit for the routine.
-sub emit_routine_traits($routine, @trait_list, $type) {
+sub emit_routine_traits($routine, @trait_list, $type,  $sig_setup_block) {
     $routine.loadinit.push(PAST::Op.new(
         :pasttype('bind'),
         PAST::Var.new( :name('trait_subject'), :scope('register'), :isdecl(1) ),
-        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, 0, '')
+        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, 0,  $sig_setup_block)
     ));
     for @trait_list {
         my $ast := $_.ast;
@@ -2213,12 +2226,12 @@ sub make_dot_equals($thingy, $call) {
 }
 
 # XXX This isn't quite right yet... need to evaluate these semantics
-sub push_block_handler($/, $block) {
-    unless @BLOCK[0].handlers() {
-        @BLOCK[0].handlers([]);
+sub push_block_handler($/, $block, $handler) {
+    unless $block.handlers() {
+        $block.handlers([]);
     }
-    $block.blocktype('declaration');
-    $block := PAST::Block.new(
+    $handler.blocktype('declaration');
+    $handler := PAST::Block.new(
         :blocktype('declaration'),
         PAST::Var.new( :scope('parameter'), :name('$_') ),
         PAST::Op.new( :pasttype('bind'),
@@ -2239,14 +2252,14 @@ sub push_block_handler($/, $block) {
             PAST::Var.new( :scope('lexical'), :name('$_') ),
         ),
         PAST::Op.new( :pasttype('call'),
-            $block,
+            $handler,
         ),
     );
-    $block.symbol('$_', :scope('lexical'));
-    $block.symbol('$!', :scope('lexical'));
-    $block := PAST::Stmts.new(
+    $handler.symbol('$_', :scope('lexical'));
+    $handler.symbol('$!', :scope('lexical'));
+    $handler := PAST::Stmts.new(
         PAST::Op.new( :pasttype('call'),
-            $block,
+            $handler,
             PAST::Var.new( :scope('register'), :name('exception') ),
         ),
         # XXX Rakudo needs to set this when $! is inspected
@@ -2260,10 +2273,10 @@ sub push_block_handler($/, $block) {
         )
     );
 
-    @BLOCK[0].handlers.unshift(
+    $block.handlers.unshift(
         PAST::Control.new(
             :node($/),
-            $block,
+            $handler,
         )
     );
 }

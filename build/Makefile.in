@@ -91,6 +91,7 @@ BUILTINS_PIR = \
   src/metamodel/GrammarHOW.pir \
   src/builtins/Any.pir \
   src/builtins/Role.pir \
+  src/builtins/ConcreteRole.pir \
   src/builtins/Abstraction.pir \
   src/builtins/Positional.pir \
   src/builtins/Iterable.pir \

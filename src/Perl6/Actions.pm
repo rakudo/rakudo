@@ -422,35 +422,24 @@ method statement_prefix:sym<gather>($/) {
 }
 
 method statement_prefix:sym<try>($/) {
-    my $past := $<blorst>.ast;
-    $past.blocktype('immediate');
-    unless $past.handlers() {
-        $past := PAST::Stmts.new(
-            $past,
-            PAST::Op.new( :pasttype('bind'),
-                    PAST::Var.new( :name('$!'), :scope('lexical') ),
-                    PAST::Op.new( :pasttype('call'), :name('!FAIL') )
-            ),
-            :handlers([
-                PAST::Control.new(
-                    :handle_types_except('CONTROL'),
-                    PAST::Op.new(
-                        :pasttype('bind'),
-                        PAST::Var.new( :name('$!'), :scope('lexical') ),
-                        PAST::Op.new(
-                            :pasttype('callmethod'),
-                            :name('new'),
-                            PAST::Var.new(:scope('package'),
-                                          :namespace([]),
-                                          :name('Exception')),
-                            PAST::Var.new(:scope('register'),
-                                           :name('exception')),
-                        )
-                    )
-                )
-            ])
-        );
-    }
+    my $block := $<blorst>.ast;
+    $block.blocktype('immediate');
+    my $past := PAST::Op.new( :pasttype('try'), $block );
+
+    # On failure, capture the exception object into $!.
+    $past.push(PAST::Op.new(
+        :inline( '    .get_results (%r)',
+                 '    $P0 = new ["Perl6Exception"]',
+                 '    setattribute $P0, "$!exception", %r',
+                 '    store_lex "$!", $P0' )
+    ));
+
+    # Otherwise, put a failure into $!.
+    $past.push(PAST::Op.new( :pasttype('bind'),
+        PAST::Var.new( :name('$!'), :scope('lexical') ),
+        PAST::Op.new( :pasttype('call'), :name('!FAIL') )
+    ));
+
     make $past;
 }
 

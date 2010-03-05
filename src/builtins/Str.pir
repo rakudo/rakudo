@@ -249,7 +249,7 @@ These return various information about the file.
     .return($P0)
 .end
 
-.sub 'filesize' :method
+.sub 'filebytes' :method
     #how big is the file (in bytes)?
     .local string filename
     filename = self

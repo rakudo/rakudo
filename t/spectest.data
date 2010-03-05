@@ -435,6 +435,7 @@ S32-hash/pairs.t
 S32-hash/push.t
 # S32-hash/slice.t
 # S32-io/chdir.t
+S32-io/file-tests.t
 # S32-io/IO-Socket-INET.t
 ## S32-list/create.t
 S32-list/end.t

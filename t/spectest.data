@@ -178,7 +178,7 @@ S03-operators/spaceship-and-containers.t
 S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
 S03-operators/so.t
-# S03-operators/value_equivalence.t
+S03-operators/value_equivalence.t
 # S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
 S04-phasers/end.t

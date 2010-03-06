@@ -86,7 +86,7 @@ Overridden for Int.
     .param int a
     .param int b
     $I0 = iseq a, b
-    .tailcall 'prefix:<?>'($I0)
+    .tailcall '&prefix:<?>'($I0)
 .end
 
 =back

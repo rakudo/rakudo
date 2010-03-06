@@ -93,8 +93,7 @@ Overridden for Num.
     .param num a
     .param num b
     $I0 = iseq a, b
-    .return ($I0)
-    # .tailcall 'prefix:?'($I0)
+    .tailcall '&prefix:<?>'($I0)
 .end
 
 =back

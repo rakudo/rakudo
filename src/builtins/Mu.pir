@@ -266,7 +266,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     attr = new ['Array']
     goto attrinit_rw
   attrinit_hash:
-    attr = new ['Hash']
+    attr = '&CREATE_HASH_LOW_LEVEL'()
   attrinit_rw:
     setprop attr, 'rw', attr
     setattribute example, cur_class, attrname, attr

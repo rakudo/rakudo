@@ -307,7 +307,7 @@ S06-signature/unpack-array.t
 S06-signature/unspecified.t
 S06-traits/as.t
 S06-traits/is-copy.t
-# S06-traits/is-rw.t
+S06-traits/is-rw.t
 # S06-traits/misc.t
 S07-iterators/range-iterator.t
 S09-autovivification/autoincrement.t

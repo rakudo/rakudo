@@ -47,7 +47,7 @@ S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/assigning-refs.t
 S02-builtin_data_types/bool.t
 S02-builtin_data_types/capture.t
-# S02-builtin_data_types/catch_type_cast_mismatch.t
+S02-builtin_data_types/catch_type_cast_mismatch.t
 # S02-builtin_data_types/declare.t
 # S02-builtin_data_types/flattening.t
 # S02-builtin_data_types/hash_ref.t
@@ -88,7 +88,7 @@ S02-literals/sub-calls.t
 # S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
-# S02-magicals/config.t
+S02-magicals/config.t
 # S02-magicals/dollar_bang.t
 # S02-magicals/dollar-underscore.t
 # S02-magicals/env.t
@@ -143,7 +143,7 @@ S03-operators/list-quote-junction.t
 S03-operators/not.t
 S03-operators/numeric-context.t
 # S03-operators/p5arrow.t
-# S03-operators/precedence.t
+S03-operators/precedence.t
 S03-operators/range-basic.t
 S03-operators/range.t
 # S03-operators/reduce-le1arg.t
@@ -166,7 +166,7 @@ S03-smartmatch/any-pair.t
 # S03-smartmatch/any-sub.t
 S03-smartmatch/any-type.t
 # S03-smartmatch/array-array.t
-# S03-smartmatch/array-hash.t
+S03-smartmatch/array-hash.t
 # S03-smartmatch/disorganized.t
 S03-smartmatch/hash-hash.t
 # S03-smartmatch/regex-hash.t
@@ -245,7 +245,7 @@ S05-metachars/newline.t
 # S05-metachars/tilde.t
 # S05-metasyntax/angle-brackets.t
 S05-metasyntax/changed.t
-# S05-metasyntax/charset.t
+S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t
 S05-metasyntax/null.t
 # S05-metasyntax/regex.t
@@ -296,7 +296,7 @@ S06-signature/optional.t
 S06-signature/positional-placeholders.t
 S06-signature/positional.t
 S06-signature/scalar-type.t
-# S06-signature/slurpy-and-interpolation.t
+S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
@@ -371,7 +371,7 @@ S12-methods/private.t
 # S12-methods/submethods.t
 # S12-methods/syntax.t
 S12-methods/topic.t
-# S12-methods/typed-attributes.t
+S12-methods/typed-attributes.t
 # S12-methods/what.t
 # S12-subset/multi-dispatch.t
 # S12-subset/subtypes.t
@@ -398,7 +398,7 @@ S14-roles/submethods.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
-# S16-filehandles/open.t
+S16-filehandles/open.t
 # S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/say.t

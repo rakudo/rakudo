@@ -981,6 +981,7 @@ INIT {
 token infixish {
     | <OPER=infix> <![=]>
     | <infix> <OPER=infix_postfix_meta_operator>
+    | <OPER=infix_prefix_meta_operator> <infix>
 }
 
 token postfixish {
@@ -1004,6 +1005,8 @@ token postop {
 }
 
 proto token infix_postfix_meta_operator { <...> }
+
+proto token infix_prefix_meta_operator { <...> }
 
 proto token postfix_prefix_meta_operator { <...> }
 
@@ -1156,6 +1159,8 @@ token infix:sym<?? !!> {
     '!!'
     <O('%conditional, :reducecheck<ternary>, :pasttype<if>')> 
 }
+
+token infix_prefix_meta_operator:sym<!> { <sym> <O('%item_assignment')> }
 
 token infix:sym<:=> {
     <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>

@@ -1982,7 +1982,14 @@ method quote:sym<m>($/) {
     make create_code_object($past, 'Regex', 0, '');
 }
 
-method quote_escape:sym<$>($/) { make $<variable>.ast; }
+method quote_escape:sym<$>($/) {
+    #make $<variable>.ast;
+    # my $a = 3; say "$a".WHAT # Gives Int, not Str with the above. Force
+    # stringification to fix this. This should probably be handled in nqp-rx,
+    # but work around it for now.
+    make PAST::Op.new( $<variable>.ast, :pirop('set SP') );
+}
+
 method quote_escape:sym<{ }>($/) {
     make PAST::Op.new(
         :pirop('set S*'), block_immediate($<block>.ast), :node($/)

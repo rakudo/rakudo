@@ -81,7 +81,7 @@ exists.
 
 =head2 Room for wriggling on file names
 
-If multiple instances of a module exist, they may be distributed among 
+If multiple instances of a module exist, they may be distributed among
 all the @*INC directories.  Folders correspond to packages (aka
 namespaces) and they are not allowed to have :ver and :auth name parts.
 
@@ -124,3 +124,10 @@ If the :ver is not specified, Rakudo must select the file containing the
 highest :ver value.  Files without :ver are considered as having the
 lowest possible :ver value.  Multiple files without :ver, or multiple
 files with the same :ver, will result in an arbitrary selection.
+
+=head1 Implementation notes
+
+There is a Perl 5 stub implementation of the module finding algorithm in the
+rmp repository L<http://github.com/moritz/rmp> in the file
+C<loader-fulllist.pl>. Commit bits to that repo are handed out freely; just
+ask hugme on #perl6 :-).

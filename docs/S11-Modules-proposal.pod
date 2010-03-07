@@ -114,7 +114,7 @@ probably be added soon after the initial implemention works, in order to
 reduce the obvious overheads.
 
 If the C<use> specified an C<:auth> or a C<:ver>, the values must match,
-and non matching files are disqualified.
+and non-matching files are disqualified.
 
 Rakudo will consider files in the user's local directories (. and
 ~/.perl6/lib) that omit :auth and :ver values.  Modules in the

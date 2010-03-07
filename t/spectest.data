@@ -316,7 +316,7 @@ S07-iterators/range-iterator.t
 S09-autovivification/autoincrement.t
 # S09-subscript_slice/slice.t
 S09-typed-arrays/arrays.t
-# S09-typed-arrays/hashes.t
+S09-typed-arrays/hashes.t
 # S10-packages/basic.t
 # S10-packages/use-with-class.t
 # S11-modules/export.t

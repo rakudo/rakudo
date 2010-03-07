@@ -102,7 +102,7 @@ S02-names_and_variables/varnames.t
 S02-names/identifier.t
 # S02-names/our.t
 # S02-one-pass-parsing/less-than.t
-# S02-polymorphic_types/subset.t
+S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
 S02-whitespace_and_comments/minimal-whitespace.t

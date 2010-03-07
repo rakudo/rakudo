@@ -37,7 +37,7 @@ The following is ok (loaded by "use Foo::Bar:ver<1.2.3>:auth<baz>"):
     # in Foo/Bar.pm
     class Foo::Bar:ver<1.2.3>:auth<baz> {       # or module, grammar etc
         ...
-        class Foo::Bar::Baz {
+        class Baz {
             ...
         }
     }

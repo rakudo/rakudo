@@ -68,7 +68,11 @@ our multi sub infix:<%>(Int $a, Int $b) {
 }
 
 our multi sub infix:<**>(Int $a, Int $b) {
-    upgrade_to_num_if_needed(pir::pow__NNN($a, $b))
+    if $b >= 0 {
+        upgrade_to_num_if_needed(pir::pow__NNN($a, $b))
+    } else {
+        pir::pow__NNN($a, $b)
+    }
 }
 
 our multi sub prefix:<->(Int $a) {

@@ -1690,15 +1690,11 @@ method infixish($/) {
     if $<infix_prefix_meta_operator> {
         my $metaop := ~$<infix_prefix_meta_operator><sym>;
         my $sym := ~$<infix><sym>;
-        my $opsub := "&infix:<$metaop$sym>";
-        unless %*METAOPGEN{$opsub} {
-            @BLOCK[0].loadinit.push(
-                PAST::Op.new( :name('!gen_not_metaop'), $sym,
-                              :pasttype('call') )
-            );
-            %*METAOPGEN{$opsub} := 1;
-        }
-        make PAST::Op.new( :name($opsub), :pasttype('call') );
+        my $metasub := "&infix_prefix_meta_operator:<$metaop>";
+        my $opsub := "&infix:<$sym>";
+        make PAST::Op.new( :name($metasub),
+                           $opsub,
+                           :pasttype('call') );
     }
 }
 

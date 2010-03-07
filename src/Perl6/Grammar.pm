@@ -1160,6 +1160,7 @@ token infix:sym<?? !!> {
     <O('%conditional, :reducecheck<ternary>, :pasttype<if>')> 
 }
 
+# item_assignment is probably wrong, but I don't know how to do what is right...
 token infix_prefix_meta_operator:sym<!> { <sym> <O('%item_assignment')> }
 
 token infix:sym<:=> {

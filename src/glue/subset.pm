@@ -6,7 +6,7 @@ role SubType {
         unless $!checker.ACCEPTS($topic) {
             return Bool::False;
         }
-        $topic ~~ self.WHAT
+        nextsame();
     }
 }
 
@@ -28,6 +28,7 @@ sub CREATE_SUBSET_TYPE($original, $checker) {
         $P4 = getprop 'metaclass', $P1
         setprop $P3, 'metaclass', $P4
         %r = new $P3
+        transform_to_p6opaque %r
         $P0 = find_lex '$checker'
         setattribute %r, '$!checker', $P0
     };

@@ -194,6 +194,7 @@ CORE_SOURCES = \
   src/core/system.pm \
   src/cheats/match-bool.pm \
   src/cheats/setup-io.pm \
+  src/glue/subset.pm \
 
 # SETTING = \
 #   src/setting/traits.pm \

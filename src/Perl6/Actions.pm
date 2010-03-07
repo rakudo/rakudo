@@ -1176,6 +1176,54 @@ method type_declarator:sym<enum>($/) {
     );
 }
 
+method type_declarator:sym<subset>($/) {
+    # Figure out our refinee.
+    my $of_trait := has_compiler_trait($<trait>, '&trait_mod:<of>');
+    my $refinee := $of_trait ??
+        $of_trait[0] !! 
+        PAST::Var.new( :name('Any'), :namespace(Nil), :scope('package') );
+    
+    # Construct subset and install it in the right place.
+    my $cons_past := PAST::Op.new(
+        :name('&CREATE_SUBSET_TYPE'),
+        $refinee,
+        $<EXPR> ?? where_blockify($<EXPR>[0].ast) !!
+                   PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') )
+    );
+ 
+    # Stick it somewhere appropriate.
+    if $<longname> {
+        my $name := $<longname>[0].Str;
+        if $*SCOPE eq '' || $*SCOPE eq 'our' {
+            # Goes in the package.
+            @PACKAGE[0].block.loadinit.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new( :name($name), :scope('package') ),
+                $cons_past
+            ));
+            @BLOCK[0].symbol($name, :scope('package') );
+        }
+        elsif $*SCOPE eq 'my' {
+            # Install in the lexpad.
+            @BLOCK[0][0].push(PAST::Var.new(
+                :name($name), :isdecl(1), 
+                :viviself($cons_past), :scope('lexical')
+            ));
+            @BLOCK[0].symbol($name, :scope('lexical') );
+        }
+        else {
+            $/.CURSOR.panic("Can not declare a subset with scope declarator " ~ $*SCOPE);
+        }
+        make PAST::Var.new( :name($name) );
+    }
+    else {
+        if $*SCOPE ne '' && $*SCOPE ne 'anon' {
+            $/.CURSOR.panic('A ' ~ $*SCOPE ~ ' scoped subset must have a name.');
+        }
+        make $cons_past;
+    }
+}
+
 method capterm($/) {
     # Construct a Parcel, and then call .Capture to coerce it to a capture.
     my $past := $<termish> ?? $<termish>.ast !!
@@ -1325,25 +1373,7 @@ method post_constraint($/) {
         $*PARAMETER.sub_signature( $<signature>.ast );
     }
     else {
-        my $past := $<EXPR>.ast;
-        unless $past.isa(PAST::Block) {
-            $past := PAST::Block.new( :blocktype('declaration'),
-                PAST::Stmts.new( ),
-                PAST::Stmts.new(
-                    PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
-                        PAST::Var.new( :name('$_'), :scope('lexical') ),
-                        $past
-                    )
-                )
-            );
-            my $sig := Perl6::Compiler::Signature.new();
-            my $param := Perl6::Compiler::Parameter.new();
-            $param.var_name('$_');
-            $sig.add_parameter($param);
-            my $lazy_name := add_signature($past, $sig, 1);
-            $past := create_code_object($past, 'Block', 0, $lazy_name);
-        }
-        $*PARAMETER.cons_types.push($past);
+        $*PARAMETER.cons_types.push(where_blockify($<EXPR>.ast));
     }
 }
 
@@ -2447,6 +2477,33 @@ sub prevent_null_return($block) {
     if +@($block[1]) == 0 {
         $block[1].push(PAST::Op.new( :name('&Nil') ));
     }
+}
+
+# Takes something that may be a block already, and if not transforms it into
+# one. Used by things doing where clause-ish things.
+sub where_blockify($expr) {
+    my $past;
+    if $expr.isa(PAST::Block) {
+        $past := $expr;
+    }
+    else {
+        $past := PAST::Block.new( :blocktype('declaration'),
+            PAST::Stmts.new( ),
+            PAST::Stmts.new(
+                PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
+                    PAST::Var.new( :name('$_'), :scope('lexical') ),
+                    $expr
+                )
+            )
+        );
+        my $sig := Perl6::Compiler::Signature.new();
+        my $param := Perl6::Compiler::Parameter.new();
+        $param.var_name('$_');
+        $sig.add_parameter($param);
+        my $lazy_name := add_signature($past, $sig, 1);
+        $past := create_code_object($past, 'Block', 0, $lazy_name);
+    }
+    $past
 }
 
 # vim: ft=perl6

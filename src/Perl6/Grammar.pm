@@ -552,7 +552,7 @@ token declarator {
     | '(' ~ ')' <signature> <trait>*
     | <routine_declarator>
     | <regex_declarator>
-#    | <type_declarator>
+    | <type_declarator>
     ]
 }
 
@@ -789,6 +789,19 @@ token type_declarator:sym<enum> {
     <sym> <.ws>
     <name>? <.ws>
     <?before '(' | '<' | '<<' | '«' > <circumfix>
+}
+
+token type_declarator:sym<subset> {
+    :my $*IN_DECL := 'subset';
+    <sym> :s
+    [
+        [
+            [ <longname> { $/.CURSOR.add_name($<longname>[0].Str); } ]?
+            <trait>*
+            [ where <EXPR('e=')> ]?
+        ]
+        || <.panic: 'Malformed subset'>
+    ]
 }
 
 rule trait {

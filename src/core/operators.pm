@@ -102,8 +102,8 @@ our multi infix:<does>(Mu \$do-it-to-me, ConcreteRole $r) {
     $do-it-to-me
 }
 
-our multi infix:<but>(Mu $do-it-to-me is copy, \$r) {
-    $do-it-to-me does $r
+our multi infix:<but>(Mu \$do-it-to-me, \$r) {
+    $do-it-to-me.clone() does $r
 }
 
 our multi infix:<before>($a, $b) {

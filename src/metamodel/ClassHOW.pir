@@ -108,7 +108,8 @@ Creates a new instance of the meta-class and returns it in an associated
 
     # Stash in metaclass instance.
   have_parrotclass:
-    how = new ['ClassHOW']
+    $P0 = typeof self
+    how = new [$P0]
     setattribute how, 'parrotclass', parrotclass
     $P0 = root_new ['parrot';'ResizablePMCArray']
     setattribute how, '$!composees', $P0

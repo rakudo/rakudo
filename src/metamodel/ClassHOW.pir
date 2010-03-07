@@ -316,6 +316,7 @@ Completes the creation of the metaclass and return a proto-object.
     proto = self.'register'(parrotclass, 'how'=>self)
   proto_made:
     transform_to_p6opaque proto
+    setprop proto, 'scalar', proto
     .return (proto)
 .end
 
@@ -657,12 +658,10 @@ will try to flatten etc).
 
 .sub 'WHAT' :method
     $P0 = getattribute self, 'protoobject'
-    unless null $P0 goto wrap_result
+    unless null $P0 goto done
     $P0 = self.'HOW'()
     $P0 = $P0.'WHAT'()
-  wrap_result:
-    $P0 = new ['ObjectRef'], $P0
-    setprop $P0, 'scalar', $P0
+  done:
     .return ($P0)
 .end
 
@@ -782,7 +781,9 @@ correct protocol.
     'compose_composables'(how, ctb)
   role_done:
 
-    .tailcall self.'register'(parrotclass, 'how'=>how, options :named :flat)
+    $P0 = self.'register'(parrotclass, 'how'=>how, options :named :flat)
+    setprop $P0, 'scalar', $P0
+    .return ($P0)
 .end
 
 

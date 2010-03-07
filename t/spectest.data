@@ -234,7 +234,7 @@ S05-grammar/signatures.t
 # S05-mass/properties-derived.t                              # icu
 # S05-mass/properties-general.t                              # icu
 # S05-mass/properties-script.t                               # icu
-# S05-mass/rx.t
+S05-mass/rx.t
 # S05-mass/recursive.t
 # S05-mass/stdrules.t
 # S05-match/arrayhash.t
@@ -315,7 +315,7 @@ S06-traits/is-rw.t
 S07-iterators/range-iterator.t
 S09-autovivification/autoincrement.t
 # S09-subscript_slice/slice.t
-# S09-typed-arrays/arrays.t
+S09-typed-arrays/arrays.t
 # S09-typed-arrays/hashes.t
 # S10-packages/basic.t
 # S10-packages/use-with-class.t

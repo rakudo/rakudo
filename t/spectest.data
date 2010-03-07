@@ -41,9 +41,9 @@ integration/role-composition-vs-attribute.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 S02-builtin_data_types/anon_block.t
-# S02-builtin_data_types/array_extending.t
+S02-builtin_data_types/array_extending.t
 # S02-builtin_data_types/array_ref.t
-# S02-builtin_data_types/array.t
+S02-builtin_data_types/array.t
 S02-builtin_data_types/assigning-refs.t
 S02-builtin_data_types/bool.t
 S02-builtin_data_types/capture.t
@@ -106,7 +106,7 @@ S02-names/identifier.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
 S02-whitespace_and_comments/minimal-whitespace.t
-# S02-whitespace_and_comments/one-pass-parsing.t
+S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
 S02-whitespace_and_comments/unicode-whitespace.t

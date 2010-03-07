@@ -328,3 +328,7 @@ our multi sub infix:<Z>(Iterable $a-iterable, Iterable $b-iterable) {
         take $b;
     }
 }
+
+multi sub infix_prefix_meta_operator:<!>($a, $b, $c) {
+    !(pir::get_hll_global__CS($a)($b, $c));
+}

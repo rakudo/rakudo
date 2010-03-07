@@ -369,7 +369,4 @@ multi sub infix:<< >= >>($a, Whatever $b) {
     }
 }
 
-multi sub infix:<!===>($a, $b) {
-    !($a === $b);
-}
 # vim: ft=perl6

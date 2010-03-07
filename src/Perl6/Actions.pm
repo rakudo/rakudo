@@ -1686,6 +1686,16 @@ method infixish($/) {
         }
         make PAST::Op.new( :name($opsub), :pasttype('call') );
     }
+
+    if $<infix_prefix_meta_operator> {
+        my $metaop := ~$<infix_prefix_meta_operator><sym>;
+        my $sym := ~$<infix><sym>;
+        my $metasub := "&infix_prefix_meta_operator:<$metaop>";
+        my $opsub := "&infix:<$sym>";
+        make PAST::Op.new( :name($metasub),
+                           $opsub,
+                           :pasttype('call') );
+    }
 }
 
 method postfixish($/) {

@@ -28,6 +28,21 @@ sequence of items.
     seqproto = p6meta.'new_class'('Seq', 'parent'=>'Iterable', 'attr'=>'@!items $!rest', 'does_role'=>pos_role)
 .end
 
+
+=item new
+
+=cut
+
+.sub 'new' :method
+    .param pmc values :slurpy
+    $P0 = self.'CREATE'()
+    $P1 = new ['Parcel']
+    splice $P1, values, 0, 0
+    $P0.'!STORE'($P1)
+    .return ($P0)
+.end
+
+
 =item iterator()
 
 Return a new SeqIter for the invocant.

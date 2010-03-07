@@ -589,6 +589,7 @@ rule scoped($*SCOPE) {
     | <DECL=variable_declarator>
     | <DECL=routine_declarator>
     | <DECL=package_declarator>
+    | <DECL=type_declarator>
     | <typename>+ 
       {
         if +$<typename> > 1 {

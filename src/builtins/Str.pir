@@ -236,6 +236,17 @@ These return various information about the file.
     .return ($P0)
 .end
 
+.sub ':l' :method :multi(_)
+    .local string filename
+    filename = self
+
+    .local pmc file
+    file = root_new ['parrot';'File']
+
+    $I0 = file.'is_link'(filename)
+    .return ($I0)
+.end
+
 =back
 
 =head2 Functions

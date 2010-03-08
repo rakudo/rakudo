@@ -3,22 +3,23 @@ class Perl6::Module::Locator;
 method find_candidates($lookfor, @inc) {
     my @dirs      := pir::split__PSS('::', $lookfor);
     my $file      := @dirs.pop();
-    my $localpath := pir::join__PSP('/', @dirs);
+    my $localpath := +@dirs ?? pir::join__SSP('/', @dirs) ~ '/' !! '';
  
     my @candidates;
     for @inc {
-        my $path := "$_/$localpath";
-        if pir::stat__ISI($path, 2) {
+        my $path := "$_$localpath";
+        if pir::stat__ISI("$path", 0) && pir::stat__ISI($path, 2) {
             if pir::stat__ISI("$path/$file.pm", 0) {
                 @candidates.push("$path/$file.pm");
             }
-            my @dir := pir::new__PS('OS').readdir($path);
-            for @dir {
-                my $match := $_ ~~ /^(<[\w\-\_]>)+\.\d+\.pm$/;
-                if $match && $match[0] eq $file {
-                    @candidates.push("$path/$_");
-                }
-            }
+            #my @dir := pir::new__PS('OS').readdir($path);
+            #for @dir {
+            #    my $match := $_ ~~ /^(<[\w\-\_]>)+\.\d+\.pm$/;
+            #    if $match && $match[0] eq $file {
+            #        @candidates.push("$path$_");
+            #        DEBUG("found $path$_");
+            #    }
+            #}
         }
     }
     return @candidates;
@@ -41,7 +42,7 @@ method find_module_no_conditions($lookfor, @inc) {
     my @candidates := self.find_candidates($lookfor, @inc);
     my $best;
     for @candidates {
-        my $candinfo := get_module_info($_);
+        my $candinfo := self.get_module_info($_);
         if !$best || $candinfo<ver> > $best<ver> {
             $best := $candinfo;
         }
@@ -53,9 +54,9 @@ method find_module($lookfor, @inc, $ver, $auth?) {
     my @candidates := self.find_candidates($lookfor, @inc);
     my @candinfo;
     for @candidates {
-        my $candinfo := get_module_info($_);
+        my $candinfo := self.get_module_info($_);
         if !$auth || $candinfo<auth> eq $auth {
-            if version_compatible($candinfo<ver>, $ver) {
+            if self.version_compatible($candinfo<ver>, $ver) {
                 @candinfo.push($candinfo);
             }
         }

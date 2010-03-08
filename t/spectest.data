@@ -42,7 +42,7 @@ integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
-# S02-builtin_data_types/array_ref.t
+S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/assigning-refs.t
 S02-builtin_data_types/bool.t
@@ -102,7 +102,7 @@ S02-names_and_variables/list_array_perl.t
 S02-names_and_variables/varnames.t
 S02-names/identifier.t
 # S02-names/our.t
-# S02-one-pass-parsing/less-than.t
+S02-one-pass-parsing/less-than.t
 S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
@@ -496,7 +496,7 @@ S32-str/trim.t
 S32-str/ucfirst.t                                          # icu
 S32-str/uc.t                                               # icu
 # S32-str/unpack.t
-## S32-str/words.t                                            # icu
+S32-str/words.t                                            # icu
 # S32-temporal/Temporal.t
 S32-trig/e.t
 # S32-trig/pi.t

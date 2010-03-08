@@ -237,8 +237,8 @@ augment class Any {
         $! ?? fail( "Insufficient arguments supplied to sprintf") !! $result
     }
 
-    method Str() {
-        self
+    multi method Str() {
+        sprintf '%s<0x%f>', self.WHAT, self.WHERE;
     }
 }
 

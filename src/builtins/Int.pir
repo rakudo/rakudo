@@ -69,7 +69,20 @@ Returns the identify value.
     .return ($I0)
 .end
 
+=item Str()
+
+Coercion to Str
+
+=cut
+
+.sub 'Str' :method
+    $S0 = self
+    $P0 = box $S0
+    .return ($P0)
+.end
+
 =back
+
 
 =head2 Operators
 

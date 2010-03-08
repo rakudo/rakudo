@@ -31,10 +31,6 @@ augment class Int {
 
     our ::Complex multi method Complex() { Complex.new(self, 0); }
 
-    our Str multi method Str() {
-        ~self;
-    }
-
     # Most of the trig functions for Int are in Any-num.pm, but
     # sec is a special case.
     our Num multi method sec($base = Radians) {

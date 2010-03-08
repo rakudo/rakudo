@@ -236,27 +236,6 @@ These return various information about the file.
     .return ($P0)
 .end
 
-.sub 'z' :method
-    #is the length of this file zero?
-    .local string filename
-    filename = self
-    $I42 = stat filename, 1
-    if $I42==0 goto worthnothing
-    $P0 = get_hll_global ['Bool'], 'False'
-    .return ($P0)
-  worthnothing:
-    $P0 = get_hll_global ['Bool'], 'True'
-    .return($P0)
-.end
-
-.sub 'filebytes' :method
-    #how big is the file (in bytes)?
-    .local string filename
-    filename = self
-    $I42 = stat filename, 1
-    .return($I42) #if we need a conditional to return a special type of False instead of just 0, then look up
-.end
-
 =back
 
 =head2 Functions

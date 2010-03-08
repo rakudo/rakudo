@@ -236,7 +236,7 @@ These return various information about the file.
     .return ($P0)
 .end
 
-.sub ':l' :method :multi(_)
+.sub 'l' :method
     .local string filename
     filename = self
 

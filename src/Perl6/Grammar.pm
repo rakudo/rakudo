@@ -1226,7 +1226,7 @@ token infix:sym<=>    { <sym>  <O('%list_assignment, :reducecheck<assign_check>'
 method assign_check($/) {
     my $lhs_ast := $/[0].ast;
     my $rhs_ast := $/[1].ast;
-    if $lhs_ast<attribute_data> {
+    if $lhs_ast && $lhs_ast<attribute_data> {
         $lhs_ast<attribute_data><build> := Perl6::Actions::make_attr_init_closure($rhs_ast);
         $/<drop> := 1;
     }

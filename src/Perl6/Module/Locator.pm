@@ -9,9 +9,6 @@ method find_candidates($lookfor, @inc) {
     for @inc {
         my $path := "$_$localpath";
         if pir::stat__ISI("$path", 0) && pir::stat__ISI($path, 2) {
-            if pir::stat__ISI("$path/$file.pm", 0) {
-                @candidates.push("$path/$file.pm");
-            }
             my @dir := pir::new__PS('OS').readdir($path);
             for @dir {
                 if pir::substr__SSII($_, 0, pir::length__IS($file) + 1) eq $file ~ '.' &&
@@ -25,11 +22,22 @@ method find_candidates($lookfor, @inc) {
 }
 
 method get_module_info($filename) {
+    # Set filename and defaults.
     my %h;
     %h<file>    := $filename;
-    # XXX Actually parse here.
     %h<version> := -1;
     %h<auth>    := "";
+    
+    # Read in file and parse it.
+    my $fh     := pir::open__PSS($filename, 'r');
+    my $source := $fh.readall();
+    $fh.close();
+    my $actions := Perl6::Module::VersionDetectionActions.new();
+    try {
+        Perl6::Grammar.parse($source, :actions($actions));
+    };
+    %h<ver>  := $actions.ver();
+    %h<auth> := $actions.auth();
     return %h;
 }
 

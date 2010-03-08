@@ -12,14 +12,13 @@ method find_candidates($lookfor, @inc) {
             if pir::stat__ISI("$path/$file.pm", 0) {
                 @candidates.push("$path/$file.pm");
             }
-            #my @dir := pir::new__PS('OS').readdir($path);
-            #for @dir {
-            #    my $match := $_ ~~ /^(<[\w\-\_]>)+\.\d+\.pm$/;
-            #    if $match && $match[0] eq $file {
-            #        @candidates.push("$path$_");
-            #        DEBUG("found $path$_");
-            #    }
-            #}
+            my @dir := pir::new__PS('OS').readdir($path);
+            for @dir {
+                if pir::substr__SSII($_, 0, pir::length__IS($file) + 1) eq $file ~ '.' &&
+                   pir::substr__SSII($_, pir::length__IS($_) - 3, 3) eq '.pm' {
+                    @candidates.push("$path/$_");
+                }
+            }
         }
     }
     return @candidates;

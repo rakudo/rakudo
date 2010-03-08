@@ -24,6 +24,9 @@ has $!attributes;
 # List of traits.
 has $!traits;
 
+# List of colonpair adverbs.
+has $!name_adverbs;
+
 # Accessor for block.
 method block($block?) {
     if $block { $!block := $block }
@@ -72,6 +75,12 @@ method traits() {
     $!traits
 }
 
+# Accessor for traits list.
+method name_adverbs() {
+    unless $!name_adverbs { $!name_adverbs := PAST::Node.new() }
+    $!name_adverbs
+}
+
 # This method drives the code generation and fixes up the block.
 # XXX Need to support lexical and anonymous.
 method finish($block) {
@@ -85,15 +94,19 @@ method finish($block) {
     my $meta_reg := PAST::Var.new( :name('meta'), :scope('register') );
     my $name := $!name ?? ~$!name !! '';
     if $!scope ne 'augment' {
+        my $new_call :=  PAST::Op.new(
+            :pasttype('callmethod'), :name('new'),
+            $metaclass, $name
+        );
+        for @(self.name_adverbs) {
+            my $param := $_[2];
+            $param.named(~$_[1].value());
+            $new_call.push($param);
+        }
         $decl.push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new( :name('obj'), :scope('register'), :isdecl(1) ),
-            PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('new'),
-                $metaclass,
-                $name
-            )
+            $new_call
         ));
     }
     else {

@@ -638,7 +638,7 @@ method package_def($/, $key?) {
         $*SCOPE := $*SCOPE || 'our';
         $package.scope($*SCOPE);
         if $<def_module_name> {
-            my $name := ~$<def_module_name>[0]<longname>;
+            my $name := ~$<def_module_name>[0]<longname><name>;
             if $name ne '::' {
                 $/.CURSOR.add_name($name);
                 $package.name($name);
@@ -647,7 +647,11 @@ method package_def($/, $key?) {
                 $package.signature($<def_module_name>[0]<signature>[0].ast);
                 $package.signature_text(~$<def_module_name>[0]<signature>[0]);
             }
-            
+            if $<def_module_name>[0]<longname><colonpair> {
+                for $<def_module_name>[0]<longname><colonpair> {
+                    $package.name_adverbs.push($_.ast);
+                }
+            }
         }
 
         # Add traits.

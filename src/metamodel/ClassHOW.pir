@@ -55,6 +55,8 @@ calls on it.
     addattribute $P0, '$!hidden'
     addattribute $P0, '$!composees'
     addattribute $P0, '$!done'
+    addattribute $P0, '$!ver'
+    addattribute $P0, '$!auth'
 
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
@@ -122,6 +124,18 @@ Creates a new instance of the meta-class and returns it in an associated
     setattribute how, 'shortname', $P0
     setattribute how, 'longname', $P0
   no_alt_name:
+  
+    # If we have ver and auth, store them.
+    $P0 = options['ver']
+    unless null $P0 goto have_ver
+    $P0 = get_hll_global 'Any'
+  have_ver:
+    setattribute how, '$!ver', $P0
+    $P0 = options['auth']
+    unless null $P0 goto have_auth
+    $P0 = get_hll_global 'Any'
+  have_auth:
+    setattribute how, '$!auth', $P0
 
     # Finally, wrap it up in a ClassToBe instance.
     $P0 = new ['ClassToBe']
@@ -319,6 +333,28 @@ Completes the creation of the metaclass and return a proto-object.
     transform_to_p6opaque proto
     setprop proto, 'scalar', proto
     .return (proto)
+.end
+
+
+=item ver(object)
+
+=cut
+
+.sub 'ver' :method
+    .param pmc obj
+    $P0 = getattribute self, '$!ver'
+    .return ($P0)
+.end
+
+
+=item auth(object)
+
+=cut
+
+.sub 'auth' :method
+    .param pmc obj
+    $P0 = getattribute self, '$!auth'
+    .return ($P0)
 .end
 
 

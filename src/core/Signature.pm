@@ -29,7 +29,6 @@ augment class Signature {
                         }
                     }
                     elsif substr($perl, 0, 8) eq 'Callable' {
-                        $name = '&' ~ $name;
                         if $perl ne 'Callable' {
                             take substr($perl, 9, $perl.chars - 10) ~ ' ';
                         }

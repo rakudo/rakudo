@@ -52,6 +52,10 @@ role Hash is EnumMap {
         self
     }
 
+    method Bool() {
+        ?pir::istrue__IP(pir::getattribute__PPs(self, '$!storage'));
+    }
+
     method delete(*@keys) {
         my @deleted;
         for @keys -> $k {

@@ -140,7 +140,7 @@ Perl6::Compiler - Perl6 compiler
   have_home:
     concat $S0, '/.perl6/lib'
     unshift $P0, $S0
-    push $P0, '.'
+    unshift $P0, '.'
     # $P0 now has all the directories, move them to @*INC
     $P1 = new ['Parcel']
     # do not use '&circumfix:<[ ]>' because it makes a list of lists

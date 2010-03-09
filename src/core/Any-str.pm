@@ -25,6 +25,14 @@ augment class Any {
         self.split($matcher, :limit($g ?? * !! 2)).join($replacement);
     }
 
+    multi method subst($matcher, &replacement,  :global(:g($g))) {
+        my @chunks = self.split($matcher, :limit($g ?? * !! 2), :all);
+        loop (my $i = 1; $i < @chunks; $i += 2) {
+            @chunks[$i] = replacement(@chunks[$i]);
+        }
+        @chunks.join('');
+    }
+
     multi method comb(Regex $matcher = /./, $limit = *, :$match) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit;

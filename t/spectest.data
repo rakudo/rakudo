@@ -262,8 +262,8 @@ S05-metasyntax/single-quotes.t
 # S05-modifier/perl5_2.t
 # S05-modifier/perl5_7.t
 # S05-modifier/perl5_8.t
-# S05-substitution/match.t
-# S05-substitution/subst.t
+S05-substitution/match.t
+S05-substitution/subst.t
 # S05-transliteration/trans.t
 # S05-transliteration/with-closure.t
 S06-advanced_subroutine_features/lexical-subs.t

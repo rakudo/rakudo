@@ -21,17 +21,21 @@ augment class Any {
         }
     }
 
-    multi method subst($matcher, Str $replacement, :global(:g($g))) {
-        self.split($matcher, :limit($g ?? * !! 2)).join($replacement);
-    }
-
-    multi method subst($matcher, &replacement,  :global(:g($g))) {
-        my @chunks = self.split($matcher, :limit($g ?? * !! 2), :all);
+    multi method subst($matcher, $replacement,  :g(:$global), :$x) {
+        die "Can't combine :g/:global and :x in subst"
+            if defined($global) && defined($x);
+        my $limit = defined($x) ?? $x +1 !! 2;
+        my @chunks = self.split($matcher, :limit($global ?? * !! $limit), :all);
+        if defined($x) && (@chunks < 2 * $x) {
+            return self;
+        }
         loop (my $i = 1; $i < @chunks; $i += 2) {
-            @chunks[$i] = replacement(@chunks[$i]);
+            pir::store_dynamic_lex__vSP('$/', @chunks[$i]);
+            @chunks[$i] = $replacement ~~ Callable ?? $replacement(@chunks[$i]) !! $replacement;
         }
         @chunks.join('');
     }
+
 
     multi method comb(Regex $matcher = /./, $limit = *, :$match) {
         my $c = 0;
@@ -60,8 +64,8 @@ augment class Any {
         }
     }
 
-    multi method split($delimiter, $limit = *) {
-        my Str $match-string = $delimiter ~~ Str ?? $delimiter !! $delimiter.Str;
+    multi method split($delimiter, $limit = *, :$all) {
+        my $match-string = $delimiter.Str;
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
         if $l >= 0 {
@@ -75,6 +79,7 @@ augment class Any {
                         my $m = self.index($match-string, $c);
                         last if $m.notdef; # CHEAT, but the best I can do for now
                         take self.substr($c, $m - $c);
+                        take $match-string if $all;
                         $c = $m + $match-string.chars;
                     }
                 }

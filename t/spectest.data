@@ -377,7 +377,7 @@ S12-methods/private.t
 # S12-methods/syntax.t
 S12-methods/topic.t
 S12-methods/typed-attributes.t
-# S12-methods/what.t
+S12-methods/what.t
 # S12-subset/multi-dispatch.t
 # S12-subset/subtypes.t
 S13-type-casting/methods.t

@@ -170,7 +170,7 @@ S03-smartmatch/any-pair.t
 S03-smartmatch/any-type.t
 # S03-smartmatch/array-array.t
 S03-smartmatch/array-hash.t
-# S03-smartmatch/disorganized.t
+S03-smartmatch/disorganized.t
 S03-smartmatch/hash-hash.t
 # S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t

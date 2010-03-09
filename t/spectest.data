@@ -130,6 +130,7 @@ S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 # S03-operators/chained-declarators.t
 # S03-operators/comparison.t
+S03-operators/comparison-simple.t
 S03-operators/context-forcers.t
 # S03-operators/context.t
 # S03-operators/cross-metaop.t

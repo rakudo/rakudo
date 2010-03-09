@@ -21,7 +21,7 @@ augment class Any {
         }
     }
 
-    multi method subst($matcher, Str $replacement, :$g) {
+    multi method subst($matcher, Str $replacement, :global(:g($g))) {
         self.split($matcher, :limit($g ?? * !! 2)).join($replacement);
     }
 

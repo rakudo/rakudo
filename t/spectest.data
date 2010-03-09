@@ -347,7 +347,7 @@ S12-construction/autopairs.t
 # S12-construction/BUILD.t
 S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
-# S12-construction/new.t
+S12-construction/new.t
 S12-enums/anonymous.t
 # S12-enums/as-role.t
 # S12-enums/basic.t
@@ -477,7 +477,7 @@ S32-str/bool.t
 S32-str/capitalize.t                                       # icu
 S32-str/chomp.t
 S32-str/chop.t
-## S32-str/comb.t                                             # icu
+S32-str/comb.t                                             # icu
 # S32-str/encode.t
 S32-str/flip.t
 S32-str/index.t

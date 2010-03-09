@@ -638,7 +638,7 @@ method package_def($/, $key?) {
         $*SCOPE := $*SCOPE || 'our';
         $package.scope($*SCOPE);
         if $<def_module_name> {
-            my $name := ~$<def_module_name>[0]<longname>;
+            my $name := ~$<def_module_name>[0]<longname><name>;
             if $name ne '::' {
                 $/.CURSOR.add_name($name);
                 $package.name($name);
@@ -647,7 +647,11 @@ method package_def($/, $key?) {
                 $package.signature($<def_module_name>[0]<signature>[0].ast);
                 $package.signature_text(~$<def_module_name>[0]<signature>[0]);
             }
-            
+            if $<def_module_name>[0]<longname><colonpair> {
+                for $<def_module_name>[0]<longname><colonpair> {
+                    $package.name_adverbs.push($_.ast);
+                }
+            }
         }
 
         # Add traits.
@@ -1035,33 +1039,135 @@ method method_def($/) {
     make $past;
 }
 
-method regex_declarator($/, $key?) {
-    if $key ne 'open' {
-        # Create regex code object.
-        # XXX TODO: token/regex/rule differences, signatures, traits.
-        my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        $past := create_code_object($past, 'Regex', 0, '');
-
-        # Install in lexpad or namespace. XXX Need & on start of name?
-        my $name := ~$<deflongname>;
-        if $*SCOPE ne 'our' {
-            @BLOCK[0][0].push(PAST::Var.new( :name($name), :isdecl(1), 
-                                             :viviself($past), :scope('lexical') ) );
-            @BLOCK[0].symbol($name, :scope('lexical') );
-        }
-
-        # Otherwise, package scoped; add something to loadinit to install them.
-        else {
-            @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new( :name($name), :scope('package') ),
-                $past
-            ));
-            @BLOCK[0].symbol($name, :scope('package') );
-        }
-
-        make PAST::Var.new( :name($name) );
+our %REGEX_MODIFIERS;
+method regex_declarator:sym<regex>($/, $key?) {
+    if ($key) {
+        my %h;
+        %REGEX_MODIFIERS := %h;
+    } else {
+        make $<regex_def>.ast;
     }
+}
+
+method regex_declarator:sym<token>($/, $key?) {
+    if ($key) {
+        my %h;
+        %h<r> := 1;
+        %REGEX_MODIFIERS := %h;
+    } else {
+        make $<regex_def>.ast;
+    }
+}
+
+method regex_declarator:sym<rule>($/, $key?) {
+    if ($key) {
+        my %h;
+        %h<r> := 1; %h<s> :=1;
+        %REGEX_MODIFIERS := %h;
+    } else {
+        make $<regex_def>.ast;
+    }
+}
+
+method regex_def($/, $key?) {
+    my $name := ~$<deflongname>[0];
+    my @MODIFIERS := Q:PIR {
+        %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
+    };
+    my $past;
+    if $key eq 'open' {
+        @MODIFIERS.unshift(%REGEX_MODIFIERS);
+        # The following is so that <sym> can work
+        Q:PIR {
+            $P0 = find_lex '$name'
+            set_hll_global ['Regex';'P6Regex';'Actions'], '$REGEXNAME', $P0
+        };
+        return 0;
+    } elsif $*MULTINESS eq 'proto' {
+        @MODIFIERS.shift;
+        @BLOCK.shift;
+        unless ($name) {
+            $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's cannot be anonymous');  
+        }
+#        $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's not implemented yet');
+        our @PACKAGE;
+        unless +@PACKAGE { 
+            $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
+        }
+        my %table;
+        %table := @PACKAGE[0].methods();
+        unless %table{$name} { my %tmp; %table{$name} := %tmp; }
+        if %table{$name} {
+            $/.CURSOR.panic('Cannot declare proto ' ~ ~$<sym> ~ ' ' ~ $name ~ 
+                ' when another with this name was already declared');
+        }
+        %table{$name}<code_ref> :=
+            create_code_object(
+                PAST::Block.new( :name($name),
+                    PAST::Op.new(
+                        PAST::Var.new( :name('self'), :scope('register') ),
+                        $name,
+                        :name('!protoregex'),
+                        :pasttype('callmethod')
+                    ),
+                    :lexical(0),
+                    :blocktype('method'),
+                    :pirflags(':anon'),
+                    :node($/)
+                ),
+                'Regex', 0, '');
+        %table{'!PREFIX__' ~ $name}<code_ref> :=
+            create_code_object(
+                PAST::Block.new( :name('!PREFIX__' ~ $name),
+                    PAST::Op.new(
+                        PAST::Var.new( :name('self'), :scope('register') ),
+                        $name,
+                        :name('!PREFIX__!protoregex'),
+                        :pasttype('callmethod')
+                    ),
+                    :blocktype('method'),
+                    :pirflags(':anon'),
+                    :lexical(0),
+                    :node($/)
+                ),
+                'Regex', 0, '');
+    } else {
+        @MODIFIERS.shift;
+        $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast, @BLOCK.shift);
+        $past.unshift(PAST::Op.new(
+            :pasttype('inline'),
+            :inline("    .local pmc self\n    self = find_lex 'self'")
+            ));
+        my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
+        $sig.add_invocant();
+        $sig.set_default_parameter_type('Any');
+        $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
+        $past.symbol('self', :scope('lexical'));
+        my $sig_setup_block := add_signature($past, $sig, 1);
+        $past.name($name);
+        $past.blocktype("declaration");
+        # If the methods are not :anon they'll conflict at class composition time.
+        $past.pirflags(':anon');
+        $past := create_code_object($past, 'Regex', 0, $sig_setup_block);
+        if ($name) {
+            our @PACKAGE;
+            unless +@PACKAGE { 
+                $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
+            }
+            my %table;
+            %table := @PACKAGE[0].methods();
+            unless %table{$name} { my %tmp; %table{$name} := %tmp; }
+
+            if %table{$name} {
+                $/.CURSOR.panic('Cannot declare ' ~ ~$<sym> ~ ' ' ~ $name ~ 
+                    ' when another with this name was already declared');
+            }
+            %table{$name}<code_ref> := $past;
+            make PAST::Stmts.new();
+            return 0;
+        }
+    }
+    make $past;
 }
 
 method type_declarator:sym<enum>($/) {
@@ -1072,6 +1178,54 @@ method type_declarator:sym<enum>($/) {
         :name('!create_anon_enum'),
         $values
     );
+}
+
+method type_declarator:sym<subset>($/) {
+    # Figure out our refinee.
+    my $of_trait := has_compiler_trait($<trait>, '&trait_mod:<of>');
+    my $refinee := $of_trait ??
+        $of_trait[0] !! 
+        PAST::Var.new( :name('Any'), :namespace(Nil), :scope('package') );
+    
+    # Construct subset and install it in the right place.
+    my $cons_past := PAST::Op.new(
+        :name('&CREATE_SUBSET_TYPE'),
+        $refinee,
+        $<EXPR> ?? where_blockify($<EXPR>[0].ast) !!
+                   PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') )
+    );
+ 
+    # Stick it somewhere appropriate.
+    if $<longname> {
+        my $name := $<longname>[0].Str;
+        if $*SCOPE eq '' || $*SCOPE eq 'our' {
+            # Goes in the package.
+            @PACKAGE[0].block.loadinit.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new( :name($name), :scope('package') ),
+                $cons_past
+            ));
+            @BLOCK[0].symbol($name, :scope('package') );
+        }
+        elsif $*SCOPE eq 'my' {
+            # Install in the lexpad.
+            @BLOCK[0][0].push(PAST::Var.new(
+                :name($name), :isdecl(1), 
+                :viviself($cons_past), :scope('lexical')
+            ));
+            @BLOCK[0].symbol($name, :scope('lexical') );
+        }
+        else {
+            $/.CURSOR.panic("Can not declare a subset with scope declarator " ~ $*SCOPE);
+        }
+        make PAST::Var.new( :name($name) );
+    }
+    else {
+        if $*SCOPE ne '' && $*SCOPE ne 'anon' {
+            $/.CURSOR.panic('A ' ~ $*SCOPE ~ ' scoped subset must have a name.');
+        }
+        make $cons_past;
+    }
 }
 
 method capterm($/) {
@@ -1223,25 +1377,7 @@ method post_constraint($/) {
         $*PARAMETER.sub_signature( $<signature>.ast );
     }
     else {
-        my $past := $<EXPR>.ast;
-        unless $past.isa(PAST::Block) {
-            $past := PAST::Block.new( :blocktype('declaration'),
-                PAST::Stmts.new( ),
-                PAST::Stmts.new(
-                    PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
-                        PAST::Var.new( :name('$_'), :scope('lexical') ),
-                        $past
-                    )
-                )
-            );
-            my $sig := Perl6::Compiler::Signature.new();
-            my $param := Perl6::Compiler::Parameter.new();
-            $param.var_name('$_');
-            $sig.add_parameter($param);
-            my $lazy_name := add_signature($past, $sig, 1);
-            $past := create_code_object($past, 'Block', 0, $lazy_name);
-        }
-        $*PARAMETER.cons_types.push($past);
+        $*PARAMETER.cons_types.push(where_blockify($<EXPR>.ast));
     }
 }
 
@@ -1686,6 +1822,16 @@ method infixish($/) {
         }
         make PAST::Op.new( :name($opsub), :pasttype('call') );
     }
+
+    if $<infix_prefix_meta_operator> {
+        my $metaop := ~$<infix_prefix_meta_operator><sym>;
+        my $sym := ~$<infix><sym>;
+        my $metasub := "&infix_prefix_meta_operator:<$metaop>";
+        my $opsub := "&infix:<$sym>";
+        make PAST::Op.new( :name($metasub),
+                           $opsub,
+                           :pasttype('call') );
+    }
 }
 
 method postfixish($/) {
@@ -1870,7 +2016,14 @@ method quote:sym<m>($/) {
     make create_code_object($past, 'Regex', 0, '');
 }
 
-method quote_escape:sym<$>($/) { make $<variable>.ast; }
+method quote_escape:sym<$>($/) {
+    #make $<variable>.ast;
+    # my $a = 3; say "$a".WHAT # Gives Int, not Str with the above. Force
+    # stringification to fix this. This should probably be handled in nqp-rx,
+    # but work around it for now.
+    make PAST::Op.new( $<variable>.ast, :pirop('set SP') );
+}
+
 method quote_escape:sym<{ }>($/) {
     make PAST::Op.new(
         :pirop('set S*'), block_immediate($<block>.ast), :node($/)
@@ -1949,23 +2102,31 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
     method codeblock($/) {
         my $block := $<block>.ast;
         $block.blocktype('immediate');
-        my $past := 
-            PAST::Regex.new(
-                PAST::Stmts.new(
+        make bindmatch($block);
+    }
+    
+    method p6arglist($/) {
+        my $arglist := $<arglist>.ast;
+#        make bindmatch($arglist);
+        make $arglist;
+    }
+
+    sub bindmatch($past) {
+        PAST::Regex.new(
+            PAST::Stmts.new(
+                PAST::Op.new(
+                    PAST::Var.new( :name('$/') ),
                     PAST::Op.new(
-                        PAST::Var.new( :name('$/') ),
-                        PAST::Op.new(
-                            PAST::Var.new( :name('$¢') ),
-                            :name('MATCH'),
-                            :pasttype('callmethod')
-                        ),
-                        :pasttype('bind')
+                        PAST::Var.new( :name('$¢') ),
+                        :name('MATCH'),
+                        :pasttype('callmethod')
                     ),
-                    $block
+                    :pasttype('bind')
                 ),
-                :pasttype('pastnode')
-            );
-        make $past;
+                $past
+            ),
+            :pasttype('pastnode')
+        );
     }
 }
 
@@ -2321,3 +2482,32 @@ sub prevent_null_return($block) {
         $block[1].push(PAST::Op.new( :name('&Nil') ));
     }
 }
+
+# Takes something that may be a block already, and if not transforms it into
+# one. Used by things doing where clause-ish things.
+sub where_blockify($expr) {
+    my $past;
+    if $expr.isa(PAST::Block) {
+        $past := $expr;
+    }
+    else {
+        $past := PAST::Block.new( :blocktype('declaration'),
+            PAST::Stmts.new( ),
+            PAST::Stmts.new(
+                PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
+                    PAST::Var.new( :name('$_'), :scope('lexical') ),
+                    $expr
+                )
+            )
+        );
+        my $sig := Perl6::Compiler::Signature.new();
+        my $param := Perl6::Compiler::Parameter.new();
+        $param.var_name('$_');
+        $sig.add_parameter($param);
+        my $lazy_name := add_signature($past, $sig, 1);
+        $past := create_code_object($past, 'Block', 0, $lazy_name);
+    }
+    $past
+}
+
+# vim: ft=perl6

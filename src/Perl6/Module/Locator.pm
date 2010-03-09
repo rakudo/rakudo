@@ -1,0 +1,72 @@
+class Perl6::Module::Locator;
+
+method find_candidates($lookfor, @inc) {
+    my @dirs      := pir::split__PSS('::', $lookfor);
+    my $file      := @dirs.pop();
+    my $localpath := +@dirs ?? pir::join__SSP('/', @dirs) ~ '/' !! '';
+ 
+    my @candidates;
+    for @inc {
+        my $path := "$_$localpath";
+        if pir::stat__ISI("$path", 0) && pir::stat__ISI($path, 2) {
+            my @dir := pir::new__PS('OS').readdir($path);
+            for @dir {
+                if pir::substr__SSII($_, 0, pir::length__IS($file) + 1) eq $file ~ '.' &&
+                   pir::substr__SSII($_, pir::length__IS($_) - 3, 3) eq '.pm' {
+                    @candidates.push("$path/$_");
+                }
+            }
+        }
+    }
+    return @candidates;
+}
+
+method get_module_info($filename) {
+    # Set filename and defaults.
+    my %h;
+    %h<file>    := $filename;
+    %h<version> := -1;
+    %h<auth>    := "";
+    
+    # Read in file and parse it.
+    my $fh     := pir::open__PSS($filename, 'r');
+    my $source := $fh.readall();
+    $fh.close();
+    my $actions := Perl6::Module::VersionDetectionActions.new();
+    try {
+        Perl6::Grammar.parse($source, :actions($actions));
+    };
+    %h<ver>  := $actions.ver();
+    %h<auth> := $actions.auth();
+    return %h;
+}
+
+method version_compatible($module_ver, $want_ver) {
+    $module_ver == $want_ver
+}
+
+method find_module_no_conditions($lookfor, @inc) {
+    my @candidates := self.find_candidates($lookfor, @inc);
+    my $best;
+    for @candidates {
+        my $candinfo := self.get_module_info($_);
+        if !$best || $candinfo<ver> > $best<ver> {
+            $best := $candinfo;
+        }
+    }
+    return $best ?? $best<file> !! '';
+}
+
+method find_module($lookfor, @inc, $ver, $auth?) {
+    my @candidates := self.find_candidates($lookfor, @inc);
+    my @candinfo;
+    for @candidates {
+        my $candinfo := self.get_module_info($_);
+        if !$auth || $candinfo<auth> eq $auth {
+            if self.version_compatible($candinfo<ver>, $ver) {
+                @candinfo.push($candinfo);
+            }
+        }
+    }
+    return +@candinfo ?? @candinfo[0]<file> !! '';
+}

@@ -552,7 +552,7 @@ token declarator {
     | '(' ~ ')' <signature> <trait>*
     | <routine_declarator>
     | <regex_declarator>
-#    | <type_declarator>
+    | <type_declarator>
     ]
 }
 
@@ -589,6 +589,7 @@ rule scoped($*SCOPE) {
     | <DECL=variable_declarator>
     | <DECL=routine_declarator>
     | <DECL=package_declarator>
+    | <DECL=type_declarator>
     | <typename>+ 
       {
         if +$<typename> > 1 {
@@ -759,18 +760,31 @@ rule post_constraint {
     ]
 }
 
-rule regex_declarator {
+proto token regex_declarator { <...> }
+token regex_declarator:sym<rule> { 
+    <sym> {*} #= open
+    :my $*METHODTYPE := 'rule';
+    <regex_def> 
+}
+token regex_declarator:sym<token> { 
+    <sym> {*} #= open
+    :my $*METHODTYPE := 'token';
+    <regex_def> 
+}
+token regex_declarator:sym<regex> { 
+    <sym> {*} #= open
+    :my $*METHODTYPE := 'regex';
+    <regex_def> 
+}
+
+rule regex_def {
     [
-    | $<proto>=[proto] [regex|token|rule] 
-      <deflongname> 
-      '{' '<...>' '}'<?ENDSTMT>
-    | $<sym>=[regex|token|rule]
-      <deflongname>
+      <deflongname>?
       <.newpad>
-      [ '(' <signature> ')' ]?
+      [ [ ':'?'(' <signature> ')'] | <trait> ]*
       {*} #= open
-      '{'<p6regex=.LANG('Regex','nibbler')>'}'<?ENDSTMT>
-    ]
+      '{'[ '<...>' |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
+    ] || <.panic: "Malformed regex">
 }
 
 proto token type_declarator { <...> }
@@ -779,6 +793,19 @@ token type_declarator:sym<enum> {
     <sym> <.ws>
     <name>? <.ws>
     <?before '(' | '<' | '<<' | '«' > <circumfix>
+}
+
+token type_declarator:sym<subset> {
+    :my $*IN_DECL := 'subset';
+    <sym> :s
+    [
+        [
+            [ <longname> { $/.CURSOR.add_name($<longname>[0].Str); } ]?
+            <trait>*
+            [ where <EXPR('e=')> ]?
+        ]
+        || <.panic: 'Malformed subset'>
+    ]
 }
 
 rule trait {
@@ -981,6 +1008,7 @@ INIT {
 token infixish {
     | <OPER=infix> <![=]>
     | <infix> <OPER=infix_postfix_meta_operator>
+    | <OPER=infix_prefix_meta_operator> <infix>
 }
 
 token postfixish {
@@ -1004,6 +1032,8 @@ token postop {
 }
 
 proto token infix_postfix_meta_operator { <...> }
+
+proto token infix_prefix_meta_operator { <...> }
 
 proto token postfix_prefix_meta_operator { <...> }
 
@@ -1134,6 +1164,7 @@ token infix:sym«lt»   { <sym>  <O('%chaining')> }
 token infix:sym«gt»   { <sym>  <O('%chaining')> }
 token infix:sym«=:=»  { <sym>  <O('%chaining')> }
 token infix:sym<===>  { <sym>  <O('%chaining')> }
+token infix:sym<!===> { <sym>  <O('%chaining')> }
 token infix:sym<eqv>  { <sym>  <O('%chaining')> }
 token infix:sym<before>  { <sym>  <O('%chaining')> }
 token infix:sym<after>  { <sym>  <O('%chaining')> }
@@ -1155,6 +1186,9 @@ token infix:sym<?? !!> {
     '!!'
     <O('%conditional, :reducecheck<ternary>, :pasttype<if>')> 
 }
+
+# item_assignment is probably wrong, but I don't know how to do what is right...
+token infix_prefix_meta_operator:sym<!> { <sym> <O('%item_assignment')> }
 
 token infix:sym<:=> {
     <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>
@@ -1195,7 +1229,7 @@ token infix:sym<=>    { <sym>  <O('%list_assignment, :reducecheck<assign_check>'
 method assign_check($/) {
     my $lhs_ast := $/[0].ast;
     my $rhs_ast := $/[1].ast;
-    if $lhs_ast<attribute_data> {
+    if $lhs_ast && $lhs_ast<attribute_data> {
         $lhs_ast<attribute_data><build> := Perl6::Actions::make_attr_init_closure($rhs_ast);
         $/<drop> := 1;
     }
@@ -1235,54 +1269,60 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
     token codeblock {
         <block=.LANG('MAIN','block')>
     }
+
+    token assertion:sym<name> {
+        $<longname>=[\w+]
+            [
+            | <?before '>'>
+            | '=' <assertion>
+            | ':' <arglist>
+            | '(' <arglist=p6arglist> ')'
+            | <.normspace> <nibbler>
+            ]?
+    } 
+
+    token p6arglist {
+        <arglist=.LANG('MAIN','arglist')> 
+    }
+}
+
+our %is_sigil;
+INIT {
+    our %is_sigil;
+    %is_sigil{'$'} := 1;
+    %is_sigil{'@'} := 1;
+    %is_sigil{'%'} := 1;
+    %is_sigil{'&'} := 1;
 }
 
 
 sub parse_name($name) {
-    # XXX Some enterprising soul could re-write this in NQP. ;-)
-    Q:PIR {
-        .local string name
-        $P0 = find_lex '$name'
-        name = $P0
-        ##  remove any type parameterization for now
-        .local string type_param
-        type_param = ''
-        $I0 = index name, '['
-        if $I0 == -1 goto type_param_done
-        type_param = substr name, $I0
-        name = substr name, 0, $I0
-      type_param_done:
-        ##  divide name based on ::
-        .local pmc list
-        list = split '::', name
-        ##  move any leading sigil to the last item
-        .local string sigil
-        $S0 = list[0]
-        sigil = substr $S0, 0, 1
-        $I0 = index '$@%&', sigil
-        if $I0 < 0 goto sigil_done
-        substr $S0, 0, 1, ''
-        list[0] = $S0
-        $S0 = list[-1]
-        $S0 = concat sigil, $S0
-        list[-1] = $S0
-      sigil_done:
-        ##  remove any empty items from the list
-        $P0 = iter list
-        list = new 'ResizablePMCArray'
-      iter_loop:
-        unless $P0 goto iter_done
-        $S0 = shift $P0
-        unless $S0 goto iter_loop
-        push list, $S0
-        goto iter_loop
-      iter_done:
-        if type_param == '' goto no_add_type_param
-        $S0 = pop list
-        concat $S0, type_param
-        push list, $S0
-      no_add_type_param:
-        .return (list)
+    my $type_param := '';
+    my $sep := pir::index__ISS($name,'[');
+    if ($sep > -1) {
+        $type_param := pir::substr__SSII($name, $sep);
+        $name := pir::substr__SSII($name, 0, $sep);
     }
-}
 
+    my @parts := pir::split__PSS('::', $name);
+    my $sigil := pir::substr__SSII(@parts[0], 0, 1);
+    if %is_sigil{$sigil} {
+        @parts[0] := pir::substr__SSII(@parts[0], 1);
+        my $last_part := @parts.pop();
+        $last_part := $sigil ~ $last_part;
+        @parts.push($last_part);
+    }
+
+    my @result;
+    for @parts {
+        @result.push($_) if $_;
+    }
+
+    if $type_param {
+        my $last_part := @result.pop();
+        $last_part := $last_part ~ $type_param;
+        @result.push($last_part);
+    }
+
+    @result;
+}

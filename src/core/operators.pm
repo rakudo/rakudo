@@ -102,8 +102,8 @@ our multi infix:<does>(Mu \$do-it-to-me, ConcreteRole $r) {
     $do-it-to-me
 }
 
-our multi infix:<but>(Mu $do-it-to-me is copy, \$r) {
-    $do-it-to-me does $r
+our multi infix:<but>(Mu \$do-it-to-me, \$r) {
+    $do-it-to-me.clone() does $r
 }
 
 our multi infix:<before>($a, $b) {
@@ -400,4 +400,8 @@ our multi sub infix:<Z>(Iterable $a-iterable, Iterable $b-iterable) {
         take $a;
         take $b;
     }
+}
+
+multi sub infix_prefix_meta_operator:<!>($a, $b, $c) {
+    !(pir::get_hll_global__CS($a)($b, $c));
 }

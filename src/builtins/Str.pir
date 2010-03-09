@@ -236,25 +236,15 @@ These return various information about the file.
     .return ($P0)
 .end
 
-.sub 'z' :method
-    #is the length of this file zero?
+.sub 'l' :method
     .local string filename
     filename = self
-    $I42 = stat filename, 1
-    if $I42==0 goto worthnothing
-    $P0 = get_hll_global ['Bool'], 'False'
-    .return ($P0)
-  worthnothing:
-    $P0 = get_hll_global ['Bool'], 'True'
-    .return($P0)
-.end
 
-.sub 's' :method
-    #how big is the file (in bytes)?
-    .local string filename
-    filename = self
-    $I42 = stat filename, 1
-    .return($I42) #if we need a conditional to return a special type of False instead of just 0, then look up
+    .local pmc file
+    file = root_new ['parrot';'File']
+
+    $I0 = file.'is_link'(filename)
+    .return ($I0)
 .end
 
 =back

@@ -97,6 +97,8 @@ Perl6::Compiler - Perl6 compiler
 .include 'src/gen/package_pm.pir'
 .include 'src/gen/module_pm.pir'
 .include 'src/gen/role_pm.pir'
+.include 'src/gen/locator_pm.pir'
+.include 'src/gen/versiondetectionactions_pm.pir'
 .include 'src/gen/perl6-grammar.pir'
 .include 'src/gen/perl6-actions.pir'
 
@@ -114,6 +116,39 @@ Perl6::Compiler - Perl6 compiler
     nqpproto.'parseactions'($P0)
     $P0 = split ' ', 'e=s help|h target=s dumper=s trace|t=s encoding=s output|o=s combine version|v parsetrace'
     setattribute nqpproto, '@cmdoptions', $P0
+    
+    # Set up @*INC from $PERL6LIB, languages/perl6/lib and ~/.perl6/lib
+    .local pmc env, interp, config
+    # Convert PERL6LIB first
+    env = root_new ['parrot';'Env']
+    $S0 = env['PERL6LIB']
+    $P0 = split ':', $S0
+    # Now prepend the installed Parrot languages/perl6/lib directory
+    interp = getinterp
+    config = interp[.IGLOBALS_CONFIG_HASH]
+    $S0 = config['libdir']
+    $S1 = config['versiondir']
+    concat $S0, $S1
+    concat $S0, '/languages/perl6/lib'
+    unshift $P0, $S0
+    # Now prepend ~/.perl6/lib
+    $S0 = env['HOME']
+    if $S0 goto have_home     # for users of unix-y systems
+    # here only for those of a fenestral persuasion
+    $S0 = env['HOMEDRIVE']
+    $S1 = env['HOMEPATH']
+    concat $S0, $S1
+  have_home:
+    concat $S0, '/.perl6/lib'
+    unshift $P0, $S0
+    unshift $P0, '.'
+    # $P0 now has all the directories, move them to @*INC
+    $P1 = new ['Parcel']
+    # do not use '&circumfix:<[ ]>' because it makes a list of lists
+    splice $P1, $P0, 0, 0
+    $P2 = new ['Array']
+    $P2.'!STORE'($P1)
+    set_hll_global '@INC', $P2
 .end
 
 .sub load_module :method

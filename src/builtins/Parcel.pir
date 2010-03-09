@@ -22,6 +22,11 @@ elements and can be flattened into Captures or Lists.
     parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Iterable', 'does_role'=>pos_role)
 .end
 
+.sub '' :vtable('get_string') :method
+    $S0 = self.'Str'()
+    .return ($S0)
+.end
+
 
 =item defined()
 

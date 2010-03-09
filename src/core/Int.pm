@@ -31,10 +31,6 @@ augment class Int {
 
     our ::Complex multi method Complex() { Complex.new(self, 0); }
 
-    our Str multi method Str() {
-        ~self;
-    }
-
     # Most of the trig functions for Int are in Any-num.pm, but
     # sec is a special case.
     our Num multi method sec($base = Radians) {
@@ -68,7 +64,11 @@ our multi sub infix:<%>(Int $a, Int $b) {
 }
 
 our multi sub infix:<**>(Int $a, Int $b) {
-    upgrade_to_num_if_needed(pir::pow__NNN($a, $b))
+    if $b >= 0 {
+        upgrade_to_num_if_needed(pir::pow__NNN($a, $b))
+    } else {
+        pir::pow__NNN($a, $b)
+    }
 }
 
 our multi sub prefix:<->(Int $a) {

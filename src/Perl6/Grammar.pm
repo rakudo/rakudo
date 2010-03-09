@@ -763,14 +763,17 @@ rule post_constraint {
 proto token regex_declarator { <...> }
 token regex_declarator:sym<rule> { 
     <sym> {*} #= open
+    :my $*METHODTYPE := 'rule';
     <regex_def> 
 }
 token regex_declarator:sym<token> { 
     <sym> {*} #= open
+    :my $*METHODTYPE := 'token';
     <regex_def> 
 }
 token regex_declarator:sym<regex> { 
     <sym> {*} #= open
+    :my $*METHODTYPE := 'regex';
     <regex_def> 
 }
 

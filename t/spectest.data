@@ -59,7 +59,7 @@ S02-builtin_data_types/multi_dimensional_array.t
 # S02-builtin_data_types/nan.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
-# S02-builtin_data_types/nil.t
+S02-builtin_data_types/nil.t
 S02-builtin_data_types/num.t
 S02-builtin_data_types/pair.t
 S02-builtin_data_types/parcel.t
@@ -189,7 +189,7 @@ S04-phasers/end.t
 # S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 # S04-declarations/multiple.t
-# S04-declarations/my.t
+S04-declarations/my.t
 # S04-declarations/state.t
 S04-exceptions/fail.t
 S04-statement-modifiers/for.t

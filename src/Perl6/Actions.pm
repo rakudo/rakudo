@@ -131,12 +131,14 @@ method statement($/, $key?) {
                         :pasttype(~$mc<sym>), :node($/) );
         }
         if $ml {
+            my $cond := $ml<smexpr>.ast;
             if ~$ml<sym> eq 'for' {
                 $past := PAST::Block.new( :blocktype('immediate'),
                     PAST::Var.new( :name('$_'), :scope('parameter'), :isdecl(1) ),
                     $past);
+                $cond := PAST::Op.new(:name('&eager'), $cond);
             }
-            $past := PAST::Op.new($ml<smexpr>.ast, $past, :pasttype(~$ml<sym>), :node($/) );
+            $past := PAST::Op.new($cond, $past, :pasttype(~$ml<sym>), :node($/) );
         }
     }
     elsif $<statement_control> { $past := $<statement_control>.ast; }

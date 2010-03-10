@@ -299,13 +299,13 @@ our multi sub infix:<...>(Code $lhs, $rhs) {
     }
 }
 
-our multi sub infix:<...>(@lhs, $rhs) {
+our multi sub infix:<...>(@lhs is copy, $rhs) {
     my $limit;
     $limit = $rhs if !($rhs ~~ Whatever);
 
     my $next;
     if @lhs[@lhs.elems - 1] ~~ Code {
-        $next = @lhs[@lhs.elems - 1];
+        $next = @lhs.pop;
     } else {
         given @lhs.elems {
             when 1 {
@@ -331,25 +331,35 @@ our multi sub infix:<...>(@lhs, $rhs) {
         }
     }
 
-    my $i = @lhs[0];
-    gather {
-        my $j = $i;
-        take $j;
-        if !$limit.defined || $limit cmp $j != 0 {
-            my $last = $i;
+    my $arity = any( $next.signature.params>>.slurpy ) ?? Inf !! $next.count;
 
+    gather {
+        my @args;
+        my $j;
+        my $top = $arity min @lhs.elems;
+        for 0..^$top -> $i {
+            $j = @lhs[$i];
+            take $j;
+            @args.push($j);
+        }
+
+        if !$limit.defined || $limit cmp $j != 0 {
             loop {
-                $i = $next.($last);
+                my $i = $next.(|@args);
                 my $j = $i;
 
                 my $cur_cmp = 1;
                 if $limit.defined {
                     $cur_cmp = $limit cmp $j;
-                    last if ($last cmp $limit) == $cur_cmp;
+                    last if (@args[@args.elems - 1] cmp $limit) == $cur_cmp;
                 }
                 take $j;
                 last if $cur_cmp == 0;
-                $last = $i;
+
+                @args.push($j);
+                while @args.elems > $arity {
+                    @args.shift;
+                }
             }
         }
     }

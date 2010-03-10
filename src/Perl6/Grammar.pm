@@ -381,12 +381,28 @@ token statement_control:sym<return> {
     <sym> :s <EXPR>?
 }
 
+token vnum {
+    \d+ | '*'
+}
+
+token version {
+    'v' <?before \d+> <vnum> ** '.' '+'?
+}
+
 token statement_control:sym<use> {
     <sym> <.ws> 
     [
-    | 'v6'
+    | <version>
     | <module_name>
     ]
+}
+
+token statement_control:sym<need> {
+    <sym> :s
+    [
+    | <version>
+    | <module_name>
+    ] ** ','
 }
 
 token statement_control:sym<given> {

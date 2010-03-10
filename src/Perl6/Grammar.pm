@@ -385,7 +385,7 @@ token statement_control:sym<use> {
     <sym> <.ws> 
     [
     | 'v6'
-    | <module_name=.longname>
+    | <module_name>
     ]
 }
 

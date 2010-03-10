@@ -2,6 +2,8 @@
 # and import.
 class Perl6::Module::Loader;
 
+our %LOADED;
+
 method need($name, %name_adverbs) {
     # Use locator to find the module.
     my @inc     := pir::get_hll_global__PS('@INC');
@@ -18,7 +20,10 @@ method need($name, %name_adverbs) {
     unless pir::stat__ISI($pir_file, 0) {
         pir::die("Sorry, for now you must manually compile .pm modules to .pir (missing for $name).");
     }
-    pir::load_bytecode__vS($pir_file);
+    unless %LOADED{$pir_file} {
+        pir::load_bytecode__vS($pir_file);
+        %LOADED{$pir_file} := 1;
+    }
     1;
 }
 
@@ -32,14 +37,24 @@ method get_imports($name) {
 }
 
 method stub_lexical_imports($name, $block_ast) {
+    my %imports := self.get_imports($name);
+    unless pir::isnull__IP(%imports) {
+        for %imports {
+            $block_ast[0].push(PAST::Var.new(
+                :name(~$_), :scope('lexical'), :isdecl(1),
+                :viviself(PAST::Op.new( :pirop('null P')) )
+            ));
+            $block_ast.symbol(~$_, :scope('lexical'));
+        }
+    }
 }
 
 method import($name) {
-    # XXX For now, target is always namespace of the caller. In the
-    # future we need to be much more smart and handle lexical imports.
+    # XXX For now, target is always lexpad of the caller. But we may
+    # have a variety of import descriptors...needs more work later.
     my $targetns := Q:PIR {
         %r = getinterp
-        %r = %r['namespace';1]
+        %r = %r['lexpad';1]
     };
 
     # Get imports.

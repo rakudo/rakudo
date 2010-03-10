@@ -353,9 +353,12 @@ method statement_control:sym<use>($/) {
             }
 
             # Need to immediately load module and get lexicals stubbed in.
-            # XXX TODO
+            Perl6::Module::Loader.need($name, %adverbs);
+            Perl6::Module::Loader.stub_lexical_imports($name, @BLOCK[0]);
             
-            # Also need code to do the actual loading and import at runtime.
+            # Also need code to do the actual loading and import at runtime (though
+            # need won't repeat its work if already carried out; we mainly need
+            # this for pre-compilation to PIR to work).
             my @ns := pir::split__PSS('::', 'Perl6::Module');
             @BLOCK[0].loadinit.push(
                 PAST::Op.new( :pasttype('callmethod'), :name('need'),
@@ -363,7 +366,7 @@ method statement_control:sym<use>($/) {
                     $name,
                     PAST::Op.new( :pirop('getattribute PPS'), $adverbs_ast, '$!storage' )
                 ));
-            @BLOCK[0].loadinit.push(
+            @BLOCK[0].push(
                 PAST::Op.new( :pasttype('callmethod'), :name('import'),
                     PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
                     $name

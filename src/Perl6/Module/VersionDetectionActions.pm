@@ -1,3 +1,7 @@
+# This is an extremely simple actions class for the Perl 6 grammar.
+# It looks until it finds the first package_def in the file, then
+# extracts the version details and aborts the parse. It is used for
+# finding the effective version and authority for a module.
 class Perl6::Module::VersionDetectionActions;
 
 has $!ver;

@@ -1,3 +1,6 @@
+# This class handles the mapping of a module name to a file on disk.
+# For now it does it purely by looking through all of the candidates;
+# in the future, it should be updated to do caching.
 class Perl6::Module::Locator;
 
 method find_candidates($lookfor, @inc) {

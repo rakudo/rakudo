@@ -99,6 +99,7 @@ Perl6::Compiler - Perl6 compiler
 .include 'src/gen/role_pm.pir'
 .include 'src/gen/locator_pm.pir'
 .include 'src/gen/versiondetectionactions_pm.pir'
+.include 'src/gen/loader_pm.pir'
 .include 'src/gen/perl6-grammar.pir'
 .include 'src/gen/perl6-actions.pir'
 

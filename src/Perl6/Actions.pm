@@ -336,9 +336,38 @@ method statement_control:sym<use>($/) {
             );
         }
         else {
-            @BLOCK[0].loadinit.unshift(
-                PAST::Op.new( :name('!use'), ~$<module_name>, :node($/) )
+            # Build up adverbs hash if we have them. Note that we need a hash
+            # for now (the compile time call) and an AST that builds said hash
+            # for the runtime call once we've compiled the module.
+            my $name := $<module_name><longname><name>.Str;
+            my %adverbs;
+            my $adverbs_ast := PAST::Op.new( 
+                :name('&circumfix:<{ }>'), PAST::Op.new( :name('&infix:<,>') )
             );
+            if $<module_name><longname><colonpair> {
+                for $<module_name><longname><colonpair> {
+                    my $ast := $_.ast;
+                    $adverbs_ast[0].push($ast);
+                    %adverbs{$ast[1].value()} := $ast[2].value();
+                }
+            }
+
+            # Need to immediately load module and get lexicals stubbed in.
+            # XXX TODO
+            
+            # Also need code to do the actual loading and import at runtime.
+            my @ns := pir::split__PSS('::', 'Perl6::Module');
+            @BLOCK[0].loadinit.push(
+                PAST::Op.new( :pasttype('callmethod'), :name('need'),
+                    PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
+                    $name,
+                    PAST::Op.new( :pirop('getattribute PPS'), $adverbs_ast, '$!storage' )
+                ));
+            @BLOCK[0].loadinit.push(
+                PAST::Op.new( :pasttype('callmethod'), :name('import'),
+                    PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
+                    $name
+                ));
         }
     }
     make $past;

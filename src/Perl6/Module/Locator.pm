@@ -4,19 +4,25 @@
 class Perl6::Module::Locator;
 
 method find_candidates($lookfor, @inc) {
+    # convert $lookfor A::B::C into $localpath A/B/ and $file C
     my @dirs      := pir::split__PSS('::', $lookfor);
     my $file      := @dirs.pop();
     my $localpath := +@dirs ?? pir::join__SSP('/', @dirs) ~ '/' !! '';
- 
+    # pir::say("\nlookfor: $lookfor\nlocalpath: $localpath\nfile: $file");
+
+    # within each @inc path look for "$localpath/$file.pm"
     my @candidates;
     for @inc {
-        my $path := "$_$localpath";
+        my $path := "$_/$localpath";
+        # pir::say("  path: $path");
         if pir::stat__ISI("$path", 0) && pir::stat__ISI($path, 2) {
             my @dir := pir::new__PS('OS').readdir($path);
             for @dir {
+                # pir::say("    readdir: $_");
                 if pir::substr__SSII($_, 0, pir::length__IS($file) + 1) eq $file ~ '.' &&
                    pir::substr__SSII($_, pir::length__IS($_) - 3, 3) eq '.pm' {
-                    @candidates.push("$path/$_");
+                    @candidates.push("$path$_");
+                    # pir::say("      found: $path$_");
                 }
             }
         }

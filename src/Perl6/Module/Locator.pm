@@ -15,7 +15,8 @@ method find_candidates($lookfor, @inc) {
     for @inc {
         my $path := "$_/$localpath";
         # pir::say("  path: $path");
-        if pir::stat__ISI("$path", 0) && pir::stat__ISI($path, 2) {
+        my $check_path := pir::substr__SSII($path, 0, pir::length__IS($path) - 1);
+        if pir::stat__ISI($check_path, 0) && pir::stat__ISI($check_path, 2) {
             my @dir := pir::new__PS('OS').readdir($path);
             for @dir {
                 # pir::say("    readdir: $_");

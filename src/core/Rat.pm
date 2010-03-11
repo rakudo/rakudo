@@ -123,6 +123,10 @@ multi sub infix:</>(Int $a, Int $b) {
     Rat.new($a, $b);
 }
 
+multi sub infix:<cmp>(Rat $a, Rat $b) { $a.Num <=> $b.Num; }
+multi sub infix:<cmp>(Rat $a, $b)     { $a.Num <=> $b.Num; }
+multi sub infix:<cmp>($a, Rat $b)     { $a.Num <=> $b.Num; }
+
 augment class Int {
     # CHEAT: Comes from Int.pm, moved here for the moment.
     our Rat multi method Rat() { Rat.new(self, 1); }

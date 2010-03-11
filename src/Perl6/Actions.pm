@@ -316,6 +316,63 @@ method statement_control:sym<loop>($/) {
     make $loop;
 }
 
+method statement_control:sym<need>($/) {
+    my $past := PAST::Stmts.new( :node($/) );
+    for $<module_name> {
+        need($_);
+    }
+    make $past;
+}
+
+sub need($module_name) {
+    # Build up adverbs hash if we have them. Note that we need a hash
+    # for now (the compile time call) and an AST that builds said hash
+    # for the runtime call once we've compiled the module.
+    my $name := $module_name<longname><name>.Str;
+    my %adverbs;
+    my $adverbs_ast := PAST::Op.new( 
+        :name('&circumfix:<{ }>'), PAST::Op.new( :name('&infix:<,>') )
+    );
+    if $module_name<longname><colonpair> {
+        for $module_name<longname><colonpair> {
+            my $ast := $_.ast;
+            $adverbs_ast[0].push($ast);
+            %adverbs{$ast[1].value()} := $ast[2].value();
+        }
+    }
+
+    # Need to immediately load module and get lexicals stubbed in.
+    Perl6::Module::Loader.need($name, %adverbs);
+
+    # Also need code to do the actual loading emitting (though need
+    # won't repeat its work if already carried out; we mainly need
+    # this for pre-compilation to PIR to work).
+    my @ns := pir::split__PSS('::', 'Perl6::Module');
+    @BLOCK[0].loadinit.push(
+        PAST::Op.new( :pasttype('callmethod'), :name('need'),
+            PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
+            $name,
+            PAST::Op.new( :pirop('getattribute PPS'), $adverbs_ast, '$!storage' )
+        ));
+}
+
+method statement_control:sym<import>($/) {
+    my $past := PAST::Stmts.new( :node($/) );
+    import($/);
+    make $past;
+}
+
+sub import($/) {
+    my $name := $<module_name><longname><name>.Str;
+    Perl6::Module::Loader.stub_lexical_imports($name, @BLOCK[0]);
+    my @ns := pir::split__PSS('::', 'Perl6::Module');
+    @BLOCK[0].push(
+        PAST::Op.new( :pasttype('callmethod'), :name('import'),
+            PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
+            $name
+        ));
+}
+
 method statement_control:sym<use>($/) {
     my $past := PAST::Stmts.new( :node($/) );
     if $<module_name> {
@@ -338,41 +395,8 @@ method statement_control:sym<use>($/) {
             );
         }
         else {
-            # Build up adverbs hash if we have them. Note that we need a hash
-            # for now (the compile time call) and an AST that builds said hash
-            # for the runtime call once we've compiled the module.
-            my $name := $<module_name><longname><name>.Str;
-            my %adverbs;
-            my $adverbs_ast := PAST::Op.new( 
-                :name('&circumfix:<{ }>'), PAST::Op.new( :name('&infix:<,>') )
-            );
-            if $<module_name><longname><colonpair> {
-                for $<module_name><longname><colonpair> {
-                    my $ast := $_.ast;
-                    $adverbs_ast[0].push($ast);
-                    %adverbs{$ast[1].value()} := $ast[2].value();
-                }
-            }
-
-            # Need to immediately load module and get lexicals stubbed in.
-            Perl6::Module::Loader.need($name, %adverbs);
-            Perl6::Module::Loader.stub_lexical_imports($name, @BLOCK[0]);
-            
-            # Also need code to do the actual loading and import at runtime (though
-            # need won't repeat its work if already carried out; we mainly need
-            # this for pre-compilation to PIR to work).
-            my @ns := pir::split__PSS('::', 'Perl6::Module');
-            @BLOCK[0].loadinit.push(
-                PAST::Op.new( :pasttype('callmethod'), :name('need'),
-                    PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
-                    $name,
-                    PAST::Op.new( :pirop('getattribute PPS'), $adverbs_ast, '$!storage' )
-                ));
-            @BLOCK[0].push(
-                PAST::Op.new( :pasttype('callmethod'), :name('import'),
-                    PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
-                    $name
-                ));
+            need($<module_name>);
+            import($/);
         }
     }
     make $past;

@@ -166,6 +166,7 @@ token def_module_name {
 }
 
 token nofun { <![ ( \\ ' \- ]> » }
+token spacey { <?before <[ \s \# ]> > }
 
 token ENDSTMT {
     [ 
@@ -389,20 +390,25 @@ token version {
     'v' <?before \d+> <vnum> ** '.' '+'?
 }
 
-token statement_control:sym<use> {
-    <sym> <.ws> 
-    [
-    | <version>
-    | <module_name>
-    ]
-}
-
 token statement_control:sym<need> {
-    <sym> :s
+    <sym> <.ws>
     [
     | <version>
     | <module_name>
     ] ** ','
+}
+
+token statement_control:sym<import> {
+    <sym> <.ws>
+    <module_name> [ <.spacey> <arglist> ]? <.ws>
+}
+
+token statement_control:sym<use> {
+    <sym> <.ws> 
+    [
+    | <version>
+    | <module_name> [ <.spacey> <arglist> ]?
+    ]
 }
 
 token statement_control:sym<given> {

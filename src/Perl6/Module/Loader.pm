@@ -11,19 +11,40 @@ method need($name, %name_adverbs?) {
         Perl6::Module::Locator.find_module($name, @inc, %name_adverbs<ver>, %name_adverbs<auth>) !!
         Perl6::Module::Locator.find_module_no_conditions($name, @inc);
     if $pm_file eq '' {
-        # XXX Awesomeize - include version and auth if specified.
-        pir::die("Unable to find module '$name'.");
+        pir::die("Unable to find module '$name'" ~
+            (%name_adverbs<ver> ?? " with version '" ~ %name_adverbs<ver> ~ "'" !! "") ~
+            (%name_adverbs<ver> && %name_adverbs<auth> ?? ' and' !! '') ~
+            (%name_adverbs<auth> ?? " with authority '" ~ %name_adverbs<auth> ~ "'" !! "") ~
+            ".");
     }
 
-    # XXX For now, we just use the pre-compiled PIR file. (Yes, epic hack.)
-    my $pir_file := pir::substr__SSII($pm_file, 0, pir::length__IS($pm_file) - 2) ~ 'pir';
-    unless pir::stat__ISI($pir_file, 0) {
-        pir::die("Sorry, for now you must manually compile .pm modules to .pir (missing for $name).");
+    # Need not load file if we already did so.
+    unless %LOADED{$pm_file} {
+        # Is there a pre-compiled PIR version?
+        my $pir_file := pir::substr__SSII($pm_file, 0, pir::length__IS($pm_file) - 2) ~ 'pir';
+        my $loaded_pir := 0;
+        if pir::stat__ISI($pir_file, 0) {
+            # XXX We really should check if it's newer than the .pm file
+            # to avoid loading out of date versions.
+            pir::load_bytecode__vS($pir_file);
+            $loaded_pir := 1;
+        }
+
+        # If we couldn't load a cached PIR version, read in and compile.
+        # XXX We can try to write the compiled PIR to disk so the next
+        # time around it's fast.
+        unless $loaded_pir {
+            my $fh     := pir::open__PSS($pm_file, 'r');
+            my $source := $fh.readall();
+            $fh.close();
+            my $eval := Perl6::Compiler.compile($source);
+            $eval();
+        }
+
+        # Mark loaded.
+        %LOADED{$pm_file} := 1;
     }
-    unless %LOADED{$pir_file} {
-        pir::load_bytecode__vS($pir_file);
-        %LOADED{$pir_file} := 1;
-    }
+
     1;
 }
 

@@ -4,7 +4,7 @@ class Perl6::Module::Loader;
 
 our %LOADED;
 
-method need($name, %name_adverbs) {
+method need($name, %name_adverbs?) {
     # Use locator to find the module.
     my @inc     := pir::get_hll_global__PS('@INC');
     my $pm_file := %name_adverbs<ver> || %name_adverbs<auth> ??

@@ -420,6 +420,32 @@ static INTVAL has_junctional_args(PARROT_INTERP, PMC *args) {
 
 /*
 
+=item C<static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub)>
+
+Utility for getting hold of the signature dump for a sub, which aids us in
+producing awesomer errors.
+
+=cut
+
+*/
+static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub) {
+    STRING * const sig_name  = CONST_STRING(interp, "signature");
+    STRING * const perl_name = CONST_STRING(interp, "perl");
+    STRING * const newline   = CONST_STRING(interp, "\n");
+    PMC    * sig_meth, *sig_obj, *perl_meth;
+    STRING *sig_perl;
+    sig_meth = VTABLE_find_method(interp, sub, sig_name);
+    Parrot_ext_call(interp, sig_meth, "Pi->P", sub, &sig_obj);
+    perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
+    Parrot_ext_call(interp, perl_meth, "Pi->S", sig_obj, &sig_perl);
+    so_far = Parrot_str_append(interp, so_far, sig_perl);
+    so_far = Parrot_str_append(interp, so_far, newline);
+    return so_far;
+}
+
+
+/*
+
 =item C<static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates,
                                 PMC *proto, PMC *capture, int many, int num_candidates,
                                 opcode_t *next, MMD_Cache *cache)>
@@ -645,30 +671,31 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             return proto;
         }
         else if (possibles_count == 0) {
+            /* Get signatures of all possible candidates. We dump them in the
+             * order in which we search for them. */
+            STRING *signatures = Parrot_str_new(interp, "", 0);
+            cur_candidate = candidates;
+            while (1) {
+                if (!cur_candidate[0] && !cur_candidate[1])
+                    break;
+                if (cur_candidate[0])
+                    signatures = dump_signature(interp, signatures, (*cur_candidate)->sub);
+                cur_candidate++;
+            }
+
             mem_sys_free(possibles);
             Parrot_ex_throw_from_c_args(interp, next, 1,
-                "No applicable candidates found to dispatch to for '%Ss'",
-                    VTABLE_get_string(interp, candidates[0]->sub));
+                "No applicable candidates found to dispatch to for '%Ss'. Available candidates are:\n%Ss",
+                    VTABLE_get_string(interp, candidates[0]->sub),
+                    signatures);
         }
         else {
             /* Get signatures of ambiguous candidates. */
-            STRING * const sig_name  = CONST_STRING(interp, "signature");
-            STRING * const perl_name = CONST_STRING(interp, "perl");
-            STRING * const newline   = CONST_STRING(interp, "\n");
-
-            STRING *signatures       = Parrot_str_new(interp, "", 0);
+            STRING *signatures = Parrot_str_new(interp, "", 0);
             INTVAL i;
-
-            for (i = 0; i < possibles_count; i++) {
-                PMC    *sig_meth, *sig_obj, *perl_meth;
-                STRING *sig_perl;
-                sig_meth = VTABLE_find_method(interp, possibles[i]->sub, sig_name);
-                Parrot_ext_call(interp, sig_meth, "Pi->P", possibles[i]->sub, &sig_obj);
-                perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
-                Parrot_ext_call(interp, perl_meth, "Pi->S", sig_obj, &sig_perl);
-                signatures = Parrot_str_append(interp, signatures, sig_perl);
-                signatures = Parrot_str_append(interp, signatures, newline);
-            }
+            for (i = 0; i < possibles_count; i++)
+                signatures = dump_signature(interp, signatures, possibles[i]->sub);
+            
             mem_sys_free(possibles);
             Parrot_ex_throw_from_c_args(interp, next, 1,
                 "Ambiguous dispatch to multi '%Ss'. Ambiguous candidates had signatures:\n%Ss",

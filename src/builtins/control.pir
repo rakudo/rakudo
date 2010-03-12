@@ -225,11 +225,12 @@ src/builtins/control.pir - control flow related functions
     next = clone clist
     next.'set_failure_mode'()
     $P0 = deref next
-    $I0 = isa $P0, 'Method'
-    unless $I0 goto not_method
+    push_eh not_method
     self = lexpad['self']
+    pop_eh
     .tailcall next(self, pos_args :flat, named_args :flat :named)
   not_method:
+    pop_eh
     .tailcall next(pos_args :flat, named_args :flat :named)
 .end
 
@@ -249,12 +250,13 @@ src/builtins/control.pir - control flow related functions
     next = clone clist
     next.'set_failure_mode'()
     $P0 = deref next
-    $I0 = isa $P0, 'Method'
-    unless $I0 goto not_method
+    push_eh not_method
     self = lexpad['self']
+    pop_eh
     (result) = next(self, pos_args :flat, named_args :flat :named)
     goto process_result
   not_method:
+    pop_eh
     (result) = next(pos_args :flat, named_args :flat :named)
 
   process_result:

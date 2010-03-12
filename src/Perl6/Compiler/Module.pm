@@ -2,7 +2,7 @@ class Perl6::Compiler::Module is Perl6::Compiler::Package;
 
 # Modules don't support methods.
 method methods() {
-    pir::die('You can not add a method to a module; use a class or role');
+    pir::die('You can not add a ' ~ $*METHODTYPE ~ ' to a module; use a class, role or grammar ');
 }
 
 # Accessor for attributes hash.

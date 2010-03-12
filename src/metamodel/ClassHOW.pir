@@ -55,6 +55,8 @@ calls on it.
     addattribute $P0, '$!hidden'
     addattribute $P0, '$!composees'
     addattribute $P0, '$!done'
+    addattribute $P0, '$!ver'
+    addattribute $P0, '$!auth'
 
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
@@ -108,7 +110,8 @@ Creates a new instance of the meta-class and returns it in an associated
 
     # Stash in metaclass instance.
   have_parrotclass:
-    how = new ['ClassHOW']
+    $P0 = typeof self
+    how = new [$P0]
     setattribute how, 'parrotclass', parrotclass
     $P0 = root_new ['parrot';'ResizablePMCArray']
     setattribute how, '$!composees', $P0
@@ -121,6 +124,18 @@ Creates a new instance of the meta-class and returns it in an associated
     setattribute how, 'shortname', $P0
     setattribute how, 'longname', $P0
   no_alt_name:
+  
+    # If we have ver and auth, store them.
+    $P0 = options['ver']
+    unless null $P0 goto have_ver
+    $P0 = get_hll_global 'Any'
+  have_ver:
+    setattribute how, '$!ver', $P0
+    $P0 = options['auth']
+    unless null $P0 goto have_auth
+    $P0 = get_hll_global 'Any'
+  have_auth:
+    setattribute how, '$!auth', $P0
 
     # Finally, wrap it up in a ClassToBe instance.
     $P0 = new ['ClassToBe']
@@ -316,7 +331,30 @@ Completes the creation of the metaclass and return a proto-object.
     proto = self.'register'(parrotclass, 'how'=>self)
   proto_made:
     transform_to_p6opaque proto
+    setprop proto, 'scalar', proto
     .return (proto)
+.end
+
+
+=item ver(object)
+
+=cut
+
+.sub 'ver' :method
+    .param pmc obj
+    $P0 = getattribute self, '$!ver'
+    .return ($P0)
+.end
+
+
+=item auth(object)
+
+=cut
+
+.sub 'auth' :method
+    .param pmc obj
+    $P0 = getattribute self, '$!auth'
+    .return ($P0)
 .end
 
 
@@ -657,12 +695,10 @@ will try to flatten etc).
 
 .sub 'WHAT' :method
     $P0 = getattribute self, 'protoobject'
-    unless null $P0 goto wrap_result
+    unless null $P0 goto done
     $P0 = self.'HOW'()
     $P0 = $P0.'WHAT'()
-  wrap_result:
-    $P0 = new ['ObjectRef'], $P0
-    setprop $P0, 'scalar', $P0
+  done:
     .return ($P0)
 .end
 
@@ -782,7 +818,9 @@ correct protocol.
     'compose_composables'(how, ctb)
   role_done:
 
-    .tailcall self.'register'(parrotclass, 'how'=>how, options :named :flat)
+    $P0 = self.'register'(parrotclass, 'how'=>how, options :named :flat)
+    setprop $P0, 'scalar', $P0
+    .return ($P0)
 .end
 
 

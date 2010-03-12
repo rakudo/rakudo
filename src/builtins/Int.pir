@@ -69,7 +69,20 @@ Returns the identify value.
     .return ($I0)
 .end
 
+=item Str()
+
+Coercion to Str
+
+=cut
+
+.sub 'Str' :method
+    $S0 = self
+    $P0 = box $S0
+    .return ($P0)
+.end
+
 =back
+
 
 =head2 Operators
 
@@ -86,8 +99,7 @@ Overridden for Int.
     .param int a
     .param int b
     $I0 = iseq a, b
-    .return ($I0)
-    # .tailcall 'prefix:?'($I0)
+    .tailcall '&prefix:<?>'($I0)
 .end
 
 =back

@@ -19,6 +19,17 @@ Arrays are the mutable form of Lists.
     proto = p6meta.'new_class'('Array', 'parent'=>'Seq')
 .end
 
+
+=item new
+
+=cut
+
+.sub 'new' :method
+    .param pmc values :slurpy
+    .tailcall '&circumfix:<[ ]>'(values :flat)
+.end
+
+
 =item postcircumfix:<[ ]>(Int)
 
 =cut

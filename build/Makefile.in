@@ -69,6 +69,9 @@ SOURCES = \
   src/gen/package_pm.pir \
   src/gen/module_pm.pir \
   src/gen/role_pm.pir \
+  src/gen/locator_pm.pir \
+  src/gen/versiondetectionactions_pm.pir \
+  src/gen/loader_pm.pir \
   $(PERL6_G) \
   $(PERL6_A) \
   $(DYNEXT_TARGET)
@@ -99,7 +102,6 @@ BUILTINS_PIR = \
   src/builtins/EMPTY.pir \
   src/builtins/ParrotIter.pir \
   src/builtins/List.pir \
-  src/builtins/Grammar.pir \
   src/builtins/Parcel.pir \
   src/builtins/Bool.pir \
   src/builtins/Int.pir \
@@ -146,7 +148,6 @@ CHEATS_PIR = \
   src/cheats/relops.pir \
   src/cheats/mapiterator.pir \
   src/cheats/gatheriterator.pir \
-  src/cheats/use.pir \
   src/cheats/only_infix_redispatcher.pir \
   src/cheats/import.pir \
   src/cheats/want-caller-side-callsig.pir \
@@ -191,9 +192,11 @@ CORE_SOURCES = \
   src/core/Block.pm \
   src/core/Regex.pm \
   src/core/Junction.pm \
+  src/core/Grammar.pm \
   src/core/system.pm \
   src/cheats/match-bool.pm \
   src/cheats/setup-io.pm \
+  src/glue/subset.pm \
 
 # SETTING = \
 #   src/setting/traits.pm \
@@ -274,13 +277,14 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 
 # the default target
-all: $(PERL6_EXE)
+all: $(PERL6_EXE) Test.pir
 
 # the install target
 install: all
 	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
 	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     Test.pir            $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/*.pm            $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
@@ -349,6 +353,18 @@ src/gen/RoleToInstanceApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToInst
 src/gen/Attribute.pir: $(PARROT) $(NQP_PBC) src/metamodel/Attribute.nqp
 	$(NQP_EXE) --output=src/gen/Attribute.pir --encoding=utf8 \
 	    --target=pir src/metamodel/Attribute.nqp
+
+src/gen/locator_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Module/Locator.pm
+	$(NQP_EXE) --output=src/gen/locator_pm.pir --encoding=utf8 \
+	    --target=pir src/Perl6/Module/Locator.pm
+
+src/gen/versiondetectionactions_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Module/VersionDetectionActions.pm
+	$(NQP_EXE) --output=src/gen/versiondetectionactions_pm.pir --encoding=utf8 \
+	    --target=pir src/Perl6/Module/VersionDetectionActions.pm
+
+src/gen/loader_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Module/Loader.pm
+	$(NQP_EXE) --output=src/gen/loader_pm.pir --encoding=utf8 \
+	    --target=pir src/Perl6/Module/Loader.pm
 
 src/gen/builtins.pir: build/gen_builtins_pir.pl $(BUILTINS_PIR)
 	$(PERL) build/gen_builtins_pir.pl $(BUILTINS_PIR) > src/gen/builtins.pir

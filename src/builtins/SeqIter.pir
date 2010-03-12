@@ -35,6 +35,7 @@ all items have been returned.
     seq   = getattribute self, '$!seq'
     index = getattribute self, '$!index'
     items = getattribute seq,  '@!items'
+    if null items goto empty
 
     .local int n
     n = index
@@ -44,11 +45,15 @@ all items have been returned.
     items = seq.'!fill'($I0)
     $I0 = elements items
     if n < $I0 goto have_items
+  empty:
     $P0 = get_hll_global 'EMPTY'
     .return ($P0)
   have_items:
     inc index
     $P0 = items[n]
+    unless null $P0 goto lookup_done
+    $P0 = seq.'postcircumfix:<[ ]>'(n)
+  lookup_done:
     .return ($P0)
 .end
 

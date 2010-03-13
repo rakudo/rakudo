@@ -1092,7 +1092,7 @@ token privop {
 
 token methodop {
     [
-    | <identifier>
+    | <longname>
     | <?before <[ ' " ]> >
         <quote>
         [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments"> ]

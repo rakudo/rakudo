@@ -1565,6 +1565,9 @@ method dotty:sym<.>($/) { make $<dottyop>.ast; }
 
 method dotty:sym<.*>($/) {
     my $past := $<dottyop>.ast;
+    unless $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
+        $/.CURSOR.panic("Can not use " ~ $<sym>.Str ~ " on a non-identifier method call");
+    }
     $past.unshift($past.name);
     $past.name('!dispatch_' ~ $<sym>.Str);
     $past.pasttype('call');
@@ -1592,13 +1595,28 @@ method privop($/) {
 
 method methodop($/) {
     my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
-    if $<identifier> {
-        $past.name( ~$<identifier> );
+    $past.pasttype('callmethod');
+    if $<longname> {
+        # May just be .foo, but could also be .Foo::bar
+        my @parts := Perl6::Grammar::parse_name(~$<longname>);
+        my $name := @parts.pop;
+        if +@parts {
+            $past.unshift(PAST::Var.new(
+                :name(@parts.pop),
+                :namespace(@parts),
+                :scope('package')
+            ));
+            $past.unshift($name);
+            $past.name('!dispatch_::');
+            $past.pasttype('call');
+        }
+        else {
+            $past.name( $name );
+        }
     }
     elsif $<quote> {
         $past.name( $<quote>.ast );
     }
-    $past.pasttype('callmethod');
     make $past;
 }
 

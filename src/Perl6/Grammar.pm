@@ -85,7 +85,10 @@ method add_our_name($name) {
 method add_name($name) {
     if $*SCOPE eq 'augment' || $*SCOPE eq 'supersede' {
         unless self.is_name($name) {
-            pir::die("Can't $*SCOPE something that doesn't exist");
+            pir::die("Can't $*SCOPE $*PKGDECL that doesn't exist");
+        }
+        unless $*MONKEY_TYPING {
+            pir::die("Can't $*SCOPE $*PKGDECL $name without 'use MONKEY_TYPING'");
         }
     }
     else {
@@ -239,6 +242,7 @@ token comp_unit {
     :my %*METAOPGEN;                           # hash of generated metaops
     :my $*IN_DECL;                             # what declaration we're in
     :my $*IMPLICIT;                            # whether we allow an implicit param
+    :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
     <.newpad>
     <.outerlex>
     <.finishpad>

@@ -394,6 +394,9 @@ method statement_control:sym<use>($/) {
                 ),
             );
         }
+        elsif ~$<module_name> eq 'MONKEY_TYPING' {
+            $*MONKEY_TYPING := 1;
+        }
         else {
             need($<module_name>);
             import($/);

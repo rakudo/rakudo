@@ -1,3 +1,7 @@
+# Need to be able to augment in the setting, and this is the first file, so we
+# put this here.
+use MONKEY_TYPING;
+
 # XXX Signature is wrong really - will fix once we can parse other things.
 our multi trait_mod:<is>(Mu $child, Mu $parent) {
     $child.^add_parent($parent);

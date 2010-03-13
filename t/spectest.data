@@ -334,7 +334,7 @@ S09-typed-arrays/hashes.t
 # S12-attributes/class.t
 S12-attributes/clone.t
 # S12-attributes/delegation.t
-# S12-attributes/inheritance.t
+S12-attributes/inheritance.t
 # S12-attributes/instance.t
 # S12-attributes/recursive.t
 S12-attributes/undeclared.t
@@ -343,7 +343,7 @@ S12-attributes/undeclared.t
 S12-class/basic.t
 S12-class/declaration-order.t
 S12-class/inheritance-class-methods.t
-# S12-class/inheritance.t
+S12-class/inheritance.t
 S12-class/instantiate.t
 # S12-class/interface-consistency.t
 # S12-class/namespaced.t

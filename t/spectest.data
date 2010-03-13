@@ -160,9 +160,9 @@ S03-operators/series-arity0.t
 S03-operators/series-arity2ormore.t
 S03-operators/series-simple.t
 S03-operators/series.t
-# S03-smartmatch/any-any.t
+S03-smartmatch/any-any.t
 # S03-smartmatch/any-array-slice.t
-# S03-smartmatch/any-array.t
+S03-smartmatch/any-array.t
 S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
@@ -174,18 +174,18 @@ S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
 # S03-smartmatch/any-sub.t
 S03-smartmatch/any-type.t
-# S03-smartmatch/array-array.t
+S03-smartmatch/array-array.t
 S03-smartmatch/array-hash.t
 S03-smartmatch/disorganized.t
 S03-smartmatch/hash-hash.t
-# S03-smartmatch/regex-hash.t
+S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
 # S03-operators/series.t
 # S03-operators/short-circuit.t
 S03-operators/spaceship-and-containers.t
 # S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
-# S03-operators/ternary.t
+S03-operators/ternary.t
 S03-operators/so.t
 S03-operators/value_equivalence.t
 # S04-blocks-and-statements/pointy-rw.t

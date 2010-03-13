@@ -251,7 +251,7 @@ augment class Any {
     }
 
     multi method Str() {
-        sprintf '%s<0x%f>', self.WHAT, self.WHERE;
+        sprintf '%s<0x%x>', self.WHAT, self.WHERE;
     }
 }
 

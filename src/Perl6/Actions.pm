@@ -1385,12 +1385,16 @@ method param_var($/) {
         }
     }
     else {
+        my $twigil := $<twigil> ?? ~$<twigil>[0] !! '';
         $*PARAMETER.var_name(~$/);
-        if $<name> {
+        if $twigil eq '' && $<name> {
             if @BLOCK[0].symbol(~$/) {
                 $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
             }
             @BLOCK[0].symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
+        }
+        elsif $twigil ne '!' && $twigil ne '.' && $twigil ne '*' {
+            $/.CURSOR.panic("Illegal to use $twigil twigil in signature");
         }
     }
 }

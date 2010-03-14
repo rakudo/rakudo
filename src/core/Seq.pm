@@ -1,4 +1,49 @@
 augment class Seq {
+    multi method ACCEPTS(@topic) {
+        my $self_it = self.iterator();
+        my $topic_it = @topic.iterator();
+        loop {
+            my $cur_self_elem = $self_it.get;
+            if $cur_self_elem ~~ EMPTY { last }
+            if $cur_self_elem ~~ Whatever {
+                # If we just have * left, we're done. Otherwise, we have a
+                # "target" to look for.
+                loop {
+                    $cur_self_elem = $self_it.get;
+                    if $cur_self_elem ~~ EMPTY { return True }
+                    unless $cur_self_elem ~~ Whatever {
+                        last;
+                    }
+                }
+
+                # Need to find our target in the topic, if possible.
+                loop {
+                    my $cur_topic_elem = $topic_it.get;
+                    if $cur_topic_elem ~~ EMPTY {
+                        # Ran out before finding what we wanted.
+                        return False;
+                    }
+                    elsif $cur_topic_elem === $cur_self_elem {
+                        last;
+                    }
+                }
+            }
+            else {
+                my $cur_topic_elem = $topic_it.get;
+                if $cur_topic_elem ~~ EMPTY || $cur_topic_elem !=== $cur_self_elem {
+                    return False;
+                }
+            }
+        }
+
+        # If we've nothing left to match, we're successful.
+        $topic_it.get ~~ EMPTY
+    }
+
+    multi method ACCEPTS($topic) {
+        self.ACCEPTS(@($topic))
+    }
+
     method elems() { pir::set__IP(self!fill); }
 
     method Str() {

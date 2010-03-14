@@ -1,4 +1,8 @@
 augment class Any {
+    method ACCEPTS($topic) {
+        self === $topic
+    }
+
     our Int multi method bytes() is export {
         pir::box__PI(pir::bytelength__IS(self))
     }
@@ -251,7 +255,7 @@ augment class Any {
     }
 
     multi method Str() {
-        sprintf '%s<0x%f>', self.WHAT, self.WHERE;
+        sprintf '%s<0x%x>', self.WHAT, self.WHERE;
     }
 }
 

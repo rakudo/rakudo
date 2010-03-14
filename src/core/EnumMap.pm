@@ -21,7 +21,12 @@ class EnumMap does Associative {
     }
 
     multi method ACCEPTS(Regex $topic) {
-        any(@.keys) ~~ $topic;
+        for @.keys -> $k {
+            if $topic.ACCEPTS($k) {
+                return True;
+            }
+        }
+        False
     }
 
     multi method ACCEPTS(%topic) {

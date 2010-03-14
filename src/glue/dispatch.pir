@@ -258,6 +258,33 @@ there are none.
 .end
 
 
+=item !dispatch_::
+
+Helper for handling calls of the form .Foo::bar.
+
+=cut
+
+.sub '!dispatch_::'
+    .param pmc invocant
+    .param string name
+    .param pmc target
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    $I0 = target.'ACCEPTS'(invocant)
+    unless $I0 goto not_allowed
+    $P0 = find_method target, name
+    .tailcall $P0(invocant, pos_args :flat, named_args :flat :named)
+  not_allowed:
+    $S0 = "Can not call method '"
+    concat $S0, name
+    concat $S0, "' on unrelated type '"
+    $S1 = target.'perl'()
+    concat $S0, $S1
+    concat $S0, "'"
+    '&die'($S0)
+.end
+
+
 =item !deferal_fail
 
 Used by P6invocation to help us get soft-failure semantics when no deferal

@@ -1,3 +1,5 @@
+class Complex { ... }
+
 augment class Num {
     multi method ACCEPTS($other) {
         if self eq 'NaN' {
@@ -6,7 +8,7 @@ augment class Num {
             $other == self;
         }
     }
-    multi method ACCEPTS(::Complex $other) {
+    multi method ACCEPTS(Complex $other) {
         if self eq 'NaN' {
             $other.re eq 'NaN' || $other.im eq 'NaN';
         } else {

@@ -23,6 +23,10 @@ class Rat {
         self.bless(*, :numerator($numerator), :denominator($denominator));
     }
 
+    multi method ACCEPTS($other) {
+        self.Num.ACCEPTS($other);
+    }
+
     multi method perl() { "$!numerator/$!denominator"; }
 
     our Bool multi method Bool() { $!numerator != 0 ?? Bool::True !! Bool::False }

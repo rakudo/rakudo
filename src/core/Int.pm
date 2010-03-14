@@ -18,6 +18,14 @@ augment class Int {
         self < 0 ?? -self !! self;
     }
 
+    multi method ACCEPTS(Int $other) {
+        self == $other;
+    }
+
+    multi method ACCEPTS($other) {
+        self.Num.ACCEPTS($other);
+    }
+
     our Bool multi method Bool() { self != 0 ?? Bool::True !! Bool::False }
 
     our Int multi method Int() { self }

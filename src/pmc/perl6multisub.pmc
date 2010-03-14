@@ -1227,6 +1227,23 @@ Get an iterator over the candidates.
 
 /*
 
+=item VTABLE INTVAL * does(STRING *check)
+
+We pretend to do the invokable role, for the benefit of some weird bit of
+Parrot that cares.
+
+=cut
+
+*/
+    VTABLE INTVAL does(STRING *check) {
+        if (Parrot_str_equal(INTERP, check, CONST_STRING(interp, "invokable")))
+            return 1;
+        else
+            return SUPER(check);
+    }
+
+/*
+
 =item METHOD void push(candidate)
 
 Adds a candidate.

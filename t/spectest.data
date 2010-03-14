@@ -176,7 +176,7 @@ S03-smartmatch/any-complex.t
 # S03-smartmatch/any-hash-pair.t
 # S03-smartmatch/any-hash-slice.t
 # S03-smartmatch/any-method.t
-# S03-smartmatch/any-num.t
+S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
 # S03-smartmatch/any-sub.t

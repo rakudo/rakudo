@@ -17,8 +17,6 @@
 # S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S16-filehandles/filetest.t - regressed when spec changed (RT #68160)
 # S16-filehandles/unlink.t   - regressed when spec changed (RT #68160)
-# S02-lexical-conventions/unicode.t                          # icu, #24 release
-# S06-other/main-eval.t                # skipped for #24 release
 
 # integration/99problems-01-to-10.t
 # integration/99problems-11-to-20.t
@@ -288,7 +286,7 @@ S06-multi/unpackability.t
 # S06-operator-overloading/workout.t
 S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t
-# S06-other/main-eval.t
+S06-other/main-eval.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
 # S06-signature/closure-over-parameters.t

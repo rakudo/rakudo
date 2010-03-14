@@ -1621,6 +1621,11 @@ method methodop($/) {
     elsif $<quote> {
         $past.name( $<quote>.ast );
     }
+    elsif $<variable> {
+        $past.unshift($<variable>.ast);
+        $past.name('!dispatch_variable');
+        $past.pasttype('call');
+    }
     make $past;
 }
 

@@ -1217,6 +1217,8 @@ token infix:sym<?? !!> {
 # item_assignment is probably wrong, but I don't know how to do what is right...
 token infix_prefix_meta_operator:sym<!> { <sym> <O('%item_assignment')> }
 token infix_prefix_meta_operator:sym<R> { <sym> <O('%item_assignment')> }
+token infix_prefix_meta_operator:sym<S> { <sym> <O('%item_assignment')> }
+token infix_prefix_meta_operator:sym<X> { <sym> <O('%item_assignment')> }
 
 token infix:sym<:=> {
     <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>

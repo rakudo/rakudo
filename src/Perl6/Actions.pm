@@ -1918,10 +1918,19 @@ method infixish($/) {
         my $sym := ~$<infix><sym>;
         my $opsub := "&infix:<$metaop$sym>";
         unless %*METAOPGEN{$opsub} {
-            @BLOCK[0].loadinit.push(
-                PAST::Op.new( :name('!gen_not_metaop'), $sym,
-                              :pasttype('call') )
-            );
+            if $metaop eq '!' {
+                @BLOCK[0].loadinit.push(
+                    PAST::Op.new( :name('!gen_not_metaop'), $sym,
+                                  :pasttype('call') )
+                );
+            }
+            if $metaop eq 'R' {
+                @BLOCK[0].loadinit.push(
+                    PAST::Op.new( :name('!gen_reverse_metaop'), $sym,
+                                  :pasttype('call') )
+                );
+            }
+
             %*METAOPGEN{$opsub} := 1;
         }
         make PAST::Op.new( :name($opsub), :pasttype('call') );

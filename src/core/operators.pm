@@ -412,6 +412,18 @@ our multi sub infix:<Z>(Iterable $a-iterable, Iterable $b-iterable) {
     }
 }
 
+our multi sub infix:<X>(Iterable $a-iterable, Iterable $b-iterable) {
+    my $ai = $a-iterable.iterator;
+    my @b = $b-iterable.Seq;
+    gather loop {
+        my $a = $ai.get;
+        last if ($a ~~ EMPTY);
+        for @b -> $b {
+            take ($a, $b);
+        }
+    }
+}
+
 # Eliminate use of this one, but keep the pir around for
 # the moment, as it may come in handy elsewhere.
 #

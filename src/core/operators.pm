@@ -166,12 +166,44 @@ our multi infix:<!=>($a, $b) {
     pir::isne__INN(+$a, +$b) ?? True !! False
 }
 
+our multi infix:«<»($a, $b) {
+    pir::islt__INN(+$a, +$b) ?? True !! False
+}
+
+our multi infix:«<=»($a, $b) {
+    pir::isle__INN(+$a, +$b) ?? True !! False
+}
+
+our multi infix:«>»($a, $b) {
+    pir::isgt__INN(+$a, +$b) ?? True !! False
+}
+
+our multi infix:«>=»($a, $b) {
+    pir::isge__INN(+$a, +$b) ?? True !! False
+}
+
 our multi infix:<eq>($a, $b) {
     pir::iseq__ISS(~$a, ~$b) ?? True !! False
 }
 
 our multi infix:<ne>($a, $b) {
     pir::isne__ISS(~$a, ~$b) ?? True !! False
+}
+
+our multi infix:<lt>($a, $b) {
+    pir::islt__ISS(~$a, ~$b) ?? True !! False
+}
+
+our multi infix:<le>($a, $b) {
+    pir::isle__ISS(~$a, ~$b) ?? True !! False
+}
+
+our multi infix:<gt>($a, $b) {
+    pir::isgt__ISS(~$a, ~$b) ?? True !! False
+}
+
+our multi infix:<ge>($a, $b) {
+    pir::isge__ISS(~$a, ~$b) ?? True !! False
 }
 
 # XXX Lazy version would be nice in the future too.

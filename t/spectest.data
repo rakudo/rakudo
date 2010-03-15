@@ -144,6 +144,7 @@ S03-operators/list-quote-junction.t
 S03-operators/misc.t
 S03-operators/names.t
 S03-operators/not.t
+S03-operators/not-metaop.t
 S03-operators/numeric-context.t
 # S03-operators/p5arrow.t
 S03-operators/precedence.t

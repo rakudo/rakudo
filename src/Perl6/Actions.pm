@@ -1385,12 +1385,18 @@ method param_var($/) {
         }
     }
     else {
+        my $twigil := $<twigil> ?? ~$<twigil>[0] !! '';
         $*PARAMETER.var_name(~$/);
-        if $<name> {
-            if @BLOCK[0].symbol(~$/) {
-                $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
+        if $twigil eq '' {
+            if $<name> {
+                if @BLOCK[0].symbol(~$/) {
+                    $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
+                }
+                @BLOCK[0].symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
             }
-            @BLOCK[0].symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
+        }
+        elsif $twigil ne '!' && $twigil ne '.' && $twigil ne '*' {
+            $/.CURSOR.panic("Illegal to use $twigil twigil in signature");
         }
     }
 }
@@ -1616,6 +1622,11 @@ method methodop($/) {
     }
     elsif $<quote> {
         $past.name( $<quote>.ast );
+    }
+    elsif $<variable> {
+        $past.unshift($<variable>.ast);
+        $past.name('!dispatch_variable');
+        $past.pasttype('call');
     }
     make $past;
 }
@@ -1904,12 +1915,25 @@ method infixish($/) {
 
     if $<infix_prefix_meta_operator> {
         my $metaop := ~$<infix_prefix_meta_operator><sym>;
-        my $sym := ~$<infix><sym>;
-        my $metasub := "&infix_prefix_meta_operator:<$metaop>";
-        my $opsub := "&infix:<$sym>";
-        make PAST::Op.new( :name($metasub),
-                           $opsub,
-                           :pasttype('call') );
+        my $sym := ~$<infixish>;
+        my $opsub := "&infix:<$metaop$sym>";
+        unless %*METAOPGEN{$opsub} {
+            if $metaop eq '!' {
+                @BLOCK[0].loadinit.push(
+                    PAST::Op.new( :name('!gen_not_metaop'), $sym,
+                                  :pasttype('call') )
+                );
+            }
+            if $metaop eq 'R' {
+                @BLOCK[0].loadinit.push(
+                    PAST::Op.new( :name('!gen_reverse_metaop'), $sym,
+                                  :pasttype('call') )
+                );
+            }
+
+            %*METAOPGEN{$opsub} := 1;
+        }
+        make PAST::Op.new( :name($opsub), :pasttype('call') );
     }
 }
 

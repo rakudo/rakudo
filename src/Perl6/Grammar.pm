@@ -1034,7 +1034,7 @@ INIT {
 token infixish {
     | <OPER=infix> <![=]>
     | <infix> <OPER=infix_postfix_meta_operator>
-    | <OPER=infix_prefix_meta_operator> <infix>
+    | <OPER=infix_prefix_meta_operator> <infixish>
 }
 
 token postfixish {
@@ -1093,6 +1093,7 @@ token privop {
 token methodop {
     [
     | <longname>
+    | <?before '$' | '@' | '&' > <variable>
     | <?before <[ ' " ]> >
         <quote>
         [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments"> ]
@@ -1215,6 +1216,10 @@ token infix:sym<?? !!> {
 
 # item_assignment is probably wrong, but I don't know how to do what is right...
 token infix_prefix_meta_operator:sym<!> { <sym> <O('%item_assignment')> }
+token infix_prefix_meta_operator:sym<R> { <sym> <O('%item_assignment')> }
+token infix_prefix_meta_operator:sym<S> { <sym> <O('%item_assignment')> }
+token infix_prefix_meta_operator:sym<X> { <sym> <O('%item_assignment')> }
+token infix_prefix_meta_operator:sym<Z> { <sym> <O('%item_assignment')> }
 
 token infix:sym<:=> {
     <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>
@@ -1246,6 +1251,7 @@ token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 token infix:sym<,>    { <sym>  <O('%comma')> }
 
 token infix:sym<Z>    { <sym>  <O('%list_infix')> }
+token infix:sym<X>    { <sym>  <O('%list_infix')> }
 
 token infix:sym<...>  { <sym>  <O('%list_infix')> }
 # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }

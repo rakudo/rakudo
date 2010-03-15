@@ -130,6 +130,7 @@ BUILTINS_PIR = \
   src/builtins/Junction.pir \
   src/builtins/Capture.pir \
   src/builtins/assign.pir \
+  src/builtins/metaops.pir \
   src/builtins/control.pir \
 
 # Make sure parrot cheats are last in this list.

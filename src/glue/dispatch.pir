@@ -285,6 +285,21 @@ Helper for handling calls of the form .Foo::bar.
 .end
 
 
+=item !dispatch_variable
+
+Helper for handling calls of the form .$indirectthingy()
+
+=cut
+
+.sub '!dispatch_variable'
+    .param pmc invocant
+    .param pmc to_call
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    .tailcall to_call(invocant, pos_args :flat, named_args :flat :named)
+.end
+
+
 =item !deferal_fail
 
 Used by P6invocation to help us get soft-failure semantics when no deferal

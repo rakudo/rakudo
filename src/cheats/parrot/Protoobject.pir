@@ -98,16 +98,18 @@ Return a clone of the protoobject with a new WHENCE property set.
 
 .namespace ['P6protoobject']
 .sub '' :vtable('get_bool') :method
-    .const 'Sub' $P1 = '!FAIL'
-    $P0 = $P1('Use of type object as value')
-    $I0 = istrue $P0
-    .return ($I0)
+#    .const 'Sub' $P1 = '!FAIL'
+    # I don't think boolean context should warn, no? --moritz
+#    $P0 = $P1('Use of type object as value in boolean context')
+##    $I0 = istrue $P0
+#    .return ($I0)
+    .return (0)
 .end
 
 .namespace ['P6protoobject']
 .sub '' :vtable('get_integer') :method
     .const 'Sub' $P1 = '!FAIL'
-    $P0 = $P1('Use of type object as value')
+    $P0 = $P1('Use of type object as value in integer context')
     $I0 = $P0
     .return ($I0)
 .end
@@ -115,7 +117,7 @@ Return a clone of the protoobject with a new WHENCE property set.
 .namespace ['P6protoobject']
 .sub '' :vtable('get_number') :method
     .const 'Sub' $P1 = '!FAIL'
-    $P0 = $P1('Use of type object as value')
+    $P0 = $P1('Use of type object as value in numeric context')
     $N0 = $P0
     .return ($N0)
 .end

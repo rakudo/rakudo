@@ -111,7 +111,7 @@ S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
 S02-whitespace_and_comments/unicode-whitespace.t
-# S02-whitespace_and_comments/unspace.t
+S02-whitespace_and_comments/unspace.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
@@ -144,9 +144,11 @@ S03-operators/list-quote-junction.t
 S03-operators/misc.t
 S03-operators/names.t
 S03-operators/not.t
+S03-operators/not-metaop.t
 S03-operators/numeric-context.t
 # S03-operators/p5arrow.t
 S03-operators/precedence.t
+S03-operators/r-metaop.t
 S03-operators/range-basic.t
 S03-operators/range.t
 # S03-operators/reduce-le1arg.t
@@ -293,7 +295,7 @@ S06-signature/arity.t
 S06-signature/closure-parameters.t
 S06-signature/code.t
 S06-signature/defaults.t
-# S06-signature/errors.t
+S06-signature/errors.t
 # S06-signature/introspection.t
 S06-signature/mixed-placeholders.t
 S06-signature/named-parameters.t

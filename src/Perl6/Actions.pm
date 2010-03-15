@@ -1915,7 +1915,7 @@ method infixish($/) {
 
     if $<infix_prefix_meta_operator> {
         my $metaop := ~$<infix_prefix_meta_operator><sym>;
-        my $sym := ~$<infix><sym>;
+        my $sym := ~$<infixish>;
         my $opsub := "&infix:<$metaop$sym>";
         unless %*METAOPGEN{$opsub} {
             if $metaop eq '!' {

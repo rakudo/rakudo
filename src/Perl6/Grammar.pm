@@ -1034,7 +1034,7 @@ INIT {
 token infixish {
     | <OPER=infix> <![=]>
     | <infix> <OPER=infix_postfix_meta_operator>
-    | <OPER=infix_prefix_meta_operator> <infix>
+    | <OPER=infix_prefix_meta_operator> <infixish>
 }
 
 token postfixish {

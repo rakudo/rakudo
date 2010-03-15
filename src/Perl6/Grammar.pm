@@ -513,10 +513,15 @@ token desigilname {
 }
 
 token variable {
+    [
     | <sigil> <twigil>? <desigilname>
     | <sigil> $<index>=[\d+]
     | <sigil> <?[<[]> <postcircumfix>
     | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
+    ]
+    [ <?{ $<twigil> && $<twigil>[0] eq '.' }>
+        [ <.unsp> | '\\' | <?> ] <?before '('> <arglist=.postcircumfix>
+    ]?
 }
 
 token sigil { <[$@%&]> }

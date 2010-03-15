@@ -635,12 +635,12 @@ sub make_variable($/, $name) {
         $past.viviself( sigiltype( $<sigil> ) );
         $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
     }
-    elsif $<twigil>[0] eq '.' && !$*IN_DECL {
+    elsif $<twigil>[0] eq '.' && $*IN_DECL ne 'variable' {
         # Need to transform this to a method call.
-        $past := PAST::Op.new(
-            :pasttype('callmethod'), :name(~$<desigilname>),
-            PAST::Var.new( :name('self'), :scope('lexical') )
-        );
+        $past := $<arglist> ?? $<arglist>[0].ast !! PAST::Op.new();
+        $past.pasttype('callmethod');
+        $past.name(~$<desigilname>);
+        $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
     }
     elsif $<twigil>[0] eq '^' || $<twigil>[0] eq ':' {
         $past := add_placeholder_parameter($<sigil>.Str, $<desigilname>.Str, :named($<twigil>[0] eq ':'));
@@ -1865,7 +1865,7 @@ method circumfix:sym<sigil>($/) {
 
 method EXPR($/, $key?) {
     unless $key { return 0; }
-    if $/<drop> { make PAST::Stmts.new() }
+    if $/<drop> { make PAST::Stmts.new(); return 0; }
     my $past := $/.ast // $<OPER>.ast;
     if !$past && $<infix><sym> eq '.=' {
         make make_dot_equals($/[0].ast, $/[1].ast);
@@ -2545,6 +2545,7 @@ sub make_attr_init_closure($init_value) {
         PAST::Stmts.new( $init_value )
     );
     $block[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
+    $block.symbol('self', :scope('lexical'));
     my $sig := Perl6::Compiler::Signature.new();
     my $parameter := Perl6::Compiler::Parameter.new();
     $parameter.var_name('$_');

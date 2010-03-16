@@ -163,7 +163,7 @@ our multi infix:<==>($a, $b) {
 }
 
 our multi infix:<!=>($a, $b) {
-    pir::isne__INN(+$a, +$b) ?? True !! False
+    $a !== $b
 }
 
 our multi infix:«<»($a, $b) {

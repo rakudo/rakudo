@@ -184,6 +184,7 @@ CORE_SOURCES = \
   src/core/Pair.pm \
   src/core/Range.pm \
   src/core/RangeIter.pm \
+  src/core/metaops.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Enum.pm \

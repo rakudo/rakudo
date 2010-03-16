@@ -1917,23 +1917,36 @@ method infixish($/) {
         my $metaop := ~$<infix_prefix_meta_operator><sym>;
         my $sym := ~$<infixish>;
         my $opsub := "&infix:<$metaop$sym>";
-        unless %*METAOPGEN{$opsub} {
-            if $metaop eq '!' {
-                @BLOCK[0].loadinit.push(
-                    PAST::Op.new( :name('!gen_not_metaop'), $sym,
-                                  :pasttype('call') )
-                );
-            }
-            if $metaop eq 'R' {
-                @BLOCK[0].loadinit.push(
-                    PAST::Op.new( :name('!gen_reverse_metaop'), $sym,
-                                  :pasttype('call') )
-                );
-            }
+        my $base_opsub := "&infix:<$sym>";
+        if $metaop eq '!' || $metaop eq 'R' || $metaop eq 'S' {
+            unless %*METAOPGEN{$opsub} {
+                if $metaop eq '!' {
+                    @BLOCK[0].loadinit.push(
+                        PAST::Op.new( :name('!gen_not_metaop'), $sym,
+                                      :pasttype('call') )
+                    );
+                }
+                if $metaop eq 'R' {
+                    @BLOCK[0].loadinit.push(
+                        PAST::Op.new( :name('!gen_reverse_metaop'), $sym,
+                                      :pasttype('call') )
+                    );
+                }
 
-            %*METAOPGEN{$opsub} := 1;
+                %*METAOPGEN{$opsub} := 1;
+            }
+            make PAST::Op.new( :name($opsub), :pasttype('call') );
         }
-        make PAST::Op.new( :name($opsub), :pasttype('call') );
+        else {
+            if $metaop eq 'X' {
+                make PAST::Op.new( :name("&crosswith"), :pasttype('call'),
+                                   PAST::Var.new( :name($base_opsub), :scope('package') ) );
+            }
+            if $metaop eq 'Z' {
+                make PAST::Op.new( :name("&zipwith"), :pasttype('call'),
+                                   PAST::Var.new( :name($base_opsub), :scope('package') ) );
+            }
+        }
     }
 }
 

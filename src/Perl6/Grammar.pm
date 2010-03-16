@@ -1223,8 +1223,8 @@ token infix:sym<?? !!> {
 token infix_prefix_meta_operator:sym<!> { <sym> <O('%item_assignment')> }
 token infix_prefix_meta_operator:sym<R> { <sym> <O('%item_assignment')> }
 token infix_prefix_meta_operator:sym<S> { <sym> <O('%item_assignment')> }
-token infix_prefix_meta_operator:sym<X> { <sym> <O('%item_assignment')> }
-token infix_prefix_meta_operator:sym<Z> { <sym> <O('%item_assignment')> }
+token infix_prefix_meta_operator:sym<X> { <sym> <O('%list_infix')> }
+token infix_prefix_meta_operator:sym<Z> { <sym> <O('%list_infix')> }
 
 token infix:sym<:=> {
     <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>
@@ -1255,8 +1255,8 @@ token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
 token infix:sym<,>    { <sym>  <O('%comma')> }
 
-token infix:sym<Z>    { <sym>  <O('%list_infix')> }
-token infix:sym<X>    { <sym>  <O('%list_infix')> }
+# token infix:sym<Z>    { <sym>  <O('%list_infix')> }
+# token infix:sym<X>    { <sym>  <O('%list_infix')> }
 
 token infix:sym<...>  { <sym>  <O('%list_infix')> }
 # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }

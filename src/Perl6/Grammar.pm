@@ -989,7 +989,13 @@ token quote:sym<m> {
     | '{'<p6regex=.LANG('Regex','nibbler')>'}'
     ]
 }
-
+token quote:sym<s> {
+    <sym> >> 
+    '/'
+    <p6regex=.LANG('Regex','nibbler')>
+    <?[/]>
+    <quote_EXPR: ':qq'>
+}
 
 token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
 token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }

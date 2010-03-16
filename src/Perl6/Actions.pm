@@ -2132,6 +2132,30 @@ method quote:sym<m>($/) {
     make create_code_object($past, 'Regex', 0, '');
 }
 
+method quote:sym<s>($/) {
+    # Build the regex.
+    my $regex_ast := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
+    my $regex := create_code_object($regex_ast, 'Regex', 0, '');
+
+    # Quote needs to be closure-i-fied.
+    my $closure_ast := PAST::Block.new(
+        PAST::Stmts.new(),
+        PAST::Stmts.new(
+            $<quote_EXPR>.ast
+        )
+    );
+    my $closure := create_code_object($closure_ast, 'Block', 0, '');
+
+    # Make a Substitution.
+    $regex.named('matcher');
+    $closure.named('replacer');
+    make PAST::Op.new(
+        :pasttype('callmethod'), :name('new'),
+        PAST::Var.new( :name('Substitution'), :scope('package') ),
+        $regex, $closure
+    );
+}
+
 method quote_escape:sym<$>($/) {
     #make $<variable>.ast;
     # my $a = 3; say "$a".WHAT # Gives Int, not Str with the above. Force

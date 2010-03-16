@@ -120,7 +120,7 @@ augment class Any {
     }
 
     multi method reduce(Code $expression is rw) {
-        my $arity = $expression.count;
+        my $arity = $expression.?count || 2; # second half is a CHEAT
         fail('Cannot reduce() using a unary or nullary function.')
             if $arity < 2;
         fail('Can only reduce() using a binary function for now.')

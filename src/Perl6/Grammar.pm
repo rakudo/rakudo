@@ -1263,8 +1263,8 @@ token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
 token infix:sym<,>    { <sym>  <O('%comma')> }
 
-# token infix:sym<Z>    { <sym>  <O('%list_infix')> }
-# token infix:sym<X>    { <sym>  <O('%list_infix')> }
+token infix:sym<Z>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
+token infix:sym<X>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 
 token infix:sym<...>  { <sym>  <O('%list_infix')> }
 # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }

@@ -2141,7 +2141,7 @@ method quote:sym<s>($/) {
     my $closure_ast := PAST::Block.new(
         PAST::Stmts.new(),
         PAST::Stmts.new(
-            $<quote_EXPR>.ast
+            $<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast
         )
     );
     my $closure := create_code_object($closure_ast, 'Block', 0, '');

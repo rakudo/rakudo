@@ -991,10 +991,12 @@ token quote:sym<m> {
 }
 token quote:sym<s> {
     <sym> >> 
-    '/'
-    <p6regex=.LANG('Regex','nibbler')>
-    <?[/]>
-    <quote_EXPR: ':qq'>
+    [
+    | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'>
+    | '[' <p6regex=.LANG('Regex','nibbler')> ']'
+      <.ws> [ '=' || <.panic: "Missing assignment operator"> ]
+      <.ws> <EXPR('i')>
+    ]
 }
 
 token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }

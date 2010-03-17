@@ -77,7 +77,7 @@ augment class Seq {
         }
     }
 
-    multi method rotate(Int $n = 1) is export { 
+    multi method rotate(Int $n = 1) is export {
         my Int $k = $n % self.elems;
         self[$k .. self.elems-1, 0 .. $k-1];
     }

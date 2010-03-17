@@ -50,11 +50,11 @@ S02-builtin_data_types/declare.t
 # S02-builtin_data_types/flattening.t
 # S02-builtin_data_types/hash_ref.t
 # S02-builtin_data_types/hash.t
-# S02-builtin_data_types/infinity.t
+S02-builtin_data_types/infinity.t
 # S02-builtin_data_types/lists.t
 # S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
-# S02-builtin_data_types/nan.t
+S02-builtin_data_types/nan.t
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/nil.t
@@ -64,7 +64,7 @@ S02-builtin_data_types/parcel.t
 S02-builtin_data_types/parsing-bool.t
 S02-builtin_data_types/range.t
 S02-builtin_data_types/sigils-and-types.t
-# S02-builtin_data_types/subscripts_and_context.t
+S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
 # S02-builtin_data_types/whatever.t
 S02-lexical-conventions/unicode.t                          # icu
@@ -221,7 +221,7 @@ S04-statements/redo.t
 S04-statements/repeat.t
 # S04-statements/return.t
 S04-statements/terminator.t
-# S04-statements/try.t
+S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
@@ -297,7 +297,7 @@ S06-signature/closure-parameters.t
 S06-signature/code.t
 S06-signature/defaults.t
 S06-signature/errors.t
-# S06-signature/introspection.t
+S06-signature/introspection.t
 S06-signature/mixed-placeholders.t
 S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
@@ -326,10 +326,12 @@ S09-autovivification/autoincrement.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
 # S10-packages/basic.t
-# S10-packages/use-with-class.t
+S10-packages/use-with-class.t
 # S11-modules/export.t
 # S11-modules/import.t
 # S11-modules/import-tag.t
+S11-modules/lexical.t
+S11-modules/need.t
 # S11-modules/nested.t
 # S12-attributes/class.t
 S12-attributes/clone.t
@@ -421,7 +423,7 @@ S28-named-variables/inc.t
 S29-any/cmp.t
 S29-any/isa.t
 # S29-context/die.t
-# S29-context/eval.t
+S29-context/eval.t
 S29-context/sleep.t
 S29-conversions/ord_and_chr.t                              #icu
 S32-array/bool.t

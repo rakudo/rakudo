@@ -1252,6 +1252,8 @@ token infix:sym<::=> {
 
 token infix:sym<.=> { <sym> <O('%item_assignment, :nextterm<dottyopish>')> }
 
+# Should probably have <!after '='> to agree w/spec, but after NYI.
+# Modified infix != below instead to prevent misparse
 token infix_postfix_meta_operator:sym<=> { '=' <O('%item_assignment')> }
 
 token infix:sym«=>» { <sym> <O('%item_assignment')> }

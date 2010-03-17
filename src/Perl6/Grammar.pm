@@ -1191,7 +1191,7 @@ token prefix:sym<abs>     { <sym> » <O('%named_unary')> }
 token prefix:sym<defined> { <sym> » <O('%named_unary')> }
 
 token infix:sym«==»   { <sym>  <O('%chaining')> }
-token infix:sym«!=»   { <sym>  <O('%chaining')> }
+token infix:sym«!=»   { <sym> <?before \s> <O('%chaining')> }
 token infix:sym«<=»   { <sym>  <O('%chaining')> }
 token infix:sym«>=»   { <sym>  <O('%chaining')> }
 token infix:sym«<»    { <sym>  <O('%chaining')> }
@@ -1204,12 +1204,10 @@ token infix:sym«lt»   { <sym>  <O('%chaining')> }
 token infix:sym«gt»   { <sym>  <O('%chaining')> }
 token infix:sym«=:=»  { <sym>  <O('%chaining')> }
 token infix:sym<===>  { <sym>  <O('%chaining')> }
-token infix:sym<!===> { <sym>  <O('%chaining')> }
 token infix:sym<eqv>  { <sym>  <O('%chaining')> }
 token infix:sym<before>  { <sym>  <O('%chaining')> }
 token infix:sym<after>  { <sym>  <O('%chaining')> }
 token infix:sym<~~>   { <sym>  <O('%chaining')> }
-token infix:sym<!~~>  { <sym>  <O('%chaining')> }
 
 token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 

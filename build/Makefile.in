@@ -195,6 +195,7 @@ CORE_SOURCES = \
   src/core/Regex.pm \
   src/core/Junction.pm \
   src/core/Grammar.pm \
+  src/core/Substitution.pm \
   src/core/system.pm \
   src/cheats/match-bool.pm \
   src/cheats/setup-io.pm \

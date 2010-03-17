@@ -11,6 +11,12 @@ our multi infix:<~~>(Mu $topic, Regex $matcher) {
     };
 }
 
+class Substitution { ... }
+our multi infix:<~~>(Mu $topic is rw, Substitution $matcher) {
+    $matcher.ACCEPTS($topic)
+}
+
+
 our multi infix:<!~~>(Mu $topic, Mu $matcher) {
     $matcher.REJECTS($topic)
 }

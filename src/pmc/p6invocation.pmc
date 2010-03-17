@@ -324,6 +324,11 @@ pmclass P6Invocation need_ext dynpmc group perl6_group {
         PObj_flag_SET(P6I_FAILURE_MODE, SELF);
     }
 
+    METHOD INTVAL *Bool() {
+        INTVAL result = VTABLE_get_bool(interp, SELF);
+        RETURN(INTVAL result);
+    }
+
     void class_init() {
         perl6_str          = CONST_STRING(interp, "perl6");
         deferral_fail_str  = CONST_STRING(interp, "!deferal_fail");

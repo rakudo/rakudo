@@ -36,9 +36,10 @@ New in 2010.03 release
   authority, and in absence of a requirement selection of the latest
   version by default if multiple are available.
 + Many improvements to the series operator
-+ Implemented need and a first cut of import; use works in terms of them
++ Implemented 'need' and a first cut of 'import'; 'use' works in terms
+  of them
 + Import is now into the lexical scope by default, as per spec
-+ Removed requirement to hand-pre-compile .pm to .pir for use with "use"
++ Removed requirement to hand-pre-compile .pm to .pir for use with 'use'
 + Improved multi-dispatch candidate not found errors to include details of
   the available candidates
 + Implemented 'use MONKEY_TYPING'

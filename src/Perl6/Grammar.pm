@@ -665,6 +665,11 @@ token routine_declarator:sym<submethod>
 rule routine_def {
     :my $*IN_DECL := 'routine';
     <deflongname>?
+    {
+        if $<deflongname> && $<deflongname>[0]<colonpair> {
+            $/.CURSOR.gen_op_if_needed($<deflongname>[0]);
+        }
+    }
     <.newpad>
     [ '(' <multisig> ')' ]?
     <trait>*
@@ -1370,4 +1375,69 @@ sub parse_name($name) {
     }
 
     @result;
+}
+
+
+# This sub is used to augment the grammar with new ops at parse time.
+method gen_op_if_needed($deflongname) {
+    my $self := Q:PIR { %r = self };
+
+    # Extract interesting bits from the longname.
+    my $category := $deflongname<name>.Str;
+    my $opname   := ~$deflongname<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
+    my $canname  := $category ~ ":sym<" ~ $opname ~ ">";
+
+    # Work out what default precedence we want.
+    my $prec;
+    if $category eq 'infix' {
+        $prec := '%additive';
+    }
+    elsif $category eq 'prefix' {
+        $prec := '%symbolic_unary';
+    }
+    elsif $category eq 'postfix' {
+        $prec := '%autoincrement';
+    }
+    else {
+        return;
+    }
+
+    # Check if we have the op already.
+    unless pir::can__IPS($self, $canname) {
+        # No, need to modify the grammar. Build code to parse it.
+        my $parse := Regex::P6Regex::Actions::buildsub(PAST::Regex.new(
+            :pasttype('concat'),
+            PAST::Regex.new(
+                :pasttype('subcapture'),
+                :name('sym'),
+                :backtrack('r'),
+                PAST::Regex.new(
+                    :pasttype('literal'),
+                    $opname
+                )
+            ),
+            PAST::Regex.new(
+                :pasttype('subrule'),
+                :name('O'),
+                :backtrack('r'),
+                'O',
+                PAST::Val.new( :value('%additive') )
+            )
+        ));
+
+        # Needs to go into the Perl6::Grammar namespace.
+        $parse.name($canname);
+        $parse.namespace(pir::split('::', 'Perl6::Grammar'));
+
+        # Compile 'er, and run to install the new op.
+        my $compiled := PAST::Compiler.compile($parse);
+        $self.HOW.add_method($self, ~$compiled[0], $compiled[0]);
+        $self.HOW.add_method($self, ~$compiled[1], $compiled[1]);
+
+        # Mark proto-regex table as needing re-generation.
+        Q:PIR {
+            $P0 = find_lex '$self'
+            $P0.'!protoregex_generation'()
+        };
+    }
 }

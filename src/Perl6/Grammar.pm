@@ -1404,7 +1404,7 @@ method gen_op_if_needed($deflongname) {
 
     # Check if we have the op already.
     unless pir::can__IPS($self, $canname) {
-        # No, need to modify the grammar. Build code to parse it.
+        # Nope, so we need to modify the grammar. Build code to parse it.
         my $parse := Regex::P6Regex::Actions::buildsub(PAST::Regex.new(
             :pasttype('concat'),
             PAST::Regex.new(
@@ -1421,7 +1421,7 @@ method gen_op_if_needed($deflongname) {
                 :name('O'),
                 :backtrack('r'),
                 'O',
-                PAST::Val.new( :value('%additive') )
+                PAST::Val.new( :value($prec) )
             )
         ));
 
@@ -1429,7 +1429,8 @@ method gen_op_if_needed($deflongname) {
         $parse.name($canname);
         $parse.namespace(pir::split('::', 'Perl6::Grammar'));
 
-        # Compile 'er, and run to install the new op.
+        # Compile and then install the two produced methods into the
+        # Perl6::Grammar methods table.
         my $compiled := PAST::Compiler.compile($parse);
         $self.HOW.add_method($self, ~$compiled[0], $compiled[0]);
         $self.HOW.add_method($self, ~$compiled[1], $compiled[1]);

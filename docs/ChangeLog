@@ -45,7 +45,7 @@ New in 2010.03 release
 + Many cases of smart-match work again
 + $x.Foo::bar() and $x.$y() work again
 + $.foo(1,2,3) works again
-+ R, X and Z meta-operators implemented properly (as higher order functions)
++ !, R, X and Z meta-operators work, albeit with some caveats
 + s/foo/bar/ and s[foo] = 'bar' substitution syntax implemented
 + Array.rotate added back
 + User defined operators (prefix, postfix, infix) working again

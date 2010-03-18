@@ -193,7 +193,7 @@ our multi infix:<eq>($a, $b) {
 }
 
 our multi infix:<ne>($a, $b) {
-    pir::isne__ISS(~$a, ~$b) ?? True !! False
+    $a !eq $b
 }
 
 our multi infix:<lt>($a, $b) {

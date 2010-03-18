@@ -19,15 +19,25 @@ The Copenhagen hackathon ...
 Some of the specific changes and improvements occuring with this
 release include:
 
-*  Trigonometric functions updated
+*  Numerous updates to trigonometric functions and the Rat class
 
-*  Grammar updates
+*  Basic s/// and s[...] = '...' implemented
 
-*  Parsing improved
+*  use improved and need/import implemented, with some basic support
+   for versioned modules and lexical importation
 
-*  Hash optimizations
+*  Grammars work again and now include support for regexes taking
+   parameters and proto-regexes
 
 *  User defined operators working again
+
+*  Support, though with caveats, for !, R, X and Z meta-operators
+
+*  Performance improvements for invocation and hash creation
+
+*  Various parsing bugs fixed
+
+*  Variables initialized to Any by default now, not Mu
 
 *  ROADMAP updates
 

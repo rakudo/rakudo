@@ -1,0 +1,49 @@
+Announce: Rakudo Perl 6 development release #27 ("Copenhagen")
+
+On behalf of the Rakudo development team, I'm pleased to announce the
+March 2010 development release of Rakudo Perl #27 "Copenhagen".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
+(see http://www.parrot.org).  The tarball for the March 2010 release
+is available from http://github.com/rakudo/rakudo/downloads .
+
+Rakudo Perl follows a monthly release cycle, with each release named
+after a Perl Mongers group.  The March 2010 release is code named
+"Copenhagen" for Copenhagen.pm, hosts of the Perl 6 Copenhagen 
+Hackathon [1], which took place in the Open Source Days Conference.
+The main goal of the hackathon was to raise some awareness around
+Perl 6, and to give everyone a chance to get their hands-on with
+Perl 6.
+
+The Copenhagen hackathon ...
+
+Some of the specific changes and improvements occuring with this
+release include:
+
+*  Trigonometric functions updated
+
+*  Grammar updates
+
+*  Parsing improved
+
+*  Hash optimizations
+
+*  User defined operators working again
+
+*  ROADMAP updates
+
+For a more detailed list of changes see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible.  If you would like to contribute,
+see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
+mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#28) is scheduled for April 22, 2010.
+A list of the other planned release dates and codenames for 2010 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
+
+[1] http://conferences.yapceurope.org/hack2010dk/

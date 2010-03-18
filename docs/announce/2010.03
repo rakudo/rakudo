@@ -9,12 +9,19 @@ is available from http://github.com/rakudo/rakudo/downloads .
 Rakudo Perl follows a monthly release cycle, with each release named
 after a Perl Mongers group.  The March 2010 release is code named
 "Copenhagen" for Copenhagen.pm, hosts of the Perl 6 Copenhagen 
-Hackathon [1], which took place in the Open Source Days Conference.
-The main goal of the hackathon was to raise some awareness around
-Perl 6, and to give everyone a chance to get their hands-on with
+Hackathon [1], which took place in connection with the Open Source Days
+Conference. The main goal of the hackathon was to raise some awareness
+around Perl 6, and to give everyone a chance to get their hands-on with
 Perl 6.
 
-The Copenhagen hackathon ...
+[1] The Copenhagen hackathon helped nail down a number of issues regarding
+module loading. During these days we also saw a heightened activity on
+the channel, in the Perl 6 and Rakudo repositories, and in the number of
+passing tests. All this was contributed by people both on location and
+elsewhere. The RT queue peaked at 725 new/open tickets, and then started
+on a downward trend. Apart from the great steps forward in productivity,
+it was the first time some of the core Perl 6 contributors had a chance
+to meet.
 
 Some of the specific changes and improvements occuring with this
 release include:

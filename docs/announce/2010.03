@@ -14,7 +14,7 @@ Conference. The main goal of the hackathon was to raise some awareness
 around Perl 6, and to give everyone a chance to get their hands-on with
 Perl 6.
 
-[1] The Copenhagen hackathon helped nail down a number of issues regarding
+The Copenhagen hackathon helped nail down a number of issues regarding
 module loading. During these days we also saw a heightened activity on
 the channel, in the Perl 6 and Rakudo repositories, and in the number of
 passing tests. All this was contributed by people both on location and

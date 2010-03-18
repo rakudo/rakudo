@@ -38,7 +38,7 @@ making Rakudo Perl possible.  If you would like to contribute,
 see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
 mailing list, or ask on IRC #perl6 on freenode.
 
-The next release of Rakudo (#28) is scheduled for April 15, 2010.
+The next release of Rakudo (#28) is scheduled for April 22, 2010.
 A list of the other planned release dates and codenames for 2010 is
 available in the "docs/release_guide.pod" file.  In general, Rakudo
 development releases are scheduled to occur two days after each

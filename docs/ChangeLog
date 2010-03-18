@@ -6,15 +6,15 @@ New in 2010.03 release
 + Hash creation has been optimized
 + Various improvement related to constant internal strings have led to
   slight speedups
-+ .pick, .sort, routine deferral, .keys, .values, .kv, sprintf were
-  reimplemented, ported from the old 'alpha' branch
++ .pick, .sort, .keys, .values, .kv, sprintf were reimplemented, ported
+  from the old 'alpha' branch
 + The statement modifier for loop works again
 + Various parsing bugs have been sorted out; one having to do with
   closing curly braces at the end of a line not terminating the statement
 + .CREATE, .BUILDALL and .can in the OO system have received attention,
   some of it leading to mild speedups
 + $*PROGRAM_NAME and @*ARGS now work
-+ Deferal works again (nextsame/nextwith/callsame/callwith)
++ Deferral works again (nextsame/nextwith/callsame/callwith)
 + Array.delete works again
 + Fixed .?, .+ and .* along with matching latest spec on .?
 + Switch untyped variables to default to Any instead of Mu

@@ -36,6 +36,8 @@ release include:
 *  Grammars work again and now include support for regexes taking
    parameters and proto-regexes
 
+*  Many improvements to the series operator
+
 *  User defined operators working again
 
 *  Support, though with caveats, for !, R, X and Z meta-operators

@@ -1,3 +1,19 @@
+New in 2010.03 release
++ The trigonometric functions and the Rat class have received numerous
+  updates, making them faster and more complete
++ .^parent now works again
++ The invocation logic has received various speedups
++ Hash creation has been optimized
++ Various improvement related to constant internal strings have led to
+  slight speedups
++ .pick, .sort were reimplemented, ported from the old 'alpha' branch
++ The statement modifier for loop works again
++ Various parsing bugs have been sorted out; one having to do with
+  closing curly braces at the end of a line not terminating the statement
++ BUILDALL and .can in the OO system have received attention, some of
+  it leading to mild speedups
++ ...
+
 New in 2010.02 release
 + The branch formerly known as 'ng' becomes the new master branch
 + The previous master branch is now Rakudo/alpha

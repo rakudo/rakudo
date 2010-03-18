@@ -6,15 +6,52 @@ New in 2010.03 release
 + Hash creation has been optimized
 + Various improvement related to constant internal strings have led to
   slight speedups
-+ .pick, .sort, routine deferral, .keys, .values, .kv, sprintf were
-  reimplemented, ported from the old 'alpha' branch
++ .pick, .sort were reimplemented, ported from the old 'alpha' branch
 + The statement modifier for loop works again
 + Various parsing bugs have been sorted out; one having to do with
   closing curly braces at the end of a line not terminating the statement
-+ .CREATE, .BUILDALL and .can in the OO system have received attention,
-  some of it leading to mild speedups
-+ $*PROGRAM_NAME and @*ARGS now work
-+ ...
++ BUILDALL and .can in the OO system have received attention, some of
+  it leading to mild speedups
++ Deferal works again (nextsame/nextwith/callsame/callwith)
++ Array.delete, Array.keys and Array.values all work again
++ $*PROGNAME works again
++ Fixed .?, .+ and .* along with matching latest spec on .?
++ Switch untyped variables to default to Any instead of Mu
++ &foo lookup syntax works again (including for operators)
++ Make sort work again
++ Various cases of eqv operator implemented
++ Make overriding postcircumfix:<( )> work again, this time per spec
++ Make junctions of code objects invokable again
++ Lazy implementation of the Z operator
++ Added back @*INC
++ Read-only %*ENV support
++ Grammars work again
++ Implemented regexes taking parameters
++ Implemented proto-regex declarations
++ Initial work on getting subset types working again
++ Add back many of the file test methods
++ Added docs/S11-Modules-proposal.pod documenting how we intend to handle
+  modules through Rakudo *
++ First cut of locating and loading modules with a given version and/or
+  authority, and in absence of a requirement selection of the latest
+  version by default if multiple are available.
++ Many improvements to the series operator
++ Implemented need and a first cut of import; use works in terms of them
++ Import is now into the lexical scope by default, as per spec
++ Removed requirement to hand-pre-compile .pm to .pir for use with "use"
++ Improved multi-dispatch candidate not found errors to include details of
+  the available candidates
++ Implemented 'use MONKEY_TYPING'
++ Many cases of smart-match work again
++ $x.Foo::bar() and $x.$y() work again
++ $.foo(1,2,3) works again
++ R, X and Z meta-operators implemented properly (as higher order functions)
++ s/foo/bar/ and s[foo] = 'bar' substitution syntax implemented
++ Array.rotate added back
++ User defined operators (prefix, postfix, infix) working again
++ Many more small but important improvements to built-in types and functions
++ Various other bug fixes
++ ROADMAP updates
 
 New in 2010.02 release
 + The branch formerly known as 'ng' becomes the new master branch

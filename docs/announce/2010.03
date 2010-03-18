@@ -36,7 +36,7 @@ release include:
 *  Grammars work again and now include support for regexes taking
    parameters and proto-regexes
 
-*  Many improvements to the series operator
+*  Series operator now has basic support for the current Spec.
 
 *  User defined operators working again
 

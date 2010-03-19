@@ -1940,11 +1940,13 @@ method infixish($/) {
         else {
             if $metaop eq 'X' {
                 make PAST::Op.new( :name("&crosswith"), :pasttype('call'),
-                                   PAST::Var.new( :name($base_opsub), :scope('package') ) );
+                                   PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                 $base_opsub ) );
             }
             if $metaop eq 'Z' {
                 make PAST::Op.new( :name("&zipwith"), :pasttype('call'),
-                                   PAST::Var.new( :name($base_opsub), :scope('package') ) );
+                                   PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                 $base_opsub ) );
             }
         }
     }

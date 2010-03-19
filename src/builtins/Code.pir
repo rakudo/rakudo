@@ -80,7 +80,8 @@ Returns a curried version of self.
     .lex '%args', named_args
     .lex '$obj', self
     .const 'Sub' curried = 'assuming_helper'
-    capture_lex curried
+    # capture_lex curried
+    curried = newclosure curried
     .return (curried)
 .end
 

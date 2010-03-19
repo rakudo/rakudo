@@ -1956,9 +1956,21 @@ method infixish($/) {
                 make PAST::Op.new( :name($opsub), :pasttype('call') );
             }
             if $metaop eq 'Z' {
-                make PAST::Op.new( :name("&zipwith"), :pasttype('call'),
-                                   PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                 $base_opsub ) );
+                unless %*METAOPGEN{$opsub} {
+                    @BLOCK[0].loadinit.push(
+                        PAST::Op.new( :pasttype('bind'),
+                                      PAST::Var.new( :name($opsub), :scope('package') ),
+                                      PAST::Op.new( :pasttype('callmethod'),
+                                                    :name('assuming'),
+                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                                  '&zipwith' ),
+                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                                   $base_opsub ) ) ) );
+
+                    %*METAOPGEN{$opsub} := 1;
+                }
+
+                make PAST::Op.new( :name($opsub), :pasttype('call') );
             }
         }
     }

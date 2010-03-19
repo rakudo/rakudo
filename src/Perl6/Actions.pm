@@ -1952,6 +1952,23 @@ method infixish($/) {
     }
 }
 
+method prefix_circumfix_meta_operator:sym<reduce>($/) {
+    my $opsub := '&prefix:<' ~ ~$/ ~ '>';
+    unless %*METAOPGEN{$opsub} {
+        my $base_op := '&infix:<' ~ $<op>.Str ~ '>';
+        @BLOCK[0].loadinit.push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name($opsub), :scope('package') ),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('assuming'),
+                PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&reduce' ),
+                PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op )
+            )
+        ));
+    }
+    make PAST::Op.new( :name($opsub), :pasttype('call') );
+}
+
 method postfixish($/) {
     if $<postfix_prefix_meta_operator> {
         my $past := $<OPER>.ast;

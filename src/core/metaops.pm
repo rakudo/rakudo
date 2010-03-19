@@ -20,3 +20,7 @@ our multi sub crosswith(&op, Iterable $a-iterable, Iterable $b-iterable) {
         }
     }
 }
+
+our multi reduce(&op, $list) {
+    $list.reduce(&op)
+}

@@ -1048,6 +1048,13 @@ INIT {
     Perl6::Grammar.O(':prec<c=>, :assoc<left>',  '%loose_or');
 }
 
+token prefixish { 
+    [
+    | <OPER=prefix>
+    | <OPER=prefix_circumfix_meta_operator>
+    ]
+    <.ws>
+}
 
 token infixish {
     | <OPER=infix> <![=]>
@@ -1075,11 +1082,28 @@ token postop {
     | <postcircumfix>
 }
 
+proto token prefix_circumfix_meta_operator { <...> }
+
 proto token infix_postfix_meta_operator { <...> }
 
 proto token infix_prefix_meta_operator { <...> }
 
 proto token postfix_prefix_meta_operator { <...> }
+
+regex prefix_circumfix_meta_operator:sym<reduce> {
+    :my $*IN_REDUCE := 1;
+    <?before '['\S+']'>
+
+    '['
+    [
+    || <op=.infixish> <?before ']'>
+#    || \\<op=.infixish> <?before ']'>
+    || <!>
+    ]
+    ']'
+
+    <O('%list_prefix, :assoc<unary>, :uassoc<left>')>
+}
 
 token postfix_prefix_meta_operator:sym<»> {
     [ <sym> | '>>' ] <!before '('>

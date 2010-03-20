@@ -9,6 +9,10 @@ our multi sub zipwith(&op, Iterable $a-iterable, Iterable $b-iterable) {
     }
 }
 
+our multi sub zipwith(&op, $a, $b) {
+    zipwith(&op, $a.list, $b.list);
+}
+
 our multi sub crosswith(&op, Iterable $a-iterable, Iterable $b-iterable) {
     my $ai = $a-iterable.iterator;
     my @b = $b-iterable.Seq;
@@ -19,6 +23,10 @@ our multi sub crosswith(&op, Iterable $a-iterable, Iterable $b-iterable) {
             take &op($a, $b);
         }
     }
+}
+
+our multi sub crosswith(&op, $a, $b) {
+    crosswith(&op, $a.list, $b.list);
 }
 
 our multi reduce(&op, $list) {

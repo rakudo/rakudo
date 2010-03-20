@@ -45,6 +45,10 @@ class EnumMap does Associative {
         self.exists($key)
     }
 
+    method elems() {
+        pir::elements__IP($!storage)
+    }
+
     method exists($key) {
         # Wish we could do pir:: for keyed things. *sigh*
         ?(Q:PIR {

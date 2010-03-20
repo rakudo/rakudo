@@ -85,41 +85,6 @@ class Set does Associative {
     }
 }
 
-our multi sub infix:<∪>(Set $a, %b) { $a.union(%b) }
-our multi sub infix:<∪>(    %a, %b) { Set.new( %a).union(%b) }
-our multi sub infix:<∪>(    @a, %b) { Set.new(|@a).union(%b) }
-our multi sub infix:<∪>(    @a, @b) { Set.new(|@a).union(@b) }
-
-our multi sub infix:<∩>(Set $a, %b) { $a.intersection(%b) }
-our multi sub infix:<∩>(    %a, %b) { Set.new( %a).intersection(%b) }
-our multi sub infix:<∩>(    @a, %b) { Set.new(|@a).intersection(%b) }
-our multi sub infix:<∩>(    @a, @b) { Set.new(|@a).intersection(@b) }
-
-our multi sub infix:<∖>(Set $a, %b) { $a.difference(%b) }
-our multi sub infix:<∖>(    %a, %b) { Set.new( %a).difference(%b) }
-our multi sub infix:<∖>(    @a, %b) { Set.new(|@a).difference(%b) }
-our multi sub infix:<∖>(    @a, @b) { Set.new(|@a).difference(@b) }
-
-our multi sub infix:<⊆>(Set $a, %b) { $a.subsetorequal(%b) }
-our multi sub infix:<⊆>(    %a, %b) { Set.new( %a).subsetorequal(%b) }
-our multi sub infix:<⊆>(    @a, %b) { Set.new(|@a).subsetorequal(%b) }
-our multi sub infix:<⊆>(    @a, @b) { Set.new(|@a).subsetorequal(@b) }
-
-our multi sub infix:<⊇>(Set $a, %b) { $a.supersetorequal(%b) }
-our multi sub infix:<⊇>(    %a, %b) { Set.new( %a).supersetorequal(%b) }
-our multi sub infix:<⊇>(    @a, %b) { Set.new(|@a).supersetorequal(%b) }
-our multi sub infix:<⊇>(    @a, @b) { Set.new(|@a).supersetorequal(@b) }
-
-our multi sub infix:<⊂>(Set $a, %b) { $a.subset(%b) }
-our multi sub infix:<⊂>(    %a, %b) { Set.new( %a).subset(%b) }
-our multi sub infix:<⊂>(    @a, %b) { Set.new(|@a).subset(%b) }
-our multi sub infix:<⊂>(    @a, @b) { Set.new(|@a).subset(@b) }
-
-our multi sub infix:<⊃>(Set $a, %b) { $a.superset(%b) }
-our multi sub infix:<⊃>(    %a, %b) { Set.new( %a).superset(%b) }
-our multi sub infix:<⊃>(    @a, %b) { Set.new(|@a).superset(%b) }
-our multi sub infix:<⊃>(    @a, @b) { Set.new(|@a).superset(@b) }
-
 our multi sub  infix:<(|)>(Set $a, %b) { $a.union(%b) }
 our multi sub  infix:<(|)>(    %a, %b) { Set.new( %a).union(%b) }
 our multi sub  infix:<(|)>(    @a, %b) { Set.new(|@a).union(%b) }

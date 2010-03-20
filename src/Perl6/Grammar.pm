@@ -963,7 +963,7 @@ token rad_number {
             [ '*' <base=.radint> '**' <exp=.radint> ]?
        '>'
     # || <?before '['> <circumfix>
-    # || <?before '('> <circumfix>
+    || <?before '('> <circumfix>
     || <.panic: "Malformed radix number">
     ]
 }

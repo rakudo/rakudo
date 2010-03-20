@@ -2130,14 +2130,19 @@ method dec_number($/) {
 
 method rad_number($/) {
     my $radix    := +($<radix>.Str);
-    my $intpart  := $<intpart>.Str;
-    my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
-    my $base     := $<base> ?? +($<base>[0].Str) !! 0;
-    my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
+    if $<circumfix> {
+        make PAST::Op.new(:name('&radcalc'), :pasttype('call'),
+            $radix, $<circumfix>.ast);
+    } else {
+        my $intpart  := $<intpart>.Str;
+        my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
+        my $base     := $<base> ?? +($<base>[0].Str) !! 0;
+        my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
 
-    make PAST::Op.new( :name('&radcalc'), :pasttype('call'),
-        $radix, $intpart, $fracpart, $base, $exp
-    );
+        make PAST::Op.new( :name('&radcalc'), :pasttype('call'),
+            $radix, $intpart, $fracpart, $base, $exp
+        );
+    }
 }
 
 method typename($/) {

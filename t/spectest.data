@@ -337,7 +337,7 @@ S11-modules/need.t
 S12-attributes/clone.t
 # S12-attributes/delegation.t
 S12-attributes/inheritance.t
-# S12-attributes/instance.t
+S12-attributes/instance.t
 # S12-attributes/recursive.t
 S12-attributes/undeclared.t
 # S12-class/anonymous.t
@@ -369,7 +369,7 @@ S12-introspection/roles.t
 # S12-introspection/walk.t
 S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
-# S12-methods/chaining.t
+S12-methods/chaining.t
 S12-methods/class-and-instance.t
 # S12-methods/default-trait.t
 S12-methods/defer-call.t

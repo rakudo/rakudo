@@ -1151,12 +1151,12 @@ token dottyopish {
 }
 
 token postcircumfix:sym<[ ]> {
-    '[' <.ws> <EXPR> ']'
+    '[' ~ ']' [ <.ws> <EXPR> ]
     <O('%methodcall')>
 }
 
 token postcircumfix:sym<{ }> {
-    '{' <.ws> <EXPR> '}'
+    '{' ~ '}' [ <.ws> <EXPR> ]
     <O('%methodcall')>
 }
 
@@ -1166,7 +1166,7 @@ token postcircumfix:sym<ang> {
 }
 
 token postcircumfix:sym<( )> {
-    '(' <.ws> <arglist> ')'
+    '(' ~ ')' [ <.ws> <arglist> ]
     <O('%methodcall')>
 }
 

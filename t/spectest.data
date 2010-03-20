@@ -49,7 +49,7 @@ S02-builtin_data_types/catch_type_cast_mismatch.t
 S02-builtin_data_types/declare.t
 # S02-builtin_data_types/flattening.t
 # S02-builtin_data_types/hash_ref.t
-# S02-builtin_data_types/hash.t
+S02-builtin_data_types/hash.t
 S02-builtin_data_types/infinity.t
 # S02-builtin_data_types/lists.t
 # S02-builtin_data_types/mixed_multi_dimensional.t

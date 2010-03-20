@@ -32,7 +32,7 @@ method TOP() {
 
 method add_my_name($name) {
     my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
-    
+
     # We need to flag up most re-declaration collisions.
     my $cur_decl := @BLOCK[0].symbol($name);
     if $cur_decl {
@@ -149,7 +149,7 @@ token longname {
     <name> <colonpair>*
 }
 
-token deflongname { 
+token deflongname {
     <name> <colonpair>*
 }
 
@@ -172,8 +172,8 @@ token nofun { <![ ( \\ ' \- ]> » }
 token spacey { <?before <[ \s \# ]> > }
 
 token ENDSTMT {
-    [ 
-    | \h* $$ <.ws> <?MARKER('endstmt')> 
+    [
+    | \h* $$ <.ws> <?MARKER('endstmt')>
     | <.unv>? $$ <.ws> <?MARKER('endstmt')>
     ]?
 }
@@ -192,8 +192,8 @@ token vws {
     \v
 }
 
-token ws { 
-    ||  <?MARKED('ws')> 
+token ws {
+    ||  <?MARKED('ws')>
     ||  <!ww>
         [ \s+
         | '#' \N*
@@ -213,7 +213,7 @@ token unv {
 
 
 token pod_comment {
-    ^^ \h* '=' 
+    ^^ \h* '='
     [
     | 'begin' \h+ 'END' >>
         [ .*? \n '=' 'end' \h+ 'END' » \N* || .* ]
@@ -222,14 +222,14 @@ token pod_comment {
         ||  .*? \n '=' 'end' \h+ $<identifier> » \N*
         ||  <.panic: '=begin without matching =end'>
         ]
-    | 'begin' » \h* 
+    | 'begin' » \h*
         [ $$ || '#' || <.panic: 'Unrecognized token after =begin'> ]
-        [ 
+        [
         || .*? \n \h* '=' 'end' » \N*
-        || <.panic: '=begin without matching =end'> 
+        || <.panic: '=begin without matching =end'>
         ]
-    | 
-        [ <?before .*? ^^ '=cut' » > 
+    |
+        [ <?before .*? ^^ '=cut' » >
           <.panic: 'Obsolete pod format, please use =begin/=end instead'> ]?
         [ <alpha> || \s || <.panic: 'Illegal pod directive'> ]
         \N*
@@ -246,8 +246,8 @@ token comp_unit {
     <.newpad>
     <.outerlex>
     <.finishpad>
-    <statementlist> 
-    [ $ || <.panic: 'Confused'> ] 
+    <statementlist>
+    [ $ || <.panic: 'Confused'> ]
 }
 
 rule statementlist {
@@ -291,7 +291,7 @@ token pblock($*IMPLICIT = 0) {
         :my $*SCOPE := 'my';
         <signature>
         <blockoid>
-    | <?[{]> 
+    | <?[{]>
         <.newpad>
         <blockoid>
     | <.panic: 'Missing block'>
@@ -355,9 +355,9 @@ token statement_control:sym<while> {
 
 token statement_control:sym<repeat> {
     <sym> :s
-    [ 
+    [
     | $<wu>=[while|until]\s <xblock>
-    | <pblock> $<wu>=[while|until]\s <EXPR> 
+    | <pblock> $<wu>=[while|until]\s <EXPR>
     ]
 }
 
@@ -408,7 +408,7 @@ token statement_control:sym<import> {
 }
 
 token statement_control:sym<use> {
-    <sym> <.ws> 
+    <sym> <.ws>
     [
     | <version>
     | <module_name> [ <.spacey> <arglist> ]?
@@ -561,16 +561,16 @@ token package_declarator:sym<does> {
     <typename>
 }
 
-rule package_def { 
+rule package_def {
     :my $*IN_DECL := 'package';
     <def_module_name>?
     <trait>*
     {*} #= open
-    [ 
-    || ';' 
+    [
+    || ';'
         <.newpad>
         <.finishpad>
-        <statementlist> 
+        <statementlist>
     || <?[{]> <block>
     || <.panic: 'Malformed package declaration'>
     ]
@@ -610,7 +610,7 @@ token scope_declarator:sym<my>        { <sym> <scoped('my')> }
 token scope_declarator:sym<our>       { <sym> <scoped('our')> }
 token scope_declarator:sym<has>       { <sym> <scoped('has')> }
 token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
-token scope_declarator:sym<supersede> { 
+token scope_declarator:sym<supersede> {
     <sym> <.panic: '"supersede" not yet implemented'>
 }
 
@@ -621,7 +621,7 @@ rule scoped($*SCOPE) {
     | <DECL=routine_declarator>
     | <DECL=package_declarator>
     | <DECL=type_declarator>
-    | <typename>+ 
+    | <typename>+
       {
         if +$<typename> > 1 {
             $/.CURSOR.panic("Multiple prefix constraints not yet supported");
@@ -644,7 +644,7 @@ token variable_declarator {
     <variable>
     { $*IN_DECL := '' }
     [
-        <.unsp>? 
+        <.unsp>?
         $<shape>=[
         | '(' ~ ')' <signature>
         | '[' ~ ']' <semilist>
@@ -655,11 +655,11 @@ token variable_declarator {
 }
 
 proto token routine_declarator { <...> }
-token routine_declarator:sym<sub>       
+token routine_declarator:sym<sub>
     { <sym> <.nofun> <routine_def> }
-token routine_declarator:sym<method>    
+token routine_declarator:sym<method>
     { <sym> <.nofun> :my $*METHODTYPE := 'Method'; <method_def> }
-token routine_declarator:sym<submethod> 
+token routine_declarator:sym<submethod>
     { <sym> <.nofun> :my $*METHODTYPE := 'Submethod'; <method_def> }
 
 rule routine_def {
@@ -797,20 +797,20 @@ rule post_constraint {
 }
 
 proto token regex_declarator { <...> }
-token regex_declarator:sym<rule> { 
+token regex_declarator:sym<rule> {
     <sym> {*} #= open
     :my $*METHODTYPE := 'rule';
-    <regex_def> 
+    <regex_def>
 }
-token regex_declarator:sym<token> { 
+token regex_declarator:sym<token> {
     <sym> {*} #= open
     :my $*METHODTYPE := 'token';
-    <regex_def> 
+    <regex_def>
 }
-token regex_declarator:sym<regex> { 
+token regex_declarator:sym<regex> {
     <sym> {*} #= open
     :my $*METHODTYPE := 'regex';
-    <regex_def> 
+    <regex_def>
 }
 
 rule regex_def {
@@ -885,7 +885,7 @@ token term:sym<identifier> {
 }
 
 token term:sym<name> {
-    <longname> 
+    <longname>
     [
     ||  <?{
             my $longname := $<longname>.Str;
@@ -914,8 +914,8 @@ token semiarglist {
 }
 
 token arglist {
-    <.ws> 
-    [ 
+    <.ws>
+    [
     | <?stdstopper>
     | <EXPR('e=')>
     | <?>
@@ -995,7 +995,7 @@ token quote:sym<m> {
     ]
 }
 token quote:sym<s> {
-    <sym> >> 
+    <sym> >>
     [
     | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'>
     | '[' <p6regex=.LANG('Regex','nibbler')> ']'
@@ -1127,7 +1127,7 @@ token dottyop {
     ]
 }
 
-token privop { 
+token privop {
     '!' <methodop>
     <O('%methodcall')>
 }
@@ -1139,8 +1139,8 @@ token methodop {
     | <?before <[ ' " ]> >
         <quote>
         [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments"> ]
-    ] <.unsp>? 
-    [ 
+    ] <.unsp>?
+    [
     | <?[(]> <args>
     | ':' \s <args=.arglist>
     ]?
@@ -1150,8 +1150,8 @@ token dottyopish {
     <term=.dottyop>
 }
 
-token postcircumfix:sym<[ ]> { 
-    '[' <.ws> <EXPR> ']' 
+token postcircumfix:sym<[ ]> {
+    '[' <.ws> <EXPR> ']'
     <O('%methodcall')>
 }
 
@@ -1165,8 +1165,8 @@ token postcircumfix:sym<ang> {
     <O('%methodcall')>
 }
 
-token postcircumfix:sym<( )> { 
-    '(' <.ws> <arglist> ')' 
+token postcircumfix:sym<( )> {
+    '(' <.ws> <arglist> ')'
     <O('%methodcall')>
 }
 
@@ -1246,12 +1246,12 @@ token infix:sym<//>   { <sym>  <O('%tight_or, :pasttype<def_or>')> }
 token infix:sym<min>  { <sym>  <O('%tight_or')> }
 token infix:sym<max>  { <sym>  <O('%tight_or')> }
 
-token infix:sym<?? !!> { 
+token infix:sym<?? !!> {
     '??'
     <.ws>
     <EXPR('i=')>
     '!!'
-    <O('%conditional, :reducecheck<ternary>, :pasttype<if>')> 
+    <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>
 }
 
 # item_assignment is probably wrong, but I don't know how to do what is right...
@@ -1275,7 +1275,7 @@ method bindish_check($/) {
 }
 
 token infix:sym<::=> {
-    <sym>  <O('%item_assignment')> 
+    <sym>  <O('%item_assignment')>
     <.panic: "::= binding not yet implemented">
 }
 
@@ -1328,8 +1328,8 @@ token infix:sym<but>  { <sym> <O('%structural')> }
 token infix:sym<does> { <sym> <O('%structural')> }
 
 grammar Perl6::Regex is Regex::P6Regex::Grammar {
-    token metachar:sym<:my> { 
-        ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';' 
+    token metachar:sym<:my> {
+        ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }
 
     token metachar:sym<{ }> {
@@ -1353,10 +1353,10 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
             | '(' <arglist=p6arglist> ')'
             | <.normspace> <nibbler>
             ]?
-    } 
+    }
 
     token p6arglist {
-        <arglist=.LANG('MAIN','arglist')> 
+        <arglist=.LANG('MAIN','arglist')>
     }
 }
 

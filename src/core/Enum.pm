@@ -47,7 +47,7 @@ Return key and value as a 2-element List.
     method pairs() {
         return self.list();
     }
-    
+
     method value() {
         $!value
     }
@@ -71,3 +71,5 @@ Return key and value as a 2-element List.
         %h;
     }
 }
+
+# vim: ft=perl6

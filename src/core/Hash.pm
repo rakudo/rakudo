@@ -20,7 +20,7 @@ role Hash is EnumMap {
         # We create a new storage hash, in case we are referenced in
         # what is being stored.
         pir::setattribute__vPsP(self, '$!storage', pir::new__Ps('Hash'));
-        
+
         # Work through the list, storing the things in it.
         my $need_value = 0;
         my $key;

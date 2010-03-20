@@ -58,7 +58,7 @@ augment class Seq {
         # Parrot already provides a sort method that works on
         # ResizablePMCArray, so we aim to make use of that here.
         # Instead of sorting the elements directly, we sort an RPA
-        # of indices (from 0 to $list.elems), then use that RPA 
+        # of indices (from 0 to $list.elems), then use that RPA
         # as a slice into self.
 
         # If &by.arity < 2, then it represents a block to be applied

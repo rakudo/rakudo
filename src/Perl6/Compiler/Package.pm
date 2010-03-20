@@ -7,7 +7,7 @@ has $!block;
 has $!how;
 
 # The name of the package.
-has $!name; 
+has $!name;
 
 # The scope of the package.
 has $!scope;

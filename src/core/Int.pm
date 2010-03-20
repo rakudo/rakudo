@@ -33,7 +33,7 @@ augment class Int {
     our Num multi method Num() {
         pir::box__PN(pir::set__NP(self))
     }
- 
+
     # Next has been moved to Rat.pm for the moment.
     # our Rat multi method Rat() { Rat.new(self, 1); }
 

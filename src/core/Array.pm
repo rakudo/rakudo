@@ -3,11 +3,11 @@ augment class Array {
         # XXX: $_.perl and .perl don't work, but this does...
         '[' ~ self.map({ $^a.perl }).join(', ') ~ ']';
     }
- 
+
 
     our method push(*@values) is export {
         self!fill;
-        pir::splice__0PPii( @!items, [@values].iterator.eager, 
+        pir::splice__0PPii( @!items, [@values].iterator.eager,
                             pir::elements(@!items), 0);
         self;
     }

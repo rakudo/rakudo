@@ -1989,6 +1989,7 @@ method prefix_circumfix_meta_operator:sym<reduce>($/) {
                 PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op )
             )
         ));
+        %*METAOPGEN{$opsub} := 1;
     }
     make PAST::Op.new( :name($opsub), :pasttype('call') );
 }

@@ -1,5 +1,5 @@
 augment class Array {
-   method perl() {
+    method perl() {
         # XXX: $_.perl and .perl don't work, but this does...
         '[' ~ self.map({ $^a.perl }).join(', ') ~ ']';
     }

@@ -938,7 +938,7 @@ token numish {
     [
     | <dec_number>
     | <integer>
-#    | <rad_number>
+    | <rad_number>
     | 'NaN' >>
     | 'Inf' >>
     | '+Inf' >>
@@ -950,6 +950,33 @@ token dec_number {
     | $<coeff> = [               '.' <frac=.decint> ] <escale>?
     | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
     | $<coeff> = [ <int=.decint>                    ] <escale>
+}
+
+token rad_number {
+     <!before '::'> ':' $<radix> = [\d+] <.unsp>?
+    # {}           # don't recurse in lexer
+    # :dba('number in radix notation')
+    [
+    || '<'
+            $<intpart> = [ <[ 0..9 a..z A..Z ]>+ [ _ <[ 0..9 a..z A..Z ]>+ ]* ]
+            $<fracpart> = [ '.' <[ 0..9 a..z A..Z ]>+ [ _ <[ 0..9 a..z A..Z ]>+ ]* ]?
+            [ '*' <base=.radint> '**' <exp=.radint> ]?
+       '>'
+    # || <?before '['> <circumfix>
+    # || <?before '('> <circumfix>
+    || <.panic: "Malformed radix number">
+    ]
+}
+
+token radint {
+    [
+    | <integer>
+    # | <?before ':'\d> <rad_number> <?{
+    #                         defined $<rad_number><intpart>
+    #                         and
+    #                         not defined $<rad_number><fracpart>
+    #                     }>
+    ]
 }
 
 token escale { <[Ee]> $<sign>=[<[+\-]>?] <decint> }

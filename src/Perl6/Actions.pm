@@ -2086,6 +2086,7 @@ method number:sym<numish>($/) {
 method numish($/) {
     if $<integer> { make PAST::Val.new( :value($<integer>.ast) ); }
     elsif $<dec_number> { make $<dec_number>.ast; }
+    elsif $<rad_number> { make $<rad_number>.ast; }
     else {
         make PAST::Var.new( :name(~$/), :namespace(''), :scope('package') );
     }
@@ -2125,6 +2126,18 @@ method dec_number($/) {
             $int * $base + $frac, $base, :node($/)
         );
     }
+}
+
+method rad_number($/) {
+    my $radix    := +($<radix>.Str);
+    my $intpart  := $<intpart>.Str;
+    my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
+    my $base     := $<base> ?? $<base>.ast !! 0;
+    my $exp      := $<exp> ?? $<exp>.ast !! 0;
+
+    make PAST::Op.new( :name('&radcalc'), :pasttype('call'),
+        $radix, $intpart, $fracpart, $base, $exp
+    );
 }
 
 method typename($/) {

@@ -3,13 +3,15 @@ class Perl6::Actions is HLL::Actions;
 our @BLOCK;
 our @PACKAGE;
 our $TRUE;
+our %BEGINDONE;
 
 INIT {
     # initialize @BLOCK and @PACKAGE
-    our @BLOCK := Q:PIR { %r = new ['ResizablePMCArray'] };
-    our @PACKAGE := Q:PIR { %r = new ['ResizablePMCArray'] };
+    our @BLOCK := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
+    our @PACKAGE := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
     @PACKAGE.unshift(Perl6::Compiler::Module.new());
     our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
+    our %BEGINDONE := Q:PIR { %r = root_new ['parrot';'Hash'] };
 
     # Tell PAST::Var how to encode Perl6Str and Str values
     my %valflags :=
@@ -463,9 +465,30 @@ method statement_control:sym<CONTROL>($/) {
     make PAST::Stmts.new(:node($/));
 }
 
-# XXX BEGIN isn't correct here, but I'm adding it along with this
-# note so that everyone else knows it's wrong too.  :-)
-method statement_prefix:sym<BEGIN>($/) { add_phaser($/, 'BEGIN'); }
+method statement_prefix:sym<BEGIN>($/) {
+    # BEGIN is kinda tricky. We actually need to run the code in it with
+    # immediate effect, and then have the BEGIN block evaluate to what
+    # was produced at runtime. But if we're in a pre-compiled module, we
+    # need to run the lot. Thus we keep a "already computed BEGIN values"
+    # hash and don't re-run if the value is in that. Of course, we still
+    # don't handle looking at things in outer lexical scopes here.
+    our %BEGINDONE;
+    our $?RAKUDO_HLL;
+    my $past := $<blorst>.ast;
+    $past.hll($?RAKUDO_HLL);
+    my $compiled := PAST::Compiler.compile($past);
+    my $begin_id := $past.unique('BEGINDONE_');
+    %BEGINDONE{$begin_id} := $compiled();
+    @BLOCK[0].loadinit.push(PAST::Op.new(
+        :pasttype('call'), :name('!begin_unless_begun'),
+        $begin_id, $past
+    ));
+    make PAST::Var.new( :scope('keyed'),
+        PAST::Var.new( :name('%BEGINDONE'), :namespace(pir::split('::', 'Perl6::Actions')), :scope('package') ),
+        PAST::Val.new( :value($begin_id) )
+    );
+}
+
 method statement_prefix:sym<CHECK>($/) { add_phaser($/, 'CHECK'); }
 method statement_prefix:sym<INIT>($/)  { add_phaser($/, 'INIT'); }
 method statement_prefix:sym<END>($/)   { add_phaser($/, 'END'); }

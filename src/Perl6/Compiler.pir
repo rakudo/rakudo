@@ -174,6 +174,9 @@ Perl6::Compiler - Perl6 compiler
 
 .sub 'main' :main
     .param pmc args_str
+    # Fire any of the setting's INIT phasers before we enter the runloop, so
+    # e.g. $*OUT is available to the actual code's BEGIN blocks.
+    '!fire_phasers'('INIT')
     $P0 = compreg 'perl6'
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
     '!fire_phasers'('END')

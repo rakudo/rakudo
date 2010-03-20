@@ -71,6 +71,26 @@ and firing them if they haven't been fired yet.
   fire_done:
 .end
 
+
+=item !begin_unless_begun(id, block)
+
+Runs a BEGIN block, unless it was already run during the parse, in which case
+we don't bother. If we do have to run it, we put in place the computed value.
+
+=cut
+
+.sub '!begin_unless_begun'
+    .param string id
+    .param pmc block
+    $P0 = get_hll_global ['Perl6';'Actions'], '%BEGINDONE'
+    $P1 = $P0[id]
+    unless null $P1 goto begun
+    $P1 = block()
+    $P0[id] = $P1
+  begun:
+    .return ($P1)
+.end
+
 =back
 
 =cut

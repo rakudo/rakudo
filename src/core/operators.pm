@@ -243,6 +243,16 @@ our sub WHAT(\$x) {
     $x.WHAT
 }
 
+our multi sub item(*@values) {
+    @values.Seq
+}
+our multi sub item(@values) {
+    @values.Seq
+}
+our multi sub item($item) {
+    $item
+}
+
 class Whatever { ... }
 
 # the magic one that handles stuff like

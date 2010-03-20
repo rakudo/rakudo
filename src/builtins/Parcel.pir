@@ -53,6 +53,15 @@ A Parcel in item context becomes a Seq.
 .end
 
 
+=item hash()
+
+=cut
+
+.sub 'hash' :method
+    .tailcall 'hash'(self)
+.end
+
+
 =item iterator()
 
 Construct an iterator for the Parcel.

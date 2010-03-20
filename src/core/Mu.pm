@@ -1,6 +1,11 @@
 augment class Mu {
     method Bool { $.defined }
 
+    method item {
+        # This is overridden by non-items.
+        self;
+    }
+
     multi method notdef() { !self.defined; }
 
     multi method perl {

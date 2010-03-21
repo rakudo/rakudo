@@ -45,10 +45,34 @@ our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right) {
     die "Sorry, hyper operators on hashes are not yet implemented.";
 }
 
-our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right) {
-    if $dwim-left || $dwim-right {
-        die "Sorry, dwimmy cases of hyper operators are not yet implemented.";
+our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-left, :$dwim-right) {
+    my @lhs = $lhs-iterable.Seq;
+    my @rhs = $rhs-iterable.Seq;
+
+    if @lhs.elems != @rhs.elems {
+        if @lhs.elems > @rhs.elems {
+            if $dwim-right {
+                if @rhs.elems > 0 {
+                    @rhs.push: @rhs[@rhs.elems - 1] xx (@lhs.elems - @rhs.elems);
+                } else {
+                    @rhs.push: &op() xx (@lhs.elems - @rhs.elems);
+                }
+            } else {
+                die "Sorry, right side is too short and not dwimmy.";
+            }
+        } else {
+            if $dwim-left {
+                if @lhs.elems > 0 {
+                    @lhs.push: @lhs[@lhs.elems - 1] xx (@rhs.elems - @lhs.elems);
+                } else {
+                    @lhs.push: &op() xx (@rhs.elems - @lhs.elems);
+                }
+            } else {
+                die "Sorry, left side is too short and not dwimmy.";
+            }
+        }
     }
+
     my @result;
     for @lhs Z @rhs -> $l, $r {
         @result.push(op($l, $r));

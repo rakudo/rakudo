@@ -243,6 +243,7 @@ token comp_unit {
     :my $*IN_DECL;                             # what declaration we're in
     :my $*IMPLICIT;                            # whether we allow an implicit param
     :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
+    :my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
     <.newpad>
     <.outerlex>
     <.finishpad>
@@ -513,6 +514,11 @@ token desigilname {
 }
 
 token variable {
+    <?before <sigil> {
+        unless $*LEFTSIGIL {
+            $*LEFTSIGIL := $<sigil>.Str;
+        }
+    }> {}
     [
     | <sigil> <twigil>? <desigilname>
     | <sigil> $<index>=[\d+]
@@ -731,6 +737,7 @@ token signature {
     <.ws>
     { $*IN_DECL := ''; }
     [ '-->' <.ws> <typename> ]?
+    { $*LEFTSIGIL := '@'; }
 }
 
 token parameter {
@@ -1044,7 +1051,10 @@ token circumfix:sym<ang> {
 }
 token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':w'> }
 token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
-token circumfix:sym<sigil> { <sigil> '(' ~ ')' <semilist> }
+token circumfix:sym<sigil> {
+    <sigil> '(' ~ ')' <semilist>
+    { unless $*LEFTSIGIL { $*LEFTSIGIL := $<sigil>.Str } }
+}
 
 ## Operators
 
@@ -1104,6 +1114,7 @@ token postfixish {
     | <OPER=postfix>
     | <OPER=postcircumfix>
     ]
+    { $*LEFTSIGIL := '@'; }
 }
 
 token postop {
@@ -1368,7 +1379,13 @@ token infix:sym<X>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 token infix:sym<...>  { <sym>  <O('%list_infix')> }
 # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }
 
-token infix:sym<=>    { <sym>  <O('%list_assignment, :reducecheck<assign_check>')> }
+token infix:sym<=> {
+    <sym>
+    [
+    || <?{ $*LEFTSIGIL eq '$' }> <O('%item_assignment, :reducecheck<assign_check>')>
+    || <O('%list_assignment, :reducecheck<assign_check>')>
+    ]
+}
 
 method assign_check($/) {
     my $lhs_ast := $/[0].ast;

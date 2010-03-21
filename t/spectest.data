@@ -32,7 +32,7 @@ integration/lexicals-and-attributes.t
 integration/method-calls-and-instantiation.t
 integration/no-indirect-new.t
 # integration/packages.t
-# integration/pair-in-array.t
+integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 # integration/real-strings.t
 integration/role-composition-vs-attribute.t
@@ -75,7 +75,7 @@ S02-literals/char-by-number.t
 # S02-literals/fmt-interpolation.t
 # S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
-# S02-literals/listquote.t
+S02-literals/listquote.t
 S02-literals/listquote-whitespace.t
 # S02-literals/misc-interpolation.t
 S02-literals/pair-boolean.t
@@ -251,6 +251,7 @@ S05-match/blocks.t
 # S05-match/non-capturing.t
 # S05-match/perl.t
 # S05-match/positions.t
+S05-metachars/closure.t
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
 # S05-metachars/tilde.t
@@ -308,7 +309,7 @@ S06-signature/positional-placeholders.t
 S06-signature/positional.t
 S06-signature/scalar-type.t
 S06-signature/slurpy-and-interpolation.t
-# S06-signature/slurpy-params.t
+S06-signature/slurpy-params.t
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
 S06-signature/tree-node-parameters.t
@@ -394,7 +395,7 @@ S13-overloading/typecasting-long.t
 # S13-overloading/metaoperators.t
 S13-overloading/operators.t
 S14-roles/attributes.t
-# S14-roles/basic.t
+S14-roles/basic.t
 S14-roles/composition.t
 S14-roles/crony.t
 S14-roles/instantiation.t

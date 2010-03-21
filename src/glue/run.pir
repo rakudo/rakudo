@@ -17,12 +17,23 @@ of the compilation unit.
 =cut
 
 .namespace []
-# .include 'interpinfo.pasm'
+ .include 'interpinfo.pasm'
+ .include 'sysinfo.pasm'
 .include 'iglobals.pasm'
 
 .sub '!UNIT_START'
     .param pmc mainline
     .param pmc args            :slurpy
+
+    .local string info
+
+    info = interpinfo .INTERPINFO_EXECUTABLE_FULLNAME
+    $P0 = new ['Str']
+    $P0 = info
+    set_hll_global ['PROCESS'], '$EXECUTABLE_NAME', $P0
+
+
+
 
     # Ignore the args when executed as a library (not main program)
     unless args goto unit_start_0

@@ -1318,9 +1318,9 @@ token infix:sym<?? !!> {
 }
 
 # item_assignment is probably wrong, but I don't know how to do what is right...
-token infix_prefix_meta_operator:sym<!> { <sym> <infixish> <O('%item_assignment')> }
-token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O('%item_assignment')> }
-token infix_prefix_meta_operator:sym<S> { <sym> <infixish> <O('%item_assignment')> }
+token infix_prefix_meta_operator:sym<!> { <sym> <infixish> <O=.copyO('infixish')> }
+token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO('infixish')> }
+token infix_prefix_meta_operator:sym<S> { <sym> <infixish> <O=.copyO('infixish')> }
 token infix_prefix_meta_operator:sym<X> { <sym> <infixish> <O('%list_infix')> }
 token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
 

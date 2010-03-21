@@ -83,3 +83,15 @@ our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-
 our multi sub hyper(&op, $lhs, $rhs, :$dwim-left, :$dwim-right) {
     hyper(&op, $lhs.list, $rhs.list, :$dwim-left, :$dwim-right);
 }
+
+our multi sub hyper(&op, @arg) {
+    my @result;
+    for @arg {
+        @result.push(op($_));
+    }
+    @result
+}
+
+our multi sub hyper(&op, $arg) {
+    hyper(&op, $arg.list)
+}

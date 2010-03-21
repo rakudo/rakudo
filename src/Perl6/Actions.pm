@@ -1922,6 +1922,26 @@ method EXPR($/, $key?) {
     make $past;
 }
 
+method prefixish($/) {
+    if $<prefix_postfix_meta_operator> {
+        my $opsub := '&prefix:<' ~ $<OPER>.Str ~ '<<>';
+        unless %*METAOPGEN{$opsub} {
+            my $base_op := '&prefix:<' ~ $<OPER>.Str ~ '>';
+            @BLOCK[0].loadinit.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new( :name($opsub), :scope('package') ),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('assuming'),
+                    PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&hyper' ),
+                    PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op )
+                )
+            ));
+            %*METAOPGEN{$opsub} := 1;
+        }
+        make PAST::Op.new( :name($opsub), :pasttype('call') );
+    }
+}
+
 method infixish($/) {
     if $<infix_postfix_meta_operator> {
         my $sym := ~$<infix><sym>;
@@ -2023,17 +2043,32 @@ sub make_hyperop($/) {
 method postfixish($/) {
     if $<postfix_prefix_meta_operator> {
         my $past := $<OPER>.ast;
-        if $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
+        if $past && $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
             $past.unshift($past.name());
             $past.name('!dispatch_dispatcher_parallel');
         }
-        elsif $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
+        elsif $past && $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
             $past.unshift($past.name());
             $past.name('!dispatch_method_parallel');
             $past.pasttype('call');
         }
         else {
-            $/.CURSOR.panic("Unimplemented or invalid use of parallel dispatch");
+            # Hyper-op over a normal postfix.
+            my $opsub := '&postfix:<>>' ~ $<OPER>.Str ~ '>';
+            unless %*METAOPGEN{$opsub} {
+                my $base_op := '&postfix:<' ~ $<OPER>.Str ~ '>';
+                @BLOCK[0].loadinit.push(PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new( :name($opsub), :scope('package') ),
+                    PAST::Op.new(
+                        :pasttype('callmethod'), :name('assuming'),
+                        PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&hyper' ),
+                        PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op )
+                    )
+                ));
+                %*METAOPGEN{$opsub} := 1;
+            }
+            $past := PAST::Op.new( :name($opsub), :pasttype('call') );
         }
         make $past;
     }

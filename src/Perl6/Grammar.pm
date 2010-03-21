@@ -1080,6 +1080,7 @@ token prefixish {
     | <OPER=prefix>
     | <OPER=prefix_circumfix_meta_operator>
     ]
+    <prefix_postfix_meta_operator>?
     <.ws>
 }
 
@@ -1120,6 +1121,8 @@ proto token infix_circumfix_meta_operator { <...> }
 
 proto token postfix_prefix_meta_operator { <...> }
 
+proto token prefix_postfix_meta_operator { <...> }
+
 regex prefix_circumfix_meta_operator:sym<reduce> {
     :my $*IN_REDUCE := 1;
     <?before '['\S+']'>
@@ -1137,6 +1140,10 @@ regex prefix_circumfix_meta_operator:sym<reduce> {
 
 token postfix_prefix_meta_operator:sym<»> {
     [ <sym> | '>>' ] <!before '('>
+}
+
+token prefix_postfix_meta_operator:sym<«> {
+    <sym> | '<<'
 }
 
 token infix_circumfix_meta_operator:sym<« »> {

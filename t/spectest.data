@@ -117,6 +117,12 @@ S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
 # S03-junctions/eigenstates.t
 S03-junctions/misc.t
+S03-metaops/cross.t
+# S03-metaops/hyper.t
+S03-metaops/not.t
+# S03-metaops/reduce.t
+S03-metaops/reverse.t
+S03-metaops/zip.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 # S03-operators/assign.t
@@ -133,10 +139,8 @@ S03-operators/boolean-bitwise.t
 S03-operators/comparison-simple.t
 S03-operators/context-forcers.t
 # S03-operators/context.t
-S03-operators/cross-metaop.t
 S03-operators/equality.t
 S03-operators/eqv.t
-# S03-operators/hyper.t
 # S03-operators/identity.t
 S03-operators/increment.t
 S03-operators/inplace.t
@@ -144,15 +148,12 @@ S03-operators/list-quote-junction.t
 S03-operators/misc.t
 S03-operators/names.t
 S03-operators/not.t
-S03-operators/not-metaop.t
 S03-operators/numeric-context.t
 # S03-operators/p5arrow.t
 S03-operators/precedence.t
-S03-operators/r-metaop.t
 S03-operators/range-basic.t
 S03-operators/range.t
 # S03-operators/reduce-le1arg.t
-# S03-operators/reduce-metaop.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
@@ -167,7 +168,6 @@ S03-operators/subscript-vs-lt.t
 S03-operators/ternary.t
 S03-operators/so.t
 S03-operators/value_equivalence.t
-S03-operators/zip-metaop.t
 S03-smartmatch/any-any.t
 # S03-smartmatch/any-array-slice.t
 S03-smartmatch/any-array.t

@@ -2017,6 +2017,36 @@ method prefix_circumfix_meta_operator:sym<reduce>($/) {
     make PAST::Op.new( :name($opsub), :pasttype('call') );
 }
 
+method infix_circumfix_meta_operator:sym«<< >>»($/) {
+    make make_hyperop($/);
+}
+
+method infix_circumfix_meta_operator:sym<« »>($/) {
+    make make_hyperop($/);
+}
+
+sub make_hyperop($/) {
+    my $opsub := '&infix:<' ~ ~$/ ~ '>';
+    unless %*METAOPGEN{$opsub} {
+        my $base_op := '&infix:<' ~ $<infixish>.Str ~ '>';
+        my $dwim_lhs := $<opening> eq '<<' || $<opening> eq '«';
+        my $dwim_rhs := $<closing> eq '>>' || $<closing> eq '»';
+        @BLOCK[0].loadinit.push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name($opsub), :scope('package') ),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('assuming'),
+                PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&hyper' ),
+                PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op ),
+                PAST::Val.new( :value($dwim_lhs), :named('dwim-left') ),
+                PAST::Val.new( :value($dwim_rhs), :named('dwim-right') )
+            )
+        ));
+        %*METAOPGEN{$opsub} := 1;
+    }
+    return PAST::Op.new( :name($opsub), :pasttype('call') );
+}
+
 method postfixish($/) {
     if $<postfix_prefix_meta_operator> {
         my $past := $<OPER>.ast;

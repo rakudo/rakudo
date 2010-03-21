@@ -1084,9 +1084,10 @@ token prefixish {
 }
 
 token infixish {
+    | <OPER=infix_circumfix_meta_operator>
     | <OPER=infix> <![=]>
-    | <infix> <OPER=infix_postfix_meta_operator>
     | <OPER=infix_prefix_meta_operator> <infixish>
+    | <infix> <OPER=infix_postfix_meta_operator>
 }
 
 token postfixish {
@@ -1115,6 +1116,8 @@ proto token infix_postfix_meta_operator { <...> }
 
 proto token infix_prefix_meta_operator { <...> }
 
+proto token infix_circumfix_meta_operator { <...> }
+
 proto token postfix_prefix_meta_operator { <...> }
 
 regex prefix_circumfix_meta_operator:sym<reduce> {
@@ -1134,6 +1137,39 @@ regex prefix_circumfix_meta_operator:sym<reduce> {
 
 token postfix_prefix_meta_operator:sym<»> {
     [ <sym> | '>>' ] <!before '('>
+}
+
+token infix_circumfix_meta_operator:sym<« »> {
+    $<opening>=[
+    | '«'
+    | '»'
+    ]
+    {} <infixish(1)>
+    $<closing>=[ '«' | '»' || <.panic: "Missing « or »"> ]
+    <O=.copyO('infixish')>
+}
+
+token infix_circumfix_meta_operator:sym«<< >>» {
+    $<opening>=[
+    | '<<'
+    | '>>'
+    ]
+    {} <infixish>
+    $<closing>=[ '<<' | '>>' || <.panic("Missing << or >>")> ]
+    <O=.copyO('infixish')>
+}
+
+method copyO($from) {
+    # There must be a a better way, but until pmichaud++ shows us it,
+    # this is the best I can come up with. :-) -- jnthn
+    my $m := self.MATCH();
+    my $r := $m{$from}<OPER><O>;
+    Q:PIR {
+        (%r, $I0) = self.'!cursor_start'()
+        %r.'!cursor_pass'($I0, '')
+        $P0 = find_lex '$r'
+        setattribute %r, '$!match', $P0
+    };
 }
 
 proto token dotty { <...> }
@@ -1229,8 +1265,8 @@ token infix:sym<+|>   { <sym>  <O('%additive')> }
 token infix:sym<+^>   { <sym>  <O('%additive')> }
 token infix:sym<~|>   { <sym>  <O('%additive')> }
 token infix:sym<~^>   { <sym>  <O('%additive')> }
-token infix:sym«+<»   { <sym>  <O('%additive')> }
-token infix:sym«+>»   { <sym>  <O('%additive')> }
+token infix:sym«+<»   { <sym> <!before '<'> <O('%additive')> }
+token infix:sym«+>»   { <sym> <!before '>'> <O('%additive')> }
 token infix:sym<?|>   { <sym>  <O('%additive')> }
 token infix:sym<?^>   { <sym>  <O('%additive')> }
 

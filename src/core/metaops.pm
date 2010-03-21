@@ -32,3 +32,22 @@ our multi sub crosswith(&op, $a, $b) {
 our multi reduce(&op, $list) {
     $list.reduce(&op)
 }
+
+our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right) {
+    die "Sorry, hyper operators on hashes are not yet implemented.";
+}
+
+our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right) {
+    if $dwim-left || $dwim-right {
+        die "Sorry, dwimmy cases of hyper operators are not yet implemented.";
+    }
+    my @result;
+    for @lhs Z @rhs -> $l, $r {
+        @result.push(op($l, $r));
+    }
+    @result
+}
+
+our multi sub hyper(&op, $lhs, $rhs, :$dwim-left, :$dwim-right) {
+    hyper(&op, $lhs.list, $rhs.list, :$dwim-left, :$dwim-right);
+}

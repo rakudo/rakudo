@@ -1,9 +1,8 @@
-our multi sub notresults(&op, Mu $a, Mu $b) {
-    say &op;
+our multi sub notresults(&op, Mu \$a, Mu \$b) {
     !(&op($a, $b));
 }
 
-our multi sub reverseargs(&op, Mu $a, Mu $b) {
+our multi sub reverseargs(&op, Mu \$a, Mu \$b) {
     &op($b, $a);
 }
 

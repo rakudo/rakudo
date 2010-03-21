@@ -134,7 +134,7 @@ Value type, so return self.
     .local int    iresult, fresult, fdivide
     .local num    result
 
-    if radix <= 1 goto ERANGE 
+    if radix <= 1 goto ERANGE
     if radix > 36 goto ERANGE #at least until we know how to represent bases > 36...
 #magcheck:
     if has_base goto magcheck2 #if you hasn't a base, go on
@@ -150,7 +150,7 @@ magcheckdone:
     $S99 = substr number, 0, 1
     if $S99 == "0" goto checkradix #maybe they entered :8<0x3F> ?
     goto allchecksdone
-    
+
     #below is the nightmare of checking for radix conversion
 checkradix:
     $S99 = substr number, 1, 1 #will they convert?
@@ -181,7 +181,7 @@ changeto16:
     number = substr number, 2
     #above is the nightmare of checking for radix conversion
 
-allchecksdone:  
+allchecksdone:
     iresult     = 0
     fresult     = 0
     fdivide     = 1
@@ -198,13 +198,13 @@ iloop:
     if $I0 >= radix goto EINVALIDCHAR #if you try passing '2' with a radix of 2
     iresult *= radix
     iresult += $I0
-iskip:  
+iskip:
     $I99 += 1
     goto iloop #aaaand-a 1, 2, 3, 4...
 
 fbefore:
     $I99 += 1 #we wouldn't want to read the . again, now do we?
-    
+
 floop:
     $S0 = substr number, $I99, 1 #no, we DO NOT reset the $I99 loop var.
     $S0 = upcase $S0
@@ -217,7 +217,7 @@ floop:
     fresult *= radix
     fresult += $I0
     fdivide *= radix #each place value of the fraction increases the denominator. If this is confusing, try converting any old decimal (say, .141592) into a fraction BY HAND.
-fskip:  
+fskip:
     $I99 += 1
     goto floop #and repeat
 
@@ -226,13 +226,13 @@ finish:
     result = iresult + $N0
     $N1 = pow base, exponent #for the magnitude. If no magnitude, then it's 1 pow 1
     result = result * $N1 #if no magnitude, then it's result * 1. Pefect :)
-    
+
     .return (result)
 
 #errors
 ERANGE: 
     die "DON'T PANIC! The radix is out of range (2..36 only)"
-EINVALIDCHAR:   
+EINVALIDCHAR:
     $S0 = concat "DON'T PANIC! Invalid character (", $S0
     $S0 = concat $S0, ")! Please try again :) "
     die $S0

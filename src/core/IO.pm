@@ -44,7 +44,7 @@ class IO {
     }
 
     multi method printf($format, *@args) {
-#        self.print(sprintf($format, |@args));
+        self.print(sprintf($format, |@args));
     }
 
     multi method say(*@items) {
@@ -129,6 +129,11 @@ sub unlink($filename) {
 multi lines (Str $filename, Any  $limit = *) {
     my $fh = open $filename or fail "Unable to open $filename";
     $fh.lines($limit);
+}
+
+multi sub printf($format, *@args) {
+    $*OUT.printf($format, |@args);
+
 }
 
 # vim: ft=perl6

@@ -1945,50 +1945,26 @@ method infixish($/) {
             $base_opsub := "&infix:<==>";
         }
         unless %*METAOPGEN{$opsub} {
+            my $helper := "";
             if $metaop eq '!' {
-                    @BLOCK[0].loadinit.push(
-                        PAST::Op.new( :pasttype('bind'),
-                                      PAST::Var.new( :name($opsub), :scope('package') ),
-                                      PAST::Op.new( :pasttype('callmethod'),
-                                                    :name('assuming'),
-                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                                  '&notresults' ),
-                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                                   $base_opsub ) ) ) );
+                $helper := '&notresults';
+            } elsif $metaop eq 'R' {
+                $helper := '&reverseargs';
+            } elsif $metaop eq 'X' {
+                $helper := '&crosswith';
+            } elsif $metaop eq 'Z' {
+                $helper := '&zipwith';
             }
-            if $metaop eq 'R' {
-                    @BLOCK[0].loadinit.push(
-                        PAST::Op.new( :pasttype('bind'),
-                                      PAST::Var.new( :name($opsub), :scope('package') ),
-                                      PAST::Op.new( :pasttype('callmethod'),
-                                                    :name('assuming'),
-                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                                  '&reverseargs' ),
-                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                                   $base_opsub ) ) ) );
-            }
-            if $metaop eq 'X' {
-                    @BLOCK[0].loadinit.push(
-                        PAST::Op.new( :pasttype('bind'),
-                                      PAST::Var.new( :name($opsub), :scope('package') ),
-                                      PAST::Op.new( :pasttype('callmethod'),
-                                                    :name('assuming'),
-                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                                  '&crosswith' ),
-                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                                   $base_opsub ) ) ) );
-            }
-            if $metaop eq 'Z' {
-                    @BLOCK[0].loadinit.push(
-                        PAST::Op.new( :pasttype('bind'),
-                                      PAST::Var.new( :name($opsub), :scope('package') ),
-                                      PAST::Op.new( :pasttype('callmethod'),
-                                                    :name('assuming'),
-                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                                  '&zipwith' ),
-                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                                   $base_opsub ) ) ) );
-            }
+
+            @BLOCK[0].loadinit.push(
+                PAST::Op.new( :pasttype('bind'),
+                              PAST::Var.new( :name($opsub), :scope('package') ),
+                              PAST::Op.new( :pasttype('callmethod'),
+                                            :name('assuming'),
+                                            PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                          $helper ),
+                                            PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                           $base_opsub ) ) ) );
             %*METAOPGEN{$opsub} := 1;
         }
 

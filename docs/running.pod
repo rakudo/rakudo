@@ -9,7 +9,7 @@ perl6 [switches] [--] [programfile] [arguments]
 =head1 DESCRIPTION
 
 Compiles C<[programfile]> or the program given by the C<-e> option, and
-by default also exectues the compiled code.
+by default also executes the compiled code.
 
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   -e program           one line of program

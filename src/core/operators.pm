@@ -358,9 +358,9 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
         given @lhs.elems {
             when 1 {
                 if @lhs[0] cmp $rhs == 1 {
-                    $next = { $.prec };
+                    $next = { .prec };
                 } else {
-                    $next = { $.succ };
+                    $next = { .succ };
                 }
             }
             when 2 {

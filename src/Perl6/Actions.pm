@@ -1941,28 +1941,33 @@ method infixish($/) {
         my $sym := ~$<infix_prefix_meta_operator><infixish>;
         my $opsub := "&infix:<$metaop$sym>";
         my $base_opsub := "&infix:<$sym>";
-        if $metaop eq '!' || $metaop eq 'R' || $metaop eq 'S' {
-            unless %*METAOPGEN{$opsub} {
-                if $metaop eq '!' {
-                    @BLOCK[0].loadinit.push(
-                        PAST::Op.new( :name('!gen_not_metaop'), $sym,
-                                      :pasttype('call') )
-                    );
-                }
-                if $metaop eq 'R' {
-                    @BLOCK[0].loadinit.push(
-                        PAST::Op.new( :name('!gen_reverse_metaop'), $sym,
-                                      :pasttype('call') )
-                    );
-                }
-
-                %*METAOPGEN{$opsub} := 1;
-            }
-            make PAST::Op.new( :name($opsub), :pasttype('call') );
+        if $opsub eq "&infix:<!=>" {
+            $base_opsub := "&infix:<==>";
         }
-        else {
+        unless %*METAOPGEN{$opsub} {
+            if $metaop eq '!' {
+                    @BLOCK[0].loadinit.push(
+                        PAST::Op.new( :pasttype('bind'),
+                                      PAST::Var.new( :name($opsub), :scope('package') ),
+                                      PAST::Op.new( :pasttype('callmethod'),
+                                                    :name('assuming'),
+                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                                  '&notresults' ),
+                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                                   $base_opsub ) ) ) );
+            }
+            if $metaop eq 'R' {
+                    @BLOCK[0].loadinit.push(
+                        PAST::Op.new( :pasttype('bind'),
+                                      PAST::Var.new( :name($opsub), :scope('package') ),
+                                      PAST::Op.new( :pasttype('callmethod'),
+                                                    :name('assuming'),
+                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                                  '&reverseargs' ),
+                                                    PAST::Op.new( :pirop('find_sub_not_null__Ps'),
+                                                                   $base_opsub ) ) ) );
+            }
             if $metaop eq 'X' {
-                unless %*METAOPGEN{$opsub} {
                     @BLOCK[0].loadinit.push(
                         PAST::Op.new( :pasttype('bind'),
                                       PAST::Var.new( :name($opsub), :scope('package') ),
@@ -1972,14 +1977,8 @@ method infixish($/) {
                                                                   '&crosswith' ),
                                                     PAST::Op.new( :pirop('find_sub_not_null__Ps'),
                                                                    $base_opsub ) ) ) );
-
-                    %*METAOPGEN{$opsub} := 1;
-                }
-
-                make PAST::Op.new( :name($opsub), :pasttype('call') );
             }
             if $metaop eq 'Z' {
-                unless %*METAOPGEN{$opsub} {
                     @BLOCK[0].loadinit.push(
                         PAST::Op.new( :pasttype('bind'),
                                       PAST::Var.new( :name($opsub), :scope('package') ),
@@ -1989,13 +1988,11 @@ method infixish($/) {
                                                                   '&zipwith' ),
                                                     PAST::Op.new( :pirop('find_sub_not_null__Ps'),
                                                                    $base_opsub ) ) ) );
-
-                    %*METAOPGEN{$opsub} := 1;
-                }
-
-                make PAST::Op.new( :name($opsub), :pasttype('call') );
             }
+            %*METAOPGEN{$opsub} := 1;
         }
+
+        make PAST::Op.new( :name($opsub), :pasttype('call') );
     }
 }
 

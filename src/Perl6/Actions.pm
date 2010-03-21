@@ -2174,11 +2174,12 @@ method rad_number($/) {
     } else {
         my $intpart  := $<intpart>.Str;
         my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
+        my $intfrac  := $intpart ~ $fracpart; #the dot is a part of $fracpart, so no need for ~ "." ~
         my $base     := $<base> ?? +($<base>[0].Str) !! 0;
         my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
 
         make PAST::Op.new( :name('&radcalc'), :pasttype('call'),
-            $radix, $intpart, $fracpart, $base, $exp
+            $radix, $intfrac, $base, $exp
         );
     }
 }

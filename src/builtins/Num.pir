@@ -124,74 +124,122 @@ Value type, so return self.
 .namespace []
 
 .sub '&radcalc'
-    .param int radix
-    .param string intpart
-    .param string fracpart     :optional
-    .param int    has_fracpart :opt_flag
-    .param num    base         :optional
+    #this code was rewritten & optimized to be as dumb as possible. --lue
+    .param int    radix #to all mathematicians, I know fractional radixes are possible. We programmers are taking baby steps :)
+    .param string number
+    .param num    base         :optional #as in exponents, not as in radixes
     .param int    has_base     :opt_flag
-    .param num    exp          :optional
-    .param int    has_exp      :opt_flag
-    .local num    result, fracdivisor, magnitude
-    .local pmc    it
+    .param num    exponent     :optional
+    .param int    has_exponent :opt_flag
+    .local int    iresult, fresult, fdivide
+    .local num    result
 
-    if radix <= 1 goto err_range
-    if radix > 36 goto err_range
+    if radix <= 1 goto ERANGE 
+    if radix > 36 goto ERANGE #at least until we know how to represent bases > 36...
+#magcheck:
+    if has_base goto magcheck2 #if you hasn't a base, go on
+        if has_exponent goto EEXPNOBASE #if you have an exponent but no base, ERROR!
+            base = 1.0
+            exponent = 1.0 #if you have no exponent and no base, then allow dumb coding to not affect the results.
+            goto magcheckdone
 
-    result       = 0.0
-    fracdivisor = 1.0
+magcheck2:
+    if has_exponent goto magcheckdone #base+exponent? Continue
+    goto EBASENOEXP #wait, you has a base, but no exponent? No way!
+magcheckdone:
+    $S99 = substr number, 0, 1
+    if $S99 == "0" goto checkradix #maybe they entered :8<0x3F> ?
+    goto allchecksdone
+    
+    #below is the nightmare of checking for radix conversion
+checkradix:
+    $S99 = substr number, 1, 1 #will they convert?
+    $S99 = upcase $S99
+    $I10 = index "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", $S99
+    if $I10 >= radix goto changeradix #is the character beyond the range of the specified radix
+    goto allchecksdone #false alarm
+changeradix:
+    if $S99 == "B" goto changeto2  #is it a binary number?
+    if $S99 == "O" goto changeto8  #octal?
+    if $S99 == "X" goto changeto16 #hex?
+    if $S99 == "D" goto changeto10 #decimal?
+    goto allchecksdone
+changeto2:
+    radix=2 #the actual radix change
+    number = substr number, 2 #this is to remove what changed the radix (0x, 0b, etc.)
+    goto allchecksdone #and, relax! The checks be over
+changeto8:
+    radix=8
+    number = substr number, 2
+    goto allchecksdone
+changeto10:
+    radix=10
+    number = substr number, 2
+    goto allchecksdone
+changeto16:
+    radix=16
+    number = substr number, 2
+    #above is the nightmare of checking for radix conversion
 
-    $P0 = split '', intpart
-    it = iter $P0
+allchecksdone:  
+    iresult     = 0
+    fresult     = 0
+    fdivide     = 1
+    $I99        = 0 #I don't want to hear about the Iter object. We DON'T NEED PMCs for a radix conversion.
 
-  lp1: # Accumulate over decimal part
-    unless it goto ex1
-    $S0 = shift it
-    $S0 = downcase $S0
-    if $S0 == "_" goto lp1
-    $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
-    if $I0 == -1 goto err_char
-    $N0 = $I0
-    result *= radix
-    result += $N0
-    goto lp1
+iloop:
+    $S0 = substr number, $I99, 1
+    $S0 = upcase $S0 #I prefer uppercase when it comes to numbers in other bases, so that's how it's going to be.
+    if $S0 == "_" goto iskip #if you seperate words, ex. DEAD_BEEF
+    if $S0 == "." goto fbefore #fraction time!
+    if $S0 == "" goto finish #all done
+    $I0 = index "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", $S0
+    if $I0 == -1 goto EINVALIDCHAR #say, you tried to pass off the number '3Z¿A5'. Jerk.
+    if $I0 >= radix goto EINVALIDCHAR #if you try passing '2' with a radix of 2
+    iresult *= radix
+    iresult += $I0
+iskip:  
+    $I99 += 1
+    goto iloop #aaaand-a 1, 2, 3, 4...
 
-  ex1:
-    unless has_fracpart goto nofracpart
-    $I0 = length fracpart
-    unless $I0 goto nofracpart
-    $P0 = split '', fracpart
-    $P99 = shift $P0                             # remove the radix point
+fbefore:
+    $I99 += 1 #we wouldn't want to read the . again, now do we?
+    
+floop:
+    $S0 = substr number, $I99, 1 #no, we DO NOT reset the $I99 loop var.
+    $S0 = upcase $S0
+    if $S0 == "_" goto fskip #sepearation of words, again (could also be dwords, qwords...)
+    if $S0 == "." goto EINVALIDCHAR #The IMU has yet to say you can write fractions of a fraction as 3.6.8 :)
+    if $S0 == "" goto finish #all done!
+    $I0 = index "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", $S0
+    if $I0 == -1 goto EINVALIDCHAR #we do not know if 3@8 is a valid number. Especially considering we don't allow a radix that would have @ as a digit.
+    if $I0 >= radix goto EINVALIDCHAR #remember kids, octals can't take the number 8
+    fresult *= radix
+    fresult += $I0
+    fdivide *= radix #each place value of the fraction increases the denominator. If this is confusing, try converting any old decimal (say, .141592) into a fraction BY HAND.
+fskip:  
+    $I99 += 1
+    goto floop #and repeat
 
-  lp2: # Accumulate over fractional part, keep length
-    unless it goto ex2
-    $S0 = shift it
-    $S0 = downcase $S0
-    if $S0 == "_" goto lp2
-    $I0 = index "0123456789abcdefghijklmnopqrstuvwxyz", $S0
-    if $I0 == -1 goto err_char
-    $N0 = $I0
-
-    result *= radix
-    result += $N0
-    fracdivisor *= radix
-    goto lp2
-
-  ex2:
-    result /= fracdivisor
-
-  nofracpart:
-    unless has_base goto ret
-    magnitude = base ** exp
-    result *= magnitude
-  ret:
+finish:
+    $N0 = fresult / fdivide #for the fractional part
+    result = iresult + $N0
+    $N1 = pow base, exponent #for the magnitude. If no magnitude, then it's 1 pow 1
+    result = result * $N1 #if no magnitude, then it's result * 1. Pefect :)
+    
     .return (result)
 
-  err_range:
-    die "radix out of range (2-36)"
-  err_char:
-    $S0 = concat "unrecognized character: ", $S0
+#errors
+ERANGE: 
+    die "DON'T PANIC! The radix is out of range (2..36 only)"
+EINVALIDCHAR:   
+    $S0 = concat "DON'T PANIC! Invalid character (", $S0
+    $S0 = concat $S0, ")! Please try again :) "
     die $S0
+EBASENOEXP:
+    die "DON'T PANIC! You gave us a base for the magnitude, but you forgot the exponent."
+EEXPNOBASE:
+    die "DON'T PANIC! You gave us an exponent for the magnitude, but you forgot the base."
 .end
 
 

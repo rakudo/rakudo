@@ -4,6 +4,12 @@ augment class Array {
         '[' ~ self.map({ $^a.perl }).join(', ') ~ ']';
     }
 
+    our Bool multi method exists(Int *@indices) {
+        if !@indices.elems || (any(@indices) < 0 || any(@indices) > self.end) {
+            return False;
+        }
+        [?&] map { self.values[$^a] !~~ Proxy }, @indices;
+    }
 
     our method push(*@values) is export {
         self!fill;

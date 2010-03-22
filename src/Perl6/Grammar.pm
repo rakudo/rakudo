@@ -1085,6 +1085,12 @@ INIT {
     Perl6::Grammar.O(':prec<c=>, :assoc<left>',  '%loose_or');
 }
 
+method EXPR($preclim = '') {
+    # Override this so we can set $*LEFTSIGIL.
+    my $*LEFTSIGIL := '';
+    HLL::Grammar::EXPR(self, $preclim);
+}
+
 token prefixish { 
     [
     | <OPER=prefix>

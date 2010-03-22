@@ -616,7 +616,6 @@ inline op bind_signature(in PMC) :base_core {
         PMC      * ctx               = CURRENT_CONTEXT(interp);
         PMC      * const saved_ccont = interp->current_cont;
         PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
-        PMC      * const saved_rs    = Parrot_pcc_get_results_signature(interp, ctx);
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
 
         /* Ensure we actually have a signature; if not, try to lazily generate
@@ -638,7 +637,6 @@ inline op bind_signature(in PMC) :base_core {
             CURRENT_CONTEXT(interp) = ctx;
             interp->current_cont = saved_ccont;
             Parrot_pcc_set_signature(interp, ctx, saved_sig);
-            Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
             Parrot_pcc_set_pc(interp, ctx, current_pc);
             goto NEXT();
         }
@@ -652,17 +650,6 @@ inline op bind_signature(in PMC) :base_core {
                 PMC *junc_result, *caller_sig;
                 Parrot_ext_call(interp, dispatcher, "PP->P", sub, $1, &junc_result);
 
-                /* Re-instate anything we may have damaged. */
-                CURRENT_CONTEXT(interp) = ctx;
-                interp->current_cont = saved_ccont;
-                Parrot_pcc_set_signature(interp, ctx, saved_sig);
-                Parrot_pcc_set_results_signature(interp, ctx, saved_rs);
-                Parrot_pcc_set_pc(interp, ctx, current_pc);
-
-                /* Save the Junctional result as the return value. */
-                caller_sig = Parrot_pcc_get_signature(interp, Parrot_pcc_get_caller_ctx(interp, ctx));
-                if (!PMC_IS_NULL(caller_sig))
-                    Parrot_pcc_fill_returns_from_c_args(interp, caller_sig, "P", junc_result);
 
                 /* Invoke the current return continuation, to return said value. */
                 next = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp,

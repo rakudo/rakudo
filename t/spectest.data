@@ -78,6 +78,7 @@ S02-literals/hex_chars.t
 S02-literals/listquote.t
 S02-literals/listquote-whitespace.t
 # S02-literals/misc-interpolation.t
+S02-literals/numeric.t
 S02-literals/pair-boolean.t
 S02-literals/pairs.t
 S02-literals/quoting.t
@@ -92,6 +93,7 @@ S02-magicals/config.t
 # S02-magicals/dollar_bang.t
 # S02-magicals/dollar-underscore.t
 # S02-magicals/env.t
+S02-magicals/pid.t
 S02-magicals/progname.t
 S02-names_and_variables/contextual.t
 # S02-names_and_variables/fmt.t
@@ -204,7 +206,7 @@ S04-statement-modifiers/if.t
 S04-statement-modifiers/unless.t
 S04-statement-modifiers/until.t
 S04-statement-modifiers/values_in_bool_context.t
-# S04-statement-modifiers/while.t
+S04-statement-modifiers/while.t
 S04-statements/do.t
 # S04-statements/for-scope.t
 S04-statements/for.t

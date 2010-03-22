@@ -118,7 +118,7 @@ S03-junctions/boolean-context.t
 # S03-junctions/eigenstates.t
 S03-junctions/misc.t
 S03-metaops/cross.t
-# S03-metaops/hyper.t
+S03-metaops/hyper.t
 S03-metaops/not.t
 # S03-metaops/reduce.t
 S03-metaops/reverse.t

@@ -1168,8 +1168,8 @@ token infix_circumfix_meta_operator:sym<« »> {
     | '«'
     | '»'
     ]
-    {} <infixish(1)>
-    $<closing>=[ '«' | '»' || <.panic: "Missing « or »"> ]
+    {} <infixish>
+    $<closing>=[ '«' | '»' || <.panic("Missing « or »")> ]
     <O=.copyO('infixish')>
 }
 

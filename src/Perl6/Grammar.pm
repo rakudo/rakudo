@@ -1416,6 +1416,9 @@ token infix:sym«<=>»  { <sym> <O('%structural')> }
 token infix:sym<but>  { <sym> <O('%structural')> }
 token infix:sym<does> { <sym> <O('%structural')> }
 
+token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%chaining')> }
+token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%chaining')> }
+
 grammar Perl6::Regex is Regex::P6Regex::Grammar {
     token metachar:sym<:my> {
         ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'

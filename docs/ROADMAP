@@ -22,7 +22,6 @@ others from doing so.
 Patches to this document are welcome.
 
 Really important items
-1 *     protoregexes in grammars (B, bkeeler, almost done, needs tests to verify)
 1 **    complete lazy lists in Seq and Array (colomon, bkeeler, jnthn, pmichaud, others)
 1 *     array/hash vivification (masak, jnthn, pmichaud)
 1 ***   REPL remembers the variable from the last line (D, jnthn)
@@ -44,7 +43,7 @@ Ought to have items
 2 **    custom operators for circumfix:, postcircumfix: (B, pmichaud)
 2 ***   heredocs (B)
 2 **    Rat, BigNum, numification improvements (C, colomon)
-2 **    true hyper/cross/reverse/other metaoperators (B, pmichaud)
+2 **    true hyper/cross/reverse/other metaoperators (colomon, jnthn, pmichaud)
 2 **    synopsis 19 handling (A, D, pmichaud, particle, others)
 2 ***   temp variables (C)
 2 ****  better longest token matching in regexes (A, D, pmichaud)
@@ -113,4 +112,5 @@ Completed ROADMAP items:
   - array/hash element vivification via Proxy (done)
   - better gather/take handling of arguments (done)
   - lazy gather/take (done)
-  - basic s///
+  - basic s/// (done)
+  - protoregexes in grammars (done)

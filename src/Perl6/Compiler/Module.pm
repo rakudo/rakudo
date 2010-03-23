@@ -12,7 +12,7 @@ method attributes() {
 
 # This method drives the code generation and fixes up the block.
 method finish($block) {
-    if $!scope eq 'our' {
+    if $!scope eq 'our' || $!scope eq '' {
         $block.blocktype('immediate');
         $block.namespace(Perl6::Grammar::parse_name(~$!name));
     }

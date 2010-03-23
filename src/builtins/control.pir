@@ -50,6 +50,34 @@ src/builtins/control.pir - control flow related functions
     exit status
 .end
 
+=item return
+
+=cut
+
+.sub '&return'
+    .param pmc retvals :slurpy
+    .local pmc ex, retval
+    ex = root_new ['parrot';'Exception']
+    ex['type'] = .CONTROL_RETURN
+    $I0 = elements retvals
+    if $I0 == 0 goto nil
+    if $I0 > 1 goto many
+    retval = retvals[0]
+    goto done
+  nil:
+    retval = '&Nil'()
+    goto done
+  many:
+    retval = '&infix:<,>'(retvals :flat)
+  done:
+    setattribute ex, 'payload', retval
+    throw ex
+.end
+
+=item warn
+
+=cut
+
 .sub '&warn'
     .param pmc list :slurpy
     .local string message

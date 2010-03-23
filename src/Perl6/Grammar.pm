@@ -383,10 +383,6 @@ token statement_control:sym<loop> {
     <block>
 }
 
-token statement_control:sym<return> {
-    <sym> :s <EXPR>?
-}
-
 token vnum {
     \d+ | '*'
 }

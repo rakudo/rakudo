@@ -407,11 +407,6 @@ method statement_control:sym<use>($/) {
     make $past;
 }
 
-method statement_control:sym<return>($/) {
-    my $retval := $<EXPR> ?? $<EXPR>[0].ast !! PAST::Op.new( :name('&Nil') );
-    make PAST::Op.new( $retval, :pasttype('return'), :node($/) );
-}
-
 method statement_control:sym<given>($/) {
     my $past := $<xblock>.ast;
     $past.push($past.shift); # swap [0] and [1] elements
@@ -1689,7 +1684,7 @@ method term:sym<dotty>($/) {
 }
 
 method term:sym<identifier>($/) {
-    my $past := $<args>.ast;
+    my $past := capture_or_parcel($<args>.ast, ~$<identifier>);
     $past.name('&' ~ $<identifier>);
     make $past;
 }
@@ -1707,7 +1702,7 @@ method term:sym<name>($/) {
     }
     my $past := $var;
     if $<args> {
-        $past := $<args>.ast;
+        $past := capture_or_parcel($<args>.ast, ~$<longname>);
         if $ns {
             $past.unshift($var);
             unless pir::substr($var.name, 0, 1) eq '&' {
@@ -1806,6 +1801,7 @@ sub handle_named_parameter($arg) {
     if $arg ~~ PAST::Node && $arg.returns() eq 'Pair' {
         my $result := $arg[2];
         $result.named(~$arg[1].value());
+        $result<before_promotion> := $arg;
         $result;
     }
     else {
@@ -2773,6 +2769,25 @@ sub where_blockify($expr) {
         $past := create_code_object($past, 'Block', 0, $lazy_name);
     }
     $past
+}
+
+# This is the hook where, in the future, we'll use this as the hook to check
+# if we have a proto or other declaration in scope that states that this sub
+# has a signature of the form :(\|$parcel), in which case we don't promote
+# the Parcel to a Capture when calling it. For now, we just worry about the
+# special case, return.
+sub capture_or_parcel($args, $name) {
+    if $name eq 'return' {
+        # Need to demote pairs again.
+        my $parcel := PAST::Op.new();
+        for @($args) {
+            $parcel.push($_<before_promotion> ?? $_<before_promotion> !! $_);
+        }
+        $parcel
+    }
+    else {
+        $args
+    }
 }
 
 # vim: ft=perl6

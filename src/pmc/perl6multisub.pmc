@@ -490,7 +490,6 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
 
                 for (i = 0; i < possibles_count; i++) {
                     interp->current_cont = NEED_CONTINUATION;
-                    interp->current_object = NULL;
                     Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), NULL);
 
                     /* First, if there's a required named parameter and it was not

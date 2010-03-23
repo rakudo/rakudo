@@ -11,6 +11,35 @@ augment class Array {
         [?&] map { self.values[$^a] !~~ Proxy }, @indices;
     }
 
+    our multi method postcircumfix:<[ ]> (Int $i) {
+        if $i < 0 { die "Cannot use negative index on arrays" }
+        #XXX: .exists calls postcircumfix<[ ]>, so can't perl6ify this for now...
+        return Q:PIR{
+            .local pmc self, i, values
+            self = find_lex 'self'
+            i = find_lex '$i'
+            $I0 = i
+            inc $I0
+            values = self.'!fill'($I0)
+            %r = values[i]
+            unless null %r goto have_elem
+            %r = new ['Proxy']
+            setattribute %r, '$!base', values
+            setattribute %r, '$!key', i
+          have_elem:
+            $P0 = get_hll_global ['Bool'], 'True'
+            setprop %r, 'rw', $P0
+        }
+    }
+
+    our multi method postcircumfix:<[ ]>(Block $b) {
+        return self.[$b.(self.elems)]
+    }
+
+    our multi method postcircumfix:<[ ]>(Whatever) {
+        return self.values
+    }
+
     our method push(*@values) is export {
         self!fill;
         pir::splice__0PPii( @!items, [@values].iterator.eager,

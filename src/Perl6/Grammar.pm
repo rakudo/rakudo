@@ -24,9 +24,6 @@ method TOP() {
     %*PKGCOMPILER<role>    := Perl6::Compiler::Role;
     %*PKGCOMPILER<module>  := Perl6::Compiler::Module;
     %*PKGCOMPILER<package> := Perl6::Compiler::Module;
-    my $*SCOPE := '';
-    my $*MULTINESS := '';
-    my $*TYPENAME := '';
     self.comp_unit;
 }
 
@@ -244,6 +241,9 @@ token comp_unit {
     :my $*IMPLICIT;                            # whether we allow an implicit param
     :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
     :my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
+    :my $*SCOPE := '';                         # which scope declarator we're under
+    :my $*MULTINESS := '';                     # which multi declarator we're under
+    :my $*TYPENAME := '';
     <.newpad>
     <.outerlex>
     <.finishpad>

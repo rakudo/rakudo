@@ -298,7 +298,7 @@ S06-other/main-eval.t
 S06-other/misc.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
-# S06-signature/closure-over-parameters.t
+S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
 S06-signature/code.t
 S06-signature/defaults.t

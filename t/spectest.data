@@ -222,7 +222,7 @@ S04-statements/next.t
 S04-statements/no-implicit-block.t
 S04-statements/redo.t
 S04-statements/repeat.t
-# S04-statements/return.t
+S04-statements/return.t
 S04-statements/terminator.t
 S04-statements/try.t
 S04-statements/unless.t

@@ -29,33 +29,6 @@ Arrays are the mutable form of Lists.
     .tailcall '&circumfix:<[ ]>'(values :flat)
 .end
 
-
-=item postcircumfix:<[ ]>(Int)
-
-=cut
-
-.sub 'postcircumfix:<[ ]>' :method :multi(_, ['Integer']) 
-    .param int n
-    if n < 0 goto err_index
-    .local pmc values, elem
-    $I0 = n + 1
-    values = self.'!fill'($I0)
-    elem = values[n]
-    unless null elem goto have_elem
-    .local pmc key
-    key = box n
-    elem = new ['Proxy']
-    setattribute elem, '$!base', values
-    setattribute elem, '$!key', key
-    $P0 = get_hll_global ['Bool'], 'True'
-    setprop elem, 'rw', $P0
-  have_elem:
-    .return (elem)
-
-  err_index:
-    "&die"("Cannot use negative index on arrays")
-.end
-
 =back
 
 =head2 Operators

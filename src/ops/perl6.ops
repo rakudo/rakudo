@@ -1,6 +1,6 @@
 /*
  * $Id$
- * Copyright (C) 2008-2009, The Perl Foundation.
+ * Copyright (C) 2008-2010, The Perl Foundation.
  */
 
 BEGIN_OPS_PREAMBLE
@@ -416,19 +416,7 @@ inline op allocate_signature(out PMC, in INT) :base_core {
     INTVAL i;
 
     /* Create new low level signature PMC. */
-    $1 = pmc_new(interp, lls_id);
-
-    /* Allocate required amount of structs. */
-    elements = (struct llsig_element **)mem_sys_allocate(($2 + 1) * sizeof(llsig_element *));
-
-    for (i = 0; i < $2; i++)
-        elements[i] = (llsig_element *)mem_sys_allocate_zeroed(sizeof(llsig_element));
-    elements[$2] = NULL;
-    SETATTR_P6LowLevelSig_elements(interp, $1, elements);
-
-    /* Stash size. */
-    SETATTR_P6LowLevelSig_num_elements(interp, $1, $2);
-
+    $1 = Parrot_pmc_new_init_int(interp, lls_id, $2);
     goto NEXT();
 }
 

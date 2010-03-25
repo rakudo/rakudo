@@ -72,6 +72,23 @@ Allocates the PMC's underlying storage.
         PObj_custom_mark_destroy_SETALL(SELF);
     }
 
+    VTABLE void init_int(INTVAL init) {
+        llsig_element **elements;
+        INTVAL i;
+
+        SELF.init();
+
+        elements = mem_gc_allocate_n_zeroed_typed(INTERP, init + 1,
+             llsig_element *);
+
+        for (i = 0; i < init; i++)
+            elements[i] = mem_gc_allocate_zeroed_typed(INTERP, llsig_element);
+
+        elements[init] = NULL;
+
+        SETATTR_P6LowLevelSig_elements(interp, SELF, elements);
+        SETATTR_P6LowLevelSig_num_elements(interp, SELF, init);
+    }
 
 /*
 

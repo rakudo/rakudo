@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2009, The Perl Foundation.
+Copyright (C) 2009-2010, The Perl Foundation.
 
 =head1 NAME
 
@@ -94,6 +94,9 @@ Frees the memory associated with this PMC's underlying storage.
                 mem_sys_free(elements[i]);
                 elements[i] = NULL;
             }
+
+        if (elements)
+            mem_sys_free(elements);
 
         /* Now free underlying struct. */
         mem_sys_free(PMC_data(SELF));

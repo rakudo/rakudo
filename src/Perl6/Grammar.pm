@@ -1323,9 +1323,9 @@ token infix:sym<~~>   { <sym>  <O('%chaining')> }
 
 token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 
-token infix:sym<||>   { <sym>  <O('%tight_or, :pasttype<unless>')> }
+token infix:sym<||>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<unless>')> }
 token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor>')> }
-token infix:sym<//>   { <sym>  <O('%tight_or, :pasttype<def_or>')> }
+token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<def_or>')> }
 token infix:sym<min>  { <sym>  <O('%tight_or')> }
 token infix:sym<max>  { <sym>  <O('%tight_or')> }
 

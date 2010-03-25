@@ -644,12 +644,16 @@ inline op bind_signature(in PMC) :base_core {
             /* Maybe we need to auto-thread... */
             if (bind_error == BIND_RESULT_JUNCTION) {
                 /* Find dispatcher and call it. */
+                PMC *returns = Parrot_pmc_new(interp, enum_class_CallContext);
                 PMC *dispatcher = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
                         string_from_literal(interp, "!DISPATCH_JUNCTION_SINGLE"));
                 opcode_t *next;
                 PMC *junc_result, *caller_sig;
                 Parrot_ext_call(interp, dispatcher, "PP->P", sub, $1, &junc_result);
 
+                /* Build call signautre of returns and set it. */
+                VTABLE_push_pmc(interp, returns, junc_result);
+                Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), returns);
 
                 /* Invoke the current return continuation, to return said value. */
                 next = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp,

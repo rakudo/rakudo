@@ -662,6 +662,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             return result;
         }
         else if (!PMC_IS_NULL(junctional_res)) {
+            mem_sys_free(possibles);
             return junctional_res;
         }
         else if (!PMC_IS_NULL(proto)) {

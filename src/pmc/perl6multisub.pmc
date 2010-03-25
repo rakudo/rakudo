@@ -339,15 +339,18 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
 
         /* Perform the topological sort. */
         candidates_to_sort = num_candidates;
-        result_pos = 0;
+        result_pos         = 0;
+
         while (candidates_to_sort > 0) {
             const INTVAL rem_start_point = result_pos;
 
-            /* Find any nodes that have no incoming edges and add them to results. */
+            /* Find any nodes that have no incoming edges and add them to
+             * results. */
             for (i = 0; i < num_candidates; i++) {
                 if (graph[i]->edges_in == 0) {
                     /* Add to results. */
                     result[result_pos] = graph[i]->info;
+                    graph[i]->info     = NULL;
                     result_pos++;
                     candidates_to_sort--;
                     graph[i]->edges_in = EDGE_REMOVAL_TODO;
@@ -376,11 +379,18 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
 
     /* Free memory associated with the graph. */
     for (i = 0; i < num_candidates; i++) {
-        if (error)
-            mem_sys_free(graph[i]->info);
+        candidate_info *info = graph[i]->info;
+        if (info) {
+            if (info->types)
+                mem_sys_free(info->types);
+            if (info->constraints)
+                mem_sys_free(info->constraints);
+            mem_sys_free(info);
+        }
         mem_sys_free(graph[i]->edges);
         mem_sys_free(graph[i]);
     }
+
     mem_sys_free(graph);
 
     /* If we had an error, free memory for result array and throw exception. */
@@ -914,8 +924,13 @@ Frees the memory associated with this PMC's underlying storage.
         if (candidates) {
             candidate_info **cur_candidate = candidates;
             while (cur_candidate[0] || cur_candidate[1]) {
-                if (*cur_candidate)
+                if (*cur_candidate) {
+                    if ((*cur_candidate)->constraints)
+                        mem_sys_free((*cur_candidate)->constraints);
+                    if ((*cur_candidate)->types)
+                        mem_sys_free((*cur_candidate)->types);
                     mem_sys_free(*cur_candidate);
+                }
                 cur_candidate++;
             }
             mem_sys_free(candidates);

@@ -77,19 +77,19 @@ method finish($block) {
     }
 
     # Attributes.
-    my %attrs := self.attributes;
-    for %attrs {
+    my $attr_list := self.attributes();
+    for @($attr_list) {
         my $attr := PAST::Op.new(
             :pasttype('callmethod'),
             :name('new'),
-            PAST::Var.new( :name('Attribute'), :namespace(''), :scope('package') ),
-            PAST::Val.new( :value(~$_),                  :named('name') ),
-            PAST::Val.new( :value(%attrs{$_}<accessor>), :named('has_accessor') ),
-            PAST::Val.new( :value(%attrs{$_}<rw>),       :named('rw') ),
+            PAST::Var.new( :name('Attribute'),   :namespace(''), :scope('package') ),
+            PAST::Val.new( :value($_<name>),     :named('name') ),
+            PAST::Val.new( :value($_<accessor>), :named('has_accessor') ),
+            PAST::Val.new( :value($_<rw>),       :named('rw') )
         );
-        if %attrs{$_}<build> {
-            %attrs{$_}<build>.named('build');
-            $attr.push(%attrs{$_}<build>);
+        if $_<build> {
+            $_<build>.named('build');
+            $attr.push($_<build>);
         }
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),

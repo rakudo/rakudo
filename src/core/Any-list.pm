@@ -185,6 +185,10 @@ augment class Any {
             take $value;
         }
     }
+
+    multi method pairs() {
+        self.kv.map(-> $key, $value { $key => $value; });
+    }
 }
 
 our proto sub join (Str $separator = '', *@values) { @values.join($separator); }
@@ -201,5 +205,6 @@ our proto sub map(&mapper, @values) { @values.map(&mapper); }
 our proto sub kv(@array) { @array.kv; }
 our proto sub keys(@array) { @array.keys; }
 our proto sub values(@array) { @array.values; }
+our proto sub pairs(@array) { @array.pairs; }
 
 # vim: ft=perl6

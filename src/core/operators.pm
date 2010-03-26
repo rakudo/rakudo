@@ -460,6 +460,8 @@ our multi sub infix:<Z>(Iterable $a-iterable, Iterable $b-iterable) {
     }
 }
 
+our multi sub infix:<Z>($a, $b) { &infix:<Z>($a.list, $b.list) }
+
 our multi sub infix:<X>(Iterable $a-iterable, Iterable $b-iterable) {
     my $ai = $a-iterable.iterator;
     my @b = $b-iterable.Seq;

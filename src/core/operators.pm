@@ -474,6 +474,8 @@ our multi sub infix:<X>(Iterable $a-iterable, Iterable $b-iterable) {
     }
 }
 
+our multi sub infix:<X>($a, $b) { &infix:<X>($a.list, $b.list) }
+
 # Eliminate use of this one, but keep the pir around for
 # the moment, as it may come in handy elsewhere.
 #

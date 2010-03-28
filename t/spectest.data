@@ -209,6 +209,7 @@ S04-statement-modifiers/unless.t
 S04-statement-modifiers/until.t
 S04-statement-modifiers/values_in_bool_context.t
 S04-statement-modifiers/while.t
+S04-statement-parsing/hash.t
 S04-statements/do.t
 # S04-statements/for-scope.t
 S04-statements/for.t

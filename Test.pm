@@ -132,7 +132,10 @@ multi sub isa_ok(Mu $var,$type) is export {
     ok($var.isa($type), "The object is-a '$type'")
         or diag('Actual type: ' ~ $var.WHAT);
 }
-multi sub isa_ok(Mu $var,$type, $msg) is export { ok($var.isa($type), $msg); }
+multi sub isa_ok(Mu $var,$type, $msg) is export {
+    ok($var.isa($type), $msg)
+        or diag('Actual type: ' ~ $var.WHAT);
+}
 
 multi sub dies_ok($closure, $reason) is export {
     try {

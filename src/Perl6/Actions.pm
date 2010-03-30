@@ -1059,11 +1059,14 @@ method method_def($/) {
         if $<specials> eq '!' { $name := '!' ~ $name; }
         $past.name($name);
         $past.nsentry('');
-        my $multi_flag := PAST::Val.new( :value(0) );
-        # create code object using a reference to $past
+        my $multi_flag := $*MULTINESS eq 'proto' ?? 2 !! 
+                          $*MULTINESS eq 'multi' ?? 1 !!
+                          0;
+        
+        # Create code object using a reference to $past.
         my $code := create_code_object(PAST::Val.new(:value($past)), $*METHODTYPE, $multi_flag, $sig_setup_block);
 
-        # Get hold of methods table.
+        # Get hold of the correct table to install it in, and install.
         our @PACKAGE;
         unless +@PACKAGE { $/.CURSOR.panic("Can not declare method outside of a package"); }
         my %table;
@@ -1073,44 +1076,7 @@ method method_def($/) {
         else {
             %table := @PACKAGE[0].methods();
         }
-        unless %table{$name} { my %tmp; %table{$name} := %tmp; }
-
-        # If it's an only and there's already a symbol, problem.
-        if $*MULTINESS eq 'only' && %table{$name} {
-            $/.CURSOR.panic('Can not declare only method ' ~ $name ~
-                ' when another method with this name was already declared');
-        }
-        elsif $*MULTINESS || %table{$name}<multis> {
-            # If no multi declarator and no proto, error.
-            if !$*MULTINESS && !%table{$name}<proto> {
-                $/.CURSOR.panic('Can not re-declare method ' ~ $name ~ ' without declaring it multi');
-            }
-
-            # If it's a proto, stash it away in the symbol entry.
-            if $*MULTINESS eq 'proto' { %table{$name}<proto> := $code; }
-
-            # Otherwise, create multi container if we don't have one; otherwise,
-            # just push this candidate onto it.
-            if %table{$name}<multis> {
-                %table{$name}<multis>.push($code);
-            }
-            else {
-                $code := PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('set_candidates'),
-                    PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
-                    $code
-                );
-                %table{$name}<code_ref> := %table{$name}<multis> := $code;
-            }
-            $multi_flag.value($*MULTINESS eq 'proto' ?? 2 !! 1);
-        }
-        else {
-            %table{$name}<code_ref> := $code;
-        }
-
-        # Added via meta-class; needn't add anything.
-        # $past := PAST::Stmts.new();
+        install_method($/, $code, $name, %table);
     }
     elsif $*MULTINESS {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
@@ -1120,6 +1086,63 @@ method method_def($/) {
     }
 
     make $past;
+}
+
+sub install_method($/, $code, $name, %table) {
+    my $installed;
+    
+    # Create method table entry if we need one.
+    unless %table{$name} { my %tmp; %table{$name} := %tmp; }
+
+    # If it's an only and there's already a symbol, problem.
+    if $*MULTINESS eq 'only' && %table{$name} {
+        $/.CURSOR.panic('Can not declare only method ' ~ $name ~
+            ' when another method with this name was already declared');
+    }
+    elsif $*MULTINESS || %table{$name}<multis> {
+        # If no multi declarator and no proto, error.
+        if !$*MULTINESS && !%table{$name}<proto> {
+            $/.CURSOR.panic('Can not re-declare method ' ~ $name ~ ' without declaring it multi');
+        }
+
+        # If it's a proto, stash it away in the symbol entry.
+        if $*MULTINESS eq 'proto' { %table{$name}<proto> := $code; }
+
+        # Create multi container if we don't have one; otherwise, just push 
+        # this candidate onto it.
+        if %table{$name}<multis> {
+            %table{$name}<multis>.push($code);
+        }
+        else {
+            $code := PAST::Op.new(
+                :pasttype('callmethod'),
+                :name('set_candidates'),
+                PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
+                $code
+            );
+            %table{$name}<code_ref> := %table{$name}<multis> := $installed := $code;
+        }
+    }
+    else {
+        %table{$name}<code_ref> := $installed := $code;
+    }
+
+    # If we did install something (we maybe didn't need to if this is a multi),
+    # we may need to also pop it in other places.
+    if $installed {
+        if $*SCOPE eq 'my' {
+            @BLOCK[0][0].push(PAST::Var.new( :name('&' ~ $name), :isdecl(1),
+                    :viviself($installed), :scope('lexical') ));
+            @BLOCK[0].symbol($name, :scope('lexical') );
+        }
+        elsif $*SCOPE eq 'our' {
+            @PACKAGE[0].block.loadinit.push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new( :name('&' ~ $name), :scope('package') ),
+                $installed
+            ));
+        }
+    }
 }
 
 our %REGEX_MODIFIERS;
@@ -1157,6 +1180,7 @@ method regex_def($/, $key?) {
     my @MODIFIERS := Q:PIR {
         %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
     };
+    
     my $past;
     if $key eq 'open' {
         @MODIFIERS.unshift(%REGEX_MODIFIERS);
@@ -1167,12 +1191,12 @@ method regex_def($/, $key?) {
         };
         return 0;
     } elsif $*MULTINESS eq 'proto' {
+        # Need to build code for setting up a proto-regex.
         @MODIFIERS.shift;
         @BLOCK.shift;
         unless ($name) {
             $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's cannot be anonymous');
         }
-#        $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's not implemented yet');
         our @PACKAGE;
         unless +@PACKAGE {
             $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
@@ -1215,7 +1239,10 @@ method regex_def($/, $key?) {
                 ),
                 'Regex', 0, '');
     } else {
+        # Clear modifiers stack entry for this regex.
         @MODIFIERS.shift;
+
+        # Create the regex sub along with its signature.
         $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast, @BLOCK.shift);
         $past.unshift(PAST::Op.new(
             :pasttype('inline'),
@@ -1229,25 +1256,23 @@ method regex_def($/, $key?) {
         my $sig_setup_block := add_signature($past, $sig, 1);
         $past.name($name);
         $past.blocktype("declaration");
+        
         # If the methods are not :anon they'll conflict at class composition time.
         $past.pirflags(':anon');
-        $past := create_code_object($past, 'Regex', 0, $sig_setup_block);
+
+        # Create code object and install it provided it has a name.
         if ($name) {
+            my $code := create_code_object(PAST::Val.new(:value($past)), 'Regex', 0, $sig_setup_block);
             our @PACKAGE;
             unless +@PACKAGE {
                 $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
             }
             my %table;
             %table := @PACKAGE[0].methods();
-            unless %table{$name} { my %tmp; %table{$name} := %tmp; }
-
-            if %table{$name} {
-                $/.CURSOR.panic('Cannot declare ' ~ ~$<sym> ~ ' ' ~ $name ~
-                    ' when another with this name was already declared');
-            }
-            %table{$name}<code_ref> := $past;
-            make PAST::Stmts.new();
-            return 0;
+            install_method($/, $code, $name, %table);
+        }
+        else {
+            $past := create_code_object($past, 'Regex', 0, $sig_setup_block);
         }
     }
     make $past;

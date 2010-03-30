@@ -287,15 +287,15 @@ Completes the creation of the metaclass and return a proto-object.
     .local pmc parrotclass
     parrotclass = getattribute self, 'parrotclass'
 
+    # Compose any composables.
+    'compose_composables'(self, obj)
+
     # Haz we already a proto-object? If so, we're done, so just hand
     # it back.
     $P0 = getattribute self, 'protoobject'
     if null $P0 goto no_its_new
     .return ($P0)
   no_its_new:
-
-    # Compose any composables.
-    'compose_composables'(self, obj)
 
     # Iterate over the attributes and compose them.
     .local pmc attr_it, attributes
@@ -838,6 +838,7 @@ correct protocol.
     # all want the same composer.
     .local pmc composees, chosen_applier, composee_it, done
     composees = getattribute meta, '$!composees'
+    if null composees goto composition_done
     $I0 = elements composees
     if $I0 == 0 goto composition_done
     if $I0 == 1 goto one_composee

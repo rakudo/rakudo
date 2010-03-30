@@ -1,4 +1,8 @@
 augment class Iterator {
+    multi method perl() {
+        $.eager.perl;
+    }
+
     multi method elems() {
         my $elems = 0;
         while !(self.get ~~ EMPTY) {

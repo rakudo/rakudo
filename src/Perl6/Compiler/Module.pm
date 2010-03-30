@@ -1,8 +1,14 @@
 class Perl6::Compiler::Module is Perl6::Compiler::Package;
 
-# Modules don't support methods.
+has %!dummy;
+
+# Modules don't support methods; just give back some dummy table.
 method methods() {
-    pir::die('You can not add a ' ~ $*METHODTYPE ~ ' to a module; use a class, role or grammar ');
+    if $*SCOPE eq '' || $*SCOPE eq 'has' {
+        pir::printerr("Useless declaration of has-scoped " ~ $*METHODTYPE ~
+            " in a module; add our or my to install it in the lexpad or namespace\n");
+    }
+    %!dummy
 }
 
 # Accessor for attributes hash.

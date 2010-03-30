@@ -56,11 +56,7 @@ augment class Any {
         self / pir::get_global__Ps('@trig-base-conversions')[$base];
     }
 
-    multi method log() {
-        $.Num.log;
-    }
-
-    multi method log($base) {
+    multi method log($base = e) {
         $.Num.log($base);
     }
 
@@ -176,8 +172,7 @@ augment class Any {
 our proto sub abs($x) { $x.abs }
 our multi sub prefix:<abs>($x) { $x.abs }
 our proto sub exp($exponent) { $exponent.exp }
-our proto sub log($x) { $x.log }
-our multi sub log($x, $base) { $x.log($base) }
+our proto sub log($x, $base = e) { $x.log($base) }
 our proto sub log10($x) { $x.log10 }
 our proto sub cis($angle) { $angle.cis; }
 our proto sub unpolar($mag, $angle) { $mag.unpolar($angle); }

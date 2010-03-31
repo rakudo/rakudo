@@ -13,7 +13,7 @@ our sub upgrade_to_num_if_needed($test) {
     }
 }
 
-augment class Int {
+augment class Int does Real {
     multi method abs() {
         self < 0 ?? -self !! self;
     }

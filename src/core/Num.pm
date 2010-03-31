@@ -1,6 +1,6 @@
 class Complex { ... }
 
-augment class Num {
+augment class Num does Real {
     multi method ACCEPTS($other) {
         if self eq 'NaN' {
             $other eq 'NaN';

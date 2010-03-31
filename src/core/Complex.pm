@@ -13,7 +13,7 @@ class Complex does Numeric {
         ($topic.Num ~~ $.re) && ($.im == 0);
     }
 
-    multi method abs() {
+    method abs() {
         ($!re * $!re + $!im * $!im).sqrt
     }
 

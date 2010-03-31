@@ -62,10 +62,6 @@ augment class Num does Real {
         ($signum * $b) / $d;
     }
 
-    multi method abs() {
-        pir::abs__Nn(self);
-    }
-
     multi method exp() {
         pir::exp__Nn(self);
     }

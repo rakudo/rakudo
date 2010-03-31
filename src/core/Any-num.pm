@@ -1,5 +1,5 @@
 augment class Any {
-    multi method abs() {
+    method abs() {
         pir::abs__Nn(self.Num);
     }
 

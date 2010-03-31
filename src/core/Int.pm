@@ -14,10 +14,6 @@ our sub upgrade_to_num_if_needed($test) {
 }
 
 augment class Int does Real {
-    multi method abs() {
-        self < 0 ?? -self !! self;
-    }
-
     multi method ACCEPTS(Int $other) {
         self == $other;
     }

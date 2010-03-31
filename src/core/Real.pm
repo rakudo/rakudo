@@ -1,3 +1,5 @@
 role Real does Numeric {
-    # no methods yet
+    method abs() {
+        self < 0 ?? -self !! self;
+    }
 }

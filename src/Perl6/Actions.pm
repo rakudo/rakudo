@@ -978,7 +978,11 @@ method routine_def($/) {
                     PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
                     $past
                 );
-                $symbol_holder.symbol($name, :multis($past))
+                $symbol_holder.symbol($name, :multis($past));
+                $past := PAST::Op.new(
+                    :pasttype('callmethod'), :name('incorporate_candidates'),
+                    $past, PAST::Op.new( :pirop('find_lex_skip_current PS'), $name )
+                );
             }
             $multi_flag.value($*MULTINESS eq 'proto' ?? 2 !! 1);
         }

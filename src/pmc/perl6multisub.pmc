@@ -1312,6 +1312,26 @@ that we may have in place. Returns SELF.
         }
         RETURN (PMC *SELF);
     }
+
+
+/*
+
+=item METHOD PMC *incorporate_candidates(PMC *maybe_multi)
+
+Incorporates the given candidates into this multi.
+
+=cut
+
+*/
+    METHOD PMC *incorporate_candidates(PMC *maybe_multi) {
+        if (!PMC_IS_NULL(maybe_multi) && VTABLE_isa(interp, maybe_multi, CONST_STRING(interp, "Perl6MultiSub"))) {
+            INTVAL elements = VTABLE_elements(interp, maybe_multi);
+            INTVAL i;
+            for (i = 0; i < elements; i++)
+                VTABLE_push_pmc(interp, SELF, VTABLE_get_pmc_keyed_int(interp, maybe_multi, i));
+        }
+        RETURN (PMC *SELF);
+    }
 }
 
 /*

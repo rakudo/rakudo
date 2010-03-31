@@ -477,6 +477,10 @@ token term:sym<undef> {
     <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\tNil as an empty list,\n\t*.notdef as a matcher or method,\n\tAny:U as a type constraint\n\tor fail() as a failure return\n\t   ")>
 }
 
+token term:sym<new> {
+    'new' \h+ <longname> \h* <!before ':'> <.obs("C++ constructor syntax", "method call syntax")>
+}
+
 token fatarrow {
     <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i=')>
 }
@@ -1015,23 +1019,38 @@ token quote:sym<qqx>   { 'qqx' <![(]> <.ws> <quote_EXPR: ':qq'> }
 token quote:sym<Q>     { 'Q'   <![(]> <.ws> <quote_EXPR> }
 token quote:sym<Q:PIR> { 'Q:PIR'      <.ws> <quote_EXPR> }
 token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
-token quote:sym</ />  { '/'<p6regex=.LANG('Regex','nibbler')>'/' }
-token quote:sym<rx>   { <sym> >> '/'<p6regex=.LANG('Regex','nibbler')>'/' }
+token quote:sym</ />  { '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>? }
+token quote:sym<rx>   { <sym> >> '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>? }
 token quote:sym<m> {
     <sym> >>
     [
-    | '/'<p6regex=.LANG('Regex','nibbler')>'/'
+    | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
     | '{'<p6regex=.LANG('Regex','nibbler')>'}'
     ]
 }
 token quote:sym<s> {
     <sym> >>
     [
-    | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'>
+    | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
     | '[' <p6regex=.LANG('Regex','nibbler')> ']'
       <.ws> [ '=' || <.panic: "Missing assignment operator"> ]
       <.ws> <EXPR('i')>
     ]
+}
+
+token old_rx_mods {
+    (<[ i g s m x c e ]>)
+    {
+        my $m := $/[0].Str;
+        if    $m eq 'i' { $/.CURSOR.obs('/i',':i');                                   }
+        elsif $m eq 'g' { $/.CURSOR.obs('/g',':g');                                   }
+        elsif $m eq 's' { $/.CURSOR.obs('/s','^^ and $$ anchors');                    }
+        elsif $m eq 'm' { $/.CURSOR.obs('/m','. or \N');                              }
+        elsif $m eq 'x' { $/.CURSOR.obs('/x','normal default whitespace');            }
+        elsif $m eq 'c' { $/.CURSOR.obs('/c',':c or :p');                             }
+        elsif $m eq 'e' { $/.CURSOR.obs('/e','interpolated {...} or s{} = ... form'); }
+        else            { $/.CURSOR.obs('suffix regex modifiers','prefix adverbs');   }
+    }
 }
 
 token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }

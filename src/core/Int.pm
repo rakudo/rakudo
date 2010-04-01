@@ -40,11 +40,6 @@ augment class Int does Real {
     our Num multi method sec($base = Radians) {
         self.Num.sec($base);
     }
-
-    our Int multi method sign {
-        # self ~~ NaN ?? NaN !! self <=> 0;
-        self < 0 ?? -1 !! ( self == 0 ?? 0 !! 1);
-    }
 }
 
 our multi sub infix:<+>(Int $a, Int $b) {

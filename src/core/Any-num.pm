@@ -3,6 +3,10 @@ augment class Any {
         (+self).abs;
     }
 
+    method sign() {
+        self.defined ?? (+self).sign !! Mu;
+    }
+
     multi method exp() {
         self.Num.exp;
     }
@@ -171,6 +175,7 @@ augment class Any {
 
 our proto sub abs($x) { $x.abs }
 our multi sub prefix:<abs>($x) { $x.abs }
+our proto sub sign($x) { $x.sign }
 our proto sub exp($exponent) { $exponent.exp }
 our proto sub log($x, $base = e) { $x.log($base) }
 our proto sub log10($x) { $x.log10 }
@@ -387,15 +392,6 @@ our Num sub rand (*@args) {
 our multi sub sqrt(Any $x) {
     $x.Num.sqrt
 }
-
-our proto sign($x) {
-    defined($x) ?? $x.Num.sign !! Mu;
-}
-
-# This one doesn't seem to be needed with the above defined.
-# our multi sub sign($x) {
-#     defined($x) ?? $x.Num.sign !! undef;
-# }
 
 our multi sub roots($x, $n) {
     $x.Complex.roots($n)

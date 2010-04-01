@@ -203,7 +203,7 @@ S04-declarations/my.t
 # S04-declarations/state.t
 S04-exceptions/fail.t
 S04-statement-modifiers/for.t
-# S04-statement-modifiers/given.t
+S04-statement-modifiers/given.t
 S04-statement-modifiers/if.t
 S04-statement-modifiers/unless.t
 S04-statement-modifiers/until.t

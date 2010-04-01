@@ -270,6 +270,13 @@ token statement {
         || <?MARKED('endstmt')>
         || <statement_mod_cond> <statement_mod_loop>?
         || <statement_mod_loop>
+            {
+                my $sp := $<EXPR><statement_prefix>;
+                if $sp && $sp<sym> eq 'do' {
+                    my $s := $<statement_mod_loop>[0]<sym>;
+                    $/.CURSOR.obs("do..." ~ $s, "repeat..." ~ $s);
+                }
+            }
         ]?
     ]
     | <?before ';'>

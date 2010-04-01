@@ -136,4 +136,8 @@ multi sub printf($format, *@args) {
 
 }
 
+multi sub note(*@LIST) {
+    $*ERR.say(@LIST);
+}
+
 # vim: ft=perl6

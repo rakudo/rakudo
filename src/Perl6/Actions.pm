@@ -134,13 +134,27 @@ method statement($/, $key?) {
         }
         if $ml {
             my $cond := $ml<smexpr>.ast;
-            if ~$ml<sym> eq 'for' {
+            if ~$ml<sym> eq 'given' {
+                $past := PAST::Op.new(
+                    :pasttype('call'),
+                    PAST::Block.new(
+                        :blocktype('declaration'),
+                        PAST::Var.new( :name('$_'), :scope('parameter'), :isdecl(1) ),
+                        $past
+                    ),
+                    $cond
+                );
+            }
+            elsif ~$ml<sym> eq 'for' {
                 $past := PAST::Block.new( :blocktype('immediate'),
                     PAST::Var.new( :name('$_'), :scope('parameter'), :isdecl(1) ),
                     $past);
                 $cond := PAST::Op.new(:name('&eager'), $cond);
+                $past := PAST::Op.new($cond, $past, :pasttype(~$ml<sym>), :node($/) );
             }
-            $past := PAST::Op.new($cond, $past, :pasttype(~$ml<sym>), :node($/) );
+            else {
+                $past := PAST::Op.new($cond, $past, :pasttype(~$ml<sym>), :node($/) );
+            }
         }
     }
     elsif $<statement_control> { $past := $<statement_control>.ast; }
@@ -546,6 +560,7 @@ method statement_mod_cond:sym<unless>($/) { make $<cond>.ast; }
 method statement_mod_loop:sym<while>($/)  { make $<smexpr>.ast; }
 method statement_mod_loop:sym<until>($/)  { make $<smexpr>.ast; }
 method statement_mod_loop:sym<for>($/)    { make $<smexpr>.ast; }
+method statement_mod_loop:sym<given>($/)  { make $<smexpr>.ast; }
 
 ## Terms
 

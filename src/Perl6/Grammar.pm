@@ -454,6 +454,7 @@ proto token statement_mod_loop { <...> }
 token statement_mod_loop:sym<while> { <sym> :s <smexpr=.EXPR> }
 token statement_mod_loop:sym<until> { <sym> :s <smexpr=.EXPR> }
 token statement_mod_loop:sym<for>   { <sym> :s <smexpr=.EXPR> }
+token statement_mod_loop:sym<given> { <sym> :s <smexpr=.EXPR> }
 
 ## Terms
 

@@ -476,6 +476,13 @@ our multi sub infix:<X>(Iterable $a-iterable, Iterable $b-iterable) {
 
 our multi sub infix:<X>($a, $b) { &infix:<X>($a.list, $b.list) }
 
+# if we want &infix:<||> accessible (for example for meta operators), we need
+# to define it, because the normal || is short-circuit and special cased by
+# the grammar. Same goes for 'or'
+
+multi sub infix:<||>(Mu $a, Mu $b) { $a || $b }
+multi sub infix:<or>(Mu $a, Mu $b) { $a or $b }
+
 # Eliminate use of this one, but keep the pir around for
 # the moment, as it may come in handy elsewhere.
 #

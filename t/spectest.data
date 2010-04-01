@@ -97,7 +97,7 @@ S02-magicals/config.t
 S02-magicals/pid.t
 S02-magicals/progname.t
 S02-names_and_variables/contextual.t
-# S02-names_and_variables/fmt.t
+S02-names_and_variables/fmt.t
 S02-names_and_variables/names.t
 S02-names_and_variables/perl.t
 S02-names_and_variables/list_array_perl.t

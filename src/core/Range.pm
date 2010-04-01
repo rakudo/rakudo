@@ -62,6 +62,10 @@ class Range is Iterable {
         my $emax = $.excludes_max ?? "^" !! "";
         $min ~ $emin ~ ".." ~ $emax ~ $max;
     }
+
+    multi method fmt($format = '%s', $seperator = ' ') {
+        self.map({ .fmt($format)}).join($seperator);
+    }
 }
 
 our multi sub infix:<..>($min, $max) {

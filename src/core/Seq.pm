@@ -81,6 +81,10 @@ augment class Seq {
         my Int $k = $n % self.elems;
         self[$k .. self.elems-1, 0 .. $k-1];
     }
+
+    multi method fmt($format = '%s', $seperator = ' ') {
+        self.map({ .fmt($format)}).join($seperator);
+    }
 }
 
 # vim: ft=perl6

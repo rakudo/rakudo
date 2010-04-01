@@ -13,4 +13,8 @@ augment class Parcel {
             self.Seq.ACCEPTS($x)
         }
     }
+
+    multi method fmt($format = '%s', $seperator = ' ') {
+        self.map({ .fmt($format)}).join($seperator);
+    }
 }

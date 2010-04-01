@@ -371,6 +371,10 @@ token statement_control:sym<for> {
     <xblock(1)>
 }
 
+token statement_control:sym<foreach> {
+    <sym> <.nofun> <.obs("'foreach'", "'for'")>
+}
+
 token statement_control:sym<loop> {
     <sym>
     [ <?[({]> <.panic: "Whitespace required after 'loop'"> ]?

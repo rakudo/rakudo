@@ -2051,8 +2051,11 @@ method prefix_circumfix_meta_operator:sym<reduce>($/) {
             PAST::Var.new( :name($opsub), :scope('package') ),
             PAST::Op.new(
                 :pasttype('callmethod'), :name('assuming'),
-                PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&reduce' ),
-                PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op )
+                PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&reducewith' ),
+                PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op ),
+                PAST::Val.new( :named('triangle'), :value($<triangle> ?? 1 !! 0) ),
+                PAST::Val.new( :named('chaining'), :value($<op><OPER><O><prec> eq 'm=') ),
+                PAST::Val.new( :named('right-assoc'), :value($<op><OPER><O><assoc> eq 'right') )
             )
         ));
         %*METAOPGEN{$opsub} := 1;

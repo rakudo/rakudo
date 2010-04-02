@@ -1174,7 +1174,7 @@ regex prefix_circumfix_meta_operator:sym<reduce> {
     '['
     [
     || <op=.infixish> <?before ']'>
-#    || \\<op=.infixish> <?before ']'>
+    || $<triangle>=[\\]<op=.infixish> <?before ']'>
     || <!>
     ]
     ']'

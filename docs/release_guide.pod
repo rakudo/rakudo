@@ -25,14 +25,14 @@ part of monthly Parrot releases.
   2009-12-17   Rakudo #24 "Seoul"              (chromatic)
   2010-01-22   Rakudo #25 "Minneapolis"        (pmichaud)
   2010-02-18   Rakudo #26 "Amsterdam"          (mberends)
+  2010-03-18   Rakudo #27 "Copenhagen"         (smash)
 
 =head2 Planned 2010 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2010-03-18   Rakudo #27 "Copenhagen"         (smash)
   2010-04-22   Rakudo #28                      (pmichaud?)
-  2010-05-20   Rakudo #29                      (open)
+  2010-05-20   Rakudo #29                      (colomon)
   2010-06-17   Rakudo #30                      (open)
   2010-07-22   Rakudo #31                      (open)
   2010-08-19   Rakudo #32                      (open)

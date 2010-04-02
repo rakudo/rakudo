@@ -244,9 +244,9 @@ S05-grammar/protos.t
 S05-grammar/signatures.t
 # S05-grammar/ws.t
 # S05-mass/named-chars.t                                     # icu
-# S05-mass/properties-block.t                                # icu
+S05-mass/properties-block.t                                # icu
 # S05-mass/properties-derived.t                              # icu
-# S05-mass/properties-general.t                              # icu
+S05-mass/properties-general.t                              # icu
 # S05-mass/properties-script.t                               # icu
 S05-mass/rx.t
 # S05-mass/recursive.t

@@ -112,6 +112,11 @@ A Perl 6 Exception object.
     .return ($I0)
 .end
 
+.sub '' :vtable('invoke') :method
+    $P0 = self.'exception'()
+    $P0.'throw'()
+.end
+
 =back
 
 =cut

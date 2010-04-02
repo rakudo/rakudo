@@ -1746,7 +1746,13 @@ method term:sym<name>($/) {
         $var := PAST::Var.new( :name(~$<longname>), :scope('lexical') );
     }
     else {
-        $var := PAST::Var.new( :name(~$name), :namespace($ns), :scope('package') );
+        $var := PAST::Var.new(
+            :name(~$name), :namespace($ns), :scope('package'),
+            :viviself(PAST::Op.new(
+                :pasttype('call'), :name('!FAIL'),
+                "Can not find sub " ~ ~$<longname>
+            ))
+        );
     }
     my $past := $var;
     if $<args> {

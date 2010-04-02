@@ -12,6 +12,11 @@ class Rat does Real {
         return $a + $b;
     }
 
+    multi method new() {
+        self.bless(*, :numerator(0), :denominator(1));
+
+    }
+
     multi method new(Int $numerator is copy, Int $denominator is copy) {
         if $denominator < 0 {
             $numerator = -$numerator;

@@ -1,3 +1,13 @@
+New in 2010.04 release
++ prefix and postfix hyper operators
++ multi subs now work properly when lexically scoped
++ implemented item assignment with tighter precedence than the comma operator
++ Basic implementation of Numeric and Real roles
++ named regexes can be declared outside of grammars again
++ support for numbers with arbitrary radix, including fractional numbers (:16<DEAD.BEEF>)
++ implemented fmt(), printf() and note() built-in functions
++ infix meta operators now inherit the precedence of the modified operator
+
 New in 2010.03 release
 + The trigonometric functions and the Rat class have received numerous
   updates, making them faster and more complete

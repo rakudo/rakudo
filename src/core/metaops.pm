@@ -96,7 +96,10 @@ our multi sub hyper(&op, $arg) {
     hyper(&op, $arg.list)
 }
 
-our multi sub reducewith(&op, Iterable $an-iterable, :$chaining, :$right-assoc) {
+our multi sub reducewith(&op, Iterable $an-iterable,
+                         :$chaining,
+                         :$right-assoc,
+                         :$triangle) {
     my $ai = $an-iterable.iterator;
     $ai = $ai.Seq.reverse.iterator if $right-assoc;
 
@@ -109,13 +112,15 @@ our multi sub reducewith(&op, Iterable $an-iterable, :$chaining, :$right-assoc) 
         loop {
             my $next = $ai.get;
             last if $next ~~ EMPTY;
-            if !op($result, $next) {
+            my $i = $right-assoc ?? op($next, $result) !! op($result, $next);
+            unless $i {
                 return Bool::False;
             }
             $result = $next;
         }
         return Bool::True;
     } else {
+        my @r = $result;
         loop {
             my $next = $ai.get;
             last if $next ~~ EMPTY;
@@ -125,7 +130,9 @@ our multi sub reducewith(&op, Iterable $an-iterable, :$chaining, :$right-assoc) 
             else {
                 $result = &op($result, $next);
             }
+            @r.push($result) if $triangle;
         }
+        return @r if $triangle;
     }
     $result;
 }

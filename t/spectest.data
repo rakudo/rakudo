@@ -18,10 +18,10 @@
 # S16-filehandles/filetest.t - regressed when spec changed (RT #68160)
 # S16-filehandles/unlink.t   - regressed when spec changed (RT #68160)
 
-# integration/99problems-01-to-10.t
-# integration/99problems-11-to-20.t
-# integration/99problems-21-to-30.t
-# integration/99problems-31-to-40.t
+integration/99problems-01-to-10.t
+integration/99problems-11-to-20.t
+integration/99problems-21-to-30.t
+integration/99problems-31-to-40.t
 # integration/99problems-41-to-50.t
 # integration/99problems-51-to-60.t
 # integration/99problems-61-to-70.t
@@ -48,7 +48,7 @@ S02-builtin_data_types/bool.t
 S02-builtin_data_types/capture.t
 S02-builtin_data_types/catch_type_cast_mismatch.t
 S02-builtin_data_types/declare.t
-# S02-builtin_data_types/flattening.t
+S02-builtin_data_types/flattening.t
 # S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
 S02-builtin_data_types/infinity.t

@@ -105,14 +105,26 @@ our multi sub reducewith(&op, Iterable $an-iterable, :$chaining, :$right-assoc) 
         return &op();
     }
 
-    loop {
-        my $next = $ai.get;
-        last if $next ~~ EMPTY;
-        if ($right-assoc) {
-            $result = &op($next, $result);
+    if $chaining {
+        loop {
+            my $next = $ai.get;
+            last if $next ~~ EMPTY;
+            if !op($result, $next) {
+                return Bool::False;
+            }
+            $result = $next;
         }
-        else {
-            $result = &op($result, $next);
+        return Bool::True;
+    } else {
+        loop {
+            my $next = $ai.get;
+            last if $next ~~ EMPTY;
+            if ($right-assoc) {
+                $result = &op($next, $result);
+            }
+            else {
+                $result = &op($result, $next);
+            }
         }
     }
     $result;

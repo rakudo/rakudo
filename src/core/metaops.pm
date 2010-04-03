@@ -133,6 +133,13 @@ our multi sub reducewith(&op, Iterable $an-iterable,
     $result;
 }
 
+our multi sub reducewith(&op, $arg,
+                         :$chaining,
+                         :$right-assoc,
+                         :$triangle) {
+    reducewith(&op, $arg.list, :$chaining, :$right-assoc, :$triangle);
+}
+
 # degenerate case of operators, to be used by reduce() for the 0-ary case
 # this fails for operators defined in PIR, so some of them are commented out.
 our multi sub infix:<**>() { 1 }

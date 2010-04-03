@@ -139,6 +139,7 @@ token name {
 }
 
 token morename {
+    :my $*QSIGIL := '';
     '::' <identifier>
 }
 
@@ -243,6 +244,7 @@ token comp_unit {
     :my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
     :my $*SCOPE := '';                         # which scope declarator we're under
     :my $*MULTINESS := '';                     # which multi declarator we're under
+    :my $*QSIGIL := '';                        # sigil of current interpolation
     :my $*TYPENAME := '';
     <.newpad>
     <.outerlex>
@@ -262,6 +264,7 @@ rule semilist {
 }
 
 token statement {
+    :my $*QSIGIL := '';
     <!before <[\])}]> | $ >
     [
     | <statement_control>
@@ -963,6 +966,7 @@ token semiarglist {
 }
 
 token arglist {
+    :my $*QSIGIL := '';
     <.ws>
     [
     | <?stdstopper>
@@ -970,7 +974,6 @@ token arglist {
     | <?>
     ]
 }
-
 
 token term:sym<value> { <value> }
 
@@ -1095,7 +1098,24 @@ token old_rx_mods {
     }
 }
 
-token quote_escape:sym<$>   { <?[$]> <?quotemod_check('s')> <variable> }
+token quote_escape:sym<$> {
+    <?[$]>
+    :my $*QSIGIL := '$';
+    <?quotemod_check('s')> <EXPR('y=')>
+}
+
+token quote_escape:sym<array> {
+    <?[@]>
+    :my $*QSIGIL := '@';
+    <?quotemod_check('s')> <EXPR('y=')>
+}
+
+token quote_escape:sym<%> {
+    <?[%]>
+    :my $*QSIGIL := '%';
+    <?quotemod_check('s')> <EXPR('y=')>
+}
+
 token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }
 
 token circumfix:sym<( )> { '(' <semilist> ')' }
@@ -1140,6 +1160,26 @@ INIT {
     Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_prefix');
     Perl6::Grammar.O(':prec<d=>, :assoc<left>',  '%loose_and');
     Perl6::Grammar.O(':prec<c=>, :assoc<left>',  '%loose_or');
+}
+
+token termish {
+    <prefixish>*
+    <term>
+    [
+    || <?{ $*QSIGIL }>
+        [
+        || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]?
+        ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+        ]
+    || <!{ $*QSIGIL }> <postfixish>*
+    ]
+}
+
+sub bracket_ending($matches) {
+    my $check := $matches[+$matches - 1];
+    my $str   := $check.Str;
+    my $last  := pir::substr($str, pir::length__IS($check) - 1, 1);
+    $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
 }
 
 method EXPR($preclim = '') {
@@ -1213,7 +1253,8 @@ regex prefix_circumfix_meta_operator:sym<reduce> {
 }
 
 token postfix_prefix_meta_operator:sym<»> {
-    [ <sym> | '>>' ] <!before '('>
+    [ <sym> | '>>' ] 
+    [ <!{ $*QSIGIL }> || <!before '('> ]
 }
 
 token prefix_postfix_meta_operator:sym<«> {
@@ -1281,12 +1322,13 @@ token methodop {
     | <longname>
     | <?before '$' | '@' | '&' > <variable>
     | <?before <[ ' " ]> >
+        [ <!{$*QSIGIL}> || <!before '"' <-["]>*? \s > ] # dwim on "$foo."
         <quote>
         [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments"> ]
     ] <.unsp>?
     [
     | <?[(]> <args>
-    | ':' \s <args=.arglist>
+    | ':' \s <!{ $*QSIGIL }> <args=.arglist>
     ]?
 }
 
@@ -1295,11 +1337,13 @@ token dottyopish {
 }
 
 token postcircumfix:sym<[ ]> {
+    :my $*QSIGIL := '';
     '[' ~ ']' [ <.ws> <EXPR> ]
     <O('%methodcall')>
 }
 
 token postcircumfix:sym<{ }> {
+    :my $*QSIGIL := '';
     '{' ~ '}' [ <.ws> <EXPR> ]
     <O('%methodcall')>
 }

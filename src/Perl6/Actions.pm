@@ -2334,11 +2334,32 @@ method quote:sym<s>($/) {
 }
 
 method quote_escape:sym<$>($/) {
-    #make $<variable>.ast;
-    # my $a = 3; say "$a".WHAT # Gives Int, not Str with the above. Force
-    # stringification to fix this. This should probably be handled in nqp-rx,
-    # but work around it for now.
-    make PAST::Op.new( $<variable>.ast, :pirop('set SP') );
+    make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
+}
+
+method quote_escape:sym<array>($/) {
+    make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
+}
+
+method quote_escape:sym<%>($/) {
+    make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
+}
+
+# Unfortunately, the operator precedence parser (probably correctly)
+# steals spaces after a postfixish. Thus "$a $b" would get messed up.
+# Here we take them back again. Hacky, better solutions welcome.
+sub steal_back_spaces($/, $expr) {
+    my $pos := pir::length__IS($/) - 1;
+    while pir::is_cclass__IISI(32, $/, $pos) {
+        $pos--;
+    }
+    my $nab_back := pir::substr__SSI($/, $pos + 1);
+    if $nab_back {
+        PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, ~$nab_back )
+    }
+    else {
+        $expr
+    }
 }
 
 method quote_escape:sym<{ }>($/) {

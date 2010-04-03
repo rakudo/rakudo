@@ -768,6 +768,36 @@ token parameter {
     <trait>*
     <post_constraint>*
     <default_value>?
+
+    # enforce zone constraints
+    {
+        my $kind :=
+            $<named_param>                     ?? '*' !! 
+            $<quant> eq '?'                    ?? '?' !!
+            $<quant> eq '!'                    ?? '!' !!
+            $<quant> ne '' && $<quant> ne '\\' ?? '*' !!
+                                                  '!';
+
+        if $kind eq '!' {
+            if $*zone eq 'posopt' {
+                $/.CURSOR.panic("Can't put required parameter after optional parameters");
+            }
+            elsif $*zone eq 'var' {
+                $/.CURSOR.panic("Can't put required parameter after variadic parameters");
+            }
+        }
+        elsif $kind eq '?' {
+            if $*zone  eq 'posreq' {
+                    $*zone := 'posopt';
+            }
+            elsif $*zone eq  'var' {
+                $/.CURSOR.panic("Can't put optional positional parameter after variadic parameters");
+            }
+        }
+        elsif $kind eq '*' {
+            $*zone := 'var';
+        }
+    }
 }
 
 token param_var {

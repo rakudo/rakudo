@@ -103,34 +103,58 @@ our multi sub reducewith(&op, Iterable $an-iterable,
     my $ai = $an-iterable.iterator;
     $ai = $ai.Seq.reverse.iterator if $right-assoc;
 
-    my $result = $ai.get;
-    if $result ~~ EMPTY {
-        return &op();
-    }
+    if $triangle {
+        gather {
+            my $result = $ai.get;
+            return if $result ~~ EMPTY;
 
-    if $chaining {
-        my $bool = Bool::True;
-        my @r = $bool;
-        loop {
-            my $next = $ai.get;
-            last if $next ~~ EMPTY;
-            $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
-            @r.push($bool) if $triangle;
-            $result = $next;
+            if $chaining {
+                my $bool = Bool::True;
+                take Bool::True;
+                loop {
+                    my $next = $ai.get;
+                    last if $next ~~ EMPTY;
+                    $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
+                    my $temp = $bool;
+                    take $temp;
+                    $result = $next;
+                }
+            } else {
+                my $temp = $result;
+                take $temp;
+                loop {
+                    my $next = $ai.get;
+                    last if $next ~~ EMPTY;
+                    $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
+                    my $temp = $result;
+                    take $temp;
+                }
+            }
         }
-        return @r if $triangle;
-        return $bool;
     } else {
-        my @r = $result;
-        loop {
-            my $next = $ai.get;
-            last if $next ~~ EMPTY;
-            $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
-            @r.push($result) if $triangle;
+        my $result = $ai.get;
+        if $result ~~ EMPTY {
+            return &op();
         }
-        return @r if $triangle;
+
+        if $chaining {
+            my $bool = Bool::True;
+            loop {
+                my $next = $ai.get;
+                last if $next ~~ EMPTY;
+                $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
+                $result = $next;
+            }
+            return $bool;
+        } else {
+            loop {
+                my $next = $ai.get;
+                last if $next ~~ EMPTY;
+                $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
+            }
+        }
+        $result;
     }
-    $result;
 }
 
 our multi sub reducewith(&op, $arg,

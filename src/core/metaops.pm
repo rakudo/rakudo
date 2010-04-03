@@ -109,27 +109,23 @@ our multi sub reducewith(&op, Iterable $an-iterable,
     }
 
     if $chaining {
+        my $bool = Bool::True;
+        my @r = $bool;
         loop {
             my $next = $ai.get;
             last if $next ~~ EMPTY;
-            my $i = $right-assoc ?? op($next, $result) !! op($result, $next);
-            unless $i {
-                return Bool::False;
-            }
+            $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
+            @r.push($bool) if $triangle;
             $result = $next;
         }
-        return Bool::True;
+        return @r if $triangle;
+        return $bool;
     } else {
         my @r = $result;
         loop {
             my $next = $ai.get;
             last if $next ~~ EMPTY;
-            if ($right-assoc) {
-                $result = &op($next, $result);
-            }
-            else {
-                $result = &op($result, $next);
-            }
+            $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
             @r.push($result) if $triangle;
         }
         return @r if $triangle;

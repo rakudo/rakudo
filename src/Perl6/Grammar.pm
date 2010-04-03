@@ -1107,13 +1107,19 @@ token quote_escape:sym<$> {
 token quote_escape:sym<array> {
     <?[@]>
     :my $*QSIGIL := '@';
-    <?quotemod_check('s')> <EXPR('y=')>
+    <?quotemod_check('a')> <EXPR('y=')>
 }
 
 token quote_escape:sym<%> {
     <?[%]>
     :my $*QSIGIL := '%';
-    <?quotemod_check('s')> <EXPR('y=')>
+    <?quotemod_check('h')> <EXPR('y=')>
+}
+
+token quote_escape:sym<&> {
+    <?[&]>
+    :my $*QSIGIL := '&';
+    <?quotemod_check('f')> <EXPR('y=')>
 }
 
 token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }

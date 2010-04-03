@@ -2345,6 +2345,10 @@ method quote_escape:sym<%>($/) {
     make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
 }
 
+method quote_escape:sym<&>($/) {
+    make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
+}
+
 # Unfortunately, the operator precedence parser (probably correctly)
 # steals spaces after a postfixish. Thus "$a $b" would get messed up.
 # Here we take them back again. Hacky, better solutions welcome.

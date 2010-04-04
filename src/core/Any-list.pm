@@ -191,20 +191,20 @@ augment class Any {
     }
 }
 
-our proto sub join (Str $separator = '', *@values) { @values.join($separator); }
-our proto sub reverse(@values) { @values.reverse; }
-our multi sub reverse(*@v) { @v.reverse; }
-our proto sub end(@array) { @array.end; }
-our proto sub grep($test, @values) { @values.grep($test); }
-our proto sub first($test, @values) { @values.first($test); }
-our proto sub min($by, *@values) { @values.min($by); }
-our proto sub max($by, *@values) { @values.max($by); }
-our proto sub uniq(@values) { @values.uniq; }
-our proto sub pick ($num, :$replace, *@values) { @values.pick($num, :$replace); }
-our proto sub map(&mapper, @values) { @values.map(&mapper); }
-our proto sub kv(@array) { @array.kv; }
-our proto sub keys(@array) { @array.keys; }
-our proto sub values(@array) { @array.values; }
-our proto sub pairs(@array) { @array.pairs; }
+proto sub join (Str $separator = '', *@values) { @values.join($separator); }
+proto sub reverse(@values) { @values.reverse; }
+multi sub reverse(*@v) { @v.reverse; }
+proto sub end(@array) { @array.end; }
+proto sub grep($test, @values) { @values.grep($test); }
+proto sub first($test, @values) { @values.first($test); }
+proto sub min($by, *@values) { @values.min($by); }
+proto sub max($by, *@values) { @values.max($by); }
+proto sub uniq(@values) { @values.uniq; }
+proto sub pick ($num, :$replace, *@values) { @values.pick($num, :$replace); }
+proto sub map(&mapper, @values) { @values.map(&mapper); }
+proto sub kv(@array) { @array.kv; }
+proto sub keys(@array) { @array.keys; }
+proto sub values(@array) { @array.values; }
+proto sub pairs(@array) { @array.pairs; }
 
 # vim: ft=perl6

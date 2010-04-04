@@ -8,12 +8,17 @@ augment class Num does Real {
             $other == self;
         }
     }
+
     multi method ACCEPTS(Complex $other) {
         if self eq 'NaN' {
             $other.re eq 'NaN' || $other.im eq 'NaN';
         } else {
             $other.im == 0 && $other.re == self;
         }
+    }
+
+    method Bridge() {
+        self;
     }
 
     multi method Bool() {

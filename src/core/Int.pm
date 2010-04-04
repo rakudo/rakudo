@@ -22,6 +22,10 @@ augment class Int does Real {
         self.Num.ACCEPTS($other);
     }
 
+    method Bridge() {
+        self.Num;
+    }
+
     our Bool multi method Bool() { self != 0 ?? Bool::True !! Bool::False }
 
     our Int multi method Int() { self }

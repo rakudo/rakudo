@@ -34,6 +34,11 @@ class Rat does Real {
 
     multi method perl() { "$!numerator/$!denominator"; }
 
+    method Bridge() {
+        $!denominator == 0 ?? Inf * $!numerator.sign
+                           !! $!numerator.Bridge / $!denominator.Bridge;
+    }
+
     our Bool multi method Bool() { $!numerator != 0 ?? Bool::True !! Bool::False }
 
     multi method Num() {

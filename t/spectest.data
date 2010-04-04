@@ -145,7 +145,7 @@ S03-operators/context-forcers.t
 # S03-operators/context.t
 S03-operators/equality.t
 S03-operators/eqv.t
-# S03-operators/identity.t
+S03-operators/identity.t
 S03-operators/increment.t
 S03-operators/inplace.t
 S03-operators/list-quote-junction.t
@@ -201,7 +201,7 @@ S04-declarations/implicit-parameter.t
 # S04-declarations/multiple.t
 S04-declarations/my.t
 # S04-declarations/state.t
-S04-exceptions/catch.t
+S04-exception-handlers/catch.t
 S04-exceptions/fail.t
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t
@@ -336,7 +336,7 @@ S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
 S10-packages/basic.t
 S10-packages/use-with-class.t
-# S11-modules/export.t
+S11-modules/export.t
 # S11-modules/import.t
 # S11-modules/import-tag.t
 S11-modules/lexical.t
@@ -432,7 +432,7 @@ S16-unfiled/slurp.t
 S28-named-variables/inc.t
 S29-any/cmp.t
 S29-any/isa.t
-# S29-context/die.t
+S29-context/die.t
 S29-context/eval.t
 S29-context/sleep.t
 S29-conversions/ord_and_chr.t                              #icu

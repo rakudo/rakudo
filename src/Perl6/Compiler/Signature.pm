@@ -365,6 +365,17 @@ method entries() {
     $!entries
 }
 
+
+# Tests if the signature declares the given symbol.
+method declares_symbol($name) {
+    for self.entries {
+        if $_.var_name eq $name {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 # Local Variables:
 #   mode: cperl
 #   cperl-indent-level: 4

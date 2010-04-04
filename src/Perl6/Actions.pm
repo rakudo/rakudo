@@ -713,10 +713,14 @@ sub make_variable($/, $name) {
         $past := add_placeholder_parameter($<sigil>.Str, $<desigilname>.Str, :named($<twigil>[0] eq ':'));
     }
     elsif ~$/ eq '@_' {
-        $past := add_placeholder_parameter('@', '_', :slurpy_pos(1));
+        unless get_nearest_signature().declares_symbol('@_') {
+            $past := add_placeholder_parameter('@', '_', :slurpy_pos(1));
+        }
     }
     elsif ~$/ eq '%_' {
-        $past := add_placeholder_parameter('%', '_', :slurpy_named(1));
+        unless get_nearest_signature().declares_symbol('%_') {
+            $past := add_placeholder_parameter('%', '_', :slurpy_named(1));
+        }
     }
     else {
         my $attr_alias := is_attr_alias($past.name);
@@ -1429,6 +1433,7 @@ method signature($/) {
         $signature.add_parameter($param);
         $cur_param := $cur_param + 1;
     }
+    @BLOCK[0]<signature> := $signature;
     make $signature;
 }
 
@@ -2558,6 +2563,17 @@ sub add_placeholder_parameter($sigil, $ident, :$named, :$slurpy_pos, :$slurpy_na
 
     # Just want a lookup of the variable here.
     return PAST::Var.new( :name(~$sigil ~ ~$ident), :scope('lexical') );
+}
+
+# Looks through the blocks for the first one with a signature and returns
+# that signature.
+sub get_nearest_signature() {
+    for @BLOCK {
+        if pir::defined__IP($_<signature>) {
+            return $_<signature>;
+        }
+    }
+    Perl6::Compiler::Signature.new()
 }
 
 # Wraps a sub up in a block type.

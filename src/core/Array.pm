@@ -97,5 +97,5 @@ augment class Array {
     }
 }
 
-our proto sub pop(@array) { @array.pop; }
-our proto sub shift(@array) { @array.shift; }
+proto sub pop(@array) { @array.pop; }
+proto sub shift(@array) { @array.shift; }

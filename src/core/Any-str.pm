@@ -259,11 +259,11 @@ augment class Any {
     }
 }
 
-our multi sub ord($string) {
+multi sub ord($string) {
     $string.ord;
 }
 
-our proto ord($string) {
+proto ord($string) {
     $string.ord;
 }
 
@@ -283,22 +283,22 @@ our multi sub infix:<leg>($a, $b) {
     ~$a cmp ~$b
 }
 
-our multi split ( Str $delimiter, Str $input, Int $limit = * ) {
+multi split ( Str $delimiter, Str $input, Int $limit = * ) {
     $input.split($delimiter, $limit);
 }
 
-our multi split ( Regex $delimiter, Str $input, Int $limit = * ) {
+multi split ( Regex $delimiter, Str $input, Int $limit = * ) {
     $input.split($delimiter, $limit);
 }
 
-our multi sub sprintf($str as Str, *@args) {
+multi sub sprintf($str as Str, *@args) {
     $str.sprintf(|@args)
 }
 
-our proto sub uc($string) { $string.uc; }
-our proto sub ucfirst($string) { $string.ucfirst; }
-our proto sub lc($string) { $string.lc; }
-our proto sub lcfirst($string) { $string.lcfirst; }
-our proto sub capitalize($string) { $string.capitalize; }
+proto sub uc($string) { $string.uc; }
+proto sub ucfirst($string) { $string.ucfirst; }
+proto sub lc($string) { $string.lc; }
+proto sub lcfirst($string) { $string.lcfirst; }
+proto sub capitalize($string) { $string.capitalize; }
 
 # vim: ft=perl6

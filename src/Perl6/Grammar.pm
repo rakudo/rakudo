@@ -558,24 +558,24 @@ token twigil:sym<?> { <sym> }
 
 proto token package_declarator { <...> }
 token package_declarator:sym<package> {
-    :my $*PKGDECL := 'package';
-    <sym> <package_def>
+    <sym> :my $*PKGDECL := 'package';
+    <package_def>
 }
 token package_declarator:sym<module> {
-    :my $*PKGDECL := 'module';
-    <sym> <package_def>
+    <sym> :my $*PKGDECL := 'module';
+    <package_def>
 }
 token package_declarator:sym<class> {
-    :my $*PKGDECL := 'class';
-    <sym> <package_def>
+    <sym> :my $*PKGDECL := 'class';
+    <package_def>
 }
 token package_declarator:sym<grammar> {
-    :my $*PKGDECL := 'grammar';
-    <sym> <package_def>
+    <sym> :my $*PKGDECL := 'grammar';
+    <package_def>
 }
 token package_declarator:sym<role> {
-    :my $*PKGDECL := 'role';
-    <sym> <package_def>
+    <sym> :my $*PKGDECL := 'role';
+    <package_def>
 }
 
 token package_declarator:sym<does> {
@@ -611,16 +611,16 @@ token declarator {
 
 proto token multi_declarator { <...> }
 token multi_declarator:sym<multi> {
-    :my $*MULTINESS := 'multi';
-    <sym> <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed multi'> ]
+    <sym> :my $*MULTINESS := 'multi';
+    <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed multi'> ]
 }
 token multi_declarator:sym<proto> {
-    :my $*MULTINESS := 'proto';
-    <sym> <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed proto'> ]
+    <sym> :my $*MULTINESS := 'proto';
+    <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed proto'> ]
 }
 token multi_declarator:sym<only> {
-    :my $*MULTINESS := 'only';
-    <sym> <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed only'> ]
+    <sym> :my $*MULTINESS := 'only';
+    <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed only'> ]
 }
 token multi_declarator:sym<null> {
     :my $*MULTINESS := '';
@@ -885,8 +885,8 @@ token type_declarator:sym<enum> {
 }
 
 token type_declarator:sym<subset> {
-    :my $*IN_DECL := 'subset';
-    <sym> :s
+    <sym> :my $*IN_DECL := 'subset';
+    :s
     [
         [
             [ <longname> { $/.CURSOR.add_name($<longname>[0].Str); } ]?

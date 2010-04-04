@@ -11,6 +11,14 @@ augment class Mu {
     multi method perl {
         self.WHAT.substr(0, -2) ~ '.new()';
     }
+    
+    method print() {
+        print(self);
+    }
+    
+    method say() {
+        say(self);
+    }
 
     method Capture() {
         my %attrs;

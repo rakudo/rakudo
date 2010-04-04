@@ -1,4 +1,5 @@
 our sub eval(Str $code) {
+    my $*IN_EVAL = 1;
     Q:PIR {
         .local pmc interp, caller, code, pbc, result, exception, parrotex
         interp = getinterp

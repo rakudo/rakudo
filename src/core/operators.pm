@@ -480,8 +480,8 @@ our multi sub infix:<X>($a, $b) { &infix:<X>($a.list, $b.list) }
 # to define it, because the normal || is short-circuit and special cased by
 # the grammar. Same goes for 'or'
 
-multi sub infix:<||>(Mu $a, Mu $b) { $a || $b }
-multi sub infix:<or>(Mu $a, Mu $b) { $a or $b }
+our multi sub infix:<||>(Mu $a, Mu $b) { $a || $b }
+our multi sub infix:<or>(Mu $a, Mu $b) { $a or $b }
 
 # Eliminate use of this one, but keep the pir around for
 # the moment, as it may come in handy elsewhere.
@@ -494,18 +494,18 @@ multi sub infix:<or>(Mu $a, Mu $b) { $a or $b }
 # I think.  But this is a quick fix to get some basic functionality
 # working.
 
-multi sub infix:<+>(Whatever, $rhs) {
+our multi sub infix:<+>(Whatever, $rhs) {
     -> $a { $a + $rhs; };
 }
 
-multi sub infix:<+>($lhs, Whatever) {
+our multi sub infix:<+>($lhs, Whatever) {
     -> $a { $lhs + $a; };
 }
 
-multi sub infix:<+>(Whatever, Whatever) {
+our multi sub infix:<+>(Whatever, Whatever) {
     -> $a, $b { $a + $b; };
 }
 
-multi sub infix:<->(Whatever, $rhs) {
+our multi sub infix:<->(Whatever, $rhs) {
     -> $a { $a - $rhs; };
 }

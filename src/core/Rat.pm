@@ -2,7 +2,7 @@ class Rat does Real {
     has $.numerator;
     has $.denominator;
 
-    sub gcd(Int $a is copy, Int $b is copy) {
+    our sub gcd(Int $a is copy, Int $b is copy) {
         $a = -$a if ($a < 0);
         $b = -$b if ($b < 0);
         while $a > 0 && $b > 0 {

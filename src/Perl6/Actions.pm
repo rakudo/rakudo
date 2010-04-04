@@ -51,6 +51,14 @@ method comp_unit($/, $key?) {
     # Create the block for the mainline code.
     my $mainline := @BLOCK.shift;
     $mainline.push($<statementlist>.ast);
+    
+    # If it's the setting, just need to run the mainline.
+    if $*SETTING_MODE {
+        $mainline.hll($?RAKUDO_HLL);
+        $mainline.pirflags(':init :load');
+        make $mainline;
+        return 1;
+    }
 
     # Create a block for the entire compilation unit.
     our $?RAKUDO_HLL;
@@ -417,6 +425,9 @@ method statement_control:sym<use>($/) {
         elsif ~$<module_name> eq 'MONKEY_TYPING' {
             $*MONKEY_TYPING := 1;
         }
+        elsif ~$<module_name> eq 'SETTING_MODE' {
+            $*SETTING_MODE := 1;
+        }
         else {
             need($<module_name>);
             import($/);
@@ -579,6 +590,25 @@ method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
 method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0, ''); }
+
+method term:sym<YOU_ARE_HERE>($/) {
+    my $past := PAST::Block.new(
+        :name('!YOU_ARE_HERE'),
+        PAST::Var.new( :name('mainline'), :scope('parameter') ),
+        PAST::Op.new( :pasttype('callmethod'), :name('set_outer'),
+            PAST::Var.new( :name('mainline'), :scope('lexical') ),
+            PAST::Var.new( :scope('keyed'), PAST::Op.new( :pirop('getinterp P') ), 'sub' )
+        ),
+        PAST::Op.new( :pasttype('call'), PAST::Var.new( :name('mainline'), :scope('lexical') ) )
+    );
+    @BLOCK[0][0].push(PAST::Var.new(
+        :name('!YOU_ARE_HERE'), :isdecl(1), :viviself($past), :scope('lexical')
+    ));
+    make PAST::Op.new( :pasttype('call'),
+        PAST::Var.new( :name('!YOU_ARE_HERE'), :scope('lexical') ),
+        PAST::Block.new( )
+    );
+}
 
 method name($/) { }
 
@@ -2586,7 +2616,7 @@ sub emit_routine_traits($routine, @trait_list, $type,  $sig_setup_block) {
     $routine.loadinit.push(PAST::Op.new(
         :pasttype('bind'),
         PAST::Var.new( :name('trait_subject'), :scope('register'), :isdecl(1) ),
-        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, 0,  $sig_setup_block)
+        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, $*MULTINESS eq 'multi',  $sig_setup_block)
     ));
     for @trait_list {
         my $ast := $_.ast;

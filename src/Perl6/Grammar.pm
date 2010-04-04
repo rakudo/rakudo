@@ -241,6 +241,7 @@ token comp_unit {
     :my $*IN_DECL;                             # what declaration we're in
     :my $*IMPLICIT;                            # whether we allow an implicit param
     :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
+    :my $*SETTING_MODE := 0;                   # are we compiling the SETTING
     :my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
     :my $*SCOPE := '';                         # which scope declarator we're under
     :my $*MULTINESS := '';                     # which multi declarator we're under
@@ -920,6 +921,8 @@ token trait_mod:sym<handles> { <sym>:s <term> }
 
 proto token term { <...> }
 
+token term:sym<YOU_ARE_HERE> { <sym> <.nofun> }
+
 token term:sym<self> { <sym> <.nofun> }
 
 token term:sym<Nil>  { <sym> <.nofun> }
@@ -1170,6 +1173,7 @@ INIT {
 }
 
 token termish {
+    :my $*SCOPE := "";
     <prefixish>*
     <term>
     [

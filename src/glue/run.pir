@@ -32,9 +32,6 @@ of the compilation unit.
     $P0 = info
     set_hll_global ['PROCESS'], '$EXECUTABLE_NAME', $P0
 
-
-
-
     # Ignore the args when executed as a library (not main program)
     unless args goto unit_start_0
 
@@ -66,6 +63,15 @@ of the compilation unit.
 
     # INIT time
     '!fire_phasers'('INIT')
+    
+    # Give it to the setting installer, so we run it within the lexical
+    # scope of the current setting. Don't if we're in eval, though.
+    $P0 = find_dynamic_lex '$*IN_EVAL'
+    if null $P0 goto in_setting
+    unless $P0 goto in_setting
     $P0 = mainline()
+    .return ($P0)
+  in_setting:
+    $P0 = '!YOU_ARE_HERE'(mainline)
     .return ($P0)
 .end

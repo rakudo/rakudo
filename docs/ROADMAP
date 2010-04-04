@@ -25,7 +25,6 @@ Really important items
 1 **    complete lazy lists in Seq and Array (colomon, bkeeler, jnthn, pmichaud, others)
 1 *     array/hash vivification (masak, jnthn, pmichaud)
 1 ***   REPL remembers the variable from the last line (D, jnthn)
-1 **    item assignment (done, needs tests to verify)
 1 *     lexical variables in regexes (B, bkeeler, masak, jnthn)
 1 **    operator overloading -- infix:, prefix:, postfix: (almost there, problems with pre-comp)
 1 **    lexical classes and roles (jnthn)
@@ -114,3 +113,4 @@ Completed ROADMAP items:
   - lazy gather/take (done)
   - basic s/// (done)
   - protoregexes in grammars (done)
+  - item assignment (done)

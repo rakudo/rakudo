@@ -173,227 +173,227 @@ augment class Any {
     }
 }
 
-our proto sub abs($x) { $x.abs }
-our multi sub prefix:<abs>($x) { $x.abs }
-our proto sub sign($x) { $x.sign }
-our proto sub exp($exponent) { $exponent.exp }
-our proto sub log($x, $base = e) { $x.log($base) }
-our proto sub log10($x) { $x.log10 }
-our proto sub cis($angle) { $angle.cis; }
-our proto sub unpolar($mag, $angle) { $mag.unpolar($angle); }
+proto sub abs($x) { $x.abs }
+multi sub prefix:<abs>($x) { $x.abs }
+proto sub sign($x) { $x.sign }
+proto sub exp($exponent) { $exponent.exp }
+proto sub log($x, $base = e) { $x.log($base) }
+proto sub log10($x) { $x.log10 }
+proto sub cis($angle) { $angle.cis; }
+proto sub unpolar($mag, $angle) { $mag.unpolar($angle); }
 
 # jnthn says that we should have both the multi sub declaration and the proto.
 
-our multi sub sin($x, $base = Radians) {
+multi sub sin($x, $base = Radians) {
     $x.sin($base)
 }
 
-our proto sin($x, $base = Radians) {
+proto sin($x, $base = Radians) {
     sin($x, $base)
 }
 
-our multi sub asin($x, $base = Radians) {
+multi sub asin($x, $base = Radians) {
     $x.asin($base)
 }
 
-our proto asin($x, $base = Radians) {
+proto asin($x, $base = Radians) {
     asin($x, $base)
 }
 
-our multi sub cos($x, $base = Radians) {
+multi sub cos($x, $base = Radians) {
     $x.cos($base)
 }
 
-our proto cos($x, $base = Radians) {
+proto cos($x, $base = Radians) {
     cos($x, $base)
 }
 
-our multi sub acos($x, $base = Radians) {
+multi sub acos($x, $base = Radians) {
     $x.acos($base)
 }
 
-our proto acos($x, $base = Radians) {
+proto acos($x, $base = Radians) {
     acos($x, $base)
 }
 
-our multi sub tan($x, $base = Radians) {
+multi sub tan($x, $base = Radians) {
     $x.tan($base)
 }
 
-our proto tan($x, $base = Radians) {
+proto tan($x, $base = Radians) {
     tan($x, $base)
 }
 
-our multi sub atan($x, $base = Radians) {
+multi sub atan($x, $base = Radians) {
     $x.atan($base)
 }
 
-our proto atan($x, $base = Radians) {
+proto atan($x, $base = Radians) {
     atan($x, $base)
 }
 
-our multi sub sec($x, $base = Radians) {
+multi sub sec($x, $base = Radians) {
     $x.sec($base)
 }
 
-our proto sec($x, $base = Radians) {
+proto sec($x, $base = Radians) {
     sec($x, $base)
 }
 
-our multi sub asec($x, $base = Radians) {
+multi sub asec($x, $base = Radians) {
     $x.asec($base)
 }
 
-our proto asec($x, $base = Radians) {
+proto asec($x, $base = Radians) {
     asec($x, $base)
 }
 
-our multi sub cosec($x, $base = Radians) {
+multi sub cosec($x, $base = Radians) {
     $x.cosec($base)
 }
 
-our proto cosec($x, $base = Radians) {
+proto cosec($x, $base = Radians) {
     cosec($x, $base)
 }
 
-our multi sub acosec($x, $base = Radians) {
+multi sub acosec($x, $base = Radians) {
     $x.acosec($base)
 }
 
-our proto acosec($x, $base = Radians) {
+proto acosec($x, $base = Radians) {
     acosec($x, $base)
 }
 
-our multi sub cotan($x, $base = Radians) {
+multi sub cotan($x, $base = Radians) {
     $x.cotan($base)
 }
 
-our proto cotan($x, $base = Radians) {
+proto cotan($x, $base = Radians) {
     cotan($x, $base)
 }
 
-our multi sub acotan($x, $base = Radians) {
+multi sub acotan($x, $base = Radians) {
     $x.acotan($base)
 }
 
-our proto acotan($x, $base = Radians) {
+proto acotan($x, $base = Radians) {
     acotan($x, $base)
 }
 
-our multi sub sinh($x, $base = Radians) {
+multi sub sinh($x, $base = Radians) {
     $x.sinh($base)
 }
 
-our proto sinh($x, $base = Radians) {
+proto sinh($x, $base = Radians) {
     sinh($x, $base)
 }
 
-our multi sub asinh($x, $base = Radians) {
+multi sub asinh($x, $base = Radians) {
     $x.asinh($base)
 }
 
-our proto asinh($x, $base = Radians) {
+proto asinh($x, $base = Radians) {
     asinh($x, $base)
 }
 
-our multi sub cosh($x, $base = Radians) {
+multi sub cosh($x, $base = Radians) {
     $x.cosh($base)
 }
 
-our proto cosh($x, $base = Radians) {
+proto cosh($x, $base = Radians) {
     cosh($x, $base)
 }
 
-our multi sub acosh($x, $base = Radians) {
+multi sub acosh($x, $base = Radians) {
     $x.acosh($base)
 }
 
-our proto acosh($x, $base = Radians) {
+proto acosh($x, $base = Radians) {
     acosh($x, $base)
 }
 
-our multi sub tanh($x, $base = Radians) {
+multi sub tanh($x, $base = Radians) {
     $x.tanh($base)
 }
 
-our proto tanh($x, $base = Radians) {
+proto tanh($x, $base = Radians) {
     tanh($x, $base)
 }
 
-our multi sub atanh($x, $base = Radians) {
+multi sub atanh($x, $base = Radians) {
     $x.atanh($base)
 }
 
-our proto atanh($x, $base = Radians) {
+proto atanh($x, $base = Radians) {
     atanh($x, $base)
 }
 
-our multi sub sech($x, $base = Radians) {
+multi sub sech($x, $base = Radians) {
     $x.sech($base)
 }
 
-our proto sech($x, $base = Radians) {
+proto sech($x, $base = Radians) {
     sech($x, $base)
 }
 
-our multi sub asech($x, $base = Radians) {
+multi sub asech($x, $base = Radians) {
     $x.asech($base)
 }
 
-our proto asech($x, $base = Radians) {
+proto asech($x, $base = Radians) {
     asech($x, $base)
 }
 
-our multi sub cosech($x, $base = Radians) {
+multi sub cosech($x, $base = Radians) {
     $x.cosech($base)
 }
 
-our proto cosech($x, $base = Radians) {
+proto cosech($x, $base = Radians) {
     cosech($x, $base)
 }
 
-our multi sub acosech($x, $base = Radians) {
+multi sub acosech($x, $base = Radians) {
     $x.acosech($base)
 }
 
-our proto acosech($x, $base = Radians) {
+proto acosech($x, $base = Radians) {
     acosech($x, $base)
 }
 
-our multi sub cotanh($x, $base = Radians) {
+multi sub cotanh($x, $base = Radians) {
     $x.cotanh($base)
 }
 
-our proto cotanh($x, $base = Radians) {
+proto cotanh($x, $base = Radians) {
     cotanh($x, $base)
 }
 
-our multi sub acotanh($x, $base = Radians) {
+multi sub acotanh($x, $base = Radians) {
     $x.acotanh($base)
 }
 
-our proto acotanh($x, $base = Radians) {
+proto acotanh($x, $base = Radians) {
     acotanh($x, $base)
 }
 
-our multi sub atan2($y, $x = 1, $base = Radians) {
+multi sub atan2($y, $x = 1, $base = Radians) {
     $y.atan2($x, $base)
 }
 
-our proto atan2($y, $x = 1, $base = Radians) {
+proto atan2($y, $x = 1, $base = Radians) {
     atan2($y, $x, $base)
 }
 
-our Num sub rand (*@args) {
+my Num sub rand (*@args) {
     die "too many arguments passed - 0 params expected" if ?@args;
     1.rand
 }
 
-our multi sub sqrt(Any $x) {
+multi sub sqrt(Any $x) {
     $x.Num.sqrt
 }
 
-our multi sub roots($x, $n) {
+multi sub roots($x, $n) {
     $x.Complex.roots($n)
 }
 
@@ -411,11 +411,11 @@ our multi sub infix:«<=>»($a, $b) {
     +$a cmp +$b
 }
 
-our proto chr($graph) {
+proto chr($graph) {
     $graph.chr;
 }
 
-our sub srand(Int $seed = time) {
+sub srand(Int $seed = time) {
     pir::srand__0I($seed);
 }
 

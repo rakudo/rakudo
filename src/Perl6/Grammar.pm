@@ -246,6 +246,7 @@ token comp_unit {
     :my $*MULTINESS := '';                     # which multi declarator we're under
     :my $*QSIGIL := '';                        # sigil of current interpolation
     :my $*TYPENAME := '';
+    {*} #= open
     <.newpad>
     <.outerlex>
     <.finishpad>

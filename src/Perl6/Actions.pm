@@ -9,7 +9,6 @@ INIT {
     # initialize @BLOCK and @PACKAGE
     our @BLOCK := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
     our @PACKAGE := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
-    @PACKAGE.unshift(Perl6::Compiler::Module.new());
     our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
     our %BEGINDONE := Q:PIR { %r = root_new ['parrot';'Hash'] };
 
@@ -42,7 +41,13 @@ method deflongname($/) {
          !! ~$<name>;
 }
 
-method comp_unit($/) {
+method comp_unit($/, $key?) {
+    # If this is the start of the unit, add an outer module.
+    if $key eq 'open' {
+        @PACKAGE.unshift(Perl6::Compiler::Module.new());
+        return 1;
+    }
+    
     # Create the block for the mainline code.
     my $mainline := @BLOCK.shift;
     $mainline.push($<statementlist>.ast);
@@ -87,9 +92,8 @@ method comp_unit($/) {
         )
     );
 
-    # Make sure we have a clean @PACKAGE for next time.
+    # Remove the outer module package.
     @PACKAGE.shift;
-    @PACKAGE.unshift(Perl6::Compiler::Module.new());
 
     make $unit;
 }

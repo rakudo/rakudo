@@ -89,6 +89,15 @@ The number of positional elements in the Capture.
 .end
 
 
+=item Capture
+
+=cut
+
+.sub 'Capture' :method
+    .return (self)
+.end
+
+
 =item hash
 
 =cut

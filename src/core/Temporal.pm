@@ -16,7 +16,7 @@ class DateTime {
     has $.second      = 0;
     has $.nanosecond  = 0;
 
-    has $.time_zone   = '+00';
+    has $.time_zone   = '+0000';
 
     has DateTime::Formatter $!formatter = DefaultFormatter.new;
 
@@ -49,6 +49,19 @@ class DateTime {
         self.new(:$year, :$month, :$day,
                  :$hour, :$minute, :$second, :$nanosecond,
                  :$timezone, :$formatter);
+    }
+
+    multi method to_epoch {
+        my ( $a, $y, $m, $jd ); # algorithm from Claus Tøndering
+        $jd = $.day + floor((153 * $m + 2) / 5) + 365 * $y
+            + floor( $y / 4 ) - floor( $y / 100 ) + floor( $y / 400 ) - 32045;
+        $a = (14 - $.month) div 12;
+        $y = $.year + 4800 - $a;
+        $m = $.month + 12 * $a - 3;
+        $jd = $.day + (153 * $m + 2) div 5 + 365 * $y
+            + $y div 4 - $y div 100 + $y div 400 - 32045;
+        return ($jd - 2440588) * 24 * 60 * 60
+               + ($.hour*60 + $.minute)*60 + $.second + $.nanosecond;
     }
 
     multi method now() {

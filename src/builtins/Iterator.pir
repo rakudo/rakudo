@@ -88,6 +88,14 @@ continue until memory is exhausted.
     .tailcall $P0.'postcircumfix:<[ ]>'(args :flat, adverbs :flat :named)
 .end
 
+.namespace ['Iterator']
+.sub 'Bool' :method :vtable('get_bool')
+    .local pmc item
+    item = self.'get'()
+    $I0 = isa item, ['EMPTY']
+    .tailcall '&prefix:<!>'($I0)
+.end
+
 =back
 
 =cut

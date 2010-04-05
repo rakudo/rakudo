@@ -45,11 +45,12 @@ augment class Signature {
 
                 # Slurpiness, namedness, then the name.
                 if $param.slurpy { take '*' }
-                for @($param.named_names) -> $name {
+                my @names = @($param.named_names);
+                for @names -> $name {
                     take ':' ~ $name ~ '(';
                 }
                 take $name;
-                take ')' x $param.named_names.elems;
+                take ')' x +@names;
 
                 # Optionality.
                 if $param.optional && !$param.named && !$param.default   { take '?' }
@@ -59,6 +60,11 @@ augment class Signature {
                 my $cons_perl = $param.constraints.perl;
                 if $cons_perl ne 'Bool::True' {
                     take ' where ' ~ $cons_perl;
+                }
+                
+                # Any sub-signature?
+                if $param.signature {
+                    take ' ' ~ substr($param.signature.perl, 1);
                 }
 
                 # Default.

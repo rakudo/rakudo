@@ -1509,6 +1509,7 @@ method param_var($/) {
 method named_param($/) {
     if $<name>               { $*PARAMETER.names.push(~$<name>); }
     elsif $<param_var><name> { $*PARAMETER.names.push(~$<param_var><name>[0]); }
+    else                     { $*PARAMETER.names.push(''); }
 }
 
 method type_constraint($/) {

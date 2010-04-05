@@ -53,6 +53,17 @@ of the compilation unit.
     $P2 = new ['Array']
     $P2.'!STORE'($P1)
     set_hll_global '@ARGS', $P2
+
+    ##  set up %*VM
+    load_bytecode 'config.pbc'
+    .local pmc vm, interp, config
+    vm = new ['Hash']
+    interp = getinterp
+    config = interp[.IGLOBALS_CONFIG_HASH]
+    config = new ['Perl6Scalar'], config
+    vm['config'] = config
+    set_hll_global ['PROCESS'], "%VM", vm
+
   unit_start_0:
 
     # Turn the env PMC into %*ENV (just read-only so far)

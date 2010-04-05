@@ -366,7 +366,21 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         result = Rakudo_binding_bind_signature(interp, lexpad, sig_info->sub_signature,
                 capture, no_nom_type_check, error);
         if (result != BIND_RESULT_OK)
+        {
+            if (error) {
+                /* Note in the error message that we're in a sub-signature. */
+                *error = Parrot_str_append(interp, *error,
+                        string_from_literal(interp, " in sub-signature"));
+                
+                /* Have we a variable name? */
+                if (sig_info->variable_name) {
+                    *error = Parrot_str_append(interp, *error,
+                            string_from_literal(interp, " of parameter "));
+                    *error = Parrot_str_append(interp, *error, sig_info->variable_name);
+                }
+            }
             return result;
+        }
     }
 
     /* Binding of this parameter was thus successful - we're done. */

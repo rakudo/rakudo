@@ -590,6 +590,7 @@ method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
 method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0, ''); }
+method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
 
 method term:sym<YOU_ARE_HERE>($/) {
     my $past := PAST::Block.new(
@@ -1409,6 +1410,15 @@ method capture($/) {
 }
 
 method multisig($/) {
+    make $<signature>.ast;
+}
+
+method sigterm($/) {
+    make $<fakesignature>.ast.ast;
+}
+
+method fakesignature($/) {
+    @BLOCK.shift;
     make $<signature>.ast;
 }
 

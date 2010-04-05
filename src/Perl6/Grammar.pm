@@ -481,6 +481,7 @@ token term:sym<regex_declarator>   { <regex_declarator> }
 token term:sym<statement_prefix>   { <statement_prefix> }
 token term:sym<*>                  { <sym> }
 token term:sym<lambda>             { <?lambda> <pblock> }
+token term:sym<sigterm>            { <sigterm> }
 
 token term:sym<undef> {
     <sym> >> {}
@@ -739,6 +740,15 @@ rule param_sep {
 # XXX Not really implemented yet.
 rule multisig {
     :my $*SCOPE := 'my';
+    <signature>
+}
+
+token sigterm {
+    ':(' ~ ')' <fakesignature>
+}
+
+token fakesignature {
+    <.newpad>
     <signature>
 }
 

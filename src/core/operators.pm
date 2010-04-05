@@ -224,7 +224,7 @@ our multi infix:<xx>(Mu \$item, $n) {
 our multi prefix:<|>(@a) { @a.Capture }
 our multi prefix:<|>(%h) { %h.Capture }
 our multi prefix:<|>(Capture $c) { $c }
-our multi prefix:<|>(Mu $fail) { die 'Cannot use prefix:<|> with a ' ~ $fail.WHAT; }
+our multi prefix:<|>(Mu $anything) { Capture.new($anything) }
 
 our multi infix:<:=>(Mu $a, Mu $b) {
     die ":= binding of variables not yet implemented";

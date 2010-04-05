@@ -1,4 +1,30 @@
 augment class Signature {
+    method ACCEPTS(Signature) {
+        die("Sorry, smart-matching a Signature against a Signature is not yet implemented.");
+    }
+    
+    method ACCEPTS(Callable) {
+        die("Sorry, smart-matching a Callable against a Signature is not yet implemented.");
+    }
+    
+    method ACCEPTS(Capture $c) {
+        my $result = Bool::False;
+        try {
+            self!BIND($c);
+            $result = Bool::True;
+        }
+        $result
+    }
+    
+    method ACCEPTS($any) {
+        my $result = Bool::False;
+        try {
+            self!BIND((|$any).Capture);
+            $result = Bool::True;
+        }
+        $result
+    }
+
     method perl() {
         my @parts = gather {
             take ':(';

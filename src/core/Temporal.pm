@@ -98,6 +98,26 @@ class DateTime {
         self.now().truncate('day');
     }
 
+    multi method day-of-week { # returns DayOfWeek {
+        my ( $a, $y, $m, $jd ); # algorithm from Claus Tøndering
+        $a = (14 - $.month) div 12;
+        $y = $.year + 4800 - $a;
+        $m = $.month + 12 * $a - 3;
+        $jd = $.day + (153 * $m + 2) div 5 + 365 * $y + $y div 4
+              - $y div 100 +$y div 400 - 32045;
+        return ($jd + 1) % 7 + 1;
+    }
+
+    multi method month-name {
+        return <January February March April May June July August
+                September October November December>[$.month-1];
+    }
+
+    multi method day-name {
+        return <Sunday Monday Tuesday Wednesday Thursday Friday
+                Saturday>[self.day-of-week-1];
+    }
+
     method set(:$year, :$month, :$day,
                :$hour, :$minute, :$second, :$nanosecond,
                :$time_zone, :$formatter) {
@@ -132,3 +152,20 @@ class DateTime {
     method set_time_zone($time_zone)   { self.set(:$time_zone) }
     method set_formatter($formatter)   { self.set(:$formatter) }
 }
+
+=begin pod
+ 
+=head1 SEE ALSO
+Perl 6 spec <S32-Temporal|http://perlcabal.org/syn/S32/Temporal.html>.
+Perl 5 perldoc L<doc:DateTime> and L<doc:Time::Local>.
+ 
+The best yet seen explanation of calendars, by Claus Tøndering
+L<Calendar FAQ|http://www.tondering.dk/claus/calendar.html>.
+Similar algorithms at L<http://www.hermetic.ch/cal_stud/jdn.htm>
+and L<http://www.merlyn.demon.co.uk/daycount.htm>.
+ 
+<ISO 8601|http://en.wikipedia.org/wiki/ISO_8601>
+<Time zones|http://en.wikipedia.org/wiki/List_of_time_zones>
+ 
+=end pod
+

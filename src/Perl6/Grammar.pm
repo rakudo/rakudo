@@ -1577,6 +1577,15 @@ token prefix:sym<-->  { <sym>  <O('%autoincrement')> }
 token postfix:sym<++> { <sym>  <O('%autoincrement')> }
 token postfix:sym<--> { <sym>  <O('%autoincrement')> }
 
+# TODO: report the correct bracket in error message
+token postfix:sym«->» {
+    <sym>
+    [
+    |  ['[' | '{' | '(' ] <.obs('->(), ->{} or ->[] as postfix dereferencer', '.(), .[] or .{} to deref, or whitespace to delimit a pointy block')>
+    | <.obs('-> as postfix', 'either . to call a method, or whitespace to delimit a pointy block')>
+    ]
+}
+
 token infix:sym<**>   { <sym>  <O('%exponentiation')> }
 
 token prefix:sym<+>   { <sym>  <O('%symbolic_unary, :pirop<set N*>')> }

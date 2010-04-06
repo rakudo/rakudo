@@ -79,10 +79,6 @@ augment class Num does Real {
         $.log / $base.log;
     }
 
-    multi method log10() {
-        pir::log10__Nn(self);
-    }
-
     multi method perl() {
         ~self;
     }

@@ -1,3 +1,5 @@
 role Numeric {
-    # no methods yet
+    method log10(Numeric $x:) {
+        self.log(10);
+    }
 }

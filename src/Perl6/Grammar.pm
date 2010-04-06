@@ -524,6 +524,196 @@ token colonpair {
     ]
 }
 
+proto token special_variable { <...> }
+
+token special_variable:sym<$!{ }> {
+    '$!{' .*? '}'
+    <.obs('${ ... } or %! variable', 'smart match against $!')>
+}
+
+token special_variable:sym<$~> {
+    <sym> <?before \s | ',' | '=' <terminator> >
+    <.obs('$~ variable', 'Form module')>
+}
+
+token special_variable:sym<$`> {
+    <sym>  <?before \s | ',' | <terminator> >
+    <.obs('$` variable', 'explicit pattern before <(')>
+}
+
+token special_variable:sym<$@> {
+    <sym> <?before \W>
+    <.obs('$@ variable as eval error', '$!')>
+}
+
+# TODO: use actual variable in error message
+token special_variable:sym<$#> {
+    <sym>
+    [
+    || \w+ <.obs('$#variable', '@variable.end')>
+    || <.obs('$# variable', '.fmt')>
+    ]
+}
+
+token special_variable:sym<$$> {
+    <sym> <!alpha> <?before \s | ',' | <terminator> >
+    <.obs('$$ variable', '$*PID')>
+}
+token special_variable:sym<$%> {
+    <sym> <!before \w> <!sigil>
+    <.obs('$% variable', 'Form module')>
+}
+
+# TODO: $^X and other "caret" variables
+
+token special_variable:sym<$^> {
+    <sym> <?before \s | ',' | '=' | <terminator> >
+    <.obs('$^ variable', 'Form module')>
+}
+
+token special_variable:sym<$&> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('$& variable', '$/ or $()')>
+}
+
+token special_variable:sym<$*> {
+    <sym> <?before \s | ',' | '=' | <terminator> >
+    <.obs('$* variable', '^^ and $$')>
+}
+
+token special_variable:sym<$)> {
+    <sym> <?{ $*GOAL ne ')' }> <?before \s | ',' | <terminator> >
+    <.obs('$) variable', '$*EGID')>
+}
+
+token special_variable:sym<$-> {
+    <sym> <?before \s | ',' | '=' | <terminator> >
+    <.obs('$- variable', 'Form module')>
+}
+
+token special_variable:sym<$=> {
+    <sym> <?before \s | ',' | '=' | <terminator> >
+    <.obs('$= variable', 'Form module')>
+}
+
+token special_variable:sym<@+> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('@+ variable', '.to method')>
+}
+
+token special_variable:sym<%+> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('%+ variable', '.to method')>
+}
+
+token special_variable:sym<$+[ ]> {
+    '$+['
+    <.obs('@+ variable', '.to method')>
+}
+
+token special_variable:sym<@+[ ]> {
+    '@+['
+    <.obs('@+ variable', '.to method')>
+}
+
+token special_variable:sym<@+{ }> {
+    '@+{'
+    <.obs('%+ variable', '.to method')>
+}
+
+token special_variable:sym<@-> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('@- variable', '.from method')>
+}
+
+token special_variable:sym<%-> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('%- variable', '.from method')>
+}
+
+token special_variable:sym<$-[ ]> {
+    '$-['
+    <.obs('@- variable', '.from method')>
+}
+
+token special_variable:sym<@-[ ]> {
+    '@-['
+    <.obs('@- variable', '.from method')>
+}
+
+token special_variable:sym<%-{ }> {
+    '@-{'
+    <.obs('%- variable', '.from method')>
+}
+
+token special_variable:sym<$+> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('$+ variable', 'Form module')>
+}
+
+token special_variable:sym<$[> {
+    <sym> <?before \s | ',' | '=' | <terminator> >
+    <.obs('$[ variable', 'user-defined array indices')>
+}
+
+token special_variable:sym<$]> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('$] variable', '$*PERL_VERSION')>
+}
+
+token special_variable:sym<$\\> {
+    <sym> <?before \s | ',' | '=' | <terminator> >
+    <.obs('$\\ variable', "the filehandle's :ors attribute")>
+}
+
+token special_variable:sym<$|> {
+    <sym> <?before \s | ',' | '=' | <terminator> >
+    <.obs('$| variable', ':autoflush on open')>
+}
+
+token special_variable:sym<$:> {
+    <sym> <?before <[\x20\t\n\],=)}]> >
+    <.obs('$: variable', 'Form module')>
+}
+
+token special_variable:sym<$;> {
+    <sym> <?before \s | ',' | '=' | <terminator> >
+    <.obs('$; variable', 'real multidimensional hashes')>
+}
+
+token special_variable:sym<$'> { #'
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('$' ~ "'" ~ 'variable', "explicit pattern after )\x3E")>
+}
+
+# TODO: $"
+
+token special_variable:sym<$,> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('$, variable', ".join() method")>
+}
+
+token special_variable:sym['$<'] {
+    <sym> <!before \s* \w+ \s* '>' >
+    <.obs('$< variable', '$*UID')>
+}
+
+token special_variable:sym«\$>» {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('$> variable', '$*EUID')>
+}
+
+token special_variable:sym<$.> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('$. variable', "the filehandle's .line method")>
+}
+
+token special_variable:sym<$?> {
+    <sym> <?before \s | ',' | <terminator> >
+    <.obs('$? variable as child error', '$!')>
+}
+
+
 token desigilname {
     [
 #    | <?before '$' > <variable>
@@ -539,6 +729,7 @@ token variable {
     }> {}
     [
     | <sigil> <twigil>? <desigilname>
+    | <special_variable>
     | <sigil> $<index>=[\d+]
     | <sigil> <?[<[]> <postcircumfix>
     | $<sigil>=['$'] $<desigilname>=[<[/_!]>]

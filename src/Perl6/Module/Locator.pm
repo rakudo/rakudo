@@ -18,13 +18,19 @@ method find_candidates($lookfor, @inc) {
         my $check_path := pir::substr__SSII($path, 0, pir::length__IS($path) - 1);
         if pir::stat__ISI($check_path, 0) && pir::stat__ISI($check_path, 2) {
             my @dir := pir::new__PS('OS').readdir($path);
+            my $candidate := "";
             for @dir {
                 # pir::say("    readdir: $_");
-                if pir::substr__SSII($_, 0, pir::length__IS($file) + 1) eq $file ~ '.' &&
-                   pir::substr__SSII($_, pir::length__IS($_) - 3, 3) eq '.pm' {
-                    @candidates.push("$path$_");
-                    # pir::say("      found: $path$_");
+                if pir::substr__SSII($_, 0, pir::length__IS($file) + 1) eq $file ~ '.' {
+                    if pir::substr__SSII($_, pir::length__IS($_) - 4, 4) eq '.pm6' ||
+                       !$candidate && pir::substr__SSII($_, pir::length__IS($_) - 3, 3) eq '.pm' {
+                        $candidate := "$path$_";
+                    }
                 }
+            }
+            if $candidate {
+                @candidates.push($candidate);
+                # pir::say("      found: $candidate");
             }
         }
     }

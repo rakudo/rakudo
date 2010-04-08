@@ -51,6 +51,12 @@ class IO {
         self.print(@items, "\n");
     }
 
+    multi method getc() {
+        my $c = $!PIO.read(1);
+        fail if $c eq '';
+        $c;
+    }
+
     multi method slurp() {
         $!PIO.readall();
     }
@@ -82,6 +88,8 @@ multi sub prompt($msg) {
 }
 
 multi sub say(Mu *@items) { $*OUT.say(@items); }
+
+sub getc($handle) { $handle.getc(); }
 
 sub open($filename, :$r, :$w, :$a) {
     my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');

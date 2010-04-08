@@ -1,4 +1,4 @@
-class IO {
+class IO is Cool {
     has $!PIO;
     has $!ins;
 

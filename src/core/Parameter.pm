@@ -1,4 +1,4 @@
-class Parameter {
+class Parameter is cool {
 #    multi method new(*%args) {
 #        for <rw ref copy named slurpy optional invocant> -> $n {
 #            # %args{$n}.=true doesn't seem to work here.

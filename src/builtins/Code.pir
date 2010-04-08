@@ -17,7 +17,7 @@ for executable objects.
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     $P0 = get_hll_global 'Callable'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi $!signature $!lazy_sig_init', 'does_role'=>$P0)
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Cool', 'attr'=>'$!do $!multi $!signature $!lazy_sig_init', 'does_role'=>$P0)
     $P1 = new ['Role']
     $P1.'name'('invokable')
     p6meta.'compose_role'(codeproto, $P1)

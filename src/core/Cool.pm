@@ -1,3 +1,3 @@
-class Cool {
+augment class Cool {
 
 }

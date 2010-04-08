@@ -93,6 +93,7 @@ BUILTINS_PIR = \
   src/gen/RoleToInstanceApplier.pir \
   src/metamodel/GrammarHOW.pir \
   src/builtins/Any.pir \
+  src/builtins/Cool.pir \
   src/builtins/Role.pir \
   src/builtins/ConcreteRole.pir \
   src/builtins/Abstraction.pir \

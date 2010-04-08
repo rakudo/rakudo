@@ -167,6 +167,7 @@ CORE_SOURCES = \
   src/cheats/eval.pm \
   src/core/Mu.pm \
   src/core/Bool.pm \
+  src/core/Cool.pm \
   src/core/Parcel.pm \
   src/core/Any-list.pm \
   src/core/Any-num.pm \

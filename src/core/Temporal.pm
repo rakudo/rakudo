@@ -13,8 +13,7 @@ class DateTime {
     has $.day         = 1;
     has $.hour        = 0;
     has $.minute      = 0;
-    has $.second      = 0;
-    has $.nanosecond  = 0;
+    has $.second      = 0.0;
 
     has $.time_zone   = '+0000';
 
@@ -30,10 +29,11 @@ class DateTime {
 
     multi method from_epoch($epoch, :$timezone, :$formatter) {
         my $time = floor($epoch);
-        my $nanosecond = floor(($epoch - $time) * 1e9);
+        my $fracsecond = $epoch - $time;
         my $second  = $time % 60; $time = $time div 60;
         my $minute  = $time % 60; $time = $time div 60;
         my $hour    = $time % 24; $time = $time div 24;
+        $second += $fracsecond;
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
         $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
@@ -47,7 +47,7 @@ class DateTime {
         my $month = $m + 3 - 12 * ($m div 10);
         my $year  = $b * 100 + $d - 4800 + $m div 10;
         self.new(:$year, :$month, :$day,
-                 :$hour, :$minute, :$second, :$nanosecond,
+                 :$hour, :$minute, :$second,
                  :$timezone, :$formatter);
     }
 
@@ -61,7 +61,7 @@ class DateTime {
         $jd = $.day + (153 * $m + 2) div 5 + 365 * $y
             + $y div 4 - $y div 100 + $y div 400 - 32045;
         return ($jd - 2440588) * 24 * 60 * 60
-               + ($.hour*60 + $.minute)*60 + $.second + $.nanosecond;
+               + ($.hour*60 + $.minute)*60 + $.second;
     }
 
     multi method now() {
@@ -90,10 +90,8 @@ class DateTime {
 
     multi method truncate($unit) {
         die 'Unknown truncation unit'
-            if $unit eq none(<nanosecond second minute hour day month>);
+            if $unit eq none(<second minute hour day month>);
         given $unit {
-            when 'nanosecond' {}
-            $!nanosecond = 0;
             when 'second'     {}
             $!second = 0;
             when 'minute'     {}
@@ -132,7 +130,7 @@ class DateTime {
     }
 
     method set(:$year, :$month, :$day,
-               :$hour, :$minute, :$second, :$nanosecond,
+               :$hour, :$minute, :$second,
                :$time_zone, :$formatter) {
         # Do this first so that the other nameds have a chance to
         # override.
@@ -149,7 +147,6 @@ class DateTime {
         $!hour       = $hour       // $!hour;
         $!minute     = $minute     // $!minute;
         $!second     = $second     // $!second;
-        $!nanosecond = $nanosecond // $!nanosecond;
         $!formatter  = $formatter  // $!formatter;
     }
 
@@ -161,7 +158,6 @@ class DateTime {
     method set_hour($hour)             { self.set(:$hour) }
     method set_minute($minute)         { self.set(:$minute) }
     method set_second($second)         { self.set(:$second) }
-    method set_nanosecond($nanosecond) { self.set(:$nanosecond) }
     method set_time_zone($time_zone)   { self.set(:$time_zone) }
     method set_formatter($formatter)   { self.set(:$formatter) }
 }

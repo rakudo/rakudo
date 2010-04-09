@@ -1,4 +1,4 @@
-augment class Any {
+augment class Cool {
 
     our Str multi method join($separator = '') {
         pir::join__SsP($separator, self.list.eager);

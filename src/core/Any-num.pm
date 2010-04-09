@@ -1,4 +1,4 @@
-augment class Any {
+augment class Cool {
     method abs() {
         (+self).abs;
     }

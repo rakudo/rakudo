@@ -47,19 +47,6 @@ augment class Any {
         self.Num.sqrt;
     }
 
-    INIT {
-        our @trig-base-conversions = (1.0, pi / 180.0, pi / 200.0, 2.0 * pi);
-    }
-
-    # Used by the :Trig subs and methods in the Int and Num classes.
-    our multi method !to-radians($base) {
-        self * pir::get_global__Ps('@trig-base-conversions')[$base];
-    }
-
-    our multi method !from-radians($base) {
-        self / pir::get_global__Ps('@trig-base-conversions')[$base];
-    }
-
     multi method log($base = e) {
         $.Num.log($base);
     }

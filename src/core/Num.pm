@@ -88,63 +88,63 @@ augment class Num does Real {
     }
 
     multi method sin($base = Radians) {
-        pir::sin__Nn(self!to-radians($base));
+        pir::sin__Nn(self.to-radians($base));
     }
 
     multi method asin($base = Radians) {
-        pir::asin__Nn(self)!from-radians($base);
+        pir::asin__Nn(self).from-radians($base);
     }
 
     multi method cos($base = Radians) {
-        pir::cos__Nn(self!to-radians($base));
+        pir::cos__Nn(self.to-radians($base));
     }
 
     multi method acos($base = Radians) {
-        pir::acos__Nn(self)!from-radians($base);
+        pir::acos__Nn(self).from-radians($base);
     }
 
     multi method tan($base = Radians) {
-        pir::tan__Nn(self!to-radians($base));
+        pir::tan__Nn(self.to-radians($base));
     }
 
     multi method atan($base = Radians) {
-        pir::atan__Nn(self)!from-radians($base);
+        pir::atan__Nn(self).from-radians($base);
     }
 
     multi method sec($base = Radians) {
-        pir::sec__Nn(self!to-radians($base));
+        pir::sec__Nn(self.to-radians($base));
     }
 
     multi method asec($base = Radians) {
-        pir::asec__Nn(self)!from-radians($base);
+        pir::asec__Nn(self).from-radians($base);
     }
 
     multi method sinh($base = Radians) {
-        pir::sinh__Nn(self!to-radians($base));
+        pir::sinh__Nn(self.to-radians($base));
     }
 
     multi method asinh($base = Radians) {
-        (self + (self * self + 1).sqrt).log!from-radians($base);
+        (self + (self * self + 1).sqrt).log.from-radians($base);
     }
 
     multi method cosh($base = Radians) {
-        pir::cosh__Nn(self!to-radians($base));
+        pir::cosh__Nn(self.to-radians($base));
     }
 
     multi method acosh($base = Radians) {
-        (self + (self * self - 1).sqrt).log!from-radians($base);
+        (self + (self * self - 1).sqrt).log.from-radians($base);
     }
 
     multi method tanh($base = Radians) {
-        pir::tanh__Nn(self!to-radians($base));
+        pir::tanh__Nn(self.to-radians($base));
     }
 
     multi method atanh($base = Radians) {
-        (((1 + self) / (1 - self)).log / 2)!from-radians($base);
+        (((1 + self) / (1 - self)).log / 2).from-radians($base);
     }
 
     multi method sech($base = Radians) {
-        pir::sech__Nn(self!to-radians($base));
+        pir::sech__Nn(self.to-radians($base));
     }
 
     multi method asech($base = Radians) {
@@ -184,7 +184,7 @@ augment class Num does Real {
     }
 
     multi method atan2(Num $x = 1, $base = Radians) {
-        pir::atan__NNn(self, $x)!from-radians($base);
+        pir::atan__NNn(self, $x).from-radians($base);
     }
 
     our ::Complex multi method unpolar($angle) {

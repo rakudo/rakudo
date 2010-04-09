@@ -250,10 +250,6 @@ augment class Cool {
         }
         $! ?? fail( "Insufficient arguments supplied to sprintf") !! $result
     }
-
-    multi method Str() {
-        sprintf '%s<0x%x>', self.WHAT, self.WHERE;
-    }
 }
 
 multi sub ord($string) {

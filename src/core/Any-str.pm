@@ -1,7 +1,4 @@
-augment class Any {
-    method ACCEPTS($topic) {
-        self === $topic
-    }
+augment class Cool {
 
     our Int multi method bytes() is export {
         pir::box__PI(pir::bytelength__IS(self))

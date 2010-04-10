@@ -19,8 +19,12 @@ augment class Any {
         ~(pir::chr__SI(self))
     }
 
+    our ::Complex multi method unpolar($angle) {
+        self.Num.unpolar($angle);
+    }
+
     multi method cis() {
-        1.unpolar(self)
+        self.Num.cis
     }
 
     our Int multi method floor() is export {
@@ -153,10 +157,6 @@ augment class Any {
 
     our Num multi method acotanh($base = Radians) {
         self.Num.acotanh($base);
-    }
-
-    our ::Complex multi method unpolar($angle) {
-        Complex.new(self.Num * $angle.cos("radians"), self.Num * $angle.sin("radians"));
     }
 }
 

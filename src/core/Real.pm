@@ -1,3 +1,5 @@
+class Complex { ... }
+
 role Real does Numeric {
     method Bridge() {
         fail "Bridge must be defined for the Real type " ~ self.WHAT;
@@ -10,6 +12,16 @@ role Real does Numeric {
     method sign {
         self.notdef ?? Mu
                     !! (self ~~ NaN ?? NaN !! self <=> 0);
+    }
+
+    # CHEAT: the .Bridges in unpolar should go away in the long run
+    method unpolar(Real $mag: Real $angle) {
+        Complex.new($mag.Bridge * $angle.Bridge.cos("radians"),
+                    $mag.Bridge * $angle.Bridge.sin("radians"));
+    }
+
+    method cis(Real $angle:) {
+        1.unpolar($angle);
     }
 }
 

@@ -83,6 +83,14 @@ augment class Num does Real {
         ~self;
     }
 
+    method ceiling(Real $x:) {
+        pir::box__PI(pir::ceil__IN($x))
+    }
+
+    method floor(Real $x:) {
+        pir::box__PI(pir::floor__IN($x));
+    }
+
     multi method sqrt() {
         pir::sqrt__Nn(self);
     }

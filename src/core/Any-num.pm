@@ -12,13 +12,26 @@ augment class Any {
     }
 
     our Int multi method ceiling() is export {
-        pir::box__PI(pir::ceil__IN(self))
+        self.Num.ceiling;
+    }
+
+    our Int multi method floor() is export {
+        self.Num.floor;
+    }
+
+    our Int multi method truncate() is export {
+        self.Num.truncate;
+    }
+
+    our Int multi method round() is export {
+        self.Num.round;
     }
 
     our Str multi method chr() {
         ~(pir::chr__SI(self))
     }
 
+    # TODO: Probably should be little or no mention of .Num in Any
     our ::Complex multi method unpolar($angle) {
         self.Num.unpolar($angle);
     }
@@ -27,24 +40,12 @@ augment class Any {
         self.Num.cis
     }
 
-    our Int multi method floor() is export {
-        pir::box__PI(pir::floor__IN(self))
-    }
-
-    our Int multi method truncate() is export {
-        self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
-    }
-
     our Num method rand() {
         pir::box__PN(pir::rand__NN(self))
     }
 
     multi method roots($n) {
         $.Complex.roots($n);
-    }
-
-    our Int multi method round() is export {
-        (self + 0.5).Num.floor;
     }
 
     multi method sqrt() {
@@ -168,6 +169,10 @@ proto sub log($x, $base = e) { $x.log($base) }
 proto sub log10($x) { $x.log10 }
 proto sub cis($angle) { $angle.cis; }
 proto sub unpolar($mag, $angle) { $mag.unpolar($angle); }
+proto sub ceiling($x) { $x.ceiling; }
+proto sub floor($x) { $x.floor; }
+proto sub truncate($x) { $x.truncate; }
+proto sub round($x, $scale = 1) { $x.round($scale); }
 
 # jnthn says that we should have both the multi sub declaration and the proto.
 

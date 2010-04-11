@@ -237,7 +237,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         Rakudo_binding_bind_type_captures(interp, lexpad, sig_info, value);
 
     /* Do a coercion, if one is needed. */
-    if (sig_info->coerce_to) {
+    if (!STRING_IS_NULL(sig_info->coerce_to)) {
         PMC *coerce_meth = VTABLE_find_method(interp, value, sig_info->coerce_to);
         if (!PMC_IS_NULL(coerce_meth)) {
             Parrot_ext_call(interp, coerce_meth, "Pi->P", value, &value);
@@ -265,17 +265,17 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         /* Is it "is rw"? */
         if (sig_info->flags & SIG_ELEM_IS_RW) {
             /* XXX TODO Check if rw flag is set. */
-            if (sig_info->variable_name)
+            if (!STRING_IS_NULL(sig_info->variable_name))
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, value);
         }
         else if (sig_info->flags & SIG_ELEM_IS_PARCEL) {
             /* Just bind the thing as is into the lexpad. */
-            if (sig_info->variable_name)
+            if (!STRING_IS_NULL(sig_info->variable_name))
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, value);
         }
         else if (sig_info->flags & SIG_ELEM_IS_COPY) {
             /* Clone the value appropriately, wrap it into an ObjectRef, and bind it. */
-            if (sig_info->variable_name) {
+            if (!STRING_IS_NULL(sig_info->variable_name)) {
                 PMC *copy, *ref, *store_meth;
                 if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
                     STRING *STORE = string_from_literal(interp, "!STORE");
@@ -301,7 +301,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         }
         else {
             /* Read only. Wrap it into a ObjectRef, mark readonly and bind it. */
-            if (sig_info->variable_name) {
+            if (!STRING_IS_NULL(sig_info->variable_name)) {
                 PMC *ref  = pmc_new_init(interp, or_id, value);
                 if (!(sig_info->flags & (SIG_ELEM_ARRAY_SIGIL | SIG_ELEM_HASH_SIGIL)))
                     VTABLE_setprop(interp, ref, string_from_literal(interp, "scalar"), ref);
@@ -373,7 +373,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                         string_from_literal(interp, " in sub-signature"));
                 
                 /* Have we a variable name? */
-                if (sig_info->variable_name) {
+                if (!STRING_IS_NULL(sig_info->variable_name)) {
                     *error = Parrot_str_append(interp, *error,
                             string_from_literal(interp, " of parameter "));
                     *error = Parrot_str_append(interp, *error, sig_info->variable_name);
@@ -483,7 +483,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 continue;
 
             /* Provided it has a name... */
-            if (elements[i]->variable_name) {
+            if (!STRING_IS_NULL(elements[i]->variable_name)) {
                 /* Strip any sigil, then stick in named to positional array. */
                 STRING *store = elements[i]->variable_name;
                 STRING *sigil = Parrot_str_substr(interp, store, 0, 1, NULL, 0);

@@ -20,9 +20,7 @@ class DateTime {
     has DateTime::Formatter $!formatter; # = DefaultFormatter.new;
 
     multi method new(:$year!, *%_) {
-        self.bless(*, :$year,
-            :formatter( DefaultFormatter.new ),
-        |%_);
+        self.bless(*, :$year, :formatter(DefaultFormatter.new), |%_);
     }
 
     multi method new(Str $format) {
@@ -67,7 +65,11 @@ class DateTime {
     }
 
     multi method now() {
-        self.from_epoch(:epoch(time()), :formatter(DefaultFormatter.new) );
+        self.from_epoch(
+            time(),
+            :timezone('+0000'),
+            :formatter(DefaultFormatter.new)
+        );
     }
 
     multi method ymd($sep = '-') {

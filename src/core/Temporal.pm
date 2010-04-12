@@ -1,33 +1,66 @@
-subset DateTime::Formatter where { .can('format_datetime') };
+use v6;
+
+subset DateTime::Formatter where { .can<fmt-datetime fmt-ymd fmt-hms> };
+subset DateTime::Parser    where { .can<parse-datetime parse-ymd parse-hms> };
 
 # RAKUDO: When we have anonymous classes, we don't need to do it like this
 class DefaultFormatter {
-    method format_datetime($dt) { # should be typed 'DateTime'
+    has $.date-sep is rw = '-';
+    has $.time-sep is rw = ':';
+
+    method fmt-datetime($dt) { # should be typed 'DateTime'
         $dt.iso8601();
+    }
+
+    method fmt-ymd($dt) {
+        $dt.year.fmt('%04d') ~ $.date-sep ~
+        $dt.month.fmt('%02d') ~ $.date-sep ~
+        $dt.day.fmt('%02d');
+    }
+
+    method fmt-hms($dt) {
+        $dt.hour.fmt('%02d') ~ $.time-sep ~
+        $dt.minute.fmt('%02d') ~ $.time-sep ~
+        $dt.second.fmt('%02d');
     }
 }
 
 class DateTime {
     has $.year;
-    has $.month       = 1;
-    has $.day         = 1;
-    has $.hour        = 0;
-    has $.minute      = 0;
-    has $.second      = 0.0;
-
-    has $.time_zone   = '+0000';
+    has $.month     = 1;
+    has $.day       = 1;
+    has $.hour      = 0;
+    has $.minute    = 0;
+    has $.second    = 0.0;
+    has $.time-zone = '+0000';
 
     has DateTime::Formatter $!formatter; # = DefaultFormatter.new;
+                                         # does not seem to work
 
-    multi method new(:$year!, *%_) {
+    multi method new(Int :$year!, *%_) {
         self.bless(*, :$year, :formatter(DefaultFormatter.new), |%_);
     }
 
-    multi method new(Str $format) {
-        die "ISO8601 format constructor not implemented yet";
+    # The parse() method should actually be an MMD variant of new(), but
+    # somehow that did not work :-(  Patches welcome.
+    multi method parse(Str $format) {
+        if $format ~~ /^(\d**4)'-'(\d\d)'-'(\d\d)T(\d\d)':'(\d\d)':'(\d\d)(<[\-\+]>\d**4)$/ {
+            my $year      = ~$0;
+            my $month     = ~$1;
+            my $day       = ~$2;
+            my $hour      = ~$3;
+            my $minute    = ~$4;
+            my $second    = ~$5;
+            my $time-zone = ~$6;
+            self.bless(*, :$year, :$month, :$day, :$hour, :$minute,
+                :$second, :$time-zone, :formatter(DefaultFormatter.new) );
+        }
+        else {
+            die "DateTime.parse expects an ISO8601 string\n";
+        }
     }
 
-    multi method from_epoch($epoch, :$timezone, :$formatter) {
+    multi method from-epoch($epoch, :$timezone, :$formatter=DefaultFormatter.new) {
         my $time = floor($epoch);
         my $fracsecond = $epoch - $time;
         my $second  = $time % 60; $time = $time div 60;
@@ -51,7 +84,7 @@ class DateTime {
                  :$timezone, :$formatter);
     }
 
-    multi method to_epoch {
+    multi method to-epoch {
         my ( $a, $y, $m, $jd ); # algorithm from Claus Tøndering
         $jd = $.day + floor((153 * $m + 2) / 5) + 365 * $y
             + floor( $y / 4 ) - floor( $y / 100 ) + floor( $y / 400 ) - 32045;
@@ -65,27 +98,35 @@ class DateTime {
     }
 
     multi method now() {
-        self.from_epoch(
+        self.from-epoch(
             time(),
             :timezone('+0000'),
             :formatter(DefaultFormatter.new)
         );
     }
 
-    multi method ymd($sep = '-') {
-        $!year ~ $sep ~ ($!month, $!day).fmt('%02d', $sep);
+#   multi method ymd($sep = '-') {
+#       $!year ~ $sep ~ ($!month, $!day).fmt('%02d', $sep);
+#   }
+    multi method ymd() {
+        $!formatter.fmt-ymd(self);
     }
 
-    multi method hms($sep = ':') {
-        ($!hour, $!minute, $!second).fmt('%02d', $sep);
+#   multi method hms($sep = ':') {
+#       ($!hour, $!minute, $!second).fmt('%02d', $sep);
+#   }
+    multi method hms() {
+        $!formatter.fmt-hms(self);
     }
 
     method iso8601() {
-        self.ymd ~ 'T' ~ self.hms ~ $!time_zone;
+        $.year.fmt(  '%04d') ~ '-' ~ $.month.fmt( '%02d') ~ '-' ~
+        $.day.fmt(   '%02d') ~ 'T' ~ $.hour.fmt(  '%02d') ~ ':' ~
+        $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') ~ $.time-zone;
     }
 
     method Str() {
-        $!formatter.format_datetime(self);
+        $!formatter.fmt-datetime(self);
     }
 
     multi method truncate($unit) {
@@ -131,14 +172,14 @@ class DateTime {
 
     method set(:$year, :$month, :$day,
                :$hour, :$minute, :$second,
-               :$time_zone, :$formatter) {
+               :$time-zone, :$formatter) {
         # Do this first so that the other nameds have a chance to
         # override.
-        if defined $time_zone {
+        if defined $time-zone {
             # First attempt. Probably wrong.
-            my $difference = $time_zone - $!time_zone;
+            my $difference = $time-zone - $!time-zone;
             $!hour += $difference;
-            $!time_zone = $time_zone;
+            $!time-zone = $time-zone;
         }
 
         $!year       = $year       // $!year;
@@ -152,14 +193,14 @@ class DateTime {
 
     # RAKUDO: These setters are temporary, until we have Proxy
     #         objects with a STORE method
-    method set_year($year)             { self.set(:$year) }
-    method set_month($month)           { self.set(:$month) }
-    method set_day($day)               { self.set(:$day) }
-    method set_hour($hour)             { self.set(:$hour) }
-    method set_minute($minute)         { self.set(:$minute) }
-    method set_second($second)         { self.set(:$second) }
-    method set_time_zone($time_zone)   { self.set(:$time_zone) }
-    method set_formatter($formatter)   { self.set(:$formatter) }
+    method set-year($year)             { self.set(:$year) }
+    method set-month($month)           { self.set(:$month) }
+    method set-day($day)               { self.set(:$day) }
+    method set-hour($hour)             { self.set(:$hour) }
+    method set-minute($minute)         { self.set(:$minute) }
+    method set-second($second)         { self.set(:$second) }
+    method set-time-zone($time-zone)   { self.set(:$time-zone) }
+    method set-formatter($formatter)   { self.set(:$formatter) }
 }
 
 =begin pod

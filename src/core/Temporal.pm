@@ -17,10 +17,12 @@ class DateTime {
 
     has $.time_zone   = '+0000';
 
-    has DateTime::Formatter $!formatter = DefaultFormatter.new;
+    has DateTime::Formatter $!formatter; # = DefaultFormatter.new;
 
     multi method new(:$year!, *%_) {
-        self.bless(*, :$year, |%_);
+        self.bless(*, :$year,
+            :formatter( DefaultFormatter.new ),
+        |%_);
     }
 
     multi method new(Str $format) {
@@ -65,7 +67,7 @@ class DateTime {
     }
 
     multi method now() {
-        self.from_epoch(time());
+        self.from_epoch(:epoch(time()), :formatter(DefaultFormatter.new) );
     }
 
     multi method ymd($sep = '-') {
@@ -76,12 +78,8 @@ class DateTime {
         ($!hour, $!minute, $!second).fmt('%02d', $sep);
     }
 
-    multi method datetime() {
-        self.ymd ~ 'T' ~ self.hms;
-    }
-
     method iso8601() {
-        self.datetime() ~ $!time_zone;
+        self.ymd ~ 'T' ~ self.hms ~ $!time_zone;
     }
 
     method Str() {

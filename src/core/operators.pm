@@ -387,8 +387,9 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
         my $top = $arity min @lhs.elems;
         for 0..^$top -> $i {
             $j = @lhs[$i];
-            take $j;
-            @args.push($j);
+            my $jj = $j;
+            take $jj;
+            @args.push($jj);
         }
 
         if !$limit.defined || $limit cmp $j != 0 {

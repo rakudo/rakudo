@@ -486,16 +486,16 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
             if (!STRING_IS_NULL(elements[i]->variable_name)) {
                 /* Strip any sigil, then stick in named to positional array. */
                 STRING *store = elements[i]->variable_name;
-                STRING *sigil = Parrot_str_substr(interp, store, 0, 1, NULL, 0);
-                STRING *twigil = Parrot_str_substr(interp, store, 1, 1, NULL, 0);
+                STRING *sigil = Parrot_str_substr(interp, store, 0, 1);
+                STRING *twigil = Parrot_str_substr(interp, store, 1, 1);
                 if (Parrot_str_equal(interp, sigil, string_from_literal(interp, "$")) ||
                         Parrot_str_equal(interp, sigil, string_from_literal(interp, "@")) ||
                         Parrot_str_equal(interp, sigil, string_from_literal(interp, "%")))
                     store = Parrot_str_substr(interp, store, 1,
-                            Parrot_str_byte_length(interp, store), NULL, 0);
+                            Parrot_str_byte_length(interp, store));
                 if (Parrot_str_equal(interp, twigil, string_from_literal(interp, "!")))
                     store = Parrot_str_substr(interp, store, 1,
-                            Parrot_str_byte_length(interp, store), NULL, 0);
+                            Parrot_str_byte_length(interp, store));
                 VTABLE_set_integer_keyed_str(interp, named_to_pos_cache, store, i);
             }
         }

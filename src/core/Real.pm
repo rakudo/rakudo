@@ -5,13 +5,13 @@ role Real does Numeric {
         fail "Bridge must be defined for the Real type " ~ self.WHAT;
     }
 
-    method abs() {
-        self < 0 ?? -self !! self;
+    method abs(Real $x:) {
+        $x < 0 ?? -$x !! $x;
     }
 
-    method sign {
-        self.notdef ?? Mu
-                    !! (self ~~ NaN ?? NaN !! self <=> 0);
+    method sign(Real $x:) {
+        $x.notdef ?? Mu
+                    !! ($x ~~ NaN ?? NaN !! $x <=> 0);
     }
 
     method ceiling(Real $x:) {

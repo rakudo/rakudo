@@ -195,7 +195,7 @@ proto sub join (Str $separator = '', *@values) { @values.join($separator); }
 proto sub reverse(@values) { @values.reverse; }
 multi sub reverse(*@v) { @v.reverse; }
 proto sub end(@array) { @array.end; }
-proto sub grep(Mu $test, @values) { @values.grep($test); }
+proto sub grep(Mu $test, *@values) { @values.grep($test); }
 proto sub first($test, @values) { @values.first($test); }
 proto sub min($by, *@values) { @values.min($by); }
 proto sub max($by, *@values) { @values.max($by); }

@@ -5,6 +5,8 @@ augment class Parcel {
 
     method rotate(Int $n = 1) { self.Seq.rotate($n) }
 
+    multi method sort(&by = &infix:<cmp>) { self.Seq.sort(&by) }
+
     multi method ACCEPTS($x) {
         # smart-matching against Nil
         if self.elems == 0 {

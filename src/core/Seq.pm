@@ -61,17 +61,20 @@ augment class Seq {
         # of indices (from 0 to $list.elems), then use that RPA
         # as a slice into self.
 
+        my $index_PARROT_RPA = pir::new__PS("ResizablePMCArray");
+        pir::push__vPP($index_PARROT_RPA, $_) for ^self.elems;
+
         # If &by.arity < 2, then it represents a block to be applied
         # to the elements to obtain the values for sorting.
         if (&by.?arity // 2) < 2 {
             my $list = self.map(&by).eager;
-            self[(^pir::elements($list)).eager.sort(
+            self[$index_PARROT_RPA.sort(
                 -> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b }
             )];
         }
         else {
             my $list = self.eager;
-            self[(^pir::elements($list)).eager.sort(
+            self[$index_PARROT_RPA.sort(
                 -> $a, $b { &by($list[$a],$list[$b]) || $a <=> $b }
             )];
         }
@@ -86,5 +89,8 @@ augment class Seq {
         self.map({ .fmt($format)}).join($seperator);
     }
 }
+
+multi sub sort (@x, :&by = &infix:<cmp>) { @x.sort(&by) }
+multi sub sort (&by, @x) { @x.sort(&by) }
 
 # vim: ft=perl6

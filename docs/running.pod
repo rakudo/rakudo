@@ -4,7 +4,7 @@ perl6 - Rakudo Perl 6 Compiler
 
 =head1 SYNOPSIS
 
-perl6 [switches] [--] [programfile] [arguments]
+ perl6 [switches] [--] [programfile] [arguments]
 
 =head1 DESCRIPTION
 
@@ -21,6 +21,15 @@ by default also executes the compiled code.
   -v, --version        display version information
 
 Note that only boolean single-letter options may be bundled 
+
+=head1 PARROT OPTIONS
+
+To specify options to the underlying parrot VM, you must explicitly run
+parrot; you cannot specify these options by using the C<perl6> executable.
+
+ parrot [parrot switches] perl6.pbc [switches] [--] [programfile] [arguments]
+
+See C<parrot --help> for a list of valid parrot options.
 
 =head1 AUTHORS
 

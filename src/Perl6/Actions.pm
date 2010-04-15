@@ -2180,13 +2180,15 @@ method postfixish($/) {
 }
 
 method postcircumfix:sym<[ ]>($/) {
-    make PAST::Op.new( $<EXPR>.ast, :name('!postcircumfix:<[ ]>'),
-                       :pasttype('call'), :node($/) );
+    my $past := PAST::Op.new( :name('!postcircumfix:<[ ]>'), :pasttype('call'), :node($/) );
+    if $<semilist><statement> { $past.push($<semilist>.ast); }
+    make $past;
 }
 
 method postcircumfix:sym<{ }>($/) {
-    make PAST::Op.new( $<EXPR>.ast, :name('!postcircumfix:<{ }>'),
-                       :pasttype('call'), :node($/) );
+    my $past := PAST::Op.new( :name('!postcircumfix:<{ }>'), :pasttype('call'), :node($/) );
+    if $<semilist><statement> { $past.push($<semilist>.ast); }
+    make $past;
 }
 
 method postcircumfix:sym<ang>($/) {

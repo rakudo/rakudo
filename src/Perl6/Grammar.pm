@@ -1550,13 +1550,13 @@ token dottyopish {
 
 token postcircumfix:sym<[ ]> {
     :my $*QSIGIL := '';
-    '[' ~ ']' [ <.ws> <EXPR> ]
+    '[' ~ ']' [ <.ws> <semilist> ]
     <O('%methodcall')>
 }
 
 token postcircumfix:sym<{ }> {
     :my $*QSIGIL := '';
-    '{' ~ '}' [ <.ws> <EXPR> ]
+    '{' ~ '}' [ <.ws> <semilist> ]
     <O('%methodcall')>
 }
 

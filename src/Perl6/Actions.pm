@@ -1033,10 +1033,12 @@ method routine_def($/) {
                     $past
                 );
                 $symbol_holder.symbol($name, :multis($past));
-                $past := PAST::Op.new(
-                    :pasttype('callmethod'), :name('incorporate_candidates'),
-                    $past, PAST::Op.new( :pirop('find_lex_skip_current PS'), $name )
-                );
+                if $*SCOPE ne 'our' {
+                    $past := PAST::Op.new(
+                        :pasttype('callmethod'), :name('incorporate_candidates'),
+                        $past, PAST::Op.new( :pirop('find_lex_skip_current PS'), $name )
+                    );
+                }
             }
             $multi_flag.value($*MULTINESS eq 'proto' ?? 2 !! 1);
         }

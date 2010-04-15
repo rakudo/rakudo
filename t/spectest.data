@@ -99,7 +99,7 @@ S02-magicals/progname.t
 S02-names_and_variables/contextual.t
 S02-names_and_variables/fmt.t
 S02-names_and_variables/names.t
-S02-names_and_variables/perl.t
+S02-names_and_variables/perl.t                             # icu
 S02-names_and_variables/list_array_perl.t
 S02-names_and_variables/signature.t
 S02-names_and_variables/variables-and-packages.t

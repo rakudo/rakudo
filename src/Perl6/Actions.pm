@@ -2426,7 +2426,7 @@ method quote_escape:sym<{ }>($/) {
 # and use &infix:<,> to build the parcel
 method quote_EXPR($/) {
     my $past := $<quote_delimited>.ast;
-    if HLL::Grammar::quotemod_check($/, 'w') {
+    if $/.CURSOR.quotemod_check('w') {
         if !$past.isa(PAST::Val) {
             $/.CURSOR.panic("Can't form :w list from non-constant strings (yet)");
         }

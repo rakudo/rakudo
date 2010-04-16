@@ -369,14 +369,14 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         {
             if (error) {
                 /* Note in the error message that we're in a sub-signature. */
-                *error = Parrot_str_append(interp, *error,
+                *error = Parrot_str_concat(interp, *error,
                         string_from_literal(interp, " in sub-signature"));
                 
                 /* Have we a variable name? */
                 if (!STRING_IS_NULL(sig_info->variable_name)) {
-                    *error = Parrot_str_append(interp, *error,
+                    *error = Parrot_str_concat(interp, *error,
                             string_from_literal(interp, " of parameter "));
-                    *error = Parrot_str_append(interp, *error, sig_info->variable_name);
+                    *error = Parrot_str_concat(interp, *error, sig_info->variable_name);
                 }
             }
             return result;
@@ -751,12 +751,12 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 while (VTABLE_get_bool(interp, iter)) {
                     STRING *name = VTABLE_shift_string(interp, iter);
                     if (!first)
-                        *error = Parrot_str_append(interp, *error, comma);
+                        *error = Parrot_str_concat(interp, *error, comma);
                     else
                         first = 0;
-                    *error = Parrot_str_append(interp, *error, name);
+                    *error = Parrot_str_concat(interp, *error, name);
                 }
-                *error = Parrot_str_append(interp, *error, string_from_literal(interp, ")"));
+                *error = Parrot_str_concat(interp, *error, string_from_literal(interp, ")"));
             }
         }
         return BIND_RESULT_FAIL;

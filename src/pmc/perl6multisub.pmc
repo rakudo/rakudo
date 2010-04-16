@@ -452,8 +452,8 @@ static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub) {
     Parrot_ext_call(interp, sig_meth, "Pi->P", sub, &sig_obj);
     perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
     Parrot_ext_call(interp, perl_meth, "Pi->S", sig_obj, &sig_perl);
-    so_far = Parrot_str_append(interp, so_far, sig_perl);
-    so_far = Parrot_str_append(interp, so_far, newline);
+    so_far = Parrot_str_concat(interp, so_far, sig_perl);
+    so_far = Parrot_str_concat(interp, so_far, newline);
     return so_far;
 }
 

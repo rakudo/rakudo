@@ -522,6 +522,7 @@ S32-str/ucfirst.t                                          # icu
 S32-str/uc.t                                               # icu
 # S32-str/unpack.t
 S32-str/words.t                                            # icu
+S32-temporal/Date.t
 # S32-temporal/Temporal.t
 S32-trig/e.t
 # S32-trig/pi.t

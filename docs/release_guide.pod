@@ -34,12 +34,12 @@ Dates are based on Parrot's expected release schedule.
   2010-04-22   Rakudo #28                      (open)
   2010-05-20   Rakudo #29                      (colomon)
   2010-06-17   Rakudo #30                      (masak)
-  2010-07-22   Rakudo #31                      (open)
-  2010-08-19   Rakudo #32                      (open)
-  2010-09-23   Rakudo #33                      (open)
-  2010-10-21   Rakudo #34                      (open)
-  2010-11-18   Rakudo #35                      (open)
-  2010-12-23   Rakudo #36                      (open)
+  2010-07-22   Rakudo #31                      -vacant-
+  2010-08-19   Rakudo #32                      -vacant-
+  2010-09-23   Rakudo #33                      -vacant-
+  2010-10-21   Rakudo #34                      -vacant-
+  2010-11-18   Rakudo #35                      -vacant-
+  2010-12-23   Rakudo #36                      -vacant-
 
 =head2 Suggested .pm group names for future releases
 

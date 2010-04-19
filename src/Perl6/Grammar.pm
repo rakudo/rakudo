@@ -1561,7 +1561,7 @@ token postcircumfix:sym<{ }> {
 }
 
 token postcircumfix:sym<ang> {
-    <?[<]> <quote_EXPR: ':q'>
+    <?[<]> <quote_EXPR: ':q', ':w'>
     <O('%methodcall')>
 }
 

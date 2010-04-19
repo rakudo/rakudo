@@ -2187,13 +2187,31 @@ method postcircumfix:sym<[ ]>($/) {
 
 method postcircumfix:sym<{ }>($/) {
     my $past := PAST::Op.new( :name('!postcircumfix:<{ }>'), :pasttype('call'), :node($/) );
-    if $<semilist><statement> { $past.push($<semilist>.ast); }
+    if $<semilist><statement> {
+        if +$<semilist><statement> > 1 {
+            $/.CURSOR.panic("Sorry, multi-dimensional indexes are not yet supported");
+        }
+        my $slast := $<semilist>.ast;
+        if $slast[0].isa(PAST::Op) && $slast[0].name eq '&infix:<,>' {
+            for @($slast[0]) { $past.push($_); }
+        }
+        else {
+            $past.push($slast);
+        }
+    }
     make $past;
 }
 
 method postcircumfix:sym<ang>($/) {
-    make PAST::Op.new( $<quote_EXPR>.ast, :name('!postcircumfix:<{ }>'),
-                       :pasttype('call'), :node($/) );
+    my $past := PAST::Op.new( :name('!postcircumfix:<{ }>'), :pasttype('call'), :node($/) );
+    my $quoted := $<quote_EXPR>.ast;
+    if $quoted.isa(PAST::Stmts) && $quoted[0].isa(PAST::Op) && $quoted[0].name() eq '&infix:<,>' {
+        for @($quoted[0]) { $past.push($_); }
+    }
+    else {
+        $past.push($quoted);
+    }
+    make $past;
 }
 
 method postcircumfix:sym<( )>($/) {
@@ -2599,9 +2617,9 @@ sub create_code_object($block, $type, $multiness, $lazy_init) {
         :name('new'),
         PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
         $block,
-        $multiness,
-        $lazy_init
+        $multiness
     );
+    if $lazy_init { $past.push($lazy_init) }
     $past<past_block> := $block;
     $past
 }

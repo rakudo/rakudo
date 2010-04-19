@@ -12,6 +12,7 @@ our multi trait_mod:<is>(Mu $child, Role $r) {
     $child.^add_parent($r!select!pun);
 }
 
+role Associative { ... }
 our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
     given substr($cont.name, 0, 1) {
         when '@' { $cont.container does Positional[$type] }

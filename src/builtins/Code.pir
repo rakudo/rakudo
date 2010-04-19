@@ -31,7 +31,7 @@ for executable objects.
 .sub 'new' :method
     .param pmc do
     .param pmc multi
-    .param pmc lazy_sig_init
+    .param pmc lazy_sig_init :optional
     $P0 = getprop '$!p6type', do
     if null $P0 goto need_create
     .return ($P0)
@@ -171,6 +171,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
     # No signautre yet, but maybe we have a lazy creator.
     lazy_sig = getattribute self, '$!lazy_sig_init'
     if null lazy_sig goto srsly_no_sig
+push_eh lazyerr
     ll_sig = lazy_sig()
     setprop do, '$!signature', ll_sig
     goto have_sig
@@ -183,6 +184,9 @@ Gets the signature for the block, or returns Failure if it lacks one.
     $P1 = $P1.'new'('ll_sig' => ll_sig)
     setattribute self, '$!signature', $P1
     .return ($P1)
+  lazyerr:
+  pop_eh
+  say lazy_sig
 .end
 
 =item do()

@@ -165,6 +165,7 @@ CORE_SOURCES = \
   src/cheats/trait-export.pm \
   src/cheats/num.pm \
   src/cheats/eval.pm \
+  src/core/Associative.pm \
   src/core/Mu.pm \
   src/core/Bool.pm \
   src/core/Parcel.pm \

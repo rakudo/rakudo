@@ -31,7 +31,7 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2010-04-22   Rakudo #28                      (pmichaud?)
+  2010-04-22   Rakudo #28                      (open)
   2010-05-20   Rakudo #29                      (colomon)
   2010-06-17   Rakudo #30                      (masak)
   2010-07-22   Rakudo #31                      (open)

@@ -152,6 +152,7 @@ S03-operators/inplace.t
 S03-operators/list-quote-junction.t
 S03-operators/misc.t
 S03-operators/names.t
+S03-operators/nesting.t
 S03-operators/not.t
 S03-operators/numeric-context.t
 # S03-operators/p5arrow.t

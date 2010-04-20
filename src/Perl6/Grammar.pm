@@ -728,11 +728,17 @@ token variable {
         }
     }> {}
     [
-    | <sigil> <twigil>? <desigilname>
-    | <special_variable>
-    | <sigil> $<index>=[\d+]
-    | <sigil> <?[<[]> <postcircumfix>
-    | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
+    || '&'
+        [
+        | '[' ~ ']' <infixish>
+        ]
+    ||  [
+        | <sigil> <twigil>? <desigilname>
+        | <special_variable>
+        | <sigil> $<index>=[\d+]
+        | <sigil> <?[<[]> <postcircumfix>
+        | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
+        ]
     ]
     [ <?{ $<twigil> && $<twigil>[0] eq '.' }>
         [ <.unsp> | '\\' | <?> ] <?before '('> <arglist=.postcircumfix>

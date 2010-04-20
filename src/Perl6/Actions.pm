@@ -682,6 +682,9 @@ method variable($/) {
         $past := $<postcircumfix>.ast;
         $past.unshift( PAST::Var.new( :name('$/') ) );
     }
+    elsif $<infixish> {
+        $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
+    }
     else {
         $past := make_variable($/, ~$/);
     }

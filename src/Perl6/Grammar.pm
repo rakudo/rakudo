@@ -140,7 +140,16 @@ token name {
 
 token morename {
     :my $*QSIGIL := '';
-    '::' <identifier>
+    '::'
+    [
+    ||  <?before '(' | <alpha> >
+        [
+        | <identifier>
+        | '(' ~ ')' <EXPR>
+            <.panic: "Indirect name lookups not yet implemented">
+        ]
+    || <?before '::'> <.panic: "Name component may not be null">
+    ]?
 }
 
 token longname {

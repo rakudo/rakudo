@@ -46,7 +46,10 @@ INIT {
         getpid_func = 'GetCurrentProcessId'
       setup_io_non_MSWin32:
         $P0 = dlfunc library, getpid_func, 'i'
+        $I0 = 0
+        unless $P0 goto setup_io_no_getpid_func
         $I0 = $P0()
+      setup_io_no_getpid_func:
         $P0 = box $I0
         set_hll_global ['PROCESS'], '$PID', $P0
         ##  Parrot request: http://trac.parrot.org/parrot/ticket/1564 

@@ -93,6 +93,7 @@ BUILTINS_PIR = \
   src/gen/RoleToInstanceApplier.pir \
   src/metamodel/GrammarHOW.pir \
   src/builtins/Any.pir \
+  src/builtins/Cool.pir \
   src/builtins/Role.pir \
   src/builtins/ConcreteRole.pir \
   src/builtins/Abstraction.pir \
@@ -169,9 +170,10 @@ CORE_SOURCES = \
   src/core/Mu.pm \
   src/core/Bool.pm \
   src/core/Parcel.pm \
+  src/core/Any.pm \
   src/core/Any-list.pm \
-  src/core/Any-num.pm \
-  src/core/Any-str.pm \
+  src/core/Cool-num.pm \
+  src/core/Cool-str.pm \
   src/core/Seq.pm \
   src/core/Set.pm \
   src/core/Array.pm \

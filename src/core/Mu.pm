@@ -9,7 +9,7 @@ augment class Mu {
     multi method notdef() { !self.defined; }
 
     multi method perl {
-        self.WHAT.substr(0, -2) ~ '.new()';
+        substr(~self.WHAT, 0, -2) ~ '.new()';
     }
     
     method print() {

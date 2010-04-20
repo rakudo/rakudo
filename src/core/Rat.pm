@@ -1,4 +1,4 @@
-class Rat does Real {
+class Rat is Cool does Real {
     has $.numerator;
     has $.denominator;
 

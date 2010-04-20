@@ -15,7 +15,7 @@ src/classes/Enum.pir - methods for the Enum class
 .sub 'onload' :anon :load :init
     .local pmc p6meta, pairproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    pairproto = p6meta.'new_class'('Enum', 'parent'=>'Any', 'attr'=>'$!key $!value')
+    pairproto = p6meta.'new_class'('Enum', 'parent'=>'Cool', 'attr'=>'$!key $!value')
 .end
 
 

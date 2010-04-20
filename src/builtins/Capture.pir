@@ -15,7 +15,7 @@ This file sets up the Perl 6 C<Capture> class.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, captureproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    captureproto = p6meta.'new_class'('Capture', 'parent'=>'Any', 'attr'=>'$!pos $!named')
+    captureproto = p6meta.'new_class'('Capture', 'parent'=>'Cool', 'attr'=>'$!pos $!named')
 .end
 
 

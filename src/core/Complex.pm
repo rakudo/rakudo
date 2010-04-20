@@ -1,4 +1,4 @@
-class Complex does Numeric {
+class Complex does Numeric is Cool {
     has $.re;
     has $.im;
 

@@ -3,10 +3,10 @@
 role SubType {
     has $!checker;
     method ACCEPTS(Mu $topic) {
-        unless $!checker.ACCEPTS($topic) {
-            return Bool::False;
+        unless callsame() {
+            return Bool::False
         }
-        nextsame();
+        $!checker.ACCEPTS($topic)
     }
 }
 

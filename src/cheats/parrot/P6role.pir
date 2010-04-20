@@ -25,13 +25,16 @@ Puns the role to a class and returns that class.
     .return (pun)
   make_pun:
 
-    # Otherwise, need to create a punned class.
+    # Otherwise, need to create a punned class; set a $*SCOPE that is not
+    # 'our' just to ensure that we don't try and associate with a Parrot
+    # namespace.
+    $P0 = box 'anon'
+    .lex '$*SCOPE', $P0
     .local pmc ClassHOW, temp, meta, proto
     ClassHOW = get_root_global ['perl6'], 'ClassHOW'
-    null $P0
     $P1 = getprop '$!owner', self
     $P1 = getattribute $P1, '$!shortname'
-    temp = ClassHOW.'new'($P0, 'name'=>$P1)
+    temp = ClassHOW.'new'($P1)
     meta = temp.'HOW'()
     meta.'add_composable'(temp, self)
     proto = meta.'compose'(temp)

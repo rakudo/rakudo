@@ -91,21 +91,23 @@ Creates a new instance of the meta-class and returns it in an associated
 =cut
 
 .sub 'new' :method
-    .param pmc name :optional
+    .param pmc name
     .param pmc options :named :slurpy
     .local pmc how, parrotclass, nsarray, ns
-    if null name goto anon_class
 
-    # Named class that we should associate with the Parrot namespace.
+    # If we have a named and our-scoped class, we want to associate it with a
+    # Parrot namespace for langauge inter-op.
+    if name == '' goto no_parrot_ns_assoc
+    $P0 = find_dynamic_lex '$*SCOPE'
+    unless $P0 == 'our' goto no_parrot_ns_assoc
     $P0 = get_hll_global [ 'Perl6';'Grammar' ], 'parse_name'
     nsarray = $P0(name)
     ns = get_hll_namespace nsarray
     parrotclass = newclass ns
     goto have_parrotclass
 
-    # Anonymous class - at least from a namespae point of view. Just create a new
-    # Parrot class and we're done.
-  anon_class:
+    # Don't want to associate with a Parrot namespace.
+  no_parrot_ns_assoc:
     parrotclass = new ['Class']
 
     # Stash in metaclass instance.
@@ -119,11 +121,8 @@ Creates a new instance of the meta-class and returns it in an associated
     setattribute how, '$!attributes', $P0
 
     # If we have a name option, use that as the short name.
-    $P0 = options['name']
-    if null $P0 goto no_alt_name
-    setattribute how, 'shortname', $P0
-    setattribute how, 'longname', $P0
-  no_alt_name:
+    setattribute how, 'shortname', name
+    setattribute how, 'longname', name
   
     # If we have ver and auth, store them.
     $P0 = options['ver']
@@ -788,7 +787,7 @@ correct protocol.
 
     # Make ClassHOW instance.
     .local pmc ctb, how
-    ctb = self.'new'()
+    ctb = self.'new'('')
     how = ctb.'HOW'()
     setattribute how, 'parrotclass', parrotclass
 

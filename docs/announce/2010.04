@@ -1,14 +1,16 @@
-    Announce: Rakudo Perl 6 development release #28 ("TODO")
+    Announce: Rakudo Perl 6 development release #28 ("Moscow")
 
 On behalf of the Rakudo development team, I'm pleased to announce the
-March 2010 development release of Rakudo Perl #28 "TODO".
+March 2010 development release of Rakudo Perl #28 "Moscow".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
 (see http://www.parrot.org).  The tarball for the April 2010 release
 is available from http://github.com/rakudo/rakudo/downloads .
 
 Rakudo Perl follows a monthly release cycle, with each release named
 after a Perl Mongers group.  The April 2010 release is code named
-"TODO" for TODO.pm, hosts of the ... TODO
+"Moscow" in recognition of Москва.пм and their invitation of Jonathan
+Worthington, one of our core develepors, to speak at the Russian Internet
+Technologies 2010 [1] conference.
 
 Some of the specific changes and improvements occuring with this
 release include:
@@ -43,3 +45,5 @@ development releases are scheduled to occur two days after each
 Parrot monthly release.  Parrot releases the third Tuesday of each month.
 
 Have fun!
+
+[1]: http://ritconf.ru/

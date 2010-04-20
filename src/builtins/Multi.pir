@@ -31,6 +31,15 @@ Multi - Perl 6 multi-dispatch routine
     .return ($P0)
 .end
 
+=item name
+
+=cut
+
+.sub 'name' :method
+    $S0 = self
+    .return ($S0)
+.end
+
 =back
 
 =cut

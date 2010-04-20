@@ -15,7 +15,7 @@ Technologies 2010 [1] conference.
 Some of the specific changes and improvements occuring with this
 release include:
 
-*  Expressions that begin with a variable and end with a circumfix now properl
+*  Expressions that begin with a variable and end with a circumfix now properly
    interpolate into double-quoted strings, like "@array.sort()" or
    "%hash<key>".
 

@@ -18,6 +18,7 @@ New in 2010.04 release
   signatures
 + better error message on accidental usa of Perl 5 features such as << as
   bit shift operators, and catch many perl 5 magic variables
++ implemented type Cool
 
 New in 2010.03 release
 + The trigonometric functions and the Rat class have received numerous

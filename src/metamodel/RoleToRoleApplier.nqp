@@ -29,7 +29,7 @@ method apply($target, @composees) {
             my $name := $_.name;
             my $meth := $_;
             my @meth_list;
-            if %meth_info{$name} {
+            if pir::defined(%meth_info{$name}) {
                 @meth_list := %meth_info{$name};
             }
             else {
@@ -61,7 +61,7 @@ method apply($target, @composees) {
 
         # Do we already have a method of this name? If so, ignore all of the
         # methods we have from elsewhere unless it's multi.
-        if %target_meth_info{$name} {
+        if pir::defined(%target_meth_info{$name}) {
             if %target_meth_info{$name}.multi {
                 # Add them anyway.
                 for @add_meths {

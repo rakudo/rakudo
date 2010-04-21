@@ -113,6 +113,8 @@ A Perl 6 Exception object.
 .end
 
 .sub '' :vtable('invoke') :method
+    .param pmc pos   :slurpy
+    .param pmc named :slurpy :named
     $P0 = self.'exception'()
     $P0.'throw'()
 .end

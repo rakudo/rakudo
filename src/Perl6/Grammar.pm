@@ -671,7 +671,7 @@ token special_variable:sym<$]> {
 }
 
 token special_variable:sym<$\\> {
-    <sym> <?before \s | ',' | '=' | <terminator> >
+    '$\\' <?before \s | ',' | '=' | <terminator> >
     <.obs('$\\ variable', "the filehandle's :ors attribute")>
 }
 

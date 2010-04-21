@@ -41,6 +41,10 @@ our multi reduce(&op, $list) {
     $list.reduce(&op)
 }
 
+our multi reduce(&op, *@list) {
+    @list.reduce(&op)
+}
+
 our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right) {
     die "Sorry, hyper operators on hashes are not yet implemented.";
 }

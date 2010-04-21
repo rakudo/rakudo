@@ -476,7 +476,7 @@ S32-list/join.t
 # S32-list/map.t
 S32-list/minmax.t
 S32-list/pick.t
-# S32-list/reduce.t
+S32-list/reduce.t
 S32-list/reverse.t
 S32-list/sort.t
 S32-list/uniq.t

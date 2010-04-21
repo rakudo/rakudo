@@ -1,4 +1,8 @@
 role Numeric {
+    method Numeric() {
+        self;
+    }
+
     INIT {
         our @trig-base-conversions = (1.0, pi / 180.0, pi / 200.0, 2.0 * pi);
     }

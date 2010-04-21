@@ -171,7 +171,7 @@ method finish($block) {
             ),
             PAST::Op.new( :pasttype('callmethod'), :name('!add_variant'),
                 PAST::Var.new( :name('tmp_role'), :scope('register') ),
-                $block
+                Perl6::Actions::create_code_object($block, 'Sub', 1, $lazy_sig_block_name)
             ),
             PAST::Var.new( :name('tmp_role'), :scope('register') )
         );

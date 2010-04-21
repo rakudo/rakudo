@@ -105,21 +105,16 @@ class DateTime {
         );
     }
 
-#   multi method ymd($sep = '-') {
-#       $!year ~ $sep ~ ($!month, $!day).fmt('%02d', $sep);
-#   }
     multi method ymd() {
         $!formatter.fmt-ymd(self);
     }
 
-#   multi method hms($sep = ':') {
-#       ($!hour, $!minute, $!second).fmt('%02d', $sep);
-#   }
     multi method hms() {
         $!formatter.fmt-hms(self);
     }
 
     method iso8601() {
+        # This should be the only formatting not done by the formatter
         $.year.fmt(  '%04d') ~ '-' ~ $.month.fmt( '%02d') ~ '-' ~
         $.day.fmt(   '%02d') ~ 'T' ~ $.hour.fmt(  '%02d') ~ ':' ~
         $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') ~ $.time-zone;
@@ -127,6 +122,58 @@ class DateTime {
 
     method Str() {
         $!formatter.fmt-datetime(self);
+    }
+
+    multi method strftime( Str $format is copy ) {
+        # Standard substitutions for yyyy mm dd hh mm ss output.
+        $format .= subst( '%Y', $.year.fmt(  '%04d'), :global );
+        $format .= subst( '%m', $.month.fmt( '%02d'), :global );
+        $format .= subst( '%d', $.day.fmt(   '%02d'), :global );
+        $format .= subst( '%H', $.hour.fmt(  '%02d'), :global );
+        $format .= subst( '%M', $.minute.fmt('%02d'), :global );
+        $format .= subst( '%S', $.second.fmt('%02d'), :global );
+        # Special substitutions (Posix-only subset of DateTime or libc)
+        $format .= subst( '%a', $.day-name.substr(0,3), :global );
+        $format .= subst( '%A', $.day-name, :global );
+        $format .= subst( '%C', ($.year/100).fmt('%02d'), :global );
+        $format .= subst( '%e', $.day.fmt('%2d'), :global );
+        $format .= subst( '%F', $.year.fmt('%04d') ~ '-' ~ $.month.fmt(
+                          '%02d') ~ '-' ~ $.day.fmt('%02d'), :global );
+        $format .= subst( '%I', (($.hour+23)%12+1).fmt('%02d'), :global );
+        $format .= subst( '%k', $.hour.fmt('%2d'), :global );
+        $format .= subst( '%l', (($.hour+23)%12+1).fmt('%2d'), :global );
+        $format .= subst( '%n', "\n", :global );
+        $format .= subst( '%N', (($.second % 1)*1000000000).fmt('%09d'), :global );
+        $format .= subst( '%3N',(($.second % 1)*1000).fmt('%03d'), :global );
+        $format .= subst( '%6N',(($.second % 1)*1000000).fmt('%06d'), :global );
+        $format .= subst( '%9N',(($.second % 1)*1000000000).fmt('%09d'), :global );
+        $format .= subst( '%p', ($.hour < 12) ?? 'am' !! 'pm', :global );
+        $format .= subst( '%P', ($.hour < 12) ?? 'AM' !! 'PM', :global );
+        $format .= subst( '%r', (($.hour+23)%12+1).fmt('%02d') ~ ':' ~
+                                 $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d')
+                                 ~($.hour < 12) ?? 'am' !! 'pm', :global );
+        $format .= subst( '%R', $.hour.fmt('%02d') ~ ':' ~
+                                $.minute.fmt('%02d'), :global );
+        $format .= subst( '%s', $.to-epoch.fmt('%d'), :global );
+        $format .= subst( '%t', "\t", :global );
+        $format .= subst( '%T', $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt(
+                          '%02d') ~ ':' ~ $.second.fmt('%02d'), :global );
+        $format .= subst( '%u', ~ $.day-of-week.fmt('%d'), :global );
+        $format .= subst( '%w', ~ (($.day-of-week+6) % 7).fmt('%d'), :global );
+        $format .= subst( '%x', $.year.fmt('%04d') ~ '-' ~ $.month.fmt(
+                          '%02d') ~ '-' ~ $.day.fmt('%2d'), :global );
+        $format .= subst( '%X', $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt(
+                          '%02d') ~ ':' ~ $.second.fmt('%02d'), :global );
+        $format .= subst( '%y', ($.year % 100).fmt('%02d'), :global );
+        $format .= subst( '%%', '%', :global );
+        # TODO: implement %a abbr weekday name %A full weekday name
+        # %b abbr month name %B full month name %c default local format
+        # %j day num 001-366 %U week num 00-53 %V week num 01-53
+        # %z time-zone %Z time-zone %{method}
+        # TODO: use plugin formatter to add non-Posix locales
+        # TODO: either speed up this implementation (it looks slow) or
+        # revise the spec to move this to a DateTime::strftime.pm6 file.
+        return $format;
     }
 
     multi method truncate($unit) {
@@ -204,9 +251,10 @@ class DateTime {
 }
 
 =begin pod
- 
+
 =head1 SEE ALSO
 Perl 6 spec <S32-Temporal|http://perlcabal.org/syn/S32/Temporal.html>.
+The Perl 5 DateTime Project home page L<http://datetime.perl.org>.
 Perl 5 perldoc L<doc:DateTime> and L<doc:Time::Local>.
  
 The best yet seen explanation of calendars, by Claus Tøndering

@@ -1,30 +1,28 @@
-# TODO: how to make these subs private?
-sub is-leap($year) {
-    return False if $year % 4;
-    return True  if $year % 100;
-    $year % 400 == 0;
-}
-
-sub days-in-month($year, $month) {
-    my @month-length = 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31;
-    if ($month == 2) {
-        is-leap($year) ?? 29 !! 28;
-    } else {
-        @month-length[$month-1];
-    }
-}
-
-sub assert-valid-date($year, $month, $day) {
-    die 'Invalid date: day < 1'     if $day < 1;
-    die 'Invalid date: month < 1'   if $month < 1;
-    die 'Invalid date: month > 12'  if $month > 12;
-    my $dim = days-in-month($year, $month);
-    if $day >  $dim {
-        die "Invalid date: day > $dim";
-    }
-}
-
 class Date {
+    sub is-leap($year) {
+        return False if $year % 4;
+        return True  if $year % 100;
+        $year % 400 == 0;
+    }
+
+    sub days-in-month($year, $month) {
+        my @month-length = 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31;
+        if ($month == 2) {
+            is-leap($year) ?? 29 !! 28;
+        } else {
+            @month-length[$month-1];
+        }
+    }
+
+    sub assert-valid-date($year, $month, $day) {
+        die 'Invalid date: day < 1'     if $day < 1;
+        die 'Invalid date: month < 1'   if $month < 1;
+        die 'Invalid date: month > 12'  if $month > 12;
+        my $dim = days-in-month($year, $month);
+        if $day >  $dim {
+            die "Invalid date: day > $dim";
+        }
+    }
     has Int $.year;
     has Int $.month;
     has Int $.day;

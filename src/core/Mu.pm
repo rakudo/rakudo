@@ -1,6 +1,10 @@
 augment class Mu {
     method Bool { $.defined }
 
+    method Numeric { 0; } # Not sure if this makes sense or not
+                          # but there are several tests it makes
+                          # pass.
+
     method item {
         # This is overridden by non-items.
         self;

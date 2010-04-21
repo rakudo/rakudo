@@ -1,4 +1,8 @@
 augment class Cool {
+    method Numeric() {
+        pir::set__NP(self);
+    }
+
     method abs() {
         (+self).abs;
     }

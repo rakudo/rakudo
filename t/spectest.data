@@ -407,6 +407,7 @@ S13-type-casting/methods.t
 S13-overloading/typecasting-long.t
 # S13-overloading/metaoperators.t
 S13-overloading/operators.t
+S14-roles/anonymous.t
 S14-roles/attributes.t
 S14-roles/basic.t
 S14-roles/composition.t

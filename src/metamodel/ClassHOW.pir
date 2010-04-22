@@ -573,7 +573,6 @@ Gets a list of methods.
 .sub 'methods' :method
     .param pmc obj
     .param pmc adverbs :named :slurpy
-
     .local pmc local, tree, private
     local = adverbs['local']
     tree = adverbs['tree']
@@ -601,6 +600,8 @@ Gets a list of methods.
     if $S1 == '!' goto it_loop
   private_done:
     cur_meth = method_hash[$S0]
+    cur_meth = new ['ObjectRef'], cur_meth
+    setprop cur_meth, 'scalar', cur_meth
     result_list.'push'(cur_meth)
     goto it_loop
   it_loop_end:
@@ -616,7 +617,7 @@ Gets a list of methods.
     # we are wanting a hierarchical list then we push the resulting Array
     # straight on, so it won't flatten. Otherwise we do .list so what we
     # push will flatten.
-    .local pmc parents, cur_parent, parent_methods
+    .local pmc parents, cur_parent, cur_parent_meta, parent_methods
     parents = inspect parrot_class, 'parents'
     it = iter parents
   parent_it_loop:
@@ -626,10 +627,11 @@ Gets a list of methods.
     if $I0 goto parent_it_loop
     cur_parent = getprop 'metaclass', cur_parent
     cur_parent = cur_parent.'WHAT'()
-    parent_methods = self.'methods'(cur_parent, adverbs :flat :named)
+    cur_parent_meta = cur_parent.'HOW'()
+    parent_methods = cur_parent_meta.'methods'(cur_parent, adverbs :flat :named)
     if null tree goto not_tree
     unless tree goto not_tree
-    parent_methods = new 'Perl6Scalar', parent_methods
+    setprop parent_methods, 'scalar', parent_methods
   not_tree:
     result_list.'push'(parent_methods)
     goto parent_it_loop

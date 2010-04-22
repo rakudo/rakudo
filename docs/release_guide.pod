@@ -26,12 +26,12 @@ part of monthly Parrot releases.
   2010-01-22   Rakudo #25 "Minneapolis"        (pmichaud)
   2010-02-18   Rakudo #26 "Amsterdam"          (mberends)
   2010-03-18   Rakudo #27 "Copenhagen"         (smash)
+  2010-04-22   Rakudo #28 "Moscow"             (moritz)
 
 =head2 Planned 2010 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2010-04-22   Rakudo #28 "Moscow"             (moritz)
   2010-05-20   Rakudo #29                      (colomon)
   2010-06-17   Rakudo #30                      (masak)
   2010-07-22   Rakudo #31                      -vacant-
@@ -224,7 +224,7 @@ You're done!  Celebrate with the appropriate amount of fun.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2009, The Perl Foundation.
+Copyright (C) 2009-2010, The Perl Foundation.
 
 =cut
 

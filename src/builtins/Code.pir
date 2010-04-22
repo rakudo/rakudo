@@ -131,8 +131,7 @@ Just calls this block with the supplied parameters.
 =cut
 
 .sub 'name' :method
-    $P0 = getattribute self, '$!do'
-    $S0 = $P0
+    $S0 = self
     .return ($S0)
 .end
 

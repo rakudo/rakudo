@@ -171,7 +171,9 @@ token def_module_name {
         <?before '['>
         <?{ $*PKGDECL eq 'role' }>
         :my $*SCOPE := 'my';
+        <.newpad>
         '[' ~ ']' <signature>
+        <.finishpad>
     ]?
 }
 

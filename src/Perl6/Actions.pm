@@ -632,6 +632,14 @@ method module_name($/) {
     }
 }
 
+method def_module_name($/) {
+    # Clean up block stack to remove fake block we added for
+    # parsing the signature.
+    if $<signature> {
+        @BLOCK.shift;
+    }
+}
+
 method fatarrow($/) {
     make make_pair($<key>.Str, $<val>.ast);
 }

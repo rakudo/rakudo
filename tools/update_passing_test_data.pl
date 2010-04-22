@@ -126,7 +126,7 @@ sub read_specfile {
 sub get_harness {
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => [$parrot, '-G', 'perl6.pbc'],
+            exec        => [$parrot, 'perl6.pbc'],
             merge       => 1,
     });
 }

@@ -135,6 +135,8 @@ class DateTime {
         # Special substitutions (Posix-only subset of DateTime or libc)
         $format .= subst( '%a', $.day-name.substr(0,3), :global );
         $format .= subst( '%A', $.day-name, :global );
+        $format .= subst( '%b', $.month-name.substr(0,3), :global );
+        $format .= subst( '%B', $.month-name, :global );
         $format .= subst( '%C', ($.year/100).fmt('%02d'), :global );
         $format .= subst( '%e', $.day.fmt('%2d'), :global );
         $format .= subst( '%F', $.year.fmt('%04d') ~ '-' ~ $.month.fmt(
@@ -264,6 +266,9 @@ and L<http://www.merlyn.demon.co.uk/daycount.htm>.
  
 <ISO 8601|http://en.wikipedia.org/wiki/ISO_8601>
 <Time zones|http://en.wikipedia.org/wiki/List_of_time_zones>
+
+To accommodate more Temporal expectations without bloating the core executable, I am planning to move DateTime::strftime into a loadable module. The move will also validate how tools handle "core modules" (eg copying, compiling to PIR) beyond only Test.pm.
+If it works, I intend to gradually move more non essential code (a subjective call, admittedly) as possible into loadable modules. Which actual code moves is less important, using the capability is more important.
  
 =end pod
 

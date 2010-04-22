@@ -31,7 +31,7 @@ release include:
 *  As always, many additional small features and bug fixes make working with
    Rakudo more pleasant.
 
-*  Rakudo now passes 30,894 spectests. We estimate that there are about
+*  Rakudo now passes 30,931 spectests. We estimate that there are about
    39,000 tests in the test suite, so Rakudo passes about 79% of all tests.
 
 For a more detailed list of changes see "docs/ChangeLog".

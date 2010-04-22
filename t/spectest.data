@@ -247,9 +247,9 @@ S05-grammar/signatures.t
 # S05-grammar/ws.t
 # S05-mass/named-chars.t                                     # icu
 S05-mass/properties-block.t                                # icu
-# S05-mass/properties-derived.t                              # icu
+S05-mass/properties-derived.t                              # icu
 S05-mass/properties-general.t                              # icu
-# S05-mass/properties-script.t                               # icu
+S05-mass/properties-script.t                               # icu
 S05-mass/rx.t
 # S05-mass/recursive.t
 S05-mass/stdrules.t
@@ -460,7 +460,7 @@ S32-array/unshift.t
 # S32-container/zip.t
 S32-hash/exists.t
 S32-hash/invert.t
-# S32-hash/keys_values.t
+S32-hash/keys_values.t
 S32-hash/pairs.t
 S32-hash/push.t
 # S32-hash/slice.t
@@ -474,7 +474,7 @@ S32-list/first.t
 S32-list/grep.t
 S32-list/join.t
 # S32-list/map_function_return_values.t
-# S32-list/map.t
+S32-list/map.t
 S32-list/minmax.t
 S32-list/pick.t
 S32-list/reduce.t

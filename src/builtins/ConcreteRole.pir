@@ -32,8 +32,7 @@ dispatch.
 .sub 'ACCEPTS' :method
     .param pmc topic
     $I0 = isa topic, 'P6role'
-    $P0 = '&prefix:<?>'($I0)
-    .return ($P0)
+    .return ($I0)
 .end
 
 =back

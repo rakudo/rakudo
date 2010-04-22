@@ -31,6 +31,9 @@ release include:
 *  As always, many additional small features and bug fixes make working with
    Rakudo more pleasant.
 
+*  Rakudo now passes 30,894 spectests. We estimate that there are about
+   39,000 tests in the test suite, so Rakudo passes about 79% of all tests.
+
 For a more detailed list of changes see "docs/ChangeLog".
 
 The development team thanks all of our contributors and sponsors for
@@ -39,7 +42,7 @@ see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
 mailing list, or ask on IRC #perl6 on freenode.
 
 The next release of Rakudo (#29) is scheduled for May 20, 2010.
-A list of the other planned release dates and codenames for 2010 is
+A list of the other planned release dates and code names for 2010 is
 available in the "docs/release_guide.pod" file.  In general, Rakudo
 development releases are scheduled to occur two days after each
 Parrot monthly release.  Parrot releases the third Tuesday of each month.

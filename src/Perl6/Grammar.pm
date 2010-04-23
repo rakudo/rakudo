@@ -27,11 +27,11 @@ method TOP() {
     self.comp_unit;
 }
 
-method add_my_name($name) {
+method add_my_name($name, $up_levels = 0) {
     my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
 
     # We need to flag up most re-declaration collisions.
-    my $cur_decl := @BLOCK[0].symbol($name);
+    my $cur_decl := @BLOCK[$up_levels].symbol($name);
     if $cur_decl {
         if $*PKGDECL eq 'role' || $cur_decl<stub> {
             return 1;
@@ -42,11 +42,11 @@ method add_my_name($name) {
     }
 
     # Add it.
-    @BLOCK[0].symbol($name, :does_abstraction(1));
+    @BLOCK[$up_levels].symbol($name, :does_abstraction(1));
     return 1;
 }
 
-method add_our_name($name) {
+method add_our_name($name, $up_levels = 0) {
     our %COMPILINGPACKAGES;
     our %STUBCOMPILINGPACKAGES;
 
@@ -76,10 +76,10 @@ method add_our_name($name) {
     %COMPILINGPACKAGES{$name} := 1;
 
     # Always need to add our names as lexical names too.
-    return self.add_my_name($name);
+    return self.add_my_name($name, $up_levels);
 }
 
-method add_name($name) {
+method add_name($name, $up_levels = 0) {
     if $*SCOPE eq 'augment' || $*SCOPE eq 'supersede' {
         unless self.is_name($name) {
             pir::die("Can't $*SCOPE $*PKGDECL that doesn't exist");
@@ -90,10 +90,10 @@ method add_name($name) {
     }
     else {
         if $*SCOPE eq 'our' {
-            self.add_our_name($name);
+            self.add_our_name($name, $up_levels);
         }
         else {
-            self.add_my_name($name);
+            self.add_my_name($name, $up_levels);
         }
     }
     return 1;
@@ -171,9 +171,7 @@ token def_module_name {
         <?before '['>
         <?{ $*PKGDECL eq 'role' }>
         :my $*SCOPE := 'my';
-        <.newpad>
         '[' ~ ']' <signature>
-        <.finishpad>
     ]?
 }
 
@@ -258,10 +256,10 @@ token comp_unit {
     :my $*MULTINESS := '';                     # which multi declarator we're under
     :my $*QSIGIL := '';                        # sigil of current interpolation
     :my $*TYPENAME := '';
-    {*} #= open
     <.newpad>
     <.outerlex>
     <.finishpad>
+    {*} #= open
     <statementlist>
     [ $ || <.panic: 'Confused'> ]
 }
@@ -795,15 +793,15 @@ token package_declarator:sym<does> {
 
 rule package_def {
     :my $*IN_DECL := 'package';
+    <.newpad>
     <def_module_name>?
     <trait>*
     {*} #= open
     [
     || ';'
-        <.newpad>
         <.finishpad>
         <statementlist>
-    || <?[{]> <block>
+    || <?[{]> <blockoid>
     || <.panic: 'Malformed package declaration'>
     ]
 }

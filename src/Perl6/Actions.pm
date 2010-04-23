@@ -45,6 +45,7 @@ method comp_unit($/, $key?) {
     # If this is the start of the unit, add an outer module.
     if $key eq 'open' {
         @PACKAGE.unshift(Perl6::Compiler::Module.new());
+        @PACKAGE[0].block(@BLOCK[0]);
         return 1;
     }
     
@@ -241,9 +242,6 @@ method newpad($/) {
         )
     ));
     @BLOCK.unshift($new_block);
-    unless @PACKAGE[0].block {
-        @PACKAGE[0].block($new_block);
-    }
 }
 
 method outerlex($/) {
@@ -632,14 +630,6 @@ method module_name($/) {
     }
 }
 
-method def_module_name($/) {
-    # Clean up block stack to remove fake block we added for
-    # parsing the signature.
-    if $<signature> {
-        @BLOCK.shift;
-    }
-}
-
 method fatarrow($/) {
     make make_pair($<key>.Str, $<val>.ast);
 }
@@ -784,7 +774,7 @@ method package_def($/, $key?) {
         if $<def_module_name> {
             my $name := ~$<def_module_name>[0]<longname><name>;
             if $name ne '::' {
-                $/.CURSOR.add_name($name);
+                $/.CURSOR.add_name($name, 1);
                 $package.name($name);
             }
             if $<def_module_name>[0]<signature> {
@@ -803,6 +793,9 @@ method package_def($/, $key?) {
             $package.traits.push($_.ast);
         }
 
+        # Claim currently open block as the package's block.
+        $package.block(@BLOCK[0]);
+
         # Put on front of packages list. Note - nesting a package in a role is
         # not supported (gets really tricky in the parametric case - needs more
         # thought and consideration).
@@ -814,7 +807,7 @@ method package_def($/, $key?) {
     else {
         # We just need to finish up the current package.
         my $package := @PACKAGE.shift;
-        if pir::substr__SSII($<block><blockoid><statementlist><statement>[0], 0, 3) eq '...' {
+        if pir::substr__SSII($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
             # Just a stub, so don't do any more work.
             if $*SCOPE eq 'our' || $*SCOPE eq '' {
                 %Perl6::Grammar::STUBCOMPILINGPACKAGES{~$<def_module_name>[0]<longname>} := 1;
@@ -824,8 +817,8 @@ method package_def($/, $key?) {
         }
         else {
             my $block;
-            if $<block> {
-                $block := $<block>.ast;
+            if $<blockoid> {
+                $block := $<blockoid>.ast;
             }
             else {
                 $block := @BLOCK.shift;

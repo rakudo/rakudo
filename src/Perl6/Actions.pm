@@ -2555,7 +2555,7 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
     }
 }
 
-# Takes a block and adds a signature ot it, as well as code to bind the call
+# Takes a block and adds a signature to it, as well as code to bind the call
 # capture against the signature. Returns the name of the signature setup block.
 sub add_signature($block, $sig_obj, $lazy) {
     # Set arity.
@@ -2576,16 +2576,22 @@ sub add_signature($block, $sig_obj, $lazy) {
     ));
 
     # If lazy, make and push signature setup block.
+    $block<signature_ast> := $sig_obj.ast(1);
     if $lazy {
-        my $sig_setup_block :=
-            PAST::Block.new( :blocktype<declaration>, $sig_obj.ast(1) );
-        $block[0].push($sig_setup_block);
-        PAST::Val.new(:value($sig_setup_block));
+        make_lazy_sig_block($block)
     }
     else {
-        $block.loadinit.push($sig_obj.ast(1));
+        $block.loadinit.push($block<signature_ast>);
         $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!signature", signature') ));
     }
+}
+
+# Makes a lazy signature building block.
+sub make_lazy_sig_block($block) {
+    my $sig_setup_block :=
+            PAST::Block.new( :blocktype<declaration>, $block<signature_ast> );
+    $block[0].push($sig_setup_block);
+    PAST::Val.new(:value($sig_setup_block));
 }
 
 # Adds a placeholder parameter to this block's signature.
@@ -2632,6 +2638,7 @@ sub create_code_object($block, $type, $multiness, $lazy_init) {
     );
     if $lazy_init { $past.push($lazy_init) }
     $past<past_block> := $block;
+    $past<block_class> := $type;
     $past
 }
 
@@ -2924,8 +2931,9 @@ sub prevent_null_return($block) {
 # one. Used by things doing where clause-ish things.
 sub where_blockify($expr) {
     my $past;
-    if $expr.isa(PAST::Block) {
-        $past := $expr;
+    if $expr<past_block> && $expr<block_class> eq 'Block' {
+        my $lazy_name := make_lazy_sig_block($expr<past_block>);
+        $past := create_code_object($expr<past_block>, 'Block', 0, $lazy_name);
     }
     else {
         $past := PAST::Block.new( :blocktype('declaration'),

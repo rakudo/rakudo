@@ -10,7 +10,7 @@ role SubType {
     }
 }
 
-our sub CREATE_SUBSET_TYPE($original, $checker) {
+our sub CREATE_SUBSET_TYPE(Mu $original, $checker) {
     # XXX Ideally we'd be able to just replace all of what follows
     # with a simple:
     #     my $subtype = $original but SubType($checker);

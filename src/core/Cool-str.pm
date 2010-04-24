@@ -48,6 +48,23 @@ augment class Cool {
         }
     }
 
+    multi method samecase($pattern) is export {
+        my $result = '';
+        my $p = '';
+        my @pattern = $pattern.comb;
+        for self.comb -> $s {
+            $p = @pattern.shift if @pattern;
+            if $p ~~ /<.upper>/ {
+                $result ~= $s.uc;
+            } elsif $p ~~ /<.lower>/ {
+                $result ~= $s.lc;
+            } else {
+                $result ~= $s;
+            }
+        }
+        $result;
+    }
+
     multi method split(Regex $matcher, $limit = *, :$all) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;

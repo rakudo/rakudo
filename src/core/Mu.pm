@@ -1,3 +1,5 @@
+subset Matcher of Mu where { .can('ACCEPTS') };
+
 augment class Mu {
     method Bool { $.defined }
 
@@ -32,5 +34,70 @@ augment class Mu {
             }
         }
         %attrs.Capture()
+    }
+
+    method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
+                :$super, Matcher :$omit, Matcher :$include) {
+        # First, build list of classes in the order we'll need them.
+        my @classes;
+        if $super {
+            @classes = self.^parents(:local);
+        } else {
+            if $breadth {
+                my @search_list = self.WHAT;
+                while @search_list {
+                    push @classes, @search_list.list();
+                    my @new_search_list;
+                    for @search_list -> $current {
+                        for $current.^parents(:local) -> $next {
+                            unless any(@new_search_list <<===>> $next) {
+                                push @new_search_list, $next;
+                            }
+                        }
+                    }
+                    @search_list = @new_search_list;
+                }
+            } elsif $ascendant | $preorder {
+                sub build_ascendent(Mu $class) {
+                    unless any(@classes <<===>> $class) {
+                        push @classes, $class;
+                        for $class.^parents(:local) {
+                            build_ascendent($^parent);
+                        }
+                    }
+                }
+                build_ascendent(self.WHAT);
+            } elsif $descendant {
+                sub build_descendent(Mu $class) {
+                    unless any(@classes <<===>> $class) {
+                        for $class.^parents(:local) {
+                            build_descendent($^parent);
+                        }
+                        push @classes, $class;
+                    }
+                }
+                build_descendent(self.WHAT);
+            } else {
+                # Canonical, the default (just whatever the meta-class says) with us
+                # on the start.
+                @classes = self.^parents();
+                @classes.unshift(self.WHAT);
+            }
+        }
+
+        # Now we have classes, build method list.
+        my @methods;
+        for @classes -> $class {
+            if (!$include || $include.ACCEPTS($class)) && (!$omit || !$omit.ACCEPTS($class)) {
+                for $class.^methods(:local) -> $method {
+                    my $check_name = $method.?name;
+                    if $check_name.defined && $check_name eq $name {
+                        @methods.push($method);
+                    }
+                }
+            }
+        }
+
+        return @methods;
     }
 }

@@ -162,6 +162,7 @@ CHEATS_PIR = \
 CORE_SOURCES = \
   src/core/traits.pm \
   src/core/operators.pm \
+  src/glue/subset.pm \
   src/cheats/trait-export.pm \
   src/cheats/num.pm \
   src/cheats/eval.pm \
@@ -206,7 +207,6 @@ CORE_SOURCES = \
   src/core/system.pm \
   src/cheats/match-bool.pm \
   src/cheats/setup-io.pm \
-  src/glue/subset.pm \
   src/core/Date.pm \
   src/core/Temporal.pm \
   src/core/YOU_ARE_HERE.pm \

@@ -172,15 +172,14 @@ our multi sub reducewith(&op, $arg,
 # this fails for operators defined in PIR, so some of them are commented out.
 our multi sub infix:<**>() { 1 }
 our multi sub infix:<*>()  { 1 }
-#our multi sub infix:<+&>() { 1 }
+our multi sub infix:<+&>() { +^0 }
 our multi sub infix:<+>()  { 0 }
 our multi sub infix:<->()  { 0 }
 #our multi sub infix:<~>()  { '' }
-#our multi sub infix:<+|>() { 0 }
-#our multi sub infix:<+^>()  { 0 }
-#our multi sub infix:<~|>() { '' }
-#our multi sub infix:<~^>()  { '' }
-#our multi sub infix:<~^>()  { '' }
+our multi sub infix:<+|>() { 0 }
+our multi sub infix:<+^>() { 0 }
+our multi sub infix:<~|>() { '' }
+our multi sub infix:<~^>() { '' }
 #our multi sub infix:<&>()   { all() }
 #our multi sub infix:<|>()   { any() }
 #our multi sub infix:<^>()   { one() }
@@ -212,5 +211,13 @@ our multi sub infix:<or>()     { Bool::False }
 #our multi sub infix:<:=>()     { Nil }
 #our multi sub infix:<,>()      { [] }
 our multi sub infix:<Z>()      { [] }
+
+our multi sub infix:</>()   { fail "No zero-arg meaning for infix:</>"; }
+our multi sub infix:<%>()   { fail "No zero-arg meaning for infix:<%>"; }
+our multi sub infix:<x>()   { fail "No zero-arg meaning for infix:<x>"; }
+our multi sub infix:<xx>()  { fail "No zero-arg meaning for infix:<xx>"; }
+our multi sub infix:«+<»()  { fail "No zero-arg meaning for infix:«+<»"; }
+our multi sub infix:«+>»()  { fail "No zero-arg meaning for infix:«+>»"; }
+our multi sub infix:<~&>()  { fail "No zero-arg meaning for infix:<~&>"; }
 
 # vim: ft=perl6

@@ -69,6 +69,38 @@ our multi sub infix:<^>(*@items) {
     Junction.new(@items, :one)
 }
 
+our multi sub infix:<+&>($a, $b) {
+    pir::band__III($a, $b);
+}
+
+our multi sub infix:<+|>($a, $b) {
+    pir::bor__III($a, $b);
+}
+
+our multi sub infix:<+^>($a, $b) {
+    pir::bxor__III($a, $b);
+}
+
+our multi sub infix:«+<»($a, $b) {
+    pir::shl__III($a, $b);
+}
+
+our multi sub infix:«+>»($a, $b) {
+    pir::shr__III($a, $b);
+}
+
+our multi sub infix:<~|>($a, $b) {
+    pir::bors__SSS($a, $b);
+}
+
+our multi sub infix:<~&>($a, $b) {
+    pir::bands__SSS($a, $b);
+}
+
+our multi sub infix:<~^>($a, $b) {
+    pir::bxors__SSS($a, $b);
+}
+
 our sub all(*@items) {
     Junction.new(@items, :all);
 }

@@ -33,6 +33,10 @@ class Complex does Numeric is Cool {
         Complex.new($.re.Num.exp * $.im.Num.cos, $.re.Num.exp * $.im.Num.sin);
     }
 
+    multi method exp(Complex $exponent: Numeric $base) {
+        $base ** $exponent;
+    }
+
     multi method sin($base = Radians) {
         $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
     }

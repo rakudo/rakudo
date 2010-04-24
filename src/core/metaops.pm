@@ -2,6 +2,10 @@ our multi sub notresults(&op, Mu \$a, Mu \$b) {
     !(&op($a, $b));
 }
 
+our multi sub notresults(&op) {
+    Bool::True;
+}
+
 our multi sub reverseargs(&op, Mu \$a, Mu \$b) {
     &op($b, $a);
 }
@@ -187,6 +191,10 @@ our multi sub infix:<~^>() { '' }
 #our multi sub infix:<!==>()    { Bool::True }
 our multi sub infix:<==>()     { Bool::True }
 our multi sub infix:<!=>()     { Bool::True }
+our multi sub infix:«<»()      { Bool::True }
+our multi sub infix:«<=»()     { Bool::True }
+our multi sub infix:«>»()      { Bool::True }
+our multi sub infix:«>=»()     { Bool::True }
 #our multi sub infix:<before>() { Bool::True }
 #our multi sub infix:<after>()  { Bool::True }
 our multi sub infix:<~~>()     { Bool::True }
@@ -200,6 +208,7 @@ our multi sub infix:<ne>()     { Bool::True }
 #our multi sub infix:<!eq>()    { Bool::True }
 #our multi sub infix:<===>()    { Bool::True }
 #our multi sub infix:<!===>()   { Bool::True }
+our multi sub infix:<eqv>()    { Bool::True }
 #
 our multi sub infix:<||>()     { Bool::False }
 our multi sub infix:<or>()     { Bool::False }

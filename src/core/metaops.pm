@@ -188,26 +188,22 @@ our multi sub infix:<~^>() { '' }
 #our multi sub infix:<|>()   { any() }
 #our multi sub infix:<^>()   { one() }
 
-#our multi sub infix:<!==>()    { Bool::True }
 our multi sub infix:<==>()     { Bool::True }
 our multi sub infix:<!=>()     { Bool::True }
 our multi sub infix:«<»()      { Bool::True }
 our multi sub infix:«<=»()     { Bool::True }
 our multi sub infix:«>»()      { Bool::True }
 our multi sub infix:«>=»()     { Bool::True }
-#our multi sub infix:<before>() { Bool::True }
-#our multi sub infix:<after>()  { Bool::True }
+our multi sub infix:<before>() { Bool::True }
+our multi sub infix:<after>()  { Bool::True }
 our multi sub infix:<~~>()     { Bool::True }
-#our multi sub infix:<!~~>()    { Bool::True }
 our multi sub infix:<lt>()     { Bool::True }
 our multi sub infix:<le>()     { Bool::True }
 our multi sub infix:<gt>()     { Bool::True }
 our multi sub infix:<ge>()     { Bool::True }
 our multi sub infix:<eq>()     { Bool::True }
 our multi sub infix:<ne>()     { Bool::True }
-#our multi sub infix:<!eq>()    { Bool::True }
 #our multi sub infix:<===>()    { Bool::True }
-#our multi sub infix:<!===>()   { Bool::True }
 our multi sub infix:<eqv>()    { Bool::True }
 #
 our multi sub infix:<||>()     { Bool::False }

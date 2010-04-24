@@ -23,3 +23,7 @@ sub sleep($seconds) {         # fractional seconds also allowed
     my $time2 = time;
     return $time2 - $time1;
 }
+
+sub time() {
+    pir::time__n()
+}

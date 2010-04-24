@@ -232,11 +232,6 @@ src/builtins/control.pir - control flow related functions
     .return (value)
 .end
 
-.sub '&time'
-    $N0 = time
-    .return ($N0)
-.end
-
 
 =item callwith
 

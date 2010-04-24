@@ -212,8 +212,15 @@ method finish($block) {
         $block.blocktype('immediate');
         $block.namespace(@ns);
     }
+    elsif $!scope eq 'my' {
+        # Install a binding of the declaration to a name in the lexpad.
+        @Perl6::Actions::BLOCK[0][0].push(PAST::Var.new(
+            :name($!name), :isdecl(1),  :viviself($decl), :scope('lexical')
+        ));
+        @Perl6::Actions::BLOCK[0].symbol($!name, :scope('lexical'), :does_abstraction(1));
+    }
     else {
-        pir::die("Can't handle scope declarator " ~ $!scope ~ " on packages yet");
+        pir::die("Scope declarator " ~ $!scope ~ " is not supported on packages");
     }
 
     return $block;

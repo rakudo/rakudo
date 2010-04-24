@@ -50,7 +50,7 @@ S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
 S02-builtin_data_types/infinity.t
-# S02-builtin_data_types/lists.t
+S02-builtin_data_types/lists.t
 # S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
 S02-builtin_data_types/nan.t
@@ -89,8 +89,8 @@ S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
 S02-magicals/config.t
-# S02-magicals/dollar_bang.t
-# S02-magicals/dollar-underscore.t
+S02-magicals/dollar_bang.t
+S02-magicals/dollar-underscore.t
 # S02-magicals/env.t
 S02-magicals/pid.t
 S02-magicals/progname.t
@@ -137,7 +137,7 @@ S03-operators/basic-types.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 S03-operators/brainos.t
-# S03-operators/chained-declarators.t
+S03-operators/chained-declarators.t
 # S03-operators/comparison.t
 S03-operators/comparison-simple.t
 S03-operators/context-forcers.t
@@ -153,7 +153,6 @@ S03-operators/names.t
 S03-operators/nesting.t
 S03-operators/not.t
 S03-operators/numeric-context.t
-# S03-operators/p5arrow.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
 S03-operators/range.t

@@ -1,7 +1,7 @@
 use v6;
 
-subset DateTime::Formatter where { .can<fmt-datetime fmt-ymd fmt-hms> };
-subset DateTime::Parser    where { .can<parse-datetime parse-ymd parse-hms> };
+subset DateTime::Formatter where { .can( all<fmt-datetime fmt-ymd fmt-hms> )};
+subset DateTime::Parser    where { .can( all<parse-datetime parse-ymd parse-hms> )};
 
 # RAKUDO: When we have anonymous classes, we don't need to do it like this
 class DefaultFormatter {
@@ -125,57 +125,61 @@ class DateTime {
     }
 
     multi method strftime( Str $format is copy ) {
-        # Standard substitutions for yyyy mm dd hh mm ss output.
-        $format .= subst( '%Y', $.year.fmt(  '%04d'), :global );
-        $format .= subst( '%m', $.month.fmt( '%02d'), :global );
-        $format .= subst( '%d', $.day.fmt(   '%02d'), :global );
-        $format .= subst( '%H', $.hour.fmt(  '%02d'), :global );
-        $format .= subst( '%M', $.minute.fmt('%02d'), :global );
-        $format .= subst( '%S', $.second.fmt('%02d'), :global );
-        # Special substitutions (Posix-only subset of DateTime or libc)
-        $format .= subst( '%a', $.day-name.substr(0,3), :global );
-        $format .= subst( '%A', $.day-name, :global );
-        $format .= subst( '%b', $.month-name.substr(0,3), :global );
-        $format .= subst( '%B', $.month-name, :global );
-        $format .= subst( '%C', ($.year/100).fmt('%02d'), :global );
-        $format .= subst( '%e', $.day.fmt('%2d'), :global );
-        $format .= subst( '%F', $.year.fmt('%04d') ~ '-' ~ $.month.fmt(
-                          '%02d') ~ '-' ~ $.day.fmt('%02d'), :global );
-        $format .= subst( '%I', (($.hour+23)%12+1).fmt('%02d'), :global );
-        $format .= subst( '%k', $.hour.fmt('%2d'), :global );
-        $format .= subst( '%l', (($.hour+23)%12+1).fmt('%2d'), :global );
-        $format .= subst( '%n', "\n", :global );
-        $format .= subst( '%N', (($.second % 1)*1000000000).fmt('%09d'), :global );
-        $format .= subst( '%3N',(($.second % 1)*1000).fmt('%03d'), :global );
-        $format .= subst( '%6N',(($.second % 1)*1000000).fmt('%06d'), :global );
-        $format .= subst( '%9N',(($.second % 1)*1000000000).fmt('%09d'), :global );
-        $format .= subst( '%p', ($.hour < 12) ?? 'am' !! 'pm', :global );
-        $format .= subst( '%P', ($.hour < 12) ?? 'AM' !! 'PM', :global );
-        $format .= subst( '%r', (($.hour+23)%12+1).fmt('%02d') ~ ':' ~
-                                 $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d')
-                                 ~($.hour < 12) ?? 'am' !! 'pm', :global );
-        $format .= subst( '%R', $.hour.fmt('%02d') ~ ':' ~
-                                $.minute.fmt('%02d'), :global );
-        $format .= subst( '%s', $.to-epoch.fmt('%d'), :global );
-        $format .= subst( '%t', "\t", :global );
-        $format .= subst( '%T', $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt(
-                          '%02d') ~ ':' ~ $.second.fmt('%02d'), :global );
-        $format .= subst( '%u', ~ $.day-of-week.fmt('%d'), :global );
-        $format .= subst( '%w', ~ (($.day-of-week+6) % 7).fmt('%d'), :global );
-        $format .= subst( '%x', $.year.fmt('%04d') ~ '-' ~ $.month.fmt(
-                          '%02d') ~ '-' ~ $.day.fmt('%2d'), :global );
-        $format .= subst( '%X', $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt(
-                          '%02d') ~ ':' ~ $.second.fmt('%02d'), :global );
-        $format .= subst( '%y', ($.year % 100).fmt('%02d'), :global );
-        $format .= subst( '%%', '%', :global );
-        # TODO: implement %a abbr weekday name %A full weekday name
-        # %b abbr month name %B full month name %c default local format
-        # %j day num 001-366 %U week num 00-53 %V week num 01-53
-        # %z time-zone %Z time-zone %{method}
-        # TODO: use plugin formatter to add non-Posix locales
-        # TODO: either speed up this implementation (it looks slow) or
-        # revise the spec to move this to a DateTime::strftime.pm6 file.
-        return $format;
+        my %substitutions =
+            # Standard substitutions for yyyy mm dd hh mm ss output.
+            'Y' => { $.year.fmt(  '%04d') },
+            'm' => { $.month.fmt( '%02d') },
+            'd' => { $.day.fmt(   '%02d') },
+            'H' => { $.hour.fmt(  '%02d') },
+            'M' => { $.minute.fmt('%02d') },
+            'S' => { $.second.fmt('%02d') },
+            # Special substitutions (Posix-only subset of DateTime or libc)
+            'a' => { $.day-name.substr(0,3) },
+            'A' => { $.day-name },
+            'b' => { $.month-name.substr(0,3) },
+            'B' => { $.month-name },
+            'C' => { ($.year/100).fmt('%02d') },
+            'e' => { $.day.fmt('%2d') },
+            'F' => { $.year.fmt('%04d') ~ '-' ~ $.month.fmt(
+                     '%02d') ~ '-' ~ $.day.fmt('%02d') },
+            'I' => { (($.hour+23)%12+1).fmt('%02d') },
+            'k' => { $.hour.fmt('%2d') },
+            'l' => { (($.hour+23)%12+1).fmt('%2d') },
+            'n' => { "\n" },
+            'N' => { (($.second % 1)*1000000000).fmt('%09d') },
+            'p' => { ($.hour < 12) ?? 'am' !! 'pm' },
+            'P' => { ($.hour < 12) ?? 'AM' !! 'PM' },
+            'r' => { (($.hour+23)%12+1).fmt('%02d') ~ ':' ~
+                     $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d')
+                     ~ (($.hour < 12) ?? 'am' !! 'pm') },
+            'R' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') },
+            's' => { $.to-epoch.fmt('%d') },
+            't' => { "\t" },
+            'T' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') },
+            'u' => { ~ $.day-of-week.fmt('%d') },
+            'w' => { ~ (($.day-of-week+6) % 7).fmt('%d') },
+            'x' => { $.year.fmt('%04d') ~ '-' ~ $.month.fmt('%02d') ~ '-' ~ $.day.fmt('%2d') },
+            'X' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') },
+            'y' => { ($.year % 100).fmt('%02d') },
+            '%' => { '%' },
+            '3' => { (($.second % 1)*1000).fmt('%03d') },
+            '6' => { (($.second % 1)*1000000).fmt('%06d') },
+            '9' => { (($.second % 1)*1000000000).fmt('%09d') }
+        ;
+        my $result = '';
+        while $format ~~ / ^ (<-['%']>*) '%' (.)(.*) $ / {
+            unless %substitutions.exists(~$1) { die "unknown strftime format: %$1"; }
+            $result ~= $0 ~ %substitutions{~$1}();
+            $format = ~$2;
+            if $1 eq '3'|'6'|'9' {
+                if $format.substr(0,1) ne 'N' { die "strftime format %$1 must be followed by N"; }
+                $format = $format.substr(1);
+            }
+        }
+        # The subst for masak++'s nicer-strftime branch is NYI
+        # $format .= subst( /'%'(\w|'%')/, { (%substitutions{~$0}
+        #            // die "Unknown format letter '\%$0'").() }, :global );
+        return $result ~ $format;
     }
 
     multi method truncate($unit) {

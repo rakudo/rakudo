@@ -13,8 +13,8 @@ class Complex does Numeric is Cool {
         ($topic.Num ~~ $.re) && ($.im == 0);
     }
 
-    method abs() {
-        ($!re * $!re + $!im * $!im).sqrt
+    method abs(Complex $x:) {
+        ($x.re * $x.re + $x.im * $x.im).sqrt
     }
 
     multi method Complex() { self }

@@ -9,6 +9,10 @@ role Real does Numeric {
         $x < 0 ?? -$x !! $x;
     }
 
+    method exp(Real $exponent: Real $base = e) {
+        $base ** $exponent;
+    }
+
     method sign(Real $x:) {
         $x.notdef ?? Mu
                     !! ($x ~~ NaN ?? NaN !! $x <=> 0);
@@ -95,4 +99,12 @@ multi sub infix:</>(Real $a, Real $b) {
 
 multi sub infix:</>(Num $a, Num $b) {
     pir::div__NNN($a, $b)
+}
+
+multi sub infix:<**>(Real $a, Real $b) {
+    $a.Bridge ** $b.Bridge;
+}
+
+multi sub infix:<**>(Num $a, Num $b) {
+    pir::pow__NNN($a, $b)
 }

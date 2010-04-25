@@ -94,9 +94,14 @@ method name_adverbs() {
 }
 
 # This method drives the code generation and fixes up the block.
-# XXX Need to support lexical and anonymous.
 method finish($block) {
     my $decl := PAST::Stmts.new();
+
+    # Emit code to install the current scope as $*SCOPE.
+    $decl.push(PAST::Op.new( :pasttype('bind'),
+        PAST::Var.new( :scope('lexical'), :name('$*SCOPE'), :isdecl(1) ),
+        ~$!scope || 'our'
+    ));
 
     # Create or look up meta-class.
     my $how := $!how;
@@ -191,7 +196,11 @@ method finish($block) {
     $decl.push(PAST::Op.new( :pasttype('callmethod'), :name('compose'), $meta_reg, $obj_reg ));
 
     # Check scope and put decls in the right place.
-    if $!scope eq 'our' || $!scope eq 'augment' {
+    if $!scope eq 'anon' || $!name eq '' {
+        $block.blocktype('immediate');
+        $block.push($decl);
+    }
+    elsif $!scope eq 'our' || $!scope eq 'augment' {
         my $init_decl_name := $block.unique('!class_init_');
         my @ns := Perl6::Grammar::parse_name($name);
         $block.push(PAST::Block.new( :name($init_decl_name), :blocktype('declaration'), $decl ));
@@ -203,8 +212,15 @@ method finish($block) {
         $block.blocktype('immediate');
         $block.namespace(@ns);
     }
+    elsif $!scope eq 'my' {
+        # Install a binding of the declaration to a name in the lexpad.
+        @Perl6::Actions::BLOCK[0][0].push(PAST::Var.new(
+            :name($!name), :isdecl(1),  :viviself($decl), :scope('lexical')
+        ));
+        @Perl6::Actions::BLOCK[0].symbol($!name, :scope('lexical'), :does_abstraction(1));
+    }
     else {
-        pir::die("Can't handle scope declarator " ~ $!scope ~ " on packages yet");
+        pir::die("Scope declarator " ~ $!scope ~ " is not supported on packages");
     }
 
     return $block;

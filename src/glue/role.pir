@@ -18,7 +18,7 @@ Creates a master-role object, containing all the various role variants.
 
 .sub '!create_master_role'
     .param pmc shortname
-    .param pmc existing
+    .param pmc existing :optional
     if null existing goto need_new
     $I0 = isa existing, 'Perl6Role'
     unless $I0 goto need_new

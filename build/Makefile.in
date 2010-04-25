@@ -12,7 +12,7 @@ PARROT_SRC_DIR     = @srcdir@$(PARROT_VERSION)
 HAS_ICU            = @has_icu@
 
 CC            = @cc@
-CFLAGS        = @ccflags@ @cc_shared@ @cc_debug@ @ccwarn@ @cc_hasjit@ @cg_flag@ @gc_flag@
+CFLAGS        = @ccflags@ @cc_shared@ @cc_debug@ @ccwarn@ @cc_hasjit@ @gc_flag@
 EXE           = @exe@
 LD            = @ld@
 LDFLAGS       = @ldflags@ @ld_debug@
@@ -57,8 +57,7 @@ OPS           = perl6_ops
 DYNEXT_TARGET = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
 DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
 DYNOPS        = \
-  $(OPS_DIR)/$(OPS)$(LOAD_EXT) \
-  $(OPS_DIR)/$(OPS)_switch$(LOAD_EXT) \
+  $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
 SOURCES = \
   src/Perl6/Compiler.pir \
@@ -93,6 +92,7 @@ BUILTINS_PIR = \
   src/gen/RoleToInstanceApplier.pir \
   src/metamodel/GrammarHOW.pir \
   src/builtins/Any.pir \
+  src/builtins/Cool.pir \
   src/builtins/Role.pir \
   src/builtins/ConcreteRole.pir \
   src/builtins/Abstraction.pir \
@@ -162,15 +162,18 @@ CHEATS_PIR = \
 CORE_SOURCES = \
   src/core/traits.pm \
   src/core/operators.pm \
+  src/glue/subset.pm \
   src/cheats/trait-export.pm \
   src/cheats/num.pm \
   src/cheats/eval.pm \
+  src/core/Associative.pm \
   src/core/Mu.pm \
   src/core/Bool.pm \
   src/core/Parcel.pm \
+  src/core/Any.pm \
   src/core/Any-list.pm \
-  src/core/Any-num.pm \
-  src/core/Any-str.pm \
+  src/core/Cool-num.pm \
+  src/core/Cool-str.pm \
   src/core/Seq.pm \
   src/core/Set.pm \
   src/core/Array.pm \
@@ -204,7 +207,7 @@ CORE_SOURCES = \
   src/core/system.pm \
   src/cheats/match-bool.pm \
   src/cheats/setup-io.pm \
-  src/glue/subset.pm \
+  src/core/Date.pm \
   src/core/Temporal.pm \
   src/core/YOU_ARE_HERE.pm \
 
@@ -558,8 +561,3 @@ $(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h $(DYNPM
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
 	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) $(LINKARGS)
-
-$(OPS_DIR)/$(OPS)_switch$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h $(DYNPMC)
-	cd $(OPS_DIR) && $(OPS2C) CSwitch --dynamic $(OPS_SOURCE)
-	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)_switch$(O) $(CINCLUDES) $(CFLAGS) $(OPS)_switch.c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)_switch$(LOAD_EXT) $(OPS)_switch$(O) $(LINKARGS)

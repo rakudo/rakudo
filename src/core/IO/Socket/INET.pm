@@ -1,4 +1,4 @@
-class IO::Socket::INET does IO::Socket {
+class IO::Socket::INET is Cool does IO::Socket {
 
     method open (Str $hostname, Int $port) {
 

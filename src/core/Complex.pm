@@ -1,4 +1,4 @@
-class Complex does Numeric {
+class Complex does Numeric is Cool {
     has $.re;
     has $.im;
 
@@ -13,8 +13,8 @@ class Complex does Numeric {
         ($topic.Num ~~ $.re) && ($.im == 0);
     }
 
-    method abs() {
-        ($!re * $!re + $!im * $!im).sqrt
+    method abs(Complex $x:) {
+        ($x.re * $x.re + $x.im * $x.im).sqrt
     }
 
     multi method Complex() { self }
@@ -31,6 +31,10 @@ class Complex does Numeric {
 
     multi method exp() {
         Complex.new($.re.Num.exp * $.im.Num.cos, $.re.Num.exp * $.im.Num.sin);
+    }
+
+    multi method exp(Complex $exponent: Numeric $base) {
+        $base ** $exponent;
     }
 
     multi method sin($base = Radians) {

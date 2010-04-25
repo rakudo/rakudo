@@ -17,7 +17,7 @@ for executable objects.
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     $P0 = get_hll_global 'Callable'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Any', 'attr'=>'$!do $!multi $!signature $!lazy_sig_init', 'does_role'=>$P0)
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Cool', 'attr'=>'$!do $!multi $!signature $!lazy_sig_init', 'does_role'=>$P0)
     $P1 = new ['Role']
     $P1.'name'('invokable')
     p6meta.'compose_role'(codeproto, $P1)
@@ -31,7 +31,7 @@ for executable objects.
 .sub 'new' :method
     .param pmc do
     .param pmc multi
-    .param pmc lazy_sig_init
+    .param pmc lazy_sig_init :optional
     $P0 = getprop '$!p6type', do
     if null $P0 goto need_create
     .return ($P0)
@@ -131,8 +131,7 @@ Just calls this block with the supplied parameters.
 =cut
 
 .sub 'name' :method
-    $P0 = getattribute self, '$!do'
-    $S0 = $P0
+    $S0 = self
     .return ($S0)
 .end
 
@@ -171,6 +170,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
     # No signautre yet, but maybe we have a lazy creator.
     lazy_sig = getattribute self, '$!lazy_sig_init'
     if null lazy_sig goto srsly_no_sig
+push_eh lazyerr
     ll_sig = lazy_sig()
     setprop do, '$!signature', ll_sig
     goto have_sig
@@ -183,6 +183,9 @@ Gets the signature for the block, or returns Failure if it lacks one.
     $P1 = $P1.'new'('ll_sig' => ll_sig)
     setattribute self, '$!signature', $P1
     .return ($P1)
+  lazyerr:
+  pop_eh
+  say lazy_sig
 .end
 
 =item do()

@@ -22,7 +22,8 @@ class Perl6::Metamodel::RoleToInstanceApplier;
 
 method apply($target, @composees) {
     # Make anonymous subclass.
-    my $subclass := $target.HOW.new;
+    my $*SCOPE := 'anon';
+    my $subclass := $target.HOW.new('');
     $subclass.HOW.add_parent($subclass, $target.WHAT);
 
     # Add all of our given composees to it.
@@ -31,12 +32,15 @@ method apply($target, @composees) {
     }
 
     # Complete construction of anonymous subclass and then rebless the target
-    # into it. XXX This bit is a tad Parrot-specific at the moment; need to
-    # better encapsulate reblessing. Also we need to make a fake instance of
-    # the subclass to have Parrot internally form it's various bits.
+    # into it.
     my $new_class := $subclass.HOW.compose($subclass);
     $new_class.CREATE();
-    pir::rebless_subclass__vPP($target, $new_class.HOW.get_parrotclass($new_class));
+    $target.HOW.rebless($target, $new_class);
+
+    # Also need to call BUILD to perform any attribute initializations.
+    my $builder := pir::find_method__pps($target, 'BUILD');
+    my $*CLASS := $new_class;
+    $builder($target);
 }
 
 =begin

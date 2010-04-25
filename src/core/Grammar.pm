@@ -3,13 +3,13 @@ class Grammar is Regex::Cursor {
         my $fh = open($file, :r)
             || die "$file: $!";
         my $str = $fh.slurp;
-        self.parse($str, %options);
+        self.parse($str, |%options);
     }
-    method parse($str, :$actions, :$action) {
+    method parse($str, :$actions, :$action, *%options) {
         if $action {
             die(":action has been renamed to :actions in the Grammar.parse method")
         }
-        nextwith($str, :$actions);
+        nextwith($str, :$actions, |%options);
     }
 }
 

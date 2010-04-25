@@ -1,4 +1,8 @@
-augment class Any {
+augment class Cool {
+    method Numeric() {
+        pir::set__NP(self);
+    }
+
     method abs() {
         (+self).abs;
     }
@@ -164,7 +168,7 @@ augment class Any {
 proto sub abs($x) { $x.abs }
 multi sub prefix:<abs>($x) { $x.abs }
 proto sub sign($x) { $x.sign }
-proto sub exp($exponent) { $exponent.exp }
+proto sub exp($exponent, $base = e) { $exponent.exp($base) }
 proto sub log($x, $base = e) { $x.log($base) }
 proto sub log10($x) { $x.log10 }
 proto sub cis($angle) { $angle.cis; }

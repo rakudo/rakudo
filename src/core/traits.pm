@@ -12,6 +12,7 @@ our multi trait_mod:<is>(Mu $child, Role $r) {
     $child.^add_parent($r!select!pun);
 }
 
+role Associative { ... }
 our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
     given substr($cont.name, 0, 1) {
         when '@' { $cont.container does Positional[$type] }
@@ -21,8 +22,16 @@ our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {
     }
 }
 
-our multi trait_mod:<does>(Mu $target, Mu $r) {
+our multi trait_mod:<does>(Mu $target, Role $r) {
     $target.^add_composable($r);
+}
+
+our multi trait_mod:<does>(Mu $target, ConcreteRole $r) {
+    $target.^add_composable($r);
+}
+
+our multi trait_mod:<does>(Mu $target, Mu $unrole) {
+    die "Can only use does with a role, but " ~ $unrole.perl ~ " is not one";
 }
 
 our multi trait_mod:<does>(ContainerDeclarand $c, Role $r) {

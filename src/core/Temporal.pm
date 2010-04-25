@@ -1,7 +1,7 @@
 use v6;
 
-subset DateTime::Formatter where { .can<fmt-datetime fmt-ymd fmt-hms> };
-subset DateTime::Parser    where { .can<parse-datetime parse-ymd parse-hms> };
+subset DateTime::Formatter where { .can( all<fmt-datetime fmt-ymd fmt-hms> )};
+subset DateTime::Parser    where { .can( all<parse-datetime parse-ymd parse-hms> )};
 
 # RAKUDO: When we have anonymous classes, we don't need to do it like this
 class DefaultFormatter {
@@ -105,21 +105,16 @@ class DateTime {
         );
     }
 
-#   multi method ymd($sep = '-') {
-#       $!year ~ $sep ~ ($!month, $!day).fmt('%02d', $sep);
-#   }
     multi method ymd() {
         $!formatter.fmt-ymd(self);
     }
 
-#   multi method hms($sep = ':') {
-#       ($!hour, $!minute, $!second).fmt('%02d', $sep);
-#   }
     multi method hms() {
         $!formatter.fmt-hms(self);
     }
 
     method iso8601() {
+        # This should be the only formatting not done by the formatter
         $.year.fmt(  '%04d') ~ '-' ~ $.month.fmt( '%02d') ~ '-' ~
         $.day.fmt(   '%02d') ~ 'T' ~ $.hour.fmt(  '%02d') ~ ':' ~
         $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') ~ $.time-zone;
@@ -127,6 +122,64 @@ class DateTime {
 
     method Str() {
         $!formatter.fmt-datetime(self);
+    }
+
+    multi method strftime( Str $format is copy ) {
+        my %substitutions =
+            # Standard substitutions for yyyy mm dd hh mm ss output.
+            'Y' => { $.year.fmt(  '%04d') },
+            'm' => { $.month.fmt( '%02d') },
+            'd' => { $.day.fmt(   '%02d') },
+            'H' => { $.hour.fmt(  '%02d') },
+            'M' => { $.minute.fmt('%02d') },
+            'S' => { $.second.fmt('%02d') },
+            # Special substitutions (Posix-only subset of DateTime or libc)
+            'a' => { $.day-name.substr(0,3) },
+            'A' => { $.day-name },
+            'b' => { $.month-name.substr(0,3) },
+            'B' => { $.month-name },
+            'C' => { ($.year/100).fmt('%02d') },
+            'e' => { $.day.fmt('%2d') },
+            'F' => { $.year.fmt('%04d') ~ '-' ~ $.month.fmt(
+                     '%02d') ~ '-' ~ $.day.fmt('%02d') },
+            'I' => { (($.hour+23)%12+1).fmt('%02d') },
+            'k' => { $.hour.fmt('%2d') },
+            'l' => { (($.hour+23)%12+1).fmt('%2d') },
+            'n' => { "\n" },
+            'N' => { (($.second % 1)*1000000000).fmt('%09d') },
+            'p' => { ($.hour < 12) ?? 'am' !! 'pm' },
+            'P' => { ($.hour < 12) ?? 'AM' !! 'PM' },
+            'r' => { (($.hour+23)%12+1).fmt('%02d') ~ ':' ~
+                     $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d')
+                     ~ (($.hour < 12) ?? 'am' !! 'pm') },
+            'R' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') },
+            's' => { $.to-epoch.fmt('%d') },
+            't' => { "\t" },
+            'T' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') },
+            'u' => { ~ $.day-of-week.fmt('%d') },
+            'w' => { ~ (($.day-of-week+6) % 7).fmt('%d') },
+            'x' => { $.year.fmt('%04d') ~ '-' ~ $.month.fmt('%02d') ~ '-' ~ $.day.fmt('%2d') },
+            'X' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') },
+            'y' => { ($.year % 100).fmt('%02d') },
+            '%' => { '%' },
+            '3' => { (($.second % 1)*1000).fmt('%03d') },
+            '6' => { (($.second % 1)*1000000).fmt('%06d') },
+            '9' => { (($.second % 1)*1000000000).fmt('%09d') }
+        ;
+        my $result = '';
+        while $format ~~ / ^ (<-['%']>*) '%' (.)(.*) $ / {
+            unless %substitutions.exists(~$1) { die "unknown strftime format: %$1"; }
+            $result ~= $0 ~ %substitutions{~$1}();
+            $format = ~$2;
+            if $1 eq '3'|'6'|'9' {
+                if $format.substr(0,1) ne 'N' { die "strftime format %$1 must be followed by N"; }
+                $format = $format.substr(1);
+            }
+        }
+        # The subst for masak++'s nicer-strftime branch is NYI
+        # $format .= subst( /'%'(\w|'%')/, { (%substitutions{~$0}
+        #            // die "Unknown format letter '\%$0'").() }, :global );
+        return $result ~ $format;
     }
 
     multi method truncate($unit) {
@@ -204,9 +257,10 @@ class DateTime {
 }
 
 =begin pod
- 
+
 =head1 SEE ALSO
 Perl 6 spec <S32-Temporal|http://perlcabal.org/syn/S32/Temporal.html>.
+The Perl 5 DateTime Project home page L<http://datetime.perl.org>.
 Perl 5 perldoc L<doc:DateTime> and L<doc:Time::Local>.
  
 The best yet seen explanation of calendars, by Claus Tøndering
@@ -216,6 +270,9 @@ and L<http://www.merlyn.demon.co.uk/daycount.htm>.
  
 <ISO 8601|http://en.wikipedia.org/wiki/ISO_8601>
 <Time zones|http://en.wikipedia.org/wiki/List_of_time_zones>
+
+To accommodate more Temporal expectations without bloating the core executable, I am planning to move DateTime::strftime into a loadable module. The move will also validate how tools handle "core modules" (eg copying, compiling to PIR) beyond only Test.pm.
+If it works, I intend to gradually move more non essential code (a subjective call, admittedly) as possible into loadable modules. Which actual code moves is less important, using the capability is more important.
  
 =end pod
 

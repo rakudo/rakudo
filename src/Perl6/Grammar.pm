@@ -27,11 +27,11 @@ method TOP() {
     self.comp_unit;
 }
 
-method add_my_name($name) {
+method add_my_name($name, $up_levels = 0) {
     my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
 
     # We need to flag up most re-declaration collisions.
-    my $cur_decl := @BLOCK[0].symbol($name);
+    my $cur_decl := @BLOCK[$up_levels].symbol($name);
     if $cur_decl {
         if $*PKGDECL eq 'role' || $cur_decl<stub> {
             return 1;
@@ -42,11 +42,11 @@ method add_my_name($name) {
     }
 
     # Add it.
-    @BLOCK[0].symbol($name, :does_abstraction(1));
+    @BLOCK[$up_levels].symbol($name, :does_abstraction(1));
     return 1;
 }
 
-method add_our_name($name) {
+method add_our_name($name, $up_levels = 0) {
     our %COMPILINGPACKAGES;
     our %STUBCOMPILINGPACKAGES;
 
@@ -76,10 +76,10 @@ method add_our_name($name) {
     %COMPILINGPACKAGES{$name} := 1;
 
     # Always need to add our names as lexical names too.
-    return self.add_my_name($name);
+    return self.add_my_name($name, $up_levels);
 }
 
-method add_name($name) {
+method add_name($name, $up_levels = 0) {
     if $*SCOPE eq 'augment' || $*SCOPE eq 'supersede' {
         unless self.is_name($name) {
             pir::die("Can't $*SCOPE $*PKGDECL that doesn't exist");
@@ -90,10 +90,10 @@ method add_name($name) {
     }
     else {
         if $*SCOPE eq 'our' {
-            self.add_our_name($name);
+            self.add_our_name($name, $up_levels);
         }
         else {
-            self.add_my_name($name);
+            self.add_my_name($name, $up_levels);
         }
     }
     return 1;
@@ -140,7 +140,16 @@ token name {
 
 token morename {
     :my $*QSIGIL := '';
-    '::' <identifier>
+    '::'
+    [
+    ||  <?before '(' | <alpha> >
+        [
+        | <identifier>
+        | '(' ~ ')' <EXPR>
+            <.panic: "Indirect name lookups not yet implemented">
+        ]
+    || <?before '::'> <.panic: "Name component may not be null">
+    ]?
 }
 
 token longname {
@@ -247,10 +256,10 @@ token comp_unit {
     :my $*MULTINESS := '';                     # which multi declarator we're under
     :my $*QSIGIL := '';                        # sigil of current interpolation
     :my $*TYPENAME := '';
-    {*} #= open
     <.newpad>
     <.outerlex>
     <.finishpad>
+    {*} #= open
     <statementlist>
     [ $ || <.panic: 'Confused'> ]
 }
@@ -662,7 +671,7 @@ token special_variable:sym<$]> {
 }
 
 token special_variable:sym<$\\> {
-    <sym> <?before \s | ',' | '=' | <terminator> >
+    '$\\' <?before \s | ',' | '=' | <terminator> >
     <.obs('$\\ variable', "the filehandle's :ors attribute")>
 }
 
@@ -728,11 +737,17 @@ token variable {
         }
     }> {}
     [
-    | <sigil> <twigil>? <desigilname>
-    | <special_variable>
-    | <sigil> $<index>=[\d+]
-    | <sigil> <?[<[]> <postcircumfix>
-    | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
+    || '&'
+        [
+        | '[' ~ ']' <infixish>
+        ]
+    ||  [
+        | <sigil> <twigil>? <desigilname>
+        | <special_variable>
+        | <sigil> $<index>=[\d+]
+        | <sigil> <?[<[]> <postcircumfix>
+        | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
+        ]
     ]
     [ <?{ $<twigil> && $<twigil>[0] eq '.' }>
         [ <.unsp> | '\\' | <?> ] <?before '('> <arglist=.postcircumfix>
@@ -778,15 +793,15 @@ token package_declarator:sym<does> {
 
 rule package_def {
     :my $*IN_DECL := 'package';
+    <.newpad>
     <def_module_name>?
     <trait>*
     {*} #= open
     [
     || ';'
-        <.newpad>
         <.finishpad>
         <statementlist>
-    || <?[{]> <block>
+    || <?[{]> <blockoid>
     || <.panic: 'Malformed package declaration'>
     ]
 }
@@ -1109,8 +1124,20 @@ rule trait {
 
 proto token trait_mod { <...> }
 token trait_mod:sym<is>      { <sym>:s <longname><circumfix>? }
-token trait_mod:sym<hides>   { <sym>:s <module_name> }
-token trait_mod:sym<does>    { <sym>:s <module_name> }
+token trait_mod:sym<hides>   {
+    <sym>:s <module_name>
+    [
+    || <?{ $/.CURSOR.is_name($<module_name><longname>.Str) }>
+    || <panic("Typename " ~ $<module_name> ~ " must be pre-declared to use it with hides")>
+    ]
+}
+token trait_mod:sym<does>    {
+    <sym>:s <module_name>
+    [
+    || <?{ $/.CURSOR.is_name($<module_name><longname>.Str) }>
+    || <panic("Typename " ~ $<module_name> ~ " must be pre-declared to use it with does")>
+    ]
+}
 token trait_mod:sym<will>    { <sym>:s <identifier> <pblock> }
 token trait_mod:sym<of>      { <sym>:s <typename> }
 token trait_mod:sym<as>      { <sym>:s <typename> }
@@ -1561,7 +1588,7 @@ token postcircumfix:sym<{ }> {
 }
 
 token postcircumfix:sym<ang> {
-    <?[<]> <quote_EXPR: ':q'>
+    <?[<]> <quote_EXPR: ':q', ':w'>
     <O('%methodcall')>
 }
 
@@ -1588,7 +1615,7 @@ token postfix:sym«->» {
 
 token infix:sym<**>   { <sym>  <O('%exponentiation')> }
 
-token prefix:sym<+>   { <sym>  <O('%symbolic_unary, :pirop<set N*>')> }
+token prefix:sym<+>   { <sym>  <O('%symbolic_unary')> }
 token prefix:sym<~>   { <sym>  <O('%symbolic_unary')> }
 token prefix:sym<->   { <sym> <![>]> <O('%symbolic_unary')> }
 token prefix:sym<?>   { <!before '???'> <sym>  <O('%symbolic_unary')> }

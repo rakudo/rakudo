@@ -111,7 +111,7 @@ like this.
 
     .local pmc p6meta, parentproto, how, parrotclass, attributes, it
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    parentproto = find_caller_lex '$CLASS'
+    parentproto = find_caller_lex '$*CLASS'
     how = parentproto.'HOW'()
     parrotclass = getattribute how, 'parrotclass'
     attributes = getattribute how, '$!attributes'
@@ -173,7 +173,7 @@ like this.
     parentproto = $P0.'WHAT'()
     build_method = find_method_null_ok parentproto, 'BUILD'
     if null build_method goto parents_loop
-    .lex '$CLASS', parentproto
+    .lex '$*CLASS', parentproto
     # Look through posargs for a corresponding protoobject
     # with a WHENCE property.  If found, that WHENCE property
     # is used as the arguments to the parent class BUILD.

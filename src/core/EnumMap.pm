@@ -1,11 +1,11 @@
-class EnumMap does Associative {
+class EnumMap is Cool does Associative {
     has $!storage;
 
     method new(*%values) {
         self.bless(*, storage => pir::getattribute__PPs(%values, '$!storage'));
     }
 
-    method postcircumfix:<{ }>($key) {
+    multi method postcircumfix:<{ }>($key) {
         Q:PIR {
             .local pmc self
             self = find_lex 'self'

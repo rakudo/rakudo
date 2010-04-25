@@ -18,7 +18,7 @@ aggregate if written to.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, listproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    listproto = p6meta.'new_class'('Proxy', 'parent'=>'parrot;Undef Any', 'attr'=>'$!base $!key &!vivibase')
+    listproto = p6meta.'new_class'('Proxy', 'parent'=>'parrot;Undef Cool', 'attr'=>'$!base $!key &!vivibase')
 .end
 
 =back

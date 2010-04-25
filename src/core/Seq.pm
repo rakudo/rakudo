@@ -88,6 +88,10 @@ augment class Seq {
     multi method fmt($format = '%s', $seperator = ' ') {
         self.map({ .fmt($format)}).join($seperator);
     }
+
+    method perl() {
+        '(' ~ self.map({ $^a.perl }).join(', ') ~ ')';
+    }
 }
 
 multi sub sort (@x, :&by = &infix:<cmp>) { @x.sort(&by) }

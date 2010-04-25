@@ -16,7 +16,7 @@ P6LowLevelSig and provides higher level access to it.
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    p6meta.'new_class'('Signature', 'parent'=>'Any', 'attr'=>'$!ll_sig $!param_cache $!try_bind_sub $!bind_target')
+    p6meta.'new_class'('Signature', 'parent'=>'Cool', 'attr'=>'$!ll_sig $!param_cache $!try_bind_sub $!bind_target')
 .end
 
 

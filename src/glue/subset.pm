@@ -3,14 +3,14 @@
 role SubType {
     has $!checker;
     method ACCEPTS(Mu $topic) {
-        unless $!checker.ACCEPTS($topic) {
-            return Bool::False;
+        unless callsame() {
+            return Bool::False
         }
-        nextsame();
+        $!checker.ACCEPTS($topic)
     }
 }
 
-our sub CREATE_SUBSET_TYPE($original, $checker) {
+our sub CREATE_SUBSET_TYPE(Mu $original, $checker) {
     # XXX Ideally we'd be able to just replace all of what follows
     # with a simple:
     #     my $subtype = $original but SubType($checker);

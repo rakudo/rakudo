@@ -1,0 +1,52 @@
+    Announce: Rakudo Perl 6 development release #28 ("Moscow")
+
+On behalf of the Rakudo development team, I'm pleased to announce the
+March 2010 development release of Rakudo Perl #28 "Moscow".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
+(see http://www.parrot.org).  The tarball for the April 2010 release
+is available from http://github.com/rakudo/rakudo/downloads .
+
+Rakudo Perl follows a monthly release cycle, with each release named
+after a Perl Mongers group.  The April 2010 release is code named
+"Moscow" in recognition of Москва.пм and their invitation of Jonathan
+Worthington, one of our core develepors, to speak at the Russian Internet
+Technologies 2010 [1] conference.
+
+Some of the specific changes and improvements occuring with this
+release include:
+
+*  Expressions that begin with a variable and end with a circumfix now properly
+   interpolate into double-quoted strings, like "@array.sort()" or
+   "%hash<key>".
+
+*  Item assignment now has tighter precdence than list assignment, so both
+   'my @a = 1, 2, 3' and '$a = 1, $b = 2' magically work.
+
+*  Most of the DateTime built-in type has been backported from the "alpha"
+   branch, and is now accompanied by a Date type for date-only calculations.
+   
+*  Many obsolete uses of Perl 5 constructs are now caught and give helpful
+   error messages.
+
+*  As always, many additional small features and bug fixes make working with
+   Rakudo more pleasant.
+
+*  Rakudo now passes 30,931 spectests. We estimate that there are about
+   39,000 tests in the test suite, so Rakudo passes about 79% of all tests.
+
+For a more detailed list of changes see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible.  If you would like to contribute,
+see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
+mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#29) is scheduled for May 20, 2010.
+A list of the other planned release dates and code names for 2010 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
+
+[1]: http://ritconf.ru/

@@ -38,6 +38,10 @@ augment class Signature {
 
                 # First the type.
                 my $name = $param.name;
+
+                # work around TT #1560
+                $name = '' unless chars($name);
+
                 if !$param.slurpy {
                     my $sigil = substr($name, 0, 1);
                     my $perl = $param.type.perl;

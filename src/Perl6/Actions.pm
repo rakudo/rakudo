@@ -45,6 +45,7 @@ method comp_unit($/, $key?) {
     # If this is the start of the unit, add an outer module.
     if $key eq 'open' {
         @PACKAGE.unshift(Perl6::Compiler::Module.new());
+        @PACKAGE[0].block(@BLOCK[0]);
         return 1;
     }
     
@@ -241,9 +242,6 @@ method newpad($/) {
         )
     ));
     @BLOCK.unshift($new_block);
-    unless @PACKAGE[0].block {
-        @PACKAGE[0].block($new_block);
-    }
 }
 
 method outerlex($/) {
@@ -682,6 +680,9 @@ method variable($/) {
         $past := $<postcircumfix>.ast;
         $past.unshift( PAST::Var.new( :name('$/') ) );
     }
+    elsif $<infixish> {
+        $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
+    }
     else {
         $past := make_variable($/, ~$/);
     }
@@ -773,7 +774,7 @@ method package_def($/, $key?) {
         if $<def_module_name> {
             my $name := ~$<def_module_name>[0]<longname><name>;
             if $name ne '::' {
-                $/.CURSOR.add_name($name);
+                $/.CURSOR.add_name($name, 1);
                 $package.name($name);
             }
             if $<def_module_name>[0]<signature> {
@@ -792,6 +793,9 @@ method package_def($/, $key?) {
             $package.traits.push($_.ast);
         }
 
+        # Claim currently open block as the package's block.
+        $package.block(@BLOCK[0]);
+
         # Put on front of packages list. Note - nesting a package in a role is
         # not supported (gets really tricky in the parametric case - needs more
         # thought and consideration).
@@ -803,7 +807,7 @@ method package_def($/, $key?) {
     else {
         # We just need to finish up the current package.
         my $package := @PACKAGE.shift;
-        if pir::substr__SSII($<block><blockoid><statementlist><statement>[0], 0, 3) eq '...' {
+        if pir::substr__SSII($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
             # Just a stub, so don't do any more work.
             if $*SCOPE eq 'our' || $*SCOPE eq '' {
                 %Perl6::Grammar::STUBCOMPILINGPACKAGES{~$<def_module_name>[0]<longname>} := 1;
@@ -813,8 +817,8 @@ method package_def($/, $key?) {
         }
         else {
             my $block;
-            if $<block> {
-                $block := $<block>.ast;
+            if $<blockoid> {
+                $block := $<blockoid>.ast;
             }
             else {
                 $block := @BLOCK.shift;
@@ -2187,13 +2191,31 @@ method postcircumfix:sym<[ ]>($/) {
 
 method postcircumfix:sym<{ }>($/) {
     my $past := PAST::Op.new( :name('!postcircumfix:<{ }>'), :pasttype('call'), :node($/) );
-    if $<semilist><statement> { $past.push($<semilist>.ast); }
+    if $<semilist><statement> {
+        if +$<semilist><statement> > 1 {
+            $/.CURSOR.panic("Sorry, multi-dimensional indexes are not yet supported");
+        }
+        my $slast := $<semilist>.ast;
+        if $slast[0].isa(PAST::Op) && $slast[0].name eq '&infix:<,>' {
+            for @($slast[0]) { $past.push($_); }
+        }
+        else {
+            $past.push($slast);
+        }
+    }
     make $past;
 }
 
 method postcircumfix:sym<ang>($/) {
-    make PAST::Op.new( $<quote_EXPR>.ast, :name('!postcircumfix:<{ }>'),
-                       :pasttype('call'), :node($/) );
+    my $past := PAST::Op.new( :name('!postcircumfix:<{ }>'), :pasttype('call'), :node($/) );
+    my $quoted := $<quote_EXPR>.ast;
+    if $quoted.isa(PAST::Stmts) && $quoted[0].isa(PAST::Op) && $quoted[0].name() eq '&infix:<,>' {
+        for @($quoted[0]) { $past.push($_); }
+    }
+    else {
+        $past.push($quoted);
+    }
+    make $past;
 }
 
 method postcircumfix:sym<( )>($/) {
@@ -2526,7 +2548,7 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
     }
 }
 
-# Takes a block and adds a signature ot it, as well as code to bind the call
+# Takes a block and adds a signature to it, as well as code to bind the call
 # capture against the signature. Returns the name of the signature setup block.
 sub add_signature($block, $sig_obj, $lazy) {
     # Set arity.
@@ -2547,16 +2569,22 @@ sub add_signature($block, $sig_obj, $lazy) {
     ));
 
     # If lazy, make and push signature setup block.
+    $block<signature_ast> := $sig_obj.ast(1);
     if $lazy {
-        my $sig_setup_block :=
-            PAST::Block.new( :blocktype<declaration>, $sig_obj.ast(1) );
-        $block[0].push($sig_setup_block);
-        PAST::Val.new(:value($sig_setup_block));
+        make_lazy_sig_block($block)
     }
     else {
-        $block.loadinit.push($sig_obj.ast(1));
+        $block.loadinit.push($block<signature_ast>);
         $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!signature", signature') ));
     }
+}
+
+# Makes a lazy signature building block.
+sub make_lazy_sig_block($block) {
+    my $sig_setup_block :=
+            PAST::Block.new( :blocktype<declaration>, $block<signature_ast> );
+    $block[0].push($sig_setup_block);
+    PAST::Val.new(:value($sig_setup_block));
 }
 
 # Adds a placeholder parameter to this block's signature.
@@ -2599,10 +2627,11 @@ sub create_code_object($block, $type, $multiness, $lazy_init) {
         :name('new'),
         PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
         $block,
-        $multiness,
-        $lazy_init
+        $multiness
     );
+    if $lazy_init { $past.push($lazy_init) }
     $past<past_block> := $block;
+    $past<block_class> := $type;
     $past
 }
 
@@ -2895,8 +2924,9 @@ sub prevent_null_return($block) {
 # one. Used by things doing where clause-ish things.
 sub where_blockify($expr) {
     my $past;
-    if $expr.isa(PAST::Block) {
-        $past := $expr;
+    if $expr<past_block> && $expr<block_class> eq 'Block' {
+        my $lazy_name := make_lazy_sig_block($expr<past_block>);
+        $past := create_code_object($expr<past_block>, 'Block', 0, $lazy_name);
     }
     else {
         $past := PAST::Block.new( :blocktype('declaration'),

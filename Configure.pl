@@ -135,7 +135,6 @@ sub verify_parrot {
     my @required_files = (
         "$PARROT_LIB_DIR/library/PGE/Perl6Grammar.pbc",
         "$PARROT_LIB_DIR/library/PCT/HLLCompiler.pbc",
-        "$PARROT_LIB_DIR/languages/nqp/nqp.pbc",
         "$PARROT_TOOLS_DIR/build/ops2c.pl",
         "$PARROT_TOOLS_DIR/build/pmc2c.pl",
         "$PARROT_SRC_DIR",

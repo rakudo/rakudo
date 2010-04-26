@@ -120,7 +120,8 @@ method finish($block) {
     # Unless the role is anonymous, in the loadinit we need to have code
     # to add this role variant to the main role object that goes in the
     # namespace or lexpad.
-    if $name {
+    my $result;
+    if $name && $!scope ne 'anon' {
         # Create block that we'll call to do role setup, and embed the
         # block we've already made within it.
         my $init_decl_name := $block.unique('!class_init_');
@@ -133,38 +134,56 @@ method finish($block) {
                 PAST::Var.new( :name('master_role'), :scope('register'), :isdecl(1) ),
                 PAST::Op.new( :pasttype('call'), :name('!create_master_role'),
                     ~$short_name,
-                    PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') )
+                    ($!scope eq 'our' ??
+                        PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') ) !!
+                        PAST::Op.new( :pirop('find_lex_skip_current PS'), $name ))
                 )
             ),
             PAST::Op.new(
                 :pasttype('callmethod'), :name('!add_variant'),
                 PAST::Var.new( :name('master_role'), :scope('register') ),
                 Perl6::Actions::create_code_object($block, 'Sub', 1, $lazy_sig_block_name)
-            ),
-            PAST::Op.new( :pasttype('bind'),
-                PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') ),
-                PAST::Var.new( :name('master_role'), :scope('register') )
             )
         );
         
         # Set namespace and install in package, if our scoped.
-        if $!scope eq 'our' {
+        if $!scope eq 'our' || $!scope eq '' {
             my @ns := Perl6::Grammar::parse_name($name ~ '[' ~ self.signature_text ~ ']');
             $block.namespace(@ns);
+            $block.push(PAST::Op.new( :pasttype('bind'),
+                PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') ),
+                PAST::Var.new( :name('master_role'), :scope('register') )
+            ));
             my @PACKAGE := Q:PIR { %r = get_hll_global ['Perl6'; 'Actions'], '@PACKAGE' };
             @PACKAGE[0].block.loadinit().push(PAST::Op.new(
                 :pasttype('call'),
                 PAST::Var.new( :name($init_decl_name), :namespace(@ns), :scope('package') )
             ));
+            $result := PAST::Stmts.new(
+                $block,
+                PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') )
+            );
+        }
+
+        # If we're my-scoped, similar but for the lexpad.
+        elsif $!scope eq 'my' {
+            # Install a binding of the declaration to a name in the lexpad.
+            $block.blocktype('immediate');
+            $block.push(PAST::Var.new( :name('master_role'), :scope('register') ));
+            @Perl6::Actions::BLOCK[0][0].push(PAST::Var.new(
+                :name($name), :isdecl(1),  :viviself($block), :scope('lexical')
+            ));
+            @Perl6::Actions::BLOCK[0].symbol($name, :scope('lexical'), :does_abstraction(1));
+            $result := PAST::Var.new( :name($name), :scope('lexical') );
         }
         else {
-            pir::die('Do not support ' ~ ~$!scope ~ ' scoped roles yet');
+            pir::die('Scope declarator ' ~ ~$!scope ~ ' is not supported on roles');
         }
     }
 
     # Otherwise, for anonymous, make such an object and hand it back.
     else {
-        $block := PAST::Stmts.new(
+        $result := PAST::Stmts.new(
             PAST::Op.new( :pasttype('bind'),
                 PAST::Var.new( :name('tmp_role'), :scope('register'), :isdecl(1) ),
                 PAST::Op.new( :pasttype('call'), :name('!create_master_role'), '')
@@ -177,5 +196,5 @@ method finish($block) {
         );
     }
 
-    return $block;
+    return $result;
 }

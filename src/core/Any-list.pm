@@ -82,6 +82,29 @@ augment class Any {
         $max;
     }
 
+    # CHEAT: this should take an ordering parameter
+    # And use the FIRST: phaser
+    multi method minmax($by = { $^a cmp $^b}) {
+        my $min = +Inf;
+        my $max = -Inf;
+        my $first-time = Bool::True;
+        for @.list {
+            if $first-time {
+                $min = $_;
+                $max = $_;
+                $first-time = Bool::False;
+                next;
+            }
+            if $by($_, $min) == -1 {
+                $min = $_;
+            }
+            if $by($_, $max) == 1 {
+                $max = $_;
+            }
+        }
+        ($min, $max);
+    }
+
     #CHEAT: Simplified version which we can hopefully sneak by ng.
     multi method pick() {
         my @l = @.list.Seq;
@@ -199,6 +222,7 @@ proto sub grep(Mu $test, *@values) { @values.grep($test); }
 proto sub first($test, @values) { @values.first($test); }
 proto sub min($by, *@values) { @values.min($by); }
 proto sub max($by, *@values) { @values.max($by); }
+proto sub minmax($by, *@values) { @values.minmax($by); }
 proto sub uniq(@values) { @values.uniq; }
 proto sub pick ($num, :$replace, *@values) { @values.pick($num, :$replace); }
 proto sub map(&mapper, @values) { @values.map(&mapper); }

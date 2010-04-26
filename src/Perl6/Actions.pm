@@ -833,6 +833,7 @@ method package_def($/, $key?) {
 method scope_declarator:sym<my>($/)      { make $<scoped>.ast; }
 method scope_declarator:sym<our>($/)     { make $<scoped>.ast; }
 method scope_declarator:sym<has>($/)     { make $<scoped>.ast; }
+method scope_declarator:sym<anon>($/)    { make $<scoped>.ast; }
 method scope_declarator:sym<augment>($/) { make $<scoped>.ast; }
 
 method declarator($/) {

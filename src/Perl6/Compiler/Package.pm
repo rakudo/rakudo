@@ -218,6 +218,8 @@ method finish($block) {
             :name($!name), :isdecl(1),  :viviself($decl), :scope('lexical')
         ));
         @Perl6::Actions::BLOCK[0].symbol($!name, :scope('lexical'), :does_abstraction(1));
+        $block.blocktype('immediate');
+        $block.push(PAST::Var.new( :name($!name), :scope('lexical') ));
     }
     else {
         pir::die("Scope declarator " ~ $!scope ~ " is not supported on packages");

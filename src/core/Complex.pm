@@ -13,10 +13,6 @@ class Complex does Numeric is Cool {
         ($topic.Num ~~ $.re) && ($.im == 0);
     }
 
-    method abs(Complex $x:) {
-        ($x.re * $x.re + $x.im * $x.im).sqrt
-    }
-
     multi method Complex() { self }
 
     our Bool multi method Bool() { ( $!re != 0 || $!im != 0 ) ?? Bool::True !! Bool::False }
@@ -29,12 +25,42 @@ class Complex does Numeric is Cool {
         "$.re + {$.im}i";
     }
 
+    method abs(Complex $x:) {
+        ($x.re * $x.re + $x.im * $x.im).sqrt
+    }
+
     multi method exp() {
         Complex.new($.re.Num.exp * $.im.Num.cos, $.re.Num.exp * $.im.Num.sin);
     }
 
     multi method exp(Complex $exponent: Numeric $base) {
         $base ** $exponent;
+    }
+
+    multi method log() {
+        Q:PIR {
+            .local pmc self
+            self = find_lex 'self'
+            $P0 = get_root_namespace ['parrot'; 'Complex' ]
+            $P0 = get_class $P0
+            $P0 = $P0.'new'()
+            $N0 = self.'re'()
+            $P0[0] = $N0
+            $N1 = self.'im'()
+            $P0[1] = $N1
+            $P0 = $P0.'ln'()
+            $N0 = $P0[0]
+            $P2 = box $N0
+            $N1 = $P0[1]
+            $P3 = box $N1
+            $P1 = get_hll_global 'Complex'
+            $P1 = $P1.'new'($P2, $P3)
+            %r  = $P1
+        }
+    }
+
+    multi method log(Complex $x: Numeric $base) {
+        $x.log / $base.log;
     }
 
     multi method sin($base = Radians) {
@@ -131,32 +157,6 @@ class Complex does Numeric is Cool {
 
     multi method acotanh($base = Radians) {
         (1 / self).atanh($base);
-    }
-
-    multi method log() {
-        Q:PIR {
-            .local pmc self
-            self = find_lex 'self'
-            $P0 = get_root_namespace ['parrot'; 'Complex' ]
-            $P0 = get_class $P0
-            $P0 = $P0.'new'()
-            $N0 = self.'re'()
-            $P0[0] = $N0
-            $N1 = self.'im'()
-            $P0[1] = $N1
-            $P0 = $P0.'ln'()
-            $N0 = $P0[0]
-            $P2 = box $N0
-            $N1 = $P0[1]
-            $P3 = box $N1
-            $P1 = get_hll_global 'Complex'
-            $P1 = $P1.'new'($P2, $P3)
-            %r  = $P1
-        }
-    }
-
-    multi method log($base) {
-        $.log / $base.log;
     }
 
     multi method polar() {

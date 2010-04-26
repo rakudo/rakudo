@@ -9,8 +9,13 @@ role Real does Numeric {
         $x < 0 ?? -$x !! $x;
     }
 
+    # Hmmm... should the second argument be Numeric for the next two?
     method exp(Real $exponent: Real $base = e) {
         $base ** $exponent;
+    }
+
+    method log(Real $x: Real $base = e) {
+        $x.Bridge.log($base.Bridge);
     }
 
     method sign(Real $x:) {

@@ -71,12 +71,12 @@ augment class Num does Real {
     #     pir::exp__Nn(self);
     # }
 
-    multi method log() {
-        pir::ln__Nn(self);
+    multi method log(Num $x:) {
+        pir::ln__Nn($x);
     }
 
-    multi method log($base) {
-        $.log / $base.log;
+    multi method log(Num $x: Num $base) {
+        $x.log / $base.log;
     }
 
     multi method perl() {

@@ -254,10 +254,11 @@ N: Matt Diephouse
 U: mdiep
 E: matt@diephouse.com
 
-N: Moritz A Lenz
+N: Moritz Lenz
 E: moritz@faui2k3.org
 U: moritz
-D: Test infrastructure for Perl 6 and Rakudo
+U: moritz_
+D: Test infrastructure, tests, various Rakudo features and built-ins
 
 N: Nicholas Clark
 U: nicholas

@@ -289,6 +289,15 @@ our multi sub infix:<cmp>($a, $b) {
     }
 }
 
+our multi sub infix:<cmp>($a, +Inf)   { -1; }
+our multi sub infix:<cmp>($a, -Inf)   { +1; }
+our multi sub infix:<cmp>(+Inf, $a)   { 1; }
+our multi sub infix:<cmp>(-Inf, $a)   { -1; }
+our multi sub infix:<cmp>(+Inf, +Inf) { 0; }
+our multi sub infix:<cmp>(-Inf, -Inf) { 0; }
+our multi sub infix:<cmp>(+Inf, -Inf) { 1; }
+our multi sub infix:<cmp>(-Inf, +Inf) { -1; }
+
 our multi sub infix:<leg>($a, $b) {
     ~$a cmp ~$b
 }

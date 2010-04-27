@@ -144,6 +144,13 @@ C<$PATH>.
 As of this writing, there's not a publicly available tool to
 update spectest-progress.csv or to count tests that won't run.
 
+Include a list of contributors since the last release in the announcement.
+You can get an automatically generated list by running
+
+  $ tools/contributors.pl
+
+Please check the result manually for duplicates and other errors.
+
   $ git add docs/announce/YYYY.MM
   $ git commit docs
 

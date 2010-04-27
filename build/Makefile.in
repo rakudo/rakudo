@@ -516,7 +516,7 @@ help:
 #
 config:
 	$(PERL) Configure.pl
-	
+
 $(PARROT):
 
 CRITIC_FILES=Configure.pl t/harness build/ tools/
@@ -541,6 +541,8 @@ release: manifest
 
 $(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
 	$(CP) $(DYNPMC) $(DYNOPS) $(DYNEXT_DIR)
+	$(CHMOD) 755 $(DYNEXT_TARGET)
+	$(CHMOD) 755 $(DYNEXT_DIR)/$(OPS)$(LOAD_EXT)
 
 # (at)cc_o_out(at) and (at)ld_out(at) below cannot be assigned to
 # makefile macros, because some make utilities drop the trailing

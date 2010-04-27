@@ -1687,7 +1687,6 @@ token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor>')> }
 token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<def_or>')> }
 token infix:sym<min>  { <sym>  <O('%tight_or')> }
 token infix:sym<max>  { <sym>  <O('%tight_or')> }
-token infix:sym<minmax> { <sym>  <O('%tight_or')> }
 
 token infix:sym<?? !!> {
     '??'
@@ -1708,6 +1707,7 @@ token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO('infixish')
 token infix_prefix_meta_operator:sym<S> { <sym> <infixish> <O=.copyO('infixish')> }
 token infix_prefix_meta_operator:sym<X> { <sym> <infixish> <O('%list_infix')> }
 token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
+token infix:sym<minmax> { <sym>  <O('%list_infix')> }
 
 token infix:sym<:=> {
     <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>

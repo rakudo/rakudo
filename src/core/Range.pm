@@ -38,7 +38,7 @@ class Range is Iterable {
         ?(self!min_test($topic) && self!max_test($topic))
     }
 
-    multi method minmax() {
+    multi method bounds() {
         ($.min, $.max)
     }
 

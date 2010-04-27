@@ -1,3 +1,5 @@
+class Range { ... }
+
 augment class Any {
 
     our Str multi method join($separator = '') {
@@ -87,8 +89,30 @@ augment class Any {
     multi method minmax($by = { $^a cmp $^b}) {
         my $min = +Inf;
         my $max = -Inf;
+        my $excludes_min = Bool::False;
+        my $excludes_max = Bool::False;
+
         my $first-time = Bool::True;
         for @.list {
+            when Range {
+                if $first-time {
+                    $min = $_.min;
+                    $max = $_.max;
+                    $excludes_min = $_.excludes_min;
+                    $excludes_max = $_.excludes_max;
+                    $first-time = Bool::False;
+                    next;
+                }
+                if $by($_.min, $min) == -1 {
+                    $min = $_;
+                    $excludes_min = $_.excludes_min;
+                }
+                if $by($_.max, $max) == 1 {
+                    $max = $_;
+                    $excludes_max = $_.excludes_max;
+                }
+            }
+
             if $first-time {
                 $min = $_;
                 $max = $_;
@@ -97,12 +121,17 @@ augment class Any {
             }
             if $by($_, $min) == -1 {
                 $min = $_;
+                $excludes_min = Bool::False;
             }
             if $by($_, $max) == 1 {
                 $max = $_;
+                $excludes_max = Bool::False;
             }
         }
-        ($min, $max);
+        Range.new($min,
+                  $max,
+                  :excludes_min($excludes_min),
+                  :excludes_max($excludes_max));
     }
 
     #CHEAT: Simplified version which we can hopefully sneak by ng.

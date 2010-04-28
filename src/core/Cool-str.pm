@@ -72,7 +72,8 @@ augment class Cool {
             gather {
                 while $l-- > 0 && (my $m = self.match($matcher, :c($c))) {
                     take self.substr($c, $m.from - $c);
-                    take $m if $all;
+                    my $m-clone = $m;
+                    take $m-clone if $all;
                     $c = $m.to == $c ?? $c + 1 !! $m.to;
                 }
                 take self.substr($c);

@@ -286,11 +286,11 @@ multi sub infix:<*>(Complex $a, Complex $b) {
     Complex.new($a.re * $b.re - $a.im * $b.im, $a.im * $b.re + $a.re * $b.im);
 }
 
-multi sub infix:<*>(Complex $a, $b) {
+multi sub infix:<*>(Complex $a, Real $b) {
    Complex.new($a.re * $b, $a.im * $b);
 }
 
-multi sub infix:<*>($a, Complex $b) {
+multi sub infix:<*>(Real $a, Complex $b) {
     Complex.new($a * $b.re, $a * $b.im);
 }
 
@@ -329,6 +329,14 @@ multi sub infix:<**>(Complex $a, $b) {
 }
 
 multi sub infix:<**>($a, Complex $b) {
+    ($a.log * $b).exp;
+}
+
+multi sub infix:<**>(Complex $a, Real $b) {
+   ($a.log * $b).exp;
+}
+
+multi sub infix:<**>(Real $a, Complex $b) {
     ($a.log * $b).exp;
 }
 

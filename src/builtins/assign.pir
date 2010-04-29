@@ -85,6 +85,12 @@ src/builtins/assign.pir - assignment operations
     $P0 = find_lex '$opname'
     $S0 = $P0
     $P0 = get_global $S0
+    $P1 = a.'defined'()
+    if $P1 goto defined
+    $P2 = $P0()
+    $P1 = $P0($P2, b)
+    .tailcall '&infix:<=>'(a, $P1)
+  defined:
     $P1 = $P0(a, b)
     .tailcall '&infix:<=>'(a, $P1)
 .end

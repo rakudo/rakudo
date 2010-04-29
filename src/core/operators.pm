@@ -34,19 +34,19 @@ our multi sub prefix:<->($a) {
 }
 
 our multi sub infix:<+>($a, $b) {
-    pir::add__NNN($a, $b)
+    +$a + +$b;
 }
 
 our multi sub infix:<->($a, $b) {
-    pir::sub__NNN($a, $b)
+    +$a - +$b;
 }
 
 our multi sub infix:<*>($a, $b) {
-    pir::mul__NNN($a, $b)
+    +$a * +$b;
 }
 
 our multi sub infix:</>($a, $b) {
-    pir::div__NNN($a, $b)
+    +$a / +$b;
 }
 
 our multi sub infix:<%>($a, $b) {
@@ -54,7 +54,7 @@ our multi sub infix:<%>($a, $b) {
 }
 
 our multi sub infix:<**>($a, $b) {
-    pir::pow__NNN($a, $b)
+    (+$a) ** +$b; # parenthesis needed because of precendence.
 }
 
 our multi sub infix:<&>(*@items) {

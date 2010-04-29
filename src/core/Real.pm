@@ -10,12 +10,12 @@ role Real does Numeric {
     }
 
     # Hmmm... should the second argument be Numeric for the next two?
-    method exp(Real $exponent: Real $base = e) {
+    method exp(Real $exponent: Numeric $base = e) {
         $base ** $exponent;
     }
 
-    method log(Real $x: Real $base = e) {
-        $x.Bridge.log($base.Bridge);
+    method log(Real $x: Numeric $base = e) {
+        $x.Bridge.log($base);
     }
 
     method sign(Real $x:) {
@@ -96,6 +96,14 @@ multi sub infix:<->(Real $a, Real $b) {
 
 multi sub infix:<->(Num $a, Num $b) {
     pir::sub__NNN($a, $b)
+}
+
+multi sub infix:<*>(Real $a, Real $b) {
+    $a.Bridge * $b.Bridge;
+}
+
+multi sub infix:<*>(Num $a, Num $b) {
+    pir::mul__NNN($a, $b)
 }
 
 multi sub infix:</>(Real $a, Real $b) {

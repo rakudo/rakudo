@@ -6,6 +6,10 @@ augment class Any {
         pir::join__SsP($separator, self.list.eager);
     }
 
+    multi method elems() {
+        1;
+    }
+
     our multi method map(&block) {
         Q:PIR {
             .local pmc self, block, map

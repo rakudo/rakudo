@@ -35,7 +35,7 @@ Really important items
 1 ***   get the Advent examples running again (all)
 
 Ought to have items
-2 **    basic Buf implementation (A)
+2 **    basic Buf implementation (A, masak)
 2 **    speed issues and profiling (C, all)
 2 **    regex modifiers (B, pmichaud)
 2 ***   installation standards (A)

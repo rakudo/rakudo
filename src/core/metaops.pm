@@ -179,7 +179,7 @@ our multi sub infix:<*>()  { 1 }
 our multi sub infix:<+&>() { +^0 }
 our multi sub infix:<+>()  { 0 }
 our multi sub infix:<->()  { 0 }
-#our multi sub infix:<~>()  { '' }
+our multi sub infix:<~>()  { '' }
 our multi sub infix:<+|>() { 0 }
 our multi sub infix:<+^>() { 0 }
 our multi sub infix:<~|>() { '' }
@@ -209,7 +209,7 @@ our multi sub infix:<eqv>()    { Bool::True }
 our multi sub infix:<||>()     { Bool::False }
 our multi sub infix:<or>()     { Bool::False }
 #our multi sub infix:<^^>()     { Bool::False }
-#our multi sub infix:<//>()     { Any }
+our multi sub infix:<//>()     { Any }
 #our multi sub infix:<min>()    { +Inf }
 #our multi sub infix:<max>()    { -Inf }
 #our multi sub infix:<=>()      { Nil }

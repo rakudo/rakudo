@@ -324,14 +324,6 @@ multi sub infix:<**>(Complex $a, Complex $b) {
    ($a.log * $b).exp;
 }
 
-multi sub infix:<**>(Complex $a, $b) {
-   ($a.log * $b).exp;
-}
-
-multi sub infix:<**>($a, Complex $b) {
-    ($a.log * $b).exp;
-}
-
 multi sub infix:<**>(Complex $a, Real $b) {
    ($a.log * $b).exp;
 }

@@ -40,7 +40,8 @@ delegates to ClassHOW.
     $P0 = get_hll_global 'Grammar'
     self.'add_parent'(obj, $P0)
   have_parents:
-    $P0 = get_hll_global ['ClassHOW'], 'compose'
+    $P0 = get_hll_global 'ClassHOW'
+    $P0 = find_method $P0, 'compose'
     .tailcall $P0(self, obj)
 .end
 

@@ -8,8 +8,9 @@
 
     # next, strip twigil and search PROCESS package
     .local string pkgname
-    pkgname = clone name
-    substr pkgname, 1, 1, ''
+    $S0 = substr name, 0, 1
+    $S1 = substr name, 2
+    pkgname = concat $S0, $S1
     $P0 = get_hll_global ['PROCESS'], pkgname
     unless null $P0 goto done
     $P0 = get_global pkgname

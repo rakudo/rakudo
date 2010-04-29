@@ -26,13 +26,13 @@ This implements the parametric role Callable[::T = Mu].
 
 # This defines the body of the role, which is run per type the role is
 # parameterized with.
-.sub '_callable_role_body'
+.sub '' :subid('_callable_role_body')
     .param pmc type :optional
 
-    $P0 = get_hll_global ['Callable[::T]'], 'of'
+    .const 'Sub' $P0 = 'callable_role_returns'
     capture_lex $P0
-    $P0 = get_hll_global ['Callable[::T]'], 'returns'
-    capture_lex $P0
+    .const 'Sub' $P1 = 'callable_role_of'
+    capture_lex $P1
 
     # Capture type.
     if null type goto no_type
@@ -44,13 +44,12 @@ This implements the parametric role Callable[::T = Mu].
     .lex 'T', type
 
     # Create role.
-    .const 'Sub' $P0 = 'callable_of'
-    capture_lex $P0
     .tailcall '!create_parametric_role'("Callable[::T]")
 .end
 .sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Callable[::T]'], '_callable_role_body'
+    .const 'Sub' $P0 = '_callable_role_body'
+    block = $P0
     signature = allocate_signature 1
     setprop block, "$!signature", signature
     null $P1
@@ -64,13 +63,14 @@ Returns the type constraining what may be returned.
 
 =cut
 
-.sub 'returns' :method :outer('_callable_role_body')
+.sub 'returns' :method :outer('_callable_role_body') :subid('callable_role_returns')
     $P0 = find_lex 'T'
     .return ($P0)
 .end
 .sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Callable[::T]'], 'returns'
+    .const 'Sub' $P0 = 'callable_role_returns'
+    block = $P0
     signature = allocate_signature 0
     setprop block, "$!signature", signature
 .end
@@ -82,13 +82,14 @@ Returns the type constraining what may be returned.
 
 =cut
 
-.sub 'of' :method :outer('_callable_role_body') :subid('callable_of')
+.sub 'of' :method :outer('_callable_role_body') :subid('callable_role_of')
     $P0 = find_lex 'T'
     .return ($P0)
 .end
 .sub '' :load :init
     .local pmc block, signature
-    block = get_hll_global ['Callable[::T]'], 'of'
+    .const 'Sub' $P0 = 'callable_role_of'
+    block = $P0
     signature = allocate_signature 0
     setprop block, "$!signature", signature
 .end

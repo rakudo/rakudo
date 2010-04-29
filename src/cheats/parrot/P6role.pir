@@ -145,7 +145,7 @@ Puns the role to a class and returns that class.
 
 =cut
 
-.sub 'HOW' :method
+.sub 'HOW' :method :nsentry
     self = descalarref self
     $P0 = getprop 'metaclass', self
     .return ($P0)

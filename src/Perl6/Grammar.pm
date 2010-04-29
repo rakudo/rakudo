@@ -1425,7 +1425,7 @@ sub bracket_ending($matches) {
 method EXPR($preclim = '') {
     # Override this so we can set $*LEFTSIGIL.
     my $*LEFTSIGIL := '';
-    HLL::Grammar::EXPR(self, $preclim);
+    pir::find_method__pps(HLL::Grammar, 'EXPR')(self, $preclim);
 }
 
 token prefixish { 

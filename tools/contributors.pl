@@ -21,7 +21,7 @@ while (my $line = <$c>) {
     while ($msg =~ /([^\s()]+)\+\+/g) {
         $contrib{nick_to_name($1)}++;
     }
-    while ($msg =~ /(couretsy by:?)\s*(\S.*)/i) {
+    while ($msg =~ /(courtesy by:?)\s*(\S.*)/i) {
         $contrib{nick_to_name($1)}++;
     }
 }
@@ -67,7 +67,7 @@ sub nick_to_name_from_CREDITS {
         }
     }
     close $f;
-    use Data::Dumper; print Dumper \%nicks;
+    use Data::Dumper; $Data::Dumper::Sortkeys = 1; print Dumper \%nicks;
     return \%nicks;
 }
 

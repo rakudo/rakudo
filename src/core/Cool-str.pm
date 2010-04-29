@@ -42,7 +42,12 @@ augment class Cool {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit;
         gather while $l > 0 && (my $m = self.match($matcher, :c($c))) {
-            take $match ?? $m !! ~$m;
+            if $match {
+                my $m-clone = $m;
+                take $m-clone;
+            } else {
+                take ~$m;
+            }
             $c = $m.to == $c ?? $c + 1 !! $m.to;
             --$l;
         }

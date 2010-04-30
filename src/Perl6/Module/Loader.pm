@@ -69,7 +69,7 @@ method need_foreign($name, %name_adverbs) {
 
     # Perl6's two phase import mechanism complicates things slightly
     # We need to remember the $lsm to we can get at the exports *later*
-    my $exports_closure := sub() {
+    my $exports_closure := pir::newclosure__PP(sub() {
         # TODO: Import flags
         my %raw_exports := $lsm.get_exports($mod);
         my %exports;
@@ -81,14 +81,14 @@ method need_foreign($name, %name_adverbs) {
         # TODO: Non-sub exports
 
         %exports;
-    };
+    });
     pir::setprop($ns, '!rakudo-export-closure', $exports_closure);
 
     # XXX This alias wants to be lexical, but for now we put it into the
     # namespace.
     my @nsparts := pir::split__PSS('::', $name);
     my $lastpart := @nsparts.pop;
-    pir::set_hll_global__vPSP(@nsparts, '&' ~ $lastpart, sub() { $mod });
+    pir::set_hll_global__vPSP(@nsparts, '&' ~ $lastpart, sub() { $ns });
     pir::set_hll_global__vPSP(@nsparts,       $lastpart, $ns);
 
     return 1;

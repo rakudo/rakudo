@@ -214,6 +214,7 @@ method finish($block) {
     }
     elsif $!scope eq 'my' {
         # Install a binding of the declaration to a name in the lexpad.
+        $decl := PAST::Block.new( :blocktype('immediate'), $decl );
         @Perl6::Actions::BLOCK[0][0].push(PAST::Var.new(
             :name($!name), :isdecl(1),  :viviself($decl), :scope('lexical')
         ));

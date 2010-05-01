@@ -616,7 +616,7 @@ method module_name($/) {
     my $var := PAST::Var.new(
         :name(@name.pop),
         :namespace(@name),
-        :scope('package')
+        :scope(is_lexical(~$<longname>) ?? 'lexical' !! 'package')
     );
     if $<arglist> {
         my $past := $<arglist>[0].ast;
@@ -1591,7 +1591,7 @@ method trait_mod:sym<is>($/) {
         # the parameter.
         my @name := Perl6::Grammar::parse_name(~$<longname>);
         $trait.unshift(PAST::Var.new(
-            :scope('package'),
+            :scope(is_lexical(~$<longname>) ?? 'lexical' !! 'package'),
             :name(@name.pop()),
             :namespace(@name)
         ));

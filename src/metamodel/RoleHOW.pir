@@ -154,7 +154,24 @@ Add a method to the given meta.
     .param string name
     .param pmc meth
     $P0 = getattribute self, 'parrotclass'
+    push_eh add_fail
     addmethod $P0, name, meth
+    pop_eh
+    .return ()
+  add_fail:
+    pop_eh
+    
+    # May be that we need to merge multis.
+    $P1 = $P0.'methods'()
+    $P1 = $P1[name]
+    $I0 = isa $P1, 'MultiSub'
+    unless $I0 goto error
+    $I0 = isa meth, 'MultiSub'
+    unless $I0 goto error
+    $P1.'incorporate_candidates'(meth)
+    .return ()
+  error:
+    '&die'('Can not add two methods to a role if they are not multis')
 .end
 
 =item methods

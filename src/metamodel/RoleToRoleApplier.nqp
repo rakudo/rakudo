@@ -75,8 +75,19 @@ method apply($target, @composees) {
                 $target.HOW.add_method($target, $name, @add_meths[0]);
             }
             else {
-                # More than one - add to collisions list.
-                $target.HOW.add_collision($target, $name);
+                # More than one - add to collisions list unless all multi.
+                my $num_multi := 0;
+                for @add_meths {
+                    if $_.multi { $num_multi := $num_multi + 1; }
+                }
+                if +@add_meths == $num_multi {
+                    for @add_meths {
+                        $target.HOW.add_method($target, $name, $_);
+                    }
+                }
+                else {
+                    $target.HOW.add_collision($target, $name);
+                }
             }
         }
     }

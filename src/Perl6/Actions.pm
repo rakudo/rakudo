@@ -497,7 +497,11 @@ method statement_prefix:sym<BEGIN>($/) {
     our %BEGINDONE;
     our $?RAKUDO_HLL;
     my $past := $<blorst>.ast;
-    $past.hll($?RAKUDO_HLL);
+    $past.blocktype('declaration');
+    $past := PAST::Block.new(
+        :hll($?RAKUDO_HLL),
+        PAST::Op.new( :pasttype('call'), :name('!YOU_ARE_HERE'), $past )
+    );
     my $compiled := PAST::Compiler.compile($past);
     my $begin_id := $past.unique('BEGINDONE_');
     %BEGINDONE{$begin_id} := $compiled();

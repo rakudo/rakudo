@@ -39,6 +39,15 @@ method add_parameter($new_entry) {
 # positional parameters.
 method add_placeholder_parameter($new_entry) {
     my @entries := self.entries;
+    
+    # First check we don't have a parameter of this name.
+    for @entries {
+        if $_.var_name eq $new_entry.var_name {
+            return 1;
+        }
+    }
+    
+    # Now look for insertion position.
     my @temp;
     if +@entries == 0 {
         @entries.push($new_entry);

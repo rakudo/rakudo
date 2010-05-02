@@ -1281,7 +1281,7 @@ Gets a list of all candidates.
 =cut
 
 */
-    METHOD PMC *candidates() {
+    METHOD PMC *ll_candidates() {
         PMC *candidates;
         GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
         RETURN (PMC *candidates);

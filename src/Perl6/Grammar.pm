@@ -108,6 +108,11 @@ method is_name($name) {
             return 1;
         }
     }
+    
+    # Is it a package we're compiling?
+    if %COMPILINGPACKAGES{$name} {
+        return 1;
+    }
 
     # Otherwise, check in the namespace.
     my @parts := parse_name($name);

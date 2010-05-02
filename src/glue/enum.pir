@@ -1,6 +1,6 @@
 =head1 NAME
 
-src/glue/enum.pir -- internal handling of enums
+src/glue/enum.pir -- internal handling of enums; kinda hacky
 
 =head2 Subs
 
@@ -50,6 +50,37 @@ Constructs a EnumMap, based upon the values list.
     $P0 = get_hll_global 'EnumMap'
     result = $P0.'new'(enumhash :flat :named)
     .return (result)
+.end
+
+=item !setup_named_enum
+
+=cut
+
+.sub '!setup_named_enum'
+    .param pmc name
+    .param pmc values
+    
+    # For now, just install EnumMap under the main name.
+    .local pmc full_ns, base_ns
+    .local string shortname
+    $P0 = get_hll_global ['Perl6';'Grammar'], 'parse_name'
+    full_ns = $P0(name)
+    base_ns = clone full_ns
+    shortname = pop base_ns
+    set_hll_global base_ns, shortname, values
+    
+    # Go over the keys/values and set them up.
+    .local pmc it
+    it = iter values
+  it_loop:
+    unless it goto it_loop_end
+    $P0 = shift it
+    $S0 = $P0.'key'()
+    $P1 = $P0.'value'()
+    set_hll_global full_ns, $S0, $P1
+    set_hll_global base_ns, $S0, $P1
+    goto it_loop
+  it_loop_end:
 .end
 
 # Local Variables:

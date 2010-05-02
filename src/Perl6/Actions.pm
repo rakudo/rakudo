@@ -1344,13 +1344,44 @@ method regex_def($/, $key?) {
 }
 
 method type_declarator:sym<enum>($/) {
-    my $values := $<circumfix>.ast;
-
-    make PAST::Op.new(
+    my $value_ast := PAST::Op.new(
         :pasttype('call'),
         :name('!create_anon_enum'),
-        $values
+        $<circumfix>.ast
     );
+    if $<name> {
+        # Named; need to compile and run the AST right away.
+        our $?RAKUDO_HLL;
+        my $compiled := PAST::Compiler.compile(PAST::Block.new(
+            :hll($?RAKUDO_HLL), $value_ast
+        ));
+        my $result := (pir::find_sub_not_null__ps('!YOU_ARE_HERE'))($compiled);
+        
+        # Only support our-scoped so far.
+        unless $*SCOPE eq '' || $*SCOPE eq 'our' {
+            $/.CURSOR.panic("Do not yet support $*SCOPE scoped enums");
+        }
+        
+        # Install names.
+        $/.CURSOR.add_name(~$<name>[0]);
+        for $result {
+            $/.CURSOR.add_name(~$_.key);
+        }
+        
+        # Emit code to set up named enum.
+        @PACKAGE[0].block.loadinit.push(PAST::Op.new(
+            :pasttype('call'),
+            :name('!setup_named_enum'),
+            ~$<name>[0],
+            $value_ast
+        ));
+        my @name := Perl6::Grammar::parse_name(~$<name>[0]);
+        make PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') );
+    }
+    else {
+        # Anonymous, so we're done.
+        make $value_ast;
+    }
 }
 
 method type_declarator:sym<subset>($/) {

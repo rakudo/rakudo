@@ -20,7 +20,7 @@ integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
 integration/99problems-21-to-30.t
 integration/99problems-31-to-40.t
-# integration/99problems-41-to-50.t
+integration/99problems-41-to-50.t
 # integration/99problems-51-to-60.t
 # integration/99problems-61-to-70.t
 integration/code-blocks-as-sub-args.t
@@ -103,7 +103,7 @@ S02-names_and_variables/signature.t
 S02-names_and_variables/variables-and-packages.t
 S02-names_and_variables/varnames.t
 S02-names/identifier.t
-# S02-names/our.t
+S02-names/our.t
 S02-one-pass-parsing/less-than.t
 S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/begin_end_pod.t
@@ -365,6 +365,7 @@ S12-class/lexical.t
 S12-class/open.t
 # S12-class/parent_attributes.t
 # S12-class/rw.t
+S12-class/self-inheritance.t
 S12-class/stubs.t
 S12-construction/autopairs.t
 # S12-construction/BUILD.t

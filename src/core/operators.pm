@@ -402,6 +402,7 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
         $next = @lhs.pop;
     } else {
         given @lhs.elems {
+            when 0 { fail "Need something on the LHS"; }
             when 1 {
                 if @lhs[0] cmp $rhs == 1 {
                     $next = { .prec };
@@ -412,16 +413,15 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
             when 2 {
                 $next = { $_ + (@lhs[1] - @lhs[0]) };
             }
-            when 3 {
-                if @lhs[1] - @lhs[0] == @lhs[2] - @lhs[1] {
-                    $next = { $_ + (@lhs[1] - @lhs[0]) };
-                } elsif @lhs[1] / @lhs[0] == @lhs[2] / @lhs[1] {
-                    $next = { $_ * (@lhs[1] / @lhs[0]) };
+            default {
+                if @lhs[*-2] - @lhs[*-3] == @lhs[*-1] - @lhs[*-2] {
+                    $next = { $_ + (@lhs[*-2] - @lhs[*-3]) };
+                } elsif @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] {
+                    $next = { $_ * (@lhs[*-2] / @lhs[*-3]) };
                 } else {
                     fail "Unable to figure out pattern of series";
                 }
             }
-            default { fail "Unable to figure out pattern of series"; }
         }
     }
 
@@ -431,11 +431,10 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
         my @args;
         my $j;
         my $top = $arity min @lhs.elems;
-        for 0..^$top -> $i {
-            $j = @lhs[$i];
-            my $jj = $j;
-            take $jj;
-            @args.push($jj);
+        for @lhs.kv -> $i, $v {
+            $j = $v;
+            take $v;
+            @args.push($v) if $i >= @lhs.elems - $top;
         }
 
         if !$limit.defined || $limit cmp $j != 0 {

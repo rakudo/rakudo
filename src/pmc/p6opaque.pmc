@@ -261,7 +261,7 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
 }
 
 
-pmclass P6opaque extends Object need_ext dynpmc group perl6_group {
+pmclass P6opaque extends Object need_ext dynpmc group perl6_group auto_attrs {
 
     void class_init() {
         ACCEPTS_str                  = CONST_STRING(interp, "ACCEPTS");

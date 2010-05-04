@@ -86,6 +86,7 @@ pmclass Perl6Str
     extends  String
     provides string
     dynpmc
+    auto_attrs
     group    perl6_group
     hll      Perl6
     maps     String {

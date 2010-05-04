@@ -91,6 +91,8 @@ Perl6::Compiler - Perl6 compiler
 .end
 
 
+.loadlib 'os'
+.loadlib 'file'
 .include 'src/gen/builtins.pir'
 .include 'src/gen/signature_pm.pir'
 .include 'src/gen/parameter_pm.pir'

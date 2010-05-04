@@ -135,7 +135,7 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only, INTVAL 
     return current;
 }
 
-pmclass P6Invocation need_ext dynpmc group perl6_group manual_attrs {
+pmclass P6Invocation need_ext dynpmc group perl6_group auto_attrs {
     ATTR PMC    *first_candidate;
     ATTR PMC    *candidate_list;
     ATTR STRING *name;
@@ -144,9 +144,7 @@ pmclass P6Invocation need_ext dynpmc group perl6_group manual_attrs {
     ATTR INTVAL  position;
 
     VTABLE void init() {
-        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_P6Invocation_attributes);
         PObj_custom_mark_SET(SELF);
-        PObj_custom_destroy_SET(SELF);
     }
 
     VTABLE void init_pmc(PMC *list) {
@@ -171,11 +169,6 @@ pmclass P6Invocation need_ext dynpmc group perl6_group manual_attrs {
             if (name)
                 Parrot_gc_mark_STRING_alive(interp, name);
         }
-    }
-
-    VTABLE void destroy() {
-        mem_sys_free(PMC_data(SELF));
-        PMC_data(SELF) = NULL;
     }
 
     VTABLE PMC *clone() {

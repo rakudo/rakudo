@@ -19,7 +19,7 @@ needed as scalar containers forward to their contents.
 
 #include "parrot/parrot.h"
 
-pmclass MutableVAR need_ext dynpmc group perl6_group manual_attrs {
+pmclass MutableVAR need_ext dynpmc group perl6_group auto_attrs {
     ATTR PMC *scalar;
 
     VTABLE void init() {
@@ -28,12 +28,10 @@ pmclass MutableVAR need_ext dynpmc group perl6_group manual_attrs {
     }
 
     VTABLE void init_pmc(PMC *scalar) {
-        /* Need custom mark and destroy. */
+        /* Need custom mark. */
         PObj_custom_mark_SET(SELF);
-        PObj_custom_destroy_SET(SELF);
 
-        /* Create underlying structure and set scalar value. */
-        PMC_data(SELF) = mem_allocate_zeroed_typed(Parrot_MutableVAR_attributes);
+        /* Set scalar value */
         SET_ATTR_scalar(INTERP, SELF, scalar);
     }
 
@@ -42,11 +40,6 @@ pmclass MutableVAR need_ext dynpmc group perl6_group manual_attrs {
         GET_ATTR_scalar(INTERP, SELF, scalar);
         if (scalar)
             Parrot_gc_mark_PMC_alive(INTERP, scalar);
-    }
-
-    VTABLE void destroy() {
-        mem_sys_free(PMC_data(SELF));
-        PMC_data(SELF) = NULL;
     }
 
     VTABLE PMC* getprop(STRING *prop_name) {

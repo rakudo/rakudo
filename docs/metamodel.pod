@@ -293,7 +293,7 @@ design of the metamodel.
         method new($name) {
             return Aspect.new(
                 HOW => self.bless(*),
-                Str => $name . "()"
+                Str => $name ~ "()"
             );
         }
         

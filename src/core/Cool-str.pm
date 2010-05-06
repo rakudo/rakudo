@@ -31,7 +31,6 @@ augment class Cool {
             return self;
         }
         loop (my $i = 1; $i < @chunks; $i += 2) {
-            pir::store_dynamic_lex__vSP('$/', @chunks[$i]);
             @chunks[$i] = $replacement ~~ Callable ?? $replacement(@chunks[$i]) !! $replacement;
         }
         @chunks.join('');

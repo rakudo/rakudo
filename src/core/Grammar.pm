@@ -9,7 +9,9 @@ class Grammar is Regex::Cursor {
         if $action {
             die(":action has been renamed to :actions in the Grammar.parse method")
         }
-        nextwith($str, :$actions, |%options);
+        my $match = callwith($str, :$actions, |%options);
+        pir::store_dynamic_lex__vSP('$/', $match);
+        $match;
     }
 }
 

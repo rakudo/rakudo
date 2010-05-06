@@ -394,6 +394,22 @@ our multi sub infix:<...>(Code $lhs, $rhs) {
 }
 
 our multi sub infix:<...>(@lhs is copy, $rhs) {
+    my sub succ-or-pred($lhs, $rhs) {
+        if $rhs ~~ Whatever || $lhs cmp $rhs != 1 {
+            -> $x { $x.succ };
+        } else {
+            -> $x { $x.pred };
+        }
+    }
+
+    my sub succ-or-pred2($lhs0, $lhs1, $rhs) {
+        if $lhs1 cmp $lhs0 == 0 {
+            $next = { $_ };
+        } else {
+            $next = succ-or-pred($lhs1, $rhs);
+        }
+    }
+
     my $limit;
     $limit = $rhs if !($rhs ~~ Whatever);
 
@@ -404,18 +420,22 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
         given @lhs.elems {
             when 0 { fail "Need something on the LHS"; }
             when 1 {
-                if @lhs[0] cmp $rhs == 1 {
-                    $next = { .prec };
-                } else {
-                    $next = { .succ };
-                }
+                $next = succ-or-pred(@lhs[0], $rhs)
             }
             when 2 {
-                $next = { $_ + (@lhs[1] - @lhs[0]) };
+                my $diff = @lhs[1] - @lhs[0];
+                if $diff == 0 {
+                    $next = succ-or-pred2(@lhs[0], @lhs[1], $rhs)
+                } else {
+                    $next = { $_ + $diff };
+                }
             }
             default {
-                if @lhs[*-2] - @lhs[*-3] == @lhs[*-1] - @lhs[*-2] {
-                    $next = { $_ + (@lhs[*-2] - @lhs[*-3]) };
+                my $diff = @lhs[*-1] - @lhs[*-2];
+                if $diff == 0 {
+                    $next = succ-or-pred2(@lhs[*-2], @lhs[*-1], $rhs)
+                } elsif @lhs[*-2] - @lhs[*-3] == $diff {
+                    $next = { $_ + $diff };
                 } elsif @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] {
                     $next = { $_ * (@lhs[*-2] / @lhs[*-3]) };
                 } else {

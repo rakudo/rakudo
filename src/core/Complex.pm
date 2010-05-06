@@ -37,7 +37,7 @@ class Complex does Numeric is Cool {
         $base ** $exponent;
     }
 
-    multi method log() {
+    method log-e() {
         Q:PIR {
             .local pmc self
             self = find_lex 'self'
@@ -57,10 +57,6 @@ class Complex does Numeric is Cool {
             $P1 = $P1.'new'($P2, $P3)
             %r  = $P1
         }
-    }
-
-    multi method log(Complex $x: Numeric $base) {
-        $x.log / $base.log;
     }
 
     multi method sin($base = Radians) {

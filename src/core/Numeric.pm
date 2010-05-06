@@ -13,9 +13,13 @@ role Numeric {
         fail "$.WHAT() needs a version of .exp";
     }
 
-    multi method log(Numeric $x: Numeric $base = e) {
-        note "$.WHAT() needs a version of .log";
-        fail "$.WHAT() needs a version of .log";
+    method log-e(Numeric $x:) {
+        note "$.WHAT() needs a version of .log-e";
+        fail "$.WHAT() needs a version of .log-e";
+    }
+
+    method log(Numeric $x: Numeric $base = e) {
+        $x.log-e / $base.log-e;
     }
 
     method log10(Numeric $x:) {

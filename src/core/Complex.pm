@@ -59,8 +59,8 @@ class Complex does Numeric is Cool {
         }
     }
 
-    multi method sin($base = Radians) {
-        $.re.sin($base) * $.im.cosh($base) + ($.re.cos($base) * $.im.sinh($base))i;
+    method sin(Complex $x: $base = Radians) {
+        $x.re.sin($base) * $x.im.cosh($base) + ($x.re.cos($base) * $x.im.sinh($base))i;
     }
 
     multi method asin($base = Radians) {

@@ -41,12 +41,16 @@ role Real does Numeric {
 
     # CHEAT: the .Bridges in unpolar should go away in the long run
     method unpolar(Real $mag: Real $angle) {
-        Complex.new($mag.Bridge * $angle.Bridge.cos("radians"),
-                    $mag.Bridge * $angle.Bridge.sin("radians"));
+        Complex.new($mag * $angle.Bridge.cos(Radians),
+                    $mag * $angle.sin(Radians));
     }
 
     method cis(Real $angle:) {
         1.unpolar($angle);
+    }
+
+    method sin(Real $x: $base = Radians) {
+        $x.Bridge.sin($base);
     }
 }
 

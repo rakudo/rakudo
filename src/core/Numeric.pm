@@ -38,4 +38,9 @@ role Numeric {
     method from-radians(Numeric $x: $base) {
         $x / pir::get_global__Ps('@trig-base-conversions')[$base];
     }
+
+    method sin(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .sin";
+        fail "$.WHAT() needs a version of .sin";
+    }
 }

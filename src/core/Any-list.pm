@@ -175,6 +175,16 @@ augment class Any {
         self.pick(Inf, :$replace);
     }
 
+    multi method classify($test) {
+        my %result;
+        for @.list {
+            my $k = $_ ~~ $test;
+            %result{$k} //= [];
+            %result{$k}.push: $_;
+        }
+        %result.pairs;
+    }
+
     multi method reduce(Code $expression is rw) {
         my $arity = $expression.?count || 2; # second half is a CHEAT
         fail('Cannot reduce() using a unary or nullary function.')
@@ -247,6 +257,7 @@ augment class Any {
     }
 }
 
+proto sub classify($matcher, *@values) { @values.classify($matcher) }
 proto sub join (Str $separator = '', *@values) { @values.join($separator); }
 proto sub reverse(@values) { @values.reverse; }
 multi sub reverse(*@v) { @v.reverse; }

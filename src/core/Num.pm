@@ -71,7 +71,7 @@ augment class Num does Real {
     #     pir::exp__Nn(self);
     # }
 
-    method log-e(Num $x:) {
+    method ln(Num $x:) {
         pir::ln__Nn($x);
     }
 

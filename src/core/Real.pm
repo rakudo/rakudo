@@ -14,8 +14,8 @@ role Real does Numeric {
         $base ** $exponent;
     }
 
-    method log-e(Real $x:) {
-        $x.Bridge.log-e;
+    method ln(Real $x:) {
+        $x.Bridge.ln;
     }
 
     method sign(Real $x:) {

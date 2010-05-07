@@ -37,7 +37,7 @@ class Complex does Numeric is Cool {
         $base ** $exponent;
     }
 
-    method log-e() {
+    method ln() {
         Q:PIR {
             .local pmc self
             self = find_lex 'self'

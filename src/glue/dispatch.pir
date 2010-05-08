@@ -272,7 +272,14 @@ Helper for handling calls of the form .Foo::bar.
     .param pmc named_args :slurpy :named
     $I0 = target.'ACCEPTS'(invocant)
     unless $I0 goto not_allowed
+    $I0 = isa target, 'Perl6Role'
+    if $I0 goto method_from_role
     $P0 = find_method target, name
+    .tailcall $P0(invocant, pos_args :flat, named_args :flat :named)
+  method_from_role:
+    $P0 = target.'HOW'()
+    $P0 = $P0.'methods'(target)
+    $P0 = $P0[name]
     .tailcall $P0(invocant, pos_args :flat, named_args :flat :named)
   not_allowed:
     $S0 = "Can not call method '"

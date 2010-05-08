@@ -54,6 +54,8 @@ role Real does Numeric {
     }
 }
 
+# Comparison operators
+
 multi sub infix:«<=>»(Real $a, Real $b) {
     $a.Bridge <=> $b.Bridge;
 }
@@ -70,6 +72,14 @@ multi sub infix:«==»(Num $a, Num $b) {
     pir::iseq__INN( $a, $b) ?? True !! False
 }
 
+multi sub infix:«!=»(Real $a, Real $b) {
+    $a.Bridge != $b.Bridge;
+}
+
+multi sub infix:«!=»(Num $a, Num $b) {
+    pir::iseq__INN( $a, $b) ?? False !! True # note reversed
+}
+
 multi sub infix:«<»(Real $a, Real $b) {
     $a.Bridge < $b.Bridge;
 }
@@ -77,6 +87,32 @@ multi sub infix:«<»(Real $a, Real $b) {
 multi sub infix:«<»(Num $a, Num $b) {
     pir::islt__INN( $a, $b) ?? True !! False
 }
+
+multi sub infix:«>»(Real $a, Real $b) {
+    $a.Bridge > $b.Bridge;
+}
+
+multi sub infix:«>»(Num $a, Num $b) {
+    pir::isgt__INN( $a, $b) ?? True !! False
+}
+
+multi sub infix:«<=»(Real $a, Real $b) {
+    $a.Bridge <= $b.Bridge;
+}
+
+multi sub infix:«<=»(Num $a, Num $b) {
+    pir::isgt__INN( $a, $b) ?? False !! True # note reversed
+}
+
+multi sub infix:«>=»(Real $a, Real $b) {
+    $a.Bridge >= $b.Bridge;
+}
+
+multi sub infix:«>=»(Num $a, Num $b) {
+    pir::islt__INN( $a, $b) ?? False !! True # note reversed
+}
+
+# Arithmetic operators
 
 multi sub prefix:<->(Real $a) {
     -($a.Bridge);

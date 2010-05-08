@@ -127,7 +127,7 @@ method finish($block) {
         my $init_decl_name := $block.unique('!class_init_');
         my @name := Perl6::Grammar::parse_name($name);
         my $short_name := @name.pop;
-        $block := PAST::Block.new(
+        my $rolemaker := PAST::Block.new(
             :name($init_decl_name),
             :blocktype('declaration'),
             PAST::Op.new( :pasttype('bind'),
@@ -142,15 +142,15 @@ method finish($block) {
             PAST::Op.new(
                 :pasttype('callmethod'), :name('!add_variant'),
                 PAST::Var.new( :name('master_role'), :scope('register') ),
-                Perl6::Actions::create_code_object($block, 'Sub', 1, $lazy_sig_block_name)
+                Perl6::Actions::create_code_object(PAST::Val.new( :value($block) ), 'Sub', 1, $lazy_sig_block_name)
             )
         );
         
         # Set namespace and install in package, if our scoped.
         if $!scope eq 'our' || $!scope eq '' {
             my @ns := Perl6::Grammar::parse_name($name ~ '[' ~ self.signature_text ~ ']');
-            $block.namespace(@ns);
-            $block.push(PAST::Op.new( :pasttype('bind'),
+            $rolemaker.namespace(@ns);
+            $rolemaker.push(PAST::Op.new( :pasttype('bind'),
                 PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') ),
                 PAST::Var.new( :name('master_role'), :scope('register') )
             ));
@@ -160,6 +160,7 @@ method finish($block) {
                 PAST::Var.new( :name($init_decl_name), :namespace(@ns), :scope('package') )
             ));
             $result := PAST::Stmts.new(
+                $rolemaker,
                 $block,
                 PAST::Var.new( :name($short_name), :namespace(@name), :scope('package') )
             );
@@ -168,11 +169,12 @@ method finish($block) {
         # If we're my-scoped, similar but for the lexpad.
         elsif $!scope eq 'my' {
             # Install a binding of the declaration to a name in the lexpad.
-            $block.blocktype('immediate');
-            $block.push(PAST::Var.new( :name('master_role'), :scope('register') ));
+            $rolemaker.blocktype('immediate');
+            $rolemaker.push(PAST::Var.new( :name('master_role'), :scope('register') ));
             @Perl6::Actions::BLOCK[0][0].push(PAST::Var.new(
-                :name($name), :isdecl(1),  :viviself($block), :scope('lexical')
+                :name($name), :isdecl(1),  :viviself($rolemaker), :scope('lexical')
             ));
+            @Perl6::Actions::BLOCK[0][0].push($block);
             @Perl6::Actions::BLOCK[0].symbol($name, :scope('lexical'), :does_abstraction(1));
             $result := PAST::Var.new( :name($name), :scope('lexical') );
         }

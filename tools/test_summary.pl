@@ -1,10 +1,10 @@
 #! perl
 
-# Copyright (C) 2004-2009, The Perl Foundation.
+# Copyright (C) 2004-2010, The Perl Foundation.
 # $Id$
 
 ##  The "make spectest" target tells us how many tests we failed
-## (hopefully zero!), but doesn't say how many were actually passed.
+##  (hopefully zero!), but doesn't say how many were actually passed.
 ##  This script runs the spectest tests and summarizes
 ##  passed, failed, todoed, skipped, executed and planned test results.
 ##
@@ -18,6 +18,10 @@ use strict;
 use warnings;
 use Time::Local;
 use Time::HiRes;
+
+my $benchmark;
+# Comment out the next line to skip benchmarking; see docs below
+$benchmark = Simple::Relative::Benchmarking::begin();    # defined below
 
 # Build the list of test scripts to run in @tfiles
 my $testlist = $ARGV[0] || 't/spectest.data';
@@ -35,8 +39,8 @@ close $fh or die $!;
 # Fudge any Rakudo specific tests by running the fudgeall script
 {
     my $cmd = join ' ', $^X, 't/spec/fudgeall', 'rakudo', @tfiles;
-    # Fudgeall prints the name of each test script, but changes the
-    # name ending to .rakudo instead of .t if tests were fudged.
+    # Fudgeall prints the name of each test script, but changes the name
+    # ending to .rakudo instead of .t if tests were fudged.
     print "$cmd\n";
     @tfiles = split ' ', `$cmd`; # execute fudgeall, collect test names
 }
@@ -69,23 +73,6 @@ for $syn (@syn) {
 }
 $syn = ''; # to reliably trigger the display of column headings
 
-# start simple relative benchmarking
-my( %times, @interesting_times );
-if ( open( my $times, '<', 'docs/test_summary.times') ) {
-	while ( <$times> ) {
-	    if (/^(.*),(\d+)-(\d+)-(\d+)\s(\d+):(\d+):(\d+),(.*)/) {
-	        my ( $testname, $year, $mon, $mday, $hour, $min, $sec, $realtime )
-	            = ( $1, $2, $3, $4, $5, $6, $7, $8 );
-	        my $timegm = timegm( $sec, $min, $hour, $mday, $mon-1, $year-1900 );
-	        $times{$testname} = [ $timegm, $realtime ];
-	    }
-	}
-	close $times or die $!;
-}
-my $total_start = Time::HiRes::time;
-$times{'test startup'} = [ time, 9999 ]; # ignore test startup from previous runs?
-open( my $times, '>', 'docs/test_summary.times.tmp') or die "cannot create docs/test_summary.times.tmp: $!";
-
 # Execute all test scripts, aggregate the results, display the failures
 $| = 1;
 my ( @fail, @plan_hint );
@@ -102,7 +89,7 @@ for my $tfile (@tfiles) {
     }
     close $th or die $!;
     my $tname = $tname{$tfile};
-    # repeat the column headings at the start of each Synopsis
+    # Repeat the column headings at the start of each Synopsis
     if ( $syn ne substr($tname, 0, 3) ) {
         $syn  =  substr($tname, 0, 3);
         printf( "%s  pass fail todo skip plan\n", ' ' x $max );
@@ -113,26 +100,28 @@ for my $tfile (@tfiles) {
     $syn{$syn}++;
     printf "%s%s..", $tname, '.' x ($max - length($tname));
     my $cmd = "./perl6 $tfile";
-    my $realtime1 = Time::HiRes::time;
-    my @results = split "\n", `$cmd`;  # run the test, @result = all stdout
-    my $realtime2 = Time::HiRes::time;
-    my (%skip, %todopass, %todofail, $time1, $time2, $testnumber);
-    my @times = ();
+    # Run the test, collecting all stdout in @results
+    my @results = split "\n", qx{$cmd};
+    my (%skip, %todopass, %todofail);
+    my ($time1, $time2, $testnumber, $test_comment ) = ( 0, 0, 0, '' );
+    my @times = (); my @comments = ();
     for (@results) {
-        # pass over the optional line containing "1..$planned"
+        # Pass over the optional line containing "1..$planned"
         if    (/^1\.\.(\d+)/)      { $plan = $1 if $1 > 0; next; }
-        # handle lines containing timestamps
+        # Handle lines containing timestamps
         if    (/^# t=(\d+\.\d+)/)  {
-            # calculate the per test execution time
+            # Calculate the per test execution time
             $time2 = $time1;
             $time1 = $1;
-            if ( defined( $testnumber ) ) {
-                $times[$testnumber] = $time1 - $time2;
-                undef $testnumber;
+            my $microseconds = int( ($time1 - $time2) * 1_000_000 );
+            if ( $testnumber > 0 ) {
+                $times[$testnumber] = $microseconds;
+                $comments[$testnumber] = $test_comment;
+                $testnumber = 0;
             }
             next;
         }
-        # ignore lines not beginning with "ok $$test" or "not ok $test"
+        # Ignore lines not beginning with "ok $$test" or "not ok $test"
         next unless /^(not )?ok +(\d+)/;
         if    (/#\s*SKIP\s*(.*)/i) { $skip++; $skip{$1}++; }
         elsif (/#\s*TODO\s*(.*)/i) { $todo++;
@@ -141,9 +130,8 @@ for my $tfile (@tfiles) {
             else        { $todofail{$reason}++ }
         }
         elsif (/^not ok +(.*)/)    { $fail++; push @fail, "$tname $1"; }
-        elsif (/^ok +\d+/)         {
-            $testnumber = $1;
-            $pass++;
+        elsif (/^ok +(\d+) - (.*)$/) {
+            $pass++; $testnumber = $1; $test_comment = $2;
         }
     }
     my $test = $pass + $fail + $todo + $skip;
@@ -186,84 +174,9 @@ for my $tfile (@tfiles) {
     if ($bonus) {
         printf "   %3d tests more than planned were run\n", $bonus;
     }
-    # track simple relative benchmarking
-    {
-        my $testname = $tfile;
-        $testname =~ s{^t/spec/}{};
-        my $realtime = $realtime2 - $realtime1;
-        if ( $realtime < $times{'test startup'}->[1] ) {
-            $times{'test startup'} = [ time, $realtime ];
-        }
-        if ( not exists( $times{$testname} ) ) { $times{$testname} = [ time, $realtime ]; }
-        my $datetime_old = $times{$testname}->[0];
-        my $realtime_old = $times{$testname}->[1];
-        my $diff_sec = abs($realtime - $times{$testname}->[1]);
-        if ( $diff_sec >= 0.2 ) {
-            push @interesting_times, [ $testname, $datetime_old, $realtime_old, time, $realtime, $diff_sec ];
-            $times{$testname} = [ time, $realtime ];
-        }
-        my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime($times{$tname}->[0]);
-        printf $times "%s,%04d-%02d-%02d %02d:%02d:%02d,%g\n", $testname,
-            $year+1900, $mon+1, $mday, $hour, $min, $sec, $times{$testname}->[1];
-    }
+    defined $benchmark && $benchmark->log_script_times($tfile,\@times,\@comments);
 } # for my $tfile (@tfiles)
-
-# finish simple relative benchmarking
-{
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime;
-    printf $times "%s,%04d-%02d-%02d %02d:%02d:%02d,%g\n", 'test startup',
-        $year+1900, $mon+1, $mday, $hour, $min, $sec, $times{'test startup'}->[1];
-    close $times or die $!;
-    rename 'docs/test_summary.times.tmp', 'docs/test_summary.times';
-    my $total_time = Time::HiRes::time - $total_start;
-
-    if ( @interesting_times ) {
-        @interesting_times = map  { $_->[0] }             # Schwartzian Transform
-                             sort { $b->[1] <=> $a->[1] } # descending
-                             map  { [$_, $$_[5]] }        # absolute time difference
-                             @interesting_times;
-        my $top_count = 20;
-        $top_count = @interesting_times if $top_count > @interesting_times;
-        @interesting_times = @interesting_times[0..$top_count-1];
-        print "----------------\n";
-        my $test_startup = $times{'test startup'}->[1];
-        printf "Minimum test startup %.2fs. Total time %d minute(s).\n",
-            $test_startup, $total_time/60;
-        for my $interesting ( @interesting_times ) {
-            my( $testname, $dt1, $realtime1, $dt2, $realtime2, $diff_sec ) = @$interesting;
-            my $change = $realtime1 < $realtime2 ? 'slower' : 'faster';
-            # The percentage difference is from the previous child user time minus
-            # the presumed startup time. Without a check it can divide by zero.
-            my $diff_pct = 100;
-            if ( $realtime1 != $test_startup ) {
-                $diff_pct = 100 * ($realtime2-$realtime1) / ( $realtime1 - $test_startup );
-            }
-            my $ago = int($dt2 - $dt1);
-            my $unit = 'second'; $unit.='s' if $ago!=1;
-            my $units = [ ['minute',60],['hour',60],['day',24],['week',7] ];
-            for my $refunit ( @$units ) {
-                last if $ago < $$refunit[1];
-                $ago = int($ago/$$refunit[1]);
-                $unit = $$refunit[0];
-                $unit.='s' if $ago!=1;
-            }
-#           if ($ago>60) {
-#               $ago=int($ago/60); $unit='minute'; $unit.='s' if $ago!=1;
-#               if ($ago>60) {
-#                   $ago=int($ago/60); $unit='hour'; $unit.='s' if $ago!=1;
-#                   if ($ago>24) {
-#                       $ago=int($ago/24); $unit='day'; $unit.='s' if $ago!=1;
-#                       if ($ago>7) {
-#                           $ago=int($ago/7); $unit='week'; $unit.='s' if $ago!=1;
-#                       }
-#                   }
-#               }
-#           }
-            printf "%-38s %.2fs %s (%.1f%%) than %d %s ago\n",
-                $testname, $diff_sec, $change, $diff_pct, $ago, $unit;
-        }
-    }
-}
+defined $benchmark && $benchmark->end(); # finish simple relative benchmarking
 
 # Calculate plan totals from test scripts grouped by Synopsis and overall.
 # This ignores any test list and processes all unfudged files in t/spec/.
@@ -329,3 +242,259 @@ if (@fail) {
 else {
     print "No failures!\n";
 }
+
+# End of main program
+
+#-------------------- Simple Relative Benchmarking ---------------------
+
+package Simple::Relative::Benchmarking;
+
+sub begin {       # this constructor starts simple relative benchmarking
+    my $timings = shift // 5;    # number of timings to keep (// default 5)
+    my $self = {};
+    my @datetimes;
+    $self->{'Timings'} = $timings;
+    $self->{'Last_test_loaded'} = '';
+
+    my ( $times, %times, @interesting_times );
+    if ( open( $self->{'file_in'}, '<', 'docs/test_summary.times') ) {
+        my $file_in = $self->{'file_in'};
+        my $line = <$file_in>; chomp $line;
+        if ( $line eq '{"Test_DateTimes":[' ) {
+            $line = <$file_in>;
+            while ( $line =~ m/(\d\d\d\d-\d\d-\d\d.\d\d:\d\d:\d\d)/ ) {
+                push @datetimes, $1;
+                $line = <$file_in>;
+            } # ends on the ' ],' line after the datetimes
+            $line = <$file_in>; chomp $line;
+            if ( $line eq ' "Test_microseconds":{' ) {
+                warn "begin reached 'Test_microseconds'\n";
+            }
+        }
+    }
+    open( $self->{'file_out'}, '>', 'docs/test_summary.times.tmp') or die "cannot create docs/test_summary.times.tmp: $!";
+    my $file_out = $self->{'file_out'};
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+        gmtime(time());
+    push @datetimes, sprintf("%4d-%02d-%02d %02d:%02d:%02d", $year+1900,
+        $mon+1, $mday, $hour, $min, $sec );
+    # Delete the oldest test datetimes if there are too many.
+    while ( @datetimes > $self->{'Timings'} ) { shift @datetimes; }
+    print $file_out qq!{"Test_DateTimes":[\n!;
+    print $file_out "  \"" . join("\",\n  \"",@datetimes) . "\"\n ],\n";
+    print $file_out qq! "Test_microseconds":{!;
+    # tell Test.pm to output per-test timestamps
+    $ENV{'PERL6_TEST_TIMES'} = 'true';
+    return bless $self;
+}
+
+# track simple relative benchmarking
+sub log_script_times {
+    my $self      = shift;
+    my $test_name = shift;
+    my $ref_times = shift;
+    my $ref_comments = shift;
+    my (@times) = @$ref_times;
+    my (@comments) = @$ref_comments;
+    shift @times;     # offset by 1: the first result becomes $times[0];
+    shift @comments;
+    for ( my $i=0; $i<=@times; $i++ ) {
+        if ( not defined $comments[$i] ) { $comments[$i] = ''; }
+        $comments[$i] =~ s/\\/\\\\/g; # escape all backslashes
+        $comments[$i] =~ s/\"/\\\"/g; # escape all double quotes
+    }
+    my ( $line );
+    my $file_in  = $self->{'file_in'};
+    my $file_out = $self->{'file_out'};
+    $test_name =~ s{^t/spec/}{};   # eg 'S02-literals/numeric.t'
+    my $test_separator;
+    if ( $self->{'Last_test_loaded'} eq '' ) {
+        $test_separator = "\n";
+    }
+    else {
+        $test_separator = ",\n";
+    }
+    while ( not eof($file_in) and $self->{'Last_test_loaded'} lt $test_name ) {
+        $line = <$file_in>; chomp $line;
+        if ( $line =~ m/^\s\s"(.+)":.$/ ) {
+            $self->{'Last_test_loaded'} = $1;
+        }
+    }
+    my @logged_results;
+    if ( not eof($file_in) and $self->{'Last_test_loaded'} eq $test_name ) {
+        my $line = <$file_in>; chomp $line;
+        while ( not eof($file_in) and $line =~ m/^\s\s\s\[(\d+),\[(.+?)\],?/ ) {
+            my $test_number = $1;
+            my @timings = split /,/ , $2;
+            $logged_results[$test_number-1] = [ @timings ];
+            $line = <$file_in>; chomp $line;
+        }
+    }
+    my $microseconds = [];
+    my $testcount = @times;
+    for ( my $test_number=0; $test_number<$testcount; $test_number++) {
+        unless ( defined($times[$test_number]) ) { $times[$test_number] = 0; }
+        my ( @times_in_file );
+        if ( defined @{$logged_results[$test_number]} ) {
+            @times_in_file = ( @{$logged_results[$test_number]} );
+        }
+        push @times_in_file, $times[$test_number];
+        if ( not defined( $times_in_file[0] ) ) { shift @times_in_file; }
+        # Delete the oldest test timings if there are too many.
+        while ( @times_in_file > $self->{'Timings'} ) { shift @times_in_file; }
+        $$microseconds[$test_number] = [ @times_in_file ];
+    }
+    my $test_number = 1; # start from number 1 again
+    print $file_out
+        $test_separator .
+        qq'  "$test_name":[\n' .
+        join(",\n", map {'   ['.$test_number++.',['.join(',',@$_).'],"'.$comments[$test_number-2].'"]'} @$microseconds) .
+        qq'\n  ]';
+}
+
+sub end {
+    my $self = shift;
+    my $file_in  = $self->{'file_in'};
+    my $file_out = $self->{'file_out'};
+    print $file_out "\n }\n}\n";
+    close $file_out or die $!;
+    close $file_in or die $!;
+    unlink 'docs/test_summary.times';
+    rename 'docs/test_summary.times.tmp', 'docs/test_summary.times';
+}
+
+package main;
+
+=pod
+
+=head1 NAME
+
+tools/test_summary.pl -- run spectests and make statistical reports
+
+=head1 DESCRIPTION
+
+This test harness written in Perl 5, runs the Perl 6 specification test
+suite.  It uses the same Test Anything Protocol (TAP) as for example
+L<TAP::Harness>, but does not depend those modules.
+
+The names of the tests are listed in t/spectest.data, or another file
+whose name is passed on the command line.
+
+=head2 OUTPUT
+
+The harness prints the name of each test script before running it.
+After completion it prints the total number of tests passed, failed,
+to do, skipped, and planned.  The descriptions of any tests failed,
+skipped or left to do are also listed.
+
+After running all the tests listed, the harness prints a set of
+subtotals per Synopsis.
+
+If you set the REV environment variable (with the first 7 characters of
+a Rakudo commit id), the harness prints an additional set of grand
+totals suitable for adding to F<docs/spectest_progress.csv>.
+
+=head1 SIMPLE RELATIVE BENCHMARKING
+
+Too little information can mislead, hence this self deprecating title.
+For example, these measurements overlook variation in test times
+('jitter'), kernel versus user process times, and measurement overheads.
+But these results are better than no information at all.
+
+If activated, this tool logs the most recent 5 timings in microseconds
+in F<docs/test_summary.times> in a specific JSON format, for later
+analysis.  Measurement and logging add less than 2% to the testing time
+and makes a log file of about 2.5MB.
+
+=head2 Methods
+
+=head3 begin
+
+Accepts an optional parameter, the number of timings per test to keep.
+Creates a temporary file for new results, and returns an object that
+updates the log file.  (F<begin> acts as the constructor).
+
+=head3 log_script_times
+
+Takes these parameters: test script name, reference to an array of times
+in microseconds, reference to an array of test description strings.
+Appends the results to the temporary log file.
+
+=head3 end
+
+Closes and renames the temporary log file.
+
+=head2 Timing results file
+
+All results are stored in F<docs/test_summary.times> in a specific JSON
+format.  With 35000 test result lines and 5 runs it occupies just under
+2.5 MB.
+
+Here is an example with a few semi fictitious results:
+
+    {"Test_DateTimes":[
+      "2010-05-06 10:44:31",
+      "2010-05-06 12:35:44",
+      "2010-05-07 05:22:44",
+      "2010-05-07 07:04:38",
+      "2010-05-07 15:52:32"
+     ],
+     "Test_microseconds":{
+      "S02-builtin_data_types/anon_block.rakudo":[
+       [1,[6139,7559,6440,6289,5520],"The object is-a 'Sub()'"],
+       [2,[6610,6599,6690,6580,6010],"sub { } works"]
+      ],
+      "S02-builtin_data_types/array.rakudo":[
+       [1,[9100,8889,9739,9140,9169],"for 1, 2, 3 does 3 iterations"],
+       [2,[5650,5599,6119,9819,5140],"for (1, 2, 3).item 3 iterations"],
+       [3,[3920,3770,4190,4410,3350],"for [1, 2, 3] does one iteration"]
+      ]
+     }
+    }
+
+The "Test_DateTimes" section lists the starting DateTimes for all the
+runs of F<tools/test_summary.pl> that are recorded in the file.  Then the
+Test_microseconds records begin with each test filename, possibly fudged.
+followed by the test numbers, followed by the times obtained from each
+run.  If a test has fewer than the usual number of timings, they will be
+the most recent ones.
+
+The file is read and written by custom code and not a JSON module, to
+reduce dependencies.  Altering the file format might cause reading to
+fail and could result in data loss.  General purpose JSON parsers should
+be able to read the data, for example the following extracts the longest
+execution time of a test per test script.
+
+    #!/usr/bin/perl
+    use File::Slurp qw( slurp );
+    use JSON;
+    my $log_text = slurp('docs/test_summary.times');
+    my $log = JSON->new->decode( $log_text );
+    my $script_hash = $$log{'Test_microseconds'};
+    for my $script_name ( sort keys %$script_hash ) {
+        my $test_list = $$script_hash{$script_name}; 
+        my $max_time = 0;
+        for my $test ( @$test_list ) {
+            my $microseconds = $$test[1];
+            for my $timing ( @$microseconds ) {
+                $max_time = $timing if $max_time < $timing;
+            }
+        }
+        print "script: $script_name max_time:$max_time\n";
+    }
+
+=head2 TODO
+
+Detect changes in number of tests or descriptions of tests in each
+test script, and discard all previous results for that script if there
+has been a change.  Consider whether to log total execution time per
+test script.
+
+Analyse and report useful results, such as: largest % change up or down
+in last run, the slowest n tests, the n tests that vary the most.
+
+=head1 SEE ALSO
+
+The L<perlperf> module.  The L<http://json.org/> site.
+
+=cut

@@ -196,6 +196,7 @@ S03-smartmatch/scalar-hash.t
 # S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
 S04-phasers/end.t
+S04-phasers/rvalues.t
 # S04-phasers/start.t
 # S04-declarations/constant.t
 S04-declarations/implicit-parameter.t

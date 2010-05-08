@@ -9,7 +9,7 @@ use Cwd;
 
 MAIN: {
     my %options;
-    GetOptions(\%options, 'help!', 'parrot-config=s',
+    GetOptions(\%options, 'help!', 'parrot-config=s', 'makefile-timing!',
                'gen-parrot!', 'gen-parrot-prefix=s', 'gen-parrot-option=s@');
 
     # Print help if it's requested
@@ -81,7 +81,7 @@ END
     verify_parrot(%config);
 
     # Create the Makefile using the information we just got
-    create_makefile(%config);
+    create_makefile($options{'makefile-timing'}, %config);
     my $make = $config{'make'};
 
     {
@@ -159,7 +159,7 @@ END
 
 #  Generate a Makefile from a configuration
 sub create_makefile {
-    my %config = @_;
+    my ($makefile_timing, %config) = @_;
 
     my $maketext = slurp( 'build/Makefile.in' );
 
@@ -169,6 +169,10 @@ sub create_makefile {
         $maketext =~ s{/}{\\}g;
         $maketext =~ s{\\\*}{\\\\*}g;
         $maketext =~ s{http:\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
+    }
+
+    if ($makefile_timing) {
+        $maketext =~ s{(?<!\\\n)^\t(?!\s*-?cd)(?=[^\n]*\S)}{\ttime }mg;
     }
 
     my $outfile = 'Makefile';
@@ -209,6 +213,8 @@ General Options:
                        Set parrot config option when using --gen-parrot
     --parrot-config=(config)
                        Use configuration information from config
+Experimental developer's options:
+    --makefile-timing  Insert 'time' command all over in the Makefile
 END
 
     return;

@@ -43,7 +43,10 @@ multi sub plan($number_of_tests) is export {
 
         say '1..' ~ $number_of_tests;
     }
-#   say '# t=' ~ time;
+    # Emit two successive timestamps to measure the measurment overhead,
+    # and to eliminate cacheing bias, if it exists, from the first test.
+    say '# t=' ~ time if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ time if %*ENV{'PERL6_TEST_TIMES'};
 }
 
 multi sub pass($desc) is export {
@@ -223,7 +226,7 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
-#   say '# t=' ~ time;
+    say '# t=' ~ time if %*ENV{'PERL6_TEST_TIMES'};
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";

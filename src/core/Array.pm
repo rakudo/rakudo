@@ -99,3 +99,4 @@ augment class Array {
 
 proto sub pop(@array) { @array.pop; }
 proto sub shift(@array) { @array.shift; }
+proto sub unshift(@array, *@values) { @array.unshift(@values); }

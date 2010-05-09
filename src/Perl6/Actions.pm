@@ -2112,6 +2112,8 @@ method infixish($/) {
                 $helper := '&notresults';
             } elsif $metaop eq 'R' {
                 $helper := '&reverseargs';
+            } elsif $metaop eq 'S' {
+                $helper := '&sequentialargs';
             } elsif $metaop eq 'X' {
                 $helper := '&crosswith';
             } elsif $metaop eq 'Z' {

@@ -126,6 +126,7 @@ S03-metaops/not.t
 S03-metaops/reduce.t
 S03-metaops/reverse.t
 S03-metaops/zip.t
+S03-operators/also.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/assign.t

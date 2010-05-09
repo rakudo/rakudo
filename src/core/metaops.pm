@@ -10,6 +10,11 @@ our multi sub reverseargs(&op, Mu \$a, Mu \$b) {
     &op($b, $a);
 }
 
+our multi sub sequentialargs(&op, Mu \$a, Mu \$b) {
+    # CHEAT: this needs to do something more once Rakudo gets threading
+    &op($a, $b);
+}
+
 our multi sub zipwith(&op, Iterable $a-iterable, Iterable $b-iterable) {
     my $ai = $a-iterable.iterator;
     my $bi = $b-iterable.iterator;

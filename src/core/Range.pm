@@ -84,8 +84,6 @@ our multi sub infix:<^..^>($min, $max) {
     Range.new($min, $max, :excludes_min(Bool::True), :excludes_max(Bool::True));
 }
 
-# CHEAT: This is overly broad, but I don't know how to
-# limit it to numeric types in ng.
 our multi sub prefix:<^>($max) {
-    0..^$max;
+    0..^+$max;
 }

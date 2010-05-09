@@ -250,7 +250,7 @@ else {
 package Simple::Relative::Benchmarking;
 
 sub begin {       # this constructor starts simple relative benchmarking
-    my $timings = shift // 5;    # number of timings to keep (// default 5)
+    my $timings = shift || 5;    # number of timings to keep (// default 5)
     my $self = {};
     my @datetimes;
     $self->{'Timings'} = $timings;

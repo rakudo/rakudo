@@ -26,6 +26,11 @@ role Numeric {
         self.log(10);
     }
 
+    method sqrt(Numeric $x:) {
+        note "$.WHAT() needs a version of .sqrt";
+        fail "$.WHAT() needs a version of .sqrt";
+    }
+
     INIT {
         our @trig-base-conversions = (1.0, pi / 180.0, pi / 200.0, 2.0 * pi);
     }

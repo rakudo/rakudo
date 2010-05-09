@@ -184,7 +184,7 @@ class Complex does Numeric is Cool {
         fail('Cannot take the sign() of a Complex number');
     }
 
-    multi method sqrt() {
+    method sqrt() {
         Q:PIR {
             .local pmc self
             self = find_lex 'self'
@@ -333,9 +333,5 @@ multi sub log(Complex $x) {
 }
 
 multi sub sign(Complex $x) { $x.sign }
-
-multi sub sqrt(Complex $x) {
-    $x.sqrt;
-}
 
 # vim: ft=perl6

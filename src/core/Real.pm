@@ -49,6 +49,10 @@ role Real does Numeric {
         1.unpolar($angle);
     }
 
+    method sqrt(Real $x:) {
+        $x.Bridge.sqrt;
+    }
+
     method sin(Real $x: $base = Radians) {
         $x.Bridge.sin($base);
     }

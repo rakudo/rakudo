@@ -52,8 +52,8 @@ augment class Cool {
         $.Complex.roots($n);
     }
 
-    multi method sqrt() {
-        self.Num.sqrt;
+    method sqrt($x:) {
+        (+$x).sqrt;
     }
 
     multi method log($base = e) {
@@ -385,8 +385,8 @@ my Num sub rand (*@args) {
     1.rand
 }
 
-multi sub sqrt(Any $x) {
-    $x.Num.sqrt
+proto sub sqrt(Any $x) {
+    (+$x).sqrt
 }
 
 multi sub roots($x, $n) {

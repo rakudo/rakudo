@@ -87,8 +87,8 @@ augment class Num does Real {
         pir::box__PI(pir::floor__IN($x));
     }
 
-    multi method sqrt() {
-        pir::sqrt__Nn(self);
+    method sqrt(Num $x:) {
+        pir::sqrt__Nn($x);
     }
 
     method sin(Num $x: $base = Radians) {

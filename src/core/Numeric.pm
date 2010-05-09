@@ -46,9 +46,3 @@ role Numeric {
 }
 
 multi sub infix:«cmp»(Numeric $a, Numeric $b) { $a <=> $b; }
-multi sub infix:«eq»(Numeric $a, Numeric $b)  { $a == $b; }
-multi sub infix:«ne»(Numeric $a, Numeric $b)  { $a != $b; }
-multi sub infix:«lt»(Numeric $a, Numeric $b)  { $a < $b; }
-multi sub infix:«gt»(Numeric $a, Numeric $b)  { $a > $b; }
-multi sub infix:«le»(Numeric $a, Numeric $b)  { $a <= $b; }
-multi sub infix:«ge»(Numeric $a, Numeric $b)  { $a >= $b; }

@@ -250,39 +250,45 @@ else {
 package Simple::Relative::Benchmarking;
 
 sub begin {       # this constructor starts simple relative benchmarking
-    my $timings = shift || 5;    # number of timings to keep (// default 5)
+    my $timings = shift || 5;    # number of timings to keep (default 5)
     my $self = {};
-    my @datetimes;
+    my @test_history;
     $self->{'Timings'} = $timings;
     $self->{'Last_test_loaded'} = '';
 
-    my ( $times, %times, @interesting_times );
     if ( open( $self->{'file_in'}, '<', 'docs/test_summary.times') ) {
         my $file_in = $self->{'file_in'};
         my $line = <$file_in>; chomp $line;
-        if ( $line eq '{"Test_DateTimes":[' ) {
-            $line = <$file_in>;
-            while ( $line =~ m/(\d\d\d\d-\d\d-\d\d.\d\d:\d\d:\d\d)/ ) {
-                push @datetimes, $1;
-                $line = <$file_in>;
-            } # ends on the ' ],' line after the datetimes
+        if ( $line =~ m/{"test_.+":\[/i ) { # should be Test_history
             $line = <$file_in>; chomp $line;
-            if ( $line eq ' "Test_microseconds":{' ) {
-                warn "begin reached 'Test_microseconds'\n";
+            while ( $line =~ m/\s\s(.+\d\d\d\d-\d\d-\d\d.\d\d:\d\d:\d\d.+)/ ) {
+                my $history_line = $1;
+                $history_line =~ s/,$//; # trim possible trailing comma
+                push @test_history, $history_line;
+                $line = <$file_in>; chomp $line;
+            } # ends on the ' ],' line after the test_history
+            $line = <$file_in>; chomp $line;
+            if ( $line =~ m/ "test_microseconds":{/i ) {
+                warn "begin reached 'test_microseconds'\n";
             }
         }
     }
     open( $self->{'file_out'}, '>', 'docs/test_summary.times.tmp') or die "cannot create docs/test_summary.times.tmp: $!";
+    my $parrot_version = qx{./perl6 -e'print %*VM<config><revision>'};
+    my $rakudo_version = qx{git log --oneline --max-count=1 .}; chomp $rakudo_version;
+    $rakudo_version =~ s/\\/\\\\/g; # escape all backslashes
+    $rakudo_version =~ s/\"/\\\"/g; # escape all double quotes
     my $file_out = $self->{'file_out'};
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
         gmtime(time());
-    push @datetimes, sprintf("%4d-%02d-%02d %02d:%02d:%02d", $year+1900,
-        $mon+1, $mday, $hour, $min, $sec );
-    # Delete the oldest test datetimes if there are too many.
-    while ( @datetimes > $self->{'Timings'} ) { shift @datetimes; }
-    print $file_out qq!{"Test_DateTimes":[\n!;
-    print $file_out "  \"" . join("\",\n  \"",@datetimes) . "\"\n ],\n";
-    print $file_out qq! "Test_microseconds":{!;
+    push @test_history, sprintf("[\"%4d-%02d-%02d %02d:%02d:%02d\",%d,\"%s\"]",
+        $year+1900, $mon+1, $mday, $hour, $min, $sec,
+        $parrot_version, $rakudo_version );
+    # Delete the oldest test test_history if there are too many.
+    while ( @test_history > $self->{'Timings'} ) { shift @test_history; }
+    print $file_out qq!{"test_history":[\n!;
+    print $file_out "  " . join(",\n  ",@test_history) . "\n ],\n";
+    print $file_out qq! "test_microseconds":{!;
     # tell Test.pm to output per-test timestamps
     $ENV{'PERL6_TEST_TIMES'} = 'true';
     return bless $self;
@@ -432,14 +438,14 @@ format.  With 35000 test result lines and 5 runs it occupies just under
 
 Here is an example with a few semi fictitious results:
 
-    {"Test_DateTimes":[
-      "2010-05-06 10:44:31",
-      "2010-05-06 12:35:44",
-      "2010-05-07 05:22:44",
-      "2010-05-07 07:04:38",
-      "2010-05-07 15:52:32"
+    {"test_history":[
+      ["2010-05-05 10:15:45",46276,"925629d Make $x does (R1, R2) work."],
+      ["2010-05-07 08:58:07",46276,"5713af2 run two more test files"],
+      ["2010-05-08 18:08:43",46405,"ab23221 bump PARROT_REVISION"],
+      ["2010-05-09 05:53:25",46405,"c49d32b run S04-phasers/rvalues.t"],
+      ["2010-05-10 00:44:46",46405,"118f4aa Overhaul sqrt for Numeric / Real."]
      ],
-     "Test_microseconds":{
+     "test_microseconds":{
       "S02-builtin_data_types/anon_block.rakudo":[
        [1,[6139,7559,6440,6289,5520],"The object is-a 'Sub()'"],
        [2,[6610,6599,6690,6580,6010],"sub { } works"]
@@ -452,36 +458,44 @@ Here is an example with a few semi fictitious results:
      }
     }
 
-The "Test_DateTimes" section lists the starting DateTimes for all the
-runs of F<tools/test_summary.pl> that are recorded in the file.  Then the
-Test_microseconds records begin with each test filename, possibly fudged.
+The "test_history" section lists the starting times for all the runs of
+F<tools/test_summary.pl> that are recorded in the file.  Then the
+"test_microseconds" records show each test filename, possibly fudged,
 followed by the test numbers, followed by the times obtained from each
-run.  If a test has fewer than the usual number of timings, they will be
-the most recent ones.
+run.  If a test has fewer than the usual number of timings, the timings
+will be from the most recent test runs.
 
 The file is read and written by custom code and not a JSON module, to
 reduce dependencies.  Altering the file format might cause reading to
 fail and could result in data loss.  General purpose JSON parsers should
-be able to read the data, for example the following extracts the longest
-execution time of a test per test script.
+be able to read the data.  For example the following ranks the tests
+from best speedup to worst slowdown.
 
     #!/usr/bin/perl
     use File::Slurp qw( slurp );
     use JSON;
     my $log_text = slurp('docs/test_summary.times');
     my $log = JSON->new->decode( $log_text );
-    my $script_hash = $$log{'Test_microseconds'};
+    # Flatten the data structure to a 2-D array of nonzero test times
+    my @timings;
+    my $script_hash = $$log{'test_microseconds'};
     for my $script_name ( sort keys %$script_hash ) {
-        my $test_list = $$script_hash{$script_name}; 
-        my $max_time = 0;
-        for my $test ( @$test_list ) {
-            my $microseconds = $$test[1];
-            for my $timing ( @$microseconds ) {
-                $max_time = $timing if $max_time < $timing;
+        my $test_list = $$script_hash{$script_name};
+        for my $t ( @$test_list ) {
+            my $times_count = @{$$t[1]};
+            if ( $times_count >= 2 and ${$$t[1]}[$times_count-1] > 0 ) {
+                push @timings, [$script_name, $$t[0], $$t[2], ${$$t[1]}[$times_count-2], ${$$t[1]}[$times_count-1] ];
             }
         }
-        print "script: $script_name max_time:$max_time\n";
     }
+    # Sort the timings into improved/worsened order with a Schwartzian transform
+    my @z; for my $t ( @timings ) { push @z, ($$t[4]-$$t[3])/$$t[4]; }
+    my @sorted = @timings[ sort { $z[$a] <=> $z[$b] } 0..$#timings ];
+    # Display the results: quicker is minus, slower is plus.
+    for my $s ( @sorted ) {
+        printf "%+3.0f%% %6d %6d %s:%d:%s\n",
+           ($$s[4]-$$s[3])*100/$$s[3], $$s[3], $$s[4], $$s[0], $$s[1], $$s[2];
+    } # %change, prev-time, latest-time, script, test-num, test-desc
 
 =head2 TODO
 

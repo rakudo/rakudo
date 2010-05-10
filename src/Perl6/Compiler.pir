@@ -117,9 +117,9 @@ Perl6::Compiler - Perl6 compiler
     nqpproto.'parsegrammar'($P0)
     $P0 = get_hll_global ['Perl6'], 'Actions'
     nqpproto.'parseactions'($P0)
-    $P0 = split ' ', 'e=s help|h target=s dumper=s trace|t=s encoding=s output|o=s combine version|v parsetrace'
-    setattribute nqpproto, '@cmdoptions', $P0
-    
+    $P0 = getattribute nqpproto, '@cmdoptions'
+    push $P0, 'parsetrace'
+
     # Set up @*INC from $PERL6LIB, languages/perl6/lib and ~/.perl6/lib
     .local pmc env, interp, config
     # Convert PERL6LIB first

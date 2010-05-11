@@ -26,6 +26,7 @@ MV            = @mv@
 RM_F          = @rm_f@
 MKPATH        = $(PERL) -MExtUtils::Command -e mkpath
 CHMOD         = $(PERL) -MExtUtils::Command -e chmod
+POD2MAN       = @pod2man@
 
 # locations of parrot resources
 PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
@@ -44,6 +45,8 @@ DYNEXT_DIR     = dynext
 PMC_DIR        = src/pmc
 OPS_DIR        = src/ops
 PERL6_LANG_DIR = $(PARROT_LIB_DIR)/languages/perl6
+MANDIR         = @mandir@
+DOCDIR         = @prefix@/share/doc
 
 # files we create
 PERL6_PBC     = perl6.pbc
@@ -254,6 +257,8 @@ PMC_SOURCES = \
 
 OPS_SOURCE   = perl6.ops
 
+DOCS = README CREDITS LICENSE docs/*
+
 CLEANUPS = \
   *.manifest \
   *.pdb \
@@ -306,6 +311,11 @@ install: all
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
+	$(MKPATH) 		      $(DESTDIR)$(DOCDIR)/rakudo
+	$(CP)     $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
+	$(MKPATH) $(DESTDIR)$(MANDIR)/man1
+	$(POD2MAN) docs/running.pod > $(DESTDIR)$(MANDIR)/man1/perl6.1
+	$(POD2MAN) docs/running.pod > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
 xmas: $(PERL6_EXE)
 

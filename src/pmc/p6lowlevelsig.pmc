@@ -171,7 +171,7 @@ Returns a pointer to the signautre binder.
 */
 
     VTABLE void *get_pointer() {
-        return &Rakudo_binding_bind_signature;
+        return (void *) &Rakudo_binding_bind_signature;
     }
 }
 

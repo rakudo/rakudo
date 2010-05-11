@@ -22,6 +22,17 @@ by default also executes the compiled code.
 
 Note that only boolean single-letter options may be bundled 
 
+Supported stages for --target are:
+
+ parse past post pir evalpmc
+
+where
+
+ parse = a representation of the parse tree
+ past  = an intermediate format representing the parrot abstract syntax tree
+ post  = an intermediate format representing the parrot opcode syntax tree
+ pir   = the parrot intermediate representation
+
 =head1 PARROT OPTIONS
 
 To specify options to the underlying parrot VM, you must explicitly run

@@ -497,6 +497,39 @@ from best speedup to worst slowdown.
            ($$s[4]-$$s[3])*100/$$s[3], $$s[3], $$s[4], $$s[0], $$s[1], $$s[2];
     } # %change, prev-time, latest-time, script, test-num, test-desc
 
+A second example shows another way to read the results file, and ranks
+the tests from most to least consistent in execution time.
+
+    #!/usr/bin/perl
+    use JSON;
+    my $log_text = qx{$^X -MExtUtils::Command -e cat docs/test_summary.times};
+    my $log = JSON->new->decode( $log_text );
+    # Flatten the data structure to a 2-D array of nonzero test times
+    my @timings;
+    my $script_hash = $$log{'test_microseconds'};
+    for my $script_name ( sort keys %$script_hash ) {
+        my $test_list = $$script_hash{$script_name};
+        for my $t ( @$test_list ) {
+            my $times_count = @{$$t[1]};
+            if ( $times_count >= 2 and ${$$t[1]}[$times_count-1] > 0 ) {
+                my $min = my $max = ${$$t[1]}[0];
+                for my $i (1..$times_count-1) {
+                    $min = ${$$t[1]}[$i] if $min > ${$$t[1]}[$i];
+                    $max = ${$$t[1]}[$i] if $max < ${$$t[1]}[$i];
+                }
+                push @timings, [$script_name, $$t[0], $$t[2], $min, $max ] if $min > 0;
+            }
+        }
+    }
+    # Sort the timings into most/least consistent order by Schwartzian transform
+    my @z; for my $t ( @timings ) { push @z, ($$t[4]-$$t[3])/$$t[3]; }
+    my @sorted = @timings[ sort { $z[$a] <=> $z[$b] } 0..$#timings ];
+    # Display the results from most to least consistent
+    for my $s ( @sorted ) {
+        printf "%3.1f%% %6d %6d %s:%d:%s\n",
+            ($$s[4]-$$s[3])*100/$$s[3], $$s[3], $$s[4], $$s[0], $$s[1], $$s[2];
+    } # %difference, min-time, max-time, script, test-num, test-desc
+
 =head2 TODO
 
 Detect changes in number of tests or descriptions of tests in each
@@ -504,8 +537,7 @@ test script, and discard all previous results for that script if there
 has been a change.  Consider whether to log total execution time per
 test script.
 
-Analyse and report useful results, such as: largest % change up or down
-in last run, the slowest n tests, the n tests that vary the most.
+Analyse and report useful results, such as the slowest n tests.
 
 =head1 SEE ALSO
 

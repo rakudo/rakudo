@@ -314,8 +314,8 @@ install: all
 	$(MKPATH) 		      $(DESTDIR)$(DOCDIR)/rakudo
 	$(CP)     $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
 	$(MKPATH) $(DESTDIR)$(MANDIR)/man1
-	$(POD2MAN) docs/running.pod > $(DESTDIR)$(MANDIR)/man1/perl6.1
-	$(POD2MAN) docs/running.pod > $(DESTDIR)$(MANDIR)/man1/rakudo.1
+	-$(POD2MAN) docs/running.pod > $(DESTDIR)$(MANDIR)/man1/perl6.1
+	-$(POD2MAN) docs/running.pod > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
 xmas: $(PERL6_EXE)
 

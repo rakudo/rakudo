@@ -64,104 +64,104 @@ augment class Cool {
         $.Num.log10;
     }
 
-    our Num multi method sin($base = Radians) {
-        self.Num.sin($base);
+    method sin($x: $base = Radians) {
+        (+$x).sin($base);
     }
 
-    our Num multi method cos($base = Radians) {
-        self.Num.cos($base);
+    method cos($x: $base = Radians) {
+        (+$x).cos($base);
     }
 
-    our Num multi method tan($base = Radians) {
-        self.Num.tan($base);
+    method tan($x: $base = Radians) {
+        (+$x).tan($base);
     }
 
-    our Num multi method sec($base = Radians) {
-         self.Num.sec($base);
+    method sec($x: $base = Radians) {
+         (+$x).sec($base);
     }
 
-    our Num multi method cosec($base = Radians) {
-        self.Num.cosec($base);
+    method cosec($x: $base = Radians) {
+        (+$x).cosec($base);
     }
 
-    our Num multi method cotan($base = Radians) {
-        self.Num.cotan($base);
+    method cotan($x: $base = Radians) {
+        (+$x).cotan($base);
     }
 
-    our Num multi method sinh($base = Radians) {
-        self.Num.sinh($base);
+    method sinh($x: $base = Radians) {
+        (+$x).sinh($base);
     }
 
-    our Num multi method cosh($base = Radians) {
-        self.Num.cosh($base);
+    method cosh($x: $base = Radians) {
+        (+$x).cosh($base);
     }
 
-    our Num multi method tanh($base = Radians) {
-        self.Num.tanh($base);
+    method tanh($x: $base = Radians) {
+        (+$x).tanh($base);
     }
 
-    our Num multi method sech($base = Radians) {
-        self.Num.sech($base);
+    method sech($x: $base = Radians) {
+        (+$x).sech($base);
     }
 
-    our Num multi method cosech($base = Radians) {
-        self.Num.cosech($base);
+    method cosech($x: $base = Radians) {
+        (+$x).cosech($base);
     }
 
-    our Num multi method cotanh($base = Radians) {
-        self.Num.cotanh($base);
+    method cotanh($x: $base = Radians) {
+        (+$x).cotanh($base);
     }
 
-    our Num multi method asin($base = Radians) {
-        self.Num.asin($base);
+    method asin($x: $base = Radians) {
+        (+$x).asin($base);
     }
 
-    our Num multi method acos($base = Radians) {
-        self.Num.acos($base);
+    method acos($x: $base = Radians) {
+        (+$x).acos($base);
     }
 
-    our Num multi method atan($base = Radians) {
-        self.Num.atan($base);
+    method atan($x: $base = Radians) {
+        (+$x).atan($base);
     }
 
-    our Num multi method atan2($x = 1, $base = Radians) {
-        self.Num.atan2($x.Num, $base);
+    method atan2($y: $x = 1, $base = Radians) {
+        (+$y).atan2(+$x, $base);
     }
 
-    our Num multi method asec($base = Radians) {
-        self.Num.asec($base);
+    method asec($x: $base = Radians) {
+        (+$x).asec($base);
     }
 
-    our Num multi method acosec($base = Radians) {
-        self.Num.acosec($base);
+    method acosec($x: $base = Radians) {
+        (+$x).acosec($base);
     }
 
-    our Num multi method acotan($base = Radians) {
-        self.Num.acotan($base);
+    method acotan($x: $base = Radians) {
+        (+$x).acotan($base);
     }
 
-    our Num multi method asinh($base = Radians) {
-        self.Num.asinh($base);
+    method asinh($x: $base = Radians) {
+        (+$x).asinh($base);
     }
 
-    our Num multi method acosh($base = Radians) {
-        self.Num.acosh($base);
+    method acosh($x: $base = Radians) {
+        (+$x).acosh($base);
     }
 
-    our Num multi method atanh($base = Radians) {
-        self.Num.atanh($base);
+    method atanh($x: $base = Radians) {
+        (+$x).atanh($base);
     }
 
-    our Num multi method asech($base = Radians) {
-        self.Num.asech($base);
+    method asech($x: $base = Radians) {
+        (+$x).asech($base);
     }
 
-    our Num multi method acosech($base = Radians) {
-        self.Num.acosech($base);
+    method acosech($x: $base = Radians) {
+        (+$x).acosech($base);
     }
 
-    our Num multi method acotanh($base = Radians) {
-        self.Num.acotanh($base);
+    method acotanh($x: $base = Radians) {
+        (+$x).acotanh($base);
     }
 }
 

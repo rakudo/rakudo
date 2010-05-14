@@ -56,6 +56,102 @@ role Real does Numeric {
     method sin(Real $x: $base = Radians) {
         $x.Bridge.sin($base);
     }
+
+    method asin(Real $x: $base = Radians) {
+        $x.Bridge.asin($base);
+    }
+
+    method cos(Real $x: $base = Radians) {
+        $x.Bridge.cos($base);
+    }
+
+    method acos(Real $x: $base = Radians) {
+        $x.Bridge.acos($base);
+    }
+
+    method tan(Real $x: $base = Radians) {
+        $x.Bridge.tan($base);
+    }
+
+    method atan(Real $x: $base = Radians) {
+        $x.Bridge.atan($base);
+    }
+
+    method sec(Real $x: $base = Radians) {
+        $x.Bridge.sec($base);
+    }
+
+    method asec(Real $x: $base = Radians) {
+        $x.Bridge.asec($base);
+    }
+
+    method cosec(Real $x: $base = Radians) {
+        $x.Bridge.cosec($base);
+    }
+
+    method acosec(Real $x: $base = Radians) {
+        $x.Bridge.acosec($base);
+    }
+
+    method cotan(Real $x: $base = Radians) {
+        $x.Bridge.cotan($base);
+    }
+
+    method acotan(Real $x: $base = Radians) {
+        $x.Bridge.acotan($base);
+    }
+
+    method sinh(Real $x: $base = Radians) {
+        $x.Bridge.sinh($base);
+    }
+
+    method asinh(Real $x: $base = Radians) {
+        $x.Bridge.asinh($base);
+    }
+
+    method cosh(Real $x: $base = Radians) {
+        $x.Bridge.cosh($base);
+    }
+
+    method acosh(Real $x: $base = Radians) {
+        $x.Bridge.acosh($base);
+    }
+
+    method tanh(Real $x: $base = Radians) {
+        $x.Bridge.tanh($base);
+    }
+
+    method atanh(Real $x: $base = Radians) {
+        $x.Bridge.atanh($base);
+    }
+
+    method sech(Real $x: $base = Radians) {
+        $x.Bridge.sech($base);
+    }
+
+    method asech(Real $x: $base = Radians) {
+        $x.Bridge.asech($base);
+    }
+
+    method cosech(Real $x: $base = Radians) {
+        $x.Bridge.cosech($base);
+    }
+
+    method acosech(Real $x: $base = Radians) {
+        $x.Bridge.acosech($base);
+    }
+
+    method cotanh(Real $x: $base = Radians) {
+        $x.Bridge.cotanh($base);
+    }
+
+    method acotanh(Real $x: $base = Radians) {
+        $x.Bridge.acotanh($base);
+    }
+
+    method atan2(Real $y: Real $x = 1, $base = Radians) {
+        $y.Bridge.atan2($x.Bridge, $base);
+    }
 }
 
 # Comparison operators

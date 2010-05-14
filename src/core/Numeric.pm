@@ -48,6 +48,121 @@ role Numeric {
         note "$.WHAT() needs a version of .sin";
         fail "$.WHAT() needs a version of .sin";
     }
+
+    method asin(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .asin";
+        fail "$.WHAT() needs a version of .asin";
+    }
+
+    method cos(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .cos";
+        fail "$.WHAT() needs a version of .cos";
+    }
+
+    method acos(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .acos";
+        fail "$.WHAT() needs a version of .acos";
+    }
+
+    method tan(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .tan";
+        fail "$.WHAT() needs a version of .tan";
+    }
+
+    method atan(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .atan";
+        fail "$.WHAT() needs a version of .atan";
+    }
+
+    method sec(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .sec";
+        fail "$.WHAT() needs a version of .sec";
+    }
+
+    method asec(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .asec";
+        fail "$.WHAT() needs a version of .asec";
+    }
+
+    method cosec(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .cosec";
+        fail "$.WHAT() needs a version of .cosec";
+    }
+
+    method acosec(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .acosec";
+        fail "$.WHAT() needs a version of .acosec";
+    }
+
+    method cotan(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .cotan";
+        fail "$.WHAT() needs a version of .cotan";
+    }
+
+    method acotan(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .acotan";
+        fail "$.WHAT() needs a version of .acotan";
+    }
+
+    method sinh(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .sinh";
+        fail "$.WHAT() needs a version of .sinh";
+    }
+
+    method asinh(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .asinh";
+        fail "$.WHAT() needs a version of .asinh";
+    }
+
+    method cosh(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .cosh";
+        fail "$.WHAT() needs a version of .cosh";
+    }
+
+    method acosh(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .acosh";
+        fail "$.WHAT() needs a version of .acosh";
+    }
+
+    method tanh(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .tanh";
+        fail "$.WHAT() needs a version of .tanh";
+    }
+
+    method atanh(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .atanh";
+        fail "$.WHAT() needs a version of .atanh";
+    }
+
+    method sech(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .sech";
+        fail "$.WHAT() needs a version of .sech";
+    }
+
+    method asech(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .asech";
+        fail "$.WHAT() needs a version of .asech";
+    }
+
+    method cosech(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .cosech";
+        fail "$.WHAT() needs a version of .cosech";
+    }
+
+    method acosech(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .acosech";
+        fail "$.WHAT() needs a version of .acosech";
+    }
+
+    method cotanh(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .cotanh";
+        fail "$.WHAT() needs a version of .cotanh";
+    }
+
+    method acotanh(Numeric $x: $base = Radians) {
+        note "$.WHAT() needs a version of .acotanh";
+        fail "$.WHAT() needs a version of .acotanh";
+    }
 }
 
 multi sub infix:«cmp»(Numeric $a, Numeric $b) { $a <=> $b; }

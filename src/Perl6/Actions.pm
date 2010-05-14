@@ -849,7 +849,10 @@ method declarator($/) {
         my $decls := $<signature>.ast.get_declarations;
         for @($decls) {
             if $_.isa(PAST::Var) {
-                $list.push(declare_variable($/, $_, $_<sigil>, $_<twigil>, $_<desigilname>, $_<traits>));
+                my $decl := declare_variable($/, $_, $_<sigil>, $_<twigil>, $_<desigilname>, $_<traits>);
+                unless $decl.isa(PAST::Op) && $decl.pasttype() eq 'null' {
+                    $list.push($decl);
+                }
             }
             else {
                 $list.push($_);
@@ -910,7 +913,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
 
         # Nothing to emit here; just hand  back an empty node, but also
         # annotate it with the attribute table.
-        $past := PAST::Stmts.new( );
+        $past := PAST::Op.new( :pasttype('null') );
         $past<attribute_data> := %attr_info;
     }
     else {

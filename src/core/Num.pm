@@ -79,12 +79,22 @@ augment class Num does Real {
         ~self;
     }
 
-    method ceiling(Real $x:) {
-        pir::box__PI(pir::ceil__IN($x))
+    method ceiling(Num $x:) {
+        given $x {
+            when NaN { NaN }
+            when Inf { Inf }
+            when -Inf { -Inf }
+            pir::box__PI(pir::ceil__IN($x));
+        }
     }
 
     method floor(Real $x:) {
-        pir::box__PI(pir::floor__IN($x));
+        given $x {
+            when NaN { NaN }
+            when Inf { Inf }
+            when -Inf { -Inf }
+            pir::box__PI(pir::floor__IN($x));
+        }
     }
 
     method sqrt(Num $x:) {

@@ -19,6 +19,7 @@ by default also executes the compiled code.
   --encoding=[mode]    specify string encoding mode
   -o, --output=[name]  specify name of output file
   -v, --version        display version information
+  --stagestats         display time spent in the compilation stages
 
 Note that only boolean single-letter options may be bundled 
 

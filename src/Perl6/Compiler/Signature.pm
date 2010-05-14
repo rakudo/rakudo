@@ -130,7 +130,7 @@ method get_declarations() {
     my @entries := self.entries;
     for @entries {
         # If the parameter has a name, add it.
-        if $_.var_name {
+        if pir::length($_.var_name) > 1 {
             my $var := PAST::Var.new(
                 :name($_.var_name),
                 :scope('lexical'),
@@ -141,6 +141,15 @@ method get_declarations() {
             $var<desigilname> := pir::substr($_.var_name, ($_.twigil ?? 2 !! 1));
             $var<traits>      := $_.traits;
             $result.push($var);
+        }
+        elsif pir::length($_.var_name) == 1 {
+            # A placeholder, but could be being used in a declaration, so emit
+            # a Whatever.
+            my @name := Perl6::Grammar::parse_name('Whatever');
+            $result.push(PAST::Op.new(
+                :pasttype('callmethod'), :name('new'), :lvalue(1),
+                PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
+            ));
         }
 
         # If there are captured type variables, need variables for those too.

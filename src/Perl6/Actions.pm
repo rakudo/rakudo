@@ -848,7 +848,12 @@ method declarator($/) {
         my $list  := PAST::Op.new( :pasttype('call'), :name('&infix:<,>') );
         my $decls := $<signature>.ast.get_declarations;
         for @($decls) {
-            $list.push(declare_variable($/, $_, $_<sigil>, $_<twigil>, $_<desigilname>, $_<traits>));
+            if $_.isa(PAST::Var) {
+                $list.push(declare_variable($/, $_, $_<sigil>, $_<twigil>, $_<desigilname>, $_<traits>));
+            }
+            else {
+                $list.push($_);
+            }
         }
         $list<signature_from_declarator> := $<signature>.ast;
         make $list;
@@ -2597,8 +2602,10 @@ sub add_signature($block, $sig_obj, $lazy) {
     $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
     my $decls := $sig_obj.get_declarations();
     for @($decls) {
-        $_.isdecl(1);
-        $block.symbol( $_.name, :scope('lexical') );
+        if $_.isa(PAST::Var) {
+            $_.isdecl(1);
+            $block.symbol( $_.name, :scope('lexical') );
+        }
     }
     $block[0].push($decls);
     $block[0].push(PAST::Op.new(

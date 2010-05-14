@@ -63,96 +63,96 @@ class Complex does Numeric is Cool {
         $x.re.sin($base) * $x.im.cosh($base) + ($x.re.cos($base) * $x.im.sinh($base))i;
     }
 
-    multi method asin($base = Radians) {
-        (-1i * log((self)i + sqrt(1 - self * self))).from-radians($base);
+    method asin(Complex $x: $base = Radians) {
+        (-1i * log(($x)i + sqrt(1 - $x * $x))).from-radians($base);
     }
 
-    multi method cos($base = Radians) {
-        $.re.cos($base) * $.im.cosh($base) - ($.re.sin($base) * $.im.sinh($base))i;
+    method cos(Complex $x: $base = Radians) {
+        $x.re.cos($base) * $x.im.cosh($base) - ($x.re.sin($base) * $x.im.sinh($base))i;
     }
 
-    multi method acos($base = Radians) {
-      (pi / 2).from-radians($base) - self.asin($base);
+    method acos(Complex $x: $base = Radians) {
+      (pi / 2).from-radians($base) - $x.asin($base);
     }
 
-    multi method tan($base = Radians) {
-        self.sin($base) / self.cos($base);
+    method tan(Complex $x: $base = Radians) {
+        $x.sin($base) / $x.cos($base);
     }
 
-    multi method atan($base = Radians) {
-       ((log(1 - (self)i) - log(1 + (self)i))i / 2).from-radians($base);
+    method atan(Complex $x: $base = Radians) {
+       ((log(1 - ($x)i) - log(1 + ($x)i))i / 2).from-radians($base);
     }
 
-    multi method sec($base = Radians) {
-        1 / self.cos($base);
+    method sec(Complex $x: $base = Radians) {
+        1 / $x.cos($base);
     }
 
-    multi method asec($base = Radians) {
-        (1 / self).acos($base);
+    method asec(Complex $x: $base = Radians) {
+        (1 / $x).acos($base);
     }
 
-    multi method cosec($base = Radians) {
-        1 / self.sin($base);
+    method cosec(Complex $x: $base = Radians) {
+        1 / $x.sin($base);
     }
 
-    multi method acosec($base = Radians) {
-        (1 / self).asin($base);
+    method acosec(Complex $x: $base = Radians) {
+        (1 / $x).asin($base);
     }
 
-    multi method cotan($base = Radians) {
-        self.cos($base) / self.sin($base);
+    method cotan(Complex $x: $base = Radians) {
+        $x.cos($base) / $x.sin($base);
     }
 
-    multi method acotan($base = Radians) {
-        (1 / self).atan($base);
+    method acotan(Complex $x: $base = Radians) {
+        (1 / $x).atan($base);
     }
 
-    multi method sinh($base = Radians) {
-        -((1i * self).sin($base))i;
+    method sinh(Complex $x: $base = Radians) {
+        -((1i * $x).sin($base))i;
     }
 
-    multi method asinh($base = Radians) {
-       (self + sqrt(1 + self * self)).log.from-radians($base);
+    method asinh(Complex $x: $base = Radians) {
+       ($x + sqrt(1 + $x * $x)).log.from-radians($base);
     }
 
-    multi method cosh($base = Radians) {
-        (1i * self).cos($base);
+    method cosh(Complex $x: $base = Radians) {
+        (1i * $x).cos($base);
     }
 
-    multi method acosh($base = Radians) {
-       (self + sqrt(self * self - 1)).log.from-radians($base);
+    method acosh(Complex $x: $base = Radians) {
+       ($x + sqrt($x * $x - 1)).log.from-radians($base);
     }
 
-    multi method tanh($base = Radians) {
-        -((1i * self).tan($base))i;
+    method tanh(Complex $x: $base = Radians) {
+        -((1i * $x).tan($base))i;
     }
 
-    multi method atanh($base = Radians) {
-       (((1 + self) / (1 - self)).log / 2).from-radians($base);
+    method atanh(Complex $x: $base = Radians) {
+       (((1 + $x) / (1 - $x)).log / 2).from-radians($base);
     }
 
-    multi method sech($base = Radians) {
-        1 / self.cosh($base);
+    method sech(Complex $x: $base = Radians) {
+        1 / $x.cosh($base);
     }
 
-    multi method asech($base = Radians) {
-        (1 / self).acosh($base);
+    method asech(Complex $x: $base = Radians) {
+        (1 / $x).acosh($base);
     }
 
-    multi method cosech($base = Radians) {
-        1 / self.sinh($base);
+    method cosech(Complex $x: $base = Radians) {
+        1 / $x.sinh($base);
     }
 
-    multi method acosech($base = Radians) {
-        (1 / self).asinh($base);
+    method acosech(Complex $x: $base = Radians) {
+        (1 / $x).asinh($base);
     }
 
-    multi method cotanh($base = Radians) {
-        1 / self.tanh($base);
+    method cotanh(Complex $x: $base = Radians) {
+        1 / $x.tanh($base);
     }
 
-    multi method acotanh($base = Radians) {
-        (1 / self).atanh($base);
+    method acotanh(Complex $x: $base = Radians) {
+        (1 / $x).atanh($base);
     }
 
     multi method polar() {
@@ -204,38 +204,6 @@ class Complex does Numeric is Cool {
             $P1 = $P1.'new'($P2, $P3)
             %r  = $P1
         }
-    }
-
-    multi method cosec($base = Radians) {
-        1.0 / self.to-radians($base).sin;
-    }
-
-    multi method cosech($base = Radians) {
-        1.0 / self.to-radians($base).sinh;
-    }
-
-    multi method acosec($base = Radians) {
-        (1.0 / self).asin.to-radians($base);
-    }
-
-    multi method cotan($base = Radians) {
-        1.0 / self.to-radians($base).tan;
-    }
-
-    multi method cotanh($base = Radians) {
-        1.0 / self.to-radians($base).tanh;
-    }
-
-    multi method acotan($base = Radians) {
-        (1.0 / self).atan.to-radians($base);
-    }
-
-    multi method acosech($base = Radians) {
-        (1.0 / self).asinh.to-radians($base);
-    }
-
-    multi method acotanh($base = Radians) {
-        (1.0 / self).atanh.to-radians($base);
     }
 
     multi method Num {

@@ -54,12 +54,6 @@ class Rat is Cool does Real {
 
     multi method nude() { $.numerator, $.denominator; }
 
-    # Most of the trig functions for Rat are in Any-num.pm, but
-    # sec is a special case.
-    our Num multi method sec($base = Radians) {
-        self.Num.sec($base);
-    }
-
     multi method succ {
         Rat.new($!numerator + $!denominator, $!denominator);
     }

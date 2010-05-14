@@ -38,12 +38,6 @@ augment class Int does Real {
     # our Rat multi method Rat() { Rat.new(self, 1); }
 
     our ::Complex multi method Complex() { Complex.new(self, 0); }
-
-    # Most of the trig functions for Int are in Any-num.pm, but
-    # sec is a special case.
-    our Num multi method sec($base = Radians) {
-        self.Num.sec($base);
-    }
 }
 
 our multi sub infix:<+>(Int $a, Int $b) {

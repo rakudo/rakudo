@@ -56,8 +56,8 @@ augment class Cool {
         (+$x).sqrt;
     }
 
-    multi method log($base = e) {
-        $.Num.log($base);
+    multi method log($x: $base = e) {
+        (+$x).log(+$base);
     }
 
     multi method log10() {

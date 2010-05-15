@@ -24,7 +24,7 @@ augment class Any {
         };
     }
 
-    multi method first($test) {
+    multi method first(Mu $test) {
         for @.list {
             if $_ ~~ $test {
                 return $_;
@@ -263,7 +263,7 @@ proto sub reverse(@values) { @values.reverse; }
 multi sub reverse(*@v) { @v.reverse; }
 proto sub end(@array) { @array.end; }
 proto sub grep(Mu $test, *@values) { @values.grep($test); }
-proto sub first($test, @values) { @values.first($test); }
+proto sub first(Mu $test, @values) { @values.first($test); }
 proto sub min($by, *@values) { @values.min($by); }
 proto sub max($by, *@values) { @values.max($by); }
 proto sub minmax($by, *@values) { @values.minmax($by); }

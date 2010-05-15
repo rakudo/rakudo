@@ -575,3 +575,19 @@ our multi sub infix:<+>(Whatever, Whatever) {
 our multi sub infix:<->(Whatever, $rhs) {
     -> $a { $a - $rhs; };
 }
+
+our multi sub infix:«<==»($a, $b) {
+    die "Sorry, feed operators not yet implemented";
+}
+
+our multi sub infix:«==>»($a, $b) {
+    die "Sorry, feed operators not yet implemented";
+}
+
+our multi sub infix:«<<==»($a, $b) {
+    die "Sorry, feed operators not yet implemented";
+}
+
+our multi sub infix:«==>>»($a, $b) {
+    die "Sorry, feed operators not yet implemented";
+}

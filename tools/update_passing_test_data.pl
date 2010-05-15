@@ -108,7 +108,7 @@ sub go {
     $all_passed  = 'A' if !       $agg->has_errors;
     printf "[%s%s%s] (% 3d/%-3d) %s\n", $some_passed, $plan_ok, $all_passed,
            $actually_passed, $planned, $orig
-                if $actually_passed;
+                if $actually_passed || ($plan_ok && $planned > 0);
 }
 
 sub read_specfile {

@@ -1410,6 +1410,7 @@ INIT {
     Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_prefix');
     Perl6::Grammar.O(':prec<d=>, :assoc<left>',  '%loose_and');
     Perl6::Grammar.O(':prec<c=>, :assoc<left>',  '%loose_or');
+    Perl6::Grammar.O(':prec<b=>, :assoc<list>',  '%sequencer');
 }
 
 token termish {
@@ -1779,6 +1780,11 @@ token infix:sym<and>  { <sym>  <O('%loose_and, :pasttype<if>')> }
 token infix:sym<or>   { <sym>  <O('%loose_or, :pasttype<unless>')> }
 token infix:sym<xor>  { <sym>  <O('%loose_or, :pasttype<xor>')> }
 token infix:sym<err>  { <sym>  <O('%loose_or, :pasttype<def_or>')> }
+
+token infix:sym«<==»  { <sym> <O('%sequencer')> }
+token infix:sym«==>»  { <sym> <O('%sequencer')> }
+token infix:sym«<<==» { <sym> <O('%sequencer')> }
+token infix:sym«==>>» { <sym> <O('%sequencer')> }
 
 token infix:sym<..>   { <sym> <O('%structural')> }
 token infix:sym<^..>  { <sym> <O('%structural')> }

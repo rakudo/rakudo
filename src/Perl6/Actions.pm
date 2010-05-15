@@ -2510,7 +2510,7 @@ method quote_EXPR($/) {
                 $past := PAST::Stmts.new($past);
             }
             else {
-                $past := PAST::Val.new(:value(~@words[0]), :returns<Perl6Str>);
+                $past := PAST::Val.new(:value(~@words[0]), :returns<Str>);
             }
         }
     }
@@ -2531,7 +2531,7 @@ method quote_delimited($/) {
         else {
             if $lastlit gt '' {
                 @parts.push(
-                    PAST::Val.new( :value($lastlit), :returns('Perl6Str') )
+                    PAST::Val.new( :value($lastlit), :returns('Str') )
                 );
             }
             @parts.push($ast);
@@ -2540,7 +2540,7 @@ method quote_delimited($/) {
     }
     if $lastlit gt '' || !@parts {
         @parts.push(
-            PAST::Val.new( :value($lastlit), :returns('Perl6Str') )
+            PAST::Val.new( :value($lastlit), :returns('Str') )
         );
     }
     my $past := @parts ?? @parts.shift !! '';

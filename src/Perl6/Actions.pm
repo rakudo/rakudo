@@ -1378,6 +1378,7 @@ method type_declarator:sym<enum>($/) {
         $/.CURSOR.add_name(~$<name>[0]);
         for $result {
             $/.CURSOR.add_name(~$_.key);
+            $/.CURSOR.add_name(~$<name>[0] ~ '::' ~ ~$_.key);
         }
         
         # Emit code to set up named enum.

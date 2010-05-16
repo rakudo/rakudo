@@ -2297,7 +2297,7 @@ method number:sym<numish>($/) {
 }
 
 method numish($/) {
-    if $<integer> { make PAST::Val.new( :value($<integer>.ast) ); }
+    if $<integer> { make PAST::Val.new( :value($<integer>.ast), :returns('Int') ); }
     elsif $<dec_number> { make $<dec_number>.ast; }
     elsif $<rad_number> { make $<rad_number>.ast; }
     else {
@@ -2508,7 +2508,7 @@ method quote_EXPR($/) {
                 $past := PAST::Stmts.new($past);
             }
             else {
-                $past := PAST::Val.new(:value(~@words[0]), :returns<Str>);
+                $past := PAST::Val.new( :value(~@words[0]), :returns('Str') );
             }
         }
     }

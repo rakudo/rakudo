@@ -181,7 +181,8 @@ augment class Cool {
         if $g {
             my $cont = $c;
             gather while my $m = Regex::Cursor.parse(self, :rule($pat), :c($cont)) {
-                take $m;
+                my $m-copy = $m;
+                take $m-copy;
                 if $m.to == $m.from {
                     $cont = $m.to + 1;
                 } else {

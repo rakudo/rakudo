@@ -284,6 +284,7 @@ S05-modifier/global.t
 # S05-modifier/perl5_2.t
 # S05-modifier/perl5_7.t
 # S05-modifier/perl5_8.t
+S05-modifier/pos.t
 S05-substitution/match.t
 S05-substitution/subst.t
 # S05-transliteration/trans.t

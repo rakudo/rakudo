@@ -177,24 +177,27 @@ augment class Cool {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
-    our multi method match(Regex $pat, :c(:$continue), :g(:$global)) {
+    our multi method match(Regex $pat, :c(:$continue), :g(:$global), :pos(:$p)) {
         if $continue ~~ Bool {
             note ":c / :continue requires a position in the string";
             fail ":c / :continue requires a position in the string";
         }
+        my %opts;
+        %opts<p> = $p        if defined $p;
+        %opts<c> = $continue // 0 unless defined $p;
+
         if $global {
-            my $cont = $continue;
-            gather while my $m = Regex::Cursor.parse(self, :rule($pat), :c($cont)) {
+            gather while my $m = Regex::Cursor.parse(self, :rule($pat), |%opts) {
                 my $m-copy = $m;
                 take $m-copy;
                 if $m.to == $m.from {
-                    $cont = $m.to + 1;
+                    %opts<c> = $m.to + 1;
                 } else {
-                    $cont = $m.to;
+                    %opts<c> = $m.to;
                 }
             }
         } else {
-            Regex::Cursor.parse(self, :rule($pat), :c($continue));
+            Regex::Cursor.parse(self, :rule($pat), |%opts);
         }
     }
 

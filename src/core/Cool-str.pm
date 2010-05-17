@@ -22,7 +22,7 @@ augment class Cool {
         }
     }
 
-    multi method subst($matcher, $replacement,  :g(:$global), :$x) {
+    multi method subst($matcher, $replacement, :g(:$global), :$x) {
         die "Can't combine :g/:global and :x in subst"
             if defined($global) && defined($x);
         my $limit = defined($x) ?? $x +1 !! 2;
@@ -177,8 +177,8 @@ augment class Cool {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
-    our multi method match(Regex $pat, :$c = 0, :$g) {
-        if $g {
+    our multi method match(Regex $pat, :$c = 0, :g(:$global)) {
+        if $global {
             my $cont = $c;
             gather while my $m = Regex::Cursor.parse(self, :rule($pat), :c($cont)) {
                 my $m-copy = $m;

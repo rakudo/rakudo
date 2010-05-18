@@ -297,6 +297,10 @@ our multi sub infix:«<=>»($a, $b) {
     +$a cmp +$b
 }
 
+multi sub postfix:<i>($z) {
+    (+$z)i;
+}
+
 proto chr($graph) {
     $graph.chr;
 }

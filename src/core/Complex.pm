@@ -272,14 +272,6 @@ multi sub infix:</>(Real $a, Complex $b) {
     Complex.new($a, 0) / $b;
 }
 
-multi sub postfix:<i>($x) {
-    Complex.new(0, +$x);
-}
-
-multi sub postfix:<i>(Complex $z) {
-    Complex.new(-$z.im, $z.re);
-}
-
 multi sub prefix:<->(Complex $a) {
     Complex.new(-$a.re, -$a.im);
 }

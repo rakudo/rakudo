@@ -166,3 +166,7 @@ role Numeric {
 }
 
 multi sub infix:«cmp»(Numeric $a, Numeric $b) { $a <=> $b; }
+
+multi sub postfix:<i>(Numeric $z) {
+    $z * 1i;
+}

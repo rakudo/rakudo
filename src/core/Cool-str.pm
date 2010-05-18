@@ -177,7 +177,7 @@ augment class Cool {
         self gt '' ?? self.substr(0,1).lc ~ self.substr(1) !! ""
     }
 
-    our multi method match(Regex $pat, :c(:$continue), :g(:$global), :pos(:$p)) {
+    our multi method match(Regex $pat, :c(:$continue), :g(:$global), :pos(:$p), Mu :$nth) {
         if $continue ~~ Bool {
             note ":c / :continue requires a position in the string";
             fail ":c / :continue requires a position in the string";
@@ -186,15 +186,21 @@ augment class Cool {
         %opts<p> = $p        if defined $p;
         %opts<c> = $continue // 0 unless defined $p;
 
-        if $global {
+        if $global || $nth.defined {
+            my $i = 1;
             gather while my $m = Regex::Cursor.parse(self, :rule($pat), |%opts) {
                 my $m-copy = $m;
-                take $m-copy;
+                if $nth.defined {
+                    take $m-copy if $i ~~ any(|$nth);
+                } else {
+                    take $m-copy;
+                }
                 if $m.to == $m.from {
                     %opts<c> = $m.to + 1;
                 } else {
                     %opts<c> = $m.to;
                 }
+                $i++;
             }
         } else {
             Regex::Cursor.parse(self, :rule($pat), |%opts);

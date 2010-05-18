@@ -281,6 +281,7 @@ S05-modifier/continue.t
 S05-modifier/counted-match.t
 S05-modifier/global.t
 # S05-modifier/ignorecase.t
+S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t
 # S05-modifier/perl5_2.t
 # S05-modifier/perl5_7.t

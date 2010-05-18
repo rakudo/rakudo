@@ -191,7 +191,7 @@ augment class Cool {
         my %opts;
         %opts<p> = $p        if defined $p;
         %opts<c> = $continue // 0 unless defined $p;
-        my $x_upper = 0;
+        my $x_upper = -1;
         if defined($x) {
             if $x ~~ Range {
                 $x_upper = $x.excludes_max ?? $x.max - 1 !! $x.max;
@@ -214,7 +214,7 @@ augment class Cool {
                     take $m-copy;
                     $taken++;
                 }
-                last if $x.defined && $taken == $x_upper;
+                last if $taken == $x_upper;
 
                 if ($overlap) {
                     %opts<c> = $m.from + 1;

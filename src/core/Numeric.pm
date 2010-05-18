@@ -3,6 +3,14 @@ role Numeric {
         self;
     }
 
+    method succ(Numeric $x:) {
+        $x + 1;
+    }
+
+    method pred(Numeric $x:) {
+        $x - 1;
+    }
+
     method abs(Numeric $x:) {
         note "$.WHAT() needs a version of .abs";
         fail "$.WHAT() needs a version of .abs";

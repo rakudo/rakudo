@@ -54,10 +54,11 @@ class Rat is Cool does Real {
 
     multi method nude() { $.numerator, $.denominator; }
 
-    multi method succ {
+    method succ {
         Rat.new($!numerator + $!denominator, $!denominator);
     }
-    multi method pred {
+
+    method pred {
         Rat.new($!numerator - $!denominator, $!denominator);
     }
 }

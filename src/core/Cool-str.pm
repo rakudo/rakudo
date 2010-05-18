@@ -205,12 +205,7 @@ augment class Cool {
             my $i = 1;
             my @r = gather while my $m = Regex::Cursor.parse(self, :rule($pat), |%opts) {
                 my $m-copy = $m;
-                if $nth.defined {
-                    if $i ~~ any(|$nth) {
-                        take $m-copy;
-                        $taken++;
-                    }
-                } else {
+                unless $nth.defined && ($i !~~ any |$nth) {
                     take $m-copy;
                     $taken++;
                 }

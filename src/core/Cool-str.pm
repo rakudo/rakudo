@@ -181,6 +181,7 @@ augment class Cool {
                            :c(:$continue),
                            :g(:$global),
                            :pos(:$p),
+                           :$x,
                            Mu :$nth,
                            :ov(:$overlap)) {
         if $continue ~~ Bool {
@@ -190,16 +191,30 @@ augment class Cool {
         my %opts;
         %opts<p> = $p        if defined $p;
         %opts<c> = $continue // 0 unless defined $p;
+        my $x_upper = 0;
+        if defined($x) {
+            if $x ~~ Range {
+                $x_upper = $x.excludes_max ?? $x.max - 1 !! $x.max;
+            } else {
+                $x_upper = $x;
+            }
+        }
 
-        if $global || $nth.defined || $overlap {
+        if $global || $nth.defined || $overlap || ($x.defined && $x_upper > 1) {
+            my $taken = 0;
             my $i = 1;
-            gather while my $m = Regex::Cursor.parse(self, :rule($pat), |%opts) {
+            my @r = gather while my $m = Regex::Cursor.parse(self, :rule($pat), |%opts) {
                 my $m-copy = $m;
                 if $nth.defined {
-                    take $m-copy if $i ~~ any(|$nth);
+                    if $i ~~ any(|$nth) {
+                        take $m-copy;
+                        $taken++;
+                    }
                 } else {
                     take $m-copy;
+                    $taken++;
                 }
+                last if $x.defined && $taken == $x_upper;
 
                 if ($overlap) {
                     %opts<c> = $m.from + 1;
@@ -213,6 +228,10 @@ augment class Cool {
 
                 $i++;
             }
+            if $x.defined && $taken !~~ $x {
+                return;
+            }
+            return |@r;
         } else {
             Regex::Cursor.parse(self, :rule($pat), |%opts);
         }

@@ -102,6 +102,10 @@ role Hash is EnumMap {
         }
     }
 
+    method list() {
+        return self.pairs;
+    }
+
     multi method sort(&by = &infix:<cmp>) {
         self.pairs.sort(&by)
     }

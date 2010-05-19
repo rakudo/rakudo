@@ -6,7 +6,7 @@ role Real does Numeric {
     }
 
     method Int() {
-        self.Bridge.Int;
+        self.truncate;
     }
 
     method Rat(Real $epsilon = 1.0e-6) {

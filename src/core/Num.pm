@@ -25,7 +25,7 @@ augment class Num does Real {
         self != 0.0e0
     }
 
-    multi method Int() {
+    method Int() {
         Q:PIR {
             $P0 = find_lex 'self'
             $I0 = $P0
@@ -35,11 +35,9 @@ augment class Num does Real {
         }
     }
 
-    multi method Num() { self; }
+    method Rat(Real $epsilon = 1.0e-6) {
+        my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
-    method !modf($num) { my $q = $num.Int; $num - $q, $q; }
-
-    multi method Rat($epsilon = 1.0e-6) {
         my $num = +self;
         my $signum = $num < 0 ?? -1 !! 1;
         $num = -$num if $signum == -1;
@@ -65,9 +63,7 @@ augment class Num does Real {
         ($signum * $b) / $d;
     }
 
-    # multi method exp() {
-    #     pir::exp__Nn(self);
-    # }
+    method Num() { self; }
 
     method ln(Num $x:) {
         pir::ln__Nn($x);

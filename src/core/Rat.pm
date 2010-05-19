@@ -32,14 +32,14 @@ class Rat is Cool does Real {
 
     our Bool multi method Bool() { $!numerator != 0 ?? Bool::True !! Bool::False }
 
-    multi method Num() {
+    method Int() { self.Num.Int; }
+
+    method Rat(Real $epsilon = 1.0e-6) { self; }
+
+    method Num() {
         $!denominator == 0 ?? Inf * $!numerator.sign
                            !! $!numerator.Num / $!denominator.Num;
     }
-
-    multi method Rat() { self; }
-
-    multi method Int() { self.Num.Int; }
 
     multi method Str() { $.Num.Str; }
 
@@ -112,11 +112,6 @@ multi sub infix:</>(Int $a, Rat $b) {
 
 multi sub infix:</>(Int $a, Int $b) {
     Rat.new($a, $b);
-}
-
-augment class Int {
-    # CHEAT: Comes from Int.pm, moved here for the moment.
-    our Rat multi method Rat() { Rat.new(self, 1); }
 }
 
 # vim: ft=perl6 sw=4 ts=4 expandtab

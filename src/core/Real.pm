@@ -5,6 +5,18 @@ role Real does Numeric {
         fail "Bridge must be defined for the Real type " ~ self.WHAT;
     }
 
+    method Int() {
+        self.Bridge.Int;
+    }
+
+    method Rat(Real $epsilon = 1.0e-6) {
+        self.Bridge.Rat($epsilon);
+    }
+
+    method Num() {
+        self.Bridge.Num;
+    }
+
     method Complex() {
         Complex.new(self, 0);
     }

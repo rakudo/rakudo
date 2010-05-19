@@ -23,6 +23,12 @@ integration/99problems-31-to-40.t
 integration/99problems-41-to-50.t
 # integration/99problems-51-to-60.t
 # integration/99problems-61-to-70.t
+integration/advent2009-day01.t
+integration/advent2009-day02.t
+integration/advent2009-day03.t
+integration/advent2009-day04.t
+integration/advent2009-day05.t
+integration/advent2009-day06.t
 integration/code-blocks-as-sub-args.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t

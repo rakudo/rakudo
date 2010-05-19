@@ -159,13 +159,12 @@ class Complex does Numeric is Cool {
         $.abs, atan2($.im, $.re);
     }
 
-    multi method roots(Complex $x: $n is copy) {
+    method roots(Complex $x: Int $n) {
        return NaN if $n < 1;
        return self if $n == 1;
        return NaN  if $x.re | $x.im ~~  Inf | NaN | -Inf;
 
        my ($mag, $angle) = $x.polar;
-       $n = $n.Int;
        $mag **= 1 / $n;
        (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
     }

@@ -36,8 +36,6 @@ augment class Int does Real {
 
     # Next has been moved to Rat.pm for the moment.
     # our Rat multi method Rat() { Rat.new(self, 1); }
-
-    our ::Complex multi method Complex() { Complex.new(self, 0); }
 }
 
 our multi sub infix:<+>(Int $a, Int $b) {

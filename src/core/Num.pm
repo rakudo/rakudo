@@ -37,8 +37,6 @@ augment class Num does Real {
 
     multi method Num() { self; }
 
-    multi method Complex() { self + 0i; }
-
     method !modf($num) { my $q = $num.Int; $num - $q, $q; }
 
     multi method Rat($epsilon = 1.0e-6) {

@@ -5,6 +5,10 @@ role Real does Numeric {
         fail "Bridge must be defined for the Real type " ~ self.WHAT;
     }
 
+    method Complex() {
+        Complex.new(self, 0);
+    }
+
     method abs(Real $x:) {
         $x < 0 ?? -$x !! $x;
     }
@@ -39,9 +43,8 @@ role Real does Numeric {
         floor($x / $scale + 0.5) * $scale;
     }
 
-    # CHEAT: the .Bridges in unpolar should go away in the long run
     method unpolar(Real $mag: Real $angle) {
-        Complex.new($mag * $angle.Bridge.cos(Radians),
+        Complex.new($mag * $angle.cos(Radians),
                     $mag * $angle.sin(Radians));
     }
 
@@ -51,6 +54,10 @@ role Real does Numeric {
 
     method sqrt(Real $x:) {
         $x.Bridge.sqrt;
+    }
+
+    method roots(Real $x: Int $n) {
+        $x.Complex.roots($n);
     }
 
     method sin(Real $x: $base = Radians) {

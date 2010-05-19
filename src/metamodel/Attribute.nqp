@@ -56,13 +56,17 @@ method compose($package) {
             pir::new__PsP('Perl6Scalar', pir::getattribute__PPS($self, $name))
         }
         sub accessor_helper_rw($self) {
-            pir::getattribute__PPS($self, $name)    
+            pir::getattribute__PPS($self, $name)
         }
 
         # XXX check there isn't already one...
         my $meth := $!rw ?? pir::find_lex__Ps('accessor_helper_rw') !! pir::find_lex__Ps('accessor_helper_ro');
         my $meth_name := pir::substr__SSi($name, 2);
-        $package.add_method($package, $meth_name, pir::clone__PP($meth));
+        $meth := pir::clone__PP($meth);
+        # introspection looks at the actual sub name, so set it
+        # to the value the user expects
+        pir::set__vps($meth, $meth_name);
+        $package.add_method($package, $meth_name, $meth);
     }
 
     # XXX Handles...

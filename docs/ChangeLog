@@ -1,3 +1,14 @@
+New in 2010.05 release
++ implemented lexical classes
++ manual pages are now installed
++ the .match method now understand the adverbs :c; :p, :nth, :x, :g, :ov
++ test reports with tools/test_summary.pl now record detailed timing information
++ many improvements to numeric handling
++ implemented S (sequential) meta operator
++ fixed placeholder parameters ($^a, $^b)
++ basic enum implementation
++ implemented List.classify
+
 New in 2010.04 release
 + interpolation of expression ending in postcircumfixes into double-quoted
   strings (for example "cards: @cards.sort()")

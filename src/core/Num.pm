@@ -44,12 +44,12 @@ augment class Num does Real {
 
         # Find convergents of the continued fraction.
 
-        my ($r, $q) = self!modf($num);
+        my ($r, $q) = modf($num);
         my ($a, $b) = 1, $q;
         my ($c, $d) = 0, 1;
 
         while $r != 0 && abs($num - ($b/$d)) > $epsilon {
-            ($r, $q) = self!modf(1/$r);
+            ($r, $q) = modf(1/$r);
 
             ($a, $b) = ($b, $q*$b + $a);
             ($c, $d) = ($d, $q*$d + $c);

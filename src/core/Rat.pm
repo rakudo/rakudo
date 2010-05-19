@@ -2,15 +2,6 @@ class Rat is Cool does Real {
     has $.numerator;
     has $.denominator;
 
-    our sub gcd(Int $a is copy, Int $b is copy) {
-        $a = -$a if ($a < 0);
-        $b = -$b if ($b < 0);
-        while $a > 0 && $b > 0 {
-            ($a, $b) = ($b, $a) if ($b > $a);
-            $a %= $b;
-        }
-        return $a + $b;
-    }
 
     multi method new() {
         self.bless(*, :numerator(0), :denominator(1));
@@ -22,7 +13,7 @@ class Rat is Cool does Real {
             $numerator = -$numerator;
             $denominator = -$denominator;
         }
-        my $gcd = gcd($numerator, $denominator);
+        my $gcd = pir::gcd__iii($numerator, $denominator);
         $numerator = $numerator div $gcd;
         $denominator = $denominator div $gcd;
         self.bless(*, :numerator($numerator), :denominator($denominator));
@@ -64,7 +55,7 @@ class Rat is Cool does Real {
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {
-    my $gcd = Rat::gcd($a.denominator, $b.denominator);
+    my $gcd = pir::gcd__iii($a.denominator, $b.denominator);
     ($a.numerator * ($b.denominator div $gcd) + $b.numerator * ($a.denominator div $gcd))
         / (($a.denominator div $gcd) * $b.denominator);
 }
@@ -78,7 +69,7 @@ multi sub infix:<+>(Int $a, Rat $b) {
 }
 
 multi sub infix:<->(Rat $a, Rat $b) {
-    my $gcd = Rat::gcd($a.denominator, $b.denominator);
+    my $gcd = pir::gcd__iii($a.denominator, $b.denominator);
     ($a.numerator * ($b.denominator div $gcd) - $b.numerator * ($a.denominator div $gcd))
         / (($a.denominator div $gcd) * $b.denominator);
 }

@@ -39,6 +39,11 @@ role Numeric {
         fail "$.WHAT() needs a version of .sqrt";
     }
 
+    method roots(Numeric $x: Int $n) {
+        note "$.WHAT() needs a version of .roots";
+        fail "$.WHAT() needs a version of .roots";
+    }
+
     INIT {
         our @trig-base-conversions = (1.0, pi / 180.0, pi / 200.0, 2.0 * pi);
     }

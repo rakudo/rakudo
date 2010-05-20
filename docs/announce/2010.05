@@ -14,8 +14,8 @@ Lenz, one of our core develepors, gave this month.
 Some of the specific changes and improvements occuring with this
 release include:
 
-* Leixcal classes and roles were implemented. Additionally, anonymous classes
-  - which were never quite right in alpha - are now implemented more
+* Lexical classes and roles were implemented. Additionally, anonymous classes
+  -- which were never quite right in alpha -- are now implemented more
   correctly, and anonymous roles are also supported.
 
 *

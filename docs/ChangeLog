@@ -1,5 +1,5 @@
 New in 2010.05 release
-+ implemented lexical classes
++ implemented lexical and anonymous classes and roles
 + manual pages are now installed
 + the .match method now understand the adverbs :c; :p, :nth, :x, :g, :ov
 + test reports with tools/test_summary.pl now record detailed timing information

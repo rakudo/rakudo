@@ -8,6 +8,9 @@ New in 2010.05 release
 + fixed placeholder parameters ($^a, $^b)
 + basic enum implementation
 + implemented List.classify
++ turned on an additional 47 test files
++ further improved error messages
++ implement zero-argument versions of many binary operators
 
 New in 2010.04 release
 + interpolation of expression ending in postcircumfixes into double-quoted

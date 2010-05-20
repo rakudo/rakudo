@@ -9,18 +9,20 @@ is available from http://github.com/rakudo/rakudo/downloads .
 Rakudo Perl follows a monthly release cycle, with each release named
 after a Perl Mongers group.  The May 2010 release is code named
 "Erlangen" in recognition of Erlangen.pm and the Perl 6 talk that Moritz
-Lenz, one of our core develepors, gave this month.
+Lenz, one of our core developers, gave this month.
 
-Some of the specific changes and improvements occuring with this
+Some of the specific changes and improvements occurring with this
 release include:
 
 * Lexical classes and roles were implemented. Additionally, anonymous classes
   -- which were never quite right in alpha -- are now implemented more
   correctly, and anonymous roles are also supported.
 
-*
+* Basic support for named enumerations of the form 'enum Weekday <Monday
+  Tuesday ...>' has been restored.
 
-*
+* First cut of use Foo:from<perl5> and eval('foo', :lang<perl5>); needs
+  Blizkost[1] to be installed to work.
 
 *  Numeric / Real roles much closer to the spec now.
 
@@ -53,3 +55,5 @@ development releases are scheduled to occur two days after each
 Parrot monthly release.  Parrot releases the third Tuesday of each month.
 
 Have fun!
+
+[1] http://github.com/jnthn/blizkost

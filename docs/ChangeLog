@@ -11,6 +11,7 @@ New in 2010.05 release
 + turned on an additional 47 test files
 + further improved error messages
 + implement zero-argument versions of many binary operators
++ basic interoperation with Perl 5 through the external Blizkost project
 
 New in 2010.04 release
 + interpolation of expression ending in postcircumfixes into double-quoted

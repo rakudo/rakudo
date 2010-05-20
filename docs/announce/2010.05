@@ -37,7 +37,16 @@ release include:
 For a more detailed list of changes see "docs/ChangeLog".
 
 The development team thanks all of our contributors and sponsors for
-making Rakudo Perl possible.  If you would like to contribute,
+making Rakudo Perl possible, as well as those people who worked on parrot, the
+Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+Solomon Foster, Moritz Lenz, Jonathan Worthington, Martin Berends,
+chromatic, Carl Masak, snarkyboojum, Stefan O'Rear, Reini Urban,
+Jonathan Scott Duff, takadonet, Christoph Otto, isBEKaml,
+ash_, bubaflub, Jimmy Zhuo, Peter Lobsinger and Patrick Abi Salloum
+
+If you would like to contribute,
 see http://rakudo.org/how-to-help , ask on the perl6-compiler@perl.org
 mailing list, or ask on IRC #perl6 on freenode.
 

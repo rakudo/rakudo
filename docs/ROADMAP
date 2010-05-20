@@ -1,12 +1,12 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2010-03-17
+Last updated: 2010-05-05
 
 This document identifies the major tasks planned for Rakudo
-development as of March 2010.  Most of these tasks are
+development as of May 2010.  Most of these tasks are
 oriented around the Rakudo Star distribution, currently targeted
-for May/June, 2010.
+for June, 2010.
 
 The items below are given a 1-3 priority indicator for the
 Rakudo Star release, where 1 is "really important", 2 is

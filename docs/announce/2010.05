@@ -8,25 +8,21 @@ is available from http://github.com/rakudo/rakudo/downloads .
 
 Rakudo Perl follows a monthly release cycle, with each release named
 after a Perl Mongers group.  The May 2010 release is code named
-"Erlangen" in recognition of Erlangen.pm and the Perl 6 talk they had
-Moritz Lenz, one of our core develepors, give this month.
+"Erlangen" in recognition of Erlangen.pm and the Perl 6 talk that Moritz
+Lenz, one of our core develepors, gave this month.
 
 Some of the specific changes and improvements occuring with this
 release include:
 
-[Note: next five are leftovers from Moscow. -colomon]
-*  Expressions that begin with a variable and end with a circumfix now properly
-   interpolate into double-quoted strings, like "@array.sort()" or
-   "%hash<key>".
+* Leixcal classes and roles were implemented. Additionally, anonymous classes
+  - which were never quite right in alpha - are now implemented more
+  correctly, and anonymous roles are also supported.
 
-*  Item assignment now has tighter precdence than list assignment, so both
-   'my @a = 1, 2, 3' and '$a = 1, $b = 2' magically work.
+*
 
-*  Most of the DateTime built-in type has been backported from the "alpha"
-   branch, and is now accompanied by a Date type for date-only calculations.
+*
 
-*  Many obsolete uses of Perl 5 constructs are now caught and give helpful
-   error messages.
+*  Numeric / Real roles much closer to the spec now.
 
 *  As always, many additional small features and bug fixes make working with
    Rakudo more pleasant.

@@ -1806,6 +1806,26 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
         ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }
 
+    token metachar:sym<$> {
+        <sym> <!before \w>
+    }
+
+    token metachar:sym<var> {
+        [
+        | '$<' $<name>=[<-[>]>+] '>'
+        | '$' $<pos>=[\d+]
+        | <?before <[$@]> \w> <var=.LANG('MAIN', 'variable')>
+        | <?before '%' \w> <.panic: "Use of hash variable in patterns is reserved">
+        ]
+ 
+        [ <.ws> '=' <.ws> <quantified_atom> ]?
+    }
+
+    token assertion:sym<var> {
+        | <?before <[$@]> \w> <var=.LANG('MAIN', 'variable')>
+        | <?before '%' \w> <.panic: "Use of hash variable in patterns is reserved">
+    }
+
     token metachar:sym<{ }> {
         <?[{]> <codeblock>
     }

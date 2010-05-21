@@ -16,12 +16,15 @@ method need($name, %name_adverbs?) {
         Perl6::Module::Locator.find_module($name, @inc, %name_adverbs<ver>, %name_adverbs<auth>) !!
         Perl6::Module::Locator.find_module_no_conditions($name, @inc);
     if $pm_file eq '' {
-        pir::say("Unable to find module '$name'" ~
+        pir::die("Unable to find module '$name'" ~
             (%name_adverbs<ver> ?? " with version '" ~ %name_adverbs<ver> ~ "'" !! "") ~
             (%name_adverbs<ver> && %name_adverbs<auth> ?? ' and' !! '') ~
             (%name_adverbs<auth> ?? " with authority '" ~ %name_adverbs<auth> ~ "'" !! "") ~
-            " in the @*INC directories.");
-        pir::exit__vI( 1 ); # or another more meaningful nonzero status
+            " in the @*INC directories.\n"
+            ~ "(@*INC contains:\n  "
+            ~ pir::join("\n  ", @*INC)
+            ~ ")."
+        );
     }
 
     # Need not load file if we already did so.

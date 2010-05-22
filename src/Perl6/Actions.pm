@@ -2078,7 +2078,7 @@ method prefixish($/) {
         my $opsub := '&prefix:<' ~ $<OPER>.Str ~ '<<>';
         unless %*METAOPGEN{$opsub} {
             my $base_op := '&prefix:<' ~ $<OPER>.Str ~ '>';
-            @BLOCK[0].loadinit.push(PAST::Op.new(
+            get_outermost_block().loadinit.push(PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new( :name($opsub), :scope('package') ),
                 PAST::Op.new(
@@ -2098,7 +2098,7 @@ method infixish($/) {
         my $sym := ~$<infix><sym>;
         my $opsub := "&infix:<$sym=>";
         unless %*METAOPGEN{$opsub} {
-            @BLOCK[0].loadinit.push(
+            get_outermost_block().loadinit.push(
                 PAST::Op.new( :name('!gen_assign_metaop'), $sym,
                               :pasttype('call') )
             );
@@ -2129,7 +2129,7 @@ method infixish($/) {
                 $helper := '&zipwith';
             }
 
-            @BLOCK[0].loadinit.push(
+            get_outermost_block().loadinit.push(
                 PAST::Op.new( :pasttype('bind'),
                               PAST::Var.new( :name($opsub), :scope('package') ),
                               PAST::Op.new( :pasttype('callmethod'),
@@ -2149,7 +2149,7 @@ method prefix_circumfix_meta_operator:sym<reduce>($/) {
     my $opsub := '&prefix:<' ~ ~$/ ~ '>';
     unless %*METAOPGEN{$opsub} {
         my $base_op := '&infix:<' ~ $<op>.Str ~ '>';
-        @BLOCK[0].loadinit.push(PAST::Op.new(
+        get_outermost_block().loadinit.push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new( :name($opsub), :scope('package') ),
             PAST::Op.new(
@@ -2180,7 +2180,7 @@ sub make_hyperop($/) {
         my $base_op := '&infix:<' ~ $<infixish>.Str ~ '>';
         my $dwim_lhs := $<opening> eq '<<' || $<opening> eq '«';
         my $dwim_rhs := $<closing> eq '>>' || $<closing> eq '»';
-        @BLOCK[0].loadinit.push(PAST::Op.new(
+        get_outermost_block().loadinit.push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new( :name($opsub), :scope('package') ),
             PAST::Op.new(
@@ -2213,7 +2213,7 @@ method postfixish($/) {
             my $opsub := '&postfix:<>>' ~ $<OPER>.Str ~ '>';
             unless %*METAOPGEN{$opsub} {
                 my $base_op := '&postfix:<' ~ $<OPER>.Str ~ '>';
-                @BLOCK[0].loadinit.push(PAST::Op.new(
+                get_outermost_block().loadinit.push(PAST::Op.new(
                     :pasttype('bind'),
                     PAST::Var.new( :name($opsub), :scope('package') ),
                     PAST::Op.new(
@@ -2947,6 +2947,13 @@ sub is_lexical($name) {
         }
     }
     return 0;
+}
+
+# Gets the outermost block. We sometimes want to install global things in
+# it, e.g. generated meta-ops.
+sub get_outermost_block() {
+    our @BLOCK;
+    return @BLOCK[+@BLOCK - 1];
 }
 
 # Looks to see if a variable has been set up as an alias to an attribute.

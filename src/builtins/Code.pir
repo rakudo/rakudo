@@ -57,12 +57,18 @@ for executable objects.
 =cut
 
 .sub 'clone' :method
+    push_eh parrot_sub
     $P0 = getattribute self, '$!do'
+    pop_eh
     $P0 = clone $P0
     $P1 = getattribute self, '$!multi'
     $P2 = getattribute self, '$!lazy_sig_init'
     $P3 = self.'new'($P0, $P1, $P2)
     .return ($P3)
+  parrot_sub:
+    pop_eh
+    $P0 = clone self
+    .return ($P0)
 .end
 
 
@@ -116,13 +122,21 @@ Just calls this block with the supplied parameters.
 =cut
 
 .sub 'multi' :method
+    push_eh parrot_sub
     $P0 = getattribute self, '$!multi'
+    pop_eh
     if $P0 goto is_multi
+  not_multi:
     $P1 = get_hll_global ['Bool'], 'False'
     .return ($P1)
   is_multi:
     $P1 = get_hll_global ['Bool'], 'True'
     .return ($P1)
+  parrot_sub:
+    pop_eh
+    $I0 = isa self, 'MultiSub'
+    if $I0 goto is_multi
+    goto not_multi
 .end
 
 

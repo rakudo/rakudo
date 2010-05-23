@@ -33,8 +33,12 @@ integration/advent2009-day07.t
 integration/advent2009-day09.t
 integration/advent2009-day11.t
 integration/advent2009-day14.t
+integration/advent2009-day15.t
+integration/advent2009-day16.t
 integration/advent2009-day17.t
+integration/advent2009-day19.t
 integration/advent2009-day22.t
+integration/advent2009-day23.t
 integration/code-blocks-as-sub-args.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t

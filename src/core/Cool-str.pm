@@ -231,6 +231,9 @@ augment class Cool {
             Cursor.parse(self, :rule($pat), |%opts);
         }
     }
+    multi method match($pat, *%options) {
+        self.match(rx{ $pat }, |%options);
+    }
 
     our multi method ord() {
         given self.chars {

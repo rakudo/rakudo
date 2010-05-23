@@ -46,6 +46,7 @@ static STRING *hides_str;
 static STRING *HOW_str;
 static STRING *invoke_str;
 static STRING *isa_str;
+static STRING *does_str;
 static STRING *item_str;
 static STRING *Junction_str;
 static STRING *MAKE_WHATEVER_CLOSURE_str;
@@ -285,6 +286,7 @@ pmclass P6opaque extends Object need_ext dynpmc group perl6_group auto_attrs {
         HOW_str                      = CONST_STRING(interp, "HOW");
         invoke_str                   = CONST_STRING(interp, "invoke");
         isa_str                      = CONST_STRING(interp, "isa");
+        does_str                     = CONST_STRING(interp, "does");
         item_str                     = CONST_STRING(interp, "item");
         Junction_str                 = CONST_STRING(interp, "Junction");
         MAKE_WHATEVER_CLOSURE_str    = CONST_STRING(interp, "!MAKE_WHATEVER_CLOSURE");
@@ -397,6 +399,7 @@ back some kind of iterator to let us get all of the possible candidates.
                 !Parrot_str_equal(interp, name, HOW_str) &&
                 !Parrot_str_equal(interp, name, ACCEPTS_str) &&
                 !Parrot_str_equal(interp, name, isa_str) &&
+                !Parrot_str_equal(interp, name, does_str) &&
                 !Parrot_str_equal(interp, name, item_str) &&
                 !Parrot_str_equal(interp, name, defined_str) &&
                 !Parrot_str_equal(interp, name, FETCH_str)) {
@@ -416,6 +419,7 @@ back some kind of iterator to let us get all of the possible candidates.
                 !Parrot_str_equal(interp, name, HOW_str) &&
                 !Parrot_str_equal(interp, name, ACCEPTS_str) &&
                 !Parrot_str_equal(interp, name, isa_str) &&
+                !Parrot_str_equal(interp, name, does_str) &&
                 !Parrot_str_equal(interp, name, item_str) &&
                 !Parrot_str_equal(interp, name, defined_str) &&
                 !Parrot_str_equal(interp, name, perl_str) &&

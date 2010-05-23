@@ -356,6 +356,41 @@ Completes the creation of the metaclass and return the P6role.
     .return (role)
 .end
 
+
+=item does(object, role)
+
+Tests role membership.
+
+=cut
+
+.sub 'does' :method
+    .param pmc obj
+    .param pmc type
+
+    # Check if we have a Perl6Role - needs special handling.
+    # It will end up calling back to us, but with individual
+    # variants, 
+    $I0 = isa type, 'Perl6Role'
+    unless $I0 goto not_p6role
+    .tailcall type.'ACCEPTS'(obj)
+
+    # Otherwise, see if the target is in our done list or in the done list
+    # of any of our parents.
+  not_p6role:
+    $P0 = getattribute self, '$!done'
+    if null $P0 goto false
+    $P0 = iter $P0
+  it_loop:
+    unless $P0 goto false
+    $P1 = shift $P0
+    eq_addr $P1, type, true
+    goto it_loop
+  false:
+    .return (0)
+  true:
+    .return (1)
+.end
+
 =back
 
 =cut

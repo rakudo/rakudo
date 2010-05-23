@@ -138,7 +138,10 @@ Checks if the given topic does the role.
     # Go over the roles we've created and see if one of them is done.
     .local pmc created, it
     created = getattribute self, '$!created'
-    if null created goto it_loop_end
+    unless null created goto ready_to_check
+    self.'!select'()
+    created = getattribute self, '$!created'
+  ready_to_check:
     it = iter created
   it_loop:
     unless it goto it_loop_end

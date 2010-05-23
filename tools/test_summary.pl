@@ -363,8 +363,8 @@ sub end {
     my $file_in  = $self->{'file_in'};
     my $file_out = $self->{'file_out'};
     print $file_out "\n }\n}\n";
-    close $file_out or die $!;
-    close $file_in or die $!;
+    close $file_out or warn $!;
+    close $file_in or warn $!;
     unlink 'docs/test_summary.times';
     rename 'docs/test_summary.times.tmp', 'docs/test_summary.times';
 }

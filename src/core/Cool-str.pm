@@ -22,20 +22,23 @@ augment class Cool {
         }
     }
 
-    multi method subst($matcher, $replacement, :g(:$global), :$x) {
-        die "Can't combine :g/:global and :x in subst"
-            if defined($global) && defined($x);
-        my $limit = defined($x) ?? $x +1 !! 2;
-        my @chunks = self.split($matcher, :limit($global ?? * !! $limit), :all);
-        if defined($x) && (@chunks < 2 * $x) {
-            return self;
+    multi method subst($matcher, $replacement, *%options) {
+        my @matches = self.match($matcher, |%options);
+        return self unless @matches;
+        return self if @matches == 1 && !@matches[0];
+        my $prev = 0;
+        my $result = '';
+        for @matches -> $m {
+            $result ~= self.substr($prev, $m.from - $prev);
+            $result ~= ~($replacement ~~ Callable
+                            ?? $replacement($m)
+                            !! $replacement);
+            $prev = $m.to;
         }
-        loop (my $i = 1; $i < @chunks; $i += 2) {
-            @chunks[$i] = $replacement ~~ Callable ?? $replacement(@chunks[$i]) !! $replacement;
-        }
-        @chunks.join('');
+        my $last = @matches.pop;
+        $result ~= self.substr($last.to);
+        $result;
     }
-
 
     multi method comb(Regex $matcher = /./, $limit = *, :$match) {
         my $c = 0;
@@ -193,6 +196,7 @@ augment class Cool {
         %opts<c> = $continue // 0 unless defined $p;
         my $x_upper = -1;
         if defined($x) {
+            return if $x == 0;
             if $x ~~ Range {
                 $x_upper = $x.excludes_max ?? $x.max - 1 !! $x.max;
             } else {

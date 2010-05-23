@@ -27,4 +27,7 @@ augment class Iterator {
     multi method sort(&by = &infix:<cmp>) {
         self.Seq.sort(&by);
     }
+    multi method fmt($format='%s', $separator=' ') {
+        self.Seq.fmt($format,$separator);
+    }
 }

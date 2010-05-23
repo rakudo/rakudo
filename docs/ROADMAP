@@ -47,7 +47,6 @@ Ought to have items
 2 ****  better longest token matching in regexes (A, D, pmichaud)
 2 ?     other S02 data types -- KeySet, KeyBag (A)
 2 ?     specialized Unicode bits -- .codes, .graphs, .bytes (A, C)
-2 *     REPL actually prints (D)
 
 Nice to have items
 3 ***   array/hash element vivification via WHENCE (jnthn)
@@ -116,3 +115,4 @@ Completed ROADMAP items:
   - item assignment (done)
   - lexical classes and roles (done)
   - lexical variables in regexes (done)
+  - REPL actually prints (done)

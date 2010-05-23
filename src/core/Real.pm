@@ -21,6 +21,10 @@ role Real does Numeric {
         Complex.new(self, 0);
     }
 
+    method reals() {
+        (self);
+    }
+
     method abs(Real $x:) {
         $x < 0 ?? -$x !! $x;
     }

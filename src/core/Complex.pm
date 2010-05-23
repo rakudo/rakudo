@@ -15,6 +15,10 @@ class Complex does Numeric is Cool {
 
     multi method Complex() { self }
 
+    method reals() {
+        (self.re, self.im);
+    }
+
     our Bool multi method Bool() { ( $!re != 0 || $!im != 0 ) ?? Bool::True !! Bool::False }
 
     multi method perl() {

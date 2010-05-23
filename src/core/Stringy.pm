@@ -1,0 +1,2 @@
+role Stringy {
+}

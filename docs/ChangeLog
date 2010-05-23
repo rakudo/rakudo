@@ -1,3 +1,6 @@
+New in 2010.06 release
++ variable interpolation into regexes
+
 New in 2010.05 release
 + implemented lexical and anonymous classes and roles
 + manual pages are now installed

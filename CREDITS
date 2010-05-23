@@ -71,6 +71,11 @@ N: Bruce Gray
 U: util
 E: bruce.gray@acm.org
 
+N: Bruce Keeler
+U: bkeeler
+D: variable interpolation into regexes
+
+
 N: Bryan C. Warnock
 D: The First Perl 6 Summarizer
 D: Little things here and there in pre-Parrot days.

@@ -2565,9 +2565,15 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
                               :pasttype<pastnode>, :node($/) );
     }
 
-    method assertion:sym<{ }>($/) { 
-        make PAST::Regex.new( '!INTERPOLATE_REGEX', $<codeblock>.ast,
+    method metachar:sym<rakvar>($/) {
+        make PAST::Regex.new( '!INTERPOLATE', $<var>.ast,
                               :pasttype<subrule>, :subtype<method>, :node($/));
+    }
+
+    method assertion:sym<{ }>($/) { 
+        make PAST::Regex.new( '!INTERPOLATE', 
+                 PAST::Op.new( :name<!MAKE_REGEX>, $<codeblock>.ast ),
+                 :pasttype<subrule>, :subtype<method>, :node($/));
     }
 
     method assertion:sym<?{ }>($/) {
@@ -2577,8 +2583,9 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
     }
 
     method assertion:sym<var>($/) {
-        make PAST::Regex.new( '!INTERPOLATE_REGEX', $<var>.ast,
-                              :pasttype<subrule>, :subtype<method>, :node($/));
+        make PAST::Regex.new( '!INTERPOLATE', 
+                 PAST::Op.new( :name<!MAKE_REGEX>, $<var>.ast ),
+                 :pasttype<subrule>, :subtype<method>, :node($/));
     }
 
     method codeblock($/) {

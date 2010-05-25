@@ -83,6 +83,7 @@ BUILTINS_PIR = \
   src/glue/dispatch.pir \
   src/glue/enum.pir \
   src/glue/phasers.pir \
+  src/glue/regex.pir \
   src/glue/role.pir \
   src/glue/run.pir \
   src/glue/types.pir \

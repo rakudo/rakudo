@@ -1810,6 +1810,10 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
         <?[{]> <codeblock>
     }
 
+    token metachar:sym<rakvar> {
+        <?[$@]> <?before .\w> <var=.LANG('MAIN', 'variable')>
+    }
+
     token assertion:sym<{ }> {
         <?[{]> <codeblock>
     }

@@ -1811,7 +1811,7 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
     }
 
     token metachar:sym<rakvar> {
-        <?[$@]> <?before .<?alpha>> <var=.LANG('MAIN', 'variable')>
+        <?[$@&]> <?before .<?alpha>> <var=.LANG('MAIN', 'variable')>
     }
 
     token assertion:sym<{ }> {
@@ -1823,7 +1823,7 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
     }
 
     token assertion:sym<var> {
-        <?[$@]> <var=.LANG('MAIN', 'variable')>
+        <?[$@&]> <var=.LANG('MAIN', 'variable')>
     }
 
     token codeblock {

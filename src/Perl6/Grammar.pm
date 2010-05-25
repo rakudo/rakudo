@@ -1814,6 +1814,10 @@ grammar Perl6::Regex is Regex::P6Regex::Grammar {
         <?[{]> <codeblock>
     }
 
+    token assertion:sym<?{ }> {
+        $<zw>=[ <[?!]> <?before '{'> ] <codeblock>
+    }
+
     token codeblock {
         <block=.LANG('MAIN','block')>
     }

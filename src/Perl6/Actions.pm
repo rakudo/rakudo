@@ -2560,24 +2560,26 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
         make PAST::Regex.new( $past, :pasttype('pastnode') );
     }
 
-    method metachar:sym<{ }>($/) { make $<codeblock>.ast; }
+    method metachar:sym<{ }>($/) { 
+        make PAST::Regex.new( $<codeblock>.ast,
+                              :pasttype<pastnode>, :node($/) );
+    }
 
-    method assertion:sym<{ }>($/) { make $<codeblock>.ast; }
+    method assertion:sym<{ }>($/) { 
+        make PAST::Regex.new( '!INTERPOLATE_REGEX', $<codeblock>.ast,
+                              :pasttype<subrule>, :subtype<method>, :node($/));
+    }
+
+    method assertion:sym<?{ }>($/) {
+        make PAST::Regex.new( $<codeblock>.ast,
+                              :subtype<zerowidth>, :negate( $<zw> eq '!' ),
+                              :pasttype<pastnode>, :node($/) );
+    }
 
     method codeblock($/) {
         my $block := $<block>.ast;
         $block.blocktype('immediate');
-        make bindmatch($block);
-    }
-
-    method p6arglist($/) {
-        my $arglist := $<arglist>.ast;
-#        make bindmatch($arglist);
-        make $arglist;
-    }
-
-    sub bindmatch($past) {
-        PAST::Regex.new(
+        my $past := 
             PAST::Stmts.new(
                 PAST::Op.new(
                     PAST::Var.new( :name('$/') ),
@@ -2588,11 +2590,16 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
                     ),
                     :pasttype('bind')
                 ),
-                $past
-            ),
-            :pasttype('pastnode')
-        );
+                $block
+            );
+        make $past;
     }
+
+    method p6arglist($/) {
+        my $arglist := $<arglist>.ast;
+        make $arglist;
+    }
+
 }
 
 # Takes a block and adds a signature to it, as well as code to bind the call

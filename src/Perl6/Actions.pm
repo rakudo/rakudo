@@ -2576,6 +2576,11 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
                               :pasttype<pastnode>, :node($/) );
     }
 
+    method assertion:sym<var>($/) {
+        make PAST::Regex.new( '!INTERPOLATE_REGEX', $<var>.ast,
+                              :pasttype<subrule>, :subtype<method>, :node($/));
+    }
+
     method codeblock($/) {
         my $block := $<block>.ast;
         $block.blocktype('immediate');

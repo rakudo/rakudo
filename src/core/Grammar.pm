@@ -1,4 +1,4 @@
-class Grammar is Cursor {
+class Grammar is Regex::Cursor {
     method parsefile($file, *%options) {
         my $fh = open($file, :r)
             || die "$file: $!";

@@ -207,7 +207,7 @@ augment class Cool {
         if $global || $nth.defined || $overlap || ($x.defined && $x_upper > 1) {
             my $taken = 0;
             my $i = 1;
-            my @r = gather while my $m = Cursor.parse(self, :rule($pat), |%opts) {
+            my @r = gather while my $m = Regex::Cursor.parse(self, :rule($pat), |%opts) {
                 my $m-copy = $m;
                 unless $nth.defined && ($i !~~ any |$nth) {
                     take $m-copy;
@@ -232,7 +232,7 @@ augment class Cool {
             }
             return |@r;
         } else {
-            Cursor.parse(self, :rule($pat), |%opts);
+            Regex::Cursor.parse(self, :rule($pat), |%opts);
         }
     }
     multi method match($pat, *%options) {

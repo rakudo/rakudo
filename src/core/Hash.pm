@@ -67,7 +67,7 @@ role Hash is EnumMap {
                 delete $P1[$P0]
             }
         }
-        @deleted
+        return |@deleted
     }
 
     method push(*@values) {

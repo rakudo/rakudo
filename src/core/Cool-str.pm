@@ -22,7 +22,7 @@ augment class Cool {
         }
     }
 
-    multi method subst($matcher, $replacement, *%options) {
+    multi method subst($matcher, $replacement, :$samecase, *%options) {
         my @matches = self.match($matcher, |%options);
         return self unless @matches;
         return self if @matches == 1 && !@matches[0];
@@ -30,9 +30,10 @@ augment class Cool {
         my $result = '';
         for @matches -> $m {
             $result ~= self.substr($prev, $m.from - $prev);
-            $result ~= ~($replacement ~~ Callable
-                            ?? $replacement($m)
-                            !! $replacement);
+
+	    my $real_replacement = ~($replacement ~~ Callable ?? $replacement($m) !! $replacement);
+	    $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
+            $result ~= $real_replacement;
             $prev = $m.to;
         }
         my $last = @matches.pop;

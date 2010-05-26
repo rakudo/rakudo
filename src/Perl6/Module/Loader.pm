@@ -23,7 +23,7 @@ method need($name, %name_adverbs?) {
             " in the @*INC directories.\n"
             ~ "(@*INC contains:\n  "
             ~ pir::join("\n  ", @*INC)
-            ~ ")."
+            ~ ")"
         );
     }
 

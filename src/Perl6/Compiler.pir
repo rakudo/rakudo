@@ -128,8 +128,6 @@ Perl6::Compiler - Perl6 compiler
     env = root_new ['parrot';'Env']
     $S0 = env['PERL6LIB']
     $P0 = split ':', $S0
-    # append the current directory
-    push $P0, '.'
     # append ~/.perl6/lib
     $S0 = env['HOME']
     if $S0 goto have_home     # for users of unix-y systems
@@ -148,6 +146,8 @@ Perl6::Compiler - Perl6 compiler
     concat $S0, $S1
     concat $S0, '/languages/perl6/lib'
     push $P0, $S0
+    # append the current directory
+    push $P0, '.'             # remove this when 'use lib' works fine
     # $P0 now has all the directories, move them to @*INC
     $P1 = new ['Parcel']
     # do not use '&circumfix:<[ ]>' because it makes a list of lists

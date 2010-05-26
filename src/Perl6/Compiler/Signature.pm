@@ -15,6 +15,14 @@ has $!entries;
 has $!default_type;
 has $!bind_target;
 
+# Instantiates a Signature.
+method new(*@params) {
+    my $new_sig := Q:PIR { %r = new ['Perl6';'Compiler';'Signature'] };
+    for @params {
+        $new_sig.add_parameter($_);
+    }
+    $new_sig
+}
 
 # Accessor for $!bind_target.
 method bind_target($bind_target?) {

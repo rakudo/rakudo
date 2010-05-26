@@ -2272,14 +2272,6 @@ method value:sym<number>($/) {
     make $<number>.ast;
 }
 
-method number:sym<rational>($/) {
-    make PAST::Op.new(
-        :pasttype('callmethod'), :name('new'),
-        PAST::Var.new( :name('Rat'), :namespace(''), :scope('package') ),
-        $<nu>.ast, $<de>.ast
-    );
-}
-
 method number:sym<complex>($/) {
     make PAST::Op.new(
         :pasttype('callmethod'), :name('new'),

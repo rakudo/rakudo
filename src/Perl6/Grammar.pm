@@ -1220,7 +1220,6 @@ token value:sym<quote>  { <quote> }
 token value:sym<number> { <number> }
 
 proto token number { <...> }
-token number:sym<rational> { <nu=.integer>'/'<de=.integer> }
 token number:sym<complex>  { <im=.numish>'\\'?'i' }
 token number:sym<numish>   { <numish> }
 

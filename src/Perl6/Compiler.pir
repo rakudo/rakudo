@@ -128,15 +128,9 @@ Perl6::Compiler - Perl6 compiler
     env = root_new ['parrot';'Env']
     $S0 = env['PERL6LIB']
     $P0 = split ':', $S0
-    # Now prepend the installed Parrot languages/perl6/lib directory
-    interp = getinterp
-    config = interp[.IGLOBALS_CONFIG_HASH]
-    $S0 = config['libdir']
-    $S1 = config['versiondir']
-    concat $S0, $S1
-    concat $S0, '/languages/perl6/lib'
-    unshift $P0, $S0
-    # Now prepend ~/.perl6/lib
+    # append the current directory
+    push $P0, '.'
+    # append ~/.perl6/lib
     $S0 = env['HOME']
     if $S0 goto have_home     # for users of unix-y systems
     # here only for those of a fenestral persuasion
@@ -145,8 +139,15 @@ Perl6::Compiler - Perl6 compiler
     concat $S0, $S1
   have_home:
     concat $S0, '/.perl6/lib'
-    unshift $P0, $S0
-    unshift $P0, '.'
+    push $P0, $S0
+    # append the installed Parrot languages/perl6/lib directory
+    interp = getinterp
+    config = interp[.IGLOBALS_CONFIG_HASH]
+    $S0 = config['libdir']
+    $S1 = config['versiondir']
+    concat $S0, $S1
+    concat $S0, '/languages/perl6/lib'
+    push $P0, $S0
     # $P0 now has all the directories, move them to @*INC
     $P1 = new ['Parcel']
     # do not use '&circumfix:<[ ]>' because it makes a list of lists

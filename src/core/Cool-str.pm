@@ -186,7 +186,7 @@ augment class Cool {
                            :g(:$global),
                            :pos(:$p),
                            :$x,
-                           Mu :$nth,
+                           :$nth,
                            :ov(:$overlap)) {
         if $continue ~~ Bool {
             note ":c / :continue requires a position in the string";
@@ -206,13 +206,29 @@ augment class Cool {
         }
 
         if $global || $nth.defined || $overlap || ($x.defined && $x_upper > 1) {
+            my $next-index;
+            my $next-iterator;
+            if $nth.defined {
+                $next-iterator = $nth.list.iterator;
+                $next-index = $next-iterator.get;
+                return if $next-index ~~ EMPTY || +$next-index < 1;
+            }
+
             my $taken = 0;
             my $i = 1;
             my @r = gather while my $m = Regex::Cursor.parse(self, :rule($pat), |%opts) {
                 my $m-copy = $m;
-                if !$nth.defined || ($i ~~ any |$nth) {
+                if !$nth.defined || $i == $next-index {
                     take $m-copy;
                     $taken++;
+
+                    if ($nth.defined) {
+                        $next-index = $next-iterator.get;
+                        while $next-index !~~ EMPTY && $next-index <= $i  {
+                            $next-index = $next-iterator.get;
+                        }
+                        last if $next-index ~~ EMPTY;
+                    }
                 }
                 last if $taken == $x_upper;
 

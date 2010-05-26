@@ -245,15 +245,10 @@ method newpad($/) {
 }
 
 method outerlex($/) {
-    my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
-    if pir::defined__IP($outer_ctx) {
-        my $block := @BLOCK[0];
-        my %lexinfo := Perl6::Compiler.get_lexinfo($outer_ctx);
-        for %lexinfo { $block.symbol($_.key, :scope<lexical>); }
-        my @ns := pir::getattribute__PPs($outer_ctx, 'current_namespace').get_name;
-        @ns.shift;
-        $block.namespace(@ns);
-    }
+    # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
+    # to set dynamic outer lexical context and namespace details
+    # for the compilation unit.
+    self.SET_BLOCK_OUTER_CTX(@BLOCK[0]);
 }
 
 method finishpad($/) {

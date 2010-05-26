@@ -23,6 +23,28 @@ has $!is_capture;
 has $!traits;
 has $!coerce_to;
 
+method new(:$var_name, :$pos_slurpy, :$named_slurpy, :$optional, 
+           :$invocant, :$multi_invocant, :$default,
+           :$default_from_outer, :$is_rw, :$is_copy, :$is_parcel,
+           :$is_capture, :$traits, :$coerce_to) {
+    my $new_param := Q:PIR { %r = new ['Perl6';'Compiler';'Parameter'] };
+    $new_param.var_name($var_name);
+    $new_param.pos_slurpy($pos_slurpy);
+    $new_param.named_slurpy($named_slurpy);
+    $new_param.optional($optional);
+    $new_param.invocant($invocant);
+    $new_param.multi_invocant($multi_invocant);
+    $new_param.default($default);
+    $new_param.default_from_outer($default_from_outer);
+    $new_param.is_rw($is_rw);
+    $new_param.is_copy($is_copy);
+    $new_param.is_parcel($is_parcel);
+    $new_param.is_capture($is_capture);
+    $new_param.traits($traits);
+    $new_param.coerce_to($coerce_to);
+    $new_param
+}
+
 method var_name($var_name?) {
     if $var_name { $!var_name := $var_name }
     $!var_name

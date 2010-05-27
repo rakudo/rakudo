@@ -1767,10 +1767,11 @@ method methodop($/) {
         my @parts := Perl6::Grammar::parse_name(~$<longname>);
         my $name := @parts.pop;
         if +@parts {
+            my $scope := is_lexical(pir::join('::', @parts)) ?? 'lexical' !! 'package';
             $past.unshift(PAST::Var.new(
                 :name(@parts.pop),
                 :namespace(@parts),
-                :scope('package')
+                :scope($scope)
             ));
             $past.unshift($name);
             $past.name('!dispatch_::');

@@ -26,7 +26,6 @@ Really important items
 1 *     array/hash vivification (masak, jnthn, pmichaud)
 1 ***   REPL remembers the variable from the last line (D, jnthn)
 1 **    operator overloading -- infix:, prefix:, postfix: (almost there, problems with pre-comp)
-1 **    import module symbols into current lexical scope (D, jnthn)
 1 **    improved error messages and failure modes (B, all)
 1 *     attention-grabbing examples (all)
 1 **    release announcement draft (pmichaud, all)
@@ -116,3 +115,4 @@ Completed ROADMAP items:
   - lexical classes and roles (done)
   - lexical variables in regexes (done)
   - REPL actually prints (done)
+  - import module symbols into current lexical scope (done)

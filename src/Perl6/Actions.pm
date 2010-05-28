@@ -2106,7 +2106,7 @@ method infixish($/) {
 
     if $<infix_prefix_meta_operator> {
         my $metaop := ~$<infix_prefix_meta_operator><sym>;
-        my $sym := ~$<infix_prefix_meta_operator><infixish>;
+        my $sym := ~$<infix_prefix_meta_operator><infixish><OPER>;
         my $opsub := "&infix:<$metaop$sym>";
         my $base_opsub := "&infix:<$sym>";
         if $opsub eq "&infix:<!=>" {
@@ -2139,6 +2139,10 @@ method infixish($/) {
         }
 
         make PAST::Op.new( :name($opsub), :pasttype('call') );
+    }
+
+    if $<infixish> {
+        make $<infixish>.ast;
     }
 }
 
@@ -2174,7 +2178,7 @@ method infix_circumfix_meta_operator:sym<« »>($/) {
 sub make_hyperop($/) {
     my $opsub := '&infix:<' ~ ~$/ ~ '>';
     unless %*METAOPGEN{$opsub} {
-        my $base_op := '&infix:<' ~ $<infixish>.Str ~ '>';
+        my $base_op := '&infix:<' ~ $<infixish><OPER>.Str ~ '>';
         my $dwim_lhs := $<opening> eq '<<' || $<opening> eq '«';
         my $dwim_rhs := $<closing> eq '>>' || $<closing> eq '»';
         get_outermost_block().loadinit.push(PAST::Op.new(

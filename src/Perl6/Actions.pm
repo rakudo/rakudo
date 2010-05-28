@@ -3033,6 +3033,7 @@ our %not_curried;
 INIT {
     %not_curried{'&infix:<...>'} := 1;
     %not_curried{'&infix:<..>'}  := 1;
+    %not_curried{'&infix:<~~>'}  := 1;
 }
 sub whatever_curry($past) {
     if $past.isa(PAST::Op) && !%not_curried{$past.name} {

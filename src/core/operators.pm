@@ -214,7 +214,7 @@ our multi infix:<==>($a, $b) {
     pir::iseq__INN(+$a, +$b) ?? True !! False
 }
 
-our multi infix:<!=>($a, $b) {
+our multi infix:<!=>(Mu $a, Mu $b) {
     $a !== $b
 }
 
@@ -238,7 +238,7 @@ our multi infix:<eq>($a, $b) {
     pir::iseq__ISS(~$a, ~$b) ?? True !! False
 }
 
-our multi infix:<ne>($a, $b) {
+our multi infix:<ne>(Mu $a, Mu $b) {
     $a !eq $b
 }
 

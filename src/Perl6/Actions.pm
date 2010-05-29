@@ -2065,7 +2065,7 @@ method EXPR($/, $key?) {
         for $/.list { if $_.ast { $past.push($_.ast); } }
     }
     if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
-        $past := whatever_curry($past);
+        $past := whatever_curry($past, $key eq 'INFIX' ?? 2 !! 1);
     }
     make $past;
 }
@@ -3035,10 +3035,10 @@ INIT {
     %not_curried{'&infix:<..>'}  := 1;
     %not_curried{'&infix:<~~>'}  := 1;
 }
-sub whatever_curry($past) {
+sub whatever_curry($past, $upto_arity) {
     if $past.isa(PAST::Op) && !%not_curried{$past.name} {
-        if +@($past) == 2 && $past[0] ~~ PAST::Op && $past[0].returns eq 'Whatever'
-                          && $past[1] ~~ PAST::Op && $past[1].returns eq 'Whatever' {
+        if $upto_arity == 2 && $past[0] ~~ PAST::Op && $past[0].returns eq 'Whatever'
+                            && $past[1] ~~ PAST::Op && $past[1].returns eq 'Whatever' {
             # Curry left and right, two args.
             $past.shift; $past.shift;
             $past.push(PAST::Var.new( :name('$x'), :scope('lexical') ));
@@ -3048,7 +3048,7 @@ sub whatever_curry($past) {
                 Perl6::Compiler::Parameter.new(:var_name('$y')));
             $past := make_block_from($sig, $past);
         }
-        elsif +@($past) == 2 && $past[1] ~~ PAST::Op && $past[1].returns eq 'Whatever' {
+        elsif $upto_arity == 2 && $past[1] ~~ PAST::Op && $past[1].returns eq 'Whatever' {
             # Curry right arg.
             $past.pop;
             $past.push(PAST::Var.new( :name('$y'), :scope('lexical') ));
@@ -3056,7 +3056,7 @@ sub whatever_curry($past) {
                 Perl6::Compiler::Parameter.new(:var_name('$y')));
             $past := make_block_from($sig, $past);
         }
-        elsif (+@($past) == 1 || +@($past) == 2) && $past[0] ~~ PAST::Op && $past[0].returns eq 'Whatever' {
+        elsif $upto_arity >= 1 && $past[0] ~~ PAST::Op && $past[0].returns eq 'Whatever' {
             # Curry left (or for unary, only) arg.
             $past.shift;
             $past.unshift(PAST::Var.new( :name('$x'), :scope('lexical') ));

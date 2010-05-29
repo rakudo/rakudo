@@ -216,8 +216,8 @@ CORE_SOURCES = \
   src/cheats/setup-io.pm \
   src/core/Date.pm \
   src/core/Temporal.pm \
-  src/core/YOU_ARE_HERE.pm \
   src/core/Match.pm \
+  src/core/YOU_ARE_HERE.pm \
 
 PMC_SOURCES = \
   $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/objectref.pmc \

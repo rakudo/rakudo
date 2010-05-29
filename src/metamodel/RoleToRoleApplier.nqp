@@ -26,7 +26,7 @@ method apply($target, @composees) {
     for @composees {
         my @methods := $_.HOW.methods($_);
         for @methods {
-            my $name := $_.name;
+            my $name := ~$_;
             my $meth := $_;
             my @meth_list;
             if pir::defined(%meth_info{$name}) {
@@ -51,7 +51,7 @@ method apply($target, @composees) {
     my %target_meth_info;
     my @target_meths := $target.HOW.methods($target);
     for @target_meths {
-        %target_meth_info{$_.name} := $_;
+        %target_meth_info{~$_} := $_;
     }
 
     # Process method list.

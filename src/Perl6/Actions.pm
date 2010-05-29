@@ -2107,7 +2107,7 @@ method infixish($/) {
     if $<infix_prefix_meta_operator> {
         my $metaop := ~$<infix_prefix_meta_operator><sym>;
         my $sym := ~$<infix_prefix_meta_operator><infixish><OPER>;
-        my $opsub := "&infix:<$metaop$sym>";
+        my $opsub := "&infix:<$/>";
         my $base_opsub := "&infix:<$sym>";
         if $opsub eq "&infix:<!=>" {
             $base_opsub := "&infix:<==>";
@@ -2149,7 +2149,7 @@ method infixish($/) {
 method prefix_circumfix_meta_operator:sym<reduce>($/) {
     my $opsub := '&prefix:<' ~ ~$/ ~ '>';
     unless %*METAOPGEN{$opsub} {
-        my $base_op := '&infix:<' ~ $<op>.Str ~ '>';
+        my $base_op := '&infix:<' ~ $<op><OPER>.Str ~ '>';
         get_outermost_block().loadinit.push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new( :name($opsub), :scope('package') ),

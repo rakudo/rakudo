@@ -32,4 +32,15 @@ class Match is Regex::Match is Cool does Associative {
           done:
         }
     }
+
+    multi method hash() {
+        # nextsame() dies here with 'Null PMC access in clone()'
+        CREATE_HASH_LOW_LEVEL(self.Regex::Match::hash);
+    }
+
+    multi method list() {
+        list(self.Regex::Match::list);
+    }
 }
+
+# vim: ft=perl6

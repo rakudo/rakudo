@@ -219,40 +219,6 @@ CORE_SOURCES = \
   src/core/YOU_ARE_HERE.pm \
   src/core/Match.pm \
 
-# SETTING = \
-#   src/setting/traits.pm \
-#   src/setting/Any-list.pm \
-#   src/setting/Any-num.pm \
-#   src/setting/Any-str.pm \
-#   src/setting/Array.pm \
-#   src/setting/Attribute.pm \
-#   src/setting/Block.pm \
-#   src/setting/Bool.pm \
-#   src/setting/Buf.pm \
-#   src/setting/Code.pm \
-#   src/setting/Complex.pm \
-#   src/setting/Hash.pm \
-#   src/setting/Rat.pm \
-#   src/setting/Int.pm \
-#   src/setting/IO.pm \
-#   src/setting/IO/Socket.pm \
-#   src/setting/IO/Socket/INET.pm \
-#   src/setting/Junction.pm \
-#   src/setting/List.pm \
-#   src/setting/Mapping.pm \
-#   src/setting/Match.pm \
-#   src/setting/Num.pm \
-#   src/setting/NYI.pm \
-#   src/setting/Object.pm \
-#   src/setting/Operators.pm \
-#   src/setting/Pair.pm \
-#   src/setting/Parameter.pm \
-#   src/setting/Range.pm \
-#   src/setting/Signature.pm \
-#   src/setting/Str.pm \
-#   src/setting/Temporal.pm \
-#   src/setting/Whatever.pm \
-
 PMC_SOURCES = \
   $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/objectref.pmc \
   $(PMC_DIR)/perl6scalar.pmc $(PMC_DIR)/mutablevar.pmc \
@@ -407,18 +373,6 @@ src/gen/core.pm: build/gen_core_pm.pl $(CORE_SOURCES)
 
 src/gen/uprop-cheats.pir: build/gen_uprop_pir.pl
 	$(PERL) build/gen_uprop_pir.pl > src/gen/uprop-cheats.pir
-
-#src/gen_metaop.pir: build/gen_metaop_pir.pl
-#	$(PERL) build/gen_metaop_pir.pl > src/gen_metaop.pir
-#
-#src/gen_junction.pir: build/gen_junction_pir.pl
-#	$(PERL) build/gen_junction_pir.pl > src/gen_junction.pir
-#
-#src/gen_whatever.pir: build/gen_whatever_pir.pl
-#	$(PERL) build/gen_whatever_pir.pl > src/gen_whatever.pir
-#
-#src/gen_setting.pm: build/gen_setting_pm.pl $(SETTING)
-#	$(PERL) build/gen_setting_pm.pl $(SETTING) > src/gen_setting.pm
 
 $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
 	$(PERL) -I$(PARROT_PERL_LIB) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \

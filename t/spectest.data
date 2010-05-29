@@ -280,7 +280,7 @@ S05-match/arrayhash.t
 S05-match/blocks.t
 S05-match/capturing-contexts.t
 S05-match/non-capturing.t
-# S05-match/perl.t
+S05-match/perl.t
 S05-match/positions.t
 S05-metachars/closure.t
 S05-metachars/line-anchors.t

@@ -207,9 +207,9 @@ token vws {
 token ws {
     ||  <?MARKED('ws')>
     ||  <!ww>
-        [ \s+
-        | '#' \N*
-        | ^^ <.pod_comment>
+        [
+        | \s+
+        | <.unv>
         ]*
         <?MARKER('ws')>
 }
@@ -218,11 +218,21 @@ token unv {
     # :dba('horizontal whitespace')
     [
     | ^^ <?before \h* '=' [ \w | '\\'] > <.pod_comment>
-    | \h* '#' \N*
+    | \h* <comment>
     | \h+
     ]
 }
 
+proto token comment { <...> }
+
+token comment:sym<#> {
+   '#' {} \N*
+}
+
+token comment:sym<#`(...)> {
+    '#`' {}
+    [ <quote_EXPR> || <.panic: "Opening bracket is required for #` comment"> ]
+}
 
 token pod_comment {
     ^^ \h* '='

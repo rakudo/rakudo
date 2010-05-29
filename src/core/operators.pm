@@ -22,7 +22,9 @@ our multi infix:<!~~>(Mu $topic, Mu $matcher) {
 }
 
 our multi prefix:<?>(Mu $a) {
-    $a.Bool;
+    pir::can($a, 'Bool') 
+    ?? $a.Bool 
+    !!  ( pir::istrue($a) ?? True !! False );
 }
 
 our multi prefix:<!>(Mu $a) {

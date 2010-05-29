@@ -525,6 +525,11 @@ Gets the object's identity value
     .tailcall self.'shift'()
 .end
 
+.sub '' :vtable('push_pmc') :method
+    .param pmc value
+    .tailcall self.'push'(value)
+.end
+
 .sub 'list' :method
     .tailcall '&infix:<,>'(self)
 .end

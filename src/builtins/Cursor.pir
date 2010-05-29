@@ -24,6 +24,11 @@ Cursor - Perl 6 cursor objects
     .return ($P0)
 .end
 
+.sub 'new_array' :method
+    $P0 = new ['Array']
+    .return ($P0)
+.end
+
 =back
 
 =cut

@@ -3,6 +3,8 @@ New in 2010.06 release
 + compile time Whatever currying for infix, prefix and postfix operators
 + autoprinting in REPL
 + basic Buf implementation
++ proper Perl 6 match objects
++ Backtraces with Perl 6 subroutine names and line numbers
 
 New in 2010.05 release
 + implemented lexical and anonymous classes and roles

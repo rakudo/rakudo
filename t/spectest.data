@@ -254,10 +254,10 @@ S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
-# S05-capture/caps.t
+S05-capture/caps.t
 # S05-capture/dot.t
 # S05-capture/named.t
-# S05-capture/subrule.t
+S05-capture/subrule.t
 S05-grammar/action-stubs.t
 # S05-grammar/inheritance.t
 S05-grammar/methods.t
@@ -268,15 +268,15 @@ S05-grammar/protos.t
 S05-grammar/signatures.t
 # S05-grammar/ws.t
 S05-interpolation/lexicals.t
-# S05-mass/named-chars.t                                     # icu
+S05-mass/named-chars.t                                     # icu
 S05-mass/properties-block.t                                # icu
 S05-mass/properties-derived.t                              # icu
 S05-mass/properties-general.t                              # icu
 S05-mass/properties-script.t                               # icu
 S05-mass/rx.t
-# S05-mass/recursive.t
+S05-mass/recursive.t
 S05-mass/stdrules.t
-# S05-match/arrayhash.t
+S05-match/arrayhash.t
 S05-match/blocks.t
 S05-match/capturing-contexts.t
 # S05-match/non-capturing.t

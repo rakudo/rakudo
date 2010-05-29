@@ -1,6 +1,16 @@
 augment class Regex {
-    method ACCEPTS($topic) {
+    multi method ACCEPTS($topic) {
         my $match = $topic.match(self);
+        pir::store_dynamic_lex__vSP('$/', $match);
+        $match
+    }
+    multi method ACCEPTS(@topic) {
+        my Mu $match = any(@topic).match(self);
+        pir::store_dynamic_lex__vSP('$/', $match);
+        $match
+    }
+    multi method ACCEPTS(%topic) {
+        my Mu $match = any(%topic.keys).match(self);
         pir::store_dynamic_lex__vSP('$/', $match);
         $match
     }

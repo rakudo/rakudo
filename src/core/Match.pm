@@ -48,9 +48,6 @@ class Match is Regex::Match is Cool does Associative {
                 # in regexes like [(.) ...]+, the capture for (.) is
                 # a List. flatten that.
                 if $p.value ~~ Array  {
-                    # iterating over an RPA doesn't seem to work
-                    # easily, so we iterate over the indexes instead.
-                    # Ugly, but it works.
                     take ($p.key => $_) for @($p.value);
                 } else {
                     take $p;

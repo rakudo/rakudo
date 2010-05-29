@@ -54,7 +54,9 @@ class Match is Regex::Match is Cool does Associative {
                 # in regexes like [(.) ...]+, the capture for (.) is
                 # a List. flatten that.
                 if $p.value ~~ Array  {
-                    take ($p.key => $_) for @($p.value);
+                    for $p.value.list {
+                        take $p.key => $_;
+                    }
                 } else {
                     take $p;
                 }

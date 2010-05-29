@@ -47,14 +47,11 @@ class Match is Regex::Match is Cool does Associative {
             for self.list.pairs, self.hash.pairs -> $p {
                 # in regexes like [(.) ...]+, the capture for (.) is
                 # a List. flatten that.
-                if pir::isa__iPs($p.value, 'ResizablePMCArray')  {
+                if $p.value ~~ Array  {
                     # iterating over an RPA doesn't seem to work
                     # easily, so we iterate over the indexes instead.
                     # Ugly, but it works.
-                    for ^+$p.value {
-                        my $x = $p.value.[$_];
-                        take ($p.key => $x)
-                    }
+                    take ($p.key => $_) for @($p.value);
                 } else {
                     take $p;
                 }

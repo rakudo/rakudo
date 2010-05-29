@@ -1,5 +1,8 @@
 New in 2010.06 release
 + variable interpolation into regexes
++ compile time Whatever currying for infix, prefix and postfix operators
++ autoprinting in REPL
++ basic Buf implementation
 
 New in 2010.05 release
 + implemented lexical and anonymous classes and roles

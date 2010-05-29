@@ -41,6 +41,41 @@ class Match is Regex::Match is Cool does Associative {
     multi method list() {
         list(self.Regex::Match::list);
     }
+
+    multi method caps() {
+        my @caps = gather {
+            for self.list.pairs, self.hash.pairs -> $p {
+                # in regexes like [(.) ...]+, the capture for (.) is
+                # a List. flatten that.
+                if pir::isa__iPs($p.value, 'ResizablePMCArray')  {
+                    # iterating over an RPA doesn't seem to work
+                    # easily, so we iterate over the indexes instead.
+                    # Ugly, but it works.
+                    for ^+$p.value {
+                        my $x = $p.value.[$_];
+                        take ($p.key => $x)
+                    }
+                } else {
+                    take $p;
+                }
+            }
+        }
+        list(@caps.sort({ .value.from }));
+    }
+
+    multi method chunks() {
+        my $prev = $.from;
+        gather {
+            for @.caps {
+                if .value.from > $prev {
+                    take '~' => self.substr($prev - $.from, .value.from - $prev)
+                }
+                take $_;
+                $prev = .value.to;
+            }
+            take ('~' => self.substr($prev - $.from)) if $prev < $.to;
+        }
+    }
 }
 
 # vim: ft=perl6

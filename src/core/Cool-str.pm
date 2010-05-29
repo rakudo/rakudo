@@ -216,7 +216,7 @@ augment class Cool {
 
             my $taken = 0;
             my $i = 1;
-            my @r = gather while my $m = Regex::Cursor.parse(self, :rule($pat), |%opts) {
+            my @r = gather while my $m = Cursor.parse(self, :rule($pat), |%opts) {
                 my $m-copy = $m;
                 if !$nth.defined || $i == $next-index {
                     take $m-copy;
@@ -249,7 +249,7 @@ augment class Cool {
             }
             return |@r;
         } else {
-            Regex::Cursor.parse(self, :rule($pat), |%opts);
+            Cursor.parse(self, :rule($pat), |%opts);
         }
     }
     multi method match($pat, *%options) {

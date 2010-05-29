@@ -2115,7 +2115,7 @@ method infixish($/) {
         unless %*METAOPGEN{$opsub} {
             my $helper := "";
             if $metaop eq '!' {
-                $helper := '&notresults';
+                $helper := '&negate';
             } elsif $metaop eq 'R' {
                 $helper := '&reverseargs';
             } elsif $metaop eq 'S' {

@@ -1,8 +1,8 @@
-our multi sub notresults(&op, Mu \$a, Mu \$b) {
+our multi sub negate(&op, Mu \$a, Mu \$b) {
     !(&op($a, $b));
 }
 
-our multi sub notresults(&op) {
+our multi sub negate(&op) {
     Bool::True;
 }
 

@@ -59,11 +59,29 @@ method is_runtime(@backtrace) {
 
 # Renders one line in the backtrace, using the given sub name and
 # annotations set.
-method backtrace_line($current_sub, $location) {
+method backtrace_line($sub, $location) {
     "in " ~
-        ($current_sub    ?? "'" ~ ~$current_sub ~ "'" !! 'main program body') ~
+        ($sub            ?? self.fullname($sub)       !! 'main program body') ~
     " at " ~
-        ($location<line> ?? 'line ' ~ $location<line> !! '<unknown line>'    ) ~
-        ($location<file> ?? ':' ~ $location<file>     !! ''                  ) ~
+        ($location<line> ?? 'line ' ~ $location<line> !! '<unknown line>'   ) ~
+        ($location<file> ?? ':' ~ $location<file>     !! ''                 ) ~
     "\n"
+}
+
+# Generates the fully qualified name of the sub.
+method fullname($sub) {
+    my $sub_name := ~$sub;
+    if $sub_name && pir::substr($sub_name, 0, 6) ne '_block' {
+        my @ns := $sub.get_namespace().get_name();
+        @ns.shift;
+        if +@ns {
+            return "'" ~ pir::join('::', @ns) ~ '::' ~ $sub_name ~ "'";
+        }
+        else {
+            return "'" ~ $sub_name ~ "'";
+        }
+    }
+    else {
+        return "<anon>";
+    }
 }

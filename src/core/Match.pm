@@ -1,8 +1,11 @@
 class Match is Regex::Match is Cool does Associative {
-
     method ast() {
         my $x = self.Regex::Match::ast;
         pir::isa__IPs($x, 'Undef') ?? Any !! $x;
+    }
+
+    method Str() {
+        ~self.Regex::Match::Str;
     }
 
     multi method postcircumfix:<{ }>($key) {

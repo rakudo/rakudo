@@ -43,6 +43,7 @@ method need($name, %name_adverbs?) {
         # XXX We can try to write the compiled PIR to disk so the next
         # time around it's fast.
         unless $loaded_pir {
+            my $?FILES := pir::substr($pm_file, 0, 2) eq './' ?? pir::substr($pm_file, 2) !! $pm_file;
             my $fh     := pir::open__PSS($pm_file, 'r');
             my $source := $fh.readall();
             $fh.close();

@@ -209,11 +209,18 @@ Perl6::Compiler - Perl6 compiler
     exit 0
 .end
 
+.sub '' :anon
+    .annotate 'file', 'CORE.setting'
+.end
 .include 'src/gen/core.pir'
 
 # Cheats go at the end, because some of them are in the 'parrot' HLL
 # namespace.
 .include 'src/gen/cheats.pir'
+
+.sub '' :anon
+    .annotate 'file', ''
+.end
 
 =cut
 

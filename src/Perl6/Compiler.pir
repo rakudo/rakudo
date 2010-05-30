@@ -117,6 +117,7 @@ Perl6::Compiler - Perl6 compiler
 .include 'src/gen/locator_pm.pir'
 .include 'src/gen/versiondetectionactions_pm.pir'
 .include 'src/gen/loader_pm.pir'
+.include 'src/gen/backtraceprinter_pm.pir'
 .include 'src/gen/perl6-grammar.pir'
 .include 'src/gen/perl6-actions.pir'
 
@@ -188,6 +189,13 @@ Perl6::Compiler - Perl6 compiler
   done:
     module = self.'get_module'(name)
     .return (module)
+.end
+
+.sub 'backtrace' :method
+    .param pmc exception
+    $P0 = get_hll_global ['Perl6'], 'BacktracePrinter'
+    $S0 = $P0.'backtrace_for'(exception)
+    .return ($S0)
 .end
 
 .sub 'main' :main

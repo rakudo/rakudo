@@ -196,6 +196,7 @@ multi sub is_deeply(Mu $got, Mu $expected, $reason = '')
             diag "expected: $expected_perl";
         }
     }
+    $test;
 }
 
 sub _is_deeply(Mu $got, Mu $expected) {

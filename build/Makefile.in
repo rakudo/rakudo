@@ -179,6 +179,7 @@ CORE_SOURCES = \
   src/core/Parcel.pm \
   src/core/Any.pm \
   src/core/Any-list.pm \
+  src/core/Cool.pm \
   src/core/Cool-num.pm \
   src/core/Cool-str.pm \
   src/core/Seq.pm \

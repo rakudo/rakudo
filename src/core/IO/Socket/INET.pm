@@ -2,7 +2,7 @@ class IO::Socket::INET is Cool does IO::Socket {
 
     method open (Str $hostname, Int $port) {
 
-        Q:PIR {
+        my $s = Q:PIR {
             .include "socket.pasm"
             .local pmc sock
             .local pmc address
@@ -22,16 +22,22 @@ class IO::Socket::INET is Cool does IO::Socket {
 
             # Create the socket handle
             sock = root_new ['parrot';'Socket']
+            $P1 = new 'Integer'
             unless sock goto ERR
             sock.'socket'(.PIO_PF_INET, .PIO_SOCK_STREAM, .PIO_PROTO_TCP)
 
             # Pack a sockaddr_in structure with IP and port
             address = sock.'sockaddr'(hostname, port)
-            sock.'connect'(address)
+            $P1 = sock.'connect'(address)
             setattribute self, '$!PIO', sock
+            goto DONE
         ERR:
-            .return (0)
-        }
+            $P1 = -1
+			DONE:
+            %r = $P1
+        };
+        unless $s==0 { fail "IO::Socket::INET Couldn't create socket."; }
+        return 1;
     }
 
     method socket(Int $domain, Int $type, Int $protocol) {

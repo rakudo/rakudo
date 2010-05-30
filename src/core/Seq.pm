@@ -54,6 +54,10 @@ augment class Seq {
         self!fill(1) ?? Bool::True !! Bool::False;
     }
 
+    multi method hash() {
+        my %h = self;
+    }
+
     multi method sort(&by = &infix:<cmp>) {
         # Parrot already provides a sort method that works on
         # ResizablePMCArray, so we aim to make use of that here.

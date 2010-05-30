@@ -42,6 +42,7 @@ integration/advent2009-day20.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
 integration/code-blocks-as-sub-args.t
+integration/error-reporting.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 # integration/man-or-boy.t

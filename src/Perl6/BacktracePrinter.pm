@@ -60,7 +60,7 @@ method is_runtime(@backtrace) {
 # Renders one line in the backtrace, using the given sub name and
 # annotations set.
 method backtrace_line($sub, $location) {
-    "in " ~
+    "  in " ~
         ($sub            ?? self.fullname($sub)       !! 'main program body') ~
     " at " ~
         ($location<line> ?? 'line ' ~ $location<line> !! '<unknown line>'   ) ~

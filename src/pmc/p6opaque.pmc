@@ -502,7 +502,7 @@ Gets an attribute from the instance storage.
          * never be accessing state. */
         if (VTABLE_isa(interp, SELF, P6protoobject_str))
             Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Type objects are abstract and have no attributes, but you tried to access %s",
+                    "Type objects are abstract and have no attributes, but you tried to access %Ss",
                     name);
 
         /* Otherwise, for now we'll just allow the Null PMC Access to happen (yes sucks

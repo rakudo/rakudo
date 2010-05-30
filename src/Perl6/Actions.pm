@@ -101,6 +101,12 @@ method comp_unit($/, $key?) {
         )
     );
 
+    # Add file annotation.
+    my $file := pir::find_caller_lex__ps('$?FILES');
+    unless pir::isnull($file) {
+        $unit.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
+    }
+
     # Remove the outer module package.
     @PACKAGE.shift;
 

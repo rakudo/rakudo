@@ -54,10 +54,6 @@ our multi reduce(&op, *@list) {
     @list.reduce(&op)
 }
 
-our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right) {
-    die "Sorry, hyper operators on hashes are not yet implemented.";
-}
-
 our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-left, :$dwim-right) {
     my @lhs = $lhs-iterable.Seq;
     my @rhs = $rhs-iterable.Seq;
@@ -99,6 +95,27 @@ our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-
 
 our multi sub hyper(&op, $lhs, $rhs, :$dwim-left, :$dwim-right) {
     hyper(&op, $lhs.list, $rhs.list, :$dwim-left, :$dwim-right);
+}
+
+our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right) {
+    my %result;
+    my @keys;
+    if $dwim-left && $dwim-right {
+        @keys = %lhs.keys.grep({ %rhs.exists($_) });
+    } elsif $dwim-left {
+        @keys = %rhs.keys;
+    } elsif $dwim-right {
+        @keys = %lhs.keys;
+    } else {
+        # .eagers should not be necessary in next line, but are
+        # needed ATM because of the gather / take bug.
+        @keys = (%lhs.keys.eager, %rhs.keys.eager).uniq;
+    }
+
+    for @keys -> $key {
+        %result{$key} = &op(%lhs{$key}, %rhs{$key});
+    }
+    %result;
 }
 
 our multi sub hyper(&op, @arg) {

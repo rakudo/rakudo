@@ -17,9 +17,13 @@ sub run($commandline) {
     }
 }
 
-sub sleep($seconds) {         # fractional seconds also allowed
+sub sleep($seconds = Inf) {         # fractional seconds also allowed
     my $time1 = time;
-    pir::sleep__vN($seconds);
+    if $seconds ~~ Inf {
+        pir::sleep__vN(1e16) while True;
+    } else {
+        pir::sleep__vN($seconds);
+    }
     my $time2 = time;
     return $time2 - $time1;
 }

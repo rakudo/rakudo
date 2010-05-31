@@ -118,6 +118,14 @@ our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right) {
     %result;
 }
 
+our multi sub hyper(&op, %arg) {
+    my %result;
+    for %arg.keys -> $key {
+        %result{$key} = &op(%arg{$key});
+    }
+    %result;
+}
+
 our multi sub hyper(&op, @arg) {
     my @result;
     for @arg {

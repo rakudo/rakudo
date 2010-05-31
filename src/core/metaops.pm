@@ -88,7 +88,11 @@ our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-
 
     my @result;
     for @lhs Z @rhs -> $l, $r {
-        @result.push(op($l, $r));
+        if Iterable.ACCEPTS($l) || Iterable.ACCEPTS($r) {
+            @result.push([hyper(&op, $l.list, $r.list, :$dwim-left, :$dwim-right)]);
+        } else {
+            @result.push(op($l, $r));
+        }
     }
     @result
 }
@@ -100,7 +104,19 @@ our multi sub hyper(&op, $lhs, $rhs, :$dwim-left, :$dwim-right) {
 our multi sub hyper(&op, @arg) {
     my @result;
     for @arg {
-        @result.push(op($_));
+
+        # this should work, but isn't :(
+
+        # if $_ ~~ Iterable {
+        #     @result.push([hyper(&op, $_)]);
+        # } else {
+        #     @result.push(op($_));
+        # }
+
+        # this is terribly ugly; but works
+
+        @result.push([hyper(&op, $_)]) if Iterable.ACCEPTS($_);
+        @result.push(op($_)) if !Iterable.ACCEPTS($_);
     }
     @result
 }

@@ -126,6 +126,24 @@ our multi sub hyper(&op, %arg) {
     %result;
 }
 
+our multi sub hyper(&op, %lhs, $rhs, :$dwim-left, :$dwim-right) {
+    die "Sorry, right side is too short and not dwimmy." unless $dwim-right;
+    my %result;
+    for %lhs.keys -> $key {
+        %result{$key} = &op(%lhs{$key}, $rhs);
+    }
+    %result;
+}
+
+our multi sub hyper(&op, $lhs, %rhs, :$dwim-left, :$dwim-right) {
+    die "Sorry, left side is too short and not dwimmy." unless $dwim-left;
+    my %result;
+    for %rhs.keys -> $key {
+        %result{$key} = &op($lhs, %rhs{$key});
+    }
+    %result;
+}
+
 our multi sub hyper(&op, @arg) {
     my @result;
     for @arg {

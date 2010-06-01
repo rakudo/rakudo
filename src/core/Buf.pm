@@ -1,11 +1,7 @@
 role Buf[::T = Int] does Stringy {
-    has @.contents;
+    has T @.contents;
 
     multi method new(@contents) {
-        self.bless(*, :contents(@contents.list));
-    }
-
-    multi method new(*@contents) {
         self.bless(*, :contents(@contents.list));
     }
 

@@ -133,6 +133,75 @@ augment class Cool {
         pir::substr(self, $start, $len);
     }
 
+    multi method trans(*@changes) {
+        my sub expand($s) {
+            return $s.list if $s ~~ Iterable|Positional;
+            gather for $s.comb(/ (\w) '..' (\w) | . /, :match) {
+                if .[0] {
+                    take $_ for ~.[0] .. ~.[1];
+                } else {
+                    take ~$_;
+                }
+            }
+        }
+
+        my %c;
+        my %prefixes;
+        for (@changes) -> $p {
+            die "$p.perl is not a Pair" unless $p ~~ Pair;
+            my @from = expand $p.key;
+            my @to   = expand $p.value;
+#            warn "Substitution is longer than pattern\n" if @to > @from;
+            if @to {
+                @to = @to xx ceiling(@from / @to);
+            } else {
+                @to = '' xx @from;
+            }
+            for @from Z @to -> $f, $t {
+                if %c.exists($f) && %c{$f} ne $t {
+#                    warn "Ambigious transliteration rule for '$f'; "
+#                         ~ "using the first one (transliteration to '$t')";
+                } else {
+                    if $f.chars > 1 {
+                        %prefixes{$f.substr(0, 1)} //= [];
+                        %prefixes{$f.substr(0, 1)}.push($f);
+                    }
+                    %c{$f} = $t;
+                }
+            }
+        }
+
+        # should be replaced by a proper trie implementation
+        # at some point
+        for %prefixes.keys {
+            %prefixes{$_}.=sort({-.chars});
+        }
+
+        my @res;
+        my $l = $.chars;
+        loop (my $i = 0; $i < $l; ++$i) {
+            my $c = $.substr($i, 1);
+            my $success = 0;
+            if %prefixes.exists($c) {
+                for %prefixes{$c}.list {
+                    if self.substr($i, .chars) eq $_ {
+                        @res.push: %c{$_};
+                        $success = 1;
+                        $i += .chars - 1;
+                        last;
+                    }
+                }
+            }
+            unless $success {
+                @res.push: %c.exists($c)
+                            ?? %c{$c}
+                            !! $c;
+            }
+        }
+        @res.join: '';
+    }
+
+
     # S32/Str says that this should always return a StrPos object
     our Int multi method index($substring, $pos = 0) is export {
         if ($substring.chars == 0) {

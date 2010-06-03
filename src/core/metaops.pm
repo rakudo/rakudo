@@ -55,31 +55,36 @@ our multi reduce(&op, *@list) {
 }
 
 our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-left, :$dwim-right) {
+    my sub repeating-array(@a) {
+        gather loop {
+            for @a -> $a {
+                take $a;
+            }
+        }
+    }
+
     my @lhs = $lhs-iterable.Seq;
     my @rhs = $rhs-iterable.Seq;
 
-    if @lhs.elems != @rhs.elems {
-        if @lhs.elems > @rhs.elems {
-            if $dwim-right {
-                if @rhs.elems > 0 {
-                    @rhs.push: @rhs[@rhs.elems - 1] xx (@lhs.elems - @rhs.elems);
-                } else {
-                    @rhs.push: &op() xx (@lhs.elems - @rhs.elems);
-                }
-            } else {
-                die "Sorry, right side is too short and not dwimmy.";
-            }
-        } else {
-            if $dwim-left {
-                if @lhs.elems > 0 {
-                    @lhs.push: @lhs[@lhs.elems - 1] xx (@rhs.elems - @lhs.elems);
-                } else {
-                    @lhs.push: &op() xx (@rhs.elems - @lhs.elems);
-                }
-            } else {
-                die "Sorry, left side is too short and not dwimmy.";
-            }
+    my $length;
+    if !$dwim-left && !$dwim-right {
+        if +@lhs != +@rhs {
+            die "Sorry, sides are of uneven length and not dwimmy.";
         }
+        $length = +@lhs;
+    } elsif !$dwim-left {
+        $length = +@lhs;
+    } elsif !$dwim-right {
+        $length = +@rhs;
+    } else {
+        $length = +@lhs max +@rhs;
+    }
+
+    if $length != +@lhs {
+        @lhs = repeating-array(@lhs).batch($length);
+    }
+    if $length != +@rhs {
+        @rhs = repeating-array(@rhs).batch($length);
     }
 
     my @result;

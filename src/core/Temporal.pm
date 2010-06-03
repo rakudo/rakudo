@@ -254,6 +254,11 @@ class DateTime {
     method set-second($second)         { self.set(:$second) }
     method set-time-zone($time-zone)   { self.set(:$time-zone) }
     method set-formatter($formatter)   { self.set(:$formatter) }
+
+    method Date() {
+        return ::Date.new(self);
+    }
+
 }
 
 =begin pod

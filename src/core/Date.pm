@@ -86,6 +86,10 @@ class Date {
         self.bless(*, :$year, :$month, :$day, :$daycount);
     }
 
+    multi method new(::DateTime $dt) {
+        self.bless(*, :year($dt.year), :month($dt.month), :day($dt.day));
+    }
+
     multi method today() {
         my $dt = ::DateTime.now();
         self.bless(*, :year($dt.year), :month($dt.month), :day($dt.day));

@@ -269,7 +269,7 @@ proto sub max($by, *@values) { @values.max($by); }
 proto sub minmax($by, *@values) { @values.minmax($by); }
 proto sub uniq(@values) { @values.uniq; }
 proto sub pick ($num, :$replace, *@values) { @values.pick($num, :$replace); }
-proto sub map(&mapper, @values) { @values.map(&mapper); }
+proto sub map(&mapper, *@values) { @values.map(&mapper); }
 proto sub kv(@array) { @array.kv; }
 proto sub keys(@array) { @array.keys; }
 proto sub values(@array) { @array.values; }

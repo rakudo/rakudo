@@ -89,7 +89,9 @@ our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-
 
     my @result;
     for @lhs Z @rhs -> $l, $r {
-        if Iterable.ACCEPTS($l) || Iterable.ACCEPTS($r) {
+        if Associative.ACCEPTS($l) || Associative.ACCEPTS($r) {
+            @result.push(hyper(&op, $l, $r, :$dwim-left, :$dwim-right));
+        } elsif Iterable.ACCEPTS($l) || Iterable.ACCEPTS($r) {
             @result.push([hyper(&op, $l.list, $r.list, :$dwim-left, :$dwim-right)]);
         } else {
             @result.push(op($l, $r));

@@ -154,19 +154,10 @@ our multi sub hyper(&op, $lhs, %rhs, :$dwim-left, :$dwim-right) {
 our multi sub hyper(&op, @arg) {
     my @result;
     for @arg {
-
-        # this should work, but isn't :(
-
-        # if $_ ~~ Iterable {
-        #     @result.push([hyper(&op, $_)]);
-        # } else {
-        #     @result.push(op($_));
-        # }
-
         # this is terribly ugly; but works
-
-        @result.push([hyper(&op, $_)]) if Iterable.ACCEPTS($_);
-        @result.push(op($_)) if !Iterable.ACCEPTS($_);
+        @result.push(hyper(&op, $_)) if Associative.ACCEPTS($_);
+        @result.push([hyper(&op, $_)]) if !Associative.ACCEPTS($_) && Iterable.ACCEPTS($_);
+        @result.push(op($_))  if !Associative.ACCEPTS($_) && !Iterable.ACCEPTS($_);
     }
     @result
 }

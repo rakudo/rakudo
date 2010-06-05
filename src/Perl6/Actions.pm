@@ -1866,6 +1866,7 @@ method term:sym<name>($/) {
         }
         else { $past.name('&' ~ $name); }
     }
+    $past.node($/);
     make $past;
 }
 

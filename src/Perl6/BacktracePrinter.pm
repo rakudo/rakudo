@@ -5,14 +5,26 @@ method backtrace_for($exception) {
     my @backtrace := $exception.backtrace();
     if self.is_runtime(@backtrace) {
         # Runtime error. Start with the error message.
-        my $trace := pir::getattribute__pps($exception, 'message') ~ "\n";
+        my $trace := pir::getattribute__pps($exception, 'message');
         
-        # If top frame is 'die', drop it from the top.
-        if ~@backtrace[0]<sub> eq '&die' {
+        # If top frame is 'die' or warn, drop it from the top.
+        if ~@backtrace[0]<sub> eq '&die' || ~@backtrace[0]<sub> eq '&warn' {
             @backtrace.shift;
         }
 
-        # Go through frames to find annotations to print.
+        # If it's just a warning, then we want to just append a line and
+        # file to the error and be done.
+        if self.is_warning($exception) {
+            my $location := @backtrace[0]<annotations>;
+            $trace := $trace ~ " at " ~
+                ($location<line> ?? 'line ' ~ $location<line> !! '<unknown line>') ~
+                ($location<file> ?? ':' ~ $location<file>     !! ''              ) ~
+                "\n";
+            return $trace;
+        }
+
+        # Otherwise, it's an error; go through frames to find annotations to print.
+        $trace := $trace ~ "\n";
         my $cur_annotations;
         for @backtrace {
             # If we're seeking an annotation set, take the current one.
@@ -55,6 +67,12 @@ method is_runtime(@backtrace) {
         }
     }
     return 0;
+}
+
+# Check if the exception is just a warning.
+method is_warning($exception) {
+    Q:PIR { .include 'except_severity.pasm' };
+    $exception<severity> <= Q:PIR { %r = box .EXCEPT_WARNING }
 }
 
 # Renders one line in the backtrace, using the given sub name and

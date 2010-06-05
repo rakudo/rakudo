@@ -1,4 +1,4 @@
-class Attribute;
+class Attribute is Any;
 
 has $!name;
 has $!type;

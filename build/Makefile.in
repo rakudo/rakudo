@@ -89,15 +89,15 @@ BUILTINS_PIR = \
   src/glue/run.pir \
   src/glue/types.pir \
   src/builtins/Mu.pir \
-  src/gen/Attribute.pir \
   src/metamodel/ClassHOW.pir \
+  src/builtins/Any.pir \
+  src/gen/Attribute.pir \
+  src/builtins/Cool.pir \
   src/metamodel/RoleHOW.pir \
   src/gen/RoleToRoleApplier.pir \
   src/gen/RoleToClassApplier.pir \
   src/gen/RoleToInstanceApplier.pir \
   src/metamodel/GrammarHOW.pir \
-  src/builtins/Any.pir \
-  src/builtins/Cool.pir \
   src/builtins/Role.pir \
   src/builtins/ConcreteRole.pir \
   src/builtins/Abstraction.pir \

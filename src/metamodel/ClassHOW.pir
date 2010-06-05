@@ -193,7 +193,7 @@ Attribute descriptors.
 
     # Get list of parents whose attributes we are interested in, and put
     # this class on the start. With the local flag , that's just us.
-    .local pmc parents, parents_it, cur_class, us
+    .local pmc parents, parents_it, cur_class
     unless null tree goto do_tree
     if null local goto all_parents
     unless local goto all_parents
@@ -214,8 +214,9 @@ Attribute descriptors.
     # If it's us, disregard :tree. Otherwise, if we have :tree, now we call
     # ourself recursively and push an array onto the result.
     if null tree goto tree_handled
-    eq_addr cur_class, us, tree_handled
-    $P0 = self.'attributes'(cur_class, 'tree'=>tree)
+    eq_addr cur_class, obj, tree_handled
+    $P0 = cur_class.'HOW'()
+    $P0 = $P0.'attributes'(cur_class, 'tree'=>tree)
     $P0 = '&circumfix:<[ ]>'($P0)
     push result_list, $P0
     goto parents_it_loop
@@ -224,7 +225,13 @@ Attribute descriptors.
     # Get attributes list and push the attribute descriptors onto
     # the results.
     .local pmc attributes, attr_it
+    eq_addr cur_class, obj, local_attrs
+    $P0 = cur_class.'HOW'()
+    attributes = $P0.'attributes'(cur_class, 'local'=>1)
+    goto have_attrs
+  local_attrs:
     attributes = getattribute self, '$!attributes'
+  have_attrs:
     if null attributes goto attr_it_loop_end
     attr_it = iter attributes
   attr_it_loop:

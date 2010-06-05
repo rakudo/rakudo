@@ -1424,6 +1424,7 @@ INIT {
 
 token termish {
     :my $*SCOPE := "";
+    :my $*MULTINESS := "";
     <prefixish>*
     <term>
     [

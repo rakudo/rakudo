@@ -1342,8 +1342,8 @@ token old_rx_mods {
         my $m := $/[0].Str;
         if    $m eq 'i' { $/.CURSOR.obs('/i',':i');                                   }
         elsif $m eq 'g' { $/.CURSOR.obs('/g',':g');                                   }
-        elsif $m eq 's' { $/.CURSOR.obs('/s','^^ and $$ anchors');                    }
-        elsif $m eq 'm' { $/.CURSOR.obs('/m','. or \N');                              }
+        elsif $m eq 'm' { $/.CURSOR.obs('/m','^^ and $$ anchors');                    }
+        elsif $m eq 's' { $/.CURSOR.obs('/s','. or \N');                              }
         elsif $m eq 'x' { $/.CURSOR.obs('/x','normal default whitespace');            }
         elsif $m eq 'c' { $/.CURSOR.obs('/c',':c or :p');                             }
         elsif $m eq 'e' { $/.CURSOR.obs('/e','interpolated {...} or s{} = ... form'); }

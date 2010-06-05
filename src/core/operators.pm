@@ -152,6 +152,13 @@ our multi infix:<does>(Mu \$do-it-to-me, Parcel $roles) {
     $do-it-to-me does $r;
 }
 
+our multi infix:<does>(Mu \$do-it-to-me, \$value) {
+    # Need to manufacture a role here.
+    my $r = RoleHOW.new();
+    $r.^add_method($value.WHAT.perl, method () { $value });
+    $do-it-to-me does $r.^compose()
+}
+
 our multi infix:<but>(Mu \$do-it-to-me, \$r) {
     $do-it-to-me.clone() does $r
 }

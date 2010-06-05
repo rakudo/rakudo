@@ -86,7 +86,7 @@ src/builtins/control.pir - control flow related functions
 
     message = join '', list
     if message > '' goto have_message
-    message = "Warning\n"
+    message = "Warning"
   have_message:
     p6ex = new ['Perl6Exception']
     ex = root_new ['parrot';'Exception']

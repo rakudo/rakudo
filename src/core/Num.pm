@@ -21,10 +21,6 @@ augment class Num does Real {
         self;
     }
 
-    multi method Bool() {
-        self != 0.0e0
-    }
-
     method Int() {
         Q:PIR {
             $P0 = find_lex 'self'

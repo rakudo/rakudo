@@ -5,6 +5,10 @@ role Real does Numeric {
         fail "Bridge must be defined for the Real type " ~ self.WHAT;
     }
 
+    method Bool() {
+        self != 0 ?? Bool::True !! Bool::False;
+    }
+
     method Int() {
         self.truncate;
     }

@@ -30,7 +30,7 @@ class Rat is Cool does Real {
                            !! $!numerator.Bridge / $!denominator.Bridge;
     }
 
-    our Bool multi method Bool() { $!numerator != 0 ?? Bool::True !! Bool::False }
+    method Bool() { $!numerator != 0 ?? Bool::True !! Bool::False }
 
     method Int() { self.Num.Int; }
 

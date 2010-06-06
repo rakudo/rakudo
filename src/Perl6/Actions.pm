@@ -652,6 +652,9 @@ method colonpair($/) {
             make make_pair($*key, PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') ));
         }
     }
+    elsif $<fakesignature> {
+        make $<fakesignature>.ast.ast;   # XXX: Huh?
+    }
     else {
         make $*value.ast;
     }
@@ -1461,10 +1464,6 @@ method capture($/) {
 
 method multisig($/) {
     make $<signature>.ast;
-}
-
-method sigterm($/) {
-    make $<fakesignature>.ast.ast;
 }
 
 method fakesignature($/) {

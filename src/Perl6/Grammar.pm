@@ -505,7 +505,7 @@ token term:sym<regex_declarator>   { <regex_declarator> }
 token term:sym<statement_prefix>   { <statement_prefix> }
 token term:sym<*>                  { <sym> }
 token term:sym<lambda>             { <?lambda> <pblock> }
-token term:sym<sigterm>            { <sigterm> }
+# token term:sym<sigterm>            { <sigterm> }   # see colonpair instead
 
 token term:sym<undef> {
     <sym> >> {}
@@ -541,6 +541,7 @@ token colonpair {
         || <.unsp>? <circumfix> { $*value := $<circumfix>; }
         || { $*value := 1; }
         ]
+    | '(' ~ ')' <fakesignature>
     | <circumfix>
         { $*key := ""; $*value := $<circumfix>; }
     | $<var> = (<sigil> {} <twigil>? <desigilname>)
@@ -968,10 +969,6 @@ rule param_sep {
 rule multisig {
     :my $*SCOPE := 'my';
     <signature>
-}
-
-token sigterm {
-    ':(' ~ ')' <fakesignature>
 }
 
 token fakesignature {

@@ -93,6 +93,11 @@ multi sub isnt(Mu $got, Mu $expected) is export { isnt($got, $expected, ''); }
 multi sub is_approx(Mu $got, Mu $expected, $desc) is export {
     my $test = ($got - $expected).abs <= 1/100000;
     proclaim(?$test, $desc);
+    unless $test {
+        diag("got:      $got");
+        diag("expected: $expected");
+    }
+    ?$test;
 }
 
 multi sub is_approx(Mu $got, Mu $expected) is export {

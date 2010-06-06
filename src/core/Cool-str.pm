@@ -15,7 +15,9 @@ augment class Cool {
     }
 
     our multi method chomp() is export {
-        if self ~~ /\x0a$/ {
+        if self ~~ /\x0d\x0a$/ {
+            self.substr(0, self.chars - 2);
+        } elsif self ~~ /\x0a$/ {
             self.substr(0, self.chars - 1);
         } else {
             self;

@@ -815,6 +815,11 @@ rule package_def {
     [
     || ';'
         <.finishpad>
+        {
+            if $*PKGDECL eq 'package' {
+                $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a package declaration that is not of the form "package Foo;".');
+            }
+        }
         <statementlist>
     || <?[{]> <blockoid>
     || <.panic: 'Malformed package declaration'>

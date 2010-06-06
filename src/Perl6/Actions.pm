@@ -1977,37 +1977,29 @@ method circumfix:sym<{ }>($/) {
     # element of which is either a hash or a pair, it's a hash constructor.
     my $past := $<pblock>.ast;
     my $is_hash := 0;
-    if +@($past) == 2 {
-        if +@($past[1]) == 0 {
-            # Empty block, so a hash.
+    my $stmts := +$<pblock><blockoid><statementlist><statement>;
+    if $stmts == 0 {
+        # empty block, so a hash
+        $is_hash := 1;
+    }
+    elsif $stmts == 1 {
+        my $elem := $past[1][0];
+        if $elem ~~ PAST::Op && $elem.name eq '&infix:<,>' {
+            # block contains a list, so test the first element
+            $elem := $elem[0];
+        }
+        if $elem ~~ PAST::Op 
+                && ($elem.returns eq 'Pair' || $elem.name eq '&infix:<=>>') {
+            # first item is a pair
             $is_hash := 1;
         }
-        elsif +@($past[1]) == 1 && $past[1][0].isa(PAST::Op) {
-            if $past[1][0].returns() eq 'Pair' || $past[1][0].name() eq '&infix:<=>>' {
-                # Block with just one pair in it, so a hash.
-                $is_hash := 1;
-            }
-            elsif $past[1][0].name() eq '&infix:<,>' {
-                # List, but first elements must be...
-                if $past[1][0][0].isa(PAST::Op) &&
-                        ($past[1][0][0].returns() eq 'Pair' || $past[1][0][0].name() eq '&infix:<=>>') {
-                    # ...a Pair
-                    $is_hash := 1;
-                }
-                elsif $past[1][0][0].isa(PAST::Var) &&
-                        pir::substr__SSII($past[1][0][0].name(), 0, 1) eq '%' {
-                    # ...or a hash.
-                    $is_hash := 1
-                }
-            }
-        }
-        elsif +@($past[1]) == 1 && $past[1][0].isa(PAST::Var) {
-            if pir::substr__SSII($past[1][0].name(), 0, 1) eq '%' {
-                $is_hash := 1;
-            }
+        elsif $elem ~~ PAST::Var
+                && pir::substr($elem.name, 0, 1) eq '%' {
+            # first item is a hash
+            $is_hash := 1;
         }
     }
-    if $is_hash {
+    if $is_hash && $past.arity < 1 {
         my @children := @($past[1]);
         $past := PAST::Op.new(
             :pasttype('call'),

@@ -2494,7 +2494,7 @@ method quote_EXPR($/) {
         }
         else {
             my @words := HLL::Grammar::split_words($/, $past.value);
-            if +@words > 1 {
+            if +@words != 1 {
                 $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
                 for @words { $past.push($_); }
                 $past := PAST::Stmts.new($past);

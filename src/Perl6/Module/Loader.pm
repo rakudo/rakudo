@@ -45,6 +45,7 @@ method need($name, %name_adverbs?) {
         unless $loaded_pir {
             my $?FILES := pir::substr($pm_file, 0, 2) eq './' ?? pir::substr($pm_file, 2) !! $pm_file;
             my $fh     := pir::open__PSS($pm_file, 'r');
+            $fh.encoding('utf8');
             my $source := $fh.readall();
             $fh.close();
             my $eval := Perl6::Compiler.compile($source);

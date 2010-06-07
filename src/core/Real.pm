@@ -298,3 +298,10 @@ multi sub infix:<**>(Real $a, Real $b) {
 multi sub infix:<**>(Num $a, Num $b) {
     pir::pow__NNN($a, $b)
 }
+
+# NOTE: mod is only actually defined for integer types!
+# But if you have an integer type that does Real, this
+# should automatically define an appropriate mod for you.
+multi sub infix:<mod>(Real $a, Real $b) {
+    $a - ($a div $b) * $b;
+}

@@ -1560,7 +1560,12 @@ method param_var($/) {
             }
         }
         elsif $twigil ne '!' && $twigil ne '.' && $twigil ne '*' {
-            $/.CURSOR.panic("Illegal to use $twigil twigil in signature");
+            my $error := "In signature parameter, '" ~ ~$/ ~ "', it is illegal to use '" ~ $twigil ~ "' twigil";
+            if $twigil eq ':' {
+                $error := "In signature parameter, placeholder variables like " ~ ~$/ ~ " are illegal\n"
+                           ~ "you probably meant a named parameter: ':" ~ $<sigil> ~ ~$<name>[0] ~ "'";
+            }
+            $/.CURSOR.panic($error);
         }
     }
 }

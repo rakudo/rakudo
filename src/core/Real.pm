@@ -286,6 +286,11 @@ multi sub infix:</>(Num $a, Num $b) {
     pir::div__NNN($a, $b)
 }
 
+multi sub infix:<%>(Real $a, Real $b) {
+    # older version is pir::mod__NNN($a.Bridge, $b.Bridge)
+    $a - ($a / $b).floor * $b;
+}
+
 multi sub infix:<**>(Real $a, Real $b) {
     $a.Bridge ** $b.Bridge;
 }

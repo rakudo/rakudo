@@ -52,7 +52,7 @@ our multi sub infix:</>($a, $b) {
 }
 
 our multi sub infix:<%>($a, $b) {
-    pir::mod__NNN($a, $b)
+    +$a % +$b;
 }
 
 our multi sub infix:<**>($a, $b) {

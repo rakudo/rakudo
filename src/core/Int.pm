@@ -51,7 +51,11 @@ our multi sub infix:<*>(Int $a, Int $b) {
 }
 
 our multi sub infix:<div>(Int $a, Int $b) {
-    pir::box__PI(pir::div__III($a, $b))
+    my $result = pir::box__PI(pir::div__III($a, $b));
+    if $a.sign * $b.sign < 0 && $result * $b != $a {
+        $result--;
+    }
+    $result;
 }
 
 our multi sub infix:<%>(Int $a, Int $b) {

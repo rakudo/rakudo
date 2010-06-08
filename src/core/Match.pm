@@ -95,8 +95,7 @@ class Match is Regex::Match is Cool does Associative {
                 take " # WARNING: this is not working perl code\n";
                 take " # and for debugging purposes only\n";
             }
-            take "$sp ast  => {$.ast.perl},\n";
-            take "$sp Str  => {$.Str.perl},\n";
+            take "$sp ast  => {$.ast.perl},\n" unless $.ast === Any;
             take "$sp from => $.from,\n";
             take "$sp orig => $.orig.perl(),\n";
             take "$sp to   => $.to,\n";

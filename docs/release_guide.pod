@@ -33,7 +33,7 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2010-06-17   Rakudo #30                      (masak)
+  2010-06-17   Rakudo #30 "Atlanta"            (masak)
   2010-07-22   Rakudo #31                      (Coke)
   2010-08-19   Rakudo #32                      -vacant-
   2010-09-23   Rakudo #33                      -vacant-
@@ -43,7 +43,6 @@ Dates are based on Parrot's expected release schedule.
 
 =head2 Suggested .pm group names for future releases
 
-  Atlanta.pm (* check with Pm before using this one)
   BristolBath.pm
   Milan.pm
 

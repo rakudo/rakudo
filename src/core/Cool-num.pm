@@ -3,65 +3,72 @@ augment class Cool {
         pir::set__NP(self);
     }
 
-    method abs() {
-        (+self).abs;
+    method abs($x:) {
+        (+$x).abs;
     }
 
-    method sign() {
-        self.defined ?? (+self).sign !! Mu;
+    method exp($x: $base = e) {
+        (+$x).exp(+$base);
     }
 
-    multi method exp() {
-        self.Num.exp;
+    method log($x: $base = e) {
+        (+$x).log(+$base);
     }
 
-    our Int multi method ceiling() is export {
-        self.Num.ceiling;
-    }
-
-    our Int multi method floor() is export {
-        self.Num.floor;
-    }
-
-    our Int multi method truncate() is export {
-        self.Num.truncate;
-    }
-
-    our Int multi method round() is export {
-        self.Num.round;
-    }
-
-    our Str multi method chr() {
-        ~(pir::chr__SI(self))
-    }
-
-    # TODO: Probably should be little or no mention of .Num in Any
-    our ::Complex multi method unpolar($angle) {
-        self.Num.unpolar($angle);
-    }
-
-    multi method cis() {
-        self.Num.cis
-    }
-
-    our Num method rand() {
-        pir::box__PN(pir::rand__NN(self))
-    }
-
-    multi method roots($n) {
-        $.Complex.roots($n);
+    method log10($x:) {
+        (+$x).log10;
     }
 
     method sqrt($x:) {
         (+$x).sqrt;
     }
 
-    multi method log($x: $base = e) {
-        (+$x).log(+$base);
+    method roots($x: $n) {
+        (+$x).roots((+$n).Int);
     }
 
-    multi method log10() {
-        $.Num.log10;
+    method to-radians($x: $base) {
+        (+$x).to-radians($base);
+    }
+
+    method from-radians($x: $base) {
+        (+$x).from-radians($base);
+    }
+
+    method floor($x:) {
+        (+$x).floor;
+    }
+
+    method ceiling($x:) {
+        (+$x).ceiling;
+    }
+
+    method round($x: $scale = 1) is export {
+        (+$x).round(+$scale);
+    }
+
+    method truncate($x:) {
+        (+$x).truncate;
+    }
+
+    method sign($x:) {
+        $x.defined ?? (+$x).sign !! Mu;
+    }
+
+    method cis($angle:) {
+        (+$angle).cis
+    }
+
+    method unpolar($mag: $angle) {
+        (+$mag).unpolar(+$angle);
+    }
+
+    our Str multi method chr() {
+        ~(pir::chr__SI(self))
+    }
+
+    our Num method rand() {
+        pir::box__PN(pir::rand__NN(self))
     }
 
     method sin($x: $base = Radians) {

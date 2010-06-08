@@ -18,7 +18,7 @@ Subclass of ObjectRef for Perl 6 scalars.
 
 #include "parrot/parrot.h"
 
-pmclass Perl6Scalar extends ObjectRef need_ext dynpmc group perl6_group auto_attrs {
+pmclass Perl6Scalar extends ObjectRef dynpmc group perl6_group auto_attrs {
 
 }
 

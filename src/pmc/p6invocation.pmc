@@ -135,7 +135,7 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only, INTVAL 
     return current;
 }
 
-pmclass P6Invocation need_ext dynpmc group perl6_group auto_attrs {
+pmclass P6Invocation dynpmc group perl6_group auto_attrs {
     ATTR PMC    *first_candidate;
     ATTR PMC    *candidate_list;
     ATTR STRING *name;

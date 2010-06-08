@@ -881,7 +881,7 @@ The proto that is in effect.
 */
 
 
-pmclass Perl6MultiSub extends MultiSub need_ext dynpmc group perl6_group manual_attrs {
+pmclass Perl6MultiSub extends MultiSub dynpmc group perl6_group manual_attrs {
     ATTR PMC  *candidates;
     ATTR struct candidate_info **candidates_sorted;
     ATTR MMD_Cache *cache_single;

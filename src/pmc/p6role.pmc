@@ -19,7 +19,7 @@ like punning.
 
 #include "parrot/parrot.h"
 
-pmclass P6role extends Role need_ext dynpmc group perl6_group auto_attrs {
+pmclass P6role extends Role dynpmc group perl6_group auto_attrs {
     VTABLE PMC *find_method(STRING *name) {
         PMC *ns_key, *ns, *punner, *boxed_name;
         STRING *first_char;

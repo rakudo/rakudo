@@ -302,6 +302,6 @@ multi sub infix:<**>(Num $a, Num $b) {
 # NOTE: mod is only actually defined for integer types!
 # But if you have an integer type that does Real, this
 # should automatically define an appropriate mod for you.
-multi sub infix:<mod>(Real $a, Real $b) {
+our multi sub infix:<mod>(Real $a, Real $b) {
     $a - ($a div $b) * $b;
 }

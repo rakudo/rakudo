@@ -20,7 +20,7 @@ calls on it.
 
 .namespace ['ClassToBe']
 
-.sub '' :anon :init
+.sub '' :anon :load :init
     $P0 = newclass ['ClassToBe']
     $P1 = get_root_namespace ['parrot';'P6object']
     $P1 = get_class $P1

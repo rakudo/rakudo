@@ -107,6 +107,13 @@ method comp_unit($/, $key?) {
         $unit.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
     }
 
+    $unit.push(
+        PAST::Op.new(
+            :pasttype('call'),
+            :name('&MAIN_HELPER'),
+        )
+    );
+
     # Remove the outer module package.
     @PACKAGE.shift;
 

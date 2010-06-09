@@ -62,13 +62,16 @@ method comp_unit($/, $key?) {
     }
 
     # run MAIN subs
-    # TODO: run this only when not in a module and not in eval
-    $mainline.push(
-        PAST::Op.new(
-            :pasttype('call'),
-            :name('&MAIN_HELPER')
-        )
-    );
+    # TODO: run this only when not in a module
+    # TODO: find a less hacky solution than IN_EVAL
+    unless IN_EVAL() {
+        $mainline.push(
+            PAST::Op.new(
+                :pasttype('call'),
+                :name('&MAIN_HELPER')
+            )
+        );
+    }
 
     # Create a block for the entire compilation unit.
     our $?RAKUDO_HLL;

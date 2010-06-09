@@ -21,6 +21,29 @@ of the compilation unit.
  .include 'sysinfo.pasm'
 .include 'iglobals.pasm'
 
+.sub 'IN_EVAL'
+    .local pmc interp
+    .local int level
+    .local int result
+    result = 0
+    level  = 0
+    interp = getinterp
+  loop:
+    inc level
+    $P0 = interp['sub'; level]
+    if null $P0 goto done
+    $S0 = $P0
+    if $S0 == 'eval' goto has_eval
+    goto loop
+
+  has_eval:
+    result = 1
+
+  done:
+    $P0 = box result
+    .return($P0)
+.end
+
 .sub '!UNIT_START'
     .param pmc mainline
     .param pmc args            :slurpy

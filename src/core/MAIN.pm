@@ -1,3 +1,33 @@
+our sub USAGE ($sub=&MAIN) {
+    my @subs = $sub ~~ Multi  ?? $sub.candidates !! ($sub);
+    my @help-msgs = @subs.map( { USAGE-one-sub ($_) } ) ;
+    return  "Usage\n" ~ @help-msgs.join("\nor\n");
+}
+
+our sub USAGE-one-sub ($sub=&MAIN) {
+    my $sig = $sub.signature;
+    my @arguments;
+    for $sig.params -> $param {
+        my $argument;
+        if ($param.named) {
+            $argument = "--"
+                    ~ $param.name.substr(1)
+                    ~ ($param.type ~~ Bool ?? '' !! "=value-of-{$param.name.substr(1)}")
+                    ;
+        } else {
+            $argument = $param.name.substr(1);
+            if ($param.slurpy) {
+                $argument ~= " [more [...]]";
+            }
+        }
+        $argument = "[$argument]" if $param.optional;
+        @arguments.push($argument);
+    }
+
+    return  $*PROGRAM_NAME ~ ' '  ~ @arguments.join(' ');
+
+}
+
 our sub process-cmd-args(@args is copy, %named) {
     my (@positional-arguments, %named-arguments , $negate);
     while ( @args )  {
@@ -67,18 +97,19 @@ our sub MAIN_HELPER() {
     unless $m {
         return;
     }
-	my $correct-main-found = False;
-	my @subs = $m ~~ Multi  ?? $m.candidates !! ($m);
-	for @subs -> $main {
-		my @named-params = $main.signature.params.grep: {.named && .type ~~ Bool};
-		my %named-params = @named-params».name».substr(1) Z=> @named-params».type;
-		my @positional = process-cmd-args(@*ARGS, %named-params);
-		my %named = @positional.pop;
-		try {
-			$main(|@positional, |%named);
-			$correct-main-found = True;
-		}
-		return if $correct-main-found;
-		#TODO: Call USAGE HERE
-	}
+    my $correct-main-found = False;
+    my @subs = $m ~~ Multi  ?? $m.candidates !! ($m);
+    for @subs -> $main {
+        my @named-params = $main.signature.params.grep: {.named && .type ~~ Bool};
+        my %named-params = @named-params».name».substr(1) Z=> @named-params».type;
+        my @positional = process-cmd-args(@*ARGS, %named-params);
+        my %named = @positional.pop;
+        try {
+            $main(|@positional, |%named);
+            $correct-main-found = True;
+        }
+        return if $correct-main-found;
+    }
+    my $help = USAGE($m);
+    $help.say;
 }

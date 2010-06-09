@@ -25,9 +25,18 @@ of the compilation unit.
     .local pmc interp
     .local int level
     .local int result
+
+    # walk tha call chain to determine if we're inside an eval()
+    # this is a bit clumsy and brittle because the compilation process
+    # already contains a sub or method named 'eval', so we have to check if
+    # there are at least two subs named 'eval' in the call chain.
+
     result = 0
     level  = 0
     interp = getinterp
+    # interp[sub;$to_high_level] throws an exception
+    # so when we catch one, we're done walking the call chain
+    push_eh done
   loop:
     inc level
     $P0 = interp['sub'; level]
@@ -37,9 +46,11 @@ of the compilation unit.
     goto loop
 
   has_eval:
-    result = 1
+    inc result
+    goto loop
 
   done:
+    dec result
     $P0 = box result
     .return($P0)
 .end

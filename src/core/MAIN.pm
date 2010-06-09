@@ -1,4 +1,4 @@
-our sub USAGE ($sub=&MAIN) {
+our sub USAGE ($sub=&MAIN) { #The user can still overwrite this in his program to get customized USAGE message
     my @subs = $sub ~~ Multi  ?? $sub.candidates !! ($sub);
     
     my $USAGE-one-sub = sub ($sub=&MAIN) {
@@ -22,7 +22,6 @@ our sub USAGE ($sub=&MAIN) {
         }
         return  ($*PROGRAM_NAME eq '-e' ?? "-e '...'" !! $*PROGRAM_NAME )~ ' '  ~ @arguments.join(' ');
     };
-
     
     my @help-msgs = @subs.map( { $USAGE-one-sub($_) } ) ;
     return  "Usage\n" ~ @help-msgs.join("\nor\n");

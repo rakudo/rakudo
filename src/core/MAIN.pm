@@ -1,4 +1,4 @@
-my sub process-cmd-args(@args, %named) {
+our sub process-cmd-args(@args, %named) {
     my (@positional-arguments, %named-arguments , $negate);
     while ( @args )  {
         my $passed_value = @args.shift;
@@ -65,7 +65,7 @@ our sub MAIN_HELPER() {
     done:
     };
     unless $m {
-        say "no MAIN, no cookie";
+        return;
     }
     my @named-params = $m.signature.params.grep: {.named && .type ~~ Bool};
     my %named-params = @named-params».name».substr(1) Z=> @named-params».type;

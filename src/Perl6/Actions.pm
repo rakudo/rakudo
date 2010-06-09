@@ -61,6 +61,14 @@ method comp_unit($/, $key?) {
         return 1;
     }
 
+    # run MAIN subs
+    $mainline.push(
+        PAST::Op.new(
+            :pasttype('call'),
+            :name('&MAIN_HELPER')
+        )
+    );
+
     # Create a block for the entire compilation unit.
     our $?RAKUDO_HLL;
     my $unit := PAST::Block.new( :node($/), :hll($?RAKUDO_HLL) );
@@ -106,13 +114,6 @@ method comp_unit($/, $key?) {
     unless pir::isnull($file) {
         $unit.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
     }
-
-    $unit.push(
-        PAST::Op.new(
-            :pasttype('call'),
-            :name('&MAIN_HELPER'),
-        )
-    );
 
     # Remove the outer module package.
     @PACKAGE.shift;

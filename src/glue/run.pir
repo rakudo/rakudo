@@ -47,6 +47,7 @@ of the compilation unit.
 
   has_eval:
     inc result
+    if result == 2 goto done
     goto loop
 
   done:

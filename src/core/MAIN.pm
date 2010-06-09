@@ -24,7 +24,7 @@ our sub USAGE-one-sub ($sub=&MAIN) {
         @arguments.push($argument);
     }
 
-    return  $*PROGRAM_NAME ~ ' '  ~ @arguments.join(' ');
+    return  ($*PROGRAM_NAME eq '-e' ?? "-e '...'" !! $*PROGRAM_NAME )~ ' '  ~ @arguments.join(' ');
 
 }
 

@@ -932,13 +932,23 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
     }
     else {
         # Not an attribute - need to emit delcaration here.
-        # First, create a container and give it a 'rw' property
-        # Create the container, give it a 'rw' property
+        # Create the container
         my $cont := $sigil eq '%' ??
             PAST::Op.new( :name('&CREATE_HASH_LOW_LEVEL'), :pasttype('call') ) !!
             PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
+        
+        # Give it a 'rw' property unless it's explicitly readonly.
+        my $readtype := trait_readtype($trait_list);
+        if $readtype eq 'CONFLICT' {
+            $/.CURSOR.panic('Can not apply more than one of: is copy, is rw, is readonly');
+        }
+        if $readtype eq 'copy' {
+            $/.CURSOR.panic("'is copy' trait not valid on variable declaration");
+        }
         my $true := PAST::Var.new( :name('true'), :scope('register') );
-        my $vivipast := PAST::Op.new( $cont, 'rw', $true, :pirop('setprop'));
+        my $vivipast := $readtype ne 'readonly' ??
+            PAST::Op.new( $cont, 'rw', $true, :pirop('setprop')) !!
+            $cont;
 
         # If it's a scalar, mark it as scalar (non-flattening)
         if $sigil eq '$' || $sigil eq '&' {
@@ -964,15 +974,17 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
             my $trait_node := get_var_traits_node($BLOCK, $name);
             for $trait_list {
                 my $trait := $_.ast;
-                $trait.unshift(PAST::Var.new( :name('declarand'), :scope('register') ));
-                if $trait.name() eq '&trait_mod:<of>' && $*TYPENAME {
-                    $init_type := $trait[1] := PAST::Op.new(
-                        :pasttype('callmethod'), :name('postcircumfix:<[ ]>'),
-                        $*TYPENAME, $trait[1]
-                    );
-                    $*TYPENAME := '';
+                unless $trait<trait_is_compiler_handled> {
+                    $trait.unshift(PAST::Var.new( :name('declarand'), :scope('register') ));
+                    if $trait.name() eq '&trait_mod:<of>' && $*TYPENAME {
+                        $init_type := $trait[1] := PAST::Op.new(
+                            :pasttype('callmethod'), :name('postcircumfix:<[ ]>'),
+                            $*TYPENAME, $trait[1]
+                        );
+                        $*TYPENAME := '';
+                    }
+                    $trait_node.push($trait);
                 }
-                $trait_node.push($trait);
             }
             if $*TYPENAME {
                 $trait_node.push(PAST::Op.new(

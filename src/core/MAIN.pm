@@ -1,4 +1,4 @@
-our sub process-cmd-args(@args, %named) {
+our sub process-cmd-args(@args is copy, %named) {
     my (@positional-arguments, %named-arguments , $negate);
     while ( @args )  {
         my $passed_value = @args.shift;
@@ -67,9 +67,18 @@ our sub MAIN_HELPER() {
     unless $m {
         return;
     }
-    my @named-params = $m.signature.params.grep: {.named && .type ~~ Bool};
-    my %named-params = @named-params».name».substr(1) Z=> @named-params».type;
-    my @positional = process-cmd-args(@*ARGS, %named-params);
-    my %named = @positional.pop;
-    $m(|@positional, |%named);
+	my $correct-main-found = False;
+	my @subs = $m ~~ Multi  ?? $m.candidates !! ($m);
+	for @subs -> $main {
+		my @named-params = $main.signature.params.grep: {.named && .type ~~ Bool};
+		my %named-params = @named-params».name».substr(1) Z=> @named-params».type;
+		my @positional = process-cmd-args(@*ARGS, %named-params);
+		my %named = @positional.pop;
+		try {
+			$main(|@positional, |%named);
+			$correct-main-found = True;
+		}
+		return if $correct-main-found;
+		#TODO: Call USAGE HERE
+	}
 }

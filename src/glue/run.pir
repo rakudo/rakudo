@@ -21,6 +21,36 @@ of the compilation unit.
  .include 'sysinfo.pasm'
 .include 'iglobals.pasm'
 
+.sub 'IN_EVAL'
+    .local pmc interp
+    .local int level
+    .local int result
+    .local pmc eval
+
+    result = 0
+    level  = 0
+    interp = getinterp
+    eval = get_hll_global '&eval'
+    eval = getattribute eval, '$!do'
+
+    # interp[sub;$to_high_level] throws an exception
+    # so when we catch one, we're done walking the call chain
+    push_eh done
+  loop:
+    inc level
+    $P0 = interp['sub'; level]
+    if null $P0 goto done
+    eq_addr $P0, eval, has_eval
+    goto loop
+
+  has_eval:
+    inc result
+
+  done:
+    $P0 = box result
+    .return($P0)
+.end
+
 .sub '!UNIT_START'
     .param pmc mainline
     .param pmc args            :slurpy

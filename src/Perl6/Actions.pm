@@ -62,6 +62,7 @@ method comp_unit($/, $key?) {
     }
 
     # run MAIN subs
+    # TODO: run this only when not in a module and not in eval
     $mainline.push(
         PAST::Op.new(
             :pasttype('call'),

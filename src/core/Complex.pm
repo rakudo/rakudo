@@ -13,20 +13,28 @@ class Complex does Numeric is Cool {
         ($topic.Num ~~ $.re) && ($.im == 0);
     }
 
-    multi method Complex() { self }
-
     method reals() {
         (self.re, self.im);
     }
 
+    method Real() {
+        if $!im == 0 {
+            $!re;
+        } else {
+            fail "You can only coerce a Complex to Real if the imaginary part is zero"
+        }
+    }
+
     our Bool multi method Bool() { ( $!re != 0 || $!im != 0 ) ?? Bool::True !! Bool::False }
 
-    multi method perl() {
-        "Complex.new($.re, $.im)";
-    }
+    multi method Complex() { self }
 
     method Str() {
         "$.re + {$.im}i";
+    }
+
+    multi method perl() {
+        "Complex.new($.re, $.im)";
     }
 
     method abs(Complex $x:) {
@@ -196,14 +204,6 @@ class Complex does Numeric is Cool {
             $P1 = get_hll_global 'Complex'
             $P1 = $P1.'new'($P2, $P3)
             %r  = $P1
-        }
-    }
-
-    multi method Num {
-        if $!im == 0 {
-            $!re;
-        } else {
-            fail "You can only coerce a Complex to Num if the imaginary part is zero"
         }
     }
 }

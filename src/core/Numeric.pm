@@ -3,6 +3,26 @@ role Numeric {
         self;
     }
 
+    # NOTE: Real is defined as failing if the number in
+    # question is not convertable to Real, eg a Complex
+    # with a non-zero imaginary part.
+    method Real() {
+        note "$.WHAT() needs a version of .Real";
+        fail "$.WHAT() needs a version of .Real";
+    }
+
+    method Int() {
+        self.Real.Int;
+    }
+
+    method Rat(::Real $epsilon = 1.0e-6) {
+        self.Real.Rat($epsilon);
+    }
+
+    method Num() {
+        self.Real.Num;
+    }
+
     method reals() {
         note "$.WHAT() needs a version of .reals";
         fail "$.WHAT() needs a version of .reals";

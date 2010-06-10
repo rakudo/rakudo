@@ -330,7 +330,7 @@ S06-operator-overloading/methods.t
 S06-operator-overloading/sub.t
 # S06-operator-overloading/workout.t
 S06-other/anon-hashes-vs-blocks.t
-# S06-other/main.t
+S06-other/main.t
 S06-other/main-eval.t
 S06-other/misc.t
 S06-routine-modifiers/scoped-named-subs.t

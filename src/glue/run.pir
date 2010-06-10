@@ -56,6 +56,8 @@ of the compilation unit.
     .param pmc args            :slurpy
 
     .local string info
+    .local pmc true
+    true = get_hll_global 'True'
 
     info = interpinfo .INTERPINFO_EXECUTABLE_FULLNAME
     $P0 = new ['Str']
@@ -83,6 +85,7 @@ of the compilation unit.
     $P2 = new ['Array']
     $P2.'!STORE'($P1)
     set_hll_global '@ARGS', $P2
+    setprop $P2, "rw", true
 
     ##  set up %*VM
     load_bytecode 'config.pbc'

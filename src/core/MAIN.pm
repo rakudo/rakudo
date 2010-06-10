@@ -68,7 +68,6 @@ our sub MAIN_HELPER() {
         return @positional-arguments, %named-arguments;
     };
     
-    my $correct-main-found = False;
     my @subs = $m ~~ Multi  ?? $m.candidates !! ($m);
     #TODO: We are calling the FIRST matching MAIN sub, we should be calling the BEST matching MAIN sub.
     for @subs -> $main {
@@ -76,11 +75,10 @@ our sub MAIN_HELPER() {
         my %named-params = @named-params».name».substr(1) Z=> @named-params».type;
         my @positional = $process-cmd-args(@*ARGS, %named-params);
         my %named = @positional.pop;
-        try { 
+        if Capture.new(|@positional, |%named) ~~ $main.signature { 
             $main(|@positional, |%named);
-            $correct-main-found = True;
+            return ;
         }
-        return if $correct-main-found;
     }
     
     #We could not find the correct main to dispatch to! Let's try to run the user defined USAGE sub

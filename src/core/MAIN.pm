@@ -12,7 +12,7 @@ our sub USAGE ($sub=&MAIN) { #The user can still overwrite this in his program t
                         ~ ($param.type ~~ Bool ?? '' !! "=value-of-{$param.name.substr(1)}")
                         ;
             } else {
-                $argument = $param.name.substr(1);
+                $argument = ($param.name ?? $param.name.substr(1) !! $param.constraints);
                 if ($param.slurpy) {
                     $argument ~= " [more [...]]";
                 }

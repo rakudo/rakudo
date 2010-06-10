@@ -18,7 +18,11 @@ our sub USAGE ($sub=&MAIN) { #The user can still overwrite this in his program t
                 }
             }
             $argument = "[$argument]" if $param.optional;
-            @arguments.push($argument);
+            if ($param.named) {
+                  @arguments.unshift($argument);
+            } else {
+                  @arguments.push($argument);
+            }
         }
         return  ($*PROGRAM_NAME eq '-e' ?? "-e '...'" !! $*PROGRAM_NAME )~ ' '  ~ @arguments.join(' ');
     };

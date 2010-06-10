@@ -231,7 +231,7 @@ PMC_SOURCES = \
   $(PMC_DIR)/perl6scalar.pmc $(PMC_DIR)/mutablevar.pmc \
   $(PMC_DIR)/perl6multisub.pmc $(PMC_DIR)/p6invocation.pmc \
   $(PMC_DIR)/p6opaque.pmc $(PMC_DIR)/p6role.pmc \
-  $(PMC_DIR)/p6lowlevelsig.pmc $(PMC_DIR)/byteview.pmc
+  $(PMC_DIR)/p6lowlevelsig.pmc
 
 OPS_SOURCE   = perl6.ops
 

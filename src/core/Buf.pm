@@ -10,20 +10,23 @@ role Buf[::T = Int] does Stringy {
         my $str = ~Q:PIR {
             $P0 = find_lex '@contents'
 
-            .local pmc iterator
-            iterator = iter $P0
-            .local pmc sb
-            sb = new 'StringBuilder'
-            sb = unicode:""
-            loop:
-              unless iterator goto done
-              $P1 = shift iterator
-              $I1 = $P1
-              $S1 = chr $I1
-              sb .= $S1
-              goto loop
-            done:
-              %r = sb
+            .local pmc bb
+            .local string s
+            bb = new ['ByteBuffer']
+            .local pmc it
+            .local int i
+            it = iter $P0
+            i = 0
+          loop:
+            unless it goto done
+            $P1 = shift it
+            $I1 = $P1
+            bb[i] = $I1
+            inc i
+            goto loop
+          done:
+            s = bb.'get_string_as'(utf8:unicode:"")
+            %r = box s
         };
         return $str;
     }

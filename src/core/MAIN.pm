@@ -113,5 +113,5 @@ our sub MAIN_HELPER() {
         return if $correct-main-found;
     }
     my $help = USAGE($m);
-    $help.say;
+    $*ERR.say: $help;
 }

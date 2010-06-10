@@ -25,6 +25,10 @@ role Real does Numeric {
         Complex.new(self, 0);
     }
 
+    method Str() {
+        self.Bridge.Str;
+    }
+
     method reals() {
         (self);
     }

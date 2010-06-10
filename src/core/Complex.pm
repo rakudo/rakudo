@@ -25,7 +25,7 @@ class Complex does Numeric is Cool {
         "Complex.new($.re, $.im)";
     }
 
-    multi method Str() {
+    method Str() {
         "$.re + {$.im}i";
     }
 

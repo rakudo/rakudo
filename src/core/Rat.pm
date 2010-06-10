@@ -32,16 +32,12 @@ class Rat is Cool does Real {
 
     method Bool() { $!numerator != 0 ?? Bool::True !! Bool::False }
 
-    method Int() { self.Num.Int; }
-
     method Rat(Real $epsilon = 1.0e-6) { self; }
 
     method Num() {
         $!denominator == 0 ?? Inf * $!numerator.sign
                            !! $!numerator.Num / $!denominator.Num;
     }
-
-    multi method Str() { $.Num.Str; }
 
     multi method nude() { $.numerator, $.denominator; }
 

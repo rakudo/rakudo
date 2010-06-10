@@ -1,5 +1,5 @@
 augment class Num {
-    our Str multi method Str() {
+    our Str method Str() {
         ~self
     }
 }

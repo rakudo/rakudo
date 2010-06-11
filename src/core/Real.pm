@@ -30,7 +30,7 @@ role Real does Numeric {
     }
 
     method Str() {
-        self.Bridge.Str;
+        self.Num.Str;
     }
 
     method reals() {

@@ -177,6 +177,10 @@ method finish($block) {
             $_<build>.named('build');
             $attr.push($_<build>);
         }
+        if $_<type> ~~ PAST::Node {
+            $_<type>.named('type');
+            $attr.push($_<type>);
+        }
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_attribute'),

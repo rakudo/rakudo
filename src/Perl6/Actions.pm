@@ -916,7 +916,8 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         }
         my %attr_info;
         %attr_info<name>      := $attrname;
-        %attr_info<accessor> := $twigil eq '.' ?? 1 !! 0;
+        %attr_info<type>      := $*TYPENAME;
+        %attr_info<accessor>  := $twigil eq '.' ?? 1 !! 0;
         %attr_info<rw>        := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;
         @PACKAGE[0].attributes.push(%attr_info);
 

@@ -652,7 +652,7 @@ method fatarrow($/) {
 method colonpair($/) {
     if $*key {
         if $<var> {
-            make make_pair($*key, make_variable($/, ~$<var>));
+            make make_pair($*key, make_variable($/<var>, ~$<var>));
         }
         elsif $*value ~~ Regex::Match {
             make make_pair($*key, $*value.ast);

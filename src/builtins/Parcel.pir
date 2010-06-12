@@ -207,23 +207,12 @@ in a list.
 .namespace []
 .sub '&eager'
     .param pmc args            :slurpy
-    .local pmc eager, true
-    eager = new ['Parcel']
-    true = get_hll_global ['Bool'], 'True'
-    setprop eager, 'rw', true
-
-    .local pmc listiter
-    listiter = new ['List']
-    setattribute listiter, '$!rpa', args
-  iter_loop:
-    .local pmc value
-    value = listiter.'get'()
-    $I0 = isa value, ['EMPTY']
-    if $I0 goto iter_done
-    push eager, value
-    goto iter_loop
-  iter_done:
-    .return (eager)
+    .local pmc parcel
+    parcel = new ['Parcel']
+    splice parcel, args, 0, 0
+    $P0 = parcel.'flat'()
+    $P0 = $P0.'eager'()
+    .return ($P0)
 .end
 
 

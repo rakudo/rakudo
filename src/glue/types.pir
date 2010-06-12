@@ -56,7 +56,7 @@ subtyping relations, etc).
 .end
 
 
-.sub '&CREATE_HASH_LOW_LEVEL'
+.sub '&CREATE_HASH_FROM_LOW_LEVEL'
     .param pmc storage :optional
     unless null storage goto have_storage
     storage = root_new ['parrot';'Hash']

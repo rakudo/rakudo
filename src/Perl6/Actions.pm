@@ -934,7 +934,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         # Not an attribute - need to emit delcaration here.
         # Create the container
         my $cont := $sigil eq '%' ??
-            PAST::Op.new( :name('&CREATE_HASH_LOW_LEVEL'), :pasttype('call') ) !!
+            PAST::Op.new( :name('&CREATE_HASH_FROM_LOW_LEVEL'), :pasttype('call') ) !!
             PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
         
         # Give it a 'rw' property unless it's explicitly readonly.

@@ -6,7 +6,7 @@ ParrotIter - Maps Perl 6 Iterator to Parrot v-table
 
 There are some semantic mis-matches between Perl 6's iterator
 model and Parrot's. This exposes the Parrot v-table interface
-in terms of a Perl 6 iterator.
+in terms of a Perl 6 List.
 
 =head2 Methods
 
@@ -18,7 +18,7 @@ in terms of a Perl 6 iterator.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('ParrotIter', 'parent'=>'Iterator', 'attr'=>'$!iterator $!lookahead')
+    proto = p6meta.'new_class'('ParrotIter', 'parent'=>'List')
 .end
 
 
@@ -30,15 +30,15 @@ initial lookahead.
 =cut
 
 .sub 'new' :method
-    .param pmc iterator
-    $P0 = new ['ParrotIter']
-    setattribute $P0, '$!iterator', iterator
-    $P1 = iterator.'get'()
-    setattribute $P0, '$!lookahead', $P1
-    .return ($P0)
+    .param pmc srciter
+    .local pmc parrotiter, rest
+    parrotiter = new ['ParrotIter']
+    rest = root_new ['parrot';'ResizablePMCArray']
+    push rest, srciter
+    setattribute parrotiter, '@!rest', rest
+    .return (parrotiter)
 .end
-
-
+   
 =item shift_pmc (vtable)
 
 Returns the current item in the iteration, and updates the lookahead.
@@ -46,30 +46,27 @@ Returns the current item in the iteration, and updates the lookahead.
 =cut
 
 .sub '' :vtable('shift_pmc')
-    $P0 = getattribute self, '$!lookahead'
-    $I0 = isa $P0, ['EMPTY']
-    if $I0 goto done
-    $P1 = getattribute self, '$!iterator'
-    $P1 = $P1.'get'()
-    setattribute self, '$!lookahead', $P1
-  done:
-    .return ($P0)
+    .local pmc items, value
+    items = self.'!fill'(1)
+    null value
+    unless items goto have_value
+    value = shift items
+  have_value:
+    .return (value)
 .end
-
 
 =item get_boolean (vtable)
 
-Uses the lookahead to check if we've reached the end.
+Reify one element to see if we've reached the end.
 
 =cut
 
 .sub '' :vtable('get_bool')
-    $P0 = getattribute self, '$!lookahead'
-    $I0 = isa $P0, ['EMPTY']
-    $I0 = not $I0
+    .local pmc items
+    items = self.'!fill'(1)
+    $I0 = istrue items
     .return ($I0)
 .end
-
 
 =back
 

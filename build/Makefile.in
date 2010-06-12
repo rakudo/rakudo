@@ -105,8 +105,8 @@ BUILTINS_PIR = \
   src/builtins/Iterable.pir \
   src/builtins/Iterator.pir \
   src/builtins/EMPTY.pir \
-  src/builtins/ParrotIter.pir \
   src/builtins/List.pir \
+  src/builtins/ParrotIter.pir \
   src/builtins/Parcel.pir \
   src/builtins/ParcelIter.pir \
   src/builtins/Bool.pir \

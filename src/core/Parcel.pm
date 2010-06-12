@@ -1,22 +1,3 @@
-augment class Parcel {
-    method elems() { self.Seq.elems }
-
-    method list() { self.iterator }
-
-    method rotate(Int $n = 1) { self.Seq.rotate($n) }
-
-    multi method sort(&by = &infix:<cmp>) { self.Seq.sort(&by) }
-
-    multi method ACCEPTS($x) {
-        # smart-matching against Nil
-        if self.elems == 0 {
-            $x.notdef || ($x.does(::Positional) && $x == 0)
-        } else {
-            self.Seq.ACCEPTS($x)
-        }
-    }
-
-    multi method fmt($format = '%s', $seperator = ' ') {
-        self.map({ .fmt($format)}).join($seperator);
-    }
+augment class Parcel does Positional {
+    method elems() { self.flat.elems }
 }

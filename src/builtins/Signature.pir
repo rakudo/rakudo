@@ -77,17 +77,17 @@ Returns a C<List> of C<Parameter> descriptors.
     cons_type = get_hll_global ['Bool'], 'True'
     goto cons_done
   have_cons:
-    cons_type = '&list'(cons_type :flat)
+    cons_type = '&flat'(cons_type :flat)
   cons_done:
 
     # Any names?
     named = 0
     if null names goto no_names
     named = 1
-    names = '&list'(names :flat)
+    names = '&flat'(names :flat)
     goto names_done
   no_names:
-    names = '&list'()
+    names = '&flat'()
     $I0 = flags & SIG_ELEM_SLURPY_NAMED
     unless $I0 goto names_done
     named = 1
@@ -95,10 +95,10 @@ Returns a C<List> of C<Parameter> descriptors.
 
     # Any type captures?
     if null type_captures goto no_type_captures
-    type_captures = '&list'(type_captures :flat)
+    type_captures = '&flat'(type_captures :flat)
     goto type_captures_done
   no_type_captures:
-    type_captures = '&list'()
+    type_captures = '&flat'()
   type_captures_done:
 
     # Make sure default and sub-signature are non-null.

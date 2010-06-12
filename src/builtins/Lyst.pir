@@ -44,6 +44,15 @@ List classes while we convert to the new list model.)
 
 
 .namespace ['Lyst']
+.sub 'elems' :method
+    .local pmc items
+    items = self.'!fill'()
+    $I0 = elements items
+    .return ($I0)
+.end
+
+
+.namespace ['Lyst']
 .sub 'flat' :method
     .local pmc items, rest, flat
     flat  = getattribute self, '$!flat'

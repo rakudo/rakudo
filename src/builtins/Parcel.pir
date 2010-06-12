@@ -42,6 +42,22 @@ elements and can be flattened into Captures or Lists.
 .end
 
 
+=item flat()
+
+=cut
+
+.sub 'flat' :method
+    .local pmc newlist, flat, rest
+    newlist = new ['Lyst']
+    flat = get_hll_global 'True'
+    setattribute newlist, '$!flat', flat
+    rest = root_new ['parrot';'ResizablePMCArray']
+    splice rest, self, 0, 0
+    setattribute newlist, '@!rest', rest
+    .return (newlist)
+.end
+
+
 =item item()
 
 A Parcel in item context becomes a Seq.

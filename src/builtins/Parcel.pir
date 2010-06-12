@@ -87,12 +87,12 @@ Construct an iterator for the Parcel.
 
 .namespace ['Parcel']
 .sub 'iterator' :method
-    .local pmc listiter, rpa
-    listiter = new ['List']
-    rpa = new ['ResizablePMCArray']
+    .local pmc parceliter, rpa
+    parceliter = new ['ParcelIter']
+    rpa = root_new ['parrot';'ResizablePMCArray']
     splice rpa, self, 0, 0
-    setattribute listiter, '$!rpa', rpa
-    .return (listiter)
+    setattribute parceliter, '$!parcel', rpa
+    .return (parceliter)
 .end
 
 

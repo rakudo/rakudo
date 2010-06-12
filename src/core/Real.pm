@@ -50,17 +50,25 @@ role Real does Numeric {
         $x.Bridge.ln;
     }
 
+    method sqrt(Real $x:) {
+        $x.Bridge.sqrt;
+    }
+
+    method roots(Real $x: Int $n) {
+        $x.Complex.roots($n);
+    }
+
     method sign(Real $x:) {
         $x.notdef ?? Mu
                     !! ($x ~~ NaN ?? NaN !! $x <=> 0);
     }
 
-    method ceiling(Real $x:) {
-        $x.Bridge.ceiling;
-    }
-
     method floor(Real $x:) {
         $x.Bridge.floor;
+    }
+
+    method ceiling(Real $x:) {
+        $x.Bridge.ceiling;
     }
 
     method truncate(Real $x:) {
@@ -71,21 +79,13 @@ role Real does Numeric {
         floor($x / $scale + 0.5) * $scale;
     }
 
-    method unpolar(Real $mag: Real $angle) {
-        Complex.new($mag * $angle.cos(Radians),
-                    $mag * $angle.sin(Radians));
-    }
-
     method cis(Real $angle:) {
         1.unpolar($angle);
     }
 
-    method sqrt(Real $x:) {
-        $x.Bridge.sqrt;
-    }
-
-    method roots(Real $x: Int $n) {
-        $x.Complex.roots($n);
+    method unpolar(Real $mag: Real $angle) {
+        Complex.new($mag * $angle.cos(Radians),
+                    $mag * $angle.sin(Radians));
     }
 
     method sin(Real $x: $base = Radians) {

@@ -41,7 +41,7 @@ role Numeric {
         fail "$.WHAT() needs a version of .abs";
     }
 
-    multi method exp(Numeric $exponent: Numeric $base = e) {
+    method exp(Numeric $exponent: Numeric $base = e) {
         note "$.WHAT() needs a version of .exp";
         fail "$.WHAT() needs a version of .exp";
     }
@@ -203,11 +203,11 @@ role Numeric {
     }
 }
 
-multi sub infix:«cmp»(Numeric $a, Numeric $b) { $a <=> $b; }
-
 multi sub postfix:<i>(Numeric $z) {
     $z * 1i;
 }
+
+multi sub infix:«cmp»(Numeric $a, Numeric $b) { $a <=> $b; }
 
 multi sub infix:«<=>»(Numeric $a, Numeric $b) {
     my @a = $a.reals;

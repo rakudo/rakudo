@@ -181,6 +181,11 @@ method finish($block) {
             $_<type>.named('type');
             $attr.push($_<type>);
         }
+        else {
+            $attr.push(PAST::Var.new(
+                :name('Any'), :namespace([]), :scope('package'), :named('type')
+            ));
+        }
         $decl.push(PAST::Op.new(
             :pasttype('callmethod'),
             :name('add_attribute'),

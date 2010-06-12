@@ -166,6 +166,7 @@ List classes while we convert to the new list model.)
     if $I0 goto rest_loop
     $I0 = isa value, ['Iterator']
     if $I0 goto value_iterator
+    if null flat goto value_item
     unless flat goto value_item
     $P0 = getprop 'scalar', value
     unless null $P0 goto value_item
@@ -192,4 +193,15 @@ List classes while we convert to the new list model.)
     .return (items)
 .end
 
+
+.namespace []
+.sub '&flat'
+    .param pmc values          :slurpy
+    .local pmc list, true
+    list = new ['List']
+    true = get_hll_global 'True'
+    setattribute list, '$!flat', true
+    setattribute list, '@!rest', values
+    .return (list)
+.end
 

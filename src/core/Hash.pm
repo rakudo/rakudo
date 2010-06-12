@@ -24,7 +24,7 @@ role Hash is EnumMap {
         # Work through the list, storing the things in it.
         my $need_value = 0;
         my $key;
-        for list($to_store) -> $cur {
+        for flat($to_store) -> $cur {
             if $need_value {
                 self{$key} = $cur;
                 $need_value = 0;

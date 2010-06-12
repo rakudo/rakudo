@@ -345,6 +345,12 @@ our multi sub infix:<...>($lhs, $rhs) {
                 take $y;
             }
         }
+
+        if $rhs ~~ Iterable {
+            for @($rhs) {
+                take $_;
+            }
+        }
     }
 }
 

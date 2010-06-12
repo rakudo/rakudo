@@ -60,12 +60,13 @@ elements and can be flattened into Captures or Lists.
 
 =item item()
 
-A Parcel in item context becomes a Seq.
+A Parcel in item context becomes a flattening List.
 
 =cut
 
 .sub 'item' :method
-    .tailcall self.'Seq'()
+    $P0 = self.'flat'()
+    .tailcall $P0.'item'()
 .end
 
 

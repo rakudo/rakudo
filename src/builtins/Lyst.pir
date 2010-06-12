@@ -78,6 +78,15 @@ List classes while we convert to the new list model.)
 
 
 .namespace ['Lyst']
+.sub 'item' :method
+    $P0 = new ['ObjectRef'], self
+    $P1 = get_hll_global 'True'
+    setprop $P0, 'scalar', $P1
+    .return ($P0)
+.end
+
+
+.namespace ['Lyst']
 .sub 'perl' :method
     $P0 = self.'eager'()
     $P0 = $P0.'perl'()

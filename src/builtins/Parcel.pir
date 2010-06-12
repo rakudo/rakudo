@@ -130,11 +130,8 @@ Return the Parcel as a Seq.
 =cut
 
 .sub 'Seq' :method
-    .local pmc seq
-    seq = new ['Seq']
-    transform_to_p6opaque seq
-    seq.'!STORE'(self)
-    .return (seq)
+    $P0 = self.'flat'()
+    .return ($P0)
 .end
 
 

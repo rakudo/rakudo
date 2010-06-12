@@ -183,7 +183,7 @@ method finish($block) {
         }
         else {
             $attr.push(PAST::Var.new(
-                :name('Any'), :namespace([]), :scope('package'), :named('type')
+                :name('Mu'), :namespace([]), :scope('package'), :named('type')
             ));
         }
         $decl.push(PAST::Op.new(

@@ -80,14 +80,14 @@ multi sub lines(IO $filehandle,
     $filehandle.lines();
 }
 
-multi sub print(Mu *@items) { $*OUT.print(@items); }
+# multi sub print(Mu *@items) { $*OUT.print(@items); }
 
 multi sub prompt($msg) {
     print $msg;
     $*IN.get;
 }
 
-multi sub say(Mu *@items) { $*OUT.say(@items); }
+# multi sub say(Mu *@items) { $*OUT.say(@items); }
 
 sub getc($handle) { $handle.getc(); }
 

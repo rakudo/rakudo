@@ -1,4 +1,4 @@
-augment class List {
+augment class List does Positional {
     method Str() {
         pir::join(' ', self!fill);
     }

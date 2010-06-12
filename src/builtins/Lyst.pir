@@ -95,6 +95,23 @@ List classes while we convert to the new list model.)
 .end
 
 
+.sub 'iterator' :method
+    .local pmc parceliter, rpa
+    rpa = root_new ['parrot';'ResizablePMCArray']
+    $P0 = getattribute self, '@!rest'
+    if null $P0 goto have_rest
+    splice rpa, $P0, 0, 0
+  have_rest:
+    $P0 = getattribute self, '@!items'
+    if null $P0 goto have_items
+    splice rpa, $P0, 0, 0
+  have_items:
+    parceliter = new ['ParcelIter']
+    setattribute parceliter, '$!parcel', rpa
+    .return (parceliter)
+.end
+
+
 .namespace ['Lyst']
 .sub 'perl' :method
     $P0 = self.'eager'()

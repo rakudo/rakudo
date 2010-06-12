@@ -109,6 +109,7 @@ BUILTINS_PIR = \
   src/builtins/List.pir \
   src/builtins/Lyst.pir \
   src/builtins/Parcel.pir \
+  src/builtins/ParcelIter.pir \
   src/builtins/Bool.pir \
   src/builtins/Int.pir \
   src/builtins/Num.pir \

@@ -170,6 +170,7 @@ Make sure everything compiles and runs from a known clean state:
   $ make
   $ make test
   $ make spectest
+  $ make stresstest
 
 Continue adjusting things until make spectest passes as expected.
 Often this means fixing a bug, fudging a test, or (temporarily?)

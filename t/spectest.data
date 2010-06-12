@@ -15,6 +15,9 @@
 # S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S16-filehandles/filetest.t - regressed when spec changed (RT #68160)
 # S16-filehandles/unlink.t   - regressed when spec changed (RT #68160)
+#
+# moved to stresstest:
+# integration/advent2009-day17.t
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -36,7 +39,6 @@ integration/advent2009-day11.t
 integration/advent2009-day14.t
 integration/advent2009-day15.t
 integration/advent2009-day16.t
-integration/advent2009-day17.t
 integration/advent2009-day18.t
 integration/advent2009-day19.t
 integration/advent2009-day20.t

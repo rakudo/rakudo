@@ -19,6 +19,8 @@ class Rat is Cool does Real {
         self.bless(*, :numerator($numerator), :denominator($denominator));
     }
 
+    multi method nude() { $.numerator, $.denominator; }
+
     multi method ACCEPTS($other) {
         self.Num.ACCEPTS($other);
     }
@@ -39,8 +41,6 @@ class Rat is Cool does Real {
                            !! $!numerator.Num / $!denominator.Num;
     }
 
-    multi method nude() { $.numerator, $.denominator; }
-
     method succ {
         Rat.new($!numerator + $!denominator, $!denominator);
     }
@@ -48,6 +48,10 @@ class Rat is Cool does Real {
     method pred {
         Rat.new($!numerator - $!denominator, $!denominator);
     }
+}
+
+multi sub prefix:<->(Rat $a) {
+    Rat.new(-$a.numerator, $a.denominator);
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {
@@ -76,10 +80,6 @@ multi sub infix:<->(Rat $a, Int $b) {
 
 multi sub infix:<->(Int $a, Rat $b) {
     ($a * $b.denominator - $b.numerator) / $b.denominator;
-}
-
-multi sub prefix:<->(Rat $a) {
-    Rat.new(-$a.numerator, $a.denominator);
 }
 
 multi sub infix:<*>(Rat $a, Rat $b) {

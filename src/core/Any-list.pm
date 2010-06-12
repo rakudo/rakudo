@@ -1,6 +1,21 @@
 class Range { ... }
 
 augment class Any {
+    method all() {
+        all(self.list)
+    }
+
+    method any() {
+        any(self.list)
+    }
+
+    method one() {
+        one(self.list)
+    }
+
+    method none() {
+        none(self.list)
+    }
 
     our Str multi method join($separator = '') {
         pir::join__SsP($separator, self.list.eager);

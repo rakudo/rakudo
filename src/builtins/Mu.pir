@@ -270,12 +270,6 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
   attrinit_rw:
     setprop attr, 'rw', attr
     setattribute example, cur_class, attrname, attr
-    traits = attrhash['traits']
-    if null traits goto traits_done
-    $P0 = getprop 'metaclass', cur_class
-    if null $P0 goto traits_done
-    traits(attr, $P0)
-  traits_done:
     goto attrinit_loop
   attrinit_done:
     # Only go to next class if we didn't already reach the top of the Perl 6

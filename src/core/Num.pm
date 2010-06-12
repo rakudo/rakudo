@@ -69,13 +69,8 @@ augment class Num does Real {
         ~self;
     }
 
-    method ceiling(Num $x:) {
-        given $x {
-            when NaN { NaN }
-            when Inf { Inf }
-            when -Inf { -Inf }
-            pir::box__PI(pir::ceil__IN($x));
-        }
+    method sqrt(Num $x:) {
+        pir::sqrt__Nn($x);
     }
 
     method floor(Real $x:) {
@@ -87,8 +82,13 @@ augment class Num does Real {
         }
     }
 
-    method sqrt(Num $x:) {
-        pir::sqrt__Nn($x);
+    method ceiling(Num $x:) {
+        given $x {
+            when NaN { NaN }
+            when Inf { Inf }
+            when -Inf { -Inf }
+            pir::box__PI(pir::ceil__IN($x));
+        }
     }
 
     method sin(Num $x: $base = Radians) {
@@ -191,5 +191,65 @@ augment class Num does Real {
         pir::atan__NNn($y, $x).from-radians($base);
     }
 }
+
+multi sub infix:«<=>»(Num $a, Num $b) {
+    # TODO: should be Order::Same, ::Increase, ::Decrease once they work
+    if $a == $b {
+        0;
+    } else {
+        $a < $b ?? -1 !! 1;
+    }
+}
+
+multi sub infix:«==»(Num $a, Num $b) {
+    pir::iseq__INN( $a, $b) ?? True !! False
+}
+
+multi sub infix:«!=»(Num $a, Num $b) {
+    pir::iseq__INN( $a, $b) ?? False !! True # note reversed
+}
+
+multi sub infix:«<»(Num $a, Num $b) {
+    pir::islt__INN( $a, $b) ?? True !! False
+}
+
+multi sub infix:«>»(Num $a, Num $b) {
+    pir::isgt__INN( $a, $b) ?? True !! False
+}
+
+multi sub infix:«<=»(Num $a, Num $b) {
+    pir::isgt__INN( $a, $b) ?? False !! True # note reversed
+}
+
+multi sub infix:«>=»(Num $a, Num $b) {
+    pir::islt__INN( $a, $b) ?? False !! True # note reversed
+}
+
+# Arithmetic operators
+
+multi sub prefix:<->(Num $a) {
+    pir::neg__NN($a);
+}
+
+multi sub infix:<+>(Num $a, Num $b) {
+    pir::add__NNN($a, $b)
+}
+
+multi sub infix:<->(Num $a, Num $b) {
+    pir::sub__NNN($a, $b)
+}
+
+multi sub infix:<*>(Num $a, Num $b) {
+    pir::mul__NNN($a, $b)
+}
+
+multi sub infix:</>(Num $a, Num $b) {
+    pir::div__NNN($a, $b)
+}
+
+multi sub infix:<**>(Num $a, Num $b) {
+    pir::pow__NNN($a, $b)
+}
+
 
 # vim: ft=perl6

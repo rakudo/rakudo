@@ -2,13 +2,14 @@ class Complex does Numeric is Cool {
     has $.re;
     has $.im;
 
-    multi method new($re, $im) {
+    multi method new(Real $re, Real $im) {
         self.bless(*, :re($re), :im($im));
     }
 
     multi method ACCEPTS(Complex $topic) {
         ($topic.re ~~ $.re) && ($topic.im ~~ $.im);
     }
+
     multi method ACCEPTS($topic) {
         ($topic.Num ~~ $.re) && ($.im == 0);
     }
@@ -69,6 +70,42 @@ class Complex does Numeric is Cool {
             $P1 = $P1.'new'($P2, $P3)
             %r  = $P1
         }
+    }
+
+    method sqrt() {
+        Q:PIR {
+            .local pmc self
+            self = find_lex 'self'
+            $P0 = get_root_namespace ['parrot'; 'Complex' ]
+            $P0 = get_class $P0
+            $P0 = $P0.'new'()
+            $N0 = self.'re'()
+            $P0[0] = $N0
+            $N1 = self.'im'()
+            $P0[1] = $N1
+            $P0 = $P0.'sqrt'()
+            $N0 = $P0[0]
+            $P2 = box $N0
+            $N1 = $P0[1]
+            $P3 = box $N1
+            $P1 = get_hll_global 'Complex'
+            $P1 = $P1.'new'($P2, $P3)
+            %r  = $P1
+        }
+    }
+
+    method roots(Complex $x: Int $n) {
+       return NaN if $n < 1;
+       return self if $n == 1;
+       return NaN  if $x.re | $x.im ~~  Inf | NaN | -Inf;
+
+       my ($mag, $angle) = $x.polar;
+       $mag **= 1 / $n;
+       (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
+    }
+
+    multi method polar() {
+        $.abs, atan2($.im, $.re);
     }
 
     method sin(Complex $x: $base = Radians) {
@@ -167,45 +204,10 @@ class Complex does Numeric is Cool {
         (1 / $x).atanh($base);
     }
 
-    multi method polar() {
-        $.abs, atan2($.im, $.re);
-    }
+}
 
-    method roots(Complex $x: Int $n) {
-       return NaN if $n < 1;
-       return self if $n == 1;
-       return NaN  if $x.re | $x.im ~~  Inf | NaN | -Inf;
-
-       my ($mag, $angle) = $x.polar;
-       $mag **= 1 / $n;
-       (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
-    }
-
-    multi method sign() {
-        fail('Cannot take the sign() of a Complex number');
-    }
-
-    method sqrt() {
-        Q:PIR {
-            .local pmc self
-            self = find_lex 'self'
-            $P0 = get_root_namespace ['parrot'; 'Complex' ]
-            $P0 = get_class $P0
-            $P0 = $P0.'new'()
-            $N0 = self.'re'()
-            $P0[0] = $N0
-            $N1 = self.'im'()
-            $P0[1] = $N1
-            $P0 = $P0.'sqrt'()
-            $N0 = $P0[0]
-            $P2 = box $N0
-            $N1 = $P0[1]
-            $P3 = box $N1
-            $P1 = get_hll_global 'Complex'
-            $P1 = $P1.'new'($P2, $P3)
-            %r  = $P1
-        }
-    }
+multi sub prefix:<->(Complex $a) {
+    Complex.new(-$a.re, -$a.im);
 }
 
 multi sub infix:<+>(Complex $a, Complex $b) {
@@ -265,10 +267,6 @@ multi sub infix:</>(Real $a, Complex $b) {
     Complex.new($a, 0) / $b;
 }
 
-multi sub prefix:<->(Complex $a) {
-    Complex.new(-$a.re, -$a.im);
-}
-
 multi sub infix:<**>(Complex $a, Complex $b) {
    ($a.log * $b).exp;
 }
@@ -280,11 +278,5 @@ multi sub infix:<**>(Complex $a, Real $b) {
 multi sub infix:<**>(Real $a, Complex $b) {
     ($a.log * $b).exp;
 }
-
-multi sub log(Complex $x) {
-    $x.log()
-}
-
-multi sub sign(Complex $x) { $x.sign }
 
 # vim: ft=perl6

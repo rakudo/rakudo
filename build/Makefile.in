@@ -162,6 +162,7 @@ CHEATS_PIR = \
   src/cheats/parrot-role-quirks.pir \
   src/cheats/parrot/attriter.pir \
   src/cheats/parrot/Protoobject.pir \
+  src/cheats/parrot/P6metaclass.pir \
   src/cheats/parrot/P6role.pir \
   src/gen/uprop-cheats.pir \
   src/cheats/parrot/register.pir \
@@ -221,6 +222,9 @@ CORE_SOURCES = \
   src/core/Date.pm \
   src/core/Temporal.pm \
   src/core/Match.pm \
+  src/core/Attribute.pm \
+  src/core/CallFrame.pm \
+  src/core/LexPad.pm \
   src/core/MAIN.pm \
   src/core/YOU_ARE_HERE.pm \
 
@@ -394,10 +398,10 @@ Test.pir: Test.pm perl6.pbc
 
 test    : coretest
 
-fulltest: coretest spectest
+fulltest: coretest spectest stresstest
 
 coretest: Test.pir $(PERL6_EXE)
-	$(PERL) t/harness t/00-parrot t/01-sanity
+	PARROT=$(PARROT) $(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
 
 # Run the spectests that we know work.
 spectest_regression: spectest
@@ -413,6 +417,9 @@ t/spec :
 
 spectest_update :
 	-cd t/spec && svn up
+
+stresstest: testable t/stresstest.data
+	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/stresstest.data
 
 rakudo_test_run.tar.gz: testable t/spectest.data
 	- $(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@

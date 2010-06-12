@@ -23,6 +23,11 @@ role Numeric {
         self.Real.Num;
     }
 
+    method Str() {
+        note "$.WHAT() needs a version of .Str";
+        fail "$.WHAT() needs a version of .Str";
+    }
+
     method reals() {
         note "$.WHAT() needs a version of .reals";
         fail "$.WHAT() needs a version of .reals";
@@ -41,7 +46,7 @@ role Numeric {
         fail "$.WHAT() needs a version of .abs";
     }
 
-    multi method exp(Numeric $exponent: Numeric $base = e) {
+    method exp(Numeric $exponent: Numeric $base = e) {
         note "$.WHAT() needs a version of .exp";
         fail "$.WHAT() needs a version of .exp";
     }
@@ -80,6 +85,41 @@ role Numeric {
 
     method from-radians(Numeric $x: $base) {
         $x / pir::get_global__Ps('@trig-base-conversions')[$base];
+    }
+
+    method sign(Numeric $x:) {
+        note "sign is only defined for Reals, you have a $.WHAT()";
+        fail "sign is only defined for Reals, you have a $.WHAT()";
+    }
+
+    method floor(Numeric $x:) {
+        note "floor is only defined for Reals, you have a $.WHAT()";
+        fail "floor is only defined for Reals, you have a $.WHAT()";
+    }
+
+    method ceiling(Numeric $x:) {
+        note "ceiling is only defined for Reals, you have a $.WHAT()";
+        fail "ceiling is only defined for Reals, you have a $.WHAT()";
+    }
+
+    method truncate(Numeric $x:) {
+        note "truncate is only defined for Reals, you have a $.WHAT()";
+        fail "truncate is only defined for Reals, you have a $.WHAT()";
+    }
+
+    method round(Numeric $x: $scale = 1) {
+        note "round is only defined for Reals, you have a $.WHAT()";
+        fail "round is only defined for Reals, you have a $.WHAT()";
+    }
+
+    method cis(Numeric $angle:) {
+        note "cis is only defined for Reals, you have a $.WHAT()";
+        fail "cis is only defined for Reals, you have a $.WHAT()";
+    }
+
+    method unpolar(Numeric $mag: Numeric $angle) {
+        note "unpolar is only defined for Reals, you have a $.WHAT()";
+        fail "unpolar is only defined for Reals, you have a $.WHAT()";
     }
 
     method sin(Numeric $x: $base = Radians) {
@@ -201,13 +241,18 @@ role Numeric {
         note "$.WHAT() needs a version of .acotanh";
         fail "$.WHAT() needs a version of .acotanh";
     }
-}
 
-multi sub infix:«cmp»(Numeric $a, Numeric $b) { $a <=> $b; }
+    method atan2(Numeric $y: Numeric $x = 1, $base = Radians) {
+        note "atan2 is only defined for Reals, you have a $.WHAT()";
+        fail "atan2 is only defined for Reals, you have a $.WHAT()";
+    }
+}
 
 multi sub postfix:<i>(Numeric $z) {
     $z * 1i;
 }
+
+multi sub infix:«cmp»(Numeric $a, Numeric $b) { $a <=> $b; }
 
 multi sub infix:«<=>»(Numeric $a, Numeric $b) {
     my @a = $a.reals;

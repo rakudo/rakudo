@@ -652,7 +652,7 @@ method fatarrow($/) {
 method colonpair($/) {
     if $*key {
         if $<var> {
-            make make_pair($*key, make_variable($/, ~$<var>));
+            make make_pair($*key, make_variable($/<var>, ~$<var>));
         }
         elsif $*value ~~ Regex::Match {
             make make_pair($*key, $*value.ast);
@@ -916,7 +916,8 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         }
         my %attr_info;
         %attr_info<name>      := $attrname;
-        %attr_info<accessor> := $twigil eq '.' ?? 1 !! 0;
+        %attr_info<type>      := $*TYPENAME;
+        %attr_info<accessor>  := $twigil eq '.' ?? 1 !! 0;
         %attr_info<rw>        := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;
         @PACKAGE[0].attributes.push(%attr_info);
 
@@ -934,7 +935,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         # Not an attribute - need to emit delcaration here.
         # Create the container
         my $cont := $sigil eq '%' ??
-            PAST::Op.new( :name('&CREATE_HASH_LOW_LEVEL'), :pasttype('call') ) !!
+            PAST::Op.new( :name('&CREATE_HASH_FROM_LOW_LEVEL'), :pasttype('call') ) !!
             PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
         
         # Give it a 'rw' property unless it's explicitly readonly.

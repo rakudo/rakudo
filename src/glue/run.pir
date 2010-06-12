@@ -102,7 +102,7 @@ of the compilation unit.
     # Turn the env PMC into %*ENV (just read-only so far)
     .local pmc env
     env = root_new ['parrot';'Env']
-    $P2 = '&CREATE_HASH_LOW_LEVEL'(env)
+    $P2 = '&CREATE_HASH_FROM_LOW_LEVEL'(env)
     set_hll_global '%ENV', $P2
 
     # INIT time

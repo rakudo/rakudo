@@ -19,7 +19,7 @@ GetOptions(
     'tests-from-file=s' => \my $list_file,
     'fudge'             => \my $do_fudge,
     'verbosity=i'       => \$Test::Harness::verbose,
-    'jobs:3'            => \my $jobs,
+    'jobs:1'            => \my $jobs,
     'icu:1'             => \my $do_icu,
     'archive=s'         => \my $archive,
     'parrot_revision=s' => \my $parrot_revision,

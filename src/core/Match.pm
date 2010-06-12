@@ -44,7 +44,7 @@ class Match is Regex::Match is Cool does Associative {
 
     multi method hash() {
         # nextsame() dies here with 'Null PMC access in clone()'
-        CREATE_HASH_LOW_LEVEL(self.Regex::Match::hash);
+        CREATE_HASH_FROM_LOW_LEVEL(self.Regex::Match::hash);
     }
 
     multi method list() {

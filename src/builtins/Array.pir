@@ -16,7 +16,7 @@ Arrays are the mutable form of Lists.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('Array', 'parent'=>'Lyst')
+    proto = p6meta.'new_class'('Array', 'parent'=>'List')
 .end
 
 

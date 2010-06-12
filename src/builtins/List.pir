@@ -1,9 +1,9 @@
 =head1 TITLE
 
-Lyst - Perl 6 List class
+List - Perl 6 List class
 
 This file implements Perl 6 lists.
-(It's temporarily named "Lyst" to avoid conflict with existing
+(It's temporarily named "List" to avoid conflict with existing
 List classes while we convert to the new list model.)
 
 =head1 DESCRIPTION
@@ -14,13 +14,13 @@ List classes while we convert to the new list model.)
 
 =cut
 
-.namespace ['Lyst']
+.namespace ['List']
 .sub 'onload' :anon :init :load
     .local pmc p6meta, listproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     
     # Create the class.
-    listproto = p6meta.'new_class'('Lyst', 'parent'=>'Iterable', 'attr'=>'$!flat @!items @!rest')
+    listproto = p6meta.'new_class'('List', 'parent'=>'Iterable', 'attr'=>'$!flat @!items @!rest')
 .end
 
 
@@ -33,7 +33,7 @@ List classes while we convert to the new list model.)
 .end
 
 
-.namespace ['Lyst']
+.namespace ['List']
 .sub 'eager' :method
     .local pmc items
     items = self.'!fill'()
@@ -43,7 +43,7 @@ List classes while we convert to the new list model.)
 .end
 
 
-.namespace ['Lyst']
+.namespace ['List']
 .sub 'elems' :method
     .local pmc items
     items = self.'!fill'()
@@ -52,7 +52,7 @@ List classes while we convert to the new list model.)
 .end
 
 
-.namespace ['Lyst']
+.namespace ['List']
 .sub 'flat' :method
     .local pmc items, rest, flat
     flat  = getattribute self, '$!flat'
@@ -77,7 +77,7 @@ List classes while we convert to the new list model.)
   items_done:
 
     .local pmc flatlist
-    flatlist = new ['Lyst']
+    flatlist = new ['List']
     flat = get_hll_global 'True'
     setattribute flatlist, '$!flat', flat
     setattribute flatlist, '@!items', items
@@ -86,7 +86,7 @@ List classes while we convert to the new list model.)
 .end
 
 
-.namespace ['Lyst']
+.namespace ['List']
 .sub 'item' :method
     $P0 = new ['ObjectRef'], self
     $P1 = get_hll_global 'True'
@@ -112,7 +112,7 @@ List classes while we convert to the new list model.)
 .end
 
 
-.namespace ['Lyst']
+.namespace ['List']
 .sub 'perl' :method
     $P0 = self.'eager'()
     $P0 = $P0.'perl'()
@@ -120,7 +120,7 @@ List classes while we convert to the new list model.)
 .end
 
 
-.namespace ['Lyst']
+.namespace ['List']
 .sub 'postcircumfix:<[ ]>' :method :multi(_, ['Integer'])
     .param int n
     .local pmc items, elem
@@ -137,7 +137,7 @@ List classes while we convert to the new list model.)
 .end
 
  
-.namespace ['Lyst']
+.namespace ['List']
 .sub '!fill' :method
     .param int n               :optional
     .param int has_n           :opt_flag

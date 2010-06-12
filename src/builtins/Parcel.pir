@@ -48,7 +48,7 @@ elements and can be flattened into Captures or Lists.
 
 .sub 'flat' :method
     .local pmc newlist, flat, rest
-    newlist = new ['Lyst']
+    newlist = new ['List']
     flat = get_hll_global 'True'
     setattribute newlist, '$!flat', flat
     rest = root_new ['parrot';'ResizablePMCArray']

@@ -25,6 +25,17 @@ flatten in list context.
     proto = p6meta.'new_class'('Iterator', 'parent'=>'Iterable')
 .end
 
+
+.namespace ['Iterator']
+.sub 'list' :method
+    .local pmc list
+    list = new ['List']
+    $P0 = root_new ['parrot';'ResizablePMCArray']
+    push $P0, self
+    setattribute list, '@!rest', $P0
+    .return (list)
+.end
+
 =back
 
 =cut

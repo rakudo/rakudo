@@ -25,6 +25,8 @@ augment class Any {
         1;
     }
 
+    multi method flat() { self.list.flat }
+
     our multi method map(&block) {
         Q:PIR {
             .local pmc self, block, map

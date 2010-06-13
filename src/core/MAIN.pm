@@ -125,6 +125,11 @@ our sub MAIN_HELPER() {
         my $msg = ($*PROGRAM_NAME eq '-e' ?? "-e '...'" !! $*PROGRAM_NAME )~ ' '  ~ @arguments.join(' ');
         @help-msgs.push( $msg );
     }
-    ("Usage:\n" ~ @help-msgs.join("\nor\n") ).say;
-    return 0; #TODO: Better return value
+    my $msg = ("Usage:\n" ~ @help-msgs.join("\nor\n") );
+    if (@*ARGS ~~ ['--help']) {
+        $*OUT.say($msg);
+    } else {
+        $*ERR.say($msg);
+        exit 29; #TODO: Better return value
+    }
 }

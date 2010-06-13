@@ -24,6 +24,11 @@ augment class List does Positional {
         }
     }
 
+    our method shift() { 
+       self!fill(1) ?? pir::shift(@!items)
+                    !! fail('Undefined value shifted from empty list')
+    }
+
     our multi method postcircumfix:<[ ]>($index) {
         Q:PIR {
             .local pmc self, items

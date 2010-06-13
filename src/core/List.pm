@@ -20,6 +20,18 @@ augment class List does Positional {
             %r = mapiter.'list'()
         }
     }
+
+    multi method postcircumfix:<[ ]>($index) {
+        Q:PIR {
+            .local pmc self, items
+            self = find_lex 'self'
+            $P0 = find_lex '$index'
+            $I0 = $P0
+            $I1 = $I0 + 1
+            items = self.'!fill'($I1)
+            %r = items[$I0]
+        }
+    }
 }
 
 

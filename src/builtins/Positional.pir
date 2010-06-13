@@ -22,7 +22,7 @@ use the one in Positional.
 .namespace []
 .sub '!postcircumfix:<[ ]>'
     .param pmc invocant
-    .param pmc args            :slurpy
+    .param pmc args
     $I0 = can invocant, 'postcircumfix:<[ ]>'
     if $I0 goto object_method
     $I0 = isa invocant, 'Mu'
@@ -30,9 +30,11 @@ use the one in Positional.
   foreign:
     # XXX not a good idea, this relies on the method being in the namespace
     $P0 = get_hll_global ['Positional[::T]'], 'postcircumfix:<[ ]>'
-    .tailcall invocant.$P0(args :flat)
+    $P1 = invocant.$P0(args)
+    .return ($P1)
   object_method:
-    .tailcall invocant.'postcircumfix:<[ ]>'(args :flat)
+    $P1 = invocant.'postcircumfix:<[ ]>'(args)
+    .return ($P1)
 .end
 
 

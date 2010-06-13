@@ -153,21 +153,21 @@ List classes while we convert to the new list model.)
 .end
 
 
-.namespace ['List']
-.sub 'postcircumfix:<[ ]>' :method :multi(_, ['Integer'])
-    .param int n
-    .local pmc items, elem
-    items = getattribute self, '@!items'
-    if null items goto fill_items
-    $I0 = elements items
-    if n < $I0 goto have_items
-  fill_items:
-    $I0 = n + 1
-    items = self.'!fill'($I0)
-  have_items:
-    elem = items[n]
-    .return (elem)
-.end
+# .namespace ['List']
+# .sub 'postcircumfix:<[ ]>' :method :multi(_, _)
+#     .param int n
+#     .local pmc items, elem
+#     items = getattribute self, '@!items'
+#     if null items goto fill_items
+#     $I0 = elements items
+#     if n < $I0 goto have_items
+#   fill_items:
+#     $I0 = n + 1
+#     items = self.'!fill'($I0)
+#   have_items:
+#     elem = items[n]
+#     .return (elem)
+# .end
 
  
 .namespace ['List']

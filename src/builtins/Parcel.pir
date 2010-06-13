@@ -121,19 +121,6 @@ Construct an iterator for the Parcel.
 .end
 
 
-=item Seq()
-
-Return the Parcel as a Seq.
-
-=cut
-
-.sub 'Seq' :method
-    $P0 = self.'flat'()
-    .return ($P0)
-.end
-
-
-
 =item Bool()
 
 =cut
@@ -180,7 +167,7 @@ Coerce the Parcel into a capture.
 =cut
 
 .sub '!FETCH' :method
-    $P0 = self.'Seq'()
+    $P0 = self.'flat'()
     $P0 = new ['Perl6Scalar'], $P0
     .return ($P0)
 .end

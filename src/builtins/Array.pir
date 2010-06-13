@@ -60,6 +60,23 @@ Arrays are the mutable form of Lists.
 
 =over 4
 
+=cut
+
+.namespace ['Array']
+.sub '!STORE' :method
+    .param pmc source
+    .local pmc list
+    list = source.'flat'()
+    $P0 = getattribute list, '@!items'
+    setattribute self, '@!items', $P0
+    $P0 = getattribute list, '@!rest'
+    setattribute self, '@!rest', $P0
+    $P0 = getattribute list, '$!flat'
+    setattribute self, '$!flat', $P0
+    .return (self)
+.end
+
+
 =item !elem(item)
 
 Create an element for the Array (has the 'rw' property set).

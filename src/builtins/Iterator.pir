@@ -31,7 +31,8 @@ flatten in list context.
     .local pmc list
     list = new ['List']
     $P0 = root_new ['parrot';'ResizablePMCArray']
-    push $P0, self
+    $P1 = descalarref self
+    push $P0, $P1
     setattribute list, '@!rest', $P0
     .return (list)
 .end

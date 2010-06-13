@@ -1,4 +1,8 @@
 augment class List does Positional {
+    # N.B.: methods defined in src/builtins/List.pir:
+    #    .new, .eager, .elems, .flat, .item, .iterator,
+    #    .list, .munch, .perl, !fill
+
     method Bool() {
         self!fill(1) ?? Bool::True !! Bool::False;
     }
@@ -13,13 +17,14 @@ augment class List does Positional {
 
     multi method map(&block) {
         Q:PIR {
-            .local pmc mapiter, block, list, maplist
+            .local pmc self, mapiter, block
             mapiter = new ['MapIter']
             block = find_lex '&block'
             setattribute mapiter, '&!block', block
-            $P0 = find_lex 'self'
-            list = $P0.'list'()
-            setattribute mapiter, '@!list', list
+            self = find_lex 'self'
+            $P0 = self.'iterator'()
+            $P0 = $P0.'list'()
+            setattribute mapiter, '@!list', $P0
             %r = mapiter.'list'()
         }
     }

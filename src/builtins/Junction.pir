@@ -297,7 +297,7 @@ Return the components of the Junction.
     .param pmc comparer
 
     .local pmc ulist
-    ulist = new ['Parcel']
+    ulist = root_new ['parrot';'ResizablePMCArray']
 
     .local pmc it_inner, it_outer, val
     it_outer = iter self

@@ -4,11 +4,11 @@ augment class Array {
         '[' ~ self.map({ $^a.perl }).join(', ') ~ ']';
     }
 
-    our Bool multi method exists(Int *@indices) {
+    our Bool multi method exists(*@indices) {
         if !@indices.elems || (any(@indices) < 0 || any(@indices) > self.end) {
             return False;
         }
-        [?&] map { self.values[$^a] !~~ Proxy }, @indices;
+        [?&] map { self[$^a] !~~ Proxy }, @indices;
     }
 
     our multi method postcircumfix:<[ ]> (Int $i) {

@@ -11,7 +11,7 @@ augment class Array {
         [?&] map { self.values[$^a] !~~ Proxy }, @indices;
     }
 
-    our multi method postcircumfix:<[ ]> ($i) {
+    our multi method postcircumfix:<[ ]> (Int $i) {
         if $i < 0 { die "Cannot use negative index on arrays" }
         #XXX: .exists calls postcircumfix<[ ]>, so can't perl6ify this for now...
         return Q:PIR{

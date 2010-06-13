@@ -1,13 +1,14 @@
 
-multi sub RangeIterCmp($a, $b) {
-    $a cmp $b;
-}
-
-multi sub RangeIterCmp(Str $a, Str $b) {
-    $a.chars <=> $b.chars || $a cmp $b;
-}
-
 class RangeIter is Iterator {
+
+    multi sub RangeIterCmp($a, $b) {
+        $a cmp $b;
+    }
+
+    multi sub RangeIterCmp(Str $a, Str $b) {
+        $a.chars <=> $b.chars || $a cmp $b;
+    }
+
     has $!value;
     has $!max;
     has $!excludes_max;

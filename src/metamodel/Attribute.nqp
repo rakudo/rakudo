@@ -6,6 +6,7 @@ has $!build;
 has $!has_accessor;
 has $!rw;
 has $!handles;
+has $!trait_applier;
 
 method new(:$name, :$type, :$build, :$has_accessor, :$rw, :$handles) {
     my $attr := pir::new__PS('Attribute');
@@ -44,6 +45,17 @@ method handles() {
 
 method readonly() {
     !$!rw
+}
+
+method apply_traits($metaclass, $container) {
+    if $!trait_applier {
+        my $decl := AttributeDeclarand.new(
+            container => $container,
+            how => $metaclass,
+            name => $!name
+        );
+        $!trait_applier($decl);
+    }
 }
 
 method compose($package) {

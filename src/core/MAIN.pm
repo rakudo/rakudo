@@ -30,7 +30,8 @@ our sub MAIN_HELPER() {
                     @positional-arguments.push: @args;
                     last;
                 } elsif %named{$arg} ~~ Bool {
-                    %named-arguments{$arg}=True;
+                    %named-arguments{$arg}=not $negate;
+                    $negate='';
                 } elsif %named{$arg} ~~ Array || ($passed_value.match( /\=/ ) &&  %named{$arg.split('=', 2)[0]} ~~ Array ) {
                     if $passed_value.match( /\=/ ) {
                         my ($name , $value) = $arg.split('=', 2);

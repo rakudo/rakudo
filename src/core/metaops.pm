@@ -166,60 +166,58 @@ our multi sub hyper(&op, $arg) {
     hyper(&op, $arg.list)
 }
 
-our multi sub reducewith(&op, Iterable $an-iterable,
+our multi sub reducewith(&op, @array,
                          :$chaining,
                          :$right-assoc,
                          :$triangle) {
-    my $ai = $an-iterable.iterator;
-    $ai = $ai.Seq.reverse.iterator if $right-assoc;
+    my @a = @array;
+    @a = @a.reverse if $right-assoc;
 
     if $triangle {
-        gather {
-            my $result = $ai.get;
-            return if $result ~~ EMPTY;
-
-            if $chaining {
-                my $bool = Bool::True;
-                take Bool::True;
-                loop {
-                    my $next = $ai.get;
-                    last if $next ~~ EMPTY;
-                    $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
-                    my $temp = $bool;
-                    take $temp;
-                    $result = $next;
-                }
-            } else {
-                my $temp = $result;
-                take $temp;
-                loop {
-                    my $next = $ai.get;
-                    last if $next ~~ EMPTY;
-                    $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
-                    my $temp = $result;
-                    take $temp;
-                }
-            }
-        }
+        # gather {
+        #     my $result = $ai.get;
+        #     return if $result ~~ EMPTY;
+        #
+        #     if $chaining {
+        #         my $bool = Bool::True;
+        #         take Bool::True;
+        #         loop {
+        #             my $next = $ai.get;
+        #             last if $next ~~ EMPTY;
+        #             $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
+        #             my $temp = $bool;
+        #             take $temp;
+        #             $result = $next;
+        #         }
+        #     } else {
+        #         my $temp = $result;
+        #         take $temp;
+        #         loop {
+        #             my $next = $ai.get;
+        #             last if $next ~~ EMPTY;
+        #             $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
+        #             my $temp = $result;
+        #             take $temp;
+        #         }
+        #     }
+        # }
     } else {
-        my $result = $ai.get;
-        if $result ~~ EMPTY {
+        if +@a == 0 {
             return &op();
         }
+        my $result = @a.shift;
 
         if $chaining {
             my $bool = Bool::True;
-            loop {
-                my $next = $ai.get;
-                last if $next ~~ EMPTY;
+            while +@a {
+                my $next = @a.shift;
                 $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
                 $result = $next;
             }
             return $bool;
         } else {
-            loop {
-                my $next = $ai.get;
-                last if $next ~~ EMPTY;
+            while +@a {
+                my $next = @a.shift;
                 $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
             }
         }

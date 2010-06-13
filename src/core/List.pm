@@ -1,4 +1,7 @@
 augment class List does Positional {
+    method Bool() {
+        self!fill(1) ?? Bool::True !! Bool::False;
+    }
 
     method Num() {
         self.elems;

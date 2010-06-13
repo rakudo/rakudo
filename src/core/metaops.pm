@@ -170,6 +170,11 @@ our multi sub reducewith(&op, @array,
                          :$chaining,
                          :$right-assoc,
                          :$triangle) {
+    # This "if" works around the empty array copying bug
+    if !$triangle && !@array {
+        return &op();
+    }
+
     my @a = @array;
     @a = @a.reverse if $right-assoc;
 
@@ -202,21 +207,21 @@ our multi sub reducewith(&op, @array,
         #     }
         # }
     } else {
-        if +@a == 0 {
+        if !@a {
             return &op();
         }
         my $result = @a.shift;
 
         if $chaining {
             my $bool = Bool::True;
-            while +@a {
+            while ?@a {
                 my $next = @a.shift;
                 $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
                 $result = $next;
             }
             return $bool;
         } else {
-            while +@a {
+            while ?@a {
                 my $next = @a.shift;
                 $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
             }

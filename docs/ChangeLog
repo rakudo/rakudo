@@ -5,6 +5,7 @@ New in 2010.06 release
 + basic Buf implementation
 + proper Perl 6 match objects
 + Backtraces with Perl 6 subroutine names and line numbers
++ MAIN and USAGE subs
 
 New in 2010.05 release
 + implemented lexical and anonymous classes and roles

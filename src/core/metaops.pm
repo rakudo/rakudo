@@ -166,12 +166,12 @@ our multi sub hyper(&op, $arg) {
     hyper(&op, $arg.list)
 }
 
-our multi sub reducewith(&op, @args,
+our multi sub reducewith(&op, $args,
                          :$chaining,
                          :$right-assoc,
                          :$triangle) {
 
-    my $list = $right-assoc ?? @args.reverse !! @args.list;
+    my $list = $right-assoc ?? $args.reverse !! $args.list;
 
     if $triangle {
         # gather {
@@ -223,13 +223,6 @@ our multi sub reducewith(&op, @args,
         }
         $result;
     }
-}
-
-our multi sub reducewith(&op, $arg,
-                         :$chaining,
-                         :$right-assoc,
-                         :$triangle) {
-    reducewith(&op, $arg.list, :$chaining, :$right-assoc, :$triangle);
 }
 
 # degenerate case of operators, to be used by reduce() for the 0-ary case

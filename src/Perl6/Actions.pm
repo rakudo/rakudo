@@ -64,7 +64,9 @@ method comp_unit($/, $key?) {
     # run MAIN subs
     # TODO: run this only when not in a module
     # TODO: find a less hacky solution than IN_EVAL
-    unless IN_EVAL() {
+    # TODO: find a way to inject MAIN_HELPER call without modifying
+    # the return value of the compilation unit
+    if !IN_EVAL() && $mainline.symbol('&MAIN') {
         $mainline.push(
             PAST::Op.new(
                 :pasttype('call'),

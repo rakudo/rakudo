@@ -11,7 +11,7 @@ augment class Array {
         [?&] map { self.values[$^a] !~~ Proxy }, @indices;
     }
 
-    our multi method postcircumfix:<[ ]> (Int $i) {
+    our multi method postcircumfix:<[ ]> ($i) {
         if $i < 0 { die "Cannot use negative index on arrays" }
         #XXX: .exists calls postcircumfix<[ ]>, so can't perl6ify this for now...
         return Q:PIR{
@@ -30,14 +30,6 @@ augment class Array {
             $P0 = get_hll_global ['Bool'], 'True'
             setprop %r, 'rw', $P0
         }
-    }
-
-    our multi method postcircumfix:<[ ]>(Block $b) {
-        return self.[$b.(self.elems)]
-    }
-
-    our multi method postcircumfix:<[ ]>(Whatever) {
-        return self.values
     }
 
     our method push(*@values) is export {

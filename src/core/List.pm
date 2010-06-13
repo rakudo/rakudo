@@ -21,7 +21,7 @@ augment class List does Positional {
         }
     }
 
-    multi method postcircumfix:<[ ]>($index) {
+    our multi method postcircumfix:<[ ]>($index) {
         Q:PIR {
             .local pmc self, items
             self = find_lex 'self'

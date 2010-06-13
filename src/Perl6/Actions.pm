@@ -711,7 +711,7 @@ method variable($/) {
 
 sub make_variable($/, $name) {
     my @name := Perl6::Grammar::parse_name($name);
-    my $past := PAST::Var.new( :name(@name.pop) );
+    my $past := PAST::Var.new( :name(@name.pop), :node($/));
     if @name {
         $past.namespace(@name);
         $past.scope('package');

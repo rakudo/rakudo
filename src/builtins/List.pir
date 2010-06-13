@@ -113,6 +113,39 @@ List classes while we convert to the new list model.)
 
 
 .namespace ['List']
+.sub 'list' :method
+    .local pmc list
+    list = new ['List']
+    $P0 = getattribute self, '$!flat'
+    setattribute list, '$!flat', $P0
+    $P0 = getattribute self, '@!items'
+    setattribute list, '@!items', $P0
+    $P0 = getattribute self, '@!rest'
+    setattribute list, '@!rest', $P0
+    .return (list)
+.end
+
+
+
+.namespace ['List']
+.sub 'munch' :method
+    .param int n
+    .local pmc items, parcel
+    items = self.'!fill'(n)
+    parcel = new ['Parcel']
+  loop:
+    unless items goto done
+    unless n > 0 goto done
+    $P0 = shift items
+    push parcel, $P0
+    dec n
+    goto loop
+  done:
+    .return (parcel)
+.end
+
+
+.namespace ['List']
 .sub 'perl' :method
     $P0 = self.'eager'()
     $P0 = $P0.'perl'()

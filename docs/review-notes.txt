@@ -22,6 +22,13 @@ to some PIR-based testing here, since only PIR will really know if
 an element is present in the List/Array.
 
 
+Pm-2:  The subroutines in src/core/metaops.pm (e.g,. &reducewith)
+all end up being visible in the core setting.  Should they be?
+(I'm thinking they're actually internal helper subs, and as such 
+should not be part of the core setting, much less global subs
+as they are now.)
+
+
 ------
 
 Resolved notes:

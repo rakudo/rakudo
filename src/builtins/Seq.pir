@@ -18,14 +18,8 @@ sequence of items.
     .local pmc p6meta, seqproto, pos_role
     p6meta = get_hll_global ['Mu'], '$!P6META'
     
-    # Select generic version of Positional (for untyped) and do it.
-    # XXX When List becomes a parametric role too, we'd pass in the
-    # given T to select below.
-    pos_role = get_hll_global 'Positional'
-    pos_role = pos_role.'!select'()
-
     # Create the class.
-    seqproto = p6meta.'new_class'('Seq', 'parent'=>'Iterable', 'attr'=>'@!items $!rest', 'does_role'=>pos_role)
+    seqproto = p6meta.'new_class'('Seq', 'parent'=>'Iterable', 'attr'=>'@!items $!rest')
 .end
 
 

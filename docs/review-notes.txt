@@ -29,6 +29,10 @@ should not be part of the core setting, much less global subs
 as they are now.)
 
 
+Pm-3:  Is there any strong reason why Junction.new has C<:any>,
+C<:all>, C<:one>, etc. flags instead of just using  C<< :type<any> >>?
+
+
 ------
 
 Resolved notes:

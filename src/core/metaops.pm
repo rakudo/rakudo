@@ -166,17 +166,12 @@ our multi sub hyper(&op, $arg) {
     hyper(&op, $arg.list)
 }
 
-our multi sub reducewith(&op, @array,
+our multi sub reducewith(&op, @args,
                          :$chaining,
                          :$right-assoc,
                          :$triangle) {
-    # This "if" works around the empty array copying bug
-    if !$triangle && !@array {
-        return &op();
-    }
 
-    my @a = @array;
-    @a = @a.reverse if $right-assoc;
+    my $list = $right-assoc ?? @args.reverse !! @args.list;
 
     if $triangle {
         # gather {
@@ -207,22 +202,22 @@ our multi sub reducewith(&op, @array,
         #     }
         # }
     } else {
-        if !@a {
+        if !$list {
             return &op();
         }
-        my $result = @a.shift;
+        my $result = $list.shift;
 
         if $chaining {
             my $bool = Bool::True;
-            while ?@a {
-                my $next = @a.shift;
+            while ?$list {
+                my $next = $list.shift;
                 $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
                 $result = $next;
             }
             return $bool;
         } else {
-            while ?@a {
-                my $next = @a.shift;
+            while ?$list {
+                my $next = $list.shift;
                 $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
             }
         }

@@ -1,6 +1,8 @@
 role Positional[::T = Mu] {
     our multi method postcircumfix:<[ ]>() { self.list }
 
+    our multi method postcircumfix:<[ ]>(&block) { self[&block(self.elems)]; }
+
     our multi method postcircumfix:<[ ]>(@index) {
         Q:PIR {
             .local pmc result, self, flat

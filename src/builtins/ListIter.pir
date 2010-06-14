@@ -46,7 +46,7 @@ is a fairly common operation.
     setattribute list, '@!items', $P0
     # if the List still has elements, append a new ListIter to handle them
     rest = getattribute list, '@!rest'
-    if null rest goto iter_reified
+    unless rest goto iter_reified
     nextiter = new ['ListIter']
     setattribute nextiter, '@!list', list
     push reify, nextiter

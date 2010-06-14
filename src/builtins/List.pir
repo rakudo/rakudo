@@ -220,7 +220,12 @@ List classes while we convert to the new list model.)
     items = root_new ['parrot';'ResizablePMCArray']
     setattribute self, '@!items', items
   have_items:
-    if null rest goto done
+    unless null rest goto have_rest
+    rest = root_new ['parrot';'ResizablePMCArray']
+    setattribute self, '@!rest', rest
+  have_rest:
+
+    unless rest goto done
     .local int items_n
     items_n = elements items
  
@@ -256,10 +261,7 @@ List classes while we convert to the new list model.)
     inc items_n
     goto items_loop
   items_done:
-    if rest goto done
   rest_done:
-    null rest
-    setattribute self, '@!rest', rest
   done:
     .return (items)
 .end

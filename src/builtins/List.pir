@@ -25,11 +25,13 @@ List classes while we convert to the new list model.)
 
 
 .sub 'new' :method
-    .param pmc parcel          :slurpy
-    .local pmc newlist
-    newlist = self.'CREATE'()
-    setattribute newlist, '@!rest', parcel
-    .return (newlist)
+    .param pmc values          :slurpy
+    .local pmc p6meta, parrotclass, list, true
+    p6meta = get_hll_global ['Mu'], '$!P6META'
+    parrotclass = p6meta.'get_parrotclass'(self)
+    list = new parrotclass
+    setattribute list, '@!rest', values
+    .return (list)
 .end
 
 

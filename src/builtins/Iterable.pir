@@ -27,15 +27,6 @@ as "is Iterable" should be come "does Iterable".
     proto = p6meta.'new_class'('Iterable', 'parent'=>'Cool')
 .end
 
-=item list()
-
-=cut
-
-.sub 'list' :method
-    $P0 = descalarref self
-    .return ($P0)
-.end
-
 =back
 
 =cut

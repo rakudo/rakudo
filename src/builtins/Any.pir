@@ -54,6 +54,18 @@ This file implements the Any class.
     .tailcall $P0.'does'(self, x)
 .end
 
+=item list()
+
+=cut
+
+.sub 'list' :method
+    $P0 = new ['List']
+    $P1 = root_new ['parrot';'ResizablePMCArray']
+    push $P1, self
+    setattribute $P0, '@!items', $P1
+    .return ($P0)
+.end
+
 =back
 
 =cut

@@ -40,7 +40,7 @@ List classes while we convert to the new list model.)
 .sub 'eager' :method
     .local pmc items
     self.'!fill'()
-    $P0 = self.'list'()
+    $P0 = descalarref self
     .return ($P0)
 .end
 

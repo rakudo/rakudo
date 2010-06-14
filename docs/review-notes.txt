@@ -33,6 +33,9 @@ Pm-3:  Is there any strong reason why Junction.new has C<:any>,
 C<:all>, C<:one>, etc. flags instead of just using  C<< :type<any> >>?
 
 
+Pm-4:  Why does Rakudo have  "EnumMap is Cool" ?
+
+
 ------
 
 Resolved notes:

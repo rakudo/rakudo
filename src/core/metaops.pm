@@ -15,35 +15,26 @@ our multi sub sequentialargs(&op, Mu \$a, Mu \$b) {
     &op($a, $b);
 }
 
-our multi sub zipwith(&op, Iterable $a-iterable, Iterable $b-iterable) {
-    my $ai = $a-iterable.iterator;
-    my $bi = $b-iterable.iterator;
-    gather loop {
-        my $a = $ai.get;
-        my $b = $bi.get;
-        last if ($a ~~ EMPTY) || ($b ~~ EMPTY);
+our multi sub zipwith(&op, $lhs, $rhs) {
+    my $lhs-list = $lhs.flat;
+    my $rhs-list = $rhs.flat;
+    gather while ?$lhs-list && ?$rhs-list {
+        my $a = $lhs-list.shift;
+        my $b = $rhs-list.shift;
         take &op($a, $b);
     }
 }
 
-our multi sub zipwith(&op, $a, $b) {
-    zipwith(&op, $a.list, $b.list);
-}
-
-our multi sub crosswith(&op, Iterable $a-iterable, Iterable $b-iterable) {
-    my $ai = $a-iterable.iterator;
-    my @b = $b-iterable.Seq;
-    gather loop {
-        my $a = $ai.get;
-        last if ($a ~~ EMPTY);
-        for @b -> $b {
+our multi sub crosswith(&op, $lhs, $rhs) {
+    my $lhs-list = $lhs.flat;
+    my $rhs-list = $rhs.flat;
+    gather while ?$lhs-list {
+        my $a = $lhs-list.shift;
+        for @($rhs-list) -> $b {
+            my $b-copy = $b;
             take &op($a, $b);
         }
     }
-}
-
-our multi sub crosswith(&op, $a, $b) {
-    crosswith(&op, $a.list, $b.list);
 }
 
 our multi reduce(&op, $list) {

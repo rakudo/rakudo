@@ -267,6 +267,51 @@ List classes while we convert to the new list model.)
 .end
 
 
+.namespace ['List']
+.sub '!splice' :method
+    .param pmc repl
+    .param int offset
+    .param int size            :optional
+    .param int has_size        :opt_flag
+
+    repl = repl.'iterator'()
+
+    .local pmc nil, items, rest
+    nil = root_new ['parrot';'ResizablePMCArray']
+
+    if has_size goto splice_sized
+    items = self.'!fill'(offset)
+    rest = getattribute self, '@!rest'
+    .local pmc retlist, retitems
+    retlist = self.'!List'()
+    retitems = getattribute retlist, '@!items'
+    splice retitems, nil, 0, offset
+    assign items, offset
+    assign rest, 0
+    unshift rest, repl
+    .return (retlist)
+
+  splice_sized:
+    .local int fill
+    fill = offset + size
+    items = self.'!fill'(fill)
+    rest = getattribute self, '@!rest'
+    retlist = self.'!List'()
+    retitems = getattribute retlist, '@!items'
+    splice retitems, nil, 0, offset
+    assign retitems, size
+    null $P0
+    setattribute retlist, '@!rest', $P0
+    .local pmc move
+    move = clone items
+    splice move, nil, 0, fill
+    splice rest, move, 0, 0
+    assign items, offset
+    unshift rest, repl
+    .return (retlist)
+.end
+
+
 .namespace []
 .sub '&flat'
     .param pmc values          :slurpy

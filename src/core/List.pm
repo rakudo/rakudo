@@ -11,6 +11,10 @@ augment class List does Positional {
         self.elems;
     }
 
+    method Seq() {
+        Seq.new(self).eager
+    }
+
     method Str() {
         pir::join(' ', self!fill);
     }
@@ -29,9 +33,25 @@ augment class List does Positional {
         }
     }
 
-    our method shift() { 
+    our method pop() {
+        self!fill ?? pir::pop(@!items)
+                  !! fail('Undefined value popped from empty array');
+    }
+
+    our method push(*@values) is export {
+        self!fill(0);
+        pir::push(@!rest, @values.Seq.eager.iterator );
+        self;
+    }
+
+    our method shift() is export { 
        self!fill(1) ?? pir::shift(@!items)
                     !! fail('Undefined value shifted from empty list')
+    }
+
+    our method unshift(*@values) is export {
+        self!splice(@values.Seq.eager, 0, 0);
+        self;
     }
 
     our multi method postcircumfix:<[ ]>($index) {

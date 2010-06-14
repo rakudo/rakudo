@@ -27,30 +27,6 @@ augment class Array {
         }
     }
 
-    our method push(*@values) is export {
-        self!fill;
-        pir::splice__0PPii( @!items, [@values].iterator.eager,
-                            pir::elements(@!items), 0);
-        self;
-    }
-
-    our method unshift(*@values) is export {
-        # Reify self, then splice @values at the beginning.
-        # We really should make this lazy, however.
-        pir::splice__0PPii( self!fill, [@values].iterator.eager, 0, 0);
-        self;
-    }
-
-    our multi method pop() {
-        self!fill ?? pir::pop(@!items)
-                  !! fail('Undefined value popped from empty array');
-    }
-
-    our multi method shift() {
-        self!fill(1) ?? pir::shift(@!items)
-                     !! fail('Undefined value shifted from empty array');
-    }
-
     our multi method splice($offset is copy = 0, $size? is copy, *@values) is export {
         self!fill;
         $offset += self.elems if ($offset < 0);

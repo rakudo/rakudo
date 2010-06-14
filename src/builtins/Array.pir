@@ -66,9 +66,7 @@ Arrays are the mutable form of Lists.
 .sub '!STORE' :method
     .param pmc source
     .local pmc list
-    list = source.'list'()
-    list = list.'!List'()
-    list = list.'flat'()
+    list = '&flat'(source)
     $P0 = getattribute list, '$!flat'
     setattribute self, '$!flat', $P0
     $P0 = getattribute list, '@!items'

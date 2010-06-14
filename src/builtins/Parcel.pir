@@ -40,31 +40,18 @@ elements and can be flattened into Captures or Lists.
 .end
 
 
-=item flat()
-
-=cut
-
-.sub 'flat' :method
-    .local pmc newlist, flat, rest
-    newlist = new ['List']
-    flat = get_hll_global 'True'
-    setattribute newlist, '$!flat', flat
-    rest = root_new ['parrot';'ResizablePMCArray']
-    splice rest, self, 0, 0
-    setattribute newlist, '@!rest', rest
-    .return (newlist)
-.end
-
-
 =item item()
 
-A Parcel in item context becomes a flattening List.
+A Parcel in item context becomes a Seq.
 
 =cut
 
 .sub 'item' :method
-    $P0 = self.'flat'()
-    .tailcall $P0.'item'()
+    .local pmc seq, flat, rest
+    seq = get_hll_global 'Seq'
+    seq = seq.'new'(self)
+    seq.'eager'()
+    .return (seq)
 .end
 
 

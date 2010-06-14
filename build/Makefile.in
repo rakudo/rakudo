@@ -129,6 +129,7 @@ BUILTINS_PIR = \
   src/builtins/Regex.pir \
   src/builtins/Associative.pir \
   src/builtins/Array.pir \
+  src/builtins/Seq.pir \
   src/builtins/Proxy.pir \
   src/builtins/ContainerDeclarand.pir \
   src/builtins/Exception.pir \

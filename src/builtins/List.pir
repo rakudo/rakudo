@@ -39,9 +39,8 @@ List classes while we convert to the new list model.)
 .namespace ['List']
 .sub 'eager' :method
     .local pmc items
-    items = self.'!fill'()
-    $P0 = new ['Parcel']
-    splice $P0, items, 0, 0
+    self.'!fill'()
+    $P0 = self.'list'()
     .return ($P0)
 .end
 

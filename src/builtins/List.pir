@@ -31,6 +31,7 @@ List classes while we convert to the new list model.)
     parrotclass = p6meta.'get_parrotclass'(self)
     list = new parrotclass
     setattribute list, '@!rest', values
+    transform_to_p6opaque list
     .return (list)
 .end
 

@@ -26,14 +26,15 @@ Seqs are Lists of (immutable) values.
 .namespace ['Seq']
 .sub 'new' :method
     .param pmc values          :slurpy
-    .local pmc p6meta, parrotclass, seq, true
+    .local pmc p6meta, parrotclass, list, true
     p6meta = get_hll_global ['Mu'], '$!P6META'
     parrotclass = p6meta.'get_parrotclass'(self)
-    seq = new parrotclass
-    true = get_hll_global 'True'
-    setattribute seq, '$!flat', true
-    setattribute seq, '@!rest', values
-    .return (seq)
+    list = new parrotclass
+    setattribute list, '@!rest', values
+    $P0 = get_hll_global 'True'
+    setattribute list, '$!flat', $P0
+    transform_to_p6opaque list
+    .return (list)
 .end
 
 =back

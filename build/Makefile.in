@@ -106,9 +106,10 @@ BUILTINS_PIR = \
   src/builtins/Iterator.pir \
   src/builtins/EMPTY.pir \
   src/builtins/List.pir \
+  src/builtins/ParrotIter.pir \
   src/builtins/ListIter.pir \
   src/builtins/MapIter.pir \
-  src/builtins/ParrotIter.pir \
+  src/builtins/GatherIter.pir \
   src/builtins/Parcel.pir \
   src/builtins/ParcelIter.pir \
   src/builtins/Bool.pir \
@@ -155,7 +156,6 @@ CHEATS_PIR = \
   src/cheats/str-ops.pir \
   src/cheats/relops.pir \
   src/cheats/mapiterator.pir \
-  src/cheats/gatheriterator.pir \
   src/cheats/only_infix_redispatcher.pir \
   src/cheats/import.pir \
   src/cheats/want-caller-side-callsig.pir \

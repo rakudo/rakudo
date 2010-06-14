@@ -88,7 +88,8 @@ List classes while we convert to the new list model.)
 
 .namespace ['List']
 .sub 'item' :method
-    $P0 = new ['ObjectRef'], self
+    $P0 = descalarref self
+    $P0 = new ['ObjectRef'], $P0
     $P1 = get_hll_global 'True'
     setprop $P0, 'scalar', $P1
     .return ($P0)
@@ -96,35 +97,18 @@ List classes while we convert to the new list model.)
 
 
 .sub 'iterator' :method
-    .local pmc parceliter, rpa
-    rpa = root_new ['parrot';'ResizablePMCArray']
-    $P0 = getattribute self, '@!rest'
-    if null $P0 goto have_rest
-    splice rpa, $P0, 0, 0
-  have_rest:
-    $P0 = getattribute self, '@!items'
-    if null $P0 goto have_items
-    splice rpa, $P0, 0, 0
-  have_items:
-    parceliter = new ['ParcelIter']
-    setattribute parceliter, '$!parcel', rpa
-    .return (parceliter)
+    $P0 = get_hll_global 'ListIter'
+    $P1 = self.'!List'()
+    $P0 = $P0.'new'($P1)
+    .return ($P0)
 .end
 
 
 .namespace ['List']
 .sub 'list' :method
-    .local pmc list
-    list = new ['List']
-    $P0 = getattribute self, '$!flat'
-    setattribute list, '$!flat', $P0
-    $P0 = getattribute self, '@!items'
-    setattribute list, '@!items', $P0
-    $P0 = getattribute self, '@!rest'
-    setattribute list, '@!rest', $P0
-    .return (list)
+    $P0 = descalarref self
+    .return ($P0)
 .end
-
 
 
 .namespace ['List']
@@ -153,21 +137,25 @@ List classes while we convert to the new list model.)
 .end
 
 
-# .namespace ['List']
-# .sub 'postcircumfix:<[ ]>' :method :multi(_, _)
-#     .param int n
-#     .local pmc items, elem
-#     items = getattribute self, '@!items'
-#     if null items goto fill_items
-#     $I0 = elements items
-#     if n < $I0 goto have_items
-#   fill_items:
-#     $I0 = n + 1
-#     items = self.'!fill'($I0)
-#   have_items:
-#     elem = items[n]
-#     .return (elem)
-# .end
+.namespace ['List']
+.sub '!List' :method
+    .local pmc list, flat, items, rest
+    list  = new ['List']
+    flat  = getattribute self, '$!flat'
+    items = getattribute self, '@!items'
+    rest  = getattribute self, '@!rest'
+
+    setattribute list, '$!flat', flat
+    if null items goto items_done
+    items = clone items
+    setattribute list, '@!items', items
+  items_done:
+    if null rest goto rest_done
+    rest = clone rest
+    setattribute list, '@!rest', rest
+  rest_done:
+    .return (list)
+.end
 
  
 .namespace ['List']

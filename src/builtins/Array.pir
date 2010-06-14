@@ -66,13 +66,16 @@ Arrays are the mutable form of Lists.
 .sub '!STORE' :method
     .param pmc source
     .local pmc list
-    list = source.'flat'()
+    list = source.'list'()
+    list = list.'!List'()
+    list = list.'flat'()
+    $P0 = getattribute list, '$!flat'
+    setattribute self, '$!flat', $P0
     $P0 = getattribute list, '@!items'
     setattribute self, '@!items', $P0
     $P0 = getattribute list, '@!rest'
     setattribute self, '@!rest', $P0
-    $P0 = getattribute list, '$!flat'
-    setattribute self, '$!flat', $P0
+    self.'eager'()
     .return (self)
 .end
 
@@ -89,7 +92,7 @@ Create an element for the Array (has the 'rw' property set).
     .local pmc elem, true
     true = get_hll_global ['Bool'], 'True'
     item = descalarref item
-    elem = new ['ObjectRef'], item
+    elem = new ['Perl6Scalar'], item
     setprop elem, 'scalar', true
     setprop elem, 'rw', true
     .return (elem)

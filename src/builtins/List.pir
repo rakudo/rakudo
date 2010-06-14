@@ -54,35 +54,36 @@ List classes while we convert to the new list model.)
 
 .namespace ['List']
 .sub 'flat' :method
-    .local pmc items, rest, flat
+    .local pmc list, flat, items, rest
+    list = descalarref self
+    # If we're already flat, return self
     flat  = getattribute self, '$!flat'
-    items = getattribute self, '@!items'
-    rest  = getattribute self, '@!rest'
+    if null flat goto make_flatlist
+    if flat goto done
+  make_flatlist:
+    items = getattribute list, '@!items'
+    rest  = getattribute list, '@!rest'
 
-    if null rest goto rest_null
+    if null rest goto rest_done
     rest = clone rest
-    goto rest_done
-  rest_null:
-    rest = clone items
-    null items
   rest_done:
 
     if null items goto items_done
-    if flat goto items_flat
+    if null rest goto items_rest
     splice rest, items, 0, 0
-    null items
     goto items_done
-  items_flat:
-    items = clone items
+  items_rest:
+    rest = clone items
   items_done:
+    null items
 
-    .local pmc flatlist
-    flatlist = new ['List']
+    list = new ['List']
     flat = get_hll_global 'True'
-    setattribute flatlist, '$!flat', flat
-    setattribute flatlist, '@!items', items
-    setattribute flatlist, '@!rest', rest
-    .return (flatlist)
+    setattribute list, '$!flat', flat
+    setattribute list, '@!items', items
+    setattribute list, '@!rest', rest
+  done:
+    .return (list)
 .end
 
 
@@ -157,6 +158,15 @@ List classes while we convert to the new list model.)
     .return (list)
 .end
 
+.namespace ['List']
+.sub '!elem' :method
+    .param pmc value
+    unless null value goto done
+    value = new ['Perl6Scalar']
+  done:
+    .return (value)
+.end
+
  
 .namespace ['List']
 .sub '!fill' :method
@@ -183,6 +193,7 @@ List classes while we convert to the new list model.)
     unless rest goto rest_done
     .local pmc value
     value = shift rest
+    if null value goto value_item
     $I0 = isa value, ['EMPTY']
     if $I0 goto rest_loop
     $I0 = isa value, ['Iterator']
@@ -202,6 +213,7 @@ List classes while we convert to the new list model.)
     splice rest, value, 0, 0
     goto rest_loop
   value_item:
+    value = self.'!elem'(value)
     push items, value
     inc items_n
     goto items_loop

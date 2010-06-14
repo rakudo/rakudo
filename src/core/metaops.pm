@@ -171,7 +171,7 @@ our multi sub reducewith(&op, $args,
                          :$right-assoc,
                          :$triangle) {
 
-    my $list = $right-assoc ?? $args.reverse !! $args.list;
+    my $list = $right-assoc ?? $args.reverse !! $args.flat;
 
     if $triangle {
         # gather {

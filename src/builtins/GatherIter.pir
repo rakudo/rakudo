@@ -16,7 +16,7 @@ GatherIter is used to handle gather/take.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('GatherIter', 'parent'=>'Iterator', 'attr'=>'@!reify &!coro &!block')
+    proto = p6meta.'new_class'('GatherIter', 'parent'=>'Iterator', 'attr'=>'@!reify &!coro')
 .end
 
 =item reify()
@@ -33,18 +33,36 @@ Returns the next component of the iteration.
     unless null reify goto iter_reified
     .local pmc coro
     coro = getattribute self, '&!coro'
-    reify = self.coro()
+    reify = coro()
     setattribute self, '@!reify', reify
   iter_reified:
     .return (reify)
 .end
 
+
+.namespace []
+.sub '!GATHER'
+    .param pmc block
+    .local pmc gatheriter, coro, list
+    gatheriter = new ['GatherIter']
+    .const 'Sub' coro_sub = '!gather_coroutine'
+    .local pmc coro
+    coro = clone coro_sub
+    # Initial coroutine call to set the Coroutine's block and coro values
+    coro(block, coro)
+    setattribute gatheriter, '&!coro', coro
+    list = gatheriter.'list'()
+    .return (list)
+.end
+
+
 .include 'except_types.pasm'
-.namespace ['GatherIter']
-.sub '' :method :subid('!gather_coroutine')
-    .local pmc block, coro, handler
-    block = getattribute self, '&!block'
-    coro = getattribute self, '&!coro'
+.sub '' :subid('!gather_coroutine')
+    .param pmc block
+    .param pmc coro
+    # Initial yield back to !GATHER
+    .yield ()
+    .local pmc handler
     handler = root_new ['parrot';'ExceptionHandler']
     handler.'handle_types'(.CONTROL_TAKE)
     set_addr handler, take
@@ -69,20 +87,6 @@ Returns the next component of the iteration.
     push reify, nextiter
     .yield (reify)
     resume()
-.end
-    
-
-.namespace []
-.sub '!GATHER'
-    .param pmc block
-    .local pmc gatheriter, coro, list
-    gatheriter = new ['GatherIter']
-    .const 'Sub' coro = '!gather_coroutine'
-    $P0 = clone coro
-    setattribute gatheriter, '&!coro', $P0
-    setattribute gatheriter, '&!block', block
-    list = gatheriter.'list'()
-    .return (list)
 .end
 
 =back

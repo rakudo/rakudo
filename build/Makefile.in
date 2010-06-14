@@ -201,8 +201,8 @@ CORE_SOURCES = \
   src/core/Str.pm \
   src/core/Whatever.pm \
   src/core/Pair.pm \
-  src/core/Range.pm \
   src/core/RangeIter.pm \
+  src/core/Range.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Enum.pm \

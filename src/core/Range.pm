@@ -22,8 +22,11 @@ class Range is Iterable {
     }
 
     our method iterator() {
-        #  RangeIter.new(self);
-        pir::get_hll_global__Ps('RangeIter').new(self);
+        my $start = $.min;
+        $start .= succ if $.excludes_min;
+        RangeIter.new( :value( self!max_test($start) ?? $start !! EMPTY ),
+                       :max($.max), 
+                       :excludes_max($.excludes_max));
     }
 
     my Bool multi method !min_test($topic) {

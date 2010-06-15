@@ -80,7 +80,7 @@ augment class List does Positional {
         self;
     }
 
-    our multi method postcircumfix:<[ ]>($index) {
+    our multi method postcircumfix:<[ ]>(Int $index) {
         Q:PIR {
             .local pmc self, items
             self = find_lex 'self'
@@ -89,6 +89,9 @@ augment class List does Positional {
             $I1 = $I0 + 1
             items = self.'!fill'($I1)
             %r = items[$I0]
+            unless null %r goto done
+            %r = new ['Perl6Scalar']
+          done:
         }
     }
 }

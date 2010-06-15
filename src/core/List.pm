@@ -19,6 +19,10 @@ augment class List does Positional {
         pir::join(' ', self!fill);
     }
 
+    multi method fmt($format = '%s', $separator = ' ') {
+        self.map({ .fmt($format) }).join($separator);
+    }
+
     multi method map(&block) {
         Q:PIR {
             .local pmc self, mapiter, block

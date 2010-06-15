@@ -133,50 +133,6 @@ List classes while we convert to the new list model.)
 
 
 .namespace ['List']
-.sub 'perl' :method
-    self.'eager'()
-    .local pmc results
-    results = root_new ['parrot';'ResizableStringArray']
-    .local pmc it
-    $P0 = getattribute self, '@!items'
-    if null $P0 goto items_done
-    it = iter $P0
-  items_loop:
-    unless it goto items_done
-    $P0 = shift it
-    $P0 = $P0.'perl'()
-    push results, $P0
-    goto items_loop
-  items_done:
-    goto rest_done
-    $P0 = getattribute self, '@!rest'
-    if null $P0 goto rest_done
-    it = iter $P0
-  rest_loop:
-    unless it goto rest_done
-    $P0 = shift it
-    $P0 = $P0.'perl'()
-    push results, $P0
-    goto rest_loop
-  rest_done:
-    .local string joined
-    joined = join ', ', results
-    $P0 = getprop 'scalar', self
-    if null $P0 goto self_list
-    unless $P0 goto self_list
-  self_item:
-    joined = concat '[', joined
-    joined = concat joined, ']'
-    goto done
-  self_list:
-    joined = concat '(', joined
-    joined = concat joined, ')'
-  done:
-    .return (joined)
-.end
-
-
-.namespace ['List']
 .sub '!List' :method
     .local pmc list, flat, items, rest
     list  = new ['List']

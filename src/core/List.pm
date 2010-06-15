@@ -33,6 +33,10 @@ augment class List does Positional {
         }
     }
 
+    method perl() {
+        '(' ~ self.map({ $^a.perl }).join(', ') ~ ')';
+    }
+
     multi method sort(&by = &infix:<cmp>) {
         # Parrot already provides a sort method that works on
         # ResizablePMCArray, so we aim to make use of that here.

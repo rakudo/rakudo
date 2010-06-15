@@ -27,6 +27,10 @@ augment class Array {
         }
     }
 
+    multi method perl() {
+        '[' ~ self.map({ $^a.perl }).join(', ') ~ ']';
+    }
+
     our multi method splice($offset is copy = 0, $size? is copy, *@values) is export {
         self!fill;
         $offset += self.elems if ($offset < 0);

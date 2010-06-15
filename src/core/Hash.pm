@@ -21,33 +21,21 @@ role Hash is EnumMap {
         # what is being stored.
         pir::setattribute__vPsP(self, '$!storage', pir::new__Ps('Hash'));
 
-        # Work through the list, storing the things in it.
-        my $need_value = 0;
-        my $key;
-        for flat($to_store) -> $cur {
-            if $need_value {
-                self{$key} = $cur;
-                $need_value = 0;
-            }
-            else {
-                given $cur {
-                    when Enum {
-                        self{$cur.key} = $cur.value;
-                    }
-                    when EnumMap {
-                        for $cur.iterator -> $pair {
-                            self{$pair.key} = $pair.value;
-                        }
-                    }
-                    default {
-                        $key = $cur;
-                        $need_value = 1;
-                    }
+        my $items = $to_store.flat;
+        while $items {
+            given $items.shift {
+                when Enum {
+                    self{.key} = .value;
+                }
+                when EnumMap {
+                    for $_.list { self{.key} = .value }
+                }
+                default {
+                    die('Odd number of elements found where hash expected')
+                        unless $items;
+                    self{$_} = $items.shift;
                 }
             }
-        }
-        if $need_value {
-            die('Odd number of elements found where hash expected');
         }
         self
     }

@@ -11,10 +11,6 @@ augment class List does Positional {
         self.elems;
     }
 
-    method Seq() {
-        Seq.new(self).eager
-    }
-
     method Str() {
         pir::join(' ', self!fill);
     }

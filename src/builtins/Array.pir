@@ -65,14 +65,14 @@ Arrays are the mutable form of Lists.
 .namespace ['Array']
 .sub '!STORE' :method
     .param pmc source
-    .local pmc list
+    .local pmc list, flat, items, rest
     list = '&flat'(source)
-    $P0 = getattribute list, '$!flat'
-    setattribute self, '$!flat', $P0
-    $P0 = getattribute list, '@!items'
-    setattribute self, '@!items', $P0
-    $P0 = getattribute list, '@!rest'
-    setattribute self, '@!rest', $P0
+    (rest :slurpy) = list.'eager'()
+    flat = get_hll_global 'True'
+    null items
+    setattribute self, '$!flat', flat
+    setattribute self, '@!items', items
+    setattribute self, '@!rest', rest
     self.'eager'()
     .return (self)
 .end

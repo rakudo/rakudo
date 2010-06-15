@@ -207,7 +207,7 @@ our multi infix:<~>($a, $b) {
 
 our sub circumfix:<{ }>(*@elements) {
     my %h = @elements;
-    %h
+    %h.item
 }
 
 our sub hash(*@list, *%hash) {

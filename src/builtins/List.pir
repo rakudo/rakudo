@@ -90,15 +90,6 @@ List classes while we convert to the new list model.)
 
 
 .namespace ['List']
-.sub 'item' :method
-    $P0 = descalarref self
-    $P0 = new ['ObjectRef'], $P0
-    $P1 = get_hll_global 'True'
-    setprop $P0, 'scalar', $P1
-    .return ($P0)
-.end
-
-
 .sub 'iterator' :method
     $P0 = get_hll_global 'ListIter'
     $P1 = self.'!List'()

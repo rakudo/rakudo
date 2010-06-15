@@ -27,6 +27,17 @@ as "is Iterable" should be come "does Iterable".
     proto = p6meta.'new_class'('Iterable', 'parent'=>'Cool')
 .end
 
+
+.namespace ['Iterable']
+.sub 'item' :method
+    $P0 = descalarref self
+    $P0 = new ['ObjectRef'], $P0
+    $P1 = get_hll_global 'True'
+    setprop $P0, 'scalar', $P1
+    .return ($P0)
+.end
+    
+
 =back
 
 =cut

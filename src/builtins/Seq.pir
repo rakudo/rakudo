@@ -56,6 +56,7 @@ Create an element for the Seq (has the 'rw' property set).
     item = new ['Perl6Scalar']
   have_item:
     item = descalarref item
+    item = item.'item'()
     .return (item)
 .end
 

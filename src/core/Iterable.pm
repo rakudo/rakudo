@@ -4,6 +4,8 @@ augment class Iterable {
 
     multi method Num() { $.elems.Num }
 
+    multi method Seq() { Seq.new($.list) }
+
     multi method Str() { $.list.Str }
 
     multi method elems() { $.list.elems }

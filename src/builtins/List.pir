@@ -311,6 +311,7 @@ List classes while we convert to the new list model.)
     true = get_hll_global 'True'
     setattribute list, '$!flat', true
     setattribute list, '@!rest', values
+    transform_to_p6opaque list
     .return (list)
 .end
 

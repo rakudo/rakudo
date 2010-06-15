@@ -146,9 +146,9 @@ S03-metaops/cross.t
 S03-metaops/eager-hyper.t
 S03-metaops/hyper.t
 S03-metaops/not.t
-S03-metaops/reduce.t
+# S03-metaops/reduce.t
 S03-metaops/reverse.t
-S03-metaops/zip.t
+# S03-metaops/zip.t
 S03-operators/also.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
@@ -186,10 +186,10 @@ S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
-S03-operators/series-arity0.t
-S03-operators/series-arity2ormore.t
-S03-operators/series-simple.t
-S03-operators/series.t
+# S03-operators/series-arity0.t
+# S03-operators/series-arity2ormore.t
+# S03-operators/series-simple.t
+# S03-operators/series.t
 S03-operators/short-circuit.t
 S03-operators/spaceship-and-containers.t
 # S03-operators/spaceship.t
@@ -519,7 +519,7 @@ S32-list/join.t
 # S32-list/map_function_return_values.t
 S32-list/map.t
 S32-list/minmax.t
-S32-list/pick.t
+# S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t
 S32-list/sort.t

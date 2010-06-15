@@ -13,9 +13,7 @@ class EnumMap is Iterable does Associative {
             $P1 = find_lex '$key'
             %r = $P0[$P1]
             unless null %r goto done
-            %r = new ['Proxy']
-            setattribute %r, '$!base', $P0
-            setattribute %r, '$!key', $P1
+            %r = new ['Perl6Scalar']
           done:
         }
     }

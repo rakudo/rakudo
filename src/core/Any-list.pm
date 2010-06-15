@@ -29,31 +29,8 @@ augment class Any {
 
     our multi method map(&block) { self.list.map(&block); }
 
-    multi method sort(&by = &infix:<cmp>) {
-        # Parrot already provides a sort method that works on
-        # ResizablePMCArray, so we aim to make use of that here.
-        # Instead of sorting the elements directly, we sort an RPA
-        # of indices (from 0 to $list.elems), then use that RPA
-        # as a slice into self.
+    our multi method sort(&by = &infix:<cmp>) { self.list.sort(&by); }
 
-        my $index_rpa = pir::new__PS("ResizablePMCArray");
-        pir::push__vPP($index_rpa, $_) for ^self.elems;
-
-        # If &by.arity < 2, then it represents a block to be applied
-        # to the elements to obtain the values for sorting.
-        if (&by.?arity // 2) < 2 {
-            my $list = self.map(&by).eager;
-            self[$index_rpa.sort(
-                -> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b }
-            ),];
-        }
-        else {
-            my $list = self.eager;
-            self[$index_rpa.sort(
-                -> $a, $b { &by($list[$a],$list[$b]) || $a <=> $b }
-            ),];
-        }
-    }
 
     multi method first(Mu $test) {
         for @.list {
@@ -314,5 +291,10 @@ proto sub kv(@array) { @array.kv; }
 proto sub keys(@array) { @array.keys; }
 proto sub values(@array) { @array.values; }
 proto sub pairs(@array) { @array.pairs; }
+
+multi sub sort(*@values, :&by) {
+    my &x = &by // (@values[0] ~~ Callable ?? @values.shift !! &infix:<cmp> );
+    @values.sort(&x);
+}
 
 # vim: ft=perl6

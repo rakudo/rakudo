@@ -100,6 +100,4 @@ role Hash is EnumMap {
 
 }
 
-multi sub sort (%h, :&by = &infix:<cmp>) { %h.pairs.sort(&by) }
-multi sub sort (&by, %h) { %h.pairs.sort(&by) }
 

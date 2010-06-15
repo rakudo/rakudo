@@ -37,6 +37,15 @@ List classes while we convert to the new list model.)
 
 
 .namespace ['List']
+.sub 'Capture' :method
+    $P0 = self.'!fill'()
+    $P1 = get_hll_global 'Capture'
+    $P1 = $P1.'new'($P0 :flat)
+    .return ($P1)
+.end
+
+
+.namespace ['List']
 .sub 'eager' :method
     .local pmc items
     self.'!fill'()

@@ -17,7 +17,6 @@ static INTVAL or_id       = 0;
 static INTVAL p6s_id      = 0;
 static STRING *ACCEPTS    = NULL;
 static STRING *HOW        = NULL;
-static STRING *flatten    = NULL;
 static PMC    *HashPunned = NULL;
 
 /* Initializes our cached versions of some strings and type IDs that we
@@ -29,7 +28,6 @@ static void setup_binder_statics(PARROT_INTERP) {
     p6s_id  = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
     ACCEPTS = Parrot_str_new_constant(interp, "ACCEPTS");
     HOW     = Parrot_str_new_constant(interp, "HOW");
-    flatten = Parrot_str_new_constant(interp, "flatten");
 }
 
 
@@ -49,7 +47,6 @@ Rakudo_binding_create_array(PARROT_INTERP) {
     PMC *arr_ns    = Parrot_get_namespace_keyed_str(interp, ns, string_from_literal(interp, "Array"));
     PMC *arr_class = VTABLE_get_class(interp, arr_ns);
     PMC *result    = VTABLE_instantiate(interp, arr_class, PMCNULL);
-    VTABLE_setprop(interp, result, flatten, result);
     return result;
 }
 
@@ -282,14 +279,12 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                     copy          = Rakudo_binding_create_array(interp);
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
-                    VTABLE_setprop(interp, copy, flatten, copy);
                 }
                 else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
                     STRING *STORE = string_from_literal(interp, "!STORE");
                     copy          = Rakudo_binding_create_hash(interp, pmc_new(interp, enum_class_Hash));
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
-                    VTABLE_setprop(interp, copy, flatten, copy);
                 }
                 else {
                     copy = VTABLE_clone(interp, value);
@@ -624,7 +619,6 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                     VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg));
                     cur_pos_arg++;
                 }
-                VTABLE_setprop(interp, temp, flatten, temp);
                 Parrot_ext_call(interp, store_meth, "PiP", slurpy, temp);
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
                         slurpy, no_nom_type_check, error);

@@ -84,6 +84,32 @@ augment class List does Positional {
         self;
     }
 
+    our multi method ACCEPTS(@topic) {
+        my $sseq = self.Seq;
+        my $tseq = @topic.Seq;
+        while $sseq {
+            # if the next element is Whatever
+            if $sseq[0] ~~ Whatever {
+                # skip over all of the Whatevers
+                $sseq.shift while $sseq && $sseq[0] ~~ Whatever;
+                # if nothing left, we're done
+                return True if !$sseq;
+                # find a target matching our new target
+                $tseq.shift while $tseq && $tseq[0] !== $sseq[0];
+                # return false if we ran out
+                return False if !$tseq;
+            }
+            elsif !$tseq || $tseq[0] !=== $sseq[0] {
+                return False;
+            }
+            # shift off matching elements
+            $sseq.shift;
+            $tseq.shift
+        }
+        # If nothing left to match, we're successful.
+        !$tseq;
+    }
+
     our multi method postcircumfix:<[ ]>(Int $index) {
         Q:PIR {
             .local pmc self, items

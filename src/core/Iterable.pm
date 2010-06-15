@@ -8,6 +8,8 @@ augment class Iterable {
 
     multi method elems() { $.list.elems }
 
+    multi method fmt($format = '%s', $separator = ' ') { $.list.fmt($format, $separator); }
+
     multi method list() { $.iterator.list }
 
 }

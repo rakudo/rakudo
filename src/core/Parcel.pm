@@ -3,6 +3,9 @@ augment class Parcel does Positional {
 
     method elems() { self.flat.elems }
 
+    # Need this method here to avoid ResizablePMCArray.sort from Parrot.
+    method sort(&by = &infix:<cmp>) { self.list.sort(&by) }
+
     multi method postcircumfix:<[ ]>($index) { self.flat.[$index] }
     multi method postcircumfix:<[ ]>(@index) { self.flat.[@index] }
 

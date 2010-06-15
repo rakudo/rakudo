@@ -1,7 +1,13 @@
 augment class Iterable {
 
-    method list() { self.iterator.list }
+    multi method Int() { $.elems.Int }
 
-    method Str() { self.list.Str }
+    multi method Num() { $.elems.Num }
+
+    multi method Str() { $.list.Str }
+
+    multi method elems() { $.list.elems }
+
+    multi method list() { $.iterator.list }
 
 }

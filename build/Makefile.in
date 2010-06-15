@@ -116,9 +116,9 @@ BUILTINS_PIR = \
   src/builtins/Pair.pir \
   src/builtins/Callable.pir \
   src/builtins/Code.pir \
-  src/builtins/Multi.pir \
   src/builtins/Block.pir \
   src/builtins/Routine.pir \
+  src/builtins/Multi.pir \
   src/builtins/Sub.pir \
   src/builtins/Method.pir \
   src/builtins/Submethod.pir \
@@ -210,6 +210,7 @@ CORE_SOURCES = \
   src/core/Parameter.pm \
   src/core/Signature.pm \
   src/core/Block.pm \
+  src/core/Routine.pm \
   src/core/Regex.pm \
   src/core/Junction.pm \
   src/core/Grammar.pm \

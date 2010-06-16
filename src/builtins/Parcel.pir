@@ -262,15 +262,15 @@ Handle assignment to a Parcel (list assignment).
     cont = shift targets
     $I0 = isa cont, ['ResizablePMCArray']
     if $I0 goto store_rpa
-    $I0 = isa cont, ['Perl6Scalar']
-    if $I0 goto store_scalar
-    $I0 = isa cont, ['Array']
-    if $I0 goto store_array
+    $P0 = getprop 'scalar', cont
+    if null $P0 goto store_array
+    unless $P0 goto store_array
   store_scalar:
     $P0 = source.'shift'()
     cont.'!STORE'($P0)
     goto store_loop
   store_array:
+  store_hash:
     cont.'!STORE'(source)
     source = '&circumfix:<[ ]>'()
     goto store_loop

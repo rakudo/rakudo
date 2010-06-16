@@ -262,6 +262,8 @@ Handle assignment to a Parcel (list assignment).
     cont = shift targets
     $I0 = isa cont, ['ResizablePMCArray']
     if $I0 goto store_rpa
+    $I0 = isa cont, ['Whatever']
+    if $I0 goto store_scalar
     $P0 = getprop 'scalar', cont
     if null $P0 goto store_array
     unless $P0 goto store_array

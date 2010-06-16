@@ -24,20 +24,6 @@ role Positional[::T = Mu] {
         }
     }
 
-    our multi method postcircumfix:<[ ]>(Int $index) {
-        fail "Cannot use negative index $index on {self.WHO}" if $index < 0;
-        Q:PIR {
-            .local pmc self, index
-            self  = find_lex 'self'
-            index = find_lex 'index'
-            $I0   = index
-            %r    = self[index]
-            unless null %r goto done
-            %r    = new ['Perl6Scalar']
-          done:
-        }
-    }
-
     method of() {
         T
     }

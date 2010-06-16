@@ -16,8 +16,8 @@ our multi sub sequentialargs(&op, Mu \$a, Mu \$b) {
 }
 
 our multi sub zipwith(&op, $lhs, $rhs) {
-    my $lhs-list = $lhs.flat;
-    my $rhs-list = $rhs.flat;
+    my $lhs-list = flat($lhs.list);
+    my $rhs-list = flat($rhs.flat);
     gather while ?$lhs-list && ?$rhs-list {
         my $a = $lhs-list.shift;
         my $b = $rhs-list.shift;
@@ -26,8 +26,8 @@ our multi sub zipwith(&op, $lhs, $rhs) {
 }
 
 our multi sub crosswith(&op, $lhs, $rhs) {
-    my $lhs-list = $lhs.flat;
-    my $rhs-list = $rhs.flat;
+    my $lhs-list = flat($lhs.list);
+    my $rhs-list = flat($rhs.list);
     gather while ?$lhs-list {
         my $a = $lhs-list.shift;
         for @($rhs-list) -> $b {
@@ -159,7 +159,7 @@ our multi sub reducewith(&op, $args,
                          :$right-assoc,
                          :$triangle) {
 
-    my $list = ($right-assoc ?? $args.reverse !! $args).Seq;
+    my $list = flat($right-assoc ?? $args.reverse !! $args.list);
 
     if $triangle {
         # gather {

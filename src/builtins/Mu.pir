@@ -264,6 +264,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     goto attrinit_rw
   attrinit_array:
     attr = new ['Array']
+    transform_to_p6opaque attr
     goto attrinit_rw
   attrinit_hash:
     attr = '&CREATE_HASH_FROM_LOW_LEVEL'()

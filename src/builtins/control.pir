@@ -217,19 +217,32 @@ src/builtins/control.pir - control flow related functions
 =cut
 
 .sub '&take'
-    .param pmc value
+    .param pmc values :slurpy
     .local pmc ex, p6ex
 
     ex         = root_new ['parrot';'Exception']
     ex['type'] = .CONTROL_TAKE
     ex['severity'] = .EXCEPT_NORMAL
     ex['message'] = 'take without gather'
-    setattribute ex, 'payload', value
+
+    $I0 = elements values
+    if $I0 == 0 goto nil
+    if $I0 > 1 goto many
+    values = values[0]
+    goto done
+  nil:
+    values = '&Nil'()
+    goto done
+  many:
+    values = '&infix:<,>'(values :flat)
+  done:
+    setattribute ex, 'payload', values
+
     p6ex = new ['Perl6Exception']
     setattribute p6ex, '$!exception', ex
     set_global '$!', p6ex
     throw ex
-    .return (value)
+    .return (values)
 .end
 
 

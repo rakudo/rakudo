@@ -230,43 +230,76 @@ List classes while we convert to the new list model.)
     .param int size            :optional
     .param int has_size        :opt_flag
 
-    repl = repl.'iterator'()
 
     .local pmc nil, items, rest
     nil = root_new ['parrot';'ResizablePMCArray']
 
-    if has_size goto splice_sized
+    .local int fill
+    fill = offset
+    unless has_size goto have_fill
+    if size <= 0 goto have_fill
+    fill += size
+  have_fill:
+
+    .local pmc items, rest, retlist, retitems, retrest
     items = self.'!fill'(offset)
     rest = getattribute self, '@!rest'
-    .local pmc retlist, retitems
-    retlist = self.'!List'()
-    retitems = getattribute retlist, '@!items'
-    splice retitems, nil, 0, offset
-    assign items, offset
-    assign rest, 0
-    unshift rest, repl
-    .return (retlist)
 
-  splice_sized:
-    .local int fill
-    fill = offset + size
-    items = self.'!fill'(fill)
-    rest = getattribute self, '@!rest'
+    # We can figure out how to proceed based on how many
+    # items we were able to reify
+    .local int items_n
+    items_n = elements items
+
+    # If we didn't get at least C<offset> items, then C<rest>
+    # is already empty, and we finish up with an empty retlist.
+    if items_n < offset goto empty_retlist
+    # If the retlist eats all remaining elements, do that
+    unless has_size goto splice_retlist
+    # If the retlist is explicitly empty, do that
+    if size <= 0 goto empty_retlist
+    # If there are reified elements for the retlist, build it
+    if items_n > offset goto splice_retlist
+  empty_retlist:
+    $P0 = get_hll_global 'List'
+    retlist = $P0.'new'()
+    goto retlist_done
+  splice_retlist:
     retlist = self.'!List'()
     retitems = getattribute retlist, '@!items'
+    retrest = getattribute retlist, '@!rest'
+    if has_size goto retlist_sized
+    # The retlist gets everything after offset.
+    rest = 0
+    goto retlist_items
+  retlist_sized:
+    # Everything after fill gets chopped from the retlist
+    retrest = 0
+    if items_n <= fill goto retlist_items
+    assign retitems, fill
+  retlist_items:
+    # ...and we chop the first offset items from the retlist
     splice retitems, nil, 0, offset
-    assign retitems, size
-    null $P0
-    setattribute retlist, '@!rest', $P0
+  retlist_done:
+
+    # If there are any items after the fill point,
+    # we have to move them back into rest
+    if items_n <= fill goto move_done
     .local pmc move
     move = clone items
     splice move, nil, 0, fill
     splice rest, move, 0, 0
+  move_done:
+    # chomp all but the first offset items from our reified list
+    if items_n <= offset goto items_done
     assign items, offset
+  items_done:
+    # Add the replacement list to our rest
+    repl = repl.'iterator'()
     unshift rest, repl
+    # return the return list
     .return (retlist)
 .end
-
+    
 
 .namespace []
 .sub '&flat'

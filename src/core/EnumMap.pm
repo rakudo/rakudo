@@ -63,6 +63,7 @@ class EnumMap is Iterable does Associative {
     }
 
     multi method invert () is export {
+        # shorter:  @.pairs.map( { ; .value X=> .key } ).flat;
         gather {
             for @.pairs {
                 for @( .value ) -> $i {

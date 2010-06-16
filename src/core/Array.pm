@@ -18,7 +18,7 @@ augment class Array {
             %r   = items[pos]
             unless null %r goto done
             %r = new ['Proxy']
-            setattribute %r, '$!base', self
+            setattribute %r, '$!base', items
             $P0 = box pos
             setattribute %r, '$!key', $P0
             $P0 = get_hll_global ['Bool'], 'True'

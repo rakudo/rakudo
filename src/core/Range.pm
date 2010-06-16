@@ -30,11 +30,11 @@ class Range is Iterable does Positional {
     }
 
     my Bool multi method !min_test($topic) {
-        $.min before $topic || (!$.excludes_min && !($.min after $topic));
+        $.min == -Inf || $.min before $topic || (!$.excludes_min && !($.min after $topic));
     }
 
     my Bool multi method !max_test($topic) {
-        $topic before $.max || (!$.excludes_max && !($topic after $.max));
+        $.max == Inf || $topic before $.max || (!$.excludes_max && !($topic after $.max));
     }
 
     our Bool multi method ACCEPTS($topic) {

@@ -9,7 +9,7 @@ class RangeIter is Iterator {
         unless $!nextIter.defined || $!nextIter ~~ EMPTY {
             my $s = $!value.succ;
             $!nextIter =
-                $s before $!max || (! $!excludes_max && !($s after $!max))
+                $!max == Inf || $s before $!max || (! $!excludes_max && !($s after $!max))
                 ?? RangeIter.new( :value($s),
                                 :max($!max), 
                                 :excludes_max($!excludes_max) )

@@ -30,7 +30,7 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
 
 .namespace ['Junction']
 .sub 'new' :method
-    .param pmc eigenstates
+    .param pmc eigenstates    :slurpy
     .param pmc any            :named('any')  :optional
     .param pmc all            :named('all')  :optional
     .param pmc one            :named('one')  :optional
@@ -70,11 +70,20 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
     $P0 = box type
     setattribute junc, '$!type', $P0
 
+    # Create a Parcel of eigenstates.
+    .local pmc flat
+    flat = '&flat'(eigenstates :flat)
+    flat = flat.'eager'()
+    # steal the @!items RPA from flat
+    eigenstates = getattribute flat, '@!items'
+
     # Make eigenstates unique if possible
     if type == JUNCTION_TYPE_ONE goto set_eigenstates
     $P0 = get_hll_global '&infix:<===>'
     eigenstates = '!junction_unique_helper'(eigenstates, $P0)
   set_eigenstates:
+    # Convert eigenstates to a Parcel
+    eigenstates = '&infix:<,>'(eigenstates :flat)
     setattribute junc, '$!eigenstates', eigenstates
     .return (junc)
 .end

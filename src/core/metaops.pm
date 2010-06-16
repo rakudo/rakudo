@@ -162,37 +162,33 @@ our multi sub reducewith(&op, $args,
     my $list = flat($right-assoc ?? $args.reverse !! $args.list);
 
     if $triangle {
-        # gather {
-        #     my $result = $ai.get;
-        #     return if $result ~~ EMPTY;
-        #
-        #     if $chaining {
-        #         my $bool = Bool::True;
-        #         take Bool::True;
-        #         loop {
-        #             my $next = $ai.get;
-        #             last if $next ~~ EMPTY;
-        #             $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
-        #             my $temp = $bool;
-        #             take $temp;
-        #             $result = $next;
-        #         }
-        #     } else {
-        #         my $temp = $result;
-        #         take $temp;
-        #         loop {
-        #             my $next = $ai.get;
-        #             last if $next ~~ EMPTY;
-        #             $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
-        #             my $temp = $result;
-        #             take $temp;
-        #         }
-        #     }
-        # }
-    } else {
-        if !$list {
-            return &op();
+        gather {
+            return if !$list;
+            my $result = $list.shift;
+
+            if $chaining {
+                my $bool = Bool::True;
+                take Bool::True;
+                while ?$list {
+                    my $next = $list.shift;
+                    $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
+                    my $temp = $bool;
+                    take $temp;
+                    $result = $next;
+                }
+            } else {
+                my $temp = $result;
+                take $temp;
+                while ?$list {
+                    my $next = $list.shift;
+                    $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
+                    my $temp = $result;
+                    take $temp;
+                }
+            }
         }
+    } else {
+        return &op() if !$list;
         my $result = $list.shift;
 
         if $chaining {

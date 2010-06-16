@@ -6,7 +6,7 @@ role Positional[::T = Mu] {
     our multi method postcircumfix:<[ ]>(@pos) {
         my $result = pir::new__ps('ResizablePMCArray');
         for @pos {
-            pir::push($result, self{$_})
+            pir::push($result, self[$_])
         }
         Q:PIR {
             $P0 = find_lex '$result'

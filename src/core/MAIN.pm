@@ -30,7 +30,8 @@ our sub MAIN_HELPER() {
                     @positional-arguments.push: @args;
                     last;
                 } elsif %named{$arg} ~~ Bool {
-                    %named-arguments{$arg}=True;
+                    %named-arguments{$arg}=not $negate;
+                    $negate='';
                 } elsif %named{$arg} ~~ Array || ($passed_value.match( /\=/ ) &&  %named{$arg.split('=', 2)[0]} ~~ Array ) {
                     if $passed_value.match( /\=/ ) {
                         my ($name , $value) = $arg.split('=', 2);
@@ -125,6 +126,11 @@ our sub MAIN_HELPER() {
         my $msg = ($*PROGRAM_NAME eq '-e' ?? "-e '...'" !! $*PROGRAM_NAME )~ ' '  ~ @arguments.join(' ');
         @help-msgs.push( $msg );
     }
-    ("Usage:\n" ~ @help-msgs.join("\nor\n") ).say;
-    return 0; #TODO: Better return value
+    my $msg = ("Usage:\n" ~ @help-msgs.join("\nor\n") );
+    if (@*ARGS ~~ ['--help']) {
+        $*OUT.say($msg);
+    } else {
+        $*ERR.say($msg);
+        exit 29; #TODO: Better return value
+    }
 }

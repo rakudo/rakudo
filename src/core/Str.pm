@@ -23,23 +23,21 @@ augment class Str does Stringy {
     # XXX: We have no $?ENC or $?NF compile-time constants yet.
     multi method encode($encoding = 'UTF-8', $nf = '') {
         my @bytes = Q:PIR {
-            .local int i, max, byte
-            .local pmc byteview, it, result
+            .local int byte
+            .local pmc bytebuffer, it, result
             $P0 = find_lex 'self'
             $S0 = $P0
-            byteview = new ['ByteView']
-            byteview = $S0
+            bytebuffer = new ['ByteBuffer']
+            bytebuffer = $S0
 
             result = new ['Parcel']
-            i = 0
-            max = elements byteview
+            it = iter bytebuffer
           bytes_loop:
-            if i >= max goto bytes_done
-            byte = byteview[i]
+            unless it goto done
+            byte = shift it
             push result, byte
-            inc i
             goto bytes_loop
-          bytes_done:
+          done:
             %r = result
         };
         return Buf.new(@bytes);

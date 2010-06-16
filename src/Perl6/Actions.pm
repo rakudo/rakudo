@@ -64,7 +64,9 @@ method comp_unit($/, $key?) {
     # run MAIN subs
     # TODO: run this only when not in a module
     # TODO: find a less hacky solution than IN_EVAL
-    unless IN_EVAL() {
+    # TODO: find a way to inject MAIN_HELPER call without modifying
+    # the return value of the compilation unit
+    if !IN_EVAL() && $mainline.symbol('&MAIN') {
         $mainline.push(
             PAST::Op.new(
                 :pasttype('call'),
@@ -709,7 +711,7 @@ method variable($/) {
 
 sub make_variable($/, $name) {
     my @name := Perl6::Grammar::parse_name($name);
-    my $past := PAST::Var.new( :name(@name.pop) );
+    my $past := PAST::Var.new( :name(@name.pop), :node($/));
     if @name {
         $past.namespace(@name);
         $past.scope('package');

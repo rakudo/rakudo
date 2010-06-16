@@ -4,7 +4,7 @@ class LexPad is Associative {
 
     multi method postcircumfix:<{ }>($thing) {
         Q:PIR {
-            .local pmc key
+            .local pmc key, false
             key = find_lex '$thing'
             $P0 = find_lex 'self'
             $P1 = getattribute $P0, '$!parrot_lexpad'
@@ -13,6 +13,9 @@ class LexPad is Associative {
             unless null %r goto done
             %r = get_hll_global 'Mu'
           done:
+            %r = clone %r
+            false = get_hll_global 'False'
+            setprop %r, 'rw', false
         }
     }
 

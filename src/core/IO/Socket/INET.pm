@@ -41,9 +41,18 @@ class IO::Socket::INET is Cool does IO::Socket {
     }
 
     method socket(Int $domain, Int $type, Int $protocol) {
-        my $PIO := Q:PIR {{ %r = root_new ['parrot';'Socket'] }};
-        $PIO.socket($domain, $type, $protocol);
-        return IO::Socket::INET.new( :PIO($PIO) );
+        return IO::Socket::INET.new( :PIO(Q:PIR {{
+            .local pmc pio
+            .local pmc domain
+            .local pmc type
+            .local pmc protocol
+            pio = root_new ['parrot';'Socket']
+            domain   = find_lex "$domain"
+            type     = find_lex "$type"
+            protocol = find_lex "$protocol"
+            pio.'socket'(domain, type, protocol)
+            %r = pio
+        }}) );
     }
 
     method bind($host, $port) {

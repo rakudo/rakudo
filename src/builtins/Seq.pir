@@ -56,7 +56,10 @@ Create an element for the Seq (has the 'rw' property set).
     item = new ['Perl6Scalar']
   have_item:
     item = descalarref item
+    $I0 = can item, 'item'
+    unless $I0 goto done
     item = item.'item'()
+  done:
     .return (item)
 .end
 

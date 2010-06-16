@@ -63,13 +63,13 @@ class EnumMap is Iterable does Associative {
     }
 
     multi method invert () is export {
-        list(gather {
+        gather {
             for @.pairs {
                 for @( .value ) -> $i {
                     take ($i => .key)
                 }
             }
-        })
+        }
     }
 
     method iterator() { self.pairs.iterator }

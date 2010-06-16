@@ -45,7 +45,7 @@ our multi reduce(&op, *@list) {
     @list.reduce(&op)
 }
 
-our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-left, :$dwim-right) {
+our multi sub hyper(&op, @lhs is copy, @rhs is copy, :$dwim-left, :$dwim-right) {
     my sub repeating-array(@a) {
         gather loop {
             for @a -> $a {
@@ -53,9 +53,6 @@ our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-
             }
         }
     }
-
-    my @lhs = $lhs-iterable.Seq;
-    my @rhs = $rhs-iterable.Seq;
 
     my $length;
     if !$dwim-left && !$dwim-right {
@@ -72,16 +69,16 @@ our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-
     }
 
     if $length != +@lhs {
-        @lhs = repeating-array(@lhs).batch($length);
+        @lhs = repeating-array(@lhs).munch($length);
     }
     if $length != +@rhs {
-        @rhs = repeating-array(@rhs).batch($length);
+        @rhs = repeating-array(@rhs).munch($length);
     }
 
     my @result;
     for @lhs Z @rhs -> $l, $r {
         if Associative.ACCEPTS($l) || Associative.ACCEPTS($r) {
-            @result.push(hyper(&op, $l, $r, :$dwim-left, :$dwim-right));
+            @result.push(hyper(&op, $l, $r, :$dwim-left, :$dwim-right).item);
         } elsif Iterable.ACCEPTS($l) || Iterable.ACCEPTS($r) {
             @result.push([hyper(&op, $l.list, $r.list, :$dwim-left, :$dwim-right)]);
         } else {
@@ -146,7 +143,7 @@ our multi sub hyper(&op, @arg) {
     my @result;
     for @arg {
         # this is terribly ugly; but works
-        @result.push(hyper(&op, $_)) if Associative.ACCEPTS($_);
+        @result.push(hyper(&op, $_).item) if Associative.ACCEPTS($_);
         @result.push([hyper(&op, $_)]) if !Associative.ACCEPTS($_) && Iterable.ACCEPTS($_);
         @result.push(op($_))  if !Associative.ACCEPTS($_) && !Iterable.ACCEPTS($_);
     }

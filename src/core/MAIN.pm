@@ -66,7 +66,7 @@ our sub MAIN_HELPER() {
             }
         }
 
-        return @positional-arguments, %named-arguments;
+        return @positional-arguments, {%named-arguments};
     };
     
     my @subs = $m ~~ Multi  ?? $m.candidates !! ($m);

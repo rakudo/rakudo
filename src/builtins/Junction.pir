@@ -73,6 +73,7 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
     # Create a Parcel of eigenstates.
     .local pmc flat
     flat = '&flat'(eigenstates :flat)
+    flat = flat.'Seq'()
     flat = flat.'eager'()
     # steal the @!items RPA from flat
     eigenstates = getattribute flat, '@!items'

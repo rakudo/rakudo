@@ -24,25 +24,25 @@ use the one in Positional.
     .param pmc invocant
     .param pmc args            :optional
     .param int has_args        :opt_flag
+
     $I0 = can invocant, 'postcircumfix:<[ ]>'
     if $I0 goto object_method
     $I0 = isa invocant, 'Mu'
     if $I0 goto object_method
   foreign:
-    # XXX not a good idea, this relies on the method being in the namespace
     $P0 = get_hll_global ['Positional[::T]'], 'postcircumfix:<[ ]>'
-    if has_args goto foreign_args
-    $P1 = invocant.$P0()
-    .return ($P1)
-  foreign_args:
+    unless has_args goto foreign_zen
     $P1 = invocant.$P0(args)
     .return ($P1)
-  object_method:
-    if has_args goto object_args
-    $P1 = invocant.'postcircumfix:<[ ]>'()
+  foreign_zen:
+    $P1 = invocant.$P0()
     .return ($P1)
-  object_args:
+  object_method:
+    unless has_args goto object_zen
     $P1 = invocant.'postcircumfix:<[ ]>'(args)
+    .return ($P1)
+  object_zen:
+    $P1 = invocant.'postcircumfix:<[ ]>'()
     .return ($P1)
 .end
 

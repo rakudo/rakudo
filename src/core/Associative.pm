@@ -10,7 +10,7 @@ role Associative[::T = Mu] {
         }
         Q:PIR {
             $P0 = find_lex '$result'
-            .tailcall '&infix:<,>'($P0 :flat)
+            %r = '&infix:<,>'($P0 :flat)
         }
     }
 

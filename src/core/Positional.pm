@@ -3,24 +3,32 @@ role Positional[::T = Mu] {
 
     our multi method postcircumfix:<[ ]>(&block) { self[&block(self.elems)]; }
 
-    our multi method postcircumfix:<[ ]>($x) { self[$x.Int]; }
-
-    our multi method postcircumfix:<[ ]>(@index) {
+    our multi method postcircumfix:<[ ]>(@pos) {
+        my $result = pir::new__ps('ResizablePMCArray');
+        for @pos {
+            pir::push($result, self{$_})
+        }
         Q:PIR {
-            .local pmc result, self, flat
-            result = root_new ['parrot';'ResizablePMCArray']
+            $P0 = find_lex '$result'
+            %r = '&infix:<,>'($P0 :flat)
+        }
+    }
+
+    our multi method postcircumfix:<[ ]>($pos) { 
+        fail "Cannot use negative index $pos on {self.WHO}" if $pos < 0;
+        self.at_pos($pos) 
+    }
+
+    method at_pos($pos) {
+        Q:PIR {
+            .local pmc self, pos
             self = find_lex 'self'
-            $P0 = find_lex '@index'
-            $P0 = $P0.'flat'()
-            flat = $P0.'eager'()
-          loop:
-            unless flat goto done
-            $P0 = shift flat
-            $P0 = '!postcircumfix:<[ ]>'(self, $P0)
-            push result, $P0
-            goto loop
+            pos  = find_lex '$pos'
+            $I0  = pos
+            %r   = self[$I0]
+            unless null %r goto done
+            %r   = new ['Perl6Scalar']
           done:
-            %r = '&infix:<,>'(result :flat)
         }
     }
 

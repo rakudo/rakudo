@@ -108,18 +108,17 @@ augment class List does Positional {
         !$tseq;
     }
 
-    our multi method postcircumfix:<[ ]>(Int $index) {
-        fail "Cannot use negative index $index on {self.WHO}" if $index < 0;
+    method at_pos($pos) {
         Q:PIR {
-            .local pmc self, items
+            .local pmc self, pos, items
             self = find_lex 'self'
-            $P0 = find_lex '$index'
-            $I0 = $P0
-            $I1 = $I0 + 1
+            pos  = find_lex '$pos'
+            $I0  = pos
+            $I1  = $I0 + 1
             items = self.'!fill'($I1)
-            %r = items[$I0]
+            %r   = items[$I0]
             unless null %r goto done
-            %r = new ['Perl6Scalar']
+            %r   = new ['Perl6Scalar']
           done:
         }
     }

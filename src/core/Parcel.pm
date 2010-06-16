@@ -6,8 +6,7 @@ augment class Parcel does Positional {
     # Need this method here to avoid ResizablePMCArray.sort from Parrot.
     method sort(&by = &infix:<cmp>) { self.list.sort(&by) }
 
-    multi method postcircumfix:<[ ]>($index) { self.flat.[$index] }
-    multi method postcircumfix:<[ ]>(@index) { self.flat.[@index] }
+    method at_pos($pos) { self.flat.[$pos] }
 
     multi method ACCEPTS($x) {
         self.elems == 0

@@ -6,24 +6,24 @@ augment class Array {
         [?&] map { self[$^a] !~~ Proxy }, @indices;
     }
 
-    our multi method postcircumfix:<[ ]> (Int $index) {
-        fail "Cannot use negative index $index on {self.WHO}" if $index < 0;
-        #XXX: .exists calls postcircumfix<[ ]>, so can't perl6ify this for now...
-        return Q:PIR{
-            .local pmc self, i, values
+    method at_pos($pos) {
+        Q:PIR {
+            .local pmc self, items
+            .local int pos
             self = find_lex 'self'
-            i = find_lex '$index'
-            $I0 = i
-            inc $I0
-            values = self.'!fill'($I0)
-            %r = values[i]
-            unless null %r goto have_elem
+            $P0  = find_lex '$pos'
+            pos  = $P0
+            $I0  = pos + 1
+            items = self.'!fill'($I0)
+            %r   = items[pos]
+            unless null %r goto done
             %r = new ['Proxy']
-            setattribute %r, '$!base', values
-            setattribute %r, '$!key', i
-          have_elem:
+            setattribute %r, '$!base', self
+            $P0 = box pos
+            setattribute %r, '$!key', $P0
             $P0 = get_hll_global ['Bool'], 'True'
             setprop %r, 'rw', $P0
+          done:
         }
     }
 

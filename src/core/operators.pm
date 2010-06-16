@@ -269,11 +269,7 @@ our multi infix:<ge>($a, $b) {
 
 # XXX Lazy version would be nice in the future too.
 our multi infix:<xx>(Mu \$item, $n) {
-    my @result = ();
-    for 1..$n {
-        @result.push($item);
-    }
-    @result
+    (1..$n).map( { $item } )
 }
 
 our multi prefix:<|>(@a) { @a.Capture }

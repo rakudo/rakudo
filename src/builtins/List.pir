@@ -313,3 +313,13 @@ List classes while we convert to the new list model.)
     .return (list)
 .end
 
+
+.namespace []
+.sub '&list'
+    .param pmc values          :slurpy
+    .local pmc list
+    list = new ['List']
+    setattribute list, '@!rest', values
+    transform_to_p6opaque list
+    .return (list)
+.end

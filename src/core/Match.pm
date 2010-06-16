@@ -52,20 +52,19 @@ class Match is Regex::Match is Cool does Associative {
     }
 
     multi method caps() {
-        my @caps = gather {
-            for self.list.pairs, self.hash.pairs -> $p {
-                # in regexes like [(.) ...]+, the capture for (.) is
-                # a List. flatten that.
-                if $p.value ~~ Array  {
-                    for $p.value.list {
-                        take $p.key => $_;
-                    }
-                } else {
-                    take $p;
+        my @caps;
+        for self.list.pairs, self.hash.pairs -> $p {
+            # in regexes like [(.) ...]+, the capture for (.) is
+            # a List. flatten that.
+            if $p.value ~~ Array  {
+                for $p.value.list {
+                    @caps.push: $p.key => $_;
                 }
+            } else {
+                @caps.push: $p;
             }
         }
-        list(@caps.sort({ .value.from }));
+        @caps.sort({ .value.from });
     }
 
     multi method chunks() {

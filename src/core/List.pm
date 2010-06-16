@@ -111,6 +111,7 @@ augment class List does Positional {
     }
 
     our multi method postcircumfix:<[ ]>(Int $index) {
+        fail "Cannot use negative index $index on {self.WHO}" if $index < 0;
         Q:PIR {
             .local pmc self, items
             self = find_lex 'self'

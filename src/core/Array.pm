@@ -6,13 +6,13 @@ augment class Array {
         [?&] map { self[$^a] !~~ Proxy }, @indices;
     }
 
-    our multi method postcircumfix:<[ ]> (Int $i) {
-        if $i < 0 { die "Cannot use negative index on arrays" }
+    our multi method postcircumfix:<[ ]> (Int $index) {
+        fail "Cannot use negative index $index on {self.WHO}" if $index < 0;
         #XXX: .exists calls postcircumfix<[ ]>, so can't perl6ify this for now...
         return Q:PIR{
             .local pmc self, i, values
             self = find_lex 'self'
-            i = find_lex '$i'
+            i = find_lex '$index'
             $I0 = i
             inc $I0
             values = self.'!fill'($I0)

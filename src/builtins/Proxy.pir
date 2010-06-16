@@ -53,11 +53,11 @@ container.
     base[key] = self
 
     # get the item to be stored
-    source = descalarref source
     $I0 = can source, 'item'
     unless $I0 goto have_source
     source = source.'item'()
   have_source:
+    source = descalarref source
 
     # convert self into a scalar
     $P0 = new ['ObjectRef'], source

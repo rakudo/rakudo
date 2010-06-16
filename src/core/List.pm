@@ -11,9 +11,7 @@ augment class List does Positional {
         self.elems;
     }
 
-    method Str() {
-        pir::join(' ', self!fill);
-    }
+    method Str() { self.join(' ') }
 
     multi method fmt($format = '%s', $separator = ' ') {
         self.map({ .fmt($format) }).join($separator);

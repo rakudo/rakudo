@@ -82,9 +82,9 @@ augment class List does Positional {
         self;
     }
 
-    our multi method ACCEPTS(@topic) {
+    our multi method ACCEPTS($topic) {
         my $sseq = self.Seq;
-        my $tseq = @topic.Seq;
+        my $tseq = $topic.Seq;
         while $sseq {
             # if the next element is Whatever
             if $sseq[0] ~~ Whatever {

@@ -1,6 +1,10 @@
 class Range { ... }
 
 augment class Any {
+    method Seq() { 
+        Seq.new(self.list)
+    }
+
     method all() {
         all(self.list)
     }

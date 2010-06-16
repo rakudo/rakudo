@@ -526,8 +526,8 @@ our multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
 }
 
 our multi sub infix:<Z>($lhs, $rhs) {
-    my $lhs-list = $lhs.flat;
-    my $rhs-list = $rhs.flat;
+    my $lhs-list = flat($lhs.list);
+    my $rhs-list = flat($rhs.list);
     gather while ?$lhs-list && ?$rhs-list {
         my $a = $lhs-list.shift;
         my $b = $rhs-list.shift;
@@ -537,8 +537,8 @@ our multi sub infix:<Z>($lhs, $rhs) {
 }
 
 our multi sub infix:<X>($lhs, $rhs) {
-    my $lhs-list = $lhs.flat;
-    my $rhs-list = $rhs.flat;
+    my $lhs-list = flat($lhs.list);
+    my $rhs-list = flat($rhs.list);
     gather while ?$lhs-list {
         my $a = $lhs-list.shift;
         for @($rhs-list) -> $b {

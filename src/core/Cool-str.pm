@@ -279,7 +279,6 @@ augment class Cool {
         if $global || $nth.defined || $overlap || ($x.defined && $x_upper > 1) {
             my $nth-list = $nth.defined ?? $nth.flat !! $nth;
             my $next-index;
-            my $next-iterator;
             if $nth-list.defined {
                 return if !$nth-list;
                 $next-index = $nth-list.shift;

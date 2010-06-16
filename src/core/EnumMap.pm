@@ -5,7 +5,7 @@ class EnumMap is Iterable does Associative {
         self.bless(*, storage => pir::getattribute__PPs(%values, '$!storage'));
     }
 
-    multi method postcircumfix:<{ }>($key) {
+    method at_key($key) {
         Q:PIR {
             .local pmc self
             self = find_lex 'self'

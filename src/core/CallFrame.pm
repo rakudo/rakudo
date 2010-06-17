@@ -4,7 +4,7 @@ class CallFrame {
     method !annotations {
         my $i = $!interp;
         my $l = $!level;
-        Q:PIR {
+        CREATE_HASH_FROM_LOW_LEVEL Q:PIR {
             .local pmc interp
             .local int level
 

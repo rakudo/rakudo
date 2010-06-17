@@ -182,7 +182,7 @@ method statement($/, $key?) {
                 $past := PAST::Block.new( :blocktype('immediate'),
                     PAST::Var.new( :name('$_'), :scope('parameter'), :isdecl(1) ),
                     $past);
-                $cond := PAST::Op.new(:name('&eager'), $cond);
+                $cond := PAST::Op.new(:name('&flat'), $cond);
                 $past := PAST::Op.new($cond, $past, :pasttype(~$ml<sym>), :node($/) );
             }
             else {
@@ -336,7 +336,7 @@ method statement_control:sym<repeat>($/) {
 method statement_control:sym<for>($/) {
     my $past := xblock_immediate($<xblock>.ast);
     $past.pasttype('for');
-    $past[0] := PAST::Op.new(:name('&eager'), $past[0]);
+    $past[0] := PAST::Op.new(:name('&flat'), $past[0]);
     $past.arity($past[1].arity || 1);
     make $past;
 }

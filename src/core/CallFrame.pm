@@ -17,7 +17,7 @@ class CallFrame {
     }
 
     method line() {
-        self!annotations()<fline>;
+        self!annotations()<line>;
     }
     method file() {
         self!annotations()<file>;

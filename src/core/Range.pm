@@ -1,4 +1,4 @@
-class Range is Iterable {
+class Range is Iterable does Positional {
     has $.min;
     has $.excludes_min = Bool::False;
     has $.max;
@@ -8,8 +8,8 @@ class Range is Iterable {
                      $max,
                      Bool :$excludes_min = Bool::False,
                      Bool :$excludes_max = Bool::False) {
-        self.bless(*, :min($min),
-                      :max($max),
+        self.bless(*, :min($min ~~ Whatever ?? -Inf !! $min),
+                      :max($max ~~ Whatever ?? Inf !! $max),
                       :excludes_min($excludes_min),
                       :excludes_max($excludes_max));
     }
@@ -22,16 +22,19 @@ class Range is Iterable {
     }
 
     our method iterator() {
-        #  RangeIter.new(self);
-        pir::get_hll_global__Ps('RangeIter').new(self);
+        my $start = $.min;
+        $start .= succ if $.excludes_min;
+        RangeIter.new( :value( self!max_test($start) ?? $start !! EMPTY ),
+                       :max($.max), 
+                       :excludes_max($.excludes_max));
     }
 
     my Bool multi method !min_test($topic) {
-        $.min before $topic || (!$.excludes_min && !($.min after $topic));
+        $.min == -Inf || $.min before $topic || (!$.excludes_min && !($.min after $topic));
     }
 
     my Bool multi method !max_test($topic) {
-        $topic before $.max || (!$.excludes_max && !($topic after $.max));
+        $.max == Inf || $topic before $.max || (!$.excludes_max && !($topic after $.max));
     }
 
     our Bool multi method ACCEPTS($topic) {
@@ -66,6 +69,9 @@ class Range is Iterable {
     multi method fmt($format = '%s', $seperator = ' ') {
         self.map({ .fmt($format)}).join($seperator);
     }
+
+    multi method postcircumfix:<[ ]>(Int $index) { self.Seq[$index] }
+    multi method postcircumfix:<[ ]>(@slice)     { self.Seq[@slice] }
 }
 
 our multi sub infix:<..>($min, $max) {

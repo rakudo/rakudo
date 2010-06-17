@@ -1,0 +1,53 @@
+This file contains various notes and observations Pm makes as
+he reviews code.  Many of these can become RT tickets -- this is
+just a lighter-weight mechanism for keeping track of things to be
+reviewed/done.
+
+Active notes
+
+Pm-1:  In src/core/Array.pm, the exists() method has a line like:
+
+        [?&] map { self[$^a] !~~ Proxy }, @indices;
+
+There doesn't seem to be a strong reason for using C<map> and [?&]
+here... more efficient would seem to be to use a slice directly, 
+as in:
+
+        none(self[@indices]) ~~ Proxy
+
+Also, I'm fairly certain the test for Proxy won't stand, because
+we'd like .exists() to also work on Lists.  In fact, any sort of
+type-based test is likely wrong -- we'll probably have to resort
+to some PIR-based testing here, since only PIR will really know if
+an element is present in the List/Array.
+
+
+Pm-2:  The subroutines in src/core/metaops.pm (e.g,. &reducewith)
+all end up being visible in the core setting.  Should they be?
+(I'm thinking they're actually internal helper subs, and as such 
+should not be part of the core setting, much less global subs
+as they are now.)
+
+
+Pm-3:  Is there any strong reason why Junction.new has C<:any>,
+C<:all>, C<:one>, etc. flags instead of just using  C<< :type<any> >>?
+
+
+Pm-4:  Why does Rakudo have  "EnumMap is Cool" ?  Why is it that
+all Iterables are considered Cool?
+
+
+Pm-5:  Can someone point to the specification or explain the logic
+behind Parcel.ACCEPTS?
+
+
+------
+
+Resolved notes:
+
+None yet.
+
+
+
+
+

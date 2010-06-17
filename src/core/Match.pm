@@ -1,4 +1,4 @@
-class Match is Regex::Match is Cool does Associative {
+class Match is Regex::Match is Cool does Positional does Associative {
     method ast() {
         my $x = self.Regex::Match::ast;
         pir::isa__IPs($x, 'Undef') ?? Any !! $x;
@@ -8,7 +8,8 @@ class Match is Regex::Match is Cool does Associative {
         ~self.Regex::Match::Str;
     }
 
-    multi method postcircumfix:<{ }>($key) {
+
+    method at_key($key) {
         Q:PIR {
             $P0 = find_lex 'self'
             $P1 = find_lex '$key'
@@ -21,17 +22,10 @@ class Match is Regex::Match is Cool does Associative {
         }
     }
 
-    # We shouldn't need to provide this -- we should be able to
-    # simply write "does Positional" in the class declaration
-    # and it would provide us the postcircumfix:<[ ]> methods
-    # for free.  But there seems to be a bug or problem in the
-    # role composer that prevents us from having both "does Positional"
-    # and "does Associative" in the class declaration, so we'll
-    # provide the simple .[] for now.
-    multi method postcircumfix:<[ ]>(Int $key) {
+    method at_pos($pos) {
         Q:PIR {
             $P0 = find_lex 'self'
-            $P1 = find_lex '$key'
+            $P1 = find_lex '$pos'
             $I1 = $P1
             %r = $P0[$I1]
             unless null %r goto done
@@ -41,6 +35,8 @@ class Match is Regex::Match is Cool does Associative {
           done:
         }
     }
+
+    method of() { Mu }
 
     multi method hash() {
         # nextsame() dies here with 'Null PMC access in clone()'
@@ -52,20 +48,19 @@ class Match is Regex::Match is Cool does Associative {
     }
 
     multi method caps() {
-        my @caps = gather {
-            for self.list.pairs, self.hash.pairs -> $p {
-                # in regexes like [(.) ...]+, the capture for (.) is
-                # a List. flatten that.
-                if $p.value ~~ Array  {
-                    for $p.value.list {
-                        take $p.key => $_;
-                    }
-                } else {
-                    take $p;
+        my @caps;
+        for self.list.pairs, self.hash.pairs -> $p {
+            # in regexes like [(.) ...]+, the capture for (.) is
+            # a List. flatten that.
+            if $p.value ~~ Array  {
+                for $p.value.list {
+                    @caps.push: $p.key => $_;
                 }
+            } else {
+                @caps.push: $p;
             }
         }
-        list(@caps.sort({ .value.from }));
+        @caps.sort({ .value.from });
     }
 
     multi method chunks() {

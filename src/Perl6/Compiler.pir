@@ -191,12 +191,12 @@ Perl6::Compiler - Perl6 compiler
     .return (module)
 .end
 
-.sub 'backtrace' :method
-    .param pmc exception
-    $P0 = get_hll_global ['Perl6'], 'BacktracePrinter'
-    $S0 = $P0.'backtrace_for'(exception)
-    .return ($S0)
-.end
+#.sub 'backtrace' :method
+#    .param pmc exception
+#    $P0 = get_hll_global ['Perl6'], 'BacktracePrinter'
+#    $S0 = $P0.'backtrace_for'(exception)
+#    .return ($S0)
+#.end
 
 .sub 'main' :main
     .param pmc args_str

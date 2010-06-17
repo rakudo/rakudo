@@ -1,11 +1,11 @@
-class EnumMap is Cool does Associative {
+class EnumMap is Iterable does Associative {
     has $!storage;
 
     method new(*%values) {
         self.bless(*, storage => pir::getattribute__PPs(%values, '$!storage'));
     }
 
-    multi method postcircumfix:<{ }>($key) {
+    method at_key($key) {
         Q:PIR {
             .local pmc self
             self = find_lex 'self'
@@ -13,9 +13,7 @@ class EnumMap is Cool does Associative {
             $P1 = find_lex '$key'
             %r = $P0[$P1]
             unless null %r goto done
-            %r = new ['Proxy']
-            setattribute %r, '$!base', $P0
-            setattribute %r, '$!key', $P1
+            %r = new ['Perl6Scalar']
           done:
         }
     }
@@ -65,19 +63,31 @@ class EnumMap is Cool does Associative {
     }
 
     multi method invert () is export {
-        list(gather {
+        # shorter:  @.pairs.map( { ; .value X=> .key } ).flat;
+        gather {
             for @.pairs {
                 for @( .value ) -> $i {
                     take ($i => .key)
                 }
             }
-        })
+        }
     }
 
-    method iterator() {
-        # We just work off the low-level Parrot iterator.
-        my $iter = pir::iter__PP($!storage);
+    method iterator() { self.pairs.iterator }
+
+    method keys() {
+        self.pairs.map({ $^pair.key })
+    }
+
+    method kv() { 
+        self.pairs.map({ $^pair.key, $^pair.value }).flat 
+    }
+
+    method list() { self.pairs }
+
+    method pairs() {
         gather {
+            my $iter = pir::iter__PP($!storage);
             while pir::istrue__IP($iter) {
                 my $iter_item = pir::shift__PP($iter);
                 take Pair.new(key => $iter_item.key, value => $iter_item.value);
@@ -85,25 +95,8 @@ class EnumMap is Cool does Associative {
         }
     }
 
-    method keys() {
-        self.iterator.map({ $^pair.key })
-    }
-
-    method kv() {
-        gather {
-            for self.iterator -> $pair {
-                take $pair.key;
-                take $pair.value;
-            }
-        }
-    }
-
-    method pairs() {
-        self.iterator()
-    }
-
     method perl() {
-        return '{' ~ self.pairs.map({ .perl }).join(", ") ~ '}';
+        '{' ~ self.pairs.map({ .perl }).join(", ") ~ '}';
     }
 
     method reverse() {
@@ -115,15 +108,15 @@ class EnumMap is Cool does Associative {
     }
 
     method values() {
-        self.iterator.map({ $^pair.value })
+        self.pairs.map({ $^pair.value })
     }
 
     method Num() {
-        pir::box__PN(pir::set__NP($!storage))
+        pir::set__Ni(pir::elements($!storage));
     }
 
     method Int() {
-        pir::box__PI(pir::set__IP($!storage))
+        pir::elements($!storage)
     }
 
     method Capture() {

@@ -27,15 +27,14 @@ aggregate if written to.
 
 =over 4
 
-=item !STORE
+=item !VIVIFY
 
 Same as Object.!STORE, but first binds itself into its base 
 container.
 
 =cut
 
-.sub '!STORE' :method
-    .param pmc source
+.sub '!VIVIFY' :method
     .local pmc base, key
     base = getattribute self, '$!base'
     key  = getattribute self, '$!key'
@@ -52,19 +51,11 @@ container.
     # now bind self into the base container
     base[key] = self
 
-    # get the item to be stored
-    source = descalarref source
-    $I0 = can source, 'item'
-    unless $I0 goto have_source
-    source = source.'item'()
-  have_source:
-
     # convert self into a scalar
-    $P0 = new ['ObjectRef'], source
+    $P0 = new ['Perl6Scalar']
     copy self, $P0
     $P0 = get_hll_global ['Bool'], 'True'
     setprop self, 'scalar', $P0
-
     .return (self)
 .end
 

@@ -15,35 +15,26 @@ our multi sub sequentialargs(&op, Mu \$a, Mu \$b) {
     &op($a, $b);
 }
 
-our multi sub zipwith(&op, Iterable $a-iterable, Iterable $b-iterable) {
-    my $ai = $a-iterable.iterator;
-    my $bi = $b-iterable.iterator;
-    gather loop {
-        my $a = $ai.get;
-        my $b = $bi.get;
-        last if ($a ~~ EMPTY) || ($b ~~ EMPTY);
+our multi sub zipwith(&op, $lhs, $rhs) {
+    my $lhs-list = flat($lhs.list);
+    my $rhs-list = flat($rhs.flat);
+    gather while ?$lhs-list && ?$rhs-list {
+        my $a = $lhs-list.shift;
+        my $b = $rhs-list.shift;
         take &op($a, $b);
     }
 }
 
-our multi sub zipwith(&op, $a, $b) {
-    zipwith(&op, $a.list, $b.list);
-}
-
-our multi sub crosswith(&op, Iterable $a-iterable, Iterable $b-iterable) {
-    my $ai = $a-iterable.iterator;
-    my @b = $b-iterable.Seq;
-    gather loop {
-        my $a = $ai.get;
-        last if ($a ~~ EMPTY);
-        for @b -> $b {
+our multi sub crosswith(&op, $lhs, $rhs) {
+    my $lhs-list = flat($lhs.list);
+    my $rhs-list = flat($rhs.list);
+    gather while ?$lhs-list {
+        my $a = $lhs-list.shift;
+        for @($rhs-list) -> $b {
+            my $b-copy = $b;
             take &op($a, $b);
         }
     }
-}
-
-our multi sub crosswith(&op, $a, $b) {
-    crosswith(&op, $a.list, $b.list);
 }
 
 our multi reduce(&op, $list) {
@@ -54,7 +45,7 @@ our multi reduce(&op, *@list) {
     @list.reduce(&op)
 }
 
-our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-left, :$dwim-right) {
+our multi sub hyper(&op, @lhs is copy, @rhs is copy, :$dwim-left, :$dwim-right) {
     my sub repeating-array(@a) {
         gather loop {
             for @a -> $a {
@@ -62,9 +53,6 @@ our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-
             }
         }
     }
-
-    my @lhs = $lhs-iterable.Seq;
-    my @rhs = $rhs-iterable.Seq;
 
     my $length;
     if !$dwim-left && !$dwim-right {
@@ -81,16 +69,16 @@ our multi sub hyper(&op, Iterable $lhs-iterable, Iterable $rhs-iterable, :$dwim-
     }
 
     if $length != +@lhs {
-        @lhs = repeating-array(@lhs).batch($length);
+        @lhs = repeating-array(@lhs).munch($length);
     }
     if $length != +@rhs {
-        @rhs = repeating-array(@rhs).batch($length);
+        @rhs = repeating-array(@rhs).munch($length);
     }
 
     my @result;
     for @lhs Z @rhs -> $l, $r {
         if Associative.ACCEPTS($l) || Associative.ACCEPTS($r) {
-            @result.push(hyper(&op, $l, $r, :$dwim-left, :$dwim-right));
+            @result.push(hyper(&op, $l, $r, :$dwim-left, :$dwim-right).item);
         } elsif Iterable.ACCEPTS($l) || Iterable.ACCEPTS($r) {
             @result.push([hyper(&op, $l.list, $r.list, :$dwim-left, :$dwim-right)]);
         } else {
@@ -155,7 +143,7 @@ our multi sub hyper(&op, @arg) {
     my @result;
     for @arg {
         # this is terribly ugly; but works
-        @result.push(hyper(&op, $_)) if Associative.ACCEPTS($_);
+        @result.push(hyper(&op, $_).item) if Associative.ACCEPTS($_);
         @result.push([hyper(&op, $_)]) if !Associative.ACCEPTS($_) && Iterable.ACCEPTS($_);
         @result.push(op($_))  if !Associative.ACCEPTS($_) && !Iterable.ACCEPTS($_);
     }
@@ -166,24 +154,23 @@ our multi sub hyper(&op, $arg) {
     hyper(&op, $arg.list)
 }
 
-our multi sub reducewith(&op, Iterable $an-iterable,
+our multi sub reducewith(&op, $args,
                          :$chaining,
                          :$right-assoc,
                          :$triangle) {
-    my $ai = $an-iterable.iterator;
-    $ai = $ai.Seq.reverse.iterator if $right-assoc;
+
+    my $list = flat($right-assoc ?? $args.reverse !! $args.list);
 
     if $triangle {
         gather {
-            my $result = $ai.get;
-            return if $result ~~ EMPTY;
+            return if !$list;
+            my $result = $list.shift;
 
             if $chaining {
                 my $bool = Bool::True;
                 take Bool::True;
-                loop {
-                    my $next = $ai.get;
-                    last if $next ~~ EMPTY;
+                while ?$list {
+                    my $next = $list.shift;
                     $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
                     my $temp = $bool;
                     take $temp;
@@ -192,9 +179,8 @@ our multi sub reducewith(&op, Iterable $an-iterable,
             } else {
                 my $temp = $result;
                 take $temp;
-                loop {
-                    my $next = $ai.get;
-                    last if $next ~~ EMPTY;
+                while ?$list {
+                    my $next = $list.shift;
                     $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
                     my $temp = $result;
                     take $temp;
@@ -202,36 +188,25 @@ our multi sub reducewith(&op, Iterable $an-iterable,
             }
         }
     } else {
-        my $result = $ai.get;
-        if $result ~~ EMPTY {
-            return &op();
-        }
+        return &op() if !$list;
+        my $result = $list.shift;
 
         if $chaining {
             my $bool = Bool::True;
-            loop {
-                my $next = $ai.get;
-                last if $next ~~ EMPTY;
+            while ?$list {
+                my $next = $list.shift;
                 $bool = $bool && ($right-assoc ?? &op($next, $result) !! &op($result, $next));
                 $result = $next;
             }
             return $bool;
         } else {
-            loop {
-                my $next = $ai.get;
-                last if $next ~~ EMPTY;
+            while ?$list {
+                my $next = $list.shift;
                 $result = $right-assoc ?? &op($next, $result) !! &op($result, $next);
             }
         }
         $result;
     }
-}
-
-our multi sub reducewith(&op, $arg,
-                         :$chaining,
-                         :$right-assoc,
-                         :$triangle) {
-    reducewith(&op, $arg.list, :$chaining, :$right-assoc, :$triangle);
 }
 
 # degenerate case of operators, to be used by reduce() for the 0-ary case

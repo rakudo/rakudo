@@ -1,5 +1,5 @@
 role Hash is EnumMap {
-    multi method postcircumfix:<{ }>($key) {
+    method at_key($key) {
         Q:PIR {
             .local pmc self
             self = find_lex 'self'
@@ -11,6 +11,7 @@ role Hash is EnumMap {
             setattribute %r, '$!base', $P0
             setattribute %r, '$!key', $P1
             $P2 = get_hll_global ['Bool'], 'True'
+            setprop %r, 'scalar', $P2
             setprop %r, 'rw', $P2
           done:
         }
@@ -21,33 +22,21 @@ role Hash is EnumMap {
         # what is being stored.
         pir::setattribute__vPsP(self, '$!storage', pir::new__Ps('Hash'));
 
-        # Work through the list, storing the things in it.
-        my $need_value = 0;
-        my $key;
-        for list($to_store) -> $cur {
-            if $need_value {
-                self{$key} = $cur;
-                $need_value = 0;
-            }
-            else {
-                given $cur {
-                    when Enum {
-                        self{$cur.key} = $cur.value;
-                    }
-                    when EnumMap {
-                        for $cur.iterator -> $pair {
-                            self{$pair.key} = $pair.value;
-                        }
-                    }
-                    default {
-                        $key = $cur;
-                        $need_value = 1;
-                    }
+        my $items = $to_store.flat;
+        while $items {
+            given $items.shift {
+                when Enum {
+                    self{.key} = .value;
+                }
+                when EnumMap {
+                    for $_.list { self{.key} = .value }
+                }
+                default {
+                    die('Odd number of elements found where hash expected')
+                        unless $items;
+                    self{$_} = $items.shift;
                 }
             }
-        }
-        if $need_value {
-            die('Odd number of elements found where hash expected');
         }
         self
     }
@@ -112,6 +101,4 @@ role Hash is EnumMap {
 
 }
 
-multi sub sort (%h, :&by = &infix:<cmp>) { %h.pairs.sort(&by) }
-multi sub sort (&by, %h) { %h.pairs.sort(&by) }
 

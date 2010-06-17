@@ -264,6 +264,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
     goto attrinit_rw
   attrinit_array:
     attr = new ['Array']
+    transform_to_p6opaque attr
     goto attrinit_rw
   attrinit_hash:
     attr = '&CREATE_HASH_FROM_LOW_LEVEL'()
@@ -366,13 +367,13 @@ in the future.)
     .param pmc source
 
     # Get hold of the source object to assign.
-    $I0 = can source, '!FETCH'
+    $I0 = can source, 'item'
     if $I0 goto source_fetch
     source = deobjectref source
     source = new ['ObjectRef'], source
     goto have_source
   source_fetch:
-    source = source.'!FETCH'()
+    source = source.'item'()
     source = deobjectref source
   have_source:
 
@@ -522,10 +523,6 @@ Gets the object's identity value
 .sub '' :vtable('push_pmc') :method
     .param pmc value
     .tailcall self.'push'(value)
-.end
-
-.sub 'list' :method
-    .tailcall '&infix:<,>'(self)
 .end
 
 # Local Variables:

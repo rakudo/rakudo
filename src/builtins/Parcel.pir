@@ -17,9 +17,7 @@ elements and can be flattened into Captures or Lists.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, parcelproto, pos_role
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    pos_role = get_hll_global 'Positional'
-    pos_role = pos_role.'!select'()
-    parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Iterable', 'does_role'=>pos_role)
+    parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Iterable')
 .end
 
 .sub '' :vtable('get_string') :method
@@ -49,7 +47,11 @@ A Parcel in item context becomes a Seq.
 =cut
 
 .sub 'item' :method
-    .tailcall self.'Seq'()
+    .local pmc seq, flat, rest
+    seq = get_hll_global 'Seq'
+    seq = seq.'new'(self)
+    seq.'eager'()
+    .return (seq)
 .end
 
 
@@ -70,12 +72,12 @@ Construct an iterator for the Parcel.
 
 .namespace ['Parcel']
 .sub 'iterator' :method
-    .local pmc listiter, rpa
-    listiter = new ['List']
-    rpa = new ['ResizablePMCArray']
+    .local pmc parceliter, rpa
+    parceliter = new ['ParcelIter']
+    rpa = root_new ['parrot';'ResizablePMCArray']
     splice rpa, self, 0, 0
-    setattribute listiter, '$!rpa', rpa
-    .return (listiter)
+    setattribute parceliter, '$!parcel', rpa
+    .return (parceliter)
 .end
 
 
@@ -104,22 +106,6 @@ Construct an iterator for the Parcel.
     $S0 = concat $S0, ')'
     .return ($S0)
 .end
-
-
-=item Seq()
-
-Return the Parcel as a Seq.
-
-=cut
-
-.sub 'Seq' :method
-    .local pmc seq
-    seq = new ['Seq']
-    transform_to_p6opaque seq
-    seq.'!STORE'(self)
-    .return (seq)
-.end
-
 
 
 =item Bool()
@@ -163,17 +149,6 @@ Coerce the Parcel into a capture.
 .end
 
 
-=item !FETCH()
-
-=cut
-
-.sub '!FETCH' :method
-    $P0 = self.'Seq'()
-    $P0 = new ['Perl6Scalar'], $P0
-    .return ($P0)
-.end
-
-
 =back
 
 =head2 Functions
@@ -190,23 +165,12 @@ in a list.
 .namespace []
 .sub '&eager'
     .param pmc args            :slurpy
-    .local pmc eager, true
-    eager = new ['Parcel']
-    true = get_hll_global ['Bool'], 'True'
-    setprop eager, 'rw', true
-
-    .local pmc listiter
-    listiter = new ['List']
-    setattribute listiter, '$!rpa', args
-  iter_loop:
-    .local pmc value
-    value = listiter.'get'()
-    $I0 = isa value, ['EMPTY']
-    if $I0 goto iter_done
-    push eager, value
-    goto iter_loop
-  iter_done:
-    .return (eager)
+    .local pmc parcel
+    parcel = new ['Parcel']
+    splice parcel, args, 0, 0
+    $P0 = parcel.'flat'()
+    $P0 = $P0.'eager'()
+    .return ($P0)
 .end
 
 
@@ -287,23 +251,23 @@ Handle assignment to a Parcel (list assignment).
     cont = shift targets
     $I0 = isa cont, ['ResizablePMCArray']
     if $I0 goto store_rpa
-    $I0 = isa cont, ['Perl6Scalar']
+    $I0 = isa cont, ['Whatever']
     if $I0 goto store_scalar
-    $I0 = isa cont, ['Array']
-    if $I0 goto store_array
+    $P0 = getprop 'scalar', cont
+    if null $P0 goto store_array
+    unless $P0 goto store_array
   store_scalar:
     $P0 = source.'shift'()
-    cont.'!STORE'($P0)
+    '&infix:<=>'(cont, $P0)
     goto store_loop
   store_array:
-    cont.'!STORE'(source)
+    '&infix:<=>'(cont, source)
     source = '&circumfix:<[ ]>'()
     goto store_loop
   store_rpa:
     splice targets, cont, 0, 0
     goto store_loop
   store_done:
-
     .return (self)
 .end
 

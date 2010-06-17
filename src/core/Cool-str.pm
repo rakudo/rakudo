@@ -277,28 +277,27 @@ augment class Cool {
         }
 
         if $global || $nth.defined || $overlap || ($x.defined && $x_upper > 1) {
+            my $nth-list = $nth.defined ?? $nth.flat !! $nth;
             my $next-index;
-            my $next-iterator;
-            if $nth.defined {
-                $next-iterator = $nth.list.iterator;
-                $next-index = $next-iterator.get;
-                return if $next-index ~~ EMPTY || +$next-index < 1;
+            if $nth-list.defined {
+                return if !$nth-list;
+                $next-index = $nth-list.shift;
+                return if +$next-index < 1;
             }
 
             my $taken = 0;
             my $i = 1;
             my @r = gather while my $m = Cursor.parse(self, :rule($pat), |%opts) {
                 my $m-copy = $m;
-                if !$nth.defined || $i == $next-index {
+                if !$nth-list.defined || $i == $next-index {
                     take $m-copy;
                     $taken++;
 
-                    if ($nth.defined) {
-                        $next-index = $next-iterator.get;
-                        while $next-index !~~ EMPTY && $next-index <= $i  {
-                            $next-index = $next-iterator.get;
+                    if ($nth-list.defined) {
+                        while ?$nth-list && $next-index <= $i  {
+                            $next-index = $nth-list.shift;
                         }
-                        last if $next-index ~~ EMPTY;
+                        last if $next-index <= $i;
                     }
                 }
                 last if $taken == $x_upper;

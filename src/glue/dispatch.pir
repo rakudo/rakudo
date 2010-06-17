@@ -48,7 +48,7 @@ dispatcher for each thingy we're dispatching over.
     .local pmc it, results, disp
     disp = find_name dispatcher
     results = new ['ResizablePMCArray']
-    invocanty = invocanty.'list'()
+    invocanty = invocanty.'flat'()
     it = iter invocanty
   it_loop:
     unless it goto it_loop_done
@@ -77,7 +77,7 @@ array of invocants.
 
     .local pmc it, results
     results = new ['ResizablePMCArray']
-    invocanty = invocanty.'list'()
+    invocanty = invocanty.'flat'()
     it = iter invocanty
   it_loop:
     unless it goto it_loop_done
@@ -221,8 +221,7 @@ Implements the .* operator. Calls one or more matching methods.
     rethrow exception
   it_loop_end:
 
-    result_list = '&infix:<,>'(result_list :flat)
-    .tailcall '&list'(result_list)
+    .tailcall '&list'(result_list :flat)
 .end
 
 

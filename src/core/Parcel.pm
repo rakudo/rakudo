@@ -1,22 +1,16 @@
-augment class Parcel {
-    method elems() { self.Seq.elems }
+augment class Parcel does Positional {
+    method Str() { self.flat.Str }
 
-    method list() { self.iterator }
+    method elems() { self.flat.elems }
 
-    method rotate(Int $n = 1) { self.Seq.rotate($n) }
+    # Need this method here to avoid ResizablePMCArray.sort from Parrot.
+    method sort(&by = &infix:<cmp>) { self.list.sort(&by) }
 
-    multi method sort(&by = &infix:<cmp>) { self.Seq.sort(&by) }
+    method at_pos($pos) { self.flat.[$pos] }
 
     multi method ACCEPTS($x) {
-        # smart-matching against Nil
-        if self.elems == 0 {
-            $x.notdef || ($x.does(::Positional) && $x == 0)
-        } else {
-            self.Seq.ACCEPTS($x)
-        }
-    }
-
-    multi method fmt($format = '%s', $seperator = ' ') {
-        self.map({ .fmt($format)}).join($seperator);
+        self.elems == 0
+            ?? $x.notdef || ($x ~~ Positional && $x == 0)
+            !! self.Seq.ACCEPTS($x)
     }
 }

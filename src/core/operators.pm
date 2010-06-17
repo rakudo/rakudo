@@ -207,7 +207,7 @@ our multi infix:<~>($a, $b) {
 
 our sub circumfix:<{ }>(*@elements) {
     my %h = @elements;
-    %h
+    %h.item
 }
 
 our sub hash(*@list, *%hash) {
@@ -269,11 +269,7 @@ our multi infix:<ge>($a, $b) {
 
 # XXX Lazy version would be nice in the future too.
 our multi infix:<xx>(Mu \$item, $n) {
-    my @result = ();
-    for 1..$n {
-        @result.push($item);
-    }
-    @result
+    (1..$n).map( { $item } )
 }
 
 our multi prefix:<|>(@a) { @a.Capture }
@@ -529,33 +525,28 @@ our multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
     Bool::True;
 }
 
-our multi sub infix:<Z>(Iterable $a-iterable, Iterable $b-iterable) {
-    my $ai = $a-iterable.iterator;
-    my $bi = $b-iterable.iterator;
-    gather loop {
-        my $a = $ai.get;
-        my $b = $bi.get;
-        last if ($a ~~ EMPTY) || ($b ~~ EMPTY);
+our multi sub infix:<Z>($lhs, $rhs) {
+    my $lhs-list = flat($lhs.list);
+    my $rhs-list = flat($rhs.list);
+    gather while ?$lhs-list && ?$rhs-list {
+        my $a = $lhs-list.shift;
+        my $b = $rhs-list.shift;
         take $a;
         take $b;
     }
 }
 
-our multi sub infix:<Z>($a, $b) { &infix:<Z>($a.list, $b.list) }
-
-our multi sub infix:<X>(Iterable $a-iterable, Iterable $b-iterable) {
-    my $ai = $a-iterable.iterator;
-    my @b = $b-iterable.Seq;
-    gather loop {
-        my $a = $ai.get;
-        last if ($a ~~ EMPTY);
-        for @b -> $b {
-            take ($a, $b);
+our multi sub infix:<X>($lhs, $rhs) {
+    my $lhs-list = flat($lhs.list);
+    my $rhs-list = flat($rhs.list);
+    gather while ?$lhs-list {
+        my $a = $lhs-list.shift;
+        for @($rhs-list) -> $b {
+            my $b-copy = $b;
+            take ($a, $b-copy);
         }
     }
 }
-
-our multi sub infix:<X>($a, $b) { &infix:<X>($a.list, $b.list) }
 
 # if we want &infix:<||> accessible (for example for meta operators), we need
 # to define it, because the normal || is short-circuit and special cased by

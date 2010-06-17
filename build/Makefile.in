@@ -105,9 +105,13 @@ BUILTINS_PIR = \
   src/builtins/Iterable.pir \
   src/builtins/Iterator.pir \
   src/builtins/EMPTY.pir \
-  src/builtins/ParrotIter.pir \
   src/builtins/List.pir \
+  src/builtins/ParrotIter.pir \
+  src/builtins/ListIter.pir \
+  src/builtins/MapIter.pir \
+  src/builtins/GatherIter.pir \
   src/builtins/Parcel.pir \
+  src/builtins/ParcelIter.pir \
   src/builtins/Bool.pir \
   src/builtins/Int.pir \
   src/builtins/Num.pir \
@@ -124,9 +128,8 @@ BUILTINS_PIR = \
   src/builtins/Submethod.pir \
   src/builtins/Regex.pir \
   src/builtins/Associative.pir \
-  src/builtins/Seq.pir \
-  src/builtins/SeqIter.pir \
   src/builtins/Array.pir \
+  src/builtins/Seq.pir \
   src/builtins/Proxy.pir \
   src/builtins/ContainerDeclarand.pir \
   src/builtins/Exception.pir \
@@ -153,8 +156,6 @@ CHEATS_PIR = \
   src/cheats/num-ops.pir \
   src/cheats/str-ops.pir \
   src/cheats/relops.pir \
-  src/cheats/mapiterator.pir \
-  src/cheats/gatheriterator.pir \
   src/cheats/only_infix_redispatcher.pir \
   src/cheats/import.pir \
   src/cheats/want-caller-side-callsig.pir \
@@ -174,6 +175,7 @@ CORE_SOURCES = \
   src/cheats/trait-export.pm \
   src/cheats/num.pm \
   src/cheats/eval.pm \
+  src/core/Positional.pm \
   src/core/Associative.pm \
   src/core/Mu.pm \
   src/core/Bool.pm \
@@ -183,7 +185,7 @@ CORE_SOURCES = \
   src/core/Cool.pm \
   src/core/Cool-num.pm \
   src/core/Cool-str.pm \
-  src/core/Seq.pm \
+  src/core/List.pm \
   src/core/Set.pm \
   src/core/Array.pm \
   src/core/Numeric.pm \
@@ -199,8 +201,8 @@ CORE_SOURCES = \
   src/core/Str.pm \
   src/core/Whatever.pm \
   src/core/Pair.pm \
-  src/core/Range.pm \
   src/core/RangeIter.pm \
+  src/core/Range.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Enum.pm \

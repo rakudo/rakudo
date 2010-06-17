@@ -1,6 +1,10 @@
 class Range { ... }
 
 augment class Any {
+    method Seq() { 
+        Seq.new(self.list)
+    }
+
     method all() {
         all(self.list)
     }
@@ -18,26 +22,19 @@ augment class Any {
     }
 
     our Str multi method join($separator = '') {
-        pir::join__SsP($separator, self.list.eager);
+        pir::join__SsP($separator, self.flat.eager);
     }
 
     multi method elems() {
         1;
     }
 
-    our multi method map(&block) {
-        Q:PIR {
-            .local pmc self, block, map
-            self = find_lex 'self'
-            block = find_lex '&block'
-            $P0 = self.'list'()
-            $P0 = $P0.'iterator'()
-            map = new ['MapIterator']
-            setattribute map, '$!iter', $P0
-            setattribute map, '&!block', block
-            %r = map
-        };
-    }
+    multi method flat() { self.list.flat }
+
+    our multi method map(&block) { self.list.map(&block); }
+
+    our multi method sort(&by = &infix:<cmp>) { self.list.sort(&by); }
+
 
     multi method first(Mu $test) {
         for @.list {
@@ -298,5 +295,10 @@ proto sub kv(@array) { @array.kv; }
 proto sub keys(@array) { @array.keys; }
 proto sub values(@array) { @array.values; }
 proto sub pairs(@array) { @array.pairs; }
+
+multi sub sort(*@values, :&by) {
+    my &x = &by // (@values[0] ~~ Callable ?? @values.shift !! &infix:<cmp> );
+    @values.sort(&x);
+}
 
 # vim: ft=perl6

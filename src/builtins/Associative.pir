@@ -26,27 +26,28 @@ cases looping back to here to get the one value.
 .namespace []
 .sub '!postcircumfix:<{ }>'
     .param pmc invocant
-    .param pmc args            :slurpy
+    .param pmc args            :optional
+    .param int has_args        :opt_flag
+
     $I0 = can invocant, 'postcircumfix:<{ }>'
     if $I0 goto object_method
     $I0 = isa invocant, 'Mu'
     if $I0 goto object_method
   foreign:
-    $I0 = elements args
-    if $I0 != 1 goto delegate
-    $P0 = args[0]
-    $P0 = invocant[$P0]
-    unless null $P0 goto done
-    $P0 = new ['Perl6Scalar']
-  done:
-    .return ($P0)
-  delegate:
-    # XXX relies on the method being in the namespace -- perhaps
-    # should use method lookup instead
     $P0 = get_hll_global ['Associative[::T]'], 'postcircumfix:<{ }>'
-    .tailcall invocant.$P0(args :flat)
+    unless has_args goto foreign_zen
+    $P1 = invocant.$P0(args)
+    .return ($P1)
+  foreign_zen:
+    $P1 = invocant.$P0()
+    .return ($P1)
   object_method:
-    .tailcall invocant.'postcircumfix:<{ }>'(args :flat)
+    unless has_args goto object_zen
+    $P1 = invocant.'postcircumfix:<{ }>'(args)
+    .return ($P1)
+  object_zen:
+    $P1 = invocant.'postcircumfix:<{ }>'()
+    .return ($P1)
 .end
 
 =back

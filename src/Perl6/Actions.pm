@@ -2273,26 +2273,15 @@ method postcircumfix:sym<{ }>($/) {
         if +$<semilist><statement> > 1 {
             $/.CURSOR.panic("Sorry, multi-dimensional indexes are not yet supported");
         }
-        my $slast := $<semilist>.ast;
-        if $slast[0].isa(PAST::Op) && $slast[0].name eq '&infix:<,>' {
-            for @($slast[0]) { $past.push($_); }
-        }
-        else {
-            $past.push($slast);
-        }
+        $past.push($<semilist>.ast);
     }
     make $past;
 }
 
 method postcircumfix:sym<ang>($/) {
     my $past := PAST::Op.new( :name('!postcircumfix:<{ }>'), :pasttype('call'), :node($/) );
-    my $quoted := $<quote_EXPR>.ast;
-    if $quoted.isa(PAST::Stmts) && $quoted[0].isa(PAST::Op) && $quoted[0].name() eq '&infix:<,>' {
-        for @($quoted[0]) { $past.push($_); }
-    }
-    else {
-        $past.push($quoted);
-    }
+    $past.push( $<quote_EXPR>.ast ) 
+        if +$<quote_EXPR><quote_delimited><quote_atom> > 0;
     make $past;
 }
 
@@ -3063,6 +3052,11 @@ our %not_curried;
 INIT {
     %not_curried{'&infix:<...>'} := 1;
     %not_curried{'&infix:<..>'}  := 1;
+    %not_curried{'&infix:<..^>'}  := 1;
+    %not_curried{'&infix:<^..>'}  := 1;
+    %not_curried{'&infix:<^..^>'}  := 1;
+    %not_curried{'&prefix:<^>'}  := 1;
+    %not_curried{'&infix:<xx>'}  := 1;
     %not_curried{'&infix:<~~>'}  := 1;
 }
 sub whatever_curry($past, $upto_arity) {

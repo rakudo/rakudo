@@ -16,7 +16,7 @@ Arrays are the mutable form of Lists.
 .sub 'onload' :anon :init :load
     .local pmc p6meta, proto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    proto = p6meta.'new_class'('Array', 'parent'=>'Seq')
+    proto = p6meta.'new_class'('Array', 'parent'=>'List')
 .end
 
 
@@ -60,6 +60,24 @@ Arrays are the mutable form of Lists.
 
 =over 4
 
+=cut
+
+.namespace ['Array']
+.sub '!STORE' :method
+    .param pmc source
+    .local pmc list, flat, items, rest
+    list = '&flat'(source)
+    (rest :slurpy) = list.'eager'()
+    flat = get_hll_global 'True'
+    null items
+    setattribute self, '$!flat', flat
+    setattribute self, '@!items', items
+    setattribute self, '@!rest', rest
+    self.'eager'()
+    .return (self)
+.end
+
+
 =item !elem(item)
 
 Create an element for the Array (has the 'rw' property set).
@@ -72,7 +90,7 @@ Create an element for the Array (has the 'rw' property set).
     .local pmc elem, true
     true = get_hll_global ['Bool'], 'True'
     item = descalarref item
-    elem = new ['ObjectRef'], item
+    elem = new ['Perl6Scalar'], item
     setprop elem, 'scalar', true
     setprop elem, 'rw', true
     .return (elem)

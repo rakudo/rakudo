@@ -11,6 +11,7 @@ role Hash is EnumMap {
             setattribute %r, '$!base', $P0
             setattribute %r, '$!key', $P1
             $P2 = get_hll_global ['Bool'], 'True'
+            setprop %r, 'scalar', $P2
             setprop %r, 'rw', $P2
           done:
         }

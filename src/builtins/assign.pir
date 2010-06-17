@@ -62,6 +62,22 @@ src/builtins/assign.pir - assignment operations
 .end
 
 
+.sub '&infix:<=>' :multi(['Proxy'], _)
+    .param pmc cont
+    .param pmc source
+    cont.'!VIVIFY'()
+    $P0 = '&infix:<=>'(cont, source)
+    .return ($P0)
+.end
+
+
+.sub '&infix:<=>' :multi(['Whatever'], _)
+    .param pmc cont
+    .param pmc source
+    .return (cont)
+.end
+
+
 .sub '!gen_assign_metaop'
     .param string sym
     .local string opname, metaname

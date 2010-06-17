@@ -22,6 +22,7 @@ augment class Array {
             $P0 = box pos
             setattribute %r, '$!key', $P0
             $P0 = get_hll_global ['Bool'], 'True'
+            setprop %r, 'scalar', $P0
             setprop %r, 'rw', $P0
           done:
         }

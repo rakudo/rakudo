@@ -258,18 +258,16 @@ Handle assignment to a Parcel (list assignment).
     unless $P0 goto store_array
   store_scalar:
     $P0 = source.'shift'()
-    cont.'!STORE'($P0)
+    '&infix:<=>'(cont, $P0)
     goto store_loop
   store_array:
-  store_hash:
-    cont.'!STORE'(source)
+    '&infix:<=>'(cont, source)
     source = '&circumfix:<[ ]>'()
     goto store_loop
   store_rpa:
     splice targets, cont, 0, 0
     goto store_loop
   store_done:
-
     .return (self)
 .end
 

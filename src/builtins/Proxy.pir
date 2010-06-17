@@ -60,7 +60,7 @@ container.
     source = descalarref source
 
     # convert self into a scalar
-    $P0 = new ['ObjectRef'], source
+    $P0 = new ['Perl6Scalar'], source
     copy self, $P0
     $P0 = get_hll_global ['Bool'], 'True'
     setprop self, 'scalar', $P0

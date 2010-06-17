@@ -12,6 +12,7 @@ New in 2010.06 release
 + mix-ins with non-roles (5 but 'string')
 + @*ARGS is now read-write
 + IO::Socket::INET again works in CORE
++ hash and array slices have been greatly improved
 + basic support for callframe() and CallFrame type
 
 New in 2010.05 release

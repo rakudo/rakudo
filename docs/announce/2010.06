@@ -18,10 +18,15 @@ month's release better. Дякую!
 Some of the specific changes and improvements occurring with this
 release include:
 
-* The list semantics received a complete overhaul. Rakudo now uses immutable
-  iterators, and many things that should be truly lazily evaluated, now are.
+* Rakudo now uses immutable iterators internally, and generally hides
+  their existence from programmers. Many more things are now evaluated
+  lazily.
+
+* Match objects now act like real hashes and arrays.
 
 * Regexes can now interpolate variables.
+
+* Hash and array slicing has been improved.
 
 * The REPL shell now prints results, even when not explicitly asked to print
   them, thus respecting the "P" part of "REPL".
@@ -46,7 +51,7 @@ quester, Alexey Grebenschikov, Timothy Totten
 If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
 the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
 
-The next release of Rakudo (#31) is scheduled for July 17, 2010.
+The next release of Rakudo (#31) is scheduled for July 22, 2010.
 A list of the other planned release dates and code names for 2010 is
 available in the "docs/release_guide.pod" file.  In general, Rakudo
 development releases are scheduled to occur two days after each

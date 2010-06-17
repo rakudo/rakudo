@@ -35,6 +35,7 @@ augment class Any {
 
     our multi method sort(&by = &infix:<cmp>) { self.list.sort(&by); }
 
+    method rotate($n = 1) { self.list.rotate($n); }
 
     multi method first(Mu $test) {
         for @.list {
@@ -295,6 +296,7 @@ proto sub kv(@array) { @array.kv; }
 proto sub keys(@array) { @array.keys; }
 proto sub values(@array) { @array.values; }
 proto sub pairs(@array) { @array.pairs; }
+proto sub rotate(@array, $n = 1) { @array.rotate($n); }
 
 multi sub sort(*@values, :&by) {
     my &x = &by // (@values[0] ~~ Callable ?? @values.shift !! &infix:<cmp> );

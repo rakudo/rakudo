@@ -35,6 +35,11 @@ augment class List does Positional {
         '(' ~ self.map({ $^a.perl }).join(', ') ~ ')';
     }
 
+    method rotate($n = 1) is export {
+        my $k = $n % self.elems;
+        self[$k .. self.elems-1, 0 .. $k-1];
+    }
+
     multi method sort(&by = &infix:<cmp>) {
         # Parrot already provides a sort method that works on
         # ResizablePMCArray, so we aim to make use of that here.

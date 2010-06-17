@@ -31,7 +31,6 @@ our multi sub crosswith(&op, $lhs, $rhs) {
     gather while ?$lhs-list {
         my $a = $lhs-list.shift;
         for @($rhs-list) -> $b {
-            my $b-copy = $b;
             take &op($a, $b);
         }
     }

@@ -17,15 +17,13 @@ class CallFrame {
     }
 
     method line() {
-        my $ann = self!annotations();
-        $ann<line>;
+        self!annotations()<fline>;
     }
     method file() {
-        my $ann = self!annotations();
-        $ann<file>;
+        self!annotations()<file>;
     }
 
-    method callframe(Int $level) {
+    method callframe(Int $level = 0) {
         CallFrame.new(:interp($!interp), :level($!level + $level));
     }
 

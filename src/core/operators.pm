@@ -424,6 +424,11 @@ our multi sub infix:<...>($lhs, @rhs is copy) {
     ($lhs ... @rhs.shift), @rhs
 }
 
+our multi sub infix:<...>(@lhs, @rhs is copy) {
+    fail "Need something on RHS" if !@rhs;
+    (@lhs ... @rhs.shift), @rhs
+}
+
 our multi sub infix:<eqv>(Mu $a, Mu $b) {
     $a.WHAT === $b.WHAT && $a === $b;
 }

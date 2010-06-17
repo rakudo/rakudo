@@ -1,4 +1,5 @@
 New in 2010.06 release
++ new list model with immutable iterators, lots of fixes to lists and arrays
 + variable interpolation into regexes
 + compile time Whatever currying for infix, prefix and postfix operators
 + autoprinting in REPL
@@ -6,6 +7,9 @@ New in 2010.06 release
 + proper Perl 6 match objects
 + Backtraces with Perl 6 subroutine names and line numbers
 + MAIN and USAGE subs
++ basic version of Str.trans
++ mix-ins with non-roles (5 but 'string')
++ basic support for callframe() and CallFrame type
 
 New in 2010.05 release
 + implemented lexical and anonymous classes and roles

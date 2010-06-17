@@ -190,9 +190,9 @@ S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
-# S03-operators/series-arity0.t
-# S03-operators/series-arity2ormore.t
-# S03-operators/series-simple.t
+S03-operators/series-arity0.t
+S03-operators/series-arity2ormore.t
+S03-operators/series-simple.t
 S03-operators/series.t
 S03-operators/short-circuit.t
 S03-operators/spaceship-and-containers.t

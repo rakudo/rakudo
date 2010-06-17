@@ -37,7 +37,6 @@ static STRING *CREATE_str;
 static STRING *defined_str;
 static STRING *DISPATCH_JUNCTION_METHOD_str;
 static STRING *do_str;
-static STRING *FETCH_str;
 static STRING *get_parrotclass_str;
 static STRING *handles_dispatchers_str;
 static STRING *HANDLES_DISPATCH_HELPER_str;
@@ -277,7 +276,6 @@ pmclass P6opaque extends Object dynpmc group perl6_group auto_attrs {
         defined_str                  = CONST_STRING(interp, "defined");
         DISPATCH_JUNCTION_METHOD_str = CONST_STRING(interp, "!DISPATCH_JUNCTION_METHOD");
         do_str                       = CONST_STRING(interp, "$!do");
-        FETCH_str                    = CONST_STRING(interp, "!FETCH");
         get_parrotclass_str          = CONST_STRING(interp, "get_parrotclass");
         handles_dispatchers_str      = CONST_STRING(interp, "@!handles_dispatchers");
         HANDLES_DISPATCH_HELPER_str  = CONST_STRING(interp, "!HANDLES_DISPATCH_HELPER");
@@ -401,8 +399,7 @@ back some kind of iterator to let us get all of the possible candidates.
                 !Parrot_str_equal(interp, name, isa_str) &&
                 !Parrot_str_equal(interp, name, does_str) &&
                 !Parrot_str_equal(interp, name, item_str) &&
-                !Parrot_str_equal(interp, name, defined_str) &&
-                !Parrot_str_equal(interp, name, FETCH_str)) {
+                !Parrot_str_equal(interp, name, defined_str)) {
             /* Look up closure maker, clone it, attach name and return that. */
             PMC *sub = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
                     MAKE_WHATEVER_CLOSURE_str);
@@ -425,7 +422,6 @@ back some kind of iterator to let us get all of the possible candidates.
                 !Parrot_str_equal(interp, name, perl_str) &&
                 !Parrot_str_equal(interp, name, select_str) &&
                 !Parrot_str_equal(interp, name, add_variant_str) &&
-                !Parrot_str_equal(interp, name, FETCH_str) &&
                 !Parrot_str_equal(interp, name, postcircumfix_str)) {
             PMC *ns_key, *ns, *punner, *boxed_name;
             ns_key = pmc_new(interp, enum_class_ResizableStringArray);

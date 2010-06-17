@@ -149,17 +149,6 @@ Coerce the Parcel into a capture.
 .end
 
 
-=item !FETCH()
-
-=cut
-
-.sub '!FETCH' :method
-    $P0 = self.'flat'()
-    $P0 = new ['Perl6Scalar'], $P0
-    .return ($P0)
-.end
-
-
 =back
 
 =head2 Functions

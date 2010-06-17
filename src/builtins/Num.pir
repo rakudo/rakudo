@@ -102,21 +102,6 @@ Overridden for Num.
 
 =over 4
 
-=item !FETCH()
-
-Value type, so return self.
-
-=cut
-
-.sub '!FETCH' :method
-    .return (self)
-.end
-
-
-=back
-
-=cut
-
 =item radcalc
 
 =cut

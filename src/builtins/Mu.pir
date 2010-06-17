@@ -367,13 +367,13 @@ in the future.)
     .param pmc source
 
     # Get hold of the source object to assign.
-    $I0 = can source, '!FETCH'
+    $I0 = can source, 'item'
     if $I0 goto source_fetch
     source = deobjectref source
     source = new ['ObjectRef'], source
     goto have_source
   source_fetch:
-    source = source.'!FETCH'()
+    source = source.'item'()
     source = deobjectref source
   have_source:
 

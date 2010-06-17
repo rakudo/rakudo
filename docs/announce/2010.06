@@ -7,7 +7,7 @@ Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
 is available from <http://github.com/rakudo/rakudo/downloads>.
 
 Rakudo Perl follows a monthly release cycle, with each release named
-after a Perl Mongers group. This release is named after the the Perl Mongers
+after a Perl Mongers group. This release is named after the Perl Mongers
 from the beautiful Ukrainian capital, Kiev. They recently helped organize and
 participated in the Perl Mova + YAPC::Russia conference, the хакмит (hackathon)
 of which was a particular success for Rakudo. All those who joined the Rakudo
@@ -22,6 +22,10 @@ release include:
   their existence from programmers. Many more things are now evaluated
   lazily.
 
+* Backtraces no longer report routines from Parrot internals. This used to
+  be the case in the Rakudo alpha branch as well, but this time they are
+  also very pleasant to look at.
+
 * Match objects now act like real hashes and arrays.
 
 * Regexes can now interpolate variables.
@@ -31,8 +35,8 @@ release include:
 * The REPL shell now prints results, even when not explicitly asked to print
   them, thus respecting the "P" part of "REPL".
 
-*  Rakudo now passes 33,280 spectests. We estimate that there are about
-   39,900 tests in the test suite, so Rakudo passes about 83% of all tests.
+* Rakudo now passes 33,280 spectests. We estimate that there are about
+  39,900 tests in the test suite, so Rakudo passes about 83% of all tests.
 
 For a more detailed list of changes see "docs/ChangeLog".
 

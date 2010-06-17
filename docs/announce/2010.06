@@ -1,0 +1,55 @@
+    Announce: Rakudo Perl 6 development release #30 ("Kiev")
+
+On behalf of the Rakudo development team, I'm pleased to announce the
+June 2010 development release of Rakudo Perl #30 "Kiev".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
+(see <http://www.parrot.org>). The tarball for the June 2010 release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Rakudo Perl follows a monthly release cycle, with each release named
+after a Perl Mongers group. This release is named after the the Perl Mongers
+from the beautiful Ukrainian capital, Kiev. They recently helped organize and
+participated in the Perl Mova + YAPC::Russia conference, the хакмит (hackathon)
+of which was a particular success for Rakudo. All those who joined the Rakudo
+hacking - from Kiev and further afield - contributed spec tests as well as
+patches to Rakudo, allowing various RT tickets to be closed, and making this
+month's release better. Дякую!
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* The list semantics received a complete overhaul. Rakudo now uses immutable
+  iterators, and many things that should be truly lazily evaluated, now are.
+
+* Regexes can now interpolate variables.
+
+* The REPL shell now prints results, even when not explicitly asked to print
+  them, thus respecting the "P" part of "REPL".
+
+*  Rakudo now passes 33,280 spectests. We estimate that there are about
+   39,900 tests in the test suite, so Rakudo passes about 83% of all tests.
+
+For a more detailed list of changes see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on parrot, the
+Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+Patrick R. Michaud, Moritz Lenz, Jonathan Worthington, Solomon Foster,
+Patrick Abi Salloum, Carl Mäsak, Martin Berends, Will "Coke" Coleda,
+Vyacheslav Matjukhin, snarkyboojum, sorear, smashz, Jimmy Zhuo,
+Jonathan "Duke" Leto, Maxim Yemelyanov, Stéphane Payrard, Gerd Pokorra,
+cognominal, Bruce Keeler, Ævar Arnfjörð Bjarmason, Shrivatsan, Hongwen Qiu,
+quester, Alexey Grebenschikov, Timothy Totten
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#31) is scheduled for July 17, 2010.
+A list of the other planned release dates and code names for 2010 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!

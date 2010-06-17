@@ -10,7 +10,7 @@
 
   var_list:
     .local pmc var_it, elem
-    $P0 = '&list'(var)
+    $P0 = '&flat'(var)
     var_it = iter $P0
     var = new ['ResizablePMCArray']
   var_loop:

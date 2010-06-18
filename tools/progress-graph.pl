@@ -48,7 +48,7 @@ use constant SPECSKIP   => 9;
 
 use constant MAX_COL    => 9;
 
-my $size = '800x500';
+my $size = '850x500';
 
 GetOptions
     'size=s'    => \$size,
@@ -123,7 +123,7 @@ sub usage {
 Usage:
     $0 [--size XXXxYYY] [data_file [output_file]]
 Options
-    --size  Size of the output image, default is 600x400
+    --size  Size of the output image, default is 850x500
 USAGE
     exit 1;
 }

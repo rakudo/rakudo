@@ -45,7 +45,7 @@ static PMC *
 Rakudo_binding_create_array(PARROT_INTERP, PMC *rest) {
     static PMC *truepmc = NULL;
     PMC *hll_ns    = Parrot_get_ctx_HLL_namespace(interp);
-    PMC *arr_ns    = Parrot_get_namespace_keyed_str(interp, hll_ns, string_from_literal(interp, "Array"));
+    PMC *arr_ns    = Parrot_ns_get_namespace_keyed_str(interp, hll_ns, string_from_literal(interp, "Array"));
     PMC *arr_class = VTABLE_get_class(interp, arr_ns);
     PMC *result    = VTABLE_instantiate(interp, arr_class, PMCNULL);
     INTVAL type_id = pmc_type(interp, string_from_literal(interp, "P6opaque"));
@@ -84,7 +84,7 @@ Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
 static PMC *
 Rakudo_binding_create(PARROT_INTERP, STRING *classname) {
     PMC *ns        = Parrot_get_ctx_HLL_namespace(interp);
-    PMC *class_ns  = Parrot_get_namespace_keyed_str(interp, ns, classname);
+    PMC *class_ns  = Parrot_ns_get_namespace_keyed_str(interp, ns, classname);
     PMC *class_obj = VTABLE_get_class(interp, class_ns);
     PMC *result    = VTABLE_instantiate(interp, class_obj, PMCNULL);
     return result;
@@ -559,7 +559,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
              * For now, we don't have that, so we just build off the current
              * capture. */
             PMC *ns       = Parrot_get_ctx_HLL_namespace(interp);
-            PMC *snapper  = Parrot_get_global(interp, ns, string_from_literal(interp, "!snapshot_capture"));
+            PMC *snapper  = Parrot_ns_get_global(interp, ns, string_from_literal(interp, "!snapshot_capture"));
             PMC *snapshot = PMCNULL;
             Parrot_ext_call(interp, snapper, "PiIP->P", capture, cur_pos_arg, named_args_copy, &snapshot);
             bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i], snapshot,

@@ -501,7 +501,7 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
                 }
             }
             else {
-                element->nominal_type = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+                element->nominal_type = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
                         string_from_literal(interp, "Mu"));
             }
 
@@ -633,7 +633,7 @@ inline op bind_signature(in PMC) :base_core {
             if (bind_error == BIND_RESULT_JUNCTION) {
                 /* Find dispatcher and call it. */
                 PMC *returns = Parrot_pmc_new(interp, enum_class_CallContext);
-                PMC *dispatcher = Parrot_find_global_n(interp, Parrot_get_ctx_HLL_namespace(interp),
+                PMC *dispatcher = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
                         string_from_literal(interp, "!DISPATCH_JUNCTION_SINGLE"));
                 opcode_t *next;
                 PMC *junc_result, *caller_sig;

@@ -55,7 +55,7 @@ pmclass P6role extends Role dynpmc group perl6_group auto_attrs {
         ns_key = pmc_new(interp, enum_class_ResizableStringArray);
         VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "perl6"));
         VTABLE_push_string(interp, ns_key, CONST_STRING(interp, "Perl6Role"));
-        ns = Parrot_get_namespace_keyed(interp, interp->root_namespace, ns_key);
+        ns = Parrot_ns_get_namespace_keyed(interp, interp->root_namespace, ns_key);
         punner = VTABLE_get_pmc_keyed_str(interp, ns, CONST_STRING(interp, "!pun_helper"));
 
         /* Return a clone with the method name set as a property. */

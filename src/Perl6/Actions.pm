@@ -2085,10 +2085,11 @@ method EXPR($/, $key?) {
         }
     }
     if $key eq 'POSTFIX' {
+        my $inv := $/[0].ast;
         $past.unshift(
             PAST::Op.ACCEPTS($past) && $past.pasttype eq 'callmethod'
-            ?? PAST::Op.new( :pirop('descalarref PP'), $/[0].ast )
-            !! $/[0].ast
+            ?? PAST::Op.new( :pirop('descalarref PP'), $inv, :returns($inv.returns) )
+            !! $inv
         );
     }
     else {
@@ -3050,14 +3051,16 @@ sub capture_or_parcel($args, $name) {
 # introspection and keep it as a quick cache.
 our %not_curried;
 INIT {
-    %not_curried{'&infix:<...>'} := 1;
-    %not_curried{'&infix:<..>'}  := 1;
+    %not_curried{'&infix:<...>'}  := 1;
+    %not_curried{'&infix:<..>'}   := 1;
     %not_curried{'&infix:<..^>'}  := 1;
     %not_curried{'&infix:<^..>'}  := 1;
-    %not_curried{'&infix:<^..^>'}  := 1;
-    %not_curried{'&prefix:<^>'}  := 1;
-    %not_curried{'&infix:<xx>'}  := 1;
-    %not_curried{'&infix:<~~>'}  := 1;
+    %not_curried{'&infix:<^..^>'} := 1;
+    %not_curried{'&prefix:<^>'}   := 1;
+    %not_curried{'&infix:<xx>'}   := 1;
+    %not_curried{'&infix:<~~>'}   := 1;
+    %not_curried{'&infix:<=>'}    := 1;
+    %not_curried{'&infix:<:=>'}   := 1;
 }
 sub whatever_curry($past, $upto_arity) {
     if $past.isa(PAST::Op) && !%not_curried{$past.name} {

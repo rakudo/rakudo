@@ -395,7 +395,7 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
 
         if !$limit.defined || $limit cmp $j != 0 {
             loop {
-                my $i = $next.(|@args);
+                my $i = $next.(|@args) // last;
                 my $j = $i;
 
                 my $cur_cmp = 1;

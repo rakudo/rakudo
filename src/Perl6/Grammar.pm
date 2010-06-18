@@ -234,6 +234,14 @@ token comment:sym<#`(...)> {
     [ <quote_EXPR> || <.panic: "Opening bracket is required for #` comment"> ]
 }
 
+token comment:sym<#=(...)> {
+    '#=' <quote_EXPR>
+}
+
+token comment:sym<#=> {
+    '#=' $<attachment>=[\N*]
+}
+
 token pod_comment {
     ^^ \h* '='
     [

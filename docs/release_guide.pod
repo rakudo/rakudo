@@ -35,7 +35,7 @@ part of monthly Parrot releases.
 Dates are based on Parrot's expected release schedule.
 
   2010-07-22   Rakudo #31 "Atlanta"            (Coke)
-  2010-08-19   Rakudo #32                      -vacant-
+  2010-08-19   Rakudo #32                      (mathw)
   2010-09-23   Rakudo #33                      -vacant-
   2010-10-21   Rakudo #34                      -vacant-
   2010-11-18   Rakudo #35                      -vacant-

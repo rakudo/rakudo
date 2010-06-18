@@ -10,6 +10,10 @@ augment class Pair {
     method values() {
         [self.value];
     }
+
+    multi method invert() {
+        $.value => $.key;
+    }
 }
 
 multi sub infix:<cmp>(Pair $a, Pair $b) {

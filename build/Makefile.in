@@ -441,7 +441,7 @@ localtest: all Test.pir spectest_checkout t/localtest.data
 localtest_loud: all Test.pir spectest_checkout t/localtest.data
 	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
-# Run many tests of your choise.
+# Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
 sometests: all
 	@$(HARNESS_WITH_FUDGE_JOBS) $(TESTFILES)

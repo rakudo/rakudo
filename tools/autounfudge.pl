@@ -12,7 +12,7 @@ This tool runs the non-pure tests of the C<spectest> make target,
 automatically creates files with less 'skip' fudge directives, runs them 
 again, and if the
 modified tests succeeds, it adds a patch to C<autounfudge.patch> that, when
-applied as C<< patch -p0 < autunfudge.patch >>, removes the superflous fudge
+applied as C<< patch -p0 < autounfudge.patch >>, removes the superfluous fudge
 directives.
 
 With the C<--untodo> option, C<todo> skip markers are also removed (where
@@ -28,7 +28,7 @@ please run this script without any options or command line parameters.
 
 This tool assumes that all fudge directives are orthogonal,
 which might not be the case in real world tests. So always make sure to
-run C<make spectest> before commiting the changes.
+run C<make spectest> before committing the changes.
 
 Never blindly apply the automatically generated patch.
 
@@ -43,7 +43,7 @@ By default some files are skipped (which can be overridden with the
 C<--exclude> option) because certain tests loop (at the time of writing
 C<t/spec/S04-statement-modifiers/while.t>), others because processing them
 simply takes too long; C<t/spec/S05-mass/rx.t> contains more than 250
-fudge lines and thus would take about three hours to autoumatically unfudge.
+fudge lines and thus would take about three hours to automatically unfudge.
 
 =cut
 

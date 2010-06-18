@@ -26,7 +26,7 @@ wrappable executable objects.
 
 =over 4
 
-=item assumming()
+=item assuming()
 
 Returns a curried version of self.
 

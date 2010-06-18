@@ -72,7 +72,7 @@ for executable objects.
 .end
 
 
-=item assumming()
+=item assuming()
 
 Returns a curried version of self.
 

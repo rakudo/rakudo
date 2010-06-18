@@ -161,7 +161,7 @@ augment class Cool {
             }
             for @from Z @to -> $f, $t {
                 if %c.exists($f) && %c{$f} ne $t {
-#                    warn "Ambigious transliteration rule for '$f'; "
+#                    warn "Ambiguous transliteration rule for '$f'; "
 #                         ~ "using the first one (transliteration to '$t')";
                 } else {
                     if $f.chars > 1 {

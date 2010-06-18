@@ -1510,7 +1510,7 @@ method signature($/) {
                 $param.invocant(1);
             }
             else {
-                $/.CURSOR.panic("Can not put ':' parameter seperator after first parameter");
+                $/.CURSOR.panic("Cannot put ':' parameter separator after first parameter");
             }
         }
         if @*seps[$cur_param] eq ';;' {

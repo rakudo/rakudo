@@ -223,7 +223,7 @@ Rakudo provides two levels of hookage for creating new types of package
 declarator. You will very likely only need this one, which is the HOW map,
 %*HOW. This is simply a hash that maps the name of a scope declarator to the
 name of the HOW to create. At the entry point to your derived grammar, you
-should temporize the curent HOW hash from the calling language, and add
+should temporize the current HOW hash from the calling language, and add
 mappings from names of package declarators that you will introduce to the HOW
 to use. By default, this hash contains things like:
 

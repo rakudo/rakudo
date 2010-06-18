@@ -58,7 +58,7 @@ Returns a C<List> of C<Parameter> descriptors.
     inc cur_param
     unless cur_param < count goto param_done
 
-    # Get all curent parameter info.
+    # Get all current parameter info.
     .local pmc nom_type, cons_type, names, type_captures, default, sub_sig
     .local int flags, optional, invocant, multi_invocant, slurpy, rw, parcel, capture, copy, named
     .local string name, coerce_to

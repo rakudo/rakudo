@@ -66,8 +66,8 @@ class Range is Iterable does Positional {
         $min ~ $emin ~ ".." ~ $emax ~ $max;
     }
 
-    multi method fmt($format = '%s', $seperator = ' ') {
-        self.map({ .fmt($format)}).join($seperator);
+    multi method fmt($format = '%s', $separator = ' ') {
+        self.map({ .fmt($format)}).join($separator);
     }
 
     multi method postcircumfix:<[ ]>(Int $index) { self.Seq[$index] }

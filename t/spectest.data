@@ -276,6 +276,7 @@ S05-grammar/protos.t
 S05-grammar/signatures.t
 # S05-grammar/ws.t
 S05-interpolation/lexicals.t
+S05-interpolation/regex-in-variable.t
 S05-mass/named-chars.t                                     # icu
 S05-mass/properties-block.t                                # icu
 S05-mass/properties-derived.t                              # icu

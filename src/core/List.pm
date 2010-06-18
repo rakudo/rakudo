@@ -128,6 +128,10 @@ augment class List does Positional {
         }
     }
 
+    multi method hash() {
+        my %h = self;
+    }
+
     # CHEAT: Get the lazy list tests that depend on .batch
     # up and running in the new system.
     our method batch($n) {

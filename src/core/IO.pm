@@ -1,6 +1,7 @@
 class IO is Cool {
     has $!PIO;
     has $!ins;
+    has $.autoflush is rw;
 
     multi method close() is export {
         try {
@@ -39,6 +40,7 @@ class IO is Cool {
             for @items -> $item {
                 (pir::descalarref__PP($!PIO)).print($item);
             }
+            pir::descalarref__PP($!PIO).flush() if $.autoflush;
         }
         $! ?? fail($!) !! Bool::True;
     }

@@ -638,7 +638,7 @@ method module_name($/) {
     if $<arglist> {
         my $past := $<arglist>[0].ast;
         $past.pasttype('callmethod');
-        $past.name('postcircumfix:<[ ]>');
+        $past.name('!select');
         $past.unshift($var);
         make $past;
     }
@@ -1897,6 +1897,12 @@ method term:sym<name>($/) {
         }
         else { $past.name('&' ~ $name); }
     }
+    elsif $<arglist> {
+        $past := $<arglist>[0].ast;
+        $past.pasttype('callmethod');
+        $past.name('!select');
+        $past.unshift($var);
+    }
     $past.node($/);
     make $past;
 }
@@ -2400,9 +2406,16 @@ method typename($/) {
     }
 
     # Parametric type?
+    if $<arglist> {
+        my $args := $<arglist>[0].ast;
+        $args.pasttype('callmethod');
+        $args.name('!select');
+        $args.unshift($past);
+        $past := $args;
+    }
     if $<typename> {
         $past := PAST::Op.new(
-            :pasttype('callmethod'), :name('postcircumfix:<[ ]>'),
+            :pasttype('callmethod'), :name('!select'),
             $past, $<typename>[0].ast
         );
     }

@@ -169,14 +169,22 @@ Checks if the given topic does the role.
 
 =item postcircumfix:<[ ]>
 
-Selects a role based upon type.
+Selects a role based upon type. A postcircumfix always passes up to
+one argument that may we a parcel, so we need to unpack the role
+arguments from that.
 
 =cut
 
 .sub 'postcircumfix:<[ ]>' :method
-    .param pmc pos_args  :slurpy
-    .param pmc name_args :slurpy :named
-    .tailcall self.'!select'(pos_args :flat, name_args :flat :named)
+    .param pmc args :optional
+    if null args goto no_args
+    $I0 = isa args, 'Parcel'
+    if $I0 goto many_args
+    .tailcall self.'!select'(args)
+  many_args:
+    .tailcall self.'!select'(args :flat)
+  no_args:
+    .tailcall self.'!select'()
 .end
 
 

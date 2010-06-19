@@ -1201,6 +1201,7 @@ token term:sym<name> {
             my $longname := $<longname>.Str;
             pir::substr($longname, 0, 2) eq '::' || $/.CURSOR.is_name($longname)
         }>
+        <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
     || <args>
     ]
 }
@@ -1305,7 +1306,7 @@ token typename {
       }>
     ]
     # parametric type?
-#    <.unsp>? [ <?before '['> <postcircumfix> ]?
+    <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
     [<.ws> 'of' <.ws> <typename> ]?
 }
 

@@ -921,6 +921,10 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         %attr_info<type>      := $*TYPENAME;
         %attr_info<accessor>  := $twigil eq '.' ?? 1 !! 0;
         %attr_info<rw>        := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;
+        my $has_handles := has_compiler_trait($trait_list, '&trait_mod:<handles>');
+        if $has_handles {
+            %attr_info<handles> := $has_handles[0];
+        }
         @PACKAGE[0].attributes.push(%attr_info);
 
         # If no twigil, note $foo is an alias to $!foo.

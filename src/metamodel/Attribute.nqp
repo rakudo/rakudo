@@ -83,7 +83,10 @@ method compose($package) {
         $package.add_method($package, $meth_name, $meth);
     }
 
-    # XXX Handles...
+    # If we've a handles, pass it along to the handles setup helper.
+    if $!handles {
+        Rakudo::Guts.add_handles_method($package, $!name, $!handles);
+    }
 }
 
 # vim: ft=perl6

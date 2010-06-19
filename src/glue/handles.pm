@@ -1,20 +1,20 @@
-our sub add_handles_method_helper($metaclass, $attr, $meth-name, $meth-rename = $meth-name) {
-    $metaclass.add_method($metaclass, $meth-name, (method (|$c) {
-        pir::getattribute__PPS(self, $attr)."$meth-rename"(|$c); 
-    }).clone() ); 
-}
+class Rakudo::Guts {
+    sub add_handles_method_helper(Mu $metaclass, $attr, $meth_name, $meth_rename = $meth_name) {
+        $metaclass.add_method($metaclass, $meth_name, (method (|$c) {
+            pir::getattribute__PPS(self, $attr)."$meth_rename"(|$c); 
+        }).clone()); 
+    }
 
-our sub add_handles_method($metaclass, $attr_name, $expr) {
-    for ($expr) -> $x {
-        given $x {
-           when Str { add_handles_method_helper($metaclass, $attr_name, $x); }
+    method add_handles_method(Mu $metaclass, $attr_name, $expr) {
+        given $expr {
+           when Str { add_handles_method_helper($metaclass, $attr_name, $expr); }
            when Parcel { 
-               for $x.list -> $x { add_handles_method_helper($metaclass, $attr_name, $x); }
+               for $expr.list -> $x { add_handles_method($metaclass, $attr_name, $x); }
            }
            when Pair { 
-               add_handles_method_helper($metaclass, $attr_name, $x.key, $x.value);
+               add_handles_method_helper($metaclass, $attr_name, $expr.key, $expr.value);
            }
-           default { die sprintf("add_handles_method can't handle %s in list", $x.WHAT); }
+           default { die sprintf("add_handles_method can't handle %s in list", $expr.WHAT); }
         }
     }
 }

@@ -7,14 +7,16 @@ class Rakudo::Guts {
 
     method add_handles_method(Mu $metaclass, $attr_name, $expr) {
         given $expr {
-           when Str { add_handles_method_helper($metaclass, $attr_name, $expr); }
-           when Parcel { 
-               for $expr.list -> $x { add_handles_method($metaclass, $attr_name, $x); }
-           }
-           when Pair { 
-               add_handles_method_helper($metaclass, $attr_name, $expr.key, $expr.value);
-           }
-           default { die sprintf("add_handles_method can't handle %s in list", $expr.WHAT); }
+            when Str { add_handles_method_helper($metaclass, $attr_name, $expr); }
+            when Parcel { 
+                for $expr.list -> $x {
+                    self.add_handles_method($metaclass, $attr_name, $x);
+                }
+            }
+            when Pair { 
+                add_handles_method_helper($metaclass, $attr_name, $expr.key, $expr.value);
+            }
+            default { die sprintf("add_handles_method can't handle %s in list", $expr.WHAT); }
         }
     }
 }

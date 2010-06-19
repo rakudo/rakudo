@@ -171,6 +171,7 @@ CORE_SOURCES = \
   src/core/traits.pm \
   src/core/metaops.pm \
   src/core/operators.pm \
+  src/glue/handles.pm \
   src/glue/subset.pm \
   src/cheats/trait-export.pm \
   src/cheats/num.pm \

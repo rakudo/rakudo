@@ -226,6 +226,7 @@ CORE_SOURCES = \
   src/core/Attribute.pm \
   src/core/CallFrame.pm \
   src/core/LexPad.pm \
+  src/core/Capture.pm \
   src/core/MAIN.pm \
   src/core/YOU_ARE_HERE.pm \
 

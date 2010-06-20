@@ -14,22 +14,6 @@ dispatch algorithm, along with providing various other pieces.
 Since we need to store some extra information, we cannot just actually be
 a ResizablePMCArray, but rather we need to have one.
 
-=head1 TODO
-
-This is a list of things that I need to deal with/come back and worry about
-later (it's not a complete todo list for finishing up the PMC itself, just
-of fixup tasks in what is already done).
-
-=over 4
-
-=item Use Perl 6 types when boxing native arguments in the arg list
-
-=item Make sure we override everything that ResizablePMCArray and its parents
-would provide us with. Otherwise, we'll just get segfaults 'cus we don't store
-stuff the way it does.
-
-=back
-
 =head1 INTERNAL STRUCTURES
 
 We have some structures that we use to keep data around internally.

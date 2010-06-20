@@ -57,6 +57,7 @@ calls on it.
     addattribute $P0, '$!done'
     addattribute $P0, '$!ver'
     addattribute $P0, '$!auth'
+    addattribute $P0, '$!handles_dispatchers'
 
     # Create proto-object for it.
     classhowproto = p6meta.'register'($P0)
@@ -162,6 +163,30 @@ Add an attribute.
     # Add it to our attributes array.
     $P0 = getattribute self, '$!attributes'
     push $P0, attribute
+.end
+
+
+=item add_handles_fallback
+
+=cut
+
+.sub 'add_handles_fallback' :method
+    .param pmc obj
+    .param pmc attrname
+    .param pmc matcher
+
+    # Create info hash.
+    $P0 = root_new ['parrot';'Hash']
+    $P0['attrname'] = attrname
+    $P0['match_against'] = matcher
+
+    # Add to list, vivifying if needed.
+    $P1 = getattribute self, '$!handles_dispatchers'
+    unless null $P1 goto have_list
+    $P1 = root_new ['parrot';'ResizablePMCArray']
+    setattribute self, '$!handles_dispatchers', $P1
+  have_list:
+    push $P1, $P0
 .end
 
 

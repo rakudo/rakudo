@@ -46,11 +46,11 @@ augment class Mu {
             if $breadth {
                 my @search_list = self.WHAT;
                 while @search_list {
-                    push @classes, @search_list.list();
+                    push @classes, @search_list;
                     my @new_search_list;
                     for @search_list -> $current {
                         for $current.^parents(:local) -> $next {
-                            unless any(@new_search_list <<===>> $next) {
+                            unless @new_search_list.grep(* === $next) {
                                 push @new_search_list, $next;
                             }
                         }
@@ -59,7 +59,7 @@ augment class Mu {
                 }
             } elsif $ascendant | $preorder {
                 sub build_ascendent(Mu $class) {
-                    unless any(@classes <<===>> $class) {
+                    unless @classes.grep(* === $class) {
                         push @classes, $class;
                         for $class.^parents(:local) {
                             build_ascendent($^parent);
@@ -69,7 +69,7 @@ augment class Mu {
                 build_ascendent(self.WHAT);
             } elsif $descendant {
                 sub build_descendent(Mu $class) {
-                    unless any(@classes <<===>> $class) {
+                    unless @classes.grep(* === $class) {
                         for $class.^parents(:local) {
                             build_descendent($^parent);
                         }
@@ -88,11 +88,14 @@ augment class Mu {
         # Now we have classes, build method list.
         my @methods;
         for @classes -> $class {
-            if (!$include || $include.ACCEPTS($class)) && (!$omit || !$omit.ACCEPTS($class)) {
-                for $class.^methods(:local) -> $method {
-                    my $check_name = $method.?name;
-                    if $check_name.defined && $check_name eq $name {
-                        @methods.push($method);
+            if (!defined($include) || $include.ACCEPTS($class)) &&
+              (!defined($omit) || !$omit.ACCEPTS($class)) {
+                try {
+                    for $class.^methods(:local) -> $method {
+                        my $check_name = $method.?name;
+                        if $check_name.defined && $check_name eq $name {
+                            @methods.push($method);
+                        }
                     }
                 }
             }

@@ -84,7 +84,7 @@ method compose($package) {
     }
 
     # If we've a handles, pass it along to the handles setup helper.
-    if $!handles {
+    unless pir::isa__ips($!handles, 'Undef') {
         Rakudo::Guts.add_handles_method($package, $!name, $!handles);
     }
 }

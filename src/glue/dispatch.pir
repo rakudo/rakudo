@@ -306,6 +306,23 @@ Helper for handling calls of the form .$indirectthingy()
 .end
 
 
+=item !handles_dispatch_helper
+
+Helper for implementing delegation to a handles method.
+
+=cut
+
+.sub '!handles_dispatch_helper'
+    .param string methodname
+    .param string attrname
+    .param pmc self
+    .param pmc pos_args   :slurpy
+    .param pmc named_args :slurpy :named
+    $P0 = getattribute self, attrname
+    .tailcall $P0.methodname(pos_args :flat, named_args :flat :named)
+.end
+
+
 =item !deferal_fail
 
 Used by P6invocation to help us get soft-failure semantics when no deferal

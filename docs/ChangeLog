@@ -1,3 +1,6 @@
+New in 2010.07 release
++ support for delegation via 'handles'
+
 New in 2010.06 release
 + new list model with immutable iterators, lots of fixes to lists and arrays
 + variable interpolation into regexes

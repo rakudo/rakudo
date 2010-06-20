@@ -1,22 +1,6 @@
 class Complex { ... }
 
 augment class Num does Real {
-    multi method ACCEPTS($other) {
-        if self eq 'NaN' {
-            $other eq 'NaN';
-        } else {
-            $other == self;
-        }
-    }
-
-    multi method ACCEPTS(Complex $other) {
-        if self eq 'NaN' {
-            $other.re eq 'NaN' || $other.im eq 'NaN';
-        } else {
-            $other.im == 0 && $other.re == self;
-        }
-    }
-
     method Bridge() {
         self;
     }

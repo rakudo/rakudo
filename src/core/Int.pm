@@ -14,14 +14,6 @@ our sub upgrade_to_num_if_needed($test) {
 }
 
 augment class Int does Real {
-    multi method ACCEPTS(Int $other) {
-        self == $other;
-    }
-
-    multi method ACCEPTS($other) {
-        self.Num.ACCEPTS($other);
-    }
-
     method Bridge() {
         self.Num;
     }

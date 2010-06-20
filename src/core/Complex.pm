@@ -6,14 +6,6 @@ class Complex does Numeric is Cool {
         self.bless(*, :re($re), :im($im));
     }
 
-    multi method ACCEPTS(Complex $topic) {
-        ($topic.re ~~ $.re) && ($topic.im ~~ $.im);
-    }
-
-    multi method ACCEPTS($topic) {
-        ($topic.Num ~~ $.re) && ($.im == 0);
-    }
-
     method reals() {
         (self.re, self.im);
     }

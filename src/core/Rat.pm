@@ -21,10 +21,6 @@ class Rat is Cool does Real {
 
     multi method nude() { $.numerator, $.denominator; }
 
-    multi method ACCEPTS($other) {
-        self.Num.ACCEPTS($other);
-    }
-
     multi method perl() { "$!numerator/$!denominator"; }
 
     method Bridge() {

@@ -3090,7 +3090,7 @@ sub whatever_curry($past, $upto_arity) {
             my $sig := Perl6::Compiler::Signature.new(
                 Perl6::Compiler::Parameter.new(:var_name('$x')),
                 Perl6::Compiler::Parameter.new(:var_name('$y')));
-            $past := make_block_from($sig, $past);
+            $past := make_block_from($sig, $past, 'WhateverCode');
         }
         elsif $upto_arity == 2 && $past[1] ~~ PAST::Op && $past[1].returns eq 'Whatever' {
             # Curry right arg.
@@ -3098,7 +3098,7 @@ sub whatever_curry($past, $upto_arity) {
             $past.push(PAST::Var.new( :name('$y'), :scope('lexical') ));
             my $sig := Perl6::Compiler::Signature.new(
                 Perl6::Compiler::Parameter.new(:var_name('$y')));
-            $past := make_block_from($sig, $past);
+            $past := make_block_from($sig, $past, 'WhateverCode');
         }
         elsif $upto_arity >= 1 && $past[0] ~~ PAST::Op && $past[0].returns eq 'Whatever' {
             # Curry left (or for unary, only) arg.
@@ -3106,7 +3106,7 @@ sub whatever_curry($past, $upto_arity) {
             $past.unshift(PAST::Var.new( :name('$x'), :scope('lexical') ));
             my $sig := Perl6::Compiler::Signature.new(
                 Perl6::Compiler::Parameter.new(:var_name('$x')));
-            $past := make_block_from($sig, $past);
+            $past := make_block_from($sig, $past, 'WhateverCode');
         }
     }
     $past
@@ -3114,7 +3114,7 @@ sub whatever_curry($past, $upto_arity) {
 
 # Helper for constructing a simple Perl 6 Block with the given signature
 # and body.
-sub make_block_from($sig, $body) {
+sub make_block_from($sig, $body, $type = 'Block') {
     my $past := PAST::Block.new( :blocktype('declaration'),
         PAST::Stmts.new( ),
         PAST::Stmts.new(
@@ -3122,7 +3122,7 @@ sub make_block_from($sig, $body) {
         )
     );
     my $lazy_name := add_signature($past, $sig, 1);
-    create_code_object($past, 'Block', 0, $lazy_name);
+    create_code_object($past, $type, 0, $lazy_name);
 }
 
 # vim: ft=perl6

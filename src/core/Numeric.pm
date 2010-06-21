@@ -1,5 +1,5 @@
 role Numeric {
-    multi method ACCEPTS($other) {
+    method ACCEPTS($other) {
         my @a = self.reals;
         my @b = (+$other).reals;
         if @a.grep("NaN").elems > 0 {

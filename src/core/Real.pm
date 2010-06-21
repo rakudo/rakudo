@@ -1,6 +1,14 @@
 class Complex { ... }
 
 role Real does Numeric {
+    method ACCEPTS($other) {
+        if self eq "NaN" {
+            (+$other).reals.grep("NaN").elems > 0;
+        } else {
+            $other == self;
+        }
+    }
+
     method Bridge() {
         fail "Bridge must be defined for the Real type " ~ self.WHAT;
     }

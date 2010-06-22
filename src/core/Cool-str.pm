@@ -362,7 +362,7 @@ augment class Cool {
 
     # Not yet spec'd, I expect it will be renamed
     multi method trim-leading() is export {
-        if self ~~ /^\s*:(.*)$/ {
+        if ~self ~~ /^\s*:(.*)$/ {
             ~$/[0];
         } else {
             self;
@@ -371,7 +371,7 @@ augment class Cool {
 
     # Not yet spec'd, I expect it will be renamed
     multi method trim-trailing() is export {
-        if self ~~ /^(.*\S)\s*$/ {
+        if ~self ~~ /^(.*\S)\s*$/ {
             ~$/[0];
         } elsif self ~~ /^\s*$/ {
             "";

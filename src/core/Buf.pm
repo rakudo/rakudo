@@ -1,4 +1,4 @@
-role Buf[::T = Int] does Stringy {
+role Buf[::T = Int] does Stringy does Positional {
     has T @.contents;
 
     multi method new(@contents) {
@@ -33,6 +33,10 @@ role Buf[::T = Int] does Stringy {
 
     multi method elems() {
         @.contents.elems;
+    }
+
+    multi method postcircumfix:<[ ]>($index) {
+        @.contents[$index];
     }
 }
 

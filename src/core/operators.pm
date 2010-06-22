@@ -464,6 +464,10 @@ our multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
     Bool::True;
 }
 
+our multi sub infix:<eqv>(Numeric $a, Numeric $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0;
+}
+
 our multi sub infix:<Z>($lhs, $rhs) {
     my $lhs-list = flat($lhs.list);
     my $rhs-list = flat($rhs.list);

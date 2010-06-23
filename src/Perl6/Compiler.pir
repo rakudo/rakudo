@@ -125,7 +125,7 @@ Perl6::Compiler - Perl6 compiler
 
 .sub '' :anon :load :init
     # Set up parser/actions.
-    .local pmc p6meta, nqpproto
+    .local pmc p6meta, nqpproto, true
     p6meta = get_hll_global ['Mu'], '$!P6META'
     nqpproto = p6meta.'new_class'('Perl6::Compiler', 'parent'=>'HLL::Compiler')
     nqpproto.'language'('perl6')
@@ -135,6 +135,8 @@ Perl6::Compiler - Perl6 compiler
     nqpproto.'parseactions'($P0)
     $P0 = getattribute nqpproto, '@cmdoptions'
     push $P0, 'parsetrace'
+
+    true = get_hll_global ['Bool'], 'True'
 
     # Set up @*INC from $PERL6LIB, languages/perl6/lib and ~/.perl6/lib
     .local pmc env, interp, config
@@ -168,6 +170,7 @@ Perl6::Compiler - Perl6 compiler
     splice $P1, $P0, 0, 0
     $P2 = new ['Array']
     $P2.'!STORE'($P1)
+    setprop $P2, 'rw', true
     set_hll_global '@INC', $P2
 .end
 

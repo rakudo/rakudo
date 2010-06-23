@@ -241,7 +241,7 @@ definitions.
 
 The dynops source is in F<ops/perl6.ops>, which looks like C, apart from
 some Perlish syntactic sugar.
-A F<../parrot_install/lib/x.y.z-devel/tools/build/ops2c.pl> desugars
+A F<../parrot_install/bin/ops2c> desugars
 that to F<build/perl6.c> which your C compiler turns into a library.
 
 For this overview, the opcode names and parameters might give a vague

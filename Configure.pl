@@ -127,6 +127,8 @@ sub read_parrot_config {
 sub verify_parrot {
     print "Verifying Parrot installation...\n";
     my %config = @_;
+    my $EXE            = $config{'exe'};
+    my $PARROT_BIN_DIR = $config{'bindir'};
     my $PARROT_VERSION = $config{'versiondir'};
     my $PARROT_LIB_DIR = $config{'libdir'}.$PARROT_VERSION;
     my $PARROT_SRC_DIR = $config{'srcdir'}.$PARROT_VERSION;
@@ -135,7 +137,7 @@ sub verify_parrot {
     my @required_files = (
         "$PARROT_LIB_DIR/library/PGE/Perl6Grammar.pbc",
         "$PARROT_LIB_DIR/library/PCT/HLLCompiler.pbc",
-        "$PARROT_TOOLS_DIR/build/ops2c.pl",
+        "$PARROT_BIN_DIR/ops2c".$EXE,
         "$PARROT_TOOLS_DIR/build/pmc2c.pl",
         "$PARROT_SRC_DIR",
         "$PARROT_SRC_DIR/pmc",

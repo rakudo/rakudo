@@ -48,14 +48,7 @@ class EnumMap is Iterable does Associative {
     }
 
     method exists($key) {
-        # Wish we could do pir:: for keyed things. *sigh*
-        ?(Q:PIR {
-            $P0 = find_lex '$key'
-            $P1 = find_lex 'self'
-            $P1 = getattribute $P1, '$!storage'
-            $I0 = exists $P1[$P0]
-            %r = box $I0
-        })
+        ?pir::exists($!storage, $key);
     }
 
     method fmt($format = "%s\t%s", $sep = "\n") {

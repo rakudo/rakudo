@@ -1,11 +1,4 @@
 augment class Array {
-    our Bool multi method exists(*@indices) {
-        if !@indices.elems || (any(@indices) < 0 || any(@indices) > self.end) {
-            return False;
-        }
-        [?&] map { self[$^a] !~~ Proxy }, @indices;
-    }
-
     method at_pos($pos) {
         Q:PIR {
             .local pmc self, items

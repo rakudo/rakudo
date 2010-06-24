@@ -13,6 +13,15 @@ augment class List does Positional {
 
     method Str() { self.join(' ') }
 
+    multi method exists(*@indices) {
+        return False unless @indices;
+        while @indices && @indices.shift -> $key {
+            return False if $key < 0
+                || !pir::exists__IQi(self!fill($key+1), $key);
+        }
+        True;
+    }
+
     multi method fmt($format = '%s', $separator = ' ') {
         self.map({ .fmt($format) }).join($separator);
     }

@@ -17,12 +17,18 @@ Forwards all but some methods to the held PMC.
 */
 
 #include "parrot/parrot.h"
+static STRING *OBJECTREF_str;
+
 pmclass ObjectRef dynpmc group perl6_group manual_attrs {
     ATTR PMC *value;
 
+    void class_init() {
+        OBJECTREF_str = CONST_STRING(interp, "$!OBJECTREF");
+    }
+
     VTABLE void init() {
         PMC * const hll_ns    = Parrot_get_ctx_HLL_namespace(INTERP);
-        STRING * const s_obj  = string_from_literal(INTERP, "$!OBJECTREF");
+        STRING * const s_obj  = OBJECTREF_str;
         PMC * const objectpmc = Parrot_ns_find_namespace_global(INTERP, hll_ns, s_obj);
         STATICSELF.init_pmc(objectpmc);
     }

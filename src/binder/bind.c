@@ -294,11 +294,12 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
                 }
                 else {
-                    copy = VTABLE_clone(interp, value);
+                    value = descalarref(interp, value);
+                    copy = pmc_new_init(interp, p6s_id, value);
+                    VTABLE_setprop(interp, copy, string_from_literal(interp, "scalar"), copy);
                 }
-                ref = pmc_new_init(interp, or_id, copy);
-                VTABLE_setprop(interp, ref, string_from_literal(interp, "rw"), ref);
-                VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, ref);
+                VTABLE_setprop(interp, copy, string_from_literal(interp, "rw"), copy);
+                VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, copy);
             }
         }
         else {

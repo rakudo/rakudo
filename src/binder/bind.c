@@ -12,32 +12,41 @@ Copyright (C) 2009-2010, The Perl Foundation.
 
 
 /* Cache of the type ID for low level signatures and some strings. */
-static INTVAL lls_id       = 0;
-static INTVAL or_id        = 0;
-static INTVAL p6s_id       = 0;
-static STRING *ACCEPTS     = NULL;
-static STRING *HOW         = NULL;
-static STRING *HASH_str    = NULL;
-static STRING *SELECT_str  = NULL;
-static STRING *PUN_str     = NULL;
-static STRING *CREATE_str  = NULL;
-static STRING *STORAGE_str = NULL;
-static PMC    *HashPunned  = NULL;
+static INTVAL or_id             = 0;
+static INTVAL lls_id            = 0;
+static INTVAL p6s_id            = 0;
+static STRING *ACCEPTS          = NULL;
+static STRING *HOW              = NULL;
+static STRING *HASH_str         = NULL;
+static STRING *SELECT_str       = NULL;
+static STRING *PUN_str          = NULL;
+static STRING *CREATE_str       = NULL;
+static STRING *STORAGE_str      = NULL;
+static STRING *HASH_SIGIL_str   = NULL;
+static STRING *ARRAY_SIGIL_str  = NULL;
+static STRING *SCALAR_SIGIL_str = NULL;
+static STRING *BANG_TWIGIL_str  = NULL;
+static PMC    *HashPunned       = NULL;
 
 /* Initializes our cached versions of some strings and type IDs that we
  * use very commonly. For strings, this should mean we only compute their
  * hash value once, rather than every time we create and consume them. */
 static void setup_binder_statics(PARROT_INTERP) {
-    lls_id      = pmc_type(interp, string_from_literal(interp,"P6LowLevelSig"));
-    or_id       = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
-    p6s_id      = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
-    ACCEPTS     = Parrot_str_new_constant(interp, "ACCEPTS");
-    HOW         = Parrot_str_new_constant(interp, "HOW");
-    HASH_str    = Parrot_str_new_constant(interp, "Hash");
-    SELECT_str  = Parrot_str_new_constant(interp, "!select");
-    PUN_str     = Parrot_str_new_constant(interp, "!pun");
-    CREATE_str  = Parrot_str_new_constant(interp, "CREATE");
-    STORAGE_str = Parrot_str_new_constant(interp, "$!storage");
+    or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
+    lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+    p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
+
+    ACCEPTS          = Parrot_str_new_constant(interp, "ACCEPTS");
+    HOW              = Parrot_str_new_constant(interp, "HOW");
+    HASH_str         = Parrot_str_new_constant(interp, "Hash");
+    SELECT_str       = Parrot_str_new_constant(interp, "!select");
+    PUN_str          = Parrot_str_new_constant(interp, "!pun");
+    CREATE_str       = Parrot_str_new_constant(interp, "CREATE");
+    STORAGE_str      = Parrot_str_new_constant(interp, "$!storage");
+    HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
+    ARRAY_SIGIL_str  = Parrot_str_new_constant(interp, "@");
+    SCALAR_SIGIL_str = Parrot_str_new_constant(interp, "$");
+    BANG_TWIGIL_str  = Parrot_str_new_constant(interp, "!");
 }
 
 
@@ -501,17 +510,20 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
             /* Provided it has a name... */
             if (!STRING_IS_NULL(elements[i]->variable_name)) {
                 /* Strip any sigil, then stick in named to positional array. */
-                STRING *store = elements[i]->variable_name;
-                STRING *sigil = Parrot_str_substr(interp, store, 0, 1);
+                STRING *store  = elements[i]->variable_name;
+                STRING *sigil  = Parrot_str_substr(interp, store, 0, 1);
                 STRING *twigil = Parrot_str_substr(interp, store, 1, 1);
-                if (Parrot_str_equal(interp, sigil, string_from_literal(interp, "$")) ||
-                        Parrot_str_equal(interp, sigil, string_from_literal(interp, "@")) ||
-                        Parrot_str_equal(interp, sigil, string_from_literal(interp, "%")))
+
+                if (Parrot_str_equal(interp, sigil, SCALAR_SIGIL_str)
+                ||  Parrot_str_equal(interp, sigil, ARRAY_SIGIL_str)
+                ||  Parrot_str_equal(interp, sigil, HASH_SIGIL_str))
                     store = Parrot_str_substr(interp, store, 1,
                             Parrot_str_byte_length(interp, store));
-                if (Parrot_str_equal(interp, twigil, string_from_literal(interp, "!")))
+
+                if (Parrot_str_equal(interp, twigil, BANG_TWIGIL_str))
                     store = Parrot_str_substr(interp, store, 1,
                             Parrot_str_byte_length(interp, store));
+
                 VTABLE_set_integer_keyed_str(interp, named_to_pos_cache, store, i);
             }
         }

@@ -12,22 +12,32 @@ Copyright (C) 2009-2010, The Perl Foundation.
 
 
 /* Cache of the type ID for low level signatures and some strings. */
-static INTVAL lls_id      = 0;
-static INTVAL or_id       = 0;
-static INTVAL p6s_id      = 0;
-static STRING *ACCEPTS    = NULL;
-static STRING *HOW        = NULL;
-static PMC    *HashPunned = NULL;
+static INTVAL lls_id       = 0;
+static INTVAL or_id        = 0;
+static INTVAL p6s_id       = 0;
+static STRING *ACCEPTS     = NULL;
+static STRING *HOW         = NULL;
+static STRING *HASH_str    = NULL;
+static STRING *SELECT_str  = NULL;
+static STRING *PUN_str     = NULL;
+static STRING *CREATE_str  = NULL;
+static STRING *STORAGE_str = NULL;
+static PMC    *HashPunned  = NULL;
 
 /* Initializes our cached versions of some strings and type IDs that we
  * use very commonly. For strings, this should mean we only compute their
  * hash value once, rather than every time we create and consume them. */
 static void setup_binder_statics(PARROT_INTERP) {
-    lls_id  = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
-    or_id   = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
-    p6s_id  = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
-    ACCEPTS = Parrot_str_new_constant(interp, "ACCEPTS");
-    HOW     = Parrot_str_new_constant(interp, "HOW");
+    lls_id      = pmc_type(interp, string_from_literal(interp,"P6LowLevelSig"));
+    or_id       = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
+    p6s_id      = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
+    ACCEPTS     = Parrot_str_new_constant(interp, "ACCEPTS");
+    HOW         = Parrot_str_new_constant(interp, "HOW");
+    HASH_str    = Parrot_str_new_constant(interp, "Hash");
+    SELECT_str  = Parrot_str_new_constant(interp, "!select");
+    PUN_str     = Parrot_str_new_constant(interp, "!pun");
+    CREATE_str  = Parrot_str_new_constant(interp, "CREATE");
+    STORAGE_str = Parrot_str_new_constant(interp, "$!storage");
 }
 
 
@@ -63,19 +73,22 @@ static PMC *
 Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
     PMC *result = PMCNULL;
     PMC *create = PMCNULL;
+
     if (!HashPunned) {
         /* We cache the punned Hash role class so we can very quickly call
          * CREATE - critical as we have slurpy hashes for all methods. */
         PMC *root_ns   = Parrot_get_ctx_HLL_namespace(interp);
-        PMC *hash_role = VTABLE_get_pmc_keyed_str(interp, root_ns, string_from_literal(interp, "Hash"));
-        PMC *meth      = VTABLE_find_method(interp, hash_role, string_from_literal(interp, "!select"));
+        PMC *hash_role = VTABLE_get_pmc_keyed_str(interp, root_ns, HASH_str);
+        PMC *meth      = VTABLE_find_method(interp, hash_role, SELECT_str);
         Parrot_ext_call(interp, meth, "P->P", hash_role, &hash_role);
-        meth = VTABLE_find_method(interp, hash_role, string_from_literal(interp, "!pun"));
+        meth           = VTABLE_find_method(interp, hash_role, PUN_str);
         Parrot_ext_call(interp, meth, "P->P", hash_role, &HashPunned);
     }
-    create = VTABLE_find_method(interp, HashPunned, string_from_literal(interp, "CREATE"));
+
+    create = VTABLE_find_method(interp, HashPunned, CREATE_str);
     Parrot_ext_call(interp, create, "P->P", HashPunned, &result);
-    VTABLE_set_attr_str(interp, result, string_from_literal(interp, "$!storage"), storage);
+    VTABLE_set_attr_str(interp, result, STORAGE_str, storage);
+
     return result;
 }
 

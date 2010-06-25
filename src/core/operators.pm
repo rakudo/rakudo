@@ -22,8 +22,8 @@ our multi infix:<!~~>(Mu $topic, Mu $matcher) {
 }
 
 our multi prefix:<?>(Mu $a) {
-    pir::can($a, 'Bool') 
-    ?? $a.Bool 
+    pir::can($a, 'Bool')
+    ?? $a.Bool
     !!  ( pir::istrue($a) ?? True !! False );
 }
 
@@ -346,9 +346,22 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
         }
     }
 
+    my sub is-on-the-wrong-side($first , $before_last , $last , $limit) {
+        if $first ~~ Numeric && $before_last ~~ Numeric && $last ~~ Numeric && $limit ~~ Numeric {
+            return Bool::True if ($before_last > $last && $limit > $first);
+            return Bool::True if ($before_last < $last && $limit < $first);
+        }
+        if $first  ~~ Str && $before_last  ~~ Str && $last  ~~ Str && $limit  ~~ Str {
+            return Bool::True if ($before_last gt $last && $limit gt $first);
+            return Bool::True if ($before_last lt $last && $limit lt $first);
+        }
+        return Bool::False
+    }
+
     my $limit;
     $limit = $rhs if !($rhs ~~ Whatever);
 
+    my $is-geometric-switching-sign = Bool::False;
     my $next;
     if @lhs[@lhs.elems - 1] ~~ Code {
         $next = @lhs.pop;
@@ -363,6 +376,7 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
                 if $diff == 0 {
                     $next = succ-or-pred2(@lhs[0], @lhs[1], $rhs)
                 } else {
+                    return Nil if is-on-the-wrong-side(@lhs[0] , @lhs[*-2] , @lhs[*-1] , $rhs);
                     $next = { $_ + $diff };
                 }
             }
@@ -371,8 +385,11 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
                 if $diff == 0 {
                     $next = succ-or-pred2(@lhs[*-2], @lhs[*-1], $rhs)
                 } elsif @lhs[*-2] - @lhs[*-3] == $diff {
+                    return Nil if is-on-the-wrong-side(@lhs[0] , @lhs[*-2] , @lhs[*-1] , $rhs);
                     $next = { $_ + $diff };
                 } elsif @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] {
+                    $is-geometric-switching-sign = Bool::True if (@lhs[*-2] * @lhs[*-1] < 0);
+                    return Nil if is-on-the-wrong-side(@lhs[0] , @lhs[*-2] , @lhs[*-1] , $rhs) && !$is-geometric-switching-sign;
                     $next = { $_ * (@lhs[*-2] / @lhs[*-3]) };
                 } else {
                     fail "Unable to figure out pattern of series";
@@ -401,7 +418,7 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
                 my $cur_cmp = 1;
                 if $limit.defined {
                     $cur_cmp = $limit cmp $j;
-                    last if (@args[@args.elems - 1] cmp $limit) == $cur_cmp;
+                    last if (@args[*-1] cmp $limit) == $cur_cmp && !$is-geometric-switching-sign;
                 }
                 take $j;
                 last if $cur_cmp == 0;

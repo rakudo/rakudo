@@ -47,8 +47,18 @@ src/builtins/assign.pir - assignment operations
     goto cont_loop
 
   scalar_assign:
-    # put the source in item context, fully dereference it, and set the 
-    # lhs objectref to it
+    # check for Nil assignment
+    $I0 = isa source, ['Parcel']
+    unless $I0 goto item_assign
+    $I0 = elements source
+    if $I0 goto item_assign
+  nil_assign:
+    source = getprop 'type', cont
+    unless null source goto have_source
+    source = get_hll_global '$!OBJECTREF'
+    goto have_source
+  item_assign:
+    # put the source in item context
     $I0 = can source, 'item'
     unless $I0 goto have_source
     source = source.'item'()

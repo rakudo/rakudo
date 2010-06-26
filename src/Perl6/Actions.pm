@@ -143,6 +143,9 @@ method statementlist($/) {
             }
         }
     }
+    else {
+        $past.push(PAST::Op.new(:name('&Nil')));
+    }
     make $past;
 }
 

@@ -55,6 +55,10 @@ our multi sub infix:<%>($a, $b) {
     +$a % +$b;
 }
 
+our multi sub infix:<%%>($a, $b) {
+    +$a % +$b == 0;
+}
+
 our multi sub infix:<**>($a, $b) {
     (+$a) ** +$b; # parenthesis needed because of precendence.
 }

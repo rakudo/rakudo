@@ -1679,6 +1679,7 @@ token infix:sym</>    { <sym>  <O('%multiplicative')> }
 token infix:sym<div>  { <sym>  <O('%multiplicative')> }
 token infix:sym<%>    { <sym>  <O('%multiplicative')> }
 token infix:sym<mod>  { <sym>  <O('%multiplicative')> }
+token infix:sym<%%>   { <sym>  <O('%multiplicative')> }
 token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<?&>   { <sym>  <O('%multiplicative')> }

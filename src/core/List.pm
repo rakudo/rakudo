@@ -61,7 +61,7 @@ augment class List does Positional {
 
         # If &by.arity < 2, then it represents a block to be applied
         # to the elements to obtain the values for sorting.
-        if (&by.?arity // 2) < 2 {
+        if (&by.?count || 2) < 2 {
             my $list = self.map(&by).eager;
             self[$index_rpa.sort(
                 -> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b }

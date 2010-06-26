@@ -26,20 +26,6 @@ elements and can be flattened into Captures or Lists.
 .end
 
 
-=item defined()
-
-=cut
-
-.sub 'defined' :method
-    $I0 = elements self
-    .tailcall '&prefix:<?>'($I0)
-.end
-.sub '' :vtable('defined')
-    $I0 = elements self
-    .return ($I0)
-.end
-
-
 =item item()
 
 A Parcel in item context becomes a Seq.

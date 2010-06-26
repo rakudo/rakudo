@@ -2330,37 +2330,20 @@ method numish($/) {
 }
 
 method dec_number($/) {
-    my $int  := $<int> ?? $<int>.ast !! 0;
-    my $frac := $<frac> ?? $<frac>.ast !! 0;
-    my $base := Q:PIR {
-        $P0 = find_lex '$/'
-        $S0 = $P0['frac']
-        $I1 = length $S0
-        $I0 = 0
-        $I2 = 1
-      loop:
-        unless $I0 < $I1 goto done
-        $S1 = substr $S0, $I0, 1
-        inc $I0
-        if $S1 == '_' goto loop
-        $I2 *= 10
-        goto loop
-      done:
-        %r = box $I2
-    };
+    my $int  := $<int> ?? ~$<int> !! "0";
+    my $frac := $<frac> ?? ~$<frac> !! "0";
     if $<escale> {
-        my $exp := $<escale>[0]<decint>.ast;
-        if $<escale>[0]<sign> eq '-' { $exp := -$exp; }
-        make PAST::Val.new(
-            :value(($int * $base + $frac) / $base * 10 ** +$exp ) ,
-            :returns('Num')
-        );
-    }
-    else {
+        my $exp := ~$<escale>[0]<decint>;
         make PAST::Op.new(
-            :pasttype('callmethod'), :name('new'),
-            PAST::Var.new( :name('Rat'), :namespace(''), :scope('package') ),
-            $int * $base + $frac, $base, :node($/)
+            :pasttype('call'),
+            PAST::Var.new(:scope('package'), :name('&str2num-num'), :namespace('Str')),
+             0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp
+        );
+    } else {
+        make PAST::Op.new(
+            :pasttype('call'),
+            PAST::Var.new(:scope('package'), :name('&str2num-rat'), :namespace('Str')),
+             0, $int, $frac
         );
     }
 }

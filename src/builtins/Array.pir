@@ -66,10 +66,16 @@ Arrays are the mutable form of Lists.
 .sub '!STORE' :method
     .param pmc source
     .local pmc list, flat, items, rest
-    list = '&flat'(source)
-    (rest :slurpy) = list.'eager'()
-    flat = get_hll_global 'True'
+    $P0 = get_hll_global 'Seq'
+    list = $P0.'new'(source)
+    list.'eager'()
+    items = getattribute list, '@!items'
+    rest  = getattribute list, '@!rest'
+    if null items goto have_rest
+    splice rest, items, 0, 0
     null items
+  have_rest:
+    flat = get_hll_global 'True'
     setattribute self, '$!flat', flat
     setattribute self, '@!items', items
     setattribute self, '@!rest', rest

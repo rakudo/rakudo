@@ -56,10 +56,15 @@ List classes while we convert to the new list model.)
 
 .namespace ['List']
 .sub 'elems' :method
-    .local pmc items
+    .local pmc items, rest
     items = self.'!fill'()
+    rest = getattribute self, '@!rest'
+    if rest goto elems_inf
     $I0 = elements items
     .return ($I0)
+  elems_inf:
+    $N0 = 'Inf'
+    .return ($N0)
 .end
 
 
@@ -187,6 +192,7 @@ List classes while we convert to the new list model.)
  
   items_loop:
     unless has_n goto rest_loop
+    if n < 0 goto rest_loop
     if items_n >= n goto items_done
   rest_loop:
     unless rest goto rest_done
@@ -207,6 +213,10 @@ List classes while we convert to the new list model.)
     unless $I0 goto value_item
     value = value.'iterator'()
   value_iterator:
+    if has_n goto value_reify
+    $P0 = value.'infinite'()
+    if $P0 goto value_infinite_stop
+  value_reify:
     value = value.'reify'()
   value_rpa:
     splice rest, value, 0, 0
@@ -216,6 +226,8 @@ List classes while we convert to the new list model.)
     push items, value
     inc items_n
     goto items_loop
+  value_infinite_stop:
+    unshift rest, value
   items_done:
   rest_done:
   done:

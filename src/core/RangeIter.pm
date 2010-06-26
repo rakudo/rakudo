@@ -4,6 +4,8 @@ class RangeIter is Iterator {
     has $!excludes_max;
     has $!nextIter;
 
+    method infinite() { $!max ~~ Inf }
+
     method reify() {
         return ($!value,) if $!value ~~ EMPTY;
         unless $!nextIter.defined || $!nextIter ~~ EMPTY {

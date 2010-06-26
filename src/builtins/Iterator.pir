@@ -27,6 +27,13 @@ flatten in list context.
 
 
 .namespace ['Iterator']
+.sub 'infinite' :method
+    $P0 = get_hll_global 'Mu'
+    .return ($P0)
+.end
+
+
+.namespace ['Iterator']
 .sub 'list' :method
     .local pmc list
     list = new ['List']

@@ -236,7 +236,9 @@ Handle assignment to a Parcel (list assignment).
     # in C<source>.  (Creating a copy of everything in C<source>
     # likely isn't the most efficient approach to this, but it
     # works for now.)
-    source = '&circumfix:<[ ]>'(source)
+    $P0 = get_hll_global 'Seq'
+    source = $P0.'new'(source)
+    source.'eager'()
 
     # Now, loop through targets of C<self>, storing the corresponding
     # values from source and flattening any RPAs we encounter.  If a

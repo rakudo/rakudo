@@ -547,6 +547,16 @@ method statement_prefix:sym<gather>($/) {
     make PAST::Op.new( :pasttype('call'), :name('!GATHER'), $past );
 }
 
+method statement_prefix:sym<sink>($/) {
+    my $blast := $<blorst>.ast;
+    $blast.blocktype('immediate');
+    make PAST::Stmts.new(
+        PAST::Op.new( :name('&eager'), $blast ),
+        PAST::Op.new( :name('&Nil') ),
+        :node($/)
+    );
+}
+
 method statement_prefix:sym<try>($/) {
     my $block := $<blorst>.ast;
     $block.blocktype('immediate');

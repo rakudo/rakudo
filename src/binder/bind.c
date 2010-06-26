@@ -483,6 +483,10 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
      * taking one - tell us we have a problem. */
     PMC *named_args_copy = PMCNULL;
 
+    /* If we have a |$foo that's followed by slurpies, then we can suppress
+     * any future arity checks. */
+    INTVAL suppress_arity_fail = 0;
+    
     /* Check that we have a valid signature and pull the bits out of it. */
     if (!lls_id)
         setup_binder_statics(interp);
@@ -602,6 +606,10 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                 if (pos_from_named)
                     mem_sys_free(pos_from_named);
                 return BIND_RESULT_OK;
+            }
+            else if (elements[i + 1]->flags &
+                    (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED)) {
+                suppress_arity_fail = 1;
             }
         }
 
@@ -724,7 +732,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
                             value, 1, error);
                 }
-                else {
+                else if (!suppress_arity_fail) {
                     if (error)
                         *error = Parrot_sprintf_c(interp, "Required named parameter '%S' not passed",
                                 VTABLE_get_string_keyed_int(interp, elements[i]->named_names, 0));
@@ -752,7 +760,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
         mem_sys_free(pos_from_named);
 
     /* Do we have any left-over args? */
-    if (cur_pos_arg < num_pos_args) {
+    if (cur_pos_arg < num_pos_args && !suppress_arity_fail) {
         /* Oh noes, too many positionals passed. */
         if (error)
             *error = *error = Rakudo_binding_arity_fail(interp, elements, num_elements, num_pos_args, 1);

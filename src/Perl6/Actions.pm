@@ -1873,10 +1873,7 @@ method term:sym<!!!>($/) {
 
 method term:sym<dotty>($/) {
     my $past := $<dotty>.ast;
-    $past.unshift(PAST::Op.new(
-        :pirop('descalarref PP'),
-        PAST::Var.new( :name('$_'), :scope('lexical') )
-    ));
+    $past.unshift(PAST::Var.new( :name('$_'), :scope('lexical') ) );
     make $past;
 }
 

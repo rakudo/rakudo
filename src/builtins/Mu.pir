@@ -354,52 +354,6 @@ until we get roles).
 .end
 
 
-=item !STORE(source)
-
-Store C<source> into C<self>, performing type checks
-as needed.  (This method is listed with the other public
-methods simply because I expect it may switch to public
-in the future.)
-
-=cut
-
-.sub '!STORE' :method :subid('Mu::!STORE')
-    .param pmc source
-
-    # Get hold of the source object to assign.
-    $I0 = can source, 'item'
-    if $I0 goto source_fetch
-    source = deobjectref source
-    source = new ['ObjectRef'], source
-    goto have_source
-  source_fetch:
-    source = source.'item'()
-    source = deobjectref source
-  have_source:
-
-    # If source and destination are the same, we're done.
-    eq_addr self, source, store_done
-    
-    # Need a type-check?
-    .local pmc type
-    type = getprop 'type', self
-    if null type goto type_check_done
-    $I0 = type.'ACCEPTS'(source)
-    unless $I0 goto type_check_failed
-  
-    # All is well - do the assignment.
-  type_check_done:
-    copy self, source
-    
-  store_done:
-    .return (self)
-
-  type_check_failed:
-    # XXX TODO: Awesomize this error.
-    '&die'('Type check failed for assignment')
-.end
-
-
 =item WHENCE()
 
 Return the invocant's auto-vivification closure.

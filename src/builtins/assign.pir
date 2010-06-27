@@ -24,7 +24,18 @@ src/builtins/assign.pir - assignment operations
     # If the lhs isn't a scalar container, delegate to
     # object's STORE method.
     $P0 = getprop 'scalar', cont
-    if null $P0 goto cont_store
+    unless null $P0 goto scalar_store
+    $I0 = can cont, '!STORE'
+    if $I0 goto cont_store
+
+    # We should never arrive here.  Anything that is marked 'rw'
+    # should either be a Perl6Scalar (with the 'scalar' property
+    # set) or a container that understands !STORE, such as Hash or Array.
+    # However, there's some legacy code that fails to set 'scalar',
+    # so we patch it in here to keep things going.
+    $I0 = isa cont, ['ObjectRef']
+    unless $I0 goto cont_store
+    setprop cont, 'scalar', cont
 
   scalar_store:
     # perform any needed typecheck

@@ -29,17 +29,23 @@ our sub eval(Str $code, :$lang = 'perl6') {
         result = $P0.'eval'(code, 'outer_ctx'=>caller)
 
       success:
+        pop_eh
         # no exception occurred, so generate a dummy exception
-        exception = '!FAIL'()
+        exception = get_hll_global 'Any'
         goto done
       catch:
         .get_results (parrotex)
+        pop_eh
         exception = new ['Perl6Exception']
         setattribute exception, '$!exception', parrotex
+        result = '!FAIL'(parrotex)
       done:
-        pop_eh
         $P0 = interp['lexpad';1]
-        $P0['$!'] = exception
+        $P1 = $P0['$!']
+        $P2 = new ['Perl6Scalar'], exception
+        setprop $P2, 'scalar', $P2
+        setprop $P2, 'rw', $P2
+        copy $P1, $P2
         unless null result goto have_result
         result = '&Nil'()
       have_result:

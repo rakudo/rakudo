@@ -143,9 +143,7 @@ method statementlist($/) {
             }
         }
     }
-    else {
-        $past.push(PAST::Op.new(:name('&Nil')));
-    }
+    $past.push(PAST::Op.new(:name('&Nil'))) if +$past.list < 1;
     make $past;
 }
 

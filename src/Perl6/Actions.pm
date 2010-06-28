@@ -165,8 +165,9 @@ method statement($/, $key?) {
         my $ml := $<statement_mod_loop>[0];
         $past := $<EXPR>.ast;
         if $mc {
-            $past := PAST::Op.new($mc<cond>.ast, $past, PAST::Op.new(:name('&Nil')),
-                        :pasttype(~$mc<sym>), :node($/) );
+            $mc.ast.push($past);
+            $mc.ast.push(PAST::Op.new(:name('&Nil')));
+            $past := $mc.ast;
         }
         if $ml {
             my $cond := $ml<smexpr>.ast;
@@ -597,8 +598,24 @@ sub add_phaser($/, $bank) {
 
 # Statement modifiers
 
-method statement_mod_cond:sym<if>($/)     { make $<cond>.ast; }
-method statement_mod_cond:sym<unless>($/) { make $<cond>.ast; }
+method modifier_expr($/) { make $<EXPR>.ast; }
+
+method statement_mod_cond:sym<if>($/)     { 
+    make PAST::Op.new( :pasttype<if>, $<modifier_expr>.ast, :node($/) );
+}
+
+method statement_mod_cond:sym<unless>($/) {
+    make PAST::Op.new( :pasttype<unless>, $<modifier_expr>.ast, :node($/) );
+}
+
+method statement_mod_cond:sym<when>($/) {
+    make PAST::Op.new( :pasttype<if>,
+        PAST::Op.new( :name('&infix:<~~>'),
+                      PAST::Var.new( :name('$_') ),
+                      $<modifier_expr>.ast ),
+        :node($/)
+    );
+}
 
 method statement_mod_loop:sym<while>($/)  { make $<smexpr>.ast; }
 method statement_mod_loop:sym<until>($/)  { make $<smexpr>.ast; }

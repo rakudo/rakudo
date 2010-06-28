@@ -491,8 +491,11 @@ token blorst {
 
 proto token statement_mod_cond { <...> }
 
-token statement_mod_cond:sym<if>     { <sym> :s <cond=.EXPR> }
-token statement_mod_cond:sym<unless> { <sym> :s <cond=.EXPR> }
+rule modifier_expr { <EXPR> }
+
+token statement_mod_cond:sym<if>     { <sym> <modifier_expr> }
+token statement_mod_cond:sym<unless> { <sym> <modifier_expr> }
+token statement_mod_cond:sym<when>   { <sym> <modifier_expr> }
 
 proto token statement_mod_loop { <...> }
 

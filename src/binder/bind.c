@@ -300,7 +300,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 VTABLE_set_pmc_keyed_str(interp, lexpad, sig_info->variable_name, value);
         }
         else if (sig_info->flags & SIG_ELEM_IS_COPY) {
-            /* Clone the value appropriately, wrap it into an ObjectRef, and bind it. */
+            /* Place the value into a new container instead of binding to an existing one */
+            value = descalarref(interp, value);
             if (!STRING_IS_NULL(sig_info->variable_name)) {
                 PMC *copy, *ref, *store_meth;
                 if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
@@ -316,7 +317,6 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
                 }
                 else {
-                    value = descalarref(interp, value);
                     copy = pmc_new_init(interp, p6s_id, value);
                     VTABLE_setprop(interp, copy, string_from_literal(interp, "scalar"), copy);
                 }

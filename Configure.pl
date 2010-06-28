@@ -214,8 +214,8 @@ General Options:
     --gen-parrot       Download and build a copy of Parrot to use
     --gen-parrot-option='--option=value'
                        Set parrot config option when using --gen-parrot
-    --parrot-config=(config)
-                       Use configuration information from config
+    --parrot-config=/path/to/parrot_config
+                       Use config information from parrot_config executable
 Experimental developer's options:
     --makefile-timing  Insert 'time' command all over in the Makefile
 END

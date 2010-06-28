@@ -216,46 +216,67 @@ Handle assignment to a Parcel (list assignment).
 .sub '!STORE' :method
     .param pmc source
 
-    # First, create a flattening Array from C<source>.  This
-    # creates # copies of values in C<source>, in case any lvalue target
-    # containers in C<self> also happen to be listed as rvalues
-    # in C<source>.  (Creating a copy of everything in C<source>
-    # likely isn't the most efficient approach to this, but it
-    # works for now.)
-    $P0 = get_hll_global 'Seq'
-    source = $P0.'new'(source)
-    source.'eager'()
+    # We do this in two passes.  The first pass creates
+    # two RPAs; one is a flattened RPA of LHS target containers
+    # the other is the de-containerized RHS values.  This
+    # first pass avoids the potential problem of a LHS container
+    # appearing on the RHS, and it also preserves laziness for
+    # assignment to scalars.
+    # The second pass then simply assigns the collected values
+    # to the collected targets.
 
-    # Now, loop through targets of C<self>, storing the corresponding
-    # values from source and flattening any RPAs we encounter.  If a
-    # target is an array or hash, then it will end up consuming all
-    # of the remaining elements of source.
-    .local pmc targets
-    targets = root_new ['parrot';'ResizablePMCArray']
-    splice targets, self, 0, 0
-  store_loop:
-    unless targets goto store_done
+    .local pmc lhs, tv, seq
+    lhs = root_new ['parrot';'ResizablePMCArray']
+    tv  = root_new ['parrot';'ResizablePMCArray']
+    splice lhs, self, 0, 0
+
+    $P0 = get_hll_global 'Seq'
+    seq = $P0.'new'(source)
+
+    # Walk through the lhs, building targets and values as we go.
+  lhs_loop:
+    unless lhs goto lhs_done
     .local pmc cont
-    cont = shift targets
+    cont = shift lhs
     $I0 = isa cont, ['ResizablePMCArray']
-    if $I0 goto store_rpa
+    if $I0 goto cont_rpa
+    unless seq goto cont_nil
     $I0 = isa cont, ['Whatever']
-    if $I0 goto store_scalar
+    if $I0 goto cont_scalar
     $P0 = getprop 'scalar', cont
-    if null $P0 goto store_array
-    unless $P0 goto store_array
-  store_scalar:
-    $P0 = source.'shift'()
-    '&infix:<=>'(cont, $P0)
-    goto store_loop
-  store_array:
-    '&infix:<=>'(cont, source)
-    source = '&circumfix:<[ ]>'()
-    goto store_loop
-  store_rpa:
-    splice targets, cont, 0, 0
-    goto store_loop
-  store_done:
+    if null $P0 goto cont_array
+    unless $P0 goto cont_array
+  cont_scalar:
+    $P0 = seq.'shift'()
+    push tv, cont
+    push tv, $P0
+    goto lhs_loop
+  cont_array:
+    seq.'eager'()
+    push tv, cont
+    push tv, seq
+    seq = get_hll_global 'False'
+    goto lhs_loop
+  cont_nil:
+    $P0 = '&Nil'()
+    push tv, cont
+    push tv, $P0
+    goto lhs_loop
+  cont_rpa:
+    splice lhs, cont, 0, 0
+    goto lhs_loop
+  lhs_done:
+
+  # Okay, tv is now target+value pairs, so
+  # we loop through it, performing the assignment
+  # on each pair.
+  tv_loop:
+    unless tv goto tv_done
+    $P0 = shift tv
+    $P1 = shift tv
+    '&infix:<=>'($P0, $P1)
+    goto tv_loop
+  tv_done:
     .return (self)
 .end
 

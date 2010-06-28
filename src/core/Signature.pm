@@ -74,7 +74,9 @@ augment class Signature {
                 }
 
                 # Slurpiness, namedness, then the name.
-                if $param.slurpy { take '*' }
+                if $param.slurpy  { take '*' }
+                if $param.capture { take '|' }
+                if $param.parcel  { take '\|' }
                 my @names = @($param.named_names);
                 for @names -> $name {
                     take ':' ~ $name ~ '(';

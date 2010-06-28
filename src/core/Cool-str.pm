@@ -220,21 +220,18 @@ augment class Cool {
         # .tailcall '!FAIL'("Attempt to index from negative position")
     }
 
+
     # S32/Str says that this should always return a StrPos object
-    # our Int multi method rindex($substring, $pos?) is export {
-    #     if ($substring.chars == 0) {
-    #         my $string_length = self.chars;
-    #         return $pos.defined && $pos < $string_length ?? $pos !! $string_length;
-    #     }
-    #
-    #     my $result = pir::reverse_index__ISSi(self, $substring, $pos);
-    #     fail("Substring '$substring' not found in '{self}'") if $result < 0;
-    #     return $result;
-    #
-    #     # also used to be a the following error message, but the condition
-    #     # was never checked:
-    #     # .tailcall '!FAIL'("Attempt to index from negative position")
-    # }
+     our Int multi method rindex($substring, $pos?) is export {
+         if ($substring.chars == 0) {
+             my $string_length = self.chars;
+             return $pos.defined && $pos < $string_length ?? $pos !! $string_length;
+         }
+
+         my $result = (~self).reverse_index($substring, $pos);
+         fail("Substring '$substring' not found in '{self}'") if $result < 0;
+         return $result;
+     }
 
     our Str multi method chop() is export {
         self.substr(0, -1)

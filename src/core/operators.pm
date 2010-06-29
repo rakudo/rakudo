@@ -514,10 +514,12 @@ our multi sub infix:<X>($lhs, $rhs) {
 
 # if we want &infix:<||> accessible (for example for meta operators), we need
 # to define it, because the normal || is short-circuit and special cased by
-# the grammar. Same goes for 'or'
+# the grammar. Same goes for 'or', '&&' and 'and'
 
 our multi sub infix:<||>(Mu $a, Mu $b) { $a || $b }
 our multi sub infix:<or>(Mu $a, Mu $b) { $a or $b }
+our multi sub infix:<&&>(Mu $a, Mu $b) { $a && $b }
+our multi sub infix:<and>(Mu $a, Mu $b) { $a and $b }
 
 # Eliminate use of this one, but keep the pir around for
 # the moment, as it may come in handy elsewhere.

@@ -1,4 +1,4 @@
-class IO::ArgFiles {
+class IO::ArgFiles is IO {
     has $!filenames;
     has $!filename;
     has $!current_file;

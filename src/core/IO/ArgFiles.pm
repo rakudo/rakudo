@@ -1,21 +1,20 @@
 class IO::ArgFiles is IO {
-    has $!filenames;
+    has @!filenames;
     has $!filename;
     has $!current_file;
     has $!ins;
 
-    method new($filenames) {
-        if $filenames.elems {
-            self.bless(*, :filenames($filenames));
-        } else {
-            push $filenames, "-";
-            self.bless(*, :filenames($filenames));
+    submethod BUILD {
+        if @*ARGS {
+            @!filenames = @*ARGS.eager;
+        } else  {
+            @!filenames = '-';
         }
     }
 
     method eof() {
         $.next_file;
-        $!current_file.eof && $!filenames.elems == 0;
+        $!current_file.eof && !@!filenames.elems;
     }
 
     method getc() {
@@ -46,15 +45,15 @@ class IO::ArgFiles is IO {
     method next_file() {
         if (!defined $!current_file) || ($!current_file.eof) {
             $!current_file.close if $!current_file && $!filename ne '-';
-            fail if $!filenames.elems == 0;
-            $!filename = $!filenames.shift;
+            fail if @!filenames.elems == 0;
+            $!filename = @!filenames.shift;
             $!current_file = $!filename eq '-' ?? $*IN !! open($!filename);
         }
     }
 }
 
 sub ARGFILES_CREATE() {
-    IO::ArgFiles.new(@*ARGS);
+    IO::ArgFiles.new();
 }
 
 # vim: ft=perl6

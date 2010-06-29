@@ -1,27 +1,20 @@
 augment class Block {
 
-=begin item arity
-
-=end item
     method arity() {
         my $arity = 0;
-        my @params = self.signature.params;
-        for @params -> $p {
+        for self.signature.params -> $p {
             $arity++ unless $p.slurpy || $p.optional;
         }
-        $arity
+        $arity;
     }
 
-=begin item count
-
-=end item
     method count() {
         my $count = 0;
-        my @params = self.signature.params;
-        for @params -> $p {
-            $count++ unless $p.slurpy;
+        for self.signature.params -> $p {
+            return Inf if $p.slurpy;
+            $count++;
         }
-        $count
+        $count;
     }
 
     method ACCEPTS(Mu $topic) {

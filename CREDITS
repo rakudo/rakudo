@@ -329,6 +329,11 @@ U: tene
 D: Minor Rakudo patches
 E: tene@allalone.org
 
+N: Tyler Curtis
+U: tcurtis
+D: $*ARGFILES
+E: tyler.l.curtis@gmail.com
+
 N: Ujwal Reddy Malipeddi
 E: ujwalic@gmail.com
 D: Rakudo patch

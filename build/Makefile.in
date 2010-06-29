@@ -208,6 +208,7 @@ CORE_SOURCES = \
   src/core/Hash.pm \
   src/core/Enum.pm \
   src/core/IO.pm \
+  src/core/IO/ArgFiles.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
   src/core/Parameter.pm \

@@ -68,7 +68,7 @@ class IO is Cool {
     }
 }
 
-multi sub lines(IO $filehandle,
+multi sub lines(IO $filehandle = $*ARGFILES,
                 :$bin = False,
                 :$enc = 'Unicode',
                 :$nl = "\n",

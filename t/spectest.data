@@ -47,7 +47,7 @@ integration/advent2009-day20.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
 integration/code-blocks-as-sub-args.t
-# integration/error-reporting.t
+integration/error-reporting.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 # integration/man-or-boy.t
@@ -474,6 +474,7 @@ S16-filehandles/open.t
 # S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/say.t
+S16-io/say-and-ref.t
 S16-io/getc.t
 # S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
@@ -533,7 +534,7 @@ S32-num/cool-num.t
 S32-num/exp.t
 S32-num/int.t
 S32-num/log.t
-# S32-num/pi.t
+S32-num/pi.t
 S32-num/polar.t
 S32-num/power.t
 S32-num/rand.t

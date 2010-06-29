@@ -14,7 +14,7 @@ class IO is Cool {
         ?$!PIO.eof();
     }
 
-    multi method get() is export {
+    multi method get() {
         my $x = $!PIO.readline;
         fail if $.eof && $x eq '';
         $!ins++;
@@ -67,6 +67,8 @@ class IO is Cool {
         $!PIO.isatty;
     }
 }
+
+multi sub get(IO $filehandle = $*ARGFILES) { $filehandle.get };
 
 multi sub lines(IO $filehandle = $*ARGFILES,
                 :$bin = False,

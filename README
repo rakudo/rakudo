@@ -63,6 +63,15 @@ the build directory using a command like:
 
     $ ./perl6 hello.pl
 
+B<Important>: To run Rakudo from outside the build directory, you
+B<must> run
+
+    $ make install
+
+This will install the C<perl6> (or C<perl6.exe> binary on windows)
+into the C<parrot_install/bin> directory locally, no additional root
+privileges necessary.
+
 The C<--gen-parrot> above option tells Configure.pl to automatically
 download and build the most appropriate version of Parrot into
 a local "parrot/" subdirectory, install that Parrot into

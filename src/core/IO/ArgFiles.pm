@@ -52,8 +52,4 @@ class IO::ArgFiles is IO {
     }
 }
 
-sub ARGFILES_CREATE() {
-    IO::ArgFiles.new();
-}
-
 # vim: ft=perl6

@@ -34,6 +34,16 @@ Perl6::Compiler - Perl6 compiler
 .loadlib 'sys_ops'
 
 .sub '' :anon :load :init
+    $P0 = get_class ['P6role']
+    unless null $P0 goto startup_ok
+    say "==SORRY=="
+    say "Unable to find Perl 6 low-level runtime files"
+    say "    If you want to run Rakudo outside of the build directory,"
+    say "    run 'make install' and use the installed perl6 binary"
+    exit 1
+
+
+ startup_ok:
     load_bytecode 'P6Regex.pbc'
 
     # Init Rakudo dynops.

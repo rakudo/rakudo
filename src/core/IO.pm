@@ -35,6 +35,19 @@ class IO is Cool {
         }
     }
 
+    method open($filename, :$r, :$w, :$a) {
+        if $!PIO { $!PIO.close; $!PIO = Nil; }
+        my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
+        $!PIO = $filename eq '-'
+                ?? pir::getstdin__P()
+                !! pir::open__PSS($filename, $mode);
+        unless pir::istrue__IP($!PIO) {
+            fail("Unable to open file '$filename'");
+        }
+        $!PIO.encoding('utf8');
+        self;
+    }
+
     multi method print(*@items) {
         try {
             for @items -> $item {

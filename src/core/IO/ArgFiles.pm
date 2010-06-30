@@ -1,53 +1,26 @@
 class IO::ArgFiles is IO {
-    has @!filenames;
-    has $!filename;
-    has $!current_file;
-    has $!ins;
-
-    submethod BUILD {
-        if @*ARGS {
-            @!filenames = @*ARGS.eager;
-        } else  {
-            @!filenames = '-';
-        }
-    }
+    has $!args;
+    has $.filename;
 
     method eof() {
-        $.next_file;
-        $!current_file.eof && !@!filenames.elems;
-    }
-
-    method getc() {
-        ...
+        ! $!args && $!filename.defined && (!pir::istrue($!PIO) || ?$!PIO.eof);
     }
 
     method get() {
-        $.next_file;
-        $!ins++;
-        $!current_file.get;
-    }
-
-    method lines() {
-        gather while !$.eof {
-            my $line = $.get;
-            take $line if defined $line;
+        unless $!PIO {
+            $!filename = $!args ?? $!args.shift !! '-';
+            self.open($!filename, :r) ||
+                fail "Unable to open file '$!filename'";
         }
-    }
-
-    method filename() {
-        $!filename;
-    }
-
-    method ins() {
-        $!ins;
-    }
-
-    method next_file() {
-        if (!defined $!current_file) || ($!current_file.eof) {
-            $!current_file.close if $!current_file && $!filename ne '-';
-            fail if @!filenames.elems == 0;
-            $!filename = @!filenames.shift;
-            $!current_file = $!filename eq '-' ?? $*IN !! open($!filename);
+        my $x = $!PIO.readline;
+        if $x eq '' && ?$!PIO.eof {
+            self.close;
+            $!PIO = Nil;
+            $!args ?? self.get !! fail "End of argfiles reached"
+        }
+        else {
+            $!ins++;
+            $x.chomp;
         }
     }
 }

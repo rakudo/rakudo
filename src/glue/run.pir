@@ -87,6 +87,11 @@ of the compilation unit.
     set_hll_global '@ARGS', $P2
     setprop $P2, "rw", true
 
+    ##  set up $*ARGFILES
+    $P3 = get_hll_global ['IO'], 'ArgFiles'
+    $P3 = $P3.'new'('args'=>$P2)
+    set_hll_global '$ARGFILES', $P3
+
     ##  set up %*VM
     load_bytecode 'config.pbc'
     .local pmc vm, interp, config

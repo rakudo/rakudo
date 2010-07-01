@@ -16,7 +16,7 @@ P6LowLevelSig and provides higher level access to it.
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    p6meta.'new_class'('Signature', 'parent'=>'Cool', 'attr'=>'$!ll_sig $!param_cache $!try_bind_sub $!bind_target')
+    p6meta.'new_class'('Signature', 'parent'=>'Cool', 'attr'=>'$!llsig $!param_cache $!try_bind_sub $!bind_target')
 .end
 
 
@@ -43,7 +43,7 @@ Returns a C<List> of C<Parameter> descriptors.
 
     # Grab low level signature we're wrapping.
     .local pmc signature
-    signature = getattribute self, '$!ll_sig'
+    signature = getattribute self, '$!llsig'
     signature = descalarref signature
 
     # And Parameter proto.
@@ -106,7 +106,7 @@ Returns a C<List> of C<Parameter> descriptors.
     default = '!FAIL'()
   default_done:
     if null sub_sig goto no_sub_sig
-    sub_sig = self.'new'('ll_sig'=>sub_sig)
+    sub_sig = self.'new'('llsig'=>sub_sig)
     goto sub_sig_done
   no_sub_sig:
     sub_sig = '!FAIL'()
@@ -199,7 +199,7 @@ PIR
     $P0 = compreg 'PIR'
     $P0 = $P0(pir)
     $P0 = $P0[0]
-    $P1 = getattribute self, '$!ll_sig'
+    $P1 = getattribute self, '$!llsig'
     $P1 = descalarref $P1
     setprop $P0, '$!signature', $P1
     .return ($P0)

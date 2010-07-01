@@ -360,7 +360,7 @@ method ast($low_level?) {
             :pasttype('callmethod'),
             :name('new'),
             PAST::Var.new( :name('Signature'),, :scope('package') ),
-            PAST::Var.new( :name($sig_var.name()), :scope('register'), :named('ll_sig') )
+            PAST::Var.new( :name($sig_var.name()), :scope('register'), :named('llsig') )
         );
         if self.bind_target() eq 'lexical' {
             $node.push(PAST::Op.new(

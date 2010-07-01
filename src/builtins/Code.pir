@@ -168,7 +168,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'signature' :method
-    .local pmc do, ll_sig, lazy_sig
+    .local pmc do, llsig, lazy_sig
 
     # Do we have a cached result?
     $P0 = getattribute self, '$!signature'
@@ -178,15 +178,15 @@ Gets the signature for the block, or returns Failure if it lacks one.
 
     # Look up the signature if the block already has one.
     do = getattribute self, '$!do'
-    ll_sig = getprop '$!signature', do
-    unless null ll_sig goto have_sig
+    llsig = getprop '$!signature', do
+    unless null llsig goto have_sig
 
     # No signautre yet, but maybe we have a lazy creator.
     lazy_sig = getattribute self, '$!lazy_sig_init'
     if null lazy_sig goto srsly_no_sig
 push_eh lazyerr
-    ll_sig = lazy_sig()
-    setprop do, '$!signature', ll_sig
+    llsig = lazy_sig()
+    setprop do, '$!signature', llsig
     goto have_sig
   srsly_no_sig:
     .tailcall '!FAIL'('No signature found')
@@ -194,7 +194,7 @@ push_eh lazyerr
     # Now we have the signature; need to make it a high level one.
   have_sig:
     $P1 = get_hll_global 'Signature'
-    $P1 = $P1.'new'('ll_sig' => ll_sig)
+    $P1 = $P1.'new'('llsig' => llsig)
     setattribute self, '$!signature', $P1
     .return ($P1)
   lazyerr:

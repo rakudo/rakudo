@@ -630,7 +630,7 @@ method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
-method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0, ''); }
+method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0); }
 method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
 
 method term:sym<YOU_ARE_HERE>($/) {
@@ -1065,7 +1065,7 @@ method routine_def($/) {
     $signature.set_default_parameter_type('Any');
     my $sig_setup_block := add_signature($past, $signature, 1);
     if $<trait> {
-        emit_routine_traits($past, $<trait>, 'Sub', $sig_setup_block);
+        emit_routine_traits($past, $<trait>, 'Sub');
     }
     if $<deflongname> {
         # Set name.
@@ -1075,7 +1075,7 @@ method routine_def($/) {
 
         # Wrap it in the correct routine type.
         my $multi_flag := PAST::Val.new( :value(0) );
-        $past := create_code_object($past, 'Sub', $multi_flag, $sig_setup_block);
+        $past := create_code_object($past, 'Sub', $multi_flag);
 
         # Handle multi-ness, if any.
         my $symbol_holder := $*SCOPE eq 'our' ?? @PACKAGE[0].block !! @BLOCK[0];
@@ -1150,7 +1150,7 @@ method routine_def($/) {
     }
     else {
         # Just wrap in a Sub.
-        $past := create_code_object($past, 'Sub', 0, $sig_setup_block);
+        $past := create_code_object($past, 'Sub', 0);
     }
     make $past;
 }
@@ -1185,7 +1185,7 @@ method method_def($/) {
 
     # Emit traits.
     if $<trait> {
-        emit_routine_traits($past, $<trait>, $*METHODTYPE, $sig_setup_block);
+        emit_routine_traits($past, $<trait>, $*METHODTYPE);
     }
 
     # Method container.
@@ -1200,7 +1200,7 @@ method method_def($/) {
                           0;
         
         # Create code object using a reference to $past.
-        my $code := create_code_object(PAST::Val.new(:value($past)), $*METHODTYPE, $multi_flag, $sig_setup_block);
+        my $code := create_code_object(PAST::Val.new(:value($past)), $*METHODTYPE, $multi_flag);
 
         # Get hold of the correct table to install it in, and install.
         our @PACKAGE;
@@ -1218,7 +1218,7 @@ method method_def($/) {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
-        $past := create_code_object($past, $*METHODTYPE, 0, $sig_setup_block);
+        $past := create_code_object($past, $*METHODTYPE, 0);
     }
 
     make $past;
@@ -1358,7 +1358,7 @@ method regex_def($/, $key?) {
                     :pirflags(':anon'),
                     :node($/)
                 ),
-                'Regex', 0, '');
+                'Regex', 0);
         %table{'!PREFIX__' ~ $name}<code_ref> :=
             create_code_object(
                 PAST::Block.new( :name('!PREFIX__' ~ $name),
@@ -1373,7 +1373,7 @@ method regex_def($/, $key?) {
                     :lexical(0),
                     :node($/)
                 ),
-                'Regex', 0, '');
+                'Regex', 0);
     } else {
         # Clear modifiers stack entry for this regex.
         @MODIFIERS.shift;
@@ -1398,7 +1398,7 @@ method regex_def($/, $key?) {
 
         # Create code object and install it provided it has a name.
         if ($name) {
-            my $code := create_code_object(PAST::Val.new(:value($past)), 'Regex', 0, $sig_setup_block);
+            my $code := create_code_object(PAST::Val.new(:value($past)), 'Regex', 0);
             our @PACKAGE;
             unless +@PACKAGE {
                 $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
@@ -1408,7 +1408,7 @@ method regex_def($/, $key?) {
             install_method($/, $code, $name, %table);
         }
         else {
-            $past := create_code_object($past, 'Regex', 0, $sig_setup_block);
+            $past := create_code_object($past, 'Regex', 0);
         }
     }
     make $past;
@@ -2076,7 +2076,7 @@ method circumfix:sym<{ }>($/) {
         }
     }
     else {
-        $past := create_code_object($past, 'Block', 0, '');
+        $past := create_code_object($past, 'Block', 0);
     }
     make $past;
 }
@@ -2404,7 +2404,7 @@ method typename($/) {
         my $sig := Perl6::Compiler::Signature.new(
             Perl6::Compiler::Parameter.new(:var_name('$_')));
         add_signature($past, $sig, 0);
-        $past := create_code_object($past, 'Block', 0, '');
+        $past := create_code_object($past, 'Block', 0);
     }
     else {
         my @name := Perl6::Grammar::parse_name($<longname>.Str);
@@ -2455,21 +2455,21 @@ method quote:sym<qqx>($/)  {
 }
 method quote:sym</ />($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make create_code_object($past, 'Regex', 0, '');
+    make create_code_object($past, 'Regex', 0);
 }
 method quote:sym<rx>($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make create_code_object($past, 'Regex', 0, '');
+    make create_code_object($past, 'Regex', 0);
 }
 method quote:sym<m>($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make create_code_object($past, 'Regex', 0, '');
+    make create_code_object($past, 'Regex', 0);
 }
 
 method quote:sym<s>($/) {
     # Build the regex.
     my $regex_ast := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    my $regex := create_code_object($regex_ast, 'Regex', 0, '');
+    my $regex := create_code_object($regex_ast, 'Regex', 0);
 
     # Quote needs to be closure-i-fied.
     my $closure_ast := PAST::Block.new(
@@ -2478,7 +2478,7 @@ method quote:sym<s>($/) {
             $<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast
         )
     );
-    my $closure := create_code_object($closure_ast, 'Block', 0, '');
+    my $closure := create_code_object($closure_ast, 'Block', 0);
 
     # Make a Substitution.
     $regex.named('matcher');
@@ -2731,7 +2731,7 @@ sub get_nearest_signature() {
 }
 
 # Wraps a sub up in a block type.
-sub create_code_object($block, $type, $multiness, $lazy_init) {
+sub create_code_object($block, $type, $multiness) {
     my @name := Perl6::Grammar::parse_name($type);
     my $past := PAST::Op.new(
         :pasttype('callmethod'),
@@ -2740,7 +2740,6 @@ sub create_code_object($block, $type, $multiness, $lazy_init) {
         $block,
         $multiness
     );
-    # if $lazy_init { $past.push($lazy_init) }
     $past<past_block> := $block;
     $past<block_class> := $type;
     $past
@@ -2783,11 +2782,11 @@ sub has_compiler_trait_with_val($trait_list, $name, $value) {
 
 
 # Emits routine traits into the loadinit for the routine.
-sub emit_routine_traits($routine, @trait_list, $type,  $sig_setup_block) {
+sub emit_routine_traits($routine, @trait_list, $type) {
     $routine.loadinit.push(PAST::Op.new(
         :pasttype('bind'),
         PAST::Var.new( :name('trait_subject'), :scope('register'), :isdecl(1) ),
-        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, $*MULTINESS eq 'multi',  $sig_setup_block)
+        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, $*MULTINESS eq 'multi')
     ));
     for @trait_list {
         my $ast := $_.ast;
@@ -2994,7 +2993,7 @@ sub make_attr_init_closure($init_value) {
         Perl6::Compiler::Parameter.new(:var_name('$_')));
     $sig.add_invocant();
     my $lazy_name := add_signature($block, $sig, 1);
-    create_code_object(PAST::Op.new( :pirop('newclosure PP'), $block ), 'Method', 0, $lazy_name);
+    create_code_object(PAST::Op.new( :pirop('newclosure PP'), $block ), 'Method', 0);
 }
 
 # Looks through the lexpads and sees if we recognize the symbol as a lexical.
@@ -3034,7 +3033,7 @@ sub where_blockify($expr) {
     my $past;
     if $expr<past_block> && $expr<block_class> eq 'Block' {
         my $lazy_name := make_lazy_sig_block($expr<past_block>);
-        $past := create_code_object($expr<past_block>, 'Block', 0, $lazy_name);
+        $past := create_code_object($expr<past_block>, 'Block', 0);
     }
     else {
         my $sig := Perl6::Compiler::Signature.new(
@@ -3129,7 +3128,7 @@ sub make_block_from($sig, $body, $type = 'Block') {
         )
     );
     my $lazy_name := add_signature($past, $sig, 1);
-    create_code_object($past, $type, 0, $lazy_name);
+    create_code_object($past, $type, 0);
 }
 
 # vim: ft=perl6

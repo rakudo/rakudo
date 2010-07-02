@@ -182,9 +182,13 @@ PMC *look_for_method(PARROT_INTERP, PMC *search_list, INTVAL *start_pos, STRING 
                 int j, k, found;
 
                 /* Does this class have the is hidden property? */
-                PMC *hidden = VTABLE_get_attr_str(interp, my_metaclass, CONST_STRING(interp, "$!hidden"));
-                if (!PMC_IS_NULL(hidden) && VTABLE_get_bool(interp, hidden))
-                    continue;
+                PMC *hidden_meth = VTABLE_find_method(interp, my_metaclass, CONST_STRING(interp, "hidden"));
+                if (!PMC_IS_NULL(hidden_meth)) {
+                    PMC *result = PMCNULL;
+                    Parrot_ext_call(interp, hidden_meth, "Pi->P", my_metaclass, &result);
+                    if (VTABLE_get_bool(interp, result))
+                        continue;
+                }
 
                 /* Does anything before it hide it? */
                 found = 0;

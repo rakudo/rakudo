@@ -112,7 +112,7 @@ method finish($block) {
     # We need the block to get the signature, or a default one, plus the
     # decl code as a body.
     my $sig := pir::defined__IP($!signature) ?? $!signature !! Perl6::Compiler::Signature.new();
-    my $lazy_sig_block_name := Perl6::Actions::add_signature($block, $sig, 1);
+    Perl6::Actions::add_signature($block, $sig, 1);
     $block.push($decl);
     $block.blocktype('declaration');
     $block.nsentry('');

@@ -52,7 +52,7 @@ Returns a C<List> of C<Parameter> descriptors.
 
     # Loop over parameters.
     .local int cur_param, count
-    count = get_signature_size signature
+    count = get_llsig_size signature
     cur_param = -1
   param_loop:
     inc cur_param
@@ -62,7 +62,7 @@ Returns a C<List> of C<Parameter> descriptors.
     .local pmc nom_type, cons_type, names, type_captures, default, sub_sig
     .local int flags, optional, invocant, multi_invocant, slurpy, rw, parcel, capture, copy, named
     .local string name, coerce_to
-    get_signature_elem signature, cur_param, name, flags, nom_type, cons_type, names, type_captures, default, sub_sig, coerce_to
+    get_llsig_elem signature, cur_param, name, flags, nom_type, cons_type, names, type_captures, default, sub_sig, coerce_to
     optional       = flags & SIG_ELEM_IS_OPTIONAL
     invocant       = flags & SIG_ELEM_INVOCANT
     multi_invocant = flags & SIG_ELEM_MULTI_INVOCANT
@@ -188,7 +188,7 @@ PIR
 
     # Ending.
     pir = concat <<'PIR'
-    bind_signature capture
+    bind_llsig capture
     $P0 = getinterp
     $P0 = $P0['lexpad']
     .return ($P0)

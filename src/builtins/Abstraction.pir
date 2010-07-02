@@ -29,7 +29,7 @@ This implements the role Abstraction[].
 .sub '' :load :init
     .local pmc block, signature
     block = get_hll_global ['Abstraction[]'], '_abstraction_role_body'
-    signature = allocate_signature 0
+    signature = allocate_llsig 0
     setprop block, "$!signature", signature
 .end
 

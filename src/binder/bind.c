@@ -388,7 +388,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         }
 
         /* Recurse into signature binder. */
-        result = Rakudo_binding_bind_signature(interp, lexpad, sig_info->sub_llsig,
+        result = Rakudo_binding_bind_llsig(interp, lexpad, sig_info->sub_llsig,
                 capture, no_nom_type_check, error);
         if (result != BIND_RESULT_OK)
         {
@@ -462,7 +462,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
  * is a failure and BIND_RESULT_JUNCTION if the failure was because of a
  * Junction being passed (meaning we need to auto-thread). */
 INTVAL
-Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
+Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *signature,
                               PMC *capture, INTVAL no_nom_type_check,
                               STRING **error) {
     INTVAL        i;
@@ -492,7 +492,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
         setup_binder_statics(interp);
     if (signature->vtable->base_type != lls_id)
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                "Internal Error: Rakudo_binding_bind_signature passed invalid signature");
+                "Internal Error: Rakudo_binding_bind_llsig passed invalid signature");
     GETATTR_P6LowLevelSig_elements(interp, signature, elements);
     GETATTR_P6LowLevelSig_num_elements(interp, signature, num_elements);
     GETATTR_P6LowLevelSig_named_to_pos_cache(interp, signature, named_to_pos_cache);
@@ -554,7 +554,7 @@ Rakudo_binding_bind_signature(PARROT_INTERP, PMC *lexpad, PMC *signature,
     }
     else {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                "Internal Error: Rakudo_binding_bind_signature passed invalid Capture");
+                "Internal Error: Rakudo_binding_bind_llsig passed invalid Capture");
     }
 
     /* First, consider named arguments, to see if there are any that we will

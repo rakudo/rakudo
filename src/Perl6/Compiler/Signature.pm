@@ -220,7 +220,7 @@ method ast($low_level?) {
     $ast.push(PAST::Op.new(
         :pasttype('bind'),
         PAST::Var.new( :name($sig_var.name()), :scope('register'), :isdecl(1) ),
-        PAST::Op.new( :inline('    %r = allocate_signature ' ~ +@entries) )
+        PAST::Op.new( :inline('    %r = allocate_llsig ' ~ +@entries) )
     ));
 
     # We'll likely also find a register holding a null value helpful to have.
@@ -331,7 +331,7 @@ method ast($low_level?) {
 
         # Emit op to build signature element.
         $ast.push(PAST::Op.new(
-            :pirop('set_signature_elem vPisiPPPPPPS'),
+            :pirop('set_llsig_elem vPisiPPPPPPS'),
             $sig_var,
             $i,
             ($_.var_name eq '' || $_.var_name eq $_.sigil ?? $null_str !! ~$_.var_name),

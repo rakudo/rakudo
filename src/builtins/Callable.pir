@@ -50,10 +50,10 @@ This implements the parametric role Callable[::T = Mu].
     .local pmc block, signature
     .const 'Sub' $P0 = '_callable_role_body'
     block = $P0
-    signature = allocate_signature 1
+    signature = allocate_llsig 1
     setprop block, "$!signature", signature
     null $P1
-    set_signature_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1, ""
+    set_llsig_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1, ""
 .end
 
 
@@ -71,7 +71,7 @@ Returns the type constraining what may be returned.
     .local pmc block, signature
     .const 'Sub' $P0 = 'callable_role_returns'
     block = $P0
-    signature = allocate_signature 0
+    signature = allocate_llsig 0
     setprop block, "$!signature", signature
 .end
 
@@ -90,7 +90,7 @@ Returns the type constraining what may be returned.
     .local pmc block, signature
     .const 'Sub' $P0 = 'callable_role_of'
     block = $P0
-    signature = allocate_signature 0
+    signature = allocate_llsig 0
     setprop block, "$!signature", signature
 .end
 

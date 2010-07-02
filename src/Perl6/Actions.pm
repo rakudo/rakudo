@@ -2668,7 +2668,7 @@ sub add_signature($block, $sig_obj, $lazy) {
     }
     $block[0].push($decls);
     $block[0].push(PAST::Op.new(
-        :pirop('bind_signature vP'),
+        :pirop('bind_llsig vP'),
         PAST::Var.new( :name('call_sig'), :scope('lexical') )
     ));
 

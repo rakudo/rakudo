@@ -517,7 +517,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                         PMC      *lexpad    = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
                         PMC      *signature = possibles[i]->signature;
                         INTVAL bind_check_result;
-                        bind_check_result = Rakudo_binding_bind_signature(interp, lexpad,
+                        bind_check_result = Rakudo_binding_bind_llsig(interp, lexpad,
                               signature, capture, 1, NULL);
 
                         /* XXX In the future, we can actually keep the context if we only

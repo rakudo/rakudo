@@ -313,6 +313,13 @@ List classes while we convert to the new list model.)
 .end
     
 
+.namespace ['List']
+.sub '' :vtable('get_pmc_keyed_int')
+    .param int key
+    .tailcall self.'postcircumfix:<[ ]>'(key)
+.end
+
+
 .namespace []
 .sub '&flat'
     .param pmc values          :slurpy

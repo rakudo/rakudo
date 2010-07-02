@@ -948,7 +948,12 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         %attr_info<name>      := $attrname;
         %attr_info<type>      := $*TYPENAME;
         %attr_info<accessor>  := $twigil eq '.' ?? 1 !! 0;
-        %attr_info<rw>        := $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') ?? 1 !! 0;
+        if $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') {
+            %attr_info<rw> := 1;
+        }
+        if $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'readonly') {
+            %attr_info<rw> := 0;
+        }
         my $has_handles := has_compiler_trait($trait_list, '&trait_mod:<handles>');
         if $has_handles {
             %attr_info<handles> := $has_handles[0];

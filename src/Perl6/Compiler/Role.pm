@@ -51,6 +51,14 @@ method finish($block) {
         PAST::Op.new( :pasttype('callmethod'), :name('HOW'), $obj_reg )
     ));
 
+    # Traits.
+    if self.traits {
+        for @(self.traits) {
+            $_.unshift($obj_reg);
+            $decl.push($_);
+        }
+    }
+
     # Meta Methods.
     my %meta_methods := $!meta_methods;
     for %meta_methods {
@@ -84,9 +92,11 @@ method finish($block) {
             :name('new'),
             PAST::Var.new( :name('Attribute'),   :namespace(''), :scope('package') ),
             PAST::Val.new( :value($_<name>),     :named('name') ),
-            PAST::Val.new( :value($_<accessor>), :named('has_accessor') ),
-            PAST::Val.new( :value($_<rw>),       :named('rw') )
+            PAST::Val.new( :value($_<accessor>), :named('has_accessor') )
         );
+        if pir::defined($_<rw>) {
+            $attr.push(PAST::Val.new( :value($_<rw>), :named('rw') ));
+        }
         if $_<build> {
             $_<build>.named('build');
             $attr.push($_<build>);
@@ -96,14 +106,6 @@ method finish($block) {
             :name('add_attribute'),
             $meta_reg, $obj_reg, $attr
         ));
-    }
-
-    # Traits.
-    if self.traits {
-        for @(self.traits) {
-            $_.unshift($obj_reg);
-            $decl.push($_);
-        }
     }
 
     # Call compose to create the role object.

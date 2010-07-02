@@ -232,9 +232,6 @@ method pblock($/) {
         $signature.set_rw_by_default();
     }
     add_signature($block, $signature, 0);
-    if $<lambda> {
-        prevent_null_return($block);
-    }
     make $block;
 }
 
@@ -3019,14 +3016,6 @@ sub is_attr_alias($name) {
         }
     }
     return "";
-}
-
-# Gives a block a Nil to return if it has no statements, to prevent Null
-# PMCs being handed back.
-sub prevent_null_return($block) {
-    if +@($block[1]) == 0 {
-        $block[1].push(PAST::Op.new( :name('&Nil') ));
-    }
 }
 
 # Takes something that may be a block already, and if not transforms it into

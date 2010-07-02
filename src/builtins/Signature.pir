@@ -201,7 +201,7 @@ PIR
     $P0 = $P0[0]
     $P1 = getattribute self, '$!llsig'
     $P1 = descalarref $P1
-    setprop $P0, '$!signature', $P1
+    setprop $P0, '$!llsig', $P1
     .return ($P0)
 .end
 

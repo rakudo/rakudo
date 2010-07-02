@@ -2679,7 +2679,7 @@ sub add_signature($block, $sig_obj, $lazy) {
     }
     else {
         $block.loadinit.push($block<signature_ast>);
-        $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!signature", signature') ));
+        $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!llsig", signature') ));
     }
 }
 

@@ -30,7 +30,7 @@ This implements the role Abstraction[].
     .local pmc block, llsig
     block = get_hll_global ['Abstraction[]'], '_abstraction_role_body'
     llsig = allocate_llsig 0
-    setprop block, "$!signature", llsig
+    setprop block, "$!llsig", llsig
 .end
 
 # Local Variables:

@@ -51,7 +51,7 @@ This implements the parametric role Callable[::T = Mu].
     .const 'Sub' $P0 = '_callable_role_body'
     block = $P0
     llsig = allocate_llsig 1
-    setprop block, "$!signature", llsig
+    setprop block, "$!llsig", llsig
     null $P1
     set_llsig_elem llsig, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1, ""
 .end
@@ -72,7 +72,7 @@ Returns the type constraining what may be returned.
     .const 'Sub' $P0 = 'callable_role_returns'
     block = $P0
     llsig = allocate_llsig 0
-    setprop block, "$!signature", llsig
+    setprop block, "$!llsig", llsig
 .end
 
 
@@ -91,7 +91,7 @@ Returns the type constraining what may be returned.
     .const 'Sub' $P0 = 'callable_role_of'
     block = $P0
     llsig = allocate_llsig 0
-    setprop block, "$!signature", llsig
+    setprop block, "$!llsig", llsig
 .end
 
 # Local Variables:

@@ -595,7 +595,7 @@ inline op bind_llsig(in PMC) :base_core {
     if (!PObj_flag_TEST(P6S_ALREADY_BOUND, ctx)) {
         PMC *lexpad         = Parrot_pcc_get_lex_pad(interp, ctx);
         PMC *sub            = Parrot_pcc_get_sub(interp, ctx);
-        PMC *llsig          = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
+        PMC *llsig          = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!llsig"));
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
         INTVAL bind_error;
@@ -613,7 +613,7 @@ inline op bind_llsig(in PMC) :base_core {
             PMC *sig_meth    = VTABLE_find_method(interp, p6_code_obj, string_from_literal(interp, "signature"));
             PMC *result;
             Parrot_ext_call(interp, sig_meth, "P->P", p6_code_obj, &result);
-            llsig = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!signature"));
+            llsig = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!llsig"));
         }
 
         /* Call signature binder. */

@@ -85,8 +85,8 @@ and so forth.
     $S0 = shift meth_iter
     $P0 = meths[$S0]
     $P1 = clone $P0
-    $P2 = getprop '$!signature', $P0
-    setprop $P1, '$!signature', $P2
+    $P2 = getprop '$!llsig', $P0
+    setprop $P1, '$!llsig', $P2
     if null Method goto skip_wrap
     $P1 = Method.'new'($P1, 0, '')
   skip_wrap:

@@ -178,7 +178,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
 
     # Look up the signature if the block already has one.
     do = getattribute self, '$!do'
-    llsig = getprop '$!signature', do
+    llsig = getprop '$!llsig', do
     unless null llsig goto have_sig
 
     # No signautre yet, but maybe we have a lazy creator.
@@ -186,7 +186,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
     if null lazy_sig goto srsly_no_sig
 push_eh lazyerr
     llsig = lazy_sig()
-    setprop do, '$!signature', llsig
+    setprop do, '$!llsig', llsig
     goto have_sig
   srsly_no_sig:
     .tailcall '!FAIL'('No signature found')

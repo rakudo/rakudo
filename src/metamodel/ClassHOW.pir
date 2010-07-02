@@ -56,7 +56,6 @@ calls on it.
     # Extra attributes for interface consistency and compositiony stuff.
     addattribute $P0, '$!attributes'
     addattribute $P0, '$!hides'
-    addattribute $P0, '$!hidden'
     addattribute $P0, '$!composees'
     addattribute $P0, '$!done'
     addattribute $P0, '$!ver'
@@ -785,24 +784,6 @@ Accessor for hides property.
     unless null $P0 goto done
     $P0 = new 'Array'
     setattribute self, '$!hides', $P0
-  done:
-    .return ($P0)
-.end
-
-
-=item hidden
-
-Accessor for hidden property.
-
-=cut
-
-.sub 'hidden' :method
-    .local pmc obj
-    $P0 = getattribute self, '$!hidden'
-    unless null $P0 goto done
-    $P0 = get_hll_global ['Bool'], 'False'
-    $P0 = new ['Perl6Scalar'], $P0
-    setattribute self, '$!hidden', $P0
   done:
     .return ($P0)
 .end

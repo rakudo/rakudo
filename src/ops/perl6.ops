@@ -608,11 +608,8 @@ inline op bind_llsig(in PMC) :base_core {
         /* Ensure we actually have a signature; if not, try to lazily generate
          * it. */
         if (PMC_IS_NULL(llsig)) {
-            PMC *p6_code_obj = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!p6type"));
-            PMC *sig_meth    = VTABLE_find_method(interp, p6_code_obj, string_from_literal(interp, "signature"));
-            PMC *result;
-            Parrot_ext_call(interp, sig_meth, "P->P", p6_code_obj, &result);
-            llsig = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!llsig"));
+            PMC *sig_meth    = VTABLE_find_method(interp, sub, string_from_literal(interp, "!llsig"));
+            Parrot_ext_call(interp, sig_meth, "P->P", sub, &llsig);
         }
 
         /* Call signature binder. */

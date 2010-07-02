@@ -238,11 +238,8 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
         llsig = VTABLE_getprop(interp, p6_do, CONST_STRING(interp, "$!llsig"));
         if (PMC_IS_NULL(llsig)) {
             /* No signature - need to lazily generate it. */
-            PMC *p6_code_obj = VTABLE_getprop(interp, p6_do, string_from_literal(interp, "$!p6type"));
-            PMC *sig_meth    = VTABLE_find_method(interp, p6_code_obj, string_from_literal(interp, "signature"));
-            PMC *result;
-            Parrot_ext_call(interp, sig_meth, "P->P", p6_code_obj, &result);
-            llsig = VTABLE_getprop(interp, p6_do, string_from_literal(interp, "$!llsig"));
+            PMC *sig_meth    = VTABLE_find_method(interp, p6_do, string_from_literal(interp, "!llsig"));
+            Parrot_ext_call(interp, sig_meth, "P->P", p6_do, &llsig);
         }
         info->llsig = llsig;
         GETATTR_P6LowLevelSig_elements(interp, llsig, sig_elem_info);

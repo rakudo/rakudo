@@ -12,6 +12,10 @@ our multi trait_mod:<is>(Mu $child, Role $r) {
     $child.^add_parent($r!select!pun);
 }
 
+multi trait_mod:<is>(Mu $type where { !.defined }, :$rw!) {
+    $type.HOW does role { method rw { True } }
+}
+
 role Positional { ... }
 role Associative { ... }
 our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {

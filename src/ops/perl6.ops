@@ -306,7 +306,6 @@ nextsame need.
 inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
     PMC     *ctx         = Parrot_pcc_get_caller_ctx(interp, CURRENT_CONTEXT(interp));
     STRING  *name        = string_from_literal(interp, "__CANDIDATE_LIST__");
-    STRING  *wrapper     = string_from_literal(interp, "$!p6type");
     PMC     *last_lexpad = PMCNULL;
     PMC     *last_sub    = PMCNULL;
 

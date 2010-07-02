@@ -370,7 +370,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
     }
 
     /* If it has a sub-signature, bind that. */
-    if (!PMC_IS_NULL(sig_info->sub_signature)) {
+    if (!PMC_IS_NULL(sig_info->sub_llsig)) {
         /* Turn value into a capture, unless we already have one. */
         PMC *capture = PMCNULL;
         INTVAL result;
@@ -388,7 +388,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
         }
 
         /* Recurse into signature binder. */
-        result = Rakudo_binding_bind_signature(interp, lexpad, sig_info->sub_signature,
+        result = Rakudo_binding_bind_signature(interp, lexpad, sig_info->sub_llsig,
                 capture, no_nom_type_check, error);
         if (result != BIND_RESULT_OK)
         {

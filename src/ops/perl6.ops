@@ -482,7 +482,7 @@ inline op set_signature_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PM
             element->named_names      = $7;
             element->type_captures    = $8;
             element->default_closure  = $9;
-            element->sub_signature    = $10;
+            element->sub_llsig        = $10;
             element->coerce_to        = $11;
 
             /* Also need to do fixups on the nominal type. */
@@ -558,7 +558,7 @@ inline op get_signature_elem(in PMC, in INT, out STR, out INT, out PMC, out PMC,
             $7  = element->named_names;
             $8  = element->type_captures;
             $9  = element->default_closure;
-            $10 = element->sub_signature;
+            $10 = element->sub_llsig;
             $11 = element->coerce_to;
             goto NEXT();
         }

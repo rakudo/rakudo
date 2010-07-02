@@ -14,7 +14,7 @@ has $!default;
 has $!default_from_outer;
 has $!nom_type;
 has $!cons_types;
-has $!sub_signature;
+has $!sub_llsig;
 has $!type_captures;
 has $!is_rw;
 has $!is_copy;
@@ -127,9 +127,9 @@ method cons_types() {
     $!cons_types
 }
 
-method sub_signature($sub_signature?) {
-    if pir::defined__IP($sub_signature) { $!sub_signature := $sub_signature }
-    $!sub_signature
+method sub_llsig($sub_llsig?) {
+    if pir::defined__IP($sub_llsig) { $!sub_llsig := $sub_llsig }
+    $!sub_llsig
 }
 
 method type_captures() {

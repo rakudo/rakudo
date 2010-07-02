@@ -1599,10 +1599,10 @@ method parameter($/) {
 
 method param_var($/) {
     if $<signature> {
-        if pir::defined__IP($*PARAMETER.sub_signature) {
+        if pir::defined__IP($*PARAMETER.sub_llsig) {
             $/.CURSOR.panic('Can not have more than one sub-signature for a parameter');
         }
-        $*PARAMETER.sub_signature( $<signature>.ast );
+        $*PARAMETER.sub_llsig( $<signature>.ast );
         if pir::substr(~$/, 0, 1) eq '[' {
             $*PARAMETER.var_name('@');
         }
@@ -1667,10 +1667,10 @@ method type_constraint($/) {
 
 method post_constraint($/) {
     if $<signature> {
-        if pir::defined__IP($*PARAMETER.sub_signature) {
+        if pir::defined__IP($*PARAMETER.sub_llsig) {
             $/.CURSOR.panic('Can not have more than one sub-signature for a parameter');
         }
-        $*PARAMETER.sub_signature( $<signature>.ast );
+        $*PARAMETER.sub_llsig( $<signature>.ast );
     }
     else {
         $*PARAMETER.cons_types.push(where_blockify($<EXPR>.ast));

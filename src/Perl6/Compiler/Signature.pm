@@ -174,8 +174,8 @@ method get_declarations() {
         }
 
         # Check any sub-signatures.
-        if pir::defined__IP($_.sub_signature) {
-            for @($_.sub_signature.get_declarations) {
+        if pir::defined__IP($_.sub_llsig) {
+            for @($_.sub_llsig.get_declarations) {
                 $result.push($_);
             }
         }
@@ -323,9 +323,9 @@ method ast($low_level?) {
 
         # Fix up sub-signature AST.
         my $sub_sig := $null_reg;
-        if pir::defined__IP($_.sub_signature) {
+        if pir::defined__IP($_.sub_llsig) {
             $sub_sig := PAST::Stmts.new();
-            $sub_sig.push( $_.sub_signature.ast(1) );
+            $sub_sig.push( $_.sub_llsig.ast(1) );
             $sub_sig.push( PAST::Var.new( :name('signature'), :scope('register') ) );
         }
 

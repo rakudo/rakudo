@@ -1063,7 +1063,7 @@ method routine_def($/) {
             pir::defined__IP($past<placeholder_sig>) ?? $past<placeholder_sig> !!
             Perl6::Compiler::Signature.new();
     $signature.set_default_parameter_type('Any');
-    my $sig_setup_block := add_signature($past, $signature, 1);
+    add_signature($past, $signature, 1);
     if $<trait> {
         emit_routine_traits($past, $<trait>, 'Sub');
     }
@@ -1179,7 +1179,7 @@ method method_def($/) {
     }
 
     # Add signature to block.
-    my $sig_setup_block := add_signature($past, $sig, 1);
+    add_signature($past, $sig, 1);
     $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
     $past.symbol('self', :scope('lexical'));
 
@@ -1389,7 +1389,7 @@ method regex_def($/, $key?) {
         $sig.set_default_parameter_type('Any');
         $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
         $past.symbol('self', :scope('lexical'));
-        my $sig_setup_block := add_signature($past, $sig, 1);
+        add_signature($past, $sig, 1);
         $past.name($name);
         $past.blocktype("declaration");
         
@@ -2992,7 +2992,7 @@ sub make_attr_init_closure($init_value) {
     my $sig := Perl6::Compiler::Signature.new(
         Perl6::Compiler::Parameter.new(:var_name('$_')));
     $sig.add_invocant();
-    my $lazy_name := add_signature($block, $sig, 1);
+    add_signature($block, $sig, 1);
     create_code_object(PAST::Op.new( :pirop('newclosure PP'), $block ), 'Method', 0);
 }
 
@@ -3127,7 +3127,7 @@ sub make_block_from($sig, $body, $type = 'Block') {
             $body
         )
     );
-    my $lazy_name := add_signature($past, $sig, 1);
+    add_signature($past, $sig, 1);
     create_code_object($past, $type, 0);
 }
 

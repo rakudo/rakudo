@@ -779,7 +779,7 @@ Accessor for hides property.
 =cut
 
 .sub 'hides' :method
-    .local pmc obj
+    .param pmc obj
     $P0 = getattribute self, '$!hides'
     unless null $P0 goto done
     $P0 = new 'Array'

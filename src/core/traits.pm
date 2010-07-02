@@ -12,16 +12,21 @@ our multi trait_mod:<is>(Mu $child, Role $r) {
     $child.^add_parent($r!select!pun);
 }
 
-multi trait_mod:<is>(Mu $type where { !.defined }, :$rw!) {
+our multi trait_mod:<is>(Mu $type where { !.defined }, :$rw!) {
     $type.HOW does role { method rw { True } }
 }
 
-multi trait_mod:<is>(Mu $type where { !.defined }, :$hidden!) {
+our multi trait_mod:<is>(Mu $type where { !.defined }, :$hidden!) {
     $type.HOW does role { method hidden { True } }
 }
 
-multi trait_mod:<is>(Routine $r, :$default!) {
+our multi trait_mod:<is>(Routine $r, :$default!) {
     $r does role { method default { True } }
+}
+
+our multi trait_mod:<hides>(Mu $child, Mu $parent) {
+    trait_mod:<is>($child, $parent);
+    $child.^hides.push($parent);
 }
 
 role Positional { ... }

@@ -611,15 +611,19 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         INTVAL i;
 
         for (i = 0; i < possibles_count; i++) {
-            PMC * const default_prop = VTABLE_getprop(interp, possibles[i]->sub,
+            PMC * const default_meth = VTABLE_find_method(interp, possibles[i]->sub,
                     CONST_STRING(interp, "default"));
-            if (!PMC_IS_NULL(default_prop)) {
-                if (default_cand == NULL) {
-                    default_cand = possibles[i];
-                }
-                else {
-                    default_cand = NULL;
-                    break;
+            if (!PMC_IS_NULL(default_meth)) {
+                PMC *result = PMCNULL;;
+                Parrot_ext_call(interp, default_meth, "Pi->P", possibles[i]->sub, &result);
+                if (VTABLE_get_bool(interp, result)) {
+                    if (default_cand == NULL) {
+                        default_cand = possibles[i];
+                    }
+                    else {
+                        default_cand = NULL;
+                        break;
+                    }
                 }
             }
         }

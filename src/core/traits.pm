@@ -16,6 +16,10 @@ multi trait_mod:<is>(Mu $type where { !.defined }, :$rw!) {
     $type.HOW does role { method rw { True } }
 }
 
+multi trait_mod:<is>(Routine $r, :$default!) {
+    $r does role { method default { True } }
+}
+
 role Positional { ... }
 role Associative { ... }
 our multi trait_mod:<of>(ContainerDeclarand $cont, Mu \$type) {

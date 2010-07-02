@@ -33,6 +33,10 @@ calls on it.
     .return ($P0)
 .end
 
+.sub 'defined' :method
+    .return (0)
+.end
+
 
 .namespace ['ClassHOW']
 

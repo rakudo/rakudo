@@ -47,13 +47,13 @@ This implements the parametric role Callable[::T = Mu].
     .tailcall '!create_parametric_role'("Callable[::T]")
 .end
 .sub '' :load :init
-    .local pmc block, signature
+    .local pmc block, llsig
     .const 'Sub' $P0 = '_callable_role_body'
     block = $P0
-    signature = allocate_llsig 1
-    setprop block, "$!signature", signature
+    llsig = allocate_llsig 1
+    setprop block, "$!signature", llsig
     null $P1
-    set_llsig_elem signature, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1, ""
+    set_llsig_elem llsig, 0, "T", SIG_ELEM_IS_OPTIONAL, $P1, $P1, $P1, $P1, $P1, $P1, ""
 .end
 
 
@@ -68,11 +68,11 @@ Returns the type constraining what may be returned.
     .return ($P0)
 .end
 .sub '' :load :init
-    .local pmc block, signature
+    .local pmc block, llsig
     .const 'Sub' $P0 = 'callable_role_returns'
     block = $P0
-    signature = allocate_llsig 0
-    setprop block, "$!signature", signature
+    llsig = allocate_llsig 0
+    setprop block, "$!signature", llsig
 .end
 
 
@@ -87,11 +87,11 @@ Returns the type constraining what may be returned.
     .return ($P0)
 .end
 .sub '' :load :init
-    .local pmc block, signature
+    .local pmc block, llsig
     .const 'Sub' $P0 = 'callable_role_of'
     block = $P0
-    signature = allocate_llsig 0
-    setprop block, "$!signature", signature
+    llsig = allocate_llsig 0
+    setprop block, "$!signature", llsig
 .end
 
 # Local Variables:

@@ -27,10 +27,10 @@ This implements the role Abstraction[].
     .tailcall '!create_parametric_role'("Abstraction[]")
 .end
 .sub '' :load :init
-    .local pmc block, signature
+    .local pmc block, llsig
     block = get_hll_global ['Abstraction[]'], '_abstraction_role_body'
-    signature = allocate_llsig 0
-    setprop block, "$!signature", signature
+    llsig = allocate_llsig 0
+    setprop block, "$!signature", llsig
 .end
 
 # Local Variables:

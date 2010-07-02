@@ -42,9 +42,9 @@ Returns a C<List> of C<Parameter> descriptors.
     result = new ['Parcel']
 
     # Grab low level signature we're wrapping.
-    .local pmc signature
-    signature = getattribute self, '$!llsig'
-    signature = descalarref signature
+    .local pmc llsig
+    llsig = getattribute self, '$!llsig'
+    llsig = descalarref llsig
 
     # And Parameter proto.
     .local pmc parameter
@@ -52,7 +52,7 @@ Returns a C<List> of C<Parameter> descriptors.
 
     # Loop over parameters.
     .local int cur_param, count
-    count = get_llsig_size signature
+    count = get_llsig_size llsig
     cur_param = -1
   param_loop:
     inc cur_param
@@ -62,7 +62,7 @@ Returns a C<List> of C<Parameter> descriptors.
     .local pmc nom_type, cons_type, names, type_captures, default, sub_sig
     .local int flags, optional, invocant, multi_invocant, slurpy, rw, parcel, capture, copy, named
     .local string name, coerce_to
-    get_llsig_elem signature, cur_param, name, flags, nom_type, cons_type, names, type_captures, default, sub_sig, coerce_to
+    get_llsig_elem llsig, cur_param, name, flags, nom_type, cons_type, names, type_captures, default, sub_sig, coerce_to
     optional       = flags & SIG_ELEM_IS_OPTIONAL
     invocant       = flags & SIG_ELEM_INVOCANT
     multi_invocant = flags & SIG_ELEM_MULTI_INVOCANT

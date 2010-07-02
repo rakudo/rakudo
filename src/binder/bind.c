@@ -462,7 +462,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
  * is a failure and BIND_RESULT_JUNCTION if the failure was because of a
  * Junction being passed (meaning we need to auto-thread). */
 INTVAL
-Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *signature,
+Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
                               PMC *capture, INTVAL no_nom_type_check,
                               STRING **error) {
     INTVAL        i;
@@ -490,18 +490,18 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *signature,
     /* Check that we have a valid signature and pull the bits out of it. */
     if (!lls_id)
         setup_binder_statics(interp);
-    if (signature->vtable->base_type != lls_id)
+    if (llsig->vtable->base_type != lls_id)
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                 "Internal Error: Rakudo_binding_bind_llsig passed invalid signature");
-    GETATTR_P6LowLevelSig_elements(interp, signature, elements);
-    GETATTR_P6LowLevelSig_num_elements(interp, signature, num_elements);
-    GETATTR_P6LowLevelSig_named_to_pos_cache(interp, signature, named_to_pos_cache);
+    GETATTR_P6LowLevelSig_elements(interp, llsig, elements);
+    GETATTR_P6LowLevelSig_num_elements(interp, llsig, num_elements);
+    GETATTR_P6LowLevelSig_named_to_pos_cache(interp, llsig, named_to_pos_cache);
 
     /* Build nameds -> position hash for named positional arguments,
      * if it was not yet built. */
     if (PMC_IS_NULL(named_to_pos_cache)) {
         named_to_pos_cache = pmc_new(interp, enum_class_Hash);
-        SETATTR_P6LowLevelSig_named_to_pos_cache(interp, signature, named_to_pos_cache);
+        SETATTR_P6LowLevelSig_named_to_pos_cache(interp, llsig, named_to_pos_cache);
         for (i = 0; i < num_elements; i++) {
             /* If we find a named argument, we're done with the positionals. */
             if (!PMC_IS_NULL(elements[i]->named_names))

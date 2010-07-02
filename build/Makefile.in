@@ -164,6 +164,7 @@ CHEATS_PIR = \
   src/cheats/parrot/Protoobject.pir \
   src/cheats/parrot/P6metaclass.pir \
   src/cheats/parrot/P6role.pir \
+  src/cheats/parrot/Sub.pir \
   src/gen/uprop-cheats.pir \
   src/cheats/parrot/register.pir \
 

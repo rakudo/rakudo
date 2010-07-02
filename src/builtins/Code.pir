@@ -17,7 +17,7 @@ for executable objects.
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     $P0 = get_hll_global 'Callable'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Cool', 'attr'=>'$!do $!multi $!signature $!lazy_sig_init', 'does_role'=>$P0)
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Cool', 'attr'=>'$!do $!multi', 'does_role'=>$P0)
     $P1 = new ['Role']
     $P1.'name'('invokable')
     p6meta.'compose_role'(codeproto, $P1)
@@ -31,7 +31,7 @@ for executable objects.
 .sub 'new' :method
     .param pmc do
     .param pmc multi
-    .param pmc lazy_sig_init :optional
+    .param pmc lazysig :optional
     $P0 = getprop '$!p6type', do
     if null $P0 goto need_create
     .return ($P0)
@@ -42,7 +42,9 @@ for executable objects.
     transform_to_p6opaque $P0
     setattribute $P0, '$!do', do
     setattribute $P0, '$!multi', multi
-    setattribute $P0, '$!lazy_sig_init', lazy_sig_init
+    if null lazysig goto lazysig_done
+    setprop do, '$!lazysig', lazysig
+  lazysig_done:
     if multi != 2 goto proto_done
     $P1 = box 1
     setprop $P0, 'proto', $P1
@@ -60,10 +62,8 @@ for executable objects.
     push_eh parrot_sub
     $P0 = getattribute self, '$!do'
     pop_eh
-    $P0 = clone $P0
     $P1 = getattribute self, '$!multi'
-    $P2 = getattribute self, '$!lazy_sig_init'
-    $P3 = self.'new'($P0, $P1, $P2)
+    $P3 = self.'new'($P0, $P1)
     .return ($P3)
   parrot_sub:
     pop_eh
@@ -168,40 +168,12 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'signature' :method
-    .local pmc do, llsig, lazy_sig
-
-    # Do we have a cached result?
-    $P0 = getattribute self, '$!signature'
-    if null $P0 goto create_signature
-    .return ($P0)
-  create_signature:
-
-    # Look up the signature if the block already has one.
+    .local pmc do, signature
     do = getattribute self, '$!do'
-    llsig = getprop '$!llsig', do
-    unless null llsig goto have_sig
-
-    # No signautre yet, but maybe we have a lazy creator.
-    lazy_sig = getattribute self, '$!lazy_sig_init'
-    if null lazy_sig goto srsly_no_sig
-push_eh lazyerr
-    llsig = lazy_sig()
-    setprop do, '$!llsig', llsig
-    goto have_sig
-  srsly_no_sig:
-    .tailcall '!FAIL'('No signature found')
-
-    # Now we have the signature; need to make it a high level one.
-  have_sig:
-    $P1 = get_hll_global 'Signature'
-    $P1 = $P1.'new'('llsig' => llsig)
-    setattribute self, '$!signature', $P1
-    .return ($P1)
-  lazyerr:
-  pop_eh
-  say lazy_sig
+    signature = do.'!signature'()
+    .return (signature)
 .end
-
+    
 =item do()
 
 =cut

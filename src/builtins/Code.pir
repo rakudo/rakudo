@@ -31,7 +31,6 @@ for executable objects.
 .sub 'new' :method
     .param pmc do
     .param pmc multi
-    .param pmc lazysig :optional
     $P0 = getprop '$!p6type', do
     if null $P0 goto need_create
     .return ($P0)
@@ -42,9 +41,6 @@ for executable objects.
     transform_to_p6opaque $P0
     setattribute $P0, '$!do', do
     setattribute $P0, '$!multi', multi
-    if null lazysig goto lazysig_done
-    setprop do, '$!lazysig', lazysig
-  lazysig_done:
     if multi != 2 goto proto_done
     $P1 = box 1
     setprop $P0, 'proto', $P1

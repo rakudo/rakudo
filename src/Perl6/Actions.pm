@@ -2993,7 +2993,7 @@ sub make_attr_init_closure($init_value) {
         Perl6::Compiler::Parameter.new(:var_name('$_')));
     $sig.add_invocant();
     add_signature($block, $sig, 1);
-    create_code_object(PAST::Op.new( :pirop('newclosure PP'), $block ), 'Method', 0);
+    create_code_object($block, 'Method', 0);
 }
 
 # Looks through the lexpads and sees if we recognize the symbol as a lexical.

@@ -16,10 +16,10 @@ Creates whatever closures (*.foo => { $_.foo })
     .lex '$name', name
     .lex '$pos_args', pos_args
     .lex '$named_args', named_args
-    .const 'Sub' $P0 = '!whatever_dispatch_helper'
-    $P0 = newclosure $P0
+    .const 'Sub' whatever_helper = '!whatever_dispatch_helper'
+    capture_lex whatever_helper
     $P1 = get_hll_global 'Block'
-    $P1 = $P1.'new'($P0, 0, '')
+    $P1 = $P1.'new'(whatever_helper, 0)
     .return ($P1)
 .end
 .sub '!whatever_dispatch_helper' :outer('!MAKE_WHATEVER_CLOSURE')

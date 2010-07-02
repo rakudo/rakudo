@@ -36,7 +36,7 @@ method has_accessor() {
 }
 
 method rw() {
-    $!rw
+    $!rw ?? Bool::True !! Bool::False
 }
 
 method handles() {

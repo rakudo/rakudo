@@ -46,6 +46,7 @@ method comp_unit($/, $key?) {
     if $key eq 'open' {
         @PACKAGE.unshift(Perl6::Compiler::Module.new());
         @PACKAGE[0].block(@BLOCK[0]);
+        $*UNITPAST := @BLOCK[0];
         return 1;
     }
     
@@ -2672,7 +2673,16 @@ sub add_signature($block, $sig_obj, $lazy) {
     # If lazy, make and push signature setup block.
     $block<signature_ast> := $sig_obj.ast(1);
     if $lazy {
-        make_lazy_sig_block($block)
+        my $lazysig := 
+            PAST::Block.new(:blocktype<declaration>, $block<signature_ast>);
+        $block[0].push($lazysig);
+        $*UNITPAST.loadinit.push(
+            PAST::Op.new( :pirop<setprop__vPsP>,
+                PAST::Val.new(:value($block)),
+                '$!lazysig',
+                PAST::Val.new(:value($lazysig))
+            )
+        );
     }
     else {
         $block.loadinit.push($block<signature_ast>);
@@ -2730,7 +2740,7 @@ sub create_code_object($block, $type, $multiness, $lazy_init) {
         $block,
         $multiness
     );
-    if $lazy_init { $past.push($lazy_init) }
+    # if $lazy_init { $past.push($lazy_init) }
     $past<past_block> := $block;
     $past<block_class> := $type;
     $past

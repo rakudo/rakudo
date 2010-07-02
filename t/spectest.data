@@ -405,7 +405,7 @@ S12-class/lexical.t
 # S12-class/namespaced.t
 S12-class/open.t
 # S12-class/parent_attributes.t
-# S12-class/rw.t
+S12-class/rw.t
 S12-class/self-inheritance.t
 S12-class/stubs.t
 S12-construction/autopairs.t

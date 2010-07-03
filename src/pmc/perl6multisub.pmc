@@ -31,6 +31,7 @@ access during a dispatch.
 #include "parrot/oplib/ops.h"
 #include "../binder/bind.h"
 #include "pmc_p6lowlevelsig.h"
+#include "pmc_sub.h"
 
 PMC *get_all_candidates_with_cur_args(PARROT_INTERP, PMC *multi);
 
@@ -1310,6 +1311,50 @@ Incorporates the given candidates into this multi.
             INTVAL i;
             for (i = 0; i < elements; i++)
                 VTABLE_push_pmc(interp, SELF, VTABLE_get_pmc_keyed_int(interp, maybe_multi, i));
+        }
+        RETURN (PMC *SELF);
+    }
+
+/*
+
+=item METHOD PMC *merge_candidates(PMC *maybe_multi)
+
+Merges the candidates from C<maybe_multi> into the invocant,
+skipping any candidates with subids already present in the invocant.
+
+=cut
+
+*/
+
+    METHOD PMC *merge_candidates(PMC *maybe_multi) {
+        if (!PMC_IS_NULL(maybe_multi) && VTABLE_isa(interp, maybe_multi, CONST_STRING(interp, "Perl6MultiSub"))) {
+            STRING *dostr = CONST_STRING(interp, "$!do");
+            PMC *hash = pmc_new(interp, enum_class_Hash);
+            PMC *iter = VTABLE_get_iter(interp, SELF);
+            while (VTABLE_get_bool(interp, iter)) {
+                PMC *cand  = VTABLE_shift_pmc(interp, iter);
+                PMC *dosub = cand->vtable->base_type == enum_class_Sub 
+                             ? cand 
+                             : VTABLE_get_attr_str(interp, cand, dostr);
+                STRING *subid;
+                GETATTR_Sub_subid(interp, dosub, subid);
+                if (!subid) continue;
+                VTABLE_set_pmc_keyed_str(interp, hash, subid, cand);
+            }
+            iter = VTABLE_get_iter(interp, maybe_multi);
+            while (VTABLE_get_bool(interp, iter)) {
+                PMC *cand  = VTABLE_shift_pmc(interp, iter);
+                PMC *dosub = cand->vtable->base_type == enum_class_Sub 
+                             ? cand 
+                             : VTABLE_get_attr_str(interp, cand, dostr);
+                STRING *subid;
+                GETATTR_Sub_subid(interp, dosub, subid);
+                if (!subid) continue;
+                if (!PMC_IS_NULL(VTABLE_get_pmc_keyed_str(interp, hash, subid)))
+                    continue;
+                VTABLE_push_pmc(interp, SELF, cand);
+                VTABLE_set_pmc_keyed_str(interp, hash, subid, cand);
+            }
         }
         RETURN (PMC *SELF);
     }

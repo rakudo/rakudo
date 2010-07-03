@@ -1053,104 +1053,126 @@ method routine_declarator:sym<method>($/) { make $<method_def>.ast; }
 method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
 
 method routine_def($/) {
-    my $past := $<blockoid>.ast;
-    $past.blocktype('declaration');
-    $past.control('return_pir');
-    if pir::defined__IP($past<placeholder_sig>) && $<multisig> {
+    my $block := $<blockoid>.ast;
+    $block.blocktype('declaration');
+    $block.control('return_pir');
+    if pir::defined__IP($block<placeholder_sig>) && $<multisig> {
         $/.CURSOR.panic('Placeholder variable cannot override existing signature');
     }
     my $signature := $<multisig>                     ?? $<multisig>[0].ast    !!
-            pir::defined__IP($past<placeholder_sig>) ?? $past<placeholder_sig> !!
+            pir::defined__IP($block<placeholder_sig>) ?? $block<placeholder_sig> !!
             Perl6::Compiler::Signature.new();
     $signature.set_default_parameter_type('Any');
-    add_signature($past, $signature, 1);
+    add_signature($block, $signature, 1);
     if $<trait> {
-        emit_routine_traits($past, $<trait>, 'Sub');
+        emit_routine_traits($block, $<trait>, 'Sub');
     }
+    my $past;
     if $<deflongname> {
         # Set name.
         my $name := '&' ~ ~$<deflongname>[0].ast;
-        $past.name(~$<deflongname>[0].ast);
-        $past.nsentry('');
+        $block.name(~$<deflongname>[0].ast);
+        $block.nsentry('');
 
-        # Wrap it in the correct routine type.
-        my $multi_flag := PAST::Val.new( :value(0) );
-        $past := create_code_object($past, 'Sub', $multi_flag);
+        # Create a code object for the routine
+        my $symbol := @BLOCK[0].symbol($name);
 
-        # Handle multi-ness, if any.
-        my $symbol_holder := $*SCOPE eq 'our' ?? @PACKAGE[0].block !! @BLOCK[0];
-        my $symbol := $symbol_holder.symbol($name);
-        if $*MULTINESS eq 'only' {
-            if $symbol {
+        # Check for common error conditions.
+        if $symbol {
+            if $*MULTINESS eq 'only' {
                 $/.CURSOR.panic('Can not declare only routine ' ~ $name ~
                     ' when another routine with this name was already declared');
             }
-        }
-        elsif $*MULTINESS || ($symbol && $symbol<multis>) {
-            # If no multi declarator and no proto, error.
-            if !$*MULTINESS && !$symbol<proto> {
+            if !$symbol<proto> && !$*MULTINESS {
                 $/.CURSOR.panic('Can not re-declare sub ' ~ $name ~ ' without declaring it multi');
             }
+        }
+        else { 
+            $symbol := @BLOCK[0].symbol($name, :scope<lexical>); 
+        }
 
-            # If it's a proto, stash it away in the symbol entry.
-            if $*MULTINESS eq 'proto' { $symbol_holder.symbol($name, :proto($past)) }
+        # Create a code object for use in the block
+        my $multiflag := $*MULTINESS eq 'proto' ?? 2 !! $*MULTINESS eq 'multi';
+        my $code := create_code_object($block, 'Sub', $multiflag);
+        # Bind the code object to a unique register
+        $code := PAST::Var.new( :name($block.unique('code_')), :viviself($code),
+                                :scope<register>, :isdecl(1) );
+        # ..and use the code object as the result for this node.
+        $past := PAST::Var.new( :name($code.name), :scope<register> );
 
-            # Otherwise, create multi container if we don't have one; otherwise,
-            # just push this candidate onto it.
-            if $symbol<multis> {
-                $symbol<multis>.push($past);
-                $past := 0;
+        # Handle multisubs...
+        if $multiflag {
+            # If this is a proto, stash that information.
+            if $*MULTINESS eq 'proto' { $symbol<proto> := $code; }
+
+            # If we already have a multi candidate, just add to it.
+            if $symbol<multi> { 
+                $symbol<multi>.push($code); $code := 0 ; 
             }
             else {
-                $past := PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('set_candidates'),
-                    PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
-                    $past
-                );
-                $symbol_holder.symbol($name, :multis($past));
-                if $*SCOPE ne 'our' {
-                    $past := PAST::Op.new(
-                        :pasttype('callmethod'), :name('incorporate_candidates'),
-                        $past, PAST::Op.new( :pirop('find_lex_skip_current PS'), $name )
-                    );
+                # Otherwise, built a multi candidate.
+                $symbol<multi> := PAST::Op.new( :pasttype<callmethod>,
+                                      :name('set_candidates'),
+                                      PAST::Op.new( :pirop<new__Ps>, 'Perl6MultiSub'),
+                                      $code );
+                # Merge it with outer (lexical) or existing (package) candidates
+                $code := PAST::Op.new( :pasttype<callmethod>,
+                             :name<merge_candidates>,
+                             $symbol<multi>,
+                             $*SCOPE eq 'our'
+                                 ?? PAST::Var.new( :name($name), :scope('package') )
+                                 !! PAST::Op.new( :pirop<find_lex_skip_current__Ps>, $name ) );
+            }
+        }
+
+        # Bind the block code or multisub object
+        if $code {
+            # If it's package scoped, also bind into the package
+            if $*SCOPE eq 'our' {
+                $code := PAST::Op.new( :pasttype<bind>, 
+                             PAST::Var.new( :name($name), :scope('package'), :isdecl(1) ),
+                             $code);
+            }
+            # Always bind lexically (like 'our' variables do)
+            @BLOCK[0][0].push( 
+                PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
+                               :lvalue(1), :viviself($code), :node($/) ) );
+        }
+
+        # If it's package scoped, we also need a separate compile-time binding into the package
+        if $*SCOPE eq 'our' {
+            my $code := create_code_object(PAST::Val.new( :value($block) ), 'Sub', $multiflag);
+            $symbol := @PACKAGE[0].block.symbol($name);
+            if $multiflag {
+                if $symbol<pkgmulti> { 
+                    $symbol<pkgmulti>.push($code); 
+                    $code := 0; 
+                }
+                else {
+                    $symbol<pkgmulti> := PAST::Op.new( :pasttype<callmethod>,
+                                          :name('set_candidates'),
+                                          PAST::Op.new( :pirop<new__Ps>, 'Perl6MultiSub'),
+                                          $code );
+                    $code := PAST::Op.new( :pasttype<callmethod>,
+                                 :name<merge_candidates>,
+                                 $symbol<pkgmulti>,
+                                 PAST::Var.new( :name($name), :scope('package') ) );
                 }
             }
-            $multi_flag.value($*MULTINESS eq 'proto' ?? 2 !! 1);
-        }
-
-        # Install in lexical scope if it's not package scoped.
-        if $*SCOPE ne 'our' {
-            if $past {
-                @BLOCK[0][0].push(PAST::Var.new( :name($name), :isdecl(1),
-                                      :viviself($past), :scope('lexical') ) );
-                @BLOCK[0].symbol($name, :scope('lexical') );
+            if $code {
+                @PACKAGE[0].block.loadinit.push(
+                    PAST::Op.new( :pasttype<bind>,
+                        PAST::Var.new( :name($name), :scope('package') ),
+                        $code) );
             }
         }
-
-        # Otherwise, package scoped; add something to loadinit to install them.
-        else {
-            if $past {
-                if $symbol_holder.symbol($name)<multis> {
-                    $past[0] := PAST::Var.new( :name($name), :scope('package'), :viviself($past[0]) );
-                }
-                @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                    :pasttype('bind'),
-                    PAST::Var.new( :name($name), :scope('package') ),
-                    $past
-                ));
-            }
-            @BLOCK[0].symbol($name, :scope('package') );
-        }
-
-        $past := PAST::Var.new( :name($name) );
     }
     elsif $*MULTINESS {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
         # Just wrap in a Sub.
-        $past := create_code_object($past, 'Sub', 0);
+        $past := create_code_object($block, 'Sub', 0);
     }
     make $past;
 }

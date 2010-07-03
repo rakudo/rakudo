@@ -2695,24 +2695,17 @@ sub add_signature($block, $sig_obj, $lazy) {
         PAST::Var.new( :name('call_sig'), :scope('lexical') )
     ));
 
-    # If lazy, make and push signature setup block.
-    $block<signature_ast> := $sig_obj.ast(1);
-    if $lazy {
-        my $lazysig := 
-            PAST::Block.new(:blocktype<declaration>, $block<signature_ast>);
-        $block[0].push($lazysig);
-        $*UNITPAST.loadinit.push(
-            PAST::Op.new( :pirop<setprop__vPsP>,
-                PAST::Val.new(:value($block)),
-                '$!lazysig',
-                PAST::Val.new(:value($lazysig))
-            )
-        );
-    }
-    else {
-        $block.loadinit.push($block<signature_ast>);
-        $block.loadinit.push(PAST::Op.new( :inline('    setprop block, "$!llsig", signature') ));
-    }
+    # make signature setup block
+    my $lazysig := PAST::Block.new(:blocktype<declaration>, $sig_obj.ast(1));
+    $block[0].push($lazysig);
+    # add to unit or block initialization depending on $lazy flag
+    ($lazy ?? $*UNITPAST !! $block).loadinit.push(
+        PAST::Op.new( :pirop<setprop__vPsP>,
+            PAST::Val.new(:value($block)),
+            '$!lazysig',
+            PAST::Val.new(:value($lazysig))
+        )
+    );
 }
 
 # Makes a lazy signature building block.

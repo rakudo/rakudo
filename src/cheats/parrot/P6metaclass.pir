@@ -10,6 +10,21 @@ P6metaclass - methods on P6metaclass
 
 =over
 
+=item add_composable
+
+Composes a role into the class. Just maps Perl 6 method name to the
+P6metaclass one.
+
+=cut
+
+.namespace ['P6metaclass']
+.sub 'add_composable' :method
+    .param pmc obj
+    .param pmc composee
+    .tailcall self.'compose_role'(obj, composee)
+.end
+
+
 =item compose()
 
 We add this compose method so that we can augment in the
@@ -20,7 +35,8 @@ P6metaclass as their metaclass rather than ClassHOW.
 
 .namespace ['P6metaclass']
 .sub 'compose' :method
-    .param pmc ignored
+    .param pmc obj
+    .return (obj)
 .end
 
 =back

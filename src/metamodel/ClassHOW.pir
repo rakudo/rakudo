@@ -375,40 +375,6 @@ Completes the creation of the metaclass and return a proto-object.
 .end
 
 
-=item rebless
-
-Used to rebless the current class into some subclass of itself.
-
-=cut
-
-.sub 'rebless' :method
-    .param pmc target
-    .param pmc new_class
-
-    # Get and rebless into the underlying Parrot class.
-    .local pmc new_how
-    new_how = new_class.'HOW'()
-    $P0 = new_how.'get_parrotclass'(new_class)
-    rebless_subclass target, $P0
-
-    # Also need to do initialization of the containers for any attributes.
-    .local pmc example, attrs, it, cur_attr, tmp
-    example = new_class.'CREATE'()
-    attrs = getattribute new_how, '$!attributes'
-    it = iter attrs
-  it_loop:
-    unless it goto it_loop_end
-    cur_attr = shift it
-    $S0 = cur_attr.'name'()
-    tmp = getattribute example, $S0
-    setattribute target, $S0, tmp
-    goto it_loop
-  it_loop_end:
-
-    .return (target)
-.end
-
-
 =item ver(object)
 
 =cut

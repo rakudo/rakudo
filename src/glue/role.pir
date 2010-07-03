@@ -88,7 +88,7 @@ and so forth.
     $P2 = getprop '$!llsig', $P0
     setprop $P1, '$!llsig', $P2
     if null Method goto skip_wrap
-    $P1 = Method.'new'($P1, 0, '')
+    $P1 = Method.'new'($P1, 0)
   skip_wrap:
     how.'add_method'(role, $S0, $P1)
     goto it_loop

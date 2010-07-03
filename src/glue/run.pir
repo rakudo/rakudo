@@ -31,6 +31,7 @@ of the compilation unit.
     level  = 0
     interp = getinterp
     eval = get_hll_global '&eval'
+    if null eval goto done
     eval = getattribute eval, '$!do'
 
     # interp[sub;$to_high_level] throws an exception

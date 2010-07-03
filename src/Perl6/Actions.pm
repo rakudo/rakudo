@@ -1101,7 +1101,7 @@ method routine_def($/) {
         $past := PAST::Var.new( :name($code.name), :scope<register> );
 
         # Handle multisubs...
-        if $multiflag {
+        if $multiflag || $symbol<proto> {
             # If this is a proto, stash that information.
             if $*MULTINESS eq 'proto' { $symbol<proto> := $code; }
 
@@ -1143,7 +1143,10 @@ method routine_def($/) {
         if $*SCOPE eq 'our' {
             my $code := create_code_object(PAST::Val.new( :value($block) ), 'Sub', $multiflag);
             $symbol := @PACKAGE[0].block.symbol($name);
-            if $multiflag {
+            if $multiflag || $symbol<pkgproto> {
+                # If this is a proto, stash that information.
+                if $*MULTINESS eq 'proto' { $symbol<pkgproto> := $code; }
+
                 if $symbol<pkgmulti> { 
                     $symbol<pkgmulti>.push($code); 
                     $code := 0; 

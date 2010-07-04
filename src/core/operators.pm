@@ -375,24 +375,15 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
             when 1 {
                 $next = succ-or-pred(@lhs[0], $rhs)
             }
-            when 2 {
-                my $diff = @lhs[1] - @lhs[0];
-                if $diff == 0 {
-                    $next = succ-or-pred2(@lhs[0], @lhs[1], $rhs)
-                } else {
-                    return Nil if is-on-the-wrong-side(@lhs[0] , @lhs[*-2] , @lhs[*-1] , $rhs);
-                    $next = { $_ + $diff };
-                }
-            }
             default {
                 my $diff = @lhs[*-1] - @lhs[*-2];
                 if $diff == 0 {
                     $next = succ-or-pred2(@lhs[*-2], @lhs[*-1], $rhs)
-                } elsif @lhs[*-2] - @lhs[*-3] == $diff {
+                } elsif @lhs.elems == 2 || @lhs[*-2] - @lhs[*-3] == $diff {
                     return Nil if is-on-the-wrong-side(@lhs[0] , @lhs[*-2] , @lhs[*-1] , $rhs);
                     $next = { $_ + $diff };
                 } elsif @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] {
-                    $is-geometric-switching-sign = Bool::True if (@lhs[*-2] * @lhs[*-1] < 0);
+                    $is-geometric-switching-sign = (@lhs[*-2] * @lhs[*-1] < 0);
                     return Nil if is-on-the-wrong-side(@lhs[0] , @lhs[*-2] , @lhs[*-1] , $rhs) && !$is-geometric-switching-sign;
                     $next = { $_ * (@lhs[*-2] / @lhs[*-3]) };
                 } else {

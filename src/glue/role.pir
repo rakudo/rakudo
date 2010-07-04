@@ -76,6 +76,7 @@ and so forth.
     Method = get_hll_global 'Method'
     $I0 = isa Method, 'NameSpace'
     unless $I0 goto method_check_done
+    die "Attempt to create role when Method not defined"
     null Method
   method_check_done:
     meths = parrotrole.'methods'()

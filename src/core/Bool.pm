@@ -1,4 +1,4 @@
-augment class Bool {
+augment class Bool does Abstraction {
     method Bool { self }
     method ACCEPTS($topic) { self }
 

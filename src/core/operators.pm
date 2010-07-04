@@ -281,8 +281,29 @@ our multi prefix:<|>(%h) { %h.Capture }
 our multi prefix:<|>(Capture $c) { $c }
 our multi prefix:<|>(Mu $anything) { Capture.new($anything) }
 
-our multi infix:<:=>(Mu $a, Mu $b) {
-    die ":= binding of variables not yet implemented";
+our multi infix:<:=>(Mu \$target, Mu \$source) {
+    #checking for rw-ness
+    #XXX remove PIR in conditional when possible
+    if pir::isnull(pir::getprop__PsP('rw', $target)) {
+        die("Cannot bind to a readonly variable.");
+    }
+
+    #Type Checking. The !'s avoid putting actual binding in a big nest.  
+    if !pir::isnull(pir::getprop__PsP('type', $target)) {
+        if !pir::getprop__PsP('type', $target).ACCEPTS($source) {
+            die("You cannot bind a variable of type {$source.WHAT} to a variable of type {$target.WHAT}.");
+        }
+    }
+
+  Q:PIR {
+      .local pmc source
+      .local pmc target
+      target = find_lex '$target'
+      source = find_lex '$source'
+      $P0 = new ['ObjectRef'], source
+      copy target, $P0
+      .return (target)
+  }
 }
 
 our multi infix:<:=>(Signature $s, Parcel \$p) {

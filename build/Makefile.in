@@ -404,7 +404,7 @@ Test.pir: Test.pm perl6.pbc
 
 test    : coretest
 
-fulltest: coretest spectest stresstest
+fulltest: coretest stresstest
 
 coretest: Test.pir $(PERL6_EXE)
 	PARROT=$(PARROT) $(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
@@ -420,8 +420,8 @@ spectest_full: testable
 quicktest: testable t/spectest.data
 	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --long=0
 
-stresstest: testable t/stresstest.data
-	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/stresstest.data
+stresstest: testable t/spectest.data
+	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --stress=1
 
 spectest_checkout : t/spec
 t/spec :

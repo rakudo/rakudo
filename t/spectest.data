@@ -16,8 +16,12 @@
 # S16-filehandles/unlink.t   - regressed when spec changed (RT #68160)
 # S07-iterators/range-iterator.t - regressed because conforms to obsolete version of spec
 #
-# moved to stresstest:
-# integration/advent2009-day17.t
+# Each file may have one or more markers that deselects the test:
+#     icu    - run tests only if --icu=1      (default is 1)
+#     long   - run tests only if --long=1     (default is 1)
+#     stress - run tests only if --stress=1   (default is 0)
+# See the "make quicktest" and "make stresstest" targets in
+# build/Makefile.in for examples of use.
 
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
@@ -41,6 +45,7 @@ integration/advent2009-day13.t
 integration/advent2009-day14.t
 integration/advent2009-day15.t
 integration/advent2009-day16.t
+integration/advent2009-day17.t                             # stress
 integration/advent2009-day18.t
 integration/advent2009-day19.t
 integration/advent2009-day20.t

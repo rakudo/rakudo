@@ -2433,17 +2433,15 @@ method typename($/) {
 
     if is_lexical($<longname>.Str) {
         # We need to build a thunk.
-        $past := PAST::Block.new(
-            PAST::Var.new( :name('$_'), :scope('parameter'), :isdecl(1) ),
-            PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
-                PAST::Var.new( :name($<longname>.Str), :scope('lexical') ),
-                PAST::Var.new( :name('$_'), :scope('lexical') )
-            )
-        );
         my $sig := Perl6::Compiler::Signature.new(
             Perl6::Compiler::Parameter.new(:var_name('$_')));
-        add_signature($past, $sig, 0);
-        $past := create_code_object($past, 'Block', 0);
+        $past := make_block_from(
+                    $sig,
+                    PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
+                        PAST::Var.new(:name($<longname>.Str),:scope('lexical')),
+                        PAST::Var.new(:name('$_'), :scope('lexical') ) ),
+                    'Block'
+                 );
     }
     else {
         my @name := Perl6::Grammar::parse_name($<longname>.Str);

@@ -2655,7 +2655,7 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
     }
 
     method codeblock($/) {
-        my $block := block_immediate($<block>.ast);
+        my $block := Perl6::Actions::block_immediate($<block>.ast);
         my $past := 
             PAST::Stmts.new(
                 PAST::Op.new(

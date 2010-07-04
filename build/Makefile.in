@@ -118,7 +118,6 @@ BUILTINS_PIR = \
   src/builtins/Str.pir \
   src/builtins/Enum.pir \
   src/builtins/Pair.pir \
-  src/builtins/Callable.pir \
   src/builtins/Code.pir \
   src/builtins/Block.pir \
   src/builtins/Routine.pir \
@@ -169,6 +168,9 @@ CHEATS_PIR = \
   src/cheats/parrot/register.pir \
 
 CORE_SOURCES = \
+  src/core/Positional.pm \
+  src/core/Associative.pm \
+  src/core/Callable.pm \
   src/core/traits.pm \
   src/core/metaops.pm \
   src/core/operators.pm \
@@ -177,13 +179,12 @@ CORE_SOURCES = \
   src/cheats/trait-export.pm \
   src/cheats/num.pm \
   src/cheats/eval.pm \
-  src/core/Positional.pm \
-  src/core/Associative.pm \
   src/core/Mu.pm \
   src/core/Bool.pm \
   src/core/Parcel.pm \
   src/core/Any.pm \
   src/core/Any-list.pm \
+  src/core/Code.pm \
   src/core/Cool.pm \
   src/core/Cool-num.pm \
   src/core/Cool-str.pm \

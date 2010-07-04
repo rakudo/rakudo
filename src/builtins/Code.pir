@@ -16,8 +16,7 @@ for executable objects.
 .sub 'onload' :anon :load :init
     .local pmc p6meta, codeproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    $P0 = get_hll_global 'Callable'
-    codeproto = p6meta.'new_class'('Code', 'parent'=>'Cool', 'attr'=>'$!do $!multi', 'does_role'=>$P0)
+    codeproto = p6meta.'new_class'('Code', 'parent'=>'Cool', 'attr'=>'$!do $!multi')
     $P1 = new ['Role']
     $P1.'name'('invokable')
     p6meta.'compose_role'(codeproto, $P1)

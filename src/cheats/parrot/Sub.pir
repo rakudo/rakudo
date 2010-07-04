@@ -61,10 +61,21 @@
     llsig = getprop '$!llsig', self
     unless null llsig goto done
     lazysig = getprop '$!lazysig', self
+    if null lazysig goto err_llsig
     llsig = lazysig()
     setprop self, '$!llsig', llsig
   done:
     .return (llsig)
+  err_llsig:
+    $P0 = root_new ['parrot';'ResizableStringArray']
+    push $P0, 'Sub'
+    push $P0, self
+    push $P0, ' (subid "'
+    $S1 = self.'get_subid'()
+    push $P0, $S1
+    push $P0, '") has no $!llsig and no $!lazysig'
+    $S0 = join '', $P0
+    die $S0
 .end
 
 

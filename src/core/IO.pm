@@ -35,7 +35,7 @@ class IO is Cool {
         }
     }
 
-    method open($filename, :$r, :$w, :$a) {
+    multi method open($filename, :$r, :$w, :$a, :$bin) {
         if $!PIO { $!PIO.close; $!PIO = Nil; }
         my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
         $!PIO = $filename eq '-'
@@ -44,7 +44,7 @@ class IO is Cool {
         unless pir::istrue__IP($!PIO) {
             fail("Unable to open file '$filename'");
         }
-        $!PIO.encoding('utf8');
+        $!PIO.encoding($bin ?? 'binary' !! 'utf8');
         self;
     }
 
@@ -108,7 +108,7 @@ multi sub say(Mu *@items) { $*OUT.say(@items); }
 
 sub getc($handle) { $handle.getc(); }
 
-sub open($filename, :$r, :$w, :$a) {
+sub open($filename, :$r, :$w, :$a, :$bin) {
     my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
     my $PIO = pir::open__PSS($filename, $mode);
     unless pir::istrue__IP($PIO) {

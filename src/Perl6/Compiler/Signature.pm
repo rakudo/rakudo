@@ -256,12 +256,13 @@ method ast($low_level?) {
 
         # Fix up nominal type.
         my $nom_type := $null_reg;
-        if $_.pos_slurpy || $_.named_slurpy || $_.invocant {
+        if $_.pos_slurpy || $_.named_slurpy {
             $nom_type := PAST::Var.new( :name('Mu'), :scope('package') );
         }
         elsif $_.sigil eq "$" || $_.sigil eq "" {
             if !$_.nom_type {
-                my @name := Perl6::Grammar::parse_name(self.get_default_parameter_type());
+                my @name := Perl6::Grammar::parse_name(
+                    $_.invocant ?? 'Mu' !! self.get_default_parameter_type());
                 $nom_type := PAST::Var.new(
                     :name(@name.pop()),
                     :namespace(@name),
@@ -272,7 +273,7 @@ method ast($low_level?) {
                 $nom_type := $_.nom_type;
             }
         }
-        elsif $_.sigil ne "" && !$_.invocant {
+        elsif $_.sigil ne "" {
             # May well be a parametric role based type.
             my $role_name;
             if    $_.sigil eq "@" { $role_name := "Positional" }
@@ -325,6 +326,7 @@ method ast($low_level?) {
         my $sub_sig := $null_reg;
         if pir::defined__IP($_.sub_llsig) {
             $sub_sig := PAST::Stmts.new();
+            $_.sub_llsig.set_default_parameter_type(self.get_default_parameter_type);
             $sub_sig.push( $_.sub_llsig.ast(1) );
             $sub_sig.push( PAST::Var.new( :name('signature'), :scope('register') ) );
         }

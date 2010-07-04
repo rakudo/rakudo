@@ -36,7 +36,7 @@ method has_accessor() {
 }
 
 method rw() {
-    $!rw
+    $!rw ?? Bool::True !! Bool::False
 }
 
 method handles() {
@@ -72,13 +72,17 @@ method compose($package) {
         }
 
         # XXX check there isn't already one...
-        my $meth := $!rw ?? pir::find_lex__Ps('accessor_helper_rw') !! pir::find_lex__Ps('accessor_helper_ro');
-        my $meth_name := pir::substr__SSi($name, 2);
+
+        # Decide whether we want an rw one or not.
+        my $is_rw := pir::defined($!rw) ?? $!rw !!
+                     pir::can__ips($package, 'rw') ?? $package.rw !! 0;
+        my $meth := pir::find_lex__ps($is_rw ?? 'accessor_helper_rw' !! 'accessor_helper_ro');
         $meth := pir::clone($meth);
 
         # introspection looks at the actual sub name, so set it
         # to the value the user expects
         # set $P0, $S0  is parrot's clunky PIR API for setting the sub name.
+        my $meth_name := pir::substr__SSi($name, 2);
         pir::set__vps($meth, $meth_name);
         $package.add_method($package, $meth_name, $meth);
     }

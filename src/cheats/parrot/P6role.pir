@@ -116,6 +116,18 @@ Puns the role to a class and returns that class.
 .end
 
 
+=item defined
+
+Role objects serve as type objects and thus should be undefined.
+
+=cut
+
+.sub 'defined' :method
+    $P0 = get_root_global ['perl6';'Bool'], 'False'
+    .return ($P0)
+.end
+
+
 =item perl
 
 =cut

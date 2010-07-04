@@ -23,7 +23,7 @@ class Perl6::Metamodel::RoleToInstanceApplier;
 method apply($target, @composees) {
     # Make anonymous subclass.
     my $*SCOPE := 'anon';
-    my $subclass := $target.HOW.new('');
+    my $subclass := $target.HOW.new();
     $subclass.HOW.add_parent($subclass, $target.WHAT);
 
     # Add all of our given composees to it.

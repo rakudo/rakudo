@@ -3,8 +3,6 @@
 List - Perl 6 List class
 
 This file implements Perl 6 lists.
-(It's temporarily named "List" to avoid conflict with existing
-List classes while we convert to the new list model.)
 
 =head1 DESCRIPTION
 
@@ -312,6 +310,13 @@ List classes while we convert to the new list model.)
     .return (retlist)
 .end
     
+
+.namespace ['List']
+.sub '' :vtable('get_pmc_keyed_int')
+    .param int key
+    .tailcall self.'postcircumfix:<[ ]>'(key)
+.end
+
 
 .namespace []
 .sub '&flat'

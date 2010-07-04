@@ -33,6 +33,14 @@ calls on it.
     .return ($P0)
 .end
 
+.sub 'WHAT' :method
+    .return (self)
+.end
+
+.sub 'defined' :method
+    .return (0)
+.end
+
 
 .namespace ['ClassHOW']
 
@@ -52,7 +60,6 @@ calls on it.
     # Extra attributes for interface consistency and compositiony stuff.
     addattribute $P0, '$!attributes'
     addattribute $P0, '$!hides'
-    addattribute $P0, '$!hidden'
     addattribute $P0, '$!composees'
     addattribute $P0, '$!done'
     addattribute $P0, '$!ver'
@@ -92,12 +99,13 @@ Creates a new instance of the meta-class and returns it in an associated
 =cut
 
 .sub 'new' :method
-    .param pmc name
+    .param pmc name :optional
     .param pmc options :named :slurpy
     .local pmc how, parrotclass, nsarray, ns
 
     # If we have a named and our-scoped class, we want to associate it with a
     # Parrot namespace for langauge inter-op.
+    if null name goto no_parrot_ns_assoc
     if name == '' goto no_parrot_ns_assoc
     $P0 = find_dynamic_lex '$*SCOPE'
     unless $P0 == 'our' goto no_parrot_ns_assoc
@@ -367,39 +375,6 @@ Completes the creation of the metaclass and return a proto-object.
 .end
 
 
-=item rebless
-
-Used to rebless the current class into some subclass of itself.
-
-=cut
-
-.sub 'rebless' :method
-    .param pmc target
-    .param pmc new_class
-
-    # Get and rebless into the underlying Parrot class.
-    .local pmc new_how
-    new_how = new_class.'HOW'()
-    $P0 = new_how.'get_parrotclass'(new_class)
-    rebless_subclass target, $P0
-
-    # Also need to do initialization of the containers for any attributes.
-    .local pmc example, attrs, it, cur_attr, tmp
-    example = new_class.'CREATE'()
-    attrs = getattribute new_how, '$!attributes'
-    it = iter attrs
-  it_loop:
-    unless it goto it_loop_end
-    cur_attr = shift it
-    $S0 = cur_attr.'name'()
-    tmp = getattribute example, $S0
-    setattribute target, $S0, tmp
-    goto it_loop
-  it_loop_end:
-
-    .return (target)
-.end
-
 =item ver(object)
 
 =cut
@@ -501,10 +476,7 @@ Gets a list of this class' parents.
     result_list = root_new ['parrot';'ResizablePMCArray']
 
     # Get the parrot class.
-    parrot_class = self.'get_parrotclass'(obj)
-    unless null parrot_class goto got_parrotclass
     parrot_class = getattribute self, 'parrotclass'
-  got_parrotclass:
 
     # Fake top of Perl 6 hierarchy.
     $S0 = parrot_class.'name'()
@@ -526,6 +498,7 @@ Gets a list of this class' parents.
     $P0 = shift it
 
     # Now loop and build result list.
+    .local pmc meta
   it_loop:
     unless it goto it_loop_end
     parrot_class = shift it
@@ -533,10 +506,10 @@ Gets a list of this class' parents.
     if $I0 goto it_loop
     $S0 = parrot_class.'name'()
     if $S0 == 'P6object' goto done
-    $P0 = getprop 'metaclass', parrot_class
-    $P0 = $P0.'WHAT'()
+    meta = getprop 'metaclass', parrot_class
+    $P0 = getattribute meta, 'protoobject'
     if null tree goto push_this
-    $P1 = self.'parents'($P0, 'tree'=>tree)
+    $P1 = meta.'parents'($P0, 'tree'=>tree)
     unshift $P1, $P0
     $P0 = '&circumfix:<[ ]>'($P1)
   push_this:
@@ -657,9 +630,8 @@ Gets a list of methods.
     cur_parent = shift it
     $I0 = isa cur_parent, 'PMCProxy'
     if $I0 goto parent_it_loop
-    cur_parent = getprop 'metaclass', cur_parent
-    cur_parent = cur_parent.'WHAT'()
-    cur_parent_meta = cur_parent.'HOW'()
+    cur_parent_meta = getprop 'metaclass', cur_parent
+    cur_parent = getattribute cur_parent_meta, 'protoobject'
     parent_methods = cur_parent_meta.'methods'(cur_parent, adverbs :flat :named)
     if null tree goto not_tree
     unless tree goto not_tree
@@ -751,24 +723,6 @@ Gets a list of roles done by the class of this object.
 .end
 
 
-=item WHAT
-
-Overridden since WHAT inherited from P6metaclass doesn't quite work out.
-Also we want to wrap it up to make it always a scalar (otherwise List
-will try to flatten etc).
-
-=cut
-
-.sub 'WHAT' :method
-    $P0 = getattribute self, 'protoobject'
-    unless null $P0 goto done
-    $P0 = self.'HOW'()
-    $P0 = $P0.'WHAT'()
-  done:
-    .return ($P0)
-.end
-
-
 =item hides
 
 Accessor for hides property.
@@ -776,29 +730,11 @@ Accessor for hides property.
 =cut
 
 .sub 'hides' :method
-    .local pmc obj
+    .param pmc obj
     $P0 = getattribute self, '$!hides'
     unless null $P0 goto done
     $P0 = new 'Array'
     setattribute self, '$!hides', $P0
-  done:
-    .return ($P0)
-.end
-
-
-=item hidden
-
-Accessor for hidden property.
-
-=cut
-
-.sub 'hidden' :method
-    .local pmc obj
-    $P0 = getattribute self, '$!hidden'
-    unless null $P0 goto done
-    $P0 = get_hll_global ['Bool'], 'False'
-    $P0 = new ['Perl6Scalar'], $P0
-    setattribute self, '$!hidden', $P0
   done:
     .return ($P0)
 .end

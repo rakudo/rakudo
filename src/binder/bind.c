@@ -438,6 +438,10 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
     /* Did the value already get initialized to something? (We can avoid re-creating a
      * PMC if so.) */
     else if (!PMC_IS_NULL(cur_lex = VTABLE_get_pmc_keyed_str(interp, lexpad, sig_info->variable_name))) {
+        /* Yes; if $ sigil then we want to bind set value in it to be the
+         * type object of the default type. */
+        if (!(sig_info->flags & (SIG_ELEM_ARRAY_SIGIL | SIG_ELEM_HASH_SIGIL)))
+            VTABLE_set_pmc(interp, cur_lex, sig_info->nominal_type);
         return cur_lex;
     }
 
@@ -450,7 +454,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
             return Rakudo_binding_create_hash(interp, pmc_new(interp, enum_class_Hash));
         }
         else {
-            return pmc_new(interp, pmc_type(interp, string_from_literal(interp, "Perl6Scalar")));
+            return pmc_new_init(interp, pmc_type(interp, string_from_literal(interp, "Perl6Scalar")), sig_info->nominal_type);
         }
     }
 }

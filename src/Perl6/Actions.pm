@@ -1231,7 +1231,7 @@ method method_def($/) {
                           0;
         
         # Create code object using a reference to $past.
-        my $code := create_code_object(PAST::Val.new(:value($past)), $*METHODTYPE, $multi_flag);
+        my $code := block_code($past, $*METHODTYPE, $multi_flag);
 
         # Get hold of the correct table to install it in, and install.
         our @PACKAGE;

@@ -2704,15 +2704,7 @@ sub add_signature($block, $sig_obj, $lazy) {
     # make signature setup block
     my $lazysig := PAST::Block.new(:blocktype<declaration>, $sig_obj.ast(1));
     $block[0].push($lazysig);
-    $block<lazysig> := $lazysig;
-    # add to unit or block initialization depending on $lazy flag
-    ($lazy ?? $*UNITPAST !! $block).loadinit.push(
-        PAST::Op.new( :pirop<setprop__vPsP>,
-            PAST::Val.new(:value($block)),
-            '$!lazysig',
-            PAST::Val.new(:value($lazysig))
-        )
-    );
+    $block<lazysig> := PAST::Val.new( :value($lazysig) );
 }
 
 # Makes a lazy signature building block.
@@ -2766,8 +2758,7 @@ sub block_code($block, $type = 'Block', $multiness?) {
         PAST::Val.new( :value($block) ),
         PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
     );
-    $past.push(PAST::Val.new(:value($block<lazysig>))) 
-        if pir::defined($block<lazysig>);
+    $past.push($block<lazysig>) if pir::defined($block<lazysig>);
     $past.push($multiness) if $multiness;
     $past<block_past> := $block;
     $past<block_type> := $type;
@@ -2784,8 +2775,7 @@ sub block_closure($block, $type = 'Block', $multiness?) {
         $block,
         PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
     );
-    $past.push(PAST::Val.new(:value($block<lazysig>))) 
-        if pir::defined($block<lazysig>);
+    $past.push($block<lazysig>) if pir::defined($block<lazysig>);
     $past.push($multiness) if pir::defined($multiness);
     $past<block_past> := $block;
     $past<block_type> := $type;
@@ -2802,6 +2792,7 @@ sub create_code_object($block, $type, $multiness) {
         $block,
         $multiness
     );
+    $past.push($block<lazysig>) if pir::defined($block<lazysig>);
     $past<past_block> := $block;
     $past<block_class> := $type;
     $past

@@ -142,7 +142,7 @@ method finish($block) {
             PAST::Op.new(
                 :pasttype('callmethod'), :name('!add_variant'),
                 PAST::Var.new( :name('master_role'), :scope('register') ),
-                Perl6::Actions::create_code_object(PAST::Val.new( :value($block) ), 'Sub', 1)
+                Perl6::Actions::block_code($block, 'Sub', 1)
             )
         );
         

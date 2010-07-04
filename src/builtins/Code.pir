@@ -31,9 +31,9 @@ for executable objects.
 .sub 'new' :method
     .param pmc do
     .param pmc multi
+    .param pmc lazysig         :optional
 
-    null $P0
-    .tailcall do.'!get_closure'(self, $P0, multi)
+    .tailcall do.'!get_closure'(self, lazysig, multi)
 .end
 
 

@@ -138,11 +138,15 @@ method statementlist($/) {
         for $<statement> {
             my $ast := $_.ast;
             if $ast {
-                if $ast.isa(PAST::Block) && !$ast.blocktype {
-                    $ast := block_immediate($ast);
+                if $ast<bareblock> {
+                    $ast := PAST::Op.new(
+                                :pirop<setprop__0PsP>,
+                                block_immediate($ast<block_past>),
+                                '$!lazysig',
+                                $ast[2]);
                 }
-                elsif $ast<past_block> && !$ast<past_block>.blocktype {
-                    $ast := block_immediate($ast<past_block>);
+                elsif $ast.isa(PAST::Block) && !$ast.blocktype {
+                    $ast := block_immediate($ast);
                 }
                 $past.push( $ast );
             }
@@ -2103,7 +2107,8 @@ method circumfix:sym<{ }>($/) {
         }
     }
     else {
-        $past := create_code_object($past, 'Block', 0);
+        $past := block_closure($past, 'Block', 0);
+        $past<bareblock> := 1;
     }
     make $past;
 }

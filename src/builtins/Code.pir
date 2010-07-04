@@ -31,35 +31,9 @@ for executable objects.
 .sub 'new' :method
     .param pmc do
     .param pmc multi
-    .local pmc obj
-    $P0 = self.'HOW'()
-    $P0 = getattribute $P0, 'parrotclass'
-    obj = new $P0
-    transform_to_p6opaque obj
-    setprop do, '$!p6code', obj
 
-    $P0 = prophash do
-    do = clone do
-    x_setprophash do, $P0
-    setattribute obj, '$!do', do
-    setattribute obj, '$!multi', multi
-    setprop do, '$!multi', multi
-    if multi != 2 goto proto_done
-    $P1 = box 1
-    setprop obj, 'proto', $P1
-  proto_done:
-    .return (obj)
-.end
-
-
-=item clone(do)
-
-=cut
-
-.sub 'clone' :method
-    $P0 = getattribute self, '$!do'
-    $P1 = getattribute self, '$!multi'
-    .tailcall self.'new'($P0, $P1)
+    null $P0
+    .tailcall do.'!get_closure'(self, $P0, multi)
 .end
 
 

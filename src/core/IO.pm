@@ -165,4 +165,27 @@ multi sub note(*@args) {
     $*ERR.say(@args);
 }
 
+multi sub dir($path as Str) {
+    Q:PIR {
+        $P0 = find_lex '$path'
+        $P1 = new ['OS']
+        $P1 = $P1.'readdir'($P0)
+        %r = '&infix:<,>'($P1 :flat)
+    }
+}
+
+multi sub chdir($path as Str) {
+    try {
+        pir::new__PS('OS').chdir($path)
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub mkdir($path as Str, $mode = 0) {
+    try {
+        pir::new__PS('OS').mkdir($path, $mode)
+    }
+    $! ?? fail($!) !! True
+}
+
 # vim: ft=perl6

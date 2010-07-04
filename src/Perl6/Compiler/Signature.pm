@@ -326,6 +326,7 @@ method ast($low_level?) {
         my $sub_sig := $null_reg;
         if pir::defined__IP($_.sub_signature) {
             $sub_sig := PAST::Stmts.new();
+            $_.sub_signature.set_default_parameter_type(self.get_default_parameter_type);
             $sub_sig.push( $_.sub_signature.ast(1) );
             $sub_sig.push( PAST::Var.new( :name('signature'), :scope('register') ) );
         }

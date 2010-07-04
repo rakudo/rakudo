@@ -282,7 +282,7 @@ S05-mass/properties-block.t                                # icu
 S05-mass/properties-derived.t                              # icu
 S05-mass/properties-general.t                              # icu
 S05-mass/properties-script.t                               # icu
-S05-mass/rx.t
+S05-mass/rx.t                                              # long
 S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
@@ -578,16 +578,16 @@ S32-temporal/Date.t
 S32-temporal/DateTime.t
 S32-trig/e.t
 # S32-trig/pi.t
-S32-trig/sin.t
-S32-trig/cos.t
-S32-trig/tan.t
-S32-trig/sec.t
-S32-trig/cosec.t
-S32-trig/cotan.t
-S32-trig/atan2.t
-S32-trig/sinh.t
-S32-trig/cosh.t
-S32-trig/tanh.t
-S32-trig/sech.t
-S32-trig/cosech.t
-S32-trig/cotanh.t
+S32-trig/sin.t                                             # long
+S32-trig/cos.t                                             # long
+S32-trig/tan.t                                             # long
+S32-trig/sec.t                                             # long
+S32-trig/cosec.t                                           # long
+S32-trig/cotan.t                                           # long
+S32-trig/atan2.t                                           # long
+S32-trig/sinh.t                                            # long
+S32-trig/cosh.t                                            # long
+S32-trig/tanh.t                                            # long
+S32-trig/sech.t                                            # long
+S32-trig/cosech.t                                          # long
+S32-trig/cotanh.t                                          # long

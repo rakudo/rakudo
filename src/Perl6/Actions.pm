@@ -20,7 +20,7 @@ INIT {
 }
 
 sub xblock_immediate($xblock) {
-    $xblock[1] := block_immediate($xblock[1]);
+    $xblock[1] := pblock_immediate($xblock[1]);
     $xblock;
 }
 
@@ -241,6 +241,13 @@ method pblock($/) {
         $signature.set_rw_by_default();
     }
     add_signature($block, $signature, 0);
+    # We ought to find a way to avoid this, but it seems necessary for now.
+    $block.loadinit.push(
+        PAST::Op.new( :pirop<setprop__vPsP>,
+            PAST::Val.new( :value($block) ),
+            '$!lazysig',
+            $block<lazysig> )
+    );
     make $block;
 }
 

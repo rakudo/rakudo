@@ -140,7 +140,7 @@ method finish($block) {
             PAST::Op.new(
                 :pasttype('callmethod'), :name('!add_variant'),
                 PAST::Var.new( :name('master_role'), :scope('register') ),
-                Perl6::Actions::block_code($block, 'Sub', 1)
+                Perl6::Actions::block_closure(Perl6::Actions::blockref($block), 'Sub', 1)
             )
         );
         
@@ -190,7 +190,7 @@ method finish($block) {
             ),
             PAST::Op.new( :pasttype('callmethod'), :name('!add_variant'),
                 PAST::Var.new( :name('tmp_role'), :scope('register') ),
-                Perl6::Actions::create_code_object($block, 'Sub', 1)
+                Perl6::Actions::block_closure($block, 'Sub', 1)
             ),
             PAST::Var.new( :name('tmp_role'), :scope('register') )
         );

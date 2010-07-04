@@ -36,13 +36,14 @@ for executable objects.
     $P0 = getattribute $P0, 'parrotclass'
     obj = new $P0
     transform_to_p6opaque obj
-    setprop do, '$!p6type', obj
+    setprop do, '$!p6code', obj
 
     $P0 = prophash do
     do = clone do
     x_setprophash do, $P0
     setattribute obj, '$!do', do
     setattribute obj, '$!multi', multi
+    setprop do, '$!multi', multi
     if multi != 2 goto proto_done
     $P1 = box 1
     setprop obj, 'proto', $P1
@@ -112,21 +113,16 @@ Just calls this block with the supplied parameters.
 =cut
 
 .sub 'multi' :method
-    push_eh parrot_sub
-    $P0 = getattribute self, '$!multi'
-    pop_eh
-    if $P0 goto is_multi
-  not_multi:
-    $P1 = get_hll_global ['Bool'], 'False'
-    .return ($P1)
+    $P0 = getattribute self, '$!do'
+    $P0 = getprop '$!multi', $P0
+    if null $P0 goto not_multi
+    unless $P0 goto not_multi
   is_multi:
     $P1 = get_hll_global ['Bool'], 'True'
     .return ($P1)
-  parrot_sub:
-    pop_eh
-    $I0 = isa self, 'MultiSub'
-    if $I0 goto is_multi
-    goto not_multi
+  not_multi:
+    $P1 = get_hll_global ['Bool'], 'False'
+    .return ($P1)
 .end
 
 

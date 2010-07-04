@@ -40,10 +40,10 @@ method backtrace_for($exception) {
             }
 
             # If we're not in an intermediate block, then we've hit some sub
-            # should emit annotations here. We go on not having a p6type but
+            # should emit annotations here. We go on not having a p6code but
             # also checking for some built-in ops can be handy and give more
             # informative line numbers.
-            if !pir::isnull(pir::getprop__psp('$!p6type', $_<sub>))
+            if !pir::isnull(pir::getprop__psp('$!p6code', $_<sub>))
                     || pir::substr(~$_<sub>, 0, 6) eq '&infix' {
                 $trace := $trace ~ self.backtrace_line($_<sub>, $cur_annotations);
                 $cur_annotations := 0;

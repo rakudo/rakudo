@@ -1,6 +1,59 @@
 .HLL 'parrot'
 
 .namespace ['Sub']
+.sub '!get_code' :method
+    .param pmc codetype
+    .param pmc lazysig         :optional
+    .param pmc multi           :optional
+
+    .local pmc code
+    code = getprop '$!p6code', self
+    unless null code goto code_done
+    $P0 = codetype.'HOW'()
+    $P0 = getattribute $P0, 'parrotclass'
+    code = new $P0
+    setattribute code, '$!do', self
+    setprop self, '$!p6code', code
+    if null lazysig goto lazysig_done
+    setprop self, '$!lazysig', lazysig
+  lazysig_done:
+    if null multi goto multi_done
+    setprop self, '$!multi', multi
+    setattribute code, '$!multi', multi
+    if multi != 2 goto multi_done
+    $P0 = box 1
+    setprop code, 'proto', $P0
+  multi_done:
+  code_done:
+    .return (code)
+.end
+
+.namespace ['Sub']
+.sub '!get_closure' :method
+    .param pmc codetype
+    .param pmc lazysig         :optional
+    .param pmc multi           :optional
+
+    .local pmc code
+    code = getprop '$!p6code', self
+    unless null code goto code_done
+    code = self.'!get_code'(codetype, lazysig, multi)
+  code_done:
+    .local pmc closure, do
+    $P0 = typeof code
+    closure = new $P0
+    do = clone self
+    $P0 = prophash self
+    x_setprophash do, $P0
+    setattribute closure, '$!do', do
+    $P0 = getattribute code, '$!multi'
+    setattribute closure, '$!multi', $P0
+    $P0 = getprop 'proto', code
+    setprop closure, 'proto', $P0
+    .return (closure)
+.end
+
+.namespace ['Sub']
 .sub '!llsig' :method
     .local pmc llsig, lazysig
     llsig = getprop '$!llsig', self
@@ -13,6 +66,7 @@
 .end
 
 
+.namespace ['Sub']
 .sub '!signature' :method
     .local pmc llsig, signature
     signature = getprop '$!signature', self

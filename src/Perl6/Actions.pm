@@ -1093,7 +1093,7 @@ method routine_def($/) {
 
         # Create a code object for use in the block
         my $multiflag := $*MULTINESS eq 'proto' ?? 2 !! $*MULTINESS eq 'multi';
-        my $code := create_code_object($block, 'Sub', $multiflag);
+        my $code := block_closure($block, 'Sub', $multiflag);
         # Bind the code object to a unique register
         $code := PAST::Var.new( :name($block.unique('code_')), :viviself($code),
                                 :scope<register>, :isdecl(1) );
@@ -1141,7 +1141,7 @@ method routine_def($/) {
 
         # If it's package scoped, we also need a separate compile-time binding into the package
         if $*SCOPE eq 'our' {
-            my $code := create_code_object(PAST::Val.new( :value($block) ), 'Sub', $multiflag);
+            my $code := block_code($block, 'Sub', $multiflag);
             $symbol := @PACKAGE[0].block.symbol($name);
             if $multiflag || $symbol<pkgproto> {
                 # If this is a proto, stash that information.
@@ -1175,7 +1175,7 @@ method routine_def($/) {
     }
     else {
         # Just wrap in a Sub.
-        $past := create_code_object($block, 'Sub', 0);
+        $past := block_closure($block, 'Sub', 0);
     }
     make $past;
 }
@@ -2698,6 +2698,7 @@ sub add_signature($block, $sig_obj, $lazy) {
     # make signature setup block
     my $lazysig := PAST::Block.new(:blocktype<declaration>, $sig_obj.ast(1));
     $block[0].push($lazysig);
+    $block<lazysig> := $lazysig;
     # add to unit or block initialization depending on $lazy flag
     ($lazy ?? $*UNITPAST !! $block).loadinit.push(
         PAST::Op.new( :pirop<setprop__vPsP>,
@@ -2746,6 +2747,43 @@ sub get_nearest_signature() {
         }
     }
     Perl6::Compiler::Signature.new()
+}
+
+# Returns the (static) code object for a block.
+# Note that it never holds the block directly -- it's always
+# obtained by reference.
+sub block_code($block, $type = 'Block', $multiness?) {
+    my @name := Perl6::Grammar::parse_name($type);
+    my $past := PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('!get_code'),
+        PAST::Val.new( :value($block) ),
+        PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
+    );
+    $past.push(PAST::Val.new(:value($block<lazysig>))) 
+        if pir::defined($block<lazysig>);
+    $past.push($multiness) if $multiness;
+    $past<block_past> := $block;
+    $past<block_type> := $type;
+    $past;
+}
+
+# Returns the (dynamic) closure for a block.  Unlike
+# block_code above, this *does* hold the block directly.
+sub block_closure($block, $type = 'Block', $multiness?) {
+    my @name := Perl6::Grammar::parse_name($type);
+    my $past := PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('!get_closure'),
+        $block,
+        PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
+    );
+    $past.push(PAST::Val.new(:value($block<lazysig>))) 
+        if pir::defined($block<lazysig>);
+    $past.push($multiness) if pir::defined($multiness);
+    $past<block_past> := $block;
+    $past<block_type> := $type;
+    $past;
 }
 
 # Wraps a sub up in a block type.
@@ -2801,11 +2839,11 @@ sub has_compiler_trait_with_val($trait_list, $name, $value) {
 
 # Emits routine traits into the loadinit for the routine.
 sub emit_routine_traits($routine, @trait_list, $type) {
-    $routine.loadinit.push(PAST::Op.new(
-        :pasttype('bind'),
-        PAST::Var.new( :name('trait_subject'), :scope('register'), :isdecl(1) ),
-        create_code_object(PAST::Var.new( :name('block'), :scope('register') ), $type, $*MULTINESS eq 'multi')
-    ));
+    $routine.loadinit.push(
+        PAST::Var.new( 
+            :name('trait_subject'), :scope('register'), :isdecl(1),
+            :viviself(block_code($routine, $type, $*MULTINESS eq 'multi') ) )
+    );
     for @trait_list {
         my $ast := $_.ast;
         $ast.unshift(PAST::Var.new( :name('trait_subject'), :scope('register') ));

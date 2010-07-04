@@ -231,6 +231,18 @@ just here so postcircumfix:[ ] doesn't explode).
 .end
 
 
+=item defined
+
+Role objects serve as type objects and thus should be undefined.
+
+=cut
+
+.sub 'defined' :method
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
+.end
+
+
 =item HOW
 
 =cut

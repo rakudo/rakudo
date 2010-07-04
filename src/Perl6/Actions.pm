@@ -1436,7 +1436,7 @@ method regex_def($/, $key?) {
 
         # Create code object and install it provided it has a name.
         if ($name) {
-            my $code := create_code_object(PAST::Val.new(:value($past)), 'Regex', 0);
+            my $code := block_closure(blockref($past), 'Regex', 0);
             our @PACKAGE;
             unless +@PACKAGE {
                 $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
@@ -1446,7 +1446,7 @@ method regex_def($/, $key?) {
             install_method($/, $code, $name, %table);
         }
         else {
-            $past := create_code_object($past, 'Regex', 0);
+            $past := block_closure($past, 'Regex', 0);
         }
     }
     make $past;

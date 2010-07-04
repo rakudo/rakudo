@@ -68,11 +68,7 @@ method finish($block) {
             :pasttype('callmethod'),
             :name('add_method'),
             $meta_reg, $obj_reg, ~$_, 
-            PAST::Op.new(
-                :pasttype('callmethod'),
-                :name('clone'),
-                %methods{~$_}<code_ref>
-            )
+            %methods{~$_}<code_ref>
         ));
     }
 

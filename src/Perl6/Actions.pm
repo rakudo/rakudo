@@ -1238,7 +1238,7 @@ method method_def($/) {
                           0;
         
         # Create code object using a reference to $past.
-        my $code := block_code($past, $*METHODTYPE, $multi_flag);
+        my $code := block_closure(blockref($past), $*METHODTYPE, $multi_flag);
 
         # Get hold of the correct table to install it in, and install.
         our @PACKAGE;
@@ -1256,7 +1256,7 @@ method method_def($/) {
         $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
-        $past := create_code_object($past, $*METHODTYPE, 0);
+        $past := block_closure($past, $*METHODTYPE, 0);
     }
 
     make $past;
@@ -2750,6 +2750,14 @@ sub get_nearest_signature() {
         }
     }
     Perl6::Compiler::Signature.new()
+}
+
+
+sub blockref($block) {
+    my $ref := PAST::Val.new( :value($block) );
+    $ref<block_past> := $block;
+    $ref<lazysig>    := $block<lazysig>;
+    $ref;
 }
 
 # Returns the (static) code object for a block.

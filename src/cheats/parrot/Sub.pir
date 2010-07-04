@@ -12,6 +12,7 @@
     $P0 = codetype.'HOW'()
     $P0 = getattribute $P0, 'parrotclass'
     code = new $P0
+    transform_to_p6opaque code
     setattribute code, '$!do', self
     setprop self, '$!p6code', code
     if null lazysig goto lazysig_done
@@ -42,6 +43,7 @@
     .local pmc closure, do
     $P0 = typeof code
     closure = new $P0
+    transform_to_p6opaque closure
     do = clone self
     $P0 = prophash self
     x_setprophash do, $P0

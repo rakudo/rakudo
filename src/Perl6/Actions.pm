@@ -24,6 +24,10 @@ sub xblock_immediate($xblock) {
     $xblock;
 }
 
+sub pblock_immediate($pblock) {
+    block_immediate($pblock);
+}
+
 sub block_immediate($block) {
     $block.blocktype('immediate');
     $block;
@@ -295,7 +299,7 @@ method statement_control:sym<if>($/) {
     my $count := +$<xblock> - 1;
     my $past := xblock_immediate( $<xblock>[$count].ast );
     if $<else> {
-        $past.push( block_immediate( $<else>[0].ast ) );
+        $past.push( pblock_immediate( $<else>[0].ast ) );
     }
     # build if/then/elsif structure
     while $count > 0 {
@@ -327,7 +331,7 @@ method statement_control:sym<repeat>($/) {
         $past.pasttype($pasttype);
     }
     else {
-        $past := PAST::Op.new( $<EXPR>.ast, block_immediate( $<pblock>.ast ),
+        $past := PAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
                                :pasttype($pasttype), :node($/) );
     }
     make $past;
@@ -342,8 +346,7 @@ method statement_control:sym<for>($/) {
 }
 
 method statement_control:sym<loop>($/) {
-    my $block := $<block>.ast;
-    $block.blocktype('immediate');
+    my $block := block_immediate($<block>.ast);
     my $cond := $<e2> ?? $<e2>[0].ast !! 1;
     my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
     if $<e3> {
@@ -458,12 +461,12 @@ method statement_control:sym<when>($/) {
     # Get hold of the smartmatch expression and the block.
     my $xblock := $<xblock>.ast;
     my $sm_exp := $xblock.shift;
-    my $block  := $xblock.shift;
+    my $pblock := $xblock.shift;
 
     # Add exception handler to the block so we fall out of the enclosing block
     # after it's executed.
-    $block.blocktype('immediate');
-    when_handler_helper($block);
+    $pblock := pblock_immediate($pblock);
+    when_handler_helper($pblock);
 
     # Handle the smart-match. XXX Need to handle syntactic cases too.
     my $match_past := PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
@@ -473,15 +476,14 @@ method statement_control:sym<when>($/) {
 
     # Use the smartmatch result as the condition for running the block.
     make PAST::Op.new( :pasttype('if'), :node( $/ ),
-        $match_past, $block,
+        $match_past, $pblock,
     );
 }
 
 method statement_control:sym<default>($/) {
     # We always execute this, so just need the block, however we also
     # want to make sure we break after running it.
-    my $block := $<block>.ast;
-    $block.blocktype('immediate');
+    my $block := block_immediate($<block>.ast);
     when_handler_helper($block);
     make $block;
 }
@@ -2648,8 +2650,7 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
     }
 
     method codeblock($/) {
-        my $block := $<block>.ast;
-        $block.blocktype('immediate');
+        my $block := block_immediate($<block>.ast);
         my $past := 
             PAST::Stmts.new(
                 PAST::Op.new(

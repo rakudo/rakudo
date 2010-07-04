@@ -256,12 +256,13 @@ method ast($low_level?) {
 
         # Fix up nominal type.
         my $nom_type := $null_reg;
-        if $_.pos_slurpy || $_.named_slurpy || $_.invocant {
+        if $_.pos_slurpy || $_.named_slurpy {
             $nom_type := PAST::Var.new( :name('Mu'), :scope('package') );
         }
         elsif $_.sigil eq "$" || $_.sigil eq "" {
             if !$_.nom_type {
-                my @name := Perl6::Grammar::parse_name(self.get_default_parameter_type());
+                my @name := Perl6::Grammar::parse_name(
+                    $_.invocant ?? 'Mu' !! self.get_default_parameter_type());
                 $nom_type := PAST::Var.new(
                     :name(@name.pop()),
                     :namespace(@name),
@@ -272,7 +273,7 @@ method ast($low_level?) {
                 $nom_type := $_.nom_type;
             }
         }
-        elsif $_.sigil ne "" && !$_.invocant {
+        elsif $_.sigil ne "" {
             # May well be a parametric role based type.
             my $role_name;
             if    $_.sigil eq "@" { $role_name := "Positional" }

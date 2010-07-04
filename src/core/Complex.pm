@@ -34,7 +34,7 @@ class Complex does Numeric is Cool {
         ($x.re * $x.re + $x.im * $x.im).sqrt
     }
 
-    multi method exp() {
+    multi method exp(Complex $exponent:) {
         Complex.new($.re.Num.exp * $.im.Num.cos, $.re.Num.exp * $.im.Num.sin);
     }
 

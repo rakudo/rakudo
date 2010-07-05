@@ -298,6 +298,10 @@ augment class Any {
         self.at_pos($pos)
     }
 
+    method at_pos($x) {
+        fail "subscript $x out of range for {self.WHAT}" if $x != 0;
+        self;
+    }
 }
 
 proto sub classify($matcher, *@values) { @values.classify($matcher) }

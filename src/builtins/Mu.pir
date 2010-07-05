@@ -48,8 +48,8 @@ like this.
 
     # Make a clone.
     .local pmc result
-    self = deobjectref self
-    result = clone self
+    $P0 = descalarref self
+    result = clone $P0
 
     # Set any new attributes.
     .local pmc p6meta, parrotclass, attributes, it

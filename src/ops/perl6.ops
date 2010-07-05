@@ -22,6 +22,8 @@ BEGIN_OPS_PREAMBLE
 static INTVAL p6s_id = 0;
 static INTVAL or_id  = 0;
 static INTVAL lls_id = 0;
+static INTVAL obj_id = 0;
+static INTVAL p6o_id = 0;
 
 /* Plus a function pointer to the binder. */
 typedef INTVAL (*bind_llsig_func_type) (PARROT_INTERP, PMC *lexpad,
@@ -45,6 +47,8 @@ inline op rakudo_dynop_setup() :base_core {
     p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
     or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
     lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
+    p6o_id = pmc_type(interp, string_from_literal(interp, "P6opaque"));
+    obj_id = enum_class_Object;
 
     /* Create dummy low level sig op and use its get_pointer to get a pointer
      * to the signature binder. */
@@ -66,7 +70,6 @@ an instance of class $2, where $2 is a subclass of the class of $1.
 */
 inline op rebless_subclass(in PMC, in PMC) :base_core {
     PMC *value;
-    INTVAL p6opaque = pmc_type(interp, string_from_literal(interp, "P6opaque"));
     PMC * const current_class = VTABLE_get_class(interp, $1);
     PMC * parent_list;
     int num_parents;
@@ -144,9 +147,9 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
                 i, pmc_new(interp, enum_class_Undef));
 
         /* And make sure the new object is of the right type. */
-        new_ins->vtable = interp->vtables[p6opaque];
+        new_ins->vtable = interp->vtables[p6o_id];
     }
-    else if ((value->vtable->base_type != enum_class_Object && value->vtable->base_type != p6opaque)
+    else if ((value->vtable->base_type != enum_class_Object && value->vtable->base_type != p6o_id)
             || current_class->vtable->base_type != enum_class_Class) {
         /* If we're here, we found a really odd state - the class claims to be
          * a standard Parrot one but the object it supposedly created is not.
@@ -348,8 +351,7 @@ kinda direction.)
 inline op transform_to_p6opaque(inout PMC) :base_core {
     /* Sanity check. */
     if ($1->vtable->base_type == enum_class_Object) {
-        INTVAL type_id = pmc_type(interp, string_from_literal(interp, "P6opaque"));
-        $1->vtable = interp->vtables[type_id];
+        $1->vtable = interp->vtables[p6o_id];
         goto NEXT();
     }
     else {
@@ -397,6 +399,27 @@ inline op descalarref(out PMC, in PMC) :base_core {
     while (ref->vtable->base_type == or_id || ref->vtable->base_type == p6s_id)
         ref = VTABLE_get_pmc(interp, ref);
     $1 = ref;
+    goto NEXT();
+}
+
+
+/*
+
+=item deref_unless_object(out PMC, in PMC)
+
+If the value underlying $2 is anything but an Object or P6opaque,
+return that value; otherwise return $2.
+
+=cut
+
+*/
+inline op deref_unless_object(out PMC, in PMC) :base_core {
+    PMC * val;
+    val = $2;
+    while (val->vtable->base_type == or_id || val->vtable->base_type == p6s_id)
+        val = VTABLE_get_pmc(interp, val);
+    $1 = (val->vtable->base_type == obj_id || val->vtable->base_type == p6o_id)
+         ? $2 : val;
     goto NEXT();
 }
 

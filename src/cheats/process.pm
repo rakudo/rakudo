@@ -7,9 +7,22 @@ package PROCESS {
         our $ERR = IO.new(:PIO(pir::getstderr__P));
 
         our $PERL = {
-            name    => 'Rakudo',
+            name    => 'rakudo',
             version => Q:PIR { %r = box .RAKUDO_VERSION }
         };
+
+        our $VM = {
+            name    => 'parrot',
+            config  => 
+                Q:PIR { 
+                    .local pmc interp, config
+                    .include 'iglobals.pasm'
+                    load_bytecode 'config.pbc'
+                    interp = getinterp
+                    config = interp[.IGLOBALS_CONFIG_HASH]
+                    %r = '&hash'(config :flat)
+                }
+        }
 
         Q:PIR {
             ##  set up $*OS, $*OSVER $*EXECUTABLE_NAME

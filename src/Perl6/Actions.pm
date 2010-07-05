@@ -53,10 +53,16 @@ method comp_unit($/, $key?) {
         $*UNITPAST := @BLOCK[0];
         return 1;
     }
+    our $?RAKUDO_HLL;
     
-    # Create the block for the mainline code.
+    # Get the block for the mainline code.
     my $mainline := @BLOCK.shift;
     $mainline.push($<statementlist>.ast);
+
+    # Get the block for the entire compilation unit.
+    my $unit := @BLOCK.shift;
+    $unit.node($/);
+    $unit.hll($?RAKUDO_HLL);
     
     # If it's the setting, just need to run the mainline.
     if $*SETTING_MODE {
@@ -80,9 +86,6 @@ method comp_unit($/, $key?) {
         );
     }
 
-    # Create a block for the entire compilation unit.
-    our $?RAKUDO_HLL;
-    my $unit := PAST::Block.new( :node($/), :hll($?RAKUDO_HLL) );
 
     # Executing the compilation unit causes the mainline to be executed.
     # We force a tailcall here, because we have other :load/:init blocks
@@ -130,6 +133,10 @@ method comp_unit($/, $key?) {
     @PACKAGE.shift;
 
     make $unit;
+}
+
+method unitstart($/) {
+    self.newpad($/);
 }
 
 method statementlist($/) {
@@ -2183,7 +2190,7 @@ method prefixish($/) {
         my $opsub := '&prefix:<' ~ $<OPER>.Str ~ '<<>';
         unless %*METAOPGEN{$opsub} {
             my $base_op := '&prefix:<' ~ $<OPER>.Str ~ '>';
-            get_outermost_block().loadinit.push(PAST::Op.new(
+            $*UNITPAST.loadinit.push(PAST::Op.new(
                 :pasttype('bind'),
                 PAST::Var.new( :name($opsub), :scope('package') ),
                 PAST::Op.new(
@@ -2203,7 +2210,7 @@ method infixish($/) {
         my $sym := ~$<infix><sym>;
         my $opsub := "&infix:<$sym=>";
         unless %*METAOPGEN{$opsub} {
-            get_outermost_block().loadinit.push(
+            $*UNITPAST.loadinit.push(
                 PAST::Op.new( :name('!gen_assign_metaop'), $sym,
                               :pasttype('call') )
             );
@@ -2234,7 +2241,7 @@ method infixish($/) {
                 $helper := '&zipwith';
             }
 
-            get_outermost_block().loadinit.push(
+            $*UNITPAST.loadinit.push(
                 PAST::Op.new( :pasttype('bind'),
                               PAST::Var.new( :name($opsub), :scope('package') ),
                               PAST::Op.new( :pasttype('callmethod'),
@@ -2258,7 +2265,7 @@ method prefix_circumfix_meta_operator:sym<reduce>($/) {
     my $opsub := '&prefix:<' ~ ~$/ ~ '>';
     unless %*METAOPGEN{$opsub} {
         my $base_op := '&infix:<' ~ $<op><OPER>.Str ~ '>';
-        get_outermost_block().loadinit.push(PAST::Op.new(
+        $*UNITPAST.loadinit.push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new( :name($opsub), :scope('package') ),
             PAST::Op.new(
@@ -2289,7 +2296,7 @@ sub make_hyperop($/) {
         my $base_op := '&infix:<' ~ $<infixish><OPER>.Str ~ '>';
         my $dwim_lhs := $<opening> eq '<<' || $<opening> eq '«';
         my $dwim_rhs := $<closing> eq '>>' || $<closing> eq '»';
-        get_outermost_block().loadinit.push(PAST::Op.new(
+        $*UNITPAST.loadinit.push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new( :name($opsub), :scope('package') ),
             PAST::Op.new(
@@ -2322,7 +2329,7 @@ method postfixish($/) {
             my $opsub := '&postfix:<>>' ~ $<OPER>.Str ~ '>';
             unless %*METAOPGEN{$opsub} {
                 my $base_op := '&postfix:<' ~ $<OPER>.Str ~ '>';
-                get_outermost_block().loadinit.push(PAST::Op.new(
+                $*UNITPAST.loadinit.push(PAST::Op.new(
                     :pasttype('bind'),
                     PAST::Var.new( :name($opsub), :scope('package') ),
                     PAST::Op.new(
@@ -3077,13 +3084,6 @@ sub is_lexical($name) {
         }
     }
     return 0;
-}
-
-# Gets the outermost block. We sometimes want to install global things in
-# it, e.g. generated meta-ops.
-sub get_outermost_block() {
-    our @BLOCK;
-    return @BLOCK[+@BLOCK - 1];
 }
 
 # Looks to see if a variable has been set up as an alias to an attribute.

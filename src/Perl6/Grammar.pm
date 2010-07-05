@@ -280,6 +280,7 @@ token comp_unit {
     :my $*QSIGIL := '';                        # sigil of current interpolation
     :my $*TYPENAME := '';
     :my $*UNITPAST;
+    <.unitstart>
     <.newpad>
     <.outerlex>
     <.finishpad>
@@ -357,6 +358,7 @@ token blockoid {
     <?ENDSTMT>
 }
 
+token unitstart { <?> }
 token newpad { <?> }
 token outerlex { <?> }
 token finishpad { <?> }

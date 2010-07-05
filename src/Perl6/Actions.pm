@@ -650,7 +650,7 @@ method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
-method term:sym<lambda>($/)             { make create_code_object($<pblock>.ast, 'Block', 0); }
+method term:sym<lambda>($/)             { make block_closure($<pblock>.ast, 'Block', 0); }
 method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
 
 method term:sym<YOU_ARE_HERE>($/) {
@@ -1395,7 +1395,7 @@ method regex_def($/, $key?) {
                 ' when another with this name was already declared');
         }
         %table{$name}<code_ref> :=
-            create_code_object(
+            block_closure(
                 PAST::Block.new( :name($name),
                     PAST::Op.new(
                         PAST::Var.new( :name('self'), :scope('register') ),
@@ -1410,7 +1410,7 @@ method regex_def($/, $key?) {
                 ),
                 'Regex', 0);
         %table{'!PREFIX__' ~ $name}<code_ref> :=
-            create_code_object(
+            block_closure(
                 PAST::Block.new( :name('!PREFIX__' ~ $name),
                     PAST::Op.new(
                         PAST::Var.new( :name('self'), :scope('register') ),
@@ -2504,21 +2504,21 @@ method quote:sym<qqx>($/)  {
 }
 method quote:sym</ />($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make create_code_object($past, 'Regex', 0);
+    make block_closure($past, 'Regex', 0);
 }
 method quote:sym<rx>($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make create_code_object($past, 'Regex', 0);
+    make block_closure($past, 'Regex', 0);
 }
 method quote:sym<m>($/) {
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make create_code_object($past, 'Regex', 0);
+    make block_closure($past, 'Regex', 0);
 }
 
 method quote:sym<s>($/) {
     # Build the regex.
     my $regex_ast := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    my $regex := create_code_object($regex_ast, 'Regex', 0);
+    my $regex := block_closure($regex_ast, 'Regex', 0);
 
     # Quote needs to be closure-i-fied.
     my $closure_ast := PAST::Block.new(
@@ -2527,7 +2527,7 @@ method quote:sym<s>($/) {
             $<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast
         )
     );
-    my $closure := create_code_object($closure_ast, 'Block', 0);
+    my $closure := block_closure($closure_ast, 'Block', 0);
 
     # Make a Substitution.
     $regex.named('matcher');

@@ -2172,7 +2172,7 @@ method EXPR($/, $key?) {
         my $inv := $/[0].ast;
         $past.unshift(
             PAST::Op.ACCEPTS($past) && $past.pasttype eq 'callmethod'
-            ?? PAST::Op.new( :pirop('descalarref PP'), $inv, :returns($inv.returns) )
+            ?? PAST::Op.new( :pirop('deref_unless_object PP'), $inv, :returns($inv.returns) )
             !! $inv
         );
     }

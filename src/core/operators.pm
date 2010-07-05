@@ -295,15 +295,9 @@ our multi infix:<:=>(Mu \$target, Mu \$source) {
         }
     }
 
-  Q:PIR {
-      .local pmc source
-      .local pmc target
-      target = find_lex '$target'
-      source = find_lex '$source'
-      $P0 = new ['ObjectRef'], source
-      copy target, $P0
-      .return (target)
-  }
+    #and now, for the actual process
+    pir::copy__vvpp($target, pir::new__ppp('ObjectRef', $source));
+    $target;
 }
 
 our multi infix:<:=>(Signature $s, Parcel \$p) {

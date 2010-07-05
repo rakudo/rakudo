@@ -40,11 +40,11 @@ class Match is Regex::Match is Cool does Positional does Associative {
 
     multi method hash() {
         # nextsame() dies here with 'Null PMC access in clone()'
-        CREATE_HASH_FROM_LOW_LEVEL(self.Regex::Match::hash);
+        CREATE_HASH_FROM_LOW_LEVEL(pir::descalarref__PP(self).Regex::Match::hash);
     }
 
     multi method list() {
-        list(self.Regex::Match::list);
+        Seq.new(pir::descalarref__PP(self).Regex::Match::list);
     }
 
     multi method caps() {

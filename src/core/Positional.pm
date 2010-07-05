@@ -1,23 +1,4 @@
 role Positional[::T = Mu] {
-    our multi method postcircumfix:<[ ]>() { self.list }
-
-    our multi method postcircumfix:<[ ]>(&block) { self[&block(self.elems)]; }
-
-    our multi method postcircumfix:<[ ]>(@pos) {
-        my $result = pir::new__ps('ResizablePMCArray');
-        for @pos {
-            pir::push($result, self[$_])
-        }
-        Q:PIR {
-            $P0 = find_lex '$result'
-            %r = '&infix:<,>'($P0 :flat)
-        }
-    }
-
-    our multi method postcircumfix:<[ ]>($pos) { 
-        fail "Cannot use negative index $pos on {self.WHO}" if $pos < 0;
-        self.at_pos($pos) 
-    }
 
     method at_pos($pos) {
         Q:PIR {

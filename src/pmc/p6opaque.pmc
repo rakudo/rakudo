@@ -68,7 +68,6 @@ static STRING *postcircumfix_str;
 static STRING *proxy_str;
 static STRING *pun_helper_str;
 static STRING *select_str;
-static STRING *Sub_str;
 static STRING *Submethod_str;
 static STRING *WHAT_str;
 static STRING *Whatever_str;
@@ -314,7 +313,6 @@ pmclass P6opaque extends Object dynpmc group perl6_group auto_attrs {
         proxy_str                    = CONST_STRING(interp, "proxy");
         pun_helper_str               = CONST_STRING(interp, "!pun_helper");
         select_str                   = CONST_STRING(interp, "!select");
-        Sub_str                      = CONST_STRING(interp, "Sub");
         Submethod_str                = CONST_STRING(interp, "Submethod");
         WHAT_str                     = CONST_STRING(interp, "WHAT");
         Whatever_str                 = CONST_STRING(interp, "Whatever");
@@ -349,24 +347,7 @@ more.)
         for (i = 0; i < num_attrs; i++) {
             PMC * const original_data = VTABLE_get_pmc_keyed_int(INTERP, my_guts->attrib_store, i);
             PMC * const new_data      = VTABLE_get_pmc_keyed_int(INTERP, clone_guts->attrib_store, i);
-
-            /* If it's a sub, we need a separate hash, so copy each property over. */
-            if (!PMC_IS_NULL(original_data) && VTABLE_isa(interp, original_data, Sub_str)) {
-                PMC * const meta          = VTABLE_getprops(interp, original_data);
-                if (!PMC_IS_NULL(meta)) {
-                    PMC * const iter = VTABLE_get_iter(interp, meta);
-                    while (VTABLE_get_bool(interp, iter)) {
-                        STRING * const key = VTABLE_shift_string(interp, iter);
-                        PMC * const value  = VTABLE_get_pmc_keyed_str(interp, meta, key);
-                        VTABLE_setprop(interp, new_data, key, value);
-                    }
-                }
-            }
-
-            /* Otherwise, they can share. */
-            else {
-                PMC_metadata(new_data) = PMC_metadata(original_data);
-            }
+            PMC_metadata(new_data) = PMC_metadata(original_data);
         }
 
         return clone;

@@ -314,12 +314,14 @@ $(PERL6_EXE): $(PERL6_PBC)
 $(PERL6_PBC): $(S1_PERL6_PBC) src/gen/core.pm
 	$(PARROT) $(PARROT_ARGS) $(S1_PERL6_PBC) --target=pir $(STAGESTATS) \
 	    src/gen/core.pm > $(CORE_PIR)
+	$(PERL) build/gen_version.pl > src/gen/version.pir
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/Perl6/Compiler.pir
 
 # the stage-1 compiler
 $(S1_PERL6_PBC): $(PARROT) $(SOURCES)
 	$(PERL) -e "" > $(CORE_PIR)
 	@win32_libparrot_copy@
+	$(PERL) build/gen_version.pl > src/gen/version.pir
 	$(PARROT) $(PARROT_ARGS) -o $(S1_PERL6_PBC) src/Perl6/Compiler.pir
 
 $(PERL6_G): $(NQP_EXE) src/Perl6/Grammar.pm

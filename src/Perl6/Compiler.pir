@@ -118,6 +118,7 @@ Perl6::Compiler - Perl6 compiler
 
 .loadlib 'os'
 .loadlib 'file'
+.include 'src/gen/version.pir'
 .include 'src/gen/builtins.pir'
 .include 'src/gen/signature_pm.pir'
 .include 'src/gen/parameter_pm.pir'
@@ -219,6 +220,16 @@ Perl6::Compiler - Perl6 compiler
     $P0 = compreg 'perl6'
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
     '!fire_phasers'('END')
+    exit 0
+.end
+
+.sub 'version' :method
+    say ''
+    print 'This is Rakudo Perl 6, version '
+    say .RAKUDO_VERSION
+    say ''
+    say 'Copyright 2008-2010, The Perl Foundation'
+    say ''
     exit 0
 .end
 

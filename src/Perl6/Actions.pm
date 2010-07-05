@@ -46,13 +46,6 @@ method deflongname($/) {
 }
 
 method comp_unit($/, $key?) {
-    # If this is the start of the unit, add an outer module.
-    if $key eq 'open' {
-        @PACKAGE.unshift(Perl6::Compiler::Module.new());
-        @PACKAGE[0].block(@BLOCK[0]);
-        $*UNITPAST := @BLOCK[0];
-        return 1;
-    }
     our $?RAKUDO_HLL;
     
     # Get the block for the mainline code.
@@ -145,6 +138,11 @@ method unitstart($/) {
 
     self.newpad($/);
     self.finishpad($/);
+
+    # set up initial package and $*UNITPAST
+    @PACKAGE.unshift(Perl6::Compiler::Module.new());
+    @PACKAGE[0].block(@BLOCK[0]);
+    $*UNITPAST := @BLOCK[0];
 }
 
 method statementlist($/) {

@@ -281,9 +281,6 @@ token comp_unit {
     :my $*TYPENAME := '';
     :my $*UNITPAST;
     <.unitstart>
-    <.newpad>
-    <.finishpad>
-    {*} #= open
     <statementlist>
     [ $ || <.panic: 'Confused'> ]
 }

@@ -282,7 +282,6 @@ token comp_unit {
     :my $*UNITPAST;
     <.unitstart>
     <.newpad>
-    <.outerlex>
     <.finishpad>
     {*} #= open
     <statementlist>
@@ -360,7 +359,6 @@ token blockoid {
 
 token unitstart { <?> }
 token newpad { <?> }
-token outerlex { <?> }
 token finishpad { <?> }
 
 proto token terminator { <...> }

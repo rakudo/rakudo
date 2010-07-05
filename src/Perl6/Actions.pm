@@ -136,7 +136,15 @@ method comp_unit($/, $key?) {
 }
 
 method unitstart($/) {
+    # Create a block for the compilation unit.
     self.newpad($/);
+    # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
+    # to set dynamic outer lexical context and namespace details
+    # for the compilation unit.
+    self.SET_BLOCK_OUTER_CTX(@BLOCK[0]);
+
+    self.newpad($/);
+    self.finishpad($/);
 }
 
 method statementlist($/) {
@@ -284,12 +292,6 @@ method newpad($/) {
     @BLOCK.unshift($new_block);
 }
 
-method outerlex($/) {
-    # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
-    # to set dynamic outer lexical context and namespace details
-    # for the compilation unit.
-    self.SET_BLOCK_OUTER_CTX(@BLOCK[0]);
-}
 
 method finishpad($/) {
     # Generate the $_, $/, and $! lexicals if they aren't already

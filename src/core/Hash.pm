@@ -1,5 +1,8 @@
 role Hash is EnumMap {
     method at_key($key) {
+        my $z = Any!butWHENCE(
+                    { pir::set__vQsP($!storage, $key, $z); }
+                );
         Q:PIR {
             .local pmc self
             self = find_lex 'self'
@@ -7,12 +10,7 @@ role Hash is EnumMap {
             $P1 = find_lex '$key'
             %r = $P0[$P1]
             unless null %r goto done
-            %r = new ['Proxy']
-            setattribute %r, '$!base', $P0
-            setattribute %r, '$!key', $P1
-            $P2 = get_hll_global ['Bool'], 'True'
-            setprop %r, 'scalar', $P2
-            setprop %r, 'rw', $P2
+            %r = find_lex '$z'
           done:
         }
     }

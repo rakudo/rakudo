@@ -78,23 +78,22 @@ augment class Cool {
     multi method split(Regex $matcher, $limit = *, :$all) {
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
-        if $l >= 0 {
-            gather {
-                while $l-- > 0 && (my $m = self.match($matcher, :c($c))) {
-                    take self.substr($c, $m.from - $c);
-                    my $m-clone = $m;
-                    take $m-clone if $all;
-                    $c = $m.to == $c ?? $c + 1 !! $m.to;
-                }
-                take self.substr($c);
+        my $prev-pos = 0;
+        return if $l < 0;
+        return self.list if $l == 0;
+        gather {
+            for @.match($matcher, :x(1..$l)) -> $m {
+                take self.substr($prev-pos, $m.from - $prev-pos);
+                take $m if $all;
+                $prev-pos = $m.to;
             }
-        } else {
-            Nil;
+            take self.substr($prev-pos);
         }
     }
 
     multi method split($delimiter, $limit = *, :$all) {
         my $match-string = $delimiter.Str;
+        return if self eq '' && $delimiter eq '';
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit - 1;
         if $l >= 0 {
@@ -428,8 +427,8 @@ our multi sub infix:<leg>($a, $b) {
     ~$a cmp ~$b
 }
 
-multi split ( $delimiter, $input, $limit = * ) {
-    $input.split($delimiter, $limit);
+multi split ( $delimiter, $input, $limit = *, :$all ) {
+    $input.split($delimiter, $limit, :$all);
 }
 
 multi sub sprintf($str as Str, *@args) {

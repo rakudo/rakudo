@@ -1716,7 +1716,7 @@ token prefix:sym<abs>     { <sym> » <O('%named_unary')> }
 token prefix:sym<defined> { <sym> » <O('%named_unary')> }
 
 token infix:sym«==»   { <sym>  <O('%chaining')> }
-token infix:sym«!=»   { <sym> <?before \s> <O('%chaining')> }
+token infix:sym«!=»   { <sym> <?before \s|']'> <O('%chaining')> }
 token infix:sym«<=»   { <sym>  <O('%chaining')> }
 token infix:sym«>=»   { <sym>  <O('%chaining')> }
 token infix:sym«<»    { <sym>  <O('%chaining')> }

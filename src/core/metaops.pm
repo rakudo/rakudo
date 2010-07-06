@@ -153,12 +153,12 @@ our multi sub hyper(&op, $arg) {
     hyper(&op, $arg.list)
 }
 
-our multi sub reducewith(&op, $args,
+our multi sub reducewith(&op, *@args,
                          :$chaining,
                          :$right-assoc,
                          :$triangle) {
 
-    my $list = flat($right-assoc ?? $args.reverse !! $args.list);
+    my $list = $right-assoc ?? @args.reverse !! @args;
 
     if $triangle {
         gather {
@@ -189,6 +189,7 @@ our multi sub reducewith(&op, $args,
     } else {
         return &op() if !$list;
         my $result = $list.shift;
+        return &op($result) if !$list;
 
         if $chaining {
             my $bool = Bool::True;
@@ -210,12 +211,12 @@ our multi sub reducewith(&op, $args,
 
 # degenerate case of operators, to be used by reduce() for the 0-ary case
 # this fails for operators defined in PIR, so some of them are commented out.
-our multi sub infix:<**>() { 1 }
-our multi sub infix:<*>()  { 1 }
+our multi sub infix:<**>($x = 1) { +$x }
+our multi sub infix:<*>($x = 1)  { +$x }
 our multi sub infix:<+&>() { +^0 }
-our multi sub infix:<+>()  { 0 }
-our multi sub infix:<->()  { 0 }
-our multi sub infix:<~>()  { '' }
+our multi sub infix:<+>($x = 0)  { +$x }
+our multi sub infix:<->($x = 0)  { +$x }
+our multi sub infix:<~>($x = '')  { ~$x }
 our multi sub infix:<+|>() { 0 }
 our multi sub infix:<+^>() { 0 }
 our multi sub infix:<~|>() { '' }
@@ -224,23 +225,23 @@ our multi sub infix:<~^>() { '' }
 #our multi sub infix:<|>()   { any() }
 #our multi sub infix:<^>()   { one() }
 
-our multi sub infix:<==>()     { Bool::True }
-our multi sub infix:<!=>()     { Bool::True }
-our multi sub infix:«<»()      { Bool::True }
-our multi sub infix:«<=»()     { Bool::True }
-our multi sub infix:«>»()      { Bool::True }
-our multi sub infix:«>=»()     { Bool::True }
-our multi sub infix:<before>() { Bool::True }
-our multi sub infix:<after>()  { Bool::True }
-our multi sub infix:<~~>()     { Bool::True }
-our multi sub infix:<lt>()     { Bool::True }
-our multi sub infix:<le>()     { Bool::True }
-our multi sub infix:<gt>()     { Bool::True }
-our multi sub infix:<ge>()     { Bool::True }
-our multi sub infix:<eq>()     { Bool::True }
-our multi sub infix:<ne>()     { Bool::True }
-#our multi sub infix:<===>()    { Bool::True }
-our multi sub infix:<eqv>()    { Bool::True }
+our multi sub infix:<==>($x?)     { Bool::True }
+our multi sub infix:<!=>($x?)     { Bool::True }
+our multi sub infix:«<»($x?)      { Bool::True }
+our multi sub infix:«<=»($x?)     { Bool::True }
+our multi sub infix:«>»($x?)      { Bool::True }
+our multi sub infix:«>=»($x?)     { Bool::True }
+our multi sub infix:<before>($x?) { Bool::True }
+our multi sub infix:<after>($x?)  { Bool::True }
+our multi sub infix:<~~>($x?)     { Bool::True }
+our multi sub infix:<lt>($x?)     { Bool::True }
+our multi sub infix:<le>($x?)     { Bool::True }
+our multi sub infix:<gt>($x?)     { Bool::True }
+our multi sub infix:<ge>($x?)     { Bool::True }
+our multi sub infix:<eq>($x?)     { Bool::True }
+our multi sub infix:<ne>($x?)     { Bool::True }
+#our multi sub infix:<===>($x?)    { Bool::True }
+our multi sub infix:<eqv>($x?)    { Bool::True }
 #
 our multi sub infix:<||>()     { Bool::False }
 our multi sub infix:<or>()     { Bool::False }
@@ -260,5 +261,13 @@ our multi sub infix:<xx>()  { fail "No zero-arg meaning for infix:<xx>"; }
 our multi sub infix:«+<»()  { fail "No zero-arg meaning for infix:«+<»"; }
 our multi sub infix:«+>»()  { fail "No zero-arg meaning for infix:«+>»"; }
 our multi sub infix:<~&>()  { fail "No zero-arg meaning for infix:<~&>"; }
+
+our multi sub infix:</>($x)   { $x }
+our multi sub infix:<%>($x)   { $x }
+our multi sub infix:<x>($x)   { $x }
+our multi sub infix:<xx>($x)  { $x }
+our multi sub infix:«+<»($x)  { $x }
+our multi sub infix:«+>»($x)  { $x }
+our multi sub infix:<~&>($x)  { $x }
 
 # vim: ft=perl6

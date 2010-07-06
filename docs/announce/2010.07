@@ -1,0 +1,46 @@
+    Announce: Rakudo Perl 6 development release #31 ("Atlanta")
+
+On behalf of the Rakudo development team, I'm pleased to announce the
+July 2010 development release of Rakudo Perl #31 "Atlanta".
+Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
+(see <http://www.parrot.org>). The tarball for the July 2010 release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Rakudo Perl follows a monthly release cycle, with each release named
+after a Perl Mongers group. The July 2010 release is code named "Atlanta"
+in recognition of Atlanta.pm and their Perl 5 Phalanx project [1], which
+they selected for its benefits to Perl 6.
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* [XXX update]
+* 
+* 
+* [XXX update]Rakudo now passes 33,378 spectests. We estimate that there are about
+  39,900 tests in the test suite, so Rakudo passes about 83% of all tests.
+
+For a more detailed list of changes see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on parrot, the
+Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+Patrick R. Michaud, Moritz Lenz, Jonathan Worthington, Solomon Foster,
+Patrick Abi Salloum, Carl Mäsak, Martin Berends, Will "Coke" Coleda,
+Vyacheslav Matjukhin, snarkyboojum, chromatic, Tyler Curtis, Lars Dɪᴇᴄᴋᴏᴡ,
+Bruce Gray, Stephen Weeks, Andrew Whitworth
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#32) is scheduled for August 19, 2010.
+A list of the other planned release dates and code names for 2010 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!
+
+[1] http://code.google.com/p/atlanta-pm-code/

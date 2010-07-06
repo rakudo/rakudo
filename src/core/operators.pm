@@ -308,6 +308,14 @@ our multi infix:<:=>(Signature $s, Mu \$val) {
     $s!BIND(Capture.new($val));
 }
 
+our multi infix:<::=>(Mu \$target, Mu \$source) {
+    #since it's only := with setting readonly, let's avoid recoding.
+    $target := $source;
+    #XX pay attention to this little guy, we don't quite understand or are
+    #able to implement the full details of ::=
+    pir::delprop__0Ps($target, 'rw');
+}
+
 # XXX Wants to be a macro when we have them.
 our sub WHAT(\$x) {
     $x.WHAT

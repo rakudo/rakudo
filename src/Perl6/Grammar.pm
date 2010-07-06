@@ -1779,7 +1779,6 @@ method bindish_check($/) {
 
 token infix:sym<::=> {
     <sym>  <O('%item_assignment')>
-    <.panic: "::= binding not yet implemented">
 }
 
 token infix:sym<.=> { <sym> <O('%item_assignment, :nextterm<dottyopish>')> }

@@ -1,5 +1,8 @@
 augment class Array {
     method at_pos($pos) {
+        my $z = Any!butWHENCE(
+                    { pir::set__vQiP(self!fill($pos+1), $pos, $z) }
+                );
         Q:PIR {
             .local pmc self, items
             .local int pos
@@ -8,15 +11,9 @@ augment class Array {
             pos  = $P0
             $I0  = pos + 1
             items = self.'!fill'($I0)
-            %r   = items[pos]
+            %r = items[pos]
             unless null %r goto done
-            %r = new ['Proxy']
-            setattribute %r, '$!base', items
-            $P0 = box pos
-            setattribute %r, '$!key', $P0
-            $P0 = get_hll_global ['Bool'], 'True'
-            setprop %r, 'scalar', $P0
-            setprop %r, 'rw', $P0
+            %r = find_lex '$z'
           done:
         }
     }

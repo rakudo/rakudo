@@ -53,9 +53,17 @@ src/builtins/assign.pir - assignment operations
     .local pmc tgt
     tgt = deref cont
     $I0 = isa tgt, ['ObjectRef']
-    unless $I0 goto scalar_assign
+    unless $I0 goto scalar_whence
     cont = tgt
     goto cont_loop
+
+  scalar_whence:
+    # Invoke any WHENCE property in the container
+    .local pmc whence
+    tgt = descalarref tgt
+    whence = getprop 'WHENCE', tgt
+    if null whence goto scalar_assign
+    whence()
 
   scalar_assign:
     # check for Nil assignment

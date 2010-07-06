@@ -298,9 +298,20 @@ augment class Any {
         self.at_pos($pos)
     }
 
-    method at_pos($x) {
-        fail "subscript $x out of range for {self.WHAT}" if $x != 0;
-        self;
+    method at_pos($pos) {
+        if self.defined {
+            fail ".[$pos] out of range for type {self.WHAT}" if $pos != 0;
+            return self;
+        }
+        my $z = Any!butWHENCE(
+                    { self.defined || &infix:<=>(self, Array.new);
+                      pir::set__vQiP(self!fill($pos+1), $pos, $z);
+                    }
+                );
+    }
+
+    method !butWHENCE(&by) {
+        pir::setprop__0PsP(pir::clone__PP(pir::descalarref__PP(self)), 'WHENCE', &by);
     }
 }
 

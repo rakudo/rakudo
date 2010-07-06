@@ -22,8 +22,6 @@ others from doing so.
 Patches to this document are welcome.
 
 Really important items
-1 **    working closures
-1 **    array/hash vivification (pmichaud, masak, jnthn)
 1 **    REPL remembers the variable from the last line (pmichaud, jnthn)
 1 **    operator overloading -- infix:, prefix:, postfix: (almost there, problems with pre-comp)
 1 **    improved error messages and failure modes (B, all)
@@ -117,3 +115,5 @@ Completed ROADMAP items:
   - REPL actually prints (done)
   - import module symbols into current lexical scope (done)
   - complete lazy lists in Seq and Array (done)
+  - working closures
+  - array/hash vivification (pmichaud, masak, jnthn)

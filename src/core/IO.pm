@@ -66,6 +66,62 @@ class IO is Cool {
         self.print(@items, "\n");
     }
 
+    multi method read(Int $bytes) {
+        my $pio = $!PIO;
+        my @bytes = Q:PIR {
+            .local int nbytes, byte
+            .local pmc bytebuffer, it, result
+            .local pmc pio
+            pio = find_lex '$pio'
+            pio = deref_unless_object pio
+            $P0 = find_lex '$bytes'
+            nbytes = $P0
+            $S0 = pio.'read'(nbytes)
+            bytebuffer = new ['ByteBuffer']
+            bytebuffer = $S0
+
+            result = new ['Parcel']
+            it = iter bytebuffer
+          bytes_loop:
+            unless it goto done
+            byte = shift it
+            push result, byte
+            goto bytes_loop
+          done:
+            %r = result
+        };
+        return Buf.new(@bytes);
+    }
+
+    multi method write(Buf $buf) {
+        my @contents = $buf.contents;
+        my $pio = $!PIO;
+        Q:PIR {
+            $P0 = find_lex '@contents'
+
+            .local pmc bb
+            .local string s
+            bb = new ['ByteBuffer']
+            .local pmc it
+            .local int i
+            it = iter $P0
+            i = 0
+          loop:
+            unless it goto done
+            $P1 = shift it
+            $I1 = $P1
+            bb[i] = $I1
+            inc i
+            goto loop
+          done:
+            s = bb.'get_string_as'(binary:"")
+            .local pmc pio
+            pio = find_lex '$pio'
+            pio = deref_unless_object pio
+            pio.'print'(s)
+        };
+    }
+
     multi method getc() {
         my $c = $!PIO.read(1);
         fail if $c eq '';

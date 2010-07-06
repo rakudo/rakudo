@@ -18,7 +18,7 @@ src/builtins/assign.pir - assignment operations
     .local pmc rw
     rw = getprop 'rw', cont
     unless null rw goto rw_ok
-    '&die'('Cannot assign to readonly value')
+    '&die'('Cannot modify readonly value')
   rw_ok:
 
     # If the lhs isn't a scalar container, delegate to

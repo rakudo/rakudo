@@ -428,11 +428,7 @@ our multi sub infix:<leg>($a, $b) {
     ~$a cmp ~$b
 }
 
-multi split ( Str $delimiter, Str $input, $limit = * ) {
-    $input.split($delimiter, $limit);
-}
-
-multi split ( Regex $delimiter, Str $input, $limit = * ) {
+multi split ( $delimiter, $input, $limit = * ) {
     $input.split($delimiter, $limit);
 }
 

@@ -664,12 +664,18 @@ method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
 method term:sym<YOU_ARE_HERE>($/) {
     my $past := PAST::Block.new(
         :name('!YOU_ARE_HERE'),
-        PAST::Var.new( :name('mainline'), :scope('parameter') ),
-        PAST::Op.new( :pasttype('callmethod'), :name('set_outer'),
-            PAST::Var.new( :name('mainline'), :scope('lexical') ),
-            PAST::Var.new( :scope('keyed'), PAST::Op.new( :pirop('getinterp P') ), 'sub' )
-        ),
-        PAST::Op.new( :pasttype('call'), PAST::Var.new( :name('mainline'), :scope('lexical') ) )
+        PAST::Op.new(
+            :inline(
+                '$P0 = getinterp',
+                '$P0 = $P0["context"]',
+                '$P0 = getattribute $P0, "outer_ctx"',
+                '%0."set_outer_ctx"($P0)',
+                '%r = %0(%1)'
+            ),
+            PAST::Var.new( :name('mainline'), :scope('parameter') ),
+            PAST::Var.new( :name('$MAIN'), :scope('parameter'),
+                           :viviself( PAST::Val.new( :value(0) ) ) )
+        )
     );
     @BLOCK[0][0].push(PAST::Var.new(
         :name('!YOU_ARE_HERE'), :isdecl(1), :viviself($past), :scope('lexical')

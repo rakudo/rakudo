@@ -66,6 +66,9 @@ of the compilation unit.
 
     # The first args string belongs in $*PROGRAM_NAME
     args = clone args
+    if args goto have_args
+    unshift args, 'interactive'
+  have_args:
     $P1 = shift args      # the first arg is the program name
     set_hll_global '$PROGRAM_NAME', $P1
 
@@ -94,30 +97,32 @@ of the compilation unit.
     .param pmc unit
     .param pmc args            :optional
 
-    .local int main_flag
-    main_flag = 0
-    # if we have args, we know it's the mainline
-    unless null args goto mainline_start
-    # otherwise, if the caller has an outer_ctx, it's an eval
+    # if unit already has an outer_ctx, this is an eval
     .local pmc outer_ctx
     $P0 = getinterp
     $P0 = $P0["context";1]
     outer_ctx = getattribute $P0, "outer_ctx"
-    if null outer_ctx goto module_start
+    unless null outer_ctx goto eval_start
+    # if no args were supplied, it's a module load via :load
+    if null args goto module_start
+    # if any args were supplied, it's a mainline start
+    if args goto mainline_start
+    # if we're in interactive mode, it's a mainline start
+    $P0 = find_dynamic_lex '$*CTXSAVE'
+    if null $P0 goto module_start
+    $I0 = can $P0, "ctxsave"
+    unless $I0 goto module_start
+  mainline_start:
+    '!GLOBAL_VARS'(args)
+    '!fire_phasers'('INIT')
+    $P0 = '!YOU_ARE_HERE'(unit, 1)
+    .return ($P0)
+  module_start:
+    '!fire_phasers'('INIT')
+    $P0 = '!YOU_ARE_HERE'(unit, 0)
+    .return ($P0)
   eval_start:
-    # it's an eval, set the outer_ctx of the unit, execute it, and return
-    unit.'set_outer_ctx'(outer_ctx)
     '!fire_phasers'('INIT')
     $P0 = unit(0)
     .return ($P0)
-  mainline_start:
-    # initialize global vars
-    '!GLOBAL_VARS'(args)
-    main_flag = 1
-  module_start:
-    # run the UNIT from inside of the setting
-    '!fire_phasers'('INIT')
-    $P0 = '!YOU_ARE_HERE'(unit, main_flag)
-    .return ($P0)
 .end
-

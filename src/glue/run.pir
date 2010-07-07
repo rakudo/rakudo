@@ -52,9 +52,8 @@ of the compilation unit.
     .return($P0)
 .end
 
-.sub '!UNIT_START'
-    .param pmc mainline
-    .param pmc args            :slurpy
+.sub '!GLOBAL_VARS'
+    .param pmc args
 
     .local string info
     .local pmc true
@@ -65,19 +64,9 @@ of the compilation unit.
     $P0 = info
     set_hll_global ['PROCESS'], '$EXECUTABLE_NAME', $P0
 
-    # Ignore the args when executed as a library (not main program)
-    unless args goto unit_start_0
-
-    # args    is a ResizablePMCArray containing only one entry
-    # args[0] is also a ResizablePMCArray, of String entries, containing 
-    #         the program name or '-e' in args[0][0], followed by
-    #         optional command line arguments in args[0][1] etc.
-    $P0 = args[0]
-    # Ignore the args when executed as a library (not main program)
-    unless $P0 goto unit_start_0
-
     # The first args string belongs in $*PROGRAM_NAME
-    $P1 = shift $P0      # the first arg is the program name
+    args = clone args
+    $P1 = shift args      # the first arg is the program name
     set_hll_global '$PROGRAM_NAME', $P1
 
     # The remaining args strings belong in @*ARGS
@@ -93,35 +82,42 @@ of the compilation unit.
     $P3 = $P3.'new'('args'=>$P2)
     set_hll_global '$ARGFILES', $P3
 
-    ##  set up %*VM
-    load_bytecode 'config.pbc'
-    .local pmc vm, interp, config
-    interp = getinterp
-    config = interp[.IGLOBALS_CONFIG_HASH]
-    config = new ['Perl6Scalar'], config
-    config = 'hash'(config :flat)
-    vm = 'hash'('config' => config)
-    set_hll_global ['PROCESS'], "%VM", vm
-
-  unit_start_0:
-
     # Turn the env PMC into %*ENV (just read-only so far)
     .local pmc env
     env = root_new ['parrot';'Env']
     $P2 = '&CREATE_HASH_FROM_LOW_LEVEL'(env)
     set_hll_global '%ENV', $P2
+.end
 
-    # INIT time
+
+.sub '!UNIT_START'
+    .param pmc unit
+    .param pmc args            :optional
+
+    .local int main_flag
+    main_flag = 0
+    # if we have args, we know it's the mainline
+    unless null args goto mainline_start
+    # otherwise, if the caller has an outer_ctx, it's an eval
+    .local pmc outer_ctx
+    $P0 = getinterp
+    $P0 = $P0["context";1]
+    outer_ctx = getattribute $P0, "outer_ctx"
+    if null outer_ctx goto module_start
+  eval_start:
+    # it's an eval, set the outer_ctx of the unit, execute it, and return
+    unit.'set_outer_ctx'(outer_ctx)
     '!fire_phasers'('INIT')
-    
-    # Give it to the setting installer, so we run it within the lexical
-    # scope of the current setting. Don't if we're in eval, though.
-    $P0 = find_dynamic_lex '$*IN_EVAL'
-    if null $P0 goto in_setting
-    unless $P0 goto in_setting
-    $P0 = mainline()
+    $P0 = unit(0)
     .return ($P0)
-  in_setting:
-    $P0 = '!YOU_ARE_HERE'(mainline)
+  mainline_start:
+    # initialize global vars
+    '!GLOBAL_VARS'(args)
+    main_flag = 1
+  module_start:
+    # run the UNIT from inside of the setting
+    '!fire_phasers'('INIT')
+    $P0 = '!YOU_ARE_HERE'(unit, main_flag)
     .return ($P0)
 .end
+

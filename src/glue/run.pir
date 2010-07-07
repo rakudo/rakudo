@@ -76,7 +76,7 @@ of the compilation unit.
     $P1 = new ['Parcel']
     splice $P1, $P0, 0, 0
     $P2 = new ['Array']
-    $P2.'!STORE'($P1)
+    $P2.'!STORE'(args)
     set_hll_global '@ARGS', $P2
     setprop $P2, "rw", true
 

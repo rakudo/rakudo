@@ -1,4 +1,4 @@
-our sub MAIN_HELPER() {
+our sub MAIN_HELPER($retval, $MAIN?) {
     my $m = Q:PIR {
         $P0 = getinterp
         $P0 = $P0['lexpad';1]
@@ -11,7 +11,7 @@ our sub MAIN_HELPER() {
     done:
     };
     unless $m {
-        return;
+        return $retval;
     }
     
     # We found MAIN, let's process the command line arguments accordingly

@@ -51,7 +51,6 @@ method comp_unit($/, $key?) {
     # Get the block for the unit mainline code.
     my $unit := @BLOCK.shift;
     my $mainline := $<statementlist>.ast;
-    $unit.push($mainline);
 
     # Get the block for the entire compilation unit.
     my $outer := @BLOCK.shift;
@@ -60,26 +59,34 @@ method comp_unit($/, $key?) {
     
     # If it's the setting, just need to run the mainline.
     if $*SETTING_MODE {
+        $unit.push($mainline);
         $unit.hll($?RAKUDO_HLL);
         $unit.pirflags(':init :load');
         make $unit;
         return 1;
     }
 
+    my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),
+                         :viviself( PAST::Val.new( :value(0) ) ) );
+    $unit.symbol('$MAIN', :scope<lexical>);
     # run MAIN subs
     # TODO: run this only when not in a module
     # TODO: find a less hacky solution than IN_EVAL
     # TODO: find a way to inject MAIN_HELPER call without modifying
     # the return value of the compilation unit
     if !IN_EVAL() && $unit.symbol('&MAIN') {
-        $unit.push(
+        $mainline := 
             PAST::Op.new(
                 :pasttype('call'),
-                :name('&MAIN_HELPER')
-            )
-        );
+                :name('&MAIN_HELPER'),
+                $mainline,
+                $mainparam
+            );
     }
-
+    else {
+        $unit.push($mainparam);
+    }
+    $unit.push($mainline);
 
     # Executing the compilation unit causes the mainline to be executed.
     # We force a tailcall here, because we have other :load/:init blocks

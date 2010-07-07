@@ -69,12 +69,8 @@ method comp_unit($/, $key?) {
     my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),
                          :viviself( PAST::Val.new( :value(0) ) ) );
     $unit.symbol('$MAIN', :scope<lexical>);
-    # run MAIN subs
-    # TODO: run this only when not in a module
-    # TODO: find a less hacky solution than IN_EVAL
-    # TODO: find a way to inject MAIN_HELPER call without modifying
-    # the return value of the compilation unit
-    if !IN_EVAL() && $unit.symbol('&MAIN') {
+    # If the unit defines &MAIN, add a &MAIN_HELPER.
+    if $unit.symbol('&MAIN') {
         $mainline := 
             PAST::Op.new(
                 :pasttype('call'),
@@ -86,18 +82,21 @@ method comp_unit($/, $key?) {
     else {
         $unit.push($mainparam);
     }
+    $unit.push( self.CTXSAVE() );
     $unit.push($mainline);
 
     # Executing the compilation unit causes the mainline to be executed.
-    # We force a tailcall here, because we have other :load/:init blocks
+    # We force a return here, because we have other :load/:init blocks
     # that have to be done at the end of the unit, and we don't want them
     # executed by the mainline.
     $outer.push(
         PAST::Op.new(
-            :pirop('tailcall'),
-            PAST::Var.new( :name('!UNIT_START'), :namespace(''), :scope('package') ),
-            $unit,
-            PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
+            :pirop('return'),
+            PAST::Op.new( :pasttype<call>,
+                PAST::Var.new( :name('!UNIT_START'), :namespace(''), :scope('package') ),
+                $unit,
+                PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
+            )
         )
     );
 

@@ -1,5 +1,4 @@
 our sub eval(Str $code, :$lang = 'perl6') {
-    my $*IN_EVAL = 1;
     Q:PIR {
         .local pmc interp, caller, code, pbc, result, exception, parrotex
         .local string lang

@@ -48,20 +48,21 @@ method deflongname($/) {
 method comp_unit($/, $key?) {
     our $?RAKUDO_HLL;
     
-    # Get the block for the mainline code.
-    my $mainline := @BLOCK.shift;
-    $mainline.push($<statementlist>.ast);
+    # Get the block for the unit mainline code.
+    my $unit := @BLOCK.shift;
+    my $mainline := $<statementlist>.ast;
+    $unit.push($mainline);
 
     # Get the block for the entire compilation unit.
-    my $unit := @BLOCK.shift;
-    $unit.node($/);
-    $unit.hll($?RAKUDO_HLL);
+    my $outer := @BLOCK.shift;
+    $outer.node($/);
+    $outer.hll($?RAKUDO_HLL);
     
     # If it's the setting, just need to run the mainline.
     if $*SETTING_MODE {
-        $mainline.hll($?RAKUDO_HLL);
-        $mainline.pirflags(':init :load');
-        make $mainline;
+        $unit.hll($?RAKUDO_HLL);
+        $unit.pirflags(':init :load');
+        make $unit;
         return 1;
     }
 
@@ -70,8 +71,8 @@ method comp_unit($/, $key?) {
     # TODO: find a less hacky solution than IN_EVAL
     # TODO: find a way to inject MAIN_HELPER call without modifying
     # the return value of the compilation unit
-    if !IN_EVAL() && $mainline.symbol('&MAIN') {
-        $mainline.push(
+    if !IN_EVAL() && $unit.symbol('&MAIN') {
+        $unit.push(
             PAST::Op.new(
                 :pasttype('call'),
                 :name('&MAIN_HELPER')
@@ -84,11 +85,11 @@ method comp_unit($/, $key?) {
     # We force a tailcall here, because we have other :load/:init blocks
     # that have to be done at the end of the unit, and we don't want them
     # executed by the mainline.
-    $unit.push(
+    $outer.push(
         PAST::Op.new(
             :pirop('tailcall'),
             PAST::Var.new( :name('!UNIT_START'), :namespace(''), :scope('package') ),
-            $mainline,
+            $unit,
             PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
         )
     );
@@ -96,7 +97,7 @@ method comp_unit($/, $key?) {
     # CHECK time occurs at the end of the compilation unit, :load/:init.
     # (We can't # use the .loadinit property because that will generate
     # the CHECK block too early.)
-    $unit.push(
+    $outer.push(
         PAST::Block.new(
             :pirflags(':load :init'), :lexical(0), :namespace(''),
             PAST::Op.new( :name('!fire_phasers'), 'CHECK' )
@@ -106,12 +107,12 @@ method comp_unit($/, $key?) {
     # If this unit is loaded via load_bytecode, we want it to automatically
     # execute the mainline code above after all other initializations have
     # occurred.
-    $unit.push(
+    $outer.push(
         PAST::Block.new(
             :pirflags(':load'), :lexical(0), :namespace(''),
             PAST::Op.new(
                 :name('!UNIT_START'), :pasttype('call'),
-                PAST::Val.new( :value($unit) ),
+                PAST::Val.new( :value($outer) ),
             )
         )
     );
@@ -119,13 +120,13 @@ method comp_unit($/, $key?) {
     # Add file annotation.
     my $file := pir::find_caller_lex__ps('$?FILES');
     unless pir::isnull($file) {
-        $unit.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
+        $outer.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
     }
 
     # Remove the outer module package.
     @PACKAGE.shift;
 
-    make $unit;
+    make $outer;
 }
 
 method unitstart($/) {

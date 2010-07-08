@@ -295,8 +295,11 @@ our multi infix:<:=>(Mu \$target, Mu \$source) {
         }
     }
 
+    if !pir::isnull(pir::getprop__PsP('WHENCE', pir::descalarref__PP($target)))
+        { pir::getprop__PsP('WHENCE', pir::descalarref__PP($target)).() }
+
     #and now, for the actual process
-    pir::copy__vvpp($target, pir::new__ppp('ObjectRef', $source));
+    pir::copy__vPP($target, pir::new__ppp('ObjectRef', $source));
     $target;
 }
 

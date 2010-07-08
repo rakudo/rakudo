@@ -467,6 +467,9 @@ method statement_control:sym<use>($/) {
         elsif ~$<module_name> eq 'SETTING_MODE' {
             $*SETTING_MODE := 1;
         }
+        elsif ~$<module_name> eq 'FORBID_PIR' {
+            $*FORBID_PIR := 1;
+        }
         else {
             need($<module_name>);
             import($/);
@@ -1998,6 +2001,9 @@ method term:sym<name>($/) {
 }
 
 method term:sym<pir::op>($/) {
+    if $*FORBID_PIR {
+        pir::die("pir::op forbidden in safe mode\n");
+    }
     my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
     my $pirop := ~$<op>;
     $pirop := Q:PIR {
@@ -2501,6 +2507,9 @@ method quote:sym<qq>($/)   { make $<quote_EXPR>.ast; }
 method quote:sym<q>($/)    { make $<quote_EXPR>.ast; }
 method quote:sym<Q>($/)    { make $<quote_EXPR>.ast; }
 method quote:sym<Q:PIR>($/) {
+    if $*FORBID_PIR {
+        pir::die("Q:PIR forbidden in safe mode\n");
+    }
     make PAST::Op.new( :inline( $<quote_EXPR>.ast.value ),
                        :pasttype('inline'),
                        :node($/) );

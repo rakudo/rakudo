@@ -273,6 +273,7 @@ token comp_unit {
     :my $*IN_DECL;                             # what declaration we're in
     :my $*IMPLICIT;                            # whether we allow an implicit param
     :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
+    :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
     :my $*SETTING_MODE := 0;                   # are we compiling the SETTING
     :my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
     :my $*SCOPE := '';                         # which scope declarator we're under

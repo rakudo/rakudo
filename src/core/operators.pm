@@ -282,13 +282,7 @@ our multi prefix:<|>(Capture $c) { $c }
 our multi prefix:<|>(Mu $anything) { Capture.new($anything) }
 
 our multi infix:<:=>(Mu \$target, Mu \$source) {
-    #checking for rw-ness
-    #XXX remove PIR in conditional when possible
-    if pir::isnull(pir::getprop__PsP('rw', $target)) {
-        die("Cannot bind to a readonly variable.");
-    }
-
-    #Type Checking. The !'s avoid putting actual binding in a big nest.  
+    #Type Checking. The !'s avoid putting actual binding in a big nest.
     if !pir::isnull(pir::getprop__PsP('type', $target)) {
         if !pir::getprop__PsP('type', $target).ACCEPTS($source) {
             die("You cannot bind a variable of type {$source.WHAT} to a variable of type {$target.WHAT}.");
@@ -299,8 +293,11 @@ our multi infix:<:=>(Mu \$target, Mu \$source) {
         { pir::getprop__PsP('WHENCE', pir::descalarref__PP($target)).() }
 
     #and now, for the actual process
-    pir::copy__vPP($target, pir::new__ppp('ObjectRef', $source));
-    $target;
+    pir::setprop__0PsP(
+        pir::copy__0PP($target, pir::new__PsP('ObjectRef', $source)),
+        'rw',
+        pir::getprop__PsP('rw', $source)
+    );
 }
 
 our multi infix:<:=>(Signature $s, Parcel \$p) {

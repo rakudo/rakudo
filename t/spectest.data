@@ -8,8 +8,6 @@
 #
 # we've regressed on some files for various reasons:
 # 
-# S03-operators/binding-arrays.t - regressed to allow slices
-# S03-operators/binding-hashes.t - regressed to allow slices
 # integration/rule-in-class-Str.t - 'is also' -> augment
 # S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S16-filehandles/filetest.t - regressed when spec changed (RT #68160)
@@ -165,8 +163,11 @@ S03-operators/autoincrement-range.t                        # icu
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
 S03-operators/basic-types.t
-# S03-operators/binding-closure.t
-# S03-operators/binding-scalars.t
+S03-operators/binding-arrays.t
+S03-operators/binding-closure.t
+S03-operators/binding-hashes.t
+S03-operators/binding-ro.t
+S03-operators/binding-scalars.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 S03-operators/brainos.t
@@ -378,7 +379,7 @@ S06-traits/is-copy.t
 S06-traits/is-rw.t
 # S06-traits/misc.t
 S09-autovivification/autoincrement.t
-# S09-subscript_slice/slice.t
+S09-subscript_slice/slice.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
 S10-packages/basic.t

@@ -284,7 +284,7 @@ HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 STAGESTATS = @stagestats@
 
 # the default target
-all: $(PERL6_EXE) Test.pir
+all: $(PERL6_EXE) Test.pir lib/Safe.pir
 
 # the install target
 install: all
@@ -293,6 +293,7 @@ install: all
 	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     Test.pir            $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/*.pm            $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     lib/*.pir           $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
@@ -400,10 +401,13 @@ $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref
 	$(PERL) -I$(PARROT_PERL_LIB) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
 		$(PMC_DIR)/objectref.pmc
 
+lib/Safe.pir: lib/Safe.pm perl6.pbc
+	$(PARROT) $(PARROT_ARGS) perl6.pbc $(STAGESTATS) --target=pir --output=lib/Safe.pir lib/Safe.pm
 
 ##  testing targets
 Test.pir: Test.pm perl6.pbc
 	$(PARROT) $(PARROT_ARGS) perl6.pbc $(STAGESTATS) --target=pir --output=Test.pir Test.pm
+
 
 test    : coretest
 

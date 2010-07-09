@@ -192,8 +192,8 @@ role Real does Numeric {
         $x.Bridge.acotanh($base);
     }
 
-    method atan2(Real $y: Real $x = 1, $base = Radians) {
-        $y.Bridge.atan2($x.Bridge, $base);
+    method atan2(Real $y: $x = 1, $base = Radians) {
+        $y.Bridge.atan2($x, $base);
     }
 }
 

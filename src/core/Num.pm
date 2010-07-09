@@ -171,8 +171,8 @@ augment class Num does Real {
         (1 / $x).atanh($base);
     }
 
-    method atan2(Num $y: Num $x = 1, $base = Radians) {
-        pir::atan__NNn($y, $x).from-radians($base);
+    method atan2(Num $y: $x = 1, $base = Radians) {
+        pir::atan__NNn($y, $x.Numeric.Num).from-radians($base);
     }
 }
 

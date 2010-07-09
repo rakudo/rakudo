@@ -37,6 +37,7 @@ integration/advent2009-day06.t
 integration/advent2009-day07.t
 integration/advent2009-day08.t
 integration/advent2009-day09.t
+integration/advent2009-day10.t
 integration/advent2009-day11.t
 integration/advent2009-day12.t
 integration/advent2009-day13.t
@@ -379,6 +380,7 @@ S06-traits/is-copy.t
 S06-traits/is-rw.t
 # S06-traits/misc.t
 S09-autovivification/autoincrement.t
+S09-autovivification/autovivification.t
 S09-subscript_slice/slice.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t

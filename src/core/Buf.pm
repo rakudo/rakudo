@@ -41,5 +41,5 @@ role Buf[::T = Int] does Stringy does Positional {
 }
 
 our multi sub infix:<eqv>(Buf $a, Buf $b) {
-    return $a.contents ~~ $b.contents;
+    return $a.contents eqv $b.contents;
 }

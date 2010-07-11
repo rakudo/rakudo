@@ -135,11 +135,11 @@ sub diag($message) is export { say '# '~$message; }
 multi sub flunk($reason) is export { proclaim(0, "flunk $reason")}
 
 
-multi sub isa_ok(Mu $var,$type) is export {
+multi sub isa_ok(Mu $var, Mu $type) is export {
     ok($var.isa($type), "The object is-a '$type'")
         or diag('Actual type: ' ~ $var.WHAT);
 }
-multi sub isa_ok(Mu $var,$type, $msg) is export {
+multi sub isa_ok(Mu $var, Mu $type, $msg) is export {
     ok($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.WHAT);
 }

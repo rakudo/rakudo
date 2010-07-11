@@ -71,8 +71,8 @@ multi sub is(Mu $got, Mu $expected, $desc) is export {
     my $test = $got eq $expected;
     proclaim(?$test, $desc);
     if !$test {
-        diag "     got: $got";
-        diag "expected: $expected";
+        diag "     got: '$got'";
+        diag "expected: '$expected'";
     }
     $test;
 }

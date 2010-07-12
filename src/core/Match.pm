@@ -96,9 +96,8 @@ class Match is Regex::Match is Cool does Positional does Associative {
             take "$sp to   => $.to,\n";
             if @(self) {
                 take "$sp positional => [\n";
-                # work around RT #64952
-                for ^self.list {
-                    self!_perl_quant(self.[$_], $indent);
+                for self.flat {
+                    self!_perl_quant($_, $indent);
                     take ",\n";
                 }
                 take "$sp  ],\n";

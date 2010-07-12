@@ -1,4 +1,15 @@
 class Match is Regex::Match is Cool does Positional does Associative {
+    method create(:$from, :$to, :$orig) {
+        my $new = self.bless(*);
+        pir::setattribute__vpsp($new, '$!from',   $from);
+        pir::setattribute__vpsp($new, '$!to',     $to);
+        pir::setattribute__vpsp($new, '$!target', $orig);
+
+        # TODO: handle :@positional, :%named
+
+        $new;
+    }
+
     method ast() {
         my $x = self.Regex::Match::ast;
         pir::isa__IPs($x, 'Undef') ?? Any !! $x;

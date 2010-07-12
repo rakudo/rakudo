@@ -48,7 +48,6 @@ static STRING *isa_str;
 static STRING *does_str;
 static STRING *item_str;
 static STRING *Junction_str;
-static STRING *MAKE_WHATEVER_CLOSURE_str;
 static STRING *match_against_str;
 static STRING *metaclass_str;
 static STRING *methodname_str;
@@ -70,7 +69,6 @@ static STRING *pun_helper_str;
 static STRING *select_str;
 static STRING *Submethod_str;
 static STRING *WHAT_str;
-static STRING *Whatever_str;
 
 static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *name) {
     STRING *match_against = match_against_str;
@@ -293,7 +291,6 @@ pmclass P6opaque extends Object dynpmc group perl6_group auto_attrs {
         does_str                     = CONST_STRING(interp, "does");
         item_str                     = CONST_STRING(interp, "item");
         Junction_str                 = CONST_STRING(interp, "Junction");
-        MAKE_WHATEVER_CLOSURE_str    = CONST_STRING(interp, "!MAKE_WHATEVER_CLOSURE");
         match_against_str            = CONST_STRING(interp, "match_against");
         metaclass_str                = CONST_STRING(interp, "metaclass");
         methodname_str               = CONST_STRING(interp, "methodname");
@@ -315,7 +312,6 @@ pmclass P6opaque extends Object dynpmc group perl6_group auto_attrs {
         select_str                   = CONST_STRING(interp, "!select");
         Submethod_str                = CONST_STRING(interp, "Submethod");
         WHAT_str                     = CONST_STRING(interp, "WHAT");
-        Whatever_str                 = CONST_STRING(interp, "Whatever");
     }
 
 /*
@@ -372,34 +368,9 @@ back some kind of iterator to let us get all of the possible candidates.
         INTVAL                     pos    = 0;
         PMC                      * method;
 
-        /* If we're calling a method on Whatever, we need to generate a closure
-         * instead. XXX It sucks that every method invocation pays for this, so
-         * we really must find something better to do. */
-        if (VTABLE_isa(interp, SELF, Whatever_str) &&
-                !Parrot_str_equal(interp, name, new_str) &&
-                !Parrot_str_equal(interp, name, bless_str) &&
-                !Parrot_str_equal(interp, name, CREATE_str) &&
-                !Parrot_str_equal(interp, name, BUILD_str) &&
-                !Parrot_str_equal(interp, name, BUILDALL_str) &&
-                !Parrot_str_equal(interp, name, WHAT_str) &&
-                !Parrot_str_equal(interp, name, HOW_str) &&
-                !Parrot_str_equal(interp, name, ACCEPTS_str) &&
-                !Parrot_str_equal(interp, name, isa_str) &&
-                !Parrot_str_equal(interp, name, does_str) &&
-                !Parrot_str_equal(interp, name, item_str) &&
-                !Parrot_str_equal(interp, name, defined_str)) {
-            /* Look up closure maker, clone it, attach name and return that. */
-            PMC *sub = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
-                    MAKE_WHATEVER_CLOSURE_str);
-            PMC *boxed_name = pmc_new(interp, enum_class_String);
-            VTABLE_set_string_native(interp, boxed_name, name);
-            method = VTABLE_clone(interp, sub);
-            VTABLE_setprop(interp, method, name_str, boxed_name);
-        }
-
         /* If it's a role and the method name is not on the no-pun list, we
          * should pun it. */
-        else if (VTABLE_isa(interp, SELF, Perl6Role_str) &&
+        if (VTABLE_isa(interp, SELF, Perl6Role_str) &&
                 !Parrot_str_equal(interp, name, WHAT_str) &&
                 !Parrot_str_equal(interp, name, HOW_str) &&
                 !Parrot_str_equal(interp, name, ACCEPTS_str) &&

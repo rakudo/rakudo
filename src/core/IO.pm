@@ -244,4 +244,12 @@ multi sub mkdir($path as Str, $mode = 0) {
     $! ?? fail($!) !! True
 }
 
+multi sub cwd() {
+    my $pwd;
+    try {
+        $pwd = pir::new__Ps('OS').cwd();
+    }
+    $! ?? fail($!) !! $pwd;
+}
+
 # vim: ft=perl6

@@ -457,6 +457,7 @@ token statement_control:sym<use> {
     | <version>
     | <module_name> [ <.spacey> <arglist> ]?
     ]
+    <.ws>
 }
 
 token statement_control:sym<given> {

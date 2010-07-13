@@ -223,7 +223,6 @@ CORE_SOURCES = \
   src/core/Grammar.pm \
   src/core/Substitution.pm \
   src/core/system.pm \
-  src/cheats/match-bool.pm \
   src/cheats/process.pm \
   src/core/Date.pm \
   src/core/Temporal.pm \

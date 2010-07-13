@@ -19,6 +19,13 @@ class Match is Regex::Match is Cool does Positional does Associative {
         ~self.Regex::Match::Str;
     }
 
+    method Bool() {
+        $.from < $.to;
+    }
+
+    method defined() {
+        $.from < $.to;
+    }
 
     method at_key($key) {
         Q:PIR {

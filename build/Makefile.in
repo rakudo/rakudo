@@ -448,7 +448,7 @@ rakudo_test_run.tar.gz: testable t/spectest.data
 spectest_smolder: rakudo_test_run.tar.gz
 	curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=`git log -1 --pretty=format:%H` -F report_file=@rakudo_test_run.tar.gz http://smolder.plusthree.com/app/public_projects/process_add_report/18
 
-testable : $(PERL6_EXE) Test.pir spectest_checkout spectest_update
+testable : all spectest_checkout spectest_update
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@

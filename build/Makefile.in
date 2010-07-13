@@ -283,7 +283,7 @@ HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 STAGESTATS = @stagestats@
 
 # the default target
-all: $(PERL6_EXE) Test.pir lib/Safe.pir
+all: $(PERL6_EXE) Test.pir
 
 # the install target
 install: all
@@ -399,9 +399,6 @@ src/gen/uprop-cheats.pir: build/gen_uprop_pir.pl
 $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
 	$(PERL) -I$(PARROT_PERL_LIB) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
 		$(PMC_DIR)/objectref.pmc
-
-lib/Safe.pir: lib/Safe.pm perl6.pbc
-	$(PARROT) $(PARROT_ARGS) perl6.pbc $(STAGESTATS) --target=pir --output=lib/Safe.pir lib/Safe.pm
 
 ##  testing targets
 Test.pir: Test.pm perl6.pbc

@@ -26,41 +26,56 @@ class DefaultFormatter {
 }
 
 class DateTime {
-    has $.year;
-    has $.month     = 1;
-    has $.day       = 1;
-    has $.hour      = 0;
-    has $.minute    = 0;
-    has $.second    = 0.0;
-    has $.time-zone = '+0000';
+
+    has Int $.year;
+    has Int $.month     = 1;
+    has Int $.day       = 1;
+    has Int $.hour      = 0;
+    has Int $.minute    = 0;
+    has Num $.second    = 0.0;
+    has     $.timezone = '+0000';
 
     has DateTime::Formatter $!formatter; # = DefaultFormatter.new;
                                          # does not seem to work
 
-    multi method new(Int :$year!, *%_) {
-        self.bless(*, :$year, :formatter(DefaultFormatter.new), |%_);
+    method assert-valid-time($hour, $minute, $second) {
+        die 'Invalid time: hour < 0'     if $hour < 0;
+        die 'Invalid time: hour > 23'    if $hour > 23;
+        die 'Invalid time: minute < 0'   if $minute < 0;
+        die 'Invalid time: minute > 59'  if $minute > 59;
+        die 'Invalid time: second < 0'   if $second < 0;
+        die 'Invalid time: second > 59'  if $second > 59;
     }
 
-    # The parse() method should actually be an MMD variant of new(), but
-    # somehow that did not work :-(  Patches welcome.
-    multi method parse(Str $format) {
+    multi method new(:$year!, Bool :$noassert=Bool::False, :$formatter=DefaultFormatter.new, *%_) {
+        if !$noassert {
+            ::Date.assert-valid-date($year, %_<month> // 1, %_<day> // 1);
+            self.assert-valid-time(%_<hour> // 0, %_<minute> // 0, %_<second> // 0);
+        }
+        self.bless(*, :$year, :$formatter, |%_);
+    }
+
+    multi method new(Str $format, :$formatter=DefaultFormatter.new) {
         if $format ~~ /^(\d**4)'-'(\d\d)'-'(\d\d)T(\d\d)':'(\d\d)':'(\d\d)(<[\-\+]>\d**4)$/ {
-            my $year      = ~$0;
-            my $month     = ~$1;
-            my $day       = ~$2;
-            my $hour      = ~$3;
-            my $minute    = ~$4;
-            my $second    = ~$5;
-            my $time-zone = ~$6;
-            self.bless(*, :$year, :$month, :$day, :$hour, :$minute,
-                :$second, :$time-zone, :formatter(DefaultFormatter.new) );
+            my $year      = +$0;
+            my $month     = +$1;
+            my $day       = +$2;
+            my $hour      = +$3;
+            my $minute    = +$4;
+            my $second    = +$5;
+            my $timezone = ~$6;
+            self.new(
+                :year($year.Int), :month($month.Int), :day($day.Int), 
+                :hour($hour.Int), :minute($minute.Int), :second($second.Int), 
+                :$timezone, :$formatter, :noassert(Bool::False)
+            );
         }
         else {
-            die "DateTime.parse expects an ISO8601 string\n";
+            die "DateTime.new(Str) expects an ISO8601 string\n";
         }
     }
 
-    multi method from-epoch($epoch, :$timezone, :$formatter=DefaultFormatter.new) {
+    multi method from-epoch($epoch, :$timezone='+0000', :$formatter=DefaultFormatter.new) {
         my $time = floor($epoch);
         my $fracsecond = $epoch - $time;
         my $second  = $time % 60; $time = $time div 60;
@@ -81,7 +96,7 @@ class DateTime {
         my $year  = $b * 100 + $d - 4800 + $m div 10;
         self.new(:$year, :$month, :$day,
                  :$hour, :$minute, :$second,
-                 :$timezone, :$formatter);
+                 :$timezone, :$formatter, :noassert);
     }
 
     multi method to-epoch {
@@ -117,69 +132,11 @@ class DateTime {
         # This should be the only formatting not done by the formatter
         $.year.fmt(  '%04d') ~ '-' ~ $.month.fmt( '%02d') ~ '-' ~
         $.day.fmt(   '%02d') ~ 'T' ~ $.hour.fmt(  '%02d') ~ ':' ~
-        $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') ~ $.time-zone;
+        $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') ~ $.timezone;
     }
 
     method Str() {
         $!formatter.fmt-datetime(self);
-    }
-
-    multi method strftime( Str $format is copy ) {
-        my %substitutions =
-            # Standard substitutions for yyyy mm dd hh mm ss output.
-            'Y' => { $.year.fmt(  '%04d') },
-            'm' => { $.month.fmt( '%02d') },
-            'd' => { $.day.fmt(   '%02d') },
-            'H' => { $.hour.fmt(  '%02d') },
-            'M' => { $.minute.fmt('%02d') },
-            'S' => { $.second.fmt('%02d') },
-            # Special substitutions (Posix-only subset of DateTime or libc)
-            'a' => { $.day-name.substr(0,3) },
-            'A' => { $.day-name },
-            'b' => { $.month-name.substr(0,3) },
-            'B' => { $.month-name },
-            'C' => { ($.year/100).fmt('%02d') },
-            'e' => { $.day.fmt('%2d') },
-            'F' => { $.year.fmt('%04d') ~ '-' ~ $.month.fmt(
-                     '%02d') ~ '-' ~ $.day.fmt('%02d') },
-            'I' => { (($.hour+23)%12+1).fmt('%02d') },
-            'k' => { $.hour.fmt('%2d') },
-            'l' => { (($.hour+23)%12+1).fmt('%2d') },
-            'n' => { "\n" },
-            'N' => { (($.second % 1)*1000000000).fmt('%09d') },
-            'p' => { ($.hour < 12) ?? 'am' !! 'pm' },
-            'P' => { ($.hour < 12) ?? 'AM' !! 'PM' },
-            'r' => { (($.hour+23)%12+1).fmt('%02d') ~ ':' ~
-                     $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d')
-                     ~ (($.hour < 12) ?? 'am' !! 'pm') },
-            'R' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') },
-            's' => { $.to-epoch.fmt('%d') },
-            't' => { "\t" },
-            'T' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') },
-            'u' => { ~ $.day-of-week.fmt('%d') },
-            'w' => { ~ (($.day-of-week+6) % 7).fmt('%d') },
-            'x' => { $.year.fmt('%04d') ~ '-' ~ $.month.fmt('%02d') ~ '-' ~ $.day.fmt('%2d') },
-            'X' => { $.hour.fmt('%02d') ~ ':' ~ $.minute.fmt('%02d') ~ ':' ~ $.second.fmt('%02d') },
-            'y' => { ($.year % 100).fmt('%02d') },
-            '%' => { '%' },
-            '3' => { (($.second % 1)*1000).fmt('%03d') },
-            '6' => { (($.second % 1)*1000000).fmt('%06d') },
-            '9' => { (($.second % 1)*1000000000).fmt('%09d') }
-        ;
-        my $result = '';
-        while $format ~~ / ^ (<-['%']>*) '%' (.)(.*) $ / {
-            unless %substitutions.exists(~$1) { die "unknown strftime format: %$1"; }
-            $result ~= $0 ~ %substitutions{~$1}();
-            $format = ~$2;
-            if $1 eq '3'|'6'|'9' {
-                if $format.substr(0,1) ne 'N' { die "strftime format %$1 must be followed by N"; }
-                $format = $format.substr(1);
-            }
-        }
-        # The subst for masak++'s nicer-strftime branch is NYI
-        # $format .= subst( /'%'(\w|'%')/, { (%substitutions{~$0}
-        #            // die "Unknown format letter '\%$0'").() }, :global );
-        return $result ~ $format;
     }
 
     multi method truncate($unit) {
@@ -225,14 +182,17 @@ class DateTime {
 
     method set(:$year, :$month, :$day,
                :$hour, :$minute, :$second,
-               :$time-zone, :$formatter) {
+               :$timezone, :$formatter) {
         # Do this first so that the other nameds have a chance to
         # override.
-        if defined $time-zone {
+        if defined $timezone {
             # First attempt. Probably wrong.
-            my $difference = $time-zone - $!time-zone;
-            $!hour += $difference;
-            $!time-zone = $time-zone;
+            # Confirmed, this does NOT work. TODO: FIXME: Make it work.
+            # Notes: The Timezone is in HHMM format. We must parse that
+            # in order to figure out what timezone shift to use.
+            #my $difference = $timezone - $!timezone;
+            #$!hour += $difference;
+            $!timezone = $timezone;
         }
 
         $!year       = $year       // $!year;
@@ -252,12 +212,17 @@ class DateTime {
     method set-hour($hour)             { self.set(:$hour) }
     method set-minute($minute)         { self.set(:$minute) }
     method set-second($second)         { self.set(:$second) }
-    method set-time-zone($time-zone)   { self.set(:$time-zone) }
+    method set-timezone($timezone)   { self.set(:$timezone) }
     method set-formatter($formatter)   { self.set(:$formatter) }
 
     method Date() {
         return ::Date.new(self);
     }
+
+    multi method perl() {
+        "DateTime.new('" ~ self.iso8601 ~ "')";
+    }
+
 
 }
 
@@ -276,8 +241,8 @@ and L<http://www.merlyn.demon.co.uk/daycount.htm>.
 <ISO 8601|http://en.wikipedia.org/wiki/ISO_8601>
 <Time zones|http://en.wikipedia.org/wiki/List_of_time_zones>
 
-To accommodate more Temporal expectations without bloating the core executable, I am planning to move DateTime::strftime into a loadable module. The move will also validate how tools handle "core modules" (eg copying, compiling to PIR) beyond only Test.pm.
-If it works, I intend to gradually move more non essential code (a subjective call, admittedly) as possible into loadable modules. Which actual code moves is less important, using the capability is more important.
- 
+As per the recommendation, the strftime() method has bee moved into a
+loadable module called DateTime::strftime.
+
 =end pod
 

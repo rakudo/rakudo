@@ -584,6 +584,7 @@ S32-str/uc.t                                               # icu
 S32-str/words.t                                            # icu
 S32-temporal/Date.t
 S32-temporal/DateTime.t
+S32-temporal/DateTime-strftime.t
 S32-trig/e.t
 # S32-trig/pi.t
 S32-trig/sin.t                                             # long

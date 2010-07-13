@@ -1,33 +1,39 @@
 class Date {
-    sub is-leap($year) {
+
+    has Int $.year;
+    has Int $.month  = 1;
+    has Int $.day    = 1;
+
+    has Int $.daycount; # = self!daycount-from-ymd($!year, $!month, $!day);
+    ## Assignment from here does not currently work. Moving to new().
+
+    method is-leap($year) {
         return False if $year % 4;
         return True  if $year % 100;
         $year % 400 == 0;
     }
 
-    sub days-in-month($year, $month) {
+    multi method days-in-month($year, $month) {
         my @month-length = 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31;
         if ($month == 2) {
-            is-leap($year) ?? 29 !! 28;
+            self.is-leap($year) ?? 29 !! 28;
         } else {
             @month-length[$month-1];
         }
     }
 
-    sub assert-valid-date($year, $month, $day) {
+    method assert-valid-date($year, $month, $day) {
         die 'Invalid date: day < 1'     if $day < 1;
         die 'Invalid date: month < 1'   if $month < 1;
         die 'Invalid date: month > 12'  if $month > 12;
-        my $dim = days-in-month($year, $month);
+        my $dim = self.days-in-month($year, $month);
         if $day >  $dim {
             die "Invalid date: day > $dim";
         }
     }
-    has Int $.year;
-    has Int $.month;
-    has Int $.day;
 
-    has Int $.daycount = self!daycount-from-ymd($!year, $!month, $!day);
+    method leap-year()     { self.is-leap($.year) }
+    multi method days-in-month() { self.days-in-month($.year, $.month) }
 
     method !daycount-from-ymd($y is copy, $m is copy, $d) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
@@ -60,25 +66,20 @@ class Date {
         return $y, $m + 3, $d+1;
     }
 
-
-    # TODO: checking for out-of-range errors
-    multi method new($year, $month, $day) {
-        assert-valid-date($year, $month, $day);
-        self.bless(*, :$year, :$month, :$day);
-    }
     multi method new(:$year, :$month, :$day) {
-        assert-valid-date($year, $month, $day);
-        self.bless(*, :$year, :$month, :$day);
+        self.assert-valid-date($year, $month, $day);
+        my $daycount = self!daycount-from-ymd($year,$month,$day);
+        self.bless(*, :$year, :$month, :$day, :$daycount);
+    }
+
+    multi method new($year, $month, $day) {
+        self.new(:$year, :$month, :$day);
     }
 
     multi method new(Str $date where { $date ~~ /
             ^ <[0..9]>**4 '-' <[0..9]>**2 '-' <[0..9]>**2 $
         /}) {
-        my ($year, $month, $day) =  $date.split('-').map({ .Int });
-        assert-valid-date($year, $month, $day);
-        self.bless(*, :$year, :$month, :$day);
-# RAKUDO: doesn't work yet - find out why
-#        self.new(|$date.split('-'));
+        self.new(|$date.split('-').map({ .Int }));
     }
 
     multi method new-from-daycount($daycount) {
@@ -87,17 +88,22 @@ class Date {
     }
 
     multi method new(::DateTime $dt) {
-        self.bless(*, :year($dt.year), :month($dt.month), :day($dt.day));
+        my $daycount = self!daycount-from-ymd($dt.year,$dt.month,$dt.day);
+        self.bless(*, 
+            :year($dt.year), :month($dt.month), :day($dt.day), :$daycount
+        );
     }
 
     multi method today() {
         my $dt = ::DateTime.now();
-        self.bless(*, :year($dt.year), :month($dt.month), :day($dt.day));
+        self.new($dt);
     }
 
+    method DateTime(*%_) {
+        return ::DateTime.new(:year($.year), :month($.month), :day($.day), |%_);
+    }
+    
     method day-of-week()   { 1 + (($!daycount + 2) % 7) }
-    method leap-year()     { is-leap($.year) }
-    method days-in-month() { days-in-month($.year, $.month) }
 
     multi method Str() {
         sprintf '%04d-%02d-%02d', $.year, $.month, $.day;

@@ -36,3 +36,4 @@ src/binder/bind.bundle
 src/binder/bind.o
 docs/test_summary.times
 docs/test_summary.times.tmp
+lib/DateTime/strftime.pir

@@ -1,5 +1,14 @@
 New in 2010.07 release
 + support for delegation via 'handles'
++ implemented binding with := and read-only binding with ::=
++ implement OS related built-ins like mkdir, cwd
++ improved diagnostics in Test.pm
++ basic binary IO, buffer encoding and decoding
++ magic $*ARGFILE file handle
++ more robust closures
++ multi-level Array and Hash element autovivification
++ perl6 --version now identifies the exact git sha1
++ implemented 'is rw' trait on classes
 
 New in 2010.06 release
 + new list model with immutable iterators, lots of fixes to lists and arrays

@@ -10,8 +10,25 @@ augment class Mu {
 
     multi method notdef() { !self.defined; }
 
-    multi method perl {
-        substr(~self.WHAT, 0, -2) ~ '.new()';
+    multi method perl() {
+        my sub typename(Mu $x) { pir::typeof__SP($x) };
+        my sub attribs(Mu $x, Mu $type) {
+            my @attr = $type.^attributes>>.name;
+
+            # TODO: get attribute per type, not globally
+            return @attr.map({
+                $_.substr(2) ~ ' => ' ~  pir::getattribute__PPS($x, $_).perl
+            }).join(', ');
+        }
+
+        my $result = typename(self) ~ '.new('
+             ~ attribs(self, self)
+#             ~ self.^parents.map({typename($_) ~ '{'
+#                                  ~ attribs(self, $_) ~ '}' }).join(', '),
+             ~ ')';
+
+        $result;
+
     }
     
     method print() {

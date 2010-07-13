@@ -4,5 +4,7 @@ augment class Bool does Abstraction {
 
     method perl() { self ?? "Bool::True" !! "Bool::False"; }
 
+    method Str() { $.perl() }
+
     method Bridge() { self ?? 1.Bridge !! 0.Bridge }
 }

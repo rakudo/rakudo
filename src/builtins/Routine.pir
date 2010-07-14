@@ -64,7 +64,7 @@ Returns a curried version of self.
 
     # Did we already wrap?
     .local pmc cand_list, cur_sub
-    cur_sub = getattribute self, ['Sub'], 'proxy'
+    cur_sub = getattribute self, '$!do'
     cand_list = getprop '@!candidates', cur_sub
     unless null cand_list goto have_cand_list
 
@@ -78,7 +78,7 @@ Returns a curried version of self.
     .lex '__CANDIDATE_LIST__', p6i
     .const 'Sub' $P0 = '!wrap_start_helper'
     $P0 = newclosure $P0
-    setattribute self, ['Sub'], 'proxy', $P0
+    setattribute self, '$!do', $P0
     setprop $P0, '@!candidates', cand_list
 
     # XXX Aww, fick. Some hrovno happens in what follows that puts
@@ -100,9 +100,10 @@ Returns a curried version of self.
     .const 'Sub' $P1 = '!wrap_clholder_helper'
     $P1 = clone $P1
     setprop $P1, '$!wrapper_block', wrapper
-    $P2 = wrapper.'get_outer'()
-    $P1.'set_outer'($P2)
-    wrapper.'set_outer'($P1)
+    $P2 = getattribute wrapper, '$!do'
+    $P3 = $P2.'get_outer'()
+    $P1.'set_outer'($P3)
+    $P2.'set_outer'($P1)
 
     # Unshift this candidate onto the list; generate a wrap handle also, stick
     # it on the candidate and return it.
@@ -131,8 +132,11 @@ Returns a curried version of self.
     .tailcall $P1(pos_args :flat, named_args :flat :named)
 .end
 .sub '!wrap_clholder_helper' :anon
-    .param pmc pos_args   :slurpy
-    .param pmc named_args :slurpy :named
+    .param pmc args :call_sig
+    
+    .lex 'call_sig', args
+    .local pmc pos_args, named_args
+    (pos_args, named_args) = '!deconstruct_call_sig'(args)
 
     # Slot for candidate list.
     .lex '__CANDIDATE_LIST__', $P0
@@ -146,7 +150,8 @@ Returns a curried version of self.
     # Get the inner block and call it.
     $P1 = interpinfo .INTERPINFO_CURRENT_SUB
     $P1 = getprop '$!wrapper_block', $P1
-    capture_lex $P1
+    $P2 = getattribute $P1, '$!do'
+    capture_lex $P2
     ($P3) = $P1(pos_args :flat, named_args :flat :named)
     .return ($P3)
 
@@ -167,7 +172,7 @@ Returns a curried version of self.
 
     # Check it's wrapped.
     .local pmc cand_list, cur_sub
-    cur_sub = getattribute self, ['Sub'], 'proxy'
+    cur_sub = getattribute self, '$!do'
     cand_list = getprop '@!candidates', cur_sub
     if null cand_list goto error
 
@@ -193,7 +198,7 @@ Returns a curried version of self.
 
   final:
     $P0 = shift cand_list
-    setattribute self, ['Sub'], 'proxy', $P0
+    setattribute self, '$!do', $P0
     .return (handle)
 
   error:

@@ -20,11 +20,11 @@ class Match is Regex::Match is Cool does Positional does Associative {
     }
 
     method Bool() {
-        $.from < $.to;
+        $.from <= $.to;
     }
 
     method defined() {
-        $.from < $.to;
+        $.from <= $.to;
     }
 
     method at_key($key) {

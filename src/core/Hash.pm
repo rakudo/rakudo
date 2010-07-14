@@ -101,15 +101,15 @@ role Hash is EnumMap {
         my $value = @weights[*-1].rand;
         return self.keys[0] if @weights[0] > $value;
         my ($l, $r) = (0, @weights.elems-1);
-        my $middle = $l + floor( ($r-$l)/2);
-        while ($middle > $l) {
+        my $middle = floor ($r + $l) / 2;
+        while $middle > $l {
             if @weights[$middle] < $value {
                 $l = $middle;
             }
             else {
                  $r = $middle;
             }
-            $middle = $l + floor( ($r-$l)/2);
+            $middle = floor ($r + $l) / 2;
         }
         self.keys[$r];
     }
@@ -120,32 +120,28 @@ role Hash is EnumMap {
             my $value = @weights[*-1].rand;
             return self.keys[0] if @weights[0] > $value;
             my ($l, $r) = (0, @weights.elems-1);
-            my $middle = $l + floor( ($r-$l)/2);
-            while ($middle > $l) {
+            my $middle = floor ($r + $l) / 2;
+            while $middle > $l {
                 if @weights[$middle] < $value {
                     $l = $middle;
                 }
                 else {
                      $r = $middle;
                 }
-                $middle = $l + floor( ($r-$l)/2);
+                $middle = floor ($r + $l) / 2;
             }
             return self.keys[$r];
         }
 
         if $replace {
             gather {
-                while $num > 0 {
-                    take self.pick();
-                    $num--;
-                }
+                take self.pick() for ^$num;
             }
         } else {
             my %copyHash = @.pairs.grep({ .value != 0});
             gather {
                 while $num > 0 && %copyHash {
-                    my $picked;
-                    take $picked = %copyHash.pick();
+                    take my $picked = %copyHash.pick();
                     unless --%copyHash{$picked} {
                         %copyHash.delete($picked);
                     }

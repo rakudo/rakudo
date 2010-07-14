@@ -141,7 +141,7 @@ role Hash is EnumMap {
                 }
             }
         } else {
-            my %copyHash = self;
+            my %copyHash = @.pairs.grep({ .value != 0});
             gather {
                 while $num > 0 && %copyHash {
                     my $picked;

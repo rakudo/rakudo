@@ -96,6 +96,69 @@ role Hash is EnumMap {
     multi method sort(&by = &infix:<cmp>) {
         self.pairs.sort(&by)
     }
+    multi method pick() {
+        my @weights = [\+] self.values;
+        my $value = @weights[*-1].rand;
+        return self.keys[0] if @weights[0] > $value;
+        my ($l, $r) = (0, @weights.elems-1);
+        my $middle = $l + floor( ($r-$l)/2);
+        while ($middle > $l) {
+            if @weights[$middle] < $value {
+                $l = $middle;
+            }
+            else {
+                 $r = $middle;
+            }
+            $middle = $l + floor( ($r-$l)/2);
+        }
+        self.keys[$r];
+    }
+
+    multi method pick($num is copy = 1, :$replace) {
+        if ($num == 1) {
+            my @weights = [\+] self.values;
+            my $value = @weights[*-1].rand;
+            return self.keys[0] if @weights[0] > $value;
+            my ($l, $r) = (0, @weights.elems-1);
+            my $middle = $l + floor( ($r-$l)/2);
+            while ($middle > $l) {
+                if @weights[$middle] < $value {
+                    $l = $middle;
+                }
+                else {
+                     $r = $middle;
+                }
+                $middle = $l + floor( ($r-$l)/2);
+            }
+            return self.keys[$r];
+        }
+
+        if $replace {
+            gather {
+                while $num > 0 {
+                    take self.pick();
+                    $num--;
+                }
+            }
+        } else {
+            my %copyHash = self;
+            gather {
+                while $num > 0 && %copyHash {
+                    my $picked;
+                    take $picked = %copyHash.pick();
+                    unless --%copyHash{$picked} {
+                        %copyHash.delete($picked);
+                    }
+                    $num--;
+                }
+            }
+        }
+    }
+
+    multi method pick(Whatever, :$replace) {
+        self.pick(Inf, :$replace);
+    }
+
 
 }
 

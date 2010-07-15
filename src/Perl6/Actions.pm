@@ -3178,6 +3178,10 @@ INIT {
     %not_curried{'&infix:<~~>'}   := 1;
     %not_curried{'&infix:<=>'}    := 1;
     %not_curried{'&infix:<:=>'}   := 1;
+    %not_curried{'WHAT'}          := 1;
+    %not_curried{'HOW'}           := 1;
+    %not_curried{'WHO'}           := 1;
+    %not_curried{'WHERE'}         := 1;
 }
 sub whatever_curry($past, $upto_arity) {
     if $past.isa(PAST::Op) && !%not_curried{$past.name} {

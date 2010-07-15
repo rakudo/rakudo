@@ -254,9 +254,21 @@ pmclass P6Invocation dynpmc group perl6_group auto_attrs {
             PMC *ns;
 
             /* Oh noes, no candidate. If we aren't in soft-fail mode, then
-             * throw an exception. */
-            if (!PObj_flag_TEST(P6I_FAILURE_MODE, SELF))
-                Parrot_ex_throw_from_c_args(interp, next, 1, "No candidates found to invoke");
+             * throw an exception with an informative error message. */
+            if (!PObj_flag_TEST(P6I_FAILURE_MODE, SELF)) {
+                STRING *method_name, *type_name;
+                PMC *WHAT, *perl_meth;
+                PMC *call_sig  = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                PMC *obj       = VTABLE_get_pmc_keyed_int(interp, call_sig, 0);
+                PMC *WHAT_meth = VTABLE_find_method(interp, obj, CONST_STRING(interp, "WHAT"));
+                Parrot_ext_call(interp, WHAT_meth, "Pi->P", obj, &WHAT);
+                perl_meth      = VTABLE_find_method(interp, WHAT, CONST_STRING(interp, "perl"));
+                Parrot_ext_call(interp, perl_meth, "Pi->S", WHAT, &type_name);
+                GETATTR_P6Invocation_name(interp, SELF, method_name);
+                Parrot_ex_throw_from_c_args(interp, next, 1,
+                    "No candidates found to invoke for method '%Ss' on object of type '%Ss'",
+                    method_name, type_name);
+            }
 
             /* Otherwise, we look up something that when invoked will just give a
              * dispatch failure. */

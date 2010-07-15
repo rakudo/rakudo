@@ -659,6 +659,7 @@ method term:sym<routine_declarator>($/) { make $<routine_declarator>.ast; }
 method term:sym<multi_declarator>($/)   { make $<multi_declarator>.ast; }
 method term:sym<regex_declarator>($/)   { make $<regex_declarator>.ast; }
 method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
+method term:sym<circumfix>($/)          { make $<circumfix>.ast; }
 method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
 method term:sym<lambda>($/)             { make block_closure($<pblock>.ast, 'Block', 0); }
 method term:sym<sigterm>($/)            { make $<sigterm>.ast; }

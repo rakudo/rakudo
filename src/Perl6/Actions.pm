@@ -588,7 +588,9 @@ method blorst($/) {
 }
 
 sub add_phaser($/, $bank) {
-    my $block := $<blorst>.ast;
+    my $block := PAST::Block.new(
+        PAST::Op.new( :pasttype('call'), :name('!YOU_ARE_HERE'), $<blorst>.ast )
+    );
     my $subid := $block.subid();
 
     # We always emit code to add the phaser.

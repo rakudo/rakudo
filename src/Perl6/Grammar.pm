@@ -1940,27 +1940,41 @@ method gen_op_if_needed($deflongname) {
     my $opname   := ~$deflongname<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
     my $canname  := $category ~ ":sym<" ~ $opname ~ ">";
 
-    # Work out what default precedence we want.
+    # Work out what default precedence we want, or if it's more special than
+    # just an operator.
     my $prec;
+    my $is_oper;
     if $category eq 'infix' {
         $prec := '%additive';
+        $is_oper := 1;
     }
     elsif $category eq 'prefix' {
         $prec := '%symbolic_unary';
+        $is_oper := 1;
     }
     elsif $category eq 'postfix' {
         $prec := '%autoincrement';
+        $is_oper := 1;
     }
-    else {
+    elsif $category eq 'circumfix' {
+        $is_oper := 0;
+    }
+    elsif $category eq 'trait_mod' {
         return;
     }
+    else {
+        self.panic("Can not add tokens of category '$category' with a sub");
+    }
 
-    # Check if we have the op already.
+    # Check if we generated a method for this already.
     unless pir::can__IPS($self, $canname) {
         # Nope, so we need to modify the grammar. Build code to parse it.
-        my $parse := Regex::P6Regex::Actions::buildsub(PAST::Regex.new(
-            :pasttype('concat'),
-            PAST::Regex.new(
+        my $parse := PAST::Regex.new(
+            :pasttype('concat')
+        );
+        if $is_oper {
+            # For operator, it's just like 'op' <O('%prec')>
+            $parse.push(PAST::Regex.new(
                 :pasttype('subcapture'),
                 :name('sym'),
                 :backtrack('r'),
@@ -1968,15 +1982,40 @@ method gen_op_if_needed($deflongname) {
                     :pasttype('literal'),
                     $opname
                 )
-            ),
-            PAST::Regex.new(
+            ));
+            $parse.push(PAST::Regex.new(
                 :pasttype('subrule'),
                 :name('O'),
                 :backtrack('r'),
                 'O',
                 PAST::Val.new( :value($prec) )
-            )
-        ));
+            ));
+        }
+        else {
+            # Find opener and closer and parse an EXPR between them.
+            # XXX One day semilist would be nice, but right now that
+            # runs us into fun with terminators.
+            my @parts := pir::split__Pss(' ', $opname);
+            if +@parts != 2 {
+                self.panic("Unable to find starter and stopper from '$opname'");
+            }
+            $parse.push(PAST::Regex.new(
+                :pasttype('literal'), :backtrack('r'),
+                ~@parts[0]
+            ));
+            $parse.push(PAST::Regex.new(
+                :pasttype('concat'),
+                PAST::Regex.new(
+                    :pasttype('subrule'), :subtype('capture'), :backtrack('r'),
+                    :name('EXPR'), 'EXPR'
+                ),
+                PAST::Regex.new(
+                    :pasttype('literal'), :backtrack('r'),
+                    ~@parts[1]
+                )
+            ));
+        }
+        $parse := Regex::P6Regex::Actions::buildsub($parse);
 
         # Needs to go into the Perl6::Grammar namespace.
         $parse.name($canname);
@@ -1987,6 +2026,17 @@ method gen_op_if_needed($deflongname) {
         my $compiled := PAST::Compiler.compile($parse);
         $self.HOW.add_method($self, ~$compiled[0], $compiled[0]);
         $self.HOW.add_method($self, ~$compiled[1], $compiled[1]);
+
+        # May also need to add to the actions.
+        if $category eq 'circumfix' {
+            my $subname := $deflongname.ast;
+            Perl6::Actions.HOW.add_method(Perl6::Actions, $canname, sub ($self, $/) {
+                make PAST::Op.new(
+                    :pasttype('call'), :name($subname),
+                    $<EXPR>.ast
+                );
+            });
+        }
 
         # Mark proto-regex table as needing re-generation.
         Q:PIR {

@@ -615,11 +615,13 @@ method blorst($/) {
 }
 
 sub add_phaser($/, $bank) {
+    my $block := $<blorst>.ast;
+    my $subid := $block.subid();
     @BLOCK[0].loadinit.push(
         PAST::Op.new( :pasttype('call'), :name('!add_phaser'),
-                      $bank, $<blorst>.ast, :node($/))
+                      $bank, $block, :node($/))
     );
-    make PAST::Stmts.new(:node($/));
+    make PAST::Op.new( :pasttype('call'), :name('!get_phaser_result'), $subid );
 }
 
 # Statement modifiers

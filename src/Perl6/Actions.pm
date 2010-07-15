@@ -530,34 +530,7 @@ method statement_control:sym<CONTROL>($/) {
     make PAST::Stmts.new(:node($/));
 }
 
-method statement_prefix:sym<BEGIN>($/) {
-    # BEGIN is kinda tricky. We actually need to run the code in it with
-    # immediate effect, and then have the BEGIN block evaluate to what
-    # was produced at runtime. But if we're in a pre-compiled module, we
-    # need to run the lot. Thus we keep a "already computed BEGIN values"
-    # hash and don't re-run if the value is in that. Of course, we still
-    # don't handle looking at things in outer lexical scopes here.
-    our %BEGINDONE;
-    our $?RAKUDO_HLL;
-    my $past := $<blorst>.ast;
-    $past.blocktype('declaration');
-    $past := PAST::Block.new(
-        :hll($?RAKUDO_HLL),
-        PAST::Op.new( :pasttype('call'), :name('!YOU_ARE_HERE'), $past )
-    );
-    my $compiled := PAST::Compiler.compile($past);
-    my $begin_id := $past.unique('BEGINDONE_');
-    %BEGINDONE{$begin_id} := $compiled();
-    @BLOCK[0].loadinit.push(PAST::Op.new(
-        :pasttype('call'), :name('!begin_unless_begun'),
-        $begin_id, $past
-    ));
-    make PAST::Var.new( :scope('keyed'),
-        PAST::Var.new( :name('%BEGINDONE'), :namespace(pir::split('::', 'Perl6::Actions')), :scope('package') ),
-        PAST::Val.new( :value($begin_id) )
-    );
-}
-
+method statement_prefix:sym<BEGIN>($/) { add_phaser($/, 'BEGIN'); }
 method statement_prefix:sym<CHECK>($/) { add_phaser($/, 'CHECK'); }
 method statement_prefix:sym<INIT>($/)  { add_phaser($/, 'INIT'); }
 method statement_prefix:sym<END>($/)   { add_phaser($/, 'END'); }
@@ -617,10 +590,27 @@ method blorst($/) {
 sub add_phaser($/, $bank) {
     my $block := $<blorst>.ast;
     my $subid := $block.subid();
-    @BLOCK[0].loadinit.push(
-        PAST::Op.new( :pasttype('call'), :name('!add_phaser'),
-                      $bank, $block, :node($/))
+
+    # We always emit code to add the phaser.
+    my $add_phaser := PAST::Op.new(
+        :pasttype('call'), :name('!add_phaser'),
+        $bank, $block, :node($/)
     );
+    @BLOCK[0].loadinit.push($add_phaser);
+
+    # If it's a BEGIN phaser, also need to add and run it immediately.
+    if $bank eq 'BEGIN' {
+        our $?RAKUDO_HLL;
+        my $fire := PAST::Op.new( :pasttype('call'), :name('!fire_phasers'), 'BEGIN' );
+        @BLOCK[0].loadinit.push($fire);
+        my $compiled := PAST::Compiler.compile(PAST::Block.new(
+            :hll($?RAKUDO_HLL),
+            $add_phaser, $fire
+        ));
+        $compiled();
+    }
+
+    # Need to get return value of phaser at "runtime".
     make PAST::Op.new( :pasttype('call'), :name('!get_phaser_result'), $subid );
 }
 

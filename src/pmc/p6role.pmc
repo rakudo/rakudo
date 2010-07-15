@@ -72,4 +72,8 @@ pmclass P6role extends Role dynpmc group perl6_group auto_attrs {
         PMC *owner = VTABLE_getprop(interp, SELF, CONST_STRING(interp, "$!owner"));
         return VTABLE_get_string(interp, owner);
     }
+
+    VTABLE INTVAL defined() {
+        return 0;
+    }
 }

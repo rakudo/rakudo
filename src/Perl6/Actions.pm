@@ -3,14 +3,12 @@ class Perl6::Actions is HLL::Actions;
 our @BLOCK;
 our @PACKAGE;
 our $TRUE;
-our %BEGINDONE;
 
 INIT {
     # initialize @BLOCK and @PACKAGE
     our @BLOCK := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
     our @PACKAGE := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
     our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
-    our %BEGINDONE := Q:PIR { %r = root_new ['parrot';'Hash'] };
 
     # Tell PAST::Var how to encode Perl6Str and Str values
     my %valflags :=

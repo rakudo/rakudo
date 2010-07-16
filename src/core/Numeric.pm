@@ -132,6 +132,10 @@ role Numeric {
         fail "unpolar is only defined for Reals, you have a $.WHAT()";
     }
 
+    method rand(Numeric $x:) {
+        $x.Real.rand;
+    }
+
     method sin(Numeric $x: $base = Radians) {
         note "$.WHAT() needs a version of .sin";
         fail "$.WHAT() needs a version of .sin";
@@ -295,4 +299,8 @@ multi sub infix:«<=»(Numeric $a, Numeric $b) {
 
 multi sub infix:«>=»(Numeric $a, Numeric $b) {
     ($a <=> $b) != -1;
+}
+
+multi sub srand(Numeric $seed) {
+    srand($seed.Real);
 }

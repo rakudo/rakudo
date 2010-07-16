@@ -96,7 +96,7 @@ role Real does Numeric {
                     $mag * $angle.sin(Radians));
     }
 
-    method rand($x:) {
+    method rand(Real $x:) {
         $x.Bridge.rand;
     }
 

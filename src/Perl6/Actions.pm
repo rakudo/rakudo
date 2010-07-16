@@ -598,9 +598,10 @@ method add_phaser($/, $blorst, $bank) {
     # We always emit code to the add and fire the phaser.
     my $add_phaser := PAST::Op.new(
         :pasttype('call'), :name('!add_phaser'),
-        $bank, $blorst, :node($/)
+        $bank, PAST::Val.new( :value($blorst) ), :node($/)
     );
     @BLOCK[0].loadinit.push($add_phaser);
+    @BLOCK[0][0].push($blorst);
 
     # If it's a BEGIN phaser, we also need it to run asap.
     if $bank eq 'BEGIN' {
@@ -675,12 +676,12 @@ method term:sym<YOU_ARE_HERE>($/) {
                 '$P0 = getinterp',
                 '$P0 = $P0["context"]',
                 '$P0 = getattribute $P0, "outer_ctx"',
+                '$P1 = getattribute $P0, "current_sub"',
+                '%0."set_outer"($P1)',
                 '%0."set_outer_ctx"($P0)',
                 '%r = %0'
             ),
-            PAST::Var.new( :name('mainline'), :scope('parameter') ),
-            PAST::Var.new( :name('$MAIN'), :scope('parameter'),
-                           :viviself( PAST::Val.new( :value(0) ) ) )
+            PAST::Var.new( :name('mainline'), :scope('parameter') )
         )
     );
     @BLOCK[0][0].push(PAST::Var.new(

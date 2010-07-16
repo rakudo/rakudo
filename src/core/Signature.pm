@@ -39,28 +39,25 @@ augment class Signature {
                 # First the type.
                 my $name = $param.name;
 
-                # work around TT #1560
-                $name = '' unless chars($name);
-
                 if !$param.slurpy {
-                    my $sigil = substr($name, 0, 1);
+                    my $sigil = $name.substr(0, 1);
                     my $perl = $param.type.perl;
                     if $sigil eq '$' {
                         take $perl ~ ' ';
                     }
                     elsif $sigil eq '@' {
                         if $perl ne 'Positional' {
-                            take substr($perl, 11, $perl.chars - 12) ~ ' ';
+                            take $perl.substr(11, $perl.chars - 12) ~ ' ';
                         }
                     }
                     elsif $sigil eq '%' {
                         if $perl ne 'Associative' {
-                            take substr($perl, 12, $perl.chars - 13) ~ ' ';
+                            take $perl.substr(12, $perl.chars - 13) ~ ' ';
                         }
                     }
-                    elsif substr($perl, 0, 8) eq 'Callable' {
+                    elsif $perl.substr(0, 8) eq 'Callable' {
                         if $perl ne 'Callable' {
-                            take substr($perl, 9, $perl.chars - 10) ~ ' ';
+                            take $perl.substr(9, $perl.chars - 10) ~ ' ';
                         }
                     }
                     else {
@@ -96,7 +93,7 @@ augment class Signature {
                 
                 # Any sub-signature?
                 if $param.signature {
-                    take ' ' ~ substr($param.signature.perl, 1);
+                    take ' ' ~ $param.signature.perl.substr(1);
                 }
 
                 # Default.

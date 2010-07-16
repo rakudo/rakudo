@@ -1362,6 +1362,48 @@ skipping any candidates with subids already present in the invocant.
         }
         RETURN (PMC *SELF);
     }
+
+/*
+
+=item METHOD STRING *dump_sorted_candidate_signatures()
+
+Dumps a list of candidate signautres, sorted in dispatch order.
+
+=cut
+
+*/
+
+    METHOD STRING *dump_sorted_candidate_signatures() {
+        candidate_info **candidates    = NULL;
+        candidate_info **cur_candidate = NULL;
+        STRING          *signatures    = Parrot_str_new(interp, "", 0);
+        PMC             *unsorted;
+
+        /* Make sure that we have a candidate list built. */
+        GETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+        GETATTR_Perl6MultiSub_candidates(interp, SELF, unsorted);
+        if (!candidates) {
+            PMC *proto;
+            candidates = sort_candidates(interp, unsorted, &proto);
+            SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
+            SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
+        }
+        if (!candidates)
+            Parrot_ex_throw_from_c_args(interp, NULL, 1,
+                "Failed to build candidate list");
+
+        /* Now go over the candidates and build a result string. */
+        cur_candidate = candidates;
+        while (1) {
+            if (!cur_candidate[0] && !cur_candidate[1])
+                break;
+            if (cur_candidate[0])
+                signatures = dump_signature(interp, signatures, (*cur_candidate)->sub);
+            cur_candidate++;
+        }
+
+        RETURN (STRING *signatures);
+    }
 }
 
 /*

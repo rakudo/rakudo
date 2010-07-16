@@ -224,9 +224,16 @@ Perl6::Compiler - Perl6 compiler
 .end
 
 .sub 'version' :method
+    .local pmc interp, config, rev
+    interp = getinterp
+    config = interp[.IGLOBALS_CONFIG_HASH]
+    rev    = config['revision']
+
     say ''
     print 'This is Rakudo Perl 6, version '
-    say .RAKUDO_VERSION
+    print .RAKUDO_VERSION
+    print ' built on parrot r'
+    say rev
     say ''
     say 'Copyright 2008-2010, The Perl Foundation'
     say ''

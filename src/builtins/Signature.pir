@@ -72,6 +72,11 @@ Returns a C<List> of C<Parameter> descriptors.
     parcel         = flags & SIG_ELEM_IS_PARCEL
     capture        = flags & SIG_ELEM_IS_CAPTURE
 
+    # Ensure name isn't null.
+    unless null name goto name_ok
+    name = ''
+  name_ok:
+
     # Make sure constraints is non-null.
     unless null cons_type goto have_cons
     cons_type = get_hll_global ['Bool'], 'True'

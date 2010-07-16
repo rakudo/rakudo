@@ -530,10 +530,10 @@ method statement_control:sym<CONTROL>($/) {
     make PAST::Stmts.new(:node($/));
 }
 
-method statement_prefix:sym<BEGIN>($/) { add_phaser($/, 'BEGIN'); }
-method statement_prefix:sym<CHECK>($/) { add_phaser($/, 'CHECK'); }
-method statement_prefix:sym<INIT>($/)  { add_phaser($/, 'INIT'); }
-method statement_prefix:sym<END>($/)   { add_phaser($/, 'END'); }
+method statement_prefix:sym<BEGIN>($/) { self.add_phaser($/, $<blorst>.ast, 'BEGIN'); }
+method statement_prefix:sym<CHECK>($/) { self.add_phaser($/, $<blorst>.ast, 'CHECK'); }
+method statement_prefix:sym<INIT>($/)  { self.add_phaser($/, $<blorst>.ast, 'INIT'); }
+method statement_prefix:sym<END>($/)   { self.add_phaser($/, $<blorst>.ast, 'END'); }
 
 method statement_prefix:sym<do>($/) {
     my $past := $<blorst>.ast;
@@ -587,9 +587,9 @@ method blorst($/) {
     make $block;
 }
 
-sub add_phaser($/, $bank) {
-    my $block := PAST::Block.new(
-        PAST::Op.new( :pasttype('call'), :name('!YOU_ARE_HERE'), $<blorst>.ast )
+method add_phaser($/, $blorst, $bank) {
+    my $block := $*SETTING_MODE ?? $blorst !! PAST::Block.new(
+        PAST::Op.new( :pasttype('call'), :name('!YOU_ARE_HERE'), $blorst )
     );
     my $subid := $block.subid();
 

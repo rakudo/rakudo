@@ -286,7 +286,7 @@ pmclass P6Invocation dynpmc group perl6_group auto_attrs {
                             CONST_STRING(interp, "dump_sorted_candidate_signatures"));
                     Parrot_ext_call(interp, dump_meth, "Pi->S", guilty_multi, &siggies);
                     Parrot_ex_throw_from_c_args(interp, next, 1,
-                        "No candidates found to invoke for method '%Ss' on object of type '%Ss'; available candidates has signatures:\n%Ss",
+                        "No candidates found to invoke for method '%Ss' on object of type '%Ss'; available candidates have signatures:\n%Ss",
                         method_name, type_name, siggies);
                 }
                 else {

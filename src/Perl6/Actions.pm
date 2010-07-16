@@ -2824,6 +2824,23 @@ sub block_closure($block, $type = 'Block', $multiness?) {
     $past;
 }
 
+# Returns the (dynamic) closure for a block, taking a reference
+# to it rather than holding it directly.
+sub block_ref_closure($block, $type = 'Block', $multiness?) {
+    my @name := Perl6::Grammar::parse_name($type);
+    my $past := PAST::Op.new(
+        :pasttype('callmethod'),
+        :name('!get_closure'),
+        PAST::Val.new( :value($block) ),
+        PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
+    );
+    $past.push($block<lazysig>) if pir::defined($block<lazysig>);
+    $past.push($multiness) if pir::defined($multiness);
+    $past<block_past> := $block;
+    $past<block_type> := $type;
+    $past;
+}
+
 # Wraps a sub up in a block type.
 sub create_code_object($block, $type, $multiness) {
     my @name := Perl6::Grammar::parse_name($type);
@@ -3074,9 +3091,8 @@ sub push_block_handler($/, $block, $handler) {
 
 # Makes the closure for the RHS of has $.answer = 42.
 sub make_attr_init_closure($init_value) {
-    # Need to not just build the closure, but new_closure it; otherwise, we
-    # run into trouble if our initialization value involves a parameter from
-    # a parametric role.
+    # Build the closure and install the block in the current lexical
+    # scope we're in, so it gets its outer right.
     my $block := PAST::Block.new(
         :blocktype('declaration'),
         PAST::Stmts.new( ),
@@ -3088,7 +3104,10 @@ sub make_attr_init_closure($init_value) {
         Perl6::Compiler::Parameter.new(:var_name('$_')));
     $sig.add_invocant();
     add_signature($block, $sig, 1);
-    create_code_object($block, 'Method', 0);
+    @BLOCK[0].push($block);
+
+    # Return a code object using a reference to the block.
+    block_ref_closure($block, 'Method', 0);
 }
 
 # Looks through the lexpads and sees if we recognize the symbol as a lexical.

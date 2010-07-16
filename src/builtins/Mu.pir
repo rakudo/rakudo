@@ -338,22 +338,6 @@ Report the object's true nature.
 .end
 
 
-=item REJECTS(topic)
-
-Define REJECTS methods for objects (this would normally
-be part of the Pattern role, but we put it here for now
-until we get roles).
-
-=cut
-
-.sub 'REJECTS' :method
-    .param pmc topic
-    $P0 = self.'ACCEPTS'(topic)
-    $P1 = '&prefix:<!>'($P0)
-    .return ($P1)
-.end
-
-
 =item WHENCE()
 
 Return the invocant's auto-vivification closure.

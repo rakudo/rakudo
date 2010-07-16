@@ -108,12 +108,6 @@ Puns the role to a class and returns that class.
   done:
     .return ($I0)
 .end
-.sub 'REJECTS' :method
-    .param pmc topic
-    $P0 = self.'ACCEPTS'(topic)
-    $I0 = isfalse $P0
-    .return ($I0)
-.end
 
 
 =item defined

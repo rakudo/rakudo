@@ -16,11 +16,6 @@ our multi infix:<~~>(Mu $topic is rw, Substitution $matcher) {
     $matcher.ACCEPTS($topic)
 }
 
-
-our multi infix:<!~~>(Mu $topic, Mu $matcher) {
-    $matcher.REJECTS($topic)
-}
-
 our multi prefix:<?>(Mu $a) {
     pir::can($a, 'Bool')
     ?? $a.Bool

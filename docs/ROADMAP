@@ -22,7 +22,6 @@ others from doing so.
 Patches to this document are welcome.
 
 Really important items
-1 **    operator overloading -- infix:, prefix:, postfix: (almost there, problems with pre-comp)
 1 **    improved error messages and failure modes (B, all)
 1 *     attention-grabbing examples (all)
 1 **    release announcement draft (pmichaud, all)
@@ -114,6 +113,7 @@ Completed ROADMAP items:
   - REPL actually prints (done)
   - import module symbols into current lexical scope (done)
   - complete lazy lists in Seq and Array (done)
-  - working closures
+  - working closures (done)
   - array/hash vivification (done)
   - REPL remembers the variable from the last line (done)
+  - operator overloading -- infix:, prefix:, postfix: (done)

@@ -62,6 +62,25 @@ of the compilation unit.
 .end
 
 
+.sub '!UNIT_OUTER'
+    .param pmc unit
+    $P0 = find_dynamic_lex '%*COMPILING'
+    if null $P0 goto outer_setting
+    $P0 = $P0['%?OPTIONS']
+    if null $P0 goto outer_setting
+    $P0 = $P0['outer_ctx']
+    if null $P0 goto outer_setting
+    unit.'set_outer_ctx'($P0)
+    goto done
+  outer_setting:
+    $P0 = find_name '!YOU_ARE_HERE'
+    if null $P0 goto done
+    unit = $P0(unit)
+  done:
+    .return (unit)
+.end
+
+
 .sub '!UNIT_START'
     .param pmc unit
     .param pmc args            :optional
@@ -84,11 +103,13 @@ of the compilation unit.
   mainline_start:
     '!GLOBAL_VARS'(args)
     '!fire_phasers'('INIT')
-    $P0 = '!YOU_ARE_HERE'(unit, 1)
+    $P0 = '!YOU_ARE_HERE'(unit)
+    $P0 = $P0(1)
     .return ($P0)
   module_start:
     '!fire_phasers'('INIT')
-    $P0 = '!YOU_ARE_HERE'(unit, 0)
+    $P0 = '!YOU_ARE_HERE'(unit)
+    $P0 = $P0(0)
     .return ($P0)
   eval_start:
     '!fire_phasers'('INIT')

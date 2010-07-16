@@ -66,6 +66,13 @@ method comp_unit($/, $key?) {
         return 1;
     }
 
+    $unit.loadinit.unshift(
+        PAST::Op.new(
+            :name('!UNIT_OUTER'),
+            PAST::Var.new( :name('block'), :scope('register') )
+        )
+    );
+
     my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),
                          :viviself( PAST::Val.new( :value(0) ) ) );
     $unit.symbol('$MAIN', :scope<lexical>);
@@ -588,28 +595,32 @@ method blorst($/) {
 }
 
 method add_phaser($/, $blorst, $bank) {
-    my $block := $*SETTING_MODE ?? $blorst !! PAST::Block.new(
-        PAST::Op.new( :pasttype('call'), :name('!YOU_ARE_HERE'), $blorst )
-    );
-    my $subid := $block.subid();
+    my $subid := $blorst.subid();
 
-    # We always emit code to add the phaser.
+    # We always emit code to the add and fire the phaser.
     my $add_phaser := PAST::Op.new(
         :pasttype('call'), :name('!add_phaser'),
-        $bank, $block, :node($/)
+        $bank, $blorst, :node($/)
     );
     @BLOCK[0].loadinit.push($add_phaser);
 
-    # If it's a BEGIN phaser, also need to add and run it immediately.
+    # If it's a BEGIN phaser, we also need it to run asap.
     if $bank eq 'BEGIN' {
-        our $?RAKUDO_HLL;
+        # add code to immediately fire the BEGIN phaser
         my $fire := PAST::Op.new( :pasttype('call'), :name('!fire_phasers'), 'BEGIN' );
         @BLOCK[0].loadinit.push($fire);
-        my $compiled := PAST::Compiler.compile(PAST::Block.new(
-            :hll($?RAKUDO_HLL),
-            $add_phaser, $fire
-        ));
-        $compiled();
+
+        # and execute the phaser immediately in the current UNIT_OUTER
+        our $?RAKUDO_HLL;
+        $blorst.hll($?RAKUDO_HLL);
+        my $compiled := PAST::Compiler.compile($blorst);
+        Q:PIR {
+            $P0 = find_lex '$compiled'
+            $P0 = $P0[0]
+            '!UNIT_OUTER'($P0)
+            '!add_phaser'('BEGIN', $P0)
+            '!fire_phasers'('BEGIN')
+        }
     }
 
     # Need to get return value of phaser at "runtime".
@@ -667,7 +678,7 @@ method term:sym<YOU_ARE_HERE>($/) {
                 '$P0 = $P0["context"]',
                 '$P0 = getattribute $P0, "outer_ctx"',
                 '%0."set_outer_ctx"($P0)',
-                '%r = %0(%1)'
+                '%r = %0'
             ),
             PAST::Var.new( :name('mainline'), :scope('parameter') ),
             PAST::Var.new( :name('$MAIN'), :scope('parameter'),
@@ -1487,7 +1498,7 @@ method type_declarator:sym<enum>($/) {
         my $compiled := PAST::Compiler.compile(PAST::Block.new(
             :hll($?RAKUDO_HLL), $value_ast
         ));
-        my $result := (pir::find_sub_not_null__ps('!YOU_ARE_HERE'))($compiled);
+        my $result := (pir::find_sub_not_null__ps('!YOU_ARE_HERE'))($compiled)();
         
         # Only support our-scoped so far.
         unless $*SCOPE eq '' || $*SCOPE eq 'our' {

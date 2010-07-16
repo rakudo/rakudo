@@ -67,8 +67,8 @@ augment class Cool {
         ~(pir::chr__SI(self))
     }
 
-    our Num method rand() {
-        pir::box__PN(pir::rand__NN(self))
+    method rand($x:) {
+        (+$x).rand;
     }
 
     method sin($x: $base = Radians) {
@@ -312,8 +312,8 @@ proto chr($graph) {
     $graph.chr;
 }
 
-sub srand(Int $seed = time) {
-    pir::srand__0I($seed);
+proto sub srand($seed) {
+    srand(+$seed);
 }
 
 # vim: ft=perl6

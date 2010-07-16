@@ -96,6 +96,10 @@ role Real does Numeric {
                     $mag * $angle.sin(Radians));
     }
 
+    method rand($x:) {
+        $x.Bridge.rand;
+    }
+
     method sin(Real $x: $base = Radians) {
         $x.Bridge.sin($base);
     }
@@ -263,4 +267,8 @@ multi sub infix:<**>(Real $a, Real $b) {
 # should automatically define an appropriate mod for you.
 our multi sub infix:<mod>(Real $a, Real $b) {
     $a - ($a div $b) * $b;
+}
+
+multi sub srand(Real $seed = time) {
+    pir::srand__0I($seed.Int);
 }

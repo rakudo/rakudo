@@ -75,6 +75,10 @@ augment class Num does Real {
         }
     }
 
+    method rand(Num $x:) {
+        pir::box__PN(pir::rand__NN($x))
+    }
+
     method sin(Num $x: $base = Radians) {
         pir::sin__Nn($x.to-radians($base));
     }

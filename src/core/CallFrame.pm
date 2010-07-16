@@ -43,7 +43,7 @@ class CallFrame {
 
             %r     = interp["lexpad"; level]
         };
-        ::LexPad.new(parrot_lexpad => $pad);
+        CREATE_HASH_FROM_LOW_LEVEL $pad;
     }
 }
 

@@ -2180,8 +2180,13 @@ method EXPR($/, $key?) {
     unless $key { return 0; }
     if $/<drop> { make PAST::Stmts.new(); return 0; }
     my $past := $/.ast // $<OPER>.ast;
-    if !$past && $<infix><sym> eq '.=' {
+    my $sym := ~$<infix><sym>;
+    if !$past && $sym eq '.=' {
         make make_dot_equals($/[0].ast, $/[1].ast);
+        return 1;
+    }
+    elsif $sym eq '==>' || $sym eq '<==' || $sym eq '==>>' || $sym eq '<<==' {
+        make make_feed($/);
         return 1;
     }
     unless $past {
@@ -2214,6 +2219,64 @@ method EXPR($/, $key?) {
         $past := whatever_curry($past, $key eq 'INFIX' ?? 2 !! 1);
     }
     make $past;
+}
+
+sub make_feed($/) {
+    # Assemble into list of AST of each step in the pipeline.
+    my @stages;
+    if $/<infix><sym> eq '==>' {
+        for @($/) { @stages.push($_.ast); }
+    }
+    elsif $/<infix><sym> eq '<==' {
+        for @($/) { @stages.unshift($_.ast); }
+    }
+    else {
+        $/.CURSOR.panic('Sorry, the ' ~ $/<infix> ~ ' feed operator is not yet implemented');
+    }
+    
+    # Check what's in each stage and make a chain of blocks
+    # that call each other. They'll return lazy things, which
+    # will be passed in as var-arg parts to other things. The
+    # first thing is just considered the result.
+    my $result := @stages.shift;
+    for @stages {
+        # Wrap current result in a block, so it's thunked and can be
+        # called at the right point.
+        $result := PAST::Block.new( $result );
+
+        # Check what we have. XXX Real first step should be looking
+        # for @(*) since if we find that it overrides all other things.
+        # But that's todo...soon. :-)
+        if $_ ~~ PAST::Op && $_.pasttype eq 'call' {
+            # It's a call. Stick a call to the current supplier in
+            # as its last argument.
+            $_.push(PAST::Op.new( :pasttype('call'), $result ));
+        }
+        elsif $_ ~~ PAST::Var {
+            # It's a variable. We need code that gets the results, pushes
+            # them onto the variable and then returns them (since this
+            # could well be a tap.
+            $_ := PAST::Stmts.new(
+                PAST::Op.new(
+                    :pasttype('bind'),
+                    PAST::Var.new( :scope('register'), :name('tmp'), :isdecl(1) ),
+                    PAST::Op.new( :pasttype('call'), $result )
+                ),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('push'),
+                    $_,
+                    PAST::Var.new( :scope('register'), :name('tmp') )
+                ),
+                PAST::Var.new( :scope('register'), :name('tmp') )
+            );
+        }
+        else {
+            $/.CURSOR.panic('Sorry, do not know how to handle this case of a feed operator yet.');
+        }
+        $result := $_;
+    }
+
+    return $result;
 }
 
 method prefixish($/) {

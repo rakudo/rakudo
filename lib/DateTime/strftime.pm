@@ -41,7 +41,8 @@ module DateTime::strftime {
             '%' => { '%' },
             '3' => { (($dt.second % 1)*1000).fmt('%03d') },
             '6' => { (($dt.second % 1)*1000000).fmt('%06d') },
-            '9' => { (($dt.second % 1)*1000000000).fmt('%09d') }
+            '9' => { (($dt.second % 1)*1000000000).fmt('%09d') },
+            'z' => { $dt.timezone }
         ;
         my $result = '';
         while $format ~~ / ^ (<-['%']>*) '%' (.)(.*) $ / {

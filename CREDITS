@@ -329,6 +329,12 @@ U: tene
 D: Minor Rakudo patches
 E: tene@allalone.org
 
+N: Timothy Totten
+U: novus
+D: Temporal (DateTime/Date) modifications
+E: supernovus@gmail.com
+W: http://huri.net/
+
 N: Tyler Curtis
 U: tcurtis
 D: $*ARGFILES

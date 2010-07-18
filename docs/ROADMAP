@@ -23,6 +23,7 @@ Patches to this document are welcome.
 
 Really important items
 1 **    improved error messages and failure modes (B, all)
+        (see RT #76112, #74866, #74348, #74180)
 1 *     attention-grabbing examples (all)
 1 **    release announcement draft (pmichaud, all)
 1 ***   get the Advent examples running again (all)

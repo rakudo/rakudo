@@ -3,6 +3,8 @@ class IO is Cool {
     has $!ins;
     has $.autoflush is rw;
 
+    has $.path;
+
     multi method close() is export {
         try {
             ?$!PIO.close()
@@ -134,6 +136,38 @@ class IO is Cool {
 
     multi method t() {
         $!PIO.isatty;
+    }
+
+    # file test operations
+    multi method d() {
+        self.e ?? ?pir::stat__ISI($.path, 2) !! Bool;
+    }
+    multi method e() {
+        ?pir::stat__ISI($.path, 0);
+    }
+    multi method f() {
+        self.e ?? !pir::stat__ISI($.path, 2) !! Bool;
+    }
+
+    multi method s() {
+        self.e ?? pir::stat__ISI($.path, 1) !! Any;
+    }
+
+    multi method l() {
+        my $fn = $.path;
+        ? Q:PIR{
+            .local pmc filename, file
+            filename = find_lex '$fn'
+            $S0 = filename
+
+            file = root_new ['parrot';'File']
+            $I0 = file.'is_link'($S0)
+            %r = box $I0
+        }
+    }
+
+    multi method z() {
+        $.e && $.s == 0;
     }
 }
 

@@ -401,6 +401,10 @@ augment class Cool {
         }
         $! ?? fail( "Insufficient arguments supplied to sprintf") !! $result
     }
+
+    method IO() {
+        ::IO.new(path => ~self);
+    }
 }
 
 multi sub ord($string) {

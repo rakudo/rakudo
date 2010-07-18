@@ -9,6 +9,7 @@ New in 2010.07 release
 + multi-level Array and Hash element autovivification
 + perl6 --version now identifies the exact git sha1
 + implemented 'is rw' trait on classes
++ file tests now work through IO, ie.  'README'.IO ~~ :e
 
 New in 2010.06 release
 + new list model with immutable iterators, lots of fixes to lists and arrays

@@ -8,18 +8,6 @@ augment class Str does Stringy {
     multi method Int { (+self).Int; }
     multi method Num { (+self).Num; }
 
-    method d() {
-        self.e ?? ?pir::stat__ISI(self, 2) !! Bool;
-    }
-
-    method f() {
-        self.e ?? !pir::stat__ISI(self, 2) !! Bool;
-    }
-
-    method s() {
-        self.e ?? pir::stat__ISI(self, 1) !! Any;
-    }
-
     # XXX: We have no $?ENC or $?NF compile-time constants yet.
     multi method encode($encoding = 'UTF-8', $nf = '') {
         my @bytes = Q:PIR {

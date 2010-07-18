@@ -215,37 +215,6 @@ Returns the identify value.
     .return ($S0)
 .end
 
-=item File Test Methods
-
-These return various information about the file.
-
-=cut
-
-.namespace ['Str']
-.sub 'e' :method
-    #does it exist?
-    .local string filename
-    filename = self
-    $I42 = stat filename, 0
-    if $I42 goto lisreal
-    $P0 = get_hll_global ['Bool'], 'False'
-    .return ($P0)
-  lisreal:
-    $P0 = get_hll_global ['Bool'], 'True'
-    .return ($P0)
-.end
-
-.sub 'l' :method
-    .local string filename
-    filename = self
-
-    .local pmc file
-    file = root_new ['parrot';'File']
-
-    $I0 = file.'is_link'(filename)
-    .return ($I0)
-.end
-
 =back
 
 =head2 Functions

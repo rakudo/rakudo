@@ -1812,7 +1812,11 @@ token infix:sym«=>» { <sym> <O('%item_assignment')> }
 token prefix:sym<so> { <sym> >> <O('%loose_unary')> }
 token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
-token infix:sym<,>    { <sym>  <O('%comma')> }
+token infix:sym<,>    {
+    <sym>  <O('%comma')>
+    # TODO: should be <.worry>, not <.panic>
+    [ <?before \h*'...'> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
+}
 
 token infix:sym<Z>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 token infix:sym<X>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }

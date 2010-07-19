@@ -20,6 +20,8 @@ src/builtins/control.pir - control flow related functions
     .local string message
     .local pmc p6ex
     .local pmc ex
+    
+    .annotate 'invizible_frame', 1
 
     message = join '', list
     if message > '' goto have_message
@@ -34,6 +36,8 @@ src/builtins/control.pir - control flow related functions
     set_global '$!', p6ex
     throw ex
     .return ()
+
+    .annotate 'invizible_frame', 0
 .end
 
 =item exit
@@ -84,6 +88,8 @@ src/builtins/control.pir - control flow related functions
     .local pmc p6ex
     .local pmc ex
 
+    .annotate 'invizible_frame', 1
+
     message = join '', list
     if message > '' goto have_message
     message = "Warning"
@@ -97,6 +103,8 @@ src/builtins/control.pir - control flow related functions
     set_global '$!', p6ex
     throw ex
     .return ()
+
+    .annotate 'invizible_frame', 0
 .end
 
 =item fail

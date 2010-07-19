@@ -63,13 +63,19 @@ method compose($package) {
     
     # Generate an accessor, if we need one.
     if $!has_accessor {
-        # Accessor helper subs.
+        # Accessor helper subs. We make sure they are surrounded
+        # by annotations to make the backtrace printer ignore them,
+        # or otherwise we get line numbers from this file, which is
+        # totally useless to the dear programmer trying to debug their
+        # codez.
+        sub dummy_1() { Q:PIR { .annotate 'invizible_frame', 1 }; }
         sub accessor_helper_ro($self) {
             pir::new__PsP('Perl6Scalar', pir::getattribute__PPS($self, $name))
         }
         sub accessor_helper_rw($self) {
             pir::getattribute__PPS($self, $name)
         }
+        sub dummy_2() { Q:PIR { .annotate 'invizible_frame', 0 }; }
 
         # XXX check there isn't already one...
 

@@ -77,7 +77,7 @@ S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
 S02-builtin_data_types/infinity.t
 S02-builtin_data_types/lists.t
-# S02-builtin_data_types/mixed_multi_dimensional.t
+S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
 S02-builtin_data_types/nan.t
 S02-builtin_data_types/nested_arrays.t
@@ -330,7 +330,7 @@ S06-advanced_subroutine_features/callframe.t
 S06-advanced_subroutine_features/lexical-subs.t
 S06-advanced_subroutine_features/recurse.t
 S06-advanced_subroutine_features/return.t
-# S06-advanced_subroutine_features/wrap.t
+S06-advanced_subroutine_features/wrap.t
 S06-currying/assuming-and-mmd.t
 S06-currying/named.t
 S06-multi/lexical-multis.t

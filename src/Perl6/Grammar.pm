@@ -478,6 +478,18 @@ token statement_prefix:sym<BEGIN> { <sym> <blorst> }
 token statement_prefix:sym<CHECK> { <sym> <blorst> }
 token statement_prefix:sym<INIT>  { <sym> <blorst> }
 token statement_prefix:sym<END>   { <sym> <blorst> }
+token statement_prefix:sym<FIRST> { <sym> <blorst>
+        <.panic("FIRST phaser not yet implemented")> }
+token statement_prefix:sym<LAST>  { <sym> <blorst>
+        <.panic("LAST phaser not yet implemented")> }
+token statement_prefix:sym<ENTER> { <sym> <blorst>
+        <.panic("ENTER phaser not yet implemented")> }
+token statement_prefix:sym<LEAVE> { <sym> <blorst>
+        <.panic("LEAVE phaser not yet implemented")> }
+token statement_prefix:sym<PRE> { <sym> <blorst>
+        <.panic("PRE phaser not yet implemented")> }
+token statement_prefix:sym<POST> { <sym> <blorst>
+        <.panic("POST phaser not yet implemented")> }
 token statement_prefix:sym<sink>  { <sym> <blorst> }
 token statement_prefix:sym<try>   { <sym> <blorst> }
 token statement_prefix:sym<gather>{ <sym> <blorst> }

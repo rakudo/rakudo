@@ -1,4 +1,4 @@
-subset Matcher of Mu where { .can('ACCEPTS') };
+subset Matcher of Mu where { .^can('ACCEPTS') };
 
 augment class Mu {
     method Bool { $.defined }

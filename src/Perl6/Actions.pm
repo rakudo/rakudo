@@ -2099,7 +2099,7 @@ method arglist($/) {
 }
 
 sub handle_named_parameter($arg) {
-    if $arg ~~ PAST::Node && $arg.returns() eq 'Pair' {
+    if $arg ~~ PAST::Op && $arg.returns() eq 'Pair' {
         my $result := $arg[2];
         $result.named(~$arg[1].value());
         $result<before_promotion> := $arg;
@@ -2112,7 +2112,17 @@ sub handle_named_parameter($arg) {
 
 method term:sym<value>($/) { make $<value>.ast; }
 
-method circumfix:sym<( )>($/) { make $<semilist>.ast; }
+method circumfix:sym<( )>($/) {
+    my $past := $<semilist>.ast;
+    my $last := $past[ +$past.list - 1 ];
+    if pir::defined($last.returns) {
+        $past.returns($last.returns);
+    }
+    if pir::defined($last.arity) {
+        $past.arity($last.arity);
+    }
+    make $past;
+}
 
 method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 
@@ -2208,7 +2218,7 @@ method EXPR($/, $key?) {
         my $inv := $/[0].ast;
         $past.unshift(
             PAST::Op.ACCEPTS($past) && $past.pasttype eq 'callmethod'
-            ?? PAST::Op.new( :pirop('deref_unless_object PP'), $inv, :returns($inv.returns) )
+            ?? PAST::Op.new( :pirop('deref_unless_object PP'), $inv, :returns($inv.returns), :arity($inv.arity) )
             !! $inv
         );
     }
@@ -2216,7 +2226,7 @@ method EXPR($/, $key?) {
         for $/.list { if $_.ast { $past.push($_.ast); } }
     }
     if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
-        $past := whatever_curry($past, $key eq 'INFIX' ?? 2 !! 1);
+        $past := whatever_curry($/, $past, $key eq 'INFIX' ?? 2 !! 1);
     }
     make $past;
 }
@@ -2934,6 +2944,8 @@ sub create_code_object($block, $type, $multiness) {
     $past.push($block<lazysig>) if pir::defined($block<lazysig>);
     $past<past_block> := $block;
     $past<block_class> := $type;
+    $past.returns($type);
+    $past.arity($block.arity);
     $past
 }
 
@@ -3276,33 +3288,61 @@ INIT {
     %not_curried{'WHO'}           := 1;
     %not_curried{'WHERE'}         := 1;
 }
-sub whatever_curry($past, $upto_arity) {
-    if $past.isa(PAST::Op) && !%not_curried{$past.name} {
-        if $upto_arity == 2 && $past[0] ~~ PAST::Op && $past[0].returns eq 'Whatever'
-                            && $past[1] ~~ PAST::Op && $past[1].returns eq 'Whatever' {
-            # Curry left and right, two args.
-            $past.shift; $past.shift;
-            $past.push(PAST::Var.new( :name('$x'), :scope('lexical') ));
-            $past.push(PAST::Var.new( :name('$y'), :scope('lexical') ));
-            my $sig := Perl6::Compiler::Signature.new(
-                Perl6::Compiler::Parameter.new(:var_name('$x')),
-                Perl6::Compiler::Parameter.new(:var_name('$y')));
-            $past := make_block_from($sig, $past, 'WhateverCode');
-        }
-        elsif $upto_arity == 2 && $past[1] ~~ PAST::Op && $past[1].returns eq 'Whatever' {
-            # Curry right arg.
-            $past.pop;
-            $past.push(PAST::Var.new( :name('$y'), :scope('lexical') ));
-            my $sig := Perl6::Compiler::Signature.new(
-                Perl6::Compiler::Parameter.new(:var_name('$y')));
-            $past := make_block_from($sig, $past, 'WhateverCode');
-        }
-        elsif $upto_arity >= 1 && $past[0] ~~ PAST::Op && $past[0].returns eq 'Whatever' {
-            # Curry left (or for unary, only) arg.
-            $past.shift;
-            $past.unshift(PAST::Var.new( :name('$x'), :scope('lexical') ));
-            my $sig := Perl6::Compiler::Signature.new(
-                Perl6::Compiler::Parameter.new(:var_name('$x')));
+sub whatever_curry($/, $past, $upto_arity) {
+    if $past.isa(PAST::Op) && !%not_curried{$past.name} && $past<pasttype> ne 'call' {
+        if ($upto_arity >= 1 && ($past[0].returns eq 'Whatever' || $past[0].returns eq 'WhateverCode'))
+        || ($upto_arity == 2 && ($past[1].returns eq 'Whatever' || $past[1].returns eq 'WhateverCode')) {
+
+            my $counter := 0;
+            my $sig := Perl6::Compiler::Signature.new();
+            my $left := $past.shift;
+            my $left_new;
+            my $right_new;
+
+            if $left.returns eq 'WhateverCode' {
+                $left_new := PAST::Op.new( :pasttype('call'), :node($/), $left);
+                my $left_arity := $left.arity;
+                while $counter < $left_arity {
+                    $counter++;
+                    $left_new.push(PAST::Var.new( :name('$x' ~ $counter), :scope('lexical') ));
+                    $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
+                }
+            }
+            elsif $left.returns eq 'Whatever' {
+                $counter++;
+                $left_new := PAST::Var.new( :name('$x' ~ $counter), :scope('lexical') );
+                $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
+            }
+            else {
+                $left_new := $left;
+            }
+
+            if $upto_arity == 2 {
+                my $right := $past.shift;
+
+                if $right.returns eq 'WhateverCode' {
+                    $right_new := PAST::Op.new( :pasttype('call'), :node($/), $right);
+                    my $total_arity := $counter + $right.arity;
+                    while $counter < $total_arity {
+                        $counter++;
+                        $right_new.push(PAST::Var.new( :name('$x' ~ $counter), :scope('lexical') ));
+                        $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
+                    }
+                }
+                elsif $right.returns eq 'Whatever' {
+                    $counter++;
+                    $right_new := PAST::Var.new( :name('$x' ~ $counter), :scope('lexical') );
+                    $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
+                }
+                else {
+                    $right_new := $right;
+                }
+            }
+
+            if $upto_arity == 2 {
+                $past.unshift($right_new);
+            }
+            $past.unshift($left_new);
             $past := make_block_from($sig, $past, 'WhateverCode');
         }
     }

@@ -53,10 +53,14 @@ D: Keeps us running
 E: ask@develooper.com
 
 N: Audrey Tang
-U: audreyt
-U: autrijus
+U: au
 E: audreyt@audreyt.org
 D: Pugs, a Perl6->Parrot implementation.
+
+N: Вячеслав Матюхин
+U: mmcleric
+E: me@berekuk.ru
+D: Whatever-currying, colonpair fixes
 
 N: Bernhard Schmalhofer
 U: bernhard

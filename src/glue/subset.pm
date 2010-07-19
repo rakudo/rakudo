@@ -10,7 +10,7 @@ role SubType {
     }
 }
 
-our sub CREATE_SUBSET_TYPE(Mu $original, $checker) {
+our sub CREATE_SUBSET_TYPE(Mu \$original, $checker) {
     # XXX Ideally we'd be able to just replace all of what follows
     # with a simple:
     #     my $subtype = $original but SubType($checker);
@@ -29,7 +29,14 @@ our sub CREATE_SUBSET_TYPE(Mu $original, $checker) {
         setprop $P3, 'metaclass', $P4
         %r = new $P3
         transform_to_p6opaque %r
-        $P0 = find_lex '$checker'
-        setattribute %r, '$!checker', $P0
+        $P5 = find_lex '$checker'
+        setattribute %r, '$!checker', $P5
+        $P6 = getprop 'subtype_realtype', $P0
+        if null $P6 goto original_unrefined
+        setprop %r, 'subtype_realtype', $P6
+        goto refinement_done
+      original_unrefined:
+        setprop %r, 'subtype_realtype', $P0
+      refinement_done:
     };
 }

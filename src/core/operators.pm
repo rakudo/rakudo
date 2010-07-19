@@ -131,35 +131,35 @@ our sub undefine(Mu \$x) {
     $x = $undefined;
 }
 
-our multi infix:<does>(Mu \$do-it-to-me, Role $r) {
-    &infix:<does>($do-it-to-me, $r!select)
+our multi infix:<does>(Mu \$doee, Role $r) {
+    &infix:<does>($doee, $r!select)
 }
 
-our multi infix:<does>(Mu \$do-it-to-me, ConcreteRole $r) {
-    my $applicator = $r.^applier_for($do-it-to-me);
-    $applicator.apply($do-it-to-me, [$r]);
-    $do-it-to-me
+our multi infix:<does>(Mu \$doee, ConcreteRole $r) {
+    my $applicator = $r.^applier_for($doee);
+    $applicator.apply($doee, [$r]);
+    $doee
 }
 
-our multi infix:<does>(Mu \$do-it-to-me, Parcel $roles) {
+our multi infix:<does>(Mu \$doee, Parcel $roles) {
     my $*SCOPE = 'my';
     my $mr = RoleHOW.new();
     for @($roles) -> $r {
         $mr.^add_composable($r);
     }
     my $r = $mr.^compose();
-    $do-it-to-me does $r;
+    $doee does $r;
 }
 
-our multi infix:<does>(Mu \$do-it-to-me, \$value) {
+our multi infix:<does>(Mu \$doee, \$value) {
     # Need to manufacture a role here.
     my $r = RoleHOW.new();
     $r.^add_method($value.WHAT.perl, method () { $value });
-    $do-it-to-me does $r.^compose()
+    $doee does $r.^compose()
 }
 
-our multi infix:<but>(Mu \$do-it-to-me, \$r) {
-    $do-it-to-me.clone() does $r
+our multi infix:<but>(Mu \$doee, \$r) {
+    $doee.clone() does $r
 }
 
 our multi infix:<before>($a, $b) {

@@ -7,8 +7,9 @@ method backtrace_for($exception) {
         # Runtime error. Start with the error message.
         my $trace := pir::getattribute__pps($exception, 'message');
         
-        # If top frame is 'die' or warn, drop it from the top.
-        if ~@backtrace[0]<sub> eq '&die' || ~@backtrace[0]<sub> eq '&warn' {
+        # If top frame is 'die' or warn, drop it from the top. Same for the
+        # attribute accessors.
+        if @backtrace[0]<annotations><invizible_frame> {
             @backtrace.shift;
         }
 

@@ -7,9 +7,17 @@ New in 2010.07 release
 + magic $*ARGFILE file handle
 + more robust closures
 + multi-level Array and Hash element autovivification
-+ perl6 --version now identifies the exact git sha1
++ perl6 --version now identifies the exact git sha1 and parrot version
 + implemented 'is rw' trait on classes
 + file tests now work through IO, ie.  'README'.IO ~~ :e
++ generic, multi-level Whatever-currying (eg grep !(* % 2), @list)
++ improved error reporting in many cases
++ implemented backtracking into capturing groups and subrules
++ phasers refactored, they can now return results and see the setting
++ custom circumfix operators
++ basic .wrap and .unwrap implementation
++ weighted Hash.pick
++ .perl on custom classes now dumps attributes
 
 New in 2010.06 release
 + new list model with immutable iterators, lots of fixes to lists and arrays

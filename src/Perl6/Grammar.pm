@@ -1382,6 +1382,24 @@ token typename {
 
 token term:sym<type_declarator>   { <type_declarator> }
 
+token quotepair {
+    :my $*key;
+    :my $*value;
+    ':'
+    # :dba('restricted colonpair')
+    [
+    | '!' <identifier> [ <?before '('> <.panic('Argument not allowed on negated pair')> ]?
+        { $*key := ~$<identifier>; $*value := 0; }
+    | <identifier> 
+        { $*key := ~$<identifier> }
+        [
+        || <?before '('> <circumfix> { $*value := $<circumfix>.ast; }
+        || { $*value := 1; }
+        ]
+    ]
+}
+
+
 proto token quote { <...> }
 token quote:sym<apos>  { <?[']>                <quote_EXPR: ':q'>  }
 token quote:sym<dblq>  { <?["]>                <quote_EXPR: ':qq'> }
@@ -1409,6 +1427,7 @@ token quote:sym<m> {
 }
 token quote:sym<s> {
     <sym> >>
+    [ <quotepair> <.ws> ]*
     [
     | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
     | '[' <p6regex=.LANG('Regex','nibbler')> ']'

@@ -788,6 +788,17 @@ token variable {
         | <sigil> $<index>=[\d+]
         | <sigil> <?[<[]> <postcircumfix>
         | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
+        | <sigil> <?{ $*IN_DECL }>
+        | <?>
+            {
+                if $*QSIGIL {
+                    return ();
+                }
+                else {
+                    $/.CURSOR.panic("Non-declarative sigil is missing its name");
+                }
+            }
+
         ]
     ]
     [ <?{ $<twigil> && $<twigil>[0] eq '.' }>
@@ -1400,7 +1411,8 @@ token old_rx_mods {
 token quote_escape:sym<$> {
     <?[$]>
     :my $*QSIGIL := '$';
-    <?quotemod_check('s')> <EXPR('y=')>
+    <?quotemod_check('s')>
+    [ <EXPR('y=')> || <.panic: "Non-variable \$ must be backslashed"> ]
 }
 
 token quote_escape:sym<array> {

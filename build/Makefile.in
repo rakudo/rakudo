@@ -224,8 +224,7 @@ CORE_SOURCES = \
   src/core/Substitution.pm \
   src/core/system.pm \
   src/cheats/process.pm \
-  src/core/Date.pm \
-  src/core/DateTime.pm \
+  src/core/Temporal.pm \
   src/core/Match.pm \
   src/core/Attribute.pm \
   src/core/CallFrame.pm \

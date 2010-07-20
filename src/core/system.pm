@@ -29,5 +29,8 @@ sub sleep($seconds = Inf) {         # fractional seconds also allowed
 }
 
 sub time() {
-    pir::time__n()
+    floor pir::time__n()
+    # FIXME: Can probably be implemented more efficiently, by
+    # getting integer seconds directly.
+    # http://docs.parrot.org/parrot/latest/html/src/ops/sys.ops.html#time%28out_INT%29
 }

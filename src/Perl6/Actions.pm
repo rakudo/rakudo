@@ -1582,6 +1582,10 @@ method type_declarator:sym<subset>($/) {
     }
 }
 
+method type_declarator:sym<constant>($/) {
+    $/.CURSOR.panic('Constant type declarator not yet implemented');
+}
+
 method capterm($/) {
     # Construct a Parcel, and then call .Capture to coerce it to a capture.
     my $past := $<termish> ?? $<termish>.ast !!

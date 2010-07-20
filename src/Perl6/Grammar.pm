@@ -901,6 +901,9 @@ token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
 token scope_declarator:sym<supersede> {
     <sym> <.panic: '"supersede" not yet implemented'>
 }
+token scope_declarator:sym<state> {
+    <sym> <.panic: '"state" not yet implemented'>
+}
 
 rule scoped($*SCOPE) {
     :my $*TYPENAME := '';
@@ -949,6 +952,8 @@ token routine_declarator:sym<method>
     { <sym> <.nofun> :my $*METHODTYPE := 'Method'; <method_def> }
 token routine_declarator:sym<submethod>
     { <sym> <.nofun> :my $*METHODTYPE := 'Submethod'; <method_def> }
+token routine_declarator:sym<macro>
+    { <sym> <.nofun> <.panic: "Macros are not yet implemented"> }
 
 rule routine_def {
     :my $*IN_DECL := 'routine';
@@ -1183,6 +1188,25 @@ token type_declarator:sym<subset> {
             [ where <EXPR('e=')> ]?
         ]
         || <.panic: 'Malformed subset'>
+    ]
+}
+
+token type_declarator:sym<constant> {
+    :my $*IN_DECL := 'constant';
+    <sym> <.ws>
+
+    [
+    | <identifier>
+    | <variable>
+    | <?>
+    ]
+    { $*IN_DECL := ''; }
+    <.ws>
+
+    [
+    || <?before '='>
+    || <?before <-[\n=]>*'='> <.panic: "Malformed constant"> # probable initializer later
+    || <.panic: "Missing initializer on constant declaration">
     ]
 }
 

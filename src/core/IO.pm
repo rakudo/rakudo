@@ -255,13 +255,13 @@ multi sub note(*@args) {
     $*ERR.say(@args);
 }
 
-multi sub dir($path as Str) {
+multi sub dir($path as Str, Mu :$test = none('.', '..')) {
     Q:PIR {
         $P0 = find_lex '$path'
         $P1 = new ['OS']
         $P1 = $P1.'readdir'($P0)
         %r = '&infix:<,>'($P1 :flat)
-    }
+    }.grep($test)
 }
 
 multi sub chdir($path as Str) {

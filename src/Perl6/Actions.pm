@@ -547,8 +547,7 @@ method statement_prefix:sym<do>($/) {
 }
 
 method statement_prefix:sym<gather>($/) {
-    my $past := $<blorst>.ast;
-    $past.blocktype('declaration');
+    my $past := block_closure($<blorst>.ast);
     make PAST::Op.new( :pasttype('call'), :name('!GATHER'), $past );
 }
 

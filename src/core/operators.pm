@@ -369,15 +369,7 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
     }
 
     my sub is-on-the-wrong-side($first , $before_last , $last , $limit) {
-        if $first ~~ Numeric && $before_last ~~ Numeric && $last ~~ Numeric && $limit ~~ Numeric {
-            return Bool::True if ($before_last > $last && $limit > $first);
-            return Bool::True if ($before_last < $last && $limit < $first);
-        }
-        if $first  ~~ Str && $before_last  ~~ Str && $last  ~~ Str && $limit  ~~ Str {
-            return Bool::True if ($before_last gt $last && $limit gt $first);
-            return Bool::True if ($before_last lt $last && $limit lt $first);
-        }
-        return Bool::False
+        ($before_last > $last && $limit > $first) || ($before_last < $last && $limit < $first);
     }
 
     my $limit;

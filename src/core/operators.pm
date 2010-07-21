@@ -369,6 +369,7 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
     }
 
     my sub is-on-the-wrong-side($first , $before_last , $last , $limit) {
+        return Bool::False if $limit ~~ Whatever;
         ($before_last > $last && $limit > $first) || ($before_last < $last && $limit < $first);
     }
 

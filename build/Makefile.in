@@ -281,7 +281,7 @@ HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: $(PERL6_EXE) Test.pir lib/DateTime/strftime.pir
+all: $(PERL6_EXE) Test.pir
 
 # the install target
 install: all
@@ -291,9 +291,6 @@ install: all
 	$(CP)     Test.pir            $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/*.pm            $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/*.pir           $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib/DateTime
-	$(CP)     lib/DateTime/*.pm   $(DESTDIR)$(PERL6_LANG_DIR)/lib/DateTime
-	$(CP)     lib/DateTime/*.pir  $(DESTDIR)$(PERL6_LANG_DIR)/lib/DateTime
 
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
@@ -405,11 +402,6 @@ $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref
 ##  testing targets
 Test.pir: Test.pm perl6.pbc
 	$(PARROT) $(PARROT_ARGS) perl6.pbc $(STAGESTATS) --target=pir --output=Test.pir Test.pm
-
-
-## loadable libraries. This should be refactored into something generic.
-lib/DateTime/strftime.pir: lib/DateTime/strftime.pm perl6.pbc
-	$(PARROT) $(PARROT_ARGS) perl6.pbc $(STAGESTATS) --target=pir --output=lib/DateTime/strftime.pir lib/DateTime/strftime.pm
 
 test    : coretest
 

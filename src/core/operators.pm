@@ -396,7 +396,11 @@ our multi sub infix:<...>(@lhs is copy, $rhs) {
                 } elsif @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] {
                     $is-geometric-switching-sign = (@lhs[*-2] * @lhs[*-1] < 0);
                     return Nil if is-on-the-wrong-side(@lhs[0] , @lhs[*-2] , @lhs[*-1] , $rhs) && !$is-geometric-switching-sign;
-                    $next = { $_ * (@lhs[*-2] / @lhs[*-3]) };
+                    my $factor = @lhs[*-2] / @lhs[*-3];
+                    if $factor ~~ ::Rat && $factor.denominator == 1 {
+                        $factor = $factor.Int;
+                    }
+                    $next = { $_ * $factor };
                 } else {
                     fail "Unable to figure out pattern of series";
                 }

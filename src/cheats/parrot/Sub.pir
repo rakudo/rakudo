@@ -44,7 +44,8 @@
     $P0 = typeof code
     closure = new $P0
     transform_to_p6opaque closure
-    do = clone self
+    do = getattribute code, '$!do'
+    do = clone do
     $P0 = prophash self
     x_setprophash do, $P0
     setattribute closure, '$!do', do

@@ -3,6 +3,7 @@ use strict;
 use warnings;
 binmode STDOUT, ':encoding(UTF-8)';
 use 5.010;
+use utf8;
 
 use Date::Simple qw(today ymd);
 
@@ -11,6 +12,7 @@ my %contrib;
 my $last_release = release_date_of_prev_month();
 open my $c, '-|', 'git', 'log', "--since=$last_release", '--pretty=format:%an|%cn|%s'
     or die "Can't open pipe to git log: $!";
+binmode $c, ':encoding(UTF-8)';
 while (my $line = <$c>) {
     my ($author, $comitter, $msg) = split /\|/, $line, 3;
     $contrib{nick_to_name($author)}++;

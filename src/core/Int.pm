@@ -27,7 +27,7 @@ augment class Int does Real {
     }
 
     method sign(Int $x:) {
-        $x <=> 0;
+        $x.notdef ?? Mu !! $x <=> 0;
     }
 }
 

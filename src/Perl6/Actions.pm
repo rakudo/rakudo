@@ -1520,7 +1520,7 @@ method type_declarator:sym<enum>($/) {
         # Emit code to set up named enum.
         @PACKAGE[0].block.loadinit.push(PAST::Op.new(
             :pasttype('call'),
-            :name('!setup_named_enum'),
+            :name('&SETUP_NAMED_ENUM'),
             ~$<name>[0],
             $value_ast
         ));

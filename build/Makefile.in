@@ -176,6 +176,7 @@ CORE_SOURCES = \
   src/core/operators.pm \
   src/glue/handles.pm \
   src/glue/subset.pm \
+  src/glue/enum.pm \
   src/cheats/trait-export.pm \
   src/cheats/num.pm \
   src/cheats/eval.pm \

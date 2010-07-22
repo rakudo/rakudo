@@ -1,3 +1,5 @@
 use v6;
-my $parrot = %*ENV{'PARROT'};
+my $bindir = $*VM<config><bindir> or die 'No bindir found';
+my $exe    = $*VM<config><exe>    // '';
+my $parrot = "$bindir/parrot$exe";
 run("$parrot t/02-embed/01-load.pir");

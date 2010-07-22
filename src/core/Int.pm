@@ -25,6 +25,10 @@ augment class Int does Real {
     our Num method Num() {
         pir::box__PN(pir::set__NP(self));
     }
+
+    method sign(Int $x:) {
+        $x <=> 0;
+    }
 }
 
 our multi sub prefix:<->(Int $a) {

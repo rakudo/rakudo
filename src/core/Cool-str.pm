@@ -382,8 +382,12 @@ augment class Cool {
         self.trim-leading.trim-trailing;
     }
 
-    multi method words(Int $limit = *) {
-        self.comb( / \S+ /, $limit );
+    multi method words(Str $input: Int $limit = *) {
+        $input.comb( / \S+ /, $limit );
+    }
+
+    our multi method lines(Str $input: Int $limit = Inf) {
+        $input.comb( / ^^ \N* /, $limit );
     }
 
     our Str multi method uc() {

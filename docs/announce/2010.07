@@ -14,11 +14,26 @@ they selected for its benefits to Perl 6.
 Some of the specific changes and improvements occurring with this
 release include:
 
-* [XXX update]
-* 
-* 
-* [XXX update]Rakudo now passes 33,378 spectests. We estimate that there are about
-  39,900 tests in the test suite, so Rakudo passes about 83% of all tests.
+* Rakudo now properly constructs closures in most instances.
+
+* Undefined objects can now autovivify into arrays or hashes when
+  subscripted with .[ ] or .{ } .
+
+* Arrays can now handle infinite ranges.
+
+* The REPL shell now remembers lexical declarations in susbsequent lines.
+
+* The open() subroutine now returns a Failure instead of throwing
+  a fatal exception.
+
+* Rakudo now provides $*ARGFILES for reading from files specified
+  on the command line.
+
+* Added $*PERL, moved %*VM to $*VM.
+
+* Simple binding operators := and ::= now work.
+
+* Simple feed operators <== and ==> now work.
 
 For a more detailed list of changes see "docs/ChangeLog".
 
@@ -30,7 +45,7 @@ The following people contributed to this release:
 Patrick R. Michaud, Moritz Lenz, Jonathan Worthington, Solomon Foster,
 Patrick Abi Salloum, Carl Mäsak, Martin Berends, Will "Coke" Coleda,
 Vyacheslav Matjukhin, snarkyboojum, chromatic, Tyler Curtis, Lars Dɪᴇᴄᴋᴏᴡ,
-Bruce Gray, Stephen Weeks, Andrew Whitworth
+Bruce Gray, Stephen Weeks, Andrew Whitworth, Timothy Totten
 
 If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
 the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.

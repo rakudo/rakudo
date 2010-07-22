@@ -28,22 +28,22 @@ class Dateish {
             - $y div 100  + $y div 400;
     }
 
-    method set-ymd-from-daycount($daycount) {
+    method ymd-from-daycount($daycount) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        $!day = $daycount.Int + 678881;
-        my $t = (4 * ($!day + 36525)) div 146097 - 1;
-        $!year = 100 * $t;
-        $!day -= 36524 * $t + ($t +> 2);
-        $t = (4 * ($!day + 366)) div 1461 - 1;
-        $!year += $t;
-        $!day -= 365 * $t + ($t +> 2);
-        $!month = (5 * $!day + 2) div 153;
-        $!day -= (2 + $!month * 153) div 5 - 1;
-        if ($!month > 9) {
-            $!month -= 12;
-            $!year++;
+        my $day = $daycount.Int + 678881;
+        my $t = (4 * ($day + 36525)) div 146097 - 1;
+        my $year = 100 * $t;
+        $day -= 36524 * $t + ($t +> 2);
+        $t = (4 * ($day + 366)) div 1461 - 1;
+        $year += $t;
+        $day -= 365 * $t + ($t +> 2);
+        my $month = (5 * $day + 2) div 153;
+        $day -= (2 + $month * 153) div 5 - 1;
+        if ($month > 9) {
+            $month -= 12;
+            $year++;
         }
-        $!month += 3;
+        ($year, $month + 3, $day)
     }
 
     multi method get-daycount {
@@ -91,19 +91,33 @@ class Dateish {
         [+] $.day, map { self.days-in-month($.year, $^m) }, 1 ..^ $.month
     }
 
-    method try-assignment($lvalue is rw, $rvalue, $name, $range) {
-        $rvalue.defined or return;
-        +$rvalue ~~ $range or
+    method check-value($val is rw, $name, $range) {
+        $val = +$val;
+        $val ~~ $range or
             or die "$name must be in {$range.perl}\n";
-        $lvalue = +$rvalue;
     }
   
-    method try-setting-date(:$year, :$month, :$day) {
-        $year.defined and $!year = +$year;
-        self.try-assignment($!month, $month, 'month', 1 .. 12);
-        self.try-assignment($!day, $day, "day of $!year/$!month",
+    method check-date { 
+    # Asserts the validity of and numifies $!year, $!month, and $!day.
+        $!year = +$!year;
+        self.check-value($!month, 'month', 1 .. 12);
+        self.check-value($!day, "day of $!year/$!month",
             1 .. self.days-in-month);
-     }
+    }
+
+    method truncate-parts($unit, %parts is copy = ()) {
+    # Helper for DateTime.truncated-to and Date.truncated-to.
+        if $unit eq 'week' {
+            my $dc = self.get-daycount;
+            my $new-dc = $dc - self.day-of-week($dc) + 1;
+            %parts<year month day> =
+                self.ymd-from-daycount($new-dc);
+        } else { # $unit eq 'month'|'year'
+            %parts<day> = 1;
+            $unit eq 'year' and %parts<month> = 1;
+        }
+        %parts;
+    }
 
 }
 
@@ -120,7 +134,7 @@ sub default-formatter(::DateTime $dt) {
                 $o < 0 ?? '-' !! '+',
                 ($o.abs / 60 / 60).floor,
                 ($o.abs / 60 % 60).floor
-         !! 'Z'
+         !! 'Z';
 }
 
 class DateTime is Dateish {
@@ -130,14 +144,30 @@ class DateTime is Dateish {
     has     $.timezone  = 0; # UTC
     has     &.formatter; # = &default-formatter; # Doesn't work (not in scope?).
 
-    multi method new(Int :$year!, :$timezone=0, :&formatter=&default-formatter, *%_) {
-        # Rather than directly constructing the object we want,
-        # take advantage of the validation login in DateTime.set.
-        # But don't let $timezone get to .set, or it might change
-        # the hour, etc.
-        my $dt = self.bless(*, :$year, :$timezone, :&formatter);
-        $dt.set(|%_);
+    multi method new(Int :$year!, :&formatter=&default-formatter, *%_) {
+        my $dt = self.bless(*, :$year, :&formatter, |%_);
+        $dt.check-date;
+        $dt.check-time;
         $dt;
+    }
+
+    method check-time { 
+    # Asserts the validity of and numifies $!hour, $!minute, and $!second.
+        self.check-value($!hour, 'hour', 0 ..^ 24);
+        self.check-value($!minute, 'minute', 0 ..^ 60);
+        self.check-value($!second, 'second', 0 ..^ 62);
+        if $!second >= 60 {
+            # Ensure this is an actual leap second.
+            self.second < 61
+                or die 'No second 61 has yet been defined';
+            my $dt = self.utc;
+            $dt.hour == 23 && $dt.minute == 59
+                or die 'A leap second can occur only at hour 23 and minute 59 UTC';
+            my $date = sprintf '%04d-%02d-%02d',
+                $dt.year, $dt.month, $dt.day;
+            $date eq any(tai-utc::leap-second-dates)
+                or die "There is no leap second on UTC $date";
+        }
     }
 
     multi method new(::Date :$date!, *%_) {
@@ -147,7 +177,7 @@ class DateTime is Dateish {
 
     # TODO: multi method new(Instant $i, ...) { ... }
 
-    multi method new(Int $time is copy, :$timezone, :&formatter=&default-formatter) {
+    multi method new(Int $time is copy, :$timezone=0, :&formatter=&default-formatter) {
     # Interpret $time as a POSIX time.
         my $second  = $time % 60; $time = $time div 60;
         my $minute  = $time % 60; $time = $time div 60;
@@ -164,10 +194,9 @@ class DateTime is Dateish {
         my $day   = $e - (153 * $m + 2) div 5 + 1;
         my $month = $m + 3 - 12 * ($m div 10);
         my $year  = $b * 100 + $d - 4800 + $m div 10;
-        my $dt = self.new(:$year, :$month, :$day,
-            :$hour, :$minute, :$second, :&formatter);
-        $timezone.defined and $dt.set(timezone => $timezone);
-        $dt;
+        self.bless(*, :$year, :$month, :$day,
+            :$hour, :$minute, :$second,
+            :&formatter).in-timezone($timezone);
     }
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
@@ -200,11 +229,26 @@ class DateTime is Dateish {
         self.new(time, :$timezone, :&formatter)
     }
 
+    multi method clone(*%_) {
+        self.new(:$!year, :$!month, :$!day,
+            :$!hour, :$!minute, :$!second,
+            timezone => $!timezone.clone,
+            formatter => &!formatter.clone,
+            |%_)
+    }
+
+    multi method clone-without-validating(*%_) { # A premature optimization.
+        self.bless(*, :$!year, :$!month, :$!day,
+            :$!hour, :$!minute, :$!second,
+            timezone => $!timezone.clone,
+            formatter => &!formatter.clone,
+            |%_)
+    }
+
     # TODO: multi method Instant() { ... }
 
     multi method posix() {
-        self.offset
-            and return self.clone.set(timezone => 0).posix;
+        self.offset and return self.utc.posix;
         # algorithm from Claus Tøndering
         my $a = (14 - $.month.Int) div 12;
         my $y = $.year.Int + 4800 - $a;
@@ -219,85 +263,61 @@ class DateTime is Dateish {
         $tz ~~ Callable ?? $tz(self, True) !! $tz
     }
 
-    multi method truncate(:$to) {
-    # RAKUDO: When supplying positional arguments by name works
-    # again, this won't be necessary.
-        self.truncate($to);
-    }
-
-    multi method truncate($to) {
-        die 'Unknown truncation unit'
-            if $to eq none(<second minute hour day week month year>);
-        given $to {
-            $!second .= floor;
+    multi method truncated-to(*%args) {
+        %args.keys == 1
+            or die 'DateTime.truncated-to: exactly one named argument needed';
+        my $unit = %args.keys[0];
+        $unit eq any(<second minute hour day week month year>)
+            or die "DateTime.truncated-to: Unknown truncation unit '$unit'";
+        my %parts;
+        given $unit {
+            %parts<second> = self.whole-second;
             when 'second'     {}
-            $!second = 0;
+            %parts<second> = 0;
             when 'minute'     {}
-            $!minute = 0;
+            %parts<minute> = 0;
             when 'hour'       {}
-            $!hour = 0;
-            when 'week' {
-                my $dc = self.get-daycount;
-                my $new-dc = $dc - self.day-of-week($dc) + 1;
-                self.set-ymd-from-daycount($new-dc);
-            }
+            %parts<hour> = 0;
             when 'day'        {}
-            $!day = 1;
-            when 'month'      {}
-            $!month = 1;
+            # Fall through to Dateish.
+            %parts = self.truncate-parts($unit, %parts);
         }
-        self;
+        self.clone-without-validating(|%parts);
     }
 
     multi method whole-second() {
         floor $.second
     }
 
-    method set(:$year, :$month, :$day,
-               :$hour, :$minute, :$second,
-               :$timezone, :&formatter) {
-        # Do this first so that the other nameds have a chance to
-        # override.
-        if defined $timezone and $timezone !eqv $!timezone {
-            my $old-offset = self.offset;
-            my $new-offset = $timezone ~~ Callable
-              ?? $timezone(self.clone.set(timezone => 0), False)
-              !! $timezone;
-            my $c = $!second + $new-offset - $old-offset;
-            $!second = $c % 60;
-            my $a = $!minute + floor $c / 60;
-            $!minute = $a % 60;
-            my $b = $!hour + floor $a / 60;
-            $!hour = $b % 24;
-            # Let Dateish handle any further rollover.
-            floor $b / 24 and self.set-ymd-from-daycount\
-               (self.get-daycount + floor $b / 24);
-            $!timezone = $timezone;
-        }
-
-        self.try-setting-date(:$year, :$month, :$day);
-        self.try-assignment($!hour,   $hour,   'hour',   0 ..^ 24);
-        self.try-assignment($!minute, $minute, 'minute', 0 ..^ 60);
-        self.try-assignment($!second, $second, 'second', 0 ..^ 62);
-        &formatter.defined and &!formatter = &formatter;
-
-        self;
+    method in-timezone($timezone) {
+        $timezone eqv $!timezone and return self;
+        my $old-offset = self.offset;
+        my $new-offset = $timezone ~~ Callable
+          ?? $timezone(self.utc, False)
+          !! $timezone;
+        my %parts;
+        # Is the logic for handling leap seconds right?
+        # I don't know, but it passes the tests!
+        my $a = ($!second >= 60 ?? 59 !! $!second)
+            + $new-offset - $old-offset;
+        %parts<second> = $!second >= 60 ?? $!second !! $a % 60;
+        my $b = $!minute + floor $a / 60;
+        %parts<minute> = $b % 60;
+        my $c = $!hour + floor $b / 60;
+        %parts<hour> = $c % 24;
+        # Let Dateish handle any further rollover.
+        floor $c / 24 and %parts<year month day> =
+           self.ymd-from-daycount\
+               (self.get-daycount + floor $c / 24);
+        self.clone-without-validating(:$timezone, |%parts)
     }
 
-    # RAKUDO: These setters are temporary, until we have Proxy
-    #         objects with a STORE method
-    method set-year($year)             { self.set(:$year) }
-    method set-month($month)           { self.set(:$month) }
-    method set-day($day)               { self.set(:$day) }
-    method set-day-of-month($day)      { self.set(:$day) }
-    method set-hour($hour)             { self.set(:$hour) }
-    method set-minute($minute)         { self.set(:$minute) }
-    method set-second($second)         { self.set(:$second) }
-    method set-timezone($timezone)     { self.set(:$timezone) }
-    method set-formatter(&formatter)   { self.set(:&formatter) }
+    method utc() {
+        self.in-timezone(0)
+    }
 
     method Date() {
-        return ::Date.new(self);
+        ::Date.new(self)
     }
 
     method Str() {
@@ -323,8 +343,8 @@ class Date is Dateish {
     multi method get-daycount { $!daycount }
 
     multi method new(:$year!, :$month, :$day) {
-        my $d = self.bless(*, :$year);
-        $d.try-setting-date(:$month, :$day);
+        my $d = self.bless(*, :$year, :$month, :$day);
+        $d.check-date;
         $d!set-daycount(self.daycount-from-ymd($year,$month,$day));
         $d;
     }
@@ -347,14 +367,25 @@ class Date is Dateish {
     }
 
     multi method new-from-daycount($daycount) {
-        my $d = self.bless(*, :$daycount);
-        $d.set-ymd-from-daycount($daycount);
-        $d;
+        my ($year, $month, $day) = self.ymd-from-daycount($daycount);
+        self.bless(*, :$daycount, :$year, :$month, :$day);
     }
 
     multi method today() {
-        my $dt = ::DateTime.now();
-        self.new($dt);
+        self.new(::DateTime.now);
+    }
+
+    multi method truncated-to(*%args) {
+        %args.keys == 1
+            or die "Date.truncated-to: exactly one named argument needed.";
+        my $unit = %args.keys[0];
+        $unit eq any(<week month year>)
+            or die "DateTime.truncated-to: Unknown truncation unit '$unit'";
+        self.clone(|self.truncate-parts($unit));
+    }
+
+    multi method clone(*%_) {
+        self.new(:$!year, :$!month, :$!day, |%_)
     }
 
     multi method succ() {

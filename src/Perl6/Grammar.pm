@@ -899,10 +899,10 @@ token scope_declarator:sym<has>       { <sym> <scoped('has')> }
 token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
 token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
 token scope_declarator:sym<supersede> {
-    <sym> <.panic: '"supersede" not yet implemented'>
+    <sym> <scoped('supersede')> <.panic: '"supersede" not yet implemented'>
 }
 token scope_declarator:sym<state> {
-    <sym> <.panic: '"state" not yet implemented'>
+    <sym> <scoped('state')> <.panic: '"state" not yet implemented'>
 }
 
 rule scoped($*SCOPE) {

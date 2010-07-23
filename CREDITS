@@ -168,6 +168,13 @@ N: Gregor N. Purdy
 E: gregor@focusresearch.com
 S: Sunnyvale, CA
 
+U: ingy
+N: Ingy döt Net
+E: ingy@ingy.net
+W: http://ingy.net/
+S: Seattle, WA, USA
+D: Make is() work like Perl 5; add .pm6 to extensions searched.
+
 N: James E Keenan (Jim)
 E: jkeenan@cpan.org
 U: jkeenan

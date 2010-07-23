@@ -48,11 +48,7 @@ our multi sub infix:<*>(Int $a, Int $b) {
 }
 
 our multi sub infix:<div>(Int $a, Int $b) {
-    my $result = pir::box__PI(pir::div__III($a, $b));
-    if ($a * $b).sign < 0 && $result * $b != $a {
-        $result--;
-    }
-    $result;
+    upgrade_to_num_if_needed(pir::fdiv__NNN($a, $b));
 }
 
 our multi sub infix:<%>(Int $a, Int $b) {

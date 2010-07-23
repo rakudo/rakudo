@@ -2657,6 +2657,9 @@ method quote:sym<s>($/) {
         $regex, $closure
     );
     for $<quotepair> {
+        if $_.ast<key> ne 'g' {
+            $/.CURSOR.panic("Substitution adverbs other than ':g' are not yet implemented");
+        }
         $past.push(PAST::Val.new(:named(~$_.ast<key>), :value($_.ast<value>)));
     }
     make $past;

@@ -16,7 +16,7 @@ binmode $c, ':encoding(UTF-8)';
 while (my $line = <$c>) {
     my ($author, $comitter, $msg) = split /\|/, $line, 3;
     $contrib{nick_to_name($author)}++;
-    $contrib{nick_to_name($comitter)}++;
+    $contrib{nick_to_name($comitter)}++ if $comitter ne 'Rakudo Perl';
     while ($msg =~ /\(([^)]+)\)\+\+/g) {
         $contrib{nick_to_name($1)}++;
     }
@@ -51,7 +51,7 @@ sub release_date_of_prev_month {
 }
 
 sub nick_to_name_from_CREDITS {
-    open my $f, '<', 'CREDITS' or die "Can't open file CREDITS for reading: $!";
+    open my $f, '<:utf8', 'CREDITS' or die "Can't open file CREDITS for reading: $!";
     local $/ = '';
     my %nicks;
     while (my $para = <$f>) {

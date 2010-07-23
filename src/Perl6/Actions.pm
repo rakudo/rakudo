@@ -2589,6 +2589,14 @@ method typename($/) {
     make $past;
 }
 
+method quotepair($/) {
+    my $h := pir::new__ps('Hash');
+    $h<key>   := $*key;
+    $h<value> := $*value;
+
+    make $h;
+}
+
 method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
 method quote:sym<dblq>($/) { make $<quote_EXPR>.ast; }
 method quote:sym<qq>($/)   { make $<quote_EXPR>.ast; }
@@ -2642,11 +2650,18 @@ method quote:sym<s>($/) {
     # Make a Substitution.
     $regex.named('matcher');
     $closure.named('replacer');
-    make PAST::Op.new(
+    my $past := PAST::Op.new(
         :pasttype('callmethod'), :name('new'),
         PAST::Var.new( :name('Substitution'), :scope('package') ),
         $regex, $closure
     );
+    for $<quotepair> {
+        if $_.ast<key> ne 'g' {
+            $/.CURSOR.panic("Substitution adverbs other than ':g' are not yet implemented");
+        }
+        $past.push(PAST::Val.new(:named(~$_.ast<key>), :value($_.ast<value>)));
+    }
+    make $past;
 }
 
 method quote_escape:sym<$>($/) {

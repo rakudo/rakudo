@@ -1,6 +1,6 @@
     Announce: Rakudo Perl 6 development release #31 ("Atlanta")
 
-On behalf of the Rakudo development team, I'm pleased to announce the
+On behalf of the Rakudo development team, I'm happy to announce the
 July 2010 development release of Rakudo Perl #31 "Atlanta".
 Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
 (see <http://www.parrot.org>). The tarball for the July 2010 release
@@ -20,6 +20,8 @@ release include:
   subscripted with .[ ] or .{ } .
 
 * Arrays can now handle infinite ranges.
+
+* Generic, multi-level Whatever-currying now works, e.g. (1, 1, *+* ... *).
 
 * The REPL shell now remembers lexical declarations in susbsequent lines.
 

@@ -131,7 +131,7 @@ augment class Cool {
             return Mu;
         }
 
-        pir::substr(self, $start, $len);
+        ~pir::substr(self, $start, $len);
     }
 
     multi method trans(*@changes) {

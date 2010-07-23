@@ -1,4 +1,4 @@
-    Announce: Rakudo Perl 6 development release #31 ("Atlanta")
+    Announce: Rakudo Perl 6 compiler development release #31 ("Atlanta")
 
 On behalf of the Rakudo development team, I'm happy to announce the
 July 2010 development release of Rakudo Perl #31 "Atlanta".
@@ -39,6 +39,10 @@ release include:
 
 For a more detailed list of changes see "docs/ChangeLog".
 
+Please note: This is not the Rakudo Star release, which is scheduled
+for July 29[2]. The Star release will include the compiler, an installer,
+modules, a book (PDF), and more.
+
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible, as well as those people who worked on parrot, the
 Perl 6 test suite and the specification.
@@ -63,3 +67,4 @@ Parrot monthly release.  Parrot releases the third Tuesday of each month.
 Have fun!
 
 [1] http://code.google.com/p/atlanta-pm-code/
+[2] http://rakudo.org/node/73

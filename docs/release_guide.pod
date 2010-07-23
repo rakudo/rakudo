@@ -223,7 +223,7 @@ L<http://github.com/rakudo/rakudo/downloads>.
 
 Publish the release announcement (from #5) to appropriate
 locations, including rakudo.org, use.perl, perl6-language,
-perl6-announce, perl6-users, and others.
+perl6-announce, perl6-users, perl6-compiler, and others.
 
 =item 14.
 

@@ -1,9 +1,10 @@
 class Match is Regex::Match is Cool does Positional does Associative {
-    method create(:$from, :$to, :$orig) {
+    method create(:$from, :$to, :$orig, :$ast) {
         my $new = self.bless(*);
         pir::setattribute__vpsp($new, '$!from',   $from);
         pir::setattribute__vpsp($new, '$!to',     $to);
         pir::setattribute__vpsp($new, '$!target', $orig);
+        pir::setattribute__vpsp($new, '$!ast',    $ast);
 
         # TODO: handle :@positional, :%named
 
@@ -148,7 +149,15 @@ class Match is Regex::Match is Cool does Positional does Associative {
             take "$sp  ]";
         }
     }
+}
 
+multi sub infix:<eqv>(Match $a, Match $b) {
+       $a.ast eqv $b.ast
+    && $a.orig eqv $b.orig
+    && $a.from eqv $b.from
+    && $a.to   eqv $b.to
+    && $a.list eqv $b.list
+    && $a.hash eqv $b.hash
 }
 
 # vim: ft=perl6

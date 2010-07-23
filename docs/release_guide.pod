@@ -176,7 +176,6 @@ Make sure everything compiles and runs from a known clean state:
   $ perl Configure.pl --gen-parrot
   $ make
   $ make test
-  $ make spectest
   $ make stresstest
 
 Continue adjusting things until make spectest passes as expected.

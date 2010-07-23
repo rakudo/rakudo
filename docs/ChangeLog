@@ -20,6 +20,7 @@ New in 2010.07 release
 + .perl on custom classes now dumps attributes
 + Basic implementation of the ==> and <== feed operators
 + Int ~~ Num is no longer true, as per spec; use Numeric instead
++ Improvements to enumerations
 
 New in 2010.06 release
 + new list model with immutable iterators, lots of fixes to lists and arrays

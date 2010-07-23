@@ -6,10 +6,14 @@ Rakudo is an implementation of Perl 6 on the Parrot Virtual Machine
 (see <http://www.parrot.org>). The tarball for the July 2010 release
 is available from <http://github.com/rakudo/rakudo/downloads>.
 
-Rakudo Perl follows a monthly release cycle, with each release named
-after a Perl Mongers group. The July 2010 release is code named "Atlanta"
-in recognition of Atlanta.pm and their Perl 5 Phalanx project [1], which
-they selected for its benefits to Perl 6.
+Please note: This is not the Rakudo Star release, which is scheduled
+for July 29, 2010 [1]. The Star release will include the compiler, an
+installer, modules, a book (PDF), and more.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each release
+named after a Perl Mongers group. The July 2010 release is code named
+"Atlanta" in recognition of Atlanta.pm and their Perl 5 Phalanx project [2],
+which they selected for its benefits to Perl 6.
 
 Some of the specific changes and improvements occurring with this
 release include:
@@ -39,10 +43,6 @@ release include:
 
 For a more detailed list of changes see "docs/ChangeLog".
 
-Please note: This is not the Rakudo Star release, which is scheduled
-for July 29[2]. The Star release will include the compiler, an installer,
-modules, a book (PDF), and more.
-
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible, as well as those people who worked on parrot, the
 Perl 6 test suite and the specification.
@@ -66,5 +66,5 @@ Parrot monthly release.  Parrot releases the third Tuesday of each month.
 
 Have fun!
 
-[1] http://code.google.com/p/atlanta-pm-code/
-[2] http://rakudo.org/node/73
+[1] http://rakudo.org/node/73
+[2] http://code.google.com/p/atlanta-pm-code/

@@ -1393,7 +1393,7 @@ token quotepair {
     | <identifier> 
         { $*key := ~$<identifier> }
         [
-        || <?before '('> <circumfix> <.panic('Arguments to adverbs on quotes are not yet implemented')>
+        || <?before '('> <circumfix> { $*value := $<circumfix>.ast; }
         || { $*value := 1; }
         ]
     ]

@@ -2593,11 +2593,11 @@ method typename($/) {
 }
 
 method quotepair($/) {
-    my $h := pir::new__ps('Hash');
-    $h<key>   := $*key;
-    $h<value> := $*value;
-
-    make $h;
+    unless $*value ~~ PAST::Node {
+        $*value := PAST::Val.new( :value($*value) );
+    }
+    $*value.named(~$*key);
+    make $*value;
 }
 
 method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
@@ -2659,10 +2659,10 @@ method quote:sym<s>($/) {
         $regex, $closure
     );
     for $<quotepair> {
-        if $_.ast<key> ne 'g' {
+        if $_.ast.named ne 'g' {
             $/.CURSOR.panic("Substitution adverbs other than ':g' are not yet implemented");
         }
-        $past.push(PAST::Val.new(:named(~$_.ast<key>), :value($_.ast<value>)));
+        $past.push($_.ast);
     }
     make $past;
 }

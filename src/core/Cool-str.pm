@@ -253,7 +253,7 @@ augment class Cool {
                            :g(:$global),
                            :pos(:$p),
                            :$x,
-                           :$nth,
+                           :st(:nd(:rd(:th(:$nth)))),
                            :ov(:$overlap)) {
         if $continue ~~ Bool {
             note ":c / :continue requires a position in the string";

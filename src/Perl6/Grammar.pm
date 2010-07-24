@@ -1396,6 +1396,9 @@ token quotepair {
         || <?before '('> <circumfix> { $*value := $<circumfix>.ast; }
         || { $*value := 1; }
         ]
+    | (\d+) <identifier>
+        [ <?before '('> <.cirumfix> <.panic('2nd argument not allowed on pair')> ]?
+        { $*key := ~$<identifier>; $*value := +~$/[0] }
     ]
 }
 

@@ -1,3 +1,5 @@
++ syntactic adverbs on substitutions, e.g. '$x ~~ s:2nd/a/b/' works
+
 New in 2010.07 release
 + support for delegation via 'handles'
 + implemented binding with := and read-only binding with ::=

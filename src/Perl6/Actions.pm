@@ -2636,6 +2636,24 @@ method quote:sym<m>($/) {
     make block_closure($past, 'Regex', 0);
 }
 
+our %SUBST_ALLOWED_ADVERBS;
+INIT {
+    %SUBST_ALLOWED_ADVERBS{'g'}         := 1;
+    %SUBST_ALLOWED_ADVERBS{'global'}    := 1;
+    %SUBST_ALLOWED_ADVERBS{'samecase'}  := 1;
+    %SUBST_ALLOWED_ADVERBS{'x'}         := 1;
+    %SUBST_ALLOWED_ADVERBS{'c'}         := 1;
+    %SUBST_ALLOWED_ADVERBS{'continue'}  := 1;
+    %SUBST_ALLOWED_ADVERBS{'p'}         := 1;
+    %SUBST_ALLOWED_ADVERBS{'pos'}       := 1;
+
+    %SUBST_ALLOWED_ADVERBS{'nth'}       := 1;
+    %SUBST_ALLOWED_ADVERBS{'th'}        := 1;
+    %SUBST_ALLOWED_ADVERBS{'st'}        := 1;
+    %SUBST_ALLOWED_ADVERBS{'nd'}        := 1;
+    %SUBST_ALLOWED_ADVERBS{'rd'}        := 1;
+}
+
 method quote:sym<s>($/) {
     # Build the regex.
     my $regex_ast := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
@@ -2659,8 +2677,8 @@ method quote:sym<s>($/) {
         $regex, $closure
     );
     for $<quotepair> {
-        if $_.ast.named ne 'g' {
-            $/.CURSOR.panic("Substitution adverbs other than ':g' are not yet implemented");
+        unless %SUBST_ALLOWED_ADVERBS{$_.ast.named} {
+            $/.CURSOR.panic("Adverb '" ~ $_.ast.named ~ "' not allowed on subsitution");
         }
         $past.push($_.ast);
     }

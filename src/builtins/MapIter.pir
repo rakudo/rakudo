@@ -52,10 +52,11 @@ exceptions here.  Perl 6 source would be something like:
     value = getattribute exception, 'payload'
     push reify, value
     type = getattribute exception, 'type'
-    if type == .CONTROL_LOOP_LAST goto done
+    if type == .CONTROL_LOOP_LAST goto iter_reified
     if type != .CONTROL_LOOP_REDO goto iter_next
     list.'unshift'(args)
   iter_next:
+    .local pmc nextiter
     nextiter = new ['MapIter']
     setattribute nextiter, '&!block', block
     setattribute nextiter, '@!list', list

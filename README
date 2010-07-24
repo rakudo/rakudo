@@ -23,9 +23,9 @@ or the spectest suite you may also need a subversion (svn) client.
 In order to fully support Unicode, you'll also want to have the
 ICU library installed (L<http://site.icu-project.org/>).
 Rakudo can run without ICU, but some Unicode-related features
-may not work properly.
+do not work properly.
 
-As an example, on Debian GNU/Linux or Ubuntu Linux the necessary
+As an example, on Debian GNU/Linux or Ubuntu Linux, the necessary
 components for building Rakudo can be installed via the command
 
     aptitude install build-essential libicu-dev subversion
@@ -43,10 +43,16 @@ downloading Rakudo directly from github and building from there:
     $ git clone git://github.com/rakudo/rakudo.git
 
 If you don't have git installed, you can get a tarball or zip of Rakudo
-from github by visiting http://github.com/rakudo/rakudo/tree/master
-and clicking "Download".  Then unpack the tarball or zip.
+from L<http://github.com/rakudo/rakudo/downloads>.
+Then unpack the tarball or zip.
 
-Once you have a copy of Rakudo, build it as follows:
+If you already have cloned Rakudo from github, you can get (pull) the
+most recent version from github like this:
+
+    $ cd rakudo
+    $ git pull
+
+Once you have an updated copy of Rakudo, build it as follows:
 
     $ cd rakudo
     $ perl Configure.pl --gen-parrot
@@ -70,7 +76,7 @@ privileges necessary.
 The C<--gen-parrot> above option tells Configure.pl to automatically
 download and build the most appropriate version of Parrot into
 a local "parrot/" subdirectory, install that Parrot into
-the "parrot_install/" subdirectory, and use that for building
+the C<parrot_install/> subdirectory, and use that for building
 Rakudo.  It's okay to use the C<--gen-parrot> option on later
 invocations of Configure.pl; the configure system will re-build
 Parrot only if a newer version is needed for whatever version
@@ -98,9 +104,26 @@ the Parrot installation that was used to create it remains intact).
 
 If the Rakudo compiler is invoked without an explicit script to
 run, it enters a small interactive mode that allows Perl 6 statements
-to be executed from the command line.  Each line entered is treated
-as a separate compilation unit, however (which means that subroutines
-are preserved after they are defined, but variables are not).
+to be executed from the command line.
+
+=head3 Build/install problems
+
+Occasionally, there may be problems when building/installing Rakudo.
+Make sure you have a backup of any custom changes you have done to the
+source tree before performing the following steps:
+
+Try to remove the C<parrot_install> subdirectory:
+
+    $ cd rakudo
+    $ rm -r parrot_install
+    $ git pull
+    $ perl Configure.pl --gen-parrot
+    $ make
+
+Or, in case you are really stuck, start with a fresh source tree:
+
+    $ rm -r rakudo
+    $ git clone git://github.com/rakudo/rakudo.git
 
 =head2 Running the test suite
 
@@ -168,7 +191,7 @@ Rakudo's official web site is L<http://rakudo.org/>, where you can
 find useful information for developers and users alike. There's also
 a Parrot blog at L<http://parrotblog.org/>, most Perl 6 related news is
 assembled at L<http://planetsix.perl.org/>. Links to many other
-resources can be found on L<http://perl6-projects.org/>.
+resources can be found on L<http://perl6.org/>.
 
 =head2 Reporting bugs
 
@@ -177,8 +200,9 @@ Bug reports should be sent to C<rakudobug@perl.org> with the moniker
 it gets appropriately tagged in the RT system (https://rt.perl.org/rt3/).
 Please include or attach any sample source code that exhibits the
 bug, and include either the release name/date or the git commit
-identifier. You find that identifier in the first output line of
-the C<git log> command.  There's no need to cc: the perl6-compiler
+identifier. You find that information in the output from
+C<perl6 --version> (or in the first line of C<git log>, if Rakudo
+fails to build).  There's no need to cc: the perl6-compiler
 mailing list, as the RT system will handle this on its own.
 
 =head2 Submitting patches
@@ -188,17 +212,17 @@ submit it to C<rakudobug@perl.org> with the moniker [PATCH]
 (including the brackets) at the start of the subject line.  We'll
 generally accept patches in any form if we can get them to work,
 but unified diff from the C<git> command is greatly preferred.  In
-general this means that in the C<languages/rakudo/> directory you make your
+general this means that in the C<rakudo> directory you make your
 changes, and then type
 
-    git commit -m 'Your commit message'
+    git commit -m 'Your commit message' changed/filename.pm
     git format-patch HEAD^
 
 This will generate a file called C<001-your-commit-message.patch>, or more of
 them if you made multiple commits; please attach these to your email.
 
 (Note to the maintainers: you can apply these patches with the
-C<git-am> command; it preserves meta information like author).
+C<git-am -s> command; it preserves meta information like author).
 
 Other ways to create and submit patches are discussed here:
 L<http://wiki.github.com/rakudo/rakudo/steps-to-create-a-patch>.
@@ -210,7 +234,8 @@ See F<docs/compiler_overview.pod>.
 =head1 AUTHOR
 
 Patrick Michaud C<pmichaud@pobox.com> is the primary author and
-maintainer for Rakudo Perl 6 on Parrot.
+maintainer for Rakudo Perl 6 on Parrot. See F<CREDITS> for further
+authors.
 
 =cut
 

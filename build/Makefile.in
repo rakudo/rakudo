@@ -252,6 +252,7 @@ CLEANUPS = \
   $(PERL6_EXE) \
   perl6.c \
   perl6$(O) \
+  perl6_group.* \
   Test.pir \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen/core.pm \
@@ -273,7 +274,7 @@ CLEANUPS = \
   $(OPS_DIR)/*.c \
   $(OPS_DIR)/*$(O) \
   $(OPS_DIR)/*$(LOAD_EXT) \
-  binder/*$(O) \
+  src/binder/*$(O) \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge

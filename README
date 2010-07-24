@@ -188,17 +188,17 @@ submit it to C<rakudobug@perl.org> with the moniker [PATCH]
 (including the brackets) at the start of the subject line.  We'll
 generally accept patches in any form if we can get them to work,
 but unified diff from the C<git> command is greatly preferred.  In
-general this means that in the C<languages/rakudo/> directory you make your
+general this means that in the C<rakudo> directory you make your
 changes, and then type
 
-    git commit -m 'Your commit message'
+    git commit -m 'Your commit message' changed/filename.pm
     git format-patch HEAD^
 
 This will generate a file called C<001-your-commit-message.patch>, or more of
 them if you made multiple commits; please attach these to your email.
 
 (Note to the maintainers: you can apply these patches with the
-C<git-am> command; it preserves meta information like author).
+C<git-am -s> command; it preserves meta information like author).
 
 Other ways to create and submit patches are discussed here:
 L<http://wiki.github.com/rakudo/rakudo/steps-to-create-a-patch>.

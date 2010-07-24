@@ -177,7 +177,7 @@ method statementlist($/) {
             }
         }
     }
-    $past.push(PAST::Op.new(:name('&Nil'))) if +$past.list < 1;
+    $past.push(PAST::Var.new(:name('Nil'), :namespace([]), :scope('package'))) if +$past.list < 1;
     make $past;
 }
 
@@ -186,7 +186,7 @@ method semilist($/) {
     if $<statement> {
         for $<statement> { $past.push($_.ast); }
     }
-    else { $past.push( PAST::Op.new( :name('&Nil') ) ); }
+    else { $past.push(PAST::Var.new(:name('Nil'), :namespace([]), :scope('package'))); }
     make $past;
 }
 
@@ -198,7 +198,7 @@ method statement($/, $key?) {
         $past := $<EXPR>.ast;
         if $mc {
             $mc.ast.push($past);
-            $mc.ast.push(PAST::Op.new(:name('&Nil')));
+            $mc.ast.push(PAST::Var.new(:name('Nil'), :namespace([]), :scope('package')));
             $past := $mc.ast;
         }
         if $ml {
@@ -559,7 +559,7 @@ method statement_prefix:sym<sink>($/) {
     $blast.blocktype('immediate');
     make PAST::Stmts.new(
         PAST::Op.new( :name('&eager'), $blast ),
-        PAST::Op.new( :name('&Nil') ),
+        PAST::Var.new( :name('Nil'), :namespace([]), :scope('package')),
         :node($/)
     );
 }
@@ -1541,7 +1541,7 @@ method type_declarator:sym<subset>($/) {
     my $of_trait := has_compiler_trait($<trait>, '&trait_mod:<of>');
     my $refinee := $of_trait ??
         $of_trait[0] !!
-        PAST::Var.new( :name('Any'), :namespace(Nil), :scope('package') );
+        PAST::Var.new( :name('Any'), :namespace([]), :scope('package') );
 
     # Construct subset and install it in the right place.
     my $cons_past := PAST::Op.new(
@@ -1946,10 +1946,6 @@ method methodop($/) {
 
 method term:sym<self>($/) {
     make PAST::Var.new( :name('self'), :node($/) );
-}
-
-method term:sym<Nil>($/) {
-    make PAST::Op.new(:name('&Nil'), :node($/) );
 }
 
 method term:sym<rand>($/) {

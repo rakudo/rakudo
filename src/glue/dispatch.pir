@@ -122,7 +122,8 @@ a failure if there is none.
     rethrow exception
 
   error:
-    .tailcall '&Nil'()
+    $P0 = get_hll_global 'Nil'
+    .return ($P0)
 .end
 
 

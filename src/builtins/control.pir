@@ -225,7 +225,7 @@ on the number of elements.
     values = values[0]
     goto done
   nil:
-    values = '&Nil'()
+    values = get_hll_global 'Nil'
     goto done
   many:
     values = '&infix:<,>'(values :flat)

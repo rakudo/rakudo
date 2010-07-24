@@ -46,7 +46,7 @@ our sub eval(Str $code, :$lang = 'perl6') {
         setprop $P2, 'rw', $P2
         copy $P1, $P2
         unless null result goto have_result
-        result = '&Nil'()
+        result = get_hll_global 'Nil'
       have_result:
         %r = result
     };

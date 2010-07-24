@@ -18,7 +18,11 @@ elements and can be flattened into Captures or Lists.
     .local pmc p6meta, parcelproto, pos_role
     p6meta = get_hll_global ['Mu'], '$!P6META'
     parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Iterable')
+    #  set global 'Nil' constant
+    $P0 = '&infix:<,>'()
+    set_hll_global 'Nil', $P0
 .end
+
 
 .sub '' :vtable('get_string') :method
     $S0 = self.'Str'()
@@ -160,20 +164,6 @@ in a list.
 .end
 
 
-=item &Nil
-
-The canonical function for creating an empty Parcel.
-
-=cut
-
-.namespace []
-.sub '&Nil'
-    .param pmc args            :slurpy
-    $P0 = '&infix:<,>'()
-    .return ($P0)
-.end
-
-
 =back
 
 =head2 Operators
@@ -258,7 +248,7 @@ Handle assignment to a Parcel (list assignment).
     seq = get_hll_global 'False'
     goto lhs_loop
   cont_nil:
-    $P0 = '&Nil'()
+    $P0 = get_hll_global 'Nil'
     push tv, cont
     push tv, $P0
     goto lhs_loop

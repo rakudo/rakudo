@@ -408,8 +408,8 @@ Completes the creation of the metaclass and return a proto-object.
     if null $P0 goto not_found
     .return ($P0)
   not_found:
-    $P0 = get_hll_global '&Nil'
-    .tailcall $P0()
+    $P0 = get_hll_global 'Nil'
+    .return ($P0)
 .end
 
 

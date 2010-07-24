@@ -46,7 +46,13 @@ If you don't have git installed, you can get a tarball or zip of Rakudo
 from L<http://github.com/rakudo/rakudo/downloads>.
 Then unpack the tarball or zip.
 
-Once you have a copy of Rakudo, build it as follows:
+If you already have cloned Rakudo from github, you can get (pull) the
+most recent version from github like this:
+
+    $ cd rakudo
+    $ git pull
+
+Once you have an updated copy of Rakudo, build it as follows:
 
     $ cd rakudo
     $ perl Configure.pl --gen-parrot
@@ -70,7 +76,7 @@ privileges necessary.
 The C<--gen-parrot> above option tells Configure.pl to automatically
 download and build the most appropriate version of Parrot into
 a local "parrot/" subdirectory, install that Parrot into
-the "parrot_install/" subdirectory, and use that for building
+the C<parrot_install/> subdirectory, and use that for building
 Rakudo.  It's okay to use the C<--gen-parrot> option on later
 invocations of Configure.pl; the configure system will re-build
 Parrot only if a newer version is needed for whatever version
@@ -99,6 +105,25 @@ the Parrot installation that was used to create it remains intact).
 If the Rakudo compiler is invoked without an explicit script to
 run, it enters a small interactive mode that allows Perl 6 statements
 to be executed from the command line.
+
+=head3 Build/install problems
+
+Occasionally, there may be problems when building/installing Rakudo.
+Make sure you have a backup of any custom changes you have done to the
+source tree before performing the following steps:
+
+Try to remove the C<parrot_install> subdirectory:
+
+    $ cd rakudo
+    $ rm -r parrot_install
+    $ git pull
+    $ perl Configure.pl --gen-parrot
+    $ make
+
+Or, in case you are really stuck, start with a fresh source tree:
+
+    $ rm -r rakudo
+    $ git clone git://github.com/rakudo/rakudo.git
 
 =head2 Running the test suite
 

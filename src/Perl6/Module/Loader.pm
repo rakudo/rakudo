@@ -129,10 +129,22 @@ method stub_lexical_imports($name, $block_ast) {
                 pir::die("Can't import symbol " ~ $_.key
                     ~ " because it already exists in this lexical scope\n");
             } else {
-                $block_ast[0].push(PAST::Var.new(
-                    :name($_.key), :scope('lexical'), :isdecl(1),
-                    :viviself(PAST::Op.new( :pirop('null P')) )
-                ));
+                if pir::isa($_.value, 'Perl6MultiSub') {
+                    $block_ast[0].push(PAST::Var.new(
+                        :name($_.key), :scope('lexical'), :isdecl(1),
+                        :viviself(PAST::Op.new(
+                            :pasttype<callmethod>, :name<incorporate_candidates>,
+                            PAST::Op.new( :pirop<new__Ps>, 'Perl6MultiSub'),
+                            PAST::Op.new( :pirop<find_lex_skip_current__Ps>, $_.key )
+                        ))
+                    ));
+                }
+                else {
+                    $block_ast[0].push(PAST::Var.new(
+                        :name($_.key), :scope('lexical'), :isdecl(1),
+                        :viviself(PAST::Op.new( :pirop('null P')) )
+                    ));
+                }
                 $block_ast.symbol($_.key, :scope('lexical'));
             }
         }
@@ -151,7 +163,15 @@ method import($name) {
     my %imports := self.get_imports($name);
     unless pir::isnull__IP(%imports) {
         for %imports {
-            $targetns{$_.key} := $_.value;
+            # If the symbol is a multi-sub, then we need to incorporate
+            # these new candidates into it. Otherwise, just install the
+            # symbol.
+            if pir::isa($_.value, 'Perl6MultiSub') {
+                $targetns{$_.key}.incorporate_candidates($_.value);
+            }
+            else {
+                $targetns{$_.key} := $_.value;
+            }
         }
     }
 

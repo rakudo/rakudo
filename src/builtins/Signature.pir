@@ -16,13 +16,38 @@ P6LowLevelSig and provides higher level access to it.
 .sub 'onload' :anon :init :load
     .local pmc p6meta
     p6meta = get_hll_global ['Mu'], '$!P6META'
-    p6meta.'new_class'('Signature', 'parent'=>'Cool', 'attr'=>'$!llsig $!param_cache $!try_bind_sub $!bind_target')
+    p6meta.'new_class'('Signature', 'parent'=>'Cool', 'attr'=>'$!llsig $!param_cache $!arity $!count $!try_bind_sub $!bind_target')
 .end
 
 
 =head2 Methods
 
 =over 4
+
+=item arity()
+
+Return the number of required parameters to the block.
+
+=cut
+
+.sub 'arity' :method
+    self.'params'()
+    $P0 = getattribute self, '$!arity'
+    .return ($P0)
+.end
+
+=item count()
+
+Return the number of allowed parameters to the block.
+
+=cut
+
+.sub 'count' :method
+    self.'params'()
+    $P0 = getattribute self, '$!count'
+    .return ($P0)
+.end
+
 
 =item params
 
@@ -51,12 +76,14 @@ Returns a C<List> of C<Parameter> descriptors.
     parameter = get_hll_global 'Parameter'
 
     # Loop over parameters.
-    .local int cur_param, count
-    count = get_llsig_size llsig
+    .local int cur_param, llsig_size, arity, count
+    llsig_size = get_llsig_size llsig
     cur_param = -1
+    arity = 0
+    count = 0
   param_loop:
     inc cur_param
-    unless cur_param < count goto param_done
+    unless cur_param < llsig_size goto param_done
 
     # Get all current parameter info.
     .local pmc nom_type, cons_type, names, type_captures, default, sub_sig
@@ -120,11 +147,26 @@ Returns a C<List> of C<Parameter> descriptors.
     # Create parameter instance.
     $P0 = parameter.'new'('name'=>name, 'type'=>nom_type, 'constraints'=>cons_type, 'optional'=>optional, 'slurpy'=>slurpy, 'invocant'=>invocant, 'multi_invocant'=>multi_invocant, 'rw'=>rw, 'parcel'=>parcel, 'capture'=>capture, 'copy'=>copy, 'named'=>named, 'named_names'=>names, 'type_captures'=>type_captures, 'default'=>default, 'signature'=>sub_sig)
     push result, $P0
+    if slurpy goto param_slurpy
+    inc count
+    if optional goto param_loop
+    inc arity
     goto param_loop
+  param_slurpy:
+    # Use a negative count to indicate infinity
+    count = - llsig_size
   param_done:
 
     # Cache and return.
     setattribute self, '$!param_cache', result
+    $P0 = box arity
+    setattribute self, '$!arity', $P0
+    $P0 = get_hll_global 'Inf'
+    if count < 0 goto count_done
+    $P0 = box count
+  count_done:
+    setattribute self, '$!count', $P0
+
   have_result:
     .return (result)
 .end

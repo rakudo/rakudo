@@ -1,20 +1,12 @@
 augment class Block {
+    # in src/builtins/Block.pir:  .arity, .count
 
     method arity() {
-        my $arity = 0;
-        for self.signature.params -> $p {
-            $arity++ unless $p.slurpy || $p.optional;
-        }
-        $arity;
+        self.signature.arity;
     }
 
     method count() {
-        my $count = 0;
-        for self.signature.params -> $p {
-            return Inf if $p.slurpy;
-            $count++;
-        }
-        $count;
+        self.signature.count;
     }
 
     method ACCEPTS(Mu $topic) {

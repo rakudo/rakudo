@@ -23,9 +23,9 @@ or the spectest suite you may also need a subversion (svn) client.
 In order to fully support Unicode, you'll also want to have the
 ICU library installed (L<http://site.icu-project.org/>).
 Rakudo can run without ICU, but some Unicode-related features
-may not work properly.
+do not work properly.
 
-As an example, on Debian GNU/Linux or Ubuntu Linux the necessary
+As an example, on Debian GNU/Linux or Ubuntu Linux, the necessary
 components for building Rakudo can be installed via the command
 
     aptitude install build-essential libicu-dev subversion
@@ -43,8 +43,8 @@ downloading Rakudo directly from github and building from there:
     $ git clone git://github.com/rakudo/rakudo.git
 
 If you don't have git installed, you can get a tarball or zip of Rakudo
-from github by visiting http://github.com/rakudo/rakudo/tree/master
-and clicking "Download".  Then unpack the tarball or zip.
+from L<http://github.com/rakudo/rakudo/downloads>.
+Then unpack the tarball or zip.
 
 Once you have a copy of Rakudo, build it as follows:
 
@@ -98,9 +98,7 @@ the Parrot installation that was used to create it remains intact).
 
 If the Rakudo compiler is invoked without an explicit script to
 run, it enters a small interactive mode that allows Perl 6 statements
-to be executed from the command line.  Each line entered is treated
-as a separate compilation unit, however (which means that subroutines
-are preserved after they are defined, but variables are not).
+to be executed from the command line.
 
 =head2 Running the test suite
 

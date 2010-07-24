@@ -155,6 +155,7 @@ Returns a C<List> of C<Parameter> descriptors.
   param_slurpy:
     # Use a negative count to indicate infinity
     count = - llsig_size
+    goto param_loop
   param_done:
 
     # Cache and return.

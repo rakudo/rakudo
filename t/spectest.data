@@ -451,7 +451,7 @@ S12-methods/syntax.t
 S12-methods/topic.t
 S12-methods/typed-attributes.t
 S12-methods/what.t
-# S12-subset/multi-dispatch.t
+S12-subset/multi-dispatch.t
 # S12-subset/subtypes.t
 S13-type-casting/methods.t
 S13-overloading/typecasting-long.t
@@ -583,6 +583,7 @@ S32-str/ucfirst.t                                          # icu
 S32-str/uc.t                                               # icu
 # S32-str/unpack.t
 S32-str/words.t                                            # icu
+S32-temporal/calendar.t
 S32-temporal/Date.t
 S32-temporal/DateTime.t
 S32-trig/e.t

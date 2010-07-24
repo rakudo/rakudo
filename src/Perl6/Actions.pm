@@ -2205,6 +2205,10 @@ method EXPR($/, $key?) {
         make make_feed($/);
         return 1;
     }
+    elsif $sym eq '~~' {
+        make make_smartmatch($/);
+        return 1;
+    }
     unless $past {
         $past := PAST::Op.new( :node($/) );
         if $<OPER><O><pasttype> { $past.pasttype( ~$<OPER><O><pasttype> ); }
@@ -2293,6 +2297,50 @@ sub make_feed($/) {
     }
 
     return $result;
+}
+
+sub make_smartmatch($/) {
+    my $lhs := $/[0].ast;
+    my $rhs := $/[1].ast;
+    my $old_topic_var := $lhs.unique('old_topic');
+    my $result_var := $lhs.unique('sm_result');
+    # XXX I'd be nice to emit a PAST::Stmts here, but sadly that causes the
+    # code-gen to go horribly awry in things like 42 && 42 ~~ 42 (e.g. when
+    # we have if and unless chains), so for now it's PAST::Block.
+    PAST::Block.new(
+        :blocktype('immediate'),
+
+        # Stash original $_.
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :name($old_topic_var), :scope('register'), :isdecl(1) ),
+            PAST::Var.new( :name('$_'), :scope('lexical') )
+        ),
+
+        # Evaluate LHS and bind it to $_.
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :name('$_'), :scope('lexical') ),
+            $lhs
+        ),
+
+        # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
+        # return value to a result variable.
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :name($result_var), :scope('register'), :isdecl(1) ),
+            PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
+                $rhs,
+                PAST::Var.new( :name('$_'), :scope('lexical') )
+            )
+        ),
+
+        # Re-instate original $_.
+        PAST::Op.new( :pasttype('bind'),
+            PAST::Var.new( :name('$_'), :scope('lexical') ),
+            PAST::Var.new( :name($old_topic_var), :scope('register') )
+        ),
+
+        # And finally evaluate to the smart-match result.
+        PAST::Var.new( :name($result_var), :scope('register') )
+    );
 }
 
 method prefixish($/) {

@@ -168,7 +168,7 @@ Rakudo's official web site is L<http://rakudo.org/>, where you can
 find useful information for developers and users alike. There's also
 a Parrot blog at L<http://parrotblog.org/>, most Perl 6 related news is
 assembled at L<http://planetsix.perl.org/>. Links to many other
-resources can be found on L<http://perl6-projects.org/>.
+resources can be found on L<http://perl6.org/>.
 
 =head2 Reporting bugs
 
@@ -177,8 +177,9 @@ Bug reports should be sent to C<rakudobug@perl.org> with the moniker
 it gets appropriately tagged in the RT system (https://rt.perl.org/rt3/).
 Please include or attach any sample source code that exhibits the
 bug, and include either the release name/date or the git commit
-identifier. You find that identifier in the first output line of
-the C<git log> command.  There's no need to cc: the perl6-compiler
+identifier. You find that information in the output from
+C<perl6 --version> (or in the first line of C<git log>, if Rakudo
+fails to build).  There's no need to cc: the perl6-compiler
 mailing list, as the RT system will handle this on its own.
 
 =head2 Submitting patches
@@ -210,7 +211,8 @@ See F<docs/compiler_overview.pod>.
 =head1 AUTHOR
 
 Patrick Michaud C<pmichaud@pobox.com> is the primary author and
-maintainer for Rakudo Perl 6 on Parrot.
+maintainer for Rakudo Perl 6 on Parrot. See F<CREDITS> for further
+authors.
 
 =cut
 

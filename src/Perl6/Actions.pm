@@ -2300,11 +2300,8 @@ sub make_smartmatch($/) {
     my $rhs := $/[1].ast;
     my $old_topic_var := $lhs.unique('old_topic');
     my $result_var := $lhs.unique('sm_result');
-    # XXX I'd be nice to emit a PAST::Stmts here, but sadly that causes the
-    # code-gen to go horribly awry in things like 42 && 42 ~~ 42 (e.g. when
-    # we have if and unless chains), so for now it's PAST::Block.
-    PAST::Block.new(
-        :blocktype('immediate'),
+    PAST::Op.new(
+        :pasttype('stmts'),
 
         # Stash original $_.
         PAST::Op.new( :pasttype('bind'),
@@ -2321,7 +2318,7 @@ sub make_smartmatch($/) {
         # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
         # return value to a result variable.
         PAST::Op.new( :pasttype('bind'),
-            PAST::Var.new( :name($result_var), :scope('register'), :isdecl(1) ),
+            PAST::Var.new( :name($result_var), :scope('lexical'), :isdecl(1) ),
             PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
                 $rhs,
                 PAST::Var.new( :name('$_'), :scope('lexical') )
@@ -2335,7 +2332,7 @@ sub make_smartmatch($/) {
         ),
 
         # And finally evaluate to the smart-match result.
-        PAST::Var.new( :name($result_var), :scope('register') )
+        PAST::Var.new( :name($result_var), :scope('lexical') )
     );
 }
 

@@ -2711,6 +2711,7 @@ method quote:sym<s>($/) {
 
     # Make a Substitution.
     my $past := PAST::Op.new(
+        :node($/),
         :pasttype('callmethod'), :name('subst'),
         PAST::Var.new( :name('$_'), :scope('lexical') ),
         $regex, $closure
@@ -2723,6 +2724,7 @@ method quote:sym<s>($/) {
     }
 
     $past := PAST::Op.new(
+        :node($/),
         :pasttype('call'),
         :name('&infix:<=>'),
         PAST::Var.new(:name('$_'), :scope('lexical')),

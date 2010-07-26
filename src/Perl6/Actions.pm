@@ -2709,7 +2709,7 @@ method quote:sym<s>($/) {
     );
     my $closure := block_closure($closure_ast, 'Block', 0);
 
-    # Make a Substitution.
+    # make $_ = $_.subst(...)
     my $past := PAST::Op.new(
         :node($/),
         :pasttype('callmethod'), :name('subst'),

@@ -267,9 +267,16 @@ our multi infix:<ge>($a, $b) {
 }
 
 # XXX Lazy version would be nice in the future too.
-our multi infix:<xx>(Mu \$item, $n) {
-    (1..$n).map( { $item } )
+class Whatever { ... }
+
+our multi infix:<xx>(Mu \$item, Whatever) {
+    (1..*).map( { $item } )
 }
+
+our multi infix:<xx>(Mu \$item, $n) {
+    (1..+$n).map( { $item } )
+}
+
 
 our multi prefix:<|>(@a) { @a.Capture }
 our multi prefix:<|>(%h) { %h.Capture }
@@ -325,8 +332,6 @@ our multi sub item(@values) {
 our multi sub item($item) {
     $item
 }
-
-class Whatever { ... }
 
 our multi sub infix:<...>(Code $lhs, $rhs) {
     my $limit;

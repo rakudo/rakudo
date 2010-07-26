@@ -2710,11 +2710,9 @@ method quote:sym<s>($/) {
     my $closure := block_closure($closure_ast, 'Block', 0);
 
     # Make a Substitution.
-    $regex.named('matcher');
-    $closure.named('replacer');
     my $past := PAST::Op.new(
-        :pasttype('callmethod'), :name('new'),
-        PAST::Var.new( :name('Substitution'), :scope('package') ),
+        :pasttype('callmethod'), :name('subst'),
+        PAST::Var.new( :name('$_'), :scope('lexical') ),
         $regex, $closure
     );
     for $<quotepair> {
@@ -2723,6 +2721,14 @@ method quote:sym<s>($/) {
         }
         $past.push($_.ast);
     }
+
+    $past := PAST::Op.new(
+        :pasttype('call'),
+        :name('&infix:<=>'),
+        PAST::Var.new(:name('$_'), :scope('lexical')),
+        $past
+    );
+
     make $past;
 }
 

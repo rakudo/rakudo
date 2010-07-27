@@ -45,6 +45,10 @@ augment class Num does Real {
 
     method Num() { self; }
 
+    method isNaN() {
+        self != self;
+    }
+
     method ln(Num $x:) {
         pir::ln__Nn($x);
     }

@@ -10,6 +10,10 @@ class Complex does Numeric is Cool {
         (self.re, self.im);
     }
 
+    method isNaN() {
+        self.re.isNaN || self.im.isNaN;
+    }
+
     method Real() {
         if $!im == 0 {
             $!re;

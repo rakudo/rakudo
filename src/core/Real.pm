@@ -2,8 +2,8 @@ class Complex { ... }
 
 role Real does Numeric {
     method ACCEPTS($other) {
-        if self eq "NaN" {
-            (+$other).reals.grep("NaN").elems > 0;
+        if self.isNaN {
+            $other.isNaN;
         } else {
             $other == self;
         }
@@ -43,6 +43,10 @@ role Real does Numeric {
 
     method reals() {
         (self);
+    }
+
+    method isNaN() {
+        False;
     }
 
     method abs(Real $x:) {

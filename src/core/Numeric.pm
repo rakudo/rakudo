@@ -1,9 +1,7 @@
 role Numeric {
     method ACCEPTS($other) {
-        my @a = self.reals;
-        my @b = (+$other).reals;
-        if @a.grep("NaN").elems > 0 {
-            @b.grep("NaN").elems > 0;
+        if self.isNaN {
+            $other.isNaN;
         } else {
             $other == self;
         }
@@ -41,6 +39,10 @@ role Numeric {
     method reals() {
         note "$.WHAT() needs a version of .reals";
         fail "$.WHAT() needs a version of .reals";
+    }
+
+    method isNaN() {
+        ?(self.reals.grep({.isNaN}));
     }
 
     method succ(Numeric $x:) {

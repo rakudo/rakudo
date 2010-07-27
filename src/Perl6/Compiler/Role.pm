@@ -76,7 +76,7 @@ method finish($block) {
             :pasttype('callmethod'),
             :name('add_method'),
             $meta_reg, $obj_reg, ~$_, 
-             PAST::Op.new( :pasttype('callmethod'), :name('clone'), %methods{~$_}<code_ref> )
+            PAST::Op.new( :pasttype('callmethod'), :name('clone'), %methods{~$_}<code_ref> )
         ));
     }
 
@@ -106,6 +106,23 @@ method finish($block) {
 
     # Call compose to create the role object.
     $decl.push(PAST::Op.new( :pasttype('callmethod'), :name('compose'), $meta_reg, $obj_reg ));
+
+    # XXX If it's our-scoped, we need to also save a reference to the current
+    # context since we need to fixup its outer_ctx later from the main program
+    # body. Complete band-aid that we should be able to kill in the not too
+    # distant future, but the bug is nasty.
+    if !$*SETTING_MODE && ($!scope eq 'our' || $!scope eq '') {
+        $decl.unshift(PAST::Op.new(
+            :inline('    $P0 = getinterp',
+                    '    $P0 = $P0["context"]',
+                    '    $P1 = get_hll_global "@!recapture"',
+                    '    unless null $P1 goto got_recapture_list',
+                    '    $P1 = root_new ["parrot";"ResizablePMCArray"]',
+                    '    set_hll_global "@!recapture", $P1',
+                    '  got_recapture_list:',
+                    '    push $P1, $P0')
+        ));
+    }
 
     # We need the block to get the signature, or a default one, plus the
     # decl code as a body.

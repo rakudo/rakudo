@@ -64,6 +64,18 @@ method comp_unit($/, $key?) {
         return 1;
     }
 
+    # XXX To work around the role outers bug, we need to fix up the
+    # contexts marked for re-capture.
+    $mainline.unshift(PAST::Op.new(
+        :inline('    $P0 = get_hll_global "@!recapture"',
+                '  recapture_loop:',
+                '    unless $P0 goto recapture_loop_end',
+                '    $P1 = shift $P0',
+                '    fixup_outer_ctx $P1',
+                '    goto recapture_loop',
+                '  recapture_loop_end:',)
+    ));
+
     $unit.loadinit.unshift(
         PAST::Op.new(
             :name('!UNIT_OUTER'),

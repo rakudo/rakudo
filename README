@@ -59,8 +59,11 @@ Once you have an updated copy of Rakudo, build it as follows:
     $ make
 
 This will create a "perl6" or "perl6.exe" executable in the
-current (rakudo) directory.  Programs can then be run from
-the build directory using a command like:
+current (rakudo) directory.  Note that if you have multiple (Perl 5)
+C<perl>s in your path, you may need to use a fully qualified path
+to the appropriate executable (or update your PATH environment variable).
+
+Programs can then be run from the build directory using a command like:
 
     $ ./perl6 hello.pl
 

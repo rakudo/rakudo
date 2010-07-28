@@ -31,6 +31,21 @@ augment class Int does Real {
     }
 }
 
+multi sub infix:«==»(Int $a, Int $b) {
+    pir::iseq__III( $a, $b) ?? True !! False
+}
+
+multi sub infix:«!=»(Int $a, Int $b) {
+    pir::iseq__III( $a, $b) ?? False !! True # note reversed
+}
+
+multi sub infix:«<»(Int $a, Int $b) {
+    pir::islt__III( $a, $b) ?? True !! False
+}
+
+# Should pull along the other Int comparison operators at some point,
+# but this is a great start.
+
 our multi sub prefix:<->(Int $a) {
     upgrade_to_num_if_needed(pir::neg__NN($a))
 }

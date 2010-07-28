@@ -9,7 +9,7 @@ use Date::Simple qw(today ymd);
 
 my %contrib;
 
-my $last_release = release_date_of_prev_month();
+my $last_release = shift // release_date_of_prev_month();
 open my $c, '-|', 'git', 'log', "--since=$last_release", '--pretty=format:%an|%cn|%s'
     or die "Can't open pipe to git log: $!";
 binmode $c, ':encoding(UTF-8)';
@@ -23,7 +23,7 @@ while (my $line = <$c>) {
     while ($msg =~ /([^\s()]+)\+\+/g) {
         $contrib{nick_to_name($1)}++;
     }
-    while ($msg =~ /(courtesy by:?)\s*(\S.*)/i) {
+    while ($msg =~ /courtesy of:?\s*(\S.*)/gi) {
         $contrib{nick_to_name($1)}++;
     }
 }
@@ -69,7 +69,6 @@ sub nick_to_name_from_CREDITS {
         }
     }
     close $f;
-    use Data::Dumper; $Data::Dumper::Sortkeys = 1; print Dumper \%nicks;
     return \%nicks;
 }
 

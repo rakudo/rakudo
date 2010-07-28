@@ -214,6 +214,7 @@ CORE_SOURCES = \
   src/core/IO/ArgFiles.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
+  src/core/IO/Stat.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
   src/core/Block.pm \

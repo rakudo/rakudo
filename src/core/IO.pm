@@ -4,6 +4,7 @@ class IO is Cool {
     has $.autoflush is rw;
 
     has $.path;
+    has $.stat = ::IO::Stat.new(path => $.path);
 
     multi method close() is export {
         try {
@@ -140,17 +141,17 @@ class IO is Cool {
 
     # file test operations
     multi method d() {
-        self.e ?? ?pir::stat__ISI($.path, 2) !! Bool;
+        self.e ?? $.stat.isdir !! Bool;
     }
     multi method e() {
-        ?pir::stat__ISI($.path, 0);
+        $.stat.exists;
     }
     multi method f() {
-        self.e ?? !pir::stat__ISI($.path, 2) !! Bool;
+        self.e ?? !$.stat.isdir !! Bool;
     }
 
     multi method s() {
-        self.e ?? pir::stat__ISI($.path, 1) !! Any;
+        self.e ?? $.stat.size !! Any;
     }
 
     multi method l() {

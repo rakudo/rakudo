@@ -14,7 +14,7 @@ open(my $fh, "<", "VERSION") or die $!;
 my $VERSION = <$fh>;
 close $fh;
 
-if (-d '.git' && open(my $GIT, '-|', "git describe")) {
+if (-d '.git' && open(my $GIT, '-|', "git describe --match '2*'")) {
     $VERSION = <$GIT>;
     close $GIT;
 }

@@ -2691,20 +2691,10 @@ method quote:sym<m>($/) {
 
 our %SUBST_ALLOWED_ADVERBS;
 INIT {
-    %SUBST_ALLOWED_ADVERBS{'g'}         := 1;
-    %SUBST_ALLOWED_ADVERBS{'global'}    := 1;
-    %SUBST_ALLOWED_ADVERBS{'samecase'}  := 1;
-    %SUBST_ALLOWED_ADVERBS{'x'}         := 1;
-    %SUBST_ALLOWED_ADVERBS{'c'}         := 1;
-    %SUBST_ALLOWED_ADVERBS{'continue'}  := 1;
-    %SUBST_ALLOWED_ADVERBS{'p'}         := 1;
-    %SUBST_ALLOWED_ADVERBS{'pos'}       := 1;
-
-    %SUBST_ALLOWED_ADVERBS{'nth'}       := 1;
-    %SUBST_ALLOWED_ADVERBS{'th'}        := 1;
-    %SUBST_ALLOWED_ADVERBS{'st'}        := 1;
-    %SUBST_ALLOWED_ADVERBS{'nd'}        := 1;
-    %SUBST_ALLOWED_ADVERBS{'rd'}        := 1;
+    my $mods := 'g global samecase x c continue p pos nth th st nd rd';
+    for pir::split__PSS(' ', $mods) {
+        %SUBST_ALLOWED_ADVERBS{$_} := 1;
+    }
 }
 
 method quote:sym<s>($/) {

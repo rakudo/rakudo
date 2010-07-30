@@ -191,6 +191,7 @@ S03-operators/not.t
 S03-operators/numeric-context.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
+S03-operators/range-int.t                       # stress
 S03-operators/range.t
 S03-operators/reduce-le1arg.t
 S03-operators/relational.t

@@ -21,14 +21,6 @@ class Range is Iterable does Positional {
           && ($.excludes_max == $topic.excludes_min));
     }
 
-    our method iterator() {
-        my $start = $.min;
-        $start .= succ if $.excludes_min;
-        RangeIter.new( :value( self!max_test($start) ?? $start !! EMPTY ),
-                       :max($.max), 
-                       :excludes_max($.excludes_max));
-    }
-
     my Bool multi method !min_test($topic) {
         $.min == -Inf || $.min before $topic || (!$.excludes_min && !($.min after $topic));
     }
@@ -72,6 +64,32 @@ class Range is Iterable does Positional {
 
     multi method postcircumfix:<[ ]>(Int $index) { self.Seq[$index] }
     multi method postcircumfix:<[ ]>(@slice)     { self.Seq[@slice] }
+
+    class InfiniteIntRangeIter is Iterator {
+        has $!value;
+        has $!nextIter;
+
+        method infinite() { True; }
+
+        method reify() {
+            unless $!nextIter.defined {
+                $!nextIter = InfiniteIntRangeIter.new( :value($!value + 8) );
+            }
+            $!value, $!value + 1, $!value + 2, $!value + 3,
+            $!value + 4, $!value + 5, $!value + 6, $!value + 7, $!nextIter;
+        }
+    }
+
+    our method iterator() {
+        if ($.min ~~ Int && $.max == Inf) {
+            return InfiniteIntRangeIter.new( :value($!excludes_min ?? $.min + 1 !! $.min) );
+        }
+        my $start = $.min;
+        $start .= succ if $.excludes_min;
+        RangeIter.new( :value( self!max_test($start) ?? $start !! EMPTY ),
+                       :max($.max),
+                       :excludes_max($.excludes_max));
+    }
 }
 
 our multi sub infix:<..>($min, $max) {

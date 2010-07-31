@@ -105,13 +105,13 @@ class Range is Iterable does Positional {
     }
 
     class ConsIter is Iterator {
-        has $!value-parcel;
+        has @!values;
         has $!nextIter;
 
         method infinite() { $!nextIter ~~ EMPTY ?? False !! $!nextIter.infinite; }
 
         method reify() {
-            &infix:<,>(|$!value-parcel, $!nextIter);
+            &infix:<,>(|@!values, $!nextIter);
         }
     }
 
@@ -126,23 +126,28 @@ class Range is Iterable does Positional {
         if $.min ~~ Int && $.max ~~ Int {
             my $end = $.max;
             $end .= pred if $.excludes_max;
-            return EMPTY if $start > $end;
+
+            if $start > $end {
+                return RangeIter.new( :value( EMPTY ),
+                                      :max($.max),
+                                      :excludes_max($.excludes_max));
+            }
 
             my $mod = ($end - $start + 1) % 4;
             if $mod == 0 {
                 FiniteIntRangeQuadIter.new(:value($start), :max($end));
             } else {
-                my $parcel := pir::new__Ps('Parcel');
+                my @values;
                 my $i;
                 loop ($i = 0; $i < $mod; $i++) {
-                     pir::push($parcel, $start + $i);
+                     @values.push: $start + $i;
                 }
 
                 my $next-iter = $start + $mod < $end
                     ?? FiniteIntRangeQuadIter.new(:value($start + $mod),
                                                   :max($end))
                     !! EMPTY;
-                ConsIter.new(:value-parcel($parcel),
+                ConsIter.new(:values(@values),
                              :nextIter($next-iter));
             }
         } else {

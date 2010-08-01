@@ -2685,8 +2685,23 @@ method quote:sym<rx>($/) {
     make block_closure($past, 'Regex', 0);
 }
 method quote:sym<m>($/) {
-    my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make block_closure($past, 'Regex', 0);
+    $regex := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
+    my $regex := block_closure($regex, 'Regex', 0);
+
+    my $past := PAST::Op.new(
+        :node($/),
+        :pasttype('callmethod'), :name('match'),
+        PAST::Var.new( :name('$_'), :scope('lexical') ),
+        $regex
+    );
+    $past := PAST::Op.new(
+        :node($/),
+        :pasttype('call'), :name('&infix:<=>'),
+        PAST::Var.new(:name('$/'), :scope('lexical')),
+        $past
+    );
+
+    make $past;
 }
 
 our %SUBST_ALLOWED_ADVERBS;

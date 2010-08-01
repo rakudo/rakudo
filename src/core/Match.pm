@@ -1,6 +1,7 @@
 class Match is Regex::Match is Cool does Positional does Associative {
-    method create(:$from, :$to, :$orig, :$ast) {
+    method new(:$from, :$to, :$orig, :$ast) {
         my $new = self.bless(*);
+        return $new unless $orig.defined;
         pir::setattribute__vpsp($new, '$!from',   $from);
         pir::setattribute__vpsp($new, '$!to',     $to);
         pir::setattribute__vpsp($new, '$!target', $orig);

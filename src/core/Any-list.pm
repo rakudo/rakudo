@@ -37,7 +37,7 @@ augment class Any {
     our multi method map(%block) {
         die "Can't call map() with a Hash argument, Callable required\n"
             ~ "You probably wrote a Hash composer accidentally - try to\n"
-            ~ "disambiguate the it with a ; directly after the opening brace";
+            ~ "disambiguate it with a ; directly after the opening brace";
 
     }
 

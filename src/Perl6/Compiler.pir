@@ -151,10 +151,19 @@ Perl6::Compiler - Perl6 compiler
 
     # Set up @*INC from $PERL6LIB, languages/perl6/lib and ~/.perl6/lib
     .local pmc env, interp, config
+    interp = getinterp
+    config = interp[.IGLOBALS_CONFIG_HASH]
     # Convert PERL6LIB first
     env = root_new ['parrot';'Env']
     $S0 = env['PERL6LIB']
-    $P0 = split ':', $S0
+
+    .local string sep, os
+    sep = ':'
+    os = config['osname']
+    ne os, 'MSWin32', perl6lib_split
+    sep = ';'
+  perl6lib_split:
+    $P0 = split sep, $S0
     # append ~/.perl6/lib
     $S0 = env['HOME']
     if $S0 goto have_home     # for users of unix-y systems
@@ -166,8 +175,6 @@ Perl6::Compiler - Perl6 compiler
     concat $S0, '/.perl6/lib'
     push $P0, $S0
     # append the installed Parrot languages/perl6/lib directory
-    interp = getinterp
-    config = interp[.IGLOBALS_CONFIG_HASH]
     $S0 = config['libdir']
     $S1 = config['versiondir']
     concat $S0, $S1

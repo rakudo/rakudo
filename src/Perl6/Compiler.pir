@@ -230,6 +230,17 @@ Perl6::Compiler - Perl6 compiler
     exit 0
 .end
 
+
+.sub 'pir' :method
+    .param pmc source
+    .param pmc adverbs         :slurpy :named
+    $P0 = compreg 'POST'
+    $S0 = $P0.'to_pir'(source, adverbs :flat :named)
+    $S0 = concat ".loadlib 'perl6_ops'\n", $S0
+    .return ($S0)
+.end
+    
+
 .sub 'version' :method
     .local pmc interp, config, rev, version
     interp = getinterp

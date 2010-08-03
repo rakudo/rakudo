@@ -77,9 +77,12 @@ method comp_unit($/, $key?) {
     ));
 
     $unit.loadinit.unshift(
-        PAST::Op.new(
-            :name('!UNIT_OUTER'),
-            PAST::Var.new( :name('block'), :scope('register') )
+        PAST::Op.new( :pasttype<inline>,
+            :inline('    $P0 = find_name "!UNIT_OUTER"',
+                    '    unless null $P0 goto have_perl6',
+                    '    load_language "perl6"',
+                    '  have_perl6:',
+                    '    "!UNIT_OUTER"(block)')
         )
     );
 

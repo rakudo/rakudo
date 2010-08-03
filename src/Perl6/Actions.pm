@@ -2656,6 +2656,35 @@ method quotepair($/) {
     make $*value;
 }
 
+method setup_quotepairs($/) {
+    my %h;
+    for @*REGEX_ADVERBS {
+        my $key := $_.ast.named;
+        my $value := $_.ast;
+        if $value ~~ PAST::Val {
+            $value := $value.value;
+        } else {
+            if $key eq 'i' || $key eq 'ignorecase' {
+                $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
+            }
+        }
+        %h{$key} := $value;
+    }
+
+    my @MODIFIERS := Q:PIR {
+        %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
+    };
+    @MODIFIERS.unshift(%h);
+}
+
+method cleanup_modifiers($/) {
+    my @MODIFIERS := Q:PIR {
+        %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
+    };
+    @MODIFIERS.shift();
+
+}
+
 method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
 method quote:sym<dblq>($/) { make $<quote_EXPR>.ast; }
 method quote:sym<qq>($/)   { make $<quote_EXPR>.ast; }
@@ -2694,7 +2723,7 @@ method quote:sym<m>($/) {
 
 our %SUBST_ALLOWED_ADVERBS;
 INIT {
-    my $mods := 'g global samecase x c continue p pos nth th st nd rd';
+    my $mods := 'g global samecase x c continue p pos nth th st nd rd i ignorecase';
     for pir::split__PSS(' ', $mods) {
         %SUBST_ALLOWED_ADVERBS{$_} := 1;
     }

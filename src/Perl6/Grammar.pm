@@ -1428,15 +1428,23 @@ token quote:sym<m> {
     | '{'<p6regex=.LANG('Regex','nibbler')>'}'
     ]
 }
+
+token setup_quotepairs { '' }
+token cleanup_modifiers { '' }
+
 token quote:sym<s> {
     <sym> >>
     [ <quotepair> <.ws> ]*
+    :my @*REGEX_ADVERBS;
+    { @*REGEX_ADVERBS := $<quotepair>; }
+    <.setup_quotepairs>
     [
     | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
     | '[' <p6regex=.LANG('Regex','nibbler')> ']'
       <.ws> [ '=' || <.panic: "Missing assignment operator"> ]
       <.ws> <EXPR('i')>
     ]
+    <.cleanup_modifiers>
 }
 
 token old_rx_mods {

@@ -2664,7 +2664,8 @@ method setup_quotepairs($/) {
         if $value ~~ PAST::Val {
             $value := $value.value;
         } else {
-            if $key eq 'i' || $key eq 'ignorecase' {
+            if    $key eq 'i' || $key eq 'ignorecase'
+               || $key eq 's' || $key eq 'sigspace' {
                 $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
             }
         }
@@ -2723,7 +2724,7 @@ method quote:sym<m>($/) {
 
 our %SUBST_ALLOWED_ADVERBS;
 INIT {
-    my $mods := 'g global samecase x c continue p pos nth th st nd rd i ignorecase';
+    my $mods := 'g global samecase x c continue p pos nth th st nd rd i ignorecase s sigspace';
     for pir::split__PSS(' ', $mods) {
         %SUBST_ALLOWED_ADVERBS{$_} := 1;
     }

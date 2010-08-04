@@ -2724,7 +2724,7 @@ method quote:sym<m>($/) {
 
 our %SUBST_ALLOWED_ADVERBS;
 INIT {
-    my $mods := 'g global samecase x c continue p pos nth th st nd rd i ignorecase s sigspace';
+    my $mods := 'g global ii samecase x c continue p pos nth th st nd rd i ignorecase s sigspace';
     for pir::split__PSS(' ', $mods) {
         %SUBST_ALLOWED_ADVERBS{$_} := 1;
     }

@@ -24,7 +24,7 @@ augment class Cool {
         }
     }
 
-    multi method subst($matcher, $replacement, :$samecase, *%options) {
+    multi method subst($matcher, $replacement, :ii(:$samecase), *%options) {
         my @matches = self.match($matcher, |%options);
         return self unless @matches;
         return self if @matches == 1 && !@matches[0];

@@ -2669,6 +2669,9 @@ method setup_quotepairs($/) {
                 $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
             }
         }
+        if $key eq 'samecase' || $key eq 'ii' {
+            %h{'i'} := 1;
+        }
         %h{$key} := $value;
     }
 

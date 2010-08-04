@@ -2735,7 +2735,6 @@ INIT {
 
 method handle_and_check_adverbs($/, %adverbs, $past, $what) {
     for $<quotepair> {
-        pir::printerr__vS("Found adverb " ~ $_.ast.named ~ "\n");
         unless %adverbs{$_.ast.named} {
             $/.CURSOR.panic("Adverb '" ~ $_.ast.named ~ "' not allowed on " ~ $what);
         }

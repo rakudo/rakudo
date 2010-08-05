@@ -1416,10 +1416,15 @@ token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
 token quote:sym</ />  { '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>? }
 token quote:sym<rx>   {
     <sym> >> 
+    [ <quotepair> <.ws> ]*
+    :my @*REGEX_ADVERBS;
+    { @*REGEX_ADVERBS := $<quotepair>; }
+    <.setup_quotepairs>
     [
     | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
     | '{'<p6regex=.LANG('Regex','nibbler')>'}' <.old_rx_mods>?
     ]
+    <.cleanup_modifiers>
 }
 token quote:sym<m> {
     <sym> >>

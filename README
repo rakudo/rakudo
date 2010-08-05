@@ -5,12 +5,11 @@ Rakudo Perl 6
     is distributed under the terms of the Artistic License 2.0. For more
     details, see the full text of the license in the file LICENSE.
 
-  Installing with your package manager
-    There are binary packages available for these operating systems: various
-    Windows versions, FreeBSD, Arch Linx, Fedora, OpenSuSE, CRUX.
-
-    Please refer to <http://rakudo.org/how-to-get-rakudo> for links to the
-    individual packages.
+    This directory contains only the Rakudo Perl 6 compiler itself; it 
+    does not contain any of the modules, documentation, or other items
+    that would normally come with a full Perl 6 distribution.  If you're
+    after more than just the bare compiler, please download the latest
+    Rakudo Star package from http://github.com/rakudo/star/downloads .
 
   Build requirements (Installing from source)
     For building Rakudo you need at least a C compiler, a "make" utility,

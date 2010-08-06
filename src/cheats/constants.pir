@@ -33,5 +33,15 @@
     set_hll_global ['Numeric'], 'Circles', Circles
     set_hll_global 'Circles', Circles
 
+    .local pmc Increase, Decrease, Same
+    Increase = new ['Int']
+    assign Increase, -1
+    set_hll_global ['Order'], 'Increase', Increase
+    Same = new ['Int']
+    assign Same, 0
+    set_hll_global ['Order'], 'Same', Same
+    Decrease = new ['Int']
+    assign Decrease, 1
+    set_hll_global ['Order'], 'Decrease', Decrease
 .end
 

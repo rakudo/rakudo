@@ -36,11 +36,23 @@ multi sub infix:«==»(Int $a, Int $b) {
 }
 
 multi sub infix:«!=»(Int $a, Int $b) {
-    pir::iseq__III( $a, $b) ?? False !! True # note reversed
+    pir::isne__III( $a, $b) ?? True !! False
 }
 
 multi sub infix:«<»(Int $a, Int $b) {
     pir::islt__III( $a, $b) ?? True !! False
+}
+
+multi sub infix:«<=»(Int $a, Int $b) {
+    pir::isle__III( $a, $b) ?? True !! False
+}
+
+multi sub infix:«>»(Int $a, Int $b) {
+    pir::isgt__III( $a, $b) ?? True !! False
+}
+
+multi sub infix:«>=»(Int $a, Int $b) {
+    pir::isge__III( $a, $b) ?? True !! False
 }
 
 # Should pull along the other Int comparison operators at some point,

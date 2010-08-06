@@ -182,6 +182,7 @@ CORE_SOURCES = \
   src/cheats/eval.pm \
   src/core/Mu.pm \
   src/core/Bool.pm \
+  src/core/Order.pm \
   src/core/Parcel.pm \
   src/core/Any.pm \
   src/core/Any-list.pm \

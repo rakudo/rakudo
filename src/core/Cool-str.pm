@@ -424,11 +424,7 @@ our Str proto sub infix:<x>($str, $n) {
 }
 
 our multi sub infix:<cmp>($a, $b) {
-    if $a eq $b {
-        0;
-    } else {
-        $a lt $b ?? -1 !! 1;
-    }
+    $a lt $b ?? Order::Increase !! ($a gt $b ?? Order::Decrease !! Order::Same);
 }
 
 our multi sub infix:<leg>($a, $b) {

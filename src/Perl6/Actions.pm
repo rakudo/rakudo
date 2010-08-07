@@ -314,6 +314,7 @@ method newpad($/) {
             :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1)
         )
     ));
+    $new_block<IN_DECL> := $*IN_DECL;
     @BLOCK.unshift($new_block);
 }
 
@@ -324,7 +325,7 @@ method finishpad($/) {
     # undefs; for other blocks they initialize to their outer lexical.
 
     my $BLOCK := @BLOCK[0];
-    my $outer := $*IN_DECL ne 'routine' && $*IN_DECL ne 'method';
+    my $outer := $BLOCK<IN_DECL> ne 'routine' && $BLOCK<IN_DECL> ne 'method';
 
     for <$_ $/ $!> {
         # Generate the lexical variable except if...

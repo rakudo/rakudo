@@ -288,6 +288,10 @@ augment class Any {
 
     our multi method postcircumfix:<[ ]>() { self.list }
 
+    our multi method postcircumfix:<[ ]>(Whatever $w) { 
+        self[0..(self.elems-1)]
+    }
+
     our multi method postcircumfix:<[ ]>(&block) { self[&block(self.elems)]; }
 
     our multi method postcircumfix:<[ ]>(@pos) {
@@ -320,6 +324,10 @@ augment class Any {
 
     our multi method postcircumfix:<{ }>() {
         self.values()
+    }
+
+    our multi method postcircumfix:<{ }>(Whatever $w) {
+        self.{self.keys}
     }
 
     our multi method postcircumfix:<{ }>(@keys) {

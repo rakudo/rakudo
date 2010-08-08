@@ -985,7 +985,7 @@ rule routine_def {
     <.newpad>
     [ '(' <multisig> ')' ]?
     <trait>*
-    { $*IN_DECL := ''; }
+    { $*IN_DECL := ''; $*IMPLICIT := 0; }
     <blockoid>
 }
 

@@ -221,9 +221,12 @@ L<http://github.com/rakudo/rakudo/downloads>.
 
 =item 13.
 
-Publish the release announcement (from #5) to appropriate
-locations, including rakudo.org, use.perl, perl6-language,
-perl6-announce, perl6-users, perl6-compiler, and others.
+To avoid public confusion with Rakudo Star releases that will 
+follow a few days after each compiler release, we now publish 
+compiler release announcements ONLY to perl6-compiler@perl.org.  
+(We may restart widespread announcements of compiler releases 
+once they are known, or we may begin publishing a single
+announcement for both.)
 
 =item 14.
 

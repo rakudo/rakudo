@@ -450,6 +450,19 @@ our multi sub infix:<...>(@lhs, @rhs is copy) {
     (@lhs ... @rhs.shift), @rhs
 }
 
+our multi sub infix:<...^>($lhs, $rhs) {
+	my @all := ($lhs ... $rhs);
+	return Nil unless defined @all[0];
+	gather {
+		loop {
+			last unless defined @all[0];
+			my $current = @all.shift() ;
+			last if $current eqv $rhs ;
+			take $current;
+		}
+	}
+}
+
 our multi sub infix:<eqv>(Mu $a, Mu $b) {
     $a.WHAT === $b.WHAT && $a === $b;
 }

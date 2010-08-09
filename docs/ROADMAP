@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2010-08-04
+Last updated: 2010-08-09
 
 This document identifies the major tasks planned for Rakudo
 development as of August 2010.
@@ -27,6 +27,7 @@ Really important items
 Ought to have items
 2 ****  ports to other virtual machines
 2 ?     'constant' declarator
+2 ?     operator precedence traits (pmichaud)
 2 **    basic Buf implementation (A, masak)
 2 **    regex modifiers (B, moritz, pmichaud)
 2 ***   installation standards (A)

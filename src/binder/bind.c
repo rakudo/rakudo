@@ -767,7 +767,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
     if (cur_pos_arg < num_pos_args && !suppress_arity_fail) {
         /* Oh noes, too many positionals passed. */
         if (error)
-            *error = *error = Rakudo_binding_arity_fail(interp, elements, num_elements, num_pos_args, 1);
+            *error = Rakudo_binding_arity_fail(interp, elements, num_elements, num_pos_args, 1);
         return BIND_RESULT_FAIL;
     }
     if (!PMC_IS_NULL(named_args_copy) && VTABLE_elements(interp, named_args_copy)) {

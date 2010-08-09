@@ -451,12 +451,10 @@ our multi sub infix:<...>(@lhs, @rhs is copy) {
 }
 
 our multi sub infix:<...^>($lhs, $rhs) {
-	my @all := ($lhs ... $rhs);
-	return Nil unless defined @all[0];
+	my $all = ($lhs ... $rhs);
 	gather {
-		loop {
-			last unless defined @all[0];
-			my $current = @all.shift() ;
+		while ($all) {
+			my $current = $all.shift() ;
 			last if $current eqv $rhs ;
 			take $current;
 		}

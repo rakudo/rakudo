@@ -1428,10 +1428,15 @@ token quote:sym<rx>   {
 }
 token quote:sym<m> {
     <sym> >>
+    [ <quotepair> <.ws> ]*
+    :my @*REGEX_ADVERBS;
+    { @*REGEX_ADVERBS := $<quotepair>; }
+    <.setup_quotepairs>
     [
     | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
     | '{'<p6regex=.LANG('Regex','nibbler')>'}'
     ]
+    <.cleanup_modifiers>
 }
 
 token setup_quotepairs { '' }

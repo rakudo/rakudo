@@ -33,13 +33,7 @@ method bind_target($bind_target?) {
 
 # Adds a parameter to the signature.
 method add_parameter($new_entry) {
-    my @entries := self.entries;
-    if $new_entry.var_name eq '$_' {
-        @entries.unshift($new_entry); # Always comes first, e.g. before slurpies.
-    }
-    else {
-        @entries.push($new_entry);
-    }
+    self.entries.push($new_entry);
 }
 
 

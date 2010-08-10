@@ -288,19 +288,19 @@ multi sub infix:«!=»(Numeric $a, Numeric $b) {
 }
 
 multi sub infix:«<»(Numeric $a, Numeric $b) {
-    ($a <=> $b) == -1;
+    ($a <=> $b) < 0;
 }
 
 multi sub infix:«>»(Numeric $a, Numeric $b) {
-    ($a <=> $b) == +1;
+    ($a <=> $b) > 0;
 }
 
 multi sub infix:«<=»(Numeric $a, Numeric $b) {
-    ($a <=> $b) != +1;
+    ($a <=> $b) <= 0;
 }
 
 multi sub infix:«>=»(Numeric $a, Numeric $b) {
-    ($a <=> $b) != -1;
+    ($a <=> $b) >= 0;
 }
 
 multi sub srand(Numeric $seed) {

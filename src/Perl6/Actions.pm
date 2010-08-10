@@ -77,9 +77,12 @@ method comp_unit($/, $key?) {
     ));
 
     $unit.loadinit.unshift(
-        PAST::Op.new(
-            :name('!UNIT_OUTER'),
-            PAST::Var.new( :name('block'), :scope('register') )
+        PAST::Op.new( :pasttype<inline>,
+            :inline('    $P0 = find_name "!UNIT_OUTER"',
+                    '    unless null $P0 goto have_perl6',
+                    '    load_language "perl6"',
+                    '  have_perl6:',
+                    '    "!UNIT_OUTER"(block)')
         )
     );
 
@@ -311,6 +314,7 @@ method newpad($/) {
             :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1)
         )
     ));
+    $new_block<IN_DECL> := $*IN_DECL;
     @BLOCK.unshift($new_block);
 }
 
@@ -321,7 +325,7 @@ method finishpad($/) {
     # undefs; for other blocks they initialize to their outer lexical.
 
     my $BLOCK := @BLOCK[0];
-    my $outer := $*IN_DECL ne 'routine' && $*IN_DECL ne 'method';
+    my $outer := $BLOCK<IN_DECL> ne 'routine' && $BLOCK<IN_DECL> ne 'method';
 
     for <$_ $/ $!> {
         # Generate the lexical variable except if...
@@ -2645,12 +2649,60 @@ method typename($/) {
     make $past;
 }
 
+our %SUBST_ALLOWED_ADVERBS;
+our %SHARED_ALLOWED_ADVERBS;
+INIT {
+    my $mods := 'i ignorecase s sigspace';
+    for pir::split__PSS(' ', $mods) {
+        %SHARED_ALLOWED_ADVERBS{$_} := 1;
+        %SUBST_ALLOWED_ADVERBS{$_}  := 1;
+    }
+
+    $mods := 'g global ii samecase x c continue p pos nth th st nd rd';
+    for pir::split__PSS(' ', $mods) {
+        %SUBST_ALLOWED_ADVERBS{$_} := 1;
+    }
+}
+
+
 method quotepair($/) {
     unless $*value ~~ PAST::Node {
         $*value := PAST::Val.new( :value($*value) );
     }
     $*value.named(~$*key);
     make $*value;
+}
+
+method setup_quotepairs($/) {
+    my %h;
+    for @*REGEX_ADVERBS {
+        my $key := $_.ast.named;
+        my $value := $_.ast;
+        if $value ~~ PAST::Val {
+            $value := $value.value;
+        } else {
+            if %SHARED_ALLOWED_ADVERBS{$key} {
+                $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
+            }
+        }
+        if $key eq 'samecase' || $key eq 'ii' {
+            %h{'i'} := 1;
+        }
+        %h{$key} := $value;
+    }
+
+    my @MODIFIERS := Q:PIR {
+        %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
+    };
+    @MODIFIERS.unshift(%h);
+}
+
+method cleanup_modifiers($/) {
+    my @MODIFIERS := Q:PIR {
+        %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
+    };
+    @MODIFIERS.shift();
+
 }
 
 method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
@@ -2681,6 +2733,8 @@ method quote:sym</ />($/) {
     make block_closure($past, 'Regex', 0);
 }
 method quote:sym<rx>($/) {
+
+    self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx');
     my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
     make block_closure($past, 'Regex', 0);
 }
@@ -2704,21 +2758,14 @@ method quote:sym<m>($/) {
     make $past;
 }
 
-our %SUBST_ALLOWED_ADVERBS;
-INIT {
-    my $mods := 'g global samecase x c continue p pos nth th st nd rd';
-    for pir::split__PSS(' ', $mods) {
-        %SUBST_ALLOWED_ADVERBS{$_} := 1;
-    }
-}
-
-method handle_and_check_adverbs($/, %adverbs, $past, $what) {
+method handle_and_check_adverbs($/, %adverbs, $what, $past?) {
     for $<quotepair> {
-        pir::printerr__vS("Found adverb " ~ $_.ast.named ~ "\n");
         unless %adverbs{$_.ast.named} {
             $/.CURSOR.panic("Adverb '" ~ $_.ast.named ~ "' not allowed on " ~ $what);
         }
-        $past.push($_.ast);
+        if $past {
+            $past.push($_.ast);
+        }
     }
 }
 
@@ -2743,7 +2790,7 @@ method quote:sym<s>($/) {
         PAST::Var.new( :name('$_'), :scope('lexical') ),
         $regex, $closure
     );
-    self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, $past, 'substitution');
+    self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
 
     $past := PAST::Op.new(
         :node($/),

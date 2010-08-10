@@ -182,6 +182,7 @@ CORE_SOURCES = \
   src/cheats/eval.pm \
   src/core/Mu.pm \
   src/core/Bool.pm \
+  src/core/Order.pm \
   src/core/Parcel.pm \
   src/core/Any.pm \
   src/core/Any-list.pm \
@@ -292,8 +293,6 @@ install: all
 	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
 	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     Test.pir            $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/*.pm            $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/*.pir           $(DESTDIR)$(PERL6_LANG_DIR)/lib
 
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
@@ -301,7 +300,9 @@ install: all
 	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
 	$(MKPATH) 		      $(DESTDIR)$(DOCDIR)/rakudo
+	$(MKPATH) 		      $(DESTDIR)$(DOCDIR)/rakudo/announce
 	$(CP)     $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
+	$(CP)     $(DOCS)/announce    $(DESTDIR)$(DOCDIR)/rakudo/announce
 	$(MKPATH) $(DESTDIR)$(MANDIR)/man1
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1

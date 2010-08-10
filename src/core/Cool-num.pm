@@ -316,4 +316,10 @@ proto sub srand($seed) {
     srand(+$seed);
 }
 
+INIT {
+    # constant i = 1i;
+    pir::set_hll_global__vsP('i', 1i);
+}
+    
+
 # vim: ft=perl6

@@ -24,7 +24,7 @@ augment class Cool {
         }
     }
 
-    multi method subst($matcher, $replacement, :$samecase, *%options) {
+    multi method subst($matcher, $replacement, :ii(:$samecase), *%options) {
         my @matches = self.match($matcher, |%options);
         return self unless @matches;
         return self if @matches == 1 && !@matches[0];
@@ -424,11 +424,7 @@ our Str proto sub infix:<x>($str, $n) {
 }
 
 our multi sub infix:<cmp>($a, $b) {
-    if $a eq $b {
-        0;
-    } else {
-        $a lt $b ?? -1 !! 1;
-    }
+    $a lt $b ?? Order::Increase !! ($a gt $b ?? Order::Decrease !! Order::Same);
 }
 
 our multi sub infix:<leg>($a, $b) {

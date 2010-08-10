@@ -1,14 +1,12 @@
 class Match is Regex::Match is Cool does Positional does Associative {
-    # this is an evil hack
-    # per speck 'abc' ~~ m/a/ sets $_ to 'abc', and then
-    # the m// thing operators on $_. And then 'abc' is smart-matched
-    # agsint the result of that match. So in order to DWIM, we have to
-    # return self.
+
     method ACCEPTS($x) {
        self === Match ?? nextsame() !! self;
     }
     method create(:$from, :$to, :$orig, :$ast) {
+    method new(:$from, :$to, :$orig, :$ast) {
         my $new = self.bless(*);
+        return $new unless $orig.defined;
         pir::setattribute__vpsp($new, '$!from',   $from);
         pir::setattribute__vpsp($new, '$!to',     $to);
         pir::setattribute__vpsp($new, '$!target', $orig);

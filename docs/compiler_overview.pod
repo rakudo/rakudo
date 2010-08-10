@@ -65,12 +65,12 @@ includes a powerful Perl 6 regex engine.  This gives a streamlined
 compiler framework on which to build a very functional Perl 6
 implementation.
 
-NQP itself is also written in PIR.  It is an important part of the
-Parrot Compiler Toolkit (PCT) and is installed with Parrot.  PCT is a
-standard framework to create and use Parrot based languages.  The source
-code of NQP is in F<../parrot/ext/nqp-rx/> and the resulting compiler is
-F<../parrot_install/bin/parrot-nqp>.  Note, NQP only I<builds> the
-Rakudo compiler, and does not compile or run user programs.
+NQP-rx is a bootstrapped compiler, it is mostly written in NQP-rx.
+The source code of NQP-rx is in a separate repository at
+L<http://github.com/perl6/nqp-rx/>. A compiled version of NQP-rx is shipped
+with parrot in the F<../parrot/ext/nqp-rx/> directory, and the resulting
+compiler is F<../parrot_install/bin/parrot-nqp>.  Note, NQP-rx only
+I<builds> the Rakudo compiler, and does not compile or run user programs.
 
 =head3 Stages
 

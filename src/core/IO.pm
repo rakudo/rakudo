@@ -272,7 +272,7 @@ multi sub chdir($path as Str) {
     $! ?? fail($!) !! True
 }
 
-multi sub mkdir($path as Str, $mode = 0) {
+multi sub mkdir($path as Str, $mode = 0o777) {
     try {
         pir::new__PS('OS').mkdir($path, $mode)
     }

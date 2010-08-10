@@ -34,6 +34,13 @@ augment class Any {
 
     our multi method map(&block) { self.list.map(&block); }
 
+    our multi method map(%block) {
+        die "Can't call map() with a Hash argument, Callable required\n"
+            ~ "You probably wrote a Hash composer accidentally - try to\n"
+            ~ "disambiguate it with a ; directly after the opening brace";
+
+    }
+
     our multi method sort(&by = &infix:<cmp>) { self.list.sort(&by); }
 
     method rotate($n = 1) { self.list.rotate($n); }
@@ -281,6 +288,10 @@ augment class Any {
 
     our multi method postcircumfix:<[ ]>() { self.list }
 
+    our multi method postcircumfix:<[ ]>(Whatever $w) { 
+        self[0..(self.elems-1)]
+    }
+
     our multi method postcircumfix:<[ ]>(&block) { self[&block(self.elems)]; }
 
     our multi method postcircumfix:<[ ]>(@pos) {
@@ -313,6 +324,10 @@ augment class Any {
 
     our multi method postcircumfix:<{ }>() {
         self.values()
+    }
+
+    our multi method postcircumfix:<{ }>(Whatever $w) {
+        self.{self.keys}
     }
 
     our multi method postcircumfix:<{ }>(@keys) {
@@ -355,7 +370,7 @@ proto sub max($by, *@values) { @values.max($by); }
 proto sub minmax($by, *@values) { @values.minmax($by); }
 proto sub uniq(@values) { @values.uniq; }
 proto sub pick ($num, :$replace, *@values) { @values.pick($num, :$replace); }
-proto sub map(&mapper, *@values) { @values.map(&mapper); }
+proto sub map($mapper, *@values) { @values.map($mapper); }
 proto sub kv(@array) { @array.kv; }
 proto sub keys(@array) { @array.keys; }
 proto sub values(@array) { @array.values; }

@@ -1837,6 +1837,7 @@ token infix:sym<eqv>  { <sym>  <O('%chaining')> }
 token infix:sym<before>  { <sym>  <O('%chaining')> }
 token infix:sym<after>  { <sym>  <O('%chaining')> }
 token infix:sym<~~>   { <sym>  <O('%chaining')> <!dumbsmart> }
+token infix:sym<!~~>  { <sym>  <O('%chaining')> <!dumbsmart> }
 
 token dumbsmart {
     | <?before \h* 'Bool::'? 'True' »>  <.panic("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")>

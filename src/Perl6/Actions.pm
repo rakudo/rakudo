@@ -2218,7 +2218,11 @@ method EXPR($/, $key?) {
         return 1;
     }
     elsif $sym eq '~~' {
-        make make_smartmatch($/);
+        make make_smartmatch($/, 0);
+        return 1;
+    }
+    elsif $sym eq '!~~' {
+        make make_smartmatch($/, 1);
         return 1;
     }
     unless $past {
@@ -2311,12 +2315,12 @@ sub make_feed($/) {
     return $result;
 }
 
-sub make_smartmatch($/) {
+sub make_smartmatch($/, $negated) {
     my $lhs := $/[0].ast;
     my $rhs := $/[1].ast;
     my $old_topic_var := $lhs.unique('old_topic');
     my $result_var := $lhs.unique('sm_result');
-    PAST::Op.new(
+    my $past := PAST::Op.new(
         :pasttype('stmts'),
 
         # Stash original $_.
@@ -2350,6 +2354,14 @@ sub make_smartmatch($/) {
         # And finally evaluate to the smart-match result.
         PAST::Var.new( :name($result_var), :scope('lexical') )
     );
+    if $negated {
+        $past := PAST::Op.new(
+            :pasttype('call'),
+            :name('&prefix:<!>'),
+            $past
+        );
+    }
+    $past;
 }
 
 method prefixish($/) {
@@ -2739,8 +2751,23 @@ method quote:sym<rx>($/) {
     make block_closure($past, 'Regex', 0);
 }
 method quote:sym<m>($/) {
-    my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make block_closure($past, 'Regex', 0);
+    $regex := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
+    my $regex := block_closure($regex, 'Regex', 0);
+
+    my $past := PAST::Op.new(
+        :node($/),
+        :pasttype('callmethod'), :name('match'),
+        PAST::Var.new( :name('$_'), :scope('lexical') ),
+        $regex
+    );
+    $past := PAST::Op.new(
+        :node($/),
+        :pasttype('call'), :name('&infix:<=>'),
+        PAST::Var.new(:name('$/'), :scope('lexical')),
+        $past
+    );
+
+    make $past;
 }
 
 method handle_and_check_adverbs($/, %adverbs, $what, $past?) {

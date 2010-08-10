@@ -270,4 +270,9 @@ our multi sub infix:«+<»($x)  { $x }
 our multi sub infix:«+>»($x)  { $x }
 our multi sub infix:<~&>($x)  { $x }
 
+# negated smart-matching needs to be handled syntactically,
+# but somebody might still call it by name.
+our multi sub infix:<!~~>(Mu $a, Mu $b) { !($a ~~ $b) }
+our multi sub infix:<!~~>(Mu $x?) { True }
+
 # vim: ft=perl6

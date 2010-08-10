@@ -1,4 +1,8 @@
 class Match is Regex::Match is Cool does Positional does Associative {
+
+    method ACCEPTS($x) {
+       self === Match ?? nextsame() !! self;
+    }
     method new(:$from, :$to, :$orig, :$ast) {
         my $new = self.bless(*);
         return $new unless $orig.defined;

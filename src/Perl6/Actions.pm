@@ -2768,7 +2768,7 @@ method quote:sym<m>($/) {
     self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
     $past := PAST::Op.new(
         :node($/),
-        :pasttype('call'), :name('&infix:<=>'),
+        :pasttype('call'), :name('&infix:<:=>'),
         PAST::Var.new(:name('$/'), :scope('lexical')),
         $past
     );

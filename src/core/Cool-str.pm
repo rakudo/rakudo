@@ -58,7 +58,7 @@ augment class Cool {
         }
     }
 
-    multi method samecase($pattern) is export {
+    multi method samecase(Cool $pattern) is export {
         my $result = '';
         my $p = '';
         my @pattern = $pattern.comb;

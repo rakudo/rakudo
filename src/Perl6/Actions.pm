@@ -2675,7 +2675,8 @@ INIT {
         %SUBST_ALLOWED_ADVERBS{$_} := 1;
     }
 
-    $mods := 'g global x c continue p pos nth th st nd rd ov overlap';
+    # TODO: add g global ov overlap  once they actually work
+    $mods := 'x c continue p pos nth th st nd rd';
     for pir::split__PSS(' ', $mods) {
         %MATCH_ALLOWED_ADVERBS{$_} := 1;
     }

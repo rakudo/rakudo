@@ -324,6 +324,7 @@ S05-modifier/overlapping.t
 # S05-modifier/perl5_8.t
 S05-modifier/pos.t
 S05-modifier/repetition.t
+S05-modifier/sigspace.t
 S05-substitution/match.t
 S05-substitution/subst.t
 S05-transliteration/trans.t

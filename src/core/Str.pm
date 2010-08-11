@@ -8,13 +8,41 @@ augment class Str does Stringy {
     multi method Int { (+self).Int; }
     multi method Num { (+self).Num; }
 
+    my @KNOWN_ENCODINGS = <utf-8 iso-8859-1 ascii>;
+
     # XXX: We have no $?ENC or $?NF compile-time constants yet.
-    multi method encode($encoding = 'UTF-8', $nf = '') {
+    multi method encode($encoding is copy = 'utf-8', $nf = '') {
+        if $encoding eq 'latin-1' {
+            $encoding = 'iso-8859-1';
+        }
+        die "Unknown encoding $encoding"
+            unless $encoding.lc eq any @KNOWN_ENCODINGS;
+        $encoding .= lc;
         my @bytes = Q:PIR {
             .local int byte
             .local pmc bytebuffer, it, result
             $P0 = find_lex 'self'
             $S0 = $P0
+            $P1 = find_lex '$encoding'
+            $S1 = $P1
+            if $S1 == 'ascii'       goto transcode_ascii
+            if $S1 == 'iso-88591-1' goto transcode_iso_8859_1
+            # NOTE: There's an assumption here, that all strings coming in
+            #       from the rest of Rakudo are always in UTF-8 form. Don't
+            #       know if this assumption always holds; to be on the safe
+            #       side, we might transcode even to UTF-8.
+            goto finished_transcoding
+          transcode_ascii:
+            $I0 = find_charset 'ascii'
+            $S0 = trans_charset $S0, $I0
+            $I0 = find_encoding 'fixed_8'
+            $S0 = trans_encoding $S0, $I0
+          transcode_iso_8859_1:
+            $I0 = find_charset 'iso-8859-1'
+            $S0 = trans_charset $S0, $I0
+            $I0 = find_encoding 'fixed_8'
+            $S0 = trans_encoding $S0, $I0
+          finished_transcoding:
             bytebuffer = new ['ByteBuffer']
             bytebuffer = $S0
 

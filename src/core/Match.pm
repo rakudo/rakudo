@@ -71,9 +71,25 @@ class Match is Regex::Match is Cool does Positional does Associative {
         Seq.new(pir::descalarref__PP(self).Regex::Match::list);
     }
 
+    multi method keys() {
+        (self.list.keys, self.hash.keys).flat;
+    }
+
+    multi method values() {
+        (self.list.values, self.hash.values).flat;
+    }
+
+    multi method kv() {
+        (self.list.kv, self.hash.kv).flat;
+    }
+
+    multi method pairs() {
+        (self.list.pairs, self.hash.pairs).flat;
+    }
+
     multi method caps() {
         my @caps;
-        for self.list.pairs, self.hash.pairs -> $p {
+        for self.pairs -> $p {
             # in regexes like [(.) ...]+, the capture for (.) is
             # a List. flatten that.
             if $p.value ~~ Array  {

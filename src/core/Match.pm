@@ -110,10 +110,6 @@ class Match is Regex::Match is Cool does Positional does Associative {
             my $sp = ' ' x $indent;
             take $sp;
             take "Match.new(\n";
-            if $indent == 0 {
-                take " # WARNING: this is not working perl code\n";
-                take " # and for debugging purposes only\n";
-            }
             take "$sp ast  => {$.ast.perl},\n" unless $.ast === Any;
             take "$sp from => $.from,\n";
             take "$sp orig => $.orig.perl(),\n";

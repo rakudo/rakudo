@@ -2685,7 +2685,21 @@ INIT {
 
 method quotepair($/) {
     unless $*value ~~ PAST::Node {
-        $*value := PAST::Val.new( :value($*value) );
+        if ($*key eq 'c' || $*key eq 'continue'
+        || $*key eq 'p' || $*key eq 'pos') && $*value == 1 {
+            $*value := PAST::Op.new(
+                :node($/),
+                :pasttype<if>,
+                PAST::Var.new(:name('$/'), :scope('lexical')),
+                PAST::Op.new(:pasttype('callmethod'),
+                    PAST::Var.new(:name('$/'), :scope<lexical>),
+                    :name<to>
+                ),
+                PAST::Val.new(:value(0)),
+            );
+        } else {
+            $*value := PAST::Val.new( :value($*value) );
+        }
     }
     $*value.named(~$*key);
     make $*value;

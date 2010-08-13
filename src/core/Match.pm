@@ -3,7 +3,7 @@ class Match is Regex::Match is Cool does Positional does Associative {
     method ACCEPTS($x) {
        self === Match ?? nextsame() !! self;
     }
-    method new(:$from, :$to, :$orig, :$ast) {
+    method new(:$from, :$to, :$orig, :$ast, :@positional, :%named) {
         my $new = self.bless(*);
         return $new unless $orig.defined;
         pir::setattribute__vpsp($new, '$!from',   $from);
@@ -11,7 +11,31 @@ class Match is Regex::Match is Cool does Positional does Associative {
         pir::setattribute__vpsp($new, '$!target', $orig);
         pir::setattribute__vpsp($new, '$!ast',    $ast);
 
-        # TODO: handle :@positional, :%named
+        for @positional.kv -> $k, $v {
+            Q:PIR {
+                .local pmc self, key, value
+                self  = find_lex '$new'
+                key   = find_lex '$k'
+                value = find_lex '$v'
+
+                self  = descalarref self
+                $I0   = key
+                self[$I0] = value
+            }
+
+        }
+        for (%named ||{}).kv -> $k, $v {
+            Q:PIR {
+                .local pmc self, key, value
+                self  = find_lex '$new'
+                key   = find_lex '$k'
+                value = find_lex '$v'
+
+                self  = descalarref self
+                $S0   = key
+                self[$S0] = value
+            }
+        }
 
         $new;
     }

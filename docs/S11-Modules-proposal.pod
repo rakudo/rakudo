@@ -109,7 +109,7 @@ Consider the example "use Foo::Bar:ver<1.2.3>:auth<baz>"
 Rakudo * will look for files matching Foo/Bar.pm and Foo/Bar.*.pm from
 every starting point listed in @*INC.  Rakudo will then open each file
 in turn and partially (how?) parse the content to extract the first :ver
-and :auth values, building a list of the results.  Cacheing will
+and :auth values, building a list of the results.  Caching will
 probably be added soon after the initial implementation works, in order to
 reduce the obvious overheads.
 

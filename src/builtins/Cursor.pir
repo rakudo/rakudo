@@ -25,7 +25,9 @@ Cursor - Perl 6 cursor objects
 .end
 
 .sub 'new_array' :method
-    $P0 = new ['Array']
+    $P0 = get_hll_global 'Array'
+    $P0 = $P0.'new'()
+    $P0 = $P0.'item'()
     .return ($P0)
 .end
 

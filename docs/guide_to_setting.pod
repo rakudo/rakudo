@@ -40,7 +40,7 @@ especially if they follow these guidelines:
 
 =over
 
-=item Think of lazyness
+=item Think of laziness
 
 At some point in the hopefully not-so-distant future Lists will become
 lazy by default. So you should try to avoid anything that forces eager
@@ -50,7 +50,7 @@ This is bad:
 
     while $i < self.elems { ... }
 
-Better use a C<for> loop, which will respect lazyness
+Better use a C<for> loop, which will respect laziness
 
     for self.list { ...  }
 
@@ -85,7 +85,7 @@ All built-in methods or subroutines should be declared as C<multi>.
 
 If a method doesn't take any arguments, give it an explicit empty
 signature C<()>. That's very different from omitting the signature
-alltogether (which would be an implicit caatch-all signature).
+altogether (which would be an implicit catch-all signature).
 
 =item Use implicit return at the end of routines
 

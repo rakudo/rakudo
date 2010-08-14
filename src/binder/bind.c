@@ -17,6 +17,8 @@ static INTVAL lls_id            = 0;
 static INTVAL p6s_id            = 0;
 static STRING *ACCEPTS          = NULL;
 static STRING *HOW              = NULL;
+static STRING *LIST_str         = NULL;
+static STRING *ARRAY_str        = NULL;
 static STRING *HASH_str         = NULL;
 static STRING *SELECT_str       = NULL;
 static STRING *PUN_str          = NULL;
@@ -38,6 +40,8 @@ static void setup_binder_statics(PARROT_INTERP) {
 
     ACCEPTS          = Parrot_str_new_constant(interp, "ACCEPTS");
     HOW              = Parrot_str_new_constant(interp, "HOW");
+    LIST_str         = Parrot_str_new_constant(interp, "List");
+    ARRAY_str        = Parrot_str_new_constant(interp, "Array");
     HASH_str         = Parrot_str_new_constant(interp, "Hash");
     SELECT_str       = Parrot_str_new_constant(interp, "!select");
     PUN_str          = Parrot_str_new_constant(interp, "!pun");
@@ -61,10 +65,10 @@ descalarref(PARROT_INTERP, PMC *ref) {
 
 /* Creates a Perl 6 Array. */
 static PMC *
-Rakudo_binding_create_array(PARROT_INTERP, PMC *rest) {
+Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest, STRING *type_str) {
     static PMC *truepmc = NULL;
     PMC *hll_ns    = Parrot_get_ctx_HLL_namespace(interp);
-    PMC *arr_ns    = Parrot_ns_get_namespace_keyed_str(interp, hll_ns, string_from_literal(interp, "Array"));
+    PMC *arr_ns    = Parrot_ns_get_namespace_keyed_str(interp, hll_ns, type_str);
     PMC *arr_class = VTABLE_get_class(interp, arr_ns);
     PMC *result    = VTABLE_instantiate(interp, arr_class, PMCNULL);
     INTVAL type_id = pmc_type(interp, string_from_literal(interp, "P6opaque"));
@@ -306,7 +310,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                 PMC *copy, *ref, *store_meth;
                 if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
                     STRING *STORE = string_from_literal(interp, "!STORE");
-                    copy          = Rakudo_binding_create_array(interp, PMCNULL);
+                    copy          = Rakudo_binding_create_positional(interp, PMCNULL, ARRAY_str);
                     store_meth    = VTABLE_find_method(interp, copy, STORE);
                     Parrot_ext_call(interp, store_meth, "PiP", copy, value);
                 }
@@ -448,7 +452,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
     /* Otherwise, go by sigil to pick the correct default type of value. */
     else {
         if (sig_info->flags & SIG_ELEM_ARRAY_SIGIL) {
-            return Rakudo_binding_create_array(interp, PMCNULL);
+            return Rakudo_binding_create_positional(interp, PMCNULL, ARRAY_str);
         }
         else if (sig_info->flags & SIG_ELEM_HASH_SIGIL) {
             return Rakudo_binding_create_hash(interp, pmc_new(interp, enum_class_Hash));
@@ -662,7 +666,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
                     cur_pos_arg++;
                 }
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
-                        Rakudo_binding_create_array(interp, temp), no_nom_type_check, error);
+                        Rakudo_binding_create_positional(interp, temp, ARRAY_str), no_nom_type_check, error);
                 if (bind_fail) {
                     if (pos_from_named)
                         mem_sys_free(pos_from_named);
@@ -767,7 +771,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
     if (cur_pos_arg < num_pos_args && !suppress_arity_fail) {
         /* Oh noes, too many positionals passed. */
         if (error)
-            *error = *error = Rakudo_binding_arity_fail(interp, elements, num_elements, num_pos_args, 1);
+            *error = Rakudo_binding_arity_fail(interp, elements, num_elements, num_pos_args, 1);
         return BIND_RESULT_FAIL;
     }
     if (!PMC_IS_NULL(named_args_copy) && VTABLE_elements(interp, named_args_copy)) {

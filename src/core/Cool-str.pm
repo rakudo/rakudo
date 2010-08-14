@@ -58,7 +58,7 @@ augment class Cool {
         }
     }
 
-    multi method samecase($pattern) is export {
+    multi method samecase(Cool $pattern) is export {
         my $result = '';
         my $p = '';
         my @pattern = $pattern.comb;
@@ -303,8 +303,13 @@ augment class Cool {
                 } else {
                     if $m.to == $m.from {
                         %opts<c> = $m.to + 1;
+                        if $p.defined {
+                            warn "multiple matches with :p terminated by zero-width match\n";
+                            last;
+                        }
                     } else {
                         %opts<c> = $m.to;
+                        %opts<p> = $m.to if $p.defined;
                     }
                 }
 

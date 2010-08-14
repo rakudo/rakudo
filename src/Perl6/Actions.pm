@@ -2218,7 +2218,11 @@ method EXPR($/, $key?) {
         return 1;
     }
     elsif $sym eq '~~' {
-        make make_smartmatch($/);
+        make make_smartmatch($/, 0);
+        return 1;
+    }
+    elsif $sym eq '!~~' {
+        make make_smartmatch($/, 1);
         return 1;
     }
     unless $past {
@@ -2311,12 +2315,12 @@ sub make_feed($/) {
     return $result;
 }
 
-sub make_smartmatch($/) {
+sub make_smartmatch($/, $negated) {
     my $lhs := $/[0].ast;
     my $rhs := $/[1].ast;
     my $old_topic_var := $lhs.unique('old_topic');
     my $result_var := $lhs.unique('sm_result');
-    PAST::Op.new(
+    my $past := PAST::Op.new(
         :pasttype('stmts'),
 
         # Stash original $_.
@@ -2350,6 +2354,14 @@ sub make_smartmatch($/) {
         # And finally evaluate to the smart-match result.
         PAST::Var.new( :name($result_var), :scope('lexical') )
     );
+    if $negated {
+        $past := PAST::Op.new(
+            :pasttype('call'),
+            :name('&prefix:<!>'),
+            $past
+        );
+    }
+    $past;
 }
 
 method prefixish($/) {
@@ -2651,23 +2663,43 @@ method typename($/) {
 
 our %SUBST_ALLOWED_ADVERBS;
 our %SHARED_ALLOWED_ADVERBS;
+our %MATCH_ALLOWED_ADVERBS;
 INIT {
     my $mods := 'i ignorecase s sigspace';
     for pir::split__PSS(' ', $mods) {
         %SHARED_ALLOWED_ADVERBS{$_} := 1;
-        %SUBST_ALLOWED_ADVERBS{$_}  := 1;
     }
 
     $mods := 'g global ii samecase x c continue p pos nth th st nd rd';
     for pir::split__PSS(' ', $mods) {
         %SUBST_ALLOWED_ADVERBS{$_} := 1;
     }
+
+    # TODO: add g global ov overlap  once they actually work
+    $mods := 'x c continue p pos nth th st nd rd';
+    for pir::split__PSS(' ', $mods) {
+        %MATCH_ALLOWED_ADVERBS{$_} := 1;
+    }
 }
 
 
 method quotepair($/) {
     unless $*value ~~ PAST::Node {
-        $*value := PAST::Val.new( :value($*value) );
+        if ($*key eq 'c' || $*key eq 'continue'
+        || $*key eq 'p' || $*key eq 'pos') && $*value == 1 {
+            $*value := PAST::Op.new(
+                :node($/),
+                :pasttype<if>,
+                PAST::Var.new(:name('$/'), :scope('lexical')),
+                PAST::Op.new(:pasttype('callmethod'),
+                    PAST::Var.new(:name('$/'), :scope<lexical>),
+                    :name<to>
+                ),
+                PAST::Val.new(:value(0)),
+            );
+        } else {
+            $*value := PAST::Val.new( :value($*value) );
+        }
     }
     $*value.named(~$*key);
     make $*value;
@@ -2739,13 +2771,29 @@ method quote:sym<rx>($/) {
     make block_closure($past, 'Regex', 0);
 }
 method quote:sym<m>($/) {
-    my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-    make block_closure($past, 'Regex', 0);
+    $regex := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
+    my $regex := block_closure($regex, 'Regex', 0);
+
+    my $past := PAST::Op.new(
+        :node($/),
+        :pasttype('callmethod'), :name('match'),
+        PAST::Var.new( :name('$_'), :scope('lexical') ),
+        $regex
+    );
+    self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
+    $past := PAST::Op.new(
+        :node($/),
+        :pasttype('call'), :name('&infix:<:=>'),
+        PAST::Var.new(:name('$/'), :scope('lexical')),
+        $past
+    );
+
+    make $past;
 }
 
 method handle_and_check_adverbs($/, %adverbs, $what, $past?) {
     for $<quotepair> {
-        unless %adverbs{$_.ast.named} {
+        unless %SHARED_ALLOWED_ADVERBS{$_.ast.named} || %adverbs{$_.ast.named} {
             $/.CURSOR.panic("Adverb '" ~ $_.ast.named ~ "' not allowed on " ~ $what);
         }
         if $past {

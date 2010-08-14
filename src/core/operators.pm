@@ -328,23 +328,6 @@ our multi sub item($item) {
     $item
 }
 
-our multi sub infix:<...>(Code $lhs, $rhs) {
-    my $limit;
-    $limit = $rhs if !($rhs ~~ Whatever);
-    my $last;
-    gather {
-        loop {
-            my $i = $lhs.();
-            my $j = $i;
-            last if $limit.defined && $last.defined && !($j eqv $limit)
-                 && ($last before $limit before $j || $j before $limit before $last);
-            take $j;
-            last if $limit.defined && $j eqv $limit;
-            $last = $j;
-        }
-    }
-}
-
 our multi sub infix:<...>(@lhs is copy, $rhs) {
     my sub succ-or-pred($lhs, $rhs) {
         if $lhs ~~ Str && $rhs ~~ Str && $lhs.chars == 1 && $rhs.chars == 1 {

@@ -1428,10 +1428,15 @@ token quote:sym<rx>   {
 }
 token quote:sym<m> {
     <sym> >>
+    [ <quotepair> <.ws> ]*
+    :my @*REGEX_ADVERBS;
+    { @*REGEX_ADVERBS := $<quotepair>; }
+    <.setup_quotepairs>
     [
     | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
     | '{'<p6regex=.LANG('Regex','nibbler')>'}'
     ]
+    <.cleanup_modifiers>
 }
 
 token setup_quotepairs { '' }
@@ -1837,6 +1842,7 @@ token infix:sym<eqv>  { <sym>  <O('%chaining')> }
 token infix:sym<before>  { <sym>  <O('%chaining')> }
 token infix:sym<after>  { <sym>  <O('%chaining')> }
 token infix:sym<~~>   { <sym>  <O('%chaining')> <!dumbsmart> }
+token infix:sym<!~~>  { <sym>  <O('%chaining')> <!dumbsmart> }
 
 token dumbsmart {
     | <?before \h* 'Bool::'? 'True' »>  <.panic("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")>

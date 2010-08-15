@@ -110,6 +110,35 @@ our multi sub infix:<eqv>(Buf $a, Buf $b) {
     return $a.contents eqv $b.contents;
 }
 
+our multi sub prefix:<~^>(Buf $a) {
+    my @inverted-contents = $a.contents »+^» 0xFF;
+    Buf.new(|@inverted-contents);
+}
+
+our multi sub infix:<~&>(Buf $a, Buf $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @anded-contents = $a.contents[^$minlen] «+&» $b.contents[^$minlen];
+    @anded-contents.push: 0 xx ($a.elems - @anded-contents.elems);
+    @anded-contents.push: 0 xx ($b.elems - @anded-contents.elems);
+    Buf.new(|@anded-contents);
+}
+
+our multi sub infix:<~|>(Buf $a, Buf $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @ored-contents = $a.contents[^$minlen] «+|» $b.contents[^$minlen];
+    @ored-contents.push: $a.contents[@ored-contents.elems ..^ $a.elems];
+    @ored-contents.push: $b.contents[@ored-contents.elems ..^ $b.elems];
+    Buf.new(|@ored-contents);
+}
+
+our multi sub infix:<~^>(Buf $a, Buf $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @xored-contents = $a.contents[^$minlen] «+^» $b.contents[^$minlen];
+    @xored-contents.push: $a.contents[@xored-contents.elems ..^ $a.elems];
+    @xored-contents.push: $b.contents[@xored-contents.elems ..^ $b.elems];
+    Buf.new(|@xored-contents);
+}
+
 our multi sub pack(Str $template, *@items) {
     my @bytes;
     for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {

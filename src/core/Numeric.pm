@@ -268,15 +268,17 @@ multi sub postfix:<i>(Numeric $z) {
     $z * 1i;
 }
 
-multi sub infix:<cmp>(Numeric $a, Numeric $b) { $a <=> $b; }
-
-multi sub infix:«<=>»(Numeric $a, Numeric $b) {
+multi sub infix:<cmp>(Numeric $a, Numeric $b) {
     my @a = $a.reals;
     my @b = $b.reals;
     @a.push(0 xx +@b - +@a) if (+@a < +@b);
     @b.push(0 xx +@a - +@b) if (+@b < +@a);
 
     [||] (@a Z<=> @b);
+}
+
+multi sub infix:«<=>»(Numeric $a, Numeric $b) {
+    $a cmp $b;
 }
 
 multi sub infix:«==»(Numeric $a, Numeric $b) {

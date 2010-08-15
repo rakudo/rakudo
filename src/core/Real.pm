@@ -207,8 +207,12 @@ role Real does Numeric {
 
 # Comparison operators
 
+multi sub infix:<cmp>(Real $a, Real $b) {
+    $a.Bridge cmp $b.Bridge;
+}
+
 multi sub infix:«<=>»(Real $a, Real $b) {
-    $a.Bridge <=> $b.Bridge;
+    $a.Bridge cmp $b.Bridge;
 }
 
 multi sub infix:«==»(Real $a, Real $b) {

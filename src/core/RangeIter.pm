@@ -4,6 +4,8 @@ class RangeIter is Iterator {
     has $!excludes_max;
     has $!reify;
 
+    method infinite() { $!max eqv Inf }
+
     method reify() {
         Q:PIR {
             .local pmc self, reify, value, max, excl_max

@@ -31,6 +31,14 @@ augment class Int does Real {
     }
 }
 
+multi sub infix:«cmp»(Int $a, Int $b) {
+    pir::cmp__III($a, $b);
+}
+
+multi sub infix:«<=>»(Int $a, Int $b) {
+    pir::cmp__III($a, $b);
+}
+
 multi sub infix:«==»(Int $a, Int $b) {
     pir::iseq__III( $a, $b) ?? True !! False
 }
@@ -53,10 +61,6 @@ multi sub infix:«>»(Int $a, Int $b) {
 
 multi sub infix:«>=»(Int $a, Int $b) {
     pir::isge__III( $a, $b) ?? True !! False
-}
-
-multi sub infix:«cmp»(Int $a, Int $b) {
-    pir::cmp__III($a, $b);
 }
 
 # Should pull along the other Int comparison operators at some point,

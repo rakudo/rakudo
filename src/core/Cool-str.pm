@@ -429,6 +429,8 @@ our Str proto sub infix:<x>($str, $n) {
 }
 
 our multi sub infix:<cmp>($a, $b) {
+    return Order::Increase if $a eqv -Inf || $b eqv Inf;
+    return Order::Decrease if $a eqv Inf || $b eqv -Inf;
     $a lt $b ?? Order::Increase !! ($a gt $b ?? Order::Decrease !! Order::Same);
 }
 

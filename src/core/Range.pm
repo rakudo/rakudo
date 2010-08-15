@@ -10,34 +10,30 @@ class Range is Iterable does Positional {
         self.bless(*, :$min, :$max, :$excludes_min, :$excludes_max);
     }
 
-    multi method new(Real $min, $max,
+    multi method new($min, Whatever $max, 
                      Bool :$excludes_min = Bool::False, 
                      Bool :$excludes_max = Bool::False) {
-        self.bless(*, :$min, :max($max.Numeric), :$excludes_min, :$excludes_max);
-    }
-
-    multi method new($min, Real $max,
-                     Bool :$excludes_min = Bool::False, 
-                     Bool :$excludes_max = Bool::False) {
-        self.bless(*, :min($min.Numeric), :$max, :$excludes_min, :$excludes_max);
+        self.bless(*, :$min, :max(+Inf), :$excludes_min, :$excludes_max);
     }
 
     multi method new(Whatever $min, $max,
                      Bool :$excludes_min = Bool::False, 
                      Bool :$excludes_max = Bool::False) {
-        self.new(-Inf, $max, :$excludes_min, :$excludes_max);
-    }
-
-    multi method new($min, Whatever $max,
-                     Bool :$excludes_min = Bool::False, 
-                     Bool :$excludes_max = Bool::False) {
-        self.new($min, +Inf, :$excludes_min, :$excludes_max);
+        self.bless(*, :min(-Inf), :$max, :$excludes_min, :$excludes_max);
     }
 
     multi method new(Whatever $min, Whatever $max,
                      Bool :$excludes_min = Bool::False, 
                      Bool :$excludes_max = Bool::False) {
-        self.new(-Inf, +Inf, :$excludes_min, :$excludes_max);
+        fail "*..* is not a valid range";
+    }
+
+    multi method new($min, $max,
+                     Bool :$excludes_min = Bool::False, 
+                     Bool :$excludes_max = Bool::False) {
+        ($min ~~ Real or $max ~~ Real)
+        ?? self.bless(*, :min($min.Numeric), :max($max.Numeric), :$excludes_min, :$excludes_max)
+        !! nextsame;
     }
 
     multi method bounds() { ($.min, $.max) }
@@ -72,11 +68,11 @@ class Range is Iterable does Positional {
     multi method postcircumfix:<[ ]>(\$parcel) { self.Seq[$parcel]; }
 
     my Bool multi method !max_test($topic) {
-        $topic before $.max || (!$.excludes_max && !($topic after $.max));
+        $topic before $.max || $.max eqv Inf || (!$.excludes_max && !($topic after $.max));
     }
 
     my Bool multi method !min_test($topic) {
-        $.min before $topic || (!$.excludes_min && !($.min after $topic));
+        $.min before $topic || $.min eqv -Inf || (!$.excludes_min && !($.min after $topic));
     }
     
 }

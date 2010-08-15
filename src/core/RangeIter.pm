@@ -23,11 +23,12 @@ class RangeIter is Iterator {
             .local int count
             count = 8
           reify_loop:
-            $P0 = '&infix:<after>'(value, max)
-            if $P0 goto reify_done
-            unless excl_max goto reify_value
-            $P0 = '&infix:<eqv>'(value, max)
-            if $P0 goto reify_done
+            $I0 = '&infix:<cmp>'(value, max)
+            if $I0 < 0 goto reify_value
+            if $I0 > 0 goto reify_done
+            if excl_max goto reify_done
+            push reify, value
+            goto reify_done
           reify_value:
             push reify, value
             value = value.'succ'()

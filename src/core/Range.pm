@@ -68,11 +68,11 @@ class Range is Iterable does Positional {
     multi method postcircumfix:<[ ]>(\$parcel) { self.Seq[$parcel]; }
 
     my Bool multi method !max_test($topic) {
-        $topic before $.max || $.max eqv Inf || (!$.excludes_max && !($topic after $.max));
+        $topic before $.max || (!$.excludes_max && !($topic after $.max));
     }
 
     my Bool multi method !min_test($topic) {
-        $.min before $topic || $.min eqv -Inf || (!$.excludes_min && !($.min after $topic));
+        $.min before $topic || (!$.excludes_min && !($.min after $topic));
     }
     
 }

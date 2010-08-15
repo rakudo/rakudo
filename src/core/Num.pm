@@ -184,7 +184,7 @@ augment class Num does Real {
     }
 }
 
-multi sub infix:«cmp»(Num $a, Num $b) {
+multi sub infix:<cmp>(Num $a, Num $b) {
     pir::cmp__INN($a, $b);
 }
 

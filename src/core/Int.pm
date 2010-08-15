@@ -31,7 +31,7 @@ augment class Int does Real {
     }
 }
 
-multi sub infix:«cmp»(Int $a, Int $b) {
+multi sub infix:<cmp>(Int $a, Int $b) {
     pir::cmp__III($a, $b);
 }
 

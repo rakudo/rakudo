@@ -184,13 +184,12 @@ augment class Num does Real {
     }
 }
 
+multi sub infix:«cmp»(Num $a, Num $b) {
+    pir::cmp__INN($a, $b);
+}
+
 multi sub infix:«<=>»(Num $a, Num $b) {
-    # TODO: should be Order::Same, ::Increase, ::Decrease once they work
-    if $a == $b {
-        0;
-    } else {
-        $a < $b ?? -1 !! 1;
-    }
+    pir::cmp__INN($a, $b);
 }
 
 multi sub infix:«==»(Num $a, Num $b) {

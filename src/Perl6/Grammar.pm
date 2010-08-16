@@ -1795,11 +1795,12 @@ token infix:sym<%%>   { <sym>  <O('%multiplicative')> }
 token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<?&>   { <sym>  <O('%multiplicative')> }
+token infix:sym«+<»   { <sym> <!before '<'> <O('%multiplicative')> }
+token infix:sym«+>»   { <sym> <!before '>'> <O('%multiplicative')> }
 
 token infix:sym«<<» { <sym> \s <.obs('<< to do left shift', '+< or ~<')> }
 
 token infix:sym«>>» { <sym> \s <.obs('>> to do right shift', '+> or ~>')> }
-
 
 token infix:sym<+>    { <sym>  <O('%additive')> }
 token infix:sym<->    { <sym> <![>]> <O('%additive')> }
@@ -1807,8 +1808,6 @@ token infix:sym<+|>   { <sym>  <O('%additive')> }
 token infix:sym<+^>   { <sym>  <O('%additive')> }
 token infix:sym<~|>   { <sym>  <O('%additive')> }
 token infix:sym<~^>   { <sym>  <O('%additive')> }
-token infix:sym«+<»   { <sym> <!before '<'> <O('%additive')> }
-token infix:sym«+>»   { <sym> <!before '>'> <O('%additive')> }
 token infix:sym<?|>   { <sym>  <O('%additive')> }
 token infix:sym<?^>   { <sym>  <O('%additive')> }
 

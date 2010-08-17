@@ -74,6 +74,22 @@ class Range is Iterable does Positional {
     my Bool multi method !min_test($topic) {
         $.min before $topic || (!$.excludes_min && !($.min after $topic));
     }
+
+    multi method pick() {
+        nextsame unless $.min.isa(Int) and $.max.isa(Int);
+        my $least = $.excludes_min ?? $.min + 1 !! $.min;
+        my $elems = 1 + ($.excludes_max ?? $.max - 1 !! $.max) - $least;
+        $elems ?? ($least + $elems.rand.floor) !! Any;
+    }
+
+    multi method pick(Int $n) {
+        nextsame;
+    }
+
+    multi method pick(Int $n, :$replace!) {
+        (1..$n).map: { self.pick }
+    }
+
     
 }
 

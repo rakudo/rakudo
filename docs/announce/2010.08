@@ -12,7 +12,7 @@ Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
 
 The Rakudo Perl compiler follows a monthly release cycle, with each release
 named after a Perl Mongers group. The August 2010 release is code named
-"Pisa" in recognition of Perl.it's excellent work in organizing
+"Pisa" in recognition of its excellent work in organizing
 YAPC::EU 2010, "The Renaissance of Perl" [1,2].  Many Rakudo
 developers presented at the conference, and it was an excellent
 location for hackathon and planning the next states of Rakudo
@@ -20,6 +20,9 @@ development.
 
 Some of the specific changes and improvements occurring with this
 release include:
+
+* Many modifiers are now recognized on the outside of regexes and
+  substitutions, for example s:g:samecase/abc/defg/
 
 * XXX
 

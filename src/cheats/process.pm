@@ -13,8 +13,8 @@ package PROCESS {
 
         our $VM = {
             name    => 'parrot',
-            config  => 
-                Q:PIR { 
+            config  =>
+                Q:PIR {
                     .local pmc interp, config
                     .include 'iglobals.pasm'
                     load_bytecode 'config.pbc'

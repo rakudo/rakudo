@@ -33,13 +33,12 @@ making Rakudo Perl possible, as well as those people who worked on
 parrot, the Perl 6 test suite and the specification.
 
 The following people contributed to this release:
-XXX
-Patrick R. Michaud, Jonathan Worthington, Moritz Lenz, Solomon Foster,
-Carl Masak, Bruce Gray, Martin Berends, chromatic, Will "Coke" Coleda,
-Matthew (lue), Timothy Totten, maard, Kodi Arfer, TimToady, Stephen Weeks,
-Patrick Abi Salloum, snarkyboojum, Radu Stoica, Vyacheslav Matjukhin,
-Andrew Whitworth, cognominal, Tyler Curtis, Alex Kapranoff, Ingy döt Net,
-Lars Dɪᴇᴄᴋᴏᴡ 迪拉斯, mathw, lue, Вячеслав Матюхин
+Moritz Lenz, Patrick R. Michaud, Solomon Foster, Will "Coke" Coleda, 
+Carl Masak, Jonathan Worthington, Bruce Gray, Patrick Abi Salloum, 
+tylercurtis, Kyle Hasselbacher, Tadeusz Sośnierz, Jonathan Scott Duff, 
+Christopher J. Madsen, Kodi Arfer, Reini Urban, TimToady, felliott, 
+Matt Kraai, Jan Ingvoldstad, szabgab, madsen, Andy Lester, cosimo, 
+Fitz Elliott
 
 If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
 the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.

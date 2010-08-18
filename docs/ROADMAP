@@ -25,7 +25,6 @@ Really important items
 1 ?     documentation tools / S26 (A, masak)
 
 Ought to have items
-2 ****  ports to other virtual machines
 2 ?     'constant' declarator
 2 ?     operator precedence traits (pmichaud)
 2 **    basic Buf implementation (A, masak)
@@ -39,6 +38,7 @@ Ought to have items
 2 ?     specialized Unicode bits -- .codes, .graphs, .bytes (A, C)
 
 Nice to have items
+3 ****  ports to other virtual machines
 3 ***   WHENCE (pmichaud, jnthn)
 3 ****  module versioning and download (A, jnthn, mberends, masak, others)
 3 ****  ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (C, Z4)

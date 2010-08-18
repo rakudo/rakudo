@@ -565,3 +565,11 @@ $(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h $(DYNPM
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
 	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) $(LINKARGS)
+
+
+## This target is temporary for producing a trace/profile of core.pm 
+## compilation (to improve compiler performance).
+
+parsetrace: $(S1_PERL6_PBC) src/gen/core.pm
+	$(PARROT) $(PARROT_ARGS) $(S1_PERL6_PBC) --parsetrace --target=pir \
+	    $(STAGESTATS) src/gen/core.pm > $(CORE_PIR) 2>parsetrace.$$$$

@@ -15,7 +15,7 @@ named after a Perl Mongers group. The August 2010 release is code named
 "Pisa" in recognition of its excellent work in organizing
 YAPC::EU 2010, "The Renaissance of Perl" [1,2].  Many Rakudo
 developers presented at the conference, and it was an excellent
-location for hackathon and planning the next states of Rakudo
+location for a hackathon and planning the next phases of Rakudo
 development.
 
 Some of the specific changes and improvements occurring with this
@@ -38,7 +38,7 @@ For a more detailed list of changes see "docs/ChangeLog".
 
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible, as well as those people who worked on 
-parrot, the Perl 6 test suite and the specification.
+Parrot, the Perl 6 test suite and the specification.
 
 The following people contributed to this release:
 Moritz Lenz, Patrick R. Michaud, Solomon Foster, Will "Coke" Coleda, 

@@ -201,7 +201,9 @@ method semilist($/) {
     if $<statement> {
         for $<statement> { $past.push($_.ast); }
     }
-    else { $past.push(PAST::Var.new(:name('Nil'), :namespace([]), :scope('package'))); }
+    else { 
+        $past.push( PAST::Op.new( :name('&infix:<,>') ) );
+    }
     make $past;
 }
 
@@ -2132,12 +2134,18 @@ method term:sym<value>($/) { make $<value>.ast; }
 
 method circumfix:sym<( )>($/) {
     my $past := $<semilist>.ast;
-    my $last := $past[ +$past.list - 1 ];
-    if pir::defined($last.returns) {
-        $past.returns($last.returns);
+    my $size := +$past.list;
+    if $size == 0 {
+        $past := PAST::Op.new( :name('&infix:<,>') );
     }
-    if pir::defined($last.arity) {
-        $past.arity($last.arity);
+    else {
+        my $last := $past[ $size - 1 ];
+        if pir::defined($last.returns) {
+            $past.returns($last.returns);
+        }
+        if pir::defined($last.arity) {
+            $past.arity($last.arity);
+        }
     }
     make $past;
 }

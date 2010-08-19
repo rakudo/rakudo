@@ -67,10 +67,8 @@ src/builtins/assign.pir - assignment operations
 
   scalar_assign:
     # check for Nil assignment
-    $I0 = isa source, ['Parcel']
+    $I0 = isa source, ['Nil']
     unless $I0 goto item_assign
-    $I0 = elements source
-    if $I0 goto item_assign
   nil_assign:
     source = getprop 'type', cont
     unless null source goto have_source

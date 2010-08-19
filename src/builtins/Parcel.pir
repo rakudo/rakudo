@@ -15,12 +15,13 @@ elements and can be flattened into Captures or Lists.
 
 .namespace ['Parcel']
 .sub 'onload' :anon :init :load
-    .local pmc p6meta, parcelproto, pos_role
+    .local pmc p6meta, parcelproto, nilproto
     p6meta = get_hll_global ['Mu'], '$!P6META'
     parcelproto = p6meta.'new_class'('Parcel', 'parent'=>'parrot;ResizablePMCArray Iterable')
-    #  set global 'Nil' constant
-    $P0 = '&infix:<,>'()
-    set_hll_global 'Nil', $P0
+
+    nilproto = p6meta.'new_class'('Nil', 'parent'=>parcelproto)
+    null $P0
+    setprop nilproto, 'scalar', $P0
 .end
 
 

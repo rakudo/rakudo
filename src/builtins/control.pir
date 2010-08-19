@@ -25,8 +25,12 @@ on the number of elements.
     .param pmc type
     .param pmc value
     $I0 = elements value
+    if $I0 == 0 goto nil
     if $I0 != 1 goto many
     value = value[0]
+    goto done
+  nil:
+    value = get_hll_global 'Nil'
     goto done
   many:
     value = '&infix:<,>'(value :flat)

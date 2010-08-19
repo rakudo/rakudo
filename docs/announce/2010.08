@@ -21,6 +21,9 @@ development.
 Some of the specific changes and improvements occurring with this
 release include:
 
+* Due to a specification change, Nil is now undefined, and no longer
+  simply an empty Parcel.
+
 * Many modifiers are now recognized on the outside of regexes and
   substitutions, for example s:g:samecase/abc/defg/
 

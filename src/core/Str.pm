@@ -37,6 +37,7 @@ augment class Str does Stringy {
             $S0 = trans_charset $S0, $I0
             $I0 = find_encoding 'fixed_8'
             $S0 = trans_encoding $S0, $I0
+            goto finished_transcoding
           transcode_iso_8859_1:
             $I0 = find_charset 'iso-8859-1'
             $S0 = trans_charset $S0, $I0

@@ -38,8 +38,8 @@ Dates are based on Parrot's expected release schedule.
 
   2010-09-23   Rakudo #33                      -vacant-
   2010-10-21   Rakudo #34                      (duff)
-  2010-11-18   Rakudo #35                      -vacant-
-  2010-12-23   Rakudo #36                      -vacant-
+  2010-11-18   Rakudo #35                      (masak)
+  2010-12-23   Rakudo #36                      (smash)
 
 =head2 Suggested .pm group names for future releases
 

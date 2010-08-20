@@ -330,114 +330,122 @@ our multi sub item($item) {
 
 
 our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
-	my sub get-series-params (@lhs, $limit? ) {
-		fail "Need something on the LHS" unless @lhs.elems;
-		fail "Need more than one item on the LHS" if @lhs.elems == 1 && $limit ~~ Code;
+    my sub get-series-params (@lhs, $limit? ) {
+        fail "Need something on the LHS" unless @lhs.elems;
+        fail "Need more than one item on the LHS" if @lhs.elems == 1 && $limit ~~ Code;
+        fail "Need more items on the LHS" if @lhs[*-1] ~~ Code && @lhs[*-1].count != Inf && @lhs.elems < @lhs[*-1].count;
 
-		#TODO: Maybe should return an Enum for the info part)
-		return ( 'code' , @lhs[*-1])  if @lhs[* - 1] ~~ Code ; # case: (a,b,c,{code}) ... *
-		return ( 'stag' , { $_ } ) if @lhs.elems > 1 && @lhs[*-1] cmp @lhs[*-2] == 0 ;  # case: (a , a) ... *
+        #BEWARE: Here be ugliness
+        return ( 'code' , @lhs[*-1])  if @lhs[* - 1] ~~ Code ; # case: (a,b,c,{code}) ... *
+        return ( 'stag' , { $_ } ) if @lhs.elems > 1 && @lhs[*-1] cmp @lhs[*-2] == 0 ;  # case: (a , a) ... *
 
-		if  @lhs[*-1] ~~ Str ||  $limit ~~ Str {
-			if ($limit.defined) {
-				if @lhs[*-1].chars == 1 && $limit.chars == 1 {
-					return ( 'char-succ' , { $_.ord.succ.chr } ) if @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
-					return ( 'char-pred' , { $_.ord.pred.chr } ) if @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
-				}
-				return ( 'text-succ' , { $_.succ } ) if @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
-				return ( 'text-pred' , { $_.pred } ) if @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
-			}
-			return ( 'text-pred' , { $_.pred } ) if @lhs.elems > 1 && @lhs[*-2] gt  @lhs[*-1];# case (non-number , another-smaller-non-number) ... *
-			return ( 'text-succ' , { $_.succ } ) ;# case (non-number , another-non-number) ... *
-		}
-		return ( 'pred' , { $_.pred } ) if @lhs.elems == 1 && $limit.defined && $limit before @lhs[* - 1];  # case: (a) ... b where b before a
-		return ( 'succ' , { $_.succ } ) if @lhs.elems == 1 ;  # case: (a) ... *
+        if  @lhs[*-1] ~~ Str ||  $limit ~~ Str {
+            if @lhs[*-1].chars == 1 && $limit.defined && $limit.chars == 1 {
+                return ( 'char-succ' , { $_.ord.succ.chr } ) if @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
+                return ( 'char-pred' , { $_.ord.pred.chr } ) if @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
+            }
+            return ( 'text-succ' , { $_.succ } ) if $limit.defined && @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
+            return ( 'text-pred' , { $_.pred } ) if $limit.defined && @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
+            return ( 'text-pred' , { $_.pred } ) if @lhs.elems > 1 && @lhs[*-2] gt  @lhs[*-1];# case (non-number , another-smaller-non-number) ... *
+            return ( 'text-succ' , { $_.succ } ) ;# case (non-number , another-non-number) ... *
+        }
+        return ( 'pred' , { $_.pred } ) if @lhs.elems == 1 && $limit.defined && $limit before @lhs[* - 1];  # case: (a) ... b where b before a
+        return ( 'succ' , { $_.succ } ) if @lhs.elems == 1 ;  # case: (a) ... *
 
-		my $diff = @lhs[*-1] - @lhs[*-2];
-		return ('arithmetic' , { $_ + $diff } ) if @lhs.elems == 2 || @lhs[*-2] - @lhs[*-3] == $diff ; #Case Arithmetic series
+        my $diff = @lhs[*-1] - @lhs[*-2];
+        return ('arithmetic' , { $_ + $diff } ) if @lhs.elems == 2 || @lhs[*-2] - @lhs[*-3] == $diff ; #Case Arithmetic series
 
-		if @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] { #Case geometric series
-			my $factor = @lhs[*-2] / @lhs[*-3];
-			if $factor ~~ ::Rat && $factor.denominator == 1 {
-				$factor = $factor.Int;
-			}
-			if ($factor < 0) {
-				return ( 'geometric-switching-sign' , { $_ * $factor } );
-			} else {
-				return ( 'geometric-same-sign' , { $_ * $factor } );
-			}
-		}
-		fail "Unable to figure out pattern of series";
-	}
+        if @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] { #Case geometric series
+            my $factor = @lhs[*-2] / @lhs[*-3];
+            if $factor ~~ ::Rat && $factor.denominator == 1 {
+                $factor = $factor.Int;
+            }
+            if ($factor < 0) {
+                return ( 'geometric-switching-sign' , { $_ * $factor } );
+            } else {
+                return ( 'geometric-same-sign' , { $_ * $factor } );
+            }
+        }
+        fail "Unable to figure out pattern of series";
+    }
 
-	my sub limit-reached($previous , $current , $limit , $get-value-to-compare) {
-		return $limit($current) if ($limit ~~ Code) ; #TODO Check arity to know how many items to pass
+    my sub limit-reached($previous , $current , $limit , $type) {
+        return $limit($current) if ($limit ~~ Code) ; #TODO Check arity to know how many items to pass when the limit is Code
 
-		my $current_cmp = $get-value-to-compare($limit) cmp $get-value-to-compare($current);
-		return $current_cmp == 0 unless $previous.defined;
-		my $previous_cmp =  $get-value-to-compare($limit) cmp $get-value-to-compare($previous) ;
+        my $current_cmp  = $type eq 'geometric-switching-sign' ?? $limit.abs cmp $current.abs  !! $limit cmp $current ;
+        return $current_cmp == 0 unless $previous.defined;
+        my $previous_cmp = $type eq 'geometric-switching-sign' ?? $limit.abs cmp $previous.abs !! $limit cmp $previous;
 
-		return ($current_cmp == 0 #We reached the limit exactly
-				|| $previous_cmp != $current_cmp) ; #We went past the limit
-	}
+        return ($current_cmp == 0 #We reached the limit exactly
+                || $previous_cmp != $current_cmp) ; #We went past the limit
+    }
 
-	my sub is-on-the-wrong-side($type , $get-value-to-compare, $limit , @lhs ) {
-		my $first = @lhs[*-3] // @lhs[0];
+    my sub is-on-the-wrong-side($type , $get-value-to-compare, $limit , @lhs ) {
+        return if $limit ~~ Code; #There is no wrong side in this case
+        my $first = @lhs[*-3] // @lhs[0];
 
-		if $type eq 'arithmetic' | 'geometric-switching-sign' | 'geometric-same-sign' {
-			($get-value-to-compare(@lhs[*-2]) >= $get-value-to-compare(@lhs[*-1]) && $get-value-to-compare($limit) > $get-value-to-compare($first) )
-			||
-			($get-value-to-compare(@lhs[*-2]) <= $get-value-to-compare(@lhs[*-1]) && $get-value-to-compare($limit) < $get-value-to-compare($first) );
-		}
-	}
+        if $type eq 'arithmetic' | 'geometric-switching-sign' | 'geometric-same-sign' {
+            ($get-value-to-compare(@lhs[*-2]) >= $get-value-to-compare(@lhs[*-1]) && $get-value-to-compare($limit) > $get-value-to-compare($first) )
+            ||
+            ($get-value-to-compare(@lhs[*-2]) <= $get-value-to-compare(@lhs[*-1]) && $get-value-to-compare($limit) < $get-value-to-compare($first) );
+        }
+    }
 
-	my sub infinite-series (@lhs, $next , $type) {
-		my $arity = any( $next.signature.params>>.slurpy ) ?? Inf !! $next.count;
+    my sub infinite-series (@lhs, $next , $type) {
+        gather {
+            for ^Inf Z @lhs -> $i , $val {
+                take $val unless $type eq 'code' && $i == @lhs.elems-1;  #First we take the @lhs minus last element if Code
+            }
 
-		my @args=@lhs;
-		pop @args if $type eq 'code';;
-		gather {
-			take $_ for @args; #First we take the lhs
-			loop {                         #Then we extrapolate using $next
-				@args.shift while @args.elems > $arity ;
-				my $current = $next.(|@args) // last;
-				take $current ;
-				@args.push($current) if $arity;
-			}
-		}
-	}
+            my $args = @lhs.flat.iterator.list; #We create the args for $next sub
+            my $arity = $next.count;
+            if $args.elems > $arity {               #We need to have $arity elems in $args
+                $args.munch( $args.elems - ($arity+1) ); #We make sure there are $arity + 1 elems
+                $args.munch(1) unless $type eq 'code';#And we remove the last or the first elem depending on the case
+            }
+            $args.pop() if $type eq 'code' ;
 
+            loop {                         #Then we extrapolate using $next and the $args
+                my $current = $next.(|$args.list) // last;
+                take $current ;
+                if $arity {
+                    $args.push($current) ;
+                    $args.munch(1) if $args.elems > $arity
+                }
+            }
+        }
+    }
 
-	my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
-	my ($type , $next) = get-series-params(@lhs , $limit );
-	return infinite-series(@lhs , $next , $type) unless $limit.defined; #Infinite series
+    my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
+    my ($type , $next) = get-series-params(@lhs , $limit );
+    return infinite-series(@lhs , $next , $type) unless $limit.defined; #Infinite series
 
-	my $series = infinite-series(@lhs , $next , $type);
-	my $get-value-to-compare = $type eq 'geometric-switching-sign' ?? { $_.abs; } !! { $_; };
-	return Nil if @lhs.elems > 1 && is-on-the-wrong-side($type , $get-value-to-compare,  $limit , @lhs);
+    my $series = infinite-series(@lhs , $next , $type);
+    my $get-value-to-compare = $type eq 'geometric-switching-sign' ?? { $_.abs; } !! { $_; };
+    return Nil if @lhs.elems > 1 && is-on-the-wrong-side($type , $get-value-to-compare,  $limit , @lhs);
 
-	my $previous ;
-	gather {
-		while $series {
-			my $val = $series.shift();
-			if limit-reached($previous , $val , $limit , $get-value-to-compare) {
-				take $val if $get-value-to-compare($val) cmp $get-value-to-compare($limit) == 0  && !$exclude-limit;
-				last ;
-			};
-			take $val;
-			$previous = $val;
-		}
-	}
+    my $previous ;
+    gather {
+        while $series {
+            my $val = $series.shift();
+            if limit-reached($previous , $val , $limit , $type) {
+                take $val if $get-value-to-compare($val) cmp $get-value-to-compare($limit) == 0  && !$exclude-limit;
+                last ;
+            };
+            take $val;
+            $previous = $val;
+        }
+    }
 }
 
 our multi sub infix:<...>(@lhs, $limit) {
-	_HELPER_generate-series(@lhs, $limit )
+    _HELPER_generate-series(@lhs, $limit )
 }
 our multi sub infix:<...^>(@lhs, $limit) {
-	_HELPER_generate-series(@lhs, $limit , :exclude-limit)
+    _HELPER_generate-series(@lhs, $limit , :exclude-limit)
 }
 our multi sub infix:<...^>($lhs , $limit) {
-	$lhs.list ...^ $limit;
+    $lhs.list ...^ $limit;
 }
 our multi sub infix:<...^>(@lhs, @rhs) {
     fail "Need something on RHS" if !@rhs;

@@ -36,10 +36,13 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2010-09-23   Rakudo #33                      -vacant-
+  2010-09-23   Rakudo #33                      (mathw)
   2010-10-21   Rakudo #34                      (duff)
   2010-11-18   Rakudo #35                      (masak)
   2010-12-23   Rakudo #36                      (smash)
+  2011-01-20   Rakudo #37                      -vacant-
+  2011-02-17   Rakudo #38                      -vacant-
+  2011-03-17   Rakudo #39                      -vacant-
 
 =head2 Suggested .pm group names for future releases
 

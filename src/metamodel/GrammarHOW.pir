@@ -26,20 +26,28 @@ Grammar by default.
 
 =item compose(meta)
 
-If there is no explicit parent, makes Grammar the default parent and then
+If none of the parents is a Grammar, add Grammar as a parent and then
 delegates to ClassHOW.
 
 =cut
 
 .sub 'compose' :method
     .param pmc obj
-    .local pmc parrotclass
+    .local pmc parrotclass, grammarclass
+    grammarclass = get_hll_global 'Grammar'
     parrotclass = getattribute self, 'parrotclass'
     $P0 = inspect parrotclass, 'parents'
-    if $P0 goto have_parents
-    $P0 = get_hll_global 'Grammar'
-    self.'add_parent'(obj, $P0)
-  have_parents:
+    unless $P0 goto add_grammar_as_parent
+    $P1 = iter $P0
+loop_on_parents:
+    unless $P1 goto add_grammar_as_parent
+    $P2 = shift $P1
+    $I0 = $P2.'isa'(grammarclass)
+    if $I0 goto loop_on_parents_done
+    goto loop_on_parents
+  add_grammar_as_parent:  
+    self.'add_parent'(obj, grammarclass)
+  loop_on_parents_done:
     $P0 = get_hll_global 'ClassHOW'
     $P0 = find_method $P0, 'compose'
     .tailcall $P0(self, obj)

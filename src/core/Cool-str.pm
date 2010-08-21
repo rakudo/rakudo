@@ -15,12 +15,20 @@ augment class Cool {
     }
 
     our multi method chomp() is export {
-        if self ~~ /\x0d\x0a$/ {
-            self.substr(0, self.chars - 2);
-        } elsif self ~~ /\x0a$/ {
-            self.substr(0, self.chars - 1);
-        } else {
-            self;
+        # in PIR for speed
+        Q:PIR {
+            $P0 = find_lex 'self'
+            $S0 = $P0
+            unless $S0 > '' goto done
+            $I0 = ord $S0, -1
+            unless $I0 == 10 goto done
+            $S0 = chopn $S0, 1
+            unless $S0 > '' goto done
+            $I0 = ord $S0, -1
+            unless $I0 == 13 goto done
+            $S0 = chopn $S0, 1
+          done:
+            %r = box $S0
         }
     }
 

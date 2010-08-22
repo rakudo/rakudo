@@ -61,7 +61,7 @@ for my $tfile (@tfiles) {
 
 # Prepare arrays and hashes to gather and accumulate test statistics
 my @col = qw(pass fail todo skip plan spec);
-my @syn = qw(S02 S03 S04 S05 S06 S07 S09 S10 S11 S12 S13 S14 S16 S17 S28 S29 S32 int);
+my @syn = qw(S02 S03 S04 S05 S06 S07 S09 S10 S11 S12 S13 S14 S16 S17 S19 S28 S29 S32 int);
 my %syn; # number of test scripts per Synopsis
 my %sum; # total pass/fail/todo/skip/test/plan per Synposis
 my $syn;

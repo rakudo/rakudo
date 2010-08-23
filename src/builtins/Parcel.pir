@@ -51,7 +51,7 @@ A Parcel in item context becomes a Seq.
 =cut
 
 .sub 'hash' :method
-    .tailcall 'hash'(self)
+    .tailcall '&hash'(self)
 .end
 
 

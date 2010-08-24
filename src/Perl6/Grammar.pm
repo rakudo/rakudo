@@ -1778,10 +1778,10 @@ token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
 
 token infix:sym<*>    { <sym>  <O('%multiplicative')> }
 token infix:sym</>    { <sym>  <O('%multiplicative')> }
-token infix:sym<div>  { <sym>  <O('%multiplicative')> }
+token infix:sym<div>  { <sym> >> <O('%multiplicative')> }
 token infix:sym<%>    { <sym>  <O('%multiplicative')> }
 token infix:sym<!%>   { <sym> <panic("Infix !% is deprecated in favor of infix %%")> }
-token infix:sym<mod>  { <sym>  <O('%multiplicative')> }
+token infix:sym<mod>  { <sym> >> <O('%multiplicative')> }
 token infix:sym<%%>   { <sym>  <O('%multiplicative')> }
 token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
@@ -1802,8 +1802,8 @@ token infix:sym<~^>   { <sym>  <O('%additive')> }
 token infix:sym<?|>   { <sym>  <O('%additive')> }
 token infix:sym<?^>   { <sym>  <O('%additive')> }
 
-token infix:sym<x>    { <sym>  <O('%replication')> }
-token infix:sym<xx>    { <sym>  <O('%replication')> }
+token infix:sym<x>    { <sym> >> <O('%replication')> }
+token infix:sym<xx>    { <sym> >> <O('%replication')> }
 
 token infix:sym<~>    { <sym>  <O('%concatenation')> }
 
@@ -1820,17 +1820,17 @@ token infix:sym«<=»   { <sym>  <O('%chaining')> }
 token infix:sym«>=»   { <sym>  <O('%chaining')> }
 token infix:sym«<»    { <sym>  <O('%chaining')> }
 token infix:sym«>»    { <sym>  <O('%chaining')> }
-token infix:sym«eq»   { <sym>  <O('%chaining')> }
-token infix:sym«ne»   { <sym>  <O('%chaining')> }
-token infix:sym«le»   { <sym>  <O('%chaining')> }
-token infix:sym«ge»   { <sym>  <O('%chaining')> }
-token infix:sym«lt»   { <sym>  <O('%chaining')> }
-token infix:sym«gt»   { <sym>  <O('%chaining')> }
+token infix:sym«eq»   { <sym> >> <O('%chaining')> }
+token infix:sym«ne»   { <sym> >> <O('%chaining')> }
+token infix:sym«le»   { <sym> >> <O('%chaining')> }
+token infix:sym«ge»   { <sym> >> <O('%chaining')> }
+token infix:sym«lt»   { <sym> >> <O('%chaining')> }
+token infix:sym«gt»   { <sym> >> <O('%chaining')> }
 token infix:sym«=:=»  { <sym>  <O('%chaining')> }
 token infix:sym<===>  { <sym>  <O('%chaining')> }
-token infix:sym<eqv>  { <sym>  <O('%chaining')> }
-token infix:sym<before>  { <sym>  <O('%chaining')> }
-token infix:sym<after>  { <sym>  <O('%chaining')> }
+token infix:sym<eqv>  { <sym> >> <O('%chaining')> }
+token infix:sym<before>  { <sym> >> <O('%chaining')> }
+token infix:sym<after>  { <sym>>>  <O('%chaining')> }
 token infix:sym<~~>   { <sym>  <O('%chaining')> <!dumbsmart> }
 token infix:sym<!~~>  { <sym>  <O('%chaining')> <!dumbsmart> }
 
@@ -1847,8 +1847,8 @@ token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 token infix:sym<||>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<unless>')> }
 token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor>')> }
 token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<def_or>')> }
-token infix:sym<min>  { <sym>  <O('%tight_or')> }
-token infix:sym<max>  { <sym>  <O('%tight_or')> }
+token infix:sym<min>  { <sym> >> <O('%tight_or')> }
+token infix:sym<max>  { <sym> >> <O('%tight_or')> }
 
 token infix:sym<?? !!> {
     '??'
@@ -1869,7 +1869,7 @@ token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO('infixish')
 token infix_prefix_meta_operator:sym<S> { <sym> <infixish> <O=.copyO('infixish')> }
 token infix_prefix_meta_operator:sym<X> { <sym> <infixish> <O('%list_infix')> }
 token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
-token infix:sym<minmax> { <sym>  <O('%list_infix')> }
+token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
 
 token infix:sym<:=> {
     <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>
@@ -1928,11 +1928,11 @@ method assign_check($/) {
     }
 }
 
-token infix:sym<and>  { <sym>  <O('%loose_and, :pasttype<if>')> }
+token infix:sym<and>  { <sym> >> <O('%loose_and, :pasttype<if>')> }
 
-token infix:sym<or>   { <sym>  <O('%loose_or, :pasttype<unless>')> }
-token infix:sym<xor>  { <sym>  <O('%loose_or, :pasttype<xor>')> }
-token infix:sym<err>  { <sym>  <O('%loose_or, :pasttype<def_or>')> }
+token infix:sym<or>   { <sym> >> <O('%loose_or, :pasttype<unless>')> }
+token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor>')> }
+token infix:sym<err>  { <sym> >> <O('%loose_or, :pasttype<def_or>')> }
 
 token infix:sym«<==»  { <sym> <O('%sequencer')> }
 token infix:sym«==>»  { <sym> <O('%sequencer')> }
@@ -1944,12 +1944,12 @@ token infix:sym<^..>  { <sym> <O('%structural')> }
 token infix:sym<..^>  { <sym> <O('%structural')> }
 token infix:sym<^..^> { <sym> <O('%structural')> }
 
-token infix:sym<leg>  { <sym> <O('%structural')> }
-token infix:sym<cmp>  { <sym> <O('%structural')> }
+token infix:sym<leg>  { <sym> >> <O('%structural')> }
+token infix:sym<cmp>  { <sym> >> <O('%structural')> }
 token infix:sym«<=>»  { <sym> <O('%structural')> }
 
-token infix:sym<but>  { <sym> <O('%structural')> }
-token infix:sym<does> { <sym> <O('%structural')> }
+token infix:sym<but>  { <sym> >> <O('%structural')> }
+token infix:sym<does> { <sym> >> <O('%structural')> }
 
 token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%chaining')> }
 token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%chaining')> }

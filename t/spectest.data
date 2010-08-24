@@ -494,6 +494,7 @@ S16-io/getc.t
 # S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
 S19-command-line/dash-e.t
+S19-command-line/help.t
 # S28-named-variables/cwd.t
 S28-named-variables/inc.t
 S29-any/cmp.t

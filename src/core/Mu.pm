@@ -10,6 +10,8 @@ augment class Mu {
 
     multi method notdef() { !self.defined; }
 
+    multi method so() { self.Bool }
+
     multi method perl() {
         my sub typename(Mu $x) { pir::typeof__SP($x) };
         my sub attribs(Mu $x, Mu $type) {

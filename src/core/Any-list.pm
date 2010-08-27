@@ -87,7 +87,7 @@ augment class Any {
                 $first-time = Bool::False;
                 next;
             }
-            if $cmp($_, $min) == -1 {
+            if $cmp($_, $min) < 0 {
                 $min = $_;
             }
         }
@@ -108,7 +108,7 @@ augment class Any {
                 $first-time = Bool::False;
                 next;
             }
-            if $cmp($_, $max) == 1 {
+            if $cmp($_, $max) > 0 {
                 $max = $_;
             }
         }
@@ -137,11 +137,11 @@ augment class Any {
                     $first-time = Bool::False;
                     next;
                 }
-                if $cmp($_.min, $min) == -1 {
+                if $cmp($_.min, $min) < 0 {
                     $min = $_;
                     $excludes_min = $_.excludes_min;
                 }
-                if $cmp($_.max, $max) == 1 {
+                if $cmp($_.max, $max) > 0 {
                     $max = $_;
                     $excludes_max = $_.excludes_max;
                 }
@@ -153,11 +153,11 @@ augment class Any {
                 $first-time = Bool::False;
                 next;
             }
-            if $cmp($_, $min) == -1 {
+            if $cmp($_, $min) < 0 {
                 $min = $_;
                 $excludes_min = Bool::False;
             }
-            if $cmp($_, $max) == 1 {
+            if $cmp($_, $max) > 0 {
                 $max = $_;
                 $excludes_max = Bool::False;
             }

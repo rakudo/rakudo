@@ -1,3 +1,6 @@
++ S32::Temporal now completely implemented
++ Instants and Durations
+
 New in 2010.08 release
 + syntactic adverbs on substitutions, rx quotes and m//, e.g. '$x ~~ s:2nd/a/b/'
 + updated ROADMAP

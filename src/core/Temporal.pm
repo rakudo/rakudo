@@ -175,7 +175,12 @@ class DateTime is Dateish {
             day => $date.day, |%_)
     }
 
-    # TODO: multi method new(Instant $i, ...) { ... }
+    multi method new(Instant $i, :$timezone=0, :&formatter=&default-formatter) {
+        my ($p, $leap-second) = $i.to-posix;
+        my $dt = self.new: floor($p - $leap-second), :&formatter;
+        $dt.clone(second => $dt.second + $p % 1 + $leap-second
+            ).in-timezone($timezone);
+    }
 
     multi method new(Int $time is copy, :$timezone=0, :&formatter=&default-formatter) {
     # Interpret $time as a POSIX time.
@@ -225,8 +230,7 @@ class DateTime is Dateish {
 
     multi method now(:$timezone=0, :&formatter=&default-formatter) {
     # FIXME: Default to the user's time zone instead of UTC.
-    # FIXME: Include fractional seconds.
-        self.new(time, :$timezone, :&formatter)
+        self.new(now, :$timezone, :&formatter)
     }
 
     multi method clone(*%_) {
@@ -245,7 +249,9 @@ class DateTime is Dateish {
             |%_)
     }
 
-    # TODO: multi method Instant() { ... }
+    multi method Instant() {
+        Instant.from-posix: self.posix + $.second % 1, $.second >= 60;
+    }
 
     multi method posix() {
         self.offset and return self.utc.posix;

@@ -227,6 +227,8 @@ CORE_SOURCES = \
   src/core/system.pm \
   src/cheats/process.pm \
   src/core/tai-utc.pm \
+  src/core/Duration.pm \
+  src/core/Instant.pm \
   src/core/Temporal.pm \
   src/core/Match.pm \
   src/core/Attribute.pm \

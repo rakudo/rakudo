@@ -77,7 +77,7 @@ augment class Any {
     # And use the FIRST: phaser
     multi method min($by = { $^a cmp $^b}) {
         die "Unable to handle non-closure Ordering yet" unless $by ~~ Code;
-        my $cmp = $by.signature.params.elems == 2 ?? $by !! { $by($^a) cmp $by($^b) };
+        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 
         my $min = +Inf;
         my $first-time = Bool::True;
@@ -98,7 +98,7 @@ augment class Any {
     # And use the FIRST: phaser
     multi method max($by = { $^a cmp $^b}) {
         die "Unable to handle non-closure Ordering yet" unless $by ~~ Code;
-        my $cmp = $by.signature.params.elems == 2 ?? $by !! { $by($^a) cmp $by($^b) };
+        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 
         my $max = -Inf;
         my $first-time = Bool::True;
@@ -119,7 +119,7 @@ augment class Any {
     # And use the FIRST: phaser
     multi method minmax($by = { $^a cmp $^b}) {
         die "Unable to handle non-closure Ordering yet" unless $by ~~ Code;
-        my $cmp = $by.signature.params.elems == 2 ?? $by !! { $by($^a) cmp $by($^b) };
+        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 
         my $min = +Inf;
         my $max = -Inf;

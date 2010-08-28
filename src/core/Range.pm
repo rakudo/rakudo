@@ -4,32 +4,32 @@ class Range is Iterable does Positional {
     has $.max;
     has $.excludes_max = Bool::False;
 
-    multi method new(::T $min, T $max, 
-                     Bool :$excludes_min = Bool::False, 
+    multi method new(::T $min, T $max,
+                     Bool :$excludes_min = Bool::False,
                      Bool :$excludes_max = Bool::False) {
         self.bless(*, :$min, :$max, :$excludes_min, :$excludes_max);
     }
 
-    multi method new($min, Whatever $max, 
-                     Bool :$excludes_min = Bool::False, 
+    multi method new($min, Whatever $max,
+                     Bool :$excludes_min = Bool::False,
                      Bool :$excludes_max = Bool::False) {
         self.bless(*, :$min, :max(+Inf), :$excludes_min, :$excludes_max);
     }
 
     multi method new(Whatever $min, $max,
-                     Bool :$excludes_min = Bool::False, 
+                     Bool :$excludes_min = Bool::False,
                      Bool :$excludes_max = Bool::False) {
         self.bless(*, :min(-Inf), :$max, :$excludes_min, :$excludes_max);
     }
 
     multi method new(Whatever $min, Whatever $max,
-                     Bool :$excludes_min = Bool::False, 
+                     Bool :$excludes_min = Bool::False,
                      Bool :$excludes_max = Bool::False) {
         fail "*..* is not a valid range";
     }
 
     multi method new($min, $max,
-                     Bool :$excludes_min = Bool::False, 
+                     Bool :$excludes_min = Bool::False,
                      Bool :$excludes_max = Bool::False) {
         ($min ~~ Real or $max ~~ Real)
         ?? self.bless(*, :min($min.Numeric), :max($max.Numeric), :$excludes_min, :$excludes_max)
@@ -41,15 +41,15 @@ class Range is Iterable does Positional {
     multi method to() { $.max; }
 
     multi method iterator() {
-        RangeIter.new(:value($!excludes_min ?? $!min.succ !! $!min), 
+        RangeIter.new(:value($!excludes_min ?? $!min.succ !! $!min),
                       :$!max, :$!excludes_max);
     }
 
     our Str multi method perl() {
-        ( $.min.perl, 
-          ('^' if $.excludes_min), 
-          '..', 
-          ('^' if $.excludes_max), 
+        ( $.min.perl,
+          ('^' if $.excludes_min),
+          '..',
+          ('^' if $.excludes_max),
           $.max.perl
         ).join('');
     }
@@ -90,7 +90,7 @@ class Range is Iterable does Positional {
         (1..$n).map: { self.pick }
     }
 
-    
+
 }
 
 

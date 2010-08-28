@@ -4,6 +4,8 @@ our @BLOCK;
 our @PACKAGE;
 our $TRUE;
 
+our $FORBID_PIR;
+
 INIT {
     # initialize @BLOCK and @PACKAGE
     our @BLOCK := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
@@ -15,6 +17,8 @@ INIT {
         Q:PIR { %r = get_hll_global ['PAST';'Compiler'], '%valflags' };
     %valflags<Perl6Str> := 'e';
     %valflags<Str>      := 'e';
+
+    $FORBID_PIR := 0;
 }
 
 sub xblock_immediate($xblock) {
@@ -494,7 +498,7 @@ method statement_control:sym<use>($/) {
             $*SETTING_MODE := 1;
         }
         elsif ~$<module_name> eq 'FORBID_PIR' {
-            $*FORBID_PIR := 1;
+            $FORBID_PIR := 1;
         }
         else {
             need($<module_name>);
@@ -2033,7 +2037,7 @@ method term:sym<name>($/) {
 }
 
 method term:sym<pir::op>($/) {
-    if $*FORBID_PIR {
+    if $FORBID_PIR {
         pir::die("pir::op forbidden in safe mode\n");
     }
     my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
@@ -2751,7 +2755,7 @@ method quote:sym<qq>($/)   { make $<quote_EXPR>.ast; }
 method quote:sym<q>($/)    { make $<quote_EXPR>.ast; }
 method quote:sym<Q>($/)    { make $<quote_EXPR>.ast; }
 method quote:sym<Q:PIR>($/) {
-    if $*FORBID_PIR {
+    if $FORBID_PIR {
         pir::die("Q:PIR forbidden in safe mode\n");
     }
     make PAST::Op.new( :inline( $<quote_EXPR>.ast.value ),

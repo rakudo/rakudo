@@ -1154,6 +1154,7 @@ token regex_declarator:sym<regex> {
 
 rule regex_def {
     [
+      { $*IN_DECL := '' }
       <deflongname>?
       <.newpad>
       [ [ ':'?'(' <signature> ')'] | <trait> ]*

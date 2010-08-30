@@ -386,14 +386,29 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
     }
 
     my sub is-on-the-wrong-side($type , $get-value-to-compare, $limit , @lhs ) {
-        my $first = @lhs[*-3] // @lhs[0];
         return if $limit ~~ Code;
+        return unless $type eq 'arithmetic' | 'geometric-switching-sign' | 'geometric-same-sign';
 
-        if $type eq 'arithmetic' | 'geometric-switching-sign' | 'geometric-same-sign' {
-            ($get-value-to-compare(@lhs[*-2]) >= $get-value-to-compare(@lhs[*-1]) && $get-value-to-compare($limit) > $get-value-to-compare($first) )
+        my $first = $get-value-to-compare( @lhs[*-3] // @lhs[0] );
+        my $second = $get-value-to-compare( @lhs[*-2] );
+        my $third = $get-value-to-compare( @lhs[*-1] );
+        my $limit-to-use = $get-value-to-compare( $limit );
+        return unless ($second >= $third && $limit-to-use > $first )
+                ||
+                ($second  <= $third && $limit-to-use < $first );
+
+        sub between($a , $b) {
+            my ( $first , $second ) = ( $get-value-to-compare($a) , $get-value-to-compare($b) );
+            ($first >= $limit-to-use >= $second )
             ||
-            ($get-value-to-compare(@lhs[*-2]) <= $get-value-to-compare(@lhs[*-1]) && $get-value-to-compare($limit) < $get-value-to-compare($first) );
+            ($first <= $limit-to-use <= $second )
         }
+
+        my $i = @lhs.elems;
+        while ($i-- >1) {
+            return if between(@lhs[$i-1] , @lhs[$i]); #If the limit is between any two items it cannot be on the wrong side
+        }
+        return True;
     }
 
     my sub infinite-series (@lhs, $next ) {

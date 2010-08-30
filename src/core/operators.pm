@@ -333,7 +333,7 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
     my sub get-series-params (@lhs, $limit? ) {
         fail "Need something on the LHS" unless @lhs.elems;
         fail "Need more than one item on the LHS" if @lhs.elems == 1 && $limit ~~ Code;
-        fail "Need more items on the LHS" if @lhs[*-1] ~~ Code && @lhs[*-1].count != Inf && @lhs.elems < @lhs[*-1].count;
+        fail "Need more items on the LHS" if @lhs[*-1] ~~ Code && @lhs[*-1] !~~ Multi && @lhs[*-1].count != Inf && @lhs.elems < @lhs[*-1].count;
 
         my $limit-not-reached;
         given $limit {
@@ -352,7 +352,15 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
         }
 
         #BEWARE: Here be ugliness
-        return ( 'code' , @lhs[*-1] , $limit-not-reached)  if @lhs[* - 1] ~~ Code ; # case: (a,b,c,{code}) ... *
+        if @lhs[* - 1] ~~ Code { # case: (a,b,c,{code}) ... *
+            return ( 'code' , @lhs[*-1] , $limit-not-reached) if @lhs[*-1] !~~ Multi;
+            return ( 'code' , @lhs[*-1].candidates[0] , $limit-not-reached) if @lhs[*-1].candidates.elems == 1;
+            if (@lhs[*-1].candidates>>.count).grep( * == 2) {
+                return ( 'code' , { @lhs[*-1]($^a,$^b) } , $limit-not-reached) ; # case: (a,b,c,&[+] ... *
+            } else {
+                fail "Don't know how to handle Multi on the lhs yet";
+            }
+        }
         return ( 'stag' , { $_ } , $limit-not-reached) if @lhs.elems > 1 && @lhs[*-1] cmp @lhs[*-2] == 0 ;  # case: (a , a) ... *
 
         if  @lhs[*-1] ~~ Str ||  $limit ~~ Str {

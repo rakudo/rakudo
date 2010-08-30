@@ -344,7 +344,7 @@ augment class Any {
     our multi method postcircumfix:<{ }>($key) { self.at_key($key) }
 
     method at_key($key) {
-        fail "postcircumfix:<{ }> not defined for type {self.WHAT}"
+        fail "postcircumfix:<\{ \}> not defined for type {self.WHAT}"
             if self.defined;
         my $z = Any!butWHENCE(
                     { self.defined || &infix:<=>(self, Hash.new);

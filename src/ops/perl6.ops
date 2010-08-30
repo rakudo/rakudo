@@ -145,9 +145,6 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         for (i = 0; i < new_attribs; i++)
             VTABLE_set_pmc_keyed_int(interp, PARROT_OBJECT(value)->attrib_store,
                 i, pmc_new(interp, enum_class_Undef));
-
-        /* And make sure the new object is of the right type. */
-        new_ins->vtable = interp->vtables[p6o_id];
     }
     else if ((value->vtable->base_type != enum_class_Object && value->vtable->base_type != p6o_id)
             || current_class->vtable->base_type != enum_class_Class) {

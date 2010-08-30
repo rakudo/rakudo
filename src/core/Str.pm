@@ -3,11 +3,6 @@ augment class Str does Stringy {
 
     method Str() { self }
 
-    # CHEAT: this implementation is a bit of a cheat,
-    # but works fine for now.
-    multi method Int { (+self).Int; }
-    multi method Num { (+self).Num; }
-
     my @KNOWN_ENCODINGS = <utf-8 iso-8859-1 ascii>;
 
     # XXX: We have no $?ENC or $?NF compile-time constants yet.

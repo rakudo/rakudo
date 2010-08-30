@@ -3,6 +3,22 @@ augment class Cool {
         pir::set__NP(self);
     }
 
+    method Real() {
+        (+self).Real;
+    }
+
+    method Int() {
+        (+self).Int;
+    }
+
+    method Rat(::Real $epsilon = 1.0e-6) {
+        (+self).Rat($epsilon);
+    }
+
+    method Num() {
+        (+self).Num;
+    }
+
     method abs($x:) {
         (+$x).abs;
     }

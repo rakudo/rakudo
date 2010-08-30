@@ -385,7 +385,7 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
                 $factor = $factor.Int;
             }
             if ($factor < 0) {
-                return ( 'geometric-switching-sign' , { $_ * $factor } , -> $a, $b { $limit-not-reached.( $a.?abs, $b.abs) && $limit-not-reached.( -$a.?abs, -$b.abs) });
+                return ( 'geometric-switching-sign' , { $_ * $factor } , -> $a, $b { $a.defined ?? $limit-not-reached.( $a.abs, $b.abs) && $limit-not-reached.( -$a.abs , -$b.abs) !! $limit-not-reached.( $a, $b.abs) && $limit-not-reached.( $a, -$b.abs) });
             } else {
                 return ( 'geometric-same-sign' , { $_ * $factor } , $limit-not-reached);
             }

@@ -28,7 +28,8 @@ augment class Cool {
             unless $I0 == 13 goto done
             $S0 = chopn $S0, 1
           done:
-            %r = box $S0
+            %r = new ['Str']
+            assign %r, $S0
         }
     }
 

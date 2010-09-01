@@ -113,9 +113,9 @@ our sub none(*@items) {
     Junction.new(@items, :none);
 }
 
-our multi prefix:<not>($x) { !$x }
+our multi prefix:<not>(Mu $x) { !$x }
 
-our multi prefix:<so>($x) { ?$x }
+our multi prefix:<so>(Mu $x) { ?$x }
 
 our multi prefix:sym<+^>($x) {
     pir::bnot__PP($x)

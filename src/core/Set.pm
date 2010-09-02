@@ -54,6 +54,13 @@ class Set does Associative {
         self.new(grep { !contains(@otherset, $_) }, @!elems);
     }
 
+    multi method symmetricdifference(%otherset) {
+        self.symmetricdifference(%otherset.keys);
+    }
+    multi method symmetricdifference(@otherset) {
+        self.difference(@otherset).union(Set.new(@otherset).difference(self));
+    }
+
     multi method subsetorequal(@otherset) {
         ?contains(@otherset, all(@!elems));
     }
@@ -99,6 +106,11 @@ our multi sub  infix:<(-)>(Set $a, %b) { $a.difference(%b) }
 our multi sub  infix:<(-)>(    %a, %b) { Set.new( %a).difference(%b) }
 our multi sub  infix:<(-)>(    @a, %b) { Set.new(|@a).difference(%b) }
 our multi sub  infix:<(-)>(    @a, @b) { Set.new(|@a).difference(@b) }
+
+our multi sub  infix:<(^)>(Set $a, %b) { $a.symmetricdifference(%b) }
+our multi sub  infix:<(^)>(    %a, %b) { Set.new( %a).symmetricdifference(%b) }
+our multi sub  infix:<(^)>(    @a, %b) { Set.new(|@a).symmetricdifference(%b) }
+our multi sub  infix:<(^)>(    @a, @b) { Set.new(|@a).symmetricdifference(@b) }
 
 our multi sub infix:<(<=)>(Set $a, %b) { $a.subsetorequal(%b) }
 our multi sub infix:<(<=)>(    %a, %b) { Set.new( %a).subsetorequal(%b) }

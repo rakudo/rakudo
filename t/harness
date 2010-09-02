@@ -9,6 +9,7 @@ use warnings;
 use FindBin;
 use File::Spec;
 use Getopt::Long qw(:config pass_through);
+use Pod::Usage;
 
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 $ENV{'HARNESS_PERL'} = ".${slash}perl6";
@@ -25,7 +26,8 @@ GetOptions(
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
     'parrot_revision=s' => \my $parrot_revision,
-);
+    'help|h' => sub { pod2usage(1); },
+) or pod2usage(2);
 
 $do_long = 1 unless defined $do_long;
 $do_stress = 0 unless defined $do_stress;
@@ -128,3 +130,25 @@ sub fudge {
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
 }
+
+=head1 NAME
+
+t/harness - run the harness tests for Rakuo.
+
+=head1 SYNOPSIS
+
+t/harness [options] [files]
+
+Options:
+
+    --help / -h - display the help message.
+    --tests-from-file=[filename] - get the tests from the filename.
+    --fudge - fudge (?)
+    --verbosity=[level] - set the verbosity level.
+    --jobs - number of jobs.
+    --icu - do icu.
+    --long - do long.
+    --stress - perform the stress tests/
+    --archive=[archive] - write to an archive.
+    --parrot_revision=[rev] - test with Parrot revision.
+

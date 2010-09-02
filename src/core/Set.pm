@@ -36,6 +36,7 @@ class Set does Associative {
 
     method Num() { +self.elems }
     method Bool() { ?self.elems }
+    method hash() { hash @!elems Z=> True xx * }
 
     multi method union(@otherset) {
         self.new((@!elems, @otherset));

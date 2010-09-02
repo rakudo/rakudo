@@ -133,7 +133,7 @@ sub fudge {
 
 =head1 NAME
 
-t/harness - run the harness tests for Rakuo.
+t/harness - run the harness tests for Rakudo.
 
 =head1 SYNOPSIS
 

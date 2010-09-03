@@ -214,7 +214,7 @@ our multi infix:sym<//>(Mu $a, Mu $b) {
 }
 
 our multi infix:<==>($a, $b) {
-    pir::iseq__INN(+$a, +$b) ?? True !! False
+    +$a == +$b;
 }
 
 our multi infix:<!=>(Mu $a, Mu $b) {
@@ -222,19 +222,19 @@ our multi infix:<!=>(Mu $a, Mu $b) {
 }
 
 our multi infix:«<»($a, $b) {
-    pir::islt__INN(+$a, +$b) ?? True !! False
+    +$a < +$b;
 }
 
 our multi infix:«<=»($a, $b) {
-    pir::isle__INN(+$a, +$b) ?? True !! False
+    +$a <= +$b;
 }
 
 our multi infix:«>»($a, $b) {
-    pir::isgt__INN(+$a, +$b) ?? True !! False
+    +$a > +$b;
 }
 
 our multi infix:«>=»($a, $b) {
-    pir::isge__INN(+$a, +$b) ?? True !! False
+    +$a >= +$b;
 }
 
 our multi infix:<eq>($a, $b) {

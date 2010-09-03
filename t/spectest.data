@@ -174,7 +174,7 @@ S03-operators/brainos.t
 S03-operators/buf.t
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
-# S03-operators/comparison.t
+S03-operators/comparison.t
 S03-operators/comparison-simple.t
 S03-operators/context-forcers.t
 S03-operators/context.t

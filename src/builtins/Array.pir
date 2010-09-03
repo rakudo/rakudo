@@ -25,8 +25,18 @@ Arrays are the mutable form of Lists.
 =cut
 
 .sub 'new' :method
-    .param pmc values :slurpy
-    .tailcall '&circumfix:<[ ]>'(values :flat)
+    .param pmc values          :slurpy
+    .local pmc p6meta, parrotclass, list, true
+    p6meta = get_hll_global ['Mu'], '$!P6META'
+    parrotclass = p6meta.'get_parrotclass'(self)
+    list = new parrotclass
+    setattribute list, '@!rest', values
+    transform_to_p6opaque list
+    list.'!STORE'(values)
+    $P1 = new ['ObjectRef'], list
+    $P2 = get_hll_global ['Bool'], 'True'
+    setprop $P1, 'scalar', $P2
+    .return ($P1)
 .end
 
 =back
@@ -42,15 +52,8 @@ Arrays are the mutable form of Lists.
 .namespace []
 .sub '&circumfix:<[ ]>' 
     .param pmc values            :slurpy
-    .local pmc parcel
-    parcel = new ['Parcel']
-    splice parcel, values, 0, 0
-    $P0 = new ['Array']
-    transform_to_p6opaque $P0
-    $P0.'!STORE'(parcel)
-    $P1 = new ['ObjectRef'], $P0
-    $P2 = get_hll_global ['Bool'], 'True'
-    setprop $P1, 'scalar', $P2
+    $P0 = get_hll_global 'Array'
+    $P1 = $P0.'new'(values)
     .return ($P1)
 .end
 

@@ -44,10 +44,10 @@ Does various setup tasks on behalf of all of the other dynops.
 */
 inline op rakudo_dynop_setup() :base_core {
     /* Look up some type IDs. */
-    p6s_id = pmc_type(interp, string_from_literal(interp, "Perl6Scalar"));
-    or_id  = pmc_type(interp, string_from_literal(interp, "ObjectRef"));
-    lls_id = pmc_type(interp, string_from_literal(interp, "P6LowLevelSig"));
-    p6o_id = pmc_type(interp, string_from_literal(interp, "P6opaque"));
+    p6s_id = pmc_type(interp, Parrot_str_new(interp, "Perl6Scalar", 0));
+    or_id  = pmc_type(interp, Parrot_str_new(interp, "ObjectRef", 0));
+    lls_id = pmc_type(interp, Parrot_str_new(interp, "P6LowLevelSig", 0));
+    p6o_id = pmc_type(interp, Parrot_str_new(interp, "P6opaque", 0));
     obj_id = enum_class_Object;
 
     /* Create dummy low level sig op and use its get_pointer to get a pointer
@@ -126,7 +126,7 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
          * in the end we will end up with just as many PMCs existing. */
         PMC * const temp  = mem_allocate_typed(PMC);
         PMC * const proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
-                string_from_literal(interp, "proxy"));
+                Parrot_str_new(interp, "proxy", 0));
         Parrot_block_GC_mark(interp);
 
         /* Using memcpy here may trigger gcc optimizations, which at this point
@@ -305,7 +305,7 @@ nextsame need.
 */
 inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
     PMC     *ctx         = Parrot_pcc_get_caller_ctx(interp, CURRENT_CONTEXT(interp));
-    STRING  *name        = string_from_literal(interp, "__CANDIDATE_LIST__");
+    STRING  *name        = Parrot_str_new(interp, "__CANDIDATE_LIST__", 0);
     PMC     *last_lexpad = PMCNULL;
     PMC     *last_sub    = PMCNULL;
 
@@ -506,7 +506,7 @@ inline op set_llsig_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PMC, i
 
             /* Also need to do fixups on the nominal type. */
             if (!PMC_IS_NULL($5)) {
-                PMC *refined = VTABLE_getprop(interp, $5, string_from_literal(interp, "subtype_realtype"));
+                PMC *refined = VTABLE_getprop(interp, $5, Parrot_str_new(interp, "subtype_realtype", 0));
                 if (PMC_IS_NULL(refined)) {
                     /* It's not some subtype, we're fine. */
                     element->nominal_type = $5;
@@ -521,7 +521,7 @@ inline op set_llsig_elem(in PMC, in INT, in STR, in INT, inout PMC, inout PMC, i
             }
             else {
                 element->nominal_type = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
-                        string_from_literal(interp, "Mu"));
+                        Parrot_str_new(interp, "Mu", 0));
             }
 
             goto NEXT();
@@ -614,7 +614,7 @@ inline op bind_llsig(in PMC) :base_core {
     if (!PObj_flag_TEST(P6S_ALREADY_BOUND, ctx)) {
         PMC *lexpad         = Parrot_pcc_get_lex_pad(interp, ctx);
         PMC *sub            = Parrot_pcc_get_sub(interp, ctx);
-        PMC *llsig          = VTABLE_getprop(interp, sub, string_from_literal(interp, "$!llsig"));
+        PMC *llsig          = VTABLE_getprop(interp, sub, Parrot_str_new(interp, "$!llsig", 0));
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
         INTVAL bind_error;
@@ -628,7 +628,7 @@ inline op bind_llsig(in PMC) :base_core {
         /* Ensure we actually have a signature; if not, try to lazily generate
          * it. */
         if (PMC_IS_NULL(llsig)) {
-            PMC *sig_meth    = VTABLE_find_method(interp, sub, string_from_literal(interp, "!llsig"));
+            PMC *sig_meth    = VTABLE_find_method(interp, sub, Parrot_str_new(interp, "!llsig", 0));
             Parrot_ext_call(interp, sig_meth, "P->P", sub, &llsig);
         }
 
@@ -650,7 +650,7 @@ inline op bind_llsig(in PMC) :base_core {
                 /* Find dispatcher and call it. */
                 PMC *returns = Parrot_pmc_new(interp, enum_class_CallContext);
                 PMC *dispatcher = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
-                        string_from_literal(interp, "!DISPATCH_JUNCTION_SINGLE"));
+                        Parrot_str_new(interp, "!DISPATCH_JUNCTION_SINGLE", 0));
                 opcode_t *next;
                 PMC *junc_result, *caller_sig;
                 Parrot_ext_call(interp, dispatcher, "PP->P", sub, $1, &junc_result);

@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2001-2009, The Perl Foundation.
+Copyright (C) 2001-2010, The Perl Foundation.
 
 =head1 NAME
 
@@ -49,10 +49,10 @@ pmclass MutableVAR dynpmc group perl6_group auto_attrs {
     }
 
     METHOD INTVAL readonly() {
-        STRING *s_ro = string_from_literal(INTERP, "readonly");
+        STRING *s_ro = Parrot_str_new(INTERP, "readonly", 0);
         PMC    *ro, *scalar;
         INTVAL  res;
-        
+
         GET_ATTR_scalar(INTERP, SELF, scalar);
         ro = VTABLE_getprop(INTERP, scalar, s_ro);
         res = PMC_IS_NULL(ro) ? 0 : VTABLE_get_bool(INTERP, ro);

@@ -239,7 +239,7 @@ static candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates, PMC **pr
         llsig = VTABLE_getprop(interp, p6_do, CONST_STRING(interp, "$!llsig"));
         if (PMC_IS_NULL(llsig)) {
             /* No signature - need to lazily generate it. */
-            PMC *sig_meth    = VTABLE_find_method(interp, p6_do, string_from_literal(interp, "!llsig"));
+            PMC *sig_meth    = VTABLE_find_method(interp, p6_do, Parrot_str_new(interp, "!llsig", 0));
             Parrot_ext_call(interp, sig_meth, "P->P", p6_do, &llsig);
         }
         info->llsig = llsig;

@@ -25,6 +25,10 @@ static INTVAL lls_id = 0;
 static INTVAL obj_id = 0;
 static INTVAL p6o_id = 0;
 
+static STRING *LLSIG_ATTR_str;
+static STRING *BANG_LLSIG_str;
+static STRING *DISPATCH_JUNCTION_str;
+
 /* Plus a function pointer to the binder. */
 typedef INTVAL (*bind_llsig_func_type) (PARROT_INTERP, PMC *lexpad,
     PMC *llsig, PMC *capture, INTVAL no_nom_type_check, STRING **error);
@@ -49,6 +53,11 @@ inline op rakudo_dynop_setup() :base_core {
     lls_id = pmc_type(interp, Parrot_str_new(interp, "P6LowLevelSig", 0));
     p6o_id = pmc_type(interp, Parrot_str_new(interp, "P6opaque", 0));
     obj_id = enum_class_Object;
+
+    BANG_LLSIG_str        = Parrot_str_new_constant(interp, "!llsig");
+    LLSIG_ATTR_str        = Parrot_str_new_constant(interp, "$!llsig");
+    DISPATCH_JUNCTION_str = Parrot_str_new_constant(interp,
+                                "!DISPATCH_JUNCTION_SINGLE");
 
     /* Create dummy low level sig op and use its get_pointer to get a pointer
      * to the signature binder. */
@@ -614,7 +623,7 @@ inline op bind_llsig(in PMC) :base_core {
     if (!PObj_flag_TEST(P6S_ALREADY_BOUND, ctx)) {
         PMC *lexpad         = Parrot_pcc_get_lex_pad(interp, ctx);
         PMC *sub            = Parrot_pcc_get_sub(interp, ctx);
-        PMC *llsig          = VTABLE_getprop(interp, sub, Parrot_str_new(interp, "$!llsig", 0));
+        PMC *llsig          = VTABLE_getprop(interp, sub, LLSIG_ATTR_str);
         INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
         STRING *error       = NULL;
         INTVAL bind_error;
@@ -628,7 +637,7 @@ inline op bind_llsig(in PMC) :base_core {
         /* Ensure we actually have a signature; if not, try to lazily generate
          * it. */
         if (PMC_IS_NULL(llsig)) {
-            PMC *sig_meth    = VTABLE_find_method(interp, sub, Parrot_str_new(interp, "!llsig", 0));
+            PMC *sig_meth    = VTABLE_find_method(interp, sub, BANG_LLSIG_str);
             Parrot_ext_call(interp, sig_meth, "P->P", sub, &llsig);
         }
 
@@ -639,7 +648,7 @@ inline op bind_llsig(in PMC) :base_core {
         if (!bind_error) {
             /* Re-instate anything we may have damaged. */
             CURRENT_CONTEXT(interp) = ctx;
-            interp->current_cont = saved_ccont;
+            interp->current_cont    = saved_ccont;
             Parrot_pcc_set_signature(interp, ctx, saved_sig);
             Parrot_pcc_set_pc(interp, ctx, current_pc);
             goto NEXT();
@@ -649,8 +658,8 @@ inline op bind_llsig(in PMC) :base_core {
             if (bind_error == BIND_RESULT_JUNCTION) {
                 /* Find dispatcher and call it. */
                 PMC *returns = Parrot_pmc_new(interp, enum_class_CallContext);
-                PMC *dispatcher = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
-                        Parrot_str_new(interp, "!DISPATCH_JUNCTION_SINGLE", 0));
+                PMC *dispatcher = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp), DISPATCH_JUNCTION_str);
+
                 opcode_t *next;
                 PMC *junc_result, *caller_sig;
                 Parrot_ext_call(interp, dispatcher, "PP->P", sub, $1, &junc_result);

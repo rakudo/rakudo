@@ -3006,7 +3006,7 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
 }
 
 # Takes a block and adds a signature to it, as well as code to bind the call
-# capture against the signature.
+# capture against the signature.  Returns the modified block.
 sub add_signature($block, $sig_obj) {
     # Set arity.
     $block.arity($sig_obj.arity);
@@ -3031,6 +3031,7 @@ sub add_signature($block, $sig_obj) {
     my $lazysig := PAST::Block.new(:blocktype<declaration>, $sig_obj.ast(1));
     $block[0].push($lazysig);
     $block<lazysig> := PAST::Val.new( :value($lazysig) );
+    $block;
 }
 
 # Makes a lazy signature building block.
@@ -3545,10 +3546,21 @@ sub whatever_curry($/, $past, $upto_arity) {
                 $past.unshift($right_new);
             }
             $past.unshift($left_new);
-            $past := make_block_from($sig, $past, 'WhateverCode');
+            $past := block_closure(blockify($past, $sig), 'WhateverCode', 0);
+            $past.returns('WhateverCode');
+            $past.arity($sig.arity);
         }
     }
     $past
+}
+
+sub blockify($past, $sig) {
+    add_signature( PAST::Block.new( :blocktype('declaration'),
+                       PAST::Stmts.new( ),
+                       PAST::Stmts.new( $past )
+                   ),
+                   $sig
+    );
 }
 
 # Helper for constructing a simple Perl 6 Block with the given signature

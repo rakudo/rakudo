@@ -1,5 +1,6 @@
 role Hash { ... }
 class Range { ... }
+class Match { ... }
 
 augment class Any {
     method Seq() { 
@@ -352,6 +353,12 @@ augment class Any {
                     }
                 );
     }
+
+    # XXX Workarounds for Match objects which also ~~ Positional
+    # (http://irclog.perlgeek.de/perl6/2010-09-07#i_2795277)
+    # and RT #75868
+    our multi method postcircumfix:<[ ]>(Match $m) { self.[+$m] }
+    our multi method postcircumfix:<{ }>(Match $m) { self.{~$m} }
 
     method !butWHENCE(&by) {
         pir::setprop__0PsP(pir::clone__PP(pir::descalarref__PP(self)), 'WHENCE', &by);

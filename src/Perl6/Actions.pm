@@ -236,11 +236,17 @@ method statement($/, $key?) {
                 );
             }
             elsif ~$ml<sym> eq 'for' {
-                $past := PAST::Block.new( :blocktype('immediate'),
-                    PAST::Var.new( :name('$_'), :scope('parameter'), :isdecl(1) ),
-                    $past);
-                $cond := PAST::Op.new(:name('&flat'), $cond);
-                $past := PAST::Op.new($cond, $past, :pasttype(~$ml<sym>), :node($/) );
+                unless $past<block_past> {
+                    my $sig := Perl6::Compiler::Signature.new(
+                                   Perl6::Compiler::Parameter.new(:var_name('$_')));
+                    $past := block_closure(blockify($past, $sig), 'Block', 0);
+                }
+                $past := PAST::Op.new( 
+                             :pasttype<callmethod>, :name<map>, :node($/),
+                             PAST::Op.new( :name<&flat>, $cond ),
+                             $past
+                         );
+                $past := PAST::Op.new( :name<&eager>, $past, :node($/) );
             }
             else {
                 $past := PAST::Op.new($cond, $past, :pasttype(~$ml<sym>), :node($/) );
@@ -3559,8 +3565,7 @@ sub blockify($past, $sig) {
                        PAST::Stmts.new( ),
                        PAST::Stmts.new( $past )
                    ),
-                   $sig
-    );
+                   $sig);
 }
 
 # Helper for constructing a simple Perl 6 Block with the given signature

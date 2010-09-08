@@ -328,112 +328,157 @@ our multi sub item($item) {
     $item
 }
 
-our multi sub infix:<...>(@lhs is copy, $rhs) {
-    my sub succ-or-pred($lhs, $rhs) {
-        if $lhs ~~ Str && $rhs ~~ Str && $lhs.chars == 1 && $rhs.chars == 1 {
-            if $lhs cmp $rhs != 1 {
-                -> $x { $x.ord.succ.chr };
+
+our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
+    my sub get-series-params (@lhs, $limit? ) {
+        fail "Need something on the LHS" unless @lhs.elems;
+        fail "Need more than one item on the LHS" if @lhs.elems == 1 && $limit ~~ Code;
+        fail "Need more items on the LHS" if @lhs[*-1] ~~ Code && @lhs[*-1] !~~ Multi && @lhs[*-1].count != Inf && @lhs.elems < @lhs[*-1].count;
+
+        my $limit-not-reached;
+        given $limit {
+            when Code { $limit-not-reached = $limit; }
+            when .defined {
+                $limit-not-reached = sub ($previous , $current) {
+                    my $current_cmp  =  $limit cmp $current ;
+                    return $current_cmp != 0 unless $previous.defined;
+                    my $previous_cmp = $limit cmp $previous;
+
+                    return ! ($current_cmp == 0 #We reached the limit exactly
+                            || $previous_cmp != $current_cmp) ; #We went past the limit
+                }
+            }
+            default { $limit-not-reached = Mu};
+        }
+
+        #BEWARE: Here be ugliness
+        if @lhs[* - 1] ~~ Code { # case: (a,b,c,{code}) ... *
+            return ( 'code' , @lhs[*-1] , $limit-not-reached) if @lhs[*-1] !~~ Multi;
+            return ( 'code' , @lhs[*-1].candidates[0] , $limit-not-reached) if @lhs[*-1].candidates.elems == 1;
+            if (@lhs[*-1].candidates>>.count).grep( * == 2) {
+                return ( 'code' , { @lhs[*-1]($^a,$^b) } , $limit-not-reached) ; # case: (a,b,c,&[+] ... *
             } else {
-                -> $x { $x.ord.pred.chr };
-            }
-        } elsif $rhs ~~ Whatever || $lhs cmp $rhs != 1 {
-            -> $x { $x.succ };
-        } else {
-            -> $x { $x.pred };
-        }
-    }
-
-    my sub succ-or-pred2($lhs0, $lhs1, $rhs) {
-        if $lhs1 cmp $lhs0 == 0 {
-            $next = { $_ };
-        } else {
-            $next = succ-or-pred($lhs1, $rhs);
-        }
-    }
-
-    my sub is-on-the-wrong-side($first , $second , $third , $limit , $is-geometric-switching-sign) {
-        return Bool::False if $limit ~~ Whatever;
-        if $is-geometric-switching-sign {
-            ($second.abs >= $third.abs && $limit.abs > $first.abs) || ($second.abs <= $third.abs && $limit.abs < $first.abs);
-        } else {
-            ($second >= $third && $limit > $first) || ($second <= $third && $limit < $first);
-        }
-    }
-
-    my $limit;
-    $limit = $rhs if !($rhs ~~ Whatever);
-
-    my $is-geometric-switching-sign = Bool::False;
-    my $next;
-    if @lhs[@lhs.elems - 1] ~~ Code {
-        $next = @lhs.pop;
-    } else {
-        given @lhs.elems {
-            when 0 { fail "Need something on the LHS"; }
-            when 1 {
-                $next = succ-or-pred(@lhs[0], $rhs)
-            }
-            default {
-                my $diff = @lhs[*-1] - @lhs[*-2];
-                if $diff == 0 {
-                    $next = succ-or-pred2(@lhs[*-2], @lhs[*-1], $rhs)
-                } elsif @lhs.elems == 2 || @lhs[*-2] - @lhs[*-3] == $diff {
-                    return Nil if is-on-the-wrong-side(@lhs[0] , @lhs[*-2] , @lhs[*-1] , $rhs , Bool::False);
-                    $next = { $_ + $diff };
-                } elsif @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] {
-                    $is-geometric-switching-sign = (@lhs[*-2] * @lhs[*-1] < 0);
-                    return Nil if is-on-the-wrong-side(@lhs[*-3] , @lhs[*-2] , @lhs[*-1] , $rhs , $is-geometric-switching-sign) ;
-                    my $factor = @lhs[*-2] / @lhs[*-3];
-                    if $factor ~~ ::Rat && $factor.denominator == 1 {
-                        $factor = $factor.Int;
-                    }
-                    $next = { $_ * $factor };
-                } else {
-                    fail "Unable to figure out pattern of series";
-                }
+                fail "Don't know how to handle Multi on the lhs yet";
             }
         }
+        return ( 'stag' , { $_ } , $limit-not-reached) if @lhs.elems > 1 && @lhs[*-1] cmp @lhs[*-2] == 0 ;  # case: (a , a) ... *
+
+        if  @lhs[*-1] ~~ Str ||  $limit ~~ Str {
+            if @lhs[*-1].chars == 1 && $limit.defined && $limit.chars == 1 {
+                return ( 'char-succ' , { $_.ord.succ.chr } , $limit-not-reached) if @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
+                return ( 'char-pred' , { $_.ord.pred.chr } , $limit-not-reached) if @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
+            }
+            return ( 'text-succ' , { $_.succ } , $limit-not-reached) if $limit.defined && @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
+            return ( 'text-pred' , { $_.pred } , $limit-not-reached) if $limit.defined && @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
+            return ( 'text-pred' , { $_.pred } , $limit-not-reached) if @lhs.elems > 1 && @lhs[*-2] gt  @lhs[*-1];# case (non-number , another-smaller-non-number) ... *
+            return ( 'text-succ' , { $_.succ } , $limit-not-reached) ;# case (non-number , another-non-number) ... *
+        }
+        return ( 'pred' , { $_.pred } , $limit-not-reached) if @lhs.elems == 1 && $limit.defined && $limit before @lhs[* - 1];  # case: (a) ... b where b before a
+        return ( 'succ' , { $_.succ } , $limit-not-reached) if @lhs.elems == 1 ;  # case: (a) ... *
+
+        my $diff = @lhs[*-1] - @lhs[*-2];
+        return ('arithmetic' , { $_ + $diff } , $limit-not-reached) if @lhs.elems == 2 || @lhs[*-2] - @lhs[*-3] == $diff ; #Case Arithmetic series
+
+        if @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] { #Case geometric series
+            my $factor = @lhs[*-2] / @lhs[*-3];
+            if $factor ~~ ::Rat && $factor.denominator == 1 {
+                $factor = $factor.Int;
+            }
+            if ($factor < 0) {
+                return ( 'geometric-switching-sign' , { $_ * $factor } , -> $a, $b { $a.defined ?? $limit-not-reached.( $a.abs, $b.abs) && $limit-not-reached.( -$a.abs , -$b.abs) !! $limit-not-reached.( $a, $b.abs) && $limit-not-reached.( $a, -$b.abs) });
+            } else {
+                return ( 'geometric-same-sign' , { $_ * $factor } , $limit-not-reached);
+            }
+        }
+        fail "Unable to figure out pattern of series";
     }
 
-    my $arity = any( $next.signature.params>>.slurpy ) ?? Inf !! $next.count;
+    my sub is-on-the-wrong-side($type , $get-value-to-compare, $limit , @lhs ) {
+        return if $limit ~~ Code;
+        return unless $type eq 'arithmetic' | 'geometric-switching-sign' | 'geometric-same-sign';
 
-    gather {
-        my @args;
-        my $previous;
-        my $top = $arity min @lhs.elems;
-        my $lhs-orig-count = @lhs.elems ;
-        my $count=0;
+        my $first = $get-value-to-compare( @lhs[*-3] // @lhs[0] );
+        my $second = $get-value-to-compare( @lhs[*-2] );
+        my $third = $get-value-to-compare( @lhs[*-1] );
+        my $limit-to-use = $get-value-to-compare( $limit );
+        return unless ($second >= $third && $limit-to-use > $first )
+                ||
+                ($second  <= $third && $limit-to-use < $first );
 
-        if @lhs || !$limit.defined || $limit cmp $previous != 0 {
-            loop {
-                @args.push(@lhs[0]) if @lhs && $count >= $lhs-orig-count - $top;
-                my $current = @lhs.shift()  // $next.(|@args) // last;
+        sub between($a , $b) {
+            my ( $first , $second ) = ( $get-value-to-compare($a) , $get-value-to-compare($b) );
+            ($first >= $limit-to-use >= $second )
+            ||
+            ($first <= $limit-to-use <= $second )
+        }
 
-                my $cur_cmp = 1;
-                if $limit.defined {
-                    $cur_cmp = $limit cmp $current;
-                    if $previous.defined {
-                        my $previous_cmp = $previous cmp $limit;
-                        if ($is-geometric-switching-sign) {
-                            $cur_cmp = $limit.abs cmp $current.abs;
-                            $previous_cmp = $previous.abs cmp $limit.abs;
-                        }
-                        last if @args && $previous_cmp == $cur_cmp ;
-                    }
-                }
-                $previous = $current;
+        my $i = @lhs.elems;
+        while ($i-- >1) {
+            return if between(@lhs[$i-1] , @lhs[$i]); #If the limit is between any two items it cannot be on the wrong side
+        }
+        return True;
+    }
+
+    my sub infinite-series (@lhs, $next ) {
+        gather {
+            for 0..^(@lhs.elems - 1) -> $i { take @lhs[$i]; }
+            take @lhs[*-1] unless @lhs[*-1] ~~ Code;
+
+            my $arity = $next.count;
+            my @args=@lhs;
+            pop @args if @args[*-1] ~~ Code;
+            @args.munch( @args.elems - $arity ); #We make sure there are $arity + 1 elems
+
+            loop {                         #Then we extrapolate using $next and the $args
+                my $current = $next.(|@args) // last;
                 take $current ;
-                $count++;
-
-                last if $cur_cmp == 0;
-
-                @args.push($previous) if $count > $lhs-orig-count;
-                while @args.elems > $arity {
-                    @args.shift;
+                if $arity {
+                    @args.push($current) ;
+                    @args.munch(1) if @args.elems > $arity
                 }
             }
         }
     }
+
+    my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
+    fail('Limit must be a literal') if $exclude-limit && (!$limit.defined || $limit ~~ Code);
+    my ($type , $next , $limit-not-reached) = get-series-params(@lhs , $limit );
+    return infinite-series(@lhs , $next) unless $limit.defined; #Infinite series
+
+    my $series = infinite-series(@lhs , $next);
+    my $get-value-to-compare = $type eq 'geometric-switching-sign' ?? { $_.abs; } !! { $_; };
+    return Nil if @lhs.elems > 1 && is-on-the-wrong-side($type , $get-value-to-compare,  $limit , @lhs);
+
+    my $arity = $limit-not-reached.count;
+    my @args = map( {Any} , ^$arity );
+    gather {
+        while $series {
+            my $val = $series.shift();
+            @args.push: $val;
+            @args.munch( @args.elems - $arity ); #We make sure there are $arity + 1 elems
+            if $limit-not-reached.(|@args) {
+                take $val;
+            } else {
+                #We take the last item only unless exclusive case OR last item went past the limit
+                take $val unless $exclude-limit || $get-value-to-compare($val) cmp $get-value-to-compare($limit) ;
+                last ;
+            };
+        }
+    }
+}
+
+our multi sub infix:<...>(@lhs, $limit) {
+    _HELPER_generate-series(@lhs, $limit )
+}
+our multi sub infix:<...^>(@lhs, $limit) {
+    _HELPER_generate-series(@lhs, $limit , :exclude-limit)
+}
+our multi sub infix:<...^>($lhs , $limit) {
+    $lhs.list ...^ $limit;
+}
+our multi sub infix:<...^>(@lhs, @rhs) {
+    fail "Need something on RHS" if !@rhs;
+    (@lhs ...^ @rhs.shift), @rhs
 }
 
 our multi sub infix:<...>($lhs, $rhs) {

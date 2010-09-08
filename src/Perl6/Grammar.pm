@@ -1910,6 +1910,7 @@ token infix:sym<Z>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 token infix:sym<X>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 
 token infix:sym<...>  { <sym>  <O('%list_infix')> }
+token infix:sym<...^> { <sym>  <O('%list_infix')> }
 # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }
 
 token infix:sym<=> {

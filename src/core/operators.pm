@@ -388,32 +388,6 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
         fail "Unable to figure out pattern of series";
     }
 
-    my sub is-on-the-wrong-side($type , $get-value-to-compare, $limit , @lhs ) {
-        return if $limit ~~ Code;
-        return unless $type eq 'arithmetic' | 'geometric-switching-sign' | 'geometric-same-sign';
-
-        my $first = $get-value-to-compare( @lhs[*-3] // @lhs[0] );
-        my $second = $get-value-to-compare( @lhs[*-2] );
-        my $third = $get-value-to-compare( @lhs[*-1] );
-        my $limit-to-use = $get-value-to-compare( $limit );
-        return unless ($second >= $third && $limit-to-use > $first )
-                ||
-                ($second  <= $third && $limit-to-use < $first );
-
-        sub between($a , $b) {
-            my ( $first , $second ) = ( $get-value-to-compare($a) , $get-value-to-compare($b) );
-            ($first >= $limit-to-use >= $second )
-            ||
-            ($first <= $limit-to-use <= $second )
-        }
-
-        my $i = @lhs.elems;
-        while ($i-- >1) {
-            return if between(@lhs[$i-1] , @lhs[$i]); #If the limit is between any two items it cannot be on the wrong side
-        }
-        return True;
-    }
-
     my sub infinite-series (@lhs, $next ) {
         gather {
             for 0..^(@lhs.elems - 1) -> $i { take @lhs[$i]; }
@@ -437,14 +411,12 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
 
     my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
     fail('Could not find limit to exclude it') if $exclude-limit && (!$limit.defined );
-    #~ my $limit-reached = get-limit-check($limit);
 
     my ($type , $next , $limit-reached) = get-series-params(@lhs , $limit );
     return infinite-series(@lhs , $next) unless $limit.defined; #Infinite series
 
     my $series = infinite-series(@lhs , $next);
     my $get-value-to-compare = $type eq 'geometric-switching-sign' ?? { $_.abs; } !! { $_; };
-    return Nil if @lhs.elems > 1 && is-on-the-wrong-side($type , $get-value-to-compare,  $limit , @lhs);
 
     my $arity = $limit-reached.count;
     my @args ;

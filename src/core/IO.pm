@@ -259,7 +259,7 @@ multi sub note(*@args) {
     $*ERR.say(@args);
 }
 
-multi sub dir($path as Str, Mu :$test = none('.', '..')) {
+multi sub dir($path as Str = '.', Mu :$test = none('.', '..')) {
     Q:PIR {
         $P0 = find_lex '$path'
         $P1 = new ['OS']

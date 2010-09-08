@@ -335,49 +335,44 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
         fail "Need more than one item on the LHS" if @lhs.elems == 1 && $limit ~~ Code;
         fail "Need more items on the LHS" if @lhs[*-1] ~~ Code && @lhs[*-1] !~~ Multi && @lhs[*-1].count != Inf && @lhs.elems < @lhs[*-1].count;
 
-        my $limit-not-reached;
+        my $limit-reached;
         given $limit {
-            when Code { $limit-not-reached = $limit; }
+            when Code { $limit-reached = $limit; }
             when .defined {
-                $limit-not-reached = sub ($previous , $current) {
-                    my $current_cmp  =  $limit cmp $current ;
-                    return $current_cmp != 0 unless $previous.defined;
-                    my $previous_cmp = $limit cmp $previous;
-
-                    return ! ($current_cmp == 0 #We reached the limit exactly
-                            || $previous_cmp != $current_cmp) ; #We went past the limit
+                $limit-reached = sub ($x) {
+                    $x ~~ $limit;
                 }
             }
-            default { $limit-not-reached = Mu};
+            default { $limit-reached = Mu};
         }
 
         #BEWARE: Here be ugliness
         if @lhs[* - 1] ~~ Code { # case: (a,b,c,{code}) ... *
-            return ( 'code' , @lhs[*-1] , $limit-not-reached) if @lhs[*-1] !~~ Multi;
-            return ( 'code' , @lhs[*-1].candidates[0] , $limit-not-reached) if @lhs[*-1].candidates.elems == 1;
+            return ( 'code' , @lhs[*-1] , $limit-reached) if @lhs[*-1] !~~ Multi;
+            return ( 'code' , @lhs[*-1].candidates[0] , $limit-reached) if @lhs[*-1].candidates.elems == 1;
             if (@lhs[*-1].candidates>>.count).grep( * == 2) {
-                return ( 'code' , { @lhs[*-1]($^a,$^b) } , $limit-not-reached) ; # case: (a,b,c,&[+] ... *
+                return ( 'code' , { @lhs[*-1]($^a,$^b) } , $limit-reached) ; # case: (a,b,c,&[+] ... *
             } else {
                 fail "Don't know how to handle Multi on the lhs yet";
             }
         }
-        return ( 'stag' , { $_ } , $limit-not-reached) if @lhs.elems > 1 && @lhs[*-1] cmp @lhs[*-2] == 0 ;  # case: (a , a) ... *
+        return ( 'stag' , { $_ } , $limit-reached) if @lhs.elems > 1 && @lhs[*-1] cmp @lhs[*-2] == 0 ;  # case: (a , a) ... *
 
         if  @lhs[*-1] ~~ Str ||  $limit ~~ Str {
             if @lhs[*-1].chars == 1 && $limit.defined && $limit.chars == 1 {
-                return ( 'char-succ' , { $_.ord.succ.chr } , $limit-not-reached) if @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
-                return ( 'char-pred' , { $_.ord.pred.chr } , $limit-not-reached) if @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
+                return ( 'char-succ' , { $_.ord.succ.chr } , $limit-reached) if @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
+                return ( 'char-pred' , { $_.ord.pred.chr } , $limit-reached) if @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
             }
-            return ( 'text-succ' , { $_.succ } , $limit-not-reached) if $limit.defined && @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
-            return ( 'text-pred' , { $_.pred } , $limit-not-reached) if $limit.defined && @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
-            return ( 'text-pred' , { $_.pred } , $limit-not-reached) if @lhs.elems > 1 && @lhs[*-2] gt  @lhs[*-1];# case (non-number , another-smaller-non-number) ... *
-            return ( 'text-succ' , { $_.succ } , $limit-not-reached) ;# case (non-number , another-non-number) ... *
+            return ( 'text-succ' , { $_.succ } , $limit-reached) if $limit.defined && @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
+            return ( 'text-pred' , { $_.pred } , $limit-reached) if $limit.defined && @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
+            return ( 'text-pred' , { $_.pred } , $limit-reached) if @lhs.elems > 1 && @lhs[*-2] gt  @lhs[*-1];# case (non-number , another-smaller-non-number) ... *
+            return ( 'text-succ' , { $_.succ } , $limit-reached) ;# case (non-number , another-non-number) ... *
         }
-        return ( 'pred' , { $_.pred } , $limit-not-reached) if @lhs.elems == 1 && $limit.defined && $limit before @lhs[* - 1];  # case: (a) ... b where b before a
-        return ( 'succ' , { $_.succ } , $limit-not-reached) if @lhs.elems == 1 ;  # case: (a) ... *
+        return ( 'pred' , { $_.pred } , $limit-reached) if @lhs.elems == 1 && $limit.defined && $limit before @lhs[* - 1];  # case: (a) ... b where b before a
+        return ( 'succ' , { $_.succ } , $limit-reached) if @lhs.elems == 1 ;  # case: (a) ... *
 
         my $diff = @lhs[*-1] - @lhs[*-2];
-        return ('arithmetic' , { $_ + $diff } , $limit-not-reached) if @lhs.elems == 2 || @lhs[*-2] - @lhs[*-3] == $diff ; #Case Arithmetic series
+        return ('arithmetic' , { $_ + $diff } , $limit-reached) if @lhs.elems == 2 || @lhs[*-2] - @lhs[*-3] == $diff ; #Case Arithmetic series
 
         if @lhs[*-2] / @lhs[*-3] == @lhs[*-1] / @lhs[*-2] { #Case geometric series
             my $factor = @lhs[*-2] / @lhs[*-3];
@@ -385,9 +380,9 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
                 $factor = $factor.Int;
             }
             if ($factor < 0) {
-                return ( 'geometric-switching-sign' , { $_ * $factor } , -> $a, $b { $a.defined ?? $limit-not-reached.( $a.abs, $b.abs) && $limit-not-reached.( -$a.abs , -$b.abs) !! $limit-not-reached.( $a, $b.abs) && $limit-not-reached.( $a, -$b.abs) });
+                return ( 'geometric-switching-sign' , { $_ * $factor } , -> $a { $limit-reached.( $a ) || $limit-reached.( -$a )  }); #TODO: Unfugly
             } else {
-                return ( 'geometric-same-sign' , { $_ * $factor } , $limit-not-reached);
+                return ( 'geometric-same-sign' , { $_ * $factor } , $limit-reached);
             }
         }
         fail "Unable to figure out pattern of series";
@@ -427,7 +422,7 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
             my $arity = $next.count;
             my @args=@lhs;
             pop @args if @args[*-1] ~~ Code;
-            @args.munch( @args.elems - $arity ); #We make sure there are $arity + 1 elems
+            @args.munch( @args.elems - $arity ); #We make sure there are $arity elems
 
             loop {                         #Then we extrapolate using $next and the $args
                 my $current = $next.(|@args) // last;
@@ -441,28 +436,30 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
     }
 
     my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
-    fail('Limit must be a literal') if $exclude-limit && (!$limit.defined || $limit ~~ Code);
-    my ($type , $next , $limit-not-reached) = get-series-params(@lhs , $limit );
+    fail('Could not find limit to exclude it') if $exclude-limit && (!$limit.defined );
+    #~ my $limit-reached = get-limit-check($limit);
+
+    my ($type , $next , $limit-reached) = get-series-params(@lhs , $limit );
     return infinite-series(@lhs , $next) unless $limit.defined; #Infinite series
 
     my $series = infinite-series(@lhs , $next);
     my $get-value-to-compare = $type eq 'geometric-switching-sign' ?? { $_.abs; } !! { $_; };
     return Nil if @lhs.elems > 1 && is-on-the-wrong-side($type , $get-value-to-compare,  $limit , @lhs);
 
-    my $arity = $limit-not-reached.count;
-    my @args = map( {Any} , ^$arity );
+    my $arity = $limit-reached.count;
+    my @args ;
+
     gather {
         while $series {
             my $val = $series.shift();
             @args.push: $val;
-            @args.munch( @args.elems - $arity ); #We make sure there are $arity + 1 elems
-            if $limit-not-reached.(|@args) {
-                take $val;
-            } else {
+            @args.munch( @args.elems - $arity ); #We make sure there are $arity elems
+            if ($arity~~Inf || @args.elems == $arity) && $limit-reached.(|@args) {
                 #We take the last item only unless exclusive case OR last item went past the limit
-                take $val unless $exclude-limit || $get-value-to-compare($val) cmp $get-value-to-compare($limit) ;
+                take $val unless $exclude-limit ;
                 last ;
             };
+            take $val;
         }
     }
 }

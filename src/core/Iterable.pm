@@ -1,4 +1,5 @@
 augment class Iterable {
+    multi method Numeric() { $.elems.Int }
 
     multi method Int() { $.elems.Int }
 

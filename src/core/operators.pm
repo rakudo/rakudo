@@ -344,21 +344,21 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
                 fail "Don't know how to handle Multi on the lhs yet";
             }
         }
-        return { $_.succ }  if @lhs.elems == 1 && $limit ~~ Code;
+        return { .succ }  if @lhs.elems == 1 && $limit ~~ Code;
         return { $_ } if @lhs.elems > 1 && @lhs[*-1] cmp @lhs[*-2] == 0 ;  # case: (a , a) ... *
 
         if  @lhs[*-1] ~~ Str ||  $limit ~~ Str {
             if @lhs[*-1].chars == 1 && $limit.defined && $limit.chars == 1 {
-                return { $_.ord.succ.chr } if @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
-                return { $_.ord.pred.chr } if @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
+                return { .ord.succ.chr } if @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
+                return { .ord.pred.chr } if @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
             }
-            return { $_.succ } if $limit.defined && @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
-            return { $_.pred } if $limit.defined && @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
-            return { $_.pred } if @lhs.elems > 1 && @lhs[*-2] gt  @lhs[*-1];# case (non-number , another-smaller-non-number) ... *
-            return { $_.succ } ;# case (non-number , another-non-number) ... *
+            return { .succ } if $limit.defined && @lhs[*-1] lt  $limit;# case (... , non-number) ... limit
+            return { .pred } if $limit.defined && @lhs[*-1] gt  $limit;# case (... , non-number) ... limit
+            return { .pred } if @lhs.elems > 1 && @lhs[*-2] gt  @lhs[*-1];# case (non-number , another-smaller-non-number) ... *
+            return { .succ } ;# case (non-number , another-non-number) ... *
         }
-        return { $_.pred } if @lhs.elems == 1 && $limit.defined && $limit before @lhs[* - 1];  # case: (a) ... b where b before a
-        return { $_.succ } if @lhs.elems == 1 ;  # case: (a) ... *
+        return { .pred } if @lhs.elems == 1 && $limit.defined && $limit before @lhs[* - 1];  # case: (a) ... b where b before a
+        return { .succ } if @lhs.elems == 1 ;  # case: (a) ... *
 
         my $diff = @lhs[*-1] - @lhs[*-2];
         return { $_ + $diff } if @lhs.elems == 2 || @lhs[*-2] - @lhs[*-3] == $diff ; #Case Arithmetic series

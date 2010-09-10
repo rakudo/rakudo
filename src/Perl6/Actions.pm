@@ -2683,7 +2683,7 @@ our %SUBST_ALLOWED_ADVERBS;
 our %SHARED_ALLOWED_ADVERBS;
 our %MATCH_ALLOWED_ADVERBS;
 INIT {
-    my $mods := 'i ignorecase s sigspace';
+    my $mods := 'i ignorecase s sigspace r ratchet';
     for pir::split__PSS(' ', $mods) {
         %SHARED_ALLOWED_ADVERBS{$_} := 1;
     }

@@ -790,23 +790,6 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *ca
 }
 
 
-
-/*
-
-=item C<static int assert_invokable(PARROT_INTERP, PMC *value)>
-
-Checks if a PMC is invokable; returns a true value if so and a false value if
-not.
-
-=cut
-
-*/
-static int check_invokable(PARROT_INTERP, PMC *value) {
-    STRING * const _sub = CONST_STRING(interp, "Sub");
-    STRING * const _nci = CONST_STRING(interp, "NCI");
-    return VTABLE_isa(interp, value, _sub) || VTABLE_isa(interp, value, _nci);
-}
-
 /*
 
 =back

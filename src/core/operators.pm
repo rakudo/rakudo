@@ -332,7 +332,6 @@ our multi sub item($item) {
 our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
     my sub get-next-closure (@lhs, $limit? ) {
         fail "Need something on the LHS" unless @lhs.elems;
-        fail "Need more than one item on the LHS" if @lhs.elems == 1 && $limit ~~ Code;
         fail "Need more items on the LHS" if @lhs[*-1] ~~ Code && @lhs[*-1] !~~ Multi && @lhs[*-1].count != Inf && @lhs.elems < @lhs[*-1].count;
 
         #BEWARE: Here be ugliness
@@ -345,6 +344,7 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
                 fail "Don't know how to handle Multi on the lhs yet";
             }
         }
+        return { $_.succ }  if @lhs.elems == 1 && $limit ~~ Code;
         return { $_ } if @lhs.elems > 1 && @lhs[*-1] cmp @lhs[*-2] == 0 ;  # case: (a , a) ... *
 
         if  @lhs[*-1] ~~ Str ||  $limit ~~ Str {
@@ -397,22 +397,14 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
     }
 
     my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
-    fail('Could not find limit to exclude it') if $exclude-limit && (!$limit.defined );
-
-    my $limit-reached = $limit.defined ?? ( $limit ~~ Code ?? $limit !! -> $x {$x ~~ $limit;} ) !! {Mu};
     return infinite-series(@lhs , $limit) unless $limit.defined; #Infinite series
 
+    fail ('Limit arity cannot be larger than 1') if 	$limit ~~ Code && $limit.count > 1;
     my $series = infinite-series(@lhs , $limit);
-    my $arity = $limit-reached.count;
-    my @args ;
-
     gather {
         while $series {
             my $val = $series.shift();
-            @args.push: $val;
-            @args.munch( @args.elems - $arity ); #We make sure there are $arity elems
-            if ($arity~~Inf || @args.elems == $arity) && $limit-reached.(|@args) {
-                #We take the last item only unless exclusive case OR last item went past the limit
+            if $val ~~  $limit {
                 take $val unless $exclude-limit ;
                 last ;
             };

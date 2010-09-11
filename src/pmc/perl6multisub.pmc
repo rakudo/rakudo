@@ -923,12 +923,6 @@ Frees the memory associated with this PMC's underlying storage.
         PMC_data(SELF) = NULL;
     }
 
-    VTABLE PMC* get_pmc_keyed_int(INTVAL value) {
-        PMC *candidates;
-        GETATTR_Perl6MultiSub_candidates(interp, SELF, candidates);
-        return VTABLE_get_pmc_keyed_int(interp, candidates, value);
-    }
-
 /*
 
 =item VTABLE opcode_t invoke()

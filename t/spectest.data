@@ -198,10 +198,6 @@ S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
-S03-operators/series-arity0.t
-S03-operators/series-arity2ormore.t
-S03-operators/series-nonnumeric.t
-S03-operators/series.t
 S03-operators/short-circuit.t
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
@@ -209,6 +205,10 @@ S03-operators/subscript-vs-lt.t
 S03-operators/ternary.t
 S03-operators/so.t
 S03-operators/value_equivalence.t
+S03-series/arity0.t
+S03-series/arity-2-or-more.t
+S03-series/basic.t
+S03-series/nonnumeric.t
 S03-smartmatch/any-any.t
 # S03-smartmatch/any-array-slice.t
 S03-smartmatch/any-array.t

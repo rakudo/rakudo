@@ -106,4 +106,8 @@ multi sub infix:</>(Int $a, Int $b) {
     Rat.new($a, $b);
 }
 
+multi sub infix:<**>(Rat $a, Int $b) {
+    ($a.numerator ** $b) / ($a.denominator ** $b);
+}
+
 # vim: ft=perl6 sw=4 ts=4 expandtab

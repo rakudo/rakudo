@@ -44,6 +44,26 @@ augment class List does Positional {
         '(' ~ self.map({ $^a.perl }).join(', ') ~ ')';
     }
 
+    method reverse() {
+        # XXX: fail if infinite
+        Q:PIR {
+            .local pmc self, items, parcel
+            self = find_lex 'self'
+            items = self.'!fill'()
+            parcel = new ['Parcel']
+            .local int n
+            n = elements items
+          reverse_loop:
+            unless n > 0 goto reverse_done
+            dec n
+            $P0 = items[n]
+            push parcel, $P0
+            goto reverse_loop
+          reverse_done:
+            %r = parcel
+        }
+    }
+
     method rotate($n = 1) is export {
         my $k = $n % self.elems;
         self[$k .. self.elems-1, 0 .. $k-1];

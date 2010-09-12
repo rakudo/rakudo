@@ -64,13 +64,7 @@ augment class Any {
         }
     }
 
-    multi method reverse() {
-        my @result = ();
-        for @.list {
-            @result.unshift($_);
-        }
-        return @result;
-    }
+    multi method reverse() { self.list.reverse }
 
     multi method end() { self.elems - 1; }
 

@@ -377,13 +377,11 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
         gather {
             my $i = 0;
             while @lhs[$i+1].defined { take @lhs[$i]; $i++; } #We blindly take all elems of the LHS except last one.
-            take @lhs[$i] unless @lhs[$i] ~~ Code;              #We don't take the last element if it is code because it will be used as $next closure
+            if @lhs[$i] !~~ Code { take @lhs[$i]; $i++; }     #We take the last element only when it is not code
 
             my $next = get-next-closure(@lhs , $limit );
             my $arity = $next.count;
-            my @args=@lhs; #TODO: maybe avoid copying the whole array into args
-            pop @args if @args[*-1] ~~ Code;
-            @args.munch( @args.elems - $arity ); #We make sure there are $arity elems in args
+            my @args=@lhs[$i-($arity ~~ Inf ?? $i !! $arity) .. $i-1]; #We make sure there are $arity elems in args
 
             loop {                         #Then we extrapolate using $next and the $args
                 my $current = $next.(|@args) // last;

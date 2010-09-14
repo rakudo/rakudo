@@ -10,6 +10,10 @@ augment class Mu {
 
     multi method notdef() { !self.defined; }
 
+    method note() {
+        note(self);
+    }
+
     multi method so() { self.Bool }
 
     multi method perl() {

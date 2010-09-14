@@ -214,13 +214,10 @@ sub close($handle) {
 }
 
 sub slurp($filename) {
-    ## Although it's tempting to delegate to IO.slurp above, Parrot
-    ## currently suffers a serious (25x) performance degradation when 
-    ## using readall() on an already-opened FileHandle.  Much faster
-    ## is to use readall($filename), which we do here. See TT #1749.
-    my $PIO = Q:PIR { %r = root_new['parrot';'FileHandle'] };
-    $PIO.encoding('utf8');
-    $PIO.readall($filename);
+    my $handle = open($filename, :r);
+    my $contents = $handle.slurp();
+    $handle.close();
+    $contents
 }
 
 sub unlink($filename) {

@@ -1,6 +1,6 @@
 + S32::Temporal now completely implemented
 + Instants and Durations
-+ speedup for slurp() built-in
++ speedup for slurp() and .reverse built-ins
 + various improvements to the Set type
 + revamp of series operator code, and adaption to new spec
 + implement ...^ up-to-but-excluding-series operator

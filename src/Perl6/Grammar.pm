@@ -1526,10 +1526,10 @@ INIT {
     Perl6::Grammar.O(':prec<k=>, :assoc<list>',  '%tight_or');
     Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');
     Perl6::Grammar.O(':prec<i=>, :assoc<right>', '%item_assignment');
+    Perl6::Grammar.O(':prec<i=>, :assoc<right>, :sub<e=>', '%list_assignment');
     Perl6::Grammar.O(':prec<h=>, :assoc<unary>', '%loose_unary');
     Perl6::Grammar.O(':prec<g=>, :assoc<list>, :nextterm<nulltermish>',  '%comma');
     Perl6::Grammar.O(':prec<f=>, :assoc<list>',  '%list_infix');
-    Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_assignment');   # XXX
     Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_prefix');
     Perl6::Grammar.O(':prec<d=>, :assoc<left>',  '%loose_and');
     Perl6::Grammar.O(':prec<c=>, :assoc<left>',  '%loose_or');
@@ -1873,7 +1873,7 @@ token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
 token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
 
 token infix:sym<:=> {
-    <sym>  <O('%item_assignment, :reducecheck<bindish_check>')>
+    <sym>  <O('%list_assignment, :reducecheck<bindish_check>')>
 }
 
 method bindish_check($/) {

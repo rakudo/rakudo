@@ -7,4 +7,7 @@ augment class Bool does Abstraction {
     method Str() { $.perl() }
 
     method Bridge() { self ?? 1.Bridge !! 0.Bridge }
+    method pick(Cool $count = 1, :$replace) {
+        (True, False).pick($count, :$replace);
+    }
 }

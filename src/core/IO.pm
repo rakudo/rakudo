@@ -170,6 +170,11 @@ class IO is Cool {
     multi method z() {
         $.e && $.s == 0;
     }
+
+    multi method created() { ::Instant.from-posix($.stat.createtime) }
+    multi method modified() { ::Instant.from-posix($.stat.modifytime) }
+    multi method accessed() { ::Instant.from-posix($.stat.accesstime) }
+    multi method changed() { ::Instant.from-posix($.stat.changetime) }
 }
 
 multi sub get(IO $filehandle = $*ARGFILES) { $filehandle.get };

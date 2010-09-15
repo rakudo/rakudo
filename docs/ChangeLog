@@ -5,6 +5,8 @@
 + revamp of series operator code, and adaption to new spec
 + implement ...^ up-to-but-excluding-series operator
 + allow :r and :ratchet modifiers on regex quoting constructs
++ Bool.pick
++ significantly improved enum implementation
 
 New in 2010.08 release
 + syntactic adverbs on substitutions, rx quotes and m//, e.g. '$x ~~ s:2nd/a/b/'

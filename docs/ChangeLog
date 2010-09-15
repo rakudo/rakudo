@@ -1,3 +1,4 @@
++ new methods on IO concerning the modify and access time of files
 + S32::Temporal now completely implemented
 + Instants and Durations
 + speedup for slurp() and .reverse built-ins

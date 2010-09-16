@@ -163,41 +163,45 @@ augment class Any {
                   :excludes_max($excludes_max));
     }
 
-    #CHEAT: Simplified version which we can hopefully sneak by ng.
-    multi method pick() {
-        my @l = @.list.Seq;
-        @l[floor(@l.elems.rand)];
-    }
-
-    multi method pick($num is copy = 1, :$replace) {
+    multi method pick($num is copy = 1) {
         my @l = @.list.Seq;
 
         if ($num == 1) {
             return @l[floor(@l.elems.rand)];
         }
 
-        if $replace {
-            gather {
-                while ($num > 0) {
-                    my $idx = floor(@l.elems.rand());
-                    take @l[$idx];
-                    --$num;
-                }
-            }
-        } else {
-            gather {
-                while ($num > 0 and @l.elems > 0) {
-                    my $idx = floor(@l.elems.rand());
-                    take @l[$idx];
-                    @l.splice($idx,1);
-                    --$num;
-                }
+        gather {
+            while ($num > 0 and @l.elems > 0) {
+                my $idx = floor(@l.elems.rand());
+                take @l[$idx];
+                @l.splice($idx,1);
+                --$num;
             }
         }
     }
 
-    multi method pick(Whatever, :$replace) {
-        self.pick(Inf, :$replace);
+    multi method pick(Whatever) {
+        self.pick(Inf);
+    }
+
+    multi method roll($num is copy = 1) {
+        my @l = @.list.Seq;
+
+        if ($num == 1) {
+            return @l[floor(@l.elems.rand)];
+        }
+
+        gather {
+            while ($num > 0) {
+                my $idx = floor(@l.elems.rand());
+                take @l[$idx];
+                --$num;
+            }
+        }
+    }
+
+    multi method roll(Whatever) {
+        self.roll(Inf);
     }
 
     multi method classify($test) {
@@ -370,7 +374,8 @@ proto sub min($by, *@values) { @values.min($by); }
 proto sub max($by, *@values) { @values.max($by); }
 proto sub minmax($by, *@values) { @values.minmax($by); }
 proto sub uniq(@values) { @values.uniq; }
-proto sub pick ($num, :$replace, *@values) { @values.pick($num, :$replace); }
+proto sub pick ($num, *@values) { @values.pick($num); }
+proto sub roll ($num, *@values) { @values.roll($num); }
 proto sub map($mapper, *@values) { @values.map($mapper); }
 proto sub kv(@array) { @array.kv; }
 proto sub keys(@array) { @array.keys; }

@@ -1242,6 +1242,10 @@ token term:sym<YOU_ARE_HERE> { <sym> <.nofun> }
 
 token term:sym<self> { <sym> <.nofun> }
 
+token term:sym<now> { <sym> <.nofun> }
+
+token term:sym<time> { <sym> <.nofun> }
+
 token term:sym<rand> {
     <sym> »
     [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?

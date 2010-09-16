@@ -2,6 +2,10 @@
 
 package PROCESS {
     INIT {
+        pir::getstdin__P().encoding('utf8');
+        pir::getstdout__P().encoding('utf8');
+        pir::getstderr__P().encoding('utf8');
+
         our $IN  = IO.new(:PIO(pir::getstdin__P));
         our $OUT = IO.new(:PIO(pir::getstdout__P));
         our $ERR = IO.new(:PIO(pir::getstderr__P));

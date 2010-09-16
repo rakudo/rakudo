@@ -213,10 +213,13 @@ our multi sub reducewith(&op, *@args,
 # this fails for operators defined in PIR, so some of them are commented out.
 our multi sub infix:<**>($x = 1) { +$x }
 our multi sub infix:<*>($x = 1)  { +$x }
+our multi sub infix:<?&>($x = Bool::True) { ?$x }
 our multi sub infix:<+&>() { +^0 }
 our multi sub infix:<+>($x = 0)  { +$x }
 our multi sub infix:<->($x = 0)  { +$x }
 our multi sub infix:<~>($x = '')  { ~$x }
+our multi sub infix:<?|>($x = Bool::False) { ?$x }
+our multi sub infix:<?^>($x = Bool::False) { ?$x }
 our multi sub infix:<+|>() { 0 }
 our multi sub infix:<+^>() { 0 }
 our multi sub infix:<~|>() { '' }
@@ -243,9 +246,12 @@ our multi sub infix:<ne>($x?)     { Bool::True }
 #our multi sub infix:<===>($x?)    { Bool::True }
 our multi sub infix:<eqv>($x?)    { Bool::True }
 #
-our multi sub infix:<||>()     { Bool::False }
-our multi sub infix:<or>()     { Bool::False }
-#our multi sub infix:<^^>()     { Bool::False }
+our multi sub infix:<&&>(Mu $x = Bool::True)      { $x }
+our multi sub infix:<and>(Mu $x = Bool::True)     { $x }
+our multi sub infix:<||>(Mu $x = Bool::False)     { $x }
+our multi sub infix:<or>(Mu $x = Bool::False)     { $x }
+#our multi sub infix:<^^>(Mu $x = Bool::False)    { $x }
+#our multi sub infix:<xor>(Mu $x = Bool::False)   { $x }
 our multi sub infix:<//>()     { Any }
 #our multi sub infix:<min>()    { +Inf }
 #our multi sub infix:<max>()    { -Inf }

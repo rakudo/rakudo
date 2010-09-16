@@ -121,14 +121,17 @@ class Dateish {
 
 }
 
-sub default-formatter(::DateTime $dt) {
-# ISO 8601 timestamp
+sub default-formatter(::DateTime $dt, Bool :$subseconds) {
+# ISO 8601 timestamp (well, not strictly ISO 8601 if $subseconds
+# is true)
     my $o = $dt.offset;
     $o %% 60
         or warn "Default DateTime formatter: offset $o not divisible by 60.\n";
-    sprintf '%04d-%02d-%02dT%02d:%02d:%02d%s',
-        $dt.year, $dt.month, $dt.day,
-        $dt.hour, $dt.minute, $dt.whole-second,
+    sprintf '%04d-%02d-%02dT%02d:%02d:%s%s',
+        $dt.year, $dt.month, $dt.day, $dt.hour, $dt.minute,
+        $subseconds
+          ?? $dt.second.fmt('%02f')
+          !! $dt.whole-second.fmt('%02d'),
         do $o
          ?? sprintf '%s%02d%02d',
                 $o < 0 ?? '-' !! '+',

@@ -41,7 +41,10 @@ class Instant does Real {
         ($.x - $offset, False)
     }
 
-    method Str() { self.perl }
+    method Str() {
+        'Instant:' ~ default-formatter
+            ::DateTime.new(self), :subseconds
+    }
 
     method perl() {
         sprintf '(DateTime.new(year => 1970).Instant + %s)',

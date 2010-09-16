@@ -76,6 +76,7 @@ S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
 S02-builtin_data_types/infinity.t
+S02-builtin_data_types/instants-and-durations.t
 S02-builtin_data_types/lists.t
 S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
@@ -596,6 +597,7 @@ S32-str/words.t                                            # icu
 S32-temporal/calendar.t
 S32-temporal/Date.t
 S32-temporal/DateTime.t
+S32-temporal/DateTime-Instant-Duration.t
 S32-trig/e.t
 # S32-trig/pi.t
 S32-trig/sin.t                                             # long

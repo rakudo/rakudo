@@ -30,9 +30,6 @@ our multi sub infix:<+>(Duration $a, Duration $b) {
 our multi sub infix:<->(Duration $a, Real $b) {
     Duration.new: $a.x - $b;
 }
-our multi sub infix:<->(Real $a, Duration $b) {
-    Duration.new: $a - $b.x;
-}
 our multi sub infix:<->(Duration $a, Duration $b) {
     Duration.new: $a.x - $b.x;
 }

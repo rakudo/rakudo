@@ -146,6 +146,8 @@ Perl6::Compiler - Perl6 compiler
     nqpproto.'parseactions'($P0)
     $P0 = getattribute nqpproto, '@cmdoptions'
     push $P0, 'parsetrace'
+    push $P0, 'c'
+    nqpproto.'addstage'('check_syntax', 'after'=>'past')
 
     true = get_hll_global ['Bool'], 'True'
 
@@ -238,6 +240,18 @@ Perl6::Compiler - Perl6 compiler
     $S0 = $P0.'to_pir'(source, adverbs :flat :named)
     $S0 = concat ".loadlib 'perl6_ops'\n", $S0
     .return ($S0)
+.end
+
+
+.sub 'check_syntax' :method
+    .param pmc source
+    .param pmc adverbs         :slurpy :named
+    $I0 = adverbs['c']
+    unless $I0 goto no_check
+    say 'syntax OK'
+    exit 0
+  no_check:
+    .return ()
 .end
     
 

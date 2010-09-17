@@ -114,8 +114,27 @@ augment class Str does Stringy {
         };
     }
 
+    sub chop-trailing-zeros($i) {
+        Q:PIR {
+            .local int idx
+            $P0 = find_lex '$i'
+            $S0 = $P0
+            idx = length $S0
+        repl_loop:
+            if idx == 0 goto done
+            dec idx
+            $S1 = substr $S0, idx, 1
+            if $S1 == '0' goto repl_loop
+        done:
+            inc idx
+            $S0 = substr $S0, 0, idx
+            $P0 = $S0
+            %r = $P0
+        }
+    }
+
     our sub str2num-rat($negate, $int-part, $frac-part is copy) is export {
-        $frac-part.=subst(/(\d)0+$/, { ~$_[0] });
+        $frac-part = chop-trailing-zeros($frac-part);
         my $result = upgrade_to_num_if_needed(str2num-int($int-part))
                      + upgrade_to_num_if_needed(str2num-int($frac-part))
                        / upgrade_to_num_if_needed(str2num-base($frac-part));

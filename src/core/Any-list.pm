@@ -64,7 +64,7 @@ augment class Any {
         }
     }
 
-    multi method reverse() { self.list.reverse }
+    multi method reverse() { self.flat.reverse }
 
     multi method end() { self.elems - 1; }
 

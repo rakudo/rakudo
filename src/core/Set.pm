@@ -3,6 +3,9 @@ class Set does Associative {
     # so instead let's use an array and &uniq for the time being.
     has @!elems;
 
+    multi method new() {
+        self.bless: *;
+    }
     multi method new(@elems) {
         self.bless(self.CREATE, :elems( uniq @elems ));
     }
@@ -16,6 +19,10 @@ class Set does Associative {
         $set;
     }
 
+    method !STORE(\$args) {
+        die 'Sets are immutable, but you tried to modify one'
+    }
+
     sub contains(@array, $value) {
         for @array {
             if $value === $_ {
@@ -25,7 +32,7 @@ class Set does Associative {
         return False;
     }
 
-    method keys() { @!elems }
+    method keys() { { @^readonly-elems }(@!elems) }
     method values() { True xx +@!elems }
     method elems() { +@!elems }
     method exists($elem) { contains(@!elems, $elem) }
@@ -34,9 +41,14 @@ class Set does Associative {
         contains(@!elems, $key);
     }
 
-    method Num() { +self.elems }
     method Bool() { ?self.elems }
-    method hash() { hash @!elems Z=> True xx * }
+    method Numeric() { +self.elems }
+    method Str() { self.perl }
+    method hash() { hash self.flat }
+    method flat() { @!elems Z=> True xx * }
+
+    method pick(*@args) { @!elems.pick: |@args }
+    method roll(*@args) { @!elems.roll: |@args }
 
     multi method union(@otherset) {
         self.new((@!elems, @otherset));
@@ -93,7 +105,7 @@ class Set does Associative {
     }
 
     method perl() {
-        'Set.new(' ~ join(', ', map { .perl }, @!elems) ~ ')';
+        'set(' ~ join(', ', map { .perl }, @!elems) ~ ')';
     }
 }
 
@@ -136,5 +148,7 @@ our multi sub  infix:«(>)»(Set $a, %b) { $a.superset(%b) }
 our multi sub  infix:«(>)»(    %a, %b) { Set.new( %a).superset(%b) }
 our multi sub  infix:«(>)»(    @a, %b) { Set.new(|@a).superset(%b) }
 our multi sub  infix:«(>)»(    @a, @b) { Set.new(|@a).superset(@b) }
+
+our sub set(*@args) { Set.new: |@args }
 
 # vim: ft=perl6

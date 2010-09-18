@@ -91,15 +91,15 @@ class Dateish {
         [+] $.day, map { self.days-in-month($.year, $^m) }, 1 ..^ $.month
     }
 
-    method check-value($val is rw, $name, $range) {
-        $val = +$val;
+    method check-value($val is rw, $name, $range, :$allow-nonint) {
+        $val = $allow-nonint ?? +$val !! $val.Int;
         $val ~~ $range or
             or die "$name must be in {$range.perl}\n";
     }
   
     method check-date { 
     # Asserts the validity of and numifies $!year, $!month, and $!day.
-        $!year = +$!year;
+        $!year .= Int;
         self.check-value($!month, 'month', 1 .. 12);
         self.check-value($!day, "day of $!year/$!month",
             1 .. self.days-in-month);
@@ -158,7 +158,7 @@ class DateTime is Dateish {
     # Asserts the validity of and numifies $!hour, $!minute, and $!second.
         self.check-value($!hour, 'hour', 0 ..^ 24);
         self.check-value($!minute, 'minute', 0 ..^ 60);
-        self.check-value($!second, 'second', 0 ..^ 62);
+        self.check-value($!second, 'second', 0 ..^ 62, :allow-nonint);
         if $!second >= 60 {
             # Ensure this is an actual leap second.
             self.second < 61

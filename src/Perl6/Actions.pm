@@ -1540,6 +1540,11 @@ method type_declarator:sym<enum>($/) {
         unless $*SCOPE eq '' || $*SCOPE eq 'our' {
             $/.CURSOR.panic("Do not yet support $*SCOPE scoped enums");
         }
+
+        if $/.CURSOR.is_name(~$<name>[0]) {
+            $/.CURSOR.panic("Illegal redeclaration of symbol '"
+                             ~ $<name>[0] ~ "'");
+        }
         
         # Install names.
         $/.CURSOR.add_name(~$<name>[0]);

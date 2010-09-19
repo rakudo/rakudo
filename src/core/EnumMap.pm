@@ -13,7 +13,7 @@ class EnumMap is Iterable does Associative {
             $P1 = find_lex '$key'
             %r = $P0[$P1]
             unless null %r goto done
-            %r = new ['Perl6Scalar']
+            %r = get_hll_global 'Any'
           done:
         }
     }

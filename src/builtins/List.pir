@@ -159,7 +159,7 @@ This file implements Perl 6 lists.
 .sub '!elem' :method
     .param pmc value
     unless null value goto done
-    value = new ['Perl6Scalar']
+    value = get_hll_global 'Any'
   done:
     .return (value)
 .end

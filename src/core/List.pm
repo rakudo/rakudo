@@ -152,7 +152,7 @@ augment class List does Positional {
             items = self.'!fill'($I1)
             %r   = items[$I0]
             unless null %r goto done
-            %r   = new ['Perl6Scalar']
+            %r   = get_hll_global 'Any'
           done:
         }
     }

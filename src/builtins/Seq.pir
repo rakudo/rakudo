@@ -53,7 +53,8 @@ Create an element for the Seq (has the 'rw' property set).
 .sub '!elem' :method
     .param pmc item
     unless null item goto have_item
-    item = new ['Perl6Scalar']
+    item = get_hll_global 'Any'
+    .return (item)
   have_item:
     item = descalarref item
     $I0 = can item, 'item'

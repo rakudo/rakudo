@@ -481,12 +481,14 @@ our multi sub infix:<eqv>(Numeric $a, Numeric $b) {
 our multi sub infix:<Z>($lhs, $rhs) {
     my $lhs-list = flat($lhs.list);
     my $rhs-list = flat($rhs.list);
+    my ($a, $b);
     gather while ?$lhs-list && ?$rhs-list {
-        my $a = $lhs-list.shift;
-        my $b = $rhs-list.shift;
-        take $a;
-        take $b;
-    }
+        $a = $lhs-list.shift unless $lhs-list[0] ~~ ::Whatever;
+        take -> $q is copy { $q }($a);
+          # Workaround for RT #77302.
+        $b = $rhs-list.shift unless $rhs-list[0] ~~ ::Whatever;
+        take -> $q is copy { $q }($b);
+   }
 }
 
 our multi sub infix:<X>($lhs, $rhs) {

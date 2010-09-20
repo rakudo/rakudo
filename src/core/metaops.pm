@@ -17,10 +17,11 @@ our multi sub sequentialargs(&op, Mu \$a, Mu \$b) {
 
 our multi sub zipwith(&op, $lhs, $rhs) {
     my $lhs-list = flat($lhs.list);
-    my $rhs-list = flat($rhs.flat);
+    my $rhs-list = flat($rhs.list);
+    my ($a, $b);
     gather while ?$lhs-list && ?$rhs-list {
-        my $a = $lhs-list.shift;
-        my $b = $rhs-list.shift;
+        $a = $lhs-list.shift unless $lhs-list[0] ~~ ::Whatever;
+        $b = $rhs-list.shift unless $rhs-list[0] ~~ ::Whatever;
         take &op($a, $b);
     }
 }

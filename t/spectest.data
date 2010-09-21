@@ -468,6 +468,7 @@ S14-roles/anonymous.t
 S14-roles/attributes.t
 S14-roles/basic.t
 S14-roles/composition.t
+S14-roles/conflicts.
 S14-roles/crony.t
 S14-roles/instantiation.t
 S14-roles/lexical.t
@@ -600,7 +601,7 @@ S32-temporal/Date.t
 S32-temporal/DateTime.t
 S32-temporal/DateTime-Instant-Duration.t
 S32-trig/e.t
-# S32-trig/pi.t
+S32-trig/pi.t
 S32-trig/sin.t                                             # long
 S32-trig/cos.t                                             # long
 S32-trig/tan.t                                             # long

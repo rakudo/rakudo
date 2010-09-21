@@ -1,0 +1,53 @@
+    Announce: Rakudo Perl 6 compiler development release #33 ("TODO")
+
+On behalf of the Rakudo development team, I'm happy to announce the
+August 2010 release of Rakudo Perl #33 "TODO".  Rakudo is an 
+implementation of Perl 6 on the Parrot Virtual Machine (see 
+<http://www.parrot.org>). The tarball for the September 2010 release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Please note: This announcement is not for the Rakudo Star distribution --
+it's announcing a new release of the compiler only.  For the latest
+Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each release
+named after a Perl Mongers group. The September 2010 release is code named
+"TODO" in recognition of TODO
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* The specification for temporal objects (DateTime, Date, Instant and
+  Duration) is now completely implemented in Rakudo
+
+* Several performance improvements were implemented, most notably in
+  slurp() and reverse() functions
+
+* The series operator has been refactored, and updated to the current
+  specification
+
+* Enumeration objects now conform much closer to the current specification
+
+For a more detailed list of changes see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on 
+Parrot, the Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+
+Moritz Lenz, Patrick R. Michaud, Carl Masak, Patrick Abi Salloum,
+Solomon Foster, Kodi Arfer, chromatic, Kyle Hasselbacher, Bruce Gray,
+Martin Berends, Stephane Payrard, Tyler Curtis, Shlomi Fish, Nick Wellnhofer,
+Nuno  Carvalho, Tadeusz Sośnierz, TiMBuS, NotFound, mathw
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#34) is scheduled for October 21, 2010.
+A list of the other planned release dates and code names for 2010 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!

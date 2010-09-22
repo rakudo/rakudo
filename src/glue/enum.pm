@@ -8,8 +8,8 @@ our sub SETUP_NAMED_ENUM($name, $values) {
         method WHAT { $enumeration-object }
         method enums { $values }
         method Str { $name }
-        multi method pick(:$replace) { $values.pick($replace) }
-        multi method pick($num, :$replace) { $values.pick($num, $replace) }
+        multi method roll($num = 1) { $values.roll($num) }
+        multi method pick($num = 1) { $values.pick($num) }
         method ACCEPTS($topic) { $topic eqv any $values.values }
     });
     pir::set_hll_global__vPSP(@base_ns, $shortname, $enumeration-object);

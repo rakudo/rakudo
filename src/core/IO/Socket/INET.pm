@@ -1,42 +1,47 @@
+# XXX: enum does not yet work in core modules, so we use const subs
+module PIO {
+    our sub PF_LOCAL { 0 }
+    our sub PF_UNIX { 1 }
+    our sub PF_INET { 2 }
+    our sub PF_INET6 { 3 }
+    our sub PF_MAX { 4 }
+    our sub SOCK_PACKET { 0 }
+    our sub SOCK_STREAM { 1 }
+    our sub SOCK_DGRAM { 2 }
+    our sub SOCK_RAW { 3 }
+    our sub SOCK_RDM { 4 }
+    our sub SOCK_SEQPACKET { 5 }
+    our sub SOCK_MAX { 6 }
+    our sub PROTO_TCP { 6 }
+    our sub PROTO_UDP { 17 }
+}
+
 class IO::Socket::INET is Cool does IO::Socket {
 
-    method open (Str $hostname, Int $port) {
+    method open (Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = 0) {
+        my $addr = IO::Socket::INET.getaddrinfo(
+                $hostname,
+                $port,
+                protocol => $protocol,
+                family => $family,
+                passive => False
+        );
 
         my $s = Q:PIR {
-            .include "socket.pasm"
             .local pmc sock
-            .local pmc address
-            .local string hostname
-            .local int port
-            .local string buf
-            .local int ret
 
             .local pmc self
             self = find_lex 'self'
 
-            $P0 = find_lex "$hostname"
-            hostname = $P0
-
-            $P0 = find_lex "$port"
-            port = $P0
-
             # Create the socket handle
             sock = root_new ['parrot';'Socket']
-            $P1 = new 'Integer'
-            unless sock goto ERR
-            sock.'socket'(.PIO_PF_INET, .PIO_SOCK_STREAM, .PIO_PROTO_TCP)
-
-            # Pack a sockaddr_in structure with IP and port
-            address = sock.'sockaddr'(hostname, port)
-            $P1 = sock.'connect'(address)
             setattribute self, '$!PIO', sock
-            goto DONE
-        ERR:
-            $P1 = -1
-			DONE:
-            %r = $P1
+            %r = sock
         };
-        unless $s==0 { fail "IO::Socket::INET Couldn't create socket."; }
+
+        my $ret = $s.connect(pir::descalarref__PP($addr));
+
+        unless $ret==0 { fail "IO::Socket::INET Couldn't connect."; }
         return 1;
     }
 
@@ -55,9 +60,30 @@ class IO::Socket::INET is Cool does IO::Socket {
         }}) );
     }
 
-    method bind($host, $port) {
-        $!PIO.bind($!PIO.sockaddr($host, $port));
-        return self;
+    method bind (Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = 0) {
+        my $addr = IO::Socket::INET.getaddrinfo(
+                $hostname,
+                $port,
+                protocol => $protocol,
+                family => $family,
+                passive => True
+        );
+
+        my $s = Q:PIR {
+            .local pmc sock
+
+            .local pmc self
+            self = find_lex 'self'
+
+            # Create the socket handle
+            sock = root_new ['parrot';'Socket']
+            setattribute self, '$!PIO', sock
+            %r = sock
+        };
+
+	my $ret = $s.bind(pir::descalarref__PP($addr));
+
+        return $s;
     }
 
     method listen() {
@@ -67,5 +93,22 @@ class IO::Socket::INET is Cool does IO::Socket {
 
     method accept() {
         return $!PIO.accept();
+    }
+
+    method remote_address() {
+        return $!PIO.remote_address();
+    }
+
+    method local_address() {
+        return $!PIO.local_address();
+    }
+
+    method getaddrinfo(Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = 0, Bool :$passive = False) {
+        # TODO: convert $port to Str
+        my $s = Q:PIR {
+            %r = root_new ['parrot';'Socket']
+        };
+
+        return $s.getaddrinfo($hostname, $port, $protocol, $family, 0);
     }
 }

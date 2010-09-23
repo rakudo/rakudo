@@ -1,7 +1,7 @@
-    Announce: Rakudo Perl 6 compiler development release #33 ("TODO")
+    Announce: Rakudo Perl 6 compiler development release #33 ("Milan")
 
 On behalf of the Rakudo development team, I'm happy to announce the
-August 2010 release of Rakudo Perl #33 "TODO".  Rakudo is an 
+August 2010 release of Rakudo Perl #33 "Milan".  Rakudo is an 
 implementation of Perl 6 on the Parrot Virtual Machine (see 
 <http://www.parrot.org>). The tarball for the September 2010 release
 is available from <http://github.com/rakudo/rakudo/downloads>.
@@ -12,7 +12,7 @@ Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
 
 The Rakudo Perl compiler follows a monthly release cycle, with each release
 named after a Perl Mongers group. The September 2010 release is code named
-"TODO" in recognition of TODO
+"Milan", because the release manager happens to like the name :-)
 
 Some of the specific changes and improvements occurring with this
 release include:

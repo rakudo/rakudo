@@ -531,9 +531,8 @@ perlcritic:
 manifest:
 	echo MANIFEST >MANIFEST
 	git ls-files | $(PERL) -ne '/^\./ || print' >>MANIFEST
-	rm -rf t/spec
-	svn export "http://svn.pugscode.org/pugs/t/spec" t/spec
-	find t/spec -type f >>MANIFEST
+	cd t/spec && git clean -xdf
+	find t/spec -type f | grep -v '\.git' >>MANIFEST
 	sort -u -o MANIFEST MANIFEST
 
 release: manifest

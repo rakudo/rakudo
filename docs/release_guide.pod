@@ -75,7 +75,7 @@ release name, etc.
 
 Verify that the Parrot trunk head is able to build Rakudo
 and run the spectest suite. Also check the smolder reports
-at L<http://tinyurl.com/rakudosmoke>.
+at L<http://smolder.parrot.org/app/projects/smoke_reports/5>.
 
 =item *
 
@@ -132,26 +132,6 @@ some small details about the choice of release name.  (If the
 details are a bit lengthy, this can often best be done as a separate
 section at the bottom of the announcement.)
 
-=begin note
-
-Per pmichaud, the script described in the next step is currently
-broken, so we can't run it for the announcement.
-
-=end note
-
-The release announcement has a bullet for passing spectests and the
-percentage of the available spectest suite that's passing.  To get
-the number of available tests, look at "docs/spectest-progress.csv".
-If it hasn't been updated recently, use "git log docs/spectest-progress.csv"
-to find out who has been updating it and seek out this person for an
-update. You can also run F<tools/test_summary.pl> to obtain the latest data.
-To get the total number of available spectests, the tool C<ack> (see
-L<http://search.cpan.org/dist/ack/>) has to be installed and be found in
-C<$PATH>.
-
-As of this writing, there's not a publicly available tool to
-update spectest-progress.csv or to count tests that won't run.
-
 Include a list of contributors since the last release in the announcement.
 You can get an automatically generated list by running
 
@@ -182,8 +162,15 @@ Make sure everything compiles and runs from a known clean state:
 
 Continue adjusting things until make spectest passes as expected.
 Often this means fixing a bug, fudging a test, or (temporarily?)
-commenting out a test file in t/spectest.data .  Use your best 
+commenting out a test file in t/spectest.data .  Use your best
 judgment or ask others if uncertain what to do here.
+
+=item 7.5
+
+Enter the new version into the F<VERSION> file, and commit the changes:
+
+  $ echo 2010.09 > VERSION
+  $ git commit -m '[release] bump VERSION' VERSION
 
 =item 8.
 
@@ -198,9 +185,8 @@ Create a tarball by entering C<make release VERSION=YYYY.MM>,
 where YYYY.MM is the month for which the release is being made.
 This will create a tarball file named <rakudo-YYYY.MM.tgz>.
 
-B<Caution>: this steps removes your C<t/spec> directory and all files
-contained therein, and replaces it by a fresh svn export. So please make a
-backup if you have any important data in there.
+B<Caution>: this steps removes any untracked files in F<t/spec>.
+So please make a backup if you have any important data in there.
 
 =item 10.
 

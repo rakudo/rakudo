@@ -45,6 +45,13 @@ symbols for C<Bool::True> and C<Bool::False>.
     .return ($P0)
 .end
 
+.sub '' :method :vtable('get_string')
+    if self goto true
+    .return ('Bool::False')
+  true:
+    .return ('Bool::True')
+.end
+
 =back
 
 =cut

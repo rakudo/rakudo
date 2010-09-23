@@ -28,7 +28,20 @@ release include:
 
 * Enumeration objects now conform much closer to the current specification
 
+* 'now' and 'time' are now terms (and not functions anymore). This means you
+  can now write 'time - 1' and do what you mean, but 'time()' does not work
+  anymore
+
 For a more detailed list of changes see "docs/ChangeLog".
+
+
+Deprecation notice:
+
+* Currently True and False evaluate as '1' and '0' in string context.
+  The specification has changed, and in the next release they will
+  evaluate to 'Bool::True' and 'Bool::False' in string context.
+  To get the old behaviour, use ~+True or ~+False.
+
 
 The development team thanks all of our contributors and sponsors for
 making Rakudo Perl possible, as well as those people who worked on 

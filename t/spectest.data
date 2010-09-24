@@ -207,10 +207,10 @@ S03-operators/subscript-vs-lt.t
 S03-operators/ternary.t
 S03-operators/so.t
 S03-operators/value_equivalence.t
-S03-series/arity0.t
-S03-series/arity-2-or-more.t
-S03-series/basic.t
-S03-series/nonnumeric.t
+S03-sequence/arity0.t
+S03-sequence/arity-2-or-more.t
+S03-sequence/basic.t
+S03-sequence/nonnumeric.t
 S03-smartmatch/any-any.t
 # S03-smartmatch/any-array-slice.t
 S03-smartmatch/any-array.t

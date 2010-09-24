@@ -460,6 +460,11 @@ token statement_control:sym<use> {
     <.ws>
 }
 
+rule statement_control:sym<require> {
+    <sym>
+    <module_name> <EXPR>?
+}
+
 token statement_control:sym<given> {
     <sym> :s <xblock(1)>
 }

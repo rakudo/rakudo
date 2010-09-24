@@ -397,6 +397,7 @@ S10-packages/use-with-class.t
 S11-modules/lexical.t
 S11-modules/need.t
 # S11-modules/nested.t
+S11-modules/require.t
 # S12-attributes/class.t
 S12-attributes/clone.t
 S12-attributes/delegation.t

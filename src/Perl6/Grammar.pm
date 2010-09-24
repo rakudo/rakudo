@@ -462,7 +462,10 @@ token statement_control:sym<use> {
 
 rule statement_control:sym<require> {
     <sym>
-    <module_name> <EXPR>?
+    [
+    | <module_name> <EXPR>?
+    | <EXPR>
+    ]
 }
 
 token statement_control:sym<given> {

@@ -515,10 +515,12 @@ method statement_control:sym<use>($/) {
 }
 
 method statement_control:sym<require>($/) {
-    if $<EXPR> {
+    if $<module_name> && $<EXPR> {
         $/.CURSOR.panic("require with argument list not yet implemented");
     }
-    my $name := $<module_name><longname><name>.Str;
+    my $name_past := $<module_name>
+                    ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
+                    !! $<EXPR>[0].ast;
     my @module_loader := Perl6::Grammar::parse_name('Perl6::Module::Loader');
     my $past := PAST::Op.new(
         :node($/),
@@ -526,7 +528,7 @@ method statement_control:sym<require>($/) {
         :name('need'),
         PAST::Var.new( :name(@module_loader.pop),
                        :namespace(@module_loader), :scope('package') ),
-        $name
+        $name_past
     );
     make $past;
 }

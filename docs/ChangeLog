@@ -1,3 +1,8 @@
+New in 2010.10 release
++ True and False now stringify according to the specification
++ basic form of 'require' for run time module loading
+
+New in 2010.09 release
 + new methods on IO concerning the modify and access time of files
 + S32::Temporal now completely implemented
 + Instants and Durations

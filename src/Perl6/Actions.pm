@@ -514,6 +514,23 @@ method statement_control:sym<use>($/) {
     make $past;
 }
 
+method statement_control:sym<require>($/) {
+    if $<EXPR> {
+        $/.CURSOR.panic("require with argument list not yet implemented");
+    }
+    my $name := $<module_name><longname><name>.Str;
+    my @module_loader := Perl6::Grammar::parse_name('Perl6::Module::Loader');
+    my $past := PAST::Op.new(
+        :node($/),
+        :pasttype('callmethod'),
+        :name('need'),
+        PAST::Var.new( :name(@module_loader.pop),
+                       :namespace(@module_loader), :scope('package') ),
+        $name
+    );
+    make $past;
+}
+
 method statement_control:sym<given>($/) {
     my $past := $<xblock>.ast;
     $past.push($past.shift); # swap [0] and [1] elements

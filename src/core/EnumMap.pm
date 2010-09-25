@@ -69,11 +69,11 @@ class EnumMap is Iterable does Associative {
     method iterator() { self.pairs.iterator }
 
     method keys() {
-        self.pairs.map({ $^pair.key })
+        self.pairs.map({ ~$^pair.key })
     }
 
     method kv() { 
-        self.pairs.map({ $^pair.key, $^pair.value }).flat 
+        self.pairs.map({ ~$^pair.key, $^pair.value }).flat 
     }
 
     method list() { self.pairs }

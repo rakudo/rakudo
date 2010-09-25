@@ -17,10 +17,7 @@ method backtrace_for($exception) {
         # file to the error and be done.
         if self.is_warning($exception) {
             my $location := @backtrace[0]<annotations>;
-            $trace := $trace ~ " at " ~
-                ($location<line> ?? 'line ' ~ $location<line> !! '<unknown line>') ~
-                ($location<file> ?? ':' ~ $location<file>     !! ''              ) ~
-                "\n";
+            $trace := $trace ~ self.backtrace_line(@backtrace[0]<sub>, @backtrace[0]<annotations>);
             return $trace;
         }
 

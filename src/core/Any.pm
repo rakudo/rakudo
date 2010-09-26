@@ -10,7 +10,7 @@ augment class Any {
     method Numeric() {
         die "Can't take numeric value for object of type $.WHAT.perl()" if $.defined;
         # fail "Use of uninitialized value in numeric context";
-        note "Use of uninitialized value in numeric context";
+        warn "Use of uninitialized value in numeric context";
         0;
     }
 }

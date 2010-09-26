@@ -16,8 +16,13 @@ method backtrace_for($exception) {
         # If it's just a warning, then we want to just append a line and
         # file to the error and be done.
         if self.is_warning($exception) {
-            my $location := @backtrace[0]<annotations>;
-            $trace := $trace ~ self.backtrace_line(@backtrace[0]<sub>, @backtrace[0]<annotations>);
+            my $i := 0;
+            while $i < +@backtrace
+                    && @backtrace[$i]<annotations><file> eq 'CORE.setting' {
+                $i++;
+            }
+
+            $trace := $trace ~ self.backtrace_line(@backtrace[$i]<sub>, @backtrace[$i]<annotations>);
             return $trace;
         }
 

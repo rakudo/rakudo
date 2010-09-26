@@ -17,7 +17,8 @@ method backtrace_for($exception) {
         # file to the error and be done.
         if self.is_warning($exception) {
             my $i := 0;
-            while $i < +@backtrace
+            my $array_bound := +@backtrace - 1;
+            while $i < $array_bound
                     && @backtrace[$i]<annotations><file> eq 'CORE.setting' {
                 $i++;
             }

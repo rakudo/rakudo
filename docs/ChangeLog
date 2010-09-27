@@ -1,6 +1,7 @@
 New in 2010.10 release
 + True and False now stringify according to the specification
 + basic form of 'require' for run time module loading
++ warnings from the setting now produce line numbers in the users' program
 
 New in 2010.09 release
 + new methods on IO concerning the modify and access time of files

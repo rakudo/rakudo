@@ -134,7 +134,7 @@ Rakudo Perl 6
     a central server, use "make spectest_smolder" instead. You need the
     Perl 5 module TAP::Harness::Archive and an active internet connection
     for that. The smoke results are collected at
-    <http://smolder.plusthree.com/app/public_projects/details/18>.
+    <http://smolder.parrot.org/app/projects/smoke_reports/5>
 
     At present we do not have any plans to directly store the official test
     suite as part of the Rakudo/Parrot repository, but will continue to

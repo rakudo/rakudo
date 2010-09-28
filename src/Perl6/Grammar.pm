@@ -1447,7 +1447,7 @@ token setup_quotepairs { '' }
 token cleanup_modifiers { '' }
 
 token quote:sym<s> {
-    <sym> >>
+    <sym> (s)? >>
     [ <quotepair> <.ws> ]*
     :my @*REGEX_ADVERBS;
     { @*REGEX_ADVERBS := $<quotepair>; }

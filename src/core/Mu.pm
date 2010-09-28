@@ -15,6 +15,7 @@ augment class Mu {
     }
 
     multi method so() { self.Bool }
+    multi method not() { self ?? False !! True }
 
     multi method perl() {
         my sub typename(Mu $x) { pir::typeof__SP($x) };

@@ -127,7 +127,7 @@ Rakudo Perl 6
     simple test harness.
 
     Running "make spectest" will import the official Perl 6 test suite from
-    the Pugs repository <http://svn.pugscode.org/pugs/t/spec/> and run all
+    the "roast" repository <http://github.com/perl6/roast/> and run all
     of these tests that are currently known to pass.
 
     If you want to automatically submit the results of your spectest run to
@@ -138,7 +138,7 @@ Rakudo Perl 6
 
     At present we do not have any plans to directly store the official test
     suite as part of the Rakudo/Parrot repository, but will continue to
-    fetch it from the Pugs repository.
+    fetch it from the roast repository.
 
     You can also use "make" to run an individual test from the command line:
 

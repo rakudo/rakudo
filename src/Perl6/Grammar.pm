@@ -1807,7 +1807,11 @@ token infix:sym«<<» { <sym> \s <.obs('<< to do left shift', '+< or ~<')> }
 token infix:sym«>>» { <sym> \s <.obs('>> to do right shift', '+> or ~>')> }
 
 token infix:sym<+>    { <sym>  <O('%additive')> }
-token infix:sym<->    { <sym> <![>]> <O('%additive')> }
+token infix:sym<->    {
+   # We want to match in '$a >>->> $b' but not 'if $a -> { ... }'.
+    <sym> [<?before '>>'> || <!before '>'>]
+    <O('%additive')>
+}
 token infix:sym<+|>   { <sym>  <O('%additive')> }
 token infix:sym<+^>   { <sym>  <O('%additive')> }
 token infix:sym<~|>   { <sym>  <O('%additive')> }

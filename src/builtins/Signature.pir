@@ -281,7 +281,7 @@ PIR
     concat pir, '    $P'
     $S1 = i
     concat pir, $S1
-    concat pir, " = new ['Perl6Scalar']\n    .lex '"
+    concat pir, " = new ['ObjectRef']\n    .lex '"
     concat pir, $S0
     concat pir, "', $P"
     concat pir, $S1

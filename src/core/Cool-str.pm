@@ -451,6 +451,10 @@ multi split ( $delimiter, $input, $limit = *, :$all ) {
     $input.split($delimiter, $limit, :$all);
 }
 
+our List multi comb ( Regex $matcher, Str $input, Int $limit = Inf ) {
+    $input.comb($matcher , $limit );
+}
+
 multi sub sprintf($str as Str, *@args) {
     $str.sprintf(|@args)
 }

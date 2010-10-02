@@ -442,7 +442,7 @@ rakudo_test_run.tar.gz: testable t/spectest.data
 	- $(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@
 
 spectest_smolder: rakudo_test_run.tar.gz
-	curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=`git log -1 --pretty=format:%H` -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5
+	./perl6 -e "run qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 testable : all spectest_checkout spectest_update
 

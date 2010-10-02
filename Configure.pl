@@ -171,7 +171,8 @@ sub create_makefile {
     if ($^O eq 'MSWin32') {
         $maketext =~ s{/}{\\}g;
         $maketext =~ s{\\\*}{\\\\*}g;
-        $maketext =~ s{http:\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
+        $maketext =~ s{(?:git|http):\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
+        $maketext =~ s/.*curl.*/do {my $t = $&; $t =~ s'%'%%'g; $t}/meg;
     }
 
     if ($makefile_timing) {

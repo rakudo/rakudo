@@ -233,7 +233,7 @@ inline op x_is_uprop(out INT, in STR, in STR, in INT) :base_core {
         goto NEXT();
     }
 
-    ord = string_ord(interp, $3, $4);
+    ord = Parrot_str_indexed(interp, $3, $4);
     cstr = Parrot_str_to_cstring(interp, $2);
 
     /* try block tests */

@@ -45,11 +45,15 @@ our multi reduce(&op, *@list) {
     @list.reduce(&op)
 }
 
-our multi sub hyper(&op, @lhs is copy, @rhs is copy, :$dwim-left, :$dwim-right) {
+our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right) {
     my sub repeating-array(@a) {
         gather loop {
+            my $prev-a;
             for @a -> $a {
-                take $a;
+                if $a ~~ ::Whatever {
+                    loop { take $prev-a }
+                }
+                $prev-a = take $a;
             }
         }
     }
@@ -65,24 +69,26 @@ our multi sub hyper(&op, @lhs is copy, @rhs is copy, :$dwim-left, :$dwim-right) 
     } elsif !$dwim-right {
         $length = +@rhs;
     } else {
-        $length = +@lhs max +@rhs;
+        $length =
+            (@lhs - do @lhs[*-1] ~~ ::Whatever) max
+            (@rhs - do @rhs[*-1] ~~ ::Whatever);
     }
 
-    if $length != +@lhs {
-        @lhs = repeating-array(@lhs).munch($length);
+    if $dwim-left && (@lhs - do @lhs[*-1] ~~ ::Whatever) != $length {
+        @lhs := repeating-array(@lhs).munch($length);
     }
-    if $length != +@rhs {
-        @rhs = repeating-array(@rhs).munch($length);
+    if $dwim-right && (@rhs - do @rhs[*-1] ~~ ::Whatever) != $length {
+        @rhs := repeating-array(@rhs).munch($length);
     }
 
     my @result;
-    for @lhs Z @rhs -> $l, $r {
-        if Associative.ACCEPTS($l) || Associative.ACCEPTS($r) {
-            @result.push(hyper(&op, $l, $r, :$dwim-left, :$dwim-right).item);
-        } elsif Iterable.ACCEPTS($l) || Iterable.ACCEPTS($r) {
-            @result.push([hyper(&op, $l.list, $r.list, :$dwim-left, :$dwim-right)]);
+    for ^$length -> $i {
+        if Associative.ACCEPTS(@lhs[$i]) || Associative.ACCEPTS(@rhs[$i]) {
+            @result.push(hyper(&op, @lhs[$i], @rhs[$i], :$dwim-left, :$dwim-right).item);
+        } elsif Iterable.ACCEPTS(@lhs[$i]) || Iterable.ACCEPTS(@rhs[$i]) {
+            @result.push([hyper(&op, @lhs[$i].list, @rhs[$i].list, :$dwim-left, :$dwim-right)]);
         } else {
-            @result.push(op($l, $r));
+            @result.push(op(@lhs[$i], @rhs[$i]));
         }
     }
     @result

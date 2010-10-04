@@ -1431,10 +1431,17 @@ token quote:sym<rx>   {
     <.cleanup_modifiers>
 }
 token quote:sym<m> {
-    <sym> >>
+    <sym> (s)?>>
     [ <quotepair> <.ws> ]*
     :my @*REGEX_ADVERBS;
     { @*REGEX_ADVERBS := $<quotepair>; }
+    {
+        if $/[0] {
+            my $s := Regex::Match.new();
+            $s.'!make'(PAST::Val.new(:value(1), :named('s')));
+            pir::push__vPP(@*REGEX_ADVERBS, $s);
+        }
+    }
     <.setup_quotepairs>
     [
     | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?

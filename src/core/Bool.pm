@@ -6,6 +6,8 @@ augment class Bool does Abstraction {
 
     method Str() { $.perl() }
 
+    method Stringy() { self ?? "True" !! "False"; }
+
     method Bridge() { self ?? 1.Bridge !! 0.Bridge }
 
     method pick($count = 1) {

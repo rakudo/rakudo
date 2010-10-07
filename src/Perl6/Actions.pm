@@ -2522,7 +2522,7 @@ method infix_circumfix_meta_operator:sym<« »>($/) {
 sub make_hyperop($/) {
     my $opsub := '&infix:<' ~ ~$/ ~ '>';
     unless %*METAOPGEN{$opsub} {
-        my $base_op := '&infix:<' ~ $<infixish><OPER>.Str ~ '>';
+        my $base_op := '&infix:<' ~ $<infixish>.Str ~ '>';
         my $dwim_lhs := $<opening> eq '<<' || $<opening> eq '«';
         my $dwim_rhs := $<closing> eq '>>' || $<closing> eq '»';
         $*UNITPAST.loadinit.push(PAST::Op.new(

@@ -1,6 +1,6 @@
 use v6;
 
-class Dateish {
+role Dateish {
     has Int $.year;
     has Int $.month = 1;
     has Int $.day = 1;
@@ -140,7 +140,7 @@ sub default-formatter(::DateTime $dt, Bool :$subseconds) {
          !! 'Z';
 }
 
-class DateTime is Dateish {
+class DateTime does Dateish {
     has Int $.hour      = 0;
     has Int $.minute    = 0;
     has     $.second    = 0.0;
@@ -344,7 +344,7 @@ class DateTime is Dateish {
 
 }
 
-class Date is Dateish {
+class Date does Dateish {
     has Int $.daycount;
 
     method !set-daycount($dc) { $!daycount = $dc }

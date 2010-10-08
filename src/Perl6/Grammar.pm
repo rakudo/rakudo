@@ -1430,17 +1430,21 @@ token quote:sym<rx>   {
     ]
     <.cleanup_modifiers>
 }
+
+method match_with_adverb($v) {
+    my $s := Regex::Match.new();
+    $s.'!make'(PAST::Val.new(:value(1), :named('s')));
+    $s;
+}
+
 token quote:sym<m> {
     <sym> (s)?>>
     [ <quotepair> <.ws> ]*
     :my @*REGEX_ADVERBS;
-    { @*REGEX_ADVERBS := $<quotepair>; }
-    {
-        if $/[0] {
-            my $s := Regex::Match.new();
-            $s.'!make'(PAST::Val.new(:value(1), :named('s')));
-            pir::push__vPP(@*REGEX_ADVERBS, $s);
-        }
+    { @*REGEX_ADVERBS := $<quotepair>;
+      if $/[0] {
+          pir::push__vPP(@*REGEX_ADVERBS, $/.CURSOR.match_with_adverb('s'));
+      }
     }
     <.setup_quotepairs>
     [
@@ -1454,10 +1458,16 @@ token setup_quotepairs { '' }
 token cleanup_modifiers { '' }
 
 token quote:sym<s> {
-    <sym> >>
+    <sym> (s)? >>
     [ <quotepair> <.ws> ]*
     :my @*REGEX_ADVERBS;
     { @*REGEX_ADVERBS := $<quotepair>; }
+    {
+        if $/[0] {
+            pir::push__vPP(@*REGEX_ADVERBS, $/.CURSOR.match_with_adverb('s'));
+            pir::push__vPP(@*REGEX_ADVERBS, $/.CURSOR.match_with_adverb('samespace'));
+        }
+    }
     <.setup_quotepairs>
     [
     | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?

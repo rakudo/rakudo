@@ -738,6 +738,33 @@ inline op fixup_outer_ctx(inout PMC) :base_core {
     }
 }
 
+
+/*
+
+=item encodelocaltime(out INT, in PMC)
+
+The inverse of C<decodelocaltime>.
+
+=cut
+
+*/
+inline op encodelocaltime(out INT, in PMC) :base_core {
+    struct tm tm;
+
+    tm.tm_sec  = VTABLE_get_integer_keyed_int(interp, $2, 0);
+    tm.tm_min  = VTABLE_get_integer_keyed_int(interp, $2, 1);
+    tm.tm_hour = VTABLE_get_integer_keyed_int(interp, $2, 2);
+    tm.tm_mday = VTABLE_get_integer_keyed_int(interp, $2, 3);
+    tm.tm_mon  = VTABLE_get_integer_keyed_int(interp, $2, 4) - 1;
+    tm.tm_year = VTABLE_get_integer_keyed_int(interp, $2, 5) - 1900;
+    /* We needn't bother setting tm_wday or tm_yday, since mktime
+    is required to ignore them. */
+    tm.tm_isdst = VTABLE_get_integer_keyed_int(interp, $2, 8);
+
+    $1 = mktime(&tm);
+    goto NEXT();
+}
+
 /*
  * Local variables:
  *   c-file-style: "parrot"

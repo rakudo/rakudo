@@ -42,6 +42,7 @@ A Parcel in item context becomes a Seq.
     seq = get_hll_global 'Seq'
     seq = seq.'new'(self)
     seq.'eager'()
+    seq = seq.'item'()
     .return (seq)
 .end
 

@@ -2874,6 +2874,9 @@ method quote:sym<s>($/) {
         $regex, $closure
     );
     self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
+    if $/[0] {
+        pir::push__vPP($past, PAST::Val.new(:named('samespace'), :value(1)));
+    }
 
     $past := PAST::Op.new(
         :node($/),

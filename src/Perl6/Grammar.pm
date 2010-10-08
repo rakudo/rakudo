@@ -1461,11 +1461,10 @@ token quote:sym<s> {
     <sym> (s)? >>
     [ <quotepair> <.ws> ]*
     :my @*REGEX_ADVERBS;
-    { @*REGEX_ADVERBS := $<quotepair>; }
     {
+        @*REGEX_ADVERBS := $<quotepair>;
         if $/[0] {
             pir::push__vPP(@*REGEX_ADVERBS, $/.CURSOR.match_with_adverb('s'));
-            pir::push__vPP(@*REGEX_ADVERBS, $/.CURSOR.match_with_adverb('samespace'));
         }
     }
     <.setup_quotepairs>

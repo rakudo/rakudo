@@ -25,7 +25,7 @@ role Buf[::T = Int] does Stringy does Positional {
             inc i
             goto loop
           done:
-            s = bb.'get_string_as'(utf8:unicode:" ")
+            s = bb.'get_string_as'(utf8:" ")
             %r = box s
         };
         return $str;

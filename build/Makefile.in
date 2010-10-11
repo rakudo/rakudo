@@ -257,6 +257,7 @@ CLEANUPS = \
   perl6$(O) \
   perl6_group.* \
   Test.pir \
+  rakudo_test_run.tar.gz \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen/core.pm \
   src/gen/*.pir \

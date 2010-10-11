@@ -318,16 +318,16 @@ class DateTime does Dateish {
     multi method clone(*%_) {
         self.new(:$!year, :$!month, :$!day,
             :$!hour, :$!minute, :$!second,
-            timezone => $!timezone.clone,
-            formatter => &!formatter.clone,
+            timezone => $!timezone,
+            formatter => &!formatter,
             |%_)
     }
 
     multi method clone-without-validating(*%_) { # A premature optimization.
         self.bless(*, :$!year, :$!month, :$!day,
             :$!hour, :$!minute, :$!second,
-            timezone => $!timezone.clone,
-            formatter => &!formatter.clone,
+            timezone => $!timezone,
+            formatter => &!formatter,
             |%_)
     }
 
@@ -422,9 +422,9 @@ class DateTime does Dateish {
 
     multi method perl() {
         "DateTime.new(year => $.year, month => $.month, day => $.day, " ~
-        "hour => $.hour, minute => $.minute, second => $.second, " ~
+        "hour => $.hour, minute => $.minute, second => $.second.perl(), " ~
         "timezone => $.timezone.perl()" ~
-        do $.formatter eqv &default-formatter
+        do &.formatter eqv &default-formatter
          ?? ')'
          !! ", formatter => $.formatter.perl())"
     }

@@ -28,6 +28,8 @@ package PROCESS {
                 }
         }
 
+        our $TZ = ::DateTime-local-timezone.new;
+
         Q:PIR {
             ##  set up $*OS, $*OSVER $*EXECUTABLE_NAME
             .include 'sysinfo.pasm'

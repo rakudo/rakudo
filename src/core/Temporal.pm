@@ -140,12 +140,92 @@ sub default-formatter(::DateTime $dt, Bool :$subseconds) {
          !! 'Z';
 }
 
+class DateTime-local-timezone does Callable {
+    method Str { '<local time zone>' }
+    method perl { '$*TZ' }
+
+    method postcircumfix:<( )>($args) { self.offset(|$args) }
+
+    method offset($dt, $to-utc) {
+        # We construct local and UTC DateTimes, calculate POSIX times
+        # (pretending the local DateTime is actually in UTC), and
+        # return the difference. Surprisingly, this actually works!
+        if $to-utc { Q:PIR {
+            .local pmc dt, a
+            dt = find_lex '$dt'
+            # Create an array for encodelocaltime.
+            a = new 'FixedIntegerArray'
+            a = 9
+            $P0 = dt.'whole-second'()
+            a[0] = $P0
+            $P0 = getattribute dt, '$!minute'
+            a[1] = $P0
+            $P0 = getattribute dt, '$!hour'
+            a[2] = $P0
+            $P0 = getattribute dt, '$!day'
+            a[3] = $P0
+            $P0 = getattribute dt, '$!month'
+            a[4] = $P0
+            $P0 = getattribute dt, '$!year'
+            a[5] = $P0
+            a[8] = -1
+              # Indefinite Daylight-Saving state. This leaves it up
+              # to whatever C library we're using to decide how to
+              # interpret an ambiguous time.
+            # Use encodelocaltime to get a POSIX time, and
+            # subtract this from $dt's POSIX time.
+            $I0 = encodelocaltime a
+            $P0 = find_lex '$dt'
+            $P0 = $P0.'posix'(true)
+            $I1 = $P0
+            $I0 = $I1 - $I0
+            $P0 = $I0
+            %r = $P0
+        }; } else {
+            my $p = $dt.posix;
+            my ($year, $month, $day, $hour, $minute, $second);
+            # Use decodelocaltime to build a local DateTime.
+            Q:PIR {
+                $P0 = find_lex '$p'
+                $I0 = $P0
+                .local pmc a
+                a = decodelocaltime $I0
+                $P0 = find_lex '$second'
+                $I0 = a[0]
+                '&infix:<=>'($P0, $I0)
+                $P0 = find_lex '$minute'
+                $I0 = a[1]
+                '&infix:<=>'($P0, $I0)
+                $P0 = find_lex '$hour'
+                $I0 = a[2]
+                '&infix:<=>'($P0, $I0)
+                $P0 = find_lex '$day'
+                $I0 = a[3]
+                '&infix:<=>'($P0, $I0)
+                $P0 = find_lex '$month'
+                $I0 = a[4]
+                '&infix:<=>'($P0, $I0)
+                $P0 = find_lex '$year'
+                $I0 = a[5]
+                '&infix:<=>'($P0, $I0)
+            };
+            ::DateTime\
+                .new(:$year, :$month, :$day, :$hour, :$minute, :$second)\
+                .posix - $p;
+        }
+    }
+}
+
 class DateTime does Dateish {
     has Int $.hour      = 0;
     has Int $.minute    = 0;
     has     $.second    = 0.0;
     has     $.timezone  = 0; # UTC
     has     &.formatter; # = &default-formatter; # Doesn't work (not in scope?).
+    has Int $!saved-offset;
+      # Not an optimization but a necessity to ensure that
+      # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
+      # DST-induced ambiguity could ruin our day.
 
     multi method new(Int :$year!, :&formatter=&default-formatter, *%_) {
         my $dt = self.bless(*, :$year, :&formatter, |%_);
@@ -231,8 +311,7 @@ class DateTime does Dateish {
             :$second, :$timezone, :&formatter);
     }
 
-    multi method now(:$timezone=0, :&formatter=&default-formatter) {
-    # FIXME: Default to the user's time zone instead of UTC.
+    multi method now(:$timezone=$*TZ, :&formatter=&default-formatter) {
         self.new(now, :$timezone, :&formatter)
     }
 
@@ -256,8 +335,9 @@ class DateTime does Dateish {
         Instant.from-posix: self.posix + $.second % 1, $.second >= 60;
     }
 
-    multi method posix() {
-        self.offset and return self.utc.posix;
+    multi method posix($ignore-timezone?) {
+        $ignore-timezone or self.offset == 0
+            or return self.utc.posix;
         # algorithm from Claus Tøndering
         my $a = (14 - $.month.Int) div 12;
         my $y = $.year.Int + 4800 - $a;
@@ -268,8 +348,11 @@ class DateTime does Dateish {
             + 60*(60*$.hour + $.minute) + self.whole-second;
     }
 
-    method offset($tz = $!timezone) {
-        $tz ~~ Callable ?? $tz(self, True) !! $tz
+    method offset {
+        $!saved-offset or
+            $!timezone ~~ Callable
+         ?? $!timezone(self, True)
+         !! $!timezone
     }
 
     multi method truncated-to(*%args) {
@@ -318,11 +401,15 @@ class DateTime does Dateish {
         floor $c / 24 and %parts<year month day> =
            self.ymd-from-daycount\
                (self.get-daycount + floor $c / 24);
-        self.clone-without-validating(:$timezone, |%parts)
+        self.clone-without-validating:
+            :$timezone, saved-offset => $new-offset, |%parts;
     }
 
     method utc() {
         self.in-timezone(0)
+    }
+    method local() {
+        self.in-timezone($*TZ)
     }
 
     method Date() {

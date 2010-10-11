@@ -601,6 +601,7 @@ S32-temporal/calendar.t
 S32-temporal/Date.t
 S32-temporal/DateTime.t
 S32-temporal/DateTime-Instant-Duration.t
+S32-temporal/local.t
 S32-trig/e.t
 S32-trig/pi.t
 S32-trig/sin.t                                             # long

@@ -227,7 +227,7 @@ class DateTime does Dateish {
                 $6[0][0] eq '-' and $timezone = -$timezone;
             }
         }
-        DateTime.new(:$year, :$month, :$day, :$hour, :$minute,
+        self.new(:$year, :$month, :$day, :$hour, :$minute,
             :$second, :$timezone, :&formatter);
     }
 

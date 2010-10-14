@@ -47,7 +47,7 @@ Rakudo Perl 6
         $ cd rakudo
         $ git pull
 
-    Once you have an updated copy of Rakudo, build it as follows:
+    Once you have an up-to-date copy of Rakudo, build it as follows:
 
         $ cd rakudo
         $ perl Configure.pl --gen-parrot
@@ -101,6 +101,9 @@ Rakudo Perl 6
     If the Rakudo compiler is invoked without an explicit script to run, it
     enters a small interactive mode that allows Perl 6 statements to be
     executed from the command line.
+
+    See the manual page ("docs/running.pod") for more about command-line
+    options.
 
    Build/install problems
     Occasionally, there may be problems when building/installing Rakudo.

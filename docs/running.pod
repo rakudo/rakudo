@@ -8,8 +8,9 @@ perl6 - Rakudo Perl 6 Compiler
 
 =head1 DESCRIPTION
 
-Compiles C<[programfile]> or the program given by the C<-e> option, and
-by default also executes the compiled code.
+With no arguments, enters a REPL. With a C<[programfile]> or the C<-e>
+option, compiles the given program and by default also executes the
+compiled code.
 
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   -e program           one line of program

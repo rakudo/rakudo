@@ -387,7 +387,12 @@ augment class Cool {
     }
 
     multi method flip() is export {
-        (~self).split('').reverse().join;
+        ~ Q:PIR {
+            $P0 = box ''
+            $P1 = find_lex 'self'
+            $S0 = $P0.'reverse'($P1)
+            %r  = box $S0
+        }
     }
 
     # Not yet spec'd, I expect it will be renamed

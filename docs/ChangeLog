@@ -3,6 +3,11 @@ New in 2010.10 release
 + basic form of 'require' for run time module loading
 + warnings from the setting now produce line numbers in the users' program
 + local time zone available as $*TZ
++ more consistent line numbers from warnings
++ getting and setting attributes via introspection
++ implement samespace, ms// and ss///
++ hyper operator invoving = can now modify their arguments
++ speed up Str.flip by over a factor of 100
 
 New in 2010.09 release
 + new methods on IO concerning the modify and access time of files

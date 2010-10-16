@@ -18,8 +18,8 @@ role Dateish {
     method daycount-from-ymd($y is copy, $m is copy, $d) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
         $y .= Int;
-        $m .= Int; 
-        if ($m < 3) {
+        $m .= Int;
+        if $m < 3 {
             $m += 12;
             --$y;
         }

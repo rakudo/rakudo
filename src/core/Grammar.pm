@@ -15,7 +15,9 @@ class Grammar is Cursor {
     }
 }
 
-our sub make($ast) {
+our sub make (*@ast) {
+    my $ast = (sub { return |@ast })();
+
     Q:PIR {
         $P0 = find_dynamic_lex '$/'
         $P1 = find_lex '$ast'

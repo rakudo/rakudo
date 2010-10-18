@@ -560,6 +560,9 @@ token term:sym<new> {
 token fatarrow {
     <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i=')>
 }
+token nofatarrow {
+    <!before \h* '=>'>
+}
 
 token colonpair {
     :my $*key;
@@ -1246,16 +1249,17 @@ token trait_mod:sym<handles> { <sym>:s <term> }
 
 proto token term { <...> }
 
-token term:sym<YOU_ARE_HERE> { <sym> <.nofun> }
+token term:sym<YOU_ARE_HERE> { <sym> <.nofun> <.nofatarrow> }
 
-token term:sym<self> { <sym> <.nofun> }
+token term:sym<self> { <sym> <.nofun> <.nofatarrow> }
 
-token term:sym<now> { <sym> <.nofun> }
+token term:sym<now> { <sym> <.nofun> <.nofatarrow> }
 
-token term:sym<time> { <sym> <.nofun> }
+token term:sym<time> { <sym> <.nofun> <.nofatarrow> }
 
 token term:sym<rand> {
     <sym> »
+    <.nofatarrow>
     [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
     [ <?before '()'> <.obs('rand()', 'rand')> ]?
 }

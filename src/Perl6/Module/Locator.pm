@@ -46,6 +46,7 @@ method get_module_info($filename) {
     
     # Read in file and parse it.
     my $fh     := pir::open__PSS($filename, 'r');
+    $fh.encoding('utf8');
     my $source := $fh.readall();
     $fh.close();
     my $actions := Perl6::Module::VersionDetectionActions.new();

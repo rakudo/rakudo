@@ -63,7 +63,7 @@ our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right, :$path = '') {
         if +@lhs != +@rhs {
             my $msg = "Sorry, lists on both sides of non-dwimmy hyperop are not of same length:\n"
                 ~ "    left:  @lhs.elems() elements\n"
-                ~ "    right: @lhs.elems() elements\n";
+                ~ "    right: @rhs.elems() elements\n";
             $msg ~= "At .$path" if $path;
             die $msg;
         }

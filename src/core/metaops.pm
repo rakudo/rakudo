@@ -45,7 +45,7 @@ our multi reduce(&op, *@list) {
     @list.reduce(&op)
 }
 
-our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right, :@path) {
+our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right, :$path = '') {
     my sub repeating-array(@a) {
         gather loop {
             my $prev-a;
@@ -64,9 +64,7 @@ our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right, :@path) {
             my $msg = "Sorry, lists on both sides of non-dwimmy hyperop are not of same length:\n"
                 ~ "    left:  @lhs.elems() elements\n"
                 ~ "    right: @lhs.elems() elements\n";
-            if (+@path) {
-                $msg ~= "At path [@path.join(', ')]";
-            }
+            $msg ~= "At .$path" if $path;
             die $msg;
         }
         $length = +@lhs;
@@ -90,9 +88,9 @@ our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right, :@path) {
     my @result;
     for ^$length -> $i {
         if Associative.ACCEPTS(@lhs[$i]) || Associative.ACCEPTS(@rhs[$i]) {
-            @result.push(hyper(&op, @lhs[$i], @rhs[$i], :$dwim-left, :$dwim-right, path => (@path, $i)).item);
+            @result.push(hyper(&op, @lhs[$i], @rhs[$i], :$dwim-left, :$dwim-right, path => $path ~ '[' ~ $i ~ ']').item);
         } elsif Iterable.ACCEPTS(@lhs[$i]) || Iterable.ACCEPTS(@rhs[$i]) {
-            @result.push([hyper(&op, @lhs[$i].list, @rhs[$i].list, :$dwim-left, :$dwim-right, path => (@path, $i))]);
+            @result.push([hyper(&op, @lhs[$i].list, @rhs[$i].list, :$dwim-left, :$dwim-right, path => $path ~ '[' ~ $i ~ ']')]);
         } else {
             @result.push(op(@lhs[$i], @rhs[$i]));
         }
@@ -100,11 +98,11 @@ our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right, :@path) {
     @result
 }
 
-our multi sub hyper(&op, $lhs, $rhs, :$dwim-left, :$dwim-right, :@path) {
-    hyper(&op, $lhs.list, $rhs.list, :$dwim-left, :$dwim-right, :@path);
+our multi sub hyper(&op, $lhs, $rhs, :$dwim-left, :$dwim-right, :$path = '') {
+    hyper(&op, $lhs.list, $rhs.list, :$dwim-left, :$dwim-right, :$path);
 }
 
-our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right, :@path) {
+our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right, :$path = '') {
     my %result;
     my @keys;
     if $dwim-left && $dwim-right {
@@ -121,9 +119,9 @@ our multi sub hyper(&op, %lhs, %rhs, :$dwim-left, :$dwim-right, :@path) {
 
     for @keys -> $key {
         if Associative.ACCEPTS(%lhs{$key}) || Associative.ACCEPTS(%rhs{$key}) {
-            %result{$key} = hyper(&op, %lhs{$key}, %rhs{$key}, :$dwim-left, :$dwim-right, path => (@path, $key)).item;
+            %result{$key} = hyper(&op, %lhs{$key}, %rhs{$key}, :$dwim-left, :$dwim-right, path => $path ~ '{' ~ $key.perl ~ '}').item;
         } elsif Iterable.ACCEPTS(%lhs{$key}) || Iterable.ACCEPTS(%rhs{$key}) {
-            %result{$key} = hyper(&op, %lhs{$key}.list, %rhs{$key}.list, :$dwim-left, :$dwim-right, path => (@path, $key));
+            %result{$key} = hyper(&op, %lhs{$key}.list, %rhs{$key}.list, :$dwim-left, :$dwim-right, path => $path ~ '{' ~ $key.perl ~ '}');
         } else {
             %result{$key} = op(%lhs{$key}, %rhs{$key});
         }
@@ -139,14 +137,12 @@ our multi sub hyper(&op, %arg) {
     %result;
 }
 
-our multi sub hyper(&op, %lhs, $rhs, :$dwim-left, :$dwim-right, :@path) {
+our multi sub hyper(&op, %lhs, $rhs, :$dwim-left, :$dwim-right, :$path) {
     unless ($dwim-right) {
         my $msg = "Sorry, structures on both sides of non-dwimmy hyperop are not of same shape:\n"
             ~ "    left:  Hash\n"
             ~ "    right: $rhs.WHAT.perl()\n";
-        if (+@path) {
-            $msg ~= "At path [@path.join(', ')]";
-        }
+        $msg ~= "At .$path" if $path;
         die $msg;
     }
     my %result;
@@ -156,14 +152,12 @@ our multi sub hyper(&op, %lhs, $rhs, :$dwim-left, :$dwim-right, :@path) {
     %result;
 }
 
-our multi sub hyper(&op, $lhs, %rhs, :$dwim-left, :$dwim-right, :@path) {
+our multi sub hyper(&op, $lhs, %rhs, :$dwim-left, :$dwim-right, :$path) {
     unless ($dwim-left) {
         my $msg = "Sorry, structures on both sides of non-dwimmy hyperop are not of same shape:\n"
             ~ "    left:  $lhs.WHAT.perl()\n"
             ~ "    right: Hash\n";
-        if (+@path) {
-            $msg ~= "At path [@path.join(', ')]";
-        }
+        $msg ~= "At .$path" if $path;
         die $msg;
     }
     my %result;

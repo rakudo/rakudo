@@ -32,12 +32,12 @@ part of monthly Parrot releases.
   2010-07-22   Rakudo #31 "Atlanta"            (Coke)
   2010-08-19   Rakudo #32 "Pisa"               (mathw)
   2010-09-23   Rakudo #33 "Milan"              (moritz)
+  2010-10-21   Rakudo #34 "Paris"              (duff)
 
 =head2 Planned 2010 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2010-10-21   Rakudo #34                      (duff)
   2010-11-18   Rakudo #35                      (masak)
   2010-12-23   Rakudo #36                      (smash)
   2011-01-20   Rakudo #37                      -vacant-

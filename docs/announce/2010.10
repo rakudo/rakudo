@@ -1,0 +1,57 @@
+    Announce: Rakudo Perl 6 compiler development release #34 ("Paris")
+
+On behalf of the Rakudo development team, I'm happy to announce the
+October 2010 release of Rakudo Perl #34 "Paris".  Rakudo is an 
+implementation of Perl 6 on the Parrot Virtual Machine (see 
+<http://www.parrot.org>). The tarball for the October 2010 release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Please note: This announcement is not for the Rakudo Star distribution --
+it's announcing a new release of the compiler only.  For the latest
+Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each release
+named after a Perl Mongers group. The October 2010 release is code named
+"Paris", because the of the Perl love at the Open Source Developers Conference 
+held in Paris, France earlier in the month.
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* we now have a simple version of require
+
+* the local timezone is available in $*TZ
+
+* samespace versions of m// and s/// were implemented as ms// and ss/// respectively.
+
+* Str.flip is now 100 times faster than it used to be
+
+* the subroutine version of Str.comb now exists
+
+* Hyperoperators can now be applied to infix:<+=> and friends.
+
+* improved diagnostic messages
+
+For a more detailed list of changes see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on 
+Parrot, the Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+
+Moritz Lenz, Kodi Arfer, Patrick R. Michaud, Bruce Gray, 
+Carl Masak, Ronald Schmidt, Jonathan Worthington, TimToady, 
+TimTom, PhatEddy, Patrick Abi Salloum, and your humble release
+manager Jonathan Scott Duff.
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#35) is scheduled for November 18, 2010.
+A list of the other planned release dates and code names for 2010 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!

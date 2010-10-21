@@ -395,7 +395,7 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
     }
 
     my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
-    return infinite-series(@lhs , $limit) unless $limit.defined; #Infinite series
+    return infinite-series(@lhs , $limit) if $rhs ~~ Whatever; #shortcut infinite series so we avoid the comparisions
 
     fail ('Limit arity cannot be larger than 1') if 	$limit ~~ Code && $limit.count > 1;
     my $series = infinite-series(@lhs , $limit);

@@ -163,7 +163,10 @@ augment class Any {
                   :excludes_max($excludes_max));
     }
 
-    multi method pick($num is copy = 1) {
+    multi method pick($num is copy = 1, Bool :$replace) {
+        die "Option :replace is deprecated -- please use .roll"
+            if $replace;
+
         my @l = @.list.Seq;
 
         if ($num == 1) {
@@ -180,7 +183,10 @@ augment class Any {
         }
     }
 
-    multi method pick(Whatever) {
+    multi method pick(Whatever, Bool :$replace) {
+        die "Option :replace is deprecated -- please use .roll"
+            if $replace;
+
         self.pick(Inf);
     }
 
@@ -374,7 +380,9 @@ proto sub min($by, *@values) { @values.min($by); }
 proto sub max($by, *@values) { @values.max($by); }
 proto sub minmax($by, *@values) { @values.minmax($by); }
 proto sub uniq(@values) { @values.uniq; }
-proto sub pick ($num, *@values) { @values.pick($num); }
+proto sub pick ($num, Bool :$replace, *@values) {
+    @values.pick($num, :$replace);
+}
 proto sub roll ($num, *@values) { @values.roll($num); }
 proto sub map($mapper, *@values) { @values.map($mapper); }
 proto sub kv(@array) { @array.kv; }

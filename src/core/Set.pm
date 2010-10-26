@@ -1,4 +1,4 @@
-class Set does Associative {
+class Set is Iterable does Associative {
     # We could use a hash here, but right now hash keys coerce to Str,
     # so instead let's use an array and &uniq for the time being.
     has @!elems;
@@ -106,6 +106,10 @@ class Set does Associative {
 
     method perl() {
         'set(' ~ join(', ', map { .perl }, @!elems) ~ ')';
+    }
+
+    method iterator() {
+        @!elems.iterator;
     }
 }
 

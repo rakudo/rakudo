@@ -91,13 +91,13 @@ class Complex does Numeric is Cool {
     }
 
     method roots(Complex $x: Int $n) {
-       return NaN if $n < 1;
-       return self if $n == 1;
-       return NaN  if $x.re | $x.im ~~  Inf | NaN | -Inf;
+        return NaN if $n < 1;
+        return self if $n == 1;
+        return NaN  if $x.re | $x.im ~~  Inf | NaN | -Inf;
 
-       my ($mag, $angle) = $x.polar;
-       $mag **= 1 / $n;
-       (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
+        my ($mag, $angle) = $x.polar;
+        $mag **= 1 / $n;
+        (^$n).map: { $mag.unpolar( ($angle + $_ * 2 * pi) / $n) };
     }
 
     multi method polar() {
@@ -117,7 +117,7 @@ class Complex does Numeric is Cool {
     }
 
     method acos(Complex $x: $base = Radians) {
-      (pi / 2).from-radians($base) - $x.asin($base);
+        (pi / 2).from-radians($base) - $x.asin($base);
     }
 
     method tan(Complex $x: $base = Radians) {
@@ -125,7 +125,7 @@ class Complex does Numeric is Cool {
     }
 
     method atan(Complex $x: $base = Radians) {
-       ((log(1 - ($x)i) - log(1 + ($x)i))i / 2).from-radians($base);
+        ((log(1 - ($x)i) - log(1 + ($x)i))i / 2).from-radians($base);
     }
 
     method sec(Complex $x: $base = Radians) {
@@ -157,7 +157,7 @@ class Complex does Numeric is Cool {
     }
 
     method asinh(Complex $x: $base = Radians) {
-       ($x + sqrt(1 + $x * $x)).log.from-radians($base);
+        ($x + sqrt(1 + $x * $x)).log.from-radians($base);
     }
 
     method cosh(Complex $x: $base = Radians) {
@@ -165,7 +165,7 @@ class Complex does Numeric is Cool {
     }
 
     method acosh(Complex $x: $base = Radians) {
-       ($x + sqrt($x * $x - 1)).log.from-radians($base);
+        ($x + sqrt($x * $x - 1)).log.from-radians($base);
     }
 
     method tanh(Complex $x: $base = Radians) {
@@ -173,7 +173,7 @@ class Complex does Numeric is Cool {
     }
 
     method atanh(Complex $x: $base = Radians) {
-       (((1 + $x) / (1 - $x)).log / 2).from-radians($base);
+        (((1 + $x) / (1 - $x)).log / 2).from-radians($base);
     }
 
     method sech(Complex $x: $base = Radians) {
@@ -211,7 +211,7 @@ multi sub infix:<+>(Complex $a, Complex $b) {
 }
 
 multi sub infix:<+>(Complex $a, Real $b) {
-   Complex.new($a.re + $b, $a.im);
+    Complex.new($a.re + $b, $a.im);
 }
 
 multi sub infix:<+>(Real $a, Complex $b) {
@@ -230,7 +230,7 @@ multi sub infix:<->(Complex $a, Complex $b) {
 }
 
 multi sub infix:<->(Complex $a, Real $b) {
-   Complex.new($a.re - $b, $a.im);
+    Complex.new($a.re - $b, $a.im);
 }
 
 multi sub infix:<->(Real $a, Complex $b) {
@@ -242,7 +242,7 @@ multi sub infix:<*>(Complex $a, Complex $b) {
 }
 
 multi sub infix:<*>(Complex $a, Real $b) {
-   Complex.new($a.re * $b, $a.im * $b);
+    Complex.new($a.re * $b, $a.im * $b);
 }
 
 multi sub infix:<*>(Real $a, Complex $b) {
@@ -264,11 +264,11 @@ multi sub infix:</>(Real $a, Complex $b) {
 }
 
 multi sub infix:<**>(Complex $a, Complex $b) {
-   ($a.log * $b).exp;
+    ($a.log * $b).exp;
 }
 
 multi sub infix:<**>(Complex $a, Real $b) {
-   ($a.log * $b).exp;
+    ($a.log * $b).exp;
 }
 
 multi sub infix:<**>(Real $a, Complex $b) {

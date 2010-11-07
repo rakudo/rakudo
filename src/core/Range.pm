@@ -75,9 +75,8 @@ class Range is Iterable does Positional {
         $.min before $topic || (!$.excludes_min && !($.min after $topic));
     }
 
-    multi method pick($num = 1) {
-        return self.roll if $num == 1;
-        nextsame;
+    multi method pick(1) {
+        self.roll;
     }
 
     multi method pick(Whatever) {

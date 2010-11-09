@@ -164,6 +164,8 @@ augment class Cool {
     }
 
     multi method trans(*@changes) {
+        return self unless @changes;
+
         my sub expand($s) {
             return $s.list if $s ~~ Iterable|Positional;
             gather for $s.comb(/ (\w) '..' (\w) | . /, :match) {

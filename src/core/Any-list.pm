@@ -390,6 +390,8 @@ proto sub keys(@array) { @array.keys; }
 proto sub values(@array) { @array.values; }
 proto sub pairs(@array) { @array.pairs; }
 proto sub rotate(@array, $n = 1) { @array.rotate($n); }
+proto sub elems(@array) { @array.elems; }
+multi sub elems(*@list) { @list.elems; }
 
 multi sub sort(*@values, :&by) {
     my &x = &by // (@values[0] ~~ Callable ?? @values.shift !! &infix:<cmp> );

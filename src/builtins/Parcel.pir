@@ -38,10 +38,9 @@ A Parcel in item context becomes a Seq.
 =cut
 
 .sub 'item' :method
-    .local pmc seq, flat, rest
+    .local pmc seq
     seq = get_hll_global 'Seq'
-    seq = seq.'new'(self)
-    seq.'eager'()
+    seq = seq.'new_from_RPA'(self)
     seq = seq.'item'()
     .return (seq)
 .end

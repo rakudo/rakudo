@@ -44,7 +44,19 @@ close $REQ;
 }
 
 print "Checking out Parrot r$reqsvn via svn...\n";
-system_or_die(qw(svn checkout -r),  $reqsvn , qw(https://svn.parrot.org/parrot/trunk parrot));
+if (-d 'parrot') {
+    if (-d 'parrot/.svn') {
+        die "===SORRY===\n"
+           ."Your 'parrot' directory is still an SVN repository.\n"
+           ."Parrot switched to git recently; in order to replace your\n"
+           ."repository by a git repository, please manually delete\n"
+           ."the 'parrot' directory, and then re-run the command that caused\n"
+           ."this error message\n";
+    }
+} elsif (-d 'parrot') {
+    system_or_die(qw(git clone git://github.com/parrot/parrot.git parrot));
+}
+system_or_die(qw(git checkout),  $reqsvn);
 
 chdir('parrot') || die "Can't chdir to 'parrot': $!";
 

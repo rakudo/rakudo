@@ -30,7 +30,7 @@ my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 ##  determine what revision of Parrot we require
 open my $REQ, "build/PARROT_REVISION"
   || die "cannot open build/PARROT_REVISION\n";
-my ($reqsvn, $reqpar) = split(' ', <$REQ>);
+my ($req, $reqpar) = split(' ', <$REQ>);
 close $REQ;
 
 {
@@ -39,14 +39,14 @@ close $REQ;
         my $revision = <$REV>;
         close $REV;
         $revision =~ s/\s.*//s;
-        if (compare_parrot_revs($revision, $reqsvn) >= 0) {
-            print "Parrot $revision already available ($reqsvn required)\n";
+        if (compare_parrot_revs($revision, $req) >= 0) {
+            print "Parrot $revision already available ($req required)\n";
             exit(0);
         }
     }
 }
 
-print "Checking out Parrot $reqsvn via git...\n";
+print "Checking out Parrot $req via git...\n";
 if (-d 'parrot') {
     if (-d 'parrot/.svn') {
         die "===SORRY===\n"
@@ -56,13 +56,14 @@ if (-d 'parrot') {
            ."the 'parrot' directory, and then re-run the command that caused\n"
            ."this error message\n";
     }
+    system_or_die(qw(git fetch));
 } else {
     system_or_die(qw(git clone git://github.com/parrot/parrot.git parrot));
 }
-system_or_die(qw(git checkout),  $reqsvn);
 
 chdir('parrot') || die "Can't chdir to 'parrot': $!";
 
+system_or_die(qw(git checkout),  $req);
 
 ##  If we have a Makefile from a previous build, do a 'make realclean'
 if (-f 'Makefile') {

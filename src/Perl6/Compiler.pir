@@ -268,7 +268,7 @@ Perl6::Compiler - Perl6 compiler
     print ' built on parrot '
     print version
   unless rev goto done_rev
-    print ' r'
+    print ' '
     print rev
   done_rev:
     say ''

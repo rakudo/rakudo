@@ -36,7 +36,8 @@ MAIN: {
 
         print "Generating Parrot ...\n";
         print "@command\n\n";
-        system @command;
+        system(@command) == 0
+            or die "Error while executing @command; aborting\n";
     }
 
     # Get a list of parrot-configs to invoke.

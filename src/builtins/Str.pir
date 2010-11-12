@@ -248,6 +248,7 @@ Overridden for Str.
     pio.'encoding'('utf8')
     $P0 = pio.'readall'()
     pio.'close'()
+    $P0 = '&prefix:<~>'($P0)
     .return ($P0)
   err_qx:
     .tailcall '!FAIL'('Unable to execute "', cmd, '"')

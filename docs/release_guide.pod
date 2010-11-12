@@ -98,8 +98,8 @@ the release announcement).
 =item 2.
 
 Once Parrot issues its monthly release, edit Rakudo's
-build/PARROT_REVISION file to contain the subversion revision
-number and release number corresponding to Parrot's monthly
+build/PARROT_REVISION file to contain the C<git describe --tags> output
+and release number corresponding to Parrot's monthly
 release.  For example, for June 2009 PARROT_REVISION file
 contained "39599 1.3.0".  As always, test to make sure Rakudo
 still builds and passes its tests.  Once build/PARROT_REVISION

@@ -260,7 +260,7 @@ Perl6::Compiler - Perl6 compiler
     interp = getinterp
     config = interp[.IGLOBALS_CONFIG_HASH]
     version = config['VERSION']
-    rev    = config['revision']
+    rev    = config['git_describe']
 
     say ''
     print 'This is Rakudo Perl 6, version '

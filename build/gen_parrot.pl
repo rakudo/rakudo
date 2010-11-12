@@ -21,6 +21,9 @@ use strict;
 use warnings;
 use 5.008;
 
+use lib "build/lib";
+use Rakudo::CompareRevisions qw(compare_parrot_revs);
+
 #  Work out slash character to use.
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 
@@ -28,22 +31,22 @@ my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 open my $REQ, "build/PARROT_REVISION"
   || die "cannot open build/PARROT_REVISION\n";
 my ($reqsvn, $reqpar) = split(' ', <$REQ>);
-$reqsvn += 0;
 close $REQ;
 
 {
     no warnings;
     if (open my $REV, '-|', "parrot_install${slash}bin${slash}parrot_config revision") {
-        my $revision = 0+<$REV>;
+        my $revision = <$REV>;
         close $REV;
-        if ($revision >= $reqsvn) {
-            print "Parrot r$revision already available (r$reqsvn required)\n";
+        $revision =~ s/\s.*//s;
+        if (compare_parrot_revs($revision, $reqsvn) >= 0) {
+            print "Parrot $revision already available ($reqsvn required)\n";
             exit(0);
         }
     }
 }
 
-print "Checking out Parrot r$reqsvn via svn...\n";
+print "Checking out Parrot $reqsvn via git...\n";
 if (-d 'parrot') {
     if (-d 'parrot/.svn') {
         die "===SORRY===\n"
@@ -53,7 +56,7 @@ if (-d 'parrot') {
            ."the 'parrot' directory, and then re-run the command that caused\n"
            ."this error message\n";
     }
-} elsif (-d 'parrot') {
+} else {
     system_or_die(qw(git clone git://github.com/parrot/parrot.git parrot));
 }
 system_or_die(qw(git checkout),  $reqsvn);

@@ -1,6 +1,9 @@
-package Rakudo::CompareRevision;
+package Rakudo::CompareRevisions;
 use strict;
 use warnings;
+
+use base qw(Exporter);
+our @EXPORT_OK = qw(compare_parrot_revs parse_parrot_git_describe);
 
 sub parse_parrot_git_describe {
     my $g = shift;
@@ -16,8 +19,8 @@ sub compare_parrot_revs {
     my ($aa, $bb) = @_;
     return  1 if $bb =~ /^r?\d+$/;
     return -1 if $aa =~ /^r?\d+$/;
-    my @a = parse_git_describe($aa);
-    my @b = parse_git_describe($bb);
+    my @a = parse_parrot_git_describe($aa);
+    my @b = parse_parrot_git_describe($bb);
     for (0..3) {
         my $cmp = $a[$_] <=> $b[$_];
         return $cmp if $cmp;

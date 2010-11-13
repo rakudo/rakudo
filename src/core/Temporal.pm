@@ -289,7 +289,7 @@ class DateTime does Dateish {
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
         $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d)(\d\d))? $/
-            or die "DateTime.new(Str) expects an ISO 8601 string\n";
+            or die 'Invalid DateTime string; please an ISO 8601 timestamp';
         my $year   = (+$0).Int;
         my $month  = (+$1).Int;
         my $day    = (+$2).Int;
@@ -449,9 +449,9 @@ class Date does Dateish {
         self.new(:$year, :$month, :$day);
     }
 
-    multi method new(Str $date where { $date ~~ /
-            ^ <[0..9]>**4 '-' <[0..9]>**2 '-' <[0..9]>**2 $
-        /}) {
+    multi method new(Str $date) {
+        $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
+            or die 'Invalid Date string; please use the format "yyyy-mm-dd"';
         self.new(|$date.split('-').map(*.Int));
     }
 

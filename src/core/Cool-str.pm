@@ -179,7 +179,7 @@ augment class Cool {
 
         my %c;
         for (@changes) -> $p {
-            die "$p.perl is not a Pair" unless $p ~~ Pair;
+            die "$p.perl() is not a Pair" unless $p ~~ Pair;
             my @from = expand $p.key;
             my @to   = expand $p.value;
             if @to {

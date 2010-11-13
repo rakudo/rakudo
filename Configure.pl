@@ -6,6 +6,8 @@ use strict;
 use warnings;
 use Getopt::Long;
 use Cwd;
+use lib "build/lib";
+use Rakudo::CompareRevisions qw(compare_parrot_revs);
 
 MAIN: {
     my %options;
@@ -22,7 +24,6 @@ MAIN: {
     open my $REQ, '<', "build/PARROT_REVISION"
       or die "cannot open build/PARROT_REVISION: $!\n";
     my ($reqsvn, $reqpar) = split(' ', <$REQ>);
-    $reqsvn += 0;
     close $REQ;
 
     # Update/generate parrot build if needed
@@ -35,7 +36,8 @@ MAIN: {
 
         print "Generating Parrot ...\n";
         print "@command\n\n";
-        system @command;
+        system(@command) == 0
+            or die "Error while executing @command; aborting\n";
     }
 
     # Get a list of parrot-configs to invoke.
@@ -60,16 +62,16 @@ MAIN: {
     if (!%config) { 
         $parrot_errors .= "Unable to locate parrot_config\n"; 
     }
-    elsif ($reqsvn > $config{'revision'} &&
+    elsif (compare_parrot_revs($reqsvn, $config{'git_describe'}) < 0 &&
             ($reqpar eq '' || version_int($reqpar) > version_int($config{'VERSION'}))) {
-        $parrot_errors .= "Parrot revision r$reqsvn required (currently r$config{'revision'})\n";
+        $parrot_errors .= "Parrot revision $reqsvn required (currently $config{'git_describe'})\n";
     }
 
     if ($parrot_errors) {
         die <<"END";
 ===SORRY!===
 $parrot_errors
-To automatically checkout (svn) and build a copy of parrot r$reqsvn,
+To automatically clone (git) and build a copy of parrot $reqsvn,
 try re-running Configure.pl with the '--gen-parrot' option.
 Or, use the '--parrot-config' option to explicitly specify
 the location of parrot_config to be used to build Rakudo Perl.

@@ -21,33 +21,49 @@ use strict;
 use warnings;
 use 5.008;
 
+use lib "build/lib";
+use Rakudo::CompareRevisions qw(compare_parrot_revs);
+
 #  Work out slash character to use.
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 
 ##  determine what revision of Parrot we require
 open my $REQ, "build/PARROT_REVISION"
   || die "cannot open build/PARROT_REVISION\n";
-my ($reqsvn, $reqpar) = split(' ', <$REQ>);
-$reqsvn += 0;
+my ($req, $reqpar) = split(' ', <$REQ>);
 close $REQ;
 
 {
     no warnings;
     if (open my $REV, '-|', "parrot_install${slash}bin${slash}parrot_config revision") {
-        my $revision = 0+<$REV>;
+        my $revision = <$REV>;
         close $REV;
-        if ($revision >= $reqsvn) {
-            print "Parrot r$revision already available (r$reqsvn required)\n";
+        $revision =~ s/\s.*//s;
+        if (compare_parrot_revs($revision, $req) >= 0) {
+            print "Parrot $revision already available ($req required)\n";
             exit(0);
         }
     }
 }
 
-print "Checking out Parrot r$reqsvn via svn...\n";
-system_or_die(qw(svn checkout -r),  $reqsvn , qw(https://svn.parrot.org/parrot/trunk parrot));
+print "Checking out Parrot $req via git...\n";
+if (-d 'parrot') {
+    if (-d 'parrot/.svn') {
+        die "===SORRY===\n"
+           ."Your 'parrot' directory is still an SVN repository.\n"
+           ."Parrot switched to git recently; in order to replace your\n"
+           ."repository by a git repository, please manually delete\n"
+           ."the 'parrot' directory, and then re-run the command that caused\n"
+           ."this error message\n";
+    }
+    system_or_die(qw(git fetch));
+} else {
+    system_or_die(qw(git clone git://github.com/parrot/parrot.git parrot));
+}
 
 chdir('parrot') || die "Can't chdir to 'parrot': $!";
 
+system_or_die(qw(git checkout),  $req);
 
 ##  If we have a Makefile from a previous build, do a 'make realclean'
 if (-f 'Makefile') {

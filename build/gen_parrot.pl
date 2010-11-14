@@ -35,7 +35,8 @@ close $REQ;
 
 {
     no warnings;
-    if (open my $REV, '-|', "parrot_install${slash}bin${slash}parrot_config revision") {
+    if (-e "parrot_install${slash}bin${slash}parrot_config revision" &&
+      open my $REV, '-|', "parrot_install${slash}bin${slash}parrot_config revision") {
         my $revision = <$REV>;
         close $REV;
         $revision =~ s/\s.*//s;

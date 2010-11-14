@@ -98,8 +98,16 @@ our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right, :$path = '') {
     @result
 }
 
-our multi sub hyper(&op, $lhs, $rhs, :$dwim-left, :$dwim-right, :$path = '') {
-    hyper(&op, $lhs.list, $rhs.list, :$dwim-left, :$dwim-right, :$path);
+our multi sub hyper(&op, ::T1 $lhs, ::T2 $rhs, :$dwim-left, :$dwim-right, :$path = '') {
+    my $result = hyper(&op, $lhs.list, $rhs.list, :$dwim-left, :$dwim-right, :$path);
+    if T1 ~~ Iterable && T1 !~~ Positional &&
+       not T2 ~~ Iterable && T2 !~~ Positional && $dwim-left && !$dwim-right {
+        T1.new($result)
+    } elsif T2 ~~ Iterable && T2 !~~ Positional {
+        T2.new($result)
+    } else {
+        $result
+    }
 }
 
 role Hash { ... }
@@ -180,8 +188,9 @@ our multi sub hyper(&op, @arg) {
     @result
 }
 
-our multi sub hyper(&op, $arg) {
-    hyper(&op, $arg.list)
+our multi sub hyper(&op, ::T $arg) {
+    my $result = hyper(&op, $arg.list);
+    T ~~ Iterable && T !~~ Positional ?? T.new($result) !! $result
 }
 
 our multi sub reducewith(&op, *@args,

@@ -99,15 +99,21 @@ our multi sub hyper(&op, @lhs, @rhs, :$dwim-left, :$dwim-right, :$path = '') {
 }
 
 our multi sub hyper(&op, ::T1 $lhs, ::T2 $rhs, :$dwim-left, :$dwim-right, :$path = '') {
-    my $result = hyper(&op, $lhs.list, $rhs.list, :$dwim-left, :$dwim-right, :$path);
-    if T1 ~~ Iterable && T1 !~~ Positional &&
-       not T2 ~~ Iterable && T2 !~~ Positional && $dwim-left && !$dwim-right {
-        T1.new($result)
-    } elsif T2 ~~ Iterable && T2 !~~ Positional {
-        T2.new($result)
-    } else {
-        $result
+    my $lhs-list = $lhs.list;
+    my $rhs-list = $rhs.list;
+    my $unordered = Any;
+    if $lhs-list.elems != 1 and $lhs ~~ Iterable and $lhs !~~ Positional {
+        $unordered = T1;
+        $rhs-list.elems == 1 or die 'When one argument of a hyperoperator is an unordered data structure, the other must be scalar';
+    } elsif $rhs-list.elems != 1 and $rhs ~~ Iterable and $rhs !~~ Positional {
+        $unordered = T2;
+        $lhs-list.elems == 1 or die 'When one argument of a hyperoperator is an unordered data structure, the other must be scalar';
     }
+    my $result = hyper(&op, $lhs-list, $rhs-list, :$dwim-left, :$dwim-right, :$path);
+    # If one of the arguments is unordered, we cast our return
+    # value to be of its type, so set(1, 2, 3) »+» will return a Set
+    # instead of an ordered type.
+    $unordered !=== Any ?? $unordered.new($result) !! $result
 }
 
 role Hash { ... }

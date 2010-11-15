@@ -58,13 +58,13 @@ if (-d 'parrot') {
            ."the 'parrot' directory, and then re-run the command that caused\n"
            ."this error message\n";
     }
-    system_or_die(qw(git fetch));
 } else {
     system_or_die(qw(git clone git://github.com/parrot/parrot.git parrot));
 }
 
 chdir('parrot') || die "Can't chdir to 'parrot': $!";
 
+system_or_die(qw(git fetch));
 system_or_die(qw(git checkout),  $req);
 
 ##  If we have a Makefile from a previous build, do a 'make realclean'

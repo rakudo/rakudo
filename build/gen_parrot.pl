@@ -49,6 +49,7 @@ close $REQ;
 }
 
 print "Checking out Parrot $req via git...\n";
+my $fetched = 0;
 if (-d 'parrot') {
     if (-d 'parrot/.svn') {
         die "===SORRY===\n"
@@ -60,11 +61,12 @@ if (-d 'parrot') {
     }
 } else {
     system_or_die(qw(git clone git://github.com/parrot/parrot.git parrot));
+    $fetched = 1;
 }
 
 chdir('parrot') || die "Can't chdir to 'parrot': $!";
 
-system_or_die(qw(git fetch));
+system_or_die(qw(git fetch)) unless $fetched;
 system_or_die(qw(git checkout),  $req);
 
 ##  If we have a Makefile from a previous build, do a 'make realclean'

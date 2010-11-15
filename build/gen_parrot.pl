@@ -35,16 +35,17 @@ close $REQ;
 
 {
     no warnings;
-    if (-e "parrot_install${slash}bin${slash}parrot_config revision" &&
-      open my $REV, '-|', "parrot_install${slash}bin${slash}parrot_config revision") {
-        my $revision = <$REV>;
-        close $REV;
-        $revision =~ s/\s.*//s;
-        if (compare_parrot_revs($revision, $req) >= 0) {
-            print "Parrot $revision already available ($req required)\n";
-            exit(0);
+    eval {
+        if (open my $REV, '-|', "parrot_install${slash}bin${slash}parrot_config git_describe") {
+            my $revision = <$REV>;
+            close $REV;
+            $revision =~ s/\s.*//s;
+            if (compare_parrot_revs($revision, $req) >= 0) {
+                print "Parrot $revision already available ($req required)\n";
+                exit(0);
+            }
         }
-    }
+    };
 }
 
 print "Checking out Parrot $req via git...\n";

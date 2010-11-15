@@ -14,7 +14,7 @@ Rakudo Perl 6
   Build requirements (Installing from source)
     For building Rakudo you need at least a C compiler, a "make" utility,
     and Perl 5.8 or newer. To automatically obtain and build Parrot you
-    may also need a subversion (svn) client, and a git client for the
+    may also need a a git client, which is also needed for fetching the
     test suite.
 
     In order to fully support Unicode, you'll also want to have the ICU
@@ -24,7 +24,7 @@ Rakudo Perl 6
     As an example, on Debian GNU/Linux or Ubuntu Linux, the necessary
     components for building Rakudo can be installed via the command
 
-        aptitude install build-essential libicu-dev subversion git-core
+        aptitude install build-essential libicu-dev git-core
 
     (Perl is installed by default already). To enable parallel testing you
     also need the CPAN module Test::Harness in version 3.16 or newer; you

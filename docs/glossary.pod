@@ -27,7 +27,7 @@ tree into its equivalent abstract syntax tree representation.
 Parrot design documents are the specifications for Parrot's
 interface to its "outside world".  The PDDs serve basically
 the same purpose for Parrot that the Synopses serve for Perl 6.
-(See L<http://svn.parrot.org/parrot/trunk/docs/pdds/>.)
+(See L<https://github.com/parrot/parrot/tree/master/docs/pdds/>).
 
 =item parse grammar
 
@@ -74,8 +74,7 @@ For more info, see L<http://use.perl.org/~pmichaud/journal/35400>.
 =item STD.pm
 
 STD.pm is the "standard" Perl 6 grammar definition,
-currently under development in the Pugs repository.  (See
-L<http://svn.pugscode.org/pugs/src/perl6/STD.pm>.)
+see L<https://github.com/perl6/std/>.
 At the moment STD.pm is not really a "specification" in a
 proscriptive sense -- it's more of a guideline or model for
 Perl 6 implementations to follow.  The goal is that eventually

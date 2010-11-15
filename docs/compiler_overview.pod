@@ -169,8 +169,8 @@ turn tries to match .....
 That is why this parsing algorithm is called Recursive Descent.
 
 The top-level portion of the grammar is written using Perl 6 rules
-(Synopsis 5) and is based on the STD.pm grammar in the Pugs repository
-(F<http://svn.pugscode.org/pugs/src/perl6/STD.pm>).  There are a few
+(Synopsis 5) and is based on the STD.pm grammar in the C<perl6/std>
+repository (L<https://github.com/perl6/std/>).  There are a few
 places where Rakudo's grammar deviates from STD.pm, but the ultimate
 goal is for the two to converge.  Rakudo's grammar inherits from PCT's
 C<HLL::Grammar>, which provides the C<< <.panic> >> rule to throw
@@ -224,7 +224,6 @@ The Parrot Compiler Toolkit provides a wide variety of PAST node types
 for representing the various components of a HLL program -- for more
 details about the available node types, see PDD 26
 (
-L<http://svn.parrot.org/parrot/trunk/docs/pdds/pdd26_ast.pod> or
 L<http://docs.parrot.org/parrot/latest/html/docs/pdds/pdd26_ast.pod.html>
 ).
 The PAST representation is the final stage of processing in Rakudo

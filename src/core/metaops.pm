@@ -109,11 +109,11 @@ our multi sub hyper(&op, ::T1 $lhs, ::T2 $rhs, :$dwim-left, :$dwim-right, :$path
         $unordered = T2;
         $lhs-list.elems == 1 or die 'When one argument of a hyperoperator is an unordered data structure, the other must be scalar';
     }
-    my $result = hyper(&op, $lhs-list, $rhs-list, :$dwim-left, :$dwim-right, :$path);
+    my @result = hyper(&op, $lhs-list, $rhs-list, :$dwim-left, :$dwim-right, :$path);
     # If one of the arguments is unordered, we cast our return
     # value to be of its type, so set(1, 2, 3) »+» will return a Set
     # instead of an ordered type.
-    $unordered !=== Any ?? $unordered.new($result) !! $result
+    $unordered !=== Any ?? $unordered.new(@result) !! @result
 }
 
 role Hash { ... }
@@ -195,8 +195,8 @@ our multi sub hyper(&op, @arg) {
 }
 
 our multi sub hyper(&op, ::T $arg) {
-    my $result = hyper(&op, $arg.list);
-    T ~~ Iterable && T !~~ Positional ?? T.new($result) !! $result
+    my @result = hyper(&op, $arg.list);
+    T ~~ Iterable && T !~~ Positional ?? T.new(@result) !! @result
 }
 
 our multi sub reducewith(&op, *@args,

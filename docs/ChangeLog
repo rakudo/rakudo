@@ -1,3 +1,10 @@
+New in 2010.11 release
++ now works with parrot on git
++ implemented qw//
++ 5x speedup of .trans 
++ various improvements to Set
++ don't use deprecated charset ops anymore
+
 New in 2010.10 release
 + True and False now stringify according to the specification
 + basic form of 'require' for run time module loading

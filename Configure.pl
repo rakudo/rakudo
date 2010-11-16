@@ -62,7 +62,7 @@ MAIN: {
     if (!%config) { 
         $parrot_errors .= "Unable to locate parrot_config\n"; 
     }
-    elsif (compare_parrot_revs($reqsvn, $config{'git_describe'}) < 0 &&
+    elsif (compare_parrot_revs($reqsvn, $config{'git_describe'}) > 0 &&
             ($reqpar eq '' || version_int($reqpar) > version_int($config{'VERSION'}))) {
         $parrot_errors .= "Parrot revision $reqsvn required (currently $config{'git_describe'})\n";
     }

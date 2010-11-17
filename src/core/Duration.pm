@@ -65,7 +65,7 @@ our multi sub infix:<%>(Duration $a, Duration $b) {
 }
 
 our multi sub infix:<**>(Duration $a, Real $b) {
-    Duration.new: $a.x ** $b
+    $a.x ** $b
 }
 our multi sub infix:<**>(Real $a, Duration $b) {
     die "Can't use a Duration as an exponent"

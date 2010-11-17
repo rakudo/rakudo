@@ -3567,9 +3567,14 @@ sub whatever_curry($/, $past, $upto_arity) {
 
                 if $right.returns eq 'WhateverCode' {
                     $right_new := PAST::Op.new( :pasttype('call'), :node($/), $right);
-                    my $total_arity := $counter + $right.arity;
-                    while $counter < $total_arity {
+                    # Next block is a bit weird, because $counter + $right.arity was
+                    # consistently failing.  So we create a new variable as a temporary
+                    # counter.
+                    my $right_arity := $right.arity;
+                    my $right_counter := 0;
+                    while $right_counter < $right_arity {
                         $counter++;
+                        $right_counter++;
                         $right_new.push(PAST::Var.new( :name('$x' ~ $counter), :scope('lexical') ));
                         $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
                     }

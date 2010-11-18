@@ -62,9 +62,19 @@ MAIN: {
     if (!%config) { 
         $parrot_errors .= "Unable to locate parrot_config\n"; 
     }
-    elsif (compare_parrot_revs($reqsvn, $config{'git_describe'}) > 0 &&
-            ($reqpar eq '' || version_int($reqpar) > version_int($config{'VERSION'}))) {
-        $parrot_errors .= "Parrot revision $reqsvn required (currently $config{'git_describe'})\n";
+    else {
+        if ($config{git_describe}) {
+            # a parrot built from git
+            if (compare_parrot_revs($reqsvn, $config{'git_describe'}) > 0) {
+                $parrot_errors .= "Parrot revision $reqsvn required (currently $config{'git_describe'})\n";
+            }
+        }
+        else {
+            # not built from a git repo - let's assume it's a release
+            if (version_int($reqpar) > version_int($config{'VERSION'})) {
+                $parrot_errors .= "Parrot version $reqpar required (currently $config{VERSION})\n";
+            }
+        }
     }
 
     if ($parrot_errors) {

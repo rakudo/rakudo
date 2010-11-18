@@ -3516,6 +3516,10 @@ sub capture_or_parcel($args, $name) {
 # to curry for now; in the future, we will inspect the multi signatures
 # of the op to decide, or likely store things in this hash from that
 # introspection and keep it as a quick cache.
+
+# not_curried = 1 means do not curry Whatever, but do curry WhateverCode
+# not_curried = 2 means do not curry either.
+
 our %not_curried;
 INIT {
     %not_curried{'&infix:<...>'}  := 1;
@@ -3523,20 +3527,22 @@ INIT {
     %not_curried{'&infix:<..^>'}  := 1;
     %not_curried{'&infix:<^..>'}  := 1;
     %not_curried{'&infix:<^..^>'} := 1;
-    %not_curried{'&prefix:<^>'}   := 1;
+    %not_curried{'&prefix:<^>'}   := 2;
     %not_curried{'&infix:<xx>'}   := 1;
-    %not_curried{'&infix:<~~>'}   := 1;
-    %not_curried{'&infix:<=>'}    := 1;
-    %not_curried{'&infix:<:=>'}   := 1;
-    %not_curried{'WHAT'}          := 1;
-    %not_curried{'HOW'}           := 1;
-    %not_curried{'WHO'}           := 1;
-    %not_curried{'WHERE'}         := 1;
+    %not_curried{'&infix:<~~>'}   := 2;
+    %not_curried{'&infix:<=>'}    := 2;
+    %not_curried{'&infix:<:=>'}   := 2;
+    %not_curried{'WHAT'}          := 2;
+    %not_curried{'HOW'}           := 2;
+    %not_curried{'WHO'}           := 2;
+    %not_curried{'WHERE'}         := 2;
 }
 sub whatever_curry($/, $past, $upto_arity) {
-    if $past.isa(PAST::Op) && !%not_curried{$past.name} && $past<pasttype> ne 'call' {
-        if ($upto_arity >= 1 && ($past[0].returns eq 'Whatever' || $past[0].returns eq 'WhateverCode'))
-        || ($upto_arity == 2 && ($past[1].returns eq 'Whatever' || $past[1].returns eq 'WhateverCode')) {
+    if $past.isa(PAST::Op) && %not_curried{$past.name} != 2 && $past<pasttype> ne 'call' {
+        if ($upto_arity >= 1 && (($past[0].returns eq 'Whatever' && !%not_curried{$past.name})
+                                 || $past[0].returns eq 'WhateverCode'))
+        || ($upto_arity == 2 && (($past[1].returns eq 'Whatever' && !%not_curried{$past.name})
+                                 || $past[1].returns eq 'WhateverCode')) {
 
             my $counter := 0;
             my $sig := Perl6::Compiler::Signature.new();

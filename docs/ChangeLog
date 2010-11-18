@@ -4,6 +4,11 @@ New in 2010.11 release
 + 5x speedup of .trans 
 + various improvements to Set
 + don't use deprecated charset ops anymore
++ Bool.Bool and Bool.so now return False
++ implemented &elems
++ improved error for Date.new(Str)
++ improvement on hyperoperators
++ indexings like .[0 .. *-1] work now
 
 New in 2010.10 release
 + True and False now stringify according to the specification

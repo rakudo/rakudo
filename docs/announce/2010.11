@@ -22,7 +22,8 @@ release include:
 
 * .trans is now 5 times faster
 
-* can now index with both ranges and Whatever offsets: @a[0 .. *-2]
+* indexing is now possible with both ranges and Whatever
+  offsets together: @a[0 .. *-2]
 
 For a more detailed list of changes, see "docs/ChangeLog".
 

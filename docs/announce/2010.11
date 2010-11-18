@@ -12,8 +12,8 @@ Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
 
 The Rakudo Perl compiler follows a monthly release cycle, with each release
 named after a Perl Mongers group. The November 2010 release is code named
-"Melbourne", PM group of Damian Conway, long-time advocate, explicator, and
-contributor to Perl 6.
+"Melbourne", PM group of Damian Conway, long-time advocate/explicator of
+and contributor to Perl 6.
 
 Some of the specific changes and improvements occurring with this
 release include:

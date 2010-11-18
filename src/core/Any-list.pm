@@ -297,7 +297,7 @@ augment class Any {
         self[0..(self.elems-1)]
     }
 
-    our multi method postcircumfix:<[ ]>(&block) { self[&block(self.elems)]; }
+    our multi method postcircumfix:<[ ]>(&block) { self[&block(|(self.elems xx &block.count))]; }
 
     our multi method postcircumfix:<[ ]>(@pos) {
         my $result = pir::new__ps('ResizablePMCArray');

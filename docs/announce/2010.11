@@ -35,7 +35,8 @@ The following people contributed to this release:
 
 Moritz Lenz, Solomon Foster, Kodi Arfer, Tadeusz Sośnierz, Nick Wellnhofer,
 Jonathan Scott Duff, Bruce Gray, Jonathan Worthington, Patrick R.  Michaud,
-mikehh, flussence, and your humble release manager Carl Mäsak.
+mikehh, flussence, Jan Ingvoldstad, and your humble release manager Carl
+Mäsak.
 
 If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
 the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.

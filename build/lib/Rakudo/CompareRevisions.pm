@@ -8,10 +8,10 @@ our @EXPORT_OK = qw(compare_parrot_revs parse_parrot_git_describe);
 sub parse_parrot_git_describe {
     my $g = shift;
     my $sep = qr/[_\W]/;
-    $g =~ /^REL(?:EASE)?$sep(\d+)$sep(\d+)$sep(\d+)(?:-(\d+)-g[a-f0-9]*)?$/
+    $g =~ /^REL(?:EASE)?$sep(\d+)(?:$sep(\d+)$sep(\d+)(?:-(\d+)-g[a-f0-9]*)?)?$/
         or die "Invalid revision specifier: '$g' "
                ."(expected something of format RELEASE_1_2_3-123-gdeadbee)\n";
-    my @c = ($1, $2, $3, $4 || 0);
+    my @c = ($1, $2 || 0, $3 || 0, $4 || 0);
     return @c;
 }
 

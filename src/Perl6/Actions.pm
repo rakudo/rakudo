@@ -3522,7 +3522,8 @@ sub capture_or_parcel($args, $name) {
 
 our %not_curried;
 INIT {
-    %not_curried{'&infix:<...>'}  := 1;
+    %not_curried{'&infix:<...>'}  := 2;
+    %not_curried{'&infix:<...^>'} := 2;
     %not_curried{'&infix:<..>'}   := 1;
     %not_curried{'&infix:<..^>'}  := 1;
     %not_curried{'&infix:<^..>'}  := 1;

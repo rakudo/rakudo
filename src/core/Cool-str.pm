@@ -163,9 +163,79 @@ augment class Cool {
         ~pir::substr(self, $start, $len);
     }
 
-    multi method trans(*@changes) {
-        return self unless @changes;
+    my $longest_substitution_matcher = class {
+        has Cool $!source is readonly;
+        has      @!substitutions;
 
+        has Int  $!index = 0;
+        has Int  $!next_match;
+        has      $!next_substitution;
+        has      $!substitution_length;
+
+        has Str  $.unsubstituted_text;
+        has Str  $.substituted_text;
+
+        method add_substitution($key, $value) {
+            push @!substitutions, $key => $value;
+        }
+
+        submethod compare_substitution($substitution, Int $pos, Int $length) {
+            if $!next_match > $pos
+               || $!next_match == $pos && $!substitution_length < $length {
+
+                $!next_match = $pos;
+                $!substitution_length = $length;
+                $!next_substitution = $substitution;
+            }
+        }
+
+        multi submethod triage_substitution($_ where { .key ~~ Regex }) {
+            my $key = .key;
+            return unless $!source.substr($!index) ~~ $key;
+            self.compare_substitution($_, $!index + $/.from, $/.to - $/.from);
+        }
+
+        multi submethod triage_substitution($_ where { .key ~~ Cool }) {
+            return unless defined index($!source, .key, $!index);
+            self.compare_substitution($_,
+                                      index($!source, .key, $!index),
+                                      .key.chars);
+        }
+
+        multi submethod triage_substitution($_) {
+            die "Don't know how to handle a {.WHAT} as a substitution key";
+        }
+
+        multi submethod increment_index(Regex $s) {
+            $!source.substr($!index) ~~ $s;
+            $!index = $!next_match + $/.chars;
+        }
+
+        multi submethod increment_index(Str $s) {
+            $!index = $!next_match + $s.chars;
+        }
+
+        method next_substitution() {
+            $!next_match = $!source.chars;
+
+            for @!substitutions {
+                self.triage_substitution($_);
+            }
+
+            $!unsubstituted_text
+                = $!source.substr($!index, $!next_match - $!index);
+            if defined $!next_substitution {
+                my $result = $!next_substitution.value;
+                $!substituted_text
+                    = $result ~~ Callable ?? $result() !! $result;
+                self.increment_index($!next_substitution.key);
+            }
+
+            return $!next_match < $!source.chars;
+        }
+    }
+
+    multi method trans(*@changes) {
         my sub expand($s) {
             return $s.list if $s ~~ Iterable|Positional;
             gather for $s.comb(/ (\w) '..' (\w) | . /, :match) {
@@ -177,38 +247,40 @@ augment class Cool {
             }
         }
 
-        my %c;
+        my $ltm = $longest_substitution_matcher.new(:source(self));
         for (@changes) -> $p {
             die "$p.perl() is not a Pair" unless $p ~~ Pair;
-            my @from = expand $p.key;
-            my @to   = expand $p.value;
-            if @to {
-                @to = @to xx ceiling(@from / @to);
-            } else {
-                @to = '' xx @from;
+            if $p.key ~~ Regex {
+                $ltm.add_substitution($p.key, $p.value);
             }
-            for @from Z @to -> $f, $t {
-                if %c.exists($f) && %c{$f} ne $t {
+            elsif $p.value ~~ Callable {
+                my @from = expand $p.key;
+                for @from -> $f {
+                    $ltm.add_substitution($f, $p.value);
+                }
+            }
+            else {
+                my @from = expand $p.key;
+                my @to   = expand $p.value;
+                if @to {
+                    @to = @to xx ceiling(@from / @to);
                 } else {
-                    %c{$f} = $t;
+                    @to = '' xx @from;
+                }
+                for @from Z @to -> $f, $t {
+                    $ltm.add_substitution($f, $t);
                 }
             }
         }
 
-        my $i = 0;
         my $r = "";
-        my %h = %c.keys Z=> map { self.index($_) // Inf }, %c.keys;
-        while ($_ = %h.pairs.sort({-.chars}).min: *.value).value < Inf {
-            %h{.key} = self.index(.key, .value + 1) // Inf;
-            next if .value < $i;
-            $r ~= self.substr($i, .value - $i) ~ %c{.key};
-            $i = .value + .key.chars;
+        while $ltm.next_substitution {
+            $r ~= $ltm.unsubstituted_text ~ $ltm.substituted_text;
         }
-        $r ~= self.substr($i);
+        $r ~= $ltm.unsubstituted_text;
 
         return $r;
     }
-
 
     # S32/Str says that this should always return a StrPos object
     our Int multi method index($substring, $pos = 0) is export {

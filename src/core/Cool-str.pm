@@ -163,7 +163,7 @@ augment class Cool {
         ~pir::substr(self, $start, $len);
     }
 
-    my $longest_substitution_matcher = class {
+    my class LSM {
         has Cool $!source is readonly;
         has      @!substitutions;
 
@@ -247,16 +247,16 @@ augment class Cool {
             }
         }
 
-        my $ltm = $longest_substitution_matcher.new(:source(self));
+        my $lsm = LSM.new(:source(self));
         for (@changes) -> $p {
             die "$p.perl() is not a Pair" unless $p ~~ Pair;
             if $p.key ~~ Regex {
-                $ltm.add_substitution($p.key, $p.value);
+                $lsm.add_substitution($p.key, $p.value);
             }
             elsif $p.value ~~ Callable {
                 my @from = expand $p.key;
                 for @from -> $f {
-                    $ltm.add_substitution($f, $p.value);
+                    $lsm.add_substitution($f, $p.value);
                 }
             }
             else {
@@ -268,16 +268,16 @@ augment class Cool {
                     @to = '' xx @from;
                 }
                 for @from Z @to -> $f, $t {
-                    $ltm.add_substitution($f, $t);
+                    $lsm.add_substitution($f, $t);
                 }
             }
         }
 
         my $r = "";
-        while $ltm.next_substitution {
-            $r ~= $ltm.unsubstituted_text ~ $ltm.substituted_text;
+        while $lsm.next_substitution {
+            $r ~= $lsm.unsubstituted_text ~ $lsm.substituted_text;
         }
-        $r ~= $ltm.unsubstituted_text;
+        $r ~= $lsm.unsubstituted_text;
 
         return $r;
     }

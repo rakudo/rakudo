@@ -1,4 +1,4 @@
-package Rakudo::CompareRevisions;
+package Parrot::CompareRevisions;
 use strict;
 use warnings;
 

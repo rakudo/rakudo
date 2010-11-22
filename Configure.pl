@@ -7,7 +7,7 @@ use warnings;
 use Getopt::Long;
 use Cwd;
 use lib "build/lib";
-use Rakudo::CompareRevisions qw(compare_parrot_revs);
+use Parrot::CompareRevisions qw(compare_parrot_revs);
 
 MAIN: {
     my %options;

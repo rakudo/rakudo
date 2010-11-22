@@ -22,7 +22,7 @@ use warnings;
 use 5.008;
 
 use lib "build/lib";
-use Rakudo::CompareRevisions qw(compare_parrot_revs);
+use Parrot::CompareRevisions qw(compare_parrot_revs);
 
 #  Work out slash character to use.
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';

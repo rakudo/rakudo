@@ -917,7 +917,9 @@ method package_def($/, $key?) {
         if $<def_module_name> {
             my $name := ~$<def_module_name>[0]<longname><name>;
             if $name ne '::' {
-                $/.CURSOR.add_name($name, 1);
+                if $*SCOPE ne 'anon' {
+                    $/.CURSOR.add_name($name, 1);
+                }
                 $package.name($name);
             }
             if $<def_module_name>[0]<signature> {

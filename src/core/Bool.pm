@@ -4,6 +4,8 @@ augment class Bool does Abstraction {
 
     method perl() { self ?? "Bool::True" !! "Bool::False"; }
 
+    method Numeric() { self ?? 1 !! 0 }
+
     method Str() { $.perl() }
 
     method Stringy() { self ?? "True" !! "False"; }

@@ -22,16 +22,13 @@ use warnings;
 use 5.008;
 
 use lib "build/lib";
-use Parrot::CompareRevisions qw(compare_parrot_revs);
+use Parrot::CompareRevisions qw(compare_parrot_revs parse_parrot_revision_file);
 
 #  Work out slash character to use.
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 
-##  determine what revision of Parrot we require
-open my $REQ, "build/PARROT_REVISION"
-  || die "cannot open build/PARROT_REVISION\n";
-my ($req, $reqpar) = split(' ', <$REQ>);
-close $REQ;
+# Determine the revision of Parrot we require
+my ($req, $reqpar) = parse_parrot_revision_file;
 
 {
     no warnings;

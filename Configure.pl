@@ -7,7 +7,7 @@ use warnings;
 use Getopt::Long;
 use Cwd;
 use lib "build/lib";
-use Parrot::CompareRevisions qw(compare_parrot_revs);
+use Parrot::CompareRevisions qw(compare_parrot_revs parse_parrot_revision_file);
 
 MAIN: {
     my %options;
@@ -21,10 +21,7 @@ MAIN: {
     }
 
     # Determine the revision of Parrot we require
-    open my $REQ, '<', "build/PARROT_REVISION"
-      or die "cannot open build/PARROT_REVISION: $!\n";
-    my ($reqsvn, $reqpar) = split(' ', <$REQ>);
-    close $REQ;
+    my ($reqsvn, $reqpar) = parse_parrot_revision_file;
 
     # Update/generate parrot build if needed
     if ($options{'gen-parrot'}) {

@@ -20,9 +20,6 @@ MAIN: {
         exit(0);
     }
 
-    # Determine the revision of Parrot we require
-    my ($req, $reqpar) = parse_parrot_revision_file;
-
     # Update/generate parrot build if needed
     if ($options{'gen-parrot'}) {
         my @opts    = @{ $options{'gen-parrot-option'} || [] };
@@ -54,6 +51,9 @@ MAIN: {
 
     # Get configuration information from parrot_config
     my %config = read_parrot_config(@parrot_config_exe);
+
+    # Determine the revision of Parrot we require
+    my ($req, $reqpar) = parse_parrot_revision_file;
 
     my $parrot_errors = '';
     if (!%config) { 

@@ -421,12 +421,15 @@ class DateTime does Dateish {
     }
 
     multi method perl() {
-        "DateTime.new(year => $.year, month => $.month, day => $.day, " ~
-        "hour => $.hour, minute => $.minute, second => $.second.perl(), " ~
-        "timezone => $.timezone.perl()" ~
-        do &.formatter eqv &default-formatter
-         ?? ')'
-         !! ", formatter => $.formatter.perl())"
+        sprintf 'DateTime.new(%s)', join ', ', map { "{.key} => {.value}" }, do
+            :$.year, :$.month, :$.day, :$.hour, :$.minute,
+            second => $.second.perl,
+            (timezone => $.timezone.perl
+                unless $.timezone === 0),
+            (:$!saved-offset
+                if $!saved-offset and $.timezone ~~ Callable),
+            (formatter => $.formatter.perl
+                unless &.formatter eqv &default-formatter)
     }
 
 }

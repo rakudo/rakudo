@@ -379,7 +379,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
             PMC *cons_type    = VTABLE_get_pmc_keyed_int(interp, constraints, i);
             PMC *accepts_meth = VTABLE_find_method(interp, cons_type, ACCEPTS);
             if (VTABLE_isa(interp, cons_type, BLOCK_str))
-                Parrot_capture_lex(interp,
+                Parrot_sub_capture_lex(interp,
                     VTABLE_get_attr_str(interp, cons_type, DO_str));
             Parrot_ext_call(interp, accepts_meth, "PiP->P", cons_type, value, &result);
             if (!VTABLE_get_bool(interp, result)) {
@@ -459,7 +459,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, llsig_element *sig_info, PMC *lexp
     else if (!PMC_IS_NULL(sig_info->default_closure)) {
         /* Run it to get a value. */
         PMC *result = PMCNULL;
-        Parrot_capture_lex(interp, sig_info->default_closure);
+        Parrot_sub_capture_lex(interp, sig_info->default_closure);
         Parrot_ext_call(interp, sig_info->default_closure, "->P", &result);
         return result;
     }

@@ -83,6 +83,10 @@ augment class Cool {
         ~(pir::chr__SI(self))
     }
 
+    our Str multi method chrs() {
+        self>>.chr.join;
+    }
+
     method rand($x:) {
         (+$x).rand;
     }
@@ -324,9 +328,10 @@ multi sub postfix:<i>($z) {
     (+$z)i;
 }
 
-proto chr($graph) {
-    $graph.chr;
-}
+proto sub chr($graph) { $graph.chr; }
+proto sub chrs(@graphs) { @graphs.chrs; }
+multi sub chrs(@graphs) { @graphs.chrs; }
+multi sub chrs(*@graphs) { @graphs.chrs; }
 
 proto sub srand($seed) {
     srand(+$seed);

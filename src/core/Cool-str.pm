@@ -407,14 +407,16 @@ augment class Cool {
     }
 
     our multi method ord() {
-        given self.chars {
-            when 0  { fail('Can not take ord of empty string'); }
-            when 1  { pir::box__PI(pir::ord__IS(self)); }
-            default {
-                        gather for self.comb {
-                            take pir::box__PI(pir::ord__IS($_))
-                        }
-                    }
+        if self eq "" {
+            fail('Can not take ord of empty string');
+        }
+
+        pir::box__PI(pir::ord__IS(self));
+    }
+
+    our multi method ords() {
+        gather for self.comb {
+            take $_.ord;
         }
     }
 
@@ -500,13 +502,8 @@ augment class Cool {
     }
 }
 
-multi sub ord($string) {
-    $string.ord;
-}
-
-proto ord($string) {
-    $string.ord;
-}
+proto ord($string) { $string.ord; }
+proto ords($string) { $string.ords; }
 
 our Str proto sub infix:<x>($str, $n) {
     $n > 0 ?? ~(pir::repeat__SSI($str, $n)) !!  ''

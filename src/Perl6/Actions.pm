@@ -2547,8 +2547,13 @@ method postfixish($/) {
     if $<postfix_prefix_meta_operator> {
         my $past := $<OPER>.ast;
         if $past && $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
-            $past.unshift($past.name());
-            $past.name('!dispatch_dispatcher_parallel');
+            if ($past.name() eq '') {
+                $past.name('!dispatch_invocation_parallel');
+            }
+            else {
+                $past.unshift($past.name());
+                $past.name('!dispatch_dispatcher_parallel');
+            }
         }
         elsif $past && $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
             $past.unshift($past.name());

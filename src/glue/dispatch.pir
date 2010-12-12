@@ -28,6 +28,33 @@ dispatcher for each thingy we're dispatching over.
 .end
 
 
+=item !dispatch_invocation_parallel
+
+(TBD)
+
+=cut
+
+.sub '!dispatch_invocation_parallel'
+    .param pmc invocanty
+    .param pmc pos_args        :slurpy
+    .param pmc named_args      :slurpy :named
+
+    .local pmc it, results
+    results = new ['ResizablePMCArray']
+    invocanty = invocanty.'flat'()
+    it = iter invocanty
+  it_loop:
+    unless it goto it_loop_done
+    $P0 = shift it
+    $P0 = $P0(pos_args :flat, named_args :flat :named)
+    push results, $P0
+    goto it_loop
+  it_loop_done:
+
+    .tailcall '&infix:<,>'(results :flat)
+.end
+
+
 =item !dispatch_method_parallel
 
 Does a parallel method dispatch. Invokes the method for each thing in the

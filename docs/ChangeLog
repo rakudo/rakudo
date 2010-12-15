@@ -1,3 +1,6 @@
+New in 2010.12 release
++ fixed $*PID on MacOS X
+
 New in 2010.11 release
 + now works with parrot on git
 + implemented qw//

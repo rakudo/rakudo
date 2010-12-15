@@ -860,8 +860,9 @@ rule package_def {
                 $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style package block like "package Foo { ... }", or "module Foo; ...".');
             }
         }
+        { $*IN_DECL := '' }
         <statementlist>
-    || <?[{]> <blockoid>
+    || <?[{]> { $*IN_DECL := '' } <blockoid>
     || <.panic: 'Malformed package declaration'>
     ]
 }
@@ -1188,6 +1189,7 @@ token type_declarator:sym<subset> {
     [
         [
             [ <longname> { $/.CURSOR.add_name($<longname>[0].Str); } ]?
+            { $*IN_DECL := '' }
             <trait>*
             [ where <EXPR('e=')> ]?
         ]

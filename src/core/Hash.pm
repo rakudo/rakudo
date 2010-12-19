@@ -93,6 +93,10 @@ role Hash is EnumMap {
         return self.pairs;
     }
 
+    method hash() {
+        return self;
+    }
+
     multi method sort(&by = &infix:<cmp>) {
         self.pairs.sort(&by)
     }

@@ -130,7 +130,7 @@ sub default-formatter(::DateTime $dt, Bool :$subseconds) {
     sprintf '%04d-%02d-%02dT%02d:%02d:%s%s',
         $dt.year, $dt.month, $dt.day, $dt.hour, $dt.minute,
         $subseconds
-          ?? $dt.second.fmt('%02f')
+          ?? $dt.second.fmt('%09.6f')
           !! $dt.whole-second.fmt('%02d'),
         do $o
          ?? sprintf '%s%02d%02d',

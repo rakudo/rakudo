@@ -3546,7 +3546,8 @@ INIT {
     %not_curried{'WHERE'}         := 2;
 }
 sub whatever_curry($/, $past, $upto_arity) {
-    if $past.isa(PAST::Op) && %not_curried{$past.name} != 2 && $past<pasttype> ne 'call' {
+    if $past.isa(PAST::Op) && %not_curried{$past.name} != 2
+                           && ($past<pasttype> ne 'call' || pir::index($past.name, '&infix:') == 0) {
         if ($upto_arity >= 1 && (($past[0].returns eq 'Whatever' && !%not_curried{$past.name})
                                  || $past[0].returns eq 'WhateverCode'))
         || ($upto_arity == 2 && (($past[1].returns eq 'Whatever' && !%not_curried{$past.name})

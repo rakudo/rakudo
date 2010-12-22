@@ -5,7 +5,11 @@ role Buf[::T = Int] does Stringy does Positional {
         self.bless(*, :contents(@contents.list));
     }
 
-    multi method decode($encoding = 'UTF-8') {
+    multi method decode($encoding is copy = 'UTF-8') {
+        $encoding .= lc;
+        if $encoding eq 'utf-8' {
+            $encoding = 'utf8';
+        }
         my @contents = @.contents;
         my $str = ~Q:PIR {
             $P0 = find_lex '@contents'
@@ -25,7 +29,9 @@ role Buf[::T = Int] does Stringy does Positional {
             inc i
             goto loop
           done:
-            s = bb.'get_string_as'(utf8:" ")
+            $P1 = find_lex '$encoding'
+            $S1 = $P1
+            s = bb.'get_string'($S1)
             %r = box s
         };
         return $str;

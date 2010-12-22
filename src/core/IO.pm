@@ -210,7 +210,7 @@ sub open($filename, :$r, :$w, :$a, :$bin) {
     unless pir::istrue__IP($PIO) {
         fail("Unable to open file '$filename'");
     }
-    $PIO.encoding('utf8');
+    $PIO.encoding($bin ?? 'binary' !! 'utf8');
     IO.new(:$PIO)
 }
 

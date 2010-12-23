@@ -7,6 +7,8 @@ New in 2010.12 release
 + fix $*IN_DECL leakage
 + implemented Hash.hash
 + Temporal updates
++ Buf.decode fixed
++ open() fixed for binary flag
 
 New in 2010.11 release
 + now works with parrot on git

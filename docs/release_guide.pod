@@ -40,9 +40,12 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-01-20   Rakudo #37                      -vacant-
+  2011-01-20   Rakudo #37                      (tadzik)
   2011-02-17   Rakudo #38                      -vacant-
   2011-03-17   Rakudo #39                      -vacant-
+  2011-04-21   Rakudo #40                      -vacant-
+  2011-05-19   Rakudo #41                      -vacant-
+  2011-06-23   Rakudo #42                      -vacant-
 
 =head2 Suggested .pm group names for future releases
 

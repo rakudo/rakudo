@@ -1,5 +1,12 @@
 New in 2010.12 release
++ new .trans algorithm
 + fixed $*PID on MacOS X
++ don't register names of anon types
++ configuration improvements
++ updated Any functions
++ fix $*IN_DECL leakage
++ implemented Hash.hash
++ Temporal updates
 
 New in 2010.11 release
 + now works with parrot on git

@@ -235,7 +235,7 @@ PIR
     pir = self.'!append_pir_for_sig_vars'(self, pir, 1)
 
     # Ending.
-    pir = concat <<'PIR'
+    pir = concat pir, <<'PIR'
     bind_llsig capture
     $P0 = getinterp
     $P0 = $P0['lexpad']
@@ -278,14 +278,14 @@ PIR
     $S0 = $P0.'name'()
     if null $S0 goto it_loop
     if $S0 == '' goto it_loop
-    concat pir, '    $P'
+    pir = concat pir, '    $P'
     $S1 = i
-    concat pir, $S1
-    concat pir, " = new ['ObjectRef']\n    .lex '"
-    concat pir, $S0
-    concat pir, "', $P"
-    concat pir, $S1
-    concat pir, "\n"
+    pir = concat pir, $S1
+    pir = concat pir, " = new ['ObjectRef']\n    .lex '"
+    pir = concat pir, $S0
+    pir = concat pir, "', $P"
+    pir = concat pir, $S1
+    pir = concat pir, "\n"
     inc i
     goto it_loop
   it_loop_end:

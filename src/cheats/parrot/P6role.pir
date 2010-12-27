@@ -139,10 +139,10 @@ Role objects serve as type objects and thus should be undefined.
     unless it goto it_loop_end
     $P0 = shift it
     $S1 = $P0.'perl'()
-    $S0 = concat $S1
+    $S0 = concat $S0, $S1
     goto it_loop
   it_loop_end:
-    $S0 = concat ']'
+    $S0 = concat $S0, ']'
     .return ($S0)
 .end
 

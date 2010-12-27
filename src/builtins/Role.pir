@@ -288,7 +288,7 @@ Role objects serve as type objects and thus should be undefined.
     if null $P0 goto no_name
     $S0 = $P0
   no_name:
-    concat $S0, '()'
+    $S0 = concat $S0, '()'
     .return ($S0)
 .end
 

@@ -172,15 +172,15 @@ Perl6::Compiler - Perl6 compiler
     # here only for those of a fenestral persuasion
     $S0 = env['HOMEDRIVE']
     $S1 = env['HOMEPATH']
-    concat $S0, $S1
+    $S0 = concat $S0, $S1
   have_home:
-    concat $S0, '/.perl6/lib'
+    $S0 = concat $S0, '/.perl6/lib'
     push $P0, $S0
     # append the installed Parrot languages/perl6/lib directory
     $S0 = config['libdir']
     $S1 = config['versiondir']
-    concat $S0, $S1
-    concat $S0, '/languages/perl6/lib'
+    $S0 = concat $S0, $S1
+    $S0 = concat $S0, '/languages/perl6/lib'
     push $P0, $S0
     # append the current directory
     push $P0, '.'             # remove this when 'use lib' works fine

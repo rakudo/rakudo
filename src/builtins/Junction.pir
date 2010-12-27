@@ -133,16 +133,16 @@ Return perl representation.  (This should actually be autothreaded.)
     unless it goto states_done
     $P0 = shift it
     $S0 = $P0.'perl'()
-    concat res, $S0
+    res = concat res, $S0
   states_loop:
     unless it goto states_done
     $P0 = shift it
     $S0 = $P0.'perl'()
-    concat res, ', '
-    concat res, $S0
+    res = concat res, ', '
+    res = concat res, $S0
     goto states_loop
   states_done:
-    concat res, ')'
+    res = concat res, ')'
     .return (res)
 .end
 

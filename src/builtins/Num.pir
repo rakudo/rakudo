@@ -194,16 +194,16 @@ finish:
     .return (result)
 
 #errors
-ERANGE: 
-    die "DON'T PANIC! The radix is out of range (2..36 only)"
+ERANGE:
+    die "The radix is out of range (2..36 only)"
 EINVALIDCHAR:
-    $S0 = concat "DON'T PANIC! Invalid character (", $S0
+    $S0 = concat "Invalid character (", $S0
     $S0 = concat $S0, ")! Please try again :) "
     die $S0
 EBASENOEXP:
-    die "DON'T PANIC! You gave us a base for the magnitude, but you forgot the exponent."
+    die "You gave us a base for the magnitude, but you forgot the exponent."
 EEXPNOBASE:
-    die "DON'T PANIC! You gave us an exponent for the magnitude, but you forgot the base."
+    die "You gave us an exponent for the magnitude, but you forgot the base."
 .end
 
 

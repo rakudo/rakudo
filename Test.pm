@@ -143,7 +143,7 @@ multi sub isa_ok(Mu $var, Mu $type, $msg) is export {
         or diag('Actual type: ' ~ $var.WHAT);
 }
 
-multi sub dies_ok($closure, $reason) is export {
+multi sub dies_ok(Callable $closure, $reason) is export {
     try {
         $closure();
     }
@@ -153,17 +153,17 @@ multi sub dies_ok($closure, $reason) is export {
     proclaim(defined($!), $reason);
     #proclaim((defined $! && "$!" !~~ / ^ 'Null PMC access ' /), $reason);
 }
-multi sub dies_ok($closure) is export {
+multi sub dies_ok(Callable $closure) is export {
     dies_ok($closure, '');
 }
 
-multi sub lives_ok($closure, $reason) is export {
+multi sub lives_ok(Callable $closure, $reason) is export {
     try {
         $closure();
     }
     proclaim((not defined $!), $reason);
 }
-multi sub lives_ok($closure) is export {
+multi sub lives_ok(Callable $closure) is export {
     lives_ok($closure, '');
 }
 

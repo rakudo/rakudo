@@ -74,6 +74,6 @@ flunk( 'flunk' );
 #     is_deeply $deeply, $deeply;
 # }
 
-done_testing;
+done;
 
 # vim: ft=perl6

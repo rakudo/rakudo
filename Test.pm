@@ -240,6 +240,10 @@ sub proclaim($cond, $desc) {
 }
 
 sub done_testing() is export {
+    die "done_testing() has been renamed to done(), please change your test code";
+}
+
+sub done() is export {
     our $done_testing_has_been_run;
 
     $done_testing_has_been_run = 1;

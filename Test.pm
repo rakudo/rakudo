@@ -265,10 +265,10 @@ END {
     our $done_testing_has_been_run;
     our $no_plan;
 
-    ## In planned mode, people don't necessarily expect to have to call done_testing
+    ## In planned mode, people don't necessarily expect to have to call done
     ## So call it for them if they didn't
     if !$done_testing_has_been_run && !$no_plan {
-        done_testing;
+        done;
     }
 }
 

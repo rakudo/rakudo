@@ -1,3 +1,7 @@
+New in 2011.01 release
++ 'handles RoleName' now works
++ Test.pm: s/done_testing/done/
+
 New in 2010.12 release
 + new .trans algorithm
 + fixed $*PID on MacOS X

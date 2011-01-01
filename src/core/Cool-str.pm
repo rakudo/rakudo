@@ -494,7 +494,7 @@ augment class Cool {
         try {
             $result = pir::sprintf__SSP(~self, (|@args)!PARROT_POSITIONALS);
         }
-        $! ?? fail( "Insufficient arguments supplied to sprintf") !! $result
+        $! ?? die 'Not enough arguments supplied for the given format string' !! $result
     }
 
     method IO() {

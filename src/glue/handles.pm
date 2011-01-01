@@ -7,6 +7,12 @@ class Rakudo::Guts {
 
     method add_handles_method(Mu $metaclass, $attr_name, $expr) {
         given $expr {
+            when !*.defined {
+                # a role or class to mix in
+                for $expr.^methods -> $m {
+                    add_handles_method_helper($metaclass, $attr_name, $m.name);
+                }
+            }
             when Str { add_handles_method_helper($metaclass, $attr_name, $expr); }
             when Parcel { 
                 for $expr.list -> $x {

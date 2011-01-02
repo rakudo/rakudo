@@ -1,7 +1,8 @@
 use v6;
 
 # This file keeps track of the differences between TAI and UTC
-# for internal use.
+# for internal use. The "BEGIN" and "END" comments are for
+# tools/update-tai-utc.pl.
 
 # Some handy tables:
 # http://tf.nist.gov/pubs/bulletin/leapsecond.htm
@@ -15,6 +16,7 @@ module tai-utc {
 
     # our @leap-second-dates = <
     our sub leap-second-dates() { <
+        #BEGIN leap-second-dates
         1972-06-30
         1972-12-31
         1973-12-31
@@ -39,6 +41,7 @@ module tai-utc {
         1998-12-31
         2005-12-31
         2008-12-31
+        #END leap-second-dates
     > };
 
     # our %leap-seconds =
@@ -50,30 +53,32 @@ module tai-utc {
 
     # Ambiguous POSIX times.
     our sub leap-second-posix() { <
+        #BEGIN leap-second-posix
           78796800
-          94694400 
-         126230400 
-         157766400 
-         189302400 
-         220924800 
-         252460800 
-         283996800 
-         315532800 
-         362793600 
-         394329600 
-         425865600 
-         489024000 
-         567993600 
-         631152000 
-         662688000 
-         709948800 
-         741484800 
-         773020800 
-         820454400 
-         867715200 
-         915148800 
-        1136073600 
-        1230768000 
+          94694400
+         126230400
+         157766400
+         189302400
+         220924800
+         252460800
+         283996800
+         315532800
+         362793600
+         394329600
+         425865600
+         489024000
+         567993600
+         631152000
+         662688000
+         709948800
+         741484800
+         773020800
+         820454400
+         867715200
+         915148800
+        1136073600
+        1230768000
+        #END leap-second-posix
     > };
 
 };

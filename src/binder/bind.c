@@ -260,32 +260,61 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                               PMC *value, INTVAL no_nom_type_check, STRING **error) {
     /* If we need to do a type check, do one. */
     if (!no_nom_type_check) {
-        PMC * const type_obj   = sig_info->nominal_type;
-        PMC * accepts_meth     = VTABLE_find_method(interp, type_obj, ACCEPTS);
-        PMC * result           = PMCNULL;
-        Parrot_ext_call(interp, accepts_meth, "PiP->P", type_obj, value, &result);
-        if (!VTABLE_get_bool(interp, result)) {
-            /* Type check failed. However, for language inter-op, we do some
-             * extra checks if the type is just Positional, Associative, or
-             * Callable and the thingy we have matches those enough. */
-            /* XXX TODO: Implement language interop checks. */
-            if (error) {
-                STRING * const perl = PERL_str;
-                PMC    * perl_meth  = VTABLE_find_method(interp, type_obj, perl);
-                PMC    * how_meth   = VTABLE_find_method(interp, value, HOW);
-                STRING * expected, * got;
-                PMC    * value_how, * value_type;
-                Parrot_ext_call(interp, perl_meth, "Pi->S", type_obj, &expected);
-                Parrot_ext_call(interp, how_meth, "Pi->P", value, &value_how);
-                value_type = VTABLE_get_attr_str(interp, value_how, SHORTNAME_str);
-                got        = VTABLE_get_string(interp, value_type);
-                *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
-                            sig_info->variable_name, expected, got);
+        /* See if we get a hit in the type cache. */
+        INTVAL cache_matched = 0;
+        if (value->vtable->base_type != 0) {
+            INTVAL i;
+            for (i = 0; i < NOM_TYPE_CACHE_SIZE; i++) {
+                if (sig_info->nom_type_cache[i] == value->vtable->base_type)
+                {
+                    cache_matched = 1;
+                    break;
+                }
             }
-            if (VTABLE_isa(interp, value, JUNCTION_str))
-                return BIND_RESULT_JUNCTION;
-            else
-                return BIND_RESULT_FAIL;
+        }
+        
+        /* If not, do the check. */
+        if (!cache_matched) {
+            PMC * const type_obj   = sig_info->nominal_type;
+            PMC * accepts_meth     = VTABLE_find_method(interp, type_obj, ACCEPTS);
+            PMC * result           = PMCNULL;
+            Parrot_ext_call(interp, accepts_meth, "PiP->P", type_obj, value, &result);
+            if (VTABLE_get_bool(interp, result)) {
+                /* Cache if possible. */
+                if (value->vtable->base_type != 0) {
+                    INTVAL i;
+                    for (i = 0; i < NOM_TYPE_CACHE_SIZE; i++) {
+                        if (sig_info->nom_type_cache[i] == 0)
+                        {
+                            sig_info->nom_type_cache[i] = value->vtable->base_type;
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                /* Type check failed. However, for language inter-op, we do some
+                 * extra checks if the type is just Positional, Associative, or
+                 * Callable and the thingy we have matches those enough. */
+                /* XXX TODO: Implement language interop checks. */
+                if (error) {
+                    STRING * const perl = PERL_str;
+                    PMC    * perl_meth  = VTABLE_find_method(interp, type_obj, perl);
+                    PMC    * how_meth   = VTABLE_find_method(interp, value, HOW);
+                    STRING * expected, * got;
+                    PMC    * value_how, * value_type;
+                    Parrot_ext_call(interp, perl_meth, "Pi->S", type_obj, &expected);
+                    Parrot_ext_call(interp, how_meth, "Pi->P", value, &value_how);
+                    value_type = VTABLE_get_attr_str(interp, value_how, SHORTNAME_str);
+                    got        = VTABLE_get_string(interp, value_type);
+                    *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
+                                sig_info->variable_name, expected, got);
+                }
+                if (VTABLE_isa(interp, value, JUNCTION_str))
+                    return BIND_RESULT_JUNCTION;
+                else
+                    return BIND_RESULT_FAIL;
+            }
         }
     }
 

@@ -18,6 +18,7 @@
 #define SIG_ELEM_DEFAULT_FROM_OUTER 16384
 #define SIG_ELEM_IS_CAPTURE         32768
 
+#define NOM_TYPE_CACHE_SIZE 4
 
 /* Data structure to describe a single element in the signature. */
 typedef struct llsig_element {
@@ -26,6 +27,7 @@ typedef struct llsig_element {
     PMC    *type_captures;    /* Name(s) that we bind the type of a parameter to. */
     INTVAL flags;             /* Various flags about the parameter. */
     PMC    *nominal_type;     /* The nominal type of the parameter. */
+    INTVAL nom_type_cache[NOM_TYPE_CACHE_SIZE]; /* IDs of nominal types that match. */
     PMC    *post_constraints; /* Array of any extra constraints; we will do a
                                * smart-match against each of them. For now, we
                                * always expect an array of blocks. */

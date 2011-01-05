@@ -34,39 +34,6 @@ our multi sub infix:<->(Duration $a, Duration $b) {
     Duration.new: $a.x - $b.x;
 }
 
-our multi sub infix:<*>(Duration $a, Real $b) {
-    Duration.new: $a.x * $b
-}
-our multi sub infix:<*>(Real $a, Duration $b) {
-    Duration.new: $a * $b.x
-}
-our multi sub infix:<*>(Duration $a, Duration $b) {
-    die "Can't multiply Durations together"
-}
-
-our multi sub infix:</>(Duration $a, Real $b) {
-    Duration.new: $a.x / $b
-}
-our multi sub infix:</>(Real $a, Duration $b) {
-    Duration.new: $b / $a.x
-}
-our multi sub infix:</>(Duration $a, Duration $b) {
-    die "Can't divide a Duration by a Duration"
-}
-
 our multi sub infix:<%>(Duration $a, Real $b) {
     Duration.new: $a.x % $b
-}
-our multi sub infix:<%>(Real $a, Duration $b) {
-    Duration.new: $b % $a.x
-}
-our multi sub infix:<%>(Duration $a, Duration $b) {
-    die "Can't take remainder after division of a Duration by a Duration"
-}
-
-our multi sub infix:<**>(Duration $a, Real $b) {
-    $a.x ** $b
-}
-our multi sub infix:<**>(Real $a, Duration $b) {
-    die "Can't use a Duration as an exponent"
 }

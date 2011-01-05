@@ -5,7 +5,7 @@
 .sub '&prefix:<defined>'
     .param pmc x
     $I0 = defined x
-    .return ($I0)
+    .tailcall '&prefix:<?>'($I0)
 .end
 
 

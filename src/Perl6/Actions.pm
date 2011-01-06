@@ -3,6 +3,8 @@ class Perl6::Actions is HLL::Actions;
 our @BLOCK;
 our @PACKAGE;
 our $TRUE;
+our @MAX_PERL_VERSION;
+our $MAX_PERL_VERSION;
 
 our $FORBID_PIR;
 
@@ -17,6 +19,12 @@ INIT {
         Q:PIR { %r = get_hll_global ['PAST';'Compiler'], '%valflags' };
     %valflags<Perl6Str> := 'e';
     %valflags<Str>      := 'e';
+
+    # If, e.g., we support Perl up to v6.1.2, set
+    # @MAX_PERL_VERSION to [6, 1, 2] and $MAX_PERL_VERSION to "6.1.2".
+    # The latter variable is used only for error messages.
+    @MAX_PERL_VERSION[0] := 6;
+    $MAX_PERL_VERSION := '6';
 
     $FORBID_PIR := 0;
 }
@@ -478,7 +486,17 @@ sub import($/) {
 
 method statement_control:sym<use>($/) {
     my $past := PAST::Stmts.new( :node($/) );
-    if $<module_name> {
+    if $<version> {
+        my $i := -1;
+        for $<version><vnum> {
+            ++$i;
+            if $_ ne '*' && $_ < @MAX_PERL_VERSION[$i] {
+                last;
+            } elsif $_ > @MAX_PERL_VERSION[$i] {
+                $/.CURSOR.panic("Perl $<version> required--this is only v$MAX_PERL_VERSION")
+            }
+        }
+    } elsif $<module_name> {
         if ~$<module_name> eq 'fatal' {
             declare_variable($/, PAST::Stmts.new(), '$', '*', 'FATAL', 0);
             $past := PAST::Op.new(

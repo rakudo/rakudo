@@ -246,6 +246,7 @@ Accessor for list of attributes in the role.
 
 .sub 'attributes' :method
     .param pmc role
+    .param pmc dummy :named :slurpy
     $P0 = getattribute self, '$!attributes'
     .return ($P0)
 .end

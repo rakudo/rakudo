@@ -4,7 +4,6 @@ our @BLOCK;
 our @PACKAGE;
 our $TRUE;
 our @MAX_PERL_VERSION;
-our $MAX_PERL_VERSION;
 
 our $FORBID_PIR;
 
@@ -21,10 +20,8 @@ INIT {
     %valflags<Str>      := 'e';
 
     # If, e.g., we support Perl up to v6.1.2, set
-    # @MAX_PERL_VERSION to [6, 1, 2] and $MAX_PERL_VERSION to "6.1.2".
-    # The latter variable is used only for error messages.
+    # @MAX_PERL_VERSION to [6, 1, 2].
     @MAX_PERL_VERSION[0] := 6;
-    $MAX_PERL_VERSION := '6';
 
     $FORBID_PIR := 0;
 }
@@ -493,7 +490,8 @@ method statement_control:sym<use>($/) {
             if $_ ne '*' && $_ < @MAX_PERL_VERSION[$i] {
                 last;
             } elsif $_ > @MAX_PERL_VERSION[$i] {
-                $/.CURSOR.panic("Perl $<version> required--this is only v$MAX_PERL_VERSION")
+                my $mpv := pir::join('.', @MAX_PERL_VERSION);
+                $/.CURSOR.panic("Perl $<version> required--this is only v$mpv")
             }
         }
     } elsif $<module_name> {

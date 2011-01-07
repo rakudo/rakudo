@@ -846,7 +846,7 @@ token package_declarator:sym<does> {
     <typename>
 }
 
-rule package_def {
+rule package_def {<!before '-'>
     :my $*IN_DECL := 'package';
     <.newpad>
     <def_module_name>?
@@ -880,15 +880,15 @@ token declarator {
 
 proto token multi_declarator { <...> }
 token multi_declarator:sym<multi> {
-    <sym> :my $*MULTINESS := 'multi';
+    <sym> :my $*MULTINESS := 'multi'; <!before '-'>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed multi'> ]
 }
 token multi_declarator:sym<proto> {
-    <sym> :my $*MULTINESS := 'proto';
+    <sym> :my $*MULTINESS := 'proto'; <!before '-'>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed proto'> ]
 }
 token multi_declarator:sym<only> {
-    <sym> :my $*MULTINESS := 'only';
+    <sym> :my $*MULTINESS := 'only'; <!before '-'>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed only'> ]
 }
 token multi_declarator:sym<null> {
@@ -909,7 +909,7 @@ token scope_declarator:sym<state> {
     <sym> <scoped('state')> <.panic: '"state" not yet implemented'>
 }
 
-rule scoped($*SCOPE) {
+rule scoped($*SCOPE) {<!before '-'> [
     :my $*TYPENAME := '';
     [
     | <DECL=variable_declarator>
@@ -932,7 +932,7 @@ rule scoped($*SCOPE) {
         }
         <!> # drop through
     || { $/.CURSOR.panic("Malformed $*SCOPE") }
-}
+] }
 
 token variable_declarator {
     :my $*IN_DECL := 'variable';
@@ -1164,7 +1164,7 @@ token regex_declarator:sym<regex> {
     <regex_def>
 }
 
-rule regex_def {
+rule regex_def {<!before '-'> [
     [
       { $*IN_DECL := '' }
       <deflongname>?
@@ -1173,7 +1173,7 @@ rule regex_def {
       {*} #= open
       '{'[ '<...>' |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
     ] || <.panic: "Malformed regex">
-}
+] }
 
 proto token type_declarator { <...> }
 
@@ -1185,6 +1185,7 @@ token type_declarator:sym<enum> {
 
 token type_declarator:sym<subset> {
     <sym> :my $*IN_DECL := 'subset';
+    <!before '-'>
     :s
     [
         [
@@ -1199,7 +1200,7 @@ token type_declarator:sym<subset> {
 
 token type_declarator:sym<constant> {
     :my $*IN_DECL := 'constant';
-    <sym> <.ws>
+    <sym> <!before '-'> <.ws>
 
     [
     | <identifier>

@@ -190,6 +190,15 @@ class Match is Regex::Match is Cool does Positional does Associative {
             take "$sp  ]";
         }
     }
+
+    method pretty ($d = 0) {
+        my $s = ' ' x ($d + 1);
+        my $r = "=> <{self}>\n";
+        for @.caps {
+            $r ~= $s ~ (.key // '?') ~ ' ' ~ .value.pretty($d + 1)
+        }
+        $r;
+    }
 }
 
 multi sub infix:<eqv>(Match $a, Match $b) {

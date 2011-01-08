@@ -77,6 +77,7 @@ augment class Any {
         my $min = +Inf;
         my $first-time = Bool::True;
         for @.list {
+            .defined or next;
             if $first-time {
                 $min = $_;
                 $first-time = Bool::False;
@@ -98,6 +99,7 @@ augment class Any {
         my $max = -Inf;
         my $first-time = Bool::True;
         for @.list {
+            .defined or next;
             if $first-time {
                 $max = $_;
                 $first-time = Bool::False;
@@ -123,6 +125,8 @@ augment class Any {
 
         my $first-time = Bool::True;
         for @.list {
+            .defined or next;
+
             when Range {
                 if $first-time {
                     $min = $_.min;

@@ -267,7 +267,7 @@ multi sub dir($path as Str = '.', Mu :$test = none('.', '..')) {
         $P1 = new ['OS']
         $P1 = $P1.'readdir'($P0)
         %r = '&infix:<,>'($P1 :flat)
-    }.grep($test)
+    }.map({~$_}).grep($test)
 }
 
 multi sub chdir($path as Str) {

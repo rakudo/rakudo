@@ -846,7 +846,7 @@ token package_declarator:sym<does> {
     <typename>
 }
 
-rule package_def {<!before '-'>
+rule package_def {<!apostrophe>
     :my $*IN_DECL := 'package';
     <.newpad>
     <def_module_name>?
@@ -880,15 +880,15 @@ token declarator {
 
 proto token multi_declarator { <...> }
 token multi_declarator:sym<multi> {
-    <sym> :my $*MULTINESS := 'multi'; <!before '-'>
+    <sym> :my $*MULTINESS := 'multi'; <!apostrophe>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed multi'> ]
 }
 token multi_declarator:sym<proto> {
-    <sym> :my $*MULTINESS := 'proto'; <!before '-'>
+    <sym> :my $*MULTINESS := 'proto'; <!apostrophe>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed proto'> ]
 }
 token multi_declarator:sym<only> {
-    <sym> :my $*MULTINESS := 'only'; <!before '-'>
+    <sym> :my $*MULTINESS := 'only'; <!apostrophe>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed only'> ]
 }
 token multi_declarator:sym<null> {
@@ -909,7 +909,7 @@ token scope_declarator:sym<state> {
     <sym> <scoped('state')> <.panic: '"state" not yet implemented'>
 }
 
-rule scoped($*SCOPE) {<!before '-'> [
+rule scoped($*SCOPE) {<!apostrophe> [
     :my $*TYPENAME := '';
     [
     | <DECL=variable_declarator>
@@ -1164,7 +1164,7 @@ token regex_declarator:sym<regex> {
     <regex_def>
 }
 
-rule regex_def {<!before '-'> [
+rule regex_def {<!apostrophe> [
     [
       { $*IN_DECL := '' }
       <deflongname>?
@@ -1185,7 +1185,7 @@ token type_declarator:sym<enum> {
 
 token type_declarator:sym<subset> {
     <sym> :my $*IN_DECL := 'subset';
-    <!before '-'>
+    <!apostrophe>
     :s
     [
         [
@@ -1200,7 +1200,7 @@ token type_declarator:sym<subset> {
 
 token type_declarator:sym<constant> {
     :my $*IN_DECL := 'constant';
-    <sym> <!before '-'> <.ws>
+    <sym> <!apostrophe> <.ws>
 
     [
     | <identifier>

@@ -63,13 +63,15 @@ A Perl 6 Exception object.
 .sub 'Bool' :method
     $P0 = self.'exception'()
     $P0.'handled'(1)
-    .return (0)
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
 .end
 
 .sub 'defined' :method
     $P0 = self.'exception'()
     $P0.'handled'(1)
-    .return (0)
+    $P0 = get_hll_global ['Bool'], 'False'
+    .return ($P0)
 .end
 
 .sub '' :vtable('defined') :method

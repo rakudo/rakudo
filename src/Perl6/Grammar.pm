@@ -180,7 +180,9 @@ token def_module_name {
     ]?
 }
 
-token nofun { <![ ( \\ ' \- ]> » }
+token end_keyword {
+    <!before <[ \( \\ ' \- ]> || \h* '=>'> »
+}
 token spacey { <?before <[ \s \# ]> > }
 
 token ENDSTMT {
@@ -365,13 +367,13 @@ token terminator:sym<;> { <?[;]> }
 token terminator:sym<)> { <?[)]> }
 token terminator:sym<]> { <?[\]]> }
 token terminator:sym<}> { <?[}]> }
-token terminator:sym<if>     { 'if'     <.nofun> }
-token terminator:sym<unless> { 'unless' <.nofun> }
-token terminator:sym<while>  { 'while'  <.nofun> }
-token terminator:sym<until>  { 'until'  <.nofun> }
-token terminator:sym<for>    { 'for'    <.nofun> }
-token terminator:sym<given>  { 'given'  <.nofun> }
-token terminator:sym<when>   { 'when'   <.nofun> }
+token terminator:sym<if>     { 'if'     <.end_keyword> }
+token terminator:sym<unless> { 'unless' <.end_keyword> }
+token terminator:sym<while>  { 'while'  <.end_keyword> }
+token terminator:sym<until>  { 'until'  <.end_keyword> }
+token terminator:sym<for>    { 'for'    <.end_keyword> }
+token terminator:sym<given>  { 'given'  <.end_keyword> }
+token terminator:sym<when>   { 'when'   <.end_keyword> }
 
 token stdstopper { <?terminator> }
 
@@ -380,25 +382,25 @@ token stdstopper { <?terminator> }
 proto token statement_control { <...> }
 
 token statement_control:sym<if> {
-    <sym> :s
+    <sym> <.end_keyword> :s
     <xblock>
     [ 'elsif'\s <xblock> ]*
     [ 'else'\s <else=.pblock> ]?
 }
 
 token statement_control:sym<unless> {
-    <sym> :s
+    <sym> <.end_keyword> :s
     <xblock>
     [ <!before 'else'> || <.panic: 'unless does not take "else", please rewrite using "if"'> ]
 }
 
 token statement_control:sym<while> {
-    $<sym>=[while|until] :s
+    $<sym>=[while|until] <.end_keyword> :s
     <xblock>
 }
 
 token statement_control:sym<repeat> {
-    <sym> :s
+    <sym> <.end_keyword> :s
     [
     | $<wu>=[while|until]\s <xblock>
     | <pblock> $<wu>=[while|until]\s <EXPR>
@@ -406,7 +408,7 @@ token statement_control:sym<repeat> {
 }
 
 token statement_control:sym<for> {
-    <sym> :s
+    <sym> <.end_keyword> :s
     [ <?before 'my'? '$'\w+ '(' >
         <.panic: "This appears to be Perl 5 code"> ]?
     [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
@@ -415,11 +417,11 @@ token statement_control:sym<for> {
 }
 
 token statement_control:sym<foreach> {
-    <sym> <.nofun> <.obs("'foreach'", "'for'")>
+    <sym> <.end_keyword> <.obs("'foreach'", "'for'")>
 }
 
 token statement_control:sym<loop> {
-    <sym>
+    <sym> <.end_keyword>
     [ <?[({]> <.panic: "Whitespace required after 'loop'"> ]?
     :s
     [ '('
@@ -469,13 +471,13 @@ rule statement_control:sym<require> {
 }
 
 token statement_control:sym<given> {
-    <sym> :s <xblock(1)>
+    <sym> <.end_keyword> :s <xblock(1)>
 }
 token statement_control:sym<when> {
-    <sym> :s <xblock>
+    <sym> <.end_keyword> :s <xblock>
 }
 rule statement_control:sym<default> {
-    <sym> <block>
+    <sym><.end_keyword> <block>
 }
 
 rule statement_control:sym<CATCH> {<sym> <block(1)> }
@@ -559,9 +561,6 @@ token term:sym<new> {
 
 token fatarrow {
     <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i=')>
-}
-token nofatarrow {
-    <!before \h* '=>'>
 }
 
 token colonpair {
@@ -846,7 +845,7 @@ token package_declarator:sym<does> {
     <typename>
 }
 
-rule package_def {<!apostrophe>
+rule package_def {<.end_keyword>
     :my $*IN_DECL := 'package';
     <.newpad>
     <def_module_name>?
@@ -880,15 +879,15 @@ token declarator {
 
 proto token multi_declarator { <...> }
 token multi_declarator:sym<multi> {
-    <sym> :my $*MULTINESS := 'multi'; <!apostrophe>
+    <sym> :my $*MULTINESS := 'multi'; <.end_keyword>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed multi'> ]
 }
 token multi_declarator:sym<proto> {
-    <sym> :my $*MULTINESS := 'proto'; <!apostrophe>
+    <sym> :my $*MULTINESS := 'proto'; <.end_keyword>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed proto'> ]
 }
 token multi_declarator:sym<only> {
-    <sym> :my $*MULTINESS := 'only'; <!apostrophe>
+    <sym> :my $*MULTINESS := 'only'; <.end_keyword>
     <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed only'> ]
 }
 token multi_declarator:sym<null> {
@@ -909,7 +908,7 @@ token scope_declarator:sym<state> {
     <sym> <scoped('state')> <.panic: '"state" not yet implemented'>
 }
 
-rule scoped($*SCOPE) {<!apostrophe> [
+rule scoped($*SCOPE) {<.end_keyword> [
     :my $*TYPENAME := '';
     [
     | <DECL=variable_declarator>
@@ -951,13 +950,14 @@ token variable_declarator {
 
 proto token routine_declarator { <...> }
 token routine_declarator:sym<sub>
-    { <sym> <.nofun> <routine_def> }
+    { <sym> <.end_keyword> <routine_def> }
 token routine_declarator:sym<method>
-    { <sym> <.nofun> :my $*METHODTYPE := 'Method'; <method_def> }
+    { <sym> <.end_keyword> :my $*METHODTYPE := 'Method'; <method_def> }
 token routine_declarator:sym<submethod>
-    { <sym> <.nofun> :my $*METHODTYPE := 'Submethod'; <method_def> }
+    { <sym> <.end_keyword> :my $*METHODTYPE := 'Submethod'; <method_def> }
 token routine_declarator:sym<macro>
-    { <sym> <.nofun> <.panic: "Macros are not yet implemented"> }
+    { <sym> <.end_keyword>
+      <.panic: "Macros are not yet implemented"> }
 
 rule routine_def {
     :my $*IN_DECL := 'routine';
@@ -1164,7 +1164,7 @@ token regex_declarator:sym<regex> {
     <regex_def>
 }
 
-rule regex_def {<!apostrophe> [
+rule regex_def {<.end_keyword> [
     [
       { $*IN_DECL := '' }
       <deflongname>?
@@ -1185,7 +1185,7 @@ token type_declarator:sym<enum> {
 
 token type_declarator:sym<subset> {
     <sym> :my $*IN_DECL := 'subset';
-    <!apostrophe>
+    <.end_keyword>
     :s
     [
         [
@@ -1200,7 +1200,7 @@ token type_declarator:sym<subset> {
 
 token type_declarator:sym<constant> {
     :my $*IN_DECL := 'constant';
-    <sym> <!apostrophe> <.ws>
+    <sym> <.end_keyword> <.ws>
 
     [
     | <identifier>
@@ -1252,17 +1252,17 @@ token trait_mod:sym<handles> { <sym>:s <term> }
 
 proto token term { <...> }
 
-token term:sym<YOU_ARE_HERE> { <sym> <.nofun> <.nofatarrow> }
+token term:sym<YOU_ARE_HERE> { <sym> <.end_keyword> }
 
-token term:sym<self> { <sym> <.nofun> <.nofatarrow> }
+token term:sym<self> { <sym> <.end_keyword> }
 
-token term:sym<now> { <sym> <.nofun> <.nofatarrow> }
+token term:sym<now> { <sym> <.end_keyword> }
 
-token term:sym<time> { <sym> <.nofun> <.nofatarrow> }
+token term:sym<time> { <sym> <.end_keyword> }
 
 token term:sym<rand> {
     <sym> »
-    <.nofatarrow>
+    <.end_keyword>
     [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
     [ <?before '()'> <.obs('rand()', 'rand')> ]?
 }

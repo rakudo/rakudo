@@ -89,6 +89,9 @@ if (eval "require $tap_harness_class;") {
     );
     $tap_harness_class->new( \%harness_options )->runtests(@tfiles);
 }
+elsif ($archive) {
+    die "Can't load $tap_harness_class, which is needed for smolder submissions: $@";
+}
 else {
     runtests(@tfiles);
 }

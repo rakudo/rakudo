@@ -6,6 +6,7 @@ our $TRUE;
 our @MAX_PERL_VERSION;
 
 our $FORBID_PIR;
+our $STATEMENT_PRINT;
 
 INIT {
     # initialize @BLOCK and @PACKAGE
@@ -24,6 +25,7 @@ INIT {
     @MAX_PERL_VERSION[0] := 6;
 
     $FORBID_PIR := 0;
+    $STATEMENT_PRINT := 0;
 }
 
 sub xblock_immediate($xblock) {
@@ -260,6 +262,15 @@ method statement($/, $key?) {
     }
     elsif $<statement_control> { $past := $<statement_control>.ast; }
     else { $past := 0; }
+    if $STATEMENT_PRINT && $past {
+        $past := PAST::Stmts.new(:node($/),
+            PAST::Op.new(
+                :pirop<say__vs>,
+                PAST::Val.new(:value(~$/))
+            ),
+            $past
+        );
+    }
     make $past;
 }
 
@@ -521,6 +532,9 @@ method statement_control:sym<use>($/) {
         }
         elsif ~$<module_name> eq 'FORBID_PIR' {
             $FORBID_PIR := 1;
+        }
+        elsif ~$<module_name> eq 'Devel::Trace' {
+            $STATEMENT_PRINT := 1;
         }
         else {
             need($<module_name>);

@@ -1,6 +1,9 @@
 New in 2011.01 release
++ faster subroutine calls (type cache)
 + 'handles RoleName' now works
 + Test.pm: s/done_testing/done/
++ non-spec debugging pragma Devel::Trace
++ improved parsing of keyword boundaries
 
 New in 2010.12 release
 + new .trans algorithm

@@ -74,6 +74,7 @@ role Hash is EnumMap {
         if $has_previous {
             warn "Trailing item in Hash.push";
         }
+        return %(self);
     }
 
     # push a value onto a hash Objectitem, constructing an array if necessary

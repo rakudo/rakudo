@@ -267,7 +267,7 @@ Perl6::Compiler - Perl6 compiler
     print .RAKUDO_VERSION
     print ' built on parrot '
     print version
-  unless rev goto done_rev
+  if null rev goto done_rev
     print ' '
     print rev
   done_rev:

@@ -319,7 +319,7 @@ S05-modifier/continue.t
 S05-modifier/counted-match.t
 S05-modifier/global.t
 S05-modifier/ii.t
-S05-modifier/ignorecase.t
+S05-modifier/ignorecase.t                              #icu
 S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t
 # S05-modifier/perl5_2.t
@@ -497,7 +497,7 @@ S16-io/say-and-ref.t
 S16-io/getc.t
 # S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
-S19-command-line/dash-e.t
+S19-command-line/dash-e.t                               #icu
 S19-command-line/help.t
 # S28-named-variables/cwd.t
 S28-named-variables/inc.t

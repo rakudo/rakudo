@@ -14,6 +14,10 @@ augment class Pair {
     multi method invert() {
         $.value => $.key;
     }
+
+    method Numeric() {
+        fail "Don't know how to numify a Pair";
+    }
 }
 
 multi sub infix:<cmp>(Pair $a, Pair $b) {

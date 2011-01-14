@@ -213,7 +213,7 @@ multi sub infix:<eqv>(Match $a, Match $b) {
 # A helper function used by Perl6/Actions.pm. The real point is to
 # ensure that Parrot objects returned by .ACCEPTS are converted to
 # Bools.
-our multi coerce-smartmatch-result($x,       1) { ! $x }
+our multi coerce-smartmatch-result(Mu $x,    1) { ! $x }
 our multi coerce-smartmatch-result(Mu $x,    0) { ? $x }
 our multi coerce-smartmatch-result(Match $x, 0) {   $x }
 

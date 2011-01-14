@@ -55,9 +55,10 @@ augment class Cool {
     }
 
     multi method comb(Regex $matcher = /./, $limit = *, :$match) {
+        my $self-string = ~self;
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit;
-        gather while $l > 0 && (my $m = self.match($matcher, :c($c))) {
+        gather while $l > 0 && (my $m = $self-string.match($matcher, :c($c))) {
             if $match {
                 my $m-clone = $m;
                 take $m-clone;

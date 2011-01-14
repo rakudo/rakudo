@@ -1,5 +1,5 @@
 our multi infix:<~~>(Mu $topic, Mu $matcher) {
-    $matcher.ACCEPTS($topic)
+    ? $matcher.ACCEPTS($topic)
 }
 
 our multi infix:<~~>(Mu $topic, Regex $matcher) {

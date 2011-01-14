@@ -214,10 +214,10 @@ augment class Any {
         self.roll(Inf);
     }
 
-    multi method classify($test) {
+    multi method classify(&test) {
         my %result;
         for @.list {
-            my $k = $_ ~~ $test;
+            my $k = test $_;
             %result{$k} //= [];
             %result{$k}.push: $_;
         }

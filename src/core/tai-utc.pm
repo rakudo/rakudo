@@ -15,8 +15,9 @@ module tai-utc {
       # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
     # our @leap-second-dates = <
-    our sub leap-second-dates() { <
+    our sub leap-second-dates() {
         #BEGIN leap-second-dates
+        <
         1972-06-30
         1972-12-31
         1973-12-31
@@ -41,8 +42,9 @@ module tai-utc {
         1998-12-31
         2005-12-31
         2008-12-31
+        >
         #END leap-second-dates
-    > };
+    };
 
     # our %leap-seconds =
     #     @leap-second-dates Z=> $initial-offset + 1 .. *;
@@ -52,8 +54,9 @@ module tai-utc {
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
-    our sub leap-second-posix() { <
+    our sub leap-second-posix() {
         #BEGIN leap-second-posix
+        <
           78796800
           94694400
          126230400
@@ -78,7 +81,8 @@ module tai-utc {
          915148800
         1136073600
         1230768000
+        >
         #END leap-second-posix
-    > };
+    };
 
 };

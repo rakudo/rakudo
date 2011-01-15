@@ -27,7 +27,7 @@ sub replace {
     my ($find, $fmt, $f) = @_;
     $tu =~ s
         {^( *)#BEGIN $find\n.+?^ *#END $find\n}
-        { sprintf "$1#BEGIN $find\n%s\n$1#END $find\n", join "\n",
+        { sprintf "$1#BEGIN $find\n$1<\n%s\n$1>\n$1#END $find\n", join "\n",
               map { sprintf "%s$fmt", $1, $f->(@$_) } @dates }ems
       or die "Couldn't replace $find";
 }

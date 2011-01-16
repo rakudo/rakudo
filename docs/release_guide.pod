@@ -117,6 +117,20 @@ The short period following the Parrot release until the
 Rakudo release is generally intended for fixing bugs,
 updating documentation, and so on.
 
+=item 3.
+
+Update Rakudo's leap-second tables:
+
+  $ perl tools/update-tai-utc.pl src/core/tai-utc.pm
+
+If a new leap second has been announced, F<tai-utc.pm> will be modified, so
+commit the new version:
+
+  $ git commit src/core/tai-utc.pm
+
+But probably there won't be any new leap seconds, in which case the file
+will be unchanged.
+
 =item 4.
 
 As the actual release date nears, review the git log history

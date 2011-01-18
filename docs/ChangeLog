@@ -4,6 +4,7 @@ New in 2011.01 release
 + Test.pm: s/done_testing/done/
 + non-spec debugging pragma Devel::Trace
 + improved parsing of keyword boundaries
++ sped up .comb
 
 New in 2010.12 release
 + new .trans algorithm

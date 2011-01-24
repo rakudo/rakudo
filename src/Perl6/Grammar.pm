@@ -1074,11 +1074,11 @@ token parameter {
     # enforce zone constraints
     {
         my $kind :=
-            $<named_param>                     ?? '*' !! 
-            $<quant> eq '?'                    ?? '?' !!
-            $<quant> eq '!'                    ?? '!' !!
-            $<quant> ne '' && $<quant> ne '\\' ?? '*' !!
-                                                  '!';
+            $<named_param>                      ?? '*' !!
+            $<quant> eq '?' || $<default_value> ?? '?' !!
+            $<quant> eq '!'                     ?? '!' !!
+            $<quant> ne '' && $<quant> ne '\\'  ?? '*' !!
+                                                   '!';
 
         if $kind eq '!' {
             if $*zone eq 'posopt' {

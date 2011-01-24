@@ -21,8 +21,9 @@ compiled code.
   -o, --output=[name]  specify name of output file
   -v, --version        display version information
   --stagestats         display time spent in the compilation stages
+  --ll-backtrace       display a low level backtrace on errors
 
-Note that only boolean single-letter options may be bundled 
+Note that only boolean single-letter options may be bundled
 
 Supported stages for --target are:
 

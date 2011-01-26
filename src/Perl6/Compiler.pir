@@ -273,7 +273,7 @@ Perl6::Compiler - Perl6 compiler
   done_rev:
     say ''
     say ''
-    say 'Copyright 2008-2010, The Perl Foundation'
+    say 'Copyright 2008-2011, The Perl Foundation'
     say ''
     exit 0
 .end

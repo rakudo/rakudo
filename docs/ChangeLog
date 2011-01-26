@@ -1,3 +1,8 @@
+New in 2011.02 release
++ IPv6 release
++ more robust numeric exponentation
++ --ll-backtrace command line option for PIR level stack traces
+
 New in 2011.01 release
 + faster subroutine calls (type cache)
 + 'handles RoleName' now works

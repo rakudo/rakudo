@@ -88,7 +88,7 @@ multi sub isnt(Mu $got, Mu $expected, $desc) is export {
 multi sub isnt(Mu $got, Mu $expected) is export { isnt($got, $expected, ''); }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc) is export {
-    my $test = ($got - $expected).abs <= 1/100000;
+    my $test = $got !~~ NaN && ($got - $expected).abs <= 1/100000;
     proclaim(?$test, $desc);
     unless $test {
         diag("got:      $got");

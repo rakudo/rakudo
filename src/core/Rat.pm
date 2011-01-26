@@ -107,7 +107,9 @@ multi sub infix:</>(Int $a, Int $b) {
 }
 
 multi sub infix:<**>(Rat $a, Int $b) {
-    ($a.numerator ** $b) / ($a.denominator ** $b);
+    my $num = $a.numerator ** $b;
+    my $den = $a.denominator ** $b;
+    $num ~~ Int && $den ~~ Int ?? $num / $den !! $a.Bridge ** $b;
 }
 
 # vim: ft=perl6 sw=4 ts=4 expandtab

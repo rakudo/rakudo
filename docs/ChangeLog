@@ -1,5 +1,5 @@
 New in 2011.02 release
-+ IPv6 release
++ IPv6 support
 + more robust numeric exponentation
 + --ll-backtrace command line option for PIR level stack traces
 

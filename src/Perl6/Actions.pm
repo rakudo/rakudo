@@ -2333,6 +2333,11 @@ method EXPR($/, $key?) {
     else {
         for $/.list { if $_.ast { $past.push($_.ast); } }
     }
+    if $sym eq '^^' || $sym eq 'xor' {
+        $past := PAST::Op.new(
+            :pasttype<call>, :name('!Undef_to_False'), $past
+        );
+    }
     if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
         $past := whatever_curry($/, $past, $key eq 'INFIX' ?? 2 !! 1);
     }
@@ -2530,7 +2535,8 @@ method prefix_circumfix_meta_operator:sym<reduce>($/) {
                 PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op ),
                 PAST::Val.new( :named('triangle'), :value($<triangle> ?? 1 !! 0) ),
                 PAST::Val.new( :named('chaining'), :value($<op><OPER><O><prec> eq 'm=') ),
-                PAST::Val.new( :named('right-assoc'), :value($<op><OPER><O><assoc> eq 'right') )
+                PAST::Val.new( :named('right-assoc'), :value($<op><OPER><O><assoc> eq 'right') ),
+                PAST::Val.new( :named('xor'), :value($<op><OPER><O><pasttype> eq 'xor') )
             )
         ));
         %*METAOPGEN{$opsub} := 1;

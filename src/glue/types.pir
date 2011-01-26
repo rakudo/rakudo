@@ -67,6 +67,16 @@ subtyping relations, etc).
     .return ($P0)
 .end
 
+
+.sub '!Undef_to_False'
+    .param pmc x
+    $I0 = isa x, 'Undef'
+    unless $I0 goto done
+    x = get_hll_global ['Bool'], 'False'
+  done:
+    .return (x)
+.end
+
 =back
 
 =cut

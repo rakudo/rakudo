@@ -202,7 +202,8 @@ our multi sub hyper(&op, ::T $arg) {
 our multi sub reducewith(&op, *@args,
                          :$chaining,
                          :$right-assoc,
-                         :$triangle) {
+                         :$triangle,
+                         :$xor) {
 
     my $list = $right-assoc ?? @args.reverse !! @args;
 
@@ -211,7 +212,21 @@ our multi sub reducewith(&op, *@args,
             return if !$list;
             my $result = $list.shift;
 
-            if $chaining {
+            if $xor {
+                my $x = take $result;
+                while ?$list {
+                    my $next = $list.shift;
+                    if $x {
+                        if $next {
+                            take False for ^(1 + $list);
+                            last;
+                        }
+                        take $x;
+                    } else {
+                        $x = take (my $temp = $next);
+                    }
+                }
+            } elsif $chaining {
                 my $bool = Bool::True;
                 take Bool::True;
                 while ?$list {
@@ -237,7 +252,13 @@ our multi sub reducewith(&op, *@args,
         my $result = $list.shift;
         return &op($result) if !$list;
 
-        if $chaining {
+        if $xor {
+            while ?$list {
+                my $next = $list.shift;
+                $next and $result and return False;
+                $result ||= $next;
+            }
+        } elsif $chaining {
             my $bool = Bool::True;
             while ?$list {
                 my $next = $list.shift;
@@ -296,8 +317,8 @@ our multi sub infix:<&&>(Mu $x = Bool::True)      { $x }
 our multi sub infix:<and>(Mu $x = Bool::True)     { $x }
 our multi sub infix:<||>(Mu $x = Bool::False)     { $x }
 our multi sub infix:<or>(Mu $x = Bool::False)     { $x }
-#our multi sub infix:<^^>(Mu $x = Bool::False)    { $x }
-#our multi sub infix:<xor>(Mu $x = Bool::False)   { $x }
+our multi sub infix:<^^>(Mu $x = Bool::False)     { $x }
+our multi sub infix:<xor>(Mu $x = Bool::False)    { $x }
 our multi sub infix:<//>()     { Any }
 #our multi sub infix:<min>()    { +Inf }
 #our multi sub infix:<max>()    { -Inf }

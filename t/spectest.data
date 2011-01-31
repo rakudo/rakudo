@@ -533,6 +533,7 @@ S32-hash/keys_values.t
 S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
+S32-io/dir.t
 # S32-io/chdir.t
 S32-io/file-tests.t
 S32-io/note.t

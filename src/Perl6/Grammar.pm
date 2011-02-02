@@ -1974,7 +1974,7 @@ token infix:sym<and>  { <sym> >> <O('%loose_and, :pasttype<if>')> }
 
 token infix:sym<or>   { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<unless>')> }
 token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor>')> }
-token infix:sym<err>  { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<def_or>')> }
+token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<def_or>')> }
 
 token infix:sym«<==»  { <sym> <O('%sequencer')> }
 token infix:sym«==>»  { <sym> <O('%sequencer')> }

@@ -210,7 +210,11 @@ our sub hash(*@list, *%hash) {
 }
 
 our multi infix:sym<//>(Mu $a, Mu $b) {
-    $a.defined ?? $a !! $b
+     $a.defined ?? $a !! $b
+}
+
+our multi infix:sym<orelse>(Mu $a, Mu $b) {
+     $a.defined ?? $a !! $b
 }
 
 our multi infix:<==>($a, $b) {

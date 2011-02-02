@@ -320,6 +320,7 @@ our multi sub infix:<or>(Mu $x = Bool::False)     { $x }
 our multi sub infix:<^^>(Mu $x = Bool::False)     { $x }
 our multi sub infix:<xor>(Mu $x = Bool::False)    { $x }
 our multi sub infix:<//>()     { Any }
+our multi sub infix:<orelse>() { Any }
 #our multi sub infix:<min>()    { +Inf }
 #our multi sub infix:<max>()    { -Inf }
 #our multi sub infix:<=>()      { Nil }

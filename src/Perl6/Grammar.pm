@@ -1557,7 +1557,7 @@ INIT {
     Perl6::Grammar.O(':prec<p=>, :assoc<list>', '%junctive_or');
     Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
     Perl6::Grammar.O(':prec<n=>, :assoc<left>',  '%structural');
-    Perl6::Grammar.O(':prec<m=>, :assoc<left>, :pasttype<chain>',  '%chaining');
+    Perl6::Grammar.O(':prec<m=>, :assoc<left>, :iffy<1>, :pasttype<chain>',  '%chaining');
     Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
     Perl6::Grammar.O(':prec<k=>, :assoc<list>',  '%tight_or');
     Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');
@@ -1817,9 +1817,8 @@ token infix:sym<*>    { <sym>  <O('%multiplicative')> }
 token infix:sym</>    { <sym>  <O('%multiplicative')> }
 token infix:sym<div>  { <sym> >> <O('%multiplicative')> }
 token infix:sym<%>    { <sym>  <O('%multiplicative')> }
-token infix:sym<!%>   { <sym> <panic("Infix !% is deprecated in favor of infix %%")> }
 token infix:sym<mod>  { <sym> >> <O('%multiplicative')> }
-token infix:sym<%%>   { <sym>  <O('%multiplicative')> }
+token infix:sym<%%>   { <sym>  <O('%multiplicative, :iffy<1>')> }
 token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
 token infix:sym<?&>   { <sym>  <O('%multiplicative')> }
@@ -1903,7 +1902,8 @@ token infix_prefix_meta_operator:sym<!> {
     <sym> <infixish> 
     [
     || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
-    || <O=.copyO('infixish')>
+    || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO('infixish')>
+    || <.panic("Can't negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
     ]
 }
 token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO('infixish')> }

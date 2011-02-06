@@ -179,7 +179,7 @@ Implements the .* operator. Calls one or more matching methods.
     .local pmc methods
     $P0 = invocant.'HOW'()
     methods = $P0.'can'(invocant, method_name)
-    unless methods goto it_loop_end
+    unless methods goto no_methods
 
     # Call each method, expanding out any multis along the way.
     .local pmc res_parcel, it, multi_it, cur_meth
@@ -220,6 +220,9 @@ Implements the .* operator. Calls one or more matching methods.
   it_loop_end:
 
     .tailcall '&list'(result_list :flat)
+  no_methods:
+    $P0 = get_hll_global 'Nil'
+    .return ($P0)
 .end
 
 

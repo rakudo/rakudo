@@ -372,9 +372,11 @@ method finishpad($/) {
 method statement_control:sym<if>($/) {
     my $count := +$<xblock> - 1;
     my $past := xblock_immediate( $<xblock>[$count].ast );
-    if $<else> {
-        $past.push( pblock_immediate( $<else>[0].ast ) );
-    }
+    # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
+    $past.push( $<else> 
+                ?? pblock_immediate( $<else>[0].ast )
+                !!  PAST::Var.new(:name('Nil'), :namespace([]), :scope('package')) 
+    );
     # build if/then/elsif structure
     while $count > 0 {
         $count--;

@@ -11,6 +11,7 @@ our sub SETUP_NAMED_ENUM($name, $values) {
         multi method roll($num = 1) { $values.roll($num) }
         multi method pick($num = 1) { $values.pick($num) }
         method ACCEPTS($topic) { $topic eqv any $values.values }
+        method invert() { $values.invert }
     });
     pir::set_hll_global__vPSP(@base_ns, $shortname, $enumeration-object);
 

@@ -4,11 +4,13 @@ nqp-rx/
 Makefile
 .*.swp
 *.patch
+*.pdb
 Test.pir
 perl6
 perl6.pbc
 perl6_s1.pbc
 perl6.exe
+perl6.exe.manifest
 perl6.c
 perl6.o
 perl6.obj
@@ -31,9 +33,12 @@ dynext/perl6_*.bundle
 dynext/perl6_*.so
 dynext/perl6_*.dll
 perl6_group.?
+perl6_group.obj
 libparrot.dll
 src/binder/bind.bundle
 src/binder/bind.o
+src/binder/bind.obj
+src/binder/*.pdb
 docs/test_summary.times
 docs/test_summary.times.tmp
 lib/DateTime/strftime.pir

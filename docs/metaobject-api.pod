@@ -48,7 +48,7 @@ This role provides storage of roles, role addition and role introspection.
 The composition process is not part of the functionality provided by this
 role, however.
 
-=head3 MultiInheritance
+=head3 MultipleInheritance
 
 Provides for addition of multiple parents, and introspection of them too.
 
@@ -56,7 +56,7 @@ Provides for addition of multiple parents, and introspection of them too.
 
 This role provides an implementation of the C3 method resolution order.
 
-=head3 Versionable
+=head3 Versioning
 
 This role provides storage and introspection of a version and authority.
 
@@ -85,6 +85,10 @@ Provides an implementation of a concrete instance of a role.
 
 Provides an implementation of grammars. Actually, just a subclass of the
 ClassHOW since grammars are really just slightly specialized classes.
+
+=head3 NativeHOW
+
+Meta-object for a native type (only accesible via the type object, perhaps).
 
 =head3 SubsetHOW
 

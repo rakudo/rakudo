@@ -1,0 +1,111 @@
+=head1 Rakudo Meta-Object API
+
+This document describes the meta-objects that constitute Rakudo's objects
+implementation. It also describes the API to implement should you wish to
+introduce your own meta-objects.
+
+
+=head2 Meta-model Organization
+
+Rakudo is built on top of the NQP platform. NQP provides an object model
+core that is often known as "6model". It is inspired by the needs of Perl
+6, but actually provides a very minimal base that other languages can build
+their own meta-objects on top of.
+
+While Rakudo could start from these base primitives, instead it makes use
+of some of the NQP meta-objects. Out of the box 6model provides no concept
+of classes or roles. NQP's meta-objects include a simple, non-parametric
+implementation of roles and a simple but capable implementation of classes.
+These are put to use in writing Rakudo's meta-objects.
+
+The Rakudo meta-objects are generally factored in terms of roles. These are
+composed into classes that represent the various types of Perl 6 package
+(such as classes and roles).
+
+
+=head2 Roles
+
+The following roles exist and provide re-usable pieces of functionality
+that can be re-used in various places in the meta-model.
+
+=head3 MethodContainer
+
+This role provides storage of methods, method addition and method
+introspection.
+
+=head3 MultiMethodContainer
+
+This role provides the extra pieces needed for multi-method handling.
+
+=head3 AttributeContainer
+
+This role provides storage of attributes, attribute addition and attribute
+introspection.
+
+=head3 RoleContainer
+
+This role provides storage of roles, role addition and role introspection.
+The composition process is not part of the functionality provided by this
+role, however.
+
+=head3 MultiInheritance
+
+Provides for addition of multiple parents, and introspection of them too.
+
+=head3 C3MRO
+
+This role provides an implementation of the C3 method resolution order.
+
+=head3 Versionable
+
+This role provides storage and introspection of a version and authority.
+
+
+=head2 Classes
+
+The following classes exist in the Perl 6 meta-model.
+
+=head3 ModuleHOW
+
+Provides an implementation of modules.
+
+=head3 ClassHOW
+
+Provides an implementation of classes.
+
+=head3 ParametricRoleHOW
+
+Provides an implementation of parametric roles, which may be instantiated.
+
+=head3 ConcreteRoleHOW
+
+Provides an implementation of a concrete instance of a role.
+
+=head3 GrammarHOW
+
+Provides an implementation of grammars. Actually, just a subclass of the
+ClassHOW since grammars are really just slightly specialized classes.
+
+=head3 SubsetHOW
+
+Provides an implementation of subset types.
+
+=head3 Attribute
+
+Represents an attribute.
+
+=head3 RoleToClassComposer
+
+Composes a single role into a class. (If many roles are specified, it makes
+a single role that does all of the roles the class wishes to, and then
+composes that single role).
+
+=head3 RoleToRoleComposer
+
+Composes one or more roles into another role, creating a kind of role
+"summation".
+
+=head3 RoleToObjectComposer
+
+Compoes a role into an object - essentially doing a mix-in.
+

@@ -27,7 +27,8 @@ class Complex does Numeric is Cool {
     multi method Complex() { self }
 
     method Str() {
-        "$.re + {$.im}i";
+        my $op = $.im < 0 ?? '-' !! '+';
+        "$.re $op {$.im.abs}i";
     }
 
     multi method perl() {

@@ -571,6 +571,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
      * if it was not yet built. */
     if (PMC_IS_NULL(named_to_pos_cache)) {
         named_to_pos_cache = pmc_new(interp, enum_class_Hash);
+        PARROT_GC_WRITE_BARRIER(interp, llsig);
         SETATTR_P6LowLevelSig_named_to_pos_cache(interp, llsig, named_to_pos_cache);
         for (i = 0; i < num_elements; i++) {
             /* If we find a named argument, we're done with the positionals. */

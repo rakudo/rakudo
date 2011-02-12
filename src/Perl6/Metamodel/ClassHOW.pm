@@ -1,4 +1,5 @@
 class Perl6::Metamodel::ClassHOW
+    does Perl6::Metamodel::Named
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::MultiMethodContainer

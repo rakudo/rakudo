@@ -1,2 +1,4 @@
-class Perl6::Metamodel::NativeHOW {
+class Perl6::Metamodel::NativeHOW
+    does Perl6::Metamodel::Naming
+{
 }

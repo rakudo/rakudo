@@ -638,6 +638,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             cache = Parrot_mmd_cache_create(interp);
             SETATTR_Perl6MultiSub_cache_single(interp, self, cache);
         }
+        PARROT_GC_WRITE_BARRIER(interp, self);
         Parrot_mmd_cache_store_by_values(interp, cache, "", capture, possibles[0]->sub);
     }
 
@@ -650,8 +651,10 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                 CONST_STRING(interp, "!DISPATCH_JUNCTION_MULTI"));
         sub = VTABLE_clone(interp, sub);
         VTABLE_setprop(interp, sub, CONST_STRING(interp, "sub"), self);
-        if (cache && many == MMD_ONE_RESULT)
+        if (cache && many == MMD_ONE_RESULT) {
+            PARROT_GC_WRITE_BARRIER(interp, self);
             Parrot_mmd_cache_store_by_values(interp, cache, "", capture, sub);
+        }
         junctional_res = sub;
     }
 
@@ -724,6 +727,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                 cache = Parrot_mmd_cache_create(interp);
                 SETATTR_Perl6MultiSub_cache_many(interp, self, cache);
             }
+            PARROT_GC_WRITE_BARRIER(interp, self);
             Parrot_mmd_cache_store_by_values(interp, cache, "", capture, results);
         }
 
@@ -766,6 +770,7 @@ static PMC *find_many_candidates_with_arg_list(PARROT_INTERP, PMC *SELF, PMC *ca
 
         if (!candidates) {
             candidates = sort_candidates(interp, unsorted, &proto);
+            PARROT_GC_WRITE_BARRIER(interp, SELF);
             SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
             SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
         }
@@ -962,6 +967,7 @@ the Perl 6 MMD algorithm.
 
             if (!candidates) {
                 candidates = sort_candidates(interp, unsorted, &proto);
+                PARROT_GC_WRITE_BARRIER(INTERP, SELF);
                 SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
                 SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
             }

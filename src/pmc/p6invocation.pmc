@@ -66,6 +66,7 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only,
         if (!PMC_IS_NULL(search_list) && name) {
             /* We can look for more candidates. Try to do so. */
             PMC *found = look_for_method(interp, search_list, &resume_point, name);
+            PARROT_GC_WRITE_BARRIER(interp, SELF);
             SETATTR_P6Invocation_resume_point(interp, SELF, resume_point);
             if (PMC_IS_NULL(found))
                 return PMCNULL;
@@ -74,6 +75,7 @@ static PMC *get_next_candidate(PARROT_INTERP, PMC *SELF, int check_only,
              * candidate list, creating it in the process if needed. */
             if (PMC_IS_NULL(candidates)) {
                 candidates = pmc_new(interp, enum_class_ResizablePMCArray);
+                PARROT_GC_WRITE_BARRIER(interp, SELF);
                 SETATTR_P6Invocation_candidate_list(interp, SELF, candidates);
             }
             VTABLE_push_pmc(interp, candidates, found);

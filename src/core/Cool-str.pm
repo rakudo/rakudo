@@ -212,7 +212,7 @@ augment class Cool {
             $!index = $!next_match + $/.chars;
         }
 
-        multi submethod increment_index(Str $s) {
+        multi submethod increment_index(Cool $s) {
             $!index = $!next_match + $s.chars;
         }
 

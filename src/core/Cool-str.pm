@@ -65,7 +65,7 @@ augment class Cool {
             } else {
                 take ~$m;
             }
-            $c = $m.to == $c ?? $c + 1 !! $m.to;
+            $c = $m.from == $m.to ?? $m.to + 1 !! $m.to;
             --$l;
         }
     }

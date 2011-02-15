@@ -638,6 +638,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
             cache = Parrot_mmd_cache_create(interp);
             SETATTR_Perl6MultiSub_cache_single(interp, self, cache);
         }
+        /* We have to WB self because MMD_Cache isn't PMC */
         PARROT_GC_WRITE_BARRIER(interp, self);
         Parrot_mmd_cache_store_by_values(interp, cache, "", capture, possibles[0]->sub);
     }
@@ -727,6 +728,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
                 cache = Parrot_mmd_cache_create(interp);
                 SETATTR_Perl6MultiSub_cache_many(interp, self, cache);
             }
+            /* We have to WB self because MMD_Cache isn't PMC */
             PARROT_GC_WRITE_BARRIER(interp, self);
             Parrot_mmd_cache_store_by_values(interp, cache, "", capture, results);
         }
@@ -1360,6 +1362,7 @@ Dumps a list of candidate signautres, sorted in dispatch order.
         if (!candidates) {
             PMC *proto;
             candidates = sort_candidates(interp, unsorted, &proto);
+            PARROT_GC_WRITE_BARRIER(interp, SELF);
             SETATTR_Perl6MultiSub_candidates_sorted(interp, SELF, candidates);
             SETATTR_Perl6MultiSub_proto(interp, SELF, proto);
         }

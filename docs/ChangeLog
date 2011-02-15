@@ -5,6 +5,7 @@ New in 2011.02 release
 + future-proof for upcoming generational garbage collector in parrot
 + various constructs now return Nil
 + infix:<orelse> implemented
++ infix:<^^> and infix:<xor> improved
 + negation metaoperator is now restricted to operators that return Bool
 
 New in 2011.01 release

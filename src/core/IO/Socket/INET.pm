@@ -18,7 +18,7 @@ module PIO {
 
 class IO::Socket::INET is Cool does IO::Socket {
 
-    method open (Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = 0) {
+    method open (Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = PIO::PF_INET) {
         my $addr = IO::Socket::INET.getaddrinfo(
                 $hostname,
                 $port,
@@ -60,7 +60,7 @@ class IO::Socket::INET is Cool does IO::Socket {
         }}) );
     }
 
-    method bind (Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = 0) {
+    method bind (Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = PIO::PF_INET) {
         my $addr = IO::Socket::INET.getaddrinfo(
                 $hostname,
                 $port,

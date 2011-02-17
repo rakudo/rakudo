@@ -11,6 +11,7 @@
 # integration/rule-in-class-Str.t - 'is also' -> augment
 # S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S07-iterators/range-iterator.t - regressed because conforms to obsolete version of spec
+# S05-grammar/protoregex.t - proto token is now {*}, not <...>
 #
 # Each file may have one or more markers that deselects the test:
 #     icu    - run tests only if --icu=1      (default is 1)
@@ -282,7 +283,6 @@ S05-grammar/inheritance.t
 S05-grammar/methods.t
 # S05-grammar/namespace.t
 S05-grammar/parse_and_parsefile.t
-S05-grammar/protoregex.t
 S05-grammar/protos.t
 S05-grammar/signatures.t
 # S05-grammar/ws.t

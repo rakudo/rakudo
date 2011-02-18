@@ -38,7 +38,7 @@ part of monthly Parrot releases.
   2011-01-20   Rakudo #37 "BristolBath"        (tadzik)
   2011-02-17   Rakudo #38 "Toulouse"           (arnsholt)
 
-=head2 Planned 2010 releases
+=head2 Planned 2011 releases
 
 Dates are based on Parrot's expected release schedule.
 
@@ -46,6 +46,12 @@ Dates are based on Parrot's expected release schedule.
   2011-04-21   Rakudo #40                      -vacant-
   2011-05-19   Rakudo #41                      -vacant-
   2011-06-23   Rakudo #42                      -vacant-
+  2011-07-21   Rakudo #43                      -vacant-
+  2011-08-18   Rakudo #44                      -vacant-
+  2011-09-22   Rakudo #45                      -vacant-
+  2011-10-20   Rakudo #46                      -vacant-
+  2011-11-17   Rakudo #47                      -vacant-
+  2011-12-22   Rakudo #48                      -vacant-
 
 =head2 Suggested .pm group names for future releases
 
@@ -249,7 +255,7 @@ You're done!  Celebrate with the appropriate amount of fun.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2009-2010, The Perl Foundation.
+Copyright (C) 2009-2011, The Perl Foundation.
 
 =cut
 

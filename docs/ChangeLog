@@ -1,3 +1,6 @@
+New in 2011.03 release
++ improved error message on type check failure in assignment
+
 New in 2011.02 release
 + IPv6 support
 + more robust numeric exponentation

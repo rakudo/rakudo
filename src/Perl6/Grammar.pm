@@ -1958,6 +1958,9 @@ token infix:sym<...>  { <sym>  <O('%list_infix')> }
 token infix:sym<...^> { <sym>  <O('%list_infix')> }
 # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }
 
+token infix:sym<?>    { <sym> {} <!before '?'> <?before <-[;]>*?':'> <.obs('?: for the conditional operator', '??!!')> <O('%conditional')> }
+
+
 token infix:sym<=> {
     <sym>
     [

@@ -16,7 +16,7 @@ compiled code.
   -e program           one line of program
   -h, --help           display this help text
   --target=[stage]     specify compilation stage to emit
-  -t, --trace=[flags]  enable trace flags
+  -t, --trace=[flags]  enable trace flags, see 'parrot --help-debug'
   --encoding=[mode]    specify string encoding mode
   -o, --output=[name]  specify name of output file
   -v, --version        display version information

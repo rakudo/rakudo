@@ -1894,7 +1894,11 @@ token infix:sym<?? !!> {
     '??'
     <.ws>
     <EXPR('i=')>
-    '!!'
+    [ '!!'
+    || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
+    || <?before \N*? [\n\N*?]?> '!!' <.panic("Bogus code found before the !!")>
+    || <.panic("Found ?? but no !!")>
+    ]
     <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>
 }
 

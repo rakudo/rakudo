@@ -943,7 +943,8 @@ token variable_declarator {
         | '(' ~ ')' <signature>
         | '[' ~ ']' <semilist>
         | '{' ~ '}' <semilist>
-        ]*
+        ]+
+        <.panic: "Shaped variable declarations are not yet implemented">
     ]?
     <trait>*
 }

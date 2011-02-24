@@ -44,6 +44,10 @@ class IO::Stat {
     method gid {
         pir::stat__isi($.path, 10);
     }
+
+    method permissions {
+        pir::stat__isi($.path, -3) +& 0o7777;
+    }
 }
 
 # vim: ft=perl6

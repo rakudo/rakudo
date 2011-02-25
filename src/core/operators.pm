@@ -401,7 +401,7 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
     my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
     return infinite-series(@lhs , $limit) if $rhs ~~ Whatever; #shortcut infinite series so we avoid the comparisions
 
-    #fail ('Limit arity cannot be larger than 1') if   $limit ~~ Code && $limit.count > 1;
+    die 'Sequence limit cannot be a multi-sub or multi-method' if $limit ~~ Multi;
     my $series = infinite-series(@lhs , $limit);
 
     gather {

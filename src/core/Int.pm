@@ -27,7 +27,7 @@ augment class Int does Real {
     }
 
     method sign(Int $x:) {
-        $x.notdef ?? Mu !! $x <=> 0;
+        $x.defined ?? $x <=> 0 !! Mu;
     }
 
     method gcd(Int $x: Int $y) {

@@ -71,8 +71,7 @@ role Real does Numeric {
     }
 
     method sign(Real $x:) {
-        $x.notdef ?? Mu
-                    !! ($x ~~ NaN ?? NaN !! $x <=> 0);
+        $x.defined ?? ($x ~~ NaN ?? NaN !! $x <=> 0) !! Mu;
     }
 
     method floor(Real $x:) {

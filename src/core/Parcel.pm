@@ -17,7 +17,7 @@ augment class Parcel does Positional {
 
     multi method ACCEPTS($x) {
         self.elems == 0
-            ?? $x.notdef || ($x ~~ Positional && $x == 0)
+            ?? !$x.defined || ($x ~~ Positional && $x == 0)
             !! self.Seq.ACCEPTS($x)
     }
 }

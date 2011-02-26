@@ -135,7 +135,7 @@ augment class Cool {
                         $c++;
                     } else {
                         my $m = self.index($match-string, $c);
-                        last if $m.notdef; # CHEAT, but the best I can do for now
+                        last unless $m.defined; # CHEAT, but the best I can do for now
                         take self.substr($c, $m - $c);
                         take $match-string if $all;
                         $c = $m + $match-string.chars;

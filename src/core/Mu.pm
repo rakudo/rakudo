@@ -8,8 +8,6 @@ augment class Mu {
         self;
     }
 
-    multi method notdef() { !self.defined; }
-
     method note() {
         note(self);
     }

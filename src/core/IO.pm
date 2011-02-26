@@ -292,4 +292,46 @@ multi sub cwd() {
     $! ?? fail($!) !! $pwd;
 }
 
+multi sub move($src as Str, $dest as Str) {
+    try {
+        pir::new__PS('OS').rename($src, $dest);
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub chmod($path as Str, $mode as Int) {
+    try {
+        pir::new__PS('OS').chmod($path, $mode);
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub copy($src as Str, $dest as Str) {
+    try {
+        pir::new__PS('File').copy($src, $dest);
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub rm($path as Str) {
+    try { 
+        pir::new__PS('OS').rm($path);
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub link($src as Str, $dest as Str, Bool :$hard = False) {
+    if $hard {
+        try {
+            pir::new__PS('OS').link($src, $dest);
+        }
+        $! ?? fail($!) !! return True;
+    }
+
+    try {
+        pir::new__PS('OS').symlink($src, $dest);
+    }
+    $! ?? fail($!) !! True
+}
+
 # vim: ft=perl6

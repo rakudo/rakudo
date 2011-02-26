@@ -52,6 +52,10 @@ class IO::Stat {
     method islnk {
         ?pir::stat__isi($.path, 12);
     }
+
+    method permissions {
+        pir::stat__isi($.path, -3) +& 0o7777;
+    }
 }
 
 # vim: ft=perl6

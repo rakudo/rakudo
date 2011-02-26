@@ -49,6 +49,7 @@ integration/advent2009-day19.t
 integration/advent2009-day20.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
+integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t
 integration/lexical-array-in-inner-block.t
@@ -213,6 +214,7 @@ S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
+S03-sequence/limit-arity-2-or-more.t
 S03-sequence/nonnumeric.t
 S03-smartmatch/any-any.t
 # S03-smartmatch/any-array-slice.t

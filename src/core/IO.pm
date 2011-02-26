@@ -175,6 +175,39 @@ class IO is Cool {
     multi method modified() { ::Instant.from-posix($.stat.modifytime) }
     multi method accessed() { ::Instant.from-posix($.stat.accesstime) }
     multi method changed() { ::Instant.from-posix($.stat.changetime) }
+
+    multi method move($dest as Str) {
+        try {
+            pir::new__PS('OS').rename($.path, $dest);
+        }
+        $! ?? fail($!) !! True
+    }
+
+    multi method chmod($mode as Int) {
+        try {
+            pir::new__PS('OS').chmod($.path, $mode);
+        }
+        $! ?? fail($!) !! True
+    }
+
+    multi method copy($dest as Str) {
+        try {
+            pir::new__PS('File').copy($.path, $dest);
+        }
+        $! ?? fail($!) !! True
+    }
+
+    multi method link($dest as Str, Bool :$hard = False) {
+        try {
+            if $hard {
+                pir::new__PS('OS').link($.path, $dest);
+            }
+            else {
+                pir::new__PS('OS').symlink($.path, $dest);
+            }
+        }
+        $! ?? fail($!) !! True
+    }
 }
 
 multi sub get(IO $filehandle = $*ARGFILES) { $filehandle.get };
@@ -227,7 +260,7 @@ sub slurp($filename) {
 
 sub unlink($filename) {
     try {
-        pir::new__PS('OS').rm($path);
+        pir::new__PS('OS').rm($filename);
     }
     $! ?? fail($!) !! True
 }
@@ -277,41 +310,6 @@ multi sub cwd() {
         $pwd = pir::new__Ps('OS').cwd();
     }
     $! ?? fail($!) !! $pwd;
-}
-
-multi sub move($src as Str, $dest as Str) {
-    try {
-        pir::new__PS('OS').rename($src, $dest);
-    }
-    $! ?? fail($!) !! True
-}
-
-multi sub chmod($path as Str, $mode as Int) {
-    try {
-        pir::new__PS('OS').chmod($path, $mode);
-    }
-    $! ?? fail($!) !! True
-}
-
-multi sub copy($src as Str, $dest as Str) {
-    try {
-        pir::new__PS('File').copy($src, $dest);
-    }
-    $! ?? fail($!) !! True
-}
-
-multi sub link($src as Str, $dest as Str, Bool :$hard = False) {
-    if $hard {
-        try {
-            pir::new__PS('OS').link($src, $dest);
-        }
-        $! ?? fail($!) !! return True;
-    }
-
-    try {
-        pir::new__PS('OS').symlink($src, $dest);
-    }
-    $! ?? fail($!) !! True
 }
 
 # vim: ft=perl6

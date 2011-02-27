@@ -113,7 +113,7 @@ multi sub todo($reason) is export {
 
 multi sub skip()                is export { proclaim(1, "# SKIP"); }
 multi sub skip($reason)         is export { proclaim(1, "# SKIP " ~ $reason); }
-multi sub skip($count, $reason) is export {
+multi sub skip($reason, $count) is export {
     my $i = 1;
     while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
 }

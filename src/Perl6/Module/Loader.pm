@@ -32,9 +32,9 @@ method need($name, %name_adverbs?) {
         # Is there a pre-compiled PIR version?
         my $pir_file := pir::substr__SSII($pm_file, 0, pir::index__ISSi($pm_file, '.', pir::length__IS($pm_file)-4)) ~ '.pir';
         my $loaded_pir := 0;
-        if pir::stat__ISI($pir_file, 0) {
-            # XXX We really should check if it's newer than the .pm file
-            # to avoid loading out of date versions.
+# stat[7]: modifytime
+        if pir::stat__ISI($pir_file, 0)
+           && pir::stat__ISI($pir_file, 7) >= pir::stat__ISI($pm_file, 7) {
             pir::load_bytecode__vS($pir_file);
             $loaded_pir := 1;
         }

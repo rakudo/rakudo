@@ -23,6 +23,10 @@ augment class Cool {
         (+$x).abs;
     }
 
+    method conjugate($x:) {
+        (+$x).conjugate;
+    }
+
     method exp($x: $base = e) {
         (+$x).exp(+$base);
     }
@@ -194,6 +198,8 @@ augment class Cool {
 
 proto sub abs($x) { $x.abs }
 multi sub prefix:<abs>($x) { $x.abs }
+proto sub conjugate($x) { $x.conjugate }
+multi sub prefix:<conjugate>($x) { $x.conjugate }
 proto sub sign($x) { $x.sign }
 proto sub exp($exponent, $base = e) { $exponent.exp($base) }
 proto sub log($x, $base = e) { $x.log($base) }

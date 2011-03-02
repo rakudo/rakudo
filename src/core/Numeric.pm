@@ -41,6 +41,12 @@ role Numeric {
         fail "$.WHAT() needs a version of .reals";
     }
 
+    method conjugate() {
+      return self if self.reals.elems == 1;
+      note "$.WHAT() needs a version of .reals";
+      fail "$.WHAT() needs a version of .reals";
+    }
+
     method isNaN() {
         ?(self.reals.grep({.isNaN}));
     }

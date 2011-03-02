@@ -35,6 +35,10 @@ class Complex does Numeric is Cool {
         "Complex.new($.re, $.im)";
     }
 
+    method conjugate() {
+      Complex.new($.re, -$.im);
+    }
+
     method abs(Complex $x:) {
         ($x.re * $x.re + $x.im * $x.im).sqrt
     }

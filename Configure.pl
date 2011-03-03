@@ -7,7 +7,7 @@ use warnings;
 use Getopt::Long;
 use Cwd;
 use lib "build/lib";
-use Parrot::CompareRevisions qw(compare_parrot_revs parse_parrot_revision_file);
+use Parrot::CompareRevisions qw(compare_revs parse_revision_file read_config);
 
 MAIN: {
     my %options;
@@ -50,10 +50,10 @@ MAIN: {
     }
 
     # Get configuration information from parrot_config
-    my %config = read_parrot_config(@parrot_config_exe);
+    my %config = read_config(@parrot_config_exe);
 
     # Determine the revision of Parrot we require
-    my ($req, $reqpar) = parse_parrot_revision_file;
+    my ($req, $reqpar) = parse_revision_file;
 
     my $parrot_errors = '';
     if (!%config) { 
@@ -62,7 +62,7 @@ MAIN: {
     else {
         if ($config{git_describe}) {
             # a parrot built from git
-            if (compare_parrot_revs($req, $config{'git_describe'}) > 0) {
+            if (compare_revs($req, $config{'git_describe'}) > 0) {
                 $parrot_errors .= "Parrot revision $req required (currently $config{'git_describe'})\n";
             }
         }
@@ -112,24 +112,6 @@ official test suite and run its tests.
 END
     exit 0;
 
-}
-
-
-sub read_parrot_config {
-    my @parrot_config_exe = @_;
-    my %config = ();
-    for my $exe (@parrot_config_exe) {
-        no warnings;
-        if (open my $PARROT_CONFIG, '-|', "$exe --dump") {
-            print "\nReading configuration information from $exe ...\n";
-            while (<$PARROT_CONFIG>) {
-                if (/(\w+) => '(.*)'/) { $config{$1} = $2 }
-            }
-            close $PARROT_CONFIG or die $!;
-            last if %config;
-        }
-    }
-    return %config;
 }
 
 

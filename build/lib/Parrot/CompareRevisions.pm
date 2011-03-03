@@ -6,9 +6,9 @@ use base qw(Exporter);
 our @EXPORT_OK = qw(compare_parrot_revs parse_parrot_git_describe parse_parrot_revision_file);
 
 sub parse_parrot_revision_file {
-    # Open the build/PARROT_REVISION file
-    open my $REQ, '<', "build/PARROT_REVISION"
-      or die "cannot open build/PARROT_REVISION: $!\n";
+    my $filename = shift || 'build/PARROT_REVISION';
+    open my $REQ, '<', $filename
+      or die "cannot open '$filename' for reading: $!\n";
     my ($req, $reqpar) = split(' ', <$REQ>);
     close $REQ;
 

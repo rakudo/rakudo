@@ -7,7 +7,7 @@ use warnings;
 use Getopt::Long;
 use Cwd;
 use lib "build/lib";
-use Parrot::CompareRevisions qw(compare_revs parse_revision_file read_config);
+use Parrot::CompareRevisions qw(compare_revs parse_revision_file read_config version_from_git_describe);
 
 MAIN: {
     my %options;
@@ -53,23 +53,24 @@ MAIN: {
     my %config = read_config(@parrot_config_exe);
 
     # Determine the revision of Parrot we require
-    my ($req, $reqpar) = parse_revision_file;
+    my $git_describe = parse_revision_file;
+    my $parrot_version = version_from_git_describe($git_describe);
 
     my $parrot_errors = '';
-    if (!%config) { 
+    if (!%config) {
         $parrot_errors .= "Unable to locate parrot_config\n"; 
     }
     else {
         if ($config{git_describe}) {
             # a parrot built from git
-            if (compare_revs($req, $config{'git_describe'}) > 0) {
-                $parrot_errors .= "Parrot revision $req required (currently $config{'git_describe'})\n";
+            if (compare_revs($git_describe, $config{'git_describe'}) > 0) {
+                $parrot_errors .= "Parrot revision $git_describe required (currently $config{'git_describe'})\n";
             }
         }
         else {
             # not built from a git repo - let's assume it's a release
-            if (version_int($reqpar) > version_int($config{'VERSION'})) {
-                $parrot_errors .= "Parrot version $reqpar required (currently $config{VERSION})\n";
+            if (version_int($parrot_version) > version_int($config{'VERSION'})) {
+                $parrot_errors .= "Parrot version $parrot_version required (currently $config{VERSION})\n";
             }
         }
     }
@@ -78,7 +79,7 @@ MAIN: {
         die <<"END";
 ===SORRY!===
 $parrot_errors
-To automatically clone (git) and build a copy of parrot $req,
+To automatically clone (git) and build a copy of parrot $git_describe,
 try re-running Configure.pl with the '--gen-parrot' option.
 Or, use the '--parrot-config' option to explicitly specify
 the location of parrot_config to be used to build Rakudo Perl.

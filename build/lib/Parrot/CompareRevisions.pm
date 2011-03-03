@@ -3,16 +3,29 @@ use strict;
 use warnings;
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(compare_revs parse_git_describe parse_revision_file read_config);
+our @EXPORT_OK = qw(
+    parse_revision_file
+    parse_git_describe
+    version_from_git_describe
+    compare_revs
+    read_config
+);
+
+sub config_check {
+
+}
 
 sub parse_revision_file {
     my $filename = shift || 'build/PARROT_REVISION';
     open my $REQ, '<', $filename
       or die "cannot open '$filename' for reading: $!\n";
-    my ($req, $reqpar) = split(' ', <$REQ>);
+    local $/;
+    my $str  = <$REQ>;
     close $REQ;
+    $str =~ s/\A\s+//;
+    $str =~ s/\s*\z//;
 
-    return $req, $reqpar
+    return $str;
 }
 
 sub parse_git_describe {
@@ -23,6 +36,11 @@ sub parse_git_describe {
                ."(expected something of format RELEASE_1_2_3-123-gdeadbee)\n";
     my @c = ($1, $2 || 0, $3 || 0, $4 || 0);
     return @c;
+}
+
+sub version_from_git_describe {
+    my @chunks = (parse_git_describe @_)[0..2];
+    return join '.', @chunks;
 }
 
 sub compare_revs {

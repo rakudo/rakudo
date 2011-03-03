@@ -28,7 +28,7 @@ use Parrot::CompareRevisions qw(compare_revs parse_revision_file);
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 
 # Determine the revision of Parrot we require
-my ($req, $reqpar) = parse_revision_file;
+my $req = parse_revision_file;
 
 {
     no warnings;
@@ -39,7 +39,7 @@ my ($req, $reqpar) = parse_revision_file;
             close $REV;
             $revision =~ s/\s.*//s;
             if (compare_revs($revision, $req) >= 0) {
-                print "Parrot $revision already available ($req required)\n";
+                print "Parrot $revision already available ($req required). that's new enough.\n";
                 exit(0);
             }
         }

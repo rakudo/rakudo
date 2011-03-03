@@ -17,17 +17,15 @@ sub run($commandline) {
     }
 }
 
-sub sleep($seconds = Inf) {         # fractional seconds also allowed
-    my $time1 = time;
-    if $seconds ~~ Inf {
-        pir::sleep__vN(1e16) while True;
-    } else {
-        pir::sleep__vN($seconds);
+class System-Clock does POSIX-Clock {
+    method time_as_int() { pir::time__I() }
+    method time_as_real() { pir::time__n() }
+    method sleep($seconds) {
+        if $seconds ~~ Inf {
+            pir::sleep__vN(1e16) while True;
+        } else {
+            pir::sleep__vN($seconds);
+        }
     }
-    my $time2 = time;
-    return $time2 - $time1;
 }
 
-sub term:<time>() {
-    pir::time__I()
-}

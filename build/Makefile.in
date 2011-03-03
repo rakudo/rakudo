@@ -224,6 +224,7 @@ CORE_SOURCES = \
   src/core/Regex.pm \
   src/core/Junction.pm \
   src/core/Grammar.pm \
+  src/core/Clock.pm \
   src/core/system.pm \
   src/cheats/process.pm \
   src/core/tai-utc.pm \

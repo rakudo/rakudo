@@ -30,7 +30,7 @@ package PROCESS {
 
         our $TZ = ::DateTime-local-timezone.new;
 
-        our $CLOCK = ::System-Clock.new;
+        our $CLOCK = ::Clock::System.new;
 
         Q:PIR {
             ##  set up $*OS, $*OSVER $*EXECUTABLE_NAME

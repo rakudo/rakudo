@@ -107,5 +107,5 @@ our multi sub infix:<->(Instant $a, Real $b) {
 our sub term:<now>() {
     # FIXME: During a leap second, the returned value is one
     # second greater than it should be.
-    Instant.from-posix: $*CLOCK.time_as_real
+    Instant.from-posix: $*CLOCK.Real;
 }

@@ -17,9 +17,9 @@ sub run($commandline) {
     }
 }
 
-class System-Clock does POSIX-Clock {
-    method time_as_int() { pir::time__I() }
-    method time_as_real() { pir::time__n() }
+class Clock::System does Clock::POSIX {
+    method Int() { pir::time__I() }
+    method Real() { pir::time__n() }
     method sleep($seconds) {
         if $seconds ~~ Inf {
             pir::sleep__vN(1e16) while True;

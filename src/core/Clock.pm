@@ -1,6 +1,9 @@
-role POSIX-Clock {
-    method time_as_int() { floor self.time_as_real }
-    method time_as_real() { self.time_as_int }
+role Clock::POSIX {
+    # A class that implements this role must implement at least
+    # one of these two methods
+    method Int() { floor self.Real }
+    method Real() { self.Int }
+
     method sleep($seconds) { ... }
 }
 
@@ -12,6 +15,6 @@ sub sleep($seconds = Inf) {  # fractional seconds also allowed
 }
 
 sub term:<time>() {
-    $*CLOCK.time_as_int;
+    $*CLOCK.Int;
 }
 

@@ -122,11 +122,7 @@ multi sub skip(Int $count, $reason) is export {
     die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?"
 }
 
-multi sub skip_rest() is export {
-    skip('<unknown>', $num_of_tests_planned - $num_of_tests_run);
-}
-
-multi sub skip_rest($reason) is export {
+sub skip_rest($reason = '<unknown>') is export {
     skip($reason, $num_of_tests_planned - $num_of_tests_run);
 }
 

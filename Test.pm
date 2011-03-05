@@ -113,13 +113,10 @@ multi sub todo($reason) is export {
 
 multi sub skip()                is export { proclaim(1, "# SKIP"); }
 multi sub skip($reason)         is export { proclaim(1, "# SKIP " ~ $reason); }
-multi sub skip($reason, Int $count) is export {
+multi sub skip($reason, $count) is export {
+    die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?" if $count !~~ Numeric;
     my $i = 1;
     while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
-}
-# needed because of RT #85472
-multi sub skip(Int $count, $reason) is export {
-    die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?"
 }
 
 sub skip_rest($reason = '<unknown>') is export {

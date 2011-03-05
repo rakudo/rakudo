@@ -31,7 +31,7 @@ ok 1, 'passing test (not todo)';
 
 skip( 'skip with reason' );
 skip;
-skip( 2, 'skip with count and reason' );
+skip( 'skip with count and reason', 2 );
 
 # skip_rest();
 
@@ -45,6 +45,9 @@ flunk( 'flunk' );
     isa_ok( $x, Int, 'isa_ok with message' );
     isa_ok( $x, Int );
 }
+
+dies_ok { skip( 2, 'reason' ) },
+        'skip() dies when given the arguments in the wrong order';
 
 # dies_ok { die }, 'dies_ok';
 # dies_ok { die };

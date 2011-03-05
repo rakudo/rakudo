@@ -117,6 +117,10 @@ multi sub skip($reason, Int $count) is export {
     my $i = 1;
     while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
 }
+# needed because of RT #85472
+multi sub skip(Int $count, $reason) is export {
+    die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?"
+}
 
 multi sub skip_rest() is export {
     skip('<unknown>', $num_of_tests_planned - $num_of_tests_run);

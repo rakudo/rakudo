@@ -35,7 +35,8 @@ method need($name, %name_adverbs?) {
 # stat[7]: modifytime
         if pir::stat__ISI($pir_file, 0)
            && pir::stat__ISI($pir_file, 7) >= pir::stat__ISI($pm_file, 7) {
-            pir::load_bytecode__vS($pir_file);
+            pir::load_bytecode__vS(pir::trans_encoding__SSI($pir_file,
+                pir::find_encoding__IS('fixed_8')));
             $loaded_pir := 1;
         }
 

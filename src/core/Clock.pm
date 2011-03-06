@@ -1,9 +1,6 @@
 role Clock::POSIX {
-    # A class that implements this role must implement at least
-    # one of these two methods
     method Int() { floor self.Real }
-    method Real() { self.Int }
-
+    method Real() { ... }
     method sleep($seconds) { ... }
 }
 

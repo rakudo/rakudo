@@ -47,8 +47,10 @@ our sub MAIN_HELPER($retval, $MAIN?) {
                         my ($name , $value) = $arg.split('=', 2);
                         if $negate {$negate=$name;}
                         %named-arguments{$name} = [$value.split(',')];
-                    } else {
+                    } elsif (@args) {
                         %named-arguments{$arg} = [@args.shift.split(',')];
+                    } else {
+                        return;
                     }
                 } elsif $passed_value.match( /\=/ ) {
                     my ($name , $value) = $arg.split('=', 2);
@@ -63,8 +65,10 @@ our sub MAIN_HELPER($retval, $MAIN?) {
                 } elsif $negate {
                     %named-arguments{$arg} = False;
                     $negate='';
-                } else {
+                } elsif @args {
                     %named-arguments{$arg}=@args.shift;
+                } else {
+                    return; #if we reach here case RT#71366
                 }
             } else {
                 @positional-arguments.push: $passed_value;
@@ -98,6 +102,7 @@ our sub MAIN_HELPER($retval, $MAIN?) {
         my %named-params-type = @named-params>>.name>>.substr(1) Z=> @named-params>>.type;
         my %alias = get-aliases($main.signature.params.grep({.named_names.elems == 2})>>.named_names);
         my @positional  = process-cmd-args(@*ARGS, %named-params-type , %alias);
+        next unless @positional;        
         my  %named = @positional.pop;
         if Capture.new(|@positional, |%named) ~~ $main.signature {
             $main(|@positional, |%named);

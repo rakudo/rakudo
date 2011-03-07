@@ -15,6 +15,8 @@ compiled code.
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   -e program           one line of program
   -h, --help           display this help text
+  -n                   run program once for each line of input
+  -p                   same as -n, but also print $_ at the end of lines
   --target=[stage]     specify compilation stage to emit
   -t, --trace=[flags]  enable trace flags, see 'parrot --help-debug'
   --encoding=[mode]    specify string encoding mode

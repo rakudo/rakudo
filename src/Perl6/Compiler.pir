@@ -147,6 +147,8 @@ Perl6::Compiler - Perl6 compiler
     $P0 = getattribute nqpproto, '@cmdoptions'
     push $P0, 'parsetrace'
     push $P0, 'c'
+    push $P0, 'n'
+    push $P0, 'p'
     nqpproto.'addstage'('check_syntax', 'after'=>'past')
 
     true = get_hll_global ['Bool'], 'True'

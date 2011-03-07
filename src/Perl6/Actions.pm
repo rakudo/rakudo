@@ -54,12 +54,57 @@ method deflongname($/) {
          !! ~$<name>;
 }
 
+# Turn $code into "for lines() { $code }"
+sub wrap_option_n_code($code) {
+    return PAST::Op.new(:name<&eager>,
+        PAST::Op.new(:pasttype<callmethod>, :name<map>,
+            PAST::Op.new( :name<&flat>,
+                PAST::Op.new(:name<&flat>,
+                    PAST::Op.new(
+                        :name<&lines>,
+                        :pasttype<call>
+                    )
+                )
+            ),
+            make_block_from(
+                Perl6::Compiler::Signature.new(
+                    Perl6::Compiler::Parameter.new(
+                        :var_name('$_'), :is_copy(1)
+                    )
+                ),
+                $code
+            )
+        )
+    );
+}
+
+# Turn $code into "for lines() { $code; say $_ }"
+# &wrap_option_n_code already does the C<for> loop, so we just add the
+# C<say> call here
+sub wrap_option_p_code($code) {
+    return wrap_option_n_code(
+        PAST::Stmts.new(
+            $code,
+            PAST::Op.new(:name<&say>, :pasttype<call>,
+                PAST::Var.new(:name<$_>)
+            )
+        )
+    );
+}
+
 method comp_unit($/, $key?) {
     our $?RAKUDO_HLL;
     
     # Get the block for the unit mainline code.
     my $unit := @BLOCK.shift;
     my $mainline := $<statementlist>.ast;
+
+    if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
+        $mainline := wrap_option_p_code($mainline);
+    }
+    elsif %*COMPILING<%?OPTIONS><n> {
+        $mainline := wrap_option_n_code($mainline);
+    }
 
     # Get the block for the entire compilation unit.
     my $outer := @BLOCK.shift;

@@ -25,7 +25,7 @@ class IO::Socket::INET2 does IO::Socket {
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
-    
+
     method new (*%args is copy) {
         %args<peeraddr> //= %args<peerhost>;
         my ($peer, $port) = %args<peeraddr>.split(':', 2);
@@ -33,7 +33,7 @@ class IO::Socket::INET2 does IO::Socket {
             %args<peerport> //= $port;
             %args<peeraddr> = $peer;
         }
-        
+
         if %args<localaddr> || %args<localhost> {
             %args<localaddr> //= %args<localhost>;
             ($peer, $port) = %args<localaddr>.split(':', 2);
@@ -42,7 +42,9 @@ class IO::Socket::INET2 does IO::Socket {
                 %args<localaddr> = $peer;
             }
         }
-        
+
+        #TODO: Learn what protocols map to which socket types and then determine which is needed.
+
         fail "Nothing given for new socket to connect or bind to" unless %args<peeraddr> || %args<listen>;
 
         self.bless(*, |%args);
@@ -52,7 +54,7 @@ class IO::Socket::INET2 does IO::Socket {
     submethod BUILD {
         #Callsame first to get all the actual class composition+construction done.
         callsame;
-        
+
         $!PIO = Q:PIR { %r = root_new ['parrot';'Socket'] };
         $!PIO.socket($.family, $.type, $.proto);        
         #Quoting perl5's SIO::INET:
@@ -61,11 +63,12 @@ class IO::Socket::INET2 does IO::Socket {
         if $.listen || $.localaddr || $.localport {
             my $addr = $!PIO.sockaddr($.localaddr || "0.0.0.0", $.localport || 0);
             $!PIO.bind(pir::descalarref__PP($addr));
-
-            $!PIO.listen($.listen) if $.listen;
         }
 
-        if !$.listen && $.proto == PIO::PROTO_TCP() {
+        if $.listen { 
+            $!PIO.listen($.listen);
+        }
+        elsif $.type == PIO::SOCK_STREAM {
             my $addr = $!PIO.sockaddr($.peeraddr, $.peerport);
             $!PIO.connect(pir::descalarref__PP($addr));    
         }

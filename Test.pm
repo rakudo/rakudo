@@ -141,14 +141,19 @@ multi sub isa_ok(Mu $var, Mu $type, $msg) is export {
 }
 
 multi sub dies_ok(Callable $closure, $reason) is export {
+    my $death = 0;
+    my $bad_death = 0;
     try {
         $closure();
+        CATCH {
+            $death = 1;
+            when / ^ 'Null PMC access ' / {
+                diag "wrong way to die: '$!'";
+                $bad_death = 1;
+            }
+        }
     }
-    #if "$!" ~~ / ^ 'Null PMC access ' / {
-    #    diag "wrong way to die: '$!'";
-    #}
-    proclaim(defined($!), $reason);
-    #proclaim((defined $! && "$!" !~~ / ^ 'Null PMC access ' /), $reason);
+    proclaim( $death && !$bad_death, $reason );
 }
 multi sub dies_ok(Callable $closure) is export {
     dies_ok($closure, '');
@@ -166,11 +171,16 @@ multi sub lives_ok(Callable $closure) is export {
 
 multi sub eval_dies_ok(Str $code, $reason) is export {
     my $ee = eval_exception($code);
-    #if "$ee" ~~ / ^ 'Null PMC access ' / {
-    #    diag "wrong way to die: '$ee'";
-    #}
-    proclaim((defined $ee), $reason);
-    # proclaim((defined $ee && "$ee" !~~ / ^ 'Null PMC access' /), $reason);
+    if defined $ee {
+        my $bad_death = "$ee" ~~ / ^ 'Null PMC access ' /;
+        if $bad_death {
+            diag "wrong way to die: '$ee'";
+        }
+        proclaim( !$bad_death, $reason );
+    }
+    else {
+        proclaim( 0, $reason );
+    }
 }
 multi sub eval_dies_ok(Str $code) is export {
     eval_dies_ok($code, '');

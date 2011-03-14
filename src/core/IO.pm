@@ -191,6 +191,9 @@ class IO is Cool {
     }
 
     multi method copy($dest as Str) {
+        if self.d() {
+            die "Cannot copy '$.path': Is a directory"
+        }
         try {
             pir::new__PS('File').copy($.path, $dest);
         }

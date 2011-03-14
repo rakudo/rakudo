@@ -381,9 +381,9 @@ proto sub end(@array) { @array.end; }
 proto sub grep(Mu $test, *@values) { @values.grep($test); }
 proto sub first(Mu $test, @values) { @values.first($test); }
 multi sub first(Mu $test, *@values) { @values.first($test); }
-proto sub min($by, *@values) { @values.min($by); }
-proto sub max($by, *@values) { @values.max($by); }
-proto sub minmax($by, *@values) { @values.minmax($by); }
+proto sub min(*@values, :$by) { @values.min($by); }
+proto sub max(*@values, :$by) { @values.max($by); }
+proto sub minmax(*@values, :$by) { @values.minmax($by); }
 proto sub uniq(@values) { @values.uniq; }
 multi sub uniq(*@values) { @values.uniq; }
 proto sub pick ($num, Bool :$replace, *@values) {

@@ -49,7 +49,7 @@ class IO::Socket::INET2 does IO::Socket {
 
         self.bless(*, |%args);
     }
-    
+
 
     submethod BUILD {
         #Callsame first to get all the actual class composition+construction done.
@@ -68,7 +68,7 @@ class IO::Socket::INET2 does IO::Socket {
         if $.listen { 
             $!PIO.listen($.listen);
         }
-        elsif $.type == PIO::SOCK_STREAM {
+        elsif $.type == PIO::SOCK_STREAM() {
             my $addr = $!PIO.sockaddr($.peeraddr, $.peerport);
             $!PIO.connect(pir::descalarref__PP($addr));    
         }

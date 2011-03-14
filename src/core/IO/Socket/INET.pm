@@ -16,7 +16,7 @@ module PIO {
     our sub PROTO_UDP { 17 }
 }
 
-class IO::Socket::INET2 does IO::Socket {
+class IO::Socket::INET does IO::Socket {
     has Str $.peeraddr;
     has Int $.peerport = 80;
     has Str $.localaddr;

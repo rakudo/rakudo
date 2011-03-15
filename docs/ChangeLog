@@ -1,5 +1,9 @@
 New in 2011.03 release
 + improved error message on type check failure in assignment
++ -n and -p command line options
++ Test.pm's skip() now has argument ordering consistent with todo()
++ implemented complex conjugation
++ more IO methods related to stat
 
 New in 2011.02 release
 + IPv6 support

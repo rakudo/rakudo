@@ -17,36 +17,47 @@ module PIO {
 }
 
 class IO::Socket::INET does IO::Socket {
-    has Str $.peeraddr;
-    has Int $.peerport = 80;
-    has Str $.localaddr;
+    has Str $.host;
+    has Int $.port = 80;
+    has Str $.localhost;
     has Int $.localport;
     has Int $.listen;
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
 
-    method new (*%args is copy) {
-        %args<peeraddr> //= %args<peerhost>;
-        my ($peer, $port) = %args<peeraddr>.split(':', 2);
-        if $port {
-            %args<peerport> //= $port;
-            %args<peeraddr> = $peer;
-        }
+    my sub v4-split($uri) {
+        return $uri.split(':', 2);
+    }
 
-        if %args<localaddr> || %args<localhost> {
-            %args<localaddr> //= %args<localhost>;
-            ($peer, $port) = %args<localaddr>.split(':', 2);
+    my sub v6-split($uri) {
+        my ($host, $port) = ($uri ~~ /^'[' (.+) ']' \: (\d+)$/)[0,1];
+        return $host ?? ($host, $port) !! $uri;
+	}
+
+    method new (*%args is copy) {
+        fail "Nothing given for new socket to connect or bind to" unless %args<addr> || %args<listen>;
+
+        if %args<host>  {
+            my ($host, $port) = %args<family> == PF_INET6() 
+                ?? v6-split(%args<host>)
+                !! v4-split(%args<host>);
+            if $port {
+                %args<port> //= $port;
+                %args<host> = $host;
+            }
+        }
+        if %args<localhost> {
+            my ($peer, $port) = %args<family> == PF_INET6() 
+                ?? v6-split(%args<localhost>)
+                !! v4-split(%args<localhost>);
             if $port {
                 %args<localport> //= $port;
-                %args<localaddr> = $peer;
+                %args<localhost> = $peer;
             }
         }
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
-
-        fail "Nothing given for new socket to connect or bind to" unless %args<peeraddr> || %args<listen>;
-
         self.bless(*, |%args);
     }
 

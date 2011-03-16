@@ -36,10 +36,10 @@ class IO::Socket::INET does IO::Socket {
 	}
 
     method new (*%args is copy) {
-        fail "Nothing given for new socket to connect or bind to" unless %args<addr> || %args<listen>;
+        fail "Nothing given for new socket to connect or bind to" unless %args<host> || %args<listen>;
 
         if %args<host>  {
-            my ($host, $port) = %args<family> == PF_INET6() 
+            my ($host, $port) = %args<family> && %args<family> == PIO::PF_INET6() 
                 ?? v6-split(%args<host>)
                 !! v4-split(%args<host>);
             if $port {
@@ -48,7 +48,7 @@ class IO::Socket::INET does IO::Socket {
             }
         }
         if %args<localhost> {
-            my ($peer, $port) = %args<family> == PF_INET6() 
+            my ($peer, $port) = %args<family> && %args<family> == PIO::PF_INET6() 
                 ?? v6-split(%args<localhost>)
                 !! v4-split(%args<localhost>);
             if $port {
@@ -71,8 +71,8 @@ class IO::Socket::INET does IO::Socket {
         #Quoting perl5's SIO::INET:
         #If Listen is defined then a listen socket is created, else if the socket type, 
         #which is derived from the protocol, is SOCK_STREAM then connect() is called.
-        if $.listen || $.localaddr || $.localport {
-            my $addr = $!PIO.sockaddr($.localaddr || "0.0.0.0", $.localport || 0);
+        if $.listen || $.localhost || $.localport {
+            my $addr = $!PIO.sockaddr($.localhost || "0.0.0.0", $.localport || 0);
             $!PIO.bind(pir::descalarref__PP($addr));
         }
 
@@ -80,17 +80,17 @@ class IO::Socket::INET does IO::Socket {
             $!PIO.listen($.listen);
         }
         elsif $.type == PIO::SOCK_STREAM() {
-            my $addr = $!PIO.sockaddr($.peeraddr, $.peerport);
+            my $addr = $!PIO.sockaddr($.host, $.port);
             $!PIO.connect(pir::descalarref__PP($addr));    
         }
     }
 
     method get() {
-        $!PIO.readline;
+        chomp($!PIO.readline);
     }
 
     method lines() {
-        gather { take $!PIO.readline };
+        gather { take chomp($!PIO.readline) };
     }
 
     method accept() {

@@ -128,7 +128,7 @@ method finish($block) {
     }
     else {
         # Augment, so look up existing class.
-        unless $name { pir::die('Can not augment an anonymous package') }
+        unless $name { pir::die('Cannot augment an anonymous package') }
         my @name := Perl6::Grammar::parse_name($name);
         $decl.push(PAST::Op.new(
             :pasttype('bind'),

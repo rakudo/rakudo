@@ -36,7 +36,7 @@ augment class Any {
     our multi method map(&block) { self.list.map(&block); }
 
     our multi method map(%block) {
-        die "Can't call map() with a Hash argument, Callable required\n"
+        die "Cannot call map() with a Hash argument, Callable required\n"
             ~ "You probably wrote a Hash composer accidentally - try to\n"
             ~ "disambiguate it with a ; directly after the opening brace";
 

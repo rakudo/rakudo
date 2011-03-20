@@ -409,7 +409,7 @@ augment class Cool {
 
     our multi method ord() {
         if self eq "" {
-            fail('Can not take ord of empty string');
+            fail('Cannot take ord of empty string');
         }
 
         pir::box__PI(pir::ord__IS(self));

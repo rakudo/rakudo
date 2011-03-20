@@ -282,7 +282,7 @@ Helper for handling calls of the form .Foo::bar.
     $P0 = $P0[name]
     .tailcall $P0(invocant, pos_args :flat, named_args :flat :named)
   not_allowed:
-    $S0 = "Can not call method '"
+    $S0 = "Cannot call method '"
     $S0 = concat $S0, name
     $S0 = concat $S0, "' on unrelated type '"
     $S1 = target.'perl'()

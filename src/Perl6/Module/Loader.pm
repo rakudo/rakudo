@@ -127,7 +127,7 @@ method stub_lexical_imports($name, $block_ast) {
     unless pir::isnull__IP(%imports) {
         for %imports {
             if $block_ast.symbol($_.key) {
-                pir::die("Can't import symbol " ~ $_.key
+                pir::die("Cannot import symbol " ~ $_.key
                     ~ " because it already exists in this lexical scope\n");
             } else {
                 if pir::isa($_.value, 'Perl6MultiSub') {

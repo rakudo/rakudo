@@ -82,10 +82,10 @@ method add_our_name($name, $up_levels = 0) {
 method add_name($name, $up_levels = 0) {
     if $*SCOPE eq 'augment' || $*SCOPE eq 'supersede' {
         unless self.is_name($name) {
-            pir::die("Can't $*SCOPE $*PKGDECL that doesn't exist");
+            pir::die("Cannot $*SCOPE $*PKGDECL that doesn't exist");
         }
         unless $*MONKEY_TYPING {
-            pir::die("Can't $*SCOPE $*PKGDECL $name without 'use MONKEY_TYPING'");
+            pir::die("Cannot $*SCOPE $*PKGDECL $name without 'use MONKEY_TYPING'");
         }
     }
     else {
@@ -796,7 +796,7 @@ token variable {
     ||  [
         | <sigil> <twigil>? <desigilname>
         | <special_variable>
-        | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.panic: "Can't declare a numeric variable">]?
+        | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.panic: "Cannot declare a numeric variable">]?
         | <sigil> <?[<[]> <postcircumfix>
         | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
         | <sigil> <?{ $*IN_DECL }>
@@ -1083,10 +1083,10 @@ token parameter {
 
         if $kind eq '!' {
             if $*zone eq 'posopt' {
-                $/.CURSOR.panic("Can't put required parameter after optional parameters");
+                $/.CURSOR.panic("Cannot put required parameter after optional parameters");
             }
             elsif $*zone eq 'var' {
-                $/.CURSOR.panic("Can't put required parameter after variadic parameters");
+                $/.CURSOR.panic("Cannot put required parameter after variadic parameters");
             }
         }
         elsif $kind eq '?' {
@@ -1094,7 +1094,7 @@ token parameter {
                     $*zone := 'posopt';
             }
             elsif $*zone eq  'var' {
-                $/.CURSOR.panic("Can't put optional positional parameter after variadic parameters");
+                $/.CURSOR.panic("Cannot put optional positional parameter after variadic parameters");
             }
         }
         elsif $kind eq '*' {
@@ -1909,7 +1909,7 @@ token infix_prefix_meta_operator:sym<!> {
     [
     || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
     || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO('infixish')>
-    || <.panic("Can't negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
+    || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
     ]
 }
 token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO('infixish')> }
@@ -2123,7 +2123,7 @@ method gen_op($category, $opname, $canname, $subname) {
         return 0;
     }
     else {
-        self.panic("Can not add tokens of category '$category' with a sub");
+        self.panic("Cannot add tokens of category '$category' with a sub");
     }
 
     # Nope, so we need to modify the grammar. Build code to parse it.

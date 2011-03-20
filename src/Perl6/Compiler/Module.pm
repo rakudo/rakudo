@@ -23,7 +23,7 @@ method finish($block) {
         $block.namespace(Perl6::Grammar::parse_name(~$!name));
     }
     else {
-        pir::die("Can't handle scope declarator " ~ $!scope ~ " on modules yet");
+        pir::die("Cannot handle scope declarator " ~ $!scope ~ " on modules yet");
     }
     return $block;
 }

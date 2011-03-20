@@ -171,7 +171,7 @@ Add a method to the given meta.
     $P1.'incorporate_candidates'(meth)
     .return ()
   error:
-    '&die'('Can not add two methods to a role if they are not multis')
+    '&die'('Cannot add two methods to a role if they are not multis')
 .end
 
 =item methods
@@ -335,7 +335,7 @@ Completes the creation of the metaclass and return the P6role.
     $P3 = $P1.'WHAT'()
     $I0 = '&infix:<===>'($P2, $P3)
     if $I0 goto composee_it_loop
-    die 'Can not compose multiple composees that want different appliers'
+    die 'Cannot compose multiple composees that want different appliers'
   first_composee:
     $P1 = $P0.'HOW'()
     chosen_applier = $P1.'applier_for'($P0, self)

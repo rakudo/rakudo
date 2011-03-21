@@ -44,8 +44,12 @@ multi sub plan($number_of_tests) is export {
     }
     # Emit two successive timestamps to measure the measurment overhead,
     # and to eliminate cacheing bias, if it exists, from the first test.
-    say '# t=' ~ now.to-posix[0] if %*ENV{'PERL6_TEST_TIMES'};
-    say '# t=' ~ now.to-posix[0] if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    # Ideally the time readings above could be made with the expression
+    # now.to-posix[0], but the execution time showed by the difference
+    # between the two successive readings is far slower than when the
+    # non portable pir::time__N is used instead.
 }
 
 multi sub pass($desc) is export {
@@ -236,7 +240,7 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
-    say '# t=' ~ now.to-posix[0] if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";

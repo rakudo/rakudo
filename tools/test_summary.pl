@@ -304,7 +304,8 @@ sub begin {       # this constructor starts simple relative benchmarking
     }
     open( $self->{'file_out'}, '>', 'docs/test_summary.times.tmp') or die "cannot create docs/test_summary.times.tmp: $!";
     my $parrot_version = qx{./perl6 -e'print \$*VM<config><revision>'};
-    my $rakudo_version = qx{git log --oneline --max-count=1 .}; chomp $rakudo_version;
+    my $rakudo_version = qx{git log --pretty=oneline --abbrev-commit --max-count=1 .}; chomp $rakudo_version;
+    $rakudo_version =~ s/^([0-9a-f])+\.\.\./$1/; # delete possible ... 
     $rakudo_version =~ s/\\/\\\\/g; # escape all backslashes
     $rakudo_version =~ s/\"/\\\"/g; # escape all double quotes
     my $file_out = $self->{'file_out'};

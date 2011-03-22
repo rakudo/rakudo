@@ -103,6 +103,13 @@ role Buf[::T = Int] does Stringy does Positional {
         return |@fields;
     }
 
+    method perl() {
+        self.WHAT.perl
+            ~ '.new('
+            ~ @.contents.join(', ')
+            ~ ')'
+    }
+
     multi method elems() {
         @.contents.elems;
     }

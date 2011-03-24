@@ -976,6 +976,10 @@ rule routine_def {
                 # e.g. eval's or operators defined in the setting will still
                 # be parseable. Note this should really be mix-in-ier and not
                 # globally tweak the grammar in the long run.
+                #
+                # TODO: the way it is currently done, gen_op doesn't have
+                # access to $/, so it can't produce proper line numbers for
+                # errors. Fix that.
                 my $gen_block := PAST::Block.new( :node($/),
                     PAST::Op.new(
                         :pasttype('callmethod'), :name('gen_op'),
@@ -2096,7 +2100,7 @@ sub parse_name($name) {
 }
 
 
-# This sub is used to augment the grammar with new ops at parse time.
+# This method is used to augment the grammar with new ops at parse time.
 method gen_op($category, $opname, $canname, $subname) {
     my $self := Q:PIR { %r = self };
 
@@ -2123,7 +2127,7 @@ method gen_op($category, $opname, $canname, $subname) {
         return 0;
     }
     else {
-        self.panic("Cannot add tokens of category '$category' with a sub");
+        pir::die("Cannot add tokens of category '$category' with a sub");
     }
 
     # Nope, so we need to modify the grammar. Build code to parse it.
@@ -2155,7 +2159,7 @@ method gen_op($category, $opname, $canname, $subname) {
         # runs us into fun with terminators.
         my @parts := pir::split__Pss(' ', $opname);
         if +@parts != 2 {
-            self.panic("Unable to find starter and stopper from '$opname'");
+            pir::die("Unable to find starter and stopper from '$opname'");
         }
         $parse.push(PAST::Regex.new(
             :pasttype('literal'), :backtrack('r'),

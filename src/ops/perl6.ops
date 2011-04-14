@@ -314,14 +314,12 @@ nextsame need.
 */
 inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
     PMC     *ctx         = Parrot_pcc_get_caller_ctx(interp, CURRENT_CONTEXT(interp));
-    STRING  *name        = Parrot_str_new(interp, "__CANDIDATE_LIST__", 0);
-    PMC     *last_lexpad = PMCNULL;
-    PMC     *last_sub    = PMCNULL;
+    STRING  * const name = Parrot_str_new(interp, "__CANDIDATE_LIST__", 0);
 
     while (!PMC_IS_NULL(ctx)) {
         /* See if we've found a candidate list. */
-        PMC *lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
-        PMC *clist  = VTABLE_get_pmc_keyed_str(interp, lexpad, name);
+        PMC * const lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
+        PMC * const clist  = VTABLE_get_pmc_keyed_str(interp, lexpad, name);
         if (!PMC_IS_NULL(clist)) {
             /* Found. Set results and we're done. */
             $1 = clist;
@@ -331,8 +329,6 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
         }
         else {
             /* Not found; keep looking. */
-            last_sub = Parrot_pcc_get_sub(interp, ctx);
-            last_lexpad = lexpad;
             ctx = Parrot_pcc_get_outer_ctx(interp, ctx);
         }
     }
@@ -440,9 +436,6 @@ Sets $1 to be a P6LowLevelSig with $2 signature elements allocated.
 
 */
 inline op allocate_llsig(out PMC, in INT) :base_core {
-    struct llsig_element **elements;
-    INTVAL i;
-
     /* Create new low level signature PMC. */
     $1 = Parrot_pmc_new_init_int(interp, lls_id, $2);
     goto NEXT();
@@ -637,7 +630,7 @@ inline op bind_llsig(in PMC) :base_core {
         /* Ensure we actually have a signature; if not, try to lazily generate
          * it. */
         if (PMC_IS_NULL(llsig)) {
-            PMC *sig_meth    = VTABLE_find_method(interp, sub, BANG_LLSIG_str);
+            PMC * const sig_meth = VTABLE_find_method(interp, sub, BANG_LLSIG_str);
             Parrot_ext_call(interp, sig_meth, "P->P", sub, &llsig);
         }
 
@@ -657,11 +650,11 @@ inline op bind_llsig(in PMC) :base_core {
             /* Maybe we need to auto-thread... */
             if (bind_error == BIND_RESULT_JUNCTION) {
                 /* Find dispatcher and call it. */
-                PMC *returns = Parrot_pmc_new(interp, enum_class_CallContext);
-                PMC *dispatcher = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp), DISPATCH_JUNCTION_str);
+                PMC * const returns = Parrot_pmc_new(interp, enum_class_CallContext);
+                PMC * const dispatcher = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp), DISPATCH_JUNCTION_str);
 
                 opcode_t *next;
-                PMC *junc_result, *caller_sig;
+                PMC *junc_result;
                 Parrot_ext_call(interp, dispatcher, "PP->P", sub, $1, &junc_result);
 
                 /* Build call signautre of returns and set it. */

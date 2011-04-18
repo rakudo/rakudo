@@ -1,3 +1,6 @@
+New in 2011.04 release
++ implemented Str.indent
+
 New in 2011.03 release
 + improved error message on type check failure in assignment
 + -n and -p command line options

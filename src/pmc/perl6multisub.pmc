@@ -648,7 +648,7 @@ static PMC* do_dispatch(PARROT_INTERP, PMC *self, candidate_info **candidates, P
         /* Look up multi junction dispatcher, clone it, attach this multi-sub
          * as a property and hand that back as the dispatch result. We also
          * stick it in the MMD cache for next time around. */
-        PMC *sub = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
+        PMC *sub = Parrot_ns_find_namespace_global(interp, Parrot_hll_get_ctx_HLL_namespace(interp),
                 CONST_STRING(interp, "!DISPATCH_JUNCTION_MULTI"));
         sub = VTABLE_clone(interp, sub);
         VTABLE_setprop(interp, sub, CONST_STRING(interp, "sub"), self);

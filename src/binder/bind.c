@@ -98,7 +98,7 @@ descalarref(PARROT_INTERP, PMC *ref) {
 static PMC *
 Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest, STRING *type_str) {
     static PMC *truepmc = NULL;
-    PMC *hll_ns    = Parrot_get_ctx_HLL_namespace(interp);
+    PMC *hll_ns    = Parrot_hll_get_ctx_HLL_namespace(interp);
     PMC *arr_ns    = Parrot_ns_get_namespace_keyed_str(interp, hll_ns, type_str);
     PMC *arr_class = VTABLE_get_class(interp, arr_ns);
     PMC *result    = VTABLE_instantiate(interp, arr_class, PMCNULL);
@@ -121,7 +121,7 @@ Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
     if (!HashPunned) {
         /* We cache the punned Hash role class so we can very quickly call
          * CREATE - critical as we have slurpy hashes for all methods. */
-        PMC *root_ns   = Parrot_get_ctx_HLL_namespace(interp);
+        PMC *root_ns   = Parrot_hll_get_ctx_HLL_namespace(interp);
         PMC *hash_role = VTABLE_get_pmc_keyed_str(interp, root_ns, HASH_str);
         PMC *meth      = VTABLE_find_method(interp, hash_role, SELECT_str);
         Parrot_ext_call(interp, meth, "P->P", hash_role, &hash_role);
@@ -140,7 +140,7 @@ Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
 /* Creates a Perl 6 object of the type given by C<classname> */
 static PMC *
 Rakudo_binding_create(PARROT_INTERP, STRING *classname) {
-    PMC *ns        = Parrot_get_ctx_HLL_namespace(interp);
+    PMC *ns        = Parrot_hll_get_ctx_HLL_namespace(interp);
     PMC *class_ns  = Parrot_ns_get_namespace_keyed_str(interp, ns, classname);
     PMC *class_obj = VTABLE_get_class(interp, class_ns);
     PMC *result    = VTABLE_instantiate(interp, class_obj, PMCNULL);
@@ -248,7 +248,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, llsig_element *sig
     }
 
     /* Now look up infix:<=> and do the assignment. */
-    assigner = VTABLE_get_pmc_keyed_str(interp, Parrot_get_ctx_HLL_namespace(interp),
+    assigner = VTABLE_get_pmc_keyed_str(interp, Parrot_hll_get_ctx_HLL_namespace(interp),
             Parrot_str_new(interp, "!only_infix:=", 0));
     Parrot_ext_call(interp, assigner, "PP", assignee, value);
 
@@ -660,7 +660,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
             /* XXX In the long run, we need to snapshot any current CaptureCursor.
              * For now, we don't have that, so we just build off the current
              * capture. */
-            PMC *ns       = Parrot_get_ctx_HLL_namespace(interp);
+            PMC *ns       = Parrot_hll_get_ctx_HLL_namespace(interp);
             PMC *snapper  = Parrot_ns_get_global(interp, ns, SNAPCAP_str);
             PMC *snapshot = PMCNULL;
             Parrot_ext_call(interp, snapper, "PiIP->P", capture, cur_pos_arg, named_args_copy, &snapshot);

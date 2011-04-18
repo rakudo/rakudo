@@ -27,7 +27,7 @@ pmclass ObjectRef dynpmc group perl6_group auto_attrs {
     }
 
     VTABLE void init() {
-        PMC * const hll_ns    = Parrot_get_ctx_HLL_namespace(INTERP);
+        PMC * const hll_ns    = Parrot_hll_get_ctx_HLL_namespace(INTERP);
         STRING * const s_obj  = OBJECTREF_str;
         PMC * const objectpmc = Parrot_ns_find_namespace_global(INTERP, hll_ns, s_obj);
         STATICSELF.init_pmc(objectpmc);

@@ -185,7 +185,16 @@ Make sure everything compiles and runs from a known clean state:
   $ make test
   $ make stresstest
 
-Continue adjusting things until make spectest passes as expected.
+There are many tests to run for the stresstest target.  If
+you have a machine with multiple CPU cores, you may want to
+execute that last as
+
+  $ TEST_JOBS=4 make stresstest
+
+where 4 is the number of CPU cores.  This should make the
+total time to execute all of the tests dramatically less.
+
+Continue adjusting things until make stresstest passes as expected.
 Often this means fixing a bug, fudging a test, or (temporarily?)
 commenting out a test file in t/spectest.data .  Use your best
 judgment or ask others if uncertain what to do here.

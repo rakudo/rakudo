@@ -585,7 +585,7 @@ S32-str/chop.t
 S32-str/comb.t                                             # icu
 S32-str/encode.t
 S32-str/flip.t
-S32-str/indent.t
+S32-str/indent.t                                            # icu
 S32-str/index.t
 S32-str/lcfirst.t                                            # icu
 S32-str/lc.t                                                 # icu

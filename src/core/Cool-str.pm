@@ -54,7 +54,13 @@ augment class Cool {
         $result;
     }
 
-    multi method comb(Regex $matcher = /./, $limit = *, :$match) {
+    multi method comb() {
+        gather for 1..self.chars {
+            take self.substr($_ - 1, 1);
+        }
+    }
+
+    multi method comb(Regex $matcher, $limit = *, :$match) {
         my $self-string = ~self;
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit;

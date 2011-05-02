@@ -183,7 +183,7 @@ token def_module_name {
 token end_keyword {
     <!before <[ \( \\ ' \- ]> || \h* '=>'> »
 }
-token spacey { <?before <[ \s \# ]> > }
+token spacey { <?before [\s | '#']> }
 
 token ENDSTMT {
     [

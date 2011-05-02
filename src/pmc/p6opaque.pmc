@@ -85,7 +85,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
 
     /* Iterate over the handlers. */
     PMC    *iter       = VTABLE_get_iter(interp, handlers);
-    STRING *attr       = NULL;
+    STRING *attr       = STRINGNULL;
     while (VTABLE_get_bool(interp, iter)) {
         PMC *handles_hash = VTABLE_shift_pmc(interp, iter);
         PMC *matcher   = VTABLE_get_pmc_keyed_str(interp, handles_hash, match_against);

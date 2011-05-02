@@ -618,7 +618,7 @@ inline op bind_llsig(in PMC) :base_core {
         PMC * const sub           = Parrot_pcc_get_sub(interp, ctx);
         PMC * const llsig         = VTABLE_getprop(interp, sub, LLSIG_ATTR_str);
         const INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
-        STRING *error       = NULL;
+        STRING *error       = STRINGNULL;
         INTVAL bind_error;
 
         /* Need to make sure some stuff doesn't get destroyed. */

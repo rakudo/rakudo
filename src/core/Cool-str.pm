@@ -54,8 +54,9 @@ augment class Cool {
         $result;
     }
 
-    multi method comb() {
-        gather for 1..self.chars {
+    multi method comb(:$limit) {
+        my $to = $limit // self.chars;
+        gather for 1..$to {
             take self.substr($_ - 1, 1);
         }
     }

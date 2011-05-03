@@ -8,7 +8,9 @@ augment class Mu {
         self;
     }
 
-    multi method notdef() { !self.defined; }
+    multi method notdef() {
+        die ".notdef is deprecated, please use negated .defined instead";
+    }
 
     method note() {
         note(self);

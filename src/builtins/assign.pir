@@ -13,6 +13,8 @@ src/builtins/assign.pir - assignment operations
     .param pmc cont
     .param pmc source
 
+    .annotate 'invizible_frame', 1
+
   cont_loop:
     # If the lhs isn't marked rw, throw exception
     .local pmc rw
@@ -40,7 +42,15 @@ src/builtins/assign.pir - assignment operations
     if null type goto type_ok
     $P0 = type.'ACCEPTS'(source)
     if $P0 goto type_ok
-    '&die'('Type check failed for assignment')
+    .local string error_msg
+    error_msg = "Type check failed for assignment\n    Container type: "
+    $S0 = type.'perl'()
+    error_msg = concat error_msg, $S0
+    error_msg = concat error_msg, "\n               Got: "
+    $P0 = source.'WHAT'()
+    $S0 = $P0.'perl'()
+    error_msg = concat error_msg, $S0
+    '&die'(error_msg)
   type_ok:
 
     # Dereference the scalar LHS.  If the thing we're
@@ -82,6 +92,8 @@ src/builtins/assign.pir - assignment operations
 
   cont_store:
     .tailcall cont.'!STORE'(source)
+
+    .annotate 'invizible_frame', 1
 .end
 
 

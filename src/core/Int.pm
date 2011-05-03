@@ -27,7 +27,11 @@ augment class Int does Real {
     }
 
     method sign(Int $x:) {
-        $x.notdef ?? Mu !! $x <=> 0;
+        $x.defined ?? $x <=> 0 !! Mu;
+    }
+
+    method gcd(Int $x: Int $y) {
+        pir::gcd__iii($x, $y);
     }
 }
 
@@ -97,3 +101,5 @@ our multi sub infix:<**>(Int $a, Int $b) {
         pir::pow__NNN($a, $b)
     }
 }
+
+proto sub gcd($x, $y) { $x.gcd($y); }

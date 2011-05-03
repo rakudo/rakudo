@@ -12,6 +12,8 @@ augment class Bool does Abstraction {
 
     method Bridge() { self ?? 1.Bridge !! 0.Bridge }
 
+    method key() { self.Stringy }
+
     method pick($count = 1) {
         (True, False).pick($count);
     }

@@ -44,8 +44,12 @@ multi sub plan($number_of_tests) is export {
     }
     # Emit two successive timestamps to measure the measurment overhead,
     # and to eliminate cacheing bias, if it exists, from the first test.
-    say '# t=' ~ pir::time__N() if %*ENV{'PERL6_TEST_TIMES'};
-    say '# t=' ~ pir::time__N() if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    # Ideally the time readings above could be made with the expression
+    # now.to-posix[0], but the execution time showed by the difference
+    # between the two successive readings is far slower than when the
+    # non portable pir::time__N is used instead.
 }
 
 multi sub pass($desc) is export {
@@ -113,17 +117,14 @@ multi sub todo($reason) is export {
 
 multi sub skip()                is export { proclaim(1, "# SKIP"); }
 multi sub skip($reason)         is export { proclaim(1, "# SKIP " ~ $reason); }
-multi sub skip($count, $reason) is export {
+multi sub skip($reason, $count) is export {
+    die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?" if $count !~~ Numeric;
     my $i = 1;
     while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
 }
 
-multi sub skip_rest() is export {
-    skip($num_of_tests_planned - $num_of_tests_run, "");
-}
-
-multi sub skip_rest($reason) is export {
-    skip($num_of_tests_planned - $num_of_tests_run, $reason);
+sub skip_rest($reason = '<unknown>') is export {
+    skip($reason, $num_of_tests_planned - $num_of_tests_run);
 }
 
 sub diag($message) is export {
@@ -144,14 +145,19 @@ multi sub isa_ok(Mu $var, Mu $type, $msg) is export {
 }
 
 multi sub dies_ok(Callable $closure, $reason) is export {
+    my $death = 0;
+    my $bad_death = 0;
     try {
         $closure();
+        CATCH {
+            $death = 1;
+            when / ^ 'Null PMC access ' / {
+                diag "wrong way to die: '$!'";
+                $bad_death = 1;
+            }
+        }
     }
-    #if "$!" ~~ / ^ 'Null PMC access ' / {
-    #    diag "wrong way to die: '$!'";
-    #}
-    proclaim(defined($!), $reason);
-    #proclaim((defined $! && "$!" !~~ / ^ 'Null PMC access ' /), $reason);
+    proclaim( $death && !$bad_death, $reason );
 }
 multi sub dies_ok(Callable $closure) is export {
     dies_ok($closure, '');
@@ -169,11 +175,16 @@ multi sub lives_ok(Callable $closure) is export {
 
 multi sub eval_dies_ok(Str $code, $reason) is export {
     my $ee = eval_exception($code);
-    #if "$ee" ~~ / ^ 'Null PMC access ' / {
-    #    diag "wrong way to die: '$ee'";
-    #}
-    proclaim((defined $ee), $reason);
-    # proclaim((defined $ee && "$ee" !~~ / ^ 'Null PMC access' /), $reason);
+    if defined $ee {
+        my $bad_death = "$ee" ~~ / ^ 'Null PMC access ' /;
+        if $bad_death {
+            diag "wrong way to die: '$ee'";
+        }
+        proclaim( !$bad_death, $reason );
+    }
+    else {
+        proclaim( 0, $reason );
+    }
 }
 multi sub eval_dies_ok(Str $code) is export {
     eval_dies_ok($code, '');
@@ -229,7 +240,7 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
-    say '# t=' ~ pir::time__N() if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";

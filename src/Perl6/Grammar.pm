@@ -82,10 +82,10 @@ method add_our_name($name, $up_levels = 0) {
 method add_name($name, $up_levels = 0) {
     if $*SCOPE eq 'augment' || $*SCOPE eq 'supersede' {
         unless self.is_name($name) {
-            pir::die("Can't $*SCOPE $*PKGDECL that doesn't exist");
+            pir::die("Cannot $*SCOPE $*PKGDECL that doesn't exist");
         }
         unless $*MONKEY_TYPING {
-            pir::die("Can't $*SCOPE $*PKGDECL $name without 'use MONKEY_TYPING'");
+            pir::die("Cannot $*SCOPE $*PKGDECL $name without 'use MONKEY_TYPING'");
         }
     }
     else {
@@ -183,7 +183,7 @@ token def_module_name {
 token end_keyword {
     <!before <[ \( \\ ' \- ]> || \h* '=>'> »
 }
-token spacey { <?before <[ \s \# ]> > }
+token spacey { <?before [\s | '#']> }
 
 token ENDSTMT {
     [
@@ -552,7 +552,7 @@ token term:sym<undef> {
     [ <?before [ '(' || \h*<sigil><twigil>?\w ] >
         <.obs('undef as a verb', 'undefine function or assignment of Nil')>
     ]?
-    <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\tNil as an empty list,\n\t*.notdef as a matcher or method,\n\tAny:U as a type constraint\n\tor fail() as a failure return\n\t   ")>
+    <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\tNil as an empty list,\n\t!*.defined as a matcher or method,\n\tAny:U as a type constraint\n\tor fail() as a failure return\n\t   ")>
 }
 
 token term:sym<new> {
@@ -796,7 +796,7 @@ token variable {
     ||  [
         | <sigil> <twigil>? <desigilname>
         | <special_variable>
-        | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.panic: "Can't declare a numeric variable">]?
+        | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.panic: "Cannot declare a numeric variable">]?
         | <sigil> <?[<[]> <postcircumfix>
         | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
         | <sigil> <?{ $*IN_DECL }>
@@ -943,7 +943,8 @@ token variable_declarator {
         | '(' ~ ')' <signature>
         | '[' ~ ']' <semilist>
         | '{' ~ '}' <semilist>
-        ]*
+        ]+
+        <.panic: "Shaped variable declarations are not yet implemented">
     ]?
     <trait>*
 }
@@ -975,6 +976,10 @@ rule routine_def {
                 # e.g. eval's or operators defined in the setting will still
                 # be parseable. Note this should really be mix-in-ier and not
                 # globally tweak the grammar in the long run.
+                #
+                # TODO: the way it is currently done, gen_op doesn't have
+                # access to $/, so it can't produce proper line numbers for
+                # errors. Fix that.
                 my $gen_block := PAST::Block.new( :node($/),
                     PAST::Op.new(
                         :pasttype('callmethod'), :name('gen_op'),
@@ -1082,10 +1087,10 @@ token parameter {
 
         if $kind eq '!' {
             if $*zone eq 'posopt' {
-                $/.CURSOR.panic("Can't put required parameter after optional parameters");
+                $/.CURSOR.panic("Cannot put required parameter after optional parameters");
             }
             elsif $*zone eq 'var' {
-                $/.CURSOR.panic("Can't put required parameter after variadic parameters");
+                $/.CURSOR.panic("Cannot put required parameter after variadic parameters");
             }
         }
         elsif $kind eq '?' {
@@ -1093,7 +1098,7 @@ token parameter {
                     $*zone := 'posopt';
             }
             elsif $*zone eq  'var' {
-                $/.CURSOR.panic("Can't put optional positional parameter after variadic parameters");
+                $/.CURSOR.panic("Cannot put optional positional parameter after variadic parameters");
             }
         }
         elsif $kind eq '*' {
@@ -1894,7 +1899,12 @@ token infix:sym<?? !!> {
     '??'
     <.ws>
     <EXPR('i=')>
-    '!!'
+    [ '!!'
+    || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
+    || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
+    || <?before \N*? [\n\N*?]?> '!!' <.panic("Bogus code found before the !!")>
+    || <.panic("Found ?? but no !!")>
+    ]
     <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>
 }
 
@@ -1903,7 +1913,7 @@ token infix_prefix_meta_operator:sym<!> {
     [
     || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
     || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO('infixish')>
-    || <.panic("Can't negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
+    || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
     ]
 }
 token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO('infixish')> }
@@ -1952,6 +1962,13 @@ token infix:sym<X>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 token infix:sym<...>  { <sym>  <O('%list_infix')> }
 token infix:sym<...^> { <sym>  <O('%list_infix')> }
 # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }
+
+token infix:sym<?>    { <sym> {} <!before '?'> <?before <-[;]>*?':'> <.obs('?: for the conditional operator', '??!!')> <O('%conditional')> }
+
+token infix:sym<ff> { <sym> <.panic('Flip flip operators are not yet implemented')> }
+token infix:sym<^ff> { <sym> <.panic('Flip flip operators are not yet implemented')> }
+token infix:sym<ff^> { <sym> <.panic('Flip flip operators are not yet implemented')> }
+token infix:sym<^ff^> { <sym> <.panic('Flip flip operators are not yet implemented')> }
 
 token infix:sym<=> {
     <sym>
@@ -2083,7 +2100,7 @@ sub parse_name($name) {
 }
 
 
-# This sub is used to augment the grammar with new ops at parse time.
+# This method is used to augment the grammar with new ops at parse time.
 method gen_op($category, $opname, $canname, $subname) {
     my $self := Q:PIR { %r = self };
 
@@ -2110,7 +2127,7 @@ method gen_op($category, $opname, $canname, $subname) {
         return 0;
     }
     else {
-        self.panic("Can not add tokens of category '$category' with a sub");
+        pir::die("Cannot add tokens of category '$category' with a sub");
     }
 
     # Nope, so we need to modify the grammar. Build code to parse it.
@@ -2142,7 +2159,7 @@ method gen_op($category, $opname, $canname, $subname) {
         # runs us into fun with terminators.
         my @parts := pir::split__Pss(' ', $opname);
         if +@parts != 2 {
-            self.panic("Unable to find starter and stopper from '$opname'");
+            pir::die("Unable to find starter and stopper from '$opname'");
         }
         $parse.push(PAST::Regex.new(
             :pasttype('literal'), :backtrack('r'),

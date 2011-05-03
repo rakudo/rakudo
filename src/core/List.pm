@@ -45,7 +45,9 @@ augment class List does Positional {
     }
 
     method reverse() {
-        # XXX: fail if infinite
+        if self.elems ~~ Inf {
+            fail "Cannot reverse an infinite list"
+        }
         Q:PIR {
             .local pmc self, items, parcel
             self = find_lex 'self'

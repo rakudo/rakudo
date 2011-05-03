@@ -2,14 +2,16 @@
 use strict;
 use warnings;
 binmode STDOUT, ':encoding(UTF-8)';
-use 5.010;
+#use 5.010;
 use utf8;
 
 use Date::Simple qw(today ymd);
 
 my %contrib;
 
-my $last_release = shift // release_date_of_prev_month();
+my $last_release = shift;
+$last_release = release_date_of_prev_month() if not defined $last_release;
+my $nick_to_name = nick_to_name_from_CREDITS();
 open my $c, '-|', 'git', 'log', "--since=$last_release", '--pretty=format:%an|%cn|%s'
     or die "Can't open pipe to git log: $!";
 binmode $c, ':encoding(UTF-8)';
@@ -74,7 +76,6 @@ sub nick_to_name_from_CREDITS {
 
 sub nick_to_name {
     my $nick = shift;
-    state $nick_to_name = nick_to_name_from_CREDITS();
-    return $nick_to_name->{lc $nick} // $nick;
+    return defined $nick_to_name->{lc $nick}? $nick_to_name->{lc $nick} : $nick;
 }
 

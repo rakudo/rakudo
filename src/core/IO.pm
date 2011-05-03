@@ -175,6 +175,42 @@ class IO is Cool {
     multi method modified() { ::Instant.from-posix($.stat.modifytime) }
     multi method accessed() { ::Instant.from-posix($.stat.accesstime) }
     multi method changed() { ::Instant.from-posix($.stat.changetime) }
+
+    multi method move($dest as Str) {
+        try {
+            pir::new__PS('OS').rename($.path, $dest);
+        }
+        $! ?? fail($!) !! True
+    }
+
+    multi method chmod($mode as Int) {
+        try {
+            pir::new__PS('OS').chmod($.path, $mode);
+        }
+        $! ?? fail($!) !! True
+    }
+
+    multi method copy($dest as Str) {
+        if self.d() {
+            die "Cannot copy '$.path': Is a directory"
+        }
+        try {
+            pir::new__PS('File').copy($.path, $dest);
+        }
+        $! ?? fail($!) !! True
+    }
+
+    multi method link($dest as Str, Bool :$hard = False) {
+        try {
+            if $hard {
+                pir::new__PS('OS').link($.path, $dest);
+            }
+            else {
+                pir::new__PS('OS').symlink($.path, $dest);
+            }
+        }
+        $! ?? fail($!) !! True
+    }
 }
 
 multi sub get(IO $filehandle = $*ARGFILES) { $filehandle.get };
@@ -226,23 +262,10 @@ sub slurp($filename) {
 }
 
 sub unlink($filename) {
-    Q:PIR {
-        .local string filename_str
-        .local pmc filename_pmc, os
-        .local int status
-        filename_pmc = find_lex '$filename'
-        filename_str = filename_pmc
-        os = root_new ['parrot';'OS']
-        push_eh unlink_catch
-        os.'rm'(filename_str)
-        status = 1
-        goto unlink_finally
-      unlink_catch:
-        status = 0
-      unlink_finally:
-        pop_eh
-        %r = box status
+    try {
+        pir::new__PS('OS').rm($filename);
     }
+    $! ?? fail($!) !! True
 }
 
 # CHEAT: This function is missing a bunch of arguments,

@@ -83,7 +83,7 @@ class EnumMap is Iterable does Associative {
             my $iter = pir::iter__PP($!storage);
             while pir::istrue__IP($iter) {
                 my $iter_item = pir::shift__PP($iter);
-                take Pair.new(key => $iter_item.key, value => $iter_item.value);
+                take Pair.new(key => ~$iter_item.key, value => $iter_item.value);
             }
         }
     }

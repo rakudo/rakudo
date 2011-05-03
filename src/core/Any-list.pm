@@ -36,7 +36,7 @@ augment class Any {
     our multi method map(&block) { self.list.map(&block); }
 
     our multi method map(%block) {
-        die "Can't call map() with a Hash argument, Callable required\n"
+        die "Cannot call map() with a Hash argument, Callable required\n"
             ~ "You probably wrote a Hash composer accidentally - try to\n"
             ~ "disambiguate it with a ; directly after the opening brace";
 
@@ -381,9 +381,9 @@ proto sub end(@array) { @array.end; }
 proto sub grep(Mu $test, *@values) { @values.grep($test); }
 proto sub first(Mu $test, @values) { @values.first($test); }
 multi sub first(Mu $test, *@values) { @values.first($test); }
-proto sub min($by, *@values) { @values.min($by); }
-proto sub max($by, *@values) { @values.max($by); }
-proto sub minmax($by, *@values) { @values.minmax($by); }
+proto sub min(*@values, :$by) { $by.defined ?? @values.min($by) !! @values.min }
+proto sub max(*@values, :$by) { $by.defined ?? @values.max($by) !! @values.max }
+proto sub minmax(*@values, :$by) { $by.defined ?? @values.minmax($by) !! @values.minmax}
 proto sub uniq(@values) { @values.uniq; }
 multi sub uniq(*@values) { @values.uniq; }
 proto sub pick ($num, Bool :$replace, *@values) {

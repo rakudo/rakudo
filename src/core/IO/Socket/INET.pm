@@ -16,79 +16,81 @@ module PIO {
     our sub PROTO_UDP { 17 }
 }
 
-class IO::Socket::INET is Cool does IO::Socket {
+class IO::Socket::INET does IO::Socket {
+    has Str $.host;
+    has Int $.port = 80;
+    has Str $.localhost;
+    has Int $.localport;
+    has Int $.listen;
+    has $.family = PIO::PF_INET;
+    has $.proto = PIO::PROTO_TCP;
+    has $.type = PIO::SOCK_STREAM;
 
-    method open (Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = 0) {
-        my $addr = IO::Socket::INET.getaddrinfo(
-                $hostname,
-                $port,
-                protocol => $protocol,
-                family => $family,
-                passive => False
-        );
-
-        my $s = Q:PIR {
-            .local pmc sock
-
-            .local pmc self
-            self = find_lex 'self'
-
-            # Create the socket handle
-            sock = root_new ['parrot';'Socket']
-            setattribute self, '$!PIO', sock
-            %r = sock
-        };
-
-        my $ret = $s.connect(pir::descalarref__PP($addr));
-
-        unless $ret==0 { fail "IO::Socket::INET Couldn't connect."; }
-        return 1;
+    my sub v4-split($uri) {
+        return $uri.split(':', 2);
     }
 
-    method socket(Int $domain, Int $type, Int $protocol) {
-        return IO::Socket::INET.new( :PIO(Q:PIR {{
-            .local pmc pio
-            .local pmc domain
-            .local pmc type
-            .local pmc protocol
-            pio = root_new ['parrot';'Socket']
-            domain   = find_lex "$domain"
-            type     = find_lex "$type"
-            protocol = find_lex "$protocol"
-            pio.'socket'(domain, type, protocol)
-            %r = pio
-        }}) );
+    my sub v6-split($uri) {
+        my ($host, $port) = ($uri ~~ /^'[' (.+) ']' \: (\d+)$/)[0,1];
+        return $host ?? ($host, $port) !! $uri;
+	}
+
+    method new (*%args is copy) {
+        fail "Nothing given for new socket to connect or bind to" unless %args<host> || %args<listen>;
+
+        if %args<host>  {
+            my ($host, $port) = %args<family> && %args<family> == PIO::PF_INET6() 
+                ?? v6-split(%args<host>)
+                !! v4-split(%args<host>);
+            if $port {
+                %args<port> //= $port;
+                %args<host> = $host;
+            }
+        }
+        if %args<localhost> {
+            my ($peer, $port) = %args<family> && %args<family> == PIO::PF_INET6() 
+                ?? v6-split(%args<localhost>)
+                !! v4-split(%args<localhost>);
+            if $port {
+                %args<localport> //= $port;
+                %args<localhost> = $peer;
+            }
+        }
+
+        #TODO: Learn what protocols map to which socket types and then determine which is needed.
+        self.bless(*, |%args);
     }
 
-    method bind (Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = 0) {
-        my $addr = IO::Socket::INET.getaddrinfo(
-                $hostname,
-                $port,
-                protocol => $protocol,
-                family => $family,
-                passive => True
-        );
 
-        my $s = Q:PIR {
-            .local pmc sock
+    submethod BUILD {
+        #Callsame first to get all the actual class composition+construction done.
+        callsame;
 
-            .local pmc self
-            self = find_lex 'self'
+        $!PIO = Q:PIR { %r = root_new ['parrot';'Socket'] };
+        $!PIO.socket($.family, $.type, $.proto);        
+        #Quoting perl5's SIO::INET:
+        #If Listen is defined then a listen socket is created, else if the socket type, 
+        #which is derived from the protocol, is SOCK_STREAM then connect() is called.
+        if $.listen || $.localhost || $.localport {
+            my $addr = $!PIO.sockaddr($.localhost || "0.0.0.0", $.localport || 0);
+            $!PIO.bind(pir::descalarref__PP($addr));
+        }
 
-            # Create the socket handle
-            sock = root_new ['parrot';'Socket']
-            setattribute self, '$!PIO', sock
-            %r = sock
-        };
-
-	my $ret = $s.bind(pir::descalarref__PP($addr));
-
-        return $s;
+        if $.listen { 
+            $!PIO.listen($.listen);
+        }
+        elsif $.type == PIO::SOCK_STREAM() {
+            my $addr = $!PIO.sockaddr($.host, $.port);
+            $!PIO.connect(pir::descalarref__PP($addr));    
+        }
     }
 
-    method listen() {
-        $!PIO.listen(1);
-        return self;
+    method get() {
+        chomp($!PIO.readline);
+    }
+
+    method lines() {
+        gather { take chomp($!PIO.readline) };
     }
 
     method accept() {
@@ -103,12 +105,4 @@ class IO::Socket::INET is Cool does IO::Socket {
         return $!PIO.local_address();
     }
 
-    method getaddrinfo(Str $hostname, Int $port, Int :$protocol = PIO::PROTO_TCP, Int :$family = 0, Bool :$passive = False) {
-        # TODO: convert $port to Str
-        my $s = Q:PIR {
-            %r = root_new ['parrot';'Socket']
-        };
-
-        return $s.getaddrinfo($hostname, $port, $protocol, $family, 0);
-    }
 }

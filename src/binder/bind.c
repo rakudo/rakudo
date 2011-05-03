@@ -98,7 +98,7 @@ descalarref(PARROT_INTERP, PMC *ref) {
 static PMC *
 Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest, STRING *type_str) {
     static PMC *truepmc = NULL;
-    PMC *hll_ns    = Parrot_get_ctx_HLL_namespace(interp);
+    PMC *hll_ns    = Parrot_hll_get_ctx_HLL_namespace(interp);
     PMC *arr_ns    = Parrot_ns_get_namespace_keyed_str(interp, hll_ns, type_str);
     PMC *arr_class = VTABLE_get_class(interp, arr_ns);
     PMC *result    = VTABLE_instantiate(interp, arr_class, PMCNULL);
@@ -121,7 +121,7 @@ Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
     if (!HashPunned) {
         /* We cache the punned Hash role class so we can very quickly call
          * CREATE - critical as we have slurpy hashes for all methods. */
-        PMC *root_ns   = Parrot_get_ctx_HLL_namespace(interp);
+        PMC *root_ns   = Parrot_hll_get_ctx_HLL_namespace(interp);
         PMC *hash_role = VTABLE_get_pmc_keyed_str(interp, root_ns, HASH_str);
         PMC *meth      = VTABLE_find_method(interp, hash_role, SELECT_str);
         Parrot_ext_call(interp, meth, "P->P", hash_role, &hash_role);
@@ -140,7 +140,7 @@ Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
 /* Creates a Perl 6 object of the type given by C<classname> */
 static PMC *
 Rakudo_binding_create(PARROT_INTERP, STRING *classname) {
-    PMC *ns        = Parrot_get_ctx_HLL_namespace(interp);
+    PMC *ns        = Parrot_hll_get_ctx_HLL_namespace(interp);
     PMC *class_ns  = Parrot_ns_get_namespace_keyed_str(interp, ns, classname);
     PMC *class_obj = VTABLE_get_class(interp, class_ns);
     PMC *result    = VTABLE_instantiate(interp, class_obj, PMCNULL);
@@ -248,7 +248,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, llsig_element *sig
     }
 
     /* Now look up infix:<=> and do the assignment. */
-    assigner = VTABLE_get_pmc_keyed_str(interp, Parrot_get_ctx_HLL_namespace(interp),
+    assigner = VTABLE_get_pmc_keyed_str(interp, Parrot_hll_get_ctx_HLL_namespace(interp),
             Parrot_str_new(interp, "!only_infix:=", 0));
     Parrot_ext_call(interp, assigner, "PP", assignee, value);
 
@@ -260,7 +260,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, llsig_element *sig
  * needed. Also handles any type captures. If there is a sub signature, then
  * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
 static INTVAL
-Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_info,
+Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, PMC *llsig, llsig_element *sig_info,
                               PMC *value, INTVAL no_nom_type_check, STRING **error) {
     /* If we need to do a type check, do one. */
     if (!no_nom_type_check) {
@@ -292,6 +292,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, llsig_element *sig_inf
                         if (sig_info->nom_type_cache[i] == 0)
                         {
                             sig_info->nom_type_cache[i] = value_type;
+                            PARROT_GC_WRITE_BARRIER(interp, llsig);
                             break;
                         }
                     }
@@ -659,11 +660,11 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
             /* XXX In the long run, we need to snapshot any current CaptureCursor.
              * For now, we don't have that, so we just build off the current
              * capture. */
-            PMC *ns       = Parrot_get_ctx_HLL_namespace(interp);
+            PMC *ns       = Parrot_hll_get_ctx_HLL_namespace(interp);
             PMC *snapper  = Parrot_ns_get_global(interp, ns, SNAPCAP_str);
             PMC *snapshot = PMCNULL;
             Parrot_ext_call(interp, snapper, "PiIP->P", capture, cur_pos_arg, named_args_copy, &snapshot);
-            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i], snapshot,
+            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, llsig, elements[i], snapshot,
                     no_nom_type_check, error);
             if (bind_fail) {
                 if (pos_from_named)
@@ -687,7 +688,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
         /* Is it a positional sourced from a named? */
         else if (pos_from_named && pos_from_named[i]) {
             /* We have the value - try bind this parameter. */
-            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
+            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, llsig, elements[i],
                     pos_from_named[i], no_nom_type_check, error);
             if (bind_fail) {
                 if (pos_from_named)
@@ -704,7 +705,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
             PMC *slurpy = PMC_IS_NULL(named_args_copy) ?
                     pmc_new(interp, enum_class_Hash) :
                     named_args_copy;
-            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
+            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, llsig, elements[i],
                     Rakudo_binding_create_hash(interp, slurpy), no_nom_type_check, error);
             if (bind_fail) {
                 if (pos_from_named)
@@ -728,7 +729,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
                     VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg));
                     cur_pos_arg++;
                 }
-                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
+                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, llsig, elements[i],
                         Rakudo_binding_create_positional(interp, temp, ARRAY_str), no_nom_type_check, error);
                 if (bind_fail) {
                     if (pos_from_named)
@@ -743,7 +744,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
                 if (cur_pos_arg < num_pos_args) {
                     /* Easy - just bind that. */
                     PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
-                    bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
+                    bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, llsig, elements[i],
                             arg, no_nom_type_check, error);
                     if (bind_fail) {
                         if (pos_from_named)
@@ -758,7 +759,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
                      * an optional with no value passed. */
                     if (elements[i]->flags & SIG_ELEM_IS_OPTIONAL) {
                         PMC *value = Rakudo_binding_handle_optional(interp, elements[i], lexpad);
-                        bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
+                        bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, llsig, elements[i],
                                 value, 1, error);
                         if (bind_fail) {
                             if (pos_from_named)
@@ -800,7 +801,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
                 /* Nope. We'd better hope this param was optional... */
                 if (elements[i]->flags & SIG_ELEM_IS_OPTIONAL) {
                     value = Rakudo_binding_handle_optional(interp, elements[i], lexpad);
-                    bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
+                    bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, llsig, elements[i],
                             value, 1, error);
                 }
                 else if (!suppress_arity_fail) {
@@ -813,7 +814,7 @@ Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
                 }
             }
             else {
-                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, elements[i],
+                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, llsig, elements[i],
                         value, 0, error);
             }
 

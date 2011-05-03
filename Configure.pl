@@ -7,7 +7,7 @@ use warnings;
 use Getopt::Long;
 use Cwd;
 use lib "build/lib";
-use Parrot::CompareRevisions qw(compare_parrot_revs parse_parrot_revision_file);
+use Parrot::CompareRevisions qw(compare_revs parse_revision_file read_config version_from_git_describe);
 
 MAIN: {
     my %options;
@@ -26,7 +26,8 @@ MAIN: {
         my $prefix  = $options{'gen-parrot-prefix'} || cwd()."/parrot_install";
         # parrot's Configure.pl mishandles win32 backslashes in --prefix
         $prefix =~ s{\\}{/}g;
-        my @command = ($^X, "build/gen_parrot.pl", "--prefix=$prefix", ($^O !~ /win32/i ? "--optimize" : ()), @opts);
+        my @command = ($^X, "build/gen_parrot.pl", "--prefix=$prefix",
+                '--gc=gms', ($^O !~ /win32/i ? "--optimize" : ()), @opts);
 
         print "Generating Parrot ...\n";
         print "@command\n\n";
@@ -41,7 +42,7 @@ MAIN: {
         parrot_config
     );
     if (exists $options{'gen-parrot-prefix'}) {
-        unshift @parrot_config_exe,
+        @parrot_config_exe =
                 $options{'gen-parrot-prefix'} . '/bin/parrot_config';
     }
 
@@ -50,26 +51,27 @@ MAIN: {
     }
 
     # Get configuration information from parrot_config
-    my %config = read_parrot_config(@parrot_config_exe);
+    my %config = read_config(@parrot_config_exe);
 
     # Determine the revision of Parrot we require
-    my ($req, $reqpar) = parse_parrot_revision_file;
+    my $git_describe = parse_revision_file;
+    my $parrot_version = version_from_git_describe($git_describe);
 
     my $parrot_errors = '';
-    if (!%config) { 
+    if (!%config) {
         $parrot_errors .= "Unable to locate parrot_config\n"; 
     }
     else {
         if ($config{git_describe}) {
             # a parrot built from git
-            if (compare_parrot_revs($req, $config{'git_describe'}) > 0) {
-                $parrot_errors .= "Parrot revision $req required (currently $config{'git_describe'})\n";
+            if (compare_revs($git_describe, $config{'git_describe'}) > 0) {
+                $parrot_errors .= "Parrot revision $git_describe required (currently $config{'git_describe'})\n";
             }
         }
         else {
             # not built from a git repo - let's assume it's a release
-            if (version_int($reqpar) > version_int($config{'VERSION'})) {
-                $parrot_errors .= "Parrot version $reqpar required (currently $config{VERSION})\n";
+            if (version_int($parrot_version) > version_int($config{'VERSION'})) {
+                $parrot_errors .= "Parrot version $parrot_version required (currently $config{VERSION})\n";
             }
         }
     }
@@ -78,7 +80,7 @@ MAIN: {
         die <<"END";
 ===SORRY!===
 $parrot_errors
-To automatically clone (git) and build a copy of parrot $req,
+To automatically clone (git) and build a copy of parrot $git_describe,
 try re-running Configure.pl with the '--gen-parrot' option.
 Or, use the '--parrot-config' option to explicitly specify
 the location of parrot_config to be used to build Rakudo Perl.
@@ -112,24 +114,6 @@ official test suite and run its tests.
 END
     exit 0;
 
-}
-
-
-sub read_parrot_config {
-    my @parrot_config_exe = @_;
-    my %config = ();
-    for my $exe (@parrot_config_exe) {
-        no warnings;
-        if (open my $PARROT_CONFIG, '-|', "$exe --dump") {
-            print "\nReading configuration information from $exe ...\n";
-            while (<$PARROT_CONFIG>) {
-                if (/(\w+) => '(.*)'/) { $config{$1} = $2 }
-            }
-            close $PARROT_CONFIG or die $!;
-            last if %config;
-        }
-    }
-    return %config;
 }
 
 
@@ -174,6 +158,7 @@ sub create_makefile {
 
     my $maketext = slurp( 'build/Makefile.in' );
 
+    $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
     $config{'stagestats'} = $makefile_timing ? '--stagestats' : '';
     $config{'win32_libparrot_copy'} = $^O eq 'MSWin32' ? 'copy $(PARROT_BIN_DIR)\libparrot.dll .' : '';
     $maketext =~ s/@(\w+)@/$config{$1}/g;

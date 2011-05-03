@@ -54,7 +54,14 @@ augment class Cool {
         $result;
     }
 
-    multi method comb(Regex $matcher = /./, $limit = *, :$match) {
+    multi method comb(:$limit) {
+        my $to = $limit // self.chars;
+        gather for 1..$to {
+            take self.substr($_ - 1, 1);
+        }
+    }
+
+    multi method comb(Regex $matcher, $limit = *, :$match) {
         my $self-string = ~self;
         my $c = 0;
         my $l = $limit ~~ ::Whatever ?? Inf !! $limit;
@@ -135,7 +142,7 @@ augment class Cool {
                         $c++;
                     } else {
                         my $m = self.index($match-string, $c);
-                        last if $m.notdef; # CHEAT, but the best I can do for now
+                        last unless $m.defined; # CHEAT, but the best I can do for now
                         take self.substr($c, $m - $c);
                         take $match-string if $all;
                         $c = $m + $match-string.chars;
@@ -409,7 +416,7 @@ augment class Cool {
 
     our multi method ord() {
         if self eq "" {
-            fail('Can not take ord of empty string');
+            fail('Cannot take ord of empty string');
         }
 
         pir::box__PI(pir::ord__IS(self));

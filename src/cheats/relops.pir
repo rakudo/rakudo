@@ -40,7 +40,13 @@ src/cheats/cmp.pir - Perl6 comparison builtins
     .param pmc a
     .param pmc b
     $I0 = issame a, b
-    .return ($I0)
+    unless $I0 goto false
+    $P0 = get_hll_global [ 'Bool' ], 'True'
+    goto done
+  false:
+    $P0 = get_hll_global [ 'Bool' ], 'False'
+  done:
+    .return ($P0)
 .end
 
 

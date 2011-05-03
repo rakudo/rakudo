@@ -81,7 +81,7 @@ for my $tfile (@tfiles) {
     my $th;
     open($th, '<', $tfile) || die "Can't read $tfile: $!\n";
     my ($pass,$fail,$todo,$skip,$plan,$abort,$bonus) = (0,0,0,0,0,0,0);
-    my $no_plan = 0; # planless may be fine, but bad for statistics
+    my $no_plan = 0; # planless works, but is unhelpful for statistics
     # http://www.shadowcat.co.uk/blog/matt-s-trout/a-cunning-no_plan/
     while (<$th>) {                # extract the number of tests planned
         if (/^\s*plan\D*(\d+)/) { $plan = $1; last; }
@@ -110,14 +110,15 @@ for my $tfile (@tfiles) {
         if    (/^1\.\.(\d+)/)      { $plan = $1 if $1 > 0; next; }
         # Handle lines containing timestamps
         if    (/^# t=(\d+\.\d+)/)  {
-            # Calculate the per test execution time
+            # Calculate the execution time of each test
             $time2 = $time1;
             $time1 = $1;
             my $microseconds = int( ($time1 - $time2) * 1_000_000 );
             if ( $testnumber > 0 ) {
-                $times[$testnumber] = $microseconds;
+                # Do this only if the timestamp was after a test result
+                $times[   $testnumber] = $microseconds;
                 $comments[$testnumber] = $test_comment;
-                $testnumber = 0;
+                $testnumber = 0;  # must see require another "ok $n" first
             }
             next;
         }
@@ -183,21 +184,49 @@ defined $benchmark && $benchmark->end(); # finish simple relative benchmarking
 # Implementing 'no_plan' or 'plan *' in test scripts makes this total
 # inaccurate.
 for my $syn (sort keys %syn) {
-    my $ackcmd = "ack ^plan t/spec/$syn* -wH"; # some systems use ack-grep
-    my @results = `$ackcmd`;       # gets an array of all the plan lines
-    my $spec = 0;
-    for (@results) {
-        my ($fn, undef, $rest) = split /:/, $_;
-        if (exists $plan_per_file{$fn}) {
-            $spec += $plan_per_file{$fn}
-        } else {
-            # unreliable because some tests use expressions
-            $spec += $1 if $rest =~ /^\s*plan\s+(\d+)/;
+    my $grepcmd = "grep ^plan t/spec/$syn*/* -rHn"; # recurse, always say filename, include line number for troubleshooting
+    my @grep_output = `$grepcmd`; # gets an array of all the plan lines
+    my $total_tests_planned_per_synopsis = 0;
+    for (@grep_output) {
+        # Most test scripts have a conventional 'plan 42;' or so near
+        # the beginning which is what we need.  Unfortunately some have
+        # 'plan $x*$y;' or so, which we cannot dynamically figure out.
+
+        # Example grep output: t/spec/S02-names/our.t:4:plan 10;
+        # Extract the filename and plan count from that if possible.
+        if ( m/ ^ ([^:]*) : \d+ : plan (.*) $ /x ) {
+            my ( $filename, $planexpression ) = ( $1, $2 );
+            my $script_planned_tests;
+            if ( $planexpression =~ m/ ^ \s* (\d+) \s* ; $ /x ) {
+                # A conventional 'plan 42;' type of line
+                $script_planned_tests = $1;
+            }
+            else {
+                # It is some other plan argument, either * or variables.
+                # A workaround is to get the actual number of tests run
+                # from the output and just assume is the same number,
+                # but sometimes that is missing too.
+                if ( exists $plan_per_file{$filename} ) {
+                    $script_planned_tests = $plan_per_file{$filename};
+                }
+                else {
+                    $script_planned_tests = 0; # sorry!
+                }
+            }
+            $total_tests_planned_per_synopsis += $script_planned_tests;
         }
     }
-    $sum{"$syn-spec"} = $spec;
-    $sum{'spec'} += $spec;
+    $sum{"$syn-spec"} = $total_tests_planned_per_synopsis;
+    $sum{'spec'}     += $total_tests_planned_per_synopsis;
 }
+
+# Planless testing (eg 'plan *;') is useless for static analysis, making
+# tools jump through hoops to calculate the number of planned tests.
+# This part display hints about the scripts that could easily be edited
+# make life easier on the reporting side.
+# A test suite author can follow the hints and write the automatically
+# counted number of tests into the test script, changing it back from
+# planless to planned.
 
 if (@plan_hint) {
     print "----------------\n";
@@ -275,12 +304,12 @@ sub begin {       # this constructor starts simple relative benchmarking
     }
     open( $self->{'file_out'}, '>', 'docs/test_summary.times.tmp') or die "cannot create docs/test_summary.times.tmp: $!";
     my $parrot_version = qx{./perl6 -e'print \$*VM<config><revision>'};
-    my $rakudo_version = qx{git log --oneline --max-count=1 .}; chomp $rakudo_version;
+    my $rakudo_version = qx{git log --pretty=oneline --abbrev-commit --max-count=1 .}; chomp $rakudo_version;
+    $rakudo_version =~ s/^([0-9a-f])+\.\.\./$1/; # delete possible ... 
     $rakudo_version =~ s/\\/\\\\/g; # escape all backslashes
     $rakudo_version =~ s/\"/\\\"/g; # escape all double quotes
     my $file_out = $self->{'file_out'};
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-        gmtime(time());
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time());
     push @test_history, sprintf("[\"%4d-%02d-%02d %02d:%02d:%02d\",%d,\"%s\"]",
         $year+1900, $mon+1, $mday, $hour, $min, $sec,
         $parrot_version, $rakudo_version );
@@ -294,12 +323,17 @@ sub begin {       # this constructor starts simple relative benchmarking
     return bless $self;
 }
 
-# track simple relative benchmarking
+# Track simple relative benchmarking.  Called after running each test script.
 sub log_script_times {
     my $self      = shift;
     my $test_name = shift;
     my $ref_times = shift;
     my $ref_comments = shift;
+    # Make local arrays of the execution times in microseconds, and test
+    # comments (or descriptions).  Since tests are being added to and
+    # removed from the test suite, test numbers change over time.  The
+    # comments are sometimes empty or duplicated, but they are the only
+    # way to correlate test results if the test suite is edited.
     my (@times) = @$ref_times;
     my (@comments) = @$ref_comments;
     shift @times;     # offset by 1: the first result becomes $times[0];
@@ -538,6 +572,8 @@ has been a change.  Consider whether to log total execution time per
 test script.
 
 Analyse and report useful results, such as the slowest n tests.
+
+Parse the `say now` output as well as `print pir::__time()`.
 
 =head1 SEE ALSO
 

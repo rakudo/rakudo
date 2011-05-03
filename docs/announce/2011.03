@@ -1,0 +1,46 @@
+    Announce: Rakudo Perl 6 compiler development release #39 ("Orlando")
+
+On behalf of the Rakudo development team, I'm happy to announce the
+March 2011 release of Rakudo Perl #39 "Orlando".  Rakudo is an 
+implementation of Perl 6 on the Parrot Virtual Machine (see 
+<http://www.parrot.org>). The tarball for the March 2011 release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Please note: This announcement is not for the Rakudo Star distribution --
+it's announcing a new release of the compiler only.  For the latest
+Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each release
+named after a Perl Mongers group. The March 2011 release is code named
+"Orlando".
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* an improved error message on type check failure in assignment
+* -n and -p command line options
+* complex conjugation support implemented
+
+For a more detailed list of changes, see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on 
+Parrot, the Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+
+Moritz Lenz, Tadeusz Sośnierz, Carl Masak, Arne Skjærholt, William Orr, 
+Kyle Hasselbacher, Jonathan Scott Duff, Dave Whipp, Jonathan Worthington,
+martin, Solomon Foster, JD Horelick, Jimmy Zhuo, Martin Berends, 
+Patrick Abi Salloum, JimmyZ
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#40) is scheduled for April 21, 2011.
+A list of the other planned release dates and code names for 2011 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!

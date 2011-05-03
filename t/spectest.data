@@ -11,6 +11,7 @@
 # integration/rule-in-class-Str.t - 'is also' -> augment
 # S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S07-iterators/range-iterator.t - regressed because conforms to obsolete version of spec
+# S05-grammar/protoregex.t - proto token is now {*}, not <...>
 #
 # Each file may have one or more markers that deselects the test:
 #     icu    - run tests only if --icu=1      (default is 1)
@@ -48,6 +49,7 @@ integration/advent2009-day19.t
 integration/advent2009-day20.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
+integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t
 integration/lexical-array-in-inner-block.t
@@ -68,6 +70,7 @@ S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/assigning-refs.t
+S02-builtin_data_types/autovivification.t
 S02-builtin_data_types/bool.t
 S02-builtin_data_types/capture.t
 S02-builtin_data_types/catch_type_cast_mismatch.t
@@ -211,6 +214,7 @@ S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
+S03-sequence/limit-arity-2-or-more.t
 S03-sequence/nonnumeric.t
 S03-smartmatch/any-any.t
 # S03-smartmatch/any-array-slice.t
@@ -254,7 +258,7 @@ S04-statement-modifiers/values_in_bool_context.t
 S04-statement-modifiers/while.t
 S04-statement-parsing/hash.t
 S04-statements/do.t
-# S04-statements/for-scope.t
+S04-statements/for-scope.t
 S04-statements/for.t
 S04-statements/for_with_only_one_item.t
 S04-statements/gather.t
@@ -282,7 +286,6 @@ S05-grammar/inheritance.t
 S05-grammar/methods.t
 # S05-grammar/namespace.t
 S05-grammar/parse_and_parsefile.t
-S05-grammar/protoregex.t
 S05-grammar/protos.t
 S05-grammar/signatures.t
 # S05-grammar/ws.t
@@ -558,6 +561,7 @@ S32-num/abs.t
 S32-num/complex.t
 S32-num/cool-num.t
 S32-num/exp.t
+S32-num/gcd.t
 S32-num/int.t
 S32-num/log.t
 S32-num/pi.t
@@ -581,6 +585,7 @@ S32-str/chop.t
 S32-str/comb.t                                             # icu
 S32-str/encode.t
 S32-str/flip.t
+S32-str/indent.t                                            # icu
 S32-str/index.t
 S32-str/lcfirst.t                                            # icu
 S32-str/lc.t                                                 # icu
@@ -592,7 +597,6 @@ S32-str/pos.t
 S32-str/rindex.t
 S32-str/samecase.t                                         # icu
 S32-str/split-simple.t
-S32-str/split-simple2.t   # CHEAT!  simplified version of split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
 S32-str/substr.t

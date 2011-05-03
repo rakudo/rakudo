@@ -3,6 +3,8 @@ augment class Parcel does Positional {
 
     method elems() { self.flat.elems }
 
+    method Array() { [self.flat] }
+
     # XXX Need these methods here to avoid ResizablePMCArray.sort and
     # ResizablePMCArray.join leaking in from Parrot (we inherit
     # multiply from RPA and Any, and RPA has to come first, so we
@@ -17,7 +19,7 @@ augment class Parcel does Positional {
 
     multi method ACCEPTS($x) {
         self.elems == 0
-            ?? $x.notdef || ($x ~~ Positional && $x == 0)
+            ?? !$x.defined || ($x ~~ Positional && $x == 0)
             !! self.Seq.ACCEPTS($x)
     }
 }

@@ -32,10 +32,11 @@ method need($name, %name_adverbs?) {
         # Is there a pre-compiled PIR version?
         my $pir_file := pir::substr__SSII($pm_file, 0, pir::index__ISSi($pm_file, '.', pir::length__IS($pm_file)-4)) ~ '.pir';
         my $loaded_pir := 0;
-        if pir::stat__ISI($pir_file, 0) {
-            # XXX We really should check if it's newer than the .pm file
-            # to avoid loading out of date versions.
-            pir::load_bytecode__vS($pir_file);
+# stat[7]: modifytime
+        if pir::stat__ISI($pir_file, 0)
+           && pir::stat__ISI($pir_file, 7) >= pir::stat__ISI($pm_file, 7) {
+            pir::load_bytecode__vS(pir::trans_encoding__SSI($pir_file,
+                pir::find_encoding__IS('fixed_8')));
             $loaded_pir := 1;
         }
 
@@ -126,7 +127,7 @@ method stub_lexical_imports($name, $block_ast) {
     unless pir::isnull__IP(%imports) {
         for %imports {
             if $block_ast.symbol($_.key) {
-                pir::die("Can't import symbol " ~ $_.key
+                pir::die("Cannot import symbol " ~ $_.key
                     ~ " because it already exists in this lexical scope\n");
             } else {
                 if pir::isa($_.value, 'Perl6MultiSub') {

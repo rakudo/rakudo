@@ -1,0 +1,3 @@
+Bumping parrot revision: either in the parrot repo type 'git describe --tags',
+or if you have a compiled parrot, run 'parrot_config git_describe` to get the
+identifier string that you then copy into build/PARROT_REVISION

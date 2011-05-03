@@ -1,6 +1,7 @@
-# Copyright (C) 2006-2010, The Perl Foundation.
+# Copyright (C) 2006-2011, The Perl Foundation.
 # $Id$
 
+SHELL            = @shell@
 PARROT_ARGS      =
 
 # values from parrot_config
@@ -283,7 +284,6 @@ CLEANUPS = \
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
 HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
-HARNESS_WITH_FUDGE_JOBS = $(HARNESS_WITH_FUDGE) --jobs
 
 STAGESTATS = @stagestats@
 
@@ -420,16 +420,16 @@ coretest: Test.pir $(PERL6_EXE)
 # Run the spectests that we know work.
 spectest_regression: spectest
 spectest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
 
 spectest_full: testable
-	$(HARNESS_WITH_FUDGE_JOBS) t/spec
+	$(HARNESS_WITH_FUDGE) t/spec
 
 quicktest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --long=0
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
 
 stresstest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --stress=1
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
 
 spectest_checkout : t/spec
 t/spec :
@@ -440,7 +440,7 @@ spectest_update :
 
 
 rakudo_test_run.tar.gz: testable t/spectest.data
-	- $(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@
+	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@
 
 spectest_smolder: rakudo_test_run.tar.gz
 	./perl6 -e "run qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
@@ -452,7 +452,7 @@ t/localtest.data:
 
 # Run the tests in t/localtest.data
 localtest: all Test.pir spectest_checkout t/localtest.data
-	@$(HARNESS_WITH_FUDGE_JOBS) --tests-from-file=t/localtest.data
+	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
 localtest_loud: all Test.pir spectest_checkout t/localtest.data
@@ -461,7 +461,7 @@ localtest_loud: all Test.pir spectest_checkout t/localtest.data
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
 sometests: all
-	@$(HARNESS_WITH_FUDGE_JOBS) $(TESTFILES)
+	@$(HARNESS_WITH_FUDGE) $(TESTFILES)
 
 # Run a single test
 t/*.t t/*/*.t t/*/*/*.t: all Test.pir spectest_checkout

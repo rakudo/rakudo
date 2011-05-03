@@ -401,16 +401,30 @@ our sub _HELPER_generate-series(@lhs, $rhs , :$exclude-limit) {
     my $limit = ($rhs ~~ Whatever ?? Any !! $rhs);
     return infinite-series(@lhs , $limit) if $rhs ~~ Whatever; #shortcut infinite series so we avoid the comparisions
 
-    fail ('Limit arity cannot be larger than 1') if 	$limit ~~ Code && $limit.count > 1;
+    die 'Sequence limit cannot be a multi-sub or multi-method' if $limit ~~ Multi;
     my $series = infinite-series(@lhs , $limit);
+
     gather {
-        while $series {
-            my $val = $series.shift();
-            if $val ~~  $limit {
-                take $val unless $exclude-limit ;
-                last ;
-            };
-            take $val;
+        if $limit ~~ Code && $limit.count > 1 {
+            my @limit-args;
+            while $series {
+                @limit-args.shift if @limit-args == $limit.count;
+                my $val = $series.shift;
+                @limit-args.push($val);
+                my $done = @limit-args >= $limit.arity && $limit(|@limit-args);
+                take $val unless $done && $exclude-limit;
+                last if $done;
+            }
+        }
+        else {
+            while $series {
+                my $val = $series.shift();
+                if $val ~~ $limit {
+                    take $val unless $exclude-limit ;
+                    last ;
+                };
+                take $val;
+            }
         }
     }
 }

@@ -54,12 +54,57 @@ method deflongname($/) {
          !! ~$<name>;
 }
 
+# Turn $code into "for lines() { $code }"
+sub wrap_option_n_code($code) {
+    return PAST::Op.new(:name<&eager>,
+        PAST::Op.new(:pasttype<callmethod>, :name<map>,
+            PAST::Op.new( :name<&flat>,
+                PAST::Op.new(:name<&flat>,
+                    PAST::Op.new(
+                        :name<&lines>,
+                        :pasttype<call>
+                    )
+                )
+            ),
+            make_block_from(
+                Perl6::Compiler::Signature.new(
+                    Perl6::Compiler::Parameter.new(
+                        :var_name('$_'), :is_copy(1)
+                    )
+                ),
+                $code
+            )
+        )
+    );
+}
+
+# Turn $code into "for lines() { $code; say $_ }"
+# &wrap_option_n_code already does the C<for> loop, so we just add the
+# C<say> call here
+sub wrap_option_p_code($code) {
+    return wrap_option_n_code(
+        PAST::Stmts.new(
+            $code,
+            PAST::Op.new(:name<&say>, :pasttype<call>,
+                PAST::Var.new(:name<$_>)
+            )
+        )
+    );
+}
+
 method comp_unit($/, $key?) {
     our $?RAKUDO_HLL;
     
     # Get the block for the unit mainline code.
     my $unit := @BLOCK.shift;
     my $mainline := $<statementlist>.ast;
+
+    if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
+        $mainline := wrap_option_p_code($mainline);
+    }
+    elsif %*COMPILING<%?OPTIONS><n> {
+        $mainline := wrap_option_n_code($mainline);
+    }
 
     # Get the block for the entire compilation unit.
     my $outer := @BLOCK.shift;
@@ -977,7 +1022,7 @@ method package_def($/, $key?) {
         # not supported (gets really tricky in the parametric case - needs more
         # thought and consideration).
         if +@PACKAGE && pir::isa__IPS(@PACKAGE[0], 'Role') {
-            $/.CURSOR.panic("Can not nest a package inside a role");
+            $/.CURSOR.panic("Cannot nest a package inside a role");
         }
         @PACKAGE.unshift($package);
     }
@@ -1068,10 +1113,10 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         my $attrname := ~$sigil ~ '!' ~ $desigilname;
         our @PACKAGE;
         unless +@PACKAGE {
-            $/.CURSOR.panic("Can not declare an attribute outside of a package");
+            $/.CURSOR.panic("Cannot declare an attribute outside of a package");
         }
         if @PACKAGE[0].has_attribute($attrname) {
-            $/.CURSOR.panic("Can not re-declare attribute " ~ $attrname);
+            $/.CURSOR.panic("Cannot re-declare attribute " ~ $attrname);
         }
         my %attr_info;
         %attr_info<name>      := $attrname;
@@ -1109,7 +1154,7 @@ sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         # Give it a 'rw' property unless it's explicitly readonly.
         my $readtype := trait_readtype($trait_list);
         if $readtype eq 'CONFLICT' {
-            $/.CURSOR.panic('Can not apply more than one of: is copy, is rw, is readonly');
+            $/.CURSOR.panic('Cannot apply more than one of: is copy, is rw, is readonly');
         }
         if $readtype eq 'copy' {
             $/.CURSOR.panic("'is copy' trait not valid on variable declaration");
@@ -1216,11 +1261,11 @@ method routine_def($/) {
         # Check for common error conditions.
         if $symbol {
             if $*MULTINESS eq 'only' {
-                $/.CURSOR.panic('Can not declare only routine ' ~ $name ~
+                $/.CURSOR.panic('Cannot declare only routine ' ~ $name ~
                     ' when another routine with this name was already declared');
             }
             if !$symbol<proto> && !$*MULTINESS {
-                $/.CURSOR.panic('Can not re-declare sub ' ~ $name ~ ' without declaring it multi');
+                $/.CURSOR.panic('Cannot re-declare sub ' ~ $name ~ ' without declaring it multi');
             }
         }
         else { 
@@ -1307,7 +1352,7 @@ method routine_def($/) {
         }
     }
     elsif $*MULTINESS {
-        $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
+        $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
         # Just wrap in a Sub.
@@ -1365,7 +1410,7 @@ method method_def($/) {
 
         # Get hold of the correct table to install it in, and install.
         our @PACKAGE;
-        unless +@PACKAGE { $/.CURSOR.panic("Can not declare method outside of a package"); }
+        unless +@PACKAGE { $/.CURSOR.panic("Cannot declare method outside of a package"); }
         my %table;
         if $<specials> eq '^' {
             %table := @PACKAGE[0].meta_methods();
@@ -1376,7 +1421,7 @@ method method_def($/) {
         install_method($/, $code, $name, %table);
     }
     elsif $*MULTINESS {
-        $/.CURSOR.panic('Can not put ' ~ $*MULTINESS ~ ' on anonymous routine');
+        $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous routine');
     }
     else {
         $past := block_closure($past, $*METHODTYPE, 0);
@@ -1393,13 +1438,13 @@ sub install_method($/, $code, $name, %table) {
 
     # If it's an only and there's already a symbol, problem.
     if $*MULTINESS eq 'only' && %table{$name} {
-        $/.CURSOR.panic('Can not declare only method ' ~ $name ~
+        $/.CURSOR.panic('Cannot declare only method ' ~ $name ~
             ' when another method with this name was already declared');
     }
     elsif $*MULTINESS || %table{$name}<multis> {
         # If no multi declarator and no proto, error.
         if !$*MULTINESS && !%table{$name}<proto> {
-            $/.CURSOR.panic('Can not re-declare method ' ~ $name ~ ' without declaring it multi');
+            $/.CURSOR.panic('Cannot re-declare method ' ~ $name ~ ' without declaring it multi');
         }
 
         # If it's a proto, stash it away in the symbol entry.
@@ -1496,7 +1541,7 @@ method regex_def($/, $key?) {
         }
         our @PACKAGE;
         unless +@PACKAGE {
-            $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
+            $/.CURSOR.panic("Cannot declare named " ~ ~$<sym> ~ " outside of a package");
         }
         my %table;
         %table := @PACKAGE[0].methods();
@@ -1562,7 +1607,7 @@ method regex_def($/, $key?) {
             my $code := block_closure(blockref($past), 'Regex', 0);
             our @PACKAGE;
             unless +@PACKAGE {
-                $/.CURSOR.panic("Can not declare named " ~ ~$<sym> ~ " outside of a package");
+                $/.CURSOR.panic("Cannot declare named " ~ ~$<sym> ~ " outside of a package");
             }
             my %table;
             %table := @PACKAGE[0].methods();
@@ -1658,7 +1703,7 @@ method type_declarator:sym<subset>($/) {
             @BLOCK[0].symbol($name, :scope('lexical') );
         }
         else {
-            $/.CURSOR.panic("Can not declare a subset with scope declarator " ~ $*SCOPE);
+            $/.CURSOR.panic("Cannot declare a subset with scope declarator " ~ $*SCOPE);
         }
         make PAST::Var.new( :name($name) );
     }
@@ -1729,10 +1774,10 @@ method parameter($/) {
     # Sanity checks.
     if $<default_value> {
         if $quant eq '*' {
-            $/.CURSOR.panic("Can't put default on slurpy parameter");
+            $/.CURSOR.panic("Cannot put default on slurpy parameter");
         }
         if $quant eq '!' {
-            $/.CURSOR.panic("Can't put default on required parameter");
+            $/.CURSOR.panic("Cannot put default on required parameter");
         }
     }
 
@@ -1752,7 +1797,7 @@ method parameter($/) {
         # Handle built-in ones.
         my $read_type := trait_readtype($<trait>);
         if $read_type eq 'CONFLICT' {
-            $/.CURSOR.panic('Can not apply more than one of: is copy, is rw, is readonly');
+            $/.CURSOR.panic('Cannot apply more than one of: is copy, is rw, is readonly');
         }
         $*PARAMETER.is_rw( $read_type eq 'rw' );
         $*PARAMETER.is_copy( $read_type eq 'copy' );
@@ -1768,7 +1813,7 @@ method parameter($/) {
 method param_var($/) {
     if $<signature> {
         if pir::defined__IP($*PARAMETER.sub_llsig) {
-            $/.CURSOR.panic('Can not have more than one sub-signature for a parameter');
+            $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
         }
         $*PARAMETER.sub_llsig( $<signature>.ast );
         if pir::substr(~$/, 0, 1) eq '[' {
@@ -1829,14 +1874,14 @@ method type_constraint($/) {
         $*PARAMETER.cons_types.push($<value>.ast);
     }
     else {
-        $/.CURSOR.panic('Can not do non-typename cases of type_constraint yet');
+        $/.CURSOR.panic('Cannot do non-typename cases of type_constraint yet');
     }
 }
 
 method post_constraint($/) {
     if $<signature> {
         if pir::defined__IP($*PARAMETER.sub_llsig) {
-            $/.CURSOR.panic('Can not have more than one sub-signature for a parameter');
+            $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
         }
         $*PARAMETER.sub_llsig( $<signature>.ast );
     }
@@ -1969,7 +2014,7 @@ method dotty:sym<.>($/) { make $<dottyop>.ast; }
 method dotty:sym<.*>($/) {
     my $past := $<dottyop>.ast;
     unless $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
-        $/.CURSOR.panic("Can not use " ~ $<sym>.Str ~ " on a non-identifier method call");
+        $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
     }
     $past.unshift($past.name);
     $past.name('!dispatch_' ~ $<sym>.Str);
@@ -2083,7 +2128,7 @@ method term:sym<name>($/) {
             :name(~$name), :namespace($ns), :scope('package'),
             :viviself(PAST::Op.new(
                 :pasttype('call'), :name('!FAIL'),
-                "Can not find sub " ~ ~$<longname>
+                "Cannot find sub " ~ ~$<longname>
             ))
         );
     }
@@ -2975,7 +3020,7 @@ method quote_EXPR($/) {
     my $past := $<quote_delimited>.ast;
     if $/.CURSOR.quotemod_check('w') {
         if !$past.isa(PAST::Val) {
-            $/.CURSOR.panic("Can't form :w list from non-constant strings (yet)");
+            $/.CURSOR.panic("Cannot form :w list from non-constant strings (yet)");
         }
         else {
             my @words := HLL::Grammar::split_words($/, $past.value);

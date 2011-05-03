@@ -1,0 +1,47 @@
+    Announce: Rakudo Perl 6 compiler development release #40 ("ZA")
+
+On behalf of the Rakudo development team, I'm happy to announce the
+April 2011 release of Rakudo Perl #40 "ZA".  Rakudo is an 
+implementation of Perl 6 on the Parrot Virtual Machine (see 
+<http://www.parrot.org>). The tarball for the April 2011 release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Please note: This announcement is not for the Rakudo Star distribution --
+it's announcing a new release of the compiler only.  For the latest
+Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each
+release named after a Perl Mongers group.  The April 2011 release is
+code named "ZA" after ZA.pm in Grahamstown, Eastern Cape, South
+Africa because the denizens of #perl6 have an unusual facination with
+zebras and ZA just happens to have a "Z" and, according to my meager 
+research, there are indeed zebras in the area.  :-)
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* implemented Str.indent
+* A new, much simpler API and implemention of IO::Socket::INET
+
+For a more detailed list of changes, see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on 
+Parrot, the Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+
+Moritz Lenz, Tadeusz Sośnierz, Martin Berends, Andy Lester, 
+Jonathan Scott Duff, flussence, Patrick Abi Salloum, Carl Masak, 
+Jarrod
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#41) is scheduled for May 19, 2011.
+A list of the other planned release dates and code names for 2011 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!

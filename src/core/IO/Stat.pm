@@ -13,36 +13,48 @@ class IO::Stat {
         ?pir::stat__isi($.path, 2);
     }
 
-    method isdev {
+    method isreg {
         ?pir::stat__isi($.path, 3);
     }
 
-    method createtime {
-        pir::stat__isi($.path, 4);
+    method isdev {
+        ?pir::stat__isi($.path, 4);
     }
 
-    method accesstime {
+    method createtime {
         pir::stat__isi($.path, 5);
     }
 
-    method modifytime {
+    method accesstime {
         pir::stat__isi($.path, 6);
     }
 
-    method changetime {
+    method modifytime {
         pir::stat__isi($.path, 7);
     }
 
-    method backuptime {
+    method changetime {
         pir::stat__isi($.path, 8);
     }
 
-    method uid {
+    method backuptime {
         pir::stat__isi($.path, 9);
     }
 
-    method gid {
+    method uid {
         pir::stat__isi($.path, 10);
+    }
+
+    method gid {
+        pir::stat__isi($.path, 11);
+    }
+
+    method islnk {
+        ?pir::stat__isi($.path, 12);
+    }
+
+    method permissions {
+        pir::stat__isi($.path, -3) +& 0o7777;
     }
 }
 

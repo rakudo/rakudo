@@ -85,7 +85,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
 
     /* Iterate over the handlers. */
     PMC    *iter       = VTABLE_get_iter(interp, handlers);
-    STRING *attr       = NULL;
+    STRING *attr       = STRINGNULL;
     while (VTABLE_get_bool(interp, iter)) {
         PMC *handles_hash = VTABLE_shift_pmc(interp, iter);
         PMC *matcher   = VTABLE_get_pmc_keyed_str(interp, handles_hash, match_against);
@@ -139,7 +139,7 @@ static PMC *do_handles(PARROT_INTERP, PMC *cur_class, PMC *handlers, STRING *nam
     /* Did we find anything? */
     if (attr) {
         /* Look up helper, clone it, unshift names onto argument list and return. */
-        PMC *sub = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
+        PMC *sub = Parrot_ns_find_namespace_global(interp, Parrot_hll_get_ctx_HLL_namespace(interp),
                 CONST_STRING(interp, "!handles_dispatch_helper"));
         PMC *call_sig = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
         PMC *boxed_attrname = pmc_new(interp, enum_class_String);
@@ -404,7 +404,7 @@ back some kind of iterator to let us get all of the possible candidates.
         /* If it's a junction and we need to auto-thread the call. */
         if (PMC_IS_NULL(method)) {
             if (VTABLE_isa(interp, SELF, Junction_str)) {
-                PMC *sub = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
+                PMC *sub = Parrot_ns_find_namespace_global(interp, Parrot_hll_get_ctx_HLL_namespace(interp),
                         CONST_STRING(interp, "!DISPATCH_JUNCTION_METHOD"));
                 PMC *boxed_name = pmc_new(interp, enum_class_String);
                 VTABLE_set_string_native(interp, boxed_name, name);
@@ -484,7 +484,7 @@ Invokes the object (if this vtable function is overridden).
             PMC *postcircumfix = VTABLE_find_method(interp, SELF, CONST_STRING(interp, "postcircumfix:<( )>"));
             if (!PMC_IS_NULL(postcircumfix)) {
                 /* Call via thunk that fixes up parameters. */
-                PMC *thunk = Parrot_ns_find_namespace_global(interp, Parrot_get_ctx_HLL_namespace(interp),
+                PMC *thunk = Parrot_ns_find_namespace_global(interp, Parrot_hll_get_ctx_HLL_namespace(interp),
                         CONST_STRING(interp, "!postcircumfix_forwarder"));
                 PMC *call_sig = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
                 VTABLE_unshift_pmc(interp, call_sig, SELF);

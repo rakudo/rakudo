@@ -36,16 +36,22 @@ part of monthly Parrot releases.
   2010-11-18   Rakudo #35 "Melbourne"          (masak)
   2010-12-23   Rakudo #36 "New York"           (smash)
   2011-01-20   Rakudo #37 "BristolBath"        (tadzik)
+  2011-02-17   Rakudo #38 "Toulouse"           (arnsholt)
+  2011-03-17   Rakudo #39 "Orlando"            (jdhore)
+  2011-04-21   Rakudo #40 "ZA"                 (duff) 
 
-=head2 Planned 2010 releases
+=head2 Planned 2011 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-02-17   Rakudo #38                      arnsholt
-  2011-03-17   Rakudo #39                      -vacant-
-  2011-04-21   Rakudo #40                      -vacant-
-  2011-05-19   Rakudo #41                      -vacant-
+  2011-05-19   Rakudo #41                      (jdhore)
   2011-06-23   Rakudo #42                      -vacant-
+  2011-07-21   Rakudo #43                      -vacant-
+  2011-08-18   Rakudo #44                      -vacant-
+  2011-09-22   Rakudo #45                      -vacant-
+  2011-10-20   Rakudo #46                      -vacant-
+  2011-11-17   Rakudo #47                      -vacant-
+  2011-12-22   Rakudo #48                      -vacant-
 
 =head2 Suggested .pm group names for future releases
 
@@ -101,15 +107,17 @@ the release announcement).
 =item 2.
 
 Once Parrot issues its monthly release, edit Rakudo's
-build/PARROT_REVISION file to contain the C<git describe --tags> output
-and release number corresponding to Parrot's monthly
-release.  For example, for November 2010 PARROT_REVISION file
-contained "RELEASE_2_10_1 2.10.0".  As always, test to make sure Rakudo
-still builds and passes its tests.  Once build/PARROT_REVISION
+F<build/PARROT_REVISION> file to contain the C<git describe --tags>
+output corresponding to Parrot's monthly release.
+Once C<build/PARROT_REVISION>
 has been set to the Parrot release, it must not be changed until
 after the Rakudo release.  In other words, we want each
 monthly release of Rakudo to be able to be built using
 the immediately prior release of Parrot.
+
+(Old releases required you to add both the version and the
+C<git describe> output to the PARROT_REVISION file. This is
+not necessary anymore).
 
 =item 3.
 
@@ -154,6 +162,8 @@ You can get an automatically generated list by running
 
   $ perl tools/contributors.pl
 
+B<Note>: this program requires the perl module L<Date::Simple> be installed.
+
 Please check the result manually for duplicates and other errors.
 
   $ git add docs/announce/YYYY.MM
@@ -177,41 +187,50 @@ Make sure everything compiles and runs from a known clean state:
   $ make test
   $ make stresstest
 
-Continue adjusting things until make spectest passes as expected.
+There are many tests to run for the stresstest target.  If
+you have a machine with multiple CPU cores, you may want to
+execute that last as
+
+  $ TEST_JOBS=4 make stresstest
+
+where 4 is the number of CPU cores.  This should make the
+total time to execute all of the tests dramatically less.
+
+Continue adjusting things until make stresstest passes as expected.
 Often this means fixing a bug, fudging a test, or (temporarily?)
 commenting out a test file in t/spectest.data .  Use your best
 judgment or ask others if uncertain what to do here.
 
-=item 7.5
+=item 8. 
 
 Enter the new version into the F<VERSION> file, and commit the changes:
 
   $ echo 2010.09 > VERSION
   $ git commit -m '[release] bump VERSION' VERSION
 
-=item 8.
+=item 9.
 
 Make sure any locally modified files have been pushed back to github.
 
   $ git status
   $ git push
 
-=item 9.
+=item 10.
 
 Create a tarball by entering C<make release VERSION=YYYY.MM>,
 where YYYY.MM is the month for which the release is being made.
-This will create a tarball file named <rakudo-YYYY.MM.tgz>.
+This will create a tarball file named <rakudo-YYYY.MM.tar.gz>.
 
-B<Caution>: this steps removes any untracked files in F<t/spec>.
+B<Caution>: this step removes any untracked files in F<t/spec>.
 So please make a backup if you have any important data in there.
 
-=item 10.
+=item 11.
 
 Unpack the tar file into another area, and test that it
-builds and runs properly.  If there are any problems,
-fix them and go back to step 7.
+builds and runs properly using the same process in step 7.  
+If there are any problems, fix them and go back to step 7.
 
-=item 11.
+=item 12.
 
 Tag the release by its release month ("MMMM.YY") and its code name.
 
@@ -219,27 +238,22 @@ Tag the release by its release month ("MMMM.YY") and its code name.
   $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
   $ git push --tags
 
-=item 12.
+=item 13.
 
 Upload the release tarball to github's download area at
 L<http://github.com/rakudo/rakudo/downloads>.
 
-=item 13.
+=item 14.
 
-To avoid public confusion with Rakudo Star releases that will 
-follow a few days after each compiler release, we now publish 
+To avoid public confusion with Rakudo Star releases, we now publish 
 compiler release announcements ONLY to perl6-compiler@perl.org.  
 (We may restart widespread announcements of compiler releases 
 once they are known, or we may begin publishing a single
 announcement for both.)
 
-=item 14.
-
-Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
-
 =item 15.
 
-Promote the release anywhere else you think appropriate.
+Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
 =item 16.
 
@@ -249,7 +263,7 @@ You're done!  Celebrate with the appropriate amount of fun.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2009-2010, The Perl Foundation.
+Copyright (C) 2009-2011, The Perl Foundation.
 
 =cut
 

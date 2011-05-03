@@ -102,4 +102,13 @@ our multi sub infix:<**>(Int $a, Int $b) {
     }
 }
 
-proto sub gcd($x, $y) { $x.gcd($y); }
+proto sub gcd(*@n) {
+    return Int unless @n;
+    my $gcd = shift @n;
+
+    for @n {
+        $gcd.=gcd($_);
+    }
+
+    return $gcd;
+}

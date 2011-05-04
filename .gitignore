@@ -1,10 +1,12 @@
 *~
 src/gen/*
+Perl6/*
 nqp/
 Makefile
 .*.swp
 *.patch
 *.pdb
+*.res
 Test.pir
 perl6
 perl6.pbc

@@ -1,44 +1,28 @@
 # Roadmap for "nom" Branch
 
-## First cut of native and class meta-objects
-Need to get the various bits of the meta-model implementation fleshed
-out. Of note, need the following HOWs and their dependent roles to be
-implemented to some degree:
+Last Updated 5th May 2011
 
-* ClassHOW
-* NativeHOW
+## Setting and module loading
+Get setting and module loading to basically work, including EXPORTHOW
+and first cut of global merging.
 
-Note that these are written in terms of NQP classes and roles to make
-for a pleasant factoring.
+## Static lexpads
+Get a Rakudo version of the NQPLexPad/NQPLexInfo stuff into place.
 
-## Static lexpads and package stuff
-Work out a solution for static lexpad handling and implement it, first in
-nqp and then add the capability to Rakudo. Work out with pmichaud++ how
-package handling should come to look.
+## Basic package declarations and stub packages
+Be able to parse and create the compile-time meta-objects for packages.
+Track which are stub packages and need to be "completed" by the end of
+the compilation unit.
 
-## Serialization Context table
-We don't have resources to fully implement the serialization as such in
-this branch. But it should be prepared for it. Implement a way to have a
-table of "stuff" that can be quickly looked up by index, and that is to be
-produced at startup if bytecode is loaded. The objects can have been made
-at compile time and just re-used at runtime too so we don't double-make
-stuff. Eventually the "making" of them at startup will become deserializing.
+## Attributes and methods
+Get adding these into declared classes in place
 
-## Twiddle build process
-The "first stage setting" will go away in favour of a single setting.
-The compilation ordering will be something like:
-
-1. Backend pre-requisites: compile dynops, PMCs and C parts
-2. Compile meta-objects
-3. Compile grammar and actions
-4. Build an executable thing (e.g. PBC) with grammar/actions/meta-objects
-   and no setting. Use it to compile the setting.
-5. Bundle meta-objects, grammar, actions and setting into one executable
+## Traits
+Get inheritance and is repr in place.
 
 ## Initial bits in the setting
 We'll start to re-build some of the bits previously in built-ins into a
-new setting. Importantly, they'll be installed lexically and make use of
-the 
+new setting.
 
 * Import meta-model bits
 * Add stubby Mu, Any, Cool, Int, Num, etc.

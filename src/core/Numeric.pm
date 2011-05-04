@@ -314,3 +314,9 @@ multi sub infix:«>=»(Numeric $a, Numeric $b) {
 multi sub srand(Numeric $seed) {
     srand($seed.Real);
 }
+
+our multi sub infix:<%>(Numeric $a, Numeric $b) {
+    my $message = "modulus ({ $a.WHAT.perl } % { $b.WHAT.perl }) not defined";
+    note $message;
+    fail $message;
+}

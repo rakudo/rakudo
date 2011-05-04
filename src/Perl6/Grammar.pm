@@ -197,11 +197,14 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*PACKAGE;
         :my $*SETTING;
         :my $*UNIT;
+        :my $*UNIT_OUTER;
         
         # Setting loading and symbol setup.
         {
-            # Create outermost unit.
-            $*UNIT := $*ST.push_lexpad();
+            # Create unit outer (where we assemble any lexicals accumulated
+            # from e.g. REPL) and the real UNIT.
+            $*UNIT_OUTER := $*ST.push_lexpad($/);
+            $*UNIT := $*ST.push_lexpad($/);
             
             # If we already have a specified outer context, then we'll mostly
             # just steal stuff from it.
@@ -224,9 +227,15 @@ grammar Perl6::Grammar is HLL::Grammar {
         
         <.unitstart>
         
+        <.finishpad>
         <statementlist>
         
         [ $ || <.panic: 'Confused'> ]
+        
+        {
+            $*ST.pop_lexpad(); # UNIT
+            $*ST.pop_lexpad(); # UNIT_OUTER
+        }
     }
 
     rule statementlist {
@@ -293,13 +302,15 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token blockoid {
+        :my $*CURPAD;
         <.finishpad>
         '{' ~ '}' <statementlist>
         <?ENDSTMT>
+        { $*CURPAD := $*ST.pop_lexpad() }
     }
 
     token unitstart { <?> }
-    token newpad { <?> }
+    token newpad { <?> { $*ST.push_lexpad($/) } }
     token finishpad { <?> }
 
     proto token terminator { <...> }
@@ -788,6 +799,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule package_def {<.end_keyword>
         :my $*IN_DECL := 'package';
+        :my $*CURPAD;
         <.newpad>
         <def_module_name>?
         <trait>*
@@ -802,6 +814,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             { $*IN_DECL := '' }
             <statementlist>
+            { $*CURPAD := $*ST.pop_lexpad() }
         || <?[{]> { $*IN_DECL := '' } <blockoid>
         || <.panic: 'Malformed package declaration'>
         ]
@@ -983,6 +996,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token fakesignature {
         <.newpad>
         <signature>
+        { $*ST.pop_lexpad() }
     }
 
     token signature {
@@ -1111,6 +1125,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     rule regex_def {<.end_keyword> [
+        :my $*CURPAD;
         [
           { $*IN_DECL := '' }
           <deflongname>?
@@ -1118,6 +1133,7 @@ grammar Perl6::Grammar is HLL::Grammar {
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
           {*} #= open
           '{'[ '<...>' |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
+          { $*CURPAD := $*ST.pop_lexpad() }
         ] || <.panic: "Malformed regex">
     ] }
 

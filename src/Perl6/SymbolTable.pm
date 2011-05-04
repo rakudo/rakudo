@@ -10,7 +10,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         my $pad := PAST::Block.new( PAST::Stmts.new(), :node($/) );
-        @!BLOCKS.push($pad);
+        @!BLOCKS[+@!BLOCKS] := $pad;
         $pad
     }
     

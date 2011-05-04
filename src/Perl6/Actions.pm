@@ -1,7 +1,6 @@
 use NQPP6Regex;
 
 class Perl6::Actions is HLL::Actions {
-    our @BLOCK;
     our @PACKAGE;
     our $TRUE;
     our @MAX_PERL_VERSION;
@@ -10,8 +9,7 @@ class Perl6::Actions is HLL::Actions {
     our $STATEMENT_PRINT;
 
     INIT {
-        # initialize @BLOCK and @PACKAGE
-        our @BLOCK := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
+        # initialize @PACKAGE
         our @PACKAGE := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
         our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
 
@@ -97,7 +95,7 @@ class Perl6::Actions is HLL::Actions {
         our $?RAKUDO_HLL;
         
         # Get the block for the unit mainline code.
-        my $unit := @BLOCK.shift;
+        my $unit := $*UNIT;
         my $mainline := $<statementlist>.ast;
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
@@ -108,40 +106,9 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Get the block for the entire compilation unit.
-        my $outer := @BLOCK.shift;
+        my $outer := $*UNIT_OUTER;
         $outer.node($/);
-        $outer.hll($?RAKUDO_HLL);
-        
-        # If it's the setting, just need to run the mainline.
-        if $*SETTING_MODE {
-            $unit.push($mainline);
-            $unit.hll($?RAKUDO_HLL);
-            $unit.pirflags(':init :load');
-            make $unit;
-            return 1;
-        }
-
-        # XXX To work around the role outers bug, we need to fix up the
-        # contexts marked for re-capture.
-        $mainline.unshift(PAST::Op.new(
-            :inline('    $P0 = get_hll_global "@!recapture"',
-                    '  recapture_loop:',
-                    '    unless $P0 goto recapture_loop_end',
-                    '    $P1 = shift $P0',
-                    '    fixup_outer_ctx $P1',
-                    '    goto recapture_loop',
-                    '  recapture_loop_end:',)
-        ));
-
-        $unit.loadinit.unshift(
-            PAST::Op.new( :pasttype<inline>,
-                :inline('    $P0 = find_name "!UNIT_OUTER"',
-                        '    unless null $P0 goto have_perl6',
-                        '    load_language "perl6"',
-                        '  have_perl6:',
-                        '    "!UNIT_OUTER"(block)')
-            )
-        );
+        $outer.hll('perl6');
 
         my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),
                              :viviself( PAST::Val.new( :value(0) ) ) );
@@ -206,27 +173,14 @@ class Perl6::Actions is HLL::Actions {
             $outer.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
         }
 
-        # Remove the outer module package.
-        @PACKAGE.shift;
-
         make $outer;
     }
 
     method unitstart($/) {
-        # Create a block for the compilation unit.
-        self.newpad($/);
         # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
         # to set dynamic outer lexical context and namespace details
         # for the compilation unit.
-        self.SET_BLOCK_OUTER_CTX(@BLOCK[0]);
-
-        self.newpad($/);
-        self.finishpad($/);
-
-        # set up initial package and $*UNITPAST
-        @PACKAGE.unshift(Perl6::Compiler::Module.new());
-        @PACKAGE[0].block(@BLOCK[0]);
-        $*UNITPAST := @BLOCK[0];
+        self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
     }
 
     method statementlist($/) {
@@ -371,34 +325,26 @@ class Perl6::Actions is HLL::Actions {
 
     method blockoid($/) {
         my $past := $<statementlist>.ast;
-        my $BLOCK := @BLOCK.shift;
+        my $BLOCK := $*CURPAD;
         $BLOCK.push($past);
         $BLOCK.node($/);
         make $BLOCK;
     }
 
     method newpad($/) {
-        our @BLOCK;
-        our @PACKAGE;
-        my $new_block := PAST::Block.new( PAST::Stmts.new(
-            PAST::Op.new(
-                :inline("    .local pmc true\n    true = get_hll_global 'True'")
-            ),
-            PAST::Var.new(
-                :name('__CANDIDATE_LIST__'), :scope('lexical'), :isdecl(1)
-            )
+        my $new_block := $*ST.cur_lexpad();
+        $new_block[0].push(PAST::Op.new(
+            :inline("    .local pmc true\n    true = get_hll_global 'True'")
         ));
         $new_block<IN_DECL> := $*IN_DECL;
-        @BLOCK.unshift($new_block);
     }
-
 
     method finishpad($/) {
         # Generate the $_, $/, and $! lexicals if they aren't already
         # declared.  For routines and methods, they're simply created as
         # undefs; for other blocks they initialize to their outer lexical.
 
-        my $BLOCK := @BLOCK[0];
+        my $BLOCK := $*ST.cur_lexpad();
         my $outer := $BLOCK<IN_DECL> ne 'routine' && $BLOCK<IN_DECL> ne 'method';
 
         for <$_ $/ $!> {
@@ -515,7 +461,7 @@ class Perl6::Actions is HLL::Actions {
         # won't repeat its work if already carried out; we mainly need
         # this for pre-compilation to PIR to work).
         my @ns := pir::split__PSS('::', 'Perl6::Module');
-        @BLOCK[0].loadinit.push(
+        $*ST.cur_lexpad().loadinit.push(
             PAST::Op.new( :pasttype('callmethod'), :name('need'),
                 PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
                 $name,
@@ -531,9 +477,9 @@ class Perl6::Actions is HLL::Actions {
 
     sub import($/) {
         my $name := $<module_name><longname><name>.Str;
-        Perl6::Module::Loader.stub_lexical_imports($name, @BLOCK[0]);
+        Perl6::Module::Loader.stub_lexical_imports($name, $*ST.cur_lexpad());
         my @ns := pir::split__PSS('::', 'Perl6::Module');
-        @BLOCK[0].push(
+        $*ST.cur_lexpad().push(
             PAST::Op.new( :pasttype('callmethod'), :name('import'),
                 PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
                 $name
@@ -651,15 +597,15 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CATCH>($/) {
         my $block := $<block>.ast;
-        push_block_handler($/, @BLOCK[0], $block);
-        @BLOCK[0].handlers()[0].handle_types_except('CONTROL');
+        push_block_handler($/, $*ST.cur_lexpad(), $block);
+        $*ST.cur_lexpad().handlers()[0].handle_types_except('CONTROL');
         make PAST::Stmts.new(:node($/));
     }
 
     method statement_control:sym<CONTROL>($/) {
         my $block := $<block>.ast;
-        push_block_handler($/, @BLOCK[0], $block);
-        @BLOCK[0].handlers()[0].handle_types('CONTROL');
+        push_block_handler($/, $*ST.cur_lexpad(), $block);
+        $*ST.cur_lexpad().handlers()[0].handle_types('CONTROL');
         make PAST::Stmts.new(:node($/));
     }
 
@@ -727,14 +673,14 @@ class Perl6::Actions is HLL::Actions {
             :pasttype('call'), :name('!add_phaser'),
             $bank, PAST::Val.new( :value($blorst) ), :node($/)
         );
-        @BLOCK[0].loadinit.push($add_phaser);
-        @BLOCK[0][0].push($blorst);
+        $*ST.cur_lexpad().loadinit.push($add_phaser);
+        $*ST.cur_lexpad()[0].push($blorst);
 
         # If it's a BEGIN phaser, we also need it to run asap.
         if $bank eq 'BEGIN' {
             # add code to immediately fire the BEGIN phaser
             my $fire := PAST::Op.new( :pasttype('call'), :name('!fire_phasers'), 'BEGIN' );
-            @BLOCK[0].loadinit.push($fire);
+            $*ST.cur_lexpad().loadinit.push($fire);
 
             # and execute the phaser immediately in the current UNIT_OUTER
             our $?RAKUDO_HLL;
@@ -811,7 +757,7 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Var.new( :name('mainline'), :scope('parameter') )
             )
         );
-        @BLOCK[0][0].push(PAST::Var.new(
+        $*ST.cur_lexpad()[0].push(PAST::Var.new(
             :name('!YOU_ARE_HERE'), :isdecl(1), :viviself($past), :scope('lexical')
         ));
         make PAST::Op.new( :pasttype('call'),
@@ -1017,7 +963,7 @@ class Perl6::Actions is HLL::Actions {
             }
 
             # Claim currently open block as the package's block.
-            $package.block(@BLOCK[0]);
+            $package.block($*ST.cur_lexpad());
 
             # Put on front of packages list. Note - nesting a package in a role is
             # not supported (gets really tricky in the parametric case - needs more
@@ -1035,7 +981,7 @@ class Perl6::Actions is HLL::Actions {
                 if $*SCOPE eq 'our' || $*SCOPE eq '' {
                     %Perl6::Grammar::STUBCOMPILINGPACKAGES{~$<def_module_name>[0]<longname>} := 1;
                 }
-                @BLOCK[0].symbol(~$<def_module_name>[0]<longname>, :stub(1));
+                $*ST.cur_lexpad().symbol(~$<def_module_name>[0]<longname>, :stub(1));
                 make PAST::Stmts.new( );
             }
             else {
@@ -1044,7 +990,7 @@ class Perl6::Actions is HLL::Actions {
                     $block := $<blockoid>.ast;
                 }
                 else {
-                    $block := @BLOCK.shift;
+                    $block := $*CURPAD;
                     $block.push($<statementlist>.ast);
                     $block.node($/);
                 }
@@ -1099,7 +1045,7 @@ class Perl6::Actions is HLL::Actions {
         my $sigil := $<variable><sigil>;
         my $twigil := $<variable><twigil>[0];
         my $name := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
-        if @BLOCK[0].symbol($name) {
+        if $*ST.cur_lexpad().symbol($name) {
             $/.CURSOR.panic("Redeclaration of symbol ", $name);
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);
@@ -1107,7 +1053,7 @@ class Perl6::Actions is HLL::Actions {
 
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         my $name  := $sigil ~ $twigil ~ $desigilname;
-        my $BLOCK := @BLOCK[0];
+        my $BLOCK := $*ST.cur_lexpad();
 
         if $*SCOPE eq 'has' {
             # Find the current package and add the attribute.
@@ -1257,7 +1203,7 @@ class Perl6::Actions is HLL::Actions {
             $block.nsentry('');
 
             # Create a code object for the routine
-            my $symbol := @BLOCK[0].symbol($name);
+            my $symbol := $*ST.cur_lexpad().symbol($name);
 
             # Check for common error conditions.
             if $symbol {
@@ -1270,7 +1216,7 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
             else { 
-                $symbol := @BLOCK[0].symbol($name, :scope<lexical>); 
+                $symbol := $*ST.cur_lexpad().symbol($name, :scope<lexical>); 
             }
 
             # Create a code object for use in the block
@@ -1316,7 +1262,7 @@ class Perl6::Actions is HLL::Actions {
                                  $code);
                 }
                 # Always bind lexically (like 'our' variables do)
-                @BLOCK[0][0].push( 
+                $*ST.cur_lexpad()[0].push( 
                     PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
                                    :lvalue(1), :viviself($code), :node($/) ) );
             }
@@ -1474,9 +1420,9 @@ class Perl6::Actions is HLL::Actions {
         # we may need to also pop it in other places.
         if $installed {
             if $*SCOPE eq 'my' {
-                @BLOCK[0][0].push(PAST::Var.new( :name('&' ~ $name), :isdecl(1),
+                $*ST.cur_lexpad()[0].push(PAST::Var.new( :name('&' ~ $name), :isdecl(1),
                         :viviself($installed), :scope('lexical') ));
-                @BLOCK[0].symbol($name, :scope('lexical') );
+                $*ST.cur_lexpad().symbol($name, :scope('lexical') );
             }
             elsif $*SCOPE eq 'our' {
                 @PACKAGE[0].block.loadinit.push(PAST::Op.new(
@@ -1536,7 +1482,6 @@ class Perl6::Actions is HLL::Actions {
         } elsif $*MULTINESS eq 'proto' {
             # Need to build code for setting up a proto-regex.
             @MODIFIERS.shift;
-            @BLOCK.shift;
             unless ($name) {
                 $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's cannot be anonymous');
             }
@@ -1586,7 +1531,7 @@ class Perl6::Actions is HLL::Actions {
             @MODIFIERS.shift;
 
             # Create the regex sub along with its signature.
-            $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast, @BLOCK.shift);
+            $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast, $*CURPAD);
             $past.unshift(PAST::Op.new(
                 :pasttype('inline'),
                 :inline("    .local pmc self\n    self = find_lex 'self'")
@@ -1693,15 +1638,15 @@ class Perl6::Actions is HLL::Actions {
                     PAST::Var.new( :name($name), :scope('package') ),
                     $cons_past
                 ));
-                @BLOCK[0].symbol($name, :scope('package') );
+                $*ST.cur_lexpad().symbol($name, :scope('package') );
             }
             elsif $*SCOPE eq 'my' {
                 # Install in the lexpad.
-                @BLOCK[0][0].push(PAST::Var.new(
+                $*ST.cur_lexpad()[0].push(PAST::Var.new(
                     :name($name), :isdecl(1),
                     :viviself($cons_past), :scope('lexical')
                 ));
-                @BLOCK[0].symbol($name, :scope('lexical') );
+                $*ST.cur_lexpad().symbol($name, :scope('lexical') );
             }
             else {
                 $/.CURSOR.panic("Cannot declare a subset with scope declarator " ~ $*SCOPE);
@@ -1740,7 +1685,6 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        @BLOCK.shift;
         make $<signature>.ast;
     }
 
@@ -1765,7 +1709,7 @@ class Perl6::Actions is HLL::Actions {
             $signature.add_parameter($param);
             $cur_param := $cur_param + 1;
         }
-        @BLOCK[0]<signature> := $signature;
+        $*ST.cur_lexpad()<signature> := $signature;
         make $signature;
     }
 
@@ -1826,10 +1770,10 @@ class Perl6::Actions is HLL::Actions {
             $*PARAMETER.var_name(~$/);
             if $twigil eq '' {
                 if $<name> {
-                    if @BLOCK[0].symbol(~$/) {
+                    if $*ST.cur_lexpad().symbol(~$/) {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
                     }
-                    @BLOCK[0].symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
+                    $*ST.cur_lexpad().symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
                 }
             }
             elsif $twigil ne '!' && $twigil ne '.' && $twigil ne '*' {
@@ -1854,8 +1798,7 @@ class Perl6::Actions is HLL::Actions {
             if pir::substr(~$<typename>, 0, 2) eq '::' {
                 my $desigilname := pir::substr(~$<typename>, 2);
                 $*PARAMETER.type_captures.push($desigilname);
-                my @BlOCK;
-                @BLOCK[0].symbol($desigilname, :scope('lexical'));
+                $*ST.cur_lexpad().symbol($desigilname, :scope('lexical'));
             }
             else {
                 if $*PARAMETER.nom_type {
@@ -3110,8 +3053,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Adds a placeholder parameter to this block's signature.
     sub add_placeholder_parameter($sigil, $ident, :$named, :$slurpy_pos, :$slurpy_named) {
-        our @BLOCK;
-        my $block := @BLOCK[0];
+        my $block := $*ST.cur_lexpad();
 
         # Add entry to the block signature.
         my $placeholder_sig := $block<placeholder_sig>;
@@ -3128,18 +3070,6 @@ class Perl6::Actions is HLL::Actions {
         # Just want a lookup of the variable here.
         return PAST::Var.new( :name(~$sigil ~ ~$ident), :scope('lexical') );
     }
-
-    # Looks through the blocks for the first one with a signature and returns
-    # that signature.
-    sub get_nearest_signature() {
-        for @BLOCK {
-            if pir::defined__IP($_<signature>) {
-                return $_<signature>;
-            }
-        }
-        Perl6::Compiler::Signature.new()
-    }
-
 
     sub blockref($block) {
         my $ref := PAST::Val.new( :value($block) );
@@ -3335,8 +3265,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub when_handler_helper($block) {
-        our @BLOCK;
-        my $BLOCK := @BLOCK[0];
+        my $BLOCK := $*ST.cur_lexpad();
         # XXX TODO: This isn't quite the right way to check this...
         unless $BLOCK.handlers() {
             my @handlers;
@@ -3465,34 +3394,10 @@ class Perl6::Actions is HLL::Actions {
             Perl6::Compiler::Parameter.new(:var_name('$_')));
         $sig.add_invocant();
         add_signature($block, $sig);
-        @BLOCK[0].push($block);
+        $*ST.cur_lexpad().push($block);
 
         # Return a code object using a reference to the block.
         block_ref_closure($block, 'Method', 0);
-    }
-
-    # Looks through the lexpads and sees if we recognize the symbol as a lexical.
-    sub is_lexical($name) {
-        our @BLOCK;
-        for @BLOCK {
-            my %entry := $_.symbol($name);
-            if %entry && %entry<scope> eq 'lexical' {
-                return 1;
-            }
-        }
-        return 0;
-    }
-
-    # Looks to see if a variable has been set up as an alias to an attribute.
-    sub is_attr_alias($name) {
-        our @BLOCK;
-        for @BLOCK {
-            my %entry := $_.symbol($name);
-            if %entry {
-                return %entry<attr_alias>;
-            }
-        }
-        return "";
     }
 
     # Takes something that may be a block already, and if not transforms it into

@@ -29,9 +29,9 @@ MKPATH        = $(PERL) -MExtUtils::Command -e mkpath
 CHMOD         = $(PERL) -MExtUtils::Command -e chmod
 POD2MAN       = @pod2man@
 
-# locations of parrot resources
+# locations of parrot and nqp resources
 PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
-NQP_EXE          = $(PARROT_BIN_DIR)/parrot-nqp$(EXE)
+NQP_EXE          = $(PARROT_BIN_DIR)/nqp$(EXE)
 PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe$(EXE)
 PARROT_TOOLS_DIR = $(PARROT_LIB_DIR)/tools
 PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
@@ -50,193 +50,19 @@ MANDIR         = @mandir@
 DOCDIR         = @prefix@/share/doc
 
 # files we create
+PERL6_PIR     = src/gen/perl6.pir
 PERL6_PBC     = perl6.pbc
 PERL6_EXE     = perl6$(EXE)
 PERL6_G       = src/gen/perl6-grammar.pir
+PERL6_G_PBC   = Perl6/Grammar.pbc
 PERL6_A       = src/gen/perl6-actions.pir
-S1_PERL6_PBC  = src/gen/$(PERL6_PBC)
-CORE_PIR      = src/gen/core.pir
+PERL6_A_PBC   = Perl6/Actions.pbc
 GROUP         = perl6_group
 OPS           = perl6_ops
 DYNEXT_TARGET = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
 DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
 DYNOPS        = \
   $(OPS_DIR)/$(OPS)$(LOAD_EXT)
-
-SOURCES = \
-  src/Perl6/Compiler.pir \
-  src/gen/builtins.pir \
-  src/gen/cheats.pir \
-  src/gen/signature_pm.pir \
-  src/gen/parameter_pm.pir \
-  src/gen/package_pm.pir \
-  src/gen/module_pm.pir \
-  src/gen/role_pm.pir \
-  src/gen/locator_pm.pir \
-  src/gen/versiondetectionactions_pm.pir \
-  src/gen/loader_pm.pir \
-  src/gen/backtraceprinter_pm.pir \
-  $(PERL6_G) \
-  $(PERL6_A) \
-  $(DYNEXT_TARGET)
-
-BUILTINS_PIR = \
-  src/glue/contextuals.pir \
-  src/glue/dispatch.pir \
-  src/glue/enum.pir \
-  src/glue/phasers.pir \
-  src/glue/regex.pir \
-  src/glue/role.pir \
-  src/glue/run.pir \
-  src/glue/types.pir \
-  src/builtins/Mu.pir \
-  src/metamodel/ClassHOW.pir \
-  src/builtins/Any.pir \
-  src/gen/Attribute.pir \
-  src/builtins/Cool.pir \
-  src/metamodel/RoleHOW.pir \
-  src/gen/RoleToRoleApplier.pir \
-  src/gen/RoleToClassApplier.pir \
-  src/gen/RoleToInstanceApplier.pir \
-  src/metamodel/GrammarHOW.pir \
-  src/builtins/Role.pir \
-  src/builtins/ConcreteRole.pir \
-  src/builtins/Positional.pir \
-  src/builtins/Iterable.pir \
-  src/builtins/Iterator.pir \
-  src/builtins/EMPTY.pir \
-  src/builtins/List.pir \
-  src/builtins/ParrotIter.pir \
-  src/builtins/ListIter.pir \
-  src/builtins/MapIter.pir \
-  src/builtins/GatherIter.pir \
-  src/builtins/Parcel.pir \
-  src/builtins/ParcelIter.pir \
-  src/builtins/Bool.pir \
-  src/builtins/Int.pir \
-  src/builtins/Num.pir \
-  src/builtins/Str.pir \
-  src/builtins/Enum.pir \
-  src/builtins/Pair.pir \
-  src/builtins/Code.pir \
-  src/builtins/Block.pir \
-  src/builtins/Routine.pir \
-  src/builtins/Multi.pir \
-  src/builtins/Sub.pir \
-  src/builtins/Method.pir \
-  src/builtins/Submethod.pir \
-  src/builtins/Regex.pir \
-  src/builtins/Associative.pir \
-  src/builtins/Array.pir \
-  src/builtins/Seq.pir \
-  src/builtins/Proxy.pir \
-  src/builtins/ContainerDeclarand.pir \
-  src/builtins/Exception.pir \
-  src/builtins/Failure.pir \
-  src/builtins/Signature.pir \
-  src/builtins/Junction.pir \
-  src/builtins/Capture.pir \
-  src/builtins/assign.pir \
-  src/builtins/metaops.pir \
-  src/builtins/control.pir \
-  src/builtins/Cursor.pir \
-
-# Make sure parrot cheats are last in this list.
-# First parrot cheat must be attriter.pir (to get .HLL),
-# last cheat must be register.pir (to register Parrot
-# classes).
-CHEATS_PIR = \
-  src/cheats/constants.pir \
-  src/cheats/perl6-compiler.pir \
-  src/cheats/autoincrement.pir \
-  src/cheats/fail.pir \
-  src/cheats/object.pir \
-  src/cheats/int-ops.pir \
-  src/cheats/num-ops.pir \
-  src/cheats/str-ops.pir \
-  src/cheats/relops.pir \
-  src/cheats/only_infix_redispatcher.pir \
-  src/cheats/import.pir \
-  src/cheats/want-caller-side-callsig.pir \
-  src/cheats/parrot-role-quirks.pir \
-  src/cheats/parrot/attriter.pir \
-  src/cheats/parrot/Protoobject.pir \
-  src/cheats/parrot/P6metaclass.pir \
-  src/cheats/parrot/P6role.pir \
-  src/cheats/parrot/Sub.pir \
-  src/gen/uprop-cheats.pir \
-  src/cheats/parrot/register.pir \
-
-CORE_SOURCES = \
-  src/core/Positional.pm \
-  src/core/Associative.pm \
-  src/core/Callable.pm \
-  src/core/Abstraction.pm \
-  src/core/traits.pm \
-  src/core/metaops.pm \
-  src/core/operators.pm \
-  src/glue/handles.pm \
-  src/glue/subset.pm \
-  src/glue/enum.pm \
-  src/cheats/trait-export.pm \
-  src/cheats/num.pm \
-  src/cheats/eval.pm \
-  src/core/Mu.pm \
-  src/core/Bool.pm \
-  src/core/Order.pm \
-  src/core/Parcel.pm \
-  src/core/Any.pm \
-  src/core/Any-list.pm \
-  src/core/Code.pm \
-  src/core/Cool.pm \
-  src/core/Cool-num.pm \
-  src/core/Cool-str.pm \
-  src/core/List.pm \
-  src/core/Set.pm \
-  src/core/Array.pm \
-  src/core/Numeric.pm \
-  src/core/Real.pm \
-  src/core/Int.pm \
-  src/core/Iterable.pm \
-  src/core/Iterator.pm \
-  src/core/Num.pm \
-  src/core/Rat.pm \
-  src/core/Complex.pm \
-  src/core/Stringy.pm \
-  src/core/Buf.pm \
-  src/core/Str.pm \
-  src/core/Whatever.pm \
-  src/core/Pair.pm \
-  src/core/RangeIter.pm \
-  src/core/Range.pm \
-  src/core/EnumMap.pm \
-  src/core/Hash.pm \
-  src/core/Enum.pm \
-  src/core/IO.pm \
-  src/core/IO/ArgFiles.pm \
-  src/core/IO/Socket.pm \
-  src/core/IO/Socket/INET.pm \
-  src/core/IO/Stat.pm \
-  src/core/Parameter.pm \
-  src/core/Signature.pm \
-  src/core/Block.pm \
-  src/core/WhateverCode.pm \
-  src/core/Routine.pm \
-  src/core/Regex.pm \
-  src/core/Junction.pm \
-  src/core/Grammar.pm \
-  src/core/system.pm \
-  src/cheats/process.pm \
-  src/core/tai-utc.pm \
-  src/core/Duration.pm \
-  src/core/Instant.pm \
-  src/core/Temporal.pm \
-  src/core/Match.pm \
-  src/core/Attribute.pm \
-  src/core/CallFrame.pm \
-  src/core/Capture.pm \
-  src/core/MAIN.pm \
-  src/core/YOU_ARE_HERE.pm \
 
 PMC_SOURCES = \
   $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/objectref.pmc \
@@ -288,7 +114,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: $(PERL6_EXE) Test.pir
+all: $(PERL6_EXE)
 
 # the install target
 install: all
@@ -310,97 +136,26 @@ install: all
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
-xmas: $(PERL6_EXE)
+xmas: $(PERL6_EXE) $(CORE_SETTING)
 
-##  targets for building a standalone perl6.
+##  targets for building a standalone perl6 executable.
 $(PERL6_EXE): $(PERL6_PBC)
 	$(PBC_TO_EXE) $(PERL6_PBC)
 
 # the complete compiler, including core/setting
-$(PERL6_PBC): $(S1_PERL6_PBC) src/gen/core.pm
-	$(PARROT) $(PARROT_ARGS) $(S1_PERL6_PBC) --target=pir $(STAGESTATS) \
-	    src/gen/core.pm > $(CORE_PIR)
-	$(PERL) build/gen_version.pl > src/gen/version.pir
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/Perl6/Compiler.pir
+$(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) src/perl6.p6
+	$(NQP_EXE) --target=pir --output=src/gen/perl6.pir src/perl6.p6
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
-# the stage-1 compiler
-$(S1_PERL6_PBC): $(PARROT) $(SOURCES)
-	$(PERL) -e "" > $(CORE_PIR)
-	@win32_libparrot_copy@
-	$(PERL) build/gen_version.pl > src/gen/version.pir
-	$(PARROT) $(PARROT_ARGS) -o $(S1_PERL6_PBC) src/Perl6/Compiler.pir
-
-$(PERL6_G): $(NQP_EXE) src/Perl6/Grammar.pm
+$(PERL6_G_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Grammar.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
-$(PERL6_A): $(NQP_EXE) src/Perl6/Actions.pm
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Actions.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.pm
-
-src/gen/signature_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Signature.pm
-	$(NQP_EXE) --output=src/gen/signature_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/Compiler/Signature.pm
-
-src/gen/parameter_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Parameter.pm
-	$(NQP_EXE) --output=src/gen/parameter_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/Compiler/Parameter.pm
-
-src/gen/package_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Package.pm
-	$(NQP_EXE) --output=src/gen/package_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/Compiler/Package.pm
-
-src/gen/module_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Module.pm
-	$(NQP_EXE) --output=src/gen/module_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/Compiler/Module.pm
-
-src/gen/role_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Compiler/Role.pm
-	$(NQP_EXE) --output=src/gen/role_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/Compiler/Role.pm
-
-src/gen/RoleToClassApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToClassApplier.nqp
-	$(NQP_EXE) --output=src/gen/RoleToClassApplier.pir --encoding=utf8 \
-	    --target=pir src/metamodel/RoleToClassApplier.nqp
-
-src/gen/RoleToRoleApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToRoleApplier.nqp
-	$(NQP_EXE) --output=src/gen/RoleToRoleApplier.pir --encoding=utf8 \
-	    --target=pir src/metamodel/RoleToRoleApplier.nqp
-
-src/gen/RoleToInstanceApplier.pir: $(PARROT) $(NQP_PBC) src/metamodel/RoleToInstanceApplier.nqp
-	$(NQP_EXE) --output=src/gen/RoleToInstanceApplier.pir --encoding=utf8 \
-	    --target=pir src/metamodel/RoleToInstanceApplier.nqp
-
-src/gen/Attribute.pir: $(PARROT) $(NQP_PBC) src/metamodel/Attribute.nqp
-	$(NQP_EXE) --output=src/gen/Attribute.pir --encoding=utf8 \
-	    --target=pir src/metamodel/Attribute.nqp
-
-src/gen/locator_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Module/Locator.pm
-	$(NQP_EXE) --output=src/gen/locator_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/Module/Locator.pm
-
-src/gen/versiondetectionactions_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Module/VersionDetectionActions.pm
-	$(NQP_EXE) --output=src/gen/versiondetectionactions_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/Module/VersionDetectionActions.pm
-
-src/gen/loader_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/Module/Loader.pm
-	$(NQP_EXE) --output=src/gen/loader_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/Module/Loader.pm
-
-src/gen/backtraceprinter_pm.pir: $(PARROT) $(NQP_PBC) src/Perl6/BacktracePrinter.pm
-	$(NQP_EXE) --output=src/gen/backtraceprinter_pm.pir --encoding=utf8 \
-	    --target=pir src/Perl6/BacktracePrinter.pm
-
-src/gen/builtins.pir: build/gen_builtins_pir.pl $(BUILTINS_PIR)
-	$(PERL) build/gen_builtins_pir.pl $(BUILTINS_PIR) > src/gen/builtins.pir
-
-src/gen/cheats.pir: build/gen_cheats_pir.pl $(CHEATS_PIR)
-	$(PERL) build/gen_cheats_pir.pl $(CHEATS_PIR) > src/gen/cheats.pir
-
-src/gen/core.pm: build/gen_core_pm.pl $(CORE_SOURCES)
-	$(PERL) build/gen_core_pm.pl $(CORE_SOURCES) > src/gen/core.pm
-
-src/gen/uprop-cheats.pir: build/gen_uprop_pir.pl
-	$(PERL) build/gen_uprop_pir.pl > src/gen/uprop-cheats.pir
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
 $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
 	$(PERL) -I$(PARROT_PERL_LIB) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
@@ -437,7 +192,6 @@ t/spec :
 
 spectest_update :
 	-cd t/spec && git pull
-
 
 rakudo_test_run.tar.gz: testable t/spectest.data
 	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@
@@ -567,11 +321,3 @@ $(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.h $(DYNPM
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
 	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) $(LINKARGS)
-
-
-## This target is temporary for producing a trace/profile of core.pm 
-## compilation (to improve compiler performance).
-
-parsetrace: $(S1_PERL6_PBC) src/gen/core.pm
-	$(PARROT) $(PARROT_ARGS) $(S1_PERL6_PBC) --parsetrace --target=pir \
-	    $(STAGESTATS) src/gen/core.pm > $(CORE_PIR) 2>parsetrace.$$$$

@@ -1,5 +1,5 @@
 use Perl6::Grammar;
-#use Perl6::Actions;
+use Perl6::Actions;
 
 class Perl6::Compiler is HLL::Compiler {
 }
@@ -9,7 +9,7 @@ sub MAIN(@ARGS) {
     my $comp := Perl6::Compiler.new();
     $comp.language('perl6');
     $comp.parsegrammar(Perl6::Grammar);
-    #$comp.parseactions(Perl6::Actions);
+    $comp.parseactions(Perl6::Actions);
     
     # Add extra command line options.
     my @clo := $comp.commandline_options();

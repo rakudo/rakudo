@@ -10,9 +10,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         %*LANG<MAIN>          := Perl6::Grammar;
         %*LANG<MAIN-actions>  := Perl6::Actions;
         
-        # Package declarator to meta-package mapping. Starts empty; we get
-        # the mappings either imported or supplied by the setting.
+        # Package declarator to meta-package mapping. Starts pretty much empty;
+        # we get the mappings either imported or supplied by the setting. One
+        # issue is that we may have no setting to provide them, e.g. when we
+        # compile the setting, but it still wants some kinda package. We just
+        # fudge in knowhow for that.
         my %*HOW;
+        %*HOW<package> := pir::get_knowhow__P();
         
         # Symbol table and serialization context builder - keeps track of
         # objects that cross the compile-time/run-time boundary that are
@@ -174,20 +178,54 @@ grammar Perl6::Grammar is HLL::Grammar {
     ## Top-level rules
 
     token comp_unit {
-        :my %*METAOPGEN;                           # hash of generated metaops
-        :my $*IN_DECL;                             # what declaration we're in
-        :my $*IMPLICIT;                            # whether we allow an implicit param
-        :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
-        :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
-        :my $*SETTING_MODE := 0;                   # are we compiling the SETTING
+        # From STD.pm.
         :my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
         :my $*SCOPE := '';                         # which scope declarator we're under
         :my $*MULTINESS := '';                     # which multi declarator we're under
         :my $*QSIGIL := '';                        # sigil of current interpolation
+        :my $*IN_DECL;                             # what declaration we're in
+        :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
+        
+        # Extras.
+        :my %*METAOPGEN;                           # hash of generated metaops
+        :my $*IMPLICIT;                            # whether we allow an implicit param
+        :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
         :my $*TYPENAME := '';
-        :my $*UNITPAST;
+        
+        # Various interesting scopes we'd like to keep to hand.
+        :my $*GLOBALish;
+        :my $*PACKAGE;
+        :my $*SETTING;
+        :my $*UNIT;
+        
+        # Setting loading and symbol setup.
+        {
+            # Create outermost unit.
+            $*UNIT := $*ST.push_lexpad();
+            
+            # If we already have a specified outer context, then we'll mostly
+            # just steal stuff from it.
+            if pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
+                # XXX TODO
+            }
+            else {
+                # Load setting. This also imports any meta-objects.
+                $*SETTING := $*ST.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE');
+            }
+            
+            # Create GLOBAL(ish).
+            $*GLOBALish := $*ST.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
+            $*ST.pkg_compose($*GLOBALish);
+            $*GLOBALish.HOW.compose($*GLOBALish);
+            
+            # We start with the current package as that also.
+            $*PACKAGE := $*GLOBALish;
+        }
+        
         <.unitstart>
+        
         <statementlist>
+        
         [ $ || <.panic: 'Confused'> ]
     }
 

@@ -2,14 +2,6 @@ use NQPP6Regex;
 use Perl6::SymbolTable;
 
 grammar Perl6::Grammar is HLL::Grammar {
-    our %COMPILINGPACKAGES;
-    our %STUBCOMPILINGPACKAGES;
-
-    INIT {
-        our %COMPILINGPACKAGES := Q:PIR { %r = root_new ['parrot';'Hash'] };
-        our %STUBCOMPILINGPACKAGES := Q:PIR { %r = root_new ['parrot';'Hash'] };
-    }
-
     method TOP() {
         # Language braid.
         my %*LANG;
@@ -30,100 +22,6 @@ grammar Perl6::Grammar is HLL::Grammar {
             :handle(~pir::time__N()));
             
         self.comp_unit;
-    }
-
-    method add_my_name($name, $up_levels = 0) {
-        my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
-
-        # We need to flag up most re-declaration collisions.
-        my $cur_decl := @BLOCK[$up_levels].symbol($name);
-        if $cur_decl {
-            if $*PKGDECL eq 'role' || $cur_decl<stub> {
-                return 1;
-            }
-            else {
-                pir::die("Illegal redeclaration of symbol '$name'");
-            }
-        }
-
-        # Add it.
-        @BLOCK[$up_levels].symbol($name, :does_abstraction(1));
-        return 1;
-    }
-
-    method add_our_name($name, $up_levels = 0) {
-        our %COMPILINGPACKAGES;
-        our %STUBCOMPILINGPACKAGES;
-
-        # Check if it already exists, if we care.
-        if $*PKGDECL ne 'role' {
-            my $exists := 0;
-            if %STUBCOMPILINGPACKAGES{$name} {
-                %STUBCOMPILINGPACKAGES{$name} := 0;
-            }
-            elsif %COMPILINGPACKAGES{$name} {
-                $exists := 1;
-            }
-            else {
-                my @parts := parse_name($name);
-                my $final := pir::pop(@parts);
-                my $test  := pir::get_hll_global__PPS(@parts, $final);
-                $exists   := !pir::isnull__IP($test);
-            }
-            if $exists {
-                pir::die("Illegal redeclaration of symbol '$name'");
-            }
-        }
-
-        # For now, just add a marker to say we saw this. We'll most likely want
-        # to do something more here later (STD does quite a bit more, but we'll
-        # build our way towards it).
-        %COMPILINGPACKAGES{$name} := 1;
-
-        # Always need to add our names as lexical names too.
-        return self.add_my_name($name, $up_levels);
-    }
-
-    method add_name($name, $up_levels = 0) {
-        if $*SCOPE eq 'augment' || $*SCOPE eq 'supersede' {
-            unless self.is_name($name) {
-                pir::die("Cannot $*SCOPE $*PKGDECL that doesn't exist");
-            }
-            unless $*MONKEY_TYPING {
-                pir::die("Cannot $*SCOPE $*PKGDECL $name without 'use MONKEY_TYPING'");
-            }
-        }
-        else {
-            if $*SCOPE eq 'our' {
-                self.add_our_name($name, $up_levels);
-            }
-            else {
-                self.add_my_name($name, $up_levels);
-            }
-        }
-        return 1;
-    }
-
-    method is_name($name) {
-        # Check in the blocks.
-        my @BLOCK := Q:PIR{ %r = get_hll_global ['Perl6';'Actions'], '@BLOCK' };
-        for @BLOCK {
-            my $sym := $_.symbol($name);
-            if $sym && $sym<does_abstraction> {
-                return 1;
-            }
-        }
-        
-        # Is it a package we're compiling?
-        if %COMPILINGPACKAGES{$name} {
-            return 1;
-        }
-
-        # Otherwise, check in the namespace.
-        my @parts := parse_name($name);
-        my $final := pir::pop(@parts);
-        my $test  := pir::get_hll_global__PPs(@parts, $final);
-        !pir::isnull__IP($test);
     }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...

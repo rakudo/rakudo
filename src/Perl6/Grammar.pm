@@ -1,4 +1,5 @@
 use NQPP6Regex;
+use Perl6::SymbolTable;
 
 grammar Perl6::Grammar is HLL::Grammar {
     our %COMPILINGPACKAGES;
@@ -10,21 +11,24 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     method TOP() {
+        # Language braid.
         my %*LANG;
         %*LANG<Regex>         := Perl6::Regex;
         %*LANG<Regex-actions> := Perl6::RegexActions;
         %*LANG<MAIN>          := Perl6::Grammar;
         %*LANG<MAIN-actions>  := Perl6::Actions;
+        
+        # Package declarator to meta-package mapping. Starts empty; we get
+        # the mappings either imported or supplied by the setting.
         my %*HOW;
-        %*HOW<package> := 'none';
-        %*HOW<module>  := 'none';
-        %*HOW<class>   := 'ClassHOW';
-        %*HOW<grammar> := 'GrammarHOW';
-        %*HOW<role>    := 'RoleHOW';
-        my %*PKGCOMPILER;
-        %*PKGCOMPILER<role>    := Perl6::Compiler::Role;
-        %*PKGCOMPILER<module>  := Perl6::Compiler::Module;
-        %*PKGCOMPILER<package> := Perl6::Compiler::Module;
+        
+        # Symbol table and serialization context builder - keeps track of
+        # objects that cross the compile-time/run-time boundary that are
+        # associated with this compilation unit.
+        my $*ST := Perl6::SymbolTable.new(
+            # XXX Need to hash the source, or something.
+            :handle(~pir::time__N()));
+            
         self.comp_unit;
     }
 

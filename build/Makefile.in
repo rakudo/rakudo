@@ -53,6 +53,8 @@ DOCDIR         = @prefix@/share/doc
 PERL6_PIR     = src/gen/perl6.pir
 PERL6_PBC     = perl6.pbc
 PERL6_EXE     = perl6$(EXE)
+PERL6_ST      = src/gen/perl6-symboltable.pir
+PERL6_ST_PBC  = Perl6/SymbolTable.pbc
 PERL6_G       = src/gen/perl6-grammar.pir
 PERL6_G_PBC   = Perl6/Grammar.pbc
 PERL6_A       = src/gen/perl6-actions.pir
@@ -168,7 +170,12 @@ $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) src/perl6.p6
 	$(NQP_EXE) --target=pir --output=src/gen/perl6.pir src/perl6.p6
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
-$(PERL6_G_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Grammar.pm
+$(PERL6_ST_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/SymbolTable.pm
+	$(NQP_EXE) --target=pir --output=$(PERL6_ST) --encoding=utf8 \
+	    src/Perl6/SymbolTable.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ST_PBC) $(PERL6_ST)
+    
+$(PERL6_G_PBC): $(NQP_EXE) $(DYNEXT_TARGET) $(PERL6_ST_PBC) src/Perl6/Grammar.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)

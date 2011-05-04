@@ -27,7 +27,7 @@ role Perl6::Metamodel::MultiMethodContainer {
 
             # Do we have anything in the methods table already in
             # this class?
-            my $dispatcher := %!methods{$name};
+            my $dispatcher := (self.method_table($obj)){$name};
             if pir::defined($dispatcher) {
                 # Yes. Only or dispatcher, though? If only, error. If
                 # dispatcher, simply add new dispatchee.
@@ -56,7 +56,8 @@ role Perl6::Metamodel::MultiMethodContainer {
                             # Clone it and install it in our method table.
                             my @new_dispatchees;
                             @new_dispatchees[0] := $code;
-                            %!methods{$name} := pir::create_dispatch_and_add_candidates__PPP($dispatcher, @new_dispatchees);
+                            self.add_method($obj, $name,
+                                pir::create_dispatch_and_add_candidates__PPP($dispatcher, @new_dispatchees));
                             $found := 1;
                         }
                         else {

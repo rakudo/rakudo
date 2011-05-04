@@ -8,8 +8,7 @@ role Perl6::Metamodel::AttributeContainer {
         for @!attributes {
             if $_.name eq $name {
                 pir::die("Package '" ~ self.name($obj) ~
-                    "' already has an attribute named "' ~
-                    $name ~ "'");
+                    "' already has an attribute named '$name'");
             }
         }
         @!attributes[+@!attributes] := $meta_attr;

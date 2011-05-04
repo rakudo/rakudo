@@ -9,7 +9,7 @@ role Perl6::Metamodel::MethodContainer {
     method add_method($obj, $name, $code_obj) {
         if %!methods{$name} {
             pir::die("Package '" ~ self.name($obj) ~ "' already has a method '" ~
-                $name ~ "'; did you mean to declare a multi-method?');
+                $name ~ "'; did you mean to declare a multi-method?");
         }
         @!method_order[+@!method_order] := $code_obj;
         %!methods{$name} := $code_obj;

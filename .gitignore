@@ -1,6 +1,6 @@
 *~
 src/gen/*
-nqp-rx/
+nqp/
 Makefile
 .*.swp
 *.patch

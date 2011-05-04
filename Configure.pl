@@ -12,7 +12,8 @@ use Parrot::CompareRevisions qw(compare_revs parse_revision_file read_config ver
 MAIN: {
     my %options;
     GetOptions(\%options, 'help!', 'parrot-config=s', 'makefile-timing!',
-               'gen-parrot!', 'gen-parrot-prefix=s', 'gen-parrot-option=s@');
+               'gen-parrot!', 'gen-parrot-prefix=s', 'gen-parrot-option=s@',
+               'gen-nqp!');
 
     # Print help if it's requested
     if ($options{'help'}) {
@@ -30,6 +31,15 @@ MAIN: {
                 '--gc=gms', ($^O !~ /win32/i ? "--optimize" : ()), @opts);
 
         print "Generating Parrot ...\n";
+        print "@command\n\n";
+        system(@command) == 0
+            or die "Error while executing @command; aborting\n";
+    }
+    
+    # Update/generate NQP build if needed.
+    if ($options{'gen-nqp'}) {
+        my @command = ($^X, "build/gen_nqp.pl");
+        print "Generating NQP ...\n";
         print "@command\n\n";
         system(@command) == 0
             or die "Error while executing @command; aborting\n";

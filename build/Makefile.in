@@ -59,7 +59,6 @@ PERL6_A       = src/gen/perl6-actions.pir
 PERL6_A_PBC   = Perl6/Actions.pbc
 PERL6_M       = src/gen/perl6-metamodel.pir
 PERL6_M_PBC   = Perl6/Metamodel.pbc
-SETTING_PM    = src/gen/CORE.setting
 SETTING_PIR   = src/gen/CORE.setting.pir
 SETTING       = CORE.setting.pbc
 GROUP         = perl6_group
@@ -90,6 +89,10 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/MultipleInheritance.pm \
   src/Perl6/Metamodel/C3MRO.pm \
   src/Perl6/Metamodel/ClassHOW.pm \
+  src/Perl6/Metamodel/EXPORTHOW.pm \
+  
+CORE_SOURCES = \
+  src/CORE.setting/BOOTSTRAP.pm \
 
 DOCS = README CREDITS LICENSE docs/*
 
@@ -181,8 +184,11 @@ $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET)
 	    src/gen/Metamodel.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
-$(SETTING): $(PERL6_M_PBC)
-    
+$(SETTING): $(PERL6_M_PBC) $(PERL6_EXE)
+	$(PERL) build/merge_pm.pl $(CORE_SOURCES) > src/gen/CORE.setting
+	$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
+	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
+
 $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
 	$(PERL) -I$(PARROT_PERL_LIB) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
 		$(PMC_DIR)/objectref.pmc

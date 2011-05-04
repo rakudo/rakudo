@@ -19,15 +19,24 @@ directory. Gets a checkout of NQP and builds and install it.
 use strict;
 use warnings;
 use 5.008;
+use lib 'build/lib';
+use Parrot::CompareRevisions qw/read_config/;
 
 #  Work out slash character to use.
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
+my $exe   = $^O eq 'MSWin32' ? '.exe' : '';
 
 # Ensure we have a parrot_install
 unless (-d "parrot_install") {
     die "===SORRY===\n"
        ."You must have already installed a Parrot to parrot_install\n"
        ."before running gen_nqp (try configuring with --gen-parrot).\n";
+}
+
+my %config = read_config("parrot_install/bin/parrot_config$exe");
+my $make = $config{'make'};
+unless ($make) {
+    die "Can't determine which 'make' utility parrot was built with, aborting\n";
 }
 
 # Get NQP, or update it.
@@ -44,13 +53,9 @@ system_or_die(qw(git fetch)) unless $fetched;
 system_or_die(qw(git checkout),  'master');
 
 ##  If we have a Makefile from a previous build, do a 'make realclean'
-if (-f 'Makefile') {
-    my %config = read_parrot_config();
-    my $make = $config{'make'};
-    if ($make) {
-        print "\nPerforming '$make realclean' ...\n";
-        system_or_die($make, "realclean");
-    }
+if (-f 'Makefile' && $make) {
+    print "\nPerforming '$make realclean' ...\n";
+    system_or_die($make, "realclean");
 }
 
 print "\nConfiguring NQP ...\n";
@@ -59,21 +64,8 @@ print "@config_command\n";
 system_or_die( @config_command );
 
 print "\nBuilding NQP ...\n";
-my %config = read_parrot_config();
-my $make = $config{'make'} or exit(1);
 system_or_die($make, 'install');
 
-sub read_parrot_config {
-    my %config = ();
-    if (open my $CFG, "../parrot/config_lib.pir") {
-        while (<$CFG>) {
-            if (/P0\["(.*?)"], "(.*?)"/) { $config{$1} = $2 }
-        }
-        close $CFG;
-    }
-    %config;
-}
-    
 sub system_or_die {
     my @cmd = @_;
 

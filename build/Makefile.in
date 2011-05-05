@@ -193,7 +193,7 @@ $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET)
     
 $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE)
 	$(PERL) build/merge_pm.pl $(CORE_SOURCES) > src/gen/CORE.setting
-	$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 
 $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl

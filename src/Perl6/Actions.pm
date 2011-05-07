@@ -521,9 +521,6 @@ class Perl6::Actions is HLL::Actions {
             elsif ~$<module_name> eq 'MONKEY_TYPING' {
                 $*MONKEY_TYPING := 1;
             }
-            elsif ~$<module_name> eq 'SETTING_MODE' {
-                $*SETTING_MODE := 1;
-            }
             elsif ~$<module_name> eq 'FORBID_PIR' {
                 $FORBID_PIR := 1;
             }

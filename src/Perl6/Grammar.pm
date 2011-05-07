@@ -78,16 +78,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ <?before '['> '[' ~ ']' <arglist> ]?
     }
 
-    token def_module_name {
-        <longname>
-        [
-            <?before '['>
-            <?{ $*PKGDECL eq 'role' }>
-            :my $*SCOPE := 'my';
-            '[' ~ ']' <signature>
-        ]?
-    }
-
     token end_keyword {
         <!before <[ \( \\ ' \- ]> || \h* '=>'> »
     }
@@ -186,6 +176,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*QSIGIL := '';                        # sigil of current interpolation
         :my $*IN_DECL;                             # what declaration we're in
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
+        :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         
         # Extras.
         :my %*METAOPGEN;                           # hash of generated metaops
@@ -865,26 +856,77 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     rule package_def {<.end_keyword>
+        :my $longname;
         :my $*IN_DECL := 'package';
         :my $*CURPAD;
-        <.newpad>
-        <def_module_name>?
-        <trait>*
-        {*} #= open
+        
+        # Meta-object will live in here; also set default REPR (a trait
+        # may override this, e.g. is repr('...')).
+        :my $*PACKAGE;
+        :my $*REPR := 'P6opaque';
+        
+        # Default to our scoped.
+        { unless $*SCOPE { $*SCOPE := 'our'; } }
+        
         [
-        || ';'
-            <.finishpad>
+            [ <longname> { $longname := $<longname>[0]; } ]?
+            <.newpad>
+            
+            [ #:dba('generic role')
+            <?{ ($*PKGDECL//'') eq 'role' }>
+            '[' ~ ']' <signature>
+            { $*IN_DECL := ''; }
+            ]?
+            
+            <trait>*
+            
             {
-                if $*PKGDECL eq 'package' {
-                    $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style package block like "package Foo { ... }", or "module Foo; ...".');
+                # Construct meta-object for this package.
+                my %args;
+                if $longname {
+                    %args<name> := ~$longname<name>;
                 }
+                %args<repr> := $*REPR;
+                $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
+                
+                # Install it in the symbol table.
+                # XXX
             }
-            { $*IN_DECL := '' }
-            <statementlist>
-            { $*CURPAD := $*ST.pop_lexpad() }
-        || <?[{]> { $*IN_DECL := '' } <blockoid>
-        || <.panic: 'Malformed package declaration'>
-        ]
+            
+            [
+            || <?[{]> 
+                [
+                {
+                    $*IN_DECL := '';
+                    $*begin_compunit := 0;
+                }
+                <blockoid>
+                ]
+            
+            || ';'
+                [
+                || <?{ $*begin_compunit }>
+                    {
+                        unless $longname {
+                            $/.CURSOR.panic("Compilation unit cannot be anonymous");
+                        }
+                        unless $*ST.cur_lexpad() =:= $*UNIT {
+                            $/.CURSOR.panic("Semicolon form of " ~ $*PKGDECL ~ " definition not allowed in subscope;\n  please use block form");
+                        }
+                        if $*PKGDECL eq 'package' {
+                            $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style package block like "package Foo { ... }", or "module Foo; ...".');
+                        }
+                        $*begin_compunit := 0;
+                    }
+                    { $*IN_DECL := ''; }
+                    <.finishpad>
+                    <statementlist>     # whole rest of file, presumably
+                    { $*CURPAD := $*ST.pop_lexpad() }
+                || <.panic: "Too late for semicolon form of $*PKGDECL definition">
+                ]
+            || <.panic: "Unable to parse $*PKGDECL definition">
+            ]
+        ] || <.panic: "Malformed $*PKGDECL">
     }
 
     token declarator {

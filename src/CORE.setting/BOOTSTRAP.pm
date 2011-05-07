@@ -9,3 +9,5 @@ my class Cool is Any { ... }
 # XXX Needs to get all its methods from a role in Perl6::Metamodel so they are
 # available to the compiler.
 my class Attribute is Cool { ... }
+
+{YOU_ARE_HERE}

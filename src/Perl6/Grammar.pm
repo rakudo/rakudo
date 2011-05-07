@@ -1984,7 +1984,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
 
-    sub parse_name($name) {
+    our sub parse_name($name) {
         my $type_param := '';
         my $sep := pir::index__ISS($name,'[');
         if ($sep > -1) {

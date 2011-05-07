@@ -190,6 +190,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my %*METAOPGEN;                           # hash of generated metaops
         :my $*IMPLICIT;                            # whether we allow an implicit param
         :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
+        :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
         :my $*TYPENAME := '';
         
         # Various interesting scopes we'd like to keep to hand.
@@ -316,12 +317,17 @@ grammar Perl6::Grammar is HLL::Grammar {
     token blockoid {
         :my $*CURPAD;
         <.finishpad>
-        '{' ~ '}' <statementlist>
-        <?ENDSTMT>
+        [
+        | '{YOU_ARE_HERE}' <.you_are_here>
+        | '{' ~ '}' <statementlist> <?ENDSTMT>
+        | <?terminator> <.panic: 'Missing block'>
+        | <?> <.panic: 'Malformed block'>
+        ]
         { $*CURPAD := $*ST.pop_lexpad() }
     }
 
     token unitstart { <?> }
+    token you_are_here { <?> }
     token newpad { <?> { $*ST.push_lexpad($/) } }
     token finishpad { <?> }
 
@@ -1255,8 +1261,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     ## Terms
 
     proto token term { <...> }
-
-    token term:sym<YOU_ARE_HERE> { <sym> <.end_keyword> }
 
     token term:sym<self> { <sym> <.end_keyword> }
 

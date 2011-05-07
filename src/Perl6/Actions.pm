@@ -104,16 +104,29 @@ class Perl6::Actions is HLL::Actions {
         elsif %*COMPILING<%?OPTIONS><n> {
             $mainline := wrap_option_n_code($mainline);
         }
+        
+        # Unit needs to have a load-init holding the deserialization or
+        # fixup code for this compilation unit.
+        $unit.loadinit().push($*ST.to_past());
+        
+        # We'll install our view of GLOBAL as the main one; any other
+        # compilation unit that is using this one will then replace it
+        # with its view later (or be in a position to restore it).
+        $unit.loadinit().push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') ),
+            $*SC.get_slot_past_for_object($*GLOBALish)
+        ));
 
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;
         $outer.node($/);
         $outer.hll('perl6');
 
+        # If the unit defines &MAIN, add a &MAIN_HELPER.
         my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),
                              :viviself( PAST::Val.new( :value(0) ) ) );
         $unit.symbol('$MAIN', :scope<lexical>);
-        # If the unit defines &MAIN, add a &MAIN_HELPER.
         if $unit.symbol('&MAIN') {
             $mainline := 
                 PAST::Op.new(
@@ -126,7 +139,15 @@ class Perl6::Actions is HLL::Actions {
         else {
             $unit.push($mainparam);
         }
-        $unit.push( self.CTXSAVE() );
+        
+        # If our caller wants to know the mainline ctx, provide it here.
+        # (CTXSAVE is inherited from HLL::Actions.) Don't do this when
+        # there was an explicit {YOU_ARE_HERE}.
+        unless $*HAS_YOU_ARE_HERE {
+            $unit.push( self.CTXSAVE() );
+        }
+        
+        # Add the mainline code to the unit.
         $unit.push($mainline);
 
         # Executing the compilation unit causes the mainline to be executed.
@@ -324,11 +345,24 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method blockoid($/) {
-        my $past := $<statementlist>.ast;
-        my $BLOCK := $*CURPAD;
-        $BLOCK.push($past);
-        $BLOCK.node($/);
-        make $BLOCK;
+        if $<statementlist> {
+            my $past := $<statementlist>.ast;
+            my $BLOCK := $*CURPAD;
+            $BLOCK.push($past);
+            $BLOCK.node($/);
+            make $BLOCK;
+        }
+        else {
+            if $*HAS_YOU_ARE_HERE {
+                $/.CURSOR.panic('{YOU_ARE_HERE} may only appear once in a setting');
+            }
+            $*HAS_YOU_ARE_HERE := 1;
+            make $<you_are_here>.ast;
+        }
+    }
+    
+    method you_are_here($/) {
+        make self.CTXSAVE();
     }
 
     method newpad($/) {
@@ -687,31 +721,6 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
     method term:sym<lambda>($/)             { make block_closure($<pblock>.ast, 'Block', 0); }
     method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
-
-    method term:sym<YOU_ARE_HERE>($/) {
-        my $past := PAST::Block.new(
-            :name('!YOU_ARE_HERE'),
-            PAST::Op.new(
-                :inline(
-                    '$P0 = getinterp',
-                    '$P0 = $P0["context"]',
-                    '$P0 = getattribute $P0, "outer_ctx"',
-                    '$P1 = getattribute $P0, "current_sub"',
-                    '%0."set_outer"($P1)',
-                    '%0."set_outer_ctx"($P0)',
-                    '%r = %0'
-                ),
-                PAST::Var.new( :name('mainline'), :scope('parameter') )
-            )
-        );
-        $*ST.cur_lexpad()[0].push(PAST::Var.new(
-            :name('!YOU_ARE_HERE'), :isdecl(1), :viviself($past), :scope('lexical')
-        ));
-        make PAST::Op.new( :pasttype('call'),
-            PAST::Var.new( :name('!YOU_ARE_HERE'), :scope('lexical') ),
-            PAST::Block.new( )
-        );
-    }
 
     method name($/) { }
 

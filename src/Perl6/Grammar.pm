@@ -212,8 +212,11 @@ grammar Perl6::Grammar is HLL::Grammar {
                 # XXX TODO
             }
             else {
-                # Load setting. This also imports any meta-objects.
+                # Load setting and import any meta-objects.
                 $*SETTING := $*ST.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE');
+                unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+                    $/.CURSOR.import_EXPORTHOW($*SETTING);
+                }
             }
             
             # Create GLOBAL(ish).
@@ -235,6 +238,15 @@ grammar Perl6::Grammar is HLL::Grammar {
         {
             $*ST.pop_lexpad(); # UNIT
             $*ST.pop_lexpad(); # UNIT_OUTER
+        }
+    }
+    
+    method import_EXPORTHOW($UNIT) {    
+        # See if we've exported any HOWs.
+        if pir::exists($UNIT, 'EXPORTHOW') {
+            for $UNIT<EXPORTHOW>.WHO {
+                %*HOW{$_.key} := $_.value;
+            }
         }
     }
 
@@ -433,7 +445,12 @@ grammar Perl6::Grammar is HLL::Grammar {
                 {
                     $/.CURSOR.panic("arglist case of use not yet implemented");
                 }
-            || { $longname && $*ST.load_module(~$longname); }
+            || { 
+                    if $longname {
+                        my $module := $*ST.load_module(~$longname, $*GLOBALish);
+                        $/.CURSOR.import_EXPORTHOW($module);
+                    }
+                }
             ]
         ]
         <.ws>

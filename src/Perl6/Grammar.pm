@@ -16,6 +16,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # compile the setting, but it still wants some kinda package. We just
         # fudge in knowhow for that.
         my %*HOW;
+        %*HOW<knowhow> := pir::get_knowhow__P();
         %*HOW<package> := pir::get_knowhow__P();
         
         # Symbol table and serialization context builder - keeps track of
@@ -820,29 +821,47 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token package_declarator { <...> }
     token package_declarator:sym<package> {
-        <sym> :my $*PKGDECL := 'package';
-        <package_def>
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'package';
+        <sym> <package_def> 
     }
     token package_declarator:sym<module> {
-        <sym> :my $*PKGDECL := 'module';
-        <package_def>
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'module';
+        <sym> <package_def> 
     }
     token package_declarator:sym<class> {
-        <sym> :my $*PKGDECL := 'class';
-        <package_def>
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'class';
+        <sym> <package_def> 
     }
     token package_declarator:sym<grammar> {
-        <sym> :my $*PKGDECL := 'grammar';
-        <package_def>
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'grammar';
+        <sym> <package_def> 
     }
     token package_declarator:sym<role> {
-        <sym> :my $*PKGDECL := 'role';
-        <package_def>
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'role';
+        <sym> <package_def> 
     }
-
-    token package_declarator:sym<does> {
+    token package_declarator:sym<knowhow> {
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'knowhow';
+        <sym> <package_def> 
+    }
+    token package_declarator:sym<slang> {
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'slang';
+        <sym> <package_def>
+    }
+    token package_declarator:sym<trusts> {
         <sym> <.ws>
-        <typename>
+        <module_name>
+    }
+    token package_declarator:sym<also> {
+        <sym>:s
+        [ <trait>+ || <.panic: "No valid trait found after also"> ]
     }
 
     rule package_def {<.end_keyword>

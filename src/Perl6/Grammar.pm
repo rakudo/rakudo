@@ -406,10 +406,35 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token statement_control:sym<use> {
+        :my $longname;
+        :my $*IN_DECL := 'use';
+        :my $*SCOPE := 'use';
         <sym> <.ws>
         [
         | <version>
-        | <module_name> [ <.spacey> <arglist> ]?
+        | <module_name>
+            {
+                $longname := $<module_name><longname>;
+                
+                # Some modules are handled in the actions are just turn on a
+                # setting of some kind.
+                if $longname.Str eq 'MONKEY_TYPING' {
+                    $*MONKEY_TYPING := 1;
+                    $longname := "";
+                }
+                elsif $longname.Str eq 'FORBID_PIR' ||
+                      $longname.Str eq 'Devel::Trace' ||
+                      $longname.Str eq 'fatal' {
+                    $longname := "";
+                }
+            }
+            [
+            || <.spacey> <arglist>
+                {
+                    $/.CURSOR.panic("arglist case of use not yet implemented");
+                }
+            || { $longname && $*ST.load_module(~$longname); }
+            ]
         ]
         <.ws>
     }

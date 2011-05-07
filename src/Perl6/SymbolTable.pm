@@ -1,4 +1,5 @@
 use NQPHLL;
+use Perl6::ModuleLoader;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -25,8 +26,54 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Loads a setting.
-    method load_setting($name) {
-        # XXX TODO
+    method load_setting($setting_name) {
+        # Do nothing for the NULL setting.
+        if $setting_name ne 'NULL' {    
+            # Load it immediately, so the compile time info is available.
+            # Once it's loaded, set it as the outer context of the code
+            # being compiled.
+            my $setting := %*COMPILING<%?OPTIONS><outer_ctx>
+                        := Perl6::ModuleLoader.load_setting($setting_name);
+            
+            # Do load for pre-compiled situation.
+            self.add_event(:deserialize_past(PAST::Stmts.new(
+                PAST::Op.new(
+                    :pirop('load_bytecode vs'), 'Perl6/ModuleLoader.pbc'
+                ),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('set_outer_ctx'),
+                       PAST::Var.new( :name('block'), :scope('register') ),
+                       PAST::Op.new(
+                           :pasttype('callmethod'), :name('load_setting'),
+                           PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
+                           $setting_name
+                       )
+                )
+            )));
+            
+            return pir::getattribute__PPs($setting, 'lex_pad');
+        }
+    }
+    
+    # Loads a module immediately, and also makes sure we load it
+    # during the deserialization.
+    method load_module($module_name, $cur_GLOBALish) {
+        # Immediate loading.
+        my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish);
+        
+        # Make sure we do the loading during deserialization.
+        self.add_event(:deserialize_past(PAST::Stmts.new(
+            PAST::Op.new(
+                :pirop('load_bytecode vs'), 'Perl6/ModuleLoader.pbc'
+            ),
+            PAST::Op.new(
+               :pasttype('callmethod'), :name('load_module'),
+               PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
+               $module_name,
+               self.get_slot_past_for_object($cur_GLOBALish)
+            ))));
+            
+        return pir::getattribute__PPs($module, 'lex_pad');
     }
     
     # Creates a meta-object for a package, adds it to the root objects and

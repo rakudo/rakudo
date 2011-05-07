@@ -437,53 +437,10 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
 
-    sub need($module_name) {
-        # Build up adverbs hash if we have them. Note that we need a hash
-        # for now (the compile time call) and an AST that builds said hash
-        # for the runtime call once we've compiled the module.
-        my $name := $module_name<longname><name>.Str;
-        my %adverbs;
-        my $adverbs_ast := PAST::Op.new(
-            :name('&circumfix:<{ }>'), PAST::Op.new( :name('&infix:<,>') )
-        );
-        if $module_name<longname><colonpair> {
-            for $module_name<longname><colonpair> {
-                my $ast := $_.ast;
-                $adverbs_ast[0].push($ast);
-                %adverbs{$ast[1].value()} := $ast[2].value();
-            }
-        }
-
-        # Need to immediately load module and get lexicals stubbed in.
-        Perl6::Module::Loader.need($name, %adverbs);
-
-        # Also need code to do the actual loading emitting (though need
-        # won't repeat its work if already carried out; we mainly need
-        # this for pre-compilation to PIR to work).
-        my @ns := pir::split__PSS('::', 'Perl6::Module');
-        $*ST.cur_lexpad().loadinit.push(
-            PAST::Op.new( :pasttype('callmethod'), :name('need'),
-                PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
-                $name,
-                PAST::Op.new( :pirop('getattribute PPS'), $adverbs_ast, '$!storage' )
-            ));
-    }
-
     method statement_control:sym<import>($/) {
         my $past := PAST::Stmts.new( :node($/) );
         import($/);
         make $past;
-    }
-
-    sub import($/) {
-        my $name := $<module_name><longname><name>.Str;
-        Perl6::Module::Loader.stub_lexical_imports($name, $*ST.cur_lexpad());
-        my @ns := pir::split__PSS('::', 'Perl6::Module');
-        $*ST.cur_lexpad().push(
-            PAST::Op.new( :pasttype('callmethod'), :name('import'),
-                PAST::Var.new( :name('Loader'), :namespace(@ns), :scope('package') ),
-                $name
-            ));
     }
 
     method statement_control:sym<use>($/) {
@@ -518,18 +475,11 @@ class Perl6::Actions is HLL::Actions {
                     ),
                 );
             }
-            elsif ~$<module_name> eq 'MONKEY_TYPING' {
-                $*MONKEY_TYPING := 1;
-            }
             elsif ~$<module_name> eq 'FORBID_PIR' {
                 $FORBID_PIR := 1;
             }
             elsif ~$<module_name> eq 'Devel::Trace' {
                 $STATEMENT_PRINT := 1;
-            }
-            else {
-                need($<module_name>);
-                import($/);
             }
         }
         make $past;
@@ -766,11 +716,12 @@ class Perl6::Actions is HLL::Actions {
     method name($/) { }
 
     method module_name($/) {
+        # XXX Needs re-doing.
         my @name := Perl6::Grammar::parse_name(~$<longname>);
         my $var := PAST::Var.new(
             :name(@name.pop),
             :namespace(@name),
-            :scope(is_lexical(~$<longname>) ?? 'lexical' !! 'package')
+            :scope('package')
         );
         if $<arglist> {
             my $past := $<arglist>[0].ast;

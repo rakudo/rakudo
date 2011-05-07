@@ -52,7 +52,7 @@ class Perl6::ModuleLoader {
     # XXX This is a really dumb and minimalistic GLOBAL merger.
     # For a much more complete one, see sorear++'s work in
     # Niecza. This one will likely evolve towards that.
-    my $stub_how := 'KnowHOW';
+    my $stub_how := 'PackageHOW';
     sub merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.

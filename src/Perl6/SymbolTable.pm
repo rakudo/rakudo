@@ -8,6 +8,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # outermost frame is at the bottom, the latest frame is on top.
     has @!BLOCKS;
     
+    # Array of stubs to check and the end of compilation.
+    has @!stub_check;
+    
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         my $pad := PAST::Block.new( PAST::Stmts.new(), :node($/) );
@@ -23,6 +26,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Gets the top lexpad.
     method cur_lexpad() {
         @!BLOCKS[+@!BLOCKS - 1]
+    }
+    
+    # Pushes a stub on the "stubs to check" list.
+    method add_stub_to_check($stub) {
+        @!stub_check[+@!stub_check] := $stub;
     }
     
     # Loads a setting.

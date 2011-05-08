@@ -97,7 +97,10 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/EXPORTHOW.pm \
 
 CORE_SOURCES = \
-  src/CORE.setting/BOOTSTRAP.pm \
+  src/CORE.setting/traits.pm \
+  src/CORE.setting/stubs.pm \
+  src/CORE.setting/natives.pm \
+  src/CORE.setting/you_are_here.pm \
 
 DOCS = README CREDITS LICENSE docs/*
 

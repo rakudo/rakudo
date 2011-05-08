@@ -94,6 +94,9 @@ class Perl6::Actions is HLL::Actions {
     method comp_unit($/, $key?) {
         our $?RAKUDO_HLL;
         
+        # Checks.
+        $*ST.assert_stubs_defined();
+        
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
         my $mainline := $<statementlist>.ast;
@@ -361,7 +364,6 @@ class Perl6::Actions is HLL::Actions {
             if $*HAS_YOU_ARE_HERE {
                 $/.CURSOR.panic('{YOU_ARE_HERE} may only appear once in a setting');
             }
-            say("# have YOU_ARE_HERE");
             $*HAS_YOU_ARE_HERE := 1;
             make $<you_are_here>.ast;
         }
@@ -902,7 +904,7 @@ class Perl6::Actions is HLL::Actions {
         if pir::substr__Ssii($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
             $*ST.add_stub_to_check($*PACKAGE);
             make $*ST.get_slot_past_for_object($*PACKAGE);
-            return;
+            return 1;
         }
     
         # Install $?PACKAGE and, depending on declarator, $?CLASS or

@@ -33,6 +33,20 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         @!stub_check[+@!stub_check] := $stub;
     }
     
+    # Checks for any stubs that weren't completed.
+    method assert_stubs_defined() {
+        my @incomplete;
+        for @!stub_check {
+            unless $_.HOW.is_composed($_) {
+                @incomplete.push($_.HOW.name($_));
+            }
+        }
+        if +@incomplete {
+            pir::die("The following packages were stubbed but not defined:\n    " ~
+                pir::join("\n    ", @incomplete) ~ "\n");
+        }
+    }
+    
     # Loads a setting.
     method load_setting($setting_name) {
         # Do nothing for the NULL setting.

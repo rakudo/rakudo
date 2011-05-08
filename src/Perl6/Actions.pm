@@ -121,7 +121,10 @@ class Perl6::Actions is HLL::Actions {
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;
         $outer.node($/);
+        
+        # Set HLL and load the needed libraries.
         $outer.hll('perl6');
+        $unit.loadlibs('perl6_group', 'perl6_ops');
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
         my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),
@@ -878,81 +881,39 @@ class Perl6::Actions is HLL::Actions {
         $/.CURSOR.panic("also not yet implemented");
     }
 
-    method package_def($/, $key?) {
-        our @PACKAGE;
-
-        # Is this the opening of a new package?
-        if $key eq 'open' {
-            # Create the right kind of package compiler.
-            my $pkg_compiler := %*PKGCOMPILER{$*PKGDECL};
-            if pir::isa__IPS($pkg_compiler, 'Undef') { $pkg_compiler := Perl6::Compiler::Package; }
-            my $package := $pkg_compiler.new();
-
-            # Set HOW and other details.
-            my $how := %*HOW{$*PKGDECL};
-            unless $how { $/.CURSOR.panic("No HOW declared for package declarator $*PKGDECL"); }
-            $package.how($how);
-            $*SCOPE := $*SCOPE || 'our';
-            $package.scope($*SCOPE);
-            if $<def_module_name> {
-                my $name := ~$<def_module_name>[0]<longname><name>;
-                if $name ne '::' {
-                    if $*SCOPE ne 'anon' {
-                        $/.CURSOR.add_name($name, 1);
-                    }
-                    $package.name($name);
-                }
-                if $<def_module_name>[0]<signature> {
-                    $package.signature($<def_module_name>[0]<signature>[0].ast);
-                    $package.signature_text(~$<def_module_name>[0]<signature>[0]);
-                }
-                if $<def_module_name>[0]<longname><colonpair> {
-                    for $<def_module_name>[0]<longname><colonpair> {
-                        $package.name_adverbs.push($_.ast);
-                    }
-                }
-            }
-
-            # Add traits.
-            for $<trait> {
-                $package.traits.push($_.ast);
-            }
-
-            # Claim currently open block as the package's block.
-            $package.block($*ST.cur_lexpad());
-
-            # Put on front of packages list. Note - nesting a package in a role is
-            # not supported (gets really tricky in the parametric case - needs more
-            # thought and consideration).
-            if +@PACKAGE && pir::isa__IPS(@PACKAGE[0], 'Role') {
-                $/.CURSOR.panic("Cannot nest a package inside a role");
-            }
-            @PACKAGE.unshift($package);
+    method package_def($/) {
+        # Get the body block PAST.
+        my $block;
+        if $<blockoid> {
+            $block := $<blockoid>.ast;
         }
         else {
-            # We just need to finish up the current package.
-            my $package := @PACKAGE.shift;
-            if pir::substr__SSII($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
-                # Just a stub, so don't do any more work.
-                if $*SCOPE eq 'our' || $*SCOPE eq '' {
-                    %Perl6::Grammar::STUBCOMPILINGPACKAGES{~$<def_module_name>[0]<longname>} := 1;
-                }
-                $*ST.cur_lexpad().symbol(~$<def_module_name>[0]<longname>, :stub(1));
-                make PAST::Stmts.new( );
-            }
-            else {
-                my $block;
-                if $<blockoid> {
-                    $block := $<blockoid>.ast;
-                }
-                else {
-                    $block := $*CURPAD;
-                    $block.push($<statementlist>.ast);
-                    $block.node($/);
-                }
-                make $package.finish($block);
-            }
+            $block := $*CURPAD;
+            $block.push($<statementlist>.ast);
+            $block.node($/);
         }
+        
+        # If it's a stub, add it to the "must compose at some point" list,
+        # then just evaluate to the type object. Don't need to do any more
+        # just yet.
+        if pir::substr__Ssii($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
+            $*ST.add_stub_to_check($*PACKAGE);
+            make $*ST.get_slot_past_for_object($*PACKAGE);
+            return;
+        }
+    
+        # Install $?PACKAGE and, depending on declarator, $?CLASS or
+        # $?ROLE in the body block.
+        $*ST.install_lexical_symbol($block, '$?PACKAGE', $*PACKAGE);
+        if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
+            $*ST.install_lexical_symbol($block, '$?CLASS', $*PACKAGE);
+        }
+        elsif $*PKGDECL eq 'role' {
+            $*ST.install_lexical_symbol($block, '$?ROLE', $*PACKAGE);
+        }
+        
+        # Compose.
+        $*ST.pkg_compose($*PACKAGE);
     }
 
     method scope_declarator:sym<my>($/)      { make $<scoped>.ast; }

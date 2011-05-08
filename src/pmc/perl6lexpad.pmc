@@ -1,0 +1,218 @@
+#include "pmc_perl6lexinfo.h"
+
+pmclass Perl6LexPad
+    provides hash
+    auto_attrs
+    dynpmc group perl6
+    hll perl6
+    maps LexPad
+{
+    ATTR PMC *lexinfo;
+    ATTR PMC *ctx;
+
+    VTABLE void init() {
+        Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
+            "Cannot create a Perl6LexPad PMC without an initializer");
+    }
+
+/*
+
+=item C<init_pmc(PMC *lexinfo)>
+
+Initialize the LexPad PMC and remember the associate
+lexinfo.
+
+=item C<void set_pointer(void *)>
+
+Associate the context, and set into it any static entries.
+
+=item C<INTVAL elements()>
+
+Returns the number of elements in the hash.
+
+=item C<INTVAL exists_keyed(PMC *name)>
+
+=item C<INTVAL exists_keyed_str(STRING *name)>
+
+Returns whether a lexical C<name> exists in the hash.
+
+=item C<PMC *get_pmc_keyed_str(STRING *name)>
+
+=item C<PMC *get_pmc_keyed(PMC *name)>
+
+Return the lexical with the given name, or NULL (not PMCNULL), if the
+lexical doesn't exist.
+
+=item C<void set_pmc_keyed(PMC *name, PMC *value)>
+
+=item C<void set_pmc_keyed_str(STRING *name, PMC *value)>
+
+Set the lexical with the given name to value. If the lexical name
+doesn't exist, it is created.
+
+=item C<PMC *get_lexinfo()>
+
+Return the LexInfo PMC, if any or a Null PMC.
+
+=cut
+
+*/
+    VTABLE void init_pmc(PMC *lexinfo) {
+        SET_ATTR_lexinfo(INTERP, SELF, lexinfo);
+        PObj_custom_mark_SET(SELF);
+    }
+    
+    VTABLE void mark() {
+        PMC *lexinfo, *ctx;
+        GET_ATTR_lexinfo(INTERP, SELF, lexinfo);
+        GET_ATTR_ctx(INTERP, SELF, ctx);
+        Parrot_gc_mark_PMC_alive(INTERP, lexinfo);
+        Parrot_gc_mark_PMC_alive(INTERP, ctx);
+    }
+
+    VTABLE void set_pointer(void *ctx) {
+        /* Check if we need to put any static values in place. */
+        PMC *info;
+        GET_ATTR_lexinfo(INTERP, SELF, info);
+        if (info->vtable->base_type != enum_class_LexInfo) {
+            PMC *static_slots_cache;
+            GETATTR_Perl6LexInfo_static_slots_cache(INTERP, info, static_slots_cache);
+            if (!PMC_IS_NULL(static_slots_cache)) {
+                /* Yes, we have some. Grab values too, then iterate. */
+                PMC *static_values_cache;
+                INTVAL num_statics = VTABLE_elements(interp, static_slots_cache);
+                INTVAL i;
+                GETATTR_Perl6LexInfo_static_values_cache(INTERP, info, static_values_cache);
+                for (i = 0; i < num_statics; i++) {
+                    INTVAL  slot  = VTABLE_get_integer_keyed_int(interp, static_slots_cache, i);
+                    PMC    *value = VTABLE_get_pmc_keyed_int(interp, static_values_cache, i);
+                    CTX_REG_PMC(interp, (PMC *)ctx, slot) = value;
+                }
+                PARROT_GC_WRITE_BARRIER(INTERP, (PMC *)ctx);
+            }
+        }
+        
+        /* Stash the context pointer. */
+        SET_ATTR_ctx(INTERP, SELF, (PMC *)ctx);
+    }
+
+    VTABLE INTVAL elements() {
+        PMC *info;
+        GET_ATTR_lexinfo(INTERP, SELF, info);
+        return VTABLE_elements(interp, info);
+    }
+
+    VTABLE INTVAL exists_keyed_str(STRING *name) {
+        PMC *info, *name_map;
+        const Hash *hash;
+        GET_ATTR_lexinfo(INTERP, SELF, info);
+        if (info->vtable->base_type != enum_class_LexInfo) {
+            GETATTR_Perl6LexInfo_name_to_register_map(INTERP, info, name_map);
+            hash = (const Hash *)VTABLE_get_pointer(INTERP, name_map);
+        }
+        else {
+            hash = (const Hash *)VTABLE_get_pointer(INTERP, info);
+        }
+
+        return hash->entries
+            ? (Parrot_hash_get_bucket(INTERP, hash, name) != 0)
+            : 0;
+    }
+
+    VTABLE INTVAL exists_keyed(PMC *name) {
+        STRING * const s = VTABLE_get_string(INTERP, name);
+        return SELF.exists_keyed_str(s);
+    }
+
+    VTABLE PMC *get_pmc_keyed_str(STRING *name) {
+        PMC        *info, *name_map;
+        const Hash *hash;
+        PMC        *ctx;
+        HashBucket *b;
+
+        GET_ATTR_lexinfo(INTERP, SELF, info);
+        if (info->vtable->base_type != enum_class_LexInfo) {
+            GETATTR_Perl6LexInfo_name_to_register_map(INTERP, info, name_map);
+            hash = (const Hash *)VTABLE_get_pointer(INTERP, name_map);
+        }
+        else {
+            hash = (const Hash *)VTABLE_get_pointer(INTERP, info);
+        }
+
+        if (!hash->entries)
+            return PMCNULL;
+
+        b = Parrot_hash_get_bucket(INTERP, hash, name);
+
+        if (!b)
+            return PMCNULL;
+
+        GET_ATTR_ctx(INTERP, SELF, ctx);
+        return CTX_REG_PMC(interp, ctx, (INTVAL)b->value);
+    }
+
+    VTABLE PMC *get_pmc_keyed(PMC *name) {
+        STRING * const s = VTABLE_get_string(INTERP, name);
+        return SELF.get_pmc_keyed_str(s);
+    }
+
+    VTABLE void set_pmc_keyed_str(STRING *name, PMC *value) {
+        PMC              *info, *name_map;
+        const Hash       *hash;
+        PMC              * ctx;
+        HashBucket       * b;
+
+        GET_ATTR_lexinfo(INTERP, SELF, info);
+        if (info->vtable->base_type != enum_class_LexInfo) {
+            GETATTR_Perl6LexInfo_name_to_register_map(INTERP, info, name_map);
+            hash = (const Hash *)VTABLE_get_pointer(INTERP, name_map);
+        }
+        else {
+            hash = (const Hash *)VTABLE_get_pointer(INTERP, info);
+        }
+        
+        b    = Parrot_hash_get_bucket(INTERP, hash, name);
+        if (!b)
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_LEX_NOT_FOUND,
+                "Lexical '%Ss' not found", name);
+
+        GET_ATTR_ctx(INTERP, SELF, ctx);
+        CTX_REG_PMC(interp, ctx, (INTVAL)b->value) = value;
+        PARROT_GC_WRITE_BARRIER(INTERP, ctx);
+    }
+
+    VTABLE void set_pmc_keyed(PMC *name, PMC *value) {
+        STRING * const s = VTABLE_get_string(INTERP, name);
+        SELF.set_pmc_keyed_str(s, value);
+    }
+
+    METHOD get_lexinfo() {
+        PMC *lexinfo;
+        GET_ATTR_lexinfo(INTERP, SELF, lexinfo);
+        RETURN(PMC *lexinfo);
+    }
+
+/*
+
+=item C<PMC *get_iter()>
+
+Get iterator for declared lexicals.
+
+=cut
+
+*/
+    VTABLE PMC *get_iter() {
+        PMC *lexinfo;
+        GET_ATTR_lexinfo(INTERP, SELF, lexinfo);
+        return VTABLE_get_iter(INTERP, lexinfo);
+    }
+
+}
+
+/*
+
+=back
+
+=cut
+
+*/

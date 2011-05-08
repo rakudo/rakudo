@@ -75,7 +75,8 @@ DYNOPS        = \
 PMC_SOURCES = \
   $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/objectref.pmc \
   $(PMC_DIR)/perl6scalar.pmc $(PMC_DIR)/mutablevar.pmc \
-  $(PMC_DIR)/perl6multisub.pmc $(PMC_DIR)/p6lowlevelsig.pmc
+  $(PMC_DIR)/perl6multisub.pmc $(PMC_DIR)/p6lowlevelsig.pmc \
+  $(PMC_DIR)/perl6lexinfo.pmc $(PMC_DIR)/perl6lexpad.pmc \
 
 OPS_SOURCE   = perl6.ops
 

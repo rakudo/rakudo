@@ -1,0 +1,181 @@
+/* This implements a container of static lexical information for
+ * Perl 6. It differs from Parrot's LexInfo in that it provides
+ * support for static lexical values that get set into each created
+ * lexpad by default. It will also enable indexed lookups and, some day,
+ * may also allow for native values to be stored too. */
+pmclass Perl6LexInfo
+    provides hash
+    auto_attrs
+    dynpmc group perl6
+    hll perl6
+    maps LexInfo
+{
+    /* Hash mapping a name to the register that always holds its
+     * value. */
+    ATTR PMC *name_to_register_map;
+    
+    /* Hash mapping names to static values. This is the authoritative
+     * source of these, but we always build a more quickly usable
+     * cache in the next two attributes. */
+    ATTR PMC *static_values;
+    
+    /* Integer array of slots that we always want to pre-initialize
+     * with static values; built from the static_values hash. */
+    ATTR PMC *static_slots_cache;
+    
+    /* Matching PMC array of the values to pre-init with; built from
+    * the static_values hash. */
+    ATTR PMC *static_values_cache;
+
+    VTABLE void init() {
+        SELF.init_pmc(PMCNULL);
+    }
+
+    VTABLE void init_pmc(PMC *sub) {
+        /* Set up the lex info storage. */
+        PMC *name_to_register_map = pmc_new(interp, enum_class_Hash);
+        VTABLE_init_int(interp, name_to_register_map, (INTVAL)enum_type_INTVAL);
+        SET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+
+        /* Need custom mark. */
+        PObj_custom_mark_SET(SELF);
+    }
+    
+    VTABLE void mark() {
+        PMC *name_to_register_map, *static_values;
+        PMC *static_slots_cache, *static_values_cache;
+        GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+        Parrot_gc_mark_PMC_alive(INTERP, name_to_register_map);
+        GET_ATTR_static_values(INTERP, SELF, static_values);
+        Parrot_gc_mark_PMC_alive(INTERP, static_values);
+        GET_ATTR_static_slots_cache(INTERP, SELF, static_slots_cache);
+        Parrot_gc_mark_PMC_alive(INTERP, static_slots_cache);
+        GET_ATTR_static_values_cache(INTERP, SELF, static_values_cache);
+        Parrot_gc_mark_PMC_alive(INTERP, static_values_cache);
+    }
+    
+    VTABLE INTVAL elements() {
+        PMC *name_to_register_map;
+        GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+        return VTABLE_elements(interp, name_to_register_map);
+    }
+    
+    VTABLE INTVAL get_integer_keyed_str(STRING *key) {
+        PMC *name_to_register_map;
+        GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+        return VTABLE_get_integer_keyed_str(interp, name_to_register_map, key);
+    }
+    
+    VTABLE INTVAL exists_keyed_str(STRING *key) {
+        PMC *name_to_register_map;
+        GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+        return VTABLE_exists_keyed_str(interp, name_to_register_map, key);
+    }
+    
+    VTABLE void set_integer_keyed_str(STRING *key, INTVAL value) {
+        PMC *name_to_register_map;
+        GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+        VTABLE_set_integer_keyed_str(interp, name_to_register_map, key, value);
+    }
+    
+    VTABLE void visit(PMC *info) {
+        VISIT_PMC_ATTR(INTERP, info, SELF, Perl6LexInfo, name_to_register_map);
+        SUPER(info);
+    }
+    
+    VTABLE void thaw(PMC *info) {
+        /* Need custom mark. */
+        PObj_custom_mark_SET(SELF);
+    }
+    
+    VTABLE PMC *get_iter() {
+        PMC *name_to_register_map;
+        GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+        return VTABLE_get_iter(interp, name_to_register_map);
+    }
+
+/*
+
+=item C<void declare_lex_preg(STRING *name, INTVAL preg)>
+
+Declare a lexical variable that is an alias for a PMC register.  The PIR
+compiler calls this method in response to a ".lex STRING, PREG" directive.
+
+=cut
+
+*/
+
+    METHOD declare_lex_preg(STRING *name, INTVAL preg) {
+        PMC *name_to_register_map;
+        GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+        VTABLE_set_integer_keyed_str(INTERP, name_to_register_map, name, preg);
+    }
+    
+    METHOD set_static_lexpad_value(STRING *key, PMC *value) {
+        /* Stash static value in hash. */
+        PMC *svs;
+        GET_ATTR_static_values(INTERP, SELF, svs);
+        if (PMC_IS_NULL(svs)) {
+            svs = pmc_new(interp, enum_class_Hash);
+            SET_ATTR_static_values(INTERP, SELF, svs);
+        }
+        VTABLE_set_pmc_keyed_str(interp, svs, key, value);
+    }
+    
+    METHOD finish_static_lexpad() {
+        /* Build caches from the static lexpad. */
+        PMC *svs;
+        GET_ATTR_static_values(INTERP, SELF, svs);
+        if (PMC_IS_NULL(svs) || !VTABLE_elements(interp, svs)) {
+            /* No values; clear caches. */
+            SET_ATTR_static_slots_cache(INTERP, SELF, PMCNULL);
+            SET_ATTR_static_values_cache(INTERP, SELF, PMCNULL);
+        }
+        else {
+            /* Build caches. */
+            PMC *slots  = pmc_new(interp, enum_class_ResizableIntegerArray);
+            PMC *values = pmc_new(interp, enum_class_ResizablePMCArray);
+            PMC *iter   = VTABLE_get_iter(interp, svs);
+            while (VTABLE_get_bool(interp, iter)) {
+                STRING *name  = VTABLE_shift_string(interp, iter);
+                INTVAL  slot  = VTABLE_get_integer_keyed_str(interp, SELF, name);
+                PMC    *value = VTABLE_get_pmc_keyed_str(interp, svs, name);
+                VTABLE_push_integer(interp, slots, slot);
+                VTABLE_push_pmc(interp, values, value);
+            }
+            SET_ATTR_static_slots_cache(INTERP, SELF, slots);
+            SET_ATTR_static_values_cache(INTERP, SELF, values);
+        }
+    }
+
+/*
+
+=item C<PMC *inspect_str(STRING *what)>
+
+Introspects this LexInfo structure. The only valid introspection key is
+C<symbols>, which gets an array of the names of the symbols in this lexpad.
+
+=cut
+
+*/
+
+    VTABLE PMC *inspect_str(STRING *what) {
+        if (STRING_equal(INTERP, what, CONST_STRING(INTERP, "symbols"))) {
+            PMC * const result    = Parrot_pmc_new(INTERP, enum_class_ResizableStringArray);
+            PMC *name_to_register_map;
+            Hash *hash;
+            
+            GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+            hash = (Hash *)VTABLE_get_pointer(interp, name_to_register_map);
+
+            parrot_hash_iterate(hash,
+                PARROT_ASSERT(_bucket->key);
+                VTABLE_push_string(INTERP, result, (STRING *)_bucket->key););
+
+            return result;
+        }
+        else
+            Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
+                "Unknown introspection value '%S'", what);
+    }
+}

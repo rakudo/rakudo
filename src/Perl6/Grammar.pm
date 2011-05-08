@@ -857,6 +857,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule package_def {<.end_keyword>
         :my $longname;
+        :my $outer := $*ST.cur_lexpad();
         :my $*IN_DECL := 'package';
         :my $*CURPAD;
         
@@ -890,7 +891,19 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
                 
                 # Install it in the symbol table.
-                # XXX
+                if $longname {
+                    if $*SCOPE eq 'my' {
+                        if +$longname<name><morename> == 0 {
+                            $*ST.install_lexical_symbol($outer, ~$longname<name>, $*PACKAGE);
+                        }
+                        else {
+                            $/.CURSOR.panic("Cannot use multi-part package name with 'my' scope");
+                        }
+                    }
+                    else {
+                        $/.CURSOR.panic("Cannot use $*SCOPE scope with $*PKGDECL");
+                    }
+                }
             }
             
             [

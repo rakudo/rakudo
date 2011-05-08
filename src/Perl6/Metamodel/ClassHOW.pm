@@ -54,4 +54,8 @@ class Perl6::Metamodel::ClassHOW
         }
         pir::publish_method_cache($obj, %cache)
     }
+    
+    method is_composed($obj) {
+        $!composed
+    }
 }

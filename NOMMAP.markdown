@@ -1,24 +1,17 @@
 # Roadmap for "nom" Branch
 
-Last Updated 5th May 2011
-
-## Setting and module loading
-Get setting and module loading to basically work, including EXPORTHOW
-and first cut of global merging.
-
-## Static lexpads
-Get a Rakudo version of the NQPLexPad/NQPLexInfo stuff into place.
+Last Updated 8th May 2011
 
 ## Basic package declarations and stub packages
 Be able to parse and create the compile-time meta-objects for packages.
 Track which are stub packages and need to be "completed" by the end of
 the compilation unit.
 
-## Attributes and methods
-Get adding these into declared classes in place
-
 ## Traits
 Get inheritance and is repr in place.
+
+## Attributes and methods
+Get adding these into declared classes in place
 
 ## Initial bits in the setting
 We'll start to re-build some of the bits previously in built-ins into a

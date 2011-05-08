@@ -113,39 +113,27 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
     
     METHOD set_static_lexpad_value(STRING *key, PMC *value) {
         /* Stash static value in hash. */
-        PMC *svs;
+        PMC *svs, *slots, *values, *iter;
         GET_ATTR_static_values(INTERP, SELF, svs);
         if (PMC_IS_NULL(svs)) {
             svs = pmc_new(interp, enum_class_Hash);
             SET_ATTR_static_values(INTERP, SELF, svs);
         }
         VTABLE_set_pmc_keyed_str(interp, svs, key, value);
-    }
-    
-    METHOD finish_static_lexpad() {
+
         /* Build caches from the static lexpad. */
-        PMC *svs;
-        GET_ATTR_static_values(INTERP, SELF, svs);
-        if (PMC_IS_NULL(svs) || !VTABLE_elements(interp, svs)) {
-            /* No values; clear caches. */
-            SET_ATTR_static_slots_cache(INTERP, SELF, PMCNULL);
-            SET_ATTR_static_values_cache(INTERP, SELF, PMCNULL);
+        slots  = pmc_new(interp, enum_class_ResizableIntegerArray);
+        values = pmc_new(interp, enum_class_ResizablePMCArray);
+        iter   = VTABLE_get_iter(interp, svs);
+        while (VTABLE_get_bool(interp, iter)) {
+            STRING *name  = VTABLE_shift_string(interp, iter);
+            INTVAL  slot  = VTABLE_get_integer_keyed_str(interp, SELF, name);
+            PMC    *value = VTABLE_get_pmc_keyed_str(interp, svs, name);
+            VTABLE_push_integer(interp, slots, slot);
+            VTABLE_push_pmc(interp, values, value);
         }
-        else {
-            /* Build caches. */
-            PMC *slots  = pmc_new(interp, enum_class_ResizableIntegerArray);
-            PMC *values = pmc_new(interp, enum_class_ResizablePMCArray);
-            PMC *iter   = VTABLE_get_iter(interp, svs);
-            while (VTABLE_get_bool(interp, iter)) {
-                STRING *name  = VTABLE_shift_string(interp, iter);
-                INTVAL  slot  = VTABLE_get_integer_keyed_str(interp, SELF, name);
-                PMC    *value = VTABLE_get_pmc_keyed_str(interp, svs, name);
-                VTABLE_push_integer(interp, slots, slot);
-                VTABLE_push_pmc(interp, values, value);
-            }
-            SET_ATTR_static_slots_cache(INTERP, SELF, slots);
-            SET_ATTR_static_values_cache(INTERP, SELF, values);
-        }
+        SET_ATTR_static_slots_cache(INTERP, SELF, slots);
+        SET_ATTR_static_values_cache(INTERP, SELF, values);
     }
 
 /*

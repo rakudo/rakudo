@@ -136,13 +136,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ),
             PAST::Stmts.new(
                 PAST::Op.new( :pirop('nqp_dynop_setup v') ),
-                # XXX Need RakudoLexPad and RakudoLexInfo creating.
-                #PAST::Op.new(
-                #    :pasttype('callmethod'), :name('hll_map'),
-                #    PAST::Op.new( :pirop('getinterp P') ),
-                #    PAST::Op.new( :pirop('get_class Ps'), 'LexPad' ),
-                #    PAST::Op.new( :pirop('get_class Ps'), 'RakudoLexPad' )
-                #),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('hll_map'),
+                    PAST::Op.new( :pirop('getinterp P') ),
+                    PAST::Op.new( :pirop('get_class Ps'), 'LexPad' ),
+                    PAST::Op.new( :pirop('get_class Ps'), 'Perl6LexPad' )
+                ),
                 PAST::Op.new(
                     :pasttype('bind'),
                     PAST::Var.new( :name('cur_sc'), :scope('register'), :isdecl(1) ),

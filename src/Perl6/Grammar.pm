@@ -310,7 +310,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*CURPAD;
         <.finishpad>
         [
-        | '{YOU_ARE_HERE}' <.you_are_here>
+        | '{YOU_ARE_HERE}' <you_are_here>
         | '{' ~ '}' <statementlist> <?ENDSTMT>
         | <?terminator> <.panic: 'Missing block'>
         | <?> <.panic: 'Malformed block'>

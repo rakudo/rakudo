@@ -304,42 +304,44 @@ class Perl6::Actions is HLL::Actions {
 
     method pblock($/) {
         my $block := $<blockoid>.ast;
-        my $signature;
-        if pir::defined__IP($block<placeholder_sig>) && $<signature> {
-            $/.CURSOR.panic('Placeholder variable cannot override existing signature');
-        }
-        elsif pir::defined__IP($block<placeholder_sig>) {
-            $signature := $block<placeholder_sig>;
-        }
-        elsif $<signature> {
-            $signature := $<signature>.ast;
-            $block.blocktype('declaration');
-        }
-        else {
-            $signature := Perl6::Compiler::Signature.new();
-            unless $block.symbol('$_') {
-                if $*IMPLICIT {
-                    $signature.add_parameter(Perl6::Compiler::Parameter.new(
-                        :var_name('$_'), :optional(1),
-                        :is_parcel(1), :default_from_outer(1)
-                    ));
-                }
-                else {
-                    add_implicit_var($block, '$_', 1);
+        unless $<blockoid><you_are_here> {
+            my $signature;
+            if pir::defined__IP($block<placeholder_sig>) && $<signature> {
+                $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+            }
+            elsif pir::defined__IP($block<placeholder_sig>) {
+                $signature := $block<placeholder_sig>;
+            }
+            elsif $<signature> {
+                $signature := $<signature>.ast;
+                $block.blocktype('declaration');
+            }
+            else {
+                $signature := Perl6::Compiler::Signature.new();
+                unless $block.symbol('$_') {
+                    if $*IMPLICIT {
+                        $signature.add_parameter(Perl6::Compiler::Parameter.new(
+                            :var_name('$_'), :optional(1),
+                            :is_parcel(1), :default_from_outer(1)
+                        ));
+                    }
+                    else {
+                        add_implicit_var($block, '$_', 1);
+                    }
                 }
             }
+            if $<lambda> eq '<->' {
+                $signature.set_rw_by_default();
+            }
+            add_signature($block, $signature);
+            # We ought to find a way to avoid this, but it seems necessary for now.
+            $block.loadinit.push(
+                PAST::Op.new( :pirop<setprop__vPsP>,
+                    PAST::Val.new( :value($block) ),
+                    '$!lazysig',
+                    $block<lazysig> )
+            );
         }
-        if $<lambda> eq '<->' {
-            $signature.set_rw_by_default();
-        }
-        add_signature($block, $signature);
-        # We ought to find a way to avoid this, but it seems necessary for now.
-        $block.loadinit.push(
-            PAST::Op.new( :pirop<setprop__vPsP>,
-                PAST::Val.new( :value($block) ),
-                '$!lazysig',
-                $block<lazysig> )
-        );
         make $block;
     }
 
@@ -359,6 +361,7 @@ class Perl6::Actions is HLL::Actions {
             if $*HAS_YOU_ARE_HERE {
                 $/.CURSOR.panic('{YOU_ARE_HERE} may only appear once in a setting');
             }
+            say("# have YOU_ARE_HERE");
             $*HAS_YOU_ARE_HERE := 1;
             make $<you_are_here>.ast;
         }
@@ -2137,9 +2140,15 @@ class Perl6::Actions is HLL::Actions {
     method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
 
     method circumfix:sym<{ }>($/) {
+        # If it was {YOU_ARE_HERE}, nothing to do here.
+        my $past := $<pblock>.ast;
+        if ~$/ eq '{YOU_ARE_HERE}' {
+            make $past;
+            return 1;
+        }
+
         # If it is completely empty or consists of a single list, the first
         # element of which is either a hash or a pair, it's a hash constructor.
-        my $past := $<pblock>.ast;
         my $is_hash := 0;
         my $stmts := +$<pblock><blockoid><statementlist><statement>;
         if $stmts == 0 {

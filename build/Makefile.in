@@ -92,8 +92,9 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/MultipleInheritance.pm \
   src/Perl6/Metamodel/C3MRO.pm \
   src/Perl6/Metamodel/ClassHOW.pm \
+  src/Perl6/Metamodel/NativeHOW.pm \
   src/Perl6/Metamodel/EXPORTHOW.pm \
-  
+
 CORE_SOURCES = \
   src/CORE.setting/BOOTSTRAP.pm \
 

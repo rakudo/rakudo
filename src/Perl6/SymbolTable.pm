@@ -76,6 +76,29 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         return pir::getattribute__PPs($module, 'lex_pad');
     }
     
+    # Installs a lexical symbol. Takes a PAST::Block object, name and
+    # the object to install. Does an immediate installation in the
+    # compile-time block symbol table, and ensures that the installation
+    # gets fixed up at runtime too.
+    method install_lexical_symbol($block, $name, $obj) {
+        # Install the object directly as a block symbol.
+        $block.symbol($name, :scope('lexical'), :value($obj));
+        $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
+        
+        # Fixup and deserialization task is the same.
+        my $fixup := PAST::Stmts.new(
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('set_static_lexpad_value'),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('get_lexinfo'),
+                    PAST::Val.new( :value($block) )
+                ),
+                ~$name, self.get_slot_past_for_object($obj)
+            )
+        );
+        self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+    }
+    
     # Creates a meta-object for a package, adds it to the root objects and
     # stores an event for the action. Returns the created object.
     method pkg_create_mo($how, :$name, :$repr) {

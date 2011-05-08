@@ -115,7 +115,7 @@ class Perl6::Actions is HLL::Actions {
         $unit.loadinit().push(PAST::Op.new(
             :pasttype('bind'),
             PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') ),
-            $*SC.get_slot_past_for_object($*GLOBALish)
+            $*ST.get_slot_past_for_object($*GLOBALish)
         ));
 
         # Get the block for the entire compilation unit.

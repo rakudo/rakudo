@@ -177,6 +177,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*IN_DECL;                             # what declaration we're in
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
+        :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         
         # Extras.
         :my %*METAOPGEN;                           # hash of generated metaops
@@ -841,6 +842,11 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*PKGDECL := 'knowhow';
         <sym> <package_def> 
     }
+    token package_declarator:sym<native> {
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'native';
+        <sym> <package_def> 
+    }
     token package_declarator:sym<slang> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';
@@ -858,6 +864,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     rule package_def {<.end_keyword>
         :my $longname;
         :my $outer := $*ST.cur_lexpad();
+        :my $*DECLARAND;
         :my $*IN_DECL := 'package';
         :my $*CURPAD;
         
@@ -904,6 +911,9 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $/.CURSOR.panic("Cannot use $*SCOPE scope with $*PKGDECL");
                     }
                 }
+                
+                # Set declarand as the package.
+                $*DECLARAND := $*PACKAGE;
             }
             
             [
@@ -1310,7 +1320,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     proto token trait_mod { <...> }
-    token trait_mod:sym<is>      { <sym>:s <longname><circumfix>? }
+    token trait_mod:sym<is> {
+        <sym>:s <longname><circumfix>?
+    }
     token trait_mod:sym<hides>   {
         <sym>:s <module_name>
         [

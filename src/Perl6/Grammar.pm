@@ -447,6 +447,12 @@ grammar Perl6::Grammar is HLL::Grammar {
             || { 
                     if $longname {
                         my $module := $*ST.load_module(~$longname, $*GLOBALish);
+                        if pir::exists($module, 'EXPORT') {
+                            my $EXPORT := $module<EXPORT>.WHO;
+                            if pir::exists($EXPORT, 'DEFAULT') {
+                                $*ST.import($EXPORT<DEFAULT>);
+                            }
+                        }
                         $/.CURSOR.import_EXPORTHOW($module);
                     }
                 }

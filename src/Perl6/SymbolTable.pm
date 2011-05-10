@@ -98,6 +98,41 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         return pir::getattribute__PPs($module, 'lex_pad');
     }
     
+    # Implements a basic first cut of import. Works out what needs to
+    # happen and builds code to do it at fixup/deserialization; also
+    # does it so that things are available at compile time. Note that
+    # import is done into the current lexpad.
+    method import($package) {
+        my %stash := $package.WHO;
+        my $target := self.cur_lexpad();
+        my $fixups := PAST::Stmts.new();
+        for %stash {
+            # Install the imported symbol directly as a block symbol.
+            say("# Importing " ~ $_.key);
+            $target.symbol($_.key, :scope('lexical'), :value($_.value));
+            $target[0].push(PAST::Var.new( :scope('lexical'), :name($_.key), :isdecl(1) ));
+            
+            # Add fixup/deserialize event to stick it in the static lexpad.
+            $fixups.push(PAST::Op.new(
+                :pasttype('callmethod'), :name('set_static_lexpad_value'),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('get_lexinfo'),
+                    PAST::Val.new( :value($target) )
+                ),
+                $_.key,
+                PAST::Var.new(
+                    :scope('keyed'),
+                    PAST::Op.new(
+                        :pirop('get_who PP'),
+                        self.get_object_sc_ref_past($package)
+                    ),
+                    $_.key
+                )
+            ));
+        }
+        self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
+    }
+    
     # Installs a lexical symbol. Takes a PAST::Block object, name and
     # the object to install. Does an immediate installation in the
     # compile-time block symbol table, and ensures that the installation
@@ -108,15 +143,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
         
         # Fixup and deserialization task is the same.
-        my $fixup := PAST::Stmts.new(
+        my $fixup := PAST::Op.new(
+            :pasttype('callmethod'), :name('set_static_lexpad_value'),
             PAST::Op.new(
-                :pasttype('callmethod'), :name('set_static_lexpad_value'),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('get_lexinfo'),
-                    PAST::Val.new( :value($block) )
-                ),
-                ~$name, self.get_slot_past_for_object($obj)
-            )
+                :pasttype('callmethod'), :name('get_lexinfo'),
+                PAST::Val.new( :value($block) )
+            ),
+            ~$name, self.get_slot_past_for_object($obj)
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
     }

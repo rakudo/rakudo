@@ -197,6 +197,78 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         )));
     }
     
+    # Checks if a given symbol is declared and also a type object.
+    method is_type(@name) {
+        my $is_type := 0;
+        try {
+            $is_type := !pir::repr_defined__IP(self.find_symbol(@name))
+        }
+        $is_type
+    }
+    
+    # Finds a symbol that has a known value at compile time from the
+    # perspective of the current scope. Checks for lexicals, then if
+    # that fails tries package lookup.
+    method find_symbol(@name) {
+        # Make sure it's not an empty name.
+        unless +@name { pir::die("Cannot look up empty name"); }
+        
+        # If it's a single-part name, look through the lexical
+        # scopes.
+        if +@name == 1 {
+            my $final_name := @name[0];
+            my $i := +@!BLOCKS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!BLOCKS[$i].symbol($final_name);
+                if +%sym {
+                    if pir::exists(%sym, 'value') {
+                        return %sym<value>;
+                    }
+                    else {
+                        pir::die("No compile-time value for $final_name");
+                    }
+                }
+            }
+        }
+        
+        # If it's a multi-part name, see if the containing package
+        # is a lexical somewhere. Otherwise we fall back to looking
+        # in GLOBALish.
+        my $result := $*GLOBALish;
+        if +@name >= 2 {
+            my $first := @name[0];
+            my $i := +@!BLOCKS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!BLOCKS[$i].symbol($first);
+                if +%sym {
+                    if pir::exists(%sym, 'value') {
+                        $result := %sym<value>;
+                        @name.shift();
+                        last;
+                    }
+                    else {
+                        pir::die("No compile-time value for $first");
+                    }                    
+                }
+            }
+        }
+        
+        # Try to chase down the parts of the name.
+        for @name {
+            if pir::exists($result.WHO, ~$_) {
+                $result := ($result.WHO){$_};
+            }
+            else {
+                pir::die("Could not locate compile-time value for symbol " ~
+                    pir::join('::', @name));
+            }
+        }
+        
+        $result;
+    }
+    
     # Generates a series of PAST operations that will build this context if
     # it doesn't exist, and fix it up if it already does.
     method to_past() {

@@ -1,11 +1,16 @@
 # Roadmap for "nom" Branch
 
-Last Updated 8th May 2011
+Last Updated 10th May 2011
 
-## Basic package declarations and stub packages
-Be able to parse and create the compile-time meta-objects for packages.
-Track which are stub packages and need to be "completed" by the end of
-the compilation unit.
+## Importing
+Get basic import (from DEFAULT) to work.
+
+## Code objects, signature objects and parameter objects
+Be able to create various code objects and set up signatures and parameters
+at compile time.
+
+## proto and multi subs
+Get proto and multi subs in place, along with the new semantics for them.
 
 ## Traits
 Get inheritance and is repr in place.
@@ -17,16 +22,15 @@ Get adding these into declared classes in place
 We'll start to re-build some of the bits previously in built-ins into a
 new setting.
 
-* Import meta-model bits
 * Add stubby Mu, Any, Cool, Int, Num, etc.
 * Make sure that we can make instances of these from programs that use
   the setting
 
-## protos and multis
-Get the new proto and multi semantics in place.
-
 ## Various operators in the setting
 Add back various operators like the arithmetic ones.
+
+## Multi-methods
+Get these working.
 
 ## Parametric roles
 Get parametric roles working with the new meta-object model.

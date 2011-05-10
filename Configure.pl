@@ -11,6 +11,7 @@ use Parrot::CompareRevisions qw(compare_revs parse_revision_file read_config ver
 
 MAIN: {
     my %options;
+    my $rakudo_configure_options = join(' ', map { "\"$_\"" } @ARGV);
     GetOptions(\%options, 'help!', 'parrot-config=s', 'makefile-timing!',
                'gen-parrot!', 'gen-parrot-prefix=s', 'gen-parrot-option=s@');
 
@@ -94,6 +95,13 @@ END
     # Create the Makefile using the information we just got
     create_makefile($options{'makefile-timing'}, %config);
     my $make = $config{'make'};
+
+    print "Creating config.status ...\n";
+    if (open(my $CONFIG_STATUS, '>', 'config.status')) {
+        print $CONFIG_STATUS 
+            "$^X Configure.pl $rakudo_configure_options \$*\n";
+        close($CONFIG_STATUS);
+    }
 
     {
         no warnings;

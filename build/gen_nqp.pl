@@ -33,7 +33,7 @@ unless (-d "parrot_install") {
        ."before running gen_nqp (try configuring with --gen-parrot).\n";
 }
 
-my %config = read_config("parrot_install/bin/parrot_config$exe");
+my ($parrot_config, %config) = read_config("parrot_install/bin/parrot_config$exe");
 my $make = $config{'make'};
 unless ($make) {
     die "Can't determine which 'make' utility parrot was built with, aborting\n";

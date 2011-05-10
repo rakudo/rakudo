@@ -61,7 +61,7 @@ MAIN: {
     }
 
     # Get configuration information from parrot_config
-    my %config = read_config(@parrot_config_exe);
+    my ($parrot_config, %config) = read_config(@parrot_config_exe);
 
     # Determine the revision of Parrot we require
     my $git_describe = parse_revision_file;
@@ -96,6 +96,14 @@ Or, use the '--parrot-config' option to explicitly specify
 the location of parrot_config to be used to build Rakudo Perl.
 
 END
+    }
+
+    my $nqp_exe = $parrot_config;
+    # the .* is needed of somebody has the string 'parrot_config' in
+    # the build path - we always want to substitute the last occorence
+    $nqp_exe =~ s/(.*)parrot_config/$1nqp/s;
+    if (system $nqp_exe, '-e', '') {
+        die "Cannot execute nqp - maybe try the --gen-nqp option to automatically build one?\n";
     }
 
     # Verify the Parrot installation is sufficient for building Rakudo

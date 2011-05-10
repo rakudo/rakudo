@@ -59,11 +59,13 @@ sub compare_revs {
 
 sub read_config {
     my @parrot_config_exe = @_;
+    my $location;
     my %config = ();
     for my $exe (@parrot_config_exe) {
         no warnings;
         if (open my $PARROT_CONFIG, '-|', "$exe --dump") {
             print "\nReading configuration information from $exe ...\n";
+            $location = $exe;
             while (<$PARROT_CONFIG>) {
                 if (/(\w+) => '(.*)'/) { $config{$1} = $2 }
             }
@@ -71,7 +73,7 @@ sub read_config {
             last if %config;
         }
     }
-    return %config;
+    return ($location, %config);
 }
 
 1;

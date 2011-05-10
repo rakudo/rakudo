@@ -43,21 +43,37 @@ $Attribute.HOW.add_attribute($Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(
 
 # class Signature is Cool {
 #    has $!params;
+#    has $!returns;
 #     ... # Uncomposed
 # }
 my $Signature := Perl6::Metamodel::ClassHOW.new_type(:name<Signature>);
 $Signature.HOW.add_parent($Signature, $Cool);
 $Signature.HOW.add_attribute($Signature, BOOTSTRAPATTR.new(:name<$!params>, :type($Mu)));
+$Signature.HOW.add_attribute($Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type($Mu)));
 
 # class Parameter is Cool {
-#     has str $!name
-#     has $!nom_type
+#     has str $!variable_name
+#     has $!named_names
+#     has $!type_captures
+#     has int $!flags
+#     has $!nominal_type
+#     has $!post_constraints
+#     has str $!coerce_to
+#     has $!sub_signature
+#     has $!default_closure
 #     ... # Uncomposed
 # }
 my $Parameter := Perl6::Metamodel::ClassHOW.new_type(:name<Parameter>);
 $Parameter.HOW.add_parent($Parameter, $Cool);
 $Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!nom_type>, :type($Mu)));
+$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type($Mu)));
+$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type($Mu)));
+$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int)));
+$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type($Mu)));
+$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type($Mu)));
+$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!coerce_to>, :type(str)));
+$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type($Mu)));
+$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type($Mu)));
 
 # class Code is Cool {
 #     has $!do;

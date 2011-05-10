@@ -33,6 +33,20 @@ augment class Int does Real {
     method gcd(Int $x: Int $y) {
         pir::gcd__iii($x, $y);
     }
+
+    method base(Cool $base as Int) {
+        fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;
+        my @conversion = 0..9, 'A' .. 'Z';
+        my @res;
+        my $n = self.abs;
+        repeat {
+            push @res, @conversion[$n % $base];
+            $n div= $base;
+        } while $n > 0;
+        push @res, '-' if self < 0;
+        join '', @res.reverse;
+
+    }
 }
 
 multi sub infix:<cmp>(Int $a, Int $b) {
@@ -102,4 +116,13 @@ our multi sub infix:<**>(Int $a, Int $b) {
     }
 }
 
-proto sub gcd($x, $y) { $x.gcd($y); }
+proto sub gcd(*@n) {
+    return Int unless @n;
+    my $gcd = shift @n;
+
+    for @n {
+        $gcd.=gcd($_);
+    }
+
+    return $gcd;
+}

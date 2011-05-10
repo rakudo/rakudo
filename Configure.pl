@@ -178,7 +178,7 @@ sub create_makefile {
     }
 
     if ($makefile_timing) {
-        $maketext =~ s{(?<!\\\n)^(\t(?>@?))(?!\s*-?cd)(?!\s*echo)(?=[^\n]*\S)}{\1time }mg;
+        $maketext =~ s{(?<!\\\n)^(\t(?>@?))(?!\s*-?cd)(?!\s*echo)(?=[^\n]*\S)}{$1time }mg;
     }
 
     my $outfile = 'Makefile';

@@ -197,7 +197,7 @@ multi sub infix:«==»(Num $a, Num $b) {
 }
 
 multi sub infix:«!=»(Num $a, Num $b) {
-    pir::iseq__INN( $a, $b) ?? False !! True # note reversed
+    pir::isne__INN( $a, $b) ?? True !! False
 }
 
 multi sub infix:«<»(Num $a, Num $b) {
@@ -209,11 +209,11 @@ multi sub infix:«>»(Num $a, Num $b) {
 }
 
 multi sub infix:«<=»(Num $a, Num $b) {
-    pir::isgt__INN( $a, $b) ?? False !! True # note reversed
+    pir::isle__INN( $a, $b) ?? True !! False
 }
 
 multi sub infix:«>=»(Num $a, Num $b) {
-    pir::islt__INN( $a, $b) ?? False !! True # note reversed
+    pir::isge__INN( $a, $b) ?? True !! False
 }
 
 # Arithmetic operators

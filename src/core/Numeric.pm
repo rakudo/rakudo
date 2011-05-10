@@ -1,10 +1,6 @@
 role Numeric {
     method ACCEPTS($other) {
-        if self.isNaN {
-            $other.isNaN;
-        } else {
-            $other == self;
-        }
+        self.isNaN ??  $other.isNaN !! $other == self
     }
 
     method Numeric() {

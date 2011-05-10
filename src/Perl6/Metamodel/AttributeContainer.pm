@@ -19,13 +19,13 @@ role Perl6::Metamodel::AttributeContainer {
         # Always add local ones.
         my @attrs;
         for @!attributes {
-            @attrs.push($_.value);
+            @attrs.push($_);
         }
 
         # Also may need ones from parents.
         unless $local {
             for self.parents($obj) {
-                for $_.HOW.attributes($_, :local(1)) {
+                for $_.HOW.attributes($_) {
                     @attrs.push($_);
                 }
             }

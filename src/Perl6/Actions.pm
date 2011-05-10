@@ -1611,34 +1611,14 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method signature($/) {
-        my $signature := Perl6::Compiler::Signature.new();
-        my $cur_param := 0;
-        my $is_multi_invocant := 1;
-        for $<parameter> {
-            my $param := $_.ast;
-            $param.multi_invocant($is_multi_invocant);
-            if ~@*seps[$cur_param] eq ':' {
-                if $cur_param == 0 {
-                    $param.invocant(1);
-                }
-                else {
-                    $/.CURSOR.panic("Cannot put ':' parameter separator after first parameter");
-                }
-            }
-            if @*seps[$cur_param] eq ';;' {
-                $is_multi_invocant := 0;
-            }
-            $signature.add_parameter($param);
-            $cur_param := $cur_param + 1;
-        }
-        $*ST.cur_lexpad()<signature> := $signature;
-        make $signature;
+        my @parameters;
+        my $signature := $*ST.create_signature(@parameters);
+        make $*ST.get_slot_past_for_object($signature);
     }
 
     method parameter($/) {
-        my $quant := $<quant>;
-
         # Sanity checks.
+        my $quant := $<quant>;
         if $<default_value> {
             if $quant eq '*' {
                 $/.CURSOR.panic("Cannot put default on slurpy parameter");
@@ -1648,49 +1628,35 @@ class Perl6::Actions is HLL::Actions {
             }
         }
 
-        # Set various flags on the parameter.
-        $*PARAMETER.pos_slurpy( $quant eq '*' && $*PARAMETER.sigil eq '@' );
-        $*PARAMETER.named_slurpy( $quant eq '*' && $*PARAMETER.sigil eq '%' );
-        $*PARAMETER.optional( $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!') );
-        $*PARAMETER.is_parcel( $quant eq '\\' );
-        $*PARAMETER.is_capture( $quant eq '|' );
-        if $<default_value> {
-            $*PARAMETER.default( PAST::Block.new( $<default_value>[0]<EXPR>.ast ) );
-        }
-
-        # Handle traits.
-        $*PARAMETER.traits($<trait>);
-        if $<trait> {
-            # Handle built-in ones.
-            my $read_type := trait_readtype($<trait>);
-            if $read_type eq 'CONFLICT' {
-                $/.CURSOR.panic('Cannot apply more than one of: is copy, is rw, is readonly');
-            }
-            $*PARAMETER.is_rw( $read_type eq 'rw' );
-            $*PARAMETER.is_copy( $read_type eq 'copy' );
-            my $coerce := has_compiler_trait($<trait>, '&trait_mod:<as>');
-            if $coerce {
-                $*PARAMETER.coerce_to(PAST::Op.new( :pasttype('callmethod'), :name('perl'), $coerce[0]));
-            }
-        }
-
-        make $*PARAMETER;
+        # Set up various flags.
+        %*PARAM_INFO<pos_slurpy>   := $quant eq '*' && %*PARAM_INFO<sigil> eq '@';
+        %*PARAM_INFO<named_slurpy> := $quant eq '*' && %*PARAM_INFO<sigil> eq '%';
+        %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
+        %*PARAM_INFO<is_parcel>    := $quant eq '\\';
+        %*PARAM_INFO<is_capture>   := $quant eq '|';
+        
+        # Create parameter object.
+        make $*ST.create_parameter(%*PARAM_INFO);
     }
 
     method param_var($/) {
         if $<signature> {
-            if pir::defined__IP($*PARAMETER.sub_llsig) {
+            if pir::exists(%*PARAM_INFO, 'sub_signature') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            $*PARAMETER.sub_llsig( $<signature>.ast );
+            %*PARAM_INFO<sub_signature> := $<signature>.ast;
             if pir::substr(~$/, 0, 1) eq '[' {
-                $*PARAMETER.var_name('@');
+                %*PARAM_INFO<sigil> := '@';
             }
         }
         else {
+            # Set name.
+            %*PARAM_INFO<variable_name> := ~$/;
+            
+            # Handle twigil.
             my $twigil := $<twigil> ?? ~$<twigil>[0] !! '';
-            $*PARAMETER.var_name(~$/);
-            if $twigil eq '' {
+            if $twigil eq '' || $twigil eq '*' {
+                # Need to add the name.
                 if $<name> {
                     if $*ST.cur_lexpad().symbol(~$/) {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
@@ -1698,46 +1664,61 @@ class Perl6::Actions is HLL::Actions {
                     $*ST.cur_lexpad().symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
                 }
             }
-            elsif $twigil ne '!' && $twigil ne '.' && $twigil ne '*' {
-                my $error := "In signature parameter, '" ~ ~$/ ~ "', it is illegal to use '" ~ $twigil ~ "' twigil";
-                if $twigil eq ':' {
-                    $error := "In signature parameter, placeholder variables like " ~ ~$/ ~ " are illegal\n"
-                               ~ "you probably meant a named parameter: ':" ~ $<sigil> ~ ~$<name>[0] ~ "'";
+            elsif $twigil eq '!' {
+                # XXX Can compile-time check name when we have attributes. :-)
+                %*PARAM_INFO<bind_attr> := 1;
+            }
+            elsif $twigil eq '.' {
+                %*PARAM_INFO<bind_accessor> := 1;
+                if $<name> {
+                    %*PARAM_INFO<variable_name> := ~$<name>[0];
                 }
-                $/.CURSOR.panic($error);
+                else {
+                    $/.CURSOR.panic("Cannot declare $. parameter in signature without an accessor name");
+                }
+            }
+            else {
+                if $twigil eq ':' {
+                    $/.CURSOR.panic("In signature parameter, placeholder variables like " ~ 
+                        ~$/ ~ " are illegal\n" ~ 
+                        "you probably meant a named parameter: ':" ~ $<sigil> ~ ~$<name>[0] ~ "'");
+                }
+                else {
+                    $/.CURSOR.panic("In signature parameter, '" ~ ~$/ ~ 
+                        "', it is illegal to use '" ~ $twigil ~ "' twigil");
+                }
             }
         }
     }
 
     method named_param($/) {
-        if $<name>               { $*PARAMETER.names.push(~$<name>); }
-        elsif $<param_var><name> { $*PARAMETER.names.push(~$<param_var><name>[0]); }
-        else                     { $*PARAMETER.names.push(''); }
+        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || [];
+        if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
+        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>[0]); }
+        else                     { %*PARAM_INFO<named_names>.push(''); }
     }
 
     method type_constraint($/) {
         if $<typename> {
             if pir::substr(~$<typename>, 0, 2) eq '::' {
                 my $desigilname := pir::substr(~$<typename>, 2);
-                $*PARAMETER.type_captures.push($desigilname);
+                %*PARAM_INFO<type_captures> := %*PARAM_INFO<type_captures> || [];
+                %*PARAM_INFO<type_captures>.push($desigilname);
                 $*ST.cur_lexpad().symbol($desigilname, :scope('lexical'));
             }
             else {
-                if $*PARAMETER.nom_type {
+                if pir::exists(%*PARAM_INFO, 'nominal_type') {
                     $/.CURSOR.panic('Parameter may only have one prefix type constraint');
                 }
-                $*PARAMETER.nom_type($<typename>.ast);
+                %*PARAM_INFO<nominal_type> := $<typename>.ast; # XXX check if this can always produce actual type
             }
         }
         elsif $<value> {
-            if $*PARAMETER.nom_type {
+            if pir::exists(%*PARAM_INFO, 'nominal_type') {
                 $/.CURSOR.panic('Parameter may only have one prefix type constraint');
             }
-            $*PARAMETER.nom_type(PAST::Op.new(
-                :pirop('deobjectref__PP'),
-                PAST::Op.new( :pasttype('callmethod'), :name('WHAT'), $<value>.ast )
-            ));
-            $*PARAMETER.cons_types.push($<value>.ast);
+            # XXX Bit tricky - need constants refactor first.
+            $/.CURSOR.panic('Value type constraints not yet implemented');
         }
         else {
             $/.CURSOR.panic('Cannot do non-typename cases of type_constraint yet');
@@ -1746,18 +1727,22 @@ class Perl6::Actions is HLL::Actions {
 
     method post_constraint($/) {
         if $<signature> {
-            if pir::defined__IP($*PARAMETER.sub_llsig) {
+            if pir::exists(%*PARAM_INFO, 'sub_signature') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            $*PARAMETER.sub_llsig( $<signature>.ast );
+            %*PARAM_INFO<sub_signature> := $<signature>.ast;
+            if pir::substr(~$/, 0, 1) eq '[' {
+                %*PARAM_INFO<sigil> := '@';
+            }
         }
         else {
-            $*PARAMETER.cons_types.push(where_blockify($<EXPR>.ast));
+            # XXX TODO
+            $/.CURSOR.panic('post_constraints not yet implemented');
         }
     }
 
     method trait($/) {
-        
+        make $<trait_mod> ?? $<trait_mod>.ast !! $<colonpair>.ast;
     }
 
     method trait_mod:sym<is>($/) {

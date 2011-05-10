@@ -1055,33 +1055,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     rule routine_def {
         :my $*IN_DECL := 'routine';
         <deflongname>?
-        {
-            if $<deflongname> && $<deflongname>[0]<colonpair> {
-                # It's an (potentially new) operator, circumfix, etc. that we
-                # need to tweak into the grammar.
-                my $category := $<deflongname>[0]<name>.Str;
-                my $opname   := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
-                my $canname  := $category ~ ":sym<" ~ $opname ~ ">";
-                unless pir::can__IPS(Perl6::Grammar, $canname) {
-                    # Not known; add a BEGIN phaser that generates it. This gets
-                    # run immediately, but also persisted into the bytecode so
-                    # e.g. eval's or operators defined in the setting will still
-                    # be parseable. Note this should really be mix-in-ier and not
-                    # globally tweak the grammar in the long run.
-                    #
-                    # TODO: the way it is currently done, gen_op doesn't have
-                    # access to $/, so it can't produce proper line numbers for
-                    # errors. Fix that.
-                    my $gen_block := PAST::Block.new( :node($/),
-                        PAST::Op.new(
-                            :pasttype('callmethod'), :name('gen_op'),
-                            PAST::Var.new( :name('Grammar'), :namespace('Perl6'), :scope('package') ),
-                            $category, $opname, $canname, $<deflongname>[0].ast
-                        ));
-                    Perl6::Actions.add_phaser($/, $gen_block, 'BEGIN');
-                }
-            }
-        }
         <.newpad>
         [ '(' <multisig> ')' ]?
         <trait>*
@@ -1153,7 +1126,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token parameter {
-        :my $*PARAMETER := Perl6::Compiler::Parameter.new();
+        # We'll collect parameter information into a hash, then use it to
+        # build up the parameter object in the action method
+        :my %*PARAM_INFO;
         [
         | <type_constraint>+
             [
@@ -1177,7 +1152,6 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $<quant> eq '!'                     ?? '!' !!
                 $<quant> ne '' && $<quant> ne '\\'  ?? '*' !!
                                                        '!';
-
             if $kind eq '!' {
                 if $*zone eq 'posopt' {
                     $/.CURSOR.panic("Cannot put required parameter after optional parameters");
@@ -2120,7 +2094,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         %is_sigil{'%'} := 1;
         %is_sigil{'&'} := 1;
     }
-
 
     our sub parse_name($name) {
         my $type_param := '';

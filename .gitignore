@@ -2,6 +2,8 @@
 src/gen/*
 nqp-rx/
 Makefile
+config.status
+RAKBENCH
 .*.swp
 *.patch
 *.pdb

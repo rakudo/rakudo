@@ -104,6 +104,14 @@ our multi sub infix:<div>(Int $a, Int $b) {
     upgrade_to_num_if_needed(pir::fdiv__NNN($a, $b));
 }
 
+our multi sub infix:<gcd>(Int $a, Int $b) {
+    pir::gcd__Iii($a, $b)
+}
+
+our multi sub infix:<lcm>(Int $a, Int $b) {
+    pir::lcm__Iii($a, $b)
+}
+
 our multi sub infix:<%>(Int $a, Int $b) {
     upgrade_to_num_if_needed(pir::mod__NNN($a, $b))
 }

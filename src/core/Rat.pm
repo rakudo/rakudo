@@ -13,7 +13,7 @@ class Rat is Cool does Real {
             $numerator = -$numerator;
             $denominator = -$denominator;
         }
-        my $gcd = $numerator.gcd($denominator);
+        my $gcd = $numerator gcd $denominator;
         $numerator = $numerator div $gcd;
         $denominator = $denominator div $gcd;
         self.bless(*, :numerator($numerator), :denominator($denominator));
@@ -51,7 +51,7 @@ multi sub prefix:<->(Rat $a) {
 }
 
 multi sub infix:<+>(Rat $a, Rat $b) {
-    my $gcd = $a.denominator.gcd($b.denominator);
+    my $gcd = $a.denominator gcd $b.denominator;
     ($a.numerator * ($b.denominator div $gcd) + $b.numerator * ($a.denominator div $gcd))
         / (($a.denominator div $gcd) * $b.denominator);
 }
@@ -65,7 +65,7 @@ multi sub infix:<+>(Int $a, Rat $b) {
 }
 
 multi sub infix:<->(Rat $a, Rat $b) {
-    my $gcd = $a.denominator.gcd($b.denominator);
+    my $gcd = $a.denominator gcd $b.denominator;
     ($a.numerator * ($b.denominator div $gcd) - $b.numerator * ($a.denominator div $gcd))
         / (($a.denominator div $gcd) * $b.denominator);
 }

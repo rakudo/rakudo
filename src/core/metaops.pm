@@ -280,7 +280,8 @@ our multi sub reducewith(&op, *@args,
 # this fails for operators defined in PIR, so some of them are commented out.
 our multi sub infix:<**>($x = 1) { +$x }
 our multi sub infix:<*>($x = 1)  { +$x }
-our multi sub infix:<gcd>(Int $x = 1) { $x }
+our multi sub infix:<gcd>() { fail 'Cannot take gcd of the empty list' }
+our multi sub infix:<gcd>(Int $x) { $x }
 our multi sub infix:<lcm>(Int $x = 1) { $x }
 our multi sub infix:<?&>($x = Bool::True) { ?$x }
 our multi sub infix:<+&>() { +^0 }

@@ -2,6 +2,7 @@
 
 .sub 'import' :method
     .param pmc exportname
+    x_enter_sublog
 
     exportname = self.'parse_name'(exportname)
 

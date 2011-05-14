@@ -25,6 +25,7 @@ as the result of the overall Map.
 .sub '!generate' :method
     .param int n               :optional
     .param int has_n           :opt_flag
+    x_enter_sublog
 
     .local pmc retlist
     retlist = root_new ['parrot';'ResizablePMCArray']

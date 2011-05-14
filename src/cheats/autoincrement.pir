@@ -13,6 +13,7 @@ src/cheats/autoincrement.pir - autoincrement and autodecrement operators
 ## autoincrement
 .sub '&prefix:<++>' :multi(_) :subid('!prefix:++')
     .param pmc a
+    x_enter_sublog
     $I0 = defined a
     unless $I0 goto inc_undef
     $P1 = a.'succ'()
@@ -23,6 +24,7 @@ src/cheats/autoincrement.pir - autoincrement and autodecrement operators
 
 .sub '&postfix:<++>' :multi(_) :subid('!postfix:++')
     .param pmc a
+    x_enter_sublog
     $P0 = a.'clone'()
     .const 'Sub' $P1 = '!prefix:++'
     $P1(a)
@@ -31,6 +33,7 @@ src/cheats/autoincrement.pir - autoincrement and autodecrement operators
 
 .sub '&prefix:<-->' :multi(_) :subid('!prefix:--')
     .param pmc a
+    x_enter_sublog
     $I0 = defined a
     unless $I0 goto dec_undef
     $P1 = a.'pred'()
@@ -41,6 +44,7 @@ src/cheats/autoincrement.pir - autoincrement and autodecrement operators
 
 .sub '&postfix:<-->' :multi(_)
     .param pmc a
+    x_enter_sublog
     $P0 = a.'clone'()
     .const 'Sub' $P1 = '!prefix:--'
     $P1(a)

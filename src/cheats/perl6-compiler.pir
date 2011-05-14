@@ -2,6 +2,7 @@
 
 .sub 'get_lexinfo' :method
     .param pmc context
+    x_enter_sublog
 
     .local pmc lexinfo, lexpad, lexpad_it
     lexinfo = root_new ['parrot';'Hash']

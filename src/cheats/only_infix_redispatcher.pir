@@ -4,6 +4,7 @@
 .sub '!only_infix:='
     .param pmc cont
     .param pmc source
+    x_enter_sublog
     $P0 = '&infix:<=>'(cont, source)
     .return ($P0)
 .end

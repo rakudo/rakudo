@@ -7,6 +7,7 @@
 .sub '!CALLMETHOD'
     .param string method
     .param pmc obj
+    x_enter_sublog
     $I0 = can obj, method
     unless $I0 goto any_method
     .tailcall obj.method()

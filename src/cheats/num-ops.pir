@@ -1,5 +1,6 @@
 .sub '&prefix:<+>'
     .param pmc x
+    x_enter_sublog
     $I0 = isa x, ['Mu']
     if $I0 goto p6_x
     $N0 = x

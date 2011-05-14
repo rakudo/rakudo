@@ -15,6 +15,7 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 .sub '&infix:<===>' :multi(_,_)
     .param pmc a
     .param pmc b
+    x_enter_sublog
     $I0 = '!have_exact_same_type'(a, b)
     unless $I0 goto false
     $P0 = a.'WHICH'()
@@ -29,6 +30,7 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 .sub '&infix:<!===>' :multi(_,_)
     .param pmc a
     .param pmc b
+    x_enter_sublog
     $P0 = '&infix:<===>'(a, b)
     $P1 = not $P0
     .return ($P1)
@@ -39,6 +41,7 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 .sub '&infix:<=:=>' :multi(_,_)
     .param pmc a
     .param pmc b
+    x_enter_sublog
     $I0 = issame a, b
     unless $I0 goto false
     $P0 = get_hll_global [ 'Bool' ], 'True'
@@ -53,6 +56,7 @@ src/cheats/cmp.pir - Perl6 comparison builtins
 .sub '&infix:<!=:=>' :multi(_,_)
     .param pmc a
     .param pmc b
+    x_enter_sublog
     $P0 = '&infix:<=:=>'(a, b)
     .tailcall '&prefix:!'($P0)
 .end

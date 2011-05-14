@@ -6,6 +6,7 @@
 .namespace []
 .sub '!upgrade_to_num_if_needed'
     .param num test
+    x_enter_sublog
     if test > 2147483647.0 goto upgrade
     if test < -2147483648.0 goto upgrade
     $I0 = test

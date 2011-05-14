@@ -11,6 +11,7 @@ Gets all the methods that the class has and adds them to the resolves list.
 
 .sub '!set_resolves_list'
     .param pmc class
+    x_enter_sublog
     .local pmc meths, it, res_list
     meths = class.'methods'()
     it = iter meths

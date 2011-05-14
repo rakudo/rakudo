@@ -9,6 +9,7 @@ XXX Eventually we will have caller-side :call_sig and won't have to do this.
 .namespace []
 .sub '!deconstruct_call_sig'
     .param pmc call_sig
+    x_enter_sublog
     .local pmc pos_args, named_args, names
     
     pos_args = new ['ResizablePMCArray']

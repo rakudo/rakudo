@@ -7,6 +7,7 @@ Return a Failure object using C<args> as the failure message.
 .namespace []
 .sub '!FAIL'
     .param pmc args            :slurpy
+    x_enter_sublog
     $P0 = new ['Exception']
     $S0 = join '', args
     $P1 = box $S0

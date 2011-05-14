@@ -35,6 +35,8 @@ typedef INTVAL (*bind_llsig_func_type) (PARROT_INTERP, PMC *lexpad,
 
 static bind_llsig_func_type bind_llsig_func = NULL;
 
+static PMC *sublog_pmc = NULL;
+
 END_OPS_PREAMBLE
 
 /*
@@ -47,6 +49,11 @@ Does various setup tasks on behalf of all of the other dynops.
 
 */
 inline op rakudo_dynop_setup() :base_core {
+
+    PMC * const hll_ns = Parrot_hll_get_ctx_HLL_namespace(interp);
+    sublog_pmc = VTABLE_get_pmc_keyed_str(interp, hll_ns,
+                     Parrot_str_new(interp, "$!SUBLOG", 0));
+    
     /* Look up some type IDs. */
     p6s_id = pmc_type(interp, Parrot_str_new(interp, "Perl6Scalar", 0));
     or_id  = pmc_type(interp, Parrot_str_new(interp, "ObjectRef", 0));
@@ -757,6 +764,42 @@ inline op encodelocaltime(out INT, in PMC) :base_core {
     $1 = mktime(&tm);
     goto NEXT();
 }
+
+
+/*
+
+=item x_enter_sublog()
+
+Mark entry into a sub (usually logged into RAKUDO_SUBLOG environment
+variable).
+
+=cut
+
+*/
+inline op x_enter_sublog() :base_core {
+    if (!PMC_IS_NULL(sublog_pmc)) {
+        PMC *called_ctx_pmc = CURRENT_CONTEXT(interp);
+        PMC *caller_ctx_pmc = 
+            Parrot_pcc_get_caller_ctx(interp, called_ctx_pmc);
+        Parrot_Context *called_ctx = 
+            PMC_data_typed(called_ctx_pmc, Parrot_Context *);
+        Parrot_Context *caller_ctx = 
+            PMC_data_typed(caller_ctx_pmc, Parrot_Context *);
+        STRING *called_name;
+        STRING *caller_name;
+        STRING *called_subid;
+        STRING *caller_subid;
+        GETATTR_Sub_name(interp, called_ctx->current_sub, called_name);
+        GETATTR_Sub_name(interp, caller_ctx->current_sub, caller_name);
+        GETATTR_Sub_subid(interp, called_ctx->current_sub, called_subid);
+        GETATTR_Sub_subid(interp, caller_ctx->current_sub, caller_subid);
+        Parrot_io_fprintf(interp, sublog_pmc, "%Ss (%Ss)\t%Ss (%Ss)\n",
+            called_name, called_subid,
+            caller_name, caller_subid);
+    }
+    goto NEXT();
+}
+
 
 /*
  * Local variables:

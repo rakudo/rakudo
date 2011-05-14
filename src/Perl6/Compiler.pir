@@ -42,9 +42,19 @@ Perl6::Compiler - Perl6 compiler
     say "    run 'make install' and use the installed perl6 binary"
     exit 1
 
-
  startup_ok:
     load_bytecode 'P6Regex.pbc'
+
+    # set up sublog tracing if desirec
+    .local pmc env, sublog_pmc
+    .local string sublog_file
+    env = root_new ['parrot';'Env']
+    sublog_file = env['RAKUDO_SUBLOG']
+    unless sublog_file goto sublog_done
+    sublog_pmc = root_new['parrot';'FileHandle']
+    sublog_pmc."open"(sublog_file, "w")
+    set_hll_global '$!SUBLOG', sublog_pmc
+  sublog_done:
 
     # Init Rakudo dynops.
     rakudo_dynop_setup
@@ -231,6 +241,13 @@ Perl6::Compiler - Perl6 compiler
     $P0 = compreg 'perl6'
     $P1 = $P0.'command_line'(args_str, 'encoding'=>'utf8', 'transcode'=>'ascii iso-8859-1')
     '!fire_phasers'('END')
+
+    # close any sublog
+    .local pmc sublog_pmc
+    sublog_pmc = get_hll_global '$!SUBLOG'
+    if null sublog_pmc goto sublog_done
+    sublog_pmc."close"()
+  sublog_done:
     exit 0
 .end
 

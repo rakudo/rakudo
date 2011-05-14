@@ -3153,6 +3153,7 @@ sub add_signature($block, $sig_obj) {
         :pirop('bind_llsig vP'),
         PAST::Var.new( :name('call_sig'), :scope('lexical') )
     ));
+    $block[0].push(PAST::Op.new( :pirop('x_enter_sublog v') ) );
 
     # make signature setup block
     my $lazysig := PAST::Block.new(:blocktype<declaration>, $sig_obj.ast(1));

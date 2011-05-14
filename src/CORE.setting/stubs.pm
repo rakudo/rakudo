@@ -2,6 +2,6 @@
 # outside of the setting, such as Mu/Any/Cool, Attribute, Signature/Parameter
 # and Code/Block/Routine/Sub/Method. They are built in Perl6::Metamodel's
 # BOOTSTRAP.pm.
-class Int is Cool { ... }
-class Num is Cool { ... }
-class Str is Cool { ... }
+my class Int is Cool { ... }
+my class Num is Cool { ... }
+my class Str is Cool { ... }

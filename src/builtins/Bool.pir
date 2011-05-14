@@ -35,12 +35,14 @@ symbols for C<Bool::True> and C<Bool::False>.
 
 
 .sub 'succ' :method
+    x_enter_sublog
     $P0 = get_global 'True'
     .return ($P0)
 .end
 
 
 .sub 'pred' :method
+    x_enter_sublog
     $P0 = get_global 'False'
     .return ($P0)
 .end

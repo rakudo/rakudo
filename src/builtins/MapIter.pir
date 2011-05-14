@@ -24,6 +24,7 @@ exceptions here.  Perl 6 source would be something like:
 
 .namespace ['MapIter']
 .sub 'reify' :method
+    x_enter_sublog
     .local pmc reify
     reify = getattribute self, '@!reify'
     unless null reify goto iter_reified

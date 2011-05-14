@@ -24,6 +24,7 @@ A Perl 6 Exception object.
 # IIUC we shouldn't need this... but Exception.new(:exception(...)) didn't work
 .sub 'new' :method
     .param pmc ex
+    x_enter_sublog
     .local pmc e, c
     c = self.'CREATE'('P6opaque')
     e = self.'bless'(c)
@@ -34,6 +35,7 @@ A Perl 6 Exception object.
 .sub exception :method
     .param pmc ex :optional
     .param int has_ex :opt_flag
+    x_enter_sublog
     unless has_ex goto get_ex
     setattribute self, '$!exception', ex
     .return (ex)
@@ -44,6 +46,7 @@ A Perl 6 Exception object.
 
 
 .sub 'resume' :method
+    x_enter_sublog
     .local pmc ex, resume
     ex = getattribute self, '$!exception'
     resume = ex['resume']
@@ -52,12 +55,14 @@ A Perl 6 Exception object.
 
 
 .sub 'rethrow' :method
+    x_enter_sublog
     .local pmc ex
     ex = getattribute self, '$!exception'
     rethrow ex
 .end
 
 .sub 'throw' :method
+    x_enter_sublog
     .local pmc ex
     ex = getattribute self, '$!exception'
     throw ex
@@ -66,6 +71,7 @@ A Perl 6 Exception object.
 .sub 'payload' :method
     .param pmc payload :optional
     .param int has_payload :opt_flag
+    x_enter_sublog
     .local pmc ex
     ex = getattribute self, '$!exception'
     unless has_payload goto no_payload
@@ -79,6 +85,7 @@ A Perl 6 Exception object.
 .sub 'handled' :method
     .param int handled :optional
     .param int has_handled :opt_flag
+    x_enter_sublog
     .local pmc ex
     ex = getattribute self, '$!exception'
     unless has_handled goto no_handled
@@ -90,6 +97,7 @@ A Perl 6 Exception object.
 .end
 
 .sub 'perl' :method
+    x_enter_sublog
     .return ('undef')
 .end
 
@@ -99,6 +107,7 @@ A Perl 6 Exception object.
 .end
 
 .sub 'Str' :method
+    x_enter_sublog
     .local pmc exception
     exception = getattribute self, '$!exception'
     $S0 = exception['message']

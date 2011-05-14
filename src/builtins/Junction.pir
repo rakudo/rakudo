@@ -37,6 +37,7 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
     .param pmc none           :named('none') :optional
     .param int type           :named('type') :optional
     .param int explicit_type  :opt_flag
+    x_enter_sublog
 
     # Work out type, if not not explicitly given.
     if explicit_type goto type_done
@@ -95,6 +96,7 @@ src/classes/Junction.pir - Perl 6 Junction and related functions
 =cut
 
 .sub 'item' :method
+    x_enter_sublog
     .return (self)
 .end
 
@@ -106,6 +108,7 @@ Return perl representation.  (This should actually be autothreaded.)
 =cut
 
 .sub 'perl' :method
+    x_enter_sublog
     .local int type
     type = self.'!type'()
 
@@ -155,6 +158,7 @@ Evaluate Junction as a boolean.
 
 .namespace ['Junction']
 .sub 'Bool' :method
+    x_enter_sublog
     .local pmc eigenstates, it
     .local int type
     eigenstates = self.'eigenstates'()
@@ -201,6 +205,7 @@ Smart-matching for junctions, short-circuiting.
 .namespace ['Junction']
 .sub 'ACCEPTS' :method
     .param pmc topic
+    x_enter_sublog
     .local pmc eigenstates, it, state
     .local int type
     eigenstates = self.'eigenstates'()
@@ -251,11 +256,13 @@ Return the components of the Junction.
 
 .namespace ['Junction']
 .sub '!type' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!type'
     .return ($P0)
 .end
 
 .sub 'eigenstates' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!eigenstates'
     .return ($P0)
 .end
@@ -285,6 +292,7 @@ Return the components of the Junction.
 .sub '!MAKE_JUNCTION'
     .param pmc type
     .param pmc results
+    x_enter_sublog
     .local pmc junc
     junc = get_hll_global 'Junction'
     if type == JUNCTION_TYPE_ANY goto any
@@ -305,6 +313,7 @@ Return the components of the Junction.
 .sub '!junction_unique_helper'
     .param pmc self
     .param pmc comparer
+    x_enter_sublog
 
     .local pmc ulist
     ulist = root_new ['parrot';'ResizablePMCArray']
@@ -340,6 +349,7 @@ Internals to do a junctional dispatch.
     .param pmc the_sub
     .param pmc args
     .param pmc name_args
+    x_enter_sublog
 
     ##  lookup a sub by name if needed
     $I0 = isa the_sub, 'Sub'
@@ -442,6 +452,7 @@ Does a junction dispatch.
     .param pmc the_sub
     .param pmc args            :slurpy
     .param pmc name_args       :slurpy :named
+    x_enter_sublog
     .tailcall '!DISPATCH_JUNCTION_CORE'(the_sub, args, name_args)
 .end
 
@@ -456,6 +467,7 @@ passed the sub that is being called along the arguments.
 .sub '!DISPATCH_JUNCTION_SINGLE'
     .param pmc sub
     .param pmc capture
+    x_enter_sublog
     .local pmc pos_args, named_args
     (pos_args, named_args) = '!deconstruct_call_sig'(capture)
     $P0 = '!DISPATCH_JUNCTION_CORE'(sub, pos_args, named_args)
@@ -475,6 +487,7 @@ a property.
 .sub '!DISPATCH_JUNCTION_MULTI'
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
+    x_enter_sublog
     .local pmc pi, sub
     pi = getinterp
     sub = pi['sub']
@@ -493,6 +506,7 @@ Used to dispatch methods on a junction, where we need to auto-thread.
     .param pmc junc
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
+    x_enter_sublog
 
     .local string name
     $P0 = getinterp

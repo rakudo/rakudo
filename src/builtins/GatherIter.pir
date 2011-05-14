@@ -28,6 +28,7 @@ Returns the next component of the iteration.
 
 .namespace ['GatherIter']
 .sub 'reify' :method
+    x_enter_sublog
     .local pmc reify
     reify = getattribute self, '@!reify'
     unless null reify goto iter_reified
@@ -43,6 +44,7 @@ Returns the next component of the iteration.
 .namespace []
 .sub '!GATHER'
     .param pmc block
+    x_enter_sublog
     .local pmc gatheriter, coro, list
     gatheriter = new ['GatherIter']
     .const 'Sub' coro_sub = '!gather_coroutine'
@@ -60,6 +62,7 @@ Returns the next component of the iteration.
 .sub '' :subid('!gather_coroutine')
     .param pmc block
     .param pmc coro
+    x_enter_sublog
     # Initial yield back to !GATHER
     .yield ()
     .local pmc handler

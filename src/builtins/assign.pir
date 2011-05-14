@@ -12,6 +12,7 @@ src/builtins/assign.pir - assignment operations
 .sub '&infix:<=>' :multi(_,_)
     .param pmc cont
     .param pmc source
+    x_enter_sublog
 
     .annotate 'invizible_frame', 1
 
@@ -100,6 +101,7 @@ src/builtins/assign.pir - assignment operations
 .sub '&infix:<=>' :multi(['Proxy'], _)
     .param pmc cont
     .param pmc source
+    x_enter_sublog
     cont.'!VIVIFY'()
     $P0 = '&infix:<=>'(cont, source)
     .return ($P0)
@@ -109,12 +111,14 @@ src/builtins/assign.pir - assignment operations
 .sub '&infix:<=>' :multi(['Whatever'], _)
     .param pmc cont
     .param pmc source
+    x_enter_sublog
     .return (cont)
 .end
 
 
 .sub '!gen_assign_metaop'
     .param string sym
+    x_enter_sublog
     .local string opname, metaname
     $S0 = concat '&infix:<', sym
     opname = concat $S0, '>'
@@ -133,6 +137,7 @@ src/builtins/assign.pir - assignment operations
 .sub '!assign_metaop' :anon :outer('!gen_assign_metaop')
     .param pmc a
     .param pmc b
+    x_enter_sublog
     $P0 = find_lex '$opname'
     $S0 = $P0
     $P0 = get_global $S0

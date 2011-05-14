@@ -24,6 +24,7 @@ This file implements Perl 6 lists.
 
 .sub 'new' :method
     .param pmc values          :slurpy
+    x_enter_sublog
     .local pmc p6meta, parrotclass, list, true
     p6meta = get_hll_global ['Mu'], '$!P6META'
     parrotclass = p6meta.'get_parrotclass'(self)
@@ -36,6 +37,7 @@ This file implements Perl 6 lists.
 
 .namespace ['List']
 .sub 'Capture' :method
+    x_enter_sublog
     $P0 = self.'!fill'()
     $P1 = get_hll_global 'Capture'
     $P1 = $P1.'new'($P0 :flat)
@@ -45,6 +47,7 @@ This file implements Perl 6 lists.
 
 .namespace ['List']
 .sub 'eager' :method
+    x_enter_sublog
     .local pmc items
     self.'!fill'()
     $P0 = descalarref self
@@ -54,6 +57,7 @@ This file implements Perl 6 lists.
 
 .namespace ['List']
 .sub 'elems' :method
+    x_enter_sublog
     .local pmc items, rest
     items = self.'!fill'()
     rest = getattribute self, '@!rest'
@@ -68,6 +72,7 @@ This file implements Perl 6 lists.
 
 .namespace ['List']
 .sub 'flat' :method
+    x_enter_sublog
     .local pmc list, flat, items, rest
     list = descalarref self
     # If we're already flat, return self
@@ -103,6 +108,7 @@ This file implements Perl 6 lists.
 
 .namespace ['List']
 .sub 'iterator' :method
+    x_enter_sublog
     $P0 = get_hll_global 'ListIter'
     $P1 = self.'!List'()
     $P0 = $P0.'new'($P1)
@@ -112,6 +118,7 @@ This file implements Perl 6 lists.
 
 .namespace ['List']
 .sub 'list' :method
+    x_enter_sublog
     $P0 = descalarref self
     .return ($P0)
 .end
@@ -120,6 +127,7 @@ This file implements Perl 6 lists.
 .namespace ['List']
 .sub 'munch' :method
     .param int n
+    x_enter_sublog
     .local pmc items, parcel
     items = self.'!fill'(n)
     parcel = new ['Parcel']
@@ -137,6 +145,7 @@ This file implements Perl 6 lists.
 
 .namespace ['List']
 .sub '!List' :method
+    x_enter_sublog
     .local pmc list, flat, items, rest
     list  = new ['List']
     flat  = getattribute self, '$!flat'
@@ -158,6 +167,7 @@ This file implements Perl 6 lists.
 .namespace ['List']
 .sub '!elem' :method
     .param pmc value
+    x_enter_sublog
     unless null value goto done
     value = get_hll_global 'Any'
   done:
@@ -169,6 +179,7 @@ This file implements Perl 6 lists.
 .sub '!fill' :method
     .param int n               :optional
     .param int has_n           :opt_flag
+    x_enter_sublog
 
     .local pmc flat, items, rest
     flat  = getattribute self, '$!flat'
@@ -239,6 +250,7 @@ This file implements Perl 6 lists.
     .param int offset
     .param int size            :optional
     .param int has_size        :opt_flag
+    x_enter_sublog
 
 
     .local pmc nil, items, rest
@@ -321,6 +333,7 @@ This file implements Perl 6 lists.
 .namespace []
 .sub '&flat'
     .param pmc values          :slurpy
+    x_enter_sublog
     .local pmc list, true
     list = new ['List']
     true = get_hll_global 'True'
@@ -334,6 +347,7 @@ This file implements Perl 6 lists.
 .namespace []
 .sub '&list'
     .param pmc values          :slurpy
+    x_enter_sublog
     .local pmc list
     list = new ['List']
     setattribute list, '@!rest', values

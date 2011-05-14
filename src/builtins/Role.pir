@@ -35,6 +35,7 @@ Adds a parameterized variant of the role.
 
 .sub '!add_variant' :method
     .param pmc variant
+    x_enter_sublog
     .local pmc selector
     selector = getattribute self, '$!selector'
     unless null selector goto have_selector
@@ -54,6 +55,7 @@ Selects a variant of the role to do based upon the supplied parameters.
 .sub '!select' :method
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
+    x_enter_sublog
 
     # $!created is an array of hashes describing role instantiations that have
     # already taken place. This means that we always hand back, for Foo[Int],
@@ -127,6 +129,7 @@ Checks if the given topic does the role.
 
 .sub 'ACCEPTS' :method
     .param pmc topic
+    x_enter_sublog
 
     # If the topic is the same as self, then we're done.
     $I0 = 1
@@ -177,6 +180,7 @@ arguments from that.
 
 .sub 'postcircumfix:<[ ]>' :method
     .param pmc args :optional
+    x_enter_sublog
     if null args goto no_args
     $I0 = isa args, 'Parcel'
     if $I0 goto many_args
@@ -200,6 +204,7 @@ doesn't get through to here.
 .sub 'new' :method
     .param pmc pos_args  :slurpy
     .param pmc name_args :slurpy :named
+    x_enter_sublog
     $P0 = self.'!select'()
     $P0 = $P0.'!pun'()
     .tailcall $P0.'new'(pos_args :flat, name_args :flat :named)
@@ -214,6 +219,7 @@ just here so postcircumfix:[ ] doesn't explode).
 =cut
 
 .sub 'elems' :vtable('elements')
+    x_enter_sublog
     $P0 = getattribute self, '$!selector'
     $I0 = elements $P0
     .return ($I0)
@@ -225,6 +231,7 @@ just here so postcircumfix:[ ] doesn't explode).
 =cut
 
 .sub 'perl' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!shortname'
     $S0 = $P0
     .return ($S0)
@@ -238,6 +245,7 @@ Role objects serve as type objects and thus should be undefined.
 =cut
 
 .sub 'defined' :method
+    x_enter_sublog
     $P0 = get_hll_global ['Bool'], 'False'
     .return ($P0)
 .end
@@ -248,6 +256,7 @@ Role objects serve as type objects and thus should be undefined.
 =cut
 
 .sub 'HOW' :method
+    x_enter_sublog
     $I0 = isa self, 'P6protoobject'
     if $I0 goto proto
     $P0 = self.'!select'()
@@ -264,6 +273,7 @@ Role objects serve as type objects and thus should be undefined.
 =cut
 
 .sub 'WHICH' :method
+    x_enter_sublog
     $I0 = get_addr self
     .return ($I0)
 .end
@@ -274,6 +284,7 @@ Role objects serve as type objects and thus should be undefined.
 =cut
 
 .sub 'WHAT' :method
+    x_enter_sublog
     .return (self)
 .end
 
@@ -283,6 +294,7 @@ Role objects serve as type objects and thus should be undefined.
 =cut
 
 .sub 'Str' :method :vtable('get_string')
+    x_enter_sublog
     $P0 = getattribute self, '$!shortname'
     $S0 = 'ANON'
     if null $P0 goto no_name
@@ -298,6 +310,7 @@ Role objects serve as type objects and thus should be undefined.
     .param pmc role
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
+    x_enter_sublog
     $P0 = interpinfo .INTERPINFO_CURRENT_SUB
     $P0 = getprop 'name', $P0
     $S0 = $P0

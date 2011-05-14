@@ -35,6 +35,7 @@ container.
 =cut
 
 .sub '!VIVIFY' :method
+    x_enter_sublog
     .local pmc base, key
     base = getattribute self, '$!base'
     key  = getattribute self, '$!key'
@@ -67,6 +68,7 @@ Before we're assigned to, we're not defined.
 =cut
 
 .sub 'defined' :method
+    x_enter_sublog
     $P0 = get_hll_global ['Bool'], 'False'
     .return ($P0)
 .end

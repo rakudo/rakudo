@@ -22,6 +22,7 @@ describe a declaration of a container.
 .sub 'new' :method
     .param pmc container :named('container')
     .param pmc name      :named('name')
+    x_enter_sublog
     $P0 = new ['ContainerDeclarand']
     setattribute $P0, '$!container', container
     setattribute $P0, '$!name', name
@@ -29,11 +30,13 @@ describe a declaration of a container.
 .end
 
 .sub 'container' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!container'
     .return ($P0)
 .end
 
 .sub 'name' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!name'
     .return ($P0)
 .end

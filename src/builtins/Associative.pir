@@ -28,6 +28,7 @@ cases looping back to here to get the one value.
     .param pmc invocant
     .param pmc args            :optional
     .param int has_args        :opt_flag
+    x_enter_sublog
 
     $I0 = can invocant, 'postcircumfix:<{ }>'
     if $I0 goto object_method

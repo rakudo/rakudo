@@ -24,6 +24,7 @@ contents.
 
 .namespace ['ParcelIter']
 .sub 'reify' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!parcel'
     .return ($P0)
 .end

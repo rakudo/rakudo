@@ -31,6 +31,7 @@ Return the number of required parameters to the block.
 =cut
 
 .sub 'arity' :method
+    x_enter_sublog
     self.'params'()
     $P0 = getattribute self, '$!arity'
     .return ($P0)
@@ -43,6 +44,7 @@ Return the number of allowed parameters to the block.
 =cut
 
 .sub 'count' :method
+    x_enter_sublog
     self.'params'()
     $P0 = getattribute self, '$!count'
     .return ($P0)
@@ -56,6 +58,7 @@ Returns a C<List> of C<Parameter> descriptors.
 =cut
 
 .sub 'params' :method
+    x_enter_sublog
     # Did we compute this before?
     .local pmc result
     result = getattribute self, '$!param_cache'
@@ -181,6 +184,7 @@ Binds the signature into the given bind target.
 
 .sub '!BIND' :method
     .param pmc capture
+    x_enter_sublog
 
     # Get hold of the bind testing sub.
     $P0 = getattribute self, '$!try_bind_sub'
@@ -223,6 +227,7 @@ need it, So, we'll "just" manufacture one on demand.
 =cut
 
 .sub '!make_try_bind_sub' :method
+    x_enter_sublog
     .local string pir
 
     # Opening.
@@ -257,6 +262,7 @@ PIR
     .param pmc sig
     .param string pir
     .param int i
+    x_enter_sublog
 
     # Go through params.
     .local pmc params, param_it

@@ -25,6 +25,7 @@ as the Perl 6 C<Str> class.
 
 .sub 'ACCEPTS' :method
     .param string topic
+    x_enter_sublog
     .tailcall '&infix:<eq>'(topic, self)
 .end
 
@@ -36,6 +37,7 @@ Returns a Perl representation of the Str.
 =cut
 
 .sub 'perl' :method
+    x_enter_sublog
     .local string str, result
     str = self
     result = '"'
@@ -97,6 +99,7 @@ Increment and Decrement Methods
 
 .sub '!range_pos' :anon
     .param string str
+    x_enter_sublog
 
     .local int len, pos, r0, r1
     len = length str
@@ -136,6 +139,7 @@ Increment and Decrement Methods
 
 
 .sub 'pred' :method
+    x_enter_sublog
     .local string str
     str = self
     str = clone str
@@ -171,6 +175,7 @@ Increment and Decrement Methods
 
 
 .sub 'succ' :method
+    x_enter_sublog
     .local string str
     str = self
     str = clone str
@@ -211,6 +216,7 @@ Returns the identify value.
 =cut
 
 .sub 'WHICH' :method
+    x_enter_sublog
     $S0 = self
     .return ($S0)
 .end
@@ -231,6 +237,7 @@ Overridden for Str.
 .sub '&infix:<===>' :multi(String,String)
     .param string a
     .param string b
+    x_enter_sublog
     $I0 = iseq a, b
     .tailcall '&prefix:<?>'($I0)
 .end
@@ -241,6 +248,7 @@ Overridden for Str.
 
 .sub '!qx'
     .param string cmd
+    x_enter_sublog
     .local pmc pio
 #   '!hash_to_env'()   # ng: TODO
     pio = open cmd, 'rp'

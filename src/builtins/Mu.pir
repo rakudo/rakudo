@@ -45,6 +45,7 @@ like this.
 .namespace ['Mu']
 .sub 'clone' :method
     .param pmc new_attrs :slurpy :named
+    x_enter_sublog
 
     # Make a clone.
     .local pmc result
@@ -79,6 +80,7 @@ like this.
 =cut
 
 .sub 'defined' :method
+    x_enter_sublog
     $P0 = get_hll_global ['Bool'], 'True'
     .return ($P0)
 .end
@@ -96,6 +98,7 @@ like this.
     .param pmc candidate
     .param pmc posargs         :slurpy
     .param pmc attrinit        :slurpy :named
+    x_enter_sublog
 
     $I0 = isa candidate, 'Whatever'
     unless $I0 goto have_candidate
@@ -108,6 +111,7 @@ like this.
 
 .sub 'BUILD' :method
     .param pmc attrinit        :slurpy :named
+    x_enter_sublog
 
     .local pmc p6meta, parentproto, how, parrotclass, attributes, it
     p6meta = get_hll_global ['Mu'], '$!P6META'
@@ -147,6 +151,7 @@ like this.
     .param pmc candidate
     .param pmc attrinit
     .param pmc posargs
+    x_enter_sublog
 
     .local int num_pos_args
     .local int cur_pos_arg
@@ -208,6 +213,7 @@ XXX This had probably best really just tailcall .^CREATE; move this stuff later.
 .sub 'CREATE' :method
     .param string repr    :optional
     .param int have_repr  :opt_flag
+    x_enter_sublog
 
     # Default to P6opaque.
     if have_repr goto repr_done
@@ -302,6 +308,7 @@ Create a new object having the same class as the invocant.
 .sub 'new' :method
     .param pmc posargs         :slurpy
     .param pmc attrinit        :slurpy :named
+    x_enter_sublog
     .local pmc candidate
     candidate = self.'CREATE'('P6opaque')
     .tailcall self.'bless'(candidate, posargs :flat, attrinit :flat :named)
@@ -314,6 +321,7 @@ Report the object's true nature.
 =cut
 
 .sub 'PARROT' :method
+    x_enter_sublog
     .local pmc obj
     .local string result
     obj = self
@@ -345,6 +353,7 @@ Return the invocant's auto-vivification closure.
 =cut
 
 .sub 'WHENCE' :method
+    x_enter_sublog
     $P0 = self.'WHAT'()
     $P1 = $P0.'WHENCE'()
     .return ($P1)
@@ -358,6 +367,7 @@ Gets the memory address of the object.
 =cut
 
 .sub 'WHERE' :method
+    x_enter_sublog
     $I0 = get_addr self
     .return ($I0)
 .end
@@ -370,6 +380,7 @@ Gets the object's identity value
 =cut
 
 .sub 'WHICH' :method
+    x_enter_sublog
     # For normal objects, this can just be the memory address.
     .tailcall self.'WHERE'()
 .end

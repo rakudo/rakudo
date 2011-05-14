@@ -24,6 +24,7 @@ is a fairly common operation.
 .namespace ['ListIter']
 .sub 'new' :method
     .param pmc list
+    x_enter_sublog
     .local pmc listiter
     listiter = new ['ListIter']
     setattribute listiter, '@!list', list
@@ -33,6 +34,7 @@ is a fairly common operation.
 
 .namespace ['ListIter']
 .sub 'reify' :method
+    x_enter_sublog
     .local pmc reify, list, rest, nextiter
     # if this iterator already reified, return its last result
     reify = getattribute self, '@!reify'

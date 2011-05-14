@@ -38,6 +38,7 @@ A Parcel in item context becomes a Seq.
 =cut
 
 .sub 'item' :method
+    x_enter_sublog
     .local pmc seq
     seq = get_hll_global 'Seq'
     seq = seq.'new_from_RPA'(self)
@@ -51,6 +52,7 @@ A Parcel in item context becomes a Seq.
 =cut
 
 .sub 'hash' :method
+    x_enter_sublog
     .tailcall '&hash'(self)
 .end
 
@@ -63,6 +65,7 @@ Construct an iterator for the Parcel.
 
 .namespace ['Parcel']
 .sub 'iterator' :method
+    x_enter_sublog
     .local pmc parceliter, rpa
     parceliter = new ['ParcelIter']
     rpa = root_new ['parrot';'ResizablePMCArray']
@@ -78,6 +81,7 @@ Construct an iterator for the Parcel.
 
 .namespace ['Parcel']
 .sub 'perl' :method
+    x_enter_sublog
     .local pmc self_it, perllist
     self_it = iter self
     perllist = new ['ResizablePMCArray']
@@ -104,6 +108,7 @@ Construct an iterator for the Parcel.
 =cut
 
 .sub 'Bool' :method
+    x_enter_sublog
     $I0 = istrue self
     .tailcall '&prefix:<?>'($I0)
 .end
@@ -117,6 +122,7 @@ Coerce the Parcel into a capture.
 
 .namespace ['Parcel']
 .sub 'Capture' :method
+    x_enter_sublog
     .local pmc self_it, pos, named
     self_it = iter self
     pos = root_new ['parrot';'ResizablePMCArray']
@@ -156,6 +162,7 @@ in a list.
 .namespace []
 .sub '&eager'
     .param pmc args            :slurpy
+    x_enter_sublog
     .local pmc parcel
     parcel = new ['Parcel']
     splice parcel, args, 0, 0
@@ -180,6 +187,7 @@ The canonical operator for creating a Parcel.
 .namespace []
 .sub '&infix:<,>'
     .param pmc args            :slurpy
+    x_enter_sublog
     # Recast the arguments into a Parcel object
     .local pmc parcel
     parcel = new ['Parcel']
@@ -206,6 +214,7 @@ Handle assignment to a Parcel (list assignment).
 .namespace ['Parcel']
 .sub '!STORE' :method
     .param pmc source
+    x_enter_sublog
 
     # We do this in two passes.  The first pass creates
     # two RPAs; one is a flattened RPA of LHS target containers

@@ -24,6 +24,7 @@ on the number of elements.
 .sub '!control' :anon
     .param pmc type
     .param pmc value
+    x_enter_sublog
     $I0 = elements value
     if $I0 == 0 goto nil
     if $I0 != 1 goto many
@@ -50,6 +51,7 @@ on the number of elements.
 
 .sub '&die'
     .param pmc list :slurpy
+    x_enter_sublog
     .local string message
     .local pmc p6ex
     .local pmc ex
@@ -80,6 +82,7 @@ on the number of elements.
 .sub '&exit'
     .param int status     :optional
     .param int has_status :opt_flag
+    x_enter_sublog
 
     if has_status goto x
     status = 0
@@ -94,21 +97,25 @@ on the number of elements.
 
 .sub '&return'
     .param pmc retvals :slurpy
+    x_enter_sublog
     .tailcall '!control'(.CONTROL_RETURN, retvals)
 .end
 
 .sub '&last'
     .param pmc retvals :slurpy
+    x_enter_sublog
     .tailcall '!control'(.CONTROL_LOOP_LAST, retvals)
 .end
 
 .sub '&next'
     .param pmc retvals :slurpy
+    x_enter_sublog
     .tailcall '!control'(.CONTROL_LOOP_NEXT, retvals)
 .end
 
 .sub '&redo'
     .param pmc retvals :slurpy
+    x_enter_sublog
     .tailcall '!control'(.CONTROL_LOOP_REDO, retvals)
 .end
 
@@ -119,6 +126,7 @@ on the number of elements.
 
 .sub '&warn'
     .param pmc list :slurpy
+    x_enter_sublog
     .local string message
     .local pmc p6ex
     .local pmc ex
@@ -151,6 +159,7 @@ on the number of elements.
 .sub '&fail'
     .param pmc value :optional
     .param int has_value :opt_flag
+    x_enter_sublog
     .local pmc ex, p6ex, failure, fatal
 
     ex = root_new ['parrot';'Exception']
@@ -180,6 +189,7 @@ on the number of elements.
 =cut
 
 .sub '&proceed'
+    x_enter_sublog
     .local pmc ex, p6ex
     ex = root_new ['parrot';'Exception']
     ex['severity'] = .EXCEPT_NORMAL
@@ -197,6 +207,7 @@ on the number of elements.
 .sub '&succeed'
     .param pmc arg :optional
     .param int has_arg :opt_flag
+    x_enter_sublog
     .local pmc e, p6ex
     e = root_new ['parrot';'Exception']
     e['severity'] = .EXCEPT_NORMAL
@@ -216,6 +227,7 @@ on the number of elements.
 
 .sub '&take'
     .param pmc values :slurpy
+    x_enter_sublog
     .local pmc ex, p6ex
 
     ex         = root_new ['parrot';'Exception']
@@ -251,6 +263,7 @@ on the number of elements.
 .sub '&callwith'
     .param pmc pos_args    :slurpy
     .param pmc named_args  :slurpy :named
+    x_enter_sublog
 
     # For callwith, it's easy - just want to get the next candidate, call
     # it and hand back it's return values. A tailcall does fine.
@@ -276,6 +289,7 @@ on the number of elements.
 .sub '&nextwith'
     .param pmc pos_args    :slurpy
     .param pmc named_args  :slurpy :named
+    x_enter_sublog
 
     # Find next candiate, invoke it and get its return value, then use
     # return to return it as if it was from our original call.
@@ -315,6 +329,7 @@ on the number of elements.
 =cut
 
 .sub '&callsame'
+    x_enter_sublog
     # Find next candidate as well as caller and lexpad.
     .local pmc clist, routine, lexpad, next
     get_next_candidate_info clist, routine, lexpad
@@ -335,6 +350,7 @@ on the number of elements.
 =cut
 
 .sub '&nextsame'
+    x_enter_sublog
     # Find next candidate as well as caller and lexpad.
     .local pmc clist, routine, lexpad, next
     get_next_candidate_info clist, routine, lexpad
@@ -373,6 +389,7 @@ find nothing more to call.
 =cut
 
 .sub '&lastcall'
+    x_enter_sublog
     # Find candidate list and trim it.
     .local pmc clist
     get_next_candidate_info clist, $P0, $P1

@@ -26,6 +26,7 @@ Arrays are the mutable form of Lists.
 
 .sub 'new' :method
     .param pmc values          :slurpy
+    x_enter_sublog
     .local pmc p6meta, parrotclass, list, true
     p6meta = get_hll_global ['Mu'], '$!P6META'
     parrotclass = p6meta.'get_parrotclass'(self)
@@ -52,6 +53,7 @@ Arrays are the mutable form of Lists.
 .namespace []
 .sub '&circumfix:<[ ]>' 
     .param pmc values            :slurpy
+    x_enter_sublog
     $P0 = get_hll_global 'Array'
     $P1 = $P0.'new'(values)
     .return ($P1)
@@ -68,6 +70,7 @@ Arrays are the mutable form of Lists.
 .namespace ['Array']
 .sub '!STORE' :method
     .param pmc source
+    x_enter_sublog
     .local pmc list, flat, items, rest
     $P0 = get_hll_global 'Seq'
     list = $P0.'new'(source)
@@ -96,6 +99,7 @@ Create an element for the Array (has the 'rw' property set).
 .namespace ['Array']
 .sub '!elem' :method
     .param pmc item
+    x_enter_sublog
     .local pmc elem, true
     true = get_hll_global ['Bool'], 'True'
     item = descalarref item

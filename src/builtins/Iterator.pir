@@ -28,6 +28,7 @@ flatten in list context.
 
 .namespace ['Iterator']
 .sub 'infinite' :method
+    x_enter_sublog
     $P0 = get_hll_global 'Mu'
     .return ($P0)
 .end
@@ -35,6 +36,7 @@ flatten in list context.
 
 .namespace ['Iterator']
 .sub 'list' :method
+    x_enter_sublog
     .local pmc list
     list = new ['List']
     $P0 = root_new ['parrot';'ResizablePMCArray']

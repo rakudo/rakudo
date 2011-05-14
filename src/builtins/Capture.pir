@@ -33,6 +33,7 @@ them.
 .sub 'new' :method
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
+    x_enter_sublog
     
     # Create capture.
     $P0 = self.'CREATE'('P6opaque')
@@ -48,6 +49,7 @@ them.
 
 .sub 'postcircumfix:<[ ]>' :method :vtable('get_pmc_keyed_int')
     .param int i
+    x_enter_sublog
     $P0 = getattribute self, '$!pos'
     $P0 = $P0[i]
     .return ($P0)
@@ -60,6 +62,7 @@ them.
 
 .sub 'postcircumfix:<{ }>' :method :vtable('get_pmc_keyed_str')
     .param pmc key
+    x_enter_sublog
     $P0 = getattribute self, '$!named'
     $P0 = $P0[key]
     .return ($P0)
@@ -73,6 +76,7 @@ The number of positional elements in the Capture.
 =cut
 
 .sub 'elems' :method :vtable('elements')
+    x_enter_sublog
     $P0 = getattribute self, '$!pos'
     $I0 = elements $P0
     .return ($I0)
@@ -84,6 +88,7 @@ The number of positional elements in the Capture.
 =cut
 
 .sub 'list' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!pos'
     .tailcall '&circumfix:<[ ]>'($P0 :flat)
 .end
@@ -94,6 +99,7 @@ The number of positional elements in the Capture.
 =cut
 
 .sub 'Capture' :method
+    x_enter_sublog
     .return (self)
 .end
 
@@ -103,6 +109,7 @@ The number of positional elements in the Capture.
 =cut
 
 .sub 'hash' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!named'
     $P1 = get_hll_global 'Hash'
     .tailcall $P1.'new'($P0 :flat :named)
@@ -116,6 +123,7 @@ Gets a Parrot RPA that we can use :flat on.
 =cut
 
 .sub '!PARROT_POSITIONALS' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!pos'
     .return ($P0)
 .end
@@ -128,6 +136,7 @@ Gets a Parrot Hash that we can use :flat :named on.
 =cut
 
 .sub '!PARROT_NAMEDS' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!named'
     .return ($P0)
 .end
@@ -152,6 +161,7 @@ to. :-) Hands back a Capture containing the snapshot.
     .param pmc capture
     .param int pos_position
     .param pmc nameds_unbound
+    x_enter_sublog
     
     .local int num_positionals
     .local pmc positionals, nameds

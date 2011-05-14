@@ -26,6 +26,7 @@ Seqs are Lists of (immutable) values.
 .namespace ['Seq']
 .sub 'new' :method
     .param pmc values          :slurpy
+    x_enter_sublog
     .local pmc p6meta, parrotclass, list, true
     p6meta = get_hll_global ['Mu'], '$!P6META'
     parrotclass = p6meta.'get_parrotclass'(self)
@@ -46,6 +47,7 @@ Creates a new Seq from a ResizablePMCArray.
 .namespace ['Seq']
 .sub 'new_from_RPA' :method
     .param pmc rpa
+    x_enter_sublog
     .local pmc seq
     seq = self.'new'()
     setattribute seq, '@!rest', rpa
@@ -69,6 +71,7 @@ Create an element for the Seq (has the 'rw' property set).
 .namespace ['Seq']
 .sub '!elem' :method
     .param pmc item
+    x_enter_sublog
     unless null item goto have_item
     item = get_hll_global 'Any'
     .return (item)

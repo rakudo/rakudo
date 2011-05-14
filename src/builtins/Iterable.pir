@@ -30,6 +30,7 @@ as "is Iterable" should be come "does Iterable".
 
 .namespace ['Iterable']
 .sub 'item' :method
+    x_enter_sublog
     $P0 = descalarref self
     $P0 = new ['ObjectRef'], $P0
     $P1 = get_hll_global 'True'

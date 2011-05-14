@@ -25,6 +25,7 @@ Returns a Perl representation of the Int.
 =cut
 
 .sub 'perl' :method
+    x_enter_sublog
     $S0 = self
     .return($S0)
 .end
@@ -37,12 +38,14 @@ Increment and Decrement Methods
 =cut
 
 .sub 'pred' :method
+    x_enter_sublog
     $N0 = self
     dec $N0
     .tailcall '!upgrade_to_num_if_needed'($N0)
 .end
 
 .sub 'succ' :method
+    x_enter_sublog
     $N0 = self
     inc $N0
     .tailcall '!upgrade_to_num_if_needed'($N0)
@@ -56,6 +59,7 @@ Returns the identify value.
 =cut
 
 .sub 'WHICH' :method
+    x_enter_sublog
     $I0 = self
     .return ($I0)
 .end
@@ -67,6 +71,7 @@ Coercion to Str
 =cut
 
 .sub 'Str' :method
+    x_enter_sublog
     $S0 = self
     $P0 = box $S0
     .return ($P0)
@@ -89,6 +94,7 @@ Overridden for Int.
 .sub '&infix:<===>' :multi(Integer,Integer)
     .param int a
     .param int b
+    x_enter_sublog
     $I0 = iseq a, b
     .tailcall '&prefix:<?>'($I0)
 .end

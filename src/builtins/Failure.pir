@@ -24,6 +24,7 @@ A Perl 6 Exception object.
 # IIUC we shouldn't need this... but Exception.new(:exception(...)) didn't work
 .sub 'new' :method
     .param pmc ex
+    x_enter_sublog
     .local pmc e, c
     c = self.'CREATE'('P6opaque')
     e = self.'bless'(c)
@@ -34,6 +35,7 @@ A Perl 6 Exception object.
 .sub 'exception' :method
     .param pmc ex :optional
     .param int has_ex :opt_flag
+    x_enter_sublog
     unless has_ex goto get_ex
     setattribute self, '$!ex', ex
     .return (ex)
@@ -43,11 +45,13 @@ A Perl 6 Exception object.
 .end
 
 .sub 'perl' :method
+    x_enter_sublog
     $P0 = self.'exception'()
     .tailcall $P0.'perl'()
 .end
 
 .sub 'maybefail' :method
+    x_enter_sublog
     $P0 = self.'exception'()
     $I0 = $P0.'handled'()
     if $I0 goto okay
@@ -61,6 +65,7 @@ A Perl 6 Exception object.
 .end
 
 .sub 'Bool' :method
+    x_enter_sublog
     $P0 = self.'exception'()
     $P0.'handled'(1)
     $P0 = get_hll_global ['Bool'], 'False'
@@ -68,6 +73,7 @@ A Perl 6 Exception object.
 .end
 
 .sub 'defined' :method
+    x_enter_sublog
     $P0 = self.'exception'()
     $P0.'handled'(1)
     $P0 = get_hll_global ['Bool'], 'False'
@@ -85,6 +91,7 @@ A Perl 6 Exception object.
 .end
 
 .sub 'Str' :method
+    x_enter_sublog
     self.'maybefail'()
     .local pmc ex
     ex = getattribute self, '$!ex'
@@ -98,6 +105,7 @@ A Perl 6 Exception object.
 .end
 
 .sub 'Num' :method
+    x_enter_sublog
     self.'maybefail'()
     $N0 = 0
     .return ($N0)
@@ -109,6 +117,7 @@ A Perl 6 Exception object.
 .end
 
 .sub 'Int' :method
+    x_enter_sublog
     self.'maybefail'()
     $I0 = 0
     .return ($I0)

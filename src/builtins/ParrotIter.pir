@@ -31,6 +31,7 @@ initial lookahead.
 
 .sub 'new' :method
     .param pmc srciter
+    x_enter_sublog
     .local pmc parrotiter, rest
     parrotiter = new ['ParrotIter']
     rest = root_new ['parrot';'ResizablePMCArray']

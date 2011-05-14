@@ -32,12 +32,14 @@ Increment and Decrement Methods
 =cut
 
 .sub 'pred' :method
+    x_enter_sublog
     $N0 = self
     dec $N0
     .return ($N0)
 .end
 
 .sub 'succ' :method
+    x_enter_sublog
     $N0 = self
     inc $N0
     .return ($N0)
@@ -51,6 +53,7 @@ Returns the identify value.
 =cut
 
 .sub 'WHICH' :method
+    x_enter_sublog
     $N0 = self
     .return ($N0)
 .end
@@ -71,6 +74,7 @@ Overridden for Num.
 .sub '&infix:<===>' :multi(Float,Float)
     .param num a
     .param num b
+    x_enter_sublog
     $I0 = iseq a, b
     .tailcall '&prefix:<?>'($I0)
 .end
@@ -95,6 +99,7 @@ Overridden for Num.
     .param int    has_base     :opt_flag
     .param num    exponent     :optional
     .param int    has_exponent :opt_flag
+    x_enter_sublog
     .local int    iresult, fresult, fdivide
     .local num    result
 

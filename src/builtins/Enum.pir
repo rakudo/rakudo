@@ -26,6 +26,7 @@ Gets the key of the pair.
 =cut
 
 .sub 'key' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!key'
     .return ($P0)
 .end

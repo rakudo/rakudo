@@ -35,6 +35,7 @@ Returns a curried version of self.
 .sub 'assuming' :method :subid('assuming')
     .param pmc args :slurpy
     .param pmc named_args :slurpy :named
+    x_enter_sublog
     .local pmc curried
     .lex '@args', args
     .lex '%args', named_args
@@ -47,6 +48,7 @@ Returns a curried version of self.
 .sub '' :outer('assuming') :subid('assuming_helper')
     .param pmc args :slurpy
     .param pmc named_args :slurpy :named
+    x_enter_sublog
     .local pmc obj, assumed_args, assumed_named_args, result
     find_lex obj, '$obj'
     find_lex assumed_args, '@args'
@@ -61,6 +63,7 @@ Returns a curried version of self.
 
 .sub 'wrap' :method
     .param pmc wrapper
+    x_enter_sublog
 
     # Did we already wrap?
     .local pmc cand_list, cur_sub
@@ -127,12 +130,14 @@ Returns a curried version of self.
 .sub '!wrap_start_helper' :anon :outer('wrap')
     .param pmc pos_args   :slurpy
     .param pmc named_args :slurpy :named
+    x_enter_sublog
     $P0 = find_lex '__CANDIDATE_LIST__'
     $P1 = clone $P0
     .tailcall $P1(pos_args :flat, named_args :flat :named)
 .end
 .sub '!wrap_clholder_helper' :anon
     .param pmc args :call_sig
+    x_enter_sublog
     
     .lex 'call_sig', args
     .local pmc pos_args, named_args
@@ -169,6 +174,7 @@ Returns a curried version of self.
 
 .sub 'unwrap' :method
     .param pmc handle
+    x_enter_sublog
 
     # Check it's wrapped.
     .local pmc cand_list, cur_sub

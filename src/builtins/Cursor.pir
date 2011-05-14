@@ -20,11 +20,13 @@ Cursor - Perl 6 cursor objects
 
 
 .sub 'new_match' :method
+    x_enter_sublog
     $P0 = new ['Match']
     .return ($P0)
 .end
 
 .sub 'new_array' :method
+    x_enter_sublog
     $P0 = get_hll_global 'Array'
     $P0 = $P0.'new'()
     $P0 = $P0.'item'()

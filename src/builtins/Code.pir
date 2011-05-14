@@ -31,6 +31,7 @@ for executable objects.
     .param pmc do
     .param pmc multi
     .param pmc lazysig         :optional
+    x_enter_sublog
 
     .tailcall do.'!get_closure'(self, lazysig, multi)
 .end
@@ -45,6 +46,7 @@ Returns a curried version of self.
 .sub 'assuming' :method :subid('assuming')
     .param pmc args :slurpy
     .param pmc named_args :slurpy :named
+    x_enter_sublog
     .local pmc curried
     .lex '@args', args
     .lex '%args', named_args
@@ -58,6 +60,7 @@ Returns a curried version of self.
 .sub 'assuming_helper' :outer('assuming')
     .param pmc args :slurpy
     .param pmc named_args :slurpy :named
+    x_enter_sublog
     .local pmc obj, assumed_args, assumed_named_args, result
     find_lex obj, '$obj'
     find_lex assumed_args, '@args'
@@ -76,6 +79,7 @@ Just calls this block with the supplied parameters.
 .sub 'callwith' :method :vtable('invoke')
     .param pmc pos_args    :slurpy
     .param pmc named_args  :slurpy :named
+    x_enter_sublog
     $P0 = getattribute self, '$!do'
     .tailcall $P0(pos_args :flat, named_args :flat :named)
 .end
@@ -86,6 +90,7 @@ Just calls this block with the supplied parameters.
 =cut
 
 .sub 'multi' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!do'
     $P0 = getprop '$!multi', $P0
     if null $P0 goto not_multi
@@ -104,6 +109,7 @@ Just calls this block with the supplied parameters.
 =cut
 
 .sub 'name' :method
+    x_enter_sublog
     $S0 = self
     .return ($S0)
 .end
@@ -117,6 +123,7 @@ Return a response to .perl.
 
 .namespace ['Code']
 .sub 'perl' :method
+    x_enter_sublog
     .return ('{ ... }')
 .end
 
@@ -127,6 +134,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'signature' :method
+    x_enter_sublog
     .local pmc do, signature
     do = getattribute self, '$!do'
     signature = do.'!signature'()
@@ -138,6 +146,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'do' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!do'
     .return ($P0)
 .end
@@ -147,6 +156,7 @@ Gets the signature for the block, or returns Failure if it lacks one.
 =cut
 
 .sub 'Str' :method
+    x_enter_sublog
     $P0 = getattribute self, '$!do'
     $S0 = $P0
     .return ($S0)

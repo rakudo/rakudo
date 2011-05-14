@@ -27,6 +27,7 @@ Multi - Perl 6 multi-dispatch routine
 =cut
 
 .sub 'candidates' :method
+    x_enter_sublog
     $P0 = self.'ll_candidates'()
     $P0 = '&infix:<,>'($P0 :flat)
     .return ($P0)
@@ -37,6 +38,7 @@ Multi - Perl 6 multi-dispatch routine
 =cut
 
 .sub 'multi' :method
+    x_enter_sublog
     $P0 = get_hll_global ['Bool'], 'True'
     .return ($P0)
 .end
@@ -46,6 +48,7 @@ Multi - Perl 6 multi-dispatch routine
 =cut
 
 .sub 'name' :method
+    x_enter_sublog
     $S0 = self
     .return ($S0)
 .end

@@ -30,6 +30,7 @@ This file implements the Any class.
 .namespace ['Any']
 .sub 'can' :method
     .param pmc x
+    x_enter_sublog
     $P0 = self.'HOW'()
     .tailcall $P0.'can'(self, x)
 .end
@@ -40,6 +41,7 @@ This file implements the Any class.
 
 .sub 'isa' :method
     .param pmc x
+    x_enter_sublog
     $P0 = self.'HOW'()
     .tailcall $P0.'isa'(self, x)
 .end
@@ -50,6 +52,7 @@ This file implements the Any class.
 
 .sub 'does' :method
     .param pmc x
+    x_enter_sublog
     $P0 = self.'HOW'()
     .tailcall $P0.'does'(self, x)
 .end
@@ -59,6 +62,7 @@ This file implements the Any class.
 =cut
 
 .sub 'list' :method
+    x_enter_sublog
     $P0 = new ['List']
     $P1 = root_new ['parrot';'ResizablePMCArray']
     push $P1, self

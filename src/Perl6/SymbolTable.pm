@@ -154,6 +154,64 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
     }
     
+    # Creates a parameter object.
+    method create_parameter(%param_info) {
+        # Create parameter object now.
+        say("# Creating parameter object for " ~ %param_info<variable_name>);
+        my $par_type  := self.find_symbol(['Parameter']);
+        my $parameter := pir::repr_instance_of__PP($par_type);
+        my $slot      := self.add_object($parameter);
+        say("# ... slot $slot");
+        
+        # XXX Set up values.
+        
+        # Create PAST to make it when deserializing.
+        # XXX TODO: Finish it.
+        self.add_event(:deserialize_past(PAST::Stmts.new(
+            self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
+                :pirop('repr_instance_of PP'),
+                self.get_object_sc_ref_past($par_type)
+            )))
+        )));
+        
+        # Return created parameter.
+        $parameter
+    }
+    
+    # Creates a signature object from a set of parameters.
+    method create_signature(@parameters) {
+        # Create signature object now.
+        my $sig_type  := self.find_symbol(['Signature']);
+        my $signature := pir::repr_instance_of__PP($sig_type);
+        my $slot      := self.add_object($signature);
+        
+        # Create PAST to make it when deserializing.
+        my $param_past := PAST::Op.new( :pasttype('list') );
+        for @parameters {
+            $param_past.push(self.get_slot_past_for_object($_));
+        }
+        self.add_event(:deserialize_past(PAST::Stmts.new(
+            self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
+                :pirop('repr_instance_of PP'),
+                self.get_object_sc_ref_past($sig_type)
+            ))),
+            set_attribute($signature, $sig_type, '$!params', $param_past)
+        )));
+        
+        # Return created signature.
+        $signature
+    }
+    
+    # Helper to make PAST for setting an attribute to a value. Value should
+    # be a PAST tree.
+    sub set_attribute($obj, $class, $name, $value_past) {
+        PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( $obj, $class, :name($name), :scope('attribute_6model') ),
+            $value_past
+        )
+    }
+    
     # Creates a meta-object for a package, adds it to the root objects and
     # stores an event for the action. Returns the created object.
     method pkg_create_mo($how, :$name, :$repr) {

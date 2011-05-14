@@ -1,4 +1,20 @@
 #! perl
+#
+# This tool analyzes the "sublog" output of Rakudo to produce a
+# simple call analysis.
+#
+# To create a sublog, simply invoke Rakudo with the "RAKUDO_SUBLOG"
+# environment variable set to the name of the file in which to
+# record the log output.  For example:
+#      $ RAKUDO_SUBLOG=sub.log ./perl6 t/spec/S32-trig/sin.t
+# This will run the desired program, recording each subroutine
+# entry in the file "sub.log".
+#
+# Once a sublog file has been created, you can use it as input
+# to this program to produce a summary of the number of calls to
+# each subroutine and the top eight callers for each:
+#      $ perl tools/sublog-report.pl sub.log
+#
 
 use warnings;
 use strict;

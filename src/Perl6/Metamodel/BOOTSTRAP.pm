@@ -21,35 +21,35 @@ my class BOOTSTRAPATTR {
 }
 
 # class Mu { ... }
-my $Mu := Perl6::Metamodel::ClassHOW.new_type(:name<Mu>);
+my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 
 # class Any is Mu { ... }
-my $Any := Perl6::Metamodel::ClassHOW.new_type(:name<Any>);
-$Any.HOW.add_parent($Any, $Mu);
+my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
+Any.HOW.add_parent(Any, Mu);
 
 # class Cool is Any { ... }
-my $Cool := Perl6::Metamodel::ClassHOW.new_type(:name<Cool>);
-$Cool.HOW.add_parent($Cool, $Any);
+my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
+Cool.HOW.add_parent(Cool, Any);
 
 # class Attribute is Cool {
 #     has $!name; # Has to be an bootstrap attribute object for now
 #     has $!type;
 #     ... # Uncomposed
 # }
-my $Attribute := Perl6::Metamodel::ClassHOW.new_type(:name<Attribute>);
-$Attribute.HOW.add_parent($Attribute, $Cool);
-$Attribute.HOW.add_attribute($Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type($Mu)));
-$Attribute.HOW.add_attribute($Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type($Mu)));
+my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
+Attribute.HOW.add_parent(Attribute, Cool);
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(Mu)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu)));
 
 # class Signature is Cool {
 #    has $!params;
 #    has $!returns;
 #     ... # Uncomposed
 # }
-my $Signature := Perl6::Metamodel::ClassHOW.new_type(:name<Signature>);
-$Signature.HOW.add_parent($Signature, $Cool);
-$Signature.HOW.add_attribute($Signature, BOOTSTRAPATTR.new(:name<$!params>, :type($Mu)));
-$Signature.HOW.add_attribute($Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type($Mu)));
+my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
+Signature.HOW.add_parent(Signature, Cool);
+Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu)));
+Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu)));
 
 # class Parameter is Cool {
 #     has str $!variable_name
@@ -63,17 +63,17 @@ $Signature.HOW.add_attribute($Signature, BOOTSTRAPATTR.new(:name<$!returns>, :ty
 #     has $!default_closure
 #     ... # Uncomposed
 # }
-my $Parameter := Perl6::Metamodel::ClassHOW.new_type(:name<Parameter>);
-$Parameter.HOW.add_parent($Parameter, $Cool);
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type($Mu)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type($Mu)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type($Mu)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type($Mu)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!coerce_to>, :type(str)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type($Mu)));
-$Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type($Mu)));
+my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
+Parameter.HOW.add_parent(Parameter, Cool);
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_to>, :type(str)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
 
 # class Code is Cool {
 #     has $!do;
@@ -81,41 +81,41 @@ $Parameter.HOW.add_attribute($Parameter, BOOTSTRAPATTR.new(:name<$!default_closu
 #     has $!dispatchees;
 #     ... # Uncomposed
 # }
-my $Code := Perl6::Metamodel::ClassHOW.new_type(:name<Code>);
-$Code.HOW.add_parent($Code, $Cool);
-$Attribute.HOW.add_attribute($Attribute, BOOTSTRAPATTR.new(:name<$!do>, :type($Mu)));
-$Attribute.HOW.add_attribute($Attribute, BOOTSTRAPATTR.new(:name<$!signature>, :type($Mu)));
-$Attribute.HOW.add_attribute($Attribute, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type($Mu)));
+my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
+Code.HOW.add_parent(Code, Cool);
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
 
 # class Block is Code { ... }
-my $Block := Perl6::Metamodel::ClassHOW.new_type(:name<Block>);
-$Block.HOW.add_parent($Block, $Code);
+my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
+Block.HOW.add_parent(Block, Code);
 
 # class Routine is Block { ... }
-my $Routine := Perl6::Metamodel::ClassHOW.new_type(:name<Routine>);
-$Routine.HOW.add_parent($Routine, $Block);
+my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
+Routine.HOW.add_parent(Routine, Block);
 
 # class Sub is Routine { ... }
-my $Sub := Perl6::Metamodel::ClassHOW.new_type(:name<Sub>);
-$Sub.HOW.add_parent($Sub, $Routine);
+my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
+Sub.HOW.add_parent(Sub, Routine);
 
 # class Method is Routine { ... }
-my $Method := Perl6::Metamodel::ClassHOW.new_type(:name<Method>);
-$Method.HOW.add_parent($Method, $Routine);
+my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
+Method.HOW.add_parent(Method, Routine);
 
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
     our module DEFAULT {
-        $?PACKAGE.WHO<Mu>        := $Mu;
-        $?PACKAGE.WHO<Any>       := $Any;
-        $?PACKAGE.WHO<Cool>      := $Cool;
-        $?PACKAGE.WHO<Attribute> := $Attribute;
-        $?PACKAGE.WHO<Signature> := $Signature;
-        $?PACKAGE.WHO<Parameter> := $Parameter;
-        $?PACKAGE.WHO<Code>      := $Code;
-        $?PACKAGE.WHO<Block>     := $Block;
-        $?PACKAGE.WHO<Routine>   := $Routine;
-        $?PACKAGE.WHO<Sub>       := $Sub;
-        $?PACKAGE.WHO<Method>    := $Method;
+        $?PACKAGE.WHO<Mu>        := Mu;
+        $?PACKAGE.WHO<Any>       := Any;
+        $?PACKAGE.WHO<Cool>      := Cool;
+        $?PACKAGE.WHO<Attribute> := Attribute;
+        $?PACKAGE.WHO<Signature> := Signature;
+        $?PACKAGE.WHO<Parameter> := Parameter;
+        $?PACKAGE.WHO<Code>      := Code;
+        $?PACKAGE.WHO<Block>     := Block;
+        $?PACKAGE.WHO<Routine>   := Routine;
+        $?PACKAGE.WHO<Sub>       := Sub;
+        $?PACKAGE.WHO<Method>    := Method;
     }
 }

@@ -1470,10 +1470,10 @@ grammar Perl6::Grammar is HLL::Grammar {
           <?{
             my $longname := $<longname>.Str;
             if pir::substr($longname, 0, 2) eq '::' {
-                $/.CURSOR.add_my_name(pir::substr($longname, 2));
+                # XXX introduce...
             }
             else {
-                $/.CURSOR.is_name($longname);
+                $*ST.is_type(parse_name($longname));
             }
           }>
         ]

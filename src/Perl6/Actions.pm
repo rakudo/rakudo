@@ -1678,10 +1678,6 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    method trait($/) {
-        make $<trait_mod> ?? $<trait_mod>.ast !! $<colonpair>.ast;
-    }
-
     method trait_mod:sym<is>($/) {
         # Handle is repr specially.
         if ~$<longname> eq 'repr' {
@@ -1690,6 +1686,24 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 $/.cursor.panic("is repr(...) trait needs a parameter");
+            }
+        }
+        else
+        {
+            # Look up &trait_mod:<is>.
+            my $tmi := $*ST.find_symbol(['&trait_mod:<is>']);
+            
+            # If we have a type name then we need to dispatch with that type; otherwise
+            # we need to dispatch with it as a named argument.
+            my @name := Perl6::Grammar::parse_name(~$<longname>);
+            if $*ST.is_type(@name) {
+                my $trait := $*ST.find_symbol(@name);
+                $tmi($*DECLARAND, $trait);
+            }
+            else {
+                my %arg;
+                %arg{~$<longname>} := 1;
+                $tmi($*DECLARAND, |%arg);
             }
         }
     }

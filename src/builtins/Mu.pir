@@ -85,6 +85,15 @@ like this.
     .return ($P0)
 .end
 
+=item item()
+
+=cut
+
+.sub 'item' :method
+    x_enter_sublog
+    .return (self)
+.end
+
 =back
 
 =head2 Object constructor methods

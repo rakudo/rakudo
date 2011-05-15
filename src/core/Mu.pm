@@ -1,12 +1,12 @@
 subset Matcher of Mu where { .^can('ACCEPTS') };
 
 augment class Mu {
-    method Bool { $.defined }
+    # methods defined in src/builtins/Mu.pir
+    # for performance or bootstrap reasons
+    # method item { self; }
 
-    method item {
-        # This is overridden by non-items.
-        self;
-    }
+
+    method Bool { $.defined }
 
     multi method notdef() {
         die ".notdef is deprecated, please use negated .defined instead";

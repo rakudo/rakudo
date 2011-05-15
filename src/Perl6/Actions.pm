@@ -850,7 +850,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         else {
-            my $attr_alias := is_attr_alias($past.name);
+            my $attr_alias := $*ST.is_attr_alias($past.name);
             if $attr_alias {
                 $past.name($attr_alias);
                 $past.scope('attribute');
@@ -1103,146 +1103,80 @@ class Perl6::Actions is HLL::Actions {
     method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
 
     method routine_def($/) {
-        my $block := $<blockoid>.ast;
-        $block.blocktype('declaration');
-        $block.control('return_pir');
+        my $block;
+        if $<onlystar> {
+            $block := onlystar_block();
+        }
+        else {
+            $block := $<blockoid>.ast;
+            $block.blocktype('declaration');
+            $block.control('return_pir');
+        }
+        
+        # Obtain signagture (note, actual Signature object, not PAST for it).
         if pir::defined__IP($block<placeholder_sig>) && $<multisig> {
             $/.CURSOR.panic('Placeholder variable cannot override existing signature');
         }
-        my $signature := $<multisig>                     ?? $<multisig>[0].ast    !!
+        my $signature := 
+                $<multisig>                               ?? $<multisig>[0].ast      !!
                 pir::defined__IP($block<placeholder_sig>) ?? $block<placeholder_sig> !!
-                Perl6::Compiler::Signature.new();
-        $signature.set_default_parameter_type('Any');
-        add_signature($block, $signature);
-        if $<trait> {
-            emit_routine_traits($block, $<trait>, 'Sub');
-        }
+                $*ST.create_signature([]);
+                
+        # Create code object.
+        my $code := $*ST.create_code_object($block, 'Sub', $signature);
+        
         my $past;
         if $<deflongname> {
             # Set name.
             my $name := '&' ~ ~$<deflongname>[0].ast;
             $block.name(~$<deflongname>[0].ast);
             $block.nsentry('');
+            
+            # Install PAST block so that it gets capture_lex'd correctly and also
+            # install it in the lexpad.
+            my $outer := $*ST.cur_lexpad();
+            $outer[0].push($block);
 
-            # Create a code object for the routine
-            my $symbol := $*ST.cur_lexpad().symbol($name);
-
-            # Check for common error conditions.
-            if $symbol {
-                if $*MULTINESS eq 'only' {
-                    $/.CURSOR.panic('Cannot declare only routine ' ~ $name ~
-                        ' when another routine with this name was already declared');
-                }
-                if !$symbol<proto> && !$*MULTINESS {
-                    $/.CURSOR.panic('Cannot re-declare sub ' ~ $name ~ ' without declaring it multi');
-                }
+            # Install.
+            if $*SCOPE eq '' || $*SCOPE eq 'my' {
+                $*ST.install_lexical_symbol($outer, $name, $code);
             }
-            else { 
-                $symbol := $*ST.cur_lexpad().symbol($name, :scope<lexical>); 
+            # XXX our ...
+            else {
+                $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a sub");
             }
-
-            # Create a code object for use in the block
-            my $multiflag := $*MULTINESS eq 'proto' ?? 2 !! $*MULTINESS eq 'multi';
-            my $code := block_closure($block, 'Sub', $multiflag);
-            # Bind the code object to a unique register
-            $code := PAST::Var.new( :name($block.unique('code_')), :viviself($code),
-                                    :scope<register>, :isdecl(1) );
-            # ..and use the code object as the result for this node.
-            $past := PAST::Var.new( :name($code.name), :scope<register> );
-
-            # Handle multisubs...
-            if $multiflag || $symbol<proto> {
-                # If this is a proto, stash that information.
-                if $*MULTINESS eq 'proto' { $symbol<proto> := $code; }
-
-                # If we already have a multi candidate, just add to it.
-                if $symbol<multi> { 
-                    $symbol<multi>.push($code); $code := 0 ; 
-                }
-                else {
-                    # Otherwise, built a multi candidate.
-                    $symbol<multi> := PAST::Op.new( :pasttype<callmethod>,
-                                          :name('set_candidates'),
-                                          PAST::Op.new( :pirop<new__Ps>, 'Perl6MultiSub'),
-                                          $code );
-                    # Merge it with outer (lexical) or existing (package) candidates
-                    $code := PAST::Op.new( :pasttype<callmethod>,
-                                 :name<merge_candidates>,
-                                 $symbol<multi>,
-                                 $*SCOPE eq 'our'
-                                     ?? PAST::Var.new( :name($name), :scope('package') )
-                                     !! PAST::Op.new( :pirop<find_lex_skip_current__Ps>, $name ) );
-                }
-            }
-
-            # Bind the block code or multisub object
-            if $code {
-                # If it's package scoped, also bind into the package
-                if $*SCOPE eq 'our' {
-                    $code := PAST::Op.new( :pasttype<bind>, 
-                                 PAST::Var.new( :name($name), :scope('package'), :isdecl(1) ),
-                                 $code);
-                }
-                # Always bind lexically (like 'our' variables do)
-                $*ST.cur_lexpad()[0].push( 
-                    PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
-                                   :lvalue(1), :viviself($code), :node($/) ) );
-            }
-
-            # If it's package scoped, we also need a separate compile-time binding into the package
-            if $*SCOPE eq 'our' {
-                my $code := block_code($block, 'Sub', $multiflag);
-                $symbol := @PACKAGE[0].block.symbol($name);
-                if $multiflag || $symbol<pkgproto> {
-                    # If this is a proto, stash that information.
-                    if $*MULTINESS eq 'proto' { $symbol<pkgproto> := $code; }
-
-                    if $symbol<pkgmulti> { 
-                        $symbol<pkgmulti>.push($code); 
-                        $code := 0; 
-                    }
-                    else {
-                        $symbol<pkgmulti> := PAST::Op.new( :pasttype<callmethod>,
-                                              :name('set_candidates'),
-                                              PAST::Op.new( :pirop<new__Ps>, 'Perl6MultiSub'),
-                                              $code );
-                        $code := PAST::Op.new( :pasttype<callmethod>,
-                                     :name<merge_candidates>,
-                                     $symbol<pkgmulti>,
-                                     PAST::Var.new( :name($name), :scope('package') ) );
-                    }
-                }
-                if $code {
-                    @PACKAGE[0].block.loadinit.push(
-                        PAST::Op.new( :pasttype<bind>,
-                            PAST::Var.new( :name($name), :scope('package') ),
-                            $code) );
-                }
-            }
+            
+            # Evaluate to a ref to the code.
+            # XXX should it be a clozhure?
+            $past := $*ST.get_object_sc_ref_past($code);
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous routine');
         }
         else {
-            # Just wrap in a Sub.
-            $past := block_closure($block, 'Sub', 0);
+            $past := create_closure($code);
         }
         make $past;
     }
 
 
     method method_def($/) {
-        my $past := $<blockoid>.ast;
-        $past.blocktype('declaration');
-        $past.control('return_pir');
-
+        my $past;
+        if $<onlystar> {
+            $past := onlystar_block();
+        }
+        else {
+            $past := $<blockoid>.ast;
+            $past.blocktype('declaration');
+            $past.control('return_pir');
+        }
+        
         # Get signature - or create - and sort out invocant handling.
         if pir::defined__IP($past<placeholder_sig>) {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
         }
-        my $sig := $<multisig> ?? $<multisig>[0].ast !! Perl6::Compiler::Signature.new();
+        my $sig := $<multisig> ?? $<multisig>[0].ast !! $*ST.create_signature([]);
         $sig.add_invocant();
-        $sig.set_default_parameter_type('Any');
 
         # Add *%_ parameter if there's no other named slurpy and the package isn't hidden.
         my $need_slurpy_hash := !$sig.has_named_slurpy();
@@ -1297,6 +1231,10 @@ class Perl6::Actions is HLL::Actions {
         }
 
         make $past;
+    }
+    
+    sub onlystar_block() {
+        make PAST::Op.new( :pirop('die vS'), 'multi-dispatch not yet implemented');
     }
 
     sub install_method($/, $code, $name, %table) {
@@ -1607,13 +1545,12 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        make $<signature>.ast;
+        make $*ST.get_slot_past_for_object($<signature>.ast);
     }
 
     method signature($/) {
         my @parameters;
-        my $signature := $*ST.create_signature(@parameters);
-        make $*ST.get_slot_past_for_object($signature);
+        make $*ST.create_signature(@parameters);
     }
 
     method parameter($/) {
@@ -1710,7 +1647,7 @@ class Perl6::Actions is HLL::Actions {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
                     $/.CURSOR.panic('Parameter may only have one prefix type constraint');
                 }
-                %*PARAM_INFO<nominal_type> := $<typename>.ast; # XXX check if this can always produce actual type
+                %*PARAM_INFO<nominal_type> := $*ST.find_symbol(Perl6::Grammar::parse_name(~$<typename><longname>));
             }
         }
         elsif $<value> {
@@ -2541,45 +2478,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method typename($/) {
-        my $past;
-
-        if is_lexical($<longname>.Str) {
-            # We need to build a thunk.
-            my $sig := Perl6::Compiler::Signature.new(
-                Perl6::Compiler::Parameter.new(:var_name('$_')));
-            $past := make_block_from(
-                        $sig,
-                        PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
-                            PAST::Var.new(:name($<longname>.Str),:scope('lexical')),
-                            PAST::Var.new(:name('$_'), :scope('lexical') ) ),
-                        'Block'
-                     );
-        }
-        else {
-            my @name := Perl6::Grammar::parse_name($<longname>.Str);
-            $past := PAST::Var.new(
-                :name(@name.pop),
-                :namespace(@name),
-                :scope('package')
-            );
-        }
-
-        # Parametric type?
-        if $<arglist> {
-            my $args := $<arglist>[0].ast;
-            $args.pasttype('callmethod');
-            $args.name('!select');
-            $args.unshift($past);
-            $past := $args;
-        }
-        if $<typename> {
-            $past := PAST::Op.new(
-                :pasttype('callmethod'), :name('!select'),
-                $past, $<typename>[0].ast
-            );
-        }
-
-        make $past;
+        
     }
 
     our %SUBST_ALLOWED_ADVERBS;

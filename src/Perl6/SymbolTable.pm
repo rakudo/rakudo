@@ -229,6 +229,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         };
         
         # Fixup will install the real thing.
+        my $code_type := self.find_symbol(['Code']);
         $fixups.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
         
         # Desserialization should do the actual creation and just put the right
@@ -240,7 +241,6 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
         
         # Install signauture now and add to deserialization.
-        my $code_type := self.find_symbol(['Code']);
         pir::setattribute__vPPsP($code, $code_type, '$!signature', $signature);
         $des.push(self.set_attribute($code, $code_type, '$!signature', self.get_object_sc_ref_past($signature)));
         
@@ -375,6 +375,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         
         $result;
+    }
+    
+    # XXX TODO
+    method is_attr_alias($name) {
+        0
     }
     
     # Generates a series of PAST operations that will build this context if

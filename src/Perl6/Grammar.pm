@@ -1059,7 +1059,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ '(' <multisig> ')' ]?
         <trait>*
         { $*IN_DECL := ''; $*IMPLICIT := 0; }
-        <blockoid>
+        [
+        | <onlystar>
+        | <blockoid>
+        ]
     }
 
     rule method_def {
@@ -1072,10 +1075,19 @@ grammar Perl6::Grammar is HLL::Grammar {
                 | <?>
             ]
             { $*IN_DECL := ''; }
-            <blockoid>
+            [
+            | <onlystar>
+            | <blockoid>
+            ]
         ] || <.panic: 'Malformed method'>
     }
-
+    
+    token onlystar {
+        <?{ $*MULTINESS eq 'proto' }>
+        '{' <.ws> '*' <.ws> '}'
+        <?ENDSTMT>
+        <.finishpad>
+    }
 
     ###########################
     # Captures and Signatures #
@@ -1368,6 +1380,11 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<dotty> { <dotty> }
 
     token term:sym<capterm> { <capterm> }
+    
+    token term:sym<onlystar> {
+        '{*}' <?ENDSTMT>
+        [ <?{ $*MULTINESS eq 'proto' }> || <.panic: '{*} may only appear in proto'> ]
+    }
 
     token args {
         | '(' <semiarglist> ')'

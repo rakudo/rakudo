@@ -185,6 +185,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $signature := pir::repr_instance_of__PP($sig_type);
         my $slot      := self.add_object($signature);
         
+        # Set parameters.
+        pir::setattribute__vPPsP($signature, $sig_type, '$!params', @parameters);
+        
         # Create PAST to make it when deserializing.
         my $param_past := PAST::Op.new( :pasttype('list') );
         for @parameters {
@@ -195,19 +198,66 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 :pirop('repr_instance_of PP'),
                 self.get_object_sc_ref_past($sig_type)
             ))),
-            set_attribute($signature, $sig_type, '$!params', $param_past)
+            self.set_attribute($signature, $sig_type, '$!params', $param_past)
         )));
         
         # Return created signature.
         $signature
     }
     
+    # Creates a code object and ensures that it gets fixed up with the compiled
+    # body at fixup time; during the deserialize we just set the already compiled
+    # output right into place. If we get a request to run the code before we did
+    # really compiling it, we can do that - we just dynamically compile it.
+    method create_code_object($code_past, $type, $signature) {
+        my $fixups := PAST::Stmts.new();
+        my $des    := PAST::Stmts.new();
+        
+        # Create code object now.
+        my $type_obj  := self.find_symbol([$type]);
+        my $code      := pir::repr_instance_of__PP($type_obj);
+        my $slot      := self.add_object($code);
+        
+        # For now, install stub that will dynamically compile the code.
+        # XXX instate correct lexical environment.
+        my $precomp;
+        my $stub := sub (*@pos, *%named) {
+            unless $precomp {
+                $precomp := PAST::Compiler.compile($code_past);
+            }
+            $precomp(|@pos, |%named);
+        };
+        
+        # Fixup will install the real thing.
+        $fixups.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
+        
+        # Desserialization should do the actual creation and just put the right
+        # code in there in the first place.
+        $des.push(self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
+            :pirop('repr_instance_of PP'),
+            self.get_object_sc_ref_past($type_obj)
+        ))));
+        $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
+        
+        # Install signauture now and add to deserialization.
+        my $code_type := self.find_symbol(['Code']);
+        pir::setattribute__vPPsP($code, $code_type, '$!signature', $signature);
+        $des.push(self.set_attribute($code, $code_type, '$!signature', self.get_object_sc_ref_past($signature)));
+        
+        self.add_event(:deserialize_past($des), :fixup_past($fixups));
+        $code;
+    }
+    
     # Helper to make PAST for setting an attribute to a value. Value should
     # be a PAST tree.
-    sub set_attribute($obj, $class, $name, $value_past) {
+    method set_attribute($obj, $class, $name, $value_past) {
         PAST::Op.new(
             :pasttype('bind'),
-            PAST::Var.new( $obj, $class, :name($name), :scope('attribute_6model') ),
+            PAST::Var.new(
+                :name($name), :scope('attribute_6model'),
+                self.get_object_sc_ref_past($obj), 
+                self.get_object_sc_ref_past($class)
+            ),
             $value_past
         )
     }

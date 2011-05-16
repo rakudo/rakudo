@@ -15,6 +15,19 @@
 # each subroutine and the top eight callers for each:
 #      $ perl tools/sublog-report.pl sub.log
 #
+# The output is of the form
+#
+# <count> <routinename> (<subid>)
+#       <callcount> <caller> (<callersubid>)
+#       <callcount> <caller> (<callersubid>)
+#       ...
+# <callcount> <routinename> (<subid>)
+# ...
+#
+# where <count> is the number of times that <routinename>
+# has been called. The indented lines list the routines
+# that called it (<caller>), and how often it called them
+# (<callcount>).
 
 use warnings;
 use strict;

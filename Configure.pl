@@ -13,7 +13,8 @@ MAIN: {
     my %options;
     my $rakudo_configure_options = join(' ', map { "\"$_\"" } @ARGV);
     GetOptions(\%options, 'help!', 'parrot-config=s', 'makefile-timing!',
-               'gen-parrot!', 'gen-parrot-prefix=s', 'gen-parrot-option=s@');
+               'gen-parrot!', 'gen-parrot-prefix=s', 'gen-parrot-option=s@',
+               'ignore-parrot-rev');
 
     # Print help if it's requested
     if ($options{'help'}) {
@@ -66,7 +67,7 @@ MAIN: {
         if ($config{git_describe}) {
             # a parrot built from git
             if (compare_revs($git_describe, $config{'git_describe'}) > 0) {
-                $parrot_errors .= "Parrot revision $git_describe required (currently $config{'git_describe'})\n";
+                $parrot_errors .= "Parrot revision $git_describe required (currently $config{'git_describe'})\n" unless $options{'ignore-parrot-rev'};
             }
         }
         else {
@@ -120,6 +121,14 @@ or '$make spectest' to check out (via git) a copy of the Perl 6
 official test suite and run its tests.
 
 END
+    if ($options{'ignore-parrot-rev'}) {
+        print <<"END";
+
+You are using the --ignore-parrot-rev option, which disables sanity checks.
+Please don't report build or test failures from this rakudo build to rakudobug.
+END
+
+    }
     exit 0;
 
 }
@@ -221,6 +230,8 @@ General Options:
                        Use config information from parrot_config executable
 Experimental developer's options:
     --makefile-timing  Insert 'time' command all over in the Makefile
+    --ignore-parrot-rev   Ignore minimum required parrot revison.
+                       Please only use this option for development purposes.
 END
 
     return;

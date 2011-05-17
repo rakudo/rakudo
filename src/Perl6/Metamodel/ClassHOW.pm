@@ -7,6 +7,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::C3MRO
+    does Perl6::Metamodel::ParrotInterop
 {
     has $!composed;
 
@@ -36,6 +37,10 @@ class Perl6::Metamodel::ClassHOW
         # Publish type and method caches.
         # XXX self.publish_type_cache($obj);
         self.publish_method_cache($obj);
+        
+        # Install Parrot v-table mappings.
+        self.publish_parrot_vtable_mapping($obj);
+		self.publish_parrot_vtable_handler_mapping($obj);
 
         $obj
     }

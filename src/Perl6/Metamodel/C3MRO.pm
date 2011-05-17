@@ -13,7 +13,7 @@ role Perl6::Metamodel::C3MRO {
             # immediate parents and merge.
             my @merge_list;
             for @immediate_parents {
-                @merge_list.push(compute_c3_mro($_));
+                @merge_list.push(self.compute_mro($_));
             }
             @merge_list.push(@immediate_parents);
             @result := c3_merge(@merge_list);
@@ -93,6 +93,14 @@ role Perl6::Metamodel::C3MRO {
 
     # Introspects the Method Resolution Order.
     method mro($obj) {
-        @!mro
+        my @result := @!mro;
+        if +@result {
+            @result
+        }
+        else {
+            # Never computed before; do it best we can so far (and it will
+            # be finalized at compose time).
+            self.compute_mro($obj)
+        }
     }
 }

@@ -218,12 +218,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $code      := pir::repr_instance_of__PP($type_obj);
         my $slot      := self.add_object($code);
         
-        # For now, install stub that will dynamically compile the code.
-        # XXX instate correct lexical environment.
+        # For now, install stub that will dynamically compile the code if we ever try
+        # to run it during compilation.
         my $precomp;
         my $stub := sub (*@pos, *%named) {
             unless $precomp {
-                $precomp := PAST::Compiler.compile($code_past);
+                $precomp := self.compile_in_context($code_past);
             }
             $precomp(|@pos, |%named);
         };
@@ -261,6 +261,20 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ),
             $value_past
         )
+    }
+    
+    # Takes a PAST::Block and compiles it for running during "compile time".
+    # We need to do this for BEGIN but also for things that get called in
+    # the compilation process, like user defined traits.
+    method compile_in_context($past) {
+        # Ensure that we have the appropriate op libs loaded.
+        $past.loadlibs('perl6_group', 'perl6_ops');
+        
+        # Create outer lexical contexts with all symbols visible.
+        # XXX TODO
+        
+        # Compile and return.
+        PAST::Compiler.compile($past)
     }
     
     # Creates a meta-object for a package, adds it to the root objects and

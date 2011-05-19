@@ -45,7 +45,7 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-06-23   Rakudo #42                      -vacant-
+  2011-06-23   Rakudo #42                      (jdhore)
   2011-07-21   Rakudo #43                      -vacant-
   2011-08-18   Rakudo #44                      -vacant-
   2011-09-22   Rakudo #45                      -vacant-

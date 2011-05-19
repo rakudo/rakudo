@@ -1,19 +1,16 @@
 # Roadmap for "nom" Branch
 
-Last Updated 10th May 2011
-
-## Importing
-Get basic import (from DEFAULT) to work.
+Last Updated 19th May 2011
 
 ## Code objects, signature objects and parameter objects
 Be able to create various code objects and set up signatures and parameters
 at compile time.
 
-## proto and multi subs
-Get proto and multi subs in place, along with the new semantics for them.
+## Signature binding update
+Updates to work with the new signature and parameter objects.
 
-## Traits
-Get inheritance and is repr in place.
+## Inheritance trait
+Get enough in place to do inheritance
 
 ## Attributes and methods
 Get adding these into declared classes in place
@@ -25,6 +22,9 @@ new setting.
 * Add stubby Mu, Any, Cool, Int, Num, etc.
 * Make sure that we can make instances of these from programs that use
   the setting
+
+## proto and multi subs
+Get proto and multi subs in place, along with the new semantics for them.
 
 ## Various operators in the setting
 Add back various operators like the arithmetic ones.

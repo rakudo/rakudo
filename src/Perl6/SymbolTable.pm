@@ -227,9 +227,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
             $precomp(|@pos, |%named);
         };
+        my $code_type := self.find_symbol(['Code']);
+        pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
         
         # Fixup will install the real thing.
-        my $code_type := self.find_symbol(['Code']);
         $fixups.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
         
         # Desserialization should do the actual creation and just put the right

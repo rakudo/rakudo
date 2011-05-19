@@ -29,7 +29,7 @@ MAIN: {
         # parrot's Configure.pl mishandles win32 backslashes in --prefix
         $prefix =~ s{\\}{/}g;
         my @command = ($^X, "build/gen_parrot.pl", "--prefix=$prefix",
-                '--gc=gms', ($^O !~ /win32/i ? "--optimize" : ()), @opts);
+                ($^O !~ /win32/i ? "--optimize" : ()), @opts);
 
         print "Generating Parrot ...\n";
         print "@command\n\n";

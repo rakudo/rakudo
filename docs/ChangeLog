@@ -2,9 +2,13 @@ New in 2011.05 release
 + added a call counter for builtins in Perl 6-level subroutines
 + gcd (greatest common divisor) and lcm (largest common multiple) operators
 + build system improvements
-+ fix relational operators when used with NaN
++ added --ignore-parrot-rev option to Configure.pl
++ Configure.pl now creates "config.status" file
++ fixed relational operators when used with NaN
 + implemented Int.base
 + speedup smart-matching against numbers and Str.comb with default arguments
++ added RAKUDO_SUBLOG environment var for tracking subroutine calls
++ overall performance speedups
 
 New in 2011.04 release
 + implemented Str.indent

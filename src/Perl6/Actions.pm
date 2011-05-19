@@ -3006,16 +3006,20 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub add_implicit_var($block, $name, $outer) {
-        my $base := $outer
-                    ?? PAST::Op.new( :inline("    %r = new ['Perl6Scalar'], %0"),
-                           PAST::Op.new(:pirop('find_lex_skip_current Ps'), $name)
-                       )
-                    !! PAST::Op.new( :inline("    %r = new ['Perl6Scalar']") );
-        $base := PAST::Op.new( $base, 'rw', $TRUE, :pirop('setprop') );
-        $block[0].push(
-            PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
-                           :viviself($base) )
-        );
+        # If we have an outer block, set $_ explicitly to what it is in the outer
+        # block. For routines they are auto-viv. (TODO: make routine case more
+        # optimal too.)
+        if $outer {
+            my $base := PAST::Op.new( :inline("    %r = new ['Perl6Scalar'], %0"),
+                PAST::Op.new(:pirop('find_lex_skip_current Ps'), $name)
+            );
+            $base := PAST::Op.new( $base, 'rw', $TRUE, :pirop('setprop') ); # XXX
+            $block[0].push(PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new( :name($name), :scope('lexical') ),
+                $base
+            ));
+        }
         $block.symbol($name, :scope('lexical') );
     }
 

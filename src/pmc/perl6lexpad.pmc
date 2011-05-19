@@ -7,8 +7,24 @@ pmclass Perl6LexPad
     hll perl6
     maps LexPad
 {
+    /* The static lexical info. */
     ATTR PMC *lexinfo;
+    
+    /* The current context, including the registers. */
     ATTR PMC *ctx;
+    
+    /* We keep a vivified-on-demand store for $_, $! and $/. Every block has them
+     * but they often go unused, so saves a bunch of memory allocations to just
+     * create them on demand if used. */
+    ATTR PMC *topic;
+    ATTR PMC *error;
+    ATTR PMC *match;
+    
+    /* For %_ we rarely need it, but methods always want to collect it by default.
+     * We can't really statically eliminate it, but we can make sure we only create
+     * it on demand. This contains a Parrot hash by default, or NULL if there's no
+     * named args. It will become a Perl 6 hash "magically" if asked for. */
+    ATTR PMC *default_named_slurpy;
 
     VTABLE void init() {
         Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,

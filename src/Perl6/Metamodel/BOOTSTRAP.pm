@@ -87,21 +87,30 @@ Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
 
+# Need to actually run the code block. Also need this available before we finish
+# up the stub.
+Code.HOW.add_parrot_vtable_handler_mapping(Code, 'invoke', '$!do');
+Code.HOW.publish_parrot_vtable_handler_mapping(Code);
+
 # class Block is Code { ... }
 my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
 Block.HOW.add_parent(Block, Code);
+Block.HOW.publish_parrot_vtable_handler_mapping(Block);
 
 # class Routine is Block { ... }
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 Routine.HOW.add_parent(Routine, Block);
+Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
 
 # class Sub is Routine { ... }
 my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
 Sub.HOW.add_parent(Sub, Routine);
+Sub.HOW.publish_parrot_vtable_handler_mapping(Sub);
 
 # class Method is Routine { ... }
 my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
 Method.HOW.add_parent(Method, Routine);
+Method.HOW.publish_parrot_vtable_handler_mapping(Method);
 
 # Build up EXPORT::DEFAULT.
 my module EXPORT {

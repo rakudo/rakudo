@@ -1318,14 +1318,14 @@ grammar Perl6::Grammar is HLL::Grammar {
     token trait_mod:sym<hides>   {
         <sym>:s <module_name>
         [
-        || <?{ $/.CURSOR.is_name($<module_name><longname>.Str) }>
+        || <?{ $*ST.is_type(parse_name($<module_name><longname>.Str)) }>
         || <panic("Typename " ~ $<module_name> ~ " must be pre-declared to use it with hides")>
         ]
     }
     token trait_mod:sym<does>    {
         <sym>:s <module_name>
         [
-        || <?{ $/.CURSOR.is_name($<module_name><longname>.Str) }>
+        || <?{ $*ST.is_type(parse_name($<module_name><longname>.Str)) }>
         || <panic("Typename " ~ $<module_name> ~ " must be pre-declared to use it with does")>
         ]
     }

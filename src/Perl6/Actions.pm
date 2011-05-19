@@ -2492,7 +2492,13 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method typename($/) {
-        
+        # Locate the type object and make that. Anything that wants a PAST
+        # reference to it can obtain one, but many things really want the
+        # actual type object to build up some data structure or make a trait
+        # dispatch with.
+        make $<longname> ??
+            $*ST.find_symbol(Perl6::Grammar::parse_name($<longname>)) !!
+            $*ST.find_symbol(Perl6::Grammar::parse_name('::?' ~ ~$<identifier>));
     }
 
     our %SUBST_ALLOWED_ADVERBS;

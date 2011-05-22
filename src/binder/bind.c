@@ -11,11 +11,11 @@ Copyright (C) 2009-2011, The Perl Foundation.
 #include "sixmodelobject.h"
 
 
-/* Cache of the type ID for low level signatures and some strings. */
+/* Cache of Parrot type IDs and some strings. */
 static INTVAL or_id             = 0;
 static INTVAL p6s_id            = 0;
 static INTVAL p6r_id            = 0;
-static INTVAL p6o_id            = 0;
+static INTVAL smo_id            = 0;
 static STRING *ACCEPTS          = NULL;
 static STRING *HOW              = NULL;
 static STRING *DO_str           = NULL;
@@ -78,7 +78,7 @@ static void setup_binder_statics(PARROT_INTERP) {
     or_id  = pmc_type(interp, Parrot_str_new(interp, "ObjectRef", 0));
     p6s_id = pmc_type(interp, P6_SCALAR_str);
     p6r_id = pmc_type(interp, Parrot_str_new(interp, "P6role", 0));
-    p6o_id = pmc_type(interp, Parrot_str_new(interp, "P6opaque", 0));
+    smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }
 
 
@@ -256,7 +256,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     /* If we need to do a type check, do one. */
     if (!no_nom_type_check) {
         /* If not, do the check. */
-        if (!STABLE(value)->type_check(interp, value, param->nominal_type)) {
+        if (value->vtable->base_type != smo_id || !STABLE(value)->type_check(interp, value, param->nominal_type)) {
             /* Type check failed; produce error if needed. */
             if (error) {
                 PMC    * got_how       = STABLE(value)->HOW;

@@ -24,6 +24,7 @@
 typedef struct {
     PMC    *st;               /* S-table, though we don't care about that here. */
     PMC    *sc;               /* Serialization context, though we don't care about that here. */
+    PMC    *spill;            /* Attribute spill storage. */
     STRING *variable_name;    /* The name in the lexpad to bind to, if any. */
     PMC    *named_names;      /* List of the name(s) that a named parameter has. */
     PMC    *type_captures;    /* Name(s) that we bind the type of a parameter to. */
@@ -43,6 +44,7 @@ typedef struct {
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
+    PMC    *spill;              /* Attribute spill storage. */
     PMC    *params;             /* Array of objects that are all parameters. */
     PMC    *returns;            /* Return type. */
     PMC    *named_to_pos_cache; /* Cache of named to position mappings. */

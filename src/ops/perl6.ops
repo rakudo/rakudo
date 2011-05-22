@@ -12,6 +12,7 @@ BEGIN_OPS_PREAMBLE
 #include "pmc_callcontext.h"
 #include "pmc_sub.h"
 #include "../binder/bind.h"
+#include "../binder/sixmodelobject.h"
 
 #if PARROT_HAS_ICU
 #  include <unicode/uchar.h>
@@ -265,6 +266,69 @@ inline op deref_unless_object(out PMC, in PMC) :base_core {
         val = VTABLE_get_pmc(interp, val);
     $1 = (val->vtable->base_type == smo_id) ? $2 : val;
     goto NEXT();
+}
+
+
+/*
+
+=item perl6_get_how(obj)
+
+Gets the HOW for a 6model Object.
+
+=cut
+
+*/
+inline op perl6_get_how(out PMC, in PMC) :base_core {
+    PMC *get = $2;
+    while (get->vtable->base_type == or_id || get->vtable->base_type == p6s_id)
+        get = VTABLE_get_pmc(interp, get);
+    if (get->vtable->base_type == smo_id)
+        $1 = STABLE(get)->HOW;
+    else
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use perl6_get_how on a SixModelObject");
+}
+
+
+/*
+
+=item perl6_get_what(obj)
+
+Gets the WHAT for a 6model Object.
+
+=cut
+
+*/
+inline op perl6_get_what(out PMC, in PMC) :base_core {
+    PMC *get = $2;
+    while (get->vtable->base_type == or_id || get->vtable->base_type == p6s_id)
+        get = VTABLE_get_pmc(interp, get);
+    if (get->vtable->base_type == smo_id)
+        $1 = STABLE(get)->WHAT;
+    else
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use perl6_get_what on a SixModelObject");
+}
+
+
+/*
+
+=item perl6_get_who(obj)
+
+Gets the WHO for a 6model Object.
+
+=cut
+
+*/
+inline op perl6_get_who(out PMC, in PMC) :base_core {
+    PMC *get = $2;
+    while (get->vtable->base_type == or_id || get->vtable->base_type == p6s_id)
+        get = VTABLE_get_pmc(interp, get);
+    if (get->vtable->base_type == smo_id)
+        $1 = STABLE(get)->WHO;
+    else
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use get_who on a SixModelObject");
 }
 
 

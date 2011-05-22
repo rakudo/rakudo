@@ -5,6 +5,9 @@ class Perl6::Compiler is HLL::Compiler {
 }
 
 sub MAIN(@ARGS) {
+    # Initialize dynops.
+    pir::rakudo_dynop_setup__v();
+
     # Create and configure compiler object.
     my $comp := Perl6::Compiler.new();
     $comp.language('perl6');

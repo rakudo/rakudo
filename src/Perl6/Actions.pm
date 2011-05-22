@@ -1790,7 +1790,8 @@ class Perl6::Actions is HLL::Actions {
         my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
         $past.pasttype('callmethod');
         if $<longname> {
-            # May just be .foo, but could also be .Foo::bar
+            # May just be .foo, but could also be .Foo::bar. Also handle the
+            # macro-ish cases.
             my @parts := Perl6::Grammar::parse_name(~$<longname>);
             my $name := @parts.pop;
             if +@parts {
@@ -1803,6 +1804,18 @@ class Perl6::Actions is HLL::Actions {
                 $past.unshift($name);
                 $past.name('!dispatch_::');
                 $past.pasttype('call');
+            }
+            elsif $name eq 'WHAT' {
+                $past.pasttype('pirop');
+                $past.pirop('perl6_get_what PP');
+            }
+            elsif $name eq 'HOW' {
+                $past.pasttype('pirop');
+                $past.pirop('perl6_get_how PP');
+            }
+            elsif $name eq 'WHO' {
+                $past.pasttype('pirop');
+                $past.pirop('perl6_get_who PP');
             }
             else {
                 $past.name( $name );

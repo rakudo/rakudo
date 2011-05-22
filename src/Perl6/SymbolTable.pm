@@ -163,16 +163,29 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $slot      := self.add_object($parameter);
         say("# ... slot $slot");
         
-        # XXX Set up values.
-        
         # Create PAST to make it when deserializing.
-        # XXX TODO: Finish it.
+        my $set_attrs := PAST::Stmts.new();
         self.add_event(:deserialize_past(PAST::Stmts.new(
             self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
                 :pirop('repr_instance_of PP'),
                 self.get_object_sc_ref_past($par_type)
-            )))
+            ))),
+            $set_attrs
         )));
+        
+        # Set name if there is one.
+        if pir::exists(%param_info, 'variable_name') {
+            pir::repr_bind_attr_str__vPPsS($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
+            $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
+                '$!variable_name', %param_info<variable_name>, str));
+        }
+        
+        # Set nominal type.
+        pir::setattribute__vPPsP($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
+        $set_attrs.push(self.set_attribute($parameter, $par_type, '$!nominal_type',
+            self.get_object_sc_ref_past(%param_info<nominal_type>)));
+        
+        # XXX Set up other various attribute values.
         
         # Return created parameter.
         $parameter
@@ -263,17 +276,35 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         )
     }
     
+    # Helper to make PAST for setting a typed attribute to a value. Value should
+    # be a PAST tree.
+    method set_attribute_typed($obj, $class, $name, $value_past, $type) {
+        PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new(
+                :name($name), :scope('attribute_6model'), :type($type),
+                self.get_object_sc_ref_past($obj), 
+                self.get_object_sc_ref_past($class)
+            ),
+            $value_past
+        )
+    }
+    
     # Takes a PAST::Block and compiles it for running during "compile time".
     # We need to do this for BEGIN but also for things that get called in
     # the compilation process, like user defined traits.
     method compile_in_context($past) {
-        # Ensure that we have the appropriate op libs loaded.
+        # Ensure that we have the appropriate op libs loaded and correct
+        # HLL.
         $past.loadlibs('perl6_group', 'perl6_ops');
+        $past.hll('perl6');
         
         # Create outer lexical contexts with all symbols visible.
         # XXX TODO
         
         # Compile and return.
+        my $pir := PAST::Compiler.compile($past, :target('pir'));
+        say($pir);
         PAST::Compiler.compile($past)
     }
     

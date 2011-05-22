@@ -920,6 +920,14 @@ grammar Perl6::Grammar is HLL::Grammar {
                 
                 # Set declarand as the package.
                 $*DECLARAND := $*PACKAGE;
+                
+                # Apply any traits.
+                for $<trait> {
+                    my $applier := $_.ast;
+                    if $applier {
+                        $applier($*DECLARAND);
+                    }
+                }
             }
             
             [

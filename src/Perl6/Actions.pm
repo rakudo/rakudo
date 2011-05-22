@@ -1549,6 +1549,9 @@ class Perl6::Actions is HLL::Actions {
 
     method signature($/) {
         my @parameters;
+        for $<parameter> {
+            @parameters.push($_.ast);
+        }
         make $*ST.create_signature(@parameters);
     }
 
@@ -1680,6 +1683,10 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic('post_constraints not yet implemented');
         }
     }
+    
+    method trait($/) {
+        make $<trait_mod> ?? $<trait_mod>.ast !! $<colonpair>.ast;
+    }
 
     method trait_mod:sym<is>($/) {
         # Handle is repr specially.
@@ -1701,12 +1708,16 @@ class Perl6::Actions is HLL::Actions {
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $*ST.is_type(@name) {
                 my $trait := $*ST.find_symbol(@name);
-                $tmi($*DECLARAND, $trait);
+                make -> $declarand {
+                    $tmi($declarand, $trait);
+                };
             }
             else {
                 my %arg;
                 %arg{~$<longname>} := 1;
-                $tmi($*DECLARAND, |%arg);
+                make -> $declarand {
+                    $tmi($declarand, |%arg);
+                };
             }
         }
     }

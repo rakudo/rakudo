@@ -67,7 +67,7 @@ Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!named_to_pos_ca
 # }
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
 Parameter.HOW.add_parent(Parameter, Cool);
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int)));

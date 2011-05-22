@@ -11,7 +11,6 @@ BEGIN_OPS_PREAMBLE
 #include "pmc_class.h"
 #include "pmc_callcontext.h"
 #include "pmc_sub.h"
-#include "../pmc/pmc_p6lowlevelsig.h"
 #include "../binder/bind.h"
 
 #if PARROT_HAS_ICU
@@ -25,15 +24,7 @@ static INTVAL lls_id = 0;
 static INTVAL obj_id = 0;
 static INTVAL p6o_id = 0;
 
-static STRING *LLSIG_ATTR_str;
-static STRING *BANG_LLSIG_str;
 static STRING *DISPATCH_JUNCTION_str;
-
-/* Plus a function pointer to the binder. */
-typedef INTVAL (*bind_llsig_func_type) (PARROT_INTERP, PMC *lexpad,
-    PMC *llsig, PMC *capture, INTVAL no_nom_type_check, STRING **error);
-
-static bind_llsig_func_type bind_llsig_func = NULL;
 
 END_OPS_PREAMBLE
 
@@ -50,18 +41,11 @@ inline op rakudo_dynop_setup() :base_core {
     /* Look up some type IDs. */
     p6s_id = pmc_type(interp, Parrot_str_new(interp, "Perl6Scalar", 0));
     or_id  = pmc_type(interp, Parrot_str_new(interp, "ObjectRef", 0));
-    lls_id = pmc_type(interp, Parrot_str_new(interp, "P6LowLevelSig", 0));
     p6o_id = pmc_type(interp, Parrot_str_new(interp, "P6opaque", 0));
     obj_id = enum_class_Object;
 
-    BANG_LLSIG_str        = Parrot_str_new_constant(interp, "!llsig");
-    LLSIG_ATTR_str        = Parrot_str_new_constant(interp, "$!llsig");
     DISPATCH_JUNCTION_str = Parrot_str_new_constant(interp,
                                 "!DISPATCH_JUNCTION_SINGLE");
-
-    /* Create dummy low level sig op and use its get_pointer to get a pointer
-     * to the signature binder. */
-    bind_llsig_func = (bind_llsig_func_type)VTABLE_get_pointer(interp, pmc_new(interp, lls_id));
 
     goto NEXT();
 }
@@ -224,6 +208,7 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
     goto NEXT();
 }
 
+
 /*
 
 =item deobjectref(out PMC, in PMC)
@@ -243,6 +228,7 @@ inline op deobjectref(out PMC, in PMC) :base_core {
     $1 = ref;
     goto NEXT();
 }
+
 
 /*
 
@@ -264,14 +250,13 @@ inline op descalarref(out PMC, in PMC) :base_core {
     goto NEXT();
 }
 
+
 /*
 
-=item bind_llsig(in PMC, in PMC)
+=item bind_signature(in PMC)
 
 This is emitted into a sub to cause it's Perl 6 signature to be bound. $1 is
-an array of positional arguments (obtained by using :flat) and $2 is a hash of
-named arguments (obtained using :flat :slurpy). Eventually, after Parrot
-refactors are complete, it will take one argument - the CallContext.
+the CallContext, which contains the arguements.
 
 =cut
 
@@ -281,28 +266,22 @@ inline op bind_llsig(in PMC) :base_core {
 
     /* If we aren't already bound, enter the appropriate binder. */
     if (!PObj_flag_TEST(P6S_ALREADY_BOUND, ctx)) {
-        PMC * const lexpad        = Parrot_pcc_get_lex_pad(interp, ctx);
-        PMC * const sub           = Parrot_pcc_get_sub(interp, ctx);
-        PMC * const llsig         = VTABLE_getprop(interp, sub, LLSIG_ATTR_str);
-        const INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
-        STRING *error       = STRINGNULL;
-        INTVAL bind_error;
-
         /* Need to make sure some stuff doesn't get destroyed. */
-        PMC      * const ctx         = CURRENT_CONTEXT(interp); /* XXX This ctx shadows the outer one. */
         PMC      * const saved_ccont = interp->current_cont;
         PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
-
-        /* Ensure we actually have a signature; if not, try to lazily generate
-         * it. */
-        if (PMC_IS_NULL(llsig)) {
-            PMC * const sig_meth = VTABLE_find_method(interp, sub, BANG_LLSIG_str);
-            Parrot_ext_call(interp, sig_meth, "P->P", sub, &llsig);
-        }
+        
+        /* Obtain signature. */
+        PMC * const lexpad        = Parrot_pcc_get_lex_pad(interp, ctx);
+        PMC * const sub           = Parrot_pcc_get_sub(interp, ctx);
+        const INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
+        STRING * error            = STRINGNULL;
+        PMC * sig;
+        INTVAL bind_error;
+        GETATTR_Sub_multi_signature(interp, sub, sig);
 
         /* Call signature binder. */
-        bind_error = bind_llsig_func(interp, lexpad, llsig, $1, noms_checked, &error);
+        bind_error = Rakudo_binding_bind(interp, lexpad, sig, $1, noms_checked, &error);
 
         /* Bind ok? */
         if (!bind_error) {

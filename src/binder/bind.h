@@ -18,24 +18,35 @@
 #define SIG_ELEM_DEFAULT_FROM_OUTER 16384
 #define SIG_ELEM_IS_CAPTURE         32768
 
-#define NOM_TYPE_CACHE_SIZE 4
-
-/* Data structure to describe a single element in the signature. */
-typedef struct llsig_element {
+/* This is how a parameter looks on the inside. Actually, this is a C struct
+ * that should match the computed object layout by P6opaque for the type
+ * Parameter. So if changing that, this needs to be changed here. */
+typedef struct {
+    PMC    *st;               /* S-table, though we don't care about that here. */
+    PMC    *sc;               /* Serialization context, though we don't care about that here. */
     STRING *variable_name;    /* The name in the lexpad to bind to, if any. */
     PMC    *named_names;      /* List of the name(s) that a named parameter has. */
     PMC    *type_captures;    /* Name(s) that we bind the type of a parameter to. */
     INTVAL flags;             /* Various flags about the parameter. */
     PMC    *nominal_type;     /* The nominal type of the parameter. */
-    INTVAL nom_type_cache[NOM_TYPE_CACHE_SIZE]; /* IDs of nominal types that match. */
     PMC    *post_constraints; /* Array of any extra constraints; we will do a
                                * smart-match against each of them. For now, we
                                * always expect an array of blocks. */
     STRING *coerce_to;        /* Name of the type to coerce to; for X we do $val.X. */
     PMC    *sub_llsig;        /* Any nested signature. */
     PMC    *default_closure;  /* The default value closure. */
-} llsig_element;
+} Rakudo_Parameter;
 
+/* This is how a signature looks on the inside. Actually, this is a C struct
+ * that should match the computed object layout by P6opaque for the type
+ * Signature. So if changing that, this needs to be changed here. */
+typedef struct {
+    PMC    *st;                 /* S-table, though we don't care about that here. */
+    PMC    *sc;                 /* Serialization context, though we don't care about that here. */
+    PMC    *params;             /* Array of objects that are all parameters. */
+    PMC    *returns;            /* Return type. */
+    PMC    *named_to_pos_cache; /* Cache of named to position mappings. */
+} Rakudo_Signature;
 
 /* Flags we can set on the Context PMC.
  *
@@ -54,9 +65,9 @@ typedef struct llsig_element {
 
 /* A function we want to share to provide the interface to the binder. */
 INTVAL
-Rakudo_binding_bind_llsig(PARROT_INTERP, PMC *lexpad, PMC *llsig,
-                              PMC *capture, INTVAL no_nom_type_check,
-                              STRING **error);
+Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc,
+                    PMC *capture, INTVAL no_nom_type_check,
+                    STRING **error);
 
 
 /* Things Rakudo_binding_bind_llsig may return to indicate a problem. */

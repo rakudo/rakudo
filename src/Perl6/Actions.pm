@@ -1594,10 +1594,12 @@ class Perl6::Actions is HLL::Actions {
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.
                 if $<name> {
-                    if $*ST.cur_lexpad().symbol(~$/) {
+                    my $cur_pad := $*ST.cur_lexpad();
+                    if $cur_pad.symbol(~$/) {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
                     }
-                    $*ST.cur_lexpad().symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
+                    $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical'), :isdecl(1) ));
+                    $cur_pad.symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical' !! 'package'));
                 }
             }
             elsif $twigil eq '!' {
@@ -1640,7 +1642,9 @@ class Perl6::Actions is HLL::Actions {
                 my $desigilname := pir::substr(~$<typename>, 2);
                 %*PARAM_INFO<type_captures> := %*PARAM_INFO<type_captures> || [];
                 %*PARAM_INFO<type_captures>.push($desigilname);
-                $*ST.cur_lexpad().symbol($desigilname, :scope('lexical'));
+                my $cur_pad := $*ST.cur_lexpad();
+                $cur_pad[0].push(PAST::Var.new( :name($desigilname), :scope('lexical'), :isdecl(1) ));
+                $cur_pad.symbol($desigilname, :scope('lexical'));
             }
             else {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {

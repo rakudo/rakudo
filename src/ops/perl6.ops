@@ -20,9 +20,7 @@ BEGIN_OPS_PREAMBLE
 /* We cache a couple of type IDs for an op that we hit on every method call. */
 static INTVAL p6s_id = 0;
 static INTVAL or_id  = 0;
-static INTVAL lls_id = 0;
-static INTVAL obj_id = 0;
-static INTVAL p6o_id = 0;
+static INTVAL smo_id = 0;
 
 static STRING *DISPATCH_JUNCTION_str;
 
@@ -41,8 +39,7 @@ inline op rakudo_dynop_setup() :base_core {
     /* Look up some type IDs. */
     p6s_id = pmc_type(interp, Parrot_str_new(interp, "Perl6Scalar", 0));
     or_id  = pmc_type(interp, Parrot_str_new(interp, "ObjectRef", 0));
-    p6o_id = pmc_type(interp, Parrot_str_new(interp, "P6opaque", 0));
-    obj_id = enum_class_Object;
+    smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 
     DISPATCH_JUNCTION_str = Parrot_str_new_constant(interp,
                                 "!DISPATCH_JUNCTION_SINGLE");
@@ -247,6 +244,26 @@ inline op descalarref(out PMC, in PMC) :base_core {
     while (ref->vtable->base_type == or_id || ref->vtable->base_type == p6s_id)
         ref = VTABLE_get_pmc(interp, ref);
     $1 = ref;
+    goto NEXT();
+}
+
+ 
+/*
+
+=item deref_unless_object(out PMC, in PMC)
+
+If the value underlying $2 is anything but a SixModelObject.
+return that value; otherwise return $2.
+
+=cut
+
+*/
+inline op deref_unless_object(out PMC, in PMC) :base_core {
+    PMC * val;
+    val = $2;
+    while (val->vtable->base_type == or_id || val->vtable->base_type == p6s_id)
+        val = VTABLE_get_pmc(interp, val);
+    $1 = (val->vtable->base_type == smo_id) ? $2 : val;
     goto NEXT();
 }
 

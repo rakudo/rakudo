@@ -264,8 +264,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 PMC    * got_name_meth = VTABLE_find_method(interp, got_how, NAME_str);
                 PMC    * exp_name_meth = VTABLE_find_method(interp, exp_how, NAME_str);
                 STRING * expected, * got;
-                Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, value, &expected);
-                Parrot_ext_call(interp, exp_name_meth, "PiP->S", exp_how, param->nominal_type, &got);
+                Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, value, &got);
+                Parrot_ext_call(interp, exp_name_meth, "PiP->S", exp_how, param->nominal_type, &expected);
                 *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
                             param->variable_name, expected, got);
             }

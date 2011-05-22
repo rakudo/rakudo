@@ -2,10 +2,6 @@
 
 Last Updated 22th May 2011
 
-## Natives type object inheritance support
-So that int ~~ Int, num ~~ Num etc will work (or more specifically, the
-stuff currently in the setting that needs this).
-
 ## Attributes and methods
 Get adding these into declared classes in place
 

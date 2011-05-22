@@ -375,9 +375,6 @@ class Perl6::Actions is HLL::Actions {
 
     method newpad($/) {
         my $new_block := $*ST.cur_lexpad();
-        $new_block[0].push(PAST::Op.new(
-            :inline("    .local pmc true\n    true = get_hll_global 'True'")
-        ));
         $new_block<IN_DECL> := $*IN_DECL;
     }
 
@@ -1113,7 +1110,8 @@ class Perl6::Actions is HLL::Actions {
             $block.control('return_pir');
         }
         
-        # Obtain signagture (note, actual Signature object, not PAST for it).
+        # Obtain signagture (note, actual Signature object, not PAST for it)
+        # and generate code to call binder.
         if pir::defined__IP($block<placeholder_sig>) && $<multisig> {
             $/.CURSOR.panic('Placeholder variable cannot override existing signature');
         }
@@ -1121,6 +1119,7 @@ class Perl6::Actions is HLL::Actions {
                 $<multisig>                               ?? $<multisig>[0].ast      !!
                 pir::defined__IP($block<placeholder_sig>) ?? $block<placeholder_sig> !!
                 $*ST.create_signature([]);
+        add_signature_binding_code($block, $signature);
                 
         # Create code object.
         my $code := $*ST.create_code_object($block, 'Sub', $signature);
@@ -2775,41 +2774,21 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
 
-    # Takes a block and adds a signature to it, as well as code to bind the call
-    # capture against the signature.  Returns the modified block.
-    sub add_signature($block, $sig_obj) {
+    # Adds code to do the signature binding.
+    sub add_signature_binding_code($block, $sig_obj) {
         # Set arity.
-        $block.arity($sig_obj.arity);
+        # XXX TODO
+        #$block.arity($sig_obj.arity);
 
-        # Add call to signature binder as well as lexical declarations
-        # to the start of the block.
+        # We tell Parrot that we'll have all args in the call_sig so it won't
+        # do its own arg processing. We also add a call to bind the signature.
         $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
-        my $decls := $sig_obj.get_declarations();
-        for @($decls) {
-            if $_.isa(PAST::Var) {
-                $_.isdecl(1);
-                $block.symbol( $_.name, :scope('lexical') );
-            }
-        }
-        $block[0].push($decls);
         $block[0].push(PAST::Op.new(
-            :pirop('bind_llsig vP'),
-            PAST::Var.new( :name('call_sig'), :scope('lexical') )
+            :pirop('bind_signature vP'),
+            $*ST.get_object_sc_ref_past($sig_obj)
         ));
 
-        # make signature setup block
-        my $lazysig := PAST::Block.new(:blocktype<declaration>, $sig_obj.ast(1));
-        $block[0].push($lazysig);
-        $block<lazysig> := PAST::Val.new( :value($lazysig) );
         $block;
-    }
-
-    # Makes a lazy signature building block.
-    sub make_lazy_sig_block($block) {
-        my $sig_setup_block :=
-                PAST::Block.new( :blocktype<declaration>, $block<signature_ast> );
-        $block[0].push($sig_setup_block);
-        PAST::Val.new(:value($sig_setup_block));
     }
 
     # Adds a placeholder parameter to this block's signature.

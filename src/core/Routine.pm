@@ -1,7 +1,7 @@
 augment class Routine {
 
-=begin item cando
-
+=begin item
+cando
 =end item
     method cando(Capture $capture) {
         my @candidates = self.candidates;
@@ -12,8 +12,8 @@ augment class Routine {
         @can
     }
 
-=begin item candidates
-
+=begin item
+candidates
 =end item
     method candidates() {
         @(self)

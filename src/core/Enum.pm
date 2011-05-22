@@ -1,6 +1,7 @@
 augment class Enum {
 
-=begin item ACCEPTS()
+=begin item
+ACCEPTS()
 
 Called from smartmatches '$_ ~~ X'.
 
@@ -20,7 +21,8 @@ Else it delegates to a  method call '.:Xkey(Xval)'
         return (?$topic."$meth_name"()) === (?$.value);
     }
 
-=begin item fmt
+=begin item
+fmt
 
   our Str multi Pair::fmt ( Str $format = "%s\t%s" )
 
@@ -32,7 +34,8 @@ the key and value.
         return sprintf($format, $.key, $.value);
     }
 
-=begin item kv
+=begin item
+kv
 
 Return key and value as a 2-element List.
 
@@ -41,7 +44,8 @@ Return key and value as a 2-element List.
         ($.key, $.value);
     }
 
-=begin item pairs
+=begin item
+pairs
 
 =end item
     method pairs() {

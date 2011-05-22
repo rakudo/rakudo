@@ -1,16 +1,10 @@
 # Roadmap for "nom" Branch
 
-Last Updated 19th May 2011
+Last Updated 22th May 2011
 
-## Code objects, signature objects and parameter objects
-Be able to create various code objects and set up signatures and parameters
-at compile time.
-
-## Signature binding update
-Updates to work with the new signature and parameter objects.
-
-## Inheritance trait
-Get enough in place to do inheritance
+## Natives type object inheritance support
+So that int ~~ Int, num ~~ Num etc will work (or more specifically, the
+stuff currently in the setting that needs this).
 
 ## Attributes and methods
 Get adding these into declared classes in place
@@ -28,6 +22,9 @@ Get proto and multi subs in place, along with the new semantics for them.
 
 ## Various operators in the setting
 Add back various operators like the arithmetic ones.
+
+## Flesh out signatures and parameters
+While basic binding works again now, there's plenty of stuff to "put back".
 
 ## Multi-methods
 Get these working.

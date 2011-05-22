@@ -22,6 +22,7 @@ my class BOOTSTRAPATTR {
 
 # class Mu { ... }
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
+pir::set_binder_top_type__vP(Mu);
 
 # class Any is Mu { ... }
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };

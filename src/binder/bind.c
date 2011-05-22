@@ -34,7 +34,6 @@ static STRING *SELECT_str       = NULL;
 static STRING *CAPTURE_str      = NULL;
 static STRING *SNAPCAP_str      = NULL;
 static STRING *STORAGE_str      = NULL;
-static STRING *JUNCTION_str     = NULL;
 static STRING *P6_SCALAR_str    = NULL;
 static STRING *SHORTNAME_str    = NULL;
 static STRING *HASH_SIGIL_str   = NULL;
@@ -66,7 +65,6 @@ static void setup_binder_statics(PARROT_INTERP) {
     CAPTURE_str      = Parrot_str_new_constant(interp, "Capture");
     SNAPCAP_str      = Parrot_str_new_constant(interp, "!snapshot_capture");
     STORAGE_str      = Parrot_str_new_constant(interp, "$!storage");
-    JUNCTION_str     = Parrot_str_new_constant(interp, "Junction");
     P6_SCALAR_str    = Parrot_str_new_constant(interp, "Perl6Scalar");
     SHORTNAME_str    = Parrot_str_new_constant(interp, "shortname");
     HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
@@ -81,6 +79,12 @@ static void setup_binder_statics(PARROT_INTERP) {
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }
 
+
+/* Some interesting types and setters for them. */
+static PMC *top_type      = NULL;
+void Rakudo_binder_set_top_type(PMC *type) { top_type = type; }
+static PMC *junction_type = NULL;
+void Rakudo_binder_set_junction_type(PMC *type) { junction_type = type; }
 
 /* Unwraps things inside a scalar reference. */
 static PMC *
@@ -253,10 +257,13 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
 static INTVAL
 Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *signature, Rakudo_Parameter *param,
                               PMC *value, INTVAL no_nom_type_check, STRING **error) {
-    /* If we need to do a type check, do one. */
+    /* Skip nominal type check if not needed. */
     if (!no_nom_type_check) {
-        /* If not, do the check. */
-        if (value->vtable->base_type != smo_id || !STABLE(value)->type_check(interp, value, param->nominal_type)) {
+        /* If not, do the check. If the wanted nominal type is Mu, then
+		 * anything goes. */
+        if (param->nominal_type != top_type &&
+                (value->vtable->base_type != smo_id ||
+                 !STABLE(value)->type_check(interp, value, param->nominal_type))) {
             /* Type check failed; produce error if needed. */
             if (error) {
                 PMC    * got_how       = STABLE(value)->HOW;
@@ -271,7 +278,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             }
             
             /* Report junction failure mode if it's a junction. */
-            if (VTABLE_isa(interp, value, JUNCTION_str))
+            if (value->vtable->base_type == smo_id && STABLE(value)->WHAT == junction_type)
                 return BIND_RESULT_JUNCTION;
             else
                 return BIND_RESULT_FAIL;

@@ -344,6 +344,34 @@ inline op bind_signature(in PMC) :base_core {
 
 /*
 
+=item set_binder_top_type(in PMC)
+
+Sets the top type from the binder's perspective.
+
+=cut
+
+*/
+inline op set_binder_top_type(in PMC) :base_core {
+    Rakudo_binder_set_top_type($1);
+}
+
+
+/*
+
+=item set_binder_junction_type(in PMC)
+
+Sets the junction type from the binder's perspective.
+
+=cut
+
+*/
+inline op set_binder_junction_type(in PMC) :base_core {
+    Rakudo_binder_set_junction_type($1);
+}
+
+
+/*
+
 =item x_setprophash(in PMC, in PMC)
 
 Sets the properties hash of $1 to be $2.

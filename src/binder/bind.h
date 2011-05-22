@@ -65,12 +65,12 @@ typedef struct {
 #define PObj_P6S_ALREADY_BOUND_FLAG     PObj_private1_FLAG
 
 
-/* A function we want to share to provide the interface to the binder. */
-INTVAL
-Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc,
+/* Functions we want to share to provide the interface to the binder. */
+INTVAL Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc,
                     PMC *capture, INTVAL no_nom_type_check,
                     STRING **error);
-
+void Rakudo_binder_set_top_type(PMC *type);
+void Rakudo_binder_set_junction_type(PMC *type);
 
 /* Things Rakudo_binding_bind_llsig may return to indicate a problem. */
 #define BIND_RESULT_OK       0

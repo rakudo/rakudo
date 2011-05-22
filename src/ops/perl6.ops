@@ -66,120 +66,6 @@ inline op rakudo_dynop_setup() :base_core {
     goto NEXT();
 }
 
-
-/*
-
-=item rebless_subclass(in PMC, in PMC)
-
-Takes PMC $1 and reblesses it in-place, without any change of address, to be
-an instance of class $2, where $2 is a subclass of the class of $1.
-
-=cut
-
-*/
-inline op rebless_subclass(in PMC, in PMC) :base_core {
-    PMC *value;
-    PMC * const current_class = VTABLE_get_class(interp, $1);
-    PMC * parent_list;
-    int num_parents;
-    int in_parents = 0;
-    int new_attribs = 0;
-    int i;
-
-    /* Check what we're trying to bless into is a standard Parrot class. */
-    if ($2->vtable->base_type != enum_class_Class)
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only rebless into a standard Parrot class.");
-
-    /* Get parents list. */
-    parent_list = PARROT_CLASS($2)->all_parents;
-    num_parents = VTABLE_elements(interp, parent_list);
-
-    /* First verify that the object's class is a superclass of the one we're
-     * to re-bless it into. While we're at it, count the number of attributes
-     * the current class has that the parent class does not. */
-    for (i = 0; i < num_parents; i++) {
-        PMC * const test_class = VTABLE_get_pmc_keyed_int(interp, parent_list, i);
-        if (test_class == current_class) {
-            in_parents = 1;
-            break;
-        }
-        else {
-            new_attribs += VTABLE_elements(interp, PARROT_CLASS($2)->attrib_metadata);
-        }
-    }
-    if (!in_parents)
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Attempt to use rebless_subclass where the new class was not a subclass");
-
-    /* Make sure we're operating on the real value, not a ObjectRef. */
-    value = $1;
-    while (value->vtable->base_type == or_id || value->vtable->base_type == p6s_id)
-        value = VTABLE_get_pmc(interp, value);
-
-    /* Check if the value is a parrot Object and the original class is a standard
-     * Parrot Class. */
-    if (value->vtable->base_type != enum_class_Object
-            && current_class->vtable->base_type != enum_class_Class) {
-        /* In this case, we have something from a foreign class system,
-         * probably a PMC. We'll start by instantiating a new instance
-         * of the derived class. */
-        PMC * const new_ins = VTABLE_instantiate(interp, $2, PMCNULL);
-
-        /* Now we do some nasty swapping around of memory. The end result is:
-         *  - The proxy object from new_ins becomes the current value
-         *  - The current value becomes the new instance
-         *  - The new instance becomes the (now-replaced) proxy, and gets
-         *    swept on the next GC run.
-         * We do this by shuffling PMC headers around. It should be safe as
-         * in the end we will end up with just as many PMCs existing. */
-        PMC * const temp  = mem_allocate_typed(PMC);
-        PMC * const proxy = VTABLE_get_attr_keyed(interp, new_ins, current_class,
-                Parrot_str_new(interp, "proxy", 0));
-        Parrot_block_GC_mark(interp);
-
-        /* Using memcpy here may trigger gcc optimizations, which at this point
-         * can wreak havoc on register-starved x86:
-         * error: unable to find a register to spill in class 'SIREG'
-         * Use memmove instead, which is slower, but isn't inlined by gcc. */
-        memmove(temp, proxy, sizeof (PMC));
-        memmove(proxy, value, sizeof (PMC));
-        memmove(value, new_ins, sizeof (PMC));
-        memmove(new_ins, temp, sizeof (PMC));
-
-        Parrot_unblock_GC_mark(interp);
-        mem_sys_free(temp);
-
-        /* Now set any new attributes to be undef. */
-        for (i = 0; i < new_attribs; i++)
-            VTABLE_set_pmc_keyed_int(interp, PARROT_OBJECT(value)->attrib_store,
-                i, pmc_new(interp, enum_class_Undef));
-    }
-    else if ((value->vtable->base_type != enum_class_Object && value->vtable->base_type != p6o_id)
-            || current_class->vtable->base_type != enum_class_Class) {
-        /* If we're here, we found a really odd state - the class claims to be
-         * a standard Parrot one but the object it supposedly created is not.
-         * In this case, something is probably wrong. */
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Object to be reblessed does not appear to be of the expected class.");
-    }
-    else {
-        /* We have a standard Parrot class and object and can tweak it's guts.
-         * Shuffle up attributes to the point of the difference between the number
-         * of attributes in the parent and the derived class. Yes, this is evil -
-         * we're diddling the object's internals. */
-        for (i = 0; i < new_attribs; i++)
-            VTABLE_unshift_pmc(interp, PARROT_OBJECT(value)->attrib_store,
-                pmc_new(interp, enum_class_Undef));
-
-        /* Now switch object's class pointer to point at the new class. This is
-         * also evil. */
-        PARROT_OBJECT(value)->_class = $2;
-    }
-
-    goto NEXT();
-}
-
 /*
 
 =item find_lex_skip_current(out PMC, in STR)
@@ -338,32 +224,6 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
     goto NEXT();
 }
 
-
-/*
-
-=item transform_to_p6opaque(inout PMC)
-
-Takes PMC $1 and swaps out its Object vtable for a P6opaque vtable. (Expect
-this op to be temporary, but for now it lets us get things in the right
-kinda direction.)
-
-=cut
-
-*/
-inline op transform_to_p6opaque(inout PMC) :base_core {
-    /* Sanity check. */
-    if ($1->vtable->base_type == enum_class_Object) {
-        $1->vtable = interp->vtables[p6o_id];
-        goto NEXT();
-    }
-    else {
-        opcode_t * const handler = Parrot_ex_throw_from_op_args(interp, NULL,
-            EXCEPTION_INVALID_OPERATION, "Can only transform an Object to p6opaque");
-        goto ADDRESS(handler);
-    }
-}
-
-
 /*
 
 =item deobjectref(out PMC, in PMC)
@@ -401,27 +261,6 @@ inline op descalarref(out PMC, in PMC) :base_core {
     while (ref->vtable->base_type == or_id || ref->vtable->base_type == p6s_id)
         ref = VTABLE_get_pmc(interp, ref);
     $1 = ref;
-    goto NEXT();
-}
-
-
-/*
-
-=item deref_unless_object(out PMC, in PMC)
-
-If the value underlying $2 is anything but an Object or P6opaque,
-return that value; otherwise return $2.
-
-=cut
-
-*/
-inline op deref_unless_object(out PMC, in PMC) :base_core {
-    PMC * val;
-    val = $2;
-    while (val->vtable->base_type == or_id || val->vtable->base_type == p6s_id)
-        val = VTABLE_get_pmc(interp, val);
-    $1 = (val->vtable->base_type == obj_id || val->vtable->base_type == p6o_id)
-         ? $2 : val;
     goto NEXT();
 }
 

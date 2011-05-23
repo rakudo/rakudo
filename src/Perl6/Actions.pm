@@ -163,21 +163,7 @@ class Perl6::Actions is HLL::Actions {
         $outer.push(
             PAST::Op.new(
                 :pirop('return'),
-                PAST::Op.new( :pasttype<call>,
-                    PAST::Var.new( :name('!UNIT_START'), :namespace(''), :scope('package') ),
-                    $unit,
-                    PAST::Var.new( :scope('parameter'), :name('@_'), :slurpy(1) )
-                )
-            )
-        );
-
-        # CHECK time occurs at the end of the compilation unit, :load/:init.
-        # (We can't # use the .loadinit property because that will generate
-        # the CHECK block too early.)
-        $outer.push(
-            PAST::Block.new(
-                :pirflags(':load :init'), :lexical(0), :namespace(''),
-                PAST::Op.new( :name('!fire_phasers'), 'CHECK' )
+                PAST::Op.new( :pasttype<call>, $unit )
             )
         );
 
@@ -188,7 +174,7 @@ class Perl6::Actions is HLL::Actions {
             PAST::Block.new(
                 :pirflags(':load'), :lexical(0), :namespace(''),
                 PAST::Op.new(
-                    :name('!UNIT_START'), :pasttype('call'),
+                    :pasttype('call'),
                     PAST::Val.new( :value($outer) ),
                 )
             )

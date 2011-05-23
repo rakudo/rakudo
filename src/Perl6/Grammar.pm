@@ -895,26 +895,52 @@ grammar Perl6::Grammar is HLL::Grammar {
             <trait>*
             
             {
-                # Construct meta-object for this package.
-                my %args;
-                if $longname {
-                    %args<name> := ~$longname<name>;
+                # Locate any existing symbol. Note that it's only a match
+                # with "my" if we already have a declaration in this scope.
+                my $exists := 0;
+                if $*SCOPE eq 'my' {
+                    if $outer.symbol(~$longname<name>) {
+                        $*PACKAGE := $*ST.find_symbol(parse_name(~$longname<name>));
+                        $exists := 1;
+                    }
                 }
-                %args<repr> := $*REPR;
-                $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
+                else {
+                    try {
+                        $*PACKAGE := $*ST.find_symbol(parse_name(~$longname<name>));
+                        $exists := 1;
+                    }
+                }
                 
-                # Install it in the symbol table.
-                if $longname {
-                    if $*SCOPE eq 'my' {
-                        if +$longname<name><morename> == 0 {
-                            $*ST.install_lexical_symbol($outer, ~$longname<name>, $*PACKAGE);
+                # If it exists already, then it's either uncomposed (in which
+                # case we just stubbed it) or else an illegal redecl.
+                if $exists {
+                    if $*PACKAGE.HOW.is_composed($*PACKAGE) {
+                        $/.CURSOR.panic("Illegal redeclaration of $*PKGDECL '" ~
+                            ~$longname<name> ~ "'");
+                    }
+                }
+                else {
+                    # Construct meta-object for this package.
+                    my %args;
+                    if $longname {
+                        %args<name> := ~$longname<name>;
+                    }
+                    %args<repr> := $*REPR;
+                    $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
+                    
+                    # Install it in the symbol table.
+                    if $longname {
+                        if $*SCOPE eq 'my' {
+                            if +$longname<name><morename> == 0 {
+                                $*ST.install_lexical_symbol($outer, ~$longname<name>, $*PACKAGE);
+                            }
+                            else {
+                                $/.CURSOR.panic("Cannot use multi-part package name with 'my' scope");
+                            }
                         }
                         else {
-                            $/.CURSOR.panic("Cannot use multi-part package name with 'my' scope");
+                            $/.CURSOR.panic("Cannot use $*SCOPE scope with $*PKGDECL");
                         }
-                    }
-                    else {
-                        $/.CURSOR.panic("Cannot use $*SCOPE scope with $*PKGDECL");
                     }
                 }
                 

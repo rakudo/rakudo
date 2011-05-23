@@ -117,3 +117,7 @@ class Perl6::ModuleLoader {
         return $setting;
     }
 }
+
+# We stash this in the perl6 HLL namespace, just so it's easy to
+# locate. Note this makes it invisible inside Perl 6 itself.
+pir::set_root_global__vPsP(['perl6'], 'ModuleLoader', Perl6::ModuleLoader);

@@ -872,6 +872,7 @@ class Perl6::Actions is HLL::Actions {
     method package_declarator:sym<grammar>($/) { make $<package_def>.ast; }
     method package_declarator:sym<role>($/)    { make $<package_def>.ast; }
     method package_declarator:sym<knowhow>($/) { make $<package_def>.ast; }
+    method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
     
     method package_declarator:sym<trusts>($/) {
         $/.CURSOR.panic("trusts not yet implemented");
@@ -914,6 +915,10 @@ class Perl6::Actions is HLL::Actions {
         
         # Compose.
         $*ST.pkg_compose($*PACKAGE);
+        
+        make PAST::Stmts.new(
+            $block, $*ST.get_object_sc_ref_past($*PACKAGE)
+        );
     }
 
     method scope_declarator:sym<my>($/)      { make $<scoped>.ast; }

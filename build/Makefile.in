@@ -100,6 +100,12 @@ CORE_SOURCES = \
   src/CORE.setting/traits.pm \
   src/CORE.setting/stubs.pm \
   src/CORE.setting/natives.pm \
+  src/CORE.setting/Mu.pm \
+  src/CORE.setting/Any.pm \
+  src/CORE.setting/Cool.pm \
+  src/CORE.setting/Int.pm \
+  src/CORE.setting/Num.pm \
+  src/CORE.setting/Str.pm \
   src/CORE.setting/you_are_here.pm \
 
 DOCS = README CREDITS LICENSE docs/*

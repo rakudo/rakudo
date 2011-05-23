@@ -4,6 +4,9 @@ role Perl6::Metamodel::MultipleInheritance {
 
     # Adds a parent.
     method add_parent($obj, $parent) {
+        $obj := pir::descalarref__PP($obj);
+        $parent := pir::descalarref__PP($parent);
+        
         if self.is_composed($obj) {
             pir::die("Parents cannot be added to a class after it has been composed");
         }

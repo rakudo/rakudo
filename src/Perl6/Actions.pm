@@ -329,7 +329,7 @@ class Perl6::Actions is HLL::Actions {
                         ));
                     }
                     else {
-                        add_implicit_var($block, '$_', 1);
+                        add_implicit_var($block, '$_');
                     }
                 }
             }
@@ -380,19 +380,17 @@ class Perl6::Actions is HLL::Actions {
 
     method finishpad($/) {
         # Generate the $_, $/, and $! lexicals if they aren't already
-        # declared.  For routines and methods, they're simply created as
-        # undefs; for other blocks they initialize to their outer lexical.
-
+        # declared. We don't actually give them a value, but rather the
+        # Perl6LexPad will generate containers (and maybe fill them with
+        # the outer's value) on demand.
         my $BLOCK := $*ST.cur_lexpad();
-        my $outer := $BLOCK<IN_DECL> ne 'routine' && $BLOCK<IN_DECL> ne 'method';
-
         for <$_ $/ $!> {
             # Generate the lexical variable except if...
             #   (1) the block already has one, or
             #   (2) the variable is '$_' and $*IMPLICIT is set
             #       (this case gets handled by getsig)
             unless $BLOCK.symbol($_) || ($_ eq '$_' && $*IMPLICIT) {
-                add_implicit_var($BLOCK, $_, $outer);
+                add_implicit_var($BLOCK, $_);
             }
         }
     }
@@ -2898,21 +2896,8 @@ class Perl6::Actions is HLL::Actions {
         $past;
     }
 
-    sub add_implicit_var($block, $name, $outer) {
-        # If we have an outer block, set $_ explicitly to what it is in the outer
-        # block. For routines they are auto-viv. (TODO: make routine case more
-        # optimal too.)
-        if $outer {
-            my $base := PAST::Op.new( :inline("    %r = new ['Perl6Scalar'], %0"),
-                PAST::Op.new(:pirop('find_lex_skip_current Ps'), $name)
-            );
-            $base := PAST::Op.new( $base, 'rw', $TRUE, :pirop('setprop') ); # XXX
-            $block[0].push(PAST::Op.new(
-                :pasttype('bind'),
-                PAST::Var.new( :name($name), :scope('lexical') ),
-                $base
-            ));
-        }
+    sub add_implicit_var($block, $name) {
+        $block[0].push(PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1) ));
         $block.symbol($name, :scope('lexical') );
     }
 

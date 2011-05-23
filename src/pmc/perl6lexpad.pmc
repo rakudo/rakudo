@@ -13,17 +13,11 @@ pmclass Perl6LexPad
     /* The current context, including the registers. */
     ATTR PMC *ctx;
     
-    /* We keep a vivified-on-demand store for $_, $! and $/. Every block has them
-     * but they often go unused, so saves a bunch of memory allocations to just
-     * create them on demand if used. */
-    ATTR PMC *topic;
-    ATTR PMC *error;
-    ATTR PMC *match;
-    
     /* For %_ we rarely need it, but methods always want to collect it by default.
      * We can't really statically eliminate it, but we can make sure we only create
      * it on demand. This contains a Parrot hash by default, or NULL if there's no
-     * named args. It will become a Perl 6 hash "magically" if asked for. */
+     * named args. The binder sets it, and it'll magically become initialized to
+     * a Perl 6 hash if accessed. */
     ATTR PMC *default_named_slurpy;
 
     VTABLE void init() {
@@ -145,6 +139,7 @@ Return the LexInfo PMC, if any or a Null PMC.
         const Hash *hash;
         PMC        *ctx;
         HashBucket *b;
+        PMC        *result;
 
         GET_ATTR_lexinfo(INTERP, SELF, info);
         if (info->vtable->base_type != enum_class_LexInfo) {
@@ -164,7 +159,15 @@ Return the LexInfo PMC, if any or a Null PMC.
             return PMCNULL;
 
         GET_ATTR_ctx(INTERP, SELF, ctx);
-        return CTX_REG_PMC(interp, ctx, (INTVAL)b->value);
+        result = CTX_REG_PMC(interp, ctx, (INTVAL)b->value);
+        
+        if (PMC_IS_NULL(result)) {
+            /* XXX TODO: This is where we magically create an empty
+             * container and/or grab the outer value for special
+             * on-demand lexicals like $_. */
+        }
+        
+        return result;
     }
 
     VTABLE PMC *get_pmc_keyed(PMC *name) {

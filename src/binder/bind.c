@@ -502,10 +502,6 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
     Rakudo_Signature *sig                = (Rakudo_Signature *)PMC_data(sig_pmc);
     PMC              *params             = sig->params;
     INTVAL            num_params         = VTABLE_elements(interp, params);
-    PMC              *named_to_pos_cache = sig->named_to_pos_cache;
-
-    /* Lazily allocated array of bindings to positionals of nameds. */
-    PMC **pos_from_named = NULL;
 
     /* If we do have some named args, we want to make a clone of the hash
      * to work on. We'll delete stuff from it as we bind, and what we have
@@ -520,46 +516,6 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
     /* Set up statics. */
     if (!or_id)
         setup_binder_statics(interp);
-
-    /* Build nameds -> position hash for named positional arguments,
-     * if it was not yet built. */
-    if (PMC_IS_NULL(named_to_pos_cache)) {
-        named_to_pos_cache = pmc_new(interp, enum_class_Hash);
-        sig->named_to_pos_cache = named_to_pos_cache;
-        PARROT_GC_WRITE_BARRIER(interp, sig_pmc);
-        for (i = 0; i < num_params; i++) {
-            Rakudo_Parameter *param = (Rakudo_Parameter *)PMC_data(
-                VTABLE_get_pmc_keyed_int(interp, params, i));
-
-            /* If we find a named argument, we're done with the positionals. */
-            if (!PMC_IS_NULL(param->named_names))
-                break;
-
-            /* Skip slurpies (may be a slurpy block, so can't just break). */
-            if (param->flags & SIG_ELEM_SLURPY)
-                continue;
-
-            /* Provided it has a name... */
-            if (!STRING_IS_NULL(param->variable_name)) {
-                /* Strip any sigil, then stick in named to positional array. */
-                STRING *store  = param->variable_name;
-                STRING *sigil  = Parrot_str_substr(interp, store, 0, 1);
-                STRING *twigil = Parrot_str_substr(interp, store, 1, 1);
-
-                if (Parrot_str_equal(interp, sigil, SCALAR_SIGIL_str)
-                ||  Parrot_str_equal(interp, sigil, ARRAY_SIGIL_str)
-                ||  Parrot_str_equal(interp, sigil, HASH_SIGIL_str))
-                    store = Parrot_str_substr(interp, store, 1,
-                            Parrot_str_byte_length(interp, store));
-
-                if (Parrot_str_equal(interp, twigil, BANG_TWIGIL_str))
-                    store = Parrot_str_substr(interp, store, 1,
-                            Parrot_str_byte_length(interp, store));
-
-                VTABLE_set_integer_keyed_str(interp, named_to_pos_cache, store, i);
-            }
-        }
-    }
 
     /* If we've got a CallContext, just has an attribute with list of named
      * parameter names. Otherwise, it's a Capture and we need to do .hash and
@@ -585,27 +541,14 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 "Internal Error: Rakudo_binding_bind passed invalid Capture");
     }
 
-    /* First, consider named arguments, to see if there are any that we will
-     * be wanting to bind positionally. */
+    /* Make copy of the named arguments. */
     if (!PMC_IS_NULL(named_names)) {
         PMC *iter = VTABLE_get_iter(interp, named_names);
         named_args_copy = pmc_new(interp, enum_class_Hash);
         while (VTABLE_get_bool(interp, iter)) {
             STRING *name = VTABLE_shift_string(interp, iter);
-            if (VTABLE_exists_keyed_str(interp, named_to_pos_cache, name)) {
-                /* Found one. We'll stash it away for quick access to bind it
-                 * later. */
-                INTVAL pos = VTABLE_get_integer_keyed_str(interp, named_to_pos_cache, name);
-                if (!pos_from_named)
-                    pos_from_named = mem_allocate_n_zeroed_typed(num_params, PMC *);
-                pos_from_named[pos] = VTABLE_get_pmc_keyed_str(interp, capture, name);
-            }
-            else {
-                /* Otherwise, we'll enter it into the hash of things to bind
-                 * to nameds. */
-                VTABLE_set_pmc_keyed_str(interp, named_args_copy, name,
-                        VTABLE_get_pmc_keyed_str(interp, capture, name));
-            }
+            VTABLE_set_pmc_keyed_str(interp, named_args_copy, name,
+                    VTABLE_get_pmc_keyed_str(interp, capture, name));
         }
     }
 
@@ -626,16 +569,12 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
             bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param, snapshot,
                     no_nom_type_check, error);
             if (bind_fail) {
-                if (pos_from_named)
-                    mem_sys_free(pos_from_named);
                 return bind_fail;
             }
             else if (i + 1 == num_params) {
                 /* Since a capture acts as "the ultimate slurpy" in a sense, if
                  * this is the last parameter in the signature we can return
                  * success right off the bat. */
-                if (pos_from_named)
-                    mem_sys_free(pos_from_named);
                 return BIND_RESULT_OK;
             }
             else {
@@ -643,18 +582,6 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     VTABLE_get_pmc_keyed_int(interp, params, i + 1));
                 if (next_param->flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED))
                     suppress_arity_fail = 1;
-            }
-        }
-
-        /* Is it a positional sourced from a named? */
-        else if (pos_from_named && pos_from_named[i]) {
-            /* We have the value - try bind this parameter. */
-            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                    pos_from_named[i], no_nom_type_check, error);
-            if (bind_fail) {
-                if (pos_from_named)
-                    mem_sys_free(pos_from_named);
-                return bind_fail;
             }
         }
 
@@ -668,11 +595,8 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     named_args_copy;
             bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
                     Rakudo_binding_create_hash(interp, slurpy), no_nom_type_check, error);
-            if (bind_fail) {
-                if (pos_from_named)
-                    mem_sys_free(pos_from_named);
+            if (bind_fail)
                 return bind_fail;
-            }
 
             /* Nullify named arguments hash now we've consumed it, to mark all
              * is well. */
@@ -692,11 +616,8 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 }
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
                         Rakudo_binding_create_positional(interp, temp, ARRAY_str), no_nom_type_check, error);
-                if (bind_fail) {
-                    if (pos_from_named)
-                        mem_sys_free(pos_from_named);
+                if (bind_fail)
                     return bind_fail;
-                }
             }
 
             /* Otherwise, a positional. */
@@ -707,11 +628,8 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
                             arg, no_nom_type_check, error);
-                    if (bind_fail) {
-                        if (pos_from_named)
-                            mem_sys_free(pos_from_named);
+                    if (bind_fail)
                         return bind_fail;
-                    }
                     cur_pos_arg++;
                 }
                 else {
@@ -722,17 +640,12 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                         PMC *value = Rakudo_binding_handle_optional(interp, param, lexpad);
                         bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
                                 value, 1, error);
-                        if (bind_fail) {
-                            if (pos_from_named)
-                                mem_sys_free(pos_from_named);
+                        if (bind_fail)
                             return bind_fail;
-                        }
                     }
                     else {
                         if (error)
                             *error = Rakudo_binding_arity_fail(interp, params, num_params, num_pos_args, 0);
-                        if (pos_from_named)
-                            mem_sys_free(pos_from_named);
                         return BIND_RESULT_FAIL;
                     }
                 }
@@ -769,8 +682,6 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     if (error)
                         *error = Parrot_sprintf_c(interp, "Required named parameter '%S' not passed",
                                 VTABLE_get_string_keyed_int(interp, param->named_names, 0));
-                    if (pos_from_named)
-                        mem_sys_free(pos_from_named);
                     return BIND_RESULT_FAIL;
                 }
             }
@@ -779,18 +690,11 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                         value, 0, error);
             }
 
-            /* If we get here, we have a value. Bind it. */
-            if (bind_fail) {
-                if (pos_from_named)
-                    mem_sys_free(pos_from_named);
+            /* If we got a binding failure, return it. */
+            if (bind_fail)
                 return bind_fail;
-            }
         }
     }
-
-    /* Free pos_from_named - we no longer need it. */
-    if (pos_from_named)
-        mem_sys_free(pos_from_named);
 
     /* Do we have any left-over args? */
     if (cur_pos_arg < num_pos_args && !suppress_arity_fail) {

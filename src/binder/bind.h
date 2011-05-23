@@ -47,7 +47,6 @@ typedef struct {
     PMC    *spill;              /* Attribute spill storage. */
     PMC    *params;             /* Array of objects that are all parameters. */
     PMC    *returns;            /* Return type. */
-    PMC    *named_to_pos_cache; /* Cache of named to position mappings. */
 } Rakudo_Signature;
 
 /* Flags we can set on the Context PMC.

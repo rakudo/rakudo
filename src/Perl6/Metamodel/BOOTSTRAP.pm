@@ -45,14 +45,12 @@ Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu
 # class Signature is Cool {
 #    has $!params;
 #    has $!returns;
-#    has $!named_to_pos_cache;
 #     ... # Uncomposed
 # }
 my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
 Signature.HOW.add_parent(Signature, Cool);
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu)));
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu)));
-Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!named_to_pos_cache>, :type(Mu)));
 
 # class Parameter is Cool {
 #     has str $!variable_name

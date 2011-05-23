@@ -106,6 +106,13 @@ CORE_SOURCES = \
   src/CORE.setting/Int.pm \
   src/CORE.setting/Num.pm \
   src/CORE.setting/Str.pm \
+  src/CORE.setting/Block.pm \
+  src/CORE.setting/Code.pm \
+  src/CORE.setting/Method.pm \
+  src/CORE.setting/Parameter.pm \
+  src/CORE.setting/Routine.pm \
+  src/CORE.setting/Signature.pm \
+  src/CORE.setting/Sub.pm \
   src/CORE.setting/you_are_here.pm \
 
 DOCS = README CREDITS LICENSE docs/*

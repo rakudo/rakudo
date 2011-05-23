@@ -343,7 +343,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $obj.HOW.compose($obj);
         
         # Emit code to do the composition when deserializing.
-        my $slot_past := self.get_slot_past_for_object($obj);
+        my $slot_past := self.get_object_sc_ref_past($obj);
         self.add_event(:deserialize_past(PAST::Op.new(
             :pasttype('callmethod'), :name('compose'),
             PAST::Op.new( :pirop('get_how PP'), $slot_past ),

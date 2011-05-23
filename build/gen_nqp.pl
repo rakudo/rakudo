@@ -49,8 +49,7 @@ unless (-d 'nqp') {
 
 chdir('nqp') || die "Can't chdir to 'nqp': $!";
 
-system_or_die(qw(git fetch)) unless $fetched;
-system_or_die(qw(git checkout),  'master');
+system_or_die(qw(git pull)) unless $fetched;
 
 ##  If we have a Makefile from a previous build, do a 'make realclean'
 if (-f 'Makefile' && $make) {

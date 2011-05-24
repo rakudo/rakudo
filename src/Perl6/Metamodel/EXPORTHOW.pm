@@ -4,5 +4,6 @@ my module EXPORTHOW {
     ($?PACKAGE.WHO)<package>      := Perl6::Metamodel::PackageHOW;
     ($?PACKAGE.WHO)<module>       := Perl6::Metamodel::ModuleHOW;
     ($?PACKAGE.WHO)<class>        := Perl6::Metamodel::ClassHOW;
+    ($?PACKAGE.WHO)<class-attr>   := Attribute;
     ($?PACKAGE.WHO)<native>       := Perl6::Metamodel::NativeHOW;
 }

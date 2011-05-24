@@ -1077,17 +1077,17 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token routine_declarator { <...> }
     token routine_declarator:sym<sub>
-        { <sym> <.end_keyword> <routine_def> }
+        { <sym> <.end_keyword> <routine_def('sub')> }
     token routine_declarator:sym<method>
-        { <sym> <.end_keyword> :my $*METHODTYPE := 'Method'; <method_def> }
+        { <sym> <.end_keyword> <method_def('method')> }
     token routine_declarator:sym<submethod>
-        { <sym> <.end_keyword> :my $*METHODTYPE := 'Submethod'; <method_def> }
+        { <sym> <.end_keyword> <method_def('submethod')> }
     token routine_declarator:sym<macro>
         { <sym> <.end_keyword>
           <.panic: "Macros are not yet implemented"> }
 
-    rule routine_def {
-        :my $*IN_DECL := 'routine';
+    rule routine_def($d) {
+        :my $*IN_DECL := $d;
         <deflongname>?
         <.newpad>
         [ '(' <multisig> ')' ]?
@@ -1099,8 +1099,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
-    rule method_def {
-        :my $*IN_DECL := 'method';
+    rule method_def($d) {
+        :my $*IN_DECL := $d;
+        :my $*METHODTYPE := $d;
         [
             <.newpad>
             [

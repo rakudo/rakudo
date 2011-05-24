@@ -361,13 +361,30 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $lookup.named($_.key);
             $create_call.push($lookup);
         }
-        my $obj_slot_past := self.get_slot_past_for_object($obj);
+        my $obj_slot_past := self.get_object_sc_ref_past($obj);
         self.add_event(:deserialize_past(PAST::Op.new(
             :pasttype('callmethod'), :name('add_attribute'),
             PAST::Op.new( :pirop('get_how PP'), $obj_slot_past ),
             $obj_slot_past,
             $create_call
         )));
+    }
+    
+    # Adds a method to the meta-object, and stores an event for the action.
+    method pkg_add_method($obj, $meta_method_name, $name, $code_object) {
+        # Add it to the compile time meta-object.
+        $obj.HOW."$meta_method_name"($obj, $name, $code_object);
+        
+        # Add call to add the method at deserialization time.
+        my $slot_past := self.get_object_sc_ref_past($obj);
+        self.add_event(
+            :deserialize_past(PAST::Op.new(
+                :pasttype('callmethod'), :name($meta_method_name),
+                PAST::Op.new( :pirop('get_how PP'), $slot_past ),
+                $slot_past,
+                $name,
+                self.get_object_sc_ref_past($code_object)
+            )));
     }
     
     # Composes the package, and stores an event for this action.

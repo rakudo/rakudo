@@ -1125,7 +1125,7 @@ class Perl6::Actions is HLL::Actions {
             }
             
             # Evaluate to a ref to the code.
-            # XXX should it be a clozhure?
+            # XXX should it be a closure?
             $past := $*ST.get_object_sc_ref_past($code);
         }
         elsif $*MULTINESS {
@@ -1149,60 +1149,40 @@ class Perl6::Actions is HLL::Actions {
             $past.control('return_pir');
         }
         
-        # Get signature - or create - and sort out invocant handling.
+        # Get signature - or create one.
         if pir::defined__IP($past<placeholder_sig>) {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
         }
-        my $sig := $<multisig> ?? $<multisig>[0].ast !! $*ST.create_signature([]);
-        $sig.add_invocant();
+        my $signature := $<multisig> ??
+            $<multisig>[0].ast !!
+            $*ST.create_signature([]);
+        add_signature_binding_code($past, $signature);
+        
+        # XXX Implicit invocant; *%_.
+        #$past.symbol('self', :scope('lexical'));
 
-        # Add *%_ parameter if there's no other named slurpy and the package isn't hidden.
-        my $need_slurpy_hash := !$sig.has_named_slurpy();
-        if $need_slurpy_hash { # XXX ADD BACK: && !package_has_trait('hidden') {
-            my $param := Perl6::Compiler::Parameter.new();
-            $param.var_name('%_');
-            $param.named_slurpy(1);
-            $sig.add_parameter($param);
-        }
+        # Create code object.
+        my $type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
+        my $code := $*ST.create_code_object($past, $type, $signature);
 
-        # Add signature to block.
-        add_signature($past, $sig);
-        $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
-        $past.symbol('self', :scope('lexical'));
-
-        # Emit traits.
-        if $<trait> {
-            emit_routine_traits($past, $<trait>, $*METHODTYPE);
-        }
-
-        # Method container.
+        # Install method.
         if $<longname> {
-            # Set up us the name.
+            # Add to methods table.
             my $name := $<longname>.Str;
-            if $<specials> eq '!' { $name := '!' ~ $name; }
-            $past.name($name);
-            $past.nsentry('');
-            my $multi_flag := $*MULTINESS eq 'proto' ?? 2 !! 
-                              $*MULTINESS eq 'multi' ?? 1 !!
-                              0;
+            $*ST.pkg_add_method($*PACKAGE,
+                ($*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method'),
+                $name, $code);
             
-            # Create code object using a reference to $past.
-            my $code := block_code($past, $*METHODTYPE, $multi_flag);
-
-            # Get hold of the correct table to install it in, and install.
-            our @PACKAGE;
-            unless +@PACKAGE { $/.CURSOR.panic("Cannot declare method outside of a package"); }
-            my %table;
-            if $<specials> eq '^' {
-                %table := @PACKAGE[0].meta_methods();
-            }
-            else {
-                %table := @PACKAGE[0].methods();
-            }
-            install_method($/, $code, $name, %table);
+            # Install PAST block so that it gets capture_lex'd correctly.
+            my $outer := $*ST.cur_lexpad();
+            $outer[0].push($past);
+            
+            # Evaluate to a ref to the code.
+            # XXX should it be a closure?
+            $past := $*ST.get_object_sc_ref_past($code);
         }
         elsif $*MULTINESS {
-            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous routine');
+            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
         }
         else {
             $past := block_closure($past, $*METHODTYPE, 0);

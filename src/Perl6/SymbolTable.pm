@@ -57,21 +57,22 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             my $setting := %*COMPILING<%?OPTIONS><outer_ctx>
                         := Perl6::ModuleLoader.load_setting($setting_name);
             
-            # Do load for pre-compiled situation.
-            self.add_event(:deserialize_past(PAST::Stmts.new(
+            # Do load in code.
+            my $fixup := PAST::Stmts.new(
                 PAST::Op.new(
                     :pirop('load_bytecode vs'), 'Perl6/ModuleLoader.pbc'
                 ),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('set_outer_ctx'),
-                       PAST::Var.new( :name('block'), :scope('register') ),
-                       PAST::Op.new(
-                           :pasttype('callmethod'), :name('load_setting'),
-                           PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-                           $setting_name
-                       )
+                    PAST::Val.new( :value($*UNIT_OUTER) ),
+                    PAST::Op.new(
+                        :pasttype('callmethod'), :name('load_setting'),
+                        PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
+                        $setting_name
+                    )
                 )
-            )));
+            );
+            self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
             
             return pir::getattribute__PPs($setting, 'lex_pad');
         }

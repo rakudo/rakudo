@@ -1863,39 +1863,26 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<name>($/) {
-        my $ns := Perl6::Grammar::parse_name(~$<longname>);
-        $ns := pir::clone__PP($ns);
-        my $name := $ns.pop;
-        my $var;
-        if is_lexical(~$<longname>) {
-            $var := PAST::Var.new( :name(~$<longname>), :scope('lexical') );
+        # If it's a call, ensure we have &.
+        my @name := Perl6::Grammar::parse_name(~$<longname>);
+        if $<args> {
+            my $final := @name[+@name - 1];
+            if pir::substr($final, 0, 1) ne '&' {
+                @name[+@name - 1] := '&' ~ $final;
+            }
         }
-        else {
-            $var := PAST::Var.new(
-                :name(~$name), :namespace($ns), :scope('package'),
-                :viviself(PAST::Op.new(
-                    :pasttype('call'), :name('!FAIL'),
-                    "Cannot find sub " ~ ~$<longname>
-                ))
-            );
-        }
+        
+        # Build lookup, and if there's args call it.
+        my $var := $*ST.symbol_lookup(@name, $/);
         my $past := $var;
         if $<args> {
             $past := capture_or_parcel($<args>.ast, ~$<longname>);
-            if $ns {
-                $past.unshift($var);
-                unless pir::substr($var.name, 0, 1) eq '&' {
-                    $var.name('&' ~ $var.name);
-                }
-            }
-            else { $past.name('&' ~ $name); }
-        }
-        elsif $<arglist> {
-            $past := $<arglist>[0].ast;
-            $past.pasttype('callmethod');
-            $past.name('!select');
             $past.unshift($var);
         }
+        elsif $<arglist> {
+            $/.CURSOR.panic("Parametric roles not yet implemented");
+        }
+        
         $past.node($/);
         make $past;
     }

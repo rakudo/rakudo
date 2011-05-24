@@ -423,6 +423,81 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $result;
     }
     
+    # Takes a name and compiles it to a lookup for the symbol.
+    method symbol_lookup(@name, $/) {
+        # Catch empty names and die helpfully.
+        if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
+        
+        # If it's a single item, then go hunting for it through the
+        # block stack.
+        if +@name == 1 {
+            my $i := +@!BLOCKS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!BLOCKS[$i].symbol(@name[0]);
+                if +%sym {
+                    return PAST::Var.new( :name(@name[0]), :scope(%sym<scope>) );
+                }
+            }
+        }
+        
+        # The final lookup will always be just a keyed access to a
+        # symbol table.
+        my $final_name := @name.pop();
+        my $lookup := PAST::Var.new( :scope('keyed'), ~$final_name);
+        
+        # If there's no explicit qualification, then look it up in the
+        # current package, and fall back to looking in GLOBAL.
+        if +@name == 0 {
+            $lookup.unshift(PAST::Op.new(
+                :pirop('get_who PP'),
+                PAST::Var.new( :name('$?PACKAGE'), :scope('lexical') )
+            ));
+            $lookup.viviself(PAST::Var.new(
+                :scope('keyed'),
+                PAST::Op.new(
+                    :pirop('get_who PP'),
+                    PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') )
+                ),
+                ~$final_name
+            ));
+        }
+        
+        # Otherwise, see if the first part of the name is lexically
+        # known. If not, it's in GLOBAL. Also, if first part is GLOBAL
+        # then strip it off.
+        else {
+            my $path := self.is_lexical(@name[0]) ??
+                PAST::Var.new( :name(@name.shift()), :scope('lexical') ) !!
+                PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
+            if @name[0] eq 'GLOBAL' {
+                @name.shift();
+            }
+            for @name {
+                $path := PAST::Op.new(
+                    :pirop('nqp_get_package_through_who PPs'),
+                    $path, ~$_);
+            }
+            $lookup.unshift(PAST::Op.new(:pirop('get_who PP'), $path));
+        }
+        
+        return $lookup;
+    }
+
+    # Checks if the given name is known anywhere in the lexpad
+    # and with lexical scope.
+    method is_lexical($name) {
+        my $i := +@!BLOCKS;
+        while $i > 0 {
+            $i := $i - 1;
+            my %sym := @!BLOCKS[$i].symbol($name);
+            if +%sym {
+                return %sym<scope> eq 'lexical';
+            }
+        }
+        0;
+    }
+    
     # XXX TODO
     method is_attr_alias($name) {
         0

@@ -1400,7 +1400,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         ||  <?{
                 my $longname := $<longname>.Str;
-                pir::substr($longname, 0, 2) eq '::' || $/.CURSOR.is_name($longname)
+                pir::substr($longname, 0, 2) eq '::' || $*ST.is_type(parse_name($longname))
             }>
             <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
         || <args>

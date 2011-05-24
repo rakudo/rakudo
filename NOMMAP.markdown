@@ -1,29 +1,42 @@
 # Roadmap for "nom" Branch
 
-Last Updated 22th May 2011
+Last Updated 25th May 2011
 
-## Attributes and methods
-Get adding these into declared classes in place
+## Method improvements
+Complain if the target package doesn't support .^add_[multi_]?method.
+Add default invocant with type if no user-defined invocant is supplied.
 
-## Initial bits in the setting
-We'll start to re-build some of the bits previously in built-ins into a
-new setting.
+## Stashes and package scope
+Get package scope basically working, including lexical packages.
 
-* Add stubby Mu, Any, Cool, Int, Num, etc.
-* Make sure that we can make instances of these from programs that use
-  the setting
+## Get attributes working
+Finish up enough so a (typed) attribute can be declared. Check for use
+of attributes that are not declared. Update attribute access code.
+
+## String and Int literals
+Get these to work, make sure we add them to SC (e.g. so we have them as
+real constants, not creating them every time).
 
 ## proto and multi subs
 Get proto and multi subs in place, along with the new semantics for them.
-
+  
 ## Various operators in the setting
 Add back various operators like the arithmetic ones.
+
+## Containers
+Examine container bits.
+
+## Object construction
+new, bless, CREATE, BUILDALL, BUILD handling.
+
+## Multi-methods
+Get these working.
 
 ## Flesh out signatures and parameters
 While basic binding works again now, there's plenty of stuff to "put back".
 
-## Multi-methods
-Get these working.
+## More traits
+Add various missing traits
 
 ## Parametric roles
 Get parametric roles working with the new meta-object model.
@@ -43,6 +56,9 @@ Get them working. We'll have the parametric role support to do that now.
 ## Restore other setting bits
 Bring back in everything that was ripped out. Probably many our things
 become my things.
+
+## Custom Operators
+Get these working again.
 
 ## Work towards nom being master
 Get enough of the spectests passing for us to be ready to make nom into

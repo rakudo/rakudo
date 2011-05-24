@@ -338,6 +338,38 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         return $mo;
     }
     
+    # Constructs a meta-attribute and adds it to a meta-object. Expects to
+    # be passed the meta-attribute type object, a set of literal named
+    # arguments to pass and a set of name to object mappings to pass also
+    # as named arguments, but where these passed objects also live in a
+    # serialization context. The type would be passed in this way.
+    method pkg_add_attribute($obj, $meta_attr, %lit_args, %obj_args) {
+        # Create and add right away.
+        my $attr := $meta_attr.new(|%lit_args, |%obj_args);
+        $obj.HOW.add_attribute($obj, $attr);
+        
+        # Emit code to create and add it when deserializing.
+        my $create_call := PAST::Op.new(
+            :pasttype('callmethod'), :name('new'),
+            self.get_object_sc_ref_past($meta_attr)
+        );
+        for %lit_args {
+            $create_call.push(PAST::Val.new( :value($_.value), :named($_.key) ));
+        }
+        for %obj_args {
+            my $lookup := self.get_object_sc_ref_past($_.value);
+            $lookup.named($_.key);
+            $create_call.push($lookup);
+        }
+        my $obj_slot_past := self.get_slot_past_for_object($obj);
+        self.add_event(:deserialize_past(PAST::Op.new(
+            :pasttype('callmethod'), :name('add_attribute'),
+            PAST::Op.new( :pirop('get_how PP'), $obj_slot_past ),
+            $obj_slot_past,
+            $create_call
+        )));
+    }
+    
     # Composes the package, and stores an event for this action.
     method pkg_compose($obj) {
         # Compose.

@@ -964,40 +964,30 @@ class Perl6::Actions is HLL::Actions {
         my $BLOCK := $*ST.cur_lexpad();
 
         if $*SCOPE eq 'has' {
-            # Find the current package and add the attribute.
+            # Ensure current package can take attributes.
+            unless pir::can($*PACKAGE.HOW, 'add_attribute') {
+                $/.CURSOR.panic("A $*PKGDECL cannot have attributes");
+            }
+            
+            # Create meta-attribute and add it.
             my $attrname := ~$sigil ~ '!' ~ $desigilname;
-            our @PACKAGE;
-            unless +@PACKAGE {
-                $/.CURSOR.panic("Cannot declare an attribute outside of a package");
-            }
-            if @PACKAGE[0].has_attribute($attrname) {
-                $/.CURSOR.panic("Cannot re-declare attribute " ~ $attrname);
-            }
-            my %attr_info;
-            %attr_info<name>      := $attrname;
-            %attr_info<type>      := $*TYPENAME;
-            %attr_info<accessor>  := $twigil eq '.' ?? 1 !! 0;
-            if $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'rw') {
-                %attr_info<rw> := 1;
-            }
-            if $trait_list && has_compiler_trait_with_val($trait_list, '&trait_mod:<is>', 'readonly') {
-                %attr_info<rw> := 0;
-            }
-            my $has_handles := has_compiler_trait($trait_list, '&trait_mod:<handles>');
-            if $has_handles {
-                %attr_info<handles> := $has_handles[0];
-            }
-            @PACKAGE[0].attributes.push(%attr_info);
-
+            my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
+            $*ST.pkg_add_attribute($*PACKAGE, $metaattr, 
+                hash(
+                    name => $attrname,
+                    has_accessor => $twigil eq '.'
+                ),
+                hash( 
+                    type => $*TYPENAME ?? $*TYPENAME[0].ast !! $*ST.find_symbol(['Mu'])
+                ));
+            
             # If no twigil, note $foo is an alias to $!foo.
             if $twigil eq '' {
                 $BLOCK.symbol($name, :attr_alias($attrname));
             }
 
-            # Nothing to emit here; just hand  back an empty node, but also
-            # annotate it with the attribute table.
+            # Nothing to emit here; just hand  back an empty node.
             $past := PAST::Op.new( :pasttype('null') );
-            $past<attribute_data> := %attr_info;
         }
         else {
             # Not an attribute - need to emit delcaration here.

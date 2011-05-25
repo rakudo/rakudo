@@ -18,6 +18,7 @@ my class BOOTSTRAPATTR {
     has $!type;
     method name() { $!name }
     method type() { $!type }
+    method compose($obj) { }
 }
 
 # class Mu { ... }

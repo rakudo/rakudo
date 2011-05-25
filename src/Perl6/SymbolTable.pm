@@ -172,6 +172,37 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
     }
     
+    # Installs a symbol into the package. Does so immediately, and
+    # makes sure this happens on deserialization also.
+    method install_package_symbol($package, $symbol, $obj) {
+        my @sym := pir::split('::', $symbol);
+        my $name := ~@sym.pop();
+        
+        # Install symbol immediately.
+        my $target := $package;
+        for @sym {
+            # XXX Fix...
+            pir::die("Cannot handle multi-part names yet!");
+            #$target := pir::perl6_get_package_through_who__PPs($target, $_);
+        }
+        ($target.WHO){$name} := $obj;
+        
+        # Add deserialization installation of the symbol.
+        my $path := self.get_slot_past_for_object($package);
+        for @sym {
+            $path := PAST::Op.new(:pirop('perl6_get_package_through_who PPs'), $path, ~$_);
+        }
+        self.add_event(:deserialize_past(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new(
+                :scope('keyed'),
+                PAST::Op.new( :pirop('get_who PP'), $path ),
+                $name
+            ),
+            self.get_slot_past_for_object($obj)
+        )));
+    }
+    
     # Creates a parameter object.
     method create_parameter(%param_info) {
         # Create parameter object now.

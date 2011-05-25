@@ -938,6 +938,12 @@ grammar Perl6::Grammar is HLL::Grammar {
                                 $/.CURSOR.panic("Cannot use multi-part package name with 'my' scope");
                             }
                         }
+                        elsif $*SCOPE eq 'our' {
+                            $*ST.install_package_symbol($*OUTERPACKAGE, ~$longname<name>, $*PACKAGE);
+                            if +$longname<name><morename> == 0 {
+                                $*ST.install_lexical_symbol($outer, ~$longname<name>, $*PACKAGE);
+                            }
+                        }
                         else {
                             $/.CURSOR.panic("Cannot use $*SCOPE scope with $*PKGDECL");
                         }

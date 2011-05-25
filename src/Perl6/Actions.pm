@@ -1168,11 +1168,16 @@ class Perl6::Actions is HLL::Actions {
 
         # Install method.
         if $<longname> {
+            # Ensure that current package supports methods.
+            my $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
+            unless pir::can($*PACKAGE.HOW, $meta_meth) {
+                my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
+                $/.CURSOR.panic("Cannot add a $nocando to a $*PKGDECL");
+            }
+        
             # Add to methods table.
             my $name := $<longname>.Str;
-            $*ST.pkg_add_method($*PACKAGE,
-                ($*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method'),
-                $name, $code);
+            $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
             
             # Install PAST block so that it gets capture_lex'd correctly.
             my $outer := $*ST.cur_lexpad();

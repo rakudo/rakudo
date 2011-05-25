@@ -879,6 +879,7 @@ class Perl6::Actions is HLL::Actions {
             $block.push($<statementlist>.ast);
             $block.node($/);
         }
+        $block.blocktype('immediate');
         
         # If it's a stub, add it to the "must compose at some point" list,
         # then just evaluate to the type object. Don't need to do any more
@@ -897,6 +898,7 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $*PKGDECL eq 'role' {
             $*ST.install_lexical_symbol($block, '$?ROLE', $*PACKAGE);
+            $block.blocktype('declaration');
         }
         
         # Compose.

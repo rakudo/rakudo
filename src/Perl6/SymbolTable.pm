@@ -126,7 +126,6 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $fixups := PAST::Stmts.new();
         for %stash {
             # Install the imported symbol directly as a block symbol.
-            say("# Importing " ~ $_.key);
             $target.symbol($_.key, :scope('lexical'), :value($_.value));
             $target[0].push(PAST::Var.new( :scope('lexical'), :name($_.key), :isdecl(1) ));
             
@@ -206,11 +205,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Creates a parameter object.
     method create_parameter(%param_info) {
         # Create parameter object now.
-        say("# Creating parameter object for " ~ %param_info<variable_name>);
         my $par_type  := self.find_symbol(['Parameter']);
         my $parameter := pir::repr_instance_of__PP($par_type);
         my $slot      := self.add_object($parameter);
-        say("# ... slot $slot");
         
         # Create PAST to make it when deserializing.
         my $set_attrs := PAST::Stmts.new();
@@ -363,7 +360,6 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Compile and return.
         my $pir := PAST::Compiler.compile($past, :target('pir'));
-        say($pir);
         PAST::Compiler.compile($past)
     }
     

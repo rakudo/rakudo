@@ -1,17 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 25th May 2011
-
-## Method improvements
-Complain if the target package doesn't support .^add_[multi_]?method.
-Add default invocant with type if no user-defined invocant is supplied.
-
-## Stashes and package scope
-Get package scope basically working, including lexical packages.
-
-## Get attributes working
-Finish up enough so a (typed) attribute can be declared. Check for use
-of attributes that are not declared. Update attribute access code.
+Last Updated 26th May 2011
 
 ## String and Int literals
 Get these to work, make sure we add them to SC (e.g. so we have them as
@@ -25,6 +14,10 @@ Add back various operators like the arithmetic ones.
 
 ## Containers
 Examine container bits.
+
+## Get attributes working
+Finish up enough so a (typed) attribute can be declared. Check for use
+of attributes that are not declared. Update attribute access code.
 
 ## Object construction
 new, bless, CREATE, BUILDALL, BUILD handling.
@@ -52,6 +45,9 @@ Get them working. We'll have the parametric role support to do that now.
 * Implement SubsetHOW, make it work with the syntax
 * Try to implement enumerations
 * Some support for augment
+
+## Multi-part and nested packages
+Nested may just work already...multi-part is relatively easy.
 
 ## Restore other setting bits
 Bring back in everything that was ripped out. Probably many our things

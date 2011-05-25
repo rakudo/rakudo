@@ -1,6 +1,23 @@
 use NQPHLL;
 use Perl6::ModuleLoader;
 
+# Binder constants.
+# XXX Want constant syntax in NQP really.
+my $SIG_ELEM_BIND_CAPTURE       := 1;
+my $SIG_ELEM_BIND_PRIVATE_ATTR  := 2;
+my $SIG_ELEM_BIND_PUBLIC_ATTR   := 4;
+my $SIG_ELEM_SLURPY_POS         := 8;
+my $SIG_ELEM_SLURPY_NAMED       := 16;
+my $SIG_ELEM_SLURPY_BLOCK       := 32;
+my $SIG_ELEM_INVOCANT           := 64;
+my $SIG_ELEM_MULTI_INVOCANT     := 128;
+my $SIG_ELEM_IS_RW              := 256;
+my $SIG_ELEM_IS_COPY            := 512;
+my $SIG_ELEM_IS_PARCEL          := 1024;
+my $SIG_ELEM_IS_OPTIONAL        := 2048;
+my $SIG_ELEM_ARRAY_SIGIL        := 4096;
+my $SIG_ELEM_HASH_SIGIL         := 8192;
+
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
 class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
@@ -185,6 +202,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         pir::setattribute__vPPsP($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
         $set_attrs.push(self.set_attribute($parameter, $par_type, '$!nominal_type',
             self.get_object_sc_ref_past(%param_info<nominal_type>)));
+        
+        # Calculate and set flags.
+        # XXX Many more to do.
+        my $flags := 0;
+        if %param_info<is_invocant> {
+            $flags := $flags + $SIG_ELEM_INVOCANT;
+        }
+        pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
+        $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
+            '$!flags', $flags, int));
         
         # XXX Set up other various attribute values.
         

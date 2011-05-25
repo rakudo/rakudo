@@ -1158,8 +1158,9 @@ class Perl6::Actions is HLL::Actions {
             $*ST.create_signature([]);
         add_signature_binding_code($past, $signature);
         
-        # XXX Implicit invocant; *%_.
-        #$past.symbol('self', :scope('lexical'));
+        # Place to store invocant.
+        $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1) ));
+        $past.symbol('self', :scope('lexical'));
 
         # Create code object.
         my $type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
@@ -1507,9 +1508,36 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method signature($/) {
-        my @parameters;
+        # Fix up parameters with flags according to the separators.
+        my @parameter_infos;
+        my $param_idx := 0;
         for $<parameter> {
-            @parameters.push($_.ast);
+            my %info := $_.ast;
+            my $sep := @*seps[$param_idx];
+            if ~$sep eq ':' {
+                if $param_idx != 0 {
+                    $/.CURSOR.panic("Can only use : in a signature after the first parameter");
+                }
+                %info<is_invocant> := 1;
+            }
+            @parameter_infos.push(%info);
+            $param_idx := $param_idx + 1;
+        }
+        
+        # If an invocant is demanded and we ain't got one, add it.
+        if $*WANT_INVOCANT {
+            unless @parameter_infos[0]<is_invocant> {
+                @parameter_infos.unshift(hash(
+                    nominal_type => $*PACKAGE,
+                    is_invocant => 1
+                ));
+            }
+        }
+        
+        # Create Parameter objects, and a Signature object.
+        my @parameters;
+        for @parameter_infos {
+            @parameters.push($*ST.create_parameter($_));
         }
         make $*ST.create_signature(@parameters);
     }
@@ -1533,8 +1561,8 @@ class Perl6::Actions is HLL::Actions {
         %*PARAM_INFO<is_parcel>    := $quant eq '\\';
         %*PARAM_INFO<is_capture>   := $quant eq '|';
         
-        # Create parameter object.
-        make $*ST.create_parameter(%*PARAM_INFO);
+        # Result is the parameter info hash.
+        make %*PARAM_INFO;
     }
 
     method param_var($/) {

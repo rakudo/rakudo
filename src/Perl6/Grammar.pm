@@ -1105,8 +1105,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
             <.newpad>
             [
-                | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
-                | [ '(' <multisig> ')' ]? <trait>*
+                | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig(1)> ')' ]? <trait>*
+                | [ '(' <multisig(1)> ')' ]? <trait>*
                 | <?>
             ]
             { $*IN_DECL := ''; }
@@ -1146,9 +1146,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     # XXX Not really implemented yet.
-    rule multisig {
+    rule multisig($want_invocant = 0) {
         :my $*SCOPE := 'my';
-        <signature>
+        <signature($want_invocant)>
     }
 
     token fakesignature {
@@ -1157,7 +1157,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         { $*ST.pop_lexpad() }
     }
 
-    token signature {
+    token signature($*WANT_INVOCANT = 0) {
         :my $*IN_DECL := 'sig';
         :my $*zone := 'posreq';
         :my @*seps := pir::new__PS('ResizablePMCArray');

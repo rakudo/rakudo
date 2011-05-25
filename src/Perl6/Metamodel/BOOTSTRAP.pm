@@ -10,6 +10,12 @@
 # parameters and a code objects with dispatchees, which in turn need
 # attributes. So, we set up quite a few bits in here, though the aim
 # is to keep it "lagom". :-)
+#
+# Note that we do pay the cost of doing this every startup *for now*.
+# In the medium term, we'll have bounded serialization. Then we'll likley
+# do all of this in a BEGIN block and it'll get serialized and thus loading
+# it will just be deserialization - hopefully! :) Note that said BEGIN will
+# likely end up being in the setting itself, not in here, also.
 
 # Bootstrapping Attribute class that we eventually replace with the read
 # one.
@@ -114,6 +120,36 @@ my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
 Method.HOW.add_parent(Method, Routine);
 Method.HOW.publish_parrot_vtable_handler_mapping(Method);
 
+# Set up Stash type, using a Parrot hash under the hood for storage.
+my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
+Stash.HOW.add_parent(Stash, Cool);
+Stash.HOW.add_attribute(Stash, BOOTSTRAPATTR.new(:name<$!symbols>, :type(Mu)));
+Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_pmc_keyed', '$!symbols');
+Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_pmc_keyed_str', '$!symbols');
+Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'set_pmc_keyed', '$!symbols');
+Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'set_pmc_keyed_str', '$!symbols');
+Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
+
+# Set this Stash type for the various types of package.
+Perl6::Metamodel::PackageHOW.set_stash_type(Stash);
+Perl6::Metamodel::ModuleHOW.set_stash_type(Stash);
+Perl6::Metamodel::NativeHOW.set_stash_type(Stash);
+Perl6::Metamodel::ClassHOW.set_stash_type(Stash);
+
+# Give everything we've set up so far a Stash.
+Perl6::Metamodel::ClassHOW.add_stash(Mu);
+Perl6::Metamodel::ClassHOW.add_stash(Any);
+Perl6::Metamodel::ClassHOW.add_stash(Cool);
+Perl6::Metamodel::ClassHOW.add_stash(Attribute);
+Perl6::Metamodel::ClassHOW.add_stash(Signature);
+Perl6::Metamodel::ClassHOW.add_stash(Parameter);
+Perl6::Metamodel::ClassHOW.add_stash(Code);
+Perl6::Metamodel::ClassHOW.add_stash(Block);
+Perl6::Metamodel::ClassHOW.add_stash(Routine);
+Perl6::Metamodel::ClassHOW.add_stash(Sub);
+Perl6::Metamodel::ClassHOW.add_stash(Method);
+Perl6::Metamodel::ClassHOW.add_stash(Stash);
+
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
     our module DEFAULT {
@@ -128,5 +164,6 @@ my module EXPORT {
         $?PACKAGE.WHO<Routine>   := Routine;
         $?PACKAGE.WHO<Sub>       := Sub;
         $?PACKAGE.WHO<Method>    := Method;
+        $?PACKAGE.WHO<Stash>     := Stash;
     }
 }

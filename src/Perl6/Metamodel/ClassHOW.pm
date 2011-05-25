@@ -1,6 +1,7 @@
 class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Versioning
+    does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::MultiMethodContainer
@@ -13,7 +14,7 @@ class Perl6::Metamodel::ClassHOW
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
-        pir::repr_type_object_for__PPS($metaclass, $repr);
+        self.add_stash(pir::repr_type_object_for__PPS($metaclass, $repr));
     }
 
     method compose($obj) {

@@ -128,6 +128,7 @@ Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_pmc_keyed', '$!symbols')
 Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_pmc_keyed_str', '$!symbols');
 Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'set_pmc_keyed', '$!symbols');
 Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'set_pmc_keyed_str', '$!symbols');
+Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_iter', '$!symbols');
 Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
 
 # Set this Stash type for the various types of package.

@@ -227,8 +227,8 @@ $(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref
 		$(PMC_DIR)/objectref.pmc
 
 ##  testing targets
-Test.pir: Test.pm perl6.pbc
-	$(PARROT) $(PARROT_ARGS) perl6.pbc $(STAGESTATS) --target=pir --output=Test.pir Test.pm
+Test.pir: Test.pm $(PERL6_PBC)
+	$(PARROT) $(PARROT_ARGS) $(PERL6_PBC) $(STAGESTATS) --target=pir --output=Test.pir Test.pm
 
 test    : coretest
 

@@ -218,7 +218,7 @@ just here so postcircumfix:[ ] doesn't explode).
 
 =cut
 
-.sub 'elems' :vtable('elements')
+.sub 'elems' :vtable('elements') :subid('Role.vtable_elements')
     x_enter_sublog
     $P0 = getattribute self, '$!selector'
     $I0 = elements $P0
@@ -293,7 +293,7 @@ Role objects serve as type objects and thus should be undefined.
 
 =cut
 
-.sub 'Str' :method :vtable('get_string')
+.sub 'Str' :method :vtable('get_string') :subid('Role.vtable_get_string')
     x_enter_sublog
     $P0 = getattribute self, '$!shortname'
     $S0 = 'ANON'

@@ -46,7 +46,7 @@ Returns the current item in the iteration, and updates the lookahead.
 
 =cut
 
-.sub '' :vtable('shift_pmc')
+.sub '' :vtable('shift_pmc') :subid('ParrotIter.vtable_shift_pmc')
     .local pmc items, value
     items = self.'!fill'(1)
     null value
@@ -62,7 +62,7 @@ Reify one element to see if we've reached the end.
 
 =cut
 
-.sub '' :vtable('get_bool')
+.sub '' :vtable('get_bool') :subid('ParrotIter.vtable_get_bool')
     .local pmc items
     items = self.'!fill'(1)
     $I0 = istrue items

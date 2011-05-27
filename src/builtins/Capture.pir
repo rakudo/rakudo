@@ -75,7 +75,7 @@ The number of positional elements in the Capture.
 
 =cut
 
-.sub 'elems' :method :vtable('elements')
+.sub 'elems' :method :vtable('elements') :subid('Capture.vtable_get_elements')
     x_enter_sublog
     $P0 = getattribute self, '$!pos'
     $I0 = elements $P0

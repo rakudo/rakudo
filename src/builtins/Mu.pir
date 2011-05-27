@@ -401,9 +401,10 @@ Gets the object's identity value
 =cut
 
 .namespace ['Mu']
-.sub '' :vtable('concatenate') :method
+.sub '' :vtable('concatenate') :method :subid('Mu.vtable_concatentate')
     .param pmc arg
     .param pmc dest
+    x_enter_sublog
     $S0 = self
     $S1 = arg
     $S2 = concat $S0, $S1
@@ -411,75 +412,88 @@ Gets the object's identity value
     .return ($P2)
 .end
 
-.sub '' :vtable('concatenate_str') :method
+.sub '' :vtable('concatenate_str') :method :subid('Mu.vtable_concatenate_str')
     .param string arg
     .param pmc dest
+    x_enter_sublog
     $S0 = self
     $S1 = concat $S0, arg
     $P1 = box $S1
     .return ($P1)
 .end
 
-.sub '' :vtable('decrement') :method
+.sub '' :vtable('decrement') :method :subid('Mu.vtable_decrement')
+    x_enter_sublog
     $P0 = self.'pred'()
     '&infix:<=>'(self, $P0)
     .return(self)
 .end
 
-.sub '' :vtable('defined') :method
+.sub '' :vtable('defined') :method :subid('Mu.vtable_defined')
+    x_enter_sublog
     $I0 = self.'defined'()
     .return ($I0)
 .end
 
-.sub '' :vtable('elements') :method
+.sub '' :vtable('elements') :method :subid('Mu.vtable_elements')
+    x_enter_sublog
     $I0 = self.'elems'()
     .return ($I0)
 .end
 
-.sub '' :vtable('get_bool') :method
+.sub '' :vtable('get_bool') :method :subid('Mu.vtable_get_bool')
+    x_enter_sublog
     $I0 = self.'Bool'()
     .return ($I0)
 .end
 
-.sub '' :vtable('get_integer') :method
+.sub '' :vtable('get_integer') :method :subid('Mu.vtable_get_integer')
+    x_enter_sublog
     .tailcall self.'Int'()
 .end
 
-.sub '' :vtable('get_iter') :method
+.sub '' :vtable('get_iter') :method :subid('Mu.vtable_get_iter')
+    x_enter_sublog
     $P0 = self.'iterator'()
     $P1 = get_hll_global 'ParrotIter'
     $P1 = $P1.'new'($P0)
     .return ($P1)
 .end
 
-.sub '' :vtable('get_string') :method
+.sub '' :vtable('get_string') :method :subid('Mu.vtable_get_string')
+    x_enter_sublog
     $S0 = self.'Str'()
     .return ($S0)
 .end
 
-.sub '' :vtable('get_string_keyed_int') :method
+.sub '' :vtable('get_string_keyed_int') :method :subid('Mu.vtable_get_string_keyed_int')
     .param int i
+    x_enter_sublog
     $S0 = self.'postcircumfix:<[ ]>'(i)
     .return ($S0)
 .end
 
-.sub '' :vtable('get_number') :method
+.sub '' :vtable('get_number') :method :subid('Mu.vtable_get_number')
+    x_enter_sublog
     $N0 = self.'Num'()
     .return ($N0)
 .end
 
-.sub '' :vtable('increment') :method
+.sub '' :vtable('increment') :method :subid('Mu.vtable_increment')
+    x_enter_sublog
     $P0 = self.'succ'()
     '&infix:<=>'(self, $P0)
     .return (self)
 .end
 
-.sub '' :vtable('shift_pmc') :method
+.sub '' :vtable('shift_pmc') :method :subid('Mu.vtable_shift_pmc')
+    x_enter_sublog
     .tailcall self.'shift'()
 .end
 
-.sub '' :vtable('push_pmc') :method
+.sub '' :vtable('push_pmc') :method :subid('Mu.vtable_push_pmc')
     .param pmc value
+    x_enter_sublog
     .tailcall self.'push'(value)
 .end
 

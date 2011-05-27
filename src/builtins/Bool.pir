@@ -47,7 +47,7 @@ symbols for C<Bool::True> and C<Bool::False>.
     .return ($P0)
 .end
 
-.sub '' :method :vtable('get_string')
+.sub '' :method :vtable('get_string') :subid('Bool.vtable_get_string')
     if self goto true
     .return ('Bool::False')
   true:

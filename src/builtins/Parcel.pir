@@ -25,7 +25,7 @@ elements and can be flattened into Captures or Lists.
 .end
 
 
-.sub '' :vtable('get_string') :method
+.sub '' :vtable('get_string') :method :subid('Parcel.vtable_get_string')
     $S0 = self.'Str'()
     .return ($S0)
 .end

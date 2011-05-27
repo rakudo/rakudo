@@ -76,7 +76,7 @@ Just calls this block with the supplied parameters.
 
 =cut
 
-.sub 'callwith' :method :vtable('invoke')
+.sub 'callwith' :method :vtable('invoke') :subid('Code.vtable_invoke')
     .param pmc pos_args    :slurpy
     .param pmc named_args  :slurpy :named
     x_enter_sublog

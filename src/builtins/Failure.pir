@@ -59,7 +59,7 @@ A Perl 6 Exception object.
   okay:
 .end
 
-.sub '' :vtable('get_bool') :method
+.sub '' :vtable('get_bool') :method :subid('Failure.vtable_get_bool')
     $I0 = self.'Bool'()
     .return ($I0)
 .end
@@ -80,12 +80,12 @@ A Perl 6 Exception object.
     .return ($P0)
 .end
 
-.sub '' :vtable('defined') :method
+.sub '' :vtable('defined') :method :subid('Failure.vtable_defined')
     $I0 = self.'defined'()
     .return ($I0)
 .end
 
-.sub '' :vtable('get_string') :method
+.sub '' :vtable('get_string') :method :subid('Failure.vtable_get_string')
     $S0 = self.'Str'()
     .return ($S0)
 .end
@@ -99,7 +99,7 @@ A Perl 6 Exception object.
     .return ($S0)
 .end
 
-.sub '' :vtable('get_number') :method
+.sub '' :vtable('get_number') :method :subid('Failure.vtable_get_number')
     $S0 = self.'Num'()
     .return ($S0)
 .end
@@ -111,7 +111,7 @@ A Perl 6 Exception object.
     .return ($N0)
 .end
 
-.sub '' :vtable('get_integer') :method
+.sub '' :vtable('get_integer') :method :subid('Failure.vtable_get_integer')
     $S0 = self.'Int'()
     .return ($S0)
 .end
@@ -123,7 +123,7 @@ A Perl 6 Exception object.
     .return ($I0)
 .end
 
-.sub '' :vtable('invoke') :method
+.sub '' :vtable('invoke') :method :subid('Failure.vtable_invoke')
     .param pmc pos   :slurpy
     .param pmc named :slurpy :named
     $P0 = self.'exception'()

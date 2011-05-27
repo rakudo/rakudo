@@ -275,7 +275,7 @@ Return the components of the Junction.
 =cut
 
 .namespace ['Junction']
-.sub '' :method :vtable('get_bool')
+.sub '' :method :vtable('get_bool') :subid('Junction.vtable_get_bool')
     $I0 = self.'Bool'()
     .return ($I0)
 .end

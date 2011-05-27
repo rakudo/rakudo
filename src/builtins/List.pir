@@ -324,7 +324,7 @@ This file implements Perl 6 lists.
     
 
 .namespace ['List']
-.sub '' :vtable('get_pmc_keyed_int')
+.sub '' :vtable('get_pmc_keyed_int') :subid('List.vtable_get_pmc_keyed_int')
     .param int key
     .tailcall self.'postcircumfix:<[ ]>'(key)
 .end

@@ -39,9 +39,10 @@ A Parcel in item context becomes a Seq.
 
 .sub 'item' :method
     x_enter_sublog
+    $P0 = descalarref self
     .local pmc seq
     seq = get_hll_global 'Seq'
-    seq = seq.'new_from_RPA'(self)
+    seq = seq.'new'($P0)
     seq = seq.'item'()
     .return (seq)
 .end

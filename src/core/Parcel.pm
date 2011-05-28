@@ -1,4 +1,7 @@
 augment class Parcel does Positional {
+    # methods defined in src/builtins/Parcel.pir:
+    #    .item .iterator .perl .Bool .Capture !STORE
+
     method Str() { self.flat.Str }
 
     method elems() { self.flat.elems }
@@ -21,5 +24,9 @@ augment class Parcel does Positional {
         self.elems == 0
             ?? !$x.defined || ($x ~~ Positional && $x == 0)
             !! self.Seq.ACCEPTS($x)
+    }
+
+    multi method hash() {
+        my %h = self;
     }
 }

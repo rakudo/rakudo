@@ -1,4 +1,7 @@
 augment class Iterable {
+    # N.B.: methods defined in src/builtins/Iterable.pir
+    #     .item
+
     multi method Numeric() { $.elems.Int }
 
     multi method Int() { $.elems.Int }

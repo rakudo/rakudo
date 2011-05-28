@@ -1,5 +1,5 @@
 augment class Parcel does Positional {
-    # methods defined in src/builtins/Parcel.pir:
+    # N.B.: methods defined in src/builtins/Parcel.pir:
     #    .item .iterator .perl .Bool .Capture !STORE
 
     method Str() { self.flat.Str }

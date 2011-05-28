@@ -1,7 +1,7 @@
 augment class List does Positional {
     # N.B.: methods defined in src/builtins/List.pir:
-    #    .new, .eager, .elems, .flat, .item, .iterator,
-    #    .list, .munch, .perl, !fill
+    #    .new, .Capture, .eager, .elems, .flat, .iterator,
+    #    .list, .munch, !fill, !splice
 
     method Bool() {
         self!fill(1) ?? Bool::True !! Bool::False;

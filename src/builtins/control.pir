@@ -221,11 +221,19 @@ on the number of elements.
     throw e
 .end
 
-=item take
+=item take and take-rw
 
 =cut
 
 .sub '&take'
+    .param pmc values :slurpy
+    x_enter_sublog
+    values = '&take-rw'(values :flat)
+    .return (values)
+.end
+    
+
+.sub '&take-rw'
     .param pmc values :slurpy
     x_enter_sublog
     .local pmc ex, p6ex

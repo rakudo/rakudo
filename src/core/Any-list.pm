@@ -59,7 +59,7 @@ augment class Any {
     our multi method grep(Mu $test) is rw {
         gather {
             for @.list {
-                take $_ if $_ ~~ $test;
+                take-rw $_ if $_ ~~ $test;
             }
         }
     }
@@ -273,7 +273,7 @@ augment class Any {
         gather for $.list -> $value {
             my $key = $i++;
             take $key;
-            take $value;
+            take-rw $value;
         }
     }
 
@@ -287,7 +287,7 @@ augment class Any {
 
     multi method values() is rw {
         gather for $.list -> $value {
-            take $value;
+            take-rw $value;
         }
     }
 

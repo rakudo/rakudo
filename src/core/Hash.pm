@@ -1,5 +1,5 @@
 role Hash is EnumMap {
-    method at_key($key) {
+    method at_key($key) is rw {
         my $z = Any!butWHENCE(
                     { pir::set__vQsP($!storage, $key, $z); }
                 );

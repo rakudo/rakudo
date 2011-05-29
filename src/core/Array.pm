@@ -1,5 +1,5 @@
 augment class Array {
-    method at_pos($pos) {
+    method at_pos($pos) is rw {
         my $z = Any!butWHENCE(
                     { pir::set__vQiP(self!fill($pos+1), $pos, $z) }
                 );

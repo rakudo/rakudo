@@ -26,7 +26,7 @@ augment class List does Positional {
         self.map({ .fmt($format) }).join($separator);
     }
 
-    multi method map(&block) {
+    multi method map(&block) is rw {
         Q:PIR {
             .local pmc self, mapiter, block
             mapiter = new ['MapIter']
@@ -44,7 +44,7 @@ augment class List does Positional {
         '(' ~ self.map({ $^a.perl }).join(', ') ~ ')';
     }
 
-    method reverse() {
+    method reverse() is rw {
         if self.elems ~~ Inf {
             fail "Cannot reverse an infinite list"
         }
@@ -144,7 +144,7 @@ augment class List does Positional {
         !$tseq;
     }
 
-    method at_pos($pos) {
+    method at_pos($pos) is rw {
         Q:PIR {
             .local pmc self, pos, items
             self = find_lex 'self'

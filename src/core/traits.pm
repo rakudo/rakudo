@@ -24,6 +24,10 @@ our multi trait_mod:<is>(Routine $r, :$default!) {
     $r does role { method default { True } }
 }
 
+our multi trait_mod:<is>(Routine $r, :$rw!) {
+    $r does role { method rw { True } }
+}
+
 our multi trait_mod:<hides>(Mu $child, Mu $parent) {
     trait_mod:<is>($child, $parent);
     $child.^hides.push($parent);

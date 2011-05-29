@@ -56,7 +56,7 @@ augment class Any {
         fail('No values matched');
     }
 
-    our multi method grep(Mu $test) {
+    our multi method grep(Mu $test) is rw {
         gather {
             for @.list {
                 take $_ if $_ ~~ $test;
@@ -285,25 +285,25 @@ augment class Any {
         }
     }
 
-    multi method values() {
+    multi method values() is rw {
         gather for $.list -> $value {
             take $value;
         }
     }
 
-    multi method pairs() {
+    multi method pairs() is rw {
         self.kv.map(-> $key, $value { $key => $value; });
     }
 
-    our multi method postcircumfix:<[ ]>() { self.list }
+    our multi method postcircumfix:<[ ]>() is rw { self.list }
 
-    our multi method postcircumfix:<[ ]>(Whatever $w) { 
+    our multi method postcircumfix:<[ ]>(Whatever $w) is rw { 
         self[0..(self.elems-1)]
     }
 
-    our multi method postcircumfix:<[ ]>(&block) { self[&block(|(self.elems xx &block.count))]; }
+    our multi method postcircumfix:<[ ]>(&block) is rw { self[&block(|(self.elems xx &block.count))]; }
 
-    our multi method postcircumfix:<[ ]>(@pos) {
+    our multi method postcircumfix:<[ ]>(@pos) is rw {
         my $result = pir::new__ps('ResizablePMCArray');
         for @pos {
             pir::push($result, self[$_])
@@ -314,12 +314,12 @@ augment class Any {
         }
     }
 
-    our multi method postcircumfix:<[ ]>($pos) {
+    our multi method postcircumfix:<[ ]>($pos) is rw {
         fail "Cannot use negative index $pos on {self.WHO}" if $pos < 0;
         self.at_pos($pos)
     }
 
-    method at_pos($pos) {
+    method at_pos($pos) is rw {
         if self.defined {
             fail ".[$pos] out of range for type {self.WHAT}" if $pos != 0;
             return self;
@@ -331,15 +331,15 @@ augment class Any {
                 );
     }
 
-    our multi method postcircumfix:<{ }>() {
+    our multi method postcircumfix:<{ }>() is rw {
         self.values()
     }
 
-    our multi method postcircumfix:<{ }>(Whatever $w) {
+    our multi method postcircumfix:<{ }>(Whatever $w) is rw {
         self.{self.keys}
     }
 
-    our multi method postcircumfix:<{ }>(@keys) {
+    our multi method postcircumfix:<{ }>(@keys) is rw {
         my $result = pir::new__ps('ResizablePMCArray');
         for @keys {
             pir::push($result, self{$_})
@@ -350,9 +350,9 @@ augment class Any {
         }
     }
 
-    our multi method postcircumfix:<{ }>($key) { self.at_key($key) }
+    our multi method postcircumfix:<{ }>($key) is rw { self.at_key($key) }
 
-    method at_key($key) {
+    method at_key($key) is rw {
         fail "postcircumfix:<\{ \}> not defined for type {self.WHAT}"
             if self.defined;
         my $z = Any!butWHENCE(
@@ -365,8 +365,8 @@ augment class Any {
     # XXX Workarounds for Match objects which also ~~ Positional
     # (http://irclog.perlgeek.de/perl6/2010-09-07#i_2795277)
     # and RT #75868
-    our multi method postcircumfix:<[ ]>(Match $m) { self.[+$m] }
-    our multi method postcircumfix:<{ }>(Match $m) { self.{~$m} }
+    our multi method postcircumfix:<[ ]>(Match $m) is rw { self.[+$m] }
+    our multi method postcircumfix:<{ }>(Match $m) is rw { self.{~$m} }
 
     method !butWHENCE(&by) {
         pir::setprop__0PsP(pir::clone__PP(pir::descalarref__PP(self)), 'WHENCE', &by);

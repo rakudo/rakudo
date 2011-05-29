@@ -114,7 +114,7 @@ role Buf[::T = Int] does Stringy does Positional {
         @.contents.elems;
     }
 
-    multi method postcircumfix:<[ ]>($index) {
+    multi method postcircumfix:<[ ]>($index) is rw {
         @.contents[$index];
     }
 }

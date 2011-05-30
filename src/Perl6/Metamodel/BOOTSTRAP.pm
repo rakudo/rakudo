@@ -86,9 +86,10 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>,
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
 
 # class Code is Cool {
-#     has $!do;
-#     has $!signature;
-#     has $!dispatchees;
+#     has $!do;                # Low level code object
+#     has $!signature;         # Signature object
+#     has $!dispatchees;       # If this is a dispatcher, the dispatchee list.
+#     has $!dispatcher_info;   # Stash for any extra dispatcher info.
 #     ... # Uncomposed
 # }
 my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -96,6 +97,7 @@ Code.HOW.add_parent(Code, Cool);
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_info>, :type(Mu)));
 
 # Need to actually run the code block. Also need this available before we finish
 # up the stub.

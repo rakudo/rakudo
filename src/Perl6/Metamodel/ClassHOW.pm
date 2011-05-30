@@ -45,6 +45,18 @@ class Perl6::Metamodel::ClassHOW
 
         $obj
     }
+    
+    # Whle we normally end up locating methods through the method cache,
+    # this is here as a fallback.
+    method find_method($obj, $name) {
+        for self.mro($obj) {
+            my %methods := $_.HOW.method_table($_);
+            if pir::exists(%methods, $name) {
+                return %methods{$name}
+            }
+        }
+        pir::null__P();
+    }
 
     method publish_method_cache($obj) {
         # Walk MRO and add methods to cache, unless another method

@@ -22,8 +22,10 @@
 my class BOOTSTRAPATTR {
     has $!name;
     has $!type;
+    has $!box_target;
     method name() { $!name }
     method type() { $!type }
+    method box_target() { $!box_target }
     method compose($obj) { }
 }
 
@@ -120,6 +122,30 @@ my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
 Method.HOW.add_parent(Method, Routine);
 Method.HOW.publish_parrot_vtable_handler_mapping(Method);
 
+# class Str is Cool {
+#     has str $!value is box_target;
+#     ...
+# }
+my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
+Str.HOW.add_parent(Str, Cool);
+Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1)));
+
+# class Int is Cool {
+#     has int $!value is box_target;
+#     ...
+# }
+my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
+Int.HOW.add_parent(Int, Cool);
+Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1)));
+
+# class Num is Cool {
+#     has num $!value is box_target;
+#     ...
+# }
+my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
+Num.HOW.add_parent(Num, Cool);
+Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1)));
+
 # Set up Stash type, using a Parrot hash under the hood for storage.
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 Stash.HOW.add_parent(Stash, Cool);
@@ -149,6 +175,9 @@ Perl6::Metamodel::ClassHOW.add_stash(Block);
 Perl6::Metamodel::ClassHOW.add_stash(Routine);
 Perl6::Metamodel::ClassHOW.add_stash(Sub);
 Perl6::Metamodel::ClassHOW.add_stash(Method);
+Perl6::Metamodel::ClassHOW.add_stash(Str);
+Perl6::Metamodel::ClassHOW.add_stash(Int);
+Perl6::Metamodel::ClassHOW.add_stash(Num);
 Perl6::Metamodel::ClassHOW.add_stash(Stash);
 
 # Build up EXPORT::DEFAULT.
@@ -165,6 +194,9 @@ my module EXPORT {
         $?PACKAGE.WHO<Routine>   := Routine;
         $?PACKAGE.WHO<Sub>       := Sub;
         $?PACKAGE.WHO<Method>    := Method;
+        $?PACKAGE.WHO<Str>       := Str;
+        $?PACKAGE.WHO<Int>       := Int;
+        $?PACKAGE.WHO<Num>       := Num;
         $?PACKAGE.WHO<Stash>     := Stash;
     }
 }

@@ -1012,15 +1012,15 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
         <sym> :my $*MULTINESS := 'multi'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed multi'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed multi'> ]
     }
     token multi_declarator:sym<proto> {
         <sym> :my $*MULTINESS := 'proto'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed proto'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed proto'> ]
     }
     token multi_declarator:sym<only> {
         <sym> :my $*MULTINESS := 'only'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def> || <.panic: 'Malformed only'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed only'> ]
     }
     token multi_declarator:sym<null> {
         :my $*MULTINESS := '';

@@ -46,7 +46,7 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
     
-    # Whle we normally end up locating methods through the method cache,
+    # While we normally end up locating methods through the method cache,
     # this is here as a fallback.
     method find_method($obj, $name) {
         for self.mro($obj) {

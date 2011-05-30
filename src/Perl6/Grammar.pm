@@ -1124,10 +1124,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
     
     token onlystar {
+        :my $*CURPAD;
         <?{ $*MULTINESS eq 'proto' }>
         '{' <.ws> '*' <.ws> '}'
         <?ENDSTMT>
         <.finishpad>
+        { $*CURPAD := $*ST.pop_lexpad() }
     }
 
     ###########################

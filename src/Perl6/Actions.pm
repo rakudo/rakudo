@@ -1082,8 +1082,9 @@ class Perl6::Actions is HLL::Actions {
 
     method routine_def($/) {
         my $block;
+        
         if $<onlystar> {
-            $block := onlystar_block();
+            $block := $<onlystar>.ast;
         }
         else {
             $block := $<blockoid>.ast;
@@ -1136,6 +1137,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             $past := create_closure($code);
         }
+        
         make $past;
     }
 
@@ -1143,7 +1145,7 @@ class Perl6::Actions is HLL::Actions {
     method method_def($/) {
         my $past;
         if $<onlystar> {
-            $past := onlystar_block();
+            $past := $<onlystar>.ast;
         }
         else {
             $past := $<blockoid>.ast;
@@ -1167,6 +1169,11 @@ class Perl6::Actions is HLL::Actions {
         # Create code object.
         my $type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
         my $code := $*ST.create_code_object($past, $type, $signature);
+        
+        # If we're a multi-dispatch entry point, add code object reference.
+        if $past<multi_enterer> {
+            $past.push($*ST.get_object_sc_ref_past($code));
+        }
 
         # Install method.
         if $<longname> {
@@ -1199,8 +1206,13 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
     
-    sub onlystar_block() {
-        make PAST::Op.new( :pirop('die vS'), 'multi-dispatch not yet implemented');
+    method onlystar($/) {
+        my $BLOCK := $*CURPAD;
+        my $enterer := PAST::Op.new( :pirop('perl6_enter_multi_dispatch PP') );
+        $BLOCK<multi_enterer> := $enterer;
+        $BLOCK.push($enterer);
+        $BLOCK.node($/);
+        make $BLOCK;
     }
 
     sub install_method($/, $code, $name, %table) {

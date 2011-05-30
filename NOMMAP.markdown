@@ -1,14 +1,10 @@
 # Roadmap for "nom" Branch
 
-Last Updated 26th May 2011
-
-## String and Int literals
-Get these to work, make sure we add them to SC (e.g. so we have them as
-real constants, not creating them every time).
+Last Updated 30th May 2011
 
 ## proto and multi subs
 Get proto and multi subs in place, along with the new semantics for them.
-  
+
 ## Various operators in the setting
 Add back various operators like the arithmetic ones.
 

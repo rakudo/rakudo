@@ -363,6 +363,49 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         PAST::Compiler.compile($past)
     }
     
+    # Adds a constant value to the constants table. Returns PAST to do
+    # the lookup of the constant.
+    method add_constant($type, $primitive, $value) {
+        # Find type object for the box typed we'll create.
+        # On deserialization, we'll need to look it up too.
+        my $type_obj := self.find_symbol([$type]);
+        my $type_obj_lookup := self.get_object_sc_ref_past($type_obj);
+        
+        # Go by the primitive type we're boxing. Need to create
+        # the boxed value and also code to produce it.
+        my $constant;
+        my $des;
+        if $primitive eq 'int' {
+            $constant := pir::repr_box_int__PiP($value, $type_obj);
+            $des := PAST::Op.new( :pirop('repr_box_int PiP'), $value, $type_obj_lookup );
+        }
+        elsif $primitive eq 'str' {
+            $constant := pir::repr_box_str__PsP($value, $type_obj);
+            $des := PAST::Op.new( :pirop('repr_box_str PsP'), $value, $type_obj_lookup );
+        }
+        elsif $primitive eq 'num' {
+            $constant := pir::repr_box_num__PnP($value, $type_obj);
+            $des := PAST::Op.new( :pirop('repr_box_num PnP'), $value, $type_obj_lookup );
+        }
+        else {
+            pir::die("Don't know how to build a $primitive constant");
+        }
+        
+        # Add to SC, finish up deserialization code.
+        my $slot := self.add_object($constant);
+        self.add_event(:deserialize_past(
+            self.set_slot_past($slot, self.set_cur_sc($des))
+        ));
+        
+        # Build PAST for getting the boxed constant from the constants
+        # table, but also annotate it with the constant itself in case
+        # we need it.
+        my $past := self.get_slot_past_for_object($constant);
+        $past<has_compile_time_value> := 1;
+        $past<compile_time_value> := $constant;
+        return $past;
+    }
+    
     # Creates a meta-object for a package, adds it to the root objects and
     # stores an event for the action. Returns the created object.
     method pkg_create_mo($how, :$name, :$repr) {

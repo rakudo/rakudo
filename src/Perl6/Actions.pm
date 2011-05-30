@@ -1686,7 +1686,7 @@ class Perl6::Actions is HLL::Actions {
         # Handle is repr specially.
         if ~$<longname> eq 'repr' {
             if $<circumfix> {
-                $*REPR := $<circumfix>[0].ast[0].value;
+                $*REPR := compile_time_value_str($<circumfix>[0].ast[0], "is repr(...) trait", $/);
             }
             else {
                 $/.cursor.panic("is repr(...) trait needs a parameter");
@@ -2442,6 +2442,8 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method number:sym<complex>($/) {
+        # XXX Work out at compile time, then...
+        # make $*ST.add_constant('Complex', 'complex', [$re, $im]);
         make PAST::Op.new(
             :pasttype('callmethod'), :name('new'),
             PAST::Var.new( :name('Complex'), :namespace(''), :scope('package') ),
@@ -2454,7 +2456,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method numish($/) {
-        if $<integer> { make PAST::Val.new( :value($<integer>.ast), :returns('Int') ); }
+        if $<integer> {
+            make $*ST.add_constant('Int', 'int', $<integer>.ast);
+        }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
         else {
@@ -2466,6 +2470,8 @@ class Perl6::Actions is HLL::Actions {
         my $int  := $<int> ?? ~$<int> !! "0";
         my $frac := $<frac> ?? ~$<frac> !! "0";
         if $<escale> {
+            # XXX Work out at compile time, then...
+            # make $*ST.add_constant('Num', 'num', $calculated);
             my $exp := ~$<escale>[0]<decint>;
             make PAST::Op.new(
                 :pasttype('call'),
@@ -2473,6 +2479,8 @@ class Perl6::Actions is HLL::Actions {
                  0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp
             );
         } else {
+            # XXX Work out at compile time, then...
+            # make $*ST.add_constant('Rat', 'rational', [$nu, $de]);
             make PAST::Op.new(
                 :pasttype('call'),
                 PAST::Var.new(:scope('package'), :name('&str2num-rat'), :namespace('Str')),
@@ -2595,9 +2603,8 @@ class Perl6::Actions is HLL::Actions {
         if $FORBID_PIR {
             pir::die("Q:PIR forbidden in safe mode\n");
         }
-        make PAST::Op.new( :inline( $<quote_EXPR>.ast.value ),
-                           :pasttype('inline'),
-                           :node($/) );
+        my $pir := compile_time_value_str($<quote_EXPR>.ast, "Q:PIR", $/);
+        make PAST::Op.new( :inline( $pir ), :pasttype('inline'), :node($/) );
     }
     method quote:sym<qx>($/) {
         make PAST::Op.new( :name('!qx'), :pasttype('call'),
@@ -2723,7 +2730,8 @@ class Perl6::Actions is HLL::Actions {
 
     method quote_escape:sym<{ }>($/) {
         make PAST::Op.new(
-            :pirop('set S*'), block_immediate($<block>.ast), :node($/)
+            :pasttype('callmethod'), :name('Stringy'),
+            block_immediate($<block>.ast), :node($/)
         );
     }
 
@@ -2732,19 +2740,15 @@ class Perl6::Actions is HLL::Actions {
     method quote_EXPR($/) {
         my $past := $<quote_delimited>.ast;
         if $/.CURSOR.quotemod_check('w') {
-            if !$past.isa(PAST::Val) {
-                $/.CURSOR.panic("Cannot form :w list from non-constant strings (yet)");
+            my @words := HLL::Grammar::split_words($/,
+                compile_time_value_str($past, ":w list", $/));
+            if +@words != 1 {
+                $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
+                for @words { $past.push($*ST.add_constant('Str', 'str', ~$_)); }
+                $past := PAST::Stmts.new($past);
             }
             else {
-                my @words := HLL::Grammar::split_words($/, $past.value);
-                if +@words != 1 {
-                    $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
-                    for @words { $past.push($_); }
-                    $past := PAST::Stmts.new($past);
-                }
-                else {
-                    $past := PAST::Val.new( :value(~@words[0]), :returns('Str') );
-                }
+                $past := $*ST.add_constant('Str', 'str', ~@words[0]);
             }
         }
         make $past;
@@ -2763,22 +2767,21 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if $lastlit gt '' {
-                    @parts.push(
-                        PAST::Val.new( :value($lastlit), :returns('Str') )
-                    );
+                    @parts.push($*ST.add_constant('Str', 'str', $lastlit));
                 }
                 @parts.push($ast);
                 $lastlit := '';
             }
         }
         if $lastlit gt '' || !@parts {
-            @parts.push(
-                PAST::Val.new( :value($lastlit), :returns('Str') )
-            );
+            @parts.push($*ST.add_constant('Str', 'str', $lastlit));
         }
-        my $past := @parts ?? @parts.shift !! '';
+        my $past := @parts ?? @parts.shift !! $*ST.add_constant('Str', 'str', '');
         while @parts {
-            $past := PAST::Op.new( $past, @parts.shift, :pirop('concat') );
+            $past := PAST::Op.new(
+                :pasttype('call'), :name('&infix:<~>'),
+                $past, @parts.shift
+            );
         }
         make $past;
     }
@@ -3177,6 +3180,18 @@ class Perl6::Actions is HLL::Actions {
         );
         add_signature($past, $sig);
         create_code_object($past, $type, 0);
+    }
+    
+    # Ensures that the given PAST node has a value known at compile
+    # time and if so obtains it. Otherwise reports an error, involving
+    # the $usage parameter to make it more helpful.
+    sub compile_time_value_str($past, $usage, $/) {
+        if $past<has_compile_time_value> {
+            pir::repr_unbox_str__SP($past<compile_time_value>);
+        }
+        else {
+            $/.CURSOR.panic("$usage must have a value known at compile time");
+        }
     }
 }
 

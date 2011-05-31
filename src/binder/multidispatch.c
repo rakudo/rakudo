@@ -347,7 +347,7 @@ static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub) {
 /*
 
 =item C<static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candidates,
-                                        INTVAL num_candidates, PMC *capture, opcode_t *next) {>
+                                        INTVAL num_candidates, PMC *capture, opcode_t *next)>
 
 Runs the Perl 6 MMD algorithm. Returns either the one winning unambiguous
 candidate or throws an error saying that the dispatch failed if there were no
@@ -570,6 +570,28 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
             "Ambiguous dispatch to multi '%Ss'. Ambiguous candidates had signatures:\n%Ss",
                 VTABLE_get_string(interp, candidates[0]->sub), signatures);
     }
+}
+
+
+/*
+
+=item C<PMC * Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, opcode_t *next)>
+
+Gets the candidate list, does sorting if we didn't already do so, and
+enters the multi dispatcher.
+
+=cut
+
+*/
+PMC *
+Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next) {
+    /* XXX Need to just sort once and cache...and have the
+     * actual multi-dispatch cache here too. */
+    Rakudo_Code *code_obj   = (Rakudo_Code *)PMC_data(dispatcher);
+    PMC         *candidates = code_obj->dispatchees;
+    INTVAL       num_cands  = VTABLE_elements(interp, candidates);
+    return find_best_candidate(interp, sort_candidates(interp, candidates),
+        num_cands, capture, next);
 }
 
 /*

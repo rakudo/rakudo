@@ -468,7 +468,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
         for (i = 0; i < type_check_count; i++) {
             PMC * const param        = VTABLE_get_pmc_keyed_int(interp, capture, i);
             PMC * const type_obj     = (*cur_candidate)->types[i];
-            if (STABLE(param)->type_check(interp, param, type_obj)) {
+            if (!STABLE(param)->type_check(interp, param, type_obj)) {
                 type_mismatch = 1;
                 break;
             }

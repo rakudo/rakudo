@@ -278,7 +278,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # body at fixup time; during the deserialize we just set the already compiled
     # output right into place. If we get a request to run the code before we did
     # really compiling it, we can do that - we just dynamically compile it.
-    method create_code_object($code_past, $type, $signature) {
+    method create_code_object($code_past, $type, $signature, $is_dispatcher = 0) {
         my $fixups := PAST::Stmts.new();
         my $des    := PAST::Stmts.new();
         
@@ -314,8 +314,34 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         pir::setattribute__vPPsP($code, $code_type, '$!signature', $signature);
         $des.push(self.set_attribute($code, $code_type, '$!signature', self.get_object_sc_ref_past($signature)));
         
+        # If this is a dispatcher, install dispatchee list that we can
+        # add the candidates too.
+        if $is_dispatcher {
+            pir::setattribute__vPPsP($code, $code_type, '$!dispatchees', []);
+            $des.push(self.set_attribute($code, $code_type, '$!dispatchees',
+                PAST::Op.new( :pasttype('list') )));
+        }
+        
         self.add_event(:deserialize_past($des), :fixup_past($fixups));
         $code;
+    }
+    
+    # Adds a multi candidate to a proto/dispatch.
+    method add_dispatchee_to_proto($proto, $candidate) {
+        # Add it to the list.
+        my $code_type := self.find_symbol(['Code']);
+        pir::getattribute__PPPs($proto, $code_type, '$!dispatchees').push($candidate);
+        
+        # Deserializatin code to add it.
+        self.add_event(:deserialize_past(PAST::Op.new(
+            :pirop('push vPP'),
+            PAST::Var.new(
+                :scope('attribute_6model'), :name('$!dispatchees'),
+                self.get_object_sc_ref_past($proto),
+                self.get_object_sc_ref_past($code_type)
+            ),
+            self.get_object_sc_ref_past($candidate)
+        )));
     }
     
     # Helper to make PAST for setting an attribute to a value. Value should

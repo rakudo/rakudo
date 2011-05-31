@@ -1104,7 +1104,13 @@ class Perl6::Actions is HLL::Actions {
         add_signature_binding_code($block, $signature);
                 
         # Create code object.
-        my $code := $*ST.create_code_object($block, 'Sub', $signature);
+        my $code := $*ST.create_code_object($block, 'Sub', $signature,
+            $*MULTINESS eq 'proto');
+            
+        # If we're a multi-dispatch entry point, add code object reference.
+        if $block<multi_enterer> {
+            $block<multi_enterer>.push($*ST.get_object_sc_ref_past($code));
+        }
         
         my $past;
         if $<deflongname> {
@@ -1118,13 +1124,30 @@ class Perl6::Actions is HLL::Actions {
             my $outer := $*ST.cur_lexpad();
             $outer[0].push($block);
 
-            # Install.
-            if $*SCOPE eq '' || $*SCOPE eq 'my' {
-                $*ST.install_lexical_symbol($outer, $name, $code);
+            # If it's a multi, need to associate it with the surrounding
+            # proto.
+            # XXX Also need to auto-multi things with a proto in scope.
+            if $*MULTINESS eq 'multi' {
+                # Locate the proto - or what we hope will be it.
+                my %proto_sym := $outer.symbol($name);
+                unless %proto_sym {
+                    $/.CURSOR.panic("proto and dispatch auto-generation for multis not yet implemented");
+                }
+                my $proto := %proto_sym<value>;
+                # XXX ensure it's actuall a proto or dispatch...
+                
+                # Install the candidate.
+                $*ST.add_dispatchee_to_proto($proto, $code);
             }
-            # XXX our ...
             else {
-                $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a sub");
+                # Install.
+                if $*SCOPE eq '' || $*SCOPE eq 'my' {
+                    $*ST.install_lexical_symbol($outer, $name, $code);
+                }
+                # XXX our ...
+                else {
+                    $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a sub");
+                }
             }
             
             # Evaluate to a ref to the code.
@@ -1168,11 +1191,12 @@ class Perl6::Actions is HLL::Actions {
 
         # Create code object.
         my $type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
-        my $code := $*ST.create_code_object($past, $type, $signature);
+        my $code := $*ST.create_code_object($past, $type, $signature,
+            $*MULTINESS eq 'proto');
         
         # If we're a multi-dispatch entry point, add code object reference.
         if $past<multi_enterer> {
-            $past.push($*ST.get_object_sc_ref_past($code));
+            $past<multi_enterer>.push($*ST.get_object_sc_ref_past($code));
         }
 
         # Install method.

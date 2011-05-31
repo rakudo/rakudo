@@ -496,7 +496,7 @@ candidate.
 =cut
 
 */
-inline op multi_dispatch_over_lexical_candidates(out PMC, in PMC) :base_core {
+inline op perl6_enter_multi_dispatch(out PMC, in PMC) :base_core {
     PMC *cur_ctx = CURRENT_CONTEXT(interp);
     PMC *chosen  = Rakudo_md_dispatch(interp, $2, cur_ctx, NULL);
     if (!PMC_IS_NULL(chosen)) {

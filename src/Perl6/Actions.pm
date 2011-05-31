@@ -1554,14 +1554,19 @@ class Perl6::Actions is HLL::Actions {
         # Fix up parameters with flags according to the separators.
         my @parameter_infos;
         my $param_idx := 0;
+        my $multi_invocant := 1;
         for $<parameter> {
             my %info := $_.ast;
+            %info<is_multi_invocant> := $multi_invocant;
             my $sep := @*seps[$param_idx];
             if ~$sep eq ':' {
                 if $param_idx != 0 {
                     $/.CURSOR.panic("Can only use : in a signature after the first parameter");
                 }
                 %info<is_invocant> := 1;
+            }
+            elsif ~$sep eq ';;' {
+                $multi_invocant := 0;
             }
             @parameter_infos.push(%info);
             $param_idx := $param_idx + 1;

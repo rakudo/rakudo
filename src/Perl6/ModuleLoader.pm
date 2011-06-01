@@ -19,6 +19,26 @@ class Perl6::ModuleLoader {
         # with what we already have.
         my $module_ctx;
         my $path := pir::join('/', pir::split('::', $module_name)) ~ '.pbc';
+        my @prefixes := [];
+        try {
+            my $prefix := %*COMPILING<%?OPTIONS><module-path>;
+            if $prefix {
+                pir::push(@prefixes, $prefix);
+            } else {
+                pir::push(@prefixes, '.');
+                pir::push(@prefixes, 'blib');
+            }
+            CATCH {
+                pir::push(@prefixes, '.');
+                pir::push(@prefixes, 'blib');
+            }
+        }
+        for @prefixes -> $prefix {
+            if pir::stat__isi("$prefix/$path", 0) {
+                $path := "$prefix/$path";
+                last;
+            }
+        }
         try {
             my $prefix := %*COMPILING<%?OPTIONS><module-path>;
             if $prefix {

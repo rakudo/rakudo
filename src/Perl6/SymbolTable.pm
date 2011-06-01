@@ -77,7 +77,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             # Do load in code.
             my $fixup := PAST::Stmts.new(
                 PAST::Op.new(
-                    :pirop('load_bytecode vs'), 'Perl6/ModuleLoader.pbc'
+                    :pirop('load_bytecode vs'), 'blib/Perl6/ModuleLoader.pbc'
                 ),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('set_outer_ctx'),
@@ -104,7 +104,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Make sure we do the loading during deserialization.
         self.add_event(:deserialize_past(PAST::Stmts.new(
             PAST::Op.new(
-                :pirop('load_bytecode vs'), 'Perl6/ModuleLoader.pbc'
+                :pirop('load_bytecode vs'), 'blib/Perl6/ModuleLoader.pbc'
             ),
             PAST::Op.new(
                :pasttype('callmethod'), :name('load_module'),

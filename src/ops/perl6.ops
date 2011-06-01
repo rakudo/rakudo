@@ -436,6 +436,20 @@ inline op set_binder_junction_type(in PMC) :base_core {
 
 /*
 
+=item set_scalar_container_type(in PMC)
+
+Sets the scalar container type.
+
+=cut
+
+*/
+inline op set_scalar_container_type(in PMC) :base_core {
+    Rakudo_cont_set_scalar_type($1);
+}
+
+
+/*
+
 =item x_setprophash(in PMC, in PMC)
 
 Sets the properties hash of $1 to be $2.

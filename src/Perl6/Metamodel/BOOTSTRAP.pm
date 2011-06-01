@@ -157,6 +157,7 @@ my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
 Scalar.HOW.add_parent(Scalar, Any);
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu)));
+pir::set_scalar_container_type__vP(Scalar);
 
 # Scalar needs to be registered as a container type.
 pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());

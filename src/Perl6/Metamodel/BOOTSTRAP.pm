@@ -148,6 +148,19 @@ my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
 Num.HOW.add_parent(Num, Cool);
 Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1)));
 
+# class Scalar is Any {
+#     has $!descriptor;
+#     has $!value;
+#     ...
+# }
+my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
+Scalar.HOW.add_parent(Scalar, Any);
+Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
+Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu)));
+
+# Scalar needs to be registered as a container type.
+pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
+
 # Set up Stash type, using a Parrot hash under the hood for storage.
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 Stash.HOW.add_parent(Stash, Cool);
@@ -180,6 +193,7 @@ Perl6::Metamodel::ClassHOW.add_stash(Method);
 Perl6::Metamodel::ClassHOW.add_stash(Str);
 Perl6::Metamodel::ClassHOW.add_stash(Int);
 Perl6::Metamodel::ClassHOW.add_stash(Num);
+Perl6::Metamodel::ClassHOW.add_stash(Scalar);
 Perl6::Metamodel::ClassHOW.add_stash(Stash);
 
 # Build up EXPORT::DEFAULT.
@@ -200,5 +214,7 @@ my module EXPORT {
         $?PACKAGE.WHO<Int>       := Int;
         $?PACKAGE.WHO<Num>       := Num;
         $?PACKAGE.WHO<Stash>     := Stash;
+        $?PACKAGE.WHO<Scalar>    := Scalar;
+        $?PACKAGE.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
     }
 }

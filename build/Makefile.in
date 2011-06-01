@@ -73,7 +73,7 @@ DYNOPS        = \
   $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
 PMC_SOURCES = \
-  $(PMC_DIR)/perl6str.pmc $(PMC_DIR)/objectref.pmc \
+  $(PMC_DIR)/objectref.pmc \
   $(PMC_DIR)/perl6scalar.pmc $(PMC_DIR)/mutablevar.pmc \
   $(PMC_DIR)/perl6lexinfo.pmc $(PMC_DIR)/perl6lexpad.pmc \
 

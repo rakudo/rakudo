@@ -1,15 +1,15 @@
 # Roadmap for "nom" Branch
 
-Last Updated 30th May 2011
+Last Updated 1st June 2011
 
-## proto and multi subs
-Get proto and multi subs in place, along with the new semantics for them.
+## Containers
+Examine container bits, and get something working.
+
+## Variables
+Get binding and assignment to work
 
 ## Various operators in the setting
 Add back various operators like the arithmetic ones.
-
-## Containers
-Examine container bits.
 
 ## Get attributes working
 Finish up enough so a (typed) attribute can be declared. Check for use

@@ -73,8 +73,6 @@ DYNOPS        = \
   $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
 PMC_SOURCES = \
-  $(PMC_DIR)/objectref.pmc \
-  $(PMC_DIR)/perl6scalar.pmc $(PMC_DIR)/mutablevar.pmc \
   $(PMC_DIR)/perl6lexinfo.pmc $(PMC_DIR)/perl6lexpad.pmc \
 
 OPS_SOURCE   = perl6.ops
@@ -146,7 +144,6 @@ CLEANUPS = \
   $(PMC_DIR)/*.manifest \
   $(PMC_DIR)/*.pdb \
   $(PMC_DIR)/*.lib \
-  $(PMC_DIR)/objectref.pmc \
   $(OPS_DIR)/*.h \
   $(OPS_DIR)/*.c \
   $(OPS_DIR)/*$(O) \
@@ -223,10 +220,6 @@ $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE)
 	$(PERL) build/merge_pm.pl $(CORE_SOURCES) > src/gen/CORE.setting
 	./$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
-
-$(PMC_DIR)/objectref.pmc : $(PMC_DIR)/objectref_pmc.template build/gen_objectref_pmc.pl
-	$(PERL) -I$(PARROT_PERL_LIB) build/gen_objectref_pmc.pl $(PMC_DIR)/objectref_pmc.template \
-		$(PMC_DIR)/objectref.pmc
 
 ##  testing targets
 Test.pir: Test.pm $(PERL6_PBC)
@@ -375,7 +368,6 @@ $(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
 # See RT #66558 and TT #700.
 
 $(DYNPMC): $(PMC_SOURCES)
-	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) src/pmc/objectref.pmc
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)

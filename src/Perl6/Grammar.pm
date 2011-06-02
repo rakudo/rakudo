@@ -1052,7 +1052,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             if +$<typename> > 1 {
                 $/.CURSOR.panic("Multiple prefix constraints not yet supported");
             }
-            $*TYPENAME := $<typename>;
+            $*TYPENAME := $<typename>[0];
           }
           <DECL=multi_declarator>
         | <DECL=multi_declarator>

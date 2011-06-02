@@ -182,12 +182,19 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
         
         # Look up container type and create code to instantiate it.
-        # XXX Set default value and container descriptor.
         my $type_obj := self.find_symbol([$type_name]);
         my $cont_code := PAST::Op.new(
             :pirop('repr_instance_of PP'),
             self.get_object_sc_ref_past($type_obj)
         );
+        
+        # Set container descriptor.
+        $cont_code := PAST::Op.new(
+            :pirop('setattribute 0PPsP'),
+            $cont_code, self.get_object_sc_ref_past($type_obj),
+            '$!descriptor', self.get_object_sc_ref_past($descriptor));
+        
+        # XXX Default contents...
         
         # Fixup and deserialization task is the same - creating the
         # container type and put it in the static lexpad with a clone

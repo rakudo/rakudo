@@ -1852,15 +1852,15 @@ class Perl6::Actions is HLL::Actions {
             }
             elsif $name eq 'WHAT' {
                 $past.pasttype('pirop');
-                $past.pirop('perl6_get_what PP');
+                $past.pirop('get_what PP');
             }
             elsif $name eq 'HOW' {
                 $past.pasttype('pirop');
-                $past.pirop('perl6_get_how PP');
+                $past.pirop('get_how PP');
             }
             elsif $name eq 'WHO' {
                 $past.pasttype('pirop');
-                $past.pirop('perl6_get_who PP');
+                $past.pirop('get_who PP');
             }
             else {
                 $past.name( $name );

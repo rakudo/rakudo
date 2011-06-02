@@ -204,63 +204,6 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
 
 /*
 
-=item perl6_get_how(obj)
-
-Gets the HOW for a 6model Object.
-
-=cut
-
-*/
-inline op perl6_get_how(out PMC, in PMC) :base_core {
-    PMC *get = Rakudo_cont_decontainerize(interp, $2);
-    if (get->vtable->base_type == smo_id)
-        $1 = STABLE(get)->HOW;
-    else
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only use perl6_get_how on a SixModelObject");
-}
-
-
-/*
-
-=item perl6_get_what(obj)
-
-Gets the WHAT for a 6model Object.
-
-=cut
-
-*/
-inline op perl6_get_what(out PMC, in PMC) :base_core {
-    PMC *get = Rakudo_cont_decontainerize(interp, $2);
-    if (get->vtable->base_type == smo_id)
-        $1 = STABLE(get)->WHAT;
-    else
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only use perl6_get_what on a SixModelObject");
-}
-
-
-/*
-
-=item perl6_get_who(obj)
-
-Gets the WHO for a 6model Object.
-
-=cut
-
-*/
-inline op perl6_get_who(out PMC, in PMC) :base_core {
-    PMC *get = Rakudo_cont_decontainerize(interp, $2);
-    if (get->vtable->base_type == smo_id)
-        $1 = STABLE(get)->WHO;
-    else
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only use get_who on a SixModelObject");
-}
-
-
-/*
-
 =item bind_signature(in PMC)
 
 This is emitted into a sub to cause it's Perl 6 signature to be bound. $1 is

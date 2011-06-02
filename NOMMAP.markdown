@@ -1,15 +1,18 @@
 # Roadmap for "nom" Branch
 
-Last Updated 1st June 2011
+Last Updated 2nd June 2011
 
-## Containers
-Examine container bits, and get something working.
+Note that this isn't strictly in order, though things nearer to the top
+are likely to get focus sooner.
 
-## Variables
-Get binding and assignment to work
+## Fix up binding some more
+Get ::= correcter, and a bit more stuff on := also.
 
-## Various operators in the setting
-Add back various operators like the arithmetic ones.
+## Implicitly typed parameters
+Any for routines, Mu otherwise
+
+## Work out boolean stuff
+So we can actually have relational operators.
 
 ## Get attributes working
 Finish up enough so a (typed) attribute can be declared. Check for use
@@ -20,6 +23,16 @@ new, bless, CREATE, BUILDALL, BUILD handling.
 
 ## Multi-methods
 Get these working.
+
+## Various operators in the setting
+Add back various operators like the arithmetic ones.
+
+## Block stuff
+Ensure correct closure semantics, pointy blocks with parameters and
+placeholder parameters need doing. Also $_, $/ and $! handling.
+
+## Lists, arrays and hashes in the setting
+Get them working.
 
 ## Flesh out signatures and parameters
 While basic binding works again now, there's plenty of stuff to "put back".
@@ -33,9 +46,6 @@ Get parametric roles working with the new meta-object model.
 * Create way for indicating type vars that need reificiation
 * Implement ParametricRoleHOW and ConcreteRoleHOW
 * Ensure the reification of types works
-
-## Lists, arrays and hashes in the setting
-Get them working. We'll have the parametric role support to do that now.
 
 ## Missing object model bits
 * Implement SubsetHOW, make it work with the syntax

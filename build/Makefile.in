@@ -114,6 +114,7 @@ CORE_SOURCES = \
   src/CORE.setting/Signature.pm \
   src/CORE.setting/Sub.pm \
   src/CORE.setting/IO.pm \
+  src/CORE.setting/operators.pm \
   src/CORE.setting/EXPORTHOW.pm \
   src/CORE.setting/you_are_here.pm \
 

@@ -272,6 +272,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<is_multi_invocant> {
             $flags := $flags + $SIG_ELEM_MULTI_INVOCANT;
         }
+        if %param_info<is_parcel> {
+            $flags := $flags + $SIG_ELEM_IS_PARCEL;
+        }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
             '$!flags', $flags, int));

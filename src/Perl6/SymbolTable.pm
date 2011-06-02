@@ -217,6 +217,24 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
     }
     
+    # Hunts through scopes to find a container descriptor for a lexical.
+    method find_lexical_container_descriptor($name) {
+        my $i := +@!BLOCKS;
+        while $i > 0 {
+            $i := $i - 1;
+            my %sym := @!BLOCKS[$i].symbol($name);
+            if +%sym {
+                if pir::exists(%sym, 'descriptor') {
+                    return %sym<descriptor>;
+                }
+                else {
+                    $i := 0;
+                }
+            }
+        }
+        pir::die("Could not find container descriptor for $name");
+    }
+    
     # Installs a symbol into the package. Does so immediately, and
     # makes sure this happens on deserialization also.
     method install_package_symbol($package, $symbol, $obj) {

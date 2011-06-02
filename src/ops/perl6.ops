@@ -366,6 +366,32 @@ inline op perl6_container_store_unchecked(in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_assert_bind_ok(in PMC, in PMC)
+
+Takes a potential value to bind in $1 and a container descriptor in $2
+and asserts that the bind is allowed to take place.
+
+=cut
+
+*/
+inline op perl6_assert_bind_ok(in PMC, in PMC) :base_core {
+    if ($1->vtable->base_type == smo_id && $2->vtable->base_type == smo_id) {
+        PMC *value = Rakudo_cont_decontainerize(interp, $1);
+        PMC *type = ((Rakudo_ContainerDescriptor *)PMC_data($2))->of;
+        if (!STABLE(value)->type_check(interp, value, type)) {
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "Type check failed in binding");
+        }
+    }
+    else {
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use perl6_assert_bind_ok on a SixModelObject");
+    }
+}
+
+
+/*
+
 =item find_method_null_ok(out PMC, in PMC, in STR)
 
 Like Parrot's find_method, but returns PMCNULL in $1 if $2 doesn't have a

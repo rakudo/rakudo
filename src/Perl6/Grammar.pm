@@ -2056,16 +2056,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
 
     token infix:sym<:=> {
-        <sym>  <O('%list_assignment, :reducecheck<bindish_check>')>
-    }
-
-    method bindish_check($/) {
-        # Do we have a sigature on the LHS? If so, use that rather
-        # than the list.
-        if pir::defined__IP($/[0].ast()<signature_from_declarator>) {
-            $/[0] := $/[0].ast()<signature_from_declarator>;
-            $/[0].bind_target('lexical');
-        }
+        <sym>  <O('%list_assignment')>
     }
 
     token infix:sym<::=> {

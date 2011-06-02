@@ -2088,6 +2088,14 @@ class Perl6::Actions is HLL::Actions {
             make make_smartmatch($/, 1);
             return 1;
         }
+        elsif $sym eq ':=' {
+            make bind_op($/, 0);
+            return 1;
+        }
+        elsif $sym eq '::=' {
+            make bind_op($/, 1);
+            return 1;
+        }
         unless $past {
             $past := PAST::Op.new( :node($/) );
             if $<OPER><O><pasttype> { $past.pasttype( ~$<OPER><O><pasttype> ); }
@@ -2225,6 +2233,46 @@ class Perl6::Actions is HLL::Actions {
             # And finally evaluate to the smart-match result.
             PAST::Var.new( :name($result_var), :scope('lexical') )
         );
+    }
+    
+    sub bind_op($/, $sigish) {
+        my $target := $/[0].ast;
+        my $source := $/[1].ast;
+        
+        # Check we know how to bind to the thing on the LHS.
+        if $target.isa(PAST::Var) {
+            # We may need to decontainerize the right, depending on sigil.
+            my $sigil := pir::substr($target.name(), 0, 1);
+            if $sigil eq '@' || $sigil eq '%' {
+                $source := PAST::Op.new( :pirop('perl6_decontainerize PP'), $source );
+            }
+            
+            # Now go by scope.
+            if $target.scope eq 'attribute' {
+                $/.CURSOR.panic("Binding to attributes NYI");
+            }
+            else {
+                # Probably a lexical.
+                my $was_lexical := 0;
+                try {
+                    my $descriptor := $*ST.find_lexical_container_descriptor($target.name);
+                    $source := PAST::Op.new(
+                        :pirop('perl6_assert_bind_ok 0PP'),
+                        $source, $*ST.get_object_sc_ref_past($descriptor));
+                    $was_lexical := 1;
+                }
+                unless $was_lexical {
+                    $/.CURSOR.panic("Cannot use bind operator with this LHS");
+                }
+            }
+            
+            # Finally, just need to make a bind.
+            make PAST::Op.new( :pasttype('bind'), $target, $source );
+        }
+        # XXX Several more cases to do...
+        else {
+            $/.CURSOR.panic("Cannot use bind operator with this LHS");
+        }
     }
 
     method prefixish($/) {

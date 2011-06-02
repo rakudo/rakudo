@@ -12,6 +12,7 @@ BEGIN_OPS_PREAMBLE
 #include "pmc_callcontext.h"
 #include "pmc_sub.h"
 #include "../binder/bind.h"
+#include "../binder/multidispatch.h"
 #include "../binder/sixmodelobject.h"
 
 #if PARROT_HAS_ICU

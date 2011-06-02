@@ -998,8 +998,14 @@ class Perl6::Actions is HLL::Actions {
                 $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']),
                 1, $name);
                 
-            # Install the container.
-            $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor);
+            # Install the container. Scalars default to Any if untyped.
+            if $sigil eq '$' || $sigil eq '&' {
+                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
+                    $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Any']));
+            }
+            else {
+                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor);
+            }
         }
         else {
             $/.CURSOR.panic("$*SCOPE scoped variables not yet implemented");

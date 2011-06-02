@@ -175,7 +175,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
     # the type of container to install.
-    method install_lexical_container($block, $name, $type_name, $descriptor) {
+    method install_lexical_container($block, $name, $type_name, $descriptor, *@default_value) {
         # Add to block. Note that it doesn't really have a compile time
         # value.
         $block.symbol($name, :scope('lexical'), :descriptor($descriptor));
@@ -194,7 +194,14 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $cont_code, self.get_object_sc_ref_past($type_obj),
             '$!descriptor', self.get_object_sc_ref_past($descriptor));
         
-        # XXX Default contents...
+        # Default contents, if applicable (note, slurpy param as we can't
+        # use definedness here, as it's a type object we'd be checking).
+        if +@default_value {
+            $cont_code := PAST::Op.new(
+                :pirop('setattribute 0PPsP'),
+                $cont_code, self.get_object_sc_ref_past($type_obj),
+                '$!value', self.get_object_sc_ref_past(@default_value[0]));
+        }
         
         # Fixup and deserialization task is the same - creating the
         # container type and put it in the static lexpad with a clone

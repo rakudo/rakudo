@@ -1582,9 +1582,19 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         
-        # Create Parameter objects, and a Signature object.
+        # Create Parameter objects, along with container descriptors
+        # if needed, and a Signature object.
         my @parameters;
+        my $lexpad := $*ST.cur_lexpad();
         for @parameter_infos {
+            if $_<variable_name> {
+                my %sym := $lexpad.symbol($_<variable_name>);
+                if +%sym {
+                    $_<container_descriptor> := $*ST.create_container_descriptor(
+                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
+                    $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
+                }
+            }
             @parameters.push($*ST.create_parameter($_));
         }
         make $*ST.create_signature(@parameters);
@@ -2159,7 +2169,7 @@ class Perl6::Actions is HLL::Actions {
             my $inv := $/[0].ast;
             $past.unshift(
                 PAST::Op.ACCEPTS($past) && $past.pasttype eq 'callmethod'
-                ?? PAST::Op.new( :pirop('deref_unless_object PP'), $inv, :returns($inv.returns), :arity($inv.arity) )
+                ?? PAST::Op.new( :pirop('perl6_decontainerize PP'), $inv, :returns($inv.returns), :arity($inv.arity) )
                 !! $inv
             );
         }

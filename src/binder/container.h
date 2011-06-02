@@ -19,5 +19,6 @@ typedef struct {
 
 /* Various functions related to container manipulations. */
 void Rakudo_cont_set_scalar_type(PMC *type);
-PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var);
+PMC * Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var);
 void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value, INTVAL type_check, INTVAL rw_check);
+PMC * Rakudo_cont_scalar_from_descriptor(PARROT_INTERP, PMC *container_descriptor);

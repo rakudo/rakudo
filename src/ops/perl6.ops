@@ -13,6 +13,7 @@ BEGIN_OPS_PREAMBLE
 #include "pmc_sub.h"
 #include "../binder/bind.h"
 #include "../binder/multidispatch.h"
+#include "../binder/container.h"
 #include "../binder/sixmodelobject.h"
 
 #if PARROT_HAS_ICU
@@ -210,68 +211,6 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
 
 /*
 
-=item deobjectref(out PMC, in PMC)
-
-If $2 is an ObjectRef, then follow the chain of ObjectRef
-references until we get to a value of some sort (which could be
-a Perl6Scalar).
-
-=cut
-
-*/
-inline op deobjectref(out PMC, in PMC) :base_core {
-    PMC * ref;
-    ref = $2;
-    while (ref->vtable->base_type == or_id)
-        ref = VTABLE_get_pmc(interp, ref);
-    $1 = ref;
-    goto NEXT();
-}
-
-
-/*
-
-=item descalarref(out PMC, in PMC)
-
-If $2 is an ObjectRef or Perl6Scalar, then follow the chain of
-ObjectRef/Perl6Scalar references until we get to the real
-underlying value.
-
-=cut
-
-*/
-inline op descalarref(out PMC, in PMC) :base_core {
-    PMC * ref;
-    ref = $2;
-    while (ref->vtable->base_type == or_id || ref->vtable->base_type == p6s_id)
-        ref = VTABLE_get_pmc(interp, ref);
-    $1 = ref;
-    goto NEXT();
-}
-
- 
-/*
-
-=item deref_unless_object(out PMC, in PMC)
-
-If the value underlying $2 is anything but a SixModelObject.
-return that value; otherwise return $2.
-
-=cut
-
-*/
-inline op deref_unless_object(out PMC, in PMC) :base_core {
-    PMC * val;
-    val = $2;
-    while (val->vtable->base_type == or_id || val->vtable->base_type == p6s_id)
-        val = VTABLE_get_pmc(interp, val);
-    $1 = (val->vtable->base_type == smo_id) ? $2 : val;
-    goto NEXT();
-}
-
-
-/*
-
 =item perl6_get_how(obj)
 
 Gets the HOW for a 6model Object.
@@ -280,9 +219,7 @@ Gets the HOW for a 6model Object.
 
 */
 inline op perl6_get_how(out PMC, in PMC) :base_core {
-    PMC *get = $2;
-    while (get->vtable->base_type == or_id || get->vtable->base_type == p6s_id)
-        get = VTABLE_get_pmc(interp, get);
+    PMC *get = Rakudo_cont_decontainerize(interp, $2);
     if (get->vtable->base_type == smo_id)
         $1 = STABLE(get)->HOW;
     else
@@ -301,9 +238,7 @@ Gets the WHAT for a 6model Object.
 
 */
 inline op perl6_get_what(out PMC, in PMC) :base_core {
-    PMC *get = $2;
-    while (get->vtable->base_type == or_id || get->vtable->base_type == p6s_id)
-        get = VTABLE_get_pmc(interp, get);
+    PMC *get = Rakudo_cont_decontainerize(interp, $2);
     if (get->vtable->base_type == smo_id)
         $1 = STABLE(get)->WHAT;
     else
@@ -322,9 +257,7 @@ Gets the WHO for a 6model Object.
 
 */
 inline op perl6_get_who(out PMC, in PMC) :base_core {
-    PMC *get = $2;
-    while (get->vtable->base_type == or_id || get->vtable->base_type == p6s_id)
-        get = VTABLE_get_pmc(interp, get);
+    PMC *get = Rakudo_cont_decontainerize(interp, $2);
     if (get->vtable->base_type == smo_id)
         $1 = STABLE(get)->WHO;
     else
@@ -451,16 +384,15 @@ inline op set_scalar_container_type(in PMC) :base_core {
 
 /*
 
-=item x_setprophash(in PMC, in PMC)
+=item perl6_decontainerize(out PMC, in PMC)
 
-Sets the properties hash of $1 to be $2.
+Strips away any outer container, if one exists. Otherwise, no-op.
 
 =cut
 
 */
-inline op x_setprophash(in PMC, in PMC) :base_core {
-    PMC_metadata($1) = $2;
-    goto NEXT();
+inline op perl6_decontainerize(out PMC, in PMC) :base_core {
+    $1 = Rakudo_cont_decontainerize(interp, $2);
 }
 
 

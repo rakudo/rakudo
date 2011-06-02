@@ -546,13 +546,19 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
         if (param->flags & SIG_ELEM_IS_CAPTURE) {
             /* XXX In the long run, we need to snapshot any current CaptureCursor.
              * For now, we don't have that, so we just build off the current
-             * capture. */
-            PMC *ns       = Parrot_hll_get_ctx_HLL_namespace(interp);
-            PMC *snapper  = Parrot_ns_get_global(interp, ns, SNAPCAP_str);
-            PMC *snapshot = PMCNULL;
-            Parrot_ext_call(interp, snapper, "PiIP->P", capture, cur_pos_arg, named_args_copy, &snapshot);
-            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param, snapshot,
-                    no_nom_type_check, error);
+             * capture. Of course, if there's no variable name we can (cheaply)
+             * do pretty much nothing. */
+            if (STRING_IS_NULL(param->variable_name)) {
+                bind_fail = BIND_RESULT_OK;
+            }
+            else {
+                PMC *ns       = Parrot_hll_get_ctx_HLL_namespace(interp);
+                PMC *snapper  = Parrot_ns_get_global(interp, ns, SNAPCAP_str);
+                PMC *snapshot = PMCNULL;
+                Parrot_ext_call(interp, snapper, "PiIP->P", capture, cur_pos_arg, named_args_copy, &snapshot);
+                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param, snapshot,
+                        no_nom_type_check, error);
+            }
             if (bind_fail) {
                 return bind_fail;
             }

@@ -334,6 +334,38 @@ inline op perl6_decontainerize(out PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_container_store(in PMC, in PMC)
+
+Stores a value in a container. If it's Scalar, there's a fast path;
+otherwise, calls the .STORE method.
+
+=cut
+
+*/
+inline op perl6_container_store(in PMC, in PMC) :base_core {
+    Rakudo_cont_store(interp, $1, $2, 1, 1);
+}
+
+
+/*
+
+=item perl6_container_store_unchecked(in PMC, in PMC)
+
+Stores a value in a container. If it's Scalar, there's a fast path;
+otherwise, calls the .STORE method. In the fast path case, with this
+op no rw or type checking is done (assumes that the compiler has
+already decided that it's safe).
+
+=cut
+
+*/
+inline op perl6_container_store_unchecked(in PMC, in PMC) :base_core {
+    Rakudo_cont_store(interp, $1, $2, 0, 0);
+}
+
+
+/*
+
 =item find_method_null_ok(out PMC, in PMC, in STR)
 
 Like Parrot's find_method, but returns PMCNULL in $1 if $2 doesn't have a

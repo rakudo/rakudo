@@ -21,8 +21,6 @@ BEGIN_OPS_PREAMBLE
 #endif
 
 /* We cache a couple of type IDs for an op that we hit on every method call. */
-static INTVAL p6s_id = 0;
-static INTVAL or_id  = 0;
 static INTVAL smo_id = 0;
 
 static STRING *DISPATCH_JUNCTION_str;
@@ -39,14 +37,9 @@ Does various setup tasks on behalf of all of the other dynops.
 
 */
 inline op rakudo_dynop_setup() :base_core {
-    /* Look up some type IDs. */
-    p6s_id = pmc_type(interp, Parrot_str_new(interp, "Perl6Scalar", 0));
-    or_id  = pmc_type(interp, Parrot_str_new(interp, "ObjectRef", 0));
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
-
     DISPATCH_JUNCTION_str = Parrot_str_new_constant(interp,
                                 "!DISPATCH_JUNCTION_SINGLE");
-
     goto NEXT();
 }
 

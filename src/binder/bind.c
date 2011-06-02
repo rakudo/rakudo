@@ -13,7 +13,6 @@ Copyright (C) 2009-2011, The Perl Foundation.
 
 
 /* Cache of Parrot type IDs and some strings. */
-static INTVAL p6s_id            = 0;
 static INTVAL p6r_id            = 0;
 static INTVAL smo_id            = 0;
 static STRING *ACCEPTS          = NULL;
@@ -73,7 +72,6 @@ static void setup_binder_statics(PARROT_INTERP) {
     CALLCONTEXT_str  = Parrot_str_new_constant(interp, "CallContext");
     SCALAR_SIGIL_str = Parrot_str_new_constant(interp, "$");
 
-    p6s_id = pmc_type(interp, P6_SCALAR_str);
     p6r_id = pmc_type(interp, Parrot_str_new(interp, "P6role", 0));
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }

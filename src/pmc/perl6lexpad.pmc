@@ -1,4 +1,5 @@
 #include "pmc_perl6lexinfo.h"
+#include "../binder/sixmodelobject.h"
 
 pmclass Perl6LexPad
     provides hash
@@ -90,13 +91,16 @@ Return the LexInfo PMC, if any or a Null PMC.
             if (!PMC_IS_NULL(static_slots_cache)) {
                 /* Yes, we have some. Grab values too, then iterate. */
                 PMC *static_values_cache;
+                PMC *static_clone_flags_cache;
                 INTVAL num_statics = VTABLE_elements(interp, static_slots_cache);
                 INTVAL i;
                 GETATTR_Perl6LexInfo_static_values_cache(INTERP, info, static_values_cache);
+                GETATTR_Perl6LexInfo_static_clone_flags_cache(INTERP, info, static_clone_flags_cache);
                 for (i = 0; i < num_statics; i++) {
                     INTVAL  slot  = VTABLE_get_integer_keyed_int(interp, static_slots_cache, i);
                     PMC    *value = VTABLE_get_pmc_keyed_int(interp, static_values_cache, i);
-                    CTX_REG_PMC(interp, (PMC *)ctx, slot) = value;
+                    INTVAL  clone = VTABLE_get_integer_keyed_int(interp, static_clone_flags_cache, i);
+                    CTX_REG_PMC(interp, (PMC *)ctx, slot) = clone ? REPR(value)->clone(interp, value) : value;
                 }
                 PARROT_GC_WRITE_BARRIER(INTERP, (PMC *)ctx);
             }

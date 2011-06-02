@@ -15,9 +15,12 @@ pmclass Perl6LexInfo
     ATTR PMC *name_to_register_map;
     
     /* Hash mapping names to static values. This is the authoritative
-     * source of these, but we always build a more quickly usable
-     * cache in the next two attributes. */
+     * source of these, but we always build a more quickly usable cache. */
     ATTR PMC *static_values;
+    
+    /* Hash mapping names to clone flags. This is the authoritative
+     * source of these, but we always build a more quickly usable cache. */
+    ATTR PMC *static_clone_flags;
     
     /* Integer array of slots that we always want to pre-initialize
      * with static values; built from the static_values hash. */
@@ -26,6 +29,10 @@ pmclass Perl6LexInfo
     /* Matching PMC array of the values to pre-init with; built from
     * the static_values hash. */
     ATTR PMC *static_values_cache;
+    
+    /* Sometimes we want to clone the things we're copying. This gives
+     * us a very cheap way to deal with e.g. scalar containers. */
+    ATTR PMC *static_clone_flags_cache;
 
     VTABLE void init() {
         SELF.init_pmc(PMCNULL);
@@ -111,29 +118,37 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
         VTABLE_set_integer_keyed_str(INTERP, name_to_register_map, name, preg);
     }
     
-    METHOD set_static_lexpad_value(STRING *key, PMC *value) {
+    METHOD set_static_lexpad_value(STRING *key, PMC *value, INTVAL clone) {
         /* Stash static value in hash. */
-        PMC *svs, *slots, *values, *iter;
+        PMC *svs, *scfs, *slots, *values, *clone_flags, *iter;
         GET_ATTR_static_values(INTERP, SELF, svs);
+        GET_ATTR_static_clone_flags(INTERP, SELF, scfs);
         if (PMC_IS_NULL(svs)) {
             svs = pmc_new(interp, enum_class_Hash);
             SET_ATTR_static_values(INTERP, SELF, svs);
+            scfs = pmc_new(interp, enum_class_Hash);
+            SET_ATTR_static_clone_flags(INTERP, SELF, scfs);
         }
         VTABLE_set_pmc_keyed_str(interp, svs, key, value);
+        VTABLE_set_integer_keyed_str(interp, scfs, key, clone);
 
         /* Build caches from the static lexpad. */
-        slots  = pmc_new(interp, enum_class_ResizableIntegerArray);
-        values = pmc_new(interp, enum_class_ResizablePMCArray);
-        iter   = VTABLE_get_iter(interp, svs);
+        slots       = pmc_new(interp, enum_class_ResizableIntegerArray);
+        values      = pmc_new(interp, enum_class_ResizablePMCArray);
+        clone_flags = pmc_new(interp, enum_class_ResizableIntegerArray);
+        iter        = VTABLE_get_iter(interp, svs);
         while (VTABLE_get_bool(interp, iter)) {
             STRING *name  = VTABLE_shift_string(interp, iter);
             INTVAL  slot  = VTABLE_get_integer_keyed_str(interp, SELF, name);
             PMC    *value = VTABLE_get_pmc_keyed_str(interp, svs, name);
+            INTVAL  clone = VTABLE_get_integer_keyed_str(interp, scfs, name);
             VTABLE_push_integer(interp, slots, slot);
             VTABLE_push_pmc(interp, values, value);
+            VTABLE_push_integer(interp, clone_flags, clone);
         }
         SET_ATTR_static_slots_cache(INTERP, SELF, slots);
         SET_ATTR_static_values_cache(INTERP, SELF, values);
+        SET_ATTR_static_clone_flags_cache(INTERP, SELF, clone_flags);
     }
 
 /*

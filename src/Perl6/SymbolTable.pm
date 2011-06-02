@@ -144,7 +144,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                         self.get_object_sc_ref_past($package)
                     ),
                     $_.key
-                )
+                ),
+                0
             ));
         }
         self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
@@ -154,7 +155,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # the object to install. Does an immediate installation in the
     # compile-time block symbol table, and ensures that the installation
     # gets fixed up at runtime too.
-    method install_lexical_symbol($block, $name, $obj) {
+    method install_lexical_symbol($block, $name, $obj, $clone_per_pad = 0) {
         # Install the object directly as a block symbol.
         $block.symbol($name, :scope('lexical'), :value($obj));
         $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
@@ -166,7 +167,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 :pasttype('callmethod'), :name('get_lexinfo'),
                 PAST::Val.new( :value($block) )
             ),
-            ~$name, self.get_object_sc_ref_past($obj)
+            ~$name, self.get_object_sc_ref_past($obj),
+            PAST::Val.new( :value($clone_per_pad) )
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
     }

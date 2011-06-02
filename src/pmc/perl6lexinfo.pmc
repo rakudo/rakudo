@@ -47,20 +47,24 @@ pmclass Perl6LexInfo
         /* Need custom mark. */
         PObj_custom_mark_SET(SELF);
     }
-    
+
     VTABLE void mark() {
-        PMC *name_to_register_map, *static_values;
-        PMC *static_slots_cache, *static_values_cache;
+        PMC *name_to_register_map, *static_values, *static_clone_flags;
+        PMC *static_slots_cache, *static_values_cache, *static_clone_flags_cache;
         GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
         Parrot_gc_mark_PMC_alive(INTERP, name_to_register_map);
         GET_ATTR_static_values(INTERP, SELF, static_values);
         Parrot_gc_mark_PMC_alive(INTERP, static_values);
+        GET_ATTR_static_clone_flags(INTERP, SELF, static_clone_flags);
+        Parrot_gc_mark_PMC_alive(INTERP, static_clone_flags);
         GET_ATTR_static_slots_cache(INTERP, SELF, static_slots_cache);
         Parrot_gc_mark_PMC_alive(INTERP, static_slots_cache);
         GET_ATTR_static_values_cache(INTERP, SELF, static_values_cache);
         Parrot_gc_mark_PMC_alive(INTERP, static_values_cache);
+        GET_ATTR_static_clone_flags_cache(INTERP, SELF, static_clone_flags_cache);
+        Parrot_gc_mark_PMC_alive(INTERP, static_clone_flags_cache);
     }
-    
+
     VTABLE INTVAL elements() {
         PMC *name_to_register_map;
         GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);

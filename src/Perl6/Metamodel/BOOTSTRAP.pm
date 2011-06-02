@@ -71,6 +71,7 @@ Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type
 #     has str $!coerce_to
 #     has $!sub_signature
 #     has $!default_closure
+#     has $!container_descriptor;
 #     ... # Uncomposed
 # }
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -84,6 +85,7 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraint
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_to>, :type(str)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
 
 # class Code is Cool {
 #     has $!do;                # Low level code object

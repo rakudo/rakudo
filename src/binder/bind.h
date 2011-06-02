@@ -22,20 +22,21 @@
  * that should match the computed object layout by P6opaque for the type
  * Parameter. So if changing that, this needs to be changed here. */
 typedef struct {
-    PMC    *st;               /* S-table, though we don't care about that here. */
-    PMC    *sc;               /* Serialization context, though we don't care about that here. */
-    PMC    *spill;            /* Attribute spill storage. */
-    STRING *variable_name;    /* The name in the lexpad to bind to, if any. */
-    PMC    *named_names;      /* List of the name(s) that a named parameter has. */
-    PMC    *type_captures;    /* Name(s) that we bind the type of a parameter to. */
-    INTVAL flags;             /* Various flags about the parameter. */
-    PMC    *nominal_type;     /* The nominal type of the parameter. */
-    PMC    *post_constraints; /* Array of any extra constraints; we will do a
-                               * smart-match against each of them. For now, we
-                               * always expect an array of blocks. */
-    STRING *coerce_to;        /* Name of the type to coerce to; for X we do $val.X. */
-    PMC    *sub_llsig;        /* Any nested signature. */
-    PMC    *default_closure;  /* The default value closure. */
+    PMC    *st;                   /* S-table, though we don't care about that here. */
+    PMC    *sc;                   /* Serialization context, though we don't care about that here. */
+    PMC    *spill;                /* Attribute spill storage. */
+    STRING *variable_name;        /* The name in the lexpad to bind to, if any. */
+    PMC    *named_names;          /* List of the name(s) that a named parameter has. */
+    PMC    *type_captures;        /* Name(s) that we bind the type of a parameter to. */
+    INTVAL flags;                 /* Various flags about the parameter. */
+    PMC    *nominal_type;         /* The nominal type of the parameter. */
+    PMC    *post_constraints;     /* Array of any extra constraints; we will do a
+                                   * smart-match against each of them. For now, we
+                                   * always expect an array of blocks. */
+    STRING *coerce_to;            /* Name of the type to coerce to; for X we do $val.X. */
+    PMC    *sub_llsig;            /* Any nested signature. */
+    PMC    *default_closure;      /* The default value closure. */
+    PMC    *container_descriptor; /* Descriptor for the container we bind into, if any. */
 } Rakudo_Parameter;
 
 /* This is how a signature looks on the inside. Actually, this is a C struct

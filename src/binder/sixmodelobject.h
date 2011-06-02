@@ -137,6 +137,10 @@ typedef struct {
     /* Gets the hint for the given attribute ID. */
     INTVAL (*hint_for) (PARROT_INTERP, PMC *ClassHandle, STRING *Name);
 
+    /* Clones the object, optionally cloning any containers in its
+     * attributes. */
+    PMC * (*clone) (PARROT_INTERP, PMC *to_clone);
+    
     /* Used with boxing. Sets an integer value, for representations that
      * can hold one. */
     void (*set_int) (PARROT_INTERP, PMC *Object, INTVAL Value);

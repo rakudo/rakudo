@@ -40,7 +40,6 @@ inline op rakudo_dynop_setup() :base_core {
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
     DISPATCH_JUNCTION_str = Parrot_str_new_constant(interp,
                                 "!DISPATCH_JUNCTION_SINGLE");
-    goto NEXT();
 }
 
 /*
@@ -68,8 +67,6 @@ inline op find_lex_skip_current(out PMC, in STR) :base_core {
 
         ctx = outer;
     }
-
-    goto NEXT();
 }
 
 
@@ -402,28 +399,6 @@ method named $3 instead of throwing an exception.
 */
 inline op find_method_null_ok(out PMC, in PMC, in STR) :base_core {
     $1 = VTABLE_find_method(interp, $2, $3);
-    goto NEXT();
-}
-
-
-/*
-
-=item fixup_outer_ctx(inout PMC)
-
-=cut
-
-*/
-inline op fixup_outer_ctx(inout PMC) :base_core {
-    PMC * const cur_ctx = CURRENT_CONTEXT(interp);
-    if ($1->vtable->base_type == enum_class_CallContext) {
-        Parrot_pcc_set_outer_ctx(interp, $1, cur_ctx);
-        goto NEXT();
-    }
-    else {
-        opcode_t * const handler =  Parrot_ex_throw_from_op_args(interp, NULL,
-                EXCEPTION_INVALID_OPERATION, "fixup_outer_ctx only valid on a context");
-        goto ADDRESS(handler);
-    }
 }
 
 
@@ -480,7 +455,6 @@ inline op encodelocaltime(out INT, in PMC) :base_core {
     tm.tm_isdst = VTABLE_get_integer_keyed_int(interp, $2, 8);
 
     $1 = mktime(&tm);
-    goto NEXT();
 }
 
 /*

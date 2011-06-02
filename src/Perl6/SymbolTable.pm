@@ -246,6 +246,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # XXX Set up other various attribute values.
         
+        # Set container descriptor, if there is one.
+        if pir::exists(%param_info, 'container_descriptor') {
+            pir::setattribute__vPPsP($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
+            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!container_descriptor',
+                self.get_object_sc_ref_past(%param_info<container_descriptor>)));
+        }
+        
         # Return created parameter.
         $parameter
     }
@@ -345,6 +352,35 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ),
             self.get_object_sc_ref_past($candidate)
         )));
+    }
+    
+    # Creates a new container descriptor and adds it to the SC.
+    method create_container_descriptor($of, $rw, $name) {
+        # Create descriptor object now.
+        my $cd_type := self.find_symbol(['ContainerDescriptor']);
+        my $cd      := pir::repr_instance_of__PP($cd_type);
+        my $slot    := self.add_object($cd);
+        
+        # Create PAST to make it when deserializing.
+        my $set_attrs := PAST::Stmts.new();
+        self.add_event(:deserialize_past(PAST::Stmts.new(
+            self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
+                :pirop('repr_instance_of PP'),
+                self.get_object_sc_ref_past($cd_type)
+            ))),
+            $set_attrs
+        )));
+        
+        # Set attributes.
+        pir::setattribute__vPPsP($cd, $cd_type, '$!of', $of);
+        $set_attrs.push(self.set_attribute($cd, $cd_type, '$!of',
+            self.get_object_sc_ref_past($of)));
+        pir::repr_bind_attr_int__vPPsI($cd, $cd_type, '$!rw', $rw);
+        $set_attrs.push(self.set_attribute_typed($cd, $cd_type, '$!rw', $rw, int));
+        pir::repr_bind_attr_str__vPPsS($cd, $cd_type, '$!name', $name);
+        $set_attrs.push(self.set_attribute_typed($cd, $cd_type, '$!name', $name, str));
+        
+        $cd
     }
     
     # Helper to make PAST for setting an attribute to a value. Value should

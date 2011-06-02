@@ -155,7 +155,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # the object to install. Does an immediate installation in the
     # compile-time block symbol table, and ensures that the installation
     # gets fixed up at runtime too.
-    method install_lexical_symbol($block, $name, $obj, $clone_per_pad = 0) {
+    method install_lexical_symbol($block, $name, $obj) {
         # Install the object directly as a block symbol.
         $block.symbol($name, :scope('lexical'), :value($obj));
         $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
@@ -168,7 +168,37 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Val.new( :value($block) )
             ),
             ~$name, self.get_object_sc_ref_past($obj),
-            PAST::Val.new( :value($clone_per_pad) )
+            0
+        );
+        self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+    }
+    
+    # Installs a lexical symbol. Takes a PAST::Block object, name and
+    # the type of container to install.
+    method install_lexical_container($block, $name, $type_name, $descriptor) {
+        # Add to block. Note that it doesn't really have a compile time
+        # value.
+        $block.symbol($name, :scope('lexical'), :descriptor($descriptor));
+        $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
+        
+        # Look up container type and create code to instantiate it.
+        # XXX Set default value and container descriptor.
+        my $type_obj := self.find_symbol([$type_name]);
+        my $cont_code := PAST::Op.new(
+            :pirop('repr_instance_of PP'),
+            self.get_object_sc_ref_past($type_obj)
+        );
+        
+        # Fixup and deserialization task is the same - creating the
+        # container type and put it in the static lexpad with a clone
+        # flag set.
+        my $fixup := PAST::Op.new(
+            :pasttype('callmethod'), :name('set_static_lexpad_value'),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('get_lexinfo'),
+                PAST::Val.new( :value($block) )
+            ),
+            ~$name, $cont_code, 1
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
     }

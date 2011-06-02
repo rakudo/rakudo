@@ -42,9 +42,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub sigiltype($sigil) {
-        $sigil eq '%'
-        ?? 'Hash'
-        !! ($sigil eq '@' ?? 'Array' !! 'Perl6Scalar');
+        $sigil eq '%' ?? 'Hash'   !!
+        $sigil eq '@' ?? 'Array'  !!
+                         'Scalar'
     }
 
     method deflongname($/) {
@@ -988,89 +988,21 @@ class Perl6::Actions is HLL::Actions {
                 $BLOCK.symbol($name, :attr_alias($attrname));
             }
 
-            # Nothing to emit here; just hand  back an empty node.
+            # Nothing to emit here; just hand back an empty node.
             $past := PAST::Op.new( :pasttype('null') );
         }
+        elsif $*SCOPE eq 'my' {
+            # Create a container descriptor. Default to rw and set a
+            # type if we have one; a trait may twiddle with that later.
+            my $descriptor := $*ST.create_container_descriptor(
+                $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']),
+                1, $name);
+                
+            # Install the container.
+            $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor);
+        }
         else {
-            # Not an attribute - need to emit delcaration here.
-            # Create the container
-            my $cont := $sigil eq '%' ??
-                PAST::Op.new( :name('&CREATE_HASH_FROM_LOW_LEVEL'), :pasttype('call') ) !!
-                PAST::Op.new( sigiltype($sigil), :pirop('new Ps') );
-            
-            # Give it a 'rw' property unless it's explicitly readonly.
-            my $readtype := trait_readtype($trait_list);
-            if $readtype eq 'CONFLICT' {
-                $/.CURSOR.panic('Cannot apply more than one of: is copy, is rw, is readonly');
-            }
-            if $readtype eq 'copy' {
-                $/.CURSOR.panic("'is copy' trait not valid on variable declaration");
-            }
-            my $true := PAST::Var.new( :name('true'), :scope('register') );
-            my $vivipast := $readtype ne 'readonly' ??
-                PAST::Op.new( $cont, 'rw', $true, :pirop('setprop')) !!
-                $cont;
-
-            # If it's a scalar, mark it as scalar (non-flattening)
-            if $sigil eq '$' || $sigil eq '&' {
-                $vivipast := PAST::Op.new($vivipast,'scalar',$true,:pirop('setprop'));
-            }
-
-            # For 'our' variables, we first bind or lookup in the namespace
-            if $*SCOPE eq 'our' {
-                $vivipast := PAST::Var.new( :name($name), :scope('package'), :isdecl(1),
-                                             :lvalue(1), :viviself($vivipast), :node($/) );
-            }
-
-            # Now bind a lexical in the block
-            my $decl := PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1),
-                                       :lvalue(1), :viviself($vivipast), :node($/) );
-            $BLOCK.symbol($name, :scope('lexical'), :decl_node($decl) );
-            $BLOCK[0].push($decl);
-
-            # If we have traits, set up us the node to emit handlers into, then
-            # emit them.
-            my $init_type := 0;
-            if $trait_list || $*TYPENAME {
-                my $trait_node := get_var_traits_node($BLOCK, $name);
-                for $trait_list {
-                    my $trait := $_.ast;
-                    unless $trait<trait_is_compiler_handled> {
-                        $trait.unshift(PAST::Var.new( :name('declarand'), :scope('register') ));
-                        if $trait.name() eq '&trait_mod:<of>' && $*TYPENAME {
-                            $init_type := $trait[1] := PAST::Op.new(
-                                :pasttype('callmethod'), :name('postcircumfix:<[ ]>'),
-                                $*TYPENAME, $trait[1]
-                            );
-                            $*TYPENAME := '';
-                        }
-                        $trait_node.push($trait);
-                    }
-                }
-                if $*TYPENAME {
-                    $trait_node.push(PAST::Op.new(
-                        :pasttype('call'), :name('&trait_mod:<of>'),
-                        PAST::Var.new( :name('declarand'), :scope('register') ),
-                        $*TYPENAME
-                    ));
-                    $init_type := $*TYPENAME;
-                }
-            }
-
-            # For arrays, need to transform_to_p6opaque. XXX Find a neater way
-            # to do this.
-            if $sigil eq '@' {
-                get_var_traits_node($BLOCK, $name).push(PAST::Op.new(
-                    :pirop('transform_to_p6opaque vP'),
-                    PAST::Var.new( :name('$P0'), :scope('register') )
-                ));
-            }
-
-            # If we've a type to init with and it's a scalar, do so.
-            if $init_type && $sigil eq '$' {
-                $cont.pirop('new PsP');
-                $cont.push($init_type);
-            }
+            $/.CURSOR.panic("$*SCOPE scoped variables not yet implemented");
         }
 
         return $past;

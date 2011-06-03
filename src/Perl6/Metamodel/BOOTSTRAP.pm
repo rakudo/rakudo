@@ -33,6 +33,11 @@ my class BOOTSTRAPATTR {
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 pir::set_binder_top_type__vP(Mu);
 
+# XXX Move out of bootstrap when possible.
+Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_bool',
+    sub ($self) { $self.Bool() });
+Mu.HOW.publish_parrot_vtable_mapping(Mu);
+
 # class Any is Mu { ... }
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 Any.HOW.add_parent(Any, Mu);
@@ -164,6 +169,14 @@ pir::set_scalar_container_type__vP(Scalar);
 # Scalar needs to be registered as a container type.
 pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
 
+# XXX Quick and dirty Bool. Probably done by EnumHOW in the end.
+my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
+Bool.HOW.add_parent(Bool, Cool);
+Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int)));
+Bool.HOW.add_parrot_vtable_mapping(Bool, 'get_bool',
+    sub ($self) { pir::repr_get_attr_int__IPPs($self, Bool, '$!value') });
+Bool.HOW.publish_parrot_vtable_mapping(Bool);
+    
 # Set up Stash type, using a Parrot hash under the hood for storage.
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 Stash.HOW.add_parent(Stash, Cool);
@@ -197,7 +210,18 @@ Perl6::Metamodel::ClassHOW.add_stash(Str);
 Perl6::Metamodel::ClassHOW.add_stash(Int);
 Perl6::Metamodel::ClassHOW.add_stash(Num);
 Perl6::Metamodel::ClassHOW.add_stash(Scalar);
+Perl6::Metamodel::ClassHOW.add_stash(Bool);
 Perl6::Metamodel::ClassHOW.add_stash(Stash);
+
+# Bool::False and Bool::True.
+# XXX Really bad because they're not types. Yup, need EnumHOW...
+my $false := pir::repr_instance_of__PP(Bool);
+pir::repr_bind_attr_int__vPPsI($false, Bool, '$!value', 0);
+(Bool.WHO)<False> := $false;
+my $true := pir::repr_instance_of__PP(Bool);
+pir::repr_bind_attr_int__vPPsI($true, Bool, '$!value', 1);
+(Bool.WHO)<True> := $true;
+pir::perl6_set_bools__vPP($false, $true);
 
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
@@ -218,6 +242,7 @@ my module EXPORT {
         $?PACKAGE.WHO<Num>       := Num;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
+        $?PACKAGE.WHO<Bool>      := Bool;
         $?PACKAGE.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
     }
 }

@@ -20,10 +20,11 @@ BEGIN_OPS_PREAMBLE
 #  include <unicode/uchar.h>
 #endif
 
-/* We cache a couple of type IDs for an op that we hit on every method call. */
+/* Cache some stuff for fast access. */
 static INTVAL smo_id = 0;
-
 static STRING *DISPATCH_JUNCTION_str;
+static PMC    *BoolFalse;
+static PMC    *BoolTrue;
 
 END_OPS_PREAMBLE
 
@@ -456,6 +457,37 @@ inline op encodelocaltime(out INT, in PMC) :base_core {
 
     $1 = mktime(&tm);
 }
+
+
+/*
+
+=item perl6_set_bools(in PMC, in PMC)
+
+Sets and caches the False ($1) and True ($2) values to booleanize to.
+
+=cut
+
+*/
+inline op perl6_set_bools(in PMC, in PMC) :base_core {
+    BoolFalse = $1;
+    BoolTrue  = $2;
+}
+
+
+/*
+
+=item perl6_booleanize(out PMC, in INT)
+
+If $2 is non-zero, puts Bool::True in $1. Otherwise puts Bool::False
+in.
+
+=cut
+
+*/
+inline op perl6_booleanize(out PMC, in INT) :base_core {
+    $1 = $2 == 0 ? BoolFalse : BoolTrue;
+}
+
 
 /*
  * Local variables:

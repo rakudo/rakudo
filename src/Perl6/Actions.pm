@@ -2100,12 +2100,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         if $key eq 'POSTFIX' {
-            my $inv := $/[0].ast;
-            $past.unshift(
-                PAST::Op.ACCEPTS($past) && $past.pasttype eq 'callmethod'
-                ?? PAST::Op.new( :pirop('perl6_decontainerize PP'), $inv, :returns($inv.returns), :arity($inv.arity) )
-                !! $inv
-            );
+            $past.unshift($/[0].ast);
         }
         else {
             for $/.list { if $_.ast { $past.push($_.ast); } }

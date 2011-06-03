@@ -202,21 +202,14 @@ class Perl6::Actions is HLL::Actions {
             for $<statement> {
                 my $ast := $_.ast;
                 if $ast {
-                    if $ast<bareblock> {
-                        $ast := PAST::Op.new(
-                                    :pirop<setprop__0PsP>,
-                                    block_immediate($ast<block_past>),
-                                    '$!lazysig',
-                                    $ast[2]);
-                    }
-                    elsif $ast.isa(PAST::Block) && !$ast.blocktype {
-                        $ast := block_immediate($ast);
+                    if $ast<sink_past> {
+                        $ast := $ast<sink_past>;
                     }
                     $past.push( $ast );
                 }
             }
         }
-        $past.push(PAST::Var.new(:name('Nil'), :namespace([]), :scope('package'))) if +$past.list < 1;
+        $past.push(PAST::Var.new(:name('Nil'), :namespace([]), :scope('lexical'))) if +$past.list < 1;
         make $past;
     }
 
@@ -239,7 +232,7 @@ class Perl6::Actions is HLL::Actions {
             $past := $<EXPR>.ast;
             if $mc {
                 $mc.ast.push($past);
-                $mc.ast.push(PAST::Var.new(:name('Nil'), :namespace([]), :scope('package')));
+                $mc.ast.push(PAST::Var.new(:name('Nil'), :scope('lexical')));
                 $past := $mc.ast;
             }
             if $ml {
@@ -292,9 +285,13 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method pblock($/) {
-        my $block := $<blockoid>.ast;
-        unless $<blockoid><you_are_here> {
+        if $<blockoid><you_are_here> {
+            make $<blockoid>.ast;
+        }
+        else {
+            # Locate or build a signature.
             my $signature;
+            my $block := $<blockoid>.ast;
             if pir::defined__IP($block<placeholder_sig>) && $<signature> {
                 $/.CURSOR.panic('Placeholder variable cannot override existing signature');
             }
@@ -303,35 +300,35 @@ class Perl6::Actions is HLL::Actions {
             }
             elsif $<signature> {
                 $signature := $<signature>.ast;
-                $block.blocktype('declaration');
             }
             else {
-                $signature := Perl6::Compiler::Signature.new();
+                my @params;
                 unless $block.symbol('$_') {
                     if $*IMPLICIT {
-                        $signature.add_parameter(Perl6::Compiler::Parameter.new(
-                            :var_name('$_'), :optional(1),
-                            :is_parcel(1), :default_from_outer(1)
-                        ));
+                        @params.push($*ST.create_parameter(hash(
+                            :variable_name('$_'), :optional(1),
+                            :nominal_type($*ST.find_symbol(['Mu'])),
+                            :default_from_outer(1), :is_parcel(1),
+                        )));
                     }
                     else {
                         add_implicit_var($block, '$_');
                     }
                 }
+                $signature := $*ST.create_signature(@params);
             }
             if $<lambda> eq '<->' {
-                $signature.set_rw_by_default();
+                $/.CURSOR.panic("<-> not yet implemented");
             }
-            add_signature($block, $signature);
-            # We ought to find a way to avoid this, but it seems necessary for now.
-            $block.loadinit.push(
-                PAST::Op.new( :pirop<setprop__vPsP>,
-                    PAST::Val.new( :value($block) ),
-                    '$!lazysig',
-                    $block<lazysig> )
-            );
+            add_signature_binding_code($block, $signature);
+            
+            # We'll install PAST in current block so it gets capture_lex'd.
+            # Then evaluate to a reference to the block (non-closure - higher
+            # up stuff does that if it wants to).
+            ($*ST.cur_lexpad())[0].push($block);
+            my $code := $*ST.create_code_object($block, 'Block', $signature);
+            make reference_to_code_object($code, $block);
         }
-        make $block;
     }
 
     method block($/) {
@@ -433,7 +430,7 @@ class Perl6::Actions is HLL::Actions {
         my $past := PAST::Op.new( 
                         :pasttype<callmethod>, :name<map>, :node($/),
                         PAST::Op.new( :name<&flat>, $xblock[0] ),
-                        block_closure($xblock[1], 'Block', 0)
+                        block_closure($xblock[1])
         );
         $past := PAST::Op.new( :name<&eager>, $past, :node($/) );
         make $past;
@@ -708,7 +705,7 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
     method term:sym<circumfix>($/)          { make $<circumfix>.ast; }
     method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
-    method term:sym<lambda>($/)             { make block_closure($<pblock>.ast, 'Block', 0); }
+    method term:sym<lambda>($/)             { make block_closure($<pblock>.ast); }
     method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
 
     method name($/) { }
@@ -1049,18 +1046,18 @@ class Perl6::Actions is HLL::Actions {
         if $block<multi_enterer> {
             $block<multi_enterer>.push($*ST.get_object_sc_ref_past($code));
         }
-        
+
+        # Install PAST block so that it gets capture_lex'd correctly and also
+        # install it in the lexpad.
+        my $outer := $*ST.cur_lexpad();
+        $outer[0].push($block);
+
         my $past;
         if $<deflongname> {
             # Set name.
             my $name := '&' ~ ~$<deflongname>[0].ast;
             $block.name(~$<deflongname>[0].ast);
             $block.nsentry('');
-            
-            # Install PAST block so that it gets capture_lex'd correctly and also
-            # install it in the lexpad.
-            my $outer := $*ST.cur_lexpad();
-            $outer[0].push($block);
 
             # If it's a multi, need to associate it with the surrounding
             # proto.
@@ -1087,21 +1084,15 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a sub");
                 }
             }
-            
-            # Evaluate to a ref to the code.
-            # XXX should it be a closure?
-            $past := $*ST.get_object_sc_ref_past($code);
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous routine');
         }
-        else {
-            $past := create_closure($code);
-        }
         
-        make $past;
+        my $closure := block_closure(reference_to_code_object($code, $past));
+        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        make $closure;
     }
-
 
     method method_def($/) {
         my $past;
@@ -1136,6 +1127,10 @@ class Perl6::Actions is HLL::Actions {
         if $past<multi_enterer> {
             $past<multi_enterer>.push($*ST.get_object_sc_ref_past($code));
         }
+        
+        # Install PAST block so that it gets capture_lex'd correctly.
+        my $outer := $*ST.cur_lexpad();
+        $outer[0].push($past);
 
         # Install method.
         if $<longname> {
@@ -1149,25 +1144,16 @@ class Perl6::Actions is HLL::Actions {
             # Add to methods table.
             my $name := $<longname>.Str;
             $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
-            
-            # Install PAST block so that it gets capture_lex'd correctly.
-            my $outer := $*ST.cur_lexpad();
-            $outer[0].push($past);
-            
-            # Evaluate to a ref to the code.
-            # XXX should it be a closure?
-            $past := $*ST.get_object_sc_ref_past($code);
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
         }
-        else {
-            $past := block_closure($past, $*METHODTYPE, 0);
-        }
 
-        make $past;
+        my $closure := block_closure(reference_to_code_object($code, $past));
+        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        make $closure;
     }
-    
+
     method onlystar($/) {
         my $BLOCK := $*CURPAD;
         my $enterer := PAST::Op.new( :pirop('perl6_enter_multi_dispatch PP') );
@@ -2038,7 +2024,7 @@ class Perl6::Actions is HLL::Actions {
                 $is_hash := 1;
             }
         }
-        if $is_hash && $past.arity < 1 {
+        if $is_hash { # XXX && $past.arity < 1 {
             my @children := @($past[1]);
             $past := PAST::Op.new(
                 :pasttype('call'),
@@ -2050,8 +2036,8 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         else {
-            $past := block_closure($past, 'Block', 0);
-            $past<bareblock> := 1;
+            $past := block_closure($past);
+            $past<sink_past> := $past<past_block>;
         }
         make $past;
     }
@@ -2862,63 +2848,19 @@ class Perl6::Actions is HLL::Actions {
         return PAST::Var.new( :name(~$sigil ~ ~$ident), :scope('lexical') );
     }
 
-    sub blockref($block) {
-        my $ref := PAST::Val.new( :value($block) );
-        $ref<block_past> := $block;
-        $ref<lazysig>    := $block<lazysig>;
-        $ref;
+    sub reference_to_code_object($code_obj, $past_block) {
+        my $ref := $*ST.get_object_sc_ref_past($code_obj);
+        $ref<past_block> := $past_block;
+        return $ref;
     }
-
-    # Returns the (static) code object for a block.
-    # Note that it never holds the block directly -- it's always
-    # obtained by reference.
-    sub block_code($block, $type = 'Block', $multiness?) {
-        my @name := Perl6::Grammar::parse_name($type);
-        my $past := PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('!get_code'),
-            PAST::Val.new( :value($block) ),
-            PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
+    
+    sub block_closure($code) {
+        my $closure := PAST::Op.new(
+            :pasttype('callmethod'), :name('clone'),
+            $code
         );
-        $past.push($block<lazysig>) if pir::defined($block<lazysig>);
-        $past.push($multiness) if $multiness;
-        $past<block_past> := $block;
-        $past<block_type> := $type;
-        $past;
-    }
-
-    # Returns the (dynamic) closure for a block.  Unlike
-    # block_code above, this *does* hold the block directly.
-    sub block_closure($block, $type = 'Block', $multiness?) {
-        my @name := Perl6::Grammar::parse_name($type);
-        my $past := PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('!get_closure'),
-            $block,
-            PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
-        );
-        $past.push($block<lazysig>) if pir::defined($block<lazysig>);
-        $past.push($multiness) if pir::defined($multiness);
-        $past<block_past> := $block;
-        $past<block_type> := $type;
-        $past;
-    }
-
-    # Returns the (dynamic) closure for a block, taking a reference
-    # to it rather than holding it directly.
-    sub block_ref_closure($block, $type = 'Block', $multiness?) {
-        my @name := Perl6::Grammar::parse_name($type);
-        my $past := PAST::Op.new(
-            :pasttype('callmethod'),
-            :name('!get_closure'),
-            PAST::Val.new( :value($block) ),
-            PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
-        );
-        $past.push($block<lazysig>) if pir::defined($block<lazysig>);
-        $past.push($multiness) if pir::defined($multiness);
-        $past<block_past> := $block;
-        $past<block_type> := $type;
-        $past;
+        $closure<block_past> := $code<block_past>;
+        return $closure;
     }
 
     sub add_implicit_var($block, $name) {
@@ -3059,7 +3001,7 @@ class Perl6::Actions is HLL::Actions {
         $*ST.cur_lexpad().push($block);
 
         # Return a code object using a reference to the block.
-        block_ref_closure($block, 'Method', 0);
+        block_closure($block, 'Method', 0);
     }
 
     # Takes something that may be a block already, and if not transforms it into

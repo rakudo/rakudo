@@ -540,7 +540,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<**>                 { <sym> <.panic('HyperWhatever (**) not yet implemented')> }
     token term:sym<*>                  { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> }
-    # token term:sym<sigterm>            { <sigterm> }   # see colonpair instead
 
     token term:sym<undef> {
         <sym> >> {}

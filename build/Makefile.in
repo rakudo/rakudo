@@ -103,6 +103,7 @@ CORE_SOURCES = \
   src/CORE.setting/Mu.pm \
   src/CORE.setting/Any.pm \
   src/CORE.setting/Cool.pm \
+  src/CORE.setting/Attribute.pm \
   src/CORE.setting/Int.pm \
   src/CORE.setting/Num.pm \
   src/CORE.setting/Str.pm \

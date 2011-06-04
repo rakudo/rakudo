@@ -47,14 +47,40 @@ my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 Cool.HOW.add_parent(Cool, Any);
 
 # class Attribute is Cool {
-#     has $!name; # Has to be an bootstrap attribute object for now
+#     has str $!name;
+#     has int $!rw;
 #     has $!type;
+#     has $!auto_viv_container;
 #     ... # Uncomposed
 # }
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 Attribute.HOW.add_parent(Attribute, Cool);
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(Mu)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu)));
+
+# XXX Need new and accessor methods for Attribute in here for now.
+Attribute.HOW.add_method(Attribute, 'new',
+    sub ($self, :$name, :$type, *%other) {
+        my $attr := pir::repr_instance_of__PP($self);
+        pir::repr_bind_attr_str__vPPsS($attr, Attribute, '$!name', $name);
+        pir::setattribute__vPPsP($attr, Attribute, '$!type', $type);
+        if pir::exists(%other, 'auto_viv_container') {
+            pir::setattribute__vPPsP($attr, Attribute, '$!auto_viv_container',
+                %other<auto_viv_container>);
+        }
+        $attr
+    });
+Attribute.HOW.add_method(Attribute, 'name', sub ($self) {
+        pir::repr_get_attr_str__SPPs($self, Attribute, '$!name');
+    });
+Attribute.HOW.add_method(Attribute, 'type', sub ($self) {
+        pir::getattribute__PPPs($self, Attribute, '$!type');
+    });
+Attribute.HOW.add_method(Attribute, 'auto_viv_container', sub ($self) {
+        pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');
+    });
 
 # class Signature is Cool {
 #    has $!params;

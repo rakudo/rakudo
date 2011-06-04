@@ -1725,23 +1725,20 @@ class Perl6::Actions is HLL::Actions {
         }
         else
         {
-            # Look up &trait_mod:<is>.
-            my $tmi := $*ST.find_symbol(['&trait_mod:<is>']);
-            
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $*ST.is_type(@name) {
                 my $trait := $*ST.find_symbol(@name);
                 make -> $declarand {
-                    $tmi($declarand, $trait);
+                    $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait);
                 };
             }
             else {
                 my %arg;
-                %arg{~$<longname>} := 1;
+                %arg{~$<longname>} := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
                 make -> $declarand {
-                    $tmi($declarand, |%arg);
+                    $*ST.apply_trait('&trait_mod:<is>', $declarand, |%arg);
                 };
             }
         }

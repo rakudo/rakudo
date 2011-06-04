@@ -67,6 +67,7 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
         
         /* If we get here, all is fine; store the value. */
         scalar->value = value;
+        PARROT_GC_WRITE_BARRIER(interp, cont);
     }
     
     /* Otherwise, use STORE call. */
@@ -92,5 +93,6 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
 PMC * Rakudo_cont_scalar_from_descriptor(PARROT_INTERP, PMC *descriptor) {
     PMC *new_scalar = REPR(scalar_type)->instance_of(interp, scalar_type);
     ((Rakudo_Scalar *)PMC_data(new_scalar))->descriptor = descriptor;
+    PARROT_GC_WRITE_BARRIER(interp, new_scalar);
     return new_scalar;
 }

@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 2nd June 2011
+Last Updated 4th June 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -10,9 +10,6 @@ Get ::= correcter, and a bit more stuff on := also.
 
 ## Implicitly typed parameters
 Any for routines, Mu otherwise
-
-## Work out boolean stuff
-So we can actually have relational operators.
 
 ## Get attributes working
 Finish up enough so a (typed) attribute can be declared. Check for use
@@ -24,12 +21,8 @@ new, bless, CREATE, BUILDALL, BUILD handling.
 ## Multi-methods
 Get these working.
 
-## Various operators in the setting
-Add back various operators like the arithmetic ones.
-
 ## Block stuff
-Ensure correct closure semantics, pointy blocks with parameters and
-placeholder parameters need doing. Also $_, $/ and $! handling.
+Placeholder parameters need doing. Also $_, $/ and $! handling.
 
 ## Lists, arrays and hashes in the setting
 Get them working.
@@ -39,6 +32,9 @@ While basic binding works again now, there's plenty of stuff to "put back".
 
 ## More traits
 Add various missing traits
+
+## More operators
+Flesh out the range of available operators
 
 ## Parametric roles
 Get parametric roles working with the new meta-object model.

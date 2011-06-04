@@ -36,7 +36,7 @@ class Perl6::Metamodel::ClassHOW
         }
 
         # Publish type and method caches.
-        # XXX self.publish_type_cache($obj);
+        self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         
         # Install Parrot v-table mappings.
@@ -56,6 +56,15 @@ class Perl6::Metamodel::ClassHOW
             }
         }
         pir::null__P();
+    }
+    
+    method publish_type_cache($obj) {
+        my @tc;
+        for self.mro($obj) {
+            @tc.push($_);
+            # XXX roles also...
+        }
+        pir::publish_type_check_cache($obj, @tc)
     }
 
     method publish_method_cache($obj) {

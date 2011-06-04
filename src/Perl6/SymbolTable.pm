@@ -629,6 +629,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $obj_slot_past,
             $create_call
         )));
+        
+        # Return attribute that was built.
+        $attr
     }
     
     # Adds a method to the meta-object, and stores an event for the action.
@@ -660,6 +663,29 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             PAST::Op.new( :pirop('get_how PP'), $slot_past ),
             $slot_past
         )));
+    }
+    
+    # Applies a trait.
+    method apply_trait($trait_sub_name, *@pos_args, *%named_args) {
+        # Locate the trait sub to apply.
+        my $trait_sub := $*ST.find_symbol([$trait_sub_name]);
+        
+        # Call it right away.
+        $trait_sub(|@pos_args, |%named_args);
+        
+        # Serialize call to it.
+        my $call_past := PAST::Op.new(
+            :pasttype('call'),
+            self.get_object_sc_ref_past($trait_sub));
+        for @pos_args {
+            $call_past.push(self.get_object_sc_ref_past($_));
+        }
+        for %named_args {
+            my $lookup := self.get_object_sc_ref_past($_.value);
+            $lookup.named($_.key);
+            $call_past.push($lookup);
+        }
+        self.add_event(:deserialize_past($call_past));
     }
     
     # Checks if a given symbol is declared and also a type object.

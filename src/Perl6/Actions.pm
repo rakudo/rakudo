@@ -33,7 +33,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub pblock_immediate($pblock) {
-        block_immediate($pblock);
+        block_immediate($pblock<uninstall_if_immediately_used>.shift);
     }
 
     sub block_immediate($block) {
@@ -325,9 +325,11 @@ class Perl6::Actions is HLL::Actions {
             # We'll install PAST in current block so it gets capture_lex'd.
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
-            ($*ST.cur_lexpad())[0].push($block);
+            ($*ST.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
             my $code := $*ST.create_code_object($block, 'Block', $signature);
-            make reference_to_code_object($code, $block);
+            my $ref := reference_to_code_object($code, $block);
+            $ref<uninstall_if_immediately_used> := $uninst;
+            make $ref;
         }
     }
 

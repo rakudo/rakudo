@@ -819,16 +819,16 @@ class Perl6::Actions is HLL::Actions {
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
         }
         elsif $<twigil>[0] eq '^' || $<twigil>[0] eq ':' {
-            $past := add_placeholder_parameter($<sigil>.Str, $<desigilname>.Str, :named($<twigil>[0] eq ':'));
+            $past := add_placeholder_parameter($/, $<sigil>.Str, $<desigilname>.Str, :named($<twigil>[0] eq ':'));
         }
         elsif ~$/ eq '@_' {
             unless get_nearest_signature().declares_symbol('@_') {
-                $past := add_placeholder_parameter('@', '_', :slurpy_pos(1));
+                $past := add_placeholder_parameter($/, '@', '_', :slurpy_pos(1));
             }
         }
         elsif ~$/ eq '%_' {
             unless get_nearest_signature().declares_symbol('%_') {
-                $past := add_placeholder_parameter('%', '_', :slurpy_named(1));
+                $past := add_placeholder_parameter($/, '%', '_', :slurpy_named(1));
             }
         }
         else {
@@ -2854,23 +2854,56 @@ class Perl6::Actions is HLL::Actions {
     }
 
     # Adds a placeholder parameter to this block's signature.
-    sub add_placeholder_parameter($sigil, $ident, :$named, :$slurpy_pos, :$slurpy_named) {
+    sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$slurpy_pos, :$slurpy_named) {
+        # Obtain/create placeholder parameter list.
         my $block := $*ST.cur_lexpad();
-
-        # Add entry to the block signature.
-        my $placeholder_sig := $block<placeholder_sig>;
-        unless pir::defined__IP($placeholder_sig) {
-            $block<placeholder_sig> := $placeholder_sig := Perl6::Compiler::Signature.new();
+        my @params := $block<placeholder_sig> || ($block<placeholder_sig> := []);
+        
+        # Make descriptor.
+        my $name := ~$sigil ~ ~$ident;
+        my %param_info := hash(
+            variable_name => $name,
+            slurpy_pos    => $slurpy_pos,
+            slurpy_named  => $slurpy_named);
+        
+        # If it's slurpy, just goes on the end.
+        if $slurpy_pos || $slurpy_named {
+            @params.push(%param_info);
         }
-        my $param := Perl6::Compiler::Parameter.new();
-        $param.var_name(~$sigil ~ ~$ident);
-        $param.pos_slurpy($slurpy_pos);
-        $param.named_slurpy($slurpy_named);
-        if $named { $param.names.push($ident) }
-        $placeholder_sig.add_placeholder_parameter($param);
+        
+        # If it's named, just shove it on the end, but before any slurpies.
+        elsif $named {
+            %param_info<named_names> := [$ident];
+            my @popped;
+            while @params
+                    && (@params[+@params - 1]<slurpy_pos> || @params[+@params - 1]<slurpy_named>) {
+                @popped.push(@params.pop);
+            }
+            @params.push(%param_info);
+            while @popped { @params.push(@popped.pop) }
+        }
+        
+        # Otherwise, put it in correct lexicographic position.
+        else {
+            my @shifted;
+            for @params {
+                last if $_<slurpy_pos> || $_<slurpy_named> ||
+                        $_<named_names> ||
+                        pir::substr__SSi($_<variable_name>, 1) gt $ident;
+                @shifted.push(@params.shift);
+            }
+            @params.unshift(%param_info);
+            while @shifted { @params.unshift(@shifted.pop) }
+        }
 
-        # Just want a lookup of the variable here.
-        return PAST::Var.new( :name(~$sigil ~ ~$ident), :scope('lexical') );
+        # Add variable declaration, and evaluate to a lookup of it.
+        my %existing := $block.symbol($name);
+        if +%existing && !%existing<placeholder_parameter> {
+            $/.CURSOR.panic("Redeclaration of symbol $name as a placeholder parameter");
+        }
+        $block[0].push(PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1) ));
+        $block.symbol($name, :scope('lexical'), :placeholder_parameter(1));
+        return PAST::Var.new( :name($name), :scope('lexical') );
     }
 
     sub reference_to_code_object($code_obj, $past_block) {

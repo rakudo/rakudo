@@ -289,37 +289,38 @@ class Perl6::Actions is HLL::Actions {
             make $<blockoid>.ast;
         }
         else {
-            # Locate or build a signature.
-            my $signature;
+            # Locate or build a set of parameters.
+            my @params;
             my $block := $<blockoid>.ast;
-            if pir::defined__IP($block<placeholder_sig>) && $<signature> {
+            if $block<placeholder_sig> && $<signature> {
                 $/.CURSOR.panic('Placeholder variable cannot override existing signature');
             }
-            elsif pir::defined__IP($block<placeholder_sig>) {
-                $signature := $block<placeholder_sig>;
+            elsif $block<placeholder_sig> {
+                @params := $block<placeholder_sig>;
             }
             elsif $<signature> {
-                $signature := $<signature>.ast;
+                @params := $<signature>.ast;
             }
             else {
-                my @params;
                 unless $block.symbol('$_') {
                     if $*IMPLICIT {
-                        @params.push($*ST.create_parameter(hash(
+                        @params.push(hash(
                             :variable_name('$_'), :optional(1),
                             :nominal_type($*ST.find_symbol(['Mu'])),
                             :default_from_outer(1), :is_parcel(1),
-                        )));
+                        ));
                     }
                     else {
                         add_implicit_var($block, '$_');
                     }
                 }
-                $signature := $*ST.create_signature(@params);
             }
+            
+            # Create signature object and set up binding.
             if $<lambda> eq '<->' {
-                $/.CURSOR.panic("<-> not yet implemented");
+                for @params { $_<is_rw> := 1 }
             }
+            my $signature := create_signature_object(@params, $block);
             add_signature_binding_code($block, $signature);
             
             # We'll install PAST in current block so it gets capture_lex'd.
@@ -752,7 +753,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         elsif $<fakesignature> {
-            make $<fakesignature>.ast.ast;   # XXX: Huh?
+            make $<fakesignature>.ast;
         }
         else {
             make $*value.ast;
@@ -1031,17 +1032,18 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         
-        # Obtain signagture (note, actual Signature object, not PAST for it)
-        # and generate code to call binder.
-        if pir::defined__IP($block<placeholder_sig>) && $<multisig> {
+        # Obtain parameters, create signature object and generate code to
+        # call binder.
+        if $block<placeholder_sig> && $<multisig> {
             $/.CURSOR.panic('Placeholder variable cannot override existing signature');
         }
-        my $signature := 
-                $<multisig>                               ?? $<multisig>[0].ast      !!
-                pir::defined__IP($block<placeholder_sig>) ?? $block<placeholder_sig> !!
-                $*ST.create_signature([]);
+        my @params := 
+                $<multisig>             ?? $<multisig>[0].ast      !!
+                $block<placeholder_sig> ?? $block<placeholder_sig> !!
+                [];
+        my $signature := create_signature_object(@params, $block);
         add_signature_binding_code($block, $signature);
-                
+
         # Create code object.
         my $code := $*ST.create_code_object($block, 'Sub', $signature,
             $*MULTINESS eq 'proto');
@@ -1112,12 +1114,11 @@ class Perl6::Actions is HLL::Actions {
         }
         
         # Get signature - or create one.
-        if pir::defined__IP($past<placeholder_sig>) {
+        if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
         }
-        my $signature := $<multisig> ??
-            $<multisig>[0].ast !!
-            $*ST.create_signature([]);
+        my @params := $<multisig> ?? $<multisig>[0].ast !! [];
+        my $signature := create_signature_object(@params, $past);
         add_signature_binding_code($past, $signature);
         
         # Place to store invocant.
@@ -1482,7 +1483,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        make $*ST.get_slot_past_for_object($<signature>.ast);
+        make $*ST.get_slot_past_for_object($*ST.make_signature($<signature>.ast));
     }
 
     method signature($/) {
@@ -1517,22 +1518,8 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         
-        # Create Parameter objects, along with container descriptors
-        # if needed, and a Signature object.
-        my @parameters;
-        my $lexpad := $*ST.cur_lexpad();
-        for @parameter_infos {
-            if $_<variable_name> {
-                my %sym := $lexpad.symbol($_<variable_name>);
-                if +%sym {
-                    $_<container_descriptor> := $*ST.create_container_descriptor(
-                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
-                    $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
-                }
-            }
-            @parameters.push($*ST.create_parameter($_));
-        }
-        make $*ST.create_signature(@parameters);
+        # Result is set of parameter descriptors.
+        make @parameter_infos;
     }
 
     method parameter($/) {
@@ -1563,7 +1550,7 @@ class Perl6::Actions is HLL::Actions {
             if pir::exists(%*PARAM_INFO, 'sub_signature') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            %*PARAM_INFO<sub_signature> := $<signature>.ast;
+            %*PARAM_INFO<sub_signature> := create_signature_object($<signature>.ast, $*ST.cur_lexpad());
             if pir::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }
@@ -1655,7 +1642,7 @@ class Perl6::Actions is HLL::Actions {
             if pir::exists(%*PARAM_INFO, 'sub_signature') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            %*PARAM_INFO<sub_signature> := $<signature>.ast;
+            %*PARAM_INFO<sub_signature> := create_signature_object($<signature>.ast, $*ST.cur_lexpad());
             if pir::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }
@@ -1664,6 +1651,25 @@ class Perl6::Actions is HLL::Actions {
             # XXX TODO
             $/.CURSOR.panic('post_constraints not yet implemented');
         }
+    }
+    
+    # Create Parameter objects, along with container descriptors
+    # if needed. Parameters will be bound into the specified
+    # lexpad.
+    sub create_signature_object(@parameter_infos, $lexpad) {
+        my @parameters;
+        for @parameter_infos {
+            if $_<variable_name> {
+                my %sym := $lexpad.symbol($_<variable_name>);
+                if +%sym {
+                    $_<container_descriptor> := $*ST.create_container_descriptor(
+                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
+                    $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
+                }
+            }
+            @parameters.push($*ST.create_parameter($_));
+        }
+        $*ST.create_signature(@parameters)
     }
     
     method trait($/) {

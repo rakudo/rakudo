@@ -1113,11 +1113,17 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         
-        # Get signature - or create one.
+        # Get signature and ensure it has an invocant.
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
         }
         my @params := $<multisig> ?? $<multisig>[0].ast !! [];
+        unless @params[0]<is_invocant> {
+            @params.unshift(hash(
+                nominal_type => $*PACKAGE,
+                is_invocant => 1
+            ));
+        }
         my $signature := create_signature_object(@params, $past);
         add_signature_binding_code($past, $signature);
         
@@ -1506,16 +1512,6 @@ class Perl6::Actions is HLL::Actions {
             }
             @parameter_infos.push(%info);
             $param_idx := $param_idx + 1;
-        }
-        
-        # If an invocant is demanded and we ain't got one, add it.
-        if $*WANT_INVOCANT {
-            unless @parameter_infos[0]<is_invocant> {
-                @parameter_infos.unshift(hash(
-                    nominal_type => $*PACKAGE,
-                    is_invocant => 1
-                ));
-            }
         }
         
         # Result is set of parameter descriptors.

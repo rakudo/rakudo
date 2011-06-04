@@ -996,7 +996,7 @@ class Perl6::Actions is HLL::Actions {
                     has_accessor => $twigil eq '.'
                 ),
                 hash( 
-                    type => $*TYPENAME ?? $*TYPENAME[0].ast !! $*ST.find_symbol(['Mu'])
+                    type => $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu'])
                 ));
             
             # If no twigil, note $foo is an alias to $!foo.
@@ -2276,8 +2276,17 @@ class Perl6::Actions is HLL::Actions {
             }
             
             # Now go by scope.
-            if $target.scope eq 'attribute' {
-                $/.CURSOR.panic("Binding to attributes NYI");
+            if $target.scope eq 'attribute_6model' {
+                # Ensure we're got going to try and bind to a native attribute;
+                # that's not allowed.
+                if $target.type.HOW.WHAT =:= %*HOW<native> {
+                    $/.CURSOR.panic("Cannot bind to a native attribute; use assignment instead");
+                }
+                
+                # Source needs type check.
+                $source := PAST::Op.new(
+                    :pirop('perl6_assert_bind_ok 0PP'),
+                    $source, $*ST.get_object_sc_ref_past($target.type))
             }
             else {
                 # Probably a lexical.

@@ -50,6 +50,7 @@ Cool.HOW.add_parent(Cool, Any);
 #     has str $!name;
 #     has int $!rw;
 #     has $!type;
+#     has $!container_descriptor;
 #     has $!auto_viv_container;
 #     ... # Uncomposed
 # }
@@ -58,14 +59,16 @@ Attribute.HOW.add_parent(Attribute, Cool);
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu)));
 
 # XXX Need new and accessor methods for Attribute in here for now.
 Attribute.HOW.add_method(Attribute, 'new',
-    sub ($self, :$name, :$type, *%other) {
+    sub ($self, :$name, :$type, :$container_descriptor, *%other) {
         my $attr := pir::repr_instance_of__PP($self);
         pir::repr_bind_attr_str__vPPsS($attr, Attribute, '$!name', $name);
         pir::setattribute__vPPsP($attr, Attribute, '$!type', $type);
+        pir::setattribute__vPPsP($attr, Attribute, '$!container_descriptor', $container_descriptor);
         if pir::exists(%other, 'auto_viv_container') {
             pir::setattribute__vPPsP($attr, Attribute, '$!auto_viv_container',
                 %other<auto_viv_container>);
@@ -77,6 +80,9 @@ Attribute.HOW.add_method(Attribute, 'name', sub ($self) {
     });
 Attribute.HOW.add_method(Attribute, 'type', sub ($self) {
         pir::getattribute__PPPs($self, Attribute, '$!type');
+    });
+Attribute.HOW.add_method(Attribute, 'container_descriptor', sub ($self) {
+        pir::getattribute__PPPs($self, Attribute, '$!container_descriptor');
     });
 Attribute.HOW.add_method(Attribute, 'auto_viv_container', sub ($self) {
         pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');

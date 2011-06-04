@@ -987,8 +987,12 @@ class Perl6::Actions is HLL::Actions {
                 $/.CURSOR.panic("A $*PKGDECL cannot have attributes");
             }
             
-            # Create meta-attribute and add it.
+            # Create container descriptor.
             my $attrname := ~$sigil ~ '!' ~ $desigilname;
+            my $type := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
+            my $descriptor := $*ST.create_container_descriptor($type, 1, $attrname);
+            
+            # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
             $*ST.pkg_add_attribute($*PACKAGE, $metaattr, 
                 hash(
@@ -996,7 +1000,8 @@ class Perl6::Actions is HLL::Actions {
                     has_accessor => $twigil eq '.'
                 ),
                 hash( 
-                    type => $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu'])
+                    container_descriptor => $descriptor,
+                    type => $type
                 ));
             
             # If no twigil, note $foo is an alias to $!foo.
@@ -2284,9 +2289,10 @@ class Perl6::Actions is HLL::Actions {
                 }
                 
                 # Source needs type check.
+                my $meta_attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $target.name);
                 $source := PAST::Op.new(
                     :pirop('perl6_assert_bind_ok 0PP'),
-                    $source, $*ST.get_object_sc_ref_past($target.type))
+                    $source, $*ST.get_object_sc_ref_past($meta_attr.container_descriptor))
             }
             else {
                 # Probably a lexical.

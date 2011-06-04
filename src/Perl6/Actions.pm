@@ -807,9 +807,24 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( $past.name(), :pasttype('call'), :name('!find_contextual'), :lvalue(0) );
         }
         elsif $<twigil>[0] eq '!' {
-            $past.scope('attribute');
-            $past.viviself( sigiltype( $<sigil> ) );
-            $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
+            # In a declaration, don't produce anything here.
+            if $*IN_DECL ne 'variable' {
+                # Ensure attribute actaully exists before emitting lookup.
+                unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+                    $/.CURSOR.panic("Lookup of $name outside of package that can support attributes");
+                }
+                my $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
+                if $attr {
+                    $past.scope('attribute_6model');
+                    $past.type($attr.type);
+                    $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+                    $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
+                }
+                else {
+                    $/.CURSOR.panic("Attribute $name not declared in $*PKGDECL " ~
+                        $*PACKAGE.HOW.name($*PACKAGE));
+                }
+            }
         }
         elsif $<twigil>[0] eq '.' && $*IN_DECL ne 'variable' {
             # Need to transform this to a method call.

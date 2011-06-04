@@ -8,9 +8,6 @@ are likely to get focus sooner.
 ## Fix up binding some more
 Get ::= correcter, and a bit more stuff on := also.
 
-## Implicitly typed parameters
-Any for routines, Mu otherwise
-
 ## Get attributes working
 Finish up enough so a (typed) attribute can be declared. Check for use
 of attributes that are not declared. Update attribute access code.
@@ -21,8 +18,8 @@ new, bless, CREATE, BUILDALL, BUILD handling.
 ## Multi-methods
 Get these working.
 
-## Block stuff
-Placeholder parameters need doing. Also $_, $/ and $! handling.
+## Magicals
+$_, $/, $!, @_ and %_ handling.
 
 ## Lists, arrays and hashes in the setting
 Get them working.

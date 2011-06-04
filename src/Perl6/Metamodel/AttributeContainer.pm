@@ -1,6 +1,7 @@
 role Perl6::Metamodel::AttributeContainer {
     # Attributes list.
     has @!attributes;
+    has %!attribute_lookup;
 
     # Adds an attribute.
     method add_attribute($obj, $meta_attr) {
@@ -12,6 +13,14 @@ role Perl6::Metamodel::AttributeContainer {
             }
         }
         @!attributes[+@!attributes] := $meta_attr;
+        %!attribute_lookup{$name}   := $meta_attr;
+    }
+    
+    # Gets the attribute meta-object for an attribute if it exists.
+    # This is called by the parser so it should only return attributes
+    # that are visible inside the current package.
+    method get_attribute_for_usage($obj, $name) {
+        %!attribute_lookup{$name}
     }
 
     # Introspect attributes.

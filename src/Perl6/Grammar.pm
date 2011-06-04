@@ -978,7 +978,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         unless $longname {
                             $/.CURSOR.panic("Compilation unit cannot be anonymous");
                         }
-                        unless $*ST.cur_lexpad() =:= $*UNIT {
+                        unless $outer =:= $*UNIT {
                             $/.CURSOR.panic("Semicolon form of " ~ $*PKGDECL ~ " definition not allowed in subscope;\n  please use block form");
                         }
                         if $*PKGDECL eq 'package' {

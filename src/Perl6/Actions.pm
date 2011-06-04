@@ -1167,7 +1167,7 @@ class Perl6::Actions is HLL::Actions {
 
     method onlystar($/) {
         my $BLOCK := $*CURPAD;
-        my $enterer := PAST::Op.new( :pirop('perl6_enter_multi_dispatch PP') );
+        my $enterer := PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block PP') );
         $BLOCK<multi_enterer> := $enterer;
         $BLOCK.push($enterer);
         $BLOCK.node($/);

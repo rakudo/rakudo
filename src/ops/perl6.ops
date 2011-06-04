@@ -413,18 +413,17 @@ candidate.
 =cut
 
 */
-inline op perl6_enter_multi_dispatch(out PMC, in PMC) :base_core {
+inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC, in PMC) :base_core {
     PMC *cur_ctx = CURRENT_CONTEXT(interp);
     PMC *chosen  = Rakudo_md_dispatch(interp, $2, cur_ctx, NULL);
     if (!PMC_IS_NULL(chosen)) {
-        /* Invoke the chosen candidate using a copy of the original args. */
-        PMC *arg_copy = VTABLE_clone(interp, cur_ctx);
-        PMC *result;
-        PMC *prev_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-        Parrot_pcc_invoke_from_sig_object(interp, chosen, arg_copy);
-        result = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-        Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), prev_ctx);
-        $1 = VTABLE_get_pmc_keyed_int(interp, result, 0);
+        /* Invoke the chosen candidate; we use the existing call frame
+         * and don't make a nested runloop. */
+        opcode_t *addr;
+        Parrot_pcc_set_signature(interp, cur_ctx, cur_ctx);
+        interp->current_cont = Parrot_pcc_get_continuation(interp, cur_ctx);
+        addr = VTABLE_invoke(interp, chosen, expr NEXT());
+        goto ADDRESS(addr);
     }
     else {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,

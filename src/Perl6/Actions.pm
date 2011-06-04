@@ -1026,7 +1026,9 @@ class Perl6::Actions is HLL::Actions {
         else {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
-            $block.control('return_pir');
+            unless is_clearly_returnless($block) {
+                $block.control('return_pir');
+            }
         }
         
         # Obtain signagture (note, actual Signature object, not PAST for it)
@@ -1104,7 +1106,9 @@ class Perl6::Actions is HLL::Actions {
         else {
             $past := $<blockoid>.ast;
             $past.blocktype('declaration');
-            $past.control('return_pir');
+            unless is_clearly_returnless($past) {
+                $past.control('return_pir');
+            }
         }
         
         # Get signature - or create one.
@@ -1154,6 +1158,11 @@ class Perl6::Actions is HLL::Actions {
         my $closure := block_closure(reference_to_code_object($code, $past));
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );
         make $closure;
+    }
+    
+    sub is_clearly_returnless($block) {
+        # If the only thing is a pirop, can assume no return
+        +$block[1].list == 1 && $block[1][0].isa(PAST::Op) && $block[1][0].pirop()
     }
 
     method onlystar($/) {

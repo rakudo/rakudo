@@ -18,7 +18,6 @@ static INTVAL smo_id            = 0;
 static STRING *ACCEPTS          = NULL;
 static STRING *HOW              = NULL;
 static STRING *DO_str           = NULL;
-static STRING *RW_str           = NULL;
 static STRING *PUN_str          = NULL;
 static STRING *HASH_str         = NULL;
 static STRING *LIST_str         = NULL;
@@ -38,8 +37,8 @@ static STRING *SHORTNAME_str    = NULL;
 static STRING *HASH_SIGIL_str   = NULL;
 static STRING *ARRAY_SIGIL_str  = NULL;
 static STRING *BANG_TWIGIL_str  = NULL;
-static STRING *CALLCONTEXT_str  = NULL;
 static STRING *SCALAR_SIGIL_str = NULL;
+static STRING *NAMED_str        = NULL;
 static PMC    *HashPunned       = NULL;
 
 /* Initializes our cached versions of some strings and type IDs that we
@@ -49,7 +48,6 @@ static void setup_binder_statics(PARROT_INTERP) {
     ACCEPTS          = Parrot_str_new_constant(interp, "ACCEPTS");
     HOW              = Parrot_str_new_constant(interp, "HOW");
     DO_str           = Parrot_str_new_constant(interp, "$!do");
-    RW_str           = Parrot_str_new_constant(interp, "rw");
     PUN_str          = Parrot_str_new_constant(interp, "!pun");
     NAME_str         = Parrot_str_new_constant(interp, "name");
     HASH_str         = Parrot_str_new_constant(interp, "Hash");
@@ -69,8 +67,8 @@ static void setup_binder_statics(PARROT_INTERP) {
     HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
     ARRAY_SIGIL_str  = Parrot_str_new_constant(interp, "@");
     BANG_TWIGIL_str  = Parrot_str_new_constant(interp, "!");
-    CALLCONTEXT_str  = Parrot_str_new_constant(interp, "CallContext");
     SCALAR_SIGIL_str = Parrot_str_new_constant(interp, "$");
+    NAMED_str        = Parrot_str_new_constant(interp, "named");
 
     p6r_id = pmc_type(interp, Parrot_str_new(interp, "P6role", 0));
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
@@ -505,9 +503,8 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
     /* If we've got a CallContext, just has an attribute with list of named
      * parameter names. Otherwise, it's a Capture and we need to do .hash and
      * grab out the keys. */
-    if (capture->vtable->base_type == enum_class_CallContext
-    ||  VTABLE_isa(interp, capture, CALLCONTEXT_str)) {
-        named_names = VTABLE_get_attr_str(interp, capture, Parrot_str_new(interp, "named", 0));
+    if (capture->vtable->base_type == enum_class_CallContext) {
+        named_names = VTABLE_get_attr_str(interp, capture, NAMED_str);
     }
     else if (VTABLE_isa(interp, capture, CAPTURE_str)) {
         PMC *meth = VTABLE_find_method(interp, capture, Parrot_str_new(interp, "!PARROT_NAMEDS", 0));

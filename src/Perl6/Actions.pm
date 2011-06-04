@@ -320,6 +320,7 @@ class Perl6::Actions is HLL::Actions {
             if $<lambda> eq '<->' {
                 for @params { $_<is_rw> := 1 }
             }
+            set_default_parameter_type(@params, 'Mu');
             my $signature := create_signature_object(@params, $block);
             add_signature_binding_code($block, $signature);
             
@@ -1041,6 +1042,7 @@ class Perl6::Actions is HLL::Actions {
                 $<multisig>             ?? $<multisig>[0].ast      !!
                 $block<placeholder_sig> ?? $block<placeholder_sig> !!
                 [];
+        set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object(@params, $block);
         add_signature_binding_code($block, $signature);
 
@@ -1124,6 +1126,7 @@ class Perl6::Actions is HLL::Actions {
                 is_invocant => 1
             ));
         }
+        set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object(@params, $past);
         add_signature_binding_code($past, $signature);
         
@@ -1546,7 +1549,9 @@ class Perl6::Actions is HLL::Actions {
             if pir::exists(%*PARAM_INFO, 'sub_signature') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            %*PARAM_INFO<sub_signature> := create_signature_object($<signature>.ast, $*ST.cur_lexpad());
+            my @params := $<signature>.ast;
+            set_default_parameter_type(@params, 'Mu');
+            %*PARAM_INFO<sub_signature> := create_signature_object(@params, $*ST.cur_lexpad());
             if pir::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }
@@ -1638,7 +1643,9 @@ class Perl6::Actions is HLL::Actions {
             if pir::exists(%*PARAM_INFO, 'sub_signature') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            %*PARAM_INFO<sub_signature> := create_signature_object($<signature>.ast, $*ST.cur_lexpad());
+            my @params := $<signature>.ast;
+            set_default_parameter_type(@params, 'Mu');
+            %*PARAM_INFO<sub_signature> := create_signature_object(@params, $*ST.cur_lexpad());
             if pir::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }
@@ -1646,6 +1653,16 @@ class Perl6::Actions is HLL::Actions {
         else {
             # XXX TODO
             $/.CURSOR.panic('post_constraints not yet implemented');
+        }
+    }
+    
+    # Sets the default parameter type for a signature.
+    sub set_default_parameter_type(@parameter_infos, $type_name) {
+        my $type := $*ST.find_symbol([$type_name]);
+        for @parameter_infos {
+            unless pir::exists($_, 'nominal_type') {
+                $_<nominal_type> := $type;
+            }
         }
     }
     

@@ -987,22 +987,23 @@ class Perl6::Actions is HLL::Actions {
                 $/.CURSOR.panic("A $*PKGDECL cannot have attributes");
             }
             
-            # Create container descriptor.
-            my $attrname := ~$sigil ~ '!' ~ $desigilname;
-            my $type := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
+            # Create container descriptor and decide on any default value..
+            my $attrname   := ~$sigil ~ '!' ~ $desigilname;
+            my $type       := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
             my $descriptor := $*ST.create_container_descriptor($type, 1, $attrname);
+            my @default    := $sigil eq '$' ?? [$type] !! [];
             
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
-            $*ST.pkg_add_attribute($*PACKAGE, $metaattr, 
+            $*ST.pkg_add_attribute($*PACKAGE, $metaattr,
                 hash(
                     name => $attrname,
                     has_accessor => $twigil eq '.'
                 ),
                 hash( 
                     container_descriptor => $descriptor,
-                    type => $type
-                ));
+                    type => $type),
+                sigiltype($sigil), $descriptor, |@default);
             
             # If no twigil, note $foo is an alias to $!foo.
             if $twigil eq '' {

@@ -183,6 +183,25 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
         
         # Look up container type and create code to instantiate it.
+        my $cont_code := self.build_container_past($type_name, $descriptor, |@default_value);
+        
+        # Fixup and deserialization task is the same - creating the
+        # container type and put it in the static lexpad with a clone
+        # flag set.
+        my $fixup := PAST::Op.new(
+            :pasttype('callmethod'), :name('set_static_lexpad_value'),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('get_lexinfo'),
+                PAST::Val.new( :value($block) )
+            ),
+            ~$name, $cont_code, 1
+        );
+        self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+    }
+    
+    # Builds PAST that constructs a container.
+    method build_container_past($type_name, $descriptor, *@default_value) {
+        # Create container.
         my $type_obj := self.find_symbol([$type_name]);
         my $cont_code := PAST::Op.new(
             :pirop('repr_instance_of PP'),
@@ -204,18 +223,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 '$!value', self.get_object_sc_ref_past(@default_value[0]));
         }
         
-        # Fixup and deserialization task is the same - creating the
-        # container type and put it in the static lexpad with a clone
-        # flag set.
-        my $fixup := PAST::Op.new(
-            :pasttype('callmethod'), :name('set_static_lexpad_value'),
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('get_lexinfo'),
-                PAST::Val.new( :value($block) )
-            ),
-            ~$name, $cont_code, 1
-        );
-        self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+        $cont_code
     }
     
     # Hunts through scopes to find a container descriptor for a lexical.
@@ -584,15 +592,27 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # arguments to pass and a set of name to object mappings to pass also
     # as named arguments, but where these passed objects also live in a
     # serialization context. The type would be passed in this way.
-    method pkg_add_attribute($obj, $meta_attr, %lit_args, %obj_args) {
-        # Create and add right away.
-        my $attr := $meta_attr.new(|%lit_args, |%obj_args);
+    method pkg_add_attribute($obj, $meta_attr, %lit_args, %obj_args,
+            $cont_type, $descriptor, *@default_value) {
+        # Build container, and create container PAST for deserialize.
+        my $cont_past := self.build_container_past($cont_type, $descriptor, |@default_value);
+        my $cont_type_obj := self.find_symbol([$cont_type]);
+        my $cont := pir::repr_instance_of__PP($cont_type_obj);
+        pir::setattribute__vPPsP($cont, $cont_type_obj, '$!descriptor', $descriptor);
+        if +@default_value {
+            pir::setattribute__vPPsP($cont, $cont_type_obj, '$!value', @default_value[0]);
+        }
+        
+        # Create meta-attribute and add right away.
+        my $attr := $meta_attr.new(:auto_viv_container($cont), |%lit_args, |%obj_args);
         $obj.HOW.add_attribute($obj, $attr);
         
         # Emit code to create and add it when deserializing.
+        $cont_past.named('auto_viv_container');
         my $create_call := PAST::Op.new(
             :pasttype('callmethod'), :name('new'),
-            self.get_object_sc_ref_past($meta_attr)
+            self.get_object_sc_ref_past($meta_attr),
+            $cont_past
         );
         for %lit_args {
             $create_call.push(PAST::Val.new( :value($_.value), :named($_.key) ));

@@ -995,7 +995,7 @@ class Perl6::Actions is HLL::Actions {
             
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
-            $*ST.pkg_add_attribute($*PACKAGE, $metaattr,
+            my $attr := $*ST.pkg_add_attribute($*PACKAGE, $metaattr,
                 hash(
                     name => $attrname,
                     has_accessor => $twigil eq '.'
@@ -1010,8 +1010,11 @@ class Perl6::Actions is HLL::Actions {
                 $BLOCK.symbol($name, :attr_alias($attrname));
             }
 
-            # Nothing to emit here; just hand back an empty node.
+            # Nothing to emit here; just hand back an empty node but
+            # annotated with the attribute object in case we get a
+            # default vlaue "assigned".
             $past := PAST::Op.new( :pasttype('null') );
+            $past<attribute_declarand> := $attr;
         }
         elsif $*SCOPE eq 'my' {
             # Create a container descriptor. Default to rw and set a
@@ -3072,25 +3075,28 @@ class Perl6::Actions is HLL::Actions {
         );
     }
 
-    # Makes the closure for the RHS of has $.answer = 42.
-    sub make_attr_init_closure($init_value) {
-        # Build the closure and install the block in the current lexical
-        # scope we're in, so it gets its outer right.
+    # Handles the case where we have a default value closure for an
+    # attribute.
+    method install_attr_init($/) {
+        # Locate attribute.
+        my $attr := ($/[0].ast)<attribute_declarand>;
+        
+        # Construct signature and anonymous method.
+        my $sig := $*ST.create_signature([
+            $*ST.create_parameter(hash(is_invocant => 1, nominal_type => $*PACKAGE)),
+            $*ST.create_parameter(hash( variable_name => '$_', nominal_type => $*ST.find_symbol(['Mu'])))
+            ]);
         my $block := PAST::Block.new(
-            :blocktype('declaration'),
-            PAST::Stmts.new( ),
-            PAST::Stmts.new( $init_value )
-        );
-        $block[0].unshift(PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1), :viviself(sigiltype('$')) ));
-        $block.symbol('self', :scope('lexical'));
-        my $sig := Perl6::Compiler::Signature.new(
-            Perl6::Compiler::Parameter.new(:var_name('$_')));
-        $sig.add_invocant();
-        add_signature($block, $sig);
-        $*ST.cur_lexpad().push($block);
-
-        # Return a code object using a reference to the block.
-        block_closure($block, 'Method', 0);
+            PAST::Stmts.new(
+                PAST::Var.new( :name('self'), :scope('lexical'), :isdecl(1) ),
+                PAST::Var.new( :name('$_'), :scope('lexical'), :isdecl(1) )
+            ),
+            PAST::Stmts.new( $/[1].ast ));
+        my $code := $*ST.create_code_object($block, 'Method', $sig);
+        
+        # Dispatch trait. XXX Should really be Bool::True, not Int here...
+        my $true := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
+        $*ST.apply_trait('&trait_mod:<will>', $attr, $code, :build($true));
     }
 
     # Takes something that may be a block already, and if not transforms it into

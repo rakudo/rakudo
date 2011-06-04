@@ -1,16 +1,8 @@
 use Perl6::Metamodel;
 
-# XXX Until we get multi-dispatch in, just have one single dispatch
-# for adding a parent; lets us get something working at all easier.
-#proto trait_mod:<is>(|$c) { * }
-#
-#multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
-#    $child.add_parent($child, $parent);
-#}
-#
-#multi trait_mod:<is>(Attribute $attr, :$rw!) {
-#    $attr.set_rw(1);
-#}
-sub trait_mod:<is>(Mu $child, Mu $parent) {
+proto trait_mod:<is>(|$) { * }
+multi trait_mod:<is>(Mu $child, Mu $parent) {
+    Q:PIR { say "in tmi" };
     $child.HOW.add_parent($child, $parent);
+    Q:PIR { say "survived tmi" };
 }

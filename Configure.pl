@@ -101,7 +101,7 @@ END
     my $nqp_exe = $parrot_config;
     # the .* is needed of somebody has the string 'parrot_config' in
     # the build path - we always want to substitute the last occorence
-    $nqp_exe =~ s/(.*)parrot_config/$1nqp/s;
+    $nqp_exe =~ s/(.*?)parrot_config/$1nqp/s;
     if (system $nqp_exe, '-e', '') {
         die "Cannot execute nqp - maybe try the --gen-nqp option to automatically build one?\n";
     }

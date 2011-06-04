@@ -315,6 +315,14 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
             '$!flags', $flags, int));
         
+        # Set named names up, for named parameters.
+        if %param_info<named_names> {
+            my @names := %param_info<named_names>;
+            pir::setattribute__vPPsP($parameter, $par_type, '$!named_names', @names);
+            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!named_names',
+                PAST::Op.new( :pasttype('list'), |@names )));
+        }
+        
         # XXX Set up other various attribute values.
         
         # Set container descriptor, if there is one.

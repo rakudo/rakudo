@@ -408,10 +408,9 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     if (possibles[i]->bind_check) {
                         /* We'll invoke the sub (but not re-enter the runloop)
                          * and then attempt to bind the signature. */
-                        PMC      *invokee   = PMCNULL; /* XXX TODO: get $!do */
-                        opcode_t *where     = VTABLE_invoke(interp, invokee, next);
-                        PMC      *lexpad    = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
-                        PMC      *sig     = possibles[i]->signature;
+                        opcode_t *where  = VTABLE_invoke(interp, possibles[i]->sub, next);
+                        PMC      *lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
+                        PMC      *sig    = possibles[i]->signature;
                         INTVAL bind_check_result = Rakudo_binding_bind(interp, lexpad,
                               sig, capture, 1, NULL);
 
@@ -470,7 +469,8 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
             PMC * const param        = Rakudo_cont_decontainerize(interp,
                 VTABLE_get_pmc_keyed_int(interp, capture, i));
             PMC * const type_obj     = (*cur_candidate)->types[i];
-            if (!STABLE(param)->type_check(interp, param, type_obj)) {
+            if (!STABLE(param)->type_check(interp, param, type_obj) &&
+                    type_obj != Rakudo_binder_get_top_type()) {
                 type_mismatch = 1;
                 break;
             }

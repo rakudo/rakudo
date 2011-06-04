@@ -75,12 +75,13 @@ static void setup_binder_statics(PARROT_INTERP) {
 }
 
 
-/* Some interesting types and setters for them. */
+/* Some interesting types and getters/setters for them. */
 static PMC *top_type      = NULL;
 void Rakudo_binder_set_top_type(PMC *type) { top_type = type; }
+PMC * Rakudo_binder_get_top_type() { return top_type; }
 static PMC *junction_type = NULL;
 void Rakudo_binder_set_junction_type(PMC *type) { junction_type = type; }
-
+PMC * Rakudo_binder_get_junction_type() { return junction_type; }
 
 /* Creates a Perl 6 Array. */
 static PMC *

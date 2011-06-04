@@ -49,6 +49,30 @@ multi infix:<!=>(Int $a, Int $b) {
         pir::isne__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
 
+proto infix:«<»(Mu |$) { * }
+multi infix:«<»(Int $a, Int $b) {
+    pir::perl6_booleanize__PI(
+        pir::islt__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+proto infix:«<=»(Mu |$) { * }
+multi infix:«<=»(Int $a, Int $b) {
+    pir::perl6_booleanize__PI(
+        pir::isle__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+proto infix:«>»(Mu |$) { * }
+multi infix:«>»(Int $a, Int $b) {
+    pir::perl6_booleanize__PI(
+        pir::isgt__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+proto infix:«>=»(Mu |$) { * }
+multi infix:«>=»(Int $a, Int $b) {
+    pir::perl6_booleanize__PI(
+        pir::isge__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
 proto infix:<eq>(Mu |$) { * }
 multi infix:<eq>(Str $a, Str $b) {
     pir::perl6_booleanize__PI(
@@ -59,4 +83,28 @@ proto infix:<ne>(Mu |$) { * }
 multi infix:<ne>(Str $a, Str $b) {
     pir::perl6_booleanize__PI(
         pir::isne__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
+}
+
+proto infix:<lt>(Mu |$) { * }
+multi infix:<lt>(Str $a, Str $b) {
+    pir::perl6_booleanize__PI(
+        pir::islt__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
+}
+
+proto infix:<le>(Mu |$) { * }
+multi infix:<le>(Str $a, Str $b) {
+    pir::perl6_booleanize__PI(
+        pir::isle__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
+}
+
+proto infix:<gt>(Mu |$) { * }
+multi infix:<gt>(Str $a, Str $b) {
+    pir::perl6_booleanize__PI(
+        pir::isgt__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
+}
+
+proto infix:<ge>(Mu |$) { * }
+multi infix:<ge>(Str $a, Str $b) {
+    pir::perl6_booleanize__PI(
+        pir::isge__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }

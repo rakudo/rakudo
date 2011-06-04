@@ -3,6 +3,7 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::MultipleInheritance
+    does Perl6::Metamodel::C3MRO
 {
     has $!composed;
 
@@ -17,5 +18,17 @@ class Perl6::Metamodel::NativeHOW
     
     method is_composed($obj) {
         $!composed
+    }
+
+    method type_check($obj, $checkee) {
+        # The only time we end up in here is if the type check cache was
+        # not yet published, which means the class isn't yet fully composed.
+        # Just hunt through MRO.
+        for self.mro($obj) {
+            if $_ =:= $checkee {
+                return 1;
+            }
+        }
+        0
     }
 }

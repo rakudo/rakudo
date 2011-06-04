@@ -19,6 +19,7 @@ This implements Perl 6 multiple dispatch.
 #include "parrot/extend.h"
 #include "bind.h"
 #include "multidispatch.h"
+#include "container.h"
 #include "sixmodelobject.h"
 
 /* Some constants for candidate sorter. */
@@ -466,7 +467,8 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
         type_mismatch = 0;
 
         for (i = 0; i < type_check_count; i++) {
-            PMC * const param        = VTABLE_get_pmc_keyed_int(interp, capture, i);
+            PMC * const param        = Rakudo_cont_decontainerize(interp,
+                VTABLE_get_pmc_keyed_int(interp, capture, i));
             PMC * const type_obj     = (*cur_candidate)->types[i];
             if (!STABLE(param)->type_check(interp, param, type_obj)) {
                 type_mismatch = 1;

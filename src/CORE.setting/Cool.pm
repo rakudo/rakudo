@@ -6,7 +6,7 @@ my class Cool {
 
     method substr($start as Int, $length?) {
         my Str $str := self.Str;
-        my Int $len := $length.Int // $str.chars;
+        my Int $len := ($length // $str.chars).Int;
         if ($len < 0) {
             if ($start >= 0) {
                 $len := $len + $str.chars;

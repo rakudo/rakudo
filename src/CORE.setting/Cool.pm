@@ -37,4 +37,14 @@ my class Cool {
          ));
     }
 
+    method ucfirst() {
+        my $self-str = self.Str;
+        $self-str eq '' ?? '' !! $self-str.substr(0, 1).uc ~ $self-str.substr(1)
+    }
+
+    method lcfirst() {
+        my $self-str = self.Str;
+        $self-str eq '' ?? '' !! $self-str.substr(0, 1).lc ~ $self-str.substr(1)
+    }
+
 }

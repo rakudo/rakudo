@@ -9,7 +9,7 @@ need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
 ## Basic string methods in Cool.pm
-See examples already there. Should be easy to add .uc, .lc, .bytes...
+See examples already there. Should be easy to add .bytes, .ord, ...
 
 ## More basic math ops
 See t/00-parrot/02-op-math.t and operators.pm. Add enough to make that

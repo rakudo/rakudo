@@ -102,11 +102,13 @@ Attribute.HOW.add_method(Attribute, 'rw', sub ($self) {
             pir::repr_get_attr_int__IPPs($self, Attribute, '$!rw'));
     });
 Attribute.HOW.add_method(Attribute, 'set_rw', sub ($self) {
-        pir::repr_bind_attr_int__vPPsi($self, Attribute, '$!rw', 1);
+        pir::repr_bind_attr_int__vPPsi(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!rw', 1);
         pir::perl6_booleanize__PI(1)
     });
 Attribute.HOW.add_method(Attribute, 'set_build_closure', sub ($self, $closure) {
-        pir::setattribute__0PPsP($self, Attribute, '$!build_closure', $closure);
+        pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!build_closure', $closure);
     });
 
 # class Signature is Cool {
@@ -163,26 +165,31 @@ Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_info>, :type(M
 # up the stub.
 Code.HOW.add_parrot_vtable_handler_mapping(Code, 'invoke', '$!do');
 Code.HOW.publish_parrot_vtable_handler_mapping(Code);
+Code.HOW.publish_parrot_vtable_mapping(Code);
 
 # class Block is Code { ... }
 my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
 Block.HOW.add_parent(Block, Code);
 Block.HOW.publish_parrot_vtable_handler_mapping(Block);
+Block.HOW.publish_parrot_vtable_mapping(Block);
 
 # class Routine is Block { ... }
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 Routine.HOW.add_parent(Routine, Block);
 Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
+Routine.HOW.publish_parrot_vtable_mapping(Routine);
 
 # class Sub is Routine { ... }
 my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
 Sub.HOW.add_parent(Sub, Routine);
 Sub.HOW.publish_parrot_vtable_handler_mapping(Sub);
+Sub.HOW.publish_parrot_vtable_mapping(Sub);
 
 # class Method is Routine { ... }
 my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
 Method.HOW.add_parent(Method, Routine);
 Method.HOW.publish_parrot_vtable_handler_mapping(Method);
+Method.HOW.publish_parrot_vtable_mapping(Method);
 
 # class Str is Cool {
 #     has str $!value is box_target;

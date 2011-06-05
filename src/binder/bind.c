@@ -9,6 +9,7 @@ Copyright (C) 2009-2011, The Perl Foundation.
 #include "pmc_callcontext.h"
 #include "bind.h"
 #include "container.h"
+#include "types.h"
 #include "sixmodelobject.h"
 
 
@@ -73,15 +74,6 @@ static void setup_binder_statics(PARROT_INTERP) {
     p6r_id = pmc_type(interp, Parrot_str_new(interp, "P6role", 0));
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }
-
-
-/* Some interesting types and getters/setters for them. */
-static PMC *top_type      = NULL;
-void Rakudo_binder_set_top_type(PMC *type) { top_type = type; }
-PMC * Rakudo_binder_get_top_type() { return top_type; }
-static PMC *junction_type = NULL;
-void Rakudo_binder_set_junction_type(PMC *type) { junction_type = type; }
-PMC * Rakudo_binder_get_junction_type() { return junction_type; }
 
 /* Creates a Perl 6 Array. */
 static PMC *
@@ -253,7 +245,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     if (!no_nom_type_check) {
         /* If not, do the check. If the wanted nominal type is Mu, then
 		 * anything goes. */
-        if (param->nominal_type != top_type &&
+        if (param->nominal_type != Rakduo_types_mu_get() &&
                 (decont_value->vtable->base_type != smo_id ||
                  !STABLE(decont_value)->type_check(interp, decont_value, param->nominal_type))) {
             /* Type check failed; produce error if needed. */
@@ -270,7 +262,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             }
             
             /* Report junction failure mode if it's a junction. */
-            if (decont_value->vtable->base_type == smo_id && STABLE(decont_value)->WHAT == junction_type)
+            if (decont_value->vtable->base_type == smo_id &&
+                    STABLE(decont_value)->WHAT == Rakduo_types_junction_get())
                 return BIND_RESULT_JUNCTION;
             else
                 return BIND_RESULT_FAIL;

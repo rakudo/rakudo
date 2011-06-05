@@ -20,6 +20,7 @@ This implements Perl 6 multiple dispatch.
 #include "bind.h"
 #include "multidispatch.h"
 #include "container.h"
+#include "types.h"
 #include "sixmodelobject.h"
 
 /* Some constants for candidate sorter. */
@@ -470,7 +471,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                 VTABLE_get_pmc_keyed_int(interp, capture, i));
             PMC * const type_obj     = (*cur_candidate)->types[i];
             if (!STABLE(param)->type_check(interp, param, type_obj) &&
-                    type_obj != Rakudo_binder_get_top_type()) {
+                    type_obj != Rakduo_types_mu_get()) {
                 type_mismatch = 1;
                 break;
             }

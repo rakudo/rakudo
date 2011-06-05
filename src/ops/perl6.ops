@@ -14,6 +14,7 @@ BEGIN_OPS_PREAMBLE
 #include "../binder/bind.h"
 #include "../binder/multidispatch.h"
 #include "../binder/container.h"
+#include "../binder/types.h"
 #include "../binder/sixmodelobject.h"
 
 #if PARROT_HAS_ICU
@@ -23,8 +24,6 @@ BEGIN_OPS_PREAMBLE
 /* Cache some stuff for fast access. */
 static INTVAL smo_id = 0;
 static STRING *DISPATCH_JUNCTION_str;
-static PMC    *BoolFalse;
-static PMC    *BoolTrue;
 
 END_OPS_PREAMBLE
 
@@ -276,29 +275,75 @@ inline op bind_signature(in PMC) :base_core {
 
 /*
 
-=item set_binder_top_type(in PMC)
+=item perl6_set_type_mu(in PMC)
 
-Sets the top type from the binder's perspective.
+Sets the top type.
 
 =cut
 
 */
-inline op set_binder_top_type(in PMC) :base_core {
-    Rakudo_binder_set_top_type($1);
+inline op perl6_set_type_mu(in PMC) :base_core {
+    Rakudo_types_mu_set($1);
 }
 
 
 /*
 
-=item set_binder_junction_type(in PMC)
+=item perl6_set_type_junction(in PMC)
 
-Sets the junction type from the binder's perspective.
+Sets the junction type.
 
 =cut
 
 */
-inline op set_binder_junction_type(in PMC) :base_core {
-    Rakudo_binder_set_junction_type($1);
+inline op perl6_set_type_junction(in PMC) :base_core {
+    Rakudo_types_junction_set($1);
+}
+
+
+/*
+
+=item perl6_set_types_ins(in PMC, in PMC, in PMC)
+
+Sets the Int/Num/Str types.
+
+=cut
+
+*/
+inline op perl6_set_types_ins(in PMC, in PMC, in PMC) :base_core {
+    Rakudo_types_int_set($1);
+    Rakudo_types_num_set($2);
+    Rakudo_types_str_set($3);
+}
+
+
+/*
+
+=item perl6_booleanize(out PMC, in INT)
+
+If $2 is non-zero, puts Bool::True in $1. Otherwise puts Bool::False
+in.
+
+=cut
+
+*/
+inline op perl6_booleanize(out PMC, in INT) :base_core {
+    $1 = $2 == 0 ? Rakduo_types_bool_false_get() : Rakduo_types_bool_true_get();
+}
+
+
+/*
+
+=item perl6_set_bools(in PMC, in PMC)
+
+Sets and caches the False ($1) and True ($2) values to booleanize to.
+
+=cut
+
+*/
+inline op perl6_set_bools(in PMC, in PMC) :base_core {
+    Rakudo_types_bool_false_set($1);
+    Rakudo_types_bool_true_set($2);
 }
 
 
@@ -456,37 +501,6 @@ inline op encodelocaltime(out INT, in PMC) :base_core {
 
     $1 = mktime(&tm);
 }
-
-
-/*
-
-=item perl6_set_bools(in PMC, in PMC)
-
-Sets and caches the False ($1) and True ($2) values to booleanize to.
-
-=cut
-
-*/
-inline op perl6_set_bools(in PMC, in PMC) :base_core {
-    BoolFalse = $1;
-    BoolTrue  = $2;
-}
-
-
-/*
-
-=item perl6_booleanize(out PMC, in INT)
-
-If $2 is non-zero, puts Bool::True in $1. Otherwise puts Bool::False
-in.
-
-=cut
-
-*/
-inline op perl6_booleanize(out PMC, in INT) :base_core {
-    $1 = $2 == 0 ? BoolFalse : BoolTrue;
-}
-
 
 /*
  * Local variables:

@@ -31,7 +31,7 @@ my class BOOTSTRAPATTR {
 
 # class Mu { ... }
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
-pir::set_binder_top_type__vP(Mu);
+pir::perl6_set_type_mu__vP(Mu);
 
 # XXX Move out of bootstrap when possible.
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_bool',
@@ -214,6 +214,9 @@ Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_ta
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
 Num.HOW.add_parent(Num, Cool);
 Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1)));
+
+# Stash these common types for box ops.
+pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 
 # class Scalar is Any {
 #     has $!descriptor;

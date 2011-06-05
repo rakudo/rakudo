@@ -377,10 +377,11 @@ $(DYNPMC): $(PMC_SOURCES)
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
 	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.c src/binder/bind.h src/binder/multidispatch.c src/binder/multidispatch.h src/binder/container.c src/binder/container.h src/binder/sixmodelobject.h src/binder/storage_spec.h $(DYNPMC)
+$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.c src/binder/bind.h src/binder/multidispatch.c src/binder/multidispatch.h src/binder/container.c src/binder/container.h src/binder/types.c src/binder/types.h src/binder/sixmodelobject.h src/binder/storage_spec.h $(DYNPMC)
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
 	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
 	cd src/binder && $(CC) -c @cc_o_out@multidispatch$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) multidispatch.c
 	cd src/binder && $(CC) -c @cc_o_out@container$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) container.c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../binder/bind$(O) ../binder/multidispatch$(O) ../binder/container$(O) $(LINKARGS)
+	cd src/binder && $(CC) -c @cc_o_out@types$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) types.c
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../binder/bind$(O) ../binder/multidispatch$(O) ../binder/container$(O) ../binder/types$(O) $(LINKARGS)

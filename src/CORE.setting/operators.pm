@@ -22,6 +22,11 @@ multi prefix:<->(Num \$a) {
     pir::perl6_box_num__PN(pir::neg__NN(pir::repr_unbox_num__NP($a)))
 }
 
+proto prefix:<abs>(|$) { * }
+multi prefix:<abs>(Int \$a) {
+    pir::perl6_box_int__PI(pir::abs__II(pir::repr_unbox_int__IP($a)))
+}
+
 proto infix:<*>(|$) { * }
 multi infix:<*>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
@@ -32,6 +37,12 @@ proto infix:</>(|$) { * }
 multi infix:</>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+proto infix:<%>(|$) { * }
+multi infix:<%>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::mod__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
 
 proto infix:<~>(|$) { * }

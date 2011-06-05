@@ -36,6 +36,8 @@ pir::perl6_set_type_mu__vP(Mu);
 # XXX Move out of bootstrap when possible.
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_bool',
     sub ($self) { $self.Bool() });
+Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
+    sub ($self) { pir::istrue__IP($self.defined()) });
 Mu.HOW.publish_parrot_vtable_mapping(Mu);
 
 # class Any is Mu { ... }

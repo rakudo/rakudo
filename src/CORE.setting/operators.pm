@@ -143,3 +143,10 @@ multi infix:«+>»(Int \$a, Int \$b) {
         pir::repr_unbox_int__ip($b)
     ));
 }
+
+proto prefix:<+^>(|$) { * }
+multi prefix:<+^>(Int \$a) {
+    pir::perl6_box_int__PI(pir::bnot__II(
+        pir::repr_unbox_int__ip($a)
+    ));
+}

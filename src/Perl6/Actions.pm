@@ -470,16 +470,18 @@ class Perl6::Actions is HLL::Actions {
     method statement_control:sym<use>($/) {
         my $past := PAST::Stmts.new( :node($/) );
         if $<version> {
-            my $i := -1;
-            for $<version><vnum> {
-                ++$i;
-                if $_ ne '*' && $_ < @MAX_PERL_VERSION[$i] {
-                    last;
-                } elsif $_ > @MAX_PERL_VERSION[$i] {
-                    my $mpv := pir::join('.', @MAX_PERL_VERSION);
-                    $/.CURSOR.panic("Perl $<version> required--this is only v$mpv")
-                }
-            }
+            # TODO: replace this by code that doesn't always die with
+            # a useless error message
+#            my $i := -1;
+#            for $<version><vnum> {
+#                ++$i;
+#                if $_ ne '*' && $_ < @MAX_PERL_VERSION[$i] {
+#                    last;
+#                } elsif $_ > @MAX_PERL_VERSION[$i] {
+#                    my $mpv := pir::join('.', @MAX_PERL_VERSION);
+#                    $/.CURSOR.panic("Perl $<version> required--this is only v$mpv")
+#                }
+#            }
         } elsif $<module_name> {
             if ~$<module_name> eq 'fatal' {
                 declare_variable($/, PAST::Stmts.new(), '$', '*', 'FATAL', 0);

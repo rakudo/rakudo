@@ -603,11 +603,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             pir::setattribute__vPPsP($cont, $cont_type_obj, '$!value', @default_value[0]);
         }
         
-        # Create meta-attribute and add right away.
+        # Create meta-attribute isntance and add right away. Also add
+        # it to the SC.
         my $attr := $meta_attr.new(:auto_viv_container($cont), |%lit_args, |%obj_args);
         $obj.HOW.add_attribute($obj, $attr);
+        my $slot := self.add_object($attr);
         
-        # Emit code to create and add it when deserializing.
+        # Emit code to create attribute deserializing.
         $cont_past.named('auto_viv_container');
         my $create_call := PAST::Op.new(
             :pasttype('callmethod'), :name('new'),
@@ -622,12 +624,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $lookup.named($_.key);
             $create_call.push($lookup);
         }
+        self.add_event(:deserialize_past(
+            self.set_slot_past($slot, self.set_cur_sc($create_call))));
+
+        # Emit code to add attribute when deserializing.
         my $obj_slot_past := self.get_object_sc_ref_past($obj);
         self.add_event(:deserialize_past(PAST::Op.new(
             :pasttype('callmethod'), :name('add_attribute'),
             PAST::Op.new( :pirop('get_how PP'), $obj_slot_past ),
             $obj_slot_past,
-            $create_call
+            self.get_object_sc_ref_past($attr)
         )));
         
         # Return attribute that was built.

@@ -54,7 +54,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                         # an only.
                         if $dispatcher.is_dispatcher {
                             # Clone it and install it in our method table.
-                            my $copy := $dispatcher.clone();
+                            my $copy := $dispatcher.derive_dispatcher();
                             $copy.add_dispatchee($code);
                             self.add_method($obj, $name, $copy);
                             $found := 1;

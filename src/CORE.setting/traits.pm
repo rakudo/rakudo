@@ -10,6 +10,5 @@ multi trait_mod:<is>(Attribute $attr, :$rw!) {
 
 proto trait_mod:<will>(|$) { * }
 multi trait_mod:<will>(Attribute $attr, Block $closure, :$build!) {
-    Q:PIR { say "in tmw" };
     $attr.set_build_closure($closure)
 }

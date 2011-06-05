@@ -3,3 +3,8 @@ sub say(Mu $value) {
     pir::say__vS(pir::repr_unbox_str__SP($value.Str));
     1.Bool
 }
+
+sub print(Mu $value) {
+    pir::print__vS(pir::repr_unbox_str__SP($value.Str));
+    1.Bool
+}

@@ -120,6 +120,36 @@ multi infix:<leg>(Str \$a, Str \$b) {
                  1;
 }
 
+proto infix:<~|>(|$) { * }
+multi infix:<~|>(Str \$a, Str \$b) {
+    pir::perl6_box_str__PS(pir::bors__SSS(
+        pir::repr_unbox_str__SP($a),
+        pir::repr_unbox_str__SP($b),
+    ));
+
+}
+
+proto infix:<~&>(|$) { * }
+multi infix:<~&>(Str \$a, Str \$b) {
+    pir::perl6_box_str__PS(pir::bands__SSS(
+        pir::repr_unbox_str__SP($a),
+        pir::repr_unbox_str__SP($b),
+    ));
+}
+
+proto infix:<~^>(|$) { * }
+multi infix:<~^>(Str \$a, Str \$b) {
+    pir::perl6_box_str__PS(pir::bxors__SSS(
+        pir::repr_unbox_str__SP($a),
+        pir::repr_unbox_str__SP($b),
+    ));
+}
+
+proto prefix:<~^>(|$) { * }
+multi prefix:<~^>(Str \$a) {
+    pir::perl6_box_str__PS(pir::bnots__SS(pir::repr_unbox_str__SP($a)));
+}
+
 proto infix:<+|>(|$) { * }
 multi infix:<+|>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(pir::bor__III(

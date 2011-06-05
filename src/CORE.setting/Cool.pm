@@ -24,4 +24,17 @@ my class Cool {
             pir::repr_unbox_int__IP($start),
             pir::repr_unbox_int__IP($len)));
     }
+
+    method uc() {
+        pir::perl6_box_str__PS(pir::upcase__SS(
+             pir::repr_unbox_str__SP(self.Str)
+         ));
+    }
+
+    method lc() {
+        pir::perl6_box_str__PS(pir::downcase__SS(
+             pir::repr_unbox_str__SP(self.Str)
+         ));
+    }
+
 }

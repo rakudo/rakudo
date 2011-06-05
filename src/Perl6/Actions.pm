@@ -2157,7 +2157,12 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         if $key eq 'POSTFIX' {
+            # Method calls may be to a foreign language, and thus return
+            # values may need type mapping into Perl 6 land.
             $past.unshift($/[0].ast);
+            if $past.isa(PAST::Op) && $past.pasttype eq 'callmethod' {
+                $past := PAST::Op.new( :pirop('perl6ize_type PP'), $past );
+            }
         }
         else {
             for $/.list { if $_.ast { $past.push($_.ast); } }

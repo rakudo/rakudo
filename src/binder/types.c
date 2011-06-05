@@ -4,6 +4,7 @@
  
 #define PARROT_IN_EXTENSION
 #include "parrot/parrot.h"
+#include "sixmodelobject.h"
 
 static PMC *Mu        = NULL;
 static PMC *Junction  = NULL;
@@ -33,3 +34,24 @@ PMC* Rakduo_types_bool_false_get() { return BoolFalse; }
 
 void Rakudo_types_bool_true_set(PMC *type) { BoolTrue = type; }
 PMC* Rakduo_types_bool_true_get() { return BoolTrue; }
+
+PMC* Rakudo_types_parrot_map(PARROT_INTERP, PMC *to_map) {
+    PMC *result;
+    switch (to_map->vtable->base_type) {
+        case enum_class_String:
+            result = REPR(Str)->instance_of(interp, Str);
+            REPR(result)->set_str(interp, result, VTABLE_get_string(interp, to_map));
+            break;
+        case enum_class_Integer:
+            result = REPR(Int)->instance_of(interp, Int);
+            REPR(result)->set_int(interp, result, VTABLE_get_integer(interp, to_map));
+            break;
+        case enum_class_Float:
+            result = REPR(Num)->instance_of(interp, Num);
+            REPR(result)->set_num(interp, result, VTABLE_get_number(interp, to_map));
+            break;
+        default:
+            result = to_map;
+    }
+    return result;
+}

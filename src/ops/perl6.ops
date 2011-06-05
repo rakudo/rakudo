@@ -397,6 +397,26 @@ inline op perl6_box_num(out PMC, in NUM) :base_core {
 
 /*
 
+=item perl6ize_type(out PMC, in PMC)
+
+Looks for Parrot-y types sneaking into Perl 6 land and maps them
+into Perl 6 types.
+
+=cut
+
+*/
+inline op perl6ize_type(out PMC, in PMC) :base_core {
+    if ($2->vtable->base_type == smo_id)
+        $1 = $2;
+    else
+        $1 = Rakudo_types_parrot_map(interp, $2);
+}
+
+
+
+
+/*
+
 =item set_scalar_container_type(in PMC)
 
 Sets the scalar container type.

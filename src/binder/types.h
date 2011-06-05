@@ -18,3 +18,5 @@ PMC* Rakduo_types_bool_false_get();
 
 void Rakudo_types_bool_true_set(PMC *type);
 PMC* Rakduo_types_bool_true_get();
+
+PMC* Rakudo_types_parrot_map(PARROT_INTERP, PMC *to_map);

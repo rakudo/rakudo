@@ -36,6 +36,18 @@ pir::perl6_set_type_mu__vP(Mu);
 # XXX Move out of bootstrap when possible.
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_bool',
     sub ($self) { $self.Bool() });
+Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_integer',
+    sub ($self) {
+        pir::repr_unbox_int__IP($self.Int())
+    });
+Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_number',
+    sub ($self) {
+        pir::repr_unbox_num__NP($self.Num())
+    });
+Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_string',
+    sub ($self) {
+        pir::repr_unbox_str__SP($self.Str())
+    });
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
     sub ($self) { pir::istrue__IP($self.defined()) });
 Mu.HOW.publish_parrot_vtable_mapping(Mu);
@@ -75,7 +87,7 @@ Attribute.HOW.add_method(Attribute, 'new',
         my $attr := pir::repr_instance_of__PP($self);
         pir::repr_bind_attr_str__vPPsS($attr, Attribute, '$!name', $name);
         pir::setattribute__vPPsP($attr, Attribute, '$!type', $type);
-        pir::repr_bind_attr_int__vPPsI($attr, Attribute, '$!has_accessor', $name);
+        pir::repr_bind_attr_int__vPPsI($attr, Attribute, '$!has_accessor', $has_accessor);
         pir::setattribute__vPPsP($attr, Attribute, '$!container_descriptor', $container_descriptor);
         if pir::exists(%other, 'auto_viv_container') {
             pir::setattribute__vPPsP($attr, Attribute, '$!auto_viv_container',

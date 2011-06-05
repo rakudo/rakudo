@@ -150,3 +150,8 @@ multi prefix:<+^>(Int \$a) {
         pir::repr_unbox_int__ip($a)
     ));
 }
+
+proto infix:<**>(|$) { * }
+multi infix:<**>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(pir::pow__NNN(pir::repr_unbox_num__np($a), pir::repr_unbox_num__np($b)));
+}

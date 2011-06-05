@@ -451,6 +451,15 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
              * we've a result, we can stop. */
             if (possibles_count)
                 break;
+            
+            /* Otherwise, we keep looping and looking, unless we really hit the end. */
+            if (cur_candidate[1]) {
+                cur_candidate++;
+                continue;
+            }
+            else {
+                break;
+            }
         }
 
         /* Check if it's admissable by arity. */

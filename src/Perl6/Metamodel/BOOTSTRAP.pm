@@ -49,25 +49,31 @@ Cool.HOW.add_parent(Cool, Any);
 # class Attribute is Cool {
 #     has str $!name;
 #     has int $!rw;
+#     has int $!has_accessor;
 #     has $!type;
 #     has $!container_descriptor;
 #     has $!auto_viv_container;
+#     has $!build_closure;
 #     ... # Uncomposed
 # }
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 Attribute.HOW.add_parent(Attribute, Cool);
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu)));
+Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
 
 # XXX Need new and accessor methods for Attribute in here for now.
 Attribute.HOW.add_method(Attribute, 'new',
-    sub ($self, :$name, :$type, :$container_descriptor, *%other) {
+    sub ($self, :$name, :$type, :$container_descriptor, :$has_accessor, *%other) {
         my $attr := pir::repr_instance_of__PP($self);
         pir::repr_bind_attr_str__vPPsS($attr, Attribute, '$!name', $name);
         pir::setattribute__vPPsP($attr, Attribute, '$!type', $type);
+        pir::repr_bind_attr_int__vPPsI($attr, Attribute, '$!has_accessor', $name);
         pir::setattribute__vPPsP($attr, Attribute, '$!container_descriptor', $container_descriptor);
         if pir::exists(%other, 'auto_viv_container') {
             pir::setattribute__vPPsP($attr, Attribute, '$!auto_viv_container',
@@ -86,6 +92,21 @@ Attribute.HOW.add_method(Attribute, 'container_descriptor', sub ($self) {
     });
 Attribute.HOW.add_method(Attribute, 'auto_viv_container', sub ($self) {
         pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');
+    });
+Attribute.HOW.add_method(Attribute, 'has_accessor', sub ($self) {
+        pir::perl6_booleanize__PI(
+            pir::repr_get_attr_int__IPPs($self, Attribute, '$!has_accessor'));
+    });
+Attribute.HOW.add_method(Attribute, 'rw', sub ($self) {
+        pir::perl6_booleanize__PI(
+            pir::repr_get_attr_int__IPPs($self, Attribute, '$!rw'));
+    });
+Attribute.HOW.add_method(Attribute, 'set_rw', sub ($self) {
+        pir::repr_bind_attr_int__vPPsi($self, Attribute, '$!rw', 1);
+        pir::perl6_booleanize__PI(1)
+    });
+Attribute.HOW.add_method(Attribute, 'set_build_closure', sub ($self, $closure) {
+        pir::setattribute__0PPsP($self, Attribute, '$!build_closure', $closure);
     });
 
 # class Signature is Cool {

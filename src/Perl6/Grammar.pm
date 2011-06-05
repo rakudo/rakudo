@@ -1664,7 +1664,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token circumfix:sym<[ ]> { '[' <semilist> ']' }
     token circumfix:sym<ang> {
         <?[<]>
-        [ <?before '<STDIN>' > <.obs('<STDIN>', '$*IN.lines')> ]?
+        [ <?before '<STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
         [ <?before '<>' > <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
         <quote_EXPR: ':q', ':w'>
     }

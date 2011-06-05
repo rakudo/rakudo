@@ -1,22 +1,18 @@
 # Roadmap for "nom" Branch
 
-Last Updated 4th June 2011
+Last Updated 5th June 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
-## Fix up binding some more
-Get ::= correcter, and a bit more stuff on := also.
-
-## Get attributes working
-Finish up enough so a (typed) attribute can be declared. Check for use
-of attributes that are not declared. Update attribute access code.
-
-## Object construction
-new, bless, CREATE, BUILDALL, BUILD handling.
+## Attribute features
+Finish 'is rw', accessor generation, and make use of default value closure.
 
 ## Multi-methods
 Get these working.
+
+## Object construction
+new, bless, CREATE, BUILDALL, BUILD handling.
 
 ## Magicals
 $_, $/, $!, @_ and %_ handling.
@@ -26,6 +22,9 @@ Get them working.
 
 ## Flesh out signatures and parameters
 While basic binding works again now, there's plenty of stuff to "put back".
+
+## Fix up binding some more
+Get ::= correcter, and a bit more stuff on := also.
 
 ## More traits
 Add various missing traits

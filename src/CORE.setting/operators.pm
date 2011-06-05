@@ -103,3 +103,27 @@ multi infix:<ge>(Str \$a, Str \$b) {
     pir::perl6_booleanize__PI(
         pir::isge__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
+
+proto infix:<+|>(|$) { * }
+multi infix:<+|>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::bor__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}
+
+proto infix:<+&>(|$) { * }
+multi infix:<+&>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::band__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}
+
+proto infix:<+^>(|$) { * }
+multi infix:<+^>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::bxor__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}

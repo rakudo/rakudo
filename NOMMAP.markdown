@@ -5,14 +5,12 @@ Last Updated 5th June 2011
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
-## Attribute features
-Finish 'is rw', accessor generation, and make use of default value closure.
-
 ## Multi-methods
 Get these working.
 
 ## Object construction
-new, bless, CREATE, BUILDALL, BUILD handling.
+new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
+closure.
 
 ## Magicals
 $_, $/, $!, @_ and %_ handling.

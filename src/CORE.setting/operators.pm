@@ -14,6 +14,14 @@ multi infix:<->(Int \$a, Int \$b) {
         pir::sub__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
 
+proto prefix:<->(|$) { * }
+multi prefix:<->(Int \$a) {
+    pir::perl6_box_int__PI(pir::neg__II(pir::repr_unbox_int__IP($a)))
+}
+multi prefix:<->(Num \$a) {
+    pir::perl6_box_num__PN(pir::neg__NN(pir::repr_unbox_num__NP($a)))
+}
+
 proto infix:<*>(|$) { * }
 multi infix:<*>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(

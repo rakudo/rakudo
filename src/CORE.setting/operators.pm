@@ -127,3 +127,19 @@ multi infix:<+^>(Int \$a, Int \$b) {
         pir::repr_unbox_int__ip($b)
     ));
 }
+
+proto infix:«+<»(|$) { * }
+multi infix:«+<»(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::shl__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}
+
+proto infix:«+>»(|$) { * }
+multi infix:«+>»(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::shr__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}

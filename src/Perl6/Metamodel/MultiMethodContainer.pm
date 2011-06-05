@@ -1,6 +1,6 @@
 role Perl6::Metamodel::MultiMethodContainer {
     # Set of multi-methods to incorporate. Not just the method handles;
-    # each is a hash containing keys name and body. XXX Objectify?
+    # each is a hash containing keys name and body.
     has @!multi_methods_to_incorporate;
 
     # We can't incorporate multis right away as we don't know all parents
@@ -31,8 +31,8 @@ role Perl6::Metamodel::MultiMethodContainer {
             if pir::defined($dispatcher) {
                 # Yes. Only or dispatcher, though? If only, error. If
                 # dispatcher, simply add new dispatchee.
-                if pir::is_dispatcher__IP($dispatcher) {
-                    pir::push_dispatchee__0PP($dispatcher, $code);
+                if $dispatcher.is_dispatcher {
+                    $dispatcher.add_dispatchee($code);
                 }
                 else {
                     pir::die("Cannot have a multi candidate for '" ~ $name ~ 
@@ -52,12 +52,11 @@ role Perl6::Metamodel::MultiMethodContainer {
                     if pir::defined($dispatcher) {
                         # Found a possible - make sure it's a dispatcher, not
                         # an only.
-                        if pir::is_dispatcher__IP($dispatcher) {
+                        if $dispatcher.is_dispatcher {
                             # Clone it and install it in our method table.
-                            my @new_dispatchees;
-                            @new_dispatchees[0] := $code;
-                            self.add_method($obj, $name,
-                                pir::create_dispatch_and_add_candidates__PPP($dispatcher, @new_dispatchees));
+                            my $copy := $dispatcher.clone();
+                            $copy.add_dispatchee($code);
+                            self.add_method($obj, $name, $copy);
                             $found := 1;
                         }
                         else {

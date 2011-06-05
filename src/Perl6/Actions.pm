@@ -1153,7 +1153,8 @@ class Perl6::Actions is HLL::Actions {
         unless @params[0]<is_invocant> {
             @params.unshift(hash(
                 nominal_type => $*PACKAGE,
-                is_invocant => 1
+                is_invocant => 1,
+                is_multi_invocant => 1
             ));
         }
         set_default_parameter_type(@params, 'Any');

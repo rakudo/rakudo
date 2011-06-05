@@ -175,6 +175,22 @@ Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_info>, :type(Mu)));
 
+# Need multi-dispatch related methods.
+Code.HOW.add_method(Code, 'is_dispatcher', sub ($self) {
+        my $disp_list := pir::getattribute__PPPsP($self, Code, '$!dispatchees');
+        pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
+    });
+Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
+        my $disp_list := pir::getattribute__PPPsP($self, Code, '$!dispatchees');
+        if pir::defined($disp_list) {
+            $disp_list.push($dispatchee);
+        }
+        else {
+            pir::die("Cannot add a dispatchee to a non-dispatcher code object");
+        }
+    });
+    
+
 # Need to actually run the code block. Also need this available before we finish
 # up the stub.
 Code.HOW.add_parrot_vtable_handler_mapping(Code, 'invoke', '$!do');

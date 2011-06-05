@@ -218,7 +218,7 @@ $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET)
 	    --vmlibs=perl6_ops src/gen/Metamodel.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
-$(SETTING): $(PERL6_M_PBC) $(PERL6_EXE)
+$(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PERL) build/merge_pm.pl $(CORE_SOURCES) > src/gen/CORE.setting
 	./$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)

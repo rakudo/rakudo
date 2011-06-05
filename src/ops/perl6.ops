@@ -349,6 +349,54 @@ inline op perl6_set_bools(in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_box_str()
+
+Box a native string to a Perl 6 Str.
+
+=cut
+
+*/
+inline op perl6_box_str(out PMC, in STR) :base_core {
+    PMC *type = Rakduo_types_str_get();
+    $1 = REPR(type)->instance_of(interp, type);
+    REPR($1)->set_str(interp, $1, $2);
+}
+
+
+/*
+
+=item perl6_box_int()
+
+Box a native int to a Perl 6 Int.
+
+=cut
+
+*/
+inline op perl6_box_int(out PMC, in INT) :base_core {
+    PMC *type = Rakduo_types_int_get();
+    $1 = REPR(type)->instance_of(interp, type);
+    REPR($1)->set_int(interp, $1, $2);    
+}
+
+
+/*
+
+=item perl6_box_num()
+
+Box a native floating point number to a Perl 6 Num.
+
+=cut
+
+*/
+inline op perl6_box_num(out PMC, in NUM) :base_core {
+    PMC *type = Rakduo_types_num_get();
+    $1 = REPR(type)->instance_of(interp, type);
+    REPR($1)->set_num(interp, $1, $2);
+}
+
+
+/*
+
 =item set_scalar_container_type(in PMC)
 
 Sets the scalar container type.

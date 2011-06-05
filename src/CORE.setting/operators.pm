@@ -4,37 +4,32 @@ sub infix:<=>(Mu \$a, Mu \$b) {
 
 proto infix:<+>(|$) { * }
 multi infix:<+>(Int \$a, Int \$b) {
-    pir::repr_box_int__PIP(
-        pir::add__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)),
-        Int)
+    pir::perl6_box_int__PI(
+        pir::add__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
 
 proto infix:<->(|$) { * }
 multi infix:<->(Int \$a, Int \$b) {
-    pir::repr_box_int__PIP(
-        pir::sub__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)),
-        Int)
+    pir::perl6_box_int__PI(
+        pir::sub__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
 
 proto infix:<*>(|$) { * }
 multi infix:<*>(Int \$a, Int \$b) {
-    pir::repr_box_int__PIP(
-        pir::mul__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)),
-        Int)
+    pir::perl6_box_int__PI(
+        pir::mul__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
 
 proto infix:</>(|$) { * }
 multi infix:</>(Int \$a, Int \$b) {
-    pir::repr_box_int__PIP(
-        pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)),
-        Int)
+    pir::perl6_box_int__PI(
+        pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
 
 proto infix:<~>(|$) { * }
 multi infix:<~>(Str \$a, Str \$b) {
-    pir::repr_box_str__PSP(
-        pir::concat__SSS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)),
-        Str)
+    pir::perl6_box_str__PS(
+        pir::concat__SSS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
 
 proto infix:<==>(|$) { * }

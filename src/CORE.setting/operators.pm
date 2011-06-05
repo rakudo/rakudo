@@ -112,6 +112,14 @@ multi infix:<ge>(Str \$a, Str \$b) {
         pir::isge__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
 
+proto infix:<leg>(|$) { * }
+multi infix:<leg>(Str \$a, Str \$b) {
+    # TODO: should be Order::{Same, Increase, Decrease}
+    $a eq $b ??  0 !!
+    $a lt $b ?? -1 !!
+                 1;
+}
+
 proto infix:<+|>(|$) { * }
 multi infix:<+|>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(pir::bor__III(

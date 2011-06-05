@@ -1009,6 +1009,12 @@ class Perl6::Actions is HLL::Actions {
             if $twigil eq '' {
                 $BLOCK.symbol($name, :attr_alias($attrname));
             }
+            
+            # Apply any traits.
+            for $trait_list {
+                my $applier := $_.ast;
+                if $applier { $applier($attr); }
+            }
 
             # Nothing to emit here; just hand back an empty node but
             # annotated with the attribute object in case we get a

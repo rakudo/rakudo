@@ -393,6 +393,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $stub := sub (*@pos, *%named) {
             unless $precomp {
                 $precomp := self.compile_in_context($code_past);
+                pir::perl6_associate_sub_code_object__vPP($precomp[0], $code);
             }
             $precomp(|@pos, |%named);
         };
@@ -400,7 +401,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
         
         # Fixup will install the real thing.
-        $fixups.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
+        $fixups.push(PAST::Stmts.new(
+            self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
+            PAST::Op.new(
+                :pirop('perl6_associate_sub_code_object vPP'),
+                PAST::Val.new( :value($code_past) ),
+                self.get_object_sc_ref_past($code)
+            )));
         
         # Desserialization should do the actual creation and just put the right
         # code in there in the first place.
@@ -422,6 +429,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Op.new( :pasttype('list') )));
         }
         
+        # Deserialization also needs to give the Parrot sub its backlink.
+        $des.push(PAST::Op.new(
+            :pirop('perl6_associate_sub_code_object vPP'),
+            PAST::Val.new( :value($code_past) ),
+            self.get_object_sc_ref_past($code)));
+
         self.add_event(:deserialize_past($des), :fixup_past($fixups));
         $code;
     }

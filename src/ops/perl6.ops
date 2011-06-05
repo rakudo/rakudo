@@ -518,6 +518,29 @@ inline op find_method_null_ok(out PMC, in PMC, in STR) :base_core {
 
 /*
 
+=item perl6_associate_sub_code_object()
+
+Takes a Parrot Sub in $2 and a code object in $1 and associates the two.
+Actually, it uses a field in the Parrot Sub PMC that Rakudo never makes
+use of. Evil, but saves a prophash for every single code object.
+
+=cut
+
+*/
+inline op perl6_associate_sub_code_object(in PMC, in PMC) :base_core {
+    if ($1->vtable->base_type == enum_class_Sub) {
+        SETATTR_Sub_multi_signature(interp, $1, $2);
+        PARROT_GC_WRITE_BARRIER(interp, $1);
+    }
+    else {
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use perl6_associate_sub_code_object if first operand is a Sub.");
+    }
+}
+
+
+/*
+
 =item perl6_enter_multi_dispatch()
 
 Entry point to multi-dispatch over the dispatchee list in the specified
@@ -526,9 +549,15 @@ candidate.
 =cut
 
 */
-inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC, in PMC) :base_core {
-    PMC *cur_ctx = CURRENT_CONTEXT(interp);
-    PMC *chosen  = Rakudo_md_dispatch(interp, $2, cur_ctx, NULL);
+inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC) :base_core {
+    PMC *cur_ctx    = CURRENT_CONTEXT(interp);
+    PMC *parrot_sub = Parrot_pcc_get_sub(interp, cur_ctx);
+    PMC *perl6_code, *chosen;
+    GETATTR_Sub_multi_signature(interp, parrot_sub, perl6_code);
+    if (PMC_IS_NULL(perl6_code))
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "Could not locate Perl 6 code object");
+    chosen = Rakudo_md_dispatch(interp, perl6_code, cur_ctx, NULL);
     if (!PMC_IS_NULL(chosen)) {
         /* Invoke the chosen candidate; we use the existing call frame
          * and don't make a nested runloop. */

@@ -1082,11 +1082,6 @@ class Perl6::Actions is HLL::Actions {
         # Create code object.
         my $code := $*ST.create_code_object($block, 'Sub', $signature,
             $*MULTINESS eq 'proto');
-            
-        # If we're a multi-dispatch entry point, add code object reference.
-        if $block<multi_enterer> {
-            $block<multi_enterer>.push($*ST.get_object_sc_ref_past($code));
-        }
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
@@ -1173,11 +1168,6 @@ class Perl6::Actions is HLL::Actions {
         my $code := $*ST.create_code_object($past, $type, $signature,
             $*MULTINESS eq 'proto');
         
-        # If we're a multi-dispatch entry point, add code object reference.
-        if $past<multi_enterer> {
-            $past<multi_enterer>.push($*ST.get_object_sc_ref_past($code));
-        }
-        
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*ST.cur_lexpad();
         $outer[0].push($past);
@@ -1211,9 +1201,7 @@ class Perl6::Actions is HLL::Actions {
 
     method onlystar($/) {
         my $BLOCK := $*CURPAD;
-        my $enterer := PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block PP') );
-        $BLOCK<multi_enterer> := $enterer;
-        $BLOCK.push($enterer);
+        $BLOCK.push(PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
         $BLOCK.node($/);
         make $BLOCK;
     }

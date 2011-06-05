@@ -198,7 +198,7 @@ $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/ModuleLoader.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
 $(PERL6_ST_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/SymbolTable.pm
-	$(NQP_EXE) --target=pir --output=$(PERL6_ST) --encoding=utf8 \
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_ST) --encoding=utf8 \
 	    src/Perl6/SymbolTable.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ST_PBC) $(PERL6_ST)
     

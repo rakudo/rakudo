@@ -307,6 +307,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Calculate and set flags.
         # XXX Many more to do.
         my $flags := 0;
+        if %param_info<optional> {
+            $flags := $flags + $SIG_ELEM_IS_OPTIONAL;
+        }
         if %param_info<is_invocant> {
             $flags := $flags + $SIG_ELEM_INVOCANT;
         }

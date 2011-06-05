@@ -433,18 +433,9 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
         /* Run it to get a value. */
         PMC *result = PMCNULL;
         Parrot_sub_capture_lex(interp, param->default_closure);
+        /* XXX stop using inefficient Parrot_ext_call... :-/ */
         Parrot_ext_call(interp, param->default_closure, "->P", &result);
         return result;
-    }
-
-    /* Did the value already get initialized to something? (We can avoid re-creating a
-     * PMC if so.) */
-    else if (!PMC_IS_NULL(cur_lex = VTABLE_get_pmc_keyed_str(interp, lexpad, param->variable_name))) {
-        /* Yes; if $ sigil then we want to bind set value in it to be the
-         * type object of the default type. */
-        if (!(param->flags & (SIG_ELEM_ARRAY_SIGIL | SIG_ELEM_HASH_SIGIL)))
-            VTABLE_set_pmc(interp, cur_lex, param->nominal_type);
-        return cur_lex;
     }
 
     /* Otherwise, go by sigil to pick the correct default type of value. */
@@ -456,8 +447,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
             return Rakudo_binding_create_hash(interp, pmc_new(interp, enum_class_Hash));
         }
         else {
-            return pmc_new_init(interp, pmc_type(interp, P6_SCALAR_str),
-                        param->nominal_type);
+            return param->nominal_type;
         }
     }
 }

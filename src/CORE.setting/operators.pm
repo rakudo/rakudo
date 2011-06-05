@@ -201,3 +201,6 @@ proto infix:<**>(|$) { * }
 multi infix:<**>(Num \$a, Num \$b) {
     pir::perl6_box_num__PN(pir::pow__NNN(pir::repr_unbox_num__np($a), pir::repr_unbox_num__np($b)));
 }
+multi infix:<**>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::set__IN(pir::pow__NNN(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b))));
+}

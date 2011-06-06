@@ -10,4 +10,8 @@ my class Int {
     method Str() {
         pir::repr_box_str__PSP(pir::repr_unbox_int__IP(self), Str);
     }
+    method Num() {
+        pir::repr_box_num__PNP(pir::repr_unbox_int__IP(self), Num);
+    }
 }
+

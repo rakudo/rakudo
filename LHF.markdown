@@ -12,6 +12,6 @@ new possible performance.
 See examples already there. Should be easy to add .bytes, .ord, ...
 
 ## Int.Num, various Num multi candidates
-Write the Num variants for +, -, *, /, and numeric
-comparsion operators. You can use the coercion from Int to test them
+Test the Num variants for +, -, *, /, and numeric
+comparsion operators. You can use the coercion from Int
 as we don't have Num literals yet.

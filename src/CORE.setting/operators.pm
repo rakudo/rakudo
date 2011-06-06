@@ -7,11 +7,19 @@ multi infix:<+>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::add__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
+multi infix:<+>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::add__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
 
 proto infix:<->(|$) { * }
 multi infix:<->(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::sub__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+multi infix:<->(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::sub__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
 
 proto prefix:<->(|$) { * }
@@ -26,17 +34,28 @@ proto prefix:<abs>(|$) { * }
 multi prefix:<abs>(Int \$a) {
     pir::perl6_box_int__PI(pir::abs__II(pir::repr_unbox_int__IP($a)))
 }
+multi prefix:<abs>(Num \$a) {
+    pir::perl6_box_num__PN(pir::abs__II(pir::repr_unbox_num__NP($a)))
+}
 
 proto infix:<*>(|$) { * }
 multi infix:<*>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::mul__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
+multi infix:<*>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::mul__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
 
 proto infix:</>(|$) { * }
 multi infix:</>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+multi infix:</>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::div__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
 
 proto infix:<%>(|$) { * }
@@ -56,11 +75,19 @@ multi infix:<==>(Int \$a, Int \$b) {
     pir::perl6_booleanize__PI(
         pir::iseq__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
+multi infix:<==>(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::iseq__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
 
 proto infix:<!=>(|$) { * }
 multi infix:<!=>(Int \$a, Int \$b) {
     pir::perl6_booleanize__PI(
         pir::isne__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+multi infix:<!=>(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isne__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
 
 proto infix:«<»(|$) { * }
@@ -68,11 +95,19 @@ multi infix:«<»(Int \$a, Int \$b) {
     pir::perl6_booleanize__PI(
         pir::islt__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
+multi infix:«<»(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::islt__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
 
 proto infix:«<=»(|$) { * }
 multi infix:«<=»(Int \$a, Int \$b) {
     pir::perl6_booleanize__PI(
         pir::isle__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+multi infix:«<=»(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isle__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
 
 proto infix:«>»(|$) { * }
@@ -80,11 +115,19 @@ multi infix:«>»(Int \$a, Int \$b) {
     pir::perl6_booleanize__PI(
         pir::isgt__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
+multi infix:«>»(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isgt__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
 
 proto infix:«>=»(|$) { * }
 multi infix:«>=»(Int \$a, Int \$b) {
     pir::perl6_booleanize__PI(
         pir::isge__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+multi infix:«>=»(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isge__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
 
 proto infix:<eq>(|$) { * }

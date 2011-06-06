@@ -5,18 +5,6 @@ Last Updated 6th June 2011
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
-## Fix multi-method non-pre-compiled case
-Fix the fixup code.
-
-## Definedness constraints
-Support :U/:D in binder and multi-dispatch
-
-## Mu.ACCEPTS, Mu.Str
-Add all of these; make other .Str and ACCEPTS methods multi.
-
-## Default parent
-Should but Any in place as the default parent
-
 ## Object construction
 new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
 closure.

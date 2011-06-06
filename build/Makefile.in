@@ -69,8 +69,7 @@ GROUP         = perl6_group
 OPS           = perl6_ops
 DYNEXT_TARGET = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
 DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
-DYNOPS        = \
-  $(OPS_DIR)/$(OPS)$(LOAD_EXT)
+DYNOPS        = $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
 PMC_SOURCES = \
   $(PMC_DIR)/perl6lexinfo.pmc $(PMC_DIR)/perl6lexpad.pmc \
@@ -202,7 +201,7 @@ $(PERL6_ST_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/SymbolTable.pm
 	    src/Perl6/SymbolTable.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ST_PBC) $(PERL6_ST)
     
-$(PERL6_G_PBC): $(NQP_EXE) $(DYNEXT_TARGET) $(PERL6_ST_PBC) src/Perl6/Grammar.pm
+$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
@@ -377,7 +376,7 @@ $(DYNPMC): $(PMC_SOURCES)
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
 	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)
 
-$(OPS_DIR)/$(OPS)$(LOAD_EXT): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.c src/binder/bind.h src/binder/multidispatch.c src/binder/multidispatch.h src/binder/container.c src/binder/container.h src/binder/types.c src/binder/types.h src/binder/sixmodelobject.h src/binder/storage_spec.h $(DYNPMC)
+$(DYNOPS): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.c src/binder/bind.h src/binder/multidispatch.c src/binder/multidispatch.h src/binder/container.c src/binder/container.h src/binder/types.c src/binder/types.h src/binder/sixmodelobject.h src/binder/storage_spec.h $(DYNPMC)
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
 	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c

@@ -17,6 +17,8 @@
 #define SIG_ELEM_HASH_SIGIL         8192
 #define SIG_ELEM_DEFAULT_FROM_OUTER 16384
 #define SIG_ELEM_IS_CAPTURE         32768
+#define SIG_ELEM_UNDEFINED_ONLY     65536
+#define SIG_ELEM_DEFINED_ONLY       131072
 
 /* This is how a parameter looks on the inside. Actually, this is a C struct
  * that should match the computed object layout by P6opaque for the type

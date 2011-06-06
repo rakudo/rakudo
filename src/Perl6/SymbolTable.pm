@@ -18,6 +18,8 @@ my $SIG_ELEM_IS_OPTIONAL        := 2048;
 my $SIG_ELEM_ARRAY_SIGIL        := 4096;
 my $SIG_ELEM_HASH_SIGIL         := 8192;
 my $SIG_ELEM_IS_CAPTURE         := 32768;
+my $SIG_ELEM_UNDEFINED_ONLY     := 65536;
+my $SIG_ELEM_DEFINED_ONLY       := 131072;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -321,6 +323,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         if %param_info<is_capture> {
             $flags := $flags + $SIG_ELEM_IS_CAPTURE;
+        }
+        if %param_info<undefined_only> {
+            $flags := $flags + $SIG_ELEM_UNDEFINED_ONLY;
+        }
+        if %param_info<defined_only> {
+            $flags := $flags + $SIG_ELEM_DEFINED_ONLY;
         }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,

@@ -175,7 +175,7 @@ Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_info>, :type(Mu)));
 
-# Need multi-dispatch related methods.
+# Need multi-dispatch related methods and clone in here.
 Code.HOW.add_method(Code, 'is_dispatcher', sub ($self) {
         my $disp_list := pir::getattribute__PPPsP($self, Code, '$!dispatchees');
         pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
@@ -189,7 +189,28 @@ Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
             pir::die("Cannot add a dispatchee to a non-dispatcher code object");
         }
     });
-    
+Code.HOW.add_method(Code, 'clone', sub ($self) {
+        my $cloned := pir::repr_clone__PP($self);
+        pir::setattribute__0PPSP($cloned, Code, '$!do',
+            pir::perl6_associate_sub_code_object__0PP(
+                pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
+                $cloned))
+    });
+Code.HOW.add_method(Code, 'derive_dispatcher', sub ($self) {
+        my $clone := $self.clone();
+        Q:PIR {
+            $P0 = find_lex '$self'
+            $P1 = find_lex 'Code'
+            $P0 = getattribute $P0, $P1, '$!do'
+            $P1 = getprop 'CLONE_CALLBACK', $P0
+            if null $P1 goto no_callback
+            $P2 = find_lex '$clone'
+            $P1($P0, $P2)
+          no_callback:
+        };
+        pir::setattribute__0PPSP($clone, Code, '$!dispatchees',
+            pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!dispatchees')))
+    });
 
 # Need to actually run the code block. Also need this available before we finish
 # up the stub.

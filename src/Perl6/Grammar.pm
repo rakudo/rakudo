@@ -1510,7 +1510,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | '::?'<identifier>                 # parse ::?CLASS as special case
         | <longname>
           <?{
-            my $longname := $<longname>.Str;
+            my $longname := canonical_type_longname($<longname>);
             if pir::substr($longname, 0, 2) eq '::' {
                 # XXX introduce...
             }
@@ -1522,6 +1522,22 @@ grammar Perl6::Grammar is HLL::Grammar {
         # parametric type?
         <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
         [<.ws> 'of' <.ws> <typename> ]?
+    }
+    
+    our sub canonical_type_longname($/) {
+        my $ver := '';
+        my $auth := '';
+        for $<colonpair> {
+            if $<identifier> && $<circumfix> {
+                if $<identifier>.Str eq 'ver' {
+                    $ver := $<circumfix>.Str;
+                }
+                elsif $<identifier>.Str eq 'auth' {
+                    $auth := $<circumfix>.Str;
+                }
+            }
+        }
+        return ~$<name> ~ $ver ~ $auth;
     }
 
     token term:sym<type_declarator>   { <type_declarator> }

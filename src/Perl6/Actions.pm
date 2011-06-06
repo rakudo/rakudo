@@ -1645,7 +1645,17 @@ class Perl6::Actions is HLL::Actions {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
                     $/.CURSOR.panic('Parameter may only have one prefix type constraint');
                 }
-                %*PARAM_INFO<nominal_type> := $*ST.find_symbol(Perl6::Grammar::parse_name(~$<typename><longname>));
+                %*PARAM_INFO<nominal_type> := $<typename>.ast;
+                for $<typename><longname><colonpair> {
+                    if $_<identifier> {
+                        if $_<identifier>.Str eq 'D' {
+                            %*PARAM_INFO<defined_only> := 1;
+                        }
+                        elsif $_<identifier>.Str eq 'U' {
+                            %*PARAM_INFO<undefined_only> := 1;
+                        }
+                    }
+                }
             }
         }
         elsif $<value> {
@@ -2598,7 +2608,8 @@ class Perl6::Actions is HLL::Actions {
         # actual type object to build up some data structure or make a trait
         # dispatch with.
         make $<longname> ??
-            $*ST.find_symbol(Perl6::Grammar::parse_name($<longname>)) !!
+            $*ST.find_symbol(Perl6::Grammar::parse_name(
+                    Perl6::Grammar::canonical_type_longname($<longname>))) !!
             $*ST.find_symbol(Perl6::Grammar::parse_name('::?' ~ ~$<identifier>));
     }
 

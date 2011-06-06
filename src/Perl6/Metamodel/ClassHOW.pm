@@ -16,13 +16,21 @@ class Perl6::Metamodel::ClassHOW
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
         self.add_stash(pir::repr_type_object_for__PPS($metaclass, $repr));
     }
+    
+    my @default_parent_type;
+    method set_default_parent_type($type) {
+        @default_parent_type[0] := $type;
+    }
 
     method compose($obj) {
         # XXX Roles
 
-        # Some things we only do if we weren't already composed once, like building
-        # the MRO.
+        # Some things we only do if we weren't already composed once, like
+        # building the MRO.
         unless $!composed {
+            if self.parents($obj, :local(1)) == 0 && +@default_parent_type && self.name($obj) ne 'Mu' {
+                self.add_parent($obj, @default_parent_type[0]);
+            }
             self.compute_mro($obj);
             $!composed := 1;
         }

@@ -55,6 +55,7 @@ Mu.HOW.publish_parrot_vtable_mapping(Mu);
 # class Any is Mu { ... }
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 Any.HOW.add_parent(Any, Mu);
+Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 
 # class Cool is Any { ... }
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };

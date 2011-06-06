@@ -158,6 +158,7 @@ CLEANUPS = \
   $(OPS_DIR)/*$(O) \
   $(OPS_DIR)/*$(LOAD_EXT) \
   src/binder/*$(O) \
+  CORE.setting.pbc \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge

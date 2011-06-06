@@ -268,6 +268,25 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             else
                 return BIND_RESULT_FAIL;
         }
+        
+        /* Also enforce definedness constraints. */
+        if (param->flags & SIG_ELEM_DEFINEDNES_CHECK) {
+            INTVAL defined = REPR(decont_value)->defined(interp, decont_value);
+            if (defined && param->flags & SIG_ELEM_UNDEFINED_ONLY) {
+                if (error)
+                    *error = Parrot_sprintf_c(interp,
+                        "Parameter '%S' requires a type object, but an object instance was passed",
+                        param->variable_name);
+                return BIND_RESULT_FAIL;
+            }
+            if (!defined && param->flags & SIG_ELEM_DEFINED_ONLY) {
+                if (error)
+                    *error = Parrot_sprintf_c(interp,
+                        "Parameter '%S' requires an instance, but a type object was passed",
+                        param->variable_name);
+                return BIND_RESULT_FAIL;
+            }
+        }
     }
 
     /* Do we have any type captures to bind? */

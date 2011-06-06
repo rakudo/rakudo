@@ -56,4 +56,9 @@ my class Cool {
         pir::perl6_box_int__PI(pir::ord__IS(pir::repr_unbox_str__SP(self.Str)));
     }
 
+    method flip() {
+        pir::perl6_box_str__PS(
+            pir::box__PS(pir::repr_unbox_str__SP(self.Str)).reverse
+        );
+    }
 }

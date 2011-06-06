@@ -38,12 +38,8 @@ dynext/perl6_*.dll
 perl6_group.?
 perl6_group.obj
 libparrot.dll
-src/binder/bind.o
-src/binder/bind.obj
-src/binder/multidispatch.o
-src/binder/multidispatch.obj
-src/binder/container.o
-src/binder/container.obj
+src/binder/*.o
+src/binder/*.obj
 src/binder/*.bundle
 src/binder/*.pdb
 docs/test_summary.times
@@ -51,3 +47,4 @@ docs/test_summary.times.tmp
 lib/DateTime/strftime.pir
 lib/Safe.pir
 rakudo_test_run.tar.gz
+config.status

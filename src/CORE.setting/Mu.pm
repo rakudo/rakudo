@@ -3,6 +3,11 @@ my class Mu {
         self.bless(self.CREATE());
     }
     
+    proto method ACCEPTS(|$) { * }
+    multi method ACCEPTS(Mu:U: \$topic) {
+        pir::perl6_booleanize__PI(pir::type_check__IPP($topic, self))
+    }
+    
     method Bool() {
         self.defined
     }
@@ -17,6 +22,11 @@ my class Mu {
     
     method bless(Mu $candidate) {
         $candidate
+    }
+    
+    proto method Str(|$) { * }
+    multi method Str(Mu:U:) {
+        self.HOW.name(self) ~ '()'
     }
     
     method item() { self }

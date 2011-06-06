@@ -6,10 +6,10 @@ my class Int {
     
     method Int() { self }
     
-    # XXX multi method Str(Int:D $self:) { ...
-    method Str() {
+    multi method Str(Int:D:) {
         pir::perl6_box_str__PS(pir::repr_unbox_int__IP(self));
     }
+    
     method Num() {
         pir::perl6_box_num__PN(pir::repr_unbox_int__IP(self));
     }

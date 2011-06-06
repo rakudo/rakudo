@@ -63,6 +63,10 @@ multi infix:<%>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::mod__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
 }
+multi infix:<%>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::mod__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
 
 proto infix:<~>(|$) { * }
 multi infix:<~>(Str \$a, Str \$b) {

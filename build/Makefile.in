@@ -95,10 +95,19 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.pm \
   src/Perl6/Metamodel/EXPORTHOW.pm \
 
+# The ordering here is important for bootstrapping reasons. In general:
+# * traits almost certainly have to come first
+# * stubs have to come after traits since they use them
+# * Attribute needs to come before anything that uses an attribute
+# We break various other circularities in Perl6::Metamodel::BOOTSTRAP.
+# Note that you only really have to worry especially about things that
+# the compiler will instantiate/call methods on while compiling the
+# setting - basically anything that feels MOP-ish.
 CORE_SOURCES = \
   src/CORE.setting/traits.pm \
   src/CORE.setting/stubs.pm \
   src/CORE.setting/natives.pm \
+  src/CORE.setting/Code.pm \
   src/CORE.setting/Mu.pm \
   src/CORE.setting/Any.pm \
   src/CORE.setting/Cool.pm \
@@ -106,13 +115,12 @@ CORE_SOURCES = \
   src/CORE.setting/Int.pm \
   src/CORE.setting/Num.pm \
   src/CORE.setting/Str.pm \
-  src/CORE.setting/Block.pm \
-  src/CORE.setting/Code.pm \
-  src/CORE.setting/Method.pm \
   src/CORE.setting/Parameter.pm \
-  src/CORE.setting/Routine.pm \
   src/CORE.setting/Signature.pm \
+  src/CORE.setting/Block.pm \
+  src/CORE.setting/Routine.pm \
   src/CORE.setting/Sub.pm \
+  src/CORE.setting/Method.pm \
   src/CORE.setting/IO.pm \
   src/CORE.setting/operators.pm \
   src/CORE.setting/EXPORTHOW.pm \

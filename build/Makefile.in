@@ -220,7 +220,7 @@ $(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Actions.pm
 	    src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
-$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET)
+$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET) $(METAMODEL_SOURCES)
 	$(PERL) build/merge_pm.pl $(METAMODEL_SOURCES) > src/gen/Metamodel.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.pm

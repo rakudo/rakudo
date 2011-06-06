@@ -387,8 +387,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $code      := pir::repr_instance_of__PP($type_obj);
         my $slot      := self.add_object($code);
         
-        # For now, install stub that will dynamically compile the code if we ever try
-        # to run it during compilation.
+        # For now, install stub that will dynamically compile the code if
+        # we ever try to run it during compilation.
         my $precomp;
         my $stub := sub (*@pos, *%named) {
             unless $precomp {
@@ -408,6 +408,19 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Val.new( :value($code_past) ),
                 self.get_object_sc_ref_past($code)
             )));
+            
+        # If we clone the stub, then we must remember to do a fixup
+        # of it also.
+        pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
+            self.add_object($clone);
+            $fixups.push(PAST::Stmts.new(
+                self.set_attribute($clone, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
+                PAST::Op.new(
+                    :pirop('perl6_associate_sub_code_object vPP'),
+                    PAST::Val.new( :value($code_past) ),
+                    self.get_object_sc_ref_past($clone)
+                )));
+        });
         
         # Desserialization should do the actual creation and just put the right
         # code in there in the first place.

@@ -77,13 +77,13 @@ static INTVAL is_narrower(PARROT_INTERP, Rakudo_md_candidate_info *a, Rakudo_md_
                 tied++;
         }
         else {
-            if (STABLE(type_obj_b)->type_check(interp, type_obj_b, type_obj_a)) {
+            if (STABLE(type_obj_a)->type_check(interp, type_obj_a, type_obj_b)) {
                 /* Narrower - note it and we're done. */
                 narrower++;
             }
             else {
                 /* Make sure it's tied, rather than the other way around. */
-                if (!STABLE(type_obj_a)->type_check(interp, type_obj_a, type_obj_b))
+                if (!STABLE(type_obj_b)->type_check(interp, type_obj_b, type_obj_a))
                     tied++;
             }
         }

@@ -1,16 +1,28 @@
 # Roadmap for "nom" Branch
 
-Last Updated 5th June 2011
+Last Updated 6th June 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
-## Multi-methods
-Get these working.
+## Fix multi-method non-pre-compiled case
+Fix the fixup code.
+
+## Definedness constraints
+Support :U/:D in binder and multi-dispatch
+
+## Mu.ACCEPTS, Mu.Str
+Add all of these; make other .Str and ACCEPTS methods multi.
+
+## Default parent
+Should but Any in place as the default parent
 
 ## Object construction
 new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
 closure.
+
+## our-scoped stuff
+Of note, variables, packages, subs...
 
 ## Magicals
 $_, $/, $!, @_ and %_ handling.
@@ -20,6 +32,11 @@ Get them working.
 
 ## Flesh out signatures and parameters
 While basic binding works again now, there's plenty of stuff to "put back".
+Of note:
+* Defaults
+* Sub-signatures
+* Post-constraints
+* sub foo(0) { ... } (literals)
 
 ## Fix up binding some more
 Get ::= correcter, and a bit more stuff on := also.
@@ -41,6 +58,8 @@ Get parametric roles working with the new meta-object model.
 * Implement SubsetHOW, make it work with the syntax
 * Try to implement enumerations
 * Some support for augment
+* handles
+* .*/.+/.?
 
 ## Multi-part and nested packages
 Nested may just work already...multi-part is relatively easy.

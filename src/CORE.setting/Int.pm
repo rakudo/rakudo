@@ -8,10 +8,10 @@ my class Int {
     
     # XXX multi method Str(Int:D $self:) { ...
     method Str() {
-        pir::repr_box_str__PSP(pir::repr_unbox_int__IP(self), Str);
+        pir::perl6_box_str__PS(pir::repr_unbox_int__IP(self));
     }
     method Num() {
-        pir::repr_box_num__PNP(pir::repr_unbox_int__IP(self), Num);
+        pir::perl6_box_num__PN(pir::repr_unbox_int__IP(self));
     }
 }
 

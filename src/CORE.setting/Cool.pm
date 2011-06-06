@@ -1,4 +1,9 @@
 my class Cool {
+    method bytes() {
+        pir::perl6_box_int__PI(
+            pir::bytelength__IS(pir::repr_unbox_str__SP(self.Str)));
+    }
+
     method chars() {
         pir::perl6_box_int__PI(
             pir::length__IS(pir::repr_unbox_str__SP(self.Str)));
@@ -45,6 +50,10 @@ my class Cool {
     method lcfirst() {
         my $self-str = self.Str;
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).lc ~ $self-str.substr(1)
+    }
+
+    method ord() {
+        pir::perl6_box_int__PI(pir::ord__IS(pir::repr_unbox_str__SP(self.Str)));
     }
 
 }

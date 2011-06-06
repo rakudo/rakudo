@@ -8,9 +8,6 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
-## Basic string methods in Cool.pm
-See examples already there. Should be easy to add .bytes, .ord, ...
-
 ## Int.Num, various Num multi candidates
 Test the Num variants for +, -, *, /, and numeric
 comparsion operators. You can use the coercion from Int

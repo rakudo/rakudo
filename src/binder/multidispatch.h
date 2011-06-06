@@ -1,3 +1,7 @@
+#define DEFCON_NONE      0
+#define DEFCON_DEFINED   1
+#define DEFCON_UNDEFINED 2
+
 /* This is how a Code looks on the inside. Once again, C struct that should
  * match what P6opaque computes for the Code class. */
 typedef struct {
@@ -14,17 +18,18 @@ typedef struct {
  * we are building the sorted candidate list and store them in here for fast
  * access during a dispatch. */
 typedef struct {
-    PMC   *sub;         /* The sub that is the candidate. */
-    PMC   *signature;   /* The signature of the sub. */
-    PMC  **types;       /* Class or role type constraints for each parameter. */
-    PMC  **constraints; /* Refinement type constraints for each parameter. */
-    INTVAL num_types;   /* Number of entries in the above two arrays. */
-    INTVAL min_arity;   /* Number of required positional arguments. */
-    INTVAL max_arity;   /* Number of required and optional positional arguments. */
-    INTVAL bind_check;  /* A true value if any parameters have constraints and/or are named. */
-    STRING *req_named;  /* Name of one required named argument, if any. This is to allow us
-                         * to quickly rule out candidates disambiguated by a required named
-                         * argument, as is the common case for traits. */
+    PMC    *sub;           /* The sub that is the candidate. */
+    PMC    *signature;     /* The signature of the sub. */
+    PMC   **types;         /* Class or role type constraints for each parameter. */
+    INTVAL *definednesses; /* Definedness flags for each of the types. */
+    PMC   **constraints;   /* Refinement type constraints for each parameter. */
+    INTVAL  num_types;     /* Number of entries in the above two arrays. */
+    INTVAL  min_arity;     /* Number of required positional arguments. */
+    INTVAL  max_arity;     /* Number of required and optional positional arguments. */
+    INTVAL  bind_check;    /* A true value if any parameters have constraints and/or are named. */
+    STRING *req_named;     /* Name of one required named argument, if any. This is to allow us
+                            * to quickly rule out candidates disambiguated by a required named
+                            * argument, as is the common case for traits. */
 } Rakudo_md_candidate_info;
 
 /* Overall multi-dispatcher info, which we will hang off the dispatcher

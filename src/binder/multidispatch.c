@@ -151,8 +151,9 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
         num_params = VTABLE_elements(interp, sig->params);
 
         /* Type information. */
-        info->types       = mem_allocate_n_zeroed_typed(num_params + 1, PMC*);
-        info->constraints = mem_allocate_n_zeroed_typed(num_params + 1, PMC*);
+        info->types         = mem_allocate_n_zeroed_typed(num_params + 1, PMC*);
+        info->definednesses = mem_allocate_n_zeroed_typed(num_params + 1, INTVAL);
+        info->constraints   = mem_allocate_n_zeroed_typed(num_params + 1, PMC*);
         significant_param = 0;
 
         for (j = 0; j < num_params; j++) {
@@ -195,6 +196,10 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
                 info->bind_check = 1;
             if (param->flags & SIG_ELEM_MULTI_INVOCANT)
                 info->num_types++;
+            if (param->flags & SIG_ELEM_DEFINED_ONLY)
+                info->definednesses[significant_param] = DEFCON_DEFINED;
+            else if (param->flags & SIG_ELEM_UNDEFINED_ONLY)
+                info->definednesses[significant_param] = DEFCON_UNDEFINED;
             significant_param++;
         }
 
@@ -483,6 +488,15 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     type_obj != Rakduo_types_mu_get()) {
                 type_mismatch = 1;
                 break;
+            }
+            else if ((*cur_candidate)->definednesses[i]) {
+                INTVAL defined = REPR(param)->defined(interp, param);
+                INTVAL desired = (*cur_candidate)->definednesses[i];
+                if (defined && desired == DEFCON_UNDEFINED ||
+                        !defined && desired == DEFCON_DEFINED) {
+                    type_mismatch = 1;
+                    break;
+                }
             }
         }
 

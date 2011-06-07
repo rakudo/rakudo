@@ -341,7 +341,7 @@ static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub) {
     STRING * const newline   = Parrot_str_new(interp, "\n", 0);
     PMC    * sig_meth, *sig_obj, *perl_meth;
     STRING *sig_perl;
-    printf("XXX Multi error reporting busted...");
+    printf("XXX Multi error reporting busted...\n");
     sig_meth = VTABLE_find_method(interp, sub, sig_name);
     Parrot_ext_call(interp, sig_meth, "Pi->P", sub, &sig_obj);
     perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);

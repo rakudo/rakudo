@@ -58,7 +58,7 @@ if (-f 'Makefile' && $make) {
 }
 
 print "\nConfiguring NQP ...\n";
-my @config_command = ($^X, 'Configure.pl', "--with-parrot../parrot_install/bin/parrot");
+my @config_command = ($^X, 'Configure.pl', "--with-parrot=../parrot_install/bin/parrot");
 print "@config_command\n";
 system_or_die( @config_command );
 

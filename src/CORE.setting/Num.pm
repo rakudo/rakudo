@@ -9,6 +9,11 @@ my class Num {
         pir::perl6_box_str__PS(pir::repr_unbox_num__NP(self));
     }
 
+    # TODO: replace 1.Num with a Num literal once they are implemented
+    proto method succ(|$) {*}
+    multi method succ(Num:D:) { self + 1.Num }
+    multi method succ(Num:U:) {        1.Num }
+
     proto method log(|$) {*}
     multi method log() {
         pir::perl6_box_num__PN(pir::ln__NN(pir::repr_unbox_num__NP(self)));

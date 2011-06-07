@@ -57,13 +57,10 @@ if (-f 'Makefile' && $make) {
     system_or_die($make, "realclean");
 }
 
-print "\nConfiguring NQP ...\n";
-my @config_command = ($^X, 'Configure.pl', "--with-parrot=../parrot_install/bin/parrot");
+print "\nConfiguring, building and installing NQP ...\n";
+my @config_command = ($^X, 'Configure.pl', "--with-parrot=../parrot_install/bin/parrot", "--make-install");
 print "@config_command\n";
 system_or_die( @config_command );
-
-print "\nBuilding NQP ...\n";
-system_or_die($make, 'install');
 
 sub system_or_die {
     my @cmd = @_;

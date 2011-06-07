@@ -7,4 +7,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
 {
+    method is_generic($obj) {
+        1
+    }
 }

@@ -9,4 +9,13 @@ class Perl6::Metamodel::ContainerDescriptor {
     
     method set_of($of) { $!of := $of }
     method set_rw($rw) { $!rw := $rw }
+    
+    method is_generic() {
+        $!of.HOW.is_generic($!of)
+    }
+    
+    method instantiate_generic($type_environment) {
+        my $ins := $!of.HOW.instantiate_generic($!of, $type_environment);
+        self.new(:of($ins), :rw($!rw), :name($!name))
+    }
 }

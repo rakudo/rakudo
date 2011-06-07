@@ -13,6 +13,10 @@ class Perl6::Metamodel::GenericHOW
         pir::repr_type_object_for__PPS(self.new(:name($name)), 'Uninstantiable')
     }
     
+    method is_generic($obj) {
+        1
+    }
+    
     method instantiate_generic($obj, $type_environment) {
         my $name := self.name($obj);
         pir::exists($type_environment, $name) ?? $type_environment[$name] !! $obj

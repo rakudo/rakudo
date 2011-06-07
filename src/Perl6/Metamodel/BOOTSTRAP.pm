@@ -26,6 +26,11 @@ my class BOOTSTRAPATTR {
     method name() { $!name }
     method type() { $!type }
     method box_target() { $!box_target }
+    method is_generic() { $!type.HOW.is_generic($!type) }
+    method instantiate_generic($type_environment) {
+        my $ins := $!type.HOW.instantiate_generic($!type, $type_environment);
+        self.new(:name($!name), :box_target($!box_target), :type($ins))
+    }
     method compose($obj) { }
 }
 
@@ -125,6 +130,20 @@ Attribute.HOW.add_method(Attribute, 'set_build_closure', sub ($self, $closure) {
         pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($self),
             Attribute, '$!build_closure', $closure);
     });
+Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
+        my $type := pir::getattribute__PPPs($self, Attribute, '$!type');
+        pir::perl6_booleanize__PI($type.HOW.is_generic($type));
+    });
+Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
+        my $type     := pir::getattribute__PPPs($self, Attribute, '$!type');
+        my $cd       := pir::getattribute__PPPs($self, Attribute, '$!container_descriptor');
+        my $type_ins := $type.HOW.instantiate_generic($type, $type_environment);
+        my $cd_ins   := $cd.instantiate_generic($type_environment);
+        my $ins      := pir::repr_clone__PP($self);
+        pir::setattribute__vPPsP($ins, Attribute, '$!type', $type_ins);
+        pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
+        $ins
+    });
 
 # class Signature is Cool {
 #    has $!params;
@@ -135,6 +154,32 @@ my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
 Signature.HOW.add_parent(Signature, Cool);
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu)));
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu)));
+Signature.HOW.add_method(Signature, 'is_generic', sub ($self) {
+        # If any parameter is generic, so are we.
+        my @params := pir::getattribute__PPPs($self, Signature, '$!params');
+        for @params {
+            my $is_generic := $_.is_generic();
+            if $is_generic { return $is_generic }
+        }
+        return pir::perl6_booleanize__PI(0);
+    });
+Signature.HOW.add_method(Signature, 'instantiate_generic', sub ($self, $type_environment) {
+        # Go through parameters, builidng new list. If any
+        # are generic, instantiate them. Otherwise leave them
+        # as they are.
+        my $ins    := pir::repr_clone__PP($self);
+        my @params := pir::getattribute__PPPs($self, Signature, '$!params');
+        my @ins_params;
+        for @params {
+            if $_.is_generic() {
+                @ins_params.push($_.instantiate_generic($type_environment))
+            }
+            else {
+                @ins_params.push($_);
+            }
+        }
+        pir::setattribute__0PPsP($ins, Signature, '$!params', @ins_params)
+    });
 
 # class Parameter is Cool {
 #     has str $!variable_name
@@ -161,6 +206,18 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_to>, :ty
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
+Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
+        # If nonimnal type is generic, so are we.
+        my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
+        pir::perl6_booleanize__PI($type.HOW.is_generic($type))
+    });
+Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_environment) {
+        # Clone with the type instantiated.
+        my $ins  := pir::repr_clone__PP($self);
+        my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
+        pir::setattribute__0PPsP($self, Parameter, '$!nominal_type',
+            $type.HOW.instantiate_generic($type, $type_environment))
+    });
 
 # class Code is Cool {
 #     has $!do;                # Low level code object
@@ -176,7 +233,8 @@ Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_info>, :type(Mu)));
 
-# Need multi-dispatch related methods and clone in here.
+# Need multi-dispatch related methods and clone in here, plus
+# generics instantiation.
 Code.HOW.add_method(Code, 'is_dispatcher', sub ($self) {
         my $disp_list := pir::getattribute__PPPsP($self, Code, '$!dispatchees');
         pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
@@ -211,6 +269,17 @@ Code.HOW.add_method(Code, 'derive_dispatcher', sub ($self) {
         };
         pir::setattribute__0PPSP($clone, Code, '$!dispatchees',
             pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!dispatchees')))
+    });
+Code.HOW.add_method(Code, 'is_generic', sub ($self) {
+        # Delegate to signature, since it contains all the type info.
+        pir::getattribute__PPPs($self, Code, '$!signature').is_generic()
+    });
+Code.HOW.add_method(Code, 'instantiate_generic', sub ($self, $type_environment) {
+        # Clone the code object, then instantiate the generic signature.
+        my $ins := $self.clone();
+        my $sig := pir::getattribute__PPPs($self, Code, '$!signature');
+        pir::setattribute__0PPsP($self, Code, '$!signature',
+            $sig.instantiate_generic($type_environment))
     });
 
 # Need to actually run the code block. Also need this available before we finish

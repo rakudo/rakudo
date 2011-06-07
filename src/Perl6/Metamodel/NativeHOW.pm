@@ -4,6 +4,7 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::C3MRO
+    does Perl6::Metamodel::NonGeneric
 {
     has $!composed;
 

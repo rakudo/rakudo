@@ -17,5 +17,9 @@ my class Int {
     method chr() {
         pir::perl6_box_str__PS(pir::chr(pir::repr_unbox_int__IP(self)));
     }
+
+    proto method succ(|$) {*}
+    multi method succ(Int:D:) { self + 1 }
+    multi method succ(Int:U:) {        1 }
 }
 

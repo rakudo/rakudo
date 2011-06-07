@@ -65,4 +65,20 @@ my class Num {
     multi method asec() {
         pir::perl6_box_num__PN(pir::asec__NN(pir::repr_unbox_num__NP(self)));
     }
+    proto method sinh(|$) {*}
+    multi method sinh() {
+        pir::perl6_box_num__PN(pir::sinh__NN(pir::repr_unbox_num__NP(self)));
+    }
+    proto method cosh(|$) {*}
+    multi method cosh() {
+        pir::perl6_box_num__PN(pir::cosh__NN(pir::repr_unbox_num__NP(self)));
+    }
+    proto method tanh(|$) {*}
+    multi method tanh() {
+        pir::perl6_box_num__PN(pir::tanh__NN(pir::repr_unbox_num__NP(self)));
+    }
+    proto method sech(|$) {*}
+    multi method sech() {
+        pir::perl6_box_num__PN(pir::sech__NN(pir::repr_unbox_num__NP(self)));
+    }
 }

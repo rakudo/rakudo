@@ -61,4 +61,27 @@ my class Cool {
             pir::box__PS(pir::repr_unbox_str__SP(self.Str)).reverse
         );
     }
+
+    proto method index(|$) {*}
+    multi method index(Cool \$needle, Cool $pos = 0) {
+        my $result := pir::perl6_box_int__PI(pir::index__ISSI(
+                pir::repr_unbox_str__SP(self.Str),
+                pir::repr_unbox_str__SP($needle.Str),
+                pir::repr_unbox_int__IP($pos.Int)
+        ));
+        # TODO: fail() instead of returning Str
+        $result < 0 ?? Str !! $result;
+    }
+
+    proto method rindex(|$) {*}
+    multi method rindex(Cool \$needle, Cool $pos = self.chars) {
+        my $result := pir::perl6_box_int__PI(
+                pir::box__PS(pir::repr_unbox_str__SP(self.Str)).reverse_index(
+                    pir::repr_unbox_str__SP($needle.Str),
+                    pir::repr_unbox_int__IP($pos.Int)
+                )
+        );
+        # TODO: fail() instead of returning Str
+        $result < 0 ?? Str !! $result;
+    }
 }

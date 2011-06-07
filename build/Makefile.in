@@ -82,6 +82,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/Versioning.pm \
   src/Perl6/Metamodel/PackageHOW.pm \
   src/Perl6/Metamodel/ModuleHOW.pm \
+  src/Perl6/Metamodel/GenericHOW.pm \
   src/Perl6/Metamodel/AttributeContainer.pm \
   src/Perl6/Metamodel/MethodContainer.pm \
   src/Perl6/Metamodel/MultiMethodContainer.pm \
@@ -89,6 +90,8 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/MultipleInheritance.pm \
   src/Perl6/Metamodel/C3MRO.pm \
   src/Perl6/Metamodel/ParrotInterop.pm \
+  src/Perl6/Metamodel/ConcreteRoleHOW.pm \
+  src/Perl6/Metamodel/ParametricRoleHOW.pm \
   src/Perl6/Metamodel/ClassHOW.pm \
   src/Perl6/Metamodel/NativeHOW.pm \
   src/Perl6/Metamodel/ContainerDescriptor.pm \

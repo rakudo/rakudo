@@ -7,12 +7,14 @@ use warnings;
 use Getopt::Long;
 use Cwd;
 use lib "tools/lib";
-use NQP::Configure qw(sorry slurp gen_nqp read_config fill_template_file);
-
+use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config 
+                      fill_template_text fill_template_file);
 
 MAIN: {
     my %config;
     $config{'rakudo_config_status'} = join(' ', map { "\"$_\""} @ARGV);
+
+    my $exe = $NQP::Configure::exe;
 
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s',
@@ -27,6 +29,7 @@ MAIN: {
         exit(0);
     }
 
+    my $prefix      = $options{'prefix'} || cwd().'/install';
     my $with_nqp    = $options{'with-nqp'};
     my $gen_nqp     = $options{'gen-nqp'};
     my $with_parrot = $options{'with-parrot'};
@@ -52,17 +55,24 @@ MAIN: {
         $with_nqp = gen_nqp($nqp_want, %options);
     }
 
-    my %nqp_config = read_config($with_nqp);
-    my $nqp_have   = $nqp_config{'nqp::version'};
     my @errors;
-    if (!%nqp_config) {
-        push @errors, "Unable to locate a valid NQP executable.";
+
+    my %nqp_config;
+    if ($with_nqp) {
+        %nqp_config = read_config($with_nqp) 
+            or push @errors, "Unable to read configuration from $with_nqp.";
     }
-    elsif (cmp_rev($nqp_have, $nqp_want) < 0) {
-        push @errors, "NQP revision $nqp_want required (currently $nqp_have).";
+    else {
+        %nqp_config = read_config("$prefix/bin/nqp$exe", "nqp$exe")
+            or push @errors, "Unable to find an NQP executable.";
+        $with_nqp = fill_template_text('@bindir@/nqp@exe@', %nqp_config)
     }
 
     %config = (%config, %nqp_config);
+    my $nqp_have   = $config{'nqp::version'} || '';
+    if ($nqp_have && cmp_rev($nqp_have, $nqp_want) < 0) {
+        push @errors, "NQP revision $nqp_want required (currently $nqp_have).";
+    }
 
     if (@errors && !defined $gen_nqp) {
         push @errors, 

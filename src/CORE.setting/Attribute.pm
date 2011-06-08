@@ -21,7 +21,9 @@ my class Attribute {
                             $dcpkg,
                             pir::repr_unbox_str__SP($name)))
                 };
-            $package.HOW.add_method($package, $name.substr(2), $meth);
+            $package.HOW.add_method($package, pir::substr__SSI(
+                pir::repr_unbox_str__SP($name), pir::repr_unbox_int__IP(2)),
+                $meth);
         }
     }
 }

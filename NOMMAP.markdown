@@ -5,6 +5,9 @@ Last Updated 6th June 2011
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
+## Multi-Part names
+for X::Base, Foo::Bar etc.
+
 ## Object construction
 new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
 closure.

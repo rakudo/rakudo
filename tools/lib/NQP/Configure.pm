@@ -23,6 +23,10 @@ our @required_parrot_files = qw(
     @includedir@@versiondir@/pmc
 );
 
+our @required_nqp_files = qw(
+    @bindir@/nqp@exe@
+);
+
 our $nqp_git = 'git://github.com/perl6/nqp.git';
 our $par_git = 'git://github.com/parrot/parrot.git';
 
@@ -211,18 +215,9 @@ sub verify_install {
         push @missing, "    $f" unless -e $f;
     }
     if (@missing) {
-        my $missing = join("\n", @missing);
-        die <<"END";
-
-===SORRY!===
-I'm missing some needed files in the install directory:
-$missing
-(Perhaps you need to use Parrot's "make install-dev" target or
-install the "parrot-devel" package for your system?)
-
-END
+        unshift @missing, "I'm missing some needed files:";
     }
-    1;
+    @missing;
 }
 
 

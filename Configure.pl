@@ -8,7 +8,8 @@ use Getopt::Long;
 use Cwd;
 use lib "tools/lib";
 use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config 
-                      fill_template_text fill_template_file);
+                      fill_template_text fill_template_file
+                      verify_install);
 
 MAIN: {
     my %config;
@@ -74,9 +75,19 @@ MAIN: {
         push @errors, "NQP revision $nqp_want required (currently $nqp_have).";
     }
 
+    if (!@errors) {
+        push @errors, verify_install([ @NQP::Configure::required_parrot_files,
+                                       @NQP::Configure::required_nqp_files ],
+                                     %config);
+        push @errors, 
+          "(Perhaps you need to 'make install', 'make install-dev',",
+          "or install the 'devel' package for NQP or Parrot?)"
+          if @errors;
+    }
+
     if (@errors && !defined $gen_nqp) {
         push @errors, 
-          "To automatically clone (git) and build a copy of NQP $nqp_want,",
+          "\nTo automatically clone (git) and build a copy of NQP $nqp_want,",
           "try re-running Configure.pl with the '--gen-nqp' or '--gen-parrot'",
           "options.  Or, use '--with-nqp=' or '--with-parrot=' to explicitly",
           "specify the NQP or Parrot executable to use to build Rakudo.";

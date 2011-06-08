@@ -2,6 +2,7 @@
 src/gen/*
 Perl6/*
 nqp/
+install/
 Makefile
 .*.swp
 *.patch
@@ -25,7 +26,6 @@ perl6.rc
 t/localtest.data
 t/spec
 parrot
-parrot_install
 perl6
 perl6.c
 perl6.o

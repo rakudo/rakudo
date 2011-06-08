@@ -6,14 +6,23 @@ use strict;
 use warnings;
 use Getopt::Long;
 use Cwd;
-use lib "build/lib";
-use Parrot::CompareRevisions qw(compare_revs parse_revision_file read_config version_from_git_describe);
+use lib "tools/lib";
+use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config 
+                      fill_template_text fill_template_file
+                      verify_install);
 
 MAIN: {
+    my %config;
+    $config{'rakudo_config_status'} = join(' ', map { "\"$_\""} @ARGV);
+
+    my $exe = $NQP::Configure::exe;
+
     my %options;
-    GetOptions(\%options, 'help!', 'parrot-config=s', 'makefile-timing!',
-               'gen-parrot!', 'gen-parrot-prefix=s', 'gen-parrot-option=s@',
-               'gen-nqp!');
+    GetOptions(\%options, 'help!', 'prefix=s',
+               'with-nqp=s', 'gen-nqp:s',
+               'with-parrot=s', 'gen-parrot:s',
+               'make-install!', 'makefile-timing!',
+               );
 
     # Print help if it's requested
     if ($options{'help'}) {
@@ -21,216 +30,126 @@ MAIN: {
         exit(0);
     }
 
-    # Update/generate parrot build if needed
-    if ($options{'gen-parrot'}) {
-        my @opts    = @{ $options{'gen-parrot-option'} || [] };
-        my $prefix  = $options{'gen-parrot-prefix'} || cwd()."/parrot_install";
-        # parrot's Configure.pl mishandles win32 backslashes in --prefix
-        $prefix =~ s{\\}{/}g;
-        my @command = ($^X, "build/gen_parrot.pl", "--prefix=$prefix",
-                '--gc=gms', ($^O !~ /win32/i ? "--optimize" : ()), @opts);
+    my $prefix      = $options{'prefix'} || cwd().'/install';
+    my $with_nqp    = $options{'with-nqp'};
+    my $gen_nqp     = $options{'gen-nqp'};
+    my $with_parrot = $options{'with-parrot'};
+    my $gen_parrot  = $options{'gen-parrot'};
 
-        print "Generating Parrot ...\n";
-        print "@command\n\n";
-        system(@command) == 0
-            or die "Error while executing @command; aborting\n";
-    }
-    
-    # Update/generate NQP build if needed.
-    if ($options{'gen-nqp'}) {
-        my @command = ($^X, "build/gen_nqp.pl");
-        print "Generating NQP ...\n";
-        print "@command\n\n";
-        system(@command) == 0
-            or die "Error while executing @command; aborting\n";
+    # Save options in config.status
+    unlink('config.status');
+    if (open(my $CONFIG_STATUS, '>', 'config.status')) {
+        print $CONFIG_STATUS
+            "$^X Configure.pl $config{'rakudo_config_status'} \$*\n";
+        close($CONFIG_STATUS);
     }
 
-    # Get a list of parrot-configs to invoke.
-    my @parrot_config_exe = qw(
-        parrot_install/bin/parrot_config
-        ../../parrot_config
-        parrot_config
-    );
-    if (exists $options{'gen-parrot-prefix'}) {
-        @parrot_config_exe =
-                $options{'gen-parrot-prefix'} . '/bin/parrot_config';
+    # --with-parrot and --gen-parrot imply --gen-nqp
+    if (!defined $gen_nqp && (defined $with_parrot || defined $gen_parrot)) {
+        $gen_nqp = '';
     }
 
-    if ($options{'parrot-config'} && $options{'parrot-config'} ne '1') {
-        @parrot_config_exe = ($options{'parrot-config'});
+    # determine the version of NQP we want
+    my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
+
+    if (defined $gen_nqp) {
+        $with_nqp = gen_nqp($nqp_want, %options);
     }
 
-    # Get configuration information from parrot_config
-    my ($parrot_config, %config) = read_config(@parrot_config_exe);
+    my @errors;
 
-    # Determine the revision of Parrot we require
-    my $git_describe = parse_revision_file;
-    my $parrot_version = version_from_git_describe($git_describe);
-
-    my $parrot_errors = '';
-    if (!%config) {
-        $parrot_errors .= "Unable to locate parrot_config\n"; 
+    my %nqp_config;
+    if ($with_nqp) {
+        %nqp_config = read_config($with_nqp) 
+            or push @errors, "Unable to read configuration from $with_nqp.";
     }
     else {
-        if ($config{git_describe}) {
-            # a parrot built from git
-            if (compare_revs($git_describe, $config{'git_describe'}) > 0) {
-                $parrot_errors .= "Parrot revision $git_describe required (currently $config{'git_describe'})\n";
-            }
-        }
-        else {
-            # not built from a git repo - let's assume it's a release
-            if (version_int($parrot_version) > version_int($config{'VERSION'})) {
-                $parrot_errors .= "Parrot version $parrot_version required (currently $config{VERSION})\n";
-            }
-        }
+        %nqp_config = read_config("$prefix/bin/nqp$exe", "nqp$exe")
+            or push @errors, "Unable to find an NQP executable.";
+        $with_nqp = fill_template_text('@bindir@/nqp@exe@', %nqp_config)
     }
 
-    if ($parrot_errors) {
-        die <<"END";
-===SORRY!===
-$parrot_errors
-To automatically clone (git) and build a copy of parrot $git_describe,
-try re-running Configure.pl with the '--gen-parrot' option.
-Or, use the '--parrot-config' option to explicitly specify
-the location of parrot_config to be used to build Rakudo Perl.
-
-END
+    %config = (%config, %nqp_config);
+    my $nqp_have   = $config{'nqp::version'} || '';
+    if ($nqp_have && cmp_rev($nqp_have, $nqp_want) < 0) {
+        push @errors, "NQP revision $nqp_want required (currently $nqp_have).";
     }
 
-    my $nqp_exe = $parrot_config;
-    # the .* is needed of somebody has the string 'parrot_config' in
-    # the build path - we always want to substitute the last occorence
-    $nqp_exe =~ s/(.*)parrot_config/$1nqp/s;
-    if (system $nqp_exe, '-e', '') {
-        die "Cannot execute nqp - maybe try the --gen-nqp option to automatically build one?\n";
+    if (!@errors) {
+        push @errors, verify_install([ @NQP::Configure::required_parrot_files,
+                                       @NQP::Configure::required_nqp_files ],
+                                     %config);
+        push @errors, 
+          "(Perhaps you need to 'make install', 'make install-dev',",
+          "or install the 'devel' package for NQP or Parrot?)"
+          if @errors;
     }
 
-    # Verify the Parrot installation is sufficient for building Rakudo
-    verify_parrot(%config);
+    if (@errors && !defined $gen_nqp) {
+        push @errors, 
+          "\nTo automatically clone (git) and build a copy of NQP $nqp_want,",
+          "try re-running Configure.pl with the '--gen-nqp' or '--gen-parrot'",
+          "options.  Or, use '--with-nqp=' or '--with-parrot=' to explicitly",
+          "specify the NQP or Parrot executable to use to build Rakudo.";
+    }
 
-    # Create the Makefile using the information we just got
-    create_makefile($options{'makefile-timing'}, %config);
-    my $make = $config{'make'};
+    sorry(@errors) if @errors;
+
+    print "Using $with_nqp (version $config{'nqp::version'}).\n";
+
+    $config{'makefile-timing'} = $options{'makefile-timing'};
+    $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
+    $config{'shell'} = 'sh';
+    if ($^O eq 'MSWin32') {
+        $config{'shell'} = 'cmd';
+        $config{'win32_libparrot_copy'} = 
+            'copy $(PARROT_BIN_DIR)\libparrot.dll .';
+    }
+
+    my $make = fill_template_text('@make@', %config);
+    fill_template_file('tools/build/Makefile.in', 'Makefile', %config);
 
     {
         no warnings;
         print "Cleaning up ...\n";
-        if (open my $CLEAN, '-|', "$make clean") { 
+        if (open my $CLEAN, '-|', "$make clean") {
             my @slurp = <$CLEAN>;
-            close $CLEAN; 
+            close($CLEAN);
         }
     }
 
-    print <<"END";
+    if ($options{'make-install'}) {
+        system_or_die($make);
+        system_or_die($make, 'install');
+        print "\nRakudo has been built and installed.\n";
+    }
+    else {
+        print "\nYou can now use '$make' to build Rakudo.\n";
+        print "After that, '$make test' will run some tests and\n";
+        print "'$make install' will install Rakudo.\n";
+    }
 
-You can now use '$make' to build Rakudo Perl.
-After that, you can use '$make test' to run some local tests,
-or '$make spectest' to check out (via git) a copy of the Perl 6
-official test suite and run its tests.
-
-END
     exit 0;
-
-}
-
-
-sub verify_parrot {
-    print "Verifying Parrot installation...\n";
-    my %config = @_;
-    my $EXE            = $config{'exe'};
-    my $PARROT_BIN_DIR = $config{'bindir'};
-    my $PARROT_VERSION = $config{'versiondir'};
-    my $PARROT_LIB_DIR = $config{'libdir'}.$PARROT_VERSION;
-    my $PARROT_SRC_DIR = $config{'srcdir'}.$PARROT_VERSION;
-    my $PARROT_INCLUDE_DIR = $config{'includedir'}.$PARROT_VERSION;
-    my $PARROT_TOOLS_DIR = "$PARROT_LIB_DIR/tools";
-    my @required_files = (
-        "$PARROT_LIB_DIR/library/PGE/Perl6Grammar.pbc",
-        "$PARROT_LIB_DIR/library/PCT/HLLCompiler.pbc",
-        "$PARROT_BIN_DIR/ops2c".$EXE,
-        "$PARROT_TOOLS_DIR/build/pmc2c.pl",
-        "$PARROT_SRC_DIR",
-        "$PARROT_SRC_DIR/pmc",
-        "$PARROT_INCLUDE_DIR",
-        "$PARROT_INCLUDE_DIR/pmc",
-    );
-    my @missing = map { "    $_" } grep { ! -e } @required_files;
-    if (@missing) {
-        my $missing = join("\n", @missing);
-        die <<"END";
-
-===SORRY!===
-I'm missing some needed files from the Parrot installation:
-$missing
-(Perhaps you need to use Parrot's "make install-dev" or
-install the "parrot-devel" package for your system?)
-
-END
-    }
-}
-
-#  Generate a Makefile from a configuration
-sub create_makefile {
-    my ($makefile_timing, %config) = @_;
-
-    my $maketext = slurp( 'build/Makefile.in' );
-
-    $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
-    $config{'stagestats'} = $makefile_timing ? '--stagestats' : '';
-    $config{'win32_libparrot_copy'} = $^O eq 'MSWin32' ? 'copy $(PARROT_BIN_DIR)\libparrot.dll .' : '';
-    $maketext =~ s/@(\w+)@/$config{$1}/g;
-    if ($^O eq 'MSWin32') {
-        $maketext =~ s{/}{\\}g;
-        $maketext =~ s{\\\*}{\\\\*}g;
-        $maketext =~ s{(?:git|http):\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
-        $maketext =~ s/.*curl.*/do {my $t = $&; $t =~ s'%'%%'g; $t}/meg;
-    }
-
-    if ($makefile_timing) {
-        $maketext =~ s{(?<!\\\n)^\t(?!\s*-?cd)(?=[^\n]*\S)}{\ttime }mg;
-    }
-
-    my $outfile = 'Makefile';
-    print "\nCreating $outfile ...\n";
-    open(my $MAKEOUT, '>', $outfile) ||
-        die "Unable to write $outfile\n";
-    print {$MAKEOUT} $maketext;
-    close $MAKEOUT or die $!;
-
-    return;
-}
-
-sub slurp {
-    my $filename = shift;
-
-    open my $fh, '<', $filename or die "Unable to read $filename\n";
-    local $/ = undef;
-    my $maketext = <$fh>;
-    close $fh or die $!;
-
-    return $maketext;
-}
-
-sub version_int {
-    sprintf('%d%03d%03d', split(/\./, $_[0]))
 }
 
 
 #  Print some help text.
 sub print_help {
     print <<'END';
-Configure.pl - Rakudo Configure
+Configure.pl - NQP Configure
 
 General Options:
     --help             Show this text
-    --gen-parrot       Download and build a copy of Parrot to use
-    --gen-parrot-option='--option=value'
-                       Set parrot config option when using --gen-parrot
-    --parrot-config=/path/to/parrot_config
-                       Use config information from parrot_config executable
-Experimental developer's options:
-    --makefile-timing  Insert 'time' command all over in the Makefile
+    --prefix=dir       Install files in dir
+    --with-nqp=path/to/bin/nqp
+                       NQP executable to use to build Rakudo
+    --gen-nqp[=branch]
+                       Download and build a copy of NQP
+        --with-parrot=path/to/bin/parrot
+                       Parrot executable to use to build NQP
+        --gen-parrot[=branch]
+                       Download and build a copy of Parrot
+    --makefile-timing  Enable timing of individual makefile commands
 END
 
     return;

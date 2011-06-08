@@ -66,11 +66,15 @@ Configure.pl - NQP Configure
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir
-    --with-parrot=path/to/bin/parrot
+    --with-nqp=path/to/bin/nqp
+                       NQP executable to use to build Rakudo
+    --gen-nqp[=branch]
+                       Download and build a copy of NQP
+        --with-parrot=path/to/bin/parrot
                        Parrot executable to use to build NQP
-    --gen-parrot       Download and build a copy of Parrot to use
-    --parrot-option='--option=value'
-                       Options to pass to parrot configuration for --gen-parrot
+        --gen-parrot[=branch]
+                       Download and build a copy of Parrot
+    --makefile-timing  Enable timing of individual makefile commands
 END
 
     return;

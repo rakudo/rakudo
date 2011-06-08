@@ -73,7 +73,7 @@ if (-f 'Makefile') {
     my $make = $config{'make'};
     if ($make) {
         print "\nPerforming '$make realclean' ...\n";
-        system_or_die($make, "realclean");
+        system($make, "realclean");
     }
 }
 

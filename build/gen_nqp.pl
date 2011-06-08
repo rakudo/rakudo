@@ -54,7 +54,7 @@ system_or_die(qw(git pull)) unless $fetched;
 ##  If we have a Makefile from a previous build, do a 'make realclean'
 if (-f 'Makefile' && $make) {
     print "\nPerforming '$make realclean' ...\n";
-    system_or_die($make, "realclean");
+    system($make, "realclean");
 }
 
 print "\nConfiguring, building and installing NQP ...\n";

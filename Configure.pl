@@ -106,7 +106,28 @@ MAIN: {
             'copy $(PARROT_BIN_DIR)\libparrot.dll .';
     }
 
+    my $make = fill_template_text('@make@', %config);
     fill_template_file('tools/build/Makefile.in', 'Makefile', %config);
+
+    {
+        no warnings;
+        print "Cleaning up ...\n";
+        if (open my $CLEAN, '-|', "$make clean") {
+            my @slurp = <$CLEAN>;
+            close($CLEAN);
+        }
+    }
+
+    if ($options{'make-install'}) {
+        system_or_die($make);
+        system_or_die($make, 'install');
+        print "\nRakudo has been built and installed.\n";
+    }
+    else {
+        print "\nYou can now use '$make' to build Rakudo.\n";
+        print "After that, '$make test' will run some tests and\n";
+        print "'$make install' will install Rakudo.\n";
+    }
 
     exit 0;
 }

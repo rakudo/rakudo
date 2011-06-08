@@ -2565,14 +2565,9 @@ class Perl6::Actions is HLL::Actions {
         my $int  := $<int> ?? ~$<int> !! "0";
         my $frac := $<frac> ?? ~$<frac> !! "0";
         if $<escale> {
-            # XXX Work out at compile time, then...
-            # make $*ST.add_constant('Num', 'num', $calculated);
             my $exp := ~$<escale>[0]<decint>;
-            make PAST::Op.new(
-                :pasttype('call'),
-                PAST::Var.new(:scope('package'), :name('&str2num-num'), :namespace('Str')),
-                 0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp
-            );
+            make $*ST.add_constant('Num', 'num',
+                str2num(0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp));
         } else {
             # XXX Work out at compile time, then...
             # make $*ST.add_constant('Rat', 'rational', [$nu, $de]);
@@ -3283,6 +3278,75 @@ class Perl6::Actions is HLL::Actions {
         else {
             $/.CURSOR.panic("$usage must have a value known at compile time");
         }
+    }
+    
+    # XXX This probably dupes something in HLL::Actions...
+    # XXX Either way, shouldn't be in PIR.
+    our sub str2num-int($src) {
+        Q:PIR {
+            .local pmc src
+            .local string src_s
+            src = find_lex '$src'
+            src_s = src
+            .local int pos, eos
+            .local num result
+            pos = 0
+            eos = length src_s
+            result = 0
+          str_loop:
+            unless pos < eos goto str_done
+            .local string char
+            char = substr src_s, pos, 1
+            if char == '_' goto str_next
+            .local int digitval
+            digitval = index "0123456789", char
+            if digitval < 0 goto err_base
+            if digitval >= 10 goto err_base
+            result *= 10
+            result += digitval
+          str_next:
+            inc pos
+            goto str_loop
+          err_base:
+        src.'panic'('Invalid radix conversion of "', char, '"')
+          str_done:
+            %r = box result
+        };
+    }
+
+    # XXX Translate to NQP.
+    our sub str2num-base($src) {
+        Q:PIR {
+            .local pmc src
+            .local string src_s
+            src = find_lex '$src'
+            src_s = src
+            .local int pos, eos
+            .local num result
+            pos = 0
+            eos = length src_s
+            result = 1
+          str_loop:
+            unless pos < eos goto str_done
+            .local string char
+            char = substr src_s, pos, 1
+            if char == '_' goto str_next
+            result *= 10
+          str_next:
+            inc pos
+            goto str_loop
+          str_done:
+            %r = box result
+        };
+    }
+
+    sub str2num($negate, $int_part, $frac_part, $exp_part_negate, $exp_part) {
+        my $exp := str2num-int($exp_part);
+        $exp := -$exp if $exp_part_negate;
+        my $result := (str2num-int($int_part) + str2num-int($frac_part) / str2num-base($frac_part))
+                     * 10 ** $exp;
+        $result := -$result if $negate;
+        $result;
     }
 }
 

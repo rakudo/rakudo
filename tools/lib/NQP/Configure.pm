@@ -4,7 +4,7 @@ use warnings;
 use Cwd;
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(slurp system_or_die
+our @EXPORT_OK = qw(sorry slurp system_or_die
                     cmp_rev 
                     read_parrot_config read_config
                     fill_template_file fill_template_text 
@@ -26,6 +26,10 @@ our @required_parrot_files = qw(
 our $nqp_git = 'git://github.com/perl6/nqp.git';
 our $par_git = 'git://github.com/parrot/parrot.git';
 
+sub sorry {
+    my @msg = @_;
+    die join("\n", '', '===SORRY!===', @msg, "\n");
+}
 
 sub slurp {
     my $filename = shift;

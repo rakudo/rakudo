@@ -7,7 +7,7 @@ use warnings;
 use Getopt::Long;
 use Cwd;
 use lib "tools/lib";
-use NQP::Configure qw(slurp gen_nqp read_config fill_template_file);
+use NQP::Configure qw(sorry slurp gen_nqp read_config fill_template_file);
 
 
 MAIN: {
@@ -27,7 +27,10 @@ MAIN: {
         exit(0);
     }
 
-    my $with_nqp = $options{'with_nqp'};
+    my $with_nqp    = $options{'with-nqp'};
+    my $gen_nqp     = $options{'gen-nqp'};
+    my $with_parrot = $options{'with-parrot'};
+    my $gen_parrot  = $options{'gen-parrot'};
 
     # Save options in config.status
     unlink('config.status');
@@ -37,12 +40,42 @@ MAIN: {
         close($CONFIG_STATUS);
     }
 
+    # --with-parrot and --gen-parrot imply --gen-nqp
+    if (!defined $gen_nqp && (defined $with_parrot || defined $gen_parrot)) {
+        $gen_nqp = '';
+    }
+
+    # determine the version of NQP we want
     my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
-    if (defined $options{'gen-parrot'}) {
+
+    if (defined $gen_nqp) {
         $with_nqp = gen_nqp($nqp_want, %options);
     }
 
-    %config = (%config, read_config($with_nqp));
+    my %nqp_config = read_config($with_nqp);
+    my $nqp_have   = $nqp_config{'nqp::version'};
+    my @errors;
+    if (!%nqp_config) {
+        push @errors, "Unable to locate a valid NQP executable.";
+    }
+    elsif (cmp_rev($nqp_have, $nqp_want) < 0) {
+        push @errors, "NQP revision $nqp_want required (currently $nqp_have).";
+    }
+
+    %config = (%config, %nqp_config);
+
+    if (@errors && !defined $gen_nqp) {
+        push @errors, 
+          "To automatically clone (git) and build a copy of NQP $nqp_want,",
+          "try re-running Configure.pl with the '--gen-nqp' or '--gen-parrot'",
+          "options.  Or, use '--with-nqp=' or '--with-parrot=' to explicitly",
+          "specify the NQP or Parrot executable to use to build Rakudo.";
+    }
+
+    sorry(@errors) if @errors;
+
+    print "Using $with_nqp (version $config{'nqp::version'}).\n";
+
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'shell'} = 'sh';

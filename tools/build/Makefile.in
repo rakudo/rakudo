@@ -393,3 +393,6 @@ $(DYNOPS): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.c src/binder/bind.h src/bind
 	cd src/binder && $(CC) -c @cc_o_out@container$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) container.c
 	cd src/binder && $(CC) -c @cc_o_out@types$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) types.c
 	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../binder/bind$(O) ../binder/multidispatch$(O) ../binder/container$(O) ../binder/types$(O) $(LINKARGS)
+
+# nqp::makefile <-- tells NQP::Configure to treat this file as a makefile,
+#                   performing win32 slash and makefile conversions

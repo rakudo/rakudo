@@ -328,7 +328,7 @@ in.
 
 */
 inline op perl6_booleanize(out PMC, in INT) :base_core {
-    $1 = $2 == 0 ? Rakduo_types_bool_false_get() : Rakduo_types_bool_true_get();
+    $1 = $2 == 0 ? Rakudo_types_bool_false_get() : Rakudo_types_bool_true_get();
 }
 
 
@@ -357,7 +357,7 @@ Box a native string to a Perl 6 Str.
 
 */
 inline op perl6_box_str(out PMC, in STR) :base_core {
-    PMC *type = Rakduo_types_str_get();
+    PMC *type = Rakudo_types_str_get();
     $1 = REPR(type)->instance_of(interp, type);
     REPR($1)->set_str(interp, $1, $2);
 }
@@ -373,7 +373,7 @@ Box a native int to a Perl 6 Int.
 
 */
 inline op perl6_box_int(out PMC, in INT) :base_core {
-    PMC *type = Rakduo_types_int_get();
+    PMC *type = Rakudo_types_int_get();
     $1 = REPR(type)->instance_of(interp, type);
     REPR($1)->set_int(interp, $1, $2);    
 }
@@ -389,7 +389,7 @@ Box a native floating point number to a Perl 6 Num.
 
 */
 inline op perl6_box_num(out PMC, in NUM) :base_core {
-    PMC *type = Rakduo_types_num_get();
+    PMC *type = Rakudo_types_num_get();
     $1 = REPR(type)->instance_of(interp, type);
     REPR($1)->set_num(interp, $1, $2);
 }

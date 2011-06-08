@@ -73,9 +73,9 @@ INTVAL Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc,
                     PMC *capture, INTVAL no_nom_type_check,
                     STRING **error);
 void Rakudo_binder_set_top_type(PMC *type);
-PMC * Rakudo_binder_get_top_type();
+PMC * Rakudo_binder_get_top_type(void);
 void Rakudo_binder_set_junction_type(PMC *type);
-PMC * Rakudo_binder_get_junction_type();
+PMC * Rakudo_binder_get_junction_type(void);
 
 /* Things Rakudo_binding_bind_llsig may return to indicate a problem. */
 #define BIND_RESULT_OK       0

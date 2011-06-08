@@ -245,7 +245,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     if (!no_nom_type_check) {
         /* If not, do the check. If the wanted nominal type is Mu, then
 		 * anything goes. */
-        if (param->nominal_type != Rakduo_types_mu_get() &&
+        if (param->nominal_type != Rakudo_types_mu_get() &&
                 (decont_value->vtable->base_type != smo_id ||
                  !STABLE(decont_value)->type_check(interp, decont_value, param->nominal_type))) {
             /* Type check failed; produce error if needed. */
@@ -263,7 +263,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             
             /* Report junction failure mode if it's a junction. */
             if (decont_value->vtable->base_type == smo_id &&
-                    STABLE(decont_value)->WHAT == Rakduo_types_junction_get())
+                    STABLE(decont_value)->WHAT == Rakudo_types_junction_get())
                 return BIND_RESULT_JUNCTION;
             else
                 return BIND_RESULT_FAIL;

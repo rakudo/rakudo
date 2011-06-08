@@ -564,8 +564,9 @@ candidate.
 
 */
 inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC) :base_core {
-    PMC *cur_ctx    = CURRENT_CONTEXT(interp);
-    PMC *parrot_sub = Parrot_pcc_get_sub(interp, cur_ctx);
+    PMC *cur_ctx     = CURRENT_CONTEXT(interp);
+    PMC *orig_caller = Parrot_pcc_get_caller_ctx(interp, cur_ctx);
+    PMC *parrot_sub  = Parrot_pcc_get_sub(interp, cur_ctx);
     PMC *perl6_code, *chosen;
     GETATTR_Sub_multi_signature(interp, parrot_sub, perl6_code);
     if (PMC_IS_NULL(perl6_code))
@@ -579,6 +580,7 @@ inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC) :base_core {
         Parrot_pcc_set_signature(interp, cur_ctx, cur_ctx);
         interp->current_cont = Parrot_pcc_get_continuation(interp, cur_ctx);
         addr = VTABLE_invoke(interp, chosen, expr NEXT());
+        Parrot_pcc_set_caller_ctx(interp, cur_ctx, orig_caller);
         goto ADDRESS(addr);
     }
     else {

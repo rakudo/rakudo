@@ -492,7 +492,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
             else if ((*cur_candidate)->definednesses[i]) {
                 INTVAL defined = REPR(param)->defined(interp, param);
                 INTVAL desired = (*cur_candidate)->definednesses[i];
-                if ((defined && desired) == DEFCON_UNDEFINED ||
+                if ((defined && desired == DEFCON_UNDEFINED) ||
                         (!defined && desired == DEFCON_DEFINED)) {
                     type_mismatch = 1;
                     break;

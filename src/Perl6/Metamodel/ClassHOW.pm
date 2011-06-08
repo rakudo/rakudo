@@ -8,6 +8,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::C3MRO
+    does Perl6::Metamodel::NonGeneric
     does Perl6::Metamodel::ParrotInterop
 {
     has $!composed;

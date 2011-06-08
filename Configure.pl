@@ -11,9 +11,14 @@ use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config
                       fill_template_text fill_template_file
                       verify_install);
 
+my $lang = 'Rakudo';
+my $lclang = lc $lang;
+my $uclang = uc $lang;
+
 MAIN: {
     my %config;
-    $config{'rakudo_config_status'} = join(' ', map { "\"$_\""} @ARGV);
+    my $config_status = "${lclang}_config_status";
+    $config{$config_status} = join(' ', map { "\"$_\""} @ARGV);
 
     my $exe = $NQP::Configure::exe;
 
@@ -40,7 +45,7 @@ MAIN: {
     unlink('config.status');
     if (open(my $CONFIG_STATUS, '>', 'config.status')) {
         print $CONFIG_STATUS
-            "$^X Configure.pl $config{'rakudo_config_status'} \$*\n";
+            "$^X Configure.pl $config{$config_status} \$*\n";
         close($CONFIG_STATUS);
     }
 
@@ -90,7 +95,7 @@ MAIN: {
           "\nTo automatically clone (git) and build a copy of NQP $nqp_want,",
           "try re-running Configure.pl with the '--gen-nqp' or '--gen-parrot'",
           "options.  Or, use '--with-nqp=' or '--with-parrot=' to explicitly",
-          "specify the NQP or Parrot executable to use to build Rakudo.";
+          "specify the NQP or Parrot executable to use to build $lang.";
     }
 
     sorry(@errors) if @errors;
@@ -121,12 +126,12 @@ MAIN: {
     if ($options{'make-install'}) {
         system_or_die($make);
         system_or_die($make, 'install');
-        print "\nRakudo has been built and installed.\n";
+        print "\n$lang has been built and installed.\n";
     }
     else {
-        print "\nYou can now use '$make' to build Rakudo.\n";
+        print "\nYou can now use '$make' to build $lang.\n";
         print "After that, '$make test' will run some tests and\n";
-        print "'$make install' will install Rakudo.\n";
+        print "'$make install' will install $lang.\n";
     }
 
     exit 0;
@@ -135,14 +140,14 @@ MAIN: {
 
 #  Print some help text.
 sub print_help {
-    print <<'END';
-Configure.pl - NQP Configure
+    print <<"END";
+Configure.pl - $lang Configure
 
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir
     --with-nqp=path/to/bin/nqp
-                       NQP executable to use to build Rakudo
+                       NQP executable to use to build $lang
     --gen-nqp[=branch]
                        Download and build a copy of NQP
         --with-parrot=path/to/bin/parrot

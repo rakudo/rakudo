@@ -73,7 +73,6 @@ sub read_config {
     for my $file (@config_src) {
         no warnings;
         if (open my $CONFIG, '-|', "$file --show-config") {
-            print "\nReading configuration from $file ...\n";
             while (<$CONFIG>) {
                 if (/^([\w:]+)=(.*)/) { $config{$1} = $2 }
             }
@@ -117,14 +116,12 @@ END
     for my $file (@parrot_config_src) {
         no warnings;
         if (open my $PARROT, '-|', "$file parrot-config.pir") {
-            print "\nReading configuration information from $file ...\n";
             while (<$PARROT>) {
                 if (/^([\w:]+)=(.*)/) { $config{$1} = $2 }
             }
             close($PARROT) or die $!;
         }
         elsif (-r $file && open my $PARROT_CONFIG, '<', $file) {
-            print "\nReading configuration information from $file ...\n";
             while (<$PARROT_CONFIG>) {
                 if (/P0\["(.*?)"\], "(.*?)"/) { $config{"parrot::$1"} = $2 }
             }
@@ -272,7 +269,7 @@ sub gen_nqp {
     }
 
     if ($nqp_ok && -M $nqp_exe < -M $with_parrot) {
-        print "Already have NQP $nqp_have, it's good enough.\n";
+        print "$nqp_exe is NQP $nqp_have.\n";
         return $nqp_exe;
     }
 
@@ -311,8 +308,7 @@ sub gen_parrot {
     }
 
     if ($par_ok) {
-        print "Already have Parrot $par_have, that's good enough";
-        print " for $par_want.\n";
+        print "$par_exe is Parrot $par_have.\n";
         return $par_exe;
     }
     chdir("$startdir/parrot") or die $!;

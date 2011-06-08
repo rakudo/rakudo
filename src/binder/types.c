@@ -7,13 +7,14 @@
 #include "sixmodelobject.h"
 #include "types.h"
 
-static PMC * Mu        = NULL;
-static PMC * Junction  = NULL;
-static PMC * Int       = NULL;
-static PMC * Num       = NULL;
-static PMC * Str       = NULL;
-static PMC * BoolFalse = NULL;
-static PMC * BoolTrue  = NULL;
+static PMC * Mu         = NULL;
+static PMC * Junction   = NULL;
+static PMC * Int        = NULL;
+static PMC * Num        = NULL;
+static PMC * Str        = NULL;
+static PMC * BoolFalse  = NULL;
+static PMC * BoolTrue   = NULL;
+static PMC * PackageHOW = NULL;
 
 void Rakudo_types_mu_set(PMC * type) { Mu = type; }
 PMC * Rakudo_types_mu_get(void) { return Mu; }
@@ -35,6 +36,9 @@ PMC * Rakudo_types_bool_false_get(void) { return BoolFalse; }
 
 void Rakudo_types_bool_true_set(PMC * type) { BoolTrue = type; }
 PMC * Rakudo_types_bool_true_get(void) { return BoolTrue; }
+
+void Rakudo_types_packagehow_set(PMC * type) { PackageHOW = type; }
+PMC * Rakudo_types_packagehow_get(void) { return PackageHOW; }
 
 PMC * Rakudo_types_parrot_map(PARROT_INTERP, PMC * to_map) {
     PMC *result;

@@ -29,6 +29,9 @@ my class BOOTSTRAPATTR {
     method compose($obj) { }
 }
 
+# Set package type for auto-viv when needed.
+pir::perl6_set_type_packagehow__vP(Perl6::Metamodel::PackageHOW);
+
 # class Mu { ... }
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 pir::perl6_set_type_mu__vP(Mu);
@@ -300,6 +303,8 @@ Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_pmc_keyed', '$!symbols')
 Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_pmc_keyed_str', '$!symbols');
 Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'set_pmc_keyed', '$!symbols');
 Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'set_pmc_keyed_str', '$!symbols');
+Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'exists_keyed', '$!symbols');
+Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'exists_keyed_str', '$!symbols');
 Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_iter', '$!symbols');
 Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
 

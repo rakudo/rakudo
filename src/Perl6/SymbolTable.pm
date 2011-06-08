@@ -255,9 +255,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Install symbol immediately.
         my $target := $package;
         for @sym {
-            # XXX Fix...
-            pir::die("Cannot handle multi-part names yet!");
-            #$target := pir::perl6_get_package_through_who__PPs($target, $_);
+            $target := pir::perl6_get_package_through_who__PPs($target, $_);
         }
         ($target.WHO){$name} := $obj;
         
@@ -855,7 +853,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
             for @name {
                 $path := PAST::Op.new(
-                    :pirop('nqp_get_package_through_who PPs'),
+                    :pirop('perl6_get_package_through_who PPs'),
                     $path, ~$_);
             }
             $lookup.unshift(PAST::Op.new(:pirop('get_who PP'), $path));

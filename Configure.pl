@@ -187,7 +187,17 @@ sub create_makefile {
     }
 
     if ($makefile_timing) {
-        $maketext =~ s{(?<!\\\n)^(\t(?>@?))(?!\s*-?cd)(?!\s*echo)(?=[^\n]*\S)}{$1time }mg;
+        $maketext =~
+        s{
+            (?<!\\\n)    # neg lookbehind: not after a line ending in '\'
+            ^            # beginning of line
+            (\t(?>@?))   # capture tab and optional @
+            (?!\s*-)     # neg lookahead: do not want - (ignore error) lines
+            (?!\s*cd)    # neg lookahead: do not want cd lines
+            (?!\s*echo)  # neg lookahead: do not want echo lines
+            (?=[^\n]*\S) # pos lookahead: want nonblank lines
+        }
+        {$1time\ }mgx;
     }
 
     my $outfile = 'Makefile';

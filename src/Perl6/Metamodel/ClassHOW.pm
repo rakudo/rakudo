@@ -34,7 +34,7 @@ class Perl6::Metamodel::ClassHOW
                 my $r := @roles_to_compose.pop();
                 @ins_roles.push($r.HOW.specialize($r, $obj))
             }
-            # XXX Call the composer here.
+            RoleToClassApplier.apply($obj, @ins_roles)
         }
 
         # Some things we only do if we weren't already composed once, like

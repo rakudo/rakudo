@@ -12,6 +12,7 @@
 # a particular candidate.
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::NonGeneric
 {
     has @!possibilities;
     has $!selector;

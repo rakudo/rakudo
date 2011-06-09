@@ -84,7 +84,7 @@ sub read_config {
             while (<$CONFIG>) {
                 if (/^([\w:]+)=(.*)/) { $config{$1} = $2 }
             }
-            close($CONFIG) or die $!;
+            close($CONFIG);
         }
         last if %config;
     }
@@ -127,7 +127,7 @@ END
             while (<$PARROT>) {
                 if (/^([\w:]+)=(.*)/) { $config{$1} = $2 }
             }
-            close($PARROT) or die $!;
+            close($PARROT);
         }
         elsif (-r $file && open my $PARROT_CONFIG, '<', $file) {
             while (<$PARROT_CONFIG>) {

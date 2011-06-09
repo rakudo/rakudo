@@ -1,8 +1,7 @@
 use Perl6::Grammar;
 use Perl6::Actions;
+use Perl6::Compiler;
 
-class Perl6::Compiler is HLL::Compiler {
-}
 
 sub MAIN(@ARGS) {
     # Initialize dynops.

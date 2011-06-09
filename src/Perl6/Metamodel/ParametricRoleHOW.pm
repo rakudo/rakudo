@@ -20,6 +20,17 @@ class Perl6::Metamodel::ParametricRoleHOW
         $obj
     }
     
+    method curry($obj, *@pos_args, *%named_args) {
+        # XXX We really want to keep a cache here of previously
+        # seen curryings.
+        Perl6::Metamodel::CurriedRoleHOW.new_type(:curried_role($obj),
+            :pos_args(@pos_args), |named_args(%named_args))
+    }
+    
+    method specialize($obj, *@pos_args, *%named_args) {
+        
+    }
+    
     method is_generic($obj) {
         1
     }

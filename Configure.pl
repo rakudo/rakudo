@@ -160,6 +160,8 @@ General Options:
         --gen-parrot[=branch]
                        Download and build a copy of Parrot
     --makefile-timing  Enable timing of individual makefile commands
+
+Configure.pl also reads options from 'config.default' in the current directory.
 END
 
     return;

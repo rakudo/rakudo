@@ -1511,12 +1511,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <longname>
           <?{
             my $longname := canonical_type_longname($<longname>);
-            if pir::substr($longname, 0, 2) eq '::' {
-                # XXX introduce...
-            }
-            else {
-                $*ST.is_type(parse_name($longname));
-            }
+            pir::substr($longname, 0, 2) eq '::' ??
+                1 !! # ::T introduces a type, so always is one
+                $*ST.is_type(parse_name($longname))
           }>
         ]
         # parametric type?

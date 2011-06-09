@@ -8,6 +8,20 @@ my package X {
         # Just a stub so far.
         $!message.Str // 'Something went wrong'
         }
-    #    method ID() { ... }
+        method ID() { ... }
     }
+    role OS {
+        has $.os-error;
+    }
+
+    role Comp {
+        has $.filename;
+        has $.line;
+        has $.column;
+    }
+
+    role NYI {
+        has $.feature;
+    }
+
 }

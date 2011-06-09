@@ -937,8 +937,9 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Op.new( :pirop('getinterp P') ),
                 'lexpad'));
             
-            # Add it as the role's body block.
-            $*ST.pkg_set_role_body_block($*PACKAGE, $sig, $block);
+            # Create code object and add it as the role's body block.
+            my $code := $*ST.create_code_object($block, 'Block', $sig);
+            $*ST.pkg_set_role_body_block($*PACKAGE, $sig, $code);
         }
         
         # Compose.
@@ -1163,6 +1164,7 @@ class Perl6::Actions is HLL::Actions {
                 $past.control('return_pir');
             }
         }
+        $past.name(~$<longname>);
         
         # Get signature and ensure it has an invocant.
         if $past<placeholder_sig> {

@@ -403,6 +403,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
             $precomp(|@pos, |%named);
         };
+        pir::set__vPS($stub, $code_past.name);
         my $code_type := self.find_symbol(['Code']);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
         
@@ -692,10 +693,19 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             )));
     }
     
-    # Handles setting the body block code for a role. Needs to be
-    # a little cunning at fixup time to make sure things get the
-    # correct outer scope.
-    method pkg_set_role_body_block($obj, $sig, $past_block) {
+    # Handles setting the body block code for a role.
+    method pkg_set_role_body_block($obj, $sig, $code_object) {
+        # Add it to the compile time meta-object.
+        $obj.HOW.set_body_block($obj, $code_object);
+        
+        # Add call to do it at deserialization time.
+        my $slot_past := self.get_object_sc_ref_past($obj);
+        self.add_event(:deserialize_past(PAST::Op.new(
+            :pasttype('callmethod'), :name('set_body_block'),
+            PAST::Op.new( :pirop('get_how PP'), $slot_past ),
+            $slot_past,
+            self.get_object_sc_ref_past($code_object)
+        )));
     }
     
     # Composes the package, and stores an event for this action.

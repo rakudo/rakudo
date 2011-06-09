@@ -634,6 +634,28 @@ inline op perl6_get_package_through_who(out PMC, in PMC, in STR) :base_core {
 
 /*
 
+=item perl6_current_args_rpa(out PMC)
+
+Gets a ResizablePMCArray containing the positional arguments passed to the
+current block.
+
+=cut
+
+*/
+inline op perl6_current_args_rpa(out PMC) :base_core {
+    PMC   *cur_ctx = CURRENT_CONTEXT(interp);
+    PMC   *result  = pmc_new(interp, enum_class_ResizablePMCArray);
+    INTVAL args    = VTABLE_elements(interp, cur_ctx);
+    INTVAL i;
+    for (i = 0; i < args; i++)
+        VTABLE_set_pmc_keyed_int(interp, result, i,
+            VTABLE_get_pmc_keyed_int(interp, cur_ctx, i));
+    $1 = result;
+}
+
+
+/*
+
 =item encodelocaltime(out INT, in PMC)
 
 The inverse of C<decodelocaltime>.

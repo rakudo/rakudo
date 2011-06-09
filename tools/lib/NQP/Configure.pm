@@ -84,7 +84,7 @@ sub read_config {
             while (<$CONFIG>) {
                 if (/^([\w:]+)=(.*)/) { $config{$1} = $2 }
             }
-            close($CONFIG) or die $!;
+            close($CONFIG);
         }
         last if %config;
     }
@@ -123,17 +123,17 @@ END
     
     for my $file (@parrot_config_src) {
         no warnings;
-        if (open my $PARROT, '-|', "$file parrot-config.pir") {
-            while (<$PARROT>) {
-                if (/^([\w:]+)=(.*)/) { $config{$1} = $2 }
-            }
-            close($PARROT) or die $!;
-        }
-        elsif (-r $file && open my $PARROT_CONFIG, '<', $file) {
+        if ($file =~ /.pir$/ && open my $PARROT_CONFIG, '<', $file) {
             while (<$PARROT_CONFIG>) {
                 if (/P0\["(.*?)"\], "(.*?)"/) { $config{"parrot::$1"} = $2 }
             }
             close($PARROT_CONFIG) or die $!;
+        }
+        elsif (open my $PARROT, '-|', "$file parrot-config.pir") {
+            while (<$PARROT>) {
+                if (/^([\w:]+)=(.*)/) { $config{$1} = $2 }
+            }
+            close($PARROT);
         }
         last if %config;
     }

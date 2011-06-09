@@ -121,14 +121,15 @@ CORE_SOURCES = \
   src/CORE.setting/Any.pm \
   src/CORE.setting/Attribute.pm \
   src/CORE.setting/Cool.pm \
-  src/CORE.setting/Iterable.pm \
-  src/CORE.setting/Iterator.pm \
-  src/CORE.setting/Parcel.pm \
   src/CORE.setting/Int.pm \
   src/CORE.setting/Num.pm \
   src/CORE.setting/Str.pm \
+  src/CORE.setting/Iterable.pm \
+  src/CORE.setting/Iterator.pm \
   src/CORE.setting/List.pm \
   src/CORE.setting/ListIter.pm \
+  src/CORE.setting/Seq.pm \
+  src/CORE.setting/Parcel.pm \
   src/CORE.setting/Parameter.pm \
   src/CORE.setting/Signature.pm \
   src/CORE.setting/Block.pm \

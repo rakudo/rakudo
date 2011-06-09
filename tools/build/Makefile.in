@@ -207,7 +207,9 @@ $(PERL6_EXE): $(PERL6_PBC)
 
 # the complete compiler, including core/setting
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) src/perl6.p6
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/perl6.pir src/perl6.p6
+	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/perl6.pir \
+	    --combine src/perl6.p6 src/gen/main-version.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
 $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/ModuleLoader.pm

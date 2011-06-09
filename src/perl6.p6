@@ -12,6 +12,7 @@ sub MAIN(@ARGS) {
     $comp.language('perl6');
     $comp.parsegrammar(Perl6::Grammar);
     $comp.parseactions(Perl6::Actions);
+    hll-config($comp.config);
     
     # Add extra command line options.
     my @clo := $comp.commandline_options();

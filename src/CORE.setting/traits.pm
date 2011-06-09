@@ -1,11 +1,16 @@
 use Perl6::Metamodel;
 
 proto trait_mod:<is>(|$) { * }
-multi trait_mod:<is>(Mu $child, Mu $parent) {
+multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     $child.HOW.add_parent($child, $parent);
 }
-multi trait_mod:<is>(Attribute $attr, :$rw!) {
+multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
+}
+
+proto trait_mod:<does>(|$) { * }
+multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
+    $doee.HOW.add_role($doee, $role)
 }
 
 proto trait_mod:<will>(|$) { * }

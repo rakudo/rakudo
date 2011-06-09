@@ -1780,11 +1780,15 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method trait_mod:sym<hides>($/) {
-
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<hides>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<does>($/) {
-
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<does>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<will>($/) {
@@ -1792,15 +1796,21 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method trait_mod:sym<of>($/) {
-
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<of>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<as>($/) {
-    
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<as>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<returns>($/) {
-
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<returns>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<handles>($/) {

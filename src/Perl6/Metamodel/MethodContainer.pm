@@ -20,18 +20,20 @@ role Perl6::Metamodel::MethodContainer {
         # Always need local methods on the list.
         my @meths;
         for @!method_order {
-            @meths.push($_.value);
+            @meths.push($_);
         }
 
         # If local flag was not passed, include those from next thing
         # in MRO.
-        for self.parents($obj) {
-            my @parent_meths := $_.HOW.methods($_, :local(1));
-            for @parent_meths {
-                @meths.push($_);
+        unless $local {
+            for self.parents($obj) {
+                my @parent_meths := $_.HOW.methods($_, :local(1));
+                for @parent_meths {
+                    @meths.push($_);
+                }
             }
         }
-
+        
         # Return result list.
         @meths
     }

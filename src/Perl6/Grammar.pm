@@ -1354,23 +1354,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     proto token trait_mod { <...> }
-    token trait_mod:sym<is> {
-        <sym>:s <longname><circumfix>?
-    }
-    token trait_mod:sym<hides>   {
-        <sym>:s <module_name>
-        [
-        || <?{ $*ST.is_type(parse_name($<module_name><longname>.Str)) }>
-        || <panic("Typename " ~ $<module_name> ~ " must be pre-declared to use it with hides")>
-        ]
-    }
-    token trait_mod:sym<does>    {
-        <sym>:s <module_name>
-        [
-        || <?{ $*ST.is_type(parse_name($<module_name><longname>.Str)) }>
-        || <panic("Typename " ~ $<module_name> ~ " must be pre-declared to use it with does")>
-        ]
-    }
+    token trait_mod:sym<is>      { <sym>:s <longname><circumfix>? }
+    token trait_mod:sym<hides>   { <sym>:s <typename> }
+    token trait_mod:sym<does>    { <sym>:s <typename> }
     token trait_mod:sym<will>    { <sym>:s <identifier> <pblock> }
     token trait_mod:sym<of>      { <sym>:s <typename> }
     token trait_mod:sym<as>      { <sym>:s <typename> }
@@ -1511,12 +1497,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <longname>
           <?{
             my $longname := canonical_type_longname($<longname>);
-            if pir::substr($longname, 0, 2) eq '::' {
-                # XXX introduce...
-            }
-            else {
-                $*ST.is_type(parse_name($longname));
-            }
+            pir::substr($longname, 0, 2) eq '::' ??
+                1 !! # ::T introduces a type, so always is one
+                $*ST.is_type(parse_name($longname))
           }>
         ]
         # parametric type?

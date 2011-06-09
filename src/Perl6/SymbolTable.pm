@@ -692,6 +692,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             )));
     }
     
+    # Handles setting the body block code for a role. Needs to be
+    # a little cunning at fixup time to make sure things get the
+    # correct outer scope.
+    method pkg_set_role_body_block($obj, $sig, $past_block) {
+    }
+    
     # Composes the package, and stores an event for this action.
     method pkg_compose($obj) {
         # Compose.

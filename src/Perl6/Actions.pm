@@ -910,14 +910,35 @@ class Perl6::Actions is HLL::Actions {
         }
     
         # Install $?PACKAGE and, depending on declarator, $?CLASS or
-        # $?ROLE in the body block.
+        # $?ROLE in the body block. Also handle parametricism for roles.
         $*ST.install_lexical_symbol($block, '$?PACKAGE', $*PACKAGE);
         if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
             $*ST.install_lexical_symbol($block, '$?CLASS', $*PACKAGE);
         }
         elsif $*PKGDECL eq 'role' {
-            $*ST.install_lexical_symbol($block, '$?ROLE', $*PACKAGE);
+            # Set up signature. Needs to have $?CLASS as an implicit
+            # parameter, since any mention of it is generic.
+            my @params := $<signature> ?? $<signature>[0].ast !! [];
+            @params.unshift(hash(
+                is_multi_invocant => 1,
+                type_captures     => ['$?CLASS']
+            ));
+            my $class_type_var := $*ST.pkg_create_mo(%*HOW<generic>, :name('$?CLASS'));
+            $*ST.install_lexical_symbol($block, '$?CLASS', $class_type_var);
+            set_default_parameter_type(@params, 'Mu');
+            my $sig := create_signature_object(@params, $block);
+            add_signature_binding_code($block, $sig);
             $block.blocktype('declaration');
+
+            # As its last act, it should grab the current lexpad so that
+            # we have the type environment.
+            $block.push(PAST::Op.new(
+                :pirop('set PQPS'),
+                PAST::Op.new( :pirop('getinterp P') ),
+                'lexpad'));
+            
+            # Add it as the role's body block.
+            $*ST.pkg_set_role_body_block($*PACKAGE, $sig, $block);
         }
         
         # Compose.
@@ -1634,12 +1655,18 @@ class Perl6::Actions is HLL::Actions {
     method type_constraint($/) {
         if $<typename> {
             if pir::substr(~$<typename>, 0, 2) eq '::' {
+                # Set up signature so it will find the typename.
                 my $desigilname := pir::substr(~$<typename>, 2);
-                %*PARAM_INFO<type_captures> := %*PARAM_INFO<type_captures> || [];
+                unless %*PARAM_INFO<type_captures> {
+                    %*PARAM_INFO<type_captures> := []
+                }
                 %*PARAM_INFO<type_captures>.push($desigilname);
-                my $cur_pad := $*ST.cur_lexpad();
-                $cur_pad[0].push(PAST::Var.new( :name($desigilname), :scope('lexical'), :isdecl(1) ));
-                $cur_pad.symbol($desigilname, :scope('lexical'));
+                
+                # Install type variable in the static lexpad. Of course,
+                # we'll find the real thing at runtime, but in the static
+                # view it's a type variable to be reified.
+                $*ST.install_lexical_symbol($*ST.cur_lexpad(), $desigilname,
+                    $<typename>.ast);
             }
             else {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
@@ -1753,11 +1780,15 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method trait_mod:sym<hides>($/) {
-
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<hides>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<does>($/) {
-
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<does>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<will>($/) {
@@ -1765,15 +1796,21 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method trait_mod:sym<of>($/) {
-
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<of>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<as>($/) {
-    
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<as>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<returns>($/) {
-
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<returns>', $declarand, $<typename>.ast);
+        };
     }
 
     method trait_mod:sym<handles>($/) {
@@ -2601,11 +2638,20 @@ class Perl6::Actions is HLL::Actions {
         # Locate the type object and make that. Anything that wants a PAST
         # reference to it can obtain one, but many things really want the
         # actual type object to build up some data structure or make a trait
-        # dispatch with.
-        make $<longname> ??
-            $*ST.find_symbol(Perl6::Grammar::parse_name(
-                    Perl6::Grammar::canonical_type_longname($<longname>))) !!
-            $*ST.find_symbol(Perl6::Grammar::parse_name('::?' ~ ~$<identifier>));
+        # dispatch with. Note that for '::T' style things we need to make a
+        # GenericHOW, though whether/how it's used depends on context.
+        if $<longname> {
+            if pir::substr(~$<longname>, 0, 2) ne '::' {
+                make $*ST.find_symbol(Perl6::Grammar::parse_name(
+                    Perl6::Grammar::canonical_type_longname($<longname>)));
+            }
+            else {
+                make $*ST.pkg_create_mo(%*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
+            }
+        }
+        else {
+            make $*ST.find_symbol(Perl6::Grammar::parse_name('::?' ~ ~$<identifier>));
+        }   
     }
 
     our %SUBST_ALLOWED_ADVERBS;

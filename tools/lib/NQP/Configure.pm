@@ -161,13 +161,23 @@ sub fill_template_text {
     my %config = @_;
 
     $text =~ s/@([:\w]+)@/$config{$1} || $config{"parrot::$1"} || ''/ge;
-    if ($^O eq 'MSWin32' && $text =~ /nqp::makefile/) {
-        $text =~ s{/}{\\}g;
-        $text =~ s{\\\*}{\\\\*}g;
-        $text =~ s{(?:git|http):\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
-        $text =~ s/.*curl.*/do {my $t = $&; $t =~ s'%'%%'g; $t}/meg;
+    if ($text =~ /nqp::makefile/) {
+        if ($^O eq 'MSWin32') {
+            $text =~ s{/}{\\}g;
+            $text =~ s{\\\*}{\\\\*}g;
+            $text =~ s{(?:git|http):\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
+            $text =~ s/.*curl.*/do {my $t = $&; $t =~ s'%'%%'g; $t}/meg;
+        }
         if ($config{'makefile-timing'}) {
-            $text =~ s{(?<!\\\n)^\t(?!\s*-?cd)(?=[^\n]*\S)}{\ttime }mg;
+            $text =~ s{ (?<!\\\n)        # not after line ending in '\'
+                        ^                # beginning of line
+                        (\t(?>@?[ \t]*)) # capture tab, optional @, and hspace
+                        (?!-)            # not before - (ignore error) lines
+                        (?!cd)           # not before cd lines
+                        (?!echo)         # not before echo lines
+                        (?=\S)           # must be before non-blank
+                      }
+                      {$1time\ }mgx;
         }
     }
     $text;

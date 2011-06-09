@@ -24,7 +24,18 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method compose($obj) {
-        # XXX Roles
+        # Instantiate all of the roles we have (need to do this since
+        # all roles are generic on ::?CLASS) and pass them to the
+        # composer.
+        my @roles_to_compose := self.roles_to_compose($obj);
+        if @roles_to_compose {
+            my @ins_roles;
+            while @roles_to_compose {
+                my $r := @roles_to_compose.pop();
+                @ins_roles.push($r.HOW.specialize($r, $obj))
+            }
+            # XXX Call the composer here.
+        }
 
         # Some things we only do if we weren't already composed once, like
         # building the MRO.

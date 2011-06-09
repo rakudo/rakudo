@@ -9,11 +9,17 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::NonGeneric
 {
+    my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
     has $!composed;
+    has $!body_block;
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$repr) {
         my $metarole := self.new(:name($name), :ver($ver), :auth($auth));
         self.add_stash(pir::repr_type_object_for__PPS($metarole, 'Uninstantiable'));
+    }
+    
+    method set_body_block($obj, $block) {
+        $!body_block := $block
     }
     
     method compose($obj) {
@@ -29,6 +35,38 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
+        # Run the body block to get the type environment.
+        my $type_env;
+        my $error;
+        try {
+            $type_env := $!body_block(|@pos_args, |%named_args);
+            CATCH {
+                $error := $!
+            }
+        }
+        if $error {
+            pir::die("Could not instantiate role '" ~ self.name($obj) ~ "'\n$error")
+        }
         
+        # Create a concrete role.
+        my $conc := $concrete.new_type(:name(self.name($obj)));
+        
+        # Go through attributes, reifying as needed and adding to
+        # the concrete role.
+        for self.attributes($obj, :local(1)) {
+            $conc.HOW.add_attribute($conc,
+                $_.is_generic ?? $_.instantiate_generic($type_env) !! $_);
+        }
+        
+        # Go through methods and instantiate them; we always do this
+        # unconditionally, since we need the clone anyway.
+        for self.methods($obj, :local(1)) {
+            $conc.HOW.add_method($conc, $_.name, $_.instantiate_generic($type_env))
+        }
+        
+        # XXX More to copy/instantiate
+        
+        $conc.HOW.compose($conc);
+        return $conc;
     }
 }

@@ -8,4 +8,11 @@ class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::NonGeneric
 {
+    method new_type(:$name = '<anon>', :$ver, :$auth, :$repr) {
+        my $metarole := self.new(:name($name), :ver($ver), :auth($auth));
+        pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
+    }
+
+    method compose($obj) {
+    }
 }

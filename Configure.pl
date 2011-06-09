@@ -4,6 +4,7 @@
 use 5.008;
 use strict;
 use warnings;
+use Text::ParseWords;
 use Getopt::Long;
 use Cwd;
 use lib "tools/lib";
@@ -16,6 +17,10 @@ my $lclang = lc $lang;
 my $uclang = uc $lang;
 
 MAIN: {
+    if (-r "config.default") {
+        unshift @ARGV, shellwords(slurp('config.default'));
+    }
+
     my %config;
     my $config_status = "${lclang}_config_status";
     $config{$config_status} = join(' ', map { "\"$_\""} @ARGV);

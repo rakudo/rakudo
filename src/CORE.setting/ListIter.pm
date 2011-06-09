@@ -1,0 +1,2 @@
+class ListIter is Iterator {
+}

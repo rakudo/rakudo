@@ -40,6 +40,7 @@ PMC2C            = $(PERL) $(PARROT_TOOLS_DIR)/build/pmc2c.pl
 PMC2C_INCLUDES   = --include src/pmc --include $(PARROT_SRC_DIR) --include $(PARROT_SRC_DIR)/pmc
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
 LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@ @icu_shared@
+GEN_CAT          = tools/build/gen-cat.pl
 
 # rakudo directories
 DYNEXT_DIR     = dynext
@@ -228,13 +229,13 @@ $(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
 $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET) $(METAMODEL_SOURCES)
-	$(PERL) build/merge_pm.pl $(METAMODEL_SOURCES) > src/gen/Metamodel.pm
+	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
 $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
-	$(PERL) build/merge_pm.pl $(CORE_SOURCES) > src/gen/CORE.setting
+	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
 	./$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 

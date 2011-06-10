@@ -21,6 +21,10 @@ multi infix:<->(Num \$a, Num \$b) {
     pir::perl6_box_num__PN(
         pir::sub__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
+proto prefix:<+>(|$) {*}
+multi prefix:<+>(Num \$a) { $a }
+multi prefix:<+>(Int \$a) { $a }
+multi prefix:<+>(Str \$a) { $a.Num } # TODO: should really be .Numeric
 
 proto prefix:<->(|$) { * }
 multi prefix:<->(Int \$a) {

@@ -8,6 +8,9 @@ multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
 }
 
+multi trait_mod:<is>(Routine:D $r, :$rw!) {
+}
+
 proto trait_mod:<does>(|$) { * }
 multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     $doee.HOW.add_role($doee, $role)

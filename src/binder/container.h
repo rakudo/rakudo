@@ -15,6 +15,7 @@ typedef struct {
     PMC    *spill;              /* Attribute spill storage. */
     PMC    *descriptor;         /* Container descriptor. */
     PMC    *value;              /* The currently held value. */
+    PMC    *whence;             /* Any whence property */
 } Rakudo_Scalar;
 
 /* Various functions related to container manipulations. */

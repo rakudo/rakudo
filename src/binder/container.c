@@ -64,6 +64,12 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
                     "Type check failed in assignment");
             }
         }
+
+        if (!PMC_IS_NULL(scalar->whence)) {
+            PMC *cappy = Parrot_pmc_new(interp, enum_class_CallContext);
+            Parrot_pcc_invoke_from_sig_object(interp, scalar->whence, cappy);
+            scalar->whence = PMCNULL;
+        }
         
         /* If we get here, all is fine; store the value. */
         scalar->value = value;

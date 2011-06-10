@@ -4,7 +4,7 @@ sub infix:<=>(Mu \$a, Mu \$b) {
 
 proto prefix:<?>(|$) { * }
 multi prefix:<?>(Bool \$a) { $a }
-multi prefix:<?>(\$a) { $a.Bool }
+multi prefix:<?>(Mu \$a) { $a.Bool }
 
 proto infix:<+>(|$) { * }
 multi infix:<+>(Int \$a, Int \$b) {

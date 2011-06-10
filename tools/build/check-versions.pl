@@ -4,7 +4,7 @@
 use strict;
 use warnings;
 use 5.008;
-use lib 'nqp/tools/lib';
+use lib 'tools/lib';
 use NQP::Configure qw(slurp cmp_rev read_config);
 
 if (-M 'Makefile' > -M 'tools/build/Makefile.in') {

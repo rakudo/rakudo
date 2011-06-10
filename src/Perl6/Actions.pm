@@ -2541,7 +2541,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method postcircumfix:sym<ang>($/) {
-        my $past := PAST::Op.new( :name('!postcircumfix:<{ }>'), :pasttype('call'), :node($/) );
+        my $past := PAST::Op.new( :name('postcircumfix:<{ }>'), :pasttype('callmethod'), :node($/) );
         $past.push( $<quote_EXPR>.ast ) 
             if +$<quote_EXPR><quote_delimited><quote_atom> > 0;
         make $past;

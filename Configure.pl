@@ -30,7 +30,7 @@ MAIN: {
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s',
                'with-nqp=s', 'gen-nqp:s',
-               'with-parrot=s', 'gen-parrot:s',
+               'with-parrot=s', 'gen-parrot:s', 'parrot-option=s@',
                'make-install!', 'makefile-timing!',
                );
 
@@ -159,6 +159,8 @@ General Options:
                        Parrot executable to use to build NQP
         --gen-parrot[=branch]
                        Download and build a copy of Parrot
+        --parrot-option='--option'
+                       Options to pass to Parrot's Configure.pl
     --makefile-timing  Enable timing of individual makefile commands
 
 Configure.pl also reads options from 'config.default' in the current directory.

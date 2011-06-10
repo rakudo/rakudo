@@ -326,20 +326,29 @@ my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
 Str.HOW.add_parent(Str, Cool);
 Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1)));
 
-# class Int is Cool {
+# XXX: Numeric and Real are really roles; this stubs them in as classes for now.
+# class Numeric is Cool { ... }
+my stub Numeric metaclass Perl6::Metamodel::ClassHOW { ... };
+Numeric.HOW.add_parent(Numeric, Cool);
+
+# class Real is Numeric { ... }
+my stub Real metaclass Perl6::Metamodel::ClassHOW { ... };
+Real.HOW.add_parent(Real, Numeric);
+
+# class Int is (Cool does) Real {
 #     has int $!value is box_target;
 #     ...
 # }
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
-Int.HOW.add_parent(Int, Cool);
+Int.HOW.add_parent(Int, Real);
 Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1)));
 
-# class Num is Cool {
+# class Num is (Cool does) Real {
 #     has num $!value is box_target;
 #     ...
 # }
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
-Num.HOW.add_parent(Num, Cool);
+Num.HOW.add_parent(Num, Real);
 Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1)));
 
 # Stash these common types for box ops.
@@ -430,6 +439,8 @@ my module EXPORT {
         $?PACKAGE.WHO<Sub>       := Sub;
         $?PACKAGE.WHO<Method>    := Method;
         $?PACKAGE.WHO<Str>       := Str;
+        $?PACKAGE.WHO<Numeric>   := Numeric;
+        $?PACKAGE.WHO<Real>      := Real;
         $?PACKAGE.WHO<Int>       := Int;
         $?PACKAGE.WHO<Num>       := Num;
         $?PACKAGE.WHO<Stash>     := Stash;

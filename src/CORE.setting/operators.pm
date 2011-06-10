@@ -22,8 +22,7 @@ multi infix:<->(Num \$a, Num \$b) {
         pir::sub__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
 proto prefix:<+>(|$) {*}
-multi prefix:<+>(Num \$a) { $a }
-multi prefix:<+>(Int \$a) { $a }
+multi prefix:<+>(Numeric \$a) { $a }
 multi prefix:<+>(\$a) { $a.Numeric }
 
 proto prefix:<->(|$) { * }

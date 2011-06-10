@@ -6,7 +6,8 @@ class Array is List {
     method at_pos(\$n) {
         self.exists($n)
           ?? pir::find_method__PPs(List, 'at_pos')(self, $n)
-          !! pir::find_method__PPs(List, 'BIND_POS')(self, $n, my $x)
+          !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+                 -> { pir::find_method__PPs(List, 'BIND_POS')(self, $n, $v) } )
     }
 }
 

@@ -18,6 +18,12 @@ multi infix:<+>(Num \$a, Num \$b) {
     pir::perl6_box_num__PN(
         pir::add__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
+multi infix:<+>(Any \$a, Any \$b) {
+    $a.Numeric + $b.Numeric
+}
+multi infix:<+>(Real \$a, Real \$b) {
+    $a.Bridge + $b.Bridge
+}
 
 proto infix:<->(|$) { * }
 multi infix:<->(Int \$a, Int \$b) {

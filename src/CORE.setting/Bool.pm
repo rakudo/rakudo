@@ -4,4 +4,6 @@ my class Bool {
     method Str(Bool:D:) {
         self ?? 'Bool::True' !! 'Bool::False'
     }
+
+    method Numeric() { self ?? 1 !! 0 }
 }

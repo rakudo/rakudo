@@ -24,7 +24,7 @@ multi infix:<->(Num \$a, Num \$b) {
 proto prefix:<+>(|$) {*}
 multi prefix:<+>(Num \$a) { $a }
 multi prefix:<+>(Int \$a) { $a }
-multi prefix:<+>(Str \$a) { $a.Num } # TODO: should really be .Numeric
+multi prefix:<+>(\$a) { $a.Numeric }
 
 proto prefix:<->(|$) { * }
 multi prefix:<->(Int \$a) {

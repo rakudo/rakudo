@@ -10,4 +10,6 @@ my class Str {
     method Num() {
         pir::perl6_box_num__PN(pir::repr_unbox_str__SP(self));
     }
+
+    method Numeric() { self.Num }
 }

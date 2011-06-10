@@ -949,6 +949,20 @@ grammar Perl6::Grammar is HLL::Grammar {
                     }
                 }
                 
+                # Install $?PACKAGE, $?ROLE, $?CLASS as needed.
+                my $curpad := $*ST.cur_lexpad();
+                unless $curpad.symbol('$?PACKAGE') {
+                    $*ST.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
+                    if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
+                        $*ST.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
+                    }
+                    elsif $*PKGDECL eq 'role' {
+                        $*ST.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
+                        $*ST.install_lexical_symbol($curpad, '$?CLASS',
+                            $*ST.pkg_create_mo(%*HOW<generic>, :name('$?CLASS')));
+                    }
+                }
+                
                 # Set declarand as the package.
                 $*DECLARAND := $*PACKAGE;
                 

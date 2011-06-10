@@ -820,7 +820,7 @@ class Perl6::Actions is HLL::Actions {
                 if $attr {
                     $past.scope('attribute_6model');
                     $past.type($attr.type);
-                    $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+                    $past.unshift($*ST.get_object_sc_ref_past($*ST.find_symbol(['$?CLASS'])));
                     $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
                 }
                 else {
@@ -909,13 +909,8 @@ class Perl6::Actions is HLL::Actions {
             return 1;
         }
     
-        # Install $?PACKAGE and, depending on declarator, $?CLASS or
-        # $?ROLE in the body block. Also handle parametricism for roles.
-        $*ST.install_lexical_symbol($block, '$?PACKAGE', $*PACKAGE);
-        if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
-            $*ST.install_lexical_symbol($block, '$?CLASS', $*PACKAGE);
-        }
-        elsif $*PKGDECL eq 'role' {
+        # Handle parametricism for roles.
+        if $*PKGDECL eq 'role' {
             # Set up signature. Needs to have $?CLASS as an implicit
             # parameter, since any mention of it is generic.
             my @params := $<signature> ?? $<signature>[0].ast !! [];
@@ -923,8 +918,6 @@ class Perl6::Actions is HLL::Actions {
                 is_multi_invocant => 1,
                 type_captures     => ['$?CLASS']
             ));
-            my $class_type_var := $*ST.pkg_create_mo(%*HOW<generic>, :name('$?CLASS'));
-            $*ST.install_lexical_symbol($block, '$?CLASS', $class_type_var);
             set_default_parameter_type(@params, 'Mu');
             my $sig := create_signature_object(@params, $block);
             add_signature_binding_code($block, $sig);
@@ -1173,7 +1166,7 @@ class Perl6::Actions is HLL::Actions {
         my @params := $<multisig> ?? $<multisig>[0].ast !! [];
         unless @params[0]<is_invocant> {
             @params.unshift(hash(
-                nominal_type => $*PACKAGE,
+                nominal_type => $*ST.find_symbol([$<longname> ?? '$?CLASS' !! 'Mu']),
                 is_invocant => 1,
                 is_multi_invocant => 1
             ));

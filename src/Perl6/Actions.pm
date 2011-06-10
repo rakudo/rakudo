@@ -1927,24 +1927,31 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<name>($/) {
-        # If it's a call, ensure we have &.
         my @name := Perl6::Grammar::parse_name(~$<longname>);
+        my $past;
+        
+        # If we have args, it's a call. Look it up dynamically
+        # and make the call.
         if $<args> {
+            # Add & to name.
             my $final := @name[+@name - 1];
             if pir::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
             }
+            $past := capture_or_parcel($<args>.ast, ~$<longname>);
+            $past.unshift($*ST.symbol_lookup(@name, $/));
         }
         
-        # Build lookup, and if there's args call it.
-        my $var := $*ST.symbol_lookup(@name, $/);
-        my $past := $var;
-        if $<args> {
-            $past := capture_or_parcel($<args>.ast, ~$<longname>);
-            $past.unshift($var);
-        }
-        elsif $<arglist> {
-            $/.CURSOR.panic("Parametric roles not yet implemented");
+        # Otherwise, it's a type name; build a reference to that
+        # type, since we can statically resolve them.
+        else {
+            my $sym := $*ST.find_symbol(@name);
+            if $<arglist> {
+                $/.CURSOR.panic("Parametric roles not yet implemented");
+            }
+            $past := $*ST.get_object_sc_ref_past($sym);
+            $past<has_compile_time_value> := 1;
+            $past<compile_time_value> := $sym;
         }
         
         $past.node($/);

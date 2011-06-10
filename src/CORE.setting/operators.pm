@@ -2,6 +2,10 @@ sub infix:<=>(Mu \$a, Mu \$b) {
     pir::perl6_container_store__0PP($a, pir::perl6_decontainerize__PP($b))
 }
 
+proto prefix:<?>(|$) { * }
+multi prefix:<?>(Bool \$a) { $a }
+multi prefix:<?>(\$a) { $a.Bool }
+
 proto infix:<+>(|$) { * }
 multi infix:<+>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(

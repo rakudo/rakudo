@@ -363,13 +363,8 @@ help:
 	@echo ""
 
 check-versions:
-	@$(PERL) tools/build/check-versions.pl install/bin/nqp
+	@$(PERL) tools/build/check-versions.pl  $(NQP_EXE)
 
-# Makefile: build/Makefile.in build/PARROT_REVISION $(PARROT) Configure.pl
-# 	@echo ""
-# 	@echo "warning: Makefile is out of date... re-run Configure.pl"
-# 	@echo ""
-#
 config:
 	$(PERL) Configure.pl
 

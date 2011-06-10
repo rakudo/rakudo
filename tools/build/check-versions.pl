@@ -7,10 +7,7 @@ use 5.008;
 use lib 'nqp/tools/lib';
 use NQP::Configure qw(slurp cmp_rev read_config);
 
-my @stat_Makefile    = stat 'Makefile';
-my @stat_Makefile_in = stat 'tools/build/Makefile.in';
-
-if ($stat_Makefile[9] < $stat_Makefile_in[9]) { # 9 => modification time
+if (-M 'Makefile' > -M 'tools/build/Makefile.in') {
     die <<EOM
 Makefile is older than tools/build/Makefile.in, run something like
 
@@ -38,4 +35,4 @@ NQP $nqp_have is too old ($nqp_want required), run something like
 EOM
 }
 
-0; # versions are OK
+1; # versions are OK

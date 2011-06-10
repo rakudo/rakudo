@@ -905,7 +905,8 @@ class Perl6::Actions is HLL::Actions {
         # just yet.
         if pir::substr__Ssii($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
             $*ST.add_stub_to_check($*PACKAGE);
-            make $*ST.get_slot_past_for_object($*PACKAGE);
+            $block.blocktype('declaration');
+            make PAST::Stmts.new( $block, $*ST.get_slot_past_for_object($*PACKAGE) );
             return 1;
         }
     

@@ -2524,13 +2524,13 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method postcircumfix:sym<[ ]>($/) {
-        my $past := PAST::Op.new( :name('!postcircumfix:<[ ]>'), :pasttype('call'), :node($/) );
+        my $past := PAST::Op.new( :name('postcircumfix:<[ ]>'), :pasttype('callmethod'), :node($/) );
         if $<semilist><statement> { $past.push($<semilist>.ast); }
         make $past;
     }
 
     method postcircumfix:sym<{ }>($/) {
-        my $past := PAST::Op.new( :name('!postcircumfix:<{ }>'), :pasttype('call'), :node($/) );
+        my $past := PAST::Op.new( :name('postcircumfix:<{ }>'), :pasttype('callmethod'), :node($/) );
         if $<semilist><statement> {
             if +$<semilist><statement> > 1 {
                 $/.CURSOR.panic("Sorry, multi-dimensional indexes are not yet supported");

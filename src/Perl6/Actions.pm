@@ -116,7 +116,7 @@ class Perl6::Actions is HLL::Actions {
         # compilation unit that is using this one will then replace it
         # with its view later (or be in a position to restore it).
         $unit.loadinit().push(PAST::Op.new(
-            :pasttype('bind'),
+            :pasttype('bind_6model'),
             PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') ),
             $*ST.get_slot_past_for_object($*GLOBALish)
         ));
@@ -623,7 +623,7 @@ class Perl6::Actions is HLL::Actions {
         ));
 
         # Otherwise, put a failure into $!.
-        $past.push(PAST::Op.new( :pasttype('bind'),
+        $past.push(PAST::Op.new( :pasttype('bind_6model'),
             PAST::Var.new( :name('$!'), :scope('lexical') ),
             PAST::Op.new( :pasttype('call'), :name('!FAIL') )
         ));
@@ -1262,7 +1262,7 @@ class Perl6::Actions is HLL::Actions {
             }
             elsif $*SCOPE eq 'our' {
                 @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                    :pasttype('bind'),
+                    :pasttype('bind_6model'),
                     PAST::Var.new( :name('&' ~ $name), :scope('package') ),
                     $installed
                 ));
@@ -1470,7 +1470,7 @@ class Perl6::Actions is HLL::Actions {
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
                 # Goes in the package.
                 @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                    :pasttype('bind'),
+                    :pasttype('bind_6model'),
                     PAST::Var.new( :name($name), :scope('package') ),
                     $cons_past
                 ));
@@ -2218,7 +2218,7 @@ class Perl6::Actions is HLL::Actions {
                 # could well be a tap.
                 $_ := PAST::Stmts.new(
                     PAST::Op.new(
-                        :pasttype('bind'),
+                        :pasttype('bind_6model'),
                         PAST::Var.new( :scope('register'), :name('tmp'), :isdecl(1) ),
                         PAST::Op.new( :pasttype('call'), $result )
                     ),
@@ -2248,20 +2248,20 @@ class Perl6::Actions is HLL::Actions {
             :pasttype('stmts'),
 
             # Stash original $_.
-            PAST::Op.new( :pasttype('bind'),
+            PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :name($old_topic_var), :scope('register'), :isdecl(1) ),
                 PAST::Var.new( :name('$_'), :scope('lexical') )
             ),
 
             # Evaluate LHS and bind it to $_.
-            PAST::Op.new( :pasttype('bind'),
+            PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :name('$_'), :scope('lexical') ),
                 $lhs
             ),
 
             # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
             # return value to a result variable.
-            PAST::Op.new( :pasttype('bind'),
+            PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :name($result_var), :scope('lexical'), :isdecl(1) ),
                 PAST::Op.new( :pasttype('call'), :name('&coerce-smartmatch-result'),
                     PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
@@ -2273,7 +2273,7 @@ class Perl6::Actions is HLL::Actions {
             ),
 
             # Re-instate original $_.
-            PAST::Op.new( :pasttype('bind'),
+            PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :name('$_'), :scope('lexical') ),
                 PAST::Var.new( :name($old_topic_var), :scope('register') )
             ),
@@ -2325,7 +2325,7 @@ class Perl6::Actions is HLL::Actions {
             }
             
             # Finally, just need to make a bind.
-            make PAST::Op.new( :pasttype('bind'), $target, $source );
+            make PAST::Op.new( :pasttype('bind_6model'), $target, $source );
         }
         # XXX Several more cases to do...
         else {
@@ -2339,7 +2339,7 @@ class Perl6::Actions is HLL::Actions {
             unless %*METAOPGEN{$opsub} {
                 my $base_op := '&prefix:<' ~ $<OPER>.Str ~ '>';
                 $*UNITPAST.loadinit.push(PAST::Op.new(
-                    :pasttype('bind'),
+                    :pasttype('bind_6model'),
                     PAST::Var.new( :name($opsub), :scope('package') ),
                     PAST::Op.new(
                         :pasttype('callmethod'), :name('assuming'),
@@ -2390,7 +2390,7 @@ class Perl6::Actions is HLL::Actions {
                 }
 
                 $*UNITPAST.loadinit.push(
-                    PAST::Op.new( :pasttype('bind'),
+                    PAST::Op.new( :pasttype('bind_6model'),
                                   PAST::Var.new( :name($opsub), :scope('package') ),
                                   PAST::Op.new( :pasttype('callmethod'),
                                                 :name('assuming'),
@@ -2414,7 +2414,7 @@ class Perl6::Actions is HLL::Actions {
         unless %*METAOPGEN{$opsub} {
             my $base_op := '&infix:<' ~ $<op><OPER>.Str ~ '>';
             $*UNITPAST.loadinit.push(PAST::Op.new(
-                :pasttype('bind'),
+                :pasttype('bind_6model'),
                 PAST::Var.new( :name($opsub), :scope('package') ),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('assuming'),
@@ -2446,7 +2446,7 @@ class Perl6::Actions is HLL::Actions {
             my $dwim_lhs := $<opening> eq '<<' || $<opening> eq '«';
             my $dwim_rhs := $<closing> eq '>>' || $<closing> eq '»';
             $*UNITPAST.loadinit.push(PAST::Op.new(
-                :pasttype('bind'),
+                :pasttype('bind_6model'),
                 PAST::Var.new( :name($opsub), :scope('package') ),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('assuming'),
@@ -2484,7 +2484,7 @@ class Perl6::Actions is HLL::Actions {
                 unless %*METAOPGEN{$opsub} {
                     my $base_op := '&postfix:<' ~ $<OPER>.Str ~ '>';
                     $*UNITPAST.loadinit.push(PAST::Op.new(
-                        :pasttype('bind'),
+                        :pasttype('bind_6model'),
                         PAST::Var.new( :name($opsub), :scope('package') ),
                         PAST::Op.new(
                             :pasttype('callmethod'), :name('assuming'),
@@ -3051,7 +3051,7 @@ class Perl6::Actions is HLL::Actions {
         $handler := PAST::Block.new(
             :blocktype('declaration'),
             PAST::Var.new( :scope('parameter'), :name('$_') ),
-            PAST::Op.new( :pasttype('bind'),
+            PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :scope('lexical'), :name('$_') ),
                 PAST::Op.new(
                     :pasttype('callmethod'),
@@ -3064,7 +3064,7 @@ class Perl6::Actions is HLL::Actions {
                     PAST::Var.new( :scope('lexical'), :name('$_') ),
                 ),
             ),
-            PAST::Op.new( :pasttype('bind'),
+            PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :scope('lexical'), :name('$!'), :isdecl(1) ),
                 PAST::Var.new( :scope('lexical'), :name('$_') ),
             ),
@@ -3081,7 +3081,7 @@ class Perl6::Actions is HLL::Actions {
             ),
             # XXX Rakudo needs to set this when $! is inspected
             # We just cheat for now.  Call .rethrow() if you want it rethrown.
-            PAST::Op.new( :pasttype('bind'),
+            PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :scope('keyed'),
                     PAST::Var.new( :scope('register'), :name('exception')),
                     'handled'
@@ -3412,7 +3412,7 @@ class Perl6::RegexActions is Regex::P6Regex::Actions {
                         :name('MATCH'),
                         :pasttype('callmethod')
                     ),
-                    :pasttype('bind')
+                    :pasttype('bind_6model')
                 ),
                 $block
             );

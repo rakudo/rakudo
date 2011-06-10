@@ -265,7 +265,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $path := PAST::Op.new(:pirop('perl6_get_package_through_who PPs'), $path, ~$_);
         }
         self.add_event(:deserialize_past(PAST::Op.new(
-            :pasttype('bind'),
+            :pasttype('bind_6model'),
             PAST::Var.new(
                 :scope('keyed'),
                 PAST::Op.new( :pirop('get_who PP'), $path ),
@@ -518,7 +518,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # be a PAST tree.
     method set_attribute($obj, $class, $name, $value_past) {
         PAST::Op.new(
-            :pasttype('bind'),
+            :pasttype('bind_6model'),
             PAST::Var.new(
                 :name($name), :scope('attribute_6model'),
                 self.get_object_sc_ref_past($obj), 
@@ -532,7 +532,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # be a PAST tree.
     method set_attribute_typed($obj, $class, $name, $value_past, $type) {
         PAST::Op.new(
-            :pasttype('bind'),
+            :pasttype('bind_6model'),
             PAST::Var.new(
                 :name($name), :scope('attribute_6model'), :type($type),
                 self.get_object_sc_ref_past($obj), 
@@ -973,7 +973,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     PAST::Op.new( :pirop('get_class Ps'), 'Perl6LexPad' )
                 ),
                 PAST::Op.new(
-                    :pasttype('bind'),
+                    :pasttype('bind_6model'),
                     PAST::Var.new( :name('cur_sc'), :scope('register'), :isdecl(1) ),
                     PAST::Op.new( :pirop('nqp_create_sc Ps'), self.handle() )
                 ),

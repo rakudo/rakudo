@@ -5,10 +5,10 @@ class List is Iterable {
     has $!rest;
     has $!flat;
 
-    method exists(\$n) {
-        self.gimme($n+1);
+    method exists(\$pos) {
+        self.gimme($pos+1);
         pir::perl6_booleanize__PI(
-            pir::exists__IQI($!items, pir::repr_unbox_int__IP($n))
+            pir::exists__IQI($!items, pir::repr_unbox_int__IP($pos))
         )
     }
 
@@ -17,28 +17,28 @@ class List is Iterable {
             pir::setattribute__vPPsP(self, List, '$!items',
                                      pir::new__Ps('ResizablePMCArray'));
         my $i = pir::perl6_box_int__PI(pir::elements($!items));
-        my $a;
+        my $x;
         while $!rest && $i < $n {
-            $a := pir::shift__PP($!rest);
-            if Parcel.ACCEPTS($a) {
-                pir::splice__vPPii($!rest, $a.rpa, 0, 0);
+            $x := pir::shift__PP($!rest);
+            if Parcel.ACCEPTS($x) {
+                pir::splice__vPPii($!rest, $x.rpa, 0, 0);
             }
             else {
-                self.BIND_POS($i, $a);
+                self.BIND_POS($i, $x);
                 $i = $i + 1;
             }
         }
         pir::perl6_box_int__PI(pir::elements($!items));
     }
 
-    method at_pos(\$n) {
-        self.exists($n)
-          ?? pir::set__PQi($!items, pir::repr_unbox_int__IP($n))
+    method at_pos(\$pos) {
+        self.exists($pos)
+          ?? pir::set__PQi($!items, pir::repr_unbox_int__IP($pos))
           !! Any
     }
 
-    method BIND_POS(\$n, \$x) {
-        pir::set__2QiP($!items, pir::repr_unbox_int__IP($n), $x)
+    method BIND_POS(\$pos, \$v) {
+        pir::set__2QiP($!items, pir::repr_unbox_int__IP($pos), $v)
     }
 }
 

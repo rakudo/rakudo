@@ -134,6 +134,8 @@ CORE_SOURCES = \
   src/CORE.setting/List.pm \
   src/CORE.setting/Array.pm \
   src/CORE.setting/Parcel.pm \
+  src/CORE.setting/EnumMap.pm \
+  src/CORE.setting/Hash.pm \
   src/CORE.setting/Parameter.pm \
   src/CORE.setting/Signature.pm \
   src/CORE.setting/Block.pm \

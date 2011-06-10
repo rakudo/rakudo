@@ -28,6 +28,12 @@ my class Mu {
     multi method Str(Mu:U:) {
         self.HOW.name(self) ~ '()'
     }
+
+    proto method Stringy(|$) { * }
+    multi method Stringy(Mu:U:) {
+        ''   # TODO: should be a warning of some sort
+    }
+    multi method Stringy(Mu:D:) { self.Str }
     
     method item() { self }
     

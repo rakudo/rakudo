@@ -6,6 +6,9 @@ proto prefix:<?>(|$) { * }
 multi prefix:<?>(Bool \$a) { $a }
 multi prefix:<?>(Mu \$a) { $a.Bool }
 
+proto prefix:<~>(|$) { * }
+multi prefix:<~>(\$a) { $a.Stringy }
+
 proto infix:<+>(|$) { * }
 multi infix:<+>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(

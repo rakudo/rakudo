@@ -6,4 +6,9 @@ my class Bool {
     }
 
     method Numeric() { self ?? 1 !! 0 }
+
+    method pred() { 0.Bool }
+
+    method succ() { 1.Bool }
+
 }

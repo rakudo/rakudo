@@ -6,13 +6,16 @@ my class Parcel is Iterable {
             pir::repr_instance_of__PP(List),
             List,
             '$!rest',
-            pir::clone__PP($!storage)
-        )
+            $!storage)
+    }
+
+    method rpa() {
+        pir::getattribute__PPPs(self, Parcel, '$!storage')
     }
 }
 
 
-sub infix:<,>(|$) {
+my sub infix:<,>(|$) {
     pir::setattribute__0PPsP(
         pir::repr_instance_of__PP(Parcel),
         Parcel,

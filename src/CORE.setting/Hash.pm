@@ -1,4 +1,6 @@
 my class Hash is EnumMap {
+    has $!descriptor;
+    
     method BIND_Key(Str \$key, $x is copy) {
         pir::find_method__PPs(EnumMap, 'BIND_KEY')(self, $key, $x);
     }

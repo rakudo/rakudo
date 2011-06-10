@@ -26,5 +26,5 @@ say '1..16';
 (1 and 0 xor 0 || 1) and say 'ok 14';
 
 ## more interesting
-(5 and 0 xor 0 || 3) eq 3 and say 'ok 15';
-(0 xor 0 ^^ 42 or 1) eq 1 or say 'ok 16';
+(5 and 0 xor 0 || 3) == 3 and say 'ok 15';
+(0 xor 0 ^^ 42 or 1) == 1 or say 'ok 16';

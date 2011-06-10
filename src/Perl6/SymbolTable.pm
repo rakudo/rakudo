@@ -730,6 +730,49 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         )));
     }
     
+    # Builds a curried role with the specified arguments.
+    method curry_role($curryhow, $role, $arglist, $/) {
+        # Build a list of compile time arguments to the role; whine if
+        # we find something without one.
+        my @pos_args;
+        my %named_args;
+        for @($arglist[0].ast) {
+            unless $_<has_compile_time_value> {
+                $/.CURSOR.panic("Cannot use '" ~ $arglist[0].Str ~
+                    "' as an argument to a parametric role as its value is not " ~
+                    "known at compile time");
+            }
+            if $_.named {
+                %named_args{$_.named} := $_<compile_time_value>;
+            }
+            else {
+                @pos_args.push($_<compile_time_value>);
+            }
+        }
+        
+        # Make the curry right away and add it to the SC.
+        my $curried := $curryhow.new_type($role, |@pos_args, |%named_args);
+        my $slot := self.add_object($curried);
+        
+        # Serialize call.
+        my $setup_call := PAST::Op.new(
+            :pasttype('callmethod'), :name('new_type'),
+            self.get_object_sc_ref_past($curryhow),
+            self.get_object_sc_ref_past($role)
+        );
+        for @pos_args {
+            $setup_call.push(self.get_object_sc_ref_past($_));
+        }
+        for %named_args {
+            $setup_call.push(my $arg := self.get_object_sc_ref_past($_.value));
+            $arg.named($_.key);
+        }
+        self.add_event(:deserialize_past(
+            self.set_slot_past($slot, self.set_cur_sc($setup_call))));
+        
+        return $curried;
+    }
+    
     # Applies a trait.
     method apply_trait($trait_sub_name, *@pos_args, *%named_args) {
         # Locate the trait sub to apply.

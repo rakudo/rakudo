@@ -8,5 +8,7 @@ my module EXPORTHOW {
     ($?PACKAGE.WHO)<class-attr>   := Attribute;
     ($?PACKAGE.WHO)<role>         := Perl6::Metamodel::ParametricRoleHOW;
     ($?PACKAGE.WHO)<role-attr>    := Attribute;
+    ($?PACKAGE.WHO)<role-group>   := Perl6::Metamodel::ParametricRoleGroupHOW;
+    ($?PACKAGE.WHO)<role-curried> := Perl6::Metamodel::CurriedRoleHOW;
     ($?PACKAGE.WHO)<native>       := Perl6::Metamodel::NativeHOW;
 }

@@ -2605,10 +2605,17 @@ class Perl6::Actions is HLL::Actions {
         # GenericHOW, though whether/how it's used depends on context.
         if $<longname> {
             if pir::substr(~$<longname>, 0, 2) ne '::' {
-                make $*ST.find_symbol(Perl6::Grammar::parse_name(
+                my $type := $*ST.find_symbol(Perl6::Grammar::parse_name(
                     Perl6::Grammar::canonical_type_longname($<longname>)));
+                if $<arglist> {
+                    $type := $*ST.curry_role(%*HOW<role-curried>, $type, $<arglist>, $/);
+                }
+                make $type;
             }
             else {
+                if $<arglist> || $<typename> {
+                    $/.CURSOR.panic("Cannot put type parameters on a type capture");
+                }
                 make $*ST.pkg_create_mo(%*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
             }
         }

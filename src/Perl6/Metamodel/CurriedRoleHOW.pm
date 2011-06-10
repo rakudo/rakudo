@@ -20,7 +20,7 @@ class Perl6::Metamodel::CurriedRoleHOW {
     has @!pos_args;
     has %!named_args;
     
-    method new_type(:$curried_role!, :@pos_args, :%named_args) {
+    method new_type($curried_role, *@pos_args, *%named_args) {
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),
             :named_args(%named_args));
         pir::repr_type_object_for__PPS($meta, 'Uninstantiable');

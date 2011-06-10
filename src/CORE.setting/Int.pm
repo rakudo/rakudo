@@ -14,6 +14,10 @@ my class Int {
         pir::perl6_box_num__PN(pir::repr_unbox_int__IP(self));
     }
 
+    method Bridge() {
+        self.Num;
+    }
+
     method chr() {
         pir::perl6_box_str__PS(pir::chr(pir::repr_unbox_int__IP(self)));
     }

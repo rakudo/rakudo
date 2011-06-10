@@ -187,7 +187,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: $(PERL6_EXE) $(SETTING)
+all: check-versions $(PERL6_EXE) $(SETTING)
 
 # the install target
 install: all
@@ -364,6 +364,9 @@ help:
 	@echo "Misc:"
 	@echo "  help:              Print this help message."
 	@echo ""
+
+check-versions:
+	@$(PERL) tools/build/check-versions.pl install/bin/nqp
 
 # Makefile: build/Makefile.in build/PARROT_REVISION $(PARROT) Configure.pl
 # 	@echo ""

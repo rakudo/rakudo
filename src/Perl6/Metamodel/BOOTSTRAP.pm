@@ -322,6 +322,12 @@ Method.HOW.add_parent(Method, Routine);
 Method.HOW.publish_parrot_vtable_handler_mapping(Method);
 Method.HOW.publish_parrot_vtable_mapping(Method);
 
+# class Submethod is Routine { ... }
+my stub Submethod metaclass Perl6::Metamodel::ClassHOW { ... };
+Submethod.HOW.add_parent(Submethod, Routine);
+Submethod.HOW.publish_parrot_vtable_handler_mapping(Submethod);
+Submethod.HOW.publish_parrot_vtable_mapping(Submethod);
+
 # class Str is Cool {
 #     has str $!value is box_target;
 #     ...
@@ -443,6 +449,7 @@ my module EXPORT {
         $?PACKAGE.WHO<Routine>   := Routine;
         $?PACKAGE.WHO<Sub>       := Sub;
         $?PACKAGE.WHO<Method>    := Method;
+        $?PACKAGE.WHO<Submethod> := Submethod;
         $?PACKAGE.WHO<Str>       := Str;
         $?PACKAGE.WHO<Numeric>   := Numeric;
         $?PACKAGE.WHO<Real>      := Real;

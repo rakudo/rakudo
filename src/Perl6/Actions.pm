@@ -823,6 +823,7 @@ class Perl6::Actions is HLL::Actions {
                     $past.type($attr.type);
                     $past.unshift($*ST.get_object_sc_ref_past($*ST.find_symbol(['$?CLASS'])));
                     $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
+                    $past := box_native_if_needed($past, $attr.type);
                 }
                 else {
                     $/.CURSOR.panic("Attribute $name not declared in $*PKGDECL " ~
@@ -3297,6 +3298,17 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $/.CURSOR.panic("$usage must have a value known at compile time");
+        }
+    }
+    
+    my @prim_spec_map := ['', 'perl6_box_int__PI', 'perl6_box_num__PN', 'perl6_box_str__PS'];
+    sub box_native_if_needed($past, $type) {
+        my $primspec := pir::repr_get_primitive_type_spec__IP($type);
+        if $primspec {
+            PAST::Op.new( :pirop(@prim_spec_map[$primspec]), $past )
+        }
+        else {
+            $past
         }
     }
     

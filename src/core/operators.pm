@@ -75,8 +75,8 @@ multi infix:<*>(Real \$a, Real \$b) {
 
 proto infix:</>(|$) { * }
 multi infix:</>(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(
-        pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+    # XXX should really return a Rat
+    $a.Num / $b.Num
 }
 multi infix:</>(Num \$a, Num \$b) {
     pir::perl6_box_num__PN(
@@ -87,6 +87,16 @@ multi infix:</>(\$a, \$b) {
 }
 multi infix:</>(Real \$a, Real \$b) {
     $a.Bridge / $b.Bridge
+}
+
+proto infix:<div>(|$) { * }
+multi infix:<div>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+multi infix:<div>(\$a, \$b) {
+    pir::perl6_box_int__PI(
+        pir::div__III(pir::repr_unbox_int__IP($a.Int), pir::repr_unbox_int__IP($b.Int)))
 }
 
 proto infix:<%>(|$) { * }

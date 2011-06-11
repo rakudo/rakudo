@@ -11,6 +11,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::NonGeneric
     does Perl6::Metamodel::ParrotInterop
 {
+    has @!does_list;
     has $!composed;
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
@@ -34,7 +35,7 @@ class Perl6::Metamodel::ClassHOW
                 my $r := @roles_to_compose.pop();
                 @ins_roles.push($r.HOW.specialize($r, $obj))
             }
-            RoleToClassApplier.apply($obj, @ins_roles)
+            @!does_list := RoleToClassApplier.apply($obj, @ins_roles)
         }
 
         # Some things we only do if we weren't already composed once, like
@@ -87,7 +88,12 @@ class Perl6::Metamodel::ClassHOW
         my @tc;
         for self.mro($obj) {
             @tc.push($_);
-            # XXX roles also...
+            if pir::can($_.HOW, 'does_list') {
+                my @does_list := $_.HOW.does_list($_);
+                for @does_list {
+                    @tc.push($_);
+                }
+            }
         }
         pir::publish_type_check_cache($obj, @tc)
     }
@@ -114,6 +120,10 @@ class Perl6::Metamodel::ClassHOW
         pir::publish_method_cache($obj, %cache)
     }
     
+    method does_list($obj) {
+        @!does_list
+    }
+    
     method is_composed($obj) {
         $!composed
     }
@@ -125,6 +135,14 @@ class Perl6::Metamodel::ClassHOW
         for self.mro($obj) {
             if $_ =:= $checkee {
                 return 1;
+            }
+            if pir::can($_.HOW, 'does_list') {
+                my @does_list := $_.HOW.does_list($_);
+                for @does_list {
+                    if $_ =:= $checkee {
+                        return 1;
+                    }
+                }
             }
         }
         0

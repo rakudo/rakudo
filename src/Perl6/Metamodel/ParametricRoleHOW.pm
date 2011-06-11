@@ -49,7 +49,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         }
         
         # Create a concrete role.
-        my $conc := $concrete.new_type(:name(self.name($obj)));
+        my $conc := $concrete.new_type(:parametrics([$obj]), :name(self.name($obj)));
         
         # Go through attributes, reifying as needed and adding to
         # the concrete role.

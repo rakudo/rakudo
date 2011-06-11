@@ -8,7 +8,14 @@ class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::NonGeneric
 {
+    # Any collisions to resolve.
     has @!collisions;
+    
+    # The parametric role(s) that this concrete one was derived from.
+    has @!parametrics;
+    
+    # Full flat list of "does" roles.
+    has @!does_list;
     
     my class Collision {
         has $!name;
@@ -17,8 +24,8 @@ class Perl6::Metamodel::ConcreteRoleHOW
         method roles() { @!roles }
     }
     
-    method new_type(:$name = '<anon>', :$ver, :$auth, :$repr) {
-        my $metarole := self.new(:name($name), :ver($ver), :auth($auth));
+    method new_type(:@parametrics, :$name = '<anon>', :$ver, :$auth, :$repr) {
+        my $metarole := self.new(:parametrics(@parametrics), :name($name), :ver($ver), :auth($auth));
         pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
     }
     
@@ -29,11 +36,18 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     method compose($obj) {
-        RoleToRoleApplier.apply($obj, self.roles_to_compose($obj));
+        @!does_list := RoleToRoleApplier.apply($obj, self.roles_to_compose($obj));
+        for @!parametrics {
+            @!does_list.push($_);
+        }
         $obj
     }
     
     method collisions($obj) {
         @!collisions
+    }
+    
+    method does_list($obj) {
+        @!does_list
     }
 }

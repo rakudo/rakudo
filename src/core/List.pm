@@ -5,6 +5,13 @@ class List is Iterable {
     has $!rest;
     has $!flat;
 
+    method elems() {
+        my $n = self.gimme(*);
+        $!rest
+          ?? pir::perl6_box_num__PN('Inf')
+          !! $n;
+    }
+
     method exists(\$pos) {
         self.gimme($pos+1);
         pir::perl6_booleanize__PI(

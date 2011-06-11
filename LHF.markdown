@@ -8,7 +8,8 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
-## Int.Num, various Num multi candidates
-Test the Num variants for +, -, *, /, and numeric
-comparsion operators. You can use the coercion from Int
-as we don't have Num literals yet.
+## Complex
+Add the Complex class and associated operators, very much like in master
+
+## Rat operators
+Add numeric operators for Rats, very much like in master

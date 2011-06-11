@@ -22,7 +22,9 @@ class List is Iterable {
         while $!rest && ($eager || $i < $n) {
             $x := pir::shift__PP($!rest);
             if Parcel.ACCEPTS($x) {
-                pir::splice__vPPii($!rest, $x.rpa, 0, 0);
+                pir::splice__vPPii(
+                     $!rest, pir::getattribute__PPPs($x, Parcel, '$!storage'),
+                     0, 0);
             }
             else {
                 self.BIND_POS($i, $x);

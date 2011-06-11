@@ -9,9 +9,6 @@ my class Parcel is Iterable {
             $!storage)
     }
 
-    method rpa() {
-        pir::getattribute__PPPs(self, Parcel, '$!storage')
-    }
 }
 
 

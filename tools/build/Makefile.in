@@ -94,11 +94,12 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/MultipleInheritance.pm \
   src/Perl6/Metamodel/C3MRO.pm \
   src/Perl6/Metamodel/ParrotInterop.pm \
+  src/Perl6/Metamodel/RoleToRoleApplier.pm \
   src/Perl6/Metamodel/ConcreteRoleHOW.pm \
   src/Perl6/Metamodel/CurriedRoleHOW.pm \
   src/Perl6/Metamodel/ParametricRoleHOW.pm \
   src/Perl6/Metamodel/ParametricRoleGroupHOW.pm \
-  src/Perl6/Metamodel/RoleAppliers.pm \
+  src/Perl6/Metamodel/RoleToClassApplier.pm \
   src/Perl6/Metamodel/ClassHOW.pm \
   src/Perl6/Metamodel/NativeHOW.pm \
   src/Perl6/Metamodel/ContainerDescriptor.pm \
@@ -128,6 +129,7 @@ CORE_SOURCES = \
   src/core/Real.pm \
   src/core/Int.pm \
   src/core/Num.pm \
+  src/core/Rat.pm \
   src/core/Str.pm \
   src/core/Iterable.pm \
   src/core/Iterator.pm \

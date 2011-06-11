@@ -140,11 +140,15 @@ Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
 Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
         my $type     := pir::getattribute__PPPs($self, Attribute, '$!type');
         my $cd       := pir::getattribute__PPPs($self, Attribute, '$!container_descriptor');
+        my $avc      := pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');
         my $type_ins := $type.HOW.instantiate_generic($type, $type_environment);
         my $cd_ins   := $cd.instantiate_generic($type_environment);
+        my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
         my $ins      := pir::repr_clone__PP($self);
         pir::setattribute__vPPsP($ins, Attribute, '$!type', $type_ins);
         pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
+        pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
+            pir::setattribute__0PPsP($avc_copy, (pir::perl6_var__PP($avc_copy)).WHAT, '$!descriptor', $cd_ins));
         $ins
     });
 

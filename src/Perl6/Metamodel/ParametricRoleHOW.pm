@@ -1,3 +1,4 @@
+my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Versioning
@@ -9,7 +10,6 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::NonGeneric
 {
-    my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
     has $!composed;
     has $!body_block;
 
@@ -62,6 +62,12 @@ class Perl6::Metamodel::ParametricRoleHOW
         # unconditionally, since we need the clone anyway.
         for self.methods($obj, :local(1)) {
             $conc.HOW.add_method($conc, $_.name, $_.instantiate_generic($type_env))
+        }
+        
+        # Roles down by this role need fully specializing also; all
+        # they'll be missing is the target class (e.g. our first arg).
+        for self.roles_to_compose($obj) {
+            $conc.HOW.add_role($conc, $_.HOW.specialize($_, @pos_args[0]));
         }
         
         # XXX More to copy/instantiate

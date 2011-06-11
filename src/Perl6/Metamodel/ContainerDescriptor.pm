@@ -15,7 +15,8 @@ class Perl6::Metamodel::ContainerDescriptor {
     }
     
     method instantiate_generic($type_environment) {
-        my $ins := $!of.HOW.instantiate_generic($!of, $type_environment);
-        self.new(:of($ins), :rw($!rw), :name($!name))
+        my $ins_of := $!of.HOW.instantiate_generic($!of, $type_environment);
+        my $ins := pir::repr_clone__PP(self);
+        pir::setattribute__0PPsP($ins, $?CLASS, '$!of', $ins_of)
     }
 }

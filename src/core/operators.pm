@@ -5,6 +5,9 @@ sub infix:<=>(Mu \$a, Mu \$b) {
 proto prefix:<?>(|$) { * }
 multi prefix:<?>(Bool \$a) { $a }
 multi prefix:<?>(Mu \$a) { $a.Bool }
+proto prefix:<so>(|$) { * }
+multi prefix:<so>(Bool \$a) { $a }
+multi prefix:<so>(Mu \$a) { $a.Bool }
 
 proto prefix:<~>(|$) { * }
 multi prefix:<~>(\$a) { $a.Stringy }
@@ -53,6 +56,9 @@ multi prefix:<abs>(Int \$a) {
 multi prefix:<abs>(Num \$a) {
     pir::perl6_box_num__PN(pir::abs__II(pir::repr_unbox_num__NP($a)))
 }
+multi prefix:<abs>(\$a) {
+    abs $a.Numeric
+}
 
 proto infix:<*>(|$) { * }
 multi infix:<*>(Int \$a, Int \$b) {
@@ -63,15 +69,37 @@ multi infix:<*>(Num \$a, Num \$b) {
     pir::perl6_box_num__PN(
         pir::mul__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
+multi infix:<*>(\$a, \$b) {
+    $a.Numeric * $b.Numeric
+}
+multi infix:<*>(Real \$a, Real \$b) {
+    $a.Bridge * $b.Bridge
+}
 
 proto infix:</>(|$) { * }
 multi infix:</>(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(
-        pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+    # XXX should really return a Rat
+    $a.Num / $b.Num
 }
 multi infix:</>(Num \$a, Num \$b) {
     pir::perl6_box_num__PN(
         pir::div__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+multi infix:</>(\$a, \$b) {
+    $a.Numeric / $b.Numeric
+}
+multi infix:</>(Real \$a, Real \$b) {
+    $a.Bridge / $b.Bridge
+}
+
+proto infix:<div>(|$) { * }
+multi infix:<div>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+multi infix:<div>(\$a, \$b) {
+    pir::perl6_box_int__PI(
+        pir::div__III(pir::repr_unbox_int__IP($a.Int), pir::repr_unbox_int__IP($b.Int)))
 }
 
 proto infix:<%>(|$) { * }
@@ -82,6 +110,12 @@ multi infix:<%>(Int \$a, Int \$b) {
 multi infix:<%>(Num \$a, Num \$b) {
     pir::perl6_box_num__PN(
         pir::mod__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+multi infix:<%>(\$a, \$b) {
+    $a.Numeric % $b.Numeric
+}
+multi infix:<%>(Real \$a, Real \$b) {
+    $a.Bridge % $b.Bridge
 }
 
 proto infix:<~>(|$) { * }
@@ -103,6 +137,12 @@ multi infix:<==>(Num \$a, Num \$b) {
     pir::perl6_booleanize__PI(
         pir::iseq__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
+multi infix:<==>(\$a, \$b) {
+    $a.Numeric == $b.Numeric
+}
+multi infix:<==>(Real \$a, Real \$b) {
+    $a.Bridge == $b.Bridge
+}
 
 proto infix:<!=>(|$) { * }
 multi infix:<!=>(Int \$a, Int \$b) {
@@ -112,6 +152,12 @@ multi infix:<!=>(Int \$a, Int \$b) {
 multi infix:<!=>(Num \$a, Num \$b) {
     pir::perl6_booleanize__PI(
         pir::isne__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+multi infix:<!=>(\$a, \$b) {
+    $a.Numeric != $b.Numeric
+}
+multi infix:<!=>(Real \$a, Real \$b) {
+    $a.Bridge != $b.Bridge
 }
 
 proto infix:«<»(|$) { * }
@@ -123,6 +169,12 @@ multi infix:«<»(Num \$a, Num \$b) {
     pir::perl6_booleanize__PI(
         pir::islt__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
+multi infix:«<»(\$a, \$b) {
+    $a.Numeric < $b.Numeric
+}
+multi infix:«<»(Real \$a, Real \$b) {
+    $a.Bridge < $b.Bridge
+}
 
 proto infix:«<=»(|$) { * }
 multi infix:«<=»(Int \$a, Int \$b) {
@@ -132,6 +184,12 @@ multi infix:«<=»(Int \$a, Int \$b) {
 multi infix:«<=»(Num \$a, Num \$b) {
     pir::perl6_booleanize__PI(
         pir::isle__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+multi infix:«<=»(\$a, \$b) {
+    $a.Numeric <= $b.Numeric
+}
+multi infix:«<=»(Real \$a, Real \$b) {
+    $a.Bridge <= $b.Bridge
 }
 
 proto infix:«>»(|$) { * }
@@ -143,6 +201,12 @@ multi infix:«>»(Num \$a, Num \$b) {
     pir::perl6_booleanize__PI(
         pir::isgt__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
 }
+multi infix:«>»(\$a, \$b) {
+    $a.Numeric > $b.Numeric
+}
+multi infix:«>»(Real \$a, Real \$b) {
+    $a.Bridge > $b.Bridge
+}
 
 proto infix:«>=»(|$) { * }
 multi infix:«>=»(Int \$a, Int \$b) {
@@ -152,6 +216,12 @@ multi infix:«>=»(Int \$a, Int \$b) {
 multi infix:«>=»(Num \$a, Num \$b) {
     pir::perl6_booleanize__PI(
         pir::isge__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+multi infix:«>=»(\$a, \$b) {
+    $a.Numeric >= $b.Numeric
+}
+multi infix:«>=»(Real \$a, Real \$b) {
+    $a.Bridge >= $b.Bridge
 }
 
 proto infix:<eq>(|$) { * }
@@ -328,4 +398,10 @@ multi infix:<**>(Num \$a, Num \$b) {
 }
 multi infix:<**>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(pir::set__IN(pir::pow__NNN(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b))));
+}
+multi infix:<**>(\$a, \$b) {
+    $a.Numeric ** $b.Numeric
+}
+multi infix:<**>(Real \$a, Real \$b) {
+    $a.Bridge ** $b.Bridge
 }

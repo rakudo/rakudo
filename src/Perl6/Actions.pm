@@ -1870,6 +1870,10 @@ class Perl6::Actions is HLL::Actions {
                 $past.pasttype('pirop');
                 $past.pirop('get_who PP');
             }
+            elsif $name eq 'VAR' {
+                $past.pasttype('pirop');
+                $past.pirop('perl6_var PP');
+            }
             else {
                 $past.name( $name );
             }

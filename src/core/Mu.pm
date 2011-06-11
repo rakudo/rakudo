@@ -20,7 +20,7 @@ my class Mu {
         pir::repr_instance_of__PP(self.WHAT)
     }
     
-    method bless(Mu $candidate) {
+    method bless(Mu \$candidate) {
         $candidate
     }
     

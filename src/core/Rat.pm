@@ -20,7 +20,7 @@ my class Rat is Real {
 
     method Bridge() { self.Num }
     method Rat() { self }
-    method Str() {
+    multi method Str(Rat:D:) {
         self.Num.Str
     }
     method perl() {

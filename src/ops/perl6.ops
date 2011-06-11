@@ -517,6 +517,28 @@ inline op perl6_assert_bind_ok(in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_var(in PMC, in PMC)
+
+The .VAR operation. Wraps in an outer Scalar container so we can actually
+operate on the underlying Scalar, if we have a container. Otherwise, $1
+is just $2.
+
+=cut
+
+*/
+inline op perl6_var(out PMC, in PMC) :base_core {
+    if ($2->vtable->base_type == smo_id && STABLE($2)->container_spec != NULL) {
+        $1 = Rakudo_cont_scalar_from_descriptor(interp, PMCNULL);
+        Rakudo_cont_store(interp, $1, $2, 0, 0);
+    }
+    else {
+        $1 = $2;
+    }
+}
+
+
+/*
+
 =item find_method_null_ok(out PMC, in PMC, in STR)
 
 Like Parrot's find_method, but returns PMCNULL in $1 if $2 doesn't have a

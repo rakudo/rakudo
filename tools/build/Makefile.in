@@ -128,6 +128,7 @@ CORE_SOURCES = \
   src/core/Real.pm \
   src/core/Int.pm \
   src/core/Num.pm \
+  src/core/Rat.pm \
   src/core/Str.pm \
   src/core/Iterable.pm \
   src/core/Iterator.pm \

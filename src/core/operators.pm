@@ -405,3 +405,19 @@ multi infix:<**>(\$a, \$b) {
 multi infix:<**>(Real \$a, Real \$b) {
     $a.Bridge ** $b.Bridge
 }
+
+proto infix:<lcm>(|$) { * }
+multi infix:<lcm>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::lcm__III(
+            pir::repr_unbox_int__IP($a),
+            pir::repr_unbox_int__IP($b)
+        ));
+}
+
+proto infix:<gcd>(|$) { * }
+multi infix:<gcd>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::gcd__III(
+            pir::repr_unbox_int__IP($a),
+            pir::repr_unbox_int__IP($b)
+        ));
+}

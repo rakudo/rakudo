@@ -33,6 +33,20 @@ PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
     return var;
 }
 
+/* Grabs obj.HOW.name(obj) so we can display type name in error. */
+static STRING * typename(PARROT_INTERP, PMC *obj) {
+    PMC *how     = STABLE(obj)->HOW;
+    PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+    PMC *meth    = VTABLE_find_method(interp, how, Parrot_str_new(interp, "name", 0));
+    PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
+    VTABLE_push_pmc(interp, cappy, how);
+    VTABLE_push_pmc(interp, cappy, obj);
+    Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
+    cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+    Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
+    return VTABLE_get_string_keyed_int(interp, cappy, 0);
+}
+
 /* Does type check and rw check only if needed and then stores. Note that
  * it only really skips them if it's Scalar. */
 void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
@@ -56,10 +70,15 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
         if (type_check) {
             INTVAL ok = 0;
             if (!PMC_IS_NULL(scalar->descriptor)) {
-                PMC *type = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor))->of;
-                ok = STABLE(value)->type_check(interp, value, type);
+                Rakudo_ContainerDescriptor *desc = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor));
+                ok = STABLE(value)->type_check(interp, value, desc->of);
+                if (!ok) {
+                    Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                        "Type check failed in assignment to '%S'; expected '%S' but got '%S'",
+                        desc->name, typename(interp, desc->of), typename(interp, value));
+                }
             }
-            if (!ok) {
+            else {
                 Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                     "Type check failed in assignment");
             }

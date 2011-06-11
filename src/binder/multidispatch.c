@@ -339,14 +339,13 @@ static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub) {
     STRING * const sig_name  = Parrot_str_new(interp, "signature", 0);
     STRING * const perl_name = Parrot_str_new(interp, "perl", 0);
     STRING * const newline   = Parrot_str_new(interp, "\n", 0);
-    PMC    * sig_meth, *sig_obj, *perl_meth;
-    STRING *sig_perl;
-    printf("XXX Multi error reporting busted...\n");
+    PMC    * sig_meth, *sig_obj, *perl_meth, * sig_perl;
     sig_meth = VTABLE_find_method(interp, sub, sig_name);
     Parrot_ext_call(interp, sig_meth, "Pi->P", sub, &sig_obj);
     perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
-    Parrot_ext_call(interp, perl_meth, "Pi->S", sig_obj, &sig_perl);
-    so_far = Parrot_str_concat(interp, so_far, sig_perl);
+    Parrot_ext_call(interp, perl_meth, "Pi->P", sig_obj, &sig_perl);
+    so_far = Parrot_str_concat(interp, so_far,
+        REPR(sig_perl)->get_str(interp, sig_perl));
     so_far = Parrot_str_concat(interp, so_far, newline);
     return so_far;
 }

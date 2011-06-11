@@ -1977,10 +1977,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<*>($/) {
-        my @name := Perl6::Grammar::parse_name('Whatever');
         make PAST::Op.new(
             :pasttype('callmethod'), :name('new'), :node($/), :lvalue(1), :returns('Whatever'),
-            PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') )
+            PAST::Var.new( :name('Whatever'), :scope('lexical') )
         )
     }
 

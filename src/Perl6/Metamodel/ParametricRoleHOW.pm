@@ -64,6 +64,12 @@ class Perl6::Metamodel::ParametricRoleHOW
             $conc.HOW.add_method($conc, $_.name, $_.instantiate_generic($type_env))
         }
         
+        # Roles down by this role need fully specializing also; all
+        # they'll be missing is the target class (e.g. our first arg).
+        for self.roles_to_compose($obj) {
+            $conc.HOW.add_role($conc, $_.HOW.specialize($_, @pos_args[0]));
+        }
+        
         # XXX More to copy/instantiate
         
         $conc.HOW.compose($conc);

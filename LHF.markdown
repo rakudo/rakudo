@@ -10,6 +10,3 @@ new possible performance.
 
 ## Complex
 Add the Complex class and associated operators, very much like in master
-
-## Rat operators
-Add numeric operators for Rats, very much like in master

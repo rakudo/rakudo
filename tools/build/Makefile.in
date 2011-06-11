@@ -129,7 +129,6 @@ CORE_SOURCES = \
   src/core/Real.pm \
   src/core/Int.pm \
   src/core/Num.pm \
-  src/core/Rat.pm \
   src/core/Str.pm \
   src/core/Iterable.pm \
   src/core/Iterator.pm \
@@ -146,6 +145,7 @@ CORE_SOURCES = \
   src/core/Method.pm \
   src/core/IO.pm \
   src/core/operators.pm \
+  src/core/Rat.pm \
   src/core/Exceptions.pm \
   src/core/EXPORTHOW.pm \
   src/core/you_are_here.pm \

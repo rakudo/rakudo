@@ -1,3 +1,4 @@
+my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Versioning
@@ -9,7 +10,6 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::NonGeneric
 {
-    my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
     has $!composed;
     has $!body_block;
 

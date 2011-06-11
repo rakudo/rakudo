@@ -1,6 +1,3 @@
-my class RoleToRoleApplier {
-}
-
 my class RoleToClassApplier {
     sub has_method($target, $name, $local) {
         my @methods := $target.HOW.methods($target, :local($local));
@@ -28,19 +25,25 @@ my class RoleToClassApplier {
             $to_compose_meta := $to_compose.HOW;
         }
         else {
-            # XXX create composite
-            pir::die("# XXX todo role summation");
+            $to_compose := $concrete.new_type();
+            $to_compose_meta := $to_compose.HOW;
+            for @roles {
+                $to_compose_meta.add_role($to_compose, $_);
+            }
+            $to_compose := $to_compose_meta.compose($to_compose);
         }
 
         # Collisions?
-        # XXX Add back...
-        #my @collisions := $to_compose_meta.collisions($to_compose);
-        #for @collisions {
-        #    unless has_method($target, ~$_, 1) {
-        #        pir::die("Method '$_' collides and a resolution must be provided by the class '" ~
-        #            $target.HOW.name($target) ~ "'");
-        #    }
-        #}
+        my @collisions := $to_compose_meta.collisions($to_compose);
+        for @collisions {
+            unless has_method($target, $_.name, 1) {
+                pir::die("Method '" ~ $_.name ~
+                    "' must be resolved by class '" ~
+                    $target.HOW.name($target) ~
+                    "' because it exists in multiple roles (" ~
+                    pir::join(", ", $_.roles) ~ ")");
+            }
+        }
 
         # Compose in any methods.
         my @methods := $to_compose_meta.methods($to_compose, :local(1));
@@ -60,7 +63,4 @@ my class RoleToClassApplier {
             $target.HOW.add_attribute($target, $_);
         }
     }
-}
-
-my class RoleToObjectApplier {
 }

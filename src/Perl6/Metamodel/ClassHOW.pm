@@ -69,11 +69,16 @@ class Perl6::Metamodel::ClassHOW
     # While we normally end up locating methods through the method cache,
     # this is here as a fallback.
     method find_method($obj, $name) {
+        my %methods;
         for self.mro($obj) {
-            my %methods := $_.HOW.method_table($_);
+            %methods := $_.HOW.method_table($_);
             if pir::exists(%methods, $name) {
                 return %methods{$name}
             }
+        }
+        my %submethods := $obj.HOW.submethod_table($obj);
+        if pir::exists(%submethods, $name) {
+            return %submethods{$name}
         }
         pir::null__P();
     }
@@ -99,6 +104,13 @@ class Perl6::Metamodel::ClassHOW
                 }
             }
         }
+        
+        # Also add submethods.
+        my %submethods := $obj.HOW.submethod_table($obj);
+        for %submethods {
+            %cache{$_.key} := $_.value;
+        }
+        
         pir::publish_method_cache($obj, %cache)
     }
     

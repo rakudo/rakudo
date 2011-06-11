@@ -34,6 +34,10 @@ class List is Iterable {
         pir::perl6_box_int__PI(pir::elements($!items));
     }
 
+    method shift() {
+        self.gimme(1) && pir::shift__PP($!items);
+    }
+
     method at_pos(\$pos) {
         self.exists($pos)
           ?? pir::set__PQi($!items, pir::repr_unbox_int__IP($pos))

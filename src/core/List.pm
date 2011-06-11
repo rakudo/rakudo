@@ -5,6 +5,8 @@ class List is Iterable {
     has $!rest;
     has $!flat;
 
+    method Bool() { self.gimme(1).Bool }
+
     method elems() {
         my $n = self.gimme(*);
         $!rest

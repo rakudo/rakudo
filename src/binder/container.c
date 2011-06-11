@@ -51,12 +51,8 @@ static STRING * typename(PARROT_INTERP, PMC *obj) {
  * it only really skips them if it's Scalar. */
 void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
                        INTVAL type_check, INTVAL rw_check) {
-    /* Ensure we have a container. */
-    STable *cont_st = STABLE(cont);
-    INTVAL is_container = cont_st->container_spec != NULL;
-    
     /* If it's a scalar container, optimized path. */
-    if (is_container && cont_st->WHAT == scalar_type) {
+    if (STABLE(cont)->WHAT == scalar_type) {
         Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(cont);
         if (rw_check) {
             INTVAL rw = 0;
@@ -96,20 +92,20 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
     }
     
     /* Otherwise, use STORE call. */
-    else if (is_container) {
-        PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-        PMC *meth    = VTABLE_find_method(interp, cont, Parrot_str_new(interp, "STORE", 0));
-        PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
-        VTABLE_push_pmc(interp, cappy, cont);
-        VTABLE_push_pmc(interp, cappy, value);
-        Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
-        Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
-    }
-    
-    /* If we get here, it's not a container at all. */
     else {
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Cannot assign to a non-container");
+        PMC *meth    = VTABLE_find_method(interp, cont, Parrot_str_new(interp, "STORE", 0));
+        if (!PMC_IS_NULL(meth)) {
+            PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+            PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
+            VTABLE_push_pmc(interp, cappy, cont);
+            VTABLE_push_pmc(interp, cappy, value);
+            Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
+            Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
+        }
+        else {
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "Cannot assign to a non-container");
+        }
     }
 }
 

@@ -5,6 +5,9 @@ sub infix:<=>(Mu \$a, Mu \$b) {
 proto prefix:<?>(|$) { * }
 multi prefix:<?>(Bool \$a) { $a }
 multi prefix:<?>(Mu \$a) { $a.Bool }
+proto prefix:<so>(|$) { * }
+multi prefix:<so>(Bool \$a) { $a }
+multi prefix:<so>(Mu \$a) { $a.Bool }
 
 proto prefix:<~>(|$) { * }
 multi prefix:<~>(\$a) { $a.Stringy }

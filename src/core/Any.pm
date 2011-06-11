@@ -2,6 +2,8 @@ my class Any {
 
     # List-like methods for Any.
 
+    method list() { (self,).list }
+
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>(\$pos) is rw {
         self.at_pos($pos)

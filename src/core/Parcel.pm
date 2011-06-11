@@ -6,7 +6,7 @@ my class Parcel is Iterable {
             pir::repr_instance_of__PP(List),
             List,
             '$!rest',
-            $!storage)
+            pir::clone__PP($!storage))
     }
 
 }

@@ -18,7 +18,8 @@ class List is Iterable {
                                      pir::new__Ps('ResizablePMCArray'));
         my $i = pir::perl6_box_int__PI(pir::elements($!items));
         my $x;
-        while $!rest && $i < $n {
+        my $eager = Whatever.ACCEPTS($n);
+        while $!rest && ($eager || $i < $n) {
             $x := pir::shift__PP($!rest);
             if Parcel.ACCEPTS($x) {
                 pir::splice__vPPii($!rest, $x.rpa, 0, 0);

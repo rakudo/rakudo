@@ -2924,10 +2924,7 @@ class Perl6::Actions is HLL::Actions {
         # We tell Parrot that we'll have all args in the call_sig so it won't
         # do its own arg processing. We also add a call to bind the signature.
         $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
-        $block[0].push(PAST::Op.new(
-            :pirop('bind_signature vP'),
-            $*ST.get_object_sc_ref_past($sig_obj)
-        ));
+        $block[0].push(PAST::Op.new( :pirop('bind_signature vP') ));
 
         $block;
     }

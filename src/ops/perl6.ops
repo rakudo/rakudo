@@ -201,17 +201,22 @@ inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
 
 /*
 
-=item bind_signature(in PMC)
+=item bind_signature()
 
-This is emitted into a sub to cause it's Perl 6 signature to be bound. $1 is
-the signature to bind against. The current call context is used to find the
-arguments.
+This is emitted into a sub to cause it's Perl 6 signature to be bound.
 
 =cut
 
 */
-inline op bind_signature(in PMC) :base_core {
-    PMC * const ctx = CURRENT_CONTEXT(interp);
+inline op bind_signature() :base_core {
+    PMC * const ctx         = CURRENT_CONTEXT(interp);
+    PMC * const parrot_sub  = Parrot_pcc_get_sub(interp, ctx);
+    PMC *perl6_code, *signature;
+    GETATTR_Sub_multi_signature(interp, parrot_sub, perl6_code);
+    if (PMC_IS_NULL(perl6_code))
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "Could not locate Perl 6 code object");
+    signature = ((Rakudo_Code *)PMC_data(perl6_code))->signature;
 
     /* If we aren't already bound, enter the appropriate binder. */
     if (!PObj_flag_TEST(P6S_ALREADY_BOUND, ctx)) {
@@ -227,7 +232,8 @@ inline op bind_signature(in PMC) :base_core {
         INTVAL bind_error;
 
         /* Call signature binder. */
-        bind_error = Rakudo_binding_bind(interp, lexpad, $1, ctx, noms_checked, &error);
+        bind_error = Rakudo_binding_bind(interp, lexpad, signature, ctx,
+            noms_checked, &error);
 
         /* Bind ok? */
         if (!bind_error) {

@@ -1,25 +1,25 @@
 # Roadmap for "nom" Branch
 
-Last Updated 6th June 2011
+Last Updated 12th June 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
-## Multi-Part names
-for X::Base, Foo::Bar etc.
+## Lexical Multi-Part names
+For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
+
+## Iteration
+Get various types of iteration of lists and hashes back in place.
+
+## our-scoped variables
+Still to be implemented
 
 ## Object construction
 new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
 closure.
 
-## our-scoped stuff
-Of note, variables, packages, subs...
-
 ## Magicals
 $_, $/, $!, @_ and %_ handling.
-
-## Lists, arrays and hashes in the setting
-Get them working.
 
 ## Flesh out signatures and parameters
 While basic binding works again now, there's plenty of stuff to "put back".
@@ -29,21 +29,27 @@ Of note:
 * Post-constraints
 * sub foo(0) { ... } (literals)
 
+## Rat and Complex literals
+Depends on working out how to unify parsing of numeric strings.
+
 ## Fix up binding some more
 Get ::= correcter, and a bit more stuff on := also.
 
-## More traits
-Add various missing traits
+## Finish up parametric roles
+Many things are working, some are not...
+* Composition of multi-methods
+* Composition of submethods
+* Generically typed variables (also for the ::T case in rules)
+* Mentions of role arguments in the role body in a non-declarative context
+* role R1[::T] does R2[T] { ... }
 
-## More operators
-Flesh out the range of available operators
-
-## Parametric roles
-Get parametric roles working with the new meta-object model.
-
-* Create way for indicating type vars that need reificiation
-* Implement ParametricRoleHOW and ConcreteRoleHOW
-* Ensure the reification of types works
+## Meta-operators
+* Assignment
+* Negation
+* Reduction
+* Triangle
+* Hyper
+* Cross
 
 ## Missing object model bits
 * Implement SubsetHOW, make it work with the syntax
@@ -52,8 +58,8 @@ Get parametric roles working with the new meta-object model.
 * handles
 * .*/.+/.?
 
-## Multi-part and nested packages
-Nested may just work already...multi-part is relatively easy.
+## Ensure nested packages work
+In theory, just should already.
 
 ## Restore other setting bits
 Bring back in everything that was ripped out. Probably many our things

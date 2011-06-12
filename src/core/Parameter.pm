@@ -22,6 +22,17 @@ my class Parameter {
         $!variable_name
     }
     
+    method positional() {
+        pir::perl6_booleanize__PI(
+            ($!flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED)) == 0 &&
+            pir::isnull__IP($!named_names)
+         )
+    }
+    
+    method optional() {
+        ?($!flags +& $SIG_ELEM_IS_OPTIONAL)
+    }
+    
     # XXX TODO: Many more bits :-)
     method perl() {
         my $perl = $!nominal_type.HOW.name($!nominal_type);

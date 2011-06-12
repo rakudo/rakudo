@@ -354,6 +354,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Op.new( :pasttype('list'), |@type_names )));
         }
         
+        # Set default value thunk up, if there is one.
+        if pir::exists(%param_info, 'default_closure') {
+            pir::setattribute__vPPsP($parameter, $par_type, '$!default_closure', %param_info<default_closure>);
+            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!default_closure',
+                self.get_object_sc_ref_past(%param_info<default_closure>)));
+        }
+        
         # XXX Set up other various attribute values.
         
         # Set container descriptor, if there is one.

@@ -1572,6 +1572,7 @@ class Perl6::Actions is HLL::Actions {
             if $quant eq '!' {
                 $/.CURSOR.panic("Cannot put default on required parameter");
             }
+            %*PARAM_INFO<default_closure> := $<default_value>[0].ast;
         }
 
         # Set up various flags.
@@ -1649,6 +1650,11 @@ class Perl6::Actions is HLL::Actions {
         if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
         elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>[0]); }
         else                     { %*PARAM_INFO<named_names>.push(''); }
+    }
+    
+    method default_value($/) {
+        # Turn into a thunk.
+        make make_thunk($<EXPR>.ast);
     }
 
     method type_constraint($/) {
@@ -2993,6 +2999,13 @@ class Perl6::Actions is HLL::Actions {
         $closure<block_past> := $code<block_past>;
         return $closure;
     }
+    
+    sub make_thunk($to_thunk) {
+        my $past := PAST::Block.new( $to_thunk );
+        ($*ST.cur_lexpad())[0].push($past);
+        my $sig  := $*ST.create_signature([]);
+        return $*ST.create_code_object($past, 'Code', $sig);
+    }
 
     sub add_implicit_var($block, $name) {
         $block[0].push(PAST::Var.new( :name($name), :scope('lexical'), :isdecl(1) ));
@@ -3141,26 +3154,6 @@ class Perl6::Actions is HLL::Actions {
         $*ST.apply_trait('&trait_mod:<will>', $attr, $code, :build($true));
     }
 
-    # Takes something that may be a block already, and if not transforms it into
-    # one. Used by things doing where clause-ish things.
-    sub where_blockify($expr) {
-        my $past;
-        if $expr<past_block> && $expr<block_class> eq 'Block' {
-            my $lazy_name := make_lazy_sig_block($expr<past_block>);
-            $past := create_code_object($expr<past_block>, 'Block', 0);
-        }
-        else {
-            my $sig := Perl6::Compiler::Signature.new(
-                Perl6::Compiler::Parameter.new(:var_name('$_')));
-            $past := make_block_from($sig, PAST::Op.new(
-                :pasttype('call'), :name('&infix:<~~>'),
-                PAST::Var.new( :name('$_'), :scope('lexical') ),
-                $expr
-            ));
-        }
-        $past
-    }
-
     # This is the hook where, in the future, we'll use this as the hook to check
     # if we have a proto or other declaration in scope that states that this sub
     # has a signature of the form :(\|$parcel), in which case we don't promote
@@ -3277,27 +3270,6 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         $past
-    }
-
-    sub blockify($past, $sig) {
-        add_signature( PAST::Block.new( :blocktype('declaration'),
-                           PAST::Stmts.new( ),
-                           PAST::Stmts.new( $past )
-                       ),
-                       $sig);
-    }
-
-    # Helper for constructing a simple Perl 6 Block with the given signature
-    # and body.
-    sub make_block_from($sig, $body, $type = 'Block') {
-        my $past := PAST::Block.new( :blocktype('declaration'),
-            PAST::Stmts.new( ),
-            PAST::Stmts.new(
-                $body
-            )
-        );
-        add_signature($past, $sig);
-        create_code_object($past, $type, 0);
     }
     
     # Ensures that the given PAST node has a value known at compile

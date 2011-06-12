@@ -412,11 +412,12 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
     /* Do we have a default value closure? */
     else if (!PMC_IS_NULL(param->default_closure)) {
         /* Run it to get a value. */
-        PMC *result = PMCNULL;
-        Parrot_sub_capture_lex(interp, param->default_closure);
-        /* XXX stop using inefficient Parrot_ext_call... :-/ */
-        Parrot_ext_call(interp, param->default_closure, "->P", &result);
-        return result;
+        PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+        PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
+        Parrot_pcc_invoke_from_sig_object(interp, param->default_closure, cappy);
+        cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+        Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
+        return VTABLE_get_pmc_keyed_int(interp, cappy, 0);
     }
 
     /* Otherwise, go by sigil to pick the correct default type of value. */

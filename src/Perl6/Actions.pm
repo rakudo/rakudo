@@ -2808,19 +2808,19 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method quote_escape:sym<$>($/) {
-        make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
+        make steal_back_spaces($/, $<EXPR>.ast);
     }
 
     method quote_escape:sym<array>($/) {
-        make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
+        make steal_back_spaces($/, $<EXPR>.ast);
     }
 
     method quote_escape:sym<%>($/) {
-        make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
+        make steal_back_spaces($/, $<EXPR>.ast);
     }
 
     method quote_escape:sym<&>($/) {
-        make steal_back_spaces($/, PAST::Op.new( $<EXPR>.ast, :pirop('set SP') ));
+        make steal_back_spaces($/, $<EXPR>.ast);
     }
 
     # Unfortunately, the operator precedence parser (probably correctly)
@@ -2833,7 +2833,7 @@ class Perl6::Actions is HLL::Actions {
         }
         my $nab_back := pir::substr__SSI($/, $pos + 1);
         if $nab_back {
-            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, ~$nab_back )
+            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*ST.add_constant('Str', 'str', ~$nab_back) )
         }
         else {
             $expr

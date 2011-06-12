@@ -28,6 +28,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # outermost frame is at the bottom, the latest frame is on top.
     has @!BLOCKS;
     
+    # Mapping of sub IDs to their proto code objects; used for fixing
+    # up in dynamic compilation.
+    has %!sub_id_to_code_object;
+    
     # Array of stubs to check and the end of compilation.
     has @!stub_check;
     
@@ -414,13 +418,28 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $code      := pir::repr_instance_of__PP($type_obj);
         my $slot      := self.add_object($code);
         
+        # Stash it under the PAST block sub ID.
+        %!sub_id_to_code_object{$code_past.subid()} := $code;
+        
         # For now, install stub that will dynamically compile the code if
         # we ever try to run it during compilation.
         my $precomp;
         my $stub := sub (*@pos, *%named) {
             unless $precomp {
+                # Compile.
                 $precomp := self.compile_in_context($code_past);
-                pir::perl6_associate_sub_code_object__vPP($precomp[0], $code);
+                
+                # Fix up Code object associations (including nested blocks).
+                my $num_subs := pir::elements__IP($precomp);
+                my $i := 0;
+                while $i < $num_subs {
+                    my $subid := $precomp[$i].get_subid();
+                    if pir::exists(%!sub_id_to_code_object, $subid) {
+                        pir::perl6_associate_sub_code_object__vPP($precomp[$i],
+                            %!sub_id_to_code_object{$subid});
+                    }
+                    $i := $i + 1;
+                }
             }
             $precomp(|@pos, |%named);
         };

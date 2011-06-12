@@ -1,5 +1,5 @@
-my class EnumMap is Iterable {
-    has $!storage;
+my class EnumMap {
+    # Has attributes and parent Iterable declared in BOOTSTRAP
 
     method exists(Str \$key) {
         pir::perl6_booleanize__PI(

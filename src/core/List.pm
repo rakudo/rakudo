@@ -1,9 +1,7 @@
 class Parcel { ... }
 
-class List is Iterable {
-    has $!items;
-    has $!rest;
-    has $!flat;
+class List {
+    # Has attributes and parent Iterable declared in BOOTSTRAP
 
     method Bool() { self.gimme(1).Bool }
 

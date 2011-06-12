@@ -1,2 +1,3 @@
-my class Iterable is Cool {
+my class Iterable {
+    # Has parent Cool declared in BOOTSTRAP
 }

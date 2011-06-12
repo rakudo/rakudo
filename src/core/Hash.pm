@@ -1,5 +1,5 @@
-my class Hash is EnumMap {
-    has $!descriptor;
+my class Hash {
+    # Has attributes and parent EnumMap declared in BOOTSTRAP
     
     method BIND_KEY(Str \$key, $x is copy) {
         pir::find_method__PPs(EnumMap, 'BIND_KEY')(self, $key, $x);

@@ -1,5 +1,5 @@
-class Array is List {
-    has $!descriptor;
+class Array {
+    # Has attributes and parent List declared in BOOTSTRAP.    
     
     method at_pos($pos) {
         self.exists($pos)

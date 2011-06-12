@@ -364,6 +364,48 @@ Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_ta
 # Stash these common types for box ops.
 pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 
+# class Iterable is Cool {
+#     ...
+# }
+my stub Iterable metaclass Perl6::Metamodel::ClassHOW { ... };
+Iterable.HOW.add_parent(Iterable, Cool);
+
+# class List is Iterable {
+#     has $!items;
+#     has $!rest;
+#     has $!flat;
+#     ...
+# }
+my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
+List.HOW.add_parent(List, Iterable);
+List.HOW.add_attribute(List, BOOTSTRAPATTR.new(:name<$!items>, :type(Mu)));
+List.HOW.add_attribute(List, BOOTSTRAPATTR.new(:name<$!rest>, :type(Mu)));
+List.HOW.add_attribute(List, BOOTSTRAPATTR.new(:name<$!flat>, :type(Mu)));
+
+# class Array is List {
+#     has $!descriptor;
+#     ...
+# }
+my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
+Array.HOW.add_parent(Array, List);
+Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
+
+# my class EnumMap is Iterable {
+#     has $!storage;
+#     ...
+# }
+my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
+EnumMap.HOW.add_parent(EnumMap, Iterable);
+EnumMap.HOW.add_attribute(EnumMap, BOOTSTRAPATTR.new(:name<$!storage>, :type(Mu)));
+
+# my class Hash is EnumMap {
+#     has $!descriptor;
+#     ...
+# }
+my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
+Hash.HOW.add_parent(Hash, EnumMap);
+Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
+
 # class Scalar is Any {
 #     has $!descriptor;
 #     has $!value;
@@ -455,6 +497,11 @@ my module EXPORT {
         $?PACKAGE.WHO<Real>      := Real;
         $?PACKAGE.WHO<Int>       := Int;
         $?PACKAGE.WHO<Num>       := Num;
+        $?PACKAGE.WHO<Iterable>  := Iterable;
+        $?PACKAGE.WHO<List>      := List;
+        $?PACKAGE.WHO<Array>     := Array;
+        $?PACKAGE.WHO<EnumMap>   := EnumMap;
+        $?PACKAGE.WHO<Hash>      := Hash;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
         $?PACKAGE.WHO<Bool>      := Bool;

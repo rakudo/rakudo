@@ -19,6 +19,10 @@ my class Num {
         self != self;
     }
 
+    method abs() {
+        pir::perl6_box_num__PN(pir::abs__NN(pir::repr_unbox_num__NP(self)));
+    }
+
     proto method log(|$) {*}
     multi method log() {
         pir::perl6_box_num__PN(pir::ln__NN(pir::repr_unbox_num__NP(self)));

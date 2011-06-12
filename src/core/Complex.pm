@@ -37,8 +37,8 @@ my class Complex is Numeric {
 
     method Complex() { self }
     method Str() {
-        my $op = $.im < 0 ?? '-' !! '+';
-        "$.re $op {$.im.abs}i";
+        my $op = $.im < 0 ?? ' - ' !! ' + ';
+        $!re.Str ~ $op ~ $!im.abs ~ 'i';
     }
 
     method perl() {

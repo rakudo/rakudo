@@ -285,6 +285,16 @@ Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
     });
 Code.HOW.add_method(Code, 'clone', sub ($self) {
         my $cloned := pir::repr_clone__PP($self);
+        Q:PIR {
+            $P0 = find_lex '$self'
+            $P1 = find_lex 'Code'
+            $P0 = getattribute $P0, $P1, '$!do'
+            $P1 = getprop 'CLONE_CALLBACK', $P0
+            if null $P1 goto no_callback
+            $P2 = find_lex '$cloned'
+            $P1($P0, $P2)
+          no_callback:
+        };
         pir::setattribute__0PPSP($cloned, Code, '$!do',
             pir::perl6_associate_sub_code_object__0PP(
                 pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
@@ -292,16 +302,6 @@ Code.HOW.add_method(Code, 'clone', sub ($self) {
     });
 Code.HOW.add_method(Code, 'derive_dispatcher', sub ($self) {
         my $clone := $self.clone();
-        Q:PIR {
-            $P0 = find_lex '$self'
-            $P1 = find_lex 'Code'
-            $P0 = getattribute $P0, $P1, '$!do'
-            $P1 = getprop 'CLONE_CALLBACK', $P0
-            if null $P1 goto no_callback
-            $P2 = find_lex '$clone'
-            $P1($P0, $P2)
-          no_callback:
-        };
         pir::setattribute__0PPSP($clone, Code, '$!dispatchees',
             pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!dispatchees')))
     });

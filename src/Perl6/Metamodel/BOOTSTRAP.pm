@@ -250,7 +250,7 @@ Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_env
         # Clone with the type instantiated.
         my $ins  := pir::repr_clone__PP($self);
         my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
-        pir::setattribute__0PPsP($self, Parameter, '$!nominal_type',
+        pir::setattribute__0PPsP($ins, Parameter, '$!nominal_type',
             $type.HOW.instantiate_generic($type, $type_environment))
     });
 
@@ -313,7 +313,7 @@ Code.HOW.add_method(Code, 'instantiate_generic', sub ($self, $type_environment) 
         # Clone the code object, then instantiate the generic signature.
         my $ins := $self.clone();
         my $sig := pir::getattribute__PPPs($self, Code, '$!signature');
-        pir::setattribute__0PPsP($self, Code, '$!signature',
+        pir::setattribute__0PPsP($ins, Code, '$!signature',
             $sig.instantiate_generic($type_environment))
     });
 Code.HOW.add_method(Code, 'name', sub ($self) {

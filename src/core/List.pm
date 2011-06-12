@@ -5,6 +5,8 @@ class List {
 
     method Bool() { self.gimme(1).Bool }
 
+    method flat() { self }
+
     method elems() {
         my $n = self.gimme(*);
         $!rest
@@ -40,6 +42,8 @@ class List {
         }
         pir::perl6_box_int__PI(pir::elements($!items));
     }
+
+    method list() { self }
 
     method shift() {
         self.gimme(1) && pir::shift__PP($!items);

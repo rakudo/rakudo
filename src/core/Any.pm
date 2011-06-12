@@ -2,6 +2,8 @@ my class Any {
 
     # List-like methods for Any.
 
+    method flat() { self.list.flat }
+
     method list() { (self,).list }
 
     proto method postcircumfix:<[ ]>(|$) { * }

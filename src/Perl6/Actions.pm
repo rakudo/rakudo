@@ -2089,7 +2089,7 @@ class Perl6::Actions is HLL::Actions {
             $is_hash := 1;
         }
         elsif $stmts == 1 {
-            my $elem := $past[1][0];
+            my $elem := $past<past_block>[1][0];
             if $elem ~~ PAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];

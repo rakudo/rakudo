@@ -1592,6 +1592,7 @@ class Perl6::Actions is HLL::Actions {
             if $<name> {
                 %*PARAM_INFO<variable_name> := ~$/;
             }
+            %*PARAM_INFO<sigil> := ~$<sigil>;
             
             # Handle twigil.
             my $twigil := $<twigil> ?? ~$<twigil>[0] !! '';

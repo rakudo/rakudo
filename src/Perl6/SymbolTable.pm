@@ -328,6 +328,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<defined_only> {
             $flags := $flags + $SIG_ELEM_DEFINED_ONLY;
         }
+        if %param_info<pos_slurpy> {
+            $flags := $flags + $SIG_ELEM_SLURPY_POS;
+        }
+        if %param_info<named_slurpy> {
+            $flags := $flags + $SIG_ELEM_SLURPY_NAMED;
+        }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
             '$!flags', $flags, int));

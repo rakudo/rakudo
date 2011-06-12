@@ -12,6 +12,10 @@ static PMC * Junction   = NULL;
 static PMC * Int        = NULL;
 static PMC * Num        = NULL;
 static PMC * Str        = NULL;
+static PMC * List       = NULL;
+static PMC * Array      = NULL;
+static PMC * EnumMap    = NULL;
+static PMC * _Hash      = NULL;
 static PMC * BoolFalse  = NULL;
 static PMC * BoolTrue   = NULL;
 static PMC * PackageHOW = NULL;
@@ -30,6 +34,18 @@ PMC * Rakudo_types_num_get(void) { return Num; }
 
 void Rakudo_types_str_set(PMC * type) { Str = type; }
 PMC * Rakudo_types_str_get(void) { return Str; }
+
+void Rakudo_types_list_set(PMC * type) { List = type; }
+PMC * Rakudo_types_list_get(void) { return List; }
+
+void Rakudo_types_array_set(PMC * type) { Array = type; }
+PMC * Rakudo_types_array_get(void) { return Array; }
+
+void Rakudo_types_enummap_set(PMC * type) { EnumMap = type; }
+PMC * Rakudo_types_enummap_get(void) { return EnumMap; }
+
+void Rakudo_types_hash_set(PMC * type) { _Hash = type; }
+PMC * Rakudo_types_hash_get(void) { return _Hash; }
 
 void Rakudo_types_bool_false_set(PMC * type) { BoolFalse = type; }
 PMC * Rakudo_types_bool_false_get(void) { return BoolFalse; }

@@ -406,6 +406,10 @@ my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 Hash.HOW.add_parent(Hash, EnumMap);
 Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 
+# Configure declarative listy/hashy types.
+pir::perl6_set_types_list_array__vPP(List, Array);
+pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
+
 # class Scalar is Any {
 #     has $!descriptor;
 #     has $!value;

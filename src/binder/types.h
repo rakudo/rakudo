@@ -16,6 +16,18 @@ PMC * Rakudo_types_num_get(void);
 void Rakudo_types_str_set(PMC * type);
 PMC * Rakudo_types_str_get(void);
 
+void Rakudo_types_list_set(PMC * type);
+PMC * Rakudo_types_list_get(void);
+
+void Rakudo_types_array_set(PMC * type);
+PMC * Rakudo_types_array_get(void);
+
+void Rakudo_types_enummap_set(PMC * type);
+PMC * Rakudo_types_enummap_get(void);
+
+void Rakudo_types_hash_set(PMC * type);
+PMC * Rakudo_types_hash_get(void);
+
 void Rakudo_types_bool_false_set(PMC * type);
 PMC * Rakudo_types_bool_false_get(void);
 

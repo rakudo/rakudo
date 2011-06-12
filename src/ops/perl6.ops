@@ -319,6 +319,36 @@ inline op perl6_set_types_ins(in PMC, in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_set_types_list_array(in PMC, in PMC)
+
+Sets the List and Array types.
+
+=cut
+
+*/
+inline op perl6_set_types_list_array(in PMC, in PMC) :base_core {
+    Rakudo_types_list_set($1);
+    Rakudo_types_array_set($2);
+}
+
+
+/*
+
+=item perl6_set_types_enummap_hash(in PMC, in PMC)
+
+Sets the EnumMap and Hash types.
+
+=cut
+
+*/
+inline op perl6_set_types_enummap_hash(in PMC, in PMC) :base_core {
+    Rakudo_types_enummap_set($1);
+    Rakudo_types_hash_set($2);
+}
+
+
+/*
+
 =item perl6_set_type_packagehow(in PMC)
 
 Sets the package type.

@@ -25,6 +25,7 @@ static STRING *SCALAR_str       = NULL;
 static STRING *CAPTURE_str      = NULL;
 static STRING *SNAPCAP_str      = NULL;
 static STRING *STORAGE_str      = NULL;
+static STRING *REST_str         = NULL;
 static STRING *P6_SCALAR_str    = NULL;
 static STRING *SHORTNAME_str    = NULL;
 static STRING *HASH_SIGIL_str   = NULL;
@@ -47,6 +48,7 @@ static void setup_binder_statics(PARROT_INTERP) {
     CAPTURE_str      = Parrot_str_new_constant(interp, "Capture");
     SNAPCAP_str      = Parrot_str_new_constant(interp, "!snapshot_capture");
     STORAGE_str      = Parrot_str_new_constant(interp, "$!storage");
+    REST_str         = Parrot_str_new_constant(interp, "$!rest");
     P6_SCALAR_str    = Parrot_str_new_constant(interp, "Perl6Scalar");
     SHORTNAME_str    = Parrot_str_new_constant(interp, "shortname");
     HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
@@ -61,14 +63,20 @@ static void setup_binder_statics(PARROT_INTERP) {
 /* Creates a Perl 6 Array. */
 static PMC *
 Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest) {
-    return PMCNULL;
+    PMC *type  = Rakudo_types_array_get();
+    PMC *array = REPR(type)->instance_of(interp, type);
+    VTABLE_set_attr_keyed(interp, array, Rakudo_types_list_get(), REST_str, rest);
+    return array;
 }
 
 
 /* Creates a Perl 6 Hash. */
 static PMC *
 Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
-    return PMCNULL;
+    PMC *type = Rakudo_types_hash_get();
+    PMC *hash = REPR(type)->instance_of(interp, type);
+    VTABLE_set_attr_keyed(interp, hash, Rakudo_types_enummap_get(), STORAGE_str, storage);
+    return hash;
 }
 
 

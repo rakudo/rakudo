@@ -9,6 +9,11 @@ proto prefix:<so>(|$) { * }
 multi prefix:<so>(Bool \$a) { $a }
 multi prefix:<so>(Mu \$a) { $a.Bool }
 
+# XXX These should use Bool::True and Bool::False eventually.
+proto prefix:<!>(|$) { *}
+multi prefix:<!>(Bool \$a) { $a ?? pir::perl6_booleanize__PI(0) !! pir::perl6_booleanize__PI(1) }
+multi prefix:<!>(Mu \$a) { $a.Bool ?? pir::perl6_booleanize__PI(0) !! pir::perl6_booleanize__PI(1) }
+
 proto prefix:<~>(|$) { * }
 multi prefix:<~>(\$a) { $a.Stringy }
 

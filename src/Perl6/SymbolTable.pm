@@ -461,10 +461,15 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
             self.add_object($clone);
             $fixups.push(PAST::Stmts.new(
-                self.set_attribute($clone, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
+                PAST::Op.new( :pasttype('bind'),
+                    PAST::Var.new( :name('$P0'), :scope('register') ),
+                    PAST::Op.new( :pirop('clone PP'), PAST::Val.new( :value($code_past) ) )
+                ),
+                self.set_attribute($clone, $code_type, '$!do',
+                    PAST::Var.new( :name('$P0'), :scope('register') )),
                 PAST::Op.new(
                     :pirop('perl6_associate_sub_code_object vPP'),
-                    PAST::Val.new( :value($code_past) ),
+                    PAST::Var.new( :name('$P0'), :scope('register') ),
                     self.get_object_sc_ref_past($clone)
                 )));
         });

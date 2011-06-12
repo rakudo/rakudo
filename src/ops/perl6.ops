@@ -530,12 +530,17 @@ and asserts that the bind is allowed to take place.
 
 */
 inline op perl6_assert_bind_ok(in PMC, in PMC) :base_core {
-    if ($1->vtable->base_type == smo_id && $2->vtable->base_type == smo_id) {
-        PMC *value = Rakudo_cont_decontainerize(interp, $1);
+    if ($2->vtable->base_type == smo_id) {
         PMC *type = ((Rakudo_ContainerDescriptor *)PMC_data($2))->of;
-        if (!STABLE(value)->type_check(interp, value, type)) {
-            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                "Type check failed in binding");
+        if (type != Rakudo_types_mu_get()) {
+            INTVAL ok = 0;
+            if ($1->vtable->base_type == smo_id) {
+                PMC *value = Rakudo_cont_decontainerize(interp, $1);
+                ok = STABLE(value)->type_check(interp, value, type);
+            }
+            if (!ok)
+                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Type check failed in binding");
         }
     }
     else {

@@ -1,4 +1,12 @@
 role Perl6::Metamodel::MultiMethodContainer {
+    # Represents a multi candidate to incorporate.
+    my class MultiToIncorporate {
+        has $!name;
+        has $!code;
+        method name() { $!name }
+        method code() { $!code }
+    }
+    
     # Set of multi-methods to incorporate. Not just the method handles;
     # each is a hash containing keys name and body.
     has @!multi_methods_to_incorporate;
@@ -8,13 +16,16 @@ role Perl6::Metamodel::MultiMethodContainer {
     # generate a proto and so forth. So just queue them up in a todo list and
     # we handle it at class composition time.
     method add_multi_method($obj, $name, $code_obj) {
-        my %todo;
-        %todo<name> := $name;
-        %todo<code> := $code_obj;
-        @!multi_methods_to_incorporate[+@!multi_methods_to_incorporate] := %todo;
+        my $todo := MultiToIncorporate.new( :name($name), :code($code_obj) );
+        @!multi_methods_to_incorporate[+@!multi_methods_to_incorporate] := $todo;
         $code_obj;
     }
 
+    # Gets the multi methods that are to be incorporated.
+    method multi_methods_to_incorporate($obj) {
+        @!multi_methods_to_incorporate
+    }
+    
     # Incorporates the multi candidates into the appropriate proto. Need to
     # implement proto incorporation yet.
     method incorporate_multi_candidates($obj) {
@@ -22,8 +33,8 @@ role Perl6::Metamodel::MultiMethodContainer {
         my $i := 0;
         while $i != $num_todo {
             # Get method name and code.
-            my $name := @!multi_methods_to_incorporate[$i]<name>;
-            my $code := @!multi_methods_to_incorporate[$i]<code>;
+            my $name := @!multi_methods_to_incorporate[$i].name;
+            my $code := @!multi_methods_to_incorporate[$i].code;
 
             # Do we have anything in the methods table already in
             # this class?

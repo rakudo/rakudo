@@ -152,6 +152,34 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
         $ins
     });
 
+# class Scalar is Any {
+#     has $!descriptor;
+#     has $!value;
+#     ...
+# }
+my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
+Scalar.HOW.add_parent(Scalar, Any);
+Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
+Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu)));
+Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu)));
+pir::set_scalar_container_type__vP(Scalar);
+
+# Scalar needs to be registered as a container type.
+pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
+
+# Helper for creating a scalar attribute. Sets it up as a real Perl 6
+# Attribute instance, complete with container desciptor and auto-viv
+# container.
+sub scalar_attr($name, $type) {
+    my $cd := Perl6::Metamodel::ContainerDescriptor.new(
+        :of($type), :rw(1), :name($name));
+    my $scalar := pir::repr_instance_of__PP(Scalar);
+    pir::setattribute__vPPsP($scalar, Scalar, '$!descriptor', $cd);
+    pir::setattribute__vPPsP($scalar, Scalar, '$!value', $type);
+    return Attribute.new( :name($name), :type($type),
+        :container_descriptor($cd), :auto_viv_container($scalar));
+}
+    
 # class Signature is Cool {
 #    has $!params;
 #    has $!returns;
@@ -378,9 +406,9 @@ Iterable.HOW.add_parent(Iterable, Cool);
 # }
 my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 List.HOW.add_parent(List, Iterable);
-List.HOW.add_attribute(List, BOOTSTRAPATTR.new(:name<$!items>, :type(Mu)));
-List.HOW.add_attribute(List, BOOTSTRAPATTR.new(:name<$!rest>, :type(Mu)));
-List.HOW.add_attribute(List, BOOTSTRAPATTR.new(:name<$!flat>, :type(Mu)));
+List.HOW.add_attribute(List, scalar_attr('$!items', Mu));
+List.HOW.add_attribute(List, scalar_attr('$!rest', Mu));
+List.HOW.add_attribute(List, scalar_attr('$!flat', Mu));
 
 # class Array is List {
 #     has $!descriptor;
@@ -396,7 +424,7 @@ Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu))
 # }
 my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
 EnumMap.HOW.add_parent(EnumMap, Iterable);
-EnumMap.HOW.add_attribute(EnumMap, BOOTSTRAPATTR.new(:name<$!storage>, :type(Mu)));
+EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu));
 
 # my class Hash is EnumMap {
 #     has $!descriptor;
@@ -409,21 +437,6 @@ Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 # Configure declarative listy/hashy types.
 pir::perl6_set_types_list_array__vPP(List, Array);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
-
-# class Scalar is Any {
-#     has $!descriptor;
-#     has $!value;
-#     ...
-# }
-my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
-Scalar.HOW.add_parent(Scalar, Any);
-Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
-Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu)));
-Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu)));
-pir::set_scalar_container_type__vP(Scalar);
-
-# Scalar needs to be registered as a container type.
-pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
 
 # XXX Quick and dirty Bool. Probably done by EnumHOW in the end.
 my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };

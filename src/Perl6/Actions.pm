@@ -2358,6 +2358,9 @@ method EXPR($/, $key?) {
         $past := PAST::Op.new( :node($/) );
         if $<OPER><O><pasttype> { $past.pasttype( ~$<OPER><O><pasttype> ); }
         elsif $<OPER><O><pirop>    { $past.pirop( ~$<OPER><O><pirop> ); }
+        if $<OPER><O><childorder> { 
+            $past.childorder( ~$<OPER><O><childorder> );
+        }
         unless $past.name {
             if $key eq 'LIST' { $key := 'infix'; }
             my $name := Q:PIR {

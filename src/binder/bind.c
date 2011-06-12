@@ -14,22 +14,14 @@ Copyright (C) 2009-2011, The Perl Foundation.
 
 
 /* Cache of Parrot type IDs and some strings. */
-static INTVAL p6r_id            = 0;
 static INTVAL smo_id            = 0;
 static STRING *ACCEPTS          = NULL;
 static STRING *HOW              = NULL;
 static STRING *DO_str           = NULL;
-static STRING *PUN_str          = NULL;
-static STRING *HASH_str         = NULL;
-static STRING *LIST_str         = NULL;
 static STRING *SELF_str         = NULL;
 static STRING *NAME_str         = NULL;
-static STRING *ARRAY_str        = NULL;
 static STRING *BLOCK_str        = NULL;
-static STRING *STORE_str        = NULL;
-static STRING *CREATE_str       = NULL;
 static STRING *SCALAR_str       = NULL;
-static STRING *SELECT_str       = NULL;
 static STRING *CAPTURE_str      = NULL;
 static STRING *SNAPCAP_str      = NULL;
 static STRING *STORAGE_str      = NULL;
@@ -40,7 +32,6 @@ static STRING *ARRAY_SIGIL_str  = NULL;
 static STRING *BANG_TWIGIL_str  = NULL;
 static STRING *SCALAR_SIGIL_str = NULL;
 static STRING *NAMED_str        = NULL;
-static PMC    *HashPunned       = NULL;
 
 /* Initializes our cached versions of some strings and type IDs that we
  * use very commonly. For strings, this should mean we only compute their
@@ -49,17 +40,10 @@ static void setup_binder_statics(PARROT_INTERP) {
     ACCEPTS          = Parrot_str_new_constant(interp, "ACCEPTS");
     HOW              = Parrot_str_new_constant(interp, "HOW");
     DO_str           = Parrot_str_new_constant(interp, "$!do");
-    PUN_str          = Parrot_str_new_constant(interp, "!pun");
     NAME_str         = Parrot_str_new_constant(interp, "name");
-    HASH_str         = Parrot_str_new_constant(interp, "Hash");
-    LIST_str         = Parrot_str_new_constant(interp, "List");
     SELF_str         = Parrot_str_new_constant(interp, "self");
-    ARRAY_str        = Parrot_str_new_constant(interp, "Array");
     BLOCK_str        = Parrot_str_new_constant(interp, "Block");
-    STORE_str        = Parrot_str_new_constant(interp, "!STORE");
-    CREATE_str       = Parrot_str_new_constant(interp, "CREATE");
     SCALAR_str       = Parrot_str_new_constant(interp, "scalar");
-    SELECT_str       = Parrot_str_new_constant(interp, "!select");
     CAPTURE_str      = Parrot_str_new_constant(interp, "Capture");
     SNAPCAP_str      = Parrot_str_new_constant(interp, "!snapshot_capture");
     STORAGE_str      = Parrot_str_new_constant(interp, "$!storage");
@@ -71,50 +55,20 @@ static void setup_binder_statics(PARROT_INTERP) {
     SCALAR_SIGIL_str = Parrot_str_new_constant(interp, "$");
     NAMED_str        = Parrot_str_new_constant(interp, "named");
 
-    p6r_id = pmc_type(interp, Parrot_str_new(interp, "P6role", 0));
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }
 
 /* Creates a Perl 6 Array. */
 static PMC *
-Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest, STRING *type_str) {
-    static PMC *truepmc = NULL;
-    PMC *hll_ns    = Parrot_hll_get_ctx_HLL_namespace(interp);
-    PMC *arr_ns    = Parrot_ns_get_namespace_keyed_str(interp, hll_ns, type_str);
-    PMC *arr_class = VTABLE_get_class(interp, arr_ns);
-    PMC *result    = VTABLE_instantiate(interp, arr_class, PMCNULL);
-    INTVAL type_id = pmc_type(interp, Parrot_str_new(interp, "P6opaque", 0));
-    result->vtable = interp->vtables[type_id];
-    if (!truepmc)
-        truepmc = VTABLE_get_pmc_keyed_str(interp, hll_ns, Parrot_str_new(interp, "True", 0));
-    VTABLE_set_attr_str(interp, result, Parrot_str_new(interp, "$!flat", 0), truepmc);
-    VTABLE_set_attr_str(interp, result, Parrot_str_new(interp, "@!rest", 0), rest);
-    return result;
+Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest) {
+    return PMCNULL;
 }
 
 
 /* Creates a Perl 6 Hash. */
 static PMC *
 Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
-    PMC *result = PMCNULL;
-    PMC *create = PMCNULL;
-
-    if (!HashPunned) {
-        /* We cache the punned Hash role class so we can very quickly call
-         * CREATE - critical as we have slurpy hashes for all methods. */
-        PMC *root_ns   = Parrot_hll_get_ctx_HLL_namespace(interp);
-        PMC *hash_role = VTABLE_get_pmc_keyed_str(interp, root_ns, HASH_str);
-        PMC *meth      = VTABLE_find_method(interp, hash_role, SELECT_str);
-        Parrot_ext_call(interp, meth, "P->P", hash_role, &hash_role);
-        meth           = VTABLE_find_method(interp, hash_role, PUN_str);
-        Parrot_ext_call(interp, meth, "P->P", hash_role, &HashPunned);
-    }
-
-    create = VTABLE_find_method(interp, HashPunned, CREATE_str);
-    Parrot_ext_call(interp, create, "P->P", HashPunned, &result);
-    VTABLE_set_attr_str(interp, result, STORAGE_str, storage);
-
-    return result;
+    return PMCNULL;
 }
 
 
@@ -460,7 +414,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
     /* Otherwise, go by sigil to pick the correct default type of value. */
     else {
         if (param->flags & SIG_ELEM_ARRAY_SIGIL) {
-            return Rakudo_binding_create_positional(interp, PMCNULL, ARRAY_str);
+            return Rakudo_binding_create_positional(interp, PMCNULL);
         }
         else if (param->flags & SIG_ELEM_HASH_SIGIL) {
             return Rakudo_binding_create_hash(interp, pmc_new(interp, enum_class_Hash));
@@ -600,13 +554,13 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
             if (param->flags & SIG_ELEM_SLURPY_POS) {
                 /* Create Perl 6 array, create RPA of all remaining things, then
                  * store it. */
-                PMC *temp       = pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *temp = pmc_new(interp, enum_class_ResizablePMCArray);
                 while (cur_pos_arg < num_pos_args) {
                     VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg));
                     cur_pos_arg++;
                 }
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                        Rakudo_binding_create_positional(interp, temp, ARRAY_str), no_nom_type_check, error);
+                        Rakudo_binding_create_positional(interp, temp), no_nom_type_check, error);
                 if (bind_fail)
                     return bind_fail;
             }

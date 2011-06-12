@@ -1123,7 +1123,17 @@ class Perl6::Actions is HLL::Actions {
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
                     $*ST.install_lexical_symbol($outer, $name, $code);
                 }
-                # XXX our ...
+                elsif $*SCOPE eq 'our' {
+                    # Install in lexpad and in package, and set up code to
+                    # re-bind it per invocation of its outer.
+                    $*ST.install_lexical_symbol($outer, $name, $code);
+                    $*ST.install_package_symbol($*PACKAGE, $name, $code);
+                    $outer[0].push(PAST::Op.new(
+                        :pasttype('bind_6model'),
+                        $*ST.symbol_lookup([$name], $/, :package_only(1)),
+                        PAST::Var.new( :name($name), :scope('lexical') )
+                    ));
+                }
                 else {
                     $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a sub");
                 }

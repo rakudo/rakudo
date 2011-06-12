@@ -875,13 +875,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Takes a name and compiles it to a lookup for the symbol.
-    method symbol_lookup(@name, $/) {
+    method symbol_lookup(@name, $/, :$package_only = 0) {
         # Catch empty names and die helpfully.
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
         
         # If it's a single item, then go hunting for it through the
         # block stack.
-        if +@name == 1 {
+        if +@name == 1 && !$package_only {
             my $i := +@!BLOCKS;
             while $i > 0 {
                 $i := $i - 1;

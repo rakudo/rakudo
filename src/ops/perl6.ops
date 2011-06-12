@@ -564,7 +564,8 @@ use of. Evil, but saves a prophash for every single code object.
 
 */
 inline op perl6_associate_sub_code_object(in PMC, in PMC) :base_core {
-    if ($1->vtable->base_type == enum_class_Sub) {
+    if ($1->vtable->base_type == enum_class_Sub
+           || $1->vtable->base_type == enum_class_Coroutine) {
         SETATTR_Sub_multi_signature(interp, $1, $2);
         PARROT_GC_WRITE_BARRIER(interp, $1);
     }

@@ -257,11 +257,15 @@ my $SIG_ELEM_IS_RW   := 256;
 my $SIG_ELEM_IS_COPY := 512;
 Parameter.HOW.add_method(Parameter, 'set_rw', sub ($self) {
         my $dcself := pir::perl6_decontainerize__PP($self);
+        my $cd     := pir::getattribute__PPPs($dcself, Parameter, '$!container_descriptor');
+        if $cd { $cd.set_rw(1) }
         pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
             pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_RW);
     });
 Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
         my $dcself := pir::perl6_decontainerize__PP($self);
+        my $cd     := pir::getattribute__PPPs($dcself, Parameter, '$!container_descriptor');
+        if $cd { $cd.set_rw(1) }
         pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
             pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
     });

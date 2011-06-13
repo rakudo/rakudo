@@ -296,14 +296,24 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
              * and a normal bind is a straightforward binding plus
              * adding a constraint. */
             if (param->flags & SIG_ELEM_ARRAY_SIGIL) {
-                /* XXX TODO. */
-                VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, decont_value);
+                PMC *bindee = decont_value;
+                if (param->flags & SIG_ELEM_IS_COPY) {
+                    bindee = Rakudo_binding_create_positional(interp,
+                        pmc_new(interp, enum_class_ResizablePMCArray));
+                    Rakudo_cont_store(interp, bindee, decont_value, 0, 0);
+                }
+                VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, bindee);
             }
             
             /* If it's a hash, similar approach to array. */
             else if (param->flags & SIG_ELEM_HASH_SIGIL) {
-                /* XXX TODO. */
-                VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, decont_value);
+                PMC *bindee = decont_value;
+                if (param->flags & SIG_ELEM_IS_COPY) {
+                    bindee = Rakudo_binding_create_hash(interp,
+                        pmc_new(interp, enum_class_Hash));
+                    Rakudo_cont_store(interp, bindee, decont_value, 0, 0);
+                }
+                VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, bindee);
             }
             
             /* If it's a scalar, we always need to wrap it into a new

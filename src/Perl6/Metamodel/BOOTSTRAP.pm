@@ -253,7 +253,19 @@ Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_env
         pir::setattribute__0PPsP($ins, Parameter, '$!nominal_type',
             $type.HOW.instantiate_generic($type, $type_environment))
     });
-
+my $SIG_ELEM_IS_RW   := 256;
+my $SIG_ELEM_IS_COPY := 512;
+Parameter.HOW.add_method(Parameter, 'set_rw', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+            pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_RW);
+    });
+Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+            pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
+    });
+    
 # class Code is Cool {
 #     has $!do;                # Low level code object
 #     has $!signature;         # Signature object

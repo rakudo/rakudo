@@ -43,6 +43,10 @@ class List {
         pir::perl6_box_int__PI(pir::elements($!items));
     }
 
+    method join(\$sep = '') {
+        pir::perl6_box_str__PS(pir::join__SsP($sep, $!items));
+    }
+
     method list() { self }
 
     method shift() {
@@ -53,6 +57,10 @@ class List {
         self.exists($pos)
           ?? pir::set__PQi($!items, pir::repr_unbox_int__IP($pos))
           !! Any
+    }
+
+    method Str() {
+        self.join(' ');
     }
 
     method BIND_POS(\$pos, \$v) {

@@ -91,5 +91,8 @@ class List {
         }
         pir::perl6_box_str__PS(pir::join(pir::repr_unbox_str__SP($separator.Str), $fsa));
     }
+
+    method Int()     { self.elems }
+    method Numeric() { self.elems }
 }
 

@@ -1582,6 +1582,9 @@ class Perl6::Actions is HLL::Actions {
         %*PARAM_INFO<is_parcel>    := $quant eq '\\';
         %*PARAM_INFO<is_capture>   := $quant eq '|';
         
+        # Stash any traits.
+        %*PARAM_INFO<traits> := $<trait>;
+        
         # Result is the parameter info hash.
         make %*PARAM_INFO;
     }
@@ -1736,6 +1739,7 @@ class Perl6::Actions is HLL::Actions {
     sub create_signature_object(@parameter_infos, $lexpad) {
         my @parameters;
         for @parameter_infos {
+            # Add variable as needed.
             if $_<variable_name> {
                 my %sym := $lexpad.symbol($_<variable_name>);
                 if +%sym {
@@ -1744,7 +1748,15 @@ class Perl6::Actions is HLL::Actions {
                     $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
                 }
             }
-            @parameters.push($*ST.create_parameter($_));
+            
+            # Create parameter object and apply any traits.
+            my $param_obj := $*ST.create_parameter($_);
+            for $_<traits> {
+                ($_.ast)($param_obj) if $_.ast;
+            }
+            
+            # Add it to the signature.
+            @parameters.push($param_obj);
         }
         $*ST.create_signature(@parameters)
     }

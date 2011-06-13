@@ -63,7 +63,7 @@ class List {
         pir::set__2QiP($!items, pir::repr_unbox_int__IP($pos), $v)
     }
 
-    method join(\$separator = '') {
+    method join($separator = '') {
         # TODO: needs to be .gimme(Inf) or something
         # once .gimme knows about infinite lists
         self.gimme(*);

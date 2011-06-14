@@ -1463,51 +1463,32 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method type_declarator:sym<subset>($/) {
-        # Figure out our refinee.
-        my $of_trait := has_compiler_trait($<trait>, '&trait_mod:<of>');
-        my $refinee := $of_trait ??
-            $of_trait[0] !!
-            PAST::Var.new( :name('Any'), :namespace([]), :scope('package') );
-
-        # Construct subset and install it in the right place.
-        my $cons_past := PAST::Op.new(
-            :name('&CREATE_SUBSET_TYPE'),
-            $refinee,
-            $<EXPR> ?? where_blockify($<EXPR>[0].ast) !!
-                       PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') )
-        );
-
-        # Stick it somewhere appropriate.
+        # We refine Any by default; "of" may override.
+        my $refinee := $*ST.find_symbol(['Any']);
+        
+        # If we have a refinement, make sure it's thunked if needed. If none,
+        # just always true.
+        my $refinement := make_where_block($<EXPR> ?? $<EXPR>[0].ast !!
+            PAST::Op.new( :pirop('perl6_booleanize__PI'), 1 ));
+        
+        # Create the meta-object.
+        my $subset := $<longname> ??
+            $*ST.create_subset(%*HOW<subset>, $refinee, $refinement) !!
+            $*ST.create_subset(%*HOW<subset>, $refinee, $refinement, :name($<longname>[0].Str));
+        
+        # Apply traits.
+        for $<trait> {
+            ($_.ast)($subset) if $_.ast;
+        }
+        
+        # Install it as needed.
         if $<longname> {
-            my $name := $<longname>[0].Str;
-            if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                # Goes in the package.
-                @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                    :pasttype('bind_6model'),
-                    PAST::Var.new( :name($name), :scope('package') ),
-                    $cons_past
-                ));
-                $*ST.cur_lexpad().symbol($name, :scope('package') );
-            }
-            elsif $*SCOPE eq 'my' {
-                # Install in the lexpad.
-                $*ST.cur_lexpad()[0].push(PAST::Var.new(
-                    :name($name), :isdecl(1),
-                    :viviself($cons_past), :scope('lexical')
-                ));
-                $*ST.cur_lexpad().symbol($name, :scope('lexical') );
-            }
-            else {
-                $/.CURSOR.panic("Cannot declare a subset with scope declarator " ~ $*SCOPE);
-            }
-            make PAST::Var.new( :name($name) );
+            $*ST.install_package($/, $<longname>[0], ($*SCOPE || 'our'),
+                'subset', $*PACKAGE, $*ST.cur_lexpad(), $subset);
         }
-        else {
-            if $*SCOPE ne '' && $*SCOPE ne 'anon' {
-                $/.CURSOR.panic('A ' ~ $*SCOPE ~ ' scoped subset must have a name.');
-            }
-            make $cons_past;
-        }
+        
+        # We evaluate to the refinement type object.
+        make $*ST.get_object_sc_ref_past($subset);
     }
 
     method type_declarator:sym<constant>($/) {
@@ -2998,6 +2979,7 @@ class Perl6::Actions is HLL::Actions {
     sub reference_to_code_object($code_obj, $past_block) {
         my $ref := $*ST.get_object_sc_ref_past($code_obj);
         $ref<past_block> := $past_block;
+        $ref<code_object> := $code_obj;
         return $ref;
     }
     
@@ -3007,6 +2989,7 @@ class Perl6::Actions is HLL::Actions {
             $code
         );
         $closure<block_past> := $code<block_past>;
+        $closure<code_object> := $code<code_object>;
         return $closure;
     }
     
@@ -3015,6 +2998,36 @@ class Perl6::Actions is HLL::Actions {
         ($*ST.cur_lexpad())[0].push($past);
         my $sig  := $*ST.create_signature([]);
         return $*ST.create_code_object($past, 'Code', $sig);
+    }
+    
+    sub make_where_block($expr) {
+        # If it's already a block, nothing to do at all.
+        if $expr<past_block> {
+            return $expr<code_object>;
+        }
+        
+        # Build a block that'll smartmatch the topic against the
+        # expression.
+        my $past := PAST::Block.new(
+            PAST::Stmts.new(
+                PAST::Var.new( :name('$_'), :scope('lexical'), :isdecl(1) )
+            ),
+            PAST::Stmts.new(
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('ACCEPTS'),
+                    $expr,
+                    PAST::Var.new( :name('$_'), :scope('lexical') )
+                )));
+        ($*ST.cur_lexpad())[0].push($past);
+        
+        # Give it a signature and create code object.
+        my $sig := $*ST.create_signature([
+            $*ST.create_parameter(hash(
+                variable_name => '$_',
+                nominal_type => $*ST.find_symbol(['Mu'])
+            ))]);
+        add_signature_binding_code($past, $sig);
+        return $*ST.create_code_object($past, 'Block', $sig);
     }
 
     sub add_implicit_var($block, $name) {

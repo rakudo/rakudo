@@ -927,25 +927,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                     %args<repr> := $*REPR;
                     $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
                     
-                    # Install it in the symbol table.
+                    # Install it in the symbol table if needed.
                     if $longname {
-                        if $*SCOPE eq 'my' {
-                            if +$longname<name><morename> == 0 {
-                                $*ST.install_lexical_symbol($outer, ~$longname<name>, $*PACKAGE);
-                            }
-                            else {
-                                $/.CURSOR.panic("Cannot use multi-part package name with 'my' scope");
-                            }
-                        }
-                        elsif $*SCOPE eq 'our' {
-                            $*ST.install_package_symbol($*OUTERPACKAGE, ~$longname<name>, $*PACKAGE);
-                            if +$longname<name><morename> == 0 {
-                                $*ST.install_lexical_symbol($outer, ~$longname<name>, $*PACKAGE);
-                            }
-                        }
-                        else {
-                            $/.CURSOR.panic("Cannot use $*SCOPE scope with $*PKGDECL");
-                        }
+                        $*ST.install_package($/, $longname, $*SCOPE, $*PKGDECL,
+                            $*OUTERPACKAGE, $outer, $*PACKAGE);
                     }
                 }
                 
@@ -1331,7 +1316,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :s
         [
             [
-                [ <longname> { $/.CURSOR.add_name($<longname>[0].Str); } ]?
+                [ <longname> ]?
                 { $*IN_DECL := '' }
                 <trait>*
                 [ where <EXPR('e=')> ]?

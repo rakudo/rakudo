@@ -158,6 +158,27 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
     }
     
+    # Factors out deciding where to install package-y things.
+    method install_package($/, $longname, $scope, $pkgdecl, $package, $outer, $symbol) {
+        if $scope eq 'my' {
+            if +$longname<name><morename> == 0 {
+                self.install_lexical_symbol($outer, ~$longname<name>, $symbol);
+            }
+            else {
+                $/.CURSOR.panic("Cannot use multi-part package name with 'my' scope");
+            }
+        }
+        elsif $scope eq 'our' {
+            self.install_package_symbol($package, ~$longname<name>, $symbol);
+            if +$longname<name><morename> == 0 {
+                self.install_lexical_symbol($outer, ~$longname<name>, $symbol);
+            }
+        }
+        else {
+            $/.CURSOR.panic("Cannot use $*SCOPE scope with $pkgdecl");
+        }
+    }
+    
     # Installs a lexical symbol. Takes a PAST::Block object, name and
     # the object to install. Does an immediate installation in the
     # compile-time block symbol table, and ensures that the installation
@@ -812,6 +833,34 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             self.set_slot_past($slot, self.set_cur_sc($setup_call))));
         
         return $curried;
+    }
+    
+    # Creates a subset type meta-object/type object pair.
+    method create_subset($how, $refinee, $refinement, :$name) {
+        # Create the meta-object and add to root objects.
+        my %args := hash(:refinee($refinee), :refinement($refinement));
+        if pir::defined($name) { %args<name> := $name; }
+        my $mo := $how.new_type(|%args);
+        my $slot := self.add_object($mo);
+        
+        # Add an event. There's no fixup to do, just a type object to create
+        # on deserialization.
+        my $setup_call := PAST::Op.new(
+            :pasttype('callmethod'), :name('new_type'),
+            self.get_object_sc_ref_past($how),
+            self.get_object_sc_ref_past($refinement),
+            self.get_object_sc_ref_past($refinee)
+        );
+        $setup_call[1].named('refinement');
+        $setup_call[2].named('refinee');
+        if pir::defined($name) {
+            $setup_call.push(PAST::Val.new( :value($name), :named('name') ));
+        }
+        self.add_event(:deserialize_past(
+            self.set_slot_past($slot, self.set_cur_sc($setup_call))));
+        
+        # Result is just the object.
+        return $mo;
     }
     
     # Applies a trait.

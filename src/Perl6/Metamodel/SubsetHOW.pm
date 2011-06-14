@@ -26,6 +26,13 @@ class Perl6::Metamodel::SubsetHOW
         $!refinement
     }
     
+    # Should have the same methods of the (eventually nominal) type
+    # that we refine. (For the performance win, work out a way to
+    # steal its method cache.)
+    method find_method($obj, $name) {
+        pir::find_method__PPS($!refinee, $name)
+    }
+    
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($obj, $checkee) {
         pir::perl6_booleanize__PI(pir::istrue($checkee.HOW =:= self) ||

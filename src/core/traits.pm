@@ -23,6 +23,12 @@ multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     $doee.HOW.add_role($doee, $role)
 }
 
+proto trait_mod:<of>(|$) { * }
+multi trait_mod:<of>(Mu:U $target, Mu:U $type) {
+    # XXX Ensure we can do this, die if not.
+    $target.HOW.set_of($target, $type);
+}
+
 proto trait_mod:<as>(|$) { * }
 multi trait_mod:<as>(Parameter:D $param, $type) {
     # XXX TODO

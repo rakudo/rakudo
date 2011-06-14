@@ -11,4 +11,5 @@ my module EXPORTHOW {
     ($?PACKAGE.WHO)<role-group>   := Perl6::Metamodel::ParametricRoleGroupHOW;
     ($?PACKAGE.WHO)<role-curried> := Perl6::Metamodel::CurriedRoleHOW;
     ($?PACKAGE.WHO)<native>       := Perl6::Metamodel::NativeHOW;
+    ($?PACKAGE.WHO)<subset>       := Perl6::Metamodel::SubsetHOW;
 }

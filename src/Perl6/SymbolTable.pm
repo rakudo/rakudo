@@ -530,28 +530,32 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Helper to make PAST for setting an attribute to a value. Value should
     # be a PAST tree.
     method set_attribute($obj, $class, $name, $value_past) {
-        PAST::Op.new(
-            :pasttype('bind_6model'),
-            PAST::Var.new(
-                :name($name), :scope('attribute_6model'),
-                self.get_object_sc_ref_past($obj), 
-                self.get_object_sc_ref_past($class)
-            ),
-            $value_past
+        PAST::Stmt.new(
+            PAST::Op.new(
+                :pasttype('bind_6model'),
+                PAST::Var.new(
+                    :name($name), :scope('attribute_6model'),
+                    self.get_object_sc_ref_past($obj), 
+                    self.get_object_sc_ref_past($class)
+                ),
+                $value_past
+            )
         )
     }
     
     # Helper to make PAST for setting a typed attribute to a value. Value should
     # be a PAST tree.
     method set_attribute_typed($obj, $class, $name, $value_past, $type) {
-        PAST::Op.new(
-            :pasttype('bind_6model'),
-            PAST::Var.new(
-                :name($name), :scope('attribute_6model'), :type($type),
-                self.get_object_sc_ref_past($obj), 
-                self.get_object_sc_ref_past($class)
-            ),
-            $value_past
+        PAST::Stmt.new(
+            PAST::Op.new(
+                :pasttype('bind_6model'),
+                PAST::Var.new(
+                    :name($name), :scope('attribute_6model'), :type($type),
+                    self.get_object_sc_ref_past($obj), 
+                    self.get_object_sc_ref_past($class)
+                ),
+                $value_past
+            )
         )
     }
     

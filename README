@@ -1,7 +1,7 @@
 Rakudo Perl 6
     This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine.
 
-    Rakudo Perl is Copyright (C) 2008-2010, The Perl Foundation. Rakudo Perl
+    Rakudo Perl is Copyright (C) 2008-2011, The Perl Foundation. Rakudo Perl
     is distributed under the terms of the Artistic License 2.0. For more
     details, see the full text of the license in the file LICENSE.
 
@@ -67,36 +67,41 @@ Rakudo Perl 6
         $ make install
 
     This will install the "perl6" (or "perl6.exe" binary on windows) into
-    the "parrot_install/bin" directory locally, no additional root
+    the "install/bin" directory locally, no additional root
     privileges necessary.
 
     The "--gen-parrot" above option tells Configure.pl to automatically
-    download and build the most appropriate version of Parrot into a local
-    "parrot/" subdirectory, install that Parrot into the "parrot_install/"
-    subdirectory, and use that for building Rakudo. It's okay to use the
-    "--gen-parrot" option on later invocations of Configure.pl; the
-    configure system will re-build Parrot only if a newer version is needed
-    for whatever version of Rakudo you're working with.
+    download and build the most appropriate version of NQP and Parrot 
+    into local "nqp/" and "parrot/" subdirectories, install NQP and Parrot
+    into the "install/" subdirectory, and use them for building Rakudo.
+    It's okay to use the "--gen-parrot" option on later invocations of
+    Configure.pl; the configure system will re-build NQP and/or Parrot 
+    only if a newer version is needed for whatever version of Rakudo 
+    you're working with.
 
-    You can use "--parrot-config=/path/to/parrot_config" instead of
-    "--gen-parrot" to use an already installed Parrot for building Rakudo.
-    This installed Parrot must include its development environment;
-    typically this is done via Parrot's "make install" target or by
-    installing prebuilt "parrot-devel" and/or "libparrot-dev" packages. The
-    version of the already installed Parrot must satisfy a minimum specified
-    by the Rakudo being built -- Configure.pl will verify this for you.
-    Released versions of Rakudo always build against the latest release of
-    Parrot; checkouts of the HEAD revision from github often require a
-    version of Parrot that is newer than the most recent Parrot monthly
-    release.
+    If you already have Parrot installed, you can use 
+    "--with-parrot=/path/to/bin/parrot" to use it instead of
+    building a new one.  This installed Parrot must include its
+    development environment.  Similarly, if you already have NQP
+    installed, you can specify "--with-nqp=/path/to/bin/nqp"
+    to use it.  (Note that this must be NQP, not the NQP-rx that
+    comes with Parrot.)
+
+    The versions of any already installed NQP or Parrot binaries must
+    satify a minimum specified by the Rakudo being built -- Configure.pl
+    and "make" will verify this for you.  Released versions of Rakudo
+    always build against the latest release of Parrot; checkouts of 
+    the HEAD revision from github often require a version of Parrot 
+    that is newer than the most recent Parrot monthly release.
 
     Once built, Rakudo's "make install" target will install Rakudo and its
-    libraries into the Parrot installation that was used to create it. Until
-    this step is performed, the "perl6" executable created by "make" above
-    can only be reliably run from the root of Rakudo's build directory.
-    After "make install" is performed, the installed executable can be run
-    from any directory (as long as the Parrot installation that was used to
-    create it remains intact).
+    libraries into the directories specified by the Parrot installation
+    used to create it.  Until this step is performed, the "perl6" 
+    executable created by "make" above can only be reliably run from 
+    the root of Rakudo's build directory.  After "make install" is 
+    performed, the installed executable can be run from any directory 
+    (as long as the Parrot installation that was used to create it 
+    remains intact).
 
     If the Rakudo compiler is invoked without an explicit script to run, it
     enters a small interactive mode that allows Perl 6 statements to be
@@ -110,10 +115,10 @@ Rakudo Perl 6
     Make sure you have a backup of any custom changes you have done to the
     source tree before performing the following steps:
 
-    Try to remove the "parrot_install" subdirectory:
+    Try to remove the "install/" subdirectory:
 
         $ cd rakudo
-        $ rm -r parrot_install
+        $ rm -r install
         $ git pull
         $ perl Configure.pl --gen-parrot
         $ make
@@ -140,8 +145,9 @@ Rakudo Perl 6
     <http://smolder.parrot.org/app/projects/smoke_reports/5>
 
     At present we do not have any plans to directly store the official test
-    suite as part of the Rakudo/Parrot repository, but will continue to
-    fetch it from the roast repository.
+    suite as part of the Rakudo repository, but will continue to fetch it 
+    from the roast repository.  Releases of Rakudo get a snapshot of
+    the roast repository as of the time of the release.
 
     You can also use "make" to run an individual test from the command line:
 
@@ -166,24 +172,22 @@ Rakudo Perl 6
     help for Perl 6 and Rakudo on Parrot. Figuring out the right one to use
     is often the biggest battle. Here are some rough guidelines:
 
+    The central hub for Perl 6 information is http://perl6.org/ .
+    This is always a good starting point.
+
     If you have a question about Perl 6 syntax or the right way to approach
     a problem using Perl 6, you probably want the "perl6-users@perl.org"
-    mailing list. This list is primarily for the people who want to *use*
-    Perl 6 to write programs, as opposed to those who are implementing or
-    developing the Perl 6 language itself.
+    mailing list or the "irc.freenode.net/#perl6" channel.  The perl6-users
+    list is primarily for the people who want to use Perl 6 to write
+    programs, so newbie questions are welcomed there.  Newbie questions
+    are also welcome on the #perl6 channel; the Rakudo and Perl 6
+    development teams tend to hang out there and are generally glad 
+    to help.  You can follow "@rakudoperl" on Twitter, and there's
+    a Perl 6 news aggregator at <http://planetsix.perl.org> .
 
-    Questions about the Rakudo compiler for Parrot and the Parrot compiler
-    tools can go to "perl6-compiler@perl.org". Discussion about Parrot
-    itself generally takes place on "parrot-dev@lists.parrot.org".
-
-    The Rakudo and Parrot development teams tend to hang out on IRC a fair
-    bit, either on "irc.freenode.net/#perl6" or "irc.perl.org/#parrot".
-
-    Rakudo's official web site is <http://rakudo.org/>, where you can find
-    useful information for developers and users alike. There's also a Parrot
-    blog at <http://parrotblog.org/>, most Perl 6 related news is assembled
-    at <http://planetsix.perl.org/>. Links to many other resources can be
-    found on <http://perl6.org/>.
+    Questions about NQP can also be posted to the #perl6 IRC channel.
+    For questions about Parrot, see <http://parrot.org/> for links and
+    resources, or join the #parrot IRC channel on irc.perl.org .
 
   Reporting bugs
     Bug reports should be sent to "rakudobug@perl.org" with the moniker
@@ -211,15 +215,13 @@ Rakudo Perl 6
     more of them if you made multiple commits; please attach these to your
     email.
 
-    (Note to the maintainers: you can apply these patches with the "git-am
-    -s" command; it preserves meta information like author).
-
-    Other ways to create and submit patches are discussed here:
-    <http://wiki.github.com/rakudo/rakudo/steps-to-create-a-patch>.
+    (Note to the maintainers: you can apply these patches with the 
+    "git-am -s" command; it preserves meta information like author).
 
   How the compiler works
     See docs/compiler_overview.pod.
 
 AUTHOR
-    Patrick Michaud "pmichaud@pobox.com" is the primary author and
-    maintainer for Rakudo Perl 6 on Parrot. See CREDITS for further authors.
+    Patrick Michaud "pmichaud@pobox.com" is the current pumpking for
+    Rakudo Perl 6.  See CREDITS for the many people that have contributed
+    to the development of the Rakudo compiler.

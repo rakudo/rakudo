@@ -816,7 +816,7 @@ class Perl6::Actions is HLL::Actions {
             if $*IN_DECL ne 'variable' {
                 # Ensure attribute actaully exists before emitting lookup.
                 unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
-                    $/.CURSOR.panic("Lookup of $name outside of package that can support attributes");
+                    $/.CURSOR.panic("Cannot understand $name in this context");
                 }
                 my $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
                 if $attr {

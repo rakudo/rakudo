@@ -28,6 +28,18 @@ typedef struct {
     PMC                 *fetch_method;
 } ContainerSpec;
 
+/* Controls the way that type checks are performed. By default, if there is
+ * a type check cache we treat it as definitive. However, it's possible to
+ * declare that in the case the type check cache has no entry we should fall
+ * back to asking the .HOW.type_check method (set TYPE_CHECK_CACHE_THEN_METHOD).
+ * While a normal type check asks a value if it suppots another type, the
+ * TYPE_CHECK_NEEDS_ACCEPTS flag results in a call to .accepts_type on the
+ * HOW of the thing we're checking the value against, giving it a chance to
+ * decide answer. */
+#define TYPE_CHECK_CACHE_DEFINITIVE    0
+#define TYPE_CHECK_CACHE_THEN_METHOD   1
+#define TYPE_CHECK_NEEDS_ACCEPTS       2
+
 /* S-Tables (short for Shared Table) contains the commonalities shared between
  * a (HOW, REPR) pairing (for example, (HOW for the class Dog, P6Opaque). */
 typedef struct {
@@ -65,6 +77,9 @@ typedef struct {
 
     /* The length of the type check cache. */
     INTVAL type_check_cache_length;
+    
+    /* The type checking mode (see flags for this above). */
+    INTVAL type_check_mode;
 
     /* An ID solely for use in caches that last a VM instance. Thus it
      * should never, ever be serialized and you should NEVER make a
@@ -201,5 +216,6 @@ void SixModelObject_initialize(PARROT_INTERP, PMC **knowhow, PMC **knowhow_attri
 PMC * wrap_repr(PARROT_INTERP, void *REPR);
 PMC * wrap_object(PARROT_INTERP, void *obj);
 PMC * create_stable(PARROT_INTERP, PMC *REPR, PMC *HOW);
+PMC * decontainerize(PARROT_INTERP, PMC *var);
 
 #endif

@@ -434,6 +434,14 @@ my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
 Array.HOW.add_parent(Array, List);
 Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 
+# class LoL is List {
+#     has $!descriptor;
+#     ...
+# }
+my stub LoL metaclass Perl6::Metamodel::ClassHOW { ... };
+LoL.HOW.add_parent(LoL, List);
+LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
+
 # my class EnumMap is Iterable {
 #     has $!storage;
 #     ...

@@ -30,7 +30,7 @@ class List {
         my $eager = Whatever.ACCEPTS($n);
         while $!rest && ($eager || $i < $n) {
             $x := pir::shift__PP($!rest);
-            if Parcel.ACCEPTS($x) {
+            if $x.defined && Parcel.ACCEPTS($x) {
                 pir::splice__vPPii(
                      $!rest, pir::getattribute__PPPs($x, Parcel, '$!storage'),
                      0, 0);

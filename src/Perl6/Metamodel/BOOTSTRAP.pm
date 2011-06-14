@@ -541,6 +541,7 @@ my module EXPORT {
         $?PACKAGE.WHO<Iterable>  := Iterable;
         $?PACKAGE.WHO<List>      := List;
         $?PACKAGE.WHO<Array>     := Array;
+        $?PACKAGE.WHO<LoL>       := LoL;
         $?PACKAGE.WHO<EnumMap>   := EnumMap;
         $?PACKAGE.WHO<Hash>      := Hash;
         $?PACKAGE.WHO<Stash>     := Stash;

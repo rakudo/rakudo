@@ -207,6 +207,7 @@ class Perl6::Actions is HLL::Actions {
                     if $ast<sink_past> {
                         $ast := $ast<sink_past>;
                     }
+                    $ast := PAST::Stmt.new($ast) if $ast ~~ PAST::Node;
                     $past.push( $ast );
                 }
             }
@@ -1094,7 +1095,7 @@ class Perl6::Actions is HLL::Actions {
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
         my $outer := $*ST.cur_lexpad();
-        $outer[0].push($block);
+        $outer[0].push(PAST::Stmt.new($block));
 
         my $past;
         if $<deflongname> {
@@ -2089,7 +2090,7 @@ class Perl6::Actions is HLL::Actions {
             $is_hash := 1;
         }
         elsif $stmts == 1 {
-            my $elem := $past[1][0];
+            my $elem := $past[1][0][0];
             if $elem ~~ PAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];

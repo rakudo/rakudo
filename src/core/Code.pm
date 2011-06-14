@@ -1,4 +1,8 @@
 my class Code {
+    multi method ACCEPTS(Code:D $self: $topic) {
+        $self.count ?? $self($topic) !! $self()
+    }
+    
     method arity() { $!signature.arity }
     
     method count() { $!signature.count }

@@ -1200,11 +1200,11 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | <type_constraint>+
             [
-            | $<quant>=['*'|'\\'|'|'] <param_var>
+            | $<quant>=['**'|'*'|'\\'|'|'] <param_var>
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
             | <?>
             ]
-        | $<quant>=['*'|'\\'|'|'] <param_var>
+        | $<quant>=['**'|'*'|'\\'|'|'] <param_var>
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <longname> <.panic('Invalid typename in parameter declaration')>
         ]

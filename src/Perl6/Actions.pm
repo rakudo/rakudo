@@ -2260,7 +2260,15 @@ class Perl6::Actions is HLL::Actions {
         my $rhs := $/[1].ast;
         my $old_topic_var := $lhs.unique('old_topic');
         my $result_var := $lhs.unique('sm_result');
-        PAST::Op.new(
+        my $sm_call := PAST::Op.new(
+            :pasttype('callmethod'), :name('ACCEPTS'),
+            $rhs,
+            PAST::Var.new( :name('$_'), :scope('lexical') )
+        );
+        if $negated {
+            $sm_call := PAST::Op.new( :name('&prefix:<!>'), $sm_call );
+        }
+        PAST::Stmt.new(PAST::Op.new(
             :pasttype('stmts'),
 
             # Stash original $_.
@@ -2279,13 +2287,7 @@ class Perl6::Actions is HLL::Actions {
             # return value to a result variable.
             PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :name($result_var), :scope('lexical'), :isdecl(1) ),
-                PAST::Op.new( :pasttype('call'), :name('&coerce-smartmatch-result'),
-                    PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
-                        $rhs,
-                        PAST::Var.new( :name('$_'), :scope('lexical') )
-                    ),
-                    $negated
-                )
+                $sm_call
             ),
 
             # Re-instate original $_.
@@ -2296,7 +2298,7 @@ class Perl6::Actions is HLL::Actions {
 
             # And finally evaluate to the smart-match result.
             PAST::Var.new( :name($result_var), :scope('lexical') )
-        );
+        ));
     }
     
     sub bind_op($/, $sigish) {

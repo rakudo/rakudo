@@ -1583,6 +1583,9 @@ class Perl6::Actions is HLL::Actions {
         %*PARAM_INFO<is_parcel>    := $quant eq '\\';
         %*PARAM_INFO<is_capture>   := $quant eq '|';
         
+        # Stash any traits.
+        %*PARAM_INFO<traits> := $<trait>;
+        
         # Result is the parameter info hash.
         make %*PARAM_INFO;
     }
@@ -1737,6 +1740,7 @@ class Perl6::Actions is HLL::Actions {
     sub create_signature_object(@parameter_infos, $lexpad) {
         my @parameters;
         for @parameter_infos {
+            # Add variable as needed.
             if $_<variable_name> {
                 my %sym := $lexpad.symbol($_<variable_name>);
                 if +%sym {
@@ -1745,7 +1749,15 @@ class Perl6::Actions is HLL::Actions {
                     $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
                 }
             }
-            @parameters.push($*ST.create_parameter($_));
+            
+            # Create parameter object and apply any traits.
+            my $param_obj := $*ST.create_parameter($_);
+            for $_<traits> {
+                ($_.ast)($param_obj) if $_.ast;
+            }
+            
+            # Add it to the signature.
+            @parameters.push($param_obj);
         }
         $*ST.create_signature(@parameters)
     }
@@ -2090,7 +2102,7 @@ class Perl6::Actions is HLL::Actions {
             $is_hash := 1;
         }
         elsif $stmts == 1 {
-            my $elem := $past[1][0][0];
+            my $elem := $past<past_block>[1][0][0];
             if $elem ~~ PAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
@@ -2925,10 +2937,7 @@ class Perl6::Actions is HLL::Actions {
         # We tell Parrot that we'll have all args in the call_sig so it won't
         # do its own arg processing. We also add a call to bind the signature.
         $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
-        $block[0].push(PAST::Op.new(
-            :pirop('bind_signature vP'),
-            $*ST.get_object_sc_ref_past($sig_obj)
-        ));
+        $block[0].push(PAST::Op.new( :pirop('bind_signature vP') ));
 
         $block;
     }

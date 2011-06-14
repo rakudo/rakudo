@@ -36,7 +36,7 @@ my class Signature {
     method params() {
         pir::setattribute__0PPsP(
             pir::repr_instance_of__PP(List),
-            List, '$!rest', $!params);
+            List, '$!rest', pir::clone__PP($!params));
     }
     
     # XXX TODO: Parameter separators.

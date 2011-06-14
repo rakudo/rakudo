@@ -12,8 +12,12 @@ my class Num {
 
     # TODO: replace 1.Num with a Num literal once they are implemented
     proto method succ(|$) {*}
-    multi method succ(Num:D:) { self + 1.Num }
-    multi method succ(Num:U:) {        1.Num }
+    multi method succ(Num:D:) { self + 1e0 }
+    multi method succ(Num:U:) {        1e0 }
+
+    proto method pred(|$) {*}
+    multi method pred(Num:D:) { self - 1e0 }
+    multi method pred(Num:U:) {       -1e0 }
 
     method isNaN() {
         self != self;

@@ -11,9 +11,21 @@ multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
 }
 
+multi trait_mod:<is>(Parameter:D $param, :$rw!) {
+    $param.set_rw();
+}
+multi trait_mod:<is>(Parameter:D $param, :$copy!) {
+    $param.set_copy();
+}
+
 proto trait_mod:<does>(|$) { * }
 multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     $doee.HOW.add_role($doee, $role)
+}
+
+proto trait_mod:<as>(|$) { * }
+multi trait_mod:<as>(Parameter:D $param, $type) {
+    # XXX TODO
 }
 
 proto trait_mod:<will>(|$) { * }

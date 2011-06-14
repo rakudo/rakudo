@@ -52,6 +52,13 @@ my class RoleToClassApplier {
                 $target.HOW.add_method($target, $_.name, $_);
             }
         }
+        
+        # Compose in any multi-methods; conflicts can be caught by
+        # the multi-dispatcher later.
+        my @multis := $to_compose_meta.multi_methods_to_incorporate($to_compose);
+        for @multis {
+            $target.HOW.add_multi_method($target, $_.name, $_.code);
+        }
 
         # Compose in any role attributes.
         my @attributes := $to_compose_meta.attributes($to_compose, :local(1));

@@ -55,8 +55,44 @@ class List {
           !! Any
     }
 
+    method Str() {
+        self.join(' ');
+    }
+
     method BIND_POS(\$pos, \$v) {
         pir::set__2QiP($!items, pir::repr_unbox_int__IP($pos), $v)
     }
+
+    method join($separator = '') {
+        # TODO: needs to be .gimme(Inf) or something
+        # once .gimme knows about infinite lists
+        self.gimme(*);
+
+        my $elems = self.elems;
+
+        # unbox all elements ourselves, because
+        # the get_string vtable is slow.
+        # See http://irclog.perlgeek.de/perl6/2011-06-12#i_3911474
+        # for a discussion.
+        my Mu $fsa := pir::new__Ps('FixedStringArray');
+
+        # initialize length of the FSA, must be done
+        # before entering the first item
+        pir::set__vPI($fsa, pir::repr_unbox_int__IP($elems));
+
+        my $i = 0;
+        while $i < $elems {
+            pir::set__vQis($fsa, pir::repr_unbox_int__IP($i),
+                pir::repr_unbox_str__SP(
+                    pir::set__PQi($!items, pir::repr_unbox_int__IP($i)).Str
+                )
+            );
+            $i = $i + 1;
+        }
+        pir::perl6_box_str__PS(pir::join(pir::repr_unbox_str__SP($separator.Str), $fsa));
+    }
+
+    method Int()     { self.elems }
+    method Numeric() { self.elems }
 }
 

@@ -250,10 +250,26 @@ Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_env
         # Clone with the type instantiated.
         my $ins  := pir::repr_clone__PP($self);
         my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
-        pir::setattribute__0PPsP($self, Parameter, '$!nominal_type',
+        pir::setattribute__0PPsP($ins, Parameter, '$!nominal_type',
             $type.HOW.instantiate_generic($type, $type_environment))
     });
-
+my $SIG_ELEM_IS_RW   := 256;
+my $SIG_ELEM_IS_COPY := 512;
+Parameter.HOW.add_method(Parameter, 'set_rw', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $cd     := pir::getattribute__PPPs($dcself, Parameter, '$!container_descriptor');
+        if $cd { $cd.set_rw(1) }
+        pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+            pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_RW);
+    });
+Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $cd     := pir::getattribute__PPPs($dcself, Parameter, '$!container_descriptor');
+        if $cd { $cd.set_rw(1) }
+        pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+            pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
+    });
+    
 # class Code is Cool {
 #     has $!do;                # Low level code object
 #     has $!signature;         # Signature object
@@ -285,6 +301,16 @@ Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
     });
 Code.HOW.add_method(Code, 'clone', sub ($self) {
         my $cloned := pir::repr_clone__PP($self);
+        Q:PIR {
+            $P0 = find_lex '$self'
+            $P1 = find_lex 'Code'
+            $P0 = getattribute $P0, $P1, '$!do'
+            $P1 = getprop 'CLONE_CALLBACK', $P0
+            if null $P1 goto no_callback
+            $P2 = find_lex '$cloned'
+            $P1($P0, $P2)
+          no_callback:
+        };
         pir::setattribute__0PPSP($cloned, Code, '$!do',
             pir::perl6_associate_sub_code_object__0PP(
                 pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
@@ -292,16 +318,6 @@ Code.HOW.add_method(Code, 'clone', sub ($self) {
     });
 Code.HOW.add_method(Code, 'derive_dispatcher', sub ($self) {
         my $clone := $self.clone();
-        Q:PIR {
-            $P0 = find_lex '$self'
-            $P1 = find_lex 'Code'
-            $P0 = getattribute $P0, $P1, '$!do'
-            $P1 = getprop 'CLONE_CALLBACK', $P0
-            if null $P1 goto no_callback
-            $P2 = find_lex '$clone'
-            $P1($P0, $P2)
-          no_callback:
-        };
         pir::setattribute__0PPSP($clone, Code, '$!dispatchees',
             pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!dispatchees')))
     });
@@ -313,7 +329,7 @@ Code.HOW.add_method(Code, 'instantiate_generic', sub ($self, $type_environment) 
         # Clone the code object, then instantiate the generic signature.
         my $ins := $self.clone();
         my $sig := pir::getattribute__PPPs($self, Code, '$!signature');
-        pir::setattribute__0PPsP($self, Code, '$!signature',
+        pir::setattribute__0PPsP($ins, Code, '$!signature',
             $sig.instantiate_generic($type_environment))
     });
 Code.HOW.add_method(Code, 'name', sub ($self) {

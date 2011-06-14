@@ -426,3 +426,14 @@ multi infix:<gcd>(Int \$a, Int \$b) {
             pir::repr_unbox_int__IP($b)
         ));
 }
+
+# should really be '$a is rw' in the next for operators
+proto prefix:<++>(|$) { * }
+multi prefix:<++>(\$a is rw) { $a = $a.succ }
+proto prefix:<-->(|$) { * }
+multi prefix:<-->(\$a is rw) { $a = $a.pred }
+
+proto postfix:<++>(|$) { * }
+multi postfix:<++>(\$a is rw) { my $b = $a; $a = $a.succ; $b }
+proto postfix:<-->(|$) { * }
+multi postfix:<-->(\$a is rw) { my $b = $a; $a = $a.pred; $b }

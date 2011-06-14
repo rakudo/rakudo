@@ -84,12 +84,14 @@ class List {
         while $i < $elems {
             pir::set__vQis($fsa, pir::repr_unbox_int__IP($i),
                 pir::repr_unbox_str__SP(
-                    pir::set__PQi($!items, pir::repr_unbox_int__IP($i)).Str
+                    pir::set__PQi($!items, pir::repr_unbox_int__IP($i)).Stringy
                 )
             );
             $i = $i + 1;
         }
-        pir::perl6_box_str__PS(pir::join(pir::repr_unbox_str__SP($separator.Str), $fsa));
+        pir::perl6_box_str__PS(
+            pir::join(pir::repr_unbox_str__SP($separator.Stringy), $fsa)
+        );
     }
 
     method Int()     { self.elems }

@@ -967,8 +967,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $des := PAST::Stmts.new();
         my $fix := PAST::Stmts.new();
         for self.event_stream() {
-            $des.push(PAST::Stmts.new($_.deserialize_past())) if pir::defined($_.deserialize_past());
-            $fix.push(PAST::Stmts.new($_.fixup_past())) if pir::defined($_.fixup_past());
+            $des.push(PAST::Stmt.new($_.deserialize_past())) if pir::defined($_.deserialize_past());
+            $fix.push(PAST::Stmt.new($_.fixup_past())) if pir::defined($_.fixup_past());
         }
         make PAST::Op.new(
             :pasttype('if'),

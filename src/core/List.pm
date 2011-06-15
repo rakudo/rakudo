@@ -55,7 +55,7 @@ class List {
           !! Any
     }
 
-    method Str() {
+    multi method Str(List:D:) {
         self.join(' ');
     }
 

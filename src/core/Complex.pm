@@ -36,7 +36,7 @@ my class Complex is Numeric {
     }
 
     method Complex() { self }
-    method Str() {
+    multi method Str(Complex:D:) {
         my $op = $.im < 0 ?? ' - ' !! ' + ';
         $!re.Str ~ $op ~ $!im.abs ~ 'i';
     }

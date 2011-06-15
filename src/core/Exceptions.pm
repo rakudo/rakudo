@@ -4,9 +4,9 @@ my package X {
         has $.backtrace;
         has $.message;
 
-        method Str() {
-        # Just a stub so far.
-        $!message.Str // 'Something went wrong'
+        multi method Str(Base:D:) {
+            # Just a stub so far.
+            $!message.Str // 'Something went wrong'
         }
         method ID() { ... }
     }

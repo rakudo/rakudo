@@ -803,11 +803,7 @@ class Perl6::Actions is HLL::Actions {
 
     sub make_variable($/, $name) {
         my @name := Perl6::Grammar::parse_name($name);
-        my $past := PAST::Var.new( :name(@name.pop), :node($/));
-        if @name {
-            $past.namespace(@name);
-            $past.scope('package');
-        }
+        my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $<twigil>[0] eq '*' {
             $past := PAST::Op.new( $past.name(), :pasttype('call'), :name('!find_contextual'), :lvalue(0) );
         }
@@ -852,12 +848,15 @@ class Perl6::Actions is HLL::Actions {
                 $past := add_placeholder_parameter($/, '%', '_', :slurpy_named(1));
             }
         }
+        elsif +@name > 1 {
+            $past := $*ST.symbol_lookup(@name, $/);
+        }
         else {
             my $attr_alias := $*ST.is_attr_alias($past.name);
             if $attr_alias {
                 $past.name($attr_alias);
                 $past.scope('attribute');
-                $past.viviself( sigiltype( $<sigil> ) );
+                $past.unshift($*ST.get_object_sc_ref_past($*ST.find_symbol(['$?CLASS'])));
                 $past.unshift(PAST::Var.new( :name('self'), :scope('lexical') ));
             }
         }

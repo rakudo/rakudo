@@ -1045,9 +1045,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         0;
     }
     
-    # XXX TODO
+    # Checks if the symbol is really an alias to an attribute.
     method is_attr_alias($name) {
-        0
+        my $i := +@!BLOCKS;
+        while $i > 0 {
+            $i := $i - 1;
+            my %sym := @!BLOCKS[$i].symbol($name);
+            if +%sym {
+                return %sym<attr_alias>;
+            }
+        }
     }
     
     # Generates a series of PAST operations that will build this context if

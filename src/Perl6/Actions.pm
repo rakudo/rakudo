@@ -313,9 +313,7 @@ class Perl6::Actions is HLL::Actions {
                             :default_from_outer(1), :is_parcel(1),
                         ));
                     }
-                    else {
-                        add_implicit_var($block, '$_');
-                    }
+                    add_implicit_var($block, '$_');
                 }
             }
             

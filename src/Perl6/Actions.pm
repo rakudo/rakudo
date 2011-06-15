@@ -244,6 +244,7 @@ method statementlist($/) {
                 elsif $ast.isa(PAST::Block) && !$ast.blocktype {
                     $ast := block_immediate($ast);
                 }
+                $ast := PAST::Stmt.new($ast) if $ast ~~ PAST::Node;
                 $past.push( $ast );
             }
         }
@@ -2286,7 +2287,7 @@ method circumfix:sym<{ }>($/) {
         $is_hash := 1;
     }
     elsif $stmts == 1 {
-        my $elem := $past[1][0];
+        my $elem := $past[1][0][0];
         if $elem ~~ PAST::Op && $elem.name eq '&infix:<,>' {
             # block contains a list, so test the first element
             $elem := $elem[0];

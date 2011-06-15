@@ -56,6 +56,7 @@ static void setup_binder_statics(PARROT_INTERP) {
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }
 
+
 /* Creates a Perl 6 Array. */
 static PMC *
 Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest) {
@@ -63,6 +64,16 @@ Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest) {
     PMC *array = REPR(type)->instance_of(interp, type);
     VTABLE_set_attr_keyed(interp, array, Rakudo_types_list_get(), REST_str, rest);
     return array;
+}
+
+
+/* Creates a Perl 6 LoL. */
+static PMC *
+Rakudo_binding_create_lol(PARROT_INTERP, PMC *rest) {
+    PMC *type = Rakudo_types_lol_get();
+    PMC *lol  = REPR(type)->instance_of(interp, type);
+    VTABLE_set_attr_keyed(interp, lol, Rakudo_types_list_get(), REST_str, rest);
+    return lol;
 }
 
 
@@ -565,8 +576,8 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
 
         /* Otherwise, maybe it's a positional. */
         else if (PMC_IS_NULL(param->named_names)) {
-            /* Slurpy? */
-            if (param->flags & SIG_ELEM_SLURPY_POS) {
+            /* Slurpy or LoL-slurpy? */
+            if (param->flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_LOL)) {
                 /* Create Perl 6 array, create RPA of all remaining things, then
                  * store it. */
                 PMC *temp = pmc_new(interp, enum_class_ResizablePMCArray);
@@ -575,7 +586,10 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     cur_pos_arg++;
                 }
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                        Rakudo_binding_create_positional(interp, temp), no_nom_type_check, error);
+                        (param->flags & SIG_ELEM_SLURPY_POS ?
+                            Rakudo_binding_create_positional(interp, temp) :
+                            Rakudo_binding_create_lol(interp, temp)),
+                        no_nom_type_check, error);
                 if (bind_fail)
                     return bind_fail;
             }

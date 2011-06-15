@@ -8,7 +8,7 @@ my $SIG_ELEM_BIND_PRIVATE_ATTR  := 2;
 my $SIG_ELEM_BIND_PUBLIC_ATTR   := 4;
 my $SIG_ELEM_SLURPY_POS         := 8;
 my $SIG_ELEM_SLURPY_NAMED       := 16;
-my $SIG_ELEM_SLURPY_BLOCK       := 32;
+my $SIG_ELEM_SLURPY_LOL         := 32;
 my $SIG_ELEM_INVOCANT           := 64;
 my $SIG_ELEM_MULTI_INVOCANT     := 128;
 my $SIG_ELEM_IS_RW              := 256;
@@ -358,6 +358,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         if %param_info<named_slurpy> {
             $flags := $flags + $SIG_ELEM_SLURPY_NAMED;
+        }
+        if %param_info<pos_lol> {
+            $flags := $flags + $SIG_ELEM_SLURPY_LOL;
         }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,

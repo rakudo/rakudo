@@ -14,6 +14,7 @@ static PMC * Num        = NULL;
 static PMC * Str        = NULL;
 static PMC * List       = NULL;
 static PMC * Array      = NULL;
+static PMC * LoL        = NULL;
 static PMC * EnumMap    = NULL;
 static PMC * _Hash      = NULL;
 static PMC * BoolFalse  = NULL;
@@ -40,6 +41,9 @@ PMC * Rakudo_types_list_get(void) { return List; }
 
 void Rakudo_types_array_set(PMC * type) { Array = type; }
 PMC * Rakudo_types_array_get(void) { return Array; }
+
+void Rakudo_types_lol_set(PMC * type) { LoL = type; }
+PMC * Rakudo_types_lol_get(void) { return LoL; }
 
 void Rakudo_types_enummap_set(PMC * type) { EnumMap = type; }
 PMC * Rakudo_types_enummap_get(void) { return EnumMap; }

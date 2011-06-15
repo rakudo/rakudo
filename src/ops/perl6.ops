@@ -325,16 +325,17 @@ inline op perl6_set_types_ins(in PMC, in PMC, in PMC) :base_core {
 
 /*
 
-=item perl6_set_types_list_array(in PMC, in PMC)
+=item perl6_set_types_list_array_lol(in PMC, in PMC, in PMC)
 
-Sets the List and Array types.
+Sets the List, Array and LoL types.
 
 =cut
 
 */
-inline op perl6_set_types_list_array(in PMC, in PMC) :base_core {
+inline op perl6_set_types_list_array_lol(in PMC, in PMC, in PMC) :base_core {
     Rakudo_types_list_set($1);
     Rakudo_types_array_set($2);
+    Rakudo_types_lol_set($3);
 }
 
 

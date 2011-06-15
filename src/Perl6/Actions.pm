@@ -1701,8 +1701,10 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         else {
-            # XXX TODO
-            $/.CURSOR.panic('post_constraints not yet implemented');
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            %*PARAM_INFO<post_constraints>.push(make_where_block($<EXPR>.ast));
         }
     }
     

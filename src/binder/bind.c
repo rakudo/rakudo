@@ -346,19 +346,22 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
         PMC * result            = PMCNULL;
         INTVAL i;
         for (i = 0; i < num_constraints; i++) {
-            /* XXX fix this crap... */
-            /*PMC *cons_type    = VTABLE_get_pmc_keyed_int(interp, constraints, i);
+            /* Check we meet the constraint. */
+            PMC *cons_type    = VTABLE_get_pmc_keyed_int(interp, constraints, i);
             PMC *accepts_meth = VTABLE_find_method(interp, cons_type, ACCEPTS);
-            if (VTABLE_isa(interp, cons_type, BLOCK_str))
-                Parrot_sub_capture_lex(interp,
-                    VTABLE_get_attr_str(interp, cons_type, DO_str));
-            Parrot_ext_call(interp, accepts_meth, "PiP->P", cons_type, value, &result);
-            if (!VTABLE_get_bool(interp, result)) {
+            PMC *old_ctx      = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+            PMC *cappy        = Parrot_pmc_new(interp, enum_class_CallContext);
+            VTABLE_push_pmc(interp, cappy, cons_type);
+            VTABLE_push_pmc(interp, cappy, value);
+            Parrot_pcc_invoke_from_sig_object(interp, accepts_meth, cappy);
+            cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+            Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
+            if (!VTABLE_get_bool(interp, VTABLE_get_pmc_keyed_int(interp, cappy, 0))) {
                 if (error)
                     *error = Parrot_sprintf_c(interp, "Constraint type check failed for parameter '%S'",
                             param->variable_name);
                 return BIND_RESULT_FAIL;
-            }*/
+            }
         }
     }
 

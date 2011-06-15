@@ -1473,8 +1473,8 @@ class Perl6::Actions is HLL::Actions {
         
         # Create the meta-object.
         my $subset := $<longname> ??
-            $*ST.create_subset(%*HOW<subset>, $refinee, $refinement) !!
-            $*ST.create_subset(%*HOW<subset>, $refinee, $refinement, :name($<longname>[0].Str));
+            $*ST.create_subset(%*HOW<subset>, $refinee, $refinement, :name($<longname>[0].Str)) !!
+            $*ST.create_subset(%*HOW<subset>, $refinee, $refinement);
         
         # Apply traits.
         for $<trait> {

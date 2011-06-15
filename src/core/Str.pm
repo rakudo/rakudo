@@ -12,4 +12,7 @@ my class Str {
     }
 
     method Numeric() { self.Num }
+
+    proto method ACCEPTS(|$) {*}
+    multi method ACCEPTS(Str:D: $other) { $other eq self }
 }

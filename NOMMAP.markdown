@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 12th June 2011
+Last Updated 15th June 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -24,7 +24,6 @@ $_, $/, $!, @_ and %_ handling.
 ## Flesh out signatures and parameters
 While basic binding works again now, there's plenty of stuff to "put back".
 Of note:
-* Defaults
 * Sub-signatures
 * Post-constraints
 * sub foo(0) { ... } (literals)
@@ -37,7 +36,7 @@ Get ::= correcter, and a bit more stuff on := also.
 
 ## Finish up parametric roles
 Many things are working, some are not...
-* Composition of multi-methods
+* Fix pre-comp issues
 * Composition of submethods
 * Generically typed variables (also for the ::T case in rules)
 * Mentions of role arguments in the role body in a non-declarative context
@@ -52,7 +51,6 @@ Many things are working, some are not...
 * Cross
 
 ## Missing object model bits
-* Implement SubsetHOW, make it work with the syntax
 * Try to implement enumerations
 * Some support for augment
 * handles

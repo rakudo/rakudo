@@ -1,8 +1,9 @@
 class Parcel { ... }
 
 class List {
-    # has Mu $!items    # BOOTSTRAP.pm
-    # has Mu $!nextiter # BOOTSTRAP.pm
+    # Attributes defined in BOOTSTRAP.pm:
+    #   has Mu $!items;        # RPA of our reified elements
+    #   has $!nextiter;        # iterator for generating remaining elements
 
     method at_pos(\$pos) {
         self.exists($pos)

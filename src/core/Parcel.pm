@@ -1,5 +1,5 @@
 my class Parcel is Iterable {
-    has $!storage;
+    has $!storage;             # RPA of Parcel's elements
 
     method flat() {
         pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), 1.Bool)
@@ -9,7 +9,7 @@ my class Parcel is Iterable {
         pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), Mu)
     }
 
-    # Since Parcels are immutable, they are their own self-reifying iterator
+    # Since Parcels are immutable, they are their own (self-reifying) iterator
     method iterator() { self }
     method reify($n?) { self }
 

@@ -1,9 +1,10 @@
 my class ListIter {
-    # has $!reified;   # BOOTSTRAP.pm
-    # has $!nextiter;  # BOOTSTRAP.pm
-    # has Mu $!rest;   # BOOTSTRAP.pm
-    # has $!list;      # BOOTSTRAP.pm
-    # has $!flat;      # BOOTSTRAP.pm
+    # Attributes defined in BOOTSTRAP.pm:
+    #   has $!reified;         # return value for already-reified iterator
+    #   has $!nextiter;        # next iterator in sequence, if any
+    #   has Mu $!rest;         # RPA of elements remaining to be reified
+    #   has $!list;            # List object associated with this iterator
+    #   has $!flat;            # Flag to flatten $!rest
     
     method reify($n is copy) {
         if !$!reified.defined {

@@ -5,11 +5,12 @@ class List {
     #   has Mu $!items;        # RPA of our reified elements
     #   has $!nextiter;        # iterator for generating remaining elements
 
-    method Bool() { self.gimme(1).Bool }
+    method Bool()    { self.gimme(1).Bool }
+    method Int()     { self.elems }
+    method Numeric() { self.elems }
 
     method flat() { self.iterator.flat }
     method list() { self }
-
 
     method at_pos(\$pos) {
         self.exists($pos)
@@ -20,6 +21,8 @@ class List {
     method eager() { self.gimme(*); self }
 
     method elems() {
+        # Get as many elements as we can.  If gimme stops before
+        # reaching the end of the list, assume the list is infinite.
         my $n = self.gimme(*);
         $!nextiter.defined ?? pir::perl6_box_num__PN('Inf') !! $n
     }
@@ -31,8 +34,11 @@ class List {
     }
 
     method gimme($n) {
+        # create $!items RPA if it doesn't already exist
         pir::defined($!items) or 
             pir::setattribute__3PPsP(self, List, '$!items', pir::new__Ps('ResizablePMCArray'));
+
+        # loop through iterators until we have at least $n elements
         my $count = pir::perl6_box_int__PI(pir::elements($!items));
         my $eager = Whatever.ACCEPTS($n);
         while $!nextiter.defined && ($eager || $count < $n) {
@@ -40,6 +46,8 @@ class List {
             pir::setattribute__vPPsP(self, List, '$!nextiter', $!nextiter.nextiter);
             $count = pir::perl6_box_int__PI(pir::elements($!items));
         }
+
+        # return the number of elements we have now
         $count
     }
 
@@ -54,6 +62,7 @@ class List {
     }
 
     method shift() {
+        # make sure we have at least one item, then shift+return it
         self.gimme(1) && pir::shift__PP($!items)
     }
 

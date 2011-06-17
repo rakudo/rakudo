@@ -13,7 +13,8 @@ my class ListIter {
             my $pos = $!list.gimme(0) if $!list.defined;
             while $!rest && $n > 0 {
                 $x := pir::shift__PP($!rest);
-                if $!flat && $x.defined && Iterable.ACCEPTS($x) {
+                if $!flat && pir::not__II(pir::is_container__IP($x))
+                          && $x.defined && Iterable.ACCEPTS($x) {
                     pir::splice__vPPii(
                         $!rest, 
                         pir::getattribute__PPPs($x.iterator.reify($n), Parcel, '$!storage'),

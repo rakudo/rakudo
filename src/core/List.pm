@@ -58,6 +58,10 @@ class List {
         pir__perl6_box_rpa__PP($rpa)
     }
 
+    method map($block) is rw { 
+        MapIter.new(:list(self), :block($block)).list 
+    }
+
     method munch($n is copy) {
         self.gimme($n);
         my Mu $rpa := pir::new__Ps('ResizablePMCArray');
@@ -81,4 +85,16 @@ class List {
           ~ ':nextiter(' ~ DUMP($!nextiter) ~ ')'
           ~ ')'
     }
+}
+
+sub eager(|$) {
+    pir__perl6_box_rpa__PP(pir::perl6_current_args_rpa__P()).flat.eager
+}
+
+sub flat(|$) {
+    pir::perl6_list_from_rpa__PPPP(List, pir::perl6_current_args_rpa__P(), 1.Bool)
+}
+
+sub list(|$) {
+    pir::perl6_list_from_rpa__PPPP(List, pir::perl6_current_args_rpa__P(), Mu)
 }

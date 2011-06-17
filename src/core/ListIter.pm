@@ -12,10 +12,11 @@ my class ListIter {
             my $pos = $!list.gimme(0) if $!list.defined;
             while $!rest && $n > 0 {
                 $x := pir::shift__PP($!rest);
-                if $!flat && $x.defined && Parcel.ACCEPTS($x) {
+                if $!flat && $x.defined && Iterable.ACCEPTS($x) {
                     pir::splice__vPPii(
-                        $!rest, pir::getattribute__PPPs($x, Parcel, '$!storage'),
-                        0, 0);
+                        $!rest, 
+                        pir::getattribute__PPPs($x.iterator.reify($n), Parcel, '$!storage'),
+                      , 0, 0);
                 }
                 else {
                     $x := $!list.STORE_AT_POS($pos, $x) if $!list.defined;

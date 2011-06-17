@@ -13,14 +13,14 @@ class Array {
     }
 
     method STORE(|$) {
+        # get arguments, shift off invocant
+        my $args := pir::perl6_current_args_rpa__P();
+        pir::shift__PP($args);
         # clear our current items, and create a flattening iterator
-        # that will bring in values from the arguments to STORE.
+        # that will bring in values from $args
         pir::setattribute__vPPsP(self, List, '$!items', Mu);
         pir::setattribute__0PPsP(self, List, '$!nextiter',
-            pir::perl6_iter_from_rpa__PPPP(
-                pir::perl6_current_args_rpa__P(),
-                self,
-                1.Bool));
+            pir::perl6_iter_from_rpa__PPPP($args, self, 1.Bool));
         self.eager
     }
 }

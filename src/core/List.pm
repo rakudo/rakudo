@@ -1,3 +1,5 @@
+class Parcel { ... }
+
 class List {
     # has Mu $!items    # BOOTSTRAP.pm
     # has Mu $!nextiter # BOOTSTRAP.pm
@@ -28,6 +30,16 @@ class List {
             $count = pir::perl6_box_int__PI(pir::elements($!items));
         }
         pir::perl6_box_int__PI(pir::elements($!items))
+    }
+
+    method iterator() {
+        # Return a Parcel containing our currently reified elements
+        # and any subsequent iterator.
+        my Mu $rpa := pir::clone__PP($!items);
+        pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
+        pir::setattribute__0PPsP(
+            pir::repr_instance_of__PP(Parcel),
+            Parcel, '$!storage', $rpa)
     }
 
     method STORE_AT_POS(\$pos, \$v) {

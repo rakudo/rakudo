@@ -69,11 +69,15 @@ sub DUMP(|$) {
             my Mu $x := pir::shift__PP($topic);
             $s = $s ~ $t ~ (pir::isnull__IP($x)
                             ?? '(null)'
-                            !! $x.DUMP());
+                            !! DUMP($x));
             $t = ', ';
         }
         $s ~ ')'
     }
-    else { $topic.DUMP() }
+    else { 
+        pir::is_container__IP($topic)
+          ?? '▶' ~ $topic.DUMP() 
+          !! $topic.DUMP()
+    }
 };
 

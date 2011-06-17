@@ -25,6 +25,9 @@ static STRING *CAPTURE_str      = NULL;
 static STRING *SNAPCAP_str      = NULL;
 static STRING *STORAGE_str      = NULL;
 static STRING *REST_str         = NULL;
+static STRING *LIST_str         = NULL;
+static STRING *FLAT_str         = NULL;
+static STRING *NEXTITER_str     = NULL;
 static STRING *SHORTNAME_str    = NULL;
 static STRING *HASH_SIGIL_str   = NULL;
 static STRING *ARRAY_SIGIL_str  = NULL;
@@ -46,6 +49,9 @@ static void setup_binder_statics(PARROT_INTERP) {
     SNAPCAP_str      = Parrot_str_new_constant(interp, "!snapshot_capture");
     STORAGE_str      = Parrot_str_new_constant(interp, "$!storage");
     REST_str         = Parrot_str_new_constant(interp, "$!rest");
+    LIST_str         = Parrot_str_new_constant(interp, "$!list");
+    FLAT_str         = Parrot_str_new_constant(interp, "$!flat");
+    NEXTITER_str     = Parrot_str_new_constant(interp, "$!nextiter");
     SHORTNAME_str    = Parrot_str_new_constant(interp, "shortname");
     HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
     ARRAY_SIGIL_str  = Parrot_str_new_constant(interp, "@");
@@ -56,6 +62,30 @@ static void setup_binder_statics(PARROT_INTERP) {
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }
 
+
+/* Creates a ListIter from a RPA */
+/* This function gets shared with perl6.ops for the perl6_iter_from_rpa op. */
+PMC *
+Rakudo_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flat) {
+    PMC *type = Rakudo_types_listiter_get();
+    PMC *iter = REPR(type)->instance_of(interp, type);
+    VTABLE_set_attr_keyed(interp, iter, type, REST_str, rpa);
+    VTABLE_set_attr_keyed(interp, iter, type, LIST_str, list);
+    VTABLE_set_attr_keyed(interp, iter, type, FLAT_str, flat);
+    return iter;
+}
+
+
+/* Creates a List from type and a RPA, initializing the iterator */
+/* This function gets shared with perl6.ops for the perl6_list_from_rpa op. */
+PMC *
+Rakudo_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flat) {
+    PMC *list = REPR(type)->instance_of(interp, type);
+    VTABLE_set_attr_keyed(interp, list, Rakudo_types_list_get(), NEXTITER_str,
+        Rakudo_iter_from_rpa(interp, rpa, list, flat));
+    return list;
+}
+   
 
 /* Creates a Perl 6 Array. */
 static PMC *

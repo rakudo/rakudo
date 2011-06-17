@@ -26,7 +26,7 @@ my class ListIter {
             }
             pir::push__vPP( $rpa, 
                     pir::setattribute__3PPsP(self, ListIter, '$!nextiter',
-                        pir__perl6_iter_from_rpa__PPPP($!rest, $!list, $!flat)))
+                        pir::perl6_iter_from_rpa__PPPP($!rest, $!list, $!flat)))
                 if $!rest;
             # define our $!reified Parcel
             pir::setattribute__0PPsP( self, ListIter, '$!reified',
@@ -45,29 +45,31 @@ my class ListIter {
 }
 
 
-sub pir__perl6_list_from_rpa__PPPP(|$) {
-    my $args   := pir::perl6_current_args_rpa__P();
-    my $type   := pir::shift__PP($args);
-    my Mu $rpa := pir::shift__PP($args);
-    my $flat   := pir::shift__PP($args);
-
-    my $list := pir::repr_instance_of__PP($type);
-    pir::setattribute__0PPsP($list, $type, '$!iter',
-        pir__perl6_iter_from_rpa__PPPP($rpa, $list, $flat)
-    )
-}
-
-sub pir__perl6_iter_from_rpa__PPPP(|$) {
-    my $args   := pir::perl6_current_args_rpa__P();
-    my Mu $rpa := pir::shift__PP($args);
-    my $list   := pir::shift__PP($args);
-    my $flat   := pir::shift__PP($args);
-
-    pir::setattribute__0PPsP(
-        pir::setattribute__0PPsP(
-            pir::setattribute__0PPsP(
-                pir::repr_instance_of__PP(ListIter),
-                ListIter, '$!rest', $rpa),
-            ListIter, '$!list', $list),
-        ListIter, '$!flat', $flat)
-}
+# C<pir__perl6_list_from_rpa> and C<pir__perl6_iter_from_rpa> are now opcodes;
+# we leave these here for documentation purposes.
+# sub pir::perl6_list_from_rpa__PPPP(|$) {
+#     my $args   := pir::perl6_current_args_rpa__P();
+#     my $type   := pir::shift__PP($args);
+#     my Mu $rpa := pir::shift__PP($args);
+#     my $flat   := pir::shift__PP($args);
+# 
+#     my $list := pir::repr_instance_of__PP($type);
+#     pir::setattribute__0PPsP($list, $type, '$!nextiter',
+#         pir__perl6_iter_from_rpa__PPPP($rpa, $list, $flat)
+#     )
+# }
+# 
+# sub pir::perl6_iter_from_rpa__PPPP(|$) {
+#     my $args   := pir::perl6_current_args_rpa__P();
+#     my Mu $rpa := pir::shift__PP($args);
+#     my $list   := pir::shift__PP($args);
+#     my $flat   := pir::shift__PP($args);
+# 
+#     pir::setattribute__0PPsP(
+#         pir::setattribute__0PPsP(
+#             pir::setattribute__0PPsP(
+#                 pir::repr_instance_of__PP(ListIter),
+#                 ListIter, '$!rest', $rpa),
+#             ListIter, '$!list', $list),
+#         ListIter, '$!flat', $flat)
+# }

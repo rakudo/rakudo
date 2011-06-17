@@ -2,11 +2,11 @@ my class Parcel is Iterable {
     has $!storage;
 
     method flat() {
-        pir__perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), 1.Bool)
+        pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), 1.Bool)
     }
 
     method list() {
-        pir__perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), Mu)
+        pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), Mu)
     }
 
     method perl() {

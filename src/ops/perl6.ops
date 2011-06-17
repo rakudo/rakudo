@@ -325,17 +325,18 @@ inline op perl6_set_types_ins(in PMC, in PMC, in PMC) :base_core {
 
 /*
 
-=item perl6_set_types_list_array_lol(in PMC, in PMC, in PMC)
+=item perl6_set_types_list_array_lol(in PMC, in PMC, in PMC, in PMC)
 
-Sets the List, Array and LoL types.
+Sets the List, ListIter, Array and LoL types.
 
 =cut
 
 */
-inline op perl6_set_types_list_array_lol(in PMC, in PMC, in PMC) :base_core {
+inline op perl6_set_types_list_array_lol(in PMC, in PMC, in PMC, in PMC) :base_core {
     Rakudo_types_list_set($1);
-    Rakudo_types_array_set($2);
-    Rakudo_types_lol_set($3);
+    Rakudo_types_listiter_set($2);
+    Rakudo_types_array_set($3);
+    Rakudo_types_lol_set($4);
 }
 
 
@@ -716,6 +717,36 @@ inline op perl6_current_args_rpa(out PMC) :base_core {
         VTABLE_set_pmc_keyed_int(interp, result, i,
             VTABLE_get_pmc_keyed_int(interp, cur_ctx, i));
     $1 = result;
+}
+
+
+/*
+
+=item perl6_iter_from_rpa(out PMC, in PMC, in PMC, in PMC)
+
+Creates a lazy Perl 6 ListIter object from the RPA in $1,
+the List in $2 and with flattening $3.
+
+=cut
+
+*/
+inline op perl6_iter_from_rpa(out PMC, in PMC, in PMC, in PMC) :base_core {
+    $1 = Rakudo_iter_from_rpa(interp, $2, $3, $4);
+}
+
+
+/*
+
+=item perl6_list_from_rpa(out PMC, in PMC, in PMC, in PMC)
+
+Creates a lazy Perl 6 List object of type $1 from the RPA
+in $2 and with flattening $3.
+
+=cut
+
+*/
+inline op perl6_list_from_rpa(out PMC, in PMC, in PMC, in PMC) :base_core {
+    $1 = Rakudo_list_from_rpa(interp, $2, $3, $4);
 }
 
 

@@ -416,13 +416,13 @@ Iterable.HOW.add_parent(Iterable, Cool);
 
 # class List is Iterable {
 #     has $!items;
-#     has $!iter;
+#     has $!nextiter;
 #     ...
 # }
 my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 List.HOW.add_parent(List, Iterable);
 List.HOW.add_attribute(List, scalar_attr('$!items', Mu));
-List.HOW.add_attribute(List, scalar_attr('$!iter', Mu));
+List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu));
 
 # class ListIter {
 #    has $!reified;
@@ -473,7 +473,7 @@ Hash.HOW.add_parent(Hash, EnumMap);
 Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 
 # Configure declarative listy/hashy types.
-pir::perl6_set_types_list_array_lol__vPP(List, Array, LoL);
+pir::perl6_set_types_list_array_lol__vPP(List, ListIter, Array, LoL);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
 
 # XXX Quick and dirty Bool. Probably done by EnumHOW in the end.

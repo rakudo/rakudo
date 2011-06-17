@@ -13,6 +13,7 @@ static PMC * Int        = NULL;
 static PMC * Num        = NULL;
 static PMC * Str        = NULL;
 static PMC * List       = NULL;
+static PMC * ListIter   = NULL;
 static PMC * Array      = NULL;
 static PMC * LoL        = NULL;
 static PMC * EnumMap    = NULL;
@@ -38,6 +39,9 @@ PMC * Rakudo_types_str_get(void) { return Str; }
 
 void Rakudo_types_list_set(PMC * type) { List = type; }
 PMC * Rakudo_types_list_get(void) { return List; }
+
+void Rakudo_types_listiter_set(PMC * type) { ListIter = type; }
+PMC * Rakudo_types_listiter_get(void) { return ListIter; }
 
 void Rakudo_types_array_set(PMC * type) { Array = type; }
 PMC * Rakudo_types_array_get(void) { return Array; }

@@ -7,6 +7,10 @@ my class Mu {
     multi method ACCEPTS(Mu:U: \$topic) {
         pir::perl6_booleanize__PI(pir::type_check__IPP($topic, self))
     }
+
+    method WHERE() {
+        pir::perl6_box_int__PI(pir::get_addr__IP(self))
+    }
     
     method Bool() {
         self.defined
@@ -27,6 +31,9 @@ my class Mu {
     proto method Str(|$) { * }
     multi method Str(Mu:U:) {
         self.HOW.name(self) ~ '()'
+    }
+    multi method Str(Mu:D:) {
+        self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>'
     }
 
     proto method Stringy(|$) { * }

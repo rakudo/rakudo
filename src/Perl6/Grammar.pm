@@ -1404,6 +1404,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         'pir::' $<op>=[\w+] <args>?
     }
 
+    token term:sym<pir::const> {
+        'pir::const::' $<const>=[\w+]
+    }
+
     token term:sym<dotty> { <dotty> }
 
     token term:sym<capterm> { <capterm> }

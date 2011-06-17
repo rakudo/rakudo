@@ -1993,6 +1993,11 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
 
+    method term:sym<pir::const>($/) {
+        make PAST::Val.new(:value(~$<const>), :returns<!macro_const>, :node($/));
+    }
+
+
     method term:sym<*>($/) {
         make PAST::Op.new(
             :pasttype('callmethod'), :name('new'), :node($/), :lvalue(1), :returns('Whatever'),

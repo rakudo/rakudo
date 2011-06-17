@@ -61,15 +61,14 @@ my class Mu {
 sub DUMP(|$) {
     my Mu $args := pir::perl6_current_args_rpa__P();
     my Mu $topic  := pir::shift__PP($args);
-    if pir::isa__IPs($topic, 'ResizablePMCArray') {
+    if pir::isnull__IP($topic) { '(null)' }
+    elsif pir::isa__IPs($topic, 'ResizablePMCArray') {
         my $s = 'RPA<' ~ pir::perl6_box_str__Ps(pir::get_addr__IP($topic)) ~ '>(';
         my $t = '';
         $topic := pir::clone__PP($topic);
         while $topic {
             my Mu $x := pir::shift__PP($topic);
-            $s = $s ~ $t ~ (pir::isnull__IP($x)
-                            ?? '(null)'
-                            !! DUMP($x));
+            $s = $s ~ $t ~ DUMP($x);
             $t = ', ';
         }
         $s ~ ')'

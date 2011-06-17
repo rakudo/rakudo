@@ -67,7 +67,7 @@ class List {
         self.gimme(1) && pir::shift__PP($!items)
     }
 
-    method STORE_AT_POS(\$pos, \$v) {
+    method STORE_AT_POS(\$pos, Mu \$v) {
         pir::set__1QiP($!items, pir::repr_unbox_int__IP($pos), $v)
     }
 

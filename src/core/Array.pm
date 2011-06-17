@@ -8,7 +8,7 @@ class Array {
                  -> { pir::find_method__PPs(List, 'STORE_AT_POS')(self, $pos, $v) } )
     }
 
-    method STORE_AT_POS(\$pos, $v is copy) {
+    method STORE_AT_POS(\$pos, Mu $v is copy) {
         pir::find_method__PPs(List, 'STORE_AT_POS')(self, $pos, $v);
     }
 

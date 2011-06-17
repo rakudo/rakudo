@@ -14,4 +14,8 @@ my class Str {
     method Numeric() { self.Num }
 
     multi method ACCEPTS(Str:D: $other) { $other eq self }
+
+    # XXX: need to translate escapes
+    multi method perl(Str:D:) { "'" ~ self ~ "'" }
+
 }

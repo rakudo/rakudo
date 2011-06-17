@@ -30,7 +30,7 @@ my class Rat is Real {
     multi method Str(Rat:D:) {
         self.Num.Str
     }
-    method perl() {
+    multi method perl(Rat:D:) {
         $!numerator ~ '/' ~ $!denominator
     }
     method succ {

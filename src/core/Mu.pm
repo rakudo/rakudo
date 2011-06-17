@@ -46,7 +46,9 @@ my class Mu {
     
     method say() { say(self) }
 
-    method perl() { self.Str }
+    proto method perl(|$) { * }
+    multi method perl(Mu:D:) { self.Str }
+    multi method perl(Mu:U:) { self.HOW.name(self) }
 
     proto method DUMP(|$) { * }
     multi method DUMP(Mu:D:) { self.perl }

@@ -41,7 +41,7 @@ my class Complex is Numeric {
         $!re.Str ~ $op ~ $!im.abs ~ 'i';
     }
 
-    method perl(Complex:D:) {
+    multi method perl(Complex:D:) {
         "Complex.new($.re, $.im)";
     }
     method conjugate() {

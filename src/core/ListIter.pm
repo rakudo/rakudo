@@ -17,7 +17,7 @@ my class ListIter {
                           && $x.defined && Iterable.ACCEPTS($x) {
                     pir::splice__vPPii(
                         $!rest, 
-                        pir::getattribute__PPPs($x.iterator.reify($n), Parcel, '$!storage'),
+                        pir__perl6_unbox_rpa__PP($x.iterator.reify($n)),
                         0, 0);
                 }
                 else {
@@ -31,11 +31,10 @@ my class ListIter {
                     pir::setattribute__3PPsP(self, ListIter, '$!nextiter',
                         pir::perl6_iter_from_rpa__PPPP($!rest, $!list, $!flat)))
                 if $!rest;
-            # define our $!reified Parcel
+            # define our $!reified Parcel.  infix:<:=> doesn't seem to
+            # work on attributes defined in BOOTSTRAP, so use pir::setattribute.
             pir::setattribute__0PPsP( self, ListIter, '$!reified',
-                pir::setattribute__0PPsP(
-                    pir::repr_instance_of__PP(Parcel), 
-                    Parcel, '$!storage', $rpa));
+                pir__perl6_box_rpa__PP($rpa));
             # free up $!list and $!rest
             pir::setattribute__0PPsP(self, ListIter, '$!list', Mu);
             pir::setattribute__0PPsP(self, ListIter, '$!rest', Mu);

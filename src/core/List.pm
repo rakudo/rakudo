@@ -1,5 +1,3 @@
-class Parcel { ... }
-
 class List {
     # Attributes defined in BOOTSTRAP.pm:
     #   has Mu $!items;        # RPA of our reified elements
@@ -57,9 +55,7 @@ class List {
         self.gimme(0);
         my Mu $rpa := pir::clone__PP($!items);
         pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
-        pir::setattribute__0PPsP(
-            pir::repr_instance_of__PP(Parcel),
-            Parcel, '$!storage', $rpa)
+        pir__perl6_box_rpa__PP($rpa)
     }
 
     method munch($n is copy) {
@@ -67,11 +63,7 @@ class List {
         my Mu $rpa := pir::new__Ps('ResizablePMCArray');
         pir::push__vPP($rpa, pir::shift__PP($!items))
             while $!items && $n-- > 0;
-        pir::setattribute__0PPsP(
-            pir::repr_instance_of__PP(Parcel),
-            Parcel,
-            '$!storage',
-            $rpa)
+        pir__perl6_box_rpa__PP($rpa)
     }
 
     method shift() {

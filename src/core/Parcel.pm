@@ -28,6 +28,7 @@ my class Parcel is Iterable {
 
 
 my sub infix:<,>(|$) {
+    # pir::perl6_box_rpa__PP(pir::perl6_current_args_rpa__P())
     pir::setattribute__0PPsP(
         pir::repr_instance_of__PP(Parcel),
         Parcel,
@@ -36,3 +37,19 @@ my sub infix:<,>(|$) {
 }
 
 
+# I'm getting tired of building and unpacking Parcel RPAs by hand,
+# so here are some pir::lookalikes to do it.  Eventually we may just
+# turn these into opcodes, since it's a common and sometimes
+# speed-critical operation.  (I'm leaving &infix:<,> alone above
+# to avoid the extra subcall as it's very common.)
+sub pir__perl6_box_rpa__PP(|$) {
+    pir::setattribute__0PPsP(
+        pir::repr_instance_of__PP(Parcel),
+        Parcel,
+        '$!storage',
+        pir::shift__PP(pir::perl6_current_args_rpa__P()))
+}
+
+sub pir__perl6_unbox_rpa__PP(\$parcel) {
+    pir::getattribute__PPPs($parcel, Parcel, '$!storage')
+}

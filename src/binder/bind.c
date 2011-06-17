@@ -66,7 +66,7 @@ static void setup_binder_statics(PARROT_INTERP) {
 /* Creates a ListIter from a RPA */
 /* This function gets shared with perl6.ops for the perl6_iter_from_rpa op. */
 PMC *
-Rakudo_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flat) {
+Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flat) {
     PMC *type = Rakudo_types_listiter_get();
     PMC *iter = REPR(type)->instance_of(interp, type);
     VTABLE_set_attr_keyed(interp, iter, type, REST_str, rpa);
@@ -79,31 +79,28 @@ Rakudo_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flat) {
 /* Creates a List from type and a RPA, initializing the iterator */
 /* This function gets shared with perl6.ops for the perl6_list_from_rpa op. */
 PMC *
-Rakudo_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flat) {
+Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flat) {
     PMC *list = REPR(type)->instance_of(interp, type);
-    VTABLE_set_attr_keyed(interp, list, Rakudo_types_list_get(), NEXTITER_str,
-        Rakudo_iter_from_rpa(interp, rpa, list, flat));
+    if (!PMC_IS_NULL(rpa)) 
+        VTABLE_set_attr_keyed(interp, list, Rakudo_types_list_get(), NEXTITER_str,
+            Rakudo_binding_iter_from_rpa(interp, rpa, list, flat));
     return list;
 }
    
 
 /* Creates a Perl 6 Array. */
 static PMC *
-Rakudo_binding_create_positional(PARROT_INTERP, PMC *rest) {
-    PMC *type  = Rakudo_types_array_get();
-    PMC *array = REPR(type)->instance_of(interp, type);
-    VTABLE_set_attr_keyed(interp, array, Rakudo_types_list_get(), REST_str, rest);
-    return array;
+Rakudo_binding_create_positional(PARROT_INTERP, PMC *rpa) {
+    return Rakudo_binding_list_from_rpa(interp, Rakudo_types_array_get(), rpa,
+               Rakudo_types_bool_true_get());
 }
 
 
 /* Creates a Perl 6 LoL. */
 static PMC *
-Rakudo_binding_create_lol(PARROT_INTERP, PMC *rest) {
-    PMC *type = Rakudo_types_lol_get();
-    PMC *lol  = REPR(type)->instance_of(interp, type);
-    VTABLE_set_attr_keyed(interp, lol, Rakudo_types_list_get(), REST_str, rest);
-    return lol;
+Rakudo_binding_create_lol(PARROT_INTERP, PMC *rpa) {
+    return Rakudo_binding_list_from_rpa(interp, Rakudo_types_lol_get(), rpa,
+               Rakudo_types_bool_false_get());
 }
 
 

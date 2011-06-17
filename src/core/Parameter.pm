@@ -34,7 +34,7 @@ my class Parameter {
     }
     
     # XXX TODO: Many more bits :-)
-    multi method perl() {
+    multi method perl(Parameter:D:) {
         my $perl = $!nominal_type.HOW.name($!nominal_type);
         if $!variable_name {
             $perl = $perl ~ " " ~ $!variable_name;

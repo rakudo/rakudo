@@ -38,7 +38,7 @@ my class Signature {
     }
     
     # XXX TODO: Parameter separators.
-    method perl() {
+    multi method perl() {
         # Opening.
         my $perl = ':(';
         

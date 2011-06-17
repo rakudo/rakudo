@@ -62,6 +62,18 @@ class List {
             Parcel, '$!storage', $rpa)
     }
 
+    method munch($n is copy) {
+        self.gimme($n);
+        my Mu $rpa := pir::new__Ps('ResizablePMCArray');
+        pir::push__vPP($rpa, pir::shift__PP($!items))
+            while $!items && $n-- > 0;
+        pir::setattribute__0PPsP(
+            pir::repr_instance_of__PP(Parcel),
+            Parcel,
+            '$!storage',
+            $rpa)
+    }
+
     method shift() {
         # make sure we have at least one item, then shift+return it
         self.gimme(1) && pir::shift__PP($!items)

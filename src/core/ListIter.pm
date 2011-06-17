@@ -18,7 +18,7 @@ my class ListIter {
                     pir::splice__vPPii(
                         $!rest, 
                         pir::getattribute__PPPs($x.iterator.reify($n), Parcel, '$!storage'),
-                      , 0, 0);
+                        0, 0);
                 }
                 else {
                     $x := $!list.STORE_AT_POS($pos, $x) if $!list.defined;
@@ -43,8 +43,18 @@ my class ListIter {
         $!reified;
     }
 
+    method iterator() { self }
     method nextiter() { $!nextiter }
 
+    multi method DUMP(ListIter:D:) {
+        self.DUMP-ID() ~ '('
+          ~ ':reified(' ~ DUMP($!reified) ~ '), '
+          ~ ':rest('    ~ DUMP($!rest) ~ '), '
+          ~ ':list('    ~ $!list.WHERE ~ '), '
+          ~ ':flat('    ~ DUMP($!flat) ~ ')'
+          ~ ')'
+    }
+         
 }
 
 

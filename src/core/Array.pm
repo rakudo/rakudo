@@ -23,5 +23,8 @@ class Array {
             pir::perl6_iter_from_rpa__PPPP($args, self, 1.Bool));
         self.eager
     }
+
 }
 
+
+sub circumfix:<[ ]>(*@elems) { my $x = @elems }

@@ -21,6 +21,9 @@ my class Parcel is Iterable {
         $perl = $perl ~ ')';
     }
 
+    method DUMP() {
+        self.DUMP-ID() ~ '(:storage(' ~ DUMP($!storage) ~ '))'
+    }
 }
 
 

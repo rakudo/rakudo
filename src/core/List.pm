@@ -54,6 +54,7 @@ class List {
     method iterator() {
         # Return a Parcel containing our currently reified elements
         # and any subsequent iterator.
+        self.gimme(0);
         my Mu $rpa := pir::clone__PP($!items);
         pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
         pir::setattribute__0PPsP(
@@ -67,6 +68,13 @@ class List {
     }
 
     method STORE_AT_POS(\$pos, \$v) {
-        pir::set__2QiP($!items, pir::repr_unbox_int__IP($pos), $v)
+        pir::set__1QiP($!items, pir::repr_unbox_int__IP($pos), $v)
+    }
+
+    multi method DUMP(List:D:) {
+        self.DUMP-ID() ~ '('
+          ~ ':items(' ~ DUMP($!items) ~ '), '
+          ~ ':nextiter(' ~ DUMP($!nextiter) ~ ')'
+          ~ ')'
     }
 }

@@ -8,6 +8,10 @@ class List {
           !! Mu
     }
 
+    method eager() {
+        self.gimme(100) while $!nextiter.defined;
+    }
+
     method exists(\$pos) {
         self.gimme($pos + 1);
         pir::perl6_booleanize__PI(

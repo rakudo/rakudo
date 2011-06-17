@@ -19,3 +19,5 @@ my &return-rw := -> \$parcel {
 my &return = &return-rw;
 
 
+sub die(*@msg) { pir::die(@msg.join('')) }
+sub fail(*@msg) { pir::die(@msg.join('')) }

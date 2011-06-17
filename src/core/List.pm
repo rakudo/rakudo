@@ -5,14 +5,23 @@ class List {
     #   has Mu $!items;        # RPA of our reified elements
     #   has $!nextiter;        # iterator for generating remaining elements
 
+    method Bool() { self.gimme(1).Bool }
+
+    method flat() { self.iterator.flat }
+    method list() { self }
+
+
     method at_pos(\$pos) {
         self.exists($pos)
           ?? pir::set__PQi($!items, pir::repr_unbox_int__IP($pos))
           !! Mu
     }
 
-    method eager() {
-        self.gimme(100) while $!nextiter.defined;
+    method eager() { self.gimme(*); self }
+
+    method elems() {
+        my $n = self.gimme(*);
+        $!nextiter.defined ?? pir::perl6_box_num__PN('Inf') !! $n
     }
 
     method exists(\$pos) {
@@ -25,12 +34,13 @@ class List {
         pir::defined($!items) or 
             pir::setattribute__3PPsP(self, List, '$!items', pir::new__Ps('ResizablePMCArray'));
         my $count = pir::perl6_box_int__PI(pir::elements($!items));
-        while $!nextiter.defined && $count < $n {
-            $!nextiter.reify($n - $count);
+        my $eager = Whatever.ACCEPTS($n);
+        while $!nextiter.defined && ($eager || $count < $n) {
+            $!nextiter.reify($eager ?? 100 !! $n - $count);
             pir::setattribute__vPPsP(self, List, '$!nextiter', $!nextiter.nextiter);
             $count = pir::perl6_box_int__PI(pir::elements($!items));
         }
-        pir::perl6_box_int__PI(pir::elements($!items))
+        $count
     }
 
     method iterator() {

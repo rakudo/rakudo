@@ -1,23 +1,38 @@
-my &return-rw := -> \$parcel {
+my &THROW :=
+    -> |$ {
         Q:PIR {
-            .include 'except_types.pasm'
-            .include 'except_severity.pasm'
-            .local pmc ex
+            .local pmc args, payload, type, severity, ex
+            args = perl6_current_args_rpa
+            payload  = args[0]
+            type     = args[1]
+            severity = args[2]
+            unless null severity goto have_severity
+            severity = box .EXCEPT_NORMAL
+          have_severity:
             ex = root_new ['parrot';'Exception']
-            $P0 = box .CONTROL_RETURN
-            setattribute ex, 'type', $P0
-            $P0 = find_lex '$parcel'
-            setattribute ex, 'payload', $P0
-            $P0 = box .EXCEPT_NORMAL
-            setattribute ex, 'severity', $P0
+            setattribute ex, 'payload', payload
+            setattribute ex, 'type', type
+            setattribute ex, 'severity', severity
             throw ex
         };
-        0;
+        0
     };
 
-# TODO: &return should decontainerize its parcel argument
-my &return = &return-rw;
+my &return-rw := -> \$parcel { 
+    THROW($parcel, pir::const::CONTROL_RETURN) 
+};
+my &return := -> \$parcel { 
+    THROW(pir::perl6_decontainerize__PP($parcel), 
+          pir::const::CONTROL_RETURN) 
+};
 
+my &take-rw := -> \$parcel { 
+    THROW($parcel, pir::const::CONTROL_TAKE) 
+};
+my &take := -> \$parcel { 
+    THROW(pir::perl6_decontainerize__PP($parcel), 
+          pir::const::CONTROL_TAKE) 
+};
 
 sub die(*@msg) { pir::die(@msg.join('')) }
 sub fail(*@msg) { pir::die(@msg.join('')) }

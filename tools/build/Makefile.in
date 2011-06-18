@@ -134,6 +134,7 @@ CORE_SOURCES = \
   src/core/Iterable.pm \
   src/core/Iterator.pm \
   src/core/MapIter.pm \
+  src/core/GatherIter.pm \
   src/core/List.pm \
   src/core/Parcel.pm \
   src/core/ListIter.pm \

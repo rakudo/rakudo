@@ -31,8 +31,8 @@ my class ListIter {
                     pir::setattribute__3PPsP(self, ListIter, '$!nextiter',
                         pir::perl6_iter_from_rpa__PPPP($!rest, $!list, $!flat)))
                 if $!rest;
-            # define our $!reified Parcel.  infix:<:=> doesn't seem to
-            # work on attributes defined in BOOTSTRAP, so use pir::setattribute.
+            # define our $!reified Parcel.  infix:<:=> doesn't seem to work 
+            # on attributes defined in BOOTSTRAP, so use pir::setattribute.
             pir::setattribute__0PPsP( self, ListIter, '$!reified',
                 pir__perl6_box_rpa__PP($rpa));
             # free up $!list and $!rest

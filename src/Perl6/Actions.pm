@@ -596,7 +596,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
-        make PAST::Op.new( :pasttype('call'), :name('!GATHER'), $past );
+        make PAST::Op.new( :pasttype('call'), :name('&GATHER'), $past );
     }
 
     method statement_prefix:sym<sink>($/) {

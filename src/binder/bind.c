@@ -26,7 +26,7 @@ static STRING *SNAPCAP_str      = NULL;
 static STRING *STORAGE_str      = NULL;
 static STRING *REST_str         = NULL;
 static STRING *LIST_str         = NULL;
-static STRING *FLAT_str         = NULL;
+static STRING *FLATTENS_str     = NULL;
 static STRING *NEXTITER_str     = NULL;
 static STRING *SHORTNAME_str    = NULL;
 static STRING *HASH_SIGIL_str   = NULL;
@@ -50,7 +50,7 @@ static void setup_binder_statics(PARROT_INTERP) {
     STORAGE_str      = Parrot_str_new_constant(interp, "$!storage");
     REST_str         = Parrot_str_new_constant(interp, "$!rest");
     LIST_str         = Parrot_str_new_constant(interp, "$!list");
-    FLAT_str         = Parrot_str_new_constant(interp, "$!flat");
+    FLATTENS_str     = Parrot_str_new_constant(interp, "$!flattens");
     NEXTITER_str     = Parrot_str_new_constant(interp, "$!nextiter");
     SHORTNAME_str    = Parrot_str_new_constant(interp, "shortname");
     HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
@@ -66,12 +66,12 @@ static void setup_binder_statics(PARROT_INTERP) {
 /* Creates a ListIter from a RPA */
 /* This function gets shared with perl6.ops for the perl6_iter_from_rpa op. */
 PMC *
-Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flat) {
+Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flattens) {
     PMC *type = Rakudo_types_listiter_get();
     PMC *iter = REPR(type)->instance_of(interp, type);
     VTABLE_set_attr_keyed(interp, iter, type, REST_str, rpa);
     VTABLE_set_attr_keyed(interp, iter, type, LIST_str, list);
-    VTABLE_set_attr_keyed(interp, iter, type, FLAT_str, flat);
+    VTABLE_set_attr_keyed(interp, iter, type, FLATTENS_str, flattens);
     return iter;
 }
 
@@ -79,11 +79,11 @@ Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flat) {
 /* Creates a List from type and a RPA, initializing the iterator */
 /* This function gets shared with perl6.ops for the perl6_list_from_rpa op. */
 PMC *
-Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flat) {
+Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flattens) {
     PMC *list = REPR(type)->instance_of(interp, type);
     if (!PMC_IS_NULL(rpa)) 
         VTABLE_set_attr_keyed(interp, list, Rakudo_types_list_get(), NEXTITER_str,
-            Rakudo_binding_iter_from_rpa(interp, rpa, list, flat));
+            Rakudo_binding_iter_from_rpa(interp, rpa, list, flattens));
     return list;
 }
    

@@ -1,3 +1,10 @@
+
+# XXX: Temporary definition of $Inf and $NaN until we have constants available
+# constant Inf = ...
+# constant NaN = ...
+my $Inf = pir::perl6_box_num__PN(pir::set__Ns('Inf'));
+my $NaN = pir::perl6_box_num__PN(pir::set__Ns('NaN'));
+
 my class Num {
     method Num() { self }
     method Bridge() { self }

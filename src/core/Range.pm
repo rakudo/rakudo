@@ -2,9 +2,14 @@ class Range is Iterable {
     has $.min;
     has $.max;
 
-    method new($min, $max) {
+    proto method new(|$) { * }
+    multi method new($min, $max) {
         self.CREATE.BUILD($min, $max)
     }
+    multi method new($min, Whatever $max) {
+        self.CREATE.BUILD($min, $Inf)
+    }
+
     method BUILD($min, $max) {
         $!min = $min;
         $!max = $max;
@@ -15,7 +20,6 @@ class Range is Iterable {
 
     multi method gist(Range:D:) { self.perl }
     multi method perl(Range:D:) { $.min ~ '..' ~ $.max }
-
 }
 
 

@@ -19,3 +19,16 @@ my class Str {
     multi method perl(Str:D:) { "'" ~ self ~ "'" }
 
 }
+
+proto infix:<x>(|$) {*}
+multi infix:<x>(Str $s, Int $repetition) {
+    pir::perl6_box_str__PS(
+        pir::repeat__SSI(
+            pir::repr_unbox_str__SP($s),
+            pir::repr_unbox_int__IP($repetition),
+        )
+    );
+}
+multi infix:<x>($s, $repetition) {
+    $s.Str x $repetition.Int
+}

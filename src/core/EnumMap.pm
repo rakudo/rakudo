@@ -1,11 +1,27 @@
 my class EnumMap {
-    # Has attributes and parent Iterable declared in BOOTSTRAP
+    # declared in BOOTSTRAP.pm:
+    #   has $!storage;         # Parrot Hash PMC of key->value mappings
 
     method exists(Str \$key) {
         pir::perl6_booleanize__PI(
             pir::defined($!storage)
             && pir::exists__IQs($!storage, pir::repr_unbox_str__SP($key))
         )
+    }
+
+    method iterator() { self.pairs.iterator }
+
+    method list() { self.pairs }
+
+    method pairs() {
+        GATHER({
+            my Mu $iter := pir::iter__PP($!storage);
+            my Mu $pair;
+            while $iter {
+                $pair := pir::shift__PP($iter);
+                take Pair.new(:key($pair.key), :value($pair.value));
+            }
+        })
     }
 
     method at_key(Str \$key) {

@@ -10,9 +10,11 @@ my class EnumMap {
     }
 
     method iterator() { self.pairs.iterator }
-
     method list() { self.pairs }
 
+    method keys()   { self.pairs.map( { $_.key } ) }
+    method kv()     { self.pairs.map( { $_.kv } ) }
+    method values() { self.pairs.map( { $_.value } ) }
     method pairs() {
         GATHER({
             my Mu $iter := pir::iter__PP($!storage);

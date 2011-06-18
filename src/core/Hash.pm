@@ -5,11 +5,11 @@ my class Hash {
         self.exists($key)
           ?? pir::find_method__PPs(EnumMap, 'at_key')(self, $key)
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-                 -> { pir::find_method__PPs(EnumMap, 'BIND_KEY')(self, $key, $v) } )
+                 -> { pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
     }
 
-    method BIND_KEY(Str \$key, $x is copy) {
-        pir::find_method__PPs(EnumMap, 'BIND_KEY')(self, $key, $x);
+    method STORE_AT_KEY(Str \$key, $x is copy) {
+        pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
     }
 
     method STORE(\$to_store) {
@@ -18,7 +18,7 @@ my class Hash {
         my $items = $to_store.flat;
         while $items {
             my $key = $items.shift;
-            self.BIND_KEY($key, $items.shift);
+            self.STORE_AT_KEY($key, $items.shift);
         }
         self
     }

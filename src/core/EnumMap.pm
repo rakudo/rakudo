@@ -15,7 +15,7 @@ my class EnumMap {
     }
 
 
-    method BIND_KEY(Str \$key, \$value) {
+    method STORE_AT_KEY(Str \$key, \$value) {
         pir::defined($!storage) ||
             pir::setattribute__vPPsP(self, EnumMap, '$!storage',
                                      pir::new__Ps('Hash'));

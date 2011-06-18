@@ -23,8 +23,15 @@ my class Hash {
                                 pir::new__Ps('Hash'));
         my $items = $to_store.flat;
         while $items {
-            my $key = $items.shift;
-            self.STORE_AT_KEY($key, $items.shift);
+            my Mu $x := $items.shift;
+            if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key, $x.value) }
+            elsif EnumMap.ACCEPTS($x) {
+                for $x.list { self.STORE_AT_KEY(.key, lvaue) }
+            }
+            elsif $items { self.STORE_AT_KEY($x, $items.shift) }
+            else {
+                fail 'Odd number of elements found where hash expected'
+            }
         }
         self
     }

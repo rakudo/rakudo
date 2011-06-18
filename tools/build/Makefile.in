@@ -133,11 +133,11 @@ CORE_SOURCES = \
   src/core/Str.pm \
   src/core/Iterable.pm \
   src/core/Iterator.pm \
+  src/core/ListIter.pm \
   src/core/MapIter.pm \
   src/core/GatherIter.pm \
   src/core/List.pm \
   src/core/Parcel.pm \
-  src/core/ListIter.pm \
   src/core/Array.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \

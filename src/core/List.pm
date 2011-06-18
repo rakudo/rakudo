@@ -1,5 +1,6 @@
 class List {
-    # Attributes defined in BOOTSTRAP.pm:
+    # declared in BOOTSTRAP.pm:
+    #   is Iterable;           # parent class
     #   has Mu $!items;        # RPA of our reified elements
     #   has $!nextiter;        # iterator for generating remaining elements
 
@@ -50,12 +51,16 @@ class List {
     }
 
     method iterator() {
-        # Return a Parcel containing our currently reified elements
+        # Return a reified ListIter containing our currently reified elements
         # and any subsequent iterator.
         self.gimme(0);
         my Mu $rpa := pir::clone__PP($!items);
         pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
-        pir__perl6_box_rpa__PP($rpa)
+        pir::setattribute__0PPsP(
+            pir::setattribute__0PPsP(
+                pir::repr_instance_of__PP(ListIter),
+                ListIter, '$!nextiter', $!nextiter),
+            ListIter, '$!reified', pir__perl6_box_rpa__PP($rpa))
     }
 
     method map($block) is rw { 
@@ -73,6 +78,10 @@ class List {
     method shift() {
         # make sure we have at least one item, then shift+return it
         self.gimme(1) && pir::shift__PP($!items)
+    }
+
+    multi method perl(List:D:) {
+        '(' ~ self.map({ $^a.perl }).join(', ') ~ ')'
     }
 
     method STORE_AT_POS(\$pos, Mu \$v) {

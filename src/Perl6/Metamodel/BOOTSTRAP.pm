@@ -414,6 +414,29 @@ pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 my stub Iterable metaclass Perl6::Metamodel::ClassHOW { ... };
 Iterable.HOW.add_parent(Iterable, Cool);
 
+# class Iterator is Iterable {
+#     ...
+# }
+my stub Iterator metaclass Perl6::Metamodel::ClassHOW { ... };
+Iterator.HOW.add_parent(Iterator, Iterable);
+
+
+# class ListIter is Iterator {
+#    has $!reified;
+#    has $!nextiter;
+#    has $!rest;
+#    has $!list;
+#    has $!flat;
+#    ...
+# }
+my stub ListIter metaclass Perl6::Metamodel::ClassHOW { ... };
+ListIter.HOW.add_parent(ListIter, Iterator);
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu));
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu));
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu));
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu));
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!flat', Mu));
+
 # class List is Iterable {
 #     has $!items;
 #     has $!nextiter;
@@ -423,22 +446,6 @@ my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 List.HOW.add_parent(List, Iterable);
 List.HOW.add_attribute(List, scalar_attr('$!items', Mu));
 List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu));
-
-# class ListIter {
-#    has $!reified;
-#    has $!nextiter;
-#    has $!rest;
-#    has $!list;
-#    has $!flat;
-#    ...
-# }
-my stub ListIter metaclass Perl6::Metamodel::ClassHOW { ... };
-ListIter.HOW.add_parent(ListIter, Iterable);
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu));
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu));
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu));
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu));
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!flat', Mu));
 
 # class Array is List {
 #     has $!descriptor;
@@ -553,8 +560,9 @@ my module EXPORT {
         $?PACKAGE.WHO<Int>       := Int;
         $?PACKAGE.WHO<Num>       := Num;
         $?PACKAGE.WHO<Iterable>  := Iterable;
-        $?PACKAGE.WHO<List>      := List;
+        $?PACKAGE.WHO<Iterator>  := Iterator;
         $?PACKAGE.WHO<ListIter>  := ListIter;
+        $?PACKAGE.WHO<List>      := List;
         $?PACKAGE.WHO<Array>     := Array;
         $?PACKAGE.WHO<LoL>       := LoL;
         $?PACKAGE.WHO<EnumMap>   := EnumMap;

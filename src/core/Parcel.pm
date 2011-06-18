@@ -1,4 +1,4 @@
-my class Parcel is Iterable {
+my class Parcel {
     has $!storage;             # RPA of Parcel's elements
 
     method flat() {
@@ -8,10 +8,6 @@ my class Parcel is Iterable {
     method list() {
         pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), Mu)
     }
-
-    # Since Parcels are immutable, they are their own (self-reifying) iterator
-    method iterator() { self }
-    method reify($n?) { self }
 
     multi method perl(Parcel:D:) {
         my Mu $rpa := pir::clone($!storage);

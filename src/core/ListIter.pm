@@ -1,3 +1,5 @@
+class Parcel { ... }
+
 my class ListIter {
     # Attributes defined in BOOTSTRAP.pm:
     #   has $!reified;         # return value for already-reified iterator
@@ -13,12 +15,19 @@ my class ListIter {
             my $pos = $!list.gimme(0) if $!list.defined;
             while $!rest && $n > 0 {
                 $x := pir::shift__PP($!rest);
-                if $!flat && pir::not__II(pir::is_container__IP($x))
-                          && $x.defined && Iterable.ACCEPTS($x) {
-                    pir::splice__vPPii(
-                        $!rest, 
-                        pir__perl6_unbox_rpa__PP($x.iterator.reify($n)),
-                        0, 0);
+                if pir::not__II(pir::is_container__IP($x)) && $x.defined
+                    && Iterable.ACCEPTS($x) {
+                        pir::splice__vPPii(
+                            $!rest, 
+                            pir__perl6_unbox_rpa__PP($x.iterator.reify($n)),
+                            0, 0);
+                }
+                elsif $!flat && pir::not__II(pir::is_container__IP($x))
+                      && $x.defined && Parcel.ACCEPTS($x) {
+                        pir::splice__vPPii(
+                            $!rest, 
+                            pir__perl6_unbox_rpa__PP($x),
+                            0, 0);
                 }
                 else {
                     $x := $!list.STORE_AT_POS($pos, $x) if $!list.defined;

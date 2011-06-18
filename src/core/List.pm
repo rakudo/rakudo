@@ -7,6 +7,7 @@ class List {
     method Bool()    { self.gimme(1).Bool }
     method Int()     { self.elems }
     method Numeric() { self.elems }
+    method Parcel()  { self.gimme(*); pir__perl6_box_rpa__PP($!items) }
 
     method list() { self }
 
@@ -82,9 +83,11 @@ class List {
         self.gimme(1) && pir::shift__PP($!items)
     }
 
-    multi method perl(List:D:) {
-        self.gimme(*);
-        pir__perl6_box_rpa__PP($!items).perl
+    multi method perl(List:D \$self:) {
+        self.WHAT.perl
+            ~ '.new'
+            ~ self.Parcel.perl
+            ~ (pir::is_container__IP($self) ?? '.item' !! '')
     }
 
     method STORE_AT_POS(\$pos, Mu \$v) {

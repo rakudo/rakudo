@@ -8,6 +8,12 @@ class Array {
                  -> { pir::find_method__PPs(List, 'STORE_AT_POS')(self, $pos, $v) } )
     }
 
+    multi method perl(Array:D \$self:) {
+        pir::is_container__IP($self)
+          ?? '[' ~ self.map({.perl}).join(', ') ~ ']'
+          !! self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
+    }
+
     method STORE_AT_POS(\$pos, Mu $v is copy) {
         pir::find_method__PPs(List, 'STORE_AT_POS')(self, $pos, $v);
     }

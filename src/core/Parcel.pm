@@ -12,8 +12,15 @@ my class Parcel {
     multi method perl(Parcel:D:) {
         my Mu $rpa := pir::clone($!storage);
         my $perl = '(';
-        $perl = $perl ~ pir::shift__PP($rpa).perl if $rpa;
-        $perl = $perl ~ ', ' ~ pir::shift__PP($rpa).perl while $rpa;
+        if $rpa {
+            $perl = $perl ~ pir::shift__PP($rpa).perl;
+            if $rpa {
+                $perl = $perl ~ ', ' ~ pir::shift__PP($rpa).perl while $rpa;
+            }
+            else {
+                $perl = $perl ~ ',';
+            }
+        }
         $perl ~ ')';
     }
 

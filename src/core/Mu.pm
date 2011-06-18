@@ -30,21 +30,21 @@ my class Mu {
     
     proto method Str(|$) { * }
     multi method Str(Mu:U:) {
-        self.HOW.name(self) ~ '()'
+        ''   # TODO: should be a warning of some sort
     }
     multi method Str(Mu:D:) {
         self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>'
     }
 
-    proto method Stringy(|$) { * }
-    multi method Stringy(Mu:U:) {
-        ''   # TODO: should be a warning of some sort
-    }
-    multi method Stringy(Mu:D:) { self.Str }
+    method Stringy(Mu:D:) { self.Str }
     
     method item() { self }
     
     method say() { say(self) }
+
+    proto method gist(|$) { * }
+    multi method gist(Mu:U:) { self.HOW.name(self) ~ '()' }
+    multi method gist(Mu:D:) { self.Stringy }
 
     proto method perl(|$) { * }
     multi method perl(Mu:D:) { self.Str }

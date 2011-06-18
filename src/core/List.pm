@@ -5,10 +5,11 @@ class List {
     #   has $!flattens;        # true if this list flattens its parcels
     #   has $!nextiter;        # iterator for generating remaining elements
 
-    method Bool()    { self.gimme(1).Bool }
-    method Int()     { self.elems }
-    method Numeric() { self.elems }
-    method Parcel()  { self.gimme(*); pir__perl6_box_rpa__PP(self.RPA) }
+    method Bool()       { self.gimme(1).Bool }
+    method Int()        { self.elems }
+    method Numeric()    { self.elems }
+    method Parcel()     { self.gimme(*); pir__perl6_box_rpa__PP(self.RPA) }
+    method Str(List:D:) { self.join(' ') }
 
     method list() { self }
     method flattens() { $!flattens }
@@ -72,6 +73,12 @@ class List {
         pir::push__vPP($rpa, pir::shift__PP($!items))
             while $!items && $n-- > 0;
         pir__perl6_box_rpa__PP($rpa)
+    }
+
+    method push(*@values) {
+        my $pos = self.elems;
+        fail '.push on infinite lists NYI' if $!nextiter.defined;
+        self.STORE_AT_POS($pos++, @values.shift) while @values;
     }
 
     method shift() {

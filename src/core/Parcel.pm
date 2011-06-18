@@ -9,6 +9,13 @@ my class Parcel {
         pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), Mu)
     }
 
+    multi method gist(Parcel:D:) {
+        my @gist;
+        my Mu $rpa := pir::clone__PP($!storage);
+        @gist.push( pir::shift__PP($rpa).gist ) while $rpa;
+        @gist;
+    }
+
     multi method perl(Parcel:D:) {
         my Mu $rpa := pir::clone($!storage);
         my $perl = '(';

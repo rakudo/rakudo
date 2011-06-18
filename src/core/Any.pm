@@ -1,3 +1,5 @@
+class MapIter { ... }
+
 my class Any {
 
     # List-like methods for Any.
@@ -11,6 +13,10 @@ my class Any {
             while $list;
         pir::perl6_box_str__PS(
             pir::join(pir::repr_unbox_str__SP($separator.Stringy), $rsa))
+    }
+
+    method map($block) is rw {
+        MapIter.new(:list(self.flat), :block($block)).list
     }
          
     proto method postcircumfix:<[ ]>(|$) { * }

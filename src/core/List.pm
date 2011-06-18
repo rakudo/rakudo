@@ -8,7 +8,6 @@ class List {
     method Int()     { self.elems }
     method Numeric() { self.elems }
 
-    method flat() { self.iterator.flat }
     method list() { self }
 
     method at_pos(\$pos) {
@@ -30,6 +29,13 @@ class List {
         self.gimme($pos + 1);
         pir::perl6_booleanize__PI(
             pir::exists__IQI($!items, pir::repr_unbox_int__IP($pos)))
+    }
+
+    method flat() {
+        self.gimme(0);
+        my Mu $rpa := pir::clone__PP($!items);
+        pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
+        pir::perl6_list_from_rpa__PPPP(List, $rpa, 1.Bool);
     }
 
     method gimme($n) {
@@ -63,10 +69,6 @@ class List {
             ListIter, '$!reified', pir__perl6_box_rpa__PP($rpa))
     }
 
-    method map($block) is rw { 
-        MapIter.new(:list(self), :block($block)).list 
-    }
-
     method munch($n is copy) {
         self.gimme($n);
         my Mu $rpa := pir::new__Ps('ResizablePMCArray');
@@ -81,7 +83,8 @@ class List {
     }
 
     multi method perl(List:D:) {
-        '(' ~ self.map({ $^a.perl }).join(', ') ~ ')'
+        self.gimme(*);
+        pir__perl6_box_rpa__PP($!items).perl
     }
 
     method STORE_AT_POS(\$pos, Mu \$v) {

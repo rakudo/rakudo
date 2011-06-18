@@ -33,4 +33,4 @@ class Array {
 }
 
 
-sub circumfix:<[ ]>(*@elems) { my $x = @elems }
+sub circumfix:<[ ]>(*@elems) is rw { my $x = @elems }

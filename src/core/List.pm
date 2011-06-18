@@ -84,10 +84,9 @@ class List {
     }
 
     multi method perl(List:D \$self:) {
-        self.WHAT.perl
-            ~ '.new'
-            ~ self.Parcel.perl
-            ~ (pir::is_container__IP($self) ?? '.item' !! '')
+        self.gimme(*);
+        self.Parcel.perl ~ '.list'  
+          ~ (pir::is_container__IP($self) ?? '.item' !! '')
     }
 
     method STORE_AT_POS(\$pos, Mu \$v) {

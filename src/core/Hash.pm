@@ -8,6 +8,12 @@ my class Hash {
                  -> { pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
     }
 
+    multi method perl(Hash:D \$self:) {
+        pir::is_container__IP($self)
+          ?? '{' ~ self.pairs.map({.perl}).join(', ') ~ '}'
+          !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
+    }
+
     method STORE_AT_KEY(Str \$key, $x is copy) {
         pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
     }
@@ -25,3 +31,5 @@ my class Hash {
 
 }
 
+
+sub circumfix:<{ }>(*@elems) { my $x = Hash.new.STORE(@elems); }

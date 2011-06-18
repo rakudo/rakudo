@@ -259,7 +259,7 @@ class Perl6::Actions is HLL::Actions {
                     }
                     $past := PAST::Op.new( 
                                  :pasttype<callmethod>, :name<map>, :node($/),
-                                 PAST::Op.new( :name<&flat>, $cond ),
+                                 $cond,
                                  $past
                              );
                     $past := PAST::Op.new( :name<&eager>, $past, :node($/) );
@@ -434,7 +434,7 @@ class Perl6::Actions is HLL::Actions {
         my $xblock := $<xblock>.ast;
         my $past := PAST::Op.new( 
                         :pasttype<callmethod>, :name<map>, :node($/),
-                        PAST::Op.new( :name<&flat>, $xblock[0] ),
+                        $xblock[0],
                         block_closure($xblock[1])
         );
         $past := PAST::Op.new( :name<&eager>, $past, :node($/) );

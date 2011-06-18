@@ -10,5 +10,6 @@ my class Enum {
     method value() { $!value }
 
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
+    multi method perl(Enum:D:) { $.key.perl ~ ' => ' ~ $.value.perl }
 }
 

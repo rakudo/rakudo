@@ -422,11 +422,10 @@ Iterator.HOW.add_parent(Iterator, Iterable);
 
 
 # class ListIter is Iterator {
-#    has $!reified;
-#    has $!nextiter;
-#    has $!rest;
-#    has $!list;
-#    has $!flattens;
+#     has $!reified;
+#     has $!nextiter;
+#     has $!rest;
+#     has $!list;
 #    ...
 # }
 my stub ListIter metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -435,16 +434,17 @@ ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu));
 ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu));
 ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu));
 ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu));
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!flattens', Mu));
 
 # class List is Iterable {
 #     has $!items;
+#     has $!flattens;
 #     has $!nextiter;
 #     ...
 # }
 my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 List.HOW.add_parent(List, Iterable);
 List.HOW.add_attribute(List, scalar_attr('$!items', Mu));
+List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu));
 List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu));
 
 # class Array is List {

@@ -8,6 +8,8 @@ class Array {
                  -> { pir::find_method__PPs(List, 'STORE_AT_POS')(self, $pos, $v) } )
     }
 
+    method flattens() { 1 }
+
     multi method perl(Array:D \$self:) {
         pir::is_container__IP($self)
           ?? '[' ~ self.map({.perl}).join(', ') ~ ']'
@@ -26,7 +28,7 @@ class Array {
         # that will bring in values from $args
         pir::setattribute__vPPsP(self, List, '$!items', Mu);
         pir::setattribute__0PPsP(self, List, '$!nextiter',
-            pir::perl6_iter_from_rpa__PPPP($args, self, 1.Bool));
+            pir::perl6_iter_from_rpa__PPP($args, self));
         self.eager
     }
 

@@ -66,12 +66,11 @@ static void setup_binder_statics(PARROT_INTERP) {
 /* Creates a ListIter from a RPA */
 /* This function gets shared with perl6.ops for the perl6_iter_from_rpa op. */
 PMC *
-Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flattens) {
+Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list) {
     PMC *type = Rakudo_types_listiter_get();
     PMC *iter = REPR(type)->instance_of(interp, type);
     VTABLE_set_attr_keyed(interp, iter, type, REST_str, rpa);
     VTABLE_set_attr_keyed(interp, iter, type, LIST_str, list);
-    VTABLE_set_attr_keyed(interp, iter, type, FLATTENS_str, flattens);
     return iter;
 }
 
@@ -81,9 +80,11 @@ Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list, PMC *flattens) 
 PMC *
 Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flattens) {
     PMC *list = REPR(type)->instance_of(interp, type);
+    PMC *List = Rakudo_types_list_get();
     if (!PMC_IS_NULL(rpa)) 
-        VTABLE_set_attr_keyed(interp, list, Rakudo_types_list_get(), NEXTITER_str,
-            Rakudo_binding_iter_from_rpa(interp, rpa, list, flattens));
+        VTABLE_set_attr_keyed(interp, list, List, NEXTITER_str,
+            Rakudo_binding_iter_from_rpa(interp, rpa, list));
+    VTABLE_set_attr_keyed(interp, list, List, FLATTENS_str, flattens);
     return list;
 }
    

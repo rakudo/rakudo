@@ -2,14 +2,16 @@ class List {
     # declared in BOOTSTRAP.pm:
     #   is Iterable;           # parent class
     #   has Mu $!items;        # RPA of our reified elements
+    #   has $!flattens;        # true if this list flattens its parcels
     #   has $!nextiter;        # iterator for generating remaining elements
 
     method Bool()    { self.gimme(1).Bool }
     method Int()     { self.elems }
     method Numeric() { self.elems }
-    method Parcel()  { self.gimme(*); pir__perl6_box_rpa__PP($!items) }
+    method Parcel()  { self.gimme(*); pir__perl6_box_rpa__PP(self.RPA) }
 
     method list() { self }
+    method flattens() { $!flattens }
 
     method at_pos(\$pos) {
         self.exists($pos)
@@ -33,10 +35,7 @@ class List {
     }
 
     method flat() {
-        self.gimme(0);
-        my Mu $rpa := pir::clone__PP($!items);
-        pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
-        pir::perl6_list_from_rpa__PPPP(List, $rpa, 1.Bool);
+        pir::perl6_list_from_rpa__PPPP(List, self.RPA, 1.Bool);
     }
 
     method gimme($n) {
@@ -60,14 +59,11 @@ class List {
     method iterator() {
         # Return a reified ListIter containing our currently reified elements
         # and any subsequent iterator.
-        self.gimme(0);
-        my Mu $rpa := pir::clone__PP($!items);
-        pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
         pir::setattribute__0PPsP(
             pir::setattribute__0PPsP(
                 pir::repr_instance_of__PP(ListIter),
                 ListIter, '$!nextiter', $!nextiter),
-            ListIter, '$!reified', pir__perl6_box_rpa__PP($rpa))
+            ListIter, '$!reified', pir__perl6_box_rpa__PP(self.RPA))
     }
 
     method munch($n is copy) {
@@ -91,6 +87,14 @@ class List {
 
     method STORE_AT_POS(\$pos, Mu \$v) {
         pir::set__1QiP($!items, pir::repr_unbox_int__IP($pos), $v)
+    }
+
+    method RPA() {
+        pir::defined($!items) or 
+            pir::setattribute__3PPsP(self, List, '$!items', pir::new__Ps('ResizablePMCArray'));
+        my Mu $rpa := pir::clone__PP($!items);
+        pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
+        $rpa
     }
 
     multi method DUMP(List:D:) {

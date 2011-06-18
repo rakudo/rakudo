@@ -2580,7 +2580,7 @@ class Perl6::Actions is HLL::Actions {
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
         else {
-            make PAST::Var.new( :name(~$/), :namespace(''), :scope('package') );
+            make $*ST.add_constant('Num', 'num', pir::set__Ns(~$/));
         }
     }
 

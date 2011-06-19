@@ -9,7 +9,13 @@ Current needs (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
 * List does Positional
 * hash composer block w/pairs:  { 'a' => 'b' }
+* blorsts:   gather { ... }
 
+Things that aren't blockers but might be worth knowing about:
+* attribute := doesn't work in CORE.setting (works outside of setting, though)
+
+## Phasers
+END (needed for Test.pm), INIT, CHECK, BEGIN
 
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.

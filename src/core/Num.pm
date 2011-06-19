@@ -17,7 +17,6 @@ my class Num {
         pir::perl6_box_str__PS(pir::repr_unbox_num__NP(self));
     }
 
-    # TODO: replace 1.Num with a Num literal once they are implemented
     proto method succ(|$) {*}
     multi method succ(Num:D:) { self + 1e0 }
     multi method succ(Num:U:) {        1e0 }
@@ -107,3 +106,72 @@ my class Num {
         pir::perl6_box_num__PN(pir::sech__NN(pir::repr_unbox_num__NP(self)));
     }
 }
+
+
+multi prefix:<->(Num \$a) {
+    pir::perl6_box_num__PN(pir::neg__NN(pir::repr_unbox_num__NP($a)))
+}
+
+multi prefix:<abs>(Num \$a) {
+    pir::perl6_box_num__PN(pir::abs__II(pir::repr_unbox_num__NP($a)))
+}
+
+multi infix:<+>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::add__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:<->(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::sub__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:<*>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::mul__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:</>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::div__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:<%>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(
+        pir::mod__NNN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:<**>(Num \$a, Num \$b) {
+    pir::perl6_box_num__PN(pir::pow__NNN(pir::repr_unbox_num__np($a), pir::repr_unbox_num__np($b)));
+}
+
+multi infix:<==>(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::iseq__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:<!=>(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isne__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:«<»(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::islt__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:«<=»(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isle__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:«>»(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isgt__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+
+multi infix:«>=»(Num \$a, Num \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isge__INN(pir::repr_unbox_num__NP($a), pir::repr_unbox_num__NP($b)))
+}
+

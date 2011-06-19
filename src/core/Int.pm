@@ -35,3 +35,137 @@ my class Int {
     multi method pred(Int:U:) {       -1 }
 }
 
+multi prefix:<->(Int \$a) {
+    pir::perl6_box_int__PI(pir::neg__II(pir::repr_unbox_int__IP($a)))
+}
+
+multi prefix:<abs>(Int \$a) {
+    pir::perl6_box_int__PI(pir::abs__II(pir::repr_unbox_int__IP($a)))
+}
+
+multi infix:<+>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::add__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:<->(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::sub__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:<*>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::mul__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:</>(Int \$a, Int \$b) {
+    # XXX should really return a Rat
+    $a.Num / $b.Num
+}
+
+multi infix:<div>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:<%>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::mod__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:<**>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::set__IN(pir::pow__NNN(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b))));
+}
+
+multi infix:<lcm>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::lcm__III(
+            pir::repr_unbox_int__IP($a),
+            pir::repr_unbox_int__IP($b)));
+}
+
+multi infix:<gcd>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::gcd__III(
+            pir::repr_unbox_int__IP($a),
+            pir::repr_unbox_int__IP($b)));
+}
+
+multi infix:<cmp>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(
+        pir::cmp__III(
+            pir::repr_unbox_int__IP($a), 
+            pir::repr_unbox_int__IP($b)));
+}
+
+multi infix:<==>(Int \$a, Int \$b) {
+    pir::perl6_booleanize__PI(
+        pir::iseq__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:<!=>(Int \$a, Int \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isne__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:«<»(Int \$a, Int \$b) {
+    pir::perl6_booleanize__PI(
+        pir::islt__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:«<=»(Int \$a, Int \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isle__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:«>»(Int \$a, Int \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isgt__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:«>=»(Int \$a, Int \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isge__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+}
+
+multi infix:<+|>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::bor__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}
+
+multi infix:<+&>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::band__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}
+
+multi infix:<+^>(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::bxor__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}
+
+multi infix:«+<»(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::shl__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}
+
+multi infix:«+>»(Int \$a, Int \$b) {
+    pir::perl6_box_int__PI(pir::shr__III(
+        pir::repr_unbox_int__ip($a),
+        pir::repr_unbox_int__ip($b)
+    ));
+}
+
+multi prefix:<+^>(Int \$a) {
+    pir::perl6_box_int__PI(pir::bnot__II(
+        pir::repr_unbox_int__ip($a)
+    ));
+}
+

@@ -1003,6 +1003,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ));
             $lookup.viviself(PAST::Var.new(
                 :scope('keyed'),
+                :viviself(self.lookup_failure($orig_name)),
                 PAST::Op.new(
                     :pirop('get_who PP'),
                     PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') )
@@ -1031,14 +1032,18 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Failure object if we can't find the name.
         unless $lookup.viviself {
-            my $msg := "Could not find symbol '$orig_name'";
-            $lookup.viviself(PAST::Op.new(
-                :pasttype('call'), :name('&fail'),
-                self.add_constant('Str', 'str', $msg)
-            ));
+            $lookup.viviself(self.lookup_failure($orig_name));
         }
         
         return $lookup;
+    }
+    
+    method lookup_failure($orig_name) {
+        my $msg := "Could not find symbol '$orig_name'";
+        return PAST::Op.new(
+            :pasttype('call'), :name('&fail'),
+            self.add_constant('Str', 'str', $msg)
+        );
     }
 
     # Checks if the given name is known anywhere in the lexpad

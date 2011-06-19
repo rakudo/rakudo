@@ -974,6 +974,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method symbol_lookup(@name, $/, :$package_only = 0) {
         # Catch empty names and die helpfully.
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
+        my $orig_name := pir::join('::', @name);
         
         # If it's a single item, then go hunting for it through the
         # block stack.
@@ -1026,6 +1027,15 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     $path, ~$_);
             }
             $lookup.unshift(PAST::Op.new(:pirop('get_who PP'), $path));
+        }
+        
+        # Failure object if we can't find the name.
+        unless $lookup.viviself {
+            my $msg := "Could not find symbol '$orig_name'";
+            $lookup.viviself(PAST::Op.new(
+                :pasttype('call'), :name('&fail'),
+                self.add_constant('Str', 'str', $msg)
+            ));
         }
         
         return $lookup;

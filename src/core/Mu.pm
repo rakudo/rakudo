@@ -36,7 +36,7 @@ my class Mu {
         self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>'
     }
 
-    method Stringy(Mu:D:) { self.Str }
+    method Stringy() { self.Str }
     
     method item() { self }
     

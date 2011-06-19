@@ -337,7 +337,13 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method block($/) {
-        make $<blockoid>.ast;
+        my $block := $<blockoid>.ast;
+        if $block<placeholder_sig> {
+            $/.CURSOR.panic("Cannot use placeholder parameters in this kind of block");
+        }
+        make reference_to_code_object(
+            make_simple_code_object($block, 'Block'),
+            $block);
     }
 
     method blockoid($/) {
@@ -442,7 +448,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<loop>($/) {
-        my $block := block_immediate($<block>.ast);
+        my $block := PAST::Op.new($<block>.ast);
         my $cond := $<e2> ?? $<e2>[0].ast !! 1;
         my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
         if $<e3> {
@@ -632,11 +638,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method blorst($/) {
-        my $block := $<block>
-                     ?? $<block>.ast
-                     !! PAST::Block.new( $<statement>.ast, :node($/) );
-        $block.blocktype('declaration');
-        make $block;
+        make $<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast);
     }
 
     # Statement modifiers
@@ -2827,7 +2829,7 @@ class Perl6::Actions is HLL::Actions {
     method quote_escape:sym<{ }>($/) {
         make PAST::Op.new(
             :pasttype('callmethod'), :name('Stringy'),
-            block_immediate($<block>.ast), :node($/)
+            PAST::Op.new( $<block>.ast ), :node($/)
         );
     }
 
@@ -2967,10 +2969,20 @@ class Perl6::Actions is HLL::Actions {
     }
     
     sub make_thunk($to_thunk) {
-        my $past := PAST::Block.new( $to_thunk );
-        ($*ST.cur_lexpad())[0].push($past);
+        make_simple_code_object(PAST::Block.new( $to_thunk ), 'Code');
+    }
+    
+    sub make_thunk_ref($to_thunk) {
+        my $block := PAST::Block.new( $to_thunk );
+        reference_to_code_object(
+            make_simple_code_object($block, 'Code'),
+            $block);
+    }
+    
+    sub make_simple_code_object($block, $type) {
+        ($*ST.cur_lexpad())[0].push($block);
         my $sig  := $*ST.create_signature([]);
-        return $*ST.create_code_object($past, 'Code', $sig);
+        return $*ST.create_code_object($block, $type, $sig);
     }
     
     sub make_where_block($expr) {

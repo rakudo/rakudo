@@ -18,6 +18,7 @@ class GatherIter is Iterator {
             my Mu $rpa := pir::new__Ps('ResizablePMCArray');
             my Mu $parcel;
             my $end;
+            $n = 1 if Whatever.ACCEPTS($n);
             while !$end && $n > 0 {
                 $parcel := Q:PIR {
                     $P0 = find_lex 'self'

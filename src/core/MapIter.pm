@@ -26,6 +26,7 @@ my class MapIter is Iterator {
                 pir__perl6_unbox_rpa__PP($!list.munch($!block.count));
             my $block := $!block;   # easier to access from Q:PIR
             my Mu $parcel;
+            $n = 1 if Whatever.ACCEPTS($n);
             while $args && $n > 0 {
                 $parcel := Q:PIR {
                                $P0 = find_lex '$args'

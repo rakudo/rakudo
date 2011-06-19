@@ -1,3 +1,5 @@
+class Nil { ... }
+
 my &THROW :=
     -> |$ {
         Q:PIR {
@@ -18,20 +20,35 @@ my &THROW :=
         0
     };
 
-my &return-rw := -> \$parcel { 
+my &return-rw := -> \$parcel = Nil { 
     THROW($parcel, pir::const::CONTROL_RETURN) 
 };
-my &return := -> \$parcel { 
+my &return := -> \$parcel = Nil { 
     THROW(pir::perl6_decontainerize__PP($parcel), 
           pir::const::CONTROL_RETURN) 
 };
 
-my &take-rw := -> \$parcel { 
+my &take-rw := -> \$parcel = Nil { 
     THROW($parcel, pir::const::CONTROL_TAKE) 
 };
-my &take := -> \$parcel { 
+my &take := -> \$parcel = Nil { 
     THROW(pir::perl6_decontainerize__PP($parcel), 
           pir::const::CONTROL_TAKE) 
+};
+
+my &last := -> \$parcel = Nil { 
+    THROW(pir::perl6_decontainerize__PP($parcel), 
+          pir::const::CONTROL_LOOP_LAST) 
+};
+
+my &next := -> \$parcel = Nil { 
+    THROW(pir::perl6_decontainerize__PP($parcel), 
+          pir::const::CONTROL_LOOP_NEXT) 
+};
+
+my &redo := -> \$parcel = Nil { 
+    THROW(pir::perl6_decontainerize__PP($parcel), 
+          pir::const::CONTROL_LOOP_REDO) 
 };
 
 sub die(*@msg) { pir::die(@msg.join('')) }

@@ -16,7 +16,10 @@ class Range is Iterable {
         self;
     }
 
+    method flat()     { self.iterator.list }
+    method infinite() { $.max == $Inf }
     method iterator() { RangeIter.new(:value($.min), :max($.max)) }
+    method list()     { self.iterator.list }
 
     multi method gist(Range:D:) { self.perl }
     multi method perl(Range:D:) { $.min ~ '..' ~ $.max }

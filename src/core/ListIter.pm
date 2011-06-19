@@ -8,29 +8,33 @@ my class ListIter {
     method reify($n is copy) {
         if !$!reified.defined {
             my $rpa := pir::new__Ps('ResizablePMCArray');
-            my $x;
+            my Mu $x;
             my $pos = $!list.gimme(0) if $!list.defined;
             my $flattens = $!list.defined && $!list.flattens;
-            while $!rest && $n > 0 {
-                $x := pir::shift__PP($!rest);
+            my $eager = Whatever.ACCEPTS($n);
+            while $!rest && ($eager || $n > 0) {
+                $x := pir::set__PQi($!rest, 0);
                 if pir::not__II(pir::is_container__IP($x)) && $x.defined
                     && Iterable.ACCEPTS($x) {
+                        last if $eager && $x.infinite;
                         pir::splice__vPPii(
                             $!rest, 
                             pir__perl6_unbox_rpa__PP($x.iterator.reify($n)),
-                            0, 0);
+                            0, 1);
                 }
                 elsif $flattens && pir::not__II(pir::is_container__IP($x))
                       && $x.defined && Parcel.ACCEPTS($x) {
                         pir::splice__vPPii(
                             $!rest, 
                             pir__perl6_unbox_rpa__PP($x),
-                            0, 0);
+                            0, 1);
                 }
-                elsif !Nil.ACCEPTS($x) {
+                elsif Nil.ACCEPTS($x) { pir::shift__PP($!rest) }
+                else {
+                    pir::shift__PP($!rest);
                     $x := $!list.STORE_AT_POS($pos, $x) if $!list.defined;
                     pir::push__vPP($rpa, $x);
-                    $n = $n - 1;
+                    $eager or $n = $n - 1;
                     $pos = $pos + 1;
                 }
             }
@@ -47,6 +51,12 @@ my class ListIter {
             pir::setattribute__0PPsP(self, ListIter, '$!rest', Mu);
         }
         $!reified;
+    }
+
+    method infinite() {
+        $!rest 
+          && Iterable.ACCEPTS(pir::set__PQi($!rest,0))
+          && pir::set__PQi($!rest,0).infinite
     }
 
     method iterator() { self }

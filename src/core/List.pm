@@ -47,8 +47,10 @@ class List {
         # loop through iterators until we have at least $n elements
         my $count = pir::perl6_box_int__PI(pir::elements($!items));
         my $eager = Whatever.ACCEPTS($n);
-        while $!nextiter.defined && ($eager || $count < $n) {
-            $!nextiter.reify($eager ?? 100 !! $n - $count);
+        while $!nextiter.defined && ($eager 
+                                       ?? !$!nextiter.infinite 
+                                       !! ($count < $n)) {
+            $!nextiter.reify($eager ?? Whatever !! $n - $count);
             pir::setattribute__vPPsP(self, List, '$!nextiter', $!nextiter.nextiter);
             $count = pir::perl6_box_int__PI(pir::elements($!items));
         }

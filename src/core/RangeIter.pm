@@ -15,6 +15,9 @@ class RangeIter is Iterator {
     method reify($n is copy = 10) { 
         if !$!reified.defined {
             my Mu $rpa := pir::new__Ps('ResizablePMCArray');
+            $n = $Inf if Whatever.ACCEPTS($n);
+            fail "Infinite memory not available for Range generation" 
+                if $n == $Inf && self.infinite;
             ( pir::push__vPP($rpa, $!value++); $n-- ) while $n > 0 && $!value <= $!max;
             pir::push__vPP($rpa, self.new(:value($!value), :max($!max)) )
               if $!value <= $!max;
@@ -24,7 +27,9 @@ class RangeIter is Iterator {
         $!reified
     }
 
-    method DUMP(RangeIter:D:) {
+    method infinite() { $!max == $Inf }
+
+    multi method DUMP(RangeIter:D:) {
         self.DUMP-ID() ~ '('
           ~ ':reified(' ~ DUMP($!reified) ~ '), '
           ~ ':value(' ~ DUMP($!value) ~ '), '

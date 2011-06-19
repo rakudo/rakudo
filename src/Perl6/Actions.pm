@@ -2071,7 +2071,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         if $is_hash { # XXX && $past.arity < 1 {
-            my @children := @($past[1]);
+            my @children := @($past<past_block>[1]);
             $past := PAST::Op.new(
                 :pasttype('call'),
                 :name('&circumfix:<{ }>'),

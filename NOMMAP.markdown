@@ -5,14 +5,16 @@ Last Updated 19 June 2001
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
-Current needs (no particular order):
+Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
 * List does Positional
 * hash composer block w/pairs:  { 'a' => 'b' }
 * blorsts:   gather { ... }
+* list argument interpolation:  foo(|@list)
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
+* undeclared type names produce Null PMC errors (s.b. "'type' not found in scope")
 
 ## Phasers
 END (needed for Test.pm), INIT, CHECK, BEGIN

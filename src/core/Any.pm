@@ -46,3 +46,19 @@ my class Any {
     }
 
 }
+
+
+proto sub infix:<cmp>(|$) { * }
+multi sub infix:<cmp>(\$a, \$b) { $a.Stringy cmp $b.Stringy }
+
+# XXX: should really be '$a is rw' (no \) in the next four operators
+proto prefix:<++>(|$) { * }
+multi prefix:<++>(\$a is rw) { $a = $a.succ }
+proto prefix:<-->(|$) { * }
+multi prefix:<-->(\$a is rw) { $a = $a.pred }
+
+proto postfix:<++>(|$) { * }
+multi postfix:<++>(\$a is rw) { my $b = $a; $a = $a.succ; $b }
+proto postfix:<-->(|$) { * }
+multi postfix:<-->(\$a is rw) { my $b = $a; $a = $a.pred; $b }
+

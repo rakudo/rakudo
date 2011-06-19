@@ -639,40 +639,6 @@ class Perl6::Actions is HLL::Actions {
         make $block;
     }
 
-    method add_phaser($/, $blorst, $bank) {
-        my $subid := $blorst.subid();
-
-        # We always emit code to the add and fire the phaser.
-        my $add_phaser := PAST::Op.new(
-            :pasttype('call'), :name('!add_phaser'),
-            $bank, PAST::Val.new( :value($blorst) ), :node($/)
-        );
-        $*ST.cur_lexpad().loadinit.push($add_phaser);
-        $*ST.cur_lexpad()[0].push($blorst);
-
-        # If it's a BEGIN phaser, we also need it to run asap.
-        if $bank eq 'BEGIN' {
-            # add code to immediately fire the BEGIN phaser
-            my $fire := PAST::Op.new( :pasttype('call'), :name('!fire_phasers'), 'BEGIN' );
-            $*ST.cur_lexpad().loadinit.push($fire);
-
-            # and execute the phaser immediately in the current UNIT_OUTER
-            our $?RAKUDO_HLL;
-            $blorst.hll($?RAKUDO_HLL);
-            my $compiled := PAST::Compiler.compile($blorst);
-            Q:PIR {
-                $P0 = find_lex '$compiled'
-                $P0 = $P0[0]
-                '!UNIT_OUTER'($P0)
-                '!add_phaser'('BEGIN', $P0)
-                '!fire_phasers'('BEGIN')
-            }
-        }
-
-        # Need to get return value of phaser at "runtime".
-        make PAST::Op.new( :pasttype('call'), :name('!get_phaser_result'), $subid );
-    }
-
     # Statement modifiers
 
     method modifier_expr($/) { make $<EXPR>.ast; }

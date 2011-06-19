@@ -1,8 +1,9 @@
 class GatherIter is Iterator {
     has Mu $!coro;             # coroutine to execute for more pairs
     has $!reified;             # Parcel of this iterator's results
+    has $!infinite;            # true if iterator is known infinite
 
-    method gather($block) {
+    method gather($block, :$infinite) {
         my Mu $coro := 
             pir::clone__PP(pir::getattribute__PPPs(&coro, Code, '$!do'));
         Q:PIR {
@@ -10,7 +11,9 @@ class GatherIter is Iterator {
             $P1 = find_lex '$coro'
             $P1($P0)
         };
-        pir::setattribute__0PPsP(self.CREATE, GatherIter, '$!coro', $coro);
+        pir::setattribute__0PPsP(
+            pir::setattribute__0PPsP(self.CREATE, GatherIter, '$!coro', $coro),
+            GatherIter, '$!infinite', $infinite);
     }
 
     method reify($n is copy = 1) { 
@@ -32,12 +35,16 @@ class GatherIter is Iterator {
             }
             pir::push__vPP($rpa, 
                 pir::setattribute__0PPsP(
-                    self.CREATE, GatherIter, '$!coro', $!coro))
+                    pir::setattribute__0PPsP(
+                        self.CREATE, GatherIter, '$!coro', $!coro),
+                    GatherIter, '$!infinite', $!infinite))
                 unless $end;
             $!reified := pir__perl6_box_rpa__PP($rpa);
         }
         $!reified
     }
+
+    method infinite() { $!infinite }
 
     my sub coro(\$block) {
         Q:PIR {
@@ -67,5 +74,7 @@ class GatherIter is Iterator {
 }
 
 
-sub GATHER(\$block) { GatherIter.gather( $block ).list;  }
+sub GATHER(\$block, :$infinite) { 
+    GatherIter.gather( $block, :infinite($infinite) ).list;  
+}
 

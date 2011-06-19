@@ -337,7 +337,13 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method block($/) {
-        make $<blockoid>.ast;
+        my $block := $<blockoid>.ast;
+        if $block<placeholder_sig> {
+            $/.CURSOR.panic("Cannot use placeholder parameters in this kind of block");
+        }
+        make reference_to_code_object(
+            make_simple_code_object($block, 'Block'),
+            $block);
     }
 
     method blockoid($/) {
@@ -442,7 +448,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<loop>($/) {
-        my $block := block_immediate($<block>.ast);
+        my $block := PAST::Op.new($<block>.ast);
         my $cond := $<e2> ?? $<e2>[0].ast !! 1;
         my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
         if $<e3> {
@@ -632,45 +638,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method blorst($/) {
-        my $block := $<block>
-                     ?? $<block>.ast
-                     !! PAST::Block.new( $<statement>.ast, :node($/) );
-        $block.blocktype('declaration');
-        make $block;
-    }
-
-    method add_phaser($/, $blorst, $bank) {
-        my $subid := $blorst.subid();
-
-        # We always emit code to the add and fire the phaser.
-        my $add_phaser := PAST::Op.new(
-            :pasttype('call'), :name('!add_phaser'),
-            $bank, PAST::Val.new( :value($blorst) ), :node($/)
-        );
-        $*ST.cur_lexpad().loadinit.push($add_phaser);
-        $*ST.cur_lexpad()[0].push($blorst);
-
-        # If it's a BEGIN phaser, we also need it to run asap.
-        if $bank eq 'BEGIN' {
-            # add code to immediately fire the BEGIN phaser
-            my $fire := PAST::Op.new( :pasttype('call'), :name('!fire_phasers'), 'BEGIN' );
-            $*ST.cur_lexpad().loadinit.push($fire);
-
-            # and execute the phaser immediately in the current UNIT_OUTER
-            our $?RAKUDO_HLL;
-            $blorst.hll($?RAKUDO_HLL);
-            my $compiled := PAST::Compiler.compile($blorst);
-            Q:PIR {
-                $P0 = find_lex '$compiled'
-                $P0 = $P0[0]
-                '!UNIT_OUTER'($P0)
-                '!add_phaser'('BEGIN', $P0)
-                '!fire_phasers'('BEGIN')
-            }
-        }
-
-        # Need to get return value of phaser at "runtime".
-        make PAST::Op.new( :pasttype('call'), :name('!get_phaser_result'), $subid );
+        make $<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast);
     }
 
     # Statement modifiers
@@ -764,16 +732,14 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    sub make_pair($key, $value) {
-        my @name := Perl6::Grammar::parse_name('Pair');
+    sub make_pair($key_str, $value) {
+        my $key := $*ST.add_constant('Str', 'str', $key_str);
+        $key.named('key');
         $value.named('value');
         PAST::Op.new(
-            :pasttype('callmethod'),
-            :returns('Pair'),
-            :name('new'),
-            PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
-            PAST::Val.new( :value($key), :named('key') ),
-            $value
+            :pasttype('callmethod'), :name('new'), :returns('Pair'),
+            PAST::Var.new( :name('Pair'), :scope('lexical') ),
+            $key, $value
         )
     }
 
@@ -2027,18 +1993,18 @@ class Perl6::Actions is HLL::Actions {
         if $<EXPR> {
             my $expr := $<EXPR>.ast;
             if $expr.name eq '&infix:<,>' {
-                for $expr.list { $past.push(handle_named_parameter($_)); }
+                for $expr.list { $past.push(handle_named_parameter($_, $/)); }
             }
-            else { $past.push(handle_named_parameter($expr)); }
+            else { $past.push(handle_named_parameter($expr, $/)); }
         }
 
         make $past;
     }
 
-    sub handle_named_parameter($arg) {
+    sub handle_named_parameter($arg, $/) {
         if $arg ~~ PAST::Op && $arg.returns() eq 'Pair' {
             my $result := $arg[2];
-            $result.named(~$arg[1].value());
+            $result.named(compile_time_value_str($arg[1], 'LHS of pair', $/));
             $result<before_promotion> := $arg;
             $result;
         }
@@ -2105,7 +2071,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         if $is_hash { # XXX && $past.arity < 1 {
-            my @children := @($past[1]);
+            my @children := @($past<past_block>[1]);
             $past := PAST::Op.new(
                 :pasttype('call'),
                 :name('&circumfix:<{ }>'),
@@ -2861,7 +2827,7 @@ class Perl6::Actions is HLL::Actions {
     method quote_escape:sym<{ }>($/) {
         make PAST::Op.new(
             :pasttype('callmethod'), :name('Stringy'),
-            block_immediate($<block>.ast), :node($/)
+            PAST::Op.new( $<block>.ast ), :node($/)
         );
     }
 
@@ -3001,10 +2967,20 @@ class Perl6::Actions is HLL::Actions {
     }
     
     sub make_thunk($to_thunk) {
-        my $past := PAST::Block.new( $to_thunk );
-        ($*ST.cur_lexpad())[0].push($past);
+        make_simple_code_object(PAST::Block.new( $to_thunk ), 'Code');
+    }
+    
+    sub make_thunk_ref($to_thunk) {
+        my $block := PAST::Block.new( $to_thunk );
+        reference_to_code_object(
+            make_simple_code_object($block, 'Code'),
+            $block);
+    }
+    
+    sub make_simple_code_object($block, $type) {
+        ($*ST.cur_lexpad())[0].push($block);
         my $sig  := $*ST.create_signature([]);
-        return $*ST.create_code_object($past, 'Code', $sig);
+        return $*ST.create_code_object($block, $type, $sig);
     }
     
     sub make_where_block($expr) {

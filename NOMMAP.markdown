@@ -8,8 +8,6 @@ are likely to get focus sooner.
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
 * List does Positional
-* hash composer block w/pairs:  { 'a' => 'b' }
-* blorsts:   gather { ... }
 * list argument interpolation:  foo(|@list)
 
 Things that aren't blockers but might be worth knowing about:

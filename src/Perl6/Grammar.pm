@@ -220,6 +220,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             
             # We start with the current package as that also.
             $*PACKAGE := $*GLOBALish;
+            $*ST.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
         }
         
         <.unitstart>

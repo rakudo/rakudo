@@ -140,7 +140,6 @@ CORE_SOURCES = \
   src/core/GatherIter.pm \
   src/core/List.pm \
   src/core/Array.pm \
-  src/core/RangeIter.pm \
   src/core/Range.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \

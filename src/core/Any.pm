@@ -11,7 +11,8 @@ my class Any {
         my $list = (self,).flat.eager;
         my Mu $rsa := pir::new__Ps('ResizableStringArray');
         pir::push__vPS($rsa, pir::repr_unbox_str__SP($list.shift.Stringy)) 
-            while $list;
+            while $list.gimme(0);
+        pir::push__vPS($rsa, '...') if $list.infinite;
         pir::perl6_box_str__PS(
             pir::join(pir::repr_unbox_str__SP($separator.Stringy), $rsa))
     }

@@ -49,6 +49,8 @@ my class MapIter is Iterator {
         $!reified
     }
 
+    method infinite() { $!list.infinite }
+
     method DUMP() {
         self.DUMP-ID() ~ '('
           ~ ':reified(' ~ DUMP($!reified) ~ '), '

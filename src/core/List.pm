@@ -130,3 +130,12 @@ sub flat(|$) {
 sub list(|$) {
     pir::perl6_list_from_rpa__PPPP(List, pir::perl6_current_args_rpa__P(), Mu)
 }
+
+sub infix:<xx>(Mu \$x, $n is copy) {
+    $n = $Inf if Whatever.ACCEPTS($n);
+    GATHER({
+        take $x while $n-- > 0;
+    }, :infinite($n == $Inf))
+}
+
+

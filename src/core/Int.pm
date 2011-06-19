@@ -81,21 +81,21 @@ multi infix:<lcm>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::lcm__III(
             pir::repr_unbox_int__IP($a),
-            pir::repr_unbox_int__IP($b)));
+            pir::repr_unbox_int__IP($b)))
 }
 
 multi infix:<gcd>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::gcd__III(
             pir::repr_unbox_int__IP($a),
-            pir::repr_unbox_int__IP($b)));
+            pir::repr_unbox_int__IP($b)))
 }
 
 multi infix:<cmp>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::cmp__III(
             pir::repr_unbox_int__IP($a), 
-            pir::repr_unbox_int__IP($b)));
+            pir::repr_unbox_int__IP($b)))
 }
 
 multi infix:<==>(Int \$a, Int \$b) {

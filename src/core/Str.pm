@@ -20,6 +20,15 @@ my class Str {
 
 }
 
+multi infix:<cmp>(Str \$a, Str \$b) {
+    pir::perl6_box_int__PI(
+        pir::cmp__ISS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+    
+
 proto infix:<x>(|$) {*}
 multi infix:<x>(Str $s, Int $repetition) {
     pir::perl6_box_str__PS(
@@ -29,6 +38,4 @@ multi infix:<x>(Str $s, Int $repetition) {
         )
     );
 }
-multi infix:<x>($s, $repetition) {
-    $s.Str x $repetition.Int
-}
+multi infix:<x>($s, $repetition) { $s.Stringy x $repetition.Numeric }

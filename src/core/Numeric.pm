@@ -35,12 +35,14 @@ proto infix:<div>(|$) { * }
 proto infix:<%>(|$) { * }
 multi infix:<%>(\$a, \$b)    { $a.Numeric % $b.Numeric }
 
-proto infix:<**>(|$) { * }
-multi infix:<**>(\$a, \$b) { $a.Numeric ** $b.Numeric }
-
 proto infix:<lcm>(|$) { * }
+multi infix:<lcm>(\$a, \$b) { $a.Numeric lcm $b.Numeric }
 
 proto infix:<gcd>(|$) { * }
+multi infix:<gcd>(\$a, \$b) { $a.Numeric gcd $b.Numeric }
+
+proto infix:<**>(|$) { * }
+multi infix:<**>(\$a, \$b) { $a.Numeric ** $b.Numeric }
 
 
 

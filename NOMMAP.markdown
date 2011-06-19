@@ -1,15 +1,18 @@
 # Roadmap for "nom" Branch
 
-Last Updated 15th June 2011
+Last Updated 19 June 2001
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
+Current needs (no particular order):
+* core constants (e.g., Inf, Bool::True, Order::Decrease)
+* List does Positional
+* hash composer block w/pairs:  { 'a' => 'b' }
+
+
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
-
-## Iteration
-Get various types of iteration of lists and hashes back in place.
 
 ## our-scoped variables
 Still to be implemented

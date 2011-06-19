@@ -2,9 +2,6 @@ sub infix:<=>(Mu \$a, Mu \$b) {
     pir::perl6_container_store__0PP($a, pir::perl6_decontainerize__PP($b))
 }
 
-proto prefix:<~>(|$) { * }
-multi prefix:<~>(\$a) { $a.Stringy }
-
 multi infix:<+>(Int \$a, Int \$b) {
     pir::perl6_box_int__PI(
         pir::add__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
@@ -85,14 +82,9 @@ multi infix:<%>(Real \$a, Real \$b) {
     $a.Bridge % $b.Bridge
 }
 
-proto infix:<~>(|$) { * }
 multi infix:<~>(Str \$a, Str \$b) {
     pir::perl6_box_str__PS(
         pir::concat__SSS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
-}
-multi infix:<~>(\$a, \$b) {
-    pir::perl6_box_str__PS(
-        pir::concat__SSS(pir::repr_unbox_str__SP($a.Str), pir::repr_unbox_str__SP($b.Str)))
 }
 
 multi infix:<==>(Int \$a, Int \$b) {
@@ -167,125 +159,66 @@ multi infix:«>=»(Real \$a, Real \$b) {
     $a.Bridge >= $b.Bridge
 }
 
-proto infix:<eq>(|$) { * }
 multi infix:<eq>(Str \$a, Str \$b) {
     pir::perl6_booleanize__PI(
         pir::iseq__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
-multi infix:<eq>(\$a, \$b) {
-    pir::perl6_booleanize__PI(
-        pir::iseq__ISS(pir::repr_unbox_str__SP($a.Str), pir::repr_unbox_str__SP($b.Str)))
-}
 
-proto infix:<ne>(|$) { * }
 multi infix:<ne>(Str \$a, Str \$b) {
     pir::perl6_booleanize__PI(
         pir::isne__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
-multi infix:<ne>(\$a, \$b) {
-    pir::perl6_booleanize__PI(
-        pir::isne__ISS(pir::repr_unbox_str__SP($a.Str), pir::repr_unbox_str__SP($b.Str)))
-}
 
-proto infix:<lt>(|$) { * }
 multi infix:<lt>(Str \$a, Str \$b) {
     pir::perl6_booleanize__PI(
         pir::islt__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
-multi infix:<lt>(\$a, \$b) {
-    pir::perl6_booleanize__PI(
-        pir::islt__ISS(pir::repr_unbox_str__SP($a.Str), pir::repr_unbox_str__SP($b.Str)))
-}
 
-proto infix:<le>(|$) { * }
 multi infix:<le>(Str \$a, Str \$b) {
     pir::perl6_booleanize__PI(
         pir::isle__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
-multi infix:<le>(\$a, \$b) {
-    pir::perl6_booleanize__PI(
-        pir::isle__ISS(pir::repr_unbox_str__SP($a.Str), pir::repr_unbox_str__SP($b.Str)))
-}
 
-proto infix:<gt>(|$) { * }
 multi infix:<gt>(Str \$a, Str \$b) {
     pir::perl6_booleanize__PI(
         pir::isgt__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
-multi infix:<gt>(\$a, \$b) {
-    pir::perl6_booleanize__PI(
-        pir::isgt__ISS(pir::repr_unbox_str__SP($a.Str), pir::repr_unbox_str__SP($b.Str)))
-}
 
-proto infix:<ge>(|$) { * }
 multi infix:<ge>(Str \$a, Str \$b) {
     pir::perl6_booleanize__PI(
         pir::isge__ISS(pir::repr_unbox_str__SP($a), pir::repr_unbox_str__SP($b)))
 }
-multi infix:<ge>(\$a, \$b) {
-    pir::perl6_booleanize__PI(
-        pir::isge__ISS(pir::repr_unbox_str__SP($a.Str), pir::repr_unbox_str__SP($b.Str)))
-}
 
-proto infix:<leg>(|$) { * }
 multi infix:<leg>(Str \$a, Str \$b) {
     # TODO: should be Order::{Same, Increase, Decrease}
     $a eq $b ??  0 !!
     $a lt $b ?? -1 !!
                  1;
 }
-multi infix:<leg>(\$a, \$b) {
-    $a.Str leg $b.Str
-}
 
-proto infix:<~|>(|$) { * }
 multi infix:<~|>(Str \$a, Str \$b) {
     pir::perl6_box_str__PS(pir::bors__SSS(
         pir::repr_unbox_str__SP($a),
         pir::repr_unbox_str__SP($b),
     ));
 }
-multi infix:<~|>(\$a, \$b) {
-    pir::perl6_box_str__PS(pir::bors__SSS(
-        pir::repr_unbox_str__SP($a.Str),
-        pir::repr_unbox_str__SP($b.Str),
-    ));
-}
 
-proto infix:<~&>(|$) { * }
 multi infix:<~&>(Str \$a, Str \$b) {
     pir::perl6_box_str__PS(pir::bands__SSS(
         pir::repr_unbox_str__SP($a),
         pir::repr_unbox_str__SP($b),
     ));
 }
-multi infix:<~&>(\$a, \$b) {
-    pir::perl6_box_str__PS(pir::bands__SSS(
-        pir::repr_unbox_str__SP($a.Str),
-        pir::repr_unbox_str__SP($b.Str),
-    ));
-}
 
-proto infix:<~^>(|$) { * }
 multi infix:<~^>(Str \$a, Str \$b) {
     pir::perl6_box_str__PS(pir::bxors__SSS(
         pir::repr_unbox_str__SP($a),
         pir::repr_unbox_str__SP($b),
     ));
 }
-multi infix:<~^>(\$a, \$b) {
-    pir::perl6_box_str__PS(pir::bxors__SSS(
-        pir::repr_unbox_str__SP($a.Str),
-        pir::repr_unbox_str__SP($b.Str),
-    ));
-}
 
-proto prefix:<~^>(|$) { * }
 multi prefix:<~^>(Str \$a) {
     pir::perl6_box_str__PS(pir::bnots__SS(pir::repr_unbox_str__SP($a)));
-}
-multi prefix:<~^>(\$a) {
-    pir::perl6_box_str__PS(pir::bnots__SS(pir::repr_unbox_str__SP($a.Str)));
 }
 
 multi infix:<+|>(Int \$a, Int \$b) {

@@ -7,12 +7,13 @@ are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
-* List does Positional
+* List does Positional (depends on roles work)
 * list argument interpolation:  foo(|@list)
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
-* undeclared type names produce Null PMC errors (s.b. "'type' not found in scope")
+  (initial digging suggets it's a BOOTSTRAPATTR issue, thus why we only see it
+  in the setting)
 
 ## Phasers
 END (needed for Test.pm), INIT, CHECK, BEGIN
@@ -34,7 +35,6 @@ $_, $/, $!, @_ and %_ handling.
 While basic binding works again now, there's plenty of stuff to "put back".
 Of note:
 * Sub-signatures
-* Post-constraints
 * sub foo(0) { ... } (literals)
 
 ## Rat and Complex literals

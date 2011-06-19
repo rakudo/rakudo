@@ -5,6 +5,7 @@ my class Any {
     # List-like methods for Any.
     method flat() { self.list.flat }
     method list() { (self,).list }
+    method elems() { self.list.elems }
 
     method join($separator = ' ') {
         my $list = (self,).flat.eager;

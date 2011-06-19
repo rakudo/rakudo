@@ -1,5 +1,3 @@
-class Parcel { ... }
-
 my class ListIter {
     # Attributes defined in BOOTSTRAP.pm:
     #   has $!reified;         # return value for already-reified iterator
@@ -29,7 +27,7 @@ my class ListIter {
                             pir__perl6_unbox_rpa__PP($x),
                             0, 0);
                 }
-                else {
+                elsif !Nil.ACCEPTS($x) {
                     $x := $!list.STORE_AT_POS($pos, $x) if $!list.defined;
                     pir::push__vPP($rpa, $x);
                     $n = $n - 1;

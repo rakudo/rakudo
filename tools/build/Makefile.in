@@ -124,6 +124,7 @@ CORE_SOURCES = \
   src/core/Any.pm \
   src/core/Code.pm \
   src/core/Attribute.pm \
+  src/core/Parcel.pm \
   src/core/Cool.pm \
   src/core/Bool.pm \
   src/core/Numeric.pm \
@@ -137,7 +138,6 @@ CORE_SOURCES = \
   src/core/MapIter.pm \
   src/core/GatherIter.pm \
   src/core/List.pm \
-  src/core/Parcel.pm \
   src/core/Array.pm \
   src/core/RangeIter.pm \
   src/core/Range.pm \

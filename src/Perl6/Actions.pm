@@ -732,16 +732,14 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    sub make_pair($key, $value) {
-        my @name := Perl6::Grammar::parse_name('Pair');
+    sub make_pair($key_str, $value) {
+        my $key := $*ST.add_constant('Str', 'str', $key_str);
+        $key.named('key');
         $value.named('value');
         PAST::Op.new(
-            :pasttype('callmethod'),
-            :returns('Pair'),
-            :name('new'),
-            PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') ),
-            PAST::Val.new( :value($key), :named('key') ),
-            $value
+            :pasttype('callmethod'), :name('new'), :returns('Pair'),
+            PAST::Var.new( :name('Pair'), :scope('lexical') ),
+            $key, $value
         )
     }
 
@@ -1995,18 +1993,18 @@ class Perl6::Actions is HLL::Actions {
         if $<EXPR> {
             my $expr := $<EXPR>.ast;
             if $expr.name eq '&infix:<,>' {
-                for $expr.list { $past.push(handle_named_parameter($_)); }
+                for $expr.list { $past.push(handle_named_parameter($_, $/)); }
             }
-            else { $past.push(handle_named_parameter($expr)); }
+            else { $past.push(handle_named_parameter($expr, $/)); }
         }
 
         make $past;
     }
 
-    sub handle_named_parameter($arg) {
+    sub handle_named_parameter($arg, $/) {
         if $arg ~~ PAST::Op && $arg.returns() eq 'Pair' {
             my $result := $arg[2];
-            $result.named(~$arg[1].value());
+            $result.named(compile_time_value_str($arg[1], 'LHS of pair', $/));
             $result<before_promotion> := $arg;
             $result;
         }

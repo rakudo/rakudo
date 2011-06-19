@@ -212,7 +212,7 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
         }
-        $past.push(PAST::Var.new(:name('Nil'), :namespace([]), :scope('lexical'))) if +$past.list < 1;
+        $past.push(PAST::Var.new(:name('Nil'), :scope('lexical'))) if +$past.list < 1;
         make $past;
     }
 
@@ -392,7 +392,7 @@ class Perl6::Actions is HLL::Actions {
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else> 
                     ?? pblock_immediate( $<else>[0].ast )
-                    !!  PAST::Var.new(:name('Nil'), :namespace([]), :scope('package')) 
+                    !!  PAST::Var.new(:name('Nil'), :scope('lexical')) 
         );
         # build if/then/elsif structure
         while $count > 0 {

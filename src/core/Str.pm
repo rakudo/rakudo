@@ -27,8 +27,6 @@ multi infix:<cmp>(Str \$a, Str \$b) {
             pir::repr_unbox_str__SP($b)))
 }
 
-    
-
 proto infix:<x>(|$) {*}
 multi infix:<x>(Str $s, Int $repetition) {
     pir::perl6_box_str__PS(
@@ -39,3 +37,80 @@ multi infix:<x>(Str $s, Int $repetition) {
     );
 }
 multi infix:<x>($s, $repetition) { $s.Stringy x $repetition.Numeric }
+
+multi prefix:<~>(Str \$a) { $a }
+
+multi infix:<~>(Str \$a, Str \$b) {
+    pir::perl6_box_str__PS(
+        pir::concat__SSS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi infix:<eq>(Str \$a, Str \$b) {
+    pir::perl6_booleanize__PI(
+        pir::iseq__ISS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi infix:<ne>(Str \$a, Str \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isne__ISS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi infix:<lt>(Str \$a, Str \$b) {
+    pir::perl6_booleanize__PI(
+        pir::islt__ISS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi infix:<le>(Str \$a, Str \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isle__ISS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi infix:<gt>(Str \$a, Str \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isgt__ISS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi infix:<ge>(Str \$a, Str \$b) {
+    pir::perl6_booleanize__PI(
+        pir::isge__ISS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+
+multi infix:<~|>(Str \$a, Str \$b) {
+    pir::perl6_box_str__PS(
+        pir::bors__SSS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi infix:<~&>(Str \$a, Str \$b) {
+    pir::perl6_box_str__PS(
+        pir::bands__SSS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi infix:<~^>(Str \$a, Str \$b) {
+    pir::perl6_box_str__PS(
+        pir::bxors__SSS(
+            pir::repr_unbox_str__SP($a),
+            pir::repr_unbox_str__SP($b)))
+}
+
+multi prefix:<~^>(Str \$a) {
+    fail "prefix:<~^> NYI";   # XXX
+}

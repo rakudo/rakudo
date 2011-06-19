@@ -59,6 +59,11 @@ class List {
         $count
     }
 
+    method infinite() { 
+        self.gimme(*);
+        ! $!nextiter.defined 
+    }
+
     method iterator() {
         # Return a reified ListIter containing our currently reified elements
         # and any subsequent iterator.

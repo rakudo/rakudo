@@ -55,8 +55,10 @@ my class ListIter {
 
     method infinite() {
         $!rest 
-          && Iterable.ACCEPTS(pir::set__PQi($!rest,0))
-          && pir::set__PQi($!rest,0).infinite
+          ?? Iterable.ACCEPTS(pir::set__PQi($!rest,0)) 
+             && pir::set__PQi($!rest,0).infinite
+             || Mu
+          !! 0.Bool
     }
 
     method iterator() { self }

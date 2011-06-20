@@ -19,24 +19,22 @@ my class MapIter is Iterator {
             ## we don't have &prefix:<|> or good control blocks yet,
             ## so we'll temporarily implement MapIter with Q:PIR blocks.
 
-            # build an RPA that we can form into our reified parcel
+            my $count = $!block.count;
+            my $block := pir::perl6_decontainerize__PP($!block);
+            $n = 1000 if Whatever.ACCEPTS($n);
             my Mu $rpa := pir::new__Ps('ResizablePMCArray');
-
             my Mu $args := 
                 pir__perl6_unbox_rpa__PP($!list.munch($!block.count));
-            my $block := $!block;   # easier to access from Q:PIR
-            my Mu $parcel;
-            $n = 1 if Whatever.ACCEPTS($n);
             while $args && $n > 0 {
-                $parcel := Q:PIR {
-                               $P0 = find_lex '$args'
-                               $P1 = find_lex '$block'
-                               $P1 = perl6_decontainerize $P1
-                               %r = $P1($P0 :flat)
-                           };
-                pir::push__vPP($rpa, $parcel);
+                pir::push__vPP(
+                    $rpa,
+                    Q:PIR {
+                        $P0 = find_lex '$args'
+                        $P1 = find_lex '$block'
+                        %r = $P1($P0 :flat)
+                    });
                 $n = $n - 1;
-                $args := pir__perl6_unbox_rpa__PP($!list.munch($!block.count))
+                $args := pir__perl6_unbox_rpa__PP($!list.munch($count))
                   if $n > 0;
             }
             # create the next MapIter if we haven't reached the end

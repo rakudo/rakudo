@@ -14,6 +14,8 @@ Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
   (initial digging suggets it's a BOOTSTRAPATTR issue, thus why we only see it
   in the setting)
+* userspace code can't add new multis of existing operators 
+  (e.g., multi postfix<++>(MyType $x) { ... } )
 
 ## Phasers
 END (needed for Test.pm), INIT, CHECK, BEGIN

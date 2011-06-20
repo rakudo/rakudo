@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 19 June 2001
+Last Updated 20 June 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -16,6 +16,7 @@ Things that aren't blockers but might be worth knowing about:
   in the setting)
 * userspace code can't add new multis of existing operators 
   (e.g., multi postfix<++>(MyType $x) { ... } )
+  (known - multis in nested lexical scopes in general just NYI - jnthn)
 
 ## Phasers
 END (needed for Test.pm), INIT, CHECK, BEGIN

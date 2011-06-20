@@ -32,13 +32,48 @@ class Range is Iterable {
         my $value = $!excludes_min ?? $!min.succ !! $!min;
         my $cmpstop = $!excludes_max ?? 0 !! 1;
         my Mu $rpa := pir::new__Ps('ResizablePMCArray');
-        (pir::push__vPP($rpa, $value++); $n--)
-          while $n > 0 && ($value cmp $!max) < $cmpstop;
-        ($value cmp $!max) < $cmpstop
-            && pir::push__vPP($rpa,
-                   ($value.succ cmp $!max < $cmpstop)
-                      ?? self.CREATE.BUILD($value, $!max, 0, $!excludes_max)
-                      !! $value);
+        if Int.ACCEPTS($value) || Num.ACCEPTS($value) {
+            # Q:PIR optimized for int/num ranges
+            $value = $value.Num;
+            my $max = $!max.Num;
+            Q:PIR {
+                .local pmc rpa, value_pmc, n_pmc
+                .local num value, n, max
+                .local int cmpstop
+                rpa = find_lex '$rpa'
+                value_pmc = find_lex '$value'
+                value = repr_unbox_num value_pmc
+                n_pmc = find_lex '$n'
+                n = repr_unbox_num n_pmc
+                $P0 = find_lex '$max'
+                max = repr_unbox_num $P0
+                $P0 = find_lex '$cmpstop'
+                cmpstop = repr_unbox_int $P0
+              loop:
+                unless n > 0 goto done
+                $I0 = cmp value, max
+                unless $I0 < cmpstop goto done
+                $P0 = perl6_box_num value
+                push rpa, $P0
+                inc value
+                dec n
+                goto loop
+              done:
+                $P0 = perl6_box_num value
+                '&infix:<=>'(value_pmc, $P0)
+                %r = rpa
+            };
+        }    
+        else {
+          (pir::push__vPP($rpa, $value++); $n--)
+              while $n > 0 && ($value cmp $!max) < $cmpstop;
+        }
+        if ($value cmp $!max) < $cmpstop {
+            pir::push__vPP($rpa,
+                ($value.succ cmp $!max < $cmpstop)
+                   ?? self.CREATE.BUILD($value, $!max, 0, $!excludes_max)
+                   !! $value);
+        }
         pir__perl6_box_rpa__PP($rpa)
     }
 

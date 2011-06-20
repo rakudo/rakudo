@@ -105,7 +105,7 @@ static INTVAL is_narrower(PARROT_INTERP, Rakudo_md_candidate_info *a, Rakudo_md_
 
 /*
 
-=item C<static candidate_info** sort_candidates(PMC *candidates)>
+=item C<static Rakudo_md_candidate_info** sort_candidates(PMC *candidates)>
 
 Takes a ResizablePMCArray of the candidates, collects information about them
 and then does a topological sort of them.
@@ -618,13 +618,20 @@ enters the multi dispatcher.
 */
 PMC *
 Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next) {
-    /* XXX Need to just sort once and cache...and have the
-     * actual multi-dispatch cache here too. */
-    Rakudo_Code *code_obj   = (Rakudo_Code *)PMC_data(dispatcher);
-    PMC         *candidates = code_obj->dispatchees;
-    INTVAL       num_cands  = VTABLE_elements(interp, candidates);
-    return find_best_candidate(interp, sort_candidates(interp, candidates),
-        num_cands, capture, next);
+    Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
+    INTVAL       num_cands = VTABLE_elements(interp, code_obj->dispatchees);
+    Rakudo_md_candidate_info **cands;
+    if (PMC_IS_NULL(code_obj->dispatcher_cache)) {
+        cands = sort_candidates(interp, code_obj->dispatchees);
+        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
+        VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cands);
+        PARROT_GC_WRITE_BARRIER(interp, dispatcher);
+    }
+    else {
+        cands = (Rakudo_md_candidate_info **)VTABLE_get_pointer(interp,
+            code_obj->dispatcher_cache);
+    }
+    return find_best_candidate(interp, cands, num_cands, capture, next);
 }
 
 /*

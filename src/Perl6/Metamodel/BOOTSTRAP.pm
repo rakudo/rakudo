@@ -274,7 +274,7 @@ Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
 #     has $!do;                # Low level code object
 #     has $!signature;         # Signature object
 #     has $!dispatchees;       # If this is a dispatcher, the dispatchee list.
-#     has $!dispatcher_info;   # Stash for any extra dispatcher info.
+#     has $!dispatcher_cache;  # Stash for any extra dispatcher info.
 #     ... # Uncomposed
 # }
 my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -282,7 +282,7 @@ Code.HOW.add_parent(Code, Cool);
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
-Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_info>, :type(Mu)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu)));
 
 # Need multi-dispatch related methods and clone in here, plus
 # generics instantiation.

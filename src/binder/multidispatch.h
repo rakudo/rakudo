@@ -11,7 +11,7 @@ typedef struct {
     PMC    *_do;                /* Lower-level code object. */
     PMC    *signature;          /* Signature object. */
     PMC    *dispatchees;        /* List of dispatchees, if any. */
-    PMC    *dispatcher_info;    /* Holder for any extra dispatcher info. */
+    PMC    *dispatcher_cache;   /* Holder for any dispatcher cache. */
 } Rakudo_Code;
 
 /* Represents a candidate. We extract various bits of information about it when

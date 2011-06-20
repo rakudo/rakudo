@@ -50,6 +50,13 @@ class Range is Iterable {
           ~ ('^' if $.excludes_max)
           ~ $.max
     }
+
+    multi method DUMP(Range:D:) {
+        self.DUMP-ID() ~ '('
+          ~ ':min(' ~ DUMP($!min) ~ '), '
+          ~ ':max(' ~ DUMP($!max) ~ ')'
+          ~ ')'
+    }
 }
 
 

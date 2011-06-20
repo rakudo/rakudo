@@ -52,7 +52,7 @@ my class MapIter is Iterator {
     method DUMP() {
         self.DUMP-ID() ~ '('
           ~ ':reified(' ~ DUMP($!reified) ~ '), '
-          ~ ':list(' ~ $!list.DUMP-ID() ~ '), '
+          ~ ':list(' ~ DUMP($!list) ~ '), '
           ~ ':block(' ~ DUMP($!block) ~ ')'
           ~ ')'
     }

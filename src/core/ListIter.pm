@@ -68,7 +68,7 @@ my class ListIter {
         self.DUMP-ID() ~ '('
           ~ ':reified('  ~ DUMP($!reified) ~ '), '
           ~ ':rest('     ~ DUMP($!rest) ~ '), '
-          ~ ':list('     ~ $!list.WHERE ~ '), '
+          ~ ':list('     ~ $!list.DUMP-ID() ~ ')'
           ~ ')'
     }
          

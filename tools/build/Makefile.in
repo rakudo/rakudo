@@ -152,11 +152,12 @@ CORE_SOURCES = \
   src/core/Sub.pm \
   src/core/Method.pm \
   src/core/IO.pm \
-  src/core/operators.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \
   src/core/Exceptions.pm \
   src/core/EXPORTHOW.pm \
+  src/core/operators.pm \
+  src/core/terms.pm \
   src/core/you_are_here.pm \
 
 DOCS = README CREDITS LICENSE docs/*

@@ -35,6 +35,23 @@ my class Int {
     multi method pred(Int:U:) {       -1 }
 }
 
+multi prefix:<++>(Int \$a is rw) {   # XXX
+    $a = pir::perl6_box_int__PI(pir::inc__0I(pir::repr_unbox_int__IP($a)))
+}
+multi prefix:<-->(Int \$a is rw) {   # XXX
+    $a = pir::perl6_box_int__PI(pir::dec__0I(pir::repr_unbox_int__IP($a)))
+}
+multi postfix:<++>(Int \$a is rw) {  # XXX
+    my $b = $a;
+    $a = pir::perl6_box_int__PI(pir::inc__0I(pir::repr_unbox_int__IP($a)));
+    $b
+}
+multi postfix:<-->(Int \$a is rw) {  # XXX
+    my $b = $a;
+    $a = pir::perl6_box_int__PI(pir::dec__0I(pir::repr_unbox_int__IP($a)));
+    $b
+}
+
 multi prefix:<->(Int \$a) {
     pir::perl6_box_int__PI(pir::neg__II(pir::repr_unbox_int__IP($a)))
 }

@@ -108,6 +108,24 @@ my class Num {
 }
 
 
+multi prefix:<++>(Num \$a is rw) {   # XXX
+    $a = pir::perl6_box_num__PN(pir::inc__0N(pir::repr_unbox_num__NP($a)))
+}
+multi prefix:<-->(Num \$a is rw) {   # XXX
+    $a = pir::perl6_box_num__PN(pir::dec__0N(pir::repr_unbox_num__NP($a)))
+}
+multi postfix:<++>(Num \$a is rw) {  # XXX
+    my $b = $a;
+    $a = pir::perl6_box_num__PN(pir::inc__0N(pir::repr_unbox_num__NP($a)));
+    $b
+}
+multi postfix:<-->(Num \$a is rw) {  # XXX
+    my $b = $a;
+    $a = pir::perl6_box_num__PN(pir::dec__0N(pir::repr_unbox_num__NP($a)));
+    $b
+}
+
+
 multi prefix:<->(Num \$a) {
     pir::perl6_box_num__PN(
         pir::neg__NN(pir::repr_unbox_num__NP($a)))

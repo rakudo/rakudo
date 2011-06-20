@@ -3,7 +3,7 @@ class GatherIter is Iterator {
     has $!reified;             # Parcel of this iterator's results
     has $!infinite;            # true if iterator is known infinite
 
-    method gather($block, :$infinite) {
+    method new($block, :$infinite) {
         my Mu $coro := 
             pir::clone__PP(pir::getattribute__PPPs(&coro, Code, '$!do'));
         Q:PIR {
@@ -75,6 +75,6 @@ class GatherIter is Iterator {
 
 
 sub GATHER(\$block, :$infinite) { 
-    GatherIter.gather( $block, :infinite($infinite) ).list;  
+    GatherIter.new( $block, :$infinite ).list;  
 }
 

@@ -16,14 +16,14 @@ my class EnumMap {
     method kv()     { self.pairs.map( { $_.kv } ) }
     method values() { self.pairs.map( { $_.value } ) }
     method pairs() {
-        GATHER({
+        gather {
             my Mu $iter := pir::iter__PP($!storage);
             my Mu $pair;
             while $iter {
                 $pair := pir::shift__PP($iter);
                 take Pair.new(:key($pair.key), :value($pair.value));
             }
-        })
+        }
     }
 
     method at_key(Str \$key) {

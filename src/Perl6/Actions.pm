@@ -1,5 +1,15 @@
 use NQPP6Regex;
 
+INIT {
+    # Add our custom nqp:: opcodes.
+    PAST::Node.map_add('nqp', 
+        p6box_i      => 'perl6_box_int__Pi',
+        p6box_n      => 'perl6_box_num__Pn',
+        p6box_s      => 'perl6_box_str__Ps'
+    );
+}
+
+
 class Perl6::Actions is HLL::Actions {
     our @PACKAGE;
     our $TRUE;

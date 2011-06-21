@@ -61,18 +61,15 @@ multi prefix:<abs>(Int \$a) {
 }
 
 multi infix:<+>(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(
-        pir::add__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+    nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi infix:<->(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(
-        pir::sub__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+    nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi infix:<*>(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(
-        pir::mul__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+    nqp::p6box_i(nqp::mul_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi infix:</>(Int \$a, Int \$b) {
@@ -81,8 +78,7 @@ multi infix:</>(Int \$a, Int \$b) {
 }
 
 multi infix:<div>(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(
-        pir::div__III(pir::repr_unbox_int__IP($a), pir::repr_unbox_int__IP($b)))
+    nqp::p6box_i(nqp::div_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi infix:<%>(Int \$a, Int \$b) {

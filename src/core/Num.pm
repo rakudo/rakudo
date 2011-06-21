@@ -107,123 +107,77 @@ my class Num {
     }
 }
 
-
 multi prefix:<++>(Num \$a is rw) {   # XXX
-    $a = pir::perl6_box_num__PN(pir::inc__0N(pir::repr_unbox_num__NP($a)))
+    $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1))
 }
 multi prefix:<-->(Num \$a is rw) {   # XXX
-    $a = pir::perl6_box_num__PN(pir::dec__0N(pir::repr_unbox_num__NP($a)))
+    $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1))
 }
 multi postfix:<++>(Num \$a is rw) {  # XXX
     my $b = $a;
-    $a = pir::perl6_box_num__PN(pir::inc__0N(pir::repr_unbox_num__NP($a)));
+    $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1));
     $b
 }
 multi postfix:<-->(Num \$a is rw) {  # XXX
     my $b = $a;
-    $a = pir::perl6_box_num__PN(pir::dec__0N(pir::repr_unbox_num__NP($a)));
+    $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1));
     $b
 }
 
-
 multi prefix:<->(Num \$a) {
-    pir::perl6_box_num__PN(
-        pir::neg__NN(pir::repr_unbox_num__NP($a)))
+    nqp::p6box_n(nqp::neg_n(nqp::unbox_n($a)))
 }
 
 multi prefix:<abs>(Num \$a) {
-    pir::perl6_box_num__PN(
-        pir::abs__NN(pir::repr_unbox_num__NP($a)))
+    nqp::p6box_n(nqp::abs_n(nqp::unbox_n($a)))
 }
 
 multi infix:<+>(Num \$a, Num \$b) {
-    pir::perl6_box_num__PN(
-        pir::add__NNN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:<->(Num \$a, Num \$b) {
-    pir::perl6_box_num__PN(
-        pir::sub__NNN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:<*>(Num \$a, Num \$b) {
-    pir::perl6_box_num__PN(
-        pir::mul__NNN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6box_n(nqp::mul_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:</>(Num \$a, Num \$b) {
-    pir::perl6_box_num__PN(
-        pir::div__NNN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
-}
-
-multi infix:<%>(Num \$a, Num \$b) {
-    pir::perl6_box_num__PN(
-        pir::mod__NNN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6box_n(nqp::div_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:<**>(Num \$a, Num \$b) {
-    pir::perl6_box_num__PN(
-        pir::pow__NNN(
-            pir::repr_unbox_num__np($a), 
-            pir::repr_unbox_num__np($b)))
+    nqp::p6box_n(nqp::pow_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
+
 multi infix:<cmp>(Num \$a, Num \$b) {
-    pir::perl6_box_int__PI(
-        pir::cmp__INN(
-            pir::repr_unbox_num__NP($a),
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6box_n(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:<==>(Num \$a, Num \$b) {
-    pir::perl6_booleanize__PI(
-        pir::iseq__INN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6bool(nqp::iseq_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:<!=>(Num \$a, Num \$b) {
-    pir::perl6_booleanize__PI(
-        pir::isne__INN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6bool(nqp::isne_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:«<»(Num \$a, Num \$b) {
-    pir::perl6_booleanize__PI(
-        pir::islt__INN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6bool(nqp::islt_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:«<=»(Num \$a, Num \$b) {
-    pir::perl6_booleanize__PI(
-        pir::isle__INN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6bool(nqp::isle_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:«>»(Num \$a, Num \$b) {
-    pir::perl6_booleanize__PI(
-        pir::isgt__INN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6bool(nqp::isgt_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:«>=»(Num \$a, Num \$b) {
-    pir::perl6_booleanize__PI(
-        pir::isge__INN(
-            pir::repr_unbox_num__NP($a), 
-            pir::repr_unbox_num__NP($b)))
+    nqp::p6bool(nqp::isge_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 

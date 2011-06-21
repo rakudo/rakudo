@@ -29,7 +29,7 @@ class GatherIter is Iterator {
                     $P2 = getattribute $P0, $P1, '$!coro'
                     %r = $P2()
                 };
-                $end = pir::perl6_booleanize__PI(pir::isnull__IP($parcel));
+                $end = nqp::p6bool(pir::isnull__IP($parcel));
                 pir::push__vPP($rpa, $parcel) unless $end;
                 $n = $n - 1;
             }

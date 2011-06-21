@@ -1,21 +1,21 @@
 my class Int {
     method Bool() {
-        pir::perl6_booleanize__PI(
-            pir::isne__III(pir::repr_unbox_int__IP(self), pir::repr_unbox_int__IP(0)))
+        nqp::p6bool(
+            nqp::isne_i(nqp::unbox_i(self), nqp::unbox_i(0)))
     }
     
     method Int() { self }
     
     multi method Str(Int:D:) {
-        pir::perl6_box_str__PS(pir::repr_unbox_int__IP(self));
+        nqp::p6box_s(nqp::unbox_i(self));
     }
     
     method Num() {
-        pir::perl6_box_num__PN(pir::repr_unbox_int__IP(self));
+        nqp::p6box_n(nqp::unbox_i(self));
     }
 
     method abs() {
-        pir::perl6_box_int__PI(pir::abs__II(pir::repr_unbox_int__IP(self)));
+        nqp::p6box_i(nqp::abs_i(nqp::unbox_i(self)));
     }
 
     method Bridge() {
@@ -23,7 +23,7 @@ my class Int {
     }
 
     method chr() {
-        pir::perl6_box_str__PS(pir::chr(pir::repr_unbox_int__IP(self)));
+        nqp::p6box_s(pir::chr(nqp::unbox_i(self)));
     }
 
     proto method succ(|$) {*}
@@ -126,43 +126,26 @@ multi infix:«>=»(Int \$a, Int \$b) {
 }
 
 multi infix:<+|>(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(pir::bor__III(
-        pir::repr_unbox_int__ip($a),
-        pir::repr_unbox_int__ip($b)
-    ));
+    nqp::p6box_i(pir::bor__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi infix:<+&>(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(pir::band__III(
-        pir::repr_unbox_int__ip($a),
-        pir::repr_unbox_int__ip($b)
-    ));
+    nqp::p6box_i(pir::band__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi infix:<+^>(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(pir::bxor__III(
-        pir::repr_unbox_int__ip($a),
-        pir::repr_unbox_int__ip($b)
-    ));
+    nqp::p6box_i(pir::bxor__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi infix:«+<»(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(pir::shl__III(
-        pir::repr_unbox_int__ip($a),
-        pir::repr_unbox_int__ip($b)
-    ));
+    nqp::p6box_i(pir::shl__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi infix:«+>»(Int \$a, Int \$b) {
-    pir::perl6_box_int__PI(pir::shr__III(
-        pir::repr_unbox_int__ip($a),
-        pir::repr_unbox_int__ip($b)
-    ));
+    nqp::p6box_i(pir::shr__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
 multi prefix:<+^>(Int \$a) {
-    pir::perl6_box_int__PI(pir::bnot__II(
-        pir::repr_unbox_int__ip($a)
-    ));
+    nqp::p6box_i(pir::bnot__II(nqp::unbox_i($a)))
 }
 

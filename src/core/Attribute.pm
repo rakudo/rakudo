@@ -11,7 +11,7 @@ my class Attribute {
                     pir::getattribute__PPPs(
                         pir::perl6_decontainerize__PP($self),
                         $dcpkg,
-                        pir::repr_unbox_str__SP($name))
+                        nqp::unbox_s($name))
                 }
                 !!
                 method (Mu $self:) {
@@ -19,10 +19,10 @@ my class Attribute {
                         pir::getattribute__PPPs(
                             pir::perl6_decontainerize__PP($self),
                             $dcpkg,
-                            pir::repr_unbox_str__SP($name)))
+                            nqp::unbox_s($name)))
                 };
             $package.HOW.add_method($package, pir::substr__SSI(
-                pir::repr_unbox_str__SP($name), pir::repr_unbox_int__IP(2)),
+                nqp::unbox_s($name), nqp::unbox_i(2)),
                 $meth);
         }
     }

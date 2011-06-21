@@ -16,7 +16,7 @@ class List {
 
     method at_pos(\$pos) {
         self.exists($pos)
-          ?? pir::set__PQi($!items, pir::repr_unbox_int__IP($pos))
+          ?? pir::set__PQi($!items, nqp::unbox_i($pos))
           !! Mu
     }
 
@@ -26,13 +26,12 @@ class List {
         # Get as many elements as we can.  If gimme stops before
         # reaching the end of the list, assume the list is infinite.
         my $n = self.gimme(*);
-        $!nextiter.defined ?? pir::perl6_box_num__PN('Inf') !! $n
+        $!nextiter.defined ?? nqp::p6box_n('Inf') !! $n
     }
 
     method exists(\$pos) {
         self.gimme($pos + 1);
-        pir::perl6_booleanize__PI(
-            pir::exists__IQI($!items, pir::repr_unbox_int__IP($pos)))
+        nqp::p6bool(pir::exists__IQI($!items, nqp::unbox_i($pos)))
     }
 
     method flat() {
@@ -45,14 +44,14 @@ class List {
             pir::setattribute__3PPsP(self, List, '$!items', pir::new__Ps('ResizablePMCArray'));
 
         # loop through iterators until we have at least $n elements
-        my $count = pir::perl6_box_int__PI(pir::elements($!items));
+        my $count = nqp::p6box_i(pir::elements($!items));
         my $eager = Whatever.ACCEPTS($n);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
             $!nextiter.reify($eager ?? Whatever !! $n - $count);
             pir::setattribute__vPPsP(self, List, '$!nextiter', $!nextiter.nextiter);
-            $count = pir::perl6_box_int__PI(pir::elements($!items));
+            $count = nqp::p6box_i(pir::elements($!items));
         }
 
         # return the number of elements we have now
@@ -100,7 +99,7 @@ class List {
     }
 
     method STORE_AT_POS(\$pos, Mu \$v) {
-        pir::set__1QiP($!items, pir::repr_unbox_int__IP($pos), $v)
+        pir::set__1QiP($!items, nqp::unbox_i($pos), $v)
     }
 
     method RPA() {

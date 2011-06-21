@@ -24,6 +24,6 @@ multi prefix:<so>(Mu \$a) { $a.Bool }
 
 # XXX These should use Bool::True and Bool::False eventually.
 proto prefix:<!>(|$) { *}
-multi prefix:<!>(Bool \$a) { pir::perl6_booleanize__PI($a ?? 0 !! 1) }
-multi prefix:<!>(Mu \$a) { pir::perl6_booleanize__PI($a.Bool ?? 0 !! 1) }
+multi prefix:<!>(Bool \$a) { nqp::p6bool($a ?? 0 !! 1) }
+multi prefix:<!>(Mu \$a) { nqp::p6bool($a.Bool ?? 0 !! 1) }
 

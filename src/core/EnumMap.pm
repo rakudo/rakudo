@@ -3,9 +3,9 @@ my class EnumMap {
     #   has $!storage;         # Parrot Hash PMC of key->value mappings
 
     method exists(Str \$key) {
-        pir::perl6_booleanize__PI(
+        nqp::p6bool(
             pir::defined($!storage)
-            && pir::exists__IQs($!storage, pir::repr_unbox_str__SP($key))
+            && pir::exists__IQs($!storage, nqp::unbox_s($key))
         )
     }
 
@@ -28,7 +28,7 @@ my class EnumMap {
 
     method at_key(Str \$key) {
         self.exists($key)
-            ?? pir::set__PQs($!storage, pir::repr_unbox_str__SP($key))
+            ?? pir::set__PQs($!storage, nqp::unbox_s($key))
             !! Any
     }
 
@@ -37,7 +37,7 @@ my class EnumMap {
         pir::defined($!storage) ||
             pir::setattribute__vPPsP(self, EnumMap, '$!storage',
                                      pir::new__Ps('Hash'));
-        pir::set__2QsP($!storage, pir::repr_unbox_str__SP($key), $value)
+        pir::set__2QsP($!storage, nqp::unbox_s($key), $value)
     }
 }
 

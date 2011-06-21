@@ -23,7 +23,7 @@ my class Parameter {
     }
     
     method positional() {
-        pir::perl6_booleanize__PI(
+        nqp::p6bool(
             ($!flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED)) == 0 &&
             pir::isnull__IP($!named_names)
          )

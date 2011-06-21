@@ -1,2 +1,2 @@
-sub term:<time>() { pir::perl6_box_int__PI(pir::time__I()) }
+sub term:<time>() { nqp::p6box_i(pir::time__I()) }
 

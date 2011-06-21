@@ -1,12 +1,10 @@
 my class Cool {
     method bytes() {
-        pir::perl6_box_int__PI(
-            pir::bytelength__IS(pir::repr_unbox_str__SP(self.Str)));
+        nqp::p6box_i(pir::bytelength__IS(nqp::unbox_s(self.Str)));
     }
 
     method chars() {
-        pir::perl6_box_int__PI(
-            pir::length__IS(pir::repr_unbox_str__SP(self.Str)));
+        nqp::p6box_i(pir::length__IS(nqp::unbox_s(self.Str)));
     }
 
     method substr($start as Int, $length?) {
@@ -24,22 +22,18 @@ my class Cool {
         #    return Mu;
         #}
 
-        pir::perl6_box_str__PS(pir::substr(
-            pir::repr_unbox_str__SP($str),
-            pir::repr_unbox_int__IP($start),
-            pir::repr_unbox_int__IP($len)));
+        nqp::p6box_s(pir::substr(
+            nqp::unbox_s($str),
+            nqp::unbox_i($start),
+            nqp::unbox_i($len)));
     }
 
     method uc() {
-        pir::perl6_box_str__PS(pir::upcase__SS(
-             pir::repr_unbox_str__SP(self.Str)
-         ));
+        nqp::p6box_s(pir::upcase__SS(nqp::unbox_s(self.Str)))
     }
 
     method lc() {
-        pir::perl6_box_str__PS(pir::downcase__SS(
-             pir::repr_unbox_str__SP(self.Str)
-         ));
+        nqp::p6box_s(pir::downcase__SS(nqp::unbox_s(self.Str)))
     }
 
     method ucfirst() {
@@ -53,21 +47,19 @@ my class Cool {
     }
 
     method ord() {
-        pir::perl6_box_int__PI(pir::ord__IS(pir::repr_unbox_str__SP(self.Str)));
+        nqp::p6box_i(pir::ord__IS(nqp::unbox_s(self.Str)))
     }
 
     method flip() {
-        pir::perl6_box_str__PS(
-            pir::box__PS(pir::repr_unbox_str__SP(self.Str)).reverse
-        );
+        nqp::p6box_s(pir::box__PS(nqp::unbox_s(self.Str)).reverse)
     }
 
     proto method index(|$) {*}
     multi method index(Cool \$needle, Cool $pos = 0) {
-        my $result := pir::perl6_box_int__PI(pir::index__ISSI(
-                pir::repr_unbox_str__SP(self.Str),
-                pir::repr_unbox_str__SP($needle.Str),
-                pir::repr_unbox_int__IP($pos.Int)
+        my $result := nqp::p6box_i(pir::index__ISSI(
+                nqp::unbox_s(self.Str),
+                nqp::unbox_s($needle.Str),
+                nqp::unbox_i($pos.Int)
         ));
         # TODO: fail() instead of returning Str
         $result < 0 ?? Str !! $result;
@@ -75,10 +67,10 @@ my class Cool {
 
     proto method rindex(|$) {*}
     multi method rindex(Cool \$needle, Cool $pos = self.chars) {
-        my $result := pir::perl6_box_int__PI(
-                pir::box__PS(pir::repr_unbox_str__SP(self.Str)).reverse_index(
-                    pir::repr_unbox_str__SP($needle.Str),
-                    pir::repr_unbox_int__IP($pos.Int)
+        my $result := nqp::p6box_i(
+                pir::box__PS(nqp::unbox_s(self.Str)).reverse_index(
+                    nqp::unbox_s($needle.Str),
+                    nqp::unbox_i($pos.Int)
                 )
         );
         # TODO: fail() instead of returning Str

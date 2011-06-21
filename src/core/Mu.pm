@@ -5,11 +5,11 @@ my class Mu {
     
     proto method ACCEPTS(|$) { * }
     multi method ACCEPTS(Mu:U: \$topic) {
-        pir::perl6_booleanize__PI(pir::type_check__IPP($topic, self))
+        nqp::p6bool(pir::type_check__IPP($topic, self))
     }
 
     method WHERE() {
-        pir::perl6_box_int__PI(pir::get_addr__IP(self))
+        nqp::p6box_i(pir::get_addr__IP(self))
     }
     
     method Bool() {
@@ -17,7 +17,7 @@ my class Mu {
     }
     
     method defined() {
-        pir::perl6_booleanize__PI(pir::repr_defined__IP(self))
+        nqp::p6bool(pir::repr_defined__IP(self))
     }
     
     method CREATE() {
@@ -63,7 +63,7 @@ sub DUMP(|$) {
     my Mu $topic  := pir::shift__PP($args);
     if pir::isnull__IP($topic) { '(null)' }
     elsif pir::isa__IPs($topic, 'ResizablePMCArray') {
-        my $s = 'RPA<' ~ pir::perl6_box_str__Ps(pir::get_addr__IP($topic)) ~ '>(';
+        my $s = 'RPA<' ~ nqp::p6box_s(pir::get_addr__IP($topic)) ~ '>(';
         my $t = '';
         $topic := pir::clone__PP($topic);
         while $topic {

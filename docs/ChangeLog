@@ -1,3 +1,8 @@
+New in 2011.06
++ added take-rw built-in
++ numerous build system improvements
++ assignment now evaluates arguments right-to-left
+
 New in 2011.05 release
 + added a call counter for builtins in Perl 6-level subroutines
 + gcd (greatest common divisor) and lcm (largest common multiple) operators

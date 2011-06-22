@@ -13,7 +13,7 @@ my class ListIter {
             my $flattens = $!list.defined && $!list.flattens;
             my $eager = Whatever.ACCEPTS($n);
             while $!rest && ($eager || $n > 0) {
-                $x := pir::set__PQi($!rest, 0);
+                $x := nqp::atpos($!rest, 0);
                 if pir::not__II(pir::is_container__IP($x)) && $x.defined
                     && Iterable.ACCEPTS($x) {
                         last if $eager && $x.infinite;
@@ -29,9 +29,9 @@ my class ListIter {
                             pir__perl6_unbox_rpa__PP($x),
                             0, 1);
                 }
-                elsif Nil.ACCEPTS($x) { pir::shift__PP($!rest) }
+                elsif Nil.ACCEPTS($x) { nqp::shift($!rest) }
                 else {
-                    pir::shift__PP($!rest);
+                    nqp::shift($!rest);
                     $x := $!list.STORE_AT_POS($pos, $x) if $!list.defined;
                     pir::push__vPP($rpa, $x);
                     $eager or $n = $n - 1;
@@ -55,8 +55,8 @@ my class ListIter {
 
     method infinite() {
         $!rest 
-          ?? Iterable.ACCEPTS(pir::set__PQi($!rest,0)) 
-             && pir::set__PQi($!rest,0).infinite
+          ?? Iterable.ACCEPTS(nqp::atpos($!rest,0))
+             && nqp::atpos($!rest,0).infinite
              || Mu
           !! 0.Bool
     }
@@ -79,9 +79,9 @@ my class ListIter {
 # we leave these here for documentation purposes.
 # sub pir::perl6_list_from_rpa__PPPP(|$) {
 #     my $args     := pir::perl6_current_args_rpa__P();
-#     my $type     := pir::shift__PP($args);
-#     my Mu $rpa   := pir::shift__PP($args);
-#     my $flattens := pir::shift__PP($args);
+#     my $type     := nqp::shift($args);
+#     my Mu $rpa   := nqp::shift($args);
+#     my $flattens := nqp::shift($args);
 # 
 #     my $list := pir::repr_instance_of__PP($type);
 #     pir::setattribute__vPPsP($list, $type, '$!flattens', $flattens);
@@ -92,8 +92,8 @@ my class ListIter {
 # 
 # sub pir::perl6_iter_from_rpa__PPP(|$) {
 #     my $args     := pir::perl6_current_args_rpa__P();
-#     my Mu $rpa   := pir::shift__PP($args);
-#     my $list     := pir::shift__PP($args);
+#     my Mu $rpa   := nqp::shift($args);
+#     my $list     := nqp::shift($args);
 # 
 #     pir::setattribute__0PPsP(
 #         pir::setattribute__0PPsP(

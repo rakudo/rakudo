@@ -30,7 +30,7 @@ method need($name, %name_adverbs?) {
     # Need not load file if we already did so.
     unless %LOADED{$pm_file} {
         # Is there a pre-compiled PIR version?
-        my $pir_file := pir::substr__SSII($pm_file, 0, pir::index__ISSi($pm_file, '.', pir::length__IS($pm_file)-4)) ~ '.pir';
+        my $pir_file := pir::substr__SSII($pm_file, 0, pir::index__ISSi($pm_file, '.', nqp::chars($pm_file)-4)) ~ '.pir';
         my $loaded_pir := 0;
 # stat[7]: modifytime
         if pir::stat__ISI($pir_file, 0)

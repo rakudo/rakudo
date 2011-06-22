@@ -8,29 +8,29 @@ method find_candidates($lookfor, @inc) {
     my @dirs      := pir::split__PSS('::', $lookfor);
     my $file      := @dirs.pop();
     my $localpath := +@dirs ?? pir::join__SSP('/', @dirs) ~ '/' !! '';
-    # pir::say("\nlookfor: $lookfor\nlocalpath: $localpath\nfile: $file");
+    # nqp::say("\nlookfor: $lookfor\nlocalpath: $localpath\nfile: $file");
 
     # within each @inc path look for "$localpath/$file.pm"
     my @candidates;
     for @inc {
         my $path := "$_/$localpath";
-        # pir::say("  path: $path");
-        my $check_path := pir::substr__SSII($path, 0, pir::length__IS($path) - 1);
+        # nqp::say("  path: $path");
+        my $check_path := pir::substr__SSII($path, 0, nqp::chars($path) - 1);
         if pir::stat__ISI($check_path, 0) && pir::stat__ISI($check_path, 2) {
             my @dir := pir::new__PS('OS').readdir($path);
             my $candidate := "";
             for @dir {
-                # pir::say("    readdir: $_");
-                if pir::substr__SSII($_, 0, pir::length__IS($file) + 1) eq $file ~ '.' {
-                    if pir::substr__SSII($_, pir::length__IS($_) - 4, 4) eq '.pm6' ||
-                       !$candidate && pir::substr__SSII($_, pir::length__IS($_) - 3, 3) eq '.pm' {
+                # nqp::say("    readdir: $_");
+                if pir::substr__SSII($_, 0, nqp::chars($file) + 1) eq $file ~ '.' {
+                    if pir::substr__SSII($_, nqp::chars($_) - 4, 4) eq '.pm6' ||
+                       !$candidate && pir::substr__SSII($_, nqp::chars($_) - 3, 3) eq '.pm' {
                         $candidate := "$path$_";
                     }
                 }
             }
             if $candidate {
                 @candidates.push($candidate);
-                # pir::say("      found: $candidate");
+                # nqp::say("      found: $candidate");
             }
         }
     }

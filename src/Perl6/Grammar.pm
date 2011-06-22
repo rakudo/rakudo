@@ -1730,7 +1730,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     sub bracket_ending($matches) {
         my $check := $matches[+$matches - 1];
         my $str   := $check.Str;
-        my $last  := pir::substr($str, pir::length__IS($check) - 1, 1);
+        my $last  := pir::substr($str, nqp::chars($check) - 1, 1);
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
     }
 
@@ -2242,7 +2242,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             # Find opener and closer and parse an EXPR between them.
             # XXX One day semilist would be nice, but right now that
             # runs us into fun with terminators.
-            my @parts := pir::split__Pss(' ', $opname);
+            my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
                 pir::die("Unable to find starter and stopper from '$opname'");
             }

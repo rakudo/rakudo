@@ -17,6 +17,8 @@ Things that aren't blockers but might be worth knowing about:
 * userspace code can't add new multis of existing operators 
   (e.g., multi postfix<++>(MyType $x) { ... } )
   (known - multis in nested lexical scopes in general just NYI - jnthn)
+* $foo.&sub(...) no longer works (gives "cannot find sub !dispatch_variable"
+  from HLL::Compiler)
 
 ## Phasers
 END (needed for Test.pm), INIT, CHECK, BEGIN

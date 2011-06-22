@@ -8,17 +8,8 @@ INIT {
         p6box_s      => 'perl6_box_str__Ps',
         p6bool       => 'perl6_booleanize__Pi',
 
-        neg_i        => 'neg__Ii',
-        neg_n        => 'neg__Nn',
-        abs_i        => 'abs__Ii',
-        abs_n        => 'abs__Nn',
-        mod_i        => 'mod__Iii',
-        mod_n        => 'mod__Nnn',
         lcm_i        => 'lcm__Iii',
         gcd_i        => 'gcd__Iii',
-        pow_n        => 'pow__Nnn',
-        cmp_i        => 'cmp__Iii',
-        cmp_n        => 'cmp__Inn',
     );
 }
 

@@ -12,7 +12,7 @@ my class Parcel {
     multi method gist(Parcel:D:) {
         my @gist;
         my Mu $rpa := pir::clone__PP($!storage);
-        @gist.push( pir::shift__PP($rpa).gist ) while $rpa;
+        @gist.push( nqp::shift($rpa).gist ) while $rpa;
         @gist;
     }
 
@@ -20,9 +20,9 @@ my class Parcel {
         my Mu $rpa := pir::clone($!storage);
         my $perl = '(';
         if $rpa {
-            $perl = $perl ~ pir::shift__PP($rpa).perl;
+            $perl = $perl ~ nqp::shift($rpa).perl;
             if $rpa {
-                $perl = $perl ~ ', ' ~ pir::shift__PP($rpa).perl while $rpa;
+                $perl = $perl ~ ', ' ~ nqp::shift($rpa).perl while $rpa;
             }
             else {
                 $perl = $perl ~ ',';
@@ -65,7 +65,7 @@ sub pir__perl6_box_rpa__PP(|$) {
         pir::repr_instance_of__PP(Parcel),
         Parcel,
         '$!storage',
-        pir::shift__PP(pir::perl6_current_args_rpa__P()))
+        nqp::shift(pir::perl6_current_args_rpa__P()))
 }
 
 sub pir__perl6_unbox_rpa__PP(\$parcel) {

@@ -23,7 +23,7 @@ class Array {
     method STORE(|$) {
         # get arguments, shift off invocant
         my $args := pir::perl6_current_args_rpa__P();
-        pir::shift__PP($args);
+        nqp::shift($args);
         # clear our current items, and create a flattening iterator
         # that will bring in values from $args
         pir::setattribute__vPPsP(self, List, '$!items', Mu);

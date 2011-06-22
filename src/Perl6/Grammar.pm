@@ -1730,7 +1730,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     sub bracket_ending($matches) {
         my $check := $matches[+$matches - 1];
         my $str   := $check.Str;
-        my $last  := pir::substr($str, pir::length__IS($check) - 1, 1);
+        my $last  := pir::substr($str, nqp::chars($check) - 1, 1);
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
     }
 

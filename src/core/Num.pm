@@ -148,6 +148,10 @@ multi infix:</>(Num \$a, Num \$b) {
     nqp::p6box_n(nqp::div_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
+multi infix:<%>(Num \$a, Num \$b) {
+    nqp::p6box_n(nqp::mod_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+
 multi infix:<**>(Num \$a, Num \$b) {
     nqp::p6box_n(nqp::pow_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }

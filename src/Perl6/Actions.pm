@@ -13,9 +13,10 @@ INIT {
         abs_i        => 'abs__Ii',
         abs_n        => 'abs__Nn',
         mod_i        => 'mod__Iii',
+        mod_n        => 'mod__Nnn',
         lcm_i        => 'lcm__Iii',
         gcd_i        => 'gcd__Iii',
-        pow_n        => 'mod__Nnn',
+        pow_n        => 'pow__Nnn',
         cmp_i        => 'cmp__Iii',
         cmp_n        => 'cmp__Inn',
     );

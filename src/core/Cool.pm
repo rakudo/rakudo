@@ -7,7 +7,14 @@ my class Cool {
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
     }
 
+    method fmt($format = '%s') {
+        nqp::p6box_s(
+            pir::sprintf__SsP(nqp::unbox_s($format.Stringy), nqp::list(self))
+        )
+    }
+
     method substr($start as Int, $length?) {
+        # TODO: Update this to match the spec.
         my Str $str := self.Str;
         my Int $len := ($length // $str.chars).Int;
         if ($len < 0) {

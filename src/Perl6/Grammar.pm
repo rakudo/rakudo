@@ -2105,8 +2105,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<=> {
         <sym>
         [
-        || <?{ $*LEFTSIGIL eq '$' }> <O('%item_assignment, :reducecheck<assign_check>')>
-        || <O('%list_assignment, :reducecheck<assign_check>')>
+        || <?{ $*LEFTSIGIL eq '$' }> <O('%item_assignment, :reducecheck<assign_check>, :pirop<perl6_container_store__0PP>')>
+        || <O('%list_assignment, :reducecheck<assign_check>, :pirop<perl6_container_store__0PP>')>
         ]
     }
 

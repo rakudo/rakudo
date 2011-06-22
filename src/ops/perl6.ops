@@ -506,7 +506,8 @@ otherwise, calls the .STORE method.
 
 */
 inline op perl6_container_store(in PMC, in PMC) :base_core {
-    Rakudo_cont_store(interp, $1, $2, 1, 1);
+    Rakudo_cont_store(interp, $1, 
+        Rakudo_cont_decontainerize(interp, $2), 1, 1);
 }
 
 
@@ -523,7 +524,8 @@ already decided that it's safe).
 
 */
 inline op perl6_container_store_unchecked(in PMC, in PMC) :base_core {
-    Rakudo_cont_store(interp, $1, $2, 0, 0);
+    Rakudo_cont_store(interp, $1, 
+        Rakudo_cont_decontainerize(interp, $2), 0, 0);
 }
 
 

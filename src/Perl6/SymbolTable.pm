@@ -463,7 +463,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 $precomp := self.compile_in_context($code_past);
                 
                 # Fix up Code object associations (including nested blocks).
-                my $num_subs := pir::elements__IP($precomp);
+                my $num_subs := nqp::elems($precomp);
                 my $i := 0;
                 while $i < $num_subs {
                     my $subid := $precomp[$i].get_subid();

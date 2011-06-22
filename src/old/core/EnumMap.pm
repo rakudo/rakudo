@@ -44,7 +44,7 @@ class EnumMap is Iterable does Associative {
     }
 
     method elems() {
-        pir::elements__IP($!storage)
+        nqp::elems($!storage)
     }
 
     method exists($key) {
@@ -82,7 +82,7 @@ class EnumMap is Iterable does Associative {
         gather {
             my $iter = pir::iter__PP($!storage);
             while pir::istrue__IP($iter) {
-                my $iter_item = pir::shift__PP($iter);
+                my $iter_item = nqp::shift($iter);
                 take Pair.new(key => ~$iter_item.key, value => $iter_item.value);
             }
         }

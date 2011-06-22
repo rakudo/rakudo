@@ -24,7 +24,7 @@ augment class Any {
     }
 
     our Str multi method join($separator = '') {
-        ~pir::join__SsP($separator, self.flat.eager);
+        ~nqp::join($separator, self.flat.eager);
     }
 
     multi method elems() {

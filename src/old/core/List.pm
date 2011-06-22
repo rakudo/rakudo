@@ -17,7 +17,7 @@ augment class List does Positional {
         return False unless @indices;
         while @indices && @indices.shift -> $key {
             return False if $key < 0
-                || !pir::exists__IQi(self!fill($key+1), $key);
+                || !nqp::existspos(self!fill($key+1), $key);
         }
         True;
     }

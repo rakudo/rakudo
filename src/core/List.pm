@@ -16,7 +16,7 @@ class List {
 
     method at_pos(\$pos) {
         self.exists($pos)
-          ?? pir::set__PQi($!items, nqp::unbox_i($pos))
+          ?? nqp::atpos($!items, nqp::unbox_i($pos))
           !! Mu
     }
 
@@ -31,7 +31,7 @@ class List {
 
     method exists(\$pos) {
         self.gimme($pos + 1);
-        nqp::p6bool(pir::exists__IQI($!items, nqp::unbox_i($pos)))
+        nqp::p6bool(nqp::existspos($!items, nqp::unbox_i($pos)))
     }
 
     method flat() {
@@ -76,7 +76,7 @@ class List {
     method munch($n is copy) {
         self.gimme($n);
         my Mu $rpa := pir::new__Ps('ResizablePMCArray');
-        pir::push__vPP($rpa, pir::shift__PP($!items))
+        pir::push__vPP($rpa, nqp::shift($!items))
             while $!items && $n-- > 0;
         pir__perl6_box_rpa__PP($rpa)
     }
@@ -89,7 +89,7 @@ class List {
 
     method shift() {
         # make sure we have at least one item, then shift+return it
-        self.gimme(1) && pir::shift__PP($!items)
+        self.gimme(1) && nqp::shift($!items)
     }
 
     multi method perl(List:D \$self:) {
@@ -99,7 +99,7 @@ class List {
     }
 
     method STORE_AT_POS(\$pos, Mu \$v) {
-        pir::set__1QiP($!items, nqp::unbox_i($pos), $v)
+        nqp::bindpos($!items, nqp::unbox_i($pos), $v)
     }
 
     method RPA() {

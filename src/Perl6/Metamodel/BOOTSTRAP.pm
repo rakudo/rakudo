@@ -46,15 +46,15 @@ Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_bool',
     sub ($self) { $self.Bool() });
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_integer',
     sub ($self) {
-        pir::repr_unbox_int__IP($self.Int())
+        nqp::unbox_i($self.Int())
     });
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_number',
     sub ($self) {
-        pir::repr_unbox_num__NP($self.Num())
+        nqp::unbox_n($self.Num())
     });
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_string',
     sub ($self) {
-        pir::repr_unbox_str__SP($self.Str())
+        nqp::unbox_s($self.Str())
     });
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
     sub ($self) { pir::istrue__IP($self.defined()) });

@@ -5,7 +5,7 @@ my class EnumMap {
     method exists(Str \$key) {
         nqp::p6bool(
             pir::defined($!storage)
-            && pir::exists__IQs($!storage, nqp::unbox_s($key))
+            && nqp::existskey($!storage, nqp::unbox_s($key))
         )
     }
 
@@ -20,7 +20,7 @@ my class EnumMap {
             my Mu $iter := pir::iter__PP($!storage);
             my Mu $pair;
             while $iter {
-                $pair := pir::shift__PP($iter);
+                $pair := nqp::shift($iter);
                 take Pair.new(:key($pair.key), :value($pair.value));
             }
         }
@@ -28,7 +28,7 @@ my class EnumMap {
 
     method at_key(Str \$key) {
         self.exists($key)
-            ?? pir::set__PQs($!storage, nqp::unbox_s($key))
+            ?? nqp::atkey($!storage, nqp::unbox_s($key))
             !! Any
     }
 

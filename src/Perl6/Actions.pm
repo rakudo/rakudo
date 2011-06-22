@@ -2848,7 +2848,7 @@ class Perl6::Actions is HLL::Actions {
     # steals spaces after a postfixish. Thus "$a $b" would get messed up.
     # Here we take them back again. Hacky, better solutions welcome.
     sub steal_back_spaces($/, $expr) {
-        my $pos := pir::length__IS($/) - 1;
+        my $pos := nqp::chars($/) - 1;
         while pir::is_cclass__IISI(32, $/, $pos) {
             $pos--;
         }
@@ -3320,7 +3320,7 @@ class Perl6::Actions is HLL::Actions {
     # the $usage parameter to make it more helpful.
     sub compile_time_value_str($past, $usage, $/) {
         if $past<has_compile_time_value> {
-            pir::repr_unbox_str__SP($past<compile_time_value>);
+            nqp::unbox_s($past<compile_time_value>);
         }
         else {
             $/.CURSOR.panic("$usage must have a value known at compile time");

@@ -37,27 +37,27 @@ multi infix:<~>(Str \$a, Str \$b) {
 }
 
 multi infix:<eq>(Str \$a, Str \$b) {
-    nqp::p6bool(pir::iseq__ISS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<ne>(Str \$a, Str \$b) {
-    nqp::p6bool(pir::isne__ISS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6bool(nqp::isne_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<lt>(Str \$a, Str \$b) {
-    nqp::p6bool(pir::islt__ISS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6bool(nqp::islt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<le>(Str \$a, Str \$b) {
-    nqp::p6bool(pir::isle__ISS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6bool(nqp::isle_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<gt>(Str \$a, Str \$b) {
-    nqp::p6bool(pir::isgt__ISS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6bool(nqp::isgt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<ge>(Str \$a, Str \$b) {
-    nqp::p6bool(pir::isge__ISS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6bool(nqp::isge_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 

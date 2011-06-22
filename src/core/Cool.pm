@@ -4,7 +4,7 @@ my class Cool {
     }
 
     method chars() {
-        nqp::p6box_i(pir::length__IS(nqp::unbox_s(self.Str)));
+        nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
     }
 
     method substr($start as Int, $length?) {
@@ -29,11 +29,11 @@ my class Cool {
     }
 
     method uc() {
-        nqp::p6box_s(pir::upcase__SS(nqp::unbox_s(self.Str)))
+        nqp::p6box_s(nqp::uc(nqp::unbox_s(self.Str)))
     }
 
     method lc() {
-        nqp::p6box_s(pir::downcase__SS(nqp::unbox_s(self.Str)))
+        nqp::p6box_s(nqp::lc(nqp::unbox_s(self.Str)))
     }
 
     method ucfirst() {
@@ -47,7 +47,7 @@ my class Cool {
     }
 
     method ord() {
-        nqp::p6box_i(pir::ord__IS(nqp::unbox_s(self.Str)))
+        nqp::p6box_i(nqp::ord(nqp::unbox_s(self.Str)))
     }
 
     method flip() {
@@ -56,7 +56,7 @@ my class Cool {
 
     proto method index(|$) {*}
     multi method index(Cool \$needle, Cool $pos = 0) {
-        my $result := nqp::p6box_i(pir::index__ISSI(
+        my $result := nqp::p6box_i(nqp::index(
                 nqp::unbox_s(self.Str),
                 nqp::unbox_s($needle.Str),
                 nqp::unbox_i($pos.Int)

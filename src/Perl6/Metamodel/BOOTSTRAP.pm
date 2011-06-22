@@ -43,7 +43,7 @@ pir::perl6_set_type_mu__vP(Mu);
 
 # XXX Move out of bootstrap when possible.
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_bool',
-    sub ($self) { $self.Bool() });
+    sub ($self) { nqp::unbox_i($self.Bool()) });
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_integer',
     sub ($self) {
         nqp::unbox_i($self.Int())
@@ -486,9 +486,9 @@ pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
 # XXX Quick and dirty Bool. Probably done by EnumHOW in the end.
 my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
 Bool.HOW.add_parent(Bool, Cool);
-Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int)));
+Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1)));
 Bool.HOW.add_parrot_vtable_mapping(Bool, 'get_bool',
-    sub ($self) { pir::repr_get_attr_int__IPPs($self, Bool, '$!value') });
+    sub ($self) { nqp::unbox_i($self) });
 Bool.HOW.publish_parrot_vtable_mapping(Bool);
     
 # Set up Stash type, using a Parrot hash under the hood for storage.

@@ -183,12 +183,16 @@ sub scalar_attr($name, $type) {
 # class Signature is Cool {
 #    has $!params;
 #    has $!returns;
+#    has $!arity;
+#    has $!count;
 #     ... # Uncomposed
 # }
 my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
 Signature.HOW.add_parent(Signature, Cool);
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu)));
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu)));
+Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!arity>, :type(Mu)));
+Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!count>, :type(Mu)));
 Signature.HOW.add_method(Signature, 'is_generic', sub ($self) {
         # If any parameter is generic, so are we.
         my @params := pir::getattribute__PPPs($self, Signature, '$!params');

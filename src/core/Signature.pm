@@ -1,38 +1,37 @@
 my class Signature {
+    # declared in BOOTSTRAP.pm:
+    #   is Cool;               # parent class
+    #   has $!params;          # RPA of parameters
+    #   has $!returns;         # return type
+    #   has $!arity;           # cached arity
+    #   has $!count;           # cached count
+
     method arity() {
-        my $params := self.params;
-        my $i      := 0;
-        my $elems  := $params.elems;
-        my $arity  := 0;
-        while $i < $elems {
-            if $params[$i].positional && !$params[$i].optional {
-                $arity := $arity + 1;
-                $i := $i + 1;
-            }
-            else {
-                $i := $elems;
-            }
-        }
-        $arity
+        self.count if nqp::isnull($!arity) || !$!arity.defined;
+        $!arity;
     }
-    
+ 
     method count() {
-        my $params := self.params;
-        my $i      := 0;
-        my $elems  := $params.elems;
-        my $arity  := 0;
-        while $i < $elems {
-            if $params[$i].positional {
-                $arity := $arity + 1;
-                $i := $i + 1;
+        if nqp::isnull($!count) || !$!count.defined {
+            # calculate the count and arity -- we keep them
+            # cached for when we're called the next time.
+            my $count = 0;
+            my $arity = 0;
+            my Mu $iter := nqp::iterator($!params);
+            my $param;
+            while $iter {
+                $param := nqp::shift($iter);
+                if $param.positional {
+                    $count++;
+                    $arity++ unless $param.optional;
+                }
             }
-            else {
-                $i := $elems;
-            }
+            nqp::bindattr(self, Signature, '$!arity', $arity);
+            nqp::bindattr(self, Signature, '$!count', $count);
         }
-        $arity
+        $!count
     }
-    
+              
     method params() {
         pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!params), Mu);
     }

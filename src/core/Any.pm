@@ -11,6 +11,7 @@ my class Any {
     method flat() { nqp::p6list(List, nqp::list(self), 1.Bool) }
     method list() { nqp::p6list(List, nqp::list(self), Mu) }
     method elems() { self.list.elems }
+    method infinite() { Mu }
 
     method join($separator = ' ') {
         my $list = (self,).flat.eager;

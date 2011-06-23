@@ -59,8 +59,7 @@ class List {
     }
 
     method infinite() { 
-        self.gimme(*);
-        $!nextiter.defined 
+        $!nextiter.defined && $!nextiter.infinite;
     }
 
     method iterator() {

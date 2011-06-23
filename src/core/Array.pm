@@ -16,6 +16,16 @@ class Array {
           !! self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
     }
 
+    method REIFY(Parcel \$parcel) {
+        my Mu $rpa := $parcel.RPA;
+        my Mu $iter := nqp::iterator($rpa);
+        my $i = 0;
+        while $iter {
+            nqp::bindpos($rpa, nqp::unbox_i($i++), my $v = nqp::shift($iter));
+        }
+        pir::find_method__PPs(List, 'REIFY')(self, $parcel)
+    }
+
     method STORE_AT_POS(\$pos, Mu $v is copy) {
         pir::find_method__PPs(List, 'STORE_AT_POS')(self, $pos, $v);
     }

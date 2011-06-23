@@ -8,8 +8,8 @@ INIT {
         p6box_s      => 'perl6_box_str__Ps',
         p6bool       => 'perl6_booleanize__Pi',
         p6isa        => 'type_check__IPP',
-        p6listiter   => 'perl6_iter_from_rpa__PP',
-        p6list       => 'perl6_list_from_rpa__PPP',
+        p6listiter   => 'perl6_iter_from_rpa__PPP',
+        p6list       => 'perl6_list_from_rpa__PPPP',
 
         lcm_i        => 'lcm__Iii',
         gcd_i        => 'gcd__Iii',

@@ -789,35 +789,31 @@ inline op perl6_rpa_find_type(out INT, in PMC, in PMC, in INT, in INT)
 
 /*
 
-=item perl6_shiftn(inout PMC, in PMC, in INT)
+=item perl6_shiftpush(inout PMC, in PMC, in INT)
 
 Shifts up to $3 elements from $2, pushing each shifted onto $1.
 $1 can be PMCNULL, in which case the shifted elements are
 simply discarded.
 
 */
-inline op perl6_shiftn(inout PMC, in PMC, in INT) :base_core {
+inline op perl6_shiftpush(inout PMC, in PMC, in INT) :base_core {
     INTVAL count = $3;
     INTVAL elems = VTABLE_elements(interp, $2);
-    INTVAL i;
 
     if (count > elems) count = elems;
 
-    /* if we have a destination PMC in $1, then push the first
-       count elements of $2 onto it */
     if (!PMC_IS_NULL($1)) {
-        for (i = 0; i < count; i++) {
-            VTABLE_push_pmc(interp, $1,
-                VTABLE_get_pmc_keyed_int(interp, $2, i));
+        while (count > 0) {
+            VTABLE_push_pmc(interp, $1, VTABLE_shift_pmc(interp, $2));
+            count--;
         }
     }
-
-    /* now shift count elements off of $2 */
-    for (i = 0; i < elems - count; i++) {
-        VTABLE_set_pmc_keyed_int(interp, $2, i,
-            VTABLE_get_pmc_keyed_int(interp, $2, i+count));
+    else {
+        while (count > 0) {
+            VTABLE_shift_pmc(interp, $2);
+            count--;
+        }
     }
-    VTABLE_set_integer_native(interp, $2, elems-count);
 }
 
 

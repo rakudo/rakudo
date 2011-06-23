@@ -21,7 +21,7 @@ my class ListIter {
                              pir::perl6_rpa_find_type__IPPii(
                                  $!rest, Parcel, 0, nqp::unbox_i($index)))
                     if $flattens;
-                pir::perl6_shiftn__0PPi($rpa, $!rest, nqp::unbox_i($index));
+                pir::perl6_shiftpush__0PPi($rpa, $!rest, nqp::unbox_i($index));
                 if $!rest && nqp::islt_i(nqp::elems($rpa), nqp::unbox_i($count)) {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {

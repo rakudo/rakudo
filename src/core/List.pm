@@ -78,7 +78,7 @@ class List {
                           || nqp::isnull($!items)
                           || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
         pir__perl6_box_rpa__PP(
-            pir::perl6_shiftn__0PPi(nqp::list(), $!items, nqp::unbox_i($n))
+            pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n))
         )
     }
 

@@ -761,9 +761,7 @@ index $4 and up through (but not including) index $5.  Sets $1
 to be the index of the first element matching type, otherwise
 $1 is set to the highest index searched.
 
-The RPA elements are not decontainerized during scanning,
-and thus won't match type (unless you happen to be looking
-for the container type).
+Containerized elements are automatically skipped.
 
 =cut
 
@@ -780,7 +778,9 @@ inline op perl6_rpa_find_type(out INT, in PMC, in PMC, in INT, in INT)
 
     for (index = $4; index < last; index++) {
         PMC *val = VTABLE_get_pmc_keyed_int(interp, rpa, index);
-        if (STABLE(val)->type_check(interp, val, type)) break;
+        if (val->vtable->base_type == smo_id
+            && !STABLE(val)->container_spec
+            && STABLE(val)->type_check(interp, val, type)) break;
     }
 
     $1 = index;

@@ -1,7 +1,7 @@
-    Announce: Rakudo Perl 6 compiler development release #42 ("XXX")
+    Announce: Rakudo Perl 6 compiler development release #42 ("Bruxelles")
 
 On behalf of the Rakudo development team, I'm happy to announce the
-June 2011 release of Rakudo Perl #42 "XXX".  Rakudo is an 
+June 2011 release of Rakudo Perl #42 "Bruxelles".  Rakudo is an 
 implementation of Perl 6 on the Parrot Virtual Machine (see 
 <http://www.parrot.org>). The tarball for the June 2011 release
 is available from <http://github.com/rakudo/rakudo/downloads>.
@@ -12,7 +12,7 @@ Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
 
 The Rakudo Perl compiler follows a monthly release cycle, with each release
 named after a Perl Mongers group. The June 2011 release is code named
-"XXX".
+"Bruxelles".
 
 DON'T PANIC:  Browsing the change log below, it might appear
 as though not much Rakudo development is taking place.  Nearly
@@ -50,4 +50,4 @@ available in the "docs/release_guide.pod" file.  In general, Rakudo
 development releases are scheduled to occur two days after each
 Parrot monthly release.  Parrot releases the third Tuesday of each month.
 
-Have fun!
+Have fun and don't forget your towel!

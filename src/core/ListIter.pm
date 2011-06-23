@@ -5,50 +5,46 @@ my class ListIter {
     #   has Mu $!rest;         # RPA of elements remaining to be reified
     #   has $!list;            # List object associated with this iterator
     
-    method reify($n is copy) {
+    method reify($n is copy, :$sink) {
         if !$!reified.defined {
-            my $rpa := pir::new__Ps('ResizablePMCArray');
-            my Mu $x;
-            my $pos = $!list.gimme(0) if $!list.defined;
-            my $flattens = $!list.defined && $!list.flattens;
             my $eager = Whatever.ACCEPTS($n);
-            while $!rest && ($eager || $n > 0) {
-                $x := nqp::atpos($!rest, 0);
-                if pir::not__II(pir::is_container__IP($x)) && $x.defined
-                    && Iterable.ACCEPTS($x) {
-                        last if $eager && $x.infinite;
-                        pir::splice__vPPii(
-                            $!rest, 
-                            pir__perl6_unbox_rpa__PP($x.iterator.reify($n)),
-                            0, 1);
-                }
-                elsif $flattens && pir::not__II(pir::is_container__IP($x))
-                      && $x.defined && Parcel.ACCEPTS($x) {
-                        pir::splice__vPPii(
-                            $!rest, 
-                            pir__perl6_unbox_rpa__PP($x),
-                            0, 1);
-                }
-                elsif Nil.ACCEPTS($x) { nqp::shift($!rest) }
-                else {
-                    nqp::shift($!rest);
-                    $x := $!list.STORE_AT_POS($pos, $x) if $!list.defined;
-                    pir::push__vPP($rpa, $x);
-                    $eager or $n = $n - 1;
-                    $pos = $pos + 1;
+            my $flattens = $!list.defined && $!list.flattens;
+            my $count = $eager ?? 100000 !! $n;
+            my $rpa := nqp::list();
+            my Mu $x;
+            my $index;
+            while $!rest && nqp::islt_i(nqp::elems($rpa), nqp::unbox_i($count)) {
+                $index = nqp::p6box_i(
+                             pir::perl6_rpa_find_type__IPPii(
+                                 $!rest, Iterable, 0, nqp::unbox_i($count)));
+                $index = nqp::p6box_i(
+                             pir::perl6_rpa_find_type__IPPii(
+                                 $!rest, Parcel, 0, nqp::unbox_i($index)))
+                    if $flattens;
+                pir::perl6_shiftn__0PPi($rpa, $!rest, nqp::unbox_i($index));
+                if $!rest && nqp::islt_i(nqp::elems($rpa), nqp::unbox_i($count)) {
+                    $x := nqp::shift($!rest);
+                    if nqp::isconcrete($x) {
+                        $x := $x.iterator.reify($count) if nqp::p6isa($x, Iterable);
+                        nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
+                    
+                    }
+                    elsif nqp::not_i(nqp::p6isa($x, Nil)) {
+                        nqp::push($rpa, $x);
+                    }
                 }
             }
-            pir::push__vPP( $rpa, 
-                    pir::setattribute__3PPsP(self, ListIter, '$!nextiter',
-                        pir::perl6_iter_from_rpa__PPPP($!rest, $!list)))
+            my $reified := pir__perl6_box_rpa__PP($rpa);
+            $reified := $!list.REIFY($reified) if $!list.defined && !$sink;
+            nqp::push(
+                    nqp::getattr($reified, Parcel, '$!storage'),
+                    nqp::bindattr(self, ListIter, '$!nextiter',
+                                  nqp::p6listiter($!rest, $!list)))
                 if $!rest;
-            # define our $!reified Parcel.  infix:<:=> doesn't seem to work 
-            # on attributes defined in BOOTSTRAP, so use pir::setattribute.
-            pir::setattribute__0PPsP( self, ListIter, '$!reified',
-                pir__perl6_box_rpa__PP($rpa));
+            nqp::bindattr(self, ListIter, '$!reified', $reified);
             # free up $!list and $!rest
-            pir::setattribute__0PPsP(self, ListIter, '$!list', Mu);
-            pir::setattribute__0PPsP(self, ListIter, '$!rest', Mu);
+            nqp::bindattr(self, ListIter, '$!list', Mu);
+            nqp::bindattr(self, ListIter, '$!rest', Mu);
         }
         $!reified;
     }

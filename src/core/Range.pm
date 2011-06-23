@@ -22,11 +22,13 @@ class Range is Iterable {
         self;
     }
 
+    method flat()     { nqp::p6list(List, nqp::list(self), 1.Bool) }
     method infinite() { $.max == $Inf }
     method iterator() { self }
+    method list()     { self.flat }
 
     method reify($n is copy = 10) {
-        $n = $Inf if Whatever.ACCEPTS($n);
+        $n = nqp::p6isa($n, Whatever) ?? $Inf !! $n.Num;
         fail "request for infinite elements from range"
           if $n == $Inf && self.infinite;
         my $value = $!excludes_min ?? $!min.succ !! $!min;

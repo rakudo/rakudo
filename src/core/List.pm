@@ -11,6 +11,10 @@ class List {
     method Parcel()     { self.gimme(*); pir__perl6_box_rpa__PP(self.RPA) }
     method Str(List:D:) { self.join(' ') }
 
+    method flat() { self.flattens 
+                    ?? self 
+                    !! nqp::p6list(List, nqp::list(self), 1.Bool)
+    }
     method list() { self }
     method flattens() { $!flattens }
 
@@ -32,10 +36,6 @@ class List {
     method exists(\$pos) {
         self.gimme($pos + 1);
         nqp::p6bool(nqp::existspos($!items, nqp::unbox_i($pos)))
-    }
-
-    method flat() {
-        pir::perl6_list_from_rpa__PPPP(List, self.RPA, 1.Bool);
     }
 
     method gimme($n) {
@@ -73,12 +73,13 @@ class List {
             ListIter, '$!reified', pir__perl6_box_rpa__PP(self.RPA))
     }
 
-    method munch($n is copy) {
-        self.gimme($n);
-        my Mu $rpa := pir::new__Ps('ResizablePMCArray');
-        pir::push__vPP($rpa, nqp::shift($!items))
-            while $!items && $n-- > 0;
-        pir__perl6_box_rpa__PP($rpa)
+    method munch(\$n) {
+        self.gimme($n) if nqp::not_i(nqp::p6isa($n, Int))
+                          || nqp::isnull($!items)
+                          || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
+        pir__perl6_box_rpa__PP(
+            pir::perl6_shiftn__0PPi(nqp::list(), $!items, nqp::unbox_i($n))
+        )
     }
 
     method push(*@values) {
@@ -92,10 +93,19 @@ class List {
         self.gimme(1) && nqp::shift($!items)
     }
 
+    method sink() {
+        $!nextiter.defined && $!nextiter.reify(10, :sink(1));
+    }
+
     multi method perl(List:D \$self:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  
           ~ (pir::is_container__IP($self) ?? '.item' !! '')
+    }
+
+    method REIFY(Parcel \$parcel) {
+        nqp::splice($!items, $parcel.RPA, nqp::elems($!items), 0);
+        $parcel
     }
 
     method STORE_AT_POS(\$pos, Mu \$v) {
@@ -119,7 +129,7 @@ class List {
 }
 
 sub eager(|$) {
-    pir__perl6_box_rpa__PP(pir::perl6_current_args_rpa__P()).flat.eager
+    pir__perl6_box_rpa__PP(pir::perl6_current_args_rpa__P()).eager
 }
 
 sub flat(|$) {

@@ -7,8 +7,9 @@ my class Any {
     # List-like methods for Any.
     ########
 
-    method flat() { self.list.flat }
-    method list() { (self,).list }
+    method eager() { nqp::p6list(List, nqp::list(self), 1.Bool).eager }
+    method flat() { nqp::p6list(List, nqp::list(self), 1.Bool) }
+    method list() { nqp::p6list(List, nqp::list(self), Mu) }
     method elems() { self.list.elems }
 
     method join($separator = ' ') {

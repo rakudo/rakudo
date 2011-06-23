@@ -14,31 +14,28 @@ my class MapIter is Iterator {
         self 
     }
 
-    method reify($n is copy = 1) {
+    method reify($n is copy = 1, :$sink) {
         if !$!reified.defined {
             ## we don't have &prefix:<|> or good control blocks yet,
             ## so we'll temporarily implement MapIter with Q:PIR blocks.
-
             my $count = $!block.count;
-            my $block := pir::perl6_decontainerize__PP($!block);
-            $n = 1000 if Whatever.ACCEPTS($n);
+            my $block := pir::perl6_decontainerize__PP($!block); ### TODO: Why?
+            $n = nqp::p6isa($n, Whatever) ?? 1000 !! $n.Int;
+            $!list.gimme($count * $n);
             my Mu $rpa := pir::new__Ps('ResizablePMCArray');
-            my Mu $args := 
-                pir__perl6_unbox_rpa__PP($!list.munch($!block.count));
-            while $args && $n > 0 {
-                pir::push__vPP(
-                    $rpa,
+            my Mu $args;
+            repeat {
+                $args := $!list.munch($!block.count).RPA;
+                nqp::push($rpa,
                     Q:PIR {
                         $P0 = find_lex '$args'
                         $P1 = find_lex '$block'
                         %r = $P1($P0 :flat)
-                    });
-                $n = $n - 1;
-                $args := pir__perl6_unbox_rpa__PP($!list.munch($count))
-                  if $n > 0;
-            }
+                    }) if $args;
+            } while $args 
+                    && nqp::islt_i(nqp::elems($rpa), nqp::unbox_i($n));
             # create the next MapIter if we haven't reached the end
-            pir::push__vPP($rpa, self.CREATE.BUILD($!list, $!block))
+            nqp::push($rpa, self.CREATE.BUILD($!list, $!block))
               if $args;
             $!reified := pir__perl6_box_rpa__PP($rpa);
             $!list = Any;

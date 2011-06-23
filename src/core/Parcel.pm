@@ -31,17 +31,11 @@ my class Parcel {
         $perl ~ ')';
     }
 
+    method RPA() { $!storage }
+
     multi method DUMP(Parcel:D:) {
         self.DUMP-ID() ~ '(:storage(' ~ DUMP($!storage) ~ '))'
     }
-}
-
-
-my class Nil is Parcel { 
-    method new() { Nil }
-    method flat() { ().flat }
-    method list() { ().list }
-    method gist() { 'Nil' }
 }
 
 

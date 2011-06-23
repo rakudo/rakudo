@@ -754,6 +754,75 @@ inline op perl6_list_from_rpa(out PMC, in PMC, in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_rpa_find_type(out INT, in PMC, in PMC, int INT, in INT)
+
+Find the first element of RPA $2 that has type $3, starting at
+index $4 and up through (but not including) index $5.  Sets $1
+to be the index of the first element matching type, otherwise
+$1 is set to the highest index searched.
+
+The RPA elements are not decontainerized during scanning,
+and thus won't match type (unless you happen to be looking
+for the container type).
+
+=cut
+
+*/
+inline op perl6_rpa_find_type(out INT, in PMC, in PMC, in INT, in INT)
+{
+    PMC *rpa     = $2;
+    PMC *type    = Rakudo_cont_decontainerize(interp, $3);
+    INTVAL elems = VTABLE_elements(interp, rpa);
+    INTVAL last  = $5;
+    INTVAL index;
+
+    if (elems < last)  last = elems;
+
+    for (index = $4; index < last; index++) {
+        PMC *val = VTABLE_get_pmc_keyed_int(interp, rpa, index);
+        if (STABLE(val)->type_check(interp, val, type)) break;
+    }
+
+    $1 = index;
+}
+
+
+/*
+
+=item perl6_shiftn(inout PMC, in PMC, in INT)
+
+Shifts up to $3 elements from $2, pushing each shifted onto $1.
+$1 can be PMCNULL, in which case the shifted elements are
+simply discarded.
+
+*/
+inline op perl6_shiftn(inout PMC, in PMC, in INT) :base_core {
+    INTVAL count = $3;
+    INTVAL elems = VTABLE_elements(interp, $2);
+    INTVAL i;
+
+    if (count > elems) count = elems;
+
+    /* if we have a destination PMC in $1, then push the first
+       count elements of $2 onto it */
+    if (!PMC_IS_NULL($1)) {
+        for (i = 0; i < count; i++) {
+            VTABLE_push_pmc(interp, $1,
+                VTABLE_get_pmc_keyed_int(interp, $2, i));
+        }
+    }
+
+    /* now shift count elements off of $2 */
+    for (i = 0; i < elems - count; i++) {
+        VTABLE_set_pmc_keyed_int(interp, $2, i,
+            VTABLE_get_pmc_keyed_int(interp, $2, i+count));
+    }
+    VTABLE_set_integer_native(interp, $2, elems-count);
+}
+
+
+/*
+
 =item encodelocaltime(out INT, in PMC)
 
 The inverse of C<decodelocaltime>.

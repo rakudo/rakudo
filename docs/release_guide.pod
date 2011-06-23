@@ -40,12 +40,12 @@ part of monthly Parrot releases.
   2011-03-17   Rakudo #39 "Orlando"            (jdhore)
   2011-04-21   Rakudo #40 "ZA"                 (duff)
   2011-05-19   Rakudo #41 "Dahut"              (jdhore)
+  2011-06-23   Rakudo #42 "Bruxelles"          (jdhore)
 
 =head2 Planned 2011 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-06-23   Rakudo #42                      (jdhore)
   2011-07-21   Rakudo #43                      -vacant-
   2011-08-18   Rakudo #44                      -vacant-
   2011-09-22   Rakudo #45                      -vacant-

@@ -260,26 +260,20 @@ class Perl6::Actions is HLL::Actions {
                 if ~$ml<sym> eq 'given' {
                     $past := PAST::Op.new(
                         :pasttype('call'),
-                        PAST::Block.new(
-                            :blocktype('declaration'),
-                            PAST::Var.new( :name('$_'), :scope('parameter'), :isdecl(1) ),
-                            $past
-                        ),
+                        make_topic_block_ref($past),
                         $cond
                     );
                 }
                 elsif ~$ml<sym> eq 'for' {
                     unless $past<block_past> {
-                        my $sig := Perl6::Compiler::Signature.new(
-                                       Perl6::Compiler::Parameter.new(:var_name('$_')));
-                        $past := block_closure(blockify($past, $sig), 'Block', 0);
+                        $past := make_topic_block_ref($past);
                     }
-                    $past := PAST::Op.new( 
-                                 :pasttype<callmethod>, :name<map>, :node($/),
-                                 $cond,
-                                 $past
-                             );
-                    $past := PAST::Op.new( :name<&eager>, $past, :node($/) );
+                    $past := PAST::Op.new(
+                        :name<&eager>, :node($/),
+                        PAST::Op.new( 
+                            :pasttype<callmethod>, :name<map>, :node($/),
+                            $cond, $past
+                        ));
                 }
                 else {
                     $past := PAST::Op.new($cond, $past, :pasttype(~$ml<sym>), :node($/) );
@@ -3041,8 +3035,23 @@ class Perl6::Actions is HLL::Actions {
     
     sub make_simple_code_object($block, $type) {
         ($*ST.cur_lexpad())[0].push($block);
-        my $sig  := $*ST.create_signature([]);
+        my $sig := $*ST.create_signature([]);
         return $*ST.create_code_object($block, $type, $sig);
+    }
+    
+    sub make_topic_block_ref($past) {
+        my $block := PAST::Block.new(
+            PAST::Stmts.new(
+                PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
+            ),
+            $past);
+        ($*ST.cur_lexpad())[0].push($block);
+        my $sig := $*ST.create_signature([$*ST.create_parameter(hash(
+            :variable_name('$_'), :nominal_type($*ST.find_symbol(['Mu']))))]);
+        add_signature_binding_code($block, $sig);
+        return reference_to_code_object(
+            $*ST.create_code_object($block, 'Block', $sig),
+            $block);
     }
     
     sub make_where_block($expr) {

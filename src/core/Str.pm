@@ -18,6 +18,10 @@ my class Str {
     # XXX: need to translate escapes
     multi method perl(Str:D:) { "'" ~ self ~ "'" }
 
+    method chomp() {
+        my $idx = self.chars - 1;
+        self.substr($idx) eq "\n" ?? self.substr(0, $idx) !! self;
+    }
 }
 
 multi infix:<cmp>(Str \$a, Str \$b) {

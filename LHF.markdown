@@ -11,3 +11,6 @@ new possible performance.
 ## Basic IO
 While the iterator-y bits can't be done yet, adding back open and some
 of the IO class should be do-able.
+
+## Built-ins
+Str.chop

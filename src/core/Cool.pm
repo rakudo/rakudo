@@ -53,6 +53,10 @@ my class Cool {
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).lc ~ $self-str.substr(1)
     }
 
+    method chomp() {
+        self.Str.chomp;
+    }
+
     method ord() {
         nqp::p6box_i(nqp::ord(nqp::unbox_s(self.Str)))
     }

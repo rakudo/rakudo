@@ -2105,17 +2105,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<=> {
         <sym>
         [
-        || <?{ $*LEFTSIGIL eq '$' }> <O('%item_assignment, :reducecheck<assign_check>, :pirop<perl6_container_store__0PP>')>
-        || <O('%list_assignment, :reducecheck<assign_check>, :pirop<perl6_container_store__0PP>')>
+        || <?{ $*LEFTSIGIL eq '$' }> <O('%item_assignment')>
+        || <O('%list_assignment')>
         ]
-    }
-
-    method assign_check($/) {
-        my $lhs_ast := $/[0].ast;
-        if $lhs_ast && $lhs_ast<attribute_declarand> {
-            Perl6::Actions.install_attr_init($/);
-            $/<drop> := 1;
-        }
     }
 
     token infix:sym<and>  { <sym> >> <O('%loose_and, :pasttype<if>')> }

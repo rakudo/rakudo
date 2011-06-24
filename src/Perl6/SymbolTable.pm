@@ -133,8 +133,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $fixups := PAST::Stmts.new();
         for %stash {
             # Install the imported symbol directly as a block symbol.
-            $target.symbol($_.key, :scope('lexical'), :value($_.value));
-            $target[0].push(PAST::Var.new( :scope('lexical'), :name($_.key), :isdecl(1) ));
+            $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
+            $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
             
             # Add fixup/deserialize event to stick it in the static lexpad.
             $fixups.push(PAST::Op.new(
@@ -185,8 +185,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # gets fixed up at runtime too.
     method install_lexical_symbol($block, $name, $obj) {
         # Install the object directly as a block symbol.
-        $block.symbol($name, :scope('lexical'), :value($obj));
-        $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
+        $block.symbol($name, :scope('lexical_6model'), :value($obj));
+        $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
         
         # Fixup and deserialization task is the same.
         my $fixup := PAST::Op.new(
@@ -206,8 +206,15 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method install_lexical_container($block, $name, $type_name, $descriptor, *@default_value) {
         # Add to block. Note that it doesn't really have a compile time
         # value.
-        $block.symbol($name, :scope('lexical'), :descriptor($descriptor));
-        $block[0].push(PAST::Var.new( :scope('lexical'), :name($name), :isdecl(1) ));
+        $block.symbol($name, :scope('lexical_6model'), :descriptor($descriptor));
+        $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name),
+            :isdecl(1), :type($descriptor.of) ));
+            
+        # If it's a native type, we're done - no container
+        # as we inline natives straight into registers.
+        if pir::repr_get_primitive_type_spec__IP($descriptor.of) {
+            return 1;
+        }
         
         # Look up container type and create code to instantiate it.
         my $cont_code := self.build_container_past($type_name, $descriptor, |@default_value);
@@ -999,7 +1006,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if +@name == 0 {
             $lookup.unshift(PAST::Op.new(
                 :pirop('get_who PP'),
-                PAST::Var.new( :name('$?PACKAGE'), :scope('lexical') )
+                PAST::Var.new( :name('$?PACKAGE'), :scope('lexical_6model') )
             ));
             $lookup.viviself(PAST::Var.new(
                 :scope('keyed'),
@@ -1017,7 +1024,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # then strip it off.
         else {
             my $path := self.is_lexical(@name[0]) ??
-                PAST::Var.new( :name(@name.shift()), :scope('lexical') ) !!
+                PAST::Var.new( :name(@name.shift()), :scope('lexical_6model') ) !!
                 PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
             if @name[0] eq 'GLOBAL' {
                 @name.shift();
@@ -1054,7 +1061,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $i := $i - 1;
             my %sym := @!BLOCKS[$i].symbol($name);
             if +%sym {
-                return %sym<scope> eq 'lexical';
+                return %sym<scope> eq 'lexical_6model';
             }
         }
         0;

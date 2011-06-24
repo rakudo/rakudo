@@ -1,22 +1,22 @@
 module Test;
-# Copyright (C) 2007 - 2010 The Perl Foundation.
+# Copyright (C) 2007 - 2011 The Perl Foundation.
 
 ## This is a temporary Test.pm to get us started until we get pugs's Test.pm
 ## working. It's shamelessly stolen & adapted from MiniPerl6 in the pugs repo.
 
-# globals to keep track of our tests
-our $num_of_tests_run    = 0;
-our $num_of_tests_failed = 0;
-our $todo_upto_test_num  = 0;
-our $todo_reason         = '';
-our $num_of_tests_planned;
-our $no_plan = 1;
-our $die_on_fail;
+# variables to keep track of our tests
+my $num_of_tests_run    = 0;
+my $num_of_tests_failed = 0;
+my $todo_upto_test_num  = 0;
+my $todo_reason         = '';
+my $num_of_tests_planned;
+my $no_plan = 1;
+my $die_on_fail;
 
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
 ## plans and don't call done_testing.
-our $done_testing_has_been_run = 0;
+my $done_testing_has_been_run = 0;
 
 
 ## test functions
@@ -255,8 +255,6 @@ sub done_testing() is export {
 }
 
 sub done() is export {
-    our $done_testing_has_been_run;
-
     $done_testing_has_been_run = 1;
 
     if $no_plan {
@@ -273,9 +271,6 @@ sub done() is export {
 }
 
 END {
-    our $done_testing_has_been_run;
-    our $no_plan;
-
     ## In planned mode, people don't necessarily expect to have to call done
     ## So call it for them if they didn't
     if !$done_testing_has_been_run && !$no_plan {

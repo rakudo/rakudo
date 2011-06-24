@@ -727,10 +727,10 @@ class Perl6::Actions is HLL::Actions {
                 make make_pair($*key, $*value.ast);
             }
             elsif $*value == 0 {
-                make make_pair($*key, PAST::Var.new( :name('False'), :namespace('Bool'), :scope('package') ));
+                make make_pair($*key, PAST::Op.new( :pirop('perl6_booleanize PI'), 0 ));
             }
             else {
-                make make_pair($*key, PAST::Var.new( :name('True'), :namespace('Bool'), :scope('package') ));
+                make make_pair($*key, PAST::Op.new( :pirop('perl6_booleanize PI'), 1 ));
             }
         }
         elsif $<fakesignature> {

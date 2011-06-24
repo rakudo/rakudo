@@ -1814,9 +1814,8 @@ class Perl6::Actions is HLL::Actions {
         unless $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
-        $past.unshift($past.name);
-        $past.name('!dispatch_' ~ $<sym>.Str);
-        $past.pasttype('call');
+        $past.unshift($*ST.add_constant('Str', 'str', $past.name));
+        $past.name('dispatch:<' ~ ~$<sym> ~ '>');
         make $past;
     }
 
@@ -1848,15 +1847,9 @@ class Perl6::Actions is HLL::Actions {
             my @parts := Perl6::Grammar::parse_name(~$<longname>);
             my $name := @parts.pop;
             if +@parts {
-                my $scope := is_lexical(pir::join('::', @parts)) ?? 'lexical_6model' !! 'package';
-                $past.unshift(PAST::Var.new(
-                    :name(@parts.pop),
-                    :namespace(@parts),
-                    :scope($scope)
-                ));
-                $past.unshift($name);
-                $past.name('!dispatch_::');
-                $past.pasttype('call');
+                $past.unshift($*ST.symbol_lookup(@parts, $/));
+                $past.unshift($*ST.add_constant('Str', 'str', $name));
+                $past.name('dispatch:<::>');
             }
             elsif $name eq 'WHAT' {
                 $past.pasttype('pirop');
@@ -1883,12 +1876,10 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $<variable> {
             $past.unshift($<variable>.ast);
-            $past.name('!dispatch_variable');
-            $past.pasttype('call');
+            $past.name('dispatch:<var>');
         }
         make $past;
     }
-
 
     method term:sym<self>($/) {
         make PAST::Var.new( :name('self'), :node($/) );

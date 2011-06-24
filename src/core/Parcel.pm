@@ -9,6 +9,10 @@ my class Parcel {
         pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), Mu)
     }
 
+    method at_pos(Parcel:D: \$x) { self.flat.at_pos($x); }
+
+    multi method postcircumfix:<[ ]>(Parcel:D: \$x) { self.flat.[$x] }
+
     multi method gist(Parcel:D:) {
         my @gist;
         my Mu $rpa := pir::clone__PP($!storage);

@@ -625,7 +625,7 @@ class Perl6::Actions is HLL::Actions {
         $blast.blocktype('immediate');
         make PAST::Stmts.new(
             PAST::Op.new( :name('&eager'), $blast ),
-            PAST::Var.new( :name('Nil'), :namespace([]), :scope('package')),
+            PAST::Var.new( :name('Nil'), :scope('lexical')),
             :node($/)
         );
     }

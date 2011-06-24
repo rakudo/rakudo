@@ -8,9 +8,6 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
-## ACCEPTS
-Add ACCEPTS methods to various of the built-in types.
-
 ## Basic IO
 While the iterator-y bits can't be done yet, adding back open and some
 of the IO class should be do-able.

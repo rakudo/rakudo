@@ -11,6 +11,7 @@ my class Bool {
 
     method succ() { 1.Bool }
 
+    method ACCEPTS(Mu \$topic) { self }
 }
 
 

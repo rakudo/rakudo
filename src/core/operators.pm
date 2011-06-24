@@ -8,3 +8,98 @@ sub infix:<=>(Mu \$a, Mu \$b) {
 }
 
 
+sub SEQUENCE($left, $right, :$exclude_end) {
+    my @right := ($right,).list;
+    my $endpoint = @right.shift;
+    my $infinite = $endpoint ~~ Whatever;
+    $endpoint = 0.Bool if $infinite;
+    my $tail := ().list;
+
+    my sub generate($code) {
+        my $count = $code.count;
+        my $value;
+        while 1 {
+            $tail.munch($tail.elems - $count);
+            my Mu $args := $tail.Parcel.RPA;
+            $value := Q:PIR {
+                $P0 = find_lex '$code'
+                $P0 = perl6_decontainerize $P0     # TODO: Why?
+                $P1 = find_lex '$args'
+                %r = $P0($P1 :flat)
+            };
+            last if $value ~~ $endpoint;
+            $tail.push($value);
+            take $value;
+        }
+        $value;
+    }
+
+    my sub succpred($cmp) {
+        ($cmp < 0) ?? { $^x.succ } !! ( $cmp > 0 ?? { $^x.pred } !! { $^x } )
+    }
+
+    GATHER({
+        my @left := $left.list;
+        my $value;
+        my $code;
+        my $stop;
+        while @left {
+            $value = @left.shift;
+            if $value ~~ Code { $code = $value; last }
+            if $value ~~ $endpoint { $stop = 1; last }
+            $tail.push($value);
+            take $value;
+        }
+        unless $stop {
+            $tail.munch($tail.elems - 3) if $tail.elems > 3;
+            my $a = $tail[0];
+            my $b = $tail[1];
+            my $c = $tail[2];
+            if $code.defined { }
+            elsif $tail.elems == 3 {
+                my $ab = $b - $a;
+                if $ab == $c - $b {
+                    if $ab != 0 || $a ~~ Numeric && $b ~~ Numeric && $c ~~ Numeric {
+                        $code = { $^x + $ab } 
+                    }
+                    else {
+                        $code = succpred($b cmp $c)
+                    }
+                }
+                elsif $a != 0 && $b != 0 && $c != 0 {
+                    $ab = $b / $a;
+                    if $ab == $c / $b {
+                        $code = { $^x * $ab }
+                    }
+                }
+            }
+            elsif $tail.elems == 2 {
+                my $ab = $b - $a;
+                if $ab != 0 || $a ~~ Numeric && $b ~~ Numeric { 
+                    $code = { $^x + $ab } 
+                }
+                else {
+                    $code = succpred($a cmp $b)
+                }
+            }
+            elsif $tail.elems == 1 {
+                $code = { $^x.succ }
+            }
+            elsif $tail.elems == 0 {
+                $code = {()}
+            }
+            fail "unable to deduce sequence" unless $code.defined;
+            $value = generate($code);
+        }
+        take $value unless $exclude_end;
+    }, :$infinite), @right;
+}
+
+
+proto sub infix:<...>(|$) { * }
+multi sub infix:<...>($a, $b) { SEQUENCE($a, $b) }
+
+proto sub infix:<...^>(|$) { * }
+multi sub infix:<...^>($a, $b) { SEQUENCE($a, $b, :exclude_end(1)) }
+
+

@@ -56,5 +56,9 @@ my &succeed := -> \$parcel = Nil {
           pir::const::CONTROL_BREAK) 
 };
 
+my &proceed := -> {
+    THROW(Nil, pir::const::CONTROL_CONTINUE)
+}
+
 sub die(*@msg) { pir::die(@msg.join('')) }
 sub fail(*@msg) { pir::die(@msg.join('')) }

@@ -96,9 +96,9 @@ multi sub infix:</>(Int \$a, Rat \$b) {
     ($b.denominator * $a) / $b.numerator;
 }
 
-multi sub infix:</>(Int \$a, Int \$b) {
-    Rat.new($a, $b);
-}
+# multi sub infix:</>(Int \$a, Int \$b) {
+#     Rat.new($a, $b);
+# }
 
 multi sub infix:<**>(Rat \$a, Int \$b) {
     Rat.new($a.numerator ** $b,$a.denominator ** $b);

@@ -60,7 +60,7 @@ my class Mu {
 
 proto sub infix:<~~>(|$) { * }
 multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
-    ? $matcher.ACCEPTS($topic);
+    $matcher.ACCEPTS($topic).Bool;
 }
 
 

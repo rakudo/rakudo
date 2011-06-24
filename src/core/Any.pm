@@ -3,6 +3,12 @@ class Parcel { ... }
 
 my class Any {
 
+    proto method succ(|$) {*}
+    multi method succ(Any:U:) {  1 }
+
+    proto method pred(|$) {*}
+    multi method pred(Any:U:) { -1 }
+
     ########
     # List-like methods for Any.
     ########

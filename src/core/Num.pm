@@ -17,11 +17,9 @@ my class Num {
         nqp::p6box_s(nqp::unbox_n(self));
     }
 
-    proto method succ(|$) {*}
     multi method succ(Num:D:) { self + 1e0 }
     multi method succ(Num:U:) {        1e0 }
 
-    proto method pred(|$) {*}
     multi method pred(Num:D:) { self - 1e0 }
     multi method pred(Num:U:) {       -1e0 }
 

@@ -26,13 +26,9 @@ my class Int {
         nqp::p6box_s(pir::chr(nqp::unbox_i(self)));
     }
 
-    proto method succ(|$) {*}
     multi method succ(Int:D:) { self + 1 }
-    multi method succ(Int:U:) {        1 }
 
-    proto method pred(|$) {*}
     multi method pred(Int:D:) { self - 1 }
-    multi method pred(Int:U:) {       -1 }
 }
 
 multi prefix:<++>(Int \$a is rw) {   # XXX

@@ -7,10 +7,10 @@ INIT {
         p6box_n      => 'perl6_box_num__Pn',
         p6box_s      => 'perl6_box_str__Ps',
         p6bool       => 'perl6_booleanize__Pi',
-        p6isa        => 'type_check__IPP',
         p6listiter   => 'perl6_iter_from_rpa__PPP',
         p6list       => 'perl6_list_from_rpa__PPPP',
 
+        istype       => 'type_check__IPP',
         lcm_i        => 'lcm__Iii',
         gcd_i        => 'gcd__Iii',
     );

@@ -26,11 +26,11 @@ my class ListIter {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {
                         last if $eager && $x.infinite;
-                        $x := $x.iterator.reify($count) if nqp::p6isa($x, Iterable);
+                        $x := $x.iterator.reify($count) if nqp::istype($x, Iterable);
                         nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
                     
                     }
-                    elsif nqp::not_i(nqp::p6isa($x, Nil)) {
+                    elsif nqp::not_i(nqp::istype($x, Nil)) {
                         nqp::push($rpa, $x);
                     }
                 }
@@ -52,7 +52,7 @@ my class ListIter {
 
     method infinite() {
         $!rest 
-          ?? nqp::p6isa(nqp::atpos($!rest, 0), Iterable)
+          ?? nqp::istype(nqp::atpos($!rest, 0), Iterable)
              && nqp::atpos($!rest,0).infinite
              || Mu
           !! 0.Bool

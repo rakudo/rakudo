@@ -20,7 +20,7 @@ my class MapIter is Iterator {
             ## so we'll temporarily implement MapIter with Q:PIR blocks.
             my $count = $!block.count;
             my $block := pir::perl6_decontainerize__PP($!block); ### TODO: Why?
-            $n = nqp::p6isa($n, Whatever) ?? 1000 !! $n.Int;
+            $n = nqp::istype($n, Whatever) ?? 1000 !! $n.Int;
             $!list.gimme($count * $n);
             my Mu $rpa := pir::new__Ps('ResizablePMCArray');
             my Mu $args;

@@ -28,7 +28,7 @@ class Range is Iterable {
     method list()     { self.flat }
 
     method reify($n is copy = 10) {
-        $n = nqp::p6isa($n, Whatever) ?? $Inf !! $n.Num;
+        $n = nqp::istype($n, Whatever) ?? $Inf !! $n.Num;
         fail "request for infinite elements from range"
           if $n == $Inf && self.infinite;
         my $value = $!excludes_min ?? $!min.succ !! $!min;

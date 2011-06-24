@@ -73,7 +73,7 @@ class List {
     }
 
     method munch(\$n) {
-        self.gimme($n) if nqp::not_i(nqp::p6isa($n, Int))
+        self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
                           || nqp::isnull($!items)
                           || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
         pir__perl6_box_rpa__PP(

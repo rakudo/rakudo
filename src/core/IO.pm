@@ -16,10 +16,10 @@ sub gist(|$) {
 class IO {
     has $!PIO;
     has Int $.ins = 0;
-    has $.chomp = True;
+    has $.chomp = 1.Bool;
 
     proto method open(|$) { * }
-    multi method open($filename, :$r, :$w, :$a, :$bin) {
+    multi method open($filename, :$r, :$w, :$a, :$bin, :$chomp = 1.Bool) {
         my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',
@@ -27,6 +27,7 @@ class IO {
                 ?? pir::getstdin__P()
                 !! pir::open__PSS(nqp::unbox_s($filename), nqp::unbox_s($mode))
         );
+        $!chomp = $chomp;
         $!PIO.encoding($bin ?? 'binary' !! 'utf8');
         self;
     }
@@ -60,4 +61,9 @@ class IO {
         }
 
     }
+}
+
+proto sub open(|$) { * }
+multi sub open($filename, :$r, :$w, :$a, :$bin, :$chomp = 1.Bool) {
+    IO.new.open($filename, :$r, :$w, :$a, :$bin, :$chomp);
 }

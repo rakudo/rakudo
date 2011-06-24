@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 20 June 2011
+Last Updated 25 June 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -8,7 +8,6 @@ are likely to get focus sooner.
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
 * List does Positional (depends on roles work)
-* list argument interpolation:  foo(|@list)
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
@@ -17,11 +16,6 @@ Things that aren't blockers but might be worth knowing about:
 * userspace code can't add new multis of existing operators 
   (e.g., multi postfix<++>(MyType $x) { ... } )
   (known - multis in nested lexical scopes in general just NYI - jnthn)
-* $foo.&sub(...) no longer works (gives "cannot find sub !dispatch_variable"
-  from HLL::Compiler)
-
-## Phasers
-END (needed for Test.pm), INIT, CHECK, BEGIN
 
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
@@ -68,7 +62,8 @@ Many things are working, some are not...
 * Try to implement enumerations
 * Some support for augment
 * handles
-* .*/.+/.?
+* .*, .+ and .Foo::bar
+* does and but
 
 ## Ensure nested packages work
 In theory, just should already.
@@ -79,6 +74,10 @@ become my things.
 
 ## Custom Operators
 Get these working again.
+
+## Phasers
+* BEGIN/CHECK need to see correct lexical environment
+* END in pre-compiled mainline case
 
 ## Work towards nom being master
 Get enough of the spectests passing for us to be ready to make nom into

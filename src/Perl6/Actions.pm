@@ -2010,25 +2010,31 @@ class Perl6::Actions is HLL::Actions {
     method semiarglist($/) { make $<arglist>.ast; }
 
     method arglist($/) {
-        # Build up argument list, hanlding nameds as we go.
+        # Build up argument list, hanlding nameds and flattens
+        # as we go.
         my $past := PAST::Op.new( :pasttype('call'), :node($/) );
         if $<EXPR> {
             my $expr := $<EXPR>.ast;
             if $expr.name eq '&infix:<,>' {
-                for $expr.list { $past.push(handle_named_parameter($_, $/)); }
+                for $expr.list { $past.push(handle_parameter($_, $/)); }
             }
-            else { $past.push(handle_named_parameter($expr, $/)); }
+            else { $past.push(handle_parameter($expr, $/)); }
         }
 
         make $past;
     }
 
-    sub handle_named_parameter($arg, $/) {
-        if $arg ~~ PAST::Op && $arg.returns() eq 'Pair' {
+    sub handle_parameter($arg, $/) {
+        if $arg ~~ PAST::Op && $arg.returns eq 'Pair' {
             my $result := $arg[2];
             $result.named(compile_time_value_str($arg[1], 'LHS of pair', $/));
             $result<before_promotion> := $arg;
             $result;
+        }
+        elsif $arg ~~ PAST::Op && $arg.name eq '&prefix:<|>' {
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('ARGLIST_FLATTENABLE'),
+                :flat(1), $arg[0]);
         }
         else {
             $arg;

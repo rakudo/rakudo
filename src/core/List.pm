@@ -118,6 +118,8 @@ class List {
         pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
         $rpa
     }
+    
+    method ARGLIST_FLATTENABLE() { self.gimme(*); $!items }
 
     multi method DUMP(List:D:) {
         self.DUMP-ID() ~ '('

@@ -32,12 +32,12 @@ my class EnumMap {
             !! Any
     }
 
-
     method STORE_AT_KEY(Str \$key, \$value) {
         pir::defined($!storage) ||
             pir::setattribute__vPPsP(self, EnumMap, '$!storage',
                                      pir::new__Ps('Hash'));
         pir::set__2QsP($!storage, nqp::unbox_s($key), $value)
     }
+    
+    method ARGLIST_FLATTENABLE() { $!storage }
 }
-

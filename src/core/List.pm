@@ -121,6 +121,7 @@ class List {
 
     multi method DUMP(List:D:) {
         self.DUMP-ID() ~ '('
+          ~ ('∞ ' if self.infinite) ~
           ~ ':items(' ~ DUMP($!items) ~ '), '
           ~ ':nextiter(' ~ DUMP($!nextiter) ~ ')'
           ~ ')'

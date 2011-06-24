@@ -25,7 +25,7 @@ my class ListIter {
                 if $!rest && nqp::islt_i(nqp::elems($rpa), nqp::unbox_i($count)) {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {
-                        last if $eager && $x.infinite;
+                        (nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
                         $x := $x.iterator.reify($count) if nqp::istype($x, Iterable);
                         nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
                     
@@ -63,6 +63,7 @@ my class ListIter {
 
     multi method DUMP(ListIter:D:) {
         self.DUMP-ID() ~ '('
+          ~ ('∞ ' if self.infinite) ~
           ~ ':reified('  ~ DUMP($!reified) ~ '), '
           ~ ':rest('     ~ DUMP($!rest) ~ '), '
           ~ ':list('     ~ $!list.DUMP-ID() ~ ')'

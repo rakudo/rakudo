@@ -905,6 +905,33 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         self.add_event(:deserialize_past($call_past));
     }
     
+    # Handles addition of a phaser.
+    method add_phaser($/, $block, $phaser) {
+        if $phaser eq 'BEGIN' {
+            # BEGIN phasers get run immediately.
+            $block();
+        }
+        elsif $phaser eq 'CHECK' {
+            @*CHECK_PHASERS.push($block);
+        }
+        elsif $phaser eq 'INIT' {
+            $*UNIT[0].push(PAST::Op.new(
+                :pasttype('call'),
+                self.get_object_sc_ref_past($block)
+            ));
+        }
+        elsif $phaser eq 'END' {
+            $*UNIT[0].push(PAST::Op.new(
+                :pasttype('callmethod'), :name('push'),
+                PAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
+                self.get_object_sc_ref_past($block)
+            ));
+        }
+        else {
+            $/.CURSOR.panic("$phaser phaser not yet implemented");
+        }
+    }
+    
     # Checks if a given symbol is declared and also a type object.
     method is_type(@name) {
         my $is_type := 0;

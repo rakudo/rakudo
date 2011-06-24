@@ -19,6 +19,12 @@ sub MAIN(@ARGS) {
     @clo.push('parsetrace');
     @clo.push('setting=s');
     
+    # Set up END block list, which we'll run at exit.
+    my @*END_PHASERS := [];
+    
     # Enter the compiler.
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
+    
+    # Run any END blocks before exiting.
+    for @*END_PHASERS { $_() }
 }

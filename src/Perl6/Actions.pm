@@ -606,15 +606,13 @@ class Perl6::Actions is HLL::Actions {
         make PAST::Stmts.new(:node($/));
     }
 
-    method statement_prefix:sym<BEGIN>($/) { self.add_phaser($/, $<blorst>.ast, 'BEGIN'); }
-    method statement_prefix:sym<CHECK>($/) { self.add_phaser($/, $<blorst>.ast, 'CHECK'); }
-    method statement_prefix:sym<INIT>($/)  { self.add_phaser($/, $<blorst>.ast, 'INIT'); }
-    method statement_prefix:sym<END>($/)   { self.add_phaser($/, $<blorst>.ast, 'END'); }
+    method statement_prefix:sym<BEGIN>($/) { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }
+    method statement_prefix:sym<CHECK>($/) { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'CHECK'); }
+    method statement_prefix:sym<INIT>($/)  { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'INIT'); }
+    method statement_prefix:sym<END>($/)   { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'END'); }
 
     method statement_prefix:sym<do>($/) {
-        my $past := $<blorst>.ast;
-        $past.blocktype('immediate');
-        make $past;
+        make PAST::Op.new( :pasttype('call'), $<blorst>.ast );
     }
 
     method statement_prefix:sym<gather>($/) {

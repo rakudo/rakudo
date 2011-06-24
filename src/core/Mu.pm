@@ -55,6 +55,32 @@ my class Mu {
     multi method DUMP(Mu:U:) { self.perl }
     method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
+    # XXX TODO: Handle positional case.
+    method dispatch:<var>($var, *@pos, *%named) {
+        $var(self, |@pos, |%named)
+    }
+    
+    method dispatch:<::>($name, *@pos, *%named) {
+        die "multi-part method name lookups not yet implemented"
+    }
+    
+    method dispatch:<.^>($name, *@pos, *%named) {
+        self.HOW."$name"(self, |@pos, |%named)
+    }
+    
+    method dispatch:<.?>($name, *@pos, *%named) {
+        pir::can__IPS(self, $name) ??
+            self."$name"(|@pos, |%named) !!
+            Nil
+    }
+    
+    method dispatch:<.+>($name, *@pos, *%named) {
+        die ".+ not yet implemented"
+    }
+    
+    method dispatch:<.*>($name, *@pos, *%named) {
+        die ".* not yet implemented"
+    }
 }
 
 

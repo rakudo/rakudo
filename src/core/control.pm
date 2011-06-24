@@ -51,5 +51,10 @@ my &redo := -> \$parcel = Nil {
           pir::const::CONTROL_LOOP_REDO) 
 };
 
+my &succeed := -> \$parcel = Nil { 
+    THROW(pir::perl6_decontainerize__PP($parcel), 
+          pir::const::CONTROL_BREAK) 
+};
+
 sub die(*@msg) { pir::die(@msg.join('')) }
 sub fail(*@msg) { pir::die(@msg.join('')) }

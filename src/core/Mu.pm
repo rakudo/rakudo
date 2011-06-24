@@ -58,6 +58,12 @@ my class Mu {
 }
 
 
+proto sub infix:<~~>(|$) { * }
+multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
+    ? $matcher.ACCEPTS($topic);
+}
+
+
 sub DUMP(|$) {
     my Mu $args := pir::perl6_current_args_rpa__P();
     my Mu $topic  := nqp::shift($args);

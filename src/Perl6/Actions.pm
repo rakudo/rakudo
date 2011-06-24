@@ -2328,12 +2328,6 @@ class Perl6::Actions is HLL::Actions {
             
             # Now go by scope.
             if $target.scope eq 'attribute_6model' {
-                # Ensure we're got going to try and bind to a native attribute;
-                # that's not allowed.
-                if $target.type.HOW.WHAT =:= %*HOW<native> {
-                    $/.CURSOR.panic("Cannot bind to a native attribute; use assignment instead");
-                }
-                
                 # Source needs type check.
                 my $meta_attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $target.name);
                 $source := PAST::Op.new(
@@ -2359,6 +2353,9 @@ class Perl6::Actions is HLL::Actions {
             make PAST::Op.new( :pasttype('bind_6model'), $target, $source );
         }
         # XXX Several more cases to do...
+        elsif $target<boxable_native> {
+            $/.CURSOR.panic("Cannot bind to a natively typed variable; use assignment instead");
+        }
         else {
             $/.CURSOR.panic("Cannot use bind operator with this LHS");
         }

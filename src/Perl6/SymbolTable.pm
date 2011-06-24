@@ -35,6 +35,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Array of stubs to check and the end of compilation.
     has @!stub_check;
     
+    # Cached constants that we've built.
+    has %!const_cache;
+    
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         my $pad := PAST::Block.new( PAST::Stmts.new(), :node($/) );
@@ -643,6 +646,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Adds a constant value to the constants table. Returns PAST to do
     # the lookup of the constant.
     method add_constant($type, $primitive, $value) {
+        # If we already built this, find it in the cache and
+        # just return that.
+        my $cache_key := "$type,$primitive,$value";
+        if pir::exists(%!const_cache, $cache_key) {
+            return %!const_cache{$cache_key};
+        }
+        
         # Find type object for the box typed we'll create.
         # On deserialization, we'll need to look it up too.
         my $type_obj := self.find_symbol([$type]);
@@ -676,10 +686,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Build PAST for getting the boxed constant from the constants
         # table, but also annotate it with the constant itself in case
-        # we need it.
+        # we need it. Add to cache.
         my $past := self.get_slot_past_for_object($constant);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $constant;
+        %!const_cache{$cache_key} := $past;
         return $past;
     }
     

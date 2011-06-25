@@ -22,7 +22,86 @@ my class Str {
         my $idx = self.chars - 1;
         self.substr($idx) eq "\n" ?? self.substr(0, $idx) !! self;
     }
+
+
+    # chars used to handle ranges for pred/succ
+    my $RANGECHAR = 
+        "01234567890"                                # arabic digits
+        ~ "ABCDEFGHIJKLMNOPQRSTUVWXYZA"              # latin uppercase
+        ~ "abcdefghijklmnopqrstuvwxyza"              # latin lowercase
+        ~ "\x[2160,2161,2162,2163,2164,2165,2166,2167,2168,2169,216a,216b,2160]" # clock roman uc
+        ~ "\x[2170,2171,2172,2173,2174,2175,2176,2177,2178,2179,217a,217b,2170]" # clock roman lc
+        ~ "\x[2680,2681,2682,2683,2684,2685,2680]";  # die faces
+
+    # calculate the beginning and ending positions of <!after '.'><rangechar+>
+    my sub RANGEPOS($str) {
+        my $pos = $str.chars;
+        while $pos > 0 {
+            $pos--;
+            my $ch = $str.substr($pos, 1);
+            if $RANGECHAR.index($ch).defined {
+                my $end = $pos;
+                while $pos > 0 {
+                    $pos--;
+                    $ch = $str.substr($pos, 1);
+                    last if $ch eq '.';
+                    return ($pos+1, $end) unless $RANGECHAR.index($ch).defined;
+                }
+                return ($pos, $end) unless $ch eq '.';
+            }
+        }
+        return (0, -1);
+    }
+
+    method pred() {
+        my $str = self;
+        my $r0; my $r1;  ($r0, $r1) = RANGEPOS($str);
+        while $r1 >= $r0 {
+            my $ch0  = $str.substr($r1, 1);
+            my $ipos = $RANGECHAR.index($ch0);
+            $ipos = $RANGECHAR.index($ch0, $ipos+1) // $ipos;
+            my $ch1 = $RANGECHAR.substr($ipos-1, 1);
+            $str = nqp::p6box_s(
+                       pir::replace__Ssiis(
+                           nqp::unbox_s($str), 
+                           $r1, 1, 
+                           nqp::unbox_s($ch1)));
+            # return if no carry
+            return $str if $ch0 gt $ch1;
+            # carry to previous position
+            $r1--;
+        }
+        # cannot carry beyond first rangechar position
+        fail('Decrement out of range');
+    }
+
+    method succ() {
+        my $str = self;
+        my $r0; my $r1;  ($r0, $r1) = RANGEPOS($str);
+        while $r1 >= $r0 {
+            my $ch0  = $str.substr($r1, 1);
+            my $ipos = $RANGECHAR.index($ch0);
+            my $ch1  = $RANGECHAR.substr($ipos+1, 1);
+            $str = nqp::p6box_s(
+                       pir::replace__Ssiis(
+                           nqp::unbox_s($str), 
+                           $r1, 1, 
+                           nqp::unbox_s($ch1)));
+            return $str if $ch1 gt $ch0;
+            # carry to previous position
+            $r1--;
+            # extend string if carried past first rangechar position
+            $str = nqp::p6box_s(
+                       pir::replace__Ssiis(
+                           nqp::unbox_s($str),
+                           $r0, 0,
+                       $ch1 eq '0' ?? '1' !! nqp::unbox_s($ch1)))  # XXX other digits?
+                if $r1 < $r0;
+        }
+        $str;
+    }
 }
+
 
 multi infix:<cmp>(Str \$a, Str \$b) {
     nqp::p6box_i(pir::cmp__ISS(nqp::unbox_s($a), nqp::unbox_s($b)))

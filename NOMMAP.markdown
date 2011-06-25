@@ -8,6 +8,7 @@ are likely to get focus sooner.
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
 * List does Positional (depends on roles work)
+* my ($a, $b)  declarator doesn't work
 * fail()
 
 Things that aren't blockers but might be worth knowing about:

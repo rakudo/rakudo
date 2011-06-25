@@ -20,13 +20,7 @@ sub SEQUENCE($left, $right, :$exclude_end) {
         my $value;
         while 1 {
             $tail.munch($tail.elems - $count);
-            my Mu $args := $tail.Parcel.RPA;
-            $value := Q:PIR {
-                $P0 = find_lex '$code'
-                $P0 = perl6_decontainerize $P0     # TODO: Why?
-                $P1 = find_lex '$args'
-                %r = $P0($P1 :flat)
-            };
+            $value := $code(|$tail);
             last if $value ~~ $endpoint;
             $tail.push($value);
             take $value;

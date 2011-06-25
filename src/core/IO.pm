@@ -55,8 +55,9 @@ class IO {
         $x.chomp;
     }
 
-    method lines() {
-        gather while (my $line = self.get).defined {
+    method lines($limit = $Inf) {
+        my $count = 0;
+        gather while (my $line = self.get).defined && ++$count <= $limit {
             take $line;
         }
     }

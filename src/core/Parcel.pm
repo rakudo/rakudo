@@ -14,10 +14,10 @@ my class Parcel {
     multi method postcircumfix:<[ ]>(Parcel:D: \$x) { self.flat.[$x] }
 
     multi method gist(Parcel:D:) {
-        my @gist;
-        my Mu $rpa := pir::clone__PP($!storage);
-        @gist.push( nqp::shift($rpa).gist ) while $rpa;
-        @gist;
+        my Mu $gist := nqp::list();
+        my Mu $iter := nqp::iterator($!storage);
+        nqp::push($gist, nqp::unbox_s(nqp::shift($iter).gist)) while $iter;
+        nqp::p6box_s(nqp::join(' ', $gist))
     }
 
     multi method perl(Parcel:D:) {

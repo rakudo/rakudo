@@ -6,7 +6,9 @@ sub print(*@list) {
 }
 
 sub say(|$) {
-    print pir__perl6_box_rpa__PP(pir::perl6_current_args_rpa__P()).gist, "\n"
+    my $args := pir::perl6_current_args_rpa__P();
+    print nqp::shift($args).gist while $args;
+    print "\n";
 }
 
 sub gist(|$) {

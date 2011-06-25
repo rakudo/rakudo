@@ -1023,7 +1023,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Takes a name and compiles it to a lookup for the symbol.
-    method symbol_lookup(@name, $/, :$package_only = 0) {
+    method symbol_lookup(@name, $/, :$package_only = 0, :$lvalue = 0) {
         # Catch empty names and die helpfully.
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
         my $orig_name := pir::join('::', @name);
@@ -1046,10 +1046,14 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
         }
         
-        # The final lookup will always be just a keyed access to a
-        # symbol table.
+        # The final lookup will always be just a keyed index (cheap)
+        # for non-lvalue case, or at_key call on a Stash.
         my $final_name := @name.pop();
-        my $lookup := PAST::Var.new( :scope('keyed'), ~$final_name);
+        my $lookup := $lvalue ??
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('at_key'),
+                self.add_constant('Str', 'str', $final_name)) !!
+            PAST::Var.new( :scope('keyed'), ~$final_name);
         
         # If there's no explicit qualification, then look it up in the
         # current package, and fall back to looking in GLOBAL.
@@ -1058,7 +1062,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 :pirop('get_who PP'),
                 PAST::Var.new( :name('$?PACKAGE'), :scope('lexical_6model') )
             ));
-            $lookup.viviself(PAST::Var.new(
+            $lookup.isa(PAST::Var) && $lookup.viviself(PAST::Var.new(
                 :scope('keyed'),
                 :viviself(self.lookup_failure($orig_name)),
                 PAST::Op.new(
@@ -1088,7 +1092,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         
         # Failure object if we can't find the name.
-        unless $lookup.viviself {
+        if $lookup.isa(PAST::Var) && !$lookup.viviself {
             $lookup.viviself(self.lookup_failure($orig_name));
         }
         

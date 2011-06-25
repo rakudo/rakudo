@@ -828,7 +828,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         elsif +@name > 1 {
-            $past := $*ST.symbol_lookup(@name, $/);
+            $past := $*ST.symbol_lookup(@name, $/, :lvalue(1));
         }
         elsif (my $attr_alias := $*ST.is_attr_alias($past.name)) {
             $past.name($attr_alias);

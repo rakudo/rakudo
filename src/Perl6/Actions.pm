@@ -1038,9 +1038,11 @@ class Perl6::Actions is HLL::Actions {
             }
             
             # Set scope and type on container.
-            $past.scope('lexical_6model');
-            $past.type($descriptor.of);
-            $past := box_native_if_needed($past, $descriptor.of);
+            if $past.isa(PAST::Var) {
+                $past.scope('lexical_6model');
+                $past.type($descriptor.of);
+                $past := box_native_if_needed($past, $descriptor.of);
+            }
         }
         else {
             $/.CURSOR.panic("$*SCOPE scoped variables not yet implemented");

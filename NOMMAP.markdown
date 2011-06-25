@@ -7,7 +7,6 @@ are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
-* List does Positional (depends on roles work)
 * fail()
 
 Things that aren't blockers but might be worth knowing about:
@@ -45,7 +44,6 @@ Get ::= correcter, and a bit more stuff on := also.
 
 ## Finish up parametric roles
 Many things are working, some are not...
-* Fix pre-comp issues
 * Composition of submethods
 * Generically typed variables (also for the ::T case in rules)
 * Mentions of role arguments in the role body in a non-declarative context

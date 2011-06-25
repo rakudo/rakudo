@@ -1138,6 +1138,11 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous routine');
         }
         
+        # Apply traits.
+        for $<trait> {
+            if $_.ast { ($_.ast)($code) }
+        }
+        
         my $closure := block_closure(reference_to_code_object($code, $past));
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );
         make $closure;
@@ -1201,6 +1206,11 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
+        }
+        
+        # Apply traits.
+        for $<trait> {
+            if $_.ast { ($_.ast)($code) }
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));

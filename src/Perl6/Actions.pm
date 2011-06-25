@@ -1966,9 +1966,14 @@ class Perl6::Actions is HLL::Actions {
             if $<arglist> {
                 $/.CURSOR.panic("Parametric roles not yet implemented");
             }
-            $past := $*ST.get_object_sc_ref_past($sym);
-            $past<has_compile_time_value> := 1;
-            $past<compile_time_value> := $sym;
+            if ~$<longname> ne 'GLOBAL' {
+                $past := $*ST.get_object_sc_ref_past($sym);
+                $past<has_compile_time_value> := 1;
+                $past<compile_time_value> := $sym;
+            }
+            else {
+                $past := $*ST.symbol_lookup(@name, $/);
+            }
         }
         
         $past.node($/);

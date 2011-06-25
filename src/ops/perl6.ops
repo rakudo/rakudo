@@ -819,6 +819,27 @@ inline op perl6_shiftpush(inout PMC, in PMC, in INT) :base_core {
 
 /*
 
+=item capture_all_outers(in PMC)
+
+Takes all the specified contexts and sets their outer pointers
+to be this one.
+
+=cut
+
+*/
+inline op capture_all_outers(in PMC) :base_core {
+    PMC    *cur_ctx = CURRENT_CONTEXT(interp);
+    INTVAL  elems   = VTABLE_elements(interp, $1);
+    INTVAL  i;
+    for (i = 0; i < elems; i++) {
+        PMC *inner = VTABLE_get_pmc_keyed_int(interp, $1, i);
+        Parrot_pcc_set_outer_ctx_func(interp, inner, cur_ctx);
+    }
+}
+
+
+/*
+
 =item encodelocaltime(out INT, in PMC)
 
 The inverse of C<decodelocaltime>.

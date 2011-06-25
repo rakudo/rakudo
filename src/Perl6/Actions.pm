@@ -902,6 +902,10 @@ class Perl6::Actions is HLL::Actions {
             add_signature_binding_code($block, $sig);
             $block.blocktype('declaration');
 
+            # Need to ensure we get lexical outers fixed up
+            # properly.
+            $block.push($*ST.create_lexical_capture_fixup());
+            
             # As its last act, it should grab the current lexpad so that
             # we have the type environment.
             $block.push(PAST::Op.new(

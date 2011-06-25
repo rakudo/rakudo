@@ -741,8 +741,8 @@ inline op perl6_iter_from_rpa(out PMC, in PMC, in PMC) :base_core {
 
 =item perl6_list_from_rpa(out PMC, in PMC, in PMC, in PMC)
 
-Creates a lazy Perl 6 List object of type $2 from the RPA
-in $3 and with flattening $4.
+Creates a lazy Perl 6 List object of type $3 from the RPA
+in $2 and with flattening $4.
 
 =cut
 

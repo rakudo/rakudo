@@ -2,11 +2,11 @@ my class Parcel {
     has $!storage;             # RPA of Parcel's elements
 
     method flat() {
-        pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), 1.Bool)
+        nqp::p6list(pir::clone__PP($!storage), List, 1.Bool)
     }
 
     method list() {
-        pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!storage), Mu)
+        nqp::p6list(pir::clone__PP($!storage), List, Mu)
     }
 
     method at_pos(Parcel:D: \$x) { self.flat.at_pos($x); }

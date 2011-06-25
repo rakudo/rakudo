@@ -33,7 +33,7 @@ my class Signature {
     }
               
     method params() {
-        pir::perl6_list_from_rpa__PPPP(List, pir::clone__PP($!params), Mu);
+        nqp::p6list(pir::clone__PP($!params), List, Mu);
     }
     
     # XXX TODO: Parameter separators.

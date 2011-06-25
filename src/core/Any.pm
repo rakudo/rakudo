@@ -7,9 +7,9 @@ my class Any {
     # List-like methods for Any.
     ########
 
-    method eager() { nqp::p6list(List, nqp::list(self), 1.Bool).eager }
-    method flat() { nqp::p6list(List, nqp::list(self), 1.Bool) }
-    method list() { nqp::p6list(List, nqp::list(self), Mu) }
+    method eager() { nqp::p6list(nqp::list(self), List, 1.Bool).eager }
+    method flat() { nqp::p6list(nqp::list(self), List, 1.Bool) }
+    method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method elems() { self.list.elems }
     method infinite() { Mu }
 

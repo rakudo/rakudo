@@ -13,7 +13,7 @@ class List {
 
     method flat() { self.flattens 
                     ?? self 
-                    !! nqp::p6list(List, nqp::list(self), 1.Bool)
+                    !! nqp::p6list(nqp::list(self), List, 1.Bool)
     }
     method list() { self }
     method flattens() { $!flattens }
@@ -135,11 +135,11 @@ sub eager(|$) {
 }
 
 sub flat(|$) {
-    pir::perl6_list_from_rpa__PPPP(List, pir::perl6_current_args_rpa__P(), 1.Bool)
+    nqp::p6list(pir::perl6_current_args_rpa__P(), List, 1.Bool)
 }
 
 sub list(|$) {
-    pir::perl6_list_from_rpa__PPPP(List, pir::perl6_current_args_rpa__P(), Mu)
+    nqp::p6list(pir::perl6_current_args_rpa__P(), List, Mu)
 }
 
 sub infix:<xx>(Mu \$x, $n is copy) {

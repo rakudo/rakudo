@@ -22,7 +22,7 @@ class Range is Iterable {
         self;
     }
 
-    method flat()     { nqp::p6list(List, nqp::list(self), 1.Bool) }
+    method flat()     { nqp::p6list(nqp::list(self), List, 1.Bool) }
     method infinite() { $.max == $Inf }
     method iterator() { self }
     method list()     { self.flat }

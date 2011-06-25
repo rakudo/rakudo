@@ -78,7 +78,7 @@ Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list) {
 /* Creates a List from type and a RPA, initializing the iterator */
 /* This function gets shared with perl6.ops for the perl6_list_from_rpa op. */
 PMC *
-Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flattens) {
+Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *rpa, PMC *type, PMC *flattens) {
     PMC *list = REPR(type)->instance_of(interp, type);
     PMC *List = Rakudo_types_list_get();
     if (!PMC_IS_NULL(rpa)) 
@@ -92,7 +92,7 @@ Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flattens) 
 /* Creates a Perl 6 Array. */
 static PMC *
 Rakudo_binding_create_positional(PARROT_INTERP, PMC *rpa) {
-    return Rakudo_binding_list_from_rpa(interp, Rakudo_types_array_get(), rpa,
+    return Rakudo_binding_list_from_rpa(interp, rpa, Rakudo_types_array_get(),
                Rakudo_types_bool_true_get());
 }
 
@@ -100,7 +100,7 @@ Rakudo_binding_create_positional(PARROT_INTERP, PMC *rpa) {
 /* Creates a Perl 6 LoL. */
 static PMC *
 Rakudo_binding_create_lol(PARROT_INTERP, PMC *rpa) {
-    return Rakudo_binding_list_from_rpa(interp, Rakudo_types_lol_get(), rpa,
+    return Rakudo_binding_list_from_rpa(interp, rpa, Rakudo_types_lol_get(),
                Rakudo_types_bool_false_get());
 }
 

@@ -77,8 +77,8 @@ my class ListIter {
 # we leave these here for documentation purposes.
 # sub pir::perl6_list_from_rpa__PPPP(|$) {
 #     my $args     := pir::perl6_current_args_rpa__P();
-#     my $type     := nqp::shift($args);
 #     my Mu $rpa   := nqp::shift($args);
+#     my $type     := nqp::shift($args);
 #     my $flattens := nqp::shift($args);
 # 
 #     my $list := pir::repr_instance_of__PP($type);

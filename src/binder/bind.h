@@ -78,7 +78,7 @@ void Rakudo_binder_set_junction_type(PMC *type);
 PMC * Rakudo_binder_get_junction_type(void);
 /* for perl6.ops */
 PMC * Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list);
-PMC * Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *type, PMC *rpa, PMC *flat);
+PMC * Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *rpa, PMC *type, PMC *flat);
 
 /* Things Rakudo_binding_bind_llsig may return to indicate a problem. */
 #define BIND_RESULT_OK       0

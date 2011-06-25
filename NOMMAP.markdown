@@ -21,9 +21,6 @@ Things that aren't blockers but might be worth knowing about:
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
 
-## our-scoped variables
-Still to be implemented
-
 ## Object construction
 new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
 closure.

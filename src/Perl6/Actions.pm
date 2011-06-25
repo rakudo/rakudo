@@ -1044,6 +1044,15 @@ class Perl6::Actions is HLL::Actions {
                 $past := box_native_if_needed($past, $descriptor.of);
             }
         }
+        elsif $*SCOPE eq 'our' {
+            if $*TYPENAME {
+                $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
+            }
+            $BLOCK[0].push(PAST::Var.new(
+                :name($name), :scope('lexical'), :isdecl(1),
+                :viviself($*ST.symbol_lookup([$name], $/, :package_only(1), :lvalue(1)))));
+            $BLOCK.symbol($name, :scope('lexical'));
+        }
         else {
             $/.CURSOR.panic("$*SCOPE scoped variables not yet implemented");
         }

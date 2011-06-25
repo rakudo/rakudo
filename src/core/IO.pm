@@ -71,7 +71,8 @@ class IO {
     method say(|$) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
-        self.print(pir__perl6_box_rpa__PP($args).gist, "\n");
+        self.print: nqp::shift($args).gist while $args;
+        self.print: "\n";
     }
 }
 

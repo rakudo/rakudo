@@ -961,6 +961,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Make sure it's not an empty name.
         unless +@name { pir::die("Cannot look up empty name"); }
         
+        # GLOBAL is current view of global.
+        if +@name == 1 && @name[0] eq 'GLOBAL' {
+            return $*GLOBALish;
+        }
+        
         # If it's a single-part name, look through the lexical
         # scopes.
         if +@name == 1 {
@@ -1022,6 +1027,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Catch empty names and die helpfully.
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
         my $orig_name := pir::join('::', @name);
+        
+        # Handle special names.
+        if +@name == 1 && @name[0] eq 'GLOBAL' {
+            return PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
+        }
         
         # If it's a single item, then go hunting for it through the
         # block stack.

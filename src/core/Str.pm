@@ -55,7 +55,7 @@ my class Str {
 
     method pred() {
         my $str = self;
-        my $r0; my $r1;  ($r0, $r1) = RANGEPOS($str);
+        my ($r0, $r1) = RANGEPOS($str);
         while $r1 >= $r0 {
             my $ch0  = $str.substr($r1, 1);
             my $ipos = $RANGECHAR.index($ch0);
@@ -77,7 +77,7 @@ my class Str {
 
     method succ() {
         my $str = self;
-        my $r0; my $r1;  ($r0, $r1) = RANGEPOS($str);
+        my ($r0, $r1) = RANGEPOS($str);
         while $r1 >= $r0 {
             my $ch0  = $str.substr($r1, 1);
             my $ipos = $RANGECHAR.index($ch0);

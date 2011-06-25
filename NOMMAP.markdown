@@ -8,6 +8,7 @@ are likely to get focus sooner.
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
 * List does Positional (depends on roles work)
+* fail()
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
@@ -29,6 +30,9 @@ closure.
 
 ## Magicals
 $_, $/, $!, @_ and %_ handling.
+
+## when statements
+when needs to properly find use correct outer scope
 
 ## Flesh out signatures and parameters
 While basic binding works again now, there's plenty of stuff to "put back".

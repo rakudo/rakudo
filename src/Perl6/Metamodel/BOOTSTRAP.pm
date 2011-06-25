@@ -532,6 +532,19 @@ Perl6::Metamodel::ClassHOW.add_stash(Scalar);
 Perl6::Metamodel::ClassHOW.add_stash(Bool);
 Perl6::Metamodel::ClassHOW.add_stash(Stash);
 
+# If we don't already have a PROCESS, set it up.
+my $PROCESS;
+my $hll_ns := pir::get_root_global__PS('perl6');
+if pir::exists($hll_ns, 'PROCESS') {
+    $PROCESS := $hll_ns['PROCESS'];
+}
+else {
+    my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
+    PROCESS.HOW.compose(PROCESS);
+    Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
+    $hll_ns['PROCESS'] := $PROCESS := PROCESS;
+}
+
 # Bool::False and Bool::True.
 # XXX Really bad because they're not types. Yup, need EnumHOW...
 my $false := pir::repr_instance_of__PP(Bool);
@@ -572,6 +585,7 @@ my module EXPORT {
         $?PACKAGE.WHO<Hash>      := Hash;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
+        $?PACKAGE.WHO<PROCESS>   := $PROCESS;
         $?PACKAGE.WHO<Bool>      := Bool;
         $?PACKAGE.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
     }

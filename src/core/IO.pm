@@ -83,3 +83,6 @@ multi sub open($filename, :$r, :$w, :$a, :$bin, :$chomp = 1.Bool) {
 
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
+$PROCESS::ERR = IO.new;
+nqp::bindattr(pir::perl6_decontainerize__PP($PROCESS::ERR),
+        IO, '$!PIO', pir::getstderr__P());

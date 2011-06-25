@@ -14,3 +14,6 @@ of the IO class should be do-able.
 
 ## Built-ins
 Str.chop
+
+## Nil assignment
+my Int $b = 3;  $b = Nil;   

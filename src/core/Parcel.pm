@@ -37,6 +37,45 @@ my class Parcel {
 
     method RPA() { $!storage }
 
+    method STORE(|$) {
+        # get the list of rvalues to store and lhs containers
+        my Mu $args := pir::perl6_current_args_rpa__P();
+        nqp::shift($args);
+        my $rhs := nqp::p6list($args, List, 1.Bool);   # XXX this might need to be Seq
+
+        # first pass -- scan lhs containers and pick out
+        # scalar versus list assignment.  This also reifies
+        # the rhs values 
+        my Mu $lhs := nqp::clone($!storage);
+        my Mu $tv := nqp::list();
+        while ($lhs) {
+            my Mu $x := $lhs.shift;
+            if nqp::iscont($x) {
+                # container: scalar assignment
+                nqp::push($tv, $x);
+                nqp::push($tv, $rhs ?? pir::perl6_decontainerize__PP($rhs.shift) !! Nil);
+            }
+            elsif nqp::istype($x, Whatever) {
+                # Whatever: skip assigning value
+                $rhs.shift;
+            }
+            elsif nqp::istype($x, Parcel) {
+                # Parcel: splice into current lhs
+                nqp::splice($lhs, nqp::getattr($x, Parcel, '$!storage'), 0, 0)
+            }
+            else {
+                # store entire rhs
+                nqp::push($tv, $x);
+                nqp::push($tv, $rhs);
+                $rhs := ().list;
+            }
+        }
+
+        # second pass, perform the assignments
+        while ($tv) { my $x := nqp::shift($tv); $x = nqp::shift($tv); }
+        self
+    }
+
     multi method DUMP(Parcel:D:) {
         self.DUMP-ID() ~ '(:storage(' ~ DUMP($!storage) ~ '))'
     }

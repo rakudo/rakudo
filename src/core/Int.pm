@@ -26,23 +26,23 @@ my class Int {
         nqp::p6box_s(pir::chr(nqp::unbox_i(self)));
     }
 
-    multi method succ(Int:D:) { self + 1 }
+    method succ(Int:D:) { self + 1 }
 
-    multi method pred(Int:D:) { self - 1 }
+    method pred(Int:D:) { self - 1 }
 }
 
-multi prefix:<++>(Int \$a is rw) {   # XXX
+multi prefix:<++>(Int:D \$a is rw) {   # XXX
     $a = nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), 1))
 }
-multi prefix:<-->(Int \$a is rw) {   # XXX
+multi prefix:<-->(Int:D \$a is rw) {   # XXX
     $a = nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), 1))
 }
-multi postfix:<++>(Int \$a is rw) {  # XXX
+multi postfix:<++>(Int:D \$a is rw) {  # XXX
     my $b = $a;
     $a = nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), 1));
     $b
 }
-multi postfix:<-->(Int \$a is rw) {  # XXX
+multi postfix:<-->(Int:D \$a is rw) {  # XXX
     my $b = $a;
     $a = nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), 1));
     $b

@@ -17,11 +17,9 @@ my class Num {
         nqp::p6box_s(nqp::unbox_n(self));
     }
 
-    multi method succ(Num:D:) { self + 1e0 }
-    multi method succ(Num:U:) {        1e0 }
+    method succ(Num:D:) { self + 1e0 }
 
-    multi method pred(Num:D:) { self - 1e0 }
-    multi method pred(Num:U:) {       -1e0 }
+    method pred(Num:D:) { self - 1e0 }
 
     method isNaN() {
         self != self;
@@ -105,21 +103,35 @@ my class Num {
     }
 }
 
-multi prefix:<++>(Num \$a is rw) {   # XXX
+multi prefix:<++>(Num:D \$a is rw) {   # XXX
     $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1))
 }
-multi prefix:<-->(Num \$a is rw) {   # XXX
+multi prefix:<++>(Num:U \$a is rw) {   # XXX
+    $a = 1e0;
+}
+multi prefix:<-->(Num:D \$a is rw) {   # XXX
     $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1))
 }
-multi postfix:<++>(Num \$a is rw) {  # XXX
+multi prefix:<-->(Num:U \$a is rw) {   # XXX
+    $a = -1e0;
+}
+multi postfix:<++>(Num:D \$a is rw) {  # XXX
     my $b = $a;
     $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1));
     $b
 }
-multi postfix:<-->(Num \$a is rw) {  # XXX
+multi postfix:<++>(Num:U \$a is rw) {   # XXX
+    $a = 1e0;
+    0
+}
+multi postfix:<-->(Num:D \$a is rw) {  # XXX
     my $b = $a;
     $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1));
     $b
+}
+multi postfix:<-->(Num:U \$a is rw) {   # XXX
+    $a = -1e0;
+    0
 }
 
 multi prefix:<->(Num \$a) {

@@ -3,12 +3,6 @@ class Parcel { ... }
 
 my class Any {
 
-    proto method succ(|$) {*}
-    multi method succ(Any:U:) {  1 }
-
-    proto method pred(|$) {*}
-    multi method pred(Any:U:) { -1 }
-
     ########
     # List-like methods for Any.
     ########
@@ -60,12 +54,17 @@ multi sub infix:<cmp>(\$a, \$b) { $a.Stringy cmp $b.Stringy }
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$) { * }
-multi prefix:<++>(\$a is rw) { $a = $a.succ }
+multi prefix:<++>(Mu:D \$a is rw) { $a = $a.succ }
+multi prefix:<++>(Mu:U \$a is rw) { $a = 1 }
 proto prefix:<-->(|$) { * }
-multi prefix:<-->(\$a is rw) { $a = $a.pred }
+multi prefix:<-->(Mu:D \$a is rw) { $a = $a.pred }
+multi prefix:<-->(Mu:U \$a is rw) { $a = -1 }
+
 
 proto postfix:<++>(|$) { * }
-multi postfix:<++>(\$a is rw) { my $b = $a; $a = $a.succ; $b }
+multi postfix:<++>(Mu:D \$a is rw) { my $b = $a; $a = $a.succ; $b }
+multi postfix:<++>(Mu:U \$a is rw) { $a = 1; 0 }
 proto postfix:<-->(|$) { * }
-multi postfix:<-->(\$a is rw) { my $b = $a; $a = $a.pred; $b }
+multi postfix:<-->(Mu:D \$a is rw) { my $b = $a; $a = $a.pred; $b }
+multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
 

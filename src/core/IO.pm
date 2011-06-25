@@ -24,7 +24,7 @@ class IO {
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',
              $filename eq '-'
-                ?? pir::getstdin__P()
+                ?? ( $w || $a ?? pir::getstdout__P() !! pir::getstdin__P() )
                 !! pir::open__PSS(nqp::unbox_s($filename), nqp::unbox_s($mode))
         );
         $!chomp = $chomp;
@@ -59,7 +59,16 @@ class IO {
         gather while (my $line = self.get).defined {
             take $line;
         }
+    }
 
+    method print(*@list) {
+        $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
+        1.Bool
+    }
+    method say(|$) {
+        my Mu $args := pir::perl6_current_args_rpa__P();
+        nqp::shift($args);
+        self.print(pir__perl6_box_rpa__PP($args).gist, "\n");
     }
 }
 

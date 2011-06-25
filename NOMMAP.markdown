@@ -11,6 +11,9 @@ Current fails that people are likely to encounter (no particular order):
 * my ($a, $b)  declarator doesn't work
 * fail()
 * dynamic variables - needed for $*IN, $*OUT, $*ERR
+  (I've stubbed in dynamic variable lookup -- now we just need either
+   dynamic variable declarations ("my $*xyz") or package-scoped variables
+   to work somehow.)
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)

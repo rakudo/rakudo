@@ -507,7 +507,7 @@ class Perl6::Actions is HLL::Actions {
                     :name('&infix:<=>'),
                     :node($/),
                     PAST::Op.new(
-                        :name('!find_contextual'),
+                        :name('&DYNAMIC'),
                         :pasttype('call'),
                         :lvalue(0),
                         '$*FATAL',
@@ -778,7 +778,7 @@ class Perl6::Actions is HLL::Actions {
         my @name := Perl6::Grammar::parse_name($name);
         my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $<twigil>[0] eq '*' {
-            $past := PAST::Op.new( $past.name(), :pasttype('call'), :name('!find_contextual'), :lvalue(0) );
+            $past := PAST::Op.new( $*ST.add_constant('Str', 'str', ~$past.name()), :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
         }
         elsif $<twigil>[0] eq '!' {
             # In a declaration, don't produce anything here.

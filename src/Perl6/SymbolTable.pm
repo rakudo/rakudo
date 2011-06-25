@@ -207,11 +207,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Installs a lexical symbol. Takes a PAST::Block object, name and
     # the type of container to install.
     method install_lexical_container($block, $name, $type_name, $descriptor, *@default_value) {
-        # Add to block. Note that it doesn't really have a compile time
-        # value.
-        $block.symbol($name, :scope('lexical_6model'), :descriptor($descriptor));
-        $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name),
-            :isdecl(1), :type($descriptor.of) ));
+        # Add to block, if needed. Note that it doesn't really have
+        # a compile time value.
+        unless $block.symbol($name) {
+            $block.symbol($name, :scope('lexical_6model'), :descriptor($descriptor));
+            $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name),
+                :isdecl(1), :type($descriptor.of) ));
+        }
             
         # If it's a native type, we're done - no container
         # as we inline natives straight into registers.

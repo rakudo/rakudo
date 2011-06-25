@@ -775,12 +775,18 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_variable($/, $name) {
+        make_variable_from_parts($/, $name, $<sigil>.Str, $<twigil>[0], ~$<desigilname>);
+    }
+    
+    sub make_variable_from_parts($/, $name, $sigil, $twigil, $desigilname) {
         my @name := Perl6::Grammar::parse_name($name);
         my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
-        if $<twigil>[0] eq '*' {
-            $past := PAST::Op.new( $*ST.add_constant('Str', 'str', ~$past.name()), :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
+        if $twigil eq '*' {
+            $past := PAST::Op.new(
+                $*ST.add_constant('Str', 'str', ~$past.name()),
+                :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
         }
-        elsif $<twigil>[0] eq '!' {
+        elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
                 # Ensure attribute actaully exists before emitting lookup.
@@ -801,22 +807,22 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
         }
-        elsif $<twigil>[0] eq '.' && $*IN_DECL ne 'variable' {
+        elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>[0].ast !! PAST::Op.new();
             $past.pasttype('callmethod');
-            $past.name(~$<desigilname>);
+            $past.name($desigilname);
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
         }
-        elsif $<twigil>[0] eq '^' || $<twigil>[0] eq ':' {
-            $past := add_placeholder_parameter($/, $<sigil>.Str, $<desigilname>.Str, :named($<twigil>[0] eq ':'));
+        elsif $twigil eq '^' || $twigil eq ':' {
+            $past := add_placeholder_parameter($/, $sigil, $desigilname, :named($twigil eq ':'));
         }
-        elsif ~$/ eq '@_' {
+        elsif $name eq '@_' {
             unless get_nearest_signature().declares_symbol('@_') {
                 $past := add_placeholder_parameter($/, '@', '_', :slurpy_pos(1));
             }
         }
-        elsif ~$/ eq '%_' {
+        elsif $name eq '%_' {
             unless get_nearest_signature().declares_symbol('%_') {
                 $past := add_placeholder_parameter($/, '%', '_', :slurpy_named(1));
             }
@@ -927,20 +933,22 @@ class Perl6::Actions is HLL::Actions {
         elsif $<routine_declarator>  { make $<routine_declarator>.ast  }
         elsif $<regex_declarator>    { make $<regex_declarator>.ast    }
         elsif $<signature> {
-            my $list  := PAST::Op.new( :pasttype('call'), :name('&infix:<,>') );
-            my $decls := $<signature>.ast.get_declarations;
-            for @($decls) {
-                if $_.isa(PAST::Var) {
-                    my $decl := declare_variable($/, $_, $_<sigil>, $_<twigil>, $_<desigilname>, $_<traits>);
-                    unless $decl.isa(PAST::Op) && $decl.pasttype() eq 'null' {
-                        $list.push($decl);
-                    }
+            # Go over the params and declare the variable defined
+            # in them.
+            my $list   := PAST::Op.new( :pasttype('call'), :name('&infix:<,>') );
+            my @params := $<signature>.ast;
+            for @params {
+                if $_<variable_name> {
+                    my $past := PAST::Var.new( :name($_<variable_name>) );
+                    $list.push(declare_variable($/, $past, $_<sigil>,
+                        $_<twigil>, $_<desigilname>, []));
                 }
                 else {
-                    $list.push($_);
+                    $list.push(PAST::Op.new(
+                        :pirop('repr_instance_of PP'),
+                        $*ST.symbol_lookup([sigiltype($_<sigil> || '$')], $/)));
                 }
             }
-            $list<signature_from_declarator> := $<signature>.ast;
             make $list;
         }
         else {
@@ -1572,11 +1580,13 @@ class Perl6::Actions is HLL::Actions {
             # Set name, if there is one.
             if $<name> {
                 %*PARAM_INFO<variable_name> := ~$/;
+                %*PARAM_INFO<desigilname> := ~$<name>[0];
             }
             %*PARAM_INFO<sigil> := ~$<sigil>;
             
             # Handle twigil.
             my $twigil := $<twigil> ?? ~$<twigil>[0] !! '';
+            %*PARAM_INFO<twigil> := $twigil;
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.
                 if $<name> {

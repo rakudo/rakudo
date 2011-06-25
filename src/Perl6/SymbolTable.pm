@@ -1115,7 +1115,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $i := $i - 1;
             my %sym := @!BLOCKS[$i].symbol($name);
             if +%sym {
-                return %sym<scope> eq 'lexical_6model';
+                return %sym<scope> eq 'lexical_6model' ||
+                       %sym<scope> eq 'lexical';
             }
         }
         0;

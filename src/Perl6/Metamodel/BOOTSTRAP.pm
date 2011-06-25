@@ -497,22 +497,21 @@ Bool.HOW.publish_parrot_vtable_mapping(Bool);
     
 # Set up Stash type, using a Parrot hash under the hood for storage.
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
-Stash.HOW.add_parent(Stash, Cool);
-Stash.HOW.add_attribute(Stash, BOOTSTRAPATTR.new(:name<$!symbols>, :type(Mu)));
-Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_pmc_keyed', '$!symbols');
-Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_pmc_keyed_str', '$!symbols');
-Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'set_pmc_keyed', '$!symbols');
-Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'set_pmc_keyed_str', '$!symbols');
-Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'exists_keyed', '$!symbols');
-Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'exists_keyed_str', '$!symbols');
-Stash.HOW.add_parrot_vtable_handler_mapping(Stash, 'get_iter', '$!symbols');
+Stash.HOW.add_parent(Stash, Hash);
+Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_pmc_keyed', '$!storage');
+Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_pmc_keyed_str', '$!storage');
+Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'set_pmc_keyed', '$!storage');
+Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'set_pmc_keyed_str', '$!storage');
+Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'exists_keyed', '$!storage');
+Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'exists_keyed_str', '$!storage');
+Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_iter', '$!storage');
 Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
 
 # Set this Stash type for the various types of package.
-Perl6::Metamodel::PackageHOW.set_stash_type(Stash);
-Perl6::Metamodel::ModuleHOW.set_stash_type(Stash);
-Perl6::Metamodel::NativeHOW.set_stash_type(Stash);
-Perl6::Metamodel::ClassHOW.set_stash_type(Stash);
+Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
 
 # Give everything we've set up so far a Stash.
 Perl6::Metamodel::ClassHOW.add_stash(Mu);

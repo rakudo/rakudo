@@ -80,3 +80,6 @@ proto sub open(|$) { * }
 multi sub open($filename, :$r, :$w, :$a, :$bin, :$chomp = 1.Bool) {
     IO.new.open($filename, :$r, :$w, :$a, :$bin, :$chomp);
 }
+
+$PROCESS::IN  = open('-');
+$PROCESS::OUT = open('-', :w);

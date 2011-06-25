@@ -24,7 +24,7 @@ class IO {
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',
              $filename eq '-'
-                ?? pir::getstdin__P()
+                ?? ( $w || $a ?? pir::getstdout__P() !! pir::getstdin__P() )
                 !! pir::open__PSS(nqp::unbox_s($filename), nqp::unbox_s($mode))
         );
         $!chomp = $chomp;

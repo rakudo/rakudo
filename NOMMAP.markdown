@@ -8,12 +8,10 @@ are likely to get focus sooner.
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
 * List does Positional (depends on roles work)
-* my ($a, $b)  declarator doesn't work
 * fail()
-* dynamic variables - needed for $*IN, $*OUT, $*ERR
+* completer dynamic variables - needed for $*IN, $*OUT, $*ERR
   (I've stubbed in dynamic variable lookup -- now we just need either
-   dynamic variable declarations ("my $*xyz") or package-scoped variables
-   to work somehow.)
+   package-scoped variables to work somehow, and PROCESS fallback.)
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)

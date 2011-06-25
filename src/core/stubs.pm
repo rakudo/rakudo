@@ -7,12 +7,13 @@ my class Junction is Mu { }
 my class Whatever is Cool { }
 
 
-# lookup of dynamic variables
 sub DYNAMIC(\$name) { 
     my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s($name));
     if nqp::isnull($x) {
         my $pkgname = nqp::p6box_s(pir::replace__Ssiis(nqp::unbox_s($name), 1, 1, ''));
-        $x := "PROCESS::\{$pkgname} NYI";   # XXX remove quotes when we can do PROCESS:: lookups
+        if GLOBAL.WHO.exists($pkgname) { $x := GLOBAL.WHO{$pkgname} }
+        elsif PROCESS.WHO.exists($pkgname) { $x := PROCESS.WHO{$pkgname} }
+        else { fail "Dynamic variable $name not found" }
     }
     $x
 }

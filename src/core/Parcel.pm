@@ -1,4 +1,4 @@
-my class Parcel {
+my class Parcel does Positional {
     has $!storage;             # RPA of Parcel's elements
 
     method flat() {

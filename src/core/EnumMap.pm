@@ -1,4 +1,4 @@
-my class EnumMap {
+my class EnumMap does Associative {
     # declared in BOOTSTRAP.pm:
     #   has $!storage;         # Parrot Hash PMC of key->value mappings
 

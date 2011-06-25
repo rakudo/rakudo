@@ -10,6 +10,7 @@ Current fails that people are likely to encounter (no particular order):
 * List does Positional (depends on roles work)
 * my ($a, $b)  declarator doesn't work
 * fail()
+* dynamic variables - needed for $*IN, $*OUT, $*ERR
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)

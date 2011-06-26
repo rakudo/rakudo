@@ -631,19 +631,17 @@ class Perl6::Actions is HLL::Actions {
         my $past := PAST::Op.new( :pasttype('try'), $block );
 
         # On failure, capture the exception object into $!.
-        $past.push(PAST::Op.new(
-            :inline( '    .get_results ($P0)',
-                     '    $P1 = find_lex "Exception"',
-                     '    $P2 = repr_instance_of $P1',
-                     '    setattribute $P2, $P1, "$!ex", $P0',
-                     '    store_lex "$!", $P2' )
-        ));
+        $past.push(
+            PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Var.new(:name<$!>, :scope<lexical_6model>),
+                PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
+                    PAST::Op.new(:inline('    .get_results (%r)')))));
 
-        # Otherwise, put a failure into $!.
-        # $past.push(PAST::Op.new( :pasttype('bind_6model'),
-        #     PAST::Var.new( :name('$!'), :scope('lexical_6model') ),
-        #     PAST::Op.new( :pasttype('call'), :name('!FAIL') )
-        # ));
+        # Otherwise, put Mu into $!.
+        $past.push(
+            PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Var.new( :name<$!>, :scope<lexical_6model> ),
+                PAST::Var.new( :name<Mu>, :scope<lexical_6model> )));
 
         make $past;
     }

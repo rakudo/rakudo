@@ -337,7 +337,8 @@ Code.HOW.add_method(Code, 'instantiate_generic', sub ($self, $type_environment) 
             $sig.instantiate_generic($type_environment))
     });
 Code.HOW.add_method(Code, 'name', sub ($self) {
-        ~pir::getattribute__PPPs($self, Code, '$!do')
+        ~pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Code, '$!do')
     });
 
 # Need to actually run the code block. Also need this available before we finish

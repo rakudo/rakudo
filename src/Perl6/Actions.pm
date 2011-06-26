@@ -627,23 +627,23 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_prefix:sym<try>($/) {
-        my $block := $<blorst>.ast;
-        $block.blocktype('immediate');
+        my $block := PAST::Op.new(:pasttype<call>, block_closure($<blorst>.ast)); # XXX should be immediate
         my $past := PAST::Op.new( :pasttype('try'), $block );
 
         # On failure, capture the exception object into $!.
         $past.push(PAST::Op.new(
-            :inline( '    .get_results (%r)',
-                     '    $P0 = new ["Perl6Exception"]',
-                     '    setattribute $P0, "$!exception", %r',
-                     '    store_lex "$!", $P0' )
+            :inline( '    .get_results ($P0)',
+                     '    $P1 = find_lex "Exception"',
+                     '    $P2 = repr_instance_of $P1',
+                     '    setattribute $P2, $P1, "$!ex", $P0',
+                     '    store_lex "$!", $P2' )
         ));
 
         # Otherwise, put a failure into $!.
-        $past.push(PAST::Op.new( :pasttype('bind_6model'),
-            PAST::Var.new( :name('$!'), :scope('lexical_6model') ),
-            PAST::Op.new( :pasttype('call'), :name('!FAIL') )
-        ));
+        # $past.push(PAST::Op.new( :pasttype('bind_6model'),
+        #     PAST::Var.new( :name('$!'), :scope('lexical_6model') ),
+        #     PAST::Op.new( :pasttype('call'), :name('!FAIL') )
+        # ));
 
         make $past;
     }

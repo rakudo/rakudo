@@ -63,7 +63,7 @@ my class ListIter {
 
     multi method DUMP(ListIter:D:) {
         self.DUMP-ID() ~ '('
-          ~ ('∞ ' if self.infinite) ~
+          ~ ("\x221e " if self.infinite) ~
           ~ ':reified('  ~ DUMP($!reified) ~ '), '
           ~ ':rest('     ~ DUMP($!rest) ~ '), '
           ~ ':list('     ~ $!list.DUMP-ID() ~ ')'

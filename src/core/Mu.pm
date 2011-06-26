@@ -150,7 +150,7 @@ sub DUMP(|$) {
     }
     else { 
         pir::is_container__IP($topic)
-          ?? '▶' ~ $topic.DUMP() 
+          ?? "\x25b6" ~ $topic.DUMP() 
           !! $topic.DUMP()
     }
 };

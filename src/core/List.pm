@@ -122,7 +122,7 @@ class List does Positional {
 
     multi method DUMP(List:D:) {
         self.DUMP-ID() ~ '('
-          ~ ('∞ ' if self.infinite) ~
+          ~ ("\x221e " if self.infinite) ~
           ~ ':items(' ~ DUMP($!items) ~ '), '
           ~ ':nextiter(' ~ DUMP($!nextiter) ~ ')'
           ~ ')'

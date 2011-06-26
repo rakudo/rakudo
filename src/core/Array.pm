@@ -1,5 +1,9 @@
 class Array {
     # Has attributes and parent List declared in BOOTSTRAP.    
+
+    method new(*@values) { 
+        my @a = @values;
+    }
     
     method at_pos($pos) {
         self.exists($pos)

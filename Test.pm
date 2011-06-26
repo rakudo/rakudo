@@ -32,7 +32,8 @@ sub die_on_fail($fail=1) {
 #     $no_plan = 1;
 # }
 
-multi sub plan($number_of_tests) is export {
+proto sub plan(|$) is export { * }
+multi sub plan($number_of_tests) {
     if $number_of_tests ~~ ::Whatever {
         $no_plan = 1;
     }
@@ -52,25 +53,25 @@ multi sub plan($number_of_tests) is export {
     # non portable pir::time__N is used instead.
 }
 
-multi sub pass($desc) is export {
+proto sub pass(|$) is export { * }
+multi sub pass($desc) {
     proclaim(1, $desc);
 }
 
-multi sub ok(Mu $cond, $desc) is export {
+proto sub ok(|$) is export { * }
+multi sub ok(Mu $cond, $desc) {
     proclaim(?$cond, $desc);
 }
+multi sub ok(Mu $cond) { ok(?$cond, ''); }
 
-multi sub ok(Mu $cond) is export { ok(?$cond, ''); }
-
-
-multi sub nok(Mu $cond, $desc) is export {
+proto sub nok(|$) is export { * }
+multi sub nok(Mu $cond, $desc) {
     proclaim(!$cond, $desc);
 }
+multi sub nok(Mu $cond) { nok($cond, ''); }
 
-multi sub nok(Mu $cond) is export { nok($cond, ''); }
-
-
-multi sub is(Mu $got, Mu $expected, $desc) is export {
+proto sub is(|$) is export { * }
+multi sub is(Mu $got, Mu $expected, $desc) {
     $got.defined; # Hack to deal with Failures
     my $test = $got eq $expected;
     proclaim(?$test, $desc);
@@ -80,18 +81,17 @@ multi sub is(Mu $got, Mu $expected, $desc) is export {
     }
     $test;
 }
+multi sub is(Mu $got, Mu $expected) { is($got, $expected, ''); }
 
-multi sub is(Mu $got, Mu $expected) is export { is($got, $expected, ''); }
-
-
-multi sub isnt(Mu $got, Mu $expected, $desc) is export {
+proto sub isnt(|$) is export { * }
+multi sub isnt(Mu $got, Mu $expected, $desc) {
     my $test = !($got eq $expected);
     proclaim($test, $desc);
 }
+multi sub isnt(Mu $got, Mu $expected) { isnt($got, $expected, ''); }
 
-multi sub isnt(Mu $got, Mu $expected) is export { isnt($got, $expected, ''); }
-
-multi sub is_approx(Mu $got, Mu $expected, $desc) is export {
+proto sub is_approx(|$) is export { * }
+multi sub is_approx(Mu $got, Mu $expected, $desc) {
     my $test = ($got - $expected).abs <= 1/100000;
     proclaim(?$test, $desc);
     unless $test {
@@ -100,24 +100,24 @@ multi sub is_approx(Mu $got, Mu $expected, $desc) is export {
     }
     ?$test;
 }
-
-multi sub is_approx(Mu $got, Mu $expected) is export {
+multi sub is_approx(Mu $got, Mu $expected) {
     is_approx($got, $expected, '');
 }
 
-multi sub todo($reason, $count) is export {
+proto sub todo(|$) is export { * }
+multi sub todo($reason, $count) {
     $todo_upto_test_num = $num_of_tests_run + $count;
     $todo_reason = '# TODO ' ~ $reason;
 }
-
-multi sub todo($reason) is export {
+multi sub todo($reason) {
     $todo_upto_test_num = $num_of_tests_run + 1;
     $todo_reason = '# TODO ' ~ $reason;
 }
 
-multi sub skip()                is export { proclaim(1, "# SKIP"); }
-multi sub skip($reason)         is export { proclaim(1, "# SKIP " ~ $reason); }
-multi sub skip($reason, $count) is export {
+proto sub skip(|$) is export { * }
+multi sub skip()                { proclaim(1, "# SKIP"); }
+multi sub skip($reason)         { proclaim(1, "# SKIP " ~ $reason); }
+multi sub skip($reason, $count) {
     die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?" if $count !~~ Numeric;
     my $i = 1;
     while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
@@ -131,20 +131,21 @@ sub diag($message) is export {
     say $message.subst(rx/^^/, '# ', :g);
 }
 
+proto sub flunk(|$) is export { * }
+multi sub flunk($reason) { proclaim(0, "flunk $reason")}
 
-multi sub flunk($reason) is export { proclaim(0, "flunk $reason")}
-
-
-multi sub isa_ok(Mu $var, Mu $type) is export {
+proto sub isa_ok(|$) is export { * }
+multi sub isa_ok(Mu $var, Mu $type) {
     ok($var.isa($type), "The object is-a '$type'")
         or diag('Actual type: ' ~ $var.WHAT);
 }
-multi sub isa_ok(Mu $var, Mu $type, $msg) is export {
+multi sub isa_ok(Mu $var, Mu $type, $msg) {
     ok($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.WHAT);
 }
 
-multi sub dies_ok(Callable $closure, $reason) is export {
+proto sub dies_ok(|$) is export { * }
+multi sub dies_ok(Callable $closure, $reason) {
     my $death = 0;
     my $bad_death = 0;
     try {
@@ -159,21 +160,23 @@ multi sub dies_ok(Callable $closure, $reason) is export {
     }
     proclaim( $death && !$bad_death, $reason );
 }
-multi sub dies_ok(Callable $closure) is export {
+multi sub dies_ok(Callable $closure) {
     dies_ok($closure, '');
 }
 
-multi sub lives_ok(Callable $closure, $reason) is export {
+proto sub lives_ok(|$) is export { * }
+multi sub lives_ok(Callable $closure, $reason){
     try {
         $closure();
     }
     proclaim((not defined $!), $reason);
 }
-multi sub lives_ok(Callable $closure) is export {
+multi sub lives_ok(Callable $closure) {
     lives_ok($closure, '');
 }
 
-multi sub eval_dies_ok(Str $code, $reason) is export {
+proto sub eval_dies_ok(|$) is export { * }
+multi sub eval_dies_ok(Str $code, $reason) {
     my $ee = eval_exception($code);
     if defined $ee {
         my $bad_death = "$ee" ~~ / ^ 'Null PMC access ' /;
@@ -186,20 +189,20 @@ multi sub eval_dies_ok(Str $code, $reason) is export {
         proclaim( 0, $reason );
     }
 }
-multi sub eval_dies_ok(Str $code) is export {
+multi sub eval_dies_ok(Str $code) {
     eval_dies_ok($code, '');
 }
 
-multi sub eval_lives_ok(Str $code, $reason) is export {
+proto sub eval_lives_ok(|$) is export { * }
+multi sub eval_lives_ok(Str $code, $reason) {
     proclaim((not defined eval_exception($code)), $reason);
 }
-multi sub eval_lives_ok(Str $code) is export {
+multi sub eval_lives_ok(Str $code) {
     eval_lives_ok($code, '');
 }
 
-
+proto sub is_deeply(|$) is export { * }
 multi sub is_deeply(Mu $got, Mu $expected, $reason = '')
-                                                is export
 {
     my $test = _is_deeply( $got, $expected );
     proclaim($test, $reason);

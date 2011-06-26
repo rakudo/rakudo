@@ -1098,6 +1098,10 @@ class Perl6::Actions is HLL::Actions {
         add_signature_binding_code($block, $signature);
 
         # Create code object.
+        if $<deflongname> {
+            $block.name(~$<deflongname>[0].ast);
+            $block.nsentry('');
+        }
         my $code := $*ST.create_code_object($block, 'Sub', $signature,
             $*MULTINESS eq 'proto');
 
@@ -1108,14 +1112,10 @@ class Perl6::Actions is HLL::Actions {
 
         my $past;
         if $<deflongname> {
-            # Set name.
-            my $name := '&' ~ ~$<deflongname>[0].ast;
-            $block.name(~$<deflongname>[0].ast);
-            $block.nsentry('');
-
             # If it's a multi, need to associate it with the surrounding
             # proto.
             # XXX Also need to auto-multi things with a proto in scope.
+            my $name := '&' ~ ~$<deflongname>[0].ast;
             if $*MULTINESS eq 'multi' {
                 # Locate the proto - or what we hope will be it.
                 my %proto_sym := $outer.symbol($name);
@@ -1198,6 +1198,10 @@ class Perl6::Actions is HLL::Actions {
         $past.symbol('self', :scope('lexical_6model'));
 
         # Create code object.
+        if $<longname> {
+            $past.name($<longname>.Str);
+            $past.nsentry('');
+        }
         my $type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
         my $code := $*ST.create_code_object($past, $type, $signature,
             $*MULTINESS eq 'proto');

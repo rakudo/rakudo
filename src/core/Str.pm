@@ -24,7 +24,7 @@ my class Str {
     }
 
     method chop() {
-        self.substr(0, self.chars - 1);
+        self.substr(0, self.chars - 1);    # XXX negative length bug
     }
 
 

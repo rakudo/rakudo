@@ -1982,7 +1982,12 @@ class Perl6::Actions is HLL::Actions {
                 @name[+@name - 1] := '&' ~ $final;
             }
             $past := capture_or_parcel($<args>.ast, ~$<longname>);
-            $past.unshift($*ST.symbol_lookup(@name, $/));
+            if +@name == 1 {
+                $past.name(@name[0]);
+            }
+            else {
+                $past.unshift($*ST.symbol_lookup(@name, $/));
+            }
         }
         
         # Otherwise, it's a type name; build a reference to that

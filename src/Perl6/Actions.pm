@@ -3195,11 +3195,11 @@ class Perl6::Actions is HLL::Actions {
         $block.handlers(@handlers);
     }
 
-    sub make_dot_equals($thingy, $call) {
-        $call.unshift($call.name);
-        $call.unshift($thingy);
-        $call.name('!dispatch_.=');
-        $call.pasttype('call');
+    sub make_dot_equals($target, $call) {
+        $call.unshift($*ST.add_constant('Str', 'str', $call.name));
+        $call.unshift($target);
+        $call.name('dispatch:<.=>');
+        $call.pasttype('callmethod');
         $call;
     }
 

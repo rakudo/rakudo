@@ -89,6 +89,10 @@ my class Mu {
         self.HOW."$name"(self, |@pos, |%named)
     }
     
+    method dispatch:<.=>(\$mutate: $name, *@pos, *%named) {
+        $mutate = $mutate."$name"(|@pos, |%named)
+    }
+    
     method dispatch:<.?>($name, *@pos, *%named) {
         pir::can__IPS(self, $name) ??
             self."$name"(|@pos, |%named) !!

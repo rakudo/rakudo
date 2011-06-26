@@ -49,6 +49,11 @@ multi trait_mod:<of>(Mu:U $target, Mu:U $type) {
     $target.HOW.set_of($target, $type);
 }
 
+proto trait_mod:<returns>(|$) { * }
+multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
+    # XXX TODO
+}
+
 proto trait_mod:<as>(|$) { * }
 multi trait_mod:<as>(Parameter:D $param, $type) {
     # XXX TODO

@@ -2787,18 +2787,11 @@ class Perl6::Actions is HLL::Actions {
             %h{$key} := $value;
         }
 
-        my @MODIFIERS := Q:PIR {
-            %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
-        };
-        @MODIFIERS.unshift(%h);
+        @Regex::P6Regex::Actions::MODIFIERS.unshift(%h);
     }
 
     method cleanup_modifiers($/) {
-        my @MODIFIERS := Q:PIR {
-            %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
-        };
-        @MODIFIERS.shift();
-
+        @Regex::P6Regex::Actions::MODIFIERS.shift();
     }
 
     method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
@@ -2829,7 +2822,6 @@ class Perl6::Actions is HLL::Actions {
         make block_closure($past, 'Regex', 0);
     }
     method quote:sym<rx>($/) {
-
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx');
         my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
         make block_closure($past, 'Regex', 0);

@@ -347,7 +347,6 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             self.get_object_sc_ref_past(%param_info<nominal_type>)));
         
         # Calculate and set flags.
-        # XXX Many more to do.
         my $flags := 0;
         if %param_info<optional> {
             $flags := $flags + $SIG_ELEM_IS_OPTIONAL;
@@ -378,6 +377,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         if %param_info<pos_lol> {
             $flags := $flags + $SIG_ELEM_SLURPY_LOL;
+        }
+        if %param_info<bind_attr> {
+            $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR;
+        }
+        if %param_info<bind_accessor> {
+            $flags := $flags + $SIG_ELEM_BIND_PUBLIC_ATTR;
         }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
@@ -422,6 +427,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             pir::setattribute__vPPsP($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
             $set_attrs.push(self.set_attribute($parameter, $par_type, '$!container_descriptor',
                 self.get_object_sc_ref_past(%param_info<container_descriptor>)));
+        }
+        
+        # Set attributive bind package up, if there is one.
+        if pir::exists(%param_info, 'attr_package') {
+            pir::setattribute__vPPsP($parameter, $par_type, '$!attr_package', %param_info<attr_package>);
+            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!attr_package',
+                self.get_object_sc_ref_past(%param_info<attr_package>)));
         }
         
         # Return created parameter.

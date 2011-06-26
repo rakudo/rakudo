@@ -1631,6 +1631,7 @@ class Perl6::Actions is HLL::Actions {
             elsif $twigil eq '!' {
                 # XXX Can compile-time check name when we have attributes. :-)
                 %*PARAM_INFO<bind_attr> := 1;
+                %*PARAM_INFO<attr_package> := $*PACKAGE;
             }
             elsif $twigil eq '.' {
                 %*PARAM_INFO<bind_accessor> := 1;

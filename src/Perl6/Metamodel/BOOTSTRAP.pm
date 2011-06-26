@@ -231,6 +231,7 @@ Signature.HOW.add_method(Signature, 'instantiate_generic', sub ($self, $type_env
 #     has $!sub_signature
 #     has $!default_closure
 #     has $!container_descriptor;
+#     has $!attr_package;
 #     ... # Uncomposed
 # }
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -245,6 +246,7 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_to>, :ty
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu)));
 Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
         # If nonimnal type is generic, so are we.
         my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');

@@ -40,6 +40,7 @@ typedef struct {
     PMC    *sub_llsig;            /* Any nested signature. */
     PMC    *default_closure;      /* The default value closure. */
     PMC    *container_descriptor; /* Descriptor for the container we bind into, if any. */
+    PMC    *attr_package;         /* Package part of an attributive binding. */
 } Rakudo_Parameter;
 
 /* This is how a signature looks on the inside. Actually, this is a C struct

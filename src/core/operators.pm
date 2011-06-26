@@ -7,7 +7,6 @@ sub infix:<=>(Mu \$a, Mu \$b) {
     pir::perl6_container_store__0PP($a, $b)
 }
 
-
 sub SEQUENCE($left, $right, :$exclude_end) {
     my @right := ($right,).list;
     my $endpoint = @right.shift;

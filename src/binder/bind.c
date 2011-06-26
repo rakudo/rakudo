@@ -202,7 +202,8 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
 
     /* If it's private, just need to fetch the attribute. */
     if (param->flags & SIG_ELEM_BIND_PRIVATE_ATTR) {
-        assignee = VTABLE_get_attr_str(interp, self, param->variable_name);
+        assignee = VTABLE_get_attr_keyed(interp, self, param->attr_package,
+            param->variable_name);
     }
 
     /* Otherwise if it's public, do a method call to get the assignee. */
@@ -219,11 +220,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
         Parrot_ext_call(interp, meth, "Pi->P", self, &assignee);
     }
 
-    /* Now look up infix:<=> and do the assignment. */
-    assigner = VTABLE_get_pmc_keyed_str(interp, Parrot_hll_get_ctx_HLL_namespace(interp),
-            Parrot_str_new(interp, "!only_infix:=", 0));
-    Parrot_ext_call(interp, assigner, "PP", assignee, value);
-
+    Rakudo_cont_store(interp, assignee, value, 1, 1);
     return BIND_RESULT_OK;
 }
 

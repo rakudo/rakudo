@@ -409,13 +409,13 @@ S12-methods/how.t
 # S12-methods/indirect_notation.t
 # S12-methods/instance.t
 # S12-methods/lastcall.t
-# S12-methods/method-vs-sub.t
+S12-methods/method-vs-sub.t
 # S12-methods/multi.t
 # S12-methods/parallel-dispatch.t
 # S12-methods/private.t
 # S12-methods/submethods.t
 # S12-methods/syntax.t
-# S12-methods/topic.t
+S12-methods/topic.t
 # S12-methods/typed-attributes.t
 # S12-methods/what.t
 # S12-subset/multi-dispatch.t

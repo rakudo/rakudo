@@ -25,7 +25,7 @@ my class Str {
 
     method chop() {
         nqp::p6box_s(
-            nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), nqp::unbox_i(1)))
+            nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), 1))
         );
     }
 

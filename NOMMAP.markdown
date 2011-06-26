@@ -31,10 +31,9 @@ $_, $/, $!, @_ and %_ handling.
 when needs to properly find use correct outer scope
 
 ## Flesh out signatures and parameters
-While basic binding works again now, there's plenty of stuff to "put back".
-Of note:
+While much binding works again now, there's some stuff to "put back":
+* |$c
 * Sub-signatures
-* sub foo(0) { ... } (literals)
 
 ## Rat and Complex literals
 Depends on working out how to unify parsing of numeric strings.

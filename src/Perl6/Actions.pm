@@ -1700,8 +1700,17 @@ class Perl6::Actions is HLL::Actions {
             if pir::exists(%*PARAM_INFO, 'nominal_type') {
                 $/.CURSOR.panic('Parameter may only have one prefix type constraint');
             }
-            # XXX Bit tricky - need constants refactor first.
-            $/.CURSOR.panic('Value type constraints not yet implemented');
+            my $ast := $<value>.ast;
+            unless $ast<has_compile_time_value> {
+                $/.CURSOR.panic('Cannot use a value type constraints whose value is unknown at compile time');
+            }
+            my $val := $ast<compile_time_value>;
+            %*PARAM_INFO<nominal_type> := $val.WHAT;
+            unless %*PARAM_INFO<post_constraints> {
+                %*PARAM_INFO<post_constraints> := [];
+            }
+            %*PARAM_INFO<post_constraints>.push(make_where_block(
+                $*ST.get_object_sc_ref_past($val)));
         }
         else {
             $/.CURSOR.panic('Cannot do non-typename cases of type_constraint yet');
@@ -2631,16 +2640,20 @@ class Perl6::Actions is HLL::Actions {
 
     method numish($/) {
         if $<integer> {
-            make PAST::Want.new(
-                     $*ST.add_constant('Int', 'int', $<integer>.ast),
-                     'IiNn', $<integer>.ast);
+            my $cons := $*ST.add_constant('Int', 'int', $<integer>.ast);
+            my $past := PAST::Want.new($cons, 'IiNn', $<integer>.ast);
+            $past<has_compile_time_value> := 1;
+            $past<compile_time_value> := $cons<compile_time_value>;
+            make $past;
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
         else {
-            make PAST::Want.new(
-                      $*ST.add_constant('Num', 'num', +(~$/)),
-                      'IiNn', +(~$/));
+            my $cons := $*ST.add_constant('Num', 'num', +(~$/));
+            my $past := PAST::Want.new($cons, 'IiNn', +(~$/));
+            $past<has_compile_time_value> := 1;
+            $past<compile_time_value> := $cons<compile_time_value>;
+            make $past;
         }
     }
 

@@ -35,8 +35,6 @@ my class Parcel does Positional {
         $perl ~ ')';
     }
 
-    method RPA() { $!storage }
-
     method STORE(|$) {
         # get the list of rvalues to store and lhs containers
         my Mu $args := pir::perl6_current_args_rpa__P();

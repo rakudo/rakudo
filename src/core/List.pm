@@ -8,7 +8,6 @@ class List does Positional {
     method Bool()       { self.gimme(1).Bool }
     method Int()        { self.elems }
     method Numeric()    { self.elems }
-    method Parcel()     { self.gimme(*); pir__perl6_box_rpa__PP(nqp::find_method(self, 'RPA')(self)) }
     method Str(List:D:) { self.join(' ') }
 
     method flat() { self.flattens 
@@ -17,6 +16,14 @@ class List does Positional {
     }
     method list() { self }
     method flattens() { $!flattens }
+
+    method Parcel() {
+        pir::defined($!items) or 
+            nqp::bindattr(self, List, '$!items', nqp::list());
+        my Mu $rpa := nqp::clone($!items);
+        nqp::push($rpa, $!nextiter) if $!nextiter.defined;
+        pir__perl6_box_rpa__PP($rpa);
+    }
 
     method at_pos(\$pos) {
         self.exists($pos)
@@ -41,7 +48,7 @@ class List does Positional {
     method gimme($n) {
         # create $!items RPA if it doesn't already exist
         pir::defined($!items) or 
-            pir::setattribute__3PPsP(self, List, '$!items', pir::new__Ps('ResizablePMCArray'));
+            nqp::bindattr(self, List, '$!items', nqp::list());
 
         # loop through iterators until we have at least $n elements
         my $count = nqp::p6box_i(pir::elements($!items));
@@ -50,8 +57,8 @@ class List does Positional {
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
             $!nextiter.reify($eager ?? Whatever !! $n - $count);
-            pir::setattribute__vPPsP(self, List, '$!nextiter', $!nextiter.nextiter);
-            $count = nqp::p6box_i(pir::elements($!items));
+            nqp::bindattr(self, List, '$!nextiter', $!nextiter.nextiter);
+            $count = nqp::p6box_i(nqp::elems($!items));
         }
 
         # return the number of elements we have now
@@ -65,11 +72,10 @@ class List does Positional {
     method iterator() {
         # Return a reified ListIter containing our currently reified elements
         # and any subsequent iterator.
-        pir::setattribute__0PPsP(
-            pir::setattribute__0PPsP(
-                pir::repr_instance_of__PP(ListIter),
-                ListIter, '$!nextiter', $!nextiter),
-            ListIter, '$!reified', pir__perl6_box_rpa__PP(nqp::find_method(self, 'RPA')(self)))
+        my $iter := nqp::create(ListIter);
+        nqp::bindattr($iter, ListIter, '$!nextiter', $!nextiter);
+        nqp::bindattr($iter, ListIter, '$!reified', self.Parcel());
+        $iter;
     }
 
     method munch(\$n) {
@@ -103,7 +109,8 @@ class List does Positional {
     }
 
     method REIFY(Parcel \$parcel) {
-        nqp::splice($!items, nqp::find_method($parcel, 'RPA')($parcel), nqp::elems($!items), 0);
+        nqp::splice($!items, nqp::getattr($parcel, Parcel, '$!storage'),
+                    nqp::elems($!items), 0);
         $parcel
     }
 
@@ -111,14 +118,6 @@ class List does Positional {
         nqp::bindpos($!items, nqp::unbox_i($pos), $v)
     }
 
-    method RPA() {
-        pir::defined($!items) or 
-            pir::setattribute__3PPsP(self, List, '$!items', pir::new__Ps('ResizablePMCArray'));
-        my Mu $rpa := pir::clone__PP($!items);
-        pir::push__vPP($rpa, $!nextiter) if $!nextiter.defined;
-        $rpa
-    }
-    
     method ARGLIST_FLATTENABLE() { self.gimme(*); $!items }
 
     multi method DUMP(List:D:) {

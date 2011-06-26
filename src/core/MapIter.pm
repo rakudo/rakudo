@@ -25,8 +25,8 @@ my class MapIter is Iterator {
             my Mu $rpa := pir::new__Ps('ResizablePMCArray');
             my Mu $args;
             repeat {
-                my $munched := $!list.munch($!block.count);
-                $args := nqp::find_method($munched, 'RPA')($munched);
+                $args := nqp::getattr($!list.munch($!block.count), 
+                                      Parcel, '$!storage');
                 nqp::push($rpa,
                     Q:PIR {
                         $P0 = find_lex '$args'

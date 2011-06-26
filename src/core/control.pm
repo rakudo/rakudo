@@ -62,3 +62,25 @@ my &proceed := -> {
 
 sub die(*@msg) { pir::die(@msg.join('')) }
 sub fail(*@msg) { pir::die(@msg.join('')) }
+
+sub eval(Str $code, :$lang = 'perl6') {
+    my $caller_ctx := Q:PIR {
+        $P0 = getinterp
+        %r = $P0['context';1]
+    };
+    my $caller_lexpad := Q:PIR {
+        $P0 = getinterp
+        %r = $P0['lexpad';1]
+    };
+    my $result;
+    my $success;
+    try {
+        my $compiler := pir::compreg__PS($lang);
+        my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx));
+        nqp::atpos($pbc, 0).set_outer_ctx($caller_ctx);
+        $result := $pbc();
+        $success = 1;
+    }
+    nqp::bindkey($caller_lexpad, '$!', $!);
+    $success ?? $result !! Any # XXX fail($!)
+}

@@ -138,7 +138,7 @@ multi sub flunk($reason) { proclaim(0, "flunk $reason")}
 
 proto sub isa_ok(|$) is export { * }
 multi sub isa_ok(Mu $var, Mu $type) {
-    ok($var.isa($type), "The object is-a '$type'")
+    ok($var.isa($type), "The object is-a '" ~ $type.perl ~ "'")
         or diag('Actual type: ' ~ $var.WHAT);
 }
 multi sub isa_ok(Mu $var, Mu $type, $msg) {

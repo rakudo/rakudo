@@ -18,6 +18,26 @@ multi trait_mod:<is>(Parameter:D $param, :$copy!) {
     $param.set_copy();
 }
 
+# TODO: Make this much less cheaty. That'll probably need the
+# full-blown serialization, though.
+multi trait_mod:<is>(Routine:D \$r, :$export!) {
+    if $*COMPILING {
+        my @tags = 'ALL', 'DEFAULT';
+        for @tags -> $tag {
+            my $install_in;
+            if $*EXPORT.WHO.exists($tag) {
+                $install_in := $*EXPORT.WHO.{$tag};
+            }
+            else {
+                $install_in := $*ST.pkg_create_mo((package { }).HOW.WHAT, :name($tag));
+                $*ST.pkg_compose($install_in);
+                $*ST.install_package_symbol($*EXPORT, $tag, $install_in);
+            }
+            $*ST.install_package_symbol($install_in, '&' ~ $r.name, $r);
+        }
+    }
+}
+
 proto trait_mod:<does>(|$) { * }
 multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     $doee.HOW.add_role($doee, $role)

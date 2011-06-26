@@ -192,6 +192,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*SETTING;
         :my $*UNIT;
         :my $*UNIT_OUTER;
+        :my $*EXPORT;
+        :my $*COMPILING := 1;
         
         # CHECK phasers for this compilation unit we'll need at
         # CHECK time.
@@ -220,7 +222,12 @@ grammar Perl6::Grammar is HLL::Grammar {
             # Create GLOBAL(ish).
             $*GLOBALish := $*ST.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
             $*ST.pkg_compose($*GLOBALish);
-            $*GLOBALish.HOW.compose($*GLOBALish);
+            $*ST.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
+            
+            # Create EXPORT.
+            $*EXPORT := $*ST.pkg_create_mo(%*HOW<package>, :name('EXPORT'));
+            $*ST.pkg_compose($*EXPORT);
+            $*ST.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
             
             # We start with the current package as that also.
             $*PACKAGE := $*GLOBALish;

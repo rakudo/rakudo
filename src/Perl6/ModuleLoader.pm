@@ -49,6 +49,7 @@ class Perl6::ModuleLoader {
             $module_ctx := %modules_loaded{$path};
         }
         else {
+            my $*COMPILING := 0;
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
             my $preserve_global := pir::get_hll_global__Ps('GLOBAL');

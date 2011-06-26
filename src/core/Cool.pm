@@ -57,6 +57,10 @@ my class Cool {
         self.Str.chomp;
     }
 
+    method chop() {
+        self.Str.chop
+    }
+
     method ord() {
         nqp::p6box_i(nqp::ord(nqp::unbox_s(self.Str)))
     }

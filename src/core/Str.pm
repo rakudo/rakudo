@@ -23,6 +23,10 @@ my class Str {
         self.substr($idx) eq "\n" ?? self.substr(0, $idx) !! self;
     }
 
+    method chop() {
+        self.substr(0, self.chars - 1);
+    }
+
 
     # chars used to handle ranges for pred/succ
     my $RANGECHAR = 

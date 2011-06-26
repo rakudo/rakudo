@@ -9,11 +9,7 @@ need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
 ## Basic IO
-While the iterator-y bits can't be done yet, adding back open and some
-of the IO class should be do-able.
-
-## Built-ins
-Str.chop
+the stat calls should be pretty straight-forward to port from master
 
 ## Nil assignment
 my Int $b = 3;  $b = Nil;   

@@ -958,7 +958,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $block();
         }
         elsif $phaser eq 'CHECK' {
-            @*CHECK_PHASERS.push($block);
+            @*CHECK_PHASERS.unshift($block);
         }
         elsif $phaser eq 'INIT' {
             $*UNIT[0].push(PAST::Op.new(
@@ -968,7 +968,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         elsif $phaser eq 'END' {
             $*UNIT[0].push(PAST::Op.new(
-                :pasttype('callmethod'), :name('push'),
+                :pasttype('callmethod'), :name('unshift'),
                 PAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
                 self.get_object_sc_ref_past($block)
             ));

@@ -5,6 +5,7 @@
 # in the end.
 my class Junction is Mu { }
 my class Whatever is Cool { }
+my class WhateverCode is Code { }
 
 
 sub DYNAMIC(\$name) { 

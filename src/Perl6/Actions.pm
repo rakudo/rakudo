@@ -3312,94 +3312,79 @@ class Perl6::Actions is HLL::Actions {
     # of the op to decide, or likely store things in this hash from that
     # introspection and keep it as a quick cache.
 
-    # not_curried = 1 means do not curry Whatever, but do curry WhateverCode
-    # not_curried = 2 means do not curry either.
+    # %curried == 0 means do not curry
+    # %curried == 1 means curry WhateverCode only
+    # %curried == 2 means curry both WhateverCode and Whatever (default)
 
-    our %not_curried;
+    our %curried;
     INIT {
-        %not_curried{'&infix:<...>'}  := 2;
-        %not_curried{'&infix:<...^>'} := 2;
-        %not_curried{'&infix:<..>'}   := 1;
-        %not_curried{'&infix:<..^>'}  := 1;
-        %not_curried{'&infix:<^..>'}  := 1;
-        %not_curried{'&infix:<^..^>'} := 1;
-        %not_curried{'&prefix:<^>'}   := 2;
-        %not_curried{'&infix:<xx>'}   := 1;
-        %not_curried{'&infix:<~~>'}   := 2;
-        %not_curried{'&infix:<=>'}    := 2;
-        %not_curried{'&infix:<:=>'}   := 2;
-        %not_curried{'WHAT'}          := 2;
-        %not_curried{'HOW'}           := 2;
-        %not_curried{'WHO'}           := 2;
-        %not_curried{'WHERE'}         := 2;
+        %curried{'&infix:<...>'}  := 0;
+        %curried{'&infix:<...^>'} := 0;
+        %curried{'&prefix:<^>'}   := 0;
+        %curried{'&infix:<~~>'}   := 0;
+        %curried{'&infix:<=>'}    := 0;
+        %curried{'&infix:<:=>'}   := 0;
+        %curried{'WHAT'}          := 0;
+        %curried{'HOW'}           := 0;
+        %curried{'WHO'}           := 0;
+        %curried{'WHERE'}         := 0;
+        %curried{'&infix:<..>'}   := 1;
+        %curried{'&infix:<..^>'}  := 1;
+        %curried{'&infix:<^..>'}  := 1;
+        %curried{'&infix:<^..^>'} := 1;
+        %curried{'&infix:<xx>'}   := 1;
     }
     sub whatever_curry($/, $past, $upto_arity) {
-        if $past.isa(PAST::Op) && %not_curried{$past.name} != 2
-                               && ($past<pasttype> ne 'call' || pir::index($past.name, '&infix:') == 0) {
-            if ($upto_arity >= 1 && (($past[0].returns eq 'Whatever' && !%not_curried{$past.name})
-                                     || $past[0].returns eq 'WhateverCode'))
-            || ($upto_arity == 2 && (($past[1].returns eq 'Whatever' && !%not_curried{$past.name})
-                                     || $past[1].returns eq 'WhateverCode')) {
-
-                my $counter := 0;
-                my $sig := Perl6::Compiler::Signature.new();
-                my $left := $past.shift;
-                my $left_new;
-                my $right_new;
-
-                if $left.returns eq 'WhateverCode' {
-                    $left_new := PAST::Op.new( :pasttype('call'), :node($/), $left);
-                    my $left_arity := $left.arity;
-                    while $counter < $left_arity {
-                        $counter++;
-                        $left_new.push(PAST::Var.new( :name('$x' ~ $counter), :scope('lexical_6model') ));
-                        $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
+        my $curried := $past.isa(PAST::Op) 
+                       && ($past<pasttype> ne 'call' || pir::index($past.name, '&infix:') == 0)
+                       && (%curried{$past.name} // 2);
+        my $i := 0;
+        my $whatevers := 0;
+        while $curried && $i < $upto_arity {
+            $whatevers++ if $past[$i].returns eq 'WhateverCode'
+                            || $curried > 1 && $past[$i].returns eq 'Whatever';
+            $i++;
+        }
+        if $whatevers { 
+            my $i := 0;
+            my @params;
+            my $block := PAST::Block.new(PAST::Stmts.new(), $past);
+            $*ST.cur_lexpad()[0].push($block);
+            while $i < $upto_arity {
+                my $old := $past[$i];
+                if $old.returns eq 'WhateverCode' {
+                    my $new := PAST::Op.new( :pasttype<call>, :node($/), $old);
+                    my $acount := 0;
+                    while $acount < $old.arity {
+                        my $pname := '$x' ~ (+@params);
+                        @params.push(hash(
+                            :variable_name($pname),
+                            :nominal_type($*ST.find_symbol(['Mu'])),
+                            :is_parcel(1),
+                        ));
+                        $block[0].push(PAST::Var.new(:name($pname), :scope<lexical_6model>, :isdecl(1)));
+                        $new.push(PAST::Var.new(:name($pname), :scope<lexical_6model>));
+                        $acount++;
                     }
+                    $past[$i] := $new;
                 }
-                elsif $left.returns eq 'Whatever' {
-                    $counter++;
-                    $left_new := PAST::Var.new( :name('$x' ~ $counter), :scope('lexical_6model_6model') );
-                    $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
+                elsif $curried > 1 && $old.returns eq 'Whatever' {
+                    my $pname := '$x' ~ (+@params);
+                    @params.push(hash(
+                        :variable_name($pname),
+                        :nominal_type($*ST.find_symbol(['Mu'])),
+                        :is_parcel(1),
+                    ));
+                    $block[0].push(PAST::Var.new(:name($pname), :scope<lexical_6model>, :isdecl(1)));
+                    $past[$i] := PAST::Var.new(:name($pname), :scope<lexical_6model>);
                 }
-                else {
-                    $left_new := $left;
-                }
-
-                if $upto_arity == 2 {
-                    my $right := $past.shift;
-
-                    if $right.returns eq 'WhateverCode' {
-                        $right_new := PAST::Op.new( :pasttype('call'), :node($/), $right);
-                        # Next block is a bit weird, because $counter + $right.arity was
-                        # consistently failing.  So we create a new variable as a temporary
-                        # counter.
-                        my $right_arity := $right.arity;
-                        my $right_counter := 0;
-                        while $right_counter < $right_arity {
-                            $counter++;
-                            $right_counter++;
-                            $right_new.push(PAST::Var.new( :name('$x' ~ $counter), :scope('lexical_6model') ));
-                            $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
-                        }
-                    }
-                    elsif $right.returns eq 'Whatever' {
-                        $counter++;
-                        $right_new := PAST::Var.new( :name('$x' ~ $counter), :scope('lexical_6model') );
-                        $sig.add_parameter(Perl6::Compiler::Parameter.new(:var_name('$x' ~ $counter)));
-                    }
-                    else {
-                        $right_new := $right;
-                    }
-                }
-
-                if $upto_arity == 2 {
-                    $past.unshift($right_new);
-                }
-                $past.unshift($left_new);
-                $past := block_closure(blockify($past, $sig), 'WhateverCode', 0);
-                $past.returns('WhateverCode');
-                $past.arity($sig.arity);
+                $i++;
             }
+            my $signature := create_signature_object(@params, $block);
+            add_signature_binding_code($block, $signature);
+            my $code := $*ST.create_code_object($block, 'WhateverCode', $signature);
+            $past := block_closure(reference_to_code_object($code, $block));
+            $past.arity(+@params);
         }
         $past
     }

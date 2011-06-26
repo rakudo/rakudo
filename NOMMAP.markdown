@@ -61,7 +61,7 @@ Many things are working, some are not...
 * Try to implement enumerations
 * Some support for augment
 * handles
-* .*, .+ and .Foo::bar
+* .Foo::bar
 * does and but
 
 ## Ensure nested packages work

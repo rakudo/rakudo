@@ -75,11 +75,30 @@ my class Mu {
     }
     
     method dispatch:<.+>($name, *@pos, *%named) {
-        die ".+ not yet implemented"
+        my @result := self.dispatch:<.*>($name, |@pos, |%named);
+        if @result.elems == 0 {
+            die "Method '$name' not found for invocant of type '" ~
+                self.WHAT.perl ~ "'";
+        }
+        @result
     }
     
     method dispatch:<.*>($name, *@pos, *%named) {
-        die ".* not yet implemented"
+        my @mro = self.HOW.mro(self);
+        my @results;
+        my $i = 0;
+        while $i < +@mro {
+            my $obj = @mro[$i];
+            my $meth = ($obj.HOW.method_table($obj)){$name};
+            if !$meth && $i == 0 {
+                $meth = ($obj.HOW.submethod_table($obj)){$name};
+            }
+            if $meth {
+                @results.push($meth($obj, |@pos, |%named));
+            }
+            $i++;
+        }
+        &infix:<,>(|@results)
     }
 }
 

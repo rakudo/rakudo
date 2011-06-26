@@ -206,7 +206,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING)
+all: check-versions $(PERL6_EXE) $(SETTING) Test.pir
 
 # the install target
 install: all
@@ -315,17 +315,17 @@ rakudo_test_run.tar.gz: testable t/spectest.data
 spectest_smolder: rakudo_test_run.tar.gz
 	./perl6 -e "run qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
-testable : all Test.pir spectest_checkout spectest_update
+testable : all spectest_checkout spectest_update
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@
 
 # Run the tests in t/localtest.data
-localtest: all Test.pir spectest_checkout t/localtest.data
+localtest: all spectest_checkout t/localtest.data
 	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
-localtest_loud: all Test.pir spectest_checkout t/localtest.data
+localtest_loud: all spectest_checkout t/localtest.data
 	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.
@@ -334,7 +334,7 @@ sometests: all
 	@$(HARNESS_WITH_FUDGE) $(TESTFILES)
 
 # Run a single test
-t/*.t t/*/*.t t/*/*/*.t: all Test.pir spectest_checkout
+t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
 	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 ##  cleaning

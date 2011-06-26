@@ -159,6 +159,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ));
         }
         self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
+        1;
     }
     
     # Factors out deciding where to install package-y things.
@@ -180,6 +181,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         else {
             $/.CURSOR.panic("Cannot use $*SCOPE scope with $pkgdecl");
         }
+        1;
     }
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
@@ -202,6 +204,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             0
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+        1;
     }
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
@@ -236,6 +239,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ~$name, $cont_code, 1
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+        1;
     }
     
     # Builds PAST that constructs a container.
@@ -310,6 +314,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ),
             self.get_slot_past_for_object($obj)
         )));
+        1;
     }
     
     # Creates a parameter object.
@@ -701,8 +706,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method pkg_create_mo($how, :$name, :$repr) {
         # Create the meta-object and add to root objects.
         my %args;
-        if pir::defined($name) { %args<name> := $name; }
-        if pir::defined($repr) { %args<repr> := $repr; }
+        if pir::defined($name) { %args<name> := ~$name; }
+        if pir::defined($repr) { %args<repr> := ~$repr; }
         my $mo := $how.new_type(|%args);
         my $slot := self.add_object($mo);
         
@@ -713,10 +718,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             self.get_object_sc_ref_past($how)
         );
         if pir::defined($name) {
-            $setup_call.push(PAST::Val.new( :value($name), :named('name') ));
+            $setup_call.push(PAST::Val.new( :value(~$name), :named('name') ));
         }
         if pir::defined($repr) {
-            $setup_call.push(PAST::Val.new( :value($repr), :named('repr') ));
+            $setup_call.push(PAST::Val.new( :value(~$repr), :named('repr') ));
         }
         self.add_event(:deserialize_past(
             self.set_slot_past($slot, self.set_cur_sc($setup_call))));

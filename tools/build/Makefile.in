@@ -122,6 +122,7 @@ CORE_SOURCES = \
   src/core/control.pm \
   src/core/Positional.pm \
   src/core/Associative.pm \
+  src/core/Callable.pm \
   src/core/Mu.pm \
   src/core/Any.pm \
   src/core/Code.pm \

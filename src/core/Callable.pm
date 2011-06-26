@@ -1,0 +1,2 @@
+my role Callable {
+}

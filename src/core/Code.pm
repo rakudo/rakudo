@@ -1,4 +1,4 @@
-my class Code {
+my class Code does Callable {
     multi method ACCEPTS(Code:D $self: $topic) {
         $self.count ?? $self($topic) !! $self()
     }

@@ -20,53 +20,8 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
-# integration/99problems-01-to-10.t
-# integration/99problems-11-to-20.t
-# integration/99problems-21-to-30.t
-# integration/99problems-31-to-40.t
-# integration/99problems-41-to-50.t
-# integration/99problems-51-to-60.t
-# integration/99problems-61-to-70.t
-# integration/advent2009-day01.t
-# integration/advent2009-day02.t
-# integration/advent2009-day03.t
-# integration/advent2009-day04.t
-# integration/advent2009-day05.t
-# integration/advent2009-day06.t
-# integration/advent2009-day07.t
-# integration/advent2009-day08.t
-# integration/advent2009-day09.t
-# integration/advent2009-day10.t
-# integration/advent2009-day11.t
-# integration/advent2009-day12.t
-# integration/advent2009-day13.t
-# integration/advent2009-day14.t
-# integration/advent2009-day15.t
-# integration/advent2009-day16.t
-# integration/advent2009-day17.t                             # stress
-# integration/advent2009-day18.t
-# integration/advent2009-day19.t
-# integration/advent2009-day20.t
-# integration/advent2009-day22.t
-# integration/advent2009-day23.t
-# integration/advent2010-day04.t
-# integration/code-blocks-as-sub-args.t
-# integration/error-reporting.t
-# integration/lexical-array-in-inner-block.t
-# integration/lexicals-and-attributes.t
-# integration/man-or-boy.t
-# integration/method-calls-and-instantiation.t
-# integration/no-indirect-new.t
-# integration/packages.t
-# integration/pair-in-array.t
-# integration/passing-pair-class-to-sub.t
-# integration/real-strings.t
-# integration/role-composition-vs-attribute.t
-# integration/say-crash.t
-# integration/substr-after-match-in-gather-in-for.t
-# integration/weird-errors.t
 # S02-builtin_data_types/anon_block.t
-# S02-builtin_data_types/array_extending.t
+S02-builtin_data_types/array_extending.t
 # S02-builtin_data_types/array_ref.t
 # S02-builtin_data_types/array.t
 # S02-builtin_data_types/assigning-refs.t
@@ -85,12 +40,12 @@
 # S02-builtin_data_types/multi_dimensional_array.t
 # S02-builtin_data_types/nan.t
 # S02-builtin_data_types/nested_arrays.t
-# S02-builtin_data_types/nested_pairs.t
+S02-builtin_data_types/nested_pairs.t
 # S02-builtin_data_types/nil.t
 # S02-builtin_data_types/num.t
 # S02-builtin_data_types/pair.t
 # S02-builtin_data_types/parcel.t
-# S02-builtin_data_types/parsing-bool.t
+S02-builtin_data_types/parsing-bool.t
 # S02-builtin_data_types/range.t
 # S02-builtin_data_types/set.t
 # S02-builtin_data_types/sigils-and-types.t
@@ -103,9 +58,9 @@
 # S02-literals/autoref.t
 # S02-literals/char-by-name.t                                # icu
 # S02-literals/char-by-number.t
-# S02-literals/fmt-interpolation.t
+S02-literals/fmt-interpolation.t
 # S02-literals/hash-interpolation.t
-# S02-literals/hex_chars.t
+S02-literals/hex_chars.t
 # S02-literals/listquote.t
 # S02-literals/listquote-whitespace.t
 # S02-literals/misc-interpolation.t
@@ -116,7 +71,7 @@
 # S02-literals/quoting-unicode.t                              # icu
 # S02-literals/radix.t
 # S02-literals/string-interpolation.t
-# S02-literals/sub-calls.t
+S02-literals/sub-calls.t
 # S02-literals/subscript.t
 # S02-literals/types.t
 # S02-literals/underscores.t
@@ -135,16 +90,16 @@
 # S02-names_and_variables/signature.t
 # S02-names_and_variables/variables-and-packages.t
 # S02-names_and_variables/varnames.t
-# S02-names/identifier.t
+S02-names/identifier.t
 # S02-names/our.t
 # S02-one-pass-parsing/less-than.t
 # S02-polymorphic_types/subset.t
-# S02-whitespace_and_comments/begin_end_pod.t
+S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
 # S02-whitespace_and_comments/minimal-whitespace.t
 # S02-whitespace_and_comments/one-pass-parsing.t
-# S02-whitespace_and_comments/pod-in-multi-line-exprs.t
-# S02-whitespace_and_comments/sub-block-parsing.t
+S02-whitespace_and_comments/pod-in-multi-line-exprs.t
+S02-whitespace_and_comments/sub-block-parsing.t
 # S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
 # S03-feeds/basic.t
@@ -154,7 +109,7 @@
 # S03-junctions/eigenstates.t
 # S03-junctions/misc.t
 # S03-metaops/cross.t
-# S03-metaops/eager-hyper.t
+S03-metaops/eager-hyper.t
 # S03-metaops/hyper.t
 # S03-metaops/not.t
 # S03-metaops/reduce.t
@@ -162,14 +117,14 @@
 # S03-metaops/zip.t
 # S03-operators/also.t
 # S03-operators/arith.t
-# S03-operators/assign-is-not-binding.t
+S03-operators/assign-is-not-binding.t
 # S03-operators/assign.t
 # S03-operators/autoincrement-range.t                        # icu
 # S03-operators/autoincrement.t
 # S03-operators/autovivification.t
 # S03-operators/basic-types.t
 # S03-operators/binding-arrays.t
-# S03-operators/binding-closure.t
+S03-operators/binding-closure.t
 # S03-operators/binding-hashes.t
 # S03-operators/binding-ro.t
 # S03-operators/binding-scalars.t
@@ -177,7 +132,7 @@
 # S03-operators/boolean-bitwise.t
 # S03-operators/brainos.t
 # S03-operators/buf.t
-# S03-operators/chained-declarators.t
+S03-operators/chained-declarators.t
 # S03-operators/cmp.t
 # S03-operators/comparison.t
 # S03-operators/comparison-simple.t
@@ -207,7 +162,7 @@
 # S03-operators/short-circuit.t
 # S03-operators/spaceship-and-containers.t
 # S03-operators/spaceship.t
-# S03-operators/subscript-vs-lt.t
+S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
 # S03-operators/so.t
 # S03-operators/value_equivalence.t
@@ -227,7 +182,7 @@
 # S03-smartmatch/any-method.t
 # S03-smartmatch/any-num.t
 # S03-smartmatch/any-pair.t
-# S03-smartmatch/any-str.t
+S03-smartmatch/any-str.t
 # S03-smartmatch/any-sub.t
 # S03-smartmatch/any-type.t
 # S03-smartmatch/array-array.t
@@ -239,7 +194,7 @@
 # S03-smartmatch/scalar-hash.t
 # S04-blocks-and-statements/pointy-rw.t
 # S04-blocks-and-statements/pointy.t
-# S04-phasers/end.t
+S04-phasers/end.t
 # S04-phasers/rvalue.t
 # S04-phasers/start.t
 # S04-declarations/constant.t
@@ -251,13 +206,13 @@
 # S04-exceptions/fail.t
 # S04-statement-modifiers/for.t
 # S04-statement-modifiers/given.t
-# S04-statement-modifiers/if.t
-# S04-statement-modifiers/unless.t
+S04-statement-modifiers/if.t
+S04-statement-modifiers/unless.t
 # S04-statement-modifiers/until.t
 # S04-statement-modifiers/values_in_bool_context.t
 # S04-statement-modifiers/while.t
 # S04-statement-parsing/hash.t
-# S04-statements/do.t
+S04-statements/do.t
 # S04-statements/for-scope.t
 # S04-statements/for.t
 # S04-statements/for_with_only_one_item.t
@@ -272,10 +227,10 @@
 # S04-statements/redo.t
 # S04-statements/repeat.t
 # S04-statements/return.t
-# S04-statements/terminator.t
+S04-statements/terminator.t
 # S04-statements/try.t
-# S04-statements/unless.t
-# S04-statements/until.t
+S04-statements/unless.t
+S04-statements/until.t
 # S04-statements/while.t
 # S05-capture/caps.t
 # S05-capture/dot.t
@@ -337,7 +292,7 @@
 # S05-transliteration/trans.t
 # S05-transliteration/with-closure.t
 # S06-advanced_subroutine_features/callframe.t
-# S06-advanced_subroutine_features/lexical-subs.t
+S06-advanced_subroutine_features/lexical-subs.t
 # S06-advanced_subroutine_features/recurse.t
 # S06-advanced_subroutine_features/return.t
 # S06-advanced_subroutine_features/wrap.t
@@ -355,13 +310,13 @@
 # S06-operator-overloading/workout.t
 # S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t
-# S06-other/main-eval.t
+S06-other/main-eval.t
 # S06-other/main-usage.t
-# S06-other/misc.t
+S06-other/misc.t
 # S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
-# S06-signature/closure-over-parameters.t
-# S06-signature/closure-parameters.t
+S06-signature/closure-over-parameters.t
+S06-signature/closure-parameters.t
 # S06-signature/code.t
 # S06-signature/defaults.t
 # S06-signature/errors.t
@@ -369,7 +324,7 @@ S06-signature/arity.t
 # S06-signature/mixed-placeholders.t
 # S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
-# S06-signature/optional.t
+S06-signature/optional.t
 # S06-signature/passing-arrays.t
 # S06-signature/passing-hashes.t
 # S06-signature/positional-placeholders.t
@@ -415,7 +370,7 @@ S06-signature/named-placeholders.t
 # S12-class/basic.t
 # S12-class/declaration-order.t
 # S12-class/extending-arrays.t
-# S12-class/inheritance-class-methods.t
+S12-class/inheritance-class-methods.t
 # S12-class/inheritance.t
 # S12-class/instantiate.t
 # S12-class/interface-consistency.t
@@ -424,7 +379,7 @@ S06-signature/named-placeholders.t
 # S12-class/open.t
 # S12-class/parent_attributes.t
 # S12-class/rw.t
-# S12-class/self-inheritance.t
+S12-class/self-inheritance.t
 # S12-class/stubs.t
 # S12-construction/autopairs.t
 # S12-construction/BUILD.t
@@ -444,13 +399,13 @@ S06-signature/named-placeholders.t
 # S12-introspection/walk.t
 # S12-methods/attribute-params.t
 # S12-methods/calling_sets.t
-# S12-methods/calling_syntax.t
+S12-methods/calling_syntax.t
 # S12-methods/chaining.t
-# S12-methods/class-and-instance.t
+S12-methods/class-and-instance.t
 # S12-methods/default-trait.t
 # S12-methods/defer-call.t
 # S12-methods/defer-next.t
-# S12-methods/how.t
+S12-methods/how.t
 # S12-methods/indirect_notation.t
 # S12-methods/instance.t
 # S12-methods/lastcall.t
@@ -505,15 +460,15 @@ S06-signature/named-placeholders.t
 # S19-command-line/help.t
 # S28-named-variables/cwd.t
 # S28-named-variables/inc.t
-# S29-any/cmp.t
+S29-any/cmp.t
 # S29-any/isa.t
 # S29-context/die.t
-# S29-context/eval.t
+S29-context/eval.t
 # S29-context/exit.t
 # S29-context/sleep.t
 # S29-conversions/hash.t
 # S29-conversions/ord_and_chr.t                              #icu
-# S32-array/bool.t
+S32-array/bool.t
 # S32-array/create.t
 # S32-array/delete.t
 # S32-array/elems.t
@@ -579,7 +534,7 @@ S06-signature/named-placeholders.t
 # S32-scalar/defined.t
 # S32-scalar/undef.t
 # S32-str/append.t
-# S32-str/bool.t
+S32-str/bool.t
 # S32-str/capitalize.t                                       # icu
 # S32-str/chomp.t
 # S32-str/chop.t
@@ -626,3 +581,48 @@ S06-signature/named-placeholders.t
 # S32-trig/sech.t                                            # long
 # S32-trig/cosech.t                                          # long
 # S32-trig/cotanh.t                                          # long
+# integration/99problems-01-to-10.t
+# integration/99problems-11-to-20.t
+# integration/99problems-21-to-30.t
+# integration/99problems-31-to-40.t
+# integration/99problems-41-to-50.t
+# integration/99problems-51-to-60.t
+# integration/99problems-61-to-70.t
+# integration/advent2009-day01.t
+# integration/advent2009-day02.t
+# integration/advent2009-day03.t
+# integration/advent2009-day04.t
+# integration/advent2009-day05.t
+# integration/advent2009-day06.t
+# integration/advent2009-day07.t
+# integration/advent2009-day08.t
+# integration/advent2009-day09.t
+# integration/advent2009-day10.t
+# integration/advent2009-day11.t
+# integration/advent2009-day12.t
+# integration/advent2009-day13.t
+# integration/advent2009-day14.t
+# integration/advent2009-day15.t
+# integration/advent2009-day16.t
+# integration/advent2009-day17.t                             # stress
+# integration/advent2009-day18.t
+# integration/advent2009-day19.t
+# integration/advent2009-day20.t
+# integration/advent2009-day22.t
+# integration/advent2009-day23.t
+# integration/advent2010-day04.t
+integration/code-blocks-as-sub-args.t
+# integration/error-reporting.t
+integration/lexical-array-in-inner-block.t
+# integration/lexicals-and-attributes.t
+# integration/man-or-boy.t
+# integration/method-calls-and-instantiation.t
+integration/no-indirect-new.t
+# integration/packages.t
+# integration/pair-in-array.t
+# integration/passing-pair-class-to-sub.t
+# integration/real-strings.t
+# integration/role-composition-vs-attribute.t
+# integration/say-crash.t
+# integration/substr-after-match-in-gather-in-for.t
+# integration/weird-errors.t

@@ -24,7 +24,9 @@ my class Str {
     }
 
     method chop() {
-        self.substr(0, self.chars - 1);    # XXX negative length bug
+        nqp::p6box_s(
+            nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), nqp::unbox_i(1)))
+        );
     }
 
 

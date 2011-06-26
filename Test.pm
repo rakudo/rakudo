@@ -45,8 +45,8 @@ multi sub plan($number_of_tests) {
     }
     # Emit two successive timestamps to measure the measurment overhead,
     # and to eliminate cacheing bias, if it exists, from the first test.
-    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
-    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
     # Ideally the time readings above could be made with the expression
     # now.to-posix[0], but the execution time showed by the difference
     # between the two successive readings is far slower than when the
@@ -128,7 +128,9 @@ sub skip_rest($reason = '<unknown>') is export {
 }
 
 sub diag($message) is export {
-    say $message.subst(rx/^^/, '# ', :g);
+    # XXX No regexes yet in nom
+    #say $message.subst(rx/^^/, '# ', :g);
+    say "# " ~ $message;
 }
 
 proto sub flunk(|$) is export { * }
@@ -146,17 +148,18 @@ multi sub isa_ok(Mu $var, Mu $type, $msg) {
 
 proto sub dies_ok(|$) is export { * }
 multi sub dies_ok(Callable $closure, $reason) {
-    my $death = 0;
+    my $death = 1;
     my $bad_death = 0;
     try {
         $closure();
-        CATCH {
-            $death = 1;
-            when / ^ 'Null PMC access ' / {
-                diag "wrong way to die: '$!'";
-                $bad_death = 1;
-            }
-        }
+        $death = 0;
+        # XXX no regexes, catch yet in nom
+        #CATCH {
+            #when / ^ 'Null PMC access ' / {
+            #    diag "wrong way to die: '$!'";
+            #    $bad_death = 1;
+            #}
+        #}
     }
     proclaim( $death && !$bad_death, $reason );
 }
@@ -179,7 +182,8 @@ proto sub eval_dies_ok(|$) is export { * }
 multi sub eval_dies_ok(Str $code, $reason) {
     my $ee = eval_exception($code);
     if defined $ee {
-        my $bad_death = "$ee" ~~ / ^ 'Null PMC access ' /;
+        # XXX no regexes yet in nom
+        my $bad_death = 0; #"$ee" ~~ / ^ 'Null PMC access ' /;
         if $bad_death {
             diag "wrong way to die: '$ee'";
         }
@@ -243,7 +247,7 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
-    say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";

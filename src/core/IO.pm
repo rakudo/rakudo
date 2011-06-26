@@ -1,11 +1,14 @@
 # XXX Relatively cheaty, just to get us able to output something.
 # But you should see what USED to be here! O.O
 sub print(*@list) {
-    $*OUT.print: @list;
+    nqp::print(@list.shift) while @list.gimme(1);
+    1.Bool
 }
 
 sub say(|$) {
-    $*OUT.say: |pir__perl6_box_rpa__PP(pir::perl6_current_args_rpa__P());
+    my $args := pir::perl6_current_args_rpa__P();
+    print nqp::shift($args).gist while $args;
+    print "\n";
 }
 
 sub gist(|$) {

@@ -278,8 +278,8 @@ $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 
 ##  testing targets
-Test.pir: Test.pm $(PERL6_PBC)
-	$(PARROT) $(PARROT_ARGS) $(PERL6_PBC) $(STAGESTATS) --target=pir --output=Test.pir Test.pm
+Test.pir: Test.pm $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir --output=Test.pir Test.pm
 
 test    : coretest
 

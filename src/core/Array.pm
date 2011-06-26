@@ -17,7 +17,7 @@ class Array {
     }
 
     method REIFY(Parcel \$parcel) {
-        my Mu $rpa := $parcel.RPA;
+        my Mu $rpa := nqp::find_method($parcel, 'RPA')($parcel);
         my Mu $iter := nqp::iterator($rpa);
         my $i = 0;
         while $iter {

@@ -6,6 +6,7 @@
 #include "parrot/parrot.h"
 #include "sixmodelobject.h"
 #include "types.h"
+#include "bind.h"
 
 static PMC * Mu         = NULL;
 static PMC * Junction   = NULL;
@@ -78,6 +79,13 @@ PMC * Rakudo_types_parrot_map(PARROT_INTERP, PMC * to_map) {
         case enum_class_Float:
             result = REPR(Num)->instance_of(interp, Num);
             REPR(result)->set_num(interp, result, VTABLE_get_number(interp, to_map));
+            break;
+        case enum_class_ResizablePMCArray:
+            result = Rakudo_binding_list_from_rpa(interp, to_map, Array, BoolTrue);
+            break;
+        case enum_class_Hash:
+            result = REPR(_Hash)->instance_of(interp, _Hash);
+            VTABLE_set_attr_keyed(interp, result, EnumMap, Parrot_str_new_constant(interp, "$!storage"), to_map);
             break;
         default:
             result = to_map;

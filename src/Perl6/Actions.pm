@@ -13,6 +13,7 @@ INIT {
         istype       => 'type_check__IPP',
         lcm_i        => 'lcm__Iii',
         gcd_i        => 'gcd__Iii',
+        find_method  => 'find_method__PPs'
     );
 }
 

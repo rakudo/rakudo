@@ -8,7 +8,7 @@ class List does Positional {
     method Bool()       { self.gimme(1).Bool }
     method Int()        { self.elems }
     method Numeric()    { self.elems }
-    method Parcel()     { self.gimme(*); pir__perl6_box_rpa__PP(self.RPA) }
+    method Parcel()     { self.gimme(*); pir__perl6_box_rpa__PP(nqp::find_method(self, 'RPA')(self)) }
     method Str(List:D:) { self.join(' ') }
 
     method flat() { self.flattens 
@@ -69,7 +69,7 @@ class List does Positional {
             pir::setattribute__0PPsP(
                 pir::repr_instance_of__PP(ListIter),
                 ListIter, '$!nextiter', $!nextiter),
-            ListIter, '$!reified', pir__perl6_box_rpa__PP(self.RPA))
+            ListIter, '$!reified', pir__perl6_box_rpa__PP(nqp::find_method(self, 'RPA')(self)))
     }
 
     method munch(\$n) {
@@ -103,7 +103,7 @@ class List does Positional {
     }
 
     method REIFY(Parcel \$parcel) {
-        nqp::splice($!items, $parcel.RPA, nqp::elems($!items), 0);
+        nqp::splice($!items, nqp::find_method($parcel, 'RPA')($parcel), nqp::elems($!items), 0);
         $parcel
     }
 

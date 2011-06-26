@@ -124,6 +124,9 @@ my class Mu {
 }
 
 
+proto sub prefix:<defined>(|$) { * }
+multi sub prefix:<defined>(Mu \$x) { $x.defined }
+
 proto sub infix:<~~>(|$) { * }
 multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
     $matcher.ACCEPTS($topic).Bool;

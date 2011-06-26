@@ -1,5 +1,5 @@
 my class Code does Callable {
-    multi method ACCEPTS(Code:D $self: $topic) {
+    multi method ACCEPTS(Code:D $self: Mu $topic) {
         $self.count ?? $self($topic) !! $self()
     }
     

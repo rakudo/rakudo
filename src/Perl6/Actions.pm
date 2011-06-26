@@ -15,6 +15,7 @@ INIT {
         gcd_i        => 'gcd__Iii',
         find_method  => 'find_method__PPs',
         create       => 'repr_instance_of__PP',
+        exit         => 'exit__vi',
     );
 }
 

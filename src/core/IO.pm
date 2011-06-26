@@ -87,6 +87,4 @@ $PROCESS::ERR = IO.new;
 nqp::bindattr(pir::perl6_decontainerize__PP($PROCESS::ERR),
         IO, '$!PIO', pir::getstderr__P());
 
-sub exit($status = 0) {
-    pir::exit($status.Int);
-}
+

@@ -84,3 +84,9 @@ sub eval(Str $code, :$lang = 'perl6') {
     nqp::bindkey($caller_lexpad, '$!', $!);
     $success ?? $result !! Any # XXX fail($!)
 }
+
+
+sub exit($status = 0) {
+    nqp::exit($status.Int);
+    $status;
+}

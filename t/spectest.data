@@ -397,7 +397,7 @@ S12-class/self-inheritance.t
 # S12-introspection/parents.t
 # S12-introspection/roles.t
 # S12-introspection/walk.t
-# S12-methods/attribute-params.t
+S12-methods/attribute-params.t
 # S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
 # S12-methods/chaining.t

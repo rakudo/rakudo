@@ -338,7 +338,7 @@ class Perl6::Actions is HLL::Actions {
             }
             set_default_parameter_type(@params, 'Mu');
             my $signature := create_signature_object(@params, $block);
-            add_signature_binding_code($block, $signature);
+            add_signature_binding_code($block, $signature, @params);
             
             # We'll install PAST in current block so it gets capture_lex'd.
             # Then evaluate to a reference to the block (non-closure - higher
@@ -901,7 +901,7 @@ class Perl6::Actions is HLL::Actions {
             ));
             set_default_parameter_type(@params, 'Mu');
             my $sig := create_signature_object(@params, $block);
-            add_signature_binding_code($block, $sig);
+            add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration');
 
             # Need to ensure we get lexical outers fixed up
@@ -1095,7 +1095,7 @@ class Perl6::Actions is HLL::Actions {
                 [];
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object(@params, $block);
-        add_signature_binding_code($block, $signature);
+        add_signature_binding_code($block, $signature, @params);
 
         # Create code object.
         if $<deflongname> {
@@ -1191,7 +1191,7 @@ class Perl6::Actions is HLL::Actions {
         }
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object(@params, $past);
-        add_signature_binding_code($past, $signature);
+        add_signature_binding_code($past, $signature, @params);
         
         # Place to store invocant.
         $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
@@ -3004,10 +3004,15 @@ class Perl6::Actions is HLL::Actions {
     }
 
     # Adds code to do the signature binding.
-    sub add_signature_binding_code($block, $sig_obj) {
+    sub add_signature_binding_code($block, $sig_obj, @params) {
         # Set arity.
-        # XXX TODO
-        #$block.arity($sig_obj.arity);
+        my $arity := 0;
+        for @params {
+            last if $_<is_optional> || $_<named_names> ||
+               $_<slurpy_pos> || $_<slurpy_named>;
+            $arity := $arity + 1;
+        }
+        $block.arity($arity);
 
         # We tell Parrot that we'll have all args in the call_sig so it won't
         # do its own arg processing. We also add a call to bind the signature.
@@ -3111,9 +3116,9 @@ class Perl6::Actions is HLL::Actions {
             ),
             $past);
         ($*ST.cur_lexpad())[0].push($block);
-        my $sig := $*ST.create_signature([$*ST.create_parameter(hash(
-            :variable_name('$_'), :nominal_type($*ST.find_symbol(['Mu']))))]);
-        add_signature_binding_code($block, $sig);
+        my $param := hash(:variable_name('$_'), :nominal_type($*ST.find_symbol(['Mu'])));
+        my $sig := $*ST.create_signature([$*ST.create_parameter($param)]);
+        add_signature_binding_code($block, $sig, [$param]);
         return reference_to_code_object(
             $*ST.create_code_object($block, 'Block', $sig),
             $block);
@@ -3140,12 +3145,12 @@ class Perl6::Actions is HLL::Actions {
         ($*ST.cur_lexpad())[0].push($past);
         
         # Give it a signature and create code object.
+        my $param := hash(
+            variable_name => '$_',
+            nominal_type => $*ST.find_symbol(['Mu']));
         my $sig := $*ST.create_signature([
-            $*ST.create_parameter(hash(
-                variable_name => '$_',
-                nominal_type => $*ST.find_symbol(['Mu'])
-            ))]);
-        add_signature_binding_code($past, $sig);
+            $*ST.create_parameter($param)]);
+        add_signature_binding_code($past, $sig, [$param]);
         return $*ST.create_code_object($past, 'Block', $sig);
     }
 
@@ -3391,7 +3396,7 @@ class Perl6::Actions is HLL::Actions {
                 $i++;
             }
             my $signature := create_signature_object(@params, $block);
-            add_signature_binding_code($block, $signature);
+            add_signature_binding_code($block, $signature, @params);
             my $code := $*ST.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));
             $past.arity(+@params);

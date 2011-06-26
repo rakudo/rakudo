@@ -275,7 +275,8 @@ class Perl6::Actions is HLL::Actions {
                         :name<&eager>, :node($/),
                         PAST::Op.new( 
                             :pasttype<callmethod>, :name<map>, :node($/),
-                            $cond, $past
+                            PAST::Op.new(:name('&infix:<,>'), $cond), 
+                            $past
                         ));
                 }
                 else {
@@ -454,7 +455,7 @@ class Perl6::Actions is HLL::Actions {
         my $xblock := $<xblock>.ast;
         my $past := PAST::Op.new( 
                         :pasttype<callmethod>, :name<map>, :node($/),
-                        $xblock[0],
+                        PAST::Op.new(:name('&infix:<,>'), $xblock[0]),
                         block_closure($xblock[1])
         );
         $past := PAST::Op.new( :name<&eager>, $past, :node($/) );

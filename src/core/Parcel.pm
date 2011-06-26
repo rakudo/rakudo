@@ -5,6 +5,8 @@ my class Parcel does Positional {
         nqp::p6list(pir::clone__PP($!storage), List, 1.Bool)
     }
 
+    method item() { my $v = self; }
+
     method list() {
         nqp::p6list(pir::clone__PP($!storage), List, Mu)
     }

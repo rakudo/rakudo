@@ -128,6 +128,14 @@ class Perl6::Metamodel::ClassHOW
         $!composed
     }
     
+    method isa($obj, $type) {
+        my $decont := pir::nqp_decontainerize__PP($type);
+        for self.mro($obj) {
+            if $_ =:= $decont { return 1 }
+        }
+        0
+    }
+    
     method type_check($obj, $checkee) {
         # The only time we end up in here is if the type check cache was
         # not yet published, which means the class isn't yet fully composed.

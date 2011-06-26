@@ -55,6 +55,27 @@ my class Mu {
     multi method DUMP(Mu:U:) { self.perl }
     method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
+    proto method isa(|$) { * }
+    multi method isa(Mu $type) {
+        nqp::p6bool(self.HOW.isa(self, $type.WHAT))
+    }
+    multi method isa(Str:D $name) {
+        my @mro = self.HOW.mro(self);
+        my $i = 0;
+        while $i < +@mro {
+            my $obj = @mro[$i];
+            if $obj.HOW.name($obj) eq $name {
+                return nqp::p6bool(1);
+            }
+            $i++;
+        }
+        nqp::p6bool(0)
+    }
+    
+    method does(Mu $type) {
+        nqp::p6bool(pir::type_check__IPP(self, $type))
+    }
+    
     # XXX TODO: Handle positional case.
     method dispatch:<var>($var, *@pos, *%named) {
         $var(self, |@pos, |%named)

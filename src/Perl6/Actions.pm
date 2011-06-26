@@ -1221,6 +1221,15 @@ class Perl6::Actions is HLL::Actions {
             # Add to methods table.
             my $name := $<longname>.Str;
             $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
+            
+            # May also need it in lexpad and/or package.
+            if $*SCOPE eq 'my' {
+                $*ST.install_lexical_symbol($outer, $name, $code);
+            }
+            elsif $*SCOPE eq 'our' {
+                $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
+                $*ST.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
+            }
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');

@@ -2,6 +2,13 @@ my class EnumMap does Associative {
     # declared in BOOTSTRAP.pm:
     #   has $!storage;         # Parrot Hash PMC of key->value mappings
 
+    method Bool() {
+        nqp::p6bool(pir::defined($!storage) ?? nqp::elems($!storage) !! 0)
+    }
+    method elems() {
+        pir::defined($!storage) ?? nqp::p6box_i(nqp::elems($!storage)) !! 0
+    }
+    
     method exists(Str \$key) {
         nqp::p6bool(
             pir::defined($!storage)

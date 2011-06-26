@@ -267,7 +267,7 @@ class Perl6::Actions is HLL::Actions {
                     );
                 }
                 elsif ~$ml<sym> eq 'for' {
-                    unless $past<block_past> {
+                    unless $past<past_block> {
                         $past := make_topic_block_ref($past);
                     }
                     $past := PAST::Op.new(
@@ -2164,7 +2164,9 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $past := block_closure($past);
-            $past<sink_past> := $past<past_block>;
+            $past<sink_past> := PAST::Op.new(
+                :pasttype('call'),
+                PAST::Val.new( :value($past<past_block>) ));
         }
         make $past;
     }
@@ -3063,7 +3065,7 @@ class Perl6::Actions is HLL::Actions {
             :pasttype('callmethod'), :name('clone'),
             $code
         );
-        $closure<block_past> := $code<block_past>;
+        $closure<past_block> := $code<past_block>;
         $closure<code_object> := $code<code_object>;
         return $closure;
     }

@@ -92,3 +92,16 @@ my class Cool {
         $result < 0 ?? Str !! $result;
     }
 }
+
+our sub chop($s)                  { $s.chop }
+our sub chomp($s)                 { $s.chomp }
+our sub flip($s)                  { $s.flip }
+our sub index($s,$needle,$pos=0)  { $s.index($needle,$pos) }
+our sub lc($s)                    { $s.lc }
+our sub lcfirst($s)               { $s.lcfirst }
+our sub ord($s)                   { $s.ord }
+our sub rindex($s,$needle,$pos=0) { $s.rindex($needle,$pos) }
+our sub substr($s,$pos,$chars)    { $s.rindex($pos,$chars) }
+our sub uc($s)                    { $s.uc }
+our sub ucfirst($s)               { $s.ucfirst }
+

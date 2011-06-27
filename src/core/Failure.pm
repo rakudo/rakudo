@@ -35,6 +35,9 @@ my &fail := -> *@msg {
                      pop_eh
                  };
     my $fail = Failure.new(EXCEPTION($ex));
-    pir::find_caller_lex__Ps('RETURN')($fail);
+    my Mu $return := pir::find_caller_lex__Ps('RETURN');
+    $return($fail) unless nqp::isnull($return);
     $fail
 }
+
+

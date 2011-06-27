@@ -1147,7 +1147,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method lookup_failure($orig_name) {
         my $msg := "Could not find symbol '$orig_name'";
         return PAST::Op.new(
-            :pasttype('call'), :name('&fail'),
+            :pasttype('call'), :name('&die'),
             self.add_constant('Str', 'str', $msg)
         );
     }

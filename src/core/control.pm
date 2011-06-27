@@ -21,11 +21,17 @@ my &THROW :=
     };
 
 my &return-rw := -> \$parcel = Nil { 
-    pir::find_caller_lex__Ps('RETURN')($parcel);
+    my Mu $return := pir::find_caller_lex__Ps('RETURN');
+    nqp::isnull($return)
+        ?? die "Attempt to return outside of any Routine"
+        !! $return($parcel);
     $parcel
 };
 my &return := -> \$parcel = Nil {
-    pir::find_caller_lex__Ps('RETURN')(pir::perl6_decontainerize__PP($parcel));
+    my Mu $return := pir::find_caller_lex__Ps('RETURN');
+    nqp::isnull($return)
+        ?? die "Attempt to return outside of any Routine"
+        !! $return(pir::perl6_decontainerize__PP($parcel));
     $parcel
 };
 

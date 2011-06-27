@@ -105,10 +105,6 @@ class List does Positional {
         self.gimme(1) && nqp::shift($!items)
     }
 
-    method sink() {
-        $!nextiter.defined && $!nextiter.reify(10, :sink(1));
-    }
-
     multi method perl(List:D \$self:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  

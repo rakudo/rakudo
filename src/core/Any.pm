@@ -13,6 +13,10 @@ my class Any {
     method elems() { self.list.elems }
     method infinite() { Mu }
 
+    method grep(Mu $test) is rw {
+        gather { self.map({ take $_ if $_ ~~ $test }) }
+    }
+
     method join($separator = ' ') {
         my $list = (self,).flat.eager;
         my Mu $rsa := pir::new__Ps('ResizableStringArray');
@@ -23,8 +27,18 @@ my class Any {
     }
 
     method map($block) is rw {
-        MapIter.new(:list(self.flat), :block($block)).list
+        MapIter.new(:list((self,).flat), :block($block)).list
     }
+
+    method min($by = { $^a cmp $^b }) {
+        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
+        my $min = +$Inf;
+        for self { 
+            $min = $_ if .defined && $_ cmp $min < 0;
+        }
+        $min;
+    }
+
          
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>($pos) is rw {
@@ -50,7 +64,11 @@ my class Any {
 
 
 proto sub infix:<cmp>(|$) { * }
-multi sub infix:<cmp>(\$a, \$b) { $a.Stringy cmp $b.Stringy }
+multi sub infix:<cmp>(\$a, \$b) { 
+    return -1 if $a == -$Inf || $b == $Inf;
+    return  1 if $a ==  $Inf || $b == -$Inf;
+    $a.Stringy cmp $b.Stringy 
+}
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$) { * }

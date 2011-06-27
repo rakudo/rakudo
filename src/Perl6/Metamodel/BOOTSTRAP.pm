@@ -565,6 +565,10 @@ pir::repr_bind_attr_int__vPPsI($true, Bool, '$!value', 1);
 (Bool.WHO)<True> := $true;
 pir::perl6_set_bools__vPP($false, $true);
 
+# Roles pretend to be narrower than certain types for the purpose
+# of type checking.
+Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
+
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
     our module DEFAULT {

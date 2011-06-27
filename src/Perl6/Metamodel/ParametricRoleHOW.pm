@@ -9,6 +9,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::NonGeneric
+    does Perl6::Metamodel::TypePretence
 {
     has $!composed;
     has $!body_block;
@@ -34,6 +35,11 @@ class Perl6::Metamodel::ParametricRoleHOW
     method type_check($obj, $checkee) {
         if $obj =:= $checkee {
             return 1;
+        }
+        for self.prentending_to_be() {
+            if $checkee =:= $_ {
+                return 1;
+            }
         }
         for self.roles_to_compose($obj) {
             if pir::type_check__IPP($checkee, $_) {

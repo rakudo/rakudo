@@ -94,6 +94,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/MultipleInheritance.pm \
   src/Perl6/Metamodel/C3MRO.pm \
   src/Perl6/Metamodel/ParrotInterop.pm \
+  src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/RoleToRoleApplier.pm \
   src/Perl6/Metamodel/ConcreteRoleHOW.pm \
   src/Perl6/Metamodel/CurriedRoleHOW.pm \

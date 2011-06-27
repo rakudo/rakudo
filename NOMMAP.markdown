@@ -8,7 +8,6 @@ are likely to get focus sooner.
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
 * List ~~ Positional fails
-* multis don't distinguish Positional
 * array parameters bind as containers
 * &infix:<cmp>.arity should be 2
     - so use a proto other than (|$). Try ($,$).

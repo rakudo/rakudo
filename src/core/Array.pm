@@ -1,8 +1,10 @@
 class Array {
     # Has attributes and parent List declared in BOOTSTRAP.    
 
-    method new(*@values) { 
-        my @a = @values;
+    method new(|$) { 
+        my Mu $args := pir::perl6_current_args_rpa__P();
+        nqp::shift($args);
+        nqp::p6list($args, self.WHAT, 1.Bool);
     }
     
     method at_pos($pos) {

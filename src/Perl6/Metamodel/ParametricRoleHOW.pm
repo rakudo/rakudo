@@ -27,6 +27,18 @@ class Perl6::Metamodel::ParametricRoleHOW
         $obj
     }
     
+    method type_check($obj, $checkee) {
+        if $obj =:= $checkee {
+            return 1;
+        }
+        for self.roles_to_compose($obj) {
+            if pir::type_check__IPP($checkee, $_) {
+                return 1;
+            }
+        }
+        0
+    }
+    
     method curry($obj, *@pos_args, *%named_args) {
         # XXX We really want to keep a cache here of previously
         # seen curryings.

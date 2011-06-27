@@ -102,7 +102,9 @@ class List does Positional {
 
     method shift() {
         # make sure we have at least one item, then shift+return it
-        self.gimme(1) && nqp::shift($!items)
+        self.gimme(1) 
+          ?? nqp::shift($!items) 
+          !! fail 'Element shifted from empty array';
     }
 
     multi method perl(List:D \$self:) {

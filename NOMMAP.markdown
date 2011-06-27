@@ -7,7 +7,6 @@ are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
-* fail()
 * List ~~ Positional fails
 * multis don't distinguish Positional
 * array parameters bind as containers

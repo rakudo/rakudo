@@ -12,6 +12,7 @@ Current fails that people are likely to encounter (no particular order):
 * multis don't distinguish Positional
 * array parameters bind as containers
 * &infix:<cmp>.arity should be 2
+* regexes missing
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
@@ -48,7 +49,7 @@ Get ::= correcter, and a bit more stuff on := also.
 ## Finish up parametric roles
 Many things are working, some are not...
 * Composition of submethods
-* Generically typed variables (also for the ::T case in rules)
+* Generically typed variables (also for the ::T case in roles)
 * Mentions of role arguments in the role body in a non-declarative context
 * role R1[::T] does R2[T] { ... }
 

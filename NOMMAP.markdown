@@ -11,8 +11,10 @@ Current fails that people are likely to encounter (no particular order):
 * multis don't distinguish Positional
 * array parameters bind as containers
 * &infix:<cmp>.arity should be 2
+    - so use a proto other than (|$). Try ($,$).
 * regexes missing
 * is export on methods
+    - should work outside the setting; note here if not
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)

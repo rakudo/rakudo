@@ -96,3 +96,7 @@ sub exit($status = 0) {
     nqp::exit($status.Int);
     $status;
 }
+
+sub EXHAUST(|$) {
+    die "Attempt to return from exhausted Routine"
+}

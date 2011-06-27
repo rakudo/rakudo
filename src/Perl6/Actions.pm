@@ -1081,7 +1081,7 @@ class Perl6::Actions is HLL::Actions {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
             unless is_clearly_returnless($block) {
-                $block[1] := PAST::Op.new(:pasttype<lexotic>, :name<RETURN>, $block[1]);
+                $block[1] := wrap_return_handler($block[1]);
                 # $block.control('return_pir');
             }
         }
@@ -1174,7 +1174,7 @@ class Perl6::Actions is HLL::Actions {
             $past := $<blockoid>.ast;
             $past.blocktype('declaration');
             unless is_clearly_returnless($past) {
-                $past[1] := PAST::Op.new(:pasttype<lexotic>, :name<RETURN>, $past[1]);
+                $past[1] := wrap_return_handler($past[1]);
                 # $past.control('return_pir');
             }
         }
@@ -3406,6 +3406,16 @@ class Perl6::Actions is HLL::Actions {
         }
         $past
     }
+
+    sub wrap_return_handler($past) {
+        PAST::Stmts.new( :signature('0Pv'),
+            PAST::Op.new(:pasttype<lexotic>, :name<RETURN>, $past),
+            PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Var.new(:name<RETURN>, :scope<lexical>),
+                PAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+        )
+    }
+    
     
     # Ensures that the given PAST node has a value known at compile
     # time and if so obtains it. Otherwise reports an error, involving

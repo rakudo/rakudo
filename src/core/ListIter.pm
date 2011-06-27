@@ -35,7 +35,7 @@ my class ListIter {
                     }
                 }
             }
-            my $reified := pir__perl6_box_rpa__PP($rpa);
+            my $reified := nqp::p6parcel($rpa, Any);
             $reified := $!list.REIFY($reified) if $!list.defined && !$sink;
             nqp::push(
                     nqp::getattr($reified, Parcel, '$!storage'),

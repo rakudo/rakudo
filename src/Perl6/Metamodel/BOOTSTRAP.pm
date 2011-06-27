@@ -415,6 +415,13 @@ Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_ta
 # Stash these common types for box ops.
 pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 
+# class Parcel is Cool {
+#     ...
+# }
+my stub Parcel metaclass Perl6::Metamodel::ClassHOW { ... };
+Parcel.HOW.add_parent(Parcel, Cool);
+Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu));
+
 # class Iterable is Cool {
 #     ...
 # }
@@ -487,7 +494,7 @@ Hash.HOW.add_parent(Hash, EnumMap);
 Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 
 # Configure declarative listy/hashy types.
-pir::perl6_set_types_list_array_lol__vPP(List, ListIter, Array, LoL);
+pir::perl6_set_types_list_array_lol__vPP(List, ListIter, Array, LoL, Parcel);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
 
 # XXX Quick and dirty Bool. Probably done by EnumHOW in the end.
@@ -578,6 +585,7 @@ my module EXPORT {
         $?PACKAGE.WHO<Real>      := Real;
         $?PACKAGE.WHO<Int>       := Int;
         $?PACKAGE.WHO<Num>       := Num;
+        $?PACKAGE.WHO<Parcel>    := Parcel;  
         $?PACKAGE.WHO<Iterable>  := Iterable;
         $?PACKAGE.WHO<Iterator>  := Iterator;
         $?PACKAGE.WHO<ListIter>  := ListIter;

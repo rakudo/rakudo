@@ -28,7 +28,7 @@ class List does Positional {
             nqp::bindattr(self, List, '$!items', nqp::list());
         my Mu $rpa := nqp::clone($!items);
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
-        pir__perl6_box_rpa__PP($rpa);
+        nqp::p6parcel($rpa, Any);
     }
 
     method at_pos(\$pos) {
@@ -88,8 +88,9 @@ class List does Positional {
         self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
                           || nqp::isnull($!items)
                           || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
-        pir__perl6_box_rpa__PP(
-            pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n))
+        nqp::p6parcel(
+            pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n)),
+            Any
         )
     }
 

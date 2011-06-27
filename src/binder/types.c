@@ -13,6 +13,7 @@ static PMC * Junction   = NULL;
 static PMC * Int        = NULL;
 static PMC * Num        = NULL;
 static PMC * Str        = NULL;
+static PMC * Parcel     = NULL;
 static PMC * List       = NULL;
 static PMC * ListIter   = NULL;
 static PMC * Array      = NULL;
@@ -37,6 +38,9 @@ PMC * Rakudo_types_num_get(void) { return Num; }
 
 void Rakudo_types_str_set(PMC * type) { Str = type; }
 PMC * Rakudo_types_str_get(void) { return Str; }
+
+void Rakudo_types_parcel_set(PMC * type) { Parcel = type; }
+PMC * Rakudo_types_parcel_get(void) { return Parcel; }
 
 void Rakudo_types_list_set(PMC * type) { List = type; }
 PMC * Rakudo_types_list_get(void) { return List; }

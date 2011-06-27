@@ -63,6 +63,27 @@ static void setup_binder_statics(PARROT_INTERP) {
 }
 
 
+/* Creates a Parcel from a RPA, filling PMCNULL elements if needed. */
+/* This function gets shared with perl6.ops for the perl6_parcel_from_rpa op. */
+PMC *
+Rakudo_binding_parcel_from_rpa(PARROT_INTERP, PMC *rpa, PMC *fill) {
+    PMC *type = Rakudo_types_parcel_get();
+    PMC *parcel = REPR(type)->instance_of(interp, type);
+    VTABLE_set_attr_keyed(interp, parcel, type, STORAGE_str, rpa);
+
+    if (!PMC_IS_NULL(fill)) {
+        INTVAL elems = VTABLE_elements(interp, rpa);
+        INTVAL i;
+        for (i = 0; i < elems; i++) {
+            if (PMC_IS_NULL(VTABLE_get_pmc_keyed_int(interp, rpa, i)))
+                VTABLE_set_pmc_keyed_int(interp, rpa, i, fill);
+        }
+    }
+
+    return parcel;
+}
+        
+
 /* Creates a ListIter from a RPA */
 /* This function gets shared with perl6.ops for the perl6_iter_from_rpa op. */
 PMC *

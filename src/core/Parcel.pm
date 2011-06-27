@@ -1,5 +1,7 @@
 my class Parcel does Positional {
-    has $!storage;             # RPA of Parcel's elements
+    # declared in BOOTSTRAP.pm:
+    #    is Cool;              # parent class
+    #    has $!storage;        # RPA of Parcel's elements
 
     method flat() {
         nqp::p6list(pir::clone__PP($!storage), List, 1.Bool)

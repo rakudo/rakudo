@@ -28,7 +28,7 @@ S02-builtin_data_types/array_extending.t
 # S02-builtin_data_types/autovivification.t
 # S02-builtin_data_types/bool.t
 # S02-builtin_data_types/capture.t
-# S02-builtin_data_types/catch_type_cast_mismatch.t
+S02-builtin_data_types/catch_type_cast_mismatch.t
 # S02-builtin_data_types/declare.t
 # S02-builtin_data_types/flattening.t
 # S02-builtin_data_types/hash_ref.t
@@ -65,7 +65,7 @@ S02-literals/hex_chars.t
 # S02-literals/listquote-whitespace.t
 # S02-literals/misc-interpolation.t
 # S02-literals/numeric.t
-# S02-literals/pair-boolean.t
+S02-literals/pair-boolean.t
 # S02-literals/pairs.t
 # S02-literals/quoting.t
 # S02-literals/quoting-unicode.t                              # icu
@@ -223,7 +223,7 @@ S04-statements/do.t
 # S04-statements/loop.t
 # S04-statements/map-and-sort-in-for.t
 # S04-statements/next.t
-# S04-statements/no-implicit-block.t
+S04-statements/no-implicit-block.t
 # S04-statements/redo.t
 # S04-statements/repeat.t
 # S04-statements/return.t

@@ -63,7 +63,7 @@ my class Any {
 }
 
 
-proto sub infix:<cmp>(|$) { * }
+proto sub infix:<cmp>($, $) { * }
 multi sub infix:<cmp>(\$a, \$b) { 
     return -1 if $a == -$Inf || $b == $Inf;
     return  1 if $a ==  $Inf || $b == -$Inf;

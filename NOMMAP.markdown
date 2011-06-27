@@ -12,6 +12,7 @@ Current fails that people are likely to encounter (no particular order):
 * array parameters bind as containers
 * &infix:<cmp>.arity should be 2
 * regexes missing
+* is export on methods
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)

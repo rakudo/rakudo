@@ -1081,7 +1081,8 @@ class Perl6::Actions is HLL::Actions {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
             unless is_clearly_returnless($block) {
-                $block.control('return_pir');
+                $block[1] := PAST::Op.new(:pasttype<lexotic>, :name<RETURN>, $block[1]);
+                # $block.control('return_pir');
             }
         }
         
@@ -1173,7 +1174,8 @@ class Perl6::Actions is HLL::Actions {
             $past := $<blockoid>.ast;
             $past.blocktype('declaration');
             unless is_clearly_returnless($past) {
-                $past.control('return_pir');
+                $past[1] := PAST::Op.new(:pasttype<lexotic>, :name<RETURN>, $past[1]);
+                # $past.control('return_pir');
             }
         }
         $past.name(~$<longname>);

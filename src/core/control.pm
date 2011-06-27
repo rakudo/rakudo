@@ -21,11 +21,12 @@ my &THROW :=
     };
 
 my &return-rw := -> \$parcel = Nil { 
-    THROW($parcel, pir::const::CONTROL_RETURN) 
+    pir::find_caller_lex__Ps('RETURN')($parcel);
+    $parcel
 };
-my &return := -> \$parcel = Nil { 
-    THROW(pir::perl6_decontainerize__PP($parcel), 
-          pir::const::CONTROL_RETURN) 
+my &return := -> \$parcel = Nil {
+    pir::find_caller_lex__Ps('RETURN')(pir::perl6_decontainerize__PP($parcel));
+    $parcel
 };
 
 my &take-rw := -> \$parcel = Nil { 

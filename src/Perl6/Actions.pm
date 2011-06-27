@@ -1625,7 +1625,31 @@ class Perl6::Actions is HLL::Actions {
                 %*PARAM_INFO<variable_name> := ~$/;
                 %*PARAM_INFO<desigilname> := ~$<name>[0];
             }
-            %*PARAM_INFO<sigil> := ~$<sigil>;
+            %*PARAM_INFO<sigil> := my $sigil := ~$<sigil>;
+            
+            # Depending on sigil, use appropriate role.
+            my $need_role;
+            my $role_type;
+            if $sigil eq '@' {
+                $role_type := $*ST.find_symbol(['Positional']);
+                $need_role := 1;
+            }
+            elsif $sigil eq '%' {
+                $role_type := $*ST.find_symbol(['Associative']);
+                $need_role := 1;
+            }
+            elsif $sigil eq '&' {
+                $role_type := $*ST.find_symbol(['Callable']);
+                $need_role := 1;
+            }
+            if $need_role {
+                if pir::exists(%*PARAM_INFO, 'nominal_type') {
+                    $/.CURSOR.panic("Typed arrays/hashes/callables not yet implemented");
+                }
+                else {
+                    %*PARAM_INFO<nominal_type> := $role_type;
+                }
+            }
             
             # Handle twigil.
             my $twigil := $<twigil> ?? ~$<twigil>[0] !! '';

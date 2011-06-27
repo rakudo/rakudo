@@ -8,7 +8,7 @@ my class Attribute {
             my $meth  := self.rw
                 ??
                 method (Mu $self:) {
-                    pir::getattribute__PPPs(
+                    nqp::getattr(
                         pir::perl6_decontainerize__PP($self),
                         $dcpkg,
                         nqp::unbox_s($name))
@@ -16,12 +16,12 @@ my class Attribute {
                 !!
                 method (Mu $self:) {
                     pir::perl6_decontainerize__PP(
-                        pir::getattribute__PPPs(
+                        nqp::getattr(
                             pir::perl6_decontainerize__PP($self),
                             $dcpkg,
                             nqp::unbox_s($name)))
                 };
-            $package.HOW.add_method($package, pir::substr__SSI(
+            $package.HOW.add_method($package, nqp::substr(
                 nqp::unbox_s($name), nqp::unbox_i(2)),
                 $meth);
         }

@@ -33,7 +33,7 @@ class Range is Iterable {
           if $n == $Inf && self.infinite;
         my $value = $!excludes_min ?? $!min.succ !! $!min;
         my $cmpstop = $!excludes_max ?? 0 !! 1;
-        my Mu $rpa := pir::new__Ps('ResizablePMCArray');
+        my Mu $rpa := nqp::list();
         if Int.ACCEPTS($value) || Num.ACCEPTS($value) {
             # Q:PIR optimized for int/num ranges
             $value = $value.Num;
@@ -67,16 +67,16 @@ class Range is Iterable {
             };
         }    
         else {
-          (pir::push__vPP($rpa, $value++); $n--)
+          (nqp::push($rpa, $value++); $n--)
               while $n > 0 && ($value cmp $!max) < $cmpstop;
         }
         if ($value cmp $!max) < $cmpstop {
-            pir::push__vPP($rpa,
+            nqp::push($rpa,
                 ($value.succ cmp $!max < $cmpstop)
                    ?? self.CREATE.BUILD($value, $!max, 0, $!excludes_max)
                    !! $value);
         }
-        pir__perl6_box_rpa__PP($rpa)
+        nqp::p6parcel($rpa, nqp::null());
     }
 
     multi method gist(Range:D:) { self.perl }

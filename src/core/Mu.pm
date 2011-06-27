@@ -5,11 +5,11 @@ my class Mu {
     
     proto method ACCEPTS(|$) { * }
     multi method ACCEPTS(Mu:U: \$topic) {
-        nqp::p6bool(pir::type_check__IPP($topic, self))
+        nqp::p6bool(nqp::istype($topic, self))
     }
 
     method WHERE() {
-        nqp::p6box_i(pir::get_addr__IP(self))
+        nqp::p6box_i(nqp::where(self))
     }
     
     method Bool() {
@@ -21,7 +21,7 @@ my class Mu {
     }
     
     method CREATE() {
-        pir::repr_instance_of__PP(self.WHAT)
+        nqp::create(self.WHAT)
     }
     
     method bless(Mu \$candidate) {
@@ -73,7 +73,7 @@ my class Mu {
     }
     
     method does(Mu $type) {
-        nqp::p6bool(pir::type_check__IPP(self, $type))
+        nqp::p6bool(nqp::istype(self, $type))
     }
     
     # XXX TODO: Handle positional case.
@@ -140,11 +140,11 @@ multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
 sub DUMP(|$) {
     my Mu $args := pir::perl6_current_args_rpa__P();
     my Mu $topic  := nqp::shift($args);
-    if pir::isnull__IP($topic) { '(null)' }
+    if nqp::isnull($topic) { '(null)' }
     elsif pir::isa__IPs($topic, 'ResizablePMCArray') {
-        my $s = 'RPA<' ~ nqp::p6box_s(pir::get_addr__IP($topic)) ~ '>(';
+        my $s = 'RPA<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
         my $t = '';
-        $topic := pir::clone__PP($topic);
+        $topic := nqp::clone($topic);
         while $topic {
             my Mu $x := nqp::shift($topic);
             $s = $s ~ $t ~ DUMP($x);
@@ -153,7 +153,7 @@ sub DUMP(|$) {
         $s ~ ')'
     }
     else { 
-        pir::is_container__IP($topic)
+        nqp::iscont($topic)
           ?? "\x25b6" ~ $topic.DUMP() 
           !! $topic.DUMP()
     }

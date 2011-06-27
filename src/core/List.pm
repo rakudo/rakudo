@@ -57,7 +57,7 @@ class List does Positional {
             nqp::bindattr(self, List, '$!items', nqp::list());
 
         # loop through iterators until we have at least $n elements
-        my $count = nqp::p6box_i(pir::elements($!items));
+        my $count = nqp::p6box_i(nqp::elems($!items));
         my $eager = Whatever.ACCEPTS($n);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
@@ -112,7 +112,7 @@ class List does Positional {
     multi method perl(List:D \$self:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  
-          ~ (pir::is_container__IP($self) ?? '.item' !! '')
+          ~ (nqp::iscont($self) ?? '.item' !! '')
     }
 
     method REIFY(Parcel \$parcel) {
@@ -137,7 +137,7 @@ class List does Positional {
 }
 
 sub eager(|$) {
-    pir__perl6_box_rpa__PP(pir::perl6_current_args_rpa__P()).eager
+    nqp::p6parcel(pir::perl6_current_args_rpa__P(), Any).eager
 }
 
 sub flat(|$) {

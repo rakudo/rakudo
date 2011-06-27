@@ -9,7 +9,7 @@ my class Hash {
     }
 
     multi method perl(Hash:D \$self:) {
-        pir::is_container__IP($self)
+        nqp::iscont($self)
           ?? '{' ~ self.pairs.map({.perl}).join(', ') ~ '}'
           !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
     }
@@ -19,8 +19,7 @@ my class Hash {
     }
 
     method STORE(\$to_store) {
-        pir::setattribute__vPPsP(self, EnumMap, '$!storage', 
-                                pir::new__Ps('Hash'));
+        nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
         my $items = $to_store.flat;
         while $items {
             my Mu $x := $items.shift;

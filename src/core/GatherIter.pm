@@ -5,7 +5,7 @@ class GatherIter is Iterator {
 
     method new($block, :$infinite) {
         my Mu $coro := 
-            pir::clone__PP(pir::getattribute__PPPs(&coro, Code, '$!do'));
+            nqp::clone(nqp::getattr(&coro, Code, '$!do'));
         Q:PIR {
             $P0 = find_lex '$block'
             $P1 = find_lex '$coro'
@@ -18,7 +18,7 @@ class GatherIter is Iterator {
 
     method reify($n is copy = 1) { 
         if !$!reified.defined {
-            my Mu $rpa := pir::new__Ps('ResizablePMCArray');
+            my Mu $rpa := nqp::list();
             my Mu $parcel;
             my $end;
             $n = 1 if Whatever.ACCEPTS($n);
@@ -29,11 +29,11 @@ class GatherIter is Iterator {
                     $P2 = getattribute $P0, $P1, '$!coro'
                     %r = $P2()
                 };
-                $end = nqp::p6bool(pir::isnull__IP($parcel));
-                pir::push__vPP($rpa, $parcel) unless $end;
+                $end = nqp::p6bool(nqp::isnull($parcel));
+                nqp::push($rpa, $parcel) unless $end;
                 $n = $n - 1;
             }
-            pir::push__vPP($rpa, 
+            nqp::push($rpa, 
                 pir::setattribute__0PPsP(
                     pir::setattribute__0PPsP(
                         self.CREATE, GatherIter, '$!coro', $!coro),

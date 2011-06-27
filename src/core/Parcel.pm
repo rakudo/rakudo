@@ -4,13 +4,13 @@ my class Parcel does Positional {
     #    has $!storage;        # RPA of Parcel's elements
 
     method flat() {
-        nqp::p6list(pir::clone__PP($!storage), List, 1.Bool)
+        nqp::p6list(nqp::clone($!storage), List, 1.Bool)
     }
 
     method item() { my $v = self; }
 
     method list() {
-        nqp::p6list(pir::clone__PP($!storage), List, Mu)
+        nqp::p6list(nqp::clone($!storage), List, Mu)
     }
 
     method at_pos(Parcel:D: \$x) { self.flat.at_pos($x); }
@@ -25,7 +25,7 @@ my class Parcel does Positional {
     }
 
     multi method perl(Parcel:D:) {
-        my Mu $rpa := pir::clone($!storage);
+        my Mu $rpa := nqp::clone($!storage);
         my $perl = '(';
         if $rpa {
             $perl = $perl ~ nqp::shift($rpa).perl;
@@ -85,12 +85,7 @@ my class Parcel does Positional {
 
 
 my sub infix:<,>(|$) {
-    # pir::perl6_box_rpa__PP(pir::perl6_current_args_rpa__P())
-    pir::setattribute__0PPsP(
-        pir::repr_instance_of__PP(Parcel),
-        Parcel,
-        '$!storage',
-        pir::perl6_current_args_rpa__P());
+    nqp::p6parcel(pir::perl6_current_args_rpa__P(), nqp::null());
 }
 
 

@@ -24,7 +24,7 @@ my class EnumMap does Associative {
     method values() { self.pairs.map( { $_.value } ) }
     method pairs() {
         gather {
-            my Mu $iter := pir::iter__PP($!storage);
+            my Mu $iter := nqp::iterator($!storage);
             my Mu $pair;
             while $iter {
                 $pair := nqp::shift($iter);
@@ -41,8 +41,7 @@ my class EnumMap does Associative {
 
     method STORE_AT_KEY(Str \$key, \$value) {
         pir::defined($!storage) ||
-            pir::setattribute__vPPsP(self, EnumMap, '$!storage',
-                                     pir::new__Ps('Hash'));
+            nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
         pir::set__2QsP($!storage, nqp::unbox_s($key), $value)
     }
     

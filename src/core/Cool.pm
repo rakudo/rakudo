@@ -29,7 +29,7 @@ my class Cool {
         #    return Mu;
         #}
 
-        nqp::p6box_s(pir::substr(
+        nqp::p6box_s(nqp::substr(
             nqp::unbox_s($str),
             nqp::unbox_i($start),
             nqp::unbox_i($len)));

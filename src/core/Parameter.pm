@@ -25,7 +25,7 @@ my class Parameter {
     method positional() {
         nqp::p6bool(
             ($!flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED)) == 0 &&
-            pir::isnull__IP($!named_names)
+            nqp::isnull($!named_names)
          )
     }
     

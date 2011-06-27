@@ -16,10 +16,10 @@ my class Any {
     method join($separator = ' ') {
         my $list = (self,).flat.eager;
         my Mu $rsa := pir::new__Ps('ResizableStringArray');
-        pir::push__vPS($rsa, nqp::unbox_s($list.shift.Stringy)) 
+        nqp::push($rsa, nqp::unbox_s($list.shift.Stringy)) 
             while $list.gimme(0);
-        pir::push__vPS($rsa, '...') if $list.infinite;
-        nqp::p6box_s(pir::join(nqp::unbox_s($separator.Stringy), $rsa))
+        nqp::push($rsa, '...') if $list.infinite;
+        nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Stringy), $rsa))
     }
 
     method map($block) is rw {

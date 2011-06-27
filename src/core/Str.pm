@@ -110,19 +110,19 @@ my class Str {
 
 
 multi infix:<cmp>(Str \$a, Str \$b) {
-    nqp::p6box_i(pir::cmp__ISS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 proto infix:<x>(|$) {*}
 multi infix:<x>(Str $s, Int $repetition) {
-    nqp::p6box_s(pir::repeat__SSI(nqp::unbox_s($s), nqp::unbox_i($repetition)))
+    nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
 }
 multi infix:<x>($s, $repetition) { $s.Stringy x $repetition.Numeric }
 
 multi prefix:<~>(Str \$a) { $a }
 
 multi infix:<~>(Str \$a, Str \$b) {
-    nqp::p6box_s(pir::concat__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6box_s(nqp::concat(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<eq>(Str \$a, Str \$b) {

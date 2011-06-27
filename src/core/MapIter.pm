@@ -22,7 +22,7 @@ my class MapIter is Iterator {
             my $block := pir::perl6_decontainerize__PP($!block); ### TODO: Why?
             $n = nqp::istype($n, Whatever) ?? 1000 !! $n.Int;
             $!list.gimme($count * $n);
-            my Mu $rpa := pir::new__Ps('ResizablePMCArray');
+            my Mu $rpa := nqp::list();
             my Mu $args;
             repeat {
                 $args := nqp::getattr($!list.munch($!block.count), 

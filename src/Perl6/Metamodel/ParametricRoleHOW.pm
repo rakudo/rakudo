@@ -27,6 +27,10 @@ class Perl6::Metamodel::ParametricRoleHOW
         $obj
     }
     
+    method is_composed($obj) {
+        $!composed
+    }
+    
     method type_check($obj, $checkee) {
         if $obj =:= $checkee {
             return 1;

@@ -10,7 +10,7 @@ say '1..3';
 Q:PIR { say 'ok 1' };
 
 ## assigned to a variable
-my $a = Q:PIR { %r = box 'ok 2' };
+my $a = Q:PIR { %r = perl6_box_str 'ok 2' };
 say $a;
 
 ## within a subroutine

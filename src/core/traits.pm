@@ -1,5 +1,10 @@
 use Perl6::Metamodel;
 
+# Stub these or we can't use any sigil other than $.
+my role Positional { ... }
+my role Associative { ... }
+my role Callable { ... }
+
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     $child.HOW.add_parent($child, $parent);

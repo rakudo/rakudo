@@ -1,5 +1,12 @@
 my class Exception {
     has $!ex;
+
+    method throw() {
+        pir::throw__vP(nqp::getattr(self, Exception, '$!ex'))
+    }
+    method rethrow() {
+        pir::rethrow__vP(nqp::getattr(self, Exception, '$!ex'))
+    }
 }
 
 sub EXCEPTION(|$) {

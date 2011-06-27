@@ -62,7 +62,6 @@ my &proceed := -> {
 }
 
 sub die(*@msg) { pir::die(@msg.join('')) }
-sub fail(*@msg) { pir::die(@msg.join('')) }
 
 sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {

@@ -277,7 +277,10 @@ multi sub infix:<**>(Complex $a, Real $b) {
 }
 
 multi sub infix:<**>(Real $a, Complex $b) {
-    ($a.log * $b).exp;
+    # The .Complex coming up may seem unnecessary,
+    # but some Reals do not have real logs but do
+    # have complex logs.
+    ($a.Complex.log * $b).exp;
 }
 
 # vim: ft=perl6

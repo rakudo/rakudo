@@ -55,7 +55,8 @@ class GatherIter is Iterator {
             handler.'handle_types'(.CONTROL_TAKE)
             set_addr handler, take_handler
             push_eh handler
-            block()
+            $P0 = block()
+            $P0.'eager'()
             pop_eh
           gather_done:
             null taken

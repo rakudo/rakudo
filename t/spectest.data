@@ -536,15 +536,15 @@ S32-array/bool.t
 # S32-str/append.t
 S32-str/bool.t
 # S32-str/capitalize.t                                       # icu
-# S32-str/chomp.t
-# S32-str/chop.t
+S32-str/chomp.t
+S32-str/chop.t
 # S32-str/comb.t                                             # icu
 # S32-str/encode.t
-# S32-str/flip.t
-# S32-str/indent.t                                            # icu
+S32-str/flip.t
+# S32-str/indent.t                                           # icu
 # S32-str/index.t
-# S32-str/lcfirst.t                                            # icu
-# S32-str/lc.t                                                 # icu
+# S32-str/lc.t                                               # icu
+# S32-str/lcfirst.t                                          # icu
 # S32-str/lines.t
 # S32-str/p5chomp.t
 # S32-str/p5chop.t
@@ -557,8 +557,8 @@ S32-str/bool.t
 # S32-str/sprintf.t
 # S32-str/substr.t
 # S32-str/trim.t
-# S32-str/ucfirst.t                                          # icu
 # S32-str/uc.t                                               # icu
+# S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t
 # S32-str/words.t                                            # icu
 # S32-temporal/calendar.t

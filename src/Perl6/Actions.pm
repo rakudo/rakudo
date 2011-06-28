@@ -745,8 +745,8 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_pair($key_str, $value) {
-        my $key := $*ST.add_constant('Str', 'str', $key_str);
-        $key.named('key');
+        my $key := PAST::Stmts.new(:named('key'),
+                       $*ST.add_constant('Str', 'str', $key_str));
         $value.named('value');
         PAST::Op.new(
             :pasttype('callmethod'), :name('new'), :returns('Pair'),
@@ -2124,7 +2124,7 @@ class Perl6::Actions is HLL::Actions {
     sub handle_parameter($arg, $/) {
         if $arg ~~ PAST::Op && $arg.returns eq 'Pair' {
             my $result := $arg[2];
-            $result.named(compile_time_value_str($arg[1], 'LHS of pair', $/));
+            $result.named(compile_time_value_str($arg[1][0], 'LHS of pair', $/));
             $result<before_promotion> := $arg;
             $result;
         }

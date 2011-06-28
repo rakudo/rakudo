@@ -8,10 +8,11 @@ my class Any {
     ########
 
     method eager() { nqp::p6list(nqp::list(self), List, 1.Bool).eager }
-    method flat() { nqp::p6list(nqp::list(self), List, 1.Bool) }
-    method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method elems() { self.list.elems }
     method infinite() { Mu }
+    method flat() { nqp::p6list(nqp::list(self), List, 1.Bool) }
+    method list() { nqp::p6list(nqp::list(self), List, Mu) }
+    method reverse() { self.list.reverse }
 
     method Array() { Array.new(self.flat) }
 

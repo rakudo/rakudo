@@ -101,6 +101,15 @@ class List does Positional {
         self.STORE_AT_POS($pos++, @values.shift) while @values;
     }
 
+    method reverse() {
+        self.gimme(*);
+        fail 'Cannot reverse and infinite list' if self.infinite;
+        my Mu $rev := nqp::list();
+        my Mu $iter := nqp::iterator($!items);
+        nqp::push($rev, nqp::shift($iter)) while $iter;
+        nqp::p6parcel($rev, nqp::null())
+    }
+
     method shift() {
         # make sure we have at least one item, then shift+return it
         self.gimme(1) 

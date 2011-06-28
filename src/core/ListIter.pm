@@ -78,29 +78,3 @@ my class ListIter {
 }
 
 
-# C<pir__perl6_list_from_rpa> and C<pir__perl6_iter_from_rpa> are now opcodes;
-# we leave these here for documentation purposes.
-# sub pir::perl6_list_from_rpa__PPPP(|$) {
-#     my $args     := pir::perl6_current_args_rpa__P();
-#     my Mu $rpa   := nqp::shift($args);
-#     my $type     := nqp::shift($args);
-#     my $flattens := nqp::shift($args);
-# 
-#     my $list := pir::repr_instance_of__PP($type);
-#     pir::setattribute__vPPsP($list, $type, '$!flattens', $flattens);
-#     pir::setattribute__vPPsP($list, $type, '$!nextiter',
-#         pir__perl6_iter_from_rpa__PPP($rpa, $list)
-#     )
-# }
-# 
-# sub pir::perl6_iter_from_rpa__PPP(|$) {
-#     my $args     := pir::perl6_current_args_rpa__P();
-#     my Mu $rpa   := nqp::shift($args);
-#     my $list     := nqp::shift($args);
-# 
-#     pir::setattribute__0PPsP(
-#         pir::setattribute__0PPsP(
-#             pir::repr_instance_of__PP(ListIter),
-#             ListIter, '$!rest', $rpa),
-#         ListIter, '$!list', $list)
-# }

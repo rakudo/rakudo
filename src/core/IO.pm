@@ -12,7 +12,7 @@ sub say(|$) {
 }
 
 sub gist(|$) {
-    pir__perl6_box_rpa__PP(pir::perl6_current_args_rpa__P()).gist
+    nqp::p6parcel(pir::perl6_current_args_rpa__P(), Mu).gist
 }
 
 class IO {

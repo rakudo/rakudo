@@ -39,7 +39,7 @@ class GatherIter is Iterator {
                         self.CREATE, GatherIter, '$!coro', $!coro),
                     GatherIter, '$!infinite', $!infinite))
                 unless $end;
-            $!reified := pir__perl6_box_rpa__PP($rpa);
+            $!reified := nqp::p6parcel($rpa, nqp::null());
         }
         $!reified
     }

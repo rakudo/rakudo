@@ -136,20 +136,20 @@ S03-operators/chained-declarators.t
 # S03-operators/cmp.t
 # S03-operators/comparison.t                # need Order::Increase
 S03-operators/comparison-simple.t
-# S03-operators/context-forcers.t
-# S03-operators/context.t
-# S03-operators/equality.t
+# S03-operators/context-forcers.t           # need True
+# S03-operators/context.t                   # need regexes
+# S03-operators/equality.t                  # need meta-not
 # S03-operators/eqv.t
-# S03-operators/identity.t
+# S03-operators/identity.t                  # need array element binding
 # S03-operators/increment.t
 # S03-operators/inplace.t
 # S03-operators/is-divisible-by.t
 # S03-operators/list-quote-junction.t
 # S03-operators/minmax.t
-# S03-operators/misc.t
-# S03-operators/names.t
+# S03-operators/misc.t                      # need regexes
+# S03-operators/names.t                     # need regexes
 # S03-operators/nesting.t
-# S03-operators/not.t
+# S03-operators/not.t                       # need Bool::True
 # S03-operators/numeric-context.t
 # S03-operators/precedence.t
 # S03-operators/range-basic.t

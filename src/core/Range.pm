@@ -87,11 +87,11 @@ class Range is Iterable does Positional {
 
     multi method gist(Range:D:) { self.perl }
     multi method perl(Range:D:) { 
-        $.min 
+        $.min.perl
           ~ ('^' if $.excludes_min)
           ~ '..'
           ~ ('^' if $.excludes_max)
-          ~ $.max
+          ~ $.max.perl
     }
 
     multi method DUMP(Range:D:) {

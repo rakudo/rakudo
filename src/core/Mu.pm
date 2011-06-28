@@ -4,7 +4,7 @@ my class Mu {
     }
     
     proto method ACCEPTS(|$) { * }
-    multi method ACCEPTS(Mu:U: \$topic) {
+    multi method ACCEPTS(Mu:U: Mu \$topic) {
         nqp::p6bool(nqp::istype($topic, self))
     }
 

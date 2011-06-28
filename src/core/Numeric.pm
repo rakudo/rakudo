@@ -48,6 +48,9 @@ multi infix:<**>(\$a, \$b) { $a.Numeric ** $b.Numeric }
 
 ## relational operators
 
+proto infix:«<=>»(|$) { * }
+multi infix:«<=>»(\$a, \$b)   { $a.Numeric <=> $b.Numeric }
+
 proto infix:<==>(|$) { * }
 multi infix:<==>(\$a, \$b)   { $a.Numeric == $b.Numeric }
 

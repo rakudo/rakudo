@@ -1,4 +1,4 @@
-my class Pair is Enum {
+my class Pair is Enum does Associative {
     # method value() is rw { ... }
 }
 

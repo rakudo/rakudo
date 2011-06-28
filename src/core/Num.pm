@@ -171,6 +171,10 @@ multi infix:<cmp>(Num \$a, Num \$b) {
     nqp::p6box_n(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
+multi infix:<===>(Num \$a, Num \$b) {
+    nqp::p6bool(nqp::iseq_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+
 multi infix:<==>(Num \$a, Num \$b) {
     nqp::p6bool(nqp::iseq_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }

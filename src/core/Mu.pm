@@ -11,6 +11,10 @@ my class Mu {
     method WHERE() {
         nqp::p6box_i(nqp::where(self))
     }
+
+    method WHICH() {
+        nqp::p6box_i(nqp::where(self))
+    }
     
     proto method Bool(|$) {*}
     multi method Bool() {
@@ -74,7 +78,7 @@ my class Mu {
     }
     
     method does(Mu $type) {
-        nqp::p6bool(nqp::istype(self, $type))
+        nqp::p6bool(nqp::istype(self, $type.WHAT))  # XXX HOW.does(...)?
     }
     
     # XXX TODO: Handle positional case.

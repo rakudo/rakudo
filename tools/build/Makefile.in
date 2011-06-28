@@ -118,12 +118,12 @@ METAMODEL_SOURCES = \
 # setting - basically anything that feels MOP-ish.
 CORE_SOURCES = \
   src/core/traits.pm \
-  src/core/stubs.pm \
-  src/core/natives.pm \
-  src/core/control.pm \
   src/core/Positional.pm \
   src/core/Associative.pm \
   src/core/Callable.pm \
+  src/core/stubs.pm \
+  src/core/natives.pm \
+  src/core/control.pm \
   src/core/Mu.pm \
   src/core/Any.pm \
   src/core/Code.pm \

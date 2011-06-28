@@ -95,6 +95,9 @@ multi sub infix:<cmp>(\$a, \$b) {
     $a.Stringy cmp $b.Stringy 
 }
 
+proto sub infix:<===>($, $) { * }
+multi sub infix:<===>($a, $b) { $a.WHICH === $b.WHICH }
+
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$) { * }
 multi prefix:<++>(Mu:D \$a is rw) { $a = $a.succ }

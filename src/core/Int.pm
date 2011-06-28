@@ -97,6 +97,10 @@ multi infix:<cmp>(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::cmp_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
+multi infix:<===>(Int \$a, Int \$b) {
+    nqp::p6bool(nqp::iseq_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+}
+
 multi infix:<==>(Int \$a, Int \$b) {
     nqp::p6bool(nqp::iseq_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }

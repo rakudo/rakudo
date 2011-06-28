@@ -14,27 +14,34 @@ my class MapIter is Iterator {
         self 
     }
 
-    method reify($n is copy = 1, :$sink) {
+    method reify($n = 1, :$sink) {
         if !$!reified.defined {
             ## we don't have good control blocks yet, so we'll 
             ## temporarily implement MapIter with Q:PIR blocks.
-            my $count = $!block.count;
-            $n = nqp::istype($n, Whatever) ?? 1000 !! $n.Int;
-            $!list.gimme($count * $n);
+            my $argc = $!block.count;
+            $argc = 1 if $argc < 1;
+            my $count;
+            if nqp::istype($n, Whatever) {
+                $count = ($!list.gimme(*).Num / $argc).ceil.Int
+            }
+            else {
+                $count = $n.Int; $!list.gimme($argc * $count);
+            }
+            $count = 1 if $count < 1;
             my Mu $rpa := nqp::list();
             my $block := pir::perl6_decontainerize__PP($!block); ### TODO: Why?
             my $list := pir::perl6_decontainerize__PP($!list);
             my Mu $args := Q:PIR {
-                .local int n
-                .local pmc rpa, block, count, list, Parcel, List, result
+                .local int count
+                .local pmc rpa, block, argc, list, Parcel, List, result
                 rpa    = find_lex '$rpa'
                 block  = find_lex '$block'
-                count  = find_lex '$count'
+                argc   = find_lex '$argc'
                 list   = find_lex '$list'
                 Parcel = find_lex 'Parcel'
                 List   = find_lex 'List'
-                $P0    = find_lex '$n'
-                n      = repr_unbox_int $P0
+                $P0    = find_lex '$count'
+                count  = repr_unbox_int $P0
                 .local pmc handler
                 handler = root_new ['parrot';'ExceptionHandler']
                 set_addr handler, catch
@@ -42,11 +49,11 @@ my class MapIter is Iterator {
                 push_eh handler
               next:
                 $I0 = elements rpa
-                unless $I0 < n goto last
+                unless $I0 < count goto done
                 .local pmc args
-                args = list.'munch'(count)
+                args = list.'munch'(argc)
                 args = getattribute args, Parcel, '$!storage'
-                unless args goto last
+                unless args goto done
                 result = block(args :flat)
                 push rpa, result
                 goto next
@@ -63,6 +70,8 @@ my class MapIter is Iterator {
                 splice $P0, args, 0, 0
                 goto next
               last:
+                args = perl6_booleanize 0
+              done:
                 pop_eh
                 %r = args
             };
@@ -75,8 +84,6 @@ my class MapIter is Iterator {
         }
         $!reified
     }
-
-    method infinite() { $!list.infinite }
 
     method DUMP() {
         self.DUMP-ID() ~ '('

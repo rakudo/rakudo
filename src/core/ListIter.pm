@@ -5,11 +5,11 @@ my class ListIter {
     #   has Mu $!rest;         # RPA of elements remaining to be reified
     #   has $!list;            # List object associated with this iterator
     
-    method reify($n is copy, :$sink) {
+    method reify($n = 1, :$sink) {
         if !$!reified.defined {
             my $eager = Whatever.ACCEPTS($n);
             my $flattens = $!list.defined && $!list.flattens;
-            my $count = $eager ?? 100000 !! $n;
+            my $count = $eager ?? 100000 !! $n.Int;
             my $rpa := nqp::list();
             my Mu $x;
             my $index;
@@ -26,7 +26,12 @@ my class ListIter {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {
                         (nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
-                        $x := $x.iterator.reify($count) if nqp::istype($x, Iterable);
+                        $x := $x.iterator.reify(
+                                  $eager 
+                                    ?? Whatever 
+                                    !! nqp::p6box_i(nqp::sub_i(nqp::unbox_i($count),
+                                                               nqp::elems($rpa))))
+                            if nqp::istype($x, Iterable);
                         nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
                     
                     }

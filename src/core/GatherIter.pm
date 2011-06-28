@@ -16,13 +16,13 @@ class GatherIter is Iterator {
             GatherIter, '$!infinite', $infinite);
     }
 
-    method reify($n is copy = 1) { 
+    method reify($n = 1) { 
         if !$!reified.defined {
             my Mu $rpa := nqp::list();
             my Mu $parcel;
             my $end;
-            $n = 1 if Whatever.ACCEPTS($n);
-            while !$end && $n > 0 {
+            my $count = nqp::istype($n, Whatever) ?? 1 !! $n;
+            while !$end && $count > 0 {
                 $parcel := Q:PIR {
                     $P0 = find_lex 'self'
                     $P1 = find_lex 'GatherIter'
@@ -31,7 +31,7 @@ class GatherIter is Iterator {
                 };
                 $end = nqp::p6bool(nqp::isnull($parcel));
                 nqp::push($rpa, $parcel) unless $end;
-                $n = $n - 1;
+                $count = $count - 1;
             }
             nqp::push($rpa, 
                 pir::setattribute__0PPsP(

@@ -27,10 +27,16 @@ class Range is Iterable {
     method iterator() { self }
     method list()     { self.flat }
 
-    method reify($n is copy = 10) {
-        $n = nqp::istype($n, Whatever) ?? $Inf !! $n.Num;
-        fail "request for infinite elements from range"
-          if $n == $Inf && self.infinite;
+    method reify($n = 10) {
+        my $count;
+        if nqp::istype($n, Whatever) {
+            $count = self.infinite ?? 10 !! $Inf;
+        }
+        else {
+            $count = $n.Num;
+            fail "request for infinite elements from range"
+              if $count == $Inf && self.infinite;
+        }
         my $value = $!excludes_min ?? $!min.succ !! $!min;
         my $cmpstop = $!excludes_max ?? 0 !! 1;
         my Mu $rpa := nqp::list();
@@ -39,26 +45,26 @@ class Range is Iterable {
             $value = $value.Num;
             my $max = $!max.Num;
             Q:PIR {
-                .local pmc rpa, value_pmc, n_pmc
-                .local num value, n, max
+                .local pmc rpa, value_pmc, count_pmc
+                .local num value, count, max
                 .local int cmpstop
                 rpa = find_lex '$rpa'
                 value_pmc = find_lex '$value'
                 value = repr_unbox_num value_pmc
-                n_pmc = find_lex '$n'
-                n = repr_unbox_num n_pmc
+                count_pmc = find_lex '$count'
+                count = repr_unbox_num count_pmc
                 $P0 = find_lex '$max'
                 max = repr_unbox_num $P0
                 $P0 = find_lex '$cmpstop'
                 cmpstop = repr_unbox_int $P0
               loop:
-                unless n > 0 goto done
+                unless count > 0 goto done
                 $I0 = cmp value, max
                 unless $I0 < cmpstop goto done
                 $P0 = perl6_box_num value
                 push rpa, $P0
                 inc value
-                dec n
+                dec count
                 goto loop
               done:
                 $P0 = perl6_box_num value
@@ -67,8 +73,8 @@ class Range is Iterable {
             };
         }    
         else {
-          (nqp::push($rpa, $value++); $n--)
-              while $n > 0 && ($value cmp $!max) < $cmpstop;
+          (nqp::push($rpa, $value++); $count--)
+              while $count > 0 && ($value cmp $!max) < $cmpstop;
         }
         if ($value cmp $!max) < $cmpstop {
             nqp::push($rpa,

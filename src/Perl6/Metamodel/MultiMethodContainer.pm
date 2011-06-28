@@ -38,10 +38,11 @@ role Perl6::Metamodel::MultiMethodContainer {
 
             # Do we have anything in the methods table already in
             # this class?
-            my $dispatcher := (self.method_table($obj)){$name};
-            if pir::defined($dispatcher) {
+            my %meths := self.method_table($obj);
+            if pir::exists(%meths, $name) {
                 # Yes. Only or dispatcher, though? If only, error. If
                 # dispatcher, simply add new dispatchee.
+                my $dispatcher := %meths{$name};
                 if $dispatcher.is_dispatcher {
                     $dispatcher.add_dispatchee($code);
                 }
@@ -59,10 +60,10 @@ role Perl6::Metamodel::MultiMethodContainer {
                 while $j != +@mro && !$found {
                     my $parent := @mro[$j];
                     my %meths := $parent.HOW.method_table($parent);
-                    my $dispatcher := %meths{$name};
-                    if pir::defined($dispatcher) {
+                    if pir::exists(%meths, $name) {
                         # Found a possible - make sure it's a dispatcher, not
                         # an only.
+                        my $dispatcher := %meths{$name};
                         if $dispatcher.is_dispatcher {
                             # Clone it and install it in our method table.
                             my $copy := $dispatcher.derive_dispatcher();

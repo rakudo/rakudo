@@ -1,4 +1,4 @@
-class Range is Iterable {
+class Range is Iterable does Positional {
     has $.min;
     has $.max;
     has $.excludes_min;

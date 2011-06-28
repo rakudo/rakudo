@@ -45,12 +45,13 @@ my class Any {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.at_pos($pos)
     }
-    # XXX: Temporary hack to allow slicing; the below method(s) should be
-    #      (@pos) when List, Range, Parcel, etc. "does Positional".
-    multi method postcircumfix:<[ ]>(Iterable \$pos) {
-        $pos.map({self[$_]}).Parcel
+    multi method postcircumfix:<[ ]>(Positional $pos) is rw {
+        my $list = $pos.flat;
+        $list.gimme(*);
+        $list.map($list.infinite
+                   ?? { last if $_ >= self.gimme($_ + 1); self[$_] }
+                   !! { self[$_] }).eager.Parcel;
     }
-    multi method postcircumfix:<[ ]>(Parcel \$pos) { self[$pos.flat] }
 
     ########
     # Hash-like methods for Any.

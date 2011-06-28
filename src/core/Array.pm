@@ -7,7 +7,8 @@ class Array {
         nqp::p6list($args, self.WHAT, 1.Bool);
     }
     
-    method at_pos($pos) {
+    method at_pos($pos is copy) {
+        $pos = $pos.Int;
         self.exists($pos)
           ?? pir::find_method__PPs(List, 'at_pos')(self, $pos)
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',

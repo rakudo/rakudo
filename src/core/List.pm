@@ -31,7 +31,8 @@ class List does Positional {
         nqp::p6parcel($rpa, Any);
     }
 
-    method at_pos(\$pos) {
+    method at_pos($pos is copy) {
+        $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
           !! Mu

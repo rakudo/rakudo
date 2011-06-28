@@ -3,6 +3,8 @@ my class Parcel does Positional {
     #    is Cool;              # parent class
     #    has $!storage;        # RPA of Parcel's elements
 
+    multi method Str(Parcel:D:) { self.flat.Str }
+
     method flat() {
         nqp::p6list(nqp::clone($!storage), List, 1.Bool)
     }

@@ -20,7 +20,7 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
-# S02-builtin_data_types/anon_block.t
+S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
 # S02-builtin_data_types/array_ref.t
 # S02-builtin_data_types/array.t

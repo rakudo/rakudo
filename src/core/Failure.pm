@@ -21,11 +21,8 @@ my class Failure {
     }
     multi method Bool(Failure:D:) { $!handled = 1; 0.Bool; }
 
-    proto method Int(|$) {*}
-    multi method Int(Failure:D:) { $!handled ?? 0 !! $!exception.rethrow; }
-    proto method Num(|$) {*}
-    multi method Num(Failure:D:) { $!handled ?? 0e0 !! $!exception.rethrow; }
-    proto method Str(|$) {*}
+    method Int(Failure:D:) { $!handled ?? 0 !! $!exception.rethrow; }
+    method Num(Failure:D:) { $!handled ?? 0e0 !! $!exception.rethrow; }
     multi method Str(Failure:D:) { $!handled ?? '' !! $!exception.rethrow; }
 }
 
@@ -43,7 +40,7 @@ my &fail := -> *@msg {
                      .get_results (%r)
                      pop_eh
                  };
-    my $fail = Failure.new(EXCEPTION($ex));
+    my $fail := Failure.new(EXCEPTION($ex));
     my Mu $return := pir::find_caller_lex__Ps('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail

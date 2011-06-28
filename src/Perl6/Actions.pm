@@ -3426,6 +3426,7 @@ class Perl6::Actions is HLL::Actions {
             add_signature_binding_code($block, $signature, @params);
             my $code := $*ST.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));
+            $past.returns('WhateverCode');
             $past.arity(+@params);
         }
         $past

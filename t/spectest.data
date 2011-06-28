@@ -43,8 +43,8 @@ S02-builtin_data_types/catch_type_cast_mismatch.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/nil.t
 # S02-builtin_data_types/num.t
-# S02-builtin_data_types/pair.t
-# S02-builtin_data_types/parcel.t
+# S02-builtin_data_types/pair.t             # pair := bindingsj
+S02-builtin_data_types/parcel.t
 S02-builtin_data_types/parsing-bool.t
 # S02-builtin_data_types/range.t
 # S02-builtin_data_types/set.t

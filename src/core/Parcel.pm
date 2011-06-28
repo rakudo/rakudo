@@ -4,6 +4,7 @@ my class Parcel does Positional {
     #    has $!storage;        # RPA of Parcel's elements
 
     multi method Str(Parcel:D:) { self.flat.Str }
+    method Numeric()            { self.flat.elems }
 
     method flat() {
         nqp::p6list(nqp::clone($!storage), List, 1.Bool)

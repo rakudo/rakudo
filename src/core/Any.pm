@@ -13,6 +13,8 @@ my class Any {
     method elems() { self.list.elems }
     method infinite() { Mu }
 
+    method Array() { Array.new(self.flat) }
+
     method grep(Mu $test) is rw {
         gather { self.map({ take $_ if $_ ~~ $test }) }
     }

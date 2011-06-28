@@ -55,13 +55,22 @@ my class Any {
     multi method postcircumfix:<[ ]>(WhateverCode $block) is rw {
         self[$block(|(self.elems xx $block.count))]
     }
+    multi method postcircumfix:<[ ]>(Whatever) is rw {
+        self[^self.elems]
+    }
 
     ########
     # Hash-like methods for Any.
     ########
     proto method postcircumfix:<{ }>(|$) { * }
-    multi method postcircumfix:<{ }>(\$key) is rw {
+    multi method postcircumfix:<{ }>($key) is rw {
         self.at_key($key)
+    }
+    multi method postcircumfix:<{ }>(Positional $key) {
+        $key.map({ self{$_ } }).eager.Parcel
+    }
+    multi method postcircumfix:<{ }>(Whatever) {
+        self{self.keys}
     }
 
 }

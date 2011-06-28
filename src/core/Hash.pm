@@ -1,7 +1,8 @@
 my class Hash {
     # Has attributes and parent EnumMap declared in BOOTSTRAP
     
-    method at_key($key) {
+    method at_key($key is copy) {
+        $key = $key.Str;
         self.exists($key)
           ?? pir::find_method__PPs(EnumMap, 'at_key')(self, $key)
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
@@ -23,11 +24,11 @@ my class Hash {
         my $items = $to_store.flat;
         while $items {
             my Mu $x := $items.shift;
-            if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key, $x.value) }
+            if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key.Str, $x.value) }
             elsif EnumMap.ACCEPTS($x) {
-                for $x.list { self.STORE_AT_KEY(.key, lvaue) }
+                for $x.list { self.STORE_AT_KEY(.key.Str, lvaue) }
             }
-            elsif $items { self.STORE_AT_KEY($x, $items.shift) }
+            elsif $items { self.STORE_AT_KEY($x.Str, $items.shift) }
             else {
                 fail 'Odd number of elements found where hash expected'
             }

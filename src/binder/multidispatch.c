@@ -122,11 +122,11 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
      * for the terminating null. */
     INTVAL num_candidates = VTABLE_elements(interp, candidates);
     Rakudo_md_candidate_info ** const result = mem_allocate_n_zeroed_typed(
-            2 * num_candidates + 1, Rakudo_md_candidate_info*);
+            2 * num_candidates + 2, Rakudo_md_candidate_info*);
 
     /* Create a node for each candidate in the graph. */
     Rakudo_md_candidate_graph_node ** const graph = mem_allocate_n_zeroed_typed(
-            num_candidates, Rakudo_md_candidate_graph_node*);
+            num_candidates + 1, Rakudo_md_candidate_graph_node*);
 
     INTVAL insert_pos = 0;
 
@@ -367,7 +367,7 @@ candidates or that it was ambiguous if there were tied candidates.
 static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candidates,
                                 INTVAL num_candidates, PMC *capture, opcode_t *next) {
     Rakudo_md_candidate_info **cur_candidate    = candidates;
-    Rakudo_md_candidate_info **possibles        = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
+    Rakudo_md_candidate_info **possibles        = mem_allocate_n_typed(num_candidates + 1, Rakudo_md_candidate_info *);
     PMC                       *junctional_res   = PMCNULL;
     const INTVAL               num_args         = VTABLE_elements(interp, capture);
     INTVAL                     possibles_count  = 0;
@@ -588,7 +588,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
         mem_sys_free(possibles);
         Parrot_ex_throw_from_c_args(interp, next, 1,
             "No applicable candidates found to dispatch to for '%Ss'. Available candidates are:\n%Ss",
-                VTABLE_get_string(interp, candidates[0]->sub),
+                (candidates[0] ? VTABLE_get_string(interp, candidates[0]->sub) : STRINGNULL),
                 signatures);
     }
     else {

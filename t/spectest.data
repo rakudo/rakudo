@@ -39,7 +39,7 @@ S02-builtin_data_types/catch_type_cast_mismatch.t
 # S02-builtin_data_types/mixed_multi_dimensional.t
 # S02-builtin_data_types/multi_dimensional_array.t
 # S02-builtin_data_types/nan.t              # need NaN constant
-# S02-builtin_data_types/nested_arrays.t
+S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/nil.t
 # S02-builtin_data_types/num.t
@@ -49,10 +49,10 @@ S02-builtin_data_types/parsing-bool.t
 # S02-builtin_data_types/range.t
 # S02-builtin_data_types/set.t  
 S02-builtin_data_types/sigils-and-types.t
-# S02-builtin_data_types/subscripts_and_context.t
-# S02-builtin_data_types/type.t
-# S02-builtin_data_types/undefined-types.t
-# S02-builtin_data_types/whatever.t
+S02-builtin_data_types/subscripts_and_context.t
+# S02-builtin_data_types/type.t             # missing 'of XXX' type constraint
+# S02-builtin_data_types/undefined-types.t  # needs working <sink>
+# S02-builtin_data_types/whatever.t         # needs enum support
 # S02-lexical-conventions/unicode.t                          # icu
 # S02-literals/array-interpolation.t
 # S02-literals/autoref.t

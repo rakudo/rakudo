@@ -87,7 +87,7 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
         }
         
         /* If we get here, all is fine; store the value. */
-        scalar->value = value;
+        scalar->value = Rakudo_cont_decontainerize(interp, value);
         PARROT_GC_WRITE_BARRIER(interp, cont);
     }
     

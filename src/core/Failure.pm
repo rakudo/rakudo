@@ -12,12 +12,21 @@ my class Failure {
         self;
     }
 
-    method defined() { $!handled = 1; 0.Bool; }
-    method Bool() { $!handled = 1; 0.Bool; }
+    # TODO: should be Failure:D: multi just like method Bool,
+    # but obscure problems prevent us from making Mu.defined
+    # a multi. See http://irclog.perlgeek.de/perl6/2011-06-28#i_4016747
+    method defined() {
+        $!handled =1 if nqp::p6bool(pir::repr_defined__IP(self));
+        0.Bool;
+    }
+    multi method Bool(Failure:D:) { $!handled = 1; 0.Bool; }
 
-    method Int() { $!handled ?? 0 !! $!exception.rethrow; }
-    method Num() { $!handled ?? 0e0 !! $!exception.rethrow; }
-    method Str() { $!handled ?? '' !! $!exception.rethrow; }
+    proto method Int(|$) {*}
+    multi method Int(Failure:D:) { $!handled ?? 0 !! $!exception.rethrow; }
+    proto method Num(|$) {*}
+    multi method Num(Failure:D:) { $!handled ?? 0e0 !! $!exception.rethrow; }
+    proto method Str(|$) {*}
+    multi method Str(Failure:D:) { $!handled ?? '' !! $!exception.rethrow; }
 }
 
 

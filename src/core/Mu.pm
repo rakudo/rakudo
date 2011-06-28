@@ -12,7 +12,8 @@ my class Mu {
         nqp::p6box_i(nqp::where(self))
     }
     
-    method Bool() {
+    proto method Bool(|$) {*}
+    multi method Bool() {
         self.defined
     }
     

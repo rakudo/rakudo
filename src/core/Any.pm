@@ -52,6 +52,9 @@ my class Any {
                    ?? { last if $_ >= self.gimme($_ + 1); self[$_] }
                    !! { self[$_] }).eager.Parcel;
     }
+    multi method postcircumfix:<[ ]>(WhateverCode $block) is rw {
+        self[$block(|(self.elems xx $block.count))]
+    }
 
     ########
     # Hash-like methods for Any.

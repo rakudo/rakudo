@@ -149,7 +149,7 @@ sub list(|$) {
 
 sub infix:<xx>(Mu \$x, $n is copy) {
     $n = $Inf if Whatever.ACCEPTS($n);
-    GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf))
+    GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 
 

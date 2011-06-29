@@ -160,7 +160,7 @@ S03-operators/comparison-simple.t
 # S03-operators/repeat.t
 # S03-operators/scalar-assign.t
 # S03-operators/short-circuit.t
-# S03-operators/spaceship-and-containers.t
+S03-operators/spaceship-and-containers.t
 # S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
@@ -219,14 +219,14 @@ S04-statements/do.t
 # S04-statements/gather.t
 # S04-statements/given.t
 # S04-statements/if.t
-# S04-statements/last.t
+S04-statements/last.t
 # S04-statements/loop.t
 # S04-statements/map-and-sort-in-for.t
 # S04-statements/next.t
 S04-statements/no-implicit-block.t
 # S04-statements/redo.t
 # S04-statements/repeat.t
-# S04-statements/return.t
+S04-statements/return.t
 S04-statements/terminator.t
 # S04-statements/try.t
 S04-statements/unless.t
@@ -330,7 +330,7 @@ S06-signature/optional.t
 # S06-signature/positional-placeholders.t
 # S06-signature/positional.t
 # S06-signature/scalar-type.t
-# S06-signature/slurpy-and-interpolation.t
+S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t
 # S06-signature/slurpy-placeholders.t
 # S06-signature/sub-ref.t
@@ -343,7 +343,7 @@ S06-signature/optional.t
 # S06-traits/is-copy.t
 # S06-traits/is-rw.t
 # S06-traits/misc.t
-# S09-autovivification/autoincrement.t
+S09-autovivification/autoincrement.t
 # S09-autovivification/autovivification.t
 # S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t

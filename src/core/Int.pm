@@ -69,8 +69,7 @@ multi infix:<*>(Int \$a, Int \$b) {
 }
 
 multi infix:</>(Int \$a, Int \$b) {
-    # XXX should really return a Rat
-    $a.Num / $b.Num
+    Rat.new($a, $b)
 }
 
 multi infix:<div>(Int \$a, Int \$b) {

@@ -1,8 +1,8 @@
 # XXX: should also be Cool, but attributes and MI don't seem to mix yet
-my class Rat is Real {
-    has $.numerator;
-    has $.denominator;
-
+my class Rat {
+    # $!numerator and $!denominator are predeclared in BOOTSTRAP.pm
+    method numerator   { $!numerator   }
+    method denominator { $!denominator }
     method new(Rat:U: Int \$nu, Int \$de) {
         my $new = self.CREATE;
         my $gcd         = $nu gcd $de;

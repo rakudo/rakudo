@@ -569,6 +569,17 @@ pir::perl6_set_bools__vPP($false, $true);
 # of type checking.
 Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
 
+# We'll build container descriptors for $_, $! and $/ that we can
+# share with all of the magically/lazily created scalars.
+my $topic_cd := Perl6::Metamodel::ContainerDescriptor.new(
+    :of(Mu), :rw(1), :name('$_'));
+my $error_cd := Perl6::Metamodel::ContainerDescriptor.new(
+    :of(Mu), :rw(1), :name('$!'));
+my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
+    :of(Mu), :rw(1), :name('$/'));
+pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
+    $topic_cd, $error_cd, $match_cd, Scalar, Any);
+
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
     our module DEFAULT {

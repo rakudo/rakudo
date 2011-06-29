@@ -1,5 +1,28 @@
 #include "pmc_perl6lexinfo.h"
 #include "../binder/sixmodelobject.h"
+#include "../binder/container.h"
+
+/* Some useful types/container descriptors we like to have to hand. */
+static PMC *topic_cd = NULL;
+static PMC *error_cd = NULL;
+static PMC *match_cd = NULL;
+static PMC *Scalar   = NULL;
+static PMC *Any      = NULL;
+
+/* Creates a fresh scalar container with the specified descriptor. */
+static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
+    PMC *fresh          = REPR(Scalar)->instance_of(interp, Scalar);
+    Rakudo_Scalar *cont = (Rakudo_Scalar *)PMC_data(fresh);
+    cont->descriptor    = cont_desc;
+    cont->value         = Any;
+    return fresh;
+}
+
+/* Finds the given name in our outer lexpad. */
+static PMC * steal_outer(PARROT_INTERP, STRING *name) {
+    /* XXX: TODO. */
+    return PMCNULL;
+}
 
 /* Locates the register number for getting the specified name
  * and type of lexical. */
@@ -205,9 +228,22 @@ Return the LexInfo PMC, if any or a Null PMC.
         result = CTX_REG_PMC(interp, ctx, reg);
         
         if (PMC_IS_NULL(result)) {
-            /* XXX TODO: This is where we magically create an empty
-             * container and/or grab the outer value for special
-             * on-demand lexicals like $_. */
+            /* We lazily handle things like $_, $! and $/. */
+            INTVAL fresh_magicals;
+            GETATTR_Perl6LexInfo_fresh_magicals(INTERP, info, fresh_magicals);
+            if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$_"))) {
+                result = fresh_magicals ? fresh_scalar(interp, topic_cd)
+                                        : steal_outer(interp, name);
+            }
+            else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$!"))) {
+                result = fresh_magicals ? fresh_scalar(interp, error_cd)
+                                        : steal_outer(interp, name);
+            }
+            else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$/"))) {
+                result = fresh_magicals ? fresh_scalar(interp, match_cd)
+                                        : steal_outer(interp, name);
+            }
+            VTABLE_set_pmc_keyed_str(interp, SELF, name, result);
         }
         
         return result;
@@ -357,6 +393,15 @@ Get iterator for declared lexicals.
         PMC *lexinfo;
         GET_ATTR_lexinfo(INTERP, SELF, lexinfo);
         return VTABLE_get_iter(INTERP, lexinfo);
+    }
+    
+    METHOD configure_magicals(PMC *_topic_cd, PMC *_error_cd, PMC *_match_cd,
+                              PMC *_Scalar, PMC *_Any) {
+        topic_cd = _topic_cd;
+        error_cd = _error_cd;
+        match_cd = _match_cd;
+        Scalar   = _Scalar;
+        Any      = _Any;
     }
 
 }

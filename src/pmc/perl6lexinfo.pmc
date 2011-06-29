@@ -33,6 +33,9 @@ pmclass Perl6LexInfo
     /* Sometimes we want to clone the things we're copying. This gives
      * us a very cheap way to deal with e.g. scalar containers. */
     ATTR PMC *static_clone_flags_cache;
+    
+    /* Does this block get fresh magicals, or just steal the outer ones? */
+    ATTR INTVAL fresh_magicals;
 
     VTABLE void init() {
         SELF.init_pmc(PMCNULL);
@@ -153,6 +156,10 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
         SET_ATTR_static_slots_cache(INTERP, SELF, slots);
         SET_ATTR_static_values_cache(INTERP, SELF, values);
         SET_ATTR_static_clone_flags_cache(INTERP, SELF, clone_flags);
+    }
+    
+    METHOD set_fresh_magicals() {
+        SET_ATTR_fresh_magicals(INTERP, SELF, 1);
     }
 
 /*

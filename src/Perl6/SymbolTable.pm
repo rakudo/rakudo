@@ -562,6 +562,17 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             PAST::Val.new( :value($code_past) ),
             self.get_object_sc_ref_past($code)));
 
+        # If it's a routine, flag that it needs fresh magicals.
+        if pir::type_check__IPP($code, self.find_symbol(['Routine'])) {
+            my $set := PAST::Op.new(
+                :pasttype('callmethod'), :name('set_fresh_magicals'),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('get_lexinfo'),
+                    PAST::Val.new( :value($code_past) )));
+            $des.push($set);
+            $fixups.push($set);
+        }
+            
         self.add_event(:deserialize_past($des), :fixup_past($fixups));
         $code;
     }

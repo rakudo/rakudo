@@ -412,14 +412,6 @@ my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
 Num.HOW.add_parent(Num, Real);
 Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1)));
 
-# class Rat is Cool does Real {
-# ....
-# }
-my stub Rat metaclass Perl6::Metamodel::ClassHOW { ... };
-Rat.HOW.add_parent(Rat, Real);
-Rat.HOW.add_attribute(Rat, BOOTSTRAPATTR.new(:name<$!numerator>, :type(int)));
-Rat.HOW.add_attribute(Rat, BOOTSTRAPATTR.new(:name<$!denominator>, :type(int)));
-
 # Stash these common types for box ops.
 pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 
@@ -546,7 +538,6 @@ Perl6::Metamodel::ClassHOW.add_stash(Method);
 Perl6::Metamodel::ClassHOW.add_stash(Str);
 Perl6::Metamodel::ClassHOW.add_stash(Int);
 Perl6::Metamodel::ClassHOW.add_stash(Num);
-Perl6::Metamodel::ClassHOW.add_stash(Rat);
 Perl6::Metamodel::ClassHOW.add_stash(Scalar);
 Perl6::Metamodel::ClassHOW.add_stash(Bool);
 Perl6::Metamodel::ClassHOW.add_stash(Stash);
@@ -598,7 +589,6 @@ my module EXPORT {
         $?PACKAGE.WHO<Real>      := Real;
         $?PACKAGE.WHO<Int>       := Int;
         $?PACKAGE.WHO<Num>       := Num;
-        $?PACKAGE.WHO<Rat>       := Rat;
         $?PACKAGE.WHO<Parcel>    := Parcel;  
         $?PACKAGE.WHO<Iterable>  := Iterable;
         $?PACKAGE.WHO<Iterator>  := Iterator;

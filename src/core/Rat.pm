@@ -1,8 +1,8 @@
 # XXX: should also be Cool, but attributes and MI don't seem to mix yet
-my class Rat {
-    # $!numerator and $!denominator are predeclared in BOOTSTRAP.pm
-    method numerator   { $!numerator   }
-    method denominator { $!denominator }
+my class Rat is Real {
+    has $.numerator;
+    has $.denominator;
+
     method new(Rat:U: Int \$nu, Int \$de) {
         my $new = self.CREATE;
         my $gcd         = $nu gcd $de;
@@ -96,9 +96,9 @@ multi sub infix:</>(Int \$a, Rat \$b) {
     ($b.denominator * $a) / $b.numerator;
 }
 
-# multi sub infix:</>(Int \$a, Int \$b) {
-#     Rat.new($a, $b);
-# }
+multi sub infix:</>(Int \$a, Int \$b) {
+    Rat.new($a, $b);
+}
 
 multi sub infix:<**>(Rat \$a, Int \$b) {
     Rat.new($a.numerator ** $b,$a.denominator ** $b);

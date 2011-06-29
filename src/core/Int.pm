@@ -68,10 +68,6 @@ multi infix:<*>(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::mul_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:</>(Int \$a, Int \$b) {
-    Rat.new($a, $b)
-}
-
 multi infix:<div>(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::div_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }

@@ -202,6 +202,8 @@ sub git_checkout {
 
     if ($checkout) {
         system_or_die('git', 'checkout', $checkout);
+        system_or_die('git', 'pull') 
+            if slurp('.git/HEAD') =~ /^ref:/;
     }
 
     my $git_describe;

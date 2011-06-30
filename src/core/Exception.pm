@@ -6,10 +6,10 @@ my class Exception {
     }
 
     method throw() {
-        pir::throw__vP(nqp::getattr(self, Exception, '$!ex'))
+        pir::throw__vP($!ex)
     }
     method rethrow() {
-        pir::rethrow__vP(nqp::getattr(self, Exception, '$!ex'))
+        pir::rethrow__vP($!ex)
     }
 }
 

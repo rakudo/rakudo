@@ -141,6 +141,13 @@ class Perl6::Actions is HLL::Actions {
             PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') ),
             $*ST.get_slot_past_for_object($*GLOBALish)
         ));
+        
+        # Mainline should have fresh lexicals.
+        $unit.loadinit().push(PAST::Op.new(
+            :pasttype('callmethod'), :name('set_fresh_magicals'),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('get_lexinfo'),
+                PAST::Val.new( :value($unit) ))));
 
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;

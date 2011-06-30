@@ -2,8 +2,8 @@ my class Enum {
     has $!key;
     has $!value;
 
-    method new(:$key, :$value) { self.CREATE.BUILD($key, $value) }
-    method BUILD(\$key, \$value) { $!key = $key; $!value = $value; self }
+    method new(:$key, Mu :$value) { self.CREATE.BUILD($key, $value) }
+    method BUILD(\$key, Mu \$value) { $!key = $key; $!value = $value; self }
 
     method key()   { $!key }
     method kv()    { $!key, $!value }

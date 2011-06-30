@@ -15,7 +15,7 @@ my class Hash {
           !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
     }
 
-    method STORE_AT_KEY(Str \$key, $x is copy) {
+    method STORE_AT_KEY(Str \$key, Mu $x is copy) {
         pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
     }
 

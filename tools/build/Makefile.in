@@ -261,7 +261,7 @@ $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
 $(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Actions.pm
-	$(NQP_EXE) --target=pir --output=$(PERL6_A) --encoding=utf8 \
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 

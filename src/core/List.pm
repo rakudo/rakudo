@@ -104,10 +104,12 @@ class List does Positional {
     method reverse() {
         self.gimme(*);
         fail 'Cannot reverse and infinite list' if self.infinite;
-        my Mu $rev := nqp::list();
-        my Mu $iter := nqp::iterator($!items);
-        nqp::push($rev, nqp::shift($iter)) while $iter;
-        nqp::p6parcel($rev, nqp::null())
+        my Mu $rev  := nqp::list();
+        my Mu $orig := nqp::clone($!items);
+        nqp::push($rev, nqp::pop($orig)) while $orig;
+        my $rlist := nqp::create(self.WHAT);
+        nqp::bindattr($rlist, List, '$!items', $rev);
+        $rlist;
     }
 
     method shift() {

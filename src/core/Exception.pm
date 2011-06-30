@@ -1,6 +1,10 @@
 my class Exception {
     has $!ex;
 
+    method Str() {
+        nqp::p6box_s(nqp::atkey($!ex, 'message'))
+    }
+
     method throw() {
         pir::throw__vP(nqp::getattr(self, Exception, '$!ex'))
     }

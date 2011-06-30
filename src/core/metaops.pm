@@ -11,13 +11,13 @@ sub METAOP_REDUCE(\$op, :$triangle) {
     my $x :=
     sub (*@values) {
         if $triangle {
-            gather {
+            GATHER({
                 return unless @values;
                 my $result := @values.shift;
                 take $result;
                 take ($result := $op($result, @values.shift))
                     while @values;
-            }
+            }, :infinite(@values.infinite))
         }
         else {
             return $op() unless @values;

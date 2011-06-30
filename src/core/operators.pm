@@ -99,3 +99,8 @@ proto sub infix:<eqv>($, $) { * }
 multi sub infix:<eqv>(Numeric $a, Numeric $b) {
     $a.WHAT === $b.WHAT && ($a cmp $b) == 0;
 }
+
+sub undefine(Mu \$x) {
+    my $undefined;
+    $x = $undefined;
+}

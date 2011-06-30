@@ -2500,15 +2500,9 @@ class Perl6::Actions is HLL::Actions {
     method infixish($/) {
         if $<infix_postfix_meta_operator> {
             my $sym := ~$<infix><sym>;
-            my $opsub := "&infix:<$sym=>";
-            unless %*METAOPGEN{$opsub} {
-                $*UNITPAST.loadinit.push(
-                    PAST::Op.new( :name('!gen_assign_metaop'), $sym,
-                                  :pasttype('call') )
-                );
-                %*METAOPGEN{$opsub} := 1;
-            }
-            make PAST::Op.new( :name($opsub), :pasttype('call') );
+            make PAST::Op.new( :node($/),
+                :name('&METAOP_ASSIGN'), :pasttype<call>,
+                PAST::Var.new(:name("&infix:<$sym>"), :scope<lexical_6model>));
         }
 
         if $<infix_prefix_meta_operator> {

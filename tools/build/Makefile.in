@@ -164,6 +164,7 @@ CORE_SOURCES = \
   src/core/Exceptions.pm \
   src/core/EXPORTHOW.pm \
   src/core/operators.pm \
+  src/core/metaops.pm \
   src/core/terms.pm \
   src/core/you_are_here.pm \
 

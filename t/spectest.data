@@ -220,7 +220,7 @@ S04-statements/do.t
 # S04-statements/given.t
 S04-statements/if.t
 S04-statements/last.t
-# S04-statements/loop.t
+S04-statements/loop.t
 # S04-statements/map-and-sort-in-for.t
 # S04-statements/next.t
 S04-statements/no-implicit-block.t
@@ -416,7 +416,7 @@ S12-methods/method-vs-sub.t
 # S12-methods/submethods.t
 # S12-methods/syntax.t
 S12-methods/topic.t
-# S12-methods/typed-attributes.t
+S12-methods/typed-attributes.t
 # S12-methods/what.t
 # S12-subset/multi-dispatch.t
 # S12-subset/subtypes.t

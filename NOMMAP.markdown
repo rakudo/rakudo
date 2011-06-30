@@ -7,7 +7,6 @@ are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
-* List ~~ Positional fails
 * array parameters bind as containers
 * regexes missing
 * is export on methods

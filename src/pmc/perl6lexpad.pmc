@@ -19,9 +19,12 @@ static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
 }
 
 /* Finds the given name in our outer lexpad. */
-static PMC * steal_outer(PARROT_INTERP, STRING *name) {
-    /* XXX: TODO. */
-    return PMCNULL;
+static PMC * steal_outer(PARROT_INTERP, PMC *cur_ctx, STRING *name) {
+    PMC *outer_ctx = Parrot_pcc_get_outer_ctx(interp, cur_ctx);
+    PMC *outer_pad = PMC_IS_NULL(outer_ctx) ? PMCNULL :
+        Parrot_pcc_get_lex_pad(interp, outer_ctx);
+    return PMC_IS_NULL(outer_pad) ? PMCNULL :
+        VTABLE_get_pmc_keyed_str(interp, outer_pad, name);
 }
 
 /* Locates the register number for getting the specified name
@@ -233,15 +236,15 @@ Return the LexInfo PMC, if any or a Null PMC.
             GETATTR_Perl6LexInfo_fresh_magicals(INTERP, info, fresh_magicals);
             if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$_"))) {
                 result = fresh_magicals ? fresh_scalar(interp, topic_cd)
-                                        : steal_outer(interp, name);
+                                        : steal_outer(interp, ctx, name);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$!"))) {
                 result = fresh_magicals ? fresh_scalar(interp, error_cd)
-                                        : steal_outer(interp, name);
+                                        : steal_outer(interp, ctx, name);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$/"))) {
                 result = fresh_magicals ? fresh_scalar(interp, match_cd)
-                                        : steal_outer(interp, name);
+                                        : steal_outer(interp, ctx, name);
             }
             VTABLE_set_pmc_keyed_str(interp, SELF, name, result);
         }

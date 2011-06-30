@@ -2499,47 +2499,31 @@ class Perl6::Actions is HLL::Actions {
 
     method infixish($/) {
         if $<infix_postfix_meta_operator> {
-            my $sym := ~$<infix><sym>;
+            my $base     := $<infix>;
+            my $basesym  := ~$base<sym>;
+            my $basepast := $base.ast
+                              ?? $base.ast[0]
+                              !! PAST::Var.new(:name("&infix:<$basesym>"),
+                                               :scope<lexical_6model>);
             make PAST::Op.new( :node($/),
-                :name('&METAOP_ASSIGN'), :pasttype<call>,
-                PAST::Var.new(:name("&infix:<$sym>"), :scope<lexical_6model>));
+                     PAST::Op.new( :pasttype<call>, 
+                         :name<&METAOP_ASSIGN>, $basepast ));
         }
 
         if $<infix_prefix_meta_operator> {
-            my $metaop := ~$<infix_prefix_meta_operator><sym>;
-            my $sym := ~$<infix_prefix_meta_operator><infixish><OPER>;
-            my $opsub := "&infix:<$/>";
-            my $base_opsub := "&infix:<$sym>";
-            if $opsub eq "&infix:<!=>" {
-                $base_opsub := "&infix:<==>";
-            }
-            unless %*METAOPGEN{$opsub} {
-                my $helper := "";
-                if $metaop eq '!' {
-                    $helper := '&negate';
-                } elsif $metaop eq 'R' {
-                    $helper := '&reverseargs';
-                } elsif $metaop eq 'S' {
-                    $helper := '&sequentialargs';
-                } elsif $metaop eq 'X' {
-                    $helper := '&crosswith';
-                } elsif $metaop eq 'Z' {
-                    $helper := '&zipwith';
-                }
+            my $metasym  := ~$<infix_prefix_meta_operator><sym>;
+            my $base     := $<infix_prefix_meta_operator><infixish>;
+            my $basesym  := ~$base<OPER>;
+            my $basepast := $base.ast
+                              ?? $base.ast[0]
+                              !! PAST::Var.new(:name("&infix:<$basesym>"),
+                                               :scope<lexical_6model>);
+            my $helper   := '';
+            if $metasym eq 'R' { $helper := '&METAOP_REVERSE'; }
 
-                $*UNITPAST.loadinit.push(
-                    PAST::Op.new( :pasttype('bind_6model'),
-                                  PAST::Var.new( :name($opsub), :scope('package') ),
-                                  PAST::Op.new( :pasttype('callmethod'),
-                                                :name('assuming'),
-                                                PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                              $helper ),
-                                                PAST::Op.new( :pirop('find_sub_not_null__Ps'),
-                                                               $base_opsub ) ) ) );
-                %*METAOPGEN{$opsub} := 1;
-            }
-
-            make PAST::Op.new( :name($opsub), :pasttype('call') );
+            make PAST::Op.new( :node($/),
+                     PAST::Op.new( :pasttype<call>, 
+                         :name($helper), $basepast ));
         }
 
         if $<infixish> {

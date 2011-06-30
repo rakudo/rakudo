@@ -1861,14 +1861,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # this is the best I can come up with. :-) -- jnthn
         my $m := self.MATCH();
         my $r := $m{$from}<OPER><O>;
-        Q:PIR {
-            .local pmc self
-            self = find_lex 'self'
-            (%r, $I0) = self.'!cursor_start'()
-            %r.'!cursor_pass'($I0, '')
-            $P0 = find_lex '$r'
-            setattribute %r, '$!match', $P0
-        };
+        self.'!cursor_start'().'!cursor_pass'(self.pos(), '', $r);
     }
 
     method copyOPER($from) {
@@ -1876,14 +1869,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # this is the best I can come up with. :-) -- jnthn
         my $m := self.MATCH();
         my $r := $m{$from}<OPER>;
-        Q:PIR {
-            .local pmc self
-            self = find_lex 'self'
-            (%r, $I0) = self.'!cursor_start'()
-            %r.'!cursor_pass'($I0, '')
-            $P0 = find_lex '$r'
-            setattribute %r, '$!match', $P0
-        };
+        self.'!cursor_start'().'!cursor_pass'(self.pos(), '', $r);
     }
 
     proto token dotty { <...> }

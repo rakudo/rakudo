@@ -10,6 +10,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::NonGeneric
     does Perl6::Metamodel::TypePretence
+    does Perl6::Metamodel::RolePunning
 {
     has $!composed;
     has $!body_block;

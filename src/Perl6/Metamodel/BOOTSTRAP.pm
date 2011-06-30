@@ -566,8 +566,11 @@ pir::repr_bind_attr_int__vPPsI($true, Bool, '$!value', 1);
 pir::perl6_set_bools__vPP($false, $true);
 
 # Roles pretend to be narrower than certain types for the purpose
-# of type checking.
+# of type checking. Also, they pun to classes.
 Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW,
+    hash( ACCEPTS => Mu ));
 
 # We'll build container descriptors for $_, $! and $/ that we can
 # share with all of the magically/lazily created scalars.

@@ -73,7 +73,7 @@ S02-literals/pair-boolean.t
 # S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
 # S02-literals/subscript.t
-# S02-literals/types.t                      # eval('class G { }') fails
+S02-literals/types.t
 # S02-literals/underscores.t                # need Rat literals
 # S02-magicals/args.t
 # S02-magicals/config.t

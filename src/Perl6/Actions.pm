@@ -2532,25 +2532,22 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method prefix_circumfix_meta_operator:sym<reduce>($/) {
-        my $opsub := '&prefix:<' ~ ~$/ ~ '>';
-        unless %*METAOPGEN{$opsub} {
-            my $base_op := '&infix:<' ~ $<op><OPER>.Str ~ '>';
-            $*UNITPAST.loadinit.push(PAST::Op.new(
-                :pasttype('bind_6model'),
-                PAST::Var.new( :name($opsub), :scope('package') ),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('assuming'),
-                    PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&reducewith' ),
-                    PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op ),
-                    PAST::Val.new( :named('triangle'), :value($<triangle> ?? 1 !! 0) ),
-                    PAST::Val.new( :named('chaining'), :value($<op><OPER><O><prec> eq 'm=') ),
-                    PAST::Val.new( :named('right-assoc'), :value($<op><OPER><O><assoc> eq 'right') ),
-                    PAST::Val.new( :named('xor'), :value($<op><OPER><O><pasttype> eq 'xor') )
-                )
-            ));
-            %*METAOPGEN{$opsub} := 1;
+        my $base     := $<op>;
+        my $basepast := $base.ast
+                          ?? $base.ast[0]
+                          !! PAST::Var.new(:name("&infix:<" ~ $base<OPER><sym> ~ ">"),
+                                           :scope<lexical_6model>);
+        my $metaop   := '&METAOP_REDUCE';
+        if $base<OPER><O><assoc> eq 'right'     { $metaop := '&METAOP_REDUCE_RIGHT' }
+        elsif $base<OPER><O><prec> eq 'm='      { $metaop := '&METAOP_REDUCE_CHAIN' }
+        elsif $base<OPER><O><pasttype> eq 'xor' { $metaop := '&METAOP_REDUCE_XOR' }
+        my $metapast := PAST::Op.new( :pasttype<call>, :name($metaop), $basepast);
+        if $<triangle> {
+            my $tri := $*ST.add_constant('Int', 'int', 1);
+            $tri.named('triangle');
+            $metapast.push($tri);
         }
-        make PAST::Op.new( :name($opsub), :pasttype('call') );
+        make PAST::Op.new(:node($/), :pasttype<call>, $metapast);
     }
 
     method infix_circumfix_meta_operator:sym«<< >>»($/) {

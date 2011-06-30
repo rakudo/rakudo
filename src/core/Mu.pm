@@ -1,8 +1,4 @@
 my class Mu {
-    method new() {
-        self.bless(self.CREATE());
-    }
-    
     proto method ACCEPTS(|$) { * }
     multi method ACCEPTS(Mu:U: Mu \$topic) {
         nqp::p6bool(nqp::istype($topic, self))
@@ -25,11 +21,15 @@ my class Mu {
         nqp::p6bool(pir::repr_defined__IP(self))
     }
     
-    method CREATE() {
-        nqp::create(self.WHAT)
+    method new(*%attrinit) {
+        self.bless(self.CREATE(), |%attrinit);
     }
     
-    method bless(Mu \$candidate) {
+    method CREATE() {
+        nqp::create(self)
+    }
+    
+    method bless(Mu \$candidate, *%attrinit) {
         $candidate
     }
     

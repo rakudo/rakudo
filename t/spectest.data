@@ -158,7 +158,7 @@ S03-operators/comparison-simple.t
 # S03-operators/reduce-le1arg.t
 # S03-operators/relational.t
 # S03-operators/repeat.t
-# S03-operators/scalar-assign.t
+S03-operators/scalar-assign.t
 # S03-operators/short-circuit.t
 S03-operators/spaceship-and-containers.t
 # S03-operators/spaceship.t
@@ -193,7 +193,7 @@ S03-smartmatch/any-str.t
 # S03-smartmatch/regex-hash.t
 # S03-smartmatch/scalar-hash.t
 # S04-blocks-and-statements/pointy-rw.t
-# S04-blocks-and-statements/pointy.t
+S04-blocks-and-statements/pointy.t
 S04-phasers/end.t
 # S04-phasers/rvalue.t
 # S04-phasers/start.t
@@ -225,7 +225,7 @@ S04-statements/loop.t
 # S04-statements/next.t
 S04-statements/no-implicit-block.t
 # S04-statements/redo.t
-# S04-statements/repeat.t
+S04-statements/repeat.t
 S04-statements/return.t
 S04-statements/terminator.t
 # S04-statements/try.t
@@ -341,7 +341,7 @@ S06-signature/slurpy-and-interpolation.t
 # S06-signature/unspecified.t
 # S06-traits/as.t
 # S06-traits/is-copy.t
-# S06-traits/is-rw.t
+S06-traits/is-rw.t
 # S06-traits/misc.t
 S09-autovivification/autoincrement.t
 # S09-autovivification/autovivification.t
@@ -533,7 +533,7 @@ S32-array/bool.t
 # S32-num/unpolar.t
 # S32-scalar/defined.t
 # S32-scalar/undef.t
-# S32-str/append.t
+S32-str/append.t
 S32-str/bool.t
 # S32-str/capitalize.t                                       # icu
 S32-str/chomp.t

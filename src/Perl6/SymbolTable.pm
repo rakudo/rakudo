@@ -680,7 +680,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # just return that.
         my $cache_key := "$type,$primitive,$value";
         if pir::exists(%!const_cache, $cache_key) {
-            return %!const_cache{$cache_key};
+            my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
+            $past<has_compile_time_value> := 1;
+            $past<compile_time_value> := %!const_cache{$cache_key};
+            return $past;
         }
         
         # Find type object for the box typed we'll create.
@@ -720,7 +723,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $past := self.get_slot_past_for_object($constant);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $constant;
-        %!const_cache{$cache_key} := $past;
+        %!const_cache{$cache_key} := $constant;
         return $past;
     }
     

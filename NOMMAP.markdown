@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 25 June 2011
+Last Updated 30 June 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -12,7 +12,6 @@ Current fails that people are likely to encounter (no particular order):
 * regexes missing
 * is export on methods
     - should work outside the setting; note here if not
-* $_ = 3; .say  # segfaults
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
@@ -30,7 +29,7 @@ new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
 closure.
 
 ## Magicals
-$_, $/, $!, @_ and %_ handling.
+@_ and %_ handling.
 
 ## when statements
 when needs to properly find use correct outer scope

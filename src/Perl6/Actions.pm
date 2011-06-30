@@ -2699,13 +2699,12 @@ class Perl6::Actions is HLL::Actions {
             make $*ST.add_constant('Num', 'num',
                 str2num(0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp));
         } else {
-            # XXX Work out at compile time, then...
-            # make $*ST.add_constant('Rat', 'rational', [$nu, $de]);
-            make PAST::Op.new(
-                :pasttype('call'),
-                PAST::Var.new(:scope('package'), :name('&str2num-rat'), :namespace('Str')),
-                 0, $int, $frac
-            );
+            # TODO: strip trailing zeros from $frac
+            my $nu := pir::perl6_box_int__PI($int ~ $frac);
+            my $de := pir::perl6_box_int__PI(nqp::pow_n(10, nqp::chars($frac)));
+            my $rat := $*ST.find_symbol(['Rat']).new($nu, $de);
+
+            make $*ST.add_constant('Rat', 'rational', $rat);
         }
     }
 

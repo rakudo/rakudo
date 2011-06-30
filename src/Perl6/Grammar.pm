@@ -209,7 +209,14 @@ grammar Perl6::Grammar is HLL::Grammar {
             # If we already have a specified outer context, then we'll mostly
             # just steal stuff from it.
             if pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
-                # XXX TODO
+                # Locate its EXPORTHOW, if any, and import from it.
+                $/.CURSOR.unitstart();
+                #try {
+                    my $EXPORTHOW := $*ST.find_symbol(['EXPORTHOW']);
+                    for $EXPORTHOW.WHO {
+                        %*HOW{$_.key} := $_.value;
+                    }
+                #}
             }
             else {
                 # Load setting and import any meta-objects.
@@ -217,6 +224,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
                     $/.CURSOR.import_EXPORTHOW($*SETTING);
                 }
+                $/.CURSOR.unitstart();
             }
             
             # Create GLOBAL(ish).
@@ -233,8 +241,6 @@ grammar Perl6::Grammar is HLL::Grammar {
             $*PACKAGE := $*GLOBALish;
             $*ST.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
         }
-        
-        <.unitstart>
         
         <.finishpad>
         <statementlist>

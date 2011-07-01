@@ -13,3 +13,12 @@ the stat calls should be pretty straight-forward to port from master
 
 ## Nil assignment
 my Int $b = 3;  $b = Nil;   
+
+## Built-in functions
+Often builtins are only added as methods, even when the corresponding function
+should exist. Go through src/core/ and write functions that re-dispatch to the
+methods where necessary
+
+## Str.ords
+
+Implement Str.ords and the sub form (returns a list of codepoints)

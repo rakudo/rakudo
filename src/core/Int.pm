@@ -148,3 +148,6 @@ multi prefix:<+^>(Int \$a) {
     nqp::p6box_i(pir::bnot__II(nqp::unbox_i($a)))
 }
 
+proto sub chr($) {*}
+multi sub chr(Int  \$x) { $x.chr     }
+multi sub chr(Cool \$x) { $x.Int.chr }

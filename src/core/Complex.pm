@@ -130,7 +130,7 @@ multi sub infix:<->(Complex \$a, Complex \$b) {
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
             nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
-            nqp::unbox_n($b.Num)
+            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re'),
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',

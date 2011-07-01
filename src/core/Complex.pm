@@ -62,7 +62,18 @@ my class Complex is Numeric {
 }
 
 multi sub prefix:<->(Complex \$a) {
-    Complex.new(-$a.re, -$a.im);
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n( $new, Complex, '$!re',
+        nqp::neg_n(
+            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re')
+        )
+    );
+    nqp::bindattr_n( $new, Complex, '$!im',
+        nqp::neg_n(
+            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im')
+        )
+    );
+    $new;
 }
 
 multi sub infix:<+>(Complex \$a, Complex \$b) {

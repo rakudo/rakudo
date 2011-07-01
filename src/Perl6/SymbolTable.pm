@@ -384,6 +384,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<bind_accessor> {
             $flags := $flags + $SIG_ELEM_BIND_PUBLIC_ATTR;
         }
+        if %param_info<sigil> eq '@' {
+            $flags := $flags + $SIG_ELEM_ARRAY_SIGIL;
+        }
+        elsif %param_info<sigil> eq '%' {
+            $flags := $flags + $SIG_ELEM_HASH_SIGIL;
+        }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
             '$!flags', $flags, int));

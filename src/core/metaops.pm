@@ -3,8 +3,20 @@ sub METAOP_ASSIGN(\$op) {
     -> Mu \$a, Mu \$b { $a = $op($a, $b) }
 }
 
+sub METAOP_NEGATE(\$op) {
+    -> Mu \$a, Mu \$b { !$op($a,$b) }
+}
+
 sub METAOP_REVERSE(\$op) {
     -> Mu \$a, Mu \$b { $op($b, $a) }
+}
+
+sub METAOP_CROSS(\$op) {
+    fail "X metaoperator NYI";
+}
+
+sub METAOP_ZIP(\$op) {
+    fail "Z metaoperator NYI";
 }
 
 sub METAOP_REDUCE(\$op, :$triangle) {

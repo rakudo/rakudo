@@ -1837,36 +1837,26 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token infix_circumfix_meta_operator:sym<« »> {
-        $<opening>=[
-        | '«'
-        | '»'
-        ]
+        $<opening>=[ '«' | '»' ]
         {} <infixish>
         $<closing>=[ '«' | '»' || <.panic("Missing « or »")> ]
         <O=.copyO('infixish')>
     }
 
     token infix_circumfix_meta_operator:sym«<< >>» {
-        $<opening>=[
-        | '<<'
-        | '>>'
-        ]
+        $<opening>=[ '<<' | '>>' ]
         {} <infixish>
         $<closing>=[ '<<' | '>>' || <.panic("Missing << or >>")> ]
         <O=.copyO('infixish')>
     }
 
     method copyO($from) {
-        # There must be a a better way, but until pmichaud++ shows us it,
-        # this is the best I can come up with. :-) -- jnthn
         my $m := self.MATCH();
         my $r := $m{$from}<OPER><O>;
         self.'!cursor_start'().'!cursor_pass'(self.pos(), '', $r);
     }
 
     method copyOPER($from) {
-        # There must be a a better way, but until pmichaud++ shows us it,
-        # this is the best I can come up with. :-) -- jnthn
         my $m := self.MATCH();
         my $r := $m{$from}<OPER>;
         self.'!cursor_start'().'!cursor_pass'(self.pos(), '', $r);

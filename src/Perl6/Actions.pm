@@ -2519,7 +2519,10 @@ class Perl6::Actions is HLL::Actions {
                               !! PAST::Var.new(:name("&infix:<$basesym>"),
                                                :scope<lexical_6model>);
             my $helper   := '';
-            if $metasym eq 'R' { $helper := '&METAOP_REVERSE'; }
+            if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
+            if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; }
+            elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; }
+            elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; }
 
             make PAST::Op.new( :node($/),
                      PAST::Op.new( :pasttype<call>, 

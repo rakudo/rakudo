@@ -119,6 +119,18 @@ class List does Positional {
           !! fail 'Element shifted from empty array';
     }
 
+    method pop() {
+        # .elems also reifies
+        my $e := self.elems;
+        $e == $Inf
+            ?? fail('Pop from infinite array')
+            !! (
+                $e == 0
+                    ?? fail('Pop from empty array')
+                    !!  nqp::pop($!items)
+                );
+    }
+
     multi method perl(List:D \$self:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  

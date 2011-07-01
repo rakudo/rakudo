@@ -13,6 +13,8 @@ my class ListIter {
             my $rpa := nqp::list();
             my Mu $x;
             my $index;
+            pir::perl6_shiftpush__0PPI($rpa, $!rest, nqp::elems($!rest))
+                if nqp::istype($!list, LoL);
             while $!rest && nqp::islt_i(nqp::elems($rpa), nqp::unbox_i($count)) {
                 $index = nqp::p6box_i(
                              pir::perl6_rpa_find_type__IPPii(

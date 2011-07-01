@@ -11,6 +11,7 @@ my class Any {
     method elems() { self.list.elems }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, 1.Bool) }
+    method hash() { my %h = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method reverse() { self.list.reverse }
 

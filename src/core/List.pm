@@ -95,6 +95,14 @@ class List does Positional {
         )
     }
 
+    method pop() {
+        my $elems = self.elems;
+        fail '.pop from an infinite list NYI' if $!nextiter.defined;
+        $elems > 0
+          ?? nqp::pop($!items)
+          !! fail 'Element popped from empty list';
+    }
+
     method push(*@values) {
         my $pos = self.elems;
         fail '.push on infinite lists NYI' if $!nextiter.defined;
@@ -116,19 +124,7 @@ class List does Positional {
         # make sure we have at least one item, then shift+return it
         self.gimme(1) 
           ?? nqp::shift($!items) 
-          !! fail 'Element shifted from empty array';
-    }
-
-    method pop() {
-        # .elems also reifies
-        my $e := self.elems;
-        $e == $Inf
-            ?? fail('Pop from infinite array')
-            !! (
-                $e == 0
-                    ?? fail('Pop from empty array')
-                    !!  nqp::pop($!items)
-                );
+          !! fail 'Element shifted from empty list';
     }
 
     multi method perl(List:D \$self:) {

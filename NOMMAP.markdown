@@ -19,6 +19,8 @@ Things that aren't blockers but might be worth knowing about:
 * userspace code can't add new multis of existing operators 
   (e.g., multi postfix<++>(MyType $x) { ... } )
   (known - multis in nested lexical scopes in general just NYI - jnthn)
+* 'has num $.attr' segfaults on access to .attr, because it uses the PMC form
+  of get_attribute
 
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.

@@ -11,6 +11,8 @@ new possible performance.
 ## Basic IO
 the stat calls should be pretty straight-forward to port from master
 
+also: IO::ArgFiles, $*ARGFILES, get() and lines()
+
 ## Nil assignment
 my Int $b = 3;  $b = Nil;   
 

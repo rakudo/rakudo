@@ -21,6 +21,7 @@ Things that aren't blockers but might be worth knowing about:
   (known - multis in nested lexical scopes in general just NYI - jnthn)
 * 'has num $.attr' segfaults on access to .attr, because it uses the PMC form
   of get_attribute
+* $obj.^parents doesn't seem to work
 
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
@@ -54,12 +55,7 @@ Many things are working, some are not...
 * role R1[::T] does R2[T] { ... }
 
 ## Meta-operators
-* Assignment
-* Negation
-* Reduction
-* Triangle
 * Hyper
-* Cross
 
 ## Missing object model bits
 * Try to implement enumerations
@@ -67,6 +63,7 @@ Many things are working, some are not...
 * handles
 * .Foo::bar
 * does and but
+* .^parents
 
 ## Ensure nested packages work
 In theory, just should already.

@@ -77,15 +77,48 @@ multi sub prefix:<->(Complex \$a) {
 }
 
 multi sub infix:<+>(Complex \$a, Complex \$b) {
-    Complex.new($a.re + $b.re, $a.im + $b.im);
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n( $new, Complex, '$!re',
+        nqp::add_n(
+            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
+            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re'),
+        )
+    );
+    nqp::bindattr_n( $new, Complex, '$!im',
+        nqp::add_n(
+            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im'),
+            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im'),
+        )
+    );
+    $new;
 }
 
 multi sub infix:<+>(Complex \$a, Real \$b) {
-    Complex.new($a.re + $b, $a.im);
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n( $new, Complex, '$!re',
+        nqp::add_n(
+            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
+            nqp::unbox_n($b.Num)
+        )
+    );
+    nqp::bindattr_n($new, Complex, '$!im',
+        nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im'),
+    );
+    $new
 }
 
 multi sub infix:<+>(Real \$a, Complex \$b) {
-    Complex.new($a + $b.re, $b.im);
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n($new, Complex, '$!re',
+        nqp::add_n(
+            nqp::unbox_n($a.Num),
+            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re'),
+        )
+    );
+    nqp::bindattr_n($new, Complex, '$!im',
+        nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im'),
+    );
+    $new;
 }
 
 multi sub infix:<->(Complex \$a, Complex \$b) {

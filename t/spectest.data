@@ -325,7 +325,7 @@ S06-signature/closure-parameters.t
 # S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/optional.t
-# S06-signature/passing-arrays.t
+S06-signature/passing-arrays.t
 # S06-signature/passing-hashes.t
 # S06-signature/positional-placeholders.t
 # S06-signature/positional.t
@@ -340,7 +340,7 @@ S06-signature/slurpy-and-interpolation.t
 # S06-signature/unpack-array.t
 # S06-signature/unspecified.t
 # S06-traits/as.t
-# S06-traits/is-copy.t
+S06-traits/is-copy.t
 S06-traits/is-rw.t
 # S06-traits/misc.t
 S09-autovivification/autoincrement.t

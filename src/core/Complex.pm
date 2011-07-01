@@ -30,7 +30,6 @@ my class Complex is Numeric {
         }
     }
 
-    proto method Bool(|$) { * }
     multi method Bool(Complex:D:) {
         $!re != 0e0 || $!im != 0e0;
     }

@@ -713,13 +713,14 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $constant := pir::repr_box_num__PnP(@value[0], $type_obj);
             $des := PAST::Op.new( :pirop('repr_box_num PnP'), @value[0], $type_obj_lookup );
         }
-        elsif $primitive eq 'rational' {
-            $constant := $type_obj.new(@value[0], @value[1]);
+        elsif $primitive eq 'type_new' {
+            $constant := $type_obj.new(|@value);
             $des := PAST::Op.new(
                 :pasttype('callmethod'), :name('new'),
-                $type_obj_lookup,
-                self.get_object_sc_ref_past(@value[0]),
-                self.get_object_sc_ref_past(@value[1]));
+                $type_obj_lookup
+            );
+            nqp::push($des, self.get_object_sc_ref_past(nqp::shift(@value)))
+                while @value;
         }
         else {
             pir::die("Don't know how to build a $primitive constant");

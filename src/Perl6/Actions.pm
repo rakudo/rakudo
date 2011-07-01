@@ -2672,13 +2672,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method number:sym<complex>($/) {
-        # XXX Work out at compile time, then...
-        # make $*ST.add_constant('Complex', 'complex', [$re, $im]);
-        make PAST::Op.new(
-            :pasttype('callmethod'), :name('new'),
-            PAST::Var.new( :name('Complex'), :namespace(''), :scope('package') ),
-            ($<re> ?? $<re>.ast !! 0), $<im>.ast
-        );
+        my $re := $*ST.add_constant('Num', 'num', 0e0);
+        my $im := $*ST.add_constant('Num', 'num', +~$<im>);
+        make $*ST.add_constant('Complex', 'type_new', $re<compile_time_value>, $im<compile_time_value>);
     }
 
     method number:sym<numish>($/) {
@@ -2715,7 +2711,7 @@ class Perl6::Actions is HLL::Actions {
             # TODO: strip trailing zeros from $frac
             my $nu := $*ST.add_constant('Int', 'int', +($int ~ $frac));
             my $de := $*ST.add_constant('Int', 'int', pir::set__In(nqp::pow_n(10, nqp::chars($frac))));
-            make $*ST.add_constant('Rat', 'rational', $nu<compile_time_value>, $de<compile_time_value>);
+            make $*ST.add_constant('Rat', 'type_new', $nu<compile_time_value>, $de<compile_time_value>);
         }
     }
 

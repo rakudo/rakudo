@@ -113,6 +113,6 @@ multi sub infix:</>(Real \$a, Complex \$b) {
 proto postfix:<i>(|$) { * }
 multi postfix:<i>(Real    \$a) { Complex.new(0e0, $a);     }
 multi postfix:<i>(Complex \$a) { Complex.new(-$a.re, $a.im) }
-multi postfix:<i>(Numeric \$a) { $a * 1i }
+multi postfix:<i>(Numeric \$a) { $a * Complex.new(0e0, 1e0) }
 
 # vim: ft=perl6

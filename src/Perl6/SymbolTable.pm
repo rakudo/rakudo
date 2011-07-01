@@ -681,10 +681,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Adds a constant value to the constants table. Returns PAST to do
     # the lookup of the constant.
-    method add_constant($type, $primitive, $value) {
+    method add_constant($type, $primitive, *@value) {
         # If we already built this, find it in the cache and
         # just return that.
-        my $cache_key := "$type,$primitive,$value";
+        my $cache_key := "$type,$primitive," ~ pir::join(',', @value);
         if pir::exists(%!const_cache, $cache_key) {
             my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
             $past<has_compile_time_value> := 1;
@@ -702,16 +702,24 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $constant;
         my $des;
         if $primitive eq 'int' {
-            $constant := pir::repr_box_int__PiP($value, $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_int PiP'), $value, $type_obj_lookup );
+            $constant := pir::repr_box_int__PiP(@value[0], $type_obj);
+            $des := PAST::Op.new( :pirop('repr_box_int PiP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'str' {
-            $constant := pir::repr_box_str__PsP($value, $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_str PsP'), $value, $type_obj_lookup );
+            $constant := pir::repr_box_str__PsP(@value[0], $type_obj);
+            $des := PAST::Op.new( :pirop('repr_box_str PsP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'num' {
-            $constant := pir::repr_box_num__PnP($value, $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_num PnP'), $value, $type_obj_lookup );
+            $constant := pir::repr_box_num__PnP(@value[0], $type_obj);
+            $des := PAST::Op.new( :pirop('repr_box_num PnP'), @value[0], $type_obj_lookup );
+        }
+        elsif $primitive eq 'rational' {
+            $constant := $type_obj.new(@value[0], @value[1]);
+            $des := PAST::Op.new(
+                :pasttype('callmethod'), :name('new'),
+                $type_obj_lookup,
+                self.get_object_sc_ref_past(@value[0]),
+                self.get_object_sc_ref_past(@value[1]));
         }
         else {
             pir::die("Don't know how to build a $primitive constant");

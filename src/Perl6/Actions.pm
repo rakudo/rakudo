@@ -2713,11 +2713,9 @@ class Perl6::Actions is HLL::Actions {
                 str2num(0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp));
         } else {
             # TODO: strip trailing zeros from $frac
-            my $nu := pir::perl6_box_int__PI($int ~ $frac);
-            my $de := pir::perl6_box_int__PI(nqp::pow_n(10, nqp::chars($frac)));
-            my $rat := $*ST.find_symbol(['Rat']).new($nu, $de);
-
-            make $*ST.add_constant('Rat', 'rational', $rat);
+            my $nu := $*ST.add_constant('Int', 'int', +($int ~ $frac));
+            my $de := $*ST.add_constant('Int', 'int', pir::set__In(nqp::pow_n(10, nqp::chars($frac))));
+            make $*ST.add_constant('Rat', 'rational', $nu<compile_time_value>, $de<compile_time_value>);
         }
     }
 

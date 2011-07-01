@@ -69,7 +69,7 @@ Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 Cool.HOW.add_parent(Cool, Any);
 
-# class Attribute is Cool {
+# class Attribute {
 #     has str $!name;
 #     has int $!rw;
 #     has int $!has_accessor;
@@ -80,7 +80,7 @@ Cool.HOW.add_parent(Cool, Any);
 #     ... # Uncomposed
 # }
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
-Attribute.HOW.add_parent(Attribute, Cool);
+Attribute.HOW.add_parent(Attribute, Any);
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int)));
@@ -180,7 +180,7 @@ sub scalar_attr($name, $type) {
         :container_descriptor($cd), :auto_viv_container($scalar));
 }
     
-# class Signature is Cool {
+# class Signature {
 #    has $!params;
 #    has $!returns;
 #    has $!arity;
@@ -188,7 +188,7 @@ sub scalar_attr($name, $type) {
 #     ... # Uncomposed
 # }
 my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
-Signature.HOW.add_parent(Signature, Cool);
+Signature.HOW.add_parent(Signature, Any);
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu)));
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu)));
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!arity>, :type(Mu)));
@@ -220,7 +220,7 @@ Signature.HOW.add_method(Signature, 'instantiate_generic', sub ($self, $type_env
         pir::setattribute__0PPsP($ins, Signature, '$!params', @ins_params)
     });
 
-# class Parameter is Cool {
+# class Parameter {
 #     has str $!variable_name
 #     has $!named_names
 #     has $!type_captures
@@ -235,7 +235,7 @@ Signature.HOW.add_method(Signature, 'instantiate_generic', sub ($self, $type_env
 #     ... # Uncomposed
 # }
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
-Parameter.HOW.add_parent(Parameter, Cool);
+Parameter.HOW.add_parent(Parameter, Any);
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type(Mu)));
@@ -276,7 +276,7 @@ Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
             pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
     });
     
-# class Code is Cool {
+# class Code {
 #     has $!do;                # Low level code object
 #     has $!signature;         # Signature object
 #     has $!dispatchees;       # If this is a dispatcher, the dispatchee list.
@@ -284,7 +284,7 @@ Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
 #     ... # Uncomposed
 # }
 my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
-Code.HOW.add_parent(Code, Cool);
+Code.HOW.add_parent(Code, Any);
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));

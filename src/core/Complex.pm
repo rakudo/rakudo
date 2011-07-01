@@ -53,7 +53,11 @@ my class Complex is Numeric {
     }
 
     method abs(Complex $x:) {
-        ($x.re * $x.re + $x.im * $x.im).sqrt
+        nqp::p6box_n(nqp::add_n(
+                nqp::mul_n($!re, $!re),
+                nqp::mul_n($!im, $!im),
+            )
+        ).sqrt;
     }
 
     method polar() {
@@ -122,7 +126,20 @@ multi sub infix:<+>(Real \$a, Complex \$b) {
 }
 
 multi sub infix:<->(Complex \$a, Complex \$b) {
-    Complex.new($a.re - $b.re, $a.im - $b.im);
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n( $new, Complex, '$!re',
+        nqp::sub_n(
+            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
+            nqp::unbox_n($b.Num)
+        )
+    );
+    nqp::bindattr_n($new, Complex, '$!im',
+        nqp::sub_n(
+            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im'),
+            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im'),
+        )
+    );
+    $new
 }
 
 multi sub infix:<->(Complex \$a, Real \$b) {
@@ -134,7 +151,18 @@ multi sub infix:<->(Real \$a, Complex \$b) {
 }
 
 multi sub infix:<*>(Complex \$a, Complex \$b) {
-    Complex.new($a.re * $b.re - $a.im * $b.im, $a.im * $b.re + $a.re * $b.im);
+    my num $a_re = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re');
+    my num $a_im = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im');
+    my num $b_re = nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re');
+    my num $b_im = nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im');
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n($new, Complex, '$!re',
+        nqp::sub_n(nqp::mul_n($a_re, $b_re), nqp::mul_n($a_im, $b_im)),
+    );
+    nqp::bindattr_n($new, Complex, '$!im',
+        nqp::add_n(nqp::mul_n($a_re, $b_im), nqp::mul_n($a_im, $b_re)),
+    );
+    $new;
 }
 
 multi sub infix:<*>(Complex \$a, Real \$b) {

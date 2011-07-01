@@ -16,6 +16,10 @@ my class Parcel does Positional {
         nqp::p6list(nqp::clone($!storage), List, Mu)
     }
 
+    method lol() {
+        nqp::p6list(nqp::clone($!storage), LoL, Mu)
+    }
+
     method at_pos(Parcel:D: \$x) { self.flat.at_pos($x); }
 
     multi method postcircumfix:<[ ]>(Parcel:D: \$x) { self.flat.[$x] }

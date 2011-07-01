@@ -1449,7 +1449,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token semiarglist {
-        <arglist>
+        <arglist> ** ';'
+        <.ws>
     }
 
     token arglist {

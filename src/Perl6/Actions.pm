@@ -2111,7 +2111,20 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
 
-    method semiarglist($/) { make $<arglist>.ast; }
+    method semiarglist($/) { 
+        if +$<arglist> == 1 {
+            make $<arglist>[0].ast; 
+        }
+        else {
+            my $past := PAST::Op.new( :pasttype('call'), :node($/) );
+            for $<arglist> {
+                my $ast := $_.ast;
+                $ast.name('&infix:<,>');
+                $past.push($ast);
+            }
+            make $past;
+        }
+    }
 
     method arglist($/) {
         # Build up argument list, hanlding nameds and flattens

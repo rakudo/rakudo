@@ -145,6 +145,7 @@ CORE_SOURCES = \
   src/core/MapIter.pm \
   src/core/GatherIter.pm \
   src/core/List.pm \
+  src/core/LoL.pm \
   src/core/Array.pm \
   src/core/Range.pm \
   src/core/Enum.pm \

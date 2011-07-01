@@ -114,3 +114,8 @@ proto postfix:<-->(|$) { * }
 multi postfix:<-->(Mu:D \$a is rw) { my $b = $a; $a = $a.pred; $b }
 multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
 
+proto sub map(|$) {*}
+multi sub map(&code, *@values) { @values.map(&code) }
+
+proto sub grep(|$) {*}
+multi sub grep(&code, *@values) { @values.grep(&code) }

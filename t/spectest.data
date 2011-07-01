@@ -57,7 +57,7 @@ S02-builtin_data_types/subscripts_and_context.t
 # S02-literals/array-interpolation.t
 # S02-literals/autoref.t
 # S02-literals/char-by-name.t                                # icu
-# S02-literals/char-by-number.t
+S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
@@ -326,7 +326,7 @@ S06-signature/closure-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/optional.t
 S06-signature/passing-arrays.t
-# S06-signature/passing-hashes.t
+S06-signature/passing-hashes.t
 # S06-signature/positional-placeholders.t
 # S06-signature/positional.t
 # S06-signature/scalar-type.t

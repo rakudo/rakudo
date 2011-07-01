@@ -20,8 +20,8 @@ my class Hash {
     }
 
     method STORE(\$to_store) {
+        my $items = $to_store.flat.eager;
         nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
-        my $items = $to_store.flat;
         while $items {
             my Mu $x := $items.shift;
             if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key.Str, $x.value) }
@@ -30,7 +30,7 @@ my class Hash {
             }
             elsif $items { self.STORE_AT_KEY($x.Str, $items.shift) }
             else {
-                fail 'Odd number of elements found where hash expected'
+                die 'Odd number of elements found where hash expected'
             }
         }
         self

@@ -29,6 +29,8 @@ my class Int {
     method succ(Int:D:) { self + 1 }
 
     method pred(Int:D:) { self - 1 }
+
+    method sqrt() { self.Num.sqrt }
 }
 
 multi prefix:<++>(Int:D \$a is rw) {   # XXX

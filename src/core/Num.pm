@@ -16,13 +16,14 @@ my class Num {
     method Rat(Real $epsilon = 1.0e-6) {
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
-        my $num = self;
-        my $signum = $num < 0 ?? -1 !! 1;
+        my Num $num = self;
+        my Int $signum = $num < 0 ?? -1 !! 1;
         $num = -$num if $signum == -1;
 
         # Find convergents of the continued fraction.
 
-        my ($r, $q) = modf($num);
+        my Num $r = $num - $num.Int;
+        my Int $q = $num.Int;
         my ($a, $b) = 1, $q;
         my ($c, $d) = 0, 1;
 

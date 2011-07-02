@@ -1,3 +1,5 @@
+class Complex { ... }
+
 # XxX role Real does Numeric { ... }
 my class Real {
     method abs()  { self.Bridge.abs }
@@ -10,8 +12,16 @@ my class Real {
     method tanh() { self.Bridge.tanh }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
+    method unpolar(Real $angle) {
+        Complex.new(self * $angle.cos, self * $angle.sin);
+    }
+    method cis() {
+        Complex.new(self.cos, self.sin);
+    }
 }
 
+proto sub cis(|$) {*}
+multi sub cis(Real $a) { $a.cis }
 
 multi infix:<+>(Real \$a, Real \$b)   { $a.Bridge + $b.Bridge }
 

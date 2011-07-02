@@ -85,7 +85,7 @@ PMC * Rakudo_types_parrot_map(PARROT_INTERP, PMC * to_map) {
             REPR(result)->set_num(interp, result, VTABLE_get_number(interp, to_map));
             break;
         case enum_class_ResizablePMCArray:
-            result = Rakudo_binding_list_from_rpa(interp, to_map, Array, BoolTrue);
+            result = Rakudo_binding_parcel_from_rpa(interp, to_map, Mu);
             break;
         case enum_class_Hash:
             result = REPR(_Hash)->instance_of(interp, _Hash);

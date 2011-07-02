@@ -35,6 +35,11 @@ my class Complex is Numeric {
         }
     }
 
+    # should probably be eventually supplied by role Numeric
+    method Num() { self.Real.Num }
+    method Int() { self.Real.Int }
+    method Rat() { self.Real.Rat }
+
     multi method Bool(Complex:D:) {
         $!re != 0e0 || $!im != 0e0;
     }

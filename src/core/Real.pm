@@ -15,6 +15,8 @@ my class Real {
 
 multi infix:<+>(Real \$a, Real \$b)   { $a.Bridge + $b.Bridge }
 
+multi infix:<->(Real \$a, Real \$b)   { $a.Bridge - $b.Bridge }
+
 multi infix:<*>(Real \$a, Real \$b)   { $a.Bridge * $b.Bridge }
 
 multi infix:</>(Real \$a, Real \$b)   { $a.Bridge / $b.Bridge }

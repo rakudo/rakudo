@@ -17,6 +17,7 @@ my $SIG_ELEM_IS_PARCEL          := 1024;
 my $SIG_ELEM_IS_OPTIONAL        := 2048;
 my $SIG_ELEM_ARRAY_SIGIL        := 4096;
 my $SIG_ELEM_HASH_SIGIL         := 8192;
+my $SIG_ELEM_DEFAULT_FROM_OUTER := 16384;
 my $SIG_ELEM_IS_CAPTURE         := 32768;
 my $SIG_ELEM_UNDEFINED_ONLY     := 65536;
 my $SIG_ELEM_DEFINED_ONLY       := 131072;
@@ -389,6 +390,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         elsif %param_info<sigil> eq '%' {
             $flags := $flags + $SIG_ELEM_HASH_SIGIL;
+        }
+        if %param_info<default_from_outer> {
+            $flags := $flags + $SIG_ELEM_DEFAULT_FROM_OUTER;
         }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,

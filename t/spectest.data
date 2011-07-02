@@ -161,7 +161,7 @@ S03-operators/comparison-simple.t
 S03-operators/scalar-assign.t
 # S03-operators/short-circuit.t
 S03-operators/spaceship-and-containers.t
-# S03-operators/spaceship.t
+S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
 # S03-operators/so.t
@@ -198,14 +198,14 @@ S04-phasers/end.t
 # S04-phasers/rvalue.t
 # S04-phasers/start.t
 # S04-declarations/constant.t
-# S04-declarations/implicit-parameter.t
+S04-declarations/implicit-parameter.t
 # S04-declarations/multiple.t
 # S04-declarations/my.t
 # S04-declarations/state.t
 # S04-exception-handlers/catch.t
 # S04-exceptions/fail.t
-# S04-statement-modifiers/for.t
-# S04-statement-modifiers/given.t
+S04-statement-modifiers/for.t
+S04-statement-modifiers/given.t
 S04-statement-modifiers/if.t
 S04-statement-modifiers/unless.t
 # S04-statement-modifiers/until.t

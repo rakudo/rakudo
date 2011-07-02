@@ -151,9 +151,7 @@ multi sub infix:<->(Complex \$a, Real \$b) {
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
-        nqp::sub_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im'),
-        )
+        nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im')
     );
     $new
 }
@@ -167,7 +165,9 @@ multi sub infix:<->(Real \$a, Complex \$b) {
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im'),
+        nqp::neg_n(
+            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im')
+        )
     );
     $new
 }

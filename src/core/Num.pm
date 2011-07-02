@@ -12,7 +12,36 @@ my class Num {
     method Int() {
         nqp::p6box_i(nqp::unbox_n(self));
     }
-    
+
+    method Rat(Real $epsilon = 1.0e-6) {
+        my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
+
+        my Num $num = self;
+        my Int $signum = $num < 0 ?? -1 !! 1;
+        $num = -$num if $signum == -1;
+
+        # Find convergents of the continued fraction.
+
+        my Num $r = $num - $num.Int;
+        my Int $q = $num.Int;
+        my ($a, $b) = 1, $q;
+        my ($c, $d) = 0, 1;
+
+        while $r != 0 && abs($num - ($b/$d)) > $epsilon {
+            ($r, $q) = modf(1/$r);
+
+            ($a, $b) = ($b, $q*$b + $a);
+            ($c, $d) = ($d, $q*$d + $c);
+        }
+
+        # Note that this result has less error than any Rational with a
+        # smaller denominator but it is not (necessarily) the Rational
+        # with the smallest denominator that has less than $epsilon error.
+        # However, to find that Rational would take more processing.
+
+        ($signum * $b) / $d;
+    }
+
     multi method Str(Num:D:) {
         nqp::p6box_s(nqp::unbox_n(self));
     }

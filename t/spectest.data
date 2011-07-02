@@ -64,7 +64,7 @@ S02-literals/hex_chars.t
 # S02-literals/listquote.t
 # S02-literals/listquote-whitespace.t
 # S02-literals/misc-interpolation.t
-# S02-literals/numeric.t
+S02-literals/numeric.t
 S02-literals/pair-boolean.t
 # S02-literals/pairs.t
 # S02-literals/quoting.t

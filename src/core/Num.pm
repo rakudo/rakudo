@@ -42,6 +42,10 @@ my class Num {
         ($signum * $b) / $d;
     }
 
+    method atan2(Num $x = 1e0) {
+        nqp::p6box_n(pir::atan__NNn(nqp::unbox_n(self), nqp::unbox_n($x)));
+    }
+
     multi method Str(Num:D:) {
         nqp::p6box_s(nqp::unbox_n(self));
     }

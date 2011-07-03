@@ -3,6 +3,8 @@ my class Numeric {
     method Numeric() { self }
 
     multi method ACCEPTS(Numeric:D: $a) { $a == self }
+
+    proto method log(|$) {*}
 }
 
 
@@ -17,6 +19,9 @@ proto prefix:<->(|$) { * }
 proto prefix:<abs>(|$) { * }
 multi prefix:<abs>(\$a)      { abs $a.Numeric }
 
+proto sub log(|$) {*}
+multi sub log(Numeric $x) { $x.log }
+multi sub log(Numeric $x, Numeric $base) { $x.log($base) }
 
 proto infix:<+>(|$) { * }
 multi infix:<+>(\$a, \$b)    { $a.Numeric + $b.Numeric }

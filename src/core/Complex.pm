@@ -66,7 +66,11 @@ my class Complex is Numeric {
     }
 
     method polar() {
-        $.abs, atan2($.im, $.re);
+        $.abs, $!im.atan2($!re);
+    }
+    multi method log() {
+        my Num ($mag, $angle) = self.polar;
+        Complex.new($mag.log, $angle);
     }
 }
 

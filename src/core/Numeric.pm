@@ -30,6 +30,18 @@ multi sub log(Numeric $x, Numeric $base) { $x.log($base) }
 proto sub exp(|$) {*}
 multi sub exp(Numeric $x) { $x.exp }
 
+proto sub sin(|$) {*}
+multi sub sin(Numeric \$x) { $x.sin }
+multi sub sin(Cool \$x)    { $x.Numeric.sin }
+
+proto sub cos(|$) {*}
+multi sub cos(Numeric \$x) { $x.cos }
+multi sub cos(Cool \$x)    { $x.Numeric.cos }
+
+proto sub tan(|$) {*}
+multi sub tan(Numeric \$x) { $x.tan }
+multi sub tan(Cool \$x)    { $x.Numeric.tan }
+
 proto infix:<+>(|$) { * }
 multi infix:<+>(\$a, \$b)    { $a.Numeric + $b.Numeric }
 

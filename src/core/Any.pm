@@ -119,4 +119,4 @@ proto sub map(|$) {*}
 multi sub map(&code, *@values) { @values.map(&code) }
 
 proto sub grep(|$) {*}
-multi sub grep(&code, *@values) { @values.grep(&code) }
+multi sub grep(Mu $test, *@values) { @values.grep($test) }

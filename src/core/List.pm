@@ -15,6 +15,9 @@ class List does Positional {
     method Int()        { self.elems }
     method Numeric()    { self.elems }
     method Str(List:D:) { self.join(' ') }
+    method fmt($format = '%s', $separator = ' ') {
+        self.map({ .fmt($format) }).join($separator);
+    }
 
     method flat() { self.flattens 
                     ?? self 

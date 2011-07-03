@@ -72,7 +72,7 @@ S02-literals/pair-boolean.t
 # S02-literals/radix.t
 # S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
-# S02-literals/subscript.t
+S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
 # S02-magicals/args.t
@@ -615,7 +615,7 @@ integration/code-blocks-as-sub-args.t
 # integration/error-reporting.t
 integration/lexical-array-in-inner-block.t
 # integration/lexicals-and-attributes.t
-# integration/man-or-boy.t
+integration/man-or-boy.t
 integration/method-calls-and-instantiation.t
 integration/no-indirect-new.t
 # integration/packages.t

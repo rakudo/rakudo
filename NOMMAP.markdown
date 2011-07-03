@@ -1,13 +1,12 @@
 # Roadmap for "nom" Branch
 
-Last Updated 30 June 2011
+Last Updated 3 July 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Bool::True, Order::Decrease)
-* array parameters bind as containers
 * regexes missing
 * is export on methods
     - should work outside the setting; note here if not
@@ -21,7 +20,6 @@ Things that aren't blockers but might be worth knowing about:
   (known - multis in nested lexical scopes in general just NYI - jnthn)
 * 'has num $.attr' segfaults on access to .attr, because it uses the PMC form
   of get_attribute
-* $obj.^parents doesn't seem to work
 
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.

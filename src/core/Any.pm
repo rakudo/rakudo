@@ -18,7 +18,7 @@ my class Any {
     method Array() { Array.new(self.flat) }
 
     method grep(Mu $test) is rw {
-        gather { self.map({ take $_ if $_ ~~ $test }) }
+        self.map({ $_ if $_ ~~ $test });
     }
 
     method join($separator = ' ') {

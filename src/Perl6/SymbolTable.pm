@@ -56,6 +56,23 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         @!BLOCKS[+@!BLOCKS - 1]
     }
     
+    # Marks the current lexpad as being a signatured block.
+    method mark_cur_lexpad_signatured() {
+        @!BLOCKS[+@!BLOCKS - 1]<signatured> := 1;
+    }
+    
+    # Finds the nearest signatured block and checks if it declares
+    # a certain symbol.
+    method nearest_signatured_block_declares($symbol) {
+        my $i := +@!BLOCKS;
+        while $i > 0 {
+            $i := $i - 1;
+            if @!BLOCKS[$i]<signatured> {
+                return +@!BLOCKS[$i].symbol($symbol);
+            }
+        }
+    }
+    
     # Pushes a stub on the "stubs to check" list.
     method add_stub_to_check($stub) {
         @!stub_check[+@!stub_check] := $stub;

@@ -828,13 +828,13 @@ class Perl6::Actions is HLL::Actions {
             $past := add_placeholder_parameter($/, $sigil, $desigilname, :named($twigil eq ':'));
         }
         elsif $name eq '@_' {
-            unless get_nearest_signature().declares_symbol('@_') {
-                $past := add_placeholder_parameter($/, '@', '_', :slurpy_pos(1));
+            unless $*ST.nearest_signatured_block_declares('@_') {
+                $past := add_placeholder_parameter($/, '@', '_', :pos_slurpy(1));
             }
         }
         elsif $name eq '%_' {
-            unless get_nearest_signature().declares_symbol('%_') {
-                $past := add_placeholder_parameter($/, '%', '_', :slurpy_named(1));
+            unless $*ST.nearest_signatured_block_declares('%_') {
+                $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1));
             }
         }
         elsif +@name > 1 {
@@ -1581,6 +1581,9 @@ class Perl6::Actions is HLL::Actions {
             @parameter_infos.push(%info);
             $param_idx := $param_idx + 1;
         }
+        
+        # Mark current block as having a signature.
+        $*ST.mark_cur_lexpad_signatured();
         
         # Result is set of parameter descriptors.
         make @parameter_infos;
@@ -3040,7 +3043,7 @@ class Perl6::Actions is HLL::Actions {
         my $arity := 0;
         for @params {
             last if $_<is_optional> || $_<named_names> ||
-               $_<slurpy_pos> || $_<slurpy_named>;
+               $_<pos_slurpy> || $_<named_slurpy>;
             $arity := $arity + 1;
         }
         $block.arity($arity);
@@ -3054,20 +3057,27 @@ class Perl6::Actions is HLL::Actions {
     }
 
     # Adds a placeholder parameter to this block's signature.
-    sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$slurpy_pos, :$slurpy_named) {
+    sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$pos_slurpy, :$named_slurpy) {
         # Obtain/create placeholder parameter list.
         my $block := $*ST.cur_lexpad();
         my @params := $block<placeholder_sig> || ($block<placeholder_sig> := []);
         
-        # Make descriptor.
+        # If we already declared this as a placeholder, we're done.
         my $name := ~$sigil ~ ~$ident;
+        for @params {
+            if $_<variable_name> eq $name {
+                return PAST::Var.new( :name($name), :scope('lexical_6model') );
+            }
+        }
+        
+        # Make descriptor.
         my %param_info := hash(
             variable_name => $name,
-            slurpy_pos    => $slurpy_pos,
-            slurpy_named  => $slurpy_named);
+            pos_slurpy    => $pos_slurpy,
+            named_slurpy  => $named_slurpy);
         
         # If it's slurpy, just goes on the end.
-        if $slurpy_pos || $slurpy_named {
+        if $pos_slurpy || $named_slurpy {
             @params.push(%param_info);
         }
         
@@ -3076,7 +3086,7 @@ class Perl6::Actions is HLL::Actions {
             %param_info<named_names> := [$ident];
             my @popped;
             while @params
-                    && (@params[+@params - 1]<slurpy_pos> || @params[+@params - 1]<slurpy_named>) {
+                    && (@params[+@params - 1]<pos_slurpy> || @params[+@params - 1]<named_slurpy>) {
                 @popped.push(@params.pop);
             }
             @params.push(%param_info);
@@ -3087,7 +3097,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             my @shifted;
             for @params {
-                last if $_<slurpy_pos> || $_<slurpy_named> ||
+                last if $_<pos_slurpy> || $_<named_slurpy> ||
                         $_<named_names> ||
                         pir::substr__SSi($_<variable_name>, 1) gt $ident;
                 @shifted.push(@params.shift);

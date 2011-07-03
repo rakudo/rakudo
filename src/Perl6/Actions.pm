@@ -2701,8 +2701,8 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method dec_number($/) {
-        my $int  := $<int> ?? ~$<int> !! "0";
-        my $frac := $<frac> ?? ~$<frac> !! "0";
+        my $int  := $<int> ?? ~$<int>.ast !! "0";
+        my $frac := $<frac> ?? ~$<frac>.ast !! "0";
         if $<escale> {
             my $exp := ~$<escale>[0]<decint>;
             make $*ST.add_constant('Num', 'num',

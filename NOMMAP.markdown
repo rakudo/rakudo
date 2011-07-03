@@ -68,6 +68,10 @@ Many things are working, some are not...
 ## Ensure nested packages work
 In theory, just should already.
 
+## Classes conflict even when put into a package
+my package Foo { class Block {} } makes Foo::Block conflict with the
+Block type. Shouldn't.
+
 ## Restore other setting bits
 Bring back in everything that was ripped out. Probably many our things
 become my things.

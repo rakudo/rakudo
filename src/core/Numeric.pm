@@ -5,6 +5,10 @@ my class Numeric {
     multi method ACCEPTS(Numeric:D: $a) { $a == self }
 
     proto method log(|$) {*}
+    proto method exp(|$) {*}
+    multi method exp(Numeric $base) {
+        self.exp * $base.log;
+    }
 }
 
 
@@ -22,6 +26,9 @@ multi prefix:<abs>(\$a)      { abs $a.Numeric }
 proto sub log(|$) {*}
 multi sub log(Numeric $x) { $x.log }
 multi sub log(Numeric $x, Numeric $base) { $x.log($base) }
+
+proto sub exp(|$) {*}
+multi sub exp(Numeric $x) { $x.exp }
 
 proto infix:<+>(|$) { * }
 multi infix:<+>(\$a, \$b)    { $a.Numeric + $b.Numeric }

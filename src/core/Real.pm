@@ -20,6 +20,7 @@ my class Real {
     }
     multi method log()           { self.Bridge.log               }
     multi method log(Real $base) { self.Bridge.log($base.Bridge) }
+    multi method exp()           { self.Bridge.exp               }
 }
 
 proto sub cis(|$) {*}

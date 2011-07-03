@@ -72,6 +72,12 @@ my class Complex is Numeric {
         my Num ($mag, $angle) = self.polar;
         Complex.new($mag.log, $angle);
     }
+
+    multi method exp() {
+        my Num $mag = $!re.exp;
+        Complex.new($mag * $!im.cos, $mag * $!im.sin);
+    }
+
 }
 
 multi sub prefix:<->(Complex \$a) {
@@ -261,6 +267,10 @@ multi sub infix:</>(Complex \$a, Real \$b) {
 multi sub infix:</>(Real \$a, Complex \$b) {
     Complex.new($a, 0) / $b;
 }
+
+multi sub infix:<**>(Complex \$a, Complex \$b) { $b.exp * $a.log }
+multi sub infix:<**>(Real    \$a, Complex \$b) { $b.exp * $a.log }
+multi sub infix:<**>(Complex \$a, Real    \$b) { $b.exp * $a.log }
 
 proto postfix:<i>(|$) { * }
 multi postfix:<i>(Real    \$a) { Complex.new(0e0, $a);     }

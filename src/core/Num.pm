@@ -62,6 +62,10 @@ my class Num {
         nqp::p6box_n(nqp::abs_n(nqp::unbox_n(self)));
     }
 
+    method exp() {
+        nqp::p6box_n(pir::exp__Nn(nqp::unbox_n(self)));
+    }
+
     proto method log(|$) {*}
     multi method log() {
         nqp::p6box_n(pir::ln__NN(nqp::unbox_n(self)));

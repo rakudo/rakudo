@@ -53,7 +53,7 @@ S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
 # S02-builtin_data_types/undefined-types.t  # needs working <sink>
 # S02-builtin_data_types/whatever.t         # needs enum support
-# S02-lexical-conventions/unicode.t                          # icu
+S02-lexical-conventions/unicode.t                          # icu
 # S02-literals/array-interpolation.t
 # S02-literals/autoref.t
 # S02-literals/char-by-name.t                                # icu
@@ -96,7 +96,7 @@ S02-names/identifier.t
 # S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t
-# S02-whitespace_and_comments/minimal-whitespace.t
+S02-whitespace_and_comments/minimal-whitespace.t
 # S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
@@ -120,7 +120,7 @@ S03-metaops/reverse.t
 S03-operators/assign-is-not-binding.t
 # S03-operators/assign.t
 # S03-operators/autoincrement-range.t                        # icu
-# S03-operators/autoincrement.t             # missing default .new()
+S03-operators/autoincrement.t
 # S03-operators/autovivification.t
 # S03-operators/basic-types.t               # need regexes
 S03-operators/binding-attributes.t
@@ -365,7 +365,7 @@ S12-attributes/inheritance.t
 # S12-attributes/instance.t
 # S12-attributes/recursive.t
 # S12-attributes/undeclared.t
-# S12-class/anonymous.t
+S12-class/anonymous.t
 # S12-class/augment-supersede.t
 # S12-class/attributes.t
 # S12-class/basic.t
@@ -486,7 +486,7 @@ S32-array/bool.t
 # S32-array/unshift.t
 # S32-basics/warn.t
 # S32-container/zip.t
-# S32-hash/exists.t
+# S32-hash/exists.t         # needs  hash() composer
 # S32-hash/delete.t
 # S32-hash/invert.t
 # S32-hash/keys_values.t
@@ -616,7 +616,7 @@ S32-trig/simple.t
 integration/code-blocks-as-sub-args.t
 # integration/error-reporting.t
 integration/lexical-array-in-inner-block.t
-# integration/lexicals-and-attributes.t
+integration/lexicals-and-attributes.t
 integration/man-or-boy.t
 integration/method-calls-and-instantiation.t
 integration/no-indirect-new.t
@@ -624,7 +624,7 @@ integration/no-indirect-new.t
 # integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 # integration/real-strings.t
-# integration/role-composition-vs-attribute.t
+integration/role-composition-vs-attribute.t
 # integration/say-crash.t
 # integration/substr-after-match-in-gather-in-for.t
 # integration/weird-errors.t

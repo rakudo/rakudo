@@ -33,9 +33,16 @@ my class Mu {
         $candidate
     }
     
+   proto method Numeric(|$) { * }
+   multi method Numeric(Mu:U:) {
+        note 'Use of uninitialized value in numeric context';
+        0
+    }
+    
     proto method Str(|$) { * }
     multi method Str(Mu:U:) {
-        ''   # TODO: should be a warning of some sort
+        note 'Use of uninitialized value in string context';
+        ''
     }
     multi method Str(Mu:D:) {
         self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>'

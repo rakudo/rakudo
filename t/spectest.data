@@ -361,7 +361,7 @@ S09-autovivification/autoincrement.t
 # S12-attributes/class.t
 # S12-attributes/clone.t
 # S12-attributes/delegation.t
-# S12-attributes/inheritance.t
+S12-attributes/inheritance.t
 # S12-attributes/instance.t
 # S12-attributes/recursive.t
 # S12-attributes/undeclared.t

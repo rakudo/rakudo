@@ -1,12 +1,12 @@
 # Roadmap for "nom" Branch
 
-Last Updated 3 July 2011
+Last Updated 4 July 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
-* core constants (e.g., Inf, Bool::True, Order::Decrease)
+* core constants (e.g., Inf, Order::Decrease)
 * regexes missing
 * is export on methods
     - should work outside the setting; note here if not
@@ -31,7 +31,7 @@ new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
 closure.
 
 ## Magicals
-@_ and %_ handling.
+Methods should get automatic %_.
 
 ## when statements
 when needs to properly find use correct outer scope
@@ -63,7 +63,6 @@ Many things are working, some are not...
 * handles
 * .Foo::bar
 * does and but
-* .^parents
 
 ## Ensure nested packages work
 In theory, just should already.

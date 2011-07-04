@@ -174,4 +174,11 @@ sub infix:<xx>(Mu \$x, $n is copy) {
     GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 
+proto sub pop(|$) {*}
+multi sub pop(@a) { @a.pop }
 
+proto sub shift(|$) {*}
+multi sub shift(@a) { @a.shift }
+
+proto sub push(|$) {*}
+multi sub push(@a, *@elems) { @a.push: @elems }

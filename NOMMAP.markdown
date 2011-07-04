@@ -27,8 +27,7 @@ Things that aren't blockers but might be worth knowing about:
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
 
 ## Object construction
-new, bless, CREATE, BUILDALL, BUILD handling. Make use of default value
-closure.
+Defaults should only be used if attribute never accessed.
 
 ## Magicals
 Methods should get automatic %_.
@@ -61,7 +60,6 @@ Many things are working, some are not...
 * Try to implement enumerations
 * Some support for augment
 * handles
-* .Foo::bar
 * does and but
 
 ## Ensure nested packages work

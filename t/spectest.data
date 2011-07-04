@@ -198,7 +198,7 @@ S04-blocks-and-statements/pointy.t
 S04-phasers/end.t
 # S04-phasers/rvalue.t
 # S04-phasers/start.t
-# S04-declarations/constant.t
+S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 # S04-declarations/multiple.t
 # S04-declarations/my.t

@@ -73,6 +73,11 @@ my class Complex is Numeric {
         Complex.new($mag.log, $angle);
     }
 
+    method sqrt() {
+        my Num ($mag, $angle) = self.polar;
+        $mag.sqrt.unpolar($angle/2);
+    }
+
     multi method exp() {
         my Num $mag = $!re.exp;
         Complex.new($mag * $!im.cos, $mag * $!im.sin);

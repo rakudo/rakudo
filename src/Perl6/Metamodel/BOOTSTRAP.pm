@@ -26,6 +26,7 @@ my class BOOTSTRAPATTR {
     method name() { $!name }
     method type() { $!type }
     method box_target() { $!box_target }
+    method has_accessor() { 0 }
     method is_generic() { $!type.HOW.is_generic($!type) }
     method instantiate_generic($type_environment) {
         my $ins := $!type.HOW.instantiate_generic($!type, $type_environment);

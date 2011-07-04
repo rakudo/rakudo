@@ -38,12 +38,44 @@ my class Mu {
         my $cand := nqp::istype($candidate, Whatever) ??
             nqp::create(self) !!
             $candidate;
-        
-        $cand
+        $cand.BUILDALL(@autovivs, %attrinit);
     }
     
-   proto method Numeric(|$) { * }
-   multi method Numeric(Mu:U:) {
+    method BUILDALL(@autovivs, %attrinit) {
+        # Get the build plan. Note that we do this "low level" to
+        # avoid the NQP type getting mapped to a Rakudo one, which
+        # would get expensive.
+        my $build_plan := pir::find_method__PPs(self.HOW, 'BUILDPLAN')(self.HOW, self);
+        my int $count   = nqp::elems($build_plan);
+        my int $i       = 0;
+        while nqp::islt_i($i, $count) {
+            my $task := nqp::atpos($build_plan, $i);
+            if nqp::iseq_i(nqp::atpos($task, 0), 0) {
+                # Custom BUILD call.
+                nqp::atpos($task, 1)(self, |%attrinit);
+            }
+            elsif nqp::iseq_i(nqp::atpos($task, 0), 1) {
+                # See if we have a value to initialize this attr
+                # with.
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists($key_name) {
+                    # XXX Should not really need the decontainerize, but seems
+                    # that slurpy hashes sometimes lead to double containers
+                    # somehow...
+                    nqp::getattr(self, nqp::atpos($task, 1),
+                        nqp::atpos($task, 3)) = pir::nqp_decontainerize__PP(%attrinit{$key_name});
+                }
+            }
+            else {
+                die "Invalid BUILDPLAN";
+            }
+            $i = nqp::add_i($i, 1);
+        }
+        self
+    }
+    
+    proto method Numeric(|$) { * }
+    multi method Numeric(Mu:U:) {
         note 'Use of uninitialized value in numeric context';
         0
     }

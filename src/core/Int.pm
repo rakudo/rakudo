@@ -1,3 +1,5 @@
+class Rat { ... }
+
 my class Int {
     method Bool() {
         nqp::p6bool(
@@ -12,6 +14,10 @@ my class Int {
     
     method Num() {
         nqp::p6box_n(nqp::unbox_i(self));
+    }
+
+    method Rat() {
+        Rat.new(self, 1);
     }
 
     method abs() {

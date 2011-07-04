@@ -520,7 +520,7 @@ S32-num/complex.t
 # S32-num/exp.t
 # S32-num/gcd.t
 # S32-num/int.t
-# S32-num/log.t
+S32-num/log.t
 # S32-num/pi.t
 S32-num/polar.t
 # S32-num/power.t

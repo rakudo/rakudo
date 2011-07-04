@@ -5,6 +5,11 @@ my class Numeric {
     multi method ACCEPTS(Numeric:D: $a) { $a == self }
 
     proto method log(|$) {*}
+    multi method log(Cool    $base) { self.log / $base.Numeric.log }
+    multi method log(Numeric $base) { self.log / $base.log         }
+
+    method log10() { self.log / 10e0.log }
+
     proto method exp(|$) {*}
     multi method exp(Numeric $base) {
         self.exp * $base.log;
@@ -26,6 +31,12 @@ multi prefix:<abs>(\$a)      { abs $a.Numeric }
 proto sub log(|$) {*}
 multi sub log(Numeric $x) { $x.log }
 multi sub log(Numeric $x, Numeric $base) { $x.log($base) }
+multi sub log(Cool $x)    { $x.Numeric.log }
+multi sub log(Cool $x, Cool $base) { $x.Numeric.log($base.Numeric) }
+
+proto sub log10(|$) {*}
+multi sub log10(Numeric $x) { $x.log(10e0) }
+multi sub log10(Cool    $x) { $x.Numeric.log(10e0) }
 
 proto sub exp(|$) {*}
 multi sub exp(Numeric $x) { $x.exp }

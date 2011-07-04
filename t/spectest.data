@@ -113,7 +113,7 @@ S03-metaops/eager-hyper.t
 # S03-metaops/hyper.t
 # S03-metaops/not.t
 # S03-metaops/reduce.t
-# S03-metaops/reverse.t
+S03-metaops/reverse.t
 # S03-metaops/zip.t
 # S03-operators/also.t
 # S03-operators/arith.t
@@ -522,7 +522,7 @@ S32-num/complex.t
 # S32-num/int.t
 # S32-num/log.t
 # S32-num/pi.t
-# S32-num/polar.t
+S32-num/polar.t
 # S32-num/power.t
 # S32-num/rand.t
 # S32-num/rat.t
@@ -567,7 +567,7 @@ S32-str/ucfirst.t                                          # icu
 # S32-temporal/DateTime.t
 # S32-temporal/DateTime-Instant-Duration.t
 # S32-temporal/local.t
-# S32-trig/e.t
+S32-trig/e.t
 # S32-trig/pi.t
 # S32-trig/sin.t                                             # long
 # S32-trig/cos.t                                             # long

@@ -198,7 +198,13 @@ class Perl6::Metamodel::ClassHOW
                 }
             }
             
-            # XXX TODO: Default values.
+            # Check if there's any default values to put in place.
+            for @attrs {
+                my $default := $_.build_closure;
+                if $default {
+                    @plan[+@plan] := [2, $class, $_.name, $default];
+                }
+            }
         }
         @!BUILDPLAN := @plan;
     }

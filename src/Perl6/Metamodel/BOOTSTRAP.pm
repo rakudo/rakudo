@@ -27,6 +27,7 @@ my class BOOTSTRAPATTR {
     method type() { $!type }
     method box_target() { $!box_target }
     method has_accessor() { 0 }
+    method build_closure() { }
     method is_generic() { $!type.HOW.is_generic($!type) }
     method instantiate_generic($type_environment) {
         my $ins := $!type.HOW.instantiate_generic($!type, $type_environment);
@@ -133,6 +134,9 @@ Attribute.HOW.add_method(Attribute, 'set_rw', sub ($self) {
 Attribute.HOW.add_method(Attribute, 'set_build_closure', sub ($self, $closure) {
         pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($self),
             Attribute, '$!build_closure', $closure);
+    });
+Attribute.HOW.add_method(Attribute, 'build_closure', sub ($self) {
+        pir::getattribute__PPPs($self, Attribute, '$!build_closure');
     });
 Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
         my $type := pir::getattribute__PPPs($self, Attribute, '$!type');

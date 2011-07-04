@@ -45,7 +45,7 @@ S02-builtin_data_types/nil.t
 # S02-builtin_data_types/num.t
 # S02-builtin_data_types/pair.t             # pair := bindings
 S02-builtin_data_types/parcel.t
-S02-builtin_data_types/parsing-bool.t
+# S02-builtin_data_types/parsing-bool.t
 # S02-builtin_data_types/range.t
 # S02-builtin_data_types/set.t  
 S02-builtin_data_types/sigils-and-types.t
@@ -63,7 +63,7 @@ S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
 # S02-literals/listquote.t
 # S02-literals/listquote-whitespace.t
-# S02-literals/misc-interpolation.t
+S02-literals/misc-interpolation.t
 S02-literals/numeric.t
 S02-literals/pair-boolean.t
 # S02-literals/pairs.t
@@ -338,7 +338,7 @@ S06-signature/slurpy-and-interpolation.t
 # S06-signature/type-capture.t
 # S06-signature/types.t
 # S06-signature/unpack-array.t
-# S06-signature/unspecified.t
+S06-signature/unspecified.t
 # S06-traits/as.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
@@ -461,7 +461,7 @@ S14-roles/crony.t
 # S28-named-variables/cwd.t
 # S28-named-variables/inc.t
 S29-any/cmp.t
-# S29-any/isa.t
+S29-any/isa.t
 # S29-context/die.t
 S29-context/eval.t
 # S29-context/exit.t

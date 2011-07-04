@@ -54,7 +54,7 @@ S02-builtin_data_types/type.t
 # S02-builtin_data_types/undefined-types.t  # needs working <sink>
 # S02-builtin_data_types/whatever.t         # needs enum support
 S02-lexical-conventions/unicode.t                          # icu
-# S02-literals/array-interpolation.t
+S02-literals/array-interpolation.t
 # S02-literals/autoref.t
 # S02-literals/char-by-name.t                                # icu
 S02-literals/char-by-number.t
@@ -432,7 +432,7 @@ S12-methods/typed-attributes.t
 # S14-roles/conflicts.t
 S14-roles/crony.t
 # S14-roles/instantiation.t
-# S14-roles/lexical.t
+S14-roles/lexical.t
 # S14-roles/mixin.t
 # S14-roles/namespaced.t
 # S14-roles/parameter-subtyping.t

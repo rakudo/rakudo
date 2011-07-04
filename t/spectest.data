@@ -468,7 +468,7 @@ S29-context/eval.t
 # S29-context/exit.t
 # S29-context/sleep.t
 # S29-conversions/hash.t
-# S29-conversions/ord_and_chr.t                              #icu
+S29-conversions/ord_and_chr.t                              #icu
 S32-array/bool.t
 # S32-array/create.t
 # S32-array/delete.t

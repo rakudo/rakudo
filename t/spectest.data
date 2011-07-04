@@ -138,7 +138,7 @@ S03-operators/chained-declarators.t
 S03-operators/comparison-simple.t
 # S03-operators/context-forcers.t           # need True
 # S03-operators/context.t                   # need regexes
-# S03-operators/equality.t                  # need meta-not
+S03-operators/equality.t
 # S03-operators/eqv.t
 # S03-operators/identity.t                  # need array element binding
 # S03-operators/increment.t

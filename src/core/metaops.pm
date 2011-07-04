@@ -98,11 +98,11 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
 
 
 sub METAOP_REDUCE_CHAIN(\$op, :$triangle) {
-    fail "chaining reduce NYI";
+    NYI "chaining reduce NYI";
 }
 
 
 sub METAOP_REDUCE_XOR(\$op, :$triangle) {
-    fail "xor reduce NYI";
+    NYI "xor reduce NYI";
 }
 

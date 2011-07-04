@@ -1534,7 +1534,53 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method type_declarator:sym<constant>($/) {
-        $/.CURSOR.panic('Constant type declarator not yet implemented');
+        # We make an empty PAST node, but attach a callback to it
+        # that we'll have made when we see the =.
+        my $past := PAST::Op.new( :pasttype('null') );
+        $past<constant_declarator> := -> $rhs_ast {
+            # Get constant value.
+            my $value;
+            if $rhs_ast<has_compile_time_value> {
+                $value := $rhs_ast<compile_time_value>;
+            }
+            else {
+                $/.CURSOR.panic("Cannot handle constant with non-literal value yet");
+            }
+            
+            # Get name to install it as.
+            my $name;
+            if $<identifier> {
+                $name := ~$<identifier>;
+            }
+            elsif $<variable> {
+                # Don't handle twigil'd case yet.
+                if $<variable><twigil> {
+                    $/.CURSOR.panic("Twigil-variable constants not yet implemented");
+                }
+                $name := ~$<variable>;
+            }
+            else {
+                # Nothing to install, just return a PAST node to
+                # get hold of the constant.
+                return $*ST.get_object_sc_ref_past($value);
+            }
+            
+            # Install.
+            if $*SCOPE eq '' || $*SCOPE eq 'our' {
+                $*ST.install_lexical_symbol($*ST.cur_lexpad(), $name, $value);
+                $*ST.install_package_symbol($*PACKAGE, $name, $value);
+            }
+            elsif $*SCOPE eq 'my' {
+                $*ST.install_lexical_symbol($*ST.cur_lexpad(), $name, $value);
+            }
+            else {
+                $/.CURSOR.panic("$*SCOPE scoped constants are not yet implemented");
+            }
+            
+            # Evaluate to the constant.
+            return $*ST.get_object_sc_ref_past($value);
+        };
+        make $past;
     }
 
     method capterm($/) {
@@ -1846,7 +1892,7 @@ class Perl6::Actions is HLL::Actions {
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
-            if $*ST.is_type(@name) {
+            if $*ST.is_name(@name) {
                 my $trait := $*ST.find_symbol(@name);
                 make -> $declarand {
                     $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait);
@@ -2479,6 +2525,9 @@ class Perl6::Actions is HLL::Actions {
         if $lhs_ast && $lhs_ast<attribute_declarand> {
             Perl6::Actions.install_attr_init($/);
             $past := PAST::Stmts.new();
+        }
+        elsif $lhs_ast<constant_declarator> {
+            $past := $lhs_ast<constant_declarator>($rhs_ast);
         }
         elsif $lhs_ast && $lhs_ast<boxable_native> {
             # Native assignment is actually really a bind at low

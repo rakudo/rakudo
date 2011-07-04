@@ -1019,7 +1019,6 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token declarator {
         [
-    #    | <constant_declarator>
         | <variable_declarator>
         | '(' ~ ')' <signature> <trait>*
         | <routine_declarator>
@@ -1358,6 +1357,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         { $*IN_DECL := ''; }
         <.ws>
 
+        <trait>*
+
         [
         || <?before '='>
         || <?before <-[\n=]>*'='> <.panic: "Malformed constant"> # probable initializer later
@@ -1414,7 +1415,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         ||  <?{
                 my $longname := $<longname>.Str;
-                pir::substr($longname, 0, 2) eq '::' || $*ST.is_type(parse_name($longname))
+                pir::substr($longname, 0, 2) eq '::' || $*ST.is_name(parse_name($longname))
             }>
             <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
         || <args>
@@ -1528,7 +1529,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             my $longname := canonical_type_longname($<longname>);
             pir::substr($longname, 0, 2) eq '::' ??
                 1 !! # ::T introduces a type, so always is one
-                $*ST.is_type(parse_name($longname))
+                $*ST.is_name(parse_name($longname))
           }>
         ]
         # parametric type?

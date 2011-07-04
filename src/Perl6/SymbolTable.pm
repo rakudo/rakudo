@@ -1041,12 +1041,14 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Checks if a given symbol is declared and also a type object.
-    method is_type(@name) {
-        my $is_type := 0;
+    method is_name(@name) {
+        my $is_name := 0;
         try {
-            $is_type := !pir::repr_defined__IP(self.find_symbol(@name))
+            # This throws if it's not a known name.
+            self.find_symbol(@name);
+            $is_name := 1;
         }
-        $is_type
+        $is_name
     }
     
     # Finds a symbol that has a known value at compile time from the

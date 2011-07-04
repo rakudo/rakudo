@@ -11,10 +11,6 @@ new possible performance.
 ## Int.Rat
 Add .Rat method to Int. Should get us S03-smartmatch/any-num.t.
 
-## Fix Complex.ACCEPTS
-Work out why (1 + 2i) ~~ (1 + 2i) is infinite recursion. Should get
-us S03-smartmatch/any-complex.t.
-
 ## Basic IO
 the stat calls should be pretty straight-forward to port from master
 

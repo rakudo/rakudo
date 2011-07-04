@@ -177,7 +177,7 @@ S03-operators/subscript-vs-lt.t
 # S03-smartmatch/any-array.t
 # S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
-# S03-smartmatch/any-complex.t
+S03-smartmatch/any-complex.t
 # S03-smartmatch/any-hash-pair.t
 # S03-smartmatch/any-hash-slice.t
 # S03-smartmatch/any-method.t

@@ -272,6 +272,10 @@ multi sub infix:<**>(Complex \$a, Complex \$b) { $b.exp * $a.log }
 multi sub infix:<**>(Real    \$a, Complex \$b) { $b.exp * $a.log }
 multi sub infix:<**>(Complex \$a, Real    \$b) { $b.exp * $a.log }
 
+multi sub infix:<==>(Complex \$a, Complex \$b) { $a.re == $b.re && $a.im == $b.im }
+multi sub infix:<==>(Complex \$a, Real    \$b) { $a.re == $b    && $a.im == 0e0   }
+multi sub infix:<==>(Real    \$a, Complex \$b) { $a    == $b.re && 0e0   == $b.im }
+
 proto postfix:<i>(|$) { * }
 multi postfix:<i>(Real    \$a) { Complex.new(0e0, $a);     }
 multi postfix:<i>(Complex \$a) { Complex.new(-$a.im, $a.re) }

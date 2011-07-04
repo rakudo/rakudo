@@ -3371,16 +3371,21 @@ class Perl6::Actions is HLL::Actions {
         my $attr := ($/[0].ast)<attribute_declarand>;
         
         # Construct signature and anonymous method.
+        my @params := [
+            hash( is_invocant => 1, nominal_type => $*PACKAGE),
+            hash( variable_name => '$_', nominal_type => $*ST.find_symbol(['Mu']))
+        ];
         my $sig := $*ST.create_signature([
-            $*ST.create_parameter(hash(is_invocant => 1, nominal_type => $*PACKAGE)),
-            $*ST.create_parameter(hash( variable_name => '$_', nominal_type => $*ST.find_symbol(['Mu'])))
-            ]);
+            $*ST.create_parameter(@params[0]),
+            $*ST.create_parameter(@params[1])
+        ]);
         my $block := PAST::Block.new(
             PAST::Stmts.new(
                 PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ),
                 PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
             ),
             PAST::Stmts.new( $/[1].ast ));
+        add_signature_binding_code($block, $sig, @params);
         my $code := $*ST.create_code_object($block, 'Method', $sig);
         
         # Block should go in current lexpad, in correct lexical context.

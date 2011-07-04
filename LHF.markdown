@@ -8,6 +8,9 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
+## Int.Rat
+Add .Rat method to Int. Should get us S03-smartmatch/any-num.t.
+
 ## Basic IO
 the stat calls should be pretty straight-forward to port from master
 

@@ -268,9 +268,9 @@ multi sub infix:</>(Real \$a, Complex \$b) {
     Complex.new($a, 0) / $b;
 }
 
-multi sub infix:<**>(Complex \$a, Complex \$b) { $b.exp * $a.log }
-multi sub infix:<**>(Real    \$a, Complex \$b) { $b.exp * $a.log }
-multi sub infix:<**>(Complex \$a, Real    \$b) { $b.exp * $a.log }
+multi sub infix:<**>(Complex \$a, Complex \$b) { ($b * $a.log).exp}
+multi sub infix:<**>(Real    \$a, Complex \$b) { ($b * $a.log).exp}
+multi sub infix:<**>(Complex \$a, Real    \$b) { ($b * $a.log).exp}
 
 multi sub infix:<==>(Complex \$a, Complex \$b) { $a.re == $b.re && $a.im == $b.im }
 multi sub infix:<==>(Complex \$a, Real    \$b) { $a.re == $b    && $a.im == 0e0   }

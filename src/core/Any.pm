@@ -22,7 +22,7 @@ my class Any {
         self.map({ $_ if $_ ~~ $test });
     }
 
-    method join($separator = ' ') {
+    method join($separator = '') {
         my $list = (self,).flat.eager;
         my Mu $rsa := pir::new__Ps('ResizableStringArray');
         nqp::push($rsa, nqp::unbox_s($list.shift.Stringy)) 

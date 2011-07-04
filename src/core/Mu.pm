@@ -21,16 +21,25 @@ my class Mu {
         nqp::p6bool(pir::repr_defined__IP(self))
     }
     
-    method new(*%attrinit) {
-        self.bless(self.CREATE(), |%attrinit);
+    proto method new(|$) { * }
+    multi method new(*%attrinit) {
+        self.bless(*, |%attrinit);
+    }
+    multi method new($, *@) {
+        die "Default constructor only takes named arguments";
     }
     
     method CREATE() {
         nqp::create(self)
     }
     
-    method bless(Mu \$candidate, *%attrinit) {
-        $candidate
+    method bless(Mu \$candidate, *@autovivs, *%attrinit) {
+        # If we were passed *, then need to create a candidate.
+        my $cand := nqp::istype($candidate, Whatever) ??
+            nqp::create(self) !!
+            $candidate;
+        
+        $cand
     }
     
    proto method Numeric(|$) { * }

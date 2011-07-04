@@ -50,6 +50,7 @@ my class Mu {
         my int $i       = 0;
         while nqp::islt_i($i, $count) {
             my $task := nqp::atpos($build_plan, $i);
+            $i = nqp::add_i($i, 1);
             if nqp::iseq_i(nqp::atpos($task, 0), 0) {
                 # Custom BUILD call.
                 nqp::atpos($task, 1)(self, |%attrinit);
@@ -75,7 +76,6 @@ my class Mu {
             else {
                 die "Invalid BUILDPLAN";
             }
-            $i = nqp::add_i($i, 1);
         }
         self
     }

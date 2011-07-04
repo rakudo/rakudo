@@ -130,6 +130,7 @@ CORE_SOURCES = \
   src/core/Code.pm \
   src/core/Attribute.pm \
   src/core/Cool.pm \
+  src/core/Whatever.pm \
   src/core/Bool.pm \
   src/core/Numeric.pm \
   src/core/Real.pm \

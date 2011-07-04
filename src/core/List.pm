@@ -1,3 +1,5 @@
+class Range { ... }
+
 class List does Positional {
     # declared in BOOTSTRAP.pm:
     #   is Iterable;           # parent class
@@ -128,6 +130,29 @@ class List does Positional {
         self.gimme(1) 
           ?? nqp::shift($!items) 
           !! fail 'Element shifted from empty list';
+    }
+
+    method sort($by = &infix:<cmp>) {
+        # We defer to Parrot's ResizablePMCArray.sort method here.
+        # Instead of sorting elements directly, we sort a Parcel of
+        # indices from 0..^$list.elems, then use that Parcel as
+        # a slice into self.
+
+        # Range is currently optimized for fast Parcel construction.
+        my $index := Range.new(0, self.elems, :excludes_max).reify(*);
+        my Mu $index_rpa := nqp::getattr($index, Parcel, '$!storage');
+
+        # if $by.arity < 2, then we apply the block to the elements
+        # for sorting.
+        if ($by.?count // 2) < 2 {
+            my $list = self.map($by).eager;
+            $index_rpa.sort(-> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b });
+        }
+        else {
+            my $list = self.eager;
+            $index_rpa.sort(-> $a, $b { $by($list[$a],$list[$b]) || $a <=> $b });
+        }
+        self[$index];
     }
 
     multi method perl(List:D \$self:) {

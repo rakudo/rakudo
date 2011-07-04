@@ -14,6 +14,7 @@ my class Any {
     method hash() { my %h = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method reverse() { self.list.reverse }
+    method sort($by = &infix:<cmp>) { self.list.sort($by) }
 
     method Array() { Array.new(self.flat) }
 

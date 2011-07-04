@@ -50,7 +50,7 @@ S02-builtin_data_types/parsing-bool.t
 # S02-builtin_data_types/set.t  
 S02-builtin_data_types/sigils-and-types.t
 S02-builtin_data_types/subscripts_and_context.t
-# S02-builtin_data_types/type.t             # missing 'of XXX' type constraint
+S02-builtin_data_types/type.t
 # S02-builtin_data_types/undefined-types.t  # needs working <sink>
 # S02-builtin_data_types/whatever.t         # needs enum support
 # S02-lexical-conventions/unicode.t                          # icu
@@ -157,7 +157,7 @@ S03-operators/not.t
 # S03-operators/range-int.t                       # stress
 # S03-operators/range.t
 # S03-operators/reduce-le1arg.t
-# S03-operators/relational.t
+S03-operators/relational.t
 # S03-operators/repeat.t
 S03-operators/scalar-assign.t
 # S03-operators/short-circuit.t

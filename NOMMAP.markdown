@@ -84,3 +84,7 @@ Get these working again.
 ## Work towards nom being master
 Get enough of the spectests passing for us to be ready to make nom into
 the master branch
+
+## Fix array/hash initialization
+my @a;  needs to initialize @a to be the Array type object (not an Array instance).
+Same for my %h and hashes.

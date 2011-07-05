@@ -157,7 +157,7 @@ class Perl6::Actions is HLL::Actions {
         $outer.hll('perl6');
         $unit.loadlibs('nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
                        'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
-                       'obscure_ops');
+                       'obscure_ops', 'os');
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
         my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),

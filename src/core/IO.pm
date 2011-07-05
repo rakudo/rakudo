@@ -82,6 +82,13 @@ class IO {
     }
 }
 
+sub unlink($filename) {
+    try {
+        pir::new__PS('OS').rm($filename);
+    }
+    $! ?? fail($!) !! 1.Bool
+}
+
 proto sub open(|$) { * }
 multi sub open($filename, :$r, :$w, :$a, :$bin, :$chomp = 1.Bool) {
     IO.new.open($filename, :$r, :$w, :$a, :$bin, :$chomp);

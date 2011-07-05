@@ -40,3 +40,4 @@ my class Hash {
 
 
 sub circumfix:<{ }>(*@elems) { my $x = Hash.new.STORE(@elems); }
+sub hash(*@a, *%h) { my % = @a, %h }

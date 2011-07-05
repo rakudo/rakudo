@@ -31,7 +31,7 @@ S02-builtin_data_types/array.t
 S02-builtin_data_types/catch_type_cast_mismatch.t
 # S02-builtin_data_types/declare.t
 S02-builtin_data_types/flattening.t
-# S02-builtin_data_types/hash_ref.t
+S02-builtin_data_types/hash_ref.t
 # S02-builtin_data_types/hash.t             # need regexes and m{...}
 # S02-builtin_data_types/infinity.t         # need Inf constant
 # S02-builtin_data_types/instants-and-durations.t
@@ -232,7 +232,7 @@ S04-statements/terminator.t
 # S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
-# S04-statements/while.t
+S04-statements/while.t
 # S05-capture/caps.t
 # S05-capture/dot.t
 # S05-capture/named.t
@@ -330,7 +330,7 @@ S06-signature/passing-arrays.t
 S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t
 # S06-signature/positional.t
-# S06-signature/scalar-type.t
+S06-signature/scalar-type.t
 S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t
 S06-signature/slurpy-placeholders.t
@@ -470,7 +470,7 @@ S29-context/eval.t
 # S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu
 S32-array/bool.t
-# S32-array/create.t
+S32-array/create.t
 # S32-array/delete.t
 # S32-array/elems.t
 # S32-array/end.t
@@ -499,7 +499,7 @@ S32-array/shift.t
 # S32-io/note.t
 # S32-io/IO-Socket-INET.t
 # S32-list/classify.t
-# S32-list/create.t
+S32-list/create.t
 # S32-list/end.t
 # S32-list/first.t
 # S32-list/grep.t

@@ -23,7 +23,7 @@ class List does Positional {
 
     method flat() { self.flattens 
                     ?? self 
-                    !! nqp::p6list(nqp::list(self), List, 1.Bool)
+                    !! nqp::p6list(nqp::list(self), List, Bool::True)
     }
     method list() { self }
     method flattens() { $!flattens }
@@ -187,7 +187,7 @@ sub eager(|$) {
 }
 
 sub flat(|$) {
-    nqp::p6list(pir::perl6_current_args_rpa__P(), List, 1.Bool)
+    nqp::p6list(pir::perl6_current_args_rpa__P(), List, Bool::True)
 }
 
 sub list(|$) {

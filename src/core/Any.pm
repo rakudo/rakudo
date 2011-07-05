@@ -7,10 +7,10 @@ my class Any {
     # List-like methods for Any.
     ########
 
-    method eager() { nqp::p6list(nqp::list(self), List, 1.Bool).eager }
+    method eager() { nqp::p6list(nqp::list(self), List, Bool::True).eager }
     method elems() { self.list.elems }
     method infinite() { Mu }
-    method flat() { nqp::p6list(nqp::list(self), List, 1.Bool) }
+    method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
     method hash() { my %h = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method reverse() { self.list.reverse }

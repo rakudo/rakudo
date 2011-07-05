@@ -7,7 +7,7 @@ my class Parcel does Positional {
     method Numeric()            { self.flat.elems }
 
     method flat() {
-        nqp::p6list(nqp::clone($!storage), List, 1.Bool)
+        nqp::p6list(nqp::clone($!storage), List, Bool::True)
     }
 
     method item() { my $v = self; }
@@ -50,7 +50,7 @@ my class Parcel does Positional {
         # get the list of rvalues to store and lhs containers
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
-        my $rhs := nqp::p6list($args, List, 1.Bool);   # XXX this might need to be Seq
+        my $rhs := nqp::p6list($args, List, Bool::True);   # XXX this might need to be Seq
 
         # first pass -- scan lhs containers and pick out
         # scalar versus list assignment.  This also reifies

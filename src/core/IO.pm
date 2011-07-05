@@ -2,7 +2,7 @@
 # But you should see what USED to be here! O.O
 sub print(*@list) {
     $*OUT.print(@list.shift) while @list.gimme(1);
-    1.Bool
+    Bool::True
 }
 
 sub say(|$) {
@@ -24,10 +24,10 @@ sub gist(|$) {
 class IO {
     has $!PIO;
     has Int $.ins = 0;
-    has $.chomp = 1.Bool;
+    has $.chomp = Bool::True;
 
     proto method open(|$) { * }
-    multi method open($filename, :$r, :$w, :$a, :$bin, :$chomp = 1.Bool) {
+    multi method open($filename, :$r, :$w, :$a, :$bin, :$chomp = Bool::True) {
         my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',
@@ -43,7 +43,7 @@ class IO {
     method close() {
         # TODO:b catch errors
         $!PIO.close;
-        1.Bool;
+        Bool::True;
     }
 
     method eof() {
@@ -72,7 +72,7 @@ class IO {
 
     method print(*@list) {
         $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
-        1.Bool
+        Bool::True
     }
     method say(|$) {
         my Mu $args := pir::perl6_current_args_rpa__P();
@@ -86,11 +86,11 @@ sub unlink($filename) {
     try {
         pir::new__PS('OS').rm($filename);
     }
-    $! ?? fail($!) !! 1.Bool
+    $! ?? fail($!) !! Bool::True
 }
 
 proto sub open(|$) { * }
-multi sub open($filename, :$r, :$w, :$a, :$bin, :$chomp = 1.Bool) {
+multi sub open($filename, :$r, :$w, :$a, :$bin, :$chomp = Bool::True) {
     IO.new.open($filename, :$r, :$w, :$a, :$bin, :$chomp);
 }
 

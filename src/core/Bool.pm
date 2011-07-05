@@ -7,9 +7,9 @@ my class Bool {
 
     method Numeric() { self ?? 1 !! 0 }
 
-    method pred() { 0.Bool }
+    method pred() { Bool::False }
 
-    method succ() { 1.Bool }
+    method succ() { Bool::True }
 
     method ACCEPTS(Mu \$topic) { self }
 }

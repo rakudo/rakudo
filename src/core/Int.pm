@@ -2,8 +2,7 @@ class Rat { ... }
 
 my class Int {
     method Bool() {
-        nqp::p6bool(
-            nqp::isne_i(nqp::unbox_i(self), nqp::unbox_i(0)))
+        nqp::p6bool(nqp::isne_i(nqp::unbox_i(self), 0))
     }
     
     method Int() { self }

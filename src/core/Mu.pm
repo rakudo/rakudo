@@ -124,11 +124,11 @@ my class Mu {
         while $i < +@mro {
             my $obj = @mro[$i];
             if $obj.HOW.name($obj) eq $name {
-                return nqp::p6bool(1);
+                return Bool::True;
             }
             $i++;
         }
-        nqp::p6bool(0)
+        Bool::False
     }
     
     method does(Mu $type) {

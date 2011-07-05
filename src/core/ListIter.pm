@@ -62,7 +62,7 @@ my class ListIter {
           ?? nqp::istype(nqp::atpos($!rest, 0), Iterable)
              && nqp::atpos($!rest,0).infinite
              || Mu
-          !! 0.Bool
+          !! Bool::False
     }
 
     method iterator() { self }

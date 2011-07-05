@@ -11,7 +11,7 @@ sub SEQUENCE($left, $right, :$exclude_end) {
     my @right := ($right,).list;
     my $endpoint = @right.shift;
     my $infinite = $endpoint ~~ Whatever;
-    $endpoint = 0.Bool if $infinite;
+    $endpoint = Bool::False if $infinite;
     my $tail := ().list;
 
     my sub generate($code) {

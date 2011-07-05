@@ -16,10 +16,10 @@ my class Failure {
     # but obscure problems prevent us from making Mu.defined
     # a multi. See http://irclog.perlgeek.de/perl6/2011-06-28#i_4016747
     method defined() {
-        $!handled =1 if nqp::p6bool(pir::repr_defined__IP(self));
-        0.Bool;
+        $!handled =1 if pir::repr_defined__IP(self);
+        Bool::False;
     }
-    multi method Bool(Failure:D:) { $!handled = 1; 0.Bool; }
+    multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
     method Int(Failure:D:) { $!handled ?? 0 !! $!exception.rethrow; }
     method Num(Failure:D:) { $!handled ?? 0e0 !! $!exception.rethrow; }

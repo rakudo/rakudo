@@ -32,6 +32,18 @@ my class Str {
         );
     }
 
+    method substr($start as Int, $length? is copy) {
+        fail "Negative start argument ($start) to .substr" if $start < 0;
+        fail "Start of substr ($start) beyond end of string" if $start > self.chars;
+        $length = self.chars - $start if !$length.defined; 
+        fail "Negative length argument ($length) to .substr" if $length < 0;
+
+
+        nqp::p6box_s(nqp::substr(
+            nqp::unbox_s(self),
+            nqp::unbox_i($start),
+            nqp::unbox_i($length)));
+    } 
 
     # chars used to handle ranges for pred/succ
     my $RANGECHAR = 

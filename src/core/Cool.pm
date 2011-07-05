@@ -13,26 +13,8 @@ my class Cool {
         )
     }
 
-    method substr($start as Int, $length?) {
-        # TODO: Update this to match the spec.
-        my Str $str := self.Str;
-        my Int $len := ($length // $str.chars).Int;
-        if ($len < 0) {
-            if ($start >= 0) {
-                $len := $len + $str.chars;
-            }
-            $len := $len - $start;
-        }
-
-        # XXX no prefix:<-> yet...
-        #if ($start > self.chars || $start < -self.chars) {
-        #    return Mu;
-        #}
-
-        nqp::p6box_s(nqp::substr(
-            nqp::unbox_s($str),
-            nqp::unbox_i($start),
-            nqp::unbox_i($len)));
+    method substr($start as Int, $length?) { 
+        self.Stringy.substr($start, $length);
     }
 
     method uc() {

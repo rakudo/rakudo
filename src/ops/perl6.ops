@@ -622,6 +622,27 @@ inline op perl6_associate_sub_code_object(in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_code_object_from_parrot_sub()
+
+Takes a Parrot Sub PMC and gets the Perl 6 code object associated with it.
+
+=cut
+
+*/
+inline op perl6_code_object_from_parrot_sub(out PMC, in PMC) :base_core {
+    if ($2->vtable->base_type == enum_class_Sub
+           || $2->vtable->base_type == enum_class_Coroutine) {
+        GETATTR_Sub_multi_signature(interp, $2, $1);
+    }
+    else {
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use perl6_code_object_from_parrot_sub if second operand is a Parrot Sub.");
+    }
+}
+
+
+/*
+
 =item perl6_enter_multi_dispatch()
 
 Entry point to multi-dispatch over the dispatchee list in the specified

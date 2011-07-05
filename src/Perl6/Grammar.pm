@@ -562,6 +562,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<*>                  { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> }
 
+    # XXX temporary Bool::True/Bool::False until we can get a permanent definition
+    token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }
+
     token term:sym<undef> {
         <sym> >> {}
         [ <?before \h*'$/' >

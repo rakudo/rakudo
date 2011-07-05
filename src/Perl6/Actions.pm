@@ -2024,6 +2024,11 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
 
+    ## temporary Bool::True/False generation
+    method term:sym<boolean>($/) {
+        make PAST::Op.new(:pirop<perl6_booleanize__Pi>, $<value> eq 'True');
+    }
+
     method term:sym<self>($/) {
         make PAST::Var.new( :name('self'), :node($/) );
     }

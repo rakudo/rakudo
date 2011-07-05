@@ -19,8 +19,11 @@ my class Str {
     multi method perl(Str:D:) { "'" ~ self ~ "'" }
 
     method chomp() {
-        my $idx = self.chars - 1;
-        self.substr($idx) eq "\n" ?? self.substr(0, $idx) !! self;
+        my $n_idx = self.chars - 1;
+        my $rn_idx = $n_idx - 1;
+        self.substr($rn_idx) eq "\r\n" ?? self.substr(0, $rn_idx) !!
+        self.substr($n_idx)  eq "\n"   ?? self.substr(0, $n_idx)  !!
+        self;
     }
 
     method chop() {

@@ -7,6 +7,7 @@ are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Order::Decrease)
+* True constant doesn't work in setting (try "say *.ACCEPTS(1)")
 * regexes missing
 * is export on methods
     - should work outside the setting; note here if not

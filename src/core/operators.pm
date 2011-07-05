@@ -88,6 +88,10 @@ sub SEQUENCE($left, $right, :$exclude_end) {
     }, :$infinite), @right;
 }
 
+# XXX Wants to be a macro when we have them.
+sub WHAT(\$x) {
+    $x.WHAT
+}
 
 proto sub infix:<...>(|$) { * }
 multi sub infix:<...>($a, $b) { SEQUENCE($a, $b) }

@@ -164,6 +164,7 @@ CORE_SOURCES = \
   src/core/Complex.pm \
   src/core/Exception.pm \
   src/core/Failure.pm \
+  src/core/BackTrace.pm \
   src/core/Exceptions.pm \
   src/core/EXPORTHOW.pm \
   src/core/operators.pm \

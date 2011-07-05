@@ -632,7 +632,9 @@ Takes a Parrot Sub PMC and gets the Perl 6 code object associated with it.
 inline op perl6_code_object_from_parrot_sub(out PMC, in PMC) :base_core {
     if ($2->vtable->base_type == enum_class_Sub
            || $2->vtable->base_type == enum_class_Coroutine) {
-        GETATTR_Sub_multi_signature(interp, $2, $1);
+        PMC *p6sub;
+        GETATTR_Sub_multi_signature(interp, $2, p6sub);
+        $1 = PMC_IS_NULL(p6sub) ? Rakudo_types_mu_get() : p6sub;
     }
     else {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,

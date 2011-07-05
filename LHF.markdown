@@ -8,6 +8,10 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
+## hash sub
+Add &hash and make sure S04-statement-parsing/hash.t passes as a
+result.
+
 ## Basic IO
 the stat calls should be pretty straight-forward to port from master
 

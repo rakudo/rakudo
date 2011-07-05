@@ -8,6 +8,9 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
+## chomp
+Fix Str.chomp to work with strings of less than 2 characters.
+
 ## Basic IO
 the stat calls should be pretty straight-forward to port from master
 

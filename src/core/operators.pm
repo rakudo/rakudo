@@ -76,7 +76,7 @@ sub SEQUENCE($left, $right, :$exclude_end) {
                 }
             }
             elsif $tail.elems == 1 {
-                $code = { $^x.succ }
+                $code = $a cmp $endpoint > 0 ?? { $^x.pred } !! { $^x.succ }
             }
             elsif $tail.elems == 0 {
                 $code = {()}

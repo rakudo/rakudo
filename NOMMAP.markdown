@@ -11,6 +11,7 @@ Current fails that people are likely to encounter (no particular order):
 * regexes missing
 * is export on methods
     - should work outside the setting; note here if not
+* my ($a, $, $b) = 1,2,3;  (S03-operators/assign.t)
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)

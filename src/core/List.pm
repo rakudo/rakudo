@@ -136,6 +136,17 @@ class List does Positional {
         self.STORE_AT_POS($pos++, @values.shift) while @values;
     }
 
+    method roll($n is copy = 1) {
+        my $elems = self.elems;
+        fail ".roll from infinite list NYI" if $!nextiter.defined;
+        $n = +$Inf if nqp::istype($n, Whatever);
+        return self.at_pos($elems.rand.floor) if $n == 1;
+        gather while $n > 0 {
+            take nqp::atpos($!items, nqp::unbox_i($elems.rand.floor.Int));
+            $n--;
+        }
+    }
+
     method reverse() {
         self.gimme(*);
         fail 'Cannot reverse and infinite list' if self.infinite;

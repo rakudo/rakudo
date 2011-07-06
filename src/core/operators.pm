@@ -99,11 +99,6 @@ multi sub infix:<...>($a, $b) { SEQUENCE($a, $b) }
 proto sub infix:<...^>(|$) { * }
 multi sub infix:<...^>($a, $b) { SEQUENCE($a, $b, :exclude_end(1)) }
 
-proto sub infix:<eqv>($, $) { * }
-multi sub infix:<eqv>(Numeric $a, Numeric $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0;
-}
-
 sub undefine(Mu \$x) {
     my $undefined;
     $x = $undefined;

@@ -109,6 +109,12 @@ proto infix:<===>($a?, $b?)    { * }
 multi infix:<===>($a?)         { Bool::True }
 multi infix:<===>($a, $b)      { $a.WHICH === $b.WHICH }
 
+proto sub infix:<eqv>($, $) { * }
+multi sub infix:<eqv>($a, $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0;
+}
+
+
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$)             { * }
 multi prefix:<++>(Mu:D \$a is rw) { $a = $a.succ }

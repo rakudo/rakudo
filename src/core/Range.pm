@@ -17,6 +17,10 @@ class Range is Iterable does Positional {
         my $new = self.CREATE;
         $new.BUILD(-$Inf, $max, $excludes_min, $excludes_max)
     }
+    multi method new(Whatever $min, Whatever $max, :$excludes_min, :$excludes_max) {
+        fail "*..* is not a valid range";
+    }
+    
 
     method BUILD($min, $max, $excludes_min, $excludes_max) {
         $!min = $min;
@@ -31,9 +35,18 @@ class Range is Iterable does Positional {
     method iterator() { self }
     method list()     { self.flat }
 
-    method ACCEPTS(Range:D: Mu \$topic) {
+    method bounds()   { ($!min, $!max) }
+
+    multi method ACCEPTS(Range:D: Mu \$topic) {
         ($topic cmp $!min) > -(!$!excludes_min)
             and ($topic cmp $!max) < +(!$!excludes_max)
+    }
+
+    multi method ACCEPTS(Range:D: Range \$topic) {
+        ?( $.min eqv $topic.min
+           && $.max eqv $topic.max
+           && $.excludes_min === $topic.excludes_min
+           && $.excludes_max === $topic.excludes_max)
     }
 
     method reify($n = 10) {
@@ -93,6 +106,8 @@ class Range is Iterable does Positional {
         }
         nqp::p6parcel($rpa, nqp::null());
     }
+
+    multi method postcircumfix:<[ ]>(Range:D: \$parcel) { self.flat[$parcel] }
 
     multi method gist(Range:D:) { self.perl }
     multi method perl(Range:D:) { 

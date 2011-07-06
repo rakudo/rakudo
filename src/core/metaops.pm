@@ -1,6 +1,6 @@
 
 sub METAOP_ASSIGN(\$op) {
-    -> Mu \$a, Mu \$b { $a = $op($a, $b) }
+    -> Mu \$a, Mu \$b { $a = $op( $a // $op(), $b) }
 }
 
 sub METAOP_NEGATE(\$op) {

@@ -13,6 +13,7 @@ my class Any {
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
     method hash() { my %h = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
+    method pick($n = 1) { self.list.pick($n) }
     method reverse() { self.list.reverse }
     method sort($by = &infix:<cmp>) { self.list.sort($by) }
 
@@ -43,7 +44,6 @@ my class Any {
         }
         $min;
     }
-
          
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }

@@ -100,6 +100,29 @@ class List does Positional {
         )
     }
 
+    method pick($n is copy = 1) {
+        ## We use a version of Fisher-Yates shuffle here to
+        ## replace picked elements with elements from the end
+        ## of the list, resulting in an O(n) algorithm.
+        my $elems = self.elems;
+        fail ".pick from infinite list NYI" if $!nextiter.defined;
+        $n = +$Inf if nqp::istype($n, Whatever);
+        $n = $elems if $n > $elems;
+        return self.at_pos($elems.rand.floor) if $n == 1;
+        my Mu $rpa := nqp::clone($!items);
+        my $i;
+        my Mu $v;
+        gather while $n > 0 {
+            $i = $elems.rand.floor.Int;
+            $elems--; $n--;
+            $v := nqp::atpos($rpa, nqp::unbox_i($i));
+            # replace selected element with last unpicked one
+            nqp::bindpos($rpa, nqp::unbox_i($i),
+                         nqp::atpos($rpa, nqp::unbox_i($elems)));
+            take-rw $v;
+        }
+    }
+
     method pop() {
         my $elems = self.elems;
         fail '.pop from an infinite list NYI' if $!nextiter.defined;

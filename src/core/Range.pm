@@ -107,7 +107,7 @@ class Range is Iterable does Positional {
         nqp::p6parcel($rpa, nqp::null());
     }
 
-    multi method postcircumfix:<[ ]>(Range:D: \$parcel) { self.flat[$parcel] }
+    method at_pos($pos) { self.flat.at_pos($pos) }
 
     multi method gist(Range:D:) { self.perl }
     multi method perl(Range:D:) { 

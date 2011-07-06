@@ -3,8 +3,8 @@ my class Rat is Real {
     has $.numerator;
     has $.denominator;
 
-    method new(Rat:U: Int \$nu, Int \$de) {
-        my $new = self.CREATE;
+    method new(Int \$nu = 0, Int \$de = 1) {
+        my $new := self.CREATE;
         my $gcd         = $nu gcd $de;
         my $numerator   = $nu div $gcd;
         my $denominator = $de div $gcd;
@@ -22,8 +22,11 @@ my class Rat is Real {
 
     method nude() { $!numerator, $!denominator }
     method Num() {
-        $!numerator.Num / $!denominator.Num
+        $!denominator == 0
+          ?? ($!numerator < 0 ?? -$Inf !! $Inf)
+          !!  $!numerator.Num / $!denominator.Num
     }
+    method Int() { self.Num.Int }
 
     method Bridge() { self.Num }
     method Rat() { self }

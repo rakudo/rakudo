@@ -141,3 +141,7 @@ multi map(&code, *@values) { @values.map(&code) }
 
 proto grep(|$) {*}
 multi grep(Mu $test, *@values) { @values.grep($test) }
+
+proto pick(|$) { * }
+multi pick($n, *@values) { @values.pick($n) }
+

@@ -593,7 +593,7 @@ S32-trig/simple.t
 # integration/advent2009-day01.t
 # integration/advent2009-day02.t
 # integration/advent2009-day03.t
-# integration/advent2009-day04.t
+integration/advent2009-day04.t
 # integration/advent2009-day05.t
 # integration/advent2009-day06.t
 # integration/advent2009-day07.t

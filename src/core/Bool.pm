@@ -40,7 +40,7 @@ multi infix:<?|>(Mu $x = Bool::False) { $x.Bool }
 multi infix:<?|>(Mu \$a, Mu \$b)      { $a.Bool || $b.Bool }
 
 proto infix:<?^>(|$)                  { * }
-multi infix:<?|>(Mu $x = Bool::False) { $x.Bool }
+multi infix:<?^>(Mu $x = Bool::False) { $x.Bool }
 multi infix:<?^>(Mu \$a, Mu \$b)      { $a.Bool ^^ $b.Bool }
 
 # These operators are normally handled as macros in the compiler;

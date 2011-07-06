@@ -705,7 +705,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method add_constant($type, $primitive, *@value, *%named) {
         # If we already built this, find it in the cache and
         # just return that.
-        my $cache_key := "$type,$primitive," ~ pir::join(',', @value);
+        my $namedkey := '';
+        for %named {
+            $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';';
+        }
+        my $cache_key := "$type,$primitive,"
+                         ~ pir::join(',', @value)
+                         ~ $namedkey;
         if pir::exists(%!const_cache, $cache_key) {
             my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
             $past<has_compile_time_value> := 1;

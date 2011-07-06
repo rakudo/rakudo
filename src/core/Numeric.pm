@@ -106,7 +106,7 @@ multi infix:<==>($x?)        { Bool::True }
 multi infix:<==>(\$a, \$b)   { $a.Numeric == $b.Numeric }
 
 proto infix:<!=>(|$)         { * }
-multi infix:<==>($x?)        { Bool::True }
+multi infix:<!=>($x?)        { Bool::True }
 multi infix:<!=>(\$a, \$b)   { $a.Numeric != $b.Numeric }
 
 proto infix:«<»(|$)          { * }

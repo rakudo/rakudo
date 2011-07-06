@@ -702,7 +702,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Adds a constant value to the constants table. Returns PAST to do
     # the lookup of the constant.
-    method add_constant($type, $primitive, *@value) {
+    method add_constant($type, $primitive, *@value, *%named) {
         # If we already built this, find it in the cache and
         # just return that.
         my $cache_key := "$type,$primitive," ~ pir::join(',', @value);
@@ -735,13 +735,18 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $des := PAST::Op.new( :pirop('repr_box_num PnP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'type_new' {
-            $constant := $type_obj.new(|@value);
+            $constant := $type_obj.new(|@value, |%named);
             $des := PAST::Op.new(
                 :pasttype('callmethod'), :name('new'),
                 $type_obj_lookup
             );
-            nqp::push($des, self.get_object_sc_ref_past(nqp::shift(@value)))
+            $des.push(self.get_object_sc_ref_past(nqp::shift(@value)))
                 while @value;
+            for %named {
+                my $x := self.get_object_sc_ref_past($_.value);
+                $x.named($_.key);
+                $des.push($x);
+            }
         }
         else {
             pir::die("Don't know how to build a $primitive constant");

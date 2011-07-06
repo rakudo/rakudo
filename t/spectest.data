@@ -67,7 +67,7 @@ S02-literals/misc-interpolation.t
 S02-literals/numeric.t
 S02-literals/pair-boolean.t
 # S02-literals/pairs.t
-# S02-literals/quoting.t
+# S02-literals/quoting.t                    # need rx {} quoting
 # S02-literals/quoting-unicode.t                              # icu
 # S02-literals/radix.t
 # S02-literals/string-interpolation.t
@@ -118,7 +118,7 @@ S03-metaops/reverse.t
 # S03-operators/also.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
-# S03-operators/assign.t
+# S03-operators/assign.t                    # need my ($, $) = ...
 # S03-operators/autoincrement-range.t                        # icu
 S03-operators/autoincrement.t
 # S03-operators/autovivification.t
@@ -153,7 +153,7 @@ S03-operators/equality.t
 S03-operators/not.t
 # S03-operators/numeric-context.t
 # S03-operators/precedence.t
-# S03-operators/range-basic.t
+S03-operators/range-basic.t
 # S03-operators/range-int.t                       # stress
 # S03-operators/range.t
 # S03-operators/reduce-le1arg.t

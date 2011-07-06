@@ -13,12 +13,16 @@ class Range is Iterable does Positional {
         my $new = self.CREATE;
         $new.BUILD($min, $Inf, $excludes_min, $excludes_max)
     }
+    multi method new(Whatever $min, $max, :$excludes_min, :$excludes_max) {
+        my $new = self.CREATE;
+        $new.BUILD(-$Inf, $max, $excludes_min, $excludes_max)
+    }
 
     method BUILD($min, $max, $excludes_min, $excludes_max) {
         $!min = $min;
         $!max = $max;
-        $!excludes_min = $excludes_min;
-        $!excludes_max = $excludes_max;
+        $!excludes_min = $excludes_min.Bool;
+        $!excludes_max = $excludes_max.Bool;
         self;
     }
 
@@ -26,6 +30,11 @@ class Range is Iterable does Positional {
     method infinite() { $.max == $Inf }
     method iterator() { self }
     method list()     { self.flat }
+
+    method ACCEPTS(Range:D: Mu \$topic) {
+        ($topic cmp $!min) > -(!$!excludes_min)
+            and ($topic cmp $!max) < +(!$!excludes_max)
+    }
 
     method reify($n = 10) {
         my $count;
@@ -108,14 +117,14 @@ sub infix:<..>($min, $max) {
     Range.new($min, $max) 
 }
 sub infix:<^..>($min, $max) { 
-    Range.new($min, $max, :excludes_min(1)) 
+    Range.new($min, $max, :excludes_min) 
 }
 sub infix:<..^>($min, $max) { 
-    Range.new($min, $max, :excludes_max(1)) 
+    Range.new($min, $max, :excludes_max) 
 }
 sub infix:<^..^>($min, $max) {
-    Range.new($min, $max, :excludes_min(1), :excludes_max(1)) 
+    Range.new($min, $max, :excludes_min, :excludes_max) 
 }
 sub prefix:<^>($max) {
-    Range.new(0, $max, :excludes_max(1)) 
+    Range.new(0, $max, :excludes_max) 
 }

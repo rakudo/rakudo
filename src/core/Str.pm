@@ -15,9 +15,6 @@ my class Str {
 
     multi method ACCEPTS(Str:D: $other) { $other eq self }
 
-    # XXX: need to translate escapes
-    multi method perl(Str:D:) { "'" ~ self ~ "'" }
-
     method chomp() {
         my $n_idx = self.chars - 1;
         my $rn_idx = $n_idx - 1;
@@ -32,16 +29,15 @@ my class Str {
         );
     }
 
-    method substr($start as Int, $length? is copy) {
+    method substr($start, $length? is copy) {
         fail "Negative start argument ($start) to .substr" if $start < 0;
         fail "Start of substr ($start) beyond end of string" if $start > self.chars;
-        $length = self.chars - $start if !$length.defined; 
+        $length = $length.defined ?? $length.Int !! self.chars - $start.Int;
         fail "Negative length argument ($length) to .substr" if $length < 0;
-
 
         nqp::p6box_s(nqp::substr(
             nqp::unbox_s(self),
-            nqp::unbox_i($start),
+            nqp::unbox_i($start.Int),
             nqp::unbox_i($length)));
     } 
 
@@ -121,6 +117,25 @@ my class Str {
         }
         $str;
     }
+
+    my %esc = (
+        '$' => '\$',  '@' => '\@',  '%' => '\%',  '&' => '\&',  '{' => '\{',
+        "\b" => '\b', "\n" => '\n', "\r" => '\r', "\t" => '\t', '"' => '\"',
+        '\\' => '\\\\' );
+
+    multi method perl(Str:D:) {
+        my $result = '"';
+        for ^self.chars -> $i {
+            my $ch = self.substr($i, 1);
+            $result ~= %esc{$ch} // (pir::is_cclass__Iisi(
+                                            pir::const::CCLASS_PRINTING,
+                                            nqp::unbox_s($ch), 0)
+                                      ?? $ch 
+                                      !! $ch.ord.fmt('\x[%x]'));
+        }
+        $result ~ '"'
+    }
+    
 }
 
 

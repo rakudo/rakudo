@@ -373,7 +373,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         
         {
             $*POD_PAST := $*ST.add_constant(
-                'Array', 'type_new', |$*POD_BLOCKS
+                'List', 'type_new', |$*POD_BLOCKS
             );
             $*ST.install_lexical_symbol(
                 $*UNIT, '$POD', $*POD_PAST<compile_time_value>

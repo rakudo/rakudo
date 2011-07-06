@@ -757,7 +757,6 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         else {
             pir::die("Don't know how to build a $primitive constant");
         }
-        
         # Add to SC, finish up deserialization code.
         my $slot := self.add_object($constant);
         self.add_event(:deserialize_past(

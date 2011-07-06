@@ -222,6 +222,43 @@ class Perl6::Actions is HLL::Actions {
         make $outer;
     }
 
+    method pod_content_toplevel($/) {
+        my $child := $<pod_block>.ast;
+        $*POD_BLOCKS.push($child);
+        make $child;
+    }
+
+    method pod_block:sym<delimited>($/) {
+        my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
+        my @children := [];
+        for $<pod_content> {
+            @children.push($_.ast);
+        }
+        my $content := $*ST.add_constant(
+            'List', 'type_new',
+            |@children,
+        );
+        my $past := $*ST.add_constant(
+            'Pod__Block__Named', 'type_new',
+            :name($name<compile_time_value>),
+            :content($content<compile_time_value>),
+        );
+        make $past<compile_time_value>;
+    }
+
+    method pod_content:sym<text>($/) {
+        #my @ret := [];
+        #for $<pod_content> {
+        #    @ret.push($_.ast);
+        #}
+        #make @ret;
+        # XXX CHEAT!
+        my $str := $/.Str;
+        my $past := $*ST.add_constant('Str', 'str', $str);
+        make $past<compile_time_value>;
+    }
+
+
     method unitstart($/) {
         # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
         # to set dynamic outer lexical context and namespace details

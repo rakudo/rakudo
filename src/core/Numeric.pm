@@ -14,6 +14,7 @@ my class Numeric {
     multi method exp(Numeric $base) {
         self.exp * $base.log;
     }
+    multi method Bool(Numeric:D:) { self != 0 }
 }
 
 

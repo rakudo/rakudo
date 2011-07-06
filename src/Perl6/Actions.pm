@@ -230,9 +230,22 @@ class Perl6::Actions is HLL::Actions {
 
     method pod_block:sym<delimited>($/) {
         my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
+        #say("LOL BLOCK: ", $<type>.Str);
+        #say(" CONTENTS: '", $/.Str, "'");
         my @children := [];
         for $<pod_content> {
-            @children.push($_.ast);
+            # not trivial, for it can be either an array or a pod node
+            # and we can't really flatten a list in nqp
+            # I hope there's a better way,
+            # but let's settle on this for now
+            if pir::isa($_.ast, 'ResizablePMCArray') {
+                for $_.ast {
+                    @children.push($_);
+                }
+            } else {
+                #say("'", $_, "' became ", $_.ast);
+                @children.push($_.ast);
+            }
         }
         my $content := $*ST.add_constant(
             'List', 'type_new',
@@ -243,21 +256,31 @@ class Perl6::Actions is HLL::Actions {
             :name($name<compile_time_value>),
             :content($content<compile_time_value>),
         );
+        #say("block, returning ", $past<compile_time_value>);
         make $past<compile_time_value>;
     }
 
     method pod_content:sym<text>($/) {
-        #my @ret := [];
-        #for $<pod_content> {
-        #    @ret.push($_.ast);
-        #}
-        #make @ret;
-        # XXX CHEAT!
-        my $str := $/.Str;
-        my $past := $*ST.add_constant('Str', 'str', $str);
-        make $past<compile_time_value>;
+        my @ret := [];
+        for $<pod_textcontent> {
+            my $past := $*ST.add_constant(
+                'Str', 'str', $_.ast
+            );
+            @ret.push($past<compile_time_value>);
+        }
+        make @ret;
     }
 
+    method pod_textcontent:sym<regular>($/) {
+        make self.formatted_text($<text>.Str);
+    }
+
+    method formatted_text($a) {
+        my $r := subst($a, /\s+/, ' ', :global);
+        $r    := subst($r, /^^\s*/, '');
+        $r    := subst($r, /\s*$$/, '');
+        return $r;
+    }
 
     method unitstart($/) {
         # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)

@@ -121,7 +121,7 @@ S03-operators/assign-is-not-binding.t
 # S03-operators/assign.t                    # need my ($, $) = ...
 # S03-operators/autoincrement-range.t                        # icu
 S03-operators/autoincrement.t
-# S03-operators/autovivification.t
+S03-operators/autovivification.t
 # S03-operators/basic-types.t               # need regexes
 S03-operators/binding-attributes.t
 # S03-operators/binding-arrays.t
@@ -182,7 +182,7 @@ S03-smartmatch/any-complex.t
 # S03-smartmatch/any-hash-slice.t
 # S03-smartmatch/any-method.t
 S03-smartmatch/any-num.t
-# S03-smartmatch/any-pair.t
+S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
 # S03-smartmatch/any-sub.t
 # S03-smartmatch/any-type.t
@@ -407,7 +407,7 @@ S12-methods/class-and-instance.t
 # S12-methods/defer-call.t
 # S12-methods/defer-next.t
 S12-methods/how.t
-# S12-methods/indirect_notation.t
+S12-methods/indirect_notation.t
 # S12-methods/instance.t
 # S12-methods/lastcall.t
 S12-methods/method-vs-sub.t
@@ -523,7 +523,7 @@ S32-num/complex.t
 S32-num/log.t
 # S32-num/pi.t
 S32-num/polar.t
-# S32-num/power.t
+S32-num/power.t
 # S32-num/rand.t
 S32-num/rat.t
 # S32-num/real-bridge.t

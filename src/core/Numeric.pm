@@ -14,6 +14,7 @@ my class Numeric {
     multi method exp(Numeric $base) {
         self.exp * $base.log;
     }
+    multi method Bool(Numeric:D:) { self != 0 }
 }
 
 
@@ -106,7 +107,7 @@ multi infix:<==>($x?)        { Bool::True }
 multi infix:<==>(\$a, \$b)   { $a.Numeric == $b.Numeric }
 
 proto infix:<!=>(|$)         { * }
-multi infix:<==>($x?)        { Bool::True }
+multi infix:<!=>($x?)        { Bool::True }
 multi infix:<!=>(\$a, \$b)   { $a.Numeric != $b.Numeric }
 
 proto infix:«<»(|$)          { * }

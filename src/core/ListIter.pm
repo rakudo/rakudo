@@ -1,3 +1,5 @@
+class List { ... }
+
 my class ListIter {
     # Attributes defined in BOOTSTRAP.pm:
     #   has $!reified;         # return value for already-reified iterator
@@ -50,6 +52,8 @@ my class ListIter {
                                   nqp::p6listiter($!rest, $!list)))
                 if $!rest;
             nqp::bindattr(self, ListIter, '$!reified', $reified);
+            # update $!list's nextiter
+            nqp::bindattr($!list, List, '$!nextiter', $!nextiter) if $!list.defined;
             # free up $!list and $!rest
             nqp::bindattr(self, ListIter, '$!list', Mu);
             nqp::bindattr(self, ListIter, '$!rest', Mu);

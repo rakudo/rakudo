@@ -1,4 +1,11 @@
 my class Cool {
+
+    ## numeric methods
+
+    method rand() { self.Num.rand }
+    
+    ## string methods
+
     method bytes() {
         nqp::p6box_i(pir::bytelength__IS(nqp::unbox_s(self.Str)));
     }

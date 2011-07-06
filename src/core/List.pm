@@ -69,7 +69,6 @@ class List does Positional {
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
             $!nextiter.reify($eager ?? Whatever !! $n - $count);
-            nqp::bindattr(self, List, '$!nextiter', $!nextiter.nextiter);
             $count = nqp::p6box_i(nqp::elems($!items));
         }
 
@@ -98,6 +97,29 @@ class List does Positional {
             pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n)),
             Any
         )
+    }
+
+    method pick($n is copy = 1) {
+        ## We use a version of Fisher-Yates shuffle here to
+        ## replace picked elements with elements from the end
+        ## of the list, resulting in an O(n) algorithm.
+        my $elems = self.elems;
+        fail ".pick from infinite list NYI" if $!nextiter.defined;
+        $n = +$Inf if nqp::istype($n, Whatever);
+        $n = $elems if $n > $elems;
+        return self.at_pos($elems.rand.floor) if $n == 1;
+        my Mu $rpa := nqp::clone($!items);
+        my $i;
+        my Mu $v;
+        gather while $n > 0 {
+            $i = $elems.rand.floor.Int;
+            $elems--; $n--;
+            $v := nqp::atpos($rpa, nqp::unbox_i($i));
+            # replace selected element with last unpicked one
+            nqp::bindpos($rpa, nqp::unbox_i($i),
+                         nqp::atpos($rpa, nqp::unbox_i($elems)));
+            take-rw $v;
+        }
     }
 
     method pop() {

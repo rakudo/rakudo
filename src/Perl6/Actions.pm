@@ -248,7 +248,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         my $content := $*ST.add_constant(
-            'List', 'type_new',
+            'Array', 'type_new',
             |@children,
         );
         my $past := $*ST.add_constant(

@@ -117,7 +117,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token unv {
         # :dba('horizontal whitespace')
         [
-        | ^^ <?before \h* '=' [ \w | '\\'] > <.pod_comment>
+        | ^^ <?before \h* '=' [ \w | '\\'] > <.pod_content_toplevel>
         | \h* <comment>
         | \h+
         ]
@@ -142,28 +142,146 @@ grammar Perl6::Grammar is HLL::Grammar {
         '#=' $<attachment>=[\N*]
     }
 
-    token pod_comment {
-        ^^ \h* '='
-        [
-        | 'begin' \h+ 'END' >>
-            [ .*? \n '=' 'end' \h+ 'END' » \N* || .* ]
-        | 'begin' \h+ <identifier>
-            [
-            ||  .*? \n '=' 'end' \h+ $<identifier> » \N*
-            ||  <.panic: '=begin without matching =end'>
-            ]
-        | 'begin' » \h*
-            [ $$ || '#' || <.panic: 'Unrecognized token after =begin'> ]
-            [
-            || .*? \n \h* '=' 'end' » \N*
-            || <.panic: '=begin without matching =end'>
-            ]
-        |
-            [ <?before .*? ^^ '=cut' » >
-              <.panic: 'Obsolete pod format, please use =begin/=end instead'> ]?
-            [ <alpha> || \s || <.panic: 'Illegal pod directive'> ]
-            \N*
+    token pod_content_toplevel {
+        <pod_block>
+    }
+
+    proto token pod_content { <...> }
+
+    token pod_content:sym<block> {
+        <pod_newline>*
+        <pod_block>
+        <pod_newline>*
+    }
+
+    # any number of paragraphs of text
+    token pod_content:sym<text> {
+        <pod_newline>*
+        <pod_textcontent> ** <pod_newline>+
+        <pod_newline>*
+    }
+
+    proto token pod_textcontent { <...> }
+
+    # a single paragraph of text
+    token pod_text_para {
+        $<text> = [
+            \h* <!before '=' \w> \N+ <pod_newline>
+        ] +
+    }
+
+    # text not being code
+    token pod_textcontent:sym<regular> {
+        $<spaces>=[ \h* ]
+         <?{ !$*ALLOW_CODE
+             || ($<spaces>.to - $<spaces>.from) <= $*VMARGIN }>
+
+        $<text> = [
+            \h* <!before '=' \w> \N+ <pod_newline>
+        ] +
+    }
+
+    token pod_textcontent:sym<code> {
+        $<spaces>=[ \h* ]
+        <?{ $*ALLOW_CODE
+            && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
+        $<text> = [
+            [<!before '=' \w> \N+] ** [<pod_newline> $<spaces>]
         ]
+    }
+
+    proto token pod_block { <...> }
+
+    token pod_block:sym<delimited> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ <!before 'END'>
+        {}
+        :my $*VMARGIN := $<spaces>.to - $<spaces>.from;
+        :my $*ALLOW_CODE := 0;
+        $<type> = [
+            <pod_code_parent> { $*ALLOW_CODE := 1 }
+            || <identifier>
+        ]
+        <pod_newline>+
+        [
+         <pod_content> *
+         ^^ \h* '=end' \h+ $<type> <pod_newline>
+         ||  <.panic: '=begin without matching =end'>
+        ]
+    }
+
+    token pod_block:sym<delimited_raw> {
+        ^^ \h* '=begin' \h+ <!before 'END'>
+                        $<type>=[ 'code' || 'comment' ]
+                        <pod_newline>+
+        [
+         $<pod_content> = [ .*? ]
+         ^^ \h* '=end' \h+ $<type> <pod_newline>
+         ||  <.panic: '=begin without matching =end'>
+        ]
+    }
+
+    token pod_block:sym<end> {
+        ^^ \h*
+        [
+            || '=begin' \h+ 'END' <pod_newline>
+            || '=for'   \h+ 'END' <pod_newline>
+            || '=END' \h+
+        ]
+        .*
+    }
+
+    token pod_block:sym<paragraph> {
+        ^^
+        $<spaces> = [ \h* ]
+        {}
+        :my $*VMARGIN := $<spaces>.to - $<spaces>.from;
+        :my $*ALLOW_CODE := 0;
+        '=for' \h+ <!before 'END'>
+        $<type> = [
+            <pod_code_parent> { $*ALLOW_CODE := 1 }
+            || <identifier>
+        ]
+
+        <pod_newline>
+        $<pod_content> = <pod_textcontent>?
+    }
+
+    token pod_block:sym<paragraph_raw> {
+        ^^ \h* '=for' \h+ <!before 'END'>
+                          $<type>=[ 'code' || 'comment' ]
+                          <pod_newline>
+        $<pod_content> = <pod_text_para>
+    }
+
+    token pod_block:sym<abbreviated> {
+        ^^
+        $<spaces> = [ \h* ]
+        {}
+        :my $*VMARGIN := $<spaces>.to - $<spaces>.from;
+        :my $*ALLOW_CODE := 0;
+        '=' <!before begin || end || for || END>
+        $<type> = [
+            <pod_code_parent> { $*ALLOW_CODE := 1 }
+            || <identifier>
+        ]
+        \s
+        $<pod_content> = <pod_textcontent>?
+    }
+
+    token pod_block:sym<abbreviated_raw> {
+        ^^ \h* '=' $<type>=[ 'code' || 'comment' ] \s
+        $<pod_content> = <pod_text_para> *
+    }
+
+    token pod_newline {
+        \h* \n
+    }
+
+    token pod_code_parent {
+        'pod' <!before \w> || 'item' \d* <!before \w>
+        # TODO: Also Semantic blocks one day
     }
 
     ## Top-level rules
@@ -185,6 +303,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
         :my $*TYPENAME := '';
+        :my $*VMARGIN    := 0;                     # pod stuff
+        :my $*ALLOW_CODE := 0;                     # pod stuff
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -194,6 +314,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*UNIT_OUTER;
         :my $*EXPORT;
         :my $*COMPILING := 1;
+
+        # A place for Pod
+        :my $*POD_BLOCKS := [];
+        :my $*POD_PAST;
         
         # CHECK phasers for this compilation unit we'll need at
         # CHECK time.
@@ -248,6 +372,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ $ || <.panic: 'Confused'> ]
         
         {
+            $*POD_PAST := $*ST.add_constant(
+                'Array', 'type_new', |$*POD_BLOCKS
+            );
+            $*ST.install_lexical_symbol(
+                $*UNIT, '$POD', $*POD_PAST<compile_time_value>
+            );
             $*ST.pop_lexpad(); # UNIT
             $*ST.pop_lexpad(); # UNIT_OUTER
         }

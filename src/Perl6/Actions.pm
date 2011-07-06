@@ -120,7 +120,10 @@ class Perl6::Actions is HLL::Actions {
         
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
-        my $mainline := $<statementlist>.ast;
+        my $mainline := PAST::Stmts.new(
+            $*POD_PAST,
+            $<statementlist>.ast,
+        );
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
             $mainline := wrap_option_p_code($mainline);

@@ -24,6 +24,7 @@ multi prefix:<+>(\$a) { $a.Numeric }
 multi prefix:<+>(Numeric \$a) { $a }
 
 proto prefix:<->(|$) { * }
+multi prefix:<->(\$a) { -$a.Numeric }
 
 proto prefix:<abs>(|$) { * }
 multi prefix:<abs>(\$a)      { abs $a.Numeric }

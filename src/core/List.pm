@@ -69,7 +69,6 @@ class List does Positional {
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
             $!nextiter.reify($eager ?? Whatever !! $n - $count);
-            nqp::bindattr(self, List, '$!nextiter', $!nextiter.nextiter);
             $count = nqp::p6box_i(nqp::elems($!items));
         }
 

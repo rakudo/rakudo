@@ -57,71 +57,94 @@ proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }
 
-proto infix:<+>(|$) { * }
+proto infix:<+>(|$)          { * }
+multi infix:<+>($x = 0)      { $x.Numeric }
 multi infix:<+>(\$a, \$b)    { $a.Numeric + $b.Numeric }
 
-proto infix:<->(|$) { * }
+proto infix:<->(|$)          { * }
+multi infix:<->($x = 0)      { $x.Numeric }
 multi infix:<->(\$a, \$b)    { $a.Numeric - $b.Numeric }
 
-proto infix:<*>(|$) { * }
+proto infix:<*>(|$)          { * }
+multi infix:<*>($x = 1)      { $x.Numeric }
 multi infix:<*>(\$a, \$b)    { $a.Numeric * $b.Numeric }
 
-proto infix:</>(|$) { * }
+proto infix:</>(|$)          { * }
+multi infix:</>()            { fail "No zero-arg meaning for infix:</>" }
+multi infix:</>($x)          { $x.Numeric }
 multi infix:</>(\$a, \$b)    { $a.Numeric / $b.Numeric }
 
-proto infix:<div>(|$) { * }
+proto infix:<div>(|$)        { * }
+# rest of infix:<div> is in Int.pm
 
-proto infix:<%>(|$) { * }
+proto infix:<%>(|$)          { * }
+multi infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
+multi infix:<%>($x)          { $x }
 multi infix:<%>(\$a, \$b)    { $a.Numeric % $b.Numeric }
 
-proto infix:<lcm>(|$) { * }
-multi infix:<lcm>(\$a, \$b) { $a.Numeric lcm $b.Numeric }
+proto infix:<lcm>(|$)         { * }
+multi infix:<lcm>(Int $x = 1) { $x }
+multi infix:<lcm>(\$a, \$b)   { $a.Numeric lcm $b.Numeric }
 
-proto infix:<gcd>(|$) { * }
-multi infix:<gcd>(\$a, \$b) { $a.Numeric gcd $b.Numeric }
+proto infix:<gcd>(|$)        { * }
+multi infix:<gcd>()          { fail 'No zero-arg meaning for infix:<gcd>' }
+multi infix:<gcd>(Int $x)    { $x }
+multi infix:<gcd>(\$a, \$b)  { $a.Numeric gcd $b.Numeric }
 
-proto infix:<**>(|$) { * }
-multi infix:<**>(\$a, \$b) { $a.Numeric ** $b.Numeric }
-
-
+proto infix:<**>(|$)         { * }
+multi infix:<**>($x = 1)     { $x.Numeric }
+multi infix:<**>(\$a, \$b)   { $a.Numeric ** $b.Numeric }
 
 ## relational operators
 
-proto infix:«<=>»(|$) { * }
-multi infix:«<=>»(\$a, \$b)   { $a.Numeric <=> $b.Numeric }
+proto infix:«<=>»(|$)        { * }
+multi infix:«<=>»(\$a, \$b)  { $a.Numeric <=> $b.Numeric }
 
-proto infix:<==>(|$) { * }
+proto infix:<==>(|$)         { * }
+multi infix:<==>($x?)        { Bool::True }
 multi infix:<==>(\$a, \$b)   { $a.Numeric == $b.Numeric }
 
-proto infix:<!=>(|$) { * }
+proto infix:<!=>(|$)         { * }
+multi infix:<==>($x?)        { Bool::True }
 multi infix:<!=>(\$a, \$b)   { $a.Numeric != $b.Numeric }
 
-proto infix:«<»(|$) { * }
+proto infix:«<»(|$)          { * }
+multi infix:«<»($x?)         { Bool::True }
 multi infix:«<»(\$a, \$b)    { $a.Numeric < $b.Numeric }
 
-proto infix:«<=»(|$) { * }
+proto infix:«<=»(|$)         { * }
+multi infix:«<=»($x?)        { Bool::True }
 multi infix:«<=»(\$a, \$b)   { $a.Numeric <= $b.Numeric }
 
-proto infix:«>»(|$) { * }
+proto infix:«>»(|$)          { * }
+multi infix:«>»($x?)         { Bool::True }
 multi infix:«>»(\$a, \$b)    { $a.Numeric > $b.Numeric }
 
-proto infix:«>=»(|$) { * }
+proto infix:«>=»(|$)         { * }
+multi infix:«>=»($x?)        { Bool::True }
 multi infix:«>=»(\$a, \$b)   { $a.Numeric >= $b.Numeric }
-
-
 
 ## bitwise operators
 
-proto infix:<+|>(|$) { * }
-
 proto infix:<+&>(|$) { * }
+multi infix:<+&>()   { +^0 }
+multi infix:<+&>($x) { $x }
+
+proto infix:<+|>(|$) { * }
+multi infix:<+|>()   { 0 }
+multi infix:<+|>($x) { $x }
 
 proto infix:<+^>(|$) { * }
+multi infix:<+^>()   { 0 }
+multi infix:<+^>($x) { $x }
 
 proto infix:«+<»(|$) { * }
+multi infix:«+<»()   { fail "No zero-arg meaning for infix:«+<»"; }
+multi infix:«+<»($x) { $x }
 
 proto infix:«+>»(|$) { * }
+multi infix:«+>»()   { fail "No zero-arg meaning for infix:«+>»"; }
+multi infix:«+>»($x) { $x }
 
 proto prefix:<+^>(|$) { * }
-
 

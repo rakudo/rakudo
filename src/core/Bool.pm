@@ -23,11 +23,56 @@ proto prefix:<so>(|$) { * }
 multi prefix:<so>(Bool \$a) { $a }
 multi prefix:<so>(Mu \$a) { $a.Bool }
 
-# XXX These should use Bool::True and Bool::False eventually.
-proto prefix:<!>(|$) { *}
+proto prefix:<!>(|$) { * }
 multi prefix:<!>(Bool \$a) { nqp::p6bool($a ?? 0 !! 1) }
 multi prefix:<!>(Mu \$a) { nqp::p6bool($a.Bool ?? 0 !! 1) }
 
-proto prefix:<not>(|$) { *}
+proto prefix:<not>(|$) { * }
 multi prefix:<not>(Bool \$a) { nqp::p6bool($a ?? 0 !! 1) }
 multi prefix:<not>(Mu \$a) { nqp::p6bool($a.Bool ?? 0 !! 1) }
+
+proto infix:<?&>(|$)                  { * }
+multi infix:<?&>(Mu $x = Bool::True)  { $x.Bool }
+multi infix:<?&>(Mu \$a, Mu \$b)      { $a.Bool && $b.Bool }
+
+proto infix:<?|>(|$)                  { * }
+multi infix:<?|>(Mu $x = Bool::False) { $x.Bool }
+multi infix:<?|>(Mu \$a, Mu \$b)      { $a.Bool || $b.Bool }
+
+proto infix:<?^>(|$)                  { * }
+multi infix:<?|>(Mu $x = Bool::False) { $x.Bool }
+multi infix:<?^>(Mu \$a, Mu \$b)      { $a.Bool ^^ $b.Bool }
+
+# These operators are normally handled as macros in the compiler;
+# we define them here for use as arguments to functions.
+proto infix:<&&>(|$)                  { * }
+multi infix:<&&>(Mu $x = Bool::True)  { $x }
+multi infix:<&&>(Mu \$a, Mu \$b)      { $a && $b }
+
+proto infix:<||>(|$)                  { * }
+multi infix:<||>(Mu $x = Bool::False) { $x }
+multi infix:<||>(Mu \$a, Mu \$b)      { $a || $b }
+
+proto infix:<^^>(|$)                  { * }
+multi infix:<^^>(Mu $x = Bool::False) { $x }
+multi infix:<^^>(Mu \$a, Mu \$b)      { $a ^^ $b }
+
+proto infix:<//>(|$)                  { * }
+multi infix:<//>(Mu $x = Any)         { $x }
+multi infix:<//>(Mu \$a, Mu \$b)      { $a // $b }
+
+proto infix:<and>(|$)                 { * }
+multi infix:<and>(Mu $x = Bool::True) { $x }
+multi infix:<and>(Mu \$a, Mu \$b)     { $a && $b }
+
+proto infix:<or>(|$)                  { * }
+multi infix:<or>(Mu $x = Bool::False) { $x }
+multi infix:<or>(Mu \$a, Mu \$b)      { $a || $b }
+
+proto infix:<xor>(|$)                  { * }
+multi infix:<xor>(Mu $x = Bool::False) { $x }
+multi infix:<xor>(Mu \$a, Mu \$b)      { $a ^^ $b }
+
+proto infix:<orelse>(|$)              { * }
+multi infix:<orelse>(Mu $x = Any)     { $x }
+multi infix:<orelse>(Mu \$a, Mu \$b)  { $a // $b }

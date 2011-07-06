@@ -194,7 +194,10 @@ sub list(|$) {
     nqp::p6list(pir::perl6_current_args_rpa__P(), List, Mu)
 }
 
-sub infix:<xx>(Mu \$x, $n is copy) {
+proto infix:<xx>(|$)     { * }
+multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
+multi infix:<xx>(Mu \$x) { $x }
+multi infix:<xx>(Mu \$x, $n is copy) {
     $n = $Inf if Whatever.ACCEPTS($n);
     GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf)).list
 }

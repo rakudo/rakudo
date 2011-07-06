@@ -90,34 +90,48 @@ my class Any {
 }
 
 
-proto sub infix:<cmp>($, $) { * }
-multi sub infix:<cmp>(\$a, \$b) { 
+proto infix:<cmp>($, $) { * }
+multi infix:<cmp>(\$a, \$b) { 
     return -1 if $a == -$Inf || $b == $Inf;
     return  1 if $a ==  $Inf || $b == -$Inf;
     $a.Stringy cmp $b.Stringy 
 }
 
-proto sub infix:<===>($, $) { * }
-multi sub infix:<===>($a, $b) { $a.WHICH === $b.WHICH }
+proto infix:<before>(|$)       { * }
+multi infix:<before>($x?)      { Bool::True }
+multi infix:<before>(\$a, \$b) { ($a cmp $b) < 0 }
+
+proto infix:<after>(|$)        { * }
+multi infix:<after>($x?)       { Bool::True }
+multi infix:<after>(\$a, \$b)  { ($a cmp $b) > 0 }
+
+proto infix:<===>($a?, $b?)    { * }
+multi infix:<===>($a?)         { Bool::True }
+multi infix:<===>($a, $b)      { $a.WHICH === $b.WHICH }
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
-proto prefix:<++>(|$) { * }
+proto prefix:<++>(|$)             { * }
 multi prefix:<++>(Mu:D \$a is rw) { $a = $a.succ }
 multi prefix:<++>(Mu:U \$a is rw) { $a = 1 }
-proto prefix:<-->(|$) { * }
+proto prefix:<-->(|$)             { * }
 multi prefix:<-->(Mu:D \$a is rw) { $a = $a.pred }
 multi prefix:<-->(Mu:U \$a is rw) { $a = -1 }
 
-
-proto postfix:<++>(|$) { * }
+proto postfix:<++>(|$)             { * }
 multi postfix:<++>(Mu:D \$a is rw) { my $b = $a; $a = $a.succ; $b }
 multi postfix:<++>(Mu:U \$a is rw) { $a = 1; 0 }
-proto postfix:<-->(|$) { * }
+proto postfix:<-->(|$)             { * }
 multi postfix:<-->(Mu:D \$a is rw) { my $b = $a; $a = $a.pred; $b }
 multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
 
-proto sub map(|$) {*}
-multi sub map(&code, *@values) { @values.map(&code) }
+proto infix:<min>(|$)     { * }
+multi infix:<min>(*@args) { @args.min }
 
-proto sub grep(|$) {*}
-multi sub grep(Mu $test, *@values) { @values.grep($test) }
+proto infix:<max>(|$)     { * }
+multi infix:<max>(*@args) { @args.min }
+
+proto map(|$) {*}
+multi map(&code, *@values) { @values.map(&code) }
+
+proto grep(|$) {*}
+multi grep(Mu $test, *@values) { @values.grep($test) }

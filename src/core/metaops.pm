@@ -106,5 +106,4 @@ sub METAOP_REDUCE_XOR(\$op, :$triangle) {
     NYI "xor reduce NYI";
 }
 
-# degenerate case of operators, to be used by reduce() for the 0-ary case
-multi sub infix:<~>($x = '')  { ~$x }
+

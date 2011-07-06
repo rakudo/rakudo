@@ -124,16 +124,14 @@ my class Str {
 }
 
 
-proto infix:<x>(|$) {*}
-multi infix:<x>(Str $s, Int $repetition) {
-    nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
-}
-multi infix:<x>($s, $repetition) { $s.Stringy x $repetition.Numeric }
-
 multi prefix:<~>(Str \$a) { $a }
 
 multi infix:<~>(Str \$a, Str \$b) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s($a), nqp::unbox_s($b)))
+}
+
+multi infix:<x>(Str $s, Int $repetition) {
+    nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
 }
 
 multi infix:<cmp>(Str \$a, Str \$b) {
@@ -142,6 +140,10 @@ multi infix:<cmp>(Str \$a, Str \$b) {
 
 multi infix:<===>(Str \$a, Str \$b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+}
+
+multi infix:<leg>(Str \$a, Str \$b) {
+    nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<eq>(Str \$a, Str \$b) {

@@ -83,7 +83,7 @@ class Range is Iterable does Positional {
                 unless count > 0 goto done
                 $I0 = cmp value, max
                 unless $I0 < cmpstop goto done
-                $P0 = perl6_box_num value
+                $P0 = perl6_box_bigint value
                 push rpa, $P0
                 inc value
                 dec count

@@ -200,6 +200,10 @@ multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
     $matcher.ACCEPTS($topic).Bool;
 }
 
+sub infix:<=:=>(Mu \$x, Mu \$y) { 
+    nqp::p6bool(nqp::iseq_i(nqp::where($x), nqp::where($y)));
+}
+
 
 sub DUMP(|$) {
     my Mu $args := pir::perl6_current_args_rpa__P();

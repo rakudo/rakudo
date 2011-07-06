@@ -5,6 +5,7 @@ my class Parcel does Positional {
 
     multi method Str(Parcel:D:) { self.flat.Str }
     method Numeric()            { self.flat.elems }
+    method Capture()            { self }  # XXX CHEAT CHEAT CHEAT
 
     method flat() {
         nqp::p6list(nqp::clone($!storage), List, Bool::True)
@@ -22,7 +23,7 @@ my class Parcel does Positional {
 
     method at_pos(Parcel:D: \$x) { self.flat.at_pos($x); }
 
-    multi method postcircumfix:<[ ]>(Parcel:D: \$x) { self.flat.[$x] }
+    method postcircumfix:<[ ]>(Parcel:D: \$x) { self.flat.[$x] }
 
     multi method gist(Parcel:D:) {
         my Mu $gist := nqp::list();

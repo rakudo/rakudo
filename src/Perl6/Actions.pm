@@ -290,7 +290,11 @@ class Perl6::Actions is HLL::Actions {
 
     method raw_block($/) {
         my $type;
-        my $str := $*ST.add_constant('Str', 'str', $<pod_content>.Str);
+        my $str := $*ST.add_constant(
+            'Str', 'str',
+            pir::isa($<pod_content>, 'ResizablePMCArray')
+                ?? pir::join('', $<pod_content>) !! ~$<pod_content>,
+        );
         my $content := $*ST.add_constant(
             'Array', 'type_new',
             $str<compile_time_value>

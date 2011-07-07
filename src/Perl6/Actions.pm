@@ -233,6 +233,14 @@ class Perl6::Actions is HLL::Actions {
         make $<pod_block>.ast;
     }
 
+    method pod_block:sym<paragraph>($/) {
+        make self.any_block($/);
+    }
+
+    method pod_block:sym<abbreviated>($/) {
+        make self.any_block($/);
+    }
+
     method pod_block:sym<delimited>($/) {
         make self.any_block($/);
     }

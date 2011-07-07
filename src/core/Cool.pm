@@ -82,15 +82,15 @@ my class Cool {
     }
 }
 
-our sub chop($s)                  { $s.chop }
-our sub chomp($s)                 { $s.chomp }
-our sub flip($s)                  { $s.flip }
-our sub index($s,$needle,$pos=0)  { $s.index($needle,$pos) }
-our sub lc($s)                    { $s.lc }
-our sub lcfirst($s)               { $s.lcfirst }
-our sub ord($s)                   { $s.ord }
-our sub rindex($s,$needle,$pos=0) { $s.rindex($needle,$pos) }
-our sub substr($s,$pos,$chars)    { $s.rindex($pos,$chars) }
-our sub uc($s)                    { $s.uc }
-our sub ucfirst($s)               { $s.ucfirst }
+sub chop($s)                  { $s.chop }
+sub chomp($s)                 { $s.chomp }
+sub flip($s)                  { $s.flip }
+sub index($s,$needle,$pos=0)  { $s.index($needle,$pos) }
+sub lc($s)                    { $s.lc }
+sub lcfirst($s)               { $s.lcfirst }
+sub ord($s)                   { $s.ord }
+sub rindex($s,$needle,$pos=0) { $s.rindex($needle,$pos) }
+sub substr($s,$pos,$chars?)   { $s.substr($pos,$chars) }
+sub uc($s)                    { $s.uc }
+sub ucfirst($s)               { $s.ucfirst }
 

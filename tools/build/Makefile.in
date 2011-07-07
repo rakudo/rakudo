@@ -297,6 +297,9 @@ fulltest: coretest stresstest
 coretest: $(PERL6_EXE) $(SETTING)
 	$(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
 
+podtest: Test.pir
+	$(PERL) t/harness t/pod
+
 # Run the spectests that we know work.
 spectest_regression: spectest
 spectest: testable t/spectest.data

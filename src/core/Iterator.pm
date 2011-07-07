@@ -6,5 +6,4 @@ my class Iterator {
     method list() { (self,).list }
     method flat() { (self,).flat }
 
-    method gist(Iterator:D:) { self.perl }
 }

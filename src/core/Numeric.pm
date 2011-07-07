@@ -15,6 +15,8 @@ my class Numeric {
         self.exp * $base.log;
     }
     multi method Bool(Numeric:D:) { self != 0 }
+
+    multi method gist(Numeric:D:) { self.Str }
 }
 
 

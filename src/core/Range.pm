@@ -109,7 +109,6 @@ class Range is Iterable does Positional {
 
     method at_pos($pos) { self.flat.at_pos($pos) }
 
-    multi method gist(Range:D:) { self.perl }
     multi method perl(Range:D:) { 
         $.min.perl
           ~ ('^' if $.excludes_min)

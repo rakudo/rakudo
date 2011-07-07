@@ -188,6 +188,7 @@ class List does Positional {
         self[$index];
     }
 
+    multi method gist(List:D:) { self.Str }
     multi method perl(List:D \$self:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  

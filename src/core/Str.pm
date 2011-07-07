@@ -123,6 +123,7 @@ my class Str does Stringy {
         "\b" => '\b', "\n" => '\n', "\r" => '\r', "\t" => '\t', '"' => '\"',
         '\\' => '\\\\' );
 
+    multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
         my $result = '"';
         for ^self.chars -> $i {

@@ -103,7 +103,7 @@ my class Mu {
 
     proto method gist(|$) { * }
     multi method gist(Mu:U:) { self.HOW.name(self) ~ '()' }
-    multi method gist(Mu:D:) { self.Stringy }
+    multi method gist(Mu:D:) { self.perl }
 
     proto method perl(|$) { * }
     multi method perl(Mu:D:) { self.Str }

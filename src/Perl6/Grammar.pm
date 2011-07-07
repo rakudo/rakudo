@@ -239,10 +239,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*VMARGIN := $<spaces>.to - $<spaces>.from;
         :my $*ALLOW_CODE := 0;
         '=for' \h+ <!before 'END'>
-        $<type> = [
-            <pod_code_parent> { $*ALLOW_CODE := 1 }
-            || <identifier>
-        ]
+        $<type> = <identifier>
 
         <pod_newline>
         $<pod_content> = <pod_textcontent>?
@@ -262,10 +259,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*VMARGIN := $<spaces>.to - $<spaces>.from;
         :my $*ALLOW_CODE := 0;
         '=' <!before begin || end || for || END>
-        $<type> = [
-            <pod_code_parent> { $*ALLOW_CODE := 1 }
-            || <identifier>
-        ]
+        $<type> = <identifier>
         \s
         $<pod_content> = <pod_textcontent>?
     }

@@ -261,7 +261,6 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method any_block($/) {
-        my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
         my @children := [];
         for $<pod_content> {
             # not trivial, for it can be either an array or a pod node
@@ -280,6 +279,24 @@ class Perl6::Actions is HLL::Actions {
             'Array', 'type_new',
             |@children,
         );
+        if $<type>.Str ~~ /^item \d*$/ {
+            my $level      := nqp::substr($<type>.Str, 4);
+            my $level_past;
+            if $level ne '' {
+                $level_past := $*ST.add_constant(
+                    'Int', 'int', +$level,
+                )<compile_time_value>;
+            } else {
+                $level_past := $*ST.find_symbol(['Mu']);
+            }
+            my $past := $*ST.add_constant(
+                'Pod__Item', 'type_new',
+                :level($level_past),
+                :content($content<compile_time_value>),
+            );
+            return $past<compile_time_value>;
+        }
+        my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
         my $past := $*ST.add_constant(
             'Pod__Block__Named', 'type_new',
             :name($name<compile_time_value>),

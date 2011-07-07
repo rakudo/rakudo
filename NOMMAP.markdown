@@ -1,13 +1,12 @@
 # Roadmap for "nom" Branch
 
-Last Updated 4 July 2011
+Last Updated 7 July 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Order::Decrease)
-* True constant doesn't work in setting (try "say *.ACCEPTS(1)")
 * regexes missing
 * is export on methods
     - should work outside the setting; note here if not
@@ -29,9 +28,6 @@ Things that aren't blockers but might be worth knowing about:
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
 
-## Object construction
-Defaults should only be used if attribute never accessed.
-
 ## Magicals
 Methods should get automatic %_.
 
@@ -42,9 +38,6 @@ when needs to properly find use correct outer scope
 While much binding works again now, there's some stuff to "put back":
 * |$c
 * Sub-signatures
-
-## Rat and Complex literals
-Depends on working out how to unify parsing of numeric strings.
 
 ## Fix up binding some more
 Get ::= correcter, and a bit more stuff on := also.

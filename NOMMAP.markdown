@@ -10,8 +10,6 @@ Current fails that people are likely to encounter (no particular order):
 * regexes missing
 * is export on methods
     - should work outside the setting; note here if not
-* multi dispatch to .Bool seems to be borked - for example 0i.Bool does not
-  call the multi in Complex.
 
 Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)

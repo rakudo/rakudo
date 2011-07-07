@@ -6,6 +6,7 @@ my class Bool {
     }
 
     method Numeric() { self ?? 1 !! 0 }
+    method Int()     { self ?? 1 !! 0 }
 
     method pred() { Bool::False }
 

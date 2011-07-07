@@ -145,7 +145,7 @@ S03-operators/equality.t
 # S03-operators/increment.t
 # S03-operators/inplace.t
 # S03-operators/is-divisible-by.t
-# S03-operators/list-quote-junction.t
+S03-operators/list-quote-junction.t
 # S03-operators/minmax.t
 # S03-operators/misc.t                      # need regexes
 # S03-operators/names.t                     # need regexes
@@ -154,7 +154,7 @@ S03-operators/not.t
 # S03-operators/numeric-context.t
 # S03-operators/precedence.t
 S03-operators/range-basic.t
-# S03-operators/range-int.t                       # stress
+S03-operators/range-int.t                       # stress
 # S03-operators/range.t
 # S03-operators/reduce-le1arg.t
 S03-operators/relational.t
@@ -169,7 +169,7 @@ S03-operators/subscript-vs-lt.t
 # S03-operators/value_equivalence.t
 # S03-sequence/arity0.t
 # S03-sequence/arity-2-or-more.t
-# S03-sequence/basic.t
+S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t
 # S03-sequence/nonnumeric.t
 # S03-smartmatch/any-any.t

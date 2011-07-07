@@ -5,7 +5,6 @@ my $r;
 =end foo
 
 $r = $POD[0];
-todo 'isa_ok broken?';
 isa_ok $r, Pod__Block, 'returns a Pod Block';
 isa_ok $r, Pod__Block__Named, 'returns a named Block';
 is $r.name, 'foo', 'name is ok';

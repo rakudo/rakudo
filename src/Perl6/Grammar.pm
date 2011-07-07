@@ -227,7 +227,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
             || '=begin' \h+ 'END' <pod_newline>
             || '=for'   \h+ 'END' <pod_newline>
-            || '=END' \h+
+            || '=END' <pod_newline>
         ]
         .*
     }

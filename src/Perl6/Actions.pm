@@ -225,7 +225,7 @@ class Perl6::Actions is HLL::Actions {
 
     method pod_content_toplevel($/) {
         my $child := $<pod_block>.ast;
-        $*POD_BLOCKS.push($child);
+        $*POD_BLOCKS.push($child) if $child;
         make $child;
     }
 
@@ -239,6 +239,9 @@ class Perl6::Actions is HLL::Actions {
 
     method pod_block:sym<abbreviated>($/) {
         make self.any_block($/);
+    }
+
+    method pod_block:sym<end>($/) {
     }
 
     method pod_block:sym<delimited>($/) {

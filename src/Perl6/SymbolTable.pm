@@ -707,7 +707,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # just return that.
         my $namedkey := '';
         for %named {
-            $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';';
+            $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
+                if pir::defined($_.value);
         }
         my $cache_key := "$type,$primitive,"
                          ~ pir::join(',', @value)

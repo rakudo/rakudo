@@ -36,8 +36,6 @@ my class Junction is Mu {
         $count == 1;
     }
 
-    
-
     submethod BUILD(:$!storage, :$!type) { }
 
     multi method perl(Junction:D:) { 
@@ -54,3 +52,40 @@ sub infix:<|>(*@values) { Junction.new(@values, :type<any>); }
 sub infix:<&>(*@values) { Junction.new(@values, :type<all>); }
 sub infix:<^>(*@values) { Junction.new(@values, :type<one>); }
 
+sub AUTOTHREAD(&call, **@pos, *%named) {
+    # Look for a junctional arg in the positionals.
+    loop (my $i = 0; $i < +@pos; $i++) {
+        # Junctional positional argument?
+        if @pos[$i] ~~ Junction {
+            my @states := nqp::getattr(pir::perl6_decontainerize__PP(@pos[$i]), Junction, '$!storage');
+            my @pre    := @pos[0 ..^ $i];
+            my @post   := @pos[$i + 1 ..^ +@pos];
+            my @result;
+            for @states -> $s {
+                push @result, call(|@pre, $s, |@post, |%named);
+            }
+            return Junction.new(@result,
+                :type(nqp::getattr(pir::perl6_decontainerize__PP(@pos[$i]), Junction, '$!type')));
+        }
+    }
+    
+    # Otherwise, look for one in the nameds.
+    for %named.kv -> $k, $v {
+        if $v ~~ Junction {
+            my %other_nameds;
+            for %named.kv -> $kk, $vk {
+                if $kk ne $k { %other_nameds{$kk} = $vk }
+            }
+            my @states := nqp::getattr(pir::perl6_decontainerize__PP($v), Junction, '$!storage');
+            my @result;
+            for @states -> $s {
+                push @result, call(|@pos, |{ $k => $s }, |%other_nameds);
+            }
+            return Junction.new(@result,
+                :type(nqp::getattr(pir::perl6_decontainerize__PP($v), Junction, '$!type')));
+        }
+    }
+    
+    # If we get here, wasn't actually anything to autothread.
+    call(|@pos, |%named);
+}

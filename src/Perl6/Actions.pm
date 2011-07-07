@@ -237,8 +237,16 @@ class Perl6::Actions is HLL::Actions {
         make self.any_block($/);
     }
 
+    method pod_block:sym<paragraph_raw>($/) {
+        make self.raw_block($/);
+    }
+
     method pod_block:sym<abbreviated>($/) {
         make self.any_block($/);
+    }
+
+    method pod_block:sym<abbreviated_raw>($/) {
+        make self.raw_block($/);
     }
 
     method pod_block:sym<end>($/) {
@@ -246,6 +254,10 @@ class Perl6::Actions is HLL::Actions {
 
     method pod_block:sym<delimited>($/) {
         make self.any_block($/);
+    }
+
+    method pod_block:sym<delimited_raw>($/) {
+        make self.raw_block($/);
     }
 
     method any_block($/) {
@@ -276,6 +288,28 @@ class Perl6::Actions is HLL::Actions {
         return $past<compile_time_value>;
     }
 
+    method raw_block($/) {
+        my $type;
+        my $str := $*ST.add_constant('Str', 'str', $<pod_content>.Str);
+        my $content := $*ST.add_constant(
+            'Array', 'type_new',
+            $str<compile_time_value>
+        );
+        my $past := $*ST.add_constant(
+            $<type>.Str eq 'code' ?? 'Pod__Block__Code'
+                                  !! 'Pod__Block__Comment',
+            'type_new',
+            :content($content<compile_time_value>),
+        );
+        return $past<compile_time_value>;
+    }
+
+    method pod_text_para($/) {
+        my $t    := self.formatted_text($<text>.Str);
+        my $past := $*ST.add_constant('Str', 'str', $t);
+        make $past<compile_time_value>;
+    }
+
     method pod_content:sym<text>($/) {
         my @ret := [];
         for $<pod_textcontent> {
@@ -289,6 +323,23 @@ class Perl6::Actions is HLL::Actions {
         my $past := $*ST.add_constant('Str', 'str', $t);
         make $past<compile_time_value>;
     }
+
+    method pod_textcontent:sym<code>($/) {
+        my $s := $<spaces>.Str;
+        my $t := subst($<text>.Str, /\n$s/, "\n", :global);
+        $t    := subst($t, /\n$/, ''); # chomp!
+        my $str := $*ST.add_constant('Str', 'str', $t);
+        my $content := $*ST.add_constant(
+            'Array', 'type_new',
+            $str<compile_time_value>
+        );
+        my $past := $*ST.add_constant(
+            'Pod__Block__Code', 'type_new',
+            :content($content<compile_time_value>),
+        );
+        make $past<compile_time_value>;
+    }
+
 
     method formatted_text($a) {
         my $r := subst($a, /\s+/, ' ', :global);

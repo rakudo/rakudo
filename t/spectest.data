@@ -184,7 +184,7 @@ S03-smartmatch/any-complex.t
 S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
-# S03-smartmatch/any-sub.t
+S03-smartmatch/any-sub.t
 # S03-smartmatch/any-type.t
 # S03-smartmatch/array-array.t
 # S03-smartmatch/array-hash.t
@@ -329,7 +329,7 @@ S06-signature/optional.t
 S06-signature/passing-arrays.t
 S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t
-# S06-signature/positional.t
+S06-signature/positional.t
 S06-signature/scalar-type.t
 S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t

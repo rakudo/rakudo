@@ -39,4 +39,14 @@ is $r.name, 'foo', 'name is ok';
 is $r.content[0], "paragraph one", 'paragraphs ok, 1/2';
 is $r.content[1], "paragraph two", 'paragraphs ok, 2/2';
 
-done;
+=begin something
+    =begin somethingelse
+    toot tooot!
+    =end somethingelse
+=end something
+
+$r = $POD[4];
+is $r.name, 'something', 'parent name ok';
+isa_ok $r.content[0], Pod__Block, "nested blocks work";
+is $r.content[0].content[0], "toot tooot!", "and their content";
+is $r.content[0].name, 'somethingelse', 'child name ok';done;

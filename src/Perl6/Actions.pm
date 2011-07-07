@@ -229,10 +229,16 @@ class Perl6::Actions is HLL::Actions {
         make $child;
     }
 
+    method pod_content:sym<block>($/) {
+        make $<pod_block>.ast;
+    }
+
     method pod_block:sym<delimited>($/) {
+        make self.any_block($/);
+    }
+
+    method any_block($/) {
         my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
-        #say("LOL BLOCK: ", $<type>.Str);
-        #say(" CONTENTS: '", $/.Str, "'");
         my @children := [];
         for $<pod_content> {
             # not trivial, for it can be either an array or a pod node
@@ -244,7 +250,6 @@ class Perl6::Actions is HLL::Actions {
                     @children.push($_);
                 }
             } else {
-                #say("'", $_, "' became ", $_.ast);
                 @children.push($_.ast);
             }
         }
@@ -257,23 +262,21 @@ class Perl6::Actions is HLL::Actions {
             :name($name<compile_time_value>),
             :content($content<compile_time_value>),
         );
-        #say("block, returning ", $past<compile_time_value>);
-        make $past<compile_time_value>;
+        return $past<compile_time_value>;
     }
 
     method pod_content:sym<text>($/) {
         my @ret := [];
         for $<pod_textcontent> {
-            my $past := $*ST.add_constant(
-                'Str', 'str', $_.ast
-            );
-            @ret.push($past<compile_time_value>);
+            @ret.push($_.ast);
         }
         make @ret;
     }
 
     method pod_textcontent:sym<regular>($/) {
-        make self.formatted_text($<text>.Str);
+        my $t    := self.formatted_text($<text>.Str);
+        my $past := $*ST.add_constant('Str', 'str', $t);
+        make $past<compile_time_value>;
     }
 
     method formatted_text($a) {

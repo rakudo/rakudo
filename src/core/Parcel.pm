@@ -89,6 +89,8 @@ my class Parcel does Positional {
     multi method DUMP(Parcel:D:) {
         self.DUMP-ID() ~ '(:storage(' ~ DUMP($!storage) ~ '))'
     }
+    
+    method ARGLIST_FLATTENABLE() { $!storage }
 }
 
 

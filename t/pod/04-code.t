@@ -115,8 +115,9 @@ is $r.content[2].content,
         and this is not
     =end quitem
 
-    =item
+    =begin item
         and this is!
+    =end item
 =end pod
 
 $r = $POD[5];

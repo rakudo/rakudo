@@ -141,5 +141,5 @@ sub infix:<^..^>($min, $max) {
     Range.new($min, $max, :excludes_min, :excludes_max) 
 }
 sub prefix:<^>($max) {
-    Range.new(0, $max, :excludes_max) 
+    Range.new(0, $max.Numeric, :excludes_max) 
 }

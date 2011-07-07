@@ -137,7 +137,7 @@ S03-operators/chained-declarators.t
 S03-operators/cmp.t
 # S03-operators/comparison.t                # need Order::Increase
 S03-operators/comparison-simple.t
-# S03-operators/context-forcers.t           # need True
+S03-operators/context-forcers.t
 # S03-operators/context.t                   # need regexes
 S03-operators/equality.t
 # S03-operators/eqv.t

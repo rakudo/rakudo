@@ -1,4 +1,4 @@
-# role Stringy { ... }
+my role Stringy { }
 
 proto prefix:<~>(|$) { * }
 multi prefix:<~>(\$a)          { $a.Stringy }

@@ -1,4 +1,4 @@
-my class Str {
+my class Str does Stringy {
     method Bool() { self ne '' && self ne '0' }
     
     multi method Str(Str:D:) { self }

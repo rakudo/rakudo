@@ -102,7 +102,7 @@ S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
 # S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
-# S03-feeds/basic.t
+S03-feeds/basic.t
 # S03-junctions/associative.t
 # S03-junctions/autothreading.t
 # S03-junctions/boolean-context.t
@@ -111,7 +111,7 @@ S02-whitespace_and_comments/sub-block-parsing.t
 # S03-metaops/cross.t
 S03-metaops/eager-hyper.t
 # S03-metaops/hyper.t
-# S03-metaops/not.t
+S03-metaops/not.t
 # S03-metaops/reduce.t
 S03-metaops/reverse.t
 # S03-metaops/zip.t
@@ -216,7 +216,7 @@ S04-statement-parsing/hash.t
 S04-statements/do.t
 S04-statements/for-scope.t
 # S04-statements/for.t
-# S04-statements/for_with_only_one_item.t
+S04-statements/for_with_only_one_item.t
 # S04-statements/gather.t
 # S04-statements/given.t
 S04-statements/if.t
@@ -421,7 +421,7 @@ S12-methods/typed-attributes.t
 # S12-methods/what.t
 # S12-subset/multi-dispatch.t
 # S12-subset/subtypes.t
-# S13-type-casting/methods.t
+S13-type-casting/methods.t
 # S13-overloading/typecasting-long.t
 # S13-overloading/metaoperators.t
 # S13-overloading/operators.t
@@ -503,7 +503,7 @@ S32-list/create.t
 # S32-list/end.t
 # S32-list/first.t
 # S32-list/grep.t
-# S32-list/join.t
+S32-list/join.t
 # S32-list/map_function_return_values.t
 # S32-list/map.t
 # S32-list/minmax.t
@@ -604,7 +604,7 @@ integration/advent2009-day04.t
 # integration/advent2009-day12.t
 # integration/advent2009-day13.t
 # integration/advent2009-day14.t
-# integration/advent2009-day15.t
+integration/advent2009-day15.t
 # integration/advent2009-day16.t
 # integration/advent2009-day17.t                             # stress
 # integration/advent2009-day18.t

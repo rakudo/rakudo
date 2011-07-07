@@ -958,9 +958,10 @@ class Perl6::Actions is HLL::Actions {
                         $_<twigil>, $_<desigilname>, []));
                 }
                 else {
-                    $list.push(PAST::Op.new(
-                        :pirop('repr_instance_of PP'),
-                        $*ST.symbol_lookup([sigiltype($_<sigil> || '$')], $/)));
+                    $list.push($*ST.build_container_past(
+                        sigiltype($_<sigil> || '$'),
+                        $*ST.create_container_descriptor(
+                            $*ST.find_symbol(['Mu']), 1, 'anon')));
                 }
             }
             make $list;

@@ -70,7 +70,7 @@ S02-literals/pair-boolean.t
 # S02-literals/quoting.t                    # need rx {} quoting
 # S02-literals/quoting-unicode.t                              # icu
 # S02-literals/radix.t
-# S02-literals/string-interpolation.t
+S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
@@ -156,7 +156,7 @@ S03-operators/not.t
 S03-operators/range-basic.t
 S03-operators/range-int.t                       # stress
 # S03-operators/range.t
-# S03-operators/reduce-le1arg.t
+S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 # S03-operators/repeat.t
 S03-operators/scalar-assign.t
@@ -167,7 +167,7 @@ S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
 # S03-operators/so.t
 # S03-operators/value_equivalence.t
-# S03-sequence/arity0.t
+S03-sequence/arity0.t
 # S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t
@@ -519,7 +519,7 @@ S32-num/complex.t
 # S32-num/cool-num.t
 # S32-num/exp.t
 # S32-num/gcd.t
-# S32-num/int.t
+S32-num/int.t
 S32-num/log.t
 # S32-num/pi.t
 S32-num/polar.t

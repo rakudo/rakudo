@@ -3,7 +3,6 @@
 # Code/Block/Routine/Sub/Method and Str/Int/Num. They are built in BOOTSTRAP.pm
 # in Perl6::Metamodel for now, though should be a BEGIN block in CORE.setting
 # in the end.
-my class Junction is Mu { }
 my class Whatever is Cool { ... }
 my class WhateverCode is Code { ... }
 my class Bag is Iterable does Associative { }

@@ -27,6 +27,7 @@ Things that aren't blockers but might be worth knowing about:
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
 
 ## Magicals
+Move creation of $! and $/ to be per-routine instead of per-block.
 Methods should get automatic %_.
 
 ## when statements

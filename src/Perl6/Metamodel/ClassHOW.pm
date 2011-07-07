@@ -135,7 +135,7 @@ class Perl6::Metamodel::ClassHOW
     method isa($obj, $type) {
         my $decont := pir::nqp_decontainerize__PP($type);
         for self.mro($obj) {
-            if $_ =:= $decont { return 1 }
+            if pir::nqp_decontainerize__PP($_) =:= $decont { return 1 }
         }
         0
     }

@@ -14,6 +14,7 @@ my class Any {
     method hash() { my %h = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method pick($n = 1) { self.list.pick($n) }
+    method roll($n = 1) { self.list.roll($n) }
     method reverse() { self.list.reverse }
     method sort($by = &infix:<cmp>) { self.list.sort($by) }
 
@@ -142,6 +143,11 @@ multi map(&code, *@values) { @values.map(&code) }
 proto grep(|$) {*}
 multi grep(Mu $test, *@values) { @values.grep($test) }
 
+proto join(|$) { * }
+multi join($sep = '', *@values) { @values.join($sep) }
+
 proto pick(|$) { * }
 multi pick($n, *@values) { @values.pick($n) }
 
+proto roll(|$) { * }
+multi roll($n, *@values) { @values.roll($n) }

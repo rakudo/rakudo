@@ -68,10 +68,10 @@ my class Mu {
                 }
             }
             elsif nqp::iseq_i(nqp::atpos($task, 0), 2) {
-                # XXX Need check if slot has already been initialized
-                # or not.
-                my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
-                $attr = nqp::atpos($task, 3)(self, $attr);
+                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
+                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
+                    $attr = nqp::atpos($task, 3)(self, $attr);
+                }
             }
             else {
                 die "Invalid BUILDPLAN";
@@ -198,6 +198,10 @@ multi sub prefix:<defined>(Mu \$x) { $x.defined }
 proto sub infix:<~~>(|$) { * }
 multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
     $matcher.ACCEPTS($topic).Bool;
+}
+
+sub infix:<=:=>(Mu \$x, Mu \$y) { 
+    nqp::p6bool(nqp::iseq_i(nqp::where($x), nqp::where($y)));
 }
 
 

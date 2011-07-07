@@ -107,11 +107,12 @@ typedef struct {
  * attributes, as well as how it boxes/unboxes to the three primitive types
  * INTVAL, FLOATVAL and STRING * (if it can).
  *
- * All representations will either use this struct directly or have it as
- * the first element in their own struct followed by any data they want to
- * keep for representation instance. Essentially, it defines the set of
- * functions that a representation should implement to fulfil the
- * representation API. */
+ * This struct defines the set of operations that a representation
+ * should implement to fulfil the representation API. Note that a
+ * representation may also store some per-type data in the repr_data
+ * slot of the s-table. That aside, representations are singletons,
+ * and code being compiled with a known representation could even
+ * inline the lookups. */
 typedef struct {
     /* Creates a new type object of this representation, and
      * associates it with the given HOW. Also sets up a new
@@ -194,6 +195,18 @@ typedef struct {
 
     /* Gets the storage specification for this representation. */
     storage_spec (*get_storage_spec) (PARROT_INTERP, STable *st);
+    
+    /* Checks if an attribute has been initialized. */
+    INTVAL (*is_attribute_initialized) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint);
+    
+    /* Handles an object changing its type. The representation is responsible
+     * for doing any changes to the underlying data structure, and may reject
+     * changes that it's not willing to do (for example, a representation may
+     * choose to only handle switching to a subclass). It is also left to update
+     * the S-Table pointer as needed; while in theory this could be factored
+     * out, the representation probably knows more about timing issues and
+     * thread safety requirements. */
+    void (*change_type) (PARROT_INTERP, PMC *Object, PMC *NewType);
 } REPRCommonalities;
 
 /* Hint value to indicate the absence of an attribute lookup or method

@@ -305,6 +305,7 @@ Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
         my $disp_list := pir::getattribute__PPPsP($self, Code, '$!dispatchees');
         if pir::defined($disp_list) {
             $disp_list.push($dispatchee);
+            pir::setattribute__0PPsP($self, Code, '$!dispatcher_cache', pir::null__P());
         }
         else {
             pir::die("Cannot add a dispatchee to a non-dispatcher code object");

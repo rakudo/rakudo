@@ -22,7 +22,7 @@
 
 S02-builtin_data_types/anon_block.t
 S02-builtin_data_types/array_extending.t
-# S02-builtin_data_types/array_ref.t
+S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
 # S02-builtin_data_types/assigning-refs.t
 # S02-builtin_data_types/autovivification.t
@@ -46,7 +46,7 @@ S02-builtin_data_types/num.t
 # S02-builtin_data_types/pair.t             # pair := bindings
 S02-builtin_data_types/parcel.t
 S02-builtin_data_types/parsing-bool.t
-# S02-builtin_data_types/range.t
+S02-builtin_data_types/range.t
 # S02-builtin_data_types/set.t  
 S02-builtin_data_types/sigils-and-types.t
 S02-builtin_data_types/subscripts_and_context.t
@@ -486,7 +486,7 @@ S32-array/shift.t
 # S32-array/unshift.t
 # S32-basics/warn.t
 # S32-container/zip.t
-# S32-hash/exists.t         # needs  hash() composer
+S32-hash/exists.t
 # S32-hash/delete.t
 # S32-hash/invert.t
 # S32-hash/keys_values.t
@@ -507,7 +507,7 @@ S32-list/create.t
 # S32-list/map_function_return_values.t
 # S32-list/map.t
 # S32-list/minmax.t
-# S32-list/pick.t
+# S32-list/pick.t                           # needs junctions
 # S32-list/reduce.t
 # S32-list/reverse.t
 # S32-list/roll.t
@@ -593,7 +593,7 @@ S32-trig/simple.t
 # integration/advent2009-day01.t
 # integration/advent2009-day02.t
 # integration/advent2009-day03.t
-# integration/advent2009-day04.t
+integration/advent2009-day04.t
 # integration/advent2009-day05.t
 # integration/advent2009-day06.t
 # integration/advent2009-day07.t

@@ -10,6 +10,7 @@ INIT {
         p6parcel     => 'perl6_parcel_from_rpa__PPP',
         p6listiter   => 'perl6_iter_from_rpa__PPP',
         p6list       => 'perl6_list_from_rpa__PPPP',
+        attrinited   => 'repr_is_attr_initialized__IPPs',
 
         istype       => 'type_check__IPP',
         lcm_i        => 'lcm__Iii',
@@ -1021,9 +1022,10 @@ class Perl6::Actions is HLL::Actions {
                         $_<twigil>, $_<desigilname>, []));
                 }
                 else {
-                    $list.push(PAST::Op.new(
-                        :pirop('repr_instance_of PP'),
-                        $*ST.symbol_lookup([sigiltype($_<sigil> || '$')], $/)));
+                    $list.push($*ST.build_container_past(
+                        sigiltype($_<sigil> || '$'),
+                        $*ST.create_container_descriptor(
+                            $*ST.find_symbol(['Mu']), 1, 'anon')));
                 }
             }
             make $list;

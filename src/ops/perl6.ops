@@ -450,6 +450,28 @@ inline op perl6_box_num(out PMC, in NUM) :base_core {
 
 /*
 
+=item perl6_box_bigint(out PMC, in NUM)
+
+Return a Perl 6 Int if $2 will fit, otherwise return a Perl 6 Num.
+
+=cut
+
+*/
+inline op perl6_box_bigint(out PMC, in NUM) :base_core {
+    if ((INTVAL)$2 == $2) {
+        PMC *type = Rakudo_types_int_get();
+        $1 = REPR(type)->instance_of(interp, type);
+        REPR($1)->set_int(interp, $1, $2);    
+    }
+    else {
+        PMC *type = Rakudo_types_num_get();
+        $1 = REPR(type)->instance_of(interp, type);
+        REPR($1)->set_num(interp, $1, $2);
+    }
+}
+
+/*
+
 =item perl6ize_type(out PMC, in PMC)
 
 Looks for Parrot-y types sneaking into Perl 6 land and maps them

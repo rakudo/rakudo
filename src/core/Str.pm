@@ -1,4 +1,4 @@
-my class Str {
+my class Str does Stringy {
     method Bool() { self ne '' && self ne '0' }
     
     multi method Str(Str:D:) { self }
@@ -123,6 +123,7 @@ my class Str {
         "\b" => '\b', "\n" => '\n', "\r" => '\r', "\t" => '\t', '"' => '\"',
         '\\' => '\\\\' );
 
+    multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
         my $result = '"';
         for ^self.chars -> $i {

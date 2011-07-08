@@ -109,7 +109,6 @@ class Range is Iterable does Positional {
 
     method at_pos($pos) { self.flat.at_pos($pos) }
 
-    multi method gist(Range:D:) { self.perl }
     multi method perl(Range:D:) { 
         $.min.perl
           ~ ('^' if $.excludes_min)
@@ -141,5 +140,5 @@ sub infix:<^..^>($min, $max) {
     Range.new($min, $max, :excludes_min, :excludes_max) 
 }
 sub prefix:<^>($max) {
-    Range.new(0, $max, :excludes_max) 
+    Range.new(0, $max.Numeric, :excludes_max) 
 }

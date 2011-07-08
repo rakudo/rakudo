@@ -83,6 +83,17 @@ my class Complex is Numeric {
         Complex.new($mag * $!im.cos, $mag * $!im.sin);
     }
 
+    method roots(Complex:D: Int $n) {
+        return $NaN if $n < 1;
+        return self if $n == 1;
+        for $!re, $!im {
+            return $NaN if $_ eq 'Inf' || $_ eq '-Inf' || $_ eq 'NaN';
+        }
+
+        my ($mag, $angle) = self.polar;
+        $mag **= 1e0 / $n;
+        (^$n).map: { $mag.unpolar( ($angle + $_ * 2e0 * pi) / $n) };
+    }
 }
 
 multi sub prefix:<->(Complex \$a) {

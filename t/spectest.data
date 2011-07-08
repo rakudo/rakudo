@@ -26,7 +26,7 @@ S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
 # S02-builtin_data_types/assigning-refs.t
 # S02-builtin_data_types/autovivification.t
-# S02-builtin_data_types/bool.t             # need Bool::True and Bool::False
+S02-builtin_data_types/bool.t
 # S02-builtin_data_types/capture.t
 S02-builtin_data_types/catch_type_cast_mismatch.t
 # S02-builtin_data_types/declare.t
@@ -70,7 +70,7 @@ S02-literals/pair-boolean.t
 # S02-literals/quoting.t                    # need rx {} quoting
 # S02-literals/quoting-unicode.t                              # icu
 # S02-literals/radix.t
-# S02-literals/string-interpolation.t
+S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
@@ -103,23 +103,23 @@ S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
 # S02-whitespace_and_comments/unicode-whitespace.t
 # S02-whitespace_and_comments/unspace.t
-# S03-feeds/basic.t
-# S03-junctions/associative.t
-# S03-junctions/autothreading.t
-# S03-junctions/boolean-context.t
+S03-feeds/basic.t
+S03-junctions/associative.t
+# S03-junctions/autothreading.t             # need regexes
+S03-junctions/boolean-context.t
 # S03-junctions/eigenstates.t
-# S03-junctions/misc.t
+# S03-junctions/misc.t                      # need regexes
 # S03-metaops/cross.t
 S03-metaops/eager-hyper.t
 # S03-metaops/hyper.t
-# S03-metaops/not.t
+S03-metaops/not.t
 # S03-metaops/reduce.t
 S03-metaops/reverse.t
 # S03-metaops/zip.t
 # S03-operators/also.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
-# S03-operators/assign.t                    # need my ($, $) = ...
+# S03-operators/assign.t                    # bug in list assignment
 # S03-operators/autoincrement-range.t                        # icu
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
@@ -131,14 +131,14 @@ S03-operators/binding-closure.t
 # S03-operators/binding-ro.t
 # S03-operators/binding-scalars.t
 # S03-operators/bit.t                       # need Rat literals
-# S03-operators/boolean-bitwise.t           # need True / False constants
+# S03-operators/boolean-bitwise.t           # xor return bug
 # S03-operators/brainos.t
 # S03-operators/buf.t
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
 # S03-operators/comparison.t                # need Order::Increase
 S03-operators/comparison-simple.t
-# S03-operators/context-forcers.t           # need True
+S03-operators/context-forcers.t
 # S03-operators/context.t                   # need regexes
 S03-operators/equality.t
 # S03-operators/eqv.t
@@ -146,7 +146,7 @@ S03-operators/equality.t
 # S03-operators/increment.t
 # S03-operators/inplace.t
 # S03-operators/is-divisible-by.t
-# S03-operators/list-quote-junction.t
+S03-operators/list-quote-junction.t
 # S03-operators/minmax.t
 # S03-operators/misc.t                      # need regexes
 # S03-operators/names.t                     # need regexes
@@ -155,9 +155,9 @@ S03-operators/not.t
 # S03-operators/numeric-context.t
 # S03-operators/precedence.t
 S03-operators/range-basic.t
-# S03-operators/range-int.t                       # stress
+S03-operators/range-int.t                       # stress
 # S03-operators/range.t
-# S03-operators/reduce-le1arg.t
+S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 # S03-operators/repeat.t
 S03-operators/scalar-assign.t
@@ -168,9 +168,9 @@ S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t
 # S03-operators/so.t
 # S03-operators/value_equivalence.t
-# S03-sequence/arity0.t
+S03-sequence/arity0.t
 # S03-sequence/arity-2-or-more.t
-# S03-sequence/basic.t
+S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t
 # S03-sequence/nonnumeric.t
 # S03-smartmatch/any-any.t
@@ -185,8 +185,8 @@ S03-smartmatch/any-complex.t
 S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
-# S03-smartmatch/any-sub.t
-# S03-smartmatch/any-type.t
+S03-smartmatch/any-sub.t
+S03-smartmatch/any-type.t
 # S03-smartmatch/array-array.t
 # S03-smartmatch/array-hash.t
 # S03-smartmatch/capture-signature.t
@@ -217,7 +217,7 @@ S04-statement-parsing/hash.t
 S04-statements/do.t
 S04-statements/for-scope.t
 # S04-statements/for.t
-# S04-statements/for_with_only_one_item.t
+S04-statements/for_with_only_one_item.t
 # S04-statements/gather.t
 # S04-statements/given.t
 S04-statements/if.t
@@ -330,7 +330,7 @@ S06-signature/optional.t
 S06-signature/passing-arrays.t
 S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t
-# S06-signature/positional.t
+S06-signature/positional.t
 S06-signature/scalar-type.t
 S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t
@@ -422,7 +422,7 @@ S12-methods/typed-attributes.t
 # S12-methods/what.t
 # S12-subset/multi-dispatch.t
 # S12-subset/subtypes.t
-# S13-type-casting/methods.t
+S13-type-casting/methods.t
 # S13-overloading/typecasting-long.t
 # S13-overloading/metaoperators.t
 # S13-overloading/operators.t
@@ -504,14 +504,14 @@ S32-list/create.t
 # S32-list/end.t
 # S32-list/first.t
 # S32-list/grep.t
-# S32-list/join.t
+S32-list/join.t
 # S32-list/map_function_return_values.t
 # S32-list/map.t
 # S32-list/minmax.t
-# S32-list/pick.t                           # needs junctions
+S32-list/pick.t
 # S32-list/reduce.t
 # S32-list/reverse.t
-# S32-list/roll.t
+S32-list/roll.t
 # S32-list/sort.t
 # S32-list/uniq.t
 # S32-num/abs.t
@@ -520,7 +520,7 @@ S32-num/complex.t
 # S32-num/cool-num.t
 # S32-num/exp.t
 # S32-num/gcd.t
-# S32-num/int.t
+S32-num/int.t
 S32-num/log.t
 # S32-num/pi.t
 S32-num/polar.t
@@ -528,7 +528,7 @@ S32-num/power.t
 # S32-num/rand.t
 S32-num/rat.t
 # S32-num/real-bridge.t
-# S32-num/roots.t
+S32-num/roots.t
 # S32-num/rounders.t
 # S32-num/sign.t
 S32-num/sqrt.t
@@ -605,7 +605,7 @@ integration/advent2009-day04.t
 # integration/advent2009-day12.t
 # integration/advent2009-day13.t
 # integration/advent2009-day14.t
-# integration/advent2009-day15.t
+integration/advent2009-day15.t
 # integration/advent2009-day16.t
 # integration/advent2009-day17.t                             # stress
 # integration/advent2009-day18.t

@@ -18,6 +18,7 @@ my class Real {
     method cis() {
         Complex.new(self.cos, self.sin);
     }
+    method Complex() { Complex.new(self.Num, 0e0) }
     multi method log()           { self.Bridge.log               }
     multi method log(Real $base) { self.Bridge.log($base.Bridge) }
     multi method exp()           { self.Bridge.exp               }

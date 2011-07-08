@@ -91,7 +91,7 @@ class List does Positional {
 
     method munch(\$n) {
         self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
-                          || nqp::isnull($!items)
+                          || nqp::not_i(pir::defined($!items))
                           || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
         nqp::p6parcel(
             pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n)),
@@ -188,6 +188,7 @@ class List does Positional {
         self[$index];
     }
 
+    multi method gist(List:D:) { self.Str }
     multi method perl(List:D \$self:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  

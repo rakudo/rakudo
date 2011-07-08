@@ -1,3 +1,5 @@
+class Complex { ... }
+
 # XXX role Numeric { ... }
 my class Numeric {
     method Numeric() { self }
@@ -14,7 +16,10 @@ my class Numeric {
     multi method exp(Numeric $base) {
         self.exp * $base.log;
     }
+    method roots(Cool $n) { self.Complex.roots($n.Int) }
     multi method Bool(Numeric:D:) { self != 0 }
+
+    multi method gist(Numeric:D:) { self.Str }
 }
 
 
@@ -58,6 +63,10 @@ multi sub tan(Cool \$x)    { $x.Numeric.tan }
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }
+
+proto sub roots($, $)        { * }
+multi sub roots($x, Cool $n) { $x.Numeric.Complex.roots($n.Int) }
+multi sub roots($x, Numeric $n) { $x.Numeric.Complex.roots($n.Int) }
 
 proto infix:<+>(|$)          { * }
 multi infix:<+>($x = 0)      { $x.Numeric }

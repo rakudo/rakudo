@@ -8,7 +8,7 @@ sub infix:<=>(Mu \$a, Mu \$b) {
 }
 
 sub SEQUENCE($left, $right, :$exclude_end) {
-    my @right := ($right,).list;
+    my @right := $right.flat;
     my $endpoint = @right.shift;
     my $infinite = $endpoint ~~ Whatever;
     $endpoint = Bool::False if $infinite;
@@ -31,8 +31,8 @@ sub SEQUENCE($left, $right, :$exclude_end) {
         ($cmp < 0) ?? { $^x.succ } !! ( $cmp > 0 ?? { $^x.pred } !! { $^x } )
     }
 
-    GATHER({
-        my @left := $left.list;
+    (GATHER({
+        my @left := $left.flat;
         my $value;
         my $code;
         my $stop;
@@ -85,7 +85,7 @@ sub SEQUENCE($left, $right, :$exclude_end) {
             $value = generate($code);
         }
         take $value unless $exclude_end;
-    }, :$infinite), @right;
+    }, :$infinite), @right).list;
 }
 
 # XXX Wants to be a macro when we have them.

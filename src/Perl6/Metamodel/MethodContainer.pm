@@ -57,7 +57,14 @@ role Perl6::Metamodel::MethodContainer {
         %!methods
     }
     
+    # Gets the submethods table.
     method submethod_table($obj) {
         %!submethods
+    }
+    
+    # Checks if this package (not its parents) declares a given
+    # method. Checks submethods also.
+    method declares_method($obj, $name) {
+        %!methods{$name} || %!submethods{$name} ?? 1 !! 0
     }
 }

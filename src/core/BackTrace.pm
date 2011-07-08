@@ -1,15 +1,16 @@
-my $*VERBOSE_BACKTRACE = False;
 class BackTraceLine {
     has Str $.file;
     has Int $.line;
+    has Mu  $.code;
     has Str $.subname;
-    has     $.subtype;
+
+    method subtype { $!code.WHAT.perl.lc }
 
     multi method Str(BackTraceLine:D:) {
-        my $s = $.subname // '<anon>';
-        my $what = lc $.subtype.perl;
-        "  in $what $s at {$.file}:$.line"
+        "  in $.subtype $.subname at {$.file}:$.line"
     }
+
+    method is-routine { $!code ~~ Routine }
 }
 
 class BackTrace is List {
@@ -20,8 +21,6 @@ class BackTrace is List {
             next if pir::isnull($bt[$_]<sub>);
             my Mu $p6sub =
                 pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);
-            next if !$*VERBOSE_BACKTRACE && !$p6sub.defined;
-            next if !$*VERBOSE_BACKTRACE && !$p6sub ~~ Routine;
             my $line     = $bt[$_]<annotations><line>;
             my $file     = $bt[$_]<annotations><file>;
             my $subname  = nqp::p6box_s($bt[$_]<sub>);
@@ -30,10 +29,14 @@ class BackTrace is List {
                 :$line,
                 :$file,
                 :$subname,
-                :subtype($p6sub.WHAT),
+                :code($p6sub),
             );
         }
         $new;
+    }
+
+    method concise() {
+        self.grep({ .is-routine }).join("\n") ~ "\n"
     }
 
     multi method Str(BackTrace:D:) {

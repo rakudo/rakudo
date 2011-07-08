@@ -38,7 +38,7 @@ S02-builtin_data_types/num.t
 S02-builtin_data_types/parcel.t
 S02-builtin_data_types/parsing-bool.t
 S02-builtin_data_types/range.t
-# S02-builtin_data_types/set.t  
+# S02-builtin_data_types/set.t              # Contextual $*UNITPAST not found
 S02-builtin_data_types/sigils-and-types.t
 S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
@@ -46,29 +46,29 @@ S02-builtin_data_types/type.t
 # S02-builtin_data_types/whatever.t         # needs enum support
 S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
-# S02-literals/autoref.t
+# S02-literals/autoref.t   # err: Method 'values' not found for invocant of class 'Parcel'
 # S02-literals/char-by-name.t                                # icu
 S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
-# S02-literals/listquote.t
-# S02-literals/listquote-whitespace.t
+# S02-literals/listquote.t # err: Method 'at_key' not found for invocant of class 'Str'
+# S02-literals/listquote-whitespace.t # err: Could not find sub &sprintf
 S02-literals/misc-interpolation.t
 S02-literals/numeric.t
 S02-literals/pair-boolean.t
-# S02-literals/pairs.t
+# S02-literals/pairs.t # err: Not enough positional parameters passed; got 1 but expected 2
 # S02-literals/quoting.t                    # need rx {} quoting
 # S02-literals/quoting-unicode.t                              # icu
-# S02-literals/radix.t
+# S02-literals/radix.t # err: Could not find sub &radcalc
 S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
-# S02-magicals/args.t
-# S02-magicals/config.t
-# S02-magicals/dollar_bang.t
+# S02-magicals/args.t   # err: Could not find sub &DYNAMIC
+# S02-magicals/config.t # err: Dynamic variable $*OS not found
+# S02-magicals/dollar_bang.t # err: too many positional arguments: 3 passed, 1 expected
 # S02-magicals/dollar-underscore.t
 # S02-magicals/env.t
 # S02-magicals/pid.t

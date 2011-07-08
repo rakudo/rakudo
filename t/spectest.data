@@ -4,15 +4,6 @@
 #
 # we don't add some files here, although all tests might pass right now
 #
-# S03-operators/overflow.t - passes only if bignum lib is available
-#
-# we've regressed on some files for various reasons:
-# 
-# integration/rule-in-class-Str.t - 'is also' -> augment
-# S12-attributes/mutators.t - we no longer get away with missing rw and Proxy; some bogus passes anyway
-# S07-iterators/range-iterator.t - regressed because conforms to obsolete version of spec
-# S05-grammar/protoregex.t - proto token is now {*}, not <...>
-#
 # Each file may have one or more markers that deselects the test:
 #     icu    - run tests only if --icu=1      (default is 1)
 #     long   - run tests only if --long=1     (default is 1)
@@ -151,6 +142,7 @@ S03-operators/list-quote-junction.t
 # S03-operators/nesting.t
 S03-operators/not.t
 # S03-operators/numeric-context.t
+# S03-operators/overflow.t # missing &radcalc (passes only if bignum lib is available)
 # S03-operators/precedence.t
 S03-operators/range-basic.t
 S03-operators/range-int.t                       # stress
@@ -241,6 +233,7 @@ S04-statements/while.t
 # S05-grammar/methods.t
 # S05-grammar/namespace.t
 # S05-grammar/parse_and_parsefile.t
+# S05-grammar/protoregex.t  # proto token is now {*}, not <...>
 # S05-grammar/protos.t
 # S05-grammar/signatures.t
 # S05-grammar/ws.t
@@ -343,6 +336,7 @@ S06-signature/unspecified.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
 # S06-traits/misc.t
+# S07-iterators/range-iterator.t # regressed because conforms to obsolete version of spec
 S09-autovivification/autoincrement.t
 # S09-autovivification/autovivification.t
 # S09-subscript_slice/slice.t
@@ -362,6 +356,7 @@ S09-autovivification/autoincrement.t
 # S12-attributes/delegation.t
 S12-attributes/inheritance.t
 # S12-attributes/instance.t
+# S12-attributes/mutators.t  # we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S12-attributes/recursive.t
 # S12-attributes/undeclared.t
 S12-class/anonymous.t
@@ -624,6 +619,7 @@ integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 # integration/real-strings.t
 integration/role-composition-vs-attribute.t
+# integration/rule-in-class-Str.t # 'is also' -> augment
 integration/say-crash.t
 # integration/substr-after-match-in-gather-in-for.t
 # integration/weird-errors.t

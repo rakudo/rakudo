@@ -722,7 +722,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Find type object for the box typed we'll create.
         # On deserialization, we'll need to look it up too.
-        my $type_obj := self.find_symbol([$type]);
+        my $type_obj := self.find_symbol(pir::split('::', $type));
         my $type_obj_lookup := self.get_object_sc_ref_past($type_obj);
         
         # Go by the primitive type we're boxing. Need to create

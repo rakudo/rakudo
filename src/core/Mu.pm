@@ -146,7 +146,7 @@ my class Mu {
         $var(self, |@pos, |%named)
     }
     
-    method dispatch:<::>($name, $type, *@pos, *%named) {
+    method dispatch:<::>($name, Mu $type, *@pos, *%named) {
         unless nqp::istype(self, $type) {
             die "Cannot dispatch to a method on " ~ $type.WHAT.perl ~
                 " because it is not inherited or done by " ~

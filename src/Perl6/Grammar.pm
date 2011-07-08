@@ -1046,15 +1046,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                 # Locate any existing symbol. Note that it's only a match
                 # with "my" if we already have a declaration in this scope.
                 my $exists := 0;
-                if $*SCOPE eq 'my' {
-                    if $outer.symbol(~$longname<name>) {
-                        $*PACKAGE := $*ST.find_symbol(parse_name(~$longname<name>));
-                        $exists := 1;
-                    }
-                }
-                else {
-                    try {
-                        $*PACKAGE := $*ST.find_symbol(parse_name(~$longname<name>));
+                if $longname {
+                    my @name := parse_name(~$longname<name>);
+                    if $*ST.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
+                        $*PACKAGE := $*ST.find_symbol(@name);
                         $exists := 1;
                     }
                 }

@@ -136,7 +136,12 @@ my class Str does Stringy {
         }
         $result ~ '"'
     }
-    
+
+    # TODO: should be just one multi candidate, where the rest actually deals
+    # with regexes
+    method comb() {
+        (^self.chars).map({self.substr($_, 1) });
+    }
 }
 
 

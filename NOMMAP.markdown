@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 7 July 2011
+Last Updated 8 July 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -56,13 +56,6 @@ Many things are working, some are not...
 * Some support for augment
 * handles
 * does and but
-
-## Ensure nested packages work
-In theory, just should already.
-
-## Classes conflict even when put into a package
-my package Foo { class Block {} } makes Foo::Block conflict with the
-Block type. Shouldn't.
 
 ## Restore other setting bits
 Bring back in everything that was ripped out. Probably many our things

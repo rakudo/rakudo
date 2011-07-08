@@ -369,7 +369,7 @@ S12-attributes/inheritance.t
 S12-class/anonymous.t
 # S12-class/augment-supersede.t
 # S12-class/attributes.t
-# S12-class/basic.t
+S12-class/basic.t
 S12-class/declaration-order.t
 # S12-class/extending-arrays.t
 S12-class/inheritance-class-methods.t
@@ -387,7 +387,7 @@ S12-class/self-inheritance.t
 # S12-construction/BUILD.t
 # S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
-# S12-construction/new.t
+S12-construction/new.t
 # S12-enums/anonymous.t
 # S12-enums/as-role.t
 # S12-enums/basic.t

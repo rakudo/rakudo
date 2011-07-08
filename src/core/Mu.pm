@@ -135,12 +135,18 @@ my class Mu {
         nqp::p6bool(nqp::istype(self, $type.WHAT))  # XXX HOW.does(...)?
     }
     
+    method clone() {
+        my $cloned := pir::repr_clone__PP(pir::perl6_decontainerize__PP(self));
+        # XXX Probably need to clone containery things a level deeper.
+        $cloned
+    }
+    
     # XXX TODO: Handle positional case.
     method dispatch:<var>($var, *@pos, *%named) {
         $var(self, |@pos, |%named)
     }
     
-    method dispatch:<::>($name, $type, *@pos, *%named) {
+    method dispatch:<::>($name, Mu $type, *@pos, *%named) {
         unless nqp::istype(self, $type) {
             die "Cannot dispatch to a method on " ~ $type.WHAT.perl ~
                 " because it is not inherited or done by " ~

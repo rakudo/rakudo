@@ -1062,6 +1062,44 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $is_name
     }
     
+    # Checks if a symbol has already been declared in the current
+    # scope, and thus may not be redeclared.
+    method already_declared($scope, $curpackage, $curpad, @name) {
+        if $scope eq 'my' {
+            my %sym := $curpad.symbol(@name[0]);
+            if %sym { %sym<value>;
+                return %sym<value>.HOW.HOW.name(%sym<value>.HOW) ne 'Perl6::Metamodel::PackageHOW';
+            }
+            return 0;
+        }
+        else {
+            # Does the current lexpad or package declare the first
+            # part of the name? If not, we're in the clear.
+            my $first_sym;
+            if $curpad.symbol(@name[0]) {
+                $first_sym := $curpad.symbol(@name[0])<value>;
+            }
+            elsif pir::exists($curpackage.WHO, @name[0]) {
+                $first_sym := ($curpackage.WHO){@name[0]};
+            }
+            else {
+                return 0;
+            }
+            
+            # If we've more name, recursively check the next level
+            # in the package. Otherwise, just go on if it's a
+            # package or not.
+            if +@name > 1 {
+                my @restname := pir::clone(@name);
+                @restname.shift;
+                return self.already_declared($scope, $first_sym, PAST::Block.new(), @restname);
+            }
+            else {
+                return $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW';
+            }
+        }
+    }
+    
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.

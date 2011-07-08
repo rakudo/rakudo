@@ -154,6 +154,9 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         memmove(value, new_ins, sizeof (PMC));
         memmove(new_ins, temp, sizeof (PMC));
 
+        /* Trigger writebarrier after poking into guts directly */
+        PARROT_GC_WRITE_BARRIER(interp, value);
+
         Parrot_unblock_GC_mark(interp);
         mem_sys_free(temp);
 
@@ -171,6 +174,9 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
             "Object to be reblessed does not appear to be of the expected class.");
     }
     else {
+        /* Block GC before fiddling with C<value> guts to avoid multiple WBs */
+        Parrot_block_GC_mark(interp);
+
         /* We have a standard Parrot class and object and can tweak it's guts.
          * Shuffle up attributes to the point of the difference between the number
          * of attributes in the parent and the derived class. Yes, this is evil -
@@ -182,6 +188,11 @@ inline op rebless_subclass(in PMC, in PMC) :base_core {
         /* Now switch object's class pointer to point at the new class. This is
          * also evil. */
         PARROT_OBJECT(value)->_class = $2;
+
+        /* Trigger writebarrier after poking into guts directly */
+        PARROT_GC_WRITE_BARRIER(interp, value);
+
+        Parrot_unblock_GC_mark(interp);
     }
 
     goto NEXT();

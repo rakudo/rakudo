@@ -317,9 +317,9 @@ static INTVAL has_junctional_args(PARROT_INTERP, PMC *args) {
     INTVAL i;
 
     for (i = 0; i < num_args; i++) {
-        /* XXX TODO: junction type detection.
         PMC * const arg = VTABLE_get_pmc_keyed_int(interp, args, i);
-        */
+        if (STABLE(arg)->type_check(interp, arg, Rakudo_types_junction_get()))
+            return 1;
     }
     
     return 0;
@@ -355,7 +355,8 @@ static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub) {
 /*
 
 =item C<static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candidates,
-                                        INTVAL num_candidates, PMC *capture, opcode_t *next)>
+                                        INTVAL num_candidates, PMC *capture, opcode_t *next
+                                        PMC *dispatcher)>
 
 Runs the Perl 6 MMD algorithm. Returns either the one winning unambiguous
 candidate or throws an error saying that the dispatch failed if there were no
@@ -366,7 +367,8 @@ candidates or that it was ambiguous if there were tied candidates.
 */
 
 static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candidates,
-                                INTVAL num_candidates, PMC *capture, opcode_t *next) {
+                                INTVAL num_candidates, PMC *capture, opcode_t *next,
+                                PMC *dispatcher) {
     Rakudo_md_candidate_info **cur_candidate    = candidates;
     Rakudo_md_candidate_info **possibles        = mem_allocate_n_typed(num_candidates + 1, Rakudo_md_candidate_info *);
     PMC                       *junctional_res   = PMCNULL;
@@ -556,11 +558,10 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
 
     /* Perhaps we found nothing but have junctional arguments? */
     if (possibles_count == 0 && has_junctional_args(interp, capture)) {
-        /* Look up multi junction dispatcher, clone it, attach this multi-sub
-         * as a property and hand that back as the dispatch result. We also
-         * stick it in the MMD cache for next time around. */
-        /* XXX TODO... */
-        junctional_res = PMCNULL;
+        /* Unshift the proto onto the start of the args and hand back
+         * the threader. */
+        VTABLE_unshift_pmc(interp, CURRENT_CONTEXT(interp), dispatcher);
+        junctional_res = Rakudo_types_junction_threader_get();
     }
 
     /* Need a unique candidate. */
@@ -632,7 +633,7 @@ Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next)
         cands = (Rakudo_md_candidate_info **)VTABLE_get_pointer(interp,
             code_obj->dispatcher_cache);
     }
-    return find_best_candidate(interp, cands, num_cands, capture, next);
+    return find_best_candidate(interp, cands, num_cands, capture, next, dispatcher);
 }
 
 /*

@@ -248,21 +248,19 @@ inline op bind_signature() :base_core {
             /* Maybe we need to auto-thread... */
             if (bind_error == BIND_RESULT_JUNCTION) {
                 /* Find dispatcher and call it. */
-                PMC * const returns    = Parrot_pmc_new(interp, enum_class_CallContext);
-                PMC * const dispatcher = Parrot_ns_find_namespace_global(interp, Parrot_hll_get_ctx_HLL_namespace(interp), DISPATCH_JUNCTION_str);
+                PMC * const dispatcher = Rakudo_types_junction_threader_get();
                 PMC * const sub        = Parrot_pcc_get_sub(interp, ctx);
+                PMC * call_ctx         = VTABLE_clone(interp, ctx);
+                PMC * ret_cont         = Parrot_pcc_get_continuation(interp, ctx);
+                PMC * p6sub;
                 opcode_t *next;
-                PMC *junc_result;
-                
-                Parrot_ext_call(interp, dispatcher, "PP->P", sub, ctx, &junc_result);
 
-                /* Build call signautre of returns and set it. */
-                VTABLE_push_pmc(interp, returns, junc_result);
-                Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), returns);
+                GETATTR_Sub_multi_signature(interp, sub, p6sub);
+                VTABLE_unshift_pmc(interp, call_ctx, p6sub);
+                Parrot_pcc_invoke_from_sig_object(interp, dispatcher, call_ctx);
 
-                /* Invoke the current return continuation, to return said value. */
-                next = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp,
-                        CURRENT_CONTEXT(interp)), expr NEXT());
+                /* Invoke the original return continuation, to return junction result. */
+                next = VTABLE_invoke(interp, ret_cont, expr NEXT());
                 goto ADDRESS(next);
             }
             else {
@@ -295,15 +293,16 @@ inline op perl6_set_type_mu(in PMC) :base_core {
 
 /*
 
-=item perl6_set_type_junction(in PMC)
+=item perl6_setup_junction_autothreading(in PMC)
 
-Sets the junction type.
+Sets the junction type and auto-threader.
 
 =cut
 
 */
-inline op perl6_set_type_junction(in PMC) :base_core {
+inline op perl6_setup_junction_autothreading(in PMC, in PMC) :base_core {
     Rakudo_types_junction_set($1);
+    Rakudo_types_junction_threader_set($2);
 }
 
 

@@ -89,3 +89,5 @@ sub AUTOTHREAD(&call, **@pos, *%named) {
     # If we get here, wasn't actually anything to autothread.
     call(|@pos, |%named);
 }
+
+pir::perl6_setup_junction_autothreading__vPP(Junction, &AUTOTHREAD);

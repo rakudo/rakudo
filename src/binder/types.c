@@ -23,6 +23,7 @@ static PMC * _Hash      = NULL;
 static PMC * BoolFalse  = NULL;
 static PMC * BoolTrue   = NULL;
 static PMC * PackageHOW = NULL;
+static PMC * JunctionThreader = NULL;
 
 void Rakudo_types_mu_set(PMC * type) { Mu = type; }
 PMC * Rakudo_types_mu_get(void) { return Mu; }
@@ -68,6 +69,9 @@ PMC * Rakudo_types_bool_true_get(void) { return BoolTrue; }
 
 void Rakudo_types_packagehow_set(PMC * type) { PackageHOW = type; }
 PMC * Rakudo_types_packagehow_get(void) { return PackageHOW; }
+
+void Rakudo_types_junction_threader_set(PMC * threader) { JunctionThreader = threader; }
+PMC * Rakudo_types_junction_threader_get(void) { return JunctionThreader; }
 
 PMC * Rakudo_types_parrot_map(PARROT_INTERP, PMC * to_map) {
     PMC *result;

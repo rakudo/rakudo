@@ -1075,20 +1075,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 return 0;
             }
             
-            # If the first part is a PackageHOW, also fine.
-            if $first_sym.HOW.HOW.name($first_sym.HOW) eq 'Perl6::Metamodel::PackageHOW' {
-                return 0;
-            }
-            
             # If we've more name, recursively check the next level
-            # in the package. Otherwise, we know the answer.
+            # in the package. Otherwise, just go on if it's a
+            # package or not.
             if +@name > 1 {
                 my @restname := pir::clone(@name);
                 @restname.shift;
                 return self.already_declared($scope, $first_sym, PAST::Block.new(), @restname);
             }
             else {
-                return 1;
+                return $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW';
             }
         }
     }

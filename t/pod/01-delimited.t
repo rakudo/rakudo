@@ -5,7 +5,7 @@ my $r;
 =begin foo
 =end foo
 
-$r = $POD[0];
+$r = $=POD[0];
 isa_ok $r, Pod__Block, 'returns a Pod Block';
 isa_ok $r, Pod__Block__Named, 'returns a named Block';
 is $r.name, 'foo', 'name is ok';
@@ -15,7 +15,7 @@ is $r.content, [], 'no content, all right';
 some text
 =end foo
 
-$r = $POD[1];
+$r = $=POD[1];
 is $r.content[0], "some text", 'the content is all right';
 is $r.name, 'foo', 'name is ok';
 
@@ -24,7 +24,7 @@ some
 spaced   text
 =end foo
 
-$r = $POD[2];
+$r = $=POD[2];
 is $r.name, 'foo', 'name is ok';
 is $r.content[0], "some spaced text", 'additional whitespace removed ' ~
                                       'from the content';
@@ -35,7 +35,7 @@ paragraph one
 paragraph
 two
 =end foo
-$r = $POD[3];
+$r = $=POD[3];
 is $r.name, 'foo', 'name is ok';
 is $r.content[0], "paragraph one", 'paragraphs ok, 1/2';
 is $r.content[1], "paragraph two", 'paragraphs ok, 2/2';
@@ -46,7 +46,7 @@ is $r.content[1], "paragraph two", 'paragraphs ok, 2/2';
     =end somethingelse
 =end something
 
-$r = $POD[4];
+$r = $=POD[4];
 is $r.name, 'something', 'parent name ok';
 isa_ok $r.content[0], Pod__Block, "nested blocks work";
 is $r.content[0].content[0], "toot tooot!", "and their content";
@@ -72,7 +72,7 @@ Which, as we all know...
     =end bar
 =end foo
 
-$r = $POD[5];
+$r = $=POD[5];
 isa_ok $r, Pod__Block;
 is $r.content.elems, 5, '5 sub-nodes in foo';
 is $r.content[0],
@@ -97,7 +97,7 @@ between these two paragraphs
 
 =end pod
 
-$r = $POD[6];
+$r = $=POD[6];
 isa_ok $r, Pod__Block;
 is $r.content[0], 'someone accidentally left a space',
    'accidental space, 1/2';
@@ -113,7 +113,7 @@ bla bla
 foo
 =end kwid
 
-$r = $POD[7];
+$r = $=POD[7];
 is $r.content[0], '= DESCRIPTION bla bla';
 is $r.content[1], 'foo';
 
@@ -124,5 +124,5 @@ XXX: chop(%has)   should return a  hash  of chopped strings?
 
 =end more-discussion-needed
 
-$r = $POD[8];
+$r = $=POD[8];
 isa_ok $r, Pod__Block;

@@ -14,7 +14,7 @@ The seven suspects are:
 =item  Keyser Soze
 =end pod
 
-$r = $POD[0];
+$r = $=POD[0];
 is $r.content.elems, 8;
 for 1..7 {
     isa_ok $r.content[$_], Pod__Item;
@@ -37,7 +37,7 @@ nok $r.content[4].level.defined, 'no level information';
 =item2     Chocolate
 =end pod
 
-$r = $POD[1];
+$r = $=POD[1];
 is $r.content.elems, 8;
 for 0..7 {
     isa_ok $r.content[$_], Pod__Item;
@@ -62,7 +62,7 @@ The choices are:
 =item2 Beer
 =end pod
 
-$r = $POD[2];
+$r = $=POD[2];
 is $r.content.elems, 5;
 for 1..4 {
     isa_ok $r.content[$_], Pod__Item;
@@ -94,7 +94,7 @@ for breakfast.
 As you can see, folk wisdom is often of dubious value.
 =end pod
 
-$r = $POD[3];
+$r = $=POD[3];
 is $r.content.elems, 4;
 is $r.content[0], "Let's consider two common proverbs:";
 skip 'no regexes in nom yet', 2;

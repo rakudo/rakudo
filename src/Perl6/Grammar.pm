@@ -370,7 +370,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 'Array', 'type_new', |$*POD_BLOCKS
             );
             $*ST.install_lexical_symbol(
-                $*UNIT, '$POD', $*POD_PAST<compile_time_value>
+                $*UNIT, '$=POD', $*POD_PAST<compile_time_value>
             );
             $*ST.pop_lexpad(); # UNIT
             $*ST.pop_lexpad(); # UNIT_OUTER
@@ -963,6 +963,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token twigil:sym<:> { <sym> <?before \w> }
     token twigil:sym<*> { <sym> }
     token twigil:sym<?> { <sym> }
+    token twigil:sym<=> { <sym> <?before \w> }
 
     proto token package_declarator { <...> }
     token package_declarator:sym<package> {

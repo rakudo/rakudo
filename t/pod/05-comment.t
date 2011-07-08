@@ -10,7 +10,7 @@ bla bla    bla
 This isn't a comment
 =end pod
 
-$r = $POD[0];
+$r = $=POD[0];
 isa_ok $r.content[0], Pod__Block__Comment;
 is $r.content[0].content.elems, 1;
 is $r.content[0].content, "foo foo\nbla bla    bla\n";
@@ -19,7 +19,7 @@ is $r.content[0].content, "foo foo\nbla bla    bla\n";
 =comment
 This file is deliberately specified in Perl 6 Pod format
 
-$r = $POD[1];
+$r = $=POD[1];
 isa_ok $r, Pod__Block__Comment;
 is $r.content.elems, 1;
 is $r.content[0],
@@ -34,7 +34,7 @@ foo foo
 ===yay!
 =end comment
 
-$r = $POD[2];
+$r = $=POD[2];
 isa_ok $r, Pod__Block;
 is $r.content.elems, 1;
 is $r.content[0], "foo foo\n=begin invalid pod\n"

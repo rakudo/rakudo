@@ -4,20 +4,20 @@ my $r;
 
 =foo
 
-$r = $POD[0];
+$r = $=POD[0];
 isa_ok $r, Pod__Block, 'returns a Pod6 Block';
 isa_ok $r, Pod__Block__Named, 'returns a named Block';
 is $r.content, [], 'no content, all right';
 
 =foo some text
 
-$r = $POD[1];
+$r = $=POD[1];
 is $r.content[0], "some text", 'the content is all right';
 
 =foo some text
 and some more
 
-$r = $POD[2];
+$r = $=POD[2];
 is $r.content[0], "some text and some more", 'the content is all right';
 
 =begin pod
@@ -31,7 +31,7 @@ bidden
 Outside blocks
 =end pod
 
-$r = $POD[3];
+$r = $=POD[3];
 isa_ok $r.content[0], Pod__Block;
 is $r.content[0].content[0], "Inside got",
    'paragraph block content ok, 1/2';
@@ -58,7 +58,7 @@ is $r.content[2], "Outside blocks",
     =head1 And just for the sake of having a working =head1 :)
 =end pod
 
-$r = $POD[4];
+$r = $=POD[4];
 is $r.content[0].content[0], "one, delimited block", "mixed blocks, 1";
 is $r.content[1].content[0], "two, paragraph block", "mixed blocks, 2";
 is $r.content[2].content[0], "three, still a parablock", "mixed blocks, 3";
@@ -83,7 +83,7 @@ Which, as we all know...
           Beans!
 =end foo
 
-$r = $POD[5];
+$r = $=POD[5];
 isa_ok $r, Pod__Block;
 is $r.content.elems, 5, '5 sub-nodes in foo';
 is $r.content[0],
@@ -107,7 +107,7 @@ is $r.content[4].content[0], "Turn into Jelly Beans!",
     Subroutines 33
     Everything else 57
 
-$r = $POD[6];
+$r = $=POD[6];
 isa_ok $r, Pod__Block;
 is $r.content.elems, 1;
 is $r.content[0],

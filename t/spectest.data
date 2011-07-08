@@ -28,7 +28,7 @@ S02-builtin_data_types/hash_ref.t
 # S02-builtin_data_types/instants-and-durations.t # need now
 # S02-builtin_data_types/lists.t            # need regexes
 S02-builtin_data_types/mixed_multi_dimensional.t
-# S02-builtin_data_types/multi_dimensional_array.t
+S02-builtin_data_types/multi_dimensional_array.t
 # S02-builtin_data_types/nan.t              # need NaN constant
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t

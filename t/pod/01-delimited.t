@@ -6,8 +6,8 @@ my $r;
 =end foo
 
 $r = $=POD[0];
-isa_ok $r, Pod__Block, 'returns a Pod Block';
-isa_ok $r, Pod__Block__Named, 'returns a named Block';
+isa_ok $r, Pod::Block, 'returns a Pod Block';
+isa_ok $r, Pod::Block::Named, 'returns a named Block';
 is $r.name, 'foo', 'name is ok';
 is $r.content, [], 'no content, all right';
 
@@ -48,7 +48,7 @@ is $r.content[1], "paragraph two", 'paragraphs ok, 2/2';
 
 $r = $=POD[4];
 is $r.name, 'something', 'parent name ok';
-isa_ok $r.content[0], Pod__Block, "nested blocks work";
+isa_ok $r.content[0], Pod::Block, "nested blocks work";
 is $r.content[0].content[0], "toot tooot!", "and their content";
 is $r.content[0].name, 'somethingelse', 'child name ok';
 
@@ -73,7 +73,7 @@ Which, as we all know...
 =end foo
 
 $r = $=POD[5];
-isa_ok $r, Pod__Block;
+isa_ok $r, Pod::Block;
 is $r.content.elems, 5, '5 sub-nodes in foo';
 is $r.content[0],
    'and so, all of the villages chased Albi, The Racist Dragon, ' ~
@@ -98,7 +98,7 @@ between these two paragraphs
 =end pod
 
 $r = $=POD[6];
-isa_ok $r, Pod__Block;
+isa_ok $r, Pod::Block;
 is $r.content[0], 'someone accidentally left a space',
    'accidental space, 1/2';
 is $r.content[1], 'between these two paragraphs',
@@ -125,4 +125,4 @@ XXX: chop(%has)   should return a  hash  of chopped strings?
 =end more-discussion-needed
 
 $r = $=POD[8];
-isa_ok $r, Pod__Block;
+isa_ok $r, Pod::Block;

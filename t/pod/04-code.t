@@ -11,7 +11,7 @@ This ordinary paragraph introduces a code block:
 
 $r = $=POD[0];
 is $r.content[0], 'This ordinary paragraph introduces a code block:';
-isa_ok $r.content[1], Pod__Block__Code;
+isa_ok $r.content[1], Pod::Block::Code;
 is $r.content[1].content.Str, q[$this = 1 * code('block');
 $which.is_specified(:by<indenting>);];
 
@@ -34,11 +34,11 @@ But this is just a text. Again
 $r = $=POD[1];
 is $r.content.elems, 5;
 is $r.content[0], 'This is an ordinary paragraph';
-isa_ok $r.content[1], Pod__Block__Code;
+isa_ok $r.content[1], Pod::Block::Code;
 is $r.content[1].content, "While this is not\nThis is a code block";
-isa_ok $r.content[2], Pod__Block;
+isa_ok $r.content[2], Pod::Block;
 is $r.content[2].content, 'Mumble mumble';
-isa_ok $r.content[3], Pod__Block__Code;
+isa_ok $r.content[3], Pod::Block::Code;
 is $r.content[3].content, "Suprisingly, this is a code block again\n"
                         ~ "    (with fancy indentation too)";
 is $r.content[4], "But this is just a text. Again";
@@ -53,7 +53,7 @@ Tests for the feed operators
 
 $r = $=POD[2];
 is $r.content[0], 'Tests for the feed operators';
-isa_ok $r.content[1], Pod__Block__Code;
+isa_ok $r.content[1], Pod::Block::Code;
 is $r.content[1].content, "==> and <==";
 
 =begin pod
@@ -70,11 +70,11 @@ Fun comes
 $r = $=POD[3];
 is $r.content.elems, 4;
 is $r.content[0], 'Fun comes';
-isa_ok $r.content[1], Pod__Block__Code;
+isa_ok $r.content[1], Pod::Block::Code;
 is $r.content[1].content, 'This is code';
-isa_ok $r.content[2], Pod__Block__Code;
+isa_ok $r.content[2], Pod::Block::Code;
 is $r.content[2].content, 'Ha, what now?';
-isa_ok $r.content[3], Pod__Block__Code;
+isa_ok $r.content[3], Pod::Block::Code;
 is $r.content[3].content, "one more block of code\n"
                         ~ "just to make sure it works\n"
                         ~ " or better: maybe it'll break!";
@@ -91,11 +91,11 @@ This is Pod too. Specifically, this is a simple C<para> block
 
 $r = $=POD[4];
 is $r.content.elems, 3;
-isa_ok $r.content[0], Pod__Block;
+isa_ok $r.content[0], Pod::Block;
 is $r.content[0].content, 'A heading';
 is $r.content[1],
    'This is Pod too. Specifically, this is a simple C<para> block';
-isa_ok $r.content[2], Pod__Block__Code;
+isa_ok $r.content[2], Pod::Block::Code;
 is $r.content[2].content,
    q[$this = pod('also');  # Specifically, a code block];
 
@@ -122,23 +122,23 @@ is $r.content[2].content,
 
 $r = $=POD[5];
 is $r.content.elems, 6;
-isa_ok $r.content[0], Pod__Block__Code;
+isa_ok $r.content[0], Pod::Block::Code;
 is $r.content[0].content, 'this is code';
 
-isa_ok $r.content[1], Pod__Block__Named;
+isa_ok $r.content[1], Pod::Block::Named;
 is $r.content[1].name, 'podcast';
 is $r.content[1].content, 'this is not';
 
-isa_ok $r.content[2], Pod__Block__Code;
+isa_ok $r.content[2], Pod::Block::Code;
 is $r.content[2].content, 'this is code';
 
-isa_ok $r.content[3], Pod__Block__Named;
+isa_ok $r.content[3], Pod::Block::Named;
 is $r.content[3].name, 'itemization';
 is $r.content[3].content, 'this is not';
 
-isa_ok $r.content[4], Pod__Block__Named;
+isa_ok $r.content[4], Pod::Block::Named;
 is $r.content[4].name, 'quitem';
 is $r.content[4].content, 'and this is not';
 
-isa_ok $r.content[5].content[0], Pod__Block__Code;
+isa_ok $r.content[5].content[0], Pod::Block::Code;
 is $r.content[5].content[0].content, 'and this is!';

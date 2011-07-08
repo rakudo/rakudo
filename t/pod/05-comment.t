@@ -11,7 +11,7 @@ This isn't a comment
 =end pod
 
 $r = $=POD[0];
-isa_ok $r.content[0], Pod__Block__Comment;
+isa_ok $r.content[0], Pod::Block::Comment;
 is $r.content[0].content.elems, 1;
 is $r.content[0].content, "foo foo\nbla bla    bla\n";
 
@@ -20,7 +20,7 @@ is $r.content[0].content, "foo foo\nbla bla    bla\n";
 This file is deliberately specified in Perl 6 Pod format
 
 $r = $=POD[1];
-isa_ok $r, Pod__Block__Comment;
+isa_ok $r, Pod::Block::Comment;
 is $r.content.elems, 1;
 is $r.content[0],
    "This file is deliberately specified in Perl 6 Pod format\n";
@@ -35,7 +35,7 @@ foo foo
 =end comment
 
 $r = $=POD[2];
-isa_ok $r, Pod__Block;
+isa_ok $r, Pod::Block;
 is $r.content.elems, 1;
 is $r.content[0], "foo foo\n=begin invalid pod\n"
                 ~ "=as many invalid pod as we want\n===yay!\n";

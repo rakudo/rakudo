@@ -5,8 +5,8 @@ my $r;
 =for foo
 
 $r = $=POD[0];
-isa_ok $r, Pod__Block, 'returns a Pod6 Block';
-isa_ok $r, Pod__Block__Named, 'returns a named Block';
+isa_ok $r, Pod::Block, 'returns a Pod6 Block';
+isa_ok $r, Pod::Block::Named, 'returns a named Block';
 is $r.name, 'foo', 'name is ok';
 is $r.content, [], 'no content, all right';
 
@@ -35,10 +35,10 @@ Outside blocks
 =end pod
 
 $r = $=POD[3];
-isa_ok $r.content[0], Pod__Block;
+isa_ok $r.content[0], Pod::Block;
 is $r.content[0].content[0], "Inside got",
    'paragraph block content ok, 1/2';
-isa_ok $r.content[1], Pod__Block;
+isa_ok $r.content[1], Pod::Block;
 is $r.content[1].content[0], "Inside bidden",
    'paragraph block content ok, 1/2';
 isa_ok $r.content[2], Str;
@@ -87,7 +87,7 @@ Which, as we all know...
 =end foo
 
 $r = $=POD[5];
-isa_ok $r, Pod__Block;
+isa_ok $r, Pod::Block;
 is $r.content.elems, 5, '5 sub-nodes in foo';
 is $r.name, 'foo';
 is $r.content[0],

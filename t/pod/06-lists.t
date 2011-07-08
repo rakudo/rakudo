@@ -17,7 +17,7 @@ The seven suspects are:
 $r = $=POD[0];
 is $r.content.elems, 8;
 for 1..7 {
-    isa_ok $r.content[$_], Pod__Item;
+    isa_ok $r.content[$_], Pod::Item;
 }
 
 is $r.content[1].content, 'Happy', 'content is happy :)';
@@ -40,7 +40,7 @@ nok $r.content[4].level.defined, 'no level information';
 $r = $=POD[1];
 is $r.content.elems, 8;
 for 0..7 {
-    isa_ok $r.content[$_], Pod__Item;
+    isa_ok $r.content[$_], Pod::Item;
 }
 
 $r.content[0].content, 'Animal';
@@ -65,7 +65,7 @@ The choices are:
 $r = $=POD[2];
 is $r.content.elems, 5;
 for 1..4 {
-    isa_ok $r.content[$_], Pod__Item;
+    isa_ok $r.content[$_], Pod::Item;
 }
 
 # XXX Those items are :numbered in S26, but we're waiting with block

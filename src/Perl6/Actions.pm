@@ -290,7 +290,7 @@ class Perl6::Actions is HLL::Actions {
                 $level_past := $*ST.find_symbol(['Mu']);
             }
             my $past := $*ST.add_constant(
-                'Pod__Item', 'type_new',
+                'Pod::Item', 'type_new',
                 :level($level_past),
                 :content($content<compile_time_value>),
             );
@@ -298,7 +298,7 @@ class Perl6::Actions is HLL::Actions {
         }
         my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
         my $past := $*ST.add_constant(
-            'Pod__Block__Named', 'type_new',
+            'Pod::Block::Named', 'type_new',
             :name($name<compile_time_value>),
             :content($content<compile_time_value>),
         );
@@ -317,8 +317,8 @@ class Perl6::Actions is HLL::Actions {
             $str<compile_time_value>
         );
         my $past := $*ST.add_constant(
-            $<type>.Str eq 'code' ?? 'Pod__Block__Code'
-                                  !! 'Pod__Block__Comment',
+            $<type>.Str eq 'code' ?? 'Pod::Block::Code'
+                                  !! 'Pod::Block::Comment',
             'type_new',
             :content($content<compile_time_value>),
         );
@@ -355,7 +355,7 @@ class Perl6::Actions is HLL::Actions {
             $str<compile_time_value>
         );
         my $past := $*ST.add_constant(
-            'Pod__Block__Code', 'type_new',
+            'Pod::Block::Code', 'type_new',
             :content($content<compile_time_value>),
         );
         make $past<compile_time_value>;

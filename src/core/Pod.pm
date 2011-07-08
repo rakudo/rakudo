@@ -1,19 +1,21 @@
-class Pod__Block {
-    has @.content;
-}
+my package Pod {
+    class Block {
+        has @.content;
+    }
 
-class Pod__Block__Named is Pod__Block {
-    has $.name;
-}
+    class Block::Named is Block {
+        has $.name;
+    }
 
-class Pod__Block__Comment is Pod__Block { }
+    class Block::Comment is Block { }
 
-class Pod__Block__Code is Pod__Block {
-    has @.allowed;
-}
+    class Block::Code is Block {
+        has @.allowed;
+    }
 
-class Pod__Item is Pod__Block {
-    has $.level;
+    class Item is Block {
+        has $.level;
+    }
 }
 
 # vim: ft=perl6

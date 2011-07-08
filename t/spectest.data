@@ -16,11 +16,11 @@ S02-builtin_data_types/array_extending.t
 S02-builtin_data_types/array_ref.t
 S02-builtin_data_types/array.t
 S02-builtin_data_types/assigning-refs.t
-# S02-builtin_data_types/autovivification.t
+# S02-builtin_data_types/autovivification.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'.
 S02-builtin_data_types/bool.t
-# S02-builtin_data_types/capture.t
+# S02-builtin_data_types/capture.t # err: Too many positional parameters passed
 S02-builtin_data_types/catch_type_cast_mismatch.t
-# S02-builtin_data_types/declare.t
+S02-builtin_data_types/declare.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 # S02-builtin_data_types/hash.t             # need regexes and m{...}

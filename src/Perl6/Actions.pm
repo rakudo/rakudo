@@ -955,8 +955,11 @@ class Perl6::Actions is HLL::Actions {
             for @params {
                 if $_<variable_name> {
                     my $past := PAST::Var.new( :name($_<variable_name>) );
-                    $list.push(declare_variable($/, $past, $_<sigil>,
-                        $_<twigil>, $_<desigilname>, []));
+                    $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
+                        $_<desigilname>, []);
+                    unless $past.isa(PAST::Op) && $past.pasttype eq 'null' {
+                        $list.push($past);
+                    }
                 }
                 else {
                     $list.push($*ST.build_container_past(

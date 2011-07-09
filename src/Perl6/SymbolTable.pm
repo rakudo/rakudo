@@ -626,6 +626,23 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         )));
     }
     
+    # Derives a proto to get a dispatch.
+    method derive_dispatcher($proto) {
+        # Immediately do so and add to SC.
+        my $derived := $proto.derive_dispatcher();
+        my $slot    := self.add_object($derived);
+        
+        # Add deserialization action.
+        my $des := PAST::Op.new(
+            :pasttype('callmethod'), :name('derive_dispatcher'),
+            self.get_object_sc_ref_past($proto));
+        self.add_event(:deserialize_past(
+            self.set_slot_past($slot, self.set_cur_sc($des))
+        ));
+        
+        return $derived;
+    }
+    
     # Creates a new container descriptor and adds it to the SC.
     method create_container_descriptor($of, $rw, $name) {
         # Create descriptor object now.

@@ -1138,16 +1138,21 @@ class Perl6::Actions is HLL::Actions {
                 }
                 else {
                     # None; search outer scopes.
+                    my $new_proto;
                     try {
                         $proto := $*ST.find_symbol([$name]);
                     }
                     if $proto {
                         # Found in outer scope. Need to derive.
-                        $/.CURSOR.panic("proto derivation NYI");
+                        $new_proto := $*ST.derive_dispatcher($proto);
                     }
                     else {
                         $/.CURSOR.panic("proto auto-gen NYI");
                     }
+                    
+                    # Install in current scope.
+                    $*ST.install_lexical_symbol($outer, $name, $new_proto);
+                    $proto := $new_proto;
                 }
                 
                 # Ensure it's actually a dispatcher.

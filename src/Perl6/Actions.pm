@@ -1307,63 +1307,6 @@ class Perl6::Actions is HLL::Actions {
         make $BLOCK;
     }
 
-    sub install_method($/, $code, $name, %table) {
-        my $installed;
-        
-        # Create method table entry if we need one.
-        unless %table{$name} { my %tmp; %table{$name} := %tmp; }
-
-        # If it's an only and there's already a symbol, problem.
-        if $*MULTINESS eq 'only' && %table{$name} {
-            $/.CURSOR.panic('Cannot declare only method ' ~ $name ~
-                ' when another method with this name was already declared');
-        }
-        elsif $*MULTINESS || %table{$name}<multis> {
-            # If no multi declarator and no proto, error.
-            if !$*MULTINESS && !%table{$name}<proto> {
-                $/.CURSOR.panic('Cannot re-declare method ' ~ $name ~ ' without declaring it multi');
-            }
-
-            # If it's a proto, stash it away in the symbol entry.
-            if $*MULTINESS eq 'proto' { %table{$name}<proto> := $code; }
-
-            # Create multi container if we don't have one; otherwise, just push 
-            # this candidate onto it.
-            if %table{$name}<multis> {
-                %table{$name}<multis>.push($code);
-            }
-            else {
-                $code := PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('set_candidates'),
-                    PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
-                    $code
-                );
-                %table{$name}<code_ref> := %table{$name}<multis> := $installed := $code;
-            }
-        }
-        else {
-            %table{$name}<code_ref> := $installed := $code;
-        }
-
-        # If we did install something (we maybe didn't need to if this is a multi),
-        # we may need to also pop it in other places.
-        if $installed {
-            if $*SCOPE eq 'my' {
-                $*ST.cur_lexpad()[0].push(PAST::Var.new( :name('&' ~ $name), :isdecl(1),
-                        :viviself($installed), :scope('lexical_6model') ));
-                $*ST.cur_lexpad().symbol($name, :scope('lexical_6model') );
-            }
-            elsif $*SCOPE eq 'our' {
-                @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                    :pasttype('bind_6model'),
-                    PAST::Var.new( :name('&' ~ $name), :scope('package') ),
-                    $installed
-                ));
-            }
-        }
-    }
-
     our %REGEX_MODIFIERS;
     method regex_declarator:sym<regex>($/, $key?) {
         if ($key) {

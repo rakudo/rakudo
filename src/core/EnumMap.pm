@@ -34,7 +34,7 @@ my class EnumMap does Associative {
         }
     }
 
-    method at_key($key is copy) {
+    method at_key($key is copy) is rw {
         $key = $key.Str;
         self.exists($key)
             ?? nqp::atkey($!storage, nqp::unbox_s($key))

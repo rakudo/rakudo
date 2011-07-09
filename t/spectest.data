@@ -79,7 +79,7 @@ S02-magicals/dollar-underscore.t
 # S02-names_and_variables/perl.t            # need regexes   # icu
 # S02-names_and_variables/list_array_perl.t
 # S02-names_and_variables/signature.t
-# S02-names_and_variables/variables-and-packages.t
+S02-names_and_variables/variables-and-packages.t
 # S02-names_and_variables/varnames.t        # need binding of $/
 S02-names/identifier.t
 # S02-names/our.t
@@ -104,7 +104,7 @@ S03-metaops/eager-hyper.t
 S03-metaops/not.t
 # S03-metaops/reduce.t
 S03-metaops/reverse.t
-# S03-metaops/zip.t
+S03-metaops/zip.t
 # S03-operators/also.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t

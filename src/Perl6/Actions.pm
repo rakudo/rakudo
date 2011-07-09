@@ -3520,11 +3520,18 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub wrap_return_handler($past) {
-        PAST::Stmts.new( :signature('0Pv'),
-            PAST::Op.new(:pasttype<lexotic>, :name<RETURN>, $past),
-            PAST::Op.new(:pasttype<bind_6model>,
-                PAST::Var.new(:name<RETURN>, :scope<lexical>),
-                PAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+        PAST::Op.new(
+            :pirop('perl6_type_check_return_value 0P'),
+            PAST::Stmts.new( :signature('0Pv'),
+                PAST::Op.new(:pasttype<lexotic>, :name<RETURN>,
+                    # If we fall off the bottom, decontainerize if
+                    # rw not set.
+                    PAST::Op.new( :pirop('perl6_decontainerize_return_value PP'), $past )
+                ),
+                PAST::Op.new(:pasttype<bind_6model>,
+                    PAST::Var.new(:name<RETURN>, :scope<lexical>),
+                    PAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+            )
         )
     }
     

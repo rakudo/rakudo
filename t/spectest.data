@@ -91,8 +91,8 @@ S02-whitespace_and_comments/minimal-whitespace.t
 # S02-whitespace_and_comments/one-pass-parsing.t # fails the 1 test
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
-# S02-whitespace_and_comments/unicode-whitespace.t # needs proto and dispatch auto-generation for multis
-# S02-whitespace_and_comments/unspace.t # needs proto and dispatch auto-generation for multis
+S02-whitespace_and_comments/unicode-whitespace.t
+S02-whitespace_and_comments/unspace.t
 S03-feeds/basic.t
 S03-junctions/associative.t
 # S03-junctions/autothreading.t             # need regexes
@@ -157,7 +157,7 @@ S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
 # S03-operators/ternary.t # err: Unable to parse blockoid
 # S03-operators/so.t # err: Method 'so' not found for invocant of class 'Bool'
-# S03-operators/value_equivalence.t # err: Nominal type check failed for parameter '$a'; expected Any but got Mu instead
+S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 # S03-sequence/arity-2-or-more.t # hangs
 S03-sequence/basic.t
@@ -499,7 +499,7 @@ S32-list/create.t
 # S32-list/first.t
 # S32-list/grep.t
 S32-list/join.t
-# S32-list/map_function_return_values.t
+S32-list/map_function_return_values.t
 # S32-list/map.t
 # S32-list/minmax.t
 S32-list/pick.t
@@ -587,7 +587,7 @@ S32-trig/simple.t
 # integration/99problems-61-to-70.t
 # integration/advent2009-day01.t
 # integration/advent2009-day02.t
-# integration/advent2009-day03.t
+integration/advent2009-day03.t
 integration/advent2009-day04.t
 # integration/advent2009-day05.t
 # integration/advent2009-day06.t

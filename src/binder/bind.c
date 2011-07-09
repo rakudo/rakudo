@@ -16,6 +16,7 @@ Copyright (C) 2009-2011, The Perl Foundation.
 
 /* Cache of Parrot type IDs and some strings. */
 static INTVAL smo_id            = 0;
+static INTVAL p6l_id            = 0;
 static STRING *ACCEPTS          = NULL;
 static STRING *HOW              = NULL;
 static STRING *DO_str           = NULL;
@@ -61,6 +62,7 @@ static void setup_binder_statics(PARROT_INTERP) {
     NAMED_str        = Parrot_str_new_constant(interp, "named");
 
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
+    p6l_id = pmc_type(interp, Parrot_str_new(interp, "Perl6LexPad", 0));
 }
 
 
@@ -610,7 +612,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
         else if (param->flags & SIG_ELEM_SLURPY_NAMED) {
             /* Can cheat a bit if it's the default method %_.
              * We give the hash to the lexpad. */
-            if (param->flags & SIG_ELEM_METHOD_SLURPY_NAMED) {
+            if (param->flags & SIG_ELEM_METHOD_SLURPY_NAMED && lexpad->vtable->base_type == p6l_id) {
                 SETATTR_Perl6LexPad_default_named_slurpy(interp, lexpad, named_args_copy);
                 PARROT_GC_WRITE_BARRIER(interp, lexpad);
             }

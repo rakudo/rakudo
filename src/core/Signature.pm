@@ -54,4 +54,6 @@ my class Signature {
         # Closer.
         $perl ~ ')'
     }
+    
+    method returns() { $!returns }
 }

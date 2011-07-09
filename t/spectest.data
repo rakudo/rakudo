@@ -170,16 +170,16 @@ S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
 S03-smartmatch/any-hash-pair.t
-# S03-smartmatch/any-hash-slice.t
-# S03-smartmatch/any-method.t
+# S03-smartmatch/any-hash-slice.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+# S03-smartmatch/any-method.t # erro: No applicable candidates found to dispatch to for 'Numeric'
 S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
 S03-smartmatch/any-sub.t
 S03-smartmatch/any-type.t
-# S03-smartmatch/array-array.t
-# S03-smartmatch/array-hash.t
-# S03-smartmatch/capture-signature.t
+# S03-smartmatch/array-array.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+# S03-smartmatch/array-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+# S03-smartmatch/capture-signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 # S03-smartmatch/disorganized.t
 # S03-smartmatch/hash-hash.t
 # S03-smartmatch/regex-hash.t

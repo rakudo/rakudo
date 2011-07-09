@@ -359,63 +359,63 @@ S12-attributes/inheritance.t
 # S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
 # S12-attributes/mutators.t  # we no longer get away with missing rw and Proxy; some bogus passes anyway
 S12-attributes/recursive.t
-# S12-attributes/undeclared.t
+# S12-attributes/undeclared.t # err: Attribute $!d not declared in class D
 S12-class/anonymous.t
-# S12-class/augment-supersede.t
+# S12-class/augment-supersede.t # err: Illegal redeclaration of class
 S12-class/attributes.t
 S12-class/basic.t
 S12-class/declaration-order.t
-# S12-class/extending-arrays.t
+# S12-class/extending-arrays.t # err: Cannot use augment scope with class
 S12-class/inheritance-class-methods.t
-# S12-class/inheritance.t
-# S12-class/instantiate.t
-# S12-class/interface-consistency.t
+# S12-class/inheritance.t # err: Could not locate compile-time value for symbol CLASS
+# S12-class/instantiate.t # err: too many positional arguments: 3 passed, 1 expected
+# S12-class/interface-consistency.t # err: too many positional arguments: 3 passed, 1 expected
 S12-class/lexical.t
-# S12-class/namespaced.t
-# S12-class/open.t
-# S12-class/parent_attributes.t
-# S12-class/rw.t
+# S12-class/namespaced.t # err: Method 'new_type' not found for invocant of class 'Undef'
+# S12-class/open.t # err: Illegal redeclaration of class
+# S12-class/parent_attributes.t # err: Method 'at_key' not found for invocant of class 'Foo'
+# S12-class/rw.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S12-class/self-inheritance.t
-# S12-class/stubs.t
+# S12-class/stubs.t # needs use scoped variables
 # S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
-# S12-enums/anonymous.t
-# S12-enums/as-role.t
-# S12-enums/basic.t
-# S12-enums/thorough.t
-# S12-introspection/attributes.t
-# S12-introspection/can.t
-# S12-introspection/meta-class.t
-# S12-introspection/methods.t
-# S12-introspection/parents.t
-# S12-introspection/roles.t
-# S12-introspection/walk.t
+# S12-enums/anonymous.t # needs enums
+# S12-enums/as-role.t # needs enums
+# S12-enums/basic.t # needs enums
+# S12-enums/thorough.t # needs enums
+# S12-introspection/attributes.t # err: Can not get non-existant attribute '$!name' on class 'Attribute'
+# S12-introspection/can.t # err: Method 'can' not found for invocant of class 'Str'
+# S12-introspection/meta-class.t # err: Method 'can' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
+# S12-introspection/methods.t # needs proto generation
+# S12-introspection/parents.t # err: too many named arguments: 1 passed, 0 used
+# S12-introspection/roles.t # err: Method 'roles' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
+# S12-introspection/walk.t # err: ResizablePMCArray: Can't shift from an empty array!
 S12-methods/attribute-params.t
-# S12-methods/calling_sets.t
+# S12-methods/calling_sets.t # needs proto generation
 S12-methods/calling_syntax.t
-# S12-methods/chaining.t
+# S12-methods/chaining.t # needs chaining reduce
 S12-methods/class-and-instance.t
-# S12-methods/default-trait.t
-# S12-methods/defer-call.t
-# S12-methods/defer-next.t
+# S12-methods/default-trait.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
+# S12-methods/defer-call.t # needs proto generation
+# S12-methods/defer-next.t # needs proto generation
 S12-methods/how.t
 S12-methods/indirect_notation.t
-# S12-methods/instance.t
-# S12-methods/lastcall.t
-S12-methods/method-vs-sub.t
-# S12-methods/multi.t
-# S12-methods/parallel-dispatch.t
-# S12-methods/private.t
+# S12-methods/instance.t # err: Method '!something' not found for invocant of class 'PrivVsAttr'
+# S12-methods/lastcall.t # err: Could not find a proto for multi 'doit' in package 'BazLastCallNext'
+S12-methods/method-vs-sub.t 
+# S12-methods/multi.t # needs proto generation
+# S12-methods/parallel-dispatch.t # needs proto generation
+# S12-methods/private.t # err: Method '!private' not found for invocant of class 'A'
 S12-methods/submethods.t
 S12-methods/syntax.t
 S12-methods/topic.t
 S12-methods/typed-attributes.t
-# S12-methods/what.t
-# S12-subset/multi-dispatch.t
-# S12-subset/subtypes.t
+# S12-methods/what.t # err: too many positional arguments: 3 passed, 1 expected
+# S12-subset/multi-dispatch. # needs proto and dispatch auto-generation for multist
+# S12-subset/subtypes.t # needs proto and dispatch auto-generation for multis
 S13-type-casting/methods.t
 # S13-overloading/typecasting-long.t
 # S13-overloading/metaoperators.t

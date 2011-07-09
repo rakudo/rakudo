@@ -377,7 +377,7 @@ S12-class/lexical.t
 # S12-class/rw.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S12-class/self-inheritance.t
 # S12-class/stubs.t # needs use scoped variables
-# S12-construction/autopairs.t
+S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t

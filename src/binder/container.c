@@ -54,6 +54,7 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
     /* If it's a scalar container, optimized path. */
     if (STABLE(cont)->WHAT == scalar_type) {
         Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(cont);
+        PMC *value_decont = Rakudo_cont_decontainerize(interp, value);
         if (rw_check) {
             INTVAL rw = 0;
             if (!PMC_IS_NULL(scalar->descriptor))
@@ -67,11 +68,11 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
             INTVAL ok = 0;
             if (!PMC_IS_NULL(scalar->descriptor)) {
                 Rakudo_ContainerDescriptor *desc = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor));
-                ok = STABLE(value)->type_check(interp, value, desc->of);
+                ok = STABLE(value_decont)->type_check(interp, value_decont, desc->of);
                 if (!ok) {
                     Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                         "Type check failed in assignment to '%S'; expected '%S' but got '%S'",
-                        desc->name, typename(interp, desc->of), typename(interp, value));
+                        desc->name, typename(interp, desc->of), typename(interp, value_decont));
                 }
             }
             else {
@@ -87,7 +88,7 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
         }
         
         /* If we get here, all is fine; store the value. */
-        scalar->value = Rakudo_cont_decontainerize(interp, value);
+        scalar->value = value_decont;
         PARROT_GC_WRITE_BARRIER(interp, cont);
     }
     

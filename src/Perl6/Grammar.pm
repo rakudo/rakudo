@@ -178,6 +178,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
+        :my $*METHODTYPE;                          # the current type of method we're in, if any
         
         # Extras.
         :my %*METAOPGEN;                           # hash of generated metaops
@@ -1110,6 +1111,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule routine_def($d) {
         :my $*IN_DECL := $d;
+        :my $*METHODTYPE;
         <deflongname>?
         <.newpad>
         [ '(' <multisig> ')' ]?

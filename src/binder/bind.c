@@ -7,6 +7,7 @@ Copyright (C) 2009-2011, The Perl Foundation.
 #include "parrot/parrot.h"
 #include "parrot/extend.h"
 #include "pmc_callcontext.h"
+#include "../pmc/pmc_perl6lexpad.h"
 #include "bind.h"
 #include "container.h"
 #include "types.h"
@@ -607,17 +608,25 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
 
         /* Could it be a named slurpy? */
         else if (param->flags & SIG_ELEM_SLURPY_NAMED) {
-            /* We'll either take the current named arguments copy hash which
-             * will by definition contain all unbound named parameters and use
-             * that, or just create an empty one. */
-            PMC *slurpy = PMC_IS_NULL(named_args_copy) ?
-                    pmc_new(interp, enum_class_Hash) :
-                    named_args_copy;
-            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                    Rakudo_binding_create_hash(interp, slurpy), no_nom_type_check, error);
-            if (bind_fail)
-                return bind_fail;
-
+            /* Can cheat a bit if it's the default method %_.
+             * We give the hash to the lexpad. */
+            if (param->flags & SIG_ELEM_METHOD_SLURPY_NAMED) {
+                SETATTR_Perl6LexPad_default_named_slurpy(interp, lexpad, named_args_copy);
+                PARROT_GC_WRITE_BARRIER(interp, lexpad);
+            }
+            else {
+                /* We'll either take the current named arguments copy hash which
+                 * will by definition contain all unbound named parameters and use
+                 * that, or just create an empty one. */
+                PMC *slurpy = PMC_IS_NULL(named_args_copy) ?
+                        pmc_new(interp, enum_class_Hash) :
+                        named_args_copy;
+                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
+                        Rakudo_binding_create_hash(interp, slurpy), no_nom_type_check, error);
+                if (bind_fail)
+                    return bind_fail;
+            }
+            
             /* Nullify named arguments hash now we've consumed it, to mark all
              * is well. */
             named_args_copy = PMCNULL;

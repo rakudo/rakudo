@@ -834,7 +834,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         elsif $name eq '%_' {
-            unless $*ST.nearest_signatured_block_declares('%_') {
+            unless $*ST.nearest_signatured_block_declares('%_') || $*METHODTYPE {
                 $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1));
             }
         }
@@ -1189,7 +1189,7 @@ class Perl6::Actions is HLL::Actions {
         }
         $past.name(~$<longname>);
         
-        # Get signature and ensure it has an invocant.
+        # Get signature and ensure it has an invocant and *%_.
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
         }
@@ -1199,6 +1199,15 @@ class Perl6::Actions is HLL::Actions {
                 nominal_type => $*ST.find_symbol([$<longname> ?? '$?CLASS' !! 'Mu']),
                 is_invocant => 1,
                 is_multi_invocant => 1
+            ));
+        }
+        unless @params[+@params - 1]<named_slurpy> {
+            @params.push(hash(
+                variable_name => '%_',
+                nominal_type => $*ST.find_symbol(['Mu']),
+                named_slurpy => 1,
+                is_multi_invocant => 1,
+                is_method_named_slurpy => 1
             ));
         }
         set_default_parameter_type(@params, 'Any');

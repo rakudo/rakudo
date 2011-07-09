@@ -8,6 +8,8 @@ static PMC *error_cd = NULL;
 static PMC *match_cd = NULL;
 static PMC *Scalar   = NULL;
 static PMC *Any      = NULL;
+static PMC *EnumMap  = NULL;
+static PMC *_Hash    = NULL;
 
 /* Creates a fresh scalar container with the specified descriptor. */
 static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
@@ -153,11 +155,13 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE void mark() {
-        PMC *lexinfo, *ctx;
+        PMC *lexinfo, *ctx, *default_named_slurpy;
         GET_ATTR_lexinfo(INTERP, SELF, lexinfo);
         GET_ATTR_ctx(INTERP, SELF, ctx);
+        GET_ATTR_default_named_slurpy(INTERP, SELF, default_named_slurpy);
         Parrot_gc_mark_PMC_alive(INTERP, lexinfo);
         Parrot_gc_mark_PMC_alive(INTERP, ctx);
+        Parrot_gc_mark_PMC_alive(INTERP, default_named_slurpy);
     }
 
     VTABLE void set_pointer(void *ctx) {
@@ -245,6 +249,13 @@ Return the LexInfo PMC, if any or a Null PMC.
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$/"))) {
                 result = fresh_magicals ? fresh_scalar(interp, match_cd)
                                         : steal_outer(interp, ctx, name);
+            }
+            else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "%_"))) {
+                PMC *storage;
+                GET_ATTR_default_named_slurpy(INTERP, SELF, storage);
+                result = REPR(_Hash)->instance_of(interp, _Hash);
+                if (!PMC_IS_NULL(storage))
+                    VTABLE_set_attr_keyed(interp, result, EnumMap, CONST_STRING(interp, "%_"), storage);
             }
             VTABLE_set_pmc_keyed_str(interp, SELF, name, result);
         }
@@ -399,12 +410,14 @@ Get iterator for declared lexicals.
     }
     
     METHOD configure_magicals(PMC *_topic_cd, PMC *_error_cd, PMC *_match_cd,
-                              PMC *_Scalar, PMC *_Any) {
+                              PMC *_Scalar, PMC *_Any, PMC *_EnumMap, PMC *__Hash) {
         topic_cd = _topic_cd;
         error_cd = _error_cd;
         match_cd = _match_cd;
         Scalar   = _Scalar;
         Any      = _Any;
+        EnumMap  = _EnumMap;
+        _Hash    = __Hash;
     }
 
 }

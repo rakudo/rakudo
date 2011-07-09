@@ -590,7 +590,7 @@ my $error_cd := Perl6::Metamodel::ContainerDescriptor.new(
 my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
     :of(Mu), :rw(1), :name('$/'));
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
-    $topic_cd, $error_cd, $match_cd, Scalar, Any);
+    $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash);
 
 # Build up EXPORT::DEFAULT.
 my module EXPORT {

@@ -3,24 +3,25 @@ use Perl6::ModuleLoader;
 
 # Binder constants.
 # XXX Want constant syntax in NQP really.
-my $SIG_ELEM_BIND_CAPTURE       := 1;
-my $SIG_ELEM_BIND_PRIVATE_ATTR  := 2;
-my $SIG_ELEM_BIND_PUBLIC_ATTR   := 4;
-my $SIG_ELEM_SLURPY_POS         := 8;
-my $SIG_ELEM_SLURPY_NAMED       := 16;
-my $SIG_ELEM_SLURPY_LOL         := 32;
-my $SIG_ELEM_INVOCANT           := 64;
-my $SIG_ELEM_MULTI_INVOCANT     := 128;
-my $SIG_ELEM_IS_RW              := 256;
-my $SIG_ELEM_IS_COPY            := 512;
-my $SIG_ELEM_IS_PARCEL          := 1024;
-my $SIG_ELEM_IS_OPTIONAL        := 2048;
-my $SIG_ELEM_ARRAY_SIGIL        := 4096;
-my $SIG_ELEM_HASH_SIGIL         := 8192;
-my $SIG_ELEM_DEFAULT_FROM_OUTER := 16384;
-my $SIG_ELEM_IS_CAPTURE         := 32768;
-my $SIG_ELEM_UNDEFINED_ONLY     := 65536;
-my $SIG_ELEM_DEFINED_ONLY       := 131072;
+my $SIG_ELEM_BIND_CAPTURE        := 1;
+my $SIG_ELEM_BIND_PRIVATE_ATTR   := 2;
+my $SIG_ELEM_BIND_PUBLIC_ATTR    := 4;
+my $SIG_ELEM_SLURPY_POS          := 8;
+my $SIG_ELEM_SLURPY_NAMED        := 16;
+my $SIG_ELEM_SLURPY_LOL          := 32;
+my $SIG_ELEM_INVOCANT            := 64;
+my $SIG_ELEM_MULTI_INVOCANT      := 128;
+my $SIG_ELEM_IS_RW               := 256;
+my $SIG_ELEM_IS_COPY             := 512;
+my $SIG_ELEM_IS_PARCEL           := 1024;
+my $SIG_ELEM_IS_OPTIONAL         := 2048;
+my $SIG_ELEM_ARRAY_SIGIL         := 4096;
+my $SIG_ELEM_HASH_SIGIL          := 8192;
+my $SIG_ELEM_DEFAULT_FROM_OUTER  := 16384;
+my $SIG_ELEM_IS_CAPTURE          := 32768;
+my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
+my $SIG_ELEM_DEFINED_ONLY        := 131072;
+my $SIG_ELEM_METHOD_SLURPY_NAMED := 262144;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -392,6 +393,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         if %param_info<named_slurpy> {
             $flags := $flags + $SIG_ELEM_SLURPY_NAMED;
+        }
+        if %param_info<is_method_named_slurpy> {
+            $flags := $flags + $SIG_ELEM_METHOD_SLURPY_NAMED;
         }
         if %param_info<pos_lol> {
             $flags := $flags + $SIG_ELEM_SLURPY_LOL;

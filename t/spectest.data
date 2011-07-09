@@ -69,7 +69,7 @@ S02-literals/underscores.t
 # S02-magicals/args.t   # err: Could not find sub &DYNAMIC
 # S02-magicals/config.t # err: Dynamic variable $*OS not found
 # S02-magicals/dollar_bang.t # err: too many positional arguments: 3 passed, 1 expected
-# S02-magicals/dollar-underscore.t
+S02-magicals/dollar-underscore.t
 # S02-magicals/env.t
 # S02-magicals/pid.t
 # S02-magicals/progname.t

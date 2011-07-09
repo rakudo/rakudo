@@ -130,9 +130,9 @@ S03-operators/comparison-simple.t
 S03-operators/context-forcers.t
 # S03-operators/context.t                   # need regexes
 S03-operators/equality.t
-# S03-operators/eqv.t
+S03-operators/eqv.t
 # S03-operators/identity.t                  # need array element binding
-# S03-operators/increment.t
+S03-operators/increment.t
 # S03-operators/inplace.t
 # S03-operators/is-divisible-by.t
 S03-operators/list-quote-junction.t

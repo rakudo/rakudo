@@ -1,7 +1,7 @@
 my class Hash {
     # Has attributes and parent EnumMap declared in BOOTSTRAP
     
-    method at_key($key is copy) {
+    method at_key($key is copy) is rw {
         $key = $key.Str;
         self.exists($key)
           ?? pir::find_method__PPs(EnumMap, 'at_key')(self, $key)
@@ -15,7 +15,7 @@ my class Hash {
           !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
     }
 
-    method STORE_AT_KEY(Str \$key, Mu $x is copy) {
+    method STORE_AT_KEY(Str \$key, Mu $x is copy) is rw {
         pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
     }
 

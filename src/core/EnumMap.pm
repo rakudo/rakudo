@@ -41,11 +41,10 @@ my class EnumMap does Associative {
             !! Any
     }
 
-    method STORE_AT_KEY(Str \$key, Mu \$value) {
+    method STORE_AT_KEY(Str \$key, Mu \$value) is rw {
         pir::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
-        pir::set__2QsP($!storage, nqp::unbox_s($key), $value);
-        $value # XXX PAST bug, it seems; the 2 in the above sig isn't followed
+        pir::set__1QsP($!storage, nqp::unbox_s($key), $value)
     }
     
     method ARGLIST_FLATTENABLE() { $!storage }

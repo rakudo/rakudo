@@ -12,7 +12,7 @@ my class KeyHash is Iterable does Associative { }
 my class Capture { }
 my class Seq is List does Positional { }
 
-sub DYNAMIC(\$name) { 
+sub DYNAMIC(\$name) is rw { 
     my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s($name));
     if nqp::isnull($x) {
         my $pkgname = nqp::p6box_s(pir::replace__Ssiis(nqp::unbox_s($name), 1, 1, ''));

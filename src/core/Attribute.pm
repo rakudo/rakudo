@@ -9,7 +9,7 @@ my class Attribute {
                 my $dcpkg := pir::perl6_decontainerize__PP($package);
                 my $meth  := self.rw
                     ??
-                    method (Mu $self:) {
+                    method (Mu $self:) is rw {
                         nqp::getattr(
                             pir::perl6_decontainerize__PP($self),
                             $dcpkg,
@@ -17,11 +17,10 @@ my class Attribute {
                     }
                     !!
                     method (Mu $self:) {
-                        pir::perl6_decontainerize__PP(
-                            nqp::getattr(
-                                pir::perl6_decontainerize__PP($self),
-                                $dcpkg,
-                                nqp::unbox_s($name)))
+                        nqp::getattr(
+                            pir::perl6_decontainerize__PP($self),
+                            $dcpkg,
+                            nqp::unbox_s($name))
                     };
                 $package.HOW.add_method($package, $meth_name, $meth);
             }

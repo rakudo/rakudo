@@ -3,7 +3,7 @@
 ##   generic string operators are in Stringy.pm
 ##   Int/Rat/Num operators are in {Int|Rat|Num}.pm
 
-sub infix:<=>(Mu \$a, Mu \$b) {
+sub infix:<=>(Mu \$a, Mu \$b) is rw {
     pir::perl6_container_store__0PP($a, $b)
 }
 

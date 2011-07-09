@@ -1131,13 +1131,29 @@ class Perl6::Actions is HLL::Actions {
             # XXX Also need to auto-multi things with a proto in scope.
             my $name := '&' ~ ~$<deflongname>[0].ast;
             if $*MULTINESS eq 'multi' {
-                # Locate the proto - or what we hope will be it.
-                my %proto_sym := $outer.symbol($name);
-                unless %proto_sym {
-                    $/.CURSOR.panic("proto and dispatch auto-generation for multis not yet implemented");
+                # Do we have a proto in the current scope?
+                my $proto;
+                if $outer.symbol($name) {
+                    $proto := $outer.symbol($name)<value>;
                 }
-                my $proto := %proto_sym<value>;
-                # XXX ensure it's actuall a proto or dispatch...
+                else {
+                    # None; search outer scopes.
+                    try {
+                        $proto := $*ST.find_symbol([$name]);
+                    }
+                    if $proto {
+                        # Found in outer scope. Need to derive.
+                        $/.CURSOR.panic("proto derivation NYI");
+                    }
+                    else {
+                        $/.CURSOR.panic("proto auto-gen NYI");
+                    }
+                }
+                
+                # Ensure it's actually a dispatcher.
+                unless $proto.is_dispatcher {
+                    $/.CURSOR.panic("Cannot declare a multi when an only is in scope");
+                }
                 
                 # Install the candidate.
                 $*ST.add_dispatchee_to_proto($proto, $code);

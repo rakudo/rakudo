@@ -593,8 +593,7 @@ is just $2.
 */
 inline op perl6_var(out PMC, in PMC) :base_core {
     if ($2->vtable->base_type == smo_id && STABLE($2)->container_spec != NULL) {
-        $1 = Rakudo_cont_scalar_from_descriptor(interp, PMCNULL);
-        Rakudo_cont_store(interp, $1, $2, 0, 0);
+        $1 = Rakudo_cont_scalar_with_value_no_descriptor(interp, $2);
     }
     else {
         $1 = $2;

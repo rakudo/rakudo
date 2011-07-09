@@ -663,6 +663,57 @@ inline op perl6_code_object_from_parrot_sub(out PMC, in PMC) :base_core {
     }
 }
 
+/*
+
+=item perl6_decontainerize_return_value()
+
+If the sub is not rw, decontainerizes the return value.
+
+=cut
+
+*/
+inline op perl6_decontainerize_return_value(out PMC, in PMC) :base_core {
+    if ($2->vtable->base_type == smo_id) {
+        PMC *cur_ctx     = CURRENT_CONTEXT(interp);
+        PMC *parrot_sub  = Parrot_pcc_get_sub(interp, cur_ctx);
+        PMC *p6sub;
+        Rakudo_Code *code;
+        GETATTR_Sub_multi_signature(interp, parrot_sub, p6sub);
+        code = (Rakudo_Code *)PMC_data(p6sub);
+        $1 = code->rw ? $2 : Rakudo_cont_decontainerize(interp, $2);
+    }
+    else {
+        $1 = $2;
+    }
+}
+
+/*
+
+=item perl6_type_check_return_value()
+
+Gets the return type for a sub and type checks it.
+
+=cut
+
+*/
+inline op perl6_type_check_return_value(in PMC) :base_core {
+    PMC *cur_ctx     = CURRENT_CONTEXT(interp);
+    PMC *parrot_sub  = Parrot_pcc_get_sub(interp, cur_ctx);
+    PMC *p6sub;
+    PMC *sig_pmc;
+    PMC *rtype;
+    GETATTR_Sub_multi_signature(interp, parrot_sub, p6sub);
+    sig_pmc = ((Rakudo_Code *)PMC_data(p6sub))->signature;
+    rtype = ((Rakudo_Signature *)PMC_data(sig_pmc))->rtype;
+    if (!PMC_IS_NULL(rtype)) {
+        PMC *decont_value = Rakudo_cont_decontainerize(interp, $1);
+        if (!STABLE(decont_value)->type_check(interp, decont_value, rtype)) {
+            /* XXX Awesomize. */
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "Type check failed for return value");
+        }
+    }
+}
 
 /*
 

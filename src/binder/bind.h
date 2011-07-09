@@ -52,7 +52,7 @@ typedef struct {
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
     PMC    *spill;              /* Attribute spill storage. */
     PMC    *params;             /* Array of objects that are all parameters. */
-    PMC    *returns;            /* Return type. */
+    PMC    *rtype;              /* Return type. */
 } Rakudo_Signature;
 
 /* Flags we can set on the Context PMC.

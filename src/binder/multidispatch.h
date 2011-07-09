@@ -12,6 +12,7 @@ typedef struct {
     PMC    *signature;          /* Signature object. */
     PMC    *dispatchees;        /* List of dispatchees, if any. */
     PMC    *dispatcher_cache;   /* Holder for any dispatcher cache. */
+    INTVAL *rw;                 /* Is it rw? */
 } Rakudo_Code;
 
 /* Represents a candidate. We extract various bits of information about it when

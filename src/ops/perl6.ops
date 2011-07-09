@@ -673,14 +673,15 @@ If the sub is not rw, decontainerizes the return value.
 
 */
 inline op perl6_decontainerize_return_value(out PMC, in PMC) :base_core {
-    if ($2->vtable->base_type == smo_id) {
+    if ($2->vtable->base_type == smo_id && Rakudo_cont_is_rw_scalar(interp, $2)) {
         PMC *cur_ctx     = CURRENT_CONTEXT(interp);
         PMC *parrot_sub  = Parrot_pcc_get_sub(interp, cur_ctx);
         PMC *p6sub;
         Rakudo_Code *code;
         GETATTR_Sub_multi_signature(interp, parrot_sub, p6sub);
         code = (Rakudo_Code *)PMC_data(p6sub);
-        $1 = code->rw ? $2 : Rakudo_cont_decontainerize(interp, $2);
+        $1 = code->rw ? $2 : Rakudo_cont_scalar_with_value_no_descriptor(interp, 
+            Rakudo_cont_decontainerize(interp, $2));
     }
     else {
         $1 = $2;

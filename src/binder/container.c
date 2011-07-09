@@ -110,11 +110,30 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
     }
 }
 
+/* Checks if the thing we have is a rw scalar. */
+INTVAL Rakudo_cont_is_rw_scalar(PARROT_INTERP, PMC *check) {
+    if (STABLE(check)->WHAT == scalar_type) {
+        Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(check);
+        if (!PMC_IS_NULL(scalar->descriptor))
+            return ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor))->rw;
+    }
+    return 0;
+}
+
 /* Creates a new Scalar container with the associated container
  * descriptor. */
 PMC * Rakudo_cont_scalar_from_descriptor(PARROT_INTERP, PMC *descriptor) {
     PMC *new_scalar = REPR(scalar_type)->instance_of(interp, scalar_type);
     ((Rakudo_Scalar *)PMC_data(new_scalar))->descriptor = descriptor;
+    PARROT_GC_WRITE_BARRIER(interp, new_scalar);
+    return new_scalar;
+}
+
+/* Creates a new Scalar container with the associated container
+ * descriptor. */
+PMC * Rakudo_cont_scalar_with_value_no_descriptor(PARROT_INTERP, PMC *value) {
+    PMC *new_scalar = REPR(scalar_type)->instance_of(interp, scalar_type);
+    ((Rakudo_Scalar *)PMC_data(new_scalar))->value = value;
     PARROT_GC_WRITE_BARRIER(interp, new_scalar);
     return new_scalar;
 }

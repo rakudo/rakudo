@@ -354,9 +354,9 @@ S09-autovivification/autoincrement.t
 # S11-modules/require.t # err: Method 'push' not found for invocant of class 'Failure'
 # S12-attributes/class.t # err: Method 'bar' not found for invocant of class 'Foo'
 S12-attributes/clone.t
-# S12-attributes/delegation.t
+# S12-attributes/delegation.t # err: too many positional arguments: 3 passed, 1 expected
 S12-attributes/inheritance.t
-# S12-attributes/instance.t
+# S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
 # S12-attributes/mutators.t  # we no longer get away with missing rw and Proxy; some bogus passes anyway
 # S12-attributes/recursive.t
 # S12-attributes/undeclared.t

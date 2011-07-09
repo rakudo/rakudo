@@ -179,7 +179,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         :my $*METHODTYPE;                          # the current type of method we're in, if any
-        
+        :my $*PKGDECL;                             # what type of package we're in, if any
+
         # Extras.
         :my %*METAOPGEN;                           # hash of generated metaops
         :my $*IMPLICIT;                            # whether we allow an implicit param

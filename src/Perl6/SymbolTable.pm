@@ -508,6 +508,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Create code object now.
         my $type_obj  := self.find_symbol([$type]);
+        my $code_type := self.find_symbol(['Code']);
         my $code      := pir::repr_instance_of__PP($type_obj);
         my $slot      := self.add_object($code);
         
@@ -523,6 +524,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 $precomp := self.compile_in_context($code_past);
                 
                 # Fix up Code object associations (including nested blocks).
+                # We un-stub any code objects for already-compiled inner blocks
+                # to avoid wasting re-compiling them, and also to help make
+                # parametric role outer chain work out.
                 my $num_subs := nqp::elems($precomp);
                 my $i := 0;
                 while $i < $num_subs {
@@ -530,6 +534,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     if pir::exists(%!sub_id_to_code_object, $subid) {
                         pir::perl6_associate_sub_code_object__vPP($precomp[$i],
                             %!sub_id_to_code_object{$subid});
+                        nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
                     }
                     $i := $i + 1;
                 }
@@ -537,35 +542,37 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $precomp(|@pos, |%named);
         };
         pir::set__vPS($stub, $code_past.name);
-        my $code_type := self.find_symbol(['Code']);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
         
-        # Fixup will install the real thing.
-        $fixups.push(PAST::Stmts.new(
-            self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
-            PAST::Op.new(
-                :pirop('perl6_associate_sub_code_object vPP'),
-                PAST::Val.new( :value($code_past) ),
-                self.get_object_sc_ref_past($code)
-            )));
-            
-        # If we clone the stub, then we must remember to do a fixup
-        # of it also.
-        pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
-            self.add_object($clone);
+        # Fixup will install the real thing, unless we're in a role, in
+        # which case pre-comp will have sorted it out.
+        unless $*PKGDECL eq 'role' {
             $fixups.push(PAST::Stmts.new(
-                PAST::Op.new( :pasttype('bind'),
-                    PAST::Var.new( :name('$P0'), :scope('register') ),
-                    PAST::Op.new( :pirop('clone PP'), PAST::Val.new( :value($code_past) ) )
-                ),
-                self.set_attribute($clone, $code_type, '$!do',
-                    PAST::Var.new( :name('$P0'), :scope('register') )),
+                self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
                 PAST::Op.new(
                     :pirop('perl6_associate_sub_code_object vPP'),
-                    PAST::Var.new( :name('$P0'), :scope('register') ),
-                    self.get_object_sc_ref_past($clone)
+                    PAST::Val.new( :value($code_past) ),
+                    self.get_object_sc_ref_past($code)
                 )));
-        });
+            
+            # If we clone the stub, then we must remember to do a fixup
+            # of it also.
+            pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
+                self.add_object($clone);
+                $fixups.push(PAST::Stmts.new(
+                    PAST::Op.new( :pasttype('bind'),
+                        PAST::Var.new( :name('$P0'), :scope('register') ),
+                        PAST::Op.new( :pirop('clone PP'), PAST::Val.new( :value($code_past) ) )
+                    ),
+                    self.set_attribute($clone, $code_type, '$!do',
+                        PAST::Var.new( :name('$P0'), :scope('register') )),
+                    PAST::Op.new(
+                        :pirop('perl6_associate_sub_code_object vPP'),
+                        PAST::Var.new( :name('$P0'), :scope('register') ),
+                        self.get_object_sc_ref_past($clone)
+                    )));
+            });
+        }
         
         # Desserialization should do the actual creation and just put the right
         # code in there in the first place.

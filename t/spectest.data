@@ -358,7 +358,7 @@ S12-attributes/clone.t
 S12-attributes/inheritance.t
 # S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
 # S12-attributes/mutators.t  # we no longer get away with missing rw and Proxy; some bogus passes anyway
-# S12-attributes/recursive.t
+S12-attributes/recursive.t
 # S12-attributes/undeclared.t
 S12-class/anonymous.t
 # S12-class/augment-supersede.t

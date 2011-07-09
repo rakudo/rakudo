@@ -105,7 +105,7 @@ S03-metaops/not.t
 # S03-metaops/reduce.t # err :Contextual $*UNITPAST not found
 S03-metaops/reverse.t
 S03-metaops/zip.t
-# S03-operators/also.t # err: invoke() not implemented in class 'Junction'
+# S03-operators/also.t # err: invoke() not implemented in class 'Junction' 
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 # S03-operators/assign.t                    # bug in list assignment
@@ -146,26 +146,26 @@ S03-operators/numeric-context.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
 S03-operators/range-int.t                       # stress
-# S03-operators/range.t
+# S03-operators/range.t # err: too many positional arguments: 3 passed, 1 expected
 S03-operators/reduce-le1arg.t
 S03-operators/relational.t
-# S03-operators/repeat.t
+# S03-operators/repeat.t # err: Cannot repeat with negative arg
 S03-operators/scalar-assign.t
-# S03-operators/short-circuit.t
+# S03-operators/short-circuit.t # just stops after 28 tests...
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
-# S03-operators/ternary.t
-# S03-operators/so.t
-# S03-operators/value_equivalence.t
+# S03-operators/ternary.t # err: Unable to parse blockoid
+# S03-operators/so.t # err: Method 'so' not found for invocant of class 'Bool'
+# S03-operators/value_equivalence.t # err: Nominal type check failed for parameter '$a'; expected Any but got Mu instead
 S03-sequence/arity0.t
-# S03-sequence/arity-2-or-more.t
+# S03-sequence/arity-2-or-more.t # hangs
 S03-sequence/basic.t
-# S03-sequence/limit-arity-2-or-more.t
-# S03-sequence/nonnumeric.t
-# S03-smartmatch/any-any.t
-# S03-smartmatch/any-array-slice.t
-# S03-smartmatch/any-array.t
+# S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
+# S03-sequence/nonnumeric.t # err: Method 'pred' not found for invocant of class 'Failure'
+# S03-smartmatch/any-any.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+# S03-smartmatch/any-array-slice.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+# S03-smartmatch/any-array.t # err: Could not find a proto for multi 'list' in package 'TestArraySmartmatch'
 S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t

@@ -420,16 +420,16 @@ S13-type-casting/methods.t
 # S13-overloading/typecasting-long.t # err: invoke() not implemented in class 'TypeCastSub'
 # S13-overloading/metaoperators.t # err: Confused
 S13-overloading/operators.t
-# S14-roles/anonymous.t
-# S14-roles/attributes.t
-# S14-roles/basic.t
-# S14-roles/composition.t
-# S14-roles/conflicts.t
+# S14-roles/anonymous.t # Method 'cool' not found for invocant of class 'Int'
+# S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
+# S14-roles/basic.t # err: too many positional arguments: 3 passed, 1 expected
+# S14-roles/composition.t # err: Method 'foo' must be resolved by class 'DD' because it exists in multiple roles
+# S14-roles/conflicts.t # needs Parametric roles
 S14-roles/crony.t
-# S14-roles/instantiation.t
+# S14-roles/instantiation.t # needs Parametric roles
 S14-roles/lexical.t
-# S14-roles/mixin.t
-# S14-roles/namespaced.t
+# S14-roles/mixin.t # err: Could not find sub &infix:<does>
+# S14-roles/namespaced.t 
 # S14-roles/parameter-subtyping.t
 # S14-roles/parameterized-basic.t
 # S14-roles/parameterized-mixin.t

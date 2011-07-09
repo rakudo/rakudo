@@ -197,7 +197,7 @@ S04-declarations/my.t
 # S04-exception-handlers/catch.t # Method 'blocktype' not found for invocant of class 'PAST;Op'
 # S04-exceptions/fail.t  # need use scoped variables
 S04-statement-modifiers/for.t
-S04-statement-modifiers/given.t
+S04-statement-modifiers/given.t 
 S04-statement-modifiers/if.t
 S04-statement-modifiers/unless.t
 S04-statement-modifiers/until.t
@@ -209,114 +209,114 @@ S04-statements/for-scope.t
 # S04-statements/for.t # err: too many positional arguments: 3 passed, 1 expected
 S04-statements/for_with_only_one_item.t
 S04-statements/gather.t
-# S04-statements/given.t
+# S04-statements/given.t # err: too many positional arguments: 3 passed, 1 expected
 S04-statements/if.t
 S04-statements/last.t
 S04-statements/loop.t
-# S04-statements/map-and-sort-in-for.t
+# S04-statements/map-and-sort-in-for.t # err: Could not find sub &sort
 S04-statements/next.t
 S04-statements/no-implicit-block.t
 S04-statements/redo.t
 S04-statements/repeat.t
 S04-statements/return.t
 S04-statements/terminator.t
-# S04-statements/try.t
+# S04-statements/try.t # err: too many positional arguments: 3 passed, 1 expected
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
-# S05-capture/caps.t
-# S05-capture/dot.t
-# S05-capture/named.t
-# S05-capture/subrule.t
-# S05-grammar/action-stubs.t
-# S05-grammar/inheritance.t
-# S05-grammar/methods.t
-# S05-grammar/namespace.t
-# S05-grammar/parse_and_parsefile.t
-# S05-grammar/protoregex.t  # proto token is now {*}, not <...>
-# S05-grammar/protos.t
-# S05-grammar/signatures.t
-# S05-grammar/ws.t
-# S05-interpolation/lexicals.t
-# S05-interpolation/regex-in-variable.t
-# S05-mass/named-chars.t                                     # icu
-# S05-mass/properties-block.t                                # icu
-# S05-mass/properties-derived.t                              # icu
-# S05-mass/properties-general.t                              # icu
-# S05-mass/properties-script.t                               # icu
-# S05-mass/rx.t                                              # long
-# S05-mass/recursive.t
-# S05-mass/stdrules.t
-# S05-match/arrayhash.t
-# S05-match/blocks.t
-# S05-match/capturing-contexts.t
-# S05-match/non-capturing.t
-# S05-match/perl.t
-# S05-match/positions.t
-# S05-metachars/closure.t
-# S05-metachars/line-anchors.t
-# S05-metachars/newline.t
-# S05-metachars/tilde.t
-# S05-metasyntax/angle-brackets.t
-# S05-metasyntax/changed.t
-# S05-metasyntax/charset.t
-# S05-metasyntax/lookaround.t
-# S05-metasyntax/null.t
-# S05-metasyntax/regex.t
-# S05-metasyntax/repeat.t
-# S05-metasyntax/sequential-alternation.t
-# S05-metasyntax/single-quotes.t
-# S05-metasyntax/unknown.t
-# S05-modifier/continue.t
-# S05-modifier/counted-match.t
-# S05-modifier/global.t
-# S05-modifier/ii.t
-# S05-modifier/ignorecase.t                              #icu
-# S05-modifier/overlapping.t
-# S05-modifier/perl5_1.t
-# S05-modifier/perl5_2.t
-# S05-modifier/perl5_7.t
-# S05-modifier/perl5_8.t
-# S05-modifier/pos.t
-# S05-modifier/repetition.t
-# S05-modifier/sigspace.t
-# S05-substitution/match.t
-# S05-substitution/subst.t
-# S05-transliteration/trans.t
-# S05-transliteration/with-closure.t
-# S06-advanced_subroutine_features/callframe.t
+# S05-capture/caps.t # needs regex
+# S05-capture/dot.t # needs regex
+# S05-capture/named.t # needs regex
+# S05-capture/subrule.t # needs regex
+# S05-grammar/action-stubs.t # needs regex
+# S05-grammar/inheritance.t # needs regex
+# S05-grammar/methods.t # needs regex
+# S05-grammar/namespace.t # needs regex
+# S05-grammar/parse_and_parsefile.t # needs regex
+# S05-grammar/protoregex.t  # needs regex
+# S05-grammar/protos.t # needs regex
+# S05-grammar/signatures.t # needs regex
+# S05-grammar/ws.t # needs regex
+# S05-interpolation/lexicals.t # needs regex
+# S05-interpolation/regex-in-variable.t # needs regex
+# S05-mass/named-chars.t # needs regex
+# S05-mass/properties-block.t # needs regex
+# S05-mass/properties-derived.t # needs regex
+# S05-mass/properties-general.t #  needs regex
+# S05-mass/properties-script.t #  needs regex
+# S05-mass/rx.t # needs regex
+# S05-mass/recursive.t # needs regex
+# S05-mass/stdrules.t # needs regex
+# S05-match/arrayhash.t # needs regex
+# S05-match/blocks.t #needs regex
+# S05-match/capturing-contexts.t #needs regex
+# S05-match/non-capturing.t #needs regex
+# S05-match/perl.t #needs regex
+# S05-match/positions.t #needs regex
+# S05-metachars/closure.t #needs regex
+# S05-metachars/line-anchors.t #needs regex
+# S05-metachars/newline.t #needs regex
+# S05-metachars/tilde.t #needs regex
+# S05-metasyntax/angle-brackets.t # needs regex
+# S05-metasyntax/changed.t # needs regex
+# S05-metasyntax/charset.t # needs regex
+# S05-metasyntax/lookaround.t # needs regex
+# S05-metasyntax/null.t # needs regex
+# S05-metasyntax/regex.t # needs regex
+# S05-metasyntax/repeat.t # needs regex
+# S05-metasyntax/sequential-alternation.t # needs regex
+# S05-metasyntax/single-quotes.t # needs regex
+# S05-metasyntax/unknown.t # needs regex
+# S05-modifier/continue.t # needs regex
+# S05-modifier/counted-match.t # needs regex
+# S05-modifier/global.t # needs regex
+# S05-modifier/ii.t # needs regex
+# S05-modifier/ignorecase.t                              #icu # needs regex
+# S05-modifier/overlapping.t # needs regex
+# S05-modifier/perl5_1.t # needs regex
+# S05-modifier/perl5_2.t # needs regex
+# S05-modifier/perl5_7.t # needs regex
+# S05-modifier/perl5_8.t # needs regex
+# S05-modifier/pos.t # needs regex
+# S05-modifier/repetition.t # needs regex
+# S05-modifier/sigspace.t # needs regex
+# S05-substitution/match.t # needs regex
+# S05-substitution/subst.t # needs regex
+# S05-transliteration/trans.t # needs regex
+# S05-transliteration/with-closure.t # needs regex
+# S06-advanced_subroutine_features/callframe.t # err: too many positional arguments: 3 passed, 1 expected
 S06-advanced_subroutine_features/lexical-subs.t
-# S06-advanced_subroutine_features/recurse.t
-# S06-advanced_subroutine_features/return.t
-# S06-advanced_subroutine_features/wrap.t
-# S06-currying/assuming-and-mmd.t
-# S06-currying/named.t
+# S06-advanced_subroutine_features/recurse.t # err: Symbol '&?ROUTINE' not predeclared in fibonacci
+# S06-advanced_subroutine_features/return.t # err: Method 'blocktype' not found for invocant of class 'PAST;Op'
+# S06-advanced_subroutine_features/wrap.t # err: Method 'wrap' not found for invocant of class 'Sub'
+# S06-currying/assuming-and-mmd.t # needs proto and dispatch auto-generation for multis
+# S06-currying/named.t # err: Method 'assuming' not found for invocant of class 'Sub'
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
-# S06-multi/proto.t
-# S06-multi/syntax.t
-# S06-multi/type-based.t
+# S06-multi/proto.t # err: Illegal redeclaration of routine 'bar'
+# S06-multi/syntax. # needs proto and dispatch auto-generation for multist
+# S06-multi/type-based.t # needs proto and dispatch auto-generation for multis
 S06-multi/value-based.t
-# S06-multi/unpackability.t
-# S06-operator-overloading/imported-subs.t
-# S06-operator-overloading/methods.t
-# S06-operator-overloading/sub.t
-# S06-operator-overloading/workout.t
-# S06-other/anon-hashes-vs-blocks.t
-# S06-other/main.t
+# S06-multi/unpackability.t # needs proto and dispatch auto-generation for multis
+# S06-operator-overloading/imported-subs.t # err: Could not find sub &DYNAMIC
+# S06-operator-overloading/methods.t # err: Could not find sub &DYNAMIC
+# S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
+# S06-operator-overloading/workout.t # err: Contextual $*UNITPAST not found
+# S06-other/anon-hashes-vs-blocks.t # err: stops after test # 10
+# S06-other/main.t # err: Cannot assign to a non-container
 S06-other/main-eval.t
-# S06-other/main-usage.t
+# S06-other/main-usage.t # err: Could not find sub &DYNAMIC
 S06-other/misc.t
-# S06-routine-modifiers/scoped-named-subs.t
+# S06-routine-modifiers/scoped-named-subs.t # NYI
 S06-signature/arity.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
-# S06-signature/code.t
+# S06-signature/code.t # need Typed arrays/hashes/callables
 S06-signature/defaults.t
-# S06-signature/errors.t
-# S06-signature/introspection.t
+# S06-signature/errors.t # err: too many positional arguments: 3 passed, 1 expected
+# S06-signature/introspection.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S06-signature/mixed-placeholders.t
-# S06-signature/named-parameters.t
+# S06-signature/named-parameters.t # err: Contextual $*UNITPAST not found
 S06-signature/named-placeholders.t
 S06-signature/optional.t
 S06-signature/passing-arrays.t
@@ -325,34 +325,34 @@ S06-signature/positional-placeholders.t
 S06-signature/positional.t
 S06-signature/scalar-type.t
 S06-signature/slurpy-and-interpolation.t
-# S06-signature/slurpy-params.t
+# S06-signature/slurpy-params.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S06-signature/slurpy-placeholders.t
-# S06-signature/sub-ref.t
-# S06-signature/tree-node-parameters.t
-# S06-signature/type-capture.t
-# S06-signature/types.t
-# S06-signature/unpack-array.t
+# S06-signature/sub-ref.t # err: Not enough positional parameters passed; got 0 but expected 1
+# S06-signature/tree-node-parameters.t # ? runs 0 tests.
+# S06-signature/type-capture.t # err: Cannot call a method on type variable T
+# S06-signature/types.t # err: Malformed block
+# S06-signature/unpack-array.t # ? runs 0 tests.
 S06-signature/unspecified.t
 # S06-traits/as.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
-# S06-traits/misc.t
+# S06-traits/misc.t # err: unable to parse blockoid
 # S07-iterators/range-iterator.t # regressed because conforms to obsolete version of spec
 S09-autovivification/autoincrement.t
-# S09-autovivification/autovivification.t
-# S09-subscript_slice/slice.t
-# S09-typed-arrays/arrays.t
-# S09-typed-arrays/hashes.t
-# S10-packages/basic.t
-# S10-packages/use-with-class.t
-# S11-modules/export.t
-# S11-modules/import.t
-# S11-modules/import-tag.t
-# S11-modules/lexical.t
-# S11-modules/need.t
-# S11-modules/nested.t
-# S11-modules/require.t
-# S12-attributes/class.t
+# S09-autovivification/autovivification.t # err: Cannot assign to a non-container
+# S09-subscript_slice/slice.t # err: Contextual $*UNITPAST not found
+# S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
+# S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
+# S10-packages/basic.t # err: ResizablePMCArray: Can't shift from an empty array!
+# S10-packages/use-with-class.t # err: "load_bytecode" couldn't find file 't/spec/packages/UseTest.pbc'
+# S11-modules/export.t # needs proto generation
+# S11-modules/import.t # err: Could not find sub import
+# S11-modules/import-tag.t # needs arglist case of use
+# S11-modules/lexical.t # err: "load_bytecode" couldn't find file 't/spec/packages/S11-modules/Foo.pbc'
+# S11-modules/need.t # err: Could not find sub need
+# S11-modules/nested.t # err: Could not find sub &DYNAMIC
+# S11-modules/require.t # err: Method 'push' not found for invocant of class 'Failure'
+# S12-attributes/class.t # err: Method 'bar' not found for invocant of class 'Foo'
 # S12-attributes/clone.t
 # S12-attributes/delegation.t
 S12-attributes/inheritance.t

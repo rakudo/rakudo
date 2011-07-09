@@ -36,7 +36,7 @@ class List does Positional {
         nqp::p6parcel($rpa, Any);
     }
 
-    method at_pos($pos is copy) {
+    method at_pos($pos is copy) is rw {
         $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
@@ -201,7 +201,7 @@ class List does Positional {
         $parcel
     }
 
-    method STORE_AT_POS(\$pos, Mu \$v) {
+    method STORE_AT_POS(\$pos, Mu \$v) is rw {
         nqp::bindpos($!items, nqp::unbox_i($pos), $v)
     }
 

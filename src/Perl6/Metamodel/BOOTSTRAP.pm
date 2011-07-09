@@ -352,7 +352,12 @@ Code.HOW.add_method(Code, 'name', sub ($self) {
         ~pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Code, '$!do')
     });
-
+Code.HOW.add_method(Code, '!set_name', sub ($self, $name) {
+        pir::assign__vPS(
+            pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self), Code, '$!do'),
+            $name)
+    });
+    
 # Need to actually run the code block. Also need this available before we finish
 # up the stub.
 Code.HOW.add_parrot_vtable_handler_mapping(Code, 'invoke', '$!do');

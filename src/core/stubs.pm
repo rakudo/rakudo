@@ -23,4 +23,12 @@ sub DYNAMIC(\$name) is rw {
     $x
 }
 
+# Set up ClassHOW's auto-gen proto (nested scope so it won't
+# actually appear in the setting).
+{
+    my class Dummy {
+        our proto method AUTOGEN(::T $: |$) { * }
+    }
+    Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
+}
 

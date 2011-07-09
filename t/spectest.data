@@ -181,14 +181,14 @@ S03-smartmatch/any-type.t
 # S03-smartmatch/array-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
 # S03-smartmatch/capture-signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 S03-smartmatch/disorganized.t
-# S03-smartmatch/hash-hash.t
-# S03-smartmatch/regex-hash.t
-# S03-smartmatch/scalar-hash.t
-# S04-blocks-and-statements/pointy-rw.t
+# S03-smartmatch/hash-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+# S03-smartmatch/regex-hash.t # err: too many positional arguments: 3 passed, 1 expected
+# S03-smartmatch/scalar-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+# S04-blocks-and-statements/pointy-rw.t # err: Missing block
 S04-blocks-and-statements/pointy.t
 S04-phasers/end.t
-# S04-phasers/rvalue.t
-# S04-phasers/start.t
+# S04-phasers/rvalue.t # err: Could not find sub &ucfirst
+# S04-phasers/start.t # err: Could not find sub &START
 S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 # S04-declarations/multiple.t

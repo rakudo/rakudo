@@ -70,42 +70,42 @@ S02-literals/underscores.t
 # S02-magicals/config.t # err: Dynamic variable $*OS not found
 # S02-magicals/dollar_bang.t # err: too many positional arguments: 3 passed, 1 expected
 S02-magicals/dollar-underscore.t
-# S02-magicals/env.t
-# S02-magicals/pid.t
-# S02-magicals/progname.t
+# S02-magicals/env.t # err: Dynamic variable $*OS not found
+# S02-magicals/pid.t # err: Could not find sub &DYNAMIC
+# S02-magicals/progname.t # err: too many positional arguments: 3 passed, 1 expected
 # S02-names_and_variables/contextual.t      # need !private methods
-# S02-names_and_variables/fmt.t
+# S02-names_and_variables/fmt.t # err: Too many positional parameters passed; got 3 but expected between 1 and 2
 # S02-names_and_variables/names.t           # need regexes
 # S02-names_and_variables/perl.t            # need regexes   # icu
-# S02-names_and_variables/list_array_perl.t
-# S02-names_and_variables/signature.t
+# S02-names_and_variables/list_array_perl.t # err: too many positional arguments: 3 passed, 1 expected
+# S02-names_and_variables/signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 S02-names_and_variables/variables-and-packages.t
 # S02-names_and_variables/varnames.t        # need binding of $/
 S02-names/identifier.t
-# S02-names/our.t
-# S02-one-pass-parsing/less-than.t
-# S02-polymorphic_types/subset.t
+# S02-names/our.t # err: Could not find sub !YOU_ARE_HERE
+# S02-one-pass-parsing/less-than.t # err: Could not find sub &rand
+# S02-polymorphic_types/subset.t # err: too many positional arguments: 3 passed, 1 expected
 S02-whitespace_and_comments/begin_end_pod.t
-# S02-whitespace_and_comments/comments.t
+# S02-whitespace_and_comments/comments.t # err: You can't backslash that at line 79, near "#`((( comm"
 S02-whitespace_and_comments/minimal-whitespace.t
-# S02-whitespace_and_comments/one-pass-parsing.t
+# S02-whitespace_and_comments/one-pass-parsing.t # fails the 1 test
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
-# S02-whitespace_and_comments/unicode-whitespace.t
-# S02-whitespace_and_comments/unspace.t
+# S02-whitespace_and_comments/unicode-whitespace.t # needs proto and dispatch auto-generation for multis
+# S02-whitespace_and_comments/unspace.t # needs proto and dispatch auto-generation for multis
 S03-feeds/basic.t
 S03-junctions/associative.t
 # S03-junctions/autothreading.t             # need regexes
 S03-junctions/boolean-context.t
 # S03-junctions/misc.t                      # need regexes
-# S03-metaops/cross.t
+# S03-metaops/cross.t # err: Contextual $*UNITPAST not found
 S03-metaops/eager-hyper.t
-# S03-metaops/hyper.t
+# S03-metaops/hyper.t # err: Contextual $*UNITPAST not found
 S03-metaops/not.t
-# S03-metaops/reduce.t
+# S03-metaops/reduce.t # err :Contextual $*UNITPAST not found
 S03-metaops/reverse.t
 S03-metaops/zip.t
-# S03-operators/also.t
+# S03-operators/also.t # err: invoke() not implemented in class 'Junction'
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 # S03-operators/assign.t                    # bug in list assignment
@@ -114,9 +114,9 @@ S03-operators/autoincrement.t
 S03-operators/autovivification.t
 # S03-operators/basic-types.t               # need regexes
 S03-operators/binding-attributes.t
-# S03-operators/binding-arrays.t
+# S03-operators/binding-arrays.t # err: Cannot use bind operator with this LHS
 S03-operators/binding-closure.t
-# S03-operators/binding-hashes.t
+# S03-operators/binding-hashes.t # err: Cannot use bind operator with this LHS
 # S03-operators/binding-ro.t
 # S03-operators/binding-scalars.t
 # S03-operators/bit.t                       # need Rat literals

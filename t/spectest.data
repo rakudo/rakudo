@@ -133,13 +133,13 @@ S03-operators/equality.t
 S03-operators/eqv.t
 # S03-operators/identity.t                  # need array element binding
 S03-operators/increment.t
-# S03-operators/inplace.t
-# S03-operators/is-divisible-by.t
+# S03-operators/inplace.t # err: too many positional arguments: 3 passed, 1 expected
+# S03-operators/is-divisible-by.t # err: Could not find sub &infix:<%%>
 S03-operators/list-quote-junction.t
-# S03-operators/minmax.t
+# S03-operators/minmax.t # err: Could not find sub &infix:<minmax>
 # S03-operators/misc.t                      # need regexes
 # S03-operators/names.t                     # need regexes
-# S03-operators/nesting.t
+# S03-operators/nesting.t # err: Unable to parse blockoid
 S03-operators/not.t
 # S03-operators/numeric-context.t
 # S03-operators/overflow.t # missing &radcalc (passes only if bignum lib is available)

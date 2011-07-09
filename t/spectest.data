@@ -333,7 +333,7 @@ S06-signature/slurpy-placeholders.t
 # S06-signature/types.t # err: Malformed block
 # S06-signature/unpack-array.t # ? runs 0 tests.
 S06-signature/unspecified.t
-# S06-traits/as.t
+S06-traits/as.t
 S06-traits/is-copy.t
 S06-traits/is-rw.t
 # S06-traits/misc.t # err: unable to parse blockoid
@@ -353,7 +353,7 @@ S09-autovivification/autoincrement.t
 # S11-modules/nested.t # err: Could not find sub &DYNAMIC
 # S11-modules/require.t # err: Method 'push' not found for invocant of class 'Failure'
 # S12-attributes/class.t # err: Method 'bar' not found for invocant of class 'Foo'
-# S12-attributes/clone.t
+S12-attributes/clone.t
 # S12-attributes/delegation.t
 S12-attributes/inheritance.t
 # S12-attributes/instance.t

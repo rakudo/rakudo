@@ -417,8 +417,8 @@ S12-methods/typed-attributes.t
 # S12-subset/multi-dispatch. # needs proto and dispatch auto-generation for multist
 # S12-subset/subtypes.t # needs proto and dispatch auto-generation for multis
 S13-type-casting/methods.t
-# S13-overloading/typecasting-long.t
-# S13-overloading/metaoperators.t
+# S13-overloading/typecasting-long.t # err: invoke() not implemented in class 'TypeCastSub'
+# S13-overloading/metaoperators.t # err: Confused
 # S13-overloading/operators.t
 # S14-roles/anonymous.t
 # S14-roles/attributes.t

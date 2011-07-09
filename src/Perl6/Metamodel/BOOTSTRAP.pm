@@ -152,7 +152,7 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
         my $avc      := pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');
         my $type_ins := $type.HOW.instantiate_generic($type, $type_environment);
         my $cd_ins   := $cd.instantiate_generic($type_environment);
-        my $pkg_ins   := $pkg.instantiate_generic($type_environment);
+        my $pkg_ins   := $pkg.HOW.instantiate_generic($pkg, $type_environment);
         my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
         my $ins      := pir::repr_clone__PP($self);
         pir::setattribute__vPPsP($ins, Attribute, '$!type', $type_ins);

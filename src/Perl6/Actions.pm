@@ -1144,6 +1144,10 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 # Install.
+                if $outer.symbol($name) {
+                    $/.CURSOR.panic("Illegal redeclaration of routine '" ~
+                        ~$<deflongname>[0].ast ~ "'");
+                }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
                     $*ST.install_lexical_symbol($outer, $name, $code);
                 }

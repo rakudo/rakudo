@@ -20,8 +20,6 @@ Things that aren't blockers but might be worth knowing about:
   (known - multis in nested lexical scopes in general just NYI - jnthn)
 * 'has num $.attr' segfaults on access to .attr, because it uses the PMC form
   of get_attribute
-* two protos of the same name in the same scope produce an IMCC error
-  "error:imcc:Multiple declarations of lexical '&foo'"
 
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.

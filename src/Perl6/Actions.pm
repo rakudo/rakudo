@@ -2085,14 +2085,11 @@ class Perl6::Actions is HLL::Actions {
         # Otherwise, it's a type name; build a reference to that
         # type, since we can statically resolve them.
         else {
-            my $sym := $*ST.find_symbol(@name);
             if $<arglist> {
                 $/.CURSOR.panic("Parametric roles not yet implemented");
             }
             if ~$<longname> ne 'GLOBAL' {
-                $past := $*ST.get_object_sc_ref_past($sym);
-                $past<has_compile_time_value> := 1;
-                $past<compile_time_value> := $sym;
+                $past := instantiated_type(@name, $/);
             }
             else {
                 $past := $*ST.symbol_lookup(@name, $/);
@@ -3517,9 +3514,14 @@ class Perl6::Actions is HLL::Actions {
     # resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
         my $type := $*ST.find_symbol(@name);
-        $type.HOW.is_generic($type) ??
+        my $is_generic := 0;
+        try { $is_generic := $type.HOW.is_generic($type) }
+        my $past := $is_generic ??
             $*ST.symbol_lookup(@name, $/) !!
-            $*ST.get_object_sc_ref_past($type)
+            $*ST.get_object_sc_ref_past($type);
+        $past<has_compile_time_value> := 1;
+        $past<compile_time_value> := $type;
+        return $past;
     }
     
     # Ensures that the given PAST node has a value known at compile

@@ -14,6 +14,7 @@ multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
 }
 
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
+    $r.set_rw();
 }
 
 multi trait_mod:<is>(Parameter:D $param, :$rw!) {

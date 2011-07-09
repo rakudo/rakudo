@@ -364,8 +364,13 @@ Block.HOW.publish_parrot_vtable_mapping(Block);
 # class Routine is Block { ... }
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 Routine.HOW.add_parent(Routine, Block);
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
 Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
 Routine.HOW.publish_parrot_vtable_mapping(Routine);
+Routine.HOW.add_method(Routine, 'set_rw', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!rw', 1);
+    });
 
 # class Sub is Routine { ... }
 my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };

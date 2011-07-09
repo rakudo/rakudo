@@ -121,8 +121,8 @@ S03-operators/binding-ro.t
 S03-operators/binding-scalars.t
 # S03-operators/bit.t                       # need Rat literals
 # S03-operators/boolean-bitwise.t           # xor return bug
-# S03-operators/brainos.t
-# S03-operators/buf.t
+# S03-operators/brainos.t # err: too many positional arguments: 3 passed, 1 expected
+# S03-operators/buf.t # err: Method 'encode' not found for invocant of class 'Str'
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
 # S03-operators/comparison.t                # need Order::Increase

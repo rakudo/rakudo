@@ -54,10 +54,13 @@ multi trait_mod:<of>(Mu:U $target, Mu:U $type) {
     # XXX Ensure we can do this, die if not.
     $target.HOW.set_of($target, $type);
 }
+multi trait_mod:<of>(Routine:D $target, Mu:U $type) {
+    $target.signature.set_returns($type)
+}
 
 proto trait_mod:<returns>(|$) { * }
 multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
-    # XXX TODO
+    $target.signature.set_returns($type)
 }
 
 proto trait_mod:<as>(|$) { * }

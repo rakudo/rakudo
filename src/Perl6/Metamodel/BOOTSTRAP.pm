@@ -224,7 +224,11 @@ Signature.HOW.add_method(Signature, 'instantiate_generic', sub ($self, $type_env
         }
         pir::setattribute__0PPsP($ins, Signature, '$!params', @ins_params)
     });
-
+Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
+        nqp::bindattr(pir::perl6_decontainerize__PP($self),
+            Signature, '$!returns', pir::perl6_decontainerize__PP($type));
+    });
+    
 # class Parameter {
 #     has str $!variable_name
 #     has $!named_names

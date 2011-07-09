@@ -106,15 +106,40 @@ proto infix:<after>(|$)        { * }
 multi infix:<after>($x?)       { Bool::True }
 multi infix:<after>(\$a, \$b)  { ($a cmp $b) > 0 }
 
-proto infix:<===>($a?, $b?)    { * }
-multi infix:<===>($a?)         { Bool::True }
-multi infix:<===>($a, $b)      { $a.WHICH === $b.WHICH }
+proto infix:<===>(Mu $a?, Mu $b?) { * }
+multi infix:<===>(Mu $a?)         { Bool::True }
+multi infix:<===>(Mu $a, Mu $b)   { $a.WHICH === $b.WHICH }
 
-proto sub infix:<eqv>($, $) { * }
-multi sub infix:<eqv>($a, $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0;
+proto sub infix:<eqv>(Mu $, Mu $) { * }
+multi sub infix:<eqv>(Mu $a, Mu $b) {
+    $a.WHAT === $b.WHAT && $a === $b
 }
-
+multi sub infix:<eqv>(@a, @b) {
+    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
+        return Bool::False
+    }
+    for ^@a -> $i {
+        unless @a[$i] eqv @b[$i] {
+            return Bool::False;
+        }
+    }
+    Bool::True
+}
+multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
+    if +$a != +$b { return Bool::False }
+    for $a.kv -> $k, $v {
+        unless $b.exists($k) && $b{$k} eqv $v {
+            return Bool::False;
+        }
+    }
+    Bool::True;
+}
+multi sub infix:<eqv>(Numeric $a, Numeric $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+}
+multi sub infix:<eqv>(Stringy $a, Stringy $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+}
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$)             { * }

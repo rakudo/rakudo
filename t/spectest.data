@@ -117,8 +117,8 @@ S03-operators/binding-attributes.t
 # S03-operators/binding-arrays.t # err: Cannot use bind operator with this LHS
 S03-operators/binding-closure.t
 # S03-operators/binding-hashes.t # err: Cannot use bind operator with this LHS
-# S03-operators/binding-ro.t
-# S03-operators/binding-scalars.t
+S03-operators/binding-ro.t
+S03-operators/binding-scalars.t
 # S03-operators/bit.t                       # need Rat literals
 # S03-operators/boolean-bitwise.t           # xor return bug
 # S03-operators/brainos.t

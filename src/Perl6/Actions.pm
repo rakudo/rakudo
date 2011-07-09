@@ -808,7 +808,7 @@ class Perl6::Actions is HLL::Actions {
                 if $attr {
                     $past.scope('attribute_6model');
                     $past.type($attr.type);
-                    $past.unshift($*ST.get_object_sc_ref_past($*ST.find_symbol(['$?CLASS'])));
+                    $past.unshift(instantiated_type(['$?CLASS'], $/));
                     $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
                     $past := box_native_if_needed($past, $attr.type);
                 }
@@ -843,8 +843,8 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif (my $attr_alias := $*ST.is_attr_alias($past.name)) {
             $past.name($attr_alias);
-            $past.scope('attribute');
-            $past.unshift($*ST.get_object_sc_ref_past($*ST.find_symbol(['$?CLASS'])));
+            $past.scope('attribute_6model');
+            $past.unshift(instantiated_type(['$?CLASS'], $/));
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
         }
         elsif $*IN_DECL ne 'variable' {
@@ -3513,6 +3513,14 @@ class Perl6::Actions is HLL::Actions {
         )
     }
     
+    # Works out how to look up a type. If it's not generic we statically
+    # resolve it. Otherwise, we punt to a runtime lexical lookup.
+    sub instantiated_type(@name, $/) {
+        my $type := $*ST.find_symbol(@name);
+        $type.HOW.is_generic($type) ??
+            $*ST.symbol_lookup(@name, $/) !!
+            $*ST.get_object_sc_ref_past($type)
+    }
     
     # Ensures that the given PAST node has a value known at compile
     # time and if so obtains it. Otherwise reports an error, involving

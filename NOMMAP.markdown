@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 8 July 2011
+Last Updated 9 July 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -37,10 +37,10 @@ Get ::= correcter, and a bit more stuff on := also.
 
 ## Finish up parametric roles
 Many things are working, some are not...
-* Composition of submethods
 * Generically typed variables (also for the ::T case in roles)
-* Mentions of role arguments in the role body in a non-declarative context
 * role R1[::T] does R2[T] { ... }
+* Multiple variants of a single role
+* Role subtype checking
 
 ## Meta-operators
 * Hyper

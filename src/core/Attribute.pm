@@ -26,4 +26,14 @@ my class Attribute {
             }
         }
     }
+    
+    method get_value(Mu $obj) {
+        my $decont := pir::perl6_decontainerize__PP($obj);
+        given nqp::p6box_i(pir::repr_get_primitive_type_spec__IP($!type)) {
+            when 0 { nqp::getattr($decont, $!package, $!name) }
+            when 1 { nqp::p6box_i(nqp::getattr_i($decont, $!package, $!name)) }
+            when 2 { nqp::p6box_n(nqp::getattr_n($decont, $!package, $!name)) }
+            when 3 { nqp::p6box_s(nqp::getattr_s($decont, $!package, $!name)) }
+        }
+    }
 }

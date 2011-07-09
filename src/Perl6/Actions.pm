@@ -1018,9 +1018,10 @@ class Perl6::Actions is HLL::Actions {
                     name => $attrname,
                     has_accessor => $twigil eq '.'
                 ),
-                hash( 
+                hash(
                     container_descriptor => $descriptor,
-                    type => $type),
+                    type => $type,
+                    package => $*ST.find_symbol(['$?CLASS'])),
                 sigiltype($sigil), $descriptor, |@default);
             
             # If no twigil, note $foo is an alias to $!foo.

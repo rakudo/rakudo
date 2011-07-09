@@ -79,6 +79,7 @@ Cool.HOW.add_parent(Cool, Any);
 #     has $!container_descriptor;
 #     has $!auto_viv_container;
 #     has $!build_closure;
+#     has $!package;
 #     ... # Uncomposed
 # }
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -90,16 +91,18 @@ Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu)));
 Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
 
 # XXX Need new and accessor methods for Attribute in here for now.
 Attribute.HOW.add_method(Attribute, 'new',
-    sub ($self, :$name, :$type, :$container_descriptor, :$has_accessor, *%other) {
+    sub ($self, :$name, :$type, :$container_descriptor, :$has_accessor, :$package, *%other) {
         my $attr := pir::repr_instance_of__PP($self);
         pir::repr_bind_attr_str__vPPsS($attr, Attribute, '$!name', $name);
         pir::setattribute__vPPsP($attr, Attribute, '$!type', $type);
         pir::repr_bind_attr_int__vPPsI($attr, Attribute, '$!has_accessor', $has_accessor);
         pir::setattribute__vPPsP($attr, Attribute, '$!container_descriptor', $container_descriptor);
+        pir::setattribute__vPPsP($attr, Attribute, '$!package', $package);
         if pir::exists(%other, 'auto_viv_container') {
             pir::setattribute__vPPsP($attr, Attribute, '$!auto_viv_container',
                 %other<auto_viv_container>);
@@ -145,13 +148,16 @@ Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
 Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
         my $type     := pir::getattribute__PPPs($self, Attribute, '$!type');
         my $cd       := pir::getattribute__PPPs($self, Attribute, '$!container_descriptor');
+        my $pkg      := pir::getattribute__PPPs($self, Attribute, '$!package');
         my $avc      := pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');
         my $type_ins := $type.HOW.instantiate_generic($type, $type_environment);
         my $cd_ins   := $cd.instantiate_generic($type_environment);
+        my $pkg_ins   := $pkg.instantiate_generic($type_environment);
         my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
         my $ins      := pir::repr_clone__PP($self);
         pir::setattribute__vPPsP($ins, Attribute, '$!type', $type_ins);
         pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
+        pir::setattribute__vPPsP($ins, Attribute, '$!package', $pkg_ins);
         pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
             pir::setattribute__0PPsP($avc_copy, (pir::perl6_var__PP($avc_copy)).WHAT, '$!descriptor', $cd_ins));
         $ins

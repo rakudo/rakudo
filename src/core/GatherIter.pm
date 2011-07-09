@@ -70,7 +70,8 @@ class GatherIter is Iterator {
             .yield (taken)
             resume()
             goto gather_done    # should never get here
-        }
+        };
+        True
     }
 }
 

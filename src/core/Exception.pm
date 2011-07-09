@@ -6,10 +6,10 @@ my class Exception {
     }
 
     method throw() {
-        pir::throw__vP($!ex)
+        pir::throw__0P($!ex)
     }
     method rethrow() {
-        pir::rethrow__vP($!ex)
+        pir::rethrow__0P($!ex)
     }
 }
 

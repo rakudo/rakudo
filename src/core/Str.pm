@@ -142,6 +142,12 @@ my class Str does Stringy {
     method comb() {
         (^self.chars).map({self.substr($_, 1) });
     }
+
+    method ords(Str:D:) {
+        my Int $c  = self.chars;
+        my str $ns = nqp::unbox_s(self);
+        (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
+    }
 }
 
 
@@ -206,4 +212,10 @@ multi infix:<~^>(Str \$a, Str \$b) {
 
 multi prefix:<~^>(Str \$a) {
     fail "prefix:<~^> NYI";   # XXX
+}
+
+multi sub ords(Str $s) {
+    my Int $c  = $s.chars;
+    my str $ns = nqp::unbox_s($s);
+    (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
 }

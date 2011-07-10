@@ -23,7 +23,6 @@ BEGIN_OPS_PREAMBLE
 
 /* Cache some stuff for fast access. */
 static INTVAL smo_id = 0;
-static STRING *DISPATCH_JUNCTION_str;
 
 /* The current dispatcher, for the next thing that wants one to take. */
 static PMC *current_dispatcher = NULL;
@@ -41,8 +40,6 @@ Does various setup tasks on behalf of all of the other dynops.
 */
 inline op rakudo_dynop_setup() :base_core {
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
-    DISPATCH_JUNCTION_str = Parrot_str_new_constant(interp,
-                                "!DISPATCH_JUNCTION_SINGLE");
 }
 
 /*
@@ -160,47 +157,6 @@ inline op x_is_uprop(out INT, in STR, in STR, in INT) :base_core {
     goto ADDRESS(handler);
 #endif
 }
-
-
-/*
-
-=item get_next_candidate_info(out PMC, out PMC, out PMC)
-
-Looks through the outers of our caller, until we find a Routine, for a lexical
-named __CANDIDATE_LIST__. Hands this lexical back in $1, the PMC for the Routine
-it was found in as $2 and the lexpad of that routine as $3. This is a fairly
-special-purpose op that does just what callwith, callsame, nextwith and
-nextsame need.
-
-=cut
-
-*/
-inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
-    PMC     *ctx         = Parrot_pcc_get_caller_ctx(interp, CURRENT_CONTEXT(interp));
-    STRING  * const name = Parrot_str_new(interp, "__CANDIDATE_LIST__", 0);
-
-    while (!PMC_IS_NULL(ctx)) {
-        /* See if we've found a candidate list. */
-        PMC * const lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
-        PMC * const clist  = VTABLE_get_pmc_keyed_str(interp, lexpad, name);
-        if (!PMC_IS_NULL(clist)) {
-            /* Found. Set results and we're done. */
-            $1 = clist;
-            $2 = Parrot_pcc_get_sub(interp, ctx);
-            $3 = lexpad;
-            break;
-        }
-        else {
-            /* Not found; keep looking. */
-            ctx = Parrot_pcc_get_outer_ctx(interp, ctx);
-        }
-    }
-    if (!ctx)
-        $1 = $2 = $3 = PMCNULL;
-
-    goto NEXT();
-}
-
 
 /*
 
@@ -488,9 +444,6 @@ inline op perl6ize_type(out PMC, in PMC) :base_core {
     else
         $1 = Rakudo_types_parrot_map(interp, $2);
 }
-
-
-
 
 /*
 

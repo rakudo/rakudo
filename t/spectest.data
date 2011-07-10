@@ -430,129 +430,129 @@ S14-roles/crony.t
 S14-roles/lexical.t
 # S14-roles/mixin.t # err: Could not find sub &infix:<does>
 S14-roles/namespaced.t 
-# S14-roles/parameter-subtyping.t
-# S14-roles/parameterized-basic.t
-# S14-roles/parameterized-mixin.t
-# S14-roles/parameterized-type.t
+# S14-roles/parameter-subtyping.t # err: Illegal redeclaration of role 'R1'
+# S14-roles/parameterized-basic.t # err: Illegal redeclaration of role 'R1'
+# S14-roles/parameterized-mixin.t # needs Parametric roles
+# S14-roles/parameterized-type.t # needs Parametric roles
 S14-roles/submethods.t
-# S14-traits/attributes.t
-# S14-traits/package.t
-# S14-traits/routines.t
-# S14-traits/variables.t
-# S16-filehandles/filetest.t
-# S16-filehandles/io.t
-# S16-filehandles/io_in_for_loops.t
-# S16-filehandles/io_in_while_loops.t
-# S16-filehandles/open.t
-# S16-filehandles/unlink.t
-# S16-io/bare-say.t
+# S14-traits/attributes.t # err: Invalid typename in parameter declaration
+# S14-traits/package.t # err: Invalid typename in parameter declaration
+# S14-traits/routines.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
+# S14-traits/variables.t # err: Invalid typename in parameter declaration
+# S16-filehandles/filetest.t # err: Dynamic variable $*OS not found
+# S16-filehandles/io.t # err: Dynamic variable $*PID not found
+# S16-filehandles/io_in_for_loops.t # err: Dynamic variable $*OS not found
+# S16-filehandles/io_in_while_loops.t # err: Dynamic variable $*OS not found
+# S16-filehandles/open.t # err: Dynamic variable $*OS not found
+# S16-filehandles/unlink.t# err: Dynamic variable $*OS not found
+# S16-io/bare-say.t # err: Could not find sub &DYNAMIC
 S16-io/basic-open.t
-# S16-io/say.t
-# S16-io/say-and-ref.t
-# S16-io/getc.t
-# S16-unfiled/rebindstdhandles.t
-# S16-unfiled/slurp.t
-# S19-command-line/dash-e.t                               #icu
-# S19-command-line/help.t
-# S28-named-variables/cwd.t
-# S28-named-variables/inc.t
+# S16-io/say.t # err: outputs "o k" instead of "ok"
+# S16-io/say-and-ref.t # err: Could not find sub &DYNAMIC
+# S16-io/getc.t # err: Dynamic variable $*OS not found
+# S16-unfiled/rebindstdhandles.t # err: Dynamic variable $*PID not found
+# S16-unfiled/slurp.t # err: too many positional arguments: 3 passed, 1 expected
+# S19-command-line/dash-e.t                               #icu # err: Could not find sub &DYNAMIC
+# S19-command-line/help.t # err: Could not find sub &DYNAMIC
+# S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
+# S28-named-variables/inc.t # err: No applicable candidates found to dispatch to for 'Numeric'.
 S29-any/cmp.t
 S29-any/isa.t
-# S29-context/die.t
+# S29-context/die.t # err: Could not find sub &DYNAMIC
 S29-context/eval.t
-# S29-context/exit.t
-# S29-context/sleep.t
-# S29-conversions/hash.t
+# S29-context/exit.t # err: Could not find sub &DYNAMIC
+# S29-context/sleep.t # err: Could not find sub &sleep
+# S29-conversions/hash.t # err: too many positional arguments: 3 passed, 1 expected
 S29-conversions/ord_and_chr.t                              #icu
 S32-array/bool.t
 S32-array/create.t
-# S32-array/delete.t
-# S32-array/elems.t
-# S32-array/end.t
-# S32-array/exists.t
-# S32-array/keys_values.t
-# S32-array/kv.t
-# S32-array/pairs.t
+# S32-array/delete.t # err: Method 'delete' not found for invocant of class 'Array'
+# S32-array/elems.t # err: Could not find sub &elems
+# S32-array/end.t # err: Method 'end' not found for invocant of class 'Array'
+S32-array/exists.t
+# S32-array/keys_values.t # err: Method 'keys' not found for invocant of class 'Array'
+# S32-array/kv.t # err: Method 'kv' not found for invocant of class 'Array'
+# S32-array/pairs.t #err: Could not find sub &pairs
 S32-array/pop.t
-# S32-array/push.t
-# S32-array/rotate.t
+# S32-array/push.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+# S32-array/rotate.t # err: Method 'rotate' not found for invocant of class 'Array'
 S32-array/shift.t
-# S32-array/splice.t
-# S32-array/unshift.t
-# S32-basics/warn.t
-# S32-container/zip.t
+# S32-array/splice.t # err: Could not find sub &splice
+# S32-array/unshift.t # err: Could not find sub &unshift
+# S32-basics/warn.t # err: Could not find sub &DYNAMIC
+# S32-container/zip.t # err: Cannot assign to a non-container
 S32-hash/exists.t
-# S32-hash/delete.t
-# S32-hash/invert.t
-# S32-hash/keys_values.t
-# S32-hash/pairs.t
-# S32-hash/push.t
-# S32-hash/slice.t
-# S32-io/dir.t
-# S32-io/chdir.t
-# S32-io/file-tests.t
-# S32-io/note.t
-# S32-io/IO-Socket-INET.t
-# S32-list/classify.t
+# S32-hash/delete.t # err: Method 'delete' not found for invocant of class 'Hash'
+# S32-hash/invert.t # err: Method 'invert' not found for invocant of class 'Hash'
+# S32-hash/keys_values.t # err: Could not find sub &keys
+# S32-hash/pairs.t # err: Method 'pairs' not found for invocant of class 'Pair'
+# S32-hash/push.t # err: Method 'push' not found for invocant of class 'Hash'
+# S32-hash/slice.t # err: too many positional arguments: 3 passed, 1 expected
+# S32-io/dir.t # err: Could not find sub &dir
+# S32-io/chdir.t # err: Dynamic variable $*OS not found
+# S32-io/file-tests.t # err: Method 'IO' not found for invocant of class 'Str'
+# S32-io/note.t # err: Could not find sub &DYNAMIC
+# S32-io/IO-Socket-INET.t # err:  ResizablePMCArray: Can't shift from an empty array!
+# S32-list/classify.t # err: Method 'classify' not found for invocant of class 'Array'
 S32-list/create.t
-# S32-list/end.t
-# S32-list/first.t
+# S32-list/end.t # err: Method 'end' not found for invocant of class 'Array'
+# S32-list/first.t # err: too many positional arguments: 3 passed, 1 expected
 S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t
-# S32-list/map.t
-# S32-list/minmax.t
+# S32-list/map.t # err: splice() not implemented in class 'Mu'
+# S32-list/minmax.t # err: Could not find sub &min
 S32-list/pick.t
-# S32-list/reduce.t
-# S32-list/reverse.t
+# S32-list/reduce.t # err: Could not find sub &reduce
+# S32-list/reverse.t # err: Could not find sub &reverse
 S32-list/roll.t
-# S32-list/sort.t
-# S32-list/uniq.t
-# S32-num/abs.t
-# S32-num/base.t
+# S32-list/sort.t # err: Could not find sub &sort
+# S32-list/uniq.t # err: Method 'uniq' not found for invocant of class 'Array'
+# S32-num/abs.t # err: maximum recursion depth exceeded
+# S32-num/base.t # err: Method 'base' not found for invocant of class 'Int'
 S32-num/complex.t
-# S32-num/cool-num.t
-# S32-num/exp.t
-# S32-num/gcd.t
+# S32-num/cool-num.t # err: Method 'abs' not found for invocant of class 'Str'
+# S32-num/exp.t # err: Too many positional parameters passed; got 2 but expected 1
+# S32-num/gcd.t # err: Method 'gcd' not found for invocant of class 'Int'
 S32-num/int.t
 S32-num/log.t
-# S32-num/pi.t
+# S32-num/pi.t # all tests skipped
 S32-num/polar.t
 S32-num/power.t
-# S32-num/rand.t
+# S32-num/rand.t # err: Could not find sub &rand
 S32-num/rat.t
-# S32-num/real-bridge.t
+# S32-num/real-bridge.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
 S32-num/roots.t
-# S32-num/rounders.t
-# S32-num/sign.t
+# S32-num/rounders.t # err: Could not find sub &floor
+# S32-num/sign.t # err: Method 'sign' not found for invocant of class 'Int'
 S32-num/sqrt.t
 S32-num/unpolar.t
 S32-scalar/defined.t
-# S32-scalar/undef.t
+# S32-scalar/undef.t # err: Could not find sub &DYNAMIC
 S32-str/append.t
 S32-str/bool.t
-# S32-str/capitalize.t                                       # icu
+# S32-str/capitalize.t  # err: Could not find sub &capitalize # icu
 S32-str/chomp.t
 S32-str/chop.t
-# S32-str/comb.t                                             # icu
-# S32-str/encode.t
+# S32-str/comb.t # err: too many positional arguments: 3 passed, 1 expected # icu
+# S32-str/encode.t  # err: Method 'encode' not found for invocant of class 'Str'
 S32-str/flip.t
-# S32-str/indent.t                                           # icu
-# S32-str/index.t
+# S32-str/indent.t # err: Method 'blocktype' not found for invocant of class 'PAST;Op' # icu 
+# S32-str/index.t # err: dies after test # 2
 S32-str/lc.t                                               # icu
 S32-str/lcfirst.t                                            # icu
-# S32-str/lines.t
-# S32-str/p5chomp.t
-# S32-str/p5chop.t
-# S32-str/pack.t
-# S32-str/pos.t
-# S32-str/rindex.t
-# S32-str/samecase.t                                         # icu
-# S32-str/split-simple.t
-# S32-str/split.t
-# S32-str/sprintf.t
-# S32-str/substr.t
-# S32-str/trim.t
+# S32-str/lines.t # err: Method 'lines' not found for invocant of class 'Str'
+# S32-str/p5chomp.t # err: Could not find sub &p5chomp
+# S32-str/p5chop.t # err: Could not find sub &p5chop
+# S32-str/pack.t # err: Could not find sub &pack
+# S32-str/pos.t # err: too many positional arguments: 3 passed, 1 expected
+S32-str/rindex.t
+# S32-str/samecase.t # err: Could not find sub &samecase # icu
+# S32-str/split-simple.t # err: too many positional arguments: 3 passed, 1 expected
+# S32-str/split.t # err: too many positional arguments: 3 passed, 1 expected
+# S32-str/sprintf.t # err: Could not find sub &sprintf
+# S32-str/substr.t # err: Method 'capitalize' not found for invocant of class 'Str'
+# S32-str/trim.t # err: too many positional arguments: 3 passed, 1 expected
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t

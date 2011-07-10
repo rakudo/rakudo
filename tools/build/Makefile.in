@@ -107,6 +107,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/NativeHOW.pm \
   src/Perl6/Metamodel/SubsetHOW.pm \
   src/Perl6/Metamodel/ContainerDescriptor.pm \
+  src/Perl6/Metamodel/Dispatchers.pm \
   src/Perl6/Metamodel/BOOTSTRAP.pm \
   src/Perl6/Metamodel/EXPORTHOW.pm \
 

@@ -648,5 +648,8 @@ my module EXPORT {
         $?PACKAGE.WHO<False>     := $false;
         $?PACKAGE.WHO<True>      := $true;
         $?PACKAGE.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
+        $?PACKAGE.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
+        $?PACKAGE.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
+        $?PACKAGE.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
     }
 }

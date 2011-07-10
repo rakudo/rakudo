@@ -25,6 +25,9 @@ BEGIN_OPS_PREAMBLE
 static INTVAL smo_id = 0;
 static STRING *DISPATCH_JUNCTION_str;
 
+/* The current dispatcher, for the next thing that wants one to take. */
+static PMC *current_dispatcher = NULL;
+
 END_OPS_PREAMBLE
 
 /*
@@ -793,6 +796,40 @@ inline op perl6_get_package_through_who(out PMC, in PMC, in STR) :base_core {
     }
 }
 
+/*
+
+=item perl6_set_dispatcher_for_callee(in PMC)
+
+Sets the dispatcher that the next thing we call that is interested
+in one will take.
+
+=cut
+
+*/
+inline op perl6_set_dispatcher_for_callee(in PMC) :base_core {
+    current_dispatcher = $1;
+}
+
+/*
+
+=item perl6_take_dispatcher()
+
+Takes the dispatcher that was set, if any, and store it in the current
+lexpad's $*DISPATCHER. Also clears the current set dispatcher so that
+nothing else can take it by accident. If there's no current set dispatcher
+then this is a no-op.
+
+=cut
+
+*/
+inline op perl6_take_dispatcher() :base_core {
+    if (current_dispatcher) {
+        PMC *lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
+        VTABLE_set_pmc_keyed(interp, lexpad, Parrot_str_new_constant(interp, "$*DISPATCHER"),
+            current_dispatcher);
+        current_dispatcher = NULL;
+    }
+}
 
 /*
 

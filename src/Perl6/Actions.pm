@@ -594,23 +594,23 @@ class Perl6::Actions is HLL::Actions {
     method statement_control:sym<default>($/) {
         # We always execute this, so just need the block, however we also
         # want to make sure we break after running it.
-        my $block := block_immediate($<block>.ast);
-        when_handler_helper($block);
-        make $block;
+        my $block := $<block>.ast;
+        when_handler_helper($block<past_block>);
+        make PAST::Op.new($block);
     }
 
     method statement_control:sym<CATCH>($/) {
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block);
+        push_block_handler($/, $*ST.cur_lexpad(), $block<past_block>);
         $*ST.cur_lexpad().handlers()[0].handle_types_except('CONTROL');
-        make PAST::Stmts.new(:node($/));
+        make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_control:sym<CONTROL>($/) {
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block);
+        push_block_handler($/, $*ST.cur_lexpad(), $block<past_block>);
         $*ST.cur_lexpad().handlers()[0].handle_types('CONTROL');
-        make PAST::Stmts.new(:node($/));
+        make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_prefix:sym<BEGIN>($/) { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }

@@ -67,6 +67,12 @@ my &proceed := -> {
     THROW(Nil, pir::const::CONTROL_CONTINUE)
 }
 
+my &callwith := -> *@pos, *%named {
+    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    $dispatcher.exhausted ?? Nil !!
+        $dispatcher.call_next(|@pos, |%named)
+};
+
 sub die(*@msg) { pir::die__0P(@msg.join('')) }
 
 sub eval(Str $code, :$lang = 'perl6') {

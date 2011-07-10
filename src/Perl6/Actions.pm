@@ -1111,6 +1111,13 @@ class Perl6::Actions is HLL::Actions {
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object(@params, $block);
         add_signature_binding_code($block, $signature, @params);
+        
+        # If it's a multi, needs a slot that can hold an (unvivified)
+        # dispatcher.
+        if $*MULTINESS eq 'multi' {
+            $*ST.install_lexical_symbol($block, '$*DISPATCHER', $*ST.find_symbol(['MultiDispatcher']));
+            $block[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
+        }
 
         # Create code object.
         if $<deflongname> {
@@ -1256,6 +1263,11 @@ class Perl6::Actions is HLL::Actions {
         $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
         $past.symbol('self', :scope('lexical_6model'));
 
+        # Needs a slot to hold a multi or method dispatcher.
+        $*ST.install_lexical_symbol($past, '$*DISPATCHER',
+            $*ST.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
+        $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
+        
         # Create code object.
         if $<longname> {
             $past.name($<longname>.Str);

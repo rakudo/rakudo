@@ -682,6 +682,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             )
         )
     }
+
+    # Wraps a value in a scalar container
+    method scalar_wrap($obj) {
+        my $scalar_type := self.find_symbol(['Scalar']);
+        my $scalar      := nqp::create($scalar_type);
+        my $slot        := self.add_object($scalar);
+        nqp::bindattr($scalar, $scalar_type, '$!value', $obj);
+        # XXX we do deserialization later...
+        $scalar;
+    }
     
     # Takes a PAST::Block and compiles it for running during "compile time".
     # We need to do this for BEGIN but also for things that get called in

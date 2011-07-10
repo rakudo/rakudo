@@ -234,12 +234,28 @@ class Perl6::Actions is HLL::Actions {
         make $<pod_block>.ast;
     }
 
+    method pod_block:sym<delimited>($/) {
+        make Perl6::Pod::any_block($/);
+    }
+
+    method pod_block:sym<delimited_raw>($/) {
+        make Perl6::Pod::raw_block($/);
+    }
+
+    method pod_block:sym<delimited_table>($/) {
+        make Perl6::Pod::table($/);
+    }
+
     method pod_block:sym<paragraph>($/) {
         make Perl6::Pod::any_block($/);
     }
 
     method pod_block:sym<paragraph_raw>($/) {
         make Perl6::Pod::raw_block($/);
+    }
+
+    method pod_block:sym<paragraph_table>($/) {
+        make Perl6::Pod::table($/);
     }
 
     method pod_block:sym<abbreviated>($/) {
@@ -250,15 +266,14 @@ class Perl6::Actions is HLL::Actions {
         make Perl6::Pod::raw_block($/);
     }
 
+    method pod_block:sym<abbreviated_table>($/) {
+        make Perl6::Pod::table($/);
+    }
+
     method pod_block:sym<end>($/) {
     }
 
-    method pod_block:sym<delimited>($/) {
-        make Perl6::Pod::any_block($/);
-    }
-
-    method pod_block:sym<delimited_raw>($/) {
-        make Perl6::Pod::raw_block($/);
+    method raw_block($/) {
     }
 
     method pod_text_para($/) {
@@ -295,6 +310,14 @@ class Perl6::Actions is HLL::Actions {
             :content($content<compile_time_value>),
         );
         make $past<compile_time_value>;
+    }
+
+    method table_row($/) {
+        make ~$/
+    }
+
+    method table_row_notempty($/) {
+        make ~$/
     }
 
     method unitstart($/) {

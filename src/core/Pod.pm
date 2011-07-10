@@ -13,6 +13,11 @@ my package Pod {
         has @.allowed;
     }
 
+    class Block::Table is Block {
+        has $.caption;
+        has @.headers; # optional, may be empty
+    }
+
     class Item is Block {
         has $.level;
     }

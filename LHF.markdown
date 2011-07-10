@@ -11,9 +11,6 @@ new possible performance.
 ## chomp
 Fix Str.chomp to work with strings of less than 2 characters.
 
-## Implement %% operator
-Make S03-operators/is-divisible-by.t pass
-
 ## Implement minmax operator
 Make S03-operators/minmax.t pass
 

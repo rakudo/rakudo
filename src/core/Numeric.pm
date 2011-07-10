@@ -93,6 +93,11 @@ multi infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
 multi infix:<%>($x)          { $x }
 multi infix:<%>(\$a, \$b)    { $a.Numeric % $b.Numeric }
 
+proto infix:<%%>(|$)         { * }
+multi infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
+multi infix:<%%>($x)         { Bool::True }
+multi infix:<%%>(\$a, \$b)   { $a.Numeric % $b.Numeric == 0 }
+
 proto infix:<lcm>(|$)         { * }
 multi infix:<lcm>(Int $x = 1) { $x }
 multi infix:<lcm>(\$a, \$b)   { $a.Numeric lcm $b.Numeric }

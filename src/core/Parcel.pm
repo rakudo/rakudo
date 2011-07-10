@@ -16,6 +16,7 @@ my class Parcel does Positional {
     method list() {
         nqp::p6list(nqp::clone($!storage), List, Mu)
     }
+    method values() { self.list }
 
     method lol() {
         nqp::p6list(nqp::clone($!storage), LoL, Mu)

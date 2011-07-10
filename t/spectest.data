@@ -46,7 +46,7 @@ S02-builtin_data_types/type.t
 # S02-builtin_data_types/whatever.t         # needs enum support
 S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
-# S02-literals/autoref.t   # err: Method 'values' not found for invocant of class 'Parcel'
+S02-literals/autoref.t
 # S02-literals/char-by-name.t                                # icu
 S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
@@ -497,7 +497,7 @@ S32-hash/exists.t
 S32-list/create.t
 # S32-list/end.t
 # S32-list/first.t
-# S32-list/grep.t
+S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 # S32-list/map.t

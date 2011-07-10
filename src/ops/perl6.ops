@@ -802,7 +802,7 @@ inline op perl6_find_dispatcher(out PMC) :base_core {
     while (!PMC_IS_NULL(ctx)) {
         /* Do we have a dispatcher here? */
         PMC *lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
-        if (VTABLE_exists_keyed_str(interp, lexpad, dispatcher_str)) {
+        if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, dispatcher_str)) {
             dispatcher = VTABLE_get_pmc_keyed_str(interp, lexpad, dispatcher_str);
             if (!REPR(dispatcher)->defined(interp, dispatcher)) {
                 /* Need to vivify it. */
@@ -819,6 +819,7 @@ inline op perl6_find_dispatcher(out PMC) :base_core {
                 cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
                 Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
                 dispatcher = VTABLE_get_pmc_keyed_int(interp, cappy, 0);
+                VTABLE_set_pmc_keyed_str(interp, lexpad, dispatcher_str, dispatcher);
             }
             break;
         }

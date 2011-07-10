@@ -62,6 +62,8 @@ PERL6_G       = src/gen/perl6-grammar.pir
 PERL6_G_PBC   = blib/Perl6/Grammar.pbc
 PERL6_A       = src/gen/perl6-actions.pir
 PERL6_A_PBC   = blib/Perl6/Actions.pbc
+PERL6_P       = src/gen/perl6-pod.pir
+PERL6_P_PBC   = blib/Perl6/Pod.pbc
 PERL6_C       = src/gen/perl6-compiler.pir
 PERL6_C_PBC   = blib/Perl6/Compiler.pbc
 PERL6_M       = src/gen/perl6-metamodel.pir
@@ -246,7 +248,7 @@ $(PERL6_EXE): $(PERL6_PBC)
 	$(PBC_TO_EXE) $(PERL6_PBC)
 
 # the complete compiler, including core/setting
-$(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) src/main.nqp
+$(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/perl6.pir \
 	    --combine src/main.nqp src/gen/main-version.nqp
@@ -267,10 +269,15 @@ $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
-$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Actions.pm
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Actions.pm $(PERL6_P_PBC)
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
+
+$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Pod.pm
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
+	    src/Perl6/Pod.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P_PBC) $(PERL6_P)
 
 $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Compiler.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_C) --encoding=utf8 \

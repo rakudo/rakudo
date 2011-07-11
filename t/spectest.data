@@ -59,7 +59,7 @@ S02-literals/numeric.t
 S02-literals/pair-boolean.t
 # S02-literals/pairs.t # err: Not enough positional parameters passed; got 1 but expected 2
 # S02-literals/quoting.t                    # need rx {} quoting
-# S02-literals/quoting-unicode.t # err: Could not find sub &keys # icu
+# S02-literals/quoting-unicode.t # err: Could not find sub &sprintf # icu
 # S02-literals/radix.t # err: Could not find sub &radcalc
 S02-literals/string-interpolation.t
 S02-literals/sub-calls.t

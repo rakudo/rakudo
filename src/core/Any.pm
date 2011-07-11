@@ -176,3 +176,16 @@ multi pick($n, *@values) { @values.pick($n) }
 
 proto roll(|$) { * }
 multi roll($n, *@values) { @values.roll($n) }
+
+proto keys(|$) { * }
+multi keys($x) { $x.keys }
+
+proto values(|$) { * }
+multi values($x) { $x.values }
+
+proto pairs(|$) { * }
+multi pairs($x) { $x.pairs }
+
+proto kv(|$) { * }
+multi kv($x) { $x.kv }
+

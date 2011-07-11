@@ -836,6 +836,39 @@ inline op perl6_find_dispatcher(out PMC) :base_core {
 
 /*
 
+=item perl6_args_for_dispatcher(out PMC, in PMC)
+
+Locates the callframe with the $*DISPATCHER passed and returns it.
+
+=cut
+
+*/
+inline op perl6_args_for_dispatcher(out PMC, in PMC) :base_core {
+    PMC     *ctx            = CURRENT_CONTEXT(interp);
+    STRING  *dispatcher_str = Parrot_str_new_constant(interp, "$*DISPATCHER");
+    PMC     *result         = NULL;
+    
+    while (!PMC_IS_NULL(ctx)) {
+        /* Do we have a dispatcher here? */
+        PMC *lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
+        if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, dispatcher_str)) {
+            PMC *dispatcher = VTABLE_get_pmc_keyed_str(interp, lexpad, dispatcher_str);
+            if (dispatcher == $2) {
+                result = ctx;
+                break;
+            }
+        }
+        ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
+    }
+    
+    if (!result)
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Could not find arguments for dispatcher");
+    $1 = result;
+}
+
+/*
+
 =item perl6_current_args_rpa(out PMC)
 
 Gets a ResizablePMCArray containing the positional arguments passed to the

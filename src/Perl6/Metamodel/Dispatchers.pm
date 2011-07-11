@@ -6,7 +6,7 @@ class Perl6::Metamodel::BaseDispatcher {
     
     method last()      { @!candidates := [] }
     
-    method call_next(*@pos, *%named) {
+    method call_with_args(*@pos, *%named) {
         my $call := @!candidates[$!idx];
         $!idx := $!idx + 1;
         if self.has_invocant {
@@ -18,6 +18,26 @@ class Perl6::Metamodel::BaseDispatcher {
             pir::perl6_set_dispatcher_for_callee__vP(self);
             $call(|@pos, |%named);
         }
+    }
+    
+    method call_with_capture($capture) {
+        # Extract parts of the capture.
+        my @pos;
+        my %named;
+        my $i := 0;
+        while $i < nqp::elems($capture) {
+            @pos[$i] := $capture[$i];
+            $i := $i + 1;
+        }
+        for pir::getattribute__PPs($capture, 'named') {
+            %named{$_} := $capture{$_};
+        }
+        
+        # Call.
+        my $call := @!candidates[$!idx];
+        $!idx := $!idx + 1;
+        pir::perl6_set_dispatcher_for_callee__vP(self);
+        $call(|@pos, |%named);
     }
 }
 

@@ -73,6 +73,22 @@ my &callwith := -> *@pos, *%named {
         $dispatcher.call_next(|@pos, |%named)
 };
 
+my &nextwith := -> *@pos, *%named {
+    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my $parcel := $dispatcher.exhausted ?? Nil !!
+        $dispatcher.call_next(|@pos, |%named);
+    my Mu $return := pir::find_caller_lex__Ps('RETURN');
+    nqp::isnull($return)
+        ?? die "Attempt to return outside of any Routine"
+        !! $return(pir::perl6_decontainerize__PP($parcel));
+    $parcel
+};
+
+my &lastcall := -> {
+    pir::perl6_find_dispatcher__P().last();
+    True
+};
+
 sub die(*@msg) { pir::die__0P(@msg.join('')) }
 
 sub eval(Str $code, :$lang = 'perl6') {

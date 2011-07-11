@@ -10,6 +10,7 @@ my class Any {
     method eager() { nqp::p6list(nqp::list(self), List, Bool::True).eager }
     method elems() { self.list.elems }
     method end()   { self.list.end }
+    method classify(&t) { self.list.classify(&t) }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
     method hash() { my %h = self }
@@ -195,3 +196,6 @@ multi elems($a) { $a.elems }
 
 proto end(|$) { * }
 multi end($a) { $a.end }
+
+proto classify(|$) { * }
+multi classify(&test, *@items) { @items.classify(&test) }

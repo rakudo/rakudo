@@ -493,9 +493,9 @@ S32-hash/exists.t
 # S32-io/file-tests.t # err: Method 'IO' not found for invocant of class 'Str'
 # S32-io/note.t # err: Could not find sub &DYNAMIC
 # S32-io/IO-Socket-INET.t # err:  ResizablePMCArray: Can't shift from an empty array!
-# S32-list/classify.t # err: Method 'classify' not found for invocant of class 'Array'
+S32-list/classify.t
 S32-list/create.t
-S32-list/end.t # err: Method 'end' not found for invocant of class 'Array'
+S32-list/end.t
 # S32-list/first.t # err: too many positional arguments: 3 passed, 1 expected
 S32-list/grep.t
 S32-list/join.t

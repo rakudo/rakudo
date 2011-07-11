@@ -189,6 +189,16 @@ class List does Positional {
         self[$index];
     }
 
+    method classify(&test) {
+        my %result;
+        for @.list {
+            my $k = test $_;
+            %result{$k} //= [];
+            %result{$k}.push: $_;
+        }
+        %result.pairs;
+    }
+
     multi method gist(List:D:) { self.Str }
     multi method perl(List:D \$self:) {
         self.gimme(*);

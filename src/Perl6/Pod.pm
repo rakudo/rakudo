@@ -3,22 +3,14 @@ class Perl6::Pod {
     our sub any_block($/) {
         my @children := [];
         for $<pod_content> {
-            # not trivial, for it can be either an array or a pod node
-            # and we can't really flatten a list in nqp
-            # I hope there's a better way,
-            # but let's settle on this for now
+            # check if it's a pod node or an array of strings
             if pir::isa($_.ast, 'ResizablePMCArray') {
-                for $_.ast {
-                    @children.push($_);
-                }
+                for $_.ast { @children.push($_); }
             } else {
                 @children.push($_.ast);
             }
         }
-        my $content := $*ST.add_constant(
-            'Array', 'type_new',
-            |@children,
-        );
+        my $content := serialize_array(@children);
         if $<type>.Str ~~ /^item \d*$/ {
             my $level      := nqp::substr($<type>.Str, 4);
             my $level_past;
@@ -29,38 +21,31 @@ class Perl6::Pod {
             } else {
                 $level_past := $*ST.find_symbol(['Mu']);
             }
-            my $past := $*ST.add_constant(
-                'Pod::Item', 'type_new',
-                :level($level_past),
-                :content($content<compile_time_value>),
+            my $past := serialize_object(
+                'Pod::Item', :level($level_past),
+                :content($content<compile_time_value>)
             );
             return $past<compile_time_value>;
         }
         my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
-        my $past := $*ST.add_constant(
-            'Pod::Block::Named', 'type_new',
-            :name($name<compile_time_value>),
+        my $past := serialize_object(
+            'Pod::Block::Named', :name($name<compile_time_value>),
             :content($content<compile_time_value>),
         );
         return $past<compile_time_value>;
     }
 
     our sub raw_block($/) {
-        my $type;
         my $str := $*ST.add_constant(
             'Str', 'str',
             pir::isa($<pod_content>, 'ResizablePMCArray')
                 ?? pir::join('', $<pod_content>) !! ~$<pod_content>,
         );
-        my $content := $*ST.add_constant(
-            'Array', 'type_new',
-            $str<compile_time_value>
-        );
-        my $past := $*ST.add_constant(
-            $<type>.Str eq 'code' ?? 'Pod::Block::Code'
-                                  !! 'Pod::Block::Comment',
-            'type_new',
-            :content($content<compile_time_value>),
+        my $content := serialize_array([$str<compile_time_value>]);
+        my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
+                                          !! 'Pod::Block::Comment';
+        my $past := serialize_object(
+            $type, :content($content<compile_time_value>)
         );
         return $past<compile_time_value>;
     }
@@ -77,10 +62,9 @@ class Perl6::Pod {
             @rows.push($_.ast);
         }
         @rows := process_rows(@rows);
-        # we need 3 informations about the separators:
-        #   how many of them are
+        # we need to know 2 things about the separators:
+        #   is there more than one
         #   where is the first one
-        #   are they different from each other
         # Given no separators, our table is just an ordinary, one-lined
         # table.
         # If there is one separator, the table has a header and
@@ -91,89 +75,48 @@ class Perl6::Pod {
         # Tricky, isn't it? Let's try to handle it sanely
         my $sepnum        := 0;
         my $firstsepindex := 0;
-        my $differentseps := 0;
-        my $firstsep;
         my $i := 0;
         while $i < +@rows {
             unless pir::isa(@rows[$i], 'ResizablePMCArray') {
                 $sepnum := $sepnum + 1;
                 unless $firstsepindex { $firstsepindex := $i }
-                if $firstsep {
-                    if $firstsep ne @rows[$i] { $differentseps := 1 }
-                } else {
-                    $firstsep := @rows[$i];
-                }
             }
             $i := $i + 1;
         }
 
-        my $past;
+        my $headers := [];
+        my $content := [];
+
         if $sepnum == 0 {
-            my $content := build_table_content(@rows);
-            $past := $*ST.add_constant(
-                'Pod::Block::Table', 'type_new',
-                :content($content<compile_time_value>),
-            );
+            # ordinary table, no headers, one-lined rows
+            $content := @rows;
         } elsif $sepnum == 1 {
-            $past := $*ST.add_constant('Pod::Block::Table', 'type_new');
             if $firstsepindex == 1 {
-                my @head := [];
-                for @rows.shift {
-                    my $p := $*ST.add_constant('Str', 'str', ~$_);
-                    @head.push($p<compile_time_value>);
-                }
-                my $headpast := $*ST.add_constant(
-                    'Array', 'type_new', |@head
-                );
+                # one-lined header, one-lined rows
+                $headers := @rows.shift;
                 @rows.shift; # remove the separator
-                my $content := build_table_content(@rows);
-                $past := $*ST.add_constant(
-                    'Pod::Block::Table', 'type_new',
-                    :headers($headpast<compile_time_value>),
-                    :content($content<compile_time_value>),
-                );
+                $content := @rows;
             } else {
+                # multi-line header, one-lined rows
                 my $i := 0;
                 my @hlines := [];
                 while $i < $firstsepindex {
                     @hlines.push(@rows.shift);
                     $i := $i + 1;
                 }
-                my @newrows := merge_rows(@hlines);
-                my @hpast   := [];
-                for @newrows {
-                    my $p := $*ST.add_constant('Str', 'str', $_);
-                    @hpast.push($p<compile_time_value>);
-                }
-                my $headers := $*ST.add_constant(
-                    'Array', 'type_new', |@hpast
-                );
+                $headers := merge_rows(@hlines);
                 @rows.shift; # remove the separator
-                my $content := build_table_content(@rows);
-
-                $past := $*ST.add_constant(
-                    'Pod::Block::Table', 'type_new',
-                    :headers($headers<compile_time_value>),
-                    :content($content<compile_time_value>),
-                );
+                $content := @rows;
             }
         } else {
-            my @headers := [];
+            my @hlines := [];
             my $i := 0;
             while $i < $firstsepindex {
-                @headers.push(@rows.shift);
+                @hlines.push(@rows.shift);
                 $i := $i + 1;
             }
             @rows.shift;
-            @headers  := merge_rows(@headers);
-            my @hpast := [];
-            for @headers {
-                my $p := $*ST.add_constant('Str', 'str', $_);
-                @hpast.push($p<compile_time_value>);
-            }
-            my $headpast := $*ST.add_constant(
-                    'Array', 'type_new', |@hpast
-            );
+            $headers := merge_rows(@hlines);
             # let's go through the rows and merge the multi-line ones
             my @newrows := [];
             my @tmp  := [];
@@ -187,28 +130,15 @@ class Perl6::Pod {
                 }
                 $i := $i + 1;
             }
-            my $content := build_table_content(@newrows);
-            $past := $*ST.add_constant(
-                'Pod::Block::Table', 'type_new',
-                :headers($headpast<compile_time_value>),
-                :content($content<compile_time_value>),
-            );
+            $content := @newrows;
         }
-        make $past<compile_time_value>;
-    }
 
-    our sub build_table_content(@rows) {
-        my @content := [];
-        for @rows -> $row {
-            my @cells := [];
-            for $row -> $cell {
-                my $p := $*ST.add_constant('Str', 'str', ~$cell);
-                @cells.push($p<compile_time_value>);
-            }
-            my $p := $*ST.add_constant('Array', 'type_new', |@cells);
-            @content.push($*ST.scalar_wrap($p<compile_time_value>));
-        }
-        return $*ST.add_constant('Array', 'type_new', |@content);
+        my $past := serialize_object(
+            'Pod::Block::Table',
+            :headers(serialize_aos($headers)<compile_time_value>),
+            :content(serialize_aoaos($content)<compile_time_value>),
+        );
+        make $past<compile_time_value>;
     }
 
     our sub process_rows(@rows) {
@@ -240,21 +170,15 @@ class Perl6::Pod {
             if $v ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$/ {
                 @res[$i] := $v;
             } elsif $v ~~ /\h'|'\h/ {
-                my $m := $v ~~ /
-                    :ratchet
-                    ([<!before \h+'|'\h+> .]*)
-                    ** [ [\h+ || ^^] '|' [\h+ || $$] ]
-                /;
+                my $m := $v ~~ / :ratchet ([<!before \h+'|'\h+> .]*)
+                                 ** [ [\h+ || ^^] '|' [\h+ || $$] ] /;
                 @res[$i] := $m[0];
             } elsif $v ~~ /\h'+'\h/ {
-                my $m := $v ~~ /
-                    :ratchet
-                    ([<!before \h+'+'\h+> .]*)
-                    ** [ [\h+ || ^^] '+' [\h+ || $$] ]
-                /;
+                my $m := $v ~~ / :ratchet ([<!before \h+'+'\h+> .]*)
+                                 ** [ [\h+ || ^^] '+' [\h+ || $$] ] /;
                 @res[$i] := $m[0];
             } else {
-                # quite a special case
+                # now way to easily split rows
                 return splitrows(@rows);
             }
             $i := $i + 1;
@@ -279,6 +203,7 @@ class Perl6::Pod {
         }
         return @result;
     }
+
     # takes an array of strings (rows of a table)
     # returns array of arrays of strings (cells)
     our sub splitrows(@rows) {
@@ -356,6 +281,36 @@ class Perl6::Pod {
             @ret.push(@tmp);
         }
         return @ret;
+    }
+
+    # serializes the given array
+    our sub serialize_array(@arr) {
+        return $*ST.add_constant('Array', 'type_new', |@arr);
+    }
+
+    # serializes an array of strings
+    our sub serialize_aos(@arr) {
+        my @cells := [];
+        for @arr -> $cell {
+            my $p := $*ST.add_constant('Str', 'str', ~$cell);
+            @cells.push($p<compile_time_value>);
+        }
+        return serialize_array(@cells);
+    }
+
+    # serializes an array of arrays of strings
+    our sub serialize_aoaos(@rows) {
+        my @content := [];
+        for @rows -> $row {
+            my $p := serialize_aos($row);
+            @content.push($*ST.scalar_wrap($p<compile_time_value>));
+        }
+        return serialize_array(@content);
+    }
+
+    # serializes object of the given type
+    our sub serialize_object($type, *@pos, *%named) {
+        return $*ST.add_constant($type, 'type_new', |@pos, |%named);
     }
 }
 

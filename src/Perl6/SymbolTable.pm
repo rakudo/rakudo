@@ -619,16 +619,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method add_dispatchee_to_proto($proto, $candidate) {
         # Add it to the list.
         my $code_type := self.find_symbol(['Code']);
-        pir::getattribute__PPPs($proto, $code_type, '$!dispatchees').push($candidate);
+        $proto.add_dispatchee($candidate);
         
         # Deserializatin code to add it.
         self.add_event(:deserialize_past(PAST::Op.new(
-            :pirop('push vPP'),
-            PAST::Var.new(
-                :scope('attribute_6model'), :name('$!dispatchees'),
-                self.get_object_sc_ref_past($proto),
-                self.get_object_sc_ref_past($code_type)
-            ),
+            :pasttype('callmethod'), :name('add_dispatchee'),
+            self.get_object_sc_ref_past($proto),
             self.get_object_sc_ref_past($candidate)
         )));
     }

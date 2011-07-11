@@ -225,19 +225,14 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<delimited_table> {
         ^^ \h* '=begin' \h+ 'table' <pod_newline>+
         [
-         <table_row>+
+         <table_row>*
          ^^ \h* '=end' \h+ 'table' <pod_newline>
          ||  <.panic: '=begin without matching =end'>
         ]
     }
 
-    # XXX a bit stupid
     token table_row {
         \h* <!before '=' \w> \N* \n
-    }
-
-    token table_row_notempty {
-        \h* <!before '=' \w> \N+ \n
     }
 
     token pod_block:sym<end> {
@@ -272,7 +267,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token pod_block:sym<paragraph_table> {
         ^^ \h* '=for' \h+ 'table' <pod_newline>
-        $<table_row> = <table_row_notempty>+
+        [ <!before \h* \n> <table_row>]*
     }
 
     token pod_block:sym<abbreviated> {
@@ -294,7 +289,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token pod_block:sym<abbreviated_table> {
         ^^ \h* '=table' <pod_newline>
-        $<table_row> = <table_row_notempty>+
+        [ <!before \h* \n> <table_row>]*
     }
 
     token pod_newline {

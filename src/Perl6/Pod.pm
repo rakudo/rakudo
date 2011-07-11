@@ -5,7 +5,7 @@ class Perl6::Pod {
         for $<pod_content> {
             # check if it's a pod node or an array of strings
             if pir::isa($_.ast, 'ResizablePMCArray') {
-                for $_.ast { @children.push($_); }
+                for $_.ast { @children.push($_) }
             } else {
                 @children.push($_.ast);
             }

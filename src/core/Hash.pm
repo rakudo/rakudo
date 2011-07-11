@@ -36,6 +36,39 @@ my class Hash {
         self
     }
 
+    method push(*@values) {
+        my $previous;
+        my $has_previous;
+        for @values -> $e {
+            if $has_previous {
+                self._push_construct($previous.Stringy, $e);
+                $has_previous = 0;
+            } elsif $e ~~ Pair {
+                self._push_construct($e.key.Stringy, $e.value);
+            } else {
+                $previous = $e;
+                $has_previous = 1;
+            }
+        }
+        if $has_previous {
+            warn "Trailing item in Hash.push";
+        }
+        return %(self);
+    }
+
+    # push a value onto a hash slot, constructing an array if necessary
+    # XXX should be a private method
+    method _push_construct(Str $key, Mu $value) {
+        if self.exists($key) {
+            if self.{$key} ~~ Array {
+                self.{$key}.push($value);
+            } else {
+                self.{$key} = [ self.{$key}, $value];
+            }
+        } else {
+            self.{$key} = $value;
+        }
+    }
 }
 
 

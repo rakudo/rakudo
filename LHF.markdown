@@ -34,7 +34,3 @@ my Int $b = 3;  $b = Nil;
 Often builtins are only added as methods, even when the corresponding function
 should exist. Go through src/core/ and write functions that re-dispatch to the
 methods where necessary
-
-## Hash.push
-
-Implement Hash.push

@@ -368,10 +368,11 @@ candidates or that it was ambiguous if there were tied candidates.
 
 static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candidates,
                                 INTVAL num_candidates, PMC *capture, opcode_t *next,
-                                PMC *dispatcher) {
+                                PMC *dispatcher, INTVAL many) {
     Rakudo_md_candidate_info **cur_candidate    = candidates;
     Rakudo_md_candidate_info **possibles        = mem_allocate_n_typed(num_candidates + 1, Rakudo_md_candidate_info *);
     PMC                       *junctional_res   = PMCNULL;
+    PMC                       *many_res         = many ? pmc_new(interp, enum_class_ResizablePMCArray) : PMCNULL;
     const INTVAL               num_args         = VTABLE_elements(interp, capture);
     INTVAL                     possibles_count  = 0;
     INTVAL                     pure_type_result = 1;
@@ -461,12 +462,19 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                 }
             }
 
-            /* Now we have eliminated any that fail the bindability check. If
-             * we've a result, we can stop. */
-            if (possibles_count)
+            /* Now we have eliminated any that fail the bindability check.
+             * See if we need to push it onto the many list and continue.
+             * Otherwise, we have the result we were looking for. */
+            if (many) {
+                for (i = 0; i < possibles_count; i++)
+                    VTABLE_push_pmc(interp, many_res, possibles[i]->sub);
+                possibles_count = 0;
+            }
+            else if (possibles_count) {
                 break;
+            }
             
-            /* Otherwise, we keep looping and looking, unless we really hit the end. */
+            /* Keep looping and looking, unless we really hit the end. */
             if (cur_candidate[1]) {
                 cur_candidate++;
                 continue;
@@ -519,6 +527,10 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
         possibles_count++;
         cur_candidate++;
     }
+    
+    /* If we were looking for many candidates, we're done now. */
+    if (many)
+        return many_res;
 
     /* Check is default trait if we still have multiple options and we want one. */
     if (possibles_count > 1) {
@@ -633,7 +645,35 @@ Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next)
         cands = (Rakudo_md_candidate_info **)VTABLE_get_pointer(interp,
             code_obj->dispatcher_cache);
     }
-    return find_best_candidate(interp, cands, num_cands, capture, next, dispatcher);
+    return find_best_candidate(interp, cands, num_cands, capture, next, dispatcher, 0);
+}
+
+/*
+
+=item C<PMC * Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, opcode_t *next)>
+
+Gets the candidate list, does sorting if we didn't already do so, and
+enters the multi dispatcher.
+
+=cut
+
+*/
+PMC *
+Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, PMC *capture) {
+    Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
+    INTVAL       num_cands = VTABLE_elements(interp, code_obj->dispatchees);
+    Rakudo_md_candidate_info **cands;
+    if (PMC_IS_NULL(code_obj->dispatcher_cache)) {
+        cands = sort_candidates(interp, code_obj->dispatchees);
+        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
+        VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cands);
+        PARROT_GC_WRITE_BARRIER(interp, dispatcher);
+    }
+    else {
+        cands = (Rakudo_md_candidate_info **)VTABLE_get_pointer(interp,
+            code_obj->dispatcher_cache);
+    }
+    return find_best_candidate(interp, cands, num_cands, capture, NULL, dispatcher, 1);
 }
 
 /*

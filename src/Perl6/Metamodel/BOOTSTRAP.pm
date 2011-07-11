@@ -304,6 +304,7 @@ Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu)));
 
 # Need multi-dispatch related methods and clone in here, plus
 # generics instantiation.
@@ -312,10 +313,13 @@ Code.HOW.add_method(Code, 'is_dispatcher', sub ($self) {
         pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
     });
 Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
-        my $disp_list := pir::getattribute__PPPsP($self, Code, '$!dispatchees');
+        my $dc_self   := pir::perl6_decontainerize__PP($self);
+        my $disp_list := pir::getattribute__PPPsP($dc_self, Code, '$!dispatchees');
         if pir::defined($disp_list) {
             $disp_list.push($dispatchee);
-            pir::setattribute__0PPsP($self, Code, '$!dispatcher_cache', pir::null__P());
+            pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($dispatchee),
+                Code, '$!dispatcher', $dc_self);
+            pir::setattribute__0PPsP($dc_self, Code, '$!dispatcher_cache', pir::null__P());
         }
         else {
             pir::die("Cannot add a dispatchee to a non-dispatcher code object");
@@ -363,7 +367,11 @@ Code.HOW.add_method(Code, '!set_name', sub ($self, $name) {
             pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self), Code, '$!do'),
             $name)
     });
-    
+Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
+        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Code, '$!dispatcher')
+    });
+
 # Need to actually run the code block. Also need this available before we finish
 # up the stub.
 Code.HOW.add_parrot_vtable_handler_mapping(Code, 'invoke', '$!do');

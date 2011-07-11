@@ -707,6 +707,20 @@ inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC) :base_core {
     }
 }
 
+/*
+
+=item perl6_get_matching_multis()
+
+Gets the multi dispatcher to find all candidates under the control of
+the dispatcher in $2 that are applicable for capture $3. Puts an RPA
+of them in $1.
+
+=cut
+
+*/
+inline op perl6_get_matching_multis(out PMC, in PMC, in PMC) :base_core {
+    $1 = Rakudo_md_get_all_matches(interp, $2, $3);
+}
 
 /*
 

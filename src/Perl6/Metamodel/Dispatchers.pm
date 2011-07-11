@@ -63,14 +63,21 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
 }
 
 class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
+    has $!has_invocant;
+    has $!invocant;
+    
     method vivify_for($sub, $lexpad) {
-        my $disp  := $sub.dispatcher();
-        my $args  := $lexpad<callsig>;
-        my @cands; # XXX := pir::XXX($disp, $args);
-        self.new(:candidates(@cands), :idx(1))
+        my $disp         := $sub.dispatcher();
+        my $args         := $lexpad<call_sig>;
+        my $has_invocant := pir::exists($lexpad, 'self');
+        my $invocant     := $has_invocant && $lexpad<self>;
+        my @cands        := pir::perl6_get_matching_multis__PPP($disp, $args);
+        self.new(:candidates(@cands), :idx(1), :invocant($invocant),
+            :has_invocant($has_invocant))
     }
 
-    method has_invocant() { 0 }
+    method has_invocant() { $!has_invocant }
+    method invocant() { $!invocant }
 }
 
 class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {

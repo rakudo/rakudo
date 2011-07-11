@@ -59,7 +59,7 @@ S02-literals/numeric.t
 S02-literals/pair-boolean.t
 # S02-literals/pairs.t # err: Not enough positional parameters passed; got 1 but expected 2
 # S02-literals/quoting.t                    # need rx {} quoting
-# S02-literals/quoting-unicode.t                              # icu
+# S02-literals/quoting-unicode.t # err: Could not find sub &keys # icu
 # S02-literals/radix.t # err: Could not find sub &radcalc
 S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
@@ -556,72 +556,72 @@ S32-str/rindex.t
 # S32-str/trim.t # err: too many positional arguments: 3 passed, 1 expected
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
-# S32-str/unpack.t
-# S32-str/words.t                                            # icu
-# S32-temporal/calendar.t
-# S32-temporal/Date.t
-# S32-temporal/DateTime.t
-# S32-temporal/DateTime-Instant-Duration.t
-# S32-temporal/local.t
+# S32-str/unpack.t # err: Could not find sub &radcalc
+# S32-str/words.t                                    # err: Method 'words' not found for invocant of class 'Str' # icu
+# S32-temporal/calendar.t # err: Could not find sub &Date
+# S32-temporal/Date.t # err: Could not find sub &Date
+# S32-temporal/DateTime.t # err: Contextual $*UNITPAST not found
+# S32-temporal/DateTime-Instant-Duration.t # err: Could not find sub &DateTime
+# S32-temporal/local.t # err: Could not find sub &DateTime
 S32-trig/e.t
-# S32-trig/pi.t
-# S32-trig/sin.t                                             # long
-# S32-trig/cos.t                                             # long
-# S32-trig/tan.t                                             # long
-# S32-trig/sec.t                                             # long
-# S32-trig/cosec.t                                           # long
-# S32-trig/cotan.t                                           # long
-# S32-trig/atan2.t                                           # long
-# S32-trig/sinh.t                                            # long
-# S32-trig/cosh.t                                            # long
-# S32-trig/tanh.t                                            # long
-# S32-trig/sech.t                                            # long
+# S32-trig/pi.t # err: Could not find sub &atan
+# S32-trig/sin.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/cos.t # err: Could not find sub &DYNAMIC # long   
+# S32-trig/tan.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/sec.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/cosec.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/cotan.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/atan2.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/sinh.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/cosh.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/tanh.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/sech.t # err: Could not find sub &DYNAMIC # long
 S32-trig/simple.t
-# S32-trig/cosech.t                                          # long
-# S32-trig/cotanh.t                                          # long
-# integration/99problems-01-to-10.t
-# integration/99problems-11-to-20.t
-# integration/99problems-21-to-30.t
-# integration/99problems-31-to-40.t
-# integration/99problems-41-to-50.t
-# integration/99problems-51-to-60.t
-# integration/99problems-61-to-70.t
-# integration/advent2009-day01.t
-# integration/advent2009-day02.t
+# S32-trig/cosech.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/cotanh.t # err: Could not find sub &DYNAMIC # long
+# integration/99problems-01-to-10.t # err: Could not find sub &item
+# integration/99problems-11-to-20.t # err: Method 'splice' not found for invocant of class 'Array'
+# integration/99problems-21-to-30.t # err: Method 'splice' not found for invocant of class 'Array'
+# integration/99problems-31-to-40.t # err: Could not find sub &floor
+# integration/99problems-41-to-50.t # err: Contextual $*UNITPAST not found
+# integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'; expected Any but got Mu instead # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
+# integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
+# integration/advent2009-day01.t # fails .WHAT comparison 
+# integration/advent2009-day02.t # Could not find sub &radcalc
 integration/advent2009-day03.t
 integration/advent2009-day04.t
-# integration/advent2009-day05.t
-# integration/advent2009-day06.t
-# integration/advent2009-day07.t
-# integration/advent2009-day08.t
-# integration/advent2009-day09.t
-# integration/advent2009-day10.t
-# integration/advent2009-day11.t
-# integration/advent2009-day12.t
-# integration/advent2009-day13.t
-# integration/advent2009-day14.t
+# integration/advent2009-day05.t # err: Contextual $*UNITPAST not found
+# integration/advent2009-day06.t # err: Contextual $*UNITPAST not found
+# integration/advent2009-day07.t # err: Could not find sub !dispatch_method_parallel
+# integration/advent2009-day08.t # err: too many positional arguments: 3 passed, 1 expected
+# integration/advent2009-day09.t # err: too many positional arguments: 3 passed, 1 expected
+# integration/advent2009-day10.t # err: Method 'new_type' not found for invocant of class 'Undef'
+# integration/advent2009-day11.t # err: Method 'dog_name' not found for invocant of class 'DogWalker'
+# integration/advent2009-day12.t # err: Could not find sub &DYNAMIC
+# integration/advent2009-day13.t # err: too many positional arguments: 3 passed, 1 expected
+# integration/advent2009-day14.t # err: too many positional arguments: 3 passed, 1 expected
 integration/advent2009-day15.t
-# integration/advent2009-day16.t
-# integration/advent2009-day17.t                             # stress
-# integration/advent2009-day18.t
-# integration/advent2009-day19.t
-# integration/advent2009-day20.t
-# integration/advent2009-day22.t
+# integration/advent2009-day16.t # err: too many positional arguments: 3 passed, 1 expected
+# integration/advent2009-day17.t # err: Unable to parse blockoid # stress
+# integration/advent2009-day18.t # err: Could not instantiate role 'Cup'
+# integration/advent2009-day19.t # err: Method 'succ' not found for invocant of class 'Whatever'
+# integration/advent2009-day20.t # err: Method 'at_key' not found for invocant of class 'Pair'
+# integration/advent2009-day22.t # err: Cannot negate , because it is not iffy enough
 integration/advent2009-day23.t
-# integration/advent2010-day04.t
+# integration/advent2010-day04.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'.
 integration/code-blocks-as-sub-args.t
-# integration/error-reporting.t
+# integration/error-reporting.t # err: Could not find sub &DYNAMIC
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t
 integration/method-calls-and-instantiation.t
 integration/no-indirect-new.t
-# integration/packages.t
+# integration/packages.t # err: Could not find sub &plan
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
-# integration/real-strings.t
+# integration/real-strings.t # err: too many positional arguments: 3 passed, 1 expected
 integration/role-composition-vs-attribute.t
-# integration/rule-in-class-Str.t # 'is also' -> augment
+# integration/rule-in-class-Str.t # err: too many positional arguments: 3 passed, 1 expected # 'is also' -> augment
 integration/say-crash.t
-# integration/substr-after-match-in-gather-in-for.t
-# integration/weird-errors.t
+# integration/substr-after-match-in-gather-in-for.t # err: too many positional arguments: 3 passed, 1 expected
+# integration/weird-errors.t # err: Could not find sub &DYNAMIC

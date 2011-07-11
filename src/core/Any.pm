@@ -19,6 +19,7 @@ my class Any {
     method roll($n = 1) { self.list.roll($n) }
     method reverse() { self.list.reverse }
     method sort($by = &infix:<cmp>) { self.list.sort($by) }
+    method values() { self.list }
 
     method Array() { Array.new(self.flat) }
 

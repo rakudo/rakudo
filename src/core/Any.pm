@@ -9,6 +9,7 @@ my class Any {
 
     method eager() { nqp::p6list(nqp::list(self), List, Bool::True).eager }
     method elems() { self.list.elems }
+    method end()   { self.list.end }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
     method hash() { my %h = self }
@@ -189,3 +190,8 @@ multi pairs($x) { $x.pairs }
 proto kv(|$) { * }
 multi kv($x) { $x.kv }
 
+proto elems(|$) { * }
+multi elems($a) { $a.elems }
+
+proto end(|$) { * }
+multi end($a) { $a.end }

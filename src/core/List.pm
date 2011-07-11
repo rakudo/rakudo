@@ -16,6 +16,7 @@ class List does Positional {
     method Bool()       { self.gimme(1).Bool }
     method Int()        { self.elems }
     method Numeric()    { self.elems }
+    method end()        { self.elems - 1 }
     multi method Str(List:D:) { self.join(' ') }
     method fmt($format = '%s', $separator = ' ') {
         self.map({ .fmt($format) }).join($separator);

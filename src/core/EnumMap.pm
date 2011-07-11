@@ -33,6 +33,17 @@ my class EnumMap does Associative {
             Nil
         }
     }
+    method invert() {
+        gather {
+            my Mu $iter := nqp::iterator($!storage);
+            my Mu $pair;
+            while $iter {
+                $pair := nqp::shift($iter);
+                take Pair.new(:key($pair.value), :value($pair.key));
+            }
+            Nil
+        }
+    }
 
     method at_key($key is copy) is rw {
         $key = $key.Str;

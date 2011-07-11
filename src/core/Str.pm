@@ -151,6 +151,17 @@ my class Str does Stringy {
         my str $ns = nqp::unbox_s(self);
         (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
     }
+
+    method lines(Str:D:) {
+        my $prev_pos = -1;
+        gather {
+            while defined(my $current_pos = self.index("\n", $prev_pos + 1)) {
+                take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
+                $prev_pos = $current_pos;
+            }
+            take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
+        }
+    }
 }
 
 

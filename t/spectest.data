@@ -541,7 +541,7 @@ S32-str/flip.t
 # S32-str/index.t # err: dies after test # 2
 S32-str/lc.t                                               # icu
 S32-str/lcfirst.t                                            # icu
-# S32-str/lines.t # err: Method 'lines' not found for invocant of class 'Str'
+S32-str/lines.t
 S32-str/ords.t
 # S32-str/p5chomp.t # err: Could not find sub &p5chomp
 # S32-str/p5chop.t # err: Could not find sub &p5chop

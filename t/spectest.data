@@ -287,7 +287,7 @@ S04-statements/while.t
 # S06-advanced_subroutine_features/callframe.t # err: too many positional arguments: 3 passed, 1 expected
 S06-advanced_subroutine_features/lexical-subs.t
 # S06-advanced_subroutine_features/recurse.t # err: Symbol '&?ROUTINE' not predeclared in fibonacci
-# S06-advanced_subroutine_features/return.t # err: Method 'blocktype' not found for invocant of class 'PAST;Op'
+S06-advanced_subroutine_features/return.t
 # S06-advanced_subroutine_features/wrap.t # err: Method 'wrap' not found for invocant of class 'Sub'
 # S06-currying/assuming-and-mmd.t # needs proto and dispatch auto-generation for multis
 # S06-currying/named.t # err: Method 'assuming' not found for invocant of class 'Sub'
@@ -327,7 +327,7 @@ S06-signature/scalar-type.t
 S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S06-signature/slurpy-placeholders.t
-# S06-signature/sub-ref.t # err: Not enough positional parameters passed; got 0 but expected 1
+S06-signature/sub-ref.t
 # S06-signature/tree-node-parameters.t # ? runs 0 tests.
 # S06-signature/type-capture.t # err: Cannot call a method on type variable T
 # S06-signature/types.t # err: Malformed block
@@ -616,7 +616,7 @@ integration/lexicals-and-attributes.t
 integration/man-or-boy.t
 integration/method-calls-and-instantiation.t
 integration/no-indirect-new.t
-# integration/packages.t # err: Could not find sub &plan
+integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 # integration/real-strings.t # err: too many positional arguments: 3 passed, 1 expected

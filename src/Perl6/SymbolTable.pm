@@ -43,6 +43,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         my $pad := PAST::Block.new( PAST::Stmts.new(), :node($/) );
+        if +@!BLOCKS {
+            $pad<outer> := @!BLOCKS[+@!BLOCKS - 1];
+        }
         @!BLOCKS[+@!BLOCKS] := $pad;
         $pad
     }
@@ -519,7 +522,15 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # we ever try to run it during compilation.
         my $precomp;
         my $stub := sub (*@pos, *%named) {
-            unless $precomp {
+            my $rns    := pir::get_root_namespace__P();
+            my $p6_pns := $rns{'perl6'};
+            $p6_pns{'GLOBAL'} := $*GLOBALish;
+            if $precomp {
+                # Already pre-compiled, so just call. Note we don't
+                # need to invoke the wrapper more than the first time.
+                $precomp[1](|@pos, |%named);
+            }
+            else {
                 # Compile.
                 $precomp := self.compile_in_context($code_past);
                 
@@ -538,8 +549,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     }
                     $i := $i + 1;
                 }
+                
+                # Run!
+                $precomp(|@pos, |%named);
             }
-            $precomp(|@pos, |%named);
         };
         pir::set__vPS($stub, $code_past.name);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
@@ -713,15 +726,59 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method compile_in_context($past) {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
-        $past.loadlibs('perl6_group', 'perl6_ops');
-        $past.hll('perl6');
+        my $wrapper := PAST::Block.new(
+            PAST::Stmts.new(
+                PAST::Var.new( :name('!pos'), :scope('parameter'), :slurpy(1) ),
+                PAST::Var.new( :name('!nam'), :scope('parameter'), :slurpy(1), :named(1) )
+            ),
+            PAST::Op.new(
+                $past,
+                PAST::Var.new( :name('!pos'), :scope('lexical'), :flat(1) ),
+                PAST::Var.new( :name('!nam'), :scope('lexical'), :flat(1), :named(1) )
+            ));
+        $wrapper.loadlibs('perl6_group', 'perl6_ops');
+        $wrapper.hll('perl6');
+        $wrapper.namespace('');
         
         # Create outer lexical contexts with all symbols visible.
-        # XXX TODO
+        # XXX OK, so here the plan really is that we implement some kind
+        # of static lexpads, which will then be a good lead on to having
+        # stuff work in pre-comp too. However, that's a good day or two
+        # of refactoring, so now we just shove all the compile-time known
+        # symbols into the wrapper.
+        my %seen;
+        my $cur_block := $past;
+        while $cur_block {
+            my %symbols := $cur_block.symtable();
+            for %symbols {
+                unless %seen{$_.key} {
+                    my %sym := $_.value;
+                    if pir::exists(%sym, 'value') {
+                        my $ref;
+                        try {
+                            $ref := $*ST.get_object_sc_ref_past(%sym<value>);
+                        }
+                        unless $ref {
+                            try {
+                                self.add_object(%sym<value>);
+                                $ref := $*ST.get_object_sc_ref_past(%sym<value>);
+                            }
+                        }
+                        if $ref {
+                            $wrapper[0].push(PAST::Var.new(
+                                :name($_.key), :scope('lexical'), :isdecl(1),
+                                :viviself($ref)
+                            ));
+                        }
+                    }
+                }
+                %seen{$_.key} := 1;
+            }
+            $cur_block := $cur_block<outer>;
+        }
         
         # Compile and return.
-        my $pir := PAST::Compiler.compile($past, :target('pir'));
-        PAST::Compiler.compile($past)
+        PAST::Compiler.compile($wrapper)
     }
     
     # Adds a constant value to the constants table. Returns PAST to do

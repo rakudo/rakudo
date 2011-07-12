@@ -1,5 +1,5 @@
 use Test;
-plan 61;
+plan 37;
 my $r;
 
 =begin table
@@ -11,18 +11,15 @@ my $r;
 
 $r = $=POD[0];
 isa_ok $r, Pod::Block::Table;
-is $r.content[0][0], 'The Shoveller';
-is $r.content[0][1], 'Eddie Stevens';
-is $r.content[0][2], "King Arthur's singing shovel";
-is $r.content[1][0], 'Blue Raja';
-is $r.content[1][1], 'Geoffrey Smith';
-is $r.content[1][2], 'Master of cutlery';
-is $r.content[2][0], 'Mr Furious';
-is $r.content[2][1], 'Roy Orson';
-is $r.content[2][2], 'Ticking time bomb of fury';
-is $r.content[3][0], 'The Bowler';
-is $r.content[3][1], 'Carol Pinnsler';
-is $r.content[3][2], 'Haunted bowling ball';
+is $r.content.elems, 4;
+is $r.content[0].join('|'),
+   "The Shoveller|Eddie Stevens|King Arthur's singing shovel";
+is $r.content[1].join('|'),
+   "Blue Raja|Geoffrey Smith|Master of cutlery";
+is $r.content[2].join('|'),
+   "Mr Furious|Roy Orson|Ticking time bomb of fury";
+is $r.content[3].join('|'),
+   "The Bowler|Carol Pinnsler|Haunted bowling ball";
 
 =table
     Constants           1
@@ -31,14 +28,11 @@ is $r.content[3][2], 'Haunted bowling ball';
     Everything else     57
 
 $r = $=POD[1];
-is $r.content[0][0], 'Constants';
-is $r.content[1][0], 'Variables';
-is $r.content[2][0], 'Subroutines';
-is $r.content[3][0], 'Everything else';
-is $r.content[0][1], '1';
-is $r.content[1][1], '10';
-is $r.content[2][1], '33';
-is $r.content[3][1], '57';
+is $r.content.elems, 4;
+is $r.content[0].join('|'), "Constants|1";
+is $r.content[1].join('|'), "Variables|10";
+is $r.content[2].join('|'), "Subroutines|33";
+is $r.content[3].join('|'), "Everything else|57";
 
 =for table
     mouse    | mice
@@ -46,34 +40,24 @@ is $r.content[3][1], '57';
     elephant | elephants
 
 $r = $=POD[2];
-is $r.content[0][0], 'mouse';
-is $r.content[0][1], 'mice';
-is $r.content[1][0], 'horse';
-is $r.content[1][1], 'horses';
-is $r.content[2][0], 'elephant';
-is $r.content[2][1], 'elephants';
+is $r.content.elems, 3;
+is $r.content[0].join('|'), "mouse|mice";
+is $r.content[1].join('|'), "horse|horses";
+is $r.content[2].join('|'), "elephant|elephants";
 
 =table
     Animal | Legs |    Eats
     =======================
-    Zebra  |   4  | Cookies
-    Human  |   2  |   Pizza
-    Shark  |   0  |    Fish
+    Zebra  +   4  + Cookies
+    Human  +   2  +   Pizza
+    Shark  +   0  +    Fish
 
 $r = $=POD[3];
-is $r.headers[0], 'Animal';
-is $r.headers[1], 'Legs';
-is $r.headers[2], 'Eats';
-is $r.content[0][0], 'Zebra';
-is $r.content[0][1], '4';
-is $r.content[0][1], '4';
-is $r.content[0][2], 'Cookies';
-is $r.content[1][0], 'Human';
-is $r.content[1][1], '2';
-is $r.content[1][2], 'Pizza';
-is $r.content[2][0], 'Shark';
-is $r.content[2][1], '0';
-is $r.content[2][2], 'Fish';
+is $r.headers.join('|'), "Animal|Legs|Eats";
+is $r.content.elems, 3;
+is $r.content[0].join('|'), "Zebra|4|Cookies";
+is $r.content[1].join('|'), "Human|2|Pizza";
+is $r.content[2].join('|'), "Shark|0|Fish";
 
 =table
         Superhero     | Secret          | 
@@ -82,12 +66,10 @@ is $r.content[2][2], 'Fish';
         The Shoveller | Eddie Stevens   | King Arthur's singing shovel
 
 $r = $=POD[4];
-is $r.headers[0], 'Superhero';
-is $r.headers[1], 'Secret Identity';
-is $r.headers[2], 'Superpower';
-is $r.content[0][0], 'The Shoveller';
-is $r.content[0][1], 'Eddie Stevens';
-is $r.content[0][2], "King Arthur's singing shovel";
+is $r.headers.join('|'), "Superhero|Secret Identity|Superpower";
+is $r.content.elems, 1;
+is $r.content[0].join('|'),
+   "The Shoveller|Eddie Stevens|King Arthur's singing shovel";
 
 =begin table
 
@@ -107,18 +89,39 @@ is $r.content[0][2], "King Arthur's singing shovel";
 =end table
 
 $r = $=POD[5];
-is $r.headers[0], 'Superhero';
-is $r.headers[1], 'Secret Identity';
-is $r.headers[2], 'Superpower';
-is $r.content[0][0], 'The Shoveller';
-is $r.content[0][1], 'Eddie Stevens';
-is $r.content[0][2], "King Arthur's singing shovel";
-is $r.content[1][0], 'Blue Raja';
-is $r.content[1][1], 'Geoffrey Smith';
-is $r.content[1][2], 'Master of cutlery';
-is $r.content[2][0], 'Mr Furious';
-is $r.content[2][1], 'Roy Orson';
-is $r.content[2][2], 'Ticking time bomb of fury';
-is $r.content[3][0], 'The Bowler';
-is $r.content[3][1], 'Carol Pinnsler';
-is $r.content[3][2], 'Haunted bowling ball';
+is $r.headers.join('|'), "Superhero|Secret Identity|Superpower";
+is $r.content.elems, 4;
+is $r.content[0].join('|'),
+   "The Shoveller|Eddie Stevens|King Arthur's singing shovel";
+is $r.content[1].join('|'),
+   "Blue Raja|Geoffrey Smith|Master of cutlery";
+is $r.content[2].join('|'),
+   "Mr Furious|Roy Orson|Ticking time bomb of fury";
+is $r.content[3].join('|'),
+   "The Bowler|Carol Pinnsler|Haunted bowling ball";
+
+=table
+    X | O |
+   ---+---+---
+      | X | O
+   ---+---+---
+      |   | X
+
+$r = $=POD[6];
+is $r.content.elems, 3;
+is $r.content[0].join(','), 'X,O,';
+is $r.content[1].join(','), ',X,O';
+is $r.content[2].join(','), ',,X';
+
+=table
+    X   O     
+   ===========
+        X   O 
+   ===========
+            X 
+
+$r = $=POD[7];
+is $r.content.elems, 3;
+is $r.content[0].join(','), 'X,O,';
+is $r.content[1].join(','), ',X,O';
+is $r.content[2].join(','), ',,X';

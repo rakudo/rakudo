@@ -62,9 +62,10 @@ class Perl6::Pod {
             @rows.push($_.ast);
         }
         @rows := process_rows(@rows);
-        # we need to know 2 things about the separators:
+        # we need to know 3 things about the separators:
         #   is there more than one
         #   where is the first one
+        #   are they different from each other
         # Given no separators, our table is just an ordinary, one-lined
         # table.
         # If there is one separator, the table has a header and
@@ -75,11 +76,18 @@ class Perl6::Pod {
         # Tricky, isn't it? Let's try to handle it sanely
         my $sepnum        := 0;
         my $firstsepindex := 0;
+        my $differentseps := 0;
+        my $firstsep;
         my $i := 0;
         while $i < +@rows {
             unless pir::isa(@rows[$i], 'ResizablePMCArray') {
                 $sepnum := $sepnum + 1;
                 unless $firstsepindex { $firstsepindex := $i }
+                if $firstsep {
+                    if $firstsep ne @rows[$i] { $differentseps := 1 }
+                } else {
+                    $firstsep := @rows[$i];
+                }
             }
             $i := $i + 1;
         }
@@ -111,12 +119,14 @@ class Perl6::Pod {
         } else {
             my @hlines := [];
             my $i := 0;
-            while $i < $firstsepindex {
-                @hlines.push(@rows.shift);
-                $i := $i + 1;
+            if $differentseps {
+                while $i < $firstsepindex {
+                    @hlines.push(@rows.shift);
+                    $i := $i + 1;
+                }
+                @rows.shift;
+                $headers := merge_rows(@hlines);
             }
-            @rows.shift;
-            $headers := merge_rows(@hlines);
             # let's go through the rows and merge the multi-line ones
             my @newrows := [];
             my @tmp  := [];
@@ -129,6 +139,9 @@ class Perl6::Pod {
                     @tmp := [];
                 }
                 $i := $i + 1;
+            }
+            if +@tmp > 0 {
+                @newrows.push(merge_rows(@tmp));
             }
             $content := @newrows;
         }
@@ -170,13 +183,19 @@ class Perl6::Pod {
             if $v ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$/ {
                 @res[$i] := $v;
             } elsif $v ~~ /\h'|'\h/ {
-                my $m := $v ~~ / :ratchet ([<!before \h+'|'\h+> .]*)
-                                 ** [ [\h+ || ^^] '|' [\h+ || $$] ] /;
-                @res[$i] := $m[0];
+                my $m := $v ~~ /
+                    :ratchet ([<!before [\h+ || ^^] '|' [\h+ || $$]> .]*)
+                    ** [ [\h+ || ^^] '|' [\h || $$] ]
+                /;
+                @res[$i] := [];
+                for $m[0] { @res[$i].push(formatted_text($_)) }
             } elsif $v ~~ /\h'+'\h/ {
-                my $m := $v ~~ / :ratchet ([<!before \h+'+'\h+> .]*)
-                                 ** [ [\h+ || ^^] '+' [\h+ || $$] ] /;
-                @res[$i] := $m[0];
+                my $m := $v ~~ /
+                    :ratchet ([<!before [\h+ || ^^] '+' [\h+ || $$]> .]*)
+                    ** [ [\h+ || ^^] '+' [\h+ || $$] ]
+                /;
+                @res[$i] := [];
+                for $m[0] { @res[$i].push(formatted_text($_)) }
             } else {
                 # now way to easily split rows
                 return splitrows(@rows);
@@ -213,15 +232,17 @@ class Perl6::Pod {
 
         my $i := 0;
         while $i < +@rows {
-            my @line := pir::split('', @rows[$i]);
-            my $j := 0;
-            while $j < +@line {
-                unless @suspects[$j] {
-                    if @line[$j] ne ' ' {
-                        @suspects[$j] := 1;
+            unless @rows[$i] ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$ / {
+                my @line := pir::split('', @rows[$i]);
+                my $j := 0;
+                while $j < +@line {
+                    unless @suspects[$j] {
+                        if @line[$j] ne ' ' {
+                            @suspects[$j] := 1;
+                        }
                     }
+                    $j := $j + 1;
                 }
-                $j := $j + 1;
             }
             $i := $i + 1;
         }

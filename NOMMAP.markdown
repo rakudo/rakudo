@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 9 July 2011
+Last Updated 12 July 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -49,7 +49,6 @@ Many things are working, some are not...
 * Try to implement enumerations
 * Some support for augment
 * handles
-* does and but
 
 ## Restore other setting bits
 Bring back in everything that was ripped out. Probably many our things
@@ -58,10 +57,6 @@ become my things.
 ## Custom Operators
 Get these working again.
 
-## Phasers
-* BEGIN/CHECK need to see correct lexical environment
-* END in pre-compiled mainline case
-
 ## Work towards nom being master
 Get enough of the spectests passing for us to be ready to make nom into
 the master branch
@@ -69,3 +64,9 @@ the master branch
 ## Fix array/hash initialization
 my @a;  needs to initialize @a to be the Array type object (not an Array instance).
 Same for my %h and hashes.
+
+## Phasers
+* END in pre-compiled mainline case
+
+## BEGIN-time lexicals
+Need to have support for assigning to outer variables at BEGIN time.

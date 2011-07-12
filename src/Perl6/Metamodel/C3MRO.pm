@@ -44,7 +44,7 @@ role Perl6::Metamodel::C3MRO {
                         # Is current candidate in the tail? If so, reject.
                         my $cur_pos := 1;
                         while $cur_pos <= +$_ {
-                            if $_[$cur_pos] =:= $cand_class {
+                            if pir::nqp_decontainerize__PP($_[$cur_pos]) =:= pir::nqp_decontainerize__PP($cand_class) {
                                 $rejected := 1;
                             }
                             $cur_pos := $cur_pos + 1;
@@ -76,7 +76,7 @@ role Perl6::Metamodel::C3MRO {
         while $i < +@merge_list {
             my @new_list;
             for @merge_list[$i] {
-                unless $_ =:= $accepted {
+                unless pir::nqp_decontainerize__PP($_) =:= pir::nqp_decontainerize__PP($accepted) {
                     @new_list.push($_);
                 }
             }

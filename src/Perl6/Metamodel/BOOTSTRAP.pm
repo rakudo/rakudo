@@ -79,6 +79,7 @@ Cool.HOW.add_parent(Cool, Any);
 #     has $!container_descriptor;
 #     has $!auto_viv_container;
 #     has $!build_closure;
+#     has $!package;
 #     ... # Uncomposed
 # }
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -90,16 +91,18 @@ Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu)));
 Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
 
 # XXX Need new and accessor methods for Attribute in here for now.
 Attribute.HOW.add_method(Attribute, 'new',
-    sub ($self, :$name, :$type, :$container_descriptor, :$has_accessor, *%other) {
+    sub ($self, :$name, :$type, :$container_descriptor, :$has_accessor, :$package, *%other) {
         my $attr := pir::repr_instance_of__PP($self);
         pir::repr_bind_attr_str__vPPsS($attr, Attribute, '$!name', $name);
         pir::setattribute__vPPsP($attr, Attribute, '$!type', $type);
         pir::repr_bind_attr_int__vPPsI($attr, Attribute, '$!has_accessor', $has_accessor);
         pir::setattribute__vPPsP($attr, Attribute, '$!container_descriptor', $container_descriptor);
+        pir::setattribute__vPPsP($attr, Attribute, '$!package', $package);
         if pir::exists(%other, 'auto_viv_container') {
             pir::setattribute__vPPsP($attr, Attribute, '$!auto_viv_container',
                 %other<auto_viv_container>);
@@ -145,13 +148,16 @@ Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
 Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
         my $type     := pir::getattribute__PPPs($self, Attribute, '$!type');
         my $cd       := pir::getattribute__PPPs($self, Attribute, '$!container_descriptor');
+        my $pkg      := pir::getattribute__PPPs($self, Attribute, '$!package');
         my $avc      := pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');
         my $type_ins := $type.HOW.instantiate_generic($type, $type_environment);
         my $cd_ins   := $cd.instantiate_generic($type_environment);
+        my $pkg_ins   := $pkg.HOW.instantiate_generic($pkg, $type_environment);
         my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
         my $ins      := pir::repr_clone__PP($self);
         pir::setattribute__vPPsP($ins, Attribute, '$!type', $type_ins);
         pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
+        pir::setattribute__vPPsP($ins, Attribute, '$!package', $pkg_ins);
         pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
             pir::setattribute__0PPsP($avc_copy, (pir::perl6_var__PP($avc_copy)).WHAT, '$!descriptor', $cd_ins));
         $ins
@@ -224,7 +230,11 @@ Signature.HOW.add_method(Signature, 'instantiate_generic', sub ($self, $type_env
         }
         pir::setattribute__0PPsP($ins, Signature, '$!params', @ins_params)
     });
-
+Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
+        nqp::bindattr(pir::perl6_decontainerize__PP($self),
+            Signature, '$!returns', pir::perl6_decontainerize__PP($type));
+    });
+    
 # class Parameter {
 #     has str $!variable_name
 #     has $!named_names
@@ -294,6 +304,7 @@ Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu)));
 
 # Need multi-dispatch related methods and clone in here, plus
 # generics instantiation.
@@ -302,10 +313,13 @@ Code.HOW.add_method(Code, 'is_dispatcher', sub ($self) {
         pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
     });
 Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
-        my $disp_list := pir::getattribute__PPPsP($self, Code, '$!dispatchees');
+        my $dc_self   := pir::perl6_decontainerize__PP($self);
+        my $disp_list := pir::getattribute__PPPsP($dc_self, Code, '$!dispatchees');
         if pir::defined($disp_list) {
             $disp_list.push($dispatchee);
-            pir::setattribute__0PPsP($self, Code, '$!dispatcher_cache', pir::null__P());
+            pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($dispatchee),
+                Code, '$!dispatcher', $dc_self);
+            pir::setattribute__0PPsP($dc_self, Code, '$!dispatcher_cache', pir::null__P());
         }
         else {
             pir::die("Cannot add a dispatchee to a non-dispatcher code object");
@@ -348,6 +362,15 @@ Code.HOW.add_method(Code, 'name', sub ($self) {
         ~pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Code, '$!do')
     });
+Code.HOW.add_method(Code, '!set_name', sub ($self, $name) {
+        pir::assign__vPS(
+            pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self), Code, '$!do'),
+            $name)
+    });
+Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
+        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Code, '$!dispatcher')
+    });
 
 # Need to actually run the code block. Also need this available before we finish
 # up the stub.
@@ -364,8 +387,13 @@ Block.HOW.publish_parrot_vtable_mapping(Block);
 # class Routine is Block { ... }
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 Routine.HOW.add_parent(Routine, Block);
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
 Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
 Routine.HOW.publish_parrot_vtable_mapping(Routine);
+Routine.HOW.add_method(Routine, 'set_rw', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!rw', 1);
+    });
 
 # class Sub is Routine { ... }
 my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -590,7 +618,7 @@ my $error_cd := Perl6::Metamodel::ContainerDescriptor.new(
 my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
     :of(Mu), :rw(1), :name('$/'));
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
-    $topic_cd, $error_cd, $match_cd, Scalar, Any);
+    $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash);
 
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
@@ -628,5 +656,8 @@ my module EXPORT {
         $?PACKAGE.WHO<False>     := $false;
         $?PACKAGE.WHO<True>      := $true;
         $?PACKAGE.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
+        $?PACKAGE.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
+        $?PACKAGE.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
+        $?PACKAGE.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
     }
 }

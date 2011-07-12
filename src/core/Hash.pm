@@ -1,7 +1,7 @@
 my class Hash {
     # Has attributes and parent EnumMap declared in BOOTSTRAP
     
-    method at_key($key is copy) {
+    method at_key($key is copy) is rw {
         $key = $key.Str;
         self.exists($key)
           ?? pir::find_method__PPs(EnumMap, 'at_key')(self, $key)
@@ -15,7 +15,7 @@ my class Hash {
           !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
     }
 
-    method STORE_AT_KEY(Str \$key, Mu $x is copy) {
+    method STORE_AT_KEY(Str \$key, Mu $x is copy) is rw {
         pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
     }
 
@@ -36,6 +36,39 @@ my class Hash {
         self
     }
 
+    method push(*@values) {
+        my $previous;
+        my $has_previous;
+        for @values -> $e {
+            if $has_previous {
+                self._push_construct($previous.Stringy, $e);
+                $has_previous = 0;
+            } elsif $e ~~ Pair {
+                self._push_construct($e.key.Stringy, $e.value);
+            } else {
+                $previous = $e;
+                $has_previous = 1;
+            }
+        }
+        if $has_previous {
+            warn "Trailing item in Hash.push";
+        }
+        return %(self);
+    }
+
+    # push a value onto a hash slot, constructing an array if necessary
+    # XXX should be a private method
+    method _push_construct(Str $key, Mu $value) {
+        if self.exists($key) {
+            if self.{$key} ~~ Array {
+                self.{$key}.push($value);
+            } else {
+                self.{$key} = [ self.{$key}, $value];
+            }
+        } else {
+            self.{$key} = $value;
+        }
+    }
 }
 
 

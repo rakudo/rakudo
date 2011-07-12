@@ -16,11 +16,14 @@ my class Str does Stringy {
     multi method ACCEPTS(Str:D: $other) { $other eq self }
 
     method chomp() {
-        my $n_idx = self.chars - 1;
-        my $rn_idx = $n_idx - 1;
-        self.substr($rn_idx) eq "\r\n" ?? self.substr(0, $rn_idx) !!
-        self.substr($n_idx)  eq "\n"   ?? self.substr(0, $n_idx)  !!
-        self;
+        my Int $chars = self.chars;
+        return '' if $chars == 0;
+        my Str $last = nqp::p6box_s(nqp::substr(nqp::unbox_s(self), nqp::unbox_i($chars - 1)));
+        my Int $to_remove = 0;
+        $to_remove = 1 if $last eq "\n" || $last eq "\r";
+        $to_remove = 2 if $chars > 1
+            && nqp::p6box_s(nqp::substr(nqp::unbox_s(self), nqp::unbox_i($chars - 2))) eq "\r\n";
+        nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self),nqp::unbox_i($to_remove)))
     }
 
     method chop() {
@@ -142,6 +145,23 @@ my class Str does Stringy {
     method comb() {
         (^self.chars).map({self.substr($_, 1) });
     }
+
+    method ords(Str:D:) {
+        my Int $c  = self.chars;
+        my str $ns = nqp::unbox_s(self);
+        (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
+    }
+
+    method lines(Str:D:) {
+        my $prev_pos = -1;
+        gather {
+            while defined(my $current_pos = self.index("\n", $prev_pos + 1)) {
+                take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
+                $prev_pos = $current_pos;
+            }
+            take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
+        }
+    }
 }
 
 
@@ -206,4 +226,10 @@ multi infix:<~^>(Str \$a, Str \$b) {
 
 multi prefix:<~^>(Str \$a) {
     fail "prefix:<~^> NYI";   # XXX
+}
+
+multi sub ords(Str $s) {
+    my Int $c  = $s.chars;
+    my str $ns = nqp::unbox_s($s);
+    (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
 }

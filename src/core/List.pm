@@ -16,6 +16,7 @@ class List does Positional {
     method Bool()       { self.gimme(1).Bool }
     method Int()        { self.elems }
     method Numeric()    { self.elems }
+    method end()        { self.elems - 1 }
     multi method Str(List:D:) { self.join(' ') }
     method fmt($format = '%s', $separator = ' ') {
         self.map({ .fmt($format) }).join($separator);
@@ -36,7 +37,7 @@ class List does Positional {
         nqp::p6parcel($rpa, Any);
     }
 
-    method at_pos($pos is copy) {
+    method at_pos($pos is copy) is rw {
         $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
@@ -188,6 +189,16 @@ class List does Positional {
         self[$index];
     }
 
+    method classify(&test) {
+        my %result;
+        for @.list {
+            my $k = test $_;
+            %result{$k} //= [];
+            %result{$k}.push: $_;
+        }
+        %result.pairs;
+    }
+
     multi method gist(List:D:) { self.Str }
     multi method perl(List:D \$self:) {
         self.gimme(*);
@@ -201,7 +212,7 @@ class List does Positional {
         $parcel
     }
 
-    method STORE_AT_POS(\$pos, Mu \$v) {
+    method STORE_AT_POS(\$pos, Mu \$v) is rw {
         nqp::bindpos($!items, nqp::unbox_i($pos), $v)
     }
 

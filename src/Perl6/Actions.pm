@@ -690,23 +690,23 @@ class Perl6::Actions is HLL::Actions {
     method statement_control:sym<default>($/) {
         # We always execute this, so just need the block, however we also
         # want to make sure we break after running it.
-        my $block := block_immediate($<block>.ast);
-        when_handler_helper($block);
-        make $block;
+        my $block := $<block>.ast;
+        when_handler_helper($block<past_block>);
+        make PAST::Op.new($block);
     }
 
     method statement_control:sym<CATCH>($/) {
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block);
+        push_block_handler($/, $*ST.cur_lexpad(), $block<past_block>);
         $*ST.cur_lexpad().handlers()[0].handle_types_except('CONTROL');
-        make PAST::Stmts.new(:node($/));
+        make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_control:sym<CONTROL>($/) {
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block);
+        push_block_handler($/, $*ST.cur_lexpad(), $block<past_block>);
         $*ST.cur_lexpad().handlers()[0].handle_types('CONTROL');
-        make PAST::Stmts.new(:node($/));
+        make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_prefix:sym<BEGIN>($/) { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }
@@ -904,7 +904,7 @@ class Perl6::Actions is HLL::Actions {
                 if $attr {
                     $past.scope('attribute_6model');
                     $past.type($attr.type);
-                    $past.unshift($*ST.get_object_sc_ref_past($*ST.find_symbol(['$?CLASS'])));
+                    $past.unshift(instantiated_type(['$?CLASS'], $/));
                     $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
                     $past := box_native_if_needed($past, $attr.type);
                 }
@@ -930,7 +930,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         elsif $name eq '%_' {
-            unless $*ST.nearest_signatured_block_declares('%_') {
+            unless $*ST.nearest_signatured_block_declares('%_') || $*METHODTYPE {
                 $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1));
             }
         }
@@ -939,8 +939,8 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif (my $attr_alias := $*ST.is_attr_alias($past.name)) {
             $past.name($attr_alias);
-            $past.scope('attribute');
-            $past.unshift($*ST.get_object_sc_ref_past($*ST.find_symbol(['$?CLASS'])));
+            $past.scope('attribute_6model');
+            $past.unshift(instantiated_type(['$?CLASS'], $/));
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
         }
         elsif $*IN_DECL ne 'variable' {
@@ -1051,8 +1051,11 @@ class Perl6::Actions is HLL::Actions {
             for @params {
                 if $_<variable_name> {
                     my $past := PAST::Var.new( :name($_<variable_name>) );
-                    $list.push(declare_variable($/, $past, $_<sigil>,
-                        $_<twigil>, $_<desigilname>, []));
+                    $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
+                        $_<desigilname>, []);
+                    unless $past.isa(PAST::Op) && $past.pasttype eq 'null' {
+                        $list.push($past);
+                    }
                 }
                 else {
                     $list.push($*ST.build_container_past(
@@ -1111,9 +1114,10 @@ class Perl6::Actions is HLL::Actions {
                     name => $attrname,
                     has_accessor => $twigil eq '.'
                 ),
-                hash( 
+                hash(
                     container_descriptor => $descriptor,
-                    type => $type),
+                    type => $type,
+                    package => $*ST.find_symbol(['$?CLASS'])),
                 sigiltype($sigil), $descriptor, |@default);
             
             # If no twigil, note $foo is an alias to $!foo.
@@ -1203,6 +1207,13 @@ class Perl6::Actions is HLL::Actions {
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object(@params, $block);
         add_signature_binding_code($block, $signature, @params);
+        
+        # If it's a multi, needs a slot that can hold an (unvivified)
+        # dispatcher.
+        if $*MULTINESS eq 'multi' {
+            $*ST.install_lexical_symbol($block, '$*DISPATCHER', $*ST.find_symbol(['MultiDispatcher']));
+            $block[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
+        }
 
         # Create code object.
         if $<deflongname> {
@@ -1224,19 +1235,53 @@ class Perl6::Actions is HLL::Actions {
             # XXX Also need to auto-multi things with a proto in scope.
             my $name := '&' ~ ~$<deflongname>[0].ast;
             if $*MULTINESS eq 'multi' {
-                # Locate the proto - or what we hope will be it.
-                my %proto_sym := $outer.symbol($name);
-                unless %proto_sym {
-                    $/.CURSOR.panic("proto and dispatch auto-generation for multis not yet implemented");
+                # Do we have a proto in the current scope?
+                my $proto;
+                if $outer.symbol($name) {
+                    $proto := $outer.symbol($name)<value>;
                 }
-                my $proto := %proto_sym<value>;
-                # XXX ensure it's actuall a proto or dispatch...
+                else {
+                    # None; search outer scopes.
+                    my $new_proto;
+                    try {
+                        $proto := $*ST.find_symbol([$name]);
+                    }
+                    if $proto {
+                        # Found in outer scope. Need to derive.
+                        $new_proto := $*ST.derive_dispatcher($proto);
+                    }
+                    else {
+                        # Generate a proto foo(|$) { * }
+                        my $p_past := PAST::Block.new(
+                            :name($block.name), :nsentry(''),
+                            PAST::Stmts.new(),
+                            PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
+                        $outer[0].push(PAST::Stmt.new($p_past));
+                        my @p_params := [hash(is_capture => 1, nominal_type => $*ST.find_symbol(['Mu']) )];
+                        my $p_sig := $*ST.create_signature([$*ST.create_parameter(@p_params[0])]);
+                        add_signature_binding_code($p_past, $p_sig, @p_params);
+                        $new_proto := $*ST.create_code_object($p_past, 'Sub', $p_sig, 1);
+                    }
+                    
+                    # Install in current scope.
+                    $*ST.install_lexical_symbol($outer, $name, $new_proto);
+                    $proto := $new_proto;
+                }
+                
+                # Ensure it's actually a dispatcher.
+                unless $proto.is_dispatcher {
+                    $/.CURSOR.panic("Cannot declare a multi when an only is in scope");
+                }
                 
                 # Install the candidate.
                 $*ST.add_dispatchee_to_proto($proto, $code);
             }
             else {
                 # Install.
+                if $outer.symbol($name) {
+                    $/.CURSOR.panic("Illegal redeclaration of routine '" ~
+                        ~$<deflongname>[0].ast ~ "'");
+                }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
                     $*ST.install_lexical_symbol($outer, $name, $code);
                 }
@@ -1285,7 +1330,7 @@ class Perl6::Actions is HLL::Actions {
         }
         $past.name(~$<longname>);
         
-        # Get signature and ensure it has an invocant.
+        # Get signature and ensure it has an invocant and *%_.
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
         }
@@ -1297,6 +1342,15 @@ class Perl6::Actions is HLL::Actions {
                 is_multi_invocant => 1
             ));
         }
+        unless @params[+@params - 1]<named_slurpy> {
+            @params.push(hash(
+                variable_name => '%_',
+                nominal_type => $*ST.find_symbol(['Mu']),
+                named_slurpy => 1,
+                is_multi_invocant => 1,
+                is_method_named_slurpy => 1
+            ));
+        }
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object(@params, $past);
         add_signature_binding_code($past, $signature, @params);
@@ -1305,6 +1359,11 @@ class Perl6::Actions is HLL::Actions {
         $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
         $past.symbol('self', :scope('lexical_6model'));
 
+        # Needs a slot to hold a multi or method dispatcher.
+        $*ST.install_lexical_symbol($past, '$*DISPATCHER',
+            $*ST.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
+        $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
+        
         # Create code object.
         if $<longname> {
             $past.name($<longname>.Str);
@@ -1364,63 +1423,6 @@ class Perl6::Actions is HLL::Actions {
         $BLOCK.push(PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
         $BLOCK.node($/);
         make $BLOCK;
-    }
-
-    sub install_method($/, $code, $name, %table) {
-        my $installed;
-        
-        # Create method table entry if we need one.
-        unless %table{$name} { my %tmp; %table{$name} := %tmp; }
-
-        # If it's an only and there's already a symbol, problem.
-        if $*MULTINESS eq 'only' && %table{$name} {
-            $/.CURSOR.panic('Cannot declare only method ' ~ $name ~
-                ' when another method with this name was already declared');
-        }
-        elsif $*MULTINESS || %table{$name}<multis> {
-            # If no multi declarator and no proto, error.
-            if !$*MULTINESS && !%table{$name}<proto> {
-                $/.CURSOR.panic('Cannot re-declare method ' ~ $name ~ ' without declaring it multi');
-            }
-
-            # If it's a proto, stash it away in the symbol entry.
-            if $*MULTINESS eq 'proto' { %table{$name}<proto> := $code; }
-
-            # Create multi container if we don't have one; otherwise, just push 
-            # this candidate onto it.
-            if %table{$name}<multis> {
-                %table{$name}<multis>.push($code);
-            }
-            else {
-                $code := PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('set_candidates'),
-                    PAST::Op.new( :inline('    %r = new ["Perl6MultiSub"]') ),
-                    $code
-                );
-                %table{$name}<code_ref> := %table{$name}<multis> := $installed := $code;
-            }
-        }
-        else {
-            %table{$name}<code_ref> := $installed := $code;
-        }
-
-        # If we did install something (we maybe didn't need to if this is a multi),
-        # we may need to also pop it in other places.
-        if $installed {
-            if $*SCOPE eq 'my' {
-                $*ST.cur_lexpad()[0].push(PAST::Var.new( :name('&' ~ $name), :isdecl(1),
-                        :viviself($installed), :scope('lexical_6model') ));
-                $*ST.cur_lexpad().symbol($name, :scope('lexical_6model') );
-            }
-            elsif $*SCOPE eq 'our' {
-                @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                    :pasttype('bind_6model'),
-                    PAST::Var.new( :name('&' ~ $name), :scope('package') ),
-                    $installed
-                ));
-            }
-        }
     }
 
     our %REGEX_MODIFIERS;
@@ -2191,14 +2193,11 @@ class Perl6::Actions is HLL::Actions {
         # Otherwise, it's a type name; build a reference to that
         # type, since we can statically resolve them.
         else {
-            my $sym := $*ST.find_symbol(@name);
             if $<arglist> {
                 $/.CURSOR.panic("Parametric roles not yet implemented");
             }
             if ~$<longname> ne 'GLOBAL' {
-                $past := $*ST.get_object_sc_ref_past($sym);
-                $past<has_compile_time_value> := 1;
-                $past<compile_time_value> := $sym;
+                $past := instantiated_type(@name, $/);
             }
             else {
                 $past := $*ST.symbol_lookup(@name, $/);
@@ -3604,14 +3603,34 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub wrap_return_handler($past) {
-        PAST::Stmts.new( :signature('0Pv'),
-            PAST::Op.new(:pasttype<lexotic>, :name<RETURN>, $past),
-            PAST::Op.new(:pasttype<bind_6model>,
-                PAST::Var.new(:name<RETURN>, :scope<lexical>),
-                PAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+        PAST::Op.new(
+            :pirop('perl6_type_check_return_value 0P'),
+            PAST::Stmts.new( :signature('0Pv'),
+                PAST::Op.new(:pasttype<lexotic>, :name<RETURN>,
+                    # If we fall off the bottom, decontainerize if
+                    # rw not set.
+                    PAST::Op.new( :pirop('perl6_decontainerize_return_value PP'), $past )
+                ),
+                PAST::Op.new(:pasttype<bind_6model>,
+                    PAST::Var.new(:name<RETURN>, :scope<lexical>),
+                    PAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+            )
         )
     }
     
+    # Works out how to look up a type. If it's not generic we statically
+    # resolve it. Otherwise, we punt to a runtime lexical lookup.
+    sub instantiated_type(@name, $/) {
+        my $type := $*ST.find_symbol(@name);
+        my $is_generic := 0;
+        try { $is_generic := $type.HOW.is_generic($type) }
+        my $past := $is_generic ??
+            $*ST.symbol_lookup(@name, $/) !!
+            $*ST.get_object_sc_ref_past($type);
+        $past<has_compile_time_value> := 1;
+        $past<compile_time_value> := $type;
+        return $past;
+    }
     
     # Ensures that the given PAST node has a value known at compile
     # time and if so obtains it. Otherwise reports an error, involving

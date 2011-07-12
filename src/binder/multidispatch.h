@@ -12,6 +12,8 @@ typedef struct {
     PMC    *signature;          /* Signature object. */
     PMC    *dispatchees;        /* List of dispatchees, if any. */
     PMC    *dispatcher_cache;   /* Holder for any dispatcher cache. */
+    PMC    *dispatcher;         /* The parent dispatcher, if any. */
+    INTVAL  rw;                 /* Is it rw? */
 } Rakudo_Code;
 
 /* Represents a candidate. We extract various bits of information about it when
@@ -53,3 +55,7 @@ typedef struct candidate_graph_node {
  * candidate to invoke. */
 PMC *
 Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next);
+
+/* This gets all matches for a given capture. */
+PMC *
+Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, PMC *capture);

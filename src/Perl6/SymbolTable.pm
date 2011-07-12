@@ -3,24 +3,25 @@ use Perl6::ModuleLoader;
 
 # Binder constants.
 # XXX Want constant syntax in NQP really.
-my $SIG_ELEM_BIND_CAPTURE       := 1;
-my $SIG_ELEM_BIND_PRIVATE_ATTR  := 2;
-my $SIG_ELEM_BIND_PUBLIC_ATTR   := 4;
-my $SIG_ELEM_SLURPY_POS         := 8;
-my $SIG_ELEM_SLURPY_NAMED       := 16;
-my $SIG_ELEM_SLURPY_LOL         := 32;
-my $SIG_ELEM_INVOCANT           := 64;
-my $SIG_ELEM_MULTI_INVOCANT     := 128;
-my $SIG_ELEM_IS_RW              := 256;
-my $SIG_ELEM_IS_COPY            := 512;
-my $SIG_ELEM_IS_PARCEL          := 1024;
-my $SIG_ELEM_IS_OPTIONAL        := 2048;
-my $SIG_ELEM_ARRAY_SIGIL        := 4096;
-my $SIG_ELEM_HASH_SIGIL         := 8192;
-my $SIG_ELEM_DEFAULT_FROM_OUTER := 16384;
-my $SIG_ELEM_IS_CAPTURE         := 32768;
-my $SIG_ELEM_UNDEFINED_ONLY     := 65536;
-my $SIG_ELEM_DEFINED_ONLY       := 131072;
+my $SIG_ELEM_BIND_CAPTURE        := 1;
+my $SIG_ELEM_BIND_PRIVATE_ATTR   := 2;
+my $SIG_ELEM_BIND_PUBLIC_ATTR    := 4;
+my $SIG_ELEM_SLURPY_POS          := 8;
+my $SIG_ELEM_SLURPY_NAMED        := 16;
+my $SIG_ELEM_SLURPY_LOL          := 32;
+my $SIG_ELEM_INVOCANT            := 64;
+my $SIG_ELEM_MULTI_INVOCANT      := 128;
+my $SIG_ELEM_IS_RW               := 256;
+my $SIG_ELEM_IS_COPY             := 512;
+my $SIG_ELEM_IS_PARCEL           := 1024;
+my $SIG_ELEM_IS_OPTIONAL         := 2048;
+my $SIG_ELEM_ARRAY_SIGIL         := 4096;
+my $SIG_ELEM_HASH_SIGIL          := 8192;
+my $SIG_ELEM_DEFAULT_FROM_OUTER  := 16384;
+my $SIG_ELEM_IS_CAPTURE          := 32768;
+my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
+my $SIG_ELEM_DEFINED_ONLY        := 131072;
+my $SIG_ELEM_METHOD_SLURPY_NAMED := 262144;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -42,6 +43,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         my $pad := PAST::Block.new( PAST::Stmts.new(), :node($/) );
+        if +@!BLOCKS {
+            $pad<outer> := @!BLOCKS[+@!BLOCKS - 1];
+        }
         @!BLOCKS[+@!BLOCKS] := $pad;
         $pad
     }
@@ -393,6 +397,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<named_slurpy> {
             $flags := $flags + $SIG_ELEM_SLURPY_NAMED;
         }
+        if %param_info<is_method_named_slurpy> {
+            $flags := $flags + $SIG_ELEM_METHOD_SLURPY_NAMED;
+        }
         if %param_info<pos_lol> {
             $flags := $flags + $SIG_ELEM_SLURPY_LOL;
         }
@@ -504,6 +511,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Create code object now.
         my $type_obj  := self.find_symbol([$type]);
+        my $code_type := self.find_symbol(['Code']);
         my $code      := pir::repr_instance_of__PP($type_obj);
         my $slot      := self.add_object($code);
         
@@ -514,11 +522,22 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # we ever try to run it during compilation.
         my $precomp;
         my $stub := sub (*@pos, *%named) {
-            unless $precomp {
+            my $rns    := pir::get_root_namespace__P();
+            my $p6_pns := $rns{'perl6'};
+            $p6_pns{'GLOBAL'} := $*GLOBALish;
+            if $precomp {
+                # Already pre-compiled, so just call. Note we don't
+                # need to invoke the wrapper more than the first time.
+                $precomp[1](|@pos, |%named);
+            }
+            else {
                 # Compile.
                 $precomp := self.compile_in_context($code_past);
                 
                 # Fix up Code object associations (including nested blocks).
+                # We un-stub any code objects for already-compiled inner blocks
+                # to avoid wasting re-compiling them, and also to help make
+                # parametric role outer chain work out.
                 my $num_subs := nqp::elems($precomp);
                 my $i := 0;
                 while $i < $num_subs {
@@ -526,42 +545,47 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     if pir::exists(%!sub_id_to_code_object, $subid) {
                         pir::perl6_associate_sub_code_object__vPP($precomp[$i],
                             %!sub_id_to_code_object{$subid});
+                        nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
                     }
                     $i := $i + 1;
                 }
+                
+                # Run!
+                $precomp(|@pos, |%named);
             }
-            $precomp(|@pos, |%named);
         };
         pir::set__vPS($stub, $code_past.name);
-        my $code_type := self.find_symbol(['Code']);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
         
-        # Fixup will install the real thing.
-        $fixups.push(PAST::Stmts.new(
-            self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
-            PAST::Op.new(
-                :pirop('perl6_associate_sub_code_object vPP'),
-                PAST::Val.new( :value($code_past) ),
-                self.get_object_sc_ref_past($code)
-            )));
-            
-        # If we clone the stub, then we must remember to do a fixup
-        # of it also.
-        pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
-            self.add_object($clone);
+        # Fixup will install the real thing, unless we're in a role, in
+        # which case pre-comp will have sorted it out.
+        unless $*PKGDECL eq 'role' {
             $fixups.push(PAST::Stmts.new(
-                PAST::Op.new( :pasttype('bind'),
-                    PAST::Var.new( :name('$P0'), :scope('register') ),
-                    PAST::Op.new( :pirop('clone PP'), PAST::Val.new( :value($code_past) ) )
-                ),
-                self.set_attribute($clone, $code_type, '$!do',
-                    PAST::Var.new( :name('$P0'), :scope('register') )),
+                self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
                 PAST::Op.new(
                     :pirop('perl6_associate_sub_code_object vPP'),
-                    PAST::Var.new( :name('$P0'), :scope('register') ),
-                    self.get_object_sc_ref_past($clone)
+                    PAST::Val.new( :value($code_past) ),
+                    self.get_object_sc_ref_past($code)
                 )));
-        });
+            
+            # If we clone the stub, then we must remember to do a fixup
+            # of it also.
+            pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
+                self.add_object($clone);
+                $fixups.push(PAST::Stmts.new(
+                    PAST::Op.new( :pasttype('bind'),
+                        PAST::Var.new( :name('$P0'), :scope('register') ),
+                        PAST::Op.new( :pirop('clone PP'), PAST::Val.new( :value($code_past) ) )
+                    ),
+                    self.set_attribute($clone, $code_type, '$!do',
+                        PAST::Var.new( :name('$P0'), :scope('register') )),
+                    PAST::Op.new(
+                        :pirop('perl6_associate_sub_code_object vPP'),
+                        PAST::Var.new( :name('$P0'), :scope('register') ),
+                        self.get_object_sc_ref_past($clone)
+                    )));
+            });
+        }
         
         # Desserialization should do the actual creation and just put the right
         # code in there in the first place.
@@ -608,18 +632,31 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method add_dispatchee_to_proto($proto, $candidate) {
         # Add it to the list.
         my $code_type := self.find_symbol(['Code']);
-        pir::getattribute__PPPs($proto, $code_type, '$!dispatchees').push($candidate);
+        $proto.add_dispatchee($candidate);
         
         # Deserializatin code to add it.
         self.add_event(:deserialize_past(PAST::Op.new(
-            :pirop('push vPP'),
-            PAST::Var.new(
-                :scope('attribute_6model'), :name('$!dispatchees'),
-                self.get_object_sc_ref_past($proto),
-                self.get_object_sc_ref_past($code_type)
-            ),
+            :pasttype('callmethod'), :name('add_dispatchee'),
+            self.get_object_sc_ref_past($proto),
             self.get_object_sc_ref_past($candidate)
         )));
+    }
+    
+    # Derives a proto to get a dispatch.
+    method derive_dispatcher($proto) {
+        # Immediately do so and add to SC.
+        my $derived := $proto.derive_dispatcher();
+        my $slot    := self.add_object($derived);
+        
+        # Add deserialization action.
+        my $des := PAST::Op.new(
+            :pasttype('callmethod'), :name('derive_dispatcher'),
+            self.get_object_sc_ref_past($proto));
+        self.add_event(:deserialize_past(
+            self.set_slot_past($slot, self.set_cur_sc($des))
+        ));
+        
+        return $derived;
     }
     
     # Creates a new container descriptor and adds it to the SC.
@@ -699,15 +736,60 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method compile_in_context($past) {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
-        $past.loadlibs('perl6_group', 'perl6_ops');
-        $past.hll('perl6');
+        my $wrapper := PAST::Block.new(
+            PAST::Stmts.new(
+                PAST::Var.new( :name('!pos'), :scope('parameter'), :slurpy(1) ),
+                PAST::Var.new( :name('!nam'), :scope('parameter'), :slurpy(1), :named(1) )
+            ),
+            PAST::Op.new(
+                $past,
+                PAST::Var.new( :name('!pos'), :scope('lexical'), :flat(1) ),
+                PAST::Var.new( :name('!nam'), :scope('lexical'), :flat(1), :named(1) )
+            ));
+        $wrapper.loadlibs('perl6_group', 'perl6_ops');
+        $wrapper.hll('perl6');
+        $wrapper.namespace('');
         
         # Create outer lexical contexts with all symbols visible.
-        # XXX TODO
+        # XXX OK, so here the plan really is that we implement some kind
+        # of static lexpads, which will then be a good lead on to having
+        # stuff work in pre-comp too. However, that's a good day or two
+        # of refactoring, so now we just shove all the compile-time known
+        # symbols into the wrapper.
+        my %seen;
+        my $cur_block := $past;
+        while $cur_block {
+            my %symbols := $cur_block.symtable();
+            for %symbols {
+                unless %seen{$_.key} {
+                    my %sym := $_.value;
+                    if pir::exists(%sym, 'value') {
+                        my $ref;
+                        try {
+                            $ref := $*ST.get_object_sc_ref_past(%sym<value>);
+                        }
+                        unless $ref {
+                            try {
+                                self.add_object(%sym<value>);
+                                $ref := $*ST.get_object_sc_ref_past(%sym<value>);
+                            }
+                        }
+                        if $ref {
+                            $wrapper[0].push(PAST::Var.new(
+                                :name($_.key), :scope('lexical_6model'), :isdecl(1),
+                                :viviself($ref)
+                            ));
+                            $wrapper.symbol($_.key, :scope('lexical_6model'));
+                        }
+                    }
+                }
+                %seen{$_.key} := 1;
+            }
+            $cur_block := $cur_block<outer>;
+        }
         
         # Compile and return.
-        my $pir := PAST::Compiler.compile($past, :target('pir'));
-        PAST::Compiler.compile($past)
+        PAST::Compiler.compile($wrapper)
     }
     
     # Adds a constant value to the constants table. Returns PAST to do

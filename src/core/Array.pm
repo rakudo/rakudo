@@ -7,7 +7,7 @@ class Array {
         nqp::p6list($args, self.WHAT, Bool::True);
     }
     
-    method at_pos($pos is copy) {
+    method at_pos($pos is copy) is rw {
         $pos = $pos.Int;
         self.exists($pos)
           ?? pir::find_method__PPs(List, 'at_pos')(self, $pos)
@@ -33,7 +33,7 @@ class Array {
         pir::find_method__PPs(List, 'REIFY')(self, $parcel)
     }
 
-    method STORE_AT_POS(\$pos, Mu $v is copy) {
+    method STORE_AT_POS(\$pos, Mu $v is copy) is rw {
         pir::find_method__PPs(List, 'STORE_AT_POS')(self, $pos, $v);
     }
 

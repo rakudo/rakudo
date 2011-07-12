@@ -23,7 +23,9 @@ BEGIN_OPS_PREAMBLE
 
 /* Cache some stuff for fast access. */
 static INTVAL smo_id = 0;
-static STRING *DISPATCH_JUNCTION_str;
+
+/* The current dispatcher, for the next thing that wants one to take. */
+static PMC *current_dispatcher = NULL;
 
 END_OPS_PREAMBLE
 
@@ -38,8 +40,6 @@ Does various setup tasks on behalf of all of the other dynops.
 */
 inline op rakudo_dynop_setup() :base_core {
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
-    DISPATCH_JUNCTION_str = Parrot_str_new_constant(interp,
-                                "!DISPATCH_JUNCTION_SINGLE");
 }
 
 /*
@@ -157,47 +157,6 @@ inline op x_is_uprop(out INT, in STR, in STR, in INT) :base_core {
     goto ADDRESS(handler);
 #endif
 }
-
-
-/*
-
-=item get_next_candidate_info(out PMC, out PMC, out PMC)
-
-Looks through the outers of our caller, until we find a Routine, for a lexical
-named __CANDIDATE_LIST__. Hands this lexical back in $1, the PMC for the Routine
-it was found in as $2 and the lexpad of that routine as $3. This is a fairly
-special-purpose op that does just what callwith, callsame, nextwith and
-nextsame need.
-
-=cut
-
-*/
-inline op get_next_candidate_info(out PMC, out PMC, out PMC) :base_core {
-    PMC     *ctx         = Parrot_pcc_get_caller_ctx(interp, CURRENT_CONTEXT(interp));
-    STRING  * const name = Parrot_str_new(interp, "__CANDIDATE_LIST__", 0);
-
-    while (!PMC_IS_NULL(ctx)) {
-        /* See if we've found a candidate list. */
-        PMC * const lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
-        PMC * const clist  = VTABLE_get_pmc_keyed_str(interp, lexpad, name);
-        if (!PMC_IS_NULL(clist)) {
-            /* Found. Set results and we're done. */
-            $1 = clist;
-            $2 = Parrot_pcc_get_sub(interp, ctx);
-            $3 = lexpad;
-            break;
-        }
-        else {
-            /* Not found; keep looking. */
-            ctx = Parrot_pcc_get_outer_ctx(interp, ctx);
-        }
-    }
-    if (!ctx)
-        $1 = $2 = $3 = PMCNULL;
-
-    goto NEXT();
-}
-
 
 /*
 
@@ -486,9 +445,6 @@ inline op perl6ize_type(out PMC, in PMC) :base_core {
         $1 = Rakudo_types_parrot_map(interp, $2);
 }
 
-
-
-
 /*
 
 =item set_scalar_container_type(in PMC)
@@ -593,8 +549,7 @@ is just $2.
 */
 inline op perl6_var(out PMC, in PMC) :base_core {
     if ($2->vtable->base_type == smo_id && STABLE($2)->container_spec != NULL) {
-        $1 = Rakudo_cont_scalar_from_descriptor(interp, PMCNULL);
-        Rakudo_cont_store(interp, $1, $2, 0, 0);
+        $1 = Rakudo_cont_scalar_with_value_no_descriptor(interp, $2);
     }
     else {
         $1 = $2;
@@ -663,6 +618,58 @@ inline op perl6_code_object_from_parrot_sub(out PMC, in PMC) :base_core {
     }
 }
 
+/*
+
+=item perl6_decontainerize_return_value()
+
+If the sub is not rw, decontainerizes the return value.
+
+=cut
+
+*/
+inline op perl6_decontainerize_return_value(out PMC, in PMC) :base_core {
+    if ($2->vtable->base_type == smo_id && Rakudo_cont_is_rw_scalar(interp, $2)) {
+        PMC *cur_ctx     = CURRENT_CONTEXT(interp);
+        PMC *parrot_sub  = Parrot_pcc_get_sub(interp, cur_ctx);
+        PMC *p6sub;
+        Rakudo_Code *code;
+        GETATTR_Sub_multi_signature(interp, parrot_sub, p6sub);
+        code = (Rakudo_Code *)PMC_data(p6sub);
+        $1 = code->rw ? $2 : Rakudo_cont_scalar_with_value_no_descriptor(interp, 
+            Rakudo_cont_decontainerize(interp, $2));
+    }
+    else {
+        $1 = $2;
+    }
+}
+
+/*
+
+=item perl6_type_check_return_value()
+
+Gets the return type for a sub and type checks it.
+
+=cut
+
+*/
+inline op perl6_type_check_return_value(in PMC) :base_core {
+    PMC *cur_ctx     = CURRENT_CONTEXT(interp);
+    PMC *parrot_sub  = Parrot_pcc_get_sub(interp, cur_ctx);
+    PMC *p6sub;
+    PMC *sig_pmc;
+    PMC *rtype;
+    GETATTR_Sub_multi_signature(interp, parrot_sub, p6sub);
+    sig_pmc = ((Rakudo_Code *)PMC_data(p6sub))->signature;
+    rtype = ((Rakudo_Signature *)PMC_data(sig_pmc))->rtype;
+    if (!PMC_IS_NULL(rtype)) {
+        PMC *decont_value = Rakudo_cont_decontainerize(interp, $1);
+        if (!STABLE(decont_value)->type_check(interp, decont_value, rtype)) {
+            /* XXX Awesomize. */
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "Type check failed for return value");
+        }
+    }
+}
 
 /*
 
@@ -700,6 +707,20 @@ inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC) :base_core {
     }
 }
 
+/*
+
+=item perl6_get_matching_multis()
+
+Gets the multi dispatcher to find all candidates under the control of
+the dispatcher in $2 that are applicable for capture $3. Puts an RPA
+of them in $1.
+
+=cut
+
+*/
+inline op perl6_get_matching_multis(out PMC, in PMC, in PMC) :base_core {
+    $1 = Rakudo_md_get_all_matches(interp, $2, $3);
+}
 
 /*
 
@@ -742,6 +763,123 @@ inline op perl6_get_package_through_who(out PMC, in PMC, in STR) :base_core {
     }
 }
 
+/*
+
+=item perl6_set_dispatcher_for_callee(in PMC)
+
+Sets the dispatcher that the next thing we call that is interested
+in one will take.
+
+=cut
+
+*/
+inline op perl6_set_dispatcher_for_callee(in PMC) :base_core {
+    current_dispatcher = $1;
+}
+
+/*
+
+=item perl6_take_dispatcher()
+
+Takes the dispatcher that was set, if any, and store it in the current
+lexpad's $*DISPATCHER. Also clears the current set dispatcher so that
+nothing else can take it by accident. If there's no current set dispatcher
+then this is a no-op.
+
+=cut
+
+*/
+inline op perl6_take_dispatcher() :base_core {
+    if (current_dispatcher) {
+        PMC *lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
+        VTABLE_set_pmc_keyed_str(interp, lexpad, Parrot_str_new_constant(interp, "$*DISPATCHER"),
+            current_dispatcher);
+        current_dispatcher = NULL;
+    }
+}
+
+/*
+
+=item perl6_find_dispatcher(out PMC)
+
+Locates the nearest dispatcher $*DISPATCHER, vivifying it if required,
+and returns it.
+
+=cut
+
+*/
+inline op perl6_find_dispatcher(out PMC) :base_core {
+    PMC     *ctx            = CURRENT_CONTEXT(interp);
+    STRING  *dispatcher_str = Parrot_str_new_constant(interp, "$*DISPATCHER");
+    PMC     *dispatcher     = NULL;
+    
+    while (!PMC_IS_NULL(ctx)) {
+        /* Do we have a dispatcher here? */
+        PMC *lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
+        if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, dispatcher_str)) {
+            dispatcher = VTABLE_get_pmc_keyed_str(interp, lexpad, dispatcher_str);
+            if (!REPR(dispatcher)->defined(interp, dispatcher)) {
+                /* Need to vivify it. */
+                PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                PMC *meth    = VTABLE_find_method(interp, dispatcher, Parrot_str_new_constant(interp, "vivify_for"));
+                PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
+                PMC *sub     = Parrot_pcc_get_sub(interp, ctx);
+                PMC *p6sub;
+                VTABLE_push_pmc(interp, cappy, dispatcher);
+                GETATTR_Sub_multi_signature(interp, sub, p6sub);
+                VTABLE_push_pmc(interp, cappy, p6sub);
+                VTABLE_push_pmc(interp, cappy, lexpad);
+                Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
+                cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
+                dispatcher = VTABLE_get_pmc_keyed_int(interp, cappy, 0);
+                VTABLE_set_pmc_keyed_str(interp, lexpad, dispatcher_str, dispatcher);
+            }
+            break;
+        }
+
+        /* Follow dynamic chain. */
+        ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
+    }
+    
+    if (!dispatcher)
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "No dispatcher in scope");
+    $1 = dispatcher;
+}
+
+/*
+
+=item perl6_args_for_dispatcher(out PMC, in PMC)
+
+Locates the callframe with the $*DISPATCHER passed and returns it.
+
+=cut
+
+*/
+inline op perl6_args_for_dispatcher(out PMC, in PMC) :base_core {
+    PMC     *ctx            = CURRENT_CONTEXT(interp);
+    STRING  *dispatcher_str = Parrot_str_new_constant(interp, "$*DISPATCHER");
+    PMC     *result         = NULL;
+    
+    while (!PMC_IS_NULL(ctx)) {
+        /* Do we have a dispatcher here? */
+        PMC *lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
+        if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, dispatcher_str)) {
+            PMC *dispatcher = VTABLE_get_pmc_keyed_str(interp, lexpad, dispatcher_str);
+            if (dispatcher == $2) {
+                result = ctx;
+                break;
+            }
+        }
+        ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
+    }
+    
+    if (!result)
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Could not find arguments for dispatcher");
+    $1 = result;
+}
 
 /*
 

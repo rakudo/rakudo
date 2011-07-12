@@ -3,8 +3,26 @@
 ##   generic string operators are in Stringy.pm
 ##   Int/Rat/Num operators are in {Int|Rat|Num}.pm
 
-sub infix:<=>(Mu \$a, Mu \$b) {
+sub infix:<=>(Mu \$a, Mu \$b) is rw {
     pir::perl6_container_store__0PP($a, $b)
+}
+
+proto infix:<does>(|$) { * }
+multi infix:<does>(Mu \$obj, Mu:U \$role) is rw {
+    # XXX Mutability check.
+    $obj.HOW.mixin($obj, $role);
+}
+multi infix:<does>(Mu \$obj, @roles) is rw {
+    # XXX Mutability check.
+    $obj.HOW.mixin($obj, |@roles);
+}
+
+proto infix:<but>(|$) { * }
+multi infix:<but>(Mu \$obj, Mu:U \$role) {
+    $obj.HOW.mixin($obj.clone(), $role);
+}
+multi infix:<but>(Mu \$obj, @roles) {
+    $obj.HOW.mixin($obj.clone(), |@roles);
 }
 
 sub SEQUENCE($left, $right, :$exclude_end) {

@@ -95,6 +95,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/RoleContainer.pm \
   src/Perl6/Metamodel/MultipleInheritance.pm \
   src/Perl6/Metamodel/C3MRO.pm \
+  src/Perl6/Metamodel/Mixins.pm \
   src/Perl6/Metamodel/ParrotInterop.pm \
   src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/RolePunning.pm \
@@ -108,6 +109,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/NativeHOW.pm \
   src/Perl6/Metamodel/SubsetHOW.pm \
   src/Perl6/Metamodel/ContainerDescriptor.pm \
+  src/Perl6/Metamodel/Dispatchers.pm \
   src/Perl6/Metamodel/BOOTSTRAP.pm \
   src/Perl6/Metamodel/EXPORTHOW.pm \
 

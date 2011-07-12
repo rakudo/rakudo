@@ -33,18 +33,29 @@ my class EnumMap does Associative {
             Nil
         }
     }
+    method invert() {
+        gather {
+            my Mu $iter := nqp::iterator($!storage);
+            my Mu $pair;
+            while $iter {
+                $pair := nqp::shift($iter);
+                take Pair.new(:key($pair.value), :value($pair.key));
+            }
+            Nil
+        }
+    }
 
-    method at_key($key is copy) {
+    method at_key($key is copy) is rw {
         $key = $key.Str;
         self.exists($key)
             ?? nqp::atkey($!storage, nqp::unbox_s($key))
             !! Any
     }
 
-    method STORE_AT_KEY(Str \$key, Mu \$value) {
+    method STORE_AT_KEY(Str \$key, Mu \$value) is rw {
         pir::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
-        pir::set__2QsP($!storage, nqp::unbox_s($key), $value)
+        pir::set__1QsP($!storage, nqp::unbox_s($key), $value)
     }
     
     method ARGLIST_FLATTENABLE() { $!storage }

@@ -2,6 +2,14 @@ role Perl6::Metamodel::MultiMethodContainer {
     # Set of multi-methods to incorporate. Not just the method handles;
     # each is a hash containing keys name and body.
     has @!multi_methods_to_incorporate;
+    
+    # The proto we'll clone.
+    my $autogen_proto;
+    
+    # Sets the proto we'll auto-gen based on.
+    method set_autogen_proto($proto) {
+        $autogen_proto := $proto
+    }
 
     # We can't incorporate multis right away as we don't know all parents
     # yet, maybe, which influences whether we even can have multis, need to
@@ -80,9 +88,12 @@ role Perl6::Metamodel::MultiMethodContainer {
                     $j := $j + 1;
                 }
                 unless $found {
-                    pir::die("Could not find a proto for multi '" ~ $name ~
-                        "' in package '" ~ self.name($obj) ~
-                        "', and proto generation is not yet implemented");
+                    # No proto found, so we'll generate one here.
+                    my $proto := $autogen_proto.instantiate_generic(
+                        hash( T => $obj ));
+                    $proto."!set_name"($name);
+                    $proto.add_dispatchee($code);
+                    self.add_method($obj, $name, $proto);
                 }
             }
             $i := $i + 1;

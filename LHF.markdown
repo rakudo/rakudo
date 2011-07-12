@@ -8,8 +8,19 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
-## chomp
-Fix Str.chomp to work with strings of less than 2 characters.
+## Implement minmax operator
+Make S03-operators/minmax.t pass
+
+## More Smart-matching
+See S03-smartmatch tests, especially array-array.t, hash-hash.t and
+so forth.
+
+## Implement minmax operator
+Make S03-operators/minmax.t pass
+
+## More Smart-matching
+See S03-smartmatch tests, especially array-array.t, hash-hash.t and
+so forth.
 
 ## Basic IO
 the stat calls should be pretty straight-forward to port from master
@@ -23,7 +34,3 @@ my Int $b = 3;  $b = Nil;
 Often builtins are only added as methods, even when the corresponding function
 should exist. Go through src/core/ and write functions that re-dispatch to the
 methods where necessary
-
-## Str.ords
-
-Implement Str.ords and the sub form (returns a list of codepoints)

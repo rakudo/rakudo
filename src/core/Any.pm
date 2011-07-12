@@ -9,6 +9,8 @@ my class Any {
 
     method eager() { nqp::p6list(nqp::list(self), List, Bool::True).eager }
     method elems() { self.list.elems }
+    method end()   { self.list.end }
+    method classify(&t) { self.list.classify(&t) }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
     method hash() { my %h = self }
@@ -17,6 +19,7 @@ my class Any {
     method roll($n = 1) { self.list.roll($n) }
     method reverse() { self.list.reverse }
     method sort($by = &infix:<cmp>) { self.list.sort($by) }
+    method values() { self.list }
 
     method Array() { Array.new(self.flat) }
 
@@ -106,15 +109,40 @@ proto infix:<after>(|$)        { * }
 multi infix:<after>($x?)       { Bool::True }
 multi infix:<after>(\$a, \$b)  { ($a cmp $b) > 0 }
 
-proto infix:<===>($a?, $b?)    { * }
-multi infix:<===>($a?)         { Bool::True }
-multi infix:<===>($a, $b)      { $a.WHICH === $b.WHICH }
+proto infix:<===>(Mu $a?, Mu $b?) { * }
+multi infix:<===>(Mu $a?)         { Bool::True }
+multi infix:<===>(Mu $a, Mu $b)   { $a.WHICH === $b.WHICH }
 
-proto sub infix:<eqv>($, $) { * }
-multi sub infix:<eqv>($a, $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0;
+proto sub infix:<eqv>(Mu $, Mu $) { * }
+multi sub infix:<eqv>(Mu $a, Mu $b) {
+    $a.WHAT === $b.WHAT && $a === $b
 }
-
+multi sub infix:<eqv>(@a, @b) {
+    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
+        return Bool::False
+    }
+    for ^@a -> $i {
+        unless @a[$i] eqv @b[$i] {
+            return Bool::False;
+        }
+    }
+    Bool::True
+}
+multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
+    if +$a != +$b { return Bool::False }
+    for $a.kv -> $k, $v {
+        unless $b.exists($k) && $b{$k} eqv $v {
+            return Bool::False;
+        }
+    }
+    Bool::True;
+}
+multi sub infix:<eqv>(Numeric $a, Numeric $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+}
+multi sub infix:<eqv>(Stringy $a, Stringy $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+}
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$)             { * }
@@ -151,3 +179,24 @@ multi pick($n, *@values) { @values.pick($n) }
 
 proto roll(|$) { * }
 multi roll($n, *@values) { @values.roll($n) }
+
+proto keys(|$) { * }
+multi keys($x) { $x.keys }
+
+proto values(|$) { * }
+multi values($x) { $x.values }
+
+proto pairs(|$) { * }
+multi pairs($x) { $x.pairs }
+
+proto kv(|$) { * }
+multi kv($x) { $x.kv }
+
+proto elems(|$) { * }
+multi elems($a) { $a.elems }
+
+proto end(|$) { * }
+multi end($a) { $a.end }
+
+proto classify(|$) { * }
+multi classify(&test, *@items) { @items.classify(&test) }

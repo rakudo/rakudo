@@ -80,6 +80,8 @@ my class Cool {
         # TODO: fail() instead of returning Str
         $result < 0 ?? Str !! $result;
     }
+
+    method ords(Cool:D:) { self.Str.ords }
 }
 
 sub chop($s)                  { $s.chop }
@@ -94,3 +96,5 @@ sub substr($s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc($s)                    { $s.uc }
 sub ucfirst($s)               { $s.ucfirst }
 
+proto sub ords(|$)            { * }
+multi sub ords(Cool $s)       { ords($s.Stringy) }

@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 8 July 2011
+Last Updated 9 July 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -15,20 +15,14 @@ Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
   (initial digging suggets it's a BOOTSTRAPATTR issue, thus why we only see it
   in the setting)
-* userspace code can't add new multis of existing operators 
-  (e.g., multi postfix<++>(MyType $x) { ... } )
-  (known - multis in nested lexical scopes in general just NYI - jnthn)
 * 'has num $.attr' segfaults on access to .attr, because it uses the PMC form
   of get_attribute
-* two protos of the same name in the same scope produce an IMCC error
-  "error:imcc:Multiple declarations of lexical '&foo'"
 
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
 
 ## Magicals
 Move creation of $! and $/ to be per-routine instead of per-block.
-Methods should get automatic %_.
 
 ## when statements
 when needs to properly find use correct outer scope
@@ -43,10 +37,10 @@ Get ::= correcter, and a bit more stuff on := also.
 
 ## Finish up parametric roles
 Many things are working, some are not...
-* Composition of submethods
 * Generically typed variables (also for the ::T case in roles)
-* Mentions of role arguments in the role body in a non-declarative context
 * role R1[::T] does R2[T] { ... }
+* Multiple variants of a single role
+* Role subtype checking
 
 ## Meta-operators
 * Hyper

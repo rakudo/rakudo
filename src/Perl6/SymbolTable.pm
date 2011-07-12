@@ -766,9 +766,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                         }
                         if $ref {
                             $wrapper[0].push(PAST::Var.new(
-                                :name($_.key), :scope('lexical'), :isdecl(1),
+                                :name($_.key), :scope('lexical_6model'), :isdecl(1),
                                 :viviself($ref)
                             ));
+                            $wrapper.symbol($_.key, :scope('lexical_6model'));
                         }
                     }
                 }

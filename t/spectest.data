@@ -24,30 +24,30 @@ S02-builtin_data_types/declare.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 # S02-builtin_data_types/hash.t             # need regexes and m{...}
-# S02-builtin_data_types/infinity.t         # need Inf constant
-# S02-builtin_data_types/instants-and-durations.t # need now
-# S02-builtin_data_types/lists.t            # need regexes
+# S02-builtin_data_types/infinity.t         # err: Could not find sub &truncate
+# S02-builtin_data_types/instants-and-durations.t # err: Could not find sub &term:<now>
+# S02-builtin_data_types/lists.t            # err: too many positional arguments
 S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
-# S02-builtin_data_types/nan.t              # need NaN constant
+# S02-builtin_data_types/nan.t              # err: Could not find sub &truncate
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/nil.t
 S02-builtin_data_types/num.t
-# S02-builtin_data_types/pair.t             # pair := bindings
+# S02-builtin_data_types/pair.t             # err: Cannot use bind operator with this LHS
 S02-builtin_data_types/parcel.t
 S02-builtin_data_types/parsing-bool.t
 S02-builtin_data_types/range.t
-# S02-builtin_data_types/set.t              # Contextual $*UNITPAST not found
+# S02-builtin_data_types/set.t              # err: Contextual $*UNITPAST not found
 S02-builtin_data_types/sigils-and-types.t
 S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
-# S02-builtin_data_types/undefined-types.t  # needs working <sink>
-# S02-builtin_data_types/whatever.t         # needs enum support
+# S02-builtin_data_types/undefined-types.t  # err: Method 'blocktype' not found for invocant of class 'PAST;Op'
+# S02-builtin_data_types/whatever.t         # err: Could not find sub !YOU_ARE_HERE
 S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
-# S02-literals/char-by-name.t                                # icu
+# S02-literals/char-by-name.t # icu # err: too many positional arguments
 S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
@@ -57,8 +57,8 @@ S02-literals/hex_chars.t
 S02-literals/misc-interpolation.t
 S02-literals/numeric.t
 S02-literals/pair-boolean.t
-# S02-literals/pairs.t # err: Not enough positional parameters passed; got 1 but expected 2
-# S02-literals/quoting.t                    # need rx {} quoting
+# S02-literals/pairs.t # err: Not enough positional parameters passed
+# S02-literals/quoting.t # need rx {} quoting # err: too many positional arguments
 # S02-literals/quoting-unicode.t # err: Could not find sub &sprintf # icu
 # S02-literals/radix.t # err: Could not find sub &radcalc
 S02-literals/string-interpolation.t

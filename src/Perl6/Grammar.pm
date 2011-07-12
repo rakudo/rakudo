@@ -1326,9 +1326,18 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token type_declarator { <...> }
 
     token type_declarator:sym<enum> {
+        :my $*IN_DECL := 'enum';
+        :my $*DECLARAND;
         <sym> <.ws>
-        <name>? <.ws>
-        <?before '(' | '<' | '<<' | '«' > <circumfix>
+        [
+        | <longname>
+        | <variable>
+        | <?>
+        ]
+        { $*IN_DECL := ''; }
+        <.ws>
+        <trait>*
+        <?before <[ < ( « ]> > <term> <.ws>
     }
 
     token type_declarator:sym<subset> {

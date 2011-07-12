@@ -495,7 +495,7 @@ S32-hash/exists.t
 # S32-io/IO-Socket-INET.t # err:  ResizablePMCArray: Can't shift from an empty array!
 S32-list/classify.t
 S32-list/create.t
-# S32-list/end.t
+# S32-list/end.t # err: Method 'unshift' not found for invocant of class 'Array'
 # S32-list/first.t # err: too many positional arguments: 3 passed, 1 expected
 S32-list/grep.t
 S32-list/join.t

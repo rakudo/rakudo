@@ -926,7 +926,7 @@ class Perl6::Actions is HLL::Actions {
             
             # Create code object and add it as the role's body block.
             my $code := $*ST.create_code_object($block, 'Block', $sig);
-            $*ST.pkg_set_role_body_block($*PACKAGE, $sig, $code);
+            $*ST.pkg_set_role_body_block($*PACKAGE, $code, $block);
         }
         
         # Compose.

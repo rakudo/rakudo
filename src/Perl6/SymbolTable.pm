@@ -525,34 +525,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             my $rns    := pir::get_root_namespace__P();
             my $p6_pns := $rns{'perl6'};
             $p6_pns{'GLOBAL'} := $*GLOBALish;
-            if $precomp {
-                # Already pre-compiled, so just call. Note we don't
-                # need to invoke the wrapper more than the first time.
-                $precomp[1](|@pos, |%named);
+            unless $precomp {
+                $precomp := self.compile_in_context($code_past, $code_type);
             }
-            else {
-                # Compile.
-                $precomp := self.compile_in_context($code_past);
-                
-                # Fix up Code object associations (including nested blocks).
-                # We un-stub any code objects for already-compiled inner blocks
-                # to avoid wasting re-compiling them, and also to help make
-                # parametric role outer chain work out.
-                my $num_subs := nqp::elems($precomp);
-                my $i := 0;
-                while $i < $num_subs {
-                    my $subid := $precomp[$i].get_subid();
-                    if pir::exists(%!sub_id_to_code_object, $subid) {
-                        pir::perl6_associate_sub_code_object__vPP($precomp[$i],
-                            %!sub_id_to_code_object{$subid});
-                        nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
-                    }
-                    $i := $i + 1;
-                }
-                
-                # Run!
-                $precomp(|@pos, |%named);
-            }
+            $precomp(|@pos, |%named);
         };
         pir::set__vPS($stub, $code_past.name);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
@@ -723,19 +699,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Takes a PAST::Block and compiles it for running during "compile time".
     # We need to do this for BEGIN but also for things that get called in
     # the compilation process, like user defined traits.
-    method compile_in_context($past) {
+    method compile_in_context($past, $code_type) {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
-        my $wrapper := PAST::Block.new(
-            PAST::Stmts.new(
-                PAST::Var.new( :name('!pos'), :scope('parameter'), :slurpy(1) ),
-                PAST::Var.new( :name('!nam'), :scope('parameter'), :slurpy(1), :named(1) )
-            ),
-            PAST::Op.new(
-                $past,
-                PAST::Var.new( :name('!pos'), :scope('lexical'), :flat(1) ),
-                PAST::Var.new( :name('!nam'), :scope('lexical'), :flat(1), :named(1) )
-            ));
+        my $wrapper := PAST::Block.new(PAST::Stmts.new(), $past);
         $wrapper.loadlibs('perl6_group', 'perl6_ops');
         $wrapper.hll('perl6');
         $wrapper.namespace('');
@@ -778,8 +745,30 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $cur_block := $cur_block<outer>;
         }
         
-        # Compile and return.
-        PAST::Compiler.compile($wrapper)
+        # Compile it, then invoke the wrapper, which fixes up the
+        # other lexicals.
+        my $precomp := PAST::Compiler.compile($wrapper);
+        $precomp();
+        
+        # Fix up Code object associations (including nested blocks).
+        # We un-stub any code objects for already-compiled inner blocks
+        # to avoid wasting re-compiling them, and also to help make
+        # parametric role outer chain work out.
+        my $num_subs := nqp::elems($precomp);
+        my $i := 0;
+        while $i < $num_subs {
+            my $subid := $precomp[$i].get_subid();
+            if pir::exists(%!sub_id_to_code_object, $subid) {
+                pir::perl6_associate_sub_code_object__vPP($precomp[$i],
+                    %!sub_id_to_code_object{$subid});
+                nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
+            }
+            $i := $i + 1;
+        }
+        
+        # Return the Parrot Sub that maps to the thing we were originally
+        # asked to compile.
+        $precomp[1]
     }
     
     # Adds a constant value to the constants table. Returns PAST to do
@@ -945,7 +934,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Handles setting the body block code for a role.
-    method pkg_set_role_body_block($obj, $sig, $code_object) {
+    method pkg_set_role_body_block($obj, $code_object, $past) {
         # Add it to the compile time meta-object.
         $obj.HOW.set_body_block($obj, $code_object);
         
@@ -957,6 +946,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $slot_past,
             self.get_object_sc_ref_past($code_object)
         )));
+        
+        # Compile it immediately (we always compile role bodies as
+        # early as possible, but then assume they don't need to be
+        # re-compiled and re-fixed up at startup).
+        self.compile_in_context($past, self.find_symbol(['Code']));
     }
     
     # Composes the package, and stores an event for this action.

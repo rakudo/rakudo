@@ -1,7 +1,10 @@
 my class Match #`(is Capture) { 
-    has int $!from;
-    has int $!to;
-    has $!list;
-    has $!hash;
-    has $!ast;
+    has $.orig;
+    has $.from;
+    has $.to;
+    has $.list;
+
+    multi method Str(Match:D:) { 
+        $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''; 
+    }
 }

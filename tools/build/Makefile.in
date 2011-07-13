@@ -92,9 +92,13 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/MultiMethodContainer.pm \
   src/Perl6/Metamodel/RoleContainer.pm \
   src/Perl6/Metamodel/MultipleInheritance.pm \
+  src/Perl6/Metamodel/DefaultParent.pm \
   src/Perl6/Metamodel/BaseType.pm \
   src/Perl6/Metamodel/C3MRO.pm \
+  src/Perl6/Metamodel/MROBasedMethodDispatch.pm \
+  src/Perl6/Metamodel/MROBasedTypeChecking.pm \
   src/Perl6/Metamodel/Mixins.pm \
+  src/Perl6/Metamodel/BUILDPLAN.pm \
   src/Perl6/Metamodel/ParrotInterop.pm \
   src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/RolePunning.pm \

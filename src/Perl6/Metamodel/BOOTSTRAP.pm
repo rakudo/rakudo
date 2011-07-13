@@ -562,6 +562,7 @@ Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
 
 # Give everything we've set up so far a Stash.
 Perl6::Metamodel::ClassHOW.add_stash(Mu);
@@ -626,7 +627,10 @@ my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
     $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash);
 
+# Setup some regexy/grammary bits.
 use QRegex;
+my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
+Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
@@ -660,6 +664,7 @@ my module EXPORT {
         $?PACKAGE.WHO<Hash>      := Hash;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
+        $?PACKAGE.WHO<Grammar>   := Grammar;
         $?PACKAGE.WHO<PROCESS>   := $PROCESS;
         $?PACKAGE.WHO<Bool>      := Bool;
         $?PACKAGE.WHO<False>     := $false;

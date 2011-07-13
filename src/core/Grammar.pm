@@ -1,1 +1,1 @@
-# my class Grammar is Cursor { }
+my class Grammar is Cursor { }

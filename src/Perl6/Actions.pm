@@ -1353,48 +1353,55 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method regex_def($/) {
-        my $past;
-        my $code;
+        my $coderef;
         my $name := ~$<deflongname>[0];
         
         if $*MULTINESS eq 'proto' {
             $/.CURSOR.panic('protoregexes not yet implemented');
         } else {
-            # Create the regex PAST block.
-            $past := QRegex::P6Regex::Actions::buildsub($<p6regex>.ast, $*CURPAD);
-            $past.name($name);
-            $past.blocktype("declaration");
-            
-            # Do the various tasks to trun the block into a method code object.
-            my @params    := $<signature> ?? $<signature>.ast !! [];
-            my $inv_type  := $*ST.find_symbol([ # XXX Maybe Cursor below, not Mu...
-                $<longname> && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-            $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
-            
-            # Need to put self into a register for the regex engine.
-            $past[0].push(PAST::Var.new(
-                :name('self'), :scope('register'), :isdecl(1),
-                :viviself(PAST::Var.new( :name('self'), :scope('lexical_6model') ))));
-            
-            # Install PAST block so that it gets capture_lex'd correctly.
-            my $outer := $*ST.cur_lexpad();
-            $outer[0].push($past);
-            
-            # Install in needed scopes.
-            install_method($/, $name, $*SCOPE, $code, $outer);
+            my @params := $<signature> ?? $<signature>.ast !! [];
+            $coderef := regex_coderef($/, $<p6regex>.ast, $name, @params, $*CURPAD);
         }
         
         # Apply traits.
+        my $code := $coderef<code_object>;
         for $<trait> {
             if $_.ast { ($_.ast)($code) }
         }
 
         # Return closure if not in sink context.
-        my $closure := block_closure(reference_to_code_object($code, $past));
+        my $closure := block_closure($coderef);
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );
         make $closure;
     }
 
+    sub regex_coderef($/, $qast, $name, @params, $block) {
+        # create a code reference from a regex qast tree
+        my $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
+        $past.name($name);
+        $past.blocktype("declaration");
+        
+        # Do the various tasks to trun the block into a method code object.
+        my $inv_type  := $*ST.find_symbol([ # XXX Maybe Cursor below, not Mu...
+            $name && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+        my $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
+            
+        # Need to put self into a register for the regex engine.
+        $past[0].push(PAST::Var.new(
+            :name('self'), :scope('register'), :isdecl(1),
+            :viviself(PAST::Var.new( :name('self'), :scope('lexical_6model') ))));
+        
+        # Install PAST block so that it gets capture_lex'd correctly.
+        my $outer := $*ST.cur_lexpad();
+        $outer[0].push($past);
+            
+        # Install in needed scopes.
+        install_method($/, $name, $*SCOPE, $code, $outer);
+
+        # Return a reference to the code object
+        reference_to_code_object($code, $past);
+    }
+        
     method type_declarator:sym<enum>($/) {
         # If it's an anonymous enum, just call anonymous enum former
         # and we're done.
@@ -2835,9 +2842,14 @@ class Perl6::Actions is HLL::Actions {
         );
     }
     method quote:sym</ />($/) {
-        my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        make block_closure($past, 'Regex', 0);
+        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $coderef := regex_coderef($/, $<p6regex>.ast, '', [], $block);
+        # Return closure if not in sink context.
+        my $closure := block_closure($coderef);
+        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        make $closure;
     }
+
     method quote:sym<rx>($/) {
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx');
         my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);

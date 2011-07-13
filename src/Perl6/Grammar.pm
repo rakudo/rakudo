@@ -1600,7 +1600,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token quote:sym<Q>     { 'Q'   >> <![(]> <.ws> <quote_EXPR> }
     token quote:sym<Q:PIR> { 'Q:PIR'      <.ws> <quote_EXPR> }
     token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
-    token quote:sym</ />  { '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>? }
+    token quote:sym</ />  { '/' :my %*RX; <p6regex=.LANG('Regex','nibbler')> '/' <.old_rx_mods>? }
     token quote:sym<rx>   {
         <sym> >> 
         [ <quotepair> <.ws> ]*

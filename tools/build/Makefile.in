@@ -146,6 +146,7 @@ CORE_SOURCES = \
   src/core/Num.pm \
   src/core/Stringy.pm \
   src/core/Str.pm \
+  src/core/Capture.pm \
   src/core/Parcel.pm \
   src/core/Iterable.pm \
   src/core/Iterator.pm \
@@ -174,6 +175,9 @@ CORE_SOURCES = \
   src/core/Failure.pm \
   src/core/BackTrace.pm \
   src/core/Exceptions.pm \
+  src/core/Match.pm \
+  src/core/Cursor.pm \
+  src/core/Grammar.pm \
   src/core/EXPORTHOW.pm \
   src/core/operators.pm \
   src/core/metaops.pm \

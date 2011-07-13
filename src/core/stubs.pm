@@ -10,7 +10,6 @@ my class Bag is Iterable does Associative { }
 my class Buf is Iterable does Positional { }
 my class Set is Iterable does Associative { }
 my class KeyHash is Iterable does Associative { }
-my class Capture { }
 my class Seq is List does Positional { }
 
 sub DYNAMIC(\$name) is rw { 

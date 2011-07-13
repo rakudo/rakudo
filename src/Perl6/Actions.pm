@@ -1248,25 +1248,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Install method.
         if $<longname> {
-            # Ensure that current package supports methods.
-            my $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
-            unless pir::can($*PACKAGE.HOW, $meta_meth) {
-                my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
-                $/.CURSOR.panic("Cannot add a $nocando to a $*PKGDECL");
-            }
-        
-            # Add to methods table.
-            my $name := $<longname>.Str;
-            $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
-            
-            # May also need it in lexpad and/or package.
-            if $*SCOPE eq 'my' {
-                $*ST.install_lexical_symbol($outer, $name, $code);
-            }
-            elsif $*SCOPE eq 'our' {
-                $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
-                $*ST.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
-            }
+            install_method($/, $<longname>.Str, $*SCOPE, $code, $outer);
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
@@ -1321,6 +1303,30 @@ class Perl6::Actions is HLL::Actions {
             $*MULTINESS eq 'proto');
     }
     
+    # Installs a method into the various places it needs to go.
+    sub install_method($/, $name, $scope, $code, $outer) {
+        # Ensure that current package supports methods, and if so
+        # add the method.
+        my $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
+        if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
+            $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
+        }
+        elsif $scope eq '' || $scope eq 'has' {
+            my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
+            pir::printerr__vS("Useless declaration of a has-scoped $nocando in " ~
+                ($*PKGDECL || "mainline"));
+        }
+        
+        # May also need it in lexpad and/or package.
+        if $*SCOPE eq 'my' {
+            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
+        }
+        elsif $*SCOPE eq 'our' {
+            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
+            $*ST.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
+        }
+    }
+    
     sub is_clearly_returnless($block) {
         # If the only thing is a pirop, can assume no return
         +$block[1].list == 1 && $block[1][0].isa(PAST::Op) && $block[1][0].pirop()
@@ -1367,7 +1373,8 @@ class Perl6::Actions is HLL::Actions {
             my $outer := $*ST.cur_lexpad();
             $outer[0].push($past);
             
-            # XXX Install in a scope.
+            # Install in needed scopes.
+            install_method($/, $name, $*SCOPE, $code, $outer);
         }
         
         # Apply traits.

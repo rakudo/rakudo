@@ -105,6 +105,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/ParametricRoleGroupHOW.pm \
   src/Perl6/Metamodel/RoleToClassApplier.pm \
   src/Perl6/Metamodel/ClassHOW.pm \
+  src/Perl6/Metamodel/GrammarHOW.pm \
   src/Perl6/Metamodel/NativeHOW.pm \
   src/Perl6/Metamodel/SubsetHOW.pm \
   src/Perl6/Metamodel/EnumHOW.pm \

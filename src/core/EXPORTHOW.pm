@@ -11,6 +11,8 @@ my module EXPORTHOW {
     pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'role-attr' }, Attribute);
     pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'role-group' }, Perl6::Metamodel::ParametricRoleGroupHOW);
     pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'role-curried' }, Perl6::Metamodel::CurriedRoleHOW);
+    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'grammar' }, Perl6::Metamodel::GrammarHOW);
+    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'grammar-attr' }, Attribute);
     pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'native' }, Perl6::Metamodel::NativeHOW);
     pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'subset' }, Perl6::Metamodel::SubsetHOW);
     pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'enum' }, Perl6::Metamodel::EnumHOW);

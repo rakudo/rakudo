@@ -135,6 +135,7 @@ class List does Positional {
         my $pos = self.elems;
         fail '.push on infinite lists NYI' if $!nextiter.defined;
         self.STORE_AT_POS($pos++, @values.shift) while @values;
+        self;
     }
 
     method roll($n is copy = 1) {
@@ -187,6 +188,16 @@ class List does Positional {
             $index_rpa.sort(-> $a, $b { $by($list[$a],$list[$b]) || $a <=> $b });
         }
         self[$index];
+    }
+
+    multi method ACCEPTS(List:D: $topic) {
+        my @t = $topic.list;
+        # TODO: Whatever-DWIMmery
+        return False unless self.elems == @t.elems;
+        for ^self.elems {
+            return False unless self.at_pos($_) === @t[$_];
+        }
+        True;
     }
 
     method classify(&test) {

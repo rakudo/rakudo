@@ -4,6 +4,7 @@ my class Parcel does Positional {
     #    has $!storage;        # RPA of Parcel's elements
 
     multi method Str(Parcel:D:) { self.flat.Str }
+    multi method ACCEPTS(Parcel:D: $topic) { self.list.ACCEPTS($topic) }
     method Numeric()            { self.flat.elems }
     method Capture()            { self }  # XXX CHEAT CHEAT CHEAT
 

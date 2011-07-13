@@ -1369,6 +1369,11 @@ class Perl6::Actions is HLL::Actions {
             my $inv_type  := $*ST.find_symbol(['Mu']); # XXX Fixme when we add grammars...
             $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
             
+            # Need to put self into a register for the regex engine.
+            $past[0].push(PAST::Var.new(
+                :name('self'), :scope('register'), :isdecl(1),
+                :viviself(PAST::Var.new( :name('self'), :scope('lexical_6model') ))));
+            
             # Install PAST block so that it gets capture_lex'd correctly.
             my $outer := $*ST.cur_lexpad();
             $outer[0].push($past);

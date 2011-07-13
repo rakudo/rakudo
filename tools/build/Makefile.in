@@ -96,6 +96,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/BaseType.pm \
   src/Perl6/Metamodel/C3MRO.pm \
   src/Perl6/Metamodel/Mixins.pm \
+  src/Perl6/Metamodel/BUILDPLAN.pm \
   src/Perl6/Metamodel/ParrotInterop.pm \
   src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/RolePunning.pm \

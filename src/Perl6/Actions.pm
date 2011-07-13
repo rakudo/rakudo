@@ -1462,7 +1462,32 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method type_declarator:sym<enum>($/) {
-        $/.CURSOR.panic("enumerations not yet implemented");
+        # If it's an anonymous enum, just call anonymous enum former
+        # and we're done.
+        unless $<longname> || $<variable> {
+            make PAST::Op.new( :name('&ANON_ENUM'), $<term>.ast );
+            return 1;
+        }
+        
+        # Get, or find, enumeration base type and create type object with
+        # correct base type.
+        my $base_type := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Int']);
+        my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
+        my $type_obj  := $*ST.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
+        
+        # XXX Values...
+        
+        # Compose, apply traits and install.
+        $*ST.pkg_compose($type_obj);
+        for $<trait> {
+            ($_.ast)($type_obj) if $_.ast;
+        }
+        if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
+        $*ST.install_package($/, $<longname>, ($*SCOPE || 'our'),
+            'enum', $*PACKAGE, $*ST.cur_lexpad(), $type_obj);
+        
+        # We evaluate to the enum type object.
+        make $*ST.get_object_sc_ref_past($type_obj);
     }
 
     method type_declarator:sym<subset>($/) {

@@ -836,11 +836,14 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Creates a meta-object for a package, adds it to the root objects and
     # stores an event for the action. Returns the created object.
-    method pkg_create_mo($how, :$name, :$repr) {
+    method pkg_create_mo($how, :$name, :$repr, *%extra) {
         # Create the meta-object and add to root objects.
         my %args;
         if pir::defined($name) { %args<name> := ~$name; }
         if pir::defined($repr) { %args<repr> := ~$repr; }
+        if pir::exists(%extra, 'base_type') {
+            %args<base_type> := %extra<base_type>;
+        }
         my $mo := $how.new_type(|%args);
         my $slot := self.add_object($mo);
         
@@ -855,6 +858,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         if pir::defined($repr) {
             $setup_call.push(PAST::Val.new( :value(~$repr), :named('repr') ));
+        }
+        if pir::exists(%extra, 'base_type') {
+            $setup_call.push(my $ref := self.get_object_sc_ref_past(%extra<base_type>));
+            $ref.named('base_type');
         }
         self.add_event(:deserialize_past(
             self.set_slot_past($slot, self.set_cur_sc($setup_call))));

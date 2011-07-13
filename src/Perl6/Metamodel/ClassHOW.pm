@@ -9,6 +9,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::DefaultParent
     does Perl6::Metamodel::C3MRO
+    does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::Mixins
     does Perl6::Metamodel::NonGeneric
@@ -68,23 +69,6 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
     
-    # While we normally end up locating methods through the method cache,
-    # this is here as a fallback.
-    method find_method($obj, $name) {
-        my %methods;
-        for self.mro($obj) {
-            %methods := $_.HOW.method_table($_);
-            if pir::exists(%methods, $name) {
-                return %methods{$name}
-            }
-        }
-        my %submethods := $obj.HOW.submethod_table($obj);
-        if pir::exists(%submethods, $name) {
-            return %submethods{$name}
-        }
-        pir::null__P();
-    }
-    
     method publish_type_cache($obj) {
         my @tc;
         for self.mro($obj) {
@@ -97,28 +81,6 @@ class Perl6::Metamodel::ClassHOW
             }
         }
         pir::publish_type_check_cache($obj, @tc)
-    }
-
-    method publish_method_cache($obj) {
-        # Walk MRO and add methods to cache, unless another method
-        # lower in the class hierarchy "shadowed" it.
-        my %cache;
-        for self.mro($obj) {
-            my %methods := $_.HOW.method_table($_);
-            for %methods {
-                unless %cache{$_.key} {
-                    %cache{$_.key} := $_.value;
-                }
-            }
-        }
-        
-        # Also add submethods.
-        my %submethods := $obj.HOW.submethod_table($obj);
-        for %submethods {
-            %cache{$_.key} := $_.value;
-        }
-        
-        pir::publish_method_cache($obj, %cache)
     }
     
     method does_list($obj) {

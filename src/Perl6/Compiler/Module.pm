@@ -6,7 +6,7 @@ has %!dummy;
 method methods() {
     if $*SCOPE eq '' || $*SCOPE eq 'has' {
         pir::printerr("Useless declaration of has-scoped " ~ $*METHODTYPE ~
-            " in a module; add our or my to install it in the lexpad or namespace\n");
+            " in a module; add my or our to install it in the lexpad or namespace\n");
     }
     %!dummy
 }

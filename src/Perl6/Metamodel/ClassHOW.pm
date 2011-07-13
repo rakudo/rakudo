@@ -7,6 +7,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::MultiMethodContainer
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
+    does Perl6::Metamodel::DefaultParent
     does Perl6::Metamodel::C3MRO
     does Perl6::Metamodel::Mixins
     does Perl6::Metamodel::NonGeneric
@@ -19,11 +20,6 @@ class Perl6::Metamodel::ClassHOW
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
         self.add_stash(pir::repr_type_object_for__PPS($metaclass, $repr));
-    }
-    
-    my @default_parent_type;
-    method set_default_parent_type($type) {
-        @default_parent_type[0] := $type;
     }
 
     method compose($obj) {
@@ -43,8 +39,8 @@ class Perl6::Metamodel::ClassHOW
         # Some things we only do if we weren't already composed once, like
         # building the MRO.
         unless $!composed {
-            if self.parents($obj, :local(1)) == 0 && +@default_parent_type && self.name($obj) ne 'Mu' {
-                self.add_parent($obj, @default_parent_type[0]);
+            if self.parents($obj, :local(1)) == 0 && self.has_default_parent_type && self.name($obj) ne 'Mu' {
+                self.add_parent($obj, self.get_default_parent_type);
             }
             self.compute_mro($obj);
             $!composed := 1;

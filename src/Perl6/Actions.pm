@@ -1233,50 +1233,14 @@ class Perl6::Actions is HLL::Actions {
                 # $past.control('return_pir');
             }
         }
-        $past.name(~$<longname>);
+        $past.name($<longname> ?? $<longname>.Str !! '<anon>');
+        $past.nsentry('');
         
-        # Get signature and ensure it has an invocant and *%_.
-        if $past<placeholder_sig> {
-            $/.CURSOR.panic('Placeholder variables cannot be used in a method');
-        }
-        my @params := $<multisig> ?? $<multisig>[0].ast !! [];
-        unless @params[0]<is_invocant> {
-            @params.unshift(hash(
-                nominal_type => $*ST.find_symbol([$<longname> ?? '$?CLASS' !! 'Mu']),
-                is_invocant => 1,
-                is_multi_invocant => 1
-            ));
-        }
-        unless @params[+@params - 1]<named_slurpy> {
-            @params.push(hash(
-                variable_name => '%_',
-                nominal_type => $*ST.find_symbol(['Mu']),
-                named_slurpy => 1,
-                is_multi_invocant => 1,
-                is_method_named_slurpy => 1
-            ));
-        }
-        set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object(@params, $past);
-        add_signature_binding_code($past, $signature, @params);
-        
-        # Place to store invocant.
-        $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
-        $past.symbol('self', :scope('lexical_6model'));
-
-        # Needs a slot to hold a multi or method dispatcher.
-        $*ST.install_lexical_symbol($past, '$*DISPATCHER',
-            $*ST.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
-        $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
-        
-        # Create code object.
-        if $<longname> {
-            $past.name($<longname>.Str);
-            $past.nsentry('');
-        }
-        my $type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
-        my $code := $*ST.create_code_object($past, $type, $signature,
-            $*MULTINESS eq 'proto');
+        # Do the various tasks to trun the block into a method code object.
+        my @params    := $<multisig> ?? $<multisig>[0].ast !! [];
+        my $inv_type  := $*ST.find_symbol([$<longname> ?? '$?CLASS' !! 'Mu']);
+        my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
+        my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
         
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*ST.cur_lexpad();
@@ -1318,6 +1282,45 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
     
+    sub methodize_block($/, $past, @params, $invocant_type, $code_type) {
+        # Get signature and ensure it has an invocant and *%_.
+        if $past<placeholder_sig> {
+            $/.CURSOR.panic('Placeholder variables cannot be used in a method');
+        }
+        unless @params[0]<is_invocant> {
+            @params.unshift(hash(
+                nominal_type => $invocant_type,
+                is_invocant => 1,
+                is_multi_invocant => 1
+            ));
+        }
+        unless @params[+@params - 1]<named_slurpy> {
+            @params.push(hash(
+                variable_name => '%_',
+                nominal_type => $*ST.find_symbol(['Mu']),
+                named_slurpy => 1,
+                is_multi_invocant => 1,
+                is_method_named_slurpy => 1
+            ));
+        }
+        set_default_parameter_type(@params, 'Any');
+        my $signature := create_signature_object(@params, $past);
+        add_signature_binding_code($past, $signature, @params);
+        
+        # Place to store invocant.
+        $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
+        $past.symbol('self', :scope('lexical_6model'));
+        
+        # Needs a slot to hold a multi or method dispatcher.
+        $*ST.install_lexical_symbol($past, '$*DISPATCHER',
+            $*ST.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
+        $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
+        
+        # Create code object.
+        return $*ST.create_code_object($past, $code_type, $signature,
+            $*MULTINESS eq 'proto');
+    }
+    
     sub is_clearly_returnless($block) {
         # If the only thing is a pirop, can assume no return
         +$block[1].list == 1 && $block[1][0].isa(PAST::Op) && $block[1][0].pirop()
@@ -1342,77 +1345,40 @@ class Perl6::Actions is HLL::Actions {
         make $<regex_def>.ast;
     }
 
-    method regex_def($/, $key?) {
+    method regex_def($/) {
+        my $past;
+        my $code;
         my $name := ~$<deflongname>[0];
         
-        my $past;
         if $*MULTINESS eq 'proto' {
-            # Need to build code for setting up a proto-regex.
-            unless ($name) {
-                $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's cannot be anonymous');
-            }
-            our @PACKAGE;
-            unless +@PACKAGE {
-                $/.CURSOR.panic("Cannot declare named " ~ ~$<sym> ~ " outside of a package");
-            }
-            my %table;
-            %table := @PACKAGE[0].methods();
-            unless %table{$name} { my %tmp; %table{$name} := %tmp; }
-            if %table{$name} {
-                $/.CURSOR.panic('Cannot declare proto ' ~ ~$<sym> ~ ' ' ~ $name ~
-                    ' when another with this name was already declared');
-            }
-            %table{$name}<code_ref> :=
-                block_closure(
-                    PAST::Block.new( :name($name),
-                        PAST::Op.new(
-                            PAST::Var.new( :name('self'), :scope('register') ),
-                            $name,
-                            :name('!protoregex'),
-                            :pasttype('callmethod')
-                        ),
-                        :lexical(0),
-                        :blocktype('method'),
-                        :pirflags(':anon'),
-                        :node($/)
-                    ),
-                    'Regex', 0);
+            $/.CURSOR.panic('protoregexes not yet implemented');
         } else {
-            # Create the regex sub along with its signature.
+            # Create the regex PAST block.
             $past := QRegex::P6Regex::Actions::buildsub($<p6regex>.ast, $*CURPAD);
-            pir::say('regex_def');
-            $past.unshift(PAST::Op.new(
-                :pasttype('inline'),
-                :inline("    .local pmc self\n    self = find_lex 'self'")
-                ));
-            my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
-            $sig.add_invocant();
-            $sig.set_default_parameter_type('Any');
-            $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1), :viviself(sigiltype('$')) ));
-            $past.symbol('self', :scope('lexical_6model'));
-            add_signature($past, $sig);
             $past.name($name);
             $past.blocktype("declaration");
             
-            # If the methods are not :anon they'll conflict at class composition time.
-            $past.pirflags(':anon');
-
-            # Create code object and install it provided it has a name.
-            if ($name) {
-                my $code := block_closure(blockref($past), 'Regex', 0);
-                our @PACKAGE;
-                unless +@PACKAGE {
-                    $/.CURSOR.panic("Cannot declare named " ~ ~$<sym> ~ " outside of a package");
-                }
-                my %table;
-                %table := @PACKAGE[0].methods();
-                install_method($/, $code, $name, %table);
-            }
-            else {
-                $past := block_closure($past, 'Regex', 0);
-            }
+            # Do the various tasks to trun the block into a method code object.
+            my @params    := $<signature> ?? $<signature>.ast !! [];
+            my $inv_type  := $*ST.find_symbol(['Mu']); # XXX Fixme when we add grammars...
+            $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
+            
+            # Install PAST block so that it gets capture_lex'd correctly.
+            my $outer := $*ST.cur_lexpad();
+            $outer[0].push($past);
+            
+            # XXX Install in a scope.
         }
-        make $past;
+        
+        # Apply traits.
+        for $<trait> {
+            if $_.ast { ($_.ast)($code) }
+        }
+
+        # Return closure if not in sink context.
+        my $closure := block_closure(reference_to_code_object($code, $past));
+        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        make $closure;
     }
 
     method type_declarator:sym<enum>($/) {

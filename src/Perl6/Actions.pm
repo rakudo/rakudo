@@ -1417,7 +1417,62 @@ class Perl6::Actions is HLL::Actions {
         my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
         my $type_obj  := $*ST.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
         
-        # XXX Values...
+        # Add roles (which will provide the enum-related methods).
+        $*ST.apply_trait('&trait_mod:<does>', $type_obj, $*ST.find_symbol(['Enumeration']));
+        if pir::type_check__IPP($type_obj, $*ST.find_symbol(['Numeric'])) {
+            $*ST.apply_trait('&trait_mod:<does>', $type_obj, $*ST.find_symbol(['NumericEnumeration']));
+        }
+        
+        # Get list of either values or pairs; fail if we can't.
+        my @values;
+        my $term_ast := $<term>.ast;
+        if $term_ast.isa(PAST::Stmts) && +@($term_ast) == 1 {
+            $term_ast := $term_ast[0];
+        }
+        if $term_ast.isa(PAST::Op) && $term_ast.name eq '&infix:<,>' {
+            for @($term_ast) {
+                if $_.returns() eq 'Pair' && $_[1]<has_compile_time_value> && $_[2]<has_compile_time_value> {
+                    @values.push($_);
+                }
+                elsif $_<has_compile_time_value> {
+                    @values.push($_);
+                }
+                else {
+                    $<term>.CURSOR.panic("Enumeration values must be known at compile time");
+                }
+            }
+        }
+        elsif $term_ast<has_compile_time_value> {
+            @values.push($term_ast);
+        }
+        elsif $term_ast.returns() eq 'Pair' && $term_ast[1]<has_compile_time_value> && $term_ast[2]<has_compile_time_value> {
+            @values.push($term_ast);
+        }
+        else {
+            $<term>.CURSOR.panic("Enumeration values must be known at compile time");
+        }
+        
+        # Now we have them, we can go about computing the value
+        # for each of the keys, unless they have them supplied.
+        # XXX Should not assume integers, and should use lexically
+        # scoped &postfix:<++> or so.
+        my $cur_value := 0;
+        for @values {
+            # If it's a pair, take that as the value; also find
+            # key.
+            my $cur_key;
+            if $_.returns() eq 'Pair' {
+                $cur_key   := nqp::unbox_s($_[1]<compile_time_value>);
+                $cur_value := nqp::unbox_i($_[2]<compile_time_value>);
+            }
+            else {
+                $cur_key := nqp::unbox_s($_<compile_time_value>);
+            }
+            $*ST.enum_add_value($type_obj, $cur_key, $cur_value);
+            
+            # Increment for next value.
+            $cur_value := $cur_value + 1;
+        }
         
         # Compose, apply traits and install.
         $*ST.pkg_compose($type_obj);

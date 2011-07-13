@@ -1045,6 +1045,19 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         return $mo;
     }
     
+    # Adds a value to an enumeration.
+    method enum_add_value($enum_type_obj, $key, $value) {
+        # Add directly.
+        $enum_type_obj.HOW.add_enum_value($enum_type_obj, $key, $value);
+        
+        # Generate deserialization code.
+        my $enum_type_obj_ref := self.get_object_sc_ref_past($enum_type_obj);
+        self.add_event(:deserialize_past(PAST::Op.new(
+            :pasttype('callmethod'), :name('add_enum_value'),
+            PAST::Op.new( :pirop('get_how PP'), $enum_type_obj_ref ),
+            $key, $value)));
+    }
+    
     # Applies a trait.
     method apply_trait($trait_sub_name, *@pos_args, *%named_args) {
         # Locate the trait sub to apply.

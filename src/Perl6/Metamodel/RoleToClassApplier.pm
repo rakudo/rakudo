@@ -1,10 +1,7 @@
 my class RoleToClassApplier {
     sub has_method($target, $name, $local) {
-        my @methods := $target.HOW.methods($target, :local($local));
-        for @methods {
-            if ~$_ eq $name { return 1; }
-        }
-        return 0;
+        my %mt := $target.HOW.method_table($target);
+        return pir::exists(%mt, $name)
     }
 
     sub has_attribute($target, $name) {

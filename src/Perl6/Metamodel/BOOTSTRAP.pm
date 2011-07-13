@@ -413,6 +413,12 @@ Submethod.HOW.add_parent(Submethod, Routine);
 Submethod.HOW.publish_parrot_vtable_handler_mapping(Submethod);
 Submethod.HOW.publish_parrot_vtable_mapping(Submethod);
 
+# class Regex is Method { ... }
+my stub Regex metaclass Perl6::Metamodel::ClassHOW { ... };
+Regex.HOW.add_parent(Regex, Method);
+Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
+Regex.HOW.publish_parrot_vtable_mapping(Regex);
+
 # class Str is Cool {
 #     has str $!value is box_target;
 #     ...
@@ -635,6 +641,7 @@ my module EXPORT {
         $?PACKAGE.WHO<Sub>       := Sub;
         $?PACKAGE.WHO<Method>    := Method;
         $?PACKAGE.WHO<Submethod> := Submethod;
+        $?PACKAGE.WHO<Regex>     := Regex;
         $?PACKAGE.WHO<Str>       := Str;
         $?PACKAGE.WHO<Numeric>   := Numeric;
         $?PACKAGE.WHO<Real>      := Real;

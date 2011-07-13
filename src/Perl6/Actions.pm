@@ -1,4 +1,5 @@
 use NQPP6Regex;
+use QRegex;
 
 INIT {
     # Add our custom nqp:: opcodes.

@@ -1,4 +1,5 @@
 use NQPP6Regex;
+use QRegex;
 use Perl6::SymbolTable;
 
 grammar Perl6::Grammar is HLL::Grammar {

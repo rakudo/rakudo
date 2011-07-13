@@ -626,6 +626,8 @@ my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
     $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash);
 
+use QRegex;
+
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
     our module DEFAULT {
@@ -666,5 +668,6 @@ my module EXPORT {
         $?PACKAGE.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
         $?PACKAGE.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
         $?PACKAGE.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
+        $?PACKAGE.WHO<NQPCursorRole>       := NQPCursorRole;
     }
 }

@@ -9,11 +9,9 @@ my class Cursor does NQPCursorRole {
 #        my Mu $list := nqp::list();
 #        my Mu $hash := nqp::hash();
 #        while $capsiter {
-#            pir::say('iter');
 #            my Mu $pair := nqp::shift($capsiter);
 #            my Mu $key := $pair.key;
 #            my Mu $value := $pair.value;
-#            pir::say($key);
 #            $value := nqp::p6list($value, List, Bool::True)
 #                if pir::isa__IPs($value, 'ResizablePMCArray');
 #            nqp::iscclass(pir::const::CCLASS_NUMERIC, $key, 0)

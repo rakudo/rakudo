@@ -1360,7 +1360,7 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic('protoregexes not yet implemented');
         } else {
             my @params := $<signature> ?? $<signature>.ast !! [];
-            $coderef := regex_coderef($/, $<p6regex>.ast, $name, @params, $*CURPAD);
+            $coderef := regex_coderef($/, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD);
         }
         
         # Apply traits.
@@ -1375,7 +1375,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub regex_coderef($/, $qast, $name, @params, $block) {
+    sub regex_coderef($/, $qast, $scope, $name, @params, $block) {
         # create a code reference from a regex qast tree
         my $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
         $past.name($name);
@@ -1396,7 +1396,7 @@ class Perl6::Actions is HLL::Actions {
         $outer[0].push($past);
             
         # Install in needed scopes.
-        install_method($/, $name, $*SCOPE, $code, $outer);
+        install_method($/, $name, $scope, $code, $outer);
 
         # Return a reference to the code object
         reference_to_code_object($code, $past);
@@ -2843,7 +2843,7 @@ class Perl6::Actions is HLL::Actions {
     }
     method quote:sym</ />($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $coderef := regex_coderef($/, $<p6regex>.ast, '', [], $block);
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );

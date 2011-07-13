@@ -65,6 +65,17 @@ class Perl6::Metamodel::EnumHOW
         
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
+        
+        # Setup the actual enumeration values.
+        for %!values {
+            # Create value object, and shove key in it too.
+            my $key_obj   := pir::perl6_box_str__PS($_.key);
+            my $value_obj := pir::repr_box_int__PIP($_.value, $obj);
+            nqp::bindattr($value_obj, $obj, '$!key', $key_obj);
+            
+            # Add to stash.
+            ($obj.WHO){$_.key} := $value_obj;
+        }
 
         $obj
     }

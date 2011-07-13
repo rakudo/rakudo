@@ -12,4 +12,5 @@ my module EXPORTHOW {
     ($?PACKAGE.WHO)<role-curried> := Perl6::Metamodel::CurriedRoleHOW;
     ($?PACKAGE.WHO)<native>       := Perl6::Metamodel::NativeHOW;
     ($?PACKAGE.WHO)<subset>       := Perl6::Metamodel::SubsetHOW;
+    ($?PACKAGE.WHO)<enum>         := Perl6::Metamodel::EnumHOW;
 }

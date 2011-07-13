@@ -1238,7 +1238,8 @@ class Perl6::Actions is HLL::Actions {
         
         # Do the various tasks to trun the block into a method code object.
         my @params    := $<multisig> ?? $<multisig>[0].ast !! [];
-        my $inv_type  := $*ST.find_symbol([$<longname> ?? '$?CLASS' !! 'Mu']);
+        my $inv_type  := $*ST.find_symbol([
+            $<longname> && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
         my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
         
@@ -1314,7 +1315,7 @@ class Perl6::Actions is HLL::Actions {
         elsif $scope eq '' || $scope eq 'has' {
             my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
             pir::printerr__vS("Useless declaration of a has-scoped $nocando in " ~
-                ($*PKGDECL || "mainline"));
+                ($*PKGDECL || "mainline") ~ "\n");
         }
         
         # May also need it in lexpad and/or package.
@@ -1366,7 +1367,8 @@ class Perl6::Actions is HLL::Actions {
             
             # Do the various tasks to trun the block into a method code object.
             my @params    := $<signature> ?? $<signature>.ast !! [];
-            my $inv_type  := $*ST.find_symbol(['Mu']); # XXX Fixme when we add grammars...
+            my $inv_type  := $*ST.find_symbol([ # XXX Maybe Cursor below, not Mu...
+                $<longname> && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
             $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
             
             # Need to put self into a register for the regex engine.

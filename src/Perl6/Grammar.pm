@@ -1296,17 +1296,20 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token regex_declarator { <...> }
     token regex_declarator:sym<rule> {
-        <sym> {*} #= open
+        <sym>
+        :my %*RX;
         :my $*METHODTYPE := 'rule';
         <regex_def>
     }
     token regex_declarator:sym<token> {
-        <sym> {*} #= open
+        <sym>
+        :my %*RX;
         :my $*METHODTYPE := 'token';
         <regex_def>
     }
     token regex_declarator:sym<regex> {
-        <sym> {*} #= open
+        <sym>
+        :my %*RX;
         :my $*METHODTYPE := 'regex';
         <regex_def>
     }
@@ -1318,7 +1321,6 @@ grammar Perl6::Grammar is HLL::Grammar {
           <deflongname>?
           <.newpad>
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
-          {*} #= open
           '{'[ '<...>' |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
           { $*CURPAD := $*ST.pop_lexpad() }
         ] || <.panic: "Malformed regex">
@@ -2295,7 +2297,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 }
 
-grammar Perl6::Regex is Regex::P6Regex::Grammar {
+grammar Perl6::Regex is QRegex::P6Regex::Grammar {
     token metachar:sym<:my> {
         ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }

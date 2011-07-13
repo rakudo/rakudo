@@ -1330,54 +1330,24 @@ class Perl6::Actions is HLL::Actions {
         make $BLOCK;
     }
 
-    our %REGEX_MODIFIERS;
     method regex_declarator:sym<regex>($/, $key?) {
-        if ($key) {
-            my %h;
-            %REGEX_MODIFIERS := %h;
-        } else {
-            make $<regex_def>.ast;
-        }
+        make $<regex_def>.ast;
     }
 
     method regex_declarator:sym<token>($/, $key?) {
-        if ($key) {
-            my %h;
-            %h<r> := 1;
-            %REGEX_MODIFIERS := %h;
-        } else {
-            make $<regex_def>.ast;
-        }
+        make $<regex_def>.ast;
     }
 
     method regex_declarator:sym<rule>($/, $key?) {
-        if ($key) {
-            my %h;
-            %h<r> := 1; %h<s> :=1;
-            %REGEX_MODIFIERS := %h;
-        } else {
-            make $<regex_def>.ast;
-        }
+        make $<regex_def>.ast;
     }
 
     method regex_def($/, $key?) {
         my $name := ~$<deflongname>[0];
-        my @MODIFIERS := Q:PIR {
-            %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
-        };
         
         my $past;
-        if $key eq 'open' {
-            @MODIFIERS.unshift(%REGEX_MODIFIERS);
-            # The following is so that <sym> can work
-            Q:PIR {
-                $P0 = find_lex '$name'
-                set_hll_global ['Regex';'P6Regex';'Actions'], '$REGEXNAME', $P0
-            };
-            return 0;
-        } elsif $*MULTINESS eq 'proto' {
+        if $*MULTINESS eq 'proto' {
             # Need to build code for setting up a proto-regex.
-            @MODIFIERS.shift;
             unless ($name) {
                 $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's cannot be anonymous');
             }
@@ -1407,27 +1377,10 @@ class Perl6::Actions is HLL::Actions {
                         :node($/)
                     ),
                     'Regex', 0);
-            %table{'!PREFIX__' ~ $name}<code_ref> :=
-                block_closure(
-                    PAST::Block.new( :name('!PREFIX__' ~ $name),
-                        PAST::Op.new(
-                            PAST::Var.new( :name('self'), :scope('register') ),
-                            $name,
-                            :name('!PREFIX__!protoregex'),
-                            :pasttype('callmethod')
-                        ),
-                        :blocktype('method'),
-                        :pirflags(':anon'),
-                        :lexical(0),
-                        :node($/)
-                    ),
-                    'Regex', 0);
         } else {
-            # Clear modifiers stack entry for this regex.
-            @MODIFIERS.shift;
-
             # Create the regex sub along with its signature.
-            $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast, $*CURPAD);
+            $past := QRegex::P6Regex::Actions::buildsub($<p6regex>.ast, $*CURPAD);
+            pir::say('regex_def');
             $past.unshift(PAST::Op.new(
                 :pasttype('inline'),
                 :inline("    .local pmc self\n    self = find_lex 'self'")
@@ -2876,11 +2829,6 @@ class Perl6::Actions is HLL::Actions {
             %h{$key} := $value;
         }
 
-        @Regex::P6Regex::Actions::MODIFIERS.unshift(%h);
-    }
-
-    method cleanup_modifiers($/) {
-        @Regex::P6Regex::Actions::MODIFIERS.shift();
     }
 
     method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
@@ -3617,7 +3565,7 @@ class Perl6::Actions is HLL::Actions {
     }
 }
 
-class Perl6::RegexActions is Regex::P6Regex::Actions {
+class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;

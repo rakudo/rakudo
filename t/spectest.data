@@ -47,7 +47,7 @@ S02-builtin_data_types/type.t
 S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
-# S02-literals/char-by-name.t # icu # err: too many positional arguments
+S02-literals/char-by-name.t # icu
 S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
@@ -88,7 +88,7 @@ S02-names/identifier.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t # err: You can't backslash that at line 79, near "#`((( comm"
 S02-whitespace_and_comments/minimal-whitespace.t
-# S02-whitespace_and_comments/one-pass-parsing.t # fails the 1 test
+S02-whitespace_and_comments/one-pass-parsing.t
 S02-whitespace_and_comments/pod-in-multi-line-exprs.t
 S02-whitespace_and_comments/sub-block-parsing.t
 S02-whitespace_and_comments/unicode-whitespace.t
@@ -121,7 +121,7 @@ S03-operators/binding-ro.t
 S03-operators/binding-scalars.t
 # S03-operators/bit.t                       # need Rat literals
 # S03-operators/boolean-bitwise.t           # xor return bug
-# S03-operators/brainos.t # err: too many positional arguments: 3 passed, 1 expected
+S03-operators/brainos.t
 # S03-operators/buf.t # err: Method 'encode' not found for invocant of class 'Str'
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
@@ -138,7 +138,7 @@ S03-operators/is-divisible-by.t
 S03-operators/list-quote-junction.t
 # S03-operators/minmax.t # err: Could not find sub &infix:<minmax>
 # S03-operators/misc.t                      # need regexes
-# S03-operators/names.t                     # need regexes
+S03-operators/names.t
 # S03-operators/nesting.t # err: Unable to parse blockoid
 S03-operators/not.t
 S03-operators/numeric-context.t
@@ -247,7 +247,7 @@ S04-statements/while.t
 # S05-mass/rx.t # needs regex
 # S05-mass/recursive.t # needs regex
 # S05-mass/stdrules.t # needs regex
-# S05-match/arrayhash.t # needs regex
+S05-match/arrayhash.t
 # S05-match/blocks.t #needs regex
 # S05-match/capturing-contexts.t #needs regex
 # S05-match/non-capturing.t #needs regex
@@ -266,7 +266,7 @@ S04-statements/while.t
 # S05-metasyntax/repeat.t # needs regex
 # S05-metasyntax/sequential-alternation.t # needs regex
 # S05-metasyntax/single-quotes.t # needs regex
-# S05-metasyntax/unknown.t # needs regex
+S05-metasyntax/unknown.t
 # S05-modifier/continue.t # needs regex
 # S05-modifier/counted-match.t # needs regex
 # S05-modifier/global.t # needs regex

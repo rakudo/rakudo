@@ -436,7 +436,7 @@ t/spec :
 	git clone git://github.com/perl6/roast.git t/spec
 
 spectest_update :
-	cd t/spec && git fetch &&  git checkout a14ba49
+	cd t/spec && git fetch &&  git checkout rakudo-master && git merge origin/rakudo-master
 
 
 rakudo_test_run.tar.gz: testable t/spectest.data

@@ -834,6 +834,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         return $past;
     }
     
+    # Adds a numeric constant value (int or num) to the constants table.
+    # Returns PAST to do  the lookup of the constant.
+    method add_numeric_constant($type, $value) {
+        my $const := self.add_constant($type, nqp::lc($type), $value);
+        my $past  := PAST::Want.new($const, 'IiNn', $value);
+        $past<has_compile_time_value> := 1;
+        $past<compile_time_value>     := $const<compile_time_value>;
+        $past;
+    }
+
     # Creates a meta-object for a package, adds it to the root objects and
     # stores an event for the action. Returns the created object.
     method pkg_create_mo($how, :$name, :$repr, *%extra) {

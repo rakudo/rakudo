@@ -2665,20 +2665,12 @@ class Perl6::Actions is HLL::Actions {
 
     method numish($/) {
         if $<integer> {
-            my $cons := $*ST.add_constant('Int', 'int', $<integer>.ast);
-            my $past := PAST::Want.new($cons, 'IiNn', $<integer>.ast);
-            $past<has_compile_time_value> := 1;
-            $past<compile_time_value> := $cons<compile_time_value>;
-            make $past;
+            make $*ST.add_numeric_constant('Int', $<integer>.ast);
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
         else {
-            my $cons := $*ST.add_constant('Num', 'num', +(~$/));
-            my $past := PAST::Want.new($cons, 'IiNn', +(~$/));
-            $past<has_compile_time_value> := 1;
-            $past<compile_time_value> := $cons<compile_time_value>;
-            make $past;
+            make $*ST.add_numeric_constant('Num', +$/);
         }
     }
 
@@ -3554,15 +3546,15 @@ class Perl6::Actions is HLL::Actions {
 
         if pir::defined($exponent) {
             my num $result := nqp::mul_n(nqp::div_n($iresult, $fdivide), nqp::pow_n($base, $exponent));
-            return $*ST.add_constant('Num', 'num', $result);
+            return $*ST.add_numeric_constant('Num', $result);
         } else {
             if $seen_dot {
                 return $*ST.add_constant('Rat', 'type_new',
-                    $*ST.add_constant('Int', 'int', $iresult)<compile_time_value>,
-                    $*ST.add_constant('Int', 'int', $fdivide)<compile_time_value>
+                    $*ST.add_numeric_constant('Int', $iresult)<compile_time_value>,
+                    $*ST.add_numeric_constant('Int', $fdivide)<compile_time_value>
                 );
             } else {
-                return $*ST.add_constant('Int', 'int', $iresult);
+                return $*ST.add_numeric_constant('Int', $iresult);
             }
         }
     }

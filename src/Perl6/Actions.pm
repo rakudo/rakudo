@@ -2695,18 +2695,20 @@ class Perl6::Actions is HLL::Actions {
         $result;
     }
 
+    method escale($/) {
+        make $<sign> eq '-' ?? -$<decint>.ast !! $<decint>.ast;
+    }
+
     method dec_number($/) {
+#        pir::say("dec_number: $/");
         my $int  := $<int> ?? filter_number(~$<int>) !! "0";
         my $frac := $<frac> ?? filter_number(~$<frac>) !! "0";
         if $<escale> {
-            my $exp := ~$<escale>[0]<decint>;
-            make $*ST.add_constant('Num', 'num',
-                str2num(0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp));
+            my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
+#            pir::say('dec_number exponent: ' ~ ~$e.ast);
+            make radcalc(10, $<coeff>, 10, $e.ast);
         } else {
-            # TODO: strip trailing zeros from $frac
-            my $nu := $*ST.add_constant('Int', 'int', +($int ~ $frac));
-            my $de := $*ST.add_constant('Int', 'int', pir::set__In(nqp::pow_n(10, nqp::chars($frac))));
-            make $*ST.add_constant('Rat', 'type_new', $nu<compile_time_value>, $de<compile_time_value>);
+            make radcalc(10, $<coeff>);
         }
     }
 
@@ -3555,6 +3557,74 @@ class Perl6::Actions is HLL::Actions {
                      * 10 ** $exp;
         $result := -$result if $negate;
         $result;
+    }
+
+    sub radcalc($radix, $number, $base?, $exponent?) {
+        my int $sign := 1;
+        pir::die("Radix '$radix' out of range (2..36)")
+            if $radix < 2 || $radix > 36;
+        pir::die("You gave us a base for the magnitude, but you forgot the exponent.")
+            if pir::defined($base) && !pir::defined($exponent);
+        pir::die("You gave us an exponent for the magnitude, but you forgot the base.")
+            if !pir::defined($base) && pir::defined($exponent);
+
+        if nqp::substr($number, 0, 1) eq '-' {
+            $sign := -1;
+            $number := nqp::substr($number, 1);
+        }
+        if nqp::substr($number, 0, 1) eq '0' {
+            my $radix_name := nqp::uc(nqp::substr($number, 1, 1));
+            if pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $radix_name) > $radix {
+                $number := nqp::substr($number, 2);
+
+                if      $radix_name eq 'B' {
+                    $radix := 2;
+                } elsif $radix_name eq 'O' {
+                    $radix := 8;
+                } elsif $radix_name eq 'D' {
+                    $radix := 10;
+                } elsif $radix_name eq 'X' {
+                    $radix := 16;
+                } else {
+                    pir::die("Unkonwn radix character '$radix_name' (can be b, o, d, x)");
+                }
+            }
+        }
+
+        my int $iresult  := 0;
+        my int $fresult  := 0;
+        my int $fdivide  := 1;
+        my int $idx      := -1;
+        my int $seen_dot := 0;
+        while $idx < nqp::chars($number) - 1 {
+            $idx++;
+            my $current := nqp::substr($number, $idx, 1);
+            next if $current eq '_';
+            if $current eq '.' {
+                $seen_dot := 1;
+                next;
+            }
+            my $i := pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
+            pir::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
+            $iresult := $iresult * $radix + $i;
+            $fdivide := $fdivide * $radix if $seen_dot;
+        }
+
+        $iresult := $iresult * $sign;
+
+        if pir::defined($exponent) {
+            my num $result := nqp::mul_n(nqp::div_n($iresult, $fdivide), nqp::pow_n($base, $exponent));
+            return $*ST.add_constant('Num', 'num', $result);
+        } else {
+            if $seen_dot {
+                return $*ST.add_constant('Rat', 'type_new',
+                    $*ST.add_constant('Int', 'int', $iresult)<compile_time_value>,
+                    $*ST.add_constant('Int', 'int', $fdivide)<compile_time_value>
+                );
+            } else {
+                return $*ST.add_constant('Int', 'int', $iresult);
+            }
+        }
     }
 }
 

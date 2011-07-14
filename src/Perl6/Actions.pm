@@ -3561,14 +3561,11 @@ class Perl6::Actions is HLL::Actions {
 
     sub strip_trailing_zeros(str $n) {
         return $n if pir::index($n, '.') < 0;
-        while 1 {
-            my str $last := nqp::substr($n, -1);
-            last if $last ne '_' && $last ne '0';
+        while pir::index('_0',nqp::substr($n, -1)) >= 0 {
             $n := pir::chopn__Ssi($n, 1);
         }
         $n;
     }
-
 
     sub radcalc($radix, $number, $base?, $exponent?) {
         my int $sign := 1;

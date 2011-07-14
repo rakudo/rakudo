@@ -8,6 +8,7 @@ INIT {
         p6box_n      => 'perl6_box_num__Pn',
         p6box_s      => 'perl6_box_str__Ps',
         p6bool       => 'perl6_booleanize__Pi',
+        p6bigint     => 'perl6_box_bigint__Pn',
         p6parcel     => 'perl6_parcel_from_rpa__PPP',
         p6listiter   => 'perl6_iter_from_rpa__PPP',
         p6list       => 'perl6_list_from_rpa__PPPP',

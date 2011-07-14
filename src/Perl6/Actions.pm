@@ -768,9 +768,10 @@ class Perl6::Actions is HLL::Actions {
         my $past;
         if $<index> {
             $past := PAST::Op.new(
-                :name('!postcircumfix:<[ ]>'),
-                PAST::Var.new( :name('$/') ),
-                +$<index>
+                :pasttype('callmethod'),
+                :name('postcircumfix:<[ ]>'),
+                PAST::Var.new(:name('$/'), :scope('lexical_6model')),
+                $*ST.add_constant('Int', 'int', +$<index>),
             );
         }
         elsif $<postcircumfix> {

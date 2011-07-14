@@ -39,6 +39,9 @@ sub SEQUENCE($left, $right, :$exclude_end) {
             $tail.munch($tail.elems - $count);
             $value := $code(|$tail);
             last if $value ~~ $endpoint;
+            if $value.isa(Rat) && $value.denominator == 1 {
+                $value := $value.Int
+            }
             $tail.push($value);
             take $value;
         }

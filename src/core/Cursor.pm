@@ -1,24 +1,27 @@
 my class Cursor does NQPCursorRole { 
-    method MATCHBUILD(|$) {
-        my Mu $args := pir::perl6_current_args_rpa__P();
-        nqp::shift($args);
-        my Mu $orig := nqp::shift($args);
-        my Mu $from := nqp::shift($args);
-        my Mu $to := nqp::shift($args);
-        my Mu $capsiter := nqp::iterator(nqp::shift($args));
+    method MATCH() {
         my Mu $list := nqp::list();
         my Mu $hash := nqp::hash();
-        while $capsiter {
-            my Mu $pair := nqp::shift($capsiter);
-            my Mu $key := $pair.key;
+        my Mu $caphash := pir::find_method__PPs(Cursor, 'CAPHASH')(self);
+        my Mu $capiter := nqp::iterator($caphash);
+        while $capiter {
+            my Mu $pair := nqp::shift($capiter);
+            my str $key = $pair.key;
             my Mu $value := $pair.value;
-            $value := nqp::p6list($value, List, Bool::True)
+            $value := nqp::p6list($value, List, Mu)
                 if pir::isa__IPs($value, 'ResizablePMCArray');
             nqp::iscclass(pir::const::CCLASS_NUMERIC, $key, 0)
               ?? nqp::bindpos($list, $key, $value)
-              !! nqp::bindkey($list, $key, $value);
+              !! nqp::bindkey($hash, $key, $value);
         }
-        Match.new(:$orig, :$from, :$to,
-                    :list(nqp::p6list($list, List, Mu)))
+        my $match := Match.new(
+            orig   => nqp::getattr(self, Cursor, '$!orig'),
+            from   => nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!from')),
+            to     => nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!pos')),
+        );
+        nqp::bindattr($match, Capture, '$!list', $list);
+        nqp::bindattr($match, Capture, '$!hash', $hash);
+        $match;
     }
 }
+

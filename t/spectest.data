@@ -141,7 +141,6 @@ S03-operators/list-quote-junction.t
 S03-operators/names.t
 # S03-operators/nesting.t # err: Unable to parse blockoid
 S03-operators/not.t
-S03-operators/numeric-context.t
 # S03-operators/overflow.t # missing &radcalc (passes only if bignum lib is available)
 S03-operators/precedence.t
 S03-operators/range-basic.t

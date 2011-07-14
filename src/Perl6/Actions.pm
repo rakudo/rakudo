@@ -2720,20 +2720,12 @@ class Perl6::Actions is HLL::Actions {
 
     method numish($/) {
         if $<integer> {
-            my $cons := $*ST.add_constant('Int', 'int', $<integer>.ast);
-            my $past := PAST::Want.new($cons, 'IiNn', $<integer>.ast);
-            $past<has_compile_time_value> := 1;
-            $past<compile_time_value> := $cons<compile_time_value>;
-            make $past;
+            make $*ST.add_numeric_constant('Int', $<integer>.ast);
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
         else {
-            my $cons := $*ST.add_constant('Num', 'num', +(~$/));
-            my $past := PAST::Want.new($cons, 'IiNn', +(~$/));
-            $past<has_compile_time_value> := 1;
-            $past<compile_time_value> := $cons<compile_time_value>;
-            make $past;
+            make $*ST.add_numeric_constant('Num', +$/);
         }
     }
 
@@ -2750,24 +2742,27 @@ class Perl6::Actions is HLL::Actions {
         $result;
     }
 
+    method escale($/) {
+        make $<sign> eq '-' ?? -$<decint>.ast !! $<decint>.ast;
+    }
+
     method dec_number($/) {
+#        pir::say("dec_number: $/");
         my $int  := $<int> ?? filter_number(~$<int>) !! "0";
         my $frac := $<frac> ?? filter_number(~$<frac>) !! "0";
         if $<escale> {
-            my $exp := ~$<escale>[0]<decint>;
-            make $*ST.add_constant('Num', 'num',
-                str2num(0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp));
+            my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
+#            pir::say('dec_number exponent: ' ~ ~$e.ast);
+            make radcalc(10, $<coeff>, 10, $e.ast);
         } else {
-            # TODO: strip trailing zeros from $frac
-            my $nu := $*ST.add_constant('Int', 'int', +($int ~ $frac));
-            my $de := $*ST.add_constant('Int', 'int', pir::set__In(nqp::pow_n(10, nqp::chars($frac))));
-            make $*ST.add_constant('Rat', 'type_new', $nu<compile_time_value>, $de<compile_time_value>);
+            make radcalc(10, $<coeff>);
         }
     }
 
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
+            pir::die('NYI form of number litereal encountered');
             make PAST::Op.new(:name('&radcalc'), :pasttype('call'),
                 $radix, $<circumfix>.ast);
         } else {
@@ -2777,9 +2772,7 @@ class Perl6::Actions is HLL::Actions {
             my $base     := $<base> ?? +($<base>[0].Str) !! 0;
             my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
 
-            make PAST::Op.new( :name('&radcalc'), :pasttype('call'),
-                $radix, $intfrac, $base, $exp
-            );
+            make radcalc($radix, $intfrac, $base, $exp);
         }
     }
 
@@ -3542,74 +3535,83 @@ class Perl6::Actions is HLL::Actions {
             $past
         }
     }
-    
-    # XXX This probably dupes something in HLL::Actions...
-    # XXX Either way, shouldn't be in PIR.
-    our sub str2num-int($src) {
-        Q:PIR {
-            .local pmc src
-            .local string src_s
-            src = find_lex '$src'
-            src_s = src
-            .local int pos, eos
-            .local num result
-            pos = 0
-            eos = length src_s
-            result = 0
-          str_loop:
-            unless pos < eos goto str_done
-            .local string char
-            char = substr src_s, pos, 1
-            if char == '_' goto str_next
-            .local int digitval
-            digitval = index "0123456789", char
-            if digitval < 0 goto err_base
-            if digitval >= 10 goto err_base
-            result *= 10
-            result += digitval
-          str_next:
-            inc pos
-            goto str_loop
-          err_base:
-        src.'panic'('Invalid radix conversion of "', char, '"')
-          str_done:
-            %r = box result
-        };
+
+    sub strip_trailing_zeros(str $n) {
+        return $n if pir::index($n, '.') < 0;
+        while pir::index('_0',nqp::substr($n, -1)) >= 0 {
+            $n := pir::chopn__Ssi($n, 1);
+        }
+        $n;
     }
 
-    # XXX Translate to NQP.
-    our sub str2num-base($src) {
-        Q:PIR {
-            .local pmc src
-            .local string src_s
-            src = find_lex '$src'
-            src_s = src
-            .local int pos, eos
-            .local num result
-            pos = 0
-            eos = length src_s
-            result = 1
-          str_loop:
-            unless pos < eos goto str_done
-            .local string char
-            char = substr src_s, pos, 1
-            if char == '_' goto str_next
-            result *= 10
-          str_next:
-            inc pos
-            goto str_loop
-          str_done:
-            %r = box result
-        };
-    }
+    sub radcalc($radix, $number, $base?, $exponent?) {
+        my int $sign := 1;
+        pir::die("Radix '$radix' out of range (2..36)")
+            if $radix < 2 || $radix > 36;
+        pir::die("You gave us a base for the magnitude, but you forgot the exponent.")
+            if pir::defined($base) && !pir::defined($exponent);
+        pir::die("You gave us an exponent for the magnitude, but you forgot the base.")
+            if !pir::defined($base) && pir::defined($exponent);
 
-    sub str2num($negate, $int_part, $frac_part, $exp_part_negate, $exp_part) {
-        my $exp := str2num-int($exp_part);
-        $exp := -$exp if $exp_part_negate;
-        my $result := (str2num-int($int_part) + str2num-int($frac_part) / str2num-base($frac_part))
-                     * 10 ** $exp;
-        $result := -$result if $negate;
-        $result;
+        if nqp::substr($number, 0, 1) eq '-' {
+            $sign := -1;
+            $number := nqp::substr($number, 1);
+        }
+        if nqp::substr($number, 0, 1) eq '0' {
+            my $radix_name := nqp::uc(nqp::substr($number, 1, 1));
+            if pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $radix_name) > $radix {
+                $number := nqp::substr($number, 2);
+
+                if      $radix_name eq 'B' {
+                    $radix := 2;
+                } elsif $radix_name eq 'O' {
+                    $radix := 8;
+                } elsif $radix_name eq 'D' {
+                    $radix := 10;
+                } elsif $radix_name eq 'X' {
+                    $radix := 16;
+                } else {
+                    pir::die("Unkonwn radix character '$radix_name' (can be b, o, d, x)");
+                }
+            }
+        }
+
+        $number := strip_trailing_zeros($number);
+
+        my int $iresult  := 0;
+        my int $fresult  := 0;
+        my int $fdivide  := 1;
+        my int $idx      := -1;
+        my int $seen_dot := 0;
+        while $idx < nqp::chars($number) - 1 {
+            $idx++;
+            my $current := nqp::substr($number, $idx, 1);
+            next if $current eq '_';
+            if $current eq '.' {
+                $seen_dot := 1;
+                next;
+            }
+            my $i := pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
+            pir::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
+            $iresult := $iresult * $radix + $i;
+            $fdivide := $fdivide * $radix if $seen_dot;
+        }
+
+        $iresult := $iresult * $sign;
+
+        if pir::defined($exponent) {
+            my num $result := nqp::mul_n(nqp::div_n($iresult, $fdivide), nqp::pow_n($base, $exponent));
+            return $*ST.add_numeric_constant('Num', $result);
+        } else {
+            if $seen_dot {
+                return $*ST.add_constant('Rat', 'type_new',
+                    $*ST.add_numeric_constant('Int', $iresult)<compile_time_value>,
+                    $*ST.add_numeric_constant('Int', $fdivide)<compile_time_value>
+                );
+            } else {
+                return $*ST.add_numeric_constant('Int', $iresult);
+            }
+        }
     }
 }
 

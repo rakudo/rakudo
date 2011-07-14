@@ -2715,6 +2715,7 @@ class Perl6::Actions is HLL::Actions {
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
+            pir::die('NYI form of number litereal encountered');
             make PAST::Op.new(:name('&radcalc'), :pasttype('call'),
                 $radix, $<circumfix>.ast);
         } else {
@@ -2724,9 +2725,7 @@ class Perl6::Actions is HLL::Actions {
             my $base     := $<base> ?? +($<base>[0].Str) !! 0;
             my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
 
-            make PAST::Op.new( :name('&radcalc'), :pasttype('call'),
-                $radix, $intfrac, $base, $exp
-            );
+            make radcalc($radix, $intfrac, $base, $exp);
         }
     }
 
@@ -3489,7 +3488,7 @@ class Perl6::Actions is HLL::Actions {
             $past
         }
     }
-    
+
     sub strip_trailing_zeros(str $n) {
         return $n if pir::index($n, '.') < 0;
         while pir::index('_0',nqp::substr($n, -1)) >= 0 {

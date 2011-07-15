@@ -896,7 +896,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             pir::setattribute__vPPsP($cont, $cont_type_obj, '$!value', @default_value[0]);
         }
         
-        # Create meta-attribute isntance and add right away. Also add
+        # Create meta-attribute instance and add right away. Also add
         # it to the SC.
         my $attr := $meta_attr.new(:auto_viv_container($cont), |%lit_args, |%obj_args);
         $obj.HOW.add_attribute($obj, $attr);

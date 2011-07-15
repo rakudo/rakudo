@@ -258,6 +258,36 @@ my class Str does Stringy {
             take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
         }
     }
+
+    multi method split(Regex $matcher, $limit = *, :$all) {
+        die "Split with regex NYI";
+    }
+    multi method split(Cool $delimiter, $limit = *, :$all) {
+        my $match-string = $delimiter.Str;
+        return if self eq '' && $delimiter eq '';
+        my $c = 0;
+        my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
+        if $l >= 0 {
+            gather {
+                while $l-- > 0 {
+                    if ($match-string eq "") {
+                        last unless $c + 1 < self.chars;
+                        take self.substr($c, 1);
+                        $c++;
+                    } else {
+                        my $m = self.index($match-string, $c);
+                        last unless $m.defined;
+                        take self.substr($c, $m - $c);
+                        take $match-string if $all;
+                        $c = $m + $match-string.chars;
+                    }
+                }
+                take self.substr($c);
+            }
+        } else {
+            Nil;
+        }
+    }
 }
 
 

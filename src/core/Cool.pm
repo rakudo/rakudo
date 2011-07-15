@@ -59,7 +59,7 @@ my class Cool {
     }
 
     proto method index(|$) {*}
-    multi method index(Cool \$needle, Cool $pos = 0) {
+    multi method index(Cool $needle, Cool $pos = 0) {
         my $result := nqp::p6box_i(nqp::index(
                 nqp::unbox_s(self.Str),
                 nqp::unbox_s($needle.Str),
@@ -70,15 +70,14 @@ my class Cool {
     }
 
     proto method rindex(|$) {*}
-    multi method rindex(Cool \$needle, Cool $pos = self.chars) {
-        my $result := nqp::p6box_i(
+    multi method rindex(Cool $needle, Cool $pos = 0) {
+        my $result = 
+            nqp::p6box_i(
                 pir::box__PS(nqp::unbox_s(self.Str)).reverse_index(
                     nqp::unbox_s($needle.Str),
-                    nqp::unbox_i($pos.Int)
-                )
-        );
-        # TODO: fail() instead of returning Str
-        $result < 0 ?? Str !! $result;
+                    nqp::unbox_i($pos.Int)));
+        fail "substring not found" if $result < 0;
+        $result;
     }
 
     method ords(Cool:D:) { self.Str.ords }

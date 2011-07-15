@@ -115,6 +115,7 @@ my class Str does Stringy {
     }
 
     method Numeric() {
+        return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
         my str $str = nqp::unbox_s(self);
         my int $eos = nqp::chars($str);
         my num $int;
@@ -146,6 +147,10 @@ my class Str does Stringy {
             $pos = nqp::atpos($parse, 2);
             fail "missing digits after radix prefix" if nqp::islt_i($pos, 0);
             $result := nqp::p6bigint(nqp::atpos($parse, 0));
+        }
+        elsif nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
+            $result := $neg ?? -$Inf !! $Inf;
+            $pos = nqp::add_n($pos, 3);
         }
         else {
             # We have some sort of number, get leading integer part

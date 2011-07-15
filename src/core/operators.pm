@@ -39,9 +39,6 @@ sub SEQUENCE($left, $right, :$exclude_end) {
             $tail.munch($tail.elems - $count);
             $value := $code(|$tail);
             last if $value ~~ $endpoint;
-            if $value.isa(Rat) && $value.denominator == 1 {
-                $value := $value.Int
-            }
             $tail.push($value);
             take $value;
         }
@@ -83,6 +80,7 @@ sub SEQUENCE($left, $right, :$exclude_end) {
                 elsif $a != 0 && $b != 0 && $c != 0 {
                     $ab = $b / $a;
                     if $ab == $c / $b {
+                        $ab = $ab.Int if $ab ~~ Rat && $ab.denominator == 1;
                         $code = { $^x * $ab }
                     }
                 }

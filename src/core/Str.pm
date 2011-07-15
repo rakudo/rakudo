@@ -133,6 +133,7 @@ my class Str does Stringy {
         my int $neg = nqp::iseq_i($ch, 45);
         $pos = nqp::add_i($pos, 1) if nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 43);
 
+        # handle 0x, 0d, etc. prefixes, if present
         my str $rpref = nqp::substr($str, $pos, 2);
         my int $radix =
             nqp::iseq_s($rpref, '0x') ?? 16
@@ -147,18 +148,24 @@ my class Str does Stringy {
             $result := nqp::p6bigint(nqp::atpos($parse, 0));
         }
         else {
-            # some sort of number, get leading integer part
+            # We have some sort of number, get leading integer part
+            my int $p = $pos;
             $parse := nqp::radix(10, $str, $pos, $neg);
             $pos = nqp::atpos($parse, 2);
+            # XXX: return 0 if ...
+            # We should really fail here instead of returning 0,
+            # but we need to first need to figure out better ways
+            # to handle failure results.
+            return 0 if nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
             fail "malformed numeric string" if nqp::islt_i($pos, 0);
             $int = nqp::atpos($parse, 0);
 
-            # handle any fraction part following a dot (.)
+            # now if there's a dot (.), get any fractional part
             $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
             if nqp::iseq_i($ch, 46) {
                 $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), nqp::add_i(4,$neg));
                 $pos = nqp::atpos($parse, 2);
-                fail "missing digits after decimal point" if nqp::islt_i($pos, 0);
+                fail "Decimal point must be followed by digit" if nqp::islt_i($pos, 0);
                 $frac = nqp::atpos($parse, 0);
                 $base = nqp::atpos($parse, 1);
                 $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
@@ -168,7 +175,7 @@ my class Str does Stringy {
             if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {
                 $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), 2);
                 $pos = nqp::atpos($parse, 2);
-                fail "missing exponent after 'e' or 'E'" if nqp::islt_i($pos, 0);
+                fail "'E' or 'e' must be followed by integer" if nqp::islt_i($pos, 0);
                 my num $exp = nqp::atpos($parse, 0);
                 my num $coef = $frac ?? nqp::add_n($int, nqp::div_n($frac, $base)) !! $int;
                 $result := nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10, $exp)));
@@ -182,8 +189,7 @@ my class Str does Stringy {
             }
         }
        
-        fail "malformed numeric string" if !$result.defined;
-        fail "trailing characters after number"
+        fail "trailing characters after number in conversion"
             if nqp::islt_i(
                    pir::find_not_cclass__Iisii( pir::const::CCLASS_WHITESPACE, $str, $pos, $eos),
                    $eos);

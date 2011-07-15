@@ -70,12 +70,17 @@ my class Cool {
     }
 
     proto method rindex(|$) {*}
-    multi method rindex(Cool $needle, Cool $pos = 0) {
-        my $result = 
+    multi method rindex(Cool $needle, Cool $pos?) {
+        if $needle eq '' {
+            return $pos.defined && $pos < self.chars
+                    ?? $pos
+                    !! self.chars;
+        }
+        my $result =
             nqp::p6box_i(
                 pir::box__PS(nqp::unbox_s(self.Str)).reverse_index(
                     nqp::unbox_s($needle.Str),
-                    nqp::unbox_i($pos.Int)));
+                    nqp::unbox_i(($pos // 0).Int)));
         fail "substring not found" if $result < 0;
         $result;
     }
@@ -90,10 +95,12 @@ sub index($s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc($s)                    { $s.lc }
 sub lcfirst($s)               { $s.lcfirst }
 sub ord($s)                   { $s.ord }
-sub rindex($s,$needle,$pos=0) { $s.rindex($needle,$pos) }
 sub substr($s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc($s)                    { $s.uc }
 sub ucfirst($s)               { $s.ucfirst }
+proto sub rindex(|$) { * };
+multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
+multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };
 
 proto sub ords(|$)            { * }
 multi sub ords(Cool $s)       { ords($s.Stringy) }

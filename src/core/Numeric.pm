@@ -47,6 +47,7 @@ multi sub log10(Cool    $x) { $x.Numeric.log(10e0) }
 
 proto sub exp(|$) {*}
 multi sub exp(Numeric $x) { $x.exp }
+multi sub exp(Numeric $x, Numeric $base) { $x.exp($base) }
 
 proto sub sin(|$) {*}
 multi sub sin(Numeric \$x) { $x.sin }

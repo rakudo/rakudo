@@ -511,7 +511,7 @@ S32-num/abs.t
 # S32-num/base.t # err: Method 'base' not found for invocant of class 'Int'
 S32-num/complex.t
 # S32-num/cool-num.t # err: Method 'abs' not found for invocant of class 'Str'
-# S32-num/exp.t # err: Too many positional parameters passed; got 2 but expected 1
+S32-num/exp.t # err: Too many positional parameters passed; got 2 but expected 1
 # S32-num/gcd.t # err: Method 'gcd' not found for invocant of class 'Int'
 S32-num/int.t
 S32-num/log.t

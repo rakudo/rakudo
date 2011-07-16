@@ -507,7 +507,7 @@ S32-list/pick.t
 S32-list/roll.t
 # S32-list/sort.t # err: Could not find sub &sort
 # S32-list/uniq.t # err: Method 'uniq' not found for invocant of class 'Array'
-# S32-num/abs.t # err: maximum recursion depth exceeded
+S32-num/abs.t
 # S32-num/base.t # err: Method 'base' not found for invocant of class 'Int'
 S32-num/complex.t
 # S32-num/cool-num.t # err: Method 'abs' not found for invocant of class 'Str'

@@ -14,7 +14,7 @@ my class Numeric {
 
     proto method exp(|$) {*}
     multi method exp(Numeric $base) {
-        self.exp * $base.log;
+        $base ** self;
     }
     method roots(Cool $n) { self.Complex.roots($n.Int) }
     multi method Bool(Numeric:D:) { self != 0 }

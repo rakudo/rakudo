@@ -33,7 +33,7 @@ proto prefix:<->(|$) { * }
 multi prefix:<->(\$a) { -$a.Numeric }
 
 proto prefix:<abs>(|$) { * }
-multi prefix:<abs>(\$a)      { abs $a.Numeric }
+multi prefix:<abs>(\$a) { abs $a.Numeric }
 
 proto sub log(|$) {*}
 multi sub log(Numeric $x) { $x.log }

@@ -2,7 +2,7 @@ class Complex { ... }
 
 # XxX role Real does Numeric { ... }
 my class Real {
-    method abs()  { self.Bridge.abs }
+    method abs()  { self < 0 ?? -self !! self }
     method sqrt() { self.Bridge.sqrt }
     method sin()  { self.Bridge.sin }
     method cos()  { self.Bridge.cos }
@@ -58,5 +58,9 @@ multi infix:<cmp>(Real \$a, Real \$b) { $a.Bridge cmp $b.Bridge }
 proto sub infix:<mod>(|$) {*}
 multi sub infix:<mod>(Real $a, Real $b) {
     $a - ($a div $b) * $b;
+}
+
+multi prefix:<abs>(Real \$a) {
+    $a < 0 ?? -$a !! $a;
 }
 

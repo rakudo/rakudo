@@ -114,7 +114,7 @@ my class Str does Stringy {
         $str;
     }
 
-    method Numeric() {
+    method Numeric(Str:D:) {
         return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
         my str $str = nqp::unbox_s(self);
         my int $eos = nqp::chars($str);

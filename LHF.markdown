@@ -18,10 +18,6 @@ so forth.
 ## Implement minmax operator
 Make S03-operators/minmax.t pass
 
-## More Smart-matching
-See S03-smartmatch tests, especially array-array.t, hash-hash.t and
-so forth.
-
 ## Basic IO
 the stat calls should be pretty straight-forward to port from master
 
@@ -34,3 +30,7 @@ my Int $b = 3;  $b = Nil;
 Often builtins are only added as methods, even when the corresponding function
 should exist. Go through src/core/ and write functions that re-dispatch to the
 methods where necessary
+
+## Regex-related string methods
+Port Str.split, Str.comb, Str.subst and the rest of Str.match over from
+master, using the existing Str.match as basis.

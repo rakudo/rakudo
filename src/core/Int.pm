@@ -84,7 +84,11 @@ multi infix:<%>(Int \$a, Int \$b) {
 }
 
 multi infix:<**>(Int \$a, Int \$b) {
-    nqp::p6box_i(nqp::pow_n(nqp::unbox_i($a), nqp::unbox_i($b)))
+    if $b >= 0 {
+        nqp::p6box_i(nqp::pow_n(nqp::unbox_i($a), nqp::unbox_i($b)))
+    } else {
+        nqp::p6box_n(nqp::pow_n(nqp::unbox_i($a), nqp::unbox_i($b)))
+    }
 }
 
 multi infix:<lcm>(Int \$a, Int \$b) {

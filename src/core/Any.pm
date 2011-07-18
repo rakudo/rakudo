@@ -200,3 +200,7 @@ multi end($a) { $a.end }
 
 proto classify(|$) { * }
 multi classify(&test, *@items) { @items.classify(&test) }
+
+proto sub sort(|$) {*}
+multi sub sort(&by, *@values) { @values.sort(&by) }
+multi sub sort(*@values)      { @values.sort      }

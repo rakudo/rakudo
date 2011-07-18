@@ -1,5 +1,6 @@
 use NQPP6Regex;
 use Perl6::Pod;
+use QRegex;
 
 INIT {
     # Add our custom nqp:: opcodes.
@@ -8,6 +9,7 @@ INIT {
         p6box_n      => 'perl6_box_num__Pn',
         p6box_s      => 'perl6_box_str__Ps',
         p6bool       => 'perl6_booleanize__Pi',
+        p6bigint     => 'perl6_box_bigint__Pn',
         p6parcel     => 'perl6_parcel_from_rpa__PPP',
         p6listiter   => 'perl6_iter_from_rpa__PPP',
         p6list       => 'perl6_list_from_rpa__PPPP',
@@ -863,9 +865,10 @@ class Perl6::Actions is HLL::Actions {
         my $past;
         if $<index> {
             $past := PAST::Op.new(
-                :name('!postcircumfix:<[ ]>'),
-                PAST::Var.new( :name('$/') ),
-                +$<index>
+                :pasttype('callmethod'),
+                :name('postcircumfix:<[ ]>'),
+                PAST::Var.new(:name('$/'), :scope('lexical_6model')),
+                $*ST.add_constant('Int', 'int', +$<index>),
             );
         }
         elsif $<postcircumfix> {
@@ -1022,7 +1025,7 @@ class Perl6::Actions is HLL::Actions {
             
             # Create code object and add it as the role's body block.
             my $code := $*ST.create_code_object($block, 'Block', $sig);
-            $*ST.pkg_set_role_body_block($*PACKAGE, $sig, $code);
+            $*ST.pkg_set_role_body_block($*PACKAGE, $code, $block);
         }
         
         # Compose.
@@ -1328,16 +1331,46 @@ class Perl6::Actions is HLL::Actions {
                 # $past.control('return_pir');
             }
         }
-        $past.name(~$<longname>);
+        $past.name($<longname> ?? $<longname>.Str !! '<anon>');
+        $past.nsentry('');
         
+        # Do the various tasks to trun the block into a method code object.
+        my @params    := $<multisig> ?? $<multisig>[0].ast !! [];
+        my $inv_type  := $*ST.find_symbol([
+            $<longname> && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+        my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
+        my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
+        
+        # Install PAST block so that it gets capture_lex'd correctly.
+        my $outer := $*ST.cur_lexpad();
+        $outer[0].push($past);
+
+        # Install method.
+        if $<longname> {
+            install_method($/, $<longname>.Str, $*SCOPE, $code, $outer);
+        }
+        elsif $*MULTINESS {
+            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
+        }
+        
+        # Apply traits.
+        for $<trait> {
+            if $_.ast { ($_.ast)($code) }
+        }
+
+        my $closure := block_closure(reference_to_code_object($code, $past));
+        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        make $closure;
+    }
+    
+    sub methodize_block($/, $past, @params, $invocant_type, $code_type) {
         # Get signature and ensure it has an invocant and *%_.
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
         }
-        my @params := $<multisig> ?? $<multisig>[0].ast !! [];
         unless @params[0]<is_invocant> {
             @params.unshift(hash(
-                nominal_type => $*ST.find_symbol([$<longname> ?? '$?CLASS' !! 'Mu']),
+                nominal_type => $invocant_type,
                 is_invocant => 1,
                 is_multi_invocant => 1
             ));
@@ -1358,59 +1391,39 @@ class Perl6::Actions is HLL::Actions {
         # Place to store invocant.
         $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
         $past.symbol('self', :scope('lexical_6model'));
-
+        
         # Needs a slot to hold a multi or method dispatcher.
         $*ST.install_lexical_symbol($past, '$*DISPATCHER',
             $*ST.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
         $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
         
         # Create code object.
-        if $<longname> {
-            $past.name($<longname>.Str);
-            $past.nsentry('');
-        }
-        my $type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
-        my $code := $*ST.create_code_object($past, $type, $signature,
+        return $*ST.create_code_object($past, $code_type, $signature,
             $*MULTINESS eq 'proto');
-        
-        # Install PAST block so that it gets capture_lex'd correctly.
-        my $outer := $*ST.cur_lexpad();
-        $outer[0].push($past);
-
-        # Install method.
-        if $<longname> {
-            # Ensure that current package supports methods.
-            my $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
-            unless pir::can($*PACKAGE.HOW, $meta_meth) {
-                my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
-                $/.CURSOR.panic("Cannot add a $nocando to a $*PKGDECL");
-            }
-        
-            # Add to methods table.
-            my $name := $<longname>.Str;
+    }
+    
+    # Installs a method into the various places it needs to go.
+    sub install_method($/, $name, $scope, $code, $outer) {
+        # Ensure that current package supports methods, and if so
+        # add the method.
+        my $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
+        if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
             $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
-            
-            # May also need it in lexpad and/or package.
-            if $*SCOPE eq 'my' {
-                $*ST.install_lexical_symbol($outer, $name, $code);
-            }
-            elsif $*SCOPE eq 'our' {
-                $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
-                $*ST.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
-            }
         }
-        elsif $*MULTINESS {
-            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
+        elsif $scope eq '' || $scope eq 'has' {
+            my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
+            pir::printerr__vS("Useless declaration of a has-scoped $nocando in " ~
+                ($*PKGDECL || "mainline") ~ "\n");
         }
         
-        # Apply traits.
-        for $<trait> {
-            if $_.ast { ($_.ast)($code) }
+        # May also need it in lexpad and/or package.
+        if $*SCOPE eq 'my' {
+            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
         }
-
-        my $closure := block_closure(reference_to_code_object($code, $past));
-        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
-        make $closure;
+        elsif $*SCOPE eq 'our' {
+            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
+            $*ST.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
+        }
     }
     
     sub is_clearly_returnless($block) {
@@ -1425,183 +1438,150 @@ class Perl6::Actions is HLL::Actions {
         make $BLOCK;
     }
 
-    our %REGEX_MODIFIERS;
     method regex_declarator:sym<regex>($/, $key?) {
-        if ($key) {
-            my %h;
-            %REGEX_MODIFIERS := %h;
-        } else {
-            make $<regex_def>.ast;
-        }
+        make $<regex_def>.ast;
     }
 
     method regex_declarator:sym<token>($/, $key?) {
-        if ($key) {
-            my %h;
-            %h<r> := 1;
-            %REGEX_MODIFIERS := %h;
-        } else {
-            make $<regex_def>.ast;
-        }
+        make $<regex_def>.ast;
     }
 
     method regex_declarator:sym<rule>($/, $key?) {
-        if ($key) {
-            my %h;
-            %h<r> := 1; %h<s> :=1;
-            %REGEX_MODIFIERS := %h;
-        } else {
-            make $<regex_def>.ast;
-        }
+        make $<regex_def>.ast;
     }
 
-    method regex_def($/, $key?) {
+    method regex_def($/) {
+        my $coderef;
         my $name := ~$<deflongname>[0];
-        my @MODIFIERS := Q:PIR {
-            %r = get_hll_global ['Regex';'P6Regex';'Actions'], '@MODIFIERS'
-        };
         
-        my $past;
-        if $key eq 'open' {
-            @MODIFIERS.unshift(%REGEX_MODIFIERS);
-            # The following is so that <sym> can work
-            Q:PIR {
-                $P0 = find_lex '$name'
-                set_hll_global ['Regex';'P6Regex';'Actions'], '$REGEXNAME', $P0
-            };
-            return 0;
-        } elsif $*MULTINESS eq 'proto' {
-            # Need to build code for setting up a proto-regex.
-            @MODIFIERS.shift;
-            unless ($name) {
-                $/.CURSOR.panic('proto ' ~ ~$<sym> ~ 's cannot be anonymous');
-            }
-            our @PACKAGE;
-            unless +@PACKAGE {
-                $/.CURSOR.panic("Cannot declare named " ~ ~$<sym> ~ " outside of a package");
-            }
-            my %table;
-            %table := @PACKAGE[0].methods();
-            unless %table{$name} { my %tmp; %table{$name} := %tmp; }
-            if %table{$name} {
-                $/.CURSOR.panic('Cannot declare proto ' ~ ~$<sym> ~ ' ' ~ $name ~
-                    ' when another with this name was already declared');
-            }
-            %table{$name}<code_ref> :=
-                block_closure(
-                    PAST::Block.new( :name($name),
-                        PAST::Op.new(
-                            PAST::Var.new( :name('self'), :scope('register') ),
-                            $name,
-                            :name('!protoregex'),
-                            :pasttype('callmethod')
-                        ),
-                        :lexical(0),
-                        :blocktype('method'),
-                        :pirflags(':anon'),
-                        :node($/)
-                    ),
-                    'Regex', 0);
-            %table{'!PREFIX__' ~ $name}<code_ref> :=
-                block_closure(
-                    PAST::Block.new( :name('!PREFIX__' ~ $name),
-                        PAST::Op.new(
-                            PAST::Var.new( :name('self'), :scope('register') ),
-                            $name,
-                            :name('!PREFIX__!protoregex'),
-                            :pasttype('callmethod')
-                        ),
-                        :blocktype('method'),
-                        :pirflags(':anon'),
-                        :lexical(0),
-                        :node($/)
-                    ),
-                    'Regex', 0);
+        if $*MULTINESS eq 'proto' {
+            $/.CURSOR.panic('protoregexes not yet implemented');
         } else {
-            # Clear modifiers stack entry for this regex.
-            @MODIFIERS.shift;
-
-            # Create the regex sub along with its signature.
-            $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast, $*CURPAD);
-            $past.unshift(PAST::Op.new(
-                :pasttype('inline'),
-                :inline("    .local pmc self\n    self = find_lex 'self'")
-                ));
-            my $sig := $<signature> ?? $<signature>[0].ast !! Perl6::Compiler::Signature.new();
-            $sig.add_invocant();
-            $sig.set_default_parameter_type('Any');
-            $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1), :viviself(sigiltype('$')) ));
-            $past.symbol('self', :scope('lexical_6model'));
-            add_signature($past, $sig);
-            $past.name($name);
-            $past.blocktype("declaration");
-            
-            # If the methods are not :anon they'll conflict at class composition time.
-            $past.pirflags(':anon');
-
-            # Create code object and install it provided it has a name.
-            if ($name) {
-                my $code := block_closure(blockref($past), 'Regex', 0);
-                our @PACKAGE;
-                unless +@PACKAGE {
-                    $/.CURSOR.panic("Cannot declare named " ~ ~$<sym> ~ " outside of a package");
-                }
-                my %table;
-                %table := @PACKAGE[0].methods();
-                install_method($/, $code, $name, %table);
-            }
-            else {
-                $past := block_closure($past, 'Regex', 0);
-            }
+            my @params := $<signature> ?? $<signature>.ast !! [];
+            $coderef := regex_coderef($/, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD);
         }
-        make $past;
+        
+        # Apply traits.
+        my $code := $coderef<code_object>;
+        for $<trait> {
+            if $_.ast { ($_.ast)($code) }
+        }
+
+        # Return closure if not in sink context.
+        my $closure := block_closure($coderef);
+        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        make $closure;
     }
 
-    method type_declarator:sym<enum>($/) {
-        my $value_ast := PAST::Op.new(
-            :pasttype('call'),
-            :name('!create_anon_enum'),
-            $<circumfix>.ast
-        );
-        if $<name> {
-            # Named; need to compile and run the AST right away.
-            our $?RAKUDO_HLL;
-            my $compiled := PAST::Compiler.compile(PAST::Block.new(
-                :hll($?RAKUDO_HLL), $value_ast
-            ));
-            my $result := (pir::find_sub_not_null__ps('!YOU_ARE_HERE'))($compiled)();
+    sub regex_coderef($/, $qast, $scope, $name, @params, $block) {
+        # create a code reference from a regex qast tree
+        my $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
+        $past.name($name);
+        $past.blocktype("declaration");
+        
+        # Do the various tasks to turn the block into a method code object.
+        my $inv_type  := $*ST.find_symbol([ # XXX Maybe Cursor below, not Mu...
+            $name && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+        my $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
             
-            # Only support our-scoped so far.
-            unless $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $/.CURSOR.panic("Do not yet support $*SCOPE scoped enums");
-            }
+        # Need to put self into a register for the regex engine.
+        $past[0].push(PAST::Var.new(
+            :name('self'), :scope('register'), :isdecl(1),
+            :viviself(PAST::Var.new( :name('self'), :scope('lexical_6model') ))));
+        
+        # Install PAST block so that it gets capture_lex'd correctly.
+        my $outer := $*ST.cur_lexpad();
+        $outer[0].push($past);
+            
+        # Install in needed scopes.
+        install_method($/, $name, $scope, $code, $outer);
 
-            if $/.CURSOR.is_name(~$<name>[0]) {
-                $/.CURSOR.panic("Illegal redeclaration of symbol '"
-                                 ~ $<name>[0] ~ "'");
+        # Return a reference to the code object
+        reference_to_code_object($code, $past);
+    }
+        
+    method type_declarator:sym<enum>($/) {
+        # If it's an anonymous enum, just call anonymous enum former
+        # and we're done.
+        unless $<longname> || $<variable> {
+            make PAST::Op.new( :name('&ANON_ENUM'), $<term>.ast );
+            return 1;
+        }
+        
+        # Get, or find, enumeration base type and create type object with
+        # correct base type.
+        my $base_type := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Int']);
+        my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
+        my $type_obj  := $*ST.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
+        
+        # Add roles (which will provide the enum-related methods).
+        $*ST.apply_trait('&trait_mod:<does>', $type_obj, $*ST.find_symbol(['Enumeration']));
+        if pir::type_check__IPP($type_obj, $*ST.find_symbol(['Numeric'])) {
+            $*ST.apply_trait('&trait_mod:<does>', $type_obj, $*ST.find_symbol(['NumericEnumeration']));
+        }
+        
+        # Get list of either values or pairs; fail if we can't.
+        my @values;
+        my $term_ast := $<term>.ast;
+        if $term_ast.isa(PAST::Stmts) && +@($term_ast) == 1 {
+            $term_ast := $term_ast[0];
+        }
+        if $term_ast.isa(PAST::Op) && $term_ast.name eq '&infix:<,>' {
+            for @($term_ast) {
+                if $_.returns() eq 'Pair' && $_[1]<has_compile_time_value> && $_[2]<has_compile_time_value> {
+                    @values.push($_);
+                }
+                elsif $_<has_compile_time_value> {
+                    @values.push($_);
+                }
+                else {
+                    $<term>.CURSOR.panic("Enumeration values must be known at compile time");
+                }
             }
-            
-            # Install names.
-            $/.CURSOR.add_name(~$<name>[0]);
-            for $result {
-                $/.CURSOR.add_name(~$_.key);
-                $/.CURSOR.add_name(~$<name>[0] ~ '::' ~ ~$_.key);
-            }
-            
-            # Emit code to set up named enum.
-            @PACKAGE[0].block.loadinit.push(PAST::Op.new(
-                :pasttype('call'),
-                :name('&SETUP_NAMED_ENUM'),
-                ~$<name>[0],
-                $value_ast
-            ));
-            my @name := Perl6::Grammar::parse_name(~$<name>[0]);
-            make PAST::Var.new( :name(@name.pop), :namespace(@name), :scope('package') );
+        }
+        elsif $term_ast<has_compile_time_value> {
+            @values.push($term_ast);
+        }
+        elsif $term_ast.returns() eq 'Pair' && $term_ast[1]<has_compile_time_value> && $term_ast[2]<has_compile_time_value> {
+            @values.push($term_ast);
         }
         else {
-            # Anonymous, so we're done.
-            make $value_ast;
+            $<term>.CURSOR.panic("Enumeration values must be known at compile time");
         }
+        
+        # Now we have them, we can go about computing the value
+        # for each of the keys, unless they have them supplied.
+        # XXX Should not assume integers, and should use lexically
+        # scoped &postfix:<++> or so.
+        my $cur_value := 0;
+        for @values {
+            # If it's a pair, take that as the value; also find
+            # key.
+            my $cur_key;
+            if $_.returns() eq 'Pair' {
+                $cur_key   := nqp::unbox_s($_[1]<compile_time_value>);
+                $cur_value := nqp::unbox_i($_[2]<compile_time_value>);
+            }
+            else {
+                $cur_key := nqp::unbox_s($_<compile_time_value>);
+            }
+            $*ST.enum_add_value($type_obj, $cur_key, $cur_value);
+            
+            # Increment for next value.
+            $cur_value := $cur_value + 1;
+        }
+        
+        # Compose, apply traits and install.
+        $*ST.pkg_compose($type_obj);
+        for $<trait> {
+            ($_.ast)($type_obj) if $_.ast;
+        }
+        if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
+        $*ST.install_package($/, $<longname>, ($*SCOPE || 'our'),
+            'enum', $*PACKAGE, $*ST.cur_lexpad(), $type_obj);
+        
+        # We evaluate to the enum type object.
+        make $*ST.get_object_sc_ref_past($type_obj);
     }
 
     method type_declarator:sym<subset>($/) {
@@ -2837,20 +2817,12 @@ class Perl6::Actions is HLL::Actions {
 
     method numish($/) {
         if $<integer> {
-            my $cons := $*ST.add_constant('Int', 'int', $<integer>.ast);
-            my $past := PAST::Want.new($cons, 'IiNn', $<integer>.ast);
-            $past<has_compile_time_value> := 1;
-            $past<compile_time_value> := $cons<compile_time_value>;
-            make $past;
+            make $*ST.add_numeric_constant('Int', $<integer>.ast);
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
         else {
-            my $cons := $*ST.add_constant('Num', 'num', +(~$/));
-            my $past := PAST::Want.new($cons, 'IiNn', +(~$/));
-            $past<has_compile_time_value> := 1;
-            $past<compile_time_value> := $cons<compile_time_value>;
-            make $past;
+            make $*ST.add_numeric_constant('Num', +$/);
         }
     }
 
@@ -2867,24 +2839,27 @@ class Perl6::Actions is HLL::Actions {
         $result;
     }
 
+    method escale($/) {
+        make $<sign> eq '-' ?? -$<decint>.ast !! $<decint>.ast;
+    }
+
     method dec_number($/) {
+#        pir::say("dec_number: $/");
         my $int  := $<int> ?? filter_number(~$<int>) !! "0";
         my $frac := $<frac> ?? filter_number(~$<frac>) !! "0";
         if $<escale> {
-            my $exp := ~$<escale>[0]<decint>;
-            make $*ST.add_constant('Num', 'num',
-                str2num(0, $int, $frac, ($<escale>[0]<sign> eq '-'), $exp));
+            my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
+#            pir::say('dec_number exponent: ' ~ ~$e.ast);
+            make radcalc(10, $<coeff>, 10, $e.ast);
         } else {
-            # TODO: strip trailing zeros from $frac
-            my $nu := $*ST.add_constant('Int', 'int', +($int ~ $frac));
-            my $de := $*ST.add_constant('Int', 'int', pir::set__In(nqp::pow_n(10, nqp::chars($frac))));
-            make $*ST.add_constant('Rat', 'type_new', $nu<compile_time_value>, $de<compile_time_value>);
+            make radcalc(10, $<coeff>);
         }
     }
 
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
+            pir::die('NYI form of number litereal encountered');
             make PAST::Op.new(:name('&radcalc'), :pasttype('call'),
                 $radix, $<circumfix>.ast);
         } else {
@@ -2894,9 +2869,7 @@ class Perl6::Actions is HLL::Actions {
             my $base     := $<base> ?? +($<base>[0].Str) !! 0;
             my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
 
-            make PAST::Op.new( :name('&radcalc'), :pasttype('call'),
-                $radix, $intfrac, $base, $exp
-            );
+            make radcalc($radix, $intfrac, $base, $exp);
         }
     }
 
@@ -2989,11 +2962,6 @@ class Perl6::Actions is HLL::Actions {
             %h{$key} := $value;
         }
 
-        @Regex::P6Regex::Actions::MODIFIERS.unshift(%h);
-    }
-
-    method cleanup_modifiers($/) {
-        @Regex::P6Regex::Actions::MODIFIERS.shift();
     }
 
     method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
@@ -3020,9 +2988,14 @@ class Perl6::Actions is HLL::Actions {
         );
     }
     method quote:sym</ />($/) {
-        my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        make block_closure($past, 'Regex', 0);
+        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
+        # Return closure if not in sink context.
+        my $closure := block_closure($coderef);
+        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        make $closure;
     }
+
     method quote:sym<rx>($/) {
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx');
         my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
@@ -3659,78 +3632,87 @@ class Perl6::Actions is HLL::Actions {
             $past
         }
     }
-    
-    # XXX This probably dupes something in HLL::Actions...
-    # XXX Either way, shouldn't be in PIR.
-    our sub str2num-int($src) {
-        Q:PIR {
-            .local pmc src
-            .local string src_s
-            src = find_lex '$src'
-            src_s = src
-            .local int pos, eos
-            .local num result
-            pos = 0
-            eos = length src_s
-            result = 0
-          str_loop:
-            unless pos < eos goto str_done
-            .local string char
-            char = substr src_s, pos, 1
-            if char == '_' goto str_next
-            .local int digitval
-            digitval = index "0123456789", char
-            if digitval < 0 goto err_base
-            if digitval >= 10 goto err_base
-            result *= 10
-            result += digitval
-          str_next:
-            inc pos
-            goto str_loop
-          err_base:
-        src.'panic'('Invalid radix conversion of "', char, '"')
-          str_done:
-            %r = box result
-        };
+
+    sub strip_trailing_zeros(str $n) {
+        return $n if pir::index($n, '.') < 0;
+        while pir::index('_0',nqp::substr($n, -1)) >= 0 {
+            $n := pir::chopn__Ssi($n, 1);
+        }
+        $n;
     }
 
-    # XXX Translate to NQP.
-    our sub str2num-base($src) {
-        Q:PIR {
-            .local pmc src
-            .local string src_s
-            src = find_lex '$src'
-            src_s = src
-            .local int pos, eos
-            .local num result
-            pos = 0
-            eos = length src_s
-            result = 1
-          str_loop:
-            unless pos < eos goto str_done
-            .local string char
-            char = substr src_s, pos, 1
-            if char == '_' goto str_next
-            result *= 10
-          str_next:
-            inc pos
-            goto str_loop
-          str_done:
-            %r = box result
-        };
-    }
+    sub radcalc($radix, $number, $base?, $exponent?) {
+        my int $sign := 1;
+        pir::die("Radix '$radix' out of range (2..36)")
+            if $radix < 2 || $radix > 36;
+        pir::die("You gave us a base for the magnitude, but you forgot the exponent.")
+            if pir::defined($base) && !pir::defined($exponent);
+        pir::die("You gave us an exponent for the magnitude, but you forgot the base.")
+            if !pir::defined($base) && pir::defined($exponent);
 
-    sub str2num($negate, $int_part, $frac_part, $exp_part_negate, $exp_part) {
-        my $exp := str2num-int($exp_part);
-        $exp := -$exp if $exp_part_negate;
-        my $result := (str2num-int($int_part) + str2num-int($frac_part) / str2num-base($frac_part))
-                     * 10 ** $exp;
-        $result := -$result if $negate;
-        $result;
+        if nqp::substr($number, 0, 1) eq '-' {
+            $sign := -1;
+            $number := nqp::substr($number, 1);
+        }
+        if nqp::substr($number, 0, 1) eq '0' {
+            my $radix_name := nqp::uc(nqp::substr($number, 1, 1));
+            if pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $radix_name) > $radix {
+                $number := nqp::substr($number, 2);
+
+                if      $radix_name eq 'B' {
+                    $radix := 2;
+                } elsif $radix_name eq 'O' {
+                    $radix := 8;
+                } elsif $radix_name eq 'D' {
+                    $radix := 10;
+                } elsif $radix_name eq 'X' {
+                    $radix := 16;
+                } else {
+                    pir::die("Unkonwn radix character '$radix_name' (can be b, o, d, x)");
+                }
+            }
+        }
+
+        $number := strip_trailing_zeros($number);
+
+        my int $iresult  := 0;
+        my int $fresult  := 0;
+        my int $fdivide  := 1;
+        my int $idx      := -1;
+        my int $seen_dot := 0;
+        while $idx < nqp::chars($number) - 1 {
+            $idx++;
+            my $current := nqp::substr($number, $idx, 1);
+            next if $current eq '_';
+            if $current eq '.' {
+                $seen_dot := 1;
+                next;
+            }
+            my $i := pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
+            pir::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
+            $iresult := $iresult * $radix + $i;
+            $fdivide := $fdivide * $radix if $seen_dot;
+        }
+
+        $iresult := $iresult * $sign;
+
+        if pir::defined($exponent) {
+            my num $result := nqp::mul_n(nqp::div_n($iresult, $fdivide), nqp::pow_n($base, $exponent));
+            return $*ST.add_numeric_constant('Num', $result);
+        } else {
+            if $seen_dot {
+                return $*ST.add_constant('Rat', 'type_new',
+                    $*ST.add_numeric_constant('Int', $iresult)<compile_time_value>,
+                    $*ST.add_numeric_constant('Int', $fdivide)<compile_time_value>
+                );
+            } else {
+                return $*ST.add_numeric_constant('Int', $iresult);
+            }
+        }
     }
 }
 
-class Perl6::RegexActions is Regex::P6Regex::Actions {
+class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;

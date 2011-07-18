@@ -14,7 +14,7 @@ my class Numeric {
 
     proto method exp(|$) {*}
     multi method exp(Numeric $base) {
-        self.exp * $base.log;
+        $base ** self;
     }
     method roots(Cool $n) { self.Complex.roots($n.Int) }
     multi method Bool(Numeric:D:) { self != 0 }
@@ -33,7 +33,7 @@ proto prefix:<->(|$) { * }
 multi prefix:<->(\$a) { -$a.Numeric }
 
 proto prefix:<abs>(|$) { * }
-multi prefix:<abs>(\$a)      { abs $a.Numeric }
+multi prefix:<abs>(\$a) { abs $a.Numeric }
 
 proto sub log(|$) {*}
 multi sub log(Numeric $x) { $x.log }
@@ -47,6 +47,7 @@ multi sub log10(Cool    $x) { $x.Numeric.log(10e0) }
 
 proto sub exp(|$) {*}
 multi sub exp(Numeric $x) { $x.exp }
+multi sub exp(Numeric $x, Numeric $base) { $x.exp($base) }
 
 proto sub sin(|$) {*}
 multi sub sin(Numeric \$x) { $x.sin }

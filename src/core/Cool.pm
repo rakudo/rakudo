@@ -59,7 +59,7 @@ my class Cool {
     }
 
     proto method index(|$) {*}
-    multi method index(Cool \$needle, Cool $pos = 0) {
+    multi method index(Cool $needle, Cool $pos = 0) {
         my $result := nqp::p6box_i(nqp::index(
                 nqp::unbox_s(self.Str),
                 nqp::unbox_s($needle.Str),
@@ -70,18 +70,27 @@ my class Cool {
     }
 
     proto method rindex(|$) {*}
-    multi method rindex(Cool \$needle, Cool $pos = self.chars) {
-        my $result := nqp::p6box_i(
+    multi method rindex(Cool $needle, Cool $pos?) {
+        if $needle eq '' {
+            return $pos.defined && $pos < self.chars
+                    ?? $pos
+                    !! self.chars;
+        }
+        my $result =
+            nqp::p6box_i(
                 pir::box__PS(nqp::unbox_s(self.Str)).reverse_index(
                     nqp::unbox_s($needle.Str),
-                    nqp::unbox_i($pos.Int)
-                )
-        );
-        # TODO: fail() instead of returning Str
-        $result < 0 ?? Str !! $result;
+                    nqp::unbox_i(($pos // 0).Int)));
+        fail "substring not found" if $result < 0;
+        $result;
     }
 
     method ords(Cool:D:) { self.Str.ords }
+    proto method split(|$) {*}
+    proto method match(|$) {*}
+    multi method match(Cool:D: Cool $target, *%adverbs) {
+        self.Str.match($target.Stringy, |%adverbs)
+    }
 }
 
 sub chop($s)                  { $s.chop }
@@ -91,10 +100,12 @@ sub index($s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc($s)                    { $s.lc }
 sub lcfirst($s)               { $s.lcfirst }
 sub ord($s)                   { $s.ord }
-sub rindex($s,$needle,$pos=0) { $s.rindex($needle,$pos) }
 sub substr($s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc($s)                    { $s.uc }
 sub ucfirst($s)               { $s.ucfirst }
+proto sub rindex(|$) { * };
+multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
+multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };
 
 proto sub ords(|$)            { * }
 multi sub ords(Cool $s)       { ords($s.Stringy) }

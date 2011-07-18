@@ -1,17 +1,12 @@
+my class Cursor {... }
+
 my class Str does Stringy {
     method Bool() { self ne '' && self ne '0' }
     
     multi method Str(Str:D:) { self }
     
-    method Int() {
-        nqp::p6box_i(nqp::unbox_s(self));
-    }
-    
-    method Num() {
-        nqp::p6box_n(nqp::unbox_s(self));
-    }
-
-    method Numeric() { self.Num }
+    method Int() { self.Numeric.Int; }
+    method Num() { self.Numeric.Num; }
 
     multi method ACCEPTS(Str:D: $other) { $other eq self }
 
@@ -121,6 +116,109 @@ my class Str does Stringy {
         $str;
     }
 
+    method Numeric(Str:D:) {
+        return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
+        my str $str = nqp::unbox_s(self);
+        my int $eos = nqp::chars($str);
+        my num $int;
+        my num $frac = 0;
+        my num $base = 0;
+        # skip leading whitespace
+        my int $pos   = pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE, $str, 0, $eos);
+
+        my $tailfail = 
+             -> { fail "trailing characters after number in conversion"
+                      if nqp::islt_i(
+                          pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE, 
+                                                      $str, $pos, $eos),
+                          $eos);
+                  0;
+             };
+
+        # objects for managing the parse and results
+        my Mu $parse;
+        my $result;
+    
+        # get any leading +/- sign
+        my int $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+        my int $neg = nqp::iseq_i($ch, 45);
+        $pos = nqp::add_i($pos, 1) if nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 43);
+
+        # handle 0x, 0d, etc. prefixes, if present
+        my str $rpref = nqp::substr($str, $pos, 2);
+        my int $radix =
+            nqp::iseq_s($rpref, '0x') ?? 16
+              !! nqp::iseq_s($rpref, '0d') ?? 10
+              !! nqp::iseq_s($rpref, '0o') ?? 8
+              !! nqp::iseq_s($rpref, '0b') ?? 2
+              !! 0;
+        if $radix {
+            $parse := nqp::radix($radix, $str, nqp::add_i($pos, 2), $neg);
+            $pos = nqp::atpos($parse, 2);
+            fail "missing digits after radix prefix" if nqp::islt_i($pos, 0);
+            return nqp::p6bigint(nqp::atpos($parse, 0)) unless $tailfail();
+        }
+
+        # handle 'Inf'
+        if nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
+            $pos = nqp::add_n($pos, 3);
+            return ($neg ?? -$Inf !! $Inf) unless $tailfail();
+        }
+
+        # We have some sort of number, get leading integer part
+        my int $p = $pos;
+        $parse := nqp::radix(10, $str, $pos, $neg);
+        $pos = nqp::atpos($parse, 2);
+        # XXX: return 0 if ...
+        #     We should really fail here instead of returning 0,
+        #     but we need to first need to figure out better ways
+        #     to handle failure results.
+        return 0 if nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
+        fail "malformed numeric string" if nqp::islt_i($pos, 0);
+        $int = nqp::atpos($parse, 0);
+
+        # if there's a slash, get a denominator and make a Rat
+        $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+        if nqp::iseq_i($ch, 47) {
+            $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), 0);
+            $pos = nqp::atpos($parse, 2);
+            fail "Slash must be followed by denominator" if nqp::islt_i($pos, 0);
+            return Rat.new(nqp::p6bigint($int), nqp::p6bigint(nqp::atpos($parse, 0)))
+                unless $tailfail();
+        }
+
+        # check for decimal fraction or number
+        # parse an optional decimal point and value
+        if nqp::iseq_i($ch, 46) {
+            $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), nqp::add_i(4,$neg));
+            $pos = nqp::atpos($parse, 2);
+            fail "Decimal point must be followed by digit" if nqp::islt_i($pos, 0);
+            $frac = nqp::atpos($parse, 0);
+            $base = nqp::atpos($parse, 1);
+            $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+        }
+    
+        # handle exponent if 'E' or 'e' are present
+        if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {
+            $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), 2);
+            $pos = nqp::atpos($parse, 2);
+            fail "'E' or 'e' must be followed by integer" if nqp::islt_i($pos, 0);
+            my num $exp = nqp::atpos($parse, 0);
+            my num $coef = $frac ?? nqp::add_n($int, nqp::div_n($frac, $base)) !! $int;
+            return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10, $exp)))
+                unless $tailfail();
+        }
+
+        # if we got a decimal point above, it's a Rat
+        if $base {
+            my num $numerator = nqp::add_n(nqp::mul_n($int, $base), $frac);
+            return Rat.new(nqp::p6bigint($numerator), nqp::p6bigint($base))
+                unless $tailfail();
+        }
+
+        nqp::p6bigint($int) unless $tailfail();
+    }
+
     my %esc = (
         '$' => '\$',  '@' => '\@',  '%' => '\%',  '&' => '\&',  '{' => '\{',
         "\b" => '\b', "\n" => '\n', "\r" => '\r', "\t" => '\t', '"' => '\"',
@@ -146,6 +244,15 @@ my class Str does Stringy {
         (^self.chars).map({self.substr($_, 1) });
     }
 
+
+    multi method match(Regex $pat, :continue(:$c), :pos(:$p)) {
+        # XXX initialization is a workaround for a nom bug
+        my %opts := {};
+        %opts<c> = $c if $c.defined;
+        %opts<p> = $p if $p.defined;
+        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
+    }
+
     method ords(Str:D:) {
         my Int $c  = self.chars;
         my str $ns = nqp::unbox_s(self);
@@ -160,6 +267,36 @@ my class Str does Stringy {
                 $prev_pos = $current_pos;
             }
             take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
+        }
+    }
+
+    multi method split(Regex $matcher, $limit = *, :$all) {
+        die "Split with regex NYI";
+    }
+    multi method split(Cool $delimiter, $limit = *, :$all) {
+        my $match-string = $delimiter.Str;
+        return if self eq '' && $delimiter eq '';
+        my $c = 0;
+        my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
+        if $l >= 0 {
+            gather {
+                while $l-- > 0 {
+                    if ($match-string eq "") {
+                        last unless $c + 1 < self.chars;
+                        take self.substr($c, 1);
+                        $c++;
+                    } else {
+                        my $m = self.index($match-string, $c);
+                        last unless $m.defined;
+                        take self.substr($c, $m - $c);
+                        take $match-string if $all;
+                        $c = $m + $match-string.chars;
+                    }
+                }
+                take self.substr($c);
+            }
+        } else {
+            Nil;
         }
     }
 }

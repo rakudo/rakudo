@@ -10,6 +10,9 @@ my module EXPORTHOW {
     ($?PACKAGE.WHO)<role-attr>    := Attribute;
     ($?PACKAGE.WHO)<role-group>   := Perl6::Metamodel::ParametricRoleGroupHOW;
     ($?PACKAGE.WHO)<role-curried> := Perl6::Metamodel::CurriedRoleHOW;
+    ($?PACKAGE.WHO)<grammar>      := Perl6::Metamodel::GrammarHOW;
+    ($?PACKAGE.WHO)<grammar-attr> := Attribute;
     ($?PACKAGE.WHO)<native>       := Perl6::Metamodel::NativeHOW;
     ($?PACKAGE.WHO)<subset>       := Perl6::Metamodel::SubsetHOW;
+    ($?PACKAGE.WHO)<enum>         := Perl6::Metamodel::EnumHOW;
 }

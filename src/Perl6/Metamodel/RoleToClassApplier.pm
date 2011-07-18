@@ -1,10 +1,7 @@
 my class RoleToClassApplier {
     sub has_method($target, $name, $local) {
-        my @methods := $target.HOW.methods($target, :local($local));
-        for @methods {
-            if ~$_ eq $name { return 1; }
-        }
-        return 0;
+        my %mt := $target.HOW.method_table($target);
+        return pir::exists(%mt, $name)
     }
 
     sub has_attribute($target, $name) {
@@ -48,16 +45,18 @@ my class RoleToClassApplier {
         # Compose in any methods.
         my @methods := $to_compose_meta.methods($to_compose, :local(1));
         for @methods {
-            unless has_method($target, $_.name, 0) {
-                $target.HOW.add_method($target, $_.name, $_);
+            unless has_method($target, ~$_, 0) {
+                $target.HOW.add_method($target, ~$_, $_);
             }
         }
         
         # Compose in any multi-methods; conflicts can be caught by
         # the multi-dispatcher later.
-        my @multis := $to_compose_meta.multi_methods_to_incorporate($to_compose);
-        for @multis {
-            $target.HOW.add_multi_method($target, $_.name, $_.code);
+        if pir::can__IPs($to_compose_meta, 'multi_methods_to_incorporate') {
+            my @multis := $to_compose_meta.multi_methods_to_incorporate($to_compose);
+            for @multis {
+                $target.HOW.add_multi_method($target, $_.name, $_.code);
+            }
         }
 
         # Compose in any role attributes.

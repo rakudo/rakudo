@@ -1383,7 +1383,7 @@ class Perl6::Actions is HLL::Actions {
         $past.name($name);
         $past.blocktype("declaration");
         
-        # Do the various tasks to trun the block into a method code object.
+        # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*ST.find_symbol([ # XXX Maybe Cursor below, not Mu...
             $name && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code := methodize_block($/, $past, @params, $inv_type, 'Regex');

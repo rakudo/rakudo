@@ -87,6 +87,10 @@ my class Cool {
 
     method ords(Cool:D:) { self.Str.ords }
     proto method split(|$) {*}
+    proto method match(|$) {*}
+    multi method match(Cool:D: Cool $target, *%adverbs) {
+        self.Str.match($target.Stringy, |%adverbs)
+    }
 }
 
 sub chop($s)                  { $s.chop }

@@ -1,3 +1,5 @@
+my class Cursor {... }
+
 my class Str does Stringy {
     method Bool() { self ne '' && self ne '0' }
     
@@ -240,6 +242,15 @@ my class Str does Stringy {
     # with regexes
     method comb() {
         (^self.chars).map({self.substr($_, 1) });
+    }
+
+
+    multi method match(Regex $pat, :continue(:$c), :pos(:$p)) {
+        # XXX initialization is a workaround for a nom bug
+        my %opts := {};
+        %opts<c> = $c if $c.defined;
+        %opts<p> = $p if $p.defined;
+        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
     }
 
     method ords(Str:D:) {

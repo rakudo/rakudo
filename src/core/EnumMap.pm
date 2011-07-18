@@ -58,5 +58,9 @@ my class EnumMap does Associative {
         pir::set__1QsP($!storage, nqp::unbox_s($key), $value)
     }
     
-    method ARGLIST_FLATTENABLE() { $!storage }
+    method ARGLIST_FLATTENABLE() { 
+        pir::defined($!storage) ||
+            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+        $!storage 
+    }
 }

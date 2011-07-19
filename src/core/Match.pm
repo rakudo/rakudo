@@ -7,4 +7,7 @@ my class Match is Capture {
     multi method Str(Match:D:) {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! '';
     }
+    multi method Bool(Match:D:) {
+        $!to >= $!from;
+    }
 }

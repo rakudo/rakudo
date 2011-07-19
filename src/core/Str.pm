@@ -245,12 +245,27 @@ my class Str does Stringy {
     }
 
 
-    multi method match(Regex $pat, :continue(:$c), :pos(:$p)) {
+    multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g)) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
         %opts<c> = $c if $c.defined;
         %opts<p> = $p if $p.defined;
-        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
+        if $g {
+            gather while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
+                # XXX a bug in the regex engine means that we can
+                # match a zero-width match past the end of the string.
+                # This is the workaround:
+                last if $m.to > self.chars;
+
+                take $m;
+
+                # XXX should be %opts.delete('d'), but Hash.delete is NYI
+                %opts<d> = Any if %opts<d>;
+                %opts<c> = $m.to == $m.from ?? $m.to + 1 !! $m.to;
+            }
+        } else {
+            $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
+        }
     }
 
     method ords(Str:D:) {

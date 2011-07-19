@@ -248,7 +248,11 @@ my class Str does Stringy {
     multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g)) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
-        %opts<c> = $c if $c.defined;
+        if $c.defined {
+            %opts<c> = $c
+        } elsif !$p.defined {
+            %opts<c> = 0;
+        }
         %opts<p> = $p if $p.defined;
         if $g {
             gather while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {

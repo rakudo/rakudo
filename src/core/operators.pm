@@ -122,3 +122,12 @@ sub undefine(Mu \$x) {
     my $undefined;
     $x = $undefined;
 }
+
+sub INDIRECT_NAME_LOOKUP($name) {
+    my Mu $thing := pir::find_caller_lex__Ps(
+        nqp::unbox_s($name.Str)
+    );
+    nqp::isnull($thing)
+        ?? fail("Symbol '$name' not found")
+        !! $thing;
+}

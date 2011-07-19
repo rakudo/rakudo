@@ -71,6 +71,16 @@ class Perl6::Actions is HLL::Actions {
                          'Scalar'
     }
 
+    method morename($/) {
+        if $<EXPR> {
+            make PAST::Op.new(
+                :pasttype<call>,
+                :name<&INDIRECT_NAME_LOOKUP>,
+                $<EXPR>[0].ast
+            );
+        }
+    }
+
     method deflongname($/) {
         make $<colonpair>
              ?? ~$<name> ~ ':<' ~ ~$<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0] ~ '>'

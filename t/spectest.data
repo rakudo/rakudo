@@ -248,7 +248,7 @@ S04-statements/while.t
 # S05-mass/rx.t # needs regex
 # S05-mass/recursive.t # needs regex
 # S05-mass/stdrules.t # needs regex
-S05-match/arrayhash.t
+# S05-match/arrayhash.t
 # S05-match/blocks.t #needs regex
 # S05-match/capturing-contexts.t #needs regex
 # S05-match/non-capturing.t #needs regex

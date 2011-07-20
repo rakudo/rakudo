@@ -69,46 +69,46 @@ proto sub roots($, $)        { * }
 multi sub roots($x, Cool $n) { $x.Numeric.Complex.roots($n.Int) }
 multi sub roots($x, Numeric $n) { $x.Numeric.Complex.roots($n.Int) }
 
-proto infix:<+>(|$)          { * }
+proto infix:<+>($a?, $b?)    { * }
 multi infix:<+>($x = 0)      { $x.Numeric }
 multi infix:<+>(\$a, \$b)    { $a.Numeric + $b.Numeric }
 
-proto infix:<->(|$)          { * }
+proto infix:<->($a?, $b?)    { * }
 multi infix:<->($x = 0)      { $x.Numeric }
 multi infix:<->(\$a, \$b)    { $a.Numeric - $b.Numeric }
 
-proto infix:<*>(|$)          { * }
+proto infix:<*>($a?, $b?)    { * }
 multi infix:<*>($x = 1)      { $x.Numeric }
 multi infix:<*>(\$a, \$b)    { $a.Numeric * $b.Numeric }
 
-proto infix:</>(|$)          { * }
+proto infix:</>($a?, $b?)    { * }
 multi infix:</>()            { fail "No zero-arg meaning for infix:</>" }
 multi infix:</>($x)          { $x.Numeric }
 multi infix:</>(\$a, \$b)    { $a.Numeric / $b.Numeric }
 
-proto infix:<div>(|$)        { * }
+proto infix:<div>($a?, $b?)  { * }
 # rest of infix:<div> is in Int.pm
 
-proto infix:<%>(|$)          { * }
+proto infix:<%>($a?, $b?)    { * }
 multi infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
 multi infix:<%>($x)          { $x }
 multi infix:<%>(\$a, \$b)    { $a.Numeric % $b.Numeric }
 
-proto infix:<%%>(|$)         { * }
+proto infix:<%%>($a?, $b?)   { * }
 multi infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
 multi infix:<%%>($x)         { Bool::True }
 multi infix:<%%>(\$a, \$b)   { $a.Numeric % $b.Numeric == 0 }
 
-proto infix:<lcm>(|$)         { * }
+proto infix:<lcm>($a?, $b?)   { * }
 multi infix:<lcm>(Int $x = 1) { $x }
 multi infix:<lcm>(\$a, \$b)   { $a.Numeric lcm $b.Numeric }
 
-proto infix:<gcd>(|$)        { * }
+proto infix:<gcd>($a?, $b?)  { * }
 multi infix:<gcd>()          { fail 'No zero-arg meaning for infix:<gcd>' }
 multi infix:<gcd>(Int $x)    { $x }
 multi infix:<gcd>(\$a, \$b)  { $a.Numeric gcd $b.Numeric }
 
-proto infix:<**>(|$)         { * }
+proto infix:<**>($a?, $b?)   { * }
 multi infix:<**>($x = 1)     { $x.Numeric }
 multi infix:<**>(\$a, \$b)   { $a.Numeric ** $b.Numeric }
 
@@ -117,27 +117,27 @@ multi infix:<**>(\$a, \$b)   { $a.Numeric ** $b.Numeric }
 proto infix:«<=>»(|$)        { * }
 multi infix:«<=>»(\$a, \$b)  { $a.Numeric <=> $b.Numeric }
 
-proto infix:<==>(|$)         { * }
+proto infix:<==>($a?, $b?)   { * }
 multi infix:<==>($x?)        { Bool::True }
 multi infix:<==>(\$a, \$b)   { $a.Numeric == $b.Numeric }
 
-proto infix:<!=>(|$)         { * }
+proto infix:<!=>($a?, $b?)   { * }
 multi infix:<!=>($x?)        { Bool::True }
 multi infix:<!=>(\$a, \$b)   { $a.Numeric != $b.Numeric }
 
-proto infix:«<»(|$)          { * }
+proto infix:«<»($a?, $b?)    { * }
 multi infix:«<»($x?)         { Bool::True }
 multi infix:«<»(\$a, \$b)    { $a.Numeric < $b.Numeric }
 
-proto infix:«<=»(|$)         { * }
+proto infix:«<=»($a?, $b?)   { * }
 multi infix:«<=»($x?)        { Bool::True }
 multi infix:«<=»(\$a, \$b)   { $a.Numeric <= $b.Numeric }
 
-proto infix:«>»(|$)          { * }
+proto infix:«>»($a?, $b?)    { * }
 multi infix:«>»($x?)         { Bool::True }
 multi infix:«>»(\$a, \$b)    { $a.Numeric > $b.Numeric }
 
-proto infix:«>=»(|$)         { * }
+proto infix:«>=»($a?, $b?)   { * }
 multi infix:«>=»($x?)        { Bool::True }
 multi infix:«>=»(\$a, \$b)   { $a.Numeric >= $b.Numeric }
 

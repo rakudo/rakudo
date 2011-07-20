@@ -126,13 +126,26 @@ sub undefine(Mu \$x) {
 # not sure where this should go
 # this implements the ::() indirect lookup
 sub INDIRECT_NAME_LOOKUP(*@chunks) {
-    my Str $name := @chunks.join('::');
-    die "Indirect lookup of names containing :: (here: '$name') is not yet implemented"
-        if $name.index('::').defined;
+    # note that each part of @chunks itself can
+    # contain double colons. That's why joining and
+    # re-splitting is necessary
+    my Str $name = @chunks.join('::');
+    my @parts    = $name.split('::');
+    my $first    = @parts.shift;
+    if @parts && '$@%&'.index($first.substr(0, 1)).defined {
+        # move sigil from first to last chunk, because
+        # $Foo::Bar::baz is actually stored as Foo::Bar::$baz
+        my $last_idx      = @parts.end;
+        @parts[$last_idx] = $first.substr(0, 1) ~ @parts[$last_idx]; 
+        $first            = $first.substr(1);
+    }
     my Mu $thing := pir::find_caller_lex__Ps(
-        nqp::unbox_s($name)
+        nqp::unbox_s($first)
     );
-    nqp::isnull($thing)
-        ?? fail("Symbol '$name' not found")
-        !! $thing;
+    fail("Symbol '$name' not found") if nqp::isnull($thing);
+    for @parts {
+        fail("Symbol '$name not found") unless $thing.WHO.exists($_);
+        $thing := $thing.WHO{$_};
+    }
+    $thing;
 }

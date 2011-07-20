@@ -266,3 +266,5 @@ multi sub shift(@a) { @a.shift }
 
 proto sub push(|$) {*}
 multi sub push(@a, *@elems) { @a.push: @elems }
+
+sub reverse(*@a) { @a.reverse }

@@ -69,6 +69,10 @@ proto sub roots($, $)        { * }
 multi sub roots($x, Cool $n) { $x.Numeric.Complex.roots($n.Int) }
 multi sub roots($x, Numeric $n) { $x.Numeric.Complex.roots($n.Int) }
 
+proto sub floor(|$)          { * }
+multi sub floor($a)          { $a.Numeric.floor }
+multi sub floor(Numeric $a)  { $a.floor }
+
 proto infix:<+>($a?, $b?)    { * }
 multi infix:<+>($x = 0)      { $x.Numeric }
 multi infix:<+>(\$a, \$b)    { $a.Numeric + $b.Numeric }

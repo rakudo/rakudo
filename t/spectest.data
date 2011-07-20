@@ -214,7 +214,7 @@ S04-statements/gather.t
 S04-statements/if.t
 S04-statements/last.t
 S04-statements/loop.t
-# S04-statements/map-and-sort-in-for.t # err: Could not find sub &sort
+S04-statements/map-and-sort-in-for.t
 S04-statements/next.t
 S04-statements/no-implicit-block.t
 S04-statements/redo.t
@@ -259,7 +259,7 @@ S04-statements/while.t
 # S05-metachars/newline.t #needs regex
 # S05-metachars/tilde.t #needs regex
 # S05-metasyntax/angle-brackets.t # needs regex
-# S05-metasyntax/changed.t # needs regex
+S05-metasyntax/changed.t
 # S05-metasyntax/charset.t # needs regex
 # S05-metasyntax/lookaround.t # needs regex
 # S05-metasyntax/null.t # needs regex
@@ -270,7 +270,7 @@ S04-statements/while.t
 S05-metasyntax/unknown.t
 # S05-modifier/continue.t # needs regex
 # S05-modifier/counted-match.t # needs regex
-# S05-modifier/global.t # needs regex
+S05-modifier/global.t
 # S05-modifier/ii.t # needs regex
 # S05-modifier/ignorecase.t                              #icu # needs regex
 # S05-modifier/overlapping.t # needs regex
@@ -278,7 +278,7 @@ S05-metasyntax/unknown.t
 # S05-modifier/perl5_2.t # needs regex
 # S05-modifier/perl5_7.t # needs regex
 # S05-modifier/perl5_8.t # needs regex
-# S05-modifier/pos.t # needs regex
+# S05-modifier/pos.t
 # S05-modifier/repetition.t # needs regex
 # S05-modifier/sigspace.t # needs regex
 # S05-substitution/match.t # needs regex
@@ -329,10 +329,10 @@ S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
-# S06-signature/tree-node-parameters.t # ? runs 0 tests.
+# S06-signature/tree-node-parameters.t # needs nested sigs
 # S06-signature/type-capture.t # err: Cannot call a method on type variable T
 # S06-signature/types.t # err: Malformed block
-# S06-signature/unpack-array.t # ? runs 0 tests.
+# S06-signature/unpack-array.t # ?needs nested sigs
 S06-signature/unspecified.t
 S06-traits/as.t
 S06-traits/is-copy.t
@@ -547,7 +547,7 @@ S32-str/ords.t
 # S32-str/p5chomp.t # err: Could not find sub &p5chomp
 # S32-str/p5chop.t # err: Could not find sub &p5chop
 # S32-str/pack.t # err: Could not find sub &pack
-# S32-str/pos.t # err: too many positional arguments: 3 passed, 1 expected
+S32-str/pos.t
 S32-str/rindex.t
 # S32-str/samecase.t # err: Could not find sub &samecase # icu
 # S32-str/split-simple.t # err: too many positional arguments: 3 passed, 1 expected
@@ -599,7 +599,7 @@ integration/advent2009-day04.t
 # integration/advent2009-day10.t # err: Method 'new_type' not found for invocant of class 'Undef'
 # integration/advent2009-day11.t # err: Method 'dog_name' not found for invocant of class 'DogWalker'
 # integration/advent2009-day12.t # err: Could not find sub &DYNAMIC
-# integration/advent2009-day13.t # err: too many positional arguments: 3 passed, 1 expected
+integration/advent2009-day13.t
 # integration/advent2009-day14.t # err: too many positional arguments: 3 passed, 1 expected
 integration/advent2009-day15.t
 # integration/advent2009-day16.t # err: too many positional arguments: 3 passed, 1 expected
@@ -624,5 +624,5 @@ integration/passing-pair-class-to-sub.t
 integration/role-composition-vs-attribute.t
 # integration/rule-in-class-Str.t # err: too many positional arguments: 3 passed, 1 expected # 'is also' -> augment
 integration/say-crash.t
-# integration/substr-after-match-in-gather-in-for.t # err: too many positional arguments: 3 passed, 1 expected
+integration/substr-after-match-in-gather-in-for.t
 # integration/weird-errors.t # err: Could not find sub &DYNAMIC

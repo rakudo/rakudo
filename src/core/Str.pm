@@ -289,8 +289,17 @@ my class Str does Stringy {
         }
     }
 
-    multi method split(Regex $matcher, $limit = *, :$all) {
-        die "Split with regex NYI";
+    multi method split(Regex $pat, :$all) {
+        my @matches := self.match($pat, :g);
+        gather {
+            my $prev-pos = 0;
+            for @matches {
+                take self.substr($prev-pos, .from - $prev-pos);
+                take $_ if $all;
+                $prev-pos = .to;
+            }
+            take self.substr($prev-pos);
+        }
     }
     multi method split(Cool $delimiter, $limit = *, :$all) {
         my $match-string = $delimiter.Str;

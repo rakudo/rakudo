@@ -122,3 +122,17 @@ sub undefine(Mu \$x) {
     my $undefined;
     $x = $undefined;
 }
+
+# not sure where this should go
+# this implements the ::() indirect lookup
+sub INDIRECT_NAME_LOOKUP(*@chunks) {
+    my Str $name := @chunks.join('::');
+    die "Indirect lookup of names containing :: (here: '$name') is not yet implemented"
+        if $name.index('::').defined;
+    my Mu $thing := pir::find_caller_lex__Ps(
+        nqp::unbox_s($name)
+    );
+    nqp::isnull($thing)
+        ?? fail("Symbol '$name' not found")
+        !! $thing;
+}

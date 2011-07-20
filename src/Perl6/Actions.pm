@@ -2054,13 +2054,39 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<name>($/) {
-        my @name := Perl6::Grammar::parse_name(~$<longname>);
+        my $is_indirect_lookup := 0;
+        for $<longname><name><morename> {
+            if $_<EXPR> {
+                $is_indirect_lookup := 1;
+                last;
+            }
+        }
+
         my $past;
-        
-        # If we have args, it's a call. Look it up dynamically
-        # and make the call.
-        if $<args> {
+
+        if $is_indirect_lookup {
+            if $<args> {
+                $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
+            }
+            $past := PAST::Op.new(
+                :pasttype<call>,
+                :name<&INDIRECT_NAME_LOOKUP>,
+            );
+            $past.push($*ST.add_constant('Str', 'str', ~$<longname><name><identifier>))
+                if $<longname><name><identifier>;
+            for $<longname><name><morename> {
+                if $_<EXPR> {
+                    $past.push($_<EXPR>[0].ast);
+                } else {
+                    $past.push($*ST.add_constant('Str', 'str', ~$<identifier>));
+                }
+            }
+
+        } elsif $<args> {
+            # If we have args, it's a call. Look it up dynamically
+            # and make the call.
             # Add & to name.
+            my @name := Perl6::Grammar::parse_name(~$<longname>);
             my $final := @name[+@name - 1];
             if pir::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
@@ -2073,18 +2099,18 @@ class Perl6::Actions is HLL::Actions {
                 $past.unshift($*ST.symbol_lookup(@name, $/));
             }
         }
-        
-        # Otherwise, it's a type name; build a reference to that
-        # type, since we can statically resolve them.
         else {
+            # Otherwise, it's a type name; build a reference to that
+            # type, since we can statically resolve them.
+            my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $<arglist> {
                 $/.CURSOR.panic("Parametric roles not yet implemented");
             }
-            if ~$<longname> ne 'GLOBAL' {
-                $past := instantiated_type(@name, $/);
+            if ~$<longname> eq 'GLOBAL' {
+                $past := $*ST.symbol_lookup(@name, $/);
             }
             else {
-                $past := $*ST.symbol_lookup(@name, $/);
+                $past := instantiated_type(@name, $/);
             }
         }
         

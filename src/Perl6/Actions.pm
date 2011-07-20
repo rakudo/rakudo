@@ -2090,11 +2090,11 @@ class Perl6::Actions is HLL::Actions {
             if $<arglist> {
                 $/.CURSOR.panic("Parametric roles not yet implemented");
             }
-            if ~$<longname> ne 'GLOBAL' {
-                $past := instantiated_type(@name, $/);
+            if ~$<longname> eq 'GLOBAL' {
+                $past := $*ST.symbol_lookup(@name, $/);
             }
             else {
-                $past := $*ST.symbol_lookup(@name, $/);
+                $past := instantiated_type(@name, $/);
             }
         }
         

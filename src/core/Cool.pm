@@ -91,6 +91,9 @@ my class Cool {
     multi method match(Cool:D: Cool $target, *%adverbs) {
         self.Str.match($target.Stringy, |%adverbs)
     }
+    # TODO: handle $limit in .comb
+    proto method comb(|$) {*}
+    multi method comb(Regex $matcher) { self.Str.comb($matcher) }
 }
 
 sub chop($s)                  { $s.chop }
@@ -109,3 +112,6 @@ multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };
 
 proto sub ords(|$)            { * }
 multi sub ords(Cool $s)       { ords($s.Stringy) }
+
+proto sub comb(|$)            { * }
+multi sub comb(Regex $matcher, Cool $input) { $input.comb($matcher) }

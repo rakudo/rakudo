@@ -238,10 +238,13 @@ my class Str does Stringy {
         $result ~ '"'
     }
 
-    # TODO: should be just one multi candidate, where the rest actually deals
-    # with regexes
-    method comb() {
+    multi method comb() {
         (^self.chars).map({self.substr($_, 1) });
+    }
+    multi method comb(Regex $pat, :$match) {
+        $match
+            ?? self.match(:g, $pat)
+            !! self.match(:g, $pat).map: { .Str }
     }
 
 

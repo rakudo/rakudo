@@ -1,9 +1,9 @@
-    Announce: Rakudo Perl 6 compiler development release #43 ("<PM>")
+    Announce: Rakudo Perl 6 compiler development release #43 ("Beijing")
 
 On behalf of the Rakudo development team, I'm happy to announce the
-July 2011 release of Rakudo Perl #43 "<PM>".  Rakudo is an 
+July 2011 release of Rakudo Perl #43 "Beijing".  Rakudo is an 
 implementation of Perl 6 on the Parrot Virtual Machine (see 
-<http://www.parrot.org>). The tarball for the June 2011 release
+<http://www.parrot.org>). The tarball for the July 2011 release
 is available from <http://github.com/rakudo/rakudo/downloads>.
 
 Please note: This announcement is not for the Rakudo Star distribution --
@@ -11,8 +11,9 @@ it's announcing a new release of the compiler only.  For the latest
 Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
 
 The Rakudo Perl compiler follows a monthly release cycle, with each release
-named after a Perl Mongers group. The June 2011 release is code named
-"<PM>".
+named after a Perl Mongers group. The July 2011 release is code named
+"Beijing" after the host of the Beijing Perl Workshop 2011, which featured
+several Perl 6 related talks.
 
 Browsing the change log below, it might appear as though not much
 Rakudo development is taking place.  Nearly all of the development

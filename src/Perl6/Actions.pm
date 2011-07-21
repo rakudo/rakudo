@@ -783,6 +783,8 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
         }
         else {
+            $/.CURSOR.panic("Variable variable names NYI")
+                if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>);
             $past := make_variable($/, ~$/);
         }
         make $past;
@@ -2053,18 +2055,19 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
 
-    method term:sym<name>($/) {
-        my $is_indirect_lookup := 0;
-        for $<longname><name><morename> {
+    method is_indirect_lookup($longname) {
+        for $longname<name><morename> {
             if $_<EXPR> {
-                $is_indirect_lookup := 1;
-                last;
+                return 1;
             }
         }
+        0;
+    }
 
+    method term:sym<name>($/) {
         my $past;
 
-        if $is_indirect_lookup {
+        if self.is_indirect_lookup($<longname>) {
             if $<args> {
                 $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
             }

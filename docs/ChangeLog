@@ -1,3 +1,8 @@
+New in 2011.07
++ fractional powers of negative numbers now result in Complex numbers
++ obtain spectests from a specific branch of the `roast' repo
++ fix bug that prevented build on systems with little RAM
+
 New in 2011.06
 + added take-rw built-in
 + numerous build system improvements

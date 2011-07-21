@@ -55,7 +55,12 @@ Dates are based on Parrot's expected release schedule.
 
 =head2 Suggested .pm group names for future releases
 
- (none yet)
+  MadMongers    (YAPC::NA 2012)
+  Columbus      (YAPC::NA 2011, p6 track and hackathon)
+  Riga          (YAPC::EU 2011, p6 track and hackathon)
+  Houston       (YAPC::NA 2007, p6 hackathon)
+  Brazos Valley (YAPC::NA 2007, p6 hackathon)
+  Toronto       (YAPC::NA 2005, p6 hackathon)
 
 More names can be gotten from L<http://www.pm.org> if you 
 can't think of one with any particular significance to Perl 

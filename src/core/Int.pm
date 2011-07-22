@@ -36,6 +36,20 @@ my class Int {
     method pred(Int:D:) { self - 1 }
 
     method sqrt() { self.Num.sqrt }
+
+    method base(Cool $base) {
+        fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;
+        my Int $b = $base.Int;
+        my @conversion = 0..9, 'A' .. 'Z';
+        my @res;
+        my $n = self.abs;
+        repeat {
+            push @res, @conversion[$n % $b];
+            $n div= $b;
+        } while $n > 0;
+        push @res, '-' if self < 0;
+        join '', @res.reverse;
+    }
 }
 
 multi prefix:<++>(Int:D \$a is rw) {   # XXX

@@ -83,6 +83,7 @@ S02-names_and_variables/variables-and-packages.t
 # S02-names_and_variables/varnames.t        # need binding of $/
 S02-names/identifier.t
 # S02-names/our.t # err: Could not find sub !YOU_ARE_HERE
+S02-names/symbolic-deref.t
 # S02-one-pass-parsing/less-than.t # err: Could not find sub &rand
 # S02-polymorphic_types/subset.t # err: too many positional arguments: 3 passed, 1 expected
 S02-whitespace_and_comments/begin_end_pod.t
@@ -534,7 +535,7 @@ S32-str/bool.t
 # S32-str/capitalize.t  # err: Could not find sub &capitalize # icu
 S32-str/chomp.t
 S32-str/chop.t
-# S32-str/comb.t # err: too many positional arguments: 3 passed, 1 expected # icu
+S32-str/comb.t
 # S32-str/encode.t  # err: Method 'encode' not found for invocant of class 'Str'
 S32-str/flip.t
 # S32-str/indent.t # err: Method 'blocktype' not found for invocant of class 'PAST;Op' # icu 

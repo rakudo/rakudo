@@ -472,9 +472,9 @@ S32-array/create.t
 S32-array/elems.t
 S32-array/end.t
 S32-array/exists.t
-# S32-array/keys_values.t # err: Method 'keys' not found for invocant of class 'Array'
-# S32-array/kv.t # err: Method 'kv' not found for invocant of class 'Array'
-# S23-array/pairs.t #err: Method 'pairs' not found for invocant of class 'Array'
+S32-array/keys_values.t
+S32-array/kv.t
+S23-array/pairs.t
 S32-array/pop.t
 S32-array/push.t
 # S32-array/rotate.t # err: Method 'rotate' not found for invocant of class 'Array'

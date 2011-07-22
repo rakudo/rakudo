@@ -240,6 +240,15 @@ class List does Positional {
     method keys(List:D:) {
         (0..self.end).list;
     }
+    method values(List:D:) {
+        self
+    }
+    method pairs(List:D:) {
+        self.keys.map: {; $_ => self.at_pos($_) };
+    }
+    method kv(List:D:) {
+        self.keys.map: { ($_, self.at_pos($_)) };
+    }
 
     method reduce(List:D: &with) {
         fail('can only reduce with arity 2 for now')

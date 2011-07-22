@@ -94,6 +94,9 @@ my class Cool {
     # TODO: handle $limit in .comb
     proto method comb(|$) {*}
     multi method comb(Regex $matcher) { self.Str.comb($matcher) }
+
+    method sprintf(*@args) { sprintf(self, @args) };
+    method printf (*@args) {  printf(self, @args) };
 }
 
 sub chop($s)                  { $s.chop }
@@ -115,3 +118,14 @@ multi sub ords(Cool $s)       { ords($s.Stringy) }
 
 proto sub comb(|$)            { * }
 multi sub comb(Regex $matcher, Cool $input) { $input.comb($matcher) }
+
+sub sprintf(Cool $format, *@args) {
+    @args.gimme(*);
+    nqp::p6box_s(
+        pir::sprintf__SSP(nqp::unbox_s($format.Stringy),
+            nqp::clone(nqp::getattr(@args, List, '$!items'))
+        )
+    );
+}
+
+sub printf(Cool $format, *@args) { print sprintf $format, @args };

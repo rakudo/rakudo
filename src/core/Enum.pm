@@ -11,6 +11,7 @@ my class Enum {
 
     method keys()  { $!key }
     method values(){ $!value }
+    method pairs() { self }
 
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
     multi method perl(Enum:D:) { $.key.perl ~ ' => ' ~ $.value.perl }

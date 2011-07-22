@@ -53,13 +53,13 @@ S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
 # S02-literals/listquote.t # err: Method 'at_key' not found for invocant of class 'Str'
-# S02-literals/listquote-whitespace.t # err: Could not find sub &sprintf
+S02-literals/listquote-whitespace.t
 S02-literals/misc-interpolation.t
 S02-literals/numeric.t
 S02-literals/pair-boolean.t
 # S02-literals/pairs.t # err: Not enough positional parameters passed
 # S02-literals/quoting.t # need rx {} quoting # err: too many positional arguments
-# S02-literals/quoting-unicode.t # err: Could not find sub &sprintf # icu
+S02-literals/quoting-unicode.t          # icu
 # S02-literals/radix.t # err: Could not find sub &radcalc
 S02-literals/string-interpolation.t
 S02-literals/sub-calls.t
@@ -315,7 +315,7 @@ S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
 # S06-signature/code.t # need Typed arrays/hashes/callables
 S06-signature/defaults.t
-# S06-signature/errors.t # err: too many positional arguments: 3 passed, 1 expected
+S06-signature/errors.t
 # S06-signature/introspection.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S06-signature/mixed-placeholders.t
 # S06-signature/named-parameters.t # err: Contextual $*UNITPAST not found
@@ -474,7 +474,7 @@ S32-array/end.t
 S32-array/exists.t
 S32-array/keys_values.t
 S32-array/kv.t
-S23-array/pairs.t
+S32-array/pairs.t
 S32-array/pop.t
 S32-array/push.t
 # S32-array/rotate.t # err: Method 'rotate' not found for invocant of class 'Array'
@@ -553,7 +553,7 @@ S32-str/rindex.t
 # S32-str/samecase.t # err: Could not find sub &samecase # icu
 # S32-str/split-simple.t # err: too many positional arguments: 3 passed, 1 expected
 # S32-str/split.t # err: too many positional arguments: 3 passed, 1 expected
-# S32-str/sprintf.t # err: Could not find sub &sprintf
+S32-str/sprintf.t
 # S32-str/substr.t # err: Method 'capitalize' not found for invocant of class 'Str'
 # S32-str/trim.t # err: too many positional arguments: 3 passed, 1 expected
 S32-str/uc.t                                               # icu

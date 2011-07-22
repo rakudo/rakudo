@@ -125,7 +125,7 @@ sub undefine(Mu \$x) {
 
 # not sure where this should go
 # this implements the ::() indirect lookup
-sub INDIRECT_NAME_LOOKUP(*@chunks) {
+sub INDIRECT_NAME_LOOKUP(*@chunks) is rw {
     # note that each part of @chunks itself can
     # contain double colons. That's why joining and
     # re-splitting is necessary

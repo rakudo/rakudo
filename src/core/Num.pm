@@ -243,3 +243,11 @@ multi infix:«>=»(Num \$a, Num \$b) {
     nqp::p6bool(nqp::isge_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
+sub rand() {
+    nqp::p6box_n(pir::rand__NN(1));
+}
+
+# TODO: default seed of 'time'
+sub srand(Int $seed) {
+    nqp::p6box_i(pir::srand__0I($seed))
+}

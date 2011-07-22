@@ -517,10 +517,10 @@ S32-num/complex.t
 S32-num/exp.t # err: Too many positional parameters passed; got 2 but expected 1
 S32-num/int.t
 S32-num/log.t
-# S32-num/pi.t # all tests skipped
+S32-num/pi.t
 S32-num/polar.t
 S32-num/power.t
-# S32-num/rand.t # err: Could not find sub &rand
+S32-num/rand.t
 S32-num/rat.t
 # S32-num/real-bridge.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
 S32-num/roots.t

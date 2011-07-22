@@ -236,6 +236,24 @@ class List does Positional {
           ~ ':nextiter(' ~ DUMP($!nextiter) ~ ')'
           ~ ')'
     }
+
+    method keys(List:D:) {
+        (0..self.end).list;
+    }
+
+    method reduce(List:D: &with) {
+        fail('can only reduce with arity 2 for now')
+            unless &with.arity <= 2 <= &with.count;
+        my Mu $val;
+        for self.keys {
+            if $_ == 0 {
+                $val = self.at_pos(0);
+                next;
+            }
+            $val = with($val, self.at_pos($_));
+        }
+        $val;
+    }
 }
 
 sub eager(|$) {
@@ -267,4 +285,5 @@ multi sub shift(@a) { @a.shift }
 proto sub push(|$) {*}
 multi sub push(@a, *@elems) { @a.push: @elems }
 
-sub reverse(*@a) { @a.reverse }
+sub reverse(*@a)            { @a.reverse }
+sub reduce (&with, *@list)  { @list.reduce(&with) }

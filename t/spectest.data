@@ -505,7 +505,7 @@ S32-list/map_function_return_values.t
 # S32-list/map.t # err: splice() not implemented in class 'Mu'
 # S32-list/minmax.t # err: Could not find sub &min
 S32-list/pick.t
-# S32-list/reduce.t # err: Could not find sub &reduce
+S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t
 # S32-list/sort.t # err: Could not find sub &sort

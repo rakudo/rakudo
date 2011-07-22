@@ -91,6 +91,7 @@ my class Any {
         self{self.keys}
     }
 
+    method reduce(&with) { self.list.reduce(&with) }
 }
 
 

@@ -138,6 +138,10 @@ sub INDIRECT_NAME_LOOKUP(*@chunks) {
         my $last_idx      = @parts.end;
         @parts[$last_idx] = $first.substr(0, 1) ~ @parts[$last_idx]; 
         $first            = $first.substr(1);
+        if $first eq '' {
+            $first = @parts.shift;
+            $name = @chunks.join('::');
+        }
     }
     my Mu $thing := pir::find_caller_lex__Ps(
         nqp::unbox_s($first)

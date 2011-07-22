@@ -783,9 +783,14 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
         }
         else {
-            $/.CURSOR.panic("Variable variable names NYI")
-                if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>);
-            $past := make_variable($/, ~$/);
+            if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>) {
+                if $*IN_DECL {
+                    $/.CURSOR.panic("Variable variable names not allowed in declarations");
+                }
+                $past := self.make_indirect_lookup($<desigilname><longname>, ~$<sigil>);
+            } else {
+                $past := make_variable($/, ~$/);
+            }
         }
         make $past;
     }
@@ -2064,6 +2069,25 @@ class Perl6::Actions is HLL::Actions {
         0;
     }
 
+    method make_indirect_lookup($longname, $sigil?) {
+        my $past := PAST::Op.new(
+            :pasttype<call>,
+            :name<&INDIRECT_NAME_LOOKUP>,
+        );
+        $past.push($*ST.add_constant('Str', 'str', $sigil)) if $sigil;
+        $past.push($*ST.add_constant('Str', 'str', ~$longname<name><identifier>))
+            if $longname<name><identifier>;
+
+        for $longname<name><morename> {
+            if $_<EXPR> {
+                $past.push($_<EXPR>[0].ast);
+            } else {
+                $past.push($*ST.add_constant('Str', 'str', ~$_<identifier>));
+            }
+        }
+        $past;
+    }
+
     method term:sym<name>($/) {
         my $past;
 
@@ -2071,19 +2095,7 @@ class Perl6::Actions is HLL::Actions {
             if $<args> {
                 $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
             }
-            $past := PAST::Op.new(
-                :pasttype<call>,
-                :name<&INDIRECT_NAME_LOOKUP>,
-            );
-            $past.push($*ST.add_constant('Str', 'str', ~$<longname><name><identifier>))
-                if $<longname><name><identifier>;
-            for $<longname><name><morename> {
-                if $_<EXPR> {
-                    $past.push($_<EXPR>[0].ast);
-                } else {
-                    $past.push($*ST.add_constant('Str', 'str', ~$<identifier>));
-                }
-            }
+            $past := self.make_indirect_lookup($<longname>)
 
         } elsif $<args> {
             # If we have args, it's a call. Look it up dynamically

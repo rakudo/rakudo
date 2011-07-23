@@ -248,7 +248,7 @@ my class Str does Stringy {
     }
 
 
-    multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g)) {
+    multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap)) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
         if $c.defined {
@@ -257,7 +257,7 @@ my class Str does Stringy {
             %opts<c> = 0;
         }
         %opts<p> = $p if $p.defined;
-        if $g {
+        if $g  || $overlap {
             gather while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
                 # XXX a bug in the regex engine means that we can
                 # match a zero-width match past the end of the string.
@@ -268,7 +268,9 @@ my class Str does Stringy {
 
                 # XXX should be %opts.delete('d'), but Hash.delete is NYI
                 %opts<d> = Any if %opts<d>;
-                %opts<c> = $m.to == $m.from ?? $m.to + 1 !! $m.to;
+                %opts<c> = $overlap
+                        ?? $m.from +1
+                        !!  ($m.to == $m.from ?? $m.to + 1 !! $m.to);
             }
         } else {
             $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;

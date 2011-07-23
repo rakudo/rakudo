@@ -3,6 +3,7 @@ my class Cool {
     ## numeric methods
 
     method rand() { self.Num.rand }
+    method truncate() { self.Numeric.truncate }
     
     ## string methods
 

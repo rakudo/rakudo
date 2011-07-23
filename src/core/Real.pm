@@ -22,6 +22,9 @@ my class Real {
     multi method log()           { self.Bridge.log               }
     multi method log(Real $base) { self.Bridge.log($base.Bridge) }
     multi method exp()           { self.Bridge.exp               }
+    method truncate(Real:D:) {
+        self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
+    }
 }
 
 proto sub cis(|$) {*}
@@ -64,3 +67,6 @@ multi prefix:<abs>(Real \$a) {
     $a < 0 ?? -$a !! $a;
 }
 
+proto sub truncate(|$) {*}
+multi sub truncate(Real:D $x) { $x.truncate }
+multi sub truncate(Cool:D $x) { $x.Numeric.truncate }

@@ -24,12 +24,12 @@ S02-builtin_data_types/declare.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 # S02-builtin_data_types/hash.t             # need regexes and m{...}
-# S02-builtin_data_types/infinity.t         # err: Could not find sub &truncate
+S02-builtin_data_types/infinity.t
 # S02-builtin_data_types/instants-and-durations.t # err: Could not find sub &term:<now>
 # S02-builtin_data_types/lists.t            # err: too many positional arguments
 S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
-# S02-builtin_data_types/nan.t              # err: Could not find sub &truncate
+# S02-builtin_data_types/nan.t              # several test failures
 S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/nil.t

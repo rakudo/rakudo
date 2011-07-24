@@ -2945,24 +2945,20 @@ class Perl6::Actions is HLL::Actions {
         make block_closure($coderef);
     }
     method quote:sym<m>($/) {
-        $regex := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        my $regex := block_closure($regex, 'Regex', 0);
+        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
 
         my $past := PAST::Op.new(
             :node($/),
             :pasttype('callmethod'), :name('match'),
             PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
-            $regex
+            block_closure($coderef)
         );
-        self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
-        $past := PAST::Op.new(
-            :node($/),
-            :pasttype('call'), :name('&infix:<:=>'),
+#        self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
+        make PAST::Op.new( :pasttype('bind_6model'),
             PAST::Var.new(:name('$/'), :scope('lexical_6model')),
             $past
         );
-
-        make $past;
     }
 
     method handle_and_check_adverbs($/, %adverbs, $what, $past?) {

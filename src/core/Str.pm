@@ -306,8 +306,9 @@ my class Str does Stringy {
         }
     }
 
-    multi method split(Regex $pat, :$all) {
-        my @matches := self.match($pat, :g);
+    multi method split(Regex $pat, $limit = *, :$all) {
+        my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
+        my @matches := self.match($pat, :x(1..$l), :g);
         gather {
             my $prev-pos = 0;
             for @matches {

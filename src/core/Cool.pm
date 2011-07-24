@@ -98,6 +98,7 @@ my class Cool {
 
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };
+    method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 }
 
 sub chop($s)                  { $s.chop }
@@ -130,3 +131,4 @@ sub sprintf(Cool $format, *@args) {
 }
 
 sub printf(Cool $format, *@args) { print sprintf $format, @args };
+sub samecase(Cool $string, Cool $pattern) { $string.samecase($pattern) }

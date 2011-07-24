@@ -332,6 +332,20 @@ my class Str does Stringy {
             Nil;
         }
     }
+
+    method samecase(Str:D: Str $pattern) {
+        my @chars;
+        my @pat = $pattern.comb;
+        my $p = '';
+        for self.comb -> $s {
+            $p = @pat.shift if @pat;
+            # XXX anchors necessary due to a regex bug
+            push @chars, $p ~~ /^<.upper>$/  ?? $s.uc
+                      !! $p ~~ /^<.lower>$/  ?? $s.lc
+                      !! $s;
+        }
+        @chars.join('');
+    }
 }
 
 

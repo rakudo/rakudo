@@ -541,7 +541,7 @@ S32-str/flip.t
 # S32-str/indent.t # err: Method 'blocktype' not found for invocant of class 'PAST;Op' # icu 
 # S32-str/index.t # err: dies after test # 2
 S32-str/lc.t                                               # icu
-S32-str/lcfirst.t                                            # icu
+S32-str/lcfirst.t                                          # icu
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
@@ -550,7 +550,7 @@ S32-str/ords.t
 # S32-str/pack.t # err: Could not find sub &pack
 S32-str/pos.t
 S32-str/rindex.t
-# S32-str/samecase.t # err: Could not find sub &samecase # icu
+S32-str/samecase.t                                         # icu
 # S32-str/split-simple.t # err: too many positional arguments: 3 passed, 1 expected
 # S32-str/split.t # err: too many positional arguments: 3 passed, 1 expected
 S32-str/sprintf.t

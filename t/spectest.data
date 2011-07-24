@@ -282,7 +282,7 @@ S05-modifier/overlapping.t
 # S05-modifier/pos.t
 # S05-modifier/repetition.t # needs regex
 # S05-modifier/sigspace.t # needs regex
-# S05-substitution/match.t # needs regex
+S05-substitution/match.t
 # S05-substitution/subst.t # needs regex
 # S05-transliteration/trans.t # needs regex
 # S05-transliteration/with-closure.t # needs regex

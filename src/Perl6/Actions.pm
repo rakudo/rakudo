@@ -2850,18 +2850,18 @@ class Perl6::Actions is HLL::Actions {
     our %MATCH_ALLOWED_ADVERBS;
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet';
-        for pir::split__PSS(' ', $mods) {
+        for nqp::split(' ', $mods) {
             %SHARED_ALLOWED_ADVERBS{$_} := 1;
         }
 
         $mods := 'g global ii samecase x c continue p pos nth th st nd rd';
-        for pir::split__PSS(' ', $mods) {
+        for nqp::split(' ', $mods) {
             %SUBST_ALLOWED_ADVERBS{$_} := 1;
         }
 
         # TODO: add g global ov overlap  once they actually work
         $mods := 'x c continue p pos nth th st nd rd';
-        for pir::split__PSS(' ', $mods) {
+        for nqp::split(' ', $mods) {
             %MATCH_ALLOWED_ADVERBS{$_} := 1;
         }
     }
@@ -2887,6 +2887,14 @@ class Perl6::Actions is HLL::Actions {
         }
         $*value.named(~$*key);
         make $*value;
+    }
+
+    method rx_adverbs($/) {
+        my @pairs;
+        for $<quotepair> {
+            nqp::push(@pairs, $_.ast);
+        }
+        make @pairs;
     }
 
     method setup_quotepair($/) {
@@ -2954,7 +2962,7 @@ class Perl6::Actions is HLL::Actions {
             PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
             block_closure($coderef)
         );
-#        self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
+        self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
         make PAST::Op.new( :pasttype('bind_6model'),
             PAST::Var.new(:name('$/'), :scope('lexical_6model')),
             $past
@@ -2962,12 +2970,12 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method handle_and_check_adverbs($/, %adverbs, $what, $past?) {
-        for $<quotepair> {
-            unless %SHARED_ALLOWED_ADVERBS{$_.ast.named} || %adverbs{$_.ast.named} {
-                $/.CURSOR.panic("Adverb '" ~ $_.ast.named ~ "' not allowed on " ~ $what);
+        for $<rx_adverbs>.ast {
+            unless %SHARED_ALLOWED_ADVERBS{$_.named} || %adverbs{$_.named} {
+                $/.CURSOR.panic("Adverb '" ~ $_.named ~ "' not allowed on " ~ $what);
             }
             if $past {
-                $past.push($_.ast);
+                $past.push($_);
             }
         }
     }

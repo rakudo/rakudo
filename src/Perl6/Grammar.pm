@@ -1587,6 +1587,14 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
+    token rx_adverbs {
+        [
+            <quotepair> <.ws>
+            :my $*ADVERB;
+            { $*ADVERB := $<quotepair>[-1] }
+            <.setup_quotepair>
+        ]*
+    }
 
     proto token quote { <...> }
     token quote:sym<apos>  { <?[']>                <quote_EXPR: ':q'>  }
@@ -1602,10 +1610,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     token quote:sym</ />  { '/' :my %*RX; <p6regex=.LANG('Regex','nibbler')> '/' <.old_rx_mods>? }
     token quote:sym<rx>   {
         <sym> >> 
-        [ <quotepair> <.ws> ]*
-        :my @*REGEX_ADVERBS;
-        { @*REGEX_ADVERBS := $<quotepair>; }
-        <.setup_quotepairs>
+        :my %*RX;
+        <rx_adverbs>
         [
         | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
         | '{'<p6regex=.LANG('Regex','nibbler')>'}' <.old_rx_mods>?
@@ -1621,14 +1627,8 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token quote:sym<m> {
         <sym> (s)?>>
-        [ <quotepair> <.ws> ]*
-        :my @*REGEX_ADVERBS;
-        { @*REGEX_ADVERBS := $<quotepair>;
-          if $/[0] {
-              pir::push__vPP(@*REGEX_ADVERBS, $/.CURSOR.match_with_adverb('s'));
-          }
-        }
-        <.setup_quotepairs>
+        :my %*RX;
+        <rx_adverbs>
         [
         | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
         | '{'<p6regex=.LANG('Regex','nibbler')>'}'
@@ -1636,20 +1636,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.cleanup_modifiers>
     }
 
-    token setup_quotepairs { '' }
+    token setup_quotepair { '' }
     token cleanup_modifiers { '' }
 
     token quote:sym<s> {
         <sym> (s)? >>
-        [ <quotepair> <.ws> ]*
-        :my @*REGEX_ADVERBS;
-        {
-            @*REGEX_ADVERBS := $<quotepair>;
-            if $/[0] {
-                pir::push__vPP(@*REGEX_ADVERBS, $/.CURSOR.match_with_adverb('s'));
-            }
-        }
-        <.setup_quotepairs>
+        :my %*RX;
+        <rx_adverbs>
         [
         | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
         | '[' <p6regex=.LANG('Regex','nibbler')> ']'

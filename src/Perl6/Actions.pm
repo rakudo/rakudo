@@ -2889,24 +2889,22 @@ class Perl6::Actions is HLL::Actions {
         make $*value;
     }
 
-    method setup_quotepairs($/) {
+    method setup_quotepair($/) {
         my %h;
-        for @*REGEX_ADVERBS {
-            my $key := $_.ast.named;
-            my $value := $_.ast;
-            if $value ~~ PAST::Val {
-                $value := $value.value;
-            } else {
-                if %SHARED_ALLOWED_ADVERBS{$key} {
-                    $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
-                }
-            }
-            if $key eq 'samecase' || $key eq 'ii' {
-                %h{'i'} := 1;
-            }
-            %h{$key} := $value;
+        my $key := $*ADVERB.ast.named;
+        my $value := $*ADVERB.ast;
+        if $value ~~ PAST::Val {
+            $value := $value.value;
         }
-
+        elsif $value<has_compile_time_value> {
+            $value := $value<compile_time_value>;
+        }
+        else {
+            if %SHARED_ALLOWED_ADVERBS{$key} {
+                $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
+            }
+        }
+        %*RX{$key} := $value;
     }
 
     method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
@@ -2942,9 +2940,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method quote:sym<rx>($/) {
-        self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx');
-        my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        make block_closure($past, 'Regex', 0);
+        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
+        make block_closure($coderef);
     }
     method quote:sym<m>($/) {
         $regex := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);

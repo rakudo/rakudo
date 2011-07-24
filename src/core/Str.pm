@@ -265,17 +265,16 @@ my class Str does Stringy {
                  ?? ( $x.excludes_max ?? $x.max - 1 !! $x )
                  !! $x
         }
-        my $taken = 0;
         if $g  || $overlap || $x.defined {
-            my @r = gather while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
+            my @r;
+            while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
                 # XXX a bug in the regex engine means that we can
                 # match a zero-width match past the end of the string.
                 # This is the workaround:
                 last if $m.to > self.chars;
 
-                take $m;
-                $taken++;
-                last if $taken == $x_upper;
+                @r.push: $m;
+                last if @r.elems == $x_upper;
 
                 # XXX should be %opts.delete('d'), but Hash.delete is NYI
                 %opts<d> = Any if %opts<d>;
@@ -283,7 +282,7 @@ my class Str does Stringy {
                         ?? $m.from +1
                         !!  ($m.to == $m.from ?? $m.to + 1 !! $m.to);
             }
-            return if $x.defined && $taken !~~ $x;
+            return if $x.defined && @r.elems !~~ $x;
             return @r;
         } else {
             $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;

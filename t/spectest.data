@@ -84,7 +84,7 @@ S02-names_and_variables/variables-and-packages.t
 S02-names/identifier.t
 # S02-names/our.t # err: Could not find sub !YOU_ARE_HERE
 S02-names/symbolic-deref.t
-# S02-one-pass-parsing/less-than.t # err: Could not find sub &rand
+S02-one-pass-parsing/less-than.t
 # S02-polymorphic_types/subset.t # err: too many positional arguments: 3 passed, 1 expected
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t # err: You can't backslash that at line 79, near "#`((( comm"
@@ -274,7 +274,7 @@ S05-metasyntax/unknown.t
 S05-modifier/global.t
 # S05-modifier/ii.t # needs regex
 # S05-modifier/ignorecase.t                              #icu # needs regex
-# S05-modifier/overlapping.t # needs regex
+S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t # needs regex
 # S05-modifier/perl5_2.t # needs regex
 # S05-modifier/perl5_7.t # needs regex
@@ -486,8 +486,8 @@ S32-array/shift.t
 S32-hash/exists.t
 # S32-hash/delete.t # err: Method 'delete' not found for invocant of class 'Hash'
 # S32-hash/invert.t # err: Method 'invert' not found for invocant of class 'Hash'
-# S32-hash/keys_values.t # err: Could not find sub &keys
-# S32-hash/pairs.t # err: Method 'pairs' not found for invocant of class 'Pair'
+S32-hash/keys_values.t
+S32-hash/pairs.t
 # S32-hash/push.t # err: Method 'push' not found for invocant of class 'Hash'
 # S32-hash/slice.t # err: too many positional arguments: 3 passed, 1 expected
 # S32-io/dir.t # err: Could not find sub &dir

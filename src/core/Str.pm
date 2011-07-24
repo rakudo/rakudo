@@ -242,10 +242,10 @@ my class Str does Stringy {
     multi method comb() {
         (^self.chars).map({self.substr($_, 1) });
     }
-    multi method comb(Regex $pat, :$match) {
+    multi method comb(Regex $pat, $limit = $Inf, :$match) {
         $match
-            ?? self.match(:g, $pat)
-            !! self.match(:g, $pat).map: { .Str }
+            ?? self.match(:g, :x(1..$limit), $pat)
+            !! self.match(:g, :x(1..$limit), $pat).map: { .Str }
     }
 
 

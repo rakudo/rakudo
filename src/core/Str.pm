@@ -1,4 +1,5 @@
 my class Cursor {... }
+my class Range  {... }
 
 my class Str does Stringy {
     method Bool() { self ne '' && self ne '0' }
@@ -248,7 +249,7 @@ my class Str does Stringy {
     }
 
 
-    multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap)) {
+    multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
         if $c.defined {
@@ -257,14 +258,24 @@ my class Str does Stringy {
             %opts<c> = 0;
         }
         %opts<p> = $p if $p.defined;
-        if $g  || $overlap {
-            gather while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
+        my $x_upper = -1;
+        if $x.defined {
+            return Nil if $x == 0;
+            $x_upper = $x ~~ Range
+                 ?? ( $x.excludes_max ?? $x.max - 1 !! $x )
+                 !! $x
+        }
+        my $taken = 0;
+        if $g  || $overlap || $x.defined {
+            my @r = gather while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
                 # XXX a bug in the regex engine means that we can
                 # match a zero-width match past the end of the string.
                 # This is the workaround:
                 last if $m.to > self.chars;
 
                 take $m;
+                $taken++;
+                last if $taken == $x_upper;
 
                 # XXX should be %opts.delete('d'), but Hash.delete is NYI
                 %opts<d> = Any if %opts<d>;
@@ -272,6 +283,8 @@ my class Str does Stringy {
                         ?? $m.from +1
                         !!  ($m.to == $m.from ?? $m.to + 1 !! $m.to);
             }
+            return if $x.defined && $taken !~~ $x;
+            return @r;
         } else {
             $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
         }

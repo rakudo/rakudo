@@ -7,21 +7,62 @@ my class Attribute {
             my $meth_name := nqp::substr(nqp::unbox_s($name), 2);
             unless $package.HOW.declares_method($package, $meth_name) {
                 my $dcpkg := pir::perl6_decontainerize__PP($package);
-                my $meth  := self.rw
-                    ??
-                    method (Mu $self:) is rw {
-                        nqp::getattr(
-                            pir::perl6_decontainerize__PP($self),
-                            $dcpkg,
-                            nqp::unbox_s($name))
-                    }
-                    !!
-                    method (Mu $self:) {
-                        nqp::getattr(
-                            pir::perl6_decontainerize__PP($self),
-                            $dcpkg,
-                            nqp::unbox_s($name))
-                    };
+                my $meth;
+                my int $attr_type = pir::repr_get_primitive_type_spec__IP($!type);
+                if self.rw {
+                    $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
+                        ??
+                        method (Mu $self:) is rw {
+                            nqp::getattr(
+                                pir::perl6_decontainerize__PP($self),
+                                $dcpkg,
+                                nqp::unbox_s($name))
+                        }
+                        !!
+                        pir::die("Cannot create rw-accessors for natively typed attribute '$name'");
+                } else {
+                    # ro accessor
+                    $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
+                        ??
+                        method (Mu $self:) {
+                            nqp::getattr(
+                                pir::perl6_decontainerize__PP($self),
+                                $dcpkg,
+                                nqp::unbox_s($name))
+                        }
+                        !!
+                        nqp::p6bool(nqp::iseq_i($attr_type, 1))
+                        ??
+                        method (Mu $self:) {
+                            nqp::p6box_i(
+                                nqp::getattr_i(
+                                    pir::perl6_decontainerize__PP($self),
+                                    $dcpkg,
+                                    nqp::unbox_s($name))
+                            );
+                        }
+                        !!
+                        nqp::p6bool(nqp::iseq_i($attr_type, 2))
+                        ??
+                        method (Mu $self:) {
+                            nqp::p6box_n(
+                                nqp::getattr_n(
+                                    pir::perl6_decontainerize__PP($self),
+                                    $dcpkg,
+                                    nqp::unbox_s($name))
+                            );
+                        }
+                        !!
+                        method (Mu $self:) {
+                            nqp::p6box_s(
+                                nqp::getattr_s(
+                                    pir::perl6_decontainerize__PP($self),
+                                    $dcpkg,
+                                    nqp::unbox_s($name))
+                            );
+                        }
+
+                }
                 $package.HOW.add_method($package, $meth_name, $meth);
             }
         }

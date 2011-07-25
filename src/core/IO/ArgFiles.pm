@@ -4,7 +4,9 @@ my class ArgFiles {
     has $!io;
     has $!ins;
 
-    method eof() { ! $!args }
+    method eof() { 
+        ! $!args && $!io.opened && $!io.eof
+    }
 
     method get() {
         unless $!io.defined && $!io.opened {
@@ -25,11 +27,8 @@ my class ArgFiles {
 
     method lines($limit = *) {
         my $l = $limit ~~ Whatever ?? $Inf !! $limit;
-        gather while !$.eof && $l-- > 0 {
-           my $line = $.get;
-           if $line.defined {
-               take $line;
-           }
+        gather while $l-- > 0 {
+           take $.get // last;
         }
     }
 }

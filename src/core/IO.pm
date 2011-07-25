@@ -70,10 +70,15 @@ class IO {
         }
     }
 
+    method opened() {
+        nqp::p6bool(nqp::istrue($!PIO));
+    }
+
     method print(*@list) {
         $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
     }
+
     method say(|$) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
@@ -92,6 +97,11 @@ sub unlink($filename) {
 proto sub open(|$) { * }
 multi sub open($filename, :$r, :$w, :$a, :$bin, :$chomp = Bool::True) {
     IO.new.open($filename, :$r, :$w, :$a, :$bin, :$chomp);
+}
+
+proto sub lines(|$) { * }
+multi sub lines($fh = $*ARGFILES, $limit = $Inf) { 
+    $fh.lines($limit) 
 }
 
 $PROCESS::IN  = open('-');

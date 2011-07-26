@@ -1,4 +1,5 @@
 my class Cursor {... }
+my class Range  {... }
 
 my class Str does Stringy {
     method Bool() { self ne '' && self ne '0' }
@@ -238,19 +239,54 @@ my class Str does Stringy {
         $result ~ '"'
     }
 
-    # TODO: should be just one multi candidate, where the rest actually deals
-    # with regexes
-    method comb() {
+    multi method comb() {
         (^self.chars).map({self.substr($_, 1) });
+    }
+    multi method comb(Regex $pat, $limit = $Inf, :$match) {
+        $match
+            ?? self.match(:g, :x(1..$limit), $pat)
+            !! self.match(:g, :x(1..$limit), $pat).map: { .Str }
     }
 
 
-    multi method match(Regex $pat, :continue(:$c), :pos(:$p)) {
+    multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
-        %opts<c> = $c if $c.defined;
+        if $c.defined {
+            %opts<c> = $c
+        } elsif !$p.defined {
+            %opts<c> = 0;
+        }
         %opts<p> = $p if $p.defined;
-        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
+        my $x_upper = -1;
+        if $x.defined {
+            return Nil if $x == 0;
+            $x_upper = $x ~~ Range
+                 ?? ( $x.excludes_max ?? $x.max - 1 !! $x )
+                 !! $x
+        }
+        if $g  || $overlap || $x.defined {
+            my @r;
+            while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
+                # XXX a bug in the regex engine means that we can
+                # match a zero-width match past the end of the string.
+                # This is the workaround:
+                last if $m.to > self.chars;
+
+                @r.push: $m;
+                last if @r.elems == $x_upper;
+
+                # XXX should be %opts.delete('d'), but Hash.delete is NYI
+                %opts<d> = Any if %opts<d>;
+                %opts<c> = $overlap
+                        ?? $m.from +1
+                        !!  ($m.to == $m.from ?? $m.to + 1 !! $m.to);
+            }
+            return if $x.defined && @r.elems !~~ $x;
+            return @r;
+        } else {
+            $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
+        }
     }
 
     method ords(Str:D:) {
@@ -270,8 +306,18 @@ my class Str does Stringy {
         }
     }
 
-    multi method split(Regex $matcher, $limit = *, :$all) {
-        die "Split with regex NYI";
+    multi method split(Regex $pat, $limit = *, :$all) {
+        my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
+        my @matches := self.match($pat, :x(1..$l), :g);
+        gather {
+            my $prev-pos = 0;
+            for @matches {
+                take self.substr($prev-pos, .from - $prev-pos);
+                take $_ if $all;
+                $prev-pos = .to;
+            }
+            take self.substr($prev-pos);
+        }
     }
     multi method split(Cool $delimiter, $limit = *, :$all) {
         my $match-string = $delimiter.Str;
@@ -298,6 +344,20 @@ my class Str does Stringy {
         } else {
             Nil;
         }
+    }
+
+    method samecase(Str:D: Str $pattern) {
+        my @chars;
+        my @pat = $pattern.comb;
+        my $p = '';
+        for self.comb -> $s {
+            $p = @pat.shift if @pat;
+            # XXX anchors necessary due to a regex bug
+            push @chars, $p ~~ /^<.upper>$/  ?? $s.uc
+                      !! $p ~~ /^<.lower>$/  ?? $s.lc
+                      !! $s;
+        }
+        @chars.join('');
     }
 }
 

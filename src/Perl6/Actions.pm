@@ -879,7 +879,14 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
         }
         else {
-            $past := make_variable($/, ~$/);
+            if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>) {
+                if $*IN_DECL {
+                    $/.CURSOR.panic("Variable variable names not allowed in declarations");
+                }
+                $past := self.make_indirect_lookup($<desigilname><longname>, ~$<sigil>);
+            } else {
+                $past := make_variable($/, ~$/);
+            }
         }
         make $past;
     }
@@ -2149,14 +2156,48 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
 
+    method is_indirect_lookup($longname) {
+        for $longname<name><morename> {
+            if $_<EXPR> {
+                return 1;
+            }
+        }
+        0;
+    }
+
+    method make_indirect_lookup($longname, $sigil?) {
+        my $past := PAST::Op.new(
+            :pasttype<call>,
+            :name<&INDIRECT_NAME_LOOKUP>,
+        );
+        $past.push($*ST.add_constant('Str', 'str', $sigil)) if $sigil;
+        $past.push($*ST.add_constant('Str', 'str', ~$longname<name><identifier>))
+            if $longname<name><identifier>;
+
+        for $longname<name><morename> {
+            if $_<EXPR> {
+                $past.push($_<EXPR>[0].ast);
+            } else {
+                $past.push($*ST.add_constant('Str', 'str', ~$_<identifier>));
+            }
+        }
+        $past;
+    }
+
     method term:sym<name>($/) {
-        my @name := Perl6::Grammar::parse_name(~$<longname>);
         my $past;
-        
-        # If we have args, it's a call. Look it up dynamically
-        # and make the call.
-        if $<args> {
+
+        if self.is_indirect_lookup($<longname>) {
+            if $<args> {
+                $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
+            }
+            $past := self.make_indirect_lookup($<longname>)
+
+        } elsif $<args> {
+            # If we have args, it's a call. Look it up dynamically
+            # and make the call.
             # Add & to name.
+            my @name := Perl6::Grammar::parse_name(~$<longname>);
             my $final := @name[+@name - 1];
             if pir::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
@@ -2169,18 +2210,18 @@ class Perl6::Actions is HLL::Actions {
                 $past.unshift($*ST.symbol_lookup(@name, $/));
             }
         }
-        
-        # Otherwise, it's a type name; build a reference to that
-        # type, since we can statically resolve them.
         else {
+            # Otherwise, it's a type name; build a reference to that
+            # type, since we can statically resolve them.
+            my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $<arglist> {
                 $/.CURSOR.panic("Parametric roles not yet implemented");
             }
-            if ~$<longname> ne 'GLOBAL' {
-                $past := instantiated_type(@name, $/);
+            if ~$<longname> eq 'GLOBAL' {
+                $past := $*ST.symbol_lookup(@name, $/);
             }
             else {
-                $past := $*ST.symbol_lookup(@name, $/);
+                $past := instantiated_type(@name, $/);
             }
         }
         
@@ -2905,18 +2946,18 @@ class Perl6::Actions is HLL::Actions {
     our %MATCH_ALLOWED_ADVERBS;
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet';
-        for pir::split__PSS(' ', $mods) {
+        for nqp::split(' ', $mods) {
             %SHARED_ALLOWED_ADVERBS{$_} := 1;
         }
 
         $mods := 'g global ii samecase x c continue p pos nth th st nd rd';
-        for pir::split__PSS(' ', $mods) {
+        for nqp::split(' ', $mods) {
             %SUBST_ALLOWED_ADVERBS{$_} := 1;
         }
 
         # TODO: add g global ov overlap  once they actually work
         $mods := 'x c continue p pos nth th st nd rd';
-        for pir::split__PSS(' ', $mods) {
+        for nqp::split(' ', $mods) {
             %MATCH_ALLOWED_ADVERBS{$_} := 1;
         }
     }
@@ -2944,24 +2985,30 @@ class Perl6::Actions is HLL::Actions {
         make $*value;
     }
 
-    method setup_quotepairs($/) {
-        my %h;
-        for @*REGEX_ADVERBS {
-            my $key := $_.ast.named;
-            my $value := $_.ast;
-            if $value ~~ PAST::Val {
-                $value := $value.value;
-            } else {
-                if %SHARED_ALLOWED_ADVERBS{$key} {
-                    $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
-                }
-            }
-            if $key eq 'samecase' || $key eq 'ii' {
-                %h{'i'} := 1;
-            }
-            %h{$key} := $value;
+    method rx_adverbs($/) {
+        my @pairs;
+        for $<quotepair> {
+            nqp::push(@pairs, $_.ast);
         }
+        make @pairs;
+    }
 
+    method setup_quotepair($/) {
+        my %h;
+        my $key := $*ADVERB.ast.named;
+        my $value := $*ADVERB.ast;
+        if $value ~~ PAST::Val {
+            $value := $value.value;
+        }
+        elsif $value<has_compile_time_value> {
+            $value := $value<compile_time_value>;
+        }
+        else {
+            if %SHARED_ALLOWED_ADVERBS{$key} {
+                $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
+            }
+        }
+        %*RX{$key} := $value;
     }
 
     method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
@@ -2997,38 +3044,34 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method quote:sym<rx>($/) {
-        self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx');
-        my $past := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        make block_closure($past, 'Regex', 0);
+        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
+        make block_closure($coderef);
     }
     method quote:sym<m>($/) {
-        $regex := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        my $regex := block_closure($regex, 'Regex', 0);
+        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
 
         my $past := PAST::Op.new(
             :node($/),
             :pasttype('callmethod'), :name('match'),
             PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
-            $regex
+            block_closure($coderef)
         );
         self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
-        $past := PAST::Op.new(
-            :node($/),
-            :pasttype('call'), :name('&infix:<:=>'),
+        make PAST::Op.new( :pasttype('bind_6model'),
             PAST::Var.new(:name('$/'), :scope('lexical_6model')),
             $past
         );
-
-        make $past;
     }
 
     method handle_and_check_adverbs($/, %adverbs, $what, $past?) {
-        for $<quotepair> {
-            unless %SHARED_ALLOWED_ADVERBS{$_.ast.named} || %adverbs{$_.ast.named} {
-                $/.CURSOR.panic("Adverb '" ~ $_.ast.named ~ "' not allowed on " ~ $what);
+        for $<rx_adverbs>.ast {
+            unless %SHARED_ALLOWED_ADVERBS{$_.named} || %adverbs{$_.named} {
+                $/.CURSOR.panic("Adverb '" ~ $_.named ~ "' not allowed on " ~ $what);
             }
             if $past {
-                $past.push($_.ast);
+                $past.push($_);
             }
         }
     }

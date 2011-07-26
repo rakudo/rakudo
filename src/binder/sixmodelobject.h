@@ -42,9 +42,10 @@ typedef struct {
 
 /* S-Tables (short for Shared Table) contains the commonalities shared between
  * a (HOW, REPR) pairing (for example, (HOW for the class Dog, P6Opaque). */
+typedef struct SixModel_REPROps REPROps;
 typedef struct {
-    /* The representation. */
-    PMC *REPR;
+    /* The representation operation table. */
+    REPROps *REPR;
     
     /* Any data specific to this type that the REPR wants to keep. */
     void *REPR_data;
@@ -113,7 +114,7 @@ typedef struct {
  * slot of the s-table. That aside, representations are singletons,
  * and code being compiled with a known representation could even
  * inline the lookups. */
-typedef struct {
+struct SixModel_REPROps {
     /* Creates a new type object of this representation, and
      * associates it with the given HOW. Also sets up a new
      * representation instance if needed. */
@@ -207,7 +208,7 @@ typedef struct {
      * out, the representation probably knows more about timing issues and
      * thread safety requirements. */
     void (*change_type) (PARROT_INTERP, PMC *Object, PMC *NewType);
-} REPRCommonalities;
+};
 
 /* Hint value to indicate the absence of an attribute lookup or method
  * dispatch hint. */
@@ -218,17 +219,14 @@ typedef struct {
 #define STABLE(o)        ((STable *)PMC_data(STABLE_PMC(o)))
 #define SC_PMC(o)        (((SixModelObjectCommonalities *)PMC_data(o))->sc)
 #define STABLE_STRUCT(p) ((STable *)PMC_data(p))
-#define REPR_PMC(o)      (STABLE(o)->REPR)
-#define REPR(o)          ((REPRCommonalities *)PMC_data(REPR_PMC(o)))
-#define REPR_STRUCT(p)   ((REPRCommonalities *)PMC_data(p))
+#define REPR(o)          (STABLE(o)->REPR)
 
 /* Object model initialization. */
 void SixModelObject_initialize(PARROT_INTERP, PMC **knowhow, PMC **knowhow_attribute);
 
 /* Some utility functions. */
-PMC * wrap_repr(PARROT_INTERP, void *REPR);
 PMC * wrap_object(PARROT_INTERP, void *obj);
-PMC * create_stable(PARROT_INTERP, PMC *REPR, PMC *HOW);
+PMC * create_stable(PARROT_INTERP, REPROps *REPR, PMC *HOW);
 PMC * decontainerize(PARROT_INTERP, PMC *var);
 
 #endif

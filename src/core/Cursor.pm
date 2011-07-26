@@ -18,6 +18,7 @@ my class Cursor does NQPCursorRole {
             orig   => nqp::getattr(self, Cursor, '$!orig'),
             from   => nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!from')),
             to     => nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!pos')),
+            cursor => self,
         );
         nqp::bindattr($match, Capture, '$!list', $list);
         nqp::bindattr($match, Capture, '$!hash', $hash);

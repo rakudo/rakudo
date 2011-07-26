@@ -7,7 +7,6 @@ are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
 * core constants (e.g., Inf, Order::Decrease)
-* regexes missing
 * is export on methods
     - should work outside the setting; note here if not
 
@@ -15,14 +14,10 @@ Things that aren't blockers but might be worth knowing about:
 * attribute := doesn't work in CORE.setting (works outside of setting, though)
   (initial digging suggets it's a BOOTSTRAPATTR issue, thus why we only see it
   in the setting)
-* 'has num $.attr' segfaults on access to .attr, because it uses the PMC form
-  of get_attribute
+* no rw-accessors for natively typed attributes (yet?)
 
 ## Lexical Multi-Part names
 For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
-
-## Magicals
-Move creation of $! and $/ to be per-routine instead of per-block.
 
 ## when statements
 when needs to properly find use correct outer scope

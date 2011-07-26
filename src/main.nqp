@@ -2,7 +2,6 @@ use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
 
-
 sub MAIN(@ARGS) {
     # Initialize dynops.
     pir::rakudo_dynop_setup__v();
@@ -21,7 +20,7 @@ sub MAIN(@ARGS) {
     
     # Set up END block list, which we'll run at exit.
     my @*END_PHASERS := [];
-    
+
     # Enter the compiler.
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
     

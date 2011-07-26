@@ -3,6 +3,7 @@ my class Cool {
     ## numeric methods
 
     method rand() { self.Num.rand }
+    method truncate() { self.Numeric.truncate }
     
     ## string methods
 
@@ -87,10 +88,20 @@ my class Cool {
 
     method ords(Cool:D:) { self.Str.ords }
     proto method split(|$) {*}
+    multi method split(Regex $pat, $limit = $Inf, :$all) {
+        self.Stringy.split($pat, $limit, :$all);
+    }
     proto method match(|$) {*}
     multi method match(Cool:D: Cool $target, *%adverbs) {
         self.Str.match($target.Stringy, |%adverbs)
     }
+    # TODO: handle $limit in .comb
+    proto method comb(|$) {*}
+    multi method comb(Regex $matcher) { self.Str.comb($matcher) }
+
+    method sprintf(*@args) { sprintf(self, @args) };
+    method printf (*@args) {  printf(self, @args) };
+    method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 }
 
 sub chop($s)                  { $s.chop }
@@ -109,3 +120,21 @@ multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };
 
 proto sub ords(|$)            { * }
 multi sub ords(Cool $s)       { ords($s.Stringy) }
+
+proto sub comb(|$)            { * }
+multi sub comb(Regex $matcher, Cool $input) { $input.comb($matcher) }
+
+sub sprintf(Cool $format, *@args) {
+    @args.gimme(*);
+    nqp::p6box_s(
+        pir::sprintf__SSP(nqp::unbox_s($format.Stringy),
+            nqp::clone(nqp::getattr(@args, List, '$!items'))
+        )
+    );
+}
+
+sub printf(Cool $format, *@args) { print sprintf $format, @args };
+sub samecase(Cool $string, Cool $pattern) { $string.samecase($pattern) }
+sub split(Regex $pat, Cool $target, $limit = $Inf, :$all) {
+    $target.split($pat, $limit, :$all);
+}

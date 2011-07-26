@@ -20,6 +20,9 @@ my class Any {
     method reverse() { self.list.reverse }
     method sort($by = &infix:<cmp>) { self.list.sort($by) }
     method values() { self.list }
+    method keys()   { self.list.keys }
+    method kv()     { self.list.kv }
+    method pairs()  { self.list.pairs }
 
     method Array() { Array.new(self.flat) }
 
@@ -91,6 +94,7 @@ my class Any {
         self{self.keys}
     }
 
+    method reduce(&with) { self.list.reduce(&with) }
 }
 
 

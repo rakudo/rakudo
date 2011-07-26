@@ -9,6 +9,10 @@ my class Enum {
     method kv()    { $!key, $!value }
     method value() { $!value }
 
+    method keys()  { ($!key,).list }
+    method values(){ ($!value,).list }
+    method pairs() { (self,).list }
+
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
     multi method perl(Enum:D:) { $.key.perl ~ ' => ' ~ $.value.perl }
 }

@@ -175,6 +175,7 @@ CORE_SOURCES = \
   src/core/Sub.pm \
   src/core/Method.pm \
   src/core/IO.pm \
+  src/core/IO/ArgFiles.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \
   src/core/Exception.pm \

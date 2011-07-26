@@ -3,6 +3,9 @@ class Complex { ... }
 # XxX role Real does Numeric { ... }
 my class Real {
     method abs()  { self < 0 ?? -self !! self }
+    proto method sign(|$) {*}
+    multi method sign(Real:U:) { Mu }
+    multi method sign(Real:D:) { self < 0 ?? -1 !! self == 0 ?? 0 !! 1 }
     method sqrt() { self.Bridge.sqrt }
     method sin()  { self.Bridge.sin }
     method cos()  { self.Bridge.cos }
@@ -22,6 +25,9 @@ my class Real {
     multi method log()           { self.Bridge.log               }
     multi method log(Real $base) { self.Bridge.log($base.Bridge) }
     multi method exp()           { self.Bridge.exp               }
+    method truncate(Real:D:) {
+        self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
+    }
 }
 
 proto sub cis(|$) {*}
@@ -64,3 +70,6 @@ multi prefix:<abs>(Real \$a) {
     $a < 0 ?? -$a !! $a;
 }
 
+proto sub truncate(|$) {*}
+multi sub truncate(Real:D $x) { $x.truncate }
+multi sub truncate(Cool:D $x) { $x.Numeric.truncate }

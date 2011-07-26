@@ -660,7 +660,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method blorst($/) {
-        make $<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast);
+        make $<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast, $/);
     }
 
     # Statement modifiers
@@ -1749,7 +1749,7 @@ class Perl6::Actions is HLL::Actions {
     
     method default_value($/) {
         # Turn into a thunk.
-        make make_thunk($<EXPR>.ast);
+        make make_thunk($<EXPR>.ast, $/);
     }
 
     method type_constraint($/) {
@@ -3204,12 +3204,17 @@ class Perl6::Actions is HLL::Actions {
         return $closure;
     }
     
-    sub make_thunk($to_thunk) {
-        make_simple_code_object(PAST::Block.new( $to_thunk ), 'Code');
+    sub make_thunk($to_thunk, $/) {
+        my $block := $*ST.push_lexpad($/);
+        $block.push($to_thunk);
+        $*ST.pop_lexpad();
+        make_simple_code_object($block, 'Code');
     }
     
-    sub make_thunk_ref($to_thunk) {
-        my $block := PAST::Block.new( $to_thunk );
+    sub make_thunk_ref($to_thunk, $/) {
+        my $block := $*ST.push_lexpad($/);
+        $block.push($to_thunk);
+        $*ST.pop_lexpad();
         reference_to_code_object(
             make_simple_code_object($block, 'Code'),
             $block);

@@ -525,7 +525,7 @@ S32-num/rat.t
 # S32-num/real-bridge.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
 S32-num/roots.t
 # S32-num/rounders.t # err: Could not find sub &floor
-# S32-num/sign.t # err: Method 'sign' not found for invocant of class 'Int'
+S32-num/sign.t
 S32-num/sqrt.t
 S32-num/unpolar.t
 S32-scalar/defined.t

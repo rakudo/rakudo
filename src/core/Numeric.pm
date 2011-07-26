@@ -35,6 +35,10 @@ multi prefix:<->(\$a) { -$a.Numeric }
 proto prefix:<abs>(|$) { * }
 multi prefix:<abs>(\$a) { abs $a.Numeric }
 
+proto sub sign(|$) {*}
+multi sub sign(Numeric \$x) { $x.sign }
+multi sub sign(Cool \$x)    { $x.Numeric.sign }
+
 proto sub log(|$) {*}
 multi sub log(Numeric $x) { $x.log }
 multi sub log(Numeric $x, Numeric $base) { $x.log($base) }

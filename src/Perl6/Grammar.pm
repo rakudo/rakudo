@@ -23,9 +23,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         # Symbol table and serialization context builder - keeps track of
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
-        my $*ST := Perl6::SymbolTable.new(
-            # XXX Need to hash the source, or something.
-            :handle(~pir::time__N()));
+        my $file := pir::find_caller_lex__ps('$?FILES');
+        my $*ST := pir::isnull($file) ??
+            Perl6::SymbolTable.new(:handle(~pir::time__N())) !!
+            Perl6::SymbolTable.new(:handle(~pir::time__N()), :description($file));
             
         self.comp_unit;
     }

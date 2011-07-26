@@ -3,6 +3,7 @@ class Complex { ... }
 # XxX role Real does Numeric { ... }
 my class Real {
     method abs()  { self < 0 ?? -self !! self }
+    method sign() { self < 0 ?? -1 !! self == 0 ?? 0 !! 1 }
     method sqrt() { self.Bridge.sqrt }
     method sin()  { self.Bridge.sin }
     method cos()  { self.Bridge.cos }

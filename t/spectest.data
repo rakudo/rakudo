@@ -85,7 +85,7 @@ S02-names/identifier.t
 # S02-names/our.t # err: Could not find sub !YOU_ARE_HERE
 S02-names/symbolic-deref.t
 S02-one-pass-parsing/less-than.t
-# S02-polymorphic_types/subset.t # err: too many positional arguments: 3 passed, 1 expected
+S02-polymorphic_types/subset.t
 S02-whitespace_and_comments/begin_end_pod.t
 # S02-whitespace_and_comments/comments.t # err: You can't backslash that at line 79, near "#`((( comm"
 S02-whitespace_and_comments/minimal-whitespace.t

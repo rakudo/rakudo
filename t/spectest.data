@@ -23,7 +23,7 @@ S02-builtin_data_types/catch_type_cast_mismatch.t
 S02-builtin_data_types/declare.t
 S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
-# S02-builtin_data_types/hash.t # err: Cannot use bind operator with this LHS
+# S02-builtin_data_types/hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
 S02-builtin_data_types/infinity.t
 # S02-builtin_data_types/instants-and-durations.t # err: Could not find sub &term:<now>
 # S02-builtin_data_types/lists.t # err: Cannot use augment scope with class
@@ -58,7 +58,7 @@ S02-literals/misc-interpolation.t
 S02-literals/numeric.t
 S02-literals/pair-boolean.t
 # S02-literals/pairs.t # err: Not enough positional parameters passed
-# S02-literals/quoting.t # err: Could not find sub !qx
+# S02-literals/quoting.t # err: Method 'trans' not found for invocant of class 'Str'
 S02-literals/quoting-unicode.t          # icu
 # S02-literals/radix.t # err: NYI form of number litereal encountered
 S02-literals/string-interpolation.t
@@ -66,14 +66,14 @@ S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
-# S02-magicals/args.t   # needs @*INC
+# S02-magicals/args.t   # err: Method 'push' not found for invocant of class 'Failure'
 # S02-magicals/config.t # err: Dynamic variable $*OS not found
 # S02-magicals/dollar_bang.t # err: Cannot assign to a non-container
 S02-magicals/dollar-underscore.t
 # S02-magicals/env.t # err: Dynamic variable $*OS not found
-# S02-magicals/pid.t # # needs @*INC
+# S02-magicals/pid.t # err: Method 'push' not found for invocant of class 'Failure'
 # S02-magicals/progname.t # err: Dynamic variable $*OS not found
-# S02-names_and_variables/contextual.t # need !private methods err: Method '!priv' not found for invocant
+# S02-names_and_variables/contextual.t # err: Method '!priv' not found for invocant
 # S02-names_and_variables/fmt.t # err: Too many positional parameters passed; got 3 but expected between 1 and 2
 # S02-names_and_variables/names.t # err: Cannot use placeholder parameters in this kind of block
 # S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu
@@ -106,7 +106,7 @@ S03-metaops/not.t
 # S03-metaops/reduce.t # err: Contextual $*UNITPAST not found
 S03-metaops/reverse.t
 S03-metaops/zip.t
-# S03-operators/also.t # err: invoke() not implemented in class 'Junction' 
+# S03-operators/also.t # err: invoke() not implemented in class 'Junction'
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
@@ -148,7 +148,7 @@ S03-operators/not.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
 S03-operators/range-int.t                       # stress
-# S03-operators/range.t # err: too many positional arguments: 3 passed, 1 expected
+# S03-operators/range.t # err: No applicable candidates found to dispatch to for 'Numeric'
 S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 # S03-operators/repeat.t # err: Cannot repeat with negative arg
@@ -161,7 +161,7 @@ S03-operators/subscript-vs-lt.t
 # S03-operators/so.t # err: Method 'so' not found for invocant of class 'Bool'
 S03-operators/value_equivalence.t
 S03-sequence/arity0.t
-# S03-sequence/arity-2-or-more.t # hangs
+# S03-sequence/arity-2-or-more.t # err: Method 'succ' not found for invocant of class 'Failure'
 S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
 # S03-sequence/nonnumeric.t # err: Method 'pred' not found for invocant of class 'Failure'
@@ -173,7 +173,7 @@ S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
 S03-smartmatch/any-hash-pair.t
 # S03-smartmatch/any-hash-slice.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
-# S03-smartmatch/any-method.t # erro: No applicable candidates found to dispatch to for 'Numeric'
+# S03-smartmatch/any-method.t # err: No applicable candidates found to dispatch to for 'Numeric'
 S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
@@ -195,7 +195,7 @@ S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
-# S04-declarations/state.t # need state scoped variables
+# S04-declarations/state.t # err: state scoped variables not yet implemented
 # S04-exception-handlers/catch.t # Method 'blocktype' not found for invocant of class 'PAST;Op'
 # S04-exceptions/fail.t  # need use scoped variables
 S04-statement-modifiers/for.t

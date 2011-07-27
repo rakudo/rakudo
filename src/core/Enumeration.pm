@@ -7,6 +7,10 @@ my role Enumeration {
         $!value.Numeric
     }
     
+    method enums() {
+        self.^enum_values
+    }
+    
     multi method gist(::?CLASS:D:) {
         self.^name ~ '::' ~ $!key
     }
@@ -19,6 +23,10 @@ my role Enumeration {
         self.defined ??
             (self.^name ~ '::' ~ $!key) !!
             self.^name;
+    }
+    
+    method pick(*@pos, *%named) {
+        self.^enum_value_list.pick(|@pos, |%named)
     }
 }
 

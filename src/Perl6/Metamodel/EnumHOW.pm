@@ -17,7 +17,10 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::ParrotInterop
 {
     # Hash representing enumeration keys to values.
-    has @!values;
+    has %!values;
+    
+    # List of enum values (actual enum objects).
+    has @!enum_value_list;
     
     # Roles that we do.
     has @!does_list;
@@ -30,11 +33,16 @@ class Perl6::Metamodel::EnumHOW
     }
     
     method add_enum_value($obj, $value) {
-        @!values[+@!values] := $value;
+        %!values{~$value.key} := $value.value;
+        @!enum_value_list[+@!enum_value_list] := $value;
     }
     
     method enum_values($obj) {
-        @!values
+        %!values
+    }
+    
+    method enum_value_list($obj) {
+        @!enum_value_list
     }
     
     method compose($obj) {

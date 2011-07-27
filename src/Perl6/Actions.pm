@@ -737,7 +737,11 @@ class Perl6::Actions is HLL::Actions {
                 make make_pair($*key, make_variable($/<var>, ~$<var>));
             }
             elsif $*value ~~ Regex::Match {
-                make make_pair($*key, $*value.ast);
+                my $val_ast := $*value.ast;
+                if $val_ast.isa(PAST::Stmts) && +@($val_ast) == 1 {
+                    $val_ast := $val_ast[0];
+                }
+                make make_pair($*key, $val_ast);
             }
             elsif $*value == 0 {
                 make make_pair($*key, PAST::Op.new( :pirop('perl6_booleanize PI'), 0 ));
@@ -1448,9 +1452,6 @@ class Perl6::Actions is HLL::Actions {
         }
         if $term_ast.isa(PAST::Op) && $term_ast.name eq '&infix:<,>' {
             for @($term_ast) {
-                if $_.isa(PAST::Stmts) && +@($_) == 1 {
-                    $_ := $_[0];
-                }
                 if $_.returns() eq 'Pair' && $_[1]<has_compile_time_value> && $_[2]<has_compile_time_value> {
                     @values.push($_);
                 }

@@ -65,7 +65,7 @@ multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
 
 proto trait_mod:<as>(|$) { * }
 multi trait_mod:<as>(Parameter:D $param, $type) {
-    # XXX TODO
+    $param.set_coercion($type);
 }
 
 proto trait_mod:<will>(|$) { * }

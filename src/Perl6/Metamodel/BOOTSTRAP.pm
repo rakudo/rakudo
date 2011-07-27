@@ -242,7 +242,8 @@ Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
 #     has int $!flags
 #     has $!nominal_type
 #     has $!post_constraints
-#     has str $!coerce_to
+#     has $!coerce_type
+#     has str $!coerce_method
 #     has $!sub_signature
 #     has $!default_closure
 #     has $!container_descriptor;
@@ -257,7 +258,8 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>,
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_to>, :type(str)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
@@ -289,6 +291,11 @@ Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
         if $cd { $cd.set_rw(1) }
         pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
             pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
+    });
+Parameter.HOW.add_method(Parameter, 'set_coercion', sub ($self, $type) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        pir::repr_bind_attr_str__0PPsS($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
+        pir::setattribute__0PPsP($dcself, Parameter, '$!coerce_type', $type);
     });
     
 # class Code {

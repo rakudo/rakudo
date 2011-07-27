@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 12 July 2011
+Last Updated 27 July 2011
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
@@ -41,7 +41,6 @@ Many things are working, some are not...
 * Hyper
 
 ## Missing object model bits
-* Try to implement enumerations
 * Some support for augment
 * handles
 
@@ -55,6 +54,11 @@ Get these working again.
 ## Work towards nom being master
 Get enough of the spectests passing for us to be ready to make nom into
 the master branch
+
+## Enumerations
+* Enums as roles
+* Non-numeric enums
+* Anonymous enums
 
 ## Fix array/hash initialization
 my @a;  needs to initialize @a to be the Array type object (not an Array instance).

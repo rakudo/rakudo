@@ -1058,8 +1058,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Adds a value to an enumeration.
     method create_enum_value($enum_type_obj, $key, $value) {
         # Create directly.
-        my $val := pir::repr_box_int__PiP($value, $enum_type_obj);
+        my $val       := pir::repr_box_int__PiP($value, $enum_type_obj);
+        my $base_type := ($enum_type_obj.HOW.parents($enum_type_obj, :local(1)))[0];
         pir::setattribute__vPPsP($val, $enum_type_obj, '$!key', $key);
+        pir::setattribute__vPPsP($val, $enum_type_obj, '$!value',
+            pir::repr_box_int__PiP($value, $base_type));
         my $slot := self.add_object($val);
         
         # Add to meta-object.
@@ -1067,6 +1070,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Generate deserialization code.
         my $enum_type_obj_ref := self.get_object_sc_ref_past($enum_type_obj);
+        my $base_type_ref := self.get_object_sc_ref_past($base_type);
         my $key_ref := self.get_object_sc_ref_past($key);
         my $val_ref := self.get_object_sc_ref_past($val);
         self.add_event(:deserialize_past(PAST::Stmts.new(            
@@ -1076,6 +1080,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             PAST::Op.new(
                 :pirop('setattribute vPPsP'),
                 $val_ref, $enum_type_obj_ref, '$!key', $key_ref
+            ),
+            PAST::Op.new(
+                :pirop('setattribute vPPsP'),
+                $val_ref, $enum_type_obj_ref, '$!value',
+                PAST::Op.new( :pirop('repr_box_int PiP'), $value, $base_type_ref )
             ),
             PAST::Op.new(
                 :pasttype('callmethod'), :name('add_enum_value'),

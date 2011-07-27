@@ -34,5 +34,7 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     # add current directory
     @INC.push('.'); # remove this when 'use lib' works fine
     nqp::bindkey(pir::get_who__PP(PROCESS), '@INC', @INC);
-}
 
+    my $PID = nqp::p6box_i(pir::getinterp.getpid());
+    nqp::bindkey(pir::get_who__PP(PROCESS), '$PID', $PID);
+}

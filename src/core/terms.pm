@@ -17,21 +17,17 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     }
     nqp::bindkey(pir::get_who__PP(PROCESS), '%ENV', %ENV);
 
+    my $VM = {
+        name    => 'parrot', # XXX: should be made dynamical
+        config  => pir::perl6ize_type__PP(
+                        nqp::atpos(pir::getinterp, pir::const::IGLOBALS_CONFIG_HASH))
+    }
+    nqp::bindkey(pir::get_who__PP(PROCESS), '$VM', $VM);
+
     my @INC;
-    my Mu $config := nqp::atpos(pir::getinterp, pir::const::IGLOBALS_CONFIG_HASH);
-    # add PERL6LIB
-    @INC.push(%ENV<PERL6LIB>.split(
-        nqp::p6box_s(nqp::atkey($config, 'osname')) eq 'MSWin32' ?? ':' !! ';'
-    )) if %ENV<PERL6LIB>;
-    # add ~/.perl6/lib
+    @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ':' !! ';')) if %ENV<PERL6LIB>;
     @INC.push((%ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>) ~ '/.perl6/lib');
-    # add the installed Parrot languages/perl6/lib directory
-    @INC.push(
-       nqp::p6box_s(nqp::atkey($config, 'libdir')) ~
-       nqp::p6box_s(nqp::atkey($config, 'versiondir')) ~
-       'languages/perl6/lib'
-    );
-    # add current directory
+    @INC.push($VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/lib');
     @INC.push('.'); # remove this when 'use lib' works fine
     nqp::bindkey(pir::get_who__PP(PROCESS), '@INC', @INC);
 

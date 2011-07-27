@@ -1539,7 +1539,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token typename {
         [
-        | '::?'<identifier>                 # parse ::?CLASS as special case
+        | '::?'<identifier> <colonpair>*    # parse ::?CLASS as special case
         | <longname>
           <?{
             my $longname := canonical_type_longname($<longname>);

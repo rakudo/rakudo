@@ -1786,7 +1786,7 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic('Parameter may only have one prefix type constraint');
                 }
                 %*PARAM_INFO<nominal_type> := $<typename>.ast;
-                for $<typename><longname><colonpair> {
+                for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
                     if $_<identifier> {
                         if $_<identifier>.Str eq 'D' {
                             %*PARAM_INFO<defined_only> := 1;

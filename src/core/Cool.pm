@@ -102,6 +102,8 @@ my class Cool {
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
+
+    method IO() { IO.new(:path(self)) }
 }
 
 sub chop($s)                  { $s.chop }

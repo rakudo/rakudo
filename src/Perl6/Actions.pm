@@ -920,7 +920,7 @@ class Perl6::Actions is HLL::Actions {
             my @params := $<signature> ?? $<signature>[0].ast !! [];
             @params.unshift(hash(
                 is_multi_invocant => 1,
-                type_captures     => ['$?CLASS']
+                type_captures     => ['$?CLASS', '::?CLASS']
             ));
             set_default_parameter_type(@params, 'Mu');
             my $sig := create_signature_object(@params, $block);
@@ -1767,7 +1767,7 @@ class Perl6::Actions is HLL::Actions {
 
     method type_constraint($/) {
         if $<typename> {
-            if pir::substr(~$<typename>, 0, 2) eq '::' {
+            if pir::substr(~$<typename>, 0, 2) eq '::' && pir::substr(~$<typename>, 2, 1) ne '?' {
                 # Set up signature so it will find the typename.
                 my $desigilname := pir::substr(~$<typename>, 2);
                 unless %*PARAM_INFO<type_captures> {
@@ -2854,7 +2854,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         else {
-            make $*ST.find_symbol(Perl6::Grammar::parse_name('::?' ~ ~$<identifier>));
+            make $*ST.find_symbol(['::?' ~ ~$<identifier>]);
         }   
     }
 

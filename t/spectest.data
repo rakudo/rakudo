@@ -66,17 +66,17 @@ S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
-# S02-magicals/args.t   # err: Method 'push' not found for invocant of class 'Failure'
+# S02-magicals/args.t   # needs @*INC
 # S02-magicals/config.t # err: Dynamic variable $*OS not found
 # S02-magicals/dollar_bang.t # err: Cannot assign to a non-container
 S02-magicals/dollar-underscore.t
 # S02-magicals/env.t # err: Dynamic variable $*OS not found
-# S02-magicals/pid.t # err: Method 'push' not found for invocant of class 'Failure'
+# S02-magicals/pid.t # # needs @*INC
 # S02-magicals/progname.t # err: Dynamic variable $*OS not found
-# S02-names_and_variables/contextual.t # err: Method '!priv' not found for invocant
+# S02-names_and_variables/contextual.t # need !private methods err: Method '!priv' not found for invocant
 # S02-names_and_variables/fmt.t # err: Too many positional parameters passed; got 3 but expected between 1 and 2
 # S02-names_and_variables/names.t # err: Cannot use placeholder parameters in this kind of block
-# S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel'
+# S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu
 # S02-names_and_variables/list_array_perl.t # err: Contextual $*UNITPAST not found
 # S02-names_and_variables/signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 S02-names_and_variables/variables-and-packages.t
@@ -184,7 +184,7 @@ S03-smartmatch/any-type.t
 # S03-smartmatch/capture-signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 S03-smartmatch/disorganized.t
 # S03-smartmatch/hash-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
-# S03-smartmatch/regex-hash.t # err: too many positional arguments: 3 passed, 1 expected
+# S03-smartmatch/regex-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 # S03-smartmatch/scalar-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
 # S04-blocks-and-statements/pointy-rw.t # err: Missing block
 S04-blocks-and-statements/pointy.t
@@ -222,7 +222,7 @@ S04-statements/redo.t
 S04-statements/repeat.t
 S04-statements/return.t
 S04-statements/terminator.t
-# S04-statements/try.t # err: too many positional arguments: 3 passed, 1 expected
+# S04-statements/try.t # stops after test # 16
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
@@ -300,14 +300,14 @@ S06-multi/positional-vs-named.t
 # S06-multi/type-based.t # needs proto and dispatch auto-generation for multis
 S06-multi/value-based.t
 # S06-multi/unpackability.t # needs proto and dispatch auto-generation for multis
-# S06-operator-overloading/imported-subs.t # err: Could not find sub &DYNAMIC
-# S06-operator-overloading/methods.t # err: Could not find sub &DYNAMIC
+# S06-operator-overloading/imported-subs.t # needs @*INC
+# S06-operator-overloading/methods.t # needs @*INC
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
 # S06-operator-overloading/workout.t # err: Contextual $*UNITPAST not found
 # S06-other/anon-hashes-vs-blocks.t # err: stops after test # 10
 # S06-other/main.t # err: Cannot assign to a non-container
 S06-other/main-eval.t
-# S06-other/main-usage.t # err: Could not find sub &DYNAMIC
+# S06-other/main-usage.t # needs @*INC
 S06-other/misc.t
 # S06-routine-modifiers/scoped-named-subs.t # NYI
 S06-signature/arity.t
@@ -345,18 +345,18 @@ S09-autovivification/autoincrement.t
 # S09-subscript_slice/slice.t # err: Contextual $*UNITPAST not found
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
-# S10-packages/basic.t # err: ResizablePMCArray: Can't shift from an empty array!
+# S10-packages/basic.t # err: Unable to parse blockoid, couldn't find final '}' at line 107
 # S10-packages/use-with-class.t # err: "load_bytecode" couldn't find file 't/spec/packages/UseTest.pbc'
 # S11-modules/export.t # needs proto generation
 # S11-modules/import.t # err: Could not find sub import
 # S11-modules/import-tag.t # needs arglist case of use
 # S11-modules/lexical.t # err: "load_bytecode" couldn't find file 't/spec/packages/S11-modules/Foo.pbc'
 # S11-modules/need.t # err: Could not find sub need
-# S11-modules/nested.t # err: Could not find sub &DYNAMIC
-# S11-modules/require.t # err: Method 'push' not found for invocant of class 'Failure'
+# S11-modules/nested.t # needs @*INC
+# S11-modules/require.t # needs @*INC
 # S12-attributes/class.t # err: Method 'bar' not found for invocant of class 'Foo'
 S12-attributes/clone.t
-# S12-attributes/delegation.t # err: too many positional arguments: 3 passed, 1 expected
+# S12-attributes/delegation.t # needs handles err: Method 'hi' not found for invocant of class 'Frontend'
 S12-attributes/inheritance.t
 # S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
 # S12-attributes/mutators.t  # we no longer get away with missing rw and Proxy; some bogus passes anyway
@@ -370,10 +370,10 @@ S12-class/declaration-order.t
 # S12-class/extending-arrays.t # err: Cannot use augment scope with class
 S12-class/inheritance-class-methods.t
 # S12-class/inheritance.t # err: Could not locate compile-time value for symbol CLASS
-# S12-class/instantiate.t # err: too many positional arguments: 3 passed, 1 expected
-# S12-class/interface-consistency.t # err: too many positional arguments: 3 passed, 1 expected
+# S12-class/instantiate.t # err: Could not find symbol 'NoSuch::&Subclass'
+# S12-class/interface-consistency.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'.
 S12-class/lexical.t
-# S12-class/namespaced.t # err: Method 'new_type' not found for invocant of class 'Undef'
+# S12-class/namespaced.t # err: regex assertion not terminated by angle bracket at line 54, near "::D::test>"
 # S12-class/open.t # err: Illegal redeclaration of class
 # S12-class/parent_attributes.t # err: Method 'at_key' not found for invocant of class 'Foo'
 # S12-class/rw.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
@@ -394,7 +394,7 @@ S12-construction/new.t
 # S12-introspection/methods.t # needs proto generation
 S12-introspection/parents.t
 # S12-introspection/roles.t # err: Method 'roles' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
-# S12-introspection/walk.t # err: ResizablePMCArray: Can't shift from an empty array!
+# S12-introspection/walk.t # err: Method 'WALK' not found for invocant of class 'E'
 S12-methods/attribute-params.t
 # S12-methods/calling_sets.t # needs proto generation
 S12-methods/calling_syntax.t
@@ -415,7 +415,7 @@ S12-methods/submethods.t
 S12-methods/syntax.t
 S12-methods/topic.t
 S12-methods/typed-attributes.t
-# S12-methods/what.t # err: too many positional arguments: 3 passed, 1 expected
+# S12-methods/what.t # err: Could not find sub &Multi
 # S12-subset/multi-dispatch. # needs proto and dispatch auto-generation for multist
 # S12-subset/subtypes.t # needs proto and dispatch auto-generation for multis
 S13-type-casting/methods.t
@@ -424,13 +424,13 @@ S13-type-casting/methods.t
 S13-overloading/operators.t
 # S14-roles/anonymous.t # Method 'cool' not found for invocant of class 'Int'
 # S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
-# S14-roles/basic.t # err: too many positional arguments: 3 passed, 1 expected
+# S14-roles/basic.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
 # S14-roles/composition.t # err: Method 'foo' must be resolved by class 'DD' because it exists in multiple roles
 # S14-roles/conflicts.t # needs Parametric roles
 S14-roles/crony.t
 # S14-roles/instantiation.t # needs Parametric roles
 S14-roles/lexical.t
-# S14-roles/mixin.t # err: Could not find sub &infix:<does>
+# S14-roles/mixin.t # needs >>  err: Could not find sub !dispatch_method_parallel
 S14-roles/namespaced.t 
 # S14-roles/parameter-subtyping.t # err: Illegal redeclaration of role 'R1'
 # S14-roles/parameterized-basic.t # err: Illegal redeclaration of role 'R1'
@@ -447,24 +447,24 @@ S14-roles/submethods.t
 # S16-filehandles/io_in_while_loops.t # err: Dynamic variable $*OS not found
 # S16-filehandles/open.t # err: Dynamic variable $*OS not found
 # S16-filehandles/unlink.t# err: Dynamic variable $*OS not found
-# S16-io/bare-say.t # err: Could not find sub &DYNAMIC
+# S16-io/bare-say.t # needs @*INC
 S16-io/basic-open.t
 # S16-io/say.t # err: outputs "o k" instead of "ok"
-# S16-io/say-and-ref.t # err: Could not find sub &DYNAMIC
+# S16-io/say-and-ref.t # needs @*INC
 # S16-io/getc.t # err: Dynamic variable $*OS not found
 # S16-unfiled/rebindstdhandles.t # err: Dynamic variable $*PID not found
-# S16-unfiled/slurp.t # err: too many positional arguments: 3 passed, 1 expected
-# S19-command-line/dash-e.t                               #icu # err: Could not find sub &DYNAMIC
-# S19-command-line/help.t # err: Could not find sub &DYNAMIC
+# S16-unfiled/slurp.t # err: Could not find sub &slurp
+# S19-command-line/dash-e.t                               #icu # needs @*INC
+# S19-command-line/help.t # needs @*INC
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
 # S28-named-variables/inc.t # err: No applicable candidates found to dispatch to for 'Numeric'.
 S29-any/cmp.t
 S29-any/isa.t
-# S29-context/die.t # err: Could not find sub &DYNAMIC
+# S29-context/die.t # needs @*INC
 S29-context/eval.t
-# S29-context/exit.t # err: Could not find sub &DYNAMIC
+# S29-context/exit.t # needs @*INC
 # S29-context/sleep.t # err: Could not find sub &sleep
-# S29-conversions/hash.t # err: too many positional arguments: 3 passed, 1 expected
+S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu
 S32-array/bool.t
 S32-array/create.t
@@ -481,24 +481,24 @@ S32-array/push.t
 S32-array/shift.t
 # S32-array/splice.t # err: Could not find sub &splice
 # S32-array/unshift.t # err: Could not find sub &unshift
-# S32-basics/warn.t # err: Could not find sub &DYNAMIC
+# S32-basics/warn.t # needs @*INC
 # S32-container/zip.t # err: Cannot assign to a non-container
 S32-hash/exists.t
 # S32-hash/delete.t # err: Method 'delete' not found for invocant of class 'Hash'
 # S32-hash/invert.t # err: Method 'invert' not found for invocant of class 'Hash'
 S32-hash/keys_values.t
 S32-hash/pairs.t
-# S32-hash/push.t # err: Method 'push' not found for invocant of class 'Hash'
-# S32-hash/slice.t # err: too many positional arguments: 3 passed, 1 expected
+# S32-hash/push.t # stops after test #2
+# S32-hash/slice.t # err: Contextual $*UNITPAST not found
 # S32-io/dir.t # err: Could not find sub &dir
 # S32-io/chdir.t # err: Dynamic variable $*OS not found
 # S32-io/file-tests.t # err: Method 'IO' not found for invocant of class 'Str'
-# S32-io/note.t # err: Could not find sub &DYNAMIC
-# S32-io/IO-Socket-INET.t # err:  ResizablePMCArray: Can't shift from an empty array!
+# S32-io/note.t # needs @*INC
+# S32-io/IO-Socket-INET.t # err: Dynamic variable $*OS not found
 S32-list/classify.t
 S32-list/create.t
 # S32-list/end.t # err: Method 'unshift' not found for invocant of class 'Array'
-# S32-list/first.t # err: too many positional arguments: 3 passed, 1 expected
+# S32-list/first.t # err: Could not find sub &first
 S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t
@@ -508,13 +508,13 @@ S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t
-# S32-list/sort.t # err: Could not find sub &sort
+# S32-list/sort.t # err: Ambiguous dispatch to multi 'sort'.
 # S32-list/uniq.t # err: Method 'uniq' not found for invocant of class 'Array'
 S32-num/abs.t
 S32-num/base.t
 S32-num/complex.t
 # S32-num/cool-num.t # err: Method 'abs' not found for invocant of class 'Str'
-S32-num/exp.t # err: Too many positional parameters passed; got 2 but expected 1
+S32-num/exp.t
 S32-num/int.t
 S32-num/log.t
 S32-num/pi.t
@@ -551,11 +551,11 @@ S32-str/ords.t
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samecase.t                                         # icu
-# S32-str/split-simple.t # err: too many positional arguments: 3 passed, 1 expected
-# S32-str/split.t # err: too many positional arguments: 3 passed, 1 expected
+# S32-str/split-simple.t # err: No applicable candidates found to dispatch to for 'split'.
+# S32-str/split.t # err: Nominal type check failed for parameter '$pat'; expected Regex but got Str instead
 S32-str/sprintf.t
 # S32-str/substr.t # err: Method 'capitalize' not found for invocant of class 'Str'
-# S32-str/trim.t # err: too many positional arguments: 3 passed, 1 expected
+# S32-str/trim.t # err: Could not find sub &trim
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t # err: Could not find sub &radcalc
@@ -567,24 +567,24 @@ S32-str/ucfirst.t                                          # icu
 # S32-temporal/local.t # err: Could not find sub &DateTime
 S32-trig/e.t
 # S32-trig/pi.t # err: Could not find sub &atan
-# S32-trig/sin.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/cos.t # err: Could not find sub &DYNAMIC # long   
-# S32-trig/tan.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/sec.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/cosec.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/cotan.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/atan2.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/sinh.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/cosh.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/tanh.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/sech.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/sin.t # needs @*INC # long
+# S32-trig/cos.t # needs @*INC # long
+# S32-trig/tan.t # needs @*INC # long
+# S32-trig/sec.t # needs @*INC # long
+# S32-trig/cosec.t # needs @*INC # long
+# S32-trig/cotan.t # needs @*INC # long
+# S32-trig/atan2.t # needs @*INC # long
+# S32-trig/sinh.t # needs @*INC # long
+# S32-trig/cosh.t # needs @*INC # long
+# S32-trig/tanh.t # needs @*INC # long
+# S32-trig/sech.t # needs @*INC # long
 S32-trig/simple.t
-# S32-trig/cosech.t # err: Could not find sub &DYNAMIC # long
-# S32-trig/cotanh.t # err: Could not find sub &DYNAMIC # long
+# S32-trig/cosech.t # needs @*INC # long
+# S32-trig/cotanh.t # needs @*INC # long
 integration/99problems-01-to-10.t
 # integration/99problems-11-to-20.t # err: Method 'splice' not found for invocant of class 'Array'
 # integration/99problems-21-to-30.t # err: Method 'splice' not found for invocant of class 'Array'
-# integration/99problems-31-to-40.t # err: Could not find sub &floor
+# integration/99problems-31-to-40.t # err: Could not find sub &prime_factors_mult
 # integration/99problems-41-to-50.t # err: Contextual $*UNITPAST not found
 # integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'; expected Any but got Mu instead # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
@@ -597,13 +597,13 @@ integration/advent2009-day04.t
 # integration/advent2009-day07.t # err: Could not find sub !dispatch_method_parallel
 # integration/advent2009-day08.t # err: too many positional arguments: 3 passed, 1 expected
 # integration/advent2009-day09.t # err: too many positional arguments: 3 passed, 1 expected
-# integration/advent2009-day10.t # err: Method 'new_type' not found for invocant of class 'Undef'
+# integration/advent2009-day10.t # err: Method 'parse' not found for invocant of class 'Inventory'
 # integration/advent2009-day11.t # err: Method 'dog_name' not found for invocant of class 'DogWalker'
-# integration/advent2009-day12.t # err: Could not find sub &DYNAMIC
+# integration/advent2009-day12.t # needs @*INC
 integration/advent2009-day13.t
-# integration/advent2009-day14.t # err: too many positional arguments: 3 passed, 1 expected
+# integration/advent2009-day14.t # needs Rat
 integration/advent2009-day15.t
-# integration/advent2009-day16.t # err: too many positional arguments: 3 passed, 1 expected
+# integration/advent2009-day16.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 # integration/advent2009-day17.t # err: Unable to parse blockoid # stress
 # integration/advent2009-day18.t # err: Could not instantiate role 'Cup'
 # integration/advent2009-day19.t # err: Method 'succ' not found for invocant of class 'Whatever'
@@ -612,7 +612,7 @@ integration/advent2009-day15.t
 integration/advent2009-day23.t
 # integration/advent2010-day04.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'.
 integration/code-blocks-as-sub-args.t
-# integration/error-reporting.t # err: Could not find sub &DYNAMIC
+# integration/error-reporting.t # needs @*INC
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t
@@ -621,9 +621,9 @@ integration/no-indirect-new.t
 integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
-# integration/real-strings.t # err: too many positional arguments: 3 passed, 1 expected
+# integration/real-strings.t # err: Method 'trans' not found for invocant of class 'Str'
 integration/role-composition-vs-attribute.t
-# integration/rule-in-class-Str.t # err: too many positional arguments: 3 passed, 1 expected # 'is also' -> augment
+# integration/rule-in-class-Str.t # err: Adverb 'P5' not allowed on m
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
-# integration/weird-errors.t # err: Could not find sub &DYNAMIC
+# integration/weird-errors.t # needs @*INC

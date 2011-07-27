@@ -1056,10 +1056,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Adds a value to an enumeration.
-    method create_enum_value($enum_type_obj, $key_name, $value) {
+    method create_enum_value($enum_type_obj, $key, $value) {
         # Create directly.
         my $val := pir::repr_box_int__PiP($value, $enum_type_obj);
-        my $key := (self.add_constant('Str', 'str', $key_name))<compile_time_value>;
         pir::setattribute__vPPsP($val, $enum_type_obj, '$!key', $key);
         my $slot := self.add_object($val);
         

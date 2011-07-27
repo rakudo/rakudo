@@ -1483,21 +1483,21 @@ class Perl6::Actions is HLL::Actions {
             # key.
             my $cur_key;
             if $_.returns() eq 'Pair' {
-                $cur_key   := nqp::unbox_s($_[1]<compile_time_value>);
+                $cur_key   := $_[1]<compile_time_value>;
                 $cur_value := nqp::unbox_i($_[2]<compile_time_value>);
             }
             else {
-                $cur_key := nqp::unbox_s($_<compile_time_value>);
+                $cur_key := $_<compile_time_value>;
             }
             
             # Create and install value.
             my $val_obj := $*ST.create_enum_value($type_obj, $cur_key, $cur_value);
-            $*ST.install_package_symbol($type_obj, $cur_key, $val_obj);
+            $*ST.install_package_symbol($type_obj, ~$cur_key, $val_obj);
             if $*SCOPE ne 'anon' {
-                $*ST.install_lexical_symbol($*ST.cur_lexpad(), $cur_key, $val_obj);
+                $*ST.install_lexical_symbol($*ST.cur_lexpad(), ~$cur_key, $val_obj);
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $*ST.install_package_symbol($*PACKAGE, $cur_key, $val_obj);
+                $*ST.install_package_symbol($*PACKAGE, ~$cur_key, $val_obj);
             }
             
             # Increment for next value.

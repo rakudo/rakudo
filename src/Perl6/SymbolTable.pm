@@ -1056,16 +1056,36 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Adds a value to an enumeration.
-    method enum_add_value($enum_type_obj, $key, $value) {
-        # Add directly.
-        $enum_type_obj.HOW.add_enum_value($enum_type_obj, $key, $value);
+    method create_enum_value($enum_type_obj, $key_name, $value) {
+        # Create directly.
+        my $val := pir::repr_box_int__PiP($value, $enum_type_obj);
+        my $key := (self.add_constant('Str', 'str', $key_name))<compile_time_value>;
+        pir::setattribute__vPPsP($val, $enum_type_obj, '$!key', $key);
+        my $slot := self.add_object($val);
+        
+        # Add to meta-object.
+        $enum_type_obj.HOW.add_enum_value($enum_type_obj, $val);
         
         # Generate deserialization code.
         my $enum_type_obj_ref := self.get_object_sc_ref_past($enum_type_obj);
-        self.add_event(:deserialize_past(PAST::Op.new(
-            :pasttype('callmethod'), :name('add_enum_value'),
-            PAST::Op.new( :pirop('get_how PP'), $enum_type_obj_ref ),
-            $key, $value)));
+        my $key_ref := self.get_object_sc_ref_past($key);
+        my $val_ref := self.get_object_sc_ref_past($val);
+        self.add_event(:deserialize_past(PAST::Stmts.new(            
+            self.set_slot_past($slot, self.set_cur_sc(
+                PAST::Op.new( :pirop('repr_box_int PiP'), $value, $enum_type_obj_ref )
+            )),
+            PAST::Op.new(
+                :pirop('setattribute vPPsP'),
+                $val_ref, $enum_type_obj_ref, '$!key', $key_ref
+            ),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('add_enum_value'),
+                PAST::Op.new( :pirop('get_how PP'), $enum_type_obj_ref ),
+                $enum_type_obj_ref, $val
+            ))));
+            
+        # Result is the value.
+        $val
     }
     
     # Applies a trait.

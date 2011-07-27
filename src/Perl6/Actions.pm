@@ -737,7 +737,11 @@ class Perl6::Actions is HLL::Actions {
                 make make_pair($*key, make_variable($/<var>, ~$<var>));
             }
             elsif $*value ~~ Regex::Match {
-                make make_pair($*key, $*value.ast);
+                my $val_ast := $*value.ast;
+                if $val_ast.isa(PAST::Stmts) && +@($val_ast) == 1 {
+                    $val_ast := $val_ast[0];
+                }
+                make make_pair($*key, $val_ast);
             }
             elsif $*value == 0 {
                 make make_pair($*key, PAST::Op.new( :pirop('perl6_booleanize PI'), 0 ));
@@ -1431,6 +1435,15 @@ class Perl6::Actions is HLL::Actions {
             $*ST.apply_trait('&trait_mod:<does>', $type_obj, $*ST.find_symbol(['NumericEnumeration']));
         }
         
+        # Apply traits, compose and install package.
+        for $<trait> {
+            ($_.ast)($type_obj) if $_.ast;
+        }
+        $*ST.pkg_compose($type_obj);
+        if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
+        $*ST.install_package($/, $<longname>, ($*SCOPE || 'our'),
+            'enum', $*PACKAGE, $*ST.cur_lexpad(), $type_obj);
+        
         # Get list of either values or pairs; fail if we can't.
         my @values;
         my $term_ast := $<term>.ast;
@@ -1476,20 +1489,20 @@ class Perl6::Actions is HLL::Actions {
             else {
                 $cur_key := nqp::unbox_s($_<compile_time_value>);
             }
-            $*ST.enum_add_value($type_obj, $cur_key, $cur_value);
+            
+            # Create and install value.
+            my $val_obj := $*ST.create_enum_value($type_obj, $cur_key, $cur_value);
+            $*ST.install_package_symbol($type_obj, $cur_key, $val_obj);
+            if $*SCOPE ne 'anon' {
+                $*ST.install_lexical_symbol($*ST.cur_lexpad(), $cur_key, $val_obj);
+            }
+            if $*SCOPE eq '' || $*SCOPE eq 'our' {
+                $*ST.install_package_symbol($*PACKAGE, $cur_key, $val_obj);
+            }
             
             # Increment for next value.
             $cur_value := $cur_value + 1;
         }
-        
-        # Compose, apply traits and install.
-        $*ST.pkg_compose($type_obj);
-        for $<trait> {
-            ($_.ast)($type_obj) if $_.ast;
-        }
-        if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
-        $*ST.install_package($/, $<longname>, ($*SCOPE || 'our'),
-            'enum', $*PACKAGE, $*ST.cur_lexpad(), $type_obj);
         
         # We evaluate to the enum type object.
         make $*ST.get_object_sc_ref_past($type_obj);

@@ -2929,12 +2929,12 @@ class Perl6::Actions is HLL::Actions {
         make PAST::Op.new( :inline( $pir ), :pasttype('inline'), :node($/) );
     }
     method quote:sym<qx>($/) {
-        make PAST::Op.new( :name('!qx'), :pasttype('call'),
+        make PAST::Op.new( :name('&QX'), :pasttype('call'),
             $<quote_EXPR>.ast
         );
     }
     method quote:sym<qqx>($/)  {
-        make PAST::Op.new( :name('!qx'), :pasttype('call'),
+        make PAST::Op.new( :name('&QX'), :pasttype('call'),
             $<quote_EXPR>.ast
         );
     }

@@ -8,4 +8,10 @@ my class Routine {
             $r(|@curried_pos, |@pos, |%curried_named, |%named)
         }
     }
+    
+    method candidates() {
+        self.is_dispatcher ??
+            pir::perl6ize_type__PP(nqp::getattr(self, Code, '$!dispatchees')) !!
+            (self,)
+    }
 }

@@ -1055,11 +1055,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     token scope_declarator:sym<has>       { <sym> <scoped('has')> }
     token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
     token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
+    token scope_declarator:sym<state>     { <sym> <scoped('state')> }
     token scope_declarator:sym<supersede> {
         <sym> <scoped('supersede')> <.panic: '"supersede" not yet implemented'>
-    }
-    token scope_declarator:sym<state> {
-        <sym> <scoped('state')> <.panic: '"state" not yet implemented'>
     }
 
     rule scoped($*SCOPE) {<.end_keyword> [

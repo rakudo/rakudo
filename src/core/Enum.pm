@@ -5,7 +5,7 @@ my class Enum {
     method new(:$key, Mu :$value) { self.CREATE.BUILD($key, $value) }
     method BUILD(\$key, Mu \$value) { $!key = $key; $!value = $value; self }
 
-    multi method ACCEPTS(Enum:D: Associative:D: $topic) { 
+    multi method ACCEPTS(Enum:D: Associative:D $topic) { 
         $topic{$.key} ~~ $.value 
     }
 

@@ -3,11 +3,11 @@ my class Code does Callable {
         $self.count ?? $self($topic) !! $self()
     }
     
-    method arity() { $!signature.arity }
+    method arity(Code:D:) { $!signature.arity }
     
-    method count() { $!signature.count }
+    method count(Code:D:) { $!signature.count }
     
-    method signature() { $!signature }
+    method signature(Code:D:) { $!signature }
     
     multi method Str(Code:D:) { self.name }
 }

@@ -401,6 +401,7 @@ Code.HOW.publish_parrot_vtable_mapping(Code);
 # class Block is Code { ... }
 my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
 Block.HOW.add_parent(Block, Code);
+Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu)));
 Block.HOW.publish_parrot_vtable_handler_mapping(Block);
 Block.HOW.publish_parrot_vtable_mapping(Block);
 
@@ -645,7 +646,7 @@ my $error_cd := Perl6::Metamodel::ContainerDescriptor.new(
 my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
     :of(Mu), :rw(1), :name('$/'));
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
-    $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash);
+    $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash, Block);
 
 # Setup some regexy/grammary bits.
 use QRegex;

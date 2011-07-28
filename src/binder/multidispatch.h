@@ -13,6 +13,7 @@ typedef struct {
     PMC    *dispatchees;        /* List of dispatchees, if any. */
     PMC    *dispatcher_cache;   /* Holder for any dispatcher cache. */
     PMC    *dispatcher;         /* The parent dispatcher, if any. */
+    PMC    *state_vars;         /* Storage for state variables. */
     INTVAL  rw;                 /* Is it rw? */
 } Rakudo_Code;
 

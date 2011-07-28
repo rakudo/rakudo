@@ -10,6 +10,7 @@ static PMC *Scalar   = NULL;
 static PMC *Any      = NULL;
 static PMC *EnumMap  = NULL;
 static PMC *_Hash    = NULL;
+static PMC *Block    = NULL;
 
 /* Creates a fresh scalar container with the specified descriptor. */
 static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
@@ -410,7 +411,8 @@ Get iterator for declared lexicals.
     }
     
     METHOD configure_magicals(PMC *_topic_cd, PMC *_error_cd, PMC *_match_cd,
-                              PMC *_Scalar, PMC *_Any, PMC *_EnumMap, PMC *__Hash) {
+                              PMC *_Scalar, PMC *_Any, PMC *_EnumMap, PMC *__Hash,
+                              PMC *_Block) {
         topic_cd = _topic_cd;
         error_cd = _error_cd;
         match_cd = _match_cd;
@@ -418,6 +420,7 @@ Get iterator for declared lexicals.
         Any      = _Any;
         EnumMap  = _EnumMap;
         _Hash    = __Hash;
+        Block    = _Block;
     }
 
 }

@@ -401,8 +401,8 @@ S12-methods/calling_syntax.t
 # S12-methods/chaining.t # needs chaining reduce
 S12-methods/class-and-instance.t
 # S12-methods/default-trait.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
-# S12-methods/defer-call.t # needs proto generation
-# S12-methods/defer-next.t # needs proto generation
+S12-methods/defer-call.t
+S12-methods/defer-next.t
 S12-methods/how.t
 S12-methods/indirect_notation.t
 # S12-methods/instance.t # err: Method '!something' not found for invocant of class 'PrivVsAttr'

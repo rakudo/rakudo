@@ -291,8 +291,8 @@ S06-advanced_subroutine_features/lexical-subs.t
 # S06-advanced_subroutine_features/recurse.t # err: Symbol '&?ROUTINE' not predeclared in fibonacci
 S06-advanced_subroutine_features/return.t
 # S06-advanced_subroutine_features/wrap.t # err: Method 'wrap' not found for invocant of class 'Sub'
-# S06-currying/assuming-and-mmd.t # needs proto and dispatch auto-generation for multis
-# S06-currying/named.t # err: Method 'assuming' not found for invocant of class 'Sub'
+S06-currying/assuming-and-mmd.t
+S06-currying/named.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 # S06-multi/proto.t # err: Illegal redeclaration of routine 'bar'

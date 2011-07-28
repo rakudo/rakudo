@@ -276,8 +276,7 @@ my class Str does Stringy {
                 @r.push: $m;
                 last if @r.elems == $x_upper;
 
-                # XXX should be %opts.delete('d'), but Hash.delete is NYI
-                %opts<d> = Any if %opts<d>;
+                %opts.delete('d');
                 %opts<c> = $overlap
                         ?? $m.from +1
                         !!  ($m.to == $m.from ?? $m.to + 1 !! $m.to);

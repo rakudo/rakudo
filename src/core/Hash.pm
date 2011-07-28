@@ -26,7 +26,7 @@ my class Hash {
             my Mu $x := $items.shift;
             if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key.Str, $x.value) }
             elsif EnumMap.ACCEPTS($x) {
-                for $x.list { self.STORE_AT_KEY(.key.Str, lvaue) }
+                for $x.list { self.STORE_AT_KEY(.key.Str, .value) }
             }
             elsif $items { self.STORE_AT_KEY($x.Str, $items.shift) }
             else {

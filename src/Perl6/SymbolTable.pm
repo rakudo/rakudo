@@ -177,7 +177,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     ),
                     $_.key
                 ),
-                0
+                0, 0
             ));
         }
         self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
@@ -223,7 +223,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Val.new( :value($block) )
             ),
             ~$name, self.get_object_sc_ref_past($obj),
-            0
+            0, 0
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
         1;
@@ -231,7 +231,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
     # the type of container to install.
-    method install_lexical_container($block, $name, $type_name, $descriptor, *@default_value) {
+    method install_lexical_container($block, $name, $type_name, $descriptor, :$state, *@default_value) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         unless $block.symbol($name) {
@@ -243,6 +243,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # If it's a native type, we're done - no container
         # as we inline natives straight into registers.
         if pir::repr_get_primitive_type_spec__IP($descriptor.of) {
+            if $state { pir::die("Natively typed state variables not yet implemented") }
             return 1;
         }
         
@@ -258,7 +259,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 :pasttype('callmethod'), :name('get_lexinfo'),
                 PAST::Val.new( :value($block) )
             ),
-            ~$name, $cont_code, 1
+            ~$name, $cont_code, 1, ($state ?? 1 !! 0)
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
         1;

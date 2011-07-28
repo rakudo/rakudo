@@ -1055,7 +1055,7 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( :pasttype('null') );
             $past<attribute_declarand> := $attr;
         }
-        elsif $*SCOPE eq 'my' {
+        elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
             my $descriptor := $*ST.create_container_descriptor(
@@ -1065,10 +1065,12 @@ class Perl6::Actions is HLL::Actions {
             # Install the container. Scalars default to Any if untyped.
             if $sigil eq '$' || $sigil eq '&' {
                 $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
-                    $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Any']));
+                    $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Any']),
+                    :state($*SCOPE eq 'state'));
             }
             else {
-                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor);
+                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
+                    :state($*SCOPE eq 'state'));
             }
             
             # Set scope and type on container.

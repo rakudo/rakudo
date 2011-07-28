@@ -39,4 +39,8 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
 
     my $OSVER = $VM<config><osvers>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(pir::get_who__PP(PROCESS), '$OSVER', $OSVER);
+
+    my $EXECUTABLE_NAME = 
+        nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
+    nqp::bindkey(pir::get_who__PP(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
 }

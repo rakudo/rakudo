@@ -58,7 +58,7 @@ S02-literals/misc-interpolation.t
 S02-literals/numeric.t
 S02-literals/pair-boolean.t
 # S02-literals/pairs.t # err: Not enough positional parameters passed
-# S02-literals/quoting.t # err: Method 'trans' not found for invocant of class 'Str'
+S02-literals/quoting.t
 S02-literals/quoting-unicode.t          # icu
 # S02-literals/radix.t # err: NYI form of number litereal encountered
 S02-literals/string-interpolation.t
@@ -67,7 +67,7 @@ S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
 # S02-magicals/args.t   # err: Method 'push' not found for invocant of class 'Failure'
-# S02-magicals/config.t # err: Dynamic variable $*OS not found
+S02-magicals/config.t
 # S02-magicals/dollar_bang.t # err: Cannot assign to a non-container
 S02-magicals/dollar-underscore.t
 # S02-magicals/env.t # err: Dynamic variable $*OS not found

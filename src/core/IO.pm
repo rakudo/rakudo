@@ -21,6 +21,11 @@ sub gist(|$) {
     nqp::p6parcel(pir::perl6_current_args_rpa__P(), Mu).gist
 }
 
+sub prompt($msg) {
+    print $msg;
+    $*IN.get;
+}
+
 class IO {
     has $!PIO;
     has Int $.ins = 0;

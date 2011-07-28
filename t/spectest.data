@@ -386,7 +386,7 @@ S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 # S12-enums/anonymous.t # needs enums
 # S12-enums/as-role.t # needs enums
-# S12-enums/basic.t # needs enums
+S12-enums/basic.t
 # S12-enums/thorough.t # needs enums
 # S12-introspection/attributes.t # err: Can not get non-existant attribute '$!name' on class 'Attribute'
 # S12-introspection/can.t # err: Method 'can' not found for invocant of class 'Str'
@@ -445,7 +445,7 @@ S14-roles/submethods.t
 # S16-filehandles/io.t # err: Dynamic variable $*PID not found
 # S16-filehandles/io_in_for_loops.t # err: Dynamic variable $*OS not found
 # S16-filehandles/io_in_while_loops.t # err: Dynamic variable $*OS not found
-# S16-filehandles/open.t # err: Dynamic variable $*OS not found
+S16-filehandles/open.t
 # S16-filehandles/unlink.t# err: Dynamic variable $*OS not found
 # S16-io/bare-say.t # needs @*INC
 S16-io/basic-open.t
@@ -457,7 +457,7 @@ S16-io/basic-open.t
 # S19-command-line/dash-e.t                               #icu # needs @*INC
 # S19-command-line/help.t # needs @*INC
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
-# S28-named-variables/inc.t # err: No applicable candidates found to dispatch to for 'Numeric'.
+S28-named-variables/inc.t
 S29-any/cmp.t
 S29-any/isa.t
 # S29-context/die.t # needs @*INC

@@ -28,9 +28,15 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ':' !! ';')) if %ENV<PERL6LIB>;
     @INC.push((%ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>) ~ '/.perl6/lib');
     @INC.push($VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/lib');
-    @INC.push('.'); # remove this when 'use lib' works fine
+    @INC.push('.'); # XXX: remove this when 'use lib' works fine
     nqp::bindkey(pir::get_who__PP(PROCESS), '@INC', @INC);
 
     my $PID = nqp::p6box_i(pir::getinterp.getpid());
     nqp::bindkey(pir::get_who__PP(PROCESS), '$PID', $PID);
+
+    my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
+    nqp::bindkey(pir::get_who__PP(PROCESS), '$OS', $OS);
+
+    my $OSVER = $VM<config><osvers>; # XXX: master gets this information with the sysinfo dynop
+    nqp::bindkey(pir::get_who__PP(PROCESS), '$OSVER', $OSVER);
 }

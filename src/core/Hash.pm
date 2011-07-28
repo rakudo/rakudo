@@ -36,6 +36,15 @@ my class Hash {
         self
     }
 
+    method delete($key as Str) {
+        my Mu $val = self.at_key($key);
+        pir::delete(
+            nqp::getattr(self, EnumMap, '$!storage'),
+            nqp::unbox_s($key)
+        );
+        $val;
+    }
+
     method push(*@values) {
         my $previous;
         my $has_previous;

@@ -28,6 +28,10 @@ my role Enumeration {
     method pick(*@pos, *%named) {
         self.^enum_value_list.pick(|@pos, |%named)
     }
+
+    method Int(::?CLASS:D:) {
+        self.value.Int
+    }
 }
 
 # Methods that we also have if the base type of an enumeration is

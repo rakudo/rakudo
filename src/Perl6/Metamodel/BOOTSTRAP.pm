@@ -86,6 +86,7 @@ my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 Attribute.HOW.add_parent(Attribute, Any);
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
@@ -132,6 +133,18 @@ Attribute.HOW.add_method(Attribute, 'rw', sub ($self) {
 Attribute.HOW.add_method(Attribute, 'set_rw', sub ($self) {
         pir::repr_bind_attr_int__vPPsi(pir::perl6_decontainerize__PP($self),
             Attribute, '$!rw', 1);
+        pir::perl6_booleanize__PI(1)
+    });
+Attribute.HOW.add_method(Attribute, 'set_readonly', sub ($self) {
+        pir::repr_bind_attr_int__vPPsi(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!ro', 1);
+        pir::perl6_booleanize__PI(1)
+    });
+Attribute.HOW.add_method(Attribute, 'default_to_rw', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        unless pir::repr_get_attr_int__iPPs($dcself, Attribute, '$!ro') {
+            pir::repr_bind_attr_int__vPPsi($dcself, Attribute, '$!rw', 1);
+        }
         pir::perl6_booleanize__PI(1)
     });
 Attribute.HOW.add_method(Attribute, 'set_build_closure', sub ($self, $closure) {

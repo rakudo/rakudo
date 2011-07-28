@@ -27,7 +27,6 @@ my class Numeric {
 
 proto prefix:<+>(|$) { * }
 multi prefix:<+>(\$a) { $a.Numeric }
-multi prefix:<+>(Numeric \$a) { $a }
 
 proto prefix:<->(|$) { * }
 multi prefix:<->(\$a) { -$a.Numeric }

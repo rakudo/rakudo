@@ -17,6 +17,9 @@ multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
 
+multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
+    # This is the default.
+}
 multi trait_mod:<is>(Parameter:D $param, :$rw!) {
     $param.set_rw();
 }

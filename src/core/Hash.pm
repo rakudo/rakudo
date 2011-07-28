@@ -20,7 +20,7 @@ my class Hash {
     }
 
     method STORE(\$to_store) {
-        my $items = $to_store.flat.eager;
+        my $items = ($to_store,).flat.eager;
         nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
         while $items {
             my Mu $x := $items.shift;

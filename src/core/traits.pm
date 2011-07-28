@@ -9,8 +9,15 @@ proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     $child.HOW.add_parent($child, $parent);
 }
+multi trait_mod:<is>(Mu:U $type, :$rw!) {
+    $type.HOW.set_rw($type);
+}
+
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
+}
+multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
+    $attr.set_readonly();
 }
 
 multi trait_mod:<is>(Routine:D $r, :$rw!) {

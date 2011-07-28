@@ -1,7 +1,7 @@
 class Rat { ... }
 
 my class Int {
-    method Bool() {
+    multi method Bool(Int:D:) {
         nqp::p6bool(nqp::isne_i(nqp::unbox_i(self), 0))
     }
     
@@ -11,23 +11,23 @@ my class Int {
         nqp::p6box_s(nqp::unbox_i(self));
     }
     
-    method Num() {
+    method Num(Int:D:) {
         nqp::p6box_n(nqp::unbox_i(self));
     }
 
-    method Rat() {
+    method Rat(Int:D:) {
         Rat.new(self, 1);
     }
 
-    method abs() {
+    method abs(Int:D:) {
         nqp::p6box_i(nqp::abs_i(nqp::unbox_i(self)));
     }
 
-    method Bridge() {
+    method Bridge(Int:D:) {
         self.Num;
     }
 
-    method chr() {
+    method chr(Int:D:) {
         nqp::p6box_s(pir::chr(nqp::unbox_i(self)));
     }
 
@@ -35,7 +35,7 @@ my class Int {
 
     method pred(Int:D:) { self - 1 }
 
-    method sqrt() { self.Num.sqrt }
+    method sqrt(Int:D:) { self.Num.sqrt }
 
     method base(Cool $base) {
         fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;

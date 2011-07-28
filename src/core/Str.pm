@@ -2,16 +2,16 @@ my class Cursor {... }
 my class Range  {... }
 
 my class Str does Stringy {
-    method Bool() { self ne '' && self ne '0' }
+    multi method Bool(Str:D:) { self ne '' && self ne '0' }
     
     multi method Str(Str:D:) { self }
     
-    method Int() { self.Numeric.Int; }
-    method Num() { self.Numeric.Num; }
+    method Int(Str:D:) { self.Numeric.Int; }
+    method Num(Str:D:) { self.Numeric.Num; }
 
     multi method ACCEPTS(Str:D: $other) { $other eq self }
 
-    method chomp() {
+    method chomp(Str:D:) {
         my Int $chars = self.chars;
         return '' if $chars == 0;
         my Str $last = nqp::p6box_s(nqp::substr(nqp::unbox_s(self), nqp::unbox_i($chars - 1)));
@@ -22,13 +22,13 @@ my class Str does Stringy {
         nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self),nqp::unbox_i($to_remove)))
     }
 
-    method chop() {
+    method chop(Str:D:) {
         nqp::p6box_s(
             nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), 1))
         );
     }
 
-    method substr($start, $length? is copy) {
+    method substr(Str:D: $start, $length? is copy) {
         fail "Negative start argument ($start) to .substr" if $start < 0;
         fail "Start of substr ($start) beyond end of string" if $start > self.chars;
         $length = $length.defined ?? $length.Int !! self.chars - $start.Int;
@@ -69,7 +69,7 @@ my class Str does Stringy {
         return (0, -1);
     }
 
-    method pred() {
+    method pred(Str:D:) {
         my $str = self;
         my ($r0, $r1) = RANGEPOS($str);
         while $r1 >= $r0 {
@@ -91,7 +91,7 @@ my class Str does Stringy {
         fail('Decrement out of range');
     }
 
-    method succ() {
+    method succ(Str:D:) {
         my $str = self;
         my ($r0, $r1) = RANGEPOS($str);
         while $r1 >= $r0 {
@@ -239,17 +239,17 @@ my class Str does Stringy {
         $result ~ '"'
     }
 
-    multi method comb() {
+    multi method comb(Str:D:) {
         (^self.chars).map({self.substr($_, 1) });
     }
-    multi method comb(Regex $pat, $limit = $Inf, :$match) {
+    multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
         $match
             ?? self.match(:g, :x(1..$limit), $pat)
             !! self.match(:g, :x(1..$limit), $pat).map: { .Str }
     }
 
 
-    multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
+    multi method match(Str:D: Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
         if $c.defined {
@@ -306,7 +306,7 @@ my class Str does Stringy {
         }
     }
 
-    multi method split(Regex $pat, $limit = *, :$all) {
+    multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
         my @matches := self.match($pat, :x(1..$l), :g);
         gather {
@@ -319,7 +319,7 @@ my class Str does Stringy {
             take self.substr($prev-pos);
         }
     }
-    multi method split(Cool $delimiter, $limit = *, :$all) {
+    multi method split(Str:D: Cool $delimiter, $limit = *, :$all) {
         my $match-string = $delimiter.Str;
         return if self eq '' && $delimiter eq '';
         my $c = 0;

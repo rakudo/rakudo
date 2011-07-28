@@ -7,13 +7,13 @@ my $NaN = nqp::p6box_n(pir::set__Ns('NaN'));
 
 my class Num {
     method Num() { self }
-    method Bridge() { self }
+    method Bridge(Num:D:) { self }
     
-    method Int() {
+    method Int(Num:D:) {
         nqp::p6box_i(nqp::unbox_n(self));
     }
 
-    method Rat(Real $epsilon = 1.0e-6) {
+    method Rat(Num:D: Real $epsilon = 1.0e-6) {
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
         my Num $num = self;
@@ -42,7 +42,7 @@ my class Num {
         ($signum * $b) / $d;
     }
 
-    method atan2(Num $x = 1e0) {
+    method atan2(Num:D: Num $x = 1e0) {
         nqp::p6box_n(pir::atan__NNn(nqp::unbox_n(self), nqp::unbox_n($x)));
     }
 
@@ -54,88 +54,88 @@ my class Num {
 
     method pred(Num:D:) { self - 1e0 }
 
-    method isNaN() {
+    method isNaN(Num:D: ) {
         self != self;
     }
 
-    method abs() {
+    method abs(Num:D: ) {
         nqp::p6box_n(nqp::abs_n(nqp::unbox_n(self)));
     }
 
-    multi method exp() {
+    multi method exp(Num:D: ) {
         nqp::p6box_n(pir::exp__Nn(nqp::unbox_n(self)));
     }
 
     proto method log(|$) {*}
-    multi method log() {
+    multi method log(Num:D: ) {
         nqp::p6box_n(pir::ln__NN(nqp::unbox_n(self)));
     }
-    multi method log(Num \$base) {
+    multi method log(Num:D: Num \$base) {
         self.log() / $base.log();
     }
 
     proto method sqrt(|$) {*}
-    multi method sqrt() {
+    multi method sqrt(Num:D: ) {
         nqp::p6box_n(pir::sqrt__NN(nqp::unbox_n(self)));
     }
 
-    method rand() {
+    method rand(Num:D: ) {
         nqp::p6box_n(pir::rand__NN(nqp::unbox_n(self)));
     }
 
-    method ceil() {
+    method ceil(Num:D: ) {
         nqp::p6box_n(pir::ceil__NN(nqp::unbox_n(self)));
     }
-    method floor() {
+    method floor(Num:D: ) {
         nqp::p6box_n(pir::floor__NN(nqp::unbox_n(self)));
     }
 
     proto method sin(|$) {*}
-    multi method sin() {
+    multi method sin(Num:D: ) {
         nqp::p6box_n(pir::sin__NN(nqp::unbox_n(self)));
     }
     proto method asin(|$) {*}
-    multi method asin() {
+    multi method asin(Num:D: ) {
         nqp::p6box_n(pir::asin__NN(nqp::unbox_n(self)));
     }
     proto method cos(|$) {*}
-    multi method cos() {
+    multi method cos(Num:D: ) {
         nqp::p6box_n(pir::cos__NN(nqp::unbox_n(self)));
     }
     proto method acos(|$) {*}
-    multi method acos() {
+    multi method acos(Num:D: ) {
         nqp::p6box_n(pir::acos__NN(nqp::unbox_n(self)));
     }
     proto method tan(|$) {*}
-    multi method tan() {
+    multi method tan(Num:D: ) {
         nqp::p6box_n(pir::tan__NN(nqp::unbox_n(self)));
     }
     proto method atan(|$) {*}
-    multi method atan() {
+    multi method atan(Num:D: ) {
         nqp::p6box_n(pir::atan__NN(nqp::unbox_n(self)));
     }
     proto method sec(|$) {*}
-    multi method sec() {
+    multi method sec(Num:D: ) {
         nqp::p6box_n(pir::sec__NN(nqp::unbox_n(self)));
     }
     proto method asec(|$) {*}
-    multi method asec() {
+    multi method asec(Num:D: ) {
         nqp::p6box_n(pir::asec__NN(nqp::unbox_n(self)));
     }
     proto method sinh(|$) {*}
-    multi method sinh() {
+    multi method sinh(Num:D: ) {
         nqp::p6box_n(pir::sinh__NN(nqp::unbox_n(self)));
     }
     proto method cosh(|$) {*}
-    multi method cosh() {
+    multi method cosh(Num:D: ) {
         nqp::p6box_n(pir::cosh__NN(nqp::unbox_n(self)));
     }
     proto method tanh(|$) {*}
-    multi method tanh() {
+    multi method tanh(Num:D: ) {
         nqp::p6box_n(pir::tanh__NN(nqp::unbox_n(self)));
     }
     proto method sech(|$) {*}
-    multi method sech() {
+    multi method sech(Num:D: ) {
         nqp::p6box_n(pir::sech__NN(nqp::unbox_n(self)));
     }
 }

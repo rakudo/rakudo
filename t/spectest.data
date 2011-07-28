@@ -43,7 +43,7 @@ S02-builtin_data_types/sigils-and-types.t
 S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
 # S02-builtin_data_types/undefined-types.t  # err: Method 'blocktype' not found for invocant of class 'PAST;Op'
-# S02-builtin_data_types/whatever.t # err: Unable to parse postcircumfix:sym<( )>
+# S02-builtin_data_types/whatever.t # err: Unable to parse blockoid, couldn't find final '}'
 S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
@@ -82,7 +82,7 @@ S02-magicals/dollar-underscore.t
 S02-names_and_variables/variables-and-packages.t
 # S02-names_and_variables/varnames.t # err: Cannot use bind operator with this LHS
 S02-names/identifier.t
-# S02-names/our.t # err: Could not find sub &c
+S02-names/our.t
 S02-names/symbolic-deref.t
 S02-one-pass-parsing/less-than.t
 S02-polymorphic_types/subset.t
@@ -110,10 +110,10 @@ S03-metaops/zip.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
-# S03-operators/autoincrement-range.t                        # icu
+S03-operators/autoincrement-range.t # icu
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
-# S03-operators/basic-types.t               # need regexes
+S03-operators/basic-types.t
 S03-operators/binding-attributes.t
 # S03-operators/binding-arrays.t # err: Cannot use bind operator with this LHS
 S03-operators/binding-closure.t
@@ -121,12 +121,12 @@ S03-operators/binding-closure.t
 S03-operators/binding-ro.t
 S03-operators/binding-scalars.t
 # S03-operators/bit.t # err: No applicable candidates found to dispatch to for 'prefix:<+^>'
-# S03-operators/boolean-bitwise.t           # xor return bug
+S03-operators/boolean-bitwise.t
 S03-operators/brainos.t
 # S03-operators/buf.t # err: Method 'encode' not found for invocant of class 'Str'
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
-# S03-operators/comparison.t                # need Order::Increase
+# S03-operators/comparison.t # err: Could not find symbol 'Order::&Increase'
 S03-operators/comparison-simple.t
 S03-operators/context-forcers.t
 # S03-operators/context.t # err: Could not find sub &item
@@ -153,7 +153,7 @@ S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 # S03-operators/repeat.t # err: Cannot repeat with negative arg
 S03-operators/scalar-assign.t
-# S03-operators/short-circuit.t # just stops after 28 tests...
+S03-operators/short-circuit.t
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
@@ -166,20 +166,20 @@ S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
 # S03-sequence/nonnumeric.t # err: Method 'pred' not found for invocant of class 'Failure'
 # S03-smartmatch/any-any.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
-# S03-smartmatch/any-array-slice.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+S03-smartmatch/any-array-slice.t
 # S03-smartmatch/any-array.t # err: Could not find a proto for multi 'list' in package 'TestArraySmartmatch'
 S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
 S03-smartmatch/any-hash-pair.t
-# S03-smartmatch/any-hash-slice.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+S03-smartmatch/any-hash-slice.t
 # S03-smartmatch/any-method.t # err: No applicable candidates found to dispatch to for 'Numeric'
 S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
 S03-smartmatch/any-sub.t
 S03-smartmatch/any-type.t
-# S03-smartmatch/array-array.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+S03-smartmatch/array-array.t
 # S03-smartmatch/array-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
 # S03-smartmatch/capture-signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 S03-smartmatch/disorganized.t
@@ -197,7 +197,7 @@ S04-declarations/multiple.t
 S04-declarations/my.t
 # S04-declarations/state.t # err: state scoped variables not yet implemented
 # S04-exception-handlers/catch.t # Method 'blocktype' not found for invocant of class 'PAST;Op'
-# S04-exceptions/fail.t  # need use scoped variables
+# S04-exceptions/fail.t  # err: use scoped variables not yet implemented
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t 
 S04-statement-modifiers/if.t
@@ -211,7 +211,7 @@ S04-statements/for-scope.t
 S04-statements/for.t
 S04-statements/for_with_only_one_item.t
 S04-statements/gather.t
-# S04-statements/given.t # err: too many positional arguments: 3 passed, 1 expected
+# S04-statements/given.t # err: Method 'so' not found for invocant of class 'Int'
 S04-statements/if.t
 S04-statements/last.t
 S04-statements/loop.t
@@ -226,7 +226,7 @@ S04-statements/terminator.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
-# S05-capture/caps.t # needs regex
+# S05-capture/caps.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-capture/dot.t # needs regex
 # S05-capture/named.t # needs regex
 # S05-capture/subrule.t # needs regex

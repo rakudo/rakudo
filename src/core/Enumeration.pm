@@ -3,7 +3,7 @@ my role Enumeration {
     has $.key;
     has $.value;
     
-    method Numeric() {
+    method Numeric(Enumeration:D:) {
         $!value.Numeric
     }
     
@@ -15,9 +15,9 @@ my role Enumeration {
         self.^name ~ '::' ~ $!key
     }
     
-    method kv() { ($!key, $!value) }
+    method kv(Enumeration:D:) { ($!key, $!value) }
     
-    method pair() { $!key => $!value }
+    method pair(Enumeration:D:) { $!key => $!value }
     
     method perl() {
         self.defined ??

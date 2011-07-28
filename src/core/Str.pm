@@ -361,62 +361,62 @@ my class Str does Stringy {
 }
 
 
-multi prefix:<~>(Str \$a) { $a }
+multi prefix:<~>(Str:D \$a) { $a }
 
-multi infix:<~>(Str \$a, Str \$b) {
+multi infix:<~>(Str:D \$a, Str:D \$b) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<x>(Str $s, Int $repetition) {
+multi infix:<x>(Str:D $s, Int:D $repetition) {
     nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
 }
 
-multi infix:<cmp>(Str \$a, Str \$b) {
+multi infix:<cmp>(Str:D \$a, Str:D \$b) {
     nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<===>(Str \$a, Str \$b) {
+multi infix:<===>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<leg>(Str \$a, Str \$b) {
+multi infix:<leg>(Str:D \$a, Str:D \$b) {
     nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<eq>(Str \$a, Str \$b) {
+multi infix:<eq>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<ne>(Str \$a, Str \$b) {
+multi infix:<ne>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::isne_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<lt>(Str \$a, Str \$b) {
+multi infix:<lt>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::islt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<le>(Str \$a, Str \$b) {
+multi infix:<le>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::isle_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<gt>(Str \$a, Str \$b) {
+multi infix:<gt>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::isgt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<ge>(Str \$a, Str \$b) {
+multi infix:<ge>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::isge_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 
-multi infix:<~|>(Str \$a, Str \$b) {
+multi infix:<~|>(Str:D \$a, Str:D \$b) {
     nqp::p6box_s(pir::bors__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<~&>(Str \$a, Str \$b) {
+multi infix:<~&>(Str:D \$a, Str:D \$b) {
     nqp::p6box_s(pir::bands__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<~^>(Str \$a, Str \$b) {
+multi infix:<~^>(Str:D \$a, Str:D \$b) {
     nqp::p6box_s(pir::bxors__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 

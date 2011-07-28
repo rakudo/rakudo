@@ -115,7 +115,7 @@ multi infix:<after>(\$a, \$b)  { ($a cmp $b) > 0 }
 
 proto infix:<===>(Mu $a?, Mu $b?) { * }
 multi infix:<===>(Mu $a?)         { Bool::True }
-multi infix:<===>(Mu $a, Mu $b)   { $a.WHICH === $b.WHICH }
+multi infix:<===>(Mu $a, Mu $b)   { $a.defined eq $b.defined && $a.WHICH === $b.WHICH }
 
 proto sub infix:<eqv>(Mu $, Mu $) { * }
 multi sub infix:<eqv>(Mu $a, Mu $b) {

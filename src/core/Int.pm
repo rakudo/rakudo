@@ -105,74 +105,74 @@ multi infix:<**>(Int \$a, Int \$b) {
     }
 }
 
-multi infix:<lcm>(Int \$a, Int \$b) {
+multi infix:<lcm>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::lcm_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<gcd>(Int \$a, Int \$b) {
+multi infix:<gcd>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::gcd_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<cmp>(Int \$a, Int \$b) {
+multi infix:<cmp>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::cmp_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:«<=>»(Int \$a, Int \$b) {
+multi infix:«<=>»(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::cmp_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<===>(Int \$a, Int \$b) {
+multi infix:<===>(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::iseq_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<==>(Int \$a, Int \$b) {
+multi infix:<==>(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::iseq_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<!=>(Int \$a, Int \$b) {
+multi infix:<!=>(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::isne_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:«<»(Int \$a, Int \$b) {
+multi infix:«<»(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::islt_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:«<=»(Int \$a, Int \$b) {
+multi infix:«<=»(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::isle_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:«>»(Int \$a, Int \$b) {
+multi infix:«>»(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::isgt_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:«>=»(Int \$a, Int \$b) {
+multi infix:«>=»(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::isge_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<+|>(Int \$a, Int \$b) {
+multi infix:<+|>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(pir::bor__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<+&>(Int \$a, Int \$b) {
+multi infix:<+&>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(pir::band__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<+^>(Int \$a, Int \$b) {
+multi infix:<+^>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(pir::bxor__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:«+<»(Int \$a, Int \$b) {
+multi infix:«+<»(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(pir::shl__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:«+>»(Int \$a, Int \$b) {
+multi infix:«+>»(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(pir::shr__III(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi prefix:<+^>(Int \$a) {
+multi prefix:<+^>(Int:D \$a) {
     nqp::p6box_i(pir::bnot__II(nqp::unbox_i($a)))
 }
 
 proto sub chr($) {*}
-multi sub chr(Int  \$x) { $x.chr     }
+multi sub chr(Int:D  \$x) { $x.chr     }
 multi sub chr(Cool \$x) { $x.Int.chr }

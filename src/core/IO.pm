@@ -94,7 +94,7 @@ class IO {
     }
 
     method d() {
-        nqp::p6bool(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ISDIR))
+        self.e && nqp::p6bool(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ISDIR))
     }
 
     method e() {
@@ -102,7 +102,7 @@ class IO {
     }
 
     method f() {
-        nqp::p6bool(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ISREG))
+        self.e && nqp::p6bool(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ISREG))
     }
 
     method l() {
@@ -114,10 +114,12 @@ class IO {
     }
 
     method s() {
-        nqp::p6bool(
-            nqp::isgt_i(
-                pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_FILESIZE),
-                0))
+        self.e 
+          && nqp::p6bool(
+              nqp::isgt_i(
+                  pir::stat__Isi(nqp::unbox_s($!path), 
+                                 pir::const::STAT_FILESIZE),
+                  0))
     }
 
     method t() {

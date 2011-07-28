@@ -1145,6 +1145,9 @@ class Perl6::Actions is HLL::Actions {
         # install it in the lexpad.
         my $outer := $*ST.cur_lexpad();
         $outer[0].push(PAST::Stmt.new($block));
+        
+        # Install &?ROUTINE.
+        $*ST.install_lexical_symbol($block, '&?ROUTINE', $code);
 
         my $past;
         if $<deflongname> {
@@ -1255,6 +1258,9 @@ class Perl6::Actions is HLL::Actions {
             $<longname> && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
         my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
+        
+        # Install &?ROUTINE.
+        $*ST.install_lexical_symbol($past, '&?ROUTINE', $code);
         
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*ST.cur_lexpad();

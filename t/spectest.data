@@ -376,7 +376,7 @@ S12-class/lexical.t
 # S12-class/namespaced.t # err: regex assertion not terminated by angle bracket at line 54, near "::D::test>"
 # S12-class/open.t # err: Illegal redeclaration of class
 # S12-class/parent_attributes.t # err: Method 'at_key' not found for invocant of class 'Foo'
-# S12-class/rw.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
+S12-class/rw.t
 S12-class/self-inheritance.t
 # S12-class/stubs.t # needs use scoped variables
 S12-construction/autopairs.t

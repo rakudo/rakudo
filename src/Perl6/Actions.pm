@@ -3004,8 +3004,10 @@ class Perl6::Actions is HLL::Actions {
 
     method quote:sym<s>($/) {
         # Build the regex.
-        my $regex_ast := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        my $regex := block_closure($regex_ast, 'Regex', 0);
+        
+        my $rx_block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $rx_coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $rx_block);
+#        my $regex :=  block_closure($rx_coderef);
 
         # Quote needs to be closure-i-fied.
         my $closure_ast := PAST::Block.new(
@@ -3014,19 +3016,19 @@ class Perl6::Actions is HLL::Actions {
                 $<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast
             )
         );
-        my $closure := block_closure($closure_ast, 'Block', 0);
+        my $closure := block_closure($closure_ast);
 
         # make $_ = $_.subst(...)
         my $past := PAST::Op.new(
             :node($/),
             :pasttype('callmethod'), :name('subst'),
             PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
-            $regex, $closure
+            $rx_coderef, $closure
         );
         self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
-        if $/[0] {
-            pir::push__vPP($past, PAST::Val.new(:named('samespace'), :value(1)));
-        }
+#        if $/[0] {
+#            pir::push__vPP($past, PAST::Val.new(:named('samespace'), :value(1)));
+#        }
 
         $past := PAST::Op.new(
             :node($/),

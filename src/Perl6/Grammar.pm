@@ -1618,7 +1618,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
         | '{'<p6regex=.LANG('Regex','nibbler')>'}' <.old_rx_mods>?
         ]
-        <.cleanup_modifiers>
     }
 
     method match_with_adverb($v) {
@@ -1635,11 +1634,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
         | '{'<p6regex=.LANG('Regex','nibbler')>'}'
         ]
-        <.cleanup_modifiers>
     }
 
     token setup_quotepair { '' }
-    token cleanup_modifiers { '' }
 
     token quote:sym<s> {
         <sym> (s)? >>
@@ -1651,7 +1648,6 @@ grammar Perl6::Grammar is HLL::Grammar {
           <.ws> [ '=' || <.panic: "Missing assignment operator"> ]
           <.ws> <EXPR('i')>
         ]
-        <.cleanup_modifiers>
     }
 
     token old_rx_mods {

@@ -288,6 +288,28 @@ my class Str does Stringy {
         }
     }
 
+    multi method subst($matcher, $replacement,
+                       :ii(:$samecase), :ss(:$samespace), *%options) {
+        die ":samespace not yet implemented" if $samecase;
+        my @matches = self.match($matcher, |%options);
+        return self unless @matches;
+        return self if @matches == 1 && !@matches[0];
+        my $prev = 0;
+        my $result = '';
+        for @matches -> $m {
+            $result ~= self.substr($prev, $m.from - $prev);
+
+            my $real_replacement = ~($replacement ~~ Callable ?? $replacement($m) !! $replacement);
+            $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
+            $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
+            $result ~= $real_replacement;
+            $prev = $m.to;
+        }
+        my $last = @matches.pop;
+        $result ~= self.substr($last.to);
+        $result;
+    }
+
     method ords(Str:D:) {
         my Int $c  = self.chars;
         my str $ns = nqp::unbox_s(self);

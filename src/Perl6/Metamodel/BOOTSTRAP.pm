@@ -654,6 +654,10 @@ Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,
     hash( ACCEPTS => Mu ));
+    
+# Similar for packages and modules.
+Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 
 # We'll build container descriptors for $_, $! and $/ that we can
 # share with all of the magically/lazily created scalars.

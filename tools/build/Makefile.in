@@ -83,6 +83,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/Naming.pm \
   src/Perl6/Metamodel/Stashing.pm \
   src/Perl6/Metamodel/Versioning.pm \
+  src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/NonGeneric.pm \
   src/Perl6/Metamodel/PackageHOW.pm \
   src/Perl6/Metamodel/ModuleHOW.pm \
@@ -100,7 +101,6 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/Mixins.pm \
   src/Perl6/Metamodel/BUILDPLAN.pm \
   src/Perl6/Metamodel/ParrotInterop.pm \
-  src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/RolePunning.pm \
   src/Perl6/Metamodel/RoleToRoleApplier.pm \
   src/Perl6/Metamodel/ConcreteRoleHOW.pm \

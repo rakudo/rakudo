@@ -3436,6 +3436,7 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
             ),
             PAST::Stmts.new( $/[1].ast ));
+        $block.symbol('self', :scope('lexical_6model'));
         add_signature_binding_code($block, $sig, @params);
         my $code := $*ST.create_code_object($block, 'Method', $sig);
         

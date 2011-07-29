@@ -38,7 +38,8 @@ pmclass Perl6LexInfo
      * us a very cheap way to deal with e.g. scalar containers. */
     ATTR PMC *static_clone_flags_cache;
     
-    /* Cache of the flags for when things have state. */
+    /* Cache of the flags for when things have state. Actually the name of
+     * the variable, or STRINGNULL if none. */
     ATTR PMC *state_flags_cache;
     
     /* Does this block get fresh magicals, or just steal the outer ones? */
@@ -158,7 +159,7 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
         slots       = pmc_new(interp, enum_class_ResizableIntegerArray);
         values      = pmc_new(interp, enum_class_ResizablePMCArray);
         clone_flags = pmc_new(interp, enum_class_ResizableIntegerArray);
-        state_flags = pmc_new(interp, enum_class_ResizableIntegerArray);
+        state_flags = pmc_new(interp, enum_class_ResizableStringArray);
         iter        = VTABLE_get_iter(interp, svs);
         while (VTABLE_get_bool(interp, iter)) {
             STRING *name  = VTABLE_shift_string(interp, iter);
@@ -169,7 +170,7 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
             VTABLE_push_integer(interp, slots, slot);
             VTABLE_push_pmc(interp, values, value);
             VTABLE_push_integer(interp, clone_flags, clone);
-            VTABLE_push_integer(interp, state_flags, state);
+            VTABLE_push_string(interp, state_flags, state ? name : STRINGNULL);
         }
         SET_ATTR_static_slots_cache(INTERP, SELF, slots);
         SET_ATTR_static_values_cache(INTERP, SELF, values);

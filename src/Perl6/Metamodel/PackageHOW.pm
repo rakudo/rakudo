@@ -1,5 +1,6 @@
 class Perl6::Metamodel::PackageHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::NonGeneric
 {

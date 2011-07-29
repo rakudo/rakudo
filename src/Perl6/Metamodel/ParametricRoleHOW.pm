@@ -1,6 +1,7 @@
 my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::MultiMethodContainer

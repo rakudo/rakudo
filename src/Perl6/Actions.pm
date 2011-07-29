@@ -1037,7 +1037,9 @@ class Perl6::Actions is HLL::Actions {
         
         # Compose.
         $*ST.pkg_compose($*PACKAGE);
-        
+
+        $*PACKAGE.HOW.set_docs($*DOC);
+
         make PAST::Stmts.new(
             $block, $*ST.get_object_sc_ref_past($*PACKAGE)
         );

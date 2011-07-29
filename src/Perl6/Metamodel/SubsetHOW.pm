@@ -1,5 +1,6 @@
 class Perl6::Metamodel::SubsetHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::Documenting
 {
     # The subset type or nominal type that we refine.
     has $!refinee;

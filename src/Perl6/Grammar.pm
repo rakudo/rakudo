@@ -136,11 +136,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token comment:sym<#=(...)> {
-        '#=' <quote_EXPR>
+        '#=' <!ws> $<attachment=<quote_EXPR>
     }
 
     token comment:sym<#=> {
-        '#=' $<attachment>=[\N*]
+        '#=' \h+ $<attachment>=[\N*]
+        { $*DECLARATOR := ~$<attachment> }
     }
 
     token pod_content_toplevel {
@@ -338,6 +339,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # A place for Pod
         :my $*POD_BLOCKS := [];
         :my $*POD_PAST;
+        :my $*DECLARATOR;
         
         # CHECK phasers for this compilation unit we'll need at
         # CHECK time.
@@ -1047,6 +1049,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*DECLARAND;
         :my $*IN_DECL := 'package';
         :my $*CURPAD;
+        :my $*DOC := $*DECLARATOR;
+        { $*DECLARATOR := '' }
         
         # Meta-object will live in here; also set default REPR (a trait
         # may override this, e.g. is repr('...')).

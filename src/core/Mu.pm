@@ -11,6 +11,10 @@ my class Mu {
     method WHICH() {
         nqp::p6box_i(nqp::where(self))
     }
+
+    method WHY() {
+        self.HOW.docs
+    }
     
     proto method Bool(|$) {*}
     multi method Bool() {

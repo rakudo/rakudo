@@ -13,6 +13,8 @@ my class Real {
     method sinh() { self.Bridge.sinh }
     method cosh() { self.Bridge.cosh }
     method tanh() { self.Bridge.tanh }
+    proto method atan2(|$) {*}
+    multi method atan2(Real $x = 1e0) { self.Bridge.atan2($x.Bridge) }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
     method unpolar(Real $angle) {
@@ -73,3 +75,9 @@ multi prefix:<abs>(Real \$a) {
 proto sub truncate(|$) {*}
 multi sub truncate(Real:D $x) { $x.truncate }
 multi sub truncate(Cool:D $x) { $x.Numeric.truncate }
+
+
+proto sub atan2(|$)    { * }
+multi sub atan2(Real \$a, Real \$b = 1e0) { $a.Bridge.atan2($b.Bridge) }
+multi sub atan2(Cool \$a, Cool \$b = 1e0) { $a.Real.atan2($b.Real) }
+

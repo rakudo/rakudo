@@ -42,7 +42,7 @@ my class Num {
         ($signum * $b) / $d;
     }
 
-    method atan2(Num:D: Num $x = 1e0) {
+    multi method atan2(Num:D: Num:D $x = 1e0) {
         nqp::p6box_n(pir::atan__NNn(nqp::unbox_n(self), nqp::unbox_n($x)));
     }
 
@@ -250,4 +250,8 @@ sub rand() {
 # TODO: default seed of 'time'
 sub srand(Int $seed) {
     nqp::p6box_i(pir::srand__0I($seed))
+}
+
+multi sub atan2(Num:D $a, Num:D $b = 1e0) {
+    nqp::p6box_n(pir::atan__NNn(nqp::unbox_n($a), nqp::unbox_n($b)));
 }

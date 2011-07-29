@@ -404,6 +404,24 @@ Block.HOW.add_parent(Block, Code);
 Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu)));
 Block.HOW.publish_parrot_vtable_handler_mapping(Block);
 Block.HOW.publish_parrot_vtable_mapping(Block);
+Block.HOW.add_method(Block, 'clone', sub ($self) {
+        my $cloned := pir::repr_clone__PP($self);
+        Q:PIR {
+            $P0 = find_lex '$self'
+            $P1 = find_lex 'Code'
+            $P0 = getattribute $P0, $P1, '$!do'
+            $P1 = getprop 'CLONE_CALLBACK', $P0
+            if null $P1 goto no_callback
+            $P2 = find_lex '$cloned'
+            $P1($P0, $P2)
+          no_callback:
+        };
+        pir::setattribute__0PPSP($cloned, Block, '$!state_vars', nqp::null());
+        pir::setattribute__0PPSP($cloned, Code, '$!do',
+            pir::perl6_associate_sub_code_object__0PP(
+                pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
+                $cloned))
+    });
 
 # class Routine is Block { ... }
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };

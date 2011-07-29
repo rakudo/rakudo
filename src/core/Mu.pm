@@ -134,7 +134,11 @@ my class Mu {
     }
     
     method does(Mu $type) {
-        nqp::p6bool(nqp::istype(self, $type.WHAT))  # XXX HOW.does(...)?
+        nqp::p6bool(nqp::istype(self, $type.WHAT))
+    }
+    
+    method can($name) {
+        self.HOW.can(self, $name)
     }
     
     method clone() {

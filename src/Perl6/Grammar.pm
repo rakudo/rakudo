@@ -1108,17 +1108,20 @@ grammar Perl6::Grammar is HLL::Grammar {
                     }
                 }
                 
-                # Install $?PACKAGE, $?ROLE, $?CLASS as needed.
+                # Install $?PACKAGE, $?ROLE, $?CLASS, ::?CLASS as needed.
                 my $curpad := $*ST.cur_lexpad();
                 unless $curpad.symbol('$?PACKAGE') {
                     $*ST.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
                     if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
                         $*ST.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
+                        $*ST.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
                     }
                     elsif $*PKGDECL eq 'role' {
                         $*ST.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
                         $*ST.install_lexical_symbol($curpad, '$?CLASS',
                             $*ST.pkg_create_mo(%*HOW<generic>, :name('$?CLASS')));
+                        $*ST.install_lexical_symbol($curpad, '::?CLASS',
+                            $*ST.pkg_create_mo(%*HOW<generic>, :name('::?CLASS')));
                     }
                 }
                 
@@ -1204,11 +1207,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     token scope_declarator:sym<has>       { <sym> <scoped('has')> }
     token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
     token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
+    token scope_declarator:sym<state>     { <sym> <scoped('state')> }
     token scope_declarator:sym<supersede> {
         <sym> <scoped('supersede')> <.panic: '"supersede" not yet implemented'>
-    }
-    token scope_declarator:sym<state> {
-        <sym> <scoped('state')> <.panic: '"state" not yet implemented'>
     }
 
     rule scoped($*SCOPE) {<.end_keyword> [
@@ -1688,7 +1689,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token typename {
         [
-        | '::?'<identifier>                 # parse ::?CLASS as special case
+        | '::?'<identifier> <colonpair>*    # parse ::?CLASS as special case
         | <longname>
           <?{
             my $longname := canonical_type_longname($<longname>);
@@ -1769,7 +1770,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
         | '{'<p6regex=.LANG('Regex','nibbler')>'}' <.old_rx_mods>?
         ]
-        <.cleanup_modifiers>
     }
 
     method match_with_adverb($v) {
@@ -1786,11 +1786,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
         | '{'<p6regex=.LANG('Regex','nibbler')>'}'
         ]
-        <.cleanup_modifiers>
     }
 
     token setup_quotepair { '' }
-    token cleanup_modifiers { '' }
 
     token quote:sym<s> {
         <sym> (s)? >>
@@ -1802,7 +1800,6 @@ grammar Perl6::Grammar is HLL::Grammar {
           <.ws> [ '=' || <.panic: "Missing assignment operator"> ]
           <.ws> <EXPR('i')>
         ]
-        <.cleanup_modifiers>
     }
 
     token old_rx_mods {

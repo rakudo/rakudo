@@ -1,5 +1,5 @@
 my class Bool {
-    method Bool() { self }
+    multi method Bool(Bool:D:) { self }
 
     multi method Str(Bool:D:) {
         self ?? 'Bool::True' !! 'Bool::False'
@@ -12,16 +12,16 @@ my class Bool {
 
     method succ() { Bool::True }
 
-    method ACCEPTS(Mu \$topic) { self }
+    multi method ACCEPTS(Bool:D: Mu \$topic) { self }
 }
 
 
 proto prefix:<?>(|$) { * }
-multi prefix:<?>(Bool \$a) { $a }
+multi prefix:<?>(Bool:D \$a) { $a }
 multi prefix:<?>(Mu \$a) { $a.Bool }
 
 proto prefix:<so>(|$) { * }
-multi prefix:<so>(Bool \$a) { $a }
+multi prefix:<so>(Bool:D \$a) { $a }
 multi prefix:<so>(Mu \$a) { $a.Bool }
 
 proto prefix:<!>(|$) { * }

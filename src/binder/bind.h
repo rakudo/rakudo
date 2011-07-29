@@ -37,7 +37,8 @@ typedef struct {
     PMC    *post_constraints;     /* Array of any extra constraints; we will do a
                                    * smart-match against each of them. For now, we
                                    * always expect an array of blocks. */
-    STRING *coerce_to;            /* Name of the type to coerce to; for X we do $val.X. */
+    PMC    *coerce_type;          /* The type to coerce the value to, if any. */
+    STRING *coerce_method;        /* Name of the method to call to coerce; for X we do $val.X. */
     PMC    *sub_llsig;            /* Any nested signature. */
     PMC    *default_closure;      /* The default value closure. */
     PMC    *container_descriptor; /* Descriptor for the container we bind into, if any. */

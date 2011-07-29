@@ -53,9 +53,7 @@ class Perl6::Metamodel::ClassHOW
         self.incorporate_multi_candidates($obj);
 
         # Compose attributes.
-        for self.attributes($obj, :local) {
-            $_.compose($obj);
-        }
+        self.compose_attributes($obj);
 
         # Publish type and method caches.
         self.publish_type_cache($obj);

@@ -3,7 +3,7 @@ class GatherIter is Iterator {
     has $!reified;             # Parcel of this iterator's results
     has $!infinite;            # true if iterator is known infinite
 
-    method new($block, :$infinite) {
+    method new($block, Mu :$infinite) {
         my Mu $coro := 
             nqp::clone(nqp::getattr(&coro, Code, '$!do'));
         Q:PIR {
@@ -76,7 +76,7 @@ class GatherIter is Iterator {
 }
 
 
-sub GATHER(\$block, :$infinite) { 
+sub GATHER(\$block, Mu :$infinite) { 
     GatherIter.new( $block, :$infinite ).list;  
 }
 

@@ -138,6 +138,27 @@ sub exit($status = 0) {
     $status;
 }
 
+sub run($cmd) {
+    my $status = 255;
+    try {
+        $status = 
+            nqp::p6box_i(
+                pir::shr__0II(
+                    pir::spawnw__Is(nqp::unbox_s($cmd)),
+                    8));
+    }
+    $status;
+}
+
+sub QX($cmd) {
+    my Mu $pio := pir::open__Pss(nqp::unbox_s($cmd), 'rp');
+    fail "Unable to execute '$cmd'" unless $pio;
+    $pio.encoding('utf8');
+    my $result = nqp::p6box_s($pio.readall());
+    $pio.close();
+    $result;
+}
+
 sub EXHAUST(|$) {
     die "Attempt to return from exhausted Routine"
 }

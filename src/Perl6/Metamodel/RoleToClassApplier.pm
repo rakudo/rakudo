@@ -35,9 +35,9 @@ my class RoleToClassApplier {
         for @collisions {
             unless has_method($target, $_.name, 1) {
                 pir::die("Method '" ~ $_.name ~
-                    "' must be resolved by class '" ~
+                    "' must be resolved by class " ~
                     $target.HOW.name($target) ~
-                    "' because it exists in multiple roles (" ~
+                    " because it exists in multiple roles (" ~
                     pir::join(", ", $_.roles) ~ ")");
             }
         }

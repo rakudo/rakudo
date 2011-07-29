@@ -19,6 +19,9 @@ class Perl6::Metamodel::EnumHOW
     # Hash representing enumeration keys to values.
     has %!values;
     
+    # List of enum values (actual enum objects).
+    has @!enum_value_list;
+    
     # Roles that we do.
     has @!does_list;
     
@@ -29,8 +32,17 @@ class Perl6::Metamodel::EnumHOW
         self.add_stash($obj);
     }
     
-    method add_enum_value($obj, $key, $value) {
-        %!values{$key} := $value;
+    method add_enum_value($obj, $value) {
+        %!values{~$value.key} := $value.value;
+        @!enum_value_list[+@!enum_value_list] := $value;
+    }
+    
+    method enum_values($obj) {
+        %!values
+    }
+    
+    method enum_value_list($obj) {
+        @!enum_value_list
     }
     
     method compose($obj) {
@@ -65,17 +77,6 @@ class Perl6::Metamodel::EnumHOW
         
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
-        
-        # Setup the actual enumeration values.
-        for %!values {
-            # Create value object, and shove key in it too.
-            my $key_obj   := pir::perl6_box_str__PS($_.key);
-            my $value_obj := pir::repr_box_int__PIP($_.value, $obj);
-            nqp::bindattr($value_obj, $obj, '$!key', $key_obj);
-            
-            # Add to stash.
-            ($obj.WHO){$_.key} := $value_obj;
-        }
 
         $obj
     }

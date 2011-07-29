@@ -95,13 +95,20 @@ my class Cool {
     multi method match(Cool:D: Cool $target, *%adverbs) {
         self.Str.match($target.Stringy, |%adverbs)
     }
-    # TODO: handle $limit in .comb
+
     proto method comb(|$) {*}
-    multi method comb(Regex $matcher) { self.Str.comb($matcher) }
+    multi method comb(Regex $matcher, $limit = $Inf) { self.Str.comb($matcher, $limit) }
+
+    proto method subst(|$) {*}
+    multi method subst($matcher, $replacement, *%adverbs) {
+        self.Stringy.subst($matcher, $replacement, |%adverbs);
+    }
 
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
+
+    method IO() { IO.new(:path(self)) }
 }
 
 sub chop($s)                  { $s.chop }

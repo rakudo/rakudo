@@ -1,6 +1,7 @@
 #include "pmc_perl6lexinfo.h"
 #include "../binder/sixmodelobject.h"
 #include "../binder/container.h"
+#include "pmc_sub.h"
 
 /* Some useful types/container descriptors we like to have to hand. */
 static PMC *topic_cd = NULL;
@@ -10,6 +11,7 @@ static PMC *Scalar   = NULL;
 static PMC *Any      = NULL;
 static PMC *EnumMap  = NULL;
 static PMC *_Hash    = NULL;
+static PMC *Block    = NULL;
 
 /* Creates a fresh scalar container with the specified descriptor. */
 static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
@@ -175,15 +177,44 @@ Return the LexInfo PMC, if any or a Null PMC.
                 /* Yes, we have some. Grab values too, then iterate. */
                 PMC *static_values_cache;
                 PMC *static_clone_flags_cache;
+                PMC *state_flags_cache;
                 INTVAL num_statics = VTABLE_elements(interp, static_slots_cache);
                 INTVAL i;
                 GETATTR_Perl6LexInfo_static_values_cache(INTERP, info, static_values_cache);
                 GETATTR_Perl6LexInfo_static_clone_flags_cache(INTERP, info, static_clone_flags_cache);
+                GETATTR_Perl6LexInfo_state_flags_cache(INTERP, info, state_flags_cache);
                 for (i = 0; i < num_statics; i++) {
                     INTVAL  slot  = VTABLE_get_integer_keyed_int(interp, static_slots_cache, i);
                     PMC    *value = VTABLE_get_pmc_keyed_int(interp, static_values_cache, i);
                     INTVAL  clone = VTABLE_get_integer_keyed_int(interp, static_clone_flags_cache, i);
-                    CTX_REG_PMC(interp, (PMC *)ctx, slot >> 2) = clone ? REPR(value)->clone(interp, value) : value;
+                    STRING *state = VTABLE_get_string_keyed_int(interp, state_flags_cache, i);
+                    if (!STRING_IS_NULL(state)) {
+                        /* See if we have some state storage. */
+                        PMC * sub = Parrot_pcc_get_sub(interp, ctx);
+                        PMC * cur_state = PMCNULL;
+                        PMC * p6sub, *state_stash;
+                        GETATTR_Sub_multi_signature(interp, sub, p6sub);
+                        state_stash = VTABLE_get_attr_keyed(interp, p6sub, Block, CONST_STRING(interp, "$!state_vars"));
+                        if (PMC_IS_NULL(state_stash)) {
+                            state_stash = pmc_new(interp, enum_class_Hash);
+                            VTABLE_set_attr_keyed(interp, p6sub, Block, CONST_STRING(interp, "$!state_vars"), state_stash);
+                        }
+                        else {
+                            cur_state = VTABLE_get_pmc_keyed_str(interp, state_stash, state);
+                        }
+                        if (PMC_IS_NULL(cur_state)) {
+                            if (clone)
+                                value = REPR(value)->clone(interp, value);
+                            VTABLE_set_pmc_keyed_str(interp, state_stash, state, value);
+                        }
+                        else {
+                            value = cur_state;
+                        }
+                    }
+                    else if (clone) {
+                        value = REPR(value)->clone(interp, value);
+                    }
+                    CTX_REG_PMC(interp, (PMC *)ctx, slot >> 2) = value;
                 }
                 PARROT_GC_WRITE_BARRIER(INTERP, (PMC *)ctx);
             }
@@ -410,7 +441,8 @@ Get iterator for declared lexicals.
     }
     
     METHOD configure_magicals(PMC *_topic_cd, PMC *_error_cd, PMC *_match_cd,
-                              PMC *_Scalar, PMC *_Any, PMC *_EnumMap, PMC *__Hash) {
+                              PMC *_Scalar, PMC *_Any, PMC *_EnumMap, PMC *__Hash,
+                              PMC *_Block) {
         topic_cd = _topic_cd;
         error_cd = _error_cd;
         match_cd = _match_cd;
@@ -418,6 +450,7 @@ Get iterator for declared lexicals.
         Any      = _Any;
         EnumMap  = _EnumMap;
         _Hash    = __Hash;
+        Block    = _Block;
     }
 
 }

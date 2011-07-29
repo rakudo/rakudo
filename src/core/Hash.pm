@@ -20,13 +20,13 @@ my class Hash {
     }
 
     method STORE(\$to_store) {
-        my $items = $to_store.flat.eager;
+        my $items = ($to_store,).flat.eager;
         nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
         while $items {
             my Mu $x := $items.shift;
             if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key.Str, $x.value) }
             elsif EnumMap.ACCEPTS($x) {
-                for $x.list { self.STORE_AT_KEY(.key.Str, lvaue) }
+                for $x.list { self.STORE_AT_KEY(.key.Str, .value) }
             }
             elsif $items { self.STORE_AT_KEY($x.Str, $items.shift) }
             else {
@@ -34,6 +34,15 @@ my class Hash {
             }
         }
         self
+    }
+
+    method delete($key as Str) {
+        my Mu $val = self.at_key($key);
+        pir::delete(
+            nqp::getattr(self, EnumMap, '$!storage'),
+            nqp::unbox_s($key)
+        );
+        $val;
     }
 
     method push(*@values) {

@@ -23,6 +23,7 @@ my class EnumMap does Associative {
     method kv()     { self.pairs.map( { $_.kv } ) }
     method values() { self.pairs.map( { $_.value } ) }
     method pairs() {
+        return unless pir::defined($!storage);
         gather {
             my Mu $iter := nqp::iterator($!storage);
             my Mu $pair;

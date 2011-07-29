@@ -2,16 +2,16 @@ my class Cursor {... }
 my class Range  {... }
 
 my class Str does Stringy {
-    method Bool() { self ne '' && self ne '0' }
+    multi method Bool(Str:D:) { self ne '' && self ne '0' }
     
     multi method Str(Str:D:) { self }
     
-    method Int() { self.Numeric.Int; }
-    method Num() { self.Numeric.Num; }
+    method Int(Str:D:) { self.Numeric.Int; }
+    method Num(Str:D:) { self.Numeric.Num; }
 
     multi method ACCEPTS(Str:D: $other) { $other eq self }
 
-    method chomp() {
+    method chomp(Str:D:) {
         my Int $chars = self.chars;
         return '' if $chars == 0;
         my Str $last = nqp::p6box_s(nqp::substr(nqp::unbox_s(self), nqp::unbox_i($chars - 1)));
@@ -22,13 +22,13 @@ my class Str does Stringy {
         nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self),nqp::unbox_i($to_remove)))
     }
 
-    method chop() {
+    method chop(Str:D:) {
         nqp::p6box_s(
             nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), 1))
         );
     }
 
-    method substr($start, $length? is copy) {
+    method substr(Str:D: $start, $length? is copy) {
         fail "Negative start argument ($start) to .substr" if $start < 0;
         fail "Start of substr ($start) beyond end of string" if $start > self.chars;
         $length = $length.defined ?? $length.Int !! self.chars - $start.Int;
@@ -69,7 +69,7 @@ my class Str does Stringy {
         return (0, -1);
     }
 
-    method pred() {
+    method pred(Str:D:) {
         my $str = self;
         my ($r0, $r1) = RANGEPOS($str);
         while $r1 >= $r0 {
@@ -91,7 +91,7 @@ my class Str does Stringy {
         fail('Decrement out of range');
     }
 
-    method succ() {
+    method succ(Str:D:) {
         my $str = self;
         my ($r0, $r1) = RANGEPOS($str);
         while $r1 >= $r0 {
@@ -239,17 +239,17 @@ my class Str does Stringy {
         $result ~ '"'
     }
 
-    multi method comb() {
+    multi method comb(Str:D:) {
         (^self.chars).map({self.substr($_, 1) });
     }
-    multi method comb(Regex $pat, $limit = $Inf, :$match) {
+    multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
         $match
             ?? self.match(:g, :x(1..$limit), $pat)
             !! self.match(:g, :x(1..$limit), $pat).map: { .Str }
     }
 
 
-    multi method match(Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
+    multi method match(Str:D: Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
         if $c.defined {
@@ -276,8 +276,7 @@ my class Str does Stringy {
                 @r.push: $m;
                 last if @r.elems == $x_upper;
 
-                # XXX should be %opts.delete('d'), but Hash.delete is NYI
-                %opts<d> = Any if %opts<d>;
+                %opts.delete('d');
                 %opts<c> = $overlap
                         ?? $m.from +1
                         !!  ($m.to == $m.from ?? $m.to + 1 !! $m.to);
@@ -287,6 +286,28 @@ my class Str does Stringy {
         } else {
             $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
         }
+    }
+
+    multi method subst($matcher, $replacement,
+                       :ii(:$samecase), :ss(:$samespace), *%options) {
+        die ":samespace not yet implemented" if $samecase;
+        my @matches = self.match($matcher, |%options);
+        return self unless @matches;
+        return self if @matches == 1 && !@matches[0];
+        my $prev = 0;
+        my $result = '';
+        for @matches -> $m {
+            $result ~= self.substr($prev, $m.from - $prev);
+
+            my $real_replacement = ~($replacement ~~ Callable ?? $replacement($m) !! $replacement);
+            $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
+            $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
+            $result ~= $real_replacement;
+            $prev = $m.to;
+        }
+        my $last = @matches.pop;
+        $result ~= self.substr($last.to);
+        $result;
     }
 
     method ords(Str:D:) {
@@ -306,7 +327,7 @@ my class Str does Stringy {
         }
     }
 
-    multi method split(Regex $pat, $limit = *, :$all) {
+    multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
         my @matches := self.match($pat, :x(1..$l), :g);
         gather {
@@ -319,7 +340,7 @@ my class Str does Stringy {
             take self.substr($prev-pos);
         }
     }
-    multi method split(Cool $delimiter, $limit = *, :$all) {
+    multi method split(Str:D: Cool $delimiter, $limit = *, :$all) {
         my $match-string = $delimiter.Str;
         return if self eq '' && $delimiter eq '';
         my $c = 0;
@@ -352,9 +373,8 @@ my class Str does Stringy {
         my $p = '';
         for self.comb -> $s {
             $p = @pat.shift if @pat;
-            # XXX anchors necessary due to a regex bug
-            push @chars, $p ~~ /^<.upper>$/  ?? $s.uc
-                      !! $p ~~ /^<.lower>$/  ?? $s.lc
+            push @chars, $p ~~ /<.upper>/  ?? $s.uc
+                      !! $p ~~ /<.lower>/  ?? $s.lc
                       !! $s;
         }
         @chars.join('');
@@ -362,62 +382,62 @@ my class Str does Stringy {
 }
 
 
-multi prefix:<~>(Str \$a) { $a }
+multi prefix:<~>(Str:D \$a) { $a }
 
-multi infix:<~>(Str \$a, Str \$b) {
+multi infix:<~>(Str:D \$a, Str:D \$b) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<x>(Str $s, Int $repetition) {
+multi infix:<x>(Str:D $s, Int:D $repetition) {
     nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
 }
 
-multi infix:<cmp>(Str \$a, Str \$b) {
+multi infix:<cmp>(Str:D \$a, Str:D \$b) {
     nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<===>(Str \$a, Str \$b) {
+multi infix:<===>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<leg>(Str \$a, Str \$b) {
+multi infix:<leg>(Str:D \$a, Str:D \$b) {
     nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<eq>(Str \$a, Str \$b) {
+multi infix:<eq>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<ne>(Str \$a, Str \$b) {
+multi infix:<ne>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::isne_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<lt>(Str \$a, Str \$b) {
+multi infix:<lt>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::islt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<le>(Str \$a, Str \$b) {
+multi infix:<le>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::isle_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<gt>(Str \$a, Str \$b) {
+multi infix:<gt>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::isgt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<ge>(Str \$a, Str \$b) {
+multi infix:<ge>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::isge_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 
-multi infix:<~|>(Str \$a, Str \$b) {
+multi infix:<~|>(Str:D \$a, Str:D \$b) {
     nqp::p6box_s(pir::bors__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<~&>(Str \$a, Str \$b) {
+multi infix:<~&>(Str:D \$a, Str:D \$b) {
     nqp::p6box_s(pir::bands__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<~^>(Str \$a, Str \$b) {
+multi infix:<~^>(Str:D \$a, Str:D \$b) {
     nqp::p6box_s(pir::bxors__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 

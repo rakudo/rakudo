@@ -317,7 +317,8 @@ static INTVAL has_junctional_args(PARROT_INTERP, PMC *args) {
     INTVAL i;
 
     for (i = 0; i < num_args; i++) {
-        PMC * const arg = VTABLE_get_pmc_keyed_int(interp, args, i);
+        PMC * const arg = Rakudo_cont_decontainerize(interp,
+            VTABLE_get_pmc_keyed_int(interp, args, i));
         if (STABLE(arg)->type_check(interp, arg, Rakudo_types_junction_get()))
             return 1;
     }

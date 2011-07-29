@@ -164,7 +164,7 @@ class Perl6::Actions is HLL::Actions {
         $outer.hll('perl6');
         $unit.loadlibs('nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
                        'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
-                       'obscure_ops', 'os');
+                       'obscure_ops', 'os', 'file');
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
         my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),
@@ -744,7 +744,7 @@ class Perl6::Actions is HLL::Actions {
             PAST::Op.new(:pasttype<bind_6model>,
                 PAST::Var.new(:name<$!>, :scope<lexical_6model>),
                 PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
-                    PAST::Op.new(:inline('    .get_results (%r)')))));
+                    PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")))));
 
         # Otherwise, put Mu into $!.
         $past.push(
@@ -756,7 +756,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method blorst($/) {
-        make $<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast);
+        make $<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast, $/);
     }
 
     # Statement modifiers
@@ -833,7 +833,11 @@ class Perl6::Actions is HLL::Actions {
                 make make_pair($*key, make_variable($/<var>, ~$<var>));
             }
             elsif $*value ~~ Regex::Match {
-                make make_pair($*key, $*value.ast);
+                my $val_ast := $*value.ast;
+                if $val_ast.isa(PAST::Stmts) && +@($val_ast) == 1 {
+                    $val_ast := $val_ast[0];
+                }
+                make make_pair($*key, $val_ast);
             }
             elsif $*value == 0 {
                 make make_pair($*key, PAST::Op.new( :pirop('perl6_booleanize PI'), 0 ));
@@ -1012,7 +1016,7 @@ class Perl6::Actions is HLL::Actions {
             my @params := $<signature> ?? $<signature>[0].ast !! [];
             @params.unshift(hash(
                 is_multi_invocant => 1,
-                type_captures     => ['$?CLASS']
+                type_captures     => ['$?CLASS', '::?CLASS']
             ));
             set_default_parameter_type(@params, 'Mu');
             my $sig := create_signature_object(@params, $block);
@@ -1050,6 +1054,7 @@ class Perl6::Actions is HLL::Actions {
     method scope_declarator:sym<has>($/)     { make $<scoped>.ast; }
     method scope_declarator:sym<anon>($/)    { make $<scoped>.ast; }
     method scope_declarator:sym<augment>($/) { make $<scoped>.ast; }
+    method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
 
     method declarator($/) {
         if    $<variable_declarator> { make $<variable_declarator>.ast }
@@ -1149,7 +1154,7 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( :pasttype('null') );
             $past<attribute_declarand> := $attr;
         }
-        elsif $*SCOPE eq 'my' {
+        elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
             my $descriptor := $*ST.create_container_descriptor(
@@ -1159,10 +1164,12 @@ class Perl6::Actions is HLL::Actions {
             # Install the container. Scalars default to Any if untyped.
             if $sigil eq '$' || $sigil eq '&' {
                 $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
-                    $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Any']));
+                    $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Any']),
+                    :state($*SCOPE eq 'state'));
             }
             else {
-                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor);
+                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
+                    :state($*SCOPE eq 'state'));
             }
             
             # Set scope and type on container.
@@ -1239,6 +1246,9 @@ class Perl6::Actions is HLL::Actions {
         # install it in the lexpad.
         my $outer := $*ST.cur_lexpad();
         $outer[0].push(PAST::Stmt.new($block));
+        
+        # Install &?ROUTINE.
+        $*ST.install_lexical_symbol($block, '&?ROUTINE', $code);
 
         my $past;
         if $<deflongname> {
@@ -1349,6 +1359,9 @@ class Perl6::Actions is HLL::Actions {
             $<longname> && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
         my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
+        
+        # Install &?ROUTINE.
+        $*ST.install_lexical_symbol($past, '&?ROUTINE', $code);
         
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*ST.cur_lexpad();
@@ -1529,6 +1542,15 @@ class Perl6::Actions is HLL::Actions {
             $*ST.apply_trait('&trait_mod:<does>', $type_obj, $*ST.find_symbol(['NumericEnumeration']));
         }
         
+        # Apply traits, compose and install package.
+        for $<trait> {
+            ($_.ast)($type_obj) if $_.ast;
+        }
+        $*ST.pkg_compose($type_obj);
+        if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
+        $*ST.install_package($/, $<longname>, ($*SCOPE || 'our'),
+            'enum', $*PACKAGE, $*ST.cur_lexpad(), $type_obj);
+        
         # Get list of either values or pairs; fail if we can't.
         my @values;
         my $term_ast := $<term>.ast;
@@ -1568,26 +1590,26 @@ class Perl6::Actions is HLL::Actions {
             # key.
             my $cur_key;
             if $_.returns() eq 'Pair' {
-                $cur_key   := nqp::unbox_s($_[1]<compile_time_value>);
+                $cur_key   := $_[1]<compile_time_value>;
                 $cur_value := nqp::unbox_i($_[2]<compile_time_value>);
             }
             else {
-                $cur_key := nqp::unbox_s($_<compile_time_value>);
+                $cur_key := $_<compile_time_value>;
             }
-            $*ST.enum_add_value($type_obj, $cur_key, $cur_value);
+            
+            # Create and install value.
+            my $val_obj := $*ST.create_enum_value($type_obj, $cur_key, $cur_value);
+            $*ST.install_package_symbol($type_obj, ~$cur_key, $val_obj);
+            if $*SCOPE ne 'anon' {
+                $*ST.install_lexical_symbol($*ST.cur_lexpad(), ~$cur_key, $val_obj);
+            }
+            if $*SCOPE eq '' || $*SCOPE eq 'our' {
+                $*ST.install_package_symbol($*PACKAGE, ~$cur_key, $val_obj);
+            }
             
             # Increment for next value.
             $cur_value := $cur_value + 1;
         }
-        
-        # Compose, apply traits and install.
-        $*ST.pkg_compose($type_obj);
-        for $<trait> {
-            ($_.ast)($type_obj) if $_.ast;
-        }
-        if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
-        $*ST.install_package($/, $<longname>, ($*SCOPE || 'our'),
-            'enum', $*PACKAGE, $*ST.cur_lexpad(), $type_obj);
         
         # We evaluate to the enum type object.
         make $*ST.get_object_sc_ref_past($type_obj);
@@ -1807,7 +1829,7 @@ class Perl6::Actions is HLL::Actions {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
                     }
                     $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
-                    $cur_pad.symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical_6model' !! 'package'));
+                    $cur_pad.symbol(~$/, :scope('lexical_6model'));
                 }
             }
             elsif $twigil eq '!' {
@@ -1847,12 +1869,12 @@ class Perl6::Actions is HLL::Actions {
     
     method default_value($/) {
         # Turn into a thunk.
-        make make_thunk($<EXPR>.ast);
+        make make_thunk($<EXPR>.ast, $/);
     }
 
     method type_constraint($/) {
         if $<typename> {
-            if pir::substr(~$<typename>, 0, 2) eq '::' {
+            if pir::substr(~$<typename>, 0, 2) eq '::' && pir::substr(~$<typename>, 2, 1) ne '?' {
                 # Set up signature so it will find the typename.
                 my $desigilname := pir::substr(~$<typename>, 2);
                 unless %*PARAM_INFO<type_captures> {
@@ -1871,7 +1893,7 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic('Parameter may only have one prefix type constraint');
                 }
                 %*PARAM_INFO<nominal_type> := $<typename>.ast;
-                for $<typename><longname><colonpair> {
+                for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
                     if $_<identifier> {
                         if $_<identifier>.Str eq 'D' {
                             %*PARAM_INFO<defined_only> := 1;
@@ -2939,7 +2961,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         else {
-            make $*ST.find_symbol(Perl6::Grammar::parse_name('::?' ~ ~$<identifier>));
+            make $*ST.find_symbol(['::?' ~ ~$<identifier>]);
         }   
     }
 
@@ -3027,12 +3049,12 @@ class Perl6::Actions is HLL::Actions {
         make PAST::Op.new( :inline( $pir ), :pasttype('inline'), :node($/) );
     }
     method quote:sym<qx>($/) {
-        make PAST::Op.new( :name('!qx'), :pasttype('call'),
+        make PAST::Op.new( :name('&QX'), :pasttype('call'),
             $<quote_EXPR>.ast
         );
     }
     method quote:sym<qqx>($/)  {
-        make PAST::Op.new( :name('!qx'), :pasttype('call'),
+        make PAST::Op.new( :name('&QX'), :pasttype('call'),
             $<quote_EXPR>.ast
         );
     }
@@ -3080,8 +3102,10 @@ class Perl6::Actions is HLL::Actions {
 
     method quote:sym<s>($/) {
         # Build the regex.
-        my $regex_ast := Regex::P6Regex::Actions::buildsub($<p6regex>.ast);
-        my $regex := block_closure($regex_ast, 'Regex', 0);
+        
+        my $rx_block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $rx_coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $rx_block);
+#        my $regex :=  block_closure($rx_coderef);
 
         # Quote needs to be closure-i-fied.
         my $closure_ast := PAST::Block.new(
@@ -3090,19 +3114,19 @@ class Perl6::Actions is HLL::Actions {
                 $<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast
             )
         );
-        my $closure := block_closure($closure_ast, 'Block', 0);
+        my $closure := block_closure($closure_ast);
 
         # make $_ = $_.subst(...)
         my $past := PAST::Op.new(
             :node($/),
             :pasttype('callmethod'), :name('subst'),
             PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
-            $regex, $closure
+            $rx_coderef, $closure
         );
         self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
-        if $/[0] {
-            pir::push__vPP($past, PAST::Val.new(:named('samespace'), :value(1)));
-        }
+#        if $/[0] {
+#            pir::push__vPP($past, PAST::Val.new(:named('samespace'), :value(1)));
+#        }
 
         $past := PAST::Op.new(
             :node($/),
@@ -3302,12 +3326,17 @@ class Perl6::Actions is HLL::Actions {
         return $closure;
     }
     
-    sub make_thunk($to_thunk) {
-        make_simple_code_object(PAST::Block.new( $to_thunk ), 'Code');
+    sub make_thunk($to_thunk, $/) {
+        my $block := $*ST.push_lexpad($/);
+        $block.push($to_thunk);
+        $*ST.pop_lexpad();
+        make_simple_code_object($block, 'Code');
     }
     
-    sub make_thunk_ref($to_thunk) {
-        my $block := PAST::Block.new( $to_thunk );
+    sub make_thunk_ref($to_thunk, $/) {
+        my $block := $*ST.push_lexpad($/);
+        $block.push($to_thunk);
+        $*ST.pop_lexpad();
         reference_to_code_object(
             make_simple_code_object($block, 'Code'),
             $block);

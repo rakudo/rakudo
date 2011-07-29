@@ -30,7 +30,6 @@ static STRING *REST_str         = NULL;
 static STRING *LIST_str         = NULL;
 static STRING *FLATTENS_str     = NULL;
 static STRING *NEXTITER_str     = NULL;
-static STRING *SHORTNAME_str    = NULL;
 static STRING *HASH_SIGIL_str   = NULL;
 static STRING *ARRAY_SIGIL_str  = NULL;
 static STRING *BANG_TWIGIL_str  = NULL;
@@ -54,7 +53,6 @@ static void setup_binder_statics(PARROT_INTERP) {
     LIST_str         = Parrot_str_new_constant(interp, "$!list");
     FLATTENS_str     = Parrot_str_new_constant(interp, "$!flattens");
     NEXTITER_str     = Parrot_str_new_constant(interp, "$!nextiter");
-    SHORTNAME_str    = Parrot_str_new_constant(interp, "shortname");
     HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
     ARRAY_SIGIL_str  = Parrot_str_new_constant(interp, "@");
     BANG_TWIGIL_str  = Parrot_str_new_constant(interp, "!");
@@ -312,25 +310,26 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
         Rakudo_binding_bind_type_captures(interp, lexpad, param, decont_value);
 
     /* Do a coercion, if one is needed. */
-    if (!STRING_IS_NULL(param->coerce_to)) {
-        PMC *coerce_meth = VTABLE_find_method(interp, decont_value, param->coerce_to);
-        if (!PMC_IS_NULL(coerce_meth)) {
-            Parrot_ext_call(interp, coerce_meth, "Pi->P", decont_value, &decont_value);
-        }
-        else {
-            /* No coercion method availale; whine and fail to bind. */
-            if (error) {
-                PMC    * how_meth   = VTABLE_find_method(interp, decont_value, HOW);
-                PMC    * value_how, * value_type;
-                STRING * got;
-                Parrot_ext_call(interp, how_meth, "Pi->P", decont_value, &value_how);
-                value_type = VTABLE_get_attr_str(interp, value_how, SHORTNAME_str);
-                got        = VTABLE_get_string(interp, value_type);
-                *error = Parrot_sprintf_c(interp,
-                        "Unable to coerce value for '%S' from %S to %S; no coercion method defined",
-                        param->variable_name, got, param->coerce_to);
+    if (!PMC_IS_NULL(param->coerce_type)) {
+        /* Only coerce if we don't already have the correct type. */
+        if (!STABLE(decont_value)->type_check(interp, decont_value, param->coerce_type)) {
+            PMC *coerce_meth = VTABLE_find_method(interp, decont_value, param->coerce_method);
+            if (!PMC_IS_NULL(coerce_meth)) {
+                Parrot_ext_call(interp, coerce_meth, "Pi->P", decont_value, &decont_value);
             }
-            return BIND_RESULT_FAIL;
+            else {
+                /* No coercion method availale; whine and fail to bind. */
+                if (error) {
+                    PMC    * got_how       = STABLE(decont_value)->HOW;
+                    PMC    * got_name_meth = VTABLE_find_method(interp, got_how, NAME_str);
+                    STRING * got;
+                    Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, value, &got);
+                    *error = Parrot_sprintf_c(interp,
+                            "Unable to coerce value for '%S' from %S to %S; no coercion method defined",
+                            param->variable_name, got, param->coerce_method);
+                }
+                return BIND_RESULT_FAIL;
+            }
         }
     }
 

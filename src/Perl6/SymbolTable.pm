@@ -177,7 +177,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     ),
                     $_.key
                 ),
-                0
+                0, 0
             ));
         }
         self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
@@ -223,7 +223,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Val.new( :value($block) )
             ),
             ~$name, self.get_object_sc_ref_past($obj),
-            0
+            0, 0
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
         1;
@@ -231,7 +231,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
     # the type of container to install.
-    method install_lexical_container($block, $name, $type_name, $descriptor, *@default_value) {
+    method install_lexical_container($block, $name, $type_name, $descriptor, :$state, *@default_value) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         unless $block.symbol($name) {
@@ -243,6 +243,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # If it's a native type, we're done - no container
         # as we inline natives straight into registers.
         if pir::repr_get_primitive_type_spec__IP($descriptor.of) {
+            if $state { pir::die("Natively typed state variables not yet implemented") }
             return 1;
         }
         
@@ -258,7 +259,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 :pasttype('callmethod'), :name('get_lexinfo'),
                 PAST::Val.new( :value($block) )
             ),
-            ~$name, $cont_code, 1
+            ~$name, $cont_code, 1, ($state ?? 1 !! 0)
         );
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
         1;
@@ -1077,16 +1078,44 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Adds a value to an enumeration.
-    method enum_add_value($enum_type_obj, $key, $value) {
-        # Add directly.
-        $enum_type_obj.HOW.add_enum_value($enum_type_obj, $key, $value);
+    method create_enum_value($enum_type_obj, $key, $value) {
+        # Create directly.
+        my $val       := pir::repr_box_int__PiP($value, $enum_type_obj);
+        my $base_type := ($enum_type_obj.HOW.parents($enum_type_obj, :local(1)))[0];
+        pir::setattribute__vPPsP($val, $enum_type_obj, '$!key', $key);
+        pir::setattribute__vPPsP($val, $enum_type_obj, '$!value',
+            pir::repr_box_int__PiP($value, $base_type));
+        my $slot := self.add_object($val);
+        
+        # Add to meta-object.
+        $enum_type_obj.HOW.add_enum_value($enum_type_obj, $val);
         
         # Generate deserialization code.
         my $enum_type_obj_ref := self.get_object_sc_ref_past($enum_type_obj);
-        self.add_event(:deserialize_past(PAST::Op.new(
-            :pasttype('callmethod'), :name('add_enum_value'),
-            PAST::Op.new( :pirop('get_how PP'), $enum_type_obj_ref ),
-            $key, $value)));
+        my $base_type_ref := self.get_object_sc_ref_past($base_type);
+        my $key_ref := self.get_object_sc_ref_past($key);
+        my $val_ref := self.get_object_sc_ref_past($val);
+        self.add_event(:deserialize_past(PAST::Stmts.new(            
+            self.set_slot_past($slot, self.set_cur_sc(
+                PAST::Op.new( :pirop('repr_box_int PiP'), $value, $enum_type_obj_ref )
+            )),
+            PAST::Op.new(
+                :pirop('setattribute vPPsP'),
+                $val_ref, $enum_type_obj_ref, '$!key', $key_ref
+            ),
+            PAST::Op.new(
+                :pirop('setattribute vPPsP'),
+                $val_ref, $enum_type_obj_ref, '$!value',
+                PAST::Op.new( :pirop('repr_box_int PiP'), $value, $base_type_ref )
+            ),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('add_enum_value'),
+                PAST::Op.new( :pirop('get_how PP'), $enum_type_obj_ref ),
+                $enum_type_obj_ref, $val
+            ))));
+            
+        # Result is the value.
+        $val
     }
     
     # Applies a trait.

@@ -20,6 +20,8 @@ my class Mu {
     multi method Bool() {
         self.defined
     }
+
+    method so() { self.Bool }
     
     method defined() {
         nqp::p6bool(pir::repr_defined__IP(self))

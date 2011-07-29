@@ -11,6 +11,9 @@ Rakudo Perl 6
     after more than just the bare compiler, please download the latest
     Rakudo Star package from http://github.com/rakudo/star/downloads .
 
+    For a high-level overview of implemented and missing features,
+    please visit http://perl6.org/compilers/features .
+
   Build requirements (Installing from source)
     For building Rakudo you need at least a C compiler, a "make" utility,
     and Perl 5.8 or newer. To automatically obtain and build Parrot you

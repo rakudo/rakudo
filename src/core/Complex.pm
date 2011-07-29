@@ -13,15 +13,15 @@ my class Complex is Numeric {
         $!re = $re;
         $!im = $im;
     }
-    method reals() {
+    method reals(Complex:D:) {
         (self.re, self.im);
     }
 
-    method isNaN() {
+    method isNaN(Complex:D:) {
         self.re.isNaN || self.im.isNaN;
     }
 
-    method Real() {
+    method Real(Complex:D:) {
         if $!im == 0 {
             $!re;
         } else {
@@ -31,9 +31,9 @@ my class Complex is Numeric {
     }
 
     # should probably be eventually supplied by role Numeric
-    method Num() { self.Real.Num }
-    method Int() { self.Real.Int }
-    method Rat() { self.Real.Rat }
+    method Num(Complex:D:) { self.Real.Num }
+    method Int(Complex:D:) { self.Real.Int }
+    method Rat(Complex:D:) { self.Real.Rat }
 
     multi method Bool(Complex:D:) {
         $!re != 0e0 || $!im != 0e0;
@@ -48,7 +48,7 @@ my class Complex is Numeric {
     multi method perl(Complex:D:) {
         "Complex.new($.re, $.im)";
     }
-    method conjugate() {
+    method conjugate(Complex:D:) {
         Complex.new($.re, -$.im);
     }
 
@@ -63,17 +63,17 @@ my class Complex is Numeric {
     method polar() {
         $.abs, $!im.atan2($!re);
     }
-    multi method log() {
+    multi method log(Complex:D:) {
         my Num ($mag, $angle) = self.polar;
         Complex.new($mag.log, $angle);
     }
 
-    method sqrt() {
+    method sqrt(Complex:D:) {
         my Num ($mag, $angle) = self.polar;
         $mag.sqrt.unpolar($angle/2);
     }
 
-    multi method exp() {
+    multi method exp(Complex:D:) {
         my Num $mag = $!re.exp;
         Complex.new($mag * $!im.cos, $mag * $!im.sin);
     }
@@ -91,7 +91,7 @@ my class Complex is Numeric {
     }
 }
 
-multi sub prefix:<->(Complex \$a) {
+multi sub prefix:<->(Complex:D \$a) {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::neg_n(
@@ -106,7 +106,7 @@ multi sub prefix:<->(Complex \$a) {
     $new;
 }
 
-multi sub infix:<+>(Complex \$a, Complex \$b) {
+multi sub infix:<+>(Complex:D \$a, Complex:D \$b) {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::add_n(
@@ -123,7 +123,7 @@ multi sub infix:<+>(Complex \$a, Complex \$b) {
     $new;
 }
 
-multi sub infix:<+>(Complex \$a, Real \$b) {
+multi sub infix:<+>(Complex:D \$a, Real \$b) {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::add_n(
@@ -137,7 +137,7 @@ multi sub infix:<+>(Complex \$a, Real \$b) {
     $new
 }
 
-multi sub infix:<+>(Real \$a, Complex \$b) {
+multi sub infix:<+>(Real \$a, Complex:D \$b) {
     my $new := nqp::create(Complex);
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::add_n(
@@ -151,7 +151,7 @@ multi sub infix:<+>(Real \$a, Complex \$b) {
     $new;
 }
 
-multi sub infix:<->(Complex \$a, Complex \$b) {
+multi sub infix:<->(Complex:D \$a, Complex:D \$b) {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
@@ -168,7 +168,7 @@ multi sub infix:<->(Complex \$a, Complex \$b) {
     $new
 }
 
-multi sub infix:<->(Complex \$a, Real \$b) {
+multi sub infix:<->(Complex:D \$a, Real \$b) {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
@@ -182,7 +182,7 @@ multi sub infix:<->(Complex \$a, Real \$b) {
     $new
 }
 
-multi sub infix:<->(Real \$a, Complex \$b) {
+multi sub infix:<->(Real \$a, Complex:D \$b) {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
@@ -198,7 +198,7 @@ multi sub infix:<->(Real \$a, Complex \$b) {
     $new
 }
 
-multi sub infix:<*>(Complex \$a, Complex \$b) {
+multi sub infix:<*>(Complex:D \$a, Complex:D \$b) {
     my num $a_re = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re');
     my num $a_im = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im');
     my num $b_re = nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re');
@@ -213,7 +213,7 @@ multi sub infix:<*>(Complex \$a, Complex \$b) {
     $new;
 }
 
-multi sub infix:<*>(Complex \$a, Real \$b) {
+multi sub infix:<*>(Complex:D \$a, Real \$b) {
     my $new := nqp::create(Complex);
     my num $b_num = $b.Num;
     nqp::bindattr_n($new, Complex, '$!re',
@@ -231,7 +231,7 @@ multi sub infix:<*>(Complex \$a, Real \$b) {
     $new
 }
 
-multi sub infix:<*>(Real \$a, Complex \$b) {
+multi sub infix:<*>(Real \$a, Complex:D \$b) {
     my $new := nqp::create(Complex);
     my num $a_num = $a.Num;
     nqp::bindattr_n($new, Complex, '$!re',
@@ -249,7 +249,7 @@ multi sub infix:<*>(Real \$a, Complex \$b) {
     $new
 }
 
-multi sub infix:</>(Complex \$a, Complex \$b) {
+multi sub infix:</>(Complex:D \$a, Complex:D \$b) {
     my num $a_re = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re');
     my num $a_im = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im');
     my num $b_re = nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re');
@@ -271,25 +271,25 @@ multi sub infix:</>(Complex \$a, Complex \$b) {
     $new;
 }
 
-multi sub infix:</>(Complex \$a, Real \$b) {
+multi sub infix:</>(Complex:D \$a, Real \$b) {
     Complex.new($a.re / $b, $a.im / $b);
 }
 
-multi sub infix:</>(Real \$a, Complex \$b) {
+multi sub infix:</>(Real \$a, Complex:D \$b) {
     Complex.new($a, 0) / $b;
 }
 
-multi sub infix:<**>(Complex \$a, Complex \$b) { ($b * $a.log).exp}
-multi sub infix:<**>(Real    \$a, Complex \$b) { ($b * $a.log).exp}
-multi sub infix:<**>(Complex \$a, Real    \$b) { ($b * $a.log).exp}
+multi sub infix:<**>(Complex:D \$a, Complex:D \$b) { ($b * $a.log).exp}
+multi sub infix:<**>(Real      \$a, Complex:D \$b) { ($b * $a.log).exp}
+multi sub infix:<**>(Complex:D \$a, Real      \$b) { ($b * $a.log).exp}
 
-multi sub infix:<==>(Complex \$a, Complex \$b) { $a.re == $b.re && $a.im == $b.im }
-multi sub infix:<==>(Complex \$a, Real    \$b) { $a.re == $b    && $a.im == 0e0   }
-multi sub infix:<==>(Real    \$a, Complex \$b) { $a    == $b.re && 0e0   == $b.im }
+multi sub infix:<==>(Complex:D \$a, Complex:D \$b) { $a.re == $b.re && $a.im == $b.im }
+multi sub infix:<==>(Complex:D \$a, Real      \$b) { $a.re == $b    && $a.im == 0e0   }
+multi sub infix:<==>(Real      \$a, Complex:D \$b) { $a    == $b.re && 0e0   == $b.im }
 
 proto postfix:<i>(|$) { * }
-multi postfix:<i>(Real    \$a) { Complex.new(0e0, $a);     }
-multi postfix:<i>(Complex \$a) { Complex.new(-$a.im, $a.re) }
-multi postfix:<i>(Numeric \$a) { $a * Complex.new(0e0, 1e0) }
+multi postfix:<i>(Real      \$a) { Complex.new(0e0, $a);     }
+multi postfix:<i>(Complex:D \$a) { Complex.new(-$a.im, $a.re) }
+multi postfix:<i>(Numeric   \$a) { $a * Complex.new(0e0, 1e0) }
 
 # vim: ft=perl6

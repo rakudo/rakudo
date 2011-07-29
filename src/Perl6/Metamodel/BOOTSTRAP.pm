@@ -86,6 +86,7 @@ my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 Attribute.HOW.add_parent(Attribute, Any);
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
@@ -132,6 +133,18 @@ Attribute.HOW.add_method(Attribute, 'rw', sub ($self) {
 Attribute.HOW.add_method(Attribute, 'set_rw', sub ($self) {
         pir::repr_bind_attr_int__vPPsi(pir::perl6_decontainerize__PP($self),
             Attribute, '$!rw', 1);
+        pir::perl6_booleanize__PI(1)
+    });
+Attribute.HOW.add_method(Attribute, 'set_readonly', sub ($self) {
+        pir::repr_bind_attr_int__vPPsi(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!ro', 1);
+        pir::perl6_booleanize__PI(1)
+    });
+Attribute.HOW.add_method(Attribute, 'default_to_rw', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        unless pir::repr_get_attr_int__iPPs($dcself, Attribute, '$!ro') {
+            pir::repr_bind_attr_int__vPPsi($dcself, Attribute, '$!rw', 1);
+        }
         pir::perl6_booleanize__PI(1)
     });
 Attribute.HOW.add_method(Attribute, 'set_build_closure', sub ($self, $closure) {
@@ -242,7 +255,8 @@ Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
 #     has int $!flags
 #     has $!nominal_type
 #     has $!post_constraints
-#     has str $!coerce_to
+#     has $!coerce_type
+#     has str $!coerce_method
 #     has $!sub_signature
 #     has $!default_closure
 #     has $!container_descriptor;
@@ -257,7 +271,8 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>,
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_to>, :type(str)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
@@ -289,6 +304,11 @@ Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
         if $cd { $cd.set_rw(1) }
         pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
             pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
+    });
+Parameter.HOW.add_method(Parameter, 'set_coercion', sub ($self, $type) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        pir::repr_bind_attr_str__0PPsS($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
+        pir::setattribute__0PPsP($dcself, Parameter, '$!coerce_type', $type);
     });
     
 # class Code {
@@ -381,8 +401,27 @@ Code.HOW.publish_parrot_vtable_mapping(Code);
 # class Block is Code { ... }
 my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
 Block.HOW.add_parent(Block, Code);
+Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu)));
 Block.HOW.publish_parrot_vtable_handler_mapping(Block);
 Block.HOW.publish_parrot_vtable_mapping(Block);
+Block.HOW.add_method(Block, 'clone', sub ($self) {
+        my $cloned := pir::repr_clone__PP($self);
+        Q:PIR {
+            $P0 = find_lex '$self'
+            $P1 = find_lex 'Code'
+            $P0 = getattribute $P0, $P1, '$!do'
+            $P1 = getprop 'CLONE_CALLBACK', $P0
+            if null $P1 goto no_callback
+            $P2 = find_lex '$cloned'
+            $P1($P0, $P2)
+          no_callback:
+        };
+        pir::setattribute__0PPSP($cloned, Block, '$!state_vars', nqp::null());
+        pir::setattribute__0PPSP($cloned, Code, '$!do',
+            pir::perl6_associate_sub_code_object__0PP(
+                pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
+                $cloned))
+    });
 
 # class Routine is Block { ... }
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -625,7 +664,7 @@ my $error_cd := Perl6::Metamodel::ContainerDescriptor.new(
 my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
     :of(Mu), :rw(1), :name('$/'));
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
-    $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash);
+    $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash, Block);
 
 # Setup some regexy/grammary bits.
 use QRegex;

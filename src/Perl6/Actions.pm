@@ -980,8 +980,7 @@ class Perl6::Actions is HLL::Actions {
                     $list.push($*ST.build_container_past(
                         sigiltype($_<sigil> || '$'),
                         $*ST.create_container_descriptor(
-                            $*ST.find_symbol(['Mu']), 1, 'anon'),
-                        :state($*SCOPE eq 'state')));
+                            $*ST.find_symbol(['Mu']), 1, 'anon')));
                 }
             }
             make $list;

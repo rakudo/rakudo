@@ -27,7 +27,6 @@ module foo {
     }
 }
 
-# XXX Those should be proper .WHY's, once it's implemented
-is foo.HOW.docs,      'a module';
-is foo::bar.HOW.docs, 'a package';
+is foo.WHY,           'a module';
+is foo::bar.WHY,      'a package';
 is foo::bar::baz.WHY, 'and a class';

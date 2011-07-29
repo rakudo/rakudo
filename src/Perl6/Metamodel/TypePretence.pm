@@ -8,4 +8,15 @@ role Perl6::Metamodel::TypePretence {
     method prentending_to_be() {
         @pretending
     }
+    
+    method type_check($obj, $checkee) {
+        if $obj =:= $checkee {
+            return 1;
+        }
+        for self.prentending_to_be() {
+            if $checkee =:= $_ {
+                return 1;
+            }
+        }
+    }
 }

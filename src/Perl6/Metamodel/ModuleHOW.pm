@@ -3,6 +3,8 @@ class Perl6::Metamodel::ModuleHOW
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::Stashing
+    does Perl6::Metamodel::TypePretence
+    does Perl6::Metamodel::MethodDelegation
     does Perl6::Metamodel::NonGeneric
 {
     has $!composed;

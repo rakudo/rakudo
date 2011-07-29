@@ -980,7 +980,8 @@ class Perl6::Actions is HLL::Actions {
                     $list.push($*ST.build_container_past(
                         sigiltype($_<sigil> || '$'),
                         $*ST.create_container_descriptor(
-                            $*ST.find_symbol(['Mu']), 1, 'anon')));
+                            $*ST.find_symbol(['Mu']), 1, 'anon'),
+                        :state($*SCOPE eq 'state')));
                 }
             }
             make $list;
@@ -1731,7 +1732,7 @@ class Perl6::Actions is HLL::Actions {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
                     }
                     $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
-                    $cur_pad.symbol(~$/, :scope($*SCOPE eq 'my' ?? 'lexical_6model' !! 'package'));
+                    $cur_pad.symbol(~$/, :scope('lexical_6model'));
                 }
             }
             elsif $twigil eq '!' {

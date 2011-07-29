@@ -648,7 +648,7 @@ class Perl6::Actions is HLL::Actions {
             PAST::Op.new(:pasttype<bind_6model>,
                 PAST::Var.new(:name<$!>, :scope<lexical_6model>),
                 PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
-                    PAST::Op.new(:inline('    .get_results (%r)')))));
+                    PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")))));
 
         # Otherwise, put Mu into $!.
         $past.push(

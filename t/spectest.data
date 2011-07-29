@@ -372,7 +372,7 @@ S12-class/basic.t
 S12-class/declaration-order.t
 # S12-class/extending-arrays.t # err: Cannot use augment scope with class
 S12-class/inheritance-class-methods.t
-# S12-class/inheritance.t # err: Could not locate compile-time value for symbol CLASS
+S12-class/inheritance.t
 # S12-class/instantiate.t
 # S12-class/interface-consistency.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'.
 S12-class/lexical.t

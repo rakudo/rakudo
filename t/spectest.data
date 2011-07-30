@@ -72,7 +72,7 @@ S02-magicals/config.t
 S02-magicals/dollar-underscore.t
 # S02-magicals/env.t # err: Could not find sub &slurp
 # S02-magicals/pid.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
-# S02-magicals/progname.t # err: Dynamic variable $*PROGRAM_NAME not found
+S02-magicals/progname.t
 # S02-names_and_variables/contextual.t # err: Method '!priv' not found for invocant
 # S02-names_and_variables/fmt.t # err: Too many positional parameters passed; got 3 but expected between 1 and 2
 # S02-names_and_variables/names.t # err: Cannot use placeholder parameters in this kind of block
@@ -374,7 +374,7 @@ S12-class/declaration-order.t
 # S12-class/extending-arrays.t # err: Cannot use augment scope with class
 S12-class/inheritance-class-methods.t
 S12-class/inheritance.t
-# S12-class/instantiate.t
+S12-class/instantiate.t
 # S12-class/interface-consistency.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'.
 S12-class/lexical.t
 # S12-class/namespaced.t # err: regex assertion not terminated by angle bracket at line 54, near "::D::test>"
@@ -394,7 +394,7 @@ S12-enums/basic.t
 # S12-enums/thorough.t # err: Could not find sub &day
 # S12-introspection/attributes.t # err: Can not get non-existant attribute '$!name' on class 'Attribute'
 # S12-introspection/can.t # err: Method 'can' not found for invocant of class 'Str'
-# S12-introspection/meta-class.t # err: Method 'can' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
+S12-introspection/meta-class.t
 # S12-introspection/methods.t # err: Method 'multi' not found for invocant of class 'Method'
 S12-introspection/parents.t
 # S12-introspection/roles.t # err: Method 'roles' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
@@ -614,7 +614,7 @@ integration/advent2009-day15.t
 # integration/advent2009-day20.t # err: Method 'at_key' not found for invocant of class 'Pair'
 # integration/advent2009-day22.t # err: Cannot negate , because it is not iffy enough
 integration/advent2009-day23.t
-# integration/advent2010-day04.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'.
+integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
 # integration/error-reporting.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 integration/lexical-array-in-inner-block.t

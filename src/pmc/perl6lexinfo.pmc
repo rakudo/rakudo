@@ -16,19 +16,7 @@ pmclass Perl6LexInfo
     
     /* The static lex pad that holds static lexical info for this block. */
     ATTR PMC *static_lexpad;
-    
-    /* Hash mapping names to static values. This is the authoritative
-     * source of these, but we always build a more quickly usable cache. */
-    ATTR PMC *static_values;
-    
-    /* Hash mapping names to clone flags. This is the authoritative
-     * source of these, but we always build a more quickly usable cache. */
-    ATTR PMC *static_clone_flags;
-    
-    /* Hash mapping names to state flags (that is, whether it's a state
-     * variable). */
-    ATTR PMC *state_flags;
-    
+
     /* Integer array of slots that we always want to pre-initialize
      * with static values; built from the static_values hash. */
     ATTR PMC *static_slots_cache;
@@ -63,18 +51,12 @@ pmclass Perl6LexInfo
     }
 
     VTABLE void mark() {
-        PMC *name_to_register_map, *static_lexpad, *static_values, *static_clone_flags, *state_flags;
+        PMC *name_to_register_map, *static_lexpad;
         PMC *static_slots_cache, *static_values_cache, *static_clone_flags_cache, *state_flags_cache;
         GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
         Parrot_gc_mark_PMC_alive(INTERP, name_to_register_map);
         GET_ATTR_static_lexpad(INTERP, SELF, static_lexpad);
         Parrot_gc_mark_PMC_alive(INTERP, static_lexpad);
-        GET_ATTR_static_values(INTERP, SELF, static_values);
-        Parrot_gc_mark_PMC_alive(INTERP, static_values);
-        GET_ATTR_static_clone_flags(INTERP, SELF, static_clone_flags);
-        Parrot_gc_mark_PMC_alive(INTERP, static_clone_flags);
-        GET_ATTR_state_flags(INTERP, SELF, state_flags);
-        Parrot_gc_mark_PMC_alive(INTERP, state_flags);
         GET_ATTR_static_slots_cache(INTERP, SELF, static_slots_cache);
         Parrot_gc_mark_PMC_alive(INTERP, static_slots_cache);
         GET_ATTR_static_values_cache(INTERP, SELF, static_values_cache);

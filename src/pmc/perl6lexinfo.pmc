@@ -128,10 +128,6 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
         SET_ATTR_static_lexpad(INTERP, SELF, slp);
     }
     
-    METHOD set_static_lexpad_value(STRING *key, PMC *value, INTVAL clone, INTVAL state) {
-        /* XXX Remove when possible. */
-    }
-    
     METHOD set_fresh_magicals() {
         SET_ATTR_fresh_magicals(INTERP, SELF, 1);
     }

@@ -220,26 +220,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     $_.key
                 ),
                 0, 0
-            ));
-            
-            # XXX OLD, goes away after SLP refactor.
-            $fixups.push(PAST::Op.new(
-                :pasttype('callmethod'), :name('set_static_lexpad_value'),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('get_lexinfo'),
-                    PAST::Val.new( :value($target) )
-                ),
-                $_.key,
-                PAST::Var.new(
-                    :scope('keyed'),
-                    PAST::Op.new(
-                        :pirop('get_who PP'),
-                        self.get_object_sc_ref_past($package)
-                    ),
-                    $_.key
-                ),
-                0, 0
-            ));
+            ));            
         }
         
         self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
@@ -284,19 +265,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             :pasttype('callmethod'), :name('add_static_value'),
             self.get_object_sc_ref_past($slp), 
             ~$name, self.get_object_sc_ref_past($obj), 0, 0
-        ));
-        
-        # XXX goes away after SLP refactor
-        $fixup.push(PAST::Op.new(
-            :pasttype('callmethod'), :name('set_static_lexpad_value'),
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('get_lexinfo'),
-                PAST::Val.new( :value($block) )
-            ),
-            ~$name, self.get_object_sc_ref_past($obj),
-            0, 0
-        ));
-        
+        ));        
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
         1;
     }
@@ -338,17 +307,6 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             self.get_object_sc_ref_past($slp), 
             ~$name, $cont_code, 1, ($state ?? 1 !! 0)
         ));
-        
-        # XXX goes away after SLP refactor.
-        $fixup.push(PAST::Op.new(
-            :pasttype('callmethod'), :name('set_static_lexpad_value'),
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('get_lexinfo'),
-                PAST::Val.new( :value($block) )
-            ),
-            ~$name, $cont_code, 1, ($state ?? 1 !! 0)
-        ));
-        
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
         1;
     }

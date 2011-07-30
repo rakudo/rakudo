@@ -296,6 +296,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if +@default_value {
             pir::setattribute__vPPsP($cont, $cont_type_obj, '$!value', @default_value[0]);
         }
+        $block.symbol($name, :value($cont));
         
         # Add container to static lexpad immediately, and make deserialization
         # code to also do so.
@@ -753,47 +754,37 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $wrapper.hll('perl6');
         $wrapper.namespace('');
         
-        # Create outer lexical contexts with all symbols visible.
-        # XXX OK, so here the plan really is that we implement some kind
-        # of static lexpads, which will then be a good lead on to having
-        # stuff work in pre-comp too. However, that's a good day or two
-        # of refactoring, so now we just shove all the compile-time known
-        # symbols into the wrapper.
+        # Create outer lexical contexts with all symbols visible. Maybe 
+        # we can be a bit smarter here some day. But for now we just make a
+        # single frame and copy all the visible things into it.
         my %seen;
+        my $slp       := nqp::create(self.find_symbol(['StaticLexPad']));
+        my $mu        := self.find_symbol(['Mu']);
         my $cur_block := $past;
         while $cur_block {
             my %symbols := $cur_block.symtable();
             for %symbols {
                 unless %seen{$_.key} {
+                    # Add slot for symbol.
+                    $wrapper[0].push(PAST::Var.new(
+                        :name($_.key), :scope('lexical_6model'), :isdecl(1) ));
+                    $wrapper.symbol($_.key, :scope('lexical_6model'));
+                    
+                    # Make static lexpad entry.
                     my %sym := $_.value;
-                    if pir::exists(%sym, 'value') {
-                        my $ref;
-                        try {
-                            $ref := $*ST.get_object_sc_ref_past(%sym<value>);
-                        }
-                        unless $ref {
-                            try {
-                                self.add_object(%sym<value>);
-                                $ref := $*ST.get_object_sc_ref_past(%sym<value>);
-                            }
-                        }
-                        if $ref {
-                            $wrapper[0].push(PAST::Var.new(
-                                :name($_.key), :scope('lexical_6model'), :isdecl(1),
-                                :viviself($ref)
-                            ));
-                            $wrapper.symbol($_.key, :scope('lexical_6model'));
-                        }
-                    }
+                    $slp.add_static_value($_.key,
+                        (pir::exists(%sym, 'value') ?? %sym<value> !! $mu),
+                        0, (%sym<state> ?? 1 !! 0));
                 }
                 %seen{$_.key} := 1;
             }
             $cur_block := $cur_block<outer>;
         }
         
-        # Compile it, then invoke the wrapper, which fixes up the
-        # other lexicals.
+        # Compile it, set wrapper's static lexpad, then invoke the wrapper,
+        # which fixes up the lexicals.
         my $precomp := PAST::Compiler.compile($wrapper);
+        $precomp[0].get_lexinfo.set_static_lexpad($slp);
         $precomp();
         
         # Fix up Code object associations (including nested blocks).

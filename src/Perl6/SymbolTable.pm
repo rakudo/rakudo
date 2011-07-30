@@ -80,7 +80,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Deserialization code creates the static lexpad. Both that and the
         # fixup need to associate it with the low-level LexInfo.
         my $des := self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
-            :pirop('repr_instance_of PP'), $slp_type_obj
+            :pirop('repr_instance_of PP'), $slp_type_obj_ref
         )));
         my $fix := PAST::Op.new(
             :pasttype('callmethod'), :name('set_static_lexpad'),
@@ -204,7 +204,25 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         
         # Second pass: stick it in the actual static lexpad.
+        my $slp     := self.get_static_lexpad($target);
+        my $slp_ref := self.get_object_sc_ref_past($slp);
         for %stash {
+            $slp.add_static_value($_.key, $_.value, 0, 0);
+            $fixups.push(PAST::Op.new(
+                :pasttype('callmethod'), :name('add_static_value'),
+                $slp_ref, $_.key,
+                PAST::Var.new(
+                    :scope('keyed'),
+                    PAST::Op.new(
+                        :pirop('get_who PP'),
+                        self.get_object_sc_ref_past($package)
+                    ),
+                    $_.key
+                ),
+                0, 0
+            ));
+            
+            # XXX OLD, goes away after SLP refactor.
             $fixups.push(PAST::Op.new(
                 :pasttype('callmethod'), :name('set_static_lexpad_value'),
                 PAST::Op.new(
@@ -260,7 +278,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
         
         # Fixup and deserialization task is the same.
-        my $fixup := PAST::Op.new(
+        my $slp := self.get_static_lexpad($block);
+        $slp.add_static_value(~$name, $obj, 0, 0);
+        my $fixup := PAST::Stmt.new(PAST::Op.new(
+            :pasttype('callmethod'), :name('add_static_value'),
+            self.get_object_sc_ref_past($slp), 
+            ~$name, self.get_object_sc_ref_past($obj), 0, 0
+        ));
+        
+        # XXX goes away after SLP refactor
+        $fixup.push(PAST::Op.new(
             :pasttype('callmethod'), :name('set_static_lexpad_value'),
             PAST::Op.new(
                 :pasttype('callmethod'), :name('get_lexinfo'),
@@ -268,7 +295,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ),
             ~$name, self.get_object_sc_ref_past($obj),
             0, 0
-        );
+        ));
+        
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
         1;
     }
@@ -291,20 +319,36 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             return 1;
         }
         
-        # Look up container type and create code to instantiate it.
+        # Build container, as well as code to deserialize it.
         my $cont_code := self.build_container_past($type_name, $descriptor, |@default_value);
+        my $cont_type_obj := self.find_symbol([$type_name]);
+        my $cont := pir::repr_instance_of__PP($cont_type_obj);
+        pir::setattribute__vPPsP($cont, $cont_type_obj, '$!descriptor', $descriptor);
+        if +@default_value {
+            pir::setattribute__vPPsP($cont, $cont_type_obj, '$!value', @default_value[0]);
+        }
         
         # Fixup and deserialization task is the same - creating the
         # container type and put it in the static lexpad with a clone
         # flag set.
-        my $fixup := PAST::Op.new(
+        my $slp := self.get_static_lexpad($block);
+        $slp.add_static_value(~$name, $cont, 1, ($state ?? 1 !! 0));
+        my $fixup := PAST::Stmt.new(PAST::Op.new(
+            :pasttype('callmethod'), :name('add_static_value'),
+            self.get_object_sc_ref_past($slp), 
+            ~$name, $cont_code, 1, ($state ?? 1 !! 0)
+        ));
+        
+        # XXX goes away after SLP refactor.
+        $fixup.push(PAST::Op.new(
             :pasttype('callmethod'), :name('set_static_lexpad_value'),
             PAST::Op.new(
                 :pasttype('callmethod'), :name('get_lexinfo'),
                 PAST::Val.new( :value($block) )
             ),
             ~$name, $cont_code, 1, ($state ?? 1 !! 0)
-        );
+        ));
+        
         self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
         1;
     }

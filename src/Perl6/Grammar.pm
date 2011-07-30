@@ -233,16 +233,21 @@ grammar Perl6::Grammar is HLL::Grammar {
             # Create GLOBAL(ish).
             $*GLOBALish := $*ST.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
             $*ST.pkg_compose($*GLOBALish);
-            $*ST.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
-            
+                
             # Create EXPORT.
             $*EXPORT := $*ST.pkg_create_mo(%*HOW<package>, :name('EXPORT'));
             $*ST.pkg_compose($*EXPORT);
-            $*ST.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
-            
+                
             # We start with the current package as that also.
             $*PACKAGE := $*GLOBALish;
-            $*ST.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+            
+            # Install unless we've no setting, in which case we've likely no
+            # static lexpad class yet either.
+            unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+                $*ST.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
+                $*ST.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
+                $*ST.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+            }
         }
         
         <.finishpad>

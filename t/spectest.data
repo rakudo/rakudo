@@ -304,7 +304,7 @@ S06-multi/value-based.t
 # S06-operator-overloading/methods.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
 # S06-operator-overloading/workout.t # err: Contextual $*UNITPAST not found
-# S06-other/anon-hashes-vs-blocks.t
+S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t # err: Could not find sub &MAIN_HELPER
 S06-other/main-eval.t
 # S06-other/main-usage.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'

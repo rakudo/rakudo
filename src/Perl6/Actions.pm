@@ -630,8 +630,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_prefix:sym<sink>($/) {
-        my $blast := $<blorst>.ast;
-        $blast.blocktype('immediate');
+        my $blast := PAST::Op.new( $<blorst>.ast );
         make PAST::Stmts.new(
             PAST::Op.new( :name('&eager'), $blast ),
             PAST::Var.new( :name('Nil'), :scope('lexical')),

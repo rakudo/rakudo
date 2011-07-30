@@ -20,7 +20,7 @@ role Hash is EnumMap {
         # what is being stored.
         pir::setattribute__vPsP(self, '$!storage', pir::new__Ps('Hash'));
 
-        my $items = $to_store.flat;
+        my $items = $to_store.flat.clone;
         while $items {
             given $items.shift {
                 when Enum {

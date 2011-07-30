@@ -195,7 +195,6 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # .symbol(...) hash we get away with this for now.
         my %stash := $package.WHO;
         my $target := self.cur_lexpad();
-        my $fixups := PAST::Stmts.new();
         
         # First pass: PAST::Block symbol table installation.
         for %stash {
@@ -206,9 +205,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Second pass: stick it in the actual static lexpad.
         my $slp     := self.get_static_lexpad($target);
         my $slp_ref := self.get_object_sc_ref_past($slp);
+        my $des := PAST::Stmts.new();
         for %stash {
             $slp.add_static_value($_.key, $_.value, 0, 0);
-            $fixups.push(PAST::Op.new(
+            $des.push(PAST::Op.new(
                 :pasttype('callmethod'), :name('add_static_value'),
                 $slp_ref, $_.key,
                 PAST::Var.new(
@@ -223,7 +223,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ));            
         }
         
-        self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
+        self.add_event(:deserialize_past($des));
         1;
     }
     
@@ -258,15 +258,15 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
         $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
         
-        # Fixup and deserialization task is the same.
+        # Add to static lexpad, and generate deserialization code.
         my $slp := self.get_static_lexpad($block);
         $slp.add_static_value(~$name, $obj, 0, 0);
-        my $fixup := PAST::Stmt.new(PAST::Op.new(
+        self.add_event(:deserialize_past(PAST::Stmt.new(PAST::Op.new(
             :pasttype('callmethod'), :name('add_static_value'),
             self.get_object_sc_ref_past($slp), 
             ~$name, self.get_object_sc_ref_past($obj), 0, 0
-        ));        
-        self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+        ))));
+        
         1;
     }
     
@@ -297,17 +297,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             pir::setattribute__vPPsP($cont, $cont_type_obj, '$!value', @default_value[0]);
         }
         
-        # Fixup and deserialization task is the same - creating the
-        # container type and put it in the static lexpad with a clone
-        # flag set.
+        # Add container to static lexpad immediately, and make deserialization
+        # code to also do so.
         my $slp := self.get_static_lexpad($block);
         $slp.add_static_value(~$name, $cont, 1, ($state ?? 1 !! 0));
-        my $fixup := PAST::Stmt.new(PAST::Op.new(
+        self.add_event(:deserialize_past(PAST::Stmt.new(PAST::Op.new(
             :pasttype('callmethod'), :name('add_static_value'),
             self.get_object_sc_ref_past($slp), 
             ~$name, $cont_code, 1, ($state ?? 1 !! 0)
-        ));
-        self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+        ))));
+        
         1;
     }
     

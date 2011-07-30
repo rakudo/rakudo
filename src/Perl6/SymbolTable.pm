@@ -189,15 +189,22 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # does it so that things are available at compile time. Note that
     # import is done into the current lexpad.
     method import($package) {
+        # We'll do this in two passes, since at the start of CORE.setting we import
+        # StaticLexPad, which of course we need to use when importing. Since we still
+        # keep the authoritative copy of stuff from the compiler's view in PAST::Block's
+        # .symbol(...) hash we get away with this for now.
         my %stash := $package.WHO;
         my $target := self.cur_lexpad();
         my $fixups := PAST::Stmts.new();
+        
+        # First pass: PAST::Block symbol table installation.
         for %stash {
-            # Install the imported symbol directly as a block symbol.
             $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
             $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
-            
-            # Add fixup/deserialize event to stick it in the static lexpad.
+        }
+        
+        # Second pass: stick it in the actual static lexpad.
+        for %stash {
             $fixups.push(PAST::Op.new(
                 :pasttype('callmethod'), :name('set_static_lexpad_value'),
                 PAST::Op.new(
@@ -216,6 +223,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 0, 0
             ));
         }
+        
         self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
         1;
     }

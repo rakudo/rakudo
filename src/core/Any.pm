@@ -167,7 +167,7 @@ proto infix:<min>(|$)     { * }
 multi infix:<min>(*@args) { @args.min }
 
 proto infix:<max>(|$)     { * }
-multi infix:<max>(*@args) { @args.min }
+multi infix:<max>(*@args) { @args.max }
 
 proto map(|$) {*}
 multi map(&code, *@values) { @values.map(&code) }

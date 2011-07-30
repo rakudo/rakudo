@@ -34,6 +34,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # up in dynamic compilation.
     has %!sub_id_to_code_object;
     
+    # Mapping of sub IDs to their static lexpad objects.
+    has %!sub_id_to_static_lexpad;
+    
     # Array of stubs to check and the end of compilation.
     has @!stub_check;
     
@@ -42,6 +45,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
+        # Create pad, link to outer and add to stack.
         my $pad := PAST::Block.new( PAST::Stmts.new(), :node($/) );
         if +@!BLOCKS {
             $pad<outer> := @!BLOCKS[+@!BLOCKS - 1];
@@ -58,6 +62,38 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Gets the top lexpad.
     method cur_lexpad() {
         @!BLOCKS[+@!BLOCKS - 1]
+    }
+    
+    # Gets (and creates if needed) the static lexpad object for a PAST block.
+    method get_static_lexpad($pad) {
+        my $pad_id := $pad.subid();
+        if pir::exists(%!sub_id_to_static_lexpad, $pad_id) {
+            return %!sub_id_to_static_lexpad{$pad_id};
+        }
+        
+        # Create it a static lexpad object.
+        my $slp_type_obj     := self.find_symbol(['StaticLexPad']);
+        my $slp_type_obj_ref := self.get_object_sc_ref_past($slp_type_obj);
+        my $slp              := nqp::create($slp_type_obj);
+        my $slot             := self.add_object($slp);
+        
+        # Deserialization code creates the static lexpad. Both that and the
+        # fixup need to associate it with the low-level LexInfo.
+        my $des := self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
+            :pirop('repr_instance_of PP'), $slp_type_obj_ref
+        )));
+        my $fix := PAST::Op.new(
+            :pasttype('callmethod'), :name('set_static_lexpad'),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('get_lexinfo'),
+                PAST::Val.new( :value($pad) )),
+            self.get_object_sc_ref_past($slp));
+        self.add_event(:deserialize_past(PAST::Stmts.new($des, $fix)), :fixup_past($fix));
+        
+        # Stash it under the PAST block sub ID.
+        %!sub_id_to_static_lexpad{$pad.subid()} := $slp;
+        
+        $slp
     }
     
     # Marks the current lexpad as being a signatured block.
@@ -153,22 +189,28 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # does it so that things are available at compile time. Note that
     # import is done into the current lexpad.
     method import($package) {
+        # We'll do this in two passes, since at the start of CORE.setting we import
+        # StaticLexPad, which of course we need to use when importing. Since we still
+        # keep the authoritative copy of stuff from the compiler's view in PAST::Block's
+        # .symbol(...) hash we get away with this for now.
         my %stash := $package.WHO;
         my $target := self.cur_lexpad();
-        my $fixups := PAST::Stmts.new();
+        
+        # First pass: PAST::Block symbol table installation.
         for %stash {
-            # Install the imported symbol directly as a block symbol.
             $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
             $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
-            
-            # Add fixup/deserialize event to stick it in the static lexpad.
-            $fixups.push(PAST::Op.new(
-                :pasttype('callmethod'), :name('set_static_lexpad_value'),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('get_lexinfo'),
-                    PAST::Val.new( :value($target) )
-                ),
-                $_.key,
+        }
+        
+        # Second pass: stick it in the actual static lexpad.
+        my $slp     := self.get_static_lexpad($target);
+        my $slp_ref := self.get_object_sc_ref_past($slp);
+        my $des := PAST::Stmts.new();
+        for %stash {
+            $slp.add_static_value($_.key, $_.value, 0, 0);
+            $des.push(PAST::Op.new(
+                :pasttype('callmethod'), :name('add_static_value'),
+                $slp_ref, $_.key,
                 PAST::Var.new(
                     :scope('keyed'),
                     PAST::Op.new(
@@ -178,9 +220,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     $_.key
                 ),
                 0, 0
-            ));
+            ));            
         }
-        self.add_event(:deserialize_past($fixups), :fixup_past($fixups));
+        
+        self.add_event(:deserialize_past($des));
         1;
     }
     
@@ -215,17 +258,15 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
         $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
         
-        # Fixup and deserialization task is the same.
-        my $fixup := PAST::Op.new(
-            :pasttype('callmethod'), :name('set_static_lexpad_value'),
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('get_lexinfo'),
-                PAST::Val.new( :value($block) )
-            ),
-            ~$name, self.get_object_sc_ref_past($obj),
-            0, 0
-        );
-        self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+        # Add to static lexpad, and generate deserialization code.
+        my $slp := self.get_static_lexpad($block);
+        $slp.add_static_value(~$name, $obj, 0, 0);
+        self.add_event(:deserialize_past(PAST::Stmt.new(PAST::Op.new(
+            :pasttype('callmethod'), :name('add_static_value'),
+            self.get_object_sc_ref_past($slp), 
+            ~$name, self.get_object_sc_ref_past($obj), 0, 0
+        ))));
+        
         1;
     }
     
@@ -247,21 +288,25 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             return 1;
         }
         
-        # Look up container type and create code to instantiate it.
+        # Build container, as well as code to deserialize it.
         my $cont_code := self.build_container_past($type_name, $descriptor, |@default_value);
+        my $cont_type_obj := self.find_symbol([$type_name]);
+        my $cont := pir::repr_instance_of__PP($cont_type_obj);
+        pir::setattribute__vPPsP($cont, $cont_type_obj, '$!descriptor', $descriptor);
+        if +@default_value {
+            pir::setattribute__vPPsP($cont, $cont_type_obj, '$!value', @default_value[0]);
+        }
         
-        # Fixup and deserialization task is the same - creating the
-        # container type and put it in the static lexpad with a clone
-        # flag set.
-        my $fixup := PAST::Op.new(
-            :pasttype('callmethod'), :name('set_static_lexpad_value'),
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('get_lexinfo'),
-                PAST::Val.new( :value($block) )
-            ),
+        # Add container to static lexpad immediately, and make deserialization
+        # code to also do so.
+        my $slp := self.get_static_lexpad($block);
+        $slp.add_static_value(~$name, $cont, 1, ($state ?? 1 !! 0));
+        self.add_event(:deserialize_past(PAST::Stmt.new(PAST::Op.new(
+            :pasttype('callmethod'), :name('add_static_value'),
+            self.get_object_sc_ref_past($slp), 
             ~$name, $cont_code, 1, ($state ?? 1 !! 0)
-        );
-        self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+        ))));
+        
         1;
     }
     
@@ -764,7 +809,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Fix up Code object associations (including nested blocks).
         # We un-stub any code objects for already-compiled inner blocks
         # to avoid wasting re-compiling them, and also to help make
-        # parametric role outer chain work out.
+        # parametric role outer chain work out. Also set up their static
+        # lexpads, if they have any.
         my $num_subs := nqp::elems($precomp);
         my $i := 0;
         while $i < $num_subs {
@@ -773,6 +819,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 pir::perl6_associate_sub_code_object__vPP($precomp[$i],
                     %!sub_id_to_code_object{$subid});
                 nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
+            }
+            if pir::exists(%!sub_id_to_static_lexpad, $subid) {
+                $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
             }
             $i := $i + 1;
         }

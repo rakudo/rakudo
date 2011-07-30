@@ -3,6 +3,16 @@
 #include "../binder/container.h"
 #include "pmc_sub.h"
 
+/* How StatixLexPad looks on the inside. */
+typedef struct {
+    PMC    *st;                 /* S-table, though we don't care about that here. */
+    PMC    *sc;                 /* Serialization context, though we don't care about that here. */
+    PMC    *spill;              /* Attribute spill storage. */
+    PMC    *static_values;      /* The set of static values (hash names => values). */
+    PMC    *flags;              /* Flags for how we handle those (hash names => flags). */
+    INTVAL  changed;            /* Has anything in here changed since we last saw it? */
+} Rakudo_StaticLexPad;
+
 /* Some useful types/container descriptors we like to have to hand. */
 static PMC *topic_cd = NULL;
 static PMC *error_cd = NULL;
@@ -170,9 +180,56 @@ Return the LexInfo PMC, if any or a Null PMC.
         /* Check if we need to put any static values in place. */
         PMC *info;
         GET_ATTR_lexinfo(INTERP, SELF, info);
+        
+        /* Stash the context pointer. */
+        SET_ATTR_ctx(INTERP, SELF, (PMC *)ctx);
+        
+        /* Static lexpad handling. */
         if (info->vtable->base_type != enum_class_LexInfo) {
-            PMC *static_slots_cache;
+            /* Get static lexpad, provided we have one to hand. If there's none,
+             * we're done here. */
+            PMC *static_lexpad_pmc, *static_slots_cache;
+            Rakudo_StaticLexPad *static_lexpad;
+            GETATTR_Perl6LexInfo_static_lexpad(INTERP, info, static_lexpad_pmc);
+            if (PMC_IS_NULL(static_lexpad_pmc))
+                return;
             GETATTR_Perl6LexInfo_static_slots_cache(INTERP, info, static_slots_cache);
+            static_lexpad = (Rakudo_StaticLexPad *)PMC_data(static_lexpad_pmc);
+            
+            /* Compute the caches if needed. */
+            if (static_lexpad->changed || PMC_IS_NULL(static_slots_cache)) {
+                /* (Re-)build caches. */
+                PMC *slots       = pmc_new(interp, enum_class_ResizableIntegerArray);
+                PMC *values      = pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *clone_flags = pmc_new(interp, enum_class_ResizableIntegerArray);
+                PMC *state_flags = pmc_new(interp, enum_class_ResizableStringArray);
+                PMC *iter        = VTABLE_get_iter(interp, static_lexpad->static_values);
+                while (VTABLE_get_bool(interp, iter)) {
+                    STRING *name  = VTABLE_shift_string(interp, iter);
+                    INTVAL  slot  = VTABLE_get_integer_keyed_str(interp, info, name);
+                    PMC    *value = VTABLE_get_pmc_keyed_str(interp, static_lexpad->static_values, name);
+                    INTVAL  flags = VTABLE_get_integer_keyed_str(interp, static_lexpad->flags, name);
+                    INTVAL  clone = flags & 1;
+                    INTVAL  state = flags & 2;
+                    VTABLE_push_integer(interp, slots, slot);
+                    VTABLE_push_pmc(interp, values, value);
+                    VTABLE_push_integer(interp, clone_flags, clone);
+                    VTABLE_push_string(interp, state_flags, state ? name : STRINGNULL);
+                }
+                SETATTR_Perl6LexInfo_static_slots_cache(INTERP, info, slots);
+                SETATTR_Perl6LexInfo_static_values_cache(INTERP, info, values);
+                SETATTR_Perl6LexInfo_static_clone_flags_cache(INTERP, info, clone_flags);
+                SETATTR_Perl6LexInfo_state_flags_cache(INTERP, info, state_flags);
+                static_slots_cache = slots;
+                
+                /* Clear changed flag. */
+                static_lexpad->changed = 0;
+                
+                /* We updated the LexInfo, so need to write-barrier it. */
+                PARROT_GC_WRITE_BARRIER(INTERP, info);
+            }
+            
+            /* Provided we got a cache built, go through it. */
             if (!PMC_IS_NULL(static_slots_cache)) {
                 /* Yes, we have some. Grab values too, then iterate. */
                 PMC *static_values_cache;
@@ -219,9 +276,6 @@ Return the LexInfo PMC, if any or a Null PMC.
                 PARROT_GC_WRITE_BARRIER(INTERP, (PMC *)ctx);
             }
         }
-        
-        /* Stash the context pointer. */
-        SET_ATTR_ctx(INTERP, SELF, (PMC *)ctx);
     }
 
     VTABLE INTVAL elements() {

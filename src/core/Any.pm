@@ -51,6 +51,15 @@ my class Any {
         }
         $min;
     }
+
+    method max($by = { $^a cmp $^b }) {
+        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
+        my $max = -$Inf;
+        for self { 
+            $max = $_ if .defined && $_ cmp $max > 0;
+        }
+        $max;
+    }
          
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }
@@ -167,7 +176,7 @@ proto infix:<min>(|$)     { * }
 multi infix:<min>(*@args) { @args.min }
 
 proto infix:<max>(|$)     { * }
-multi infix:<max>(*@args) { @args.min }
+multi infix:<max>(*@args) { @args.max }
 
 proto map(|$) {*}
 multi map(&code, *@values) { @values.map(&code) }

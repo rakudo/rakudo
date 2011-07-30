@@ -20,14 +20,27 @@ my &THROW :=
         0
     };
 
-my &return-rw := -> \$parcel = Nil { 
+my &RETURN-PARCEL := -> Mu \$parcel {
+    my Mu $storage := nqp::getattr($parcel, Parcel, '$!storage');
+    nqp::iseq_i(nqp::elems($storage), 0)
+      ?? Nil
+      !! (nqp::iseq_i(nqp::elems($storage), 1)
+            ?? nqp::shift($storage)
+            !! $parcel)
+}
+
+my &return-rw := -> |$ { 
+    my $parcel := 
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
     my Mu $return := pir::find_caller_lex__Ps('RETURN');
     nqp::isnull($return)
         ?? die "Attempt to return outside of any Routine"
         !! $return($parcel);
     $parcel
 };
-my &return := -> \$parcel = Nil {
+my &return := -> |$ {
+    my $parcel := 
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
     my Mu $return := pir::find_caller_lex__Ps('RETURN');
     nqp::isnull($return)
         ?? die "Attempt to return outside of any Routine"
@@ -35,30 +48,42 @@ my &return := -> \$parcel = Nil {
     $parcel
 };
 
-my &take-rw := -> \$parcel = Nil { 
+my &take-rw := -> |$ { 
+    my $parcel := 
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
     THROW($parcel, pir::const::CONTROL_TAKE) 
 };
-my &take := -> \$parcel = Nil { 
+my &take := -> |$ { 
+    my $parcel := 
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
     THROW(pir::perl6_decontainerize__PP($parcel), 
           pir::const::CONTROL_TAKE) 
 };
 
-my &last := -> \$parcel = Nil { 
+my &last := -> |$ { 
+    my $parcel := 
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
     THROW(pir::perl6_decontainerize__PP($parcel), 
           pir::const::CONTROL_LOOP_LAST) 
 };
 
-my &next := -> \$parcel = Nil { 
+my &next := -> |$ { 
+    my $parcel := 
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
     THROW(pir::perl6_decontainerize__PP($parcel), 
           pir::const::CONTROL_LOOP_NEXT) 
 };
 
-my &redo := -> \$parcel = Nil { 
+my &redo := -> |$ { 
+    my $parcel := 
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
     THROW(pir::perl6_decontainerize__PP($parcel), 
           pir::const::CONTROL_LOOP_REDO) 
 };
 
-my &succeed := -> \$parcel = Nil { 
+my &succeed := -> |$ { 
+    my $parcel := 
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
     THROW(pir::perl6_decontainerize__PP($parcel), 
           pir::const::CONTROL_BREAK) 
 };

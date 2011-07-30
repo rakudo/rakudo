@@ -76,4 +76,16 @@ class Perl6::Metamodel::ClassHOW
     method is_composed($obj) {
         $!composed
     }
+    
+    # Maybe this belongs on a role. Also, may be worth memoizing.
+    method can($obj, $name) {
+        my @meths;
+        for self.mro($obj) {
+            my %mt := $_.HOW.method_table($_);
+            if pir::exists(%mt, $name) {
+                @meths.push(%mt{$name})
+            }
+        }
+        @meths
+    }
 }

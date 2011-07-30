@@ -718,6 +718,7 @@ my module EXPORT {
         $?PACKAGE.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
         $?PACKAGE.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
         $?PACKAGE.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
+        $?PACKAGE.WHO<StaticLexPad>        := Perl6::Metamodel::StaticLexPad;
         $?PACKAGE.WHO<NQPCursorRole>       := NQPCursorRole;
     }
 }

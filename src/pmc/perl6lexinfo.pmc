@@ -14,18 +14,9 @@ pmclass Perl6LexInfo
      * value. */
     ATTR PMC *name_to_register_map;
     
-    /* Hash mapping names to static values. This is the authoritative
-     * source of these, but we always build a more quickly usable cache. */
-    ATTR PMC *static_values;
-    
-    /* Hash mapping names to clone flags. This is the authoritative
-     * source of these, but we always build a more quickly usable cache. */
-    ATTR PMC *static_clone_flags;
-    
-    /* Hash mapping names to state flags (that is, whether it's a state
-     * variable). */
-    ATTR PMC *state_flags;
-    
+    /* The static lex pad that holds static lexical info for this block. */
+    ATTR PMC *static_lexpad;
+
     /* Integer array of slots that we always want to pre-initialize
      * with static values; built from the static_values hash. */
     ATTR PMC *static_slots_cache;
@@ -60,16 +51,12 @@ pmclass Perl6LexInfo
     }
 
     VTABLE void mark() {
-        PMC *name_to_register_map, *static_values, *static_clone_flags, *state_flags;
+        PMC *name_to_register_map, *static_lexpad;
         PMC *static_slots_cache, *static_values_cache, *static_clone_flags_cache, *state_flags_cache;
         GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
         Parrot_gc_mark_PMC_alive(INTERP, name_to_register_map);
-        GET_ATTR_static_values(INTERP, SELF, static_values);
-        Parrot_gc_mark_PMC_alive(INTERP, static_values);
-        GET_ATTR_static_clone_flags(INTERP, SELF, static_clone_flags);
-        Parrot_gc_mark_PMC_alive(INTERP, static_clone_flags);
-        GET_ATTR_state_flags(INTERP, SELF, state_flags);
-        Parrot_gc_mark_PMC_alive(INTERP, state_flags);
+        GET_ATTR_static_lexpad(INTERP, SELF, static_lexpad);
+        Parrot_gc_mark_PMC_alive(INTERP, static_lexpad);
         GET_ATTR_static_slots_cache(INTERP, SELF, static_slots_cache);
         Parrot_gc_mark_PMC_alive(INTERP, static_slots_cache);
         GET_ATTR_static_values_cache(INTERP, SELF, static_values_cache);
@@ -137,45 +124,8 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
         VTABLE_set_integer_keyed_str(INTERP, name_to_register_map, name, preg);
     }
     
-    METHOD set_static_lexpad_value(STRING *key, PMC *value, INTVAL clone, INTVAL state) {
-        /* Stash static value in hash. */
-        PMC *svs, *scfs, *sfs, *slots, *values, *clone_flags, *state_flags, *iter;
-        GET_ATTR_static_values(INTERP, SELF, svs);
-        GET_ATTR_static_clone_flags(INTERP, SELF, scfs);
-        GET_ATTR_state_flags(INTERP, SELF, sfs);
-        if (PMC_IS_NULL(svs)) {
-            svs = pmc_new(interp, enum_class_Hash);
-            SET_ATTR_static_values(INTERP, SELF, svs);
-            scfs = pmc_new(interp, enum_class_Hash);
-            SET_ATTR_static_clone_flags(INTERP, SELF, scfs);
-            sfs = pmc_new(interp, enum_class_Hash);
-            SET_ATTR_state_flags(INTERP, SELF, sfs);
-        }
-        VTABLE_set_pmc_keyed_str(interp, svs, key, value);
-        VTABLE_set_integer_keyed_str(interp, scfs, key, clone);
-        VTABLE_set_integer_keyed_str(interp, sfs, key, state);
-
-        /* Build caches from the static lexpad. */
-        slots       = pmc_new(interp, enum_class_ResizableIntegerArray);
-        values      = pmc_new(interp, enum_class_ResizablePMCArray);
-        clone_flags = pmc_new(interp, enum_class_ResizableIntegerArray);
-        state_flags = pmc_new(interp, enum_class_ResizableStringArray);
-        iter        = VTABLE_get_iter(interp, svs);
-        while (VTABLE_get_bool(interp, iter)) {
-            STRING *name  = VTABLE_shift_string(interp, iter);
-            INTVAL  slot  = VTABLE_get_integer_keyed_str(interp, SELF, name);
-            PMC    *value = VTABLE_get_pmc_keyed_str(interp, svs, name);
-            INTVAL  clone = VTABLE_get_integer_keyed_str(interp, scfs, name);
-            INTVAL  state = VTABLE_get_integer_keyed_str(interp, sfs, name);
-            VTABLE_push_integer(interp, slots, slot);
-            VTABLE_push_pmc(interp, values, value);
-            VTABLE_push_integer(interp, clone_flags, clone);
-            VTABLE_push_string(interp, state_flags, state ? name : STRINGNULL);
-        }
-        SET_ATTR_static_slots_cache(INTERP, SELF, slots);
-        SET_ATTR_static_values_cache(INTERP, SELF, values);
-        SET_ATTR_static_clone_flags_cache(INTERP, SELF, clone_flags);
-        SET_ATTR_state_flags_cache(INTERP, SELF, state_flags);
+    METHOD set_static_lexpad(PMC *slp) {
+        SET_ATTR_static_lexpad(INTERP, SELF, slp);
     }
     
     METHOD set_fresh_magicals() {

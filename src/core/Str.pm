@@ -408,10 +408,6 @@ multi infix:<eq>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
-multi infix:<ne>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::isne_s(nqp::unbox_s($a), nqp::unbox_s($b)))
-}
-
 multi infix:<lt>(Str:D \$a, Str:D \$b) {
     nqp::p6bool(nqp::islt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }

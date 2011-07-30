@@ -799,7 +799,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Fix up Code object associations (including nested blocks).
         # We un-stub any code objects for already-compiled inner blocks
         # to avoid wasting re-compiling them, and also to help make
-        # parametric role outer chain work out.
+        # parametric role outer chain work out. Also set up their static
+        # lexpads, if they have any.
         my $num_subs := nqp::elems($precomp);
         my $i := 0;
         while $i < $num_subs {
@@ -808,6 +809,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 pir::perl6_associate_sub_code_object__vPP($precomp[$i],
                     %!sub_id_to_code_object{$subid});
                 nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
+            }
+            if pir::exists(%!sub_id_to_static_lexpad, $subid) {
+                $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
             }
             $i := $i + 1;
         }

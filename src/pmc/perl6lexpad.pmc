@@ -198,7 +198,29 @@ Return the LexInfo PMC, if any or a Null PMC.
             
             /* Compute the caches if needed. */
             if (static_lexpad->changed || PMC_IS_NULL(static_slots_cache)) {
-                /* XXX TODO: build caches... */
+                /* (Re-)build caches. */
+                PMC *slots       = pmc_new(interp, enum_class_ResizableIntegerArray);
+                PMC *values      = pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *clone_flags = pmc_new(interp, enum_class_ResizableIntegerArray);
+                PMC *state_flags = pmc_new(interp, enum_class_ResizableStringArray);
+                PMC *iter        = VTABLE_get_iter(interp, static_lexpad->static_values);
+                while (VTABLE_get_bool(interp, iter)) {
+                    STRING *name  = VTABLE_shift_string(interp, iter);
+                    INTVAL  slot  = VTABLE_get_integer_keyed_str(interp, info, name);
+                    PMC    *value = VTABLE_get_pmc_keyed_str(interp, static_lexpad->static_values, name);
+                    INTVAL  flags = VTABLE_get_integer_keyed_str(interp, static_lexpad->flags, name);
+                    INTVAL  clone = flags & 1;
+                    INTVAL  state = flags & 2;
+                    VTABLE_push_integer(interp, slots, slot);
+                    VTABLE_push_pmc(interp, values, value);
+                    VTABLE_push_integer(interp, clone_flags, clone);
+                    VTABLE_push_string(interp, state_flags, state ? name : STRINGNULL);
+                }
+                SETATTR_Perl6LexInfo_static_slots_cache(INTERP, info, slots);
+                SETATTR_Perl6LexInfo_static_values_cache(INTERP, info, values);
+                SETATTR_Perl6LexInfo_static_clone_flags_cache(INTERP, info, clone_flags);
+                SETATTR_Perl6LexInfo_state_flags_cache(INTERP, info, state_flags);
+                static_slots_cache = slots;
                 
                 /* Clear changed flag. */
                 static_lexpad->changed = 0;

@@ -2313,7 +2313,7 @@ class Perl6::Actions is HLL::Actions {
                 $is_hash := 1;
             }
         }
-        if $is_hash { # XXX && $past.arity < 1 {
+        if $is_hash && $past<past_block>.arity == 0 {
             my @children := @($past<past_block>[1]);
             $past := PAST::Op.new(
                 :pasttype('call'),
@@ -3137,7 +3137,7 @@ class Perl6::Actions is HLL::Actions {
         # Set arity.
         my $arity := 0;
         for @params {
-            last if $_<is_optional> || $_<named_names> ||
+            last if $_<optional> || $_<named_names> ||
                $_<pos_slurpy> || $_<named_slurpy>;
             $arity := $arity + 1;
         }

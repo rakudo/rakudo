@@ -34,6 +34,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # up in dynamic compilation.
     has %!sub_id_to_code_object;
     
+    # Mapping of sub IDs to their static lexpad objects.
+    has %!sub_id_to_static_lexpad;
+    
     # Array of stubs to check and the end of compilation.
     has @!stub_check;
     
@@ -42,6 +45,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
+        # Create pad, link to outer and add to stack.
         my $pad := PAST::Block.new( PAST::Stmts.new(), :node($/) );
         if +@!BLOCKS {
             $pad<outer> := @!BLOCKS[+@!BLOCKS - 1];
@@ -58,6 +62,38 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Gets the top lexpad.
     method cur_lexpad() {
         @!BLOCKS[+@!BLOCKS - 1]
+    }
+    
+    # Gets (and creates if needed) the static lexpad object for a PAST block.
+    method get_static_lexpad($pad) {
+        my $pad_id := $pad.subid();
+        if pir::exists(%!sub_id_to_static_lexpad, $pad_id) {
+            return %!sub_id_to_static_lexpad{$pad_id};
+        }
+        
+        # Create it a static lexpad object.
+        my $slp_type_obj     := self.find_symbol(['StaticLexPad']);
+        my $slp_type_obj_ref := self.get_object_sc_ref_past($slp_type_obj);
+        my $slp              := nqp::create($slp_type_obj);
+        my $slot             := self.add_object($slp);
+        
+        # Deserialization code creates the static lexpad. Both that and the
+        # fixup need to associate it with the low-level LexInfo.
+        my $des := self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
+            :pirop('repr_instance_of PP'), $slp_type_obj
+        )));
+        my $fix := PAST::Op.new(
+            :pasttype('callmethod'), :name('set_static_lexpad'),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('get_lexinfo'),
+                PAST::Val.new( :value($pad) )),
+            self.get_object_sc_ref_past($slp));
+        self.add_event(:deserialize_past(PAST::Stmts.new($des, $fix)), :fixup_past($fix));
+        
+        # Stash it under the PAST block sub ID.
+        %!sub_id_to_static_lexpad{$pad.subid()} := $slp;
+        
+        $slp
     }
     
     # Marks the current lexpad as being a signatured block.

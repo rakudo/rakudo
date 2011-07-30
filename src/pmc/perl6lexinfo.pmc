@@ -14,6 +14,9 @@ pmclass Perl6LexInfo
      * value. */
     ATTR PMC *name_to_register_map;
     
+    /* The static lex pad that holds static lexical info for this block. */
+    ATTR PMC *static_lexpad;
+    
     /* Hash mapping names to static values. This is the authoritative
      * source of these, but we always build a more quickly usable cache. */
     ATTR PMC *static_values;
@@ -60,10 +63,12 @@ pmclass Perl6LexInfo
     }
 
     VTABLE void mark() {
-        PMC *name_to_register_map, *static_values, *static_clone_flags, *state_flags;
+        PMC *name_to_register_map, *static_lexpad, *static_values, *static_clone_flags, *state_flags;
         PMC *static_slots_cache, *static_values_cache, *static_clone_flags_cache, *state_flags_cache;
         GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
         Parrot_gc_mark_PMC_alive(INTERP, name_to_register_map);
+        GET_ATTR_static_lexpad(INTERP, SELF, static_lexpad);
+        Parrot_gc_mark_PMC_alive(INTERP, static_lexpad);
         GET_ATTR_static_values(INTERP, SELF, static_values);
         Parrot_gc_mark_PMC_alive(INTERP, static_values);
         GET_ATTR_static_clone_flags(INTERP, SELF, static_clone_flags);
@@ -135,6 +140,10 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
         PMC *name_to_register_map;
         GET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
         VTABLE_set_integer_keyed_str(INTERP, name_to_register_map, name, preg);
+    }
+    
+    METHOD set_static_lexpad(PMC *slp) {
+        SET_ATTR_static_lexpad(INTERP, SELF, slp);
     }
     
     METHOD set_static_lexpad_value(STRING *key, PMC *value, INTVAL clone, INTVAL state) {

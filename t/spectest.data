@@ -96,7 +96,7 @@ S02-whitespace_and_comments/unicode-whitespace.t
 S02-whitespace_and_comments/unspace.t
 S03-feeds/basic.t
 S03-junctions/associative.t
-# S03-junctions/autothreading.t # err: Method 'subst' not found for invocant of class 'Str'
+# S03-junctions/autothreading.t # err: Method 'a' not found for invocant of class 'Junction'
 S03-junctions/boolean-context.t
 # S03-junctions/misc.t # err: invoke() not implemented in class 'Junction'
 # S03-metaops/cross.t # err: Contextual $*UNITPAST not found
@@ -195,7 +195,7 @@ S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
-# S04-declarations/state.t # err: Unable to parse blockoid, couldn't find final '}'
+# S04-declarations/state.t # err: Can not get non-existant attribute '$!do' on class 'Code'
 # S04-exception-handlers/catch.t # hangs
 # S04-exceptions/fail.t  # err: use scoped variables not yet implemented
 S04-statement-modifiers/for.t
@@ -272,7 +272,8 @@ S05-metasyntax/unknown.t
 # S05-modifier/continue.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-modifier/counted-match.t
 S05-modifier/global.t
-# S05-modifier/ii.t # err: Method 'pasttype' not found for invocant of class 'QAST::Regex'
+# S05-modifier/ii.t # err: Method 'clone' not found for invocant of class 'Sub'
+
 # S05-modifier/ignorecase.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex' #icu
 S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t # err: Unsupported use of {N,M} as general quantifier
@@ -283,7 +284,7 @@ S05-modifier/overlapping.t
 S05-modifier/repetition.t
 # S05-modifier/sigspace.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 S05-substitution/match.t
-# S05-substitution/subst.t # err: Method 'pasttype' not found for invocant of class 'QAST::Regex'
+# S05-substitution/subst.t # hangs
 # S05-transliteration/trans.t # err: Method 'trans' not found for invocant of class 'Str'
 # S05-transliteration/with-closure.t # err: Method 'trans' not found for invocant of class 'Str'
 # S06-advanced_subroutine_features/callframe.t # err: Could not find sub &callframe
@@ -576,7 +577,7 @@ S32-trig/e.t
 # S32-trig/sec.t # err: Method 'sec' not found for invocant of class 'Rat'
 # S32-trig/cosec.t # err: Method 'cosec' not found for invocant of class 'Rat'
 # S32-trig/cotan.t # err: Method 'cotan' not found for invocant of class 'Rat'
-# S32-trig/atan2.t # err: Could not find sub &atan2
+# S32-trig/atan2.t # err: No applicable candidates found to dispatch to for 'atan2'
 # S32-trig/sinh.t # err: Method 'sinh' not found for invocant of class 'Complex'
 # S32-trig/cosh.t # err: Method 'cosh' not found for invocant of class 'Complex'
 # S32-trig/tanh.t # err: Could not find sub &cosh

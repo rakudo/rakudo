@@ -1336,8 +1336,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 if +%sym {
                     if pir::exists(%sym, 'value') {
                         $result := %sym<value>;
+                        @name := pir::clone__PP(@name);
                         @name.shift();
-                        last;
+                        $i := 0;
                     }
                     else {
                         pir::die("No compile-time value for $first");
@@ -1419,6 +1420,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Var.new( :name(@name.shift()), :scope('lexical_6model') ) !!
                 PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
             if @name[0] eq 'GLOBAL' {
+                @name := pir::clone__PP(@name);
                 @name.shift();
             }
             for @name {

@@ -73,7 +73,7 @@ S02-magicals/dollar-underscore.t
 # S02-magicals/env.t # err: Could not find sub &slurp
 # S02-magicals/pid.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 S02-magicals/progname.t
-# S02-names_and_variables/contextual.t # err: Method '!priv' not found for invocant
+S02-names_and_variables/contextual.t
 S02-names_and_variables/fmt.t
 # S02-names_and_variables/names.t # err: Cannot use placeholder parameters in this kind of block
 # S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu

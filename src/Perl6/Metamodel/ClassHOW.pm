@@ -11,6 +11,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::C3MRO
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
+    does Perl6::Metamodel::Trusting
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::Mixins
     does Perl6::Metamodel::NonGeneric

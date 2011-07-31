@@ -82,3 +82,8 @@ proto trait_mod:<will>(|$) { * }
 multi trait_mod:<will>(Attribute $attr, Block $closure, :$build!) {
     $attr.set_build_closure($closure)
 }
+
+proto trait_mod:<trusts>(|$) { * }
+multi trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
+    $truster.HOW.add_trustee($truster, $trustee);
+}

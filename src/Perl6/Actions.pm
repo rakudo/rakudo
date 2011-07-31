@@ -882,7 +882,7 @@ class Perl6::Actions is HLL::Actions {
     method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
     
     method package_declarator:sym<trusts>($/) {
-        $/.CURSOR.panic("trusts not yet implemented");
+        $*ST.apply_trait('&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);
     }
     
     method package_declarator:sym<also>($/) {

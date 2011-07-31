@@ -3,6 +3,11 @@ my class RoleToClassApplier {
         my %mt := $target.HOW.method_table($target);
         return pir::exists(%mt, $name)
     }
+    
+    sub has_private_method($target, $name) {
+        my %pmt := $target.HOW.private_method_table($target);
+        return pir::exists(%pmt, $name)
+    }
 
     sub has_attribute($target, $name) {
         my @attributes := $target.HOW.attributes($target, :local(1));
@@ -47,6 +52,13 @@ my class RoleToClassApplier {
         for @methods {
             unless has_method($target, ~$_, 0) {
                 $target.HOW.add_method($target, ~$_, $_);
+            }
+        }
+        if pir::can__IPs($to_compose_meta, 'private_method_table') {
+            for $to_compose_meta.private_method_table($to_compose) {
+                unless has_private_method($target, $_.key) {
+                    $target.HOW.add_private_method($target, $_.key, $_.value);
+                }
             }
         }
         

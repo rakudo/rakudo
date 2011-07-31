@@ -3397,7 +3397,9 @@ class Perl6::Actions is HLL::Actions {
                     'handled'
                 ),
                 1
-            )
+            ),
+            PAST::Op.new( :pirop('finalize vP'),
+                PAST::Var.new( :scope('register'), :name('exception')))
         );
 
         $block.handlers.unshift(

@@ -28,6 +28,13 @@ class List does Positional {
     }
     method list() { self }
     method flattens() { $!flattens }
+    
+    method Capture() {
+        self.gimme(*);
+        my $cap := nqp::create(Capture);
+        nqp::bindattr($cap, Capture, '$!list', $!items);
+        $cap
+    }
 
     method Parcel() {
         pir::defined($!items) or 

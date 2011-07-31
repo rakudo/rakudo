@@ -8,6 +8,8 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::shift($argiter) if $argiter && !pir::defined(%options<e>);
         $hll_ns<$!ARGITER> := $argiter;
         my $super := pir::find_method__PPs(HLL::Compiler, 'command_eval');
+        my %*COMPILING;
+        %*COMPILING<%?OPTIONS> := %options;
         $super(self, |@args, |%options);
     }
 }

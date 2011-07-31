@@ -118,10 +118,10 @@ class Perl6::Actions is HLL::Actions {
 
     method comp_unit($/, $key?) {
         our $?RAKUDO_HLL;
-        
+
         # Checks.
         $*ST.assert_stubs_defined();
-        
+
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
         my $mainline := PAST::Stmts.new(
@@ -135,7 +135,7 @@ class Perl6::Actions is HLL::Actions {
         elsif %*COMPILING<%?OPTIONS><n> {
             $mainline := wrap_option_n_code($mainline);
         }
-        
+
         # Unit needs to have a load-init holding the deserialization or
         # fixup code for this compilation unit.
         $unit.loadinit().push($*ST.to_past());
@@ -710,6 +710,11 @@ class Perl6::Actions is HLL::Actions {
     method statement_prefix:sym<CHECK>($/) { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'CHECK'); }
     method statement_prefix:sym<INIT>($/)  { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'INIT'); }
     method statement_prefix:sym<END>($/)   { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'END'); }
+
+    method statement_prefix:sym<DOC>($/)   {
+        $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, ~$<phase>)
+            if %*COMPILING<%?OPTIONS><doc>;
+    }
 
     method statement_prefix:sym<do>($/) {
         make PAST::Op.new( :pasttype('call'), $<blorst>.ast );

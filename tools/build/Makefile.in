@@ -238,7 +238,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING) Test.pir
+all: check-versions $(PERL6_EXE) $(SETTING) Test.pir Pod/To/Text.pir
 
 # the install target
 install: all
@@ -317,6 +317,9 @@ $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 ##  testing targets
 Test.pir: Test.pm $(PERL6_EXE) $(SETTING)
 	./$(PERL6_EXE) --target=pir --output=Test.pir Test.pm
+
+Pod/To/Text.pir: Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir --output=Pod/To/Text.pir Pod/To/Text.pm
 
 test    : coretest
 

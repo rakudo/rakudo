@@ -334,7 +334,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*UNIT;
         :my $*UNIT_OUTER;
         :my $*EXPORT;
-        :my $*COMPILING := 1;
 
         # A place for Pod
         :my $*POD_BLOCKS := [];
@@ -681,6 +680,10 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_prefix:sym<try>   { <sym> <blorst> }
     token statement_prefix:sym<gather>{ <sym> <blorst> }
     token statement_prefix:sym<do>    { <sym> <blorst> }
+    token statement_prefix:sym<DOC>   {
+        <sym> \s <.ws> $<phase>=['BEGIN' || 'CHECK' || 'INIT']
+        <blorst>
+    }
 
     token blorst {
         \s <.ws> [ <?[{]> <block> | <statement> ]

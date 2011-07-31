@@ -17,6 +17,9 @@ sub MAIN(@ARGS) {
     my @clo := $comp.commandline_options();
     @clo.push('parsetrace');
     @clo.push('setting=s');
+    @clo.push('n');
+    @clo.push('p');
+    @clo.push('doc');
     
     # Set up END block list, which we'll run at exit.
     my @*END_PHASERS := [];

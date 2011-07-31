@@ -714,6 +714,7 @@ my module EXPORT {
         $?PACKAGE.WHO<LoL>       := LoL;
         $?PACKAGE.WHO<EnumMap>   := EnumMap;
         $?PACKAGE.WHO<Hash>      := Hash;
+        $?PACKAGE.WHO<Capture>   := Capture;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
         $?PACKAGE.WHO<Grammar>   := Grammar;

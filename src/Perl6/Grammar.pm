@@ -417,7 +417,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # See if we've exported any HOWs.
         if pir::exists($UNIT, 'EXPORTHOW') {
             for $UNIT<EXPORTHOW>.WHO {
-                %*HOW{$_.key} := $_.value;
+                %*HOW{$_.key} := pir::nqp_decontainerize__PP($_.value);
             }
         }
     }

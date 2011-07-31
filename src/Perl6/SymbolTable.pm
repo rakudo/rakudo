@@ -517,6 +517,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 self.get_object_sc_ref_past(%param_info<attr_package>)));
         }
         
+        # Set sub-signature up, if there is one.
+        if pir::exists(%param_info, 'sub_signature') {
+            pir::setattribute__vPPsP($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
+            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!sub_signature',
+                self.get_object_sc_ref_past(%param_info<sub_signature>)));
+        }
+        
         # Return created parameter.
         $parameter
     }

@@ -249,8 +249,8 @@ S04-statements/while.t
 # S05-mass/rx.t # err: Null PMC access in invoke()
 # S05-mass/recursive.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-mass/stdrules.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
-# S05-match/arrayhash.t 
-# S05-match/blocks.t
+S05-match/arrayhash.t 
+S05-match/blocks.t
 # S05-match/capturing-contexts.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S05-match/non-capturing.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/perl.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
@@ -270,7 +270,7 @@ S05-metasyntax/changed.t
 # S05-metasyntax/single-quotes.t # err: Null PMC access in invoke()
 S05-metasyntax/unknown.t
 # S05-modifier/continue.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-modifier/counted-match.t
+S05-modifier/counted-match.t
 S05-modifier/global.t
 # S05-modifier/ii.t # err: Method 'clone' not found for invocant of class 'Sub'
 
@@ -280,7 +280,7 @@ S05-modifier/overlapping.t
 # S05-modifier/perl5_2.t # err: Unrecognized regex metacharacter (must be quoted to match literally) 
 # S05-modifier/perl5_7.t # err: Unsupported use of \Z as end-of-string matcher
 # S05-modifier/perl5_8.t # err: Unsupported use of \Z as end-of-string matcher
-# S05-modifier/pos.t
+# S05-modifier/pos.t # segmentation fault
 S05-modifier/repetition.t
 # S05-modifier/sigspace.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 S05-substitution/match.t
@@ -331,10 +331,10 @@ S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
-# S06-signature/tree-node-parameters.t
+# S06-signature/tree-node-parameters.t # Segmentation fault
 # S06-signature/type-capture.t # err: Nominal type check failed for parameter '$y'
 # S06-signature/types.t # err: Malformed block
-# S06-signature/unpack-array.t
+# S06-signature/unpack-array.t # Segmentation fault
 S06-signature/unspecified.t
 S06-traits/as.t
 S06-traits/is-copy.t
@@ -393,7 +393,7 @@ S12-construction/new.t
 S12-enums/basic.t
 # S12-enums/thorough.t # err: Could not find sub &day
 # S12-introspection/attributes.t # err: Can not get non-existant attribute '$!name' on class 'Attribute'
-# S12-introspection/can.t # err: Method 'can' not found for invocant of class 'Str'
+# S12-introspection/can.t # err: invoke() not implemented in class 'Parcel'
 S12-introspection/meta-class.t
 # S12-introspection/methods.t # err: Method 'multi' not found for invocant of class 'Method'
 S12-introspection/parents.t
@@ -426,11 +426,11 @@ S13-type-casting/methods.t
 # S13-overloading/typecasting-long.t # err: invoke() not implemented in class 'TypeCastSub'
 # S13-overloading/metaoperators.t # err: Confused
 S13-overloading/operators.t
-# S14-roles/anonymous.t # err: Symbol '$val' not predeclared in <anonymous>
+# S14-roles/anonymous.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 # S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
 # S14-roles/basic.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
 # S14-roles/composition.t # err: Method 'foo' must be resolved by class DD because it exists in multiple roles
-# S14-roles/conflicts.t # err: Symbol '$was_in_sentry_shake' not predeclared in shake
+S14-roles/conflicts.t
 S14-roles/crony.t
 # S14-roles/instantiation.t # err: Parametric roles not yet implemented
 S14-roles/lexical.t
@@ -445,7 +445,7 @@ S14-roles/submethods.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 # S14-traits/routines.t # err: Could not find sub &description
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
-# S16-filehandles/filetest.t # err: Method 'IO' not found for invocant of class 'Failure'
+# S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
 # S16-filehandles/io.t # err: Could not find sub &get
 # S16-filehandles/io_in_for_loops.t # err: Could not find sub &get
 # S16-filehandles/io_in_while_loops.t # err: Could not find sub &get
@@ -456,7 +456,7 @@ S16-io/basic-open.t
 # S16-io/say.t # err: o k 3 - say with multiple parameters (2)
 # S16-io/say-and-ref.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S16-io/getc.t # err: Could not find sub &close
-# S16-unfiled/rebindstdhandles.t
+S16-unfiled/rebindstdhandles.t
 # S16-unfiled/slurp.t # err: Could not find sub &slurp
 # S19-command-line/dash-e.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc' #icu
 # S19-command-line/help.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
@@ -489,14 +489,14 @@ S32-array/shift.t
 # S32-container/zip.t # err: Cannot assign to a non-container
 S32-hash/exists.t
 # S32-hash/delete.t # err: Too many positional parameters passed
-# S32-hash/invert.t
+S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/pairs.t
 # S32-hash/push.t # hangs
 # S32-hash/slice.t # err: Contextual $*UNITPAST not found
 # S32-io/dir.t # err: Could not find sub &dir
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
-# S32-io/file-tests.t
+S32-io/file-tests.t
 # S32-io/note.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S32-io/IO-Socket-INET.t # err: Useless declaration of a has-scoped method in mainline
 S32-list/classify.t
@@ -543,7 +543,7 @@ S32-str/comb.t
 # S32-str/encode.t # err: Invalid character 'c' in number literal
 S32-str/flip.t
 # S32-str/indent.t # err: Method 'indent' not found for invocant of class 'Str'
-# S32-str/index.t
+S32-str/index.t
 S32-str/lc.t                                               # icu
 S32-str/lcfirst.t                                          # icu
 S32-str/lines.t
@@ -556,7 +556,7 @@ S32-str/pos.t
 S32-str/rindex.t
 S32-str/samecase.t                                         # icu
 # S32-str/split-simple.t # err: No applicable candidates found to dispatch to for 'split'.
-# S32-str/split.t # err: Nominal type check failed for parameter '$pat'; expected Regex but got Str instead
+S32-str/split.t
 S32-str/sprintf.t
 # S32-str/substr.t # err: Method 'capitalize' not found for invocant of class 'Str'
 # S32-str/trim.t # err: Could not find sub &trim
@@ -592,20 +592,20 @@ integration/99problems-01-to-10.t
 # integration/99problems-41-to-50.t # err: Contextual $*UNITPAST not found
 # integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
-# integration/advent2009-day01.t
+integration/advent2009-day01.t
 # integration/advent2009-day02.t # err: Invalid character 'f' in number literal
 integration/advent2009-day03.t
 integration/advent2009-day04.t
 # integration/advent2009-day05.t # err: Contextual $*UNITPAST not found
 # integration/advent2009-day06.t # err: Contextual $*UNITPAST not found
 # integration/advent2009-day07.t # err: Could not find sub !dispatch_method_parallel
-# integration/advent2009-day08.t
+# integration/advent2009-day08.t # Segmentation fault
 # integration/advent2009-day09.t # err: Not enough positional parameters passed
 # integration/advent2009-day10.t # err: Method 'parse' not found for invocant of class 'Inventory'
 # integration/advent2009-day11.t # err: Method 'dog_name' not found for invocant of class 'DogWalker'
 # integration/advent2009-day12.t # err: "load_bytecode" couldn't find file 'Fancy/Utilities.pbc'
 integration/advent2009-day13.t
-# integration/advent2009-day14.t
+integration/advent2009-day14.t
 integration/advent2009-day15.t
 # integration/advent2009-day16.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 # integration/advent2009-day17.t # err: Unable to parse blockoid # stress

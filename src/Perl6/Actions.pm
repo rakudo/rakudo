@@ -228,7 +228,14 @@ class Perl6::Actions is HLL::Actions {
 
     method pod_content_toplevel($/) {
         my $child := $<pod_block>.ast;
-        $*POD_BLOCKS.push($child) if $child;
+        # make sure we don't push the same thing twice
+        if $child {
+            my $exists := 0;
+            for $*POD_BLOCKS {
+                $exists := 1 if $_ =:= $child
+            }
+            $*POD_BLOCKS.push($child) if !$exists;
+        }
         make $child;
     }
 

@@ -391,7 +391,6 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     if (!PMC_IS_NULL(param->post_constraints)) {
         PMC * const constraints = param->post_constraints;
         INTVAL num_constraints  = VTABLE_elements(interp, constraints);
-        PMC * result            = PMCNULL;
         INTVAL i;
         for (i = 0; i < num_constraints; i++) {
             /* Check we meet the constraint. */

@@ -24,10 +24,10 @@ static STRING *SELF_str         = NULL;
 static STRING *NAME_str         = NULL;
 static STRING *BLOCK_str        = NULL;
 static STRING *CAPTURE_str      = NULL;
-static STRING *SNAPCAP_str      = NULL;
 static STRING *STORAGE_str      = NULL;
 static STRING *REST_str         = NULL;
 static STRING *LIST_str         = NULL;
+static STRING *HASH_str         = NULL;
 static STRING *FLATTENS_str     = NULL;
 static STRING *NEXTITER_str     = NULL;
 static STRING *HASH_SIGIL_str   = NULL;
@@ -47,10 +47,10 @@ static void setup_binder_statics(PARROT_INTERP) {
     SELF_str         = Parrot_str_new_constant(interp, "self");
     BLOCK_str        = Parrot_str_new_constant(interp, "Block");
     CAPTURE_str      = Parrot_str_new_constant(interp, "Capture");
-    SNAPCAP_str      = Parrot_str_new_constant(interp, "!snapshot_capture");
     STORAGE_str      = Parrot_str_new_constant(interp, "$!storage");
     REST_str         = Parrot_str_new_constant(interp, "$!rest");
     LIST_str         = Parrot_str_new_constant(interp, "$!list");
+    HASH_str         = Parrot_str_new_constant(interp, "$!hash");
     FLATTENS_str     = Parrot_str_new_constant(interp, "$!flattens");
     NEXTITER_str     = Parrot_str_new_constant(interp, "$!nextiter");
     HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
@@ -575,19 +575,26 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
 
         /* Is it looking for us to bind a capture here? */
         if (param->flags & SIG_ELEM_IS_CAPTURE) {
-            /* XXX In the long run, we need to snapshot any current CaptureCursor.
-             * For now, we don't have that, so we just build off the current
-             * capture. Of course, if there's no variable name we can (cheaply)
-             * do pretty much nothing. */
+            /* Capture the arguments from this point forwards into a Capture.
+             * Of course, if there's no variable name we can (cheaply) do pretty
+             * much nothing. */
             if (STRING_IS_NULL(param->variable_name)) {
                 bind_fail = BIND_RESULT_OK;
             }
             else {
-                PMC *ns       = Parrot_hll_get_ctx_HLL_namespace(interp);
-                PMC *snapper  = Parrot_ns_get_global(interp, ns, SNAPCAP_str);
-                PMC *snapshot = PMCNULL;
-                Parrot_ext_call(interp, snapper, "PiIP->P", capture, cur_pos_arg, named_args_copy, &snapshot);
-                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param, snapshot,
+                PMC *captype  = Rakudo_types_capture_get();
+                PMC *capsnap  = REPR(captype)->instance_of(interp, captype);
+                PMC *pos_args = pmc_new(interp, enum_class_ResizablePMCArray);
+                INTVAL k;
+                VTABLE_set_attr_keyed(interp, capsnap, captype, LIST_str, pos_args);
+                for (k = cur_pos_arg; k < num_pos_args; k++)
+                    VTABLE_push_pmc(interp, pos_args,
+                        VTABLE_get_pmc_keyed_int(interp, capture, k));
+                VTABLE_set_attr_keyed(interp, capsnap, captype, HASH_str,
+                    PMC_IS_NULL(named_args_copy) ?
+                        pmc_new(interp, enum_class_Hash) :
+                        VTABLE_clone(interp, named_args_copy));
+                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param, capsnap,
                         no_nom_type_check, error);
             }
             if (bind_fail) {

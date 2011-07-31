@@ -165,6 +165,13 @@ my class Mu {
         pir::find_method__PPS($type, $name)(self, |@pos, |%named)
     }
     
+    method dispatch:<!>($name, Mu $type, *@pos, *%named) {
+        my $meth := $type.HOW.find_private_method($type, $name);
+        nqp::isnull($meth) ??
+            die("Private method '$name' not found on type " ~ $type.HOW.name($type)) !!
+            $meth(self, |@pos, |%named)
+    }
+    
     method dispatch:<.^>($name, *@pos, *%named) {
         self.HOW."$name"(self, |@pos, |%named)
     }

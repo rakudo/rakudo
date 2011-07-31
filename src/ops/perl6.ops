@@ -316,6 +316,20 @@ inline op perl6_set_types_enummap_hash(in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_set_type_capture(in PMC)
+
+Sets the Capture type.
+
+=cut
+
+*/
+inline op perl6_set_type_capture(in PMC) :base_core {
+    Rakudo_types_capture_set($1);
+}
+
+
+/*
+
 =item perl6_set_type_packagehow(in PMC)
 
 Sets the package type.

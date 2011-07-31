@@ -572,9 +572,16 @@ my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 Hash.HOW.add_parent(Hash, EnumMap);
 Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 
+# class Capture {
+#     ...
+# }
+my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
+Capture.HOW.add_parent(Capture, Any);
+
 # Configure declarative listy/hashy types.
 pir::perl6_set_types_list_array_lol__vPP(List, ListIter, Array, LoL, Parcel);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
+pir::perl6_set_type_capture__vP(Capture);
 
 # XXX Quick and dirty Bool. Probably done by EnumHOW in the end.
 my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -707,6 +714,7 @@ my module EXPORT {
         $?PACKAGE.WHO<LoL>       := LoL;
         $?PACKAGE.WHO<EnumMap>   := EnumMap;
         $?PACKAGE.WHO<Hash>      := Hash;
+        $?PACKAGE.WHO<Capture>   := Capture;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
         $?PACKAGE.WHO<Grammar>   := Grammar;

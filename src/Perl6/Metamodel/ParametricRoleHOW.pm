@@ -4,6 +4,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::MethodContainer
+    does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::RoleContainer
@@ -86,6 +87,9 @@ class Perl6::Metamodel::ParametricRoleHOW
         # unconditionally, since we need the clone anyway.
         for self.methods($obj, :local(1)) {
             $conc.HOW.add_method($conc, $_.name, $_.instantiate_generic($type_env))
+        }
+        for self.private_method_table($obj) {
+            $conc.HOW.add_private_method($conc, $_.key, $_.value.instantiate_generic($type_env));
         }
         for self.multi_methods_to_incorporate($obj) {
             $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))

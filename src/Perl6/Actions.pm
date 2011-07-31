@@ -985,7 +985,7 @@ class Perl6::Actions is HLL::Actions {
     method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
     
     method package_declarator:sym<trusts>($/) {
-        $/.CURSOR.panic("trusts not yet implemented");
+        $*ST.apply_trait('&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);
     }
     
     method package_declarator:sym<also>($/) {
@@ -1385,7 +1385,8 @@ class Perl6::Actions is HLL::Actions {
 
         # Install method.
         if $<longname> {
-            install_method($/, $<longname>.Str, $*SCOPE, $code, $outer);
+            install_method($/, $<longname>.Str, $*SCOPE, $code, $outer,
+                :private($<specials> && ~$<specials> eq '!'));
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
@@ -1421,6 +1422,8 @@ class Perl6::Actions is HLL::Actions {
                 is_multi_invocant => 1,
                 is_method_named_slurpy => 1
             ));
+            $past[0].unshift(PAST::Var.new( :name('%_'), :scope('lexical_6model'), :isdecl(1) ));
+            $past.symbol('%_', :scope('lexical_6model'));
         }
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object(@params, $past);
@@ -1441,10 +1444,17 @@ class Perl6::Actions is HLL::Actions {
     }
     
     # Installs a method into the various places it needs to go.
-    sub install_method($/, $name, $scope, $code, $outer) {
+    sub install_method($/, $name, $scope, $code, $outer, :$private) {
         # Ensure that current package supports methods, and if so
         # add the method.
-        my $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
+        my $meta_meth;
+        if $private {
+            if $*MULTINESS { $/.CURSOR.panic("Private multi-methods are not supported"); }
+            $meta_meth := 'add_private_method';
+        }
+        else {
+            $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
+        }
         if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
             $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
         }
@@ -2098,12 +2108,39 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method privop($/) {
+        # Compiling private method calls is somewhat interesting. If it's
+        # in any way qualified, we need to ensure that the current package
+        # is trusted by the target class. Otherwise we assume that the call
+        # is to a private method in the current (non-virtual) package.
+        # XXX Optimize the case where the method is declared up front - but
+        # maybe this is for the optimizer, not for here.
+        # XXX Attribute accesses? Again, maybe for the optimizer, since it
+        # runs after CHECK time.
         my $past := $<methodop>.ast;
-        if $<methodop><quote> {
-            $past.name(PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), '!', $past.name ));
+        if $<methodop><longname> {
+            my @parts   := Perl6::Grammar::parse_name(~$<methodop><longname>);
+            my $name    := @parts.pop;
+            if @parts {
+                my $methpkg := $*ST.find_symbol(@parts);
+                unless $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
+                    $/.CURSOR.panic("Cannot call private method '$name' on package " ~
+                        $methpkg.HOW.name($methpkg) ~ " because it does not trust " ~
+                        $*PACKAGE.HOW.name($*PACKAGE));
+                }
+            }
+            else {
+                $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+                $past.unshift($*ST.add_constant('Str', 'str', $name));
+            }
+            $past.name('dispatch:<!>');
+        }
+        elsif $<methodop><quote> {
+            $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+            $past.unshift($<methodop><quote>.ast);
+            $past.name('dispatch:<!>');
         }
         else {
-            $past.name( '!' ~ $past.name );
+            $/.CURSOR.panic("Cannot use this form of method call with a private method");
         }
         make $past;
     }
@@ -3512,7 +3549,9 @@ class Perl6::Actions is HLL::Actions {
                     'handled'
                 ),
                 1
-            )
+            ),
+            PAST::Op.new( :pirop('finalize vP'),
+                PAST::Var.new( :scope('register'), :name('exception')))
         );
 
         $block.handlers.unshift(

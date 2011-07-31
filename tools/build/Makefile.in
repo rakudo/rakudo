@@ -94,6 +94,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/GenericHOW.pm \
   src/Perl6/Metamodel/AttributeContainer.pm \
   src/Perl6/Metamodel/MethodContainer.pm \
+  src/Perl6/Metamodel/PrivateMethodContainer.pm \
   src/Perl6/Metamodel/MultiMethodContainer.pm \
   src/Perl6/Metamodel/RoleContainer.pm \
   src/Perl6/Metamodel/MultipleInheritance.pm \
@@ -102,6 +103,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/C3MRO.pm \
   src/Perl6/Metamodel/MROBasedMethodDispatch.pm \
   src/Perl6/Metamodel/MROBasedTypeChecking.pm \
+  src/Perl6/Metamodel/Trusting.pm \
   src/Perl6/Metamodel/Mixins.pm \
   src/Perl6/Metamodel/BUILDPLAN.pm \
   src/Perl6/Metamodel/ParrotInterop.pm \

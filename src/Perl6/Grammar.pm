@@ -1043,8 +1043,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> <package_def>
     }
     token package_declarator:sym<trusts> {
-        <sym> <.ws>
-        <module_name>
+        <sym> <.ws> <typename>
     }
     token package_declarator:sym<also> {
         <sym>:s

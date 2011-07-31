@@ -1991,12 +1991,39 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method privop($/) {
+        # Compiling private method calls is somewhat interesting. If it's
+        # in any way qualified, we need to ensure that the current package
+        # is trusted by the target class. Otherwise we assume that the call
+        # is to a private method in the current (non-virtual) package.
+        # XXX Optimize the case where the method is declared up front - but
+        # maybe this is for the optimizer, not for here.
+        # XXX Attribute accesses? Again, maybe for the optimizer, since it
+        # runs after CHECK time.
         my $past := $<methodop>.ast;
-        if $<methodop><quote> {
-            $past.name(PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), '!', $past.name ));
+        if $<methodop><longname> {
+            my @parts   := Perl6::Grammar::parse_name(~$<methodop><longname>);
+            my $name    := @parts.pop;
+            if @parts {
+                my $methpkg := $*ST.find_symbol(@parts);
+                unless $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
+                    $/.CURSOR.panic("Cannot call private method '$name' on package " ~
+                        $methpkg.HOW.name($methpkg) ~ " because it does not trust " ~
+                        $*PACKAGE.HOW.name($*PACKAGE));
+                }
+            }
+            else {
+                $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+                $past.unshift($*ST.add_constant('Str', 'str', $name));
+            }
+            $past.name('dispatch:<!>');
+        }
+        elsif $<methodop><quote> {
+            $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+            $past.unshift($<methodop><quote>.ast);
+            $past.name('dispatch:<!>');
         }
         else {
-            $past.name( '!' ~ $past.name );
+            $/.CURSOR.panic("Cannot use this form of method call with a private method");
         }
         make $past;
     }

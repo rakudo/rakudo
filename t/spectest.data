@@ -196,7 +196,7 @@ S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
 # S04-declarations/state.t # err: Can not get non-existant attribute '$!do' on class 'Code'
-# S04-exception-handlers/catch.t # hangs
+S04-exception-handlers/catch.t
 # S04-exceptions/fail.t  # err: use scoped variables not yet implemented
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t 
@@ -222,7 +222,7 @@ S04-statements/redo.t
 S04-statements/repeat.t
 S04-statements/return.t
 S04-statements/terminator.t
-# S04-statements/try.t # hangs
+# S04-statements/try.t # weird fudge
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t

@@ -334,6 +334,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*UNIT;
         :my $*UNIT_OUTER;
         :my $*EXPORT;
+        :my $*COMPILING := 1;
 
         # A place for Pod
         :my $*POD_BLOCKS := [];

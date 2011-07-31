@@ -136,7 +136,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token comment:sym<#=(...)> {
-        '#=' <!ws> $<attachment=<quote_EXPR>
+        '#=' <!ws> $<attachment>=<quote_EXPR>
     }
 
     token comment:sym<#=> {
@@ -1219,6 +1219,8 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule scoped($*SCOPE) {<.end_keyword> [
         :my $*TYPENAME := '';
+        :my $*DOC := $*DECLARATOR;
+        { $*DECLARATOR := '' }
         [
         | <DECL=variable_declarator>
         | <DECL=routine_declarator>
@@ -1272,6 +1274,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     rule routine_def($d) {
         :my $*IN_DECL := $d;
         :my $*METHODTYPE;
+        :my $*DOC := $*DECLARATOR;
+        { $*DECLARATOR := '' }
         <deflongname>?
         <.newpad>
         [ '(' <multisig> ')' ]?
@@ -1286,6 +1290,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     rule method_def($d) {
         :my $*IN_DECL := $d;
         :my $*METHODTYPE := $d;
+        :my $*DOC := $*DECLARATOR;
+        { $*DECLARATOR := '' }
         [
             <.newpad>
             [

@@ -302,14 +302,9 @@ class Perl6::Actions is HLL::Actions {
         my $s := $<spaces>.Str;
         my $t := subst($<text>.Str, /\n$s/, "\n", :global);
         $t    := subst($t, /\n$/, ''); # chomp!
-        my $str := $*ST.add_constant('Str', 'str', $t);
-        my $content := $*ST.add_constant(
-            'Array', 'type_new',
-            $str<compile_time_value>
-        );
-        my $past := $*ST.add_constant(
-            'Pod::Block::Code', 'type_new',
-            :content($content<compile_time_value>),
+        my $past := Perl6::Pod::serialize_object(
+            'Pod::Block::Code',
+            :content(Perl6::Pod::serialize_aos([$t])<compile_time_value>),
         );
         make $past<compile_time_value>;
     }

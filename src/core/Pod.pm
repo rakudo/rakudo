@@ -18,6 +18,10 @@ my package Pod {
         has @.headers; # optional, may be empty
     }
 
+    class Heading is Block {
+        has $.level;
+    }
+
     class Item is Block {
         has $.level;
     }

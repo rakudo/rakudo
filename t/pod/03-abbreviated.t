@@ -1,5 +1,5 @@
 use Test;
-plan 26;
+plan 30;
 my $r;
 
 =foo
@@ -112,3 +112,12 @@ isa_ok $r, Pod::Block;
 is $r.content.elems, 1;
 is $r.content[0],
    'Constants 1 Variables 10 Subroutines 33 Everything else 57';
+
+=head3
+Heading level 3
+
+$r = $=POD[7];
+isa_ok $r, Pod::Block;
+isa_ok $r, Pod::Heading;
+is $r.level, '3';
+is $r.content[0], 'Heading level 3';

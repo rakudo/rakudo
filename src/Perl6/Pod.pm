@@ -2,6 +2,19 @@
 class Perl6::Pod {
     our sub any_block($/) {
         my @children := [];
+        my $type;
+        my $leveled;
+
+        if $<type>.Str ~~ /^item \d*$/ {
+            $type    := 'Pod::Item';
+            $leveled := 1;
+        } elsif $<type>.Str ~~ /^head \d+$/ {
+            $type    := 'Pod::Heading';
+            $leveled := 1;
+        } else {
+            $type := 'Pod::Block::Named';
+        }
+
         for $<pod_content> {
             # check if it's a pod node or an array of strings
             if pir::isa($_.ast, 'ResizablePMCArray') {
@@ -10,8 +23,9 @@ class Perl6::Pod {
                 @children.push($_.ast);
             }
         }
+
         my $content := serialize_array(@children);
-        if $<type>.Str ~~ /^item \d*$/ {
+        if $leveled {
             my $level      := nqp::substr($<type>.Str, 4);
             my $level_past;
             if $level ne '' {
@@ -21,12 +35,14 @@ class Perl6::Pod {
             } else {
                 $level_past := $*ST.find_symbol(['Mu']);
             }
+
             my $past := serialize_object(
-                'Pod::Item', :level($level_past),
+                $type, :level($level_past),
                 :content($content<compile_time_value>)
             );
             return $past<compile_time_value>;
         }
+
         my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
         my $past := serialize_object(
             'Pod::Block::Named', :name($name<compile_time_value>),

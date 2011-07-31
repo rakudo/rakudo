@@ -1307,6 +1307,7 @@ class Perl6::Actions is HLL::Actions {
                 is_multi_invocant => 1,
                 is_method_named_slurpy => 1
             ));
+            $past[0].unshift(PAST::Var.new( :name('%_'), :scope('lexical_6model'), :isdecl(1) ));
             $past.symbol('%_', :scope('lexical_6model'));
         }
         set_default_parameter_type(@params, 'Any');

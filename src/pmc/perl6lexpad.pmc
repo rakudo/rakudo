@@ -340,7 +340,7 @@ Return the LexInfo PMC, if any or a Null PMC.
                 GET_ATTR_default_named_slurpy(INTERP, SELF, storage);
                 result = REPR(_Hash)->instance_of(interp, _Hash);
                 if (!PMC_IS_NULL(storage))
-                    VTABLE_set_attr_keyed(interp, result, EnumMap, CONST_STRING(interp, "%_"), storage);
+                    VTABLE_set_attr_keyed(interp, result, EnumMap, CONST_STRING(interp, "$!storage"), storage);
             }
             VTABLE_set_pmc_keyed_str(interp, SELF, name, result);
         }

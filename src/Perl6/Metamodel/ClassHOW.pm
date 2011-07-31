@@ -88,4 +88,26 @@ class Perl6::Metamodel::ClassHOW
         }
         @meths
     }
+    
+    # Stuff for junctiony dispatch fallback.
+    my $junction_type;
+    my $junction_autothreader;
+    method setup_junction_fallback($type, $autothreader) {
+        $junction_type := $type;
+        $junction_autothreader := $autothreader;
+    }
+    
+    # Handles the various dispatch fallback cases we have.
+    method find_method_fallback($obj, $name) {
+        # If the object is a junction, need to do a junction dispatch.
+        if $obj.WHAT =:= $junction_type && $junction_autothreader {
+            my $p6name := pir::perl6ize_type__PP($name);
+            return -> *@pos_args, *%named_args {
+                $junction_autothreader($p6name, |@pos_args, |%named_args)
+            };
+        }
+
+        # Otherwise, didn't find anything.
+        pir::null__P()
+    }
 }

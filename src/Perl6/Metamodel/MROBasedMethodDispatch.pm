@@ -13,7 +13,9 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         if pir::exists(%submethods, $name) {
             return %submethods{$name}
         }
-        pir::null__P();
+        pir::can__IPs(self, 'find_method_fallback') ??
+            self.find_method_fallback($obj, $name) !!
+            pir::null__P();
     }
     
     method publish_method_cache($obj) {

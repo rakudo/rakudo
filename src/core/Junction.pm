@@ -90,4 +90,11 @@ sub AUTOTHREAD(&call, **@pos, *%named) {
     call(|@pos, |%named);
 }
 
+sub AUTOTHREAD_METHOD($name, **@pos, *%named) {
+    AUTOTHREAD(
+        -> $obj, *@cpos, *%cnamed { $obj."$name"(|@cpos, |%cnamed) },
+        |@pos, |%named);
+}
+
 pir::perl6_setup_junction_autothreading__vPP(Junction, &AUTOTHREAD);
+Mu.HOW.setup_junction_fallback(Junction, &AUTOTHREAD_METHOD);

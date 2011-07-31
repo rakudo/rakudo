@@ -726,8 +726,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_prefix:sym<sink>($/) {
-        my $blast := $<blorst>.ast;
-        $blast.blocktype('immediate');
+        my $blast := PAST::Op.new( $<blorst>.ast );
         make PAST::Stmts.new(
             PAST::Op.new( :name('&eager'), $blast ),
             PAST::Var.new( :name('Nil'), :scope('lexical')),
@@ -3469,13 +3468,7 @@ class Perl6::Actions is HLL::Actions {
             PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :scope('lexical_6model'), :name('$_') ),
                 PAST::Op.new(
-                    :pasttype('callmethod'),
-                    :name('new'),
-                    PAST::Var.new(
-                        :name('Exception'),
-                        :namespace([]),
-                        :scope('package'),
-                    ),
+                    :name('&EXCEPTION'),
                     PAST::Var.new( :scope('lexical_6model'), :name('$_') ),
                 ),
             ),

@@ -1,0 +1,156 @@
+  Build requirements (Installing from source)
+    For building Rakudo you need at least a C compiler, a "make" utility,
+    and Perl 5.8 or newer. To automatically obtain and build Parrot you
+    may also need a a git client, which is also needed for fetching the
+    test suite.
+
+    In order to fully support Unicode, you'll also want to have the ICU
+    library installed (<http://site.icu-project.org/>). Rakudo can run
+    without ICU, but some Unicode-related features do not work properly.
+
+    As an example, on Debian GNU/Linux or Ubuntu Linux, the necessary
+    components for building Rakudo can be installed via the command
+
+        aptitude install build-essential libicu-dev git-core
+
+    (Perl is installed by default already). To enable parallel testing you
+    also need the CPAN module Test::Harness in version 3.16 or newer; you
+    can control the number of parallel jobs with the "TEST_JOBS" environment
+    variable.
+
+  Building and invoking Rakudo
+    Because Rakudo is under rapid development, we generally recommend
+    downloading Rakudo directly from github and building from there:
+
+        $ git clone git://github.com/rakudo/rakudo.git
+
+    If you don't have git installed, you can get a tarball or zip of Rakudo
+    from <http://github.com/rakudo/rakudo/downloads>. Then unpack the
+    tarball or zip.
+
+    If you already have cloned Rakudo from github, you can get (pull) the
+    most recent version from github like this:
+
+        $ cd rakudo
+        $ git pull
+
+    Once you have an up-to-date copy of Rakudo, build it as follows:
+
+        $ cd rakudo
+        $ perl Configure.pl --gen-parrot
+        $ make
+
+    This will create a "perl6" or "perl6.exe" executable in the current
+    (rakudo) directory. Note that if you have multiple (Perl 5) "perl"s in
+    your path, you may need to use a fully qualified path to the appropriate
+    executable (or update your PATH environment variable).
+
+    Programs can then be run from the build directory using a command like:
+
+        $ ./perl6 hello.pl
+
+    Important: To run Rakudo from outside the build directory, you must run
+
+        $ make install
+
+    This will install the "perl6" (or "perl6.exe" binary on windows) into
+    the "install/bin" directory locally, no additional root
+    privileges necessary.
+
+    The "--gen-parrot" above option tells Configure.pl to automatically
+    download and build the most appropriate version of NQP and Parrot 
+    into local "nqp/" and "parrot/" subdirectories, install NQP and Parrot
+    into the "install/" subdirectory, and use them for building Rakudo.
+    It's okay to use the "--gen-parrot" option on later invocations of
+    Configure.pl; the configure system will re-build NQP and/or Parrot 
+    only if a newer version is needed for whatever version of Rakudo 
+    you're working with.
+
+    If you already have Parrot installed, you can use 
+    "--with-parrot=/path/to/bin/parrot" to use it instead of
+    building a new one.  This installed Parrot must include its
+    development environment.  Similarly, if you already have NQP
+    installed, you can specify "--with-nqp=/path/to/bin/nqp"
+    to use it.  (Note that this must be NQP, not the NQP-rx that
+    comes with Parrot.)
+
+    The versions of any already installed NQP or Parrot binaries must
+    satify a minimum specified by the Rakudo being built -- Configure.pl
+    and "make" will verify this for you.  Released versions of Rakudo
+    always build against the latest release of Parrot; checkouts of 
+    the HEAD revision from github often require a version of Parrot 
+    that is newer than the most recent Parrot monthly release.
+
+    Once built, Rakudo's "make install" target will install Rakudo and its
+    libraries into the directories specified by the Parrot installation
+    used to create it.  Until this step is performed, the "perl6" 
+    executable created by "make" above can only be reliably run from 
+    the root of Rakudo's build directory.  After "make install" is 
+    performed, the installed executable can be run from any directory 
+    (as long as the Parrot installation that was used to create it 
+    remains intact).
+
+    If the Rakudo compiler is invoked without an explicit script to run, it
+    enters a small interactive mode that allows Perl 6 statements to be
+    executed from the command line.
+
+    See the manual page ("docs/running.pod") for more about command-line
+    options.
+
+   Build/install problems
+    Occasionally, there may be problems when building/installing Rakudo.
+    Make sure you have a backup of any custom changes you have done to the
+    source tree before performing the following steps:
+
+    Try to remove the "install/" subdirectory:
+
+        $ cd rakudo
+        $ rm -r install
+        $ git pull
+        $ perl Configure.pl --gen-parrot
+        $ make
+
+    Or, in case you are really stuck, start with a fresh source tree:
+
+        $ rm -r rakudo
+        $ git clone git://github.com/rakudo/rakudo.git
+
+  Running the test suite
+    Entering "make test" will run a small test suite that comes bundled with
+    Rakudo. This is a simple suite of tests, designed to make sure that the
+    Rakudo compiler is basically working and that it's capable of running a
+    simple test harness.
+
+    Running "make spectest" will import the official Perl 6 test suite from
+    the "roast" repository <http://github.com/perl6/roast/> and run all
+    of these tests that are currently known to pass.
+
+    If you want to automatically submit the results of your spectest run to
+    a central server, use "make spectest_smolder" instead. You need the
+    Perl 5 module TAP::Harness::Archive and an active internet connection
+    for that. The smoke results are collected at
+    <http://smolder.parrot.org/app/projects/smoke_reports/5>
+
+    At present we do not have any plans to directly store the official test
+    suite as part of the Rakudo repository, but will continue to fetch it 
+    from the roast repository.  Releases of Rakudo get a snapshot of
+    the roast repository as of the time of the release.
+
+    You can also use "make" to run an individual test from the command line:
+
+        $ make t/spec/S29-str/ucfirst.t
+        t/spec/S29-str/ucfirst.rakudo ..
+        1..4
+        ok 1 - simple
+        ok 2 - empty string
+        ok 3 - # SKIP unicode
+        ok 4 - # SKIP unicode
+        # FUDGED!
+        ok
+        All tests successful.
+        Files=1, Tests=4,  1 wallclock secs ( 0.02 usr  0.00 sys +  0.57 cusr  0.06 csys =  0.65 CPU)
+        Result: PASS
+
+    If you want to run the tests in parallel, you need to install a fairly
+    recent version of the Perl 5 module Test::Harness (3.16 works for sure).
+

@@ -2146,7 +2146,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method methodop($/) {
-        my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
+        my $past := $<args> ?? $<args>.ast !! PAST::Op.new( :node($/) );
         $past.pasttype('callmethod');
         if $<longname> {
             # May just be .foo, but could also be .Foo::bar. Also handle the

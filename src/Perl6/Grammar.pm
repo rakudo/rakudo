@@ -2065,9 +2065,13 @@ grammar Perl6::Grammar is HLL::Grammar {
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments"> ]
         ] <.unsp>?
         [
-        | <?[(]> <args>
-        | ':' \s <!{ $*QSIGIL }> <args=.arglist>
-        ]?
+            [
+            | <?[(]> <args>
+            | ':' \s <!{ $*QSIGIL }> <args=.arglist>
+            ]
+            || <!{ $*QSIGIL }> <?>
+            || <?{ $*QSIGIL }> <?['.']> <?>
+        ]
     }
 
     token dottyopish {

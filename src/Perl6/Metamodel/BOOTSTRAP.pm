@@ -684,6 +684,14 @@ use QRegex;
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
+# Export the metamodel bits to a Metamodel namespace so it's available
+# from user land.
+my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
+Perl6::Metamodel::PackageHOW.add_stash(Metamodel);
+for Perl6::Metamodel.WHO {
+    (Metamodel.WHO){$_.key} := $_.value;
+}
+
 # Build up EXPORT::DEFAULT.
 my module EXPORT {
     our module DEFAULT {
@@ -728,5 +736,6 @@ my module EXPORT {
         $?PACKAGE.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
         $?PACKAGE.WHO<StaticLexPad>        := Perl6::Metamodel::StaticLexPad;
         $?PACKAGE.WHO<NQPCursorRole>       := NQPCursorRole;
+        $?PACKAGE.WHO<Metamodel>           := Metamodel;
     }
 }

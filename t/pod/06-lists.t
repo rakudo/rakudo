@@ -20,9 +20,9 @@ for 1..7 {
     isa_ok $r.content[$_], Pod::Item;
 }
 
-is $r.content[1].content, 'Happy', 'content is happy :)';
-is $r.content[2].content, 'Dopey';
-is $r.content[7].content, 'Keyser Soze';
+is $r.content[1].content[0].content, 'Happy', 'content is happy :)';
+is $r.content[2].content[0].content, 'Dopey';
+is $r.content[7].content[0].content, 'Keyser Soze';
 nok $r.content[4].level.defined, 'no level information';
 
 =begin pod
@@ -43,13 +43,13 @@ for 0..7 {
     isa_ok $r.content[$_], Pod::Item;
 }
 
-$r.content[0].content, 'Animal';
+$r.content[0].content[0].content, 'Animal';
 $r.content[0].level,   1;
-$r.content[2].content, 'Invertebrate';
+$r.content[2].content[0].content, 'Invertebrate';
 $r.content[2].level,   2;
-$r.content[3].content, 'Phase';
+$r.content[3].content[0].content, 'Phase';
 $r.content[3].level,   1;
-$r.content[4].content, 'Solid';
+$r.content[4].content[0].content, 'Solid';
 $r.content[4].level,   2;
 
 =begin pod
@@ -96,10 +96,9 @@ As you can see, folk wisdom is often of dubious value.
 
 $r = $=POD[3];
 is $r.content.elems, 4;
-is $r.content[0], "Let's consider two common proverbs:";
-skip 'no regexes in nom yet', 2;
-#ok $r.content[1].content.Str
-#   ~~ /:s This is a common .+ are extremely attractive/;
-#ok $r.content[2].content.Str
-#   ~~ /:s In deciding .+ annelids for breakfast/;
-is $r.content[3], "As you can see, folk wisdom is often of dubious value.";
+is $r.content[0].content, "Let's consider two common proverbs:";
+ok $r.content[1].content[1].content
+   ~~ /:s This is a common .+ are extremely attractive/;
+ok $r.content[2].content[1].content
+   ~~ /:s In deciding .+ annelids for breakfast/;
+is $r.content[3].content, "As you can see, folk wisdom is often of dubious value.";

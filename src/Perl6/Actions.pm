@@ -182,7 +182,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             $unit.push($mainparam);
         }
-        
+
         # If our caller wants to know the mainline ctx, provide it here.
         # (CTXSAVE is inherited from HLL::Actions.) Don't do this when
         # there was an explicit {YOU_ARE_HERE}.
@@ -280,7 +280,10 @@ class Perl6::Actions is HLL::Actions {
 
     method pod_text_para($/) {
         my $t    := Perl6::Pod::formatted_text($<text>.Str);
-        my $past := $*ST.add_constant('Str', 'str', $t);
+        my $past := Perl6::Pod::serialize_object(
+            'Pod::Block::Para',
+            :content(Perl6::Pod::serialize_aos([$t])<compile_time_value>),
+        );
         make $past<compile_time_value>;
     }
 
@@ -289,13 +292,17 @@ class Perl6::Actions is HLL::Actions {
         for $<pod_textcontent> {
             @ret.push($_.ast);
         }
-        make @ret;
+        my $past := Perl6::Pod::serialize_array(@ret);
+        make $past<compile_time_value>;
     }
 
     method pod_textcontent:sym<regular>($/) {
         my $t    := Perl6::Pod::formatted_text($<text>.Str);
-        my $past := $*ST.add_constant('Str', 'str', $t);
-        make $past<compile_time_value>;
+        # is only one string now, will be a twine
+        my $twine := Perl6::Pod::serialize_aos([$t])<compile_time_value>;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Para', :content($twine)
+        )<compile_time_value>
     }
 
     method pod_textcontent:sym<code>($/) {

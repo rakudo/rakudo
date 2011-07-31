@@ -3,6 +3,9 @@ my package Pod {
         has @.content;
     }
 
+    class Block::Para is Block {
+    }
+
     class Block::Named is Block {
         has $.name;
     }

@@ -19,7 +19,7 @@ my class Capture {
     }
 
     method hash(Capture:D:) {
-        my $enum := new::create(EnumMap);
+        my $enum := nqp::create(EnumMap);
         nqp::bindattr($enum, EnumMap, '$!storage', $!hash);
         $enum;
     }

@@ -511,14 +511,11 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
 INTVAL
 Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     INTVAL no_nom_type_check, STRING **error) {
-    INTVAL            i;
-    INTVAL            bind_fail;
-    INTVAL            cur_pos_arg        = 0;
-    INTVAL            num_pos_args       = VTABLE_elements(interp, capture);
-    PMC              *named_names        = PMCNULL;
-    Rakudo_Signature *sig                = (Rakudo_Signature *)PMC_data(sig_pmc);
-    PMC              *params             = sig->params;
-    INTVAL            num_params         = VTABLE_elements(interp, params);
+    INTVAL            i, bind_fail, num_pos_args;
+    INTVAL            cur_pos_arg = 0;
+    Rakudo_Signature *sig         = (Rakudo_Signature *)PMC_data(sig_pmc);
+    PMC              *params      = sig->params;
+    INTVAL            num_params  = VTABLE_elements(interp, params);
 
     /* If we do have some named args, we want to make a clone of the hash
      * to work on. We'll delete stuff from it as we bind, and what we have
@@ -535,40 +532,37 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
         setup_binder_statics(interp);
 
     /* If we've got a CallContext, just has an attribute with list of named
-     * parameter names. Otherwise, it's a Capture and we need to do .hash and
-     * grab out the keys. */
+     * parameter names. Otherwise, it's probably a Perl 6 Capture and we need
+     * to extract its parts. */
     if (capture->vtable->base_type == enum_class_CallContext) {
-        named_names = VTABLE_get_attr_str(interp, capture, NAMED_str);
-    }
-    else if (VTABLE_isa(interp, capture, CAPTURE_str)) {
-        PMC *meth = VTABLE_find_method(interp, capture, Parrot_str_new(interp, "!PARROT_NAMEDS", 0));
-        PMC *hash = PMCNULL;
-        PMC *iter;
-        Parrot_ext_call(interp, meth, "Pi->P", capture, &hash);
-        iter = VTABLE_get_iter(interp, hash);
-        if (VTABLE_get_bool(interp, iter)) {
-            named_names = pmc_new(interp, enum_class_ResizableStringArray);
-            while (VTABLE_get_bool(interp, iter))
-                VTABLE_push_string(interp, named_names, VTABLE_shift_string(interp, iter));
+        PMC *named_names = VTABLE_get_attr_str(interp, capture, NAMED_str);
+        if (!PMC_IS_NULL(named_names)) {
+            PMC *iter = VTABLE_get_iter(interp, named_names);
+            named_args_copy = pmc_new(interp, enum_class_Hash);
+            while (VTABLE_get_bool(interp, iter)) {
+                STRING *name = VTABLE_shift_string(interp, iter);
+                VTABLE_set_pmc_keyed_str(interp, named_args_copy, name,
+                        VTABLE_get_pmc_keyed_str(interp, capture, name));
+            }
         }
+    }
+    else if (capture->vtable->base_type == smo_id &&
+            STABLE(capture)->type_check(interp, capture, Rakudo_types_capture_get())) {
+        PMC *captype   = Rakudo_types_capture_get();
+        PMC *list_part = VTABLE_get_attr_keyed(interp, capture, captype, LIST_str);
+        PMC *hash_part = VTABLE_get_attr_keyed(interp, capture, captype, HASH_str);
+        capture = list_part->vtable->base_type == enum_class_ResizablePMCArray ?
+                list_part : pmc_new(interp, enum_class_ResizablePMCArray);
+        if (hash_part->vtable->base_type == enum_class_Hash)
+            named_args_copy = VTABLE_clone(interp, hash_part);
     }
     else {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                 "Internal Error: Rakudo_binding_bind passed invalid Capture");
     }
 
-    /* Make copy of the named arguments. */
-    if (!PMC_IS_NULL(named_names)) {
-        PMC *iter = VTABLE_get_iter(interp, named_names);
-        named_args_copy = pmc_new(interp, enum_class_Hash);
-        while (VTABLE_get_bool(interp, iter)) {
-            STRING *name = VTABLE_shift_string(interp, iter);
-            VTABLE_set_pmc_keyed_str(interp, named_args_copy, name,
-                    VTABLE_get_pmc_keyed_str(interp, capture, name));
-        }
-    }
-
     /* Now we'll walk through the signature and go about binding things. */
+    num_pos_args = VTABLE_elements(interp, capture);
     for (i = 0; i < num_params; i++) {
         Rakudo_Parameter *param = (Rakudo_Parameter *)PMC_data(
                 VTABLE_get_pmc_keyed_int(interp, params, i));

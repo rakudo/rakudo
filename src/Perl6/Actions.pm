@@ -1270,7 +1270,8 @@ class Perl6::Actions is HLL::Actions {
 
         # Install method.
         if $<longname> {
-            install_method($/, $<longname>.Str, $*SCOPE, $code, $outer);
+            install_method($/, $<longname>.Str, $*SCOPE, $code, $outer,
+                :private($<specials> && ~$<specials> eq '!'));
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
@@ -1326,10 +1327,17 @@ class Perl6::Actions is HLL::Actions {
     }
     
     # Installs a method into the various places it needs to go.
-    sub install_method($/, $name, $scope, $code, $outer) {
+    sub install_method($/, $name, $scope, $code, $outer, :$private) {
         # Ensure that current package supports methods, and if so
         # add the method.
-        my $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
+        my $meta_meth;
+        if $private {
+            if $*MULTINESS { $/.CURSOR.panic("Private multi-methods are not supported"); }
+            $meta_meth := 'add_private_method';
+        }
+        else {
+            $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
+        }
         if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
             $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
         }

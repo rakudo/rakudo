@@ -37,7 +37,7 @@ multi trait_mod:<is>(Parameter:D $param, :$copy!) {
 # TODO: Make this much less cheaty. That'll probably need the
 # full-blown serialization, though.
 multi trait_mod:<is>(Routine:D \$r, :$export!) {
-    if $*COMPILING {
+    if %*COMPILING {
         my @tags = 'ALL', 'DEFAULT';
         for @tags -> $tag {
             my $install_in;

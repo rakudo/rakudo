@@ -337,6 +337,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         # A place for Pod
         :my $*POD_BLOCKS := [];
+        :my $*POD_BLOCKS_SEEN := {};
         :my $*POD_PAST;
         :my $*DECLARATOR;
         

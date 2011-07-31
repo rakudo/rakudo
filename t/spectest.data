@@ -18,7 +18,7 @@ S02-builtin_data_types/array.t
 S02-builtin_data_types/assigning-refs.t
 # S02-builtin_data_types/autovivification.t # err: Method 'at_key' not found for invocant of class 'Any'
 S02-builtin_data_types/bool.t
-# S02-builtin_data_types/capture.t # err: Too many positional parameters passed
+S02-builtin_data_types/capture.t
 S02-builtin_data_types/catch_type_cast_mismatch.t
 S02-builtin_data_types/declare.t
 S02-builtin_data_types/flattening.t
@@ -52,12 +52,12 @@ S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
 S02-literals/hex_chars.t
-# S02-literals/listquote.t # err: Method 'at_key' not found for invocant of class 'Str'
+S02-literals/listquote.t
 S02-literals/listquote-whitespace.t
 S02-literals/misc-interpolation.t
 S02-literals/numeric.t
 S02-literals/pair-boolean.t
-# S02-literals/pairs.t # needs fudging
+S02-literals/pairs.t
 S02-literals/quoting.t
 S02-literals/quoting-unicode.t          # icu
 # S02-literals/radix.t # err: NYI form of number litereal encountered
@@ -68,13 +68,13 @@ S02-literals/types.t
 S02-literals/underscores.t
 # S02-magicals/args.t   # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 S02-magicals/config.t
-# S02-magicals/dollar_bang.t # err: Cannot assign to a non-container
+S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 # S02-magicals/env.t # err: Could not find sub &slurp
 # S02-magicals/pid.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 S02-magicals/progname.t
 # S02-names_and_variables/contextual.t # err: Method '!priv' not found for invocant
-# S02-names_and_variables/fmt.t # err: Too many positional parameters passed; got 3 but expected between 1 and 2
+S02-names_and_variables/fmt.t
 # S02-names_and_variables/names.t # err: Cannot use placeholder parameters in this kind of block
 # S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu
 # S02-names_and_variables/list_array_perl.t # err: Contextual $*UNITPAST not found
@@ -151,7 +151,7 @@ S03-operators/range-int.t                       # stress
 # S03-operators/range.t # err: No applicable candidates found to dispatch to for 'Numeric'
 S03-operators/reduce-le1arg.t
 S03-operators/relational.t
-# S03-operators/repeat.t # err: Cannot repeat with negative arg
+S03-operators/repeat.t
 S03-operators/scalar-assign.t
 S03-operators/short-circuit.t
 S03-operators/spaceship-and-containers.t

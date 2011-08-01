@@ -3533,6 +3533,7 @@ class Perl6::Actions is HLL::Actions {
                     PAST::Var.new( :scope('lexical_6model'), :name('$_') ),
                 ),
             ),
+            PAST::Var.new( :scope('lexical_6model'), :name('$/'), :isdecl(1) ),
             PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :scope('lexical_6model'), :name('$!'), :isdecl(1) ),
                 PAST::Var.new( :scope('lexical_6model'), :name('$_') ),

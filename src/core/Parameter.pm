@@ -21,6 +21,18 @@ my class Parameter {
     method name() {
         $!variable_name
     }
+
+    method type() {
+        $!nominal_type.HOW.name($!nominal_type)
+    }
+
+    method named() {
+        nqp::p6bool(nqp::isnull($!named_names))
+    }
+
+    method named_names() {
+        pir::perl6ize_type__PP($!named_names) // ().list
+    }
     
     method positional() {
         nqp::p6bool(

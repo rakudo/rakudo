@@ -59,6 +59,39 @@ of the compilation unit.
     env = root_new ['parrot';'Env']
     $P2 = '&CREATE_HASH_FROM_LOW_LEVEL'(env)
     set_hll_global '%ENV', $P2
+
+    $P4 = new['OS']
+    $P5 = new ['Int']
+    $P5 = $P4.'get_user_id'()
+    set_hll_global '$UID', $P5
+
+    $P6 = new ['Str']
+    $S0 = sysinfo .SYSINFO_PARROT_OS
+    $P6 = $S0
+    set_hll_global '$OSNAME', $P6
+
+    .local pmc undef,nci,euid,gid,egid
+    undef = new ['Undef']
+    euid = box 0
+    set_hll_global '$EUID', euid
+    set_hll_global '$GID', euid
+    set_hll_global '$EGID', euid
+
+    if $S0 == "MSWin32" goto post_vars
+
+    nci = dlfunc undef, 'geteuid', 'i'
+    euid = nci()
+    set_hll_global '$EUID', euid
+
+    nci = dlfunc undef, 'getgid', 'i'
+    gid = nci()
+    set_hll_global '$GID', gid
+
+    nci = dlfunc undef, 'getegid', 'i'
+    egid = nci()
+    set_hll_global '$EGID', egid
+
+  post_vars:
 .end
 
 

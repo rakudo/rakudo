@@ -147,25 +147,118 @@ class IO is Cool {
         $.stat.exists;
     }
     multi method f() {
-        self.e ?? !$.stat.isdir !! Bool;
+        self.e ?? (!$.stat.isdir and !$.stat.isdev) !! Bool;
     }
 
     multi method s() {
         self.e ?? $.stat.size !! Any;
     }
 
-    multi method l() {
-        my $fn = $.path;
-        ? Q:PIR{
-            .local pmc filename, file
-            filename = find_lex '$fn'
-            $S0 = filename
-
-            file = root_new ['parrot';'File']
-            $I0 = file.'is_link'($S0)
-            %r = box $I0
-        }
+    multi method R() {
+        ?pir::new__PS('OS').can_read($.path);
     }
+
+    multi method W() {
+        ?pir::new__PS('OS').can_write($.path);
+    }
+
+    multi method X() {
+        ?pir::new__PS('OS').can_execute($.path);
+    }
+
+    multi method r() {
+        return self.R if $*OSNAME -eq "MSWin32";
+        my $path = $.path;
+        return ?Q:PIR {
+            .local pmc uid,euid,suid,undef,os
+
+            uid = get_hll_global '$UID'
+            euid = get_hll_global '$EUID'
+            undef = new ['Undef']
+            os = new ['OS']
+
+            .local pmc setresuid,res,path
+            path = find_lex '$path'
+            setresuid = dlfunc undef, 'setresuid', 'iiii'
+
+            setresuid(euid, uid, uid)
+            res = os.'can_read'(path)
+            setresuid(uid, euid, uid)
+
+            %r = res
+        };
+    }
+
+    multi method w() {
+        return self.W if $*OSNAME -eq "MSWin32";
+        my $path = $.path;
+        return ?Q:PIR {
+            .local pmc uid,euid,suid,undef,os
+
+            uid = get_hll_global '$UID'
+            euid = get_hll_global '$EUID'
+            undef = new ['Undef']
+            os = new ['OS']
+
+            .local pmc setresuid,res,path
+            path = find_lex '$path'
+            setresuid = dlfunc undef, 'setresuid', 'iiii'
+
+            setresuid(euid, uid, uid)
+            res = os.'can_write'(path)
+            setresuid(uid, euid, uid)
+
+            %r = res
+        };
+    }
+
+    multi method x() {
+        return self.X if $*OSNAME -eq "MSWin32";
+        my $path = $.path;
+        return ?Q:PIR {
+            .local pmc uid,euid,suid,undef,os
+
+            uid = get_hll_global '$UID'
+            euid = get_hll_global '$EUID'
+            undef = new ['Undef']
+            os = new ['OS']
+
+            .local pmc setresuid,res,path
+            path = find_lex '$path'
+            setresuid = dlfunc undef, 'setresuid', 'iiii'
+
+            setresuid(euid, uid, uid)
+            res = os.'can_execute'(path)
+            setresuid(uid, euid, uid)
+
+            %r = res
+        };
+    }
+
+    multi method l() {
+        $.stat.islnk;
+    }
+
+    multi method O() {
+        pir::new__PS('OS').get_user_id() ~~ $.stat.uid;
+    }
+
+    # Can't get effective uid in parrot
+    multi method o() {
+        pir::new__PS('OS').get_user_id() ~~ $.stat.uid;
+    }
+
+	multi method u() {
+		?($.stat.permissions +& 0o4000);
+	}
+
+	multi method g() {
+		?($.stat.permissions +& 0o2000);
+	}
+
+	multi method k() {
+		?($.stat.permissions +& 0o1000);
+	}
 
     multi method z() {
         $.e && $.s == 0;
@@ -313,6 +406,48 @@ multi sub cwd() {
         $pwd = pir::new__Ps('OS').cwd();
     }
     $! ?? fail($!) !! $pwd;
+}
+
+multi sub move($src as Str, $dest as Str) {
+    try {
+        pir::new__PS('OS').rename($src, $dest);
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub chmod($path as Str, $mode as Int) {
+    try {
+        pir::new__PS('OS').chmod($path, $mode);
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub copy($src as Str, $dest as Str) {
+    try {
+        pir::new__PS('File').copy($src, $dest);
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub rm($path as Str) {
+    try { 
+        pir::new__PS('OS').rm($path);
+    }
+    $! ?? fail($!) !! True
+}
+
+multi sub link($src as Str, $dest as Str, Bool :$hard = False) {
+    if $hard {
+        try {
+            pir::new__PS('OS').link($src, $dest);
+        }
+        $! ?? fail($!) !! return True;
+    }
+
+    try {
+        pir::new__PS('OS').symlink($src, $dest);
+    }
+    $! ?? fail($!) !! True
 }
 
 # vim: ft=perl6

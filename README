@@ -15,7 +15,7 @@ Rakudo Perl 6
     please visit http://perl6.org/compilers/features .
 
   Building Rakudo
-    See the INSTALL file for detailed prerequisits and build and
+    See the INSTALL.txt file for detailed prerequisits and build and
     installation instructions. The short version is
 
     $ perl Configure --gen-parrot

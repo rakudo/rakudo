@@ -708,14 +708,14 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CATCH>($/) {
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block<past_block>);
+        push_block_handler($/, $*ST.cur_lexpad(), $block);
         $*ST.cur_lexpad().handlers()[0].handle_types_except('CONTROL');
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_control:sym<CONTROL>($/) {
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block<past_block>);
+        push_block_handler($/, $*ST.cur_lexpad(), $block);
         $*ST.cur_lexpad().handlers()[0].handle_types('CONTROL');
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
@@ -3522,7 +3522,6 @@ class Perl6::Actions is HLL::Actions {
         unless $block.handlers() {
             $block.handlers([]);
         }
-        $handler.blocktype('declaration');
         $handler := PAST::Block.new(
             :blocktype('declaration'),
             PAST::Var.new( :scope('parameter'), :name('$_') ),
@@ -3540,8 +3539,7 @@ class Perl6::Actions is HLL::Actions {
             ),
             PAST::Op.new( :pasttype('call'),
                 $handler,
-            ),
-        );
+            ));
         $handler.symbol('$_', :scope('lexical_6model'));
         $handler.symbol('$!', :scope('lexical_6model'));
         $handler := PAST::Stmts.new(

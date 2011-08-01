@@ -20,7 +20,7 @@ multi infix:<eq>($x?)          { Bool::True }
 multi infix:<eq>(\$a, \$b)     { $a.Stringy eq $b.Stringy }
 
 proto infix:<ne>(|$)             { * }
-multi infix:<ne>($x?)            { Bool::True }
+multi infix:<ne>($x?)            { Bool::False }
 multi infix:<ne>(Mu \$a, Mu \$b) { $a !eq $b }
 
 proto infix:<lt>(|$)           { * }

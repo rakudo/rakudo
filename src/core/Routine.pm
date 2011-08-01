@@ -14,4 +14,8 @@ my class Routine {
             pir::perl6ize_type__PP(nqp::getattr(self, Code, '$!dispatchees')) !!
             (self,)
     }
+    
+    method multi() {
+        self.dispatcher.defined
+    }
 }

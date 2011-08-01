@@ -485,7 +485,7 @@ S32-array/push.t
 # S32-array/rotate.t # err: Method 'rotate' not found for invocant of class 'Array'
 S32-array/shift.t
 # S32-array/splice.t # err: Could not find sub &splice
-# S32-array/unshift.t # err: Could not find sub &unshift
+S32-array/unshift.t
 # S32-basics/warn.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S32-container/zip.t # err: Cannot assign to a non-container
 S32-hash/exists.t
@@ -502,7 +502,7 @@ S32-io/file-tests.t
 # S32-io/IO-Socket-INET.t # err: Useless declaration of a has-scoped method in mainline
 S32-list/classify.t
 S32-list/create.t
-# S32-list/end.t # err: Method 'unshift' not found for invocant of class 'Array'
+S32-list/end.t
 # S32-list/first.t # err: Could not find sub &first
 S32-list/grep.t
 S32-list/join.t

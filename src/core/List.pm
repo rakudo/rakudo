@@ -174,6 +174,13 @@ class List does Positional {
           !! fail 'Element shifted from empty list';
     }
 
+    method unshift(*@elems) {
+        while @elems.pop -> $e {
+            nqp::unshift($!items, $e)
+        }
+        self
+    }
+
     method sort($by = &infix:<cmp>) {
         # We defer to Parrot's ResizablePMCArray.sort method here.
         # Instead of sorting elements directly, we sort a Parcel of
@@ -297,6 +304,9 @@ multi sub pop(@a) { @a.pop }
 
 proto sub shift(|$) {*}
 multi sub shift(@a) { @a.shift }
+
+proto sub unshift(|$) {*}
+multi sub unshift(@a, *@elems) { @a.unshift: @elems }
 
 proto sub push(|$) {*}
 multi sub push(@a, *@elems) { @a.push: @elems }

@@ -35,13 +35,16 @@ my class Real {
         my Int $int_part = self.Int;
         my $frac = abs(self - $int_part);
         my @frac_digits;
+        my @conversion = qw/0 1 2 3 4 5 6 7 8 9
+                            A B C D E F G H I J
+                            K L M N O P Q R S T/;
         # pretty arbitrary precision limit for now
         # but better than endless loops
         my $limit = 1e8.log($base.Num).Int;
         for ^$limit {
             last if $frac == 0;
             $frac = $frac * $base;
-            push @frac_digits, $frac.Int;
+            push @frac_digits, @conversion[$frac.Int];
             $frac = $frac - $frac.Int;
         }
         my Str $r = $int_part.base($base) ~ '.' ~ @frac_digits.join('');

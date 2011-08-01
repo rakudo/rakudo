@@ -3128,6 +3128,7 @@ class Perl6::Actions is HLL::Actions {
 
     method quote:sym<rx>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'm', $block);
         my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
         make block_closure($coderef);
     }

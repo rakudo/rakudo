@@ -253,9 +253,21 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
 static INTVAL
 Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *signature, Rakudo_Parameter *param,
                               PMC *value, INTVAL no_nom_type_check, STRING **error) {
+    PMC *decont_value;
+    
+    /* Ensure the value is a 6model object; if not, marshall it to one. */
+    if (value->vtable->base_type != smo_id) {
+        value = Rakudo_types_parrot_map(interp, value);
+        if (value->vtable->base_type != smo_id) {
+            *error = Parrot_sprintf_c(interp, "Unmarshallable foreign language value passed for parameter '%S'",
+                    param->variable_name);
+            return BIND_RESULT_FAIL;
+        }
+    }
+    
     /* We pretty much always need to de-containerized value, so get it
      * right off. */
-    PMC *decont_value = Rakudo_cont_decontainerize(interp, value);
+    decont_value = Rakudo_cont_decontainerize(interp, value);
     
     /* Skip nominal type check if not needed. */
     if (!no_nom_type_check) {

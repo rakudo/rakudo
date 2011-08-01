@@ -99,6 +99,9 @@ PMC * Rakudo_types_parrot_map(PARROT_INTERP, PMC * to_map) {
             result = REPR(_Hash)->instance_of(interp, _Hash);
             VTABLE_set_attr_keyed(interp, result, EnumMap, Parrot_str_new_constant(interp, "$!storage"), to_map);
             break;
+        case enum_class_Null:
+            result = Mu;
+            break;
         default:
             result = to_map;
     }

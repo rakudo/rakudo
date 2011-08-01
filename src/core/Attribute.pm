@@ -1,6 +1,6 @@
 augment class Attribute {
     method has-accessor() {
-        $!has_accessor ?? True !! False
+        ?$!has_accessor
     }
     method Str() { self.name }
 

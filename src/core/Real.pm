@@ -30,6 +30,24 @@ my class Real {
     method truncate(Real:D:) {
         self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
     }
+
+    method base(Int:D $base) {
+        my Int $int_part = self.Int;
+        my $frac = abs(self - $int_part);
+        my @frac_digits;
+        # pretty arbitrary precision limit for now
+        # but better than endless loops
+        my $limit = 1e8.log($base.Num).Int;
+        for ^$limit {
+            last if $frac == 0;
+            $frac = $frac * $base;
+            push @frac_digits, $frac.Int;
+            $frac = $frac - $frac.Int;
+        }
+        my Str $r = $int_part.base($base) ~ '.' ~ @frac_digits.join('');
+        # if $int_part is 0, $int_part.base doesn't see the sign of self
+        $int_part == 0 && self < 0 ?? '-' ~ $r !! $r;
+    }
 }
 
 proto sub cis(|$) {*}

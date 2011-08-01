@@ -25,7 +25,3 @@ my Int $b = 3;  $b = Nil;
 Often builtins are only added as methods, even when the corresponding function
 should exist. Go through src/core/ and write functions that re-dispatch to the
 methods where necessary
-
-## Regex-related string methods
-Port Str.split, Str.comb, Str.subst and the rest of Str.match over from
-master, using the existing Str.match as basis.

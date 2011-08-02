@@ -27,7 +27,7 @@ my class Parameter {
     }
 
     method named() {
-        nqp::p6bool(nqp::isnull($!named_names))
+        !nqp::p6bool(nqp::isnull($!named_names))
     }
 
     method named_names() {
@@ -39,6 +39,14 @@ my class Parameter {
             ($!flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED)) == 0 &&
             nqp::isnull($!named_names)
          )
+    }
+
+    method slurpy() {
+        nqp::p6bool(
+            $!flags +& ($SIG_ELEM_SLURPY_POS
+                        +| $SIG_ELEM_SLURPY_NAMED
+                        +| $SIG_ELEM_SLURPY_BLOCK)
+        )
     }
     
     method optional() {

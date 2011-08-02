@@ -18,7 +18,7 @@ Rakudo Perl 6
     See the INSTALL.txt file for detailed prerequisits and build and
     installation instructions. The short version is
 
-    $ perl Configure --gen-parrot
+    $ perl Configure.pl --gen-parrot
     $ make
     $ make spectest # optional
     $ make install # IMPORTANT, installs to install/bin/perl6

@@ -155,12 +155,18 @@ sub fill_template_file {
     close($OUT) or die $!;
 }
 
+sub lookup_config {
+    my ($key, $config) = @_;
+    return $config->{$key} if defined $config->{$key};
+    return $config->{"parrot::$key"} if defined $config->{"parrot::$key"};
+    return '';
+}
 
 sub fill_template_text {
     my $text = shift;
     my %config = @_;
 
-    $text =~ s/@([:\w]+)@/$config{$1} || $config{"parrot::$1"} || ''/ge;
+    $text =~ s/@([:\w]+)@/lookup_config("$1", \%config)/ge;
     if ($text =~ /nqp::makefile/) {
         if ($^O eq 'MSWin32') {
             $text =~ s{/}{\\}g;

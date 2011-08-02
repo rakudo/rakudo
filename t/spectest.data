@@ -277,10 +277,10 @@ S05-modifier/global.t
 
 # S05-modifier/ignorecase.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex' #icu
 S05-modifier/overlapping.t
-# S05-modifier/perl5_1.t # err: Unsupported use of {N,M} as general quantifier
-# S05-modifier/perl5_2.t # err: Unrecognized regex metacharacter (must be quoted to match literally) 
-# S05-modifier/perl5_7.t # err: Unsupported use of \Z as end-of-string matcher
-# S05-modifier/perl5_8.t # err: Unsupported use of \Z as end-of-string matcher
+# S05-modifier/perl5_1.t # err: Adverb 'P5' not allowed on m
+# S05-modifier/perl5_2.t # err: Adverb 'P5' not allowed on m
+# S05-modifier/perl5_7.t # err: Adverb 'P5' not allowed on m
+# S05-modifier/perl5_8.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/pos.t # segmentation fault
 S05-modifier/repetition.t
 # S05-modifier/sigspace.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
@@ -396,7 +396,7 @@ S12-enums/basic.t
 # S12-introspection/attributes.t # err: Can not get non-existant attribute '$!name' on class 'Attribute'
 # S12-introspection/can.t # err: invoke() not implemented in class 'Parcel'
 S12-introspection/meta-class.t
-# S12-introspection/methods.t # err: Method 'multi' not found for invocant of class 'Method'
+# S12-introspection/methods.t # err: too many named arguments
 S12-introspection/parents.t
 # S12-introspection/roles.t # err: Method 'roles' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
 # S12-introspection/walk.t # err: Useless declaration of a has-scoped method in mainline

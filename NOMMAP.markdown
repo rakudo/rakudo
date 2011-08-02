@@ -69,3 +69,10 @@ Same for my %h and hashes.
 
 ## BEGIN-time lexicals
 Need to have support for assigning to outer variables at BEGIN time.
+
+## Make nom installable
+
+## fix segfaults
+
+from t/spec/S03-operators/assign.t
+my $x; $x ^^= 42; $x ^^= 15

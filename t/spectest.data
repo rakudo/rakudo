@@ -540,7 +540,7 @@ S32-str/bool.t
 # S32-str/capitalize.t  # err: Could not find sub &capitalize #icu
 S32-str/chomp.t
 S32-str/chop.t
-S32-str/comb.t
+S32-str/comb.t                                             # icu
 # S32-str/encode.t # err: Invalid character 'c' in number literal
 S32-str/flip.t
 # S32-str/indent.t # err: Method 'indent' not found for invocant of class 'Str'

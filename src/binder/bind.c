@@ -64,6 +64,10 @@ static void setup_binder_statics(PARROT_INTERP) {
 }
 
 
+/* Gets the ID of a 6model object PMC. */
+INTVAL Rakudo_smo_id(void) { return smo_id; }
+
+
 /* Creates a Parcel from a RPA, filling PMCNULL elements if needed. */
 /* This function gets shared with perl6.ops for the perl6_parcel_from_rpa op. */
 PMC *

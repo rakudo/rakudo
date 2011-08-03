@@ -70,6 +70,8 @@ typedef struct {
 #define PObj_P6S_ALREADY_CHECKED_FLAG   PObj_private0_FLAG
 #define PObj_P6S_ALREADY_BOUND_FLAG     PObj_private1_FLAG
 
+/* Gets the ID of a 6model object PMC. */
+INTVAL Rakudo_smo_id(void);
 
 /* Functions we want to share to provide the interface to the binder. */
 INTVAL Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc,

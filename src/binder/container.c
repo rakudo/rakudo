@@ -3,6 +3,7 @@
 #include "parrot/extend.h"
 #include "container.h"
 #include "sixmodelobject.h"
+#include "bind.h"
 
 static PMC *scalar_type = NULL;
 void Rakudo_cont_set_scalar_type(PMC *type) { scalar_type = type; }
@@ -51,6 +52,11 @@ static STRING * typename(PARROT_INTERP, PMC *obj) {
  * it only really skips them if it's Scalar. */
 void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
                        INTVAL type_check, INTVAL rw_check) {
+    /* Ensure the value we're storing is a 6model type. */
+    if (value->vtable->base_type != Rakudo_smo_id())
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Cannot assign a non-Perl 6 value to a Perl 6 container");
+    
     /* If it's a scalar container, optimized path. */
     if (STABLE(cont)->WHAT == scalar_type) {
         Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(cont);

@@ -153,6 +153,16 @@ multi sub lines($fh = $*ARGFILES, $limit = $Inf) {
     $fh.lines($limit) 
 }
 
+proto sub get(|$) { * }
+multi sub get($fh = $*ARGFILES) {
+    $fh.get()
+}
+
+proto sub close(|$) { * }
+multi sub close($fh) {
+    $fh.close()
+}
+
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
 $PROCESS::ERR = IO.new;

@@ -366,7 +366,7 @@ S12-attributes/inheritance.t
 # S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
 # S12-attributes/mutators.t # err: Cannot put a type constraint on an 'our'-scoped variable
 S12-attributes/recursive.t
-# S12-attributes/undeclared.t # err: Attribute $!d not declared in class D
+S12-attributes/undeclared.t
 S12-class/anonymous.t
 # S12-class/augment-supersede.t # err: Illegal redeclaration of class
 S12-class/attributes.t
@@ -458,7 +458,7 @@ S16-io/basic-open.t
 # S16-io/say-and-ref.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t
-# S16-unfiled/slurp.t # err: Could not find sub &slurp
+S16-unfiled/slurp.t
 # S19-command-line/dash-e.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc' #icu
 # S19-command-line/help.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found

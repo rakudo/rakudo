@@ -3,9 +3,7 @@ my role Enumeration {
     has $.key;
     has $.value;
     
-    method Numeric(Enumeration:D:) {
-        $!value.Numeric
-    }
+    multi method Numeric(Enumeration:D:) { $!value.Numeric }
     
     method enums() {
         self.^enum_values

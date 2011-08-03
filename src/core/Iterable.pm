@@ -7,6 +7,6 @@ my class Iterable {
 
     method Int()      { self.elems }
     method Num()      { self.elems.Num }
-    method Numeric()  { self.elems }
-    multi method Str(Iterable:D:) { self.list.Str }
+    multi method Numeric(Iterable:D:)  { self.elems }
+    multi method Str(Iterable:D:)      { self.list.Str }
 }

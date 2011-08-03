@@ -1,9 +1,8 @@
 my class Bool {
-    multi method Bool(Bool:D:) { self }
+    multi method Bool(Bool:D:)    { self }
+    multi method Numeric(Bool:D:) { self ?? 1 !! 0 }
+    multi method Str(Bool:D:)     { self ?? 'True' !! 'False' }
 
-    multi method Str(Bool:D:) { self ?? 'True' !! 'False' }
-
-    method Numeric() { self ?? 1 !! 0 }
     method Int()     { self ?? 1 !! 0 }
 
     method pred() { Bool::False }

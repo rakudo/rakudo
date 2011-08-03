@@ -92,6 +92,10 @@ class IO {
         self.print: nqp::shift($args).gist while $args;
         self.print: "\n";
     }
+    
+    method slurp() {
+        nqp::p6box_s($!PIO.readall());
+    }
 
     method d() {
         self.e && nqp::p6bool(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ISDIR))
@@ -161,6 +165,14 @@ multi sub get($fh = $*ARGFILES) {
 proto sub close(|$) { * }
 multi sub close($fh) {
     $fh.close()
+}
+
+proto sub slurp(|$) { * }
+multi sub slurp($filename) {
+    my $handle = open($filename, :r);
+    my $contents = $handle.slurp();
+    $handle.close();
+    $contents
 }
 
 $PROCESS::IN  = open('-');

@@ -2561,11 +2561,8 @@ class Perl6::Actions is HLL::Actions {
         else {
             for $/.list { if $_.ast { $past.push($_.ast); } }
         }
-        if $sym eq '^^' || $sym eq 'xor' {
-            # XXX Put something equivalent in place...or fix.
-            #$past := PAST::Op.new(
-            #    :pasttype<call>, :name('!Undef_to_False'), $past
-            #);
+        if $past.pasttype eq 'xor_nqp' {
+            $past.push(PAST::Var.new(:named<false>, :scope<lexical_6model>, :name<Nil>));
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
             $past := whatever_curry($/, $past, $key eq 'INFIX' ?? 2 !! 1);

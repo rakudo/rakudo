@@ -13,6 +13,10 @@ my class Enum {
         my $method = $.key;
         $topic."$method"() === $.value;
     }
+    
+    method invert() {
+        $.value => $.key;
+    }
 
     method key(Enum:D:)   { $!key }
     method kv(Enum:D:)    { $!key, $!value }

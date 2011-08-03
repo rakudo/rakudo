@@ -1,18 +1,23 @@
 my class Bool {
     multi method Bool(Bool:D:) { self }
 
-    multi method Str(Bool:D:) {
-        self ?? 'Bool::True' !! 'Bool::False'
-    }
+    multi method Str(Bool:D:) { self ?? 'True' !! 'False' }
 
     method Numeric() { self ?? 1 !! 0 }
     method Int()     { self ?? 1 !! 0 }
 
     method pred() { Bool::False }
-
     method succ() { Bool::True }
 
+    method key() { self.Str }
+    method value() { self.Numeric }
+
+    method pick(Bool:U: $n = 1) { (Bool::True, Bool::False).pick($n) }
+    method roll(Bool:U: $n = 1) { (Bool::True, Bool::False).roll($n) }
+
     multi method ACCEPTS(Bool:D: Mu \$topic) { self }
+
+    multi method gist(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' }
 }
 
 

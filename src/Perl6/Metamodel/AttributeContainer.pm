@@ -45,16 +45,16 @@ role Perl6::Metamodel::AttributeContainer {
 
     # Introspect attributes.
     method attributes($obj, :$local) {
-        # Always add local ones.
         my @attrs;
-        for @!attributes {
-            @attrs.push($_);
+        
+        if $local {
+            for @!attributes {
+                @attrs.push($_);
+            }
         }
-
-        # Also may need ones from parents.
-        unless $local {
-            for self.parents($obj) {
-                for $_.HOW.attributes($_) {
+        else {
+            for self.mro($obj) {
+                for $_.HOW.attributes($_, :local(1)) {
                     @attrs.push($_);
                 }
             }

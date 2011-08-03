@@ -87,6 +87,11 @@ my class Any {
             return self;
         }
     }
+    
+    method all() { all(self.list) }
+    method any() { any(self.list) }
+    method one() { one(self.list) }
+    method none() { none(self.list) }
 
     ########
     # Hash-like methods for Any.

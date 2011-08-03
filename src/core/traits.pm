@@ -85,7 +85,7 @@ multi trait_mod:<as>(Parameter:D $param, $type) {
 
 proto trait_mod:<will>(|$) { * }
 multi trait_mod:<will>(Attribute $attr, Block $closure, :$build!) {
-    $attr.set_build_closure($closure)
+    $attr.set_build($closure)
 }
 
 proto trait_mod:<trusts>(|$) { * }

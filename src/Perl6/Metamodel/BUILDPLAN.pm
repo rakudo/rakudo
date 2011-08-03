@@ -41,9 +41,11 @@ role Perl6::Metamodel::BUILDPLAN {
             
             # Check if there's any default values to put in place.
             for @attrs {
-                my $default := $_.build_closure;
-                if $default {
-                    @plan[+@plan] := [2, $class, $_.name, $default];
+                if pir::can__IPs($_, 'build') {
+                    my $default := $_.build;
+                    if $default {
+                        @plan[+@plan] := [2, $class, $_.name, $default];
+                    }
                 }
             }
         }

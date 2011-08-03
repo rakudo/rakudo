@@ -27,7 +27,7 @@ my class BOOTSTRAPATTR {
     method type() { $!type }
     method box_target() { $!box_target }
     method has_accessor() { 0 }
-    method build_closure() { }
+    method build() { }
     method is_generic() { $!type.HOW.is_generic($!type) }
     method instantiate_generic($type_environment) {
         my $ins := $!type.HOW.instantiate_generic($!type, $type_environment);
@@ -110,24 +110,30 @@ Attribute.HOW.add_method(Attribute, 'new',
         $attr
     });
 Attribute.HOW.add_method(Attribute, 'name', sub ($self) {
-        pir::repr_get_attr_str__SPPs($self, Attribute, '$!name');
+        pir::repr_get_attr_str__SPPs(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!name');
     });
 Attribute.HOW.add_method(Attribute, 'type', sub ($self) {
-        pir::getattribute__PPPs($self, Attribute, '$!type');
+        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!type');
     });
 Attribute.HOW.add_method(Attribute, 'container_descriptor', sub ($self) {
-        pir::getattribute__PPPs($self, Attribute, '$!container_descriptor');
+        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!container_descriptor');
     });
 Attribute.HOW.add_method(Attribute, 'auto_viv_container', sub ($self) {
-        pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');
+        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!auto_viv_container');
     });
 Attribute.HOW.add_method(Attribute, 'has_accessor', sub ($self) {
         pir::perl6_booleanize__PI(
-            pir::repr_get_attr_int__IPPs($self, Attribute, '$!has_accessor'));
+            pir::repr_get_attr_int__IPPs(pir::perl6_decontainerize__PP($self),
+                Attribute, '$!has_accessor'));
     });
 Attribute.HOW.add_method(Attribute, 'rw', sub ($self) {
         pir::perl6_booleanize__PI(
-            pir::repr_get_attr_int__IPPs($self, Attribute, '$!rw'));
+            pir::repr_get_attr_int__IPPs(pir::perl6_decontainerize__PP($self),
+                Attribute, '$!rw'));
     });
 Attribute.HOW.add_method(Attribute, 'set_rw', sub ($self) {
         pir::repr_bind_attr_int__vPPsi(pir::perl6_decontainerize__PP($self),
@@ -146,27 +152,30 @@ Attribute.HOW.add_method(Attribute, 'default_to_rw', sub ($self) {
         }
         pir::perl6_booleanize__PI(1)
     });
-Attribute.HOW.add_method(Attribute, 'set_build_closure', sub ($self, $closure) {
+Attribute.HOW.add_method(Attribute, 'set_build', sub ($self, $closure) {
         pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($self),
             Attribute, '$!build_closure', $closure);
     });
-Attribute.HOW.add_method(Attribute, 'build_closure', sub ($self) {
-        pir::getattribute__PPPs($self, Attribute, '$!build_closure');
+Attribute.HOW.add_method(Attribute, 'build', sub ($self) {
+        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!build_closure');
     });
 Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
-        my $type := pir::getattribute__PPPs($self, Attribute, '$!type');
+        my $type := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!type');
         pir::perl6_booleanize__PI($type.HOW.is_generic($type));
     });
 Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
-        my $type     := pir::getattribute__PPPs($self, Attribute, '$!type');
-        my $cd       := pir::getattribute__PPPs($self, Attribute, '$!container_descriptor');
-        my $pkg      := pir::getattribute__PPPs($self, Attribute, '$!package');
-        my $avc      := pir::getattribute__PPPs($self, Attribute, '$!auto_viv_container');
+        my $dcself   := pir::perl6_decontainerize__PP($self);
+        my $type     := pir::getattribute__PPPs($dcself, Attribute, '$!type');
+        my $cd       := pir::getattribute__PPPs($dcself, Attribute, '$!container_descriptor');
+        my $pkg      := pir::getattribute__PPPs($dcself, Attribute, '$!package');
+        my $avc      := pir::getattribute__PPPs($dcself, Attribute, '$!auto_viv_container');
         my $type_ins := $type.HOW.instantiate_generic($type, $type_environment);
         my $cd_ins   := $cd.instantiate_generic($type_environment);
         my $pkg_ins   := $pkg.HOW.instantiate_generic($pkg, $type_environment);
         my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
-        my $ins      := pir::repr_clone__PP($self);
+        my $ins      := pir::repr_clone__PP($dcself);
         pir::setattribute__vPPsP($ins, Attribute, '$!type', $type_ins);
         pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
         pir::setattribute__vPPsP($ins, Attribute, '$!package', $pkg_ins);

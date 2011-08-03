@@ -14,8 +14,9 @@ my class Exception {
 }
 
 sub EXCEPTION(|$) {
-    my $ex := nqp::create(Exception);
-    nqp::bindattr($ex, Exception, '$!ex', 
-        nqp::shift(pir::perl6_current_args_rpa__P()));
+    my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
+    my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
+    my $ex := pir::defined($payload) ?? $payload !! nqp::create(Exception);
+    nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
     $ex;
 }

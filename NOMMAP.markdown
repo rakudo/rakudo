@@ -44,10 +44,6 @@ Many things are working, some are not...
 * Some support for augment
 * handles
 
-## Restore other setting bits
-Bring back in everything that was ripped out. Probably many our things
-become my things.
-
 ## Custom Operators
 Get these working again.
 
@@ -66,9 +62,6 @@ Same for my %h and hashes.
 
 ## Phasers
 * END in pre-compiled mainline case
-
-## BEGIN-time lexicals
-Need to have support for assigning to outer variables at BEGIN time.
 
 ## Make nom installable
 

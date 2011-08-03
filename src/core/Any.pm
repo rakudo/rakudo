@@ -130,6 +130,9 @@ proto sub infix:<eqv>(Mu $, Mu $) { * }
 multi sub infix:<eqv>(Mu $a, Mu $b) {
     $a.WHAT === $b.WHAT && $a === $b
 }
+multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {
+    $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
+}
 multi sub infix:<eqv>(@a, @b) {
     unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
         return Bool::False

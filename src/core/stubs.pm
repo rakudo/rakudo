@@ -7,6 +7,7 @@ my class Whatever is Cool { ... }
 my class WhateverCode is Code { ... }
 my role Stringy { ... }
 my class IO { ... }
+my class Enum { ... }
 my class Bag is Iterable does Associative { }
 my class Buf is Iterable does Positional { }
 my class Set is Iterable does Associative { }

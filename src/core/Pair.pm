@@ -1,5 +1,6 @@
 my class Pair is Enum does Associative {
-    # method value() is rw { ... }
+    method key() is rw { nqp::getattr(self, Enum, '$!key') }
+    method value() is rw { nqp::getattr(self, Enum, '$!value') }
 
     multi method ACCEPTS(Pair:D: %h) {
         $.value.ACCEPTS(%h{%.key});

@@ -60,7 +60,6 @@ Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_string',
     });
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
     sub ($self) { pir::istrue__IP($self.defined()) });
-Mu.HOW.publish_parrot_vtable_mapping(Mu);
 
 # class Any is Mu { ... }
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -394,6 +393,7 @@ Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
 
 # Need to actually run the code block. Also need this available before we finish
 # up the stub.
+Code.HOW.add_parrot_vtable_mapping(Code, 'invoke', nqp::null());
 Code.HOW.add_parrot_vtable_handler_mapping(Code, 'invoke', '$!do');
 Code.HOW.publish_parrot_vtable_handler_mapping(Code);
 Code.HOW.publish_parrot_vtable_mapping(Code);
@@ -628,6 +628,17 @@ Perl6::Metamodel::ClassHOW.add_stash(Num);
 Perl6::Metamodel::ClassHOW.add_stash(Scalar);
 Perl6::Metamodel::ClassHOW.add_stash(Bool);
 Perl6::Metamodel::ClassHOW.add_stash(Stash);
+
+# Make Parrot invoke v-table construct a capture and delegate off
+# to postcircumfix:<( )>.
+Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke',
+    sub ($self, *@pos, *%named) {
+        my $c := nqp::create(Capture);
+        nqp::bindattr($c, Capture, '$!list', @pos);
+        nqp::bindattr($c, Capture, '$!hash', %named);
+        $self.postcircumfix:<( )>($c);
+    });
+Mu.HOW.publish_parrot_vtable_mapping(Mu);
 
 # If we don't already have a PROCESS, set it up.
 my $PROCESS;

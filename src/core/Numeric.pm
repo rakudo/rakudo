@@ -153,27 +153,28 @@ multi infix:«>=»(\$a, \$b)   { $a.Numeric >= $b.Numeric }
 proto infix:<+&>(|$)         { * }
 multi infix:<+&>()           { +^0 }
 multi infix:<+&>($x)         { $x }
-multi infix:<+&>($x, $y)     { $x.Numeric +& $y.Numeric }
+multi infix:<+&>($x, $y)     { $x.Numeric.Int +& $y.Numeric.Int }
 
 proto infix:<+|>(|$)         { * }
 multi infix:<+|>()           { 0 }
 multi infix:<+|>($x)         { $x }
-multi infix:<+|>($x, $y)     { $x.Numeric +| $y.Numeric }
+multi infix:<+|>($x, $y)     { $x.Numeric.Int +| $y.Numeric.Int }
 
 proto infix:<+^>(|$)         { * }
 multi infix:<+^>()           { 0 }
 multi infix:<+^>($x)         { $x }
-multi infix:<+^>($x, $y)     { $x.Numeric +^ $y.Numeric }
+multi infix:<+^>($x, $y)     { $x.Numeric.Int +^ $y.Numeric.Int }
 
 proto infix:«+<»(|$)         { * }
 multi infix:«+<»()           { fail "No zero-arg meaning for infix:«+<»"; }
 multi infix:«+<»($x)         { $x }
-multi infix:«+<»($x,$y)      { $x.Numeric +< $y.Numeric }
+multi infix:«+<»($x,$y)      { $x.Numeric.Int +< $y.Numeric.Int }
 
 proto infix:«+>»(|$)         { * }
 multi infix:«+>»()           { fail "No zero-arg meaning for infix:«+>»"; }
 multi infix:«+>»($x)         { $x }
-multi infix:«+>»($x,$y)      { $x.Numeric +> $y.Numeric }
+multi infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
 
-proto prefix:<+^>(|$)         { * }
+proto prefix:<+^>(|$)        { * }
+multi prefix:<+^>($x)        { +^ $x.Numeric.Int }
 

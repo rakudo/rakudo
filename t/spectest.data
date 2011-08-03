@@ -121,7 +121,7 @@ S03-operators/binding-closure.t
 # S03-operators/binding-hashes.t # err: Cannot use bind operator with this LHS
 S03-operators/binding-ro.t
 S03-operators/binding-scalars.t
-# S03-operators/bit.t # err: No applicable candidates found to dispatch to for 'prefix:<+^>'
+S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 S03-operators/brainos.t
 # S03-operators/buf.t # err: Method 'encode' not found for invocant of class 'Str'

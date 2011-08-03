@@ -150,25 +150,30 @@ multi infix:«>=»(\$a, \$b)   { $a.Numeric >= $b.Numeric }
 
 ## bitwise operators
 
-proto infix:<+&>(|$) { * }
-multi infix:<+&>()   { +^0 }
-multi infix:<+&>($x) { $x }
+proto infix:<+&>(|$)         { * }
+multi infix:<+&>()           { +^0 }
+multi infix:<+&>($x)         { $x }
+multi infix:<+&>($x, $y)     { $x.Numeric +& $y.Numeric }
 
-proto infix:<+|>(|$) { * }
-multi infix:<+|>()   { 0 }
-multi infix:<+|>($x) { $x }
+proto infix:<+|>(|$)         { * }
+multi infix:<+|>()           { 0 }
+multi infix:<+|>($x)         { $x }
+multi infix:<+|>($x, $y)     { $x.Numeric +| $y.Numeric }
 
-proto infix:<+^>(|$) { * }
-multi infix:<+^>()   { 0 }
-multi infix:<+^>($x) { $x }
+proto infix:<+^>(|$)         { * }
+multi infix:<+^>()           { 0 }
+multi infix:<+^>($x)         { $x }
+multi infix:<+^>($x, $y)     { $x.Numeric +^ $y.Numeric }
 
-proto infix:«+<»(|$) { * }
-multi infix:«+<»()   { fail "No zero-arg meaning for infix:«+<»"; }
-multi infix:«+<»($x) { $x }
+proto infix:«+<»(|$)         { * }
+multi infix:«+<»()           { fail "No zero-arg meaning for infix:«+<»"; }
+multi infix:«+<»($x)         { $x }
+multi infix:«+<»($x,$y)      { $x.Numeric +< $y.Numeric }
 
-proto infix:«+>»(|$) { * }
-multi infix:«+>»()   { fail "No zero-arg meaning for infix:«+>»"; }
-multi infix:«+>»($x) { $x }
+proto infix:«+>»(|$)         { * }
+multi infix:«+>»()           { fail "No zero-arg meaning for infix:«+>»"; }
+multi infix:«+>»($x)         { $x }
+multi infix:«+>»($x,$y)      { $x.Numeric +> $y.Numeric }
 
-proto prefix:<+^>(|$) { * }
+proto prefix:<+^>(|$)         { * }
 

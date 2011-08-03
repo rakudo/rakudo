@@ -73,3 +73,6 @@ Need to have support for assigning to outer variables at BEGIN time.
 ## Make nom installable
 
 ## fix segfaults
+#
+t/spec/integration/lazy-bentley-generator.t segfaults, but works fine if
+the inner sub is declared before it is called.

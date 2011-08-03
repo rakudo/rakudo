@@ -393,7 +393,7 @@ S12-construction/new.t
 # S12-enums/as-role.t # err: Method 'specialize' not found 
 S12-enums/basic.t
 # S12-enums/thorough.t # err: Could not find sub &day
-# S12-introspection/attributes.t # err: Can not get non-existant attribute '$!name' on class 'Attribute'
+S12-introspection/attributes.t
 # S12-introspection/can.t # err: invoke() not implemented in class 'Parcel'
 S12-introspection/meta-class.t
 S12-introspection/methods.t

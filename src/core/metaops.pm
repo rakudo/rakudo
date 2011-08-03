@@ -53,8 +53,8 @@ sub METAOP_REDUCE(\$op, :$triangle) {
     my $x :=
     sub (*@values) {
         if $triangle {
+            return () unless @values;
             GATHER({
-                return unless @values;
                 my $result := @values.shift;
                 take $result;
                 take ($result := $op($result, @values.shift))
@@ -77,8 +77,8 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
     sub (*@values) {
         my $list = @values.reverse;
         if $triangle {
+            return () unless $list;
             gather {
-                return unless $list;
                 my $result := $list.shift;
                 take $result;
                 take ($result := $op($list.shift, $result))

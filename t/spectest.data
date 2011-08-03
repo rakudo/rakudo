@@ -448,15 +448,15 @@ S14-roles/submethods.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
 # S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
 # S16-filehandles/io.t # err: Could not find sub &get
-# S16-filehandles/io_in_for_loops.t # err: Could not find sub &get
-# S16-filehandles/io_in_while_loops.t # err: Could not find sub &get
+S16-filehandles/io_in_for_loops.t
+S16-filehandles/io_in_while_loops.t
 S16-filehandles/open.t
-# S16-filehandles/unlink.t # err: Could not find sub &close
+S16-filehandles/unlink.t
 # S16-io/bare-say.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 S16-io/basic-open.t
 # S16-io/say.t # err: o k 3 - say with multiple parameters (2)
 # S16-io/say-and-ref.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
-# S16-io/getc.t # err: Could not find sub &close
+# S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t
 # S16-unfiled/slurp.t # err: Could not find sub &slurp
 # S19-command-line/dash-e.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc' #icu

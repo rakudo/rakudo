@@ -6,6 +6,9 @@ my class Exception {
     }
 
     method throw() {
+        nqp::bindattr(self, Exception, '$!ex', pir::new('Exception'))
+            unless pir::defined($!ex);
+        pir::setattribute__vPsP($!ex, 'payload', pir::perl6_decontainerize__PP(self));
         pir::throw__0P($!ex)
     }
     method rethrow() {

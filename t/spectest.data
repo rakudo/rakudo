@@ -34,7 +34,7 @@ S02-builtin_data_types/nested_arrays.t
 S02-builtin_data_types/nested_pairs.t
 S02-builtin_data_types/nil.t
 S02-builtin_data_types/num.t
-# S02-builtin_data_types/pair.t             # err: Cannot use bind operator with this LHS
+S02-builtin_data_types/pair.t
 S02-builtin_data_types/parcel.t
 S02-builtin_data_types/parsing-bool.t
 S02-builtin_data_types/range.t

@@ -229,7 +229,7 @@ class Perl6::Actions is HLL::Actions {
         my $child := $<pod_block>.ast;
         # make sure we don't push the same thing twice
         if $child {
-            my $id := nqp::where($child);
+            my $id := $/.from ~ "," ~ ~$/.to;
             if !$*POD_BLOCKS_SEEN{$id} {
                 $*POD_BLOCKS.push($child);
                 $*POD_BLOCKS_SEEN{$id} := 1;

@@ -27,4 +27,11 @@ my class Capture {
     method list(Capture:D:) {
         nqp::p6list($!list, List, Mu);
     }
+    
+    method Capture(Capture:D:) {
+        self
+    }
+    
+    # XXX TODO: Should include the hash part too...
+    method ARGLIST_FLATTENABLE() { $!list }
 }

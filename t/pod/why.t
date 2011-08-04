@@ -1,5 +1,5 @@
 use Test;
-plan 6;
+plan 7;
 
 #= simple case
 class Simple {
@@ -30,3 +30,7 @@ module foo {
 is foo.WHY,           'a module';
 is foo::bar.WHY,      'a package';
 is foo::bar::baz.WHY, 'and a class';
+
+#= yellow
+sub marine {}
+is &marine.WHY, 'yellow';

@@ -1292,7 +1292,7 @@ class Perl6::Actions is HLL::Actions {
                     try {
                         $proto := $*ST.find_symbol([$name]);
                     }
-                    if $proto {
+                    if $proto && $proto.is_dispatcher {
                         # Found in outer scope. Need to derive.
                         $new_proto := $*ST.derive_dispatcher($proto);
                     }

@@ -1384,6 +1384,9 @@ class Perl6::Actions is HLL::Actions {
         my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
         my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
 
+        # Document it
+        document($code, $*DOC);
+
         # Install &?ROUTINE.
         $*ST.install_lexical_symbol($past, '&?ROUTINE', $code);
 

@@ -1,6 +1,36 @@
 # Roadmap for "nom" Branch
 
-Last Updated 27 July 2011
+Last Updated 3 Aug 2011
+
+## Punch list for nom->master and nom distribution
+
+This is the "punch list" of items that need addressing before
+switching nom to be the new 'master' branch, and before releasing
+a nom-based distribution.  Each item below contains an importance
+(1 == must have, 2 == ought to have, 3 == nice to have) for
+branch and distribution, an estimate of the difficulty 
+(* == easy, **** = hard), and any identified 
+responsible parties.
+
+* "make install" (1, 1, ***, jnthn pmichaud)
+* Method delegation (2, 2, ***, jnthn)
+* Parametric roles (2, 2, ***, jnthn)
+* Enums to level of master (2, 1, ???, ???)
+* Grammars, qregex, other regex stuff (1, 1, ***, pmichaud)
+* Nested signatures (2, 1, ***, jnthn)
+* Buf (2, 1, **, pmichaud)
+* DateTime, Date (2, 1, **, ???)
+* Code constraints on multidispatch (2, 1, ***, jnthn)
+* "use" on non-compiled modules (1, 1, ***, jnthn)
+* Hyper metaoperator (1, 1, **, pmichaud)
+* Operator overloading (2, 1, *, ???)   (may be done already)
+* Define new operators (2, 1, **, pmichaud) (awaiting other regex updates)
+* Whatever currying (2, 1, ???, ???) (may be done already)
+* MAIN (2, 1, ???, ???)
+* callframe (3, 1, ???, ???)
+* modules working with nom (3, 1, ???, ???)
+
+## Other NOMMAP notes
 
 Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.

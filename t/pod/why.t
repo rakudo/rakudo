@@ -1,5 +1,5 @@
 use Test;
-plan 11;
+plan 12;
 
 #= simple case
 class Simple {
@@ -52,3 +52,6 @@ is Sheep.WHY, 'a sheep';
 skip 'segfault', 1;
 #is Sheep.^attributes.grep({ .name eq '$!wool' }).WHY, 'usually white';
 is Sheep.^find_method('roar').WHY, 'not too scary';
+
+sub routine {}
+is &routine.WHY.defined, False;

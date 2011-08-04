@@ -58,7 +58,7 @@ multi trait_mod:<is>(Any:D $docee, Mu:D $doc, :$docs!) {
     $docee does role {
         has $!WHY;
         method WHY          { $!WHY      }
-        method set_docs($d) { $!WHY = $d }
+        method set_docs($d) { $!WHY = $d ne '' ?? $d !! Any }
     }
     $docee.set_docs($doc);
 }

@@ -1,4 +1,4 @@
-use v6;
+my class Duration {... }
 
 my class Instant is Real {
     has Rat $.x;
@@ -90,16 +90,16 @@ multi sub infix:<+>(Instant $a, Real $b) {
 multi sub infix:<+>(Real $a, Instant $b) {
     Instant.new: $a + $b.x;
 }
-# multi sub infix:<+>(Instant $a, Duration $b) {
-#     Instant.new: $a.x + $b.x;
-# }
-# multi sub infix:<+>(Duration $a, Instant $b) {
-#     Instant.new: $a.x + $b.x;
-# }
-# 
-# multi sub infix:<->(Instant $a, Instant $b) {
-#     Duration.new: $a.x - $b.x;
-# }
+multi sub infix:<+>(Instant $a, Duration $b) {
+    Instant.new: $a.x + $b.x;
+}
+multi sub infix:<+>(Duration $a, Instant $b) {
+    Instant.new: $a.x + $b.x;
+}
+
+multi sub infix:<->(Instant $a, Instant $b) {
+    Duration.new: $a.x - $b.x;
+}
 multi sub infix:<->(Instant $a, Real $b) {
     Instant.new: $a.x - $b;
 }

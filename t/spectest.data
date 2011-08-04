@@ -99,7 +99,7 @@ S03-feeds/basic.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
-# S03-junctions/misc.t # err: This type cannot unbox to a native string
+S03-junctions/misc.t
 # S03-metaops/cross.t # err: Contextual $*UNITPAST not found
 S03-metaops/eager-hyper.t
 # S03-metaops/hyper.t # err: Contextual $*UNITPAST not found
@@ -196,7 +196,7 @@ S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
-# S04-declarations/state.t # err: Can not get non-existant attribute '$!do' on class 'Code'
+S04-declarations/state.t
 S04-exception-handlers/catch.t
 # S04-exceptions/fail.t  # err: use scoped variables not yet implemented
 S04-statement-modifiers/for.t
@@ -589,7 +589,7 @@ S32-trig/simple.t
 integration/99problems-01-to-10.t
 # integration/99problems-11-to-20.t # err: Method 'splice' not found for invocant of class 'Array'
 # integration/99problems-21-to-30.t # err: Method 'splice' not found for invocant of class 'Array'
-# integration/99problems-31-to-40.t # err: Could not find sub &prime_factors_mult
+integration/99problems-31-to-40.t
 # integration/99problems-41-to-50.t # err: Contextual $*UNITPAST not found
 # integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead

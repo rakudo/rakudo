@@ -60,7 +60,45 @@ my class Any {
         }
         $max;
     }
-         
+
+
+    method minmax($by = { $^a cmp $^b}) {
+        my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
+
+        my $min = +$Inf;
+        my $max = -$Inf;
+        my $excludes_min = Bool::False;
+        my $excludes_max = Bool::False;
+
+        for @.list {
+            .defined or next;
+
+            if .^isa(Range) {
+                if $cmp($_.min, $min) < 0 {
+                    $min = $_;
+                    $excludes_min = $_.excludes_min;
+                }
+                if $cmp($_.max, $max) > 0 {
+                    $max = $_;
+                    $excludes_max = $_.excludes_max;
+                }
+            } else {
+                if $cmp($_, $min) < 0 {
+                    $min = $_;
+                    $excludes_min = Bool::False;
+                }
+                if $cmp($_, $max) > 0 {
+                    $max = $_;
+                    $excludes_max = Bool::False;
+                }
+            }
+        }
+        Range.new($min,
+                  $max,
+                  :excludes_min($excludes_min),
+                  :excludes_max($excludes_max));
+    }
+
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }
     multi method postcircumfix:<[ ]>($pos) is rw {
@@ -182,9 +220,15 @@ multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
 
 proto infix:<min>(|$)     { * }
 multi infix:<min>(*@args) { @args.min }
+sub min(*@args, :&by = { $^a cmp $^b }) { @args.min(&by) }
 
 proto infix:<max>(|$)     { * }
 multi infix:<max>(*@args) { @args.max }
+sub max(*@args, :&by = { $^a cmp $^b }) { @args.max(&by) }
+
+proto infix:<minmax>(|$)     { * }
+multi infix:<minmax>(*@args) { @args.minmax }
+sub minmax(*@args, :&by = { $^a cmp $^b }) { @args.minmax(&by) }
 
 proto map(|$) {*}
 multi map(&code, *@values) { @values.map(&code) }

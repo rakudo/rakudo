@@ -12,6 +12,7 @@ my class Buf is Iterable does Positional { }
 my class Set is Iterable does Associative { }
 my class KeyHash is Iterable does Associative { }
 my class Seq is List does Positional { }
+my class Exception { ... }
 
 sub DYNAMIC(\$name) is rw { 
     my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s($name));

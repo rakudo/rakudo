@@ -133,7 +133,9 @@ my &lastcall := -> {
     True
 };
 
-sub die(*@msg) { pir::die__0P(@msg.join('')) }
+proto sub die(|$) {*};
+multi sub die(Exception $e) { pir::say('throwing an  Exception'); $e.throw }
+multi sub die(*@msg) { pir::die__0P(@msg.join('')) }
 
 sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {

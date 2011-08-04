@@ -12,7 +12,14 @@ void Rakudo_cont_set_scalar_type(PMC *type) { scalar_type = type; }
  * enough was configured to take an optimal slot-access path, just does
  * that. */
 PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
-    ContainerSpec *spec = STABLE(var)->container_spec;
+    ContainerSpec *spec;
+    
+    /* Fast path for Perl 6 Scalar containers. */
+    if (STABLE(var)->WHAT == scalar_type)
+        return ((Rakudo_Scalar *)PMC_data(var))->value;
+    
+    /* Otherwise, fall back to the usual API. */
+    spec = STABLE(var)->container_spec;
     if (spec) {
         if (!PMC_IS_NULL(spec->value_slot.class_handle)) {
             /* Just get slot. */

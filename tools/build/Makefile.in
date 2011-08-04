@@ -191,6 +191,8 @@ CORE_SOURCES = \
   src/core/Cursor.pm \
   src/core/Grammar.pm \
   src/core/Regex.pm \
+  src/core/tai-utc.pm \
+  src/core/Instant.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
   src/core/operators.pm \

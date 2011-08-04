@@ -41,66 +41,69 @@ my class Instant is Real {
         ($.x - $offset, False)
     }
 
+    multi method Str(Instant:D:) {
+        'Instant:' ~ $.x
+    }
+    multi method perl(Instant:D:) {
+        "Instant.new(x => $.x.perl())";
+    }
+
+#    TODO: should be the new .gist, probably
 #    method Str() {
 #        'Instant:' ~ default-formatter
 #            ::DateTime.new(self), :subseconds
 #    }
-#
-#    method perl() {
-#        sprintf '(DateTime.new(year => 1970).Instant + %s)',
-#            ($.x - tai-utc::initial-offset).perl
-#    }
 }
 
-multi sub infix:«cmp»(Instant $a, Instant $b) {
+multi sub infix:«cmp»(Instant:D $a, Instant:D $b) {
     $a.x <=> $b.x
 }
 
-multi sub infix:«<=>»(Instant $a, Instant $b) {
+multi sub infix:«<=>»(Instant:D $a, Instant:D $b) {
     $a.x <=> $b.x
 }
 
-multi sub infix:«==»(Instant $a, Instant $b) {
+multi sub infix:«==»(Instant:D $a, Instant:D $b) {
     $a.x == $b.x
 }
 
-multi sub infix:«!=»(Instant $a, Instant $b) {
+multi sub infix:«!=»(Instant:D $a, Instant:D $b) {
     $a.x != $b.x
 }
 
-multi sub infix:«<»(Instant $a, Instant $b) {
+multi sub infix:«<»(Instant:D $a, Instant:D $b) {
     $a.x < $b.x
 }
 
-multi sub infix:«>»(Instant $a, Instant $b) {
+multi sub infix:«>»(Instant:D $a, Instant:D $b) {
     $a.x > $b.x
 }
 
-multi sub infix:«<=»(Instant $a, Instant $b) {
+multi sub infix:«<=»(Instant:D $a, Instant:D $b) {
     $a.x <= $b.x
 }
 
-multi sub infix:«>=»(Instant $a, Instant $b) {
+multi sub infix:«>=»(Instant:D $a, Instant:D $b) {
     $a.x >= $b.x
 }
 
-multi sub infix:<+>(Instant $a, Real $b) {
+multi sub infix:<+>(Instant:D $a, Real:D $b) {
     Instant.new: $a.x + $b;
 }
-multi sub infix:<+>(Real $a, Instant $b) {
+multi sub infix:<+>(Real:D $a, Instant:D $b) {
     Instant.new: $a + $b.x;
 }
-multi sub infix:<+>(Instant $a, Duration $b) {
+multi sub infix:<+>(Instant:D $a, Duration:D $b) {
     Instant.new: $a.x + $b.x;
 }
-multi sub infix:<+>(Duration $a, Instant $b) {
+multi sub infix:<+>(Duration:D $a, Instant:D $b) {
     Instant.new: $a.x + $b.x;
 }
 
-multi sub infix:<->(Instant $a, Instant $b) {
+multi sub infix:<->(Instant:D $a, Instant:D $b) {
     Duration.new: $a.x - $b.x;
 }
-multi sub infix:<->(Instant $a, Real $b) {
+multi sub infix:<->(Instant:D $a, Real:D $b) {
     Instant.new: $a.x - $b;
 }
 

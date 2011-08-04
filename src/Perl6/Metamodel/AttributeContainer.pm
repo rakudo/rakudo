@@ -40,6 +40,9 @@ role Perl6::Metamodel::AttributeContainer {
     # This is called by the parser so it should only return attributes
     # that are visible inside the current package.
     method get_attribute_for_usage($obj, $name) {
+        unless pir::exists(%!attribute_lookup, $name) {
+            pir::die("No $name attribute in " ~ self.name($obj))
+        }
         %!attribute_lookup{$name}
     }
 

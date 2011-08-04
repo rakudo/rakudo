@@ -55,8 +55,12 @@ multi trait_mod:<is>(Routine:D \$r, :$export!) {
 }
 
 multi trait_mod:<is>(Any:D $docee, Mu:D $doc, :$docs!) {
-    my $d = $doc; #XXX Bug
-    $docee does role { method WHY() { $d } }
+    $docee does role {
+        has $!WHY;
+        method WHY          { $!WHY      }
+        method set_docs($d) { $!WHY = $d }
+    }
+    $docee.set_docs($doc);
 }
 
 multi trait_mod:<is>(Any:U $docee, Mu:D $doc, :$docs!) {

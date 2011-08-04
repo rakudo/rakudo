@@ -926,8 +926,13 @@ class Perl6::Actions is HLL::Actions {
                 unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
                     $/.CURSOR.panic("Cannot understand $name in this context");
                 }
-                my $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
-                if $attr {
+                my $attr;
+                my $found := 0;
+                try {
+                    $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
+                    $found := 1;
+                }
+                if $found {
                     $past.scope('attribute_6model');
                     $past.type($attr.type);
                     $past.unshift(instantiated_type(['$?CLASS'], $/));
@@ -1054,6 +1059,7 @@ class Perl6::Actions is HLL::Actions {
         # Compose.
         $*ST.pkg_compose($*PACKAGE);
 
+        # Document
         document($*PACKAGE, $*DOC);
 
         make PAST::Stmts.new(
@@ -1256,6 +1262,8 @@ class Perl6::Actions is HLL::Actions {
         }
         my $code := $*ST.create_code_object($block, 'Sub', $signature,
             $*MULTINESS eq 'proto');
+
+        # Document it
         document($code, $*DOC);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
@@ -2683,7 +2691,12 @@ class Perl6::Actions is HLL::Actions {
             # Now go by scope.
             if $target.scope eq 'attribute_6model' {
                 # Source needs type check.
-                my $meta_attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $target.name);
+                my $meta_attr;
+                try {
+                    $meta_attr := $*PACKAGE.HOW.get_attribute_for_usage(
+                        $*PACKAGE, $target.name
+                    );
+                }
                 $source := PAST::Op.new(
                     :pirop('perl6_assert_bind_ok 0PP'),
                     $source, $*ST.get_object_sc_ref_past($meta_attr.container_descriptor))
@@ -3833,12 +3846,11 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub document($what, $with) {
-        if $with {
+        unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
             my $true := $*ST.add_constant('Int', 'int', 1)<compile_time_value>;
-            my $doc  :=
-                $*ST.add_constant('Str', 'str', $with)<compile_time_value>;
+            my $doc  := $*ST.add_constant('Str', 'str', $with)<compile_time_value>;
             $*ST.apply_trait('&trait_mod:<is>', $what, $doc, :docs($true));
-}
+        }
     }
 }
 

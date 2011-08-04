@@ -1,5 +1,5 @@
 use Test;
-plan 7;
+plan 8;
 
 #= simple case
 class Simple {
@@ -34,3 +34,7 @@ is foo::bar::baz.WHY, 'and a class';
 #= yellow
 sub marine {}
 is &marine.WHY, 'yellow';
+
+#= pink
+sub panther {}
+is &panther.WHY, 'pink';

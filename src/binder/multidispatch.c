@@ -98,8 +98,10 @@ static INTVAL is_narrower(PARROT_INTERP, Rakudo_md_candidate_info *a, Rakudo_md_
         return 0;
 
     /* Otherwise, we see if one has a slurpy and the other not. A lack of
-     * slurpiness makes the candidate narrower. Otherwise, they're tied. */
-    return a->max_arity != SLURPY_ARITY && b->max_arity == SLURPY_ARITY;
+     * slurpiness makes the candidate narrower. Also narrower if the first
+     * needs a bind check and the second doesn't. Otherwise, they're tied. */
+    return (a->max_arity != SLURPY_ARITY && b->max_arity == SLURPY_ARITY) ||
+        (a->bind_check && !(b->bind_check));
 }
 
 
@@ -406,7 +408,6 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                              * it right here. Flag that we've built a list of
                              * new possibles, and that this was not a pure
                              * type-based result that we can cache. */
-
                             if (!new_possibles)
                                 new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
                             pure_type_result = 0;
@@ -451,6 +452,14 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                         /* Since we had to do a bindability check, this is not
                          * a result we can cache on nominal type. */
                         pure_type_result = 0;
+                    }
+                    
+                    /* Otherwise, it's just nominal; accept it. */
+                    else {
+                        if (!new_possibles)
+                            new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
+                        new_possibles[new_possibles_count] = possibles[i];
+                        new_possibles_count++;
                     }
                 }
 

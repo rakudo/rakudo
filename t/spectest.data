@@ -99,7 +99,7 @@ S03-feeds/basic.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
-# S03-junctions/misc.t # err: invoke() not implemented in class 'Junction'
+# S03-junctions/misc.t # err: This type cannot unbox to a native string
 # S03-metaops/cross.t # err: Contextual $*UNITPAST not found
 S03-metaops/eager-hyper.t
 # S03-metaops/hyper.t # err: Contextual $*UNITPAST not found
@@ -107,7 +107,7 @@ S03-metaops/not.t
 # S03-metaops/reduce.t # err: Contextual $*UNITPAST not found
 S03-metaops/reverse.t
 S03-metaops/zip.t
-# S03-operators/also.t # err: invoke() not implemented in class 'Junction'
+S03-operators/also.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
 S03-operators/assign.t
@@ -190,7 +190,7 @@ S03-smartmatch/disorganized.t
 # S04-blocks-and-statements/pointy-rw.t # err: Missing block
 S04-blocks-and-statements/pointy.t
 S04-phasers/end.t
-# S04-phasers/rvalue.t # Segmentation fault
+# S04-phasers/rvalue.t # err: Cannot assign a non-Perl 6 value to a Perl 6 container
 # S04-phasers/start.t # err: Could not find sub &START
 S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
@@ -281,7 +281,7 @@ S05-modifier/overlapping.t
 # S05-modifier/perl5_2.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_7.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_8.t # err: Adverb 'P5' not allowed on m
-# S05-modifier/pos.t # segmentation fault
+# S05-modifier/pos.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
 S05-modifier/repetition.t
 # S05-modifier/sigspace.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 S05-substitution/match.t
@@ -332,10 +332,10 @@ S06-signature/slurpy-and-interpolation.t
 # S06-signature/slurpy-params.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
-# S06-signature/tree-node-parameters.t # Segmentation fault
+# S06-signature/tree-node-parameters.t # err: Not enough positional parameters passed
 # S06-signature/type-capture.t # err: Nominal type check failed for parameter '$y'
 # S06-signature/types.t # err: Malformed block
-# S06-signature/unpack-array.t # Segmentation fault
+# S06-signature/unpack-array.t # err: Internal Error: Rakudo_binding_bind passed invalid Capture
 S06-signature/unspecified.t
 S06-traits/as.t
 S06-traits/is-copy.t
@@ -394,7 +394,7 @@ S12-construction/new.t
 S12-enums/basic.t
 # S12-enums/thorough.t # err: Could not find sub &day
 S12-introspection/attributes.t
-# S12-introspection/can.t # err: invoke() not implemented in class 'Parcel'
+# S12-introspection/can.t # err: Method 'postcircumfix:<( )>' not found for invocant of class 'Parcel'
 S12-introspection/meta-class.t
 S12-introspection/methods.t
 S12-introspection/parents.t
@@ -447,7 +447,7 @@ S14-roles/submethods.t
 # S14-traits/routines.t # err: Could not find sub &description
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
 # S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
-# S16-filehandles/io.t # err: Could not find sub &get
+# S16-filehandles/io.t # err: Too many positional parameters passed
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 S16-filehandles/open.t
@@ -600,7 +600,7 @@ integration/advent2009-day04.t
 # integration/advent2009-day05.t # err: Contextual $*UNITPAST not found
 # integration/advent2009-day06.t # err: Contextual $*UNITPAST not found
 # integration/advent2009-day07.t # err: Could not find sub !dispatch_method_parallel
-# integration/advent2009-day08.t # Segmentation fault
+# integration/advent2009-day08.t # err: Nominal type check failed for parameter '$a'; expected Any but got Mu
 # integration/advent2009-day09.t # err: Not enough positional parameters passed
 # integration/advent2009-day10.t # err: Method 'parse' not found for invocant of class 'Inventory'
 # integration/advent2009-day11.t # err: Method 'dog_name' not found for invocant of class 'DogWalker'

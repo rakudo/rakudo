@@ -1060,7 +1060,7 @@ class Perl6::Actions is HLL::Actions {
         $*ST.pkg_compose($*PACKAGE);
 
         # Document
-        document($*PACKAGE, $*DOC);
+        Perl6::Pod::document($*PACKAGE, $*DOC);
 
         make PAST::Stmts.new(
             $block, $*ST.get_object_sc_ref_past($*PACKAGE)
@@ -1156,7 +1156,7 @@ class Perl6::Actions is HLL::Actions {
                 sigiltype($sigil), $descriptor, |@default);
 
             # Document it
-            document($attr, $*DOC);
+            Perl6::Pod::document($attr, $*DOC);
 
             # If no twigil, note $foo is an alias to $!foo.
             if $twigil eq '' {
@@ -1264,7 +1264,7 @@ class Perl6::Actions is HLL::Actions {
             $*MULTINESS eq 'proto');
 
         # Document it
-        document($code, $*DOC);
+        Perl6::Pod::document($code, $*DOC);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
@@ -1385,7 +1385,7 @@ class Perl6::Actions is HLL::Actions {
         my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
 
         # Document it
-        document($code, $*DOC);
+        Perl6::Pod::document($code, $*DOC);
 
         # Install &?ROUTINE.
         $*ST.install_lexical_symbol($past, '&?ROUTINE', $code);
@@ -3845,14 +3845,6 @@ class Perl6::Actions is HLL::Actions {
             } else {
                 return $*ST.add_numeric_constant('Int', $iresult);
             }
-        }
-    }
-
-    sub document($what, $with) {
-        unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-            my $true := $*ST.add_constant('Int', 'int', 1)<compile_time_value>;
-            my $doc  := $*ST.add_constant('Str', 'str', $with)<compile_time_value>;
-            $*ST.apply_trait('&trait_mod:<is>', $what, $doc, :docs($true));
         }
     }
 }

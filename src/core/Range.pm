@@ -50,6 +50,13 @@ class Range is Iterable does Positional {
     }
 
     method reify($n = 10) {
+        my $value = $!excludes_min ?? $!min.succ !! $!min;
+        # Iterating a Str range delegates to iterating a sequence.
+        if Str.ACCEPTS($value) {
+            return $value after $!max
+                     ?? ()
+                     !! SEQUENCE($value, $!max, :exclude_end($!excludes_max)).iterator.reify($n)
+        } 
         my $count;
         if nqp::istype($n, Whatever) {
             $count = self.infinite ?? 10 !! $Inf;
@@ -59,7 +66,6 @@ class Range is Iterable does Positional {
             fail "request for infinite elements from range"
               if $count == $Inf && self.infinite;
         }
-        my $value = $!excludes_min ?? $!min.succ !! $!min;
         my $cmpstop = $!excludes_max ?? 0 !! 1;
         my Mu $rpa := nqp::list();
         if Int.ACCEPTS($value) || Num.ACCEPTS($value) {

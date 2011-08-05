@@ -1813,12 +1813,10 @@ class Perl6::Actions is HLL::Actions {
 
     method param_var($/) {
         if $<signature> {
-            if pir::exists(%*PARAM_INFO, 'sub_signature') {
+            if pir::exists(%*PARAM_INFO, 'sub_signature_params') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            my @params := $<signature>.ast;
-            set_default_parameter_type(@params, 'Mu');
-            %*PARAM_INFO<sub_signature> := create_signature_object(@params, $*ST.cur_lexpad());
+            %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if pir::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }
@@ -1965,12 +1963,10 @@ class Perl6::Actions is HLL::Actions {
 
     method post_constraint($/) {
         if $<signature> {
-            if pir::exists(%*PARAM_INFO, 'sub_signature') {
+            if pir::exists(%*PARAM_INFO, 'sub_signature_params') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            my @params := $<signature>.ast;
-            set_default_parameter_type(@params, 'Mu');
-            %*PARAM_INFO<sub_signature> := create_signature_object(@params, $*ST.cur_lexpad());
+            %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if pir::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }
@@ -1990,6 +1986,9 @@ class Perl6::Actions is HLL::Actions {
             unless pir::exists($_, 'nominal_type') {
                 $_<nominal_type> := $type;
             }
+            if pir::exists($_, 'sub_signature_params') {
+                set_default_parameter_type($_<sub_signature_params>, $type_name);
+            }
         }
     }
 
@@ -1999,6 +1998,11 @@ class Perl6::Actions is HLL::Actions {
     sub create_signature_object(@parameter_infos, $lexpad) {
         my @parameters;
         for @parameter_infos {
+            # If we have a sub-signature, create that.
+            if $_<sub_signature_params> {
+                $_<sub_signature> := create_signature_object($_<sub_signature_params>, $lexpad);
+            }
+            
             # Add variable as needed.
             if $_<variable_name> {
                 my %sym := $lexpad.symbol($_<variable_name>);

@@ -38,7 +38,7 @@ S02-builtin_data_types/pair.t
 S02-builtin_data_types/parcel.t
 S02-builtin_data_types/parsing-bool.t
 S02-builtin_data_types/range.t
-# S02-builtin_data_types/set.t              # err: Contextual $*UNITPAST not found
+# S02-builtin_data_types/set.t # err: Could not find sub &set
 S02-builtin_data_types/sigils-and-types.t
 S02-builtin_data_types/subscripts_and_context.t
 S02-builtin_data_types/type.t
@@ -77,7 +77,7 @@ S02-names_and_variables/contextual.t
 S02-names_and_variables/fmt.t
 # S02-names_and_variables/names.t # err: Cannot use placeholder parameters in this kind of block
 # S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu
-# S02-names_and_variables/list_array_perl.t # err: Contextual $*UNITPAST not found
+S02-names_and_variables/list_array_perl.t
 # S02-names_and_variables/signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 S02-names_and_variables/variables-and-packages.t
 # S02-names_and_variables/varnames.t # err: Cannot use bind operator with this LHS
@@ -100,11 +100,11 @@ S03-junctions/associative.t
 S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
 S03-junctions/misc.t
-# S03-metaops/cross.t # err: Contextual $*UNITPAST not found
+# S03-metaops/cross.t # err: Could not find sub &METAOP_HYPER_PREFIX
 S03-metaops/eager-hyper.t
-# S03-metaops/hyper.t # err: Contextual $*UNITPAST not found
+# S03-metaops/hyper.t # err: Unable to parse blockoid
 S03-metaops/not.t
-# S03-metaops/reduce.t # err: Contextual $*UNITPAST not found
+# S03-metaops/reduce.t # err: chaining reduce NYI
 S03-metaops/reverse.t
 S03-metaops/zip.t
 S03-operators/also.t
@@ -130,7 +130,7 @@ S03-operators/cmp.t
 # S03-operators/comparison.t # err: Could not find symbol 'Order::&Increase'
 S03-operators/comparison-simple.t
 S03-operators/context-forcers.t
-# S03-operators/context.t # err: Could not find sub &item
+S03-operators/context.t
 S03-operators/equality.t
 S03-operators/eqv.t
 S03-operators/gcd.t
@@ -140,8 +140,8 @@ S03-operators/increment.t
 S03-operators/is-divisible-by.t
 S03-operators/lcm.t
 S03-operators/list-quote-junction.t
-# S03-operators/minmax.t # err: Cannot access attributes in a type objectCannot access attributes in a type object
-# S03-operators/misc.t # err: Contextual $*UNITPAST not found
+# S03-operators/minmax.t # err: Cannot access attributes in a type object
+S03-operators/misc.t
 S03-operators/names.t
 # S03-operators/nesting.t # err: Unable to parse blockoid
 S03-operators/not.t
@@ -292,7 +292,7 @@ S05-substitution/match.t
 S06-advanced_subroutine_features/lexical-subs.t
 S06-advanced_subroutine_features/recurse.t
 S06-advanced_subroutine_features/return.t
-# S06-advanced_subroutine_features/wrap.t # err: Method 'wrap' not found for invocant of class 'Sub+{<anon>}'
+# S06-advanced_subroutine_features/wrap.t # err: Method 'wrap' not found for invocant of class 'Sub
 S06-currying/assuming-and-mmd.t
 S06-currying/named.t
 S06-multi/lexical-multis.t
@@ -305,7 +305,7 @@ S06-multi/unpackability.t
 # S06-operator-overloading/imported-subs.t # err: "load_bytecode" couldn't find file 'Exportops.pbc'
 # S06-operator-overloading/methods.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
-# S06-operator-overloading/workout.t # err: Contextual $*UNITPAST not found
+# S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
 S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t # err: Could not find sub &MAIN_HELPER
 S06-other/main-eval.t
@@ -320,7 +320,7 @@ S06-signature/defaults.t
 S06-signature/errors.t
 # S06-signature/introspection.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S06-signature/mixed-placeholders.t
-# S06-signature/named-parameters.t # err: Contextual $*UNITPAST not found
+# S06-signature/named-parameters.t # err: Not enough positional parameters passed
 S06-signature/named-placeholders.t
 S06-signature/optional.t
 S06-signature/passing-arrays.t
@@ -335,7 +335,7 @@ S06-signature/sub-ref.t
 S06-signature/tree-node-parameters.t
 # S06-signature/type-capture.t # err: Nominal type check failed for parameter '$y'
 # S06-signature/types.t # err: Malformed block
-# S06-signature/unpack-array.t # err: Internal Error: Rakudo_binding_bind passed invalid Capture
+S06-signature/unpack-array.t
 S06-signature/unspecified.t
 S06-traits/as.t
 S06-traits/is-copy.t
@@ -347,7 +347,7 @@ S06-traits/is-rw.t
 
 S09-autovivification/autoincrement.t
 # S09-autovivification/autovivification.t # err: Cannot assign to a non-container
-# S09-subscript_slice/slice.t # err: Contextual $*UNITPAST not found
+S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
 # S10-packages/basic.t # err: Unable to parse blockoid, couldn't find final '}' at line 107
@@ -420,7 +420,7 @@ S12-methods/submethods.t
 S12-methods/syntax.t
 S12-methods/topic.t
 S12-methods/typed-attributes.t
-# S12-methods/what.t # err: Use of uninitialized value in numeric context
+# S12-methods/what.t # err: Not enough positional parameters passed
 # S12-subset/multi-dispatch.t # err: Circularity detected in multi sub types
 # S12-subset/subtypes.t # err: Invalid typename in parameter declaration 
 S13-type-casting/methods.t
@@ -435,7 +435,7 @@ S14-roles/conflicts.t
 S14-roles/crony.t
 # S14-roles/instantiation.t # err: Parametric roles not yet implemented
 S14-roles/lexical.t
-# S14-roles/mixin.t # err: Could not find sub !dispatch_method_parallel
+S14-roles/mixin.t
 S14-roles/namespaced.t 
 # S14-roles/parameter-subtyping.t # err: Illegal redeclaration of role 'R1'
 # S14-roles/parameterized-basic.t # err: Illegal redeclaration of role 'AritySelection'
@@ -494,7 +494,7 @@ S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/pairs.t
 # S32-hash/push.t # hangs
-# S32-hash/slice.t # err: Contextual $*UNITPAST not found
+# S32-hash/slice.t # err: Could not find sub &METAOP_HYPER
 # S32-io/dir.t # err: Could not find sub &dir
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
@@ -567,7 +567,7 @@ S32-str/ucfirst.t                                          # icu
 # S32-str/words.t # err: Method 'words' not found for invocant of class 'Str' #icu
 # S32-temporal/calendar.t # err: Could not find sub &Date
 # S32-temporal/Date.t # err: Could not find sub &Date
-# S32-temporal/DateTime.t # err: Contextual $*UNITPAST not found
+# S32-temporal/DateTime.t # err: Could not find sub &DateTime
 # S32-temporal/DateTime-Instant-Duration.t # err: Could not find sub &DateTime
 # S32-temporal/local.t # err: Could not find sub &DateTime
 S32-trig/e.t
@@ -590,16 +590,16 @@ integration/99problems-01-to-10.t
 # integration/99problems-11-to-20.t # err: Method 'splice' not found for invocant of class 'Array'
 # integration/99problems-21-to-30.t # err: Method 'splice' not found for invocant of class 'Array'
 integration/99problems-31-to-40.t
-# integration/99problems-41-to-50.t # err: Contextual $*UNITPAST not found
+# integration/99problems-41-to-50.t # err: Could not find sub &ceiling
 # integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
 integration/advent2009-day01.t
 # integration/advent2009-day02.t # err: Invalid character 'f' in number literal
 integration/advent2009-day03.t
 integration/advent2009-day04.t
-# integration/advent2009-day05.t # err: Contextual $*UNITPAST not found
-# integration/advent2009-day06.t # err: Contextual $*UNITPAST not found
-# integration/advent2009-day07.t # err: Could not find sub !dispatch_method_parallel
+# integration/advent2009-day05.t # err: chaining reduce NYI
+# integration/advent2009-day06.t # err: Could not find sub &METAOP_HYPER
+integration/advent2009-day07.t
 # integration/advent2009-day08.t # err: Nominal type check failed for parameter '$a'; expected Any but got Mu
 # integration/advent2009-day09.t # err: Not enough positional parameters passed
 # integration/advent2009-day10.t # err: Method 'parse' not found for invocant of class 'Inventory'
@@ -612,7 +612,7 @@ integration/advent2009-day15.t
 # integration/advent2009-day17.t # err: Unable to parse blockoid # stress
 # integration/advent2009-day18.t # err: Could not instantiate role 'Cup'
 # integration/advent2009-day19.t # err: Method 'succ' not found for invocant of class 'Whatever'
-# integration/advent2009-day20.t # err: Method 'at_key' not found for invocant of class 'Pair'
+# integration/advent2009-day20.t # err: exists_keyed_str() not implemented in class 'Mu'
 # integration/advent2009-day22.t # err: Cannot negate , because it is not iffy enough
 integration/advent2009-day23.t
 integration/advent2010-day04.t

@@ -29,7 +29,7 @@ class Perl6::Pod {
 
         my $content := serialize_array(@children);
         if $leveled {
-            my $level      := nqp::substr($<type>.Str, 4);
+            my $level := nqp::substr($<type>.Str, 4);
             my $level_past;
             if $level ne '' {
                 $level_past := $*ST.add_constant(

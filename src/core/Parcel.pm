@@ -7,7 +7,11 @@ my class Parcel does Positional {
     multi method Str(Parcel:D:)            { self.flat.Str }
     multi method ACCEPTS(Parcel:D: $topic) { self.list.ACCEPTS($topic) }
 
-    method Capture()            { self }  # XXX CHEAT CHEAT CHEAT
+    method Capture() {
+        my $cap := nqp::create(Capture);
+        nqp::bindattr($cap, Capture, '$!list', $!storage);
+        $cap
+    }
 
     method flat() {
         nqp::p6list(nqp::clone($!storage), List, Bool::True)

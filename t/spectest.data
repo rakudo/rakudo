@@ -301,7 +301,7 @@ S06-multi/positional-vs-named.t
 S06-multi/syntax.t
 # S06-multi/type-based.t # err: No applicable candidates found to dispatch to for 'foo'
 S06-multi/value-based.t
-# S06-multi/unpackability.t # err: No applicable candidates found to dispatch to for 'infix:<~>'
+S06-multi/unpackability.t
 # S06-operator-overloading/imported-subs.t # err: "load_bytecode" couldn't find file 'Exportops.pbc'
 # S06-operator-overloading/methods.t # err: "load_bytecode" couldn't find file 'Test/Util.pbc'
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>

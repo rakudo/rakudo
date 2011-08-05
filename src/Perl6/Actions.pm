@@ -281,18 +281,6 @@ class Perl6::Actions is HLL::Actions {
     method pod_block:sym<end>($/) {
     }
 
-    method raw_block($/) {
-    }
-
-    method pod_text_para($/) {
-        my $t    := Perl6::Pod::formatted_text($<text>.Str);
-        my $past := Perl6::Pod::serialize_object(
-            'Pod::Block::Para',
-            :content(Perl6::Pod::serialize_aos([$t])<compile_time_value>),
-        );
-        make $past<compile_time_value>;
-    }
-
     method pod_content:sym<text>($/) {
         my @ret := [];
         for $<pod_textcontent> {

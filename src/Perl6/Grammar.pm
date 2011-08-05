@@ -165,13 +165,6 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token pod_textcontent { <...> }
 
-    # a single paragraph of text
-    token pod_text_para {
-        $<text> = [
-            \h* <!before '=' \w> \N+ <pod_newline>
-        ] +
-    }
-
     # text not being code
     token pod_textcontent:sym<regular> {
         $<spaces>=[ \h* ]
@@ -264,7 +257,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ^^ \h* '=for' \h+ <!before 'END'>
                           $<type>=[ 'code' || 'comment' ]
                           <pod_newline>
-        $<pod_content> = <pod_text_para>
+        $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
     }
 
     token pod_block:sym<paragraph_table> {
@@ -286,7 +279,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token pod_block:sym<abbreviated_raw> {
         ^^ \h* '=' $<type>=[ 'code' || 'comment' ] \s
-        $<pod_content> = <pod_text_para> *
+        $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 
     token pod_block:sym<abbreviated_table> {

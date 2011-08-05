@@ -55,11 +55,7 @@ class Perl6::Pod {
     }
 
     our sub raw_block($/) {
-        my $str := $*ST.add_constant(
-            'Str', 'str',
-            pir::isa($<pod_content>, 'ResizablePMCArray')
-                ?? pir::join('', $<pod_content>) !! ~$<pod_content>,
-        );
+        my $str := $*ST.add_constant('Str', 'str', ~$<pod_content>);
         my $content := serialize_array([$str<compile_time_value>]);
         my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
                                           !! 'Pod::Block::Comment';

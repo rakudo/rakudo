@@ -2832,25 +2832,24 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_hyperop($/) {
-        my $opsub := '&infix:<' ~ ~$/ ~ '>';
-        unless %*METAOPGEN{$opsub} {
-            my $base_op := '&infix:<' ~ $<infixish>.Str ~ '>';
-            my $dwim_lhs := $<opening> eq '<<' || $<opening> eq '«';
-            my $dwim_rhs := $<closing> eq '>>' || $<closing> eq '»';
-            $*UNITPAST.loadinit.push(PAST::Op.new(
-                :pasttype('bind_6model'),
-                PAST::Var.new( :name($opsub), :scope('package') ),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('assuming'),
-                    PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&hyper' ),
-                    PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op ),
-                    PAST::Val.new( :value($dwim_lhs), :named('dwim-left') ),
-                    PAST::Val.new( :value($dwim_rhs), :named('dwim-right') )
-                )
-            ));
-            %*METAOPGEN{$opsub} := 1;
+        my $base     := $<infixish>;
+        my $basesym  := ~ $base<OPER>;
+        my $basepast := $base.ast
+                          ?? $base.ast[0]
+                          !! PAST::Var.new(:name("&infix:<$basesym>"),
+                                           :scope<lexical_6model>);
+        my $hpast    := PAST::Op.new(:pasttype<call>, :name<&METAOP_HYPER>, $basepast);
+        if $<opening> eq '<<' || $<opening> eq '«' {
+            my $dwim := $*ST.add_constant('Int', 'int', 1);
+            $dwim.named('dwim-left');
+            $hpast.push($dwim);
         }
-        return PAST::Op.new( :name($opsub), :pasttype('call') );
+        if $<closing> eq '>>' || $<closing> eq '»' {
+            my $dwim := $*ST.add_constant('Int', 'int', 1);
+            $dwim.named('dwim-right');
+            $hpast.push($dwim);
+        }
+        make PAST::Op.new( :node($/), $hpast );
     }
 
     method postfixish($/) {
@@ -2867,8 +2866,7 @@ class Perl6::Actions is HLL::Actions {
             }
             elsif $past && $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
                 $past.unshift($past.name());
-                $past.name('!dispatch_method_parallel');
-                $past.pasttype('call');
+                $past.name('dispatch:<hyper>');
             }
             else {
                 # Hyper-op over a normal postfix.

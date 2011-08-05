@@ -694,6 +694,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<CATCH>($/) {
+        if has_block_handler($*ST.cur_lexpad(), 'CONTROL', :except(1)) {
+            $/.CURSOR.panic("only one CATCH block allowed");
+        }
         my $block := $<block>.ast;
         push_block_handler($/, $*ST.cur_lexpad(), $block);
         $*ST.cur_lexpad().handlers()[0].handle_types_except('CONTROL');
@@ -701,6 +704,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<CONTROL>($/) {
+        if has_block_handler($*ST.cur_lexpad(), 'CONTROL') {
+            $/.CURSOR.panic("only one CONTROL block allowed");
+        }
         my $block := $<block>.ast;
         push_block_handler($/, $*ST.cur_lexpad(), $block);
         $*ST.cur_lexpad().handlers()[0].handle_types('CONTROL');
@@ -736,22 +742,28 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_prefix:sym<try>($/) {
-        my $block := PAST::Op.new(:pasttype<call>, block_closure($<blorst>.ast)); # XXX should be immediate
-        my $past := PAST::Op.new( :pasttype('try'), $block );
+        my $block := $<blorst>.ast;
+        my $past;
+        if has_block_handler($block<past_block>, 'CONTROL', :except(1)) {
+            # we already have a CATCH block, nothing to do here
+            $past := PAST::Op.new( :pasttype('call'), $block );
+        } else {
+            $block := PAST::Op.new(:pasttype<call>, $block); # XXX should be immediate
+            $past := PAST::Op.new( :pasttype('try'), $block );
 
-        # On failure, capture the exception object into $!.
-        $past.push(
-            PAST::Op.new(:pasttype<bind_6model>,
-                PAST::Var.new(:name<$!>, :scope<lexical_6model>),
-                PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
-                    PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")))));
+            # On failure, capture the exception object into $!.
+            $past.push(
+                PAST::Op.new(:pasttype<bind_6model>,
+                    PAST::Var.new(:name<$!>, :scope<lexical_6model>),
+                    PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
+                        PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")))));
 
-        # Otherwise, put Mu into $!.
-        $past.push(
-            PAST::Op.new(:pasttype<bind_6model>,
-                PAST::Var.new( :name<$!>, :scope<lexical_6model> ),
-                PAST::Var.new( :name<Mu>, :scope<lexical_6model> )));
-
+            # Otherwise, put Mu into $!.
+            $past.push(
+                PAST::Op.new(:pasttype<bind_6model>,
+                    PAST::Var.new( :name<$!>, :scope<lexical_6model> ),
+                    PAST::Var.new( :name<Mu>, :scope<lexical_6model> )));
+        }
         make $past;
     }
 
@@ -3563,6 +3575,17 @@ class Perl6::Actions is HLL::Actions {
                 $handler,
             )
         );
+    }
+
+    sub has_block_handler($block, $type, :$except) {
+        my @handlers := $block.handlers();
+        for @handlers {
+            my $ltype := $except ?? $_.handle_types_except() !! $_.handle_types();
+            if pir::defined($ltype) && $ltype eq $type {
+                return 1;
+            }
+        }
+        0;
     }
 
     # Handles the case where we have a default value closure for an

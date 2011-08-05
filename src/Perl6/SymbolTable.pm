@@ -831,22 +831,25 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Adds a constant value to the constants table. Returns PAST to do
     # the lookup of the constant.
-    method add_constant($type, $primitive, *@value, *%named) {
+    method add_constant($type, $primitive, :$nocache, *@value, *%named) {
         # If we already built this, find it in the cache and
         # just return that.
-        my $namedkey := '';
-        for %named {
-            $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
-                if pir::defined($_.value);
-        }
-        my $cache_key := "$type,$primitive,"
-                         ~ pir::join(',', @value)
-                         ~ $namedkey;
-        if pir::exists(%!const_cache, $cache_key) {
-            my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
-            $past<has_compile_time_value> := 1;
-            $past<compile_time_value> := %!const_cache{$cache_key};
-            return $past;
+        my $cache_key;
+        if !$nocache {
+            my $namedkey := '';
+            for %named {
+                $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
+                    if pir::defined($_.value);
+            }
+            $cache_key := "$type,$primitive,"
+                ~ pir::join(',', @value)
+                ~ $namedkey;
+            if pir::exists(%!const_cache, $cache_key) {
+                my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
+                $past<has_compile_time_value> := 1;
+                $past<compile_time_value> := %!const_cache{$cache_key};
+                return $past;
+            }
         }
         
         # Find type object for the box typed we'll create.
@@ -899,7 +902,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $past := self.get_slot_past_for_object($constant);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $constant;
-        %!const_cache{$cache_key} := $constant;
+        if !$nocache {
+            %!const_cache{$cache_key} := $constant;
+        }
         return $past;
     }
     

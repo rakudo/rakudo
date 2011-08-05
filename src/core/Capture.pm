@@ -18,17 +18,17 @@ my class Capture {
           !! Any
     }
 
-    multi method hash(Capture:D:) {
+    method hash(Capture:D:) {
         my $enum := nqp::create(EnumMap);
         nqp::bindattr($enum, EnumMap, '$!storage', $!hash);
         $enum;
     }
 
-    multi method list(Capture:D:) {
+    method list(Capture:D:) {
         nqp::p6list($!list, List, Mu);
     }
     
-    multi method elems(Capture:D:) {
+    method elems(Capture:D:) {
         nqp::p6box_i(nqp::elems($!list))
     }
     

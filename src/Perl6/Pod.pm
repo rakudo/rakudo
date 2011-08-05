@@ -5,6 +5,15 @@ class Perl6::Pod {
             my $true := $*ST.add_constant('Int', 'int', 1)<compile_time_value>;
             my $doc  := $*ST.add_constant('Str', 'str', $with)<compile_time_value>;
             $*ST.apply_trait('&trait_mod:<is>', $what, $doc, :docs($true));
+
+            # add it to $=POD
+            my $cont  := serialize_array([$doc])<compile_time_value>;
+            my $block := $*ST.add_constant(
+                'Pod::Block::Declarator', 'type_new',
+                :nocache,
+                :WHEREFORE($what), :content($cont),
+            );
+            $*POD_BLOCKS.push($block<compile_time_value>);
         }
     }
 

@@ -59,6 +59,8 @@ static INTVAL is_narrower(PARROT_INTERP, Rakudo_md_candidate_info *a, Rakudo_md_
         types_to_check = a->num_types;
     else if (a->min_arity == b->min_arity)
         types_to_check = a->num_types > b->num_types ? b->num_types : a->num_types;
+    else if (a->max_arity != SLURPY_ARITY && b->max_arity == SLURPY_ARITY)
+        return 1;
     else
         return 0;
 

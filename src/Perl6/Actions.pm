@@ -1144,7 +1144,7 @@ class Perl6::Actions is HLL::Actions {
                 sigiltype($sigil), $descriptor, |@default);
 
             # Document it
-            Perl6::Pod::document($attr, $*DOC);
+            # Perl6::Pod::document($attr, $*DOC); #XXX var traits NYI
 
             # If no twigil, note $foo is an alias to $!foo.
             if $twigil eq '' {

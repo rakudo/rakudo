@@ -598,18 +598,24 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 bind_fail = BIND_RESULT_OK;
             }
             else {
-                PMC *captype  = Rakudo_types_capture_get();
-                PMC *capsnap  = REPR(captype)->instance_of(interp, captype);
-                PMC *pos_args = pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *captype    = Rakudo_types_capture_get();
+                PMC *capsnap    = REPR(captype)->instance_of(interp, captype);
+                PMC *pos_args   = pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *named_args = pmc_new(interp, enum_class_Hash);
                 INTVAL k;
                 VTABLE_set_attr_keyed(interp, capsnap, captype, LIST_str, pos_args);
+                VTABLE_set_attr_keyed(interp, capsnap, captype, HASH_str, named_args);
                 for (k = cur_pos_arg; k < num_pos_args; k++)
                     VTABLE_push_pmc(interp, pos_args,
                         VTABLE_get_pmc_keyed_int(interp, capture, k));
-                VTABLE_set_attr_keyed(interp, capsnap, captype, HASH_str,
-                    PMC_IS_NULL(named_args_copy) ?
-                        pmc_new(interp, enum_class_Hash) :
-                        VTABLE_clone(interp, named_args_copy));
+                if (!PMC_IS_NULL(named_args_copy)) {
+                    PMC *iter = VTABLE_get_iter(interp, named_args_copy);
+                    while (VTABLE_get_bool(interp, iter)) {
+                        STRING *name = VTABLE_shift_string(interp, iter);
+                        VTABLE_set_pmc_keyed_str(interp, named_args, name,
+                            VTABLE_get_pmc_keyed_str(interp, named_args_copy, name));
+                    }
+                }
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param, capsnap,
                         no_nom_type_check, error);
             }

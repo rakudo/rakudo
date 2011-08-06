@@ -143,10 +143,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                         := Perl6::ModuleLoader.load_setting($setting_name);
             
             # Do load in code.
-            my $fixup := PAST::Stmts.new(
-                PAST::Op.new(
-                    :pirop('load_bytecode vs'), 'blib/Perl6/ModuleLoader.pbc'
-                ),
+            my $fixup := PAST::Stmt.new(
+                self.perl6_module_loader_code(),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('set_outer_ctx'),
                     PAST::Val.new( :value($*UNIT_OUTER) ),
@@ -171,9 +169,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Make sure we do the loading during deserialization.
         self.add_event(:deserialize_past(PAST::Stmts.new(
-            PAST::Op.new(
-                :pirop('load_bytecode vs'), 'blib/Perl6/ModuleLoader.pbc'
-            ),
+            self.perl6_module_loader_code(),
             PAST::Op.new(
                :pasttype('callmethod'), :name('load_module'),
                PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
@@ -182,6 +178,27 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ))));
             
         return pir::getattribute__PPs($module, 'lex_pad');
+    }
+    
+    # Uses the NQP module loader to load Perl6::ModuleLoader, which
+    # is a normal NQP module.
+    method perl6_module_loader_code() {
+        PAST::Stmt.new(
+            PAST::Op.new(
+                :pirop('load_bytecode vs'), 'ModuleLoader.pbc'
+            ),
+            PAST::Op.new(
+                :pasttype('callmethod'), :name('load_module'),
+                PAST::Var.new( :scope('keyed_int'),
+                    PAST::Var.new( :scope('keyed'),
+                        PAST::Var.new( :scope('keyed'),
+                            PAST::Op.new( :pirop('get_root_namespace P') ),
+                            'nqp' ),
+                        'ModuleLoader'),
+                    1),
+                'Perl6::ModuleLoader',
+                self.get_slot_past_for_object($*ST.pkg_create_mo(pir::get_knowhow__P()))
+            ))
     }
     
     # Implements a basic first cut of import. Works out what needs to

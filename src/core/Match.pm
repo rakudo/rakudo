@@ -5,9 +5,12 @@ my class Match is Capture {
     has $.CURSOR;
 
     multi method Str(Match:D:) {
-        $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! '';
+        $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
+    }
+    method Numeric(Match:D:) {
+        self.Str.Numeric
     }
     multi method Bool(Match:D:) {
-        $!to >= $!from;
+        $!to >= $!from
     }
 }

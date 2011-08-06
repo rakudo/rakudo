@@ -2761,21 +2761,11 @@ class Perl6::Actions is HLL::Actions {
 
     method prefixish($/) {
         if $<prefix_postfix_meta_operator> {
-            my $opsub := '&prefix:<' ~ $<OPER>.Str ~ '<<>';
-            unless %*METAOPGEN{$opsub} {
-                my $base_op := '&prefix:<' ~ $<OPER>.Str ~ '>';
-                $*UNITPAST.loadinit.push(PAST::Op.new(
-                    :pasttype('bind_6model'),
-                    PAST::Var.new( :name($opsub), :scope('package') ),
-                    PAST::Op.new(
-                        :pasttype('callmethod'), :name('assuming'),
-                        PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&hyper' ),
-                        PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op )
-                    )
-                ));
-                %*METAOPGEN{$opsub} := 1;
-            }
-            make PAST::Op.new( :name($opsub), :pasttype('call') );
+            make PAST::Op.new( :node($/),
+                     :name<&METAOP_HYPER_PREFIX>,
+                     :pasttype<call>,
+                     PAST::Var.new( :name('&prefix:<' ~ $<OPER>.Str ~ '>'),
+                                    :scope<lexical_6model> ));
         }
     }
 
@@ -2866,37 +2856,18 @@ class Perl6::Actions is HLL::Actions {
 
     method postfixish($/) {
         if $<postfix_prefix_meta_operator> {
-            my $past := $<OPER>.ast;
-            if $past && $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
-                if ($past.name() eq '') {
-                    $past.name('!dispatch_invocation_parallel');
-                }
-                else {
-                    $past.unshift($past.name());
-                    $past.name('!dispatch_dispatcher_parallel');
-                }
-            }
-            elsif $past && $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
+            my $past := $<OPER>.ast || PAST::Op.new( :name('&postfix:<' ~ $<OPER>.Str ~ '>'),
+                                                     :pasttype<call> );
+            if $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
                 $past.unshift($past.name());
                 $past.name('dispatch:<hyper>');
             }
-            else {
-                # Hyper-op over a normal postfix.
-                my $opsub := '&postfix:<>>' ~ $<OPER>.Str ~ '>';
-                unless %*METAOPGEN{$opsub} {
-                    my $base_op := '&postfix:<' ~ $<OPER>.Str ~ '>';
-                    $*UNITPAST.loadinit.push(PAST::Op.new(
-                        :pasttype('bind_6model'),
-                        PAST::Var.new( :name($opsub), :scope('package') ),
-                        PAST::Op.new(
-                            :pasttype('callmethod'), :name('assuming'),
-                            PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&hyper' ),
-                            PAST::Op.new( :pirop('find_sub_not_null__Ps'), $base_op )
-                        )
-                    ));
-                    %*METAOPGEN{$opsub} := 1;
-                }
-                $past := PAST::Op.new( :name($opsub), :pasttype('call') );
+            elsif $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
+                my $basepast := $past.name 
+                                  ?? PAST::Var.new( :name($past.name), :scope<lexical_6model>)
+                                  !! $past[0];
+                $past.push($basepast);
+                $past.name('&METAOP_HYPER_POSTFIX');
             }
             make $past;
         }

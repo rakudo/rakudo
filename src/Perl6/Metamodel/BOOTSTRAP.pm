@@ -597,7 +597,9 @@ my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
 Bool.HOW.add_parent(Bool, Cool);
 Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1)));
 Bool.HOW.add_parrot_vtable_mapping(Bool, 'get_bool',
-    sub ($self) { nqp::unbox_i($self) });
+    sub ($self) {
+        pir::repr_defined__IP($self) ?? nqp::unbox_i($self) !! 0
+    });
 Bool.HOW.publish_parrot_vtable_mapping(Bool);
     
 # Set up Stash type, using a Parrot hash under the hood for storage.

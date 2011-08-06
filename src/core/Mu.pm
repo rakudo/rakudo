@@ -151,6 +151,19 @@ my class Mu {
         $cloned
     }
     
+    method Capture() {
+        my %attrs;
+        for self.^attributes -> $attr {
+            if $attr.has-accessor {
+                my $name = $attr.name.substr(2);
+                unless %attrs.exists($name) {
+                    %attrs{$name} = self."$name"();
+                }
+            }
+        }
+        %attrs.Capture
+    }
+    
     # XXX TODO: Handle positional case.
     method dispatch:<var>($var, *@pos, *%named) {
         $var(self, |@pos, |%named)

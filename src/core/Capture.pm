@@ -25,7 +25,7 @@ my class Capture {
     }
 
     method list(Capture:D:) {
-        nqp::p6list($!list, List, Mu);
+        nqp::p6list(pir::clone__PP($!list), List, Mu);
     }
     
     method elems(Capture:D:) {

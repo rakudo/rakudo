@@ -13,36 +13,41 @@ class Perl6::ModuleLoader {
         $*CTXSAVE := 0;
     }
     
+    method search_path() {
+        # See if we have an @*INC set up, and if so just use that.
+        my $hll_ns := pir::get_root_global__PS('perl6');
+        if pir::exists($hll_ns, 'PROCESS') && pir::exists($hll_ns<PROCESS>.WHO, '@INC') {
+            my $INC := ($hll_ns<PROCESS>.WHO)<@INC>;
+            if pir::defined($INC) {
+                my @INC := $INC.ARGLIST_FLATTENABLE();
+                if +@INC {
+                    return @INC;
+                }
+            }
+        }
+        
+        # Too early to have @*INC; probably no setting yet loaded to provide
+        # the PROCESS initialization.
+        my @search_paths;
+        @search_paths.push('.');
+        @search_paths.push('blib');
+        my %conf := pir::getinterp__P()[pir::const::IGLOBALS_CONFIG_HASH];
+        @search_paths.push(%conf<libdir> ~ %conf<versiondir> ~
+            '/languages/perl6/lib');
+        @search_paths
+    }
+    
     method load_module($module_name, $cur_GLOBALish) {
         # If we didn't already do so, load the module and capture
         # its mainline. Otherwise, we already loaded it so go on
         # with what we already have.
         my $module_ctx;
         my $path := pir::join('/', pir::split('::', $module_name)) ~ '.pbc';
-        my @prefixes := [];
-        try {
-            my $prefix := %*COMPILING<%?OPTIONS><module-path>;
-            if $prefix {
-                pir::push(@prefixes, $prefix);
-            } else {
-                pir::push(@prefixes, '.');
-                pir::push(@prefixes, 'blib');
-            }
-            CATCH {
-                pir::push(@prefixes, '.');
-                pir::push(@prefixes, 'blib');
-            }
-        }
+        my @prefixes := self.search_path();
         for @prefixes -> $prefix {
             if pir::stat__isi("$prefix/$path", 0) {
                 $path := "$prefix/$path";
                 last;
-            }
-        }
-        try {
-            my $prefix := %*COMPILING<%?OPTIONS><module-path>;
-            if $prefix {
-                $path := "$prefix/$path";
             }
         }
         if pir::defined(%modules_loaded{$path}) {
@@ -112,10 +117,11 @@ class Perl6::ModuleLoader {
         if $setting_name ne 'NULL' {
             # Add path prefix and .setting suffix.
             my $path := "$setting_name.setting.pbc";
-            try {
-                my $prefix := %*COMPILING<%?OPTIONS><setting-path>;
-                if $prefix {
+            my @prefixes := self.search_path();
+            for @prefixes -> $prefix {
+                if pir::stat__isi("$prefix/$path", 0) {
                     $path := "$prefix/$path";
+                    last;
                 }
             }
         

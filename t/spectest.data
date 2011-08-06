@@ -100,7 +100,7 @@ S03-junctions/associative.t
 S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
 S03-junctions/misc.t
-# S03-metaops/cross.t # err: Could not find sub &METAOP_HYPER_PREFIX
+# S03-metaops/cross.t # err: Nominal type check failed for parameter '$op'; expected Any but got Mu instead
 S03-metaops/eager-hyper.t
 # S03-metaops/hyper.t # err: Unable to parse blockoid
 S03-metaops/not.t
@@ -149,7 +149,7 @@ S03-operators/not.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
 S03-operators/range-int.t                       # stress
-# S03-operators/range.t # err: No applicable candidates found to dispatch to for 'Numeric'
+S03-operators/range.t
 S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 S03-operators/repeat.t
@@ -494,7 +494,7 @@ S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/pairs.t
 # S32-hash/push.t # hangs
-# S32-hash/slice.t # err: Could not find sub &METAOP_HYPER
+S32-hash/slice.t
 # S32-io/dir.t # err: Could not find sub &dir
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
@@ -598,7 +598,7 @@ integration/advent2009-day01.t
 integration/advent2009-day03.t
 integration/advent2009-day04.t
 # integration/advent2009-day05.t # err: chaining reduce NYI
-# integration/advent2009-day06.t # err: Could not find sub &METAOP_HYPER
+integration/advent2009-day06.t
 integration/advent2009-day07.t
 # integration/advent2009-day08.t # err: Nominal type check failed for parameter '$a'; expected Any but got Mu
 # integration/advent2009-day09.t # err: Not enough positional parameters passed

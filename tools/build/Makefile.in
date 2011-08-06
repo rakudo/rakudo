@@ -32,6 +32,7 @@ POD2MAN       = @pod2man@
 # locations of parrot and nqp resources
 PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
 NQP_EXE          = $(PARROT_BIN_DIR)/nqp$(EXE)
+NQP_LANG_DIR     = $(PARROT_LIB_DIR)/languages/nqp
 PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe$(EXE)
 PARROT_TOOLS_DIR = $(PARROT_LIB_DIR)/tools
 PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
@@ -247,18 +248,24 @@ all: check-versions $(PERL6_EXE) $(SETTING) Test.pir Pod/To/Text.pir
 
 # the install target
 install: all
+	$(MKPATH)                     $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6
+	$(CP) $(PERL6_ML_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ModuleLoader.pbc
+	$(CP) $(PERL6_ST_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/SymbolTable.pbc
+	$(CP) $(PERL6_G_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Grammar.pbc
+	$(CP) $(PERL6_A_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Actions.pbc
+	$(CP) $(PERL6_P_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Pod.pbc
+	$(CP) $(PERL6_C_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Compiler.pbc
+	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
 	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
 	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     Test.pir            $(DESTDIR)$(PERL6_LANG_DIR)/lib
-
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
-	$(MKPATH) 		      $(DESTDIR)$(DOCDIR)/rakudo
-	$(MKPATH) 		      $(DESTDIR)$(DOCDIR)/rakudo/announce
+	$(MKPATH) 		              $(DESTDIR)$(DOCDIR)/rakudo
+	$(MKPATH) 		              $(DESTDIR)$(DOCDIR)/rakudo/announce
 	$(CP)     $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
 	$(CP)     $(DOCS)/announce    $(DESTDIR)$(DOCDIR)/rakudo/announce
 	$(MKPATH) $(DESTDIR)$(MANDIR)/man1

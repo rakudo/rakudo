@@ -106,4 +106,40 @@ sub METAOP_REDUCE_XOR(\$op, :$triangle) {
     NYI "xor reduce NYI";
 }
 
+sub METAOP_HYPER(\$op, *%opt) {
+    -> Mu \$a, Mu \$b { hyper($op, $a, $b, |%opt) }
+}
+
+sub METAOP_HYPER_POSTFIX(\$obj, \$op) { hyper($op, $obj) }
+
+sub METAOP_HYPER_PREFIX(\$op, \$obj) { hyper($op, $obj) }
+
+proto sub hyper(|$) { * }
+multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) { 
+    my @alist := $a.elems < $b.elems && $dwim-left
+                   ?? ($a xx *).munch($b.elems)
+                   !! $a.flat;
+    my @blist := $b.elems < $a.elems && $dwim-right
+                   ?? ($b xx *).munch($a.elems)
+                   !! $b.flat;
+    die "Sorry, lists on both sides of non-dwimmy hyperop are not of same length:\n"
+        ~ "    left: @alist.elems() elements, right: @blist.elems() elements\n"
+      if @alist != @blist;
+
+    (@alist Z @blist).map(
+        -> $x, $y {
+            Iterable.ACCEPTS($x)
+              ?? $x.new(hyper($op, $x, $y, :$dwim-left, :$dwim-right)).item
+              !! (Iterable.ACCEPTS($y)
+                    ?? $y.new(hyper($op, $x, $y, :$dwim-left, :$dwim-right)).item
+                    !! $op($x, $y))
+        }
+    )
+}
+
+multi sub hyper(\$op, \$a) {
+    $a.map( { Iterable.ACCEPTS($_)
+                ?? $_.new(hyper($op, $_)).item
+                !! $op($_) } ).eager
+}
 

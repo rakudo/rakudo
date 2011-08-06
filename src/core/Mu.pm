@@ -13,7 +13,7 @@ my class Mu {
     }
 
     method WHY() {
-        self.HOW.docs
+        self.HOW.docs // Any
     }
     
     proto method Bool(|$) {*}

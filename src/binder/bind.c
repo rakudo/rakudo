@@ -568,8 +568,15 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
         PMC *hash_part = VTABLE_get_attr_keyed(interp, capture, captype, HASH_str);
         capture = list_part->vtable->base_type == enum_class_ResizablePMCArray ?
                 list_part : pmc_new(interp, enum_class_ResizablePMCArray);
-        if (hash_part->vtable->base_type == enum_class_Hash)
-            named_args_copy = VTABLE_clone(interp, hash_part);
+        if (hash_part->vtable->base_type == enum_class_Hash) {
+            PMC *iter = VTABLE_get_iter(interp, hash_part);
+            named_args_copy = pmc_new(interp, enum_class_Hash);
+            while (VTABLE_get_bool(interp, iter)) {
+                STRING *arg_copy_name = VTABLE_shift_string(interp, iter);
+                VTABLE_set_pmc_keyed_str(interp, named_args_copy, arg_copy_name,
+                    VTABLE_get_pmc_keyed_str(interp, hash_part, arg_copy_name));
+            }
+        }
     }
     else {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,

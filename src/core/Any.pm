@@ -202,6 +202,9 @@ multi sub infix:<eqv>(Numeric $a, Numeric $b) {
 multi sub infix:<eqv>(Stringy $a, Stringy $b) {
     $a.WHAT === $b.WHAT && ($a cmp $b) == 0
 }
+multi sub infix:<eqv>(Capture $a, Capture $b) {
+    $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
+}
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$)             { * }

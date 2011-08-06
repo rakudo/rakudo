@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 3 Aug 2011
+Last Updated 5 Aug 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -17,7 +17,6 @@ responsible parties.
 * Parametric roles (2, 2, ***, jnthn)
 * Enums to level of master (2, 1, ???, ???)
 * Grammars, qregex, other regex stuff (1, 1, ***, pmichaud)
-* Nested signatures (2, 1, ***, jnthn)
 * Buf (2, 1, **, pmichaud)
 * DateTime, Date (2, 1, **, ???)
 * Code constraints on multidispatch (2, 1, ***, jnthn)
@@ -56,7 +55,6 @@ when needs to properly find use correct outer scope
 ## Flesh out signatures and parameters
 While much binding works again now, there's some stuff to "put back":
 * |$c
-* Sub-signatures
 
 ## Fix up binding some more
 Get ::= correcter, and a bit more stuff on := also.

@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 5 Aug 2011
+Last Updated 6 Aug 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -12,7 +12,6 @@ branch and distribution, an estimate of the difficulty
 (* == easy, **** = hard), and any identified 
 responsible parties.
 
-* "make install" (1, 1, ***, jnthn pmichaud)
 * Method delegation (2, 2, ***, jnthn)
 * Parametric roles (2, 2, ***, jnthn)
 * Enums to level of master (2, 1, ???, ???)
@@ -87,7 +86,5 @@ Same for my %h and hashes.
 
 ## Phasers
 * END in pre-compiled mainline case
-
-## Make nom installable
 
 ## fix segfaults

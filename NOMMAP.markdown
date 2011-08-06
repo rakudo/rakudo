@@ -52,10 +52,6 @@ For my X::Base { ... }, my Foo::Bar { ... } etc. The our-scoped ones work.
 ## when statements
 when needs to properly find use correct outer scope
 
-## Flesh out signatures and parameters
-While much binding works again now, there's some stuff to "put back":
-* |$c
-
 ## Fix up binding some more
 Get ::= correcter, and a bit more stuff on := also.
 

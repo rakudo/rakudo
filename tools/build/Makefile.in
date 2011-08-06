@@ -73,7 +73,8 @@ SETTING_PIR   = src/gen/CORE.setting.pir
 SETTING       = CORE.setting.pbc
 GROUP         = perl6_group
 OPS           = perl6_ops
-DYNEXT_TARGET = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
+DYNEXT_DYNPMC = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
+DYNEXT_DYNOPS = $(DYNEXT_DIR)/$(OPS)$(LOAD_EXT)
 DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
 DYNOPS        = $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
@@ -288,7 +289,7 @@ $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/ma
 	    --combine src/main.nqp src/gen/main-version.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
-$(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/ModuleLoader.pm
+$(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_ML) --encoding=utf8 \
 	    src/Perl6/ModuleLoader.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
@@ -303,22 +304,22 @@ $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
-$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Actions.pm $(PERL6_P_PBC)
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.pm $(PERL6_P_PBC)
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
-$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Pod.pm
+$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.pm
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
 	    src/Perl6/Pod.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P_PBC) $(PERL6_P)
 
-$(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Compiler.nqp
+$(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Compiler.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_C) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
-$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET) $(METAMODEL_SOURCES)
+$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES)
 	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.pm
@@ -469,10 +470,13 @@ release: manifest
 	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
 	rm rakudo-$(VERSION)
 
-$(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
-	$(CP) $(DYNPMC) $(DYNOPS) $(DYNEXT_DIR)
-	$(CHMOD) 755 $(DYNEXT_TARGET)
-	$(CHMOD) 755 $(DYNEXT_DIR)/$(OPS)$(LOAD_EXT)
+$(DYNEXT_DYNPMC): $(DYNPMC)
+	$(CP) $(DYNPMC) $(DYNEXT_DIR)
+	$(CHMOD) 755 $(DYNEXT_DYNPMC)
+
+$(DYNEXT_DYNOPS): $(DYNOPS)
+	$(CP) $(DYNOPS) $(DYNEXT_DIR)
+	$(CHMOD) 755 $(DYNEXT_DYNOPS)
 
 # (at)cc_o_out(at) and (at)ld_out(at) below cannot be assigned to
 # makefile macros, because some make utilities drop the trailing

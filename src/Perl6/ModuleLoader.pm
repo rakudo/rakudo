@@ -34,6 +34,9 @@ class Perl6::ModuleLoader {
         my %conf := pir::getinterp__P()[pir::const::IGLOBALS_CONFIG_HASH];
         @search_paths.push(%conf<libdir> ~ %conf<versiondir> ~
             '/languages/perl6/lib');
+        # XXX CHEAT: Goes away when we implement :from<nqp>.
+        @search_paths.push(%conf<libdir> ~ %conf<versiondir> ~
+            '/languages/nqp/lib');
         @search_paths
     }
     

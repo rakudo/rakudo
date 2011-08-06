@@ -259,6 +259,8 @@ install: all
 	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
 	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     Pod/To/Text.pm      $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     CORE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/CORE.setting.pbc
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext

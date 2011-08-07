@@ -1,7 +1,7 @@
 role Perl6::Metamodel::MROBasedMethodDispatch {
     # While we normally end up locating methods through the method cache,
     # this is here as a fallback.
-    method find_method($obj, $name) {
+    method find_method($obj, $name, :$no_fallback) {
         my %methods;
         for self.mro($obj) {
             %methods := $_.HOW.method_table($_);
@@ -13,7 +13,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         if pir::exists(%submethods, $name) {
             return %submethods{$name}
         }
-        pir::can__IPs(self, 'find_method_fallback') ??
+        !$no_fallback && pir::can__IPs(self, 'find_method_fallback') ??
             self.find_method_fallback($obj, $name) !!
             pir::null__P();
     }

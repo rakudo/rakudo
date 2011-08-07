@@ -1074,38 +1074,62 @@ grammar Perl6::Grammar is HLL::Grammar {
             <trait>*
             
             {
-                # Locate any existing symbol. Note that it's only a match
-                # with "my" if we already have a declaration in this scope.
-                my $exists := 0;
-                if $longname {
-                    my @name := parse_name(~$longname<name>);
-                    if $*ST.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
-                        $*PACKAGE := $*ST.find_symbol(@name);
-                        $exists := 1;
+                # Unless we're augmenting...
+                if $*SCOPE ne 'augment' {
+                    # Locate any existing symbol. Note that it's only a match
+                    # with "my" if we already have a declaration in this scope.
+                    my $exists := 0;
+                    if $longname {
+                        my @name := parse_name(~$longname<name>);
+                        if $*ST.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
+                            $*PACKAGE := $*ST.find_symbol(@name);
+                            $exists := 1;
+                        }
                     }
-                }
-                
-                # If it exists already, then it's either uncomposed (in which
-                # case we just stubbed it) or else an illegal redecl.
-                if $exists {
-                    if $*PACKAGE.HOW.is_composed($*PACKAGE) {
-                        $/.CURSOR.panic("Illegal redeclaration of $*PKGDECL '" ~
-                            ~$longname<name> ~ "'");
+                    
+                    # If it exists already, then it's either uncomposed (in which
+                    # case we just stubbed it) or else an illegal redecl.
+                    if $exists {
+                        if $*PACKAGE.HOW.is_composed($*PACKAGE) {
+                            $/.CURSOR.panic("Illegal redeclaration of $*PKGDECL '" ~
+                                ~$longname<name> ~ "'");
+                        }
+                    }
+                    else {
+                        # Construct meta-object for this package.
+                        my %args;
+                        if $longname {
+                            %args<name> := ~$longname<name>;
+                        }
+                        %args<repr> := $*REPR;
+                        $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
+                        
+                        # Install it in the symbol table if needed.
+                        if $longname {
+                            $*ST.install_package($/, $longname, $*SCOPE, $*PKGDECL,
+                                $*OUTERPACKAGE, $outer, $*PACKAGE);
+                        }
                     }
                 }
                 else {
-                    # Construct meta-object for this package.
-                    my %args;
-                    if $longname {
-                        %args<name> := ~$longname<name>;
+                    # Augment. Ensure we can.
+                    unless $*MONKEY_TYPING {
+                        $/.CURSOR.panic("augment not allowed without 'use MONEKY_TYPING'");
                     }
-                    %args<repr> := $*REPR;
-                    $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
+                    if $*PKGDECL eq 'role' {
+                        $/.CURSOR.panic("Can not augment a role, since roles are immutable");
+                    }
+                    unless $longname {
+                        $/.CURSOR.panic("Can not augment the anonymous");
+                    }
                     
-                    # Install it in the symbol table if needed.
-                    if $longname {
-                        $*ST.install_package($/, $longname, $*SCOPE, $*PKGDECL,
-                            $*OUTERPACKAGE, $outer, $*PACKAGE);
+                    # Locate type.
+                    my $found;
+                    my @name := parse_name(~$longname<name>);
+                    try { $*PACKAGE := $*ST.find_symbol(@name); $found := 1 }
+                    unless $found {
+                        $/.CURSOR.panic("Could not find a $*PKGDECL " ~
+                            ~$longname<name> ~ " to augment");
                     }
                 }
                 

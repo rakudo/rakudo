@@ -179,19 +179,20 @@ class Perl6::ModuleLoader {
         my $setting;
         
         if $setting_name ne 'NULL' {
-            # Add path prefix and .setting suffix.
-            my $path := "$setting_name.setting.pbc";
-            my @prefixes := self.search_path();
-            for @prefixes -> $prefix {
-                $prefix := ~$prefix;
-                if pir::stat__isi("$prefix/$path", 0) {
-                    $path := "$prefix/$path";
-                    last;
+            # Unless we already did so, locate and load the setting.
+            unless pir::defined(%settings_loaded{$setting_name}) {
+                # Find it.
+                my $path := "$setting_name.setting.pbc";
+                my @prefixes := self.search_path();
+                for @prefixes -> $prefix {
+                    $prefix := ~$prefix;
+                    if pir::stat__isi("$prefix/$path", 0) {
+                        $path := "$prefix/$path";
+                        last;
+                    }
                 }
-            }
-        
-            # Unless we already did so, load the setting.
-            unless pir::defined(%settings_loaded{$path}) {
+                
+                # Load it.
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
                 my $preserve_global := pir::get_hll_global__Ps('GLOBAL');
@@ -200,10 +201,10 @@ class Perl6::ModuleLoader {
                 unless pir::defined($*MAIN_CTX) {
                     pir::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
-                %settings_loaded{$path} := $*MAIN_CTX;
+                %settings_loaded{$setting_name} := $*MAIN_CTX;
             }
             
-            $setting := %settings_loaded{$path};
+            $setting := %settings_loaded{$setting_name};
         }
         
         return $setting;

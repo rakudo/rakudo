@@ -40,30 +40,93 @@ class Perl6::ModuleLoader {
         @search_paths
     }
     
+    # Locates files we could potentially load for this module.
+    method locate_candidates($module_name, @prefixes) {
+        # Assemble various files we'd look for.
+        my $base_path := pir::join('/', pir::split('::', $module_name));
+        my $pbc_path  := $base_path ~ '.pbc';
+        my $pir_path  := $base_path ~ '.pir';
+        my $pm_path   := $base_path ~ '.pm';
+        
+        # Go through the prefixes and build a candidate list.
+        my @candidates;
+        for @prefixes -> $prefix {
+            my $have_pm  := pir::stat__isi("$prefix/$pm_path", 0);
+            my $have_pir := pir::stat__isi("$prefix/$pir_path", 0);
+            my $have_pbc := pir::stat__isi("$prefix/$pbc_path", 0);
+            if $have_pm {
+                my %cand;
+                %cand<key> := "$prefix/$pm_path";
+                %cand<pm>  := "$prefix/$pm_path";
+                # XXX Add PIR or PBC here *only* if it was modified later
+                # than the .pm source.
+                if $have_pir {
+                    %cand<load> := "$prefix/$pir_path";
+                }
+                elsif $have_pbc {
+                    %cand<load> := "$prefix/$pbc_path";
+                }
+                @candidates.push(%cand);
+            }
+            elsif $have_pir {
+                my %cand;
+                %cand<key>  := "$prefix/$pir_path";
+                %cand<load> := "$prefix/$pir_path";
+                @candidates.push(%cand);
+            }
+            elsif $have_pbc {
+                my %cand;
+                %cand<key>  := "$prefix/$pbc_path";
+                %cand<load> := "$prefix/$pbc_path";
+                @candidates.push(%cand);
+            }
+        }
+        @candidates
+    }
+    
     method load_module($module_name, $cur_GLOBALish) {
+        # Locate all the things that we potentially could load. Choose
+        # the first one for now (XXX need to filter by version and auth).
+        my @prefixes   := self.search_path();
+        my @candidates := self.locate_candidates($module_name, @prefixes);
+        if +@candidates == 0 {
+            pir::die("Could not find $module_name in any of: " ~
+                pir::join(', ', @prefixes));
+        }
+        my %chosen := @candidates[0];
+        
         # If we didn't already do so, load the module and capture
         # its mainline. Otherwise, we already loaded it so go on
         # with what we already have.
         my $module_ctx;
-        my $path := pir::join('/', pir::split('::', $module_name)) ~ '.pbc';
-        my @prefixes := self.search_path();
-        for @prefixes -> $prefix {
-            if pir::stat__isi("$prefix/$path", 0) {
-                $path := "$prefix/$path";
-                last;
-            }
-        }
-        if pir::defined(%modules_loaded{$path}) {
-            $module_ctx := %modules_loaded{$path};
+        if pir::defined(%modules_loaded{%chosen<key>}) {
+            $module_ctx := %modules_loaded{%chosen<key>};
         }
         else {
-            my %*COMPILING := {};
-            my $*CTXSAVE := self;
-            my $*MAIN_CTX;
             my $preserve_global := pir::get_hll_global__Ps('GLOBAL');
-            pir::load_bytecode($path);
+            if %chosen<load> {
+                my %*COMPILING := {};
+                my $*CTXSAVE := self;
+                my $*MAIN_CTX;
+                pir::load_bytecode(%chosen<load>);
+                %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
+            }
+            else {
+                # Read source file.
+                my $fh := pir::open__PSs(%chosen<pm>, 'r');
+                $fh.encoding('utf8');
+                my $source := $fh.readall();
+                $fh.close();
+                
+                # Get the compiler and compile the code, then run it
+                # (which runs the mainline and captures UNIT).
+                my $eval := pir::compreg__Ps('perl6').compile($source);
+                my $*CTXSAVE := self;
+                my $*MAIN_CTX;
+                $eval();
+                %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
+            }
             pir::set_hll_global__vsP('GLOBAL', $preserve_global);
-            %modules_loaded{$path} := $module_ctx := $*MAIN_CTX;
         }
 
         # Provided we have a mainline...

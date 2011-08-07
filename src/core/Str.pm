@@ -1,5 +1,6 @@
 my class Cursor {... }
 my class Range  {... }
+my class Match  {... }
 
 my class Str does Stringy {
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
@@ -248,8 +249,20 @@ my class Str does Stringy {
             !! self.match(:g, :x(1..$limit), $pat).map: { .Str }
     }
 
+    # TODO: should be private
+    proto method ll-match(Str:D: $, *%) {*}
+    multi method ll-match(Str:D: Regex:D $pat, *%opts) {
+        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH
+    }
+    multi method ll-match(Str:D: Cool:D $pat, *%opts) {
+        my Int $from = %opts<p> // %opts<c> // 0;
+        my $idx = self.index($pat, $from);
+        defined $idx
+          ?? Match.new(orig => self, from => $idx, to => ($idx + $pat.chars))
+          !! Match.new(orig => self, from => 0,    to => -3);
+    }
 
-    multi method match(Str:D: Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
+    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
         if $c.defined {
@@ -267,7 +280,7 @@ my class Str does Stringy {
         }
         if $g  || $overlap || $x.defined {
             my @r;
-            while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
+            while my $m = self.ll-match($pat, |%opts) {
                 # XXX a bug in the regex engine means that we can
                 # match a zero-width match past the end of the string.
                 # This is the workaround:
@@ -284,7 +297,7 @@ my class Str does Stringy {
             return if $x.defined && @r.elems !~~ $x;
             return @r;
         } else {
-            $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
+            self.ll-match($pat, |%opts)
         }
     }
 

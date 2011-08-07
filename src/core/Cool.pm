@@ -92,8 +92,8 @@ my class Cool {
         self.Stringy.split($pat, $limit, :$all);
     }
     proto method match(|$) {*}
-    multi method match(Cool:D: Cool $target, *%adverbs) {
-        self.Str.match($target.Stringy, |%adverbs)
+    multi method match(Cool:D: $target, *%adverbs) {
+        self.Stringy.match($target, |%adverbs)
     }
 
     proto method comb(|$) {*}

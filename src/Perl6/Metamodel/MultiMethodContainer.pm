@@ -98,5 +98,6 @@ role Perl6::Metamodel::MultiMethodContainer {
             }
             $i := $i + 1;
         }
+        @!multi_methods_to_incorporate := [];
     }
 }

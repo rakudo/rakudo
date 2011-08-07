@@ -214,7 +214,8 @@ CLEANUPS = \
   perl6.c \
   perl6$(O) \
   perl6_group.* \
-  Test.pir \
+  lib/Test.pir \
+  lib/Pod/To/Text.pir \
   rakudo_test_run.tar.gz \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen/core.pm \
@@ -245,7 +246,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING) Test.pir Pod/To/Text.pir
+all: check-versions $(PERL6_EXE) $(SETTING) lib/Test.pir lib/Pod/To/Text.pir
 
 # the install target
 install: all
@@ -259,9 +260,9 @@ install: all
 	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
 	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
-	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     Pod/To/Text.pm      $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     CORE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/CORE.setting.pbc
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
@@ -331,11 +332,11 @@ $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 
 ##  testing targets
-Test.pir: Test.pm $(PERL6_EXE) $(SETTING)
-	./$(PERL6_EXE) --target=pir --output=Test.pir Test.pm
+lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
 
-Pod/To/Text.pir: Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
-	./$(PERL6_EXE) --target=pir --output=Pod/To/Text.pir Pod/To/Text.pm
+lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
 
 test    : coretest
 
@@ -344,7 +345,7 @@ fulltest: coretest stresstest
 coretest: all
 	$(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
 
-podtest: Test.pir
+podtest: lib/Test.pir
 	$(PERL) t/harness t/pod
 
 # Run the spectests that we know work.

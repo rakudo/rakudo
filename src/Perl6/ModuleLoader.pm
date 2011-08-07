@@ -139,10 +139,12 @@ class Perl6::ModuleLoader {
         return $module_ctx;
     }
     
-    # XXX This is a really dumb and minimalistic GLOBAL merger.
-    # For a much more complete one, see sorear++'s work in
-    # Niecza. This one will likely evolve towards that.
-    my $stub_how := 'PackageHOW';
+    # This is a first cut of the globals merger. For another approach,
+    # see sorear++'s work in Niecza. That one is likely more "pure"
+    # than this, but that would seem to involve copying too, and the
+    # details of exactly what that entails are a bit hazy to me at the
+    # moment. We'll see how far this takes us.
+    my $stub_how := 'Perl6::Metamodel::PackageHOW';
     sub merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
@@ -160,14 +162,26 @@ class Perl6::ModuleLoader {
             }
             else {
                 my $source_mo := $_.value.HOW;
-                my $source_is_stub := $source_mo.WHAT.HOW.name($source_mo) eq $stub_how;
+                my $source_is_stub := $source_mo.HOW.name($source_mo) eq $stub_how;
                 my $target_mo := ($target.WHO){$sym}.HOW;
-                my $target_is_stub := $target_mo.WHAT.HOW.name($target_mo) eq $stub_how;
+                my $target_is_stub := $target_mo.HOW.name($target_mo) eq $stub_how;
                 if $source_is_stub && $target_is_stub {
-                    # Leave target as is, and merge the nested symbols.
+                    # Both stubs. We can safely merge the symbols from
+                    # the source into the target that's importing them.
                     merge_globals(($target.WHO){$sym}, $_.value);
                 }
-                # XXX Two other recursive cases go here.
+                elsif $source_is_stub {
+                    # The target has a real package, but the source is a
+                    # stub. Also fine to merge source symbols into target.
+                    merge_globals(($target.WHO){$sym}, $_.value);
+                }
+                elsif $target_is_stub {
+                    # The tricky case: here the interesting package is the
+                    # one in the module. So we merge the other way around
+                    # and install that as the result.
+                    merge_globals($_.value, ($target.WHO){$sym});
+                    ($target.WHO){$sym} := $_.value;
+                }
                 else {
                     pir::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }

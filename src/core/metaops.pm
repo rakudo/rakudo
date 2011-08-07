@@ -143,3 +143,23 @@ multi sub hyper(\$op, \$a) {
                 !! $op($_) } ).eager
 }
 
+multi sub hyper(\$op, %h) {
+    hash %h.keys Z hyper($op, %h.values)
+}
+
+multi sub hyper(\$op, %a, %b, :$dwim-left, :$dwim-right) {
+    my %k;
+    for %a.keys { %k{$_} = 1 if !$dwim-left || %b.exists($_) }
+    for %b.keys { %k{$_} = 1 if !$dwim-right }
+    my @keys = %k.keys;
+    hash @keys Z hyper($op, %a{@keys}, %b{@keys}, :$dwim-left, :$dwim-right)
+}
+
+multi sub hyper(\$op, %a, \$b, :$dwim-left, :$dwim-right) {
+    hash %a.keys Z hyper($op, %a.values, $b, :$dwim-left, :$dwim-right);
+}
+
+multi sub hyper(\$op, \$a, %b, :$dwim-left, :$dwim-right) {
+    hash %b.keys Z hyper($op, $a, %b.values, :$dwim-left, :$dwim-right);
+}
+

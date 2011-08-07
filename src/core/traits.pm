@@ -108,7 +108,7 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
             });
         }
         
-        method apply_handles(Mu $pkg) {
+        method apply_handles($attr: Mu $pkg) {
             sub applier($expr) {
                 if $expr.defined() {
                     if $expr ~~ Str {
@@ -127,7 +127,15 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                     }
                 }
                 else {
-                    # XXX Todo.
+                    $pkg.HOW.add_fallback($pkg,
+                        -> $obj, $name {
+                            ?$expr.can($name)
+                        },
+                        -> $obj, $name {
+                            -> $self, **@pos, *%named {
+                                $attr.get_value($self)."$name"(|@pos, |%named)
+                            }
+                        });
                 }
             }
             applier($!handles);

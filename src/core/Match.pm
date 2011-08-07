@@ -4,6 +4,9 @@ my class Match is Capture {
     has $.to;
     has $.CURSOR;
 
+    multi method gist(Match:D:) {
+        $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
+    }
     multi method Str(Match:D:) {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
     }

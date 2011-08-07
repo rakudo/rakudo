@@ -392,6 +392,18 @@ my class Str does Stringy {
         }
         @chars.join('');
     }
+
+    method trim-leading(Str:D:) {
+        my Int $pos = nqp::p6box_i(
+            pir::find_not_cclass__IiSii(
+                pir::const::CCLASS_WHITESPACE,
+                nqp::unbox_s(self),
+                0,
+                nqp::unbox_i(self.chars)
+            )
+        );
+        self.substr($pos);
+    }
 }
 
 

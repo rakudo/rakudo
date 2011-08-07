@@ -66,12 +66,12 @@ S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
-# S02-magicals/args.t   # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S02-magicals/args.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 S02-magicals/config.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-magicals/env.t
-# S02-magicals/pid.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S02-magicals/pid.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 S02-magicals/progname.t
 S02-names_and_variables/contextual.t
 S02-names_and_variables/fmt.t
@@ -252,7 +252,7 @@ S04-statements/while.t
 # S05-mass/stdrules.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
 S05-match/arrayhash.t 
 S05-match/blocks.t
-# S05-match/capturing-contexts.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S05-match/capturing-contexts.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/non-capturing.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/perl.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/positions.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
@@ -303,13 +303,13 @@ S06-multi/syntax.t
 S06-multi/value-based.t
 S06-multi/unpackability.t
 # S06-operator-overloading/imported-subs.t # err: Nominal type check failed for parameter '$a'; expected NotANumber but got Int instead
-# S06-operator-overloading/methods.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S06-operator-overloading/methods.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
 # S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
 S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t # err: Could not find sub &MAIN_HELPER
 S06-other/main-eval.t
-# S06-other/main-usage.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S06-other/main-usage.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 S06-other/misc.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
@@ -351,7 +351,7 @@ S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
 # S10-packages/basic.t # err: Unable to parse blockoid, couldn't find final '}' at line 107
-# S10-packages/use-with-class.t # err: Illegal redeclaration of class 'Stupid::Class' at line 27, near "{\n        " (needs augment)
+# S10-packages/use-with-class.t # err: Illegal redeclaration of class 'Stupid::Class'
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 # S11-modules/import.t # err: Could not find sub import
 # S11-modules/import-tag.t # err: arglist case of use not yet implemented
@@ -361,7 +361,7 @@ S11-modules/lexical.t
 # S11-modules/require.t # err: Could not find symbol 'Fancy::Utilities::&lolgreet'
 # S12-attributes/class.t # err: Method 'bar' not found for invocant of class 'Foo'
 S12-attributes/clone.t
-# S12-attributes/delegation.t # err: Method 'hi' not found for invocant of class 'Frontend'
+# S12-attributes/delegation.t # err: Method 'hi' not found for invocant of class 'ClassFrontend'
 S12-attributes/inheritance.t
 # S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
 # S12-attributes/mutators.t # err: Cannot put a type constraint on an 'our'-scoped variable
@@ -452,22 +452,22 @@ S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
-# S16-io/bare-say.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S16-io/bare-say.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 S16-io/basic-open.t
 # S16-io/say.t # err: o k 3 - say with multiple parameters (2)
-# S16-io/say-and-ref.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S16-io/say-and-ref.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 # S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
-# S19-command-line/dash-e.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test #icu
-# S19-command-line/help.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S19-command-line/dash-e.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+# S19-command-line/help.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
 S28-named-variables/inc.t
 S29-any/cmp.t
 S29-any/isa.t
-# S29-context/die.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S29-context/die.t # segmentation fault
 S29-context/eval.t
-# S29-context/exit.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S29-context/exit.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 # S29-context/sleep.t # err: Could not find sub &sleep
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu
@@ -486,7 +486,7 @@ S32-array/push.t
 S32-array/shift.t
 # S32-array/splice.t # err: Could not find sub &splice
 S32-array/unshift.t
-# S32-basics/warn.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S32-basics/warn.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 # S32-container/zip.t # err: Cannot assign to a non-container
 S32-hash/exists.t
 # S32-hash/delete.t # err: Too many positional parameters passed
@@ -498,7 +498,7 @@ S32-hash/slice.t
 # S32-io/dir.t # err: Could not find sub &dir
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
-# S32-io/note.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S32-io/note.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 # S32-io/IO-Socket-INET.t # err: Useless declaration of a has-scoped method in mainline
 S32-list/classify.t
 S32-list/create.t
@@ -534,7 +534,7 @@ S32-num/sign.t
 S32-num/sqrt.t
 S32-num/unpolar.t
 S32-scalar/defined.t
-# S32-scalar/undef.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# S32-scalar/undef.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 S32-str/append.t
 S32-str/bool.t
 # S32-str/capitalize.t  # err: Could not find sub &capitalize #icu
@@ -603,7 +603,7 @@ integration/advent2009-day07.t
 # integration/advent2009-day08.t # err: Nominal type check failed for parameter '$a'; expected Any but got Mu
 # integration/advent2009-day09.t # err: Not enough positional parameters passed
 # integration/advent2009-day10.t # err: Method 'parse' not found for invocant of class 'Inventory'
-# integration/advent2009-day11.t # err: Method 'dog_name' not found for invocant of class 'DogWalker'
+integration/advent2009-day11.t
 integration/advent2009-day12.t
 integration/advent2009-day13.t
 integration/advent2009-day14.t
@@ -617,7 +617,7 @@ integration/advent2009-day15.t
 integration/advent2009-day23.t
 integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
-# integration/error-reporting.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# integration/error-reporting.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t
@@ -631,4 +631,4 @@ integration/role-composition-vs-attribute.t
 # integration/rule-in-class-Str.t # err: Adverb 'P5' not allowed on m
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
-# integration/weird-errors.t # err: Merging GLOBAL symbols failed: duplicate definition of symbol Test
+# integration/weird-errors.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead

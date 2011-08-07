@@ -168,6 +168,22 @@ class List does Positional {
         $rlist;
     }
 
+    method rotate(Int $n is copy = 1) {
+        self.gimme(*);
+        fail 'Cannot rotate an infinite list' if self.infinite;
+        my Mu $res := nqp::clone($!items);
+        $n %= nqp::p6box_i(nqp::elems($!items));
+        if $n > 0 {
+            nqp::push($res, nqp::shift($res)) while $n--;
+        }
+        elsif $n < 0 {
+            nqp::unshift($res, nqp::pop($res)) while $n++;
+        }
+        my $rlist := nqp::create(self.WHAT);
+        nqp::bindattr($rlist, List, '$!items', $res);
+        $rlist;
+    }
+
     method shift() is rw {
         # make sure we have at least one item, then shift+return it
         self.gimme(1) 
@@ -313,4 +329,5 @@ proto sub push(|$) {*}
 multi sub push(@a, *@elems) { @a.push: @elems }
 
 sub reverse(*@a)            { @a.reverse }
+sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }

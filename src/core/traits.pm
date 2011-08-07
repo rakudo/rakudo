@@ -123,7 +123,15 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                         }
                     }
                     else {
-                        # XXX Matcher.
+                        $pkg.HOW.add_fallback($pkg,
+                            -> $obj, $name {
+                                ?($name ~~ $expr)
+                            },
+                            -> $obj, $name {
+                                -> $self, **@pos, *%named {
+                                    $attr.get_value($self)."$name"(|@pos, |%named)
+                                }
+                            });
                     }
                 }
                 else {

@@ -38,8 +38,12 @@ multi trait_mod:<is>(Parameter:D $param, :$copy!) {
 # full-blown serialization, though.
 multi trait_mod:<is>(Routine:D \$r, :$export!) {
     if %*COMPILING {
+        if $r.multi {
+            die "Cannot export an individual multi candidate; export the proto instead";
+        }
         my @tags = 'ALL', 'DEFAULT';
         for @tags -> $tag {
+            my $exp_name := '&' ~ $r.name;
             my $install_in;
             if $*EXPORT.WHO.exists($tag) {
                 $install_in := $*EXPORT.WHO.{$tag};
@@ -49,7 +53,10 @@ multi trait_mod:<is>(Routine:D \$r, :$export!) {
                 $*ST.pkg_compose($install_in);
                 $*ST.install_package_symbol($*EXPORT, $tag, $install_in);
             }
-            $*ST.install_package_symbol($install_in, '&' ~ $r.name, $r);
+            if $install_in.WHO.exists($exp_name) {
+                die "A symbol $exp_name has already been exported";
+            }
+            $*ST.install_package_symbol($install_in, $exp_name, $r);
         }
     }
 }

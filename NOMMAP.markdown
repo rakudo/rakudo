@@ -19,7 +19,6 @@ responsible parties.
 * Buf (2, 1, **, pmichaud)
 * DateTime, Date (2, 1, **, ???)
 * Code constraints on multidispatch (2, 1, ***, jnthn)
-* "use" on non-compiled modules (1, 1, ***, jnthn)
 * Hyper metaoperator (1, 1, **, pmichaud)
 * Operator overloading (2, 1, *, ???)   (may be done already)
 * Define new operators (2, 1, **, pmichaud) (awaiting other regex updates)

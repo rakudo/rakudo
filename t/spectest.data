@@ -71,7 +71,7 @@ S02-magicals/config.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-magicals/env.t
-# S02-magicals/pid.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+S02-magicals/pid.t
 S02-magicals/progname.t
 S02-names_and_variables/contextual.t
 S02-names_and_variables/fmt.t
@@ -455,7 +455,7 @@ S16-filehandles/unlink.t
 # S16-io/bare-say.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
 S16-io/basic-open.t
 # S16-io/say.t # err: o k 3 - say with multiple parameters (2)
-# S16-io/say-and-ref.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+S16-io/say-and-ref.t
 # S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
@@ -467,7 +467,7 @@ S29-any/cmp.t
 S29-any/isa.t
 # S29-context/die.t # segmentation fault
 S29-context/eval.t
-# S29-context/exit.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+S29-context/exit.t
 # S29-context/sleep.t # err: Could not find sub &sleep
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu

@@ -58,12 +58,6 @@ Many things are working, some are not...
 * Multiple variants of a single role
 * Role subtype checking
 
-## Meta-operators
-* Hyper
-
-## Missing object model bits
-* Some support for augment
-
 ## Custom Operators
 Get these working again.
 

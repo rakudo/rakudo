@@ -103,7 +103,7 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
         }
         
         method add_delegator_method($attr: $pkg, $meth_name, $call_name) {
-            $pkg.HOW.add_method($pkg, $meth_name, method (**@pos, *%named) {
+            $pkg.HOW.add_method($pkg, $meth_name, method (**@pos, *%named) is rw {
                 $attr.get_value(self)."$call_name"(|@pos, |%named)
             });
         }

@@ -9,19 +9,19 @@ switching nom to be the new 'master' branch, and before releasing
 a nom-based distribution.  Each item below contains an importance
 (1 == must have, 2 == ought to have, 3 == nice to have) for
 branch and distribution, an estimate of the difficulty 
-(* == easy, **** = hard), and any identified 
+(\* == easy, \*\*\*\* = hard), and any identified 
 responsible parties.
 
-* Method delegation (2, 2, ***, jnthn)
-* Parametric roles (2, 2, ***, jnthn)
+* Method delegation (2, 2, \*\*\*, jnthn)
+* Parametric roles (2, 2, \*\*\*, jnthn)
 * Enums to level of master (2, 1, ???, ???)
-* Grammars, qregex, other regex stuff (1, 1, ***, pmichaud)
+* Grammars, qregex, other regex stuff (1, 1, \*\*\*, pmichaud)
 * Buf (2, 1, **, pmichaud)
-* DateTime, Date (2, 1, **, ???)
-* Code constraints on multidispatch (2, 1, ***, jnthn)
-* Hyper metaoperator (1, 1, **, pmichaud)
-* Operator overloading (2, 1, *, ???)   (may be done already)
-* Define new operators (2, 1, **, pmichaud) (awaiting other regex updates)
+* DateTime, Date (2, 1, \*\*, ???)
+* Code constraints on multidispatch (2, 1, \*\*\*, jnthn)
+* Hyper metaoperator (1, 1, \*\*, pmichaud)
+* Operator overloading (2, 1, \*, ???)   (may be done already)
+* Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
 * Whatever currying (2, 1, ???, ???) (may be done already)
 * MAIN (2, 1, ???, ???)
 * callframe (3, 1, ???, ???)

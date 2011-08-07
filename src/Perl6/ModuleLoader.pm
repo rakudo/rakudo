@@ -1,6 +1,3 @@
-# XXX Very simplistic for now - really we'll need to steal much of the stuff
-# in the existing Perl6::Module::Loader and Perl6::Module::Locator, though enough
-# of it is wrong (e.g. importing) that this will look quite different anyway.
 class Perl6::ModuleLoader {
     my %modules_loaded;
     my %settings_loaded;
@@ -51,6 +48,7 @@ class Perl6::ModuleLoader {
         # Go through the prefixes and build a candidate list.
         my @candidates;
         for @prefixes -> $prefix {
+            $prefix := ~$prefix;
             my $have_pm  := pir::stat__isi("$prefix/$pm_path", 0);
             my $have_pir := pir::stat__isi("$prefix/$pir_path", 0);
             my $have_pbc := pir::stat__isi("$prefix/$pbc_path", 0);
@@ -185,6 +183,7 @@ class Perl6::ModuleLoader {
             my $path := "$setting_name.setting.pbc";
             my @prefixes := self.search_path();
             for @prefixes -> $prefix {
+                $prefix := ~$prefix;
                 if pir::stat__isi("$prefix/$path", 0) {
                     $path := "$prefix/$path";
                     last;

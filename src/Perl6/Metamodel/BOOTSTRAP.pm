@@ -655,13 +655,13 @@ Mu.HOW.publish_parrot_vtable_mapping(Mu);
 my $PROCESS;
 my $hll_ns := pir::get_root_global__PS('perl6');
 if pir::exists($hll_ns, 'PROCESS') {
-    $PROCESS := $hll_ns['PROCESS'];
+    $PROCESS := $hll_ns<PROCESS>;
 }
 else {
     my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
     PROCESS.HOW.compose(PROCESS);
     Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
-    $hll_ns['PROCESS'] := $PROCESS := PROCESS;
+    $hll_ns<PROCESS> := $PROCESS := PROCESS;
 }
 
 # Bool::False and Bool::True.

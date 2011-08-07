@@ -361,7 +361,7 @@ S11-modules/lexical.t
 # S11-modules/require.t # err: Could not find symbol 'Fancy::Utilities::&lolgreet'
 # S12-attributes/class.t # err: Method 'bar' not found for invocant of class 'Foo'
 S12-attributes/clone.t
-# S12-attributes/delegation.t # err: Method 'hi' not found for invocant of class 'ClassFrontend'
+S12-attributes/delegation.t
 S12-attributes/inheritance.t
 # S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
 # S12-attributes/mutators.t # err: Cannot put a type constraint on an 'our'-scoped variable

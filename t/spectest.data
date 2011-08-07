@@ -25,7 +25,7 @@ S02-builtin_data_types/flattening.t
 S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
 S02-builtin_data_types/infinity.t
-# S02-builtin_data_types/instants-and-durations.t
+S02-builtin_data_types/instants-and-durations.t
 # S02-builtin_data_types/lists.t # err: Cannot use augment scope with class
 S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
